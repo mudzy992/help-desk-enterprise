@@ -5,15 +5,15 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1 zatvorio je `BA-assets-01`, W7.2 `BA-assets-02`, a W7.3 `BA-assets-03`; `BA-assets-04`–`BA-assets-19` ostaju otvoreni.
+**Implementacija:** W7.1 zatvorio je `BA-assets-01`, W7.2 `BA-assets-02`, W7.3 `BA-assets-03`, a W7.4 `BA-assets-04`; `BA-assets-05`–`BA-assets-19` ostaju otvoreni.
 
 ## 1. Executive summary
 
 `assets` je širok CMDB domen: tipovi i custom atributi, lokacije, asset CRUD/status/custody, relacije i impact, ticket veze, licence i ugovori, spreadsheet import/export, directory sync, transferi sa DOCX/signed kopijom te expiry reminders. Pozitivna osnova je značajna: OU subtree filteri i not-found direct-ID semantika, optimistic version kod općeg edita i transfera, transactional asset eventi, AES-GCM ključevi, formula escaping, apply-time scope revalidacija, frozen transfer snapshot, DB sekvenca, ClamAV i contained storage path.
 
-Baseline je ipak **4,59/10**. Četiri P1 nalaza pogađaju authorization, povjerljivost, custody integritet i operativnu isporuku. Audit je pronašao globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označava poslanim bez primaoca ili potvrđene isporuke. W7.1, W7.2 i W7.3 su naknadno zatvorili prva tri P1 nalaza; `BA-assets-04` reminder delivery ostaje otvoren.
+Baseline je **4,59/10**. Četiri početna P1 nalaza pogađala su authorization, povjerljivost, custody integritet i operativnu isporuku: globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označavao poslanim bez primaoca ili potvrđene isporuke. W7.1–W7.4 su naknadno zatvorili sva četiri; preostali assets nalazi ostaju zasebni i otvoreni.
 
-Dodatni nalazi uključuju race za unique JSON atribut, cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.3 closeout dokazi su evidentirani na kraju ovog dokumenta.
+Dodatni nalazi uključuju race za unique JSON atribut, cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.4 closeout dokazi su evidentirani na kraju ovog dokumenta.
 
 ## 2. Scope i inventar
 
@@ -101,7 +101,7 @@ Transfer snapshot trajno čuva imena, email, OU/title i asset identifikatore. Us
 
 Planner je determinističan i threshold niz sprečava normalan dnevni duplicate. Primaoci se računaju po permission kindu i OU subtreeu; in-app ima dedupe key, a user email koristi centralni durable delivery helper i preference policy.
 
-Glavni marker je semantički pogrešan: nakon pokušaja svih kanala servis bezuslovno upisuje planirane threshold-e. To uključuje nula recipienta, sve preference OFF, SMTP nedostupan te uhvaćen in-app/email failure. Sljedeći run više ne pokušava i kritično expiry upozorenje je trajno izgubljeno. Marker mora predstavljati potvrđenu policy-dovoljnu isporuku ili persisted outbox task, sa retry/dead-letter/reconciliation stanjem po itemu/thresholdu/recipientu.
+Baseline kvar BA-assets-04 bio je bezuslovni upis planiranih thresholda nakon pokušaja kanala — uključujući nula recipienta, sve preference OFF, nedostupan SMTP i uhvaćene in-app/email greške. W7.4 zatvara taj kvar: servis prati scoped primaoce, primaoce s barem jednim uključenim kanalom i potvrđenu dostavu po itemu; marker napreduje tek kad svaki takav primalac ima persisted in-app notifikaciju (uključujući stabilni dedupe pogodak) ili e-mail status `SENT`. `CLAIMED`, izuzetak, neuspješna dostava, odsustvo scoped primalaca ili svi scoped kanali OFF ostavljaju prag pending. Hash dedupe ključ je stabilan za retry istog item/type/threshold/datum isteka, a `updateMany` CAS uslov ponovo provjerava datum i izvornu listu pragova prije upisa. Dodatni interni email može zadovoljiti samo item bez scoped primaoca i samo nakon uspješnog slanja; durable status/dedupe za te adrese ostaje odvojeni `BA-assets-11`.
 
 Extra internal recipients idu direktno kroz transport, bez delivery reda/statusa. Crash nakon slanja, a prije marker updatea, može duplirati poruku; failure se samo loguje. Pored toga dobijaju punu installation-wide listu po dizajnu, pa konfiguracija recipienta mora biti strogo global-admin, auditirana i redigovana.
 
@@ -157,7 +157,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | BA-assets-01 | P1       | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama                       | zatvoreno |
 | BA-assets-02 | P1       | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type                | zatvoreno |
 | BA-assets-03 | P1       | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer          | zatvoreno |
-| BA-assets-04 | P1       | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke           | otvoreno |
+| BA-assets-04 | P1       | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke           | zatvoreno |
 | BA-assets-05 | P2       | Unique custom JSON atribut je read-before-write bez DB zaštite                                | otvoreno |
 | BA-assets-06 | P2       | Parallel relation cycle/symmetric insert može prekršiti graph invariant                        | otvoreno |
 | BA-assets-07 | P2       | Per-user license assignment nema user OU/scope kompatibilnost                                 | otvoreno |
@@ -179,7 +179,8 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 - **01:** zatvoreno u W7.1 — scope ostaje vezan za assignment, a globalni doseg zahtijeva installation-wide grant; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 - **02:** zatvoreno u W7.2 za relation/contract graph: foreign asset čvorovi se filtriraju prije shapeanja, a prikazuje se samo hidden count; detalj u [W7.2 implementacijskom dokazu](../implementation/88-assets-graph-scope.md). Licence i cross-boundary relation mutacije ostaju zasebni otvoreni scopeovi.
 - **03:** zatvoreno u W7.3 — status/assign/unassign imaju obavezni expected version i CAS; generalni update također zahtijeva verziju. Stale conflict vraća HTTP 409 bez eventa ili holder/licence side effecta; detalji su u [W7.3 implementacijskom dokazu](../implementation/89-assets-version-cas.md).
-- **04, 11:** persisted per-item/threshold/recipient delivery/outbox; marker tek nakon policy-dovoljnog uspjeha; extra recipient kroz isti sistem.
+- **04:** zatvoreno u W7.4 — prag po itemu napreduje samo nakon policy-dovoljne, potvrđene primarne dostave ili uspješnog extra slanja kada nema scoped primaoca; datum i izvorna lista pragova štite se CAS uslovom. Detalj u [W7.4 implementacijskom dokazu](../implementation/90-assets-reminder-delivery.md).
+- **11:** ostaje otvoreno — dodatni interni email i dalje nema durable delivery red/status ni per-address dedupe; W7.4 ga ne preuzima kao primarni transport niti zatvara ovaj nalaz.
 - **05–06:** normalizovane unique attribute vrijednosti i canonical relation edge/invariant uz DB constraint/locking.
 - **07:** user/asset target mora biti u dozvoljenom OU modelu licence; detail redakcija.
 - **08:** partial unique primary indeks, ticket lock/serializable update i repair job.
@@ -204,7 +205,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | I. Operativnost/perf.        |     7% |   4,50 |
 | **Ukupno**                   | **100%** | **4,59/10** |
 
-Ponderisani zbir je 4,594. Otvoreni P1 nalazi ograničavaju maksimum na 7,49.
+Ponderisani zbir početnog baselinea je 4,594; tadašnji otvoreni P1 nalazi ograničavali su audit maksimum na 7,49. Baseline ocjena se ne preračunava retroaktivno nakon implementacijskih closeouta.
 
 ## 18. Fazni plan
 
@@ -218,7 +219,7 @@ Assignment-derived ADMIN scope, graph redakcija i jedinstveni optimistic CAS ugo
 
 ### Faza 2 — reminder delivery i scheduler recovery
 
-Durable recipient delivery state, marker correctness, retry/dead-letter/reconcile, distributed scheduler reconciliation i health alarms.
+BA-assets-04 marker correctness za primarne scoped dostave zatvoren je u W7.4. Preostaju `BA-assets-10` scheduler reconciliation nakon Redis gubitka, `BA-assets-11` durable status/dedupe za extra email i `BA-assets-18` delivery/scheduler health signali; retry/reconcile se ne smatra zatvorenim izvan dokazanog BA-assets-04 toka.
 
 ### Faza 3 — DB invarianti i licence
 
@@ -249,7 +250,7 @@ Regenerisan Prisma client; svih 13 direktnih suiteova; Postgres concurrency, Red
 9. Import JSON, transfer snapshot i signed fajl imaju retention/anonymization/orphan lifecycle.
 10. Liste ne trunciraju tiho, health signalizira drift, a kompletni unit/integration/E2E testovi prolaze.
 
-Modul ima ozbiljan i funkcionalno bogat temelj, posebno u transferu, spreadsheet sigurnosti i osnovnom OU modelu. Ipak scope bypass, cross-boundary metadata, neujednačena custody konkurentnost i reminder marker znače da još nije production-grade enterprise CMDB. Iskren baseline je **4,59/10**.
+Modul ima ozbiljan i funkcionalno bogat temelj, posebno u transferu, spreadsheet sigurnosti i osnovnom OU modelu. W7.1–W7.4 su zatvorili četiri početna P1 nalaza, ali otvoreni graph mutability, licence, DB invarianti, scheduler recovery, audit i lifecycle nalazi i dalje znače da modul nije production-grade enterprise CMDB. Iskren početni baseline ostaje **4,59/10**.
 
 ## 20. Implementacijski closeout — W7.1 (`BA-assets-01`)
 
@@ -264,3 +265,9 @@ W7.2 scope-filtera relation endpoint čvorove prema `asset.read` OU subtreeu i c
 W7.3 zatvorio je `BA-assets-03` nakon što su status/assign/unassign dobili obavezni expected version, a transakcijski CAS uslov obuhvatio `id`, `version`, trenutni status i holdera. Eventi i custody/status side effecti nastaju samo nakon `count === 1`; stale i paralelni gubitnički zahtjevi vraćaju `ASSET_VERSION_CONFLICT` / HTTP 409 bez dodatnog eventa. Osam real-PostgreSQL acceptance testova pokriva stale general PUT/status/assign/unassign, racing stale RETIRED zahtjev i paralelne status/assign/unassign mutacije. Kriterijski retirement interleaving potvrđuje da gubitnički zahtjev ne čisti holdera, ne briše device `LicenseAssignment` i ne emituje unassign/license-release event.
 
 Audit §4 napomena o opcionalnom `version` na generalnom updateu uključena je u ovaj closure kriterij: update DTO/servis sada zahtijeva verziju i neće prihvatiti blind PUT, dok create ostaje versionless. Feature commit je `8f929e0ce8b3bf922ab80e80b5141da20ad2a86a`; dodatni licence-side-effect acceptance test je u commit `4ecbed60244c9da33d3c91fc693f5fac6120399b`. Finalni CI [`40930141682`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40930141682) je zelen na testanom SHA `4ecbed60244c9da33d3c91fc693f5fac6120399b`; backend, PostgreSQL/Redis integration, frontend, docs, container/supply-chain i CI gate prošli su. Push workflow je preskočio E2E jobove i zero high/critical image enforcement prema workflow uslovima; nema CI pada. Lokalni backend generate/build bio je blokiran sandboxom koji ne može dohvatiti Prisma engine, a CI je uspješno generisao client i izvršio suiteove. Nema schema promjene ni DB migracije. Potpuni testni, rollout i API contract dokaz je u [89-assets-version-cas.md](../implementation/89-assets-version-cas.md). `BA-assets-04` i svi drugi susjedni nalazi ostaju otvoreni.
+
+## 23. Implementacijski closeout — W7.4 (`BA-assets-04`)
+
+W7.4 zatvara samo `BA-assets-04`. `AssetRemindersService.run()` sada prati scoped odgovorne korisnike, korisnike s barem jednim uključenim kanalom i potvrđene dostave po stavci; svaki odgovorni korisnik s aktivnim kanalom mora imati persisted in-app notifikaciju ili e-mail receipt sa statusom `SENT`. `CLAIMED`, izuzetak i neuspjela dostava ne napreduju marker. Bez scoped primaoca, kad su svi scoped kanali isključeni ili kad nijedna dostava nije potvrđena, prag ostaje pending. Extra interne adrese se i dalje pokušavaju nezavisno od primarnog neuspjeha, ali mogu zadovoljiti prag samo kada stavka nema scoped primaoca i barem jedno slanje uspije. Upis koristi transakcijski `updateMany` sa CAS uslovima nad statusom retirementa, datumom isteka i izvornom listom marker pragova.
+
+Regresioni suite pokriva sve tri vrste itema (asset warranty, ugovor i licenca), djelimični neuspjeh izolovan na iteme u scopeu tog primaoca, retry-stabilan dedupe, e-mail status `SENT` nasuprot `CLAIMED`, oba kanala neuspješna, nula scoped primalaca, svi kanali OFF, te uspješno/neuspješno slanje dodatnoj internoj adresi bez scoped managera. Kodni i testni commit je `9dc3384d5921f9b31aa399373733a2ef30cca7d9`; finalni CI [`40934782196`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40934782196) je zelen na istom SHA-u. Backend build/lint/suiteovi, PostgreSQL+Redis integracija, frontend, docs guard, container/supply-chain i CI gate prošli su. Push workflow je namjerno preskočio E2E critical flows i install wizard; image vulnerability enforcement korak je `skipped` jer je actionable high/critical count bio nula. Lokalni ciljani Jest nije mogao kompajlirati bez generisanog Prisma klijenta u sandboxu; CI je uspješno validirao/generisao klijent i izvršio backend test suite. Nije bilo neuspjelog CI pokušaja. Nema Prisma schema promjene ni DB migracije; BA-assets-10 (Redis scheduler recovery) i BA-assets-11 (durable/deduplicated extra email) ostaju otvoreni. Nije rađen istorijski backfill/rollback ranije pogrešno napredovanih marker vrijednosti. Detaljan closeout je u [90-assets-reminder-delivery.md](../implementation/90-assets-reminder-delivery.md); sljedeći paket je W7.5 (`BA-assets-05`) i nije započet.
