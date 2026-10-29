@@ -73,7 +73,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
     const incidents = [
       { id: 'i1', status: 'RESOLVED', resolvedAt: new Date('2026-01-01'), retentionArchivedAt: null },
     ];
-    const updates = [
+    const updates: Array<{ id: string; incidentId: string; contentRedactedAt: Date | null }> = [
       { id: 'u1', incidentId: 'i1', contentRedactedAt: null },
     ];
     const prisma = buildPrisma(incidents, updates);
@@ -109,7 +109,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
 
   it('returns done when batch is smaller than limit', async () => {
     const incidents = [{ id: 'i1', status: 'RESOLVED', resolvedAt: new Date('2026-01-01'), retentionArchivedAt: null }];
-    const updates = [];
+    const updates: Array<{ id: string; incidentId: string; contentRedactedAt: Date | null }> = [];
     const prisma = buildPrisma(incidents, updates);
     const executor = createStatusIncidentRetentionExecutor(prisma);
     const batch = await executor.executeBatch(cutoff);
@@ -123,7 +123,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
       resolvedAt: new Date('2026-01-01'),
       retentionArchivedAt: null,
     }));
-    const updates = [];
+    const updates: Array<{ id: string; incidentId: string; contentRedactedAt: Date | null }> = [];
     const prisma = buildPrisma(incidents, updates);
     const executor = createStatusIncidentRetentionExecutor(prisma);
     const batch = await executor.executeBatch(cutoff);
@@ -134,7 +134,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
     const incidents = [
       { id: 'i1', status: 'RESOLVED', resolvedAt: new Date('2026-10-01'), retentionArchivedAt: null },
     ];
-    const updates = [];
+    const updates: Array<{ id: string; incidentId: string; contentRedactedAt: Date | null }> = [];
     const prisma = buildPrisma(incidents, updates);
     const executor = createStatusIncidentRetentionExecutor(prisma);
     const batch = await executor.executeBatch(cutoff);
