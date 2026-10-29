@@ -5,8 +5,11 @@ import { notificationTypes } from '../notifications/notifications.constants';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
 import { SettingsService } from '../settings/settings.service';
+import { ticketSystemEventActions } from '../tickets/collaboration.constants';
+import { insertSystemTicketEvent } from '../tickets/insert-system-ticket-event';
 import {
   statusIncidentResolutionDeliveryTopic,
+  statusIncidentResolutionTicketEventTopic,
   statusIncidentStartDeliveryMaxRunsPerSweep,
   statusIncidentStartDeliveryPageSize,
   statusIncidentStartDeliveryTopic,
@@ -16,6 +19,7 @@ const openTicketStatuses = ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED
 
 type StartPayload = { readonly incidentId: string; readonly actorUserId: string; readonly serviceIds: readonly string[] };
 type ResolutionPayload = { readonly incidentId: string; readonly actorUserId: string; readonly message: string; readonly resolvedAt: Date };
+type ResolutionTicketEventPayload = { readonly incidentId: string; readonly actorUserId: string };
 
 @Injectable()
 export class StatusIncidentStartDeliveryService {
@@ -30,9 +34,13 @@ export class StatusIncidentStartDeliveryService {
     for (let index = 0; index < statusIncidentStartDeliveryMaxRunsPerSweep; index += 1) {
       const start = await this.outbox.dispatchOne(statusIncidentStartDeliveryTopic, (delivery) => this.deliver(delivery));
       const resolution = await this.outbox.dispatchOne(statusIncidentResolutionDeliveryTopic, (delivery) => this.deliverResolution(delivery));
+      const ticketEvents = await this.outbox.dispatchOne(statusIncidentResolutionTicketEventTopic, (delivery) =>
+        this.deliverResolutionTicketEvents(delivery),
+      );
       if (start === 'succeeded') completed += 1;
       if (resolution === 'succeeded') completed += 1;
-      if (start === 'idle' && resolution === 'idle') break;
+      if (ticketEvents === 'succeeded') completed += 1;
+      if (start === 'idle' && resolution === 'idle' && ticketEvents === 'idle') break;
     }
     return completed;
   }
@@ -140,6 +148,36 @@ export class StatusIncidentStartDeliveryService {
     }
   }
 
+  async deliverResolutionTicketEvents(delivery: OutboxDelivery): Promise<void> {
+    const payload = parseResolutionTicketEventPayload(delivery.payload);
+    const incident = await this.prisma.serviceIncident.findUnique({
+      where: { id: payload.incidentId },
+      select: { id: true, title: true, status: true },
+    });
+    if (incident === null || incident.status !== 'RESOLVED') return;
+    let cursor: string | null = null;
+    for (;;) {
+      const links: Array<{ ticketId: string }> = await this.prisma.ticketIncidentLink.findMany({
+        where: { incidentId: incident.id, ticketId: cursor === null ? undefined : { gt: cursor } },
+        select: { ticketId: true },
+        orderBy: { ticketId: 'asc' },
+        take: statusIncidentStartDeliveryPageSize,
+      });
+      if (links.length === 0) return;
+      for (const link of links) {
+        await insertSystemTicketEvent(this.prisma, {
+          ticketId: link.ticketId,
+          action: ticketSystemEventActions.incidentResolved,
+          actorUserId: payload.actorUserId,
+          detail: `${incident.id}|${truncate(incident.title, 150)}`,
+          idempotencyKey: `status-incident-resolved:${incident.id}`,
+        });
+      }
+      cursor = links[links.length - 1].ticketId;
+      if (links.length < statusIncidentStartDeliveryPageSize) return;
+    }
+  }
+
   private async persistResolution(
     incident: { readonly id: string; readonly impact: string },
     userId: string,
@@ -183,6 +221,15 @@ function parseResolutionPayload(value: unknown): ResolutionPayload {
     throw new Error('STATUS_INCIDENT_RESOLUTION_PAYLOAD_INVALID');
   }
   return { incidentId: row.incidentId, actorUserId: row.actorUserId, message: row.message, resolvedAt };
+}
+
+function parseResolutionTicketEventPayload(value: unknown): ResolutionTicketEventPayload {
+  if (typeof value !== 'object' || value === null) throw new Error('STATUS_INCIDENT_RESOLUTION_TICKET_EVENT_PAYLOAD_INVALID');
+  const row = value as Record<string, unknown>;
+  if (typeof row.incidentId !== 'string' || typeof row.actorUserId !== 'string') {
+    throw new Error('STATUS_INCIDENT_RESOLUTION_TICKET_EVENT_PAYLOAD_INVALID');
+  }
+  return { incidentId: row.incidentId, actorUserId: row.actorUserId };
 }
 
 function truncate(value: string, max: number): string {

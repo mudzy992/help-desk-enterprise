@@ -15,7 +15,11 @@ import type { PrivacyActor } from '../privacy/privacy-actor';
 import { loadOpenIncidentImpacts } from '../service-catalog/load-open-incident-impacts';
 import { defaultServiceAvailabilityEvaluationContext } from '../service-catalog/parse-service-availability-configuration';
 import { StatusIncidentsService } from './status-incidents.service';
-import { statusIncidentResolutionDeliveryTopic, statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
+import {
+  statusIncidentResolutionDeliveryTopic,
+  statusIncidentResolutionTicketEventTopic,
+  statusIncidentStartDeliveryTopic,
+} from './status-incident-start-delivery.constants';
 import { StatusIncidentStartDeliveryService } from './status-incident-start-delivery.service';
 import { loadUptimePercentByService, StatusPageService, type StatusViewer } from './status-page.service';
 
@@ -223,6 +227,7 @@ describeIfDatabase('status page (integration)', () => {
     await expect(
       incidents.addUpdate(own.id, { status: 'RESOLVED', message: 'Scoped incident zatvoren', notifyOnResolve: false }, scopedActor),
     ).resolves.toEqual({ notified: 0 });
+    expect(await startDelivery.runSweep()).toBe(1);
   });
 
   it('enforces service-scoped STAFF_ONLY reads across overview, incident and service paths', async () => {
@@ -257,7 +262,7 @@ describeIfDatabase('status page (integration)', () => {
     const requesterBefore = await notificationsFor(ids.requester, 'status.incidentResolved');
     const subscriberBefore = await notificationsFor(ids.subscriber, 'status.incidentResolved');
     expect(await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Internal resolution' }, operator)).toEqual({ notified: 0 });
-    expect(await startDelivery.runSweep()).toBe(1);
+    expect(await startDelivery.runSweep()).toBe(2);
     expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore);
     expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
   });
@@ -292,6 +297,7 @@ describeIfDatabase('status page (integration)', () => {
     expect(tail).toMatchObject({ hasMore: false, nextCursor: null });
     await expect(page.timeline(created.id, mailScopedView, { take: 10 })).rejects.toMatchObject({ status: 404 });
     await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Testna vremenska linija je zatvorena', notifyOnResolve: false }, operator);
+    expect(await startDelivery.runSweep()).toBe(1);
   });
 
   it('rejects stale concurrent edits and stale links after resolution', async () => {
@@ -310,6 +316,7 @@ describeIfDatabase('status page (integration)', () => {
 
     const beforeResolve = (await page.incident(created.id, staffView)).revision;
     await incidents.addUpdate(created.id, { status: 'RESOLVED', message: 'Concurrency test resolved', notifyOnResolve: false }, operator);
+    expect(await startDelivery.runSweep()).toBe(1);
     const linksBefore = await prisma.ticketIncidentLink.count({ where: { incidentId: created.id } });
     await expect(incidents.linkTicket(created.id, ids.ticket, operator, beforeResolve)).rejects.toMatchObject({ status: 409 });
     expect(await prisma.ticketIncidentLink.count({ where: { incidentId: created.id } })).toBe(linksBefore);
@@ -338,7 +345,8 @@ describeIfDatabase('status page (integration)', () => {
     const result = await incidents.addUpdate(ids.incident, { status: 'RESOLVED', message: 'Certifikat obnovljen' }, operator);
     expect(result.notified).toBe(0);
     expect(await prisma.outboxMessage.count({ where: { topic: statusIncidentResolutionDeliveryTopic, dedupeKey: `resolution:${ids.incident}`, status: 'PENDING' } })).toBe(1);
-    expect(await startDelivery.runSweep()).toBe(1);
+    expect(await prisma.outboxMessage.count({ where: { topic: statusIncidentResolutionTicketEventTopic, dedupeKey: `resolution-events:${ids.incident}`, status: 'PENDING' } })).toBe(1);
+    expect(await startDelivery.runSweep()).toBe(2);
     expect(await notificationsFor(ids.subscriber, 'status.incidentResolved')).toBe(subscriberBefore + 1);
     expect(await notificationsFor(ids.requester, 'status.incidentResolved')).toBe(requesterBefore + 1);
     const pending = await prisma.serviceIncidentSubscription.count({ where: { incidentId: ids.incident, notifiedAt: null } });

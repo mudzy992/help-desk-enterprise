@@ -13,7 +13,11 @@ import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import type { AddIncidentUpdateDto, CreateIncidentDto, UpdateIncidentDto } from './status-page.dto';
-import { statusIncidentResolutionDeliveryTopic, statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
+import {
+  statusIncidentResolutionDeliveryTopic,
+  statusIncidentResolutionTicketEventTopic,
+  statusIncidentStartDeliveryTopic,
+} from './status-incident-start-delivery.constants';
 import { withIncidentVisibility, type StatusViewer } from './status-page.service';
 import {
   isIncidentStatusTransitionAllowed,
@@ -213,15 +217,12 @@ export class StatusIncidentsService {
         data: { incidentId: id, status: input.status, message: input.message, authorUserId: actor.principal.subjectId, createdAt: now },
       });
       if (resolving) {
-        const links = await transaction.ticketIncidentLink.findMany({ where: { incidentId: id }, select: { ticketId: true } });
-        for (const link of links) {
-          await insertSystemTicketEvent(transaction as never, {
-            ticketId: link.ticketId,
-            action: ticketSystemEventActions.incidentResolved,
-            actorUserId: actor.principal.subjectId,
-            detail: eventDetail(current),
-          });
-        }
+        await this.outbox.enqueue(transaction as never, {
+          topic: statusIncidentResolutionTicketEventTopic,
+          dedupeKey: `resolution-events:${current.id}`,
+          payload: { incidentId: current.id, actorUserId: actor.principal.subjectId },
+          maxAttempts: 25,
+        });
       }
       await recordAuditEntry(transaction as never, {
         action: resolving ? auditLogActions.statusIncidentResolved : auditLogActions.statusIncidentUpdatePosted,

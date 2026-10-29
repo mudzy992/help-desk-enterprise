@@ -1,9 +1,16 @@
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../notifications/preferences/notification-preference-policy', () => ({ loadNotificationPreferencePolicy: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../notifications/fan-out/persist-in-app-notification', () => ({ persistInAppNotification: jest.fn().mockResolvedValue({ id: 'notification' }) }));
+jest.mock('../tickets/insert-system-ticket-event', () => ({ insertSystemTicketEvent: jest.fn().mockResolvedValue({ id: 'event' }) }));
 
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
-import { statusIncidentResolutionDeliveryTopic, statusIncidentStartDeliveryPageSize, statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
+import { insertSystemTicketEvent } from '../tickets/insert-system-ticket-event';
+import {
+  statusIncidentResolutionDeliveryTopic,
+  statusIncidentResolutionTicketEventTopic,
+  statusIncidentStartDeliveryPageSize,
+  statusIncidentStartDeliveryTopic,
+} from './status-incident-start-delivery.constants';
 import { StatusIncidentStartDeliveryService } from './status-incident-start-delivery.service';
 
 const delivery = (payload: object) => ({ id: 'outbox-1', topic: statusIncidentStartDeliveryTopic, dedupeKey: 'incident-1', payload, attempts: 1, maxAttempts: 25, ownerToken: 'owner' });
@@ -47,6 +54,27 @@ describe('StatusIncidentStartDeliveryService', () => {
     } as never)).rejects.toThrow('temporary write failure');
     expect(prisma.serviceIncidentSubscription.updateMany).toHaveBeenCalledTimes(1);
     expect(prisma.serviceIncidentSubscription.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ userId: 'subscriber-a' }) }));
+  });
+
+  it('keyset-paginates resolution ticket events with deterministic per-ticket idempotency', async () => {
+    const first = Array.from({ length: statusIncidentStartDeliveryPageSize }, (_, index) => ({ ticketId: `t-${String(index).padStart(4, '0')}` }));
+    const second = [{ ticketId: 't-0250' }, { ticketId: 't-0251' }];
+    const prisma = {
+      serviceIncident: { findUnique: jest.fn().mockResolvedValue({ id: 'incident-1', title: 'Incident', status: 'RESOLVED' }) },
+      ticketIncidentLink: { findMany: jest.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second) },
+    };
+    const service = new StatusIncidentStartDeliveryService(prisma as never, {} as never, {} as never);
+    await service.deliverResolutionTicketEvents({
+      id: 'outbox-events', topic: statusIncidentResolutionTicketEventTopic, dedupeKey: 'resolution-events:incident-1',
+      payload: { incidentId: 'incident-1', actorUserId: 'operator' }, attempts: 1, maxAttempts: 25, ownerToken: 'owner',
+    } as never);
+
+    expect(prisma.ticketIncidentLink.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.ticketIncidentLink.findMany.mock.calls[1][0]).toMatchObject({ where: { ticketId: { gt: first.at(-1)?.ticketId } } });
+    expect(insertSystemTicketEvent).toHaveBeenCalledTimes(statusIncidentStartDeliveryPageSize + second.length);
+    expect(insertSystemTicketEvent).toHaveBeenLastCalledWith(prisma, expect.objectContaining({
+      ticketId: 't-0251', idempotencyKey: 'status-incident-resolved:incident-1',
+    }));
   });
 
   it('cancels pending public delivery after visibility is restricted', async () => {

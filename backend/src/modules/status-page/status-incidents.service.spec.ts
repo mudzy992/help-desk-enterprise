@@ -132,13 +132,14 @@ describe('StatusIncidentsService.addUpdate', () => {
     });
   });
 
-  it('commits one durable resolution intent instead of synchronous fan-out', async () => {
+  it('commits durable notification and ticket-event intents instead of synchronous fan-out', async () => {
     const { service, prisma } = build(open);
     const result = await service.addUpdate('i1', { status: 'RESOLVED', message: 'Popravljeno' }, actor, new Date('2026-01-01T12:00:00Z'));
     expect(result.notified).toBe(0);
     expect(persistInAppNotification).not.toHaveBeenCalled();
-    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(insertSystemTicketEvent).toHaveBeenCalledTimes(2);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(insertSystemTicketEvent).not.toHaveBeenCalled();
+    expect((prisma.ticketIncidentLink as { findMany: jest.Mock }).findMany).not.toHaveBeenCalled();
     expect(lastAudit()).toMatchObject({ action: 'status.incident.resolved', metadata: { durationMinutes: 120 } });
     expect((prisma.serviceIncidentSubscription as { updateMany: jest.Mock }).updateMany).not.toHaveBeenCalled();
   });
@@ -146,15 +147,15 @@ describe('StatusIncidentsService.addUpdate', () => {
   it('queues STAFF_ONLY resolution for subscriber-only worker delivery', async () => {
     const { service, prisma } = build({ ...open, visibility: 'STAFF_ONLY' });
     await service.addUpdate('i1', { status: 'RESOLVED', message: 'Popravljeno' }, actor);
-    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     expect(persistInAppNotification).not.toHaveBeenCalled();
   });
 
-  it('notifyOnResolve=false resolves silently', async () => {
+  it('notifyOnResolve=false skips notifications but retains durable ticket-event delivery', async () => {
     const { service, prisma } = build(open);
     const result = await service.addUpdate('i1', { status: 'RESOLVED', message: 'ok', notifyOnResolve: false }, actor);
     expect(result.notified).toBe(0);
-    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
     expect(persistInAppNotification).not.toHaveBeenCalled();
   });
 
