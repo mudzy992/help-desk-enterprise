@@ -2087,6 +2087,7 @@
         "private.privacy.retention.requestRegisterDays": "Koliko dana se čuvaju zatvoreni zahtjevi nosilaca podataka (0 = isključeno, najmanje 365).",
         "private.privacy.retention.runAtLocalTime": "Lokalno vrijeme noćnog posla zadržavanja (HH:MM).",
         "private.privacy.retention.maxMinutesPerNight": "Najduže trajanje noćnog posla u minutama; ostatak se nastavlja sljedeće noći (5-240).",
+        "private.privacy.retention.statusIncidentsDays": "Nakon koliko dana od rezolucije se status-stranica incident arhivira; naslov, autor, vremenska linija ažuriranja, povezivanje tiketa i pretplate se redaktuju ili brišu (0 = isključeno, najmanje 180).",
         "private.privacy.anonymization.candidateAfterDays": "Nakon koliko dana deaktivacije se korisnik prikazuje kao kandidat za anonimizaciju.",
         "private.privacy.anonymization.requireSecondApprover": "Anonimizaciju mora odobriti drugi SUPER_ADMIN („četiri oka\").",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pri anonimizaciji unaprijed označi brisanje priloga koje je osoba sama postavila.",

@@ -2076,6 +2076,7 @@
         "private.privacy.retention.requestRegisterDays": "Days to keep closed data subject requests (0 = off, minimum 365).",
         "private.privacy.retention.runAtLocalTime": "Local time of the nightly retention job (HH:MM).",
         "private.privacy.retention.maxMinutesPerNight": "Maximum minutes per nightly run; the rest continues the next night (5-240).",
+        "private.privacy.retention.statusIncidentsDays": "Days after resolution before a status-page incident is archived; title, author, timeline updates, ticket links and subscriptions are redacted or removed (0 = off, minimum 180).",
         "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate.",
         "private.privacy.anonymization.requireSecondApprover": "A second SUPER_ADMIN must approve every anonymization (four eyes).",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pre-select deleting the person’s own attachments during anonymization.",
