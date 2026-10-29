@@ -185,3 +185,29 @@ describeIfDatabase('status page (integration)', () => {
     expect(audit?.metadata).toMatchObject({ changed: ['impact', 'services'], impact: { from: 'DEGRADED', to: 'DOWN' } });
   });
 });
+
+  it('failure matrix: concurrent creates on same incident services do not corrupt state', async () => {
+    const outcomes = await Promise.allSettled([
+      incidents.create({ title: 'Concurrent A', impact: 'DOWN', serviceIds: [ids.vpn], message: 'A' }, operator),
+      incidents.create({ title: 'Concurrent B', impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'B' }, operator),
+    ]);
+    const fulfilled = outcomes.filter((o) => o.status === 'fulfilled').length;
+    expect(fulfilled).toBe(2);
+    const count = await prisma.serviceIncident.count({ where: { title: { in: ['Concurrent A', 'Concurrent B'] } } });
+    expect(count).toBe(2);
+  });
+
+  it('large volume: creates 100 incidents and paged reads stay bounded', async () => {
+    const batch = Array.from({ length: 100 }, (_, i) => ({
+      title: `Bulk incident ${i}`,
+      impact: 'DEGRADED',
+      serviceIds: [ids.vpn],
+      message: `Bulk message ${i}`,
+    }));
+    for (const input of batch) await incidents.create(input, operator);
+    const view = await page.page(requesterView);
+    expect(view.activeIncidents).toHaveLength(statusPageLimits.openIncidentsListed);
+    expect(view.activeHasMore).toBe(true);
+    expect(view.activeNextCursor).not.toBeNull();
+  });
+});

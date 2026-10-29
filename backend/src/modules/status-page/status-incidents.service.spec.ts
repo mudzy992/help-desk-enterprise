@@ -108,3 +108,38 @@ function lastAudit() {
   const calls = (recordAuditEntry as jest.Mock).mock.calls;
   return calls[calls.length - 1][1];
 }
+
+describe('StatusIncidentsService failure matrix (BA-status-page-19)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('rejects edit of non-existent incident', async () => {
+    const { service, prisma } = build(open);
+    (prisma.serviceIncident as { findUnique: jest.Mock }).findUnique.mockResolvedValueOnce(null);
+    await expect(service.edit('missing-id', { title: 'New' }, actor)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('rejects edit of resolved incident', async () => {
+    const { service } = build({ ...open, status: 'RESOLVED' });
+    await expect(service.edit('i1', { title: 'New' }, actor)).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('rejects edit without valid If-Match revision', async () => {
+    const { service } = build(open);
+    await expect(service.edit('i1', { title: 'New' }, actor, 'not-a-date')).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('rejects link to non-existent ticket', async () => {
+    const { service, authorization } = build(open);
+    (authorization as { authorizeResource: jest.Mock }).authorizeResource.mockResolvedValueOnce({ allowed: false, reason: 'NO_MATCHING_PERMISSION_SCOPE' });
+    await expect(service.linkTicket('i1', 'missing-ticket', actor)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('rejects subscribe to resolved incident', async () => {
+    const { service } = build({ ...open, status: 'RESOLVED' });
+    await expect(service.subscribe('i1', { ...requesterView, userId: 'sub1' })).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+function requesterView() {
+  return { userId: 'req1', isStaff: false, canManage: false } as never;
+}
