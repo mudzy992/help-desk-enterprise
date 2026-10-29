@@ -70,7 +70,7 @@ describe('createStatusIncidentRetentionExecutor', () => {
         .filter(
           (i) => i.status === 'RESOLVED' && i.resolvedAt && i.resolvedAt < cutoff && !i.retentionArchivedAt,
         )
-        .sort((a: TestIncident, b: TestIncident) => a.resolvedAt.getTime() - b.resolvedAt.getTime())
+        .sort((a: TestIncident, b: TestIncident) => (a.resolvedAt ?? new Date(0)).getTime() - (b.resolvedAt ?? new Date(0)).getTime())
         .slice(0, 50)
         .map((i) => ({ id: i.id, resolvedAt: i.resolvedAt })),
     );
