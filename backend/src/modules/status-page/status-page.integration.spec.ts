@@ -21,6 +21,7 @@ import {
   statusIncidentStartDeliveryTopic,
 } from './status-incident-start-delivery.constants';
 import { StatusIncidentStartDeliveryService } from './status-incident-start-delivery.service';
+import { statusPageLimits } from './status-page.model';
 import { loadUptimePercentByService, StatusPageService, type StatusViewer } from './status-page.service';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -479,5 +480,30 @@ describeIfDatabase('status page (integration)', () => {
       select: { metadata: true },
     });
     expect((audits[0]?.metadata as { backdated?: unknown })?.backdated).toBeUndefined();
+  });
+
+  it('failure matrix: concurrent incident creates on the same service both succeed', async () => {
+    const created = await Promise.all([
+      incidents.create({ title: `Concurrent A ${stamp}`, impact: 'DOWN', serviceIds: [ids.vpn], message: 'A' }, operator),
+      incidents.create({ title: `Concurrent B ${stamp}`, impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'B' }, operator),
+    ]);
+    expect(new Set(created.map((incident) => incident.id)).size).toBe(2);
+    const count = await prisma.serviceIncident.count({ where: { id: { in: created.map((incident) => incident.id) } } });
+    expect(count).toBe(2);
+  });
+
+  it('large volume: creates 100 incidents and keeps the active page bounded', async () => {
+    const batch = Array.from({ length: 100 }, (_, index) => ({
+      title: `Bulk incident ${stamp}-${index}`,
+      impact: 'DEGRADED' as const,
+      serviceIds: [ids.vpn],
+      message: `Bulk message ${index}`,
+    }));
+    for (const input of batch) await incidents.create(input, operator);
+
+    const createdCount = await prisma.serviceIncident.count({ where: { title: { in: batch.map(({ title }) => title) } } });
+    expect(createdCount).toBe(100);
+    const view = await page.page(requesterView);
+    expect(view.activeIncidents.length).toBeLessThanOrEqual(statusPageLimits.openIncidentsListed);
   });
 });

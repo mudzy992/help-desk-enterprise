@@ -23,6 +23,7 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
   const prisma: Record<string, jest.Mock | Record<string, jest.Mock>> = {
     serviceIncident: {
       findUnique: jest.fn().mockResolvedValue(incident),
+      findFirst: jest.fn().mockResolvedValue(incident),
       update: jest.fn().mockResolvedValue(incident),
       updateMany: jest.fn().mockResolvedValue({ count: options.moved ?? 1 }),
       create: jest.fn().mockResolvedValue({ ...incident, id: 'new-incident-id' }),
@@ -47,6 +48,7 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
       findMany: jest.fn().mockResolvedValue([{ userId: 'sub1' }, { userId: 'op' }]),
       deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
       updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+      upsert: jest.fn().mockResolvedValue({}),
     },
   };
   prisma.$executeRaw = jest.fn().mockResolvedValue(1);
@@ -283,6 +285,46 @@ describe('StatusIncidentsService.create backdating guard (BA-status-page-18)', (
         actor,
       ),
     ).rejects.toMatchObject({ status: 400, response: { code: 'INCIDENT_START_IN_FUTURE' } });
+  });
+});
+
+describe('StatusIncidentsService failure matrix (BA-status-page-19)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns 404 when editing a non-existent incident', async () => {
+    const { service, prisma } = build(open);
+    (prisma.serviceIncident as { findUnique: jest.Mock }).findUnique.mockResolvedValueOnce(null);
+    await expect(service.edit('missing-id', { title: 'New title' }, actor)).rejects.toMatchObject({
+      status: 404,
+      response: { code: 'INCIDENT_NOT_FOUND' },
+    });
+  });
+
+  it('returns 409 when editing a resolved incident', async () => {
+    const { service } = build({ ...open, status: 'RESOLVED' });
+    await expect(service.edit('i1', { title: 'New title' }, actor)).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'INCIDENT_RESOLVED' },
+    });
+  });
+
+  it('returns 404 when a linked ticket does not exist', async () => {
+    const { service, prisma } = build(open);
+    (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([]);
+    await expect(service.linkTicket('i1', 'missing-ticket', actor)).rejects.toMatchObject({
+      status: 404,
+      response: { code: 'TICKET_NOT_FOUND' },
+    });
+    expect((prisma.ticketIncidentLink as { create: jest.Mock }).create).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when subscribing to a resolved incident', async () => {
+    const { service, prisma } = build({ ...open, status: 'RESOLVED' });
+    await expect(service.subscribe('i1', { userId: 'sub1', isStaff: false, canManage: false })).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'INCIDENT_RESOLVED' },
+    });
+    expect((prisma.serviceIncidentSubscription as { upsert: jest.Mock }).upsert).not.toHaveBeenCalled();
   });
 });
 
