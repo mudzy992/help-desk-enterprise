@@ -150,6 +150,12 @@ export class StatusIncidentsService {
       .filter(([, value]) => value !== undefined)
       .map(([key]) => key);
     if (changed.length === 0) return;
+    const serviceChanges = serviceIds === undefined
+      ? null
+      : {
+          added: serviceIds.filter((serviceId) => !currentServiceIds.includes(serviceId)),
+          removed: currentServiceIds.filter((serviceId) => !serviceIds.includes(serviceId)),
+        };
     await this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, id);
       const locked = await transaction.serviceIncident.findUnique({ where: { id }, select: { visibility: true, status: true, updatedAt: true } });
@@ -186,10 +192,12 @@ export class StatusIncidentsService {
         entityId: id,
         metadata: {
           changed,
+          ...(input.title === undefined ? {} : { title: { from: current.title, to: input.title } }),
+          ...(input.titleEn === undefined ? {} : { titleEn: { from: current.titleEn, to: input.titleEn } }),
           ...(input.impact === undefined ? {} : { impact: { from: current.impact, to: input.impact } }),
           ...(input.visibility === undefined ? {} : { visibility: { from: locked.visibility, to: input.visibility } }),
           ...(revokedSubscriptions.count === 0 ? {} : { revokedSubscriptions: revokedSubscriptions.count }),
-          ...(serviceIds === undefined ? {} : { serviceIds }),
+          ...(serviceChanges === null ? {} : { services: serviceChanges }),
         },
         actorUserId: actor.principal.subjectId,
         requestId: actor.requestId,
