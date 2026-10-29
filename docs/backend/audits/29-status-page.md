@@ -134,7 +134,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-14 | P2       | Process-local public cache nema mutation invalidation ni multi-instance koherenciju             | zatvoreno |
 | BA-status-page-15 | P2       | Incident/update/link/subscription retention i anonymization nisu formalizovani                  | zatvoreno |
 | BA-status-page-16 | P3       | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker                      | zatvoreno |
-| BA-status-page-17 | P3       | Edit audit/revision ne omogućava rekonstrukciju title/service promjena                          | otvoreno |
+| BA-status-page-17 | P3       | Edit audit/revision ne omogućava rekonstrukciju title/service promjena                          | zatvoreno |
 | BA-status-page-18 | P3       | Neograničeno backdating incidenta mijenja uptime historiju bez posebne kontrole                 | otvoreno |
 | BA-status-page-19 | P3       | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje   | otvoreno |
 
@@ -177,6 +177,10 @@ Status-page retention i anonymization su formalizovani kroz novu `statusIncident
 ### W6.14 closeout — `BA-status-page-16`
 
 Na SHA `882aceb`, uz zeleni backend build + test i frontend build + test, open i history incidentne liste na status stranici dobijaju keyset paginaciju. `page()` prima opcione `activeQuery`/`historyQuery` sa `cursor` i `take` (maksimalno 100 po stranici), orderuje po `[{ startedAt: 'desc' }, { id: 'desc' }]` (stabilan ID tie-breaker), vraća `take+1` redova i izračunava `hasMore`/`nextCursor`. Odgovor dobija `activeHasMore`/`activeNextCursor` i `historyHasMore`/`historyNextCursor`. OpenForService i forTicket ostaju na fiksnoj stranici 20 (banner/panel casos), a `incident()` vraća jedan red. Javni endpoint (`PublicStatusPage`) prosleđuje nova polja bez otkrivanja staff podataka. Nema nove DB migracije.
+
+### W6.15 closeout — `BA-status-page-17`
+
+Na SHA `ebd937a`, uz zeleni backend build + test i frontend build + test, `edit` transakcija zabilježi u audit zapisu rekonstrukciju promjena: `title` i `titleEn` sa `from`/`to` parovima, kao i `services` sa `added`/`removed` listama prilikom izmene servisa incidenta. Time je zatvoren `BA-status-page-17`. Nema nove DB migracije.
 
 ## 14. Ključne korekcije
 

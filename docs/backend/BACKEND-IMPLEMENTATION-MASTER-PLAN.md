@@ -428,4 +428,6 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - ℹ️ Backend PostgreSQL + Redis integration job ima pre-existujući poremećaj (nepovezan sa W6.13 kodom), 사태 se prati.
 - **W6.14 cursor pagination for open/history lists (`BA-status-page-16`) — implementiran** na SHA `882aceb`, backend build + test zelen, frontend build + test zelen.
 - Open i history incidentne liste na status stranici sada imaju keyset paginaciju (`cursor`/`take`, `hasMore`/`nextCursor`) sa stabilnim ID tie-breakerom (`startedAt DESC, id DESC`), kao i `activeHasMore`/`activeNextCursor`/`historyHasMore`/`historyNextCursor` u odgovoru. Time je zatvoren `BA-status-page-16`; dokaz je u kodu (specovi + integration scenariji u toku).
-- Sljedeći paket (W6.15) se bira iz preostalih: **BA-status-page-17** (edit audit/revision rekonstrukcija), **BA-status-page-18** (neograničeno backdating) ili **BA-status-page-19** (compile-blocked suiteovi, failure/concurrency matrica).
+- **W6.15 edit audit reconstruction (`BA-status-page-17`) — implementiran** na SHA `ebd937a`, backend build + test zelen, frontend build + test zelen.
+- Incident `edit` transakcija zabilježi u audit zapisu rekonstrukciju promjena: `title` i `titleEn` sa `from`/`to` parovima, kao i `services` sa `added`/`removed` listama. Time je zatvoren `BA-status-page-17`; dokaz je u kodu (unit specovi + integration scenariji).
+- Sljedeći paket (W6.16) se bira iz preostalih: **BA-status-page-18** (neograničeno backdating) ili **BA-status-page-19** (compile-blocked suiteovi, failure/concurrency matrica).

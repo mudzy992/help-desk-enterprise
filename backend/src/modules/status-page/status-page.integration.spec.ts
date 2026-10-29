@@ -405,4 +405,31 @@ describeIfDatabase('status page (integration)', () => {
     });
     expect(audit?.metadata).toMatchObject({ changed: ['impact', 'services'], impact: { from: 'DEGRADED', to: 'DOWN' } });
   });
+
+  it('audit records title and titleEn from/to on incident edit', async () => {
+    await incidents.edit(ids.incident, { title: 'Nova naslovna', titleEn: 'New title' }, operator);
+    const audits = await prisma.auditLog.findMany({
+      where: { entityId: ids.incident, action: 'status.incident.edited' },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: { metadata: true },
+    });
+    expect(audits[0]?.metadata).toMatchObject({
+      title: { from: 'VPN prekid', to: 'Nova naslovna' },
+      titleEn: { from: null, to: 'New title' },
+    });
+  });
+
+  it('audit records services added/removed on incident edit', async () => {
+    await incidents.edit(ids.incident, { serviceIds: [ids.vpn, ids.mail] }, operator);
+    const audits = await prisma.auditLog.findMany({
+      where: { entityId: ids.incident, action: 'status.incident.edited' },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: { metadata: true },
+    });
+    expect(audits[0]?.metadata).toMatchObject({
+      services: { added: [ids.mail], removed: [] },
+    });
+  });
 });

@@ -4668,7 +4668,7 @@
     {
       "id": "BA-status-page-17",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "29-status-page.md",
       "owner": "WS-D",
       "wave": 6

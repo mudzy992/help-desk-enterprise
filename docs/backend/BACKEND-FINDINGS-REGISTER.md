@@ -3,7 +3,7 @@
 **Status:** audit baseline — implementacija nije započeta  
 **Datum:** 2026-10-23  
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)  
-**Trenutno:** 594 otvorenih / 98 zatvorena / 692 ukupno
+**Trenutno:** 593 otvorenih / 99 zatvorena / 692 ukupno
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -416,7 +416,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 29 | `status-page` | `BA-status-page-14` | P2 | Process-local public cache nema mutation invalidation ni multi-instance koherenciju | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-15` | P2 | Incident/update/link/subscription retention i anonymization nisu formalizovani | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-16` | P3 | Open/history capped liste nemaju cursor/hasMore ni stabilan ID tie-breaker | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
-| 29 | `status-page` | `BA-status-page-17` | P3 | Edit audit/revision ne omogućava rekonstrukciju title/service promjena | otvoreno | [29-status-page.md](audits/29-status-page.md) |
+| 29 | `status-page` | `BA-status-page-17` | P3 | Edit audit/revision ne omogućava rekonstrukciju title/service promjena | zatvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-18` | P3 | Neograničeno backdating incidenta mijenja uptime historiju bez posebne kontrole | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 29 | `status-page` | `BA-status-page-19` | P3 | Tri od pet suiteova su compile-blockirana; failure/concurrency/large-volume matrica nedostaje | otvoreno | [29-status-page.md](audits/29-status-page.md) |
 | 30 | `config-versioning` | `BA-config-versioning-01` | P1 | ADMIN bez read permissiona dobija puni globalni privatni snapshot kroz list/get/diff | zatvoreno | [30-config-versioning.md](audits/30-config-versioning.md) |
