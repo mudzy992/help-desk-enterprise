@@ -6,7 +6,7 @@ export type LocaleSyncDecision =
   | { readonly action: "apply"; readonly locale: Locale };
 
 /**
- * Paket 1.5: e-mails are sent in the user's saved language, so the UI and the
+ * E-mails are sent in the user's saved language, so the UI and the
  * server must agree. At sign-in the saved choice follows the user to any
  * device; a user who never chose one gets the language they are using now.
  */

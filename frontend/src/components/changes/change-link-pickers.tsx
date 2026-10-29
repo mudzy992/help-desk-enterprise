@@ -26,7 +26,7 @@ function useDebounced(value: string, delay = 250): string {
 const resultButtonClassName =
   "flex w-full items-center gap-1.5 truncate rounded-md px-2 py-1 text-left text-[12.5px] text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none";
 
-/** Paket 3.4 (§11): equipment touched by the change (only while the CMDB is on). */
+/** Delivery invariant (requirement): equipment touched by the change (only while the CMDB is on). */
 export function ChangeAssetPicker({
   value,
   onChange,
@@ -111,7 +111,7 @@ export function ChangeAssetPicker({
   );
 }
 
-/** Paket 3.4 (§11): at most one problem the change fixes (only while the problem module is on). */
+/** Delivery invariant (requirement): at most one problem the change fixes (only while the problem module is on). */
 export function ChangeProblemPicker({
   value,
   onChange,

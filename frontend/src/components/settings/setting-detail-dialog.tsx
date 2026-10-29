@@ -53,6 +53,9 @@ export function SettingDetailDialog({
   const { t } = useTranslation();
   const { toast } = useToast();
   const isSecret = entry.visibility === "secret";
+  // IN18: the install wizard owns this value; showing an editor whose write the
+  // next wizard run would overwrite is worse than showing no editor at all.
+  const isReadOnly = entry.readOnly === true;
   const stored = readEffectiveValue(entry);
   const [draft, setDraft] = useState<string | number | boolean>(
     isSecret ? "" : (entry.value ?? entry.defaultValue ?? ""),
@@ -282,16 +285,26 @@ export function SettingDetailDialog({
           </p>
         ) : null}
 
+        {isReadOnly ? (
+          <p
+            data-testid="setting-detail-readonly"
+            className="mt-3 flex gap-2 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2 text-[12.5px] leading-5 text-foreground/90"
+          >
+            <Info size={14} aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
+            <span>{t("settings.detail.readOnlyHint")}</span>
+          </p>
+        ) : null}
+
         <div className="mt-4 flex flex-wrap items-end gap-2">
           <SettingsRegistryControl
             entry={entry}
             isSecret={isSecret}
             draft={draft}
-            disabled={!canWrite || isBusy || blockingParents.length > 0}
+            disabled={isReadOnly || !canWrite || isBusy || blockingParents.length > 0}
             onChange={setDraft}
             secretPlaceholder="••••••"
           />
-          {canWrite && isDirty ? (
+          {canWrite && !isReadOnly && isDirty ? (
             <>
               <input
                 className={controlCompactClassName}

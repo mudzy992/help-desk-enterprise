@@ -17,7 +17,7 @@ interface TicketCsatPanelProperties {
 }
 
 /**
- * Paket 4.2: the CSAT form moved out of the rail into a bar across the ticket,
+ * the CSAT form moved out of the rail into a bar across the ticket,
  * so it is visible the moment the ticket is resolved. The card has no header —
  * the caller supplies the context.
  */

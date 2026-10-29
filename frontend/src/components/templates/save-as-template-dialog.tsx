@@ -51,12 +51,15 @@ export function SaveAsTemplateDialog({
           }}
         >
           <Field label={t("templates.picker.saveAsName")} required>
-            <Input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              maxLength={120}
-              autoFocus
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={120}
+                autoFocus
+              />
+            )}
           </Field>
           <p className="mt-3 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-md border border-border/70 bg-elevated/40 p-2 text-[12px] text-muted-foreground">
             {body.trim()}

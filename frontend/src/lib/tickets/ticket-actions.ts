@@ -1,11 +1,11 @@
 import {
-  allowedTicketStatusTransitions,
+  staffSelectableTicketStatusTransitions,
   claimableTicketStatuses,
 } from "@/lib/tickets/ticket-constants";
 import type { TicketStatus, TicketResponse } from "@/services/tickets-api";
 
 export function nextTicketStatuses(status: TicketStatus): readonly TicketStatus[] {
-  return allowedTicketStatusTransitions[status];
+  return staffSelectableTicketStatusTransitions[status];
 }
 
 export function canShowClaimAction(ticket: TicketResponse, actorIsStaff = true): boolean {

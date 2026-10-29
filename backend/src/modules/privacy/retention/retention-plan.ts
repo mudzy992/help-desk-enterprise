@@ -80,6 +80,7 @@ export const retentionExecutionOrder: readonly RetentionCategory[] = [
   'sessions',
   'emailDeliveries',
   'requestRegister',
+  'statusIncidents',
   'attachments',
   'ticketContent',
   'audit',

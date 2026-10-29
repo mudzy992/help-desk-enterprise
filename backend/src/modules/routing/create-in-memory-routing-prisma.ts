@@ -22,6 +22,7 @@ export type InMemoryRoutingService = {
 export type InMemoryRoutingGroup = {
   readonly id: string;
   readonly name: string;
+  readonly organizationalUnitPath?: string;
 };
 
 export type InMemoryRoutingServiceWhere = {
@@ -73,6 +74,17 @@ function matchesInMemoryRoutingService(
   );
 }
 
+export type InMemoryChangeLogWhere = {
+  readonly entityType?: string;
+  readonly entityId?: string | { readonly in: readonly string[] };
+  readonly scopeOriginUnitId?: string;
+  readonly scopeServiceId?: string;
+  readonly createdAt?: Date | { readonly lt: Date };
+  readonly id?: { readonly lt: string };
+  readonly OR?: readonly InMemoryChangeLogWhere[];
+  readonly AND?: readonly InMemoryChangeLogWhere[];
+};
+
 export type InMemoryRoutingChangeLog = {
   id: string;
   entityType: string;
@@ -80,6 +92,8 @@ export type InMemoryRoutingChangeLog = {
   reason: string;
   diff: ChangeLogDiffPayload;
   actorUserId: string | null;
+  scopeOriginUnitId: string | null;
+  scopeServiceId: string | null;
   createdAt: Date;
   actor: { displayName: string } | null;
 };
@@ -164,20 +178,43 @@ export function createInMemoryRoutingPrisma() {
         select,
       }: {
         where: { id: string };
-        select?: Record<string, boolean>;
-      }) => pickInMemoryFields(groups.get(where.id), select),
+        select?: Record<string, unknown>;
+      }) => {
+        const group = groups.get(where.id);
+        if (group === undefined) return null;
+        if (select?.organizationalUnit !== undefined) {
+          return {
+            organizationalUnit: { ouPath: group.organizationalUnitPath ?? '/' },
+          };
+        }
+        return pickInMemoryFields(group, select as Record<string, boolean> | undefined);
+      },
       findMany: async ({
         where,
         select,
       }: {
         where?: { id?: { in: readonly string[] } };
-        select?: Record<string, boolean>;
+        select?: Record<string, unknown>;
       } = {}) =>
         [...groups.values()]
           .filter((group) =>
             where?.id === undefined ? true : where.id.in.includes(group.id),
           )
-          .map((group) => pickInMemoryFields(group, select)),
+          .map((group) => {
+            if (select?.organizationalUnit !== undefined) {
+              return {
+                id: group.id,
+                name: group.name,
+                organizationalUnit: {
+                  ouPath: group.organizationalUnitPath ?? '/',
+                },
+              };
+            }
+            return pickInMemoryFields(
+              group,
+              select as Record<string, boolean> | undefined,
+            );
+          }),
     },
     routingRule: createRoutingRuleDelegate(rules, nextId, now),
     changeLog: {
@@ -190,6 +227,8 @@ export function createInMemoryRoutingPrisma() {
           reason: string;
           diff: ChangeLogDiffPayload;
           actorUserId: string | null;
+          scopeOriginUnitId?: string;
+          scopeServiceId?: string;
         };
       }) => {
         const entry: InMemoryRoutingChangeLog = {
@@ -199,6 +238,8 @@ export function createInMemoryRoutingPrisma() {
           reason: data.reason,
           diff: data.diff,
           actorUserId: data.actorUserId,
+          scopeOriginUnitId: data.scopeOriginUnitId ?? null,
+          scopeServiceId: data.scopeServiceId ?? null,
           createdAt: nextChangeTimestamp(),
           actor:
             data.actorUserId === null
@@ -208,36 +249,22 @@ export function createInMemoryRoutingPrisma() {
         changeLogs.push(entry);
         return entry;
       },
-      findMany: async ({
-        where,
-        orderBy,
-      }: {
-        where?: { entityType?: string; entityId?: string };
-        orderBy?: { createdAt: 'asc' | 'desc' };
+      findMany: async ({ where, take }: {
+        where?: InMemoryChangeLogWhere;
+        orderBy?: unknown;
         include?: unknown;
+        take?: number;
       }) => {
-        const filtered = changeLogs.filter((entry) => {
-          if (
-            where?.entityType !== undefined &&
-            entry.entityType !== where.entityType
-          ) {
-            return false;
-          }
-          if (
-            where?.entityId !== undefined &&
-            entry.entityId !== where.entityId
-          ) {
-            return false;
-          }
-          return true;
-        });
-        const sorted = [...filtered].sort((left, right) =>
-          orderBy?.createdAt === 'asc'
-            ? left.createdAt.getTime() - right.createdAt.getTime()
-            : right.createdAt.getTime() - left.createdAt.getTime(),
-        );
-        return sorted;
+        const sorted = changeLogs
+          .filter((entry) => matchesChangeLog(entry, where))
+          .sort((left, right) =>
+            right.createdAt.getTime() - left.createdAt.getTime() ||
+            right.id.localeCompare(left.id),
+          );
+        return take === undefined ? sorted : sorted.slice(0, take);
       },
+      count: async ({ where }: { where?: InMemoryChangeLogWhere } = {}) =>
+        changeLogs.filter((entry) => matchesChangeLog(entry, where)).length,
     },
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
       callback(prisma),
@@ -255,6 +282,23 @@ export function createInMemoryRoutingPrisma() {
   };
 }
 
+function matchesChangeLog(
+  entry: InMemoryRoutingChangeLog,
+  where?: InMemoryChangeLogWhere,
+): boolean {
+  if (where === undefined) return true;
+  if (where.entityType !== undefined && entry.entityType !== where.entityType) return false;
+  if (typeof where.entityId === 'string' && entry.entityId !== where.entityId) return false;
+  if (typeof where.entityId === 'object' && !where.entityId.in.includes(entry.entityId)) return false;
+  if (where.scopeOriginUnitId !== undefined && entry.scopeOriginUnitId !== where.scopeOriginUnitId) return false;
+  if (where.scopeServiceId !== undefined && entry.scopeServiceId !== where.scopeServiceId) return false;
+  if (where.createdAt instanceof Date && entry.createdAt.getTime() !== where.createdAt.getTime()) return false;
+  if (typeof where.createdAt === 'object' && !(where.createdAt instanceof Date) && entry.createdAt >= where.createdAt.lt) return false;
+  if (where.id?.lt !== undefined && entry.id >= where.id.lt) return false;
+  if (where.AND !== undefined && !where.AND.every((part) => matchesChangeLog(entry, part))) return false;
+  return where.OR === undefined || where.OR.some((part) => matchesChangeLog(entry, part));
+}
+
 function createRoutingRuleDelegate(
   rules: Map<string, RoutingRuleRecord>,
   nextId: () => string,
@@ -265,18 +309,29 @@ function createRoutingRuleDelegate(
       rules.get(where.id) ?? null,
     findMany: async ({
       where,
+      select,
+      take,
     }: {
       where?: RoutingRuleWhere;
-    } = {}) =>
-      [...rules.values()]
+      select?: Record<string, boolean>;
+      orderBy?: unknown;
+      take?: number;
+    } = {}) => {
+      const matched = [...rules.values()]
         .filter((rule) => matchesInMemoryRoutingRule(rule, where))
         .sort((left, right) =>
           left.serviceId === right.serviceId
-            ? left.originUnitId.localeCompare(right.originUnitId)
+            ? left.originUnitId === right.originUnitId
+              ? left.id.localeCompare(right.id)
+              : left.originUnitId.localeCompare(right.originUnitId)
             : left.serviceId.localeCompare(right.serviceId),
-        ),
-    count: async ({ where }: { where: { serviceId: string } }) =>
-      [...rules.values()].filter((rule) => rule.serviceId === where.serviceId)
+        );
+      return (take === undefined ? matched : matched.slice(0, take)).map((rule) =>
+        pickInMemoryFields(rule, select),
+      );
+    },
+    count: async ({ where }: { where?: RoutingRuleWhere } = {}) =>
+      [...rules.values()].filter((rule) => matchesInMemoryRoutingRule(rule, where))
         .length,
     create: async ({
       data,
@@ -305,24 +360,26 @@ function createRoutingRuleDelegate(
       rules.set(created.id, created);
       return created;
     },
-    update: async ({
+    updateMany: async ({
       where,
       data,
     }: {
-      where: { id: string };
+      where: { id: string; updatedAt: Date };
       data: { groupId: string };
     }) => {
       const existing = rules.get(where.id);
-      if (existing === undefined) {
-        throw { code: 'P2025' };
+      if (
+        existing === undefined ||
+        existing.updatedAt.getTime() !== where.updatedAt.getTime()
+      ) {
+        return { count: 0 };
       }
-      const updated: RoutingRuleRecord = {
+      rules.set(where.id, {
         ...existing,
         groupId: data.groupId,
-        updatedAt: now(),
-      };
-      rules.set(where.id, updated);
-      return updated;
+        updatedAt: new Date(existing.updatedAt.getTime() + 1),
+      });
+      return { count: 1 };
     },
     delete: async ({ where }: { where: { id: string } }) => {
       const existing = rules.get(where.id);

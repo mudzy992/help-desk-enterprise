@@ -40,7 +40,7 @@
     "brandTagline": "Enterprise servisni centar",
     "searchPlaceholder": "Pretraga tiketa, članaka, korisnika…",
     "searchGroupTickets": "Tiketi",
-    "searchGroupKnowledge": "Knowledge Base",
+    "searchGroupKnowledge": "Baza znanja",
     "searchGroupUsers": "Korisnici",
     "searchNoResults": "Nema rezultata za ovaj upit.",
     "systemsPrefix": "Svi sistemi",
@@ -143,6 +143,7 @@
       "copyRequestId": "Kopiraj ID zahtjeva {{requestId}}",
       "copied": "ID zahtjeva kopiran"
     },
+    "retry": "Pokušaj ponovo",
     "save": "Sačuvaj"
   },
   "notifications": {
@@ -205,6 +206,7 @@
     "settingsBody": "Postavke aplikacije pojavit će se ovdje kad registar postavki bude dostupan na ovom ekranu."
   },
   "admin": {
+    "readOnlyBanner": "Administrativni modul je u režimu samo za čitanje. Izmjene su onemogućene za Vašu ulogu.",
     "title": "Administracija sistema",
     "subtitle": "Identitet, organizaciona struktura, postavke i operacije. Sve izmjene prolaze kroz change log s razlogom; read-only mod je dostupan po ulozi.",
     "tabs": {
@@ -219,8 +221,9 @@
     "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8",
     "ops": {
       "organizationalUnit": "Organizaciona jedinica (audit opseg)",
+      "organizationalUnitLoadError": "Stablo organizacionih jedinica nije učitano.",
       "needOrganizationalUnit": "Odaberite organizacionu jedinicu prije exporta.",
-      "auditLogTitle": "Audit log",
+      "auditLogTitle": "Dnevnik revizije",
       "auditLogBody": "Revizijski dnevnik (noviji prvo) u opsegu odabrane organizacione jedinice.",
       "auditLogLoading": "Učitavanje audit loga",
       "auditLogEmptyTitle": "Nema audit zapisa",
@@ -233,13 +236,13 @@
       "auditLogColumnActor": "Akter",
       "auditLogColumnRequest": "Zahtjev",
       "auditLogColumnDetails": "Detalji",
-      "auditTitle": "Audit export",
+      "auditTitle": "Izvoz revizije",
       "auditBody": "CSV/JSON izvoz s tamper-evident hash lancem — svaki red vezuje hash prethodnog.",
       "verify": "Provjeri lanac",
       "verifyDisabled": "Tamper-evident lanac je isključen u postavkama.",
       "verifyValid": "Hash lanac je validan ({{count}} zapisa).",
       "verifyBroken": "Prekid na indeksu {{index}} (id {{id}}); provjereno {{count}} zapisa.",
-      "supportTitle": "Support bundle",
+      "supportTitle": "Paket za podršku",
       "supportBody": "Dijagnostički paket: config verzija, red poslova, hash lanac, requestId tragovi (bez tajni).",
       "supportGenerate": "Generiši paket",
       "supportForbidden": "Support bundle dostupan je samo SuperAdmin nalogu.",
@@ -262,6 +265,7 @@
             "ticket_confidential_break_glass": "Povjerljivi tiket — odobren hitni pristup",
             "ticket_bulk_execute": "Skupna akcija nad tiketima — izvršena",
             "ticket_forwarded": "Tiket — proslijeđen",
+            "ticket_message_created": "Tiket — poruka kreirana",
             "ticket_priority_overridden": "Tiket — prioritet ručno promijenjen",
             "ticket_merged": "Tiket — spojen",
             "ticket_unmerged": "Tiket — spajanje poništeno",
@@ -356,6 +360,7 @@
             "oncall_calendar_token_rotated": "Token kalendara dežurstava — rotiran",
             "oncall_calendar_token_revoked": "Token kalendara dežurstava — opozvan",
             "oncall_escalation_notified": "Eskalacija dežurstva — obavijest poslana",
+            "sla_escalation_audience_empty": "SLA eskalacija — nema podobnog primaoca",
             "announcement_created": "Najava — kreiran",
             "announcement_updated": "Najava — ažuriran",
             "announcement_published": "Najava — objavljena",
@@ -369,9 +374,21 @@
             "asset_disposed": "Imovina — otpisan",
             "asset_deleted": "Imovina — obrisan",
             "asset_import_applied": "Uvoz imovine — primijenjen",
-            "asset_exported": "Imovina — izvezen",
+            "asset_exported": "Imovina — izvezena",
+            "asset_ticket_linked": "Imovina — povezana s tiketom",
+            "asset_ticket_unlinked": "Imovina — odvezana od tiketa",
+            "asset_license_created": "Licenca imovine — kreirana",
+            "asset_license_updated": "Licenca imovine — ažurirana",
+            "asset_license_deleted": "Licenca imovine — obrisana",
+            "asset_license_assigned": "Licenca imovine — dodijeljena",
+            "asset_license_released": "Licenca imovine — oslobođena",
             "asset_license_key_revealed": "Licenca imovine — ključ prikazan",
-            "asset_license_saved": "Licenca imovine — sačuvan",
+            "asset_license_saved": "Licenca imovine — sačuvana",
+            "asset_contract_created": "Ugovor o imovini — kreiran",
+            "asset_contract_updated": "Ugovor o imovini — ažuriran",
+            "asset_contract_deleted": "Ugovor o imovini — obrisan",
+            "asset_contract_item_added": "Ugovor o imovini — stavka dodana",
+            "asset_contract_item_removed": "Ugovor o imovini — stavka uklonjena",
             "asset_contract_saved": "Ugovor o imovini — sačuvan",
             "asset_directory_sync_dry_run": "Sinhronizacija direktorija imovine — probni prolaz završen",
             "asset_directory_sync_applied": "Sinhronizacija direktorija imovine — primijenjen",
@@ -380,6 +397,10 @@
             "asset_transfer_signed": "Prenos imovine — potpisan",
             "asset_transfer_template_uploaded": "Prenos imovine — šablon otpremljen",
             "asset_signatory_saved": "Potpisnik prenosa imovine — sačuvan",
+            "config_version_activate": "Verzija konfiguracije — aktivirana",
+            "config_version_rollback": "Verzija konfiguracije — vraćena",
+            "config_version_export": "Verzija konfiguracije — izvezena",
+            "config_version_import": "Verzija konfiguracije — uvezena",
             "problem_created": "Problem — kreiran",
             "problem_status_changed": "Problem — status promijenjen",
             "problem_closed": "Problem — zatvoren",
@@ -463,6 +484,9 @@
             "rollbackOfVersion": "Povratak na verziju",
             "durationMinutes": "Trajanje u minutama",
             "source": "Izvor",
+            "idempotencyKey": "Idempotency ključ",
+            "messageId": "ID poruke",
+            "messageType": "Tip poruke",
             "roleKey": "Ključ uloge",
             "delivered": "Isporučeno",
             "category": "Kategorija",
@@ -638,7 +662,7 @@
             "manual_directory_catalog": "Ručni katalog imenika"
           },
           "via": {
-            "admin": "Administrator",
+            "admin": "Administrator sistema",
             "server": "Serverski alat (CLI)",
             "rekey_asset_licenses": "Alat: ponovno šifrovanje licenci",
             "seed_default_role_permissions": "Alat: zadane permisije uloga"
@@ -825,13 +849,13 @@
         "api": "API",
         "database": "Baza podataka",
         "redis": "Redis",
-        "worker": "Worker",
+        "worker": "Radnik",
         "disk": "Disk za priloge",
         "clamav": "Antivirus (ClamAV)",
         "email": "Slanje e-maila",
         "ldapsCa": "LDAPS CA certifikat",
         "inbound": "Sandučić {{mailbox}}",
-        "eventLoop": "Event-loop lag {{ms}} ms",
+        "eventLoop": "Kašnjenje petlje događaja {{ms}} ms",
         "heartbeat": "Signal prije {{age}}",
         "noHeartbeat": "Nema signala",
         "unknown": "Nema podatka",
@@ -912,7 +936,7 @@
         "title": "Zakazani poslovi",
         "empty": "Nema podataka o zakazanim poslovima (čeka se mjerenje workera).",
         "job": "Posao",
-        "interval": "Interval",
+        "interval": "Interval izvršavanja",
         "lastSuccess": "Posljednji uspjeh",
         "next": "Sljedeće",
         "state": "Stanje",
@@ -941,6 +965,7 @@
           "problem_sweep_hourly": "Provjera rokova problema",
           "report_schedules_5min": "Izvršavanje zakazanih izvještaja",
           "sla_scan_every_minute": "SLA provjera i eskalacije",
+          "status_incident_start_delivery_every_minute": "Obavijesti o početku status incidenta",
           "ticket_archive_quarter_hourly": "Arhiviranje zatvorenih tiketa",
           "ticket_time_tracking_sweep_5min": "Zatvaranje otvorenih mjerenja vremena",
           "unrouted_sweep_quarter_hourly": "Obrada neusmjerenih tiketa",
@@ -973,14 +998,14 @@
         "extraRecipientsValue_other": "{{count}} adresa",
         "fallback": "Rezervni kanal (env)",
         "fallbackMissing": "Nije podešen: ako padne baza ili Redis, alarm se samo logira (OPS_ALERT_SMTP_URL, OPS_ALERT_EMAIL_TO).",
-        "uptime": "Uptime Kuma push",
+        "uptime": "Slanje u Uptime Kuma",
         "configured": "Podešeno",
         "notConfigured": "Nije podešeno"
       },
       "history": {
         "title": "Historija riješenih alarma ({{days}} dana)",
         "empty": "Nema riješenih alarma u periodu čuvanja.",
-        "alert": "Alarm",
+        "alert": "Upozorenje",
         "severity": "Težina",
         "started": "Početak",
         "duration": "Trajanje",
@@ -990,6 +1015,10 @@
         "worker_down": {
           "title": "Worker ne radi",
           "action": "Provjerite kontejner workera (logovi, restart). Dok ne radi, SLA, e-mail i zakazani poslovi stoje."
+        },
+        "email_providerBlocked": {
+          "title": "Izlazni e-mail je zaustavljen (limit provajdera)",
+          "action": "Provajder (npr. Gmail) odbija slanje jer je kvota potrošena. Aplikacija ne pokušava ponovo dok kvota ne prođe, a poruke čekaju u redu. Provjerite dnevni limit naloga, broj primalaca i da li treba drugi SMTP nalog."
         },
         "sla_scan_late": {
           "title": "SLA provjera kasni",
@@ -1071,6 +1100,10 @@
         "daysLeft": "Dana do isteka",
         "heartbeatAgeSeconds": "Sekundi od zadnjeg signala",
         "snapshotAgeSeconds": "Sekundi od zadnje provjere",
+        "heartbeatMissing": "Ključ heartbeat nije pročitan",
+        "snapshotMissing": "Ključ provjere zdravlja nije pročitan",
+        "blockedMinutesLeft": "Minuta do nastavka slanja",
+        "suppressedTotal": "Zaustavljenih slanja",
         "newFailures": "Novih neuspjelih poslova",
         "integrationDlq": "Integracije u DLQ",
         "jobs": "Zakasnjeli poslovi",
@@ -1151,11 +1184,11 @@
         "description": "Standardni IT paket: AGENT i ADMIN uloge ograničene na ciljnu organizacionu jedinicu."
       },
       "PACK_HR_RESTRICTED": {
-        "name": "HR Restricted",
+        "name": "Ograničeni HR",
         "description": "Ograničeni HR paket: AGENT uloga na ciljnoj OJ i servisu."
       },
       "PACK_FINANCE_RESTRICTED": {
-        "name": "Finance Restricted",
+        "name": "Ograničene finansije",
         "description": "Ograničeni Finance paket: AGENT i ADMIN uloge na ciljnoj OJ i servisu."
       }
     },
@@ -1172,14 +1205,18 @@
       "service.catalog.write": "Uređivanje kataloga usluga",
       "service.forms.write": "Uređivanje formi usluga",
       "service.availability.write": "Dostupnost usluga",
+      "sla.read": "Pregled SLA",
       "sla.write": "Uređivanje SLA",
       "routing.write": "Uređivanje rutiranja",
       "group.manage": "Upravljanje grupama",
+      "settings.read": "Pregled postavki",
       "settings.write": "Uređivanje postavki",
+      "config.version.read": "Pregled verzija konfiguracije",
+      "docs.agent.read": "Interna dokumentacija za agente",
       "integrations.queue.manage": "Upravljanje redom integracija",
       "audit.export": "Export audita",
       "reports.export": "Export izvještaja",
-      "supportBundle.export": "Support bundle",
+      "supportBundle.export": "Paket za podršku",
       "confidential.break_glass": "Break-glass pristup",
       "knowledge.article.write": "Pisanje članaka",
       "knowledge.article.review": "Pregled članaka",
@@ -1187,7 +1224,7 @@
       "edge.connect": "Edge povezivanje",
       "edge.notify.receive": "Edge obavijesti",
       "ticket.message.send": "Slanje poruka na tiketu",
-      "ticket.remote.open_quick_assist": "Quick Assist",
+      "ticket.remote.open_quick_assist": "Brza pomoć",
       "reports.schedule.manage": "Upravljanje zakazanim izvještajima",
       "privacy.view": "Pregled zaštite ličnih podataka",
       "privacy.manage": "Upravljanje zaštitom ličnih podataka",
@@ -1242,7 +1279,7 @@
     "edit": "Uredi",
     "delete": "Obriši",
     "deleting": "Brisanje…",
-    "fallbackBadge": "Fallback",
+    "fallbackBadge": "Rezervno",
     "fallbackForUnit": "Fallback grupa za {{unit}}",
     "memberCount": "{{count}} članova",
     "membersMetric": "Članovi",
@@ -1289,7 +1326,8 @@
     "problemGroupBadge": "Problem-grupa",
     "cabGroupBadge": "CAB",
     "deleteConfirmTitle": "Obrisati grupu „{{name}}“?",
-    "deleteConfirmBody": "Grupa ima {{count}} članova. Brisanje se bilježi u audit i ne može se poništiti."
+    "deleteConfirmBody": "Grupa ima {{count}} članova. Brisanje se bilježi u audit i ne može se poništiti.",
+    "routingRuleCountUnavailable": "Broj pravila rutiranja nije dostupan."
   },
   "permissions": {
     "title": "Permisije uloga",
@@ -1347,10 +1385,14 @@
         "service.catalog.write": "Kreiraj i uređuj unose u katalogu servisa i korake onboardinga.",
         "service.forms.write": "Kreiraj i uređuj forme zahtjeva za servis.",
         "service.availability.write": "Upravljaj dostupnošću servisa i planiranim prekidima.",
-        "sla.write": "Upravljaj SLA kalendarima, profilima i pravilima.",
+        "sla.read": "Pregledaj SLA kalendare, profile, pravila i historiju izmjena unutar dodijeljenog opsega.",
+      "sla.write": "Upravljaj SLA kalendarima, profilima i pravilima.",
         "routing.write": "Kreiraj i uređuj pravila usmjeravanja tiketa.",
         "group.manage": "Kreiraj, uređuj i briši grupe te upravljaj članovima.",
+        "settings.read": "Pregledaj globalni privatni registar postavki i konfiguracijske projekcije.",
         "settings.write": "Mijenjaj sistemske postavke, policy packove i verzije konfiguracije.",
+        "config.version.read": "Pregledaj globalne verzije konfiguracije, snapshotove i razlike.",
+        "docs.agent.read": "Čitaj internu dokumentaciju namijenjenu agentima.",
         "integrations.queue.manage": "Pregledaj i upravljaj redom integracionih poslova (retry, uvid).",
         "audit.export": "Izvezi audit log (CSV/JSON) i povezani pristup izvještajima.",
         "reports.export": "Pristupi i izvezi dashboard i KPI izvještaje.",
@@ -1558,7 +1600,7 @@
       "subtitle": "Secret postavke se čuvaju šifrovane; isključivanje gasi odlazni mail",
       "disabledNote": "Kanal je isključen — vrijednosti ispod se ne koriste, a polja su zaključana.",
       "enabled": "SMTP uključen",
-      "host": "Host",
+      "host": "Poslužitelj",
       "username": "Korisnik",
       "password": "Lozinka (secret)",
       "scope": "Opseg",
@@ -1573,7 +1615,7 @@
       "subtitle": "Verzija konfiguracije i integritet",
       "validation": "Validacija",
       "validationReady": "spremno",
-      "installWizard": "Install wizard",
+      "installWizard": "Čarobnjak za instalaciju",
       "installLocked": "zaključan {{date}}",
       "installOpen": "nije zaključan",
       "openConfigVersions": "Otvori config verzije",
@@ -1645,14 +1687,14 @@
       "title": "Dodaci (addon katalog)",
       "subtitle": "Stanje dodataka iz registra postavki — isključivanje je graceful, nema mrtvih linkova u UI",
       "loading": "Učitavanje dodataka…",
-      "registryBadge": "registry",
+      "registryBadge": "registar",
       "loadFailed": "Nije moguće učitati dodatke. Osvježite stranicu; ako se ponovi, provjerite vezu sa serverom."
     },
     "registry": {
       "title": "Ostale registrovane postavke",
       "subtitle": "Preostale kategorije otvaraju se u draweru. Opisi dolaze iz i18n registra.",
       "loading": "Učitavanje settings registry-ja…",
-      "readOnly": "Imate pregled, ali ne i dozvolu za izmjenu postavki.",
+      "readOnly": "Čarobnjak",
       "reason": "Razlog izmjene",
       "save": "Sačuvaj",
       "saving": "Spremanje…",
@@ -1783,6 +1825,15 @@
         "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima, odvojeni zarezom (bs, en).",
         "private.install.completedAt": "Kad je završen instalacijski čarobnjak (prazno = setup još aktivan).",
         "private.install.completedByUserId": "Id SuperAdmin korisnika koji je završio instalacijski čarobnjak.",
+        "private.install.profile": "Paket instalacije koji čarobnjak koristi (minimum, standard ili full).",
+        "private.install.steps.profile.skipped": "Oznaka da je korak izbora paketa odgođen u čarobnjaku.",
+        "private.install.steps.superAdmin.skipped": "Oznaka da je korak SuperAdmin naloga odgođen u čarobnjaku.",
+        "private.install.steps.loginProvider.skipped": "Oznaka da je korak načina prijave odgođen u čarobnjaku.",
+        "private.install.steps.smtp.skipped": "Oznaka da je korak SMTP postavki odgođen u čarobnjaku.",
+        "private.install.steps.seed.skipped": "Oznaka da je korak početnih podataka odgođen u čarobnjaku.",
+        "private.install.steps.addons.skipped": "Oznaka da je korak dodataka odgođen u čarobnjaku.",
+        "private.install.steps.provisioning.skipped": "Oznaka da je korak provjere spremnosti odgođen u čarobnjaku (nije ponuđen za odgodu).",
+        "private.install.checklistDismissedAt": "Kada je administrator sakrio checklistu nakon instalacije na dashboardu.",
         "private.integrations.queue.adminUiEnabled": "Uključi admin API za pregled reda i ponovni pokušaj poslova.",
         "private.integrations.queue.deadLetterAfterAttempts": "Broj neuspješnih pokušaja nakon kojeg posao ide u dead-letter red.",
         "private.integrations.queue.deadLetterRetentionDays": "Koliko dana čuvati dead-letter poslove prije brisanja.",
@@ -2036,6 +2087,7 @@
         "private.privacy.retention.requestRegisterDays": "Koliko dana se čuvaju zatvoreni zahtjevi nosilaca podataka (0 = isključeno, najmanje 365).",
         "private.privacy.retention.runAtLocalTime": "Lokalno vrijeme noćnog posla zadržavanja (HH:MM).",
         "private.privacy.retention.maxMinutesPerNight": "Najduže trajanje noćnog posla u minutama; ostatak se nastavlja sljedeće noći (5-240).",
+        "private.privacy.retention.statusIncidentsDays": "Nakon koliko dana od rezolucije se status-stranica incident arhivira; naslov, autor, vremenska linija ažuriranja, povezivanje tiketa i pretplate se redaktuju ili brišu (0 = isključeno, najmanje 180).",
         "private.privacy.anonymization.candidateAfterDays": "Nakon koliko dana deaktivacije se korisnik prikazuje kao kandidat za anonimizaciju.",
         "private.privacy.anonymization.requireSecondApprover": "Anonimizaciju mora odobriti drugi SUPER_ADMIN („četiri oka\").",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pri anonimizaciji unaprijed označi brisanje priloga koje je osoba sama postavila.",
@@ -2168,7 +2220,39 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "CAPTCHA — odbijene provjere po satu, upozorenje",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "CAPTCHA — odbijene provjere po satu, kritično",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — preskočene provjere po satu, upozorenje",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — preskočene provjere po satu, kritično"
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — preskočene provjere po satu, kritično",
+        "private.install.steps.identity.skipped": "Korak „Identitet“ je odgođen u wizardu.",
+        "private.install.steps.team.skipped": "Korak „Tim“ je odgođen u wizardu.",
+        "private.install.blueprint": "Predložak kataloga koji je primijenio čarobnjak (npr. itServiceDesk).",
+        "private.install.policyPack": "Paket prava koji je čarobnjak primijenio na organizacijsku jedinicu (npr. PACK_IT_STANDARD).",
+        "private.install.slaReview": "Kako je završen pregled SLA u čarobnjaku: confirmed (zadano potvrđeno) ili adjusted (izmijenjeno).",
+        "private.install.steps.blueprint.skipped": "Oznaka da je korak izrade kataloga odgođen u čarobnjaku.",
+        "private.install.steps.policyPack.skipped": "Oznaka da je korak paketa prava odgođen u čarobnjaku.",
+        "private.install.steps.slaReview.skipped": "Oznaka da je korak pregleda SLA odgođen u čarobnjaku.",
+        "private.install.steps.section.inboundEmail.skipped": "Oznaka da je sekcija „Dolazna e-pošta“ odgođena u čarobnjaku.",
+        "private.install.steps.section.inboundEmail.saved": "Oznaka da je sekcija „Dolazna e-pošta“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.directory.skipped": "Oznaka da je sekcija „Imenik (AD/LDAPS)“ odgođena u čarobnjaku.",
+        "private.install.steps.section.directory.saved": "Oznaka da je sekcija „Imenik (AD/LDAPS)“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.knowledgeBase.skipped": "Oznaka da je sekcija „Baza znanja“ odgođena u čarobnjaku.",
+        "private.install.steps.section.knowledgeBase.saved": "Oznaka da je sekcija „Baza znanja“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.statusPage.skipped": "Oznaka da je sekcija „Statusna stranica“ odgođena u čarobnjaku.",
+        "private.install.steps.section.statusPage.saved": "Oznaka da je sekcija „Statusna stranica“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.onCall.skipped": "Oznaka da je sekcija „Dežurstva“ odgođena u čarobnjaku.",
+        "private.install.steps.section.onCall.saved": "Oznaka da je sekcija „Dežurstva“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.announcements.skipped": "Oznaka da je sekcija „Obavještenja“ odgođena u čarobnjaku.",
+        "private.install.steps.section.announcements.saved": "Oznaka da je sekcija „Obavještenja“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.security.skipped": "Oznaka da je sekcija „Sigurnost“ odgođena u čarobnjaku.",
+        "private.install.steps.section.security.saved": "Oznaka da je sekcija „Sigurnost“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.privacy.skipped": "Oznaka da je sekcija „Privatnost i podaci“ odgođena u čarobnjaku.",
+        "private.install.steps.section.privacy.saved": "Oznaka da je sekcija „Privatnost i podaci“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.auditWebhook.skipped": "Oznaka da je sekcija „Audit webhook“ odgođena u čarobnjaku.",
+        "private.install.steps.section.auditWebhook.saved": "Oznaka da je sekcija „Audit webhook“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.itsm.skipped": "Oznaka da je sekcija „ITSM moduli“ odgođena u čarobnjaku.",
+        "private.install.steps.section.itsm.saved": "Oznaka da je sekcija „ITSM moduli“ odgovorena u čarobnjaku.",
+        "private.install.steps.section.integrations.skipped": "Oznaka da je sekcija „Integracije“ odgođena u čarobnjaku.",
+        "private.install.steps.section.integrations.saved": "Oznaka da je sekcija „Integracije“ odgovorena u čarobnjaku.",
+        "private.install.steps.securityRecommendations.skipped": "Oznaka da je sekcija „Sigurnosne preporuke“ odgođena u čarobnjaku.",
+        "private.install.steps.securityRecommendations.saved": "Oznaka da je sekcija „Sigurnosne preporuke“ odgovorena u čarobnjaku."
       },
       "help": {
         "private.addons.approvals": "Uključuje odobravanje tiketa za usluge koje ga traže, uz status Pending Approval. Isključeno pušta tikete dalje bez odobrenja i skriva ekran za odobravanje.",
@@ -2258,6 +2342,15 @@
         "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima (bs, en). Jezik koji nije na listi ne pojavljuje se u izborniku, a prevedeni tekstovi za njega ostaju u sistemu.",
         "private.install.completedAt": "ISO datum i vrijeme završetka instalacijskog čarobnjaka. Prazno polje znači da je početno postavljanje još aktivno i da sistem traži završetak pripreme.",
         "private.install.completedByUserId": "Korisnik (SuperAdmin) koji je zaključio instalacijski čarobnjak. Zapis ostaje kao trag ko je i kada pustio instalaciju u rad.",
+        "private.install.profile": "Paket koji je operater izabrao u prvom koraku čarobnjaka. Minimum pokriva jezgro za rad, Standard dodaje tim i email, a Full dodatne module. Prazno znači da paket još nije izabran i čarobnjak se ponaša kao Minimum.",
+        "private.install.steps.profile.skipped": "Postavlja ga čarobnjak kad operater odgodi izbor paketa. Odgođen korak ne blokira završetak, ali ga prikazuje post-instalacijska lista obaveza.",
+        "private.install.steps.superAdmin.skipped": "Postavlja ga čarobnjak kad operater odgodi korak. Korak se ne može odgoditi bez SuperAdmin naloga, pa je vrijednost u praksi uvijek false.",
+        "private.install.steps.loginProvider.skipped": "Postavlja ga čarobnjak kad operater odgodi korak načina prijave. Odgođen korak ne blokira završetak instalacije, ali ostaje na listi obaveza.",
+        "private.install.steps.smtp.skipped": "Postavlja ga čarobnjak kad operater odgodi SMTP, npr. u paketu Minimum gdje email nije obavezan. Odgođen korak ne blokira završetak, ali ga lista obaveza prikazuje.",
+        "private.install.steps.seed.skipped": "Postavlja ga čarobnjak kad operater odgodi kreiranje početnih podataka. Bez organizacijske jedinice, servisa i usmjeravanja instalacija ne može primati tikete, pa je vrijednost u praksi uvijek false.",
+        "private.install.steps.addons.skipped": "Postavlja ga čarobnjak kad operater odgodi potvrdu dodataka. Tad se koriste zadane vrijednosti iz kataloga, a uključivanje ostaje moguće kasnije u Settings.",
+        "private.install.steps.provisioning.skipped": "Korak se ne može odgoditi — instalacija se završava tek kad su sve provjere zelene. Ključ postoji jer svaki korak iz registryja ima svoju oznaku.",
+        "private.install.checklistDismissedAt": "Upisuje ga dugme „Sakrij“ na dashboardu. Sakriva samo widget; stavke ostaju vidljive u Settings-u i nestaju same kad se ispune.",
         "private.integrations.queue.adminUiEnabled": "Uključeno dozvoljava admin API za pregled reda i ručno ponavljanje poslova. Isključeno ostavlja red bez nadzora iz aplikacije, pa se problemi rješavaju samo u logovima.",
         "private.integrations.queue.deadLetterAfterAttempts": "Broj pokušaja nakon kojeg neuspjeli posao prelazi u red mrtvih slova (DLQ). Iz DLQ-a se posao može pregledati i ponoviti ručno.",
         "private.integrations.queue.deadLetterRetentionDays": "Koliko dana radnik čuva poslove u DLQ-u prije brisanja. Duži rok omogućava kasniju analizu, ali drži osjetljive podatke u sistemu duže.",
@@ -2511,6 +2604,7 @@
         "private.privacy.retention.requestRegisterDays": "Koliko dana se čuvaju zatvoreni zahtjevi ispitanika; 0 gasi brisanje. Podrazumijevanih pet godina prati uobičajene rokove čuvanja dokaza o postupanju.",
         "private.privacy.retention.runAtLocalTime": "Lokalno vrijeme (HH:mm, Europe/Sarajevo) noćnog izvršavanja zadržavanja. Postavite ga van radnog vremena i van termina drugih noćnih poslova.",
         "private.privacy.retention.maxMinutesPerNight": "Najduže trajanje noćnog zadržavanja u minutama (5–240). Kratak rok drži posao predvidivim, ali veliki zaostaci se tada obrađuju u više noći.",
+        "private.privacy.retention.statusIncidentsDays": "Nakon koliko dana od rezolucije se status-stranica incident arhivira. Naslov, autor, vremenska linija ažuriranja, povezivanje tiketa i pretplate se redaktuju ili brišu; skelet incidenta se čuva za izvještaje. 0 onemogućava arhiviranje. Najmanje 180 dana.",
         "private.privacy.anonymization.candidateAfterDays": "Koliko dana nakon deaktivacije korisnik ulazi na listu kandidata za anonimizaciju (30–3650). Prekratak rok može obuhvatiti osobu koja se vratila iz mirovanja.",
         "private.privacy.anonymization.requireSecondApprover": "Uključeno traži odobrenje drugog SUPER_ADMIN naloga prije anonimizacije (princip četiri oka). Uključite kad više od jedne osobe raspolaže tim pravom.",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Uključeno unaprijed označava brisanje privitka koje je osoba sama poslala, pa anonimizacija kreće od strožeg izbora. Radnik i dalje može odznačiti polje.",
@@ -2643,7 +2737,39 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "Koliko odbijenih CAPTCHA rješenja na sat pokreće alarm upozorenja (auth.captchaFailed.high). Odbijanje znači da klijent šalje rješenje koje Cloudflare nije prihvatio.",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "Odbijene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja.",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "Koliko provjera na sat smije biti preskočeno jer Cloudflare nije odgovorio prije alarma upozorenja (auth.captchaSkipped.high).",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Preskočene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja."
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Preskočene provjere po satu koje pokreću kritični alarm; držite ga iznad nivoa upozorenja.",
+        "private.install.steps.identity.skipped": "Prikazuje da je korak identiteta preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije.",
+        "private.install.steps.team.skipped": "Prikazuje da je korak tima preskočen sa „Podesi kasnije“. Koristi ga kontrolna lista nakon instalacije.",
+        "private.install.blueprint": "Predložak iz kojeg su napravljene kategorije i servisi kataloga. Prazno znači da katalog nije rađen iz predloška i da postoji samo servis iz koraka početnih podataka.",
+        "private.install.policyPack": "Paket prava koji je čarobnjak primijenio na organizacijsku jedinicu, zajedno s ulogama i dozvolama. Prazno znači da prava nisu dodijeljena iz čarobnjaka.",
+        "private.install.slaReview": "Zapis da je operater pregledao radno vrijeme i matricu prioriteta. Vrijednost confirmed znači da su zadane vrijednosti prihvaćene, adjusted da su izmijenjene, a prazno da korak još nije odgovoren.",
+        "private.install.steps.blueprint.skipped": "Postavlja ga čarobnjak kad operater odgodi izradu kataloga iz predloška. Katalog tada ostaje samo sa servisom iz koraka početnih podataka, a izrada iz predloška je moguća kasnije.",
+        "private.install.steps.policyPack.skipped": "Postavlja ga čarobnjak kad operater odgodi paket prava. Prava i uloge koje paket nosi tada treba dodijeliti ručno u Settings.",
+        "private.install.steps.slaReview.skipped": "Postavlja ga čarobnjak kad operater odgodi pregled SLA. Radno vrijeme i matrica prioriteta ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.inboundEmail.skipped": "Postavlja ga čarobnjak kad operater u koraku „Dolazna e-pošta“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.inboundEmail.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.directory.skipped": "Postavlja ga čarobnjak kad operater u koraku „Imenik (AD/LDAPS)“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.directory.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.knowledgeBase.skipped": "Postavlja ga čarobnjak kad operater u koraku „Baza znanja“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.knowledgeBase.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.statusPage.skipped": "Postavlja ga čarobnjak kad operater u koraku „Statusna stranica“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.statusPage.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.onCall.skipped": "Postavlja ga čarobnjak kad operater u koraku „Dežurstva“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.onCall.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.announcements.skipped": "Postavlja ga čarobnjak kad operater u koraku „Obavještenja“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.announcements.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.security.skipped": "Postavlja ga čarobnjak kad operater u koraku „Sigurnost“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.security.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.privacy.skipped": "Postavlja ga čarobnjak kad operater u koraku „Privatnost i podaci“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.privacy.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.auditWebhook.skipped": "Postavlja ga čarobnjak kad operater u koraku „Audit webhook“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.auditWebhook.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.itsm.skipped": "Postavlja ga čarobnjak kad operater u koraku „ITSM moduli“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.itsm.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.section.integrations.skipped": "Postavlja ga čarobnjak kad operater u koraku „Integracije“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.section.integrations.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen.",
+        "private.install.steps.securityRecommendations.skipped": "Postavlja ga čarobnjak kad operater u koraku „Sigurnosne preporuke“ odabere „Podesi kasnije“. Postavke sekcije ostaju na zadanima dok ih neko ne promijeni u Settings.",
+        "private.install.steps.securityRecommendations.saved": "Postavlja ga čarobnjak kad operater potvrdi ili sačuva korak. Sekcija može biti odgovorena i bez ijedne izmjene, pa je ovo jedini trag da je korak prođen."
       },
       "type": {
         "boolean": "uključeno/isključeno",
@@ -2658,7 +2784,7 @@
           "sender": "Pošiljalac"
         },
         "private.edgeExtension": {
-          "transport": "Transport",
+          "transport": "Prijenos",
           "features": "Funkcije",
           "notifications": "Obavještenja"
         },
@@ -2686,6 +2812,7 @@
       "smtpMissingWarning": "SMTP je isključen ili nepotpun — slanje i test nisu mogući.",
       "open": "Uredi šablone",
       "editorTitle": "E-mail šabloni",
+      "unsavedConfirm": "Imate nesačuvane izmjene. Želite li napustiti editor?",
       "editorDescription": "Mijenjaju se samo tekstovi; izgled je zajednički i provjeren u Outlooku. Spremaju se samo razlike od zadanih tekstova, uz razlog izmjene.",
       "event": "Događaj",
       "language": "Jezik",
@@ -2846,7 +2973,7 @@
       "organizationName": "Naziv organizacije",
       "supportEmail": "E-mail podrške",
       "supportUrl": "Stranica podrške (https)",
-      "logo": "Logo",
+      "logo": "Logotip",
       "logoHint": "PNG, JPEG ili WebP, najviše 200 KB i 1024 × 1024 px. SVG nije dozvoljen.",
       "logoUpload": "Učitaj logo",
       "logoRemove": "Ukloni logo",
@@ -2876,7 +3003,7 @@
     "detail": {
       "isSet": "postavljeno",
       "inherited": "naslijeđeno iz defaulta",
-      "default": "Default",
+      "default": "Zadano",
       "current": "Trenutno",
       "noDefault": "nema",
       "noValue": "—",
@@ -2889,7 +3016,8 @@
       "discardBody": "Vrijednost nije sačuvana. Ako zatvorite sada, unos se gubi.",
       "discardAction": "Odbaci izmjene",
       "noticeEditorLink": "Otvorite editor obavještenja",
-      "noticeEditorHint": "Ovo obavještenje se uređuje u namjenskom editoru Privatnost modula, ne ovdje."
+      "noticeEditorHint": "Ovo obavještenje se uređuje u namjenskom editoru Privatnost modula, ne ovdje.",
+      "readOnlyHint": "Ovim ključem upravlja čarobnjak instalacije — vrijednost se mijenja kroz korake čarobnjaka, ne ručno. Ovdje je prikazana samo radi uvida."
     },
     "dependencies": {
       "requiresTitle": "Uslovi (mora biti ispunjeno prije uključivanja)",
@@ -2939,6 +3067,7 @@
     "recentHeading": "Nedavni tiketi",
     "recentHint": "Najnovije kreirani tiketi kojima imate pristup.",
     "viewAll": "Prikaži sve",
+    "refreshStale": "Automatsko osvježavanje nije uspjelo. Prikazani su posljednji dostupni podaci.",
     "recentEmptyTitle": "Nema nedavnih tiketa",
     "recentEmptyBody": "Tiketi će se pojaviti ovdje nakon kreiranja.",
     "columnTicket": "Tiket",
@@ -2971,7 +3100,7 @@
     "statusChartSubtitle": "Svi otvoreni i zatvoreni tiketi kojima imate pristup",
     "statusChartCenter": "tiketa ukupno",
     "volumeChartTitle": "Tok tiketa — zadnjih 14 dana",
-    "volumeChartSubtitle": "Kreirani naspram riješenih, iz istog niza tiketa",
+    "volumeChartSubtitle": "Kreirani i riješeni po danu u izvještajnoj vremenskoj zoni",
     "volumeTruncatedHint": "U periodu ima više tiketa nego što staje u jedan prikaz — brojevi na grafiku su donja granica.",
     "volumeCreated": "Kreirani",
     "volumeResolved": "Riješeni",
@@ -2983,6 +3112,7 @@
     "slaEmpty": "Nema tiketa s prekoračenim SLA rokom.",
     "inboxSnapshotTitle": "Grupni inbox",
     "inboxSnapshotSubtitle": "Nepreuzeti tiketi po grupama",
+    "inboxSnapshotPartial": "Raspodjela prikazuje prvih {{shown}} od {{total}} tiketa; kartica koristi serverski total.",
     "inboxOpen": "Otvori inbox",
     "inboxEmpty": "Nema nepreuzetih tiketa u grupama.",
     "inboxUnroutedBanner": "neusmjerenih tiketa",
@@ -2999,9 +3129,39 @@
     "activityTitle": "Aktivnost",
     "activitySubtitle": "Posljednji događaji",
     "activityEmpty": "Nema nedavnih događaja.",
+    "activityRetry": "Pokušaj ponovo",
     "unroutedOverdueBanner_one": "{{count}} nerutiran tiket čeka duže od {{hours}} h — riješite ga",
     "unroutedOverdueBanner_few": "{{count}} nerutirana tiketa čekaju duže od {{hours}} h — riješite ih",
-    "unroutedOverdueBanner_other": "{{count}} nerutiranih tiketa čeka duže od {{hours}} h — riješite ih"
+    "unroutedOverdueBanner_other": "{{count}} nerutiranih tiketa čeka duže od {{hours}} h — riješite ih",
+    "setupChecklist": {
+      "title": "Završite podešavanje",
+      "subtitle": "Ostavljeno za kasnije: {{count}}",
+      "unavailable": "Kontrolna lista trenutno nije dostupna.",
+      "dismiss": "Sakrij",
+      "goTo": "Otvori",
+      "itemHint": "Nije konfigurisano tokom instalacije.",
+      "item": {
+        "smtp": "E-mail obavještenja su isključena — podesite SMTP.",
+        "team": "Tim je samo SuperAdmin — pozovite kolege u grupu.",
+        "blueprint": "Katalog je bez servisa iz šablona.",
+        "slaReview": "Radno vrijeme i matrica prioriteta nisu pregledani.",
+        "securityRecommendations": "Preporuke za produkciju nisu primijenjene.",
+        "addons": "Dodaci nisu potvrđeni — koriste se zadane vrijednosti.",
+        "section": {
+          "inboundEmail": "Dolazni e-mail nije podešen.",
+          "directory": "Direktorij (LDAPS) nije povezan.",
+          "knowledgeBase": "Baza znanja nije podešena.",
+          "statusPage": "Status stranica nije uključena.",
+          "onCall": "Dežurstva nisu podešena.",
+          "announcements": "Obavještenja nisu podešena.",
+          "security": "Sigurnosna pravila nisu pregledana.",
+          "privacy": "Politika privatnosti nije pregledana.",
+          "auditWebhook": "Audit webhook nije podešen.",
+          "itsm": "ITSM procesi (problemi i izmjene) nisu podešeni.",
+          "integrations": "Integracije nisu povezane."
+        }
+      }
+    }
   },
   "reports": {
     "title": "Izvještaji i uska grla",
@@ -3026,7 +3186,7 @@
     "metricFirstResponse": "Prosj. prvi odgovor",
     "metricResolution": "Prosj. rješenje",
     "metricCsat": "CSAT (zadovoljstvo)",
-    "metricKbResolution": "KB resolution rate",
+    "metricKbResolution": "Stopa rješavanja pomoću baze znanja",
     "metricEmpty": "—",
     "hintCreated": "{{count}} tiketa u odabranom periodu",
     "hintFirstResponse": "{{count}} tiketa s evidentiranim prvim odgovorom",
@@ -3081,7 +3241,8 @@
       "columnKey": "Naziv",
       "columnSample": "Uzorak",
       "columnAverage": "Prosjek (od {{max}})",
-      "belowTarget": "ispod praga"
+      "belowTarget": "ispod praga",
+      "allTimeScope": "Sveukupno — bez filtera perioda i organizacione jedinice."
     },
     "bottlenecks": {
       "title": "Uska grla",
@@ -3258,7 +3419,9 @@
         "agent_service": "Agent × servis",
         "agent_total": "Zbir agenta",
         "total": "Ukupno"
-      }
+      },
+      "selectUnitTitle": "Izaberite organizacionu jedinicu",
+      "selectUnitBody": "Paketi će se učitati nakon izbora jedinice."
     },
     "errors": {
       "REPORT_WINDOW_INVALID": "Raspon nije dozvoljen za izabranu granularnost (dnevno do 92 dana, sedmično do 104 sedmice, mjesečno do postavljenog maksimuma).",
@@ -3513,6 +3676,8 @@
     "catalogRefreshWarning": "Prikazani su posljednji učitani podaci; osvježavanje kataloga nije uspjelo.",
     "categoriesRefreshWarning": "Prikazane su posljednje učitane kategorije; osvježavanje nije uspjelo.",
     "retryLoad": "Pokušaj ponovo",
+    "savedValueUnavailable": "Sačuvana vrijednost (trenutno nedostupna)",
+    "slaProfilesLoadError": "SLA profili se ne mogu učitati. Sačuvana vrijednost je zadržana.",
     "requiresApproval": "Zahtijeva odobrenje",
     "runtimeUnavailableWarning": "Trenutno nedostupno — prijava tiketa nije blokirana",
     "plannedDowntime": "Planirani prekid",
@@ -3538,7 +3703,15 @@
         "UPCOMING": "Zakazano",
         "ACTIVE": "Aktivno",
         "EXPIRED": "Isteklo"
-      }
+      },
+      "timeZoneHint": "Lokalno vrijeme u zoni preglednika: {{timeZone}}. Kraj mora biti nakon početka.",
+      "refreshWarning": "Prikazuju se posljednji učitani periodi jer osvježavanje nije uspjelo.",
+      "cancelConfirmTitle": "Otkazati period nedostupnosti?",
+      "cancelConfirmDescription": "Ovaj period će biti uklonjen iz rasporeda. Razlog ostaje zabilježen u auditu.",
+      "upcomingBadge_one": "+{{count}} zakazani prekid",
+      "upcomingBadge_few": "+{{count}} zakazana prekida",
+      "upcomingBadge_other": "+{{count}} zakazanih prekida",
+      "upcomingBadge_zero": "+{{count}} zakazanih prekida"
     },
     "columnName": "Usluga",
     "columnLifecycle": "Životni ciklus",
@@ -3575,7 +3748,7 @@
     "savingService": "Spremanje…",
     "cancel": "Odustani",
     "name": "Naziv",
-    "slug": "Slug",
+    "slug": "Identifikator",
     "category": "Kategorija",
     "categoryEmpty": "Nema kategorija — uslugu nije moguće kreirati",
     "mutationHint": "Kreiranje počinje u statusu Nacrt. Slug se ne mijenja nakon unosa.",
@@ -3670,12 +3843,13 @@
       "stepsHeading": "Koraci onboardinga",
       "subtitle": "Čarobnjak: servis → forma → routing → SLA → odobrenja · odvojen od lifecycle statusa",
       "activeBadge": "{{count}} aktivnih",
-      "progress": "Onboarding {{completed}}/{{total}}",
+      "progress": "Uvođenje {{completed}}/{{total}}",
       "progressPaused": "Onboarding pauziran · {{completed}}/{{total}}",
       "progressReady": "Spreman za objavu · {{completed}}/{{total}}",
       "continue": "Nastavi onboarding",
       "loadingRecord": "Učitavanje onboardinga…",
       "newDraft": "Nova usluga (nacrt)",
+      "initialRevisionReason": "Onboarding servisa: početni zapis servisa",
       "next": "Dalje",
       "saving": "Spremanje…",
       "finalize": "Objavi uslugu",
@@ -3733,7 +3907,7 @@
       "fieldLabel": "Oznaka",
       "fieldType": "Tip",
       "fieldRequired": "Obavezno",
-      "placeholder": "Placeholder",
+      "placeholder": "Primjer unosa",
       "helpText": "Pomoćni tekst",
       "options": "Opcije (select)",
       "optionValue": "Vrijednost",
@@ -3776,8 +3950,11 @@
       "errorVersioningDisabled": "Verzionisanje formi je ugašeno.",
       "errorNotDraft": "Aktivirati se može samo DRAFT verzija.",
       "errorNoActive": "Nema aktivne verzije forme.",
-      "errorGeneric": "Formu trenutno nije moguće izmijeniti."
-    }
+      "errorGeneric": "Formu trenutno nije moguće izmijeniti.",
+      "fieldIdInvalid": "ID mora početi malim slovom i sadržavati samo mala slova, brojeve i donju crtu.",
+      "draftInvalid": "Ispravite nevažeće ili duplirane ID-eve, prazne nazive i opcije prije spremanja."
+    },
+    "routingRefreshWarning": "Prikazuju se posljednji učitani podaci rutiranja jer osvježavanje nije uspjelo."
   },
   "directory": {
     "usersIntro": "Korisnici mapirani na organizacijske jedinice.",
@@ -3819,7 +3996,7 @@
     "ouActions": "OU akcije",
     "ouSave": "Sačuvaj OU",
     "ouNamePlaceholder": "Naziv OU",
-    "ouParentPlaceholder": "Parent OU",
+    "ouParentPlaceholder": "Nadređena organizacijska jedinica",
     "ouParentNone": "Bez parenta (korijen)",
     "ouDnPlaceholder": "Distinguished Name (opciono)",
     "ouDeleteBlocked": "OU se ne može obrisati dok postoje povezani zapisi",
@@ -3865,7 +4042,7 @@
     "syncTitle": "AD sinhronizacija",
     "syncSubtitle": "režim čitanja: {{mode}}",
     "syncMode": "Režim čitanja",
-    "syncThrottle": "Throttle",
+    "syncThrottle": "Ograničenje protoka",
     "syncThrottleValue": "{{qps}} qps",
     "syncCache": "Keš",
     "syncCacheValue": "{{minutes}} min / OU {{hours}} h",
@@ -3922,7 +4099,7 @@
       "columnSummary": "Sažetak",
       "columnActions": "Akcije",
       "actorSystem": "Sistem (raspored)",
-      "openPlan": "Plan",
+      "openPlan": "Otvori plan",
       "kindTest": "Test veze",
       "kindDryRun": "Probni prolaz",
       "kindApply": "Primjena",
@@ -3982,17 +4159,34 @@
         "unknown": "Akcija nije uspjela. Pogledajte dnevnik servera."
       }
     },
-    "ouPathMismatch": "OU u katalogu vodi na „{{catalogPath}}“, a stablo je prikazuje kao „{{treePath}}“. Pokrenite očitavanje kataloga prije izmjene."
+    "ouPathMismatch": "OU u katalogu vodi na „{{catalogPath}}“, a stablo je prikazuje kao „{{treePath}}“. Pokrenite očitavanje kataloga prije izmjene.",
+    "partialFailure": "Dio imenika nije učitan. Neka imena možda neće biti prikazana."
   },
   "locale": {
     "label": "Jezik",
     "bosnian": "Bosanski",
-    "english": "English"
+    "english": "Engleski"
   },
   "install": {
     "title": "Početno podešavanje",
     "heading": "SuperAdmin nalog",
     "body": "Prvi korak kreira lokalni SuperAdmin nalog. Lozinka se čuva samo kao hash. Break-glass prijava ostaje i kad se kasnije izabere Entra AD.",
+    "shell": {
+      "stepsLabel": "Koraci podešavanja",
+      "stepOf": "Korak {{current}} od {{total}}",
+      "back": "Nazad",
+      "continue": "Nastavi",
+      "later": "Podesi kasnije",
+      "reopened": "Novi paket traži ovaj korak, pa je ranija odgoda „Podesi kasnije“ poništena. Ako ti korak i dalje ne treba, odgodi ga ponovo.",
+      "whatYouGet": "Šta dobijaš",
+      "whatYouGetHint": "Kratko: šta ovaj korak donosi tvojoj instalaciji.",
+      "organizationFallback": "Tvoja organizacija",
+      "currentStep": "Trenutni korak"
+    },
+    "feature": {
+      "locked": "Obavezno",
+      "included": "U paketu"
+    },
     "loading": "Provjera stanja podešavanja",
     "email": "Email",
     "displayName": "Ime i prezime",
@@ -4009,6 +4203,32 @@
     "passwordHintBlocklist": "Lozinka mora imati najmanje {{min}} znakova i ne smije biti među najčešće korištenim lozinkama.",
     "errorDuplicate": "Početni SuperAdmin već postoji ili je email zauzet.",
     "errorGeneric": "SuperAdmin nalog trenutno nije moguće sačuvati.",
+    "identity": {
+      "heading": "Identitet instalacije",
+      "body": "Naziv organizacije, naziv aplikacije, jezik i vremenska zona. Logo i kontakt podaci se mogu podesiti kasnije, a sve ostaje dostupno u Postavkama → Brending.",
+      "organizationName": "Naziv organizacije",
+      "appName": "Naziv aplikacije",
+      "locale": "Jezik sistema",
+      "localeBs": "Bosanski",
+      "localeEn": "Engleski",
+      "timeZone": "Vremenska zona",
+      "timeZoneHint": "IANA zona, npr. Europe/Sarajevo. Koristi se u izvještajima i rokovima.",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG ili WebP do 200 KB i 1024 × 1024 px. Možete ga dodati kasnije.",
+      "logoConfigured": "Logo je sačuvan. Odaberite novu datoteku samo ako ga mijenjate.",
+      "supportEmail": "Email podrške",
+      "supportUrl": "Link podrške",
+      "later": "Polja koja ostavite prazna ne mijenjaju postojeće vrijednosti — podesite ih kasnije u Postavkama.",
+      "preview": "Pregled brenda",
+      "previewEmpty": "nije uneseno",
+      "submit": "Sačuvaj identitet",
+      "saving": "Spremanje…",
+      "errorInvalid": "Naziv organizacije je obavezan. Provjerite dužine i format kontakt podataka.",
+      "errorLocale": "Izabrani jezik nije podržan. Dostupni su bosanski i engleski.",
+      "errorTimeZone": "Vremenska zona nije poznata. Koristite IANA naziv, npr. Europe/Sarajevo.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Identitet trenutno nije moguće sačuvati."
+    },
     "loginProvider": {
       "heading": "Način prijave",
       "body": "Izaberite tačno jedan način prijave. SuperAdmin ostaje lokalni break-glass nalog i kad je izabran Entra AD.",
@@ -4049,20 +4269,78 @@
       "errorIncomplete": "Za uključen SMTP unesite host, port, korisnika, lozinku i validnu from adresu.",
       "errorInvalid": "SMTP konfiguracija nije ispravna ili nije potpuna.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
-      "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati."
+      "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati.",
+      "test": {
+        "title": "Testna e-poruka",
+        "body": "Pošaljite probnu poruku i provjerite da SMTP zaista radi.",
+        "address": "Adresa (prazno = adresa super admina)",
+        "send": "Pošalji test",
+        "sending": "Šaljem…",
+        "sent": "Poslano na {{toAddress}}.",
+        "errorNotConfigured": "SMTP nije uključen ili nije potpun.",
+        "errorInvalidRecipient": "Adresa nije ispravna.",
+        "errorAuth": "Server je odbio prijavu — provjerite korisnika i lozinku.",
+        "errorTls": "TLS nije prošao — provjerite certifikat i način šifrovanja.",
+        "errorTimeout": "Server nije odgovorio na vrijeme.",
+        "errorUnreachable": "Server nije dostupan — provjerite host i port.",
+        "errorSend": "Server je prihvatio vezu, ali poruku je odbio.",
+        "errorRateLimited": "Previše pokušaja; sačekajte pa pokušajte ponovo.",
+        "errorSuperAdmin": "Test šalje super admin.",
+        "errorGeneric": "Slanje nije uspjelo. Pokušajte ponovo.",
+        "savingFirst": "Sačuvajte izmjene pa pošaljite test — test koristi sačuvane postavke.",
+        "storedHint": "Test koristi sačuvane postavke. Prazno polje šalje poruku super adminu."
+      }
     },
     "seed": {
-      "heading": "Početni podaci",
-      "body": "Kreira se minimum potreban za usmjeravanje: jedna organizacijska jedinica, fallback grupa, jedan servis i routing na tu grupu. Demo tiketi se ne kreiraju.",
-      "submit": "Dalje",
-      "saving": "Spremanje…",
-      "createdBody": "Minimalni podaci su spremni. Origin OU i servis se rješavaju na fallback grupu.",
-      "organizationalUnit": "Organizacijska jedinica",
-      "fallbackGroup": "Fallback grupa",
-      "service": "Servis",
-      "routing": "Rezolucija usmjeravanja",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "Početne podatke trenutno nije moguće sačuvati."
+    },
+    "structure": {
+      "heading": "Struktura i prvi servis",
+      "body": "Unesite nazive koje klijent koristi: organizacijska jedinica, grupa koja prima tikete, kategorija i prvi servis. Servis dobija standardni SLA profil.",
+      "ouName": "Organizacijska jedinica",
+      "groupName": "Grupa koja prima tikete",
+      "categoryName": "Kategorija",
+      "serviceName": "Servis",
+      "preview": "Tiket za <service>{{service}}</service> ide grupi <group>{{group}}</group> u OU <organizationalUnit>{{organizationalUnit}}</organizationalUnit>.",
+      "previewEmpty": "nije uneseno",
+      "slaProfile": "SLA profil",
+      "slaProfileMissing": "nije dodijeljen",
+      "routing": "Rezolucija usmjeravanja",
+      "createdBody": "Struktura je spremna: origin OU i servis se rješavaju na grupu koja prima tikete. Ponovno spremanje ne mijenja postojeće nazive.",
+      "submit": "Kreiraj strukturu",
+      "saving": "Spremanje…",
+      "errorInvalid": "Naziv ne može biti duži od 120 znakova niti sadržavati zarez ili znak jednakosti.",
+      "warningNames": "Nazivi nisu promijenjeni jer zapisi već postoje. Sačuvano: {{stored}}."
+    },
+    "team": {
+      "heading": "Tim",
+      "body": "Dodajte kolege u grupu koja prima tikete. Svaka osoba dobija nalog i privremenu lozinku; bez SMTP-a lozinka se prikazuje ovdje samo jednom.",
+      "displayName": "Ime i prezime",
+      "email": "Email",
+      "role": "Uloga",
+      "roles": {
+        "AGENT": "Agent",
+        "ADMIN": "Administrator"
+      },
+      "addMember": "Dodaj člana",
+      "remove": "Ukloni",
+      "memberCount": "{{count}} od najviše {{max}} članova",
+      "superAdmin": "SuperAdmin",
+      "submit": "Kreiraj naloge",
+      "saving": "Kreiranje…",
+      "credentialsTitle": "Privremene lozinke",
+      "credentialsOnce": "Lozinke se prikazuju samo sada. Kopirajte ih i podijelite bezbedno — poslije se ne mogu vidjeti.",
+      "credentialsEmailed": "Lozinke su poslane na email adrese članova.",
+      "credentialsEmailSent": "Lozinka je poslana na email.",
+      "copyPassword": "Kopiraj",
+      "credentialsClose": "Zatvori",
+      "skipHint": "Ako tim dodajete kasnije, koristite „Podesi kasnije“ — SuperAdmin ostaje član grupe.",
+      "errorInvalid": "Provjerite ime i email svakog člana i izaberite ulogu Agent ili Administrator.",
+      "errorEmailTaken": "Nalog s tom email adresom već postoji.",
+      "errorStructure": "Prvo kreirajte strukturu i grupu koja prima tikete.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Članove tima trenutno nije moguće kreirati."
     },
     "addons": {
       "heading": "Dodaci",
@@ -4070,6 +4348,7 @@
       "submit": "Dalje",
       "saving": "Spremanje…",
       "emailDisabledHint": "Email ostaje ugašen dok SMTP nije uključen.",
+      "notSavedHint": "Dodaci još nisu potvrđeni. Ako ovaj korak preskočite, koriste se zadane vrijednosti iz kataloga.",
       "errorInvalid": "Konfiguracija dodataka nije ispravna.",
       "errorUnsupported": "Jedan ili više dodataka nije u katalogu.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
@@ -4131,24 +4410,108 @@
           "label": "Microsoft Teams konektor",
           "description": "Obavijesti i akcije u Teamsu te kreiranje tiketa iz Teamsa. Radi u simulatoru dok organizacija ne registruje vlastitu Teams aplikaciju."
         }
-      }
+      },
+      "csat": {
+        "title": "CSAT anketa",
+        "value": "Poslije zatvaranja tiketa korisnik dobija kratku anketu o zadovoljstvu."
+      },
+      "reports": {
+        "title": "Izvještaji",
+        "value": "Ugrađeni izvještaji o obimu, brzini odgovora i opterećenju tima."
+      },
+      "approvals": {
+        "title": "Odobrenja",
+        "value": "Zahtjevi koji traže odobrenje dobijaju tok odobravanja uz trag ko je odobrio."
+      },
+      "confidential": {
+        "title": "Povjerljivi tiketi",
+        "value": "Osjetljivi tiketi vidljivi su samo ovlaštenim osobama."
+      },
+      "savedViews": {
+        "title": "Sačuvani pregledi",
+        "value": "Svako može sačuvati filter liste tiketa koji mu treba svaki dan."
+      },
+      "bulkActions": {
+        "title": "Grupne akcije",
+        "value": "Promjena statusa, prioriteta ili zaduženja na više tiketa odjednom."
+      },
+      "ticketSplit": {
+        "title": "Dijeljenje tiketa",
+        "value": "Iz jednog zahtjeva nastaje više tiketa kad se problem sastoji od više dijelova."
+      },
+      "kbIntercept": {
+        "title": "Baza znanja dok se piše",
+        "value": "Dok korisnik piše zahtjev, predlažu se postojeći članci koji rješavaju problem."
+      },
+      "cmdb": {
+        "title": "CMDB — imovina",
+        "value": "Evidencija računara, opreme i licenci, povezana s tiketima."
+      },
+      "problems": {
+        "title": "Problemi",
+        "value": "Tiketi istog uzroka povezuju se u problem koji se rješava jednom."
+      },
+      "changes": {
+        "title": "Promjene",
+        "value": "Planirane promjene na sistemima prolaze kroz najavu, odobrenje i evidenciju."
+      },
+      "email": {
+        "title": "E-mail kanal",
+        "value": "Dolazni e-mailovi postaju tiketi, a odgovori iz tiketa idu korisniku kao e-mail."
+      },
+      "edge": {
+        "title": "Edge ekstenzija",
+        "value": "Snimanje ekrana i podataka iz pregleda prilikom prijave problema."
+      },
+      "teams": {
+        "title": "Microsoft Teams",
+        "value": "Obavještenja i rad na tiketima iz Teamsa."
+      },
+      "category": {
+        "serviceQuality": "Kvalitet usluge",
+        "control": "Kontrola",
+        "productivity": "Produktivnost",
+        "itsm": "ITSM moduli",
+        "integrations": "Integracije"
+      },
+      "other": "Ostalo"
     },
     "complete": {
-      "heading": "Završi podešavanje",
-      "body": "Wizard se zaključava. Dalje izmjene idu kroz Settings.",
-      "submit": "Završi",
-      "saving": "Zaključavanje…",
+      "heading": "Sistem je spreman",
+      "body": "Instalacija je spremna za rad. Pogledajte sažetak i završite podešavanje; svaka kasnija izmjena ide kroz Settings.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
-      "errorGeneric": "Podešavanje trenutno nije moguće zaključati."
+      "notReady": "Instalacija još nije spremna za prijem tiketa.",
+      "errorGeneric": "Podešavanje trenutno nije moguće zaključati.",
+      "hint": "Čarobnjak je zaključan i dalje podešavanje ide kroz Settings. Prijavite se SuperAdmin nalogom koji ste kreirali u ovom čarobnjaku.",
+      "eyebrow": "Instalacija je završena"
     },
     "progress": "Korak {{current}} od {{total}}",
     "steps": {
+      "profile": "Paket",
       "superAdmin": "SuperAdmin",
+      "identity": "Identitet",
       "loginProvider": "Prijava",
       "smtp": "Email",
-      "seed": "Uloge i podaci",
+      "seed": "Struktura i servis",
+      "team": "Tim",
       "addons": "Dodaci",
-      "complete": "Završetak"
+      "provisioning": "Provjera spremnosti",
+      "complete": "Završetak",
+      "blueprint": "Katalog iz predloška",
+      "policyPack": "Paket prava",
+      "slaReview": "Pregled SLA",
+      "section.inboundEmail": "Dolazna e-pošta",
+      "section.directory": "Imenik (AD/LDAPS)",
+      "section.knowledgeBase": "Baza znanja",
+      "section.statusPage": "Statusna stranica",
+      "section.onCall": "Dežurstva",
+      "section.announcements": "Obavještenja",
+      "section.security": "Sigurnost prijave",
+      "section.privacy": "Privatnost i podaci",
+      "section.auditWebhook": "Webhook revizije",
+      "section.itsm": "ITSM moduli",
+      "section.integrations": "Integracije",
+      "securityRecommendations": "Sigurnosne preporuke"
     },
     "tokenHeading": "Instalacijski token",
     "tokenBody": "Unesite vrijednost varijable okruženja INSTALL_TOKEN sa servera. Bez nje čarobnjak ostaje zaključan.",
@@ -4156,10 +4519,454 @@
     "tokenSubmit": "Otključaj",
     "tokenInvalid": "Token nije ispravan.",
     "tokenNotConfigured": "INSTALL_TOKEN nije postavljen na serveru (najmanje 16 znakova). Postavite ga i ponovo pokrenite API.",
+    "tokenUnavailable": "Server trenutno ne odgovara, pa token nije moguće provjeriti. Ništa nije promijenjeno — provjerite vezu i pokušajte ponovo.",
+    "tokenChecking": "Provjera instalacijskog tokena",
+    "retry": "Pokušaj ponovo",
+    "stepLoadError": "Stanje ovog koraka nije moguće pročitati. Forma nije prikazana da ne prepiše konfiguraciju koja već postoji.",
+    "requestId": "ID zahtjeva: {{requestId}}",
+    "profile": {
+      "heading": "Paket instalacije",
+      "body": "Paket određuje koje korake i dodatke čarobnjak nudi. Kasnije ga možete proširiti; do prvog spremanja podataka možete ga i promijeniti.",
+      "minimum": {
+        "title": "Minimum",
+        "description": "Jezgro za rad: jedan SuperAdmin, organizacijska jedinica, servis i usmjeravanje. Bez tima, SMTP-a i dodatnih modula."
+      },
+      "standard": {
+        "title": "Standard",
+        "description": "Minimum plus tim, SMTP i email, pravila grupa i početni SLA. Preporučeno za većinu instalacija."
+      },
+      "full": {
+        "title": "Full",
+        "description": "Standard plus baza znanja, statusna stranica, dežurstva, najave i ITSM moduli (CMDB, problemi, promjene)."
+      },
+      "recommended": "Preporučeno",
+      "estimate": "Traje oko {{minutes}} min",
+      "select": "Izaberi",
+      "selected": "Izabrano",
+      "showAll": "Prikaži sve",
+      "showAllHint": "Sve stavke koje ovaj paket uključuje.",
+      "includesBase": "Osnovni paket — sve što treba da sistem odmah prima tikete.",
+      "includesMinimum": "Uključuje sve što sadrži paket Minimum, plus stavke navedene ispod.",
+      "includesMinimumAndStandard": "Uključuje sve što sadrže paketi Minimum i Standard, plus stavke navedene ispod.",
+      "groupFrom": "Iz paketa {{package}}",
+      "groupNewIn": "Dodatno u paketu {{package}}",
+      "itemRequired": "Obavezno",
+      "itemOptional": "Opciono",
+      "customize": "Prilagodi paket",
+      "customizeHint": "Isključi korak koji sada ne želiš raditi — čarobnjak ga preskače, a dovršiš ga kasnije iz Postavki.",
+      "customizeFootNote": "Odgoditi se mogu samo koraci koje registry dozvoljava. Ostale stavke paketa podešavaš u toku instalacije ili kasnije u Postavkama.",
+      "lockedHint": "Bez ovog koraka instalacija ne može primati tikete.",
+      "current": "Trenutno sačuvano: {{profile}}",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "submit": "Nastavi s paketom",
+      "saving": "Spremanje…",
+      "errorLocked": "Paket se može samo proširiti nakon prvog spremanja podataka.",
+      "errorGeneric": "Paket trenutno nije moguće sačuvati.",
+      "item": {
+        "tokenGate": "Instalacijski token",
+        "superAdmin": "SuperAdmin nalog",
+        "organizationIdentity": "Identitet organizacije",
+        "branding": "Brending (logo, kontakti)",
+        "loginMode": "Način prijave",
+        "structure": "Organizacijska struktura",
+        "firstService": "Prvi servis s formom i usmjeravanjem",
+        "team": "Tim i uloge",
+        "smtp": "SMTP i testno slanje",
+        "emailNotifications": "Email notifikacije",
+        "catalogBlueprints": "Katalog servisa iz predloška",
+        "policyPackIt": "Paket IT pravila",
+        "addonsOverview": "Pregled dodataka",
+        "handlerLevels": "Grupe L1/L2",
+        "slaOverview": "SLA pregled (profili, kalendar, prioriteti)",
+        "securityRecommendations": "Sigurnosne preporuke",
+        "inboundEmail": "Dolazni email (mailbox postaje tiket)",
+        "directorySync": "Sinhronizacija direktorija (AD/LDAPS)",
+        "knowledgeBase": "Baza znanja",
+        "statusPage": "Statusna stranica",
+        "onCall": "Dežurstva",
+        "announcements": "Najave",
+        "itsmModules": "ITSM moduli (CMDB, problemi, promjene)",
+        "integrations": "Integracije (Teams, Edge)",
+        "privacyRetention": "Privatnost, retencija i audit webhook",
+        "provisioning": "Provjera spremnosti",
+        "readyScreen": "Završni ekran"
+      }
+    },
+    "step": {
+      "skip": "Podesi kasnije",
+      "skipped": "Odgođeno",
+      "undoSkip": "Vrati u tok",
+      "skipErrorLocked": "Instalacija je zaključana — dalje izmjene idu kroz Postavke.",
+      "skipErrorNotAllowed": "Ovaj korak se ne može odgoditi.",
+      "skipErrorUnknown": "Nepoznat korak.",
+      "skipErrorGeneric": "Korak trenutno nije moguće odgoditi."
+    },
+    "readiness": {
+      "title": "Spremnost za prijem tiketa",
+      "superAdmin": "SuperAdmin nalog postoji.",
+      "authMode": "Način prijave je sačuvan i ispravan.",
+      "organizationalUnit": "Postoji najmanje jedna organizacijska jedinica.",
+      "handlerGroup": "Fallback grupa ima najmanje jednog aktivnog člana.",
+      "service": "Postoji aktivan servis sa aktivnom formom.",
+      "routing": "Usmjeravanje se rješava tačno na grupu.",
+      "slaProfile": "Prvi servis ima aktivan SLA profil.",
+      "roles": "Sistemske uloge i njihove dozvole postoje.",
+      "profileSteps": "Svi koraci izabranog paketa su završeni ili odgođeni."
+    },
+    "provisioning": {
+      "heading": "Provjera spremnosti",
+      "body": "Vidite šta je spremno, a šta još nedostaje. Instalacija se ne može završiti dok je ijedna provjera crvena.",
+      "checking": "Provjeravamo da li je sistem spreman za prijem tiketa.",
+      "allGreen": "Sve provjere su zelene — možete završiti instalaciju.",
+      "goToStep": "Idi na korak",
+      "recheck": "Provjeri ponovo",
+      "finish": "Završi instalaciju",
+      "finishing": "Zaključavanje…",
+      "ok": "U redu",
+      "missing": "Nedostaje",
+      "deferred": "Odgođeno"
+    },
+    "ready": {
+      "profile": "Paket",
+      "organization": "Organizacija",
+      "units": "Organizacijske jedinice",
+      "services": "Servisi",
+      "groups": "Grupe",
+      "team": "Članovi tima",
+      "addons": "Uključeni dodaci",
+      "later": "Za kasnije",
+      "firstSteps": "Prvi koraci",
+      "firstTicket": {
+        "title": "Kreiraj prvi tiket",
+        "body": "Otvorite portal i prijavite probni zahtjev."
+      },
+      "inviteTeam": {
+        "title": "Pozovi tim",
+        "body": "Korak tima je odgođen — dodajte kolege u grupu."
+      },
+      "openSettings": {
+        "title": "Otvori podešavanja",
+        "body": "Fino podesite module, email i bezbjednost."
+      },
+      "signIn": "Prijavite se"
+    },
     "statusError": {
       "title": "Status instalacije nije moguće provjeriti",
       "body": "Server nije odgovorio na zahtjev za status instalacije. Ništa nije promijenjeno. Provjerite vezu i pokušajte ponovo.",
       "retry": "Pokušaj ponovo"
+    },
+    "whatYouGet": {
+      "profile": {
+        "1": "Tri gotova paketa bez tehničkih odluka",
+        "2": "Vidiš tačno šta koji paket uključuje",
+        "3": "Ono što ti sada ne treba možeš odgoditi"
+      },
+      "superAdmin": {
+        "1": "Nalog koji uvijek može ući, i kad druga prijava padne",
+        "2": "Ostaje lokalni i kod Entra AD prijave",
+        "3": "Lozinka se čuva kao hash, nikad u postavkama"
+      },
+      "identity": {
+        "1": "Tvoje ime i logo na prijavi i u aplikaciji",
+        "2": "Jezik i vremenska zona za izvještaje",
+        "3": "Email i link podrške za korisnike"
+      },
+      "loginProvider": {
+        "1": "Lokalna prijava ili tvoj Entra AD / LDAPS",
+        "2": "Break-glass pristup ostaje otvoren",
+        "3": "Mapiranje uloga kasnije u Postavkama"
+      },
+      "smtp": {
+        "1": "Odlazni email za tikete i obavještenja",
+        "2": "Lozinka se čuva kao tajna",
+        "3": "Bez SMTP-a email dodatak ostaje isključen"
+      },
+      "seed": {
+        "1": "Tiket odmah ide pravoj grupi",
+        "2": "Usmjeravanje je provjereno prije prvog tiketa",
+        "3": "Servis dobija SLA profil"
+      },
+      "team": {
+        "1": "Kolege dobijaju nalog i ulogu odmah",
+        "2": "Svi su članovi grupe koja prima tikete",
+        "3": "Bez SMTP-a lozinke podijeliš ručno"
+      },
+      "addons": {
+        "1": "Uključi samo ono što ti sada treba",
+        "2": "Jezgro (tiketi, usmjeravanje, audit) je uvijek uključeno",
+        "3": "Isključen dodatak ne briše podatke"
+      },
+      "complete": {
+        "1": "Spremnost se provjerava prije zaključavanja",
+        "2": "Odgođene korake dovršavaš iz Postavki",
+        "3": "Prijava ide na /login sa SuperAdmin nalogom"
+      },
+      "blueprint": {
+        "1": "Katalog kategorija i servisa spreman za prijem tiketa.",
+        "2": "Svaki servis dobija SLA profil i obrazac zahtjeva.",
+        "3": "Ruting se provjerava prije nego što se bilo šta upiše."
+      },
+      "policyPack": {
+        "1": "Uloge i dozvole za servis iz predloška.",
+        "2": "Prava možete dodijeliti i ručno, kasnije u Settings.",
+        "3": "Ono što paket ne pokriva ostaje nepromijenjeno."
+      },
+      "slaReview": {
+        "1": "Vidite radno vrijeme i matricu prioriteta koje sistem koristi.",
+        "2": "Zadane vrijednosti možete potvrditi ili odmah izmijeniti.",
+        "3": "Potvrda ne mijenja podatke — samo bilježi da ste pregledali."
+      },
+      "provisioning": {
+        "1": "Provjera prije zaključavanja: servis, grupa i usmjeravanje",
+        "2": "Jasno se vidi šta nedostaje i na kojem koraku se popravlja",
+        "3": "Nema skrivenih grešaka nakon završetka"
+      }
+    },
+    "blueprint": {
+      "heading": "Katalog iz predloška",
+      "body": "Predložak postavlja kategorije i servise kataloga, SLA profil i paket prava. Sve što primijenite možete kasnije mijenjati u podešavanjima.",
+      "applied": "Primijenjen predložak: {{key}}.",
+      "chooseTemplate": "Predložak",
+      "toggleService": "{{service}} — uključi u katalog",
+      "tierGroups": "Napravi nivoe podrške (1. i 2. nivo)",
+      "tierGroupsHint": "Servisi se vode na 1. nivou, a zahtjevi koje 1. nivo ne riješi idu na 2. nivo.",
+      "submit": "Primijeni predložak",
+      "result": {
+        "title": "Šta je upisano",
+        "created": "Novih servisa: {{count}} u {{categories}} kategorija",
+        "existing": "Postojećih servisa koje smo zadržali: {{count}}",
+        "tiers": "Novih nivoa podrške: {{count}}",
+        "routing": "Ruting je provjeren za svaki servis — zahtjev ide tačno na grupu rješavalaca, bez rezervne grupe."
+      },
+      "errorStructure": "Prvo dovršite korak „Struktura organizacije“ — predložak traži direkciju i grupu rješavalaca.",
+      "errorRouting": "Ruting za neki od servisa nije mogao biti postavljen, pa ništa nije upisano. Provjerite korak „Struktura organizacije“."
+    },
+    "policyPack": {
+      "heading": "Paket prava",
+      "body": "Paket prava postavlja uloge i dozvole za servis iz predloška. Možete ga i preskočiti i dodijeliti prava ručno.",
+      "applied": "Primijenjen paket: {{key}}.",
+      "choosePack": "Paket prava",
+      "submit": "Primijeni paket",
+      "grants": "Dozvola u paketu: {{count}}",
+      "classification": "Klasifikacija: {{value}}",
+      "requiresApproval": "Zahtijeva odobrenje",
+      "slaProfile": "SLA profil: {{key}}",
+      "errorDisabled": "Ovaj paket je isključen u podešavanjima i ne može se primijeniti iz čarobnjaka.",
+      "errorNotOffered": "Odabrani predložak ne nudi ovaj paket prava.",
+      "errorUnknown": "Nepoznat paket prava.",
+      "empty": "Za ovaj predložak nema paketa prava koji se mogu primijeniti."
+    },
+    "slaReview": {
+      "heading": "Radno vrijeme i prioriteti",
+      "body": "Provjerite radno vrijeme i matricu prioriteta. Potvrda upisuje samo to da ste pregledali ponuđene vrijednosti; izmjene se upisuju odmah.",
+      "calendar": {
+        "title": "Radno vrijeme — {{name}}",
+        "timezone": "Vremenska zona: {{timezone}}",
+        "hours": "{{from}}–{{to}}",
+        "closed": "Ne radi",
+        "holidays": "Praznika u kalendaru: {{count}}",
+        "editorCaption": "Radno vrijeme po danima",
+        "day": "Dan",
+        "from": "Od",
+        "to": "Do",
+        "open": "Radi",
+        "fromLabel": "Početak radnog vremena — {{day}}",
+        "toLabel": "Kraj radnog vremena — {{day}}",
+        "toggleDay": "Radi li se — {{day}}",
+        "multipleIntervals": "Neki dani imaju više intervala; ostale intervale mijenjate na SLA stranici."
+      },
+      "matrix": {
+        "title": "Matrica prioriteta",
+        "cell": "{{impact}} / {{urgency}} → {{priority}}",
+        "caption": "Prioritet koji sistem dodjeljuje za kombinaciju uticaja i hitnosti.",
+        "impact": "Uticaj / hitnost",
+        "hint": "Matrica se mijenja na SLA stranici, gdje se svaka izmjena potvrđuje razlogom.",
+        "unknown": "—"
+      },
+      "review": {
+        "confirmed": "Pregledano: potvrđene su zadane vrijednosti.",
+        "adjusted": "Pregledano: vrijednosti su izmijenjene."
+      },
+      "confirm": "Potvrđujem podrazumijevano",
+      "errorEmpty": "Odabrali ste izmjenu, ali ništa nije promijenjeno.",
+      "errorCalendarMissing": "U ovoj instalaciji nema kalendara radnog vremena, pa se izmjena ne može upisati.",
+      "submitAdjust": "Sačuvaj izmjene",
+      "errorHours": "Radno vrijeme nije ispravno — provjerite sate (jedan dan mora biti radni i intervali se ne smiju preklapati).",
+      "level": {
+        "LOW": "Nizak",
+        "MEDIUM": "Srednji",
+        "HIGH": "Visok",
+        "CRITICAL": "Kritičan"
+      },
+      "weekday": {
+        "1": "Ponedjeljak",
+        "2": "Utorak",
+        "3": "Srijeda",
+        "4": "Četvrtak",
+        "5": "Petak",
+        "6": "Subota",
+        "7": "Nedjelja"
+      }
+    },
+    "content": {
+      "errorSuperAdmin": "Za ovaj korak je potrebna prijava super admina.",
+      "errorGeneric": "Čuvanje nije uspjelo. Pokušajte ponovo."
+    },
+    "section": {
+      "inboundEmail": {
+        "title": "Dolazna e-pošta",
+        "value": "Poruke koje dođu na sanduče postaju tiketi u servisu koji odaberete — bez ručnog prepisivanja.",
+        "whatYouGet": {
+          "1": "Svaki novi mejl postaje tiket ili odgovor na postojeći.",
+          "2": "Nepoznati pošiljaoci se odbijaju, a petlje zaustavljaju.",
+          "3": "Ako sanduče još ne postoji, preskočite korak — tiketi iz portala rade dalje."
+        }
+      },
+      "directory": {
+        "title": "Imenik (AD/LDAPS)",
+        "value": "Čitanje korisnika i grupa iz vašeg imenika: prijava ostaje vaša, a Help Desk preuzima imena, adrese i pripadnost timovima.",
+        "whatYouGet": {
+          "1": "Agentima se imena i e-pošta ne unose ručno.",
+          "2": "Članstvo u grupama može odlučivati ko je admin, a ko agent.",
+          "3": "Ako prijava ne ide preko Entra ID-a, preskočite korak."
+        }
+      },
+      "knowledgeBase": {
+        "title": "Baza znanja",
+        "value": "Povratne informacije čitalaca i redovni pregledi drže bazu znanja tačnom.",
+        "whatYouGet": {
+          "1": "Čitalac može reći je li mu članak pomogao.",
+          "2": "Članci koji stare vraćaju se vlasnicima na pregled.",
+          "3": "Broj pitanja na portalu određuje koliko je duga stranica."
+        }
+      },
+      "statusPage": {
+        "title": "Statusna stranica",
+        "value": "Stranica koja pokazuje stanje sistema i prekide, umjesto da svaki poziv počne pitanjem „radi li vama?“",
+        "whatYouGet": {
+          "1": "Korisnici vide prekide bez prijave.",
+          "2": "Dostupnost se prikazuje ako želite da je pokažete.",
+          "3": "Prekid koji objavite pojavi se na stranici odmah."
+        }
+      },
+      "onCall": {
+        "title": "Dežurstva",
+        "value": "Odgovornost van radnog vremena: ko je na vezi i kada ga podsjetiti.",
+        "whatYouGet": {
+          "1": "Raspored se veže na tim koji ste već upisali.",
+          "2": "Podsjetnik stigne prije nego dežurstvo počne.",
+          "3": "Bez tima korak ne može raditi, zato je tim prvi uslov."
+        }
+      },
+      "announcements": {
+        "title": "Obavještenja",
+        "value": "Jedno mjesto za najave svima — od novog pravilnika do planiranog prekida.",
+        "whatYouGet": {
+          "1": "Obavještenje vide svi korisnici na portalu.",
+          "2": "Možete odlučiti smiju li agenti objavljivati sami.",
+          "3": "Kada je isključeno, portal ne prikazuje sekciju obavještenja."
+        }
+      },
+      "security": {
+        "title": "Sigurnost prijave",
+        "value": "Drugi faktor, provjera procurjelih lozinki i zatvaranje neaktivne sesije — tri poluge koje u produkciji najviše znače.",
+        "whatYouGet": {
+          "1": "Admini mogu biti obavezani na drugi faktor.",
+          "2": "Lozinke koje su se pojavile u procurjelim bazama provjeravaju se pri prijavi.",
+          "3": "Neaktivna sesija se zatvara nakon vremena koje postavite."
+        }
+      },
+      "privacy": {
+        "title": "Privatnost i podaci",
+        "value": "Koliko dugo podaci žive i šta se arhivira — prije nego prvi zahtjev za brisanje dođe na stol.",
+        "whatYouGet": {
+          "1": "Zahtjevi korisnika za svoje podatke imaju svoje mjesto u sistemu.",
+          "2": "Zatvoreni tiketi se arhiviraju po pravilu, ne ručno.",
+          "3": "Rok arhiviranja određujete vi."
+        }
+      },
+      "auditWebhook": {
+        "title": "Webhook revizije",
+        "value": "Svaki sigurnosno važan događaj odlazi i van sistema — u SIEM ili na vaš endpoint.",
+        "whatYouGet": {
+          "1": "Prijave, promjene uloga i promjene postavki putuju u vaš log.",
+          "2": "Tajna potpisuje svaku poruku, pa se falsifikat vidi.",
+          "3": "Webhook radi paralelno sa internim audit logom."
+        }
+      },
+      "itsm": {
+        "title": "ITSM moduli",
+        "value": "CMDB, problemi i promjene — moduli koji u Full paketu dolaze uključeni.",
+        "whatYouGet": {
+          "1": "Imovinu i zavisnosti vodite u CMDB-u.",
+          "2": "Problemi se vode odvojeno od tiketa, sa uzrocima.",
+          "3": "Promjena ima odobrenje i zapis, ne samo poruku u tiketu."
+        }
+      },
+      "integrations": {
+        "title": "Integracije",
+        "value": "Teams, Edge i kanali preko kojih Help Desk izlazi iz svog prozora.",
+        "whatYouGet": {
+          "1": "Tiketi i obavještenja mogu ići u Teams.",
+          "2": "Konektor u pilotu radi u simulatoru, a u produkciji u živom režimu.",
+          "3": "Kanali i tajne konektora ostaju na ekranu Integracije."
+        }
+      },
+      "required": "obavezno",
+      "secretHint": "Tajna se ne prikazuje. Ostavite polje prazno da zadržite postojeću vrijednost.",
+      "secretSet": "Tajna je postavljena — upišite novu vrijednost da je zamijenite",
+      "unset": "— nije postavljeno —",
+      "save": "Sačuvaj",
+      "saving": "Čuvam…",
+      "saved": "Sačuvano. Korak time dobija odgovor.",
+      "confirmDefaults": "Potvrdi zadane vrijednosti",
+      "requires": {
+        "service": "Prvo upišite barem jedan servis u koraku „Struktura“ — bez njega tiketi iz e-pošte ne bi imali gdje doći.",
+        "directoryLogin": "Ovo ima smisla samo ako prijava ide preko Entra ID-a (korak „Prijava“).",
+        "team": "Prvo upišite tim u koraku „Struktura“ — dežurstvo bez tima ne postoji."
+      },
+      "errorUnknown": "Ova sekcija ne postoji. Osvježite stranicu i pokušajte ponovo.",
+      "errorKeyNotAllowed": "To polje nije dio ove sekcije, pa nije upisano.",
+      "errorDependency": "Prvo dovršite uslov iznad (servis, tim ili prijava preko Entra ID-a).",
+      "errorRequires": "Postavka zavisi od druge koja još nije postavljena — provjerite uslove na ekranu Postavke.",
+      "errorValue": "Vrijednost nije prihvaćena. Provjerite tip, raspon ili dozvoljene vrijednosti."
+    },
+    "security": {
+      "recommendations": {
+        "title": "Preporuke za produkciju",
+        "value": "Postavke koje u produkciji treba uključiti — i jedna koju ovdje namjerno ne diramo.",
+        "whatYouGet": {
+          "1": "MFA je obavezan za admine, a ostalima dostupan.",
+          "2": "Provjera procurjelih lozinki je uključena.",
+          "3": "Turnstile čeka vaše ključeve; do tada ostaje isključen."
+        },
+        "applied": "Postavljeno",
+        "pending": "Čeka primjenu",
+        "manual": "Ručno",
+        "submit": "Primijeni preporuke za produkciju",
+        "saving": "Primjenjujem…",
+        "done": "Preporuke su primijenjene. Korak time dobija odgovor.",
+        "mfaAdmins": {
+          "title": "MFA za administratore",
+          "help": "Nalog sa najvećim ovlaštenjima treba i drugi faktor — aplikacija ili Entra ID."
+        },
+        "mfaOptional": {
+          "title": "MFA za ostale korisnike",
+          "help": "Dostupan, ali neobavezan: agent može uključiti drugi faktor kada želi."
+        },
+        "hibp": {
+          "title": "Provjera procurjelih lozinki",
+          "help": "Lozinka koja se pojavi u procurjelim bazama se odbija pri postavljanju i pri prijavi."
+        },
+        "idleTimeout": {
+          "title": "Zatvaranje neaktivne sesije",
+          "help": "Sesija se zatvara nakon 1800 sekundi (30 minuta) bez aktivnosti."
+        },
+        "captcha": {
+          "title": "Turnstile (zaštita od robota)",
+          "help": "Uključuje se ručno, kada unesete site i secret ključ — bez njih bi zaključao prijavu."
+        }
+      }
     }
   },
   "routing": {
@@ -4170,7 +4977,7 @@
     "tabCoverage": "Matrica pokrivanja",
     "tabTester": "Test rezolucije",
     "tabRules": "Pravila",
-    "tabChangeLog": "Change log",
+    "tabChangeLog": "Dnevnik izmjena",
     "newRule": "Novo pravilo",
     "createHeading": "Novo pravilo",
     "createSubtitle": "Uspješan unos zahtijeva razlog — upisuje se u ChangeLog s diff-om",
@@ -4244,7 +5051,7 @@
     "deleteImpact": "Prije: {{before}} → Poslije: {{after}} (grupa: {{group}})",
     "rulesEmptyTitle": "Nema routing pravila",
     "rulesEmptyHint": "Kreirajte WHEN/THEN pravilo za origin OU i servis.",
-    "changeLogHeading": "Change log",
+    "changeLogHeading": "Dnevnik izmjena",
     "changeLogSubtitle": "Svaka uspješna izmjena: ko, kada, razlog + deterministički before/after diff (tajne su redaktovane). Nije dio AuditLog hash lanca.",
     "changeLogEmptyTitle": "Nema izmjena",
     "changeLogEmptyBody": "Uspješne create/update/delete akcije pojaviće se ovdje.",
@@ -4259,6 +5066,7 @@
     "errorUnauthorized": "Prijava je potrebna za pregled usmjeravanja.",
     "errorForbidden": "Nemate dozvolu za izmjenu usmjeravanja.",
     "errorDuplicate": "Pravilo za ovu kombinaciju OU i servisa već postoji.",
+    "errorConflict": "Drugi korisnik je u međuvremenu izmijenio pravilo usmjeravanja. Osvježite stranicu i pokušajte ponovo.",
     "errorReason": "Razlog izmjene je obavezan.",
     "errorGeneric": "Usmjeravanje trenutno nije dostupno.",
     "unknownGroup": "Nepoznata grupa"
@@ -4366,7 +5174,7 @@
     "selectNone": "Nije odabrano",
     "overrideMatchRequired": "Pravilo izuzetka mora ciljati uslugu ili organizacionu jedinicu.",
     "rulesHint": "Manji evaluation order se ocjenjuje prvi. Specifičniji match (servis/OU) pobjedi pri istom redoslijedu.",
-    "changeLogHeading": "Change log",
+    "changeLogHeading": "Dnevnik izmjena",
     "changeLogHint": "Prije/poslije, akter, vrijeme i razlog.",
     "newCalendar": "Novi kalendar",
     "deleteCalendarAction": "Obriši kalendar",
@@ -4451,7 +5259,8 @@
     "errorGeneric": "SLA konfiguracija trenutno nije dostupna.",
     "escalationTargetOnCall": "Dežurni grupe",
     "escalationTargetOnCallHint": "Eskalacija ide samo osobi koja je dežurna u trenutku eskalacije (tihi sati ne vrijede). Ako niko nije dežuran, ide cijeloj grupi.",
-    "escalationTargetOnCallValue": "Dežurni u grupi: {{group}}"
+    "escalationTargetOnCallValue": "Dežurni u grupi: {{group}}",
+    "deleteReasonRequired": "Unesite razlog brisanja."
   },
   "integrationQueue": {
     "heading": "Trajni integracioni red",
@@ -4463,7 +5272,7 @@
     "workerStale": "worker: neaktivan",
     "workerUnknown": "worker: nepoznato",
     "workerRefresh": "Osvježi status workera",
-    "retryNow": "Retry now",
+    "retryNow": "Pokušaj ponovo",
     "retrying": "Ponovno slanje…",
     "noError": "Nema greške",
     "columnType": "Tip",
@@ -4521,14 +5330,20 @@
     "validate": "Validiraj (dry-run)",
     "activate": "Aktiviraj",
     "activateReason": "Razlog aktivacije",
-    "rollback": "Rollback",
+    "confirmActivateTitle": "Potvrdi aktivaciju",
+    "confirmRollbackTitle": "Potvrdi vraćanje verzije",
+    "confirmChangeDescription": "Verzija {{version}} će promijeniti konfiguraciju cijelog sistema. Pregledajte shadow sažetak i potvrdite namjeru.",
+    "shadowSampleSize": "Uzorak",
+    "shadowRoutingMismatches": "Promjene rutiranja",
+    "shadowSlaMismatches": "Promjene SLA pravila",
+    "rollback": "Vrati prethodnu verziju",
     "rollbackReason": "Razlog rollback-a",
     "validationOkTitle": "Validacija je prošla",
     "validationOkBody": "Dry-run nije prijavio greške. Verziju možete aktivirati.",
     "columnPath": "Putanja",
     "columnCode": "Kod",
     "columnMessage": "Poruka",
-    "diffHeading": "Diff",
+    "diffHeading": "Razlike",
     "diffHint": "Uporedite odabranu verziju s drugom. Prikaz dolazi s GET :id/diff.",
     "compareAgainst": "Uporedi sa",
     "comparePlaceholder": "Izaberite verziju",
@@ -4545,11 +5360,11 @@
     "shadowRoutingResult": "{{count}} od {{sampleSize}} uzorkovanih tiketa bi promijenilo grupu",
     "shadowSlaResult": "{{count}} od {{sampleSize}} uzorkovanih tiketa bi pogodilo drugo SLA pravilo",
     "statuses": {
-      "DRAFT": "DRAFT",
-      "VALIDATED": "VALIDATED",
-      "SHADOW": "SHADOW",
-      "ACTIVE": "ACTIVE",
-      "ROLLED_BACK": "ROLLED_BACK"
+      "DRAFT": "Nacrt",
+      "VALIDATED": "Validirana",
+      "SHADOW": "Probna",
+      "ACTIVE": "Aktivna",
+      "ROLLED_BACK": "Vraćena"
     },
     "errorUnauthorized": "Prijava je potrebna za pregled verzija konfiguracije.",
     "errorForbidden": "Nemate dozvolu za ovu radnju na verziji konfiguracije.",
@@ -4577,6 +5392,7 @@
       "importHint": "Učitajte paket iz drugog okruženja. Pregled prikazuje šta će se mapirati; uvoz kreira NACRT verziju koju zatim validirate i aktivirate.",
       "file": "Datoteka paketa (.json, max 5 MB)",
       "preview": "Pregledaj uvoz",
+      "previewing": "Pregled uvoza je u toku…",
       "source": "Izvor",
       "sourceValue": "{{environment}}, verzija {{version}}, izvezeno {{date}}",
       "signature": "Potpis",
@@ -4628,7 +5444,7 @@
         "policyPack": "Paket politika",
         "formVersion": "Verzija forme",
         "responseTemplate": "Šablon odgovora",
-        "playbook": "Playbook",
+        "playbook": "Plan rada",
         "slaProfile": "SLA profil",
         "calendar": "Kalendar radnog vremena"
       }
@@ -4657,7 +5473,7 @@
     "ownerMode": "Tip vlasnika",
     "ownerModeUser": "Korisnik",
     "ownerModeGroup": "Grupa",
-    "reviewerUserId": "Reviewer",
+    "reviewerUserId": "Recenzent",
     "classification": "Klasifikacija",
     "deleteAction": "Obriši članak",
     "deleteConfirm": "Trajno obrisati „{{title}}“? Feedback se također briše.",
@@ -4815,7 +5631,7 @@
     "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo kasnije.",
     "captchaTitle": "Provjera da niste robot",
     "captchaHint": "Riješite provjeru pa se prijavite ponovo.",
-    "captchaUnavailable": "Provjera se nije učitala. Provjerite vezu i pokušajte ponovo — ako se ponavlja, javite administratoru (server mora imati pristup Cloudflare Turnstile servisu).",
+    "captchaUnavailable": "CAPTCHA provjera nije dostupna ili se nije učitala. Provjerite vezu i pokušajte ponovo — ako se ponavlja, javite administratoru da provjeri Turnstile konfiguraciju i pristup servisu.",
     "captchaRetry": "Pokušaj ponovo",
     "captchaFailed": "Provjera nije prihvaćena. Pokušajte ponovo.",
     "checkError": {
@@ -4974,10 +5790,19 @@
     "impactLabel": "Uticaj (koliko korisnika/procesa)",
     "urgencyLabel": "Hitnost (koliko brzo treba rješenje)",
     "listSubtitle": "{{open}} otvorenih · {{risk}} pod SLA rizikom · sortirano po ažuriranju",
+    "listSubtitleCountsUnavailable": "Brojači trenutno nisu dostupni · sortirano po ažuriranju",
+    "countsUnavailable": "Brojači tiketa trenutno nisu dostupni. Prikazana lista je i dalje upotrebljiva.",
+    "refreshUnavailable": "Automatsko osvježavanje nije uspjelo. Prikazani su posljednji uspješno učitani podaci.",
     "listShown": "Prikazano {{shown}} od {{total}} tiketa",
     "listShownCapped": "Prikazano {{shown}} od {{total}}+ tiketa",
-    "emptyFilterTitle": "Nema tiketa za zadati filter",
-    "emptyFilterHint": "Pokušajte proširiti uslove pretrage ili očistiti prioritetni filter.",
+    "emptyListTitle": "Trenutno nema tiketa",
+    "emptyListHint": "Ovaj prikaz trenutno nema tiketa.",
+    "panelError": {
+      "title": "Ovaj panel nije dostupan.",
+      "body": "Ostatak tiketa i dalje radi. Pokušajte ponovo."
+    },
+    "emptyFilterTitle": "Nema tiketa za zadate uslove",
+    "emptyFilterHint": "Proširite pretragu ili promijenite filtere.",
     "clearFilters": "Očisti filtere",
     "columns": {
       "ticket": "Tiket",
@@ -5095,6 +5920,8 @@
     "interceptRequired": "obavezan korak",
     "interceptEmptyTitle": "Nema relevantnih članaka",
     "interceptEmpty": "Za ovaj opis nismo pronašli članke baze znanja. Nastavite sa slanjem tiketa.",
+    "interceptUnavailableTitle": "Baza znanja trenutno nije dostupna",
+    "interceptUnavailable": "Nismo mogli provjeriti članke baze znanja. Prijedlozi nisu obavezni — nastavite sa slanjem tiketa.",
     "helpedResolvedHint": "Tiket se neće kreirati. Vaša potvrda ulazi u statistiku KB intercepta.",
     "continueSendHint": "Članci nisu pomogli — želim da tim obradi moj zahtjev.",
     "openArticle": "Otvori članak",
@@ -5472,7 +6299,8 @@
         "ticket_asset_linked": "oprema vezana uz tiket",
         "ticket_asset_unlinked": "oprema uklonjena s tiketa",
         "ticket_problem_linked": "tiket povezan s problemom",
-        "ticket_problem_unlinked": "veza s problemom uklonjena"
+        "ticket_problem_unlinked": "veza s problemom uklonjena",
+        "ticket_problem_takeover": "tiket prebačen timu radi grupnog rješavanja problema"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -5878,15 +6706,26 @@
       "hours_other": "{{count}} sati",
       "globalFields_one": "{{count}} globalno polje",
       "globalFields_few": "{{count}} globalna polja",
-      "globalFields_other": "{{count}} globalnih polja"
-    }
+      "globalFields_other": "{{count}} globalnih polja",
+      "closeCodesValue": "{{state}} · obavezni pri rješavanju: {{required}}",
+      "requiredFieldsValue": "{{state}} · {{fields}}",
+      "reopenValue": "{{state}} · {{days}}",
+      "waitingValue": "{{state}} · podsjetnik {{reminder}} d, zatvaranje {{close}} d",
+      "archiveValue": "{{state}} · {{days}}",
+      "cleanupValue": "{{hours}} · sedmični pregled: {{digest}}"
+    },
+    "guardWarn": "upozorenje",
+    "tableCaption": "Dozvoljeni prelazi statusa tiketa",
+    "emptyTransitions": "Nema prelaza za odabrani status.",
+    "countsError": "Brojači tiketa nisu dostupni.",
+    "retry": "Pokušaj ponovo"
   },
   "templates": {
     "title": "Šabloni i playbooks",
     "intro": "Gotovi odgovori za composer i checkliste koraka za tipične zahtjeve. Šablon se nikad ne šalje sam — umeće se u tekst koji agent pregleda.",
     "tabs": {
       "shared": "Šabloni",
-      "playbooks": "Playbooks",
+      "playbooks": "Priručnici",
       "mine": "Moji šabloni"
     },
     "disabledTemplates": "Šabloni odgovora su isključeni (Postavke → Tiketi).",
@@ -6055,7 +6894,7 @@
       "clearTemplate": "Ukloni oznaku šablona"
     },
     "checklist": {
-      "title": "Playbook",
+      "title": "Priručnik",
       "progress": "{{done}}/{{total}} koraka",
       "requiredProgress": "obavezni {{done}}/{{total}}",
       "attach": "Priključi playbook",
@@ -6354,7 +7193,7 @@
       "teamsInstallHint": "Instalirajte aplikaciju u Teamsu da biste primali obavijesti tamo."
     },
     "passkeys": {
-      "title": "Passkey (FIDO2)",
+      "title": "Pristupni ključ (FIDO2)",
       "subtitle": "Prijava i potvrde bez kucanja koda, uz provjeru na samom uređaju.",
       "add": "Dodaj passkey",
       "adding": "Čekam potvrdu na uređaju…",
@@ -6578,7 +7417,7 @@
       },
       "deactivatedBy": {
         "directory": "Direktorij (AD)",
-        "admin": "Administrator"
+        "admin": "Administrator sistema"
       },
       "status": {
         "PENDING_APPROVAL": "Čeka odobrenje",
@@ -6866,6 +7705,7 @@
     },
     "affectedServices": "Pogođenih servisa: {{count}}",
     "allOperational": "Nema poznatih problema.",
+    "resourceLimitNotice": "Ovaj prikaz je dosegao granicu servisa ili prozora održavanja. Za kompletan skup suzite katalog ili pregledajte administracijske podatke.",
     "activeIncidents": "Aktivni incidenti",
     "planned": "Planirano održavanje",
     "plannedHint": "Narednih 14 dana",
@@ -6943,7 +7783,7 @@
       "message": "Prva poruka",
       "messageHint": "Šta korisnici primjećuju i šta radimo. Vidljivo na stranici statusa.",
       "startedAt": "Početak",
-      "startedAtHint": "Ostavite prazno za sada; unesite raniji trenutak ako je problem počeo prije prijave.",
+      "startedAtHint": "Ostavite prazno za sada; unesite ranije vrijeme ako je problem počeo prije prijave. Lokalno vrijeme koristi zonu preglednika: {{timeZone}}.",
       "notify": "Obavijesti korisnike s otvorenim tiketima na ovim servisima",
       "notifyHint": "Samo obavijest u aplikaciji (bez e-maila); poštuju se lične postavke obavještenja.",
       "createSubmit": "Kreiraj incident",
@@ -6984,6 +7824,8 @@
       "linkSubmit": "Poveži",
       "linked": "Tiket je povezan s incidentom.",
       "unlink": "Ukloni vezu",
+      "unlinkTitle": "Ukloniti vezu s incidentom?",
+      "unlinkBody": "Tiket više neće biti povezan s ovim incidentom. Sam incident se ne mijenja.",
       "unlinked": "Veza s incidentom je uklonjena.",
       "noOpen": "Nema otvorenih incidenata.",
       "requesterHint": "Obavijestit ćemo vas kada problem bude riješen."
@@ -7210,6 +8052,7 @@
       "startDateHint": "Prvi član preuzima smjenu ovog dana u vrijeme primopredaje.",
       "timezone": "Vremenska zona",
       "timezoneHint": "IANA naziv, npr. Europe/Sarajevo. Ljetno računanje vremena se uzima u obzir.",
+      "timezoneInvalid": "Unesite ispravnu IANA vremensku zonu.",
       "owner": "Vlasnik rasporeda",
       "ownerHint": "Dobija upozorenje kad smjena nema dežurnog.",
       "ownerMe": "Ja (ako nije odabran niko)",
@@ -7363,6 +8206,7 @@
       "noService": "Bez usluge",
       "startsAt": "Početak prikaza",
       "endsAt": "Kraj prikaza",
+      "timeZoneHint": "Unesite lokalno vrijeme u zoni preglednika ({{timeZone}}). Sprema se kao trenutak; primaoci ga vide u svojoj zoni.",
       "maxDuration": "Najduže {{days}} dana od početka.",
       "behaviour": "Ponašanje",
       "requiresAcknowledgement": "Traži potvrdu čitanja („Pročitao/la sam“)",
@@ -9189,11 +10033,11 @@
     "tabs": {
       "status": "Status",
       "channels": "Kanali",
-      "simulator": "Simulator"
+      "simulator": "Simulator poruka"
     },
     "mode": {
       "off": "Isključen",
-      "simulator": "Simulator",
+      "simulator": "Simulacija",
       "live": "Produkcija"
     },
     "status": {
@@ -9206,7 +10050,7 @@
       "lastInbound": "Posljednja ulazna aktivnost",
       "lastDelivery": "Posljednja isporuka",
       "failed": "Neuspjele isporuke",
-      "endpoint": "Messaging endpoint",
+      "endpoint": "Krajnja tačka za poruke",
       "never": "Nikad",
       "addonOff": "Addon „Microsoft Teams“ je isključen – konektor ne prima niti šalje ništa.",
       "openSettings": "Otvori postavke"
@@ -9270,11 +10114,16 @@
       "lastStatus": "Posljednji odgovor: HTTP {{status}}",
       "empty": "Još nema poruka. Instalirajte aplikaciju ili pošaljite „pomoć“.",
       "you": "Korisnik",
-      "bot": "Bot",
+      "bot": "Robot",
       "actionSent": "Akcija",
       "installed": "Aplikacija instalirana",
       "placeholder": "Poruka botu, npr. „moji tiketi“ ili „novi tiket“",
-      "send": "Pošalji"
+      "send": "Pošalji",
+      "userSearch": "Pretraži korisnike",
+      "usersLoading": "Učitavanje korisnika…",
+      "noUsers": "Nema aktivnih korisnika koji odgovaraju pretrazi.",
+      "loadMoreUsers": "Učitaj još korisnika",
+      "usersLoaded": "Učitano aktivnih korisnika: {{count}}"
     },
     "errors": {
       "appIdRequired": "Za paket je potreban Bot App ID (GUID).",
@@ -9293,6 +10142,11 @@
     "pagerLabel": "Listanje stranica",
     "previous": "Prethodna",
     "next": "Sljedeća",
+    "whatsNewPaginationLabel": "Stranice pregleda novosti",
+    "whatsNewRange": "Prikazano {{first}}–{{last}} od {{total}} novosti",
+    "previousChangesPage": "Prethodna stranica novosti",
+    "nextChangesPage": "Sljedeća stranica novosti",
+    "pageOf": "Stranica {{page}} od {{total}}",
     "searchLabel": "Pretraga dokumentacije",
     "searchPlaceholder": "Pretraži dokumentaciju…",
     "searchHint": "Pretraga pokriva naslove, tekst i tagove; upisujte najmanje dva znaka.",

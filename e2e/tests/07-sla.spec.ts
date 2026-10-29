@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 type OrganizationalUnitNode = {
   readonly id: string;
@@ -33,6 +33,7 @@ test.describe('07 SLA', () => {
       serviceId: catalog.serviceId,
       originUnitId: ticketOriginUnitId,
       formVersionRef: catalog.formVersionRef,
+      formData: { dodatne_informacije: 'E2E SLA compliance sample' },
     });
     const detail = await api.requestJson<{
       sla?: {
@@ -96,6 +97,7 @@ test.describe('07 SLA', () => {
 
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto('/sla');
+    await dismissAnnouncementModal(page);
     const profilesTab = page.getByTestId('tab-profiles');
     const complianceTab = page.getByTestId('tab-compliance');
     await expect(profilesTab).toHaveAttribute('aria-selected', 'true');
@@ -116,8 +118,8 @@ test.describe('07 SLA', () => {
       options.map((option) => (option as HTMLOptionElement).value),
     );
     expect(availableUnitIds).toContain(selectedUnitId);
-    await page.goto('/tickets?view=all');
-    await expect(page.getByText(created.title).first()).toBeVisible({
+    await page.goto(`/tickets/${created.id}`);
+    await expect(page.getByRole('heading', { name: created.title })).toBeVisible({
       timeout: 20_000,
     });
   });

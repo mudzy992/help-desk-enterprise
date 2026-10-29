@@ -5,11 +5,15 @@ import { routingOutcomes } from '../routing/routing.constants';
 import { resolveTicketRouting } from '../routing/resolve-ticket-routing';
 import type { RoutingResolution } from '../routing/routing.types';
 import { ensureInstallFallbackGroup } from './ensure-install-fallback-group';
+import { ensureInstallFallbackGroupMember } from './ensure-install-fallback-group-member';
 import { ensureInstallOrganizationalUnit } from './ensure-install-organizational-unit';
 import { ensureInstallSeedRouting } from './ensure-install-seed-routing';
 import { ensureInstallSeedService } from './ensure-install-seed-service';
 import { installSeedErrorCodes } from './install-seed.constants';
 import { InstallSeedError } from './install-seed.error';
+import { defaultInstallSeedNames } from './install-seed.names';
+import { resolveInstallSeedSlaProfile } from './install-seed-sla-profile';
+import { toInstallSeedStructureWarning } from './to-install-seed-structure-warning';
 import type {
   InstallSeedContext,
   InstallSeedCreatedFlags,
@@ -36,7 +40,8 @@ async function seedInstallMinimumWithClient(
   prisma: PrismaService,
   context: InstallSeedContext,
 ): Promise<InstallSeedResult> {
-  const organizationalUnit = await ensureInstallOrganizationalUnit(prisma);
+  const names = context.names ?? defaultInstallSeedNames;
+  const organizationalUnit = await ensureInstallOrganizationalUnit(prisma, names);
   const existingFallbackHint = await findInstallRoutingRuleHint(
     prisma,
     organizationalUnit.id,
@@ -44,12 +49,24 @@ async function seedInstallMinimumWithClient(
   const fallbackGroup = await ensureInstallFallbackGroup(prisma, {
     organizationalUnitId: organizationalUnit.id,
     preferredGroupId: existingFallbackHint,
+    names,
   });
+  // F0.6: a fallback group without members means routed tickets reach nobody
+  // (readiness `handlerGroup`). The founder joins it through the same domain
+  // function the groups endpoint uses; repeated seeds do not duplicate it.
+  await ensureInstallFallbackGroupMember(prisma, {
+    groupId: fallbackGroup.id,
+    userId: context.actorUserId,
+  });
+  // F2: the first ticket needs an SLA clock, so the service is created under the
+  // standard profile when the deployment has one.
+  const slaProfile = await resolveInstallSeedSlaProfile(prisma);
   const seededService = await ensureInstallSeedService(
     prisma,
     organizationalUnit.id,
     fallbackGroup.id,
     context,
+    slaProfile,
   );
   const routingRule = await ensureInstallSeedRouting(prisma, {
     originUnitId: organizationalUnit.id,
@@ -75,8 +92,20 @@ async function seedInstallMinimumWithClient(
     serviceFormVersion: seededService.formVersionCreated,
     routingRule: routingRule.created,
   };
+  // F2 (owner decision 5): a repeated seed never renames what exists; the
+  // operator is told that the names they typed were not applied.
+  const warning = toInstallSeedStructureWarning({
+    requested: names,
+    stored: {
+      organizationalUnitName: organizationalUnit.name,
+      handlerGroupName: fallbackGroup.name,
+      categoryName: seededService.categoryName,
+      serviceName: seededService.service.name,
+    },
+  });
   return {
     ...toInstallSeedPublicRecord({
+      categoryName: seededService.categoryName,
       organizationalUnit,
       fallbackGroup,
       service: seededService.service,
@@ -84,6 +113,7 @@ async function seedInstallMinimumWithClient(
       resolution,
     }),
     created,
+    ...(warning === null ? {} : { warning }),
   };
 }
 

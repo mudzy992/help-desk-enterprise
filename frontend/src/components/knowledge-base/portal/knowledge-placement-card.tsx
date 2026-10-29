@@ -41,6 +41,9 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
   );
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
+  const [categoriesErrorKey, setCategoriesErrorKey] = useState<KnowledgeArticleErrorKey | null>(
+    null,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -49,11 +52,19 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
       .then((loaded) => {
         if (!cancelled) setCategories(loaded);
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        if (!cancelled) setCategoriesErrorKey(mapKnowledgeArticleError(error));
+      });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setCategoryId(article.categoryId ?? "");
+    setIsFaq(article.isFaq === true);
+    setFaqOrder(article.faqOrder == null ? "" : String(article.faqOrder));
+  }, [article.id, article.categoryId, article.isFaq, article.faqOrder]);
 
   const options = useMemo(
     () =>
@@ -106,15 +117,22 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
       <h3 className="text-[12.5px] font-semibold text-foreground">
         {t("knowledgeBase.portal.placement.title")}
       </h3>
+      {categoriesErrorKey ? <ApiErrorText messageKey={categoriesErrorKey} /> : null}
       <Field label={t("knowledgeBase.portal.placement.category")}>
-        <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-          <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
+            {options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
       <label className="flex items-center gap-2 text-[12.5px] text-foreground">
         <Switch
@@ -130,17 +148,27 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
           hint={t("knowledgeBase.portal.placement.faqOrderHint")}
           error={orderValid ? undefined : t("knowledgeBase.portal.placement.faqOrderInvalid")}
         >
-          <Input
-            type="number"
-            min={0}
-            max={999}
-            value={faqOrder}
-            onChange={(event) => setFaqOrder(event.target.value)}
-          />
+          {(control) => (
+            <Input
+              {...control}
+              type="number"
+              min={0}
+              max={999}
+              value={faqOrder}
+              onChange={(event) => setFaqOrder(event.target.value)}
+            />
+          )}
         </Field>
       ) : null}
       <Field label={t("knowledgeBase.reason")} required>
-        <Input value={reason} maxLength={512} onChange={(event) => setReason(event.target.value)} />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            maxLength={512}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <ApiErrorText messageKey={errorKey} /> : null}
       <div>

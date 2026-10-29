@@ -1,5 +1,5 @@
 /**
- * Paket 2.8 §4.1 "next ticket": the list saves the order of the ticket ids on
+ * §4.1 "next ticket": the list saves the order of the ticket ids on
  * the current page (ids only, no content, max 500) in sessionStorage; the
  * detail page moves to the neighbour with `]` / `[`.
  */

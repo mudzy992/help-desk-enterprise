@@ -33,7 +33,13 @@ export async function createTicketViaApi(
       isConfidential: input.isConfidential === true,
       impact: input.impact ?? 'MEDIUM',
       urgency: input.urgency ?? 'MEDIUM',
-      formData: input.formData ?? {},
+      // Install seed form (`installSeedFormSchema`) uses `dodatne_informacije`,
+      // not a legacy `opis` key — unknown keys are rejected as FORM_DATA_INVALID.
+      formData:
+        input.formData ??
+        (input.formVersionRef === undefined
+          ? {}
+          : { dodatne_informacije: input.description ?? 'E2E ticket body' }),
     }),
   });
 }
@@ -59,16 +65,13 @@ export async function loadSeedCatalog(api: ApiClient): Promise<{
   if (originUnitId === undefined) {
     throw new Error('Organizational unit tree empty');
   }
-  const forms = await api
-    .requestJson<Array<{ formVersionRef: string; isActive?: boolean }>>(
-      `/services/${service.id}/forms`,
-    )
-    .catch(() => []);
-  const active = forms.find((form) => form.isActive !== false) ?? forms[0];
+  const form = await api
+    .requestJson<{ activeFormVersionRef: string | null }>(`/services/${service.id}/form`)
+    .catch(() => null);
   return {
     serviceId: service.id,
     originUnitId,
-    formVersionRef: active?.formVersionRef,
+    formVersionRef: form?.activeFormVersionRef ?? undefined,
   };
 }
 

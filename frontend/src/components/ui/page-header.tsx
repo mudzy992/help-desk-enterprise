@@ -1,34 +1,25 @@
 import type { ReactNode } from "react";
-import { useLocation } from "react-router-dom";
-import { DocsHelpButton } from "@/components/docs/docs-help-button";
-import { useBranding } from "@/lib/branding/branding-store";
-import { docsTargetForPath } from "@/lib/docs/docs-slug";
 
-/** Paket 4.1: placeholder crumb replaced by the configured product name. */
-export const brandCrumb = "\u0000brand";
-
-interface PageHeaderProperties {
-  readonly crumbs: readonly string[];
+export interface PageHeaderProperties {
+  readonly crumbs: readonly ReactNode[];
   readonly title: ReactNode;
   readonly subtitle?: ReactNode;
   readonly actions?: ReactNode;
+  /** Optional application-level action rendered beside the page actions. */
+  readonly supplement?: ReactNode;
 }
 
-export function PageHeader({ crumbs, title, subtitle, actions }: PageHeaderProperties) {
-  const { appName } = useBranding();
-  const { pathname } = useLocation();
-  // Faza 3 (d): kontekstualna „?" pomoć stoji uz naslov ekrana, kad za rutu
-  // postoji stranica dokumentacije (mapa je u `docs-slug.ts`).
-  const hasDocsHelp = !pathname.startsWith("/docs") && docsTargetForPath(pathname) !== null;
+/** Neutral page-heading layout. Route, branding and documentation policy belong in an adapter. */
+export function PageHeader({ crumbs, title, subtitle, actions, supplement }: PageHeaderProperties) {
   return (
     <div className="mb-5">
       {crumbs.length > 0 ? (
         <nav className="mb-1.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-muted-foreground">
           {crumbs.map((crumb, index) => (
-            <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
+            <span key={index} className="flex items-center gap-1.5">
               {index > 0 ? <span className="text-muted-foreground">/</span> : null}
               <span className={index === crumbs.length - 1 ? "text-muted-foreground" : ""}>
-                {crumb === brandCrumb ? appName : crumb}
+                {crumb}
               </span>
             </span>
           ))}
@@ -43,10 +34,10 @@ export function PageHeader({ crumbs, title, subtitle, actions }: PageHeaderPrope
             </p>
           ) : null}
         </div>
-        {actions || hasDocsHelp ? (
+        {actions || supplement ? (
           <div className="flex flex-wrap items-center gap-2">
             {actions}
-            <DocsHelpButton />
+            {supplement}
           </div>
         ) : null}
       </div>

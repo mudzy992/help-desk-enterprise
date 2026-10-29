@@ -1,7 +1,7 @@
 import { apiRequest } from "@/services/api";
 import type { TicketStatus } from "@/services/tickets-api";
 
-/** Paket 1.7 (W2): `GET /workflow/ticket-status`, ADMIN/SUPER_ADMIN only. */
+/** Read-only workflow contract for ADMIN and SUPER_ADMIN. */
 export type WorkflowActor = "STAFF" | "REQUESTER" | "APPROVER" | "SYSTEM";
 export type WorkflowTrigger =
   "status_change" | "claim" | "forward" | "approval" | "reopen" | "automation";
@@ -39,7 +39,7 @@ export type TicketWorkflowResponse = {
     } | null;
     readonly approvals: { readonly enabled: boolean } | null;
     readonly archive: { readonly enabled: boolean; readonly afterClosedDays: number } | null;
-    readonly playbooks?: {
+    readonly playbooks: {
       readonly enabled: boolean;
       readonly requiredStepsOnResolve: "off" | "warn" | "block";
     } | null;

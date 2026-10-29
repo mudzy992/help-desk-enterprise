@@ -6,28 +6,30 @@ import { WorkflowParametersCard } from "@/components/workflow/workflow-parameter
 import { WorkflowTransitionsTable } from "@/components/workflow/workflow-transitions-table";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Card, CardHeader } from "@/components/ui/card";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { getTicketCounts } from "@/services/tickets-counts-api";
 import type { TicketStatus } from "@/services/tickets-api";
 import { getTicketWorkflow, type TicketWorkflowResponse } from "@/services/workflow-api";
 
-/**
- * Paket 1.7 (W3): read-only view of the ticket status flow of this
- * installation — diagram, transition table and the live guard parameters.
- * ADMIN and SUPER_ADMIN only; the flow is not editable from the UI (W4).
- */
+/** Read-only status flow, transition table, and live guard parameters for administrators. */
 export function WorkflowPage() {
   const { t } = useTranslation();
   const [workflow, setWorkflow] = useState<TicketWorkflowResponse | null>(null);
   const [counts, setCounts] = useState<Readonly<Partial<Record<TicketStatus, number>>>>({});
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [countsError, setCountsError] = useState(false);
+  const [workflowRequest, setWorkflowRequest] = useState(0);
+  const [countsRequest, setCountsRequest] = useState(0);
   const [selected, setSelected] = useState<TicketStatus | null>(null);
 
   useEffect(() => {
     let active = true;
+    setErrorKey(null);
+    setRequestId(null);
     getTicketWorkflow()
       .then((response) => {
         if (active) setWorkflow(response);
@@ -38,15 +40,25 @@ export function WorkflowPage() {
           setRequestId(readApiRequestId(error));
         }
       });
+    return () => {
+      active = false;
+    };
+  }, [workflowRequest]);
+
+  useEffect(() => {
+    let active = true;
+    setCountsError(false);
     getTicketCounts()
       .then((response) => {
         if (active) setCounts(response.byStatus);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setCountsError(true);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [countsRequest]);
 
   const transitions = useMemo(
     () =>
@@ -73,7 +85,17 @@ export function WorkflowPage() {
         <span>{t("workflow.fixedNotice")}</span>
       </p>
       {errorKey !== null ? (
-        <ApiErrorText messageKey={errorKey} requestId={requestId} />
+        <div className="space-y-2">
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setWorkflowRequest((value) => value + 1)}
+          >
+            {t("workflow.retry")}
+          </Button>
+        </div>
       ) : workflow === null ? (
         <PanelSkeleton label={t("workflow.title")} />
       ) : (
@@ -88,6 +110,22 @@ export function WorkflowPage() {
                 }
                 subtitle={t("workflow.diagramSubtitle")}
               />
+              {countsError ? (
+                <p
+                  role="alert"
+                  className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-md border border-warning/35 bg-warning/8 px-3 py-2 text-[12px]"
+                >
+                  <span>{t("workflow.countsError")}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setCountsRequest((value) => value + 1)}
+                  >
+                    {t("workflow.retry")}
+                  </Button>
+                </p>
+              ) : null}
               <WorkflowDiagram
                 statuses={workflow.statuses}
                 transitions={workflow.transitions}

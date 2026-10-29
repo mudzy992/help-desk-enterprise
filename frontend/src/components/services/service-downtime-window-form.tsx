@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@/lib/services/downtime-datetime";
+import {
+  browserTimeZone,
+  fromDatetimeLocalValue,
+  isValidCivilRange,
+  toDatetimeLocalValue,
+} from "@/lib/services/downtime-datetime";
 import {
   mapServiceCatalogError,
   type ServiceCatalogErrorKey,
@@ -55,6 +60,7 @@ export function ServiceDowntimeWindowForm({
     requireCatalogChangeReason(values.reason) !== null &&
     values.startsAt.length > 0 &&
     values.endsAt.length > 0 &&
+    isValidCivilRange(values.startsAt, values.endsAt) &&
     values.message.trim().length > 0 &&
     !isSaving;
 
@@ -65,8 +71,8 @@ export function ServiceDowntimeWindowForm({
     setIsSaving(true);
     setErrorKey(null);
     const payload = {
-      startsAt: fromDatetimeLocalValue(values.startsAt),
-      endsAt: fromDatetimeLocalValue(values.endsAt),
+      startsAt: fromDatetimeLocalValue(values.startsAt) as string,
+      endsAt: fromDatetimeLocalValue(values.endsAt) as string,
       message: values.message.trim(),
       reason: values.reason.trim(),
     };
@@ -96,34 +102,54 @@ export function ServiceDowntimeWindowForm({
         void submit();
       }}
     >
-      <Field label={t("services.downtime.startsAt")} required>
-        <Input
-          type="datetime-local"
-          value={values.startsAt}
-          onChange={(event) => patch({ startsAt: event.target.value })}
-        />
+      <Field
+        label={t("services.downtime.startsAt")}
+        hint={t("services.downtime.timeZoneHint", { timeZone: browserTimeZone() })}
+        required
+      >
+        {(control) => (
+          <Input
+            {...control}
+            type="datetime-local"
+            value={values.startsAt}
+            onChange={(event) => patch({ startsAt: event.target.value })}
+          />
+        )}
       </Field>
-      <Field label={t("services.downtime.endsAt")} required>
-        <Input
-          type="datetime-local"
-          value={values.endsAt}
-          onChange={(event) => patch({ endsAt: event.target.value })}
-        />
+      <Field
+        label={t("services.downtime.endsAt")}
+        hint={t("services.downtime.timeZoneHint", { timeZone: browserTimeZone() })}
+        required
+      >
+        {(control) => (
+          <Input
+            {...control}
+            type="datetime-local"
+            value={values.endsAt}
+            onChange={(event) => patch({ endsAt: event.target.value })}
+          />
+        )}
       </Field>
       <Field label={t("services.downtime.message")} required>
-        <Textarea
-          value={values.message}
-          maxLength={512}
-          rows={3}
-          onChange={(event) => patch({ message: event.target.value })}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={values.message}
+            maxLength={512}
+            rows={3}
+            onChange={(event) => patch({ message: event.target.value })}
+          />
+        )}
       </Field>
       <Field label={t("services.changeReason")} required>
-        <Input
-          value={values.reason}
-          maxLength={512}
-          onChange={(event) => patch({ reason: event.target.value })}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={values.reason}
+            maxLength={512}
+            onChange={(event) => patch({ reason: event.target.value })}
+          />
+        )}
       </Field>
       {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div className="flex justify-end gap-1.5">

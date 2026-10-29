@@ -15,7 +15,7 @@ const disabled: AgentCollaborationConfiguration = {
   linksMaxPerTicket: 20,
 };
 
-/** Paket 2.4: the collaboration switches; everything off until the answer arrives. */
+/** the collaboration switches; everything off until the answer arrives. */
 export function useAgentCollaborationConfiguration(): AgentCollaborationConfiguration {
   const query = useQuery({
     queryKey: queryKeys.agentCollaborationConfiguration,

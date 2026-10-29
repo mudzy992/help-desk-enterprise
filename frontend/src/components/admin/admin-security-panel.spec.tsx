@@ -4,7 +4,7 @@ import { AdminSecurityPanel } from "@/components/admin/admin-security-panel";
 import { AdminSecurityAuditCard } from "@/components/admin/admin-security-audit-card";
 
 /*
-  Paket 5.4.0-d (M6) + 5.4.0-e.2: the two render states that must never leak
+  the two render states that must never leak
   data, plus the ordering of the tab. Both components are rendered without a
   browser, with the translator stubbed to its key so the assertions stay about
   wiring, not wording. The settings block has its own spec; here it is stubbed so
@@ -62,9 +62,8 @@ describe("AdminSecurityPanel", () => {
   });
 
   /*
-    5.4.0-e.2/e.3: the SuperAdmin opens „Sigurnost" and must find what they can
-    change **without scrolling past the journal** (the journal is the tallest
-    card on the tab, so anything under it is off-screen). The administration
+    The SuperAdmin must find what they can change without scrolling past the
+    journal (the journal is the tallest card on the tab). The administration
     cards come first and the journal follows as the record of every change.
     A profile without the right never mounts them, so a deep link by a regular
     ADMIN cannot fire a single SuperAdmin request.

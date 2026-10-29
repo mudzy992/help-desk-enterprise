@@ -12,6 +12,7 @@ export function createBullMqRootConfiguration(
       port: configuration.port,
       username: configuration.username,
       password: configuration.password,
+      tls: configuration.tls,
       maxRetriesPerRequest: null,
       lazyConnect: true,
     },

@@ -1,50 +1,29 @@
-import { useEffect, useRef, useState } from "react";
-import { loadVisibleOnboardings } from "@/lib/services/load-visible-onboardings";
+import { useMemo } from "react";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
-import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
+import type { ServiceOnboardingSummary } from "@/services/service-catalog-api";
 
-export function useVisibleOnboardings(rows: readonly ServiceCatalogRow[]) {
-  const [onboardings, setOnboardings] = useState<readonly ServiceOnboardingResponse[]>([]);
-  const requestSequence = useRef(0);
+export type VisibleServiceOnboarding = ServiceOnboardingSummary & {
+  readonly serviceId: string;
+};
 
-  useEffect(() => {
-    const draftIds = rows
-      .filter((row) => row.service.lifecycle === "DRAFT")
-      .map((row) => row.service.id);
-    const draftIdSet = new Set(draftIds);
-    const sequence = ++requestSequence.current;
-    setOnboardings((current) =>
-      current.filter((onboarding) => draftIdSet.has(onboarding.serviceId)),
-    );
-    if (draftIds.length === 0) {
-      setOnboardings([]);
-      return () => {
-        requestSequence.current += 1;
-      };
-    }
-
-    void loadVisibleOnboardings(draftIds, (serviceId, onboarding) => {
-      if (sequence !== requestSequence.current) {
-        return;
-      }
-      setOnboardings((current) => {
-        const withoutService = current.filter((item) => item.serviceId !== serviceId);
-        return onboarding === null ? withoutService : [...withoutService, onboarding];
-      });
-    }).catch(() => {
-      // Keep visible progress when a background refresh fails, but remove
-      // records for services which are no longer drafts in the latest read.
-      if (sequence === requestSequence.current) {
-        setOnboardings((current) =>
-          current.filter((onboarding) => draftIdSet.has(onboarding.serviceId)),
-        );
-      }
-    });
-
-    return () => {
-      requestSequence.current += 1;
-    };
-  }, [rows]);
-
-  return onboardings;
+/**
+ * Derives visible onboarding progress from the batch catalog response. This
+ * avoids one expected 404 request for every draft service without onboarding.
+ */
+export function useVisibleOnboardings(
+  rows: readonly ServiceCatalogRow[],
+): readonly VisibleServiceOnboarding[] {
+  return useMemo(
+    () =>
+      rows.flatMap((row) => {
+        const onboarding = row.service.onboarding;
+        return row.service.lifecycle === "DRAFT" &&
+          onboarding !== null &&
+          onboarding !== undefined &&
+          onboarding.status !== "COMPLETED"
+          ? [{ ...onboarding, serviceId: row.service.id }]
+          : [];
+      }),
+    [rows],
+  );
 }

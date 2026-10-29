@@ -1,6 +1,6 @@
-import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Queue } from 'bullmq';
+import { InjectQueue } from "@nestjs/bullmq";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Queue } from "bullmq";
 import {
   problemSweepCronPattern,
   problemSweepJobAttempts,
@@ -8,14 +8,16 @@ import {
   problemSweepJobName,
   problemSweepQueueName,
   problemSweepSchedulerId,
-} from './problem-sweep.constants';
+} from "./problem-sweep.constants";
 
 /** Idempotent by scheduler id, so restarts and extra workers converge on one schedule. */
 @Injectable()
 export class ProblemSweepSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(ProblemSweepSchedulerService.name);
 
-  constructor(@InjectQueue(problemSweepQueueName) private readonly queue: Queue) {}
+  constructor(
+    @InjectQueue(problemSweepQueueName) private readonly queue: Queue,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     try {
@@ -27,14 +29,22 @@ export class ProblemSweepSchedulerService implements OnModuleInit {
           data: {},
           opts: {
             attempts: problemSweepJobAttempts,
-            backoff: { type: 'exponential', delay: problemSweepJobBackoffMilliseconds },
+            backoff: {
+              type: "exponential",
+              delay: problemSweepJobBackoffMilliseconds,
+            },
             removeOnComplete: { count: 5 },
             removeOnFail: { count: 20 },
           },
         },
       );
     } catch (error) {
-      this.logger.warn(`problem_sweep_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `problem_sweep_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+      );
+      throw new Error("problem_sweep mandatory schedule registration failed", {
+        cause: error,
+      });
     }
   }
 }

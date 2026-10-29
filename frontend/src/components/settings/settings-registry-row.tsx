@@ -11,7 +11,7 @@ interface SettingsRegistryRowProperties {
 }
 
 /**
- * Paket 5.3.4 (D4/D5): the list shows the human sentence as the title with the
+ * the list shows the human sentence as the title with the
  * raw key underneath — an administrator scans "Uključi dostavu obavještenja…"
  * and only drops to the key when comparing with a log or a ticket. The row is a
  * button: the whole row opens the detail dialog, which keeps the touch target
@@ -32,6 +32,11 @@ export function SettingsRegistryRow({ entry, onOpen }: SettingsRegistryRowProper
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[12.5px] text-foreground/90">{title}</span>
+          {entry.readOnly === true ? (
+            <Badge tone="info" dot={false} data-testid={`setting-row-readonly-${entry.key}`}>
+              {t("settings.registry.readOnly")}
+            </Badge>
+          ) : null}
           {entry.requires.length > 0 ? (
             <Lock
               size={11}

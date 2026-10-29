@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
 import { SlaEscalationRuleForm } from "@/components/sla/sla-escalation-rule-form";
 import { SlaEscalationRulesTable } from "@/components/sla/sla-escalation-rules-table";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PanelSkeleton } from "@/components/ui/skeleton";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
+import { readApiRequestId } from "@/lib/map-api-error";
 import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
+import type { SlaQueryError } from "@/lib/sla/use-sla-page-data";
 import { useSlaEscalationGroupNames } from "@/lib/sla/use-sla-escalation-group-names";
 import {
   createSlaEscalationRule,
@@ -33,23 +38,45 @@ export function SlaEscalationRulesPanel({
   const [editing, setEditing] = useState<SlaEscalationRule | undefined>();
   const [deleteReason, setDeleteReason] = useState("");
   const [errorKey, setErrorKey] = useState<SlaErrorKey | null>(null);
+  const [loadError, setLoadError] = useState<SlaQueryError | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reasonRequired, setReasonRequired] = useState(false);
+  const loadGuard = useRef(createLatestRequestGuard());
+  const mutationPending = useRef(false);
+
+  const reload = useCallback(async () => {
+    const request = loadGuard.current.begin();
+    setLoadError(null);
+    setIsLoading(true);
+    try {
+      const items = await listSlaEscalationRules(slaProfileId);
+      if (loadGuard.current.isCurrent(request)) setRules([...items]);
+    } catch (error) {
+      if (loadGuard.current.isCurrent(request)) {
+        setLoadError({ key: mapSlaError(error), requestId: readApiRequestId(error) });
+      }
+    } finally {
+      if (loadGuard.current.isCurrent(request)) setIsLoading(false);
+    }
+  }, [slaProfileId]);
 
   useEffect(() => {
+    const guard = loadGuard.current;
     setEditing(undefined);
+    setRules([]);
+    setLoadError(null);
     if (slaProfileId.length === 0) {
       setRules([]);
       return;
     }
-    void listSlaEscalationRules(slaProfileId).then((items) => setRules([...items]));
-  }, [slaProfileId]);
-
-  const reload = async () => {
-    setRules([...(await listSlaEscalationRules(slaProfileId))]);
-  };
+    void reload();
+    return () => guard.cancel();
+  }, [reload, slaProfileId]);
 
   const handleSave = async (input: EscalationRuleWriteInput) => {
-    if (!canWrite || slaProfileId.length === 0) return;
+    if (!canWrite || slaProfileId.length === 0 || mutationPending.current) return;
+    mutationPending.current = true;
     setIsSubmitting(true);
     setErrorKey(null);
     try {
@@ -63,37 +90,53 @@ export function SlaEscalationRulesPanel({
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
+      mutationPending.current = false;
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (rule: SlaEscalationRule) => {
-    if (!canWrite || deleteReason.trim().length === 0) return;
+    if (!canWrite || mutationPending.current) return;
+    if (deleteReason.trim().length === 0) {
+      setReasonRequired(true);
+      return;
+    }
+    setReasonRequired(false);
+    mutationPending.current = true;
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      await deleteSlaEscalationRule(rule.id, deleteReason);
+      await deleteSlaEscalationRule(rule.id, deleteReason.trim());
       setDeleteReason("");
       await reload();
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
+      mutationPending.current = false;
       setIsSubmitting(false);
     }
   };
 
-  const table =
-    rules.length === 0 ? (
-      <EmptyState title={t("sla.escalationsHeading")} body={t("sla.escalationsEmptyBody")} />
-    ) : (
-      <SlaEscalationRulesTable
-        rules={rules}
-        groupNames={groupNames}
-        canWrite={canWrite}
-        onEdit={setEditing}
-        onDelete={(rule) => void handleDelete(rule)}
-      />
-    );
+  const table = loadError ? (
+    <EntityDetailQueryError
+      messageKey={loadError.key}
+      requestId={loadError.requestId}
+      retrying={isLoading}
+      onRetry={() => void reload()}
+    />
+  ) : isLoading ? (
+    <PanelSkeleton label={t("ui.loading")} />
+  ) : rules.length === 0 ? (
+    <EmptyState title={t("sla.escalationsHeading")} body={t("sla.escalationsEmptyBody")} />
+  ) : (
+    <SlaEscalationRulesTable
+      rules={rules}
+      groupNames={groupNames}
+      canWrite={canWrite}
+      onEdit={setEditing}
+      onDelete={(rule) => void handleDelete(rule)}
+    />
+  );
 
   const form = canWrite ? (
     <div className={embedded ? "mt-3 space-y-3" : "p-4"}>
@@ -112,6 +155,11 @@ export function SlaEscalationRulesPanel({
           placeholder={t("sla.deleteReasonPlaceholder")}
         />
       </label>
+      {reasonRequired ? (
+        <p role="alert" className="text-[12px] text-danger">
+          {t("sla.deleteReasonRequired")}
+        </p>
+      ) : null}
     </div>
   ) : null;
 

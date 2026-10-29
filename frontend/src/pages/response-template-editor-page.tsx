@@ -10,11 +10,16 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { hintClassName, selectCompactClassName, textareaClassName } from "@/components/ui/control";
 import { Field, Input, Select } from "@/components/ui/field";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
+import {
+  emptyResponseTemplateForm,
+  type ResponseTemplateBodyField,
+  type ResponseTemplateForm,
+} from "@/lib/templates/response-template-editor-model";
 import { parseTagsInput, unknownTemplateVariables } from "@/lib/templates/template-variables";
 import { cn } from "@/lib/utils";
 import { listGroups } from "@/services/groups-api";
@@ -31,34 +36,6 @@ import {
   type TemplateLocale,
 } from "@/services/templates-api";
 
-type Form = {
-  name: string;
-  kind: ResponseTemplateKind;
-  bodyBs: string;
-  bodyEn: string;
-  tags: string;
-  isActive: boolean;
-  serviceIds: readonly string[];
-  categoryIds: readonly string[];
-  groupIds: readonly string[];
-  reason: string;
-};
-
-const emptyForm: Form = {
-  name: "",
-  kind: "REPLY",
-  bodyBs: "",
-  bodyEn: "",
-  tags: "",
-  isActive: true,
-  serviceIds: [],
-  categoryIds: [],
-  groupIds: [],
-  reason: "",
-};
-
-type BodyField = "bodyBs" | "bodyEn";
-
 /**
  * Paket 1.4 (A1): dedicated editor page — form on the left, live preview on
  * the right (sample ticket or a real one the admin can open), clickable
@@ -74,7 +51,7 @@ export function ResponseTemplateEditorPage() {
   const [ownership, setOwnership] = useState<ResponseTemplateOwnership>(
     searchParams.get("ownership") === "personal" ? "personal" : "shared",
   );
-  const [form, setForm] = useState<Form>(emptyForm);
+  const [form, setForm] = useState<ResponseTemplateForm>(emptyResponseTemplateForm);
   const [canEdit, setCanEdit] = useState(true);
   const [loaded, setLoaded] = useState(isNew);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
@@ -86,7 +63,7 @@ export function ResponseTemplateEditorPage() {
   const [previewTicketId, setPreviewTicketId] = useState("");
   const [preview, setPreview] = useState<RenderedTemplate | null>(null);
   const [previewErrorKey, setPreviewErrorKey] = useState<TemplatesErrorKey | null>(null);
-  const [activeBody, setActiveBody] = useState<BodyField>("bodyBs");
+  const [activeBody, setActiveBody] = useState<ResponseTemplateBodyField>("bodyBs");
   const bodyReferences = {
     bodyBs: useRef<HTMLTextAreaElement>(null),
     bodyEn: useRef<HTMLTextAreaElement>(null),
@@ -196,7 +173,7 @@ export function ResponseTemplateEditorPage() {
     [form.bodyBs, form.bodyEn],
   );
 
-  const update = <K extends keyof Form>(key: K, value: Form[K]) =>
+  const update = <K extends keyof ResponseTemplateForm>(key: K, value: ResponseTemplateForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
   const insertVariable = (placeholder: string) => {
@@ -298,48 +275,60 @@ export function ResponseTemplateEditorPage() {
             ) : null}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <Field label={t("templates.editor.name")} required>
-                <Input
-                  value={form.name}
-                  onChange={(event) => update("name", event.target.value)}
-                  maxLength={120}
-                  disabled={disabled}
-                  data-testid="template-name"
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={form.name}
+                    onChange={(event) => update("name", event.target.value)}
+                    maxLength={120}
+                    disabled={disabled}
+                    data-testid="template-name"
+                  />
+                )}
               </Field>
               <Field label={t("templates.editor.kind")} hint={t("templates.editor.kindHint")}>
-                <Select
-                  value={form.kind}
-                  onChange={(event) => update("kind", event.target.value as ResponseTemplateKind)}
-                  disabled={disabled}
-                >
-                  <option value="REPLY">{t("templates.kind.REPLY")}</option>
-                  <option value="INTERNAL">{t("templates.kind.INTERNAL")}</option>
-                  <option value="ANY">{t("templates.kind.ANY")}</option>
-                </Select>
+                {(control) => (
+                  <Select
+                    {...control}
+                    value={form.kind}
+                    onChange={(event) => update("kind", event.target.value as ResponseTemplateKind)}
+                    disabled={disabled}
+                  >
+                    <option value="REPLY">{t("templates.kind.REPLY")}</option>
+                    <option value="INTERNAL">{t("templates.kind.INTERNAL")}</option>
+                    <option value="ANY">{t("templates.kind.ANY")}</option>
+                  </Select>
+                )}
               </Field>
             </div>
             <Field label={t("templates.editor.bodyBs")} required>
-              <textarea
-                ref={bodyReferences.bodyBs}
-                value={form.bodyBs}
-                onChange={(event) => update("bodyBs", event.target.value)}
-                onFocus={() => setActiveBody("bodyBs")}
-                rows={9}
-                className={cn(textareaClassName, "font-mono text-[12.5px]")}
-                disabled={disabled}
-                data-testid="template-body-bs"
-              />
+              {(control) => (
+                <textarea
+                  {...control}
+                  ref={bodyReferences.bodyBs}
+                  value={form.bodyBs}
+                  onChange={(event) => update("bodyBs", event.target.value)}
+                  onFocus={() => setActiveBody("bodyBs")}
+                  rows={9}
+                  className={cn(textareaClassName, "font-mono text-[12.5px]")}
+                  disabled={disabled}
+                  data-testid="template-body-bs"
+                />
+              )}
             </Field>
             <Field label={t("templates.editor.bodyEn")} hint={t("templates.editor.bodyEnHint")}>
-              <textarea
-                ref={bodyReferences.bodyEn}
-                value={form.bodyEn}
-                onChange={(event) => update("bodyEn", event.target.value)}
-                onFocus={() => setActiveBody("bodyEn")}
-                rows={5}
-                className={cn(textareaClassName, "font-mono text-[12.5px]")}
-                disabled={disabled}
-              />
+              {(control) => (
+                <textarea
+                  {...control}
+                  ref={bodyReferences.bodyEn}
+                  value={form.bodyEn}
+                  onChange={(event) => update("bodyEn", event.target.value)}
+                  onFocus={() => setActiveBody("bodyEn")}
+                  rows={5}
+                  className={cn(textareaClassName, "font-mono text-[12.5px]")}
+                  disabled={disabled}
+                />
+              )}
             </Field>
             {unknown.length > 0 ? (
               <p role="alert" className="flex items-center gap-1.5 text-[12px] text-danger">
@@ -350,11 +339,14 @@ export function ResponseTemplateEditorPage() {
             <VariablePalette onInsert={insertVariable} disabled={disabled} />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("templates.editor.tags")} hint={t("templates.editor.tagsHint")}>
-                <Input
-                  value={form.tags}
-                  onChange={(event) => update("tags", event.target.value)}
-                  disabled={disabled}
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={form.tags}
+                    onChange={(event) => update("tags", event.target.value)}
+                    disabled={disabled}
+                  />
+                )}
               </Field>
               <div className="flex items-end pb-2">
                 <Checkbox
@@ -402,13 +394,16 @@ export function ResponseTemplateEditorPage() {
                   required
                   hint={t("templates.editor.reasonHint")}
                 >
-                  <Input
-                    value={form.reason}
-                    onChange={(event) => update("reason", event.target.value)}
-                    maxLength={500}
-                    disabled={disabled}
-                    data-testid="template-reason"
-                  />
+                  {(control) => (
+                    <Input
+                      {...control}
+                      value={form.reason}
+                      onChange={(event) => update("reason", event.target.value)}
+                      maxLength={500}
+                      disabled={disabled}
+                      data-testid="template-reason"
+                    />
+                  )}
                 </Field>
               </div>
             ) : null}
@@ -457,12 +452,15 @@ export function ResponseTemplateEditorPage() {
                 label={t("templates.editor.previewTicket")}
                 hint={t("templates.editor.previewTicketHint")}
               >
-                <Input
-                  value={previewTicketId}
-                  onChange={(event) => setPreviewTicketId(event.target.value)}
-                  maxLength={64}
-                  placeholder="cm…"
-                />
+                {(control) => (
+                  <Input
+                    {...control}
+                    value={previewTicketId}
+                    onChange={(event) => setPreviewTicketId(event.target.value)}
+                    maxLength={64}
+                    placeholder="cm…"
+                  />
+                )}
               </Field>
               {previewErrorKey !== null ? (
                 <p role="alert" className="text-[12.5px] text-danger">

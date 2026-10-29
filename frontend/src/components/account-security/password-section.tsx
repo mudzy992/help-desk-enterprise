@@ -17,7 +17,7 @@ interface PasswordSectionProperties {
   readonly onChanged: () => void;
 }
 
-/** Paket 2.1 (M7): own password change; other sessions end, this one stays. */
+/** Own password change; other sessions end, this one stays. */
 export function PasswordSection({ password, onChanged }: PasswordSectionProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -62,33 +62,42 @@ export function PasswordSection({ password, onChanged }: PasswordSectionProperti
           : ""}
       </p>
       <Field label={t("account.security.currentPassword")} required>
-        <Input
-          type="password"
-          autoComplete="current-password"
-          value={currentPassword}
-          onChange={(event) => setCurrentPassword(event.target.value)}
-          required
-        />
+        {(control) => (
+          <Input
+            {...control}
+            type="password"
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            required
+          />
+        )}
       </Field>
       <Field label={t("auth.changePassword.newPassword")} required>
-        <Input
-          type="password"
-          autoComplete="new-password"
-          value={newPassword}
-          minLength={password.minLength}
-          onChange={(event) => setNewPassword(event.target.value)}
-          required
-        />
+        {(control) => (
+          <Input
+            {...control}
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
+            minLength={password.minLength}
+            onChange={(event) => setNewPassword(event.target.value)}
+            required
+          />
+        )}
       </Field>
       <PasswordStrengthMeter password={newPassword} />
       <Field label={t("auth.changePassword.confirmPassword")} required>
-        <Input
-          type="password"
-          autoComplete="new-password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          required
-        />
+        {(control) => (
+          <Input
+            {...control}
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+          />
+        )}
       </Field>
       {feedback ? (
         <ul className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">

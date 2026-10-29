@@ -1,0 +1,1477 @@
+From 298b81c7686ea3f8335577df8b3740bac9537d98 Mon Sep 17 00:00:00 2001
+From: mudzy992 <arena-agent@users.noreply.github.com>
+Date: Sat, 17 Oct 2026 10:51:29 +0000
+Subject: [PATCH 2/2] feat(e2e): a server-side command that ensures the harness
+ actors exist
+
+`provisionTestActors` creates USER and AGENT through the admin API, so it needs a
+super-admin session first. On a stack whose install wizard was completed by hand
+the only super admin is the founder account, which is not `E2E_SUPERADMIN_EMAIL`:
+the harness has nobody to sign in as, `global-setup` fails within a minute and the
+run reads like a product failure. e2e/README.md told the operator to create that
+account in the UI; this makes it one command.
+
+`node dist/src/cli/ensure-e2e-actors.js` reads the three actors from the
+environment (`E2E_*_EMAIL` / `E2E_*_PASSWORD`, same defaults as the harness) or
+from a JSON document on stdin (`--stdin`), creates a missing one as an ordinary
+local account and aligns an existing one - password, home unit, role,
+`mustChangePassword`, `isActive`. It goes through the primitives the API uses
+(`ensureSystemRole`, `assignUserRole`, the SuperAdmin local-only invariant, the
+authorization-cache invalidation) rather than writing rows itself, so what it
+leaves behind is an account the product would recognise.
+
+Passwords never travel in argv (`ps`, shell history, the exec session); the CI
+step pipes them over the SSH access the job already has.
+
+Refused, and reported per actor with exit 3: an address that is not disposable
+(`e2e.*` or `E2E_ALLOW_REAL_ACCOUNTS`, the rule from
+`e2e/helpers/disposable-account.ts` - this command overwrites passwords), a
+directory-managed account (its password belongs to Entra/AD), an anonymized
+account, and a password the offline policy rejects (`--allow-policy-violation`
+overrides). An enrolled second factor is reported, not removed (`--reset-mfa`
+removes it). A role this command had to create is flagged as empty until
+`cli/seed-default-role-permissions.js` runs.
+
+The CI step is opt-in (`E2E_ENSURE_ACTORS=true`, `E2E_BACKEND_CONTAINER` optional)
+and off by default, so nothing changes for a stack that already has its actors.
+---
+ .env.example                              |   6 +
+ .github/workflows/ci.yml                  |  56 ++
+ backend/package.json                      |   1 +
+ backend/src/cli/ensure-e2e-actors.spec.ts | 545 ++++++++++++++++
+ backend/src/cli/ensure-e2e-actors.ts      | 723 ++++++++++++++++++++++
+ e2e/README.md                             |  37 +-
+ 6 files changed, 1366 insertions(+), 2 deletions(-)
+ create mode 100644 backend/src/cli/ensure-e2e-actors.spec.ts
+ create mode 100644 backend/src/cli/ensure-e2e-actors.ts
+
+diff --git a/.env.example b/.env.example
+index 9af5e20..d93d94f 100644
+--- a/.env.example
++++ b/.env.example
+@@ -146,3 +146,9 @@ API_PUBLIC_URL=
+ # --- Optional: build metadata (Coolify sets SOURCE_COMMIT automatically) ---
+ # APP_VERSION=
+ # SOURCE_COMMIT=
++
++# --- Optional: E2E actor CLI (backend/src/cli/ensure-e2e-actors.ts) ---
++# Addresses the command may align even though they are not `e2e.*`
++# (comma-separated). Keep this empty outside a test stack: the command
++# overwrites local passwords. Same rule as e2e/helpers/disposable-account.ts.
++# E2E_ALLOW_REAL_ACCOUNTS=
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index fa4b159..bfa1b34 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -369,6 +369,62 @@ jobs:
+               echo "E2E_DATABASE_URL points at the tunnel (127.0.0.1:15432)."
+             fi
+           fi
++      # Opt-in (repository variable E2E_ENSURE_ACTORS=true): creates the three
++      # actors on the stack when the install wizard was completed by hand. The
++      # harness cannot do this itself - `provisionTestActors` needs a super-admin
++      # session, and on such a stack the only super admin is the founder account,
++      # which is not `E2E_SUPERADMIN_EMAIL`. Needs the E2E_SSH_* secrets (the
++      # command runs inside the backend container) and the actor secrets.
++      - name: Ensure the E2E actors exist on the stack (opt-in)
++        if: ${{ vars.E2E_ENSURE_ACTORS == 'true' && env.E2E_SSH_PRIVATE_KEY != '' && env.E2E_SSH_HOST != '' }}
++        env:
++          E2E_SUPERADMIN_EMAIL: ${{ secrets.E2E_SUPERADMIN_EMAIL }}
++          E2E_SUPERADMIN_PASSWORD: ${{ secrets.E2E_SUPERADMIN_PASSWORD }}
++          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
++          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
++          E2E_AGENT_EMAIL: ${{ secrets.E2E_AGENT_EMAIL }}
++          E2E_AGENT_PASSWORD: ${{ secrets.E2E_AGENT_PASSWORD }}
++          E2E_BACKEND_CONTAINER: ${{ vars.E2E_BACKEND_CONTAINER }}
++        run: |
++          set -euo pipefail
++          mkdir -p ~/.ssh
++          printf '%s\n' "$E2E_SSH_PRIVATE_KEY" > ~/.ssh/e2e-actors
++          chmod 600 ~/.ssh/e2e-actors
++          ssh_target="${E2E_SSH_USER:-root}@${E2E_SSH_HOST}"
++          ssh_port="${E2E_SSH_PORT:-22}"
++          # The actors travel as JSON on stdin - never in argv, where `ps`, the
++          # shell history and the step log would keep a password.
++          actors=$(node -e '
++            const wanted = [
++              ["E2E_SUPERADMIN_EMAIL", "E2E_SUPERADMIN_PASSWORD", "SUPER_ADMIN", "E2E SuperAdmin", "e2e.superadmin@example.com"],
++              ["E2E_USER_EMAIL", "E2E_USER_PASSWORD", "USER", "E2E User", "e2e.user@example.com"],
++              ["E2E_AGENT_EMAIL", "E2E_AGENT_PASSWORD", "AGENT", "E2E Agent", "e2e.agent@example.com"],
++            ];
++            const actors = [];
++            for (const [emailKey, passwordKey, roleKey, displayName, fallback] of wanted) {
++              const password = process.env[passwordKey] ?? "";
++              if (password.length === 0) continue;
++              const email = (process.env[emailKey] ?? "").trim() || fallback;
++              actors.push({ email, password, roleKey, displayName });
++            }
++            process.stdout.write(JSON.stringify({ actors }));
++          ')
++          if [ "$actors" = '{"actors":[]}' ]; then
++            echo "::warning title=E2E actors not ensured::No E2E_*_PASSWORD secret is set, so there is nothing to create."
++            exit 0
++          fi
++          container="${E2E_BACKEND_CONTAINER:-}"
++          if [ -z "$container" ]; then
++            container=$(ssh -T -i ~/.ssh/e2e-actors -p "$ssh_port" -o StrictHostKeyChecking=accept-new \
++              "$ssh_target" "docker ps --format '{{.Names}}' | grep -i backend | head -1" || true)
++          fi
++          if [ -z "$container" ]; then
++            echo "::error title=E2E actors not ensured::No backend container found on ${E2E_SSH_HOST}. Set the repository variable E2E_BACKEND_CONTAINER to its exact name (see: docker ps)."
++            exit 1
++          fi
++          echo "Ensuring the actors in container: $container"
++          printf '%s' "$actors" | ssh -T -i ~/.ssh/e2e-actors -p "$ssh_port" "$ssh_target" \
++            "docker exec -i $container node dist/src/cli/ensure-e2e-actors.js --stdin"
+       - run: npx playwright install --with-deps chromium
+       - name: Run E2E (smoke on a pull request, full on schedule / dispatch)
+         env:
+diff --git a/backend/package.json b/backend/package.json
+index 3b82694..cd43dfe 100644
+--- a/backend/package.json
++++ b/backend/package.json
+@@ -17,6 +17,7 @@
+     "db:seed": "node dist/src/seed-database.js",
+     "db:init": "prisma migrate deploy && prisma generate && npm run build && node dist/src/seed-database.js",
+     "cli:reset-mfa": "node dist/src/cli/reset-mfa.js",
++    "cli:ensure-e2e-actors": "node dist/src/cli/ensure-e2e-actors.js",
+     "cli:apply-settings": "node dist/src/cli/apply-settings.js",
+     "cli:install-rerun": "node dist/src/cli/install-rerun.js",
+     "cli:rekey-asset-licenses": "node dist/src/cli/rekey-asset-licenses.js",
+diff --git a/backend/src/cli/ensure-e2e-actors.spec.ts b/backend/src/cli/ensure-e2e-actors.spec.ts
+new file mode 100644
+index 0000000..639917b
+--- /dev/null
++++ b/backend/src/cli/ensure-e2e-actors.spec.ts
+@@ -0,0 +1,545 @@
++import { hash } from 'bcrypt';
++import {
++  ensureE2EActors,
++  isDisposableActorEmail,
++  parseActorsFromEnvironment,
++  parseActorsFromJson,
++  type E2EActorSpec,
++} from './ensure-e2e-actors';
++import type { PrismaService } from '../common/prisma/prisma.service';
++
++/*
++  The harness' actors are ordinary accounts, so the interesting assertions are
++  about what this command refuses to do: no password for an address that is not
++  a disposable test account, no local hash next to a directory identity, no
++  resurrection of an anonymized account, and no write at all when the configured
++  password already works.
++*/
++
++const password = 'Zeleni-Kaktus-42x';
++const weakPassword = 'kratka';
++
++/*
++  Real bcrypt hashes at the cheapest cost, because the assertions about "the
++  configured password already works" have to go through `verifyLocalPassword`
++  and therefore through `compare`. The shim in `src/types/bcrypt.d.ts` declares
++  only what the product uses (`hash`, `compare`), so nothing sync here.
++*/
++let passwordHash = '';
++let stalePasswordHash = '';
++beforeAll(async () => {
++  passwordHash = await hash(password, 4);
++  stalePasswordHash = await hash('Neka-Stara-Sifra-9', 4);
++});
++
++type FakeUser = {
++  id: string;
++  email: string;
++  displayName: string;
++  isActive: boolean;
++  isLocalOnly: boolean;
++  mustChangePassword: boolean;
++  localPasswordHash: string | null;
++  organizationalUnitId: string | null;
++  entraObjectId: string | null;
++  directoryObjectGuid: string | null;
++  anonymizedAt: Date | null;
++  authzVersion: number;
++};
++
++/** What `user.create` receives: the columns the CLI writes, plus the defaults. */
++type FakeUserWrite = Partial<FakeUser> & {
++  email: string;
++  displayName: string;
++  passwordChangedAt?: Date;
++};
++
++type FakeState = {
++  users: FakeUser[];
++  userRoles: Array<{ id: string; userId: string; roleKey: string; organizationalUnitId: string | null }>;
++  roles: Array<{ id: string; key: string; name: string }>;
++  units: Array<{ id: string; name: string; ouPath: string }>;
++  mfa: Array<{ id: string; userId: string }>;
++  updates: Array<{ id: string; data: Record<string, unknown> }>;
++  auditActions: string[];
++  invalidated: string[];
++};
++
++function fakeUser(email: string, overrides: Partial<FakeUser> = {}): FakeUser {
++  return {
++    id: `id-${email}`,
++    email,
++    displayName: 'Postojeci',
++    isActive: true,
++    isLocalOnly: true,
++    mustChangePassword: false,
++    localPasswordHash: null,
++    organizationalUnitId: null,
++    entraObjectId: null,
++    directoryObjectGuid: null,
++    anonymizedAt: null,
++    authzVersion: 0,
++    ...overrides,
++  };
++}
++
++function createFakePrisma(input: {
++  users?: FakeUser[];
++  roles?: Array<{ id: string; key: string; name: string }>;
++  units?: Array<{ id: string; name: string; ouPath: string }>;
++  userRoles?: FakeState['userRoles'];
++  mfa?: FakeState['mfa'];
++}): { prisma: PrismaService; state: FakeState } {
++  const state: FakeState = {
++    users: [...(input.users ?? [])],
++    userRoles: [...(input.userRoles ?? [])],
++    roles: [...(input.roles ?? [])],
++    units: [...(input.units ?? [])],
++    mfa: [...(input.mfa ?? [])],
++    updates: [],
++    auditActions: [],
++    invalidated: [],
++  };
++  let sequence = 0;
++  const nextId = (prefix: string): string => `${prefix}-${(sequence += 1)}`;
++  const roleKeyById = (roleId: string | undefined): string | null =>
++    state.roles.find((role) => role.id === roleId)?.key ?? null;
++
++  const auditLog = {
++    findFirst: async () => ({ hash: 'genesis' }),
++    create: async (args: { data: Record<string, unknown> }) => {
++      state.auditActions.push(String(args.data.action));
++      return { id: nextId('audit') };
++    },
++  };
++  const userRole = {
++    findFirst: async (args: {
++      where?: { userId?: string; roleId?: string; role?: { key?: string } };
++    }) => {
++      const where = args.where ?? {};
++      const wantedKey = where.role?.key ?? roleKeyById(where.roleId);
++      const match = state.userRoles.find(
++        (entry) =>
++          entry.userId === where.userId && (wantedKey === null || entry.roleKey === wantedKey),
++      );
++      if (match === undefined) {
++        return null;
++      }
++      const role = state.roles.find((entry) => entry.key === match.roleKey);
++      return {
++        ...match,
++        roleId: role?.id ?? 'role-id',
++        role: { key: match.roleKey, name: role?.name ?? match.roleKey },
++        organizationalUnit: null,
++        service: null,
++      };
++    },
++    create: async (args: {
++      data: { userId: string; roleId: string; organizationalUnitId?: string | null };
++    }) => {
++      const roleKey = roleKeyById(args.data.roleId) ?? 'UNKNOWN';
++      const created = {
++        id: nextId('user-role'),
++        userId: args.data.userId,
++        roleKey,
++        organizationalUnitId: args.data.organizationalUnitId ?? null,
++      };
++      state.userRoles.push(created);
++      const role = state.roles.find((entry) => entry.key === roleKey);
++      return {
++        ...created,
++        role: { key: roleKey, name: role?.name ?? roleKey },
++        organizationalUnit: null,
++        service: null,
++      };
++    },
++  };
++  const client = {
++    $executeRaw: async () => 0,
++    $transaction: async (argument: unknown) =>
++      typeof argument === 'function'
++        ? (argument as (tx: unknown) => Promise<unknown>)(client)
++        : Promise.all(argument as unknown[]),
++    auditLog,
++    userRole,
++    role: {
++      findUnique: async (args: { where: { key: string } }) =>
++        state.roles.find((role) => role.key === args.where.key) ?? null,
++      create: async (args: { data: { key: string; name: string } }) => {
++        const created = { id: nextId('role'), key: args.data.key, name: args.data.name };
++        state.roles.push(created);
++        return created;
++      },
++    },
++    organizationalUnit: {
++      findFirst: async () => state.units[0] ?? null,
++      findUnique: async (args: { where: { id: string } }) =>
++        state.units.find((unit) => unit.id === args.where.id) ?? null,
++    },
++    userMfa: {
++      findFirst: async (args: { where: { userId: string } }) =>
++        state.mfa.find((entry) => entry.userId === args.where.userId) ?? null,
++      deleteMany: async (args: { where: { userId: string } }) => {
++        const before = state.mfa.length;
++        state.mfa = state.mfa.filter((entry) => entry.userId !== args.where.userId);
++        return { count: before - state.mfa.length };
++      },
++    },
++    userMfaRecoveryCode: {
++      deleteMany: async () => ({ count: 0 }),
++    },
++    user: {
++      findUnique: async (args: { where: Record<string, string> }) => {
++        const email = args.where.email?.toLowerCase();
++        const id = args.where.id;
++        return (
++          state.users.find(
++            (user) =>
++              (email !== undefined && user.email === email) || (id !== undefined && user.id === id),
++          ) ?? null
++        );
++      },
++      create: async (args: { data: FakeUserWrite }) => {
++        const email = args.data.email.trim().toLowerCase();
++        const created = fakeUser(email, {
++          ...args.data,
++          id: nextId('user'),
++          email,
++          isActive: args.data.isActive ?? true,
++          isLocalOnly: args.data.isLocalOnly ?? false,
++          mustChangePassword: args.data.mustChangePassword ?? false,
++          localPasswordHash: args.data.localPasswordHash ?? null,
++          organizationalUnitId: args.data.organizationalUnitId ?? null,
++          entraObjectId: args.data.entraObjectId ?? null,
++        });
++        state.users.push(created);
++        return created;
++      },
++      update: async (args: { where: { id: string }; data: Record<string, unknown> }) => {
++        state.updates.push({ id: args.where.id, data: args.data });
++        const target = state.users.find((user) => user.id === args.where.id);
++        if (target !== undefined) {
++          Object.assign(target, args.data);
++        }
++        return target ?? null;
++      },
++    },
++  };
++  return { prisma: client as unknown as PrismaService, state };
++}
++
++const fastHash = async (value: string): Promise<string> => `hashed:${value}`;
++const userActor: E2EActorSpec = {
++  email: 'e2e.user@example.com',
++  password,
++  roleKey: 'USER',
++  displayName: 'E2E User',
++};
++const agentActor: E2EActorSpec = { ...userActor, email: 'e2e.agent@example.com', roleKey: 'AGENT' };
++const superAdminActor: E2EActorSpec = {
++  email: 'e2e.superadmin@example.com',
++  password,
++  roleKey: 'SUPER_ADMIN',
++  displayName: 'E2E SuperAdmin',
++};
++
++describe('ensure-e2e-actors: reading the actors', () => {
++  it('uses the harness defaults, so the CLI and the harness agree', () => {
++    const actors = parseActorsFromEnvironment({
++      E2E_SUPERADMIN_PASSWORD: 'a',
++      E2E_USER_PASSWORD: 'b',
++      E2E_AGENT_PASSWORD: 'c',
++    });
++    expect(actors.map((actor) => [actor.email, actor.roleKey])).toEqual([
++      ['e2e.superadmin@example.com', 'SUPER_ADMIN'],
++      ['e2e.user@example.com', 'USER'],
++      ['e2e.agent@example.com', 'AGENT'],
++    ]);
++    expect(actors.map((actor) => actor.displayName)).toEqual([
++      'E2E SuperAdmin',
++      'E2E User',
++      'E2E Agent',
++    ]);
++  });
++
++  it('skips an actor whose password is not configured instead of half-creating it', () => {
++    const actors = parseActorsFromEnvironment({
++      E2E_SUPERADMIN_EMAIL: ' E2E.Root@Example.COM ',
++      E2E_SUPERADMIN_PASSWORD: 'a',
++      E2E_USER_PASSWORD: '',
++    });
++    expect(actors).toEqual([
++      expect.objectContaining({ email: 'e2e.root@example.com', roleKey: 'SUPER_ADMIN' }),
++    ]);
++  });
++
++  it('reads a JSON document and insists on a role it can assign', () => {
++    expect(
++      parseActorsFromJson(JSON.stringify({ actors: [{ email: 'e2e.a@example.com', password, roleKey: 'agent' }] })),
++    ).toEqual([
++      { email: 'e2e.a@example.com', password, roleKey: 'AGENT', displayName: 'E2E Agent' },
++    ]);
++    expect(
++      parseActorsFromJson(JSON.stringify([{ email: 'e2e.b@example.com', password, roleKey: 'USER', displayName: 'B' }])),
++    ).toEqual([{ email: 'e2e.b@example.com', password, roleKey: 'USER', displayName: 'B' }]);
++    expect(() =>
++      parseActorsFromJson(JSON.stringify([{ email: 'e2e.c@example.com', password, roleKey: 'ADMIN' }])),
++    ).toThrow(/roleKey must be one of SUPER_ADMIN, USER, AGENT/);
++    expect(() => parseActorsFromJson(JSON.stringify([{ email: 'e2e.d@example.com', roleKey: 'USER' }]))).toThrow(
++      /email and password are required/,
++    );
++    expect(() => parseActorsFromJson('{"actors":{}}')).toThrow(/expected/);
++  });
++
++  it('accepts only disposable addresses', () => {
++    expect(isDisposableActorEmail('e2e.user@example.com')).toBe(true);
++    expect(isDisposableActorEmail('admin@firma.ba')).toBe(false);
++    expect(isDisposableActorEmail('admin@firma.ba', 'admin@firma.ba')).toBe(true);
++  });
++});
++
++describe('ensure-e2e-actors: creating', () => {
++  it('creates a missing actor as an ordinary local account in the first unit', async () => {
++    const { prisma, state } = createFakePrisma({
++      units: [
++        { id: 'ou-root', name: 'Root', ouPath: '/root' },
++        { id: 'ou-child', name: 'Child', ouPath: '/root/child' },
++      ],
++      roles: [{ id: 'role-user', key: 'USER', name: 'User' }],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash });
++
++    expect(outcome).toMatchObject({
++      action: 'created',
++      roleKey: 'USER',
++      organizationalUnitId: 'ou-root',
++    });
++    const created = state.users.find((user) => user.email === userActor.email);
++    expect(created).toMatchObject({
++      // Unattended sign-in: no forced change, and the password is a hash.
++      mustChangePassword: false,
++      isActive: true,
++      isLocalOnly: true,
++      localPasswordHash: `hashed:${password}`,
++      organizationalUnitId: 'ou-root',
++    });
++    expect(state.userRoles).toEqual([
++      expect.objectContaining({ userId: created?.id, roleKey: 'USER', organizationalUnitId: 'ou-root' }),
++    ]);
++    expect(state.auditActions).toContain('user.created');
++  });
++
++  it('creates the system role when the installation does not have it yet', async () => {
++    const { prisma, state } = createFakePrisma({ units: [{ id: 'ou-root', name: 'Root', ouPath: '/root' }] });
++
++    await ensureE2EActors(prisma, [agentActor], { hashPassword: fastHash });
++
++    expect(state.roles).toEqual([expect.objectContaining({ key: 'AGENT', name: 'Agent', })]);
++    expect(state.userRoles).toEqual([expect.objectContaining({ roleKey: 'AGENT' })]);
++  });
++
++  it('applies the local-only SuperAdmin invariant', async () => {
++    const { prisma, state } = createFakePrisma({ units: [] });
++
++    const [outcome] = await ensureE2EActors(prisma, [superAdminActor], { hashPassword: fastHash });
++
++    expect(outcome?.action).toBe('created');
++    // A SuperAdmin needs no home unit, so the empty tree is not worth a warning.
++    expect(outcome?.notes).not.toEqual(expect.arrayContaining([expect.stringContaining('no_organizational_unit')]));
++    expect(state.users[0]).toMatchObject({ isLocalOnly: true, entraObjectId: null });
++    expect(state.userRoles).toEqual([expect.objectContaining({ roleKey: 'SUPER_ADMIN' })]);
++  });
++
++  it('says out loud when a USER has no home unit to open tickets in', async () => {
++    const { prisma } = createFakePrisma({ units: [] });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash });
++
++    expect(outcome?.action).toBe('created');
++    expect(outcome?.organizationalUnitId).toBeNull();
++    expect(outcome?.notes.join(' ')).toMatch(/no_organizational_unit/);
++  });
++});
++
++describe('ensure-e2e-actors: aligning', () => {
++  it('leaves an actor alone when the configured password already works', async () => {
++    const { prisma, state } = createFakePrisma({
++      units: [{ id: 'ou-root', name: 'Root', ouPath: '/root' }],
++      roles: [{ id: 'role-user', key: 'USER', name: 'User' }],
++      users: [
++        fakeUser(userActor.email, {
++          localPasswordHash: passwordHash,
++          organizationalUnitId: 'ou-root',
++        }),
++      ],
++      userRoles: [{ id: 'ur-1', userId: `id-${userActor.email}`, roleKey: 'USER', organizationalUnitId: 'ou-root' }],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash });
++
++    expect(outcome?.action).toBe('unchanged');
++    expect(state.updates).toEqual([]);
++    expect(state.invalidated).toEqual([]);
++  });
++
++  it('aligns password, unit, forced change and a missing role, and drops the authz cache', async () => {
++    const existingId = 'id-e2e.agent@example.com';
++    const { prisma, state } = createFakePrisma({
++      units: [{ id: 'ou-root', name: 'Root', ouPath: '/root' }],
++      roles: [{ id: 'role-agent', key: 'AGENT', name: 'Agent' }],
++      users: [
++        fakeUser(agentActor.email, {
++          localPasswordHash: stalePasswordHash,
++          mustChangePassword: true,
++          isActive: false,
++          organizationalUnitId: 'ou-old',
++        }),
++      ],
++    });
++    const invalidatePrincipal = async (userId: string): Promise<null> => {
++      state.invalidated.push(userId);
++      return null;
++    };
++
++    const [outcome] = await ensureE2EActors(prisma, [agentActor], { hashPassword: fastHash, invalidatePrincipal });
++
++    expect(outcome?.action).toBe('aligned');
++    expect(outcome?.notes.join(' ')).toMatch(
++      /reactivated.*organizational_unit.*password.*must_change_password_cleared.*role_assigned=AGENT/,
++    );
++    expect(state.updates).toEqual([
++      {
++        id: existingId,
++        data: expect.objectContaining({
++          isActive: true,
++          organizationalUnitId: 'ou-root',
++          localPasswordHash: `hashed:${password}`,
++          mustChangePassword: false,
++        }),
++      },
++    ]);
++    expect(state.userRoles).toEqual([expect.objectContaining({ userId: existingId, roleKey: 'AGENT' })]);
++    expect(state.invalidated).toContain(existingId);
++  });
++
++  it('restores the SuperAdmin local-only invariant on an existing account', async () => {
++    const { prisma, state } = createFakePrisma({
++      units: [],
++      roles: [{ id: 'role-sa', key: 'SUPER_ADMIN', name: 'SuperAdmin' }],
++      users: [
++        fakeUser(superAdminActor.email, {
++          isLocalOnly: false,
++          localPasswordHash: passwordHash,
++        }),
++      ],
++      userRoles: [
++        {
++          id: 'ur-sa',
++          userId: `id-${superAdminActor.email}`,
++          roleKey: 'SUPER_ADMIN',
++          organizationalUnitId: null,
++        },
++      ],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [superAdminActor], { hashPassword: fastHash });
++
++    expect(outcome?.action).toBe('aligned');
++    expect(outcome?.notes).toContain('local_only_invariant');
++    expect(state.updates[0]?.data).toMatchObject({ isLocalOnly: true, entraObjectId: null });
++  });
++});
++
++describe('ensure-e2e-actors: refusing', () => {
++  it('never writes a password for an address that is not a test account', async () => {
++    const { prisma, state } = createFakePrisma({ units: [] });
++
++    const [outcome] = await ensureE2EActors(
++      prisma,
++      [{ ...userActor, email: 'admin@firma.ba' }],
++      { hashPassword: fastHash },
++    );
++
++    expect(outcome?.action).toBe('refused');
++    expect(outcome?.notes.join(' ')).toMatch(/not a disposable test account/);
++    expect(state.users).toEqual([]);
++    expect(state.updates).toEqual([]);
++  });
++
++  it('refuses a password the offline policy rejects, unless the operator insists', async () => {
++    const { prisma, state } = createFakePrisma({ units: [] });
++
++    const [refused] = await ensureE2EActors(prisma, [{ ...userActor, password: weakPassword }], {
++      hashPassword: fastHash,
++    });
++    expect(refused?.action).toBe('refused');
++    expect(refused?.notes.join(' ')).toMatch(/TOO_SHORT/);
++    expect(state.users).toEqual([]);
++
++    const [forced] = await ensureE2EActors(prisma, [{ ...userActor, password: weakPassword }], {
++      hashPassword: fastHash,
++      allowPolicyViolation: true,
++    });
++    expect(forced?.action).toBe('created');
++    expect(state.users[0]?.localPasswordHash).toBe(`hashed:${weakPassword}`);
++  });
++
++  it('leaves a directory-managed account to its directory', async () => {
++    const { prisma, state } = createFakePrisma({
++      units: [],
++      users: [fakeUser(userActor.email, { directoryObjectGuid: 'guid-1', localPasswordHash: null })],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash });
++
++    expect(outcome?.action).toBe('refused');
++    expect(outcome?.notes.join(' ')).toMatch(/directory-managed/);
++    expect(state.updates).toEqual([]);
++  });
++
++  it('does not resurrect an anonymized account', async () => {
++    const { prisma, state } = createFakePrisma({
++      units: [],
++      users: [fakeUser(userActor.email, { anonymizedAt: new Date('2026-01-01') })],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash });
++
++    expect(outcome?.action).toBe('refused');
++    expect(outcome?.notes.join(' ')).toMatch(/anonymized/);
++    expect(state.updates).toEqual([]);
++  });
++});
++
++describe('ensure-e2e-actors: second factor', () => {
++  const enrolled = { units: [], users: [fakeUser(userActor.email, { localPasswordHash: passwordHash })] };
++
++  it('reports an enrolled factor instead of removing it', async () => {
++    const { prisma, state } = createFakePrisma({
++      ...enrolled,
++      roles: [{ id: 'role-user', key: 'USER', name: 'User' }],
++      userRoles: [{ id: 'ur-1', userId: `id-${userActor.email}`, roleKey: 'USER', organizationalUnitId: null }],
++      mfa: [{ id: 'mfa-1', userId: `id-${userActor.email}` }],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash });
++
++    expect(outcome?.notes.join(' ')).toMatch(/mfa_enrolled/);
++    expect(state.mfa).toHaveLength(1);
++  });
++
++  it('removes the factor only when --reset-mfa asked for it', async () => {
++    const { prisma, state } = createFakePrisma({
++      ...enrolled,
++      roles: [{ id: 'role-user', key: 'USER', name: 'User' }],
++      userRoles: [{ id: 'ur-1', userId: `id-${userActor.email}`, roleKey: 'USER', organizationalUnitId: null }],
++      mfa: [{ id: 'mfa-1', userId: `id-${userActor.email}` }],
++    });
++
++    const [outcome] = await ensureE2EActors(prisma, [userActor], { hashPassword: fastHash, resetMfa: true });
++
++    expect(outcome?.notes).toContain('mfa_reset');
++    expect(state.mfa).toEqual([]);
++  });
++});
+diff --git a/backend/src/cli/ensure-e2e-actors.ts b/backend/src/cli/ensure-e2e-actors.ts
+new file mode 100644
+index 0000000..72319ca
+--- /dev/null
++++ b/backend/src/cli/ensure-e2e-actors.ts
+@@ -0,0 +1,723 @@
++import 'dotenv/config';
++import { PrismaPg } from '@prisma/adapter-pg';
++import { PrismaClient } from '../generated/prisma/client';
++import type { PrismaService } from '../common/prisma/prisma.service';
++import { createRedisClient } from '../common/redis/create-redis-client';
++import { loadRedisConfiguration } from '../common/redis/load-redis-configuration';
++import { PrincipalContextInvalidator } from '../common/principal-context/principal-context-invalidator.service';
++import {
++  auditLogActions,
++  auditLogEntityTypes,
++} from '../modules/audit-log/audit-log.constants';
++import { recordAuditEntry } from '../modules/audit-log/record-audit-entry';
++import { authorizationRoleKeys } from '../modules/authorization/authorization.constants';
++import { applySuperAdminLocalOnlyInvariant } from '../modules/authentication/apply-super-admin-local-only-invariant';
++import { assertSuperAdminIsLocalOnly } from '../modules/authentication/assert-super-admin-is-local-only';
++import { hashLocalPassword } from '../modules/authentication/hash-local-password';
++import { verifyLocalPassword } from '../modules/authentication/verify-local-password';
++import { checkPassword } from '../modules/authentication/security/password-policy';
++import { installSuperAdminDefaultPasswordPolicy } from '../modules/install/install-super-admin-password-policy';
++import { assignUserRole } from '../modules/users/assign-user-role';
++import { ensureSystemRole } from '../modules/users/ensure-system-role';
++
++/*
++  The E2E harness signs in as three accounts it does not create: the super admin
++  comes from the install wizard, and USER/AGENT come from `provisionTestActors`,
++  which needs a super-admin session first. On a stack whose wizard was completed
++  by hand the founder account is not `E2E_SUPERADMIN_EMAIL`, so the harness has
++  nobody to sign in as and every run dies in `global-setup` — which reads like a
++  product failure and is not one.
++
++  This command closes that gap from the server side: it creates the actors from
++  the environment (or from a JSON document on stdin) when they are missing and
++  aligns them when they exist, through the same primitives the API uses
++  (`ensureSystemRole`, `assignUserRole`, the local-only SuperAdmin invariant, the
++  authorization-cache invalidation), so what it leaves behind are ordinary
++  accounts and not a shortcut around the schema.
++
++  It runs inside the backend container, where shell access is the trust boundary
++  (the same rule as `cli/reset-mfa.js`):
++
++    docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js
++    docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js --stdin < actors.json
++
++  Passwords come from the environment or from stdin, never from argv: a command
++  line is readable in `ps`, lands in shell history and is recorded by the exec
++  session.
++
++  Refused on purpose:
++  * an address that is not a disposable test account (`e2e.*`, or listed in
++    `E2E_ALLOW_REAL_ACCOUNTS`) — the same rule as
++    `e2e/helpers/disposable-account.ts`, because this command overwrites
++    passwords and would otherwise lock a real person out;
++  * a directory-managed account (`entraObjectId` / `directoryObjectGuid` set) —
++    its password belongs to Entra/AD, and a local hash next to it is a backdoor;
++  * an anonymized account (`anonymizedAt` set) — Paket 2.6 makes that final;
++  * a password the offline policy refuses, unless `--allow-policy-violation`
++    says the operator means it. The deployment's own policy is stricter still
++    (organisation words from settings plus the Pwned Passwords check), so a
++    password accepted here can still be refused by `POST /auth/change-password`;
++    the harness then generates one for the run.
++*/
++
++/** The three actors the harness signs in as, with the harness' own defaults. */
++const actorEnvironment = [
++  {
++    roleKey: authorizationRoleKeys.superAdmin,
++    emailKey: 'E2E_SUPERADMIN_EMAIL',
++    passwordKey: 'E2E_SUPERADMIN_PASSWORD',
++    defaultEmail: 'e2e.superadmin@example.com',
++    defaultDisplayName: 'E2E SuperAdmin',
++  },
++  {
++    roleKey: authorizationRoleKeys.user,
++    emailKey: 'E2E_USER_EMAIL',
++    passwordKey: 'E2E_USER_PASSWORD',
++    defaultEmail: 'e2e.user@example.com',
++    defaultDisplayName: 'E2E User',
++  },
++  {
++    roleKey: authorizationRoleKeys.agent,
++    emailKey: 'E2E_AGENT_EMAIL',
++    passwordKey: 'E2E_AGENT_PASSWORD',
++    defaultEmail: 'e2e.agent@example.com',
++    defaultDisplayName: 'E2E Agent',
++  },
++] as const;
++
++const cliRequestId = 'cli:ensure-e2e-actors';
++
++export type E2EActorRoleKey =
++  | (typeof authorizationRoleKeys)['superAdmin']
++  | (typeof authorizationRoleKeys)['user']
++  | (typeof authorizationRoleKeys)['agent'];
++
++export type E2EActorSpec = {
++  readonly email: string;
++  readonly password: string;
++  readonly roleKey: E2EActorRoleKey;
++  readonly displayName: string;
++};
++
++export type E2EActorOutcome = {
++  readonly email: string;
++  readonly roleKey: string;
++  readonly action: 'created' | 'aligned' | 'unchanged' | 'refused';
++  readonly userId: string | null;
++  readonly organizationalUnitId: string | null;
++  readonly notes: readonly string[];
++};
++
++export type EnsureE2EActorsOptions = {
++  /** Writes the password even when the offline policy refuses it. */
++  readonly allowPolicyViolation?: boolean;
++  /** Deletes MFA for the actors — a second factor removed, so opt-in only. */
++  readonly resetMfa?: boolean;
++  /** Pins the home unit; defaults to the first node of the unit tree. */
++  readonly organizationalUnitId?: string | null;
++  /** Test seam: bcrypt cost 12 is too slow to pay per assertion. */
++  readonly hashPassword?: (password: string) => Promise<string>;
++  /** Test seam for the authorization-cache invalidation. */
++  readonly invalidatePrincipal?: (userId: string) => Promise<unknown>;
++};
++
++const allowedRoleKeys: readonly string[] = [
++  authorizationRoleKeys.superAdmin,
++  authorizationRoleKeys.user,
++  authorizationRoleKeys.agent,
++];
++
++/**
++ * Mirrors `isDisposableTestAccount` in `e2e/helpers/disposable-account.ts`.
++ * Duplicated rather than imported on purpose: `e2e/` is a separate package the
++ * backend build must not depend on, and a safety guard that is missing is worse
++ * than one that exists twice.
++ */
++export function isDisposableActorEmail(
++  email: string,
++  allowList: string | undefined = process.env.E2E_ALLOW_REAL_ACCOUNTS,
++): boolean {
++  const normalized = email.trim().toLowerCase();
++  if (normalized.split('@')[0]?.startsWith('e2e.')) {
++    return true;
++  }
++  return (allowList ?? '')
++    .split(',')
++    .map((entry) => entry.trim().toLowerCase())
++    .filter((entry) => entry.length > 0)
++    .includes(normalized);
++}
++
++/** Actors from `E2E_*_EMAIL` / `E2E_*_PASSWORD`, with the harness' defaults. */
++export function parseActorsFromEnvironment(
++  env: NodeJS.ProcessEnv = process.env,
++): readonly E2EActorSpec[] {
++  const actors: E2EActorSpec[] = [];
++  for (const entry of actorEnvironment) {
++    const email = (env[entry.emailKey] ?? entry.defaultEmail).trim();
++    const password = env[entry.passwordKey] ?? '';
++    // No password means nothing to align: the harness would not accept these
++    // credentials either, so the actor is left alone instead of half-created.
++    if (email.length === 0 || password.length === 0) {
++      continue;
++    }
++    actors.push({
++      email: email.toLowerCase(),
++      password,
++      roleKey: entry.roleKey,
++      displayName: entry.defaultDisplayName,
++    });
++  }
++  return actors;
++}
++
++/**
++ * Actors from a JSON document: `{ "actors": [{ email, password, roleKey?,
++ * displayName? }] }` (a bare array works too). `roleKey` must be given.
++ */
++export function parseActorsFromJson(text: string): readonly E2EActorSpec[] {
++  const parsed: unknown = JSON.parse(text);
++  const list = Array.isArray(parsed)
++    ? parsed
++    : ((parsed as { actors?: unknown } | null)?.actors ?? []);
++  if (!Array.isArray(list)) {
++    throw new Error('expected { "actors": [ … ] } or a JSON array of actors');
++  }
++  return list.map((entry, index) => {
++    const actor = entry as {
++      email?: unknown;
++      password?: unknown;
++      roleKey?: unknown;
++      displayName?: unknown;
++    };
++    const email = typeof actor.email === 'string' ? actor.email.trim().toLowerCase() : '';
++    const password = typeof actor.password === 'string' ? actor.password : '';
++    const roleKey = typeof actor.roleKey === 'string' ? actor.roleKey.trim().toUpperCase() : '';
++    if (email.length === 0 || password.length === 0) {
++      throw new Error(`actor #${index + 1}: email and password are required`);
++    }
++    if (!allowedRoleKeys.includes(roleKey)) {
++      throw new Error(
++        `actor #${index + 1} (${email}): roleKey must be one of ${allowedRoleKeys.join(', ')}`,
++      );
++    }
++    return {
++      email,
++      password,
++      roleKey: roleKey as E2EActorRoleKey,
++      displayName:
++        typeof actor.displayName === 'string' && actor.displayName.trim().length > 0
++          ? actor.displayName.trim()
++          : `E2E ${roleKey.charAt(0)}${roleKey.slice(1).toLowerCase()}`,
++    };
++  });
++}
++
++/**
++ * Creates or aligns every actor. A single refused actor never throws: the caller
++ * gets one outcome per actor and decides what a refusal means.
++ */
++export async function ensureE2EActors(
++  prisma: PrismaService,
++  actors: readonly E2EActorSpec[],
++  options: EnsureE2EActorsOptions = {},
++): Promise<readonly E2EActorOutcome[]> {
++  const context: ActorContext = {
++    organizationalUnitId:
++      options.organizationalUnitId !== undefined
++        ? options.organizationalUnitId
++        : await firstOrganizationalUnitId(prisma),
++    hashPassword: options.hashPassword ?? hashLocalPassword,
++    invalidatePrincipal: options.invalidatePrincipal ?? (async () => null),
++    allowPolicyViolation: options.allowPolicyViolation === true,
++    resetMfa: options.resetMfa === true,
++  };
++  const outcomes: E2EActorOutcome[] = [];
++  for (const actor of actors) {
++    outcomes.push(await ensureActor(prisma, actor, context));
++  }
++  return outcomes;
++}
++
++type ActorContext = {
++  readonly organizationalUnitId: string | null;
++  readonly hashPassword: (password: string) => Promise<string>;
++  readonly invalidatePrincipal: (userId: string) => Promise<unknown>;
++  readonly allowPolicyViolation: boolean;
++  readonly resetMfa: boolean;
++};
++
++/** What an actor looks like before this command touches it. */
++type ExistingActor = {
++  id: string;
++  isActive: boolean;
++  isLocalOnly: boolean;
++  mustChangePassword: boolean;
++  localPasswordHash: string | null;
++  organizationalUnitId: string | null;
++  entraObjectId: string | null;
++  directoryObjectGuid: string | null;
++  anonymizedAt: Date | null;
++};
++
++async function ensureActor(
++  prisma: PrismaService,
++  actor: E2EActorSpec,
++  context: ActorContext,
++): Promise<E2EActorOutcome> {
++  const refused = (notes: readonly string[]): E2EActorOutcome => ({
++    email: actor.email,
++    roleKey: actor.roleKey,
++    action: 'refused',
++    userId: null,
++    organizationalUnitId: context.organizationalUnitId,
++    notes,
++  });
++
++  if (!isDisposableActorEmail(actor.email)) {
++    return refused([
++      'not a disposable test account: use an e2e.* address or add it to ' +
++        'E2E_ALLOW_REAL_ACCOUNTS (this command overwrites passwords)',
++    ]);
++  }
++  const violations = checkPassword(
++    actor.password,
++    actor.email,
++    installSuperAdminDefaultPasswordPolicy,
++  );
++  if (violations.length > 0 && !context.allowPolicyViolation) {
++    return refused([
++      `password refused by the offline policy (${violations.join(', ')}): rotate the ` +
++        'secret, or pass --allow-policy-violation to write it anyway',
++    ]);
++  }
++
++  const existing: ExistingActor | null = await prisma.user.findUnique({
++    where: { email: actor.email },
++    select: {
++      id: true,
++      isActive: true,
++      isLocalOnly: true,
++      mustChangePassword: true,
++      localPasswordHash: true,
++      organizationalUnitId: true,
++      entraObjectId: true,
++      directoryObjectGuid: true,
++      anonymizedAt: true,
++    },
++  });
++
++  if (existing === null) {
++    return createActor(prisma, actor, context);
++  }
++  if (existing.anonymizedAt !== null) {
++    return refused(['account is anonymized (Paket 2.6 is final): use another address']);
++  }
++  if (existing.entraObjectId !== null || existing.directoryObjectGuid !== null) {
++    return refused([
++      'account is directory-managed: its password belongs to Entra/AD, so no local ' +
++        'hash is written for it',
++    ]);
++  }
++  return alignActor(prisma, actor, existing, context);
++}
++
++async function createActor(
++  prisma: PrismaService,
++  actor: E2EActorSpec,
++  context: ActorContext,
++): Promise<E2EActorOutcome> {
++  const notes: string[] = [];
++  // A stack installed before a role was ever assigned may not have the row;
++  // `assignUserRole` below insists on it. A role this command had to create has
++  // no permissions yet, which is worth saying out loud: the actor would sign in
++  // and be able to do nothing.
++  const roleExists =
++    (await prisma.role.findUnique({
++      where: { key: actor.roleKey },
++      select: { id: true },
++    })) !== null;
++  await ensureSystemRole(prisma, actor.roleKey);
++  if (!roleExists) {
++    notes.push(
++      `role_created=${actor.roleKey}: empty until ` +
++        'node dist/src/cli/seed-default-role-permissions.js runs',
++    );
++  }
++  const isSuperAdmin = actor.roleKey === authorizationRoleKeys.superAdmin;
++  const localOnly = isSuperAdmin
++    ? applySuperAdminLocalOnlyInvariant()
++    : { isLocalOnly: true as const, entraObjectId: null };
++  const organizationalUnitId = await resolveUnitForActor(prisma, actor, context, notes);
++  const localPasswordHash = await context.hashPassword(actor.password);
++
++  const created: { id: string; isLocalOnly: boolean; entraObjectId: string | null } =
++    await prisma.user.create({
++      data: {
++        email: actor.email,
++        displayName: actor.displayName,
++        organizationalUnitId,
++        // The harness signs in unattended: no forced change, no second factor.
++        mustChangePassword: false,
++        isActive: true,
++        isLocalOnly: localOnly.isLocalOnly,
++        entraObjectId: localOnly.entraObjectId,
++        localPasswordHash,
++        passwordChangedAt: new Date(),
++      },
++      select: { id: true, isLocalOnly: true, entraObjectId: true },
++    });
++
++  if (isSuperAdmin) {
++    assertSuperAdminIsLocalOnly({
++      isLocalOnly: created.isLocalOnly,
++      entraObjectId: created.entraObjectId,
++      roleKeys: [authorizationRoleKeys.superAdmin],
++    });
++  }
++  // The assignment path the admin API uses: it validates the identity, takes the
++  // SuperAdmin advisory lock and writes its own audit entry.
++  await assignUserRole(
++    prisma,
++    {
++      userId: created.id,
++      roleKey: actor.roleKey,
++      organizationalUnitId,
++      serviceId: null,
++      actorUserId: null,
++      actorIsSuperAdmin: true,
++      requestId: cliRequestId,
++    },
++    context.invalidatePrincipal,
++  );
++  await recordAuditEntry(prisma, {
++    action: auditLogActions.userCreated,
++    entityType: auditLogEntityTypes.user,
++    entityId: created.id,
++    actorUserId: null,
++    requestId: cliRequestId,
++    organizationalUnitId,
++    metadata: { via: cliRequestId, roleKey: actor.roleKey },
++  });
++  notes.push(`role=${actor.roleKey}`);
++  await applyMfaPolicy(prisma, created.id, actor, context, notes);
++
++  return {
++    email: actor.email,
++    roleKey: actor.roleKey,
++    action: 'created',
++    userId: created.id,
++    organizationalUnitId,
++    notes,
++  };
++}
++
++/** Only the columns this command may align; everything else stays untouched. */
++type ActorAlignment = {
++  isActive?: boolean;
++  isLocalOnly?: boolean;
++  entraObjectId?: null;
++  organizationalUnitId?: string;
++  mustChangePassword?: boolean;
++  localPasswordHash?: string;
++  passwordChangedAt?: Date;
++};
++
++async function alignActor(
++  prisma: PrismaService,
++  actor: E2EActorSpec,
++  existing: ExistingActor,
++  context: ActorContext,
++): Promise<E2EActorOutcome> {
++  const notes: string[] = [];
++  const changes: ActorAlignment = {};
++  let changed = false;
++  let authorizationChanged = false;
++
++  if (!existing.isActive) {
++    changes.isActive = true;
++    authorizationChanged = true;
++    changed = true;
++    notes.push('reactivated');
++  }
++
++  const organizationalUnitId = await resolveUnitForActor(prisma, actor, context, notes);
++  if (organizationalUnitId !== null && existing.organizationalUnitId !== organizationalUnitId) {
++    // Tests scope their data to the first unit of the tree; a stale home unit
++    // makes every USER ticket creation fail with FORBIDDEN, which is why
++    // `provisionTestActors` PATCHes the unit on every run.
++    changes.organizationalUnitId = organizationalUnitId;
++    authorizationChanged = true;
++    changed = true;
++    notes.push('organizational_unit');
++  }
++
++  const passwordMatches =
++    existing.localPasswordHash !== null &&
++    (await verifyLocalPassword(actor.password, existing.localPasswordHash));
++  if (!passwordMatches) {
++    changes.localPasswordHash = await context.hashPassword(actor.password);
++    changes.passwordChangedAt = new Date();
++    changed = true;
++    notes.push('password');
++  }
++  if (existing.mustChangePassword) {
++    changes.mustChangePassword = false;
++    changed = true;
++    notes.push('must_change_password_cleared');
++  }
++  if (actor.roleKey === authorizationRoleKeys.superAdmin && !existing.isLocalOnly) {
++    // The invariant is not negotiable for a SuperAdmin: local-only, no external
++    // identity (a directory-managed account was refused above).
++    changes.isLocalOnly = true;
++    changes.entraObjectId = null;
++    authorizationChanged = true;
++    changed = true;
++    notes.push('local_only_invariant');
++  }
++
++  const role: { id: string } | null = await prisma.userRole.findFirst({
++    where: { userId: existing.id, role: { key: actor.roleKey } },
++    select: { id: true },
++  });
++  if (role === null) {
++    await ensureSystemRole(prisma, actor.roleKey);
++    await assignUserRole(
++      prisma,
++      {
++        userId: existing.id,
++        roleKey: actor.roleKey,
++        organizationalUnitId: organizationalUnitId ?? existing.organizationalUnitId,
++        serviceId: null,
++        actorUserId: null,
++        actorIsSuperAdmin: true,
++        requestId: cliRequestId,
++      },
++      context.invalidatePrincipal,
++    );
++    authorizationChanged = true;
++    changed = true;
++    notes.push(`role_assigned=${actor.roleKey}`);
++  }
++
++  if (changed) {
++    await prisma.user.update({ where: { id: existing.id }, data: changes });
++  }
++  if (authorizationChanged) {
++    await context.invalidatePrincipal(existing.id);
++  }
++  await applyMfaPolicy(prisma, existing.id, actor, context, notes);
++
++  return {
++    email: actor.email,
++    roleKey: actor.roleKey,
++    action: changed ? 'aligned' : 'unchanged',
++    userId: existing.id,
++    organizationalUnitId:
++      changes.organizationalUnitId ?? existing.organizationalUnitId ?? organizationalUnitId,
++    notes,
++  };
++}
++
++/**
++ * The harness signs in unattended, so an enrolled second factor is a dead end.
++ * Removing one is a security-relevant mutation and stays opt-in (`--reset-mfa`);
++ * without it the actor is reported instead of modified.
++ */
++async function applyMfaPolicy(
++  prisma: PrismaService,
++  userId: string,
++  actor: E2EActorSpec,
++  context: ActorContext,
++  notes: string[],
++): Promise<void> {
++  const enrolled: { id: string } | null = await prisma.userMfa.findFirst({
++    where: { userId },
++    select: { id: true },
++  });
++  if (enrolled === null) {
++    return;
++  }
++  if (!context.resetMfa) {
++    notes.push(
++      'mfa_enrolled: sign-in will ask for a second factor — ' +
++        `node dist/src/cli/reset-mfa.js --email ${actor.email} --reason "e2e"`,
++    );
++    return;
++  }
++  await prisma.$transaction([
++    prisma.userMfaRecoveryCode.deleteMany({ where: { userId } }),
++    prisma.userMfa.deleteMany({ where: { userId } }),
++  ]);
++  notes.push('mfa_reset');
++}
++
++/**
++ * The unit the harness scopes its data to: the first node of the tree, which
++ * `GET /organizational-units/tree` orders by `ouPath` and then `name`.
++ */
++async function firstOrganizationalUnitId(prisma: PrismaService): Promise<string | null> {
++  const unit: { id: string } | null = await prisma.organizationalUnit.findFirst({
++    orderBy: [{ ouPath: 'asc' }, { name: 'asc' }],
++    select: { id: true },
++  });
++  return unit?.id ?? null;
++}
++
++async function resolveUnitForActor(
++  prisma: PrismaService,
++  actor: E2EActorSpec,
++  context: ActorContext,
++  notes: string[],
++): Promise<string | null> {
++  const requested = context.organizationalUnitId;
++  if (requested === null) {
++    // A SuperAdmin needs no home unit; USER and AGENT do (a user may only open
++    // tickets in its own unit), so say it out loud instead of failing silently.
++    if (actor.roleKey !== authorizationRoleKeys.superAdmin) {
++      notes.push(
++        'no_organizational_unit: the tree is empty, so ticket creation as this actor ' +
++          'will be refused — complete the install "team" step first',
++      );
++    }
++    return null;
++  }
++  const unit: { id: string } | null = await prisma.organizationalUnit.findUnique({
++    where: { id: requested },
++    select: { id: true },
++  });
++  if (unit === null) {
++    notes.push(`organizational_unit_missing=${requested}`);
++    return null;
++  }
++  return unit.id;
++}
++
++function readStdin(): Promise<string> {
++  return new Promise((resolve, reject) => {
++    let data = '';
++    process.stdin.setEncoding('utf8');
++    process.stdin.on('data', (chunk) => {
++      data += chunk;
++    });
++    process.stdin.on('end', () => resolve(data));
++    process.stdin.on('error', reject);
++  });
++}
++
++function formatOutcome(outcome: E2EActorOutcome): string {
++  const notes = outcome.notes.length > 0 ? ` notes=${outcome.notes.join(';')}` : '';
++  return (
++    `e2e_actor email=${outcome.email} role=${outcome.roleKey} action=${outcome.action} ` +
++    `id=${outcome.userId ?? '-'} unit=${outcome.organizationalUnitId ?? '-'}${notes}`
++  );
++}
++
++async function main(): Promise<number> {
++  const asJson = process.argv.includes('--json');
++  const fromStdin = process.argv.includes('--stdin');
++  const connectionString = process.env.DATABASE_URL;
++  if (!connectionString) {
++    console.error('DATABASE_URL is required');
++    return 2;
++  }
++
++  let actors: readonly E2EActorSpec[];
++  try {
++    actors = fromStdin
++      ? parseActorsFromJson(await readStdin())
++      : parseActorsFromEnvironment();
++  } catch (error) {
++    console.error(error instanceof Error ? error.message : String(error));
++    return 2;
++  }
++  if (actors.length === 0) {
++    console.error(
++      'No actor to ensure: set E2E_SUPERADMIN_EMAIL/E2E_SUPERADMIN_PASSWORD, ' +
++        'E2E_USER_EMAIL/E2E_USER_PASSWORD and E2E_AGENT_EMAIL/E2E_AGENT_PASSWORD, ' +
++        'or pipe { "actors": [ … ] } and pass --stdin.',
++    );
++    return 2;
++  }
++
++  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
++  // Created up front but `lazyConnect`: no command, no connection. Assigning it
++  // in this scope (and not inside the hook below) is what keeps the type of
++  // `redis` honest at the `finally` that disconnects it.
++  let redis: ReturnType<typeof createRedisClient> | null = null;
++  try {
++    redis = createRedisClient(loadRedisConfiguration(process.env));
++  } catch (error) {
++    console.warn(
++      `Redis configuration unreadable (${String(error)}); the authorization ` +
++        'cache is not invalidated, cached decisions expire on their own',
++    );
++  }
++  /**
++   * Best effort and bounded. The `authzVersion` bump in the database is what
++   * makes a cached decision unreachable and it happens before any Redis call, so
++   * a Redis that is down costs nothing but the wait — capped here because ioredis
++   * queues offline commands forever and this command must always exit.
++   */
++  const invalidatePrincipal = async (userId: string): Promise<unknown> => {
++    if (redis === null) {
++      return null;
++    }
++    try {
++      const invalidator = new PrincipalContextInvalidator(
++        prisma as unknown as PrismaService,
++        redis,
++      );
++      return await Promise.race([
++        invalidator.invalidateUser(userId),
++        new Promise((resolve) => {
++          setTimeout(resolve, 5_000).unref();
++        }),
++      ]);
++    } catch (error) {
++      console.warn(
++        `authorization cache not invalidated for ${userId} (${String(error)}); ` +
++          'cached decisions expire on their own',
++      );
++      return null;
++    }
++  };
++
++  try {
++    const outcomes = await ensureE2EActors(prisma as unknown as PrismaService, actors, {
++      allowPolicyViolation: process.argv.includes('--allow-policy-violation'),
++      resetMfa: process.argv.includes('--reset-mfa'),
++      invalidatePrincipal,
++    });
++
++    if (asJson) {
++      console.log(JSON.stringify({ actors: outcomes }, null, 2));
++    } else {
++      for (const outcome of outcomes) {
++        console.log(formatOutcome(outcome));
++      }
++      const count = (action: E2EActorOutcome['action']): number =>
++        outcomes.filter((outcome) => outcome.action === action).length;
++      console.log(
++        `e2e_actor_summary created=${count('created')} aligned=${count('aligned')} ` +
++          `unchanged=${count('unchanged')} refused=${count('refused')}`,
++      );
++    }
++    return outcomes.some((outcome) => outcome.action === 'refused') ? 3 : 0;
++  } finally {
++    await prisma.$disconnect();
++    redis?.disconnect();
++  }
++}
++
++// Guarded so a unit test can import the helpers without the CLI running (and
++// calling `process.exit`) — the same rule as the other commands in `src/cli/`.
++if (require.main === module) {
++  main().then(
++    (code) => process.exit(code),
++    (error: unknown) => {
++      console.error(error);
++      process.exit(1);
++    },
++  );
++}
+diff --git a/e2e/README.md b/e2e/README.md
+index 49978c7..aa6438f 100644
+--- a/e2e/README.md
++++ b/e2e/README.md
+@@ -78,6 +78,8 @@ The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), the
+ | `MFA_ENCRYPTION_KEY` | secret (optional) | Same base64 value as on the API backend. The CI job passes it to Playwright so `global-setup` can repair the super admin `UserMfa` row when a TOTP secret is already known. |
+ | `E2E_FORCE_MFA_RESET` | variable (optional) | Set to `1` to delete super-admin MFA in the database on every run even when `E2E_SUPERADMIN_TOTP_SECRET` is set. |
+ | `E2E_SSH_HOST`, `E2E_SSH_PORT`, `E2E_SSH_USER`, `E2E_SSH_PRIVATE_KEY`, `E2E_SSH_DB_PORT` | secrets (optional) | With all of them set, the runner opens an SSH tunnel `127.0.0.1:15432 → <host>:<db port>` before the specs, so Postgres never has to be public. Then `E2E_DATABASE_URL` must point at `127.0.0.1:15432`. |
++| `E2E_ENSURE_ACTORS` | variable (optional) | Set to `true` to create the three actors on the stack before the run (see *Actors that do not exist yet*). Needs the `E2E_SSH_*` secrets and the actor secrets. Off by default. |
++| `E2E_BACKEND_CONTAINER` | variable (optional) | Exact backend container name for that step (`docker ps` on the host). Without it the step picks the first running container whose name contains `backend`. |
+ | `E2E_INSTALL_TOKEN` | secret | Only if the stack's install wizard is still open; must match the backend `INSTALL_TOKEN`. |
+
+ Steps (repository admin):
+@@ -374,8 +376,39 @@ So these must be disposable test accounts. The harness refuses any address whose
+ with `e2e.` (for example `e2e.superadmin@example.com`), unless that address is listed on purpose in
+ `E2E_ALLOW_REAL_ACCOUNTS` (comma-separated).
+
+-On an already installed environment, create the super admin once in the UI: *Korisnici → Novi*, role
+-SUPER_ADMIN, local password = `E2E_SUPERADMIN_PASSWORD`. USER and AGENT are created by the harness.
++### Actors that do not exist yet
++
++On an already installed environment the harness only *signs in*: `provisionTestActors` needs a super-admin
++session to create USER and AGENT, so when `E2E_SUPERADMIN_EMAIL` is not an account of that stack, nothing can
++be provisioned and the run dies in `global-setup` — which reads like a product failure and is not one. This is
++the normal state of a stack whose install wizard was completed by hand: the founder account is the super admin,
++and it is not the test one.
++
++Either create the super admin once in the UI (*Korisnici → Novi*, role SUPER_ADMIN, local password =
++`E2E_SUPERADMIN_PASSWORD`) and let the harness do the rest, or run the backend command that ensures all three
++from the environment:
++
++```bash
++# inside the backend container (shell access is the trust boundary, as with cli/reset-mfa.js)
++docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js
++# or with the actors as JSON on stdin — passwords never appear in argv
++docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js --stdin <<'JSON'
++{ "actors": [ { "email": "e2e.superadmin@example.com", "password": "…", "roleKey": "SUPER_ADMIN" } ] }
++JSON
++```
++
++It reads `E2E_SUPERADMIN_*`, `E2E_USER_*` and `E2E_AGENT_*` (same defaults as the harness), creates a missing
++actor as an ordinary local account — system role, home unit = the first node of the unit tree, no forced
++password change — and aligns an existing one (password, unit, role, `mustChangePassword`, `isActive`), through
++the same primitives the API uses, including the SuperAdmin local-only invariant and the authorization-cache
++invalidation. One line per actor plus a summary; exit `0`, or `3` when an actor was refused.
++
++Refused, on purpose: an address that is not disposable (`e2e.*` / `E2E_ALLOW_REAL_ACCOUNTS`), a
++directory-managed account (`entraObjectId` / `directoryObjectGuid` — its password belongs to Entra/AD), an
++anonymized account, and a password the offline policy rejects (`--allow-policy-violation` overrides, and the
++deployment's own policy is stricter still: organisation words plus the Pwned Passwords check). An enrolled
++second factor is *reported*, not removed — `--reset-mfa` removes it. Setting `E2E_ENSURE_ACTORS=true` runs the
++command from the CI job over the existing SSH access before the specs.
+
+ The founder account obeys the same policy as every other local password (paket 5.1, `M1 #1`): at least
+ `private.auth.password.minLength` characters (12 by default), not on the common-password list, without the
+--
+2.39.5

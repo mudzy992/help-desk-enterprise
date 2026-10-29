@@ -22,6 +22,9 @@ interface DashboardAttentionTableProperties {
   readonly items: readonly TicketResponse[];
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
+  /** internal routing terms (unrouted, group-only)
+   *  are hidden from requesters. */
+  readonly isStaff: boolean;
 }
 
 function AttentionAssignmentCell({ ticket }: { readonly ticket: TicketResponse }) {
@@ -47,6 +50,7 @@ export function DashboardAttentionTable({
   items,
   serviceNames,
   originNames,
+  isStaff,
 }: DashboardAttentionTableProperties) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -58,7 +62,7 @@ export function DashboardAttentionTable({
         subtitle={t("dashboard.attentionHint")}
         actions={
           <Button asChild size="xs" variant="ghost">
-            <Link to="/tickets?view=all">
+            <Link to="/tickets?view=inbox">
               {t("dashboard.attentionAll")} <ArrowRight size={12} />
             </Link>
           </Button>
@@ -69,7 +73,7 @@ export function DashboardAttentionTable({
           title={t("dashboard.attentionEmpty")}
           action={
             <Button asChild size="sm" variant="outline">
-              <Link to="/tickets?view=all">{t("dashboard.attentionAll")}</Link>
+              <Link to="/tickets?view=inbox">{t("dashboard.attentionAll")}</Link>
             </Button>
           }
         />
@@ -83,7 +87,9 @@ export function DashboardAttentionTable({
                 <th className="px-4 py-2.5 font-medium">{t("dashboard.columnOrigin")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("dashboard.columnStatus")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("dashboard.columnPriority")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("dashboard.columnAssignment")}</th>
+                {isStaff ? (
+                  <th className="px-4 py-2.5 font-medium">{t("dashboard.columnAssignment")}</th>
+                ) : null}
                 <th className="px-4 py-2.5 text-right font-medium">
                   {t("dashboard.columnOverdue")}
                 </th>
@@ -126,9 +132,11 @@ export function DashboardAttentionTable({
                   <td className="px-4 py-2.5">
                     <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
                   </td>
-                  <td className="px-4 py-2.5">
-                    <AttentionAssignmentCell ticket={ticket} />
-                  </td>
+                  {isStaff ? (
+                    <td className="px-4 py-2.5">
+                      <AttentionAssignmentCell ticket={ticket} />
+                    </td>
+                  ) : null}
                   <td className="px-4 py-2.5 text-right">
                     <span className="inline-flex items-center justify-end gap-2">
                       {isTicketOverdue(ticket) ? <TicketOverdueBadge /> : null}

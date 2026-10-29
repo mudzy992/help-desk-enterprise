@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { CalendarClock } from "lucide-react";
@@ -10,10 +11,7 @@ import { getOnCallMe, type OnCallMe } from "@/services/on-call-api";
 /** Refreshing every 5 minutes is enough for a shift that changes at handoff. */
 const refreshEveryMs = 5 * 60_000;
 
-/**
- * Paket 2.9 (K3, §4.4): "On call until 08:00" for whoever is on call right
- * now. Only asked for holders of oncall.read; silent when the feature is off.
- */
+/** Current shift indicator for users allowed to read on-call data. */
 export function OnCallHeaderIndicator() {
   const { t, i18n } = useTranslation();
   const { hasPermission, session } = useSessionCapabilities();
@@ -21,27 +19,22 @@ export function OnCallHeaderIndicator() {
     session !== null && (session.isSuperAdmin || hasPermission(permissionKeys.onCallRead));
   const [me, setMe] = useState<OnCallMe | null>(null);
 
+  const mounted = useRef(true);
+  const poll = useCallback(async () => {
+    const loaded = await getOnCallMe();
+    if (mounted.current) setMe(loaded);
+  }, []);
+  useVisibilityAwarePolling({
+    poll,
+    intervalMs: refreshEveryMs,
+    enabled: allowed,
+    telemetryKey: "on_call.header_poll_failed",
+  });
   useEffect(() => {
-    if (!allowed) {
-      setMe(null);
-      return;
-    }
-    let active = true;
-    const load = () => {
-      if (document.visibilityState !== "visible") return;
-      getOnCallMe()
-        .then((loaded) => {
-          if (active) setMe(loaded);
-        })
-        .catch(() => {
-          if (active) setMe(null);
-        });
-    };
-    load();
-    const timer = window.setInterval(load, refreshEveryMs);
+    mounted.current = true;
+    if (!allowed) setMe(null);
     return () => {
-      active = false;
-      window.clearInterval(timer);
+      mounted.current = false;
     };
   }, [allowed]);
 

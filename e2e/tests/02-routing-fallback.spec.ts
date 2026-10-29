@@ -7,10 +7,10 @@ import {
   loadSeedCatalog,
 } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 test.describe('02 routing / fallback', () => {
-  test('seed service routes to a group; unrouted service stays UNROUTED', async ({
+  test('seed service routes to a group; fresh service follows routing or fallback consistently', async ({
     page,
   }) => {
     const env = readE2EEnvironment();
@@ -34,20 +34,22 @@ test.describe('02 routing / fallback', () => {
       serviceId: service.id,
       originUnitId: catalog.originUnitId,
     });
-    // Nightly 2026-10-10 (live stack): real routing rules may already cover
-    // the seed catalog's origin unit, so the fresh service is routed too.
-    // That is environment data, not a product bug — skip with a reason.
-    test.skip(
-      unrouted.status !== 'UNROUTED',
-      `routing rules on this stack already cover the seed origin unit (status=${unrouted.status}); the fallback premise does not hold here`,
-    );
-    expect(unrouted.status).toBe('UNROUTED');
-    expect(unrouted.assignedGroupId).toBeNull();
+    // A live stack may have a wildcard rule covering every service in this OU.
+    // In that case the fresh service is legitimately routed; otherwise it must
+    // remain unassigned in the explicit fallback state.
+    if (unrouted.status === 'UNROUTED') {
+      expect(unrouted.assignedGroupId).toBeNull();
+    } else {
+      expect(unrouted.assignedGroupId).not.toBeNull();
+    }
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     // The inbox shows only the viewer's own groups; the SuperAdmin need not be a
     // member of the group the ticket was routed to. The full list shows it (as in 07).
     await page.goto('/tickets?view=all');
-    await expect(page.getByText(routed.title).first()).toBeVisible({
+    await dismissAnnouncementModal(page);
+    await expect(
+      page.locator('tbody').getByText(routed.title, { exact: true }).first(),
+    ).toBeVisible({
       timeout: 20_000,
     });
   });

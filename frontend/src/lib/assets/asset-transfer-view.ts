@@ -1,6 +1,6 @@
 import type { AssetTransferScenario, AssetTransferStatus } from "@/services/asset-transfers-api";
 
-/** Paket 3.2 C9: labels and tones for transfer records (const maps keep t() keys typed). */
+/** C9: labels and tones for transfer records (const maps keep t() keys typed). */
 export const transferScenarioKeys: Readonly<
   Record<AssetTransferScenario, `assets.transfers.scenario.${AssetTransferScenario}`>
 > = {

@@ -8,8 +8,8 @@ import { getAccountSecurity } from "@/services/account-security-api";
 const WARNING_DAYS = 14;
 
 /**
- * Paket 2.1 (M7): two weeks before a password expires the user is told, so
- * the forced change at the next sign-in is not a surprise.
+ * Two weeks before a password expires the user is told, so
+ * The forced change at the next sign-in is not a surprise.
  */
 export function PasswordExpiryBanner() {
   const { t } = useTranslation();

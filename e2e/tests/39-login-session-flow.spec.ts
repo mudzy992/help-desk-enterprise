@@ -157,7 +157,7 @@ test.describe('39 login → MFA → session flow integrity (5.2.4 M2)', () => {
     if (pending.status !== 'MFA_REQUIRED' || pending.mfaToken === undefined) {
       throw new Error('Expected an MFA step for the extension sign-in.');
     }
-    const verified = await extension.request('/auth/mfa/verify', {
+    const verified = await extension.request('/auth/extension/mfa/verify', {
       method: 'POST',
       body: JSON.stringify({
         mfaToken: pending.mfaToken,
@@ -165,6 +165,9 @@ test.describe('39 login → MFA → session flow integrity (5.2.4 M2)', () => {
       }),
     });
     expect(verified.status).toBe(200);
+    const body = (await verified.json()) as { readonly accessToken?: string };
+    expect(typeof body.accessToken).toBe('string');
+    expect(body.accessToken!.length).toBeGreaterThan(10);
     expect(
       verified.headers.getSetCookie().some((cookie) => cookie.startsWith('helpdesk_session=')),
     ).toBe(false);

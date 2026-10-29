@@ -1,19 +1,19 @@
-import type { Queue } from 'bullmq';
+import type { Queue } from "bullmq";
 import {
   notificationRetentionCronPattern,
   notificationRetentionJobAttempts,
   notificationRetentionJobBackoffMilliseconds,
   notificationRetentionJobName,
   notificationRetentionSchedulerId,
-} from './notification-retention.constants';
-import { NotificationRetentionSchedulerService } from './notification-retention.scheduler.service';
+} from "./notification-retention.constants";
+import { NotificationRetentionSchedulerService } from "./notification-retention.scheduler.service";
 
 /**
  * M13 (val 4/5): this service had no spec. It only registers the daily sweep,
  * so the test is about the registration being idempotent by id and about a
  * broken Redis not taking the worker down at start-up.
  */
-describe('NotificationRetentionSchedulerService (M13)', () => {
+describe("NotificationRetentionSchedulerService (M13)", () => {
   function createQueue() {
     const calls: unknown[][] = [];
     const queue = {
@@ -25,7 +25,7 @@ describe('NotificationRetentionSchedulerService (M13)', () => {
     return { queue, calls };
   }
 
-  it('registers the daily sweep with its retry policy', async () => {
+  it("registers the daily sweep with its retry policy", async () => {
     const { queue, calls } = createQueue();
     const service = new NotificationRetentionSchedulerService(queue);
 
@@ -47,19 +47,21 @@ describe('NotificationRetentionSchedulerService (M13)', () => {
       removeOnFail: { count: 20 },
     });
     expect(job.opts.backoff).toEqual({
-      type: 'exponential',
+      type: "exponential",
       delay: notificationRetentionJobBackoffMilliseconds,
     });
   });
 
-  it('only warns when the scheduler cannot be registered', async () => {
+  it("fails startup when the scheduler cannot be registered", async () => {
     const queue = {
       upsertJobScheduler: async () => {
-        throw new Error('redis is down');
+        throw new Error("redis is down");
       },
     } as unknown as Queue;
     const service = new NotificationRetentionSchedulerService(queue);
 
-    await expect(service.onModuleInit()).resolves.toBeUndefined();
+    await expect(service.onModuleInit()).rejects.toThrow(
+      "notification_retention mandatory schedule registration failed",
+    );
   });
 });

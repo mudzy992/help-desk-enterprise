@@ -1,12 +1,10 @@
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { applyDueSlaEscalations } from './apply-due-sla-escalations';
 import { applyTicketSlaPause } from './apply-ticket-sla-pause';
 import { applyTicketSlaResume } from './apply-ticket-sla-resume';
 import type { BusinessMinutesCalendar } from './business-hours-civil-time';
-import {
-  emitTicketSlaRuntimeEvents,
-  emptyTicketSlaRuntimeMarks,
-} from './emit-ticket-sla-runtime-events';
+import { emptyTicketSlaRuntimeMarks } from './emit-ticket-sla-runtime-events';
 import { evaluateTicketSlaAtRisk } from './evaluate-ticket-sla-at-risk';
 import { evaluateTicketSlaBreach } from './evaluate-ticket-sla-breach';
 import {
@@ -15,6 +13,7 @@ import {
   isSlaTerminalStatus,
 } from './is-sla-pause-status';
 import { computeSlaNextDueAt } from './compute-sla-next-due-at';
+import { parseSlaConfigurationCalendar } from './sla-configuration-snapshot';
 import { loadBusinessHoursCalendar } from './load-business-hours-calendar';
 import { loadSlaEscalationRules } from './load-sla-escalation-rules';
 import {
@@ -24,11 +23,12 @@ import {
 import {
   loadTicketSlaState,
   persistTicketFirstResponseAt,
-  persistTicketSlaState,
 } from './persist-ticket-sla-state';
+import { persistTicketSlaRuntimeTransitions } from './persist-ticket-sla-runtime-transitions';
 import { recomputeTicketSlaTargets } from './recompute-ticket-sla-targets';
 import { startTicketSlaTimers } from './start-ticket-sla-timers';
 import type { SyncTicketSlaTimersInput, TicketSlaStateRecord } from './ticket-sla.types';
+import { withTicketSlaWriteLock } from './with-ticket-sla-write-lock';
 
 export async function syncTicketSlaTimers(
   prisma: PrismaService,
@@ -37,6 +37,18 @@ export async function syncTicketSlaTimers(
   if (!input.configuration.enabled) {
     return null;
   }
+  return withTicketSlaWriteLock(
+    prisma,
+    input.ticket.id,
+    (client, transaction) => syncTicketSlaTimersLocked(client, input, transaction),
+  );
+}
+
+async function syncTicketSlaTimersLocked(
+  prisma: PrismaService,
+  input: SyncTicketSlaTimersInput,
+  transaction?: Prisma.TransactionClient,
+): Promise<TicketSlaStateRecord | null> {
   const now = input.now ?? new Date();
   const existing = await loadTicketSlaState(prisma, input.ticket.id);
   const previousMarks = existing ?? emptyTicketSlaRuntimeMarks;
@@ -49,7 +61,7 @@ export async function syncTicketSlaTimers(
   const calendar = await loadCalendarForState(prisma, started);
   const state =
     input.event === 'priority_changed' && existing !== null
-      ? await recomputeTicketSlaTargets(prisma, started, input.ticket, calendar)
+      ? await recomputeTicketSlaTargets(prisma, started, input.ticket, calendar, now)
       : started;
   const rules = await loadSlaEscalationRules(prisma, state.slaProfileId);
   const next = applyDueSlaEscalations(
@@ -63,23 +75,22 @@ export async function syncTicketSlaTimers(
     input.configuration,
     now,
   );
-  const persisted = await persistTicketSlaState(prisma, {
-    ...next,
-    // Phase 2.1: one column tells the scanner when to come back. Every write
-    // path (ticket event, scan, creation) goes through here.
-    nextDueAt: computeSlaNextDueAt({
-      state: next,
-      rules,
-      calendar,
-      configuration: input.configuration,
-    }),
-  });
-  await emitTicketSlaRuntimeEvents(prisma, {
+  const persisted = await persistTicketSlaRuntimeTransitions(prisma, {
     ticketId: input.ticket.id,
     previous: previousMarks,
-    next: persisted,
     rules,
-  });
+    next: {
+      ...next,
+      // Phase 2.1: one column tells the scanner when to come back. Every write
+      // path (ticket event, scan, creation) goes through here.
+      nextDueAt: computeSlaNextDueAt({
+        state: next,
+        rules,
+        calendar,
+        configuration: input.configuration,
+      }),
+    },
+  }, transaction);
   if (
     persisted.respondedAt !== null &&
     input.ticket.firstResponseAt === null
@@ -93,6 +104,8 @@ async function loadCalendarForState(
   prisma: PrismaService,
   state: TicketSlaStateRecord,
 ): Promise<BusinessMinutesCalendar | null> {
+  const snapshotted = parseSlaConfigurationCalendar(state.configurationSnapshot);
+  if (snapshotted !== null) return snapshotted;
   if (state.slaProfileId === null) {
     return null;
   }

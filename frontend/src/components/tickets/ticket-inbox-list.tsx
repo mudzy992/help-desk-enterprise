@@ -31,6 +31,7 @@ interface TicketInboxListProperties {
   readonly tickets: readonly TicketResponse[];
   readonly page: number;
   readonly totalPages: number;
+  readonly totalIsCapped: boolean;
   readonly onChangePage: (page: number) => void;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
@@ -44,6 +45,7 @@ export function TicketInboxList({
   tickets,
   page,
   totalPages,
+  totalIsCapped,
   onChangePage,
   serviceNames,
   originNames,
@@ -82,9 +84,14 @@ export function TicketInboxList({
           </ul>
         )}
       </Card>
-      {isUnroutedTab && totalPages > 1 ? (
+      {totalPages > 1 ? (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-muted-foreground">
-          <span>{t("tickets.page", { page, total: totalPages })}</span>
+          <span>
+            {t(totalIsCapped ? "tickets.pageCapped" : "tickets.page", {
+              page,
+              total: totalPages,
+            })}
+          </span>
           <div className="flex gap-2">
             <Button
               type="button"

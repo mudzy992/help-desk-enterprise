@@ -11,7 +11,7 @@ import type { InstallAddonItem } from "@/services/install-addons-api";
 import { loadSettingsAddons } from "@/services/settings-api";
 
 /**
- * Paket 5.3.4 (ispravka 2026-10-08): the addon card reads
+ * the addon card reads
  * `GET /settings/addons` — the authenticated route with the **stored** values.
  * The install wizard keeps the public `GET /install/addons`, which deliberately
  * serves the catalogue defaults after installation (5.2 finding M1 #5), so a

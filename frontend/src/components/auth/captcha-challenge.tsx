@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { hintClassName } from "@/components/ui/control";
 
 /*
-  Paket 5.4.1 (M3): the Turnstile widget on the sign-in page.
+  The Turnstile widget on the sign-in page.
 
   It renders **only** when the server answered `CAPTCHA_REQUIRED` — the login
   page used to be able to sign in without any check, and it still can: the
   challenge appears after repeated failures, not on every visit. Three rules the
   widget has to keep:
 
-    * the Cloudflare script is loaded on demand, once per page, explicitly
+    * The Cloudflare script is loaded on demand, once per page, explicitly
       (`?render=explicit`); no third-party script runs before the challenge is
       actually needed;
     * a Turnstile token is single-use — after a rejected attempt the widget is
@@ -73,10 +73,14 @@ export function loadTurnstileScript(): Promise<TurnstileApi> {
   });
 }
 
+export type CaptchaLoadState = "loading" | "ready" | "unavailable";
+
 interface CaptchaChallengeProperties {
   readonly siteKey: string;
   /** Called with a fresh token, or `null` when the current one expired or failed. */
   readonly onToken: (token: string | null) => void;
+  /** Reports whether the widget can provide a token or needs administrator/network help. */
+  readonly onLoadState?: (state: CaptchaLoadState) => void;
   /** Bump this value to reset the widget (a rejected attempt spends its token). */
   readonly resetSignal?: number;
 }
@@ -84,6 +88,7 @@ interface CaptchaChallengeProperties {
 export function CaptchaChallenge({
   siteKey,
   onToken,
+  onLoadState,
   resetSignal = 0,
 }: CaptchaChallengeProperties) {
   const { t } = useTranslation();
@@ -95,6 +100,8 @@ export function CaptchaChallenge({
   useEffect(() => {
     let cancelled = false;
     onToken(null);
+    setHasLoadError(false);
+    onLoadState?.("loading");
     loadTurnstileScript()
       .then((api) => {
         if (cancelled || container.current === null) return;
@@ -102,13 +109,31 @@ export function CaptchaChallenge({
         widgetId.current = api.render(container.current, {
           sitekey: siteKey,
           theme: "auto",
-          callback: (token: string) => onToken(token),
-          "error-callback": () => onToken(null),
-          "expired-callback": () => onToken(null),
+          callback: (token: string) => {
+            if (cancelled) return;
+            setHasLoadError(false);
+            onToken(token);
+            onLoadState?.("ready");
+          },
+          "error-callback": () => {
+            if (cancelled) return;
+            onToken(null);
+            setHasLoadError(true);
+            onLoadState?.("unavailable");
+          },
+          "expired-callback": () => {
+            if (cancelled) return;
+            onToken(null);
+            onLoadState?.("ready");
+          },
         });
+        onLoadState?.("ready");
       })
       .catch(() => {
-        if (!cancelled) setHasLoadError(true);
+        if (!cancelled) {
+          setHasLoadError(true);
+          onLoadState?.("unavailable");
+        }
       });
     return () => {
       cancelled = true;
@@ -119,7 +144,7 @@ export function CaptchaChallenge({
       }
     };
     // `attempt` re-runs the load after the user presses "Try again".
-  }, [siteKey, attempt, onToken]);
+  }, [siteKey, attempt, onToken, onLoadState]);
 
   useEffect(() => {
     const api = globalThis.turnstile;

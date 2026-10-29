@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { Progress } from "@/components/ui/progress";
 import { Segmented } from "@/components/ui/segmented";
 import { StatCard } from "@/components/ui/stat-card";
@@ -202,10 +202,12 @@ function AppearancePreview() {
             <span className="text-[11.5px] text-muted-foreground">
               {t("appearance.previewProgress")}
             </span>
-            <Progress value={62} />
+            <Progress value={62} label={t("appearance.previewProgress")} />
           </div>
           <Field label={t("appearance.previewFieldLabel")}>
-            <Input defaultValue={t("appearance.previewFieldValue")} readOnly />
+            {(control) => (
+              <Input {...control} defaultValue={t("appearance.previewFieldValue")} readOnly />
+            )}
           </Field>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" size="sm">
@@ -315,7 +317,7 @@ export function AppearancePage() {
           <CardHeader title={t("appearance.modeHeading")} subtitle={t("appearance.modeHint")} />
           <div className="grid gap-3 px-4 py-3.5">
             <Segmented
-              ariaLabel={t("appearance.modeHeading")}
+              label={t("appearance.modeHeading")}
               value={mode}
               onChange={setMode}
               items={THEME_MODES.map((value) => {

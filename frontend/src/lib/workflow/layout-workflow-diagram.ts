@@ -2,7 +2,7 @@ import type { TicketStatus } from "@/services/tickets-api";
 import type { WorkflowActor, WorkflowPhase, WorkflowTransition } from "@/services/workflow-api";
 
 /**
- * Paket 1.7 (W3): deterministic layout of the status flow — phases are
+ * deterministic layout of the status flow — phases are
  * columns, statuses keep a fixed order inside each column, and every edge is
  * a quadratic curve bent to one side so A→B and B→A never overlap.
  */
@@ -48,7 +48,7 @@ export function layoutWorkflowNodes(
     status,
     phase,
     x: workflowDiagram.columnX[phase],
-    y: workflowDiagram.rowY[orderInPhase[status] ?? 0],
+    y: workflowDiagram.rowY[orderInPhase[status]],
   }));
 }
 
@@ -107,4 +107,20 @@ export function layoutWorkflowEdges(
     });
   }
   return edges;
+}
+
+export function isNodeRelatedToSelection(
+  status: TicketStatus,
+  selected: TicketStatus | null,
+  transitions: readonly WorkflowTransition[],
+): boolean {
+  return (
+    selected === null ||
+    status === selected ||
+    transitions.some(
+      (item) =>
+        (item.from === selected && item.to === status) ||
+        (item.to === selected && item.from === status),
+    )
+  );
 }

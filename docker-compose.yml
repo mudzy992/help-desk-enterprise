@@ -14,14 +14,21 @@ x-database-environment: &database-environment
   DB_POOL_IDLE_TIMEOUT_MS: ${DB_POOL_IDLE_TIMEOUT_MS:-30000}
   DB_POOL_CONNECTION_TIMEOUT_MS: ${DB_POOL_CONNECTION_TIMEOUT_MS:-3000}
   DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-5000}
+  DB_LOCK_TIMEOUT_MS: ${DB_LOCK_TIMEOUT_MS:-2000}
+  DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: ${DB_IDLE_IN_TRANSACTION_TIMEOUT_MS:-10000}
 
 x-redis-environment: &redis-environment
+  DEPLOYMENT_ENV: ${DEPLOYMENT_ENV}
   REDIS_HOST: ${REDIS_HOST}
   REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_TLS: ${REDIS_TLS}
+  REDIS_CA_CERT_PATH: ${REDIS_CA_CERT_PATH:-}
+  REDIS_CA_CERT_BASE64: ${REDIS_CA_CERT_BASE64:-}
+  REDIS_SERVERNAME: ${REDIS_SERVERNAME}
   REDIS_USERNAME: ${REDIS_USERNAME:-servicedesk}
   REDIS_PASSWORD: ${REDIS_PASSWORD}
-  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-servicedesk}
-  QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:servicedesk}
+  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX}
+  QUEUE_PREFIX: ${QUEUE_PREFIX}
 
 # Paket 1.5: linkovi u e-mailovima. Oba procesa renderuju e-mailove (worker za
 # SLA događaje), pa oba moraju znati javni URL frontenda.
@@ -46,6 +53,7 @@ x-app-environment: &app-environment
   PRIVACY_TOMBSTONE_KEY_PREVIOUS: ${PRIVACY_TOMBSTONE_KEY_PREVIOUS:-}
   # Paket 2.6: master key wrapping per-export AES keys (>=16 chars or base64:<pin>; empty = derived from MFA_ENCRYPTION_KEY).
   PRIVACY_EXPORT_KEY: ${PRIVACY_EXPORT_KEY:-}
+  CONFIG_PACKAGE_SIGNING_KEY: ${CONFIG_PACKAGE_SIGNING_KEY:-}
   # Paket 2.7: fallback alarm channel used only when Postgres or Redis is down
   # (the normal channel reads recipients and SMTP from the database).
   OPS_ALERT_SMTP_URL: ${OPS_ALERT_SMTP_URL:-}
@@ -59,6 +67,26 @@ x-app-environment: &app-environment
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga
 # na WebSocket. Rolling deploy: vidi ops/ws-rolling-deploy.md (drain ≤ 30 s).
 services:
+  # Jednokratno priprema centralni host direktorij prije starta API-ja i workera.
+  # Bind mount je namjerno izvan Docker named-volume prostora kako bi svi trajni
+  # aplikacijski fajlovi bili pod jednom backup/ownership granicom na hostu.
+  storage-init:
+    build: ./backend
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /usr/app/uploads &&
+        chown -R 1000:1000 /usr/app/uploads &&
+        chmod 0750 /usr/app/uploads
+    restart: "no"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+
   frontend:
     build:
       context: ./frontend
@@ -75,10 +103,36 @@ services:
       retries: 3
       start_period: 20s
 
+  # Single-owner release step. Pokrenuti jednom prije API/worker rollouta:
+  # docker compose --profile release run --rm migrator
+  migrator:
+    profiles: ["release"]
+    build:
+      context: ./backend
+      target: migration
+    environment:
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: ${NODE_ENV:-production}
+    restart: "no"
+    volumes:
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
+    networks:
+      - db_net
+
   backend:
     build: ./backend
-    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     expose:
       - "10001"
     # Paket 2.7 §3.2: readiness = database + Redis. start_period covers `prisma migrate deploy`.
@@ -91,7 +145,9 @@ services:
     environment:
       <<: [*database-environment, *redis-environment, *app-environment]
     volumes:
-      - uploads:/usr/app/uploads
+      - ${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+      - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
       - default
       - redis_net
@@ -99,8 +155,18 @@ services:
 
   worker:
     build: ./backend
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
     command: node dist/src/worker.js
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     # Paket 2.7 §3.2: worker heartbeat in Redis (written every 10 s) is younger than 120 s.
     healthcheck:
       test: ["CMD", "node", "dist/src/cli/worker-health.js"]
@@ -115,7 +181,9 @@ services:
       DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-10}
       DB_STATEMENT_TIMEOUT_MS: ${WORKER_DB_STATEMENT_TIMEOUT_MS:-30000}
     volumes:
-      - uploads:/usr/app/uploads
+      - ${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+      - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
     networks:
       - default
       - redis_net
@@ -137,7 +205,6 @@ services:
       - default
 
 volumes:
-  uploads:
   clamav-db:
 
 networks:

@@ -7,12 +7,35 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { loadInstallSetupStatus } from "@/services/install-api";
+import {
+  loadInstallSetupStatus,
+  type InstallSetupSummary,
+  type InstallStepKey,
+  type InstallStepState,
+} from "@/services/install-api";
+import {
+  loadInstallReadiness,
+  type InstallProfile,
+  type InstallReadiness,
+} from "@/services/install-profile-api";
+import type { InstallWizardStep } from "@/services/install-api";
 
 type InstallSetupStatusState =
   | { readonly status: "loading" }
   | { readonly status: "error" }
-  | { readonly status: "ready"; readonly isCompleted: boolean };
+  | {
+      readonly status: "ready";
+      readonly isCompleted: boolean;
+      /** The server-selected step the wizard opens on. */
+      readonly nextStep: InstallWizardStep | undefined;
+      readonly steps: Readonly<Record<InstallStepKey, InstallStepState>> | undefined;
+      /** The package chosen in the wizard, `null` while none is stored. */
+      readonly profile: InstallProfile | null;
+      /** Readiness as last read; `null` when it could not be read. */
+      readonly readiness: InstallReadiness | null;
+      /** Counts for the completion screen, `null` until a summary exists. */
+      readonly summary: InstallSetupSummary | null;
+    };
 
 type InstallSetupState = InstallSetupStatusState & {
   readonly markCompleted: () => void;
@@ -23,17 +46,39 @@ const LOADING_STATE: InstallSetupStatusState = { status: "loading" };
 
 const InstallSetupContext = createContext<InstallSetupState | null>(null);
 
+/**
+ * This provider is the only place that reads `GET /install/status`. The wizard
+ * page used to fire a second request and, when
+ * it failed, drop the operator onto the SuperAdmin step regardless of where the
+ * installation actually was. Here a failure is an error screen with a retry, and
+ * a step that saves calls `reload()` instead of moving a private step cursor.
+ */
 export function InstallSetupProvider({ children }: { readonly children: ReactNode }) {
   const [state, setState] = useState<InstallSetupStatusState>(LOADING_STATE);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
+    // A refresh keeps the current screen while it loads; only the first request
+    // (or a retry after an error) shows the gate skeleton.
+    setState((current) => (current.status === "ready" ? current : LOADING_STATE));
     void loadInstallSetupStatus()
-      .then((status) => {
-        if (!isCancelled) {
-          setState({ status: "ready", isCompleted: status.isCompleted });
-        }
+      .then(async (status) => {
+        // A completed installation rejects wizard-only readiness reads with
+        // 409. Do not emit that expected conflict on every application load.
+        const readiness = status.isCompleted
+          ? null
+          : await loadInstallReadiness().catch(() => null);
+        if (isCancelled) return;
+        setState({
+          status: "ready",
+          isCompleted: status.isCompleted,
+          nextStep: status.nextStep,
+          steps: status.steps,
+          profile: status.profile ?? null,
+          readiness,
+          summary: status.summary ?? null,
+        });
       })
       .catch(() => {
         // An unknown status must not be read as "not installed": the gate
@@ -48,12 +93,15 @@ export function InstallSetupProvider({ children }: { readonly children: ReactNod
   }, [attempt]);
 
   const reload = useCallback(() => {
-    setState(LOADING_STATE);
     setAttempt((current) => current + 1);
   }, []);
 
   const markCompleted = useCallback(() => {
-    setState({ status: "ready", isCompleted: true });
+    setState((current) =>
+      current.status === "ready"
+        ? { ...current, isCompleted: true, nextStep: "complete" }
+        : current,
+    );
   }, []);
 
   const value = useMemo<InstallSetupState>(

@@ -1,5 +1,5 @@
 import { CalendarDays } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SlaAdminListColumn, SlaAdminSelectorCard } from "@/components/sla/sla-admin-selector";
@@ -31,6 +31,7 @@ export function SlaCalendarsPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isChangesLoading, setIsChangesLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const operation = useRef<"save" | "delete" | null>(null);
   const [errorKey, setErrorKey] = useState<SlaErrorKey | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -90,6 +91,8 @@ export function SlaCalendarsPanel() {
   }, [changesRevision, selectedId]);
 
   const save = async (input: CalendarWriteInput & { readonly key: string }) => {
+    if (operation.current !== null) return false;
+    operation.current = "save";
     setIsSubmitting(true);
     setErrorKey(null);
     try {
@@ -104,12 +107,15 @@ export function SlaCalendarsPanel() {
       setErrorKey(mapSlaError(error));
       return false;
     } finally {
+      operation.current = null;
       setIsSubmitting(false);
     }
   };
 
   const remove = async () => {
-    if (selected === undefined || deleteReason.trim().length === 0) return;
+    if (selected === undefined || deleteReason.trim().length === 0 || operation.current !== null)
+      return;
+    operation.current = "delete";
     setIsSubmitting(true);
     setErrorKey(null);
     try {
@@ -121,6 +127,7 @@ export function SlaCalendarsPanel() {
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
+      operation.current = null;
       setIsSubmitting(false);
     }
   };
@@ -228,11 +235,14 @@ export function SlaCalendarsPanel() {
       >
         <div className="grid gap-2">
           <Field label={t("sla.reason")} required>
-            <Input
-              value={deleteReason}
-              maxLength={512}
-              onChange={(event) => setDeleteReason(event.target.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={deleteReason}
+                maxLength={512}
+                onChange={(event) => setDeleteReason(event.target.value)}
+              />
+            )}
           </Field>
           {errorKey && isDeleteOpen ? (
             <p role="alert" className={errorTextClassName}>

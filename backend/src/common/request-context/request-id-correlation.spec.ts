@@ -9,6 +9,36 @@ describe('requestId correlation', () => {
     jest.restoreAllMocks();
   });
 
+  it('keeps an unhandled 5xx stack in the primary container log message', () => {
+    const errorSpy = jest
+      .spyOn(ConsoleLogger.prototype, 'error')
+      .mockImplementation();
+    const json = jest.fn();
+    const failure = new Error('database write failed');
+
+    runWithRequestId('stack-request-id', () => {
+      new HttpRequestExceptionFilter().catch(failure, {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getResponse: () => ({
+            setHeader: jest.fn(),
+            status: (code: number) => {
+              expect(code).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+              return { json };
+            },
+          }),
+          getRequest: () => ({ headers: {} }),
+        }),
+      } as never);
+    });
+
+    const loggedMessage = String(errorSpy.mock.calls[0]?.[0]);
+    expect(loggedMessage).toContain(
+      'requestId=stack-request-id unhandled_http_exception status=500',
+    );
+    expect(loggedMessage).toContain('Error: database write failed');
+  });
+
   it('uses the same requestId in the log buffer and the error response', () => {
     const buffer = new RecentRequestLogBuffer();
     const logger = new RequestContextLogger(buffer);

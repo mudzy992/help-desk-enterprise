@@ -36,6 +36,8 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
           assignedUserId: ticketsTestIds.requester,
           assignedGroupId: 'other-group',
           requesterId: ticketsTestIds.requester,
+          originUnitId: ticketsTestIds.ouIt,
+          serviceId: ticketsTestIds.serviceVpn,
         } as never,
       },
     );
@@ -62,6 +64,8 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
           assignedUserId: ticketsTestIds.agentItPeer,
           assignedGroupId: ticketsTestIds.groupIt,
           requesterId: ticketsTestIds.requester,
+          originUnitId: ticketsTestIds.ouIt,
+          serviceId: ticketsTestIds.serviceVpn,
         } as never,
       },
     );
@@ -77,7 +81,7 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
       data: {
         slaProfileId: 'profile-1',
         triggerOffsetMinutes: 15,
-        targetUserId: ticketsTestIds.agentHr,
+        targetUserId: ticketsTestIds.agentIt,
       },
     });
     const recipients = await resolveNotificationRecipients(
@@ -92,13 +96,49 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
           assignedUserId: ticketsTestIds.agentIt,
           assignedGroupId: ticketsTestIds.groupIt,
           requesterId: ticketsTestIds.requester,
+          originUnitId: ticketsTestIds.ouIt,
+          serviceId: ticketsTestIds.serviceVpn,
         } as never,
       },
     );
-    expect(recipients).toEqual([ticketsTestIds.agentHr]);
+    expect(recipients).toEqual([ticketsTestIds.agentIt]);
   });
 
-  it('notifies role members for a role target escalation', async () => {
+  it('rejects an inactive explicit target and falls back to active scoped handlers', async () => {
+    const harness = createTicketsServiceHarness();
+    harness.memory.seedGroupMember({ groupId: ticketsTestIds.groupIt, userId: ticketsTestIds.agentIt });
+    const originalFindMany = harness.memory.prisma.user.findMany;
+    Object.assign(harness.memory.prisma.user, {
+      findMany: async (args: { where?: { id?: { in: readonly string[] } }; select?: Record<string, boolean> }) => {
+        const rows = await originalFindMany(args);
+        return rows.map((row) => {
+          if (row === null) return row;
+          return {
+            ...row,
+            isActive: row.id !== ticketsTestIds.agentHr,
+            anonymizedAt: null,
+          };
+        });
+      },
+    });
+    const rule = await harness.memory.prisma.slaEscalationRule.create({
+      data: { slaProfileId: 'profile-1', triggerOffsetMinutes: 25, targetUserId: ticketsTestIds.agentHr },
+    });
+    const recipients = await resolveNotificationRecipients(harness.memory.prisma as never, {
+      type: notificationTypes.ticketSla,
+      event: ticketSystemEventActions.slaResolutionEscalated,
+      messageBody: `${ticketSystemEventActions.slaResolutionEscalated}:${rule.id}`,
+      actorUserId: null,
+      ticket: {
+        id: 'ticket-inactive', assignedUserId: ticketsTestIds.agentIt,
+        assignedGroupId: ticketsTestIds.groupIt, requesterId: ticketsTestIds.requester,
+        originUnitId: ticketsTestIds.ouIt, serviceId: ticketsTestIds.serviceVpn,
+      } as never,
+    });
+    expect(recipients).toEqual([ticketsTestIds.agentIt]);
+  });
+
+  it('notifies only active and scope-eligible role members for a role target escalation', async () => {
     const harness = createTicketsServiceHarness();
     const rule = await harness.memory.prisma.slaEscalationRule.create({
       data: {
@@ -109,7 +149,10 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
     });
     Object.assign(harness.memory.prisma, {
       userRole: {
-        findMany: async () => [{ userId: ticketsTestIds.adminIt }],
+        findMany: async () => [
+          { userId: ticketsTestIds.adminIt, serviceId: null, organizationalUnitId: null },
+          { userId: ticketsTestIds.agentHr, serviceId: null, organizationalUnitId: ticketsTestIds.ouHr },
+        ],
       },
     });
     const recipients = await resolveNotificationRecipients(
@@ -124,6 +167,8 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
           assignedUserId: ticketsTestIds.agentIt,
           assignedGroupId: ticketsTestIds.groupIt,
           requesterId: ticketsTestIds.requester,
+          originUnitId: ticketsTestIds.ouIt,
+          serviceId: ticketsTestIds.serviceVpn,
         } as never,
       },
     );

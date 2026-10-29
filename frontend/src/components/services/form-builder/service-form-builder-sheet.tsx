@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { ServiceFormBuilder } from "@/components/services/form-builder/service-form-builder";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -16,6 +17,12 @@ export function ServiceFormBuilderSheet({
   onChanged,
 }: ServiceFormBuilderSheetProperties) {
   const { t } = useTranslation();
+  const handleActiveVersion = useCallback(
+    (_formVersionRef: string | null) => {
+      void onChanged();
+    },
+    [onChanged],
+  );
   return (
     <Sheet open={serviceId !== null} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full max-w-3xl flex-col overflow-y-auto p-5">
@@ -28,9 +35,7 @@ export function ServiceFormBuilderSheet({
             <ServiceFormBuilder
               serviceId={serviceId}
               canWrite={canWrite}
-              onActiveVersion={() => {
-                void onChanged();
-              }}
+              onActiveVersion={handleActiveVersion}
             />
           </div>
         ) : null}

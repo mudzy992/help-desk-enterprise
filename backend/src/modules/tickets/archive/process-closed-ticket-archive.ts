@@ -1,11 +1,12 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { TicketPersistedMessageSink } from '../collaboration.types';
-import type { TicketGuardrailsConfiguration } from '../guardrails/guardrails.types';
-import type { TicketRecord } from '../tickets.types';
-import type { TicketArchiveConfiguration } from './archive.types';
-import { archiveClosedTicket } from './archive-closed-ticket';
-import { claimTicketArchive } from './claim-ticket-archive';
-import { isClosedTicketDueForArchive } from './evaluate-ticket-archive-action';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import type { TicketPersistedMessageSink } from "../collaboration.types";
+import type { TicketGuardrailsConfiguration } from "../guardrails/guardrails.types";
+import type { TicketRecord } from "../tickets.types";
+import type { TicketArchiveConfiguration } from "./archive.types";
+import { archiveClosedTicket } from "./archive-closed-ticket";
+import { claimTicketArchive } from "./claim-ticket-archive";
+import { isClosedTicketDueForArchive } from "./evaluate-ticket-archive-action";
+import { runGuardrailEffectTransaction } from "../guardrails/run-guardrail-effect-transaction";
 
 export async function processClosedTicketArchive(input: {
   readonly prisma: PrismaService;
@@ -25,14 +26,19 @@ export async function processClosedTicketArchive(input: {
   ) {
     return input.ticket;
   }
-  const allowed = await claimTicketArchive({
+  return runGuardrailEffectTransaction({
     prisma: input.prisma,
-    ticket: input.ticket,
-    guardrails: input.guardrails,
-    now: input.now,
+    messages: input.messages,
+    operation: async (transaction) => {
+      const tx = transaction as PrismaService;
+      const allowed = await claimTicketArchive({
+        prisma: tx,
+        ticket: input.ticket,
+        guardrails: input.guardrails,
+        now: input.now,
+      });
+      if (!allowed) return input.ticket;
+      return archiveClosedTicket({ ...input, prisma: tx });
+    },
   });
-  if (!allowed) {
-    return input.ticket;
-  }
-  return archiveClosedTicket(input);
 }

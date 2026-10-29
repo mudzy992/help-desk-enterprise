@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FormBuilderActions } from "@/components/services/form-builder/form-builder-actions";
 import { FormFieldList } from "@/components/services/form-builder/form-field-list";
 import { FormVersionHistory } from "@/components/services/form-builder/form-version-history";
 import { errorTextClassName } from "@/components/ui/control";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { defaultServiceFormSchema } from "@/lib/services/default-service-form-schema";
 import { ensureServiceForm } from "@/lib/services/ensure-service-form";
-import { orderedFormSchema } from "@/lib/services/form-field-draft";
+import { isValidFormFieldDraft, orderedFormSchema } from "@/lib/services/form-field-draft";
 import {
   mapServiceFormsError,
   type ServiceFormsErrorKey,
@@ -33,6 +34,9 @@ export function ServiceFormBuilder({
   onActiveVersion,
 }: ServiceFormBuilderProperties) {
   const { t } = useTranslation();
+  const operationGuard = useOperationGuard();
+  const serviceIdentity = useRef(serviceId);
+  serviceIdentity.current = serviceId;
   const [form, setForm] = useState<ServiceFormResponse | null>(null);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [fields, setFields] = useState<ServiceFormField[]>([]);
@@ -40,8 +44,9 @@ export function ServiceFormBuilder({
   const [pending, setPending] = useState<string | null>(null);
   const selected = form?.versions.find((item) => item.formVersionRef === selectedRef) ?? null;
   const editable = canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
+  const validDraft = isValidFormFieldDraft(fields);
 
-  const applyForm = (loaded: ServiceFormResponse, preferredRef?: string) => {
+  const applyForm = useCallback((loaded: ServiceFormResponse, preferredRef?: string) => {
     const nextRef =
       preferredRef ??
       loaded.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
@@ -52,11 +57,14 @@ export function ServiceFormBuilder({
     setForm(loaded);
     setSelectedRef(nextRef);
     setFields(version ? [...version.schema.fields] : []);
-    onActiveVersion(loaded.activeFormVersionRef);
-  };
+  }, []);
 
   const reload = async (preferredRef?: string) => {
-    applyForm(await getServiceForm(serviceId), preferredRef);
+    const requestedServiceId = serviceId;
+    const loaded = await getServiceForm(requestedServiceId);
+    if (serviceIdentity.current !== requestedServiceId) return null;
+    applyForm(loaded, preferredRef);
+    return loaded;
   };
 
   useEffect(() => {
@@ -75,19 +83,26 @@ export function ServiceFormBuilder({
     return () => {
       cancelled = true;
     };
-  }, [canWrite, serviceId]);
+  }, [applyForm, canWrite, serviceId]);
 
   const run = async (key: string, work: () => Promise<FormVersionResponse>) => {
-    setPending(key);
-    setErrorKey(null);
-    try {
-      const result = await work();
-      await reload(result.formVersionRef);
-    } catch (error) {
-      setErrorKey(mapServiceFormsError(error));
-    } finally {
-      setPending(null);
-    }
+    const operationKey = `${serviceId}:${key}`;
+    await operationGuard.run(operationKey, async () => {
+      setPending(key);
+      setErrorKey(null);
+      try {
+        const previousActiveRef = form?.activeFormVersionRef ?? null;
+        const result = await work();
+        const loaded = await reload(result.formVersionRef);
+        if (loaded !== null && loaded.activeFormVersionRef !== previousActiveRef) {
+          onActiveVersion(loaded.activeFormVersionRef);
+        }
+      } catch (error) {
+        setErrorKey(mapServiceFormsError(error));
+      } finally {
+        setPending(null);
+      }
+    });
   };
 
   return (
@@ -106,13 +121,16 @@ export function ServiceFormBuilder({
           <p className="text-[12px] text-muted-foreground">{t("services.forms.immutableHint")}</p>
         ) : null}
         <FormFieldList fields={fields} editable={Boolean(editable)} onChange={setFields} />
+        {editable && fields.length > 0 && !validDraft ? (
+          <p className={errorTextClassName}>{t("services.forms.draftInvalid")}</p>
+        ) : null}
         {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
         <FormBuilderActions
           editable={Boolean(editable)}
           canWrite={canWrite}
           selected={selected}
           hasVersions={(form?.versions.length ?? 0) > 0}
-          hasFields={fields.length > 0}
+          hasFields={validDraft}
           pending={pending}
           onCreateFirst={() => {
             void run("create", () => createServiceForm(serviceId, defaultServiceFormSchema));

@@ -15,18 +15,19 @@ import {
   authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
-import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
+import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { PatchPriorityMatrixDto } from './dto/priority-matrix.dto';
 import type { PriorityMatrixResponse } from './list-priority-matrix';
 import { PriorityMatrixService } from './priority-matrix.service';
 import { readSlaMutationContext } from './read-sla-mutation-context';
-import type { SlaChangeLogResponse } from './sla.types';
+import type { SlaChangeLogResponse, SlaPage } from './sla.types';
 
 @AdminConfigDomains('sla')
 @Controller('priority-matrix')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+@UseGuards(SessionAuthenticationGuard, RoleGuard, SlaGlobalAdministrationGuard)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -49,13 +50,13 @@ export class PriorityMatrixController {
   }
 
   @Get('changes')
-  @RequireRoles(authorizationRoleKeys.admin)
-  listChanges(): Promise<readonly SlaChangeLogResponse[]> {
+  @RequirePermissions(permissionKeys.slaRead)
+  listChanges(): Promise<SlaPage<SlaChangeLogResponse>> {
     return this.priorityMatrixService.listChanges();
   }
 
   @Patch()
-  @RequireRoles(authorizationRoleKeys.admin)
+  @RequirePermissions(permissionKeys.slaRead)
   @RequirePermissions(permissionKeys.slaWrite)
   patch(
     @Body() body: PatchPriorityMatrixDto,

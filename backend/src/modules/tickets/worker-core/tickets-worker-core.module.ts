@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrincipalContextLoader } from '../../../common/principal-context/principal-context.loader';
+import { StorageWriteModule } from '../../../common/storage-write/storage-write.module';
+import { OutboxModule } from '../../../common/outbox/outbox.module';
+import { SplitAttachmentStorageReconciler } from '../split/split-attachment-storage-reconciler.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { RoutingConfigurationLoader } from '../../routing/routing-configuration.loader';
 import { RoutingService } from '../../routing/routing.service';
@@ -14,6 +17,7 @@ import { TICKET_ATTACHMENT_STORAGE } from '../attachments/attachment-storage.tok
 import { DiskTicketAttachmentStorage } from '../attachments/disk-ticket-attachment-storage';
 import { resolveUploadRoot } from '../attachments/resolve-upload-root';
 import { TicketAttachmentConfigurationLoader } from '../attachments/ticket-attachment-configuration.loader';
+import { AttachmentDeletionReconciler } from '../attachments/attachment-deletion-reconciler.service';
 import { TicketsAttachmentsService } from '../attachments/tickets-attachments.service';
 import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from '../confidential/ticket-confidential-configuration.loader';
@@ -23,12 +27,14 @@ import { TicketLabelCacheService } from '../labels/ticket-label-cache.service';
 import { TicketPriorityMatrixConfigurationLoader } from '../priority/ticket-priority-matrix-configuration.loader';
 import { TicketRedactionConfigurationLoader } from '../redaction/ticket-redaction-configuration.loader';
 import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
+import { ReopenSlaOutboxReconciler } from '../reopen/reopen-sla-outbox-reconciler.service';
 import { TicketsReopenService } from '../reopen/tickets-reopen.service';
 import { TicketRequiredFieldsConfigurationLoader } from '../required-fields/ticket-required-fields-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from '../safe-logging/ticket-safe-logging-configuration.loader';
 import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import { TicketCollaborationConfigurationLoader } from '../ticket-collaboration-configuration.loader';
 import { TicketRealtimeBridgeModule } from '../ticket-realtime-bridge.module';
+import { TicketSideEffectOutboxReconciler } from '../ticket-side-effect-outbox-reconciler.service';
 import { TicketsCollaborationService } from '../tickets-collaboration.service';
 import { TicketsService } from '../tickets.service';
 import { UnroutedQueueConfigurationLoader } from '../unrouted/unrouted-queue-configuration.loader';
@@ -43,7 +49,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
  * `TicketsModule` itself is never imported by the worker.
  */
 @Module({
-  imports: [SettingsModule, SlaScanWorkerModule, TicketRealtimeBridgeModule],
+  imports: [SettingsModule, SlaScanWorkerModule, TicketRealtimeBridgeModule, StorageWriteModule, OutboxModule],
   providers: [
     // Plain providers instead of AuthorizationModule/RoutingModule: those carry
     // controllers and interceptors that depend on API-only realtime hubs.
@@ -55,6 +61,10 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
     TicketsCollaborationService,
     TicketsAttachmentsService,
     TicketsReopenService,
+    SplitAttachmentStorageReconciler,
+    AttachmentDeletionReconciler,
+    ReopenSlaOutboxReconciler,
+    TicketSideEffectOutboxReconciler,
     TicketAssignmentService,
     TicketAccessPolicyBinder,
     TicketLabelCacheService,

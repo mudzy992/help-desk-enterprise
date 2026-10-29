@@ -1,3 +1,5 @@
+import type { TranslationKey } from "@/i18n/translation-key";
+
 /** Human-readable, locale-aware names for known BullMQ schedulers. */
 export const knownScheduledJobIds = [
   "announcement-sweep-quarter-hourly",
@@ -19,6 +21,7 @@ export const knownScheduledJobIds = [
   "report-schedules-5min",
   "security-audit-webhook-tick",
   "sla-scan-every-minute",
+  "status-incident-start-delivery-every-minute",
   "ticket-archive-quarter-hourly",
   "ticket-time-tracking-sweep-5min",
   "unrouted-sweep-quarter-hourly",
@@ -36,10 +39,12 @@ function keySlug(value: string): string {
  * an exact id or a colon-delimited component; never infer a label from an
  * arbitrary partial substring.
  */
-export function scheduledJobTranslationKey(schedulerId: string): string | null {
+export function scheduledJobTranslationKey(schedulerId: string): TranslationKey | null {
   const direct = schedulerId.trim();
   const candidate = knownJobIds.has(direct)
     ? direct
     : direct.split(/[:/]/).find((part) => knownJobIds.has(part));
-  return candidate === undefined ? null : `admin.opsHealth.schedulers.names.${keySlug(candidate)}`;
+  return candidate === undefined
+    ? null
+    : (`admin.opsHealth.schedulers.names.${keySlug(candidate)}` as TranslationKey);
 }

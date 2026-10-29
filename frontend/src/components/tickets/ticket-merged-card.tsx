@@ -1,19 +1,28 @@
 import { GitMerge } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { DetailSection } from "@/components/ui/detail-section";
-import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
-import type { TicketStatus } from "@/services/tickets-api";
+import { DetailSection } from "@/components/tickets/detail-section";
+import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { ticketStatusTranslationKey } from "@/lib/tickets/ticket-constants";
 import type { MergedTicketItem } from "@/services/tickets-merge-api";
 
 interface TicketMergedCardProperties {
   readonly items: readonly MergedTicketItem[];
+  readonly errorKey?: TicketErrorKey | null;
+  readonly onRetry?: () => void;
 }
 
-/** Package 1.2 (M7): children merged into this ticket (staff only). */
-export function TicketMergedCard({ items }: TicketMergedCardProperties) {
+/** children merged into this ticket (staff only). */
+export function TicketMergedCard({ items, errorKey = null, onRetry }: TicketMergedCardProperties) {
   const { t, i18n } = useTranslation();
+  if (errorKey !== null) {
+    return (
+      <div data-testid="ticket-merged-error">
+        <TicketErrorState errorKey={errorKey} onRetry={onRetry} />
+      </div>
+    );
+  }
   if (items.length === 0) {
     return null;
   }
@@ -26,13 +35,11 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
     <DetailSection
       id="merged"
       testId="ticket-merged-card"
-      title={ticketText(t, "tickets.merge.cardTitle", { count: items.length })}
+      title={t("tickets.merge.cardTitle", { count: items.length })}
     >
       <ul className="divide-y divide-border/40 text-[12px]">
         {items.map((item) => {
-          const statusKey = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[
-            item.status as TicketStatus
-          ];
+          const statusKey = ticketStatusTranslationKey(item.status);
           return (
             <li key={item.id} className="py-2">
               <div className="flex items-center gap-1.5">
@@ -44,7 +51,7 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
                   {item.ticketNumber}
                 </Link>
                 <span className="ml-auto text-[11px] text-muted-foreground">
-                  {statusKey === undefined ? item.status : ticketText(t, statusKey)}
+                  {statusKey === null ? item.status : t(statusKey)}
                 </span>
               </div>
               <p className="mt-0.5 truncate text-foreground/85" title={item.title}>

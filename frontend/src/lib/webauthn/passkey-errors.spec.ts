@@ -3,7 +3,7 @@ import { ApiError } from "@/services/api";
 import { ceremonyMessageKey, passkeyMessageKey } from "@/lib/webauthn/passkey-errors";
 
 /*
-  Paket 5.4.0-e: every passkey failure must end in one of the translated
+  e: every passkey failure must end in one of the translated
   `account.passkeys.error*` messages — an unmapped code falls back to the
   generic message and never surfaces a raw server code or a platform exception
   string to the user.
@@ -25,7 +25,7 @@ describe("passkeyMessageKey", () => {
     expect(passkeyMessageKey(new ApiError(503, "MFA_UNAVAILABLE", "x"))).toBe(
       "account.passkeys.errorNotAvailable",
     );
-    // Review 2026-10-12: a refused attestation has its own 400 code; the dialog
+    // 10-12: a refused attestation has its own 400 code; the dialog
     // explains what to check instead of repeating "the code is not valid".
     expect(passkeyMessageKey(new ApiError(400, "PASSKEY_VERIFICATION_FAILED", "x"))).toBe(
       "account.passkeys.errorRejected",

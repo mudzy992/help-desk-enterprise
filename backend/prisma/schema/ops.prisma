@@ -126,18 +126,22 @@ model AuditLog {
   organizationalUnitId   String?
   /// Paket 2.6 (§6.5): 1 = hash over metadata; 2 = hash over metadataDigest.
   hashVersion            Int                 @default(1)
+  actionSchemaVersion    Int                 @default(1)
   /// SHA-256 of canonical metadata as written (v2 only).
   metadataDigest         String?
+  /// Per-row algorithm, committed into the v3 canonical envelope.
+  hashAlgorithm          String              @default("sha256")
+  /// Independent append chain; global or one OU partition.
+  chainPartition         String              @default("global")
   /// Metadata was redacted (anonymization); v1 rows become "sealed".
   redactedAt             DateTime?
-  actor                  User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
-  organizationalUnit     OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id], onDelete: SetNull)
   createdAt              DateTime            @default(now())
 
   @@index([entityType, entityId])
   @@index([actorUserId])
   @@index([organizationalUnitId])
   @@index([createdAt])
+  @@index([chainPartition, createdAt, id])
 }
 
 /// Paket 5.4.2 (stavka 3): delivery state of the security-audit webhook.
@@ -242,4 +246,94 @@ model InboundMailboxState {
   consecutiveFails Int       @default(0)
   alertedAt        DateTime?
   updatedAt        DateTime  @updatedAt
+}
+
+model IdempotencyRecord {
+  id             String            @id @default(uuid())
+  namespace      String            @db.VarChar(80)
+  key            String            @db.VarChar(128)
+  requestHash    String            @db.Char(64)
+  status         IdempotencyStatus @default(PROCESSING)
+  ownerToken     String            @db.Uuid
+  leaseExpiresAt DateTime
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  expiresAt      DateTime
+
+  @@unique([namespace, key])
+  @@index([status, leaseExpiresAt])
+  @@index([expiresAt])
+}
+
+model TicketBulkOperation {
+  id           String   @id @db.Uuid
+  actorUserId  String
+  mode         String
+  actionType   String
+  requestHash  String   @db.Char(64)
+  status       String   @default("PROCESSING")
+  total        Int
+  succeeded    Int      @default(0)
+  failed       Int      @default(0)
+  rolledBack   Int      @default(0)
+  skipped      Int      @default(0)
+  responseBody Json?
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+  updatedAt    DateTime @updatedAt
+  items        TicketBulkOperationItem[]
+
+  @@index([actorUserId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model TicketBulkOperationItem {
+  id          String   @id @default(cuid())
+  operationId String   @db.Uuid
+  itemKey     String
+  ticketId    String
+  ordinal     Int
+  status      String   @default("PENDING")
+  result      Json?
+  errorCode   String?
+  retryable   Boolean?
+  attempts    Int      @default(0)
+  completedAt DateTime?
+  updatedAt   DateTime @updatedAt
+  operation   TicketBulkOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@unique([operationId, itemKey])
+  @@unique([operationId, ordinal])
+  @@index([operationId, status])
+  @@index([ticketId])
+}
+
+model OutboxMessage {
+  id             String       @id @default(uuid())
+  topic          String       @db.VarChar(100)
+  dedupeKey      String       @db.VarChar(160)
+  payload        Json
+  payloadHash    String       @db.Char(64)
+  status         OutboxStatus @default(PENDING)
+  attempts       Int          @default(0)
+  maxAttempts    Int          @default(10)
+  nextAttemptAt  DateTime     @default(now())
+  ownerToken     String?      @db.Uuid
+  leaseExpiresAt DateTime?
+  lastError      String?      @db.VarChar(1000)
+  completedAt    DateTime?
+  replayCount    Int          @default(0)
+  lastReplayedAt DateTime?
+  lastReplayedBy String?      @db.VarChar(128)
+  lastReplayReason String?    @db.VarChar(500)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  expiresAt      DateTime
+
+  @@unique([topic, dedupeKey])
+  @@index([status, nextAttemptAt, createdAt])
+  @@index([status, leaseExpiresAt])
+  @@index([expiresAt])
 }

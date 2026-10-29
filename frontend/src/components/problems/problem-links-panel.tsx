@@ -10,16 +10,21 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Input, Select } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
+import { incidentStatusTranslationKey } from "@/lib/status/status-view";
+import type { IncidentStatusTranslationKey } from "@/lib/status/status-view";
 import { mapProblemError } from "@/lib/problems/problem-view";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   getProblemLinks,
   linkProblemAssets,
   linkProblemIncident,
   linkProblemService,
   problemLinkKeys,
-  problemQueryKeys,
   searchProblemAssets,
   searchProblemIncidents,
   unlinkProblemAsset,
@@ -35,6 +40,14 @@ interface ProblemLinksPanelProperties {
   readonly options: ProblemOptions | undefined;
 }
 
+function incidentStatusText(
+  status: string,
+  translate: (key: IncidentStatusTranslationKey) => string,
+): string {
+  const key = incidentStatusTranslationKey(status);
+  return key === null ? status : translate(key);
+}
+
 function useDebounced(value: string, delayMs = 250): string {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -48,7 +61,7 @@ const rowClassName =
   "flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-muted/60";
 
 /**
- * Paket 3.3 P5b (§9): additional services, affected CMDB items (with
+ * Delivery invariant (requirement): additional services, affected CMDB items (with
  * suggestions from the linked tickets) and status-page incidents. Problem
  * managers of the group edit; everyone with `problem.read` sees the links.
  */
@@ -86,8 +99,10 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
     onSuccess: () => {
       setError(null);
       void queryClient.invalidateQueries({ queryKey: problemLinkKeys.links(problem.id) });
-      // The history tab shows the link events.
-      void queryClient.invalidateQueries({ queryKey: problemQueryKeys.all });
+      void invalidateEntityQueries(
+        queryClient,
+        entityMutationQueryKeys.problems.record(problem.id),
+      );
     },
     onError: (cause) => setError(t(mapProblemError(cause) ?? mapApiError(cause))),
   });
@@ -352,7 +367,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
                       {incident.title}
                     </span>
                     <Badge tone={incident.status === "RESOLVED" ? "success" : "warning"}>
-                      {ticketText(t, `status.status.${incident.status}`)}
+                      {incidentStatusText(incident.status, (key) => translateText(t, key))}
                     </Badge>
                     <span className="hidden shrink-0 text-muted-foreground sm:inline">
                       {formatAssetDateTime(incident.startedAt, i18n.language)}

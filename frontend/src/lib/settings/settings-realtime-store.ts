@@ -18,3 +18,9 @@ export function subscribeSettingsGeneration(listener: () => void): () => void {
     listeners.delete(listener);
   };
 }
+
+/** Clears subscribers and state for test isolation. */
+export function resetSettingsRealtimeStoreForTests(): void {
+  generation = 0;
+  listeners.clear();
+}

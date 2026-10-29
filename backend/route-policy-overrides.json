@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "routes": {
+    "AuthenticationController.changePassword": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "single-use password-change bearer credential"
+    },
+    "AuthenticationController.loginWithEntra": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "validated Entra identity token and login limiter"
+    },
+    "AuthenticationController.loginForExtension": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "credential entry point and login limiter"
+    },
+    "AuthenticationController.login": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "credential entry point and login limiter"
+    },
+    "AuthenticationController.logout": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "idempotent cookie clear; verifies token when present"
+    },
+    "AuthenticationController.confirmMfaEnrollment": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "short-lived pre-auth MFA token"
+    },
+    "AuthenticationController.startMfaEnrollment": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "short-lived pre-auth MFA token"
+    },
+    "AuthenticationController.startMfaPasskey": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "short-lived pre-auth MFA token"
+    },
+    "AuthenticationController.verifyMfaPasskey": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "challenge-bound passkey plus pre-auth MFA token"
+    },
+    "AuthenticationController.verifyMfa": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "short-lived pre-auth MFA token and attempt limiter"
+    },
+    "AuthenticationController.verifyMfaForExtension": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "short-lived pre-auth MFA token"
+    },
+    "AuthenticationController.providers": {
+      "classification": "public",
+      "owner": "authentication",
+      "proof": "non-secret provider capability document"
+    },
+    "PublicOnCallCalendarController.calendar": {
+      "classification": "public",
+      "owner": "on-call",
+      "proof": "revocable high-entropy calendar token"
+    },
+    "PublicBrandingController.get": {
+      "classification": "public",
+      "owner": "branding",
+      "proof": "sanitized login-page branding projection"
+    },
+    "HealthController.getHealth": {
+      "classification": "public",
+      "owner": "platform",
+      "proof": "non-secret liveness probe"
+    },
+    "HealthController.getReadiness": {
+      "classification": "public",
+      "owner": "platform",
+      "proof": "non-secret readiness probe"
+    },
+    "HealthController.getWorker": {
+      "classification": "public",
+      "owner": "platform",
+      "proof": "non-secret worker readiness probe"
+    },
+    "TeamsInboundController.messages": {
+      "classification": "webhook",
+      "owner": "teams-integration",
+      "proof": "Teams JWT/HMAC validation contract"
+    },
+    "PrivacyNoticeController.notice": {
+      "classification": "public",
+      "owner": "privacy",
+      "proof": "published active privacy notice"
+    },
+    "PublicStatusPageController.overview": {
+      "classification": "public",
+      "owner": "status-page",
+      "proof": "sanitized published status projection"
+    }
+  },
+  "workers": {
+    "WorkerModule": {
+      "classification": "worker",
+      "owner": "platform",
+      "proof": "non-HTTP worker composition root"
+    }
+  }
+}

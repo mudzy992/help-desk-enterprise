@@ -1,50 +1,47 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { BarChart3, Megaphone, Pencil, Plus, Send, Trash2, Undo2 } from "lucide-react";
 import { AnnouncementEditorDialog } from "@/components/announcements/announcement-editor-dialog";
+import { AnnouncementArchive } from "@/components/announcements/announcement-archive";
 import { AnnouncementReportDialog } from "@/components/announcements/announcement-report-dialog";
-import { MarkdownView } from "@/components/privacy/markdown-view";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { errorTextClassName, hintClassName } from "@/components/ui/control";
+import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Textarea } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import {
+  parseAnnouncementPageTab,
+  updateAnnouncementPageSearch,
+} from "@/lib/announcements/announcement-page-search";
+import {
   announcementDateTimeFormatter,
+  announcementSeverityKeys,
   mapAnnouncementError,
   severityTone,
   statusTone,
 } from "@/lib/announcements/announcement-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { useManagedAnnouncementsData } from "@/lib/announcements/use-managed-announcements-data";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
   announcementQueryKeys,
   deleteAnnouncement,
-  getAnnouncementArchive,
   getAnnouncementCapabilities,
-  getAnnouncementOptions,
-  listManagedAnnouncements,
   previewAnnouncementAudience,
   publishAnnouncement,
   withdrawAnnouncement,
   type AnnouncementEffectiveStatus,
-  type AnnouncementList,
-  type AnnouncementOptions,
   type ManagedAnnouncement,
 } from "@/services/announcements-api";
-
-const severityKeys = {
-  INFO: "announcements.severity.INFO",
-  WARNING: "announcements.severity.WARNING",
-  CRITICAL: "announcements.severity.CRITICAL",
-} as const;
 
 const statusKeys: Readonly<
   Record<AnnouncementEffectiveStatus, `announcements.status.${AnnouncementEffectiveStatus}`>
@@ -65,18 +62,30 @@ type PendingAction =
   | { readonly kind: "withdraw"; readonly item: ManagedAnnouncement }
   | { readonly kind: "delete"; readonly item: ManagedAnnouncement };
 
-/**
- * Paket 2.9 (K2, §3.2–3.3): the user's announcement archive (90 days) and,
- * for those allowed to publish, the management list with editor and report.
- */
+/** Announcement archive and capability-gated management workspace. */
 export function AnnouncementsPage() {
   const { t } = useTranslation();
-  const { data: capabilities, isLoading } = useQuery({
+  const {
+    data: capabilities,
+    error: capabilitiesError,
+    isLoading,
+    isFetching,
+    refetch: retryCapabilities,
+  } = useQuery({
     queryKey: announcementQueryKeys.capabilities,
     queryFn: getAnnouncementCapabilities,
     retry: false,
   });
-  const [tab, setTab] = useState<"mine" | "manage">("mine");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = parseAnnouncementPageTab(searchParams.get("tab"));
+  const tab = capabilities?.canManage === true ? requestedTab : "mine";
+
+  useEffect(() => {
+    if (capabilities === undefined || capabilities.canManage || requestedTab === "mine") return;
+    setSearchParams((current) => updateAnnouncementPageSearch(current, { tab: "mine" }), {
+      replace: true,
+    });
+  }, [capabilities, requestedTab, setSearchParams]);
 
   const header = (
     <PageHeader
@@ -91,6 +100,29 @@ export function AnnouncementsPage() {
       <div>
         {header}
         <PanelSkeleton label={t("ui.loading")} />
+      </div>
+    );
+  }
+  if (capabilitiesError !== null && capabilities === undefined) {
+    return (
+      <div className="grid gap-4">
+        {header}
+        <Card>
+          <div className="grid gap-3 p-4">
+            <ApiErrorText
+              messageKey={mapAnnouncementError(capabilitiesError) ?? mapApiError(capabilitiesError)}
+              requestId={readApiRequestId(capabilitiesError)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void retryCapabilities()}
+              disabled={isFetching}
+            >
+              {t("ui.retry")}
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -117,7 +149,13 @@ export function AnnouncementsPage() {
             { key: "manage", label: t("announcements.tabs.manage") },
           ]}
           active={tab}
-          onChange={(key) => setTab(key === "manage" ? "manage" : "mine")}
+          onChange={(key) =>
+            setSearchParams((current) =>
+              updateAnnouncementPageSearch(current, {
+                tab: key === "manage" ? "manage" : "mine",
+              }),
+            )
+          }
         />
       ) : null}
       {canManage && tab === "manage" ? <ManageAnnouncements /> : <AnnouncementArchive />}
@@ -125,125 +163,34 @@ export function AnnouncementsPage() {
   );
 }
 
-function AnnouncementArchive() {
-  const { t, i18n } = useTranslation();
-  const { data, error, isLoading } = useQuery({
-    queryKey: announcementQueryKeys.archive,
-    queryFn: getAnnouncementArchive,
-    retry: false,
-  });
-  const [searchParams] = useSearchParams();
-  const openId = searchParams.get("open");
-  // K2b: e-mail/Teams links (?open=<id>) expand and scroll to the announcement.
-  useEffect(() => {
-    if (openId === null || data === undefined) return;
-    const element = document.getElementById(`announcement-${openId}`);
-    if (element instanceof HTMLDetailsElement) {
-      element.open = true;
-      element.scrollIntoView({ block: "start" });
-      element.querySelector("summary")?.focus({ preventScroll: true });
-    }
-  }, [openId, data]);
-  const formatter = announcementDateTimeFormatter(i18n.language);
-  if (isLoading) return <PanelSkeleton label={t("ui.loading")} />;
-  if (error) {
-    return (
-      <p role="alert" className={errorTextClassName}>
-        {t(mapAnnouncementError(error) ?? mapApiError(error))}
-      </p>
-    );
-  }
-  if (data === undefined || data.length === 0) {
-    return (
-      <EmptyState
-        icon={<Megaphone size={18} />}
-        title={t("announcements.archive.emptyTitle")}
-        body={t("announcements.archive.emptyBody")}
-      />
-    );
-  }
-  return (
-    <ul className="grid gap-3" aria-label={t("announcements.archive.label")}>
-      {data.map((item) => (
-        <li key={item.id}>
-          <Card>
-            <details className="group" id={`announcement-${item.id}`}>
-              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
-                <Badge tone={severityTone(item.severity)}>{t(severityKeys[item.severity])}</Badge>
-                <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">
-                  {item.title}
-                </span>
-                {item.requiresAcknowledgement ? (
-                  item.acknowledgedAt ? (
-                    <Badge tone="success">
-                      {t("announcements.archive.acknowledgedAt", {
-                        at: formatter.format(new Date(item.acknowledgedAt)),
-                      })}
-                    </Badge>
-                  ) : (
-                    <Badge tone="warning">{t("announcements.archive.notAcknowledged")}</Badge>
-                  )
-                ) : null}
-                <span className="text-[11.5px] text-muted-foreground">
-                  {formatter.format(new Date(item.startsAt))} –{" "}
-                  {formatter.format(new Date(item.endsAt))}
-                </span>
-              </summary>
-              <div className="border-t border-border/70 px-4 py-3">
-                {item.serviceName ? (
-                  <p className={hintClassName}>
-                    {t("announcements.banner.service", { name: item.serviceName })}
-                  </p>
-                ) : null}
-                <MarkdownView
-                  source={item.body}
-                  className="grid gap-2 text-[12.5px] leading-5 text-foreground"
-                />
-              </div>
-            </details>
-          </Card>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function ManageAnnouncements() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [list, setList] = useState<AnnouncementList | null>(null);
-  const [options, setOptions] = useState<AnnouncementOptions | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    list,
+    options,
+    listError,
+    optionsError,
+    pending: dataPending,
+    reload,
+    reloadList,
+    reloadOptions,
+  } = useManagedAnnouncementsData();
   const [editing, setEditing] = useState<ManagedAnnouncement | null | undefined>(undefined);
   const [reportId, setReportId] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoadError(null);
-    try {
-      const [nextList, nextOptions] = await Promise.all([
-        listManagedAnnouncements(),
-        getAnnouncementOptions(),
-      ]);
-      setList(nextList);
-      setOptions(nextOptions);
-    } catch (caught) {
-      setLoadError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
-    }
-  }, [t]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const operationGuard = useOperationGuard();
 
   const refreshEverywhere = async () => {
-    await load();
-    void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
-    void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
+    reload();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active }),
+      queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive }),
+    ]);
   };
 
   const askPublish = async (item: ManagedAnnouncement) => {
@@ -267,48 +214,57 @@ function ManageAnnouncements() {
 
   const confirm = async () => {
     if (pending === null) return;
-    setBusy(true);
-    setActionError(null);
-    try {
-      if (pending.kind === "publish") {
-        await publishAnnouncement(pending.item.id);
-        toast({ tone: "success", title: t("announcements.manage.published") });
-      } else if (pending.kind === "withdraw") {
-        await withdrawAnnouncement(pending.item.id, reason.trim());
-        toast({ tone: "success", title: t("announcements.manage.withdrawn") });
-      } else {
-        await deleteAnnouncement(pending.item.id);
-        toast({ tone: "success", title: t("announcements.manage.deleted") });
+    const operation = pending;
+    await operationGuard.run(`${operation.kind}:${operation.item.id}`, async () => {
+      setBusy(true);
+      setActionError(null);
+      try {
+        if (operation.kind === "publish") {
+          await publishAnnouncement(operation.item.id);
+          toast({ tone: "success", title: t("announcements.manage.published") });
+        } else if (operation.kind === "withdraw") {
+          await withdrawAnnouncement(operation.item.id, reason.trim());
+          toast({ tone: "success", title: t("announcements.manage.withdrawn") });
+        } else {
+          await deleteAnnouncement(operation.item.id);
+          toast({ tone: "success", title: t("announcements.manage.deleted") });
+        }
+        setPending(null);
+        setReason("");
+        await refreshEverywhere();
+      } catch (caught) {
+        setActionError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+      } finally {
+        setBusy(false);
       }
-      setPending(null);
-      setReason("");
-      await refreshEverywhere();
-    } catch (caught) {
-      setActionError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);
 
-  const loadFailure =
-    loadError === null ? null : (
+  const loadFailure = (kind: "list" | "options") => {
+    const error = kind === "list" ? listError : optionsError;
+    if (error === null) return null;
+    return (
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-        <p role="alert" className={errorTextClassName}>
-          {loadError}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => void load()}>
+        <ApiErrorText messageKey={error.key} requestId={error.requestId} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void (kind === "list" ? reloadList() : reloadOptions())}
+          disabled={kind === "list" ? dataPending.list : dataPending.options}
+        >
           {t("announcements.manage.retry")}
         </Button>
       </div>
     );
+  };
 
-  if (list === null || options === null) {
-    return loadError === null ? (
+  if (list === null) {
+    return listError === null ? (
       <PanelSkeleton label={t("ui.loading")} />
     ) : (
-      <Card>{loadFailure}</Card>
+      <Card>{loadFailure("list")}</Card>
     );
   }
 
@@ -322,13 +278,14 @@ function ManageAnnouncements() {
             : t("announcements.manage.subtitle")
         }
         actions={
-          <Button size="sm" onClick={() => setEditing(null)}>
+          <Button size="sm" onClick={() => setEditing(null)} disabled={options === null}>
             <Plus aria-hidden />
             {t("announcements.manage.new")}
           </Button>
         }
       />
-      {loadFailure}
+      {loadFailure("list")}
+      {loadFailure("options")}
       {list.announcements.length === 0 ? (
         <div className="p-4">
           <EmptyState
@@ -371,7 +328,7 @@ function ManageAnnouncements() {
                     <th scope="row" className="px-4 py-2.5 font-normal">
                       <span className="flex flex-wrap items-center gap-1.5">
                         <Badge tone={severityTone(item.severity)}>
-                          {t(severityKeys[item.severity])}
+                          {t(announcementSeverityKeys[item.severity])}
                         </Badge>
                         <span className="font-semibold text-foreground">{item.title}</span>
                       </span>
@@ -403,7 +360,7 @@ function ManageAnnouncements() {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap justify-end gap-1">
-                        {editable ? (
+                        {editable && options !== null ? (
                           <Button variant="ghost" size="xs" onClick={() => setEditing(item)}>
                             <Pencil aria-hidden />
                             {t("announcements.manage.edit")}
@@ -454,17 +411,19 @@ function ManageAnnouncements() {
         </div>
       )}
 
-      <AnnouncementEditorDialog
-        open={editing !== undefined}
-        onOpenChange={(open) => (open ? undefined : setEditing(undefined))}
-        options={options}
-        announcement={editing ?? null}
-        onSaved={() => {
-          setEditing(undefined);
-          toast({ tone: "success", title: t("announcements.manage.saved") });
-          void refreshEverywhere();
-        }}
-      />
+      {options === null ? null : (
+        <AnnouncementEditorDialog
+          open={editing !== undefined}
+          onOpenChange={(open) => (open ? undefined : setEditing(undefined))}
+          options={options}
+          announcement={editing ?? null}
+          onSaved={() => {
+            setEditing(undefined);
+            toast({ tone: "success", title: t("announcements.manage.saved") });
+            void refreshEverywhere();
+          }}
+        />
+      )}
       <AnnouncementReportDialog
         announcementId={reportId}
         onOpenChange={(open) => (open ? undefined : setReportId(null))}
@@ -507,12 +466,15 @@ function ManageAnnouncements() {
               required
               hint={t("announcements.manage.reasonHint")}
             >
-              <Textarea
-                rows={2}
-                value={reason}
-                maxLength={500}
-                onChange={(event) => setReason(event.target.value)}
-              />
+              {(control) => (
+                <Textarea
+                  {...control}
+                  rows={2}
+                  value={reason}
+                  maxLength={500}
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              )}
             </Field>
           ) : null}
           {actionError ? (

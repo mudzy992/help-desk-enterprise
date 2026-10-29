@@ -21,6 +21,9 @@ const messages: Record<RoutingErrorCode, string> = {
   GROUP_NOT_FOUND: 'Target group was not found',
   RULE_NOT_FOUND: 'Routing rule was not found',
   DUPLICATE_RULE: 'A routing rule already exists for this origin unit and service',
+  ROUTING_RULE_CONFLICT: 'The routing rule changed after it was loaded',
+  ROUTING_COVERAGE_BUDGET_EXCEEDED:
+    'Routing coverage exceeds the response budget; filter by organizational unit',
   REASON_REQUIRED: 'A reason is required for this routing change',
   ROUTING_COVERAGE_MISSING:
     'Service cannot be activated without at least one routing rule',
@@ -35,7 +38,10 @@ export function mapRoutingError(error: unknown): HttpException {
   if (notFoundCodes.includes(error.code)) {
     return new NotFoundException(body);
   }
-  if (error.code === 'DUPLICATE_RULE') {
+  if (
+    error.code === 'DUPLICATE_RULE' ||
+    error.code === 'ROUTING_RULE_CONFLICT'
+  ) {
     return new ConflictException(body);
   }
   if (error.code === 'UNAVAILABLE') {

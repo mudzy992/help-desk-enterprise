@@ -10,7 +10,7 @@ import {
 } from "@/services/templates-api";
 
 /**
- * Paket 1.4 (P2–P5): checklist state of one ticket. Reloads whenever the
+ * checklist state of one ticket. Reloads whenever the
  * ticket itself changes (`ticket.updated` in the room already refreshes the
  * ticket), so another agent's ticks show up without a dedicated event.
  */

@@ -9,6 +9,7 @@ import {
   fromZoneInputValue,
   toZoneInputValue,
   groupSegmentsByDay,
+  isValidTimeZone,
   mapOnCallError,
   moveItem,
   onCallWeekdayIndex,
@@ -25,13 +26,20 @@ const seg = (startsAt: string, endsAt: string, name: string | null): OnCallSegme
   person: name === null ? null : { userId: name, displayName: name, isAvailable: true },
 });
 
-describe("on-call view helpers (Paket 2.9 K3)", () => {
+describe("on-call view helpers ", () => {
   it("maps known error codes only", () => {
     expect(mapOnCallError(new ApiError(409, "ON_CALL_OVERRIDE_OVERLAP", "x"))).toBe(
       "onCall.errors.overlap",
     );
     expect(mapOnCallError(new ApiError(400, "OTHER", "x"))).toBeNull();
     expect(mapOnCallError(new Error("x"))).toBeNull();
+  });
+
+  it("validates IANA zones before schedule submission", () => {
+    expect(isValidTimeZone(" Europe/Sarajevo ")).toBe(true);
+    expect(isValidTimeZone("America/New_York")).toBe(true);
+    expect(isValidTimeZone("Not/A_Zone")).toBe(false);
+    expect(isValidTimeZone(" ")).toBe(false);
   });
 
   it("finds local midnight across the DST change", () => {

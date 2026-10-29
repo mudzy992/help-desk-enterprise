@@ -5,7 +5,7 @@ import { queryKeys } from "@/lib/query/query-keys";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
 /**
- * Faza 3.3 (plan §3.3, grupa (a) — katalozi): the create-ticket catalog (offered
+ * katalozi): the create-ticket catalog (offered
  * services + origin units) is cached for the catalog window, so opening the form
  * twice in a session costs one request. The loader itself is unchanged and stays
  * covered by its own spec.

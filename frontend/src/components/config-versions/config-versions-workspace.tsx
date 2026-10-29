@@ -1,5 +1,5 @@
 import { History } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfigPackageImport } from "@/components/config-versions/config-package-import";
 import { ConfigVersionAdminError } from "@/components/config-versions/config-version-admin-error";
@@ -37,12 +37,16 @@ export function ConfigVersionsWorkspace({
   const { t } = useTranslation();
   const admin = useConfigVersions(true);
   const shadow = useConfigVersionShadow();
+  const clearShadow = shadow.clear;
   const [statusFilter, setStatusFilter] = useState<ConfigVersionStatus | "ALL">("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [againstId, setAgainstId] = useState<string | null>(null);
   const [validation, setValidation] = useState<ConfigValidationResult | null>(null);
   const [isBusy, setIsBusy] = useState(false);
-  const visible = filterConfigVersions(admin.versions, statusFilter);
+  const visible = useMemo(
+    () => filterConfigVersions(admin.versions, statusFilter),
+    [admin.versions, statusFilter],
+  );
   const selected = admin.versions.find((version) => version.id === selectedId) ?? null;
   const diffState = useConfigVersionDiff(selectedId, againstId);
 
@@ -52,8 +56,8 @@ export function ConfigVersionsWorkspace({
     }
     setSelectedId(visible[0]?.id ?? null);
     setValidation(null);
-    shadow.clear();
-  }, [selectedId, shadow.clear, visible]);
+    clearShadow();
+  }, [clearShadow, selectedId, visible]);
 
   const runAction = async (operation: () => Promise<void>): Promise<boolean> => {
     setIsBusy(true);

@@ -6,7 +6,6 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketPriority, TicketResponse } from "@/services/tickets-api";
 import { overrideTicketPriority } from "@/services/tickets-merge-api";
@@ -22,7 +21,7 @@ interface TicketPriorityPanelProperties {
 }
 
 /**
- * Package 1.2 (P6): manual priority with a required reason; the SLA targets
+ * manual priority with a required reason; the SLA targets
  * are re-measured from the ticket start. A manual priority can be handed back
  * to the impact × urgency matrix.
  */
@@ -103,7 +102,7 @@ export function TicketPriorityPanel({
                     : "border-border hover:bg-muted/60",
                 )}
               >
-                {ticketText(t, ticketPriorityLabelKey[value])}
+                {t(ticketPriorityLabelKey[value])}
               </button>
             ))}
           </div>
@@ -124,7 +123,7 @@ export function TicketPriorityPanel({
         </p>
         {errorKey ? (
           <p className={`mt-2 ${errorTextClassName}`} role="alert">
-            {ticketText(t, errorKey)}
+            {t(errorKey)}
           </p>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-4">

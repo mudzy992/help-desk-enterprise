@@ -1,11 +1,12 @@
+import type { TicketTranslationKey } from "@/lib/tickets/ticket-translation-key";
 import type { TicketRoutingPreview } from "@/services/tickets-routing-preview-api";
 
 /**
- * Val 5, M7 B2: pure mapping from the routing preview to i18n keys, so the
+ * pure mapping from the routing preview to i18n keys, so the
  * review step stays a thin renderer and the wording is testable without React.
  */
 export type RoutingPreviewLine = {
-  readonly key: string;
+  readonly key: TicketTranslationKey;
   readonly params?: Readonly<Record<string, string | number>>;
 };
 

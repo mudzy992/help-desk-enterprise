@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuditLogRecord } from './audit-log.types';
-import { compareAuditLogChainOrder, type AuditChainStart } from './verify-audit-log-chain';
+import type { AuditChainStart } from './verify-audit-log-chain';
 
 @Injectable()
 export class AuditLogRepository {
@@ -16,18 +17,29 @@ export class AuditLogRepository {
     });
   }
 
-  async listForExport(input: {
+  async listForExportPage(input: {
     readonly organizationalUnitIds: readonly string[];
     readonly includeGlobalRecords: boolean;
+    readonly take: number;
+    readonly after: { readonly createdAt: Date; readonly id: string } | null;
   }): Promise<readonly AuditLogRecord[]> {
+    const scope: Prisma.AuditLogWhereInput[] = [
+      { organizationalUnitId: { in: [...input.organizationalUnitIds] } },
+      ...(input.includeGlobalRecords ? [{ organizationalUnitId: null }] : []),
+    ];
+    const after: Prisma.AuditLogWhereInput[] = input.after === null ? [] : [{ OR: [
+      { createdAt: { gt: input.after.createdAt } },
+      { createdAt: input.after.createdAt, id: { gt: input.after.id } },
+    ] }];
     const records = await this.prisma.auditLog.findMany({
       where: {
-        OR: [
-          { organizationalUnitId: { in: [...input.organizationalUnitIds] } },
-          ...(input.includeGlobalRecords ? [{ organizationalUnitId: null }] : []),
+        AND: [
+          { OR: scope },
+          ...after,
         ],
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: input.take,
     });
     return records.map(toAuditLogRecord);
   }
@@ -51,18 +63,54 @@ export class AuditLogRepository {
     return new Map(users.map((user) => [user.id, user.displayName]));
   }
 
-  async listChain(): Promise<readonly AuditLogRecord[]> {
-    const records = await this.prisma.auditLog.findMany();
-    return [...records.map(toAuditLogRecord)].sort(compareAuditLogChainOrder);
+  async findChainHeads(): Promise<readonly AuditLogRecord[]> {
+    const records = await this.prisma.$queryRaw<Array<Record<string, unknown>>>`
+      SELECT DISTINCT ON ("chainPartition") *
+      FROM "AuditLog"
+      ORDER BY "chainPartition" ASC, "createdAt" DESC, "id" DESC`;
+    return records.map((record) => toAuditLogRecord(record as never));
+  }
+
+  async listRecentChainSnapshot(take: number): Promise<readonly AuditLogRecord[]> {
+    const records = await this.prisma.auditLog.findMany({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take,
+    });
+    return records.map(toAuditLogRecord).reverse();
+  }
+
+  async listChainPage(input: {
+    readonly take: number;
+    readonly after: { readonly createdAt: Date; readonly id: string } | null;
+  }): Promise<readonly AuditLogRecord[]> {
+    const where: Prisma.AuditLogWhereInput | undefined = input.after === null ? undefined : { OR: [
+      { createdAt: { gt: input.after.createdAt } },
+      { createdAt: input.after.createdAt, id: { gt: input.after.id } },
+    ] };
+    const records = await this.prisma.auditLog.findMany({
+      where,
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: input.take,
+    });
+    return records.map(toAuditLogRecord);
   }
 
   /** Paket 2.6 (§6.5): the latest retention checkpoint, if audit rows were purged. */
   async findLatestCheckpoint(): Promise<AuditChainStart | null> {
     const checkpoint = await this.prisma.auditChainCheckpoint.findFirst({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      select: { throughHash: true, throughCreatedAt: true, purgedCount: true },
+      select: { throughHash: true, throughCreatedAt: true, purgedCount: true, partitionHeads: true },
     });
-    return checkpoint;
+    if (checkpoint === null) return null;
+    return {
+      throughHash: checkpoint.throughHash,
+      throughCreatedAt: checkpoint.throughCreatedAt,
+      purgedCount: checkpoint.purgedCount,
+      partitionHeads:
+        checkpoint.partitionHeads !== null && typeof checkpoint.partitionHeads === 'object' && !Array.isArray(checkpoint.partitionHeads)
+          ? checkpoint.partitionHeads as Record<string, string>
+          : {},
+    };
   }
 
   async listPage(input: {
@@ -148,6 +196,9 @@ function toAuditLogRecord(record: {
   readonly hashVersion?: number;
   readonly metadataDigest?: string | null;
   readonly redactedAt?: Date | null;
+  readonly hashAlgorithm?: string;
+  readonly chainPartition?: string;
+  readonly actionSchemaVersion?: number;
 }): AuditLogRecord {
   return {
     id: record.id,
@@ -164,6 +215,9 @@ function toAuditLogRecord(record: {
     hashVersion: record.hashVersion ?? 1,
     metadataDigest: record.metadataDigest ?? null,
     redactedAt: record.redactedAt ?? null,
+    hashAlgorithm: record.hashAlgorithm as AuditLogRecord['hashAlgorithm'],
+    chainPartition: record.chainPartition ?? 'global',
+    actionSchemaVersion: record.actionSchemaVersion ?? 1,
   };
 }
 

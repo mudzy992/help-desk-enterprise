@@ -10,6 +10,10 @@ import { DocsController } from './docs.controller';
 import { DocsService } from './docs.service';
 import type { DocsManifest, DocsPageRecord } from './docs.types';
 
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 const roots: string[] = [];
 
 const page = (slug: string, part: string, order: number, roles: string[], title: string): DocsPageRecord => ({
@@ -75,9 +79,16 @@ function principal(roleKeys: string[], assignmentRoles: string[] = []): Principa
     roleKeys,
     groupIds: [],
     homeOrganizationalUnitId: null,
-    assignments: assignmentRoles.map((roleKey) => ({
+    assignments: [...roleKeys, ...assignmentRoles].map((roleKey) => ({
       roleKey,
-      permissionKeys: [],
+      permissionKeys:
+        roleKey === 'ADMIN'
+          ? ['settings.read']
+          : roleKey === 'SUPER_ADMIN'
+            ? ['confidential.break_glass']
+            : roleKey === 'AGENT'
+              ? ['docs.agent.read']
+              : [],
       organizationalUnitId: null,
       organizationalUnitPath: null,
       serviceId: null,
@@ -115,6 +126,23 @@ describe('DocsController (Faza 3, korak b)', () => {
       'pocetak-rad',
       'instalacija',
     ]);
+
+    const scopedBase = principal(['USER'], ['ADMIN']);
+    const scopedAdmin: PrincipalContext = {
+      ...scopedBase,
+      assignments: scopedBase.assignments.map((assignment, index) =>
+        index === 1
+          ? {
+              ...assignment,
+              scope: { kind: 'organizational-unit', organizationalUnitId: 'ou-1', organizationalUnitPath: '/ou-1' },
+              organizationalUnitId: 'ou-1',
+              organizationalUnitPath: '/ou-1',
+            }
+          : assignment,
+      ),
+    };
+    const scopedNavigation = await controller.navigation({}, requestWith(scopedAdmin));
+    expect(scopedNavigation.parts[0].pages.map((entry) => entry.slug)).toEqual(['pocetak-rad']);
 
     const anonymous = await controller.navigation({}, requestWith(null));
     expect(anonymous.parts.flatMap((part) => part.pages.map((entry) => entry.slug))).toEqual([

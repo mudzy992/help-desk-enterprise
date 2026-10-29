@@ -11,37 +11,34 @@ import { InboundEmailCard } from "@/components/settings/inbound-email-card";
 import { AdminSecurityPointerCard } from "@/components/settings/admin-security-pointer-card";
 import { SystemSettingsCard } from "@/components/settings/system-settings-card";
 import { UnroutedQueueSettingsCard } from "@/components/settings/unrouted-queue-settings-card";
+import { AdminModuleReadOnlyBanner } from "@/components/admin/admin-module-read-only-banner";
 import { ApiErrorText } from "@/components/ui/api-error-text";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
+import {
+  adminReadOnlyModuleKeys,
+  useAdminModuleReadOnly,
+} from "@/lib/settings/use-admin-module-read-only";
 import { useSettingsRegistry } from "@/lib/settings/use-settings-registry";
-import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
+import { canWriteSettings } from "@/lib/session/admin-access";
+import { canOpenAdminArea } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
-interface SettingsPageProperties {
-  readonly embedded?: boolean;
-}
-
-export function SettingsPage({ embedded = false }: SettingsPageProperties) {
+export function SettingsPage() {
   const { t } = useTranslation();
-  const { session, isLoading, hasPermission, hasRole } = useSessionCapabilities();
+  const capabilities = useSessionCapabilities();
+  const { session, isLoading } = capabilities;
   const registry = useSettingsRegistry();
-  const canOpen =
-    session?.isSuperAdmin === true || hasRole(roleKeys.admin) || hasRole(roleKeys.superAdmin);
-  const canWrite = session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
+  const readOnly = useAdminModuleReadOnly(adminReadOnlyModuleKeys.settings);
+  const canOpen = canOpenAdminArea(capabilities);
+  const canWrite = canWriteSettings(capabilities) && readOnly.canWrite;
   const canOpenSecurityTab = canOpenAdminSecurityTab(session);
 
   return (
     <div className="space-y-4">
-      {embedded ? null : (
-        <PageHeader
-          crumbs={[brandCrumb, t("navigation.settings")]}
-          title={t("navigation.settings")}
-          subtitle={t("settings.intro")}
-        />
-      )}
+      <AdminModuleReadOnlyBanner visible={canOpen && readOnly.isLocked} />
       {isLoading || (canOpen && registry.isLoading && registry.entries.length === 0) ? (
         <PanelSkeleton label={t("settings.email.loading")} />
       ) : null}
@@ -52,8 +49,19 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
           body={t("settings.forbiddenBody")}
         />
       ) : null}
-      {!isLoading && canOpen && registry.errorKey !== null && registry.entries.length === 0 ? (
-        <ApiErrorText messageKey={registry.errorKey} />
+      {!isLoading && canOpen && registry.errorKey !== null ? (
+        <div className="space-y-2">
+          <ApiErrorText messageKey={registry.errorKey} requestId={registry.requestId} />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={registry.isRefreshing}
+            onClick={() => void registry.reload()}
+          >
+            {t("ui.retry")}
+          </Button>
+        </div>
       ) : null}
       {!isLoading && canOpen && registry.entries.length > 0 ? (
         <>
@@ -62,19 +70,19 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
               <BrandingSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSaveMany={registry.saveMany}
               />
               <AuthProviderSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <SmtpEmailSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <EmailTemplatesCard canWrite={canWrite} />
@@ -84,31 +92,29 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
             <div className="space-y-4">
               <AddonsSettingsPanel
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <UnroutedQueueSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
               <SecurityComplianceSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
-                pendingKey={registry.pendingKey}
+                pendingKeys={registry.pendingKeys}
                 onSave={registry.save}
               />
-              {/* 5.4.0-e.2: the actionable security surfaces live on the admin
-                  „Sigurnost" tab; Postavke only points there instead of hosting
-                  a second copy of the same cards. */}
+              {/* Keep one canonical security editor; Settings links to its Admin tab. */}
               {canOpenSecurityTab ? <AdminSecurityPointerCard /> : null}
             </div>
           </div>
           <SettingsRegistryPanel
             entries={registry.entries}
             canWrite={canWrite}
-            pendingKey={registry.pendingKey}
+            pendingKeys={registry.pendingKeys}
             errorKey={registry.errorKey}
             onSave={registry.save}
           />

@@ -46,6 +46,7 @@ export const retentionCategories = [
   'sessions',
   'emailDeliveries',
   'requestRegister',
+  'statusIncidents',
 ] as const;
 export type RetentionCategory = (typeof retentionCategories)[number];
 
@@ -54,6 +55,7 @@ export const retentionCategoriesRequiringDryRun: readonly RetentionCategory[] = 
   'attachments',
   'ticketContent',
   'audit',
+  'statusIncidents',
 ];
 
 export const privacyLimits = {

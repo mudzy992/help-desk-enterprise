@@ -1,6 +1,7 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 type StartingProfileName = {
   readonly defaultName: string;
-  readonly translationKey: string;
+  readonly translationKey: TranslationKey;
 };
 
 const startingProfileNames: Readonly<Record<string, StartingProfileName>> = {
@@ -30,7 +31,7 @@ const startingProfileNames: Readonly<Record<string, StartingProfileName>> = {
 export function slaProfileNameTranslationKey(
   profileKey: string,
   profileName: string,
-): string | null {
+): TranslationKey | null {
   const startingProfile = startingProfileNames[profileKey];
   if (
     startingProfile === undefined ||
@@ -41,7 +42,7 @@ export function slaProfileNameTranslationKey(
   return startingProfile.translationKey;
 }
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
+type Translate = (key: TranslationKey, options?: Record<string, unknown>) => string;
 
 export function formatSlaProfileName(
   profileKey: string,

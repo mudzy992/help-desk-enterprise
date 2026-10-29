@@ -34,9 +34,17 @@ runners (Coolify contract) — and runs in three modes:
 
 | Event | Mode | Scope |
 |---|---|---|
-| `pull_request` (and the change touches code) | **smoke — the gate** | 5 files (`01, 02, 03, 15, 22`), `retries=0`, `--max-failures=1` |
-| `schedule` (nightly, 01:00 UTC) | **full** | all 36 files, `retries=1` |
+| `pull_request` (and the change touches code) | **smoke — the gate** | 6 files (`01, 02, 03, 15, 22, 54`), `retries=0`, `--max-failures=1` |
+| `schedule` (nightly, 01:00 UTC) | **full** | all 54 files, `retries=1` |
 | `workflow_dispatch` | triage or full | `specs=10,18,22`, `retries: 0`, `max_failures: 8`, or nothing for all files |
+
+A manual dispatch also takes `skip_gates` (**on by default**): the backend and frontend jobs are skipped and
+both E2E jobs start immediately, so a run against a known-good stack does not wait ~15 minutes for the code
+checks. Both E2E conditions begin with `!cancelled()` — a job whose `needs` were *skipped* is skipped too, no
+matter what its own `if` says, unless the condition carries a status function (the first `skip_gates` dispatch
+skipped the wizard job along with the two gates). Set `skip_gates=false` when a dispatch should be gated by them — on PRs and the nightly run the gates
+always apply. The skipped jobs show up as `skipped` in the `CI gate` summary, which still fails on a real
+failure anywhere.
 
 A push to `master` does **not** run e2e: Coolify is rebuilding that very stack from the same commit at that
 moment, so the result would describe a half-deployed environment. The nightly full run covers the deployed
@@ -67,7 +75,11 @@ The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), the
 | `E2E_AGENT_EMAIL`, `E2E_AGENT_PASSWORD` | secret | Disposable AGENT account of that stack; created and set up by the harness. |
 | `E2E_DATABASE_URL` | secret | Postgres of that stack (same database as the API), used only to clear the super admin's MFA. **The host must resolve from a GitHub runner** — see *Database reachability* below. The workflow also accepts a secret named `DATABASE_URL` as a fallback. |
 | `E2E_SUPERADMIN_TOTP_SECRET` | secret (optional) | Base32 TOTP secret of the test super admin. With it the run does not need database access at all (no MFA reset). |
+| `MFA_ENCRYPTION_KEY` | secret (optional) | Same base64 value as on the API backend. The CI job passes it to Playwright so `global-setup` can repair the super admin `UserMfa` row when a TOTP secret is already known. |
+| `E2E_FORCE_MFA_RESET` | variable (optional) | Set to `1` to delete super-admin MFA in the database on every run even when `E2E_SUPERADMIN_TOTP_SECRET` is set. |
 | `E2E_SSH_HOST`, `E2E_SSH_PORT`, `E2E_SSH_USER`, `E2E_SSH_PRIVATE_KEY`, `E2E_SSH_DB_PORT` | secrets (optional) | With all of them set, the runner opens an SSH tunnel `127.0.0.1:15432 → <host>:<db port>` before the specs, so Postgres never has to be public. Then `E2E_DATABASE_URL` must point at `127.0.0.1:15432`. |
+| `E2E_ENSURE_ACTORS` | variable (optional) | Set to `true` to create the three actors on the stack before the run (see *Actors that do not exist yet*). Needs the `E2E_SSH_*` secrets and the actor secrets. Off by default. |
+| `E2E_BACKEND_CONTAINER` | variable (optional) | Exact backend container name for that step (`docker ps` on the host). Without it the step picks the first running container whose name contains `backend`. |
 | `E2E_INSTALL_TOKEN` | secret | Only if the stack's install wizard is still open; must match the backend `INSTALL_TOKEN`. |
 
 Steps (repository admin):
@@ -171,6 +183,130 @@ SKIPPED 1 test(s) — a skip is not a pass:
 - Numbers in the file names (`20-privacy.spec.ts`) are the spec numbers; the `list` reporter prints them the same
   way, so a list like `10, 11, 12` maps straight onto files.
 
+## The install wizard (F6) — a project of its own
+
+The two wizard specs are `tests/51-install-wizard-minimum.spec.ts` and `tests/52-install-wizard-standard.spec.ts`
+— they continue the shared numbering (…, 50, 51, 52). Their helpers, their config
+(`install-wizard/playwright.install.config.ts`) and their wait-for-stack global setup live in `e2e/install-wizard/`,
+because they must not run with the shared suite: its `globalSetup` calls `ensureInstall`, which finishes the
+installation these specs exist to prove. The shared config keeps them out with `testIgnore`, and the shared CI job
+refuses `E2E_SPECS=51|52` with a pointer to `install_spec`.
+
+`install-wizard/playwright.install.config.ts` runs them through the **UI**, on a stack whose wizard is still open:
+
+```bash
+cd e2e
+E2E_INSTALL_TOKEN=<the deployment's INSTALL_TOKEN> \
+  npx playwright test -c install-wizard/playwright.install.config.ts
+```
+
+Just one of them — pass a **file name** (the filter is a regular expression, so a glob-looking
+`51-*.spec.ts` means „5, 1, any number of hyphens, any character, spec…“ and matches nothing; a run with it ends
+in `Error: No tests found`):
+
+```bash
+npx playwright test -c install-wizard/playwright.install.config.ts tests/51-install-wizard-minimum.spec.ts
+npx playwright test -c install-wizard/playwright.install.config.ts tests/52-install-wizard-standard.spec.ts
+npx playwright test -c install-wizard/playwright.install.config.ts tests/53-install-wizard-full.spec.ts
+```
+
+- Button labels are copy, not a contract: `install-wizard-submit.ts` matches the step's submit by name and, when the
+  name does not resolve, clicks the step form's own `button[type="submit"]` (15 s budget). `install-wizard-e2e-copy.spec.ts`
+  in the frontend suite pins that the bs/en copy still matches those patterns.
+- And the step's **body** is not there the moment its headline is: the shell renders the `h1` while the step
+  still loads (`PanelSkeleton`), so an „is the button there?“ check right after `reachStep` answers „no“ on every fresh
+  run. `install-wizard-forms.ts` waits for the form itself (or for the sentence the step shows when the records already
+  exist) before typing, and `clickStepSubmit` requires the headline to change after the submit — a click that did
+  nothing is reported with the page's own `role="alert"` text instead of as a headline mismatch in the *next* step.
+- So are the fields: a `required` input a helper leaves empty does not throw — the browser blocks the submit. The
+  structure step asks for three names that start empty on a fresh installation; the spec types the server's own
+  defaults.
+- **Motion must never move a control.** Playwright clicks only an element whose bounding box held still for two
+  consecutive frames, so an ancestor that animates geometry (spin, drift, scale) turns every click inside it into a
+  30 s timeout. The wizard's decoration therefore animates pseudo-elements and `pointer-events: none` layers only, and
+  `scripts/check-install-aurora.mjs` (check B, run in CI's frontend job) fails the build when a `.iw-*` container
+  gains an infinite geometric animation. The airlock is the case that mattered: its rotating ring used to sit on the
+  element holding `#install-token`.
+- **51 — Minimum:** token gate → package → SuperAdmin → identity → local sign-in → structure → readiness →
+  ready screen, then sign-in at `/login` and a real routed ticket on the seeded service. SMTP and the team are
+  deferred on purpose, which is also what the post-install checklist must then list.
+- **52 — Standard:** the same flow plus a real SMTP test mail, one invited team member, the „IT service desk“
+  blueprint and the IT policy pack. Without a mail catcher (or any SMTP) the SMTP test fails, the step is
+  **deferred** instead and the run reports it as an annotation — a skipped check is never a green one.
+- **53 — Full:** walks the Full package, deliberately defers every allowlisted settings section, finishes with
+  green readiness, and verifies that the post-install checklist contains deferred `section.*` items. It also
+  proves the Standard baseline (SMTP, team, blueprint and policy pack) remains present in Full.
+
+Why it is separate: the shared `global-setup` calls `ensureInstall`, which finishes the installation through the
+API. That is exactly what these specs prove through the UI, so reusing it would make them pass by construction.
+The wizard project's own `globalSetup` only waits for `/health`.
+
+**A clean stack is the precondition.** The specs skip themselves (with the reason) when
+`GET /install/status` reports `isCompleted: true`; and *open is not the same as fresh*: `nextStep` has to be
+`profile`, the wizard's first step. A stack whose answers are still stored (a reopen without
+`--include-step-markers`) reports `nextStep: provisioning` — the readiness screen — and cannot be walked from the
+package step, because the answered steps are stored rows. `install-wizard/install-wizard-precondition.ts`
+therefore stops the spec with the recipe below instead of failing 20 s later on a heading mismatch, and the CI
+Preflight rejects the same state before the browser starts. A database reset is the only fully clean option
+(reopening keeps the existing users, and spec 51 asserts the post-install checklist names *exactly* the two
+deferred steps).
+
+The reset itself needs nothing but the repo — and note that Prisma 7 no longer seeds from `migrate reset`
+(the `--skip-seed` / `--skip-generate` flags were removed with it), so this cannot trip over the seed:
+
+```bash
+cd backend && npx prisma migrate reset --force   # drops schema public, applies all migrations
+# then restart the backend: it re-creates the starting SLA profiles and the priority matrix on boot
+```
+
+(`psql "$DATABASE_URL" -c 'drop schema public cascade; create schema public'` does the same where the
+`postgresql-client` package is installed. The standalone seed also runs from the compiled output only —
+`npm run build && npm run db:seed` — because Prisma 7's generated client is TypeScript whose imports carry
+`.js` specifiers, which ts-node cannot resolve. The wizard does not need it: the backend seeds the starting
+SLA profiles on boot and the wizard's own `seed` step creates everything else.)
+
+To run them against a finished installation, reopen the wizard first (ops only):
+
+```bash
+docker exec -i <backend> node dist/src/cli/install-rerun.js --reason "E2E install wizard" --include-step-markers
+```
+
+`install-rerun` needs `INSTALL_ALLOW_RERUN=true` and returns the *markers* to their defaults, so the steps whose
+state lives in real rows stay answered and the specs walk past them (that is what `reachStep` handles). Between
+spec 51 and spec 52 the wizard has to be reopened the same way, because 51 finishes the installation. Runbook:
+`ops/runbook/ponovno-pokretanje-instalacije.md`.
+
+Every attempt that answers at least one step leaves that answer behind — choosing a package is enough — so the
+next attempt against the same stack needs the reset again: the marker-clearing reopen cannot bring back the
+rows a step already created.
+
+**In CI** the wizard runs only when a human asks for it: dispatch the workflow with `install_spec=51`, `52`
+or `53` after resetting the database (or reopening the wizard) and setting `E2E_INSTALL_TOKEN`. The normal e2e
+job **steps aside** for that dispatch — its global setup would complete the installation the wizard job is about
+to walk. Preflight requires `GET /install/status` to report an open wizard at `nextStep=profile`; a finished or
+partially answered stack fails before Chromium starts. Specs 52 and 53 additionally require every SMTP value
+below. Each spec finishes the installation, so reset or marker-clearing reopen is required before the next run.
+
+Dispatch-only is the implemented model. Whether it remains an accepted operational runbook or becomes an
+isolated clean-stack CI job is tracked as **IN24**; until that decision, this job is not an automatic PR gate.
+
+#### Install wizard CI variables and secrets
+
+The workflow resolves every `E2E_SMTP_*` value as `${{ vars.NAME || secrets.NAME }}`. Use repository-level
+Actions values, not Environment-scoped values (the job has no `environment:`).
+
+| Name | Store | Wizard use |
+|---|---|---|
+| `E2E_SMTP_HOST` | Repository Variable or Secret | SMTP host; Gmail: `smtp.gmail.com`. |
+| `E2E_SMTP_PORT` | Repository Variable or Secret | Submission port; Gmail TLS: `587`. |
+| `E2E_SMTP_USERNAME` | Repository Secret (Variable also accepted by CI) | SMTP account username. |
+| `E2E_SMTP_PASSWORD` | Repository Secret | SMTP password; for Gmail use an app password, never the account password. |
+| `E2E_SMTP_FROM` | Repository Secret (Variable also accepted by CI) | Sender address accepted by the SMTP account. |
+
+Empty GitHub values arrive as `""`, bypass local nullish defaults and leave **Dalje** disabled. Preflight therefore
+fails 52/53 immediately when any SMTP value is empty; spec 51 does not require SMTP. For Gmail use
+`smtp.gmail.com:587`, TLS, the full account address as username and an app password.
+
 ## State the suite owns and must reset
 
 A run is executed against a **live** stack that people also use, so tests must not inherit what an earlier run (or a
@@ -259,8 +395,39 @@ So these must be disposable test accounts. The harness refuses any address whose
 with `e2e.` (for example `e2e.superadmin@example.com`), unless that address is listed on purpose in
 `E2E_ALLOW_REAL_ACCOUNTS` (comma-separated).
 
-On an already installed environment, create the super admin once in the UI: *Korisnici → Novi*, role
-SUPER_ADMIN, local password = `E2E_SUPERADMIN_PASSWORD`. USER and AGENT are created by the harness.
+### Actors that do not exist yet
+
+On an already installed environment the harness only *signs in*: `provisionTestActors` needs a super-admin
+session to create USER and AGENT, so when `E2E_SUPERADMIN_EMAIL` is not an account of that stack, nothing can
+be provisioned and the run dies in `global-setup` — which reads like a product failure and is not one. This is
+the normal state of a stack whose install wizard was completed by hand: the founder account is the super admin,
+and it is not the test one.
+
+Either create the super admin once in the UI (*Korisnici → Novi*, role SUPER_ADMIN, local password =
+`E2E_SUPERADMIN_PASSWORD`) and let the harness do the rest, or run the backend command that ensures all three
+from the environment:
+
+```bash
+# inside the backend container (shell access is the trust boundary, as with cli/reset-mfa.js)
+docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js
+# or with the actors as JSON on stdin — passwords never appear in argv
+docker exec -i <backend> node dist/src/cli/ensure-e2e-actors.js --stdin <<'JSON'
+{ "actors": [ { "email": "e2e.superadmin@example.com", "password": "…", "roleKey": "SUPER_ADMIN" } ] }
+JSON
+```
+
+It reads `E2E_SUPERADMIN_*`, `E2E_USER_*` and `E2E_AGENT_*` (same defaults as the harness), creates a missing
+actor as an ordinary local account — system role, home unit = the first node of the unit tree, no forced
+password change — and aligns an existing one (password, unit, role, `mustChangePassword`, `isActive`), through
+the same primitives the API uses, including the SuperAdmin local-only invariant and the authorization-cache
+invalidation. One line per actor plus a summary; exit `0`, or `3` when an actor was refused.
+
+Refused, on purpose: an address that is not disposable (`e2e.*` / `E2E_ALLOW_REAL_ACCOUNTS`), a
+directory-managed account (`entraObjectId` / `directoryObjectGuid` — its password belongs to Entra/AD), an
+anonymized account, and a password the offline policy rejects (`--allow-policy-violation` overrides, and the
+deployment's own policy is stricter still: organisation words plus the Pwned Passwords check). An enrolled
+second factor is *reported*, not removed — `--reset-mfa` removes it. Setting `E2E_ENSURE_ACTORS=true` runs the
+command from the CI job over the existing SSH access before the specs.
 
 The founder account obeys the same policy as every other local password (paket 5.1, `M1 #1`): at least
 `private.auth.password.minLength` characters (12 by default), not on the common-password list, without the

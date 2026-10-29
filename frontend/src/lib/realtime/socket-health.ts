@@ -4,7 +4,7 @@ import type { Socket } from "socket.io-client";
 export type SocketHealth = "connected" | "disconnected";
 
 /**
- * Fallback poll cadence (phase 1.3, plan §1.3).
+ * Fallback poll cadence (, plan §1.3).
  *
  * This is the old 30-second interval, kept exactly as it was — but it is now
  * only armed while the socket is down. With a healthy connection the badge is

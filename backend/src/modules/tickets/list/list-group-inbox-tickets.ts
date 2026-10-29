@@ -1,7 +1,7 @@
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { buildGroupInboxWhere } from '../assignment/build-group-inbox-where';
+import { buildTicketSurfaceVisibility } from './build-ticket-surface-visibility';
 import { TicketAssignmentConfigurationLoader } from '../assignment/ticket-assignment-configuration.loader';
 import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
 import { TicketsError } from '../tickets.error';
@@ -62,16 +62,13 @@ export async function listGroupInboxTickets(
     Math.max(options.pageSize ?? ticketListPaging.defaultPageSize, 1),
     ticketListPaging.maxPageSize,
   );
-  const inboxClauses = buildGroupInboxWhere(visibility);
-  if (inboxClauses === null) {
+  const surfaceWhere = buildTicketSurfaceVisibility({ surface: 'group_inbox', visibility });
+  if (surfaceWhere === null) {
     return { records: [], total: 0, totalIsCapped: false, totalsAsOf: Date.now(), page, pageSize };
   }
-  const where: Prisma.TicketWhereInput = {
-    AND:
-      options.groupId === undefined
-        ? inboxClauses
-        : [...inboxClauses, { assignedGroupId: options.groupId }],
-  };
+  const where: Prisma.TicketWhereInput = options.groupId === undefined
+    ? surfaceWhere
+    : { AND: [surfaceWhere, { assignedGroupId: options.groupId }] };
   const orderBy = buildTicketListOrderBy('slaDueAt', 'asc');
   const [records, counted] = await Promise.all([
     prisma.ticket.findMany({

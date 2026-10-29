@@ -1,292 +1,252 @@
-# Modul 1: Ljuska, routing i navigacija
-
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise` (HEAD `973efba7`)
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
-
-Provjere izvršene u sandboxu:
-- `npm ci` u `frontend/` (uspješno)
-- `npx tsc -p tsconfig.app.json --noEmit`: prolazi bez grešaka
-- `npx vitest run` nad `src/lib/navigation.spec.ts`, `src/lib/session/`, `src/components/layout/`: 4 fajla, 23 testa, svi prolaze
-
----
-
-## Modul
-
-**Ljuska, routing i navigacija.** Obuhvata:
-- rutiranje i zaštitu ruta (`router.tsx`, `require-auth`, `require-access`, `lazy-page`)
-- ljusku aplikacije (`application-shell`, `app-header`, `app-sidebar`)
-- definiciju menija i pravila pristupa (`navigation.ts`, `navigation-icons.ts`, `route-access.ts`)
-- pretragu i komandnu paletu (`command-palette`, `header-search-trigger`)
-- ulaznu tačku i providere (`main.tsx`, `app.tsx`) i gate za instalaciju (`install-setup-layout`, `install-setup-provider`, `resolve-install-gate-navigation`)
-
-Granica modula: `notifications-*`, `active-timer-indicator`, `on-call-header-indicator` i `theme-switcher` su pregledani samo u mjeri u kojoj ulaze u header. Njihova logika pripada modulima „notifikacije“, „time tracking“, „on-call“ i „i18n i tema“.
-
----
-
-## Povezani fajlovi i folderi
-
-**Rutiranje i providere**
-- `frontend/src/main.tsx`
-- `frontend/src/app/app.tsx`
-- `frontend/src/app/router.tsx` (352 linije)
-- `frontend/src/app/lazy-page.tsx`
-- `frontend/src/app/install-setup-layout.tsx`
-- `frontend/src/app/install-setup-provider.tsx`
-- `frontend/src/lib/resolve-install-gate-navigation.ts`
-
-**Ljuska i navigacija**
-- `frontend/src/layouts/application-shell.tsx` (107 linija)
-- `frontend/src/components/layout/app-header.tsx`
-- `frontend/src/components/layout/app-sidebar.tsx` (133 linije)
-- `frontend/src/components/layout/sidebar-count-badge.tsx`
-- `frontend/src/components/layout/sidebar-user-card.tsx`
-- `frontend/src/components/layout/brand-mark.tsx`
-- `frontend/src/components/layout/system-status-chip.tsx`
-- `frontend/src/components/layout/header-search-trigger.tsx`
-- `frontend/src/components/layout/header-search-match.tsx` (+ `header-search-match.spec.ts`)
-- `frontend/src/components/layout/command-palette.tsx` (406 linija)
-- `frontend/src/components/layout/session-controls.tsx`
-- `frontend/src/components/layout/theme-switcher.tsx`
-- `frontend/src/components/a11y/` (`skip-to-content-link`, `route-focus-manager`, `announcer-regions`)
-- `frontend/src/components/shortcuts/` (`global-shortcuts`, `shortcuts-provider`)
+# Modul 1: Ljuska, routing i navigacija — ponovni audit
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
+
+**Datum ponovnog audita:** 2026-10-19
+**Auditirani SHA:** `338b4b7b3360a9aca9763f4bca44fed80238bf41`
+**Prethodni dokument:** baseline 6/10 od 2026-10-13 i closeout od 2026-10-14
+**Trenutna ocjena:** **8/10**
+**Oznake nalaza:** isključivo **LR1–LR8**.
+
+## Sažetak
+
+Prethodni closeout je uglavnom potvrđen: fail-safe install gate, globalni i page error boundary, siguran povratak nakon prijave, 404 stranica, navigacijske ikone, mobilno zatvaranje menija, izdvojena pravila pristupa, ESLint/Prettier i osnovni guard testovi postoje i rade.
+
+Modul ipak nije „max full“. Najveći preostali problem je da su routing, navigacija, ikone i guard poruke i dalje četiri ručno održavana izvora podataka. `router.tsx` ima 376 linija i 15 ponovljenih `RequireAccess` blokova. Ranije prihvaćeni rizik „Gap 8“ zato se ponovo otvara kao **LR1**. Dodatno su potvrđeni nedostatak route/navigation parity testa, djelimična guard neusklađenost za Assets/Problems/Changes, sticky page boundary pri query/hash navigaciji i odsustvo direktnog testa kompleksne komandne palete.
+
+Nije pronađen novi P0 sigurnosni problem. Server ostaje konačni autoritet pristupa; nalazi se odnose na frontend konzistentnost, pouzdanost i održavanje.
+
+## Scope
+
+Uključeni su `main.tsx`, `app/*`, `application-shell`, header/sidebar/command palette, auth/access/error guardi, a11y shell komponente, `navigation.ts`, `navigation-icons.ts`, `route-access.ts`, install gate, login return-path, `NotFoundPage` i povezani testovi.
+
+Sadržaj pojedinačnih stranica, backend autorizacija, header indikatori i Install wizard koraci pregledani su samo kao cross-reference.
+
+## Izvršene provjere
+
+1. Ponovo su pročitani router, shell, header/sidebar, auth/access guardi, install gate, navigacijski katalog, ikone, route-access i komandna paleta.
+2. Potvrđeno je **15** produkcijskih `RequireAccess` blokova u `router.tsx`.
+3. Veličine ključnih fajlova:
+   - `router.tsx`: **376** linija;
+   - `command-palette.tsx`: **409** linija;
+   - `navigation.ts`: **277** linija;
+   - `route-access.ts`: **204** linije;
+   - `application-shell.tsx`: **105** linija.
+4. Ciljani Vitest scope: **12/12 fajlova i 51/51 test prolaze**.
+5. U istoj sesiji puni frontend Vitest je prošao: **333/333 fajlova i 1338/1338 testova**.
+6. U istoj sesiji prošli su TypeScript/produkcijski build i ciljani ESLint.
+7. Browser/E2E za modul 1 nije ponovo pokrenut. Stari B22 screenshot iz 2026-10-14 nije nova runtime verifikacija.
+
+## Potvrđeno zatvoreno iz prethodnog audita
+
+| Prethodna oblast                     | Trenutni dokaz                                                 | Status           |
+| ------------------------------------ | -------------------------------------------------------------- | ---------------- |
+| Install status greška vodi na wizard | Provider ima `loading/error/ready`; error prikazuje retry      | Zatvoreno        |
+| Globalni bijeli ekran                | Root `errorElement` i page `RouteErrorBoundary`                | Zatvoreno uz LR4 |
+| `/docs` ikona                        | `/docs` mapiran na `FileText`; ikone imaju test                | Zatvoreno        |
+| Gubitak query/hash nakon login-a     | `RequireAuth` sprema puni path; login koristi `safeReturnPath` | Zatvoreno        |
+| Remount bannera                      | `key` je na page wrapperu; banneri su izvan njega              | Zatvoreno uz LR4 |
+| Dupli mobile-close                   | Jedan effect prati `location.key`                              | Zatvoreno        |
+| Dupli `isStaff`                      | Shell koristi `isTicketStaff`                                  | Zatvoreno        |
+| Tihi `console.error`                 | Centralni client logger i `no-console` guard                   | Zatvoreno        |
+| Hard-coded sidebar shortcut          | Koristi `shortcutHint("newTicket")`                            | Zatvoreno        |
+| Tihi `*` redirect                    | Renderuje se `NotFoundPage`                                    | Zatvoreno        |
+| i18n init blank screen               | Greška se prijavi, aplikacija se ipak renderuje                | Zatvoreno        |
+| Osnovni guard testovi                | Direktni auth/access/install/error testovi postoje             | Zatvoreno        |
+
+## Realno / željeno — samo otvoreno
+
+| Oblast                  | Realno                                                          | Željeno                                            |
+| ----------------------- | --------------------------------------------------------------- | -------------------------------------------------- |
+| Definicija ruta         | 376 linija JSX-a i 15 ponovljenih guard blokova                 | Tipizovani route katalog/helper                    |
+| Paritet menija i ruta   | Više ručno sinhronizovanih izvora                               | Test za path, access i ikonu svih destinacija      |
+| Assets/Problems/Changes | Sidebar koristi capability pravila; route ne koristi isti guard | Jedna eksplicitna i testirana odluka               |
+| Page error reset        | Boundary se remountuje samo na pathname                         | Reset na relevantni search/hash ili navigation key |
+| Command palette         | 409 linija, bez direktnog testa komponente                      | Async, keyboard, a11y i access testovi             |
+| Guard poruke            | Ručni key union i četiri propsa                                 | Tipizovani descriptor                              |
+| Komentari               | Ponovo postoje F0/F1/F6/IN/Aurora oznake                        | Trajni komentari bez faznih oznaka                 |
+| Header dokaz            | Stari mock screenshot                                           | Aktuelni ponovljivi responsive test                |
+
+## Gap analiza i master tabela
+
+| ID      | Prioritet     | Status         | Nalaz / dokaz                                                                                                                                                                                          | Kriterij zatvaranja                                                                                                                  |
+| ------- | ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **LR1** | P1 / visoko   | **Otvoren**    | `router.tsx` ima 376 linija i 15 gotovo identičnih `RequireAccess` blokova. Raniji Gap 8 više nije opravdano držati trajno otvorenim.                                                                  | Tipizovani route descriptor/helper centralizuje guard, poruke i ikonu; URL ugovor ostaje isti.                                       |
+| **LR2** | P1 / srednje  | **Otvoren**    | Navigacija, route JSX, access switch i icon mapa održavaju se odvojeno. Nema sistemskog parity testa.                                                                                                  | Test pokriva navigacijske stavke, route descriptor, access kind i ikonu; izuzeci su eksplicitni.                                     |
+| **LR3** | P1 / srednje  | **Djelimično** | Assets/Problems/Changes filtriraju se iz menija prema module + permission pravilima, ali njihove rute nisu u `RequireAccess`. Direct URL nema isti frontend rezultat kao meni.                         | Dokumentovati i testirati page-level odluku ili koristiti isti guard za list/detail rute.                                            |
+| **LR4** | P1 / srednje  | **Otvoren**    | Page wrapper i boundary imaju `key={location.pathname}`. Query/hash navigacija ne montira svjež boundary i fallback može ostati sticky.                                                                | Route identity uključuje relevantni search/hash ili boundary resetuje error na navigation key; test reprodukuje query-only oporavak. |
+| **LR5** | P1 / srednje  | **Otvoren**    | `command-palette.tsx` ima 409 linija. Nema direktnog testa za debounce/abort, stale response, keyboard wrap, active descendant, access filter i navigaciju. Komentar kaže 300 ms, konstanta je 250 ms. | Izdvojiti search/row model ili hook; dodati direktne interakcijske testove i uskladiti komentar.                                     |
+| **LR6** | P2 / nisko    | **Otvoren**    | `ForbiddenMessageKey` je ručni union, a svaki guard zasebno prima check, title, body i icon.                                                                                                           | Descriptor tipom veže capability check, poruke i ikonu; nema ručnog union održavanja u komponenti.                                   |
+| **LR7** | P2 / nisko    | **Otvoren**    | U scope-u su ponovo `F0.3`, `IN4/IN5`, `F1`, `F6.2` i „Aurora“. Prethodni closeout je tvrdio da su uklonjene.                                                                                          | Ostaviti trajno „zašto“ objašnjenje; grep scope-a nema interne fazne oznake.                                                         |
+| **LR8** | P2 / provjera | **Otvoren**    | B22 se oslanja na mock screenshot iz 2026-10-14; nema aktuelnog responsive regression testa.                                                                                                           | Playwright/component test na 360 i 390 px potvrđuje bez overflowa i dostupnost kontrola.                                             |
+
+## Dobro i vrijedno zadržavanja
+
+- Install gate ne pretpostavlja da je sistem neinstaliran kada status API padne.
+- `safeReturnPath` štiti login redirect od otvorenog preusmjeravanja.
+- Root i page boundary daju vidljiv izlaz i prijavljuju grešku loggeru.
+- Capability funkcije su čiste i dobro testirane.
+- Sidebar i paleta koriste isti `filterNavigationSections`.
+- Remote search koristi debounce i `AbortController`.
+- Skip link, route focus manager, announcer regije, `aria-current`, focus trap i listbox semantika daju dobru a11y osnovu.
+- 404 je vidljiv ekran, ne tihi redirect.
+- Lazy chunk recovery ostaje kvalitetno riješen.
+
+## Definicija „max full“
+
+Modul dobija 10/10 kada:
+
+1. route descriptor ukloni ponovljene guard blokove bez promjene URL-ova (**LR1**);
+2. route/navigation/access/icon parity ima automatski test (**LR2**);
+3. Assets/Problems/Changes imaju eksplicitno i testirano jednako ponašanje menija, palete i direct URL-a (**LR3**);
+4. page boundary se oporavlja i pri query/hash navigaciji (**LR4**);
+5. komandna paleta ima direktne async, keyboard i a11y testove te manju komponentu (**LR5**);
+6. guard descriptor ukloni ručni key union i kopirani ugovor (**LR6**);
+7. scope komentari više ne nose fazne oznake (**LR7**);
+8. aktuelni responsive test potvrdi header na 360/390 px (**LR8**);
+9. TypeScript, ESLint, format, ciljani testovi i puni frontend suite prolaze;
+10. browser test bude jasno označen kao pokrenut ili nepokrenut.
+
+## Status implementacije — Faza 1 (2026-10-19)
+
+Faza 1 je kompletirana na reaudit osnovi `ea0f546`:
+
+| Nalaz | Status nakon Faze 1 | Dokaz                                                                                                                                                                                            |
+| ----- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| LR1   | **Zatvoren**        | `router.tsx` je smanjen sa 376 na 109 linija. Jedini produkcijski `RequireAccess` nalazi se u zajedničkom `ProtectedRoute`; 21 zaštićena list/detail/editor ruta dolazi iz tipizovanog kataloga. |
+| LR2   | **Zatvoren**        | `protected-route-catalog.spec.ts` provjerava jedinstvene pathove, postojanje ikone te navigation/route access paritet za sve guardane navigacijske destinacije.                                  |
+| LR3   | **Zatvoren**        | Assets, Problems i Changes list/detail rute koriste isti `canOpen*` guard i isti access kind kao sidebar i komandna paleta.                                                                      |
+| LR6   | **Zatvoren**        | Guard descriptor veže page, check, access kind, title/body ključeve i icon path; `RequireAccess` više nema ručno pobrojavanje svakog title/body ključa.                                          |
+
+Implementacijski detalji:
+
+- uveden je `app/protected-route-catalog.tsx` kao tipizovani ugovor guardanih ruta;
+- uveden je mali `ProtectedRoute` renderer;
+- URL ugovor je sačuvan, uključujući template/playbook create/detail rute;
+- fallback ikone se dobijaju iz postojećeg `navigation-icons` izvora;
+- javne, authenticated-only, nested ticket/KB i legacy redirect rute ostale su eksplicitne u routeru;
+- privremena ocjena nakon Faze 1 je **9/10**; LR4, LR5, LR7 i LR8 ostaju za naredne faze.
 
-**Zaštita ruta**
-- `frontend/src/components/layout/require-auth.tsx`
-- `frontend/src/components/layout/require-access.tsx`
-- `frontend/src/lib/session/route-access.ts` (+ `route-access.spec.ts`)
-- `frontend/src/lib/session/use-session-capabilities.ts`
-- `frontend/src/lib/session/use-session.ts`
-- `frontend/src/lib/session/session-keep-alive.ts` (+ `session-keep-alive.spec.ts`)
+Verifikacija Faze 1:
+
+- TypeScript i produkcijski frontend build — prolaze;
+- ESLint — 0 grešaka, 12 postojećih upozorenja izvan izmijenjenog routing scope-a;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- ciljani routing testovi — 25/25 prolaze;
+- puni frontend Vitest — **334/334 fajlova i 1341/1341 test prolaze**;
+- `git diff --check` — prolazi.
 
-**Definicija menija**
-- `frontend/src/lib/navigation.ts` (277 linija) + `navigation.spec.ts` (5 testova)
-- `frontend/src/lib/navigation-icons.ts`
+## Status implementacije — Faza 2 (2026-10-19)
 
-**Van modula, ali direktno vezano**
-- `frontend/src/pages/login-page.tsx` (čita `location.state.from`)
-- `frontend/src/components/install/install-gate-skeleton.tsx`
-- `frontend/package.json` (skripte i odsustvo ESLint/Prettier)
-- `frontend/vitest.config.ts`
+Faza 2 je kompletirana i **LR4 je zatvoren**:
 
----
+- uveden je čisti `pageRenderKey` koji identitet ekrana gradi iz `pathname + search + hash`;
+- page wrapper sada remountuje vlastiti `RouteErrorBoundary` i animaciju kada query ili hash odabere drugi ekran;
+- maintenance, password-expiry i announcement banneri ostaju izvan keyed wrappera i ne remountuju se;
+- regresioni test prvo izaziva render grešku, zatim potvrđuje oporavak na query-only navigaciji, pa isti tok ponavlja za hash-only navigaciju;
+- privremena ocjena nakon Faze 2 je **9.2/10**; otvoreni ostaju LR5, LR7 i LR8.
 
-## Trenutna implementacija
+Verifikacija Faze 2:
 
-**Ulaz i providori.** `main.tsx` učitava i18n, pokreće branding i migraciju localStorage ključeva, pa tek onda kreira React root (`initializeI18n().then(...)`). `App` slaže providere: `QueryClientProvider` → `ThemeProvider` → `ToastProvider` → `BrowserRouter` → `InstallSetupProvider` → `AppRouter`.
+- ciljani boundary test — 2/2 prolaze;
+- TypeScript i produkcijski frontend build — prolaze;
+- ciljani ESLint izmijenjenih fajlova — prolazi bez upozorenja;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- puni frontend Vitest — **334/334 fajlova i 1342/1342 testa prolaze**;
+- `git diff --check` — prolazi.
 
-**Routing.** `AppRouter` ima jedan veliki `<Routes>` stablo:
-- `InstallSetupLayout` obuhvata **sve** rute (uključujući `/login`, `/install`, `/privacy-notice`).
-- `RequireAuth` pa `ApplicationShell` obuhvataju aplikacijske rute.
-- Stranice se učitavaju lijeno preko `lazyPage(...)`. Ima ih 45 u `pages/`.
-- `RequireAccess` sa `check` funkcijom štiti 15 ruta (`<RequireAccess` se pojavljuje 15 puta u `router.tsx`).
-- `*` preusmjerava na `/`. Nema 404 stranice.
-- `_visual-qa` ruta postoji samo u DEV modu (`import.meta.env.DEV`).
+## Status implementacije — Faza 3 (2026-10-19)
 
-**Gate za instalaciju.** `InstallSetupProvider` jednom pri startu poziva `loadInstallSetupStatus()`. `InstallSetupLayout` onda za svaku rutu poziva `resolveInstallGateNavigation`: ako sistem nije instaliran, sve ide na `/install`; ako jeste, `/install` ide na `/`.
+Faza 3 je kompletirana i **LR5 je zatvoren**:
 
-**Zaštita sesije.** `RequireAuth`:
-- bez sačuvane sesije šalje na `/login` i pamti `from` (samo `pathname`)
-- dok se učitavaju capabilities, prikazuje `InstallGateSkeleton`
-- pokreće keep-alive sesije, sinhronizaciju jezika iz korisničkih preferencija i odjavu ako sesija više nije validna
+- remote search lifecycle izdvojen je u `useCommandPaletteSearch`;
+- debounce i minimalna dužina upita imaju imenovane konstante, pa je uklonjena zastarjela 300 ms napomena;
+- hook prekida prethodni zahtjev i ne primjenjuje stale rezultat;
+- row tip i prezentacijski `PaletteRow` izdvojeni su iz glavne komponente;
+- `command-palette.tsx` je smanjen sa 409 na 266 linija;
+- direktni hook testovi pokrivaju minimalni upit, debounce od 250 ms, abort i stale-response zaštitu;
+- direktni komponent testovi pokrivaju capability filter, `aria-activedescendant`, ArrowUp wrap, Home, ArrowDown, Enter i pointer navigaciju te loading/no-results najavu;
+- privremena ocjena nakon Faze 3 je **9.6/10**; otvoreni ostaju LR7 i LR8.
 
-**Zaštita po ulozi/dozvoli.** `RequireAccess` prima `check(capabilities)` i ključeve za poruku „nema pristupa“ (union tip `ForbiddenMessageKey`). Pravila su u `route-access.ts` (`canOpenReports`, `canOpenPrivacy`, `canOpenAssets`, ...). Ista pravila koristi `filterNavigationSections` za sidebar, pa se meni i rute ne bi trebali razilaziti.
+Verifikacija Faze 3:
 
-**Ljuska.** `ApplicationShell`:
-- vraća `InstallGateSkeleton` dok sesija nije spremna
-- računa `isStaff` i obavija sve u `ShortcutsProvider`
-- desktop: `<aside>` sa `AppSidebar` (samo `lg+`)
-- mobilni: `Sheet` sa istim `AppSidebar`
-- `AppHeader` sa dugmadima: meni, pretraga, aktivni tajmer, on-call, status chip, tema, notifikacije, sesija
-- `CommandPalette` (uvijek montiran)
-- `<main>` sa `key={location.pathname}` i unutra banneri (održavanje, istek lozinke, obavještenja) pa `<Outlet/>`
+- ciljani palette testovi — 15/15 prolaze;
+- TypeScript i produkcijski frontend build — prolaze;
+- ciljani ESLint izmijenjenih fajlova — prolazi bez upozorenja;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- puni frontend Vitest — **336/336 fajlova i 1347/1347 testova prolazi**;
+- `git diff --check` — prolazi.
 
-**Navigacija.** `navigation.ts` drži 4 sekcije sa 20 stavki. Svaka stavka ima `path`, `labelKey`, `end` i `access.kind`. Ikone se traže po `path` kroz `navigationIconFor` (mapa sa 20 unosa, fallback `LayoutDashboard`). Aktivna stavka se računa u `isNavigationItemActive`. Specijalni slučaj za „Svi tiketi“ je po `labelKey`.
+## Status implementacije — Faza 4 (2026-10-19)
 
-**Pretraga i paleta.** `CommandPalette` ima komande (navigacija + akcije) i remote pretragu sa debounce od 300 ms i `AbortController`. Otvara se sa `Ctrl/Cmd+K` (`GlobalShortcuts`) i dugmetom u headeru.
+Faza 4 je kompletirana i **LR7 je zatvoren**:
 
-**Dostupnost (a11y).** Postoji skip link, `RouteFocusManager`, `AnnouncerRegions`, `aria-current="page"` na aktivnoj stavci, `aria-label` na `<nav>`, `sr-only` tekst za brojače u badgeu, i `aria-label` na dugmetu za meni.
+- uklonjene su interne oznake `F0.3`, `F1`, `F6.2`, `IN4/IN5` i naziv vizuelne faze iz produkcijskih i povezanih testnih komentara u scope-u;
+- zadržana su trajna objašnjenja server-selected wizard koraka, advisory readiness ponašanja, completion-screen izuzetka i CSS redoslijeda;
+- komentari su u izmijenjenom scope-u ujednačeni na engleski;
+- ciljani grep za fazne oznake sada vraća nula rezultata;
+- nije promijenjeno runtime ponašanje;
+- privremena ocjena nakon Faze 4 je **9.8/10**; otvoren ostaje samo LR8.
 
----
+Verifikacija Faze 4:
 
-## Realno/željeno stanje
+- ciljani install gate testovi — 10/10 prolaze;
+- TypeScript i produkcijski frontend build — prolaze;
+- ciljani ESLint izmijenjenih fajlova — prolazi bez upozorenja;
+- i18n/design-system check — prolazi, 8788 ključeva i bs/en parity;
+- puni frontend Vitest — **336/336 fajlova i 1347/1347 testova prolazi**;
+- `git diff --check` — prolazi.
 
-| Oblast | Željeno | Realno |
-|---|---|---|
-| Gate za instalaciju | Greška pri provjeri statusa ne smije tretirati sistem kao neinstaliran | Greška postavlja `isCompleted: false`, pa se cijela aplikacija preusmjerava na `/install` |
-| Greške u renderu | Globalni Error Boundary + poruka sa „pokušaj ponovo“ | Samo `PageLoadBoundary` oko lazy stranica. Greška u `ApplicationShell`, `RequireAuth`, sidebaru ili eager stranici (`DashboardPage`) daje bijeli ekran |
-| 404 | Stranica „nije pronađeno“ | `*` → `/` (tihi redirect) |
-| Ikone menija | Svaka stavka ima svoju ikonu | `/docs` nema unos u mapi, dobija `LayoutDashboard` (fallback je tih) |
-| Povratak nakon prijave | Vraća tačnu adresu uključujući query i hash | Vraća samo `pathname` (`/tickets?view=inbox` → `/tickets`) |
-| Banneri i obavještenja | Ostaju mounted između navigacija | Remount pri svakoj navigaciji zbog `key={location.pathname}` |
-| Pravila pristupa | Jedan izvor istine | Uglavnom jedan (`route-access.ts`), ali `isStaff` u shellu duplira `isTicketStaff` |
-| Ponavljanje u routeru | Konfiguracija ruta podataka + helper | 15 gotovo identičnih `RequireAccess` blokova (352 linije) |
-| Alati za kvalitet koda | ESLint, Prettier, jedna komanda za provjeru | Nema ESLint ni Prettier konfiguracije. Skripte: `dev`, `build`, `preview`, `test`, `audit:contrast` |
-| Testovi modula | Testovi za rute, zaštitu, ikone i ljusku | 23 testa, ali za `RequireAuth`, `RequireAccess`, `LazyPage`, `ApplicationShell`, rute i ikone nema testova |
+## Status implementacije — Faza 5 (2026-10-19)
 
----
+Implementacijski dio Faze 5 je završen, ali **LR8 još nije označen kao zatvoren** jer browser izvršenje nema dostupno E2E okruženje:
 
-## Gap analiza
+- dodan je `e2e/tests/54-shell-responsive.spec.ts` sa zasebnim Playwright slučajevima za 360 px i 390 px;
+- test se prijavljuje kao SuperAdmin i provjerava mobile navigation, command palette, appearance, notifications i account kontrole;
+- mjeri `documentElement.scrollWidth`, granice headera i granice svakog vidljivog header dugmeta;
+- test pada ako dokument/header/kontrola izađe iz viewporta;
+- za svaki viewport test prilaže stvarni screenshot headera kao Playwright artefakt;
+- E2E TypeScript i Playwright discovery prolaze: 2 testa u 1 fajlu;
+- stvarno izvršenje je pokušano, ali global setup je stao prije browser testa jer E2E stack nije dostupan na `http://localhost:10001/health`; rezultat nije predstavljen kao prolaz.
 
-**Kritični i visoki gapovi**
+LR8 se zatvara tek nakon uspješnog izvršenja ova dva testa na konfigurisanom E2E/staging stacku. Ocjena zato ostaje **9.8/10** umjesto da se administrativno podigne na 10/10 bez browser dokaza.
 
-1. **Fail-open ka instalaciji.** Ako API za status instalacije padne (mreža, 500, timeout), `install-setup-provider.tsx` postavlja `isCompleted: false`. Zatim `InstallSetupLayout` vidi `isSetupComplete: false` i `resolveInstallGateNavigation` vraća `/install` za svaku rutu. Korisnik na već instaliranom sistemu, na lošoj vezi, dobija instalacioni čarobnjak umjesto aplikacije. Ovo treba provjeriti i na serveru (da li `/install` API odbija kad je sistem instaliran), ali UI ne bi smio pretpostaviti „nije instalirano“ kad ne zna odgovor.
+## Status implementacije — Faza 6 (2026-10-19)
 
-2. **Nema globalnog Error Boundary.** `router.tsx` nema `errorElement`, a jedini `componentDidCatch` je u `lazy-page.tsx`. Greška u renderu bilo koje eager komponente, ili u samoj ljusci, ruši cijelo stablo. Korisnik vidi prazan ekran i nema poruke ni dugmeta.
+Faza 6 je povezala responsive provjeru sa obaveznom CI kapijom:
 
-3. **Ikona za Dokumentaciju je pogrešna.** `docsNavigationItem.path = "/docs"` nije u `navigationIcons`. Stavka se prikazuje sa ikonom Dashboard. Fallback je tih, pa ništa ne upozorava. Nema testa koji bi ovo uhvatio.
+- test `54-shell-responsive.spec.ts` dodat je u PR smoke skup uz postojeće kritične tokove;
+- svaki pull request koji mijenja kod sada izvršava 360/390 header provjeru sa `retries=0` i fail-fast pravilom;
+- CI i E2E dokumentacija ažurirane su sa šest smoke fajlova i trenutna 54 E2E testna fajla;
+- ručni dispatch za `specs=54` je pokušan, ali GitHub integration token nema pravo kreirati workflow dispatch (`HTTP 403`); to nije evidentirano kao prolaz testa;
+- LR8 ostaje otvoren do prvog uspješnog browser izvršenja, ali više ne zavisi od ručnog odabira testa na narednom PR-u.
 
-**Srednji gapovi**
+## Fazni roadmap
 
-4. **Banneri se remountuju pri svakoj navigaciji.** `application-shell.tsx:92` stavlja `key={location.pathname}` na wrapper koji sadrži `MaintenanceBanner`, `PasswordExpiryBanner` i `AnnouncementsHost`. Svaka promjena rute ponovo montira ove komponente, pa se njihovi podaci mogu ponovo dohvatiti i može se vidjeti treperenje. Animacija `page-in` treba ostati samo na `<Outlet/>`.
+### Faza 1 — ugovor ruta
 
-5. **Deep link se gubi nakon prijave.** `require-auth.tsx:67` i `:75` šalju `from: location.pathname`. Query i hash se gube.
+1. **LR1 + LR6:** uvesti tipizovani guard/route descriptor i prebaciti 15 zaštićenih ruta bez mijenjanja URL-ova.
+2. **LR2:** iz istog kataloga izvesti ili provjeriti navigation path/access/icon paritet.
+3. **LR3:** eksplicitno riješiti list/detail guard ponašanje za Assets, Problems i Changes.
 
-6. **Duplirana pravila.** `application-shell.tsx:45-48` ponovo računa `isStaff` umjesto `isTicketStaff`. `canOpenRouting` i `canOpenSla` su identični `canOpenAdminArea`. `canOpenEmailTemplatesPage` ponavlja iste uslove.
+### Faza 2 — runtime pouzdanost
 
-7. **Ručno održavan union `ForbiddenMessageKey`** u `require-access.tsx`. Svaki novi guard mora ručno dopisati dva ključa. Ako se zaboravi, greška se vidi tek u TypeScript-u kod korišćenja, ali ne i u mapi ključeva.
+4. **LR4:** resetovati page boundary na puni navigation identity i dodati regresioni test.
+5. **LR5:** izdvojiti palette search/selection model; testirati debounce, abort, stale response, tastaturu i navigaciju.
 
-8. **Ponavljanje u routeru.** 15 `RequireAccess` blokova sa po četiri prop-a. Konfiguracija ruta u jednom nizu (path, element, check, ključevi) smanjila bi fajl i greške pri kopiranju.
+### Faza 3 — closeout
 
-9. **Nema 404 stranice.** Nepostojeća adresa tiho vodi na dashboard. Korisnik ne zna da je link pogrešan.
+6. **LR7:** očistiti fazne komentare bez izmjene ponašanja.
+7. **LR8:** pokrenuti aktuelni 360/390 responsive browser test.
+8. Pokrenuti ciljane i pune frontend provjere; upisati egzaktne rezultate.
 
-10. **Nema ESLint i Prettier.** U `shell` fajlu (`application-shell.tsx:51-105`) JSX unutar `ShortcutsProvider` nije uvučen, što pokazuje da formatiranje nije provjeravano. Bez `react-hooks` pravila nije moguće automatski uhvatiti zavisnosti u `useEffect`.
+## Ocjena
 
-11. **Nema testova za zaštitu ruta i ljusku.** Nijedan test ne provjerava da `RequireAuth` preusmjerava, da `RequireAccess` prikazuje „nema pristupa“, da svaka stavka menija ima ikonu, ni da je `*` ponašanje namjerno.
+### **8/10**
 
-**Niski gapovi**
+Prethodnih kritičnih problema više nema, osnovni guardovi i error tokovi su testirani, a dostupnost i session/install ponašanje su iznad prosjeka. Ocjena nije viša jer je centralni routing ugovor i dalje ručno dupliciran, paritet menija i ruta nije automatski garantovan, tri modulske grupe imaju različit route/sidebar guard model, page boundary ima query/hash reset rupu, a najkompleksnija shell komponenta — komandna paleta — nema direktan komponent test.
 
-12. **Mješanje odgovornosti u `RequireAuth`.** Jedna komponenta (80 linija) drži keep-alive sesije, sinhronizaciju jezika, odjavu i redirect. Locale sync ima `.catch(() => undefined)` pa tiho guta greške.
+Do 10/10 nisu potrebne nove poslovne funkcije; potreban je kontrolisan refaktor ugovora ruta, regresioni testovi i aktuelna browser verifikacija.
 
-13. **`main.tsx` bez `catch`.** `initializeI18n().then(...)` nema obradu greške. Ako i18n padne, aplikacija ostaje prazna bez poruke.
+## Predložena commit poruka
 
-14. **Interne oznake u komentarima.** U modulu ima 39 pojavljivanja oznaka „Paket“, „Review“ i „Faza“ (npr. `router.tsx`, `navigation.ts`, `route-access.ts`). Te oznake nisu objašnjenje, nego kontekst za tim. Trebaju biti u changelogu ili u dokumentaciji, a u kodu ostaje samo zašto.
-
-15. **Krhke konvencije u `navigation.ts`.**
-    - `isNavigationItemActive` ima nekorišćen parametar `_search`.
-    - `primaryNavigationItems` i `allNavigationItems` su isti niz.
-    - Specijalni slučaj za „Svi tiketi“ je po `labelKey` (string), a ne po flagu u stavci.
-    - `ticketsNavigationItem.path` sadrži query (`/tickets?view=all`), pa mapa ikona i poređenje putanja zavise od formata stringa.
-
-16. **Konzistencija u `route-access.ts`.** Ponekad `session.isSuperAdmin === true`, ponekad samo `session.isSuperAdmin`. Četiri gotovo identične funkcije za modul (`canOpenAssets`, `canOpenProblems`, `canOpenChanges`, `canOpenOnCall`) bi se mogle svesti na jednu parametrizovanu.
-
-17. **Direktni `console.error` u produkciji** (`lazy-page.tsx:56`). Nema vidljivog pravila o logovanju u frontendu.
-
-18. **Tekst „N“ u dugmetu „Novi tiket“** (`app-sidebar.tsx:51`) je hard-coded. To je hint za prečicu, ali nije prošao kroz i18n.
-
-19. **Header je pretrpan.** Desktop header ima oko 8 kontrola uz pretragu. Na uskim ekranima (oko 360–390 px) nije provjereno da li sve staje. Ovo nije potvrđen bug, nego pitanje za vizuelnu provjeru.
-
-20. **Ponovna renderovanja.** `ApplicationShell` koristi `useLocation`, `useSession`, `useSessionCapabilities` i `usePublicMaintenance`. Svaka promjena rute ponovo renderuje cijeli shell, uključujući `CommandPalette` koji je uvijek montiran. Nije mjereno profilerom, pa je ovo za provjeru, ne dokazan problem.
-
-**Šta je dobro (zadržati)**
-
-- Lazy učitavanje sa obradom zastarjelih chunkova (`reloadForChunkError`, `vite:preloadError`).
-- Pravila pristupa su izdvojena u čiste funkcije (`route-access.ts`) i pokrivena testovima.
-- Sidebar se filtrira po capabilities, pa meni i rute koriste isti izvor.
-- Dostupnost: skip link, fokus na promjenu rute, live regioni, `aria-current`, `sr-only` tekst za brojače.
-- Nema `any`, nema `eslint-disable`, nema TODO u modulu. TypeScript prolazi.
-- Keep-alive sesije se čisti u `useEffect` cleanup-u (`stop()` i `setUnauthorizedHandler(null)`).
-
----
-
-## Mišljenje tima i preporuka
-
-*Ovo je mišljenje auditora na osnovu čitanja koda, a ne rezultat ankete među članovima tima.*
-
-Arhitektura modula je solidna. Pravila pristupa su u čistim funkcijama, lazy učitavanje je dobro urađeno, a dostupnost je iznad prosjeka za ovakav projekat. Problemi su u tri grupe:
-
-- **Sigurnost i pouzdanost:** fail-open gate za instalaciju i odsustvo globalnog Error Boundary. Ovo treba popraviti prvo jer korisnik može završiti na pogrešnom ekranu ili na bijelom ekranu bez izlaza.
-- **Tačnost detalja:** ikona za Dokumentaciju, gubitak query-ja nakon prijave, remount bannera pri navigaciji.
-- **Održivost:** ponavljanje u routeru, duplirana pravila, nema ESLint/Prettier i nema testova za zaštitu ruta. Bez alata, sljedeći refaktor nema mrežu sigurnosti.
-
-Preporuka je da se redoslijed uradi ovako:
-1. Popraviti gate za instalaciju (stanje „nepoznato“ sa porukom i dugmetom za ponovni pokušaj, bez preusmjeravanja na `/install`).
-2. Dodati globalni Error Boundary (`errorElement` na root ruti i boundary u ljusci) sa porukom i dugmetom za ponovno učitavanje.
-3. Testovi za `RequireAuth`, `RequireAccess`, `navigationIconFor` (provjera da svaka stavka ima ikonu) i rute preusmjeravanja.
-4. Ispraviti `from` (pathname + search + hash), ikonu za `/docs` i `key` na wrapperu.
-5. Refaktor routera u konfiguraciju ruta i spajanje pravila (`isStaff` → `isTicketStaff`, parametrizacija `canOpen*`).
-6. Dodati ESLint (`typescript-eslint`, `react-hooks`) i Prettier, te skriptu `lint` u CI.
-
-Refaktor se ne radi bez potvrde obima.
-
----
-
-## Otkriveni bugovi i neusklađenosti
-
-| # | Ozbiljnost | Lokacija | Opis | Predložena popravka |
-|---|---|---|---|---|
-| B1 | Visoka | `app/install-setup-provider.tsx:36-39`, `lib/resolve-install-gate-navigation.ts:27-30` | Greška pri `loadInstallSetupStatus` postavlja `isCompleted: false`, pa sve rute idu na `/install`. | Dodati stanje `error`, prikazati poruku i „pokušaj ponovo“. Ne preusmjeravati. |
-| B2 | Visoka | `app/router.tsx`, `layouts/application-shell.tsx` | Nema globalnog Error Boundary. Greška u renderu eager komponente daje bijeli ekran. | `errorElement` na root ruti + boundary u ljusci. |
-| B3 | Srednja | `lib/navigation-icons.ts`, `lib/navigation.ts:142` | `/docs` nema ikonu, prikazuje se `LayoutDashboard`. Fallback je tih. | Dodati `"/docs": BookOpen` (ili sličnu) i test koji provjerava sve stavke menija. |
-| B4 | Srednja | `components/layout/require-auth.tsx:67,75` | `from` sadrži samo `pathname`, query i hash se gube nakon prijave. | `from: location.pathname + location.search + location.hash`. |
-| B5 | Srednja | `layouts/application-shell.tsx:92` | `key={location.pathname}` remountuje banere i obavještenja pri svakoj navigaciji. | Premjestiti `key` na `<Outlet/>` wrapper, a banere ostaviti van njega. |
-| B6 | Niska | `layouts/application-shell.tsx:33-39` | Mobilni meni se zatvara na dva načina: `useEffect` na promjenu rute (hvata i back/forward) i `onNavigate` na linkovima. Dvije putanje za isto stanje. | Zadržati jedan mehanizam (npr. `useEffect` na `pathname`) i ukloniti `closeMobileNavigation`. |
-| B7 | Niska | `layouts/application-shell.tsx:45-48` | `isStaff` duplira `isTicketStaff` iz `route-access.ts`. | Koristiti `isTicketStaff(capabilities)`. |
-| B8 | Niska | `layouts/application-shell.tsx:51-105` | Neuvučen JSX unutar `ShortcutsProvider`. Nema Prettier provjere. | Uvesti Prettier i formatirati. |
-| B9 | Niska | `lib/navigation.ts:243-267` | Nekorišćen parametar `_search` u `isNavigationItemActive`. | Ukloniti parametar. |
-| B10 | Niska | `lib/navigation.ts:241` | `allNavigationItems` je alias za `primaryNavigationItems`. | Jedan naziv. |
-| B11 | Niska | `lib/navigation.ts:255` | Specijalni slučaj za „Svi tiketi“ se poredi po `labelKey` stringu. | Flag na stavci (npr. `matchPrefixes`). |
-| B12 | Niska | `lib/session/route-access.ts:33,49` i `:163-173` | `canOpenRouting` i `canOpenSla` su identični `canOpenAdminArea`. `canOpenEmailTemplatesPage` ponavlja uslove. | Spojiti u `canOpenAdminArea`. |
-| B13 | Niska | `lib/session/route-access.ts:34` i drugi | Mješavina `=== true` i truthy provjera za `isSuperAdmin`. | Ujednačiti. |
-| B14 | Niska | `components/layout/require-access.tsx:32` | Prop `loadingLabelKey` ima samo jednu vrijednost (`"session.loading"`). | Ukloniti prop. |
-| B15 | Niska | `main.tsx:28` | `initializeI18n().then(...)` nema `catch`. | Dodati `catch` sa osnovnom porukom. |
-| B16 | Niska | `components/layout/require-auth.tsx:36-58` | Sync jezika guta grešku (`.catch(() => undefined)`). | Logovati i ne blokirati sesiju. |
-| B17 | Niska | `app/lazy-page.tsx:56` | `console.error` direktno u produkciji. | Centralni logger ili usklađenje sa pravilom logovanja. |
-| B18 | Niska | `components/layout/app-sidebar.tsx:51` | Tekst „N“ hard-coded. | Prevesti ili izvući u konstantu sa oznakom prečice. |
-| B19 | Niska | 39 mjesta u modulu | Interne oznake „Paket / Review / Faza“ u komentarima. | Prebaciti u changelog ili dokumentaciju. |
-| B20 | Niska | `app/router.tsx:348` | `*` preusmjerava na `/`, nema 404. | Dodati `NotFoundPage`. |
-| B21 | Niska | `lib/resolve-install-gate-navigation.ts:4-15` | `_visual-qa` ruta je konstanta i u produkcionom bundleu, iako postoji samo u DEV modu. | Koristiti `import.meta.env.DEV` i u gate-u. |
-| B22 | Za provjeru | `components/layout/app-header.tsx` | Header sa oko 8 kontrola na uskim ekranima. | Vizuelna provjera na 360 i 390 px, uz screenshot. |
-
----
-
-## Ocjena: 6/10
-
-**Obrazloženje:** Arhitektura (lazy, pravila pristupa u čistim funkcijama, dostupnost, TypeScript bez `any`) je jača od prosjeka. Oduzimaju se bodovi za fail-open gate za instalaciju, odsustvo globalnog Error Boundary, pogrešnu ikonu i gubitak query-ja nakon prijave, zatim za nepostojanje ESLint i Prettier i za testove koji ne pokrivaju zaštitu ruta i ljusku.
-
----
-
-## Must-Have (za ovaj modul)
-
-1. Gate za instalaciju ne smije preusmjeravati na `/install` kad status nije poznat (B1).
-2. Globalni Error Boundary na root ruti i u ljusci (B2).
-3. Testovi za `RequireAuth`, `RequireAccess`, rute preusmjeravanja i ikonu za svaku stavku menija (B3, gap 11).
-4. Ispraviti `from` nakon prijave (B4).
-5. ESLint (`typescript-eslint`, `react-hooks`) i Prettier sa skriptom u CI (gap 10).
-
-## Status ispravki (Paket 6.1.1)
-
-Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
-
-| Stavka | Status | Napomena |
-|---|---|---|
-| B1 gate za instalaciju | Urađeno | Stanja `loading / error / ready`; `InstallStatusError` sa ponovnim pokušajem. |
-| B2 Error Boundary | Urađeno | `RouteErrorBoundary` na korijenu i oko svake stranice u ljusci. |
-| B3 ikone i test | Urađeno | `/docs` ima `FileText`; test provjerava ikonu za svaku stavku menija. |
-| B4 `from` | Urađeno | `pathname + search + hash`; login prolazi kroz `safeReturnPath`. |
-| B5 `key` na stranici | Urađeno | Ključ je na omotaču stranice; banneri ostaju van njega. |
-| B6 dva mehanizma zatvaranja menija | Urađeno | Jedan: `useEffect` na `location.key`. Uklonjen `onNavigate`. |
-| B7 `isStaff` | Urađeno | Koristi se `isTicketStaff(capabilities)`. |
-| B8 formatiranje ljuske | Urađeno | Prettier (ESLint/Prettier paket). |
-| B9 `_search` | Urađeno | Parametar uklonjen; testovi prilagođeni. |
-| B10 alias `allNavigationItems` | Urađeno | Ostaje `primaryNavigationItems`. |
-| B11 oznaka „Svi tiketi“ | Urađeno | Polja `matchPrefixes` i `excludePaths` na stavci, bez poređenja po `labelKey`. |
-| B12 duplirani `canOpen*` | Urađeno | `canOpenRouting`, `canOpenSla` i `canOpenEmailTemplatesPage` spojeni u `canOpenAdminArea`. |
-| B13 `=== true` i truthy | Urađeno u modulu | `isSuperAdmin` je `boolean`, provjere su ujednačene u `route-access.ts`. Isti obrazac ima još oko 30 mjesta u drugim modulima (vidjeti dolje). |
-| B14 prop `loadingLabelKey` | Urađeno | Uklonjen. |
-| B15 `initializeI18n` bez `catch` | Urađeno | Greška se prijavljuje, aplikacija se ipak renderuje (prevodi se prikazuju kao ključevi). |
-| B16 gutanje greške jezika | Urađeno | `reportClientError("locale_sync_failed", …)`, sesija nije blokirana. |
-| B17 `console.error` | Urađeno | `lib/app/client-logger.ts` je jedini izvor ispisa; pravilo ESLint `no-console`. |
-| B18 hard-coded „N“ | Urađeno | Tekst prečice dolazi iz kataloga (`shortcutHint("newTicket")`). |
-| B19 interne oznake u komentarima | Urađeno | Uklonjene oznake „Paket / Review / Faza“ iz 31 fajla modula. |
-| B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
-| B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
-| B22 zaglavlje na 360 i 390 px | Djelimično | Statička analiza klasa, bez vizuelne provjere (u sandboxu nema browser-a). Naziv tiketa u indikatoru tajmera se skraćuje na malim ekranima. Rizik: dok tajmer radi, polje pretrage se na telefonu svodi na ikonu. |
-| ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; 14 upozorenja `exhaustive-deps` su dug u drugim modulima. |
-
-### Zabilješke za druge module
-
-- **B13, šire:** oko 30 mjesta u `components/`, `pages/` i `lib/` koristi `session?.isSuperAdmin === true`. Ujednačavanje ide u modul 13 (lib) ili kao zajednička stavka.
-- **Modul 5:** `EmailTemplatesCard` prima `canWrite`, ali ga ne koristi (komponenta je read-only).
-- **Modul 12/13:** `PageLoadBoundary` u `lazy-page.tsx` i `RouteErrorBoundary` imaju gotovo istu fallback poruku. Spojiti u jednu komponentu.
-- **Modul 16 ili 13:** `use-session.ts` i ostali fajlovi sa `exhaustive-deps` upozorenjima (14 ukupno).
+`docs(audit): redo shell routing and navigation review`

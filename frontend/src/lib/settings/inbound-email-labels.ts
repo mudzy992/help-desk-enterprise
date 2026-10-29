@@ -1,4 +1,4 @@
-/** Paket 2.3: known outcome reasons and configuration problems (i18n keys). */
+/** known outcome reasons and configuration problems (i18n keys). */
 export const inboundReasonKeys = [
   "UNKNOWN_SENDER",
   "SENDER_INACTIVE",

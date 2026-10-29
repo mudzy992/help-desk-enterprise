@@ -1,5 +1,5 @@
 import { Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,18 @@ import {
   tableWrapClassName,
 } from "@/components/ui/control";
 import { ScrollRegion } from "@/components/ui/scroll-region";
+import { ConfigVersionAdminError } from "@/components/config-versions/config-version-admin-error";
 import {
   canMapConfigPackageItem,
   configPackageImportReady,
   unresolvedConfigPackageItems,
   withConfigPackageMapping,
 } from "@/lib/config-versions/config-package-mapping";
+import {
+  mapConfigVersionError,
+  type ConfigVersionErrorKey,
+} from "@/lib/config-versions/map-config-version-error";
+import { readApiRequestId } from "@/lib/map-api-error";
 import {
   importConfigPackage,
   previewConfigPackageImport,
@@ -43,13 +49,13 @@ const signatureTones: Record<ConfigPackageSignatureState, BadgeTone> = {
 
 interface ConfigPackageImportProperties {
   readonly isBusy: boolean;
-  /** Wraps the call with the workspace busy/error handling; false on failure. */
+  /** Wraps the import mutation with workspace busy/error handling; false on failure. */
   readonly runAction: (operation: () => Promise<void>) => Promise<boolean>;
   readonly onImported: (version: ConfigVersion) => void;
 }
 
 /**
- * Paket 2.9 (K4): upload → preview (resolution report, manual mappings) →
+ * upload → preview (resolution report, manual mappings) →
  * import as DRAFT. Nothing is activated here.
  */
 export function ConfigPackageImport({
@@ -65,7 +71,12 @@ export function ConfigPackageImport({
   const [confirmUnsigned, setConfirmUnsigned] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState("");
   const [report, setReport] = useState<ConfigPackageImportReport | null>(null);
+  const [reportIsCurrent, setReportIsCurrent] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewErrorKey, setPreviewErrorKey] = useState<ConfigVersionErrorKey | null>(null);
+  const [previewRequestId, setPreviewRequestId] = useState<string | null>(null);
   const [inputKey, setInputKey] = useState(0);
+  const previewSequence = useRef(0);
 
   const input = (
     nextMappings: ConfigPackageMappings = mappings,
@@ -74,17 +85,41 @@ export function ConfigPackageImport({
       ? null
       : { file, mappings: nextMappings, applyEnvironmentBound, confirmUnsigned, releaseNotes };
 
+  const invalidatePreview = () => {
+    previewSequence.current += 1;
+    setReportIsCurrent(false);
+    setIsPreviewing(false);
+    setPreviewErrorKey(null);
+    setPreviewRequestId(null);
+  };
+
   const preview = (nextMappings?: ConfigPackageMappings) => {
     const request = input(nextMappings);
-    if (request === null) {
-      return;
-    }
-    void runAction(async () => {
-      setReport(await previewConfigPackageImport(request));
-    });
+    if (request === null) return;
+
+    const sequence = ++previewSequence.current;
+    setReportIsCurrent(false);
+    setIsPreviewing(true);
+    setPreviewErrorKey(null);
+    setPreviewRequestId(null);
+    void previewConfigPackageImport(request)
+      .then((nextReport) => {
+        if (sequence !== previewSequence.current) return;
+        setReport(nextReport);
+        setReportIsCurrent(true);
+      })
+      .catch((error: unknown) => {
+        if (sequence !== previewSequence.current) return;
+        setPreviewErrorKey(mapConfigVersionError(error));
+        setPreviewRequestId(readApiRequestId(error));
+      })
+      .finally(() => {
+        if (sequence === previewSequence.current) setIsPreviewing(false);
+      });
   };
 
   const reset = () => {
+    invalidatePreview();
     setFile(null);
     setMappings({});
     setApplyEnvironmentBound(false);
@@ -94,8 +129,16 @@ export function ConfigPackageImport({
     setInputKey((key) => key + 1);
   };
 
+  useEffect(
+    () => () => {
+      previewSequence.current += 1;
+    },
+    [],
+  );
+
   const unresolved = report === null ? [] : unresolvedConfigPackageItems(report);
-  const ready = report !== null && configPackageImportReady(report, confirmUnsigned);
+  const ready =
+    report !== null && reportIsCurrent && configPackageImportReady(report, confirmUnsigned);
 
   return (
     <div className="grid gap-3">
@@ -110,6 +153,7 @@ export function ConfigPackageImport({
           onChange={(event) => {
             const selected = event.target.files?.[0] ?? null;
             const tooLarge = selected !== null && selected.size > maxPackageBytes;
+            invalidatePreview();
             setFileTooLarge(tooLarge);
             setFile(tooLarge ? null : selected);
             setMappings({});
@@ -133,6 +177,12 @@ export function ConfigPackageImport({
           <Upload /> {t("configVersions.package.preview")}
         </Button>
       </div>
+      {isPreviewing ? (
+        <p className={hintClassName} role="status">
+          {t("configVersions.package.previewing")}
+        </p>
+      ) : null}
+      <ConfigVersionAdminError errorKey={previewErrorKey} requestId={previewRequestId} />
 
       {report !== null ? (
         <div className="grid gap-3" aria-live="polite">
@@ -272,7 +322,10 @@ export function ConfigPackageImport({
               <Checkbox
                 checked={applyEnvironmentBound}
                 disabled={isBusy}
-                onChange={(event) => setApplyEnvironmentBound(event.target.checked)}
+                onChange={(event) => {
+                  invalidatePreview();
+                  setApplyEnvironmentBound(event.target.checked);
+                }}
                 label={t("configVersions.package.applyEnvironmentBound")}
               />
             ) : null}

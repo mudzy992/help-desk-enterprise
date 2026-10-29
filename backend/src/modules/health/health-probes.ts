@@ -9,7 +9,7 @@ export type ProbeState = 'ok' | 'fail';
 
 export type ReadinessResult = {
   readonly status: ProbeState;
-  readonly checks: { readonly database: ProbeState; readonly redis: ProbeState };
+  readonly checks: { readonly database: ProbeState; readonly redis: ProbeState; readonly auditAnchor: ProbeState };
 };
 
 export type WorkerProbeResult = {
@@ -22,6 +22,23 @@ export const readinessTimeouts = { databaseMs: 2_000, redisMs: 1_000 } as const;
 export const readinessCacheMs = 5_000;
 /** Paket 2.7 §10 `ops.thresholds.workerHeartbeatStaleSeconds` default. */
 export const defaultWorkerHeartbeatStaleSeconds = 120;
+/** Ops watchdog / health card: absorb brief Redis misses (eviction blip, reconnect). */
+export const workerHeartbeatReadAttempts = 3;
+export const workerHeartbeatReadDelayMs = 150;
+
+export async function readWorkerHeartbeatValue(
+  read: () => Promise<string | null>,
+  options: { readonly attempts?: number; readonly delayMs?: number } = {},
+): Promise<string | null> {
+  const attempts = options.attempts ?? workerHeartbeatReadAttempts;
+  const delayMs = options.delayMs ?? workerHeartbeatReadDelayMs;
+  for (let index = 0; index < attempts; index += 1) {
+    const value = await read();
+    if (value !== null) return value;
+    if (index < attempts - 1) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
+}
 
 export async function withTimeout<T>(work: () => Promise<T>, timeoutMs: number): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
@@ -49,12 +66,14 @@ async function probe(work: () => Promise<unknown>, timeoutMs: number): Promise<P
 export async function probeReadiness(dependencies: {
   readonly pingDatabase: () => Promise<unknown>;
   readonly pingRedis: () => Promise<unknown>;
+  readonly auditAnchorReady?: () => boolean;
 }): Promise<ReadinessResult> {
   const [database, redis] = await Promise.all([
     probe(dependencies.pingDatabase, readinessTimeouts.databaseMs),
     probe(dependencies.pingRedis, readinessTimeouts.redisMs),
   ]);
-  return { status: database === 'ok' && redis === 'ok' ? 'ok' : 'fail', checks: { database, redis } };
+  const auditAnchor = dependencies.auditAnchorReady?.() === false ? 'fail' : 'ok';
+  return { status: database === 'ok' && redis === 'ok' && auditAnchor === 'ok' ? 'ok' : 'fail', checks: { database, redis, auditAnchor } };
 }
 
 export function evaluateWorkerHeartbeat(input: {

@@ -68,6 +68,31 @@ export function isValidFieldIdentifier(value: string): boolean {
   return fieldIdentifierPattern.test(value);
 }
 
+export function isValidFormFieldDraft(fields: readonly ServiceFormField[]): boolean {
+  const identifiers = new Set<string>();
+  return (
+    fields.length > 0 &&
+    fields.every((field) => {
+      if (
+        !isValidFieldIdentifier(field.id) ||
+        identifiers.has(field.id) ||
+        field.label.trim().length === 0
+      ) {
+        return false;
+      }
+      identifiers.add(field.id);
+      if (!isSelectFormFieldType(field.type)) return true;
+      const options = field.validation?.options ?? [];
+      const values = new Set(options.map((option) => option.value));
+      return (
+        options.length > 0 &&
+        values.size === options.length &&
+        options.every((option) => option.value.trim().length > 0 && option.label.trim().length > 0)
+      );
+    })
+  );
+}
+
 export function moveFormField(
   fields: readonly ServiceFormField[],
   index: number,

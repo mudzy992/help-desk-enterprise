@@ -139,7 +139,6 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   FORWARD_TARGET_USER_NOT_MEMBER: "tickets.errorForwardTargetUser",
   FORWARD_NO_PREVIOUS_GROUP: "tickets.errorForwardNoPrevious",
   HANDLER_GROUP_NOT_FOUND: "tickets.errorValidation",
-  // Package 1.2
   MERGE_SELF: "tickets.errorMergeInvalid",
   MERGE_PARENT_INVALID: "tickets.errorMergeInvalid",
   MERGE_CHILD_INVALID: "tickets.errorMergeInvalid",
@@ -153,8 +152,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   PRIORITY_UNCHANGED: "tickets.errorPriorityUnchanged",
   PRIORITY_REASON_REQUIRED: "tickets.errorPriorityReason",
   PRIORITY_NOT_OVERRIDDEN: "tickets.errorPriorityNotOverridden",
-  // Paket 2.4
-  MENTION_NO_ACCESS: "tickets.errorMentionNoAccess",
+  // MENTION_NO_ACCESS: "tickets.errorMentionNoAccess",
   MENTIONS_DISABLED: "tickets.errorCollaborationDisabled",
   FOLLOWERS_DISABLED: "tickets.errorCollaborationDisabled",
   LINKS_DISABLED: "tickets.errorCollaborationDisabled",
@@ -169,7 +167,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   INVALID_LINK_NOTE: "tickets.errorLinkNote",
 };
 
-/** Paket 2.4: 404 codes with their own message (checked before the generic 404). */
+/** 404 codes with their own message (checked before the generic 404). */
 const specificNotFoundCodes = new Set(["LINK_TARGET_NOT_FOUND"]);
 
 export function mapTicketError(error: unknown): TicketErrorKey {

@@ -86,6 +86,26 @@ describe('InstallWizardLockGuard', () => {
     });
   });
 
+  it('keeps the ops rerun behind the install token after completion', async () => {
+    // Owner decision 6: reopening a finished installation takes the product down
+    // until the wizard is finished again, so this route is never anonymous.
+    isCompleted.mockResolvedValue(true);
+    await expect(
+      guard.canActivate(
+        createHttpContext({ method: 'POST', path: '/install/restart' }),
+      ),
+    ).rejects.toMatchObject({ response: { code: 'INSTALL_TOKEN_INVALID' } });
+    await expect(
+      guard.canActivate(
+        createHttpContext({
+          method: 'POST',
+          path: '/install/restart',
+          headers: { 'x-install-token': 'install-token-for-tests' },
+        }),
+      ),
+    ).resolves.toBe(true);
+  });
+
   it('allows status reads and idempotent complete after lock', async () => {
     isCompleted.mockResolvedValue(true);
     await expect(

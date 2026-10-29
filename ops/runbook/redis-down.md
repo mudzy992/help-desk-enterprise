@@ -6,8 +6,8 @@ runbook služi da se to ne miješa s „aplikacija je pala".
 
 ## Simptom
 
-- API odgovara, ali: keševi promašuju (P95 raste), worker heartbeat je „stale" na
-  admin kartici reda, DLQ/retention se ne čiste, periodični poslovi (arhiva,
+- API odgovara, ali: keševi promašuju (P95 raste), worker heartbeat je „unknown" (Redis je pao)
+  ili „stale" (worker ne piše) na admin kartici reda, DLQ/retention se ne čiste, periodični poslovi (arhiva,
   waiting-for-user, KB podsjetnici) se ne izvršavaju.
 - U logu: `ws adapter: fallback=in_memory`, `*_schedule_failed`, `authz_*_invalidation_skipped`,
   `Failed to write worker heartbeat`.
@@ -35,7 +35,7 @@ runbook služi da se to ne miješa s „aplikacija je pala".
 | Dashboard/SLA summary keš (F2.4) | ponovni izračun | tačno, skuplje |
 | Unread count keš (F2.3) | `count(*)` po zahtjevu | tačno, skuplje |
 | BullMQ rasporedi (F2.1, F2.3, F4.1) | registracija padne uz `*_schedule_failed` | **poslovi se ne pokreću dok se Redis ne vrati** |
-| Worker heartbeat | ne piše se | status „stale" (ne „down") |
+| Worker heartbeat | ne piše se, a ne može se ni pročitati | kartica prikazuje workera kao **„unknown"** (ne „stale"); ukupno stanje je „down" zbog Redis komponente. Alarm `worker.down` se **ne** otvara: watchdog kanarincem ne može potvrditi da Redis vraća upisano, pa izostanak ključa nije dokaz ([ALERTS.md#worker-down](ALERTS.md#worker-down)) |
 
 ## Dijagnostika
 

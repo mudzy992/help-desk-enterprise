@@ -1,14 +1,17 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
 
 /**
- * Paket 2.7 (§6): pure view helpers of the "System health" card. No I/O and
+ * pure view helpers of the "System health" card. No I/O and
  * no clock of their own - `nowMs` is passed in, so everything is testable.
  */
 
 /** Alarm keys known to this client, as i18n slugs (i18next splits on dots). */
 export const opsAlertSlugs = [
   "worker_down",
+  // Incident 2026-10-16: the provider (Gmail) refused sending, so outbound mail
+  // is paused by the breaker. Without the slug the card printed the raw key.
+  "email_providerBlocked",
   "sla_scan_late",
   "scheduler_late",
   "disk_usage",
@@ -26,10 +29,10 @@ export const opsAlertSlugs = [
   // alert title instead of the translated one.
   "websocket_emits_high",
   "auth_login429_high",
-  // Paket 5.4.2 (stavka 2): the captcha alarms (refused challenges, skipped checks).
+  // the captcha alarms (refused challenges, skipped checks).
   "auth_captchaFailed_high",
   "auth_captchaSkipped_high",
-  // Paket 5.4.2 (stavka 4): the audit webhook export has not delivered for a streak.
+  // the audit webhook export has not delivered for a streak.
   "security_auditWebhook_stalled",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
@@ -169,147 +172,4 @@ export function alertDurationMs(
  * Alarm details are numbers and technical identifiers only (no personal
  * data, see the backend evaluator). Flattened to "label: value" pairs.
  */
-/**
- * Detail fields of an alarm, as i18n slugs. The card used to print the raw
- * field names (`warnThreshold: 50`), which is what the live review of the 429
- * alarm showed. Everything the backend observers can put into `details` has a
- * label here; the order is the reading order — the measured number first, the
- * thresholds and the window after it.
- */
-export const alertDetailFieldSlugs = [
-  "usedPercent",
-  "emitsPerMinute",
-  "busiestRoom",
-  "login429LastHour",
-  "captchaFailedLastHour",
-  "captchaSkippedLastHour",
-  // Paket 5.4.2 (stavka 4): the audit webhook streak and its fixed thresholds.
-  "auditWebhookPendingMinutes",
-  "warnAfterMinutes",
-  "criticalAfterMinutes",
-  "errors5xx",
-  "minutesSinceSuccess",
-  "meanLagMs",
-  "daysLeft",
-  "heartbeatAgeSeconds",
-  "snapshotAgeSeconds",
-  "newFailures",
-  "integrationDlq",
-  "jobs",
-  "perRoom",
-  "failedByQueue",
-  "total",
-  "percent",
-  "freeGb",
-  "totalGb",
-  "failOpen",
-  "thresholdSeconds",
-  "thresholdMinutes",
-  "windowMinutes",
-  "warnThreshold",
-  "criticalThreshold",
-  "expiresAt",
-] as const;
-
-export type AlertDetailFieldSlug = (typeof alertDetailFieldSlugs)[number];
-
-/** The label key for a detail field; `null` for a field this client does not know. */
-export function alertDetailLabelKey(field: string): string | null {
-  return (alertDetailFieldSlugs as readonly string[]).includes(field)
-    ? `admin.opsHealth.alertDetailLabels.${field}`
-    : null;
-}
-
-/**
- * Reading order of the detail rows: the measured value first, then the
- * thresholds it is compared against. Unknown fields keep their relative order
- * and go last, so a future field never pushes the number out of sight.
- */
-export function sortAlertDetailEntries(
-  entries: ReadonlyArray<readonly [string, string]>,
-): Array<readonly [string, string]> {
-  const rank = (label: string): number => {
-    const index = (alertDetailFieldSlugs as readonly string[]).indexOf(
-      label.split(".")[0] ?? label,
-    );
-    return index === -1 ? alertDetailFieldSlugs.length : index;
-  };
-  return [...entries].sort((left, right) => rank(left[0]) - rank(right[0]));
-}
-
-export function alertDetailEntries(
-  details: OpsAlert["details"],
-): ReadonlyArray<readonly [string, string]> {
-  if (details === null || typeof details !== "object") return [];
-  const entries: Array<readonly [string, string]> = [];
-  const visit = (prefix: string, value: unknown, depth: number) => {
-    if (value === null || value === undefined) return;
-    if (Array.isArray(value)) {
-      const text = value
-        .map((item) =>
-          item !== null && typeof item === "object"
-            ? Object.values(item as Record<string, unknown>)
-                .filter((part) => typeof part === "string" || typeof part === "number")
-                .join("/")
-            : String(item),
-        )
-        .filter((item) => item.length > 0)
-        .join(", ");
-      if (text.length > 0) entries.push([prefix, text]);
-      return;
-    }
-    if (typeof value === "object") {
-      if (depth >= 2) return;
-      for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-        visit(prefix.length === 0 ? key : `${prefix}.${key}`, nested, depth + 1);
-      }
-      return;
-    }
-    entries.push([prefix, String(value)]);
-  };
-  visit("", details, 0);
-  return entries;
-}
-
-export type HttpBar = {
-  readonly at: string;
-  readonly errors5xx: number;
-  readonly total: number;
-  readonly heightPercent: number;
-};
-
-/** Bars of the 5xx mini chart; heights relative to the busiest minute (min 1 so the axis stays readable). */
-export function httpBars(series: OpsOverview["http"]["series"]): {
-  bars: readonly HttpBar[];
-  max: number;
-  totalErrors: number;
-} {
-  const max = Math.max(1, ...series.map((entry) => entry.errors5xx));
-  return {
-    max,
-    totalErrors: series.reduce((sum, entry) => sum + entry.errors5xx, 0),
-    bars: series.map((entry) => ({
-      ...entry,
-      heightPercent: Math.round((entry.errors5xx / max) * 100),
-    })),
-  };
-}
-
-/** Failed jobs above the last acknowledged baseline, per queue and in total. */
-export function dlqGrowthTotal(dlq: OpsOverview["dlq"]): number {
-  if (dlq.growth === null) return 0;
-  return (
-    dlq.growth.integrationDlq +
-    Object.values(dlq.growth.failedByQueue).reduce((sum, value) => sum + value, 0)
-  );
-}
-
-export function sortSchedulers(schedulers: OpsOverview["schedulers"]): OpsOverview["schedulers"] {
-  return [...schedulers].sort((left, right) =>
-    left.state === right.state
-      ? `${left.queue}/${left.schedulerId}`.localeCompare(`${right.queue}/${right.schedulerId}`)
-      : left.state === "late"
-        ? -1
-        : 1,
-  );
-}
+export * from "@/lib/ops/ops-health-details";

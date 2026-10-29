@@ -1,4 +1,6 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import type { StagedStorageAdapter } from '../../../common/storage-write/storage-write.types';
+import type { TicketAttachmentStorage } from '../attachments/attachments.types';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { changeLogActions } from '../../change-log/change-log.constants';
 import { RoutingService } from '../../routing/routing.service';
@@ -20,9 +22,14 @@ import { transferSplitAttachments } from './transfer-split-attachments';
 import { copyTicketAssets } from '../assets/transfer-ticket-assets';
 import { defaultServiceFormsConfiguration } from '../../service-catalog/service-forms.constants';
 import type { ServiceFormsConfiguration } from '../../service-catalog/service-forms.types';
+import { preflightTicketSplit } from './preflight-ticket-split';
+import type { SplitStoragePromotion } from './split-storage-promotion';
 
 export async function splitTicket(input: {
   readonly prisma: PrismaService;
+  readonly attachmentStorage: TicketAttachmentStorage;
+  readonly stagedStorage: StagedStorageAdapter;
+  readonly promotions: SplitStoragePromotion[];
   readonly routingService: RoutingService;
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader;
@@ -54,6 +61,7 @@ export async function splitTicket(input: {
     ticket: loaded.ticket,
     children: input.body.children,
   });
+  await preflightTicketSplit({ prisma: input.prisma, parent: loaded.ticket, body: input.body, configuration: input.configuration });
   const reason = normalizeSplitReason(input.body.reason, input.configuration);
   const children: TicketRecord[] = [];
   for (const childInput of input.body.children) {
@@ -79,6 +87,9 @@ export async function splitTicket(input: {
     });
     await transferSplitAttachments({
       prisma: input.prisma,
+      storage: input.attachmentStorage,
+      stagedStorage: input.stagedStorage,
+      promotions: input.promotions,
       parent: loaded.ticket,
       child,
       request: childInput,

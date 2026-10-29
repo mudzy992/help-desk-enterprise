@@ -17,7 +17,7 @@ export function usePlatformPasskeyAvailable(): {
 }
 
 /**
- * Paket 5.4.0-e: "can this person confirm with a passkey right now?".
+ * e: "can this person confirm with a passkey right now?".
  *
  * The answer needs two facts: the account has at least one credential (the
  * server knows) and the device has a platform authenticator (the browser knows).

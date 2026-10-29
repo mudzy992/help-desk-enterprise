@@ -30,18 +30,18 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 interface BrandingSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSaveMany: SettingsSaverMany;
 }
 
 /**
- * Paket 4.1 (§3a): the client's product name, tagline, organisation, logo and
+ * the client's product name, tagline, organisation, logo and
  * support contacts, with a live preview. One reason covers all changed keys.
  */
 export function BrandingSettingsCard({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSaveMany,
 }: BrandingSettingsCardProperties) {
   const { t } = useTranslation();
@@ -76,7 +76,7 @@ export function BrandingSettingsCard({
         : null,
   };
   const hasErrors = Object.values(errors).some((error) => error !== null);
-  const busy = saving || (pendingKey !== null && pendingKey.startsWith("public.branding."));
+  const busy = saving || [...pendingKeys].some((key) => key.startsWith("public.branding."));
   const disabled = !canWrite || busy;
 
   const update = (field: BrandingField, value: string) =>

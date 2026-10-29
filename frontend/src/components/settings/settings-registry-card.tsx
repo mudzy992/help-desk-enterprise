@@ -18,7 +18,7 @@ interface SettingsRegistryCardProperties {
   /** Full registry, for dependency evaluation of keys outside this category. */
   readonly allEntries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly onSave: SettingsSaver;
   /** Set while a global search is active: then the card shows every match. */
   readonly isFiltered: boolean;
@@ -28,7 +28,7 @@ interface SettingsRegistryCardProperties {
 const previewRows = 4;
 
 /**
- * Paket 5.3.4 (D4/D5): a category card is a summary — the icon, the human
+ * a category card is a summary — the icon, the human
  * category title, the number of keys and the first few settings with their
  * values. "Prikaži sve" opens the whole category; every row opens one detail
  * dialog. The old drawer listed raw keys with a description in a small print,
@@ -38,7 +38,7 @@ export function SettingsRegistryCard({
   group,
   allEntries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   onSave,
   isFiltered,
 }: SettingsRegistryCardProperties) {
@@ -106,7 +106,7 @@ export function SettingsRegistryCard({
         entries={group.entries}
         allEntries={allEntries}
         canWrite={canWrite}
-        pendingKey={pendingKey}
+        pendingKeys={pendingKeys}
         onSave={onSave}
       />
 
@@ -122,7 +122,7 @@ export function SettingsRegistryCard({
           entry={openEntry}
           entries={allEntries}
           canWrite={canWrite}
-          pending={pendingKey === openEntry.key}
+          pending={pendingKeys.has(openEntry.key)}
           onSave={onSave}
         />
       )}

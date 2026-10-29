@@ -26,19 +26,17 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import { shouldWarnServiceRuntimeAvailability } from "@/lib/services/filter-service-catalog-rows";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
+import type { VisibleServiceOnboarding } from "@/lib/services/use-visible-onboardings";
 import { completedOnboardingCount } from "@/lib/services/onboarding-step-state";
 import { SERVICE_AVAILABILITY_META, SERVICE_LIFECYCLE_META } from "@/lib/theme/semantic-meta";
-import {
-  SERVICE_ONBOARDING_STEPS,
-  type ServiceOnboardingResponse,
-} from "@/services/service-onboarding-api";
+import { SERVICE_ONBOARDING_STEPS } from "@/services/service-onboarding-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogTableProperties {
   readonly rows: readonly ServiceCatalogRow[];
   readonly categoryNames: ReadonlyMap<string, string>;
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
-  readonly onboardingByServiceId: ReadonlyMap<string, ServiceOnboardingResponse>;
+  readonly onboardingByServiceId: ReadonlyMap<string, VisibleServiceOnboarding>;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
   readonly canWriteAvailability: boolean;
@@ -133,7 +131,7 @@ interface ServiceCatalogTableRowProperties {
   readonly row: ServiceCatalogRow;
   readonly categoryName: string;
   readonly coverage: CatalogCoverageNote | null;
-  readonly onboarding: ServiceOnboardingResponse | null;
+  readonly onboarding: VisibleServiceOnboarding | null;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
   readonly canWriteAvailability: boolean;
@@ -270,12 +268,16 @@ function ServiceCatalogTableRow({
                 onClick={() => onManageDowntime(service)}
               >
                 <Badge tone="info" className="text-[10px]" dot={false}>
-                  {t("services.downtime.upcomingBadge", { count: 1 })}
+                  {t("services.downtime.upcomingBadge", {
+                    count: service.runtimeAvailability.upcomingDowntimeCount,
+                  })}
                 </Badge>
               </button>
             ) : (
               <Badge tone="info" className="text-[10px]" dot={false}>
-                {t("services.downtime.upcomingBadge", { count: 1 })}
+                {t("services.downtime.upcomingBadge", {
+                  count: service.runtimeAvailability.upcomingDowntimeCount,
+                })}
               </Badge>
             )
           ) : null}
@@ -332,7 +334,10 @@ function ServiceCatalogTableRow({
       <td className="px-4 text-right align-middle">
         <div className="flex min-w-[205px] items-center justify-end gap-1.5">
           <Button variant="ghost" size="xs" asChild>
-            <Link to="/tickets/new" data-testid={`service-create-ticket-${service.id}`}>
+            <Link
+              to={`/tickets/new?serviceId=${encodeURIComponent(service.id)}`}
+              data-testid={`service-create-ticket-${service.id}`}
+            >
               {t("services.createTicket")} <ArrowRight size={11.5} aria-hidden="true" />
             </Link>
           </Button>

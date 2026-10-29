@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -119,7 +119,7 @@ export class AssetLicensesService {
   private async audit(action: string, entityId: string, viewer: AssetViewer, metadata: Record<string, unknown>) {
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action,
-      entityType: auditLogEntityTypes.asset,
+      entityType: auditLogEntityTypes.softwareLicense,
       entityId,
       metadata: metadata as never,
       actorUserId: viewer.userId,
@@ -222,7 +222,7 @@ export class AssetLicensesService {
       data: { ...this.validate(input), ...this.encryptKey(input.licenseKey), organizationalUnitId: input.organizationalUnitId },
       select: { id: true },
     });
-    await this.audit('asset.license.created', created.id, viewer, { kind: input.kind, hasKey: Boolean(input.licenseKey?.trim()) });
+    await this.audit(auditLogActions.assetLicenseCreated, created.id, viewer, { kind: input.kind, hasKey: Boolean(input.licenseKey?.trim()) });
     return this.detail(created.id, viewer);
   }
 
@@ -254,7 +254,7 @@ export class AssetLicensesService {
         ...(dateOnly(data.validUntil) !== dateOnly(current.validUntil) ? { remindersSent: [] } : {}),
       },
     });
-    await this.audit('asset.license.updated', id, viewer, {
+    await this.audit(auditLogActions.assetLicenseUpdated, id, viewer, {
       keyChanged: input.licenseKey !== undefined,
     });
     return this.detail(id, viewer);
@@ -264,7 +264,7 @@ export class AssetLicensesService {
     const scope = await this.access.require(viewer, permissionKeys.assetLicenseManage);
     const current = await this.loadInScope(id, scope);
     await this.prisma.softwareLicense.delete({ where: { id } });
-    await this.audit('asset.license.deleted', id, viewer, { productName: current.productName, assignments: current._count.assignments });
+    await this.audit(auditLogActions.assetLicenseDeleted, id, viewer, { productName: current.productName, assignments: current._count.assignments });
     return { deleted: true };
   }
 
@@ -280,7 +280,7 @@ export class AssetLicensesService {
     } catch {
       throw new AssetError(assetErrorCodes.licenseKeyUnavailable, 'decrypt');
     }
-    await this.audit('asset.license.key_revealed', id, viewer, {});
+    await this.audit(auditLogActions.assetLicenseKeyRevealed, id, viewer, {});
     return { licenseKey: plain };
   }
 
@@ -328,7 +328,7 @@ export class AssetLicensesService {
         });
       }
     });
-    await this.audit('asset.license.assigned', id, viewer, { target: assetId ? 'asset' : 'user', assetId: assetId ?? null, userId: userId ?? null });
+    await this.audit(auditLogActions.assetLicenseAssigned, id, viewer, { target: assetId ? 'asset' : 'user', assetId: assetId ?? null, userId: userId ?? null });
     return this.detail(id, viewer);
   }
 
@@ -350,7 +350,7 @@ export class AssetLicensesService {
         });
       }
     });
-    await this.audit('asset.license.released', id, viewer, { assignmentId });
+    await this.audit(auditLogActions.assetLicenseReleased, id, viewer, { assignmentId });
     return this.detail(id, viewer);
   }
 

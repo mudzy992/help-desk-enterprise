@@ -154,12 +154,15 @@ export function UserSecuritySection({ userId }: { readonly userId: string }) {
         }
       >
         <Field label={t("users.security.reason")} required hint={t("users.security.reasonHint")}>
-          <Textarea
-            rows={2}
-            value={reason}
-            maxLength={500}
-            onChange={(event) => setReason(event.target.value)}
-          />
+          {(control) => (
+            <Textarea
+              {...control}
+              rows={2}
+              value={reason}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          )}
         </Field>
       </ConfirmDialog>
       <ConfirmDialog

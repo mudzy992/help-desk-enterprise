@@ -108,6 +108,44 @@ describe('RoutingService change log', () => {
     expect(leafEntry.actorUserId).toBe('admin-2');
   });
 
+  it('rejects one of two concurrent writers and logs only the winner', async () => {
+    const { routing, memory } = createRoutingServiceHarness();
+    const created = await routing.createRule({
+      originUnitId: 'ou-leaf',
+      serviceId: 'service-vpn',
+      groupId: 'group-it',
+      reason: routingChangeReason,
+    });
+    const update = (actorUserId: string) =>
+      routing.updateRule(
+        created.id,
+        {
+          originUnitId: 'ou-leaf',
+          serviceId: 'service-vpn',
+          groupId: 'group-net',
+          reason: `Concurrent update by ${actorUserId}`,
+          expectedUpdatedAt: created.updatedAt,
+        },
+        { actorUserId },
+      );
+
+    const results = await Promise.allSettled([
+      update('admin-1'),
+      update('admin-2'),
+    ]);
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.find(({ status }) => status === 'rejected');
+    expect(rejected).toMatchObject({
+      status: 'rejected',
+      reason: {
+        status: 409,
+        response: { code: 'ROUTING_RULE_CONFLICT' },
+      },
+    });
+    expect(memory.changeLogs).toHaveLength(2);
+    expect(memory.changeLogs.filter(({ diff }) => diff.action === 'update')).toHaveLength(1);
+  });
+
   it('records update and delete diffs and lists newest first', async () => {
     const { routing, memory, viewer } = createRoutingServiceHarness();
     const created = await routing.createRule(
@@ -126,6 +164,7 @@ describe('RoutingService change log', () => {
         serviceId: 'service-vpn',
         groupId: 'group-net',
         reason: 'Switch leaf to Network Ops',
+        expectedUpdatedAt: created.updatedAt,
       },
       { actorUserId: 'admin-2' },
     );
@@ -149,17 +188,18 @@ describe('RoutingService change log', () => {
       outcome: routingOutcomes.unrouted,
       targetGroupId: null,
     });
-    const listed = await routing.listChanges(viewer);
-    expect(listed.map((entry) => entry.diff.action)).toEqual([
+    const listed = await routing.listChanges({}, viewer);
+    expect(listed.items.map((entry) => entry.diff.action)).toEqual([
       'delete',
       'update',
       'create',
     ]);
-    expect(listed[0]).toMatchObject({
+    expect(listed.items[0]).toMatchObject({
       reason: 'Drop unused leaf rule',
       actorUserId: 'admin-3',
     });
-    const byRule = await routing.listRuleChanges(created.id, viewer);
-    expect(byRule).toHaveLength(3);
+    const byRule = await routing.listRuleChanges(created.id, {}, viewer);
+    expect(byRule.items).toHaveLength(3);
+    expect(byRule.total).toBe(3);
   });
 });

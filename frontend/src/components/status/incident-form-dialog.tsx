@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,9 +7,16 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { mapApiError } from "@/lib/map-api-error";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { queryKeys } from "@/lib/query/query-keys";
 import { mapStatusError } from "@/lib/status/status-view";
-import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
+import {
+  browserTimeZone,
+  fromDatetimeLocalValue,
+  toDatetimeLocalValue,
+} from "@/lib/services/downtime-datetime";
+import { listServices } from "@/services/service-catalog-api";
 import {
   createIncident,
   editIncident,
@@ -38,14 +46,8 @@ interface IncidentFormDialogProperties {
 const titleMax = 200;
 const messageMax = 4000;
 
-/** `datetime-local` wants local time without seconds or zone. */
-function toLocalInput(date: Date): string {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 /**
- * Paket 2.7 (§8.3): one dialog for "New incident" on /status, "Create
+ * Shared dialog for "New incident" on /status, "Create
  * incident from selected" in the ticket list and editing an open incident.
  */
 export function IncidentFormDialog({
@@ -57,9 +59,15 @@ export function IncidentFormDialog({
   const { t } = useTranslation();
   const { toast } = useToast();
   const editing = mode.kind === "edit" ? mode.incident : null;
+  const presetServiceIds = mode.kind === "create" ? mode.presetServiceIds : undefined;
   const ticketIds = mode.kind === "create" ? (mode.ticketIds ?? []) : [];
-  const [services, setServices] = useState<readonly ServiceResponse[] | null>(null);
-  const [servicesFailed, setServicesFailed] = useState(false);
+  const operationGuard = useOperationGuard();
+  const servicesQuery = useQuery({
+    queryKey: queryKeys.statusIncidentServices,
+    queryFn: listServices,
+    enabled: open,
+    retry: false,
+  });
   const [title, setTitle] = useState("");
   const [titleEn, setTitleEn] = useState("");
   const [impact, setImpact] = useState<IncidentImpact>("DEGRADED");
@@ -71,6 +79,14 @@ export function IncidentFormDialog({
   const [notify, setNotify] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentMinute, setCurrentMinute] = useState(() => new Date());
+
+  useEffect(() => {
+    if (!open) return;
+    setCurrentMinute(new Date());
+    const timer = window.setInterval(() => setCurrentMinute(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [open]);
 
   // Reset on every open so a cancelled draft never leaks into the next incident.
   useEffect(() => {
@@ -81,35 +97,31 @@ export function IncidentFormDialog({
     setVisibility(editing?.visibility ?? "ALL_USERS");
     setServiceIds(
       editing?.services.map((service) => service.id) ??
-        (mode.kind === "create" ? [...(mode.presetServiceIds ?? [])] : []),
+        (mode.kind === "create" ? [...(presetServiceIds ?? [])] : []),
     );
     setServiceFilter("");
     setMessage("");
     setStartedAt("");
     setNotify(false);
     setError(null);
-  }, [open]);
+  }, [
+    open,
+    editing?.title,
+    editing?.titleEn,
+    editing?.impact,
+    editing?.visibility,
+    editing?.services,
+    mode.kind,
+    presetServiceIds,
+  ]);
 
-  useEffect(() => {
-    if (!open || services !== null) return;
-    let active = true;
-    listServices()
-      .then((loaded) => {
-        if (active)
-          setServices(
-            loaded.filter(
-              (service) => service.lifecycle === "ACTIVE" || serviceIds.includes(service.id),
-            ),
-          );
-      })
-      .catch(() => {
-        if (active) setServicesFailed(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [open, services, serviceIds]);
-
+  const services = useMemo(
+    () =>
+      servicesQuery.data?.filter(
+        (service) => service.lifecycle === "ACTIVE" || serviceIds.includes(service.id),
+      ) ?? null,
+    [serviceIds, servicesQuery.data],
+  );
   const filtered = useMemo(() => {
     const query = serviceFilter.trim().toLocaleLowerCase();
     const list = services ?? [];
@@ -125,62 +137,66 @@ export function IncidentFormDialog({
         : [...current, serviceId],
     );
 
+  const startedAtInstant = startedAt.length === 0 ? null : fromDatetimeLocalValue(startedAt);
   const valid =
     title.trim().length >= 3 &&
     serviceIds.length > 0 &&
     (editing !== null || message.trim().length >= 3) &&
-    (startedAt.length === 0 || new Date(startedAt).getTime() <= Date.now());
+    (startedAt.length === 0 ||
+      (startedAtInstant !== null && Date.parse(startedAtInstant) <= currentMinute.getTime()));
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!valid || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
-      if (editing === null) {
-        const result = await createIncident({
-          title: title.trim(),
-          titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
-          impact,
-          visibility,
-          serviceIds,
-          message: message.trim(),
-          ...(startedAt.length > 0 ? { startedAt: new Date(startedAt).toISOString() } : {}),
-          notifyOpenTicketHolders: visibility === "ALL_USERS" && notify,
-          ...(ticketIds.length > 0 ? { ticketIds } : {}),
-        });
-        toast({
-          tone: "success",
-          title: t("status.form.created"),
-          description:
-            [
-              ticketIds.length > 0
-                ? t("status.form.createdLinked", { count: ticketIds.length })
-                : null,
-              visibility === "ALL_USERS" && notify
-                ? t("status.form.createdNotified", { count: result.notified })
-                : null,
-            ]
-              .filter((part): part is string => part !== null)
-              .join(" · ") || undefined,
-        });
-      } else {
-        await editIncident(editing.id, {
-          title: title.trim(),
-          titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
-          impact,
-          visibility,
-          serviceIds,
-        });
-        toast({ tone: "success", title: t("status.form.saved") });
+    if (!valid || saving || operationGuard.isPending("save")) return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        if (editing === null) {
+          const result = await createIncident({
+            title: title.trim(),
+            titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
+            impact,
+            visibility,
+            serviceIds,
+            message: message.trim(),
+            ...(startedAtInstant !== null ? { startedAt: startedAtInstant } : {}),
+            notifyOpenTicketHolders: visibility === "ALL_USERS" && notify,
+            ...(ticketIds.length > 0 ? { ticketIds } : {}),
+          });
+          toast({
+            tone: "success",
+            title: t("status.form.created"),
+            description:
+              [
+                ticketIds.length > 0
+                  ? t("status.form.createdLinked", { count: ticketIds.length })
+                  : null,
+                visibility === "ALL_USERS" && notify
+                  ? t("status.form.createdNotified", { count: result.notified })
+                  : null,
+              ]
+                .filter((part): part is string => part !== null)
+                .join(" · ") || undefined,
+          });
+        } else {
+          await editIncident(editing.id, editing.revision, {
+            title: title.trim(),
+            titleEn: titleEn.trim().length > 0 ? titleEn.trim() : null,
+            impact,
+            visibility,
+            serviceIds,
+          });
+          toast({ tone: "success", title: t("status.form.saved") });
+        }
+        onOpenChange(false);
+        onSaved();
+      } catch (caught) {
+        setError(t(mapStatusError(caught) ?? mapApiError(caught)));
+      } finally {
+        setSaving(false);
       }
-      onOpenChange(false);
-      onSaved();
-    } catch (caught) {
-      setError(t(mapStatusError(caught) ?? mapApiError(caught)));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -201,48 +217,60 @@ export function IncidentFormDialog({
           onSubmit={(event) => void submit(event)}
         >
           <Field label={t("status.form.title")} required>
-            <Input
-              value={title}
-              maxLength={titleMax}
-              onChange={(event) => setTitle(event.target.value)}
-              autoFocus
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={title}
+                maxLength={titleMax}
+                onChange={(event) => setTitle(event.target.value)}
+                autoFocus
+              />
+            )}
           </Field>
           <Field label={t("status.form.titleEn")} hint={t("status.form.titleEnHint")}>
-            <Input
-              value={titleEn}
-              maxLength={titleMax}
-              onChange={(event) => setTitleEn(event.target.value)}
-            />
+            {(control) => (
+              <Input
+                {...control}
+                value={titleEn}
+                maxLength={titleMax}
+                onChange={(event) => setTitleEn(event.target.value)}
+              />
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("status.form.impact")} required>
-              <Select
-                value={impact}
-                onChange={(event) => setImpact(event.target.value as IncidentImpact)}
-              >
-                {incidentImpacts.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`status.impact.${value}`)}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={impact}
+                  onChange={(event) => setImpact(event.target.value as IncidentImpact)}
+                >
+                  {incidentImpacts.map((value) => (
+                    <option key={value} value={value}>
+                      {t(`status.impact.${value}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field
               label={t("status.form.visibility")}
               required
               hint={t(`status.visibilityHint.${visibility}`)}
             >
-              <Select
-                value={visibility}
-                onChange={(event) => setVisibility(event.target.value as IncidentVisibility)}
-              >
-                {incidentVisibilities.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`status.visibility.${value}`)}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={visibility}
+                  onChange={(event) => setVisibility(event.target.value as IncidentVisibility)}
+                >
+                  {incidentVisibilities.map((value) => (
+                    <option key={value} value={value}>
+                      {t(`status.visibility.${value}`)}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
           </div>
           <div>
@@ -260,8 +288,23 @@ export function IncidentFormDialog({
               aria-label={t("status.form.servicesFilter")}
             />
             <div className="mt-2 grid max-h-44 gap-2 overflow-y-auto rounded-md border border-border p-2.5">
-              {servicesFailed ? (
-                <span className={errorTextClassName}>{t("status.form.servicesFailed")}</span>
+              {servicesQuery.error !== null && services === null ? (
+                <div className="grid gap-2">
+                  <span className={errorTextClassName} role="alert">
+                    {t("status.form.servicesFailed")}
+                    {readApiRequestId(servicesQuery.error)
+                      ? ` · ${t("errors.requestId", { requestId: readApiRequestId(servicesQuery.error) })}`
+                      : ""}
+                  </span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    onClick={() => void servicesQuery.refetch()}
+                  >
+                    {t("ui.retry")}
+                  </Button>
+                </div>
               ) : services === null ? (
                 <span className={hintClassName}>{t("status.loading")}</span>
               ) : filtered.length === 0 ? (
@@ -281,20 +324,29 @@ export function IncidentFormDialog({
           {editing === null ? (
             <>
               <Field label={t("status.form.message")} required hint={t("status.form.messageHint")}>
-                <Textarea
-                  rows={4}
-                  value={message}
-                  maxLength={messageMax}
-                  onChange={(event) => setMessage(event.target.value)}
-                />
+                {(control) => (
+                  <Textarea
+                    {...control}
+                    rows={4}
+                    value={message}
+                    maxLength={messageMax}
+                    onChange={(event) => setMessage(event.target.value)}
+                  />
+                )}
               </Field>
-              <Field label={t("status.form.startedAt")} hint={t("status.form.startedAtHint")}>
-                <Input
-                  type="datetime-local"
-                  value={startedAt}
-                  max={toLocalInput(new Date())}
-                  onChange={(event) => setStartedAt(event.target.value)}
-                />
+              <Field
+                label={t("status.form.startedAt")}
+                hint={t("status.form.startedAtHint", { timeZone: browserTimeZone() })}
+              >
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="datetime-local"
+                    value={startedAt}
+                    max={toDatetimeLocalValue(currentMinute)}
+                    onChange={(event) => setStartedAt(event.target.value)}
+                  />
+                )}
               </Field>
               {visibility === "ALL_USERS" ? (
                 <div className="grid gap-1">

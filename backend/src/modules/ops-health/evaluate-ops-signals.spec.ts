@@ -56,6 +56,7 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
     captchaFailedLastHour: 0,
     captchaSkippedLastHour: 0,
     auditWebhookPendingSinceMs: null,
+    mailProviderBlock: null,
     ...overrides,
   };
 }
@@ -213,22 +214,97 @@ describe('DLQ baseline', () => {
 });
 
 describe('watchdog observations', () => {
-  it('fires worker.down on a stale or missing heartbeat', () => {
-    expect(observeWorkerHeartbeat({ lastHeartbeatAt: new Date(now - 30_000).toISOString(), nowMs: now, staleSeconds: 120 }).active).toBe(false);
-    expect(observeWorkerHeartbeat({ lastHeartbeatAt: new Date(now - 121_000).toISOString(), nowMs: now, staleSeconds: 120 })).toMatchObject({
+  const heartbeat = (overrides: Partial<Parameters<typeof observeWorkerHeartbeat>[0]> = {}) =>
+    observeWorkerHeartbeat({
+      lastHeartbeatAt: null,
+      nowMs: now,
+      staleSeconds: 120,
+      snapshotGeneratedAt: null,
+      snapshotStaleSeconds: 180,
+      absenceIsEvidence: true,
+      ...overrides,
+    });
+  const monitor = (overrides: Partial<Parameters<typeof observeMonitorFreshness>[0]> = {}) =>
+    observeMonitorFreshness({
+      workerAlive: true,
+      snapshotGeneratedAt: null,
+      nowMs: now,
+      staleSeconds: 180,
+      absenceIsEvidence: true,
+      ...overrides,
+    });
+
+  it('reads a heartbeat that exists by its age, in both directions', () => {
+    expect(heartbeat({ lastHeartbeatAt: new Date(now - 30_000).toISOString() }).active).toBe(false);
+    expect(heartbeat({ lastHeartbeatAt: new Date(now - 121_000).toISOString() })).toMatchObject({
       active: true,
       severity: 'CRITICAL',
-      details: { heartbeatAgeSeconds: 121 },
+      details: { heartbeatAgeSeconds: 121, thresholdSeconds: 120 },
     });
-    expect(observeWorkerHeartbeat({ lastHeartbeatAt: null, nowMs: now, staleSeconds: 120 }).details).toEqual({ heartbeatAgeSeconds: null, thresholdSeconds: 120 });
+    // A stale heartbeat pages even during the cold-start grace: the worker ran
+    // and stopped, which is proof, not absence of proof.
+    expect(
+      heartbeat({ lastHeartbeatAt: new Date(now - 121_000).toISOString(), absenceIsEvidence: false }).active,
+    ).toBe(true);
   });
 
-  it('fires ops.monitor.stale only while the worker is alive', () => {
-    expect(observeMonitorFreshness({ workerAlive: true, snapshotGeneratedAt: null, nowMs: now, staleSeconds: 180 }).active).toBe(true);
-    expect(observeMonitorFreshness({ workerAlive: false, snapshotGeneratedAt: null, nowMs: now, staleSeconds: 180 }).active).toBe(false);
+  it('does not fire worker.down when the heartbeat key is missing but the worker is clearly alive', () => {
+    // Incident 2026-10-16: absence was read as death, so a healthy worker was
+    // paged CRITICAL whenever the key could not be read.
+    expect(heartbeat({ snapshotGeneratedAt: new Date(now - 40_000).toISOString() }).active).toBe(false);
+    // Cold start / rolling deploy: nothing in Redis yet, no snapshot yet either.
+    expect(heartbeat({ absenceIsEvidence: false }).active).toBe(false);
+  });
+
+  it('fires worker.down on a missing key only with corroboration and a trustworthy Redis', () => {
+    const observation = heartbeat({});
+    expect(observation).toMatchObject({ active: true, severity: 'CRITICAL' });
+    // `heartbeatAgeSeconds` is gone: the card must not show a number nobody read.
+    expect(observation.details).toEqual({ heartbeatMissing: true, snapshotAgeSeconds: null, thresholdSeconds: 120 });
+    // A stale snapshot is corroboration that nothing is running.
     expect(
-      observeMonitorFreshness({ workerAlive: true, snapshotGeneratedAt: new Date(now - 60_000).toISOString(), nowMs: now, staleSeconds: 180 }).active,
+      heartbeat({ snapshotGeneratedAt: new Date(now - 10 * 60_000).toISOString() }).details,
+    ).toMatchObject({ heartbeatMissing: true, snapshotAgeSeconds: 600 });
+  });
+
+  it('fires ops.monitor.stale only while the worker is alive and absence can be trusted', () => {
+    expect(monitor({}).active).toBe(true);
+    expect(monitor({ workerAlive: false }).active).toBe(false);
+    expect(monitor({ snapshotGeneratedAt: new Date(now - 60_000).toISOString() }).active).toBe(false);
+    expect(monitor({ snapshotGeneratedAt: new Date(now - 200_000).toISOString() })).toMatchObject({
+      active: true,
+      severity: 'WARNING',
+      details: { snapshotAgeSeconds: 200 },
+    });
+    expect(monitor({ absenceIsEvidence: false }).active).toBe(false);
+    expect(monitor({ absenceIsEvidence: false }).details).toEqual({});
+  });
+
+  it('alarms while the mail provider blocks outbound mail, and grades a long block', () => {
+    const blocked = (overrides: Partial<NonNullable<OpsSignals['mailProviderBlock']>> = {}) => ({
+      reason: 'dailyLimit',
+      openedAtMs: now - 10 * minute,
+      blockedUntilMs: now + 50 * minute,
+      suppressedTotal: 7,
+      ...overrides,
+    });
+    expect(byKey(healthy({})).get(opsAlertKeys.emailProviderBlocked)!.active).toBe(false);
+    expect(byKey(healthy({ mailProviderBlock: blocked() })).get(opsAlertKeys.emailProviderBlocked)).toMatchObject({
+      active: true,
+      severity: 'WARNING',
+      details: { blockedMinutesLeft: 50, suppressedTotal: 7 },
+    });
+    // An expired block is not an alarm, even if the key is still in Redis.
+    expect(
+      byKey(healthy({ mailProviderBlock: blocked({ blockedUntilMs: now - 1 }) })).get(opsAlertKeys.emailProviderBlocked)!
+        .active,
     ).toBe(false);
+    // The provider keeps refusing for hours: real mail is piling up.
+    expect(
+      byKey(healthy({ mailProviderBlock: blocked({ openedAtMs: now - 4 * 60 * minute }) })).get(
+        opsAlertKeys.emailProviderBlocked,
+      )!.severity,
+    ).toBe('CRITICAL');
   });
 });
 

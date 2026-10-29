@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { formatByteSize } from "@/lib/tickets/ticket-display";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
@@ -11,7 +12,7 @@ import type { TicketAttachmentResponse } from "@/services/tickets-attachments-ap
 interface TicketAttachmentsPanelProperties {
   readonly items: readonly TicketAttachmentResponse[];
   readonly visible: boolean;
-  /** Paket 2.6 (§6): retention removed the files; explains an empty or short list. */
+  /** retention removed the files; explains an empty or short list. */
   readonly purgedAt?: string | null;
   readonly canUpload: boolean;
   readonly onUpload: (file: File) => Promise<void>;
@@ -35,6 +36,7 @@ export function TicketAttachmentsPanel({
   const { t, i18n } = useTranslation();
   const inputReference = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   if (!visible) {
     return null;
   }
@@ -119,22 +121,26 @@ export function TicketAttachmentsPanel({
               >
                 {item.classification}
               </Badge>
-              <Button
-                type="button"
-                size="xs"
-                variant="ghost"
-                onClick={() => {
-                  if (window.confirm(t("tickets.detail.confirmDeleteAttachment"))) {
-                    void onDelete(item.id);
-                  }
-                }}
-              >
+              <Button type="button" size="xs" variant="ghost" onClick={() => setDeleteId(item.id)}>
                 {t("tickets.detail.deleteAttachment")}
               </Button>
             </li>
           ))}
         </ul>
       )}
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title={t("tickets.detail.confirmDeleteAttachment")}
+        intent="danger"
+        confirmLabel={t("tickets.detail.deleteAttachment")}
+        onConfirm={() => {
+          if (deleteId === null) return;
+          const id = deleteId;
+          setDeleteId(null);
+          void onDelete(id);
+        }}
+      />
     </Card>
   );
 }

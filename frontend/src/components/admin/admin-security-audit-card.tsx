@@ -33,7 +33,7 @@ import {
 import { listUsersSummaryPage, type UserSummary } from "@/services/users-api";
 
 /**
- * Paket 5.4.0-d (M6): the security journal card. It reads the SuperAdmin-only
+ * the security journal card. It reads the SuperAdmin-only
  * `/security/audit-log` view, offers an exact `auth.*` action filter and a
  * person filter (the picker searches people and shows display names — the raw
  * user id is never the visible label), pages with `Učitaj još`, and renders
@@ -65,6 +65,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
   const [requestId, setRequestId] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const searchSequence = useRef(0);
+  const loadSequence = useRef(0);
 
   const authActions = useMemo(
     () => knownAuditActions.filter((known) => known.startsWith("auth.")),
@@ -73,13 +74,18 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
 
   const load = useCallback(
     async (cursor: string | null) => {
+      const sequence = cursor === null ? ++loadSequence.current : loadSequence.current;
       if (!canView) {
         setRows([]);
         setNextCursor(null);
         setIsLoading(false);
+        setIsLoadingMore(false);
         return;
       }
-      if (cursor === null) setIsLoading(true);
+      if (cursor === null) {
+        setIsLoading(true);
+        setIsLoadingMore(false);
+      }
       setErrorKey(null);
       setRequestId(null);
       try {
@@ -89,16 +95,20 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
           take: securityAuditLogPageTake,
           cursor,
         });
+        if (sequence !== loadSequence.current) return;
         setRows((current) => (cursor === null ? result.items : [...current, ...result.items]));
         setNextCursor(result.nextCursor);
       } catch (error) {
+        if (sequence !== loadSequence.current) return;
         setRows((current) => (cursor === null ? [] : current));
         setNextCursor(null);
         setErrorKey(mapAdminOpsError(error));
         setRequestId(readApiRequestId(error));
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        if (sequence === loadSequence.current) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
     [action, canView, userId],
@@ -107,15 +117,18 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
   useEffect(() => {
     void load(null);
     // `reloadToken` re-runs the same query after „Osvježi” or a filter change.
+    return () => {
+      loadSequence.current += 1;
+    };
   }, [load, reloadToken]);
 
   useEffect(() => {
     const query = userQuery.trim();
+    const sequence = (searchSequence.current += 1);
     if (query.length < userSearchMinimumLength) {
       setUserMatches([]);
       return;
     }
-    const sequence = (searchSequence.current += 1);
     const timer = setTimeout(() => {
       void listUsersSummaryPage({ take: userSearchTake, skip: 0, query })
         .then((page) => {
@@ -125,7 +138,10 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
           if (sequence === searchSequence.current) setUserMatches([]);
         });
     }, 250);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (searchSequence.current === sequence) searchSequence.current += 1;
+    };
   }, [userQuery]);
 
   const viewState = resolveSecurityAuditViewState({
@@ -173,7 +189,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
                 const key = auditActionTranslationKey(known);
                 return (
                   <option key={known} value={known}>
-                    {key === null ? known : t(key as never)}
+                    {key === null ? known : t(key)}
                   </option>
                 );
               })}
@@ -259,7 +275,7 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
             body={t("admin.security.auditEmptyBody")}
           />
         ) : null}
-        {viewState.kind === "ready" ? (
+        {viewState.kind === "ready" || (viewState.kind === "error" && viewState.hasRows) ? (
           <>
             <ScrollRegion className={tableWrapClassName}>
               <table className="w-full min-w-[720px] text-left text-[13px]">
@@ -281,14 +297,12 @@ export function AdminSecurityAuditCard({ canView }: { readonly canView: boolean 
                         <td className="whitespace-nowrap px-3">
                           <RelativeTime value={row.createdAt} locale={i18n.language} />
                         </td>
-                        <td className="px-3 text-[12px]">
-                          {t(securityActionLabelKey(actionKey) as never)}
-                        </td>
+                        <td className="px-3 text-[12px]">{t(securityActionLabelKey(actionKey))}</td>
                         <td className="max-w-[220px] px-3 text-[12px] text-muted-foreground">
                           <span title={row.entityId}>
                             {entityKey === null
                               ? t("admin.ops.auditLog.labels.unknownEntity")
-                              : t(entityKey as never)}
+                              : t(entityKey)}
                           </span>
                         </td>
                         <td

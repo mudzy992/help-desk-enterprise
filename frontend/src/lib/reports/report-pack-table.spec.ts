@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatReportCell, nextReportSort, sortReportRows } from "@/lib/reports/report-pack-table";
+import {
+  formatReportCell,
+  keyReportRows,
+  nextReportSort,
+  sortReportRows,
+} from "@/lib/reports/report-pack-table";
 import { buildReportPackQuery } from "@/services/report-packs-api";
 
 describe("report pack table helpers", () => {
@@ -27,6 +32,23 @@ describe("report pack table helpers", () => {
     expect(formatReportCell("[confidential]", "bs", labels)).toBe("[povjerljivo]");
     expect(formatReportCell("VPN", "bs", labels)).toBe("VPN");
     expect(formatReportCell("2026-09-01T08:00:00.000Z", "en-GB", labels)).toMatch(/2026|26/);
+  });
+
+  it("keeps content identities stable when sorting and distinguishes duplicates", () => {
+    const columns = ["name", "count"];
+    const ascending = keyReportRows(
+      sortReportRows(rows, { column: "count", direction: "asc" }, "bs"),
+      columns,
+    );
+    const descending = keyReportRows(
+      sortReportRows(rows, { column: "count", direction: "desc" }, "bs"),
+      columns,
+    );
+    const keyFor = (items: typeof ascending, name: string) =>
+      items.find((item) => item.row.name === name)?.key;
+    expect(keyFor(ascending, "Štampač")).toBe(keyFor(descending, "Štampač"));
+    const duplicates = keyReportRows([rows[0]!, rows[0]!], columns);
+    expect(new Set(duplicates.map((item) => item.key)).size).toBe(2);
   });
 
   it("builds the scope query, with the format only for downloads", () => {

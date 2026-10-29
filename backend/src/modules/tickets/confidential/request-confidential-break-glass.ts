@@ -1,4 +1,6 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { RequestIdempotencyService } from '../../../common/idempotency/request-idempotency.service';
+import { TransactionalOutboxService } from '../../../common/outbox/transactional-outbox.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { loadOrganizationalUnitPath } from '../../authorization/load-authorization-scope';
 import { TicketsError } from '../tickets.error';
@@ -23,6 +25,7 @@ export async function requestConfidentialBreakGlass(
   authorizationContextLoader: AuthorizationContextLoader,
   ticketId: string,
   reason: string,
+  correlationId: string,
   context: TicketMutationContext,
   configuration: TicketConfidentialConfiguration,
   now = new Date(),
@@ -86,28 +89,47 @@ export async function requestConfidentialBreakGlass(
   if (current.allowed && current.via !== 'break_glass') {
     throw new TicketsError('BREAK_GLASS_NOT_APPLICABLE');
   }
-  const created = (await prisma.breakGlassEvent.create({
-    data: {
-      ticketId: ticket.id,
-      actorUserId: context.actorUserId,
-      reason: normalizedReason,
-      expiresAt: new Date(now.getTime() + breakGlassDurationMs),
+  const idempotency = new RequestIdempotencyService(prisma);
+  const outbox = new TransactionalOutboxService(prisma);
+  const result = await idempotency.execute({
+    namespace: `ticket.break_glass.${ticket.id}`,
+    key: correlationId,
+    request: { ticketId: ticket.id, actorUserId: context.actorUserId, reason: normalizedReason },
+    operation: async (transaction) => {
+      const created = (await transaction.breakGlassEvent.create({
+        data: {
+          ticketId: ticket.id,
+          actorUserId: context.actorUserId,
+          reason: normalizedReason,
+          correlationId,
+          expiresAt: new Date(now.getTime() + breakGlassDurationMs),
+        },
+      })) as BreakGlassEventRecord;
+      await recordConfidentialAccessAudit(transaction as never, {
+        ticketId: ticket.id,
+        organizationalUnitId: ticket.originUnitId,
+        actorUserId: context.actorUserId,
+        result: 'break_glass',
+        via: 'break_glass',
+        reason: normalizedReason,
+        correlationId,
+        configuration,
+        writeSystemEvent: true,
+      });
+      await outbox.enqueue(transaction, {
+        topic: 'ticket.break_glass.effects',
+        dedupeKey: correlationId,
+        payload: { ticketId: ticket.id, actorUserId: context.actorUserId, correlationId, expiresAt: created.expiresAt?.toISOString() ?? null },
+      });
+      const response: BreakGlassResponse = {
+        correlationId,
+        ticketId: created.ticketId,
+        actorUserId: created.actorUserId,
+        expiresAt: created.expiresAt?.toISOString() ?? null,
+        createdAt: created.createdAt.toISOString(),
+      };
+      return { statusCode: 201, body: response as never };
     },
-  })) as BreakGlassEventRecord;
-  await recordConfidentialAccessAudit(prisma, {
-    ticketId: ticket.id,
-    organizationalUnitId: ticket.originUnitId,
-    actorUserId: context.actorUserId,
-    result: 'break_glass',
-    via: 'break_glass',
-    reason: normalizedReason,
-    configuration,
-    writeSystemEvent: true,
   });
-  return {
-    ticketId: created.ticketId,
-    actorUserId: created.actorUserId,
-    expiresAt: created.expiresAt?.toISOString() ?? null,
-    createdAt: created.createdAt.toISOString(),
-  };
+  return result.body as unknown as BreakGlassResponse;
 }

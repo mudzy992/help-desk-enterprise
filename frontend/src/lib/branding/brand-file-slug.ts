@@ -1,4 +1,4 @@
-/** Paket 4.1: file-name prefix from the configured product name ("Service Desk" → "service-desk"). */
+/** file-name prefix from the configured product name ("Service Desk" → "service-desk"). */
 export function brandFileSlug(appName: string): string {
   const slug = appName
     .normalize("NFKD")

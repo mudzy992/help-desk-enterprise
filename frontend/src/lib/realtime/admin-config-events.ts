@@ -1,7 +1,7 @@
 import { queryKeys } from "@/lib/query/query-keys";
 
 /**
- * Paket 1.7 (R2/R3): `admin.config.updated { domain }` from the `role:admins`
+ * `admin.config.updated { domain }` from the `role:admins`
  * room. Pure helpers plus a tiny in-memory bus between the socket host and the
  * admin screens (which load their data imperatively, not via React Query).
  */
@@ -58,7 +58,7 @@ export function queryKeysForAdminConfigDomain(
     case "groups":
       return [queryKeys.routingCatalog];
     case "templates":
-      // Paket 1.4 (A5): the composer picker loads imperatively on open.
+      // the composer picker loads imperatively on open.
       return [];
   }
 }

@@ -1,3 +1,5 @@
+import { permissionKeys } from '../authorization/authorization.constants';
+import type { AuthorizationContext } from '../authorization/authorization.types';
 import { routingOutcomes } from './routing.constants';
 import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
@@ -132,6 +134,164 @@ describe('RoutingService coverage', () => {
     const secondServiceIds = new Set(second.items.map((item) => item.serviceId));
     expect(secondServiceIds.size).toBe(first.total - 50);
     expect([...firstServiceIds].some((serviceId) => secondServiceIds.has(serviceId))).toBe(false);
+  });
+
+  it('applies service scope before count, cursor, and page selection', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    for (const [id, name] of [
+      ['service-allowed-a', 'A allowed'],
+      ['service-forbidden', 'B forbidden'],
+      ['service-allowed-c', 'C allowed'],
+    ] as const) {
+      memory.seedService({ id, name, lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
+    }
+    const viewer: AuthorizationContext = {
+      subjectId: 'scoped-reader', isLocalOnly: false, isSuperAdmin: false,
+      assignments: ['service-allowed-a', 'service-allowed-c'].map((serviceId) => ({
+        roleKey: 'routing-reader', permissionKeys: [permissionKeys.routingRead],
+        organizationalUnitId: 'ou-child', organizationalUnitPath: '/Korisnici/Direkcija', serviceId,
+      })),
+    };
+
+    const first = await routing.coverage({ take: 1 }, viewer);
+    expect(first.total).toBe(2);
+    expect(new Set(first.items.map((item) => item.serviceId))).toEqual(new Set(['service-allowed-a']));
+    expect(first.items.map((item) => item.originUnitId)).toEqual(['ou-child', 'ou-leaf']);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await routing.coverage({ take: 1, cursor: first.nextCursor ?? undefined }, viewer);
+    expect(second.total).toBe(2);
+    expect(new Set(second.items.map((item) => item.serviceId))).toEqual(new Set(['service-allowed-c']));
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it('reports an exact scoped total beyond the former 50-service approximation cap', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    const allowedServiceIds: string[] = [];
+    for (let index = 0; index < 75; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      const serviceId = `service-scoped-${suffix}`;
+      allowedServiceIds.push(serviceId);
+      memory.seedService({
+        id: serviceId,
+        name: `Scoped service ${suffix}`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+      memory.seedService({
+        id: `service-hidden-${suffix}`,
+        name: `Scoped service ${suffix} hidden`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+    }
+    const viewer: AuthorizationContext = {
+      subjectId: 'large-scoped-reader',
+      isLocalOnly: false,
+      isSuperAdmin: false,
+      assignments: allowedServiceIds.map((serviceId) => ({
+        roleKey: 'routing-reader',
+        permissionKeys: [permissionKeys.routingRead],
+        organizationalUnitId: 'ou-child',
+        organizationalUnitPath: '/Korisnici/Direkcija',
+        serviceId,
+      })),
+    };
+
+    let cursor: string | undefined;
+    const pagedServiceIds = new Set<string>();
+    do {
+      const page = await routing.coverage({ take: 7, cursor }, viewer);
+      expect(page.total).toBe(75);
+      for (const item of page.items) {
+        pagedServiceIds.add(item.serviceId);
+      }
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor !== undefined);
+
+    expect(pagedServiceIds).toEqual(new Set(allowedServiceIds));
+    expect([...pagedServiceIds].some((id) => id.includes('hidden'))).toBe(false);
+  });
+
+  it('preserves paired OU and service assignments instead of creating a scope cross-product', async () => {
+    const { memory, routing } = createRoutingServiceHarness();
+    memory.seedService({ id: 'service-a', name: 'Service A', lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
+    memory.seedService({ id: 'service-b', name: 'Service B', lifecycle: 'ACTIVE', availability: 'OPERATIONAL' });
+    const viewer: AuthorizationContext = {
+      subjectId: 'paired-reader', isLocalOnly: false, isSuperAdmin: false,
+      assignments: [
+        { roleKey: 'routing-reader', permissionKeys: [permissionKeys.routingRead], organizationalUnitId: 'ou-leaf', organizationalUnitPath: '/Korisnici/Direkcija/IT', serviceId: 'service-a' },
+        { roleKey: 'routing-reader', permissionKeys: [permissionKeys.routingRead], organizationalUnitId: 'ou-child', organizationalUnitPath: '/Korisnici/Direkcija', serviceId: 'service-b' },
+      ],
+    };
+
+    const page = await routing.coverage({}, viewer);
+    expect(page.items.filter((item) => item.serviceId === 'service-a').map((item) => item.originUnitId)).toEqual(['ou-leaf']);
+    expect(page.items.filter((item) => item.serviceId === 'service-b').map((item) => item.originUnitId)).toEqual(['ou-child', 'ou-leaf']);
+  });
+
+  it('bounds service-by-OU expansion and continues at a complete service boundary', async () => {
+    const { memory, routing, viewer } = createRoutingServiceHarness();
+    for (let index = 0; index < 120; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      memory.seedUnit({
+        id: `ou-budget-${suffix}`,
+        parentId: 'ou-root',
+        ouPath: `/Korisnici/Budget ${suffix}`,
+      });
+    }
+    for (let index = 0; index < 5; index += 1) {
+      memory.seedService({
+        id: `service-budget-${index}`,
+        name: `Budget service ${index}`,
+        lifecycle: 'ACTIVE',
+        availability: 'OPERATIONAL',
+      });
+    }
+
+    const first = await routing.coverage({ take: 5 }, viewer);
+    expect(first.resourceBudget.itemCount).toBeLessThanOrEqual(500);
+    expect(first.resourceBudget.estimatedBytes).toBeLessThanOrEqual(1_000_000);
+    expect(first.resourceBudget.limited).toBe(true);
+    expect(new Set(first.items.map((item) => item.serviceId)).size).toBe(4);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await routing.coverage({
+      take: 5,
+      cursor: first.nextCursor ?? undefined,
+    }, viewer);
+    expect(new Set(second.items.map((item) => item.serviceId))).toEqual(
+      new Set(['service-budget-4']),
+    );
+    expect(second.resourceBudget.limited).toBe(false);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it('requires an OU filter when one service alone exceeds the coverage budget', async () => {
+    const { memory, routing, viewer } = createRoutingServiceHarness();
+    for (let index = 0; index < 500; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      memory.seedUnit({
+        id: `ou-large-${suffix}`,
+        parentId: 'ou-root',
+        ouPath: `/Korisnici/Large ${suffix}`,
+      });
+    }
+
+    await expect(routing.coverage({
+      includeInactive: true,
+      serviceId: 'service-vpn',
+    }, viewer)).rejects.toMatchObject({
+      status: 400,
+      response: { code: 'ROUTING_COVERAGE_BUDGET_EXCEEDED' },
+    });
+    const filtered = await routing.coverage({
+      includeInactive: true,
+      serviceId: 'service-vpn',
+      originUnitId: 'ou-large-000',
+    }, viewer);
+    expect(filtered.items).toHaveLength(1);
+    expect(filtered.resourceBudget.limited).toBe(false);
   });
 
   it('rejects malformed coverage cursors', async () => {

@@ -141,6 +141,7 @@
       "copyRequestId": "Copy request ID {{requestId}}",
       "copied": "Request ID copied"
     },
+    "retry": "Try again",
     "save": "Save"
   },
   "notifications": {
@@ -203,6 +204,7 @@
     "settingsBody": "Application settings will appear here when the settings registry is available on this screen."
   },
   "admin": {
+    "readOnlyBanner": "This administration module is read-only. Changes are disabled for your role.",
     "title": "System administration",
     "subtitle": "Identity, organizational structure, settings, and operations. Every change goes through a change log with a reason; read-only mode is available by role.",
     "tabs": {
@@ -217,6 +219,7 @@
     "opsEmptyTitle": "Job queue and audit export come with Phase 7/8",
     "ops": {
       "organizationalUnit": "Organizational unit (audit scope)",
+      "organizationalUnitLoadError": "The organizational-unit tree could not be loaded.",
       "needOrganizationalUnit": "Select an organizational unit before exporting.",
       "auditLogTitle": "Audit log",
       "auditLogBody": "Audit records (newest first) within the selected organizational unit scope.",
@@ -260,6 +263,7 @@
             "ticket_confidential_break_glass": "Confidential ticket — emergency access granted",
             "ticket_bulk_execute": "Bulk ticket action — executed",
             "ticket_forwarded": "Ticket — forwarded",
+            "ticket_message_created": "Ticket — message created",
             "ticket_priority_overridden": "Ticket — priority manually overridden",
             "ticket_merged": "Ticket — merged",
             "ticket_unmerged": "Ticket — merge undone",
@@ -354,6 +358,7 @@
             "oncall_calendar_token_rotated": "On-call calendar token — rotated",
             "oncall_calendar_token_revoked": "On-call calendar token — revoked",
             "oncall_escalation_notified": "On-call escalation — notified",
+            "sla_escalation_audience_empty": "SLA escalation — no eligible recipient",
             "announcement_created": "Announcement — created",
             "announcement_updated": "Announcement — updated",
             "announcement_published": "Announcement — published",
@@ -368,8 +373,20 @@
             "asset_deleted": "Asset — deleted",
             "asset_import_applied": "Asset import — applied",
             "asset_exported": "Asset — exported",
+            "asset_ticket_linked": "Asset — linked to ticket",
+            "asset_ticket_unlinked": "Asset — unlinked from ticket",
+            "asset_license_created": "Asset license — created",
+            "asset_license_updated": "Asset license — updated",
+            "asset_license_deleted": "Asset license — deleted",
+            "asset_license_assigned": "Asset license — assigned",
+            "asset_license_released": "Asset license — released",
             "asset_license_key_revealed": "Asset license — key revealed",
             "asset_license_saved": "Asset license — saved",
+            "asset_contract_created": "Asset contract — created",
+            "asset_contract_updated": "Asset contract — updated",
+            "asset_contract_deleted": "Asset contract — deleted",
+            "asset_contract_item_added": "Asset contract — item added",
+            "asset_contract_item_removed": "Asset contract — item removed",
             "asset_contract_saved": "Asset contract — saved",
             "asset_directory_sync_dry_run": "Asset directory sync — dry run completed",
             "asset_directory_sync_applied": "Asset directory sync — applied",
@@ -378,6 +395,10 @@
             "asset_transfer_signed": "Asset transfer — signed",
             "asset_transfer_template_uploaded": "Asset transfer — template uploaded",
             "asset_signatory_saved": "Asset-transfer signatory — saved",
+            "config_version_activate": "Config version — activated",
+            "config_version_rollback": "Config version — rolled back",
+            "config_version_export": "Config version — exported",
+            "config_version_import": "Config version — imported",
             "problem_created": "Problem — created",
             "problem_status_changed": "Problem — status changed",
             "problem_closed": "Problem — closed",
@@ -461,6 +482,9 @@
             "rollbackOfVersion": "Rollback of version",
             "durationMinutes": "Duration in minutes",
             "source": "Source",
+            "idempotencyKey": "Idempotency key",
+            "messageId": "Message ID",
+            "messageType": "Message type",
             "roleKey": "Role key",
             "delivered": "Delivered",
             "category": "Category",
@@ -934,6 +958,7 @@
           "problem_sweep_hourly": "Problem due-date scan",
           "report_schedules_5min": "Scheduled report delivery",
           "sla_scan_every_minute": "SLA scan and escalations",
+          "status_incident_start_delivery_every_minute": "Status incident start notifications",
           "ticket_archive_quarter_hourly": "Closed-ticket archiving",
           "ticket_time_tracking_sweep_5min": "Open time-entry cleanup",
           "unrouted_sweep_quarter_hourly": "Unrouted-ticket processing",
@@ -981,6 +1006,10 @@
         "worker_down": {
           "title": "Worker is down",
           "action": "Check the worker container (logs, restart). While it is down SLA, e-mail and scheduled jobs stop."
+        },
+        "email_providerBlocked": {
+          "title": "Outbound e-mail is paused (provider limit)",
+          "action": "The provider (e.g. Gmail) refuses sending because its quota is used up. The application stops retrying until the quota passes and queued mail waits. Check the account daily limit, the recipient count and whether a second SMTP account is needed."
         },
         "sla_scan_late": {
           "title": "SLA scan is late",
@@ -1062,6 +1091,10 @@
         "daysLeft": "Days until expiry",
         "heartbeatAgeSeconds": "Seconds since last heartbeat",
         "snapshotAgeSeconds": "Seconds since last check",
+        "heartbeatMissing": "Heartbeat key could not be read",
+        "snapshotMissing": "Health snapshot key could not be read",
+        "blockedMinutesLeft": "Minutes until sending resumes",
+        "suppressedTotal": "Suppressed sends",
         "newFailures": "New failed jobs",
         "integrationDlq": "Integrations in DLQ",
         "jobs": "Late jobs",
@@ -1163,10 +1196,14 @@
       "service.catalog.write": "Edit service catalog",
       "service.forms.write": "Edit service forms",
       "service.availability.write": "Service availability",
+      "sla.read": "View SLA",
       "sla.write": "Edit SLA",
       "routing.write": "Edit routing",
       "group.manage": "Manage groups",
+      "settings.read": "View settings",
       "settings.write": "Edit settings",
+      "config.version.read": "View configuration versions",
+      "docs.agent.read": "Internal agent documentation",
       "integrations.queue.manage": "Manage integrations queue",
       "audit.export": "Export audit",
       "reports.export": "Export reports",
@@ -1280,7 +1317,8 @@
     "problemGroupBadge": "Problem group",
     "cabGroupBadge": "CAB",
     "deleteConfirmTitle": "Delete the group \"{{name}}\"?",
-    "deleteConfirmBody": "The group has {{count}} members. Deletion is audited and cannot be undone."
+    "deleteConfirmBody": "The group has {{count}} members. Deletion is audited and cannot be undone.",
+    "routingRuleCountUnavailable": "Routing rule count is unavailable."
   },
   "permissions": {
     "title": "Role permissions",
@@ -1338,10 +1376,14 @@
         "service.catalog.write": "Create and edit service catalog entries and onboarding steps.",
         "service.forms.write": "Create and edit service request forms.",
         "service.availability.write": "Manage service availability windows and downtime.",
-        "sla.write": "Manage SLA calendars, profiles, and rules.",
+        "sla.read": "View SLA calendars, profiles, rules, and change history within assigned scope.",
+      "sla.write": "Manage SLA calendars, profiles, and rules.",
         "routing.write": "Create and edit ticket routing rules.",
         "group.manage": "Create, edit, and delete groups and manage group members.",
+        "settings.read": "View the global private settings registry and configuration projections.",
         "settings.write": "Change system settings, policy packs, and config versions.",
+        "config.version.read": "View global configuration versions, snapshots, and diffs.",
+        "docs.agent.read": "Read internal documentation intended for support agents.",
         "integrations.queue.manage": "View and manage the integration job queue (retry, inspect).",
         "audit.export": "Export audit log data (CSV/JSON) and related reports access.",
         "reports.export": "Access and export dashboard and KPI reports.",
@@ -1641,7 +1683,7 @@
       "title": "Other registered settings",
       "subtitle": "Remaining categories open in a drawer. Descriptions come from the i18n registry.",
       "loading": "Loading settings registry…",
-      "readOnly": "You can view these settings but cannot change them.",
+      "readOnly": "Wizard",
       "reason": "Change reason",
       "save": "Save",
       "saving": "Saving…",
@@ -1772,6 +1814,15 @@
         "private.i18n.supportedLocalesCsv": "Languages offered to users, comma separated (bs, en).",
         "private.install.completedAt": "When the first-run install wizard finished (empty means setup is still open).",
         "private.install.completedByUserId": "User id of the SuperAdmin who completed the first-run install wizard.",
+        "private.install.profile": "Install package the wizard uses (minimum, standard or full).",
+        "private.install.steps.profile.skipped": "Marks that the package step was deferred in the wizard.",
+        "private.install.steps.superAdmin.skipped": "Marks that the SuperAdmin step was deferred in the wizard.",
+        "private.install.steps.loginProvider.skipped": "Marks that the sign-in mode step was deferred in the wizard.",
+        "private.install.steps.smtp.skipped": "Marks that the SMTP step was deferred in the wizard.",
+        "private.install.steps.seed.skipped": "Marks that the starting-data step was deferred in the wizard.",
+        "private.install.steps.addons.skipped": "Marks that the add-ons step was deferred in the wizard.",
+        "private.install.steps.provisioning.skipped": "Marks that the readiness step was deferred in the wizard (it is not offered for deferral).",
+        "private.install.checklistDismissedAt": "When an administrator hid the post-install setup checklist on the dashboard.",
         "private.integrations.queue.adminUiEnabled": "Enable the admin API to inspect the queue and retry jobs.",
         "private.integrations.queue.deadLetterAfterAttempts": "Failed attempts after which a job moves to the dead-letter queue.",
         "private.integrations.queue.deadLetterRetentionDays": "Days to keep dead-letter jobs before the worker deletes them.",
@@ -2025,6 +2076,7 @@
         "private.privacy.retention.requestRegisterDays": "Days to keep closed data subject requests (0 = off, minimum 365).",
         "private.privacy.retention.runAtLocalTime": "Local time of the nightly retention job (HH:MM).",
         "private.privacy.retention.maxMinutesPerNight": "Maximum minutes per nightly run; the rest continues the next night (5-240).",
+        "private.privacy.retention.statusIncidentsDays": "Days after resolution before a status-page incident is archived; title, author, timeline updates, ticket links and subscriptions are redacted or removed (0 = off, minimum 180).",
         "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate.",
         "private.privacy.anonymization.requireSecondApprover": "A second SUPER_ADMIN must approve every anonymization (four eyes).",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pre-select deleting the person’s own attachments during anonymization.",
@@ -2157,7 +2209,39 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "CAPTCHA — refused challenges per hour, warning",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "CAPTCHA — refused challenges per hour, critical",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "CAPTCHA — skipped checks per hour, warning",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — skipped checks per hour, critical"
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "CAPTCHA — skipped checks per hour, critical",
+        "private.install.steps.identity.skipped": "The “Identity” wizard step was deferred.",
+        "private.install.steps.team.skipped": "The “Team” wizard step was deferred.",
+        "private.install.blueprint": "Catalog template applied by the wizard (for example itServiceDesk).",
+        "private.install.policyPack": "Policy pack the wizard applied to the organizational unit (for example PACK_IT_STANDARD).",
+        "private.install.slaReview": "How the SLA review in the wizard ended: confirmed (defaults accepted) or adjusted (changed).",
+        "private.install.steps.blueprint.skipped": "Flag that the catalog step was deferred in the wizard.",
+        "private.install.steps.policyPack.skipped": "Flag that the policy pack step was deferred in the wizard.",
+        "private.install.steps.slaReview.skipped": "Flag that the SLA review step was deferred in the wizard.",
+        "private.install.steps.section.inboundEmail.skipped": "Flag that the “Incoming email” section was deferred in the wizard.",
+        "private.install.steps.section.inboundEmail.saved": "Flag that the “Incoming email” section was answered in the wizard.",
+        "private.install.steps.section.directory.skipped": "Flag that the “Directory (AD/LDAPS)” section was deferred in the wizard.",
+        "private.install.steps.section.directory.saved": "Flag that the “Directory (AD/LDAPS)” section was answered in the wizard.",
+        "private.install.steps.section.knowledgeBase.skipped": "Flag that the “Knowledge base” section was deferred in the wizard.",
+        "private.install.steps.section.knowledgeBase.saved": "Flag that the “Knowledge base” section was answered in the wizard.",
+        "private.install.steps.section.statusPage.skipped": "Flag that the “Status page” section was deferred in the wizard.",
+        "private.install.steps.section.statusPage.saved": "Flag that the “Status page” section was answered in the wizard.",
+        "private.install.steps.section.onCall.skipped": "Flag that the “On-call” section was deferred in the wizard.",
+        "private.install.steps.section.onCall.saved": "Flag that the “On-call” section was answered in the wizard.",
+        "private.install.steps.section.announcements.skipped": "Flag that the “Announcements” section was deferred in the wizard.",
+        "private.install.steps.section.announcements.saved": "Flag that the “Announcements” section was answered in the wizard.",
+        "private.install.steps.section.security.skipped": "Flag that the “Security” section was deferred in the wizard.",
+        "private.install.steps.section.security.saved": "Flag that the “Security” section was answered in the wizard.",
+        "private.install.steps.section.privacy.skipped": "Flag that the “Privacy and data” section was deferred in the wizard.",
+        "private.install.steps.section.privacy.saved": "Flag that the “Privacy and data” section was answered in the wizard.",
+        "private.install.steps.section.auditWebhook.skipped": "Flag that the “Audit webhook” section was deferred in the wizard.",
+        "private.install.steps.section.auditWebhook.saved": "Flag that the “Audit webhook” section was answered in the wizard.",
+        "private.install.steps.section.itsm.skipped": "Flag that the “ITSM modules” section was deferred in the wizard.",
+        "private.install.steps.section.itsm.saved": "Flag that the “ITSM modules” section was answered in the wizard.",
+        "private.install.steps.section.integrations.skipped": "Flag that the “Integrations” section was deferred in the wizard.",
+        "private.install.steps.section.integrations.saved": "Flag that the “Integrations” section was answered in the wizard.",
+        "private.install.steps.securityRecommendations.skipped": "Flag that the “Security recommendations” section was deferred in the wizard.",
+        "private.install.steps.securityRecommendations.saved": "Flag that the “Security recommendations” section was answered in the wizard."
       },
       "help": {
         "private.addons.approvals": "Enables ticket approval for services that require it, with the Pending Approval status. When off, such tickets move on without approval and the approval screen is hidden.",
@@ -2247,6 +2331,15 @@
         "private.i18n.supportedLocalesCsv": "Languages offered to users (bs, en). A language that is not listed is absent from the picker, while its translated texts stay in the system.",
         "private.install.completedAt": "ISO date and time when the install wizard completed. An empty value means first-run setup is still active and the system keeps asking for it.",
         "private.install.completedByUserId": "The user (SuperAdmin) who locked the install wizard. The record stays as evidence of who put the installation into service and when.",
+        "private.install.profile": "The package the operator chose in the wizard's first step. Minimum covers the ticketing core, Standard adds the team and email, Full adds the extra modules. Empty means no package was chosen yet and the wizard behaves as Minimum.",
+        "private.install.steps.profile.skipped": "Set by the wizard when the operator defers the package choice. A deferred step never blocks completion, but the post-install checklist keeps showing it.",
+        "private.install.steps.superAdmin.skipped": "Set by the wizard when the operator defers the step. It cannot be deferred before a SuperAdmin exists, so the value stays false in practice.",
+        "private.install.steps.loginProvider.skipped": "Set by the wizard when the operator defers the sign-in step. A deferred step does not block completion, but it stays on the checklist.",
+        "private.install.steps.smtp.skipped": "Set by the wizard when the operator defers SMTP, e.g. in the Minimum package where email is optional. A deferred step does not block completion; the checklist still lists it.",
+        "private.install.steps.seed.skipped": "Set by the wizard when the operator defers the starting data. Without an organizational unit, service and routing the installation cannot receive tickets, so the value stays false in practice.",
+        "private.install.steps.addons.skipped": "Set by the wizard when the operator defers the add-ons confirmation. The catalog defaults apply then, and the modules can still be enabled later in Settings.",
+        "private.install.steps.provisioning.skipped": "The step cannot be deferred — the installation finishes only once every check is green. The key exists because every registry step owns one.",
+        "private.install.checklistDismissedAt": "Written by the “Hide” button on the dashboard. It hides the widget only; the items stay visible in Settings and disappear by themselves once they are done.",
         "private.integrations.queue.adminUiEnabled": "When on, the admin API for queue inspection and manual retry is available. When off, the queue runs unwatched from the application and problems are solved in logs only.",
         "private.integrations.queue.deadLetterAfterAttempts": "Attempt count after which a failed job moves to the dead-letter queue. From there the job can be inspected and retried by hand.",
         "private.integrations.queue.deadLetterRetentionDays": "How many days the worker keeps DLQ jobs before deleting them. A longer period allows later analysis but stores sensitive payloads longer.",
@@ -2500,6 +2593,7 @@
         "private.privacy.retention.requestRegisterDays": "How many days closed data subject requests are kept; 0 disables the purge. The default five years matches the usual proof-of-processing requirements.",
         "private.privacy.retention.runAtLocalTime": "Local time (HH:mm, Europe/Sarajevo) of the nightly retention run. Put it outside working hours and away from other nightly jobs.",
         "private.privacy.retention.maxMinutesPerNight": "Longest duration of the nightly retention run in minutes (5-240). A short budget keeps the job predictable, but large backlogs then take several nights.",
+        "private.privacy.retention.statusIncidentsDays": "Days after resolution before a status-page incident is archived. Title, author, timeline updates, ticket links and subscriptions are redacted or removed; the incident skeleton is kept for reports. 0 disables archiving. Minimum 180 days.",
         "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate (30-3650). Too short a period may catch someone returning from leave.",
         "private.privacy.anonymization.requireSecondApprover": "When on, anonymization needs a second SUPER_ADMIN approval (four eyes). Enable it whenever more than one person holds that right.",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "When on, deleting the attachments the person uploaded is pre-selected, so anonymization starts from the stricter choice. The operator can still uncheck it.",
@@ -2632,7 +2726,39 @@
         "private.ops.thresholds.captchaFailedWarnPerHour": "How many refused CAPTCHA challenges an hour raise the warning alarm (auth.captchaFailed.high). A refusal means the client sent a solution Cloudflare did not accept.",
         "private.ops.thresholds.captchaFailedCriticalPerHour": "Refused challenges per hour that raise the critical alarm; keep it above the warning level.",
         "private.ops.thresholds.captchaSkippedWarnPerHour": "How many checks an hour may be skipped because Cloudflare did not answer before the warning alarm (auth.captchaSkipped.high) arrives.",
-        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Skipped checks per hour that raise the critical alarm; keep it above the warning level."
+        "private.ops.thresholds.captchaSkippedCriticalPerHour": "Skipped checks per hour that raise the critical alarm; keep it above the warning level.",
+        "private.install.steps.identity.skipped": "Records that the identity step was skipped with “Configure later”. The post-install checklist reads it.",
+        "private.install.steps.team.skipped": "Records that the team step was skipped with “Configure later”. The post-install checklist reads it.",
+        "private.install.blueprint": "The template the catalog categories and services were built from. Empty means the catalog was not built from a template and only the service from the initial data step exists.",
+        "private.install.policyPack": "The policy pack the wizard applied to the organizational unit, together with its roles and permissions. Empty means no permissions were granted from the wizard.",
+        "private.install.slaReview": "The record that the operator reviewed the working hours and the priority matrix. `confirmed` means the defaults were accepted, `adjusted` that they were changed, empty that the step was not answered yet.",
+        "private.install.steps.blueprint.skipped": "Set by the wizard when the operator defers building the catalog from a template. The catalog then keeps only the service from the initial data step, and the template can still be applied later.",
+        "private.install.steps.policyPack.skipped": "Set by the wizard when the operator defers the policy pack. The roles and permissions the pack carries then have to be granted by hand in Settings.",
+        "private.install.steps.slaReview.skipped": "Set by the wizard when the operator defers the SLA review. The working hours and the priority matrix stay at their defaults until somebody changes them in Settings.",
+        "private.install.steps.section.inboundEmail.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Incoming email” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.inboundEmail.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.directory.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Directory (AD/LDAPS)” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.directory.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.knowledgeBase.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Knowledge base” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.knowledgeBase.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.statusPage.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Status page” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.statusPage.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.onCall.skipped": "Set by the wizard when the operator chooses “Configure later” in the “On-call” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.onCall.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.announcements.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Announcements” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.announcements.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.security.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Security” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.security.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.privacy.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Privacy and data” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.privacy.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.auditWebhook.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Audit webhook” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.auditWebhook.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.itsm.skipped": "Set by the wizard when the operator chooses “Configure later” in the “ITSM modules” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.itsm.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.section.integrations.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Integrations” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.section.integrations.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed.",
+        "private.install.steps.securityRecommendations.skipped": "Set by the wizard when the operator chooses “Configure later” in the “Security recommendations” step. The section's settings stay at their defaults until someone changes them in Settings.",
+        "private.install.steps.securityRecommendations.saved": "Set by the wizard when the operator confirms or saves the step. A section can be answered without a single change, which is why this is the only trace that the step was passed."
       },
       "type": {
         "boolean": "on/off",
@@ -2674,6 +2800,7 @@
       "smtpMissingWarning": "SMTP is off or incomplete — sending and tests are not possible.",
       "open": "Edit templates",
       "editorTitle": "E-mail templates",
+      "unsavedConfirm": "You have unsaved changes. Do you want to leave the editor?",
       "editorDescription": "Only texts change; the layout is shared and tested in Outlook. Only differences from the defaults are stored, with a change reason.",
       "event": "Event",
       "language": "Language",
@@ -2877,7 +3004,8 @@
       "discardBody": "The value was not saved. Closing now loses the input.",
       "discardAction": "Discard changes",
       "noticeEditorLink": "Open the notice editor",
-      "noticeEditorHint": "This notice is edited in the dedicated editor of the privacy module, not here."
+      "noticeEditorHint": "This notice is edited in the dedicated editor of the privacy module, not here.",
+      "readOnlyHint": "The install wizard owns this key — its value is changed by the wizard steps, not by hand. It is shown here for reference only."
     },
     "dependencies": {
       "requiresTitle": "Conditions (must hold before switching on)",
@@ -2927,6 +3055,7 @@
     "recentHeading": "Recent tickets",
     "recentHint": "Most recently created tickets you can access.",
     "viewAll": "View all",
+    "refreshStale": "Automatic refresh failed. The last available data is still shown.",
     "recentEmptyTitle": "No recent tickets",
     "recentEmptyBody": "Tickets appear here after they are created.",
     "columnTicket": "Ticket",
@@ -2959,7 +3088,7 @@
     "statusChartSubtitle": "All open and closed tickets you can access",
     "statusChartCenter": "tickets total",
     "volumeChartTitle": "Ticket flow — last 14 days",
-    "volumeChartSubtitle": "Created versus resolved, from the same ticket list",
+    "volumeChartSubtitle": "Created and resolved per day in the reporting time zone",
     "volumeTruncatedHint": "The window holds more tickets than one page — the chart numbers are a lower bound.",
     "volumeCreated": "Created",
     "volumeResolved": "Resolved",
@@ -2971,6 +3100,7 @@
     "slaEmpty": "No tickets past their SLA due time.",
     "inboxSnapshotTitle": "Group inbox",
     "inboxSnapshotSubtitle": "Unclaimed tickets by group",
+    "inboxSnapshotPartial": "The distribution shows the first {{shown}} of {{total}} tickets; the card uses the server total.",
     "inboxOpen": "Open inbox",
     "inboxEmpty": "No unclaimed tickets in your groups.",
     "inboxUnroutedBanner": "unrouted tickets",
@@ -2987,8 +3117,38 @@
     "activityTitle": "Activity",
     "activitySubtitle": "Latest events",
     "activityEmpty": "No recent events.",
+    "activityRetry": "Retry",
     "unroutedOverdueBanner_one": "{{count}} unrouted ticket waiting over {{hours}} h — handle it",
-    "unroutedOverdueBanner_other": "{{count}} unrouted tickets waiting over {{hours}} h — handle them"
+    "unroutedOverdueBanner_other": "{{count}} unrouted tickets waiting over {{hours}} h — handle them",
+    "setupChecklist": {
+      "title": "Finish the setup",
+      "subtitle": "Left for later: {{count}}",
+      "unavailable": "The setup checklist is temporarily unavailable.",
+      "dismiss": "Hide",
+      "goTo": "Open",
+      "itemHint": "Not configured during the installation.",
+      "item": {
+        "smtp": "E-mail notifications are off — configure SMTP.",
+        "team": "The team is only the SuperAdmin — invite colleagues into the group.",
+        "blueprint": "The catalog has no services from a template.",
+        "slaReview": "Working hours and the priority matrix were not reviewed.",
+        "securityRecommendations": "The production recommendations are not applied.",
+        "addons": "Add-ons were not confirmed — the default values are in use.",
+        "section": {
+          "inboundEmail": "Inbound e-mail is not configured.",
+          "directory": "The directory (LDAPS) is not connected.",
+          "knowledgeBase": "The knowledge base is not configured.",
+          "statusPage": "The status page is not enabled.",
+          "onCall": "On-call rotations are not set up.",
+          "announcements": "Announcements are not configured.",
+          "security": "The security rules were not reviewed.",
+          "privacy": "The privacy policy was not reviewed.",
+          "auditWebhook": "The audit webhook is not configured.",
+          "itsm": "ITSM processes (problems and changes) are not configured.",
+          "integrations": "Integrations are not connected."
+        }
+      }
+    }
   },
   "reports": {
     "title": "Reports and bottlenecks",
@@ -3068,7 +3228,8 @@
       "columnKey": "Name",
       "columnSample": "Sample",
       "columnAverage": "Average (of {{max}})",
-      "belowTarget": "below target"
+      "belowTarget": "below target",
+      "allTimeScope": "All time — not filtered by period or organizational unit."
     },
     "bottlenecks": {
       "title": "Bottlenecks",
@@ -3244,7 +3405,9 @@
         "agent_service": "Agent × service",
         "agent_total": "Agent total",
         "total": "Total"
-      }
+      },
+      "selectUnitTitle": "Select an organizational unit",
+      "selectUnitBody": "Report packs load after a unit is selected."
     },
     "errors": {
       "REPORT_WINDOW_INVALID": "The range is not allowed for the selected granularity (daily up to 92 days, weekly up to 104 weeks, monthly up to the configured maximum).",
@@ -3496,6 +3659,8 @@
     "catalogRefreshWarning": "Showing the last loaded data because the catalog refresh failed.",
     "categoriesRefreshWarning": "Showing the last loaded categories because the refresh failed.",
     "retryLoad": "Try again",
+    "savedValueUnavailable": "Saved value (currently unavailable)",
+    "slaProfilesLoadError": "SLA profiles could not be loaded. The saved value is preserved.",
     "requiresApproval": "Requires approval",
     "runtimeUnavailableWarning": "Currently unavailable — ticket creation is not blocked",
     "plannedDowntime": "Scheduled downtime",
@@ -3521,7 +3686,14 @@
         "UPCOMING": "Scheduled",
         "ACTIVE": "Active",
         "EXPIRED": "Expired"
-      }
+      },
+      "timeZoneHint": "Civil time in your browser zone: {{timeZone}}. The end must be after the start.",
+      "refreshWarning": "Showing the last loaded windows because the refresh failed.",
+      "cancelConfirmTitle": "Cancel this downtime window?",
+      "cancelConfirmDescription": "This window will be removed from the schedule. The reason remains recorded in the audit log.",
+      "upcomingBadge_one": "+{{count}} scheduled downtime",
+      "upcomingBadge_other": "+{{count}} scheduled downtimes",
+      "upcomingBadge_zero": "+{{count}} scheduled downtimes"
     },
     "columnName": "Service",
     "columnLifecycle": "Lifecycle",
@@ -3659,6 +3831,7 @@
       "continue": "Continue onboarding",
       "loadingRecord": "Loading onboarding…",
       "newDraft": "New service (draft)",
+      "initialRevisionReason": "Service onboarding: initial service record",
       "next": "Continue",
       "saving": "Saving…",
       "finalize": "Publish service",
@@ -3759,8 +3932,11 @@
       "errorVersioningDisabled": "Form versioning is disabled.",
       "errorNotDraft": "Only a DRAFT version can be activated.",
       "errorNoActive": "There is no active form version.",
-      "errorGeneric": "The form cannot be changed right now."
-    }
+      "errorGeneric": "The form cannot be changed right now.",
+      "fieldIdInvalid": "ID must start with a lowercase letter and contain only lowercase letters, numbers, and underscores.",
+      "draftInvalid": "Fix invalid or duplicate IDs, empty labels, and options before saving."
+    },
+    "routingRefreshWarning": "Showing the last loaded routing coverage because the refresh failed."
   },
   "directory": {
     "usersIntro": "Users mapped to organizational units.",
@@ -3963,7 +4139,8 @@
         "unknown": "The action failed. See the server log."
       }
     },
-    "ouPathMismatch": "The catalog entry points at \"{{catalogPath}}\" while the tree shows \"{{treePath}}\". Run a catalog read before editing."
+    "ouPathMismatch": "The catalog entry points at \"{{catalogPath}}\" while the tree shows \"{{treePath}}\". Run a catalog read before editing.",
+    "partialFailure": "Part of the directory could not be loaded. Some names may be unavailable."
   },
   "locale": {
     "label": "Language",
@@ -3974,6 +4151,22 @@
     "title": "Initial setup",
     "heading": "SuperAdmin account",
     "body": "The first step creates a local SuperAdmin account. The password is stored only as a hash. Break-glass sign-in remains available after Entra AD is selected later.",
+    "shell": {
+      "stepsLabel": "Setup steps",
+      "stepOf": "Step {{current}} of {{total}}",
+      "back": "Back",
+      "continue": "Continue",
+      "later": "Configure later",
+      "reopened": "The new package requires this step, so the earlier „Configure later“ deferral was cancelled. If you still do not need it, defer it again.",
+      "whatYouGet": "What you get",
+      "whatYouGetHint": "In short: what this step brings to your installation.",
+      "organizationFallback": "Your organisation",
+      "currentStep": "Current step"
+    },
+    "feature": {
+      "locked": "Required",
+      "included": "Included"
+    },
     "loading": "Checking setup status",
     "email": "Email",
     "displayName": "Display name",
@@ -3990,6 +4183,32 @@
     "passwordHintBlocklist": "The password must be at least {{min}} characters and must not be a commonly used one.",
     "errorDuplicate": "The initial SuperAdmin already exists or the email is already in use.",
     "errorGeneric": "The SuperAdmin account cannot be saved right now.",
+    "identity": {
+      "heading": "Installation identity",
+      "body": "Organisation name, application name, language and time zone. The logo and the support contacts can be configured later — everything stays editable in Settings → Branding.",
+      "organizationName": "Organisation name",
+      "appName": "Application name",
+      "locale": "System language",
+      "localeBs": "Bosnian",
+      "localeEn": "English",
+      "timeZone": "Time zone",
+      "timeZoneHint": "IANA zone, e.g. Europe/Sarajevo. Used by reports and due dates.",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG or WebP up to 200 KB and 1024 × 1024 px. You can add it later.",
+      "logoConfigured": "A logo is stored. Pick a file only when you want to replace it.",
+      "supportEmail": "Support e-mail",
+      "supportUrl": "Support link",
+      "later": "Fields you leave empty keep their stored values — configure them later in Settings.",
+      "preview": "Brand preview",
+      "previewEmpty": "not entered",
+      "submit": "Save identity",
+      "saving": "Saving…",
+      "errorInvalid": "The organisation name is required. Check the lengths and the contact formats.",
+      "errorLocale": "That language is not supported. Bosnian and English are available.",
+      "errorTimeZone": "Unknown time zone. Use an IANA name, e.g. Europe/Sarajevo.",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The identity cannot be saved right now."
+    },
     "loginProvider": {
       "heading": "Sign-in method",
       "body": "Select exactly one authentication provider. SuperAdmin remains a local break-glass account when Entra AD is selected.",
@@ -4030,20 +4249,78 @@
       "errorIncomplete": "When SMTP is on, enter host, port, username, password, and a valid from address.",
       "errorInvalid": "The SMTP configuration is invalid or incomplete.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
-      "errorGeneric": "The SMTP configuration cannot be saved right now."
+      "errorGeneric": "The SMTP configuration cannot be saved right now.",
+      "test": {
+        "title": "Test e-mail",
+        "body": "Send a test message and check that SMTP really works.",
+        "address": "Address (empty = the super admin address)",
+        "send": "Send test",
+        "sending": "Sending…",
+        "sent": "Sent to {{toAddress}}.",
+        "errorNotConfigured": "SMTP is off or incomplete.",
+        "errorInvalidRecipient": "The address is not valid.",
+        "errorAuth": "The server refused the login — check the user name and password.",
+        "errorTls": "TLS failed — check the certificate and the encryption mode.",
+        "errorTimeout": "The server did not answer in time.",
+        "errorUnreachable": "The server is unreachable — check the host and port.",
+        "errorSend": "The server accepted the connection but refused the message.",
+        "errorRateLimited": "Too many attempts; wait a moment and try again.",
+        "errorSuperAdmin": "The test is sent by the super admin.",
+        "errorGeneric": "The send failed. Please try again.",
+        "savingFirst": "Save your changes before sending — the test uses the stored settings.",
+        "storedHint": "The test uses the stored settings. An empty field sends the message to the super admin."
+      }
     },
     "seed": {
-      "heading": "Initial data",
-      "body": "This creates the minimum needed for routing: one organizational unit, a fallback group, one service, and routing to that group. Demo tickets are not created.",
-      "submit": "Continue",
-      "saving": "Saving…",
-      "createdBody": "Minimum data is ready. The origin OU and service resolve to the fallback group.",
-      "organizationalUnit": "Organizational unit",
-      "fallbackGroup": "Fallback group",
-      "service": "Service",
-      "routing": "Routing resolution",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "The initial data cannot be saved right now."
+    },
+    "structure": {
+      "heading": "Structure and the first service",
+      "body": "Enter the names the client uses: the organisational unit, the group that receives tickets, the category and the first service. The service gets the standard SLA profile.",
+      "ouName": "Organisational unit",
+      "groupName": "Group that receives tickets",
+      "categoryName": "Category",
+      "serviceName": "Service",
+      "preview": "A ticket for <service>{{service}}</service> goes to the group <group>{{group}}</group> in the OU <organizationalUnit>{{organizationalUnit}}</organizationalUnit>.",
+      "previewEmpty": "not entered",
+      "slaProfile": "SLA profile",
+      "slaProfileMissing": "not assigned",
+      "routing": "Routing resolution",
+      "createdBody": "The structure is ready: the origin OU and the service resolve to the group that receives tickets. Saving again never renames what exists.",
+      "submit": "Create the structure",
+      "saving": "Saving…",
+      "errorInvalid": "A name may not be longer than 120 characters and may not contain a comma or an equals sign.",
+      "warningNames": "The names were not changed because the records already exist. Stored: {{stored}}."
+    },
+    "team": {
+      "heading": "Team",
+      "body": "Add colleagues to the group that receives tickets. Each person gets an account and a temporary password; without SMTP the password is shown here exactly once.",
+      "displayName": "Full name",
+      "email": "E-mail",
+      "role": "Role",
+      "roles": {
+        "AGENT": "Agent",
+        "ADMIN": "Administrator"
+      },
+      "addMember": "Add member",
+      "remove": "Remove",
+      "memberCount": "{{count}} of at most {{max}} members",
+      "superAdmin": "SuperAdmin",
+      "submit": "Create the accounts",
+      "saving": "Creating…",
+      "credentialsTitle": "Temporary passwords",
+      "credentialsOnce": "The passwords are shown now only. Copy them and share them safely — they cannot be viewed again.",
+      "credentialsEmailed": "The passwords were sent to the members by e-mail.",
+      "credentialsEmailSent": "The password was sent by e-mail.",
+      "copyPassword": "Copy",
+      "credentialsClose": "Close",
+      "skipHint": "If you add the team later, use “Configure later” — the SuperAdmin stays a member of the group.",
+      "errorInvalid": "Check the name and e-mail of every member and pick the Agent or Administrator role.",
+      "errorEmailTaken": "An account with that e-mail address already exists.",
+      "errorStructure": "Create the structure and the group that receives tickets first.",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The team members cannot be created right now."
     },
     "addons": {
       "heading": "Add-ons",
@@ -4051,6 +4328,7 @@
       "submit": "Continue",
       "saving": "Saving…",
       "emailDisabledHint": "Email stays off until SMTP is enabled.",
+      "notSavedHint": "The add-ons are not confirmed yet. If you skip this step, the catalog defaults apply.",
       "errorInvalid": "The add-on configuration is invalid.",
       "errorUnsupported": "One or more add-ons are not in the catalog.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
@@ -4112,24 +4390,108 @@
           "label": "Microsoft Teams connector",
           "description": "Notifications and actions in Teams plus ticket creation from Teams. Runs in the simulator until the organisation registers its own Teams app."
         }
-      }
+      },
+      "csat": {
+        "title": "CSAT survey",
+        "value": "After a ticket is closed the requester gets a short satisfaction survey."
+      },
+      "reports": {
+        "title": "Reports",
+        "value": "Built-in reports on volume, response times and team load."
+      },
+      "approvals": {
+        "title": "Approvals",
+        "value": "Requests that need a sign-off get an approval flow with a record of who approved."
+      },
+      "confidential": {
+        "title": "Confidential tickets",
+        "value": "Sensitive tickets are visible only to authorized people."
+      },
+      "savedViews": {
+        "title": "Saved views",
+        "value": "Anyone can save the ticket list filters they need every day."
+      },
+      "bulkActions": {
+        "title": "Bulk actions",
+        "value": "Change status, priority or assignee on many tickets at once."
+      },
+      "ticketSplit": {
+        "title": "Ticket splitting",
+        "value": "One request becomes several tickets when the problem has more than one part."
+      },
+      "kbIntercept": {
+        "title": "Knowledge base while typing",
+        "value": "While the requester types, existing articles that solve the problem are suggested."
+      },
+      "cmdb": {
+        "title": "CMDB — assets",
+        "value": "A record of computers, equipment and licences, linked to tickets."
+      },
+      "problems": {
+        "title": "Problems",
+        "value": "Tickets with the same cause are linked into one problem that is solved once."
+      },
+      "changes": {
+        "title": "Changes",
+        "value": "Planned changes to systems go through announcement, approval and a record."
+      },
+      "email": {
+        "title": "Email channel",
+        "value": "Incoming email becomes tickets, and answers from a ticket reach the requester by email."
+      },
+      "edge": {
+        "title": "Edge extension",
+        "value": "Capture the screen and page data while a problem is reported."
+      },
+      "teams": {
+        "title": "Microsoft Teams",
+        "value": "Notifications and ticket work from Teams."
+      },
+      "category": {
+        "serviceQuality": "Service quality",
+        "control": "Control",
+        "productivity": "Productivity",
+        "itsm": "ITSM modules",
+        "integrations": "Integrations"
+      },
+      "other": "Other"
     },
     "complete": {
-      "heading": "Finish setup",
-      "body": "The wizard will lock. Further changes go through Settings.",
-      "submit": "Finish",
-      "saving": "Locking…",
+      "heading": "The system is ready",
+      "body": "The installation is ready to use. Review the summary and finish the setup; every later change goes through Settings.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
-      "errorGeneric": "Setup cannot be locked right now."
+      "notReady": "The installation is not ready to receive tickets yet.",
+      "errorGeneric": "Setup cannot be locked right now.",
+      "hint": "The wizard is locked and every later change goes through Settings. Sign in with the SuperAdmin account this wizard created.",
+      "eyebrow": "Installation complete"
     },
     "progress": "Step {{current}} of {{total}}",
     "steps": {
+      "profile": "Package",
       "superAdmin": "SuperAdmin",
+      "identity": "Identity",
       "loginProvider": "Sign-in",
       "smtp": "Email",
-      "seed": "Roles and data",
+      "seed": "Structure and service",
+      "team": "Team",
       "addons": "Add-ons",
-      "complete": "Finish"
+      "provisioning": "Readiness",
+      "complete": "Finish",
+      "blueprint": "Catalog from a template",
+      "policyPack": "Policy pack",
+      "slaReview": "SLA review",
+      "section.inboundEmail": "Incoming email",
+      "section.directory": "Directory (AD/LDAPS)",
+      "section.knowledgeBase": "Knowledge base",
+      "section.statusPage": "Status page",
+      "section.onCall": "On-call",
+      "section.announcements": "Announcements",
+      "section.security": "Sign-in security",
+      "section.privacy": "Privacy and data",
+      "section.auditWebhook": "Audit webhook",
+      "section.itsm": "ITSM modules",
+      "section.integrations": "Integrations",
+      "securityRecommendations": "Security recommendations"
     },
     "tokenHeading": "Install token",
     "tokenBody": "Enter the value of the INSTALL_TOKEN environment variable from the server. Without it the wizard stays locked.",
@@ -4137,10 +4499,454 @@
     "tokenSubmit": "Unlock",
     "tokenInvalid": "The token is not valid.",
     "tokenNotConfigured": "INSTALL_TOKEN is not set on the server (at least 16 characters). Set it and restart the API.",
+    "tokenUnavailable": "The server is not answering, so the token cannot be verified. Nothing was changed — check the connection and try again.",
+    "tokenChecking": "Checking the install token",
+    "retry": "Try again",
+    "stepLoadError": "This step could not be read. The form is hidden so it cannot overwrite a configuration that already exists.",
+    "requestId": "Request id: {{requestId}}",
+    "profile": {
+      "heading": "Installation package",
+      "body": "The package decides which steps and add-ons the wizard offers. You can extend it later; until the first data is saved you may also change it.",
+      "minimum": {
+        "title": "Minimum",
+        "description": "The core: one SuperAdmin, an organizational unit, a service and routing. No team, SMTP or extra modules."
+      },
+      "standard": {
+        "title": "Standard",
+        "description": "Minimum plus team, SMTP and email, group rules and starting SLA. Recommended for most installations."
+      },
+      "full": {
+        "title": "Full",
+        "description": "Standard plus knowledge base, status page, on-call, announcements and the ITSM modules (CMDB, problems, changes)."
+      },
+      "recommended": "Recommended",
+      "estimate": "Takes about {{minutes}} min",
+      "select": "Choose",
+      "selected": "Chosen",
+      "showAll": "Show all",
+      "showAllHint": "Everything this package includes.",
+      "includesBase": "Base package — everything needed so the system can take tickets right away.",
+      "includesMinimum": "Includes everything in the Minimum package, plus the items listed below.",
+      "includesMinimumAndStandard": "Includes everything in the Minimum and Standard packages, plus the items listed below.",
+      "groupFrom": "From the {{package}} package",
+      "groupNewIn": "Added in {{package}}",
+      "itemRequired": "Required",
+      "itemOptional": "Optional",
+      "customize": "Fine-tune the package",
+      "customizeHint": "Turn off a step you do not want to do now — the wizard skips it and you finish it from Settings later.",
+      "customizeFootNote": "Only steps the registry allows may be deferred. The remaining package items are configured during the wizard or later in Settings.",
+      "lockedHint": "Without this step the installation cannot receive tickets.",
+      "current": "Currently stored: {{profile}}",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "submit": "Continue with this package",
+      "saving": "Saving…",
+      "errorLocked": "After the first data is saved the package can only be extended.",
+      "errorGeneric": "The package cannot be saved right now.",
+      "item": {
+        "tokenGate": "Install token",
+        "superAdmin": "SuperAdmin account",
+        "organizationIdentity": "Organisation identity",
+        "branding": "Branding (logo, contacts)",
+        "loginMode": "Sign-in mode",
+        "structure": "Organisational structure",
+        "firstService": "First service with a form and routing",
+        "team": "Team and roles",
+        "smtp": "SMTP and a test send",
+        "emailNotifications": "Email notifications",
+        "catalogBlueprints": "Service catalogue from a blueprint",
+        "policyPackIt": "IT policy pack",
+        "addonsOverview": "Add-on overview",
+        "handlerLevels": "L1/L2 groups",
+        "slaOverview": "SLA overview (profiles, calendar, priorities)",
+        "securityRecommendations": "Security recommendations",
+        "inboundEmail": "Inbound email (mailbox becomes a ticket)",
+        "directorySync": "Directory sync (AD/LDAPS)",
+        "knowledgeBase": "Knowledge base",
+        "statusPage": "Status page",
+        "onCall": "On-call rota",
+        "announcements": "Announcements",
+        "itsmModules": "ITSM modules (CMDB, problems, changes)",
+        "integrations": "Integrations (Teams, Edge)",
+        "privacyRetention": "Privacy, retention and audit webhook",
+        "provisioning": "Readiness check",
+        "readyScreen": "Final screen"
+      }
+    },
+    "step": {
+      "skip": "Configure later",
+      "skipped": "Deferred",
+      "undoSkip": "Return to the flow",
+      "skipErrorLocked": "The installation is locked — further changes go through Settings.",
+      "skipErrorNotAllowed": "This step cannot be deferred.",
+      "skipErrorUnknown": "Unknown step.",
+      "skipErrorGeneric": "The step cannot be deferred right now."
+    },
+    "readiness": {
+      "title": "Ready to receive tickets",
+      "superAdmin": "A SuperAdmin account exists.",
+      "authMode": "The sign-in mode is saved and valid.",
+      "organizationalUnit": "At least one organizational unit exists.",
+      "handlerGroup": "The fallback group has at least one active member.",
+      "service": "An active service with an active form exists.",
+      "routing": "Routing resolves exactly to a group.",
+      "slaProfile": "The first service has an active SLA profile.",
+      "roles": "The system roles and their permissions exist.",
+      "profileSteps": "Every step of the selected package is completed or deferred."
+    },
+    "provisioning": {
+      "heading": "Readiness checks",
+      "body": "See what is ready and what is still missing. The installation cannot finish while any check is red.",
+      "checking": "Checking whether the system is ready to receive tickets.",
+      "allGreen": "Every check is green — you can finish the installation.",
+      "goToStep": "Go to the step",
+      "recheck": "Check again",
+      "finish": "Finish installation",
+      "finishing": "Locking the wizard…",
+      "ok": "Ready",
+      "missing": "Missing",
+      "deferred": "Deferred"
+    },
+    "ready": {
+      "profile": "Package",
+      "organization": "Organization",
+      "units": "Organizational units",
+      "services": "Services",
+      "groups": "Groups",
+      "team": "Team members",
+      "addons": "Add-ons on",
+      "later": "Configured later",
+      "firstSteps": "First steps",
+      "firstTicket": {
+        "title": "Create the first ticket",
+        "body": "Open the portal and file a test request."
+      },
+      "inviteTeam": {
+        "title": "Invite the team",
+        "body": "The team step was deferred — add colleagues to the group."
+      },
+      "openSettings": {
+        "title": "Open settings",
+        "body": "Fine-tune modules, e-mail and security."
+      },
+      "signIn": "Sign in"
+    },
     "statusError": {
       "title": "The installation status could not be checked",
       "body": "The server did not answer the setup status request. Nothing was changed. Check the connection and try again.",
       "retry": "Try again"
+    },
+    "whatYouGet": {
+      "profile": {
+        "1": "Three ready-made packages, no technical decisions up front",
+        "2": "You see exactly what each package includes",
+        "3": "Anything you do not need now can be deferred"
+      },
+      "superAdmin": {
+        "1": "An account that can always sign in, even if the other sign-in method fails",
+        "2": "Stays local even with Entra AD sign-in",
+        "3": "The password is stored as a hash, never in settings"
+      },
+      "identity": {
+        "1": "Your name and logo on the sign-in page and in the app",
+        "2": "Language and time zone for reports",
+        "3": "Support email and link for your users"
+      },
+      "loginProvider": {
+        "1": "Local sign-in, or your Entra AD / LDAPS",
+        "2": "Break-glass access stays open",
+        "3": "Role mapping later in Settings"
+      },
+      "smtp": {
+        "1": "Outgoing email for tickets and notifications",
+        "2": "The password is stored as a secret",
+        "3": "Without SMTP the email add-on stays off"
+      },
+      "seed": {
+        "1": "Tickets go to the right group from the start",
+        "2": "Routing is proven before the first ticket",
+        "3": "The service gets an SLA profile"
+      },
+      "team": {
+        "1": "Colleagues get an account and a role right away",
+        "2": "Everyone joins the group that receives tickets",
+        "3": "Without SMTP you hand out the passwords yourself"
+      },
+      "addons": {
+        "1": "Switch on only what you need now",
+        "2": "The core (tickets, routing, audit) is always on",
+        "3": "Switching an add-on off never deletes data"
+      },
+      "complete": {
+        "1": "Readiness is checked before the wizard locks",
+        "2": "Deferred steps wait for you in Settings",
+        "3": "Sign-in goes to /login with the SuperAdmin account"
+      },
+      "blueprint": {
+        "1": "A catalog of categories and services ready to receive tickets.",
+        "2": "Every service gets an SLA profile and a request form.",
+        "3": "Routing is checked before anything is written."
+      },
+      "policyPack": {
+        "1": "The roles and permissions the template expects.",
+        "2": "You can also grant permissions by hand later in Settings.",
+        "3": "What the pack does not cover stays untouched."
+      },
+      "slaReview": {
+        "1": "See the working hours and priority matrix the system uses.",
+        "2": "Accept the defaults or change them right here.",
+        "3": "Confirming changes no data — it only records that you looked."
+      },
+      "provisioning": {
+        "1": "A check before the wizard locks: service, group and routing",
+        "2": "It says exactly what is missing and which step fixes it",
+        "3": "No hidden breakage after the installation is finished"
+      }
+    },
+    "blueprint": {
+      "heading": "Catalog from a template",
+      "body": "The template sets up catalog categories and services, the SLA profile and the policy pack. Everything it applies can be changed later in settings.",
+      "applied": "Applied template: {{key}}.",
+      "chooseTemplate": "Template",
+      "toggleService": "{{service}} — include in the catalog",
+      "tierGroups": "Create support tiers (level 1 and level 2)",
+      "tierGroupsHint": "Services sit on level 1, and requests level 1 cannot solve go to level 2.",
+      "submit": "Apply template",
+      "result": {
+        "title": "What was written",
+        "created": "New services: {{count}} in {{categories}} categories",
+        "existing": "Existing services kept as they were: {{count}}",
+        "tiers": "New support tiers: {{count}}",
+        "routing": "Routing was checked for every service — a request goes exactly to the handler group, never to a fallback."
+      },
+      "errorStructure": "Finish the “Organization structure” step first — the template needs the directorate and the handler group.",
+      "errorRouting": "Routing could not be set for one of the services, so nothing was written. Check the “Organization structure” step."
+    },
+    "policyPack": {
+      "heading": "Policy pack",
+      "body": "The policy pack sets the roles and permissions for the service from the template. You can also skip it and grant permissions by hand.",
+      "applied": "Applied pack: {{key}}.",
+      "choosePack": "Policy pack",
+      "submit": "Apply pack",
+      "grants": "Permissions in the pack: {{count}}",
+      "classification": "Classification: {{value}}",
+      "requiresApproval": "Requires approval",
+      "slaProfile": "SLA profile: {{key}}",
+      "errorDisabled": "This pack is switched off in settings and cannot be applied from the wizard.",
+      "errorNotOffered": "The chosen template does not offer this policy pack.",
+      "errorUnknown": "Unknown policy pack.",
+      "empty": "This template offers no policy pack to apply."
+    },
+    "slaReview": {
+      "heading": "Working hours and priorities",
+      "body": "Check the working hours and the priority matrix. Confirming only records that you reviewed the offered values; edits are written right away.",
+      "calendar": {
+        "title": "Working hours — {{name}}",
+        "timezone": "Time zone: {{timezone}}",
+        "hours": "{{from}}–{{to}}",
+        "closed": "Closed",
+        "holidays": "Holidays in the calendar: {{count}}",
+        "editorCaption": "Working hours by day",
+        "day": "Day",
+        "from": "From",
+        "to": "To",
+        "open": "Open",
+        "fromLabel": "Working hours start — {{day}}",
+        "toLabel": "Working hours end — {{day}}",
+        "toggleDay": "Is this day worked — {{day}}",
+        "multipleIntervals": "Some days have more than one interval; change those on the SLA page."
+      },
+      "matrix": {
+        "title": "Priority matrix",
+        "cell": "{{impact}} / {{urgency}} → {{priority}}",
+        "caption": "The priority the system assigns for a combination of impact and urgency.",
+        "impact": "Impact / urgency",
+        "hint": "The matrix is changed on the SLA page, where every change is confirmed with a reason.",
+        "unknown": "—"
+      },
+      "review": {
+        "confirmed": "Reviewed: the default values are confirmed.",
+        "adjusted": "Reviewed: the values were changed."
+      },
+      "confirm": "I confirm the defaults",
+      "errorEmpty": "You chose an adjustment, but nothing was changed.",
+      "errorCalendarMissing": "This installation has no working-hours calendar, so the change cannot be written.",
+      "submitAdjust": "Save changes",
+      "errorHours": "The working hours are not usable — check the times (at least one day has to be worked, and intervals may not overlap).",
+      "level": {
+        "LOW": "Low",
+        "MEDIUM": "Medium",
+        "HIGH": "High",
+        "CRITICAL": "Critical"
+      },
+      "weekday": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      }
+    },
+    "content": {
+      "errorSuperAdmin": "This step needs the super admin account.",
+      "errorGeneric": "Saving failed. Please try again."
+    },
+    "section": {
+      "inboundEmail": {
+        "title": "Incoming email",
+        "value": "Messages that arrive in the mailbox become tickets in the service you pick — with no manual retyping.",
+        "whatYouGet": {
+          "1": "Every new mail becomes a ticket or a reply on an existing one.",
+          "2": "Unknown senders are refused and mail loops are stopped.",
+          "3": "If the mailbox does not exist yet, skip the step — portal tickets keep working."
+        }
+      },
+      "directory": {
+        "title": "Directory (AD/LDAPS)",
+        "value": "Read users and groups from your directory: sign-in stays yours, and Help Desk takes names, addresses and team membership.",
+        "whatYouGet": {
+          "1": "Agents' names and addresses are not typed in by hand.",
+          "2": "Group membership can decide who is an admin and who is an agent.",
+          "3": "If sign-in does not go through Entra ID, skip the step."
+        }
+      },
+      "knowledgeBase": {
+        "title": "Knowledge base",
+        "value": "Reader feedback and regular reviews keep the knowledge base accurate.",
+        "whatYouGet": {
+          "1": "A reader can say whether the article helped.",
+          "2": "Articles that age come back to their owners for review.",
+          "3": "The number of portal questions decides how long the page gets."
+        }
+      },
+      "statusPage": {
+        "title": "Status page",
+        "value": "A page that shows system status and incidents instead of every call starting with “is it down for you too?”",
+        "whatYouGet": {
+          "1": "Users see incidents without signing in.",
+          "2": "Uptime is shown if you want to show it.",
+          "3": "An incident you publish appears on the page at once."
+        }
+      },
+      "onCall": {
+        "title": "On-call",
+        "value": "Responsibility outside business hours: who is on call and when to remind them.",
+        "whatYouGet": {
+          "1": "A schedule attaches to the team you already created.",
+          "2": "The reminder arrives before the shift starts.",
+          "3": "Without a team the step cannot work, which is why the team comes first."
+        }
+      },
+      "announcements": {
+        "title": "Announcements",
+        "value": "One place for messages to everybody — from a new policy to a planned outage.",
+        "whatYouGet": {
+          "1": "Every user sees the announcement on the portal.",
+          "2": "You decide whether agents may publish on their own.",
+          "3": "When it is off, the portal shows no announcements section."
+        }
+      },
+      "security": {
+        "title": "Sign-in security",
+        "value": "A second factor, breached-password checks and idle sign-out — the three levers that matter most in production.",
+        "whatYouGet": {
+          "1": "Admins can be required to use a second factor.",
+          "2": "Passwords that showed up in breached lists are checked at sign-in.",
+          "3": "An idle session closes after the time you set."
+        }
+      },
+      "privacy": {
+        "title": "Privacy and data",
+        "value": "How long data lives and what gets archived — before the first erasure request lands on the desk.",
+        "whatYouGet": {
+          "1": "Users' requests about their own data have a place in the system.",
+          "2": "Closed tickets are archived by rule, not by hand.",
+          "3": "You decide the archiving window."
+        }
+      },
+      "auditWebhook": {
+        "title": "Audit webhook",
+        "value": "Every security-relevant event also leaves the system — to a SIEM or to your endpoint.",
+        "whatYouGet": {
+          "1": "Sign-ins, role changes and settings changes travel to your log.",
+          "2": "A secret signs every message, so a forgery shows.",
+          "3": "The webhook runs alongside the internal audit log."
+        }
+      },
+      "itsm": {
+        "title": "ITSM modules",
+        "value": "CMDB, problems and changes — the modules the Full package switches on.",
+        "whatYouGet": {
+          "1": "Track assets and dependencies in the CMDB.",
+          "2": "Problems are tracked apart from tickets, with root causes.",
+          "3": "A change carries an approval and a record, not just a line in a ticket."
+        }
+      },
+      "integrations": {
+        "title": "Integrations",
+        "value": "Teams, Edge and the channels through which Help Desk leaves its own window.",
+        "whatYouGet": {
+          "1": "Tickets and notifications can go to Teams.",
+          "2": "In a pilot the connector runs in simulator mode, in production live.",
+          "3": "Connector channels and secrets stay on the Integrations screen."
+        }
+      },
+      "required": "required",
+      "secretHint": "The secret is never shown. Leave the field empty to keep the existing value.",
+      "secretSet": "A secret is set — type a new value to replace it",
+      "unset": "— not set —",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved. That answers the step.",
+      "confirmDefaults": "Confirm the defaults",
+      "requires": {
+        "service": "First create at least one service in the “Structure” step — without it, e-mail tickets would have nowhere to land.",
+        "directoryLogin": "This only makes sense when sign-in goes through Entra ID (the “Sign-in” step).",
+        "team": "First create a team in the “Structure” step — an on-call schedule without a team does not exist."
+      },
+      "errorUnknown": "This section does not exist. Reload the page and try again.",
+      "errorKeyNotAllowed": "That field is not part of this section, so nothing was written.",
+      "errorDependency": "Finish the condition above first (a service, a team or Entra ID sign-in).",
+      "errorRequires": "The setting depends on another one that is not set yet — check its conditions on the Settings screen.",
+      "errorValue": "The value was not accepted. Check its type, range or allowed values."
+    },
+    "security": {
+      "recommendations": {
+        "title": "Production recommendations",
+        "value": "The settings production should have on — and one we deliberately leave alone here.",
+        "whatYouGet": {
+          "1": "MFA is required for admins and available to everyone else.",
+          "2": "Breached-password checks are on.",
+          "3": "Turnstile waits for your keys; until then it stays off."
+        },
+        "applied": "Applied",
+        "pending": "Waiting",
+        "manual": "Manual",
+        "submit": "Apply the production recommendations",
+        "saving": "Applying…",
+        "done": "The recommendations are applied. That answers the step.",
+        "mfaAdmins": {
+          "title": "MFA for administrators",
+          "help": "The account with the widest powers needs a second factor too — an app or Entra ID."
+        },
+        "mfaOptional": {
+          "title": "MFA for everyone else",
+          "help": "Available but not required: an agent can turn on a second factor when they want to."
+        },
+        "hibp": {
+          "title": "Breached-password check",
+          "help": "A password that shows up in a breached list is refused when it is set and at sign-in."
+        },
+        "idleTimeout": {
+          "title": "Idle session sign-out",
+          "help": "The session closes after 1800 seconds (30 minutes) without activity."
+        },
+        "captcha": {
+          "title": "Turnstile (captcha)",
+          "help": "Switched on by hand, once you enter the site and secret keys — without them it would lock sign-in."
+        }
+      }
     }
   },
   "routing": {
@@ -4240,6 +5046,7 @@
     "errorUnauthorized": "Sign in is required to view routing.",
     "errorForbidden": "You do not have permission to change routing.",
     "errorDuplicate": "A rule already exists for this OU and service.",
+    "errorConflict": "The routing rule was changed by another user. Refresh the page and try again.",
     "errorReason": "A change reason is required.",
     "errorGeneric": "Routing is currently unavailable.",
     "unknownGroup": "Unknown group"
@@ -4432,7 +5239,8 @@
     "errorGeneric": "SLA configuration is currently unavailable.",
     "escalationTargetOnCall": "Group on-call agent",
     "escalationTargetOnCallHint": "The escalation goes only to whoever is on call at that moment (quiet hours do not apply). If nobody is on call, it goes to the whole group.",
-    "escalationTargetOnCallValue": "On-call in {{group}}"
+    "escalationTargetOnCallValue": "On-call in {{group}}",
+    "deleteReasonRequired": "Enter a deletion reason."
   },
   "integrationQueue": {
     "heading": "Durable integration queue",
@@ -4502,6 +5310,12 @@
     "validate": "Validate (dry-run)",
     "activate": "Activate",
     "activateReason": "Activation reason",
+    "confirmActivateTitle": "Confirm activation",
+    "confirmRollbackTitle": "Confirm rollback",
+    "confirmChangeDescription": "Version {{version}} will change system-wide configuration. Review the shadow summary and confirm your intent.",
+    "shadowSampleSize": "Sample",
+    "shadowRoutingMismatches": "Routing changes",
+    "shadowSlaMismatches": "SLA rule changes",
     "rollback": "Rollback",
     "rollbackReason": "Rollback reason",
     "validationOkTitle": "Validation passed",
@@ -4558,6 +5372,7 @@
       "importHint": "Upload a package from another environment. The preview shows what will be mapped; import creates a DRAFT version that you then validate and activate.",
       "file": "Package file (.json, max 5 MB)",
       "preview": "Preview import",
+      "previewing": "Previewing import…",
       "source": "Source",
       "sourceValue": "{{environment}}, version {{version}}, exported {{date}}",
       "signature": "Signature",
@@ -4791,7 +5606,7 @@
     "errorRateLimited": "Too many failed sign-in attempts. Try again later.",
     "captchaTitle": "Human verification",
     "captchaHint": "Solve the check, then sign in again.",
-    "captchaUnavailable": "The check did not load. Check the connection and try again — if it repeats, tell an administrator (the server needs access to the Cloudflare Turnstile service).",
+    "captchaUnavailable": "The CAPTCHA check is unavailable or did not load. Check the connection and try again — if it keeps happening, ask an administrator to check the Turnstile configuration and service access.",
     "captchaRetry": "Try again",
     "captchaFailed": "The check was not accepted. Try again.",
     "checkError": {
@@ -4950,10 +5765,19 @@
     "impactLabel": "Impact (how many users/processes)",
     "urgencyLabel": "Urgency (how quickly it needs a fix)",
     "listSubtitle": "{{open}} open · {{risk}} at SLA risk · sorted by last update",
+    "listSubtitleCountsUnavailable": "Counts are currently unavailable · sorted by last update",
+    "countsUnavailable": "Ticket counts are currently unavailable. The displayed list remains usable.",
+    "refreshUnavailable": "Automatic refresh failed. The last successfully loaded data is still displayed.",
     "listShown": "Showing {{shown}} of {{total}} tickets",
     "listShownCapped": "Showing {{shown}} of {{total}}+ tickets",
-    "emptyFilterTitle": "No tickets match this filter",
-    "emptyFilterHint": "Widen the search or clear the priority filter.",
+    "emptyListTitle": "No tickets yet",
+    "emptyListHint": "There are no tickets in this view right now.",
+    "panelError": {
+      "title": "This panel is unavailable.",
+      "body": "The rest of the ticket is still available. Try again."
+    },
+    "emptyFilterTitle": "No tickets match these conditions",
+    "emptyFilterHint": "Broaden the search or change the filters.",
     "clearFilters": "Clear filters",
     "stepNext": "Next",
     "stepBack": "Back",
@@ -5071,6 +5895,8 @@
     "interceptRequired": "required step",
     "interceptEmptyTitle": "No relevant articles",
     "interceptEmpty": "No knowledge base articles matched this description. Continue to send the ticket.",
+    "interceptUnavailableTitle": "Knowledge base is unavailable right now",
+    "interceptUnavailable": "We could not check the knowledge base for you. Suggestions are optional — continue to send the ticket.",
     "helpedResolvedHint": "The ticket will not be created. Your confirmation counts toward KB intercept stats.",
     "continueSendHint": "The articles did not help — I want the team to handle this request.",
     "openArticle": "Open article",
@@ -5448,7 +6274,8 @@
         "ticket_asset_linked": "equipment linked to the ticket",
         "ticket_asset_unlinked": "equipment removed from the ticket",
         "ticket_problem_linked": "ticket linked to a problem",
-        "ticket_problem_unlinked": "problem link removed"
+        "ticket_problem_unlinked": "problem link removed",
+        "ticket_problem_takeover": "ticket moved to the team for group problem resolution"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -5846,8 +6673,19 @@
       "hours_one": "{{count}} hour",
       "hours_other": "{{count}} hours",
       "globalFields_one": "{{count}} global field",
-      "globalFields_other": "{{count}} global fields"
-    }
+      "globalFields_other": "{{count}} global fields",
+      "closeCodesValue": "{{state}} · required on resolve: {{required}}",
+      "requiredFieldsValue": "{{state}} · {{fields}}",
+      "reopenValue": "{{state}} · {{days}}",
+      "waitingValue": "{{state}} · reminder {{reminder}} d, close {{close}} d",
+      "archiveValue": "{{state}} · {{days}}",
+      "cleanupValue": "{{hours}} · weekly digest: {{digest}}"
+    },
+    "guardWarn": "warning",
+    "tableCaption": "Allowed ticket status transitions",
+    "emptyTransitions": "There are no transitions for the selected status.",
+    "countsError": "Ticket counts are unavailable.",
+    "retry": "Try again"
   },
   "templates": {
     "title": "Templates & playbooks",
@@ -6824,6 +7662,7 @@
     },
     "affectedServices": "Affected services: {{count}}",
     "allOperational": "No known issues.",
+    "resourceLimitNotice": "This view reached its service or maintenance-window display limit. Refine the catalog or review administration data for the complete set.",
     "activeIncidents": "Active incidents",
     "planned": "Planned maintenance",
     "plannedHint": "Next 14 days",
@@ -6901,7 +7740,7 @@
       "message": "First message",
       "messageHint": "What users notice and what we are doing. Shown on the status page.",
       "startedAt": "Start",
-      "startedAtHint": "Leave empty for now; enter an earlier time if the problem began before it was reported.",
+      "startedAtHint": "Leave empty for now; enter an earlier time if the problem began before it was reported. Civil time uses your browser zone: {{timeZone}}.",
       "notify": "Notify users with open tickets on these services",
       "notifyHint": "In-app notice only (no e-mail); personal notification settings apply.",
       "createSubmit": "Create incident",
@@ -6942,6 +7781,8 @@
       "linkSubmit": "Link",
       "linked": "Ticket linked to the incident.",
       "unlink": "Remove link",
+      "unlinkTitle": "Remove the incident link?",
+      "unlinkBody": "The ticket will no longer be linked to this incident. The incident itself is not changed.",
       "unlinked": "Link to the incident removed.",
       "noOpen": "There are no open incidents.",
       "requesterHint": "We will notify you when the problem is resolved."
@@ -7165,6 +8006,7 @@
       "startDateHint": "The first member takes over on this day at the handoff time.",
       "timezone": "Time zone",
       "timezoneHint": "IANA name, e.g. Europe/Sarajevo. Daylight saving time is taken into account.",
+      "timezoneInvalid": "Enter a valid IANA time zone.",
       "owner": "Schedule owner",
       "ownerHint": "Gets a warning when a shift has nobody on call.",
       "ownerMe": "Me (if nobody is picked)",
@@ -7318,6 +8160,7 @@
       "noService": "No service",
       "startsAt": "Show from",
       "endsAt": "Show until",
+      "timeZoneHint": "Enter local time in your browser zone ({{timeZone}}). It is saved as an instant; recipients see it in their own zone.",
       "maxDuration": "At most {{days}} days from the start.",
       "behaviour": "Behaviour",
       "requiresAcknowledgement": "Require read acknowledgement (“I have read this”)",
@@ -9194,7 +10037,12 @@
       "actionSent": "Action",
       "installed": "App installed",
       "placeholder": "Message to the bot, e.g. “my tickets” or “new ticket”",
-      "send": "Send"
+      "send": "Send",
+      "userSearch": "Search users",
+      "usersLoading": "Loading users…",
+      "noUsers": "No active users match the search.",
+      "loadMoreUsers": "Load more users",
+      "usersLoaded": "Active users loaded: {{count}}"
     },
     "errors": {
       "appIdRequired": "The package needs the Bot App ID (GUID).",
@@ -9213,6 +10061,11 @@
     "pagerLabel": "Page navigation",
     "previous": "Previous",
     "next": "Next",
+    "whatsNewPaginationLabel": "What's new pages",
+    "whatsNewRange": "Showing updates {{first}}–{{last}} of {{total}}",
+    "previousChangesPage": "Previous updates page",
+    "nextChangesPage": "Next updates page",
+    "pageOf": "{{page}} / {{total}}",
     "searchLabel": "Search documentation",
     "searchPlaceholder": "Search the documentation…",
     "searchHint": "Search covers titles, text and tags; type at least two characters.",

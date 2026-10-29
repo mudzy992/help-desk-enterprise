@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/api";
+import { mapDomainApiError } from "@/lib/map-domain-api-error";
 
 export type ServiceOnboardingErrorKey =
   | "services.onboarding.errorUnauthorized"
@@ -42,30 +42,17 @@ const codeKeys: Partial<Record<string, ServiceOnboardingErrorKey>> = {
 };
 
 export function mapServiceOnboardingError(error: unknown): ServiceOnboardingErrorKey {
-  if (!(error instanceof ApiError)) {
-    return "services.onboarding.errorGeneric";
-  }
-  const byCode = codeKeys[error.code];
-  if (byCode !== undefined) {
-    return byCode;
-  }
-  if (error.status === 401) {
-    return "services.onboarding.errorUnauthorized";
-  }
-  if (error.status === 403) {
-    return "services.onboarding.errorForbidden";
-  }
-  if (error.status === 404) {
-    return "services.onboarding.errorNotFound";
-  }
-  if (error.status === 409) {
-    return "services.onboarding.errorAlreadyExists";
-  }
-  if (error.status === 503) {
-    return "services.onboarding.errorUnavailable";
-  }
-  if (error.status === 400 || error.status === 422) {
-    return "services.onboarding.errorPrerequisites";
-  }
-  return "services.onboarding.errorGeneric";
+  return mapDomainApiError<ServiceOnboardingErrorKey>(error, {
+    fallback: "services.onboarding.errorGeneric",
+    codes: codeKeys,
+    statuses: {
+      401: "services.onboarding.errorUnauthorized",
+      403: "services.onboarding.errorForbidden",
+      404: "services.onboarding.errorNotFound",
+      409: "services.onboarding.errorAlreadyExists",
+      503: "services.onboarding.errorUnavailable",
+      400: "services.onboarding.errorPrerequisites",
+      422: "services.onboarding.errorPrerequisites",
+    },
+  });
 }

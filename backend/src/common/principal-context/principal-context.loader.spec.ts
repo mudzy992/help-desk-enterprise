@@ -93,6 +93,7 @@ function userRow(overrides: Record<string, unknown> = {}) {
     organizationalUnitId: 'ou-it',
     userRoles: [
       {
+        id: 'assignment-agent-ou-it',
         role: {
           key: 'AGENT',
           rolePermissions: [{ permission: { key: 'ticket.merge' } }],
@@ -125,7 +126,9 @@ describe('principal context loading (phase 2.2)', () => {
     const second = await loader.load('user-agent');
     expect(first).not.toBeNull();
     expect(second).toEqual(first);
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
+    // First request loads the complete principal; a cache hit performs one
+    // lightweight PostgreSQL authority fence.
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
   });
 
   it('maps the same data the authorization context used before', async () => {
@@ -142,8 +145,14 @@ describe('principal context loading (phase 2.2)', () => {
     });
     expect(context?.assignments).toEqual([
       {
+        assignmentId: 'assignment-agent-ou-it',
         roleKey: 'AGENT',
         permissionKeys: ['ticket.merge'],
+        scope: {
+          kind: 'organizational-unit',
+          organizationalUnitId: 'ou-it',
+          organizationalUnitPath: '/Korisnici/IT',
+        },
         organizationalUnitId: 'ou-it',
         organizationalUnitPath: '/Korisnici/IT',
         serviceId: null,
@@ -171,6 +180,7 @@ describe('principal context loading (phase 2.2)', () => {
       userRow({
         userRoles: [
           {
+            id: 'assignment-admin-ou-it',
             role: {
               key: 'ADMIN',
               rolePermissions: [{ permission: { key: 'ticket.merge' } }],
@@ -186,6 +196,33 @@ describe('principal context loading (phase 2.2)', () => {
     const after = await loader.load('user-agent');
     expect(after?.roleKeys).toEqual(['ADMIN']);
     expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
+  });
+
+  it('rejects a stale cached grant when another replica commits without a Redis tombstone', async () => {
+    const { loader, state } = setup();
+    expect((await loader.load('user-agent'))?.roleKeys).toEqual(['AGENT']);
+    state.users.set(
+      'user-agent',
+      userRow({
+        authzVersion: 1,
+        userRoles: [{
+          id: 'assignment-admin-ou-it',
+          role: { key: 'ADMIN', rolePermissions: [] },
+          organizationalUnit: { id: 'ou-it', ouPath: '/Korisnici/IT' },
+          service: null,
+        }],
+      }),
+    );
+    expect((await loader.load('user-agent'))?.roleKeys).toEqual(['ADMIN']);
+  });
+
+  it('makes deactivation visible without a successful version or Redis update', async () => {
+    const { loader, state } = setup();
+    expect((await loader.load('user-agent'))?.isActive).toBe(true);
+    // Simulates a different API replica committing deactivation while Redis is
+    // unavailable and before legacy mutation hooks have bumped authzVersion.
+    state.users.set('user-agent', userRow({ isActive: false, authzVersion: 0 }));
+    expect((await loader.load('user-agent'))?.isActive).toBe(false);
   });
 
   it('makes a deactivation visible immediately, without waiting for the ttl', async () => {

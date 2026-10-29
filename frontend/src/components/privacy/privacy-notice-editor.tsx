@@ -155,7 +155,7 @@ export function PrivacyNoticeEditor() {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <Segmented
           size="sm"
-          ariaLabel={t("privacy.noticeEditor.language")}
+          label={t("privacy.noticeEditor.language")}
           value={active}
           onChange={(value) => setActive(value === "en" ? "en" : "bs")}
           items={[

@@ -1,6 +1,7 @@
 import { History, TimerReset } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatSlaProfileName, slaProfileNameTranslationKey } from "@/lib/sla/sla-profile-name";
@@ -23,7 +24,13 @@ export function SlaProfileDetailHeader({
 }: SlaProfileDetailHeaderProperties) {
   const { t } = useTranslation();
   const profileNameKey = profile ? slaProfileNameTranslationKey(profile.key, profile.name) : null;
-  const profileName = profile ? formatSlaProfileName(profile.key, profile.name, t as never) : null;
+  const profileName = profile
+    ? formatSlaProfileName(
+        profile.key,
+        profile.name,
+        (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+      )
+    : null;
 
   return (
     <Card>

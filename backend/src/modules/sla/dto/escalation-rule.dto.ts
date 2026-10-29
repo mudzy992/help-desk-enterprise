@@ -10,6 +10,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { maximumChangeReasonLength } from '../../change-log/change-log.constants';
+import { SlaListQueryDto } from './sla-list-query.dto';
 
 export class CreateSlaEscalationRuleDto {
   @IsString()
@@ -86,7 +87,7 @@ export class UpdateSlaEscalationRuleDto {
   reason!: string;
 }
 
-export class ListSlaEscalationRulesQueryDto {
+export class ListSlaEscalationRulesQueryDto extends SlaListQueryDto {
   @IsString()
   @MinLength(1)
   slaProfileId!: string;

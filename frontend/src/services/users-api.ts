@@ -1,4 +1,5 @@
 import { ApiError, apiRequest, apiRequestWithHeaders } from "@/services/api";
+import { parseUserSummaries } from "@/services/critical-api-parsers";
 
 export type UserRoleResponse = {
   readonly id: string;
@@ -82,23 +83,18 @@ export async function listUsersSummaryPage(input: {
     skip: String(input.skip),
   });
   if (input.query?.trim()) params.set("q", input.query.trim());
-  const response = await apiRequestWithHeaders<readonly UserSummary[]>(
-    `/users?${params.toString()}`,
-  );
+  const response = await apiRequestWithHeaders<unknown>(`/users?${params.toString()}`);
+  const items = parseUserSummaries(response.data);
   const rawTotal = response.headers.get("X-Total-Count");
   const headerTotal = Number.parseInt(rawTotal ?? "", 10);
-  if (
-    rawTotal === null ||
-    !Number.isSafeInteger(headerTotal) ||
-    headerTotal < response.data.length
-  ) {
+  if (rawTotal === null || !Number.isSafeInteger(headerTotal) || headerTotal < items.length) {
     throw new ApiError(
       502,
       "USER_TOTAL_COUNT_MISSING",
       "The server did not provide a valid total for the users list.",
     );
   }
-  return { items: response.data, total: headerTotal };
+  return { items, total: headerTotal };
 }
 
 export function createUser(input: {

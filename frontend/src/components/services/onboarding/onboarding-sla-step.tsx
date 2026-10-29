@@ -1,6 +1,7 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { formatSlaProfileName } from "@/lib/sla/sla-profile-name";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,7 +23,16 @@ export function OnboardingSlaStep({
 }: OnboardingSlaStepProperties) {
   const { t } = useTranslation();
   const activeProfiles = profiles.filter((profile) => profile.isActive);
-  const [value, setValue] = useState(selectedId || activeProfiles[0]?.id || "");
+  const firstActiveProfileId = activeProfiles[0]?.id ?? "";
+  const [value, setValue] = useState(selectedId || firstActiveProfileId);
+
+  useEffect(() => {
+    if (selectedId.length > 0) {
+      setValue(selectedId);
+    } else if (value.length === 0 && firstActiveProfileId.length > 0) {
+      setValue(firstActiveProfileId);
+    }
+  }, [firstActiveProfileId, selectedId, value.length]);
 
   if (activeProfiles.length === 0) {
     return (
@@ -48,13 +58,24 @@ export function OnboardingSlaStep({
   return (
     <form className="fade-in grid w-full max-w-2xl gap-4" onSubmit={submit}>
       <Field label={t("services.onboarding.slaProfile")} required>
-        <Select value={value} required onChange={(event) => setValue(event.target.value)}>
-          {activeProfiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
-              {formatSlaProfileName(profile.key, profile.name, t as never)}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={value}
+            required
+            onChange={(event) => setValue(event.target.value)}
+          >
+            {activeProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {formatSlaProfileName(
+                  profile.key,
+                  profile.name,
+                  (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+                )}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
       <Button
         type="submit"

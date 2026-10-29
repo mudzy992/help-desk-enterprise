@@ -1,6 +1,8 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallSmtpFields } from "@/components/install/install-smtp-fields";
+import { InstallSmtpTestPanel } from "@/components/install/install-smtp-test-panel";
+import { InstallStepLoadError } from "@/components/install/install-step-load-error";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -8,8 +10,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   buildInstallSmtpInput,
   isInstallSmtpFormReady,
+  toInstallSmtpFormValues,
   type InstallSmtpFormValues,
 } from "@/lib/build-install-smtp-input";
+import { useInstallStepResource } from "@/lib/install/use-install-step-resource";
 import {
   mapInstallSmtpSaveError,
   type InstallSmtpErrorKey,
@@ -20,61 +24,51 @@ import {
   type InstallSmtpRecord,
 } from "@/services/install-smtp-api";
 
+type SmtpDraft = {
+  readonly values: InstallSmtpFormValues;
+  readonly passwordConfigured: boolean;
+};
+
 export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
-  const [record, setRecord] = useState<InstallSmtpRecord | null>(null);
-  const [enabled, setEnabled] = useState(false);
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState("587");
-  const [tls, setTls] = useState(true);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [fromAddress, setFromAddress] = useState("");
   const [errorKey, setErrorKey] = useState<InstallSmtpErrorKey | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [draft, setDraft] = useState<SmtpDraft | null>(null);
+  // F4.1: the test send only looks at stored settings, so it stays disabled while
+  // the operator has typed something the server has not seen yet.
+  const [hasEdits, setHasEdits] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
-    void loadInstallSmtp()
-      .then((status) => {
-        if (!isCancelled) {
-          applyRecord(status.smtp);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+  // F0.2/IN3: the form exists only once the stored state was read — rendering it
+  // from defaults would let a failed load save `enabled=false` over a working
+  // SMTP configuration.
+  const resource = useInstallStepResource(loadInstallSmtp);
 
-  const formValues: InstallSmtpFormValues = {
-    enabled,
-    host,
-    port,
-    tls,
-    username,
-    password,
-    fromAddress,
-    passwordAlreadyConfigured: record?.passwordConfigured === true,
+  if (resource.status === "loading") {
+    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+  }
+
+  if (resource.status === "error") {
+    return <InstallStepLoadError error={resource.error} onRetry={resource.retry} />;
+  }
+
+  const { values, passwordConfigured } = draft ?? toDraft(resource.data.smtp);
+
+  const patch = (partial: Partial<InstallSmtpFormValues>) => {
+    setHasEdits(true);
+    setDraft({ values: { ...values, ...partial }, passwordConfigured });
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isInstallSmtpFormReady(formValues)) {
+    if (!isInstallSmtpFormReady(values)) {
       setErrorKey("install.smtp.errorIncomplete");
       return;
     }
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      applyRecord(await saveInstallSmtp(buildInstallSmtpInput(formValues)));
-      setPassword("");
+      setDraft(toDraft(await saveInstallSmtp(buildInstallSmtpInput(values))));
+      setHasEdits(false);
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallSmtpSaveError(error));
@@ -83,56 +77,57 @@ export function InstallSmtpStep({ onSaved }: { readonly onSaved?: () => void }) 
     }
   };
 
-  function applyRecord(next: InstallSmtpRecord) {
-    setRecord(next);
-    setEnabled(next.enabled);
-    setHost(next.host);
-    setPort(String(next.port));
-    setTls(next.tls);
-    setUsername(next.username);
-    setFromAddress(next.fromAddress);
-  }
-
-  if (isLoading) {
-    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
-  }
-
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
       <label className="flex items-center gap-2 text-body">
         <Switch
-          checked={enabled}
-          onCheckedChange={setEnabled}
+          checked={values.enabled}
+          onCheckedChange={(enabled) => patch({ enabled })}
           aria-label={t("install.smtp.enabled")}
         />
         {t("install.smtp.enabled")}
       </label>
       <p className="text-body leading-6 text-muted-foreground">
-        {enabled ? t("install.smtp.onHint") : t("install.smtp.offHint")}
+        {values.enabled ? t("install.smtp.onHint") : t("install.smtp.offHint")}
       </p>
-      {enabled ? (
+      {values.enabled ? (
         <InstallSmtpFields
-          host={host}
-          port={port}
-          tls={tls}
-          username={username}
-          password={password}
-          fromAddress={fromAddress}
-          passwordConfigured={record?.passwordConfigured === true}
-          onHostChange={setHost}
-          onPortChange={setPort}
-          onTlsChange={setTls}
-          onUsernameChange={setUsername}
-          onPasswordChange={setPassword}
-          onFromAddressChange={setFromAddress}
+          host={values.host}
+          port={values.port}
+          tls={values.tls}
+          username={values.username}
+          password={values.password}
+          fromAddress={values.fromAddress}
+          passwordConfigured={passwordConfigured}
+          onHostChange={(host) => patch({ host })}
+          onPortChange={(port) => patch({ port })}
+          onTlsChange={(tls) => patch({ tls })}
+          onUsernameChange={(username) => patch({ username })}
+          onPasswordChange={(password) => patch({ password })}
+          onFromAddressChange={(fromAddress) => patch({ fromAddress })}
         />
       ) : null}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey)}
+        </p>
+      ) : null}
+      <InstallSmtpTestPanel
+        isConfigured={resource.data.smtp.isConfigured && !hasEdits}
+        hasUnsavedChanges={hasEdits}
+      />
       <div>
-        <Button type="submit" disabled={isSubmitting || !isInstallSmtpFormReady(formValues)}>
+        <Button type="submit" disabled={isSubmitting || !isInstallSmtpFormReady(values)}>
           {isSubmitting ? t("install.smtp.saving") : t("install.smtp.submit")}
         </Button>
       </div>
     </form>
   );
+}
+
+function toDraft(record: InstallSmtpRecord): SmtpDraft {
+  return {
+    values: toInstallSmtpFormValues(record),
+    passwordConfigured: record.passwordConfigured,
+  };
 }

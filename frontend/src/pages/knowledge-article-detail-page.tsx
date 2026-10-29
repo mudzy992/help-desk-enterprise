@@ -5,7 +5,7 @@ import { KnowledgeArticleDetailPanel } from "@/components/knowledge-base/knowled
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { useKnowledgeArticle } from "@/lib/knowledge-base/use-knowledge-article";
@@ -57,6 +57,7 @@ export function KnowledgeArticleDetailPage() {
     return () => {
       window.clearTimeout(timeoutId);
       window.removeEventListener("scroll", onScroll);
+      if (!recordedRef.current) viewedRef.current = null;
     };
   }, [viewable]);
 
@@ -71,6 +72,16 @@ export function KnowledgeArticleDetailPage() {
           </Button>
         }
       />
+      {detail.isRefreshing ? (
+        <p role="status" className="mb-2 text-[12px] text-muted-foreground">
+          {t("ui.loading")}
+        </p>
+      ) : null}
+      {directory.partialFailure ? (
+        <p role="status" className="mb-2 text-[12px] text-warning">
+          {t("directory.partialFailure")}
+        </p>
+      ) : null}
       {detail.isLoading ? (
         <PanelSkeleton className="mt-0" label={t("knowledgeBase.title")} />
       ) : detail.errorKey || detail.article === null ? (

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
+import { reportClientError } from "@/lib/app/client-logger";
 import type { Socket } from "socket.io-client";
 import { useSession } from "@/lib/session/use-session";
 import {
@@ -13,6 +15,7 @@ import { useSocketHealth } from "@/lib/realtime/use-socket-health";
 import { shouldPollUnreadCount, unreadCountFallbackIntervalMs } from "@/lib/realtime/socket-health";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { ticketSocketEvents } from "@/services/ticket-socket";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   getNotificationUnreadCount,
   listNotifications,
@@ -24,7 +27,7 @@ import {
 /**
  * Inbox notifications.
  *
- * Phase 1.3 (plan §1.3): the badge is push-driven through the helpdesk socket,
+ * the badge is push-driven through the helpdesk socket,
  * so the 30-second poll now only runs as a *fallback* — while the socket is not
  * connected. A healthy connection means zero calls to
  * `GET /notifications/unread-count`; a dropped one means the badge keeps
@@ -35,6 +38,11 @@ export function useInboxNotifications() {
   const { session } = useSession();
   const [items, setItems] = useState<readonly InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  // Val 6.1 / modul 4 (D9): a failing load must NOT look like "no activity" —
+  // the feed keeps its previous items and exposes an error key/requestId so
+  // the UI can show a retry button instead of the empty state.
+  const [listErrorKey, setListErrorKey] = useState<ApiErrorKey | null>(null);
+  const [listRequestId, setListRequestId] = useState<string | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const socketHealth = useSocketHealth(socket);
 
@@ -42,14 +50,19 @@ export function useInboxNotifications() {
     if (session === null) {
       setItems([]);
       setUnreadCount(0);
+      setListErrorKey(null);
+      setListRequestId(null);
       return;
     }
     try {
       const response = await listNotifications();
       setItems(response.items);
       setUnreadCount(response.unreadCount);
-    } catch {
-      setItems([]);
+      setListErrorKey(null);
+      setListRequestId(null);
+    } catch (error) {
+      setListErrorKey(mapApiError(error));
+      setListRequestId(readApiRequestId(error));
     }
   }, [session]);
 
@@ -58,29 +71,26 @@ export function useInboxNotifications() {
       setUnreadCount(0);
       return;
     }
-    try {
-      const response = await getNotificationUnreadCount();
-      setUnreadCount(response.unreadCount);
-    } catch {
-      setUnreadCount(0);
-    }
+    const response = await getNotificationUnreadCount();
+    setUnreadCount(response.unreadCount);
   }, [session]);
 
+  const previousSocketHealth = useRef(socketHealth);
+  useVisibilityAwarePolling({
+    poll: refreshUnread,
+    intervalMs: unreadCountFallbackIntervalMs,
+    enabled: session !== null && shouldPollUnreadCount(socketHealth),
+    telemetryKey: "notifications.unread_poll_failed",
+  });
+
   useEffect(() => {
-    if (session === null) {
-      return;
-    }
-    // Runs on every health change: a reconnect refreshes at once (the socket
-    // may have missed events while it was away) and disarms the timer, while a
-    // disconnect arms it.
-    void refreshUnread();
-    if (!shouldPollUnreadCount(socketHealth)) {
-      return;
-    }
-    const timer = window.setInterval(() => {
-      void refreshUnread();
-    }, unreadCountFallbackIntervalMs);
-    return () => window.clearInterval(timer);
+    const reconnected =
+      previousSocketHealth.current !== "connected" && socketHealth === "connected";
+    previousSocketHealth.current = socketHealth;
+    if (!reconnected || session === null) return;
+    void refreshUnread().catch((error) =>
+      reportClientError("notifications.unread_reconnect_failed", error, readApiRequestId(error)),
+    );
   }, [refreshUnread, session, socketHealth]);
 
   useEffect(() => {
@@ -152,6 +162,8 @@ export function useInboxNotifications() {
   return {
     items,
     unreadCount,
+    listErrorKey,
+    listRequestId,
     refreshList,
     markOneRead,
     markAllRead,

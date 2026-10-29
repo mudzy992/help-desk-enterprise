@@ -2,7 +2,11 @@ import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/browser";
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import {
+  parseAuthenticationLogin,
+  parseAuthenticationSession,
+} from "@/services/critical-api-parsers";
 import type { SessionPrincipal } from "@/services/session-store";
 
 /** The session the API established. The token travels only in its HttpOnly cookie. */
@@ -12,7 +16,7 @@ export type AuthenticationSessionResponse = {
 };
 
 /**
- * Paket 5.4.1 (M3): the public half of the human check. `none` — or a server
+ * The public half of the human check. `none` — or a server
  * that does not send the field at all — means the sign-in page never shows a
  * challenge, exactly as before this package.
  */
@@ -28,30 +32,30 @@ export const captchaOff: CaptchaDescription = {
   afterFailures: 5,
 };
 
-/** Paket 5.1 (M2 #2): used only when a server does not send the policy value. */
+/** Used only when a server does not send the policy value. */
 export const fallbackMinimumPasswordLength = 12;
 
 export type MustChangePasswordLoginResponse = {
   readonly status: "MUST_CHANGE_PASSWORD";
   readonly passwordChangeToken: string;
   readonly expiresInSeconds: number;
-  /** Paket 2.1: a temporary password or an expired one. */
+  /** A temporary password or an expired one. */
   readonly reason?: "temporary" | "expired";
   /**
-   * Paket 5.1 (M2 #2): `private.auth.password.minLength`, so the forced-change
+   * `private.auth.password.minLength`, so the forced-change
    * form states the rule the server enforces. Optional — a server that does not
    * send it falls back to the shipped minimum.
    */
   readonly passwordMinLength?: number;
 };
 
-/** Paket 2.1: password accepted, second factor pending. */
+/** Password accepted, second factor pending. */
 export type MfaLoginResponse = {
   readonly status: "MFA_REQUIRED" | "MFA_ENROLLMENT_REQUIRED";
   readonly mfaToken: string;
   readonly expiresInSeconds: number;
   /**
-   * Paket 5.4.0-e: the factors this account can present. Absent on an older
+   * The factors this account can present. Absent on an older
    * server, which means TOTP only — exactly the behaviour before passkeys.
    */
   readonly methods?: readonly MfaMethod[];
@@ -73,14 +77,14 @@ export function isMfaResponse(response: AuthenticationLoginResponse): response i
 export function verifyMfaCode(input: {
   readonly mfaToken: string;
   readonly code: string;
-  /** Paket 5.4.1 closeout (M3): the solved challenge, when the server asked for one. */
+  /** The solved challenge, when the server asked for one. */
   readonly captchaToken?: string;
 }): Promise<AuthenticationSessionResponse> {
   return apiRequest("/auth/mfa/verify", { method: "POST", body: JSON.stringify(input) });
 }
 
 /**
- * Paket 5.4.0-e: the passkey branch of the sign-in second factor. The mfa token
+ * The passkey branch of the sign-in second factor. The mfa token
  * is not consumed until a factor verifies, so the person can switch between
  * "code" and "passkey" as long as it is valid.
  */
@@ -132,10 +136,10 @@ export function loginWithPassword(input: {
   readonly email: string;
   readonly password: string;
   readonly rememberMe?: boolean;
-  /** Paket 5.4.1 (M3): sent only once the page shows the Turnstile widget. */
+  /** sent only once the page shows the Turnstile widget. */
   readonly captchaToken?: string;
 }): Promise<AuthenticationLoginResponse> {
-  return apiRequest("/auth/login", {
+  return apiRequestValidated("/auth/login", parseAuthenticationLogin, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -145,7 +149,7 @@ export function changePasswordOnFirstLogin(input: {
   readonly passwordChangeToken: string;
   readonly newPassword: string;
 }): Promise<AuthenticationLoginResponse> {
-  return apiRequest("/auth/change-password", {
+  return apiRequestValidated("/auth/change-password", parseAuthenticationLogin, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${input.passwordChangeToken}`,
@@ -154,17 +158,17 @@ export function changePasswordOnFirstLogin(input: {
   });
 }
 
-/** Review 2026-09-25: 1 h session, extended while the user is active. */
+/** 1 h session, extended while the user is active. */
 export function refreshSession(): Promise<AuthenticationSessionResponse> {
-  return apiRequest("/auth/refresh", { method: "POST" });
+  return apiRequestValidated("/auth/refresh", parseAuthenticationSession, { method: "POST" });
 }
 
-/** Server-side sign out (revokes the token); failures are ignored by callers. */
-export function logoutSession(): Promise<void> {
-  return apiRequest("/auth/logout", { method: "POST" });
+/** Server-side sign out (revokes the token); callers may abort a stalled request. */
+export function logoutSession(signal?: AbortSignal): Promise<void> {
+  return apiRequest("/auth/logout", { method: "POST", signal });
 }
 
-/** Paket 1.8 (A1): which sign-in options the login page offers. */
+/** Which sign-in options the login page offers. */
 export type AuthenticationProviders = {
   readonly mode: "local" | "entra_ad";
   readonly entra: {
@@ -173,7 +177,7 @@ export type AuthenticationProviders = {
     readonly authority: string;
     readonly singleLogout: boolean;
   } | null;
-  /** Paket 5.4.1 (M3): absent on an older server, which means "no challenge". */
+  /** absent on an older server, which means "no challenge". */
   readonly captcha?: CaptchaDescription;
 };
 
@@ -183,7 +187,7 @@ export function getAuthenticationProviders(): Promise<AuthenticationProviders> {
 
 /** Exchanges a Microsoft Entra ID token for an application session. */
 export function loginWithEntraIdToken(idToken: string): Promise<AuthenticationSessionResponse> {
-  return apiRequest("/auth/entra", {
+  return apiRequestValidated("/auth/entra", parseAuthenticationSession, {
     method: "POST",
     body: JSON.stringify({ idToken }),
   });

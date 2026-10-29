@@ -85,10 +85,11 @@ export async function createTicketMessage(
       authorUserId: context.actorUserId,
       ...(context.messageSource === 'EMAIL' || context.messageSource === 'TEAMS' ? { source: context.messageSource } : {}),
       ...(responseTemplateId === null ? {} : { responseTemplateId }),
+      ...(input.idempotencyKey === undefined ? {} : { idempotencyKey: input.idempotencyKey }),
     },
   })) as TicketMessageRecord;
   if (responseTemplateId !== null) {
-    void countTemplateUse(prisma, responseTemplateId, context.actorUserId);
+    await countTemplateUse(prisma, responseTemplateId, context.actorUserId);
   }
   // Val 2 (M10/B4): `firstResponseAt` used to be written only by the SLA module
   // (after its clock recorded a response), so with SLA disabled — or without a

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollText, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -34,15 +34,19 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorKey, setErrorKey] = useState<AdminOpsMessageKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const requestSequence = useRef(0);
 
   const load = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     if (!canView || organizationalUnitId.length === 0) {
       setRows([]);
       setNextCursor(null);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
     setIsLoading(true);
+    setIsLoadingMore(false);
     setErrorKey(null);
     setRequestId(null);
     try {
@@ -50,15 +54,17 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
         organizationalUnitId,
         take: auditLogPageTake,
       });
+      if (sequence !== requestSequence.current) return;
       setRows(result.items);
       setNextCursor(result.nextCursor);
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       setRows([]);
       setNextCursor(null);
       setErrorKey(mapAdminOpsError(error));
       setRequestId(readApiRequestId(error));
     } finally {
-      setIsLoading(false);
+      if (sequence === requestSequence.current) setIsLoading(false);
     }
   }, [canView, organizationalUnitId]);
 
@@ -66,6 +72,7 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
     if (nextCursor === null) {
       return;
     }
+    const sequence = requestSequence.current;
     setIsLoadingMore(true);
     setErrorKey(null);
     setRequestId(null);
@@ -75,19 +82,33 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
         take: auditLogPageTake,
         cursor: nextCursor,
       });
+      if (sequence !== requestSequence.current) return;
       setRows((current) => [...current, ...result.items]);
       setNextCursor(result.nextCursor);
     } catch (error) {
+      if (sequence !== requestSequence.current) return;
       setErrorKey(mapAdminOpsError(error));
       setRequestId(readApiRequestId(error));
     } finally {
-      setIsLoadingMore(false);
+      if (sequence === requestSequence.current) setIsLoadingMore(false);
     }
   }, [nextCursor, organizationalUnitId]);
 
   useEffect(() => {
     void load();
+    return () => {
+      requestSequence.current += 1;
+    };
   }, [load]);
+
+  const actionLabel = (action: string) => {
+    const key = auditActionTranslationKey(action);
+    return t(key ?? "admin.ops.auditLog.labels.unknownAction");
+  };
+  const entityLabel = (entityType: string) => {
+    const key = auditEntityTranslationKey(entityType);
+    return t(key ?? "admin.ops.auditLog.labels.unknownEntity");
+  };
 
   return (
     <Card className="fade-in">
@@ -146,16 +167,10 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
                       <td className="whitespace-nowrap px-3">
                         <RelativeTime value={row.createdAt} locale={i18n.language} />
                       </td>
-                      <td className="px-3 text-[12px]">
-                        {auditActionTranslationKey(row.action) === null
-                          ? t("admin.ops.auditLog.labels.unknownAction")
-                          : t(auditActionTranslationKey(row.action) as never)}
-                      </td>
+                      <td className="px-3 text-[12px]">{actionLabel(row.action)}</td>
                       <td className="max-w-[220px] px-3 text-[12px] text-muted-foreground">
                         <span title={row.entityId}>
-                          {auditEntityTranslationKey(row.entityType) === null
-                            ? t("admin.ops.auditLog.labels.unknownEntity")
-                            : t(auditEntityTranslationKey(row.entityType) as never)}
+                          {entityLabel(row.entityType)}
                           <code className="ml-1.5 text-[11px]">{row.entityId}</code>
                         </span>
                       </td>
@@ -203,8 +218,8 @@ export function AdminAuditLogCard({ canView, organizationalUnitId }: AdminAuditL
 }
 
 /**
- * The actor column used to show a raw user id. It shows the person's display
- * name now (packet 5.4.0-f follow-up) with the id kept as the cell tooltip; an
+ * The actor column shows the person's display name with the id kept as the cell
+ * tooltip; an
  * account that no longer exists falls back to a translated "unknown user", never
  * to the bare id.
  */

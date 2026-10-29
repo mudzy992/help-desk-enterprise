@@ -1,7 +1,6 @@
 /**
- * Phase 2.4 (plan §2.4): the dashboard/SLA counters are cached for fifteen
- * seconds, keyed by user (M15 B4, val 5: the per-scope key is gone with the
- * parameter — the surface multiplied four keys for one payload).
+ * Dashboard/SLA counters are cached for fifteen seconds and keyed by user. The
+ * removed client scope parameter no longer multiplies cache keys for one payload.
  *
  * Fifteen rather than thirty: the plan allows 15–30 s and the acceptance is
  * "counters refresh within 30 s", so the shorter end of the band keeps the

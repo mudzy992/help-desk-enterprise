@@ -1,6 +1,6 @@
 import { apiRequest } from "@/services/api";
 
-/* Paket 2.4: agent collaboration — following, @mentions, related tickets. */
+/* agent collaboration — following, @mentions, related tickets. */
 
 export type AgentCollaborationConfiguration = {
   readonly presenceEnabled: boolean;

@@ -10,7 +10,7 @@ import {
   splitDuration,
 } from "@/lib/status/status-view";
 
-describe("status view (Paket 2.7)", () => {
+describe("status view ()", () => {
   it("overall status: outage > degraded > maintenance", () => {
     expect(overallStatus([], 0)).toBe("operational");
     expect(overallStatus([], 2)).toBe("partial");

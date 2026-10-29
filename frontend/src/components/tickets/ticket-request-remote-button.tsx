@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Monitor } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { mapTicketError } from "@/lib/tickets/map-ticket-error";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { requestTicketRemote } from "@/services/tickets-remote-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -14,7 +13,7 @@ interface TicketRequestRemoteButtonProperties {
 export function TicketRequestRemoteButton({ ticket }: TicketRequestRemoteButtonProperties) {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
-  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [done, setDone] = useState(false);
   if (ticket.status === "ARCHIVED") {
     return null;
@@ -39,9 +38,7 @@ export function TicketRequestRemoteButton({ ticket }: TicketRequestRemoteButtonP
         {saving ? t("tickets.detail.requestingRemote") : t("tickets.detail.requestRemote")}
       </Button>
       {errorKey !== null ? (
-        <span className="max-w-48 text-right text-[11px] text-danger">
-          {ticketText(t, errorKey)}
-        </span>
+        <span className="max-w-48 text-right text-[11px] text-danger">{t(errorKey)}</span>
       ) : null}
       {done && errorKey === null ? (
         <span className="max-w-48 text-right text-[11px] text-muted-foreground">

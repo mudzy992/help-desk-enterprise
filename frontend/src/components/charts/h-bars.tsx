@@ -1,17 +1,13 @@
 import { cn } from "@/lib/utils";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
+
+export type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 
 /*
   Pulse horizontal bars. Same public API as before (`HorizontalBarItem[]` with
   an optional per-item `color` and `suffix`), new visual language: a calmer
   track, a rounded gradient fill and typography that puts the number first.
 */
-
-export interface HorizontalBarItem {
-  readonly label: string;
-  readonly value: number;
-  readonly color?: string;
-  readonly suffix?: string;
-}
 
 interface HorizontalBarsProperties {
   readonly items: HorizontalBarItem[];

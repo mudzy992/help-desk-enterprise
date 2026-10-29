@@ -15,10 +15,13 @@ import type {
   RuleWriteInput,
   SlaChangeLogResponse,
   SlaMutationContext,
+  SlaPage,
   SlaRuleResponse,
   SlaTargetsResponse,
   UpdateRuleInput,
 } from './sla.types';
+import type { SlaReadScope } from './sla-read-scope';
+import { requireSlaRuleReadScope } from './require-sla-read-scope';
 
 @Injectable()
 export class SlaRulesService {
@@ -27,14 +30,16 @@ export class SlaRulesService {
     private readonly configurationLoader: SlaConfigurationLoader,
   ) {}
 
-  list(slaProfileId?: string): Promise<readonly SlaRuleResponse[]> {
-    return executeSlaOperation(async () =>
-      toSlaRuleResponses(this.prisma, await listSlaRules(this.prisma, slaProfileId)),
-    );
+  list(slaProfileId?: string, input?: { readonly scope?: SlaReadScope; readonly cursor?: string; readonly take?: number }): Promise<SlaPage<SlaRuleResponse>> {
+    return executeSlaOperation(async () => {
+      const page = await listSlaRules(this.prisma, slaProfileId, input);
+      return { ...page, items: await toSlaRuleResponses(this.prisma, page.items) };
+    });
   }
 
-  get(ruleId: string): Promise<SlaRuleResponse> {
+  get(ruleId: string, scope?: SlaReadScope): Promise<SlaRuleResponse> {
     return executeSlaOperation(async () => {
+      if (scope !== undefined) await requireSlaRuleReadScope(this.prisma, ruleId, scope);
       const [response] = await toSlaRuleResponses(this.prisma, [
         await requireSlaRule(this.prisma, ruleId),
       ]);
@@ -86,13 +91,16 @@ export class SlaRulesService {
     );
   }
 
-  listChanges(ruleId: string): Promise<readonly SlaChangeLogResponse[]> {
-    return executeSlaOperation(() =>
-      listSlaChangeLogs(this.prisma, {
+  listChanges(ruleId: string, input: { readonly scope: SlaReadScope; readonly cursor?: string; readonly take?: number }): Promise<SlaPage<SlaChangeLogResponse>> {
+    return executeSlaOperation(async () => {
+      await requireSlaRuleReadScope(this.prisma, ruleId, input.scope);
+      return listSlaChangeLogs(this.prisma, {
         entityType: slaChangeLogEntityTypes.rule,
         entityId: ruleId,
-      }),
-    );
+        cursor: input.cursor,
+        take: input.take,
+      });
+    });
   }
 
   resolveTargets(input: ResolveSlaTargetsInput): Promise<SlaTargetsResponse> {

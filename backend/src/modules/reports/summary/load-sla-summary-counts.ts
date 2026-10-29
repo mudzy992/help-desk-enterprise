@@ -54,7 +54,7 @@ export type SlaSummaryCounts = {
 };
 
 /**
- * Phase 2.4 (plan §2.4): the SLA screen's exposure numbers, counted from
+ * the SLA screen's exposure numbers, counted from
  * `TicketSlaState` instead of from a page of tickets.
  *
  * One `GROUP BY` per priority (the priority lives on the ticket, the flags and

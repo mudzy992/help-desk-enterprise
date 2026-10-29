@@ -11,6 +11,11 @@ describe('parseReportsConfiguration', () => {
     defaultWindowDays: 30,
   };
 
+  it('izlaže kanonsku reporting zonu uz siguran fallback', () => {
+    expect(parseReportsConfiguration({ ...valid, packsJson: '', timeZone: 'Europe/Sarajevo' }).timeZone).toBe('Europe/Sarajevo');
+    expect(parseReportsConfiguration({ ...valid, packsJson: '' }).timeZone).toBe('UTC');
+  });
+
   it('razdvaja prozor uskih grla od prozora paketa (val 1, M15/B3)', () => {
     const split = parseReportsConfiguration({
       ...valid,

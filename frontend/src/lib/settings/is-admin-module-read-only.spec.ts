@@ -49,6 +49,36 @@ describe("isAdminModuleReadOnly", () => {
     expect(isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.sla)).toBe(false);
   });
 
+  it("matches backend bypass semantics", () => {
+    const entries = [
+      entry("private.readOnlyMode.enabled", true),
+      entry("private.readOnlyMode.modulesCsv", "admin,settings"),
+      entry("private.readOnlyMode.activeModulesCsv", "settings"),
+      entry("private.readOnlyMode.bypassRolesCsv", "ADMIN,SUPER_ADMIN"),
+    ];
+    expect(
+      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.settings, {
+        isSuperAdmin: false,
+        isLocalOnly: false,
+        roleKeys: ["ADMIN"],
+      }),
+    ).toBe(false);
+    expect(
+      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.settings, {
+        isSuperAdmin: true,
+        isLocalOnly: false,
+        roleKeys: ["SUPER_ADMIN"],
+      }),
+    ).toBe(true);
+    expect(
+      isAdminModuleReadOnly(entries, adminReadOnlyModuleKeys.settings, {
+        isSuperAdmin: true,
+        isLocalOnly: true,
+        roleKeys: ["SUPER_ADMIN"],
+      }),
+    ).toBe(false);
+  });
+
   it("locks every module when admin is active", () => {
     const entries = [
       entry("private.readOnlyMode.enabled", true),

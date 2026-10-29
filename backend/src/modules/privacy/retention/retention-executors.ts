@@ -1,10 +1,11 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 // Runtime sentinel for SQL NULL in Json columns (the generated client re-exports the same value).
 import { DbNull } from '@prisma/client/runtime/client';
-import { auditLogActions, auditLogChainLockKey, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import { auditLogActions, auditLogMaintenanceLockKey, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
 import { privacyLimits, type RetentionCategory } from '../privacy.constants';
+import { createStatusIncidentRetentionExecutor } from './status-incident-retention.executor';
 
 /** Marker written over removed free text; the UI shows a translated label (contentRedactedAt / redactedAt). */
 export const retentionRedactionMarker = '[redacted]';
@@ -65,6 +66,8 @@ export function createRetentionExecutors(
   storage: TicketAttachmentStorage,
 ): Readonly<Record<RetentionCategory, RetentionExecutor>> {
   return {
+    statusIncidents: createStatusIncidentRetentionExecutor(prisma),
+
     sessions: {
       category: 'sessions',
       async preview(cutoff) {
@@ -310,19 +313,24 @@ export function createRetentionExecutors(
       async executeBatch(cutoff) {
         return prisma.$transaction(
           async (transaction) => {
-            await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${auditLogChainLockKey})`;
+            await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${auditLogMaintenanceLockKey})`;
             const rows = await transaction.auditLog.findMany({
               where: { createdAt: { lt: cutoff } },
               orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-              select: { id: true, hash: true, createdAt: true },
+              select: { id: true, hash: true, createdAt: true, chainPartition: true },
               take: auditBatch,
             });
             if (rows.length === 0) return emptyBatch();
             const last = rows[rows.length - 1];
             const previous = await transaction.auditChainCheckpoint.findFirst({
               orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-              select: { purgedCount: true },
+              select: { purgedCount: true, partitionHeads: true },
             });
+            const partitionHeads: Record<string, string> =
+              previous?.partitionHeads !== null && typeof previous?.partitionHeads === 'object' && !Array.isArray(previous.partitionHeads)
+                ? { ...(previous.partitionHeads as Record<string, string>) }
+                : {};
+            for (const row of rows) partitionHeads[row.chainPartition] = row.hash;
             await transaction.auditLog.deleteMany({ where: { id: { in: rows.map((row) => row.id) } } });
             const purgedCount = (previous?.purgedCount ?? 0) + rows.length;
             const checkpoint = await transaction.auditChainCheckpoint.create({
@@ -331,6 +339,7 @@ export function createRetentionExecutors(
                 throughCreatedAt: last.createdAt,
                 throughHash: last.hash,
                 purgedCount,
+                partitionHeads,
               },
               select: { id: true },
             });

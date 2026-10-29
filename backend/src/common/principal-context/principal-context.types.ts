@@ -13,8 +13,14 @@
  * the authorization decision itself is untouched — only the number of reads
  * changes. `authzVersion` is carried along because it is part of the cache key.
  */
+import type { CanonicalAssignmentScope } from './canonical-assignment';
+
 export type PrincipalAssignment = {
+  /** Present on database-backed principals; optional for legacy synthetic contexts. */
+  readonly assignmentId?: string;
   readonly roleKey: string;
+  /** Present on database-backed principals; optional for legacy synthetic contexts. */
+  readonly scope?: CanonicalAssignmentScope;
   readonly permissionKeys: readonly string[];
   readonly organizationalUnitId: string | null;
   readonly organizationalUnitPath: string | null;

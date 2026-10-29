@@ -21,6 +21,7 @@ export async function resumeWaitingForUserOnReply(input: {
   readonly context: TicketMutationContext;
   readonly messages?: TicketPersistedMessageSink;
   readonly now?: Date;
+  readonly applySla?: boolean;
 }): Promise<TicketRecord> {
   if (
     !input.configuration.enabled ||
@@ -56,11 +57,13 @@ export async function resumeWaitingForUserOnReply(input: {
       actorUserId: input.context.actorUserId,
     }),
   );
-  await applyTicketSlaTimers(input.context, {
-    ticket: updated,
-    previousStatus: input.ticket.status,
-    now,
-    event: 'user_resumed',
-  });
+  if (input.applySla !== false) {
+    await applyTicketSlaTimers(input.context, {
+      ticket: updated,
+      previousStatus: input.ticket.status,
+      now,
+      event: 'user_resumed',
+    });
+  }
   return updated;
 }

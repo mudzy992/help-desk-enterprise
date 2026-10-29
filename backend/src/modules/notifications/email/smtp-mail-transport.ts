@@ -1,7 +1,12 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { createTransport, type Transporter } from 'nodemailer';
 import type { MailTransport, MailTransportTarget, OutboundMailMessage } from './mail-transport';
+import {
+  getMailProviderLimitBreaker,
+  MailDeliverySuppressedError,
+  type MailProviderLimitBreaker,
+} from './mail-provider-limit-breaker';
 
 /**
  * Val 3 (M12/B3): the transport was created inside `send` and closed in the
@@ -27,10 +32,33 @@ type CachedTransporter = {
 
 @Injectable()
 export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
+  private readonly logger = new Logger(SmtpMailTransport.name);
   private readonly transporters = new Map<string, CachedTransporter>();
+  /** Jedna log linija po blokadi, ne po poruci (oluja ne smije gušiti log). */
+  private lastBlockLogAt = 0;
 
   async send(message: OutboundMailMessage, smtp: MailTransportTarget): Promise<void> {
+    await this.assertProviderAllowsSending();
     const transporter = this.transporterFor(smtp);
+    try {
+      await this.sendNow(transporter, message);
+    } catch (error) {
+      await this.recordProviderRefusal(error);
+      throw error;
+    }
+    await this.providerBreaker().recordSuccess().catch(() => undefined);
+  }
+
+  /**
+   * Prekidač je jedan po procesu, a `SmtpMailTransport` je provider u desetak
+   * modula (API i worker). Zato se ne ubacuje kroz konstruktor — Nest bi tražio
+   * providera za tip — nego kroz ovaj pristupnik, koji testovi prepisuju.
+   */
+  protected providerBreaker(): MailProviderLimitBreaker {
+    return getMailProviderLimitBreaker();
+  }
+
+  private async sendNow(transporter: Transporter, message: OutboundMailMessage): Promise<void> {
     await transporter.sendMail({
       from: message.from,
       to: message.to,
@@ -50,6 +78,34 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
             })),
           }),
     });
+  }
+
+  /**
+   * Provajder je odbio slanje (npr. Gmail „Daily user sending limit exceeded“):
+   * otvori prekidač i reci operateru jednom, ne po svakoj poruci.
+   */
+  private async recordProviderRefusal(error: unknown): Promise<void> {
+    const block = await this.providerBreaker().recordFailure(error).catch(() => null);
+    if (block === null) return;
+    const nowMs = Date.now();
+    if (nowMs - this.lastBlockLogAt < 5 * 60_000) return;
+    this.lastBlockLogAt = nowMs;
+    this.logger.error(
+      `mail_provider_limit reason=${block.reason} blocked_until=${new Date(block.blockedUntilMs).toISOString()} ` +
+        `consecutive=${block.consecutiveBlocks} suppressed=${block.suppressedTotal}`,
+    );
+  }
+
+  /**
+   * Dok je prekidač otvoren, slanje se ne pokušava: `MailDeliverySuppressedError`
+   * je za pozivatelja običan neuspjeh (e-mail ostaje u redu/na čekanju i izlazi
+   * kad se kvota vrati), ali mreža se ne dira i provajder se ne ljuti dalje.
+   */
+  private async assertProviderAllowsSending(): Promise<void> {
+    const block = await this.providerBreaker().active().catch(() => null);
+    if (block === null) return;
+    await this.providerBreaker().countSuppressed().catch(() => undefined);
+    throw new MailDeliverySuppressedError(block, Date.now());
   }
 
   async onModuleDestroy(): Promise<void> {

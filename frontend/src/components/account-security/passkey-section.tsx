@@ -23,14 +23,14 @@ import {
 } from "@/services/account-security-api";
 
 /**
- * Paket 5.4.0-e: "Moj profil → Sigurnost — Passkey".
+ * "Moj profil → Sigurnost — Passkey".
  *
- * * the list shows the owner's label (or the authenticator kind resolved from
+ * * The list shows the owner's label (or the authenticator kind resolved from
  *   the AAGUID) plus created/last-used and the backup flag — never a raw
  *   credential id;
  * * "Dodaj passkey" runs the real WebAuthn ceremony; when the account already
  *   has TOTP the server additionally asks for a current code, so a stolen
- *   session alone cannot add a factor. Review 2026-10-12 (live test): the code
+ *   session alone cannot add a factor. The code
  *   is asked **after** the device prompt — a TOTP code typed before a QR
  *   ceremony was often already expired when the confirmation reached the
  *   server, and a wrong/expired code answered 401, which signed the person
@@ -133,7 +133,7 @@ export function PasskeySection({
       setRemoving(null);
       onChanged();
     } catch (error) {
-      // Review 2026-10-12 (CI run 38244860637, spec 46): the message lives on
+      // The message lives on
       // the card, and an open Radix dialog marks everything outside it
       // `aria-hidden` — so a refusal ("the last factor cannot be removed") was
       // invisible and unannounced while the dialog stayed open. Close it first,

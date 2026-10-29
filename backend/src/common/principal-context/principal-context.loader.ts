@@ -34,7 +34,7 @@ export class PrincipalContextLoader {
     }
     const client = await this.cacheClient();
     const cached = await readCachedPrincipalContext(client, id);
-    if (cached !== null) {
+    if (cached !== null && (await this.matchesDurableAuthority(id, cached))) {
       return cached;
     }
     const fresh = await loadPrincipalContext(this.prisma, id);
@@ -42,6 +42,41 @@ export class PrincipalContextLoader {
       await writeCachedPrincipalContext(client, fresh);
     }
     return fresh;
+  }
+
+  /**
+   * Redis is only a payload cache, never the revocation authority. Every cache
+   * hit is fenced by a small PostgreSQL read so another replica's committed
+   * deactivation/version bump is effective on the next request even when the
+   * Redis tombstone write failed. An unavailable authority fails closed.
+   */
+  private async matchesDurableAuthority(
+    subjectId: string,
+    cached: PrincipalContext,
+  ): Promise<boolean> {
+    try {
+      const authority = await this.prisma.user.findUnique({
+        where: { id: subjectId },
+        select: {
+          authzVersion: true,
+          isActive: true,
+          mustChangePassword: true,
+        },
+      });
+      return (
+        authority !== null &&
+        authority.isActive &&
+        !authority.mustChangePassword &&
+        authority.authzVersion === cached.authzVersion &&
+        cached.isActive &&
+        !cached.mustChangePassword
+      );
+    } catch (error) {
+      this.logger.error(
+        `authz_authority_unavailable user=${subjectId} decision=deny reason=${describeError(error)}`,
+      );
+      return false;
+    }
   }
 
   private async cacheClient(): Promise<PrincipalContextCacheClient | null> {

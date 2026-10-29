@@ -28,11 +28,11 @@ export function flattenHeaderSearchHits(groups: HeaderSearchGroups): readonly He
 }
 
 /**
- * Maps the answer of `GET /search` onto the palette rows (phase 1.2, plan §1.2).
+ * Preslikava odgovor `GET /search` u redove komandne palete.
  *
- * The matching itself moved to the server, so this is a pure projection: the
- * groups arrive already narrowed to what the caller may see and already capped,
- * and the hrefs stay exactly the ones the client built before.
+ * Pretragu obavlja server, pa ovaj helper samo preslikava rezultate: grupe su
+ * već filtrirane prema pravima korisnika i ograničene po broju, a odredišni
+ * linkovi ostaju isti kao i prije.
  */
 export function toHeaderSearchGroups(
   query: string,

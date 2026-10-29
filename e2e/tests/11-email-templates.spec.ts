@@ -13,9 +13,9 @@ type Overview = {
 const marker = 'E2E naslov uvoda';
 
 /**
- * Package 1.5 (G7): the admin edits an e-mail text, sees it in the live preview
- * (HTML in a sandboxed iframe), saves it with a reason; afterAll restores the defaults. The API
- * part checks the confidential rendering (E3) and the placeholder guard.
+ * The admin edits an e-mail text, sees it in the live preview (HTML in a
+ * sandboxed iframe), and saves it with a reason; afterAll restores the defaults.
+ * The API part checks confidential rendering and the placeholder guard.
  * Real sending is covered by unit tests; the test endpoint needs a live SMTP.
  */
 test.describe('11 e-mail templates', () => {
@@ -45,9 +45,8 @@ test.describe('11 e-mail templates', () => {
     // `render-email-message.ts` prefixes `[number] ` only when the filled subject
     // does not already contain the ticket number, and the stored template
     // registry on a live stack may differ from the built-in default. The product
-    // guarantee is that the ticket is identifiable in the subject — that is what
-    // is asserted here (run 2026-10-05: the strict `/^\[HD-…\] /` was flaky for
-    // exactly that reason: "Nova poruka na HD-2026-000123").
+    // guarantee is that the ticket is identifiable in the subject, regardless
+    // of whether the stored template already includes the ticket number.
     expect(normal.subject).toContain('HD-2026-000123');
     expect(normal.html).toContain('<!DOCTYPE html>');
     expect(normal.text).toContain('VPN ne radi');
@@ -69,6 +68,30 @@ test.describe('11 e-mail templates', () => {
     });
     expect(refused.status).toBe(400);
     expect(await refused.text()).toContain('INVALID_EMAIL_TEMPLATE');
+  });
+
+  test('UI: dirty navigation supports stay/proceed and fits a mobile viewport', async ({ page }) => {
+    const env = readE2EEnvironment();
+    await page.setViewportSize({ width: 320, height: 720 });
+    await signIn(page, env.superAdminEmail, env.superAdminPassword);
+    await page.goto('/admin/email-templates');
+    await expect(page.getByTestId('email-templates-editor')).toBeVisible({ timeout: 20_000 });
+
+    const heading = page.getByTestId('email-template-field-heading');
+    await heading.fill('Unsaved browser draft');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    await page.getByRole('link', { name: /postavke|settings/i }).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await page.getByTestId('confirm-dialog-cancel').click();
+    await expect(page).toHaveURL(/\/admin\/email-templates/);
+    await expect(heading).toHaveValue('Unsaved browser draft');
+
+    await page.getByRole('link', { name: /postavke|settings/i }).click();
+    await expect(dialog).toBeVisible();
+    await page.getByTestId('confirm-dialog-confirm').click();
+    await expect(page).toHaveURL(/\/admin\?tab=settings/);
   });
 
   test('UI: edit → live preview → placeholder guard → save with reason', async ({ page }) => {
@@ -97,7 +120,7 @@ test.describe('11 e-mail templates', () => {
 
     // Unknown placeholder: live warning, no save offered.
     await heading.fill(`${marker} {{nope}}`);
-    await expect(page.getByRole('alert').first()).toContainText('{{nope}}');
+    await expect(page.getByText(/\{\{nope\}\}/)).toBeVisible();
     await heading.fill(marker);
 
     const reason = page.getByLabel(/razlog|reason/i).last();

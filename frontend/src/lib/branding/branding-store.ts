@@ -7,7 +7,7 @@ import {
 import { getBranding, type Branding } from "@/services/branding-api";
 
 /**
- * Paket 4.1 (§3a): the client's branding, loaded once from the public
+ * the client's branding, loaded once from the public
  * `GET /branding` and reloaded whenever settings are saved (the generation is
  * appended to the URL so the browser cache never serves a stale logo).
  * Until it loads, the neutral product name is used.
@@ -25,6 +25,7 @@ const listeners = new Set<() => void>();
 let current: Branding = defaultBranding;
 let started = false;
 let requestSequence = 0;
+let stopSettingsSubscription: (() => void) | null = null;
 
 function emit(): void {
   for (const listener of listeners) listener();
@@ -55,7 +56,19 @@ export function startBranding(): void {
   if (started) return;
   started = true;
   void load(0);
-  subscribeSettingsGeneration(() => void load(getSettingsGeneration()));
+  stopSettingsSubscription = subscribeSettingsGeneration(() => void load(getSettingsGeneration()));
+}
+
+/** Restores the neutral snapshot and releases the realtime subscription. */
+export function resetBranding(): void {
+  requestSequence += 1;
+  stopSettingsSubscription?.();
+  stopSettingsSubscription = null;
+  started = false;
+  current = defaultBranding;
+  setProductName(defaultBranding.appName);
+  applyFavicon("");
+  emit();
 }
 
 export function getBrandingSnapshot(): Branding {

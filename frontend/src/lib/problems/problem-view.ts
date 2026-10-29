@@ -1,4 +1,6 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { TranslationKey } from "@/i18n/translation-key";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
+import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
 import type {
   ProblemSeverity,
@@ -7,7 +9,7 @@ import type {
   ProblemTicketSkipReason,
 } from "@/services/problems-api";
 
-/** Paket 3.3: labels, tones and error keys shared by the problem screens. */
+/** labels, tones and error keys shared by the problem screens. */
 
 export const problemStatusKeys: Readonly<
   Record<ProblemStatus, `problems.status.${ProblemStatus}`>
@@ -126,7 +128,7 @@ const severityRank: Readonly<Record<ProblemSeverity, number>> = {
   CRITICAL: 3,
 };
 
-/** §8.1: a problem created from tickets starts at their highest priority. */
+/** requirement: a problem created from tickets starts at their highest priority. */
 export function highestSeverity(values: readonly ProblemSeverity[]): ProblemSeverity {
   return values.reduce<ProblemSeverity>(
     (best, value) => (severityRank[value] > severityRank[best] ? value : best),
@@ -135,7 +137,7 @@ export function highestSeverity(values: readonly ProblemSeverity[]): ProblemSeve
 }
 
 /**
- * §8.1: title suggested from the first selected ticket, description listing
+ * requirement: title suggested from the first selected ticket, description listing
  * the linked ticket numbers (the agent edits both before saving).
  */
 export function suggestProblemDraft(
@@ -148,7 +150,7 @@ export function suggestProblemDraft(
   return { title, description: numbers.length > 0 ? `${descriptionIntro} ${numbers}` : "" };
 }
 
-/** Mirrors the backend (§5): cancel and reopen need a reason. */
+/** Mirrors the backend (requirement): cancel and reopen need a reason. */
 export function transitionNeedsReason(from: ProblemStatus, to: ProblemStatus): boolean {
   return (
     to === "CANCELLED" || (to === "INVESTIGATING" && (from === "RESOLVED" || from === "CANCELLED"))
@@ -169,23 +171,37 @@ export const knownRootCauseCategories = [
   "unknown",
 ] as const;
 
-export function rootCauseLabel(t: (key: string) => string, key: string | null): string {
+export type ProblemRootCauseTranslationKey = Extract<
+  CommonTranslationKey,
+  `problems.rootCause.${(typeof knownRootCauseCategories)[number]}`
+>;
+
+export function rootCauseLabel(
+  t: (key: ProblemRootCauseTranslationKey) => string,
+  key: string | null,
+): string {
   if (key === null || key === "") return "—";
-  return (knownRootCauseCategories as readonly string[]).includes(key)
-    ? t(`problems.rootCause.${key}`)
-    : key;
+  const knownCategory = knownRootCauseCategories.find((category) => category === key);
+  return knownCategory === undefined ? key : t(`problems.rootCause.${knownCategory}`);
 }
 
+export type ProblemTransitionTranslationKey =
+  Extract<CommonTranslationKey, `problems.transition.${string}`> | "problems.status.NEW";
+
 /** Status transition button label: reopen is worded differently. */
-export function transitionLabelKey(from: ProblemStatus, to: ProblemStatus): string {
+export function transitionLabelKey(
+  from: ProblemStatus,
+  to: ProblemStatus,
+): ProblemTransitionTranslationKey {
+  if (to === "NEW") return "problems.status.NEW";
   if (to === "INVESTIGATING" && from === "NEW") return "problems.transition.start";
   if (to === "INVESTIGATING") return "problems.transition.reopen";
   return `problems.transition.${to}`;
 }
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
+type Translate = (key: TranslationKey, options?: Record<string, unknown>) => string;
 
-const historyFieldKeys: Readonly<Record<string, string>> = {
+const historyFieldKeys: Readonly<Record<string, TranslationKey>> = {
   title: "problems.fields.title",
   description: "problems.fields.description",
   impact: "problems.fields.impact",
@@ -202,7 +218,7 @@ const historyFieldKeys: Readonly<Record<string, string>> = {
   resolution: "problems.fields.resolution",
 };
 
-/** One line of the problem history (§16). */
+/** One line of the problem history (requirement). */
 export function problemHistoryText(
   t: Translate,
   action: string,
@@ -270,7 +286,7 @@ export function problemHistoryText(
         failed: count("failed"),
       });
     }
-    // P5b (§9): affected CMDB items, extra services, status-page incidents.
+    // P5b (requirement): affected CMDB items, extra services, status-page incidents.
     case "asset_linked":
       return t("problems.history.assetLinked", { asset: value("assetTag") ?? "—" });
     case "asset_unlinked":

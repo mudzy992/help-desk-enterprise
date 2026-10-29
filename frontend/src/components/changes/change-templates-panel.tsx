@@ -25,11 +25,14 @@ import {
   computeChangeRisk,
   mapChangeError,
 } from "@/lib/changes/change-view";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   changeExtraKeys,
   changeLevels,
-  changeQueryKeys,
   createChangeTemplate,
   listChangeTemplates,
   updateChangeTemplate,
@@ -39,7 +42,7 @@ import {
 } from "@/services/changes-api";
 
 /**
- * Paket 3.4 (§13): standard change templates. Only change managers see this
+ * Delivery invariant (requirement): standard change templates. Only change managers see this
  * tab; templates are deactivated, never deleted, and must stay low or medium risk.
  */
 export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOptions | undefined }) {
@@ -165,7 +168,7 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
           options={options}
           onSaved={() => {
             toast({ tone: "success", title: t("changes.templates.saved") });
-            void queryClient.invalidateQueries({ queryKey: changeQueryKeys.all });
+            void invalidateEntityQueries(queryClient, entityMutationQueryKeys.changes.templates);
           }}
         />
       ) : null}

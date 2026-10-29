@@ -1,18 +1,18 @@
 import type { TFunction } from "i18next";
 import { Filter, Search } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketCreatedRangeFilter } from "@/components/tickets/ticket-created-range-filter";
 import { Chip } from "@/components/ui/chip";
 import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
+import { scheduleDebouncedCallback } from "@/lib/realtime/schedule-debounced-callback";
 import {
   ticketPriorityValues,
   ticketPriorityLabelKey,
   ticketStatusValues,
   ticketStatusLabelKey,
 } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   parseForwardedFilter,
   parsePersonalFilter,
@@ -23,6 +23,7 @@ import type { TicketStatus } from "@/services/tickets-api";
 import type { TicketCounts } from "@/services/tickets-counts-api";
 
 const SLA_RISK_TAB = "RISK";
+const ticketSearchDebounceMs = 300;
 
 export function ticketListTabKey(filters: TicketListFilters): string {
   if (filters.overdue) {
@@ -45,7 +46,7 @@ export function applyTicketListTab(filters: TicketListFilters, key: string): Tic
 /**
  * Tab counters of the list.
  *
- * Phase 1.1 (plan §1.1): the counters no longer come from the downloaded list
+ * the counters no longer come from the downloaded list
  * (which is one page now) but from `GET /tickets/counts`, computed over the
  * same filters and visibility. `null` means the counters could not be read —
  * the tabs then show zeros instead of blocking the list.
@@ -53,30 +54,30 @@ export function applyTicketListTab(filters: TicketListFilters, key: string): Tic
  * "All" is every status the counters know except ARCHIVED: the default list
  * hides the archive, and the counters group over all statuses.
  */
-export function ticketStatusTabItems(t: TFunction, counts: TicketCounts | null, riskCount: number) {
-  const allCount =
-    counts === null
-      ? 0
-      : ticketStatusValues.reduce(
-          (sum, status) => (status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0)),
-          0,
-        );
+export function ticketStatusTabItems(t: TFunction, counts: TicketCounts | null) {
+  const allCount = counts
+    ? ticketStatusValues.reduce(
+        (sum, status) => (status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0)),
+        0,
+      )
+    : null;
+  const withCount = (count: number | null) => (count === null ? {} : { count });
   return [
-    { key: "ALL", label: ticketText(t, "tickets.filters.allTickets"), count: allCount },
+    { key: "ALL", label: t("tickets.filters.allTickets"), ...withCount(allCount) },
     {
       key: SLA_RISK_TAB,
       label: (
         <span className="flex items-center gap-1.5">
           <span className="size-1.5 rounded-full bg-danger" aria-hidden="true" />
-          {ticketText(t, "tickets.filters.slaRisk")}
+          {t("tickets.filters.slaRisk")}
         </span>
       ),
-      count: riskCount,
+      ...withCount(counts?.overdue ?? null),
     },
     ...ticketStatusValues.map((status) => ({
       key: status,
-      label: ticketText(t, ticketStatusLabelKey[status]),
-      count: counts?.byStatus[status] ?? 0,
+      label: t(ticketStatusLabelKey[status]),
+      ...withCount(counts?.byStatus[status] ?? null),
     })),
   ];
 }
@@ -85,7 +86,8 @@ interface TicketListFiltersBarProperties {
   readonly filters: TicketListFilters;
   readonly services: readonly ServiceResponse[];
   readonly onChange: (filters: TicketListFilters) => void;
-  /** Package 1.6: the "forwarded" filter is staff-only. */
+  readonly onSearchChange: (search: string) => void;
+  /** the "forwarded" filter is staff-only. */
   readonly isStaff?: boolean;
   /**
    * UX 2026-10-02: the saved-views control lives in the filter row instead of a
@@ -98,10 +100,29 @@ export function TicketListFiltersBar({
   filters,
   services,
   onChange,
+  onSearchChange,
   isStaff = false,
   savedViewsSlot,
 }: TicketListFiltersBarProperties) {
   const { t } = useTranslation();
+  const [searchDraft, setSearchDraft] = useState(filters.search);
+
+  useEffect(() => {
+    setSearchDraft(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (searchDraft === filters.search) {
+      return;
+    }
+    const scheduled = scheduleDebouncedCallback(
+      () => onSearchChange(searchDraft),
+      ticketSearchDebounceMs,
+    );
+    scheduled.trigger();
+    return scheduled.cancel;
+  }, [filters.search, onSearchChange, searchDraft]);
+
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <div className="relative w-64 max-w-full">
@@ -116,8 +137,8 @@ export function TicketListFiltersBar({
         <input
           id="ticket-list-search"
           className={cn(controlCompactClassName, "pl-8")}
-          value={filters.search}
-          onChange={(event) => onChange({ ...filters, search: event.target.value })}
+          value={searchDraft}
+          onChange={(event) => setSearchDraft(event.target.value)}
           placeholder={t("tickets.filters.searchPlaceholder")}
         />
       </div>
@@ -136,7 +157,7 @@ export function TicketListFiltersBar({
             active={filters.priority === priority}
             onClick={() => onChange({ ...filters, priority })}
           >
-            {ticketText(t, ticketPriorityLabelKey[priority])}
+            {t(ticketPriorityLabelKey[priority])}
           </Chip>
         ))}
       </div>

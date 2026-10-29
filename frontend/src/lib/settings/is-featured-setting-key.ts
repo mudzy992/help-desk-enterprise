@@ -26,7 +26,7 @@ export function addonRegistryKey(addonKey: string): string {
   return `private.addons.${addonKey}`;
 }
 
-// Paket 4.1 (§3a): edited on the Branding card, not in the generic registry.
+// edited on the Branding card, not in the generic registry.
 export const brandingSettingKeys = {
   appName: "public.branding.appName",
   tagline: "public.branding.tagline",
@@ -53,7 +53,6 @@ export const smtpSettingKeys = {
 export const unroutedSettingKeys = {
   enabled: "private.ticket.unroutedQueue.enabled",
   ownerRole: "private.ticket.unroutedQueue.ownerRole",
-  // Paket 1.7 (U1/U2).
   targetGroupId: "private.ticket.unroutedQueue.targetGroupId",
   cleanupSlaHours: "private.ticket.unroutedQueue.cleanupSlaHours",
   weeklyDigest: "private.ticket.unroutedQueue.weeklyDigest",

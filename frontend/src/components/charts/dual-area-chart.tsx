@@ -82,7 +82,7 @@ export function DualAreaChart({
   const x = (index: number) => plotX(index, data.length, SIZE);
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("min-w-0 w-full overflow-hidden", className)}>
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
         <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
           <span className="h-2 w-4 rounded-full" style={{ background: STROKE_A }} />

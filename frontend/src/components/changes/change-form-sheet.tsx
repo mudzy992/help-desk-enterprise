@@ -1,16 +1,13 @@
+import { ChangeFormSecondaryFields } from "./change-form-secondary-fields";
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { ChangeConflictsList } from "@/components/changes/change-conflicts-list";
-import { ChangeAssetPicker, ChangeProblemPicker } from "@/components/changes/change-link-pickers";
-import { ChangeServicePicker } from "@/components/changes/change-service-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { errorTextClassName, hintClassName } from "@/components/ui/control";
+import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { buildChangeConflictPreview } from "@/lib/changes/change-conflict-preview";
 import {
   changeLevelKeys,
   changeRiskKeys,
@@ -40,9 +37,10 @@ import {
   type ChangeType,
 } from "@/services/changes-api";
 
+const textMax = 8000;
+
 type Owner = { readonly id: string; readonly displayName: string; readonly email?: string };
 
-/** Optional prefill when the form is opened from another record (e.g. a problem, C4). */
 export type ChangeFormPrefill = {
   readonly title?: string;
   readonly description?: string;
@@ -56,19 +54,11 @@ interface ChangeFormSheetProperties {
   readonly onOpenChange: (open: boolean) => void;
   readonly options: ChangeOptions;
   readonly capabilities: ChangeCapabilities;
-  /** Editing when set; creating otherwise. */
   readonly change?: ChangeDetail;
   readonly prefill?: ChangeFormPrefill;
   readonly onSaved: (changeId: string) => void;
 }
 
-const textMax = 8000;
-
-/**
- * Paket 3.4 (§6, §17): create a change or edit it. A standard change starts
- * from a template (plans, impact and likelihood come from it). In SCHEDULED
- * only the window and the owner can change (`editScope = "window"`).
- */
 export function ChangeFormSheet({
   open,
   onOpenChange,
@@ -158,7 +148,6 @@ export function ChangeFormSheet({
     setTemplateId(id);
     const next = options.templates.find((item) => item.id === id);
     if (next === undefined) return;
-    // §13: the template decides impact, likelihood and the downtime default.
     setImpact(next.impact);
     setLikelihood(next.likelihood);
     setCausesDowntime(next.causesDowntime);
@@ -174,18 +163,15 @@ export function ChangeFormSheet({
     (startIso !== null && endIso !== null && startIso >= endIso);
   const windowHalf = (startIso === null) !== (endIso === null);
 
-  // §9 / §17: live conflicts while the window is chosen (debounced).
-  const previewInput: ChangeConflictPreviewInput | null =
-    open && startIso !== null && endIso !== null && !windowInvalid
-      ? {
-          type,
-          plannedStart: startIso,
-          plannedEnd: endIso,
-          serviceIds,
-          assetIds: assets.map((asset) => asset.id),
-          ...(change ? { changeId: change.id } : {}),
-        }
-      : null;
+  const previewInput = buildChangeConflictPreview({
+    open,
+    type,
+    plannedStart: startIso,
+    plannedEnd: endIso,
+    serviceIds,
+    assetIds: assets.map((asset) => asset.id),
+    changeId: change?.id,
+  });
   const [debouncedPreview, setDebouncedPreview] = useState<ChangeConflictPreviewInput | null>(null);
   const previewKey = previewInput === null ? "" : JSON.stringify(previewInput);
   useEffect(() => {
@@ -442,229 +428,47 @@ export function ChangeFormSheet({
               </Select>
             )}
           </Field>
-          <ChangeServicePicker
-            label={t("changes.fields.services")}
-            options={options.services}
-            value={serviceIds}
-            onChange={setServiceIds}
-            disabled={locked}
-            hint={
-              standard ? t("changes.form.servicesStandardHint") : t("changes.form.servicesHint")
-            }
+          <ChangeFormSecondaryFields
+            options={options}
+            capabilities={capabilities}
+            change={change}
+            type={type}
+            standard={standard}
+            locked={locked}
+            serviceIds={serviceIds}
+            setServiceIds={setServiceIds}
+            assets={assets}
+            setAssets={setAssets}
+            problem={problem}
+            setProblem={setProblem}
+            cabGroupId={cabGroupId}
+            setCabGroupId={setCabGroupId}
+            start={start}
+            setStart={setStart}
+            end={end}
+            setEnd={setEnd}
+            windowInvalid={windowInvalid}
+            windowHalf={windowHalf}
+            hasPreview={debouncedPreview !== null}
+            conflicts={conflictsPreview.data}
+            causesDowntime={causesDowntime}
+            setCausesDowntime={setCausesDowntime}
+            canAssignOwner={canAssignOwner}
+            owner={owner}
+            setOwner={setOwner}
+            ownerSearch={ownerSearch}
+            setOwnerSearch={setOwnerSearch}
+            owners={owners.data?.items ?? []}
+            ownersLoading={owners.isFetching}
+            implementationPlan={implementationPlan}
+            setImplementationPlan={setImplementationPlan}
+            backoutPlan={backoutPlan}
+            setBackoutPlan={setBackoutPlan}
+            testPlan={testPlan}
+            setTestPlan={setTestPlan}
+            communicationPlan={communicationPlan}
+            setCommunicationPlan={setCommunicationPlan}
           />
-          {capabilities.cmdbEnabled ? (
-            <ChangeAssetPicker value={assets} onChange={setAssets} disabled={locked} />
-          ) : null}
-          {capabilities.problemsEnabled ? (
-            <ChangeProblemPicker value={problem} onChange={setProblem} disabled={locked} />
-          ) : null}
-          {!standard ? (
-            <Field label={t("changes.fields.cabGroup")} hint={t("changes.form.cabGroupHint")}>
-              {(control) => (
-                <Select
-                  {...control}
-                  value={cabGroupId}
-                  disabled={locked}
-                  onChange={(event) => setCabGroupId(event.target.value)}
-                >
-                  {change?.cabGroup &&
-                  !options.cabGroups.some((group) => group.id === change.cabGroup?.id) ? (
-                    <option value={change.cabGroup.id}>{change.cabGroup.name}</option>
-                  ) : null}
-                  {options.cabGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-          ) : null}
-          <fieldset className="grid gap-2">
-            <legend className="mb-1.5 text-[12.5px] font-medium text-foreground">
-              {t("changes.form.window")}
-            </legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={t("changes.fields.plannedStart")}>
-                {(control) => (
-                  <Input
-                    {...control}
-                    type="datetime-local"
-                    value={start}
-                    onChange={(event) => setStart(event.target.value)}
-                    data-testid="change-form-start"
-                  />
-                )}
-              </Field>
-              <Field label={t("changes.fields.plannedEnd")}>
-                {(control) => (
-                  <Input
-                    {...control}
-                    type="datetime-local"
-                    value={end}
-                    onChange={(event) => setEnd(event.target.value)}
-                    data-testid="change-form-end"
-                  />
-                )}
-              </Field>
-            </div>
-            {windowInvalid ? (
-              <p role="alert" className={errorTextClassName}>
-                {t("changes.errors.windowInvalid")}
-              </p>
-            ) : windowHalf ? (
-              <p className={hintClassName}>{t("changes.form.windowBoth")}</p>
-            ) : (
-              <p className={hintClassName}>
-                {options.minLeadTimeHours > 0 && type === "NORMAL"
-                  ? t("changes.form.windowLeadHint", { hours: options.minLeadTimeHours })
-                  : t("changes.form.windowHint")}
-              </p>
-            )}
-            {debouncedPreview !== null && conflictsPreview.data ? (
-              <div
-                className="grid gap-1.5 rounded-md border border-border/70 px-3 py-2"
-                aria-live="polite"
-                data-testid="change-form-conflicts"
-              >
-                <p className="text-[12px] font-medium text-foreground">
-                  {t("changes.conflicts.title")}
-                </p>
-                <ChangeConflictsList conflicts={conflictsPreview.data} />
-              </div>
-            ) : null}
-            <Checkbox
-              label={t("changes.fields.causesDowntime")}
-              checked={causesDowntime}
-              disabled={locked}
-              onChange={(event) => setCausesDowntime(event.target.checked)}
-            />
-            <p className={hintClassName}>{t("changes.form.causesDowntimeHint")}</p>
-          </fieldset>
-          {canAssignOwner ? (
-            <div className="grid gap-1.5">
-              <span className="text-[12.5px] font-medium text-foreground">
-                {t("changes.fields.owner")}
-              </span>
-              {owner !== null ? (
-                <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-[12.5px]">
-                  <span className="min-w-0">
-                    <span className="block truncate text-foreground">{owner.displayName}</span>
-                    {owner.email ? (
-                      <span className="block truncate text-[11.5px] text-muted-foreground">
-                        {owner.email}
-                      </span>
-                    ) : null}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={t("changes.form.clearOwner")}
-                    onClick={() => setOwner(null)}
-                  >
-                    <X size={13} aria-hidden="true" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Input
-                    value={ownerSearch}
-                    maxLength={120}
-                    onChange={(event) => setOwnerSearch(event.target.value)}
-                    placeholder={t("changes.form.ownerSearch")}
-                    aria-label={t("changes.form.ownerSearch")}
-                  />
-                  <ul
-                    className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1"
-                    aria-label={t("changes.form.ownerResults")}
-                  >
-                    {(owners.data?.items ?? []).length === 0 ? (
-                      <li className={`px-2 py-1 ${hintClassName}`}>
-                        {owners.isFetching ? t("ui.loading") : t("changes.form.ownerNone")}
-                      </li>
-                    ) : (
-                      (owners.data?.items ?? []).map((item) => (
-                        <li key={item.id}>
-                          <button
-                            type="button"
-                            className="w-full truncate rounded-md px-2 py-1 text-left text-[12.5px] text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-                            onClick={() => {
-                              setOwner(item);
-                              setOwnerSearch("");
-                            }}
-                          >
-                            {item.displayName}
-                            {item.email ? (
-                              <span className="text-muted-foreground"> · {item.email}</span>
-                            ) : null}
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </>
-              )}
-            </div>
-          ) : null}
-          {!standard ? (
-            <>
-              <Field
-                label={t("changes.fields.implementationPlan")}
-                hint={t("changes.form.planHint")}
-              >
-                {(control) => (
-                  <Textarea
-                    {...control}
-                    rows={4}
-                    value={implementationPlan}
-                    maxLength={textMax}
-                    disabled={locked}
-                    onChange={(event) => setImplementationPlan(event.target.value)}
-                  />
-                )}
-              </Field>
-              <Field label={t("changes.fields.backoutPlan")} hint={t("changes.form.planHint")}>
-                {(control) => (
-                  <Textarea
-                    {...control}
-                    rows={3}
-                    value={backoutPlan}
-                    maxLength={textMax}
-                    disabled={locked}
-                    onChange={(event) => setBackoutPlan(event.target.value)}
-                  />
-                )}
-              </Field>
-              <Field
-                label={t("changes.fields.testPlan")}
-                hint={options.requireTestPlan ? t("changes.form.testPlanRequired") : undefined}
-              >
-                {(control) => (
-                  <Textarea
-                    {...control}
-                    rows={3}
-                    value={testPlan}
-                    maxLength={textMax}
-                    disabled={locked}
-                    onChange={(event) => setTestPlan(event.target.value)}
-                  />
-                )}
-              </Field>
-            </>
-          ) : null}
-          <Field label={t("changes.fields.communicationPlan")}>
-            {(control) => (
-              <Textarea
-                {...control}
-                rows={2}
-                value={communicationPlan}
-                maxLength={textMax}
-                disabled={locked}
-                onChange={(event) => setCommunicationPlan(event.target.value)}
-              />
-            )}
-          </Field>
           {error !== null ? (
             <p role="alert" className={errorTextClassName}>
               {error}

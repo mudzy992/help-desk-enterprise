@@ -20,6 +20,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { randomUUID } from 'node:crypto';
+import { open, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { SessionAuthenticationGuard } from '../../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../../authentication/authenticated-request';
 import { readAuthenticatedPrincipal } from '../../authentication/authenticated-request';
@@ -60,32 +64,41 @@ export class TicketsAttachmentsController {
   @Post(':ticketId/attachments')
   @UseInterceptors(
     FileInterceptor('file', {
+      storage: diskStorage({ destination: tmpdir(), filename: (_request, _file, callback) => callback(null, `ticket-upload-${randomUUID()}`) }),
       limits: {
         files: 1,
         fileSize: ticketAttachmentUploadHardLimitBytes,
       },
     }),
   )
-  upload(
+  async upload(
     @Param('ticketId') ticketId: string,
     @UploadedFile()
-    file: { originalname: string; mimetype: string; size: number; buffer: Buffer } | undefined,
+    file: { originalname: string; mimetype: string; size: number; path: string } | undefined,
     @Body() body: UploadTicketAttachmentDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
-    return this.attachmentsService.upload(
-      ticketId,
-      file === undefined
-        ? undefined
-        : {
-            originalName: decodeMultipartFilename(file.originalname),
-            declaredMimeType: file.mimetype,
-            size: file.size,
-            buffer: file.buffer,
-            requestedClassification: body.classification,
-          },
-      readContext(request),
-    );
+    if (file === undefined) return this.attachmentsService.upload(ticketId, undefined, readContext(request));
+    const handle = await open(file.path, 'r');
+    const signature = Buffer.alloc(Math.min(file.size, 8192));
+    try {
+      await handle.read(signature, 0, signature.length, 0);
+      return await this.attachmentsService.upload(
+        ticketId,
+        {
+          originalName: decodeMultipartFilename(file.originalname),
+          declaredMimeType: file.mimetype,
+          size: file.size,
+          buffer: signature,
+          temporaryPath: file.path,
+          requestedClassification: body.classification,
+        },
+        readContext(request),
+      );
+    } finally {
+      await handle.close();
+      await unlink(file.path).catch(() => undefined);
+    }
   }
 
   @Get(':ticketId/attachments/:attachmentId/content')
@@ -94,14 +107,11 @@ export class TicketsAttachmentsController {
     @Param('attachmentId') attachmentId: string,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<StreamableFile> {
-    const result = await this.attachmentsService.download(
-      ticketId,
-      attachmentId,
-      readContext(request),
-    );
-    return new StreamableFile(result.contents, {
+    const result = await this.attachmentsService.downloadStream(ticketId, attachmentId, readContext(request));
+    return new StreamableFile(result.stream, {
       type: result.metadata.mimeType,
       disposition: attachmentContentDisposition(result.metadata.originalName),
+      length: result.metadata.sizeBytes,
     });
   }
 

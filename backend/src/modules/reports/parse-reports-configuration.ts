@@ -20,6 +20,7 @@ import type { ReportsConfiguration } from './reports.types';
 
 export function parseReportsConfiguration(input: {
   readonly reportsEnabled: unknown;
+  readonly timeZone?: unknown;
   readonly addonEnabled: unknown;
   readonly packsJson: unknown;
   readonly allowedFormatsCsv: unknown;
@@ -46,6 +47,7 @@ export function parseReportsConfiguration(input: {
   }
   return {
     reportsEnabled: input.reportsEnabled,
+    timeZone: typeof input.timeZone === 'string' && input.timeZone.length > 0 ? input.timeZone : 'UTC',
     addonEnabled: input.addonEnabled,
     enabledPacks: [
       ...parsePacks(typeof input.packsJson === 'string' ? input.packsJson : ''),

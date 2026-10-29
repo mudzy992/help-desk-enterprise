@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 export const Modal = DialogPrimitive.Root;
 export const ModalTrigger = DialogPrimitive.Trigger;
-export const ModalClose = DialogPrimitive.Close;
 export const ModalTitle = DialogPrimitive.Title;
 export const ModalDescription = DialogPrimitive.Description;
 
@@ -47,9 +46,13 @@ interface ModalHeaderProperties {
 export function ModalHeader({ title, description }: ModalHeaderProperties) {
   return (
     <div className="mb-3 pr-6">
-      <h2 className="text-[14px] font-semibold leading-5 text-foreground">{title}</h2>
+      <ModalTitle className="text-[14px] font-semibold leading-5 text-foreground">
+        {title}
+      </ModalTitle>
       {description ? (
-        <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{description}</p>
+        <ModalDescription className="mt-1 text-[12.5px] leading-5 text-muted-foreground">
+          {description}
+        </ModalDescription>
       ) : null}
     </div>
   );

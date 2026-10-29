@@ -21,4 +21,5 @@ module.exports = {
   // The generated Prisma client imports its own files with a `.js` suffix (ESM style).
   moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' },
   testEnvironment: 'node',
+  reporters: ['default', '<rootDir>/../scripts/github-jest-reporter.cjs'],
 };

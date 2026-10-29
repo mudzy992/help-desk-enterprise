@@ -1,6 +1,6 @@
 import { ApiError } from "@/services/api";
 
-/* Paket 2.1: server password-policy violations → i18n keys. */
+/* Server password-policy violations → i18n keys. */
 const VIOLATION_KEYS = {
   TOO_SHORT: "auth.passwordPolicy.TOO_SHORT",
   TOO_LONG: "auth.passwordPolicy.TOO_LONG",
@@ -9,7 +9,7 @@ const VIOLATION_KEYS = {
   COMMON_PASSWORD: "auth.passwordPolicy.COMMON_PASSWORD",
   CONTAINS_ORGANISATION_WORD: "auth.passwordPolicy.CONTAINS_ORGANISATION_WORD",
   CONTAINS_EMAIL_NAME: "auth.passwordPolicy.CONTAINS_EMAIL_NAME",
-  // Paket 5.4.0-d (M5): the online Pwned Passwords hit. The server never sends
+  // The online Pwned Passwords hit. The server never sends
   // the breach count — only the verdict.
   PWNED_PASSWORD: "auth.passwordPolicy.PWNED_PASSWORD",
 } as const;
@@ -24,7 +24,7 @@ export function readPasswordFeedbackKeys(error: unknown): PasswordFeedbackKey[] 
   if (!(error instanceof ApiError)) return null;
   if (error.code === "PASSWORD_REUSED") return ["auth.passwordPolicy.reused"];
   if (error.code === "CURRENT_PASSWORD_INVALID") return ["auth.passwordPolicy.currentInvalid"];
-  // Paket 5.1 (M1 #1): the install wizard reports the same rule list under its
+  // The install wizard reports the same rule list under its
   // own code, so both screens share this mapping.
   if (error.code !== "INVALID_PASSWORD" && error.code !== "PASSWORD_POLICY_VIOLATIONS") {
     return null;

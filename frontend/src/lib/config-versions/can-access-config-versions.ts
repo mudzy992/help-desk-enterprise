@@ -18,7 +18,7 @@ export function canWriteConfigVersions(input: {
   return input.isSuperAdmin || input.permissionKeys.includes(permissionKeys.settingsWrite);
 }
 
-/** Paket 2.9 (K4): importing a config package (SUPER_ADMIN by default). */
+/** importing a config package (SUPER_ADMIN by default). */
 export function canImportConfigPackage(input: {
   readonly isSuperAdmin: boolean;
   readonly permissionKeys: readonly string[];

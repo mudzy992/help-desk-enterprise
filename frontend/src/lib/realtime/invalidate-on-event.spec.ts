@@ -16,18 +16,19 @@ describe("queryKeysForTicketEvent", () => {
     ).toEqual([
       queryKeys.ticketLists,
       queryKeys.ticket("ticket-1"),
+      queryKeys.ticketCountsPrefix,
       queryKeys.dashboardSummaryPrefix,
       queryKeys.slaSummary,
     ]);
   });
 
-  it("keeps a group feed change to the list queries", () => {
+  it("invalidates inbox counts when a group feed changes", () => {
     expect(
       queryKeysForTicketEvent({
         eventName: "group.feed-changed",
         payload: { groupId: "group-it", ticketId: "ticket-1", kind: "message" },
       }),
-    ).toEqual([queryKeys.ticketLists]);
+    ).toEqual([queryKeys.ticketLists, queryKeys.ticketCountsPrefix]);
   });
 
   it("invalidates notifications on their own events", () => {
@@ -42,6 +43,7 @@ describe("queryKeysForTicketEvent", () => {
   it("does not throw on a payload without a ticket id", () => {
     expect(queryKeysForTicketEvent({ eventName: "ticket.updated", payload: null })).toEqual([
       queryKeys.ticketLists,
+      queryKeys.ticketCountsPrefix,
       queryKeys.dashboardSummaryPrefix,
       queryKeys.slaSummary,
     ]);

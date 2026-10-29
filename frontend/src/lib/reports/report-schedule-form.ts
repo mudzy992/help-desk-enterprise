@@ -2,8 +2,13 @@ import type {
   ReportScheduleFrequency,
   ReportScheduleSection,
 } from "@/services/report-schedules-api";
+import {
+  addCivilDays,
+  addCivilMonths,
+  civilParts,
+  zonedInstant,
+} from "@/lib/reports/report-civil-time";
 
-/** Paket 2.5 (design §7.3): client-side checks and the „next send” preview. */
 export type ReportScheduleFormValues = {
   readonly name: string;
   readonly frequency: ReportScheduleFrequency;
@@ -38,39 +43,23 @@ export function validateReportScheduleForm(
   return errors;
 }
 
-/**
- * Next send in the viewer's clock — weekly on Monday, monthly on the 1st
- * (design §5.1). Strictly after `now`. The saved schedule shows the server's
- * `nextRunAt`; this is only the preview while editing (same zone in practice).
- */
+/** Same civil-calendar contract as backend `nextReportRunAt`. */
 export function previewNextReportRun(
   frequency: ReportScheduleFrequency,
   sendTime: string,
-  now: Date,
+  timeZone: string,
+  after: Date,
 ): Date | null {
   if (!isValidSendTime(sendTime)) return null;
   const [hours, minutes] = sendTime.split(":").map(Number) as [number, number];
-  if (frequency === "WEEKLY") {
-    const daysToMonday = (8 - now.getDay()) % 7;
-    const candidate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + daysToMonday,
-      hours,
-      minutes,
-    );
-    return candidate.getTime() > now.getTime()
-      ? candidate
-      : new Date(
-          candidate.getFullYear(),
-          candidate.getMonth(),
-          candidate.getDate() + 7,
-          hours,
-          minutes,
-        );
+  const minute = hours * 60 + minutes;
+  const today = civilParts(after, timeZone);
+  let candidate =
+    frequency === "WEEKLY" ? addCivilDays(today, -((today.weekday + 6) % 7)) : { ...today, day: 1 };
+  for (let guard = 0; guard < 4; guard += 1) {
+    const slot = zonedInstant(timeZone, candidate.year, candidate.month, candidate.day, minute);
+    if (slot.getTime() > after.getTime()) return slot;
+    candidate = frequency === "WEEKLY" ? addCivilDays(candidate, 7) : addCivilMonths(candidate, 1);
   }
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1, hours, minutes);
-  return thisMonth.getTime() > now.getTime()
-    ? thisMonth
-    : new Date(now.getFullYear(), now.getMonth() + 1, 1, hours, minutes);
+  return null;
 }

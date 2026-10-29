@@ -110,8 +110,10 @@ export function AssetTransferSection({
       ) : null}
       {problems.length > 0 ? (
         <ul className={`grid gap-0.5 ${errorTextClassName}`}>
-          {problems.map((problem, index) => (
-            <li key={index}>{t(problem.key, { assetTag: problem.assetTag })}</li>
+          {problems.map((problem) => (
+            <li key={`${problem.key}:${problem.assetTag}`}>
+              {t(problem.key, { assetTag: problem.assetTag })}
+            </li>
           ))}
         </ul>
       ) : null}

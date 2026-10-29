@@ -3,7 +3,7 @@
  *
  * The product name starts as the static <title> in index.html (text before
  * " — ") and is replaced by the client's configured name once branding loads
- * (Paket 4.1); the current tab title is rewritten in place.
+ * (); the current tab title is rewritten in place.
  */
 const SEPARATOR = " · ";
 
@@ -47,4 +47,9 @@ export function formatDocumentTitle(
 
 export function setDocumentTitle(...parts: (string | null | undefined)[]): void {
   document.title = formatDocumentTitle(parts, getProductName());
+}
+
+/** Restores module state so tests and identity changes cannot leak a product name. */
+export function resetDocumentTitle(): void {
+  productName = null;
 }

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initializeI18n, i18n } from "@/i18n/config";
+import { ensureLocaleResources, initializeI18n, i18n } from "@/i18n/config";
 import {
   resolveRegistryCategoryTitle,
   resolveRegistryDescription,
@@ -40,6 +40,7 @@ describe("resolveRegistry i18n catalogs", () => {
   it.each(Object.entries(SAMPLE_BY_CATEGORY))(
     "BS: category %s and key %s resolve without fallback",
     async (categoryKey, settingKey) => {
+      await ensureLocaleResources("bs");
       await i18n.changeLanguage("bs");
       const title = resolveRegistryCategoryTitle(i18n.t.bind(i18n), categoryKey);
       const description = resolveRegistryDescription(
@@ -57,6 +58,7 @@ describe("resolveRegistry i18n catalogs", () => {
   it.each(Object.entries(SAMPLE_BY_CATEGORY))(
     "EN: category %s and key %s resolve without fallback",
     async (categoryKey, settingKey) => {
+      await ensureLocaleResources("en");
       await i18n.changeLanguage("en");
       const title = resolveRegistryCategoryTitle(i18n.t.bind(i18n), categoryKey);
       const description = resolveRegistryDescription(

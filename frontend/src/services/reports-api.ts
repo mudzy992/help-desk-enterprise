@@ -37,17 +37,18 @@ export type ReportDashboardAging = {
 };
 
 export type ReportsDashboardResponse = {
+  readonly timeZone: string;
   readonly window: { readonly from: string; readonly to: string };
   readonly previousWindow: { readonly from: string; readonly to: string };
   readonly ticketCount: number;
   readonly kpis: ReportDashboardKpis;
-  /** Val 1 (M15/B1): postavka uskih grla stvarno isključuje i podatke i prikaz. */
+  /** postavka uskih grla stvarno isključuje i podatke i prikaz. */
   readonly bottlenecksEnabled: boolean;
   readonly bottleneckByGroup: readonly ReportDashboardNamedBar[];
   readonly serviceVolume: readonly ReportDashboardNamedBar[];
-  /** Val 1 (M15 gap): tiketi kreirani u periodu, po organizacionoj jedinici. */
+  /** tiketi kreirani u periodu, po organizacionoj jedinici. */
   readonly originUnitVolume: readonly ReportDashboardNamedBar[];
-  /** Val 1 (M15 gap): „opterećenje admina“ — otvoreni tiketi po izvršiocu. */
+  /** „opterećenje admina“ — otvoreni tiketi po izvršiocu. */
   readonly assigneeWorkload: readonly ReportDashboardNamedBar[];
   readonly volumeSeries: readonly ReportDashboardVolumePoint[];
   readonly aging: ReportDashboardAging;
@@ -68,7 +69,7 @@ export type BottleneckCounts = {
 
 export type BottleneckBreakdownRow = BottleneckCounts & {
   readonly key: string;
-  /** Val 1 (M15/B2): naziv za prikaz (za prioritet je vrijednost enuma). */
+  /** naziv za prikaz (za prioritet je vrijednost enuma). */
   readonly label: string;
 };
 
@@ -77,7 +78,7 @@ export type BottleneckTrendRow = BottleneckCounts & {
   readonly createdCount: number;
 };
 
-/** Val 1 (M15/B2): `GET /reports/bottlenecks` — usko grlo po OU/servisu/prioritetu + trend. */
+/** `GET /reports/bottlenecks` — usko grlo po OU/servisu/prioritetu + trend. */
 export type BottlenecksResponse = {
   readonly window: { readonly from: string; readonly to: string };
   readonly counts: BottleneckCounts;

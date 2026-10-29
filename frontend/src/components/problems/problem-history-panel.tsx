@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -8,9 +9,9 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, problemHistoryText } from "@/lib/problems/problem-view";
-import { getProblemEvents, problemDetailKeys } from "@/services/problems-api";
+import { getProblemEvents, problemQueryKeys } from "@/services/problems-api";
 
-/** Paket 3.3 (§16): newest first, the last 200 entries. */
+/** Delivery invariant (requirement): newest first, the last 200 entries. */
 export function ProblemHistoryPanel({
   problemId,
   versionKey,
@@ -20,7 +21,7 @@ export function ProblemHistoryPanel({
 }) {
   const { t, i18n } = useTranslation();
   const query = useQuery({
-    queryKey: [...problemDetailKeys.events(problemId), versionKey],
+    queryKey: [...problemQueryKeys.events(problemId), versionKey],
     queryFn: () => getProblemEvents(problemId),
     retry: false,
   });
@@ -41,8 +42,7 @@ export function ProblemHistoryPanel({
       />
     );
   }
-  const translate = (key: string, options?: Record<string, unknown>) =>
-    t(key as never, options as never) as unknown as string;
+  const translate = (key: TranslationKey, options?: Record<string, unknown>) => t(key, options);
   return (
     <Card className="p-0">
       <CardHeader title={t("problems.history.title")} />

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { InstallLoginProviderRecord } from "@/services/install-api";
 import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
 
@@ -28,6 +29,9 @@ export function InstallLdapsBindFields({
   readonly onBindDnChange: (value: string) => void;
   readonly onBindPasswordChange: (value: string) => void;
 }) {
+  // IN11: same as Entra — the note moves out of the label and is linked.
+  const bindDnHintId = useId();
+  const bindPasswordHintId = useId();
   return (
     <div className="grid gap-3">
       <label className={labelClassName}>
@@ -47,10 +51,15 @@ export function InstallLdapsBindFields({
           type="text"
           autoComplete="off"
           value={bindDn}
+          aria-describedby={bindDnConfigured ? bindDnHintId : undefined}
           onChange={(event) => onBindDnChange(event.target.value)}
         />
-        {bindDnConfigured ? <span className={hintClassName}>{configuredLabel}</span> : null}
       </label>
+      {bindDnConfigured ? (
+        <p id={bindDnHintId} className={hintClassName}>
+          {configuredLabel}
+        </p>
+      ) : null}
       <label className={labelClassName}>
         {bindPasswordLabel}
         <input
@@ -58,10 +67,15 @@ export function InstallLdapsBindFields({
           type="password"
           autoComplete="off"
           value={bindPassword}
+          aria-describedby={bindPasswordConfigured ? bindPasswordHintId : undefined}
           onChange={(event) => onBindPasswordChange(event.target.value)}
         />
-        {bindPasswordConfigured ? <span className={hintClassName}>{configuredLabel}</span> : null}
       </label>
+      {bindPasswordConfigured ? (
+        <p id={bindPasswordHintId} className={hintClassName}>
+          {configuredLabel}
+        </p>
+      ) : null}
     </div>
   );
 }

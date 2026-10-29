@@ -133,21 +133,27 @@ export function KnowledgeArticleEditForm({
   return (
     <form className="fade-in grid gap-3" onSubmit={onSubmit}>
       <Field label={t("knowledgeBase.titleField")} required>
-        <Input
-          value={title}
-          required
-          maxLength={200}
-          onChange={(event) => setTitle(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={title}
+            required
+            maxLength={200}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        )}
       </Field>
       <Field label={t("knowledgeBase.bodyField")} required>
-        <Textarea
-          value={body}
-          required
-          maxLength={20000}
-          className="min-h-48"
-          onChange={(event) => setBody(event.target.value)}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={body}
+            required
+            maxLength={20000}
+            className="min-h-48"
+            onChange={(event) => setBody(event.target.value)}
+          />
+        )}
       </Field>
       {isSuperAdmin ? (
         <KnowledgeArticleAdminFields
@@ -167,12 +173,15 @@ export function KnowledgeArticleEditForm({
         />
       ) : null}
       <Field label={t("knowledgeBase.reason")} required>
-        <Input
-          value={reason}
-          required
-          maxLength={512}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            required
+            maxLength={512}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div>

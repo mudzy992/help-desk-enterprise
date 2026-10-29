@@ -46,16 +46,34 @@ export function WorkflowTransitionsTable({
       </label>
       <ScrollRegion className={tableWrapClassName}>
         <table className="w-full text-left text-[12px]" data-testid="workflow-transitions-table">
+          <caption className="sr-only">{t("workflow.tableCaption")}</caption>
           <thead className="text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-semibold">{t("workflow.columns.from")}</th>
-              <th className="px-3 py-2 font-semibold">{t("workflow.columns.to")}</th>
-              <th className="px-3 py-2 font-semibold">{t("workflow.columns.actors")}</th>
-              <th className="px-3 py-2 font-semibold">{t("workflow.columns.triggers")}</th>
-              <th className="px-3 py-2 font-semibold">{t("workflow.columns.guards")}</th>
+              <th scope="col" className="px-3 py-2 font-semibold">
+                {t("workflow.columns.from")}
+              </th>
+              <th scope="col" className="px-3 py-2 font-semibold">
+                {t("workflow.columns.to")}
+              </th>
+              <th scope="col" className="px-3 py-2 font-semibold">
+                {t("workflow.columns.actors")}
+              </th>
+              <th scope="col" className="px-3 py-2 font-semibold">
+                {t("workflow.columns.triggers")}
+              </th>
+              <th scope="col" className="px-3 py-2 font-semibold">
+                {t("workflow.columns.guards")}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
+            {transitions.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-5 text-center text-muted-foreground">
+                  {t("workflow.emptyTransitions")}
+                </td>
+              </tr>
+            ) : null}
             {transitions.map((transition) => (
               <tr key={`${transition.from}-${transition.to}`}>
                 <td className="px-3 py-2 font-medium">
@@ -90,11 +108,21 @@ export function WorkflowTransitionsTable({
                         return (
                           <Badge
                             key={guard}
-                            tone={description.inactive ? "neutral" : "info"}
+                            tone={
+                              description.mode === "off"
+                                ? "neutral"
+                                : description.mode === "warn"
+                                  ? "warning"
+                                  : "info"
+                            }
                             dot={false}
                           >
                             {t(description.key, description.values)}
-                            {description.inactive ? ` · ${t("workflow.guardOff")}` : ""}
+                            {description.mode === "off"
+                              ? ` · ${t("workflow.guardOff")}`
+                              : description.mode === "warn"
+                                ? ` · ${t("workflow.guardWarn")}`
+                                : ""}
                           </Badge>
                         );
                       })}

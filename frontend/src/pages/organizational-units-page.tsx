@@ -11,7 +11,7 @@ import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { countOrganizationalUnitMembers } from "@/lib/directory/count-organizational-unit-members";
 import { findOrganizationalUnitNode } from "@/lib/directory/find-organizational-unit-node";

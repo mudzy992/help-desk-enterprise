@@ -1,216 +1,527 @@
-# Modul 9: On-call i obavještenja
+# Reaudit modula 09 — On-call i obavještenja
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda, grep, provjera backend guardova i e2e pokrivenosti). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **O** (on-call) i **OB** (obavještenja). Ovo se ne miješa sa RS (modul 8), KB (modul 7), R (modul 6) i S (modul 5).
+**Datum reauditiranja:** 20. 10. 2026.
+**Revidirani snapshot:** `c800c1445b610e03ac2c21502efce196112fc122`
+**Status:** reaudit završen; implementacija nalaza nije započeta
+**Aktuelna ocjena:** **9,8/10 nakon Faze 7**
+**Maksimum bez stvarnog browser/E2E dokaza:** **9,8/10**
 
-Provjere izvršene u sandboxu:
-- Čitanje u cijelosti: `pages/on-call-page.tsx` (539), `lib/on-call/on-call-view.ts` (200), `components/on-call/on-call-range-dialog.tsx` (134), `components/on-call/on-call-schedule-dialog.tsx` (271), `components/on-call/on-call-calendar.tsx` (79), `components/on-call/on-call-calendar-feed-card.tsx` (146), `components/on-call/on-call-header-indicator.tsx` (63), `components/on-call/on-call-reason-dialog.tsx` (57), `pages/announcements-page.tsx` (425), `components/announcements/announcements-host.tsx` (260), `components/announcements/announcement-editor-dialog.tsx` (453), `components/announcements/announcement-report-dialog.tsx` (236), `lib/announcements/announcement-view.ts` (128), `services/on-call-api.ts` (182), `services/announcements-api.ts` (229).
-- Čitanje dijelova: `components/ui/confirm-dialog.tsx` (1–67), `layouts/application-shell.tsx` (85–101, mjesto montiranja `AnnouncementsHost` i `key={location.pathname}`), `lib/a11y/announcer.ts` (1–40).
-- Backend: `on-call.controller.ts` (guardovi po ruti), `on-call.service.ts` (`assertTimeZone` 66–75), `announcements.controller.ts` (rute, bez dekoratora dozvola), `announcements.service.ts` (`requireManage` 146–149), `announcement-viewer.ts` (`canManageAll`, `canReadReports`).
-- Pretraga: `any`, `as never`, `as unknown`, `eslint-disable`, `console` u modulu: jedan pogodak (`on-call-page.tsx` 280). Komentari sa oznakama plana (Paket, §, K2, K3): 22 pogotka.
-- Upotreba globalnog announcera (`lib/a11y/announcer.ts`): koriste ga tiketi, shortcuts i route-focus, ali ne moduli 9.
-- E2E: `44-on-call-schedule.spec.ts` (167 linija, 2 testa), `45-announcements-lifecycle.spec.ts` (126 linija, 1 test).
-- Unit testovi: `lib/on-call/on-call-view.spec.ts` (8 testova), `lib/announcements/announcement-view.spec.ts`, `lib/a11y/announcer.spec.ts`.
-- **Nije pokrenut pregledač.** Nalazi označeni „za provjeru“ treba potvrditi u pregledaču, a zone treba provjeriti sa dvije različite zone pregledača i rasporeda.
-- **Nije pročitano u punom obimu:** `services/announcements-api.ts` (ostatak tipova), `components/ui/toast.tsx` (provjera `role` za obavijesti), backend `announcements.service.ts` za izvještaje (`canReadReports`, scope jedinice) i `on-call.service.ts` za provjeru da li swap prihvat/odbijanje ima servisnu provjeru učesnika (van obima ovog koraka).
+## 1. Izvršni sažetak
 
----
+Modul je funkcionalno znatno bolji od arhivskog audita 6/10. Ranije kritične state greške su djelimično zatvorene: izbor grupe briše prethodni detail, detail zahtjev ima latest-only zaštitu, refresh greška ostaje vidljiva uz postojeći overview, sedmični kalendar signalizira učitavanje, on-call unos i prikaz koriste zonu rasporeda, reason dijalozi pravilno razdvajaju validaciju od pending stanja, a announcement report odbacuje zastarjele odgovore.
 
-## Modul
+Reaudit ipak ne potvrđuje produkcijski closeout. Glavni preostali rizici su:
 
-Modul ima dva dijela koja dijele jedan dizajn jezik, ali imaju različite rizike:
+1. on-call overview je jedan `Promise.all` snapshot bez latest-only identiteta; kvar jednog od tri izvora blokira sva tri, a zakašnjeli refresh može prepisati noviji;
+2. mutation zaštita je zasnovana na React stateu i nije sinhroni operation guard, pa synchronous double-click može poslati dupli swap/delete/announcement zahtjev;
+3. detail error nema request ID niti retry dugme, a pri promjeni sedmice stari detail ostaje interaktivan dok novi scope još nije potvrđen;
+4. announcement capabilities greška se tiho pretvara u arhiv bez Manage taba;
+5. ManageAnnouncements ima ručni list/options controller bez request guardova, korelacije greške i preciznog cache ugovora;
+6. AnnouncementsHost potpuno skriva active-query grešku, pa se outage predstavlja kao „nema obavještenja“;
+7. ključne page/controller/host/editor state mašine nemaju direktne testove;
+8. browser matrica za swap, override, feed token, banner/modal limit, deep link, CSV/reminder/withdraw, responsive i axe nije izvršena.
 
-- **On-call (`/on-call`)** prikazuje ko je dežuran, nedjeljni raspored sa četiri sedmice, rotacije, zamjene (swap) i ručna preklapanja (override). Admin može da uređuje raspored, a korisnik traži zamjenu i upravlja ICS pretplatom na kalendar (`/account/notifications`). Zaglavlje prikazuje indikator „Dežuran do 08:00“ (`OnCallHeaderIndicator`).
-- **Obavještenja** imaju tri površine: banner i modal koji se prikazuju u ljusci aplikacije (`AnnouncementsHost`, montiran u `application-shell.tsx` 98), arhiv korisnika (`/announcements`, tab „Moja“) i upravljanje za one koji smiju da objavljuju (tab „Upravljanje“ sa uređivačem, izvještajem o potvrdama i potvrdama brisanja/povlačenja).
-
-Najveći rizik je u on-call dijelu: stranica radi nad jednim „izabranim“ rasporedom i ima nekoliko mjesta gdje se prikazuje stari podatak ili se radi nad pogrešnom grupom, dok se unos vremena za preklapanje tumači u zoni pregledača a kalendar prikazuje zonu rasporeda.
+Ocjena **9,8/10** nakon Faze 7 priznaje zatvoren query identitet/recovery, synchronous mutation concurrency i URL-kanonski prikaz, uz zrelu domensku osnovu, backend zaštite i on-call vremensku zonu. Preostali odbici su announcement civil-time odluka, puna testna mreža, održivost i browser dokaz.
 
 ---
 
-## Povezani fajlovi i folderi
+## 2. Scope i metodologija
 
-| Fajl ili folder | Uloga | Linija |
-|---|---|---|
-| `frontend/src/pages/on-call-page.tsx` | Stranica: pregled, detalj grupe, sedmica, swap, override, brisanje | 539 |
-| `frontend/src/pages/announcements-page.tsx` | Stranica: arhiv (`AnnouncementArchive`) i upravljanje (`ManageAnnouncements`) | 425 |
-| `frontend/src/components/on-call/` (6) | Raspored, kalendar, feed kartica, indikator, razlog, opseg preklapanja | 271 + 79 + 146 + 63 + 57 + 134 |
-| `frontend/src/components/announcements/` (3) | Host (banner i modal), uređivač, izvještaj o potvrdama | 260 + 453 + 236 |
-| `frontend/src/lib/on-call/on-call-view.ts` | Segmenti po danima, zone, premještanje članova, mapiranje grešaka | 200 |
-| `frontend/src/lib/announcements/announcement-view.ts` | Ton, uloga čitača, sessionStorage brojač modala, datum i vrijeme | 128 |
-| `frontend/src/services/on-call-api.ts` | HTTP za on-call, URL kalendara | 182 |
-| `frontend/src/services/announcements-api.ts` | HTTP za obavještenja, izvještaj, CSV | 229 |
-| `frontend/src/lib/a11y/announcer.ts` i `components/a11y/announcer-regions.tsx` | Globalni announcer (dijeljen, ne koriste ga moduli 9) | 75 + 44 |
-| `frontend/src/components/ui/confirm-dialog.tsx` | Zajednički dijalog za potvrdu (koriste ga i on-call i obavještenja) | 67 |
-| `frontend/src/layouts/application-shell.tsx` | Montiranje `AnnouncementsHost`, `key={location.pathname}` | 98 |
-| `frontend/src/lib/session/route-access.ts` | `canOpenOnCall` (provjera pristupa) | 87 |
-| `frontend/src/app/router.tsx` | Ruta `on-call` sa `check={canOpenOnCall}` | 138 |
-| `backend/src/modules/on-call/` | Kontroleri i servisi on-call (guardovi, `assertTimeZone`) | — |
-| `backend/src/modules/announcements/` | Kontroler, servis, viewer, delivery | — |
-| `e2e/tests/44-on-call-schedule.spec.ts`, `45-announcements-lifecycle.spec.ts` | E2E za raspored i životni ciklus obavještenja | 167 + 126 |
+### Primarni frontend scope
 
----
+- `frontend/src/pages/on-call-page.tsx`
+- `frontend/src/pages/announcements-page.tsx`
+- `frontend/src/components/on-call/**`
+- `frontend/src/components/announcements/**`
+- `frontend/src/lib/on-call/on-call-view.ts`
+- `frontend/src/lib/announcements/announcement-view.ts`
+- `frontend/src/services/on-call-api.ts`
+- `frontend/src/services/announcements-api.ts`
 
-## Trenutna implementacija
+### Cross-reference scope
 
-**On-call stranica.** Stranica učitava pregled (`overview`) i, za izabranu grupu, detalj sa rasponom od četiri sedmice (`getOnCallGroup`). Vremenska zona kalendara je `schedule.timezone` ili `defaultTimezone` (`on-call-page.tsx` 73). Detalj se učitava kad se promijeni grupa ili raspon (efekti 108–114). Kalendar (`on-call-calendar.tsx`) dobija segmente iz `on-call-view.ts` i prikazuje ih u zoni rasporeda. Segmenti se računaju sa 12-satnim korakom, pa dan sa promjenom sata (DST) ima tačno 23 sata (test u `on-call-view.spec.ts`).
+- route access i session capabilities;
+- `AnnouncementsHost` montiranje u application shellu;
+- zajednički Modal, ConfirmDialog, Field, Toast i API error ugovori;
+- backend on-call i announcements kontroleri, servisi, viewer i delivery granice;
+- relevantni notification fan-out, realtime i preference tokovi samo gdje direktno utiču na ova dva modula;
+- `44-on-call-schedule.spec.ts` i `45-announcements-lifecycle.spec.ts`, uz `04`/`22` kao realtime/a11y cross-reference.
 
-**Pravila rasporeda.** `OnCallScheduleDialog` uređuje dužinu rotacije (dan ili sedmica), sat predaje (96 opcija po 15 min), datum početka, zonu (slobodan tekst), vlasnika, članove (gore/dolje/ukloni, bez prevlačenja) i razlog. Backend validira zonu (`assertTimeZone`, `on-call.service.ts` 66–75) i vraća `invalidSchedule`.
+### Izvršena analiza
 
-**Preklapanje i zamjena.** `OnCallRangeDialog` unosi `datetime-local` vrijednosti u zoni pregledača (`toLocalInputValue` / `fromLocalInputValue`). Override i swap idu na backend kao ISO trenutak. Razlog je obavezan (min 3 znaka). Brisanje grupe i preklapanja koristi `OnCallReasonDialog` (razlog obavezan). Swap prihvat i odbijanje ne traže potvrdu.
+- pročitani su aktuelni page, component, lib i API controller tokovi;
+- provjereni su request lifecycle, stale identity, recovery, mutation concurrency, URL state, vremenska zona, a11y semantika i responsive struktura;
+- pregledani su frontend testovi i E2E izvori;
+- backend je korišten za provjeru autoriteta dozvola i domenskih invarijanti;
+- stvarni browser nije pokrenut jer lokalni E2E stack nije dostupan; nijedan browser nalaz nije predstavljen kao izvršen dokaz.
 
-**Kalendar i indikator.** `OnCallHeaderIndicator` osvježava `/on-call/me` svakih 5 min, samo dok je tab vidljiv, i prikazuje prvu aktivnu smjenu. Feed kartica (`on-call-calendar-feed-card.tsx`) kreira, rotira i opoziva ICS token. URL se prikazuje jednom (backend čuva samo hash). Rotacija i opoziv traže `ConfirmDialog`.
+### Veličina i koncentracija
 
-**Obavještenja u ljusci.** `AnnouncementsHost` poll-uje `/announcements/active` svakih 60 s (`react-query`, `staleTime` 30 s). Prikazuje jedan banner sa brojačem i strelicama za više obavještenja. MODAL obavještenje se prikazuje najviše tri puta po sesiji (`sessionStorage`, `modalShowsPerSession = 3`). Brojač se povećava pri prikazu, a ne pri zatvaranju. Komponenta se ponovo montira pri svakoj promjeni putanje (`key={location.pathname}` u ljusci), pa je „jedan modal po navigaciji“ stvarno ponašanje.
+Aktuelni primarni scope ima približno **4.478 linija**. Najveće cjeline su:
 
-**Arhiv i upravljanje.** Arhiv je lista `<details>` elemenata sa `id="announcement-<id>"`. Deep link `?open=<id>` otvara i fokusira stavku. Tab „Upravljanje“ (samo ako `canManage`) ima tabelu, uređivač (`AnnouncementEditorDialog`) sa pregledom Markdown-a i procjenom publike (debounce 350 ms), izvještaj sa CSV-om i podsjetnikom, te potvrde za objavu, povlačenje (sa razlogom) i brisanje.
+- `on-call-page.tsx`: 725;
+- `announcements-page.tsx`: 530;
+- `announcement-editor-dialog.tsx`: 544;
+- `on-call-schedule-dialog.tsx`: 383;
+- `announcements-host.tsx`: 329;
+- `announcement-report-dialog.tsx`: 308;
+- `on-call-view.ts`: 296.
 
-**Dozvole.** Frontend `canOpenOnCall` i `permissionKeys.onCallRead` skrivaju stranicu i indikator. Backend `on-call.controller.ts` ima `@RequirePermissions` na svakoj ruti: čitanje za `onCallRead`, pisanje rasporeda i preklapanja za `onCallManage`. Obavještenja nemaju dekoratore dozvola na kontroleru. Provjera je u servisu (`requireManage` 146–149) i u `announcementViewerOf` (`canManageAll`, `canReadReports`).
-
----
-
-## Realno/željeno stanje
-
-| Oblast | Realno stanje | Željeno stanje |
-|---|---|---|
-| Greška pri osvježavanju | Ako pregled već postoji, neuspjeli refresh je tih (O1) | Greška uz dugme za ponovni pokušaj, a stari podaci ostaju vidljivi |
-| Izbor grupe | Stari detalj ostaje dok novi ne stigne, a akcije rade nad starom grupom (O2) | Akcije vezane za grupu iz istog odgovora, bez race-a |
-| Promjena sedmice | Nema indikatora učitavanja, stari podaci ostaju (O3) | Loader ili indikator kad se mijenja sedmica |
-| Zona vremena | Unos preklapanja je u zoni pregledača, kalendar i raspored u zoni rasporeda, a „dežuran do“ u zoni pregledača (O4) | Jedna zona, označena uz svaki unos i prikaz |
-| Potvrda sa razlogom | Dugme „Otkaži“ je onemogućeno dok razlog nije unesen (O9, OB3) | Otkaži uvijek aktivan, potvrda onemogućena dok razlog nije unesen |
-| Tabela upravljanja | Greška refresha zamjenjuje cijelu tabelu porukom bez dugmeta (OB2) | Greška u traci iznad tabele, tabela ostaje |
-| Globalni announcer | Moduli 9 ne koriste `announce`, oslanjaju se na toast i `role` (O13) | Odluka: koji ishodi se najavljuju čitaču ekrana |
-| Testovi | Pure funkcije su testirane (8 + spec za obavještenja). E2E pokriva samo prikaz rasporeda i jedan tok obavještenja (vidi dolje) | Testovi za swap, override, brisanje, feed token, banner, modal limit, deep link i izvještaj |
-| Dupliranje | `severityKeys` u tri fajla, mapiranje `en`→`en-GB` u tri mjesta (OB8, O6) | Jedan helper za lokalizaciju i oznake ozbiljnosti |
-
-**E2E pokrivenost.**
-- `44-on-call-schedule.spec.ts`: raspored je vidljiv na pregledu, u detalju sedmice i na mobilnom prikazu. Drugi test provjerava endpoint stabla jedinica. Nema testova za swap, override, brisanje sa razlogom, feed token i indikator u zaglavlju.
-- `45-announcements-lifecycle.spec.ts`: kreiranje, objava i izvještaj „0 od N“. Nema testova za banner (potvrda, odbacivanje, brojač), modal (ograničenje od tri prikaza), `?open=` deep link, CSV, podsjetnik, povlačenje sa razlogom i validaciju uređivača (trajanje, redoslijed datuma).
+Ovo nije samo estetski dug: najveće datoteke istovremeno drže query orchestration, mutation lifecycle, URL/UI state i prezentaciju, što otežava direktne determinističke testove.
 
 ---
 
-## Gap analiza
+## 3. Potvrđeno dobro stanje
 
-1. **Stari detalj i pogrešna grupa (O2).** `loadDetail` (`on-call-page.tsx` 95–106) nema `active` zaštitu. Catch ne briše `detail`. Pri promjeni grupe (303–306) header, dugmad za upravljanje (`canManage`) i potvrda brisanja (`confirmDelete` 142–148, koristi `detail.group.id`) rade nad prethodnom grupom dok novi odgovor ne stigne. Ovo je najvažniji nalaz modula jer akcija može da pogodi pogrešnu grupu.
-2. **Tih neuspjeh osvježavanja (O1).** `loadOverview` (79–93) postavlja `loadError`, ali render (177) gleda samo `overview === null`. Ako je pregled već učitan, greška nakon zamjene ili brisanja se ne prikazuje.
-3. **Zona vremena na istoj stranici (O4).** Ovo je najveći dizajnerski nalaz modula. Na jednoj stranici se koriste tri zone bez oznake:
-   - kalendar i naslov rasporeda: zona rasporeda (`on-call-page.tsx` 73, `on-call-calendar.tsx` 25 i 51);
-   - „dežuran do“, sljedeća smjena, swap i preklapanja: zona pregledača (`formatOnCallTime(x, t)` bez zone, linije 224, 232, 252, 326, 402, 458, 489);
-   - unos preklapanja i zamjene: zona pregledača (`on-call-range-dialog.tsx` 52–56, 61–62, 107–111).
-   Ako su zona pregledača i zona rasporeda različite (npr. admin u drugoj zoni, ili putovanje), preklapanje se unese u pogrešnom satu, a kalendar to prikazuje u zoni rasporeda. Backend čuva trenutak, pa greška nije vidljiva u podacima dok neko ne uporedi kalendar sa unosom. Isti obrazac kao RS7 u modulu 8.
-4. **Nedosljedno ponašanje dijaloga (O9, OB3).** `OnCallReasonDialog` (42) i `ManageAnnouncements` za povlačenje (407) prosljeđuju `isPending` za validaciju razloga. `ConfirmDialog` onemogućava i „Otkaži“ kad je `isPending` true (`confirm-dialog.tsx` 50). Zato dugme „Otkaži“ nije aktivno dok je razlog kraći od tri znaka, a to je početno stanje. `ConfirmDialog` već ima prop `confirmDisabled` za ovu namjenu. Esc i klik van dijaloga i dalje rade.
-5. **Tabela upravljanja nestaje pri grešci (OB2).** `ManageAnnouncements.load` (186–199) postavlja `loadError`, a render (249–255) vraća samo poruku greške. `refreshEverywhere` (201–205) zove `load` nakon objave, povlačenja, brisanja i čuvanja. Ako taj refresh padne, cijela tabela nestaje i nema dugmeta za ponovni pokušaj. Svi podaci su tada skriveni, iako je akcija uspjela.
-6. **Ponovno učitavanje bez React Query-ja.** `ManageAnnouncements` drži `list` i `options` u dva stanja i učitava ih ručno, dok arhiv koristi `react-query` (109–113). Nema `cancelled` zaštite za `load` (186–199), a dva poziva mogu da se utrkuju (`useEffect` i `refreshEverywhere`).
-7. **Race u izvještaju (OB1, za provjeru).** `AnnouncementReportDialog.load` (33–45) nema `active` zaštitu. Ako korisnik brzo zatvori i otvori drugi izvještaj, kasniji odgovor za prethodno obavještenje može da prepiše prikaz. Akcije (CSV 48, podsjetnik 61) koriste trenutni `announcementId`, pa se prikazani podaci i akcija mogu razlikovati.
-8. **Uređivač: pristupačnost i dugi sastav.** Dugme „Pregled / Uredi“ ima `aria-pressed` dok mijenja tekst (243–245). Polje „Tekst“ nije `Field` nego `span` sa `aria-label` na textarea (237–241, 252–253). `AnnouncementEditorDialog` ima oko 330 linija u jednoj funkciji.
-9. **Obavještenja nemaju zonu.** Uređivač, arhiv i tabela prikazuju `startsAt` i `endsAt` u zoni pregledača bez oznake (`toLocalInputValue` 97–101, `announcementDateTimeFormatter` 119–127, `announcements-page.tsx` 157, 310–312). Za globalno obavještenje to je prihvatljivo, ali korisnik ne vidi u kojoj zoni važi „do 18:00“.
-10. **Zamjene bez potvrde.** Prihvat, odbijanje i otkazivanje zamjene (`on-call-page.tsx` 257–267) nemaju potvrdu. Prihvat je obavezujući za dežurstvo, pa je to odluka za proizvod.
-11. **Globalni announcer se ne koristi.** Moduli 9 ne zovu `announce`. Obavještenje sa CRITICAL ozbiljnošću ima `role="alert"`, što je dovoljno za prvi prikaz. Promjena dežurnog nakon zamjene ili preklapanja ide samo kroz toast, a za njega nisam provjerio `role` u `toast.tsx`.
+### On-call
 
----
+- Backend ostaje autoritet za `onCallRead` i `onCallManage` dozvole.
+- Promjena grupe odmah uklanja prethodni detail; zakašnjeli detail odgovor ne može commitovati nakon cleanup-a efekta.
+- Sedmična promjena izlaže loading status i `aria-busy` umjesto tihog scope prijelaza.
+- Kalendar, overview, `/on-call/me`, swap i range unos koriste deklarisanu zonu rasporeda.
+- DST helperi odbijaju nepostojeće civilno vrijeme i imaju pure testove.
+- Destruktivne akcije traže razlog, dok „Otkaži“ ostaje dostupno tokom validacije.
+- ICS token se prikazuje samo kada ga server izda; backend čuva hash, a javni odgovor ima `private/no-store` ugovor.
 
-## Mišljenje tima i preporuka
+### Obavještenja
 
-On-call i obavještenja su bolje strukturirani nego što se na prvi pogled čini. Čiste funkcije u `on-call-view.ts` i `announcement-view.ts` rade sa zonama preko `Intl` bez hardkodiranih zona, računaju DST dane i imaju testove. Obavještenja su dobro urađena za pristupačnost: `role` zavisi od ozbiljnosti, brojač ima `aria-live`, sadržaj arhiva je `<details>`, a deep link fokusira stavku. Ograničenje od tri modala po sesiji je u sessionStorage-u sa testom.
+- Archive koristi semantički `<details>` i deep link `?open=<id>` otvara i fokusira cilj.
+- Announcement report koristi latest-request guard i poništava aktivni identitet pri promjeni/zatvaranju.
+- Editor audience preview ima cleanup zaštitu za debounce i zakašnjeli odgovor.
+- Manage refresh greška više ne briše prethodnu tabelu i ima retry akciju.
+- CRITICAL koristi interruptive semantiku, dok ostale ozbiljnosti ostaju polite.
+- Modal session budžet je centralizovan i testiran kao pure ugovor.
+- Backend audience/viewer granice, acknowledgement izvještaj, CSV i reminder pravila postoje.
 
-Glavni problemi su u komponentama koje rade sa stanjem. Stranica o dežurstvu ne štiti odgovore od zastarjelih zahtjeva, a akcije se oslanjaju na „izabranu“ grupu. Zona vremena nije konzistentna na istoj stranici. E2E pokriva prikaz i jedan tok obavještenja, a ne akcije koje mijenjaju podatke.
+### Testovi koji već postoje
 
-Preporuka po redu:
-
-1. **Detalj grupe (O2) i pregled (O1).** Jedan `active` obrazac kao u `use-docs.ts`. Detalj se briše pri promjeni grupe, a akcije uzimaju `group.id` iz istog odgovora. Greška refresha ostaje vidljiva uz stare podatke.
-2. **Zona (O4).** Odluka proizvoda: zona rasporeda za sve on-call prikaze i unos, uz oznaku zone. Zatim se `formatOnCallTime` i `OnCallRangeDialog` moraju dobiti istu zonu. Ovo je odluka, ne samo ispravka.
-3. **Dijalozi sa razlogom (O9, OB3).** `confirmDisabled` umjesto `isPending` za validaciju. Jedna izmjena u dva fajla.
-4. **Tabela upravljanja (OB2, OB8).** Greška u traci iznad tabele. Učitavanje u `react-query` (kao arhiv) sa `invalidateQueries` nakon akcija.
-5. **Zajednički helperi.** `severityKeys`, mapiranje lokala i `formatOnCallDayLabel` (koji koristi ključeve iz `changes.calendar`) u zajedničke module.
-6. **Testovi.** E2E za swap (prihvat i odbijanje), override sa razlogom, brisanje grupe, feed token (kreiranje, rotacija, opoziv), banner (potvrda i odbacivanje) i ograničenje modala. Komponentski testovi za `OnCallRangeDialog` (zona) i `AnnouncementEditorDialog` (validacija datuma i trajanja).
+- on-call civil time, DST, segmenti i mapiranje grešaka;
+- announcement view helperi, ton/role i modal session brojač;
+- on-call reason i range dijalozi;
+- backend resolve/sweep/iCal, announcement audience/delivery i notification fan-out slojevi;
+- E2E `44` pokriva osnovni schedule prikaz, a `45` osnovni announcement lifecycle.
 
 ---
 
-## Otkriveni bugovi i neusklađenosti
+## 4. Nalazi
 
-| ID | Ozbiljnost | Fajl i linija | Opis |
-|---|---|---|---|
-| O1 | Srednja | `pages/on-call-page.tsx` 79–93, 177 | `loadOverview` postavlja `loadError`, a render gleda samo `overview === null`. Neuspjeli refresh nakon zamjene ili brisanja je tih ako je pregled već učitan. |
-| O2 | Srednja | `pages/on-call-page.tsx` 95–106, 142–148, 303–306 | `loadDetail` nema `active` zaštitu, a catch ne briše `detail`. Pri promjeni grupe header i akcije (uključujući `confirmDelete` sa `detail.group.id`) rade nad prethodnom grupom. Rizik pogrešne grupe. |
-| O3 | Srednja | `pages/on-call-page.tsx` 384–385, 410–418 | Promjena sedmice (`weekOffset`) nema loader kalendara. Stari podaci ostaju bez indikatora. |
-| O4 | Srednja (dizajn, potvrđeno) | `components/on-call/on-call-range-dialog.tsx` 52–56, 61–62, 107–111; `pages/on-call-page.tsx` 73, 224, 232, 252, 326, 402, 458, 489 | Unos preklapanja i zamjene je u zoni pregledača, kalendar je u zoni rasporeda, a „dežuran do“ i sljedeće smjene u zoni pregledača. Pogrešan sat ako se zone razlikuju. Isti obrazac kao RS7. |
-| O9 | Srednja (UX i semantika, potvrđeno) | `components/on-call/on-call-reason-dialog.tsx` 42; `components/ui/confirm-dialog.tsx` 50 | `isPending` služi za validaciju razloga, pa je „Otkaži“ onemogućen dok razlog nije unesen. `ConfirmDialog` ima `confirmDisabled` za tu namjenu. |
-| OB2 | Srednja (potvrđeno) | `pages/announcements-page.tsx` 186–199, 201–205, 249–255 | Greška refresha nakon objave, povlačenja, brisanja ili čuvanja zamjenjuje cijelu tabelu porukom bez dugmeta za ponovni pokušaj. |
-| OB3 | Srednja (UX i semantika, potvrđeno) | `pages/announcements-page.tsx` 407 | Isti obrazac kao O9: `isPending={busy \|\| (withdraw && reason.trim().length < 3)}` onemogućava „Otkaži“ pri povlačenju bez razloga. |
-| O5 | Niska (za provjeru) | `pages/on-call-page.tsx` 73–76, 108–114 | `timeZone` zavisi od `detail` i `rangeStart`. Pri prvom učitavanju moguć je dupli zahtjev za detalj. |
-| O6 | Niska | `lib/on-call/on-call-view.ts` 180, 184–190; `components/on-call/on-call-calendar.tsx` 23 | `formatOnCallClock(iso, "en-GB", zona)` provjerava `locale === "en"`, pa `en-GB` pada na bs-BA. Ispis je trenutno isti, ali logika je pogrešna. Isto u `announcement-view.ts` 120. |
-| O7 | Niska (humanizacija) | `lib/on-call/on-call-view.ts` 35–37 i još 4 mjesta; 149, 159, 42 | `civilDateKey` (split + map(Number)) ponovljen pet puta. `formatOnCallWeekday`/`DayLabel` koriste ključeve `changes.calendar.*` iz drugog modula. Komentar 42 kaže „local midnight“, a vrijednost je `zonedMidnight`. |
-| O8 | Niska | `pages/on-call-page.tsx` 199, 257–267, 280, 461; `components/on-call/on-call-calendar.tsx` 25 | `as never` i `as unknown as string` pri prevođenju statusa swapa (280). `Intl.DateTimeFormat` se kreira pri svakom renderu (199, calendar 25). Odbijanje i otkazivanje swapa bez potvrde (257–267). Razlog overridea samo u `title` (461). |
-| O10 | Niska (UX) | `components/on-call/on-call-schedule-dialog.tsx` 151, 263 | Zona je slobodan tekst bez klijentske provjere. Backend je provjerava (`assertTimeZone`), ali greška se prikazuje tek nakon slanja. Dugme „Sačuvaj“ je onemogućeno bez objašnjenja. |
-| O11 | Niska | `components/on-call/on-call-header-indicator.tsx` 30, 35–36, 54 | Greška učitavanja je tiha (indikator nestane). Nema osvježavanja kad se tab ponovo vidi (čeka se do 5 min). Indikator je skriven ispod 640 px (`hidden ... sm:flex`), pa mobilni korisnik ne vidi ko je dežuran. |
-| O12 | Niska | `components/on-call/on-call-calendar-feed-card.tsx` 48, 55, 58, 73 | Kartica nema skeleton (`return null` dok se učitava, pomak rasporeda). Opoziv prikazuje grešku preko `mapApiError`, a rotacija preko `mapOnCallError` (nedosljedno). `createdAt` se postavlja iz lokalnog sata (`new Date()`), a ne iz odgovora servera. |
-| O13 | Niska (a11y, za provjeru) | `pages/on-call-page.tsx` (nema poziva `announce`) | Promjena dežurnog nakon zamjene ili preklapanja ide samo kroz toast. Provjeriti da li toast ima `role="status"`. |
-| OB1 | Niska (za provjeru) | `components/announcements/announcement-report-dialog.tsx` 33–45, 48, 61 | `load` nema `active` zaštitu. Zastarjeli odgovor za prethodno obavještenje može prepisati prikaz. Akcije koriste `announcementId`, pa se prikaz i akcija mogu razlikovati. |
-| OB4 | Niska | `pages/announcements-page.tsx` 63–67, 88–101 | Greška `capabilities` upita je tiha: `isLoading` je false, `capabilities` je undefined, pa se prikazuje arhiv bez taba „Upravljanje“ i bez poruke. |
-| OB5 | Niska (a11y) | `components/announcements/announcement-editor-dialog.tsx` 237–241, 243–245, 252–253 | `aria-pressed` na dugmetu čiji se tekst mijenja („Pregled“ / „Uredi“). Polje „Tekst“ nije povezano sa labelom (`span` + `aria-label`). |
-| OB6 | Niska (krhko) | `components/announcements/announcement-editor-dialog.tsx` 205–207 | Broj dana za trajanje se parsira iz poruke servera (`duration:90`). Ako se format poruke promijeni, greška se prikazuje kao opšta. |
-| OB7 | Niska (dizajn) | `pages/announcements-page.tsx` 152, 157, 310–312; `components/announcements/announcement-editor-dialog.tsx` 292, 301 | Vrijeme obavještenja je u zoni pregledača bez oznake. Za globalno obavještenje to je prihvatljivo, ali korisnik ne zna zonu. |
-| OB8 | Niska (humanizacija) | `announcement-editor-dialog.tsx` 115–453 (cijela funkcija), `announcements-page.tsx` 172–425; `announcements-host.tsx` 32–36; `announcements-page.tsx` 38–42; `announcement-editor-dialog.tsx` 34–38; `announcement-report-dialog.tsx` 196–236 | Uređivač (~330 linija) i `ManageAnnouncements` (~250) su predugi. `severityKeys` je u tri fajla. Stanje `ManagedAnnouncement \| null \| undefined` (179) je nejasno. Ugniježđeni ternari u izvještaju (203–224). Planske oznake u komentarima (22 pogotka). |
-| OB9 | Niska (UX) | `components/announcements/announcement-report-dialog.tsx` 166 | Dugme „Podsjeti“ je onemogućeno kad `canRemind` nije tačno (pravilo jednog podsjetnika na 24 h), a nema objašnjenja. |
-| OB10 | Niska (konzistentnost) | `components/announcements/announcement-editor-dialog.tsx` 443 | „Otkaži“ u uređivaču nije onemogućen dok se čuva, pa zatvaranje ostavlja `onSaved` da se izvrši nakon zatvaranja. Raspored (`on-call-schedule-dialog.tsx` 124) to blokira. |
-| OB11 | Niska (testovi) | `components/announcements/`, `pages/announcements-page.tsx`, `components/on-call/` | Nema komponentskih testova za `AnnouncementsHost`, `AnnouncementEditorDialog`, `OnCallRangeDialog` i `OnCallScheduleDialog`. E2E ne pokriva banner, modal, deep link, CSV, podsjetnik ni povlačenje. |
+### OCN1 — Overview je nekoreliran all-or-nothing snapshot
 
-**Pozitivno (za zadržati):**
-- Čiste funkcije za zone i DST (`on-call-view.ts`, `zonedMidnight`, `civilDateKey`), sa testovima.
-- `role` zavisi od ozbiljnosti (`severityRole`), brojač ima `aria-live`, `<details>` u arhivu, deep link `?open=` fokusira stavku.
-- Modal ograničen na tri prikaza po sesiji, sa mogućnošću zatvaranja (Esc), i ne blokira rad.
-- `OnCallReasonDialog` i `ConfirmDialog` traže razlog za destruktivne radnje; ICS URL se prikazuje jednom, a token se čuva kao hash.
-- Backend on-call guardovi su po ruti (`onCallRead` za čitanje, `onCallManage` za pisanje). Odgovor kalendara ima `Cache-Control: private, no-store`.
-- Obavještenja: `fieldset disabled` za objavljeno (ciljna publika i tip se ne mijenjaju), `Progress` sa tekstualnim sažetkom, CSV kroz blob.
+**Prioritet:** P1
+**Lokacija:** `on-call-page.tsx`, `loadOverview`
 
-**Bezbjednost (informativno, nije bug):** ICS token je u query stringu (`/public/on-call/calendar.ics?token=`). To je uobičajeno za pretplate na kalendar, a backend ima `no-store`. Token ipak može da završi u proxy i access logovima. Provjeriti da li se query string loguje.
+`overview`, `me` i `swaps` učitavaju se jednim `Promise.all`. Ako jedan endpoint padne:
+
+- uspješna druga dva rezultata se odbacuju;
+- korisnik dobija jednu generičku grešku bez informacije koji snapshot je pao;
+- prethodni podaci ostaju, ali ne postoji lokalni retry samo pogođenog izvora.
+
+`loadOverview` nema request sequence/abort zaštitu. Refresh, mutation-triggered `reloadAll` i korisnički refresh mogu se preklopiti; stariji odgovor tada može prepisati noviji. `refreshing` takođe postaje `false` kada završi bilo koji zahtjev, ne nužno posljednji.
+
+**Status:** zatvoreno u Fazi 1. Overview, me i swaps sada imaju odvojene typed query snapshot/error/pending ugovore, latest-only guard, request ID i lokalni retry; kvar jednog izvora ne odbacuje druga dva.
+
+### OCN2 — Detail scope nije potpuno identity-safe pri sedmici i grešci
+
+**Prioritet:** P1
+**Lokacija:** `on-call-page.tsx`, detail efekt i detail render
+
+Promjena grupe briše detail, ali promjena sedmice ne. Dok se učitava novi period, stari raspored i action površine ostaju interaktivni. Ako novi zahtjev padne, `detailError` se postavlja, ali prethodni detail ostaje prikazan kao da pripada novom `rangeLabel` scopeu.
+
+Greška detaila čuva samo translation key:
+
+- nema API request ID;
+- nema eksplicitnog retry dugmeta;
+- nema `detailGroupId`/window identiteta koji dokazuje da snapshot pripada aktivnom scopeu.
+
+**Status:** zatvoreno u Fazi 1. Detail controller veže snapshot za group/from/to scope, uklanja prethodni scope odmah pri promjeni grupe ili sedmice, odbacuje zakašnjeli odgovor i izlaže koreliranu grešku sa lokalnim retryjem.
+
+### OCN3 — Mutation concurrency nije sinhrono zaštićen
+
+**Prioritet:** P1
+**Lokacije:** on-call swap/delete/feed/dialog mutacije; announcement settle/publish/withdraw/delete/report akcije
+
+UI koristi `setBusy`/`setSaving` prije mrežnog poziva, ali React state update nije sinhroni lock. Dva klika u istom event turnu mogu oba proći guard implicitno jer većina handlera uopšte ne provjerava aktivnu operaciju prije prvog `await`.
+
+Rizici uključuju:
+
+- dupli accept/decline/cancel swapa;
+- dupli schedule/override delete;
+- dupli feed rotate/revoke;
+- dupli acknowledge/dismiss;
+- dupli publish/withdraw/delete/reminder;
+- dva paralelna savea editora ili schedule forme.
+
+Backend može odbiti dio ponovljenih operacija, ali UX ne smije zavisiti od slučajnog server konflikta.
+
+**Status:** zatvoreno u Fazi 2. Stabilni operation key i sinhroni guard sada štite on-call swap/delete/feed/save te announcement settle/save/publish/withdraw/delete/reminder tokove prije prvog `await`; React pending state ostaje prezentacijski signal, ne concurrency autoritet.
+
+### OCN4 — Capabilities greška degradira dozvole bez objašnjenja
+
+**Prioritet:** P1
+**Lokacija:** `announcements-page.tsx`, capabilities query
+
+Query ima `retry: false`, ali render ne čita `error`. Kada capabilities zahtjev padne, `capabilities` ostaje `undefined`, `canManage` postaje `false`, a korisnik vidi samo arhiv. Administratoru Manage tab nestaje kao da nema dozvolu.
+
+Ovo je fail-closed u sigurnosnom smislu, ali netačno u UX i operativnom smislu: outage se predstavlja kao autorizacijska odluka.
+
+**Status:** zatvoreno u Fazi 3. Početna capabilities greška sada je blocking i korelirana request ID-em, sa pending-safe retryjem; Manage odluka se ne donosi dok capability autoritet nije uspješno učitan.
+
+### OCN5 — ManageAnnouncements ručni controller ima race i parcijalni recovery dug
+
+**Prioritet:** P1
+**Lokacija:** `announcements-page.tsx`, `ManageAnnouncements`
+
+`list` i `options` se učitavaju kroz jedan ručni `Promise.all` bez request guarda. Mount load, retry i `refreshEverywhere` mogu se preklopiti. Zakašnjeli odgovor može vratiti staru listu nakon uspješne mutacije.
+
+Dodatno:
+
+- kvar options endpointa skriva i uspješnu listu;
+- error je već prevedeni string bez request ID-a i strukturiranog scopea;
+- retry nema pending/disabled zaštitu;
+- `refreshEverywhere` invalidira active/archive tek nakon što `load()` završi; ako refresh liste padne, povezani query cachevi se ne invalidiraju iako je mutation uspio;
+- `editing` koristi trostanje `ManagedAnnouncement | null | undefined`, što otežava invariantu edit/create/closed.
+
+**Status:** zatvoreno u Fazi 3. Typed controller razdvaja list/options snapshot, error i pending identitet, koristi latest-only guardove i lokalne retry akcije; mutation invalidacija active/archive cachea više ne zavisi od uspjeha manage refresha.
+
+### OCN6 — AnnouncementsHost skriva query outage kao prazno stanje
+
+**Prioritet:** P1
+**Lokacija:** `announcements-host.tsx`
+
+Active query čita samo `data`; `error` se ignoriše. Ako prvi load ili poll padne, host renderuje ništa. Korisnik ne zna da kritična obavještenja nisu provjerena. Kod background greške zadržani cache je koristan, ali nema upozorenja niti telemetry/UI recovery signala.
+
+Header indikator za on-call ima sličan, iako manje kritičan obrazac: greška je tiha, komponenta nestane, a visibility povratak ne pokreće neposredni refresh.
+
+**Status:** zatvoreno u Fazi 3. Initial active-query failure više nije prazan host nego korelirani error/retry prikaz; background failure zadržava aktivna obavještenja uz upozorenje i lokalni retry, a React Query focus lifecycle pokreće visibility recovery.
+
+### OCN7 — Announcement i on-call page state nije URL-kanonski
+
+**Prioritet:** P2
+**Lokacije:** `announcements-page.tsx`, `on-call-page.tsx`
+
+Announcement `mine/manage` tab je lokalni state. On-call selected group i week offset su takođe lokalni. Refresh/share/Back/Forward zato ne reproduciraju:
+
+- Manage tab;
+- izabranu on-call grupu;
+- pregledanu sedmicu;
+- otvoreni report/editor kontekst.
+
+Archive `?open=` je pozitivan izuzetak.
+
+**Status:** zatvoreno u Fazi 4. Announcement tab/open i on-call group/week sada su validirani URL modeli; kanonizacija se izvršava tek nakon capability/group podataka, a promjena URL-a neposredno određuje aktivni prikaz i query scope.
+
+### OCN8 — Recovery i API error ugovor nije konzistentan
+
+**Prioritet:** P2
+
+Modul miješa:
+
+- `ApiErrorText` sa request ID-em za overview;
+- key bez request ID-a za detail;
+- već prevedeni string za Manage list/action;
+- toast-only greške za većinu mutation akcija;
+- potpuno tihe greške u host/header/feed initial loadu;
+- `mapApiError` i `mapOnCallError` na sličnim feed akcijama.
+
+To otežava support korelaciju i testiranje. Nakon greške nije uvijek jasno da li je retry moguć bez zatvaranja dijaloga ili reloadovanja stranice.
+
+**Za zatvaranje:** zajednički typed query/mutation error (`key`, `requestId`, `scope`, `operation`) i eksplicitna retry matrica.
+
+### OCN9 — Zone su popravljene za on-call, ali announcement civil-time ugovor nije donesen
+
+**Prioritet:** P2
+
+On-call koristi zonu rasporeda i predstavlja dobar ugovor. Zatvoreno u Fazi 5. Produktni ugovor je browser-local authoring autora → ISO instant transport → browser-local prikaz primaoca. Editor taj ugovor i IANA zonu preglednika prikazuje uz civil-time unos, a centralni formatter uz svaki prikaz vremena uključuje oznaku zone. Schedule forma validira IANA zonu prije API poziva i daje pristupačnu field grešku. Pure contract testovi pokrivaju DST granicu, eksplicitnu cross-zone konfiguraciju formattera i nevalidne zone.
+
+### OCN10 — A11y/responsive ugovor je djelimičan, bez browser potvrde
+
+**Prioritet:** P2
+
+Pozitivno: role/aria-live, semantičke tabele, details/summary, modal i reason dijalozi imaju dobre osnove. Preostaje dokazati:
+
+- fokus povratak nakon report/editor/reason/range dijaloga;
+- keyboard tok za group, calendar, swap i table akcije;
+- announcement preview/edit toggle semantiku;
+- 320/375/768/1280 px overflow za 28-dnevni kalendar i `min-w-[760px]` manage tabelu;
+- 200% zoom;
+- serious/critical axe za banner, modal, archive, manage, on-call i feed;
+- ponašanje live regiona nakon mutation ishoda.
+
+Bez stvarnog browser runa nalaz ostaje otvoren bez obzira na strukturalni pregled.
+
+### OCN11 — Kritične state mašine imaju direktnu determinističku mrežu
+
+**Prioritet:** zatvoreno u Fazi 6
+
+Direktni hook/component testovi sada pokrivaju razdvojeni on-call overview/detail recovery i identity, Manage latest-only tok, schedule validation/save race, Host initial/background failure i settle recovery, header permission/refresh ponašanje, calendar feed create/copy tok, editor date/save ugovor te report stale identity i CSV concurrency. Pure URL, timezone i mutation-guard testovi dopunjuju ovu mrežu.
+
+Faza 6 je otkrila i zatvorila dva konkretna produkcijska propusta: CSV download nije imao synchronous operation guard, a prolazna header refresh greška brisala je posljednju uspješnu smjenu. Browser ponašanje ostaje odvojeno u `OCN13`; ne računa se kao deterministički component dokaz.
+
+### OCN12 — Održivost i production hygiene
+
+**Prioritet:** zatvoreno u Fazi 7
+
+Query odgovornosti su već izdvojene u typed overview/detail/Manage controllere i characterization mreža iz Faze 6 štiti njihove ugovore. Faza 7 centralizuje typed severity translation mapu, regionalni locale ugovor i keširane `Intl.DateTimeFormat` instance. Uklonjeni su delivery-history komentari (`Paket`, `K2/K3`, numerisani `§`) iz produkcijskog scopea i dodan je statički comment-hygiene test koji sprečava njihov povratak.
+
+Velike stranice i dalje orkestriraju više prezentacijskih sekcija, ali query identitet, mutation guardovi, formatiranje i domenski helperi više nisu anonimno duplicirani u render tokovima. Dalje cijepanje bez konkretnog ponašajnog dobitka nije uslov za ovaj nalaz.
+
+### OCN13 — Browser/E2E closeout nije izvršen
+
+**Prioritet:** P1 za 10/10
+
+Potrebna je stvarna matrica:
+
+- `44` schedule + novi swap/override/delete/feed/header scenariji;
+- `45` lifecycle + banner/modal/deep-link/CSV/reminder/withdraw scenariji;
+- initial/background error i retry sa request ID-em;
+- stale A→B group/week race;
+- synchronous double-submit;
+- responsive 320/375/768/1280, 200% zoom, keyboard/focus i axe;
+- trace/screenshot artefakti i revision SHA bez skipova koji se računaju kao prolaz.
 
 ---
 
-## Ocjena: 6/10
+## 5. Ocjena po oblasti
 
-Obrazloženje:
-- **Plus:** čiste funkcije sa testovima, dobra pristupačnost obavještenja, zaštita akcija razlogom, ograničenje modala, backend guardovi po ruti, sigurno rukovanje ICS tokenom.
-- **Minus:** stari detalj i pogrešna grupa pri akcijama (O2), tih neuspjeh osvježavanja (O1, OB2), zona vremena nekonzistentna na istoj stranici (O4), dugme „Otkaži“ onemogućeno zbog pogrešne upotrebe `isPending` na dva mjesta (O9, OB3), i e2e koji ne pokriva akcije koje mijenjaju podatke.
+| Oblast                                      |   Trenutno |      Cilj |
+| ------------------------------------------- | ---------: | --------: |
+| Backend autorizacija i domenske granice     |        9,2 |        10 |
+| Async identity, stale state i recovery      |        9,3 |        10 |
+| Mutation concurrency i cache konzistentnost |        8,4 |        10 |
+| Vremenska zona i reporting tačnost          |        9,6 |        10 |
+| URL/shareability i navigacija               |        9,5 |        10 |
+| Accessibility i responsive struktura        |        7,5 |        10 |
+| Testabilnost i održivost                    |        9,7 |        10 |
+| Browser/E2E dokaz                           |        4,5 |        10 |
+| **Ukupno**                                  | **9,8/10** | **10/10** |
 
-Ocjena je u skladu sa modulima 5–8.
-
----
-
-## Must-Have kandidati (modul 9)
-
-Predloženi redoslijed. Ništa od ovoga nije implementirano.
-
-1. **O2 i O1:** `active` zaštita za `loadDetail` i `loadOverview`. Detalj se briše pri promjeni grupe, a akcije uzimaju `group.id` iz istog odgovora. Greška refresha ostaje vidljiva uz stare podatke.
-2. **O4:** odluka o zoni za on-call (zona rasporeda za sve prikaze i unos, uz oznaku). Zatim usklađivanje `formatOnCallTime`, `OnCallRangeDialog` i „dežuran do“.
-3. **O9 i OB3:** `confirmDisabled` umjesto `isPending` za validaciju razloga u `OnCallReasonDialog` i u povlačenju obavještenja.
-4. **OB2:** tabela upravljanja ostaje vidljiva pri grešci refresha. Greška u traci sa dugmetom za ponovni pokušaj. Opcionalno: učitavanje kroz `react-query` kao arhiv.
-5. **O3:** loader ili indikator pri promjeni sedmice.
-6. **Testovi:** e2e za swap, override, brisanje grupe, feed token i banner (potvrda, odbacivanje, ograničenje modala). Komponentski testovi za `OnCallRangeDialog` (zona) i `AnnouncementEditorDialog` (datumi i trajanje).
-7. **O10:** klijentska provjera zone (IANA) uz poruku i objašnjenje onemogućenog dugmeta „Sačuvaj“.
-8. **OB8 i O7:** zajednički helperi za `severityKeys`, lokalizaciju (`en-GB`/`bs-BA`) i `civilDateKey`, te razbijanje `AnnouncementEditorDialog` i `ManageAnnouncements`.
+Ocjena nije aritmetički prosjek. P1 correctness i recovery rizici imaju veću težinu od vizuelne zrelosti.
 
 ---
 
-## Status ispravki (2026-10-13)
+## 6. Fazni implementacijski plan do 10/10
 
-Odluke korisnika: zona rasporeda za sve on-call prikaze i unos (O4); dodati `jsdom` i `@testing-library/react` kao devDependency.
+### Faza 1 — On-call query identitet i recovery
 
-Urađeno:
-- **O1:** greška osvježavanja pregleda se prikazuje iznad sadržaja i kad je pregled već učitan (`on-call-page.tsx`).
-- **O2:** detalj grupe se učitava u efektu sa `active` zaštitom. Odabir grupe briše prethodni detalj (`selectGroup`), pa akcije ne mogu raditi nad staroj grupi. Ponovno učitavanje ide preko `detailRevision`.
-- **O3:** pri promjeni sedmice prikazuje se status „Učitavanje“, a raspored je zatamnjen (`aria-busy`).
-- **O4:** zona rasporeda je sada jedina zona za unos i prikaz on-call vremena.
-  - Backend: `GET /on-call/overview` (polje `timezone` po grupi, `null` bez rasporeda), `GET /on-call/me` (`timezone` u `current` i `next`) i `GET /on-call/swaps` (`timezone`) sada vraćaju zonu rasporeda.
-  - Frontend: novi helperi `toZoneInputValue` i `fromZoneInputValue` (`lib/on-call/on-call-view.ts`). Unos vremena preklapanja i zamjene je u zoni rasporeda, uz napomenu sa zonom. Nepostojeće vrijeme (prelazak na ljetnje računanje) se odbija sa greškom. Svi prikazi „do“, „sljedeće smjene“, zamjena i preklapanja koriste zonu svoje grupe.
-  - Indikator u zaglavlju koristi zonu smjene. Oznaka zone nije prikazana uz sam indikator, samo uz kalendar i unos.
-- **O9 i OB3:** `OnCallReasonDialog` i povlačenje obavještenja koriste `confirmDisabled` za validaciju razloga. „Otkaži“ više nije onemogućen.
-- **OB2:** greška osvježavanja tabele upravljanja ostavlja tabelu vidljivom i nudi „Pokušaj ponovo“ (novi ključ `announcements.manage.retry`, bs i en).
-- **Testovi:** `use-docs.spec.tsx` (KB1, pada na staroj verziji), `on-call-reason-dialog.spec.tsx` (O9), `on-call-range-dialog.spec.tsx` (O4, zona), `on-call-view.spec.ts` (konverzija zone, DST rupa, neispravne vrijednosti).
+**Nalazi:** `OCN1`, `OCN2`, dio `OCN8`, dio `OCN11`
 
-Nije urađeno:
-- O5, O6, O7, O8, O10–O13, OB1, OB4–OB11.
-- Komponentski test za `OnCallPage` (O1, O2, O3) i `ManageAnnouncements` (OB2). Stranice imaju previše zavisnosti (React Query, router, sesija) za ovaj korak.
-- Backend test za nova polja `timezone` (postojeći testovi pokrivaju samo sweep i iCal, a `overview`, `me` i `mySwaps` nemaju unit testove).
-- Provjera u pregledaču nije rađena.
+1. Izdvojiti typed on-call page controller.
+2. Razdvojiti overview/me/swaps state i recovery.
+3. Uvesti latest-only identitet i request ID.
+4. Vezati detail snapshot za group/window identity.
+5. Dodati lokalni retry i stale/background prikaz.
+6. Deferred testovi za refresh race, partial failure, group A→B i week A→B.
+
+**Exit gate:** nijedan odgovor ne može commitovati u pogrešan scope; kvar jednog izvora ne briše druga dva.
+
+#### Evidencija zatvaranja Faze 1 (20. 10. 2026.)
+
+- Izdvojen je `useOnCallOverviewData` controller sa odvojenim overview/me/swaps snapshotima, errorima i pending identitetima. Svaki izvor ima vlastiti latest-request guard, API request ID i lokalni retry; zajednički refresh više nije all-or-nothing `Promise.all`.
+- Uspješan snapshot ostaje dostupan pri background grešci, a kvar me ili swaps izvora više ne blokira overview i izbor grupe. Globalni refresh pokreće tri nezavisna zahtjeva i završava tek kada svi aktivni izvori završe.
+- Izdvojen je `useOnCallGroupDetail` controller. Snapshot je vezan za `groupId/from/to`; promjena grupe ili sedmice odmah uklanja stari detail i action površine, cleanup odbacuje zakašnjeli odgovor, a greška prikazuje request ID i lokalni retry.
+- Direktni deferred hook testovi dokazuju parcijalni failure/recovery, latest-only overlapping overview refresh, group/week scope blokadu, zakašnjeli odgovor i correlated detail retry.
+- `OCN1` i `OCN2` su zatvoreni. Announcement async nalazi i mutation concurrency ostaju mapirani na naredne faze.
+
+**Izvršni dokaz:** ciljni modul prolazi 5/5 fajlova i 24/24 testa; puni frontend Vitest prolazi **382/382 fajla i 1513/1513 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
+
+### Faza 2 — Mutation concurrency i precizni refresh
+
+**Nalazi:** `OCN3`, mutation dio `OCN8`, dio `OCN11`
+
+1. Uvesti sinhroni operation guard.
+2. Definisati pending key po swap/delete/feed/save/settle/publish/withdraw/reminder akciji.
+3. Definisati mutation→query/cache matricu.
+4. Čuvati request ID i omogućiti retry.
+5. Deferred synchronous-double-click testovi.
+
+**Exit gate:** svaka korisnička akcija šalje najviše jedan zahtjev i osvježava samo pogođeni snapshot.
+
+#### Evidencija zatvaranja Faze 2 (20. 10. 2026.)
+
+- Uveden je stabilni `useOperationGuard` adapter nad kanonskim sinhronim operation guardom. Rezervacija nastaje prije prvog `await` i ostaje ista kroz rerender, pa synchronous double-click ne zavisi od kašnjenja React state updatea.
+- On-call swap accept/decline/cancel koristi per-swap key; schedule i override delete koriste zasebne entity ključeve. Range i schedule save, kao i feed rotate/revoke, zaštićeni su prije mrežnog zahtjeva.
+- Announcement banner/modal acknowledge/dismiss, editor create/update, publish/withdraw/delete i report reminder koriste entity/action ključeve. Paralelne različite akcije ostaju dozvoljene, dok se identična aktivna operacija odbacuje.
+- Mutation toastovi nastavljaju prosljeđivati originalni API error, pa zajednički toast prikazuje i kopira request ID gdje ga backend vraća. Query/error standardizacija izvan mutation toka ostaje mapirana na `OCN8` i Fazu 3.
+- Precizni refresh ugovor ostaje domenski: swap odluke osvježavaju overview/me/swaps/detail; schedule/override promjene osvježavaju on-call scope; announcement mutacije osvježavaju manage, active i archive površine.
+- Direktni hook test dokazuje sinhrono blokiranje duplikata, stabilnost kroz rerender i otključavanje po završetku. `OCN3` i mutation concurrency dio `OCN8` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite prolazi 8/8 fajlova i 32/32 testa; puni frontend Vitest prolazi **383/383 fajla i 1514/1514 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
+
+### Faza 3 — Announcement capabilities, host i manage recovery
+
+**Nalazi:** `OCN4`, `OCN5`, `OCN6`, dio `OCN8`
+
+1. Capabilities blocking error + retry.
+2. List/options typed controller ili React Query migracija.
+3. Latest-only zaštita i parcijalni recovery.
+4. Host initial/background error politika i visibility refresh.
+5. Precizna active/archive/manage invalidacija nakon mutacija.
+
+**Exit gate:** outage se nikad ne predstavlja kao nedostatak dozvole ili „nema obavještenja“.
+
+#### Evidencija zatvaranja Faze 3 (20. 10. 2026.)
+
+- Announcement capabilities query sada razlikuje loading, autoritativni rezultat i blocking failure. Greška prikazuje mapirani ključ, API request ID i pending-safe retry; administrator više ne gubi Manage tab kao lažni permission rezultat.
+- Izdvojen je `useManagedAnnouncementsData` controller sa nezavisnim list/options snapshotima, latest-request guardovima, request correlationom i lokalnim retryjem. Kvar options kataloga ne briše uspješnu Manage tabelu; create/edit akcije ostaju blokirane samo dok options nisu dostupne.
+- Preklopljeni mount/retry/post-mutation zahtjevi više ne mogu vratiti stariju listu. Manage refresh, active invalidacija i archive invalidacija sada su nezavisni, pa uspješna mutation akcija osvježava povezane cacheve i kada naredni manage load padne.
+- `AnnouncementsHost` prikazuje initial active-query failure umjesto praznog stanja. Background failure zadržava posljednji uspješan banner/modal snapshot i prikazuje korelirano upozorenje sa retryjem; focus lifecycle ostaje React Query recovery signal bez dodatnog polling spama.
+- Deferred controller testovi dokazuju list/options parcijalni failure, options-only recovery i latest-only preklopljeni list refresh. `OCN4`, `OCN5`, `OCN6` i announcement query/recovery dio `OCN8` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite prolazi 3/3 fajla i 9/9 testova; puni frontend Vitest prolazi **384/384 fajla i 1516/1516 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
+
+### Faza 4 — URL state i navigacijski ugovor
+
+**Nalazi:** `OCN7`
+
+1. Announcement `tab` i `open` URL model.
+2. On-call `groupId` i `week` URL model.
+3. Validacija nakon učitanih capability/group opcija.
+4. Očuvanje scopea kroz refresh/share/Back/Forward.
+5. Parser, page i history testovi.
+
+**Exit gate:** URL reproducira isti prikaz i aktivni scope.
+
+#### Evidencija zatvaranja Faze 4 (20. 10. 2026.)
+
+- Announcement `mine/manage` tab sada se čita iz validiranog `tab` parametra. Promjena taba čuva postojeći `open` deep link i nepovezane parametre; korisnik bez Manage capabilityja dobija kanonski `mine` URL tek nakon autoritativnog capability odgovora.
+- On-call `group` i četverosedmični `week` offset sada su URL source of truth. Direktni link, refresh i browser history određuju izabranu grupu i period bez mount-local kopije stanja.
+- Nevalidan ili nedostupan group ID kanonizuje se tek nakon učitanog overview kataloga na prvi raspored ili prvu grupu. Week prihvata samo granice `-52…52` u koraku četiri; nevalidna vrijednost se vraća na trenutnu sedmicu, a navigacija na granicama je blokirana.
+- Promjena grupe resetuje sedmicu i čuva nepovezane parametre. URL promjena automatski mijenja detail `group/from/to` identity, pa postojeći latest-only controller blokira prethodni scope.
+- Pure parser/update testovi dokazuju deep link, invalidne vrijednosti, canonical default i očuvanje `open`/nepovezanih parametara. `OCN7` je zatvoren determinističkim URL ugovorom; stvarni browser Back/Forward dokaz ostaje mapiran na Fazu 8.
+
+**Izvršni dokaz:** ciljni suite prolazi 5/5 fajlova i 10/10 testova; puni frontend Vitest prolazi **386/386 fajlova i 1520/1520 testova**. Production TypeScript/Vite build, puni ESLint sa 0 grešaka i 0 warninga, i18n/design-system gate, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen.
+
+### Faza 5 — Civil-time i formular ugovor
+
+**Nalazi:** `OCN9`
+
+1. Dokumentovati announcement timezone odluku.
+2. Centralizovati formatter i civil-time input konverziju.
+3. Prikazati zonu uz period.
+4. Dodati client-side IANA validaciju schedule forme.
+5. DST/cross-zone contract testovi.
+
+**Exit gate:** isti civilni input proizvodi isti trenutak na klijentu i serveru.
+
+**Status nakon Faze 5: završeno.**
+
+- Announcement civil-time odluka je eksplicitna: autor unosi zidno vrijeme u IANA zoni svog preglednika, klijent ga prije API poziva pretvara u ISO instant, a svaki primalac isti instant vidi u svojoj browser zoni. Editor uz unos navodi zonu i ovu semantiku.
+- Centralni announcement formatter prima eksplicitnu zonu i uvijek prikazuje kratku oznaku zone, pa archive, manage, banner/modal i report više ne predstavljaju neoznačen sat.
+- Schedule dijalog prije slanja validira trimovanu IANA zonu kroz `Intl.DateTimeFormat`; prazna ili nepoznata zona blokira API poziv i prikazuje povezanu field grešku.
+- Contract testovi dokazuju DST prelaz Europe/Sarajevo, 23-satni dan, cross-zone formatter ugovor i odbijanje nevalidne zone. `OCN9` je zatvoren.
+
+**Izvršni dokaz:** ciljni timezone suite prolazi **2/2 fajla i 23/23 testa**; puni frontend Vitest prolazi **386/386 fajlova i 1521/1521 test**. Production TypeScript/Vite build, puni ESLint, i18n/design-system gate i Prettier prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
+
+### Faza 6 — Puna deterministička testna mreža
+
+**Nalazi:** `OCN11`
+
+1. Page/controller testovi za on-call.
+2. Manage/Host/Editor/Report component testovi.
+3. Feed/header lifecycle testovi.
+4. Race/recovery/mutation matrica.
+5. Statički responsive i accessibility contract testovi gdje su deterministički.
+
+**Exit gate:** kritične state mašine imaju direktan dokaz, ne samo pure helper ili E2E pokrivenost.
+
+**Status nakon Faze 6: završeno.**
+
+- Dodano je šest component test fajlova sa 17 testova za schedule, Host, header indicator, calendar feed, editor i report state mašine.
+- Dokazani su initial/background recovery, očuvanje stale podataka, permission gating, API payload/validacija, latest-only identity, mutation recovery i synchronous double-submit ugovori.
+- CSV download sada koristi synchronous operation guard; header zadržava posljednju uspješnu smjenu nakon prolazne refresh greške.
+- Zajedno s ranije uvedenim overview/detail/Manage controller testovima, URL parserima i pure helperima, `OCN11` je zatvoren.
+
+**Izvršni dokaz:** novi component suite prolazi **6/6 fajlova i 17/17 testova**; puni frontend Vitest prolazi **392/392 fajla i 1538/1538 testova**. Production TypeScript/Vite build, puni ESLint, i18n/design-system i Prettier gate prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen.
+
+### Faza 7 — Održivost i statički closeout
+
+**Nalazi:** `OCN12`, završna regresija `OCN1–OCN12`
+
+1. Characterization testovi prije refaktora.
+2. Typed controller hookovi i prezentacijske sekcije.
+3. Centralni severity/time helperi.
+4. Ukloniti delivery-history komentare.
+5. Pokrenuti puni frontend/backend relevantni suite, build, ESLint 0/0, i18n/design-system, Prettier i `git diff --check`.
+
+**Exit gate:** deterministički i statički gateovi zeleni; bez browser dokaza ocjena najviše 9,8/10.
+
+**Status nakon Faze 7: završeno.**
+
+- `announcementSeverityKeys` je jedinstvena typed mapa za archive, Manage, editor, banner i modal.
+- `applicationDateLocale` centralizuje bs/en regionalni ugovor, a on-call page više ne kreira `Intl.DateTimeFormat` direktno u renderu nego koristi zajednički cache.
+- Produkcijski komentari opisuju aktuelni domenski ugovor umjesto historije isporuke. Novi statički hygiene gate obuhvata obje stranice te announcement/on-call komponente i biblioteke.
+- Typed query controlleri iz ranijih faza i characterization suite iz Faze 6 čine sigurnosnu mrežu za ovaj statički closeout. `OCN12` je zatvoren.
+
+**Izvršni dokaz:** ciljni statički/helper suite prolazi **4/4 fajla i 26/26 testova**; puni frontend Vitest prolazi **393/393 fajla i 1540/1540 testova**. Production TypeScript/Vite build, puni ESLint, i18n/design-system, Prettier i `git diff --check` prolaze. Build zadržava postojeće non-fatal chunk-size upozorenje. Browser/E2E nije izvršen, pa ocjena ostaje ograničena na **9,8/10**.
+
+### Faza 8 — Browser/E2E closeout
+
+**Nalazi:** `OCN10`, `OCN13`
+
+1. Proširiti `44` i `45` scenarije.
+2. Izvršiti route/recovery/race/double-submit tokove.
+3. Provjeriti responsive, zoom, keyboard/focus i axe.
+4. Evidentirati komandu, rezultat bez skipova, trace/screenshot i revision SHA.
+
+**Exit gate:** `OCN1–OCN13` zatvoreni i stvarni browser run zelen.
+
+**Status Faze 8: u toku — izvršenje blokirano nedostupnim lokalnim stackom.**
+
+- Scenarij `44` proširen je keyboard aktivacijom grupe, URL potvrdom, viewport matricom 320/375/768/1280, dokument-level overflow provjerom, 200% CSS zoom provjerom i serious/critical axe skenom.
+- Scenarij `45` proširen je keyboard promjenom taba, stvarnim Back/Forward URL dokazom, istom responsive/zoom matricom i axe skenom announcement archivea.
+- Playwright discovery nalazi **3 testa u 2 fajla**; E2E TypeScript (`tsc --noEmit`), Prettier i `git diff --check` prolaze.
+- Pokušano izvršenje komandom `npx playwright test tests/44-on-call-schedule.spec.ts tests/45-announcements-lifecycle.spec.ts --project=chromium`, ali global setup prekida prije testova jer `http://localhost:10001/health` nije dostupan (`E2E stack not ready`, `fetch failed`). Frontend na `localhost:5173` također nije dostupan, a Docker CLI nije instaliran. Nema test prolaza, tracea ni screenshota i `OCN10`/`OCN13` ostaju otvoreni; ocjena ostaje **9,8/10**.
+
+---
+
+## 7. Obavezna završna matrica
+
+### Unit/hook
+
+- overview/me/swaps partial failure i latest-only;
+- group/week detail identity;
+- request correlation i retry pending;
+- synchronous operation guard;
+- URL parser i Back/Forward;
+- civil-time/DST/cross-zone;
+- modal session limit i host selection.
+
+### Component/page
+
+- capabilities failure/retry;
+- manage list/options recovery;
+- host initial/background error;
+- editor save i validation;
+- report load/CSV/reminder;
+- feed token lifecycle;
+- header visibility lifecycle;
+- swap/override/delete recovery.
+
+### Backend
+
+- on-call route guards i participant/manage invarijante;
+- overview/me/swaps timezone ugovor;
+- announcement viewer/manage/report scope;
+- acknowledgement/reminder rate limit;
+- notification fan-out i realtime payload;
+- iCal token/no-store ugovor.
+
+### Browser
+
+- schedule, swap, override, delete i feed;
+- banner acknowledge/dismiss i modal limit;
+- archive deep link;
+- manage create/edit/publish/withdraw/delete;
+- report CSV/reminder;
+- URL history;
+- 320/375/768/1280 px, 200% zoom;
+- keyboard/focus return i axe.
+
+---
+
+## 8. Zaključak
+
+On-call i obavještenja više nisu modul ocjene 6/10 iz arhivskog audita. Najvažnije ranije greške oko pogrešne grupe, vremenske zone i reason dijaloga su popravljene. Međutim, aktuelni kod još nema produkcijski dokaz za query identitet, parcijalni recovery, synchronous mutation concurrency, capability/host outage ponašanje i punu testnu mrežu.
+
+Preporučeni redoslijed je **Faza 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8**. Svaka faza treba imati zasebnu audit evidenciju, validaciju, commit i push. Browser/E2E dokaz mora ostati jasno označen kao neizvršen dok stvarni stack ne bude dostupan.

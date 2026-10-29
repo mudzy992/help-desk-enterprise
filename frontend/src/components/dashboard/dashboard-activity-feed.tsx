@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RelativeTime } from "@/components/ui/relative-time";
 import {
@@ -25,7 +26,13 @@ const KIND_DOT: Record<NotificationKind, string> = {
 export function DashboardActivityFeed() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { items, refreshList } = useInboxNotifications();
+  // the hook now exposes error state instead of
+  // wiping items to [] on failure. The bell (shell) and this feed share the
+  // same socket-acquire/release pair via `useInboxNotifications` — each
+  // instance still has its own React state because the hook mounts in two
+  // places, but socket reference counting in `acquireHelpdeskSocket` keeps
+  // only one live socket connection.
+  const { items, listErrorKey, listRequestId, refreshList } = useInboxNotifications();
 
   useEffect(() => {
     void refreshList();
@@ -34,7 +41,16 @@ export function DashboardActivityFeed() {
   return (
     <Card className="fade-in">
       <CardHeader title={t("dashboard.activityTitle")} subtitle={t("dashboard.activitySubtitle")} />
-      {items.length === 0 ? (
+      {listErrorKey !== null ? (
+        <div className="px-4 py-4">
+          <ApiErrorText messageKey={listErrorKey} requestId={listRequestId} />
+          <div className="mt-3">
+            <Button size="xs" variant="outline" onClick={() => void refreshList()}>
+              {t("dashboard.activityRetry")}
+            </Button>
+          </div>
+        </div>
+      ) : items.length === 0 ? (
         <EmptyState
           title={t("dashboard.activityEmpty")}
           action={

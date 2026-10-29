@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import { ApiError } from "@/services/api";
 import {
   reportTrendGranularities,
@@ -14,7 +15,7 @@ import {
 } from "./report-window";
 
 /**
- * Paket 2.5 (design §7.2): the Trends tab state lives in the URL
+ * the Trends tab state lives in the URL
  * (`/reports?tab=trends&…`) so a view can be shared and the scheduled e-mail
  * can link straight to it. Everything here is pure and unit-tested.
  */
@@ -25,7 +26,7 @@ export type TrendsViewState = {
   readonly preset: TrendPreset;
   readonly from: string;
   readonly to: string;
-  /** `null` = automatic (the backend picks, design §3). */
+  /** `null` means automatic granularity selected by the backend. */
   readonly granularity: ReportTrendGranularity | null;
   readonly organizationalUnitId: string | null;
   readonly serviceId: string | null;
@@ -205,9 +206,7 @@ const bsMonthsLong = [
 ];
 
 function monthName(date: Date, locale: string, style: "short" | "long"): string {
-  const formatted = new Intl.DateTimeFormat(locale, { month: style })
-    .format(date)
-    .replace(/\.$/, "");
+  const formatted = dateTimeFormatter(locale, { month: style }).format(date).replace(/\.$/, "");
   if (locale.startsWith("bs") && /^M?\d+$/.test(formatted)) {
     return (style === "short" ? bsMonthsShort : bsMonthsLong)[date.getMonth()] ?? formatted;
   }
@@ -248,7 +247,7 @@ export function formatTrendBucketLong(
     return `${dotted(date, date.getFullYear() !== end.getFullYear())} – ${dotted(end, true)}`;
   }
   if (locale.startsWith("bs")) return `${monthName(date, locale, "long")} ${date.getFullYear()}.`;
-  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(date);
+  return dateTimeFormatter(locale, { month: "long", year: "numeric" }).format(date);
 }
 
 /** Hours for display: `45 min`, `3,5 h`, `2,1 d` (locale decimal separator). */
@@ -273,7 +272,7 @@ export const reportTrendErrorCodes = [
   "REPORT_GRANULARITY_INVALID",
   "REPORT_TRENDS_DISABLED",
   "REPORTS_DISABLED",
-  /** Val 1 (M15/B2): usko grlo je isključeno postavkom, nije greška u radu. */
+  /** A disabled bottleneck feature is configuration, not an operational error. */
   "BOTTLENECKS_DISABLED",
   "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND",
   "REPORT_FORMAT_NOT_ALLOWED",

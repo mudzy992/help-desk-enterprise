@@ -94,7 +94,7 @@ describe("isServiceReadyForTicketCreation", () => {
   });
 });
 
-describe("buildCreateTicketInput asset (paket 3.2 §8)", () => {
+describe("buildCreateTicketInput asset (§8)", () => {
   it("sends the chosen own equipment only when set", () => {
     expect(buildCreateTicketInput({ ...draft, assetId: "asset-1" }).assetId).toBe("asset-1");
     expect("assetId" in buildCreateTicketInput(draft)).toBe(false);

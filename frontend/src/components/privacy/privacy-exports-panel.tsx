@@ -1,5 +1,6 @@
 import { Download, PackageOpen } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -82,8 +83,10 @@ export function PrivacyExportsPanel({
     try {
       setExports(await listPrivacyExports());
       setLoadError(null);
+      return true;
     } catch (caught) {
       setLoadError({ key: mapApiError(caught), requestId: readApiRequestId(caught) });
+      return false;
     }
   }, []);
 
@@ -100,11 +103,14 @@ export function PrivacyExportsPanel({
 
   const building =
     exports?.some((item) => item.status === "QUEUED" || item.status === "RUNNING") ?? false;
-  useEffect(() => {
-    if (!building) return;
-    const timer = window.setInterval(() => void reload(), 5000);
-    return () => window.clearInterval(timer);
-  }, [building, reload]);
+  useVisibilityAwarePolling({
+    poll: async () => {
+      if (!(await reload())) throw new Error("Privacy export polling failed");
+    },
+    intervalMs: 5_000,
+    enabled: building,
+    telemetryKey: "privacy.exports_poll_failed",
+  });
 
   const reasonValid = !includeInternalNotes || notesReason.trim().length >= 10;
 
@@ -193,11 +199,14 @@ export function PrivacyExportsPanel({
             hint={t("privacy.exports.internalNotesReasonHint")}
             required
           >
-            <Textarea
-              value={notesReason}
-              maxLength={1000}
-              onChange={(event) => setNotesReason(event.target.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                value={notesReason}
+                maxLength={1000}
+                onChange={(event) => setNotesReason(event.target.value)}
+              />
+            )}
           </Field>
         ) : null}
         <p className={hintClassName}>{t("privacy.exports.handoverHint")}</p>

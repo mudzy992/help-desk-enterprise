@@ -1,8 +1,9 @@
+import { AssetImportHistory } from "@/components/assets/asset-import-history";
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Download, FileSpreadsheet, RotateCcw, Upload } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { parseLocale } from "@/i18n/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,8 +17,17 @@ import { Field, Select } from "@/components/ui/field";
 import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/components/ui/toast";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
+import {
+  entityMutationQueryKeys,
+  invalidateEntityQueries,
+} from "@/lib/entity-list/entity-mutation-query-keys";
 import { formatAssetDateTime, localizedName, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import {
+  assetImportMappingChanged,
+  canApplyAssetImport,
+  resolveAssetImportStep,
+} from "@/lib/assets/asset-import-model";
 import {
   applyAssetImport,
   assetImportQueryKeys,
@@ -32,21 +42,11 @@ import {
   type AssetImportMode,
   type AssetImportPreview,
   type AssetImportRowError,
-  type AssetImportStatus,
 } from "@/services/assets-api";
 
 const acceptedFiles =
   ".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-const statusTone: Readonly<
-  Record<AssetImportStatus, "neutral" | "success" | "danger" | "warning">
-> = {
-  PREVIEW: "warning",
-  APPLIED: "success",
-  FAILED: "danger",
-  EXPIRED: "neutral",
-};
-
-/** Paket 3.2 (§11, §17.4): template → file → mapping → preview and confirmation. */
+/** Delivery invariant (requirement, requirement): template → file → mapping → preview and confirmation. */
 export function AssetImportPanel() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -75,9 +75,9 @@ export function AssetImportPanel() {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const selectedType = typeId || types[0]?.id || "";
-  const language = i18n.language.startsWith("en") ? "en" : "bs";
+  const language = parseLocale(i18n.resolvedLanguage ?? i18n.language);
 
-  const step = result ? 3 : preview ? (mappingChanged(preview, mapping) ? 2 : 3) : file ? 1 : 0;
+  const step = resolveAssetImportStep({ hasFile: file !== null, preview, mapping, result });
   const steps = [
     { key: "template", label: t("assets.import.steps.template") },
     { key: "file", label: t("assets.import.steps.file") },
@@ -158,7 +158,7 @@ export function AssetImportPanel() {
             : t("assets.import.failedTitle"),
         description: t("assets.import.appliedBody", response.applied),
       });
-      void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+      void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
     }
   }
 
@@ -333,7 +333,7 @@ export function AssetImportPanel() {
                 </Field>
               ))}
             </div>
-            {mappingChanged(preview, mapping) ? (
+            {assetImportMappingChanged(preview, mapping) ? (
               <div className="px-4 pb-4">
                 <Button
                   variant="primary"
@@ -439,12 +439,7 @@ export function AssetImportPanel() {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="primary"
-                disabled={
-                  pending !== null ||
-                  mappingChanged(preview, mapping) ||
-                  preview.totals.create + preview.totals.update === 0 ||
-                  (preview.allOrNothing && preview.totals.errors > 0)
-                }
+                disabled={!canApplyAssetImport(preview, mapping, pending !== null)}
                 onClick={() => void apply()}
               >
                 {pending === "apply"
@@ -494,77 +489,7 @@ export function AssetImportPanel() {
         </Card>
       ) : null}
 
-      <Card className="overflow-hidden p-0">
-        <CardHeader title={t("assets.import.historyTitle")} />
-        {(jobsQuery.data?.items ?? []).length === 0 ? (
-          <p className={`p-4 ${hintClassName}`}>
-            {jobsQuery.isLoading ? t("ui.loading") : t("assets.import.historyEmpty")}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12.5px]">
-              <caption className="sr-only">{t("assets.import.historyTitle")}</caption>
-              <thead>
-                <tr className={tableHeadClassName}>
-                  <th scope="col" className="px-3 py-2 text-left">
-                    {t("assets.import.historyFile")}
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left">
-                    {t("assets.fields.type")}
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left">
-                    {t("assets.import.historyStatus")}
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left">
-                    {t("assets.import.historyResult")}
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left">
-                    {t("assets.import.historyWhen")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(jobsQuery.data?.items ?? []).map((job) => (
-                  <tr key={job.id} className={tableRowClassName}>
-                    <td className="px-3 py-2">
-                      <span className="block">{job.fileName}</span>
-                      {job.createdBy ? (
-                        <span className="block text-[11.5px] text-muted-foreground">
-                          {job.createdBy}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-2">
-                      {job.type ? localizedName(job.type, i18n.language) : "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={statusTone[job.status]}>
-                        {t(`assets.import.statuses.${job.status}` as const)}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      {job.totals.applied
-                        ? t("assets.import.appliedBody", job.totals.applied)
-                        : t("assets.import.previewResult", {
-                            create: job.totals.create,
-                            update: job.totals.update,
-                            errors: job.totals.errors,
-                          })}
-                    </td>
-                    <td className="px-3 py-2">
-                      {formatAssetDateTime(job.appliedAt ?? job.createdAt, i18n.language)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      <AssetImportHistory jobs={jobsQuery.data?.items ?? []} isLoading={jobsQuery.isLoading} />
     </div>
   );
-}
-
-function mappingChanged(preview: AssetImportPreview, mapping: readonly (string | null)[]): boolean {
-  return preview.mapping.some((value, index) => (value ?? null) !== (mapping[index] ?? null));
 }

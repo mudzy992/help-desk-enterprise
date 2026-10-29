@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Activity,
@@ -22,10 +22,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { hintClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
+import { mapApiError } from "@/lib/map-api-error";
 import {
   availabilityDotClassName,
   mapStatusError,
@@ -34,23 +35,13 @@ import {
 } from "@/lib/status/status-view";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
+import { useStatusOverviewData } from "@/lib/status/use-status-overview-data";
 import {
-  getStatusOverview,
   subscribeToIncident,
   unsubscribeFromIncident,
   type Incident,
   type IncidentStatus,
-  type StatusPageOverview,
 } from "@/services/status-api";
-
-/** Status changes minute by minute at most; faster polling only adds load. */
-const refreshEveryMs = 60_000;
-
-type LoadError = {
-  readonly key: ApiErrorKey;
-  readonly requestId: string | null;
-  readonly disabled: boolean;
-};
 
 const overallIcon: Record<OverallStatus, typeof CheckCircle2> = {
   operational: CheckCircle2,
@@ -67,72 +58,43 @@ const overallSurface: Record<OverallStatus, string> = {
 };
 
 /**
- * Paket 2.7 (§8): the status page for every signed-in user. Holders of
+ * The status page is visible to every signed-in user. Holders of
  * `status.incidents.manage` open, update and resolve incidents here.
  */
 export function StatusPage() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const [overview, setOverview] = useState<StatusPageOverview | null>(null);
-  const [loadError, setLoadError] = useState<LoadError | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const operationGuard = useOperationGuard();
+  const { overview, error: loadError, refreshing, nowMs, reload } = useStatusOverviewData();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<IncidentFormMode | null>(null);
   const [updateTarget, setUpdateTarget] = useState<{
     readonly incident: Incident;
     readonly status?: IncidentStatus;
   } | null>(null);
-  const inFlight = useRef(false);
-
-  const load = useCallback(async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setRefreshing(true);
-    try {
-      setOverview(await getStatusOverview());
-      setLoadError(null);
-      setNowMs(Date.now());
-    } catch (caught) {
-      setLoadError({
-        key: mapApiError(caught),
-        requestId: readApiRequestId(caught),
-        disabled: mapStatusError(caught) === "status.errors.disabled",
-      });
-    } finally {
-      inFlight.current = false;
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, refreshEveryMs);
-    return () => window.clearInterval(timer);
-  }, [load]);
 
   const toggleSubscription = async (incident: Incident) => {
-    setBusyId(incident.id);
-    try {
-      if (incident.subscribed) {
-        await unsubscribeFromIncident(incident.id);
-        toast({ tone: "info", title: t("status.card.unsubscribed") });
-      } else {
-        await subscribeToIncident(incident.id);
-        toast({ tone: "success", title: t("status.card.subscribed") });
+    await operationGuard.run(`subscription:${incident.id}`, async () => {
+      setBusyId(incident.id);
+      try {
+        if (incident.subscribed) {
+          await unsubscribeFromIncident(incident.id);
+          toast({ tone: "info", title: t("status.card.unsubscribed") });
+        } else {
+          await subscribeToIncident(incident.id);
+          toast({ tone: "success", title: t("status.card.subscribed") });
+        }
+        await reload();
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapStatusError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusyId(null);
       }
-      await load();
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapStatusError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusyId(null);
-    }
+    });
   };
 
   const header = (
@@ -142,7 +104,7 @@ export function StatusPage() {
       subtitle={t("status.subtitle")}
       actions={
         <>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={refreshing}>
+          <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing}>
             <RefreshCw className={cn(refreshing && "animate-spin")} />
             {t("status.refresh")}
           </Button>
@@ -183,6 +145,15 @@ export function StatusPage() {
     <div className="page-in grid gap-4">
       {header}
 
+      {loadError === null ? null : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/25 bg-danger/5 px-4 py-3">
+          <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+          <Button variant="outline" size="sm" onClick={() => void reload()} disabled={refreshing}>
+            {t("status.refresh")}
+          </Button>
+        </div>
+      )}
+
       {!overview.configuration.enabled ? (
         <div
           role="status"
@@ -193,6 +164,7 @@ export function StatusPage() {
       ) : null}
 
       <div
+        role="status"
         className={cn(
           "flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3.5",
           overallSurface[state],
@@ -214,6 +186,15 @@ export function StatusPage() {
           })}
         </span>
       </div>
+
+      {overview.servicesHasMore || overview.plannedHasMore ? (
+        <div
+          className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-[12.5px] text-warning"
+          role="status"
+        >
+          {t("status.resourceLimitNotice")}
+        </div>
+      ) : null}
 
       {overview.activeIncidents.length > 0 ? (
         <section className="grid gap-3" aria-labelledby="status-active">
@@ -240,20 +221,20 @@ export function StatusPage() {
         <Card>
           <CardHeader title={t("status.planned")} subtitle={t("status.plannedHint")} />
           <ul className="grid gap-2.5 px-4 py-3.5">
-            {overview.planned.map((window) => (
+            {overview.planned.map((plannedWindow) => (
               <li
-                key={`${window.serviceId}-${window.startsAt}`}
+                key={`${plannedWindow.serviceId}-${plannedWindow.startsAt}`}
                 className="flex flex-wrap items-start gap-2 text-[12.5px]"
               >
                 <CalendarClock size={14} className="mt-0.5 text-info" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground">{window.serviceName}</p>
+                  <p className="font-medium text-foreground">{plannedWindow.serviceName}</p>
                   <p className={hintClassName}>
-                    {formatTicketTimestamp(window.startsAt, i18n.language)} –{" "}
-                    {formatTicketTimestamp(window.endsAt, i18n.language)}
+                    {formatTicketTimestamp(plannedWindow.startsAt, i18n.language)} –{" "}
+                    {formatTicketTimestamp(plannedWindow.endsAt, i18n.language)}
                   </p>
-                  {window.message ? (
-                    <p className="mt-0.5 text-foreground/85">{window.message}</p>
+                  {plannedWindow.message ? (
+                    <p className="mt-0.5 text-foreground/85">{plannedWindow.message}</p>
                   ) : null}
                 </div>
               </li>
@@ -347,7 +328,7 @@ export function StatusPage() {
           open
           onOpenChange={(open) => (open ? undefined : setFormMode(null))}
           mode={formMode}
-          onSaved={() => void load()}
+          onSaved={() => void reload()}
         />
       ) : null}
       {updateTarget !== null ? (
@@ -356,7 +337,7 @@ export function StatusPage() {
           onOpenChange={(open) => (open ? undefined : setUpdateTarget(null))}
           incident={updateTarget.incident}
           initialStatus={updateTarget.status}
-          onSaved={() => void load()}
+          onSaved={() => void reload()}
         />
       ) : null}
     </div>

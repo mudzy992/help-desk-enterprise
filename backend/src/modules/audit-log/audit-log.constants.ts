@@ -1,6 +1,7 @@
 export const auditLogGenesisHash = '0'.repeat(64);
 
 export const auditLogChainLockKey = 871_001;
+export const auditLogMaintenanceLockKey = 871_000;
 
 export const defaultAuditHashAlgorithm = 'sha256';
 
@@ -16,6 +17,16 @@ export const auditLogListDefaultTake = 50;
 
 export const auditLogListMaxTake = 200;
 
+export const auditOpaqueIdMaxLength = 128;
+export const auditOpaqueIdPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
+export const auditCursorMaxLength = 256;
+export const auditCursorPattern = /^[A-Za-z0-9_-]+$/u;
+
+/** Hard upper bound for one export/verification database page. */
+export const auditLogStreamPageSize = 500;
+/** Support bundles are in-memory ZIP inputs, so their audit excerpt is explicitly capped. */
+export const auditLogSnapshotMaxRecords = 5_000;
+
 export const auditLogActions = {
   policyPackApply: 'policy_pack.apply',
   policyPackUnapply: 'policy_pack.unapply',
@@ -24,6 +35,7 @@ export const auditLogActions = {
   ticketConfidentialBreakGlass: 'ticket_confidential_break_glass',
   ticketBulkExecute: 'ticket_bulk.execute',
   ticketForwarded: 'ticket.forwarded',
+  ticketMessageCreated: 'ticket.message_created',
   ticketPriorityOverridden: 'ticket.priority_overridden',
   ticketMerged: 'ticket.merged',
   ticketUnmerged: 'ticket.unmerged',
@@ -138,6 +150,7 @@ export const auditLogActions = {
   onCallCalendarTokenRotated: 'oncall.calendar_token.rotated',
   onCallCalendarTokenRevoked: 'oncall.calendar_token.revoked',
   onCallEscalationNotified: 'oncall.escalation.notified',
+  slaEscalationAudienceEmpty: 'sla.escalation.audience_empty',
   // Paket 2.9 (K2): announcements.
   announcementCreated: 'announcement.created',
   announcementUpdated: 'announcement.updated',
@@ -154,8 +167,20 @@ export const auditLogActions = {
   assetDeleted: 'asset.deleted',
   assetImportApplied: 'asset.import.applied',
   assetExported: 'asset.exported',
+  assetTicketLinked: 'asset.ticket.linked',
+  assetTicketUnlinked: 'asset.ticket.unlinked',
+  assetLicenseCreated: 'asset.license.created',
+  assetLicenseUpdated: 'asset.license.updated',
+  assetLicenseDeleted: 'asset.license.deleted',
+  assetLicenseAssigned: 'asset.license.assigned',
+  assetLicenseReleased: 'asset.license.released',
   assetLicenseKeyRevealed: 'asset.license.key_revealed',
   assetLicenseSaved: 'asset.license.saved',
+  assetContractCreated: 'asset.contract.created',
+  assetContractUpdated: 'asset.contract.updated',
+  assetContractDeleted: 'asset.contract.deleted',
+  assetContractItemAdded: 'asset.contract.item_added',
+  assetContractItemRemoved: 'asset.contract.item_removed',
   assetContractSaved: 'asset.contract.saved',
   assetDirectorySyncDryRun: 'asset.directory_sync.dry_run',
   assetDirectorySyncApplied: 'asset.directory_sync.applied',
@@ -164,6 +189,10 @@ export const auditLogActions = {
   assetTransferSigned: 'asset.transfer.signed',
   assetTransferTemplateUploaded: 'asset.transfer.template_uploaded',
   assetSignatorySaved: 'asset.signatory.saved',
+  configVersionActivated: 'config_version.activate',
+  configVersionRolledBack: 'config_version.rollback',
+  configVersionExported: 'config_version.export',
+  configVersionImported: 'config_version.import',
   // Paket 3.3: problem management.
   problemCreated: 'problem.created',
   problemStatusChanged: 'problem.status_changed',
@@ -246,6 +275,7 @@ export const auditLogErrorCodes = {
   formatNotAllowed: 'AUDIT_EXPORT_FORMAT_NOT_ALLOWED',
   hashAlgorithmUnsupported: 'AUDIT_HASH_ALGORITHM_UNSUPPORTED',
   organizationalUnitNotFound: 'AUDIT_ORGANIZATIONAL_UNIT_NOT_FOUND',
+  invalidCursor: 'AUDIT_INVALID_CURSOR',
   forbidden: 'FORBIDDEN',
 } as const;
 
@@ -261,6 +291,7 @@ export const auditLogErrorMessages: Record<
   AUDIT_EXPORT_FORMAT_NOT_ALLOWED: 'The requested audit export format is not allowed',
   AUDIT_HASH_ALGORITHM_UNSUPPORTED: 'The configured audit hash algorithm is not supported',
   AUDIT_ORGANIZATIONAL_UNIT_NOT_FOUND: 'The requested organizational unit was not found',
+  AUDIT_INVALID_CURSOR: 'The audit cursor is malformed, unsupported, or outside its bounds',
   FORBIDDEN: 'Authorization failed',
 };
 

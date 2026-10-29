@@ -1,4 +1,4 @@
-import type { OnboardingServiceValues } from "@/components/services/onboarding/onboarding-service-step";
+import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 import {
   completeOnboardingStep,
   createServiceOnboarding,
@@ -13,6 +13,10 @@ import {
 export async function completeServiceOnboardingStep(
   record: ServiceOnboardingResponse | null,
   values: OnboardingServiceValues,
+  options?: {
+    readonly initialReason?: string;
+    readonly onCreated?: (record: ServiceOnboardingResponse) => void;
+  },
 ): Promise<ServiceOnboardingResponse> {
   if (record === null) {
     const created = await createServiceOnboarding({
@@ -20,8 +24,9 @@ export async function completeServiceOnboardingStep(
       slug: values.slug,
       categoryId: values.categoryId,
       requiresApproval: values.requiresApproval,
-      reason: "Service onboarding: initial service record",
+      reason: options?.initialReason ?? "Service onboarding: initial service record",
     });
+    options?.onCreated?.(created);
     await saveOnboardingServiceStep(created.serviceId, {
       name: values.name,
       categoryId: values.categoryId,

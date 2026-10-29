@@ -32,6 +32,11 @@ export function createInMemoryTicketDelegate(
   return {
     findUnique: async ({ where }: { where: { id: string } }) =>
       tickets.get(where.id) ?? null,
+    findUniqueOrThrow: async ({ where }: { where: { id: string } }) => {
+      const ticket = tickets.get(where.id);
+      if (ticket === undefined) throw new Error('NOT_FOUND');
+      return ticket;
+    },
     findFirst: async ({
       where,
       orderBy,

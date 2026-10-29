@@ -12,6 +12,7 @@ import { SecurityIdentityController } from './security-identity.controller';
 import { SecurityRateLimitsController } from './security-rate-limits.controller';
 import { IdentityPasskeyService } from './identity-passkey.service';
 import { SecurityRateLimitsService } from './security-rate-limits.service';
+import { StepUpPolicyService } from './step-up-policy.service';
 
 /**
  * Paket 5.4.0-a: the security module grows wave by wave — 5.4.0-a ships the
@@ -32,7 +33,7 @@ import { SecurityRateLimitsService } from './security-rate-limits.service';
     SecurityAuditLogController,
     SecurityMetricsController,
   ],
-  providers: [IdentityPasskeyService, SecurityRateLimitsService, BulkPasswordResetService],
+  providers: [IdentityPasskeyService, StepUpPolicyService, SecurityRateLimitsService, BulkPasswordResetService],
   exports: [IdentityPasskeyService],
 })
 export class SecurityModule {}

@@ -13,7 +13,7 @@ export function DocsRoleFilter({
   const { t } = useTranslation();
   return (
     <Segmented
-      ariaLabel={t("docs.audience.label")}
+      label={t("docs.audience.label")}
       items={docsAudiences.map((value) => ({ value, label: t(docsAudienceLabelKeys[value]) }))}
       onChange={onChange}
       size="sm"

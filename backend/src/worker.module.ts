@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { DiscoveryModule } from '@nestjs/core';
+import { WorkerScheduleReconcilerService } from './worker-schedule-reconciler.service';
+import { validateRuntimeEnvironment } from './common/config/validate-runtime-environment';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
 import { InboundEmailWorkerModule } from './modules/inbound-email/inbound-email-worker.module';
@@ -24,12 +27,15 @@ import { TimeTrackingSweepWorkerModule } from './modules/tickets/time-tracking/t
 import { UnroutedSweepWorkerModule } from './modules/tickets/unrouted/unrouted-sweep-worker.module';
 import { DirectorySyncWorkerModule } from './modules/directory-sync/ldaps/directory-sync-worker.module';
 import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/waiting-for-user-worker.module';
+import { StatusPageWorkerModule } from './modules/status-page/status-page-worker.module';
 
 @Module({
   imports: [
+    DiscoveryModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
+      validate: validateRuntimeEnvironment,
     }),
     PrismaModule,
     RedisModule,
@@ -61,6 +67,8 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     AssetDirectorySyncWorkerModule,
     ProblemSweepWorkerModule,
     ChangeSweepWorkerModule,
+    StatusPageWorkerModule,
   ],
+  providers: [WorkerScheduleReconcilerService],
 })
 export class WorkerModule {}

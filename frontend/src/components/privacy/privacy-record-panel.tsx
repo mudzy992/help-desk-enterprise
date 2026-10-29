@@ -51,7 +51,7 @@ export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: stri
             <>
               <Segmented
                 size="sm"
-                ariaLabel={t("privacy.record.language")}
+                label={t("privacy.record.language")}
                 value={locale}
                 onChange={setLocale}
                 items={[

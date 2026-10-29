@@ -10,12 +10,18 @@ import {
   readSmtpEnabledForAddons,
   readStoredInstallAddons,
 } from './persist-install-addons';
+import { resolveInstallAddonDefaults } from './resolve-install-addon-defaults';
 import { resolveInstallAddonsState } from './resolve-install-addons-state';
+import type { InstallProfile } from './steps/install-step.types';
 
 export async function readInstallAddonsStatus(
   settingsService: SettingsService,
+  profile: InstallProfile | null,
 ): Promise<InstallAddonsPublicRecord> {
-  return buildInstallAddonsStatus(settingsService, { publicOnly: false });
+  // F4.5: the wizard starts from the defaults of the chosen package, not from the
+  // catalog defaults — „Standard“ promises CSAT, reports and saved views on.
+  const defaults = resolveInstallAddonDefaults(profile);
+  return buildInstallAddonsStatus(settingsService, { publicOnly: false, defaults });
 }
 
 export async function readInstallAddonsCatalog(
@@ -35,7 +41,10 @@ export async function readInstallAddonsCatalog(
 
 async function buildInstallAddonsStatus(
   settingsService: SettingsService,
-  options: { readonly publicOnly: boolean },
+  options: {
+    readonly publicOnly: boolean;
+    readonly defaults: Readonly<Record<string, boolean>>;
+  },
 ): Promise<InstallAddonsPublicRecord> {
   const smtpEnabled = await readSmtpEnabledForAddons(settingsService);
   const stored = options.publicOnly
@@ -53,8 +62,8 @@ async function buildInstallAddonsStatus(
     smtpEnabled,
     items: installAddonCatalog.map((item) => ({
       key: item.key,
-      enabled: values?.[item.key] ?? item.defaultEnabled,
-      defaultEnabled: item.defaultEnabled,
+      enabled: values?.[item.key] ?? options.defaults[item.key] ?? item.defaultEnabled,
+      defaultEnabled: options.defaults[item.key] ?? item.defaultEnabled,
       canEnable: addonRequiresSmtp(item) ? smtpEnabled : true,
     })),
   };

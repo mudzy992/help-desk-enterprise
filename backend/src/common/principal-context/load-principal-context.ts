@@ -1,8 +1,6 @@
 import type { PrismaService } from '../prisma/prisma.service';
-import type {
-  PrincipalAssignment,
-  PrincipalContext,
-} from './principal-context.types';
+import type { PrincipalAssignment, PrincipalContext } from './principal-context.types';
+import { resolveCanonicalScope } from './canonical-assignment';
 
 /**
  * The single read behind every authorization decision (plan §2.2).
@@ -42,6 +40,7 @@ type LoadedPrincipalUser = {
   authzVersion: number;
   organizationalUnitId: string | null;
   userRoles: readonly {
+    id: string;
     role: {
       key: string;
       rolePermissions: readonly { permission: { key: string } }[];
@@ -53,17 +52,22 @@ type LoadedPrincipalUser = {
 };
 
 export function mapPrincipalUser(user: LoadedPrincipalUser): PrincipalContext {
-  const assignments: readonly PrincipalAssignment[] = user.userRoles.map(
-    (userRole) => ({
+  const assignments: readonly PrincipalAssignment[] = user.userRoles.flatMap((userRole): PrincipalAssignment[] => {
+    const organizationalUnitId = userRole.organizationalUnit?.id ?? null;
+    const organizationalUnitPath = userRole.organizationalUnit?.ouPath ?? null;
+    const serviceId = userRole.service?.id ?? null;
+    const scope = resolveCanonicalScope({ organizationalUnitId, organizationalUnitPath, serviceId });
+    if (scope === null) return [];
+    return [{
+      assignmentId: userRole.id,
       roleKey: userRole.role.key,
-      permissionKeys: userRole.role.rolePermissions.map(
-        (rolePermission) => rolePermission.permission.key,
-      ),
-      organizationalUnitId: userRole.organizationalUnit?.id ?? null,
-      organizationalUnitPath: userRole.organizationalUnit?.ouPath ?? null,
-      serviceId: userRole.service?.id ?? null,
-    }),
-  );
+      permissionKeys: userRole.role.rolePermissions.map((rolePermission) => rolePermission.permission.key),
+      scope,
+      organizationalUnitId,
+      organizationalUnitPath,
+      serviceId,
+    }];
+  });
   return {
     subjectId: user.id,
     email: user.email,

@@ -1,5 +1,6 @@
 import { CalendarDays } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { formatNumber } from "@/lib/reports/report-format";
 import { SlaAdminListColumn, SlaAdminSelectorCard } from "@/components/sla/sla-admin-selector";
 import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
@@ -47,7 +48,11 @@ export function SlaProfileList({
             isSelected={profile.id === selectedId}
             onSelect={() => onSelect(profile.id)}
             code={profileNameKey === null ? profile.key : undefined}
-            title={formatSlaProfileName(profile.key, profile.name, t as never)}
+            title={formatSlaProfileName(
+              profile.key,
+              profile.name,
+              (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+            )}
             description={profile.description}
             metaIcon={CalendarDays}
             metaLabel={profile.calendarName}

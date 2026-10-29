@@ -1,3 +1,4 @@
+import type { TicketTranslationKey } from "@/lib/tickets/ticket-translation-key";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 export type TicketActivityKind =
@@ -7,7 +8,7 @@ export type TicketActivityKind =
  * Every action the backend writes as a SYSTEM_EVENT message body
  * (`ticketSystemEventActions`), grouped by the kind that drives the icon.
  */
-export const ticketSystemEventKinds: Readonly<Record<string, TicketActivityKind>> = {
+export const ticketSystemEventKinds = {
   ticket_created: "status",
   ticket_claimed: "assign",
   ticket_assigned: "assign",
@@ -59,18 +60,18 @@ export const ticketSystemEventKinds: Readonly<Record<string, TicketActivityKind>
   ticket_sla_resolution_escalated: "sla",
   ticket_remote_requested: "edit",
   ticket_remote_acknowledged: "edit",
-  // Paket 2.7: `action:<incidentId>|<title>` (staff only).
+  // `action:<incidentId>|<title>` (staff only).
   ticket_incident_linked: "routing",
   ticket_incident_unlinked: "routing",
   ticket_incident_resolved: "status",
-  // Paket 3.2: `action:<assetId>|<tag name>` (staff only).
+  // `action:<assetId>|<tag name>` (staff only).
   ticket_asset_linked: "routing",
   ticket_asset_unlinked: "routing",
-  // Paket 3.3: `action:<problemId>|<number> <title>` (staff only).
+  // `action:<problemId>|<number> <title>` (staff only).
   ticket_problem_linked: "routing",
   ticket_problem_unlinked: "routing",
   ticket_problem_takeover: "assign",
-};
+} as const satisfies Readonly<Record<string, TicketActivityKind>>;
 
 /** System event bodies are `action` or `action:detail`. */
 export function parseSystemEventBody(body: string): {
@@ -87,7 +88,7 @@ export function parseSystemEventBody(body: string): {
   };
 }
 
-export function isKnownSystemEvent(action: string): boolean {
+export function isKnownSystemEvent(action: string): action is keyof typeof ticketSystemEventKinds {
   return Object.prototype.hasOwnProperty.call(ticketSystemEventKinds, action);
 }
 
@@ -96,7 +97,11 @@ export function systemEventKind(action: string): TicketActivityKind {
 }
 
 /** i18n key for the event text; unknown actions never expose the raw key. */
-export function systemEventTextKey(action: string): string {
+export type TicketSystemEventTranslationKey =
+  | Extract<TicketTranslationKey, `tickets.activity.events.${keyof typeof ticketSystemEventKinds}`>
+  | "tickets.activity.unknownEvent";
+
+export function systemEventTextKey(action: string): TicketSystemEventTranslationKey {
   return isKnownSystemEvent(action)
     ? `tickets.activity.events.${action}`
     : "tickets.activity.unknownEvent";

@@ -1,0 +1,543 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-22",
+  "records": [
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "braces",
+      "severity": "high",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "chokidar",
+      "severity": "high",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "fast-glob",
+      "severity": "high",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "micromatch",
+      "severity": "high",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "postcss-nested",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-rj75-hqrm-r3gf",
+          "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+          "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "postcss-selector-parser",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-rj75-hqrm-r3gf",
+          "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+          "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "tailwindcss",
+      "severity": "high",
+      "direct": true,
+      "advisories": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns"
+        },
+        {
+          "id": "GHSA-rj75-hqrm-r3gf",
+          "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+          "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "frontend",
+      "scope": "development",
+      "package": "tailwindcss-animate",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": [
+        {
+          "id": "GHSA-vfj7-8cjw-p6xm",
+          "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+          "title": "braces vulnerable to stack-exhaustion denial of service through deeply nested patterns"
+        },
+        {
+          "id": "GHSA-rj75-hqrm-r3gf",
+          "url": "https://github.com/advisories/GHSA-rj75-hqrm-r3gf",
+          "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion"
+        }
+      ],
+      "reason": "Tailwind CSS 3 transitive chain has no patched compatible release; Tailwind 4 requires a reviewed CSS/PostCSS migration.",
+      "owner": "frontend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "@istanbuljs/load-nyc-config",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "@jest/core",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "@jest/expect",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "@jest/globals",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "@jest/reporters",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "@jest/transform",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "argparse",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "babel-jest",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "babel-plugin-istanbul",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "production",
+      "package": "exceljs",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": [
+        {
+          "id": "GHSA-w5hq-g745-h8pq",
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided"
+        }
+      ],
+      "reason": "Patched path requires a direct major upgrade of ExcelJS or LDAPTS; migration and compatibility review required.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-circus",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-cli",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-config",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-resolve-dependencies",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-runner",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-runtime",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "jest-snapshot",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "js-yaml",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "production",
+      "package": "ldapts",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": [
+        {
+          "id": "GHSA-w5hq-g745-h8pq",
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided"
+        }
+      ],
+      "reason": "Patched path requires a direct major upgrade of ExcelJS or LDAPTS; migration and compatibility review required.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "sprintf-js",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "development",
+      "package": "ts-jest",
+      "severity": "moderate",
+      "direct": true,
+      "advisories": [
+        {
+          "id": "GHSA-hp3w-g68c-fv3c",
+          "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+          "title": "sprintf-js vulnerable to denial of service through unbounded precision specifiers"
+        }
+      ],
+      "reason": "Jest/ts-jest transitive advisory path has no safe automated upgrade; npm proposes incompatible downgrades.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    },
+    {
+      "ecosystem": "backend",
+      "scope": "production",
+      "package": "uuid",
+      "severity": "moderate",
+      "direct": false,
+      "advisories": [
+        {
+          "id": "GHSA-w5hq-g745-h8pq",
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided"
+        }
+      ],
+      "reason": "Patched path requires a direct major upgrade of ExcelJS or LDAPTS; migration and compatibility review required.",
+      "owner": "backend-platform",
+      "targetDate": "2027-01-22"
+    }
+  ]
+}

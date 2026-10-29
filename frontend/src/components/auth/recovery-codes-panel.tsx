@@ -13,7 +13,7 @@ interface RecoveryCodesPanelProperties {
   readonly doneLabel?: string;
 }
 
-/** Paket 2.1 (M4): shown exactly once; the user confirms they were saved. */
+/** shown exactly once; the user confirms they were saved. */
 export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPanelProperties) {
   const { t } = useTranslation();
   const { appName } = useBranding();

@@ -2,7 +2,7 @@ import { apiDownloadRequest, apiRequest } from "@/services/api";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 
 /**
- * Paket 3.2 C9 (§7a): equipment moves and transfer records (`prenosnice`).
+ * Delivery invariant (requirement): equipment moves and transfer records (`prenosnice`).
  * Types mirror `backend/src/modules/assets/transfers`.
  */
 

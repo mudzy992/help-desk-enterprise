@@ -14,16 +14,35 @@ const now = new Date('2026-11-20T10:00:00.000Z');
 
 function memoryRedis() {
   const values = new Map<string, string>();
-  return {
+  const client: {
+    values: Map<string, string>;
+    options: { keyPrefix: string };
+    status: 'ready';
+    get: jest.Mock;
+    set: jest.Mock;
+    on: jest.Mock;
+    connect: jest.Mock;
+    quit: jest.Mock;
+    disconnect: jest.Mock;
+    duplicate: jest.Mock;
+  } = {
     values,
     options: { keyPrefix: '' },
+    status: 'ready',
     get: jest.fn(async (key: string) => values.get(key) ?? null),
     set: jest.fn(async (key: string, value: string, ...args: unknown[]) => {
       if (args.includes('NX') && values.has(key)) return null;
       values.set(key, value);
       return 'OK';
     }),
+    on: jest.fn(),
+    connect: jest.fn(async () => undefined),
+    quit: jest.fn(async () => 'OK'),
+    disconnect: jest.fn(),
+    duplicate: jest.fn(),
   };
+  client.duplicate.mockImplementation(() => client);
+  return client;
 }
 
 function signals(overrides: Partial<OpsSignals> = {}): OpsSignals {
@@ -44,6 +63,7 @@ function signals(overrides: Partial<OpsSignals> = {}): OpsSignals {
     captchaFailedLastHour: 0,
     captchaSkippedLastHour: 0,
     auditWebhookPendingSinceMs: null,
+    mailProviderBlock: null,
     ...overrides,
   };
 }

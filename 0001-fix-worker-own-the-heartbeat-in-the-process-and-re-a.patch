@@ -1,0 +1,436 @@
+From 2dd5432fee0915be955c2e24e325e25ed82e80f5 Mon Sep 17 00:00:00 2001
+From: mudzy992 <arena-agent@users.noreply.github.com>
+Date: Sat, 17 Oct 2026 10:50:51 +0000
+Subject: [PATCH 1/2] fix(worker): own the heartbeat in the process, and
+ re-assert the schedules
+
+`worker.down` opened again with `heartbeatMissing: true` on a stack whose worker
+container was up. The periodic heartbeat is a BullMQ schedule, and that design
+has two ways to stop writing while the worker keeps running:
+
+* it is registered exactly once, at boot, by `registerRepeatableJob`, which logs
+  `integration_worker_heartbeat_schedule_failed` and moves on when Redis refuses
+  it - and a Redis restart, flush or failover drops the registration for good.
+  Nothing re-asserted it, so the only way back was a worker redeploy;
+* its jobs are served by a `concurrency: 1` processor shared with the DLQ sweep,
+  so a slow or stalled sweep delays the heartbeat by design.
+
+Either way the key expires and the watchdog sees *absence* - the one signal that
+is also what a cold start, an eviction and a failed read look like. The TTL fix
+(3600 s) made a dead worker provably stale, but it cannot help when nothing
+writes the key at all.
+
+So the worker process now also writes the heartbeat on its own timer (one SET
+every 10 s, unref'd, cleared on destroy) - which is what the pre-4.1 setInterval
+did, and the plan already notes that two workers writing the same timestamp is
+harmless. The key now means "a worker process is up and can reach Redis", while
+"the queue machinery runs" stays the job of `ops:snapshot` / `ops.monitor.stale`.
+An evicted key is rewritten within 10 s, i.e. long before `openAfter: 2` ticks.
+
+The maintenance schedules are additionally re-asserted every 5 minutes
+(`upsertJobScheduler` is idempotent by scheduler id, so this is two Redis calls
+per interval and can never double a job): a registration lost at boot or to a
+Redis restart heals without a redeploy.
+
+The runbook now says who writes the key, and what to grep for in the worker log.
+---
+ ...ion-queue-worker-heartbeat.service.spec.ts | 85 ++++++++++++++--
+ ...egration-queue-worker-heartbeat.service.ts | 46 ++++++++-
+ ...rker-maintenance.scheduler.service.spec.ts | 98 +++++++++++++++++++
+ ...on-worker-maintenance.scheduler.service.ts | 37 ++++++-
+ ops/runbook/ALERTS.md                         | 16 +++
+ 5 files changed, 271 insertions(+), 11 deletions(-)
+ create mode 100644 backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.spec.ts
+
+diff --git a/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.spec.ts b/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.spec.ts
+index ea62b8a..56f95d8 100644
+--- a/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.spec.ts
++++ b/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.spec.ts
+@@ -1,19 +1,22 @@
+ import { IntegrationQueueWorkerHeartbeatService } from './integration-queue-worker-heartbeat.service';
+ import {
++  workerHeartbeatIntervalMilliseconds,
+   workerHeartbeatRedisKey,
+   workerHeartbeatStaleThresholdMilliseconds,
+   workerHeartbeatTimeToLiveSeconds,
+ } from './integration-queue.constants';
+
++function harness(set: jest.Mock = jest.fn().mockResolvedValue('OK')) {
++  const redisService = { getClient: () => ({ set }) };
++  return {
++    set,
++    service: new IntegrationQueueWorkerHeartbeatService(redisService as never),
++  };
++}
++
+ describe('IntegrationQueueWorkerHeartbeatService', () => {
+   it('writes an ISO heartbeat timestamp to Redis with TTL', async () => {
+-    const set = jest.fn().mockResolvedValue('OK');
+-    const redisService = {
+-      getClient: () => ({ set }),
+-    };
+-    const service = new IntegrationQueueWorkerHeartbeatService(
+-      redisService as never,
+-    );
++    const { set, service } = harness();
+     await service.writeHeartbeat();
+     expect(set).toHaveBeenCalledWith(
+       workerHeartbeatRedisKey,
+@@ -36,4 +39,72 @@ describe('IntegrationQueueWorkerHeartbeatService', () => {
+       workerHeartbeatStaleThresholdMilliseconds,
+     );
+   });
++
++  /*
++    Incident 2026-10-17: the alarm came back with `heartbeatMissing: true` on a
++    worker that was up. The periodic write is a BullMQ schedule registered once
++    at boot (`registerRepeatableJob` only logs a failure) and served by a
++    `concurrency: 1` processor shared with the DLQ sweep — lose the registration
++    or stall the sweep and the key expires while the process is alive. The
++    process therefore also writes it itself.
++  */
++  describe('the process-owned timer', () => {
++    beforeEach(() => jest.useFakeTimers());
++    afterEach(() => {
++      jest.useRealTimers();
++      jest.clearAllMocks();
++    });
++
++    it('writes at boot and keeps writing without the queue schedule', async () => {
++      const { set, service } = harness();
++      await service.onModuleInit();
++      expect(set).toHaveBeenCalledTimes(1);
++
++      await jest.advanceTimersByTimeAsync(workerHeartbeatIntervalMilliseconds);
++      expect(set).toHaveBeenCalledTimes(2);
++
++      await jest.advanceTimersByTimeAsync(workerHeartbeatIntervalMilliseconds * 2);
++      expect(set).toHaveBeenCalledTimes(4);
++      expect(set).toHaveBeenLastCalledWith(
++        workerHeartbeatRedisKey,
++        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
++        'EX',
++        workerHeartbeatTimeToLiveSeconds,
++      );
++
++      service.onModuleDestroy();
++    });
++
++    it('stops writing after the module is destroyed', async () => {
++      const { set, service } = harness();
++      await service.onModuleInit();
++      service.onModuleDestroy();
++      await jest.advanceTimersByTimeAsync(workerHeartbeatIntervalMilliseconds * 3);
++      expect(set).toHaveBeenCalledTimes(1);
++    });
++
++    it('survives a Redis that refuses the write and tries again next tick', async () => {
++      const set = jest
++        .fn()
++        .mockRejectedValueOnce(new Error('WRONGPASS'))
++        .mockRejectedValueOnce(new Error('Connection is closed'))
++        .mockResolvedValue('OK');
++      const { service } = harness(set);
++      await expect(service.onModuleInit()).resolves.toBeUndefined();
++      await jest.advanceTimersByTimeAsync(workerHeartbeatIntervalMilliseconds);
++      await jest.advanceTimersByTimeAsync(workerHeartbeatIntervalMilliseconds);
++      expect(set).toHaveBeenCalledTimes(3);
++      service.onModuleDestroy();
++    });
++
++    it('does not register the timer twice when init runs again', async () => {
++      const { set, service } = harness();
++      await service.onModuleInit();
++      await service.onModuleInit();
++      await jest.advanceTimersByTimeAsync(workerHeartbeatIntervalMilliseconds);
++      // Two immediate writes (one per init) plus one tick — not two ticks.
++      expect(set).toHaveBeenCalledTimes(3);
++      service.onModuleDestroy();
++    });
++  });
+ });
+diff --git a/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts b/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts
+index badbb8f..3fcdb5c 100644
+--- a/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts
++++ b/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts
+@@ -1,15 +1,24 @@
+-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import {
++  Injectable,
++  Logger,
++  OnModuleDestroy,
++  OnModuleInit,
++} from '@nestjs/common';
+ import { RedisService } from '../../common/redis/redis.service';
+ import {
++  workerHeartbeatIntervalMilliseconds,
+   workerHeartbeatRedisKey,
+   workerHeartbeatTimeToLiveSeconds,
+ } from './integration-queue.constants';
+
+ @Injectable()
+-export class IntegrationQueueWorkerHeartbeatService implements OnModuleInit {
++export class IntegrationQueueWorkerHeartbeatService
++  implements OnModuleInit, OnModuleDestroy
++{
+   private readonly logger = new Logger(
+     IntegrationQueueWorkerHeartbeatService.name,
+   );
++  private timer: NodeJS.Timeout | null = null;
+
+   constructor(private readonly redisService: RedisService) {}
+
+@@ -18,9 +27,42 @@ export class IntegrationQueueWorkerHeartbeatService implements OnModuleInit {
+    * (`integration-worker-maintenance.scheduler.service.ts`) so two workers write
+    * one heartbeat instead of two. The immediate write stays: without it the health
+    * check would flap to "stale" for the first interval after every restart.
++   *
++   * Incident 2026-10-17: the schedule alone is a single point of failure for a
++   * *liveness* signal. It is registered once, at boot, by `registerRepeatableJob`
++   * which only logs when Redis refuses it (`integration_worker_heartbeat_schedule_failed`),
++   * and its jobs are processed by a `concurrency: 1` worker shared with the DLQ
++   * sweep. Lose the registration (Redis blip at boot, Redis restart or flush, a
++   * failover) or stall the sweep and the heartbeat stops while the worker process
++   * is perfectly alive — the key then expires and `worker.down` opens with
++   * `heartbeatMissing: true`, i.e. exactly the false alarm this signal exists to
++   * avoid. So the process also writes it on its own timer: one SET every 10 s,
++   * which is what the pre-4.1 `setInterval` did. Two workers writing the same
++   * timestamp is harmless (the plan says so explicitly); a heartbeat that depends
++   * on queue machinery to prove the queue machinery is alive is not.
++   *
++   * Division of labour stays clean: this key means "a worker process is up and
++   * can reach Redis", while `ops:snapshot` (ops-health schedule) means "the queue
++   * machinery runs" — `ops.monitor.stale` is the alarm for the latter.
+    */
+   async onModuleInit(): Promise<void> {
+     await this.writeHeartbeat();
++    this.startLocalTimer();
++  }
++
++  onModuleDestroy(): void {
++    if (this.timer !== null) clearInterval(this.timer);
++    this.timer = null;
++  }
++
++  private startLocalTimer(): void {
++    if (this.timer !== null) return;
++    this.timer = setInterval(() => {
++      void this.writeHeartbeat();
++    }, workerHeartbeatIntervalMilliseconds);
++    // The worker has its own keep-alive timer; this one must never hold the
++    // process open (and must not keep a jest worker alive after a spec).
++    this.timer.unref?.();
+   }
+
+   async writeHeartbeat(): Promise<void> {
+diff --git a/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.spec.ts b/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.spec.ts
+new file mode 100644
+index 0000000..ec3ddeb
+--- /dev/null
++++ b/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.spec.ts
+@@ -0,0 +1,98 @@
++import {
++  IntegrationWorkerMaintenanceSchedulerService,
++  integrationWorkerMaintenanceReconcileIntervalMilliseconds,
++} from './integration-worker-maintenance.scheduler.service';
++import {
++  integrationDlqRetentionSchedulerId,
++  integrationWorkerHeartbeatJobName,
++  integrationWorkerHeartbeatRepeatEveryMilliseconds,
++  integrationWorkerHeartbeatSchedulerId,
++} from './integration-worker-maintenance.job.constants';
++
++function harness(upsertJobScheduler: jest.Mock = jest.fn().mockResolvedValue(undefined)) {
++  const queue = { upsertJobScheduler };
++  const settingsService = { getSetting: async () => null };
++  const service = new IntegrationWorkerMaintenanceSchedulerService(
++    queue as never,
++    settingsService as never,
++  );
++  return { service, upsertJobScheduler };
++}
++
++const registeredIds = (calls: unknown[][]) => calls.map((call) => call[0]);
++
++/*
++  Incident 2026-10-17: `worker.down` opened with `heartbeatMissing: true` on a
++  worker that was running. The periodic heartbeat is a BullMQ schedule that was
++  registered exactly once, at boot, by `registerRepeatableJob` — which logs and
++  moves on when Redis refuses it — and a Redis restart or flush drops the
++  registration for good. Nothing ever re-asserted it, so the only way back was a
++  redeploy of the worker. The schedule is now re-asserted on an interval;
++  `upsertJobScheduler` is idempotent by scheduler id, so this costs two Redis
++  calls per interval and cannot double a job.
++*/
++describe('IntegrationWorkerMaintenanceSchedulerService', () => {
++  beforeEach(() => jest.useFakeTimers());
++  afterEach(() => {
++    jest.useRealTimers();
++    jest.clearAllMocks();
++  });
++
++  it('registers the heartbeat and the DLQ sweep at boot', async () => {
++    const { service, upsertJobScheduler } = harness();
++    await service.onModuleInit();
++    expect(registeredIds(upsertJobScheduler.mock.calls)).toEqual([
++      integrationWorkerHeartbeatSchedulerId,
++      integrationDlqRetentionSchedulerId,
++    ]);
++    expect(upsertJobScheduler).toHaveBeenCalledWith(
++      integrationWorkerHeartbeatSchedulerId,
++      { every: integrationWorkerHeartbeatRepeatEveryMilliseconds },
++      expect.objectContaining({ name: integrationWorkerHeartbeatJobName }),
++    );
++    service.onModuleDestroy();
++  });
++
++  it('re-asserts both schedules so a lost registration heals without a redeploy', async () => {
++    const { service, upsertJobScheduler } = harness();
++    await service.onModuleInit();
++    expect(upsertJobScheduler).toHaveBeenCalledTimes(2);
++
++    await jest.advanceTimersByTimeAsync(
++      integrationWorkerMaintenanceReconcileIntervalMilliseconds,
++    );
++    expect(upsertJobScheduler).toHaveBeenCalledTimes(4);
++    expect(registeredIds(upsertJobScheduler.mock.calls.slice(2))).toEqual([
++      integrationWorkerHeartbeatSchedulerId,
++      integrationDlqRetentionSchedulerId,
++    ]);
++    service.onModuleDestroy();
++  });
++
++  it('stops re-asserting after the module is destroyed', async () => {
++    const { service, upsertJobScheduler } = harness();
++    await service.onModuleInit();
++    service.onModuleDestroy();
++    await jest.advanceTimersByTimeAsync(
++      integrationWorkerMaintenanceReconcileIntervalMilliseconds * 3,
++    );
++    expect(upsertJobScheduler).toHaveBeenCalledTimes(2);
++  });
++
++  it('keeps reconciling after Redis refused the registration at boot', async () => {
++    const upsertJobScheduler = jest
++      .fn()
++      .mockRejectedValueOnce(new Error('Connection is closed'))
++      .mockRejectedValueOnce(new Error('Connection is closed'))
++      .mockResolvedValue(undefined);
++    const { service } = harness(upsertJobScheduler);
++    // registerRepeatableJob logs `*_schedule_failed` instead of throwing: a
++    // worker that cannot reach Redis must still boot for its other queues.
++    await expect(service.onModuleInit()).resolves.toBeUndefined();
++    await jest.advanceTimersByTimeAsync(
++      integrationWorkerMaintenanceReconcileIntervalMilliseconds,
++    );
++    expect(upsertJobScheduler).toHaveBeenCalledTimes(4);
++    service.onModuleDestroy();
++  });
++});
+diff --git a/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts b/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts
+index a3b3fe4..5aff7a0 100644
+--- a/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts
++++ b/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts
+@@ -1,4 +1,9 @@
+-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import {
++  Injectable,
++  Logger,
++  OnModuleDestroy,
++  OnModuleInit,
++} from '@nestjs/common';
+ import { InjectQueue } from '@nestjs/bullmq';
+ import { Queue } from 'bullmq';
+ import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
+@@ -25,6 +30,16 @@ import { loadIntegrationQueueSettings } from './load-integration-queue-settings'
+
+ const fallbackPollSeconds = 15;
+
++/**
++ * How often the two schedules are re-asserted in Redis. `upsertJobScheduler` is
++ * idempotent by scheduler id, so this costs two Redis calls per interval and buys
++ * self-healing: a registration that failed at boot (Redis blip — `registerRepeatableJob`
++ * logs and moves on) or that disappeared with a Redis restart/flush comes back
++ * without a worker redeploy. Incident 2026-10-17: without it the heartbeat
++ * schedule was write-once-at-boot, and losing it looked like a dead worker.
++ */
++export const integrationWorkerMaintenanceReconcileIntervalMilliseconds = 5 * 60_000;
++
+ /**
+  * Phase 4.1 (plan §4.1): registers the worker's two maintenance schedules in Redis.
+  *
+@@ -34,10 +49,13 @@ const fallbackPollSeconds = 15;
+  * its own 10 s constant.
+  */
+ @Injectable()
+-export class IntegrationWorkerMaintenanceSchedulerService implements OnModuleInit {
++export class IntegrationWorkerMaintenanceSchedulerService
++  implements OnModuleInit, OnModuleDestroy
++{
+   private readonly logger = new Logger(
+     IntegrationWorkerMaintenanceSchedulerService.name,
+   );
++  private reconcileTimer: NodeJS.Timeout | null = null;
+
+   constructor(
+     @InjectQueue(integrationWorkerMaintenanceQueueName)
+@@ -46,6 +64,21 @@ export class IntegrationWorkerMaintenanceSchedulerService implements OnModuleIni
+   ) {}
+
+   async onModuleInit(): Promise<void> {
++    await this.registerSchedules();
++    if (this.reconcileTimer === null) {
++      this.reconcileTimer = setInterval(() => {
++        void this.registerSchedules();
++      }, integrationWorkerMaintenanceReconcileIntervalMilliseconds);
++      this.reconcileTimer.unref?.();
++    }
++  }
++
++  onModuleDestroy(): void {
++    if (this.reconcileTimer !== null) clearInterval(this.reconcileTimer);
++    this.reconcileTimer = null;
++  }
++
++  private async registerSchedules(): Promise<void> {
+     await registerRepeatableJob({
+       queue: this.queue,
+       schedulerId: integrationWorkerHeartbeatSchedulerId,
+diff --git a/ops/runbook/ALERTS.md b/ops/runbook/ALERTS.md
+index 77a769a..66a530e 100644
+--- a/ops/runbook/ALERTS.md
++++ b/ops/runbook/ALERTS.md
+@@ -78,6 +78,16 @@ Ako bilo šta od toga ne stoji, alarm se **ne otvara**, a backend logira zašto:
+ > *star* zapis, a ne prazan Redis. Ranije je TTL bio 90 s, pa je `worker.down` mogao da se otvori samo
+ > na izostanak ključa — a tako izgleda i svježa instalacija.
+
++> **Ko upisuje ključ (od 2026-10-17):** upisuje ga **sam worker proces**, svojim tajmerom svakih 10 s
++> (`IntegrationQueueWorkerHeartbeatService`), a ne samo BullMQ raspored `integration-worker-heartbeat`.
++> Raspored se ranije registrovao **jednom pri startu** i `registerRepeatableJob` je grešku samo logovao
++> (`integration_worker_heartbeat_schedule_failed`), pa su Redis blip pri startu, restart/flesh Redis-a ili
++> zaglavljen DLQ sweep (isti procesor, `concurrency: 1`) zaustavljali periodični upis dok je worker bio živ —
++> ključ bi istekao i alarm se otvorio kao `heartbeatMissing: true`. Rasporedi se sada ponovo potvrđuju svakih
++> 5 min (`upsertJobScheduler` je idempotentan po ID-u), a procesni tajmer piše nezavisno od reda.
++> Zato `heartbeatMissing: true` danas znači: **nijedan worker proces nije mogao pisati u Redis bar 2 min**
++> (uz kanarinca, 5 min grace i bez svježeg `ops:snapshot`) — dakle stvarno pad ili nedostupan Redis.
++
+ **Postupak (stvarni pad workera):**
+ 1. `docker ps -a | grep worker-` provjeri status (restarting, exited, unhealthy).
+ 2. `docker logs --tail 200 "$WORKER"` pokaže zadnju grešku (najčešće Redis ACL/lozinka, migracija, OOM).
+@@ -89,8 +99,14 @@ Ako bilo šta od toga ne stoji, alarm se **ne otvara**, a backend logira zašto:
+ ```bash
+ docker exec "$WORKER" node dist/src/cli/worker-health.js; echo "exit=$?"  # exit=0 → worker je živ
+ docker logs --since 15m "$BACKEND" 2>&1 | grep ops_watchdog | tail -20    # zašto watchdog (ne) otvara
++docker logs --since 15m "$WORKER" 2>&1 | grep -E "schedule_failed|heartbeat" | tail -20
++redis-cli --user <acl> TTL servicedesk:integration-queue:worker-heartbeat  # ~3600 → piše se
+ ```
+
++Ako worker kontejner **restartuje u petlji** (`docker ps -a` → `Restarting`), heartbeat se nikad ne upiše:
++pogledaj zadnju grešku u `docker logs` — najčešće je to Redis (ACL/lozinka/host) ili migracija.
++
++
+ Evikciju ključeva **ne** rješavaj promjenom `maxmemory-policy` (ostaje `volatile-lru`, vidi
+ [redis-unavailable](#redis-unavailable)) — kanarinac je tu da je prepozna i da tada ne diže uzbunu.
+
+--
+2.39.5

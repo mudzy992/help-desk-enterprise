@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
@@ -37,7 +38,10 @@ test.describe('06 confidential', () => {
     try {
       await adminApi.requestJson(`/tickets/${created.id}/break-glass`, {
         method: 'POST',
-        body: JSON.stringify({ reason: 'E2E break-glass audit' }),
+        body: JSON.stringify({
+          reason: 'E2E break-glass audit',
+          correlationId: randomUUID(),
+        }),
       });
     } catch (error) {
       expect(String(error)).toMatch(/BREAK_GLASS_NOT_APPLICABLE/);

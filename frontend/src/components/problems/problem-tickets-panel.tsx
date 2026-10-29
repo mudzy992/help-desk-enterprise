@@ -19,7 +19,7 @@ import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   getProblemTickets,
   problemOpenStatuses,
@@ -28,7 +28,7 @@ import {
   type ProblemDetail,
 } from "@/services/problems-api";
 
-/** Paket 3.3 (§8.3): tickets grouped under the problem, open/total. */
+/** Delivery invariant (requirement): tickets grouped under the problem, open/total. */
 export function ProblemTicketsPanel({
   problem,
   onChanged,
@@ -142,10 +142,12 @@ export function ProblemTicketsPanel({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  <Badge tone="neutral">{ticketText(t, ticketStatusLabelKey[item.status])}</Badge>
+                  <Badge tone="neutral">
+                    {translateText(t, ticketStatusLabelKey[item.status])}
+                  </Badge>
                 </td>
                 <td className="px-3 py-2">
-                  {ticketText(t, ticketPriorityLabelKey[item.priority])}
+                  {translateText(t, ticketPriorityLabelKey[item.priority])}
                 </td>
                 <td className="px-3 py-2">
                   {item.requester?.displayName ?? <span className="text-muted-foreground">—</span>}

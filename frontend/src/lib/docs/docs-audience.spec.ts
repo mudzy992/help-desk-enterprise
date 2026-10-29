@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filterDocsByAudience, matchesDocsAudience } from "./docs-audience";
 
-describe("matchesDocsAudience (Faza 3 c)", () => {
+describe("matchesDocsAudience (c)", () => {
   it("stranica bez rola se vidi u svakom filteru", () => {
     expect(matchesDocsAudience({ roles: [] }, "user")).toBe(true);
     expect(matchesDocsAudience({ roles: [] }, "agent")).toBe(true);

@@ -81,6 +81,8 @@ export async function deleteRoutingRule(
       entityId: ruleId,
       reason,
       actorUserId: context.actorUserId,
+      scopeOriginUnitId: impact.originUnitId,
+      scopeServiceId: impact.serviceId,
       diff: buildChangeLogDiff({
         action: changeLogActions.delete,
         resourceType: changeLogEntityTypes.routingRule,

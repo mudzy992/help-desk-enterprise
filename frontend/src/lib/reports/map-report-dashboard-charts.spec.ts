@@ -41,7 +41,7 @@ describe("map-report-dashboard-charts", () => {
     expect(items[0].label).toBe("do 1 dan");
   });
 
-  it("val 1 (M15/B1): isključena postavka skriva karticu uskih grla, ostalo ostaje", () => {
+  it("val 1 isključena postavka skriva karticu uskih grla, ostalo ostaje", () => {
     expect(showBottleneckChart({ bottlenecksEnabled: true })).toBe(true);
     expect(dashboardChartSections({ bottlenecksEnabled: true })).toEqual([
       "bottleneck",
@@ -60,7 +60,7 @@ describe("map-report-dashboard-charts", () => {
     ]);
   });
 
-  it("val 1 (M15 gap): brojčani razrez nema suffix, a najopterećeniji nosi upozorenje", () => {
+  it("brojčani razrez nema suffix, a najopterećeniji nosi upozorenje", () => {
     const units = mapCountBars([
       { key: "ou-it", label: "IT", value: 12 },
       { key: "ou-hr", label: "HR", value: 4 },

@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import {
   configVersionStatuses,
   type ConfigVersion,
@@ -12,6 +12,18 @@ const tones: Record<ConfigVersionStatus, BadgeTone> = {
   [configVersionStatuses.active]: "success",
   [configVersionStatuses.rolledBack]: "neutral",
 };
+
+const statusLabelKeys = {
+  DRAFT: "configVersions.statuses.DRAFT",
+  VALIDATED: "configVersions.statuses.VALIDATED",
+  SHADOW: "configVersions.statuses.SHADOW",
+  ACTIVE: "configVersions.statuses.ACTIVE",
+  ROLLED_BACK: "configVersions.statuses.ROLLED_BACK",
+} as const satisfies Record<ConfigVersionStatus, string>;
+
+export function configVersionStatusLabelKey(status: ConfigVersionStatus) {
+  return statusLabelKeys[status];
+}
 
 export function configVersionBadgeTone(status: ConfigVersionStatus): BadgeTone {
   return tones[status];

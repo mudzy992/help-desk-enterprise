@@ -1,52 +1,63 @@
 import { ArrowRight, Clock, ShieldAlert } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getTicketCounts } from "@/services/tickets-counts-api";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HBars } from "@/components/charts/h-bars";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { PanelSkeleton } from "@/components/ui/skeleton";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { EmptyState } from "@/components/ui/empty-state";
+import { queryKeys } from "@/lib/query/query-keys";
 import { groupInboxCounts } from "@/lib/dashboard/dashboard-ticket-sets";
 import { groupNamesFromTickets } from "@/lib/tickets/ticket-names";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
+import { getTicketCounts } from "@/services/tickets-counts-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface DashboardInboxSnapshotProperties {
   readonly unroutedCount: number;
+  readonly inboxCount: number | null;
+  readonly inboxTotalIsCapped: boolean;
   readonly inboxTickets: readonly TicketResponse[] | null;
   readonly groupNames: ReadonlyMap<string, string>;
+  readonly isLoading: boolean;
+  readonly errorKey: TicketErrorKey | null;
+  readonly requestId: string | null;
+  readonly onRetry: () => Promise<void>;
 }
 
 export function DashboardInboxSnapshot({
   unroutedCount,
+  inboxCount,
+  inboxTotalIsCapped,
   inboxTickets,
   groupNames,
+  isLoading,
+  errorKey,
+  requestId,
+  onRetry,
 }: DashboardInboxSnapshotProperties) {
   const { t } = useTranslation();
-  // Paket 1.7 (U3): unrouted past the cleanup deadline (includes tickets sent
-  // to the unrouted target group and still unassigned there).
-  const [queueCount, setQueueCount] = useState<number | null>(null);
-  const [overdue, setOverdue] = useState<{ count: number; hours: number } | null>(null);
-  useEffect(() => {
-    let active = true;
-    getTicketCounts()
-      .then((counts) => {
-        if (active) {
-          setQueueCount(counts.unroutedQueue);
-          if (counts.unroutedQueueOverdue !== undefined) {
-            setOverdue({
-              count: counts.unroutedQueueOverdue,
-              hours: counts.unroutedCleanupHours ?? 0,
-            });
-          }
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [unroutedCount]);
+  // counts through React Query instead of an ad-hoc
+  // useEffect — same invalidation events as the sidebar/summary refresh the
+  // value, and D4 makes the unrouted number match the card above.
+  const { data: counts } = useQuery({
+    queryKey: queryKeys.ticketCounts({ scope: "dashboard-inbox" }),
+    queryFn: () => getTicketCounts(),
+    staleTime: 30_000,
+  });
+
+  // canonical unrouted number is the queue value
+  // (UNROUTED + fallback-routed PENDING), matching the metric card and the
+  // sidebar badge. The previous logic fell back to the summary `unroutedCount`
+  // which is the same value now (same SQL predicate), so no desync.
+  const queueCount = counts?.unroutedQueue ?? null;
+  const overdue =
+    counts?.unroutedQueueOverdue !== undefined && counts.unroutedCleanupHours !== undefined
+      ? { count: counts.unroutedQueueOverdue, hours: counts.unroutedCleanupHours }
+      : null;
   const displayUnroutedCount = queueCount ?? unroutedCount;
   const groups =
     inboxTickets === null
@@ -61,6 +72,29 @@ export function DashboardInboxSnapshot({
     color: group.groupId === null ? SEMANTIC_DOT_HEX.danger : SEMANTIC_DOT_HEX.primary,
     suffix: t("dashboard.inboxGroupCountSuffix"),
   }));
+  const isPartial =
+    inboxCount !== null && inboxTickets !== null && inboxCount > inboxTickets.length;
+
+  if (isLoading) {
+    return <PanelSkeleton label={t("dashboard.inboxSnapshotTitle")} />;
+  }
+
+  if (errorKey !== null) {
+    return (
+      <Card className="fade-in">
+        <CardHeader
+          title={t("dashboard.inboxSnapshotTitle")}
+          subtitle={t("dashboard.inboxSnapshotSubtitle")}
+        />
+        <div className="px-4 py-4">
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          <Button className="mt-3" size="xs" variant="outline" onClick={() => void onRetry()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="fade-in">
@@ -78,7 +112,7 @@ export function DashboardInboxSnapshot({
       <div className="px-4 py-4">
         {displayUnroutedCount > 0 ? (
           <Link
-            to="/tickets?view=inbox"
+            to="/tickets?view=inbox&inboxTab=unrouted"
             className="mb-3.5 flex w-full items-center gap-2.5 rounded-lg border border-danger/35 bg-danger/8 px-3 py-2.5 text-left transition-colors hover:bg-danger/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
           >
             <ShieldAlert size={15} className="shrink-0 text-danger" />
@@ -100,8 +134,18 @@ export function DashboardInboxSnapshot({
           </Link>
         ) : null}
         {bars.length > 0 ? (
-          <HBars items={bars} />
-        ) : displayUnroutedCount === 0 ? (
+          <>
+            <HBars items={bars} />
+            {isPartial ? (
+              <p className="mt-2 text-[11.5px] text-muted-foreground">
+                {t("dashboard.inboxSnapshotPartial", {
+                  shown: inboxTickets?.length ?? 0,
+                  total: inboxTotalIsCapped ? `${inboxCount}+` : inboxCount,
+                })}
+              </p>
+            ) : null}
+          </>
+        ) : inboxTickets !== null && displayUnroutedCount === 0 ? (
           <EmptyState
             title={t("dashboard.inboxEmpty")}
             action={

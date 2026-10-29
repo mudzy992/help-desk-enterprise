@@ -1,224 +1,204 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { localDayKey, queryKeys } from "@/lib/query/query-keys";
-import {
-  composeDashboardSummary,
-  dashboardRecentTicketLimit,
-  type DashboardSummary,
-} from "@/lib/dashboard/compose-dashboard-summary";
-import {
-  dashboardAttentionTicketLimit,
-  dashboardOpenStatuses,
-  dashboardSlaWatchlistLimit,
-} from "@/lib/dashboard/dashboard-ticket-sets";
-import { dashboardVolumeDayCount } from "@/lib/dashboard/build-volume-14d";
-import { loadDashboardVolume } from "@/lib/dashboard/load-dashboard-volume";
+import { queryKeys } from "@/lib/query/query-keys";
+import { reportClientError } from "@/lib/app/client-logger";
+import { useLocalDayKey } from "@/lib/dashboard/use-local-day-key";
+import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
-import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
-import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
+import { loadDashboardPrimary } from "@/lib/dashboard/load-dashboard-primary";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listRoutingRules } from "@/services/routing-api";
 import { listOfferedServices, listServices } from "@/services/service-catalog-api";
-import { fetchDashboardSummary } from "@/services/report-summary-api";
-import { listGroupInbox, listTicketsPage, type TicketResponse } from "@/services/tickets-api";
-
-/** Početak lokalne civilne noći 13 dana prije `now` (prvi dan grafikona). */
-function dashboardVolumeWindowStart(now: Date): Date {
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - (dashboardVolumeDayCount - 1));
-}
+import { listGroupInboxPage, type TicketPage, type TicketResponse } from "@/services/tickets-api";
+import type { ServiceResponse } from "@/services/service-catalog-api";
+import type { RoutingRuleResponse } from "@/services/routing-api";
+import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
 export type DashboardSummaryState = {
   readonly isStaff: boolean;
   readonly summary: DashboardSummary | null;
   readonly inboxCount: number | null;
+  readonly inboxTotalIsCapped: boolean;
   readonly inboxTickets: readonly TicketResponse[] | null;
+  readonly isInboxLoading: boolean;
+  readonly inboxErrorKey: TicketErrorKey | null;
+  readonly inboxRequestId: string | null;
+  readonly reloadInbox: () => Promise<void>;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly originNames: ReadonlyMap<string, string>;
   readonly groupNames: ReadonlyMap<string, string>;
   readonly isLoading: boolean;
+  readonly isStale: boolean;
   readonly errorKey: TicketErrorKey | null;
   readonly requestId: string | null;
   readonly reload: () => Promise<void>;
 };
 
-export function useDashboardSummary(): DashboardSummaryState {
+export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
   const { currentUserId } = useSession();
-  // The counters carry a day ("opened today"), so the day is part of the key:
-  // when it changes the callback identity changes with it and the effect below
-  // fetches the new day instead of showing yesterday's payload.
-  const dayKey = localDayKey();
+  const dayKey = useLocalDayKey();
   const queryClient = useQueryClient();
-  const isStaff = isTicketStaff(useSessionCapabilities());
+  const primaryGeneration = useRef(0);
+  const inboxGeneration = useRef(0);
+  const isMounted = useRef(true);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [inboxTickets, setInboxTickets] = useState<readonly TicketResponse[] | null>(null);
+  const [inboxPage, setInboxPage] = useState<TicketPage | null>(null);
+  const [isInboxLoading, setIsInboxLoading] = useState(isStaff);
+  const [inboxErrorKey, setInboxErrorKey] = useState<TicketErrorKey | null>(null);
+  const [inboxRequestId, setInboxRequestId] = useState<string | null>(null);
   const [serviceNames, setServiceNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [originNames, setOriginNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [groupNames, setGroupNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const [isStale, setIsStale] = useState(false);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      primaryGeneration.current += 1;
+      inboxGeneration.current += 1;
+    };
+  }, []);
+
+  const reloadInbox = useCallback(async () => {
+    const generation = ++inboxGeneration.current;
+    const isCurrent = () => isMounted.current && generation === inboxGeneration.current;
+    if (!isStaff) {
+      setInboxPage(null);
+      setIsInboxLoading(false);
+      setInboxErrorKey(null);
+      setInboxRequestId(null);
+      return;
+    }
+    setIsInboxLoading(true);
+    setInboxErrorKey(null);
+    setInboxRequestId(null);
+    try {
+      const page = await queryClient.fetchQuery({
+        queryKey: queryKeys.groupInbox,
+        queryFn: () => listGroupInboxPage(),
+      });
+      if (isCurrent()) setInboxPage(page);
+    } catch (error) {
+      if (isCurrent()) {
+        setInboxPage(null);
+        setInboxErrorKey(mapTicketError(error));
+        setInboxRequestId(readApiRequestId(error));
+      }
+    } finally {
+      if (isCurrent()) setIsInboxLoading(false);
+    }
+  }, [isStaff, queryClient]);
+
   const reload = useCallback(
     async (silent = false) => {
+      const generation = ++primaryGeneration.current;
+      const isCurrent = () => isMounted.current && generation === primaryGeneration.current;
       if (!silent) {
         setIsLoading(true);
         setErrorKey(null);
         setRequestId(null);
       }
       try {
-        // Phase 2.4: the counters come from the server aggregate (SQL over the
-        // same visibility scope as the lists).
+        // silent (realtime-driven) reloads always
+        // invalidate the dashboard's React Query keys first so the next
+        // fetchQuery does not return a <30s stale cache. Without this, a
+        // ticket created/resolved within the staleTime window did not show
+        // up until the cache expired.
+        if (silent) {
+          await invalidateDashboardQueries(queryClient);
+        }
+
+        // counters, card lists and the chart.
+        // As soon as this Promise.all resolves the page can paint metrics,
+        // charts, attention and recent tickets — `isLoading` is turned off
+        // immediately after. Lookups (catalog, OU tree, routing rules) land
+        // progressively in so they never block first paint.
         //
-        // Val 1 (M15/B6): the lists used to be derived from „the first page of 50
-        // tickets“ (newest first), so an overdue or critical ticket outside it
-        // silently vanished from the dashboard. Each list now has its own
-        // server-filtered query with a small take, and the chart window walks
-        // its own bounded pages (`load-dashboard-volume`).
-        // Grafik se čita u stranicama koje API stvarno prihvata (najviše 50 po
-        // stranici) — prva stranica kreće odmah, sljedeća samo ako je puna.
-        const volume = loadDashboardVolume({
-          fetchPage: (page, pageSize) =>
-            queryClient.fetchQuery({
-              queryKey: queryKeys.ticketList({ view: "dashboard-volume", page }),
-              queryFn: () =>
-                listTicketsPage({
-                  createdFrom: dashboardVolumeWindowStart(new Date()).toISOString(),
-                  sort: "createdAt",
-                  dir: "desc",
-                  page,
-                  pageSize,
-                }),
-            }),
+        //  - D2: SLA watchlist sorted by `slaDueAt` ascending (most breached
+        //    first); no client-side re-sort.
+        //  - D8: dedicated `critical-unassigned` query instead of relying on
+        //    the top-8 by `updatedAt` from the generic unassigned page, so a
+        //    critical ticket without an owner can never fall out of view.
+        const nextSummary = await loadDashboardPrimary({
+          queryClient,
+          dayKey,
+          currentUserId,
+          isStaff,
         });
-        const [counts, recentPage, overduePage, minePage, unassignedPage, volumeLoad] =
-          await Promise.all([
-            queryClient.fetchQuery({
-              queryKey: queryKeys.dashboardSummary(dayKey),
-              queryFn: () => fetchDashboardSummary(),
-            }),
-            queryClient.fetchQuery({
-              queryKey: queryKeys.ticketList({ view: "dashboard-recent" }),
-              queryFn: () =>
-                listTicketsPage({
-                  sort: "createdAt",
-                  dir: "desc",
-                  pageSize: dashboardRecentTicketLimit,
-                }),
-            }),
-            queryClient.fetchQuery({
-              queryKey: queryKeys.ticketList({ view: "dashboard-overdue" }),
-              queryFn: () =>
-                listTicketsPage({
-                  overdue: true,
-                  sort: "updatedAt",
-                  dir: "desc",
-                  pageSize: dashboardSlaWatchlistLimit,
-                }),
-            }),
-            currentUserId === null
-              ? Promise.resolve(null)
-              : queryClient.fetchQuery({
-                  queryKey: queryKeys.ticketList({
-                    view: "dashboard-assigned",
-                    userId: currentUserId,
-                  }),
-                  queryFn: () =>
-                    listTicketsPage({
-                      assignedUserId: currentUserId,
-                      status: [...dashboardOpenStatuses],
-                      sort: "updatedAt",
-                      dir: "desc",
-                      pageSize: dashboardAttentionTicketLimit,
-                    }),
-                }),
-            queryClient.fetchQuery({
-              queryKey: queryKeys.ticketList({ view: "dashboard-unassigned" }),
-              queryFn: () =>
-                listTicketsPage({
-                  unassigned: true,
-                  status: [...dashboardOpenStatuses],
-                  sort: "updatedAt",
-                  dir: "desc",
-                  pageSize: dashboardAttentionTicketLimit,
-                }),
-            }),
-            volume,
-          ]);
-        setSummary(
-          composeDashboardSummary({
-            counts,
-            recentTickets: recentPage.items,
-            overdueTickets: overduePage.items,
-            assignedToMeTickets: minePage?.items ?? [],
-            unassignedTickets: unassignedPage.items,
-            volumeTickets: volumeLoad.tickets,
-            volumeTruncated: volumeLoad.truncated,
-            currentUserId,
-          }),
-        );
-        const [inbox, catalog, tree, rules] = await Promise.all([
-          isStaff
-            ? queryClient
-                .fetchQuery({
-                  queryKey: queryKeys.groupInbox,
-                  queryFn: () => listGroupInbox(),
-                })
-                .catch(() => null)
-            : Promise.resolve(null),
+        if (!isCurrent()) return;
+        setSummary(nextSummary);
+        setIsStale(false);
+
+        if (!silent) setIsLoading(false);
+
+        // auxiliary lookups that do not block first
+        // paint. Each catches independently so one failing lookup cannot blank
+        // the whole dashboard.
+        const [, catalog, tree, rules] = await Promise.all([
+          reloadInbox(),
           queryClient
             .fetchQuery({
               queryKey: queryKeys.dashboardServiceNames,
               queryFn: () => listServices(),
             })
-            .catch(() =>
+            .catch((): Promise<readonly ServiceResponse[]> =>
               queryClient
                 .fetchQuery({
                   queryKey: queryKeys.offeredServices,
                   queryFn: () => listOfferedServices(),
                 })
-                .catch(() => []),
+                .catch((): readonly ServiceResponse[] => []),
             ),
           queryClient
             .fetchQuery({
               queryKey: queryKeys.organizationalUnits,
               queryFn: () => listOrganizationalUnitTree(),
             })
-            .catch(() => []),
+            .catch((): readonly OrganizationalUnitTreeNode[] => []),
           isStaff
             ? queryClient
                 .fetchQuery({
                   queryKey: queryKeys.routingRules,
                   queryFn: () => listRoutingRules(),
                 })
-                .catch(() => [])
-            : Promise.resolve([]),
+                .catch((): readonly RoutingRuleResponse[] => [])
+            : Promise.resolve([] as readonly RoutingRuleResponse[]),
         ]);
-        setInboxTickets(inbox);
-        setServiceNames(new Map(catalog.map((service) => [service.id, service.name])));
+        if (!isCurrent()) return;
+        setServiceNames(
+          new Map(catalog.map((service: ServiceResponse) => [service.id, service.name])),
+        );
         setOriginNames(flattenOrganizationalUnitNames(tree));
-        setGroupNames(new Map(rules.map((rule) => [rule.groupId, rule.groupName])));
+        setGroupNames(
+          new Map(rules.map((rule: RoutingRuleResponse) => [rule.groupId, rule.groupName])),
+        );
       } catch (error) {
+        if (!isCurrent()) return;
         if (silent) {
+          setIsStale(true);
+          reportClientError("dashboard.silent_reload_failed", error, readApiRequestId(error));
           return;
         }
         setSummary(null);
-        setInboxTickets(null);
         setServiceNames(new Map());
         setOriginNames(new Map());
         setGroupNames(new Map());
         setErrorKey(mapTicketError(error));
         setRequestId(readApiRequestId(error));
       } finally {
-        if (!silent) {
-          setIsLoading(false);
-        }
+        if (!silent && isCurrent()) setIsLoading(false);
       }
     },
-    [currentUserId, dayKey, isStaff, queryClient],
+    [currentUserId, dayKey, isStaff, queryClient, reloadInbox],
   );
 
   useEffect(() => {
@@ -233,12 +213,18 @@ export function useDashboardSummary(): DashboardSummaryState {
   return {
     isStaff,
     summary,
-    inboxCount: inboxTickets === null ? null : inboxTickets.length,
-    inboxTickets,
+    inboxCount: inboxPage?.total ?? null,
+    inboxTotalIsCapped: inboxPage?.totalIsCapped === true,
+    inboxTickets: inboxPage?.items ?? null,
+    isInboxLoading,
+    inboxErrorKey,
+    inboxRequestId,
+    reloadInbox,
     serviceNames,
     originNames,
     groupNames,
     isLoading,
+    isStale,
     errorKey,
     requestId,
     reload,

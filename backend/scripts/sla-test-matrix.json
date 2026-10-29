@@ -1,0 +1,37 @@
+{
+  "failure": [
+    "src/modules/sla/persist-ticket-sla-runtime-transitions.spec.ts",
+    "src/modules/sla/sla-scan-failure-quarantine.spec.ts",
+    "src/modules/sla/scan-due-ticket-sla-states.spec.ts",
+    "src/modules/sla/sla-notification-flood.spec.ts",
+    "src/modules/sla/collect-sla-observability.spec.ts"
+  ],
+  "concurrency": [
+    "src/modules/sla/sla-write-lock.integration.spec.ts",
+    "src/modules/sla/persist-ticket-sla-state.spec.ts"
+  ],
+  "scope": [
+    "src/modules/sla/sla-admin-read-scope.integration.spec.ts",
+    "src/modules/sla/sla-read-scope.spec.ts",
+    "src/modules/sla/sla-global-administration.guard.spec.ts",
+    "src/modules/sla/resolve-sla-compliance-unit-scope.spec.ts"
+  ],
+  "dst": [
+    "src/modules/sla/sla-dst-round-trip.spec.ts",
+    "src/modules/sla/business-hours-civil-time.spec.ts",
+    "src/modules/sla/add-business-minutes.spec.ts",
+    "src/modules/sla/count-business-minutes.spec.ts"
+  ],
+  "fakeClock": [
+    "src/modules/sla/sla-scan.scheduler.service.spec.ts",
+    "src/modules/sla/scan-due-ticket-sla-states.spec.ts",
+    "src/modules/sla/backfill-missing-ticket-sla-states.spec.ts",
+    "src/modules/sla/sla.timers.spec.ts",
+    "src/modules/sla/sla.breach.spec.ts"
+  ],
+  "postgresql": [
+    "src/modules/sla/sla-write-lock.integration.spec.ts",
+    "src/modules/sla/sla-admin-read-scope.integration.spec.ts",
+    "src/modules/sla/sla-compliance-aggregation.integration.spec.ts"
+  ]
+}

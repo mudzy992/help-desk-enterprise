@@ -71,21 +71,49 @@ export function clearStoredSession(): void {
   cachedSession = null;
 }
 
-function parseStoredSession(raw: string | null): StoredSession | null {
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function parseStoredSession(raw: string | null, now: number = Date.now()): StoredSession | null {
   if (raw === null) {
     return null;
   }
   try {
-    const parsed = JSON.parse(raw) as Partial<StoredSession>;
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    const candidate = parsed as Record<string, unknown>;
+    const principal = candidate.principal;
     if (
-      typeof parsed.expiresAt !== "number" ||
-      !Number.isFinite(parsed.expiresAt) ||
-      parsed.principal === undefined ||
-      typeof parsed.principal.subjectId !== "string"
+      typeof candidate.expiresAt !== "number" ||
+      !Number.isFinite(candidate.expiresAt) ||
+      candidate.expiresAt <= now ||
+      typeof principal !== "object" ||
+      principal === null
     ) {
       return null;
     }
-    return { principal: parsed.principal, expiresAt: parsed.expiresAt };
+
+    const principalCandidate = principal as Record<string, unknown>;
+    if (
+      !isNonEmptyString(principalCandidate.subjectId) ||
+      !isNonEmptyString(principalCandidate.email) ||
+      !isNonEmptyString(principalCandidate.displayName) ||
+      typeof principalCandidate.isLocalOnly !== "boolean"
+    ) {
+      return null;
+    }
+
+    return {
+      expiresAt: candidate.expiresAt,
+      principal: {
+        subjectId: principalCandidate.subjectId,
+        email: principalCandidate.email,
+        displayName: principalCandidate.displayName,
+        isLocalOnly: principalCandidate.isLocalOnly,
+      },
+    };
   } catch {
     return null;
   }

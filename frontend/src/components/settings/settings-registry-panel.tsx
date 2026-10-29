@@ -19,13 +19,13 @@ import type { SettingRegistryEntry } from "@/services/settings-api";
 interface SettingsRegistryPanelProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
-  readonly pendingKey: string | null;
+  readonly pendingKeys: ReadonlySet<string>;
   readonly errorKey: ApiErrorKey | null;
   readonly onSave: SettingsSaver;
 }
 
 /**
- * Paket 5.3.4 (D4): 451 settings are unusable as a flat list, so the panel is a
+ * 451 settings are unusable as a flat list, so the panel is a
  * searchable set of category cards. Search matches the human title, the raw key
  * and the backend description, and it never hides a key that exists — an empty
  * result says so instead (with the query still visible).
@@ -33,7 +33,7 @@ interface SettingsRegistryPanelProperties {
 export function SettingsRegistryPanel({
   entries,
   canWrite,
-  pendingKey,
+  pendingKeys,
   errorKey,
   onSave,
 }: SettingsRegistryPanelProperties) {
@@ -110,7 +110,7 @@ export function SettingsRegistryPanel({
               group={group}
               allEntries={entries}
               canWrite={canWrite}
-              pendingKey={pendingKey}
+              pendingKeys={pendingKeys}
               onSave={onSave}
               isFiltered={isFiltered}
             />

@@ -34,7 +34,7 @@ interface TicketConversationProperties {
   readonly authorNames: ReadonlyMap<string, string>;
   readonly systemOnly?: boolean;
   readonly viewport?: ConversationViewport;
-  /** Paket 2.9 (K1c): per-message actions (rendered under the bubble). */
+  /** per-message actions (rendered under the bubble). */
   readonly renderMessageActions?: (message: TicketMessageResponse) => ReactNode;
 }
 

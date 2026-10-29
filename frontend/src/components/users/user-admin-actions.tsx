@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { LinkDirectoryIdentityDialog } from "@/components/users/link-directory-identity-dialog";
 import { userPasswordResetErrorMessage } from "@/components/users/map-user-admin-action-error";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName } from "@/components/ui/control";
 import { ApiError } from "@/services/api";
 import {
@@ -39,6 +40,7 @@ export function UserAdminActions({
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<"unlink" | "delete" | null>(null);
 
   if (!canManage) {
     return null;
@@ -59,9 +61,6 @@ export function UserAdminActions({
   };
 
   const handleUnlink = async () => {
-    if (!window.confirm(t("users.unlinkDirectoryConfirm", { name: user.displayName }))) {
-      return;
-    }
     setIsBusy(true);
     setErrorMessage(null);
     try {
@@ -76,9 +75,6 @@ export function UserAdminActions({
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(t("users.deleteConfirm", { name: user.displayName }))) {
-      return;
-    }
     setIsBusy(true);
     setErrorMessage(null);
     try {
@@ -123,7 +119,7 @@ export function UserAdminActions({
             variant="outline"
             type="button"
             disabled={isBusy}
-            onClick={() => void handleUnlink()}
+            onClick={() => setConfirmation("unlink")}
           >
             <Link2Off size={13} /> {t("users.unlinkDirectory")}
           </Button>
@@ -133,7 +129,7 @@ export function UserAdminActions({
           variant="outline"
           type="button"
           disabled={isBusy || isSelf}
-          onClick={() => void handleDelete()}
+          onClick={() => setConfirmation("delete")}
         >
           <Trash2 size={13} /> {t("users.deleteUser")}
         </Button>
@@ -143,6 +139,28 @@ export function UserAdminActions({
           {errorMessage}
         </p>
       ) : null}
+      <ConfirmDialog
+        open={confirmation === "unlink"}
+        onOpenChange={(open) => !open && setConfirmation(null)}
+        title={t("users.unlinkDirectoryConfirm", { name: user.displayName })}
+        isPending={isBusy}
+        onConfirm={() => {
+          setConfirmation(null);
+          void handleUnlink();
+        }}
+      />
+      <ConfirmDialog
+        open={confirmation === "delete"}
+        onOpenChange={(open) => !open && setConfirmation(null)}
+        title={t("users.deleteConfirm", { name: user.displayName })}
+        intent="danger"
+        isPending={isBusy}
+        confirmLabel={t("users.deleteUser")}
+        onConfirm={() => {
+          setConfirmation(null);
+          void handleDelete();
+        }}
+      />
       <LinkDirectoryIdentityDialog
         open={linkOpen}
         onOpenChange={setLinkOpen}

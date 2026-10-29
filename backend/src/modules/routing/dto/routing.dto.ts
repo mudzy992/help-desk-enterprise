@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   Max,
@@ -12,6 +13,8 @@ import {
 import {
   routingCoverageDefaultTake,
   routingCoverageMaximumTake,
+  routingListDefaultTake,
+  routingListMaximumTake,
 } from '../routing.constants';
 import { maximumChangeReasonLength } from '../../change-log/change-log.constants';
 
@@ -51,6 +54,10 @@ export class UpdateRoutingRuleDto {
   @MinLength(1)
   @MaxLength(maximumChangeReasonLength)
   reason!: string;
+
+  @IsString()
+  @IsISO8601({ strict: true })
+  expectedUpdatedAt!: string;
 }
 
 export class DeleteRoutingRuleDto {
@@ -68,7 +75,22 @@ export class DeleteRoutingRuleDto {
   reason!: string;
 }
 
-export class ListRoutingRulesQueryDto {
+export class RoutingListQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(routingListMaximumTake)
+  take = routingListDefaultTake;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1024)
+  cursor?: string;
+}
+
+export class ListRoutingRulesQueryDto extends RoutingListQueryDto {
   @IsOptional()
   @IsString()
   @MinLength(1)

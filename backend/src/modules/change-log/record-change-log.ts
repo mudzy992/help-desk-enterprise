@@ -15,6 +15,8 @@ export async function recordChangeLog(
       reason: input.reason,
       diff: toPersistedDiff(input.diff),
       actorUserId: input.actorUserId,
+      scopeOriginUnitId: input.scopeOriginUnitId,
+      scopeServiceId: input.scopeServiceId,
     } as Record<string, unknown>,
   });
 }

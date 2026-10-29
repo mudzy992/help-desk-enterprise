@@ -26,6 +26,35 @@ function createPrincipal(subjectId: string): AuthorizationPrincipal {
 }
 
 describe('settings authorization compatibility', () => {
+  it.each([
+    { label: 'global', organizationalUnitId: null, organizationalUnitPath: null, allowed: true },
+    { label: 'OU-scoped', organizationalUnitId: 'ou-1', organizationalUnitPath: '/ou-1', allowed: false },
+  ])('$label settings.read grant has the expected global-read decision', async ({ organizationalUnitId, organizationalUnitPath, allowed }) => {
+    const harness = createTestAuthorizationHarness();
+    harness.loadBySubjectId.mockResolvedValue(
+      createAuthorizationContext({
+        id: 'settings-reader',
+        isActive: true,
+        isLocalOnly: true,
+        entraObjectId: null,
+        assignments: [createTestAssignment({
+          roleKey: authorizationRoleKeys.admin,
+          permissionKeys: [permissionKeys.settingsRead],
+          organizationalUnitId,
+          organizationalUnitPath,
+        })],
+      }),
+    );
+    const guard = new RoleGuard(new Reflector(), harness.authorizationService);
+    const decision = guard.canActivate({
+      switchToHttp: () => ({ getRequest: () => ({ [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: createPrincipal('settings-reader') }) }),
+      getHandler: () => SettingsController.prototype.listSettingsRegistry,
+      getClass: () => SettingsController,
+    } as never);
+    if (allowed) await expect(decision).resolves.toBe(true);
+    else await expect(decision).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('requires settings.write and does not reach the mutation when denied', async () => {
     const harness = createTestAuthorizationHarness();
     harness.loadBySubjectId.mockResolvedValue(

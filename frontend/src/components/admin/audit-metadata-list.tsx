@@ -38,14 +38,14 @@ export function AuditMetadataList({ metadata, visibleCount = 3 }: AuditMetadataL
     path
       .map((field) => {
         const key = auditMetadataFieldTranslationKey(field);
-        return key === null ? t("admin.ops.auditLog.labels.unknownField") : t(key as never);
+        return key === null ? t("admin.ops.auditLog.labels.unknownField") : t(key);
       })
       .join(" · ");
 
   const valueFor = (entry: AuditMetadataEntry) => {
     const field = entry.path.at(-1) ?? "";
     const key = auditMetadataValueTranslationKey(field, entry.value);
-    return key === null ? entry.value : t(key as never);
+    return key === null ? entry.value : t(key);
   };
 
   const summary = entries.map((entry) => `${labelFor(entry.path)}: ${valueFor(entry)}`).join("; ");

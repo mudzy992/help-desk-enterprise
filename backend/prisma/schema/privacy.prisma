@@ -119,6 +119,7 @@ model AuditChainCheckpoint {
   throughCreatedAt DateTime
   throughHash      String
   purgedCount      Int
+  partitionHeads   Json     @default("{}")
   createdAt        DateTime @default(now())
 
   @@index([createdAt])

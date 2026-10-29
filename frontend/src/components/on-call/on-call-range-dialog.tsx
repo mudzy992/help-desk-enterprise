@@ -5,6 +5,7 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { fromZoneInputValue, mapOnCallError, toZoneInputValue } from "@/lib/on-call/on-call-view";
 import { createOnCallOverride, requestOnCallSwap } from "@/services/on-call-api";
@@ -25,11 +26,7 @@ interface OnCallRangeDialogProperties {
   readonly onSaved: () => void;
 }
 
-/**
- * Paket 2.9 (K3, §4.1/§4.4): a manager's override, or an agent's swap
- * request to a rotation colleague (the colleague confirms before anything
- * changes). Times are entered on the schedule's wall clock and sent as instants.
- */
+/** Override or swap editor that converts schedule wall-clock input to instants. */
 export function OnCallRangeDialog({
   open,
   onOpenChange,
@@ -43,6 +40,7 @@ export function OnCallRangeDialog({
 }: OnCallRangeDialogProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const [userId, setUserId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
@@ -76,34 +74,43 @@ export function OnCallRangeDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!valid || saving || startIso === null || endIso === null) return;
-    setSaving(true);
-    setError(null);
-    try {
-      if (mode === "override") {
-        await createOnCallOverride(groupId, {
-          userId,
-          startsAt: startIso,
-          endsAt: endIso,
-          reason: reason.trim(),
-        });
-        toast({ tone: "success", title: t("onCall.override.saved") });
-      } else {
-        await requestOnCallSwap(groupId, {
-          colleagueId: userId,
-          startsAt: startIso,
-          endsAt: endIso,
-          reason: reason.trim(),
-        });
-        toast({ tone: "success", title: t("onCall.swap.requested") });
+    if (
+      !valid ||
+      saving ||
+      startIso === null ||
+      endIso === null ||
+      operationGuard.isPending("save")
+    )
+      return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        if (mode === "override") {
+          await createOnCallOverride(groupId, {
+            userId,
+            startsAt: startIso,
+            endsAt: endIso,
+            reason: reason.trim(),
+          });
+          toast({ tone: "success", title: t("onCall.override.saved") });
+        } else {
+          await requestOnCallSwap(groupId, {
+            colleagueId: userId,
+            startsAt: startIso,
+            endsAt: endIso,
+            reason: reason.trim(),
+          });
+          toast({ tone: "success", title: t("onCall.swap.requested") });
+        }
+        onOpenChange(false);
+        onSaved();
+      } catch (caught) {
+        setError(t(mapOnCallError(caught) ?? mapApiError(caught)));
+      } finally {
+        setSaving(false);
       }
-      onOpenChange(false);
-      onSaved();
-    } catch (caught) {
-      setError(t(mapOnCallError(caught) ?? mapApiError(caught)));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -120,14 +127,20 @@ export function OnCallRangeDialog({
             label={mode === "override" ? t("onCall.override.person") : t("onCall.swap.colleague")}
             required
           >
-            <Select value={userId} onChange={(event) => setUserId(event.target.value)}>
-              <option value="">{t("onCall.schedule.pick")}</option>
-              {people.map((person) => (
-                <option key={person.userId} value={person.userId}>
-                  {person.displayName}
-                </option>
-              ))}
-            </Select>
+            {(control) => (
+              <Select
+                {...control}
+                value={userId}
+                onChange={(event) => setUserId(event.target.value)}
+              >
+                <option value="">{t("onCall.schedule.pick")}</option>
+                {people.map((person) => (
+                  <option key={person.userId} value={person.userId}>
+                    {person.displayName}
+                  </option>
+                ))}
+              </Select>
+            )}
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field
@@ -135,12 +148,15 @@ export function OnCallRangeDialog({
               required
               error={startsAt !== "" && startIso === null ? t("onCall.errors.time") : null}
             >
-              <Input
-                type="datetime-local"
-                value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
-                required
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(event) => setStartsAt(event.target.value)}
+                  required
+                />
+              )}
             </Field>
             <Field
               label={t("onCall.to")}
@@ -153,12 +169,15 @@ export function OnCallRangeDialog({
                     : null
               }
             >
-              <Input
-                type="datetime-local"
-                value={endsAt}
-                onChange={(event) => setEndsAt(event.target.value)}
-                required
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  type="datetime-local"
+                  value={endsAt}
+                  onChange={(event) => setEndsAt(event.target.value)}
+                  required
+                />
+              )}
             </Field>
           </div>
           <p className={hintClassName}>{t("onCall.zoneHint", { zone: timeZone })}</p>
@@ -167,12 +186,15 @@ export function OnCallRangeDialog({
             required
             hint={mode === "swap" ? t("onCall.swap.reasonHint") : t("onCall.reasonHint")}
           >
-            <Textarea
-              rows={2}
-              value={reason}
-              maxLength={500}
-              onChange={(event) => setReason(event.target.value)}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={2}
+                value={reason}
+                maxLength={500}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
           </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>

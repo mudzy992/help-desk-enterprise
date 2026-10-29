@@ -122,6 +122,26 @@ describe('scanDueTicketSlaStates batching', () => {
     expect(second).toHaveLength(1);
   });
 
+  it('isolates a poison state and continues processing healthy rows', async () => {
+    const world = await createWorld(3);
+    const breachAt = new Date(world.tickets[0].createdAt.getTime() + responseBreachOffsetMs);
+    const base = world.countQueries.prisma as never as {
+      ticketSlaState: { update: (args: { where: { id: string } }) => Promise<unknown> };
+    };
+    const update = base.ticketSlaState.update.bind(base.ticketSlaState);
+    const poisonId = (await loadTicketSlaState(world.countQueries.prisma as never, world.tickets[0].id))!.id;
+    base.ticketSlaState.update = async (args) => {
+      if (args.where.id === poisonId) throw new Error('corrupt calendar payload');
+      return update(args);
+    };
+    const scanned = await scanDueTicketSlaStates(world.countQueries.prisma as never, {
+      configuration: world.configuration,
+      now: breachAt,
+    });
+    expect(scanned).toHaveLength(2);
+    expect(scanned.every((state) => state.isResponseBreached)).toBe(true);
+  });
+
   it('skips a state whose ticket no longer exists', async () => {
     const world = await createWorld(1);
     const breachAt = new Date(

@@ -1,6 +1,9 @@
-import type { HorizontalBarItem } from "@/components/charts/h-bars";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
-import { ticketPriorityLabelKey } from "@/lib/tickets/ticket-constants";
+import {
+  ticketPriorityTranslationKey,
+  type TicketPriorityTranslationKey,
+} from "@/lib/tickets/ticket-constants";
 import type {
   BottleneckBreakdownRow,
   BottleneckCounts,
@@ -8,7 +11,7 @@ import type {
 } from "@/services/reports-api";
 
 /**
- * Val 1 (M15/B2): usko grlo je do sada postojao samo kao API. Pregled ga sada
+ * Bottleneck data must be transformed into a stable presentation model.
  * crta iz istih podataka, a ovdje se odlučuje **šta se broji** — jedan red
  * razreza nosi četiri brojača, pa grafikoni idu sa zbirom („tiketa u zastoju“),
  * a puna tabela ostaje za detalj po brojaču.
@@ -53,11 +56,11 @@ export function bottleneckTotal(counts: BottleneckCounts): number {
  */
 export function bottleneckRowLabel(
   row: BottleneckBreakdownRow,
-  translate: (key: string) => string,
+  translate: (key: TicketPriorityTranslationKey) => string,
 ): string {
   const label = row.label.length > 0 ? row.label : row.key;
-  const key = (ticketPriorityLabelKey as Readonly<Record<string, string>>)[label];
-  return key === undefined ? label : translate(key);
+  const key = ticketPriorityTranslationKey(label);
+  return key === null ? label : translate(key);
 }
 
 /**
@@ -66,7 +69,7 @@ export function bottleneckRowLabel(
  */
 export function bottleneckBreakdownBars(
   rows: readonly BottleneckBreakdownRow[],
-  translate: (key: string) => string = (key) => key,
+  translate: (key: TicketPriorityTranslationKey) => string = (key) => key,
 ): readonly HorizontalBarItem[] {
   return rows
     .map((row) => ({ label: bottleneckRowLabel(row, translate), value: bottleneckTotal(row) }))

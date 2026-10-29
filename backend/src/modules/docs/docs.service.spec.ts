@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { permissionKeys } from '../authorization/authorization.constants';
 import { DocsAccessService } from './docs-access.service';
 import { docsErrorCodes } from './docs.constants';
 import { DocsContentRepository } from './docs-content.repository';
@@ -101,7 +102,7 @@ describe('DocsService (Faza 3, korak b)', () => {
       'cesta-pitanja',
     ]);
 
-    const admin = docs.navigation(['ADMIN']);
+    const admin = docs.navigation([permissionKeys.settingsRead]);
     expect(admin.parts[0].pages.map((entry) => entry.slug)).toEqual(['pocetak-rad', 'instalacija']);
     expect(admin.parts[1].pages.map((entry) => entry.slug)).toEqual([
       'tiketi',
@@ -112,7 +113,7 @@ describe('DocsService (Faza 3, korak b)', () => {
   });
 
   it('stranica nosi TOC, prethodnu/sljedeću iz vidljivog susjedstva', () => {
-    const forAdmin = docs.readPage('pocetak-rad', ['ADMIN']);
+    const forAdmin = docs.readPage('pocetak-rad', [permissionKeys.settingsRead]);
     expect(forAdmin.toc).toEqual([{ level: 2, text: 'Kako doći', id: 'kako-doci' }]);
     expect(forAdmin.previous).toBeNull();
     expect(forAdmin.next).toEqual({ slug: 'instalacija', title: 'Instalacija' });
@@ -156,12 +157,12 @@ describe('DocsService (Faza 3, korak b)', () => {
   });
 
   it('nepoznat i nedozvoljen slug daju istu grešku (404), a nesiguran slug svoju', () => {
-    expect(codes(() => docs.readPage('nepoznato', ['ADMIN']))).toContain(docsErrorCodes.pageNotFound);
+    expect(codes(() => docs.readPage('nepoznato', [permissionKeys.settingsRead]))).toContain(docsErrorCodes.pageNotFound);
     expect(codes(() => docs.readPage('instalacija', ['USER']))).toContain(docsErrorCodes.pageNotFound);
-    expect(codes(() => docs.readPage('../etc/passwd', ['ADMIN']))).toContain(
+    expect(codes(() => docs.readPage('../etc/passwd', [permissionKeys.settingsRead]))).toContain(
       docsErrorCodes.invalidSlug,
     );
-    expect(codes(() => docs.readPage('Velika-Slova', ['ADMIN']))).toContain(
+    expect(codes(() => docs.readPage('Velika-Slova', [permissionKeys.settingsRead]))).toContain(
       docsErrorCodes.invalidSlug,
     );
   });
@@ -170,11 +171,11 @@ describe('DocsService (Faza 3, korak b)', () => {
     const asUser = docs.search('permisije', 20, ['USER']);
     expect(asUser.results.map((entry) => entry.slug)).toEqual([]);
 
-    const asAdmin = docs.search('permisije', 20, ['ADMIN']);
+    const asAdmin = docs.search('permisije', 20, [permissionKeys.settingsRead]);
     expect(asAdmin.results.map((entry) => entry.slug)).toEqual(['uloge-i-permisije']);
     expect(asAdmin.results[0].excerptParts.some((part) => part.match)).toBe(true);
 
-    expect(codes(() => docs.search('a', 20, ['ADMIN']))).toContain(docsErrorCodes.queryTooShort);
+    expect(codes(() => docs.search('a', 20, [permissionKeys.settingsRead]))).toContain(docsErrorCodes.queryTooShort);
     // `limit: 0` nije greška — koristi se podrazumijevani limit.
     const clamped = docs.search('tiket', 0, ['USER']);
     expect(clamped.results.map((entry) => entry.slug)).toEqual(['tiketi']);
@@ -185,8 +186,8 @@ describe('DocsService (Faza 3, korak b)', () => {
       new DocsContentRepository(path.join(tmpdir(), 'docs-empty-root')),
       new DocsAccessService(),
     );
-    expect(codes(() => empty.navigation(['ADMIN']))).toContain(docsErrorCodes.contentUnavailable);
-    expect(codes(() => empty.search('tiket', 20, ['ADMIN']))).toContain(
+    expect(codes(() => empty.navigation([permissionKeys.settingsRead]))).toContain(docsErrorCodes.contentUnavailable);
+    expect(codes(() => empty.search('tiket', 20, [permissionKeys.settingsRead]))).toContain(
       docsErrorCodes.contentUnavailable,
     );
   });

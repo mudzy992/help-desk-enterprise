@@ -1,4 +1,5 @@
 import { opsAlertKeys, type OpsAlertKey, type OpsAlertSeverity } from './ops-alert-catalog';
+import type { SlaObservabilitySignal } from '../sla/collect-sla-observability';
 
 /**
  * Paket 2.7 (§4): turns one measurement round into one observation per alarm
@@ -86,6 +87,19 @@ export type OpsSignals = {
    * opens the alarm.
    */
   readonly auditWebhookPendingSinceMs: number | null;
+  /**
+   * Outbound mail paused by the provider breaker (`MailProviderLimitBreaker`),
+   * or `null` when the provider accepts mail. Read from Redis; a read failure is
+   * `null`, so an unknown state never opens the alarm.
+   */
+  /** SLA delivery, backlog, scheduler and timer-integrity metrics; null when DB probing failed. */
+  readonly sla?: SlaObservabilitySignal | null;
+  readonly mailProviderBlock: {
+    readonly reason: string;
+    readonly openedAtMs: number;
+    readonly blockedUntilMs: number;
+    readonly suppressedTotal: number;
+  } | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -145,6 +159,7 @@ export function evaluateOpsSignals(
       detailName: 'captchaSkippedLastHour',
     }),
     observeAuditWebhook(signals),
+    observeMailProviderBlock(signals),
   ];
 }
 
@@ -470,20 +485,65 @@ function observeCaptchaMetric(
   };
 }
 
-/** Worker heartbeat, checked by the API watchdog (§5.2). */
-export function observeWorkerHeartbeat(input: {
+/**
+ * Worker heartbeat, checked by the API watchdog (§5.2).
+ *
+ * Two different facts, two different answers (incident 2026-10-16):
+ *
+ *   * the key exists and its timestamp is old → the worker ran and stopped.
+ *     That is proof, and it pages (CRITICAL) after the catalog streak;
+ *   * the key does not exist → the worker may be dead, but a cold start, an
+ *     evicted key, a wrong prefix and a failed read look exactly the same.
+ *     Absence alone therefore pages nobody: it needs corroboration (no fresh
+ *     snapshot either) and a trustworthy Redis (`absenceIsEvidence`).
+ *
+ * The heartbeat TTL is an hour precisely so the first case is the normal one —
+ * see `workerHeartbeatTimeToLiveSeconds`.
+ */
+export type WorkerHeartbeatEvidence = {
   readonly lastHeartbeatAt: string | null;
   readonly nowMs: number;
   readonly staleSeconds: number;
-}): OpsObservation {
+  /** The worker's own health round, written every minute (TTL 5 min). */
+  readonly snapshotGeneratedAt: string | null;
+  readonly snapshotStaleSeconds: number;
+  /** False during the cold-start grace and when Redis dropped a key we just wrote. */
+  readonly absenceIsEvidence: boolean;
+};
+
+export function observeWorkerHeartbeat(input: WorkerHeartbeatEvidence): OpsObservation {
   const at = input.lastHeartbeatAt === null ? Number.NaN : Date.parse(input.lastHeartbeatAt);
   const ageSeconds = Number.isNaN(at) ? null : Math.max(0, Math.round((input.nowMs - at) / 1000));
-  if (ageSeconds !== null && ageSeconds <= input.staleSeconds) return inactive(opsAlertKeys.workerDown);
+  if (ageSeconds !== null) {
+    if (ageSeconds <= input.staleSeconds) return inactive(opsAlertKeys.workerDown);
+    return {
+      key: opsAlertKeys.workerDown,
+      active: true,
+      severity: 'CRITICAL',
+      details: { heartbeatAgeSeconds: ageSeconds, thresholdSeconds: input.staleSeconds },
+    };
+  }
+  // No key: only absence of evidence. Look for proof of life first.
+  const snapshotAt =
+    input.snapshotGeneratedAt === null ? Number.NaN : Date.parse(input.snapshotGeneratedAt);
+  const snapshotAgeSeconds = Number.isNaN(snapshotAt)
+    ? null
+    : Math.max(0, Math.round((input.nowMs - snapshotAt) / 1000));
+  if (snapshotAgeSeconds !== null && snapshotAgeSeconds <= input.snapshotStaleSeconds) {
+    // The worker wrote a health snapshot recently: it is alive, the heartbeat
+    // read is what failed. The watchdog logs that; nobody gets paged.
+    return inactive(opsAlertKeys.workerDown);
+  }
+  if (!input.absenceIsEvidence) return inactive(opsAlertKeys.workerDown);
   return {
     key: opsAlertKeys.workerDown,
     active: true,
     severity: 'CRITICAL',
-    details: { heartbeatAgeSeconds: ageSeconds, thresholdSeconds: input.staleSeconds },
+    details: {
+      heartbeatMissing: true,
+      snapshotAgeSeconds,
+      thresholdSeconds: input.staleSeconds,
+    },
   };
 }
 
@@ -501,15 +561,53 @@ export function observeMonitorFreshness(input: {
   readonly snapshotGeneratedAt: string | null;
   readonly nowMs: number;
   readonly staleSeconds: number;
+  /** Same rule as the heartbeat: a missing snapshot needs a trustworthy Redis. */
+  readonly absenceIsEvidence: boolean;
 }): OpsObservation {
   if (!input.workerAlive) return inactive(opsAlertKeys.opsMonitorStale);
   const at = input.snapshotGeneratedAt === null ? Number.NaN : Date.parse(input.snapshotGeneratedAt);
   const ageSeconds = Number.isNaN(at) ? null : Math.max(0, Math.round((input.nowMs - at) / 1000));
-  if (ageSeconds !== null && ageSeconds <= input.staleSeconds) return inactive(opsAlertKeys.opsMonitorStale);
+  if (ageSeconds !== null) {
+    if (ageSeconds <= input.staleSeconds) return inactive(opsAlertKeys.opsMonitorStale);
+    return {
+      key: opsAlertKeys.opsMonitorStale,
+      active: true,
+      severity: 'WARNING',
+      details: { snapshotAgeSeconds: ageSeconds, thresholdSeconds: input.staleSeconds },
+    };
+  }
+  if (!input.absenceIsEvidence) return inactive(opsAlertKeys.opsMonitorStale);
   return {
     key: opsAlertKeys.opsMonitorStale,
     active: true,
     severity: 'WARNING',
-    details: { snapshotAgeSeconds: ageSeconds, thresholdSeconds: input.staleSeconds },
+    details: { snapshotMissing: true, thresholdSeconds: input.staleSeconds },
+  };
+}
+
+/**
+ * The mail provider refused sending (Gmail "Daily user sending limit exceeded",
+ * Office 365 throttling): outbound mail is paused by `MailProviderLimitBreaker`
+ * until the quota passes. WARNING while it waits, CRITICAL once it is clear that
+ * the provider keeps refusing and real mail is piling up.
+ */
+export const mailProviderBlockCriticalAfterMinutes = 4 * 60;
+
+function observeMailProviderBlock(signals: OpsSignals): OpsObservation {
+  const block = signals.mailProviderBlock ?? null;
+  if (block === null || block.blockedUntilMs <= signals.nowMs) {
+    return inactive(opsAlertKeys.emailProviderBlocked);
+  }
+  const blockedMinutesLeft = Math.max(1, Math.ceil((block.blockedUntilMs - signals.nowMs) / minute));
+  const blockedForMinutes = Math.max(0, Math.floor((signals.nowMs - block.openedAtMs) / minute));
+  return {
+    key: opsAlertKeys.emailProviderBlocked,
+    active: true,
+    severity:
+      blockedForMinutes >= mailProviderBlockCriticalAfterMinutes ? 'CRITICAL' : 'WARNING',
+    details: {
+      blockedMinutesLeft,
+      suppressedTotal: block.suppressedTotal,
+    },
   };
 }

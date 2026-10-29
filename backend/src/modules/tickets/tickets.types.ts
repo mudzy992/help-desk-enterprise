@@ -1,20 +1,20 @@
-import type { TicketListQuery } from './list/list-tickets.types';
+import type { TicketListQuery } from "./list/list-tickets.types";
 import type {
   DataClassification,
   TicketImpact,
   TicketPriority,
   TicketStatus,
   TicketUrgency,
-} from '../../generated/prisma/enums';
-import type { TicketClosePolicy } from './close-codes/close-codes.types';
-import type { RedactionMatch } from './redaction/redaction.types';
-import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
-import type { JsonValue } from '../change-log/change-log.types';
-import type { TicketArchiveConfiguration } from './archive/archive.types';
-import type { TicketCsatDescriptor } from './csat/csat.types';
-import type { TicketConfidentialConfiguration } from './confidential/confidential.types';
-import type { TicketSafeLoggingConfiguration } from './safe-logging/safe-logging.types';
-import type { TicketSlaTimersPort } from '../sla/ticket-sla.types';
+} from "../../generated/prisma/enums";
+import type { TicketClosePolicy } from "./close-codes/close-codes.types";
+import type { RedactionMatch } from "./redaction/redaction.types";
+import type { DuplicateTicketMatch } from "./guardrails/guardrails.types";
+import type { JsonValue } from "../change-log/change-log.types";
+import type { TicketArchiveConfiguration } from "./archive/archive.types";
+import type { TicketCsatDescriptor } from "./csat/csat.types";
+import type { TicketConfidentialConfiguration } from "./confidential/confidential.types";
+import type { TicketSafeLoggingConfiguration } from "./safe-logging/safe-logging.types";
+import type { TicketSlaTimersPort } from "../sla/ticket-sla.types";
 
 export type TicketRecord = {
   readonly id: string;
@@ -203,6 +203,8 @@ export type TicketListResponse = {
   readonly total: number;
   /** `true` when more tickets match than `total` reports (client: "10 000+"). */
   readonly totalIsCapped?: boolean;
+  /** Epoch milliseconds at which the server computed `total`. */
+  readonly totalsAsOf: number;
   readonly page: number;
   readonly pageSize: number;
 };
@@ -219,7 +221,7 @@ export type TicketMutationContext = {
   readonly priorityMatrixEnabled?: boolean;
   readonly slaTimers?: TicketSlaTimersPort;
   /** Paket 2.3: set only by the inbound e-mail worker, never from HTTP. */
-  readonly messageSource?: 'APP' | 'EMAIL' | 'TEAMS';
+  readonly messageSource?: "APP" | "EMAIL" | "TEAMS";
   /**
    * Paket 3.3: set only by the problem group resolution after it verified
    * `problem.close` on a problem the ticket is linked to; never from HTTP.

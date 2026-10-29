@@ -1,14 +1,30 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { SlaRuleRecord, SlaRuleResponse } from './sla.types';
+import { slaRuleScopeWhere, type SlaReadScope } from './sla-read-scope';
 
 export async function listSlaRules(
   prisma: PrismaService,
   slaProfileId?: string,
-): Promise<readonly SlaRuleRecord[]> {
-  return prisma.slaRule.findMany({
-    where: slaProfileId === undefined ? undefined : { slaProfileId },
-    orderBy: [{ evaluationOrder: 'asc' }, { createdAt: 'asc' }],
-  });
+  input?: { readonly scope?: SlaReadScope; readonly cursor?: string; readonly take?: number },
+): Promise<{ readonly items: readonly SlaRuleRecord[]; readonly total: number; readonly hasMore: boolean; readonly nextCursor: string | null }> {
+  const scopeWhere = input?.scope === undefined ? undefined : slaRuleScopeWhere(input.scope);
+  const where = {
+    ...(slaProfileId === undefined ? {} : { slaProfileId }),
+    ...(scopeWhere === undefined ? {} : scopeWhere),
+  };
+  const take = input?.take ?? 50;
+  const [total, rows] = await Promise.all([
+    prisma.slaRule.count({ where }),
+    prisma.slaRule.findMany({
+      where,
+      orderBy: { id: 'asc' },
+      take: take + 1,
+      ...(input?.cursor === undefined ? {} : { cursor: { id: input.cursor }, skip: 1 }),
+    }),
+  ]);
+  const items = rows.slice(0, take);
+  const hasMore = rows.length > take;
+  return { items, total, hasMore, nextCursor: hasMore ? items.at(-1)?.id ?? null : null };
 }
 
 export async function toSlaRuleResponses(

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { configVersionStatusLabelKey } from "@/lib/config-versions/config-version-display";
 import { ConfigPackageExport } from "@/components/config-versions/config-package-export";
 import { ConfigValidationErrors } from "@/components/config-versions/config-validation-errors";
 import { ConfigVersionActions } from "@/components/config-versions/config-version-actions";
@@ -54,13 +55,15 @@ export function SelectedConfigVersionPanels({
       <Card className="fade-in">
         <CardHeader
           title={t("configVersions.selectedHeading", { version: selected.version })}
-          subtitle={t(`configVersions.statuses.${selected.status}`)}
+          subtitle={t(configVersionStatusLabelKey(selected.status))}
         />
         <div className="grid gap-4 px-4 py-3.5">
           <ConfigVersionActions
+            key={selected.id}
             version={selected}
             canWrite={canWrite}
             isBusy={isBusy}
+            shadowResult={shadowResult}
             onValidate={onValidate}
             onActivate={onActivate}
             onRollback={onRollback}

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InstallSetupProvider } from "@/app/install-setup-provider";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
 import { loadInstallSetupStatus } from "@/services/install-api";
+import { loadInstallReadiness } from "@/services/install-profile-api";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -12,6 +13,11 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/services/install-api", () => ({
   loadInstallSetupStatus: vi.fn(),
+}));
+
+// Readiness is only a context field in these layout tests.
+vi.mock("@/services/install-profile-api", () => ({
+  loadInstallReadiness: vi.fn(),
 }));
 
 function CurrentPath() {
@@ -37,9 +43,16 @@ function renderGate(initialPath: string) {
 }
 
 describe("InstallSetupLayout", () => {
+  beforeEach(() => {
+    // The provider reads readiness alongside status; this mock only needs to
+    // answer so the gate can be exercised.
+    vi.mocked(loadInstallReadiness).mockResolvedValue({ isReady: false, checks: [] });
+  });
+
   afterEach(() => {
     cleanup();
     vi.mocked(loadInstallSetupStatus).mockReset();
+    vi.mocked(loadInstallReadiness).mockReset();
   });
 
   it("does not send the user to the wizard when the status request fails", async () => {

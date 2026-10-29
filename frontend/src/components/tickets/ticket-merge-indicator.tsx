@@ -2,7 +2,7 @@ import { GitMerge } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TicketResponse } from "@/services/tickets-api";
 
-/** Package 1.2 (M7): merge icon next to a merged child's number in lists. */
+/** merge icon next to a merged child's number in lists. */
 export function TicketMergeIndicator({
   ticket,
 }: {

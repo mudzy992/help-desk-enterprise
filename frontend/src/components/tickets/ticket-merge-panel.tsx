@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { TFunction } from "i18next";
 import { GitMerge, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,9 @@ import {
 } from "@/components/ui/control";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { ticketStatusTranslationKey } from "@/lib/tickets/ticket-constants";
 import { cn } from "@/lib/utils";
-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
+import type { TicketResponse } from "@/services/tickets-api";
 import {
   listMergeCandidates,
   mergeTicket,
@@ -31,7 +31,7 @@ interface TicketMergePanelProperties {
 }
 
 /**
- * Package 1.2 (M5): merge this ticket into another one. The search only offers
+ * merge this ticket into another one. The search only offers
  * tickets that pass rule M1 and that the person handles as staff; the server
  * checks everything again on submit.
  */
@@ -104,9 +104,7 @@ export function TicketMergePanel({
         className="flex w-full max-w-md flex-col overflow-y-auto p-5"
         data-testid="ticket-merge-panel"
       >
-        <SheetTitle>
-          {ticketText(t, "tickets.merge.title", { number: ticket.ticketNumber })}
-        </SheetTitle>
+        <SheetTitle>{t("tickets.merge.title", { number: ticket.ticketNumber })}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("tickets.merge.hint")}
         </SheetDescription>
@@ -166,7 +164,7 @@ export function TicketMergePanel({
         {selected ? (
           <div className="mt-3 rounded-md border border-primary/30 bg-primary/6 px-3 py-2 text-[12px]">
             <GitMerge size={12} className="mr-1 inline" aria-hidden="true" />
-            {ticketText(t, "tickets.merge.preview", {
+            {t("tickets.merge.preview", {
               child: ticket.ticketNumber,
               parent: selected.ticketNumber,
             })}
@@ -186,7 +184,7 @@ export function TicketMergePanel({
         <p className="mt-2 text-[11.5px] text-muted-foreground">{t("tickets.merge.effects")}</p>
         {errorKey ? (
           <p className={`mt-2 ${errorTextClassName}`} role="alert">
-            {ticketText(t, errorKey)}
+            {t(errorKey)}
           </p>
         ) : null}
         <div className="mt-4 flex gap-2 border-t border-border/70 pt-4">
@@ -222,9 +220,7 @@ export function TicketMergePanel({
   );
 }
 
-function statusLabel(t: ReturnType<typeof useTranslation>["t"], status: string): string {
-  const key = (ticketStatusLabelKey as Readonly<Record<TicketStatus, string>>)[
-    status as TicketStatus
-  ];
-  return key === undefined ? status : ticketText(t, key);
+function statusLabel(t: TFunction<"common">, status: string): string {
+  const key = ticketStatusTranslationKey(status);
+  return key === null ? status : String(t(key));
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Card, CardHeader } from "@/components/ui/card";
 import { formatNumber } from "@/lib/reports/report-format";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -21,7 +22,11 @@ export function SlaComplianceCard({
   const profileNames = new Map(
     (compliance?.profiles ?? []).map((profile) => [
       profile.slaProfileId,
-      formatSlaProfileName(profile.profileKey, profile.profileName, t as never),
+      formatSlaProfileName(
+        profile.profileKey,
+        profile.profileName,
+        (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+      ),
     ]),
   );
 
@@ -82,7 +87,11 @@ export function SlaComplianceCard({
                     scope="row"
                     className="max-w-64 truncate px-3 py-2.5 text-left font-medium text-foreground"
                   >
-                    {formatSlaProfileName(profile.profileKey, profile.profileName, t as never)}
+                    {formatSlaProfileName(
+                      profile.profileKey,
+                      profile.profileName,
+                      (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+                    )}
                   </th>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right tnum">
                     {formatNumber(profile.sampleCount, i18n.language)}
@@ -148,7 +157,12 @@ function ComplianceTable({
   return (
     <section aria-label={title}>
       <h3 className="mb-3 text-[12px] font-semibold text-foreground">{title}</h3>
-      <div className="max-h-72 overflow-auto rounded-md border border-border">
+      <div
+        className="max-h-72 overflow-auto rounded-md border border-border"
+        role="region"
+        aria-label={title}
+        tabIndex={0}
+      >
         <table className="w-full min-w-[440px] border-collapse text-[11px]">
           <thead className="sticky top-0 bg-elevated text-left text-muted-foreground">
             <tr>
@@ -194,7 +208,12 @@ function DimensionTable({
           {t("sla.complianceBreakdownEmpty")}
         </p>
       ) : (
-        <div className="max-h-72 overflow-auto rounded-md border border-border">
+        <div
+          className="max-h-72 overflow-auto rounded-md border border-border"
+          role="region"
+          aria-label={title}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[560px] border-collapse text-[11px]">
             <thead className="sticky top-0 bg-elevated text-left text-muted-foreground">
               <tr>

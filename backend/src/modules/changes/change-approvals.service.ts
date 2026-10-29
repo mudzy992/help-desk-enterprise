@@ -134,6 +134,7 @@ export class ChangeApprovalsService {
         entityId: id,
         metadata: { round, decision: input.decision, result } as never,
         actorUserId: viewer.userId,
+        organizationalUnitId: change.organizationalUnitId,
       });
       return result;
     });

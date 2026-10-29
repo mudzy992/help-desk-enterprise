@@ -4,6 +4,7 @@ import type { SlaConfiguration } from './sla.types';
 import { slaScanBatchSize } from './sla.constants';
 import { toTicketSlaTicketRef } from './to-ticket-sla-ticket-ref';
 import type { TicketSlaStateRecord, TicketSlaTicketRef } from './ticket-sla.types';
+import { clearSlaScanFailure, loadBlockedSlaScanTicketIds, recordSlaScanFailure } from './sla-scan-failure-quarantine';
 
 /**
  * Phase 2.1 (plan §2.1): one bounded batch instead of "all open states".
@@ -30,8 +31,20 @@ export async function scanDueTicketSlaStates(
   }
   const now = input.now ?? new Date();
   const batchSize = input.batchSize ?? slaScanBatchSize;
+  const durableQuarantine = (prisma as unknown as { slaScanFailure?: unknown }).slaScanFailure !== undefined;
   const due = (await prisma.ticketSlaState.findMany({
-    where: { resolutionCompletedAt: null, nextDueAt: { lte: now } },
+    where: {
+      resolutionCompletedAt: null,
+      nextDueAt: { lte: now },
+      ...(durableQuarantine ? {
+        ticket: { is: { OR: [
+          { slaScanFailure: { is: null } },
+          { slaScanFailure: { is: { quarantinedAt: null, OR: [
+            { nextAttemptAt: null }, { nextAttemptAt: { lte: now } },
+          ] } } },
+        ] } },
+      } : {}),
+    },
     orderBy: { nextDueAt: 'asc' },
     take: batchSize,
   })) as TicketSlaStateRecord[];
@@ -42,20 +55,22 @@ export async function scanDueTicketSlaStates(
     where: { id: { in: due.map((state) => state.ticketId) } },
   })) as TicketSlaTicketRef[];
   const ticketById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
+  const blocked = await loadBlockedSlaScanTicketIds(prisma, due.map((state) => state.ticketId), now);
   const updated: TicketSlaStateRecord[] = [];
   for (const state of due) {
     const ticket = ticketById.get(state.ticketId);
-    if (ticket === undefined) {
-      continue;
-    }
-    const next = await syncTicketSlaTimers(prisma, {
-      ticket: toTicketSlaTicketRef(ticket),
-      now,
-      event: 'scanned',
-      configuration: input.configuration,
-    });
-    if (next !== null) {
-      updated.push(next);
+    if (ticket === undefined || blocked.has(state.ticketId)) continue;
+    try {
+      const next = await syncTicketSlaTimers(prisma, {
+        ticket: toTicketSlaTicketRef(ticket),
+        now,
+        event: 'scanned',
+        configuration: input.configuration,
+      });
+      if (next !== null) updated.push(next);
+      await clearSlaScanFailure(prisma, state.ticketId);
+    } catch (error) {
+      await recordSlaScanFailure(prisma, { ticketId: state.ticketId, phase: 'scan', error, now });
     }
   }
   return updated;

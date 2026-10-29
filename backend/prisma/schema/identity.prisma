@@ -84,7 +84,6 @@ model User {
   notificationPreferences         UserNotificationPreference[]
   notificationSchedule            UserNotificationSchedule?
   notificationDigestItems         NotificationDigestItem[]
-  auditLogs                       AuditLog[]
   changeLogs           ChangeLog[]
   mfa                  UserMfa?
   mfaRecoveryCodes     UserMfaRecoveryCode[]

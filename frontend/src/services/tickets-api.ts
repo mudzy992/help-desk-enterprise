@@ -2,7 +2,8 @@ import {
   toTicketListSearchParams,
   type TicketPageQuery,
 } from "@/lib/tickets/ticket-list-search-params";
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseTicketPage } from "@/services/critical-api-parsers";
 import type { ServiceFormSchema } from "@/services/service-catalog-api";
 
 export type TicketSlaSnapshot = {
@@ -44,7 +45,7 @@ export type TicketResponse = {
   readonly impact: TicketImpact;
   readonly urgency: TicketUrgency;
   readonly classification: string;
-  /** M8 #3: RAW's request type and the requested deadline (separate from the SLA). */
+  /** RAW request type and requested deadline, separate from the SLA. */
   readonly requestType: string | null;
   readonly dueAt: string | null;
   readonly isConfidential: boolean;
@@ -71,13 +72,11 @@ export type TicketResponse = {
   readonly closedAt?: string | null;
   readonly archivedAt?: string | null;
   readonly waitingForUserEnteredAt?: string | null;
-  /** Package 1.6 */
   readonly forwardCount?: number;
-  /** Paket 1.7 (U1): no routing rule matched; sent to the unrouted target group. */
+  /** no routing rule matched; sent to the unrouted target group. */
   readonly routedByUnroutedFallback?: boolean;
   readonly lastForwardedAt?: string | null;
   readonly lastForwardFromGroupName?: string | null;
-  /** Package 1.2 */
   readonly priorityOverridden?: boolean;
   readonly mergedAt?: string | null;
   readonly mergedIntoTicketNumber?: string | null;
@@ -89,7 +88,7 @@ export type TicketResponse = {
   readonly csat?: TicketCsatDescriptor;
   readonly redactionWarnings?: readonly RedactionMatch[];
   readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
-  /** Paket 2.6 (§11): only on the detail; `legalHold` only for privacy.view holders. */
+  /** only on the detail; `legalHold` only for privacy.view holders. */
   readonly privacy?: TicketPrivacyMarkers;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -163,7 +162,7 @@ export type CreateTicketInput = {
   readonly formData?: Record<string, unknown>;
   readonly acknowledgeDuplicate?: boolean;
   readonly assetId?: string;
-  /** M8 #3: the requester's own words for what this is, and the wished deadline. */
+  /** The requester's own request type and wished deadline. */
   readonly requestType?: string;
   readonly dueAt?: string;
 };
@@ -174,7 +173,7 @@ export type UpdateTicketInput = {
   readonly impact?: TicketImpact;
   readonly urgency?: TicketUrgency;
   readonly status?: TicketStatus;
-  /** M8 #3: `null` clears the value. */
+  /** `null` clears the value. */
   readonly requestType?: string | null;
   readonly dueAt?: string | null;
   readonly formData?: Record<string, unknown>;
@@ -182,24 +181,11 @@ export type UpdateTicketInput = {
   readonly resolutionNote?: string;
 };
 
-export type ListTicketsQuery = {
-  readonly originUnitId?: string;
-  readonly serviceId?: string;
-  readonly status?: TicketStatus;
-};
-
 export function createTicket(input: CreateTicketInput): Promise<TicketResponse> {
   return apiRequest("/tickets", {
     method: "POST",
     body: JSON.stringify(input),
   });
-}
-
-export async function listGroupInbox(): Promise<readonly TicketResponse[]> {
-  // The inbox endpoint answers the same page envelope as GET /tickets, so the
-  // array is unwrapped here rather than treating the response as the array.
-  const response = await apiRequest<TicketPage>("/tickets/inbox");
-  return response.items;
 }
 
 export type GroupInboxStatus = {
@@ -219,14 +205,20 @@ export type TicketPage = {
   /** Exact up to 10 000; above that the server stops counting (`totalIsCapped`). */
   readonly total: number;
   readonly totalIsCapped?: boolean;
-  /** Package 5.2.3 (M8 B5): epoch ms at which the server computed `total`. */
+  /** epoch ms at which the server computed `total`. */
   readonly totalsAsOf: number;
   readonly page: number;
   readonly pageSize: number;
 };
 
+/** One page of the caller's group inbox, with server-calculated totals. */
+export function listGroupInboxPage(query: TicketPageQuery = {}): Promise<TicketPage> {
+  const search = toTicketListSearchParams(query).toString();
+  return apiRequestValidated(`/tickets/inbox?${search}`, parseTicketPage);
+}
+
 /**
- * One page of the visible tickets (phase 1.1, plan §1.1).
+ * One server-paginated page of tickets visible to the current principal.
  *
  * `GET /tickets` always answers this envelope now: it used to return a plain
  * array with every ticket in the table when no `page`/`pageSize` was sent, and
@@ -234,20 +226,7 @@ export type TicketPage = {
  */
 export function listTicketsPage(query: TicketPageQuery = {}): Promise<TicketPage> {
   const search = toTicketListSearchParams(query).toString();
-  return apiRequest(`/tickets?${search}`);
-}
-
-/**
- * First page of the tickets narrowed by the three basic filters. Kept for the
- * screens that only need a small slice while their dedicated endpoints arrive
- * (dashboard/SLA aggregates in phase 2.4, `/search` in phase 1.2).
- */
-export function listTickets(query: ListTicketsQuery = {}): Promise<TicketPage> {
-  return listTicketsPage({
-    originUnitId: query.originUnitId,
-    serviceId: query.serviceId,
-    status: query.status,
-  });
+  return apiRequestValidated(`/tickets?${search}`, parseTicketPage);
 }
 
 export function getTicket(ticketId: string): Promise<TicketResponse> {

@@ -1,3 +1,4 @@
+import { readApiSessionCookie, saveApiSessionCookie } from './api-session-store';
 import { readE2EEnvironment } from './environment';
 import { currentStep, nextTotpCode, saveMfaSecret, totpForStep } from './mfa';
 
@@ -63,17 +64,35 @@ export class ApiClient {
     this.authorization = token;
   }
 
+  hasSession(): boolean {
+    return this.sessionCookie !== null || this.authorization !== null;
+  }
+
   /**
    * Paket 2.1: password → (MFA verify | forced MFA enrollment) → session cookie.
    * The enrollment secret is stored for later sign-ins (helpers/mfa.ts). Returns
    * the opaque session value so callers can assert that a session was issued.
    */
-  async login(email: string, password: string): Promise<string> {
+  async login(
+    email: string,
+    password: string,
+    options?: { readonly newSession?: boolean },
+  ): Promise<string> {
+    if (options?.newSession !== true) {
+      const cached = readApiSessionCookie(email);
+      if (cached !== null) {
+        this.sessionCookie = cached;
+        try {
+          await this.requestJson('/auth/security');
+          return cached;
+        } catch {
+          this.sessionCookie = null;
+        }
+      }
+    }
     type LoginBody = {
       status?: string;
       mfaToken?: string;
-      /** Only from a stack that predates the httpOnly session cookie. */
-      accessToken?: string;
     };
     let body = await this.requestJson<LoginBody>('/auth/login', {
       method: 'POST',
@@ -99,16 +118,12 @@ export class ApiClient {
       throw new Error(`Login requires ${body.status}`);
     }
     if (this.sessionCookie !== null) {
+      saveApiSessionCookie(email, this.sessionCookie);
       return this.sessionCookie;
     }
-    // Prelazni režim: stack koji je trenutno deployovan iz master-a još vraća token u tijelu
-    // i ne šalje kolačić. PR gate testira taj stack, pa se koristi bearer do deploya grane.
-    // Ukloniti kad E2E stack izdaje kolačić (specovi 37 i 39 provjeravaju kolačić).
-    if (typeof body.accessToken === 'string' && body.accessToken.length > 0) {
-      this.setBearerToken(body.accessToken);
-      return body.accessToken;
-    }
-    throw new Error('Login response did not set the session cookie');
+    throw new Error(
+      'Login response did not set helpdesk_session; browser E2E requires the HttpOnly cookie contract',
+    );
   }
 
   async requestJson<T>(
@@ -167,7 +182,7 @@ export class ApiClient {
    * Every network-level failure now names the request and carries the cause
    * (`ECONNREFUSED`, `ENOTFOUND`, `UND_ERR_SOCKET`, …).
    *
-   * Retry policy, both cases once with a 2 s pause:
+   * Retry policy, both cases up to twice with a short backoff:
    *
    * - a `GET` is always safe to repeat;
    * - **any method is repeated when the connection never opened** — the full run
@@ -196,7 +211,11 @@ export class ApiClient {
   ): Promise<Response> {
     const method = (init.method ?? 'GET').toUpperCase();
     try {
-      const response = await fetch(`${this.apiUrl}${path}`, { ...init, headers });
+      const response = await fetch(`${this.apiUrl}${path}`, {
+        ...init,
+        headers,
+        signal: init.signal ?? AbortSignal.timeout(30_000),
+      });
       this.captureSessionCookie(response);
       return response;
     } catch (error) {
@@ -208,8 +227,8 @@ export class ApiClient {
       const causeMessage = cause instanceof Error ? cause.message : String(cause ?? '');
       const detail = [causeCode, causeMessage].filter((part) => part.length > 0).join(' / ');
       const retryable = method === 'GET' || connectFailures.has(causeCode);
-      if (retryable && attempt === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 2_000));
+      if (retryable && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 2_000 * (attempt + 1)));
         return this.send(path, init, headers, attempt + 1);
       }
       throw new Error(

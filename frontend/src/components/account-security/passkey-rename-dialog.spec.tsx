@@ -32,7 +32,7 @@ describe("PasskeyRenameDialog", () => {
     vi.mocked(renamePasskey).mockReset();
   });
 
-  it("shows a refused name inside the dialog, where the user is looking (A23)", async () => {
+  it("shows a refused name inside the dialog, where the user is looking", async () => {
     vi.mocked(renamePasskey).mockRejectedValue(new ApiError(400, "PASSKEY_INVALID_NAME", "bad"));
     const onRenamed = vi.fn();
 

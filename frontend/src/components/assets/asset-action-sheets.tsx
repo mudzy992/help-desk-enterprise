@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { queryKeys } from "@/lib/query/query-keys";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -63,7 +64,7 @@ function useActionState(open: boolean) {
   return { pending, setPending, error, setError };
 }
 
-/** Paket 3.2 (§5): status change; LOST, RETIRED and DISPOSED need a reason. */
+/** Delivery invariant (requirement): status change; LOST, RETIRED and DISPOSED need a reason. */
 export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSheetProperties) {
   const { t } = useTranslation();
   const targets = assetStatusTransitions[asset.status];
@@ -164,7 +165,7 @@ export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSh
 }
 
 /**
- * Paket 3.2 (§7, C9 §7a): assign / reassign. Goes through `/assets/movements`
+ * Delivery invariant (requirement, C9 requirement): assign / reassign. Goes through `/assets/movements`
  * so the move and its transfer record are one step; with records off the
  * move is only written to the history.
  */
@@ -199,7 +200,7 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: MoveShee
   }, [searchText]);
 
   const usersQuery = useQuery({
-    queryKey: ["assets", "users", search],
+    queryKey: queryKeys.assetUsers(search),
     queryFn: () => searchAssetUsers(search),
     enabled: open && search.length >= 2,
     retry: false,
@@ -347,7 +348,7 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: MoveShee
   );
 }
 
-/** Paket 3.2 (§7, C9 §7a): return equipment to stock or send it to repair. */
+/** Delivery invariant (requirement, C9 requirement): return equipment to stock or send it to repair. */
 export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: MoveSheetProperties) {
   const ids = subjectIds(asset);
   const { t } = useTranslation();

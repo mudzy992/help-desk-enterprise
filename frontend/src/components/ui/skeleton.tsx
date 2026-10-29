@@ -15,7 +15,6 @@ export function PanelSkeleton({ label, className }: PanelSkeletonProperties) {
       className={cn("mt-3 rounded-lg border border-border bg-surface p-4 shadow-card", className)}
       role="status"
       aria-live="polite"
-      aria-label={label}
     >
       <div className="h-3 w-32 rounded-md bg-border/70" />
       <div className="mt-3 h-10 rounded-md bg-border/60" />

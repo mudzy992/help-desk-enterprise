@@ -1,5 +1,5 @@
 /**
- * Faza 3.3 (plan §3.3): one place that owns query keys, so an invalidacija can
+ * one place that owns query keys, so an invalidacija can
  * never miss a cache entry because two call sites spelled the key differently.
  */
 
@@ -12,15 +12,22 @@ export function localDayKey(now: Date = new Date()): string {
 }
 
 export const queryKeys = {
-  /** Paket 2.1: own account security (profile page and the expiry banner). */
+  /** own account security (profile page and the expiry banner). */
   accountSecurity: ["account", "security"] as const,
+  accountSessions: ["account", "sessions"] as const,
   accountNotifications: ["account", "notifications"] as const,
-  /** Paket 2.8: own preferences (keyboard shortcuts; the language is synced separately). */
+  /** own preferences (keyboard shortcuts; the language is synced separately). */
   userPreferences: ["account", "preferences"] as const,
   routingCatalog: ["catalog", "routing"] as const,
   routingRules: ["catalog", "routing-rules"] as const,
   organizationalUnits: ["catalog", "organizational-units"] as const,
   services: ["catalog", "services"] as const,
+  serviceCategories: ["catalog", "service-categories"] as const,
+  serviceRoutingCoverage: ["catalog", "service-routing-coverage"] as const,
+  serviceOnboardings: (draftKey: string) => ["catalog", "service-onboardings", draftKey] as const,
+  serviceDowntimeWindows: (serviceId: string) =>
+    ["catalog", "service-downtime-windows", serviceId] as const,
+  statusIncidentServices: ["catalog", "services", "status-incident-options"] as const,
   /**
    * The dashboard's id→name lookup caches the raw `ServiceResponse[]`, while
    * `services` caches `{ service }` rows for the catalog table. The two shapes
@@ -47,18 +54,35 @@ export const queryKeys = {
     ["tickets", "routing-preview", serviceId, originUnitId] as const,
   ticketLists: ["tickets", "list"] as const,
   ticketList: (query: unknown) => ["tickets", "list", query] as const,
+  ticketCountsPrefix: ["tickets", "counts"] as const,
   ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,
   ticket: (ticketId: string) => ["tickets", "detail", ticketId] as const,
-  /** Paket 2.4 */
+  /** */
   agentCollaborationConfiguration: ["tickets", "collaboration", "configuration"] as const,
   ticketFollow: (ticketId: string) => ["tickets", "follow", ticketId] as const,
   ticketLinks: (ticketId: string) => ["tickets", "links", ticketId] as const,
   groupInbox: ["tickets", "inbox"] as const,
+  groupInboxPage: (query: unknown) => ["tickets", "inbox", query] as const,
   offeredServices: ["catalog", "offered-services"] as const,
+  settingsRegistry: ["settings", "registry"] as const,
   createTicketCatalog: ["catalog", "create-ticket"] as const,
   slaSummary: ["sla", "summary"] as const,
   notifications: ["notifications"] as const,
   /** The current session answer, keyed by user so a token refresh does not refetch it. */
   platformPasskeyAvailable: ["webauthn", "platform-authenticator"] as const,
   currentSession: (subjectId: string) => ["session", "current", subjectId] as const,
+  problemLists: ["problems", "list"] as const,
+  assetLists: ["assets", "list"] as const,
+  assetLookup: (search: string, contextId?: string) =>
+    contextId === undefined
+      ? (["assets", "lookup", search] as const)
+      : (["assets", "lookup", search, contextId] as const),
+  assetUsers: (search: string) => ["assets", "users", search] as const,
+  assetLicenseCandidates: (target: string, search: string) =>
+    ["assets", "license-candidates", target, search] as const,
+  assetContractCandidates: (search: string) => ["assets", "contract-candidates", search] as const,
+  adminSecurityRateLimits: ["admin", "security", "rate-limits"] as const,
+  adminSecurityMetricsPrefix: ["admin", "security", "metrics"] as const,
+  adminSecurityMetricsLastHour: ["admin", "security", "metrics", "last-hour"] as const,
+  adminSecurityMetricsAuditWebhook: ["admin", "security", "metrics", "audit-webhook"] as const,
 } as const;

@@ -48,6 +48,13 @@ interface SettingDefinitionCommon {
   readonly group?: string;
   /** Conditions that must hold before this setting may be active. */
   readonly requires?: readonly SettingCondition[];
+  /**
+   * IN18: the value belongs to the install wizard, not to the registry screen.
+   * The screen shows such a key read-only (with the reason) instead of offering an
+   * editor whose write the wizard would overwrite on its next run. Enforcement
+   * stays where it was — this is metadata for the UI, not a new API rule.
+   */
+  readonly readOnly?: boolean;
 }
 
 export interface PublicSettingDefinition extends SettingDefinitionCommon {
@@ -101,4 +108,6 @@ export type SettingRegistryEntry = {
   readonly allowedValues?: readonly string[];
   /** The text value that means "switched off" (see `SettingDefinitionCommon`). */
   readonly inactiveValue?: string;
+  /** IN18: written by the install wizard; the registry screen offers no editor. */
+  readonly readOnly: boolean;
 };

@@ -8,6 +8,7 @@ export function createRedisClient(configuration: RedisConfiguration): Redis {
     username: configuration.username,
     password: configuration.password,
     keyPrefix: configuration.keyPrefix,
+    tls: configuration.tls,
     lazyConnect: true,
   });
 }

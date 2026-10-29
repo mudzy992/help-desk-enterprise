@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { parseLocale, persistLocale, type Locale } from "@/i18n/locale";
+import { ensureLocaleResources } from "@/i18n/config";
 import { readStoredSession } from "@/services/session-store";
 import { updateUserPreferences } from "@/services/user-preferences-api";
 
@@ -18,9 +19,10 @@ export function useLocale(): UseLocaleResult {
       const resolvedLocale = parseLocale(nextLocale);
       persistLocale(resolvedLocale);
       if (parseLocale(i18n.language) !== resolvedLocale) {
+        await ensureLocaleResources(resolvedLocale);
         await i18n.changeLanguage(resolvedLocale);
       }
-      // Paket 1.5: e-mails follow the UI language. Best effort — the switch
+      // E-mails follow the saved UI language. Best effort — the switch
       // itself must never fail because the preference could not be saved.
       if (readStoredSession() !== null) {
         void updateUserPreferences({ preferredLocale: resolvedLocale }).catch(() => undefined);

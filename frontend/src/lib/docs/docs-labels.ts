@@ -1,7 +1,7 @@
 import type { TFunction } from "i18next";
 
 /**
- * Faza 3 (c): naziv dijela wikija. Server šalje BS naziv (`label`) kao fallback,
+ * naziv dijela wikija. Server šalje BS naziv (`label`) kao fallback,
  * a UI prevodi preko `docs.parts.<key>` — tako EN prikaz ne zavisi od sadržaja.
  */
 export const docsPartTranslationKeys = {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { loadTicketDetail } from "@/lib/tickets/load-ticket-detail";
 import { sendTicketMessageOptimistic } from "@/lib/tickets/send-ticket-message-optimistic";
@@ -35,7 +35,6 @@ export function useTicketDetail(ticketId: string | undefined) {
   const [participants, setParticipants] = useState<readonly TicketParticipantResponse[]>([]);
   const [timeLogs, setTimeLogs] = useState<readonly TicketTimeLogResponse[]>([]);
   const [attachments, setAttachments] = useState<readonly TicketAttachmentResponse[]>([]);
-  const [inboxAccessible, setInboxAccessible] = useState(false);
   const [attachmentsVisible, setAttachmentsVisible] = useState(false);
   const [timeVisible, setTimeVisible] = useState(false);
   const [canChangeStatus, setCanChangeStatus] = useState(true);
@@ -43,32 +42,46 @@ export function useTicketDetail(ticketId: string | undefined) {
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [actionError, setActionError] = useState<TicketErrorKey | null>(null);
 
-  const detailTarget = {
-    setTicket,
-    setMessages,
-    setParticipants,
-    setTimeLogs,
-    setAttachments,
-    setInboxAccessible,
-    setAttachmentsVisible,
-    setTimeVisible,
-    setErrorKey,
-    setIsLoading,
-  };
+  const detailTarget = useMemo(
+    () => ({
+      setTicket,
+      setMessages,
+      setParticipants,
+      setTimeLogs,
+      setAttachments,
+      setAttachmentsVisible,
+      setTimeVisible,
+      setErrorKey,
+      setActionError,
+      setIsLoading,
+    }),
+    [
+      setActionError,
+      setAttachments,
+      setAttachmentsVisible,
+      setErrorKey,
+      setIsLoading,
+      setMessages,
+      setParticipants,
+      setTicket,
+      setTimeLogs,
+      setTimeVisible,
+    ],
+  );
 
   const load = useCallback(async () => {
     if (ticketId === undefined) {
       return;
     }
     await loadTicketDetail({ ...detailTarget, ticketId, silent: false });
-  }, [ticketId]);
+  }, [detailTarget, ticketId]);
 
   const refresh = useCallback(async () => {
     if (ticketId === undefined) {
       return;
     }
     await loadTicketDetail({ ...detailTarget, ticketId, silent: true });
-  }, [ticketId]);
+  }, [detailTarget, ticketId]);
 
   useEffect(() => {
     // Switching tickets must not leave a single field in place: the SLA panel,
@@ -120,7 +133,6 @@ export function useTicketDetail(ticketId: string | undefined) {
     participants,
     timeLogs,
     attachments,
-    inboxAccessible,
     attachmentsVisible,
     timeVisible,
     canChangeStatus,

@@ -10,7 +10,10 @@ import { cn } from "@/lib/utils";
 export function Card({ className, ...properties }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-surface shadow-card", className)}
+      className={cn(
+        "min-w-0 max-w-full rounded-lg border border-border bg-surface shadow-card",
+        className,
+      )}
       {...properties}
     />
   );
@@ -21,7 +24,7 @@ interface CardHeaderProperties {
   readonly subtitle?: ReactNode;
   readonly actions?: ReactNode;
   readonly className?: string;
-  /** Heading level (2.8 §3.1): h2 under the page h1, h3 for nested cards. */
+  /** Semantic heading level: use h2 under the page h1 and h3 for nested cards. */
   readonly as?: "h2" | "h3" | "h4";
 }
 

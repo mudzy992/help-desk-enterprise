@@ -1,5 +1,5 @@
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HBars } from "@/components/charts/h-bars";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -18,15 +18,16 @@ import {
   bottleneckTrendRows,
 } from "@/lib/reports/bottleneck-view";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import { fetchBottlenecks, type BottlenecksResponse } from "@/services/reports-api";
 
 /** Poruka se poklapa sa `reports.errors.*` mapom (vidi `ReportTrendsPanel`). */
 const disabledMessageKey = "reports.errors.BOTTLENECKS_DISABLED" as const;
 
 /**
- * Val 1 (M15/B2): `GET /reports/bottlenecks` je postojao, ali ga nijedan ekran
+ * `GET /reports/bottlenecks` must remain connected to a visible screen
  * nije zvao — RAW-ova svrha izvještaja („identifikacija uskih grla“) nije bila
  * dovršena. Panel prikazuje četiri brojača, tri razreza i dnevni trend, uz isti
  * OU opseg i isti period kao ostatak pregleda.
@@ -47,21 +48,24 @@ export function ReportsBottlenecksPanel({
   /** Isključena postavka nije greška — prikazuje se kao stanje, bez „pokušaj ponovo“. */
   const [disabledKey, setDisabledKey] = useState<typeof disabledMessageKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const loadGuard = useRef(createLatestRequestGuard());
 
   const load = useCallback(async () => {
+    const request = loadGuard.current.begin();
     setIsLoading(true);
+    setData(null);
     setErrorKey(null);
     setDisabledKey(null);
     setRequestId(null);
     try {
-      setData(
-        await fetchBottlenecks({
-          organizationalUnitId: organizationalUnitId ?? "",
-          from,
-          to,
-        }),
-      );
+      const loaded = await fetchBottlenecks({
+        organizationalUnitId: organizationalUnitId ?? "",
+        from,
+        to,
+      });
+      if (loadGuard.current.isCurrent(request)) setData(loaded);
     } catch (error) {
+      if (!loadGuard.current.isCurrent(request)) return;
       setData(null);
       if (readReportErrorCode(error) === "BOTTLENECKS_DISABLED") {
         setDisabledKey(disabledMessageKey);
@@ -70,12 +74,14 @@ export function ReportsBottlenecksPanel({
       }
       setRequestId(readApiRequestId(error));
     } finally {
-      setIsLoading(false);
+      if (loadGuard.current.isCurrent(request)) setIsLoading(false);
     }
   }, [from, organizationalUnitId, to]);
 
   useEffect(() => {
+    const guard = loadGuard.current;
     void load();
+    return () => guard.cancel();
   }, [load]);
 
   if (isLoading && data === null) {
@@ -135,7 +141,7 @@ export function ReportsBottlenecksPanel({
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
         {breakdowns.map((breakdown) => {
           // Prioritet se prevodi na jezik interfejsa; OU i servis stižu kao nazivi.
-          const bars = bottleneckBreakdownBars(breakdown.rows, (key) => ticketText(t, key));
+          const bars = bottleneckBreakdownBars(breakdown.rows, (key) => translateText(t, key));
           return (
             <Card key={breakdown.key} className="fade-in">
               <CardHeader

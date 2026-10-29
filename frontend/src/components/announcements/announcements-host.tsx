@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { MarkdownView } from "@/components/privacy/markdown-view";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import {
   Modal,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import {
+  announcementSeverityKeys,
   announcementToneClasses,
   mapAnnouncementError,
   modalShowsLeft,
@@ -30,7 +32,8 @@ import {
   severityRole,
   severityTone,
 } from "@/lib/announcements/announcement-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { cn } from "@/lib/utils";
 import {
   acknowledgeAnnouncement,
@@ -43,12 +46,6 @@ import {
 } from "@/services/announcements-api";
 
 const pollMs = 60_000;
-
-const severityKeys = {
-  INFO: "announcements.severity.INFO",
-  WARNING: "announcements.severity.WARNING",
-  CRITICAL: "announcements.severity.CRITICAL",
-} as const;
 
 function sessionStore(): Storage | null {
   try {
@@ -71,19 +68,15 @@ function SeverityIcon({
 }
 
 /**
- * Paket 2.9 (K2, §3.2): active announcements for the signed-in user. One
- * banner (several announcements → counter and arrows) and, for MODAL
- * announcements, a dialog that returns on navigation at most three times per
- * session. The dialog can always be closed (Esc) and never blocks work.
- *
- * Mounted inside the page container, which remounts on every navigation, so
- * "the next navigation" is simply the next mount.
+ * Active announcements for the signed-in user. A session budget prevents
+ * modal announcements from repeatedly interrupting work across navigation.
  */
 export function AnnouncementsHost() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const queryClient = useQueryClient();
-  const { data } = useQuery({
+  const { data, error, isFetching, refetch } = useQuery({
     queryKey: announcementQueryKeys.active,
     queryFn: getActiveAnnouncements,
     staleTime: 30_000,
@@ -131,28 +124,44 @@ export function AnnouncementsHost() {
   };
 
   const settle = async (item: ActiveAnnouncement) => {
-    setBusyId(item.id);
-    try {
-      if (item.requiresAcknowledgement) {
-        await acknowledgeAnnouncement(item.id);
-        toast({ tone: "success", title: t("announcements.banner.acknowledged") });
-      } else {
-        await dismissAnnouncement(item.id);
+    await operationGuard.run(`settle:${item.id}`, async () => {
+      setBusyId(item.id);
+      try {
+        if (item.requiresAcknowledgement) {
+          await acknowledgeAnnouncement(item.id);
+          toast({ tone: "success", title: t("announcements.banner.acknowledged") });
+        } else {
+          await dismissAnnouncement(item.id);
+        }
+        removeLocally(item.id);
+        if (modal?.id === item.id) setModal(null);
+        void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+        void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
+      } finally {
+        setBusyId(null);
       }
-      removeLocally(item.id);
-      if (modal?.id === item.id) setModal(null);
-      void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.archive });
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-      void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
-    } finally {
-      setBusyId(null);
-    }
+    });
   };
+
+  if (error !== null && data === undefined) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-danger/30 bg-danger/10 px-4 py-2">
+        <ApiErrorText
+          messageKey={mapAnnouncementError(error) ?? mapApiError(error)}
+          requestId={readApiRequestId(error)}
+        />
+        <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+          {t("ui.retry")}
+        </Button>
+      </div>
+    );
+  }
 
   if (data === undefined || !data.enabled || current === undefined) {
     return (
@@ -171,6 +180,17 @@ export function AnnouncementsHost() {
 
   return (
     <>
+      {error === null ? null : (
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+          <ApiErrorText
+            messageKey={mapAnnouncementError(error) ?? mapApiError(error)}
+            requestId={readApiRequestId(error)}
+          />
+          <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      )}
       <section
         aria-label={t("announcements.banner.region")}
         className={cn(
@@ -185,7 +205,7 @@ export function AnnouncementsHost() {
           />
           <div className="min-w-0 flex-1">
             <p className="font-semibold leading-5">
-              <span className="sr-only">{t(severityKeys[current.severity])}: </span>
+              <span className="sr-only">{t(announcementSeverityKeys[current.severity])}: </span>
               {current.title}
             </p>
             {current.serviceName ? (
@@ -304,7 +324,7 @@ function AnnouncementModal({
               {item.title}
             </ModalTitle>
             <ModalDescription className="text-[12px] text-muted-foreground">
-              {t(severityKeys[item.severity])}
+              {t(announcementSeverityKeys[item.severity])}
               {item.serviceName ? ` · ${item.serviceName}` : ""}
             </ModalDescription>
           </div>

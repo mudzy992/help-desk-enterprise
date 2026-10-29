@@ -38,7 +38,7 @@ interface ChangeActionSheetProperties {
 }
 
 /**
- * Paket 3.4 (§6, §9, §12): one lifecycle step with every field it needs:
+ * Delivery invariant (requirement, requirement, requirement): one lifecycle step with every field it needs:
  * a reason (return, withdraw, cancel), the outcome (finish), review notes
  * (close) and the conflict acknowledgement where the window is committed.
  */

@@ -15,7 +15,7 @@ interface OnCallReasonDialogProperties {
   readonly onConfirm: (reason: string) => void;
 }
 
-/** Paket 2.9 (K3): destructive on-call actions are audited with a reason. */
+/** Collects the audit reason required by destructive on-call actions. */
 export function OnCallReasonDialog({
   open,
   onOpenChange,
@@ -45,12 +45,15 @@ export function OnCallReasonDialog({
     >
       <div className="grid gap-2">
         <Field label={t("onCall.reason")} required hint={t("onCall.reasonHint")}>
-          <Textarea
-            rows={2}
-            value={reason}
-            maxLength={500}
-            onChange={(event) => setReason(event.target.value)}
-          />
+          {(control) => (
+            <Textarea
+              {...control}
+              rows={2}
+              value={reason}
+              maxLength={500}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          )}
         </Field>
         {error ? (
           <p role="alert" className={errorTextClassName}>

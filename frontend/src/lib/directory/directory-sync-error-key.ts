@@ -1,6 +1,6 @@
 import { ApiError } from "@/services/api";
 
-/** Paket 1.8: backend DirectorySyncError codes that have their own message. */
+/** backend DirectorySyncError codes that have their own message. */
 const KNOWN_CODES = [
   "DIRECTORY_BACKOFF",
   "DIRECTORY_CONNECTION_FAILED",

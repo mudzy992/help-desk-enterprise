@@ -28,7 +28,7 @@ export function matchesPickerQuery(item: ResponseTemplatePickerItem, query: stri
 }
 
 /**
- * Paket 1.4 (T5): templates matching the ticket first (service → category →
+ * templates matching the ticket first (service → category →
  * group), then global, then personal, then the rest ("show all"); inside a
  * section the most used first, then by name.
  */

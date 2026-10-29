@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { CreateTicketForm } from "@/components/tickets/create-ticket-form";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 
 export function TicketCreatePage() {
   const { t } = useTranslation();

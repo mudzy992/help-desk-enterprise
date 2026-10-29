@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { findInstallSuperAdmin } from './find-install-super-admin';
 import { installSeedErrorCodes } from './install-seed.constants';
+import { resolveInstallSeedNames, type InstallSeedNameInput } from './install-seed.names';
 import { InstallSeedError } from './install-seed.error';
 import type { InstallSeedResult, InstallSeedStatus } from './install-seed.types';
 import { mapInstallSeedError } from './map-install-seed-error';
@@ -26,7 +27,11 @@ export class InstallSeedService {
     }));
   }
 
-  async seed(): Promise<InstallSeedResult> {
+  /**
+   * F2: the body is optional — without it the pre-v2 defaults are used and
+   * `e2e/helpers/ensure-install.ts` keeps walking the same path.
+   */
+  async seed(input?: InstallSeedNameInput): Promise<InstallSeedResult> {
     return this.execute(async () => {
       const superAdmin = await findInstallSuperAdmin(this.prisma);
       if (superAdmin === null) {
@@ -37,6 +42,7 @@ export class InstallSeedService {
         lifecycle: await this.lifecycleConfigurationLoader.load(),
         routing: await this.routingConfigurationLoader.load(),
         forms: await this.formsConfigurationLoader.load(),
+        names: resolveInstallSeedNames(input),
       });
     });
   }

@@ -1,6 +1,8 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
-import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import { auditHashVersions } from '../../audit-log/build-canonical-audit-payload';
+import { computeAuditLogHash } from '../../audit-log/compute-audit-log-hash';
+import { auditLogActions, auditLogEntityTypes, auditLogMaintenanceLockKey } from '../../audit-log/audit-log.constants';
 import type { TextScrubber } from './text-scrubber';
 
 const entriesListed = 2000;
@@ -26,51 +28,84 @@ export async function redactAuditForSubject(
     readonly actorUserId: string | null;
   },
 ): Promise<AuditRedactionResult> {
-  const needle = input.email.toLowerCase();
-  const entityIds = [input.userId, ...input.ticketIds];
-  const redactedAt = new Date();
-  const entries: { id: string; hash: string; v: number }[] = [];
-  let redacted = 0;
-  let sealed = 0;
-  let cursor = '';
-  for (;;) {
-    const rows = await prisma.$queryRaw<{ id: string; hash: string; hashVersion: number; metadata: unknown }[]>`
-      SELECT "id", "hash", "hashVersion", "metadata"
-      FROM "AuditLog"
-      WHERE "id" > ${cursor}
-        AND "metadata" IS NOT NULL
-        AND (
-          "actorUserId" = ${input.userId}
-          OR "entityId" = ANY(${entityIds}::text[])
-          OR position(${needle} in lower("metadata"::text)) > 0
-        )
-      ORDER BY "id"
-      LIMIT ${batch}`;
-    if (rows.length === 0) break;
-    for (const row of rows) {
-      const result = input.scrubber.scrubJson(row.metadata);
-      if (result.count === 0) continue;
-      await prisma.auditLog.update({
-        where: { id: row.id },
-        data: { metadata: result.value as never, redactedAt },
-      });
-      redacted += 1;
-      if (row.hashVersion !== 2) sealed += 1;
-      if (entries.length < entriesListed) entries.push({ id: row.id, hash: row.hash, v: row.hashVersion });
+  return prisma.$transaction(async (transaction) => {
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${auditLogMaintenanceLockKey})`;
+    const needle = input.email.toLowerCase();
+    const entityIds = [input.userId, ...input.ticketIds];
+    const redactedAt = new Date();
+    const entries: { id: string; hash: string; v: number }[] = [];
+    let redacted = 0;
+    let sealed = 0;
+    let cursor = '';
+    for (;;) {
+      const rows = await transaction.$queryRaw<{ id: string; hash: string; hashVersion: number; metadata: unknown; actorUserId: string | null; entityId: string }[]>`
+        SELECT "id", "hash", "hashVersion", "metadata", "actorUserId", "entityId"
+        FROM "AuditLog"
+        WHERE "id" > ${cursor}
+          AND "metadata" IS NOT NULL
+          AND (
+            "actorUserId" = ${input.userId}
+            OR "entityId" = ANY(${entityIds}::text[])
+            OR position(${needle} in lower("metadata"::text)) > 0
+          )
+        ORDER BY "id"
+        LIMIT ${batch}`;
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        const result = input.scrubber.scrubJson(row.metadata);
+        const directlyRelated = row.actorUserId === input.userId || entityIds.includes(row.entityId);
+        if (result.count === 0 && !directlyRelated) continue;
+        await transaction.auditLog.update({
+          where: { id: row.id },
+          data: { metadata: result.value as never, redactedAt },
+        });
+        redacted += 1;
+        if (row.hashVersion === auditHashVersions.v1) sealed += 1;
+        if (entries.length < entriesListed) entries.push({ id: row.id, hash: row.hash, v: row.hashVersion });
+      }
+      cursor = rows[rows.length - 1].id;
+      if (rows.length < batch) break;
     }
-    cursor = rows[rows.length - 1].id;
-    if (rows.length < batch) break;
-  }
-  if (redacted > 0) {
-    await prisma.$transaction((transaction) =>
-      appendAuditLog(transaction as never, {
-        action: auditLogActions.auditRedacted,
-        entityType: auditLogEntityTypes.privacyErasure,
-        entityId: input.erasureId,
-        metadata: { redacted, sealed, entries, entriesTruncated: redacted > entries.length },
-        actorUserId: input.actorUserId,
-      }),
-    );
-  }
-  return { redacted, sealed };
+    if (redacted === 0) return { redacted, sealed };
+
+    const chain = await transaction.auditLog.findMany({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+    const partitionHeads = new Map<string, string>();
+    if (chain[0]?.previousHash) partitionHeads.set('global', chain[0].previousHash);
+    for (const row of chain) {
+      const partition = (row.hashVersion === auditHashVersions.v5 || row.hashVersion === auditHashVersions.v6) ? row.chainPartition : 'global';
+      const previousHash = partitionHeads.get(partition) ?? '0'.repeat(64);
+      if (row.hashVersion === auditHashVersions.v4 || row.hashVersion === auditHashVersions.v5 || row.hashVersion === auditHashVersions.v6) {
+        const hash = computeAuditLogHash({
+          previousHash,
+          action: row.action,
+          entityType: row.entityType,
+          entityId: row.entityId,
+          metadata: {},
+          actorUserId: row.actorUserId,
+          requestId: row.requestId,
+          organizationalUnitId: row.organizationalUnitId,
+          hashAlgorithm: row.hashAlgorithm as 'sha256' | 'sha384' | 'sha512',
+          hashVersion: row.hashVersion,
+          metadataDigest: row.metadataDigest,
+          rowId: row.id,
+          createdAt: row.createdAt,
+          redactedAt: row.redactedAt,
+          ...((row.hashVersion === auditHashVersions.v5 || row.hashVersion === auditHashVersions.v6) ? { chainPartition: partition } : {}),
+          ...(row.hashVersion === auditHashVersions.v6 ? { actionSchemaVersion: row.actionSchemaVersion } : {}),
+        });
+        await transaction.auditLog.update({ where: { id: row.id }, data: { previousHash, hash } });
+        partitionHeads.set(partition, hash);
+      } else {
+        partitionHeads.set(partition, row.hash);
+      }
+    }
+    await appendAuditLog(transaction as never, {
+      action: auditLogActions.auditRedacted,
+      entityType: auditLogEntityTypes.privacyErasure,
+      entityId: input.erasureId,
+      metadata: { redacted, sealed, entries, entriesTruncated: redacted > entries.length },
+      actorUserId: input.actorUserId,
+    });
+    return { redacted, sealed };
+  }, { timeout: 120_000 });
 }

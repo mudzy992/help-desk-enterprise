@@ -6,8 +6,15 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import { mapApiError } from "@/lib/map-api-error";
+import {
+  appendProblemWhyDraft,
+  cleanProblemWhyDrafts,
+  createProblemWhyDrafts,
+  removeProblemWhyDraft,
+  updateProblemWhyDraft,
+} from "@/lib/problems/problem-analysis-draft";
 import { mapProblemError, rootCauseLabel } from "@/lib/problems/problem-view";
 import { updateProblem, type ProblemDetail, type ProblemWhy } from "@/services/problems-api";
 
@@ -18,7 +25,7 @@ function sameWhys(left: readonly ProblemWhy[], right: readonly ProblemWhy[]): bo
 }
 
 /**
- * Paket 3.3 (§6, §7): root cause analysis: category, cause, up to five
+ * Delivery invariant (requirement, requirement): root cause analysis: category, cause, up to five
  * "why?" steps, workaround and resolution. Read-only without `problem.manage`
  * or once the problem is closed/cancelled.
  */
@@ -36,7 +43,7 @@ export function ProblemAnalysisPanel({
     problem.permissions.canManage && problem.status !== "CLOSED" && problem.status !== "CANCELLED";
   const [category, setCategory] = useState(problem.rootCauseCategory ?? "");
   const [rootCause, setRootCause] = useState(problem.rootCause ?? "");
-  const [whys, setWhys] = useState<ProblemWhy[]>([...problem.rcaWhys]);
+  const [whys, setWhys] = useState(() => createProblemWhyDrafts(problem.rcaWhys));
   const [workaround, setWorkaround] = useState(problem.workaround ?? "");
   const [resolution, setResolution] = useState(problem.resolution ?? "");
   const [saving, setSaving] = useState(false);
@@ -46,14 +53,12 @@ export function ProblemAnalysisPanel({
   useEffect(() => {
     setCategory(problem.rootCauseCategory ?? "");
     setRootCause(problem.rootCause ?? "");
-    setWhys([...problem.rcaWhys]);
+    setWhys(createProblemWhyDrafts(problem.rcaWhys));
     setWorkaround(problem.workaround ?? "");
     setResolution(problem.resolution ?? "");
   }, [problem]);
 
-  const cleanWhys = whys
-    .map((why) => ({ question: why.question.trim(), answer: why.answer.trim() }))
-    .filter((why) => why.question.length > 0 || why.answer.length > 0);
+  const cleanWhys = cleanProblemWhyDrafts(whys);
   const dirty =
     category !== (problem.rootCauseCategory ?? "") ||
     rootCause.trim() !== (problem.rootCause ?? "") ||
@@ -98,7 +103,7 @@ export function ProblemAnalysisPanel({
           <dl className="grid gap-3 px-4 py-3 text-[12.5px]">
             <ReadRow
               label={t("problems.fields.rootCauseCategory")}
-              value={rootCauseLabel((key) => ticketText(t, key), problem.rootCauseCategory)}
+              value={rootCauseLabel((key) => translateText(t, key), problem.rootCauseCategory)}
             />
             <ReadRow label={t("problems.fields.rootCause")} value={problem.rootCause} />
             <div>
@@ -160,7 +165,7 @@ export function ProblemAnalysisPanel({
                   <option value="">{t("problems.form.none")}</option>
                   {categoryOptions.map((key) => (
                     <option key={key} value={key}>
-                      {rootCauseLabel((key) => ticketText(t, key), key)}
+                      {rootCauseLabel((key) => translateText(t, key), key)}
                     </option>
                   ))}
                 </Select>
@@ -186,7 +191,10 @@ export function ProblemAnalysisPanel({
               </legend>
               <p className={hintClassName}>{t("problems.analysis.whysHint")}</p>
               {whys.map((why, index) => (
-                <div key={index} className="grid gap-1.5 rounded-md border border-border/70 p-2.5">
+                <div
+                  key={why.clientId}
+                  className="grid gap-1.5 rounded-md border border-border/70 p-2.5"
+                >
                   <div className="flex items-center gap-2">
                     <span className="tnum text-[11.5px] font-medium text-muted-foreground">
                       {index + 1}.
@@ -198,9 +206,9 @@ export function ProblemAnalysisPanel({
                       aria-label={t("problems.analysis.whyQuestionLabel", { index: index + 1 })}
                       onChange={(event) =>
                         setWhys((current) =>
-                          current.map((item, i) =>
-                            i === index ? { ...item, question: event.target.value } : item,
-                          ),
+                          updateProblemWhyDraft(current, why.clientId, {
+                            question: event.target.value,
+                          }),
                         )
                       }
                     />
@@ -209,7 +217,9 @@ export function ProblemAnalysisPanel({
                       variant="ghost"
                       size="icon"
                       aria-label={t("problems.analysis.whyRemove", { index: index + 1 })}
-                      onClick={() => setWhys((current) => current.filter((_, i) => i !== index))}
+                      onClick={() =>
+                        setWhys((current) => removeProblemWhyDraft(current, why.clientId))
+                      }
                     >
                       <Trash2 size={13} aria-hidden="true" />
                     </Button>
@@ -222,9 +232,9 @@ export function ProblemAnalysisPanel({
                     aria-label={t("problems.analysis.whyAnswerLabel", { index: index + 1 })}
                     onChange={(event) =>
                       setWhys((current) =>
-                        current.map((item, i) =>
-                          i === index ? { ...item, answer: event.target.value } : item,
-                        ),
+                        updateProblemWhyDraft(current, why.clientId, {
+                          answer: event.target.value,
+                        }),
                       )
                     }
                   />
@@ -237,13 +247,12 @@ export function ProblemAnalysisPanel({
                   size="xs"
                   className="justify-self-start"
                   onClick={() =>
-                    setWhys((current) => [
-                      ...current,
-                      {
-                        question: current.length === 0 ? t("problems.analysis.whyDefault") : "",
-                        answer: "",
-                      },
-                    ])
+                    setWhys((current) =>
+                      appendProblemWhyDraft(
+                        current,
+                        current.length === 0 ? t("problems.analysis.whyDefault") : "",
+                      ),
+                    )
                   }
                 >
                   <Plus size={12} aria-hidden="true" />

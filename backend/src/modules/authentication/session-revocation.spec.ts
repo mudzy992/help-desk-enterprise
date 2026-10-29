@@ -105,6 +105,31 @@ describe('session revocation (review 2026-09-25, S1/S2)', () => {
   });
 });
 
+describe('durable session authority', () => {
+  const check = { jti: 'j1', subjectId: 'u1', issuedAt: 1, sessionId: 'sid-1' };
+
+  it('rejects a PostgreSQL-revoked session even when Redis says it is active', async () => {
+    const redis = { mget: jest.fn(async () => [null, null, null]) };
+    const prisma = { userSession: { findFirst: jest.fn(async () => null) } };
+    const store = new SessionRevocationStore(redis as never, prisma as never);
+    await expect(store.isRevoked(check)).resolves.toBe(true);
+  });
+
+  it('fails closed when PostgreSQL session authority is unavailable', async () => {
+    const redis = { mget: jest.fn(async () => [null, null, null]) };
+    const prisma = { userSession: { findFirst: jest.fn(async () => { throw new Error('postgres down'); }) } };
+    const store = new SessionRevocationStore(redis as never, prisma as never);
+    await expect(store.isRevoked(check)).resolves.toBe(true);
+  });
+
+  it('rejects an active durable session when the Redis revocation check is unavailable', async () => {
+    const redis = { mget: jest.fn(async () => { throw new Error('redis down'); }) };
+    const prisma = { userSession: { findFirst: jest.fn(async () => ({ id: 'sid-1' })) } };
+    const store = new SessionRevocationStore(redis as never, prisma as never);
+    await expect(store.isRevoked(check)).resolves.toBe(true);
+  });
+});
+
 describe('session revocation adapters at the same-second boundary', () => {
   it('memory backend checks sid first and does not reject a fresh sid at the cutoff second', async () => {
     const backend = createMemorySessionRevocationBackend(() => 1_800_000_000_000);

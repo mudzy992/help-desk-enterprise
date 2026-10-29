@@ -20,7 +20,7 @@ const category = (id: string, parentId: string | null, sortOrder: number, nameBs
   isArchived: false,
 });
 
-describe("knowledge portal helpers (K1)", () => {
+describe("knowledge portal helpers ", () => {
   it("builds a one-level tree in sort order; orphans become roots", () => {
     const tree = buildKnowledgeCategoryTree([
       category("b", null, 2),

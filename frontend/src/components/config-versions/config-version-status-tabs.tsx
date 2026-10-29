@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { configVersionStatusLabelKey } from "@/lib/config-versions/config-version-display";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import {
   configVersionStatusValues,
@@ -26,7 +27,7 @@ export function ConfigVersionStatusTabs({
         { key: "ALL", label: t("configVersions.filterAll"), count: versions.length },
         ...configVersionStatusValues.map((status) => ({
           key: status,
-          label: t(`configVersions.statuses.${status}`),
+          label: t(configVersionStatusLabelKey(status)),
           count: versions.filter((version) => version.status === status).length,
         })),
       ]}

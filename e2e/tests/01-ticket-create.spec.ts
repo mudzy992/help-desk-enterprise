@@ -1,6 +1,6 @@
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 import { test, expect } from '@playwright/test';
 
 test.describe('01 ticket create', () => {
@@ -10,22 +10,34 @@ test.describe('01 ticket create', () => {
     const env = readE2EEnvironment();
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto('/tickets/new');
+    await dismissAnnouncementModal(page);
     await page.getByText(/opšti zahtjev|general request/i).first().click();
     await page.getByRole('button', { name: /dalje|next|nastavi/i }).click();
     await page.locator('input, textarea').first().waitFor({ state: 'visible' });
     const title = `E2E create ${Date.now()}`;
     await page.getByLabel(/naslov|title/i).fill(title);
-    await page.getByLabel(/opis|description/i).fill('E2E ticket description body');
+    const descriptions = page.getByLabel(/opis|description/i);
+    for (let index = 0; index < (await descriptions.count()); index += 1) {
+      const field = descriptions.nth(index);
+      if (await field.isVisible()) await field.fill('E2E ticket description body');
+    }
     const originUnit = page.getByLabel(/jedinica porijekla|origin organizational unit/i);
     if (await originUnit.isVisible().catch(() => false)) {
       await originUnit.selectOption({ index: 1 });
     }
-    await page
-      .getByRole('button', { name: /provjeri bazu znanja|check knowledge base/i })
-      .click();
-    await page
-      .getByRole('button', { name: /nastavi sa slanjem|continue with submission/i })
-      .click();
+    const serviceNeed = page.getByLabel(/šta vam treba|what do you need/i);
+    if (await serviceNeed.isVisible().catch(() => false)) {
+      await serviceNeed.fill('E2E opis zahtjeva za Opšti zahtjev');
+    }
+    const kbCheck = page.getByRole('button', {
+      name: /provjeri bazu znanja|check knowledge base/i,
+    });
+    await kbCheck.click();
+    const continueSend = page.getByRole('button', {
+      name: /nastavi sa slanjem|continue with submission/i,
+    });
+    await expect(continueSend).toBeVisible({ timeout: 30_000 });
+    await continueSend.click();
     await page.getByRole('button', { name: /pošalji tiket|send ticket/i }).click();
     const duplicate = page.getByRole('button', { name: /svejedno kreiraj|create anyway/i });
     if (await duplicate.isVisible({ timeout: 3_000 }).catch(() => false)) {

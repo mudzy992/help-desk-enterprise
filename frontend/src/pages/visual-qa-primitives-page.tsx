@@ -1,9 +1,10 @@
 import { VisualQaActionsBoard } from "@/components/visual-qa/visual-qa-actions-board";
 import { VisualQaChartsBoard } from "@/components/visual-qa/visual-qa-charts-board";
 import { VisualQaFormsBoard } from "@/components/visual-qa/visual-qa-forms-board";
+import { VisualQaInstallBoard } from "@/components/visual-qa/visual-qa-install-board";
 import { VisualQaSurfacesBoard } from "@/components/visual-qa/visual-qa-surfaces-board";
 import { VisualQaThemeBoard } from "@/components/visual-qa/visual-qa-theme-board";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 
 export function VisualQaPrimitivesPage() {
   return (
@@ -18,6 +19,7 @@ export function VisualQaPrimitivesPage() {
       <VisualQaActionsBoard />
       <VisualQaFormsBoard />
       <VisualQaSurfacesBoard />
+      <VisualQaInstallBoard />
     </section>
   );
 }

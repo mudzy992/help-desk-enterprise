@@ -1,0 +1,269 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../../../generated/prisma/client";
+import { StorageWriteService } from "../../../common/storage-write/storage-write.service";
+import { DiskStagedStorageAdapter } from "../../../common/storage-write/disk-staged-storage.adapter";
+import type { StagedStorageAdapter } from "../../../common/storage-write/storage-write.types";
+import { DiskTicketAttachmentStorage } from "../attachments/disk-ticket-attachment-storage";
+import { transferSplitAttachments } from "./transfer-split-attachments";
+import { RequestIdempotencyService } from "../../../common/idempotency/request-idempotency.service";
+import { randomUUID } from "node:crypto";
+
+const url = process.env.PRIVACY_IT_DATABASE_URL;
+const describeIfDatabase = url ? describe : describe.skip;
+
+describeIfDatabase("ticket split attachment durable copy", () => {
+  jest.setTimeout(120_000);
+  let prisma: PrismaClient;
+  let root: string;
+  let parentId: string;
+  let childId: string;
+  let actorId: string;
+  let sourceAttachmentId: string;
+  const stamp = Date.now();
+
+  beforeAll(async () => {
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: url! }),
+    });
+    root = await mkdtemp(path.join(tmpdir(), "split-attachment-"));
+    const unit = await prisma.organizationalUnit.create({
+      data: {
+        name: "Split IT",
+        type: "DIRECTORATE",
+        distinguishedName: `OU=SPL${stamp}`,
+        ouPath: `/spl${stamp}`,
+      },
+    });
+    const category = await prisma.serviceCategory.create({
+      data: { name: `Split ${stamp}`, slug: `spl-cat-${stamp}` },
+    });
+    const service = await prisma.service.create({
+      data: {
+        name: `Split ${stamp}`,
+        slug: `spl-svc-${stamp}`,
+        categoryId: category.id,
+        lifecycle: "ACTIVE",
+      },
+    });
+    const form = await prisma.formVersion.create({
+      data: { serviceId: service.id, version: 1, schema: {} },
+    });
+    const actor = await prisma.user.create({
+      data: {
+        email: `split-${stamp}@example.test`,
+        displayName: "Split actor",
+      },
+    });
+    actorId = actor.id;
+    const base = {
+      description: "storage proof",
+      formData: {},
+      priority: "LOW",
+      impact: "LOW",
+      urgency: "LOW",
+      status: "IN_PROGRESS",
+      serviceId: service.id,
+      formVersionId: form.id,
+      requesterId: actor.id,
+      originUnitId: unit.id,
+    } as const;
+    const parent = await prisma.ticket.create({
+      data: {
+        ...base,
+        ticketNumber: `SPL-P-${stamp}`,
+        title: "Parent",
+      } as never,
+    });
+    const child = await prisma.ticket.create({
+      data: {
+        ...base,
+        ticketNumber: `SPL-C-${stamp}`,
+        title: "Child",
+        parentTicketId: parent.id,
+      } as never,
+    });
+    parentId = parent.id;
+    childId = child.id;
+    const storage = new DiskTicketAttachmentStorage(root);
+    const storagePath = await storage.write({
+      ticketId: parent.id,
+      extension: "txt",
+      contents: Buffer.from("durable split contents"),
+    });
+    const source = await prisma.ticketAttachment.create({
+      data: {
+        ticketId: parent.id,
+        storagePath,
+        originalName: "proof.txt",
+        mimeType: "text/plain",
+        extension: "txt",
+        sizeBytes: 22,
+        classification: "INTERNAL",
+        uploadedByUserId: actor.id,
+      },
+    });
+    sourceAttachmentId = source.id;
+  });
+
+  afterAll(async () => {
+    await prisma.storageWriteIntent.deleteMany({
+      where: { namespace: "ticket.split.attachment" },
+    });
+    await prisma.idempotencyRecord.deleteMany({
+      where: { namespace: { startsWith: `ticket.split.proof-${stamp}` } },
+    });
+    await prisma.ticket.deleteMany({ where: { parentTicketId: parentId } });
+    await prisma.ticket.deleteMany({
+      where: { id: { in: [childId, parentId] } },
+    });
+    await prisma.user.delete({ where: { id: actorId } }).catch(() => undefined);
+    await prisma.$disconnect();
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("rolls back a late child failure and replays one committed multi-child result exactly once", async () => {
+    const parent = await prisma.ticket.findUniqueOrThrow({
+      where: { id: parentId },
+    });
+    const childData = (title: string, ticketNumber: string) => ({
+      title,
+      ticketNumber,
+      description: parent.description,
+      formData: parent.formData,
+      priority: parent.priority,
+      impact: parent.impact,
+      urgency: parent.urgency,
+      status: parent.status,
+      serviceId: parent.serviceId,
+      formVersionId: parent.formVersionId,
+      requesterId: parent.requesterId,
+      originUnitId: parent.originUnitId,
+      parentTicketId: parent.id,
+    });
+
+    await expect(
+      prisma.$transaction(async (transaction) => {
+        await transaction.ticket.create({
+          data: childData("Rolled back first", `SPL-R1-${stamp}`) as never,
+        });
+        await transaction.ticket.create({
+          data: childData("Rolled back second", `SPL-R2-${stamp}`) as never,
+        });
+        throw new Error("INVALID_LATE_CHILD");
+      }),
+    ).rejects.toThrow("INVALID_LATE_CHILD");
+    expect(
+      await prisma.ticket.count({
+        where: { ticketNumber: { in: [`SPL-R1-${stamp}`, `SPL-R2-${stamp}`] } },
+      }),
+    ).toBe(0);
+
+    const operationId = randomUUID();
+    const namespace = `ticket.split.proof-${stamp}`;
+    const idempotency = new RequestIdempotencyService(prisma as never);
+    let executions = 0;
+    const execute = (request: { children: string[] }) =>
+      idempotency.execute({
+        namespace,
+        key: operationId,
+        request,
+        operation: async (transaction) => {
+          executions += 1;
+          const childIds: string[] = [];
+          for (const [index, title] of request.children.entries()) {
+            const created = await transaction.ticket.create({
+              data: childData(title, `SPL-I${index}-${stamp}`) as never,
+            });
+            childIds.push(created.id);
+          }
+          return { statusCode: 201, body: { parentId, childIds } };
+        },
+      });
+    const first = await execute({
+      children: ["Atomic first", "Atomic second"],
+    });
+    const replay = await execute({
+      children: ["Atomic first", "Atomic second"],
+    });
+    expect(first.replayed).toBe(false);
+    expect(replay).toEqual({ ...first, replayed: true });
+    expect(executions).toBe(1);
+    expect(
+      await prisma.ticket.count({ where: { id: { in: first.body.childIds } } }),
+    ).toBe(2);
+    await expect(
+      execute({ children: ["Different payload", "Atomic second"] }),
+    ).rejects.toThrow("IDEMPOTENCY_PAYLOAD_MISMATCH");
+    expect(
+      await prisma.ticket.count({ where: { parentTicketId: parentId } }),
+    ).toBe(3);
+  });
+
+  it("persists a real copy intent and converges after promotion failure", async () => {
+    const storage = new DiskTicketAttachmentStorage(root);
+    const disk = new DiskStagedStorageAdapter(root);
+    let failed = false;
+    const flaky: StagedStorageAdapter = {
+      stage: (key, value) => disk.stage(key, value),
+      remove: (key) => disk.remove(key),
+      promote: async (staging, final) => {
+        if (!failed) {
+          failed = true;
+          throw new Error("injected promotion fault");
+        }
+        await disk.promote(staging, final);
+      },
+    };
+    const parent = await prisma.ticket.findUniqueOrThrow({
+      where: { id: parentId },
+    });
+    const child = await prisma.ticket.findUniqueOrThrow({
+      where: { id: childId },
+    });
+    const writes = new StorageWriteService(prisma as never);
+    const promotions: import("./split-storage-promotion").SplitStoragePromotion[] =
+      [];
+    await transferSplitAttachments({
+      prisma: prisma as never,
+      storage,
+      stagedStorage: flaky,
+      promotions,
+      parent: parent as never,
+      child: child as never,
+      request: { title: "Child", attachmentIds: [sourceAttachmentId] } as never,
+      configuration: { allowAttachmentMove: true } as never,
+    });
+    await expect(
+      flaky.promote(promotions[0]!.stagingKey, promotions[0]!.finalKey),
+    ).rejects.toThrow("injected promotion fault");
+    const copied = await prisma.ticketAttachment.findFirstOrThrow({
+      where: { ticketId: childId },
+    });
+    expect(copied.storagePath.startsWith(`tickets/${childId}/split-`)).toBe(
+      true,
+    );
+    await expect(storage.read(copied.storagePath)).rejects.toThrow(
+      "ATTACHMENT_NOT_FOUND",
+    );
+    expect(await writes.reconcileOne("ticket.split.attachment", disk)).toBe(
+      "ready",
+    );
+    expect((await storage.read(copied.storagePath)).toString()).toBe(
+      "durable split contents",
+    );
+    expect(
+      (
+        await storage.read(
+          (
+            await prisma.ticketAttachment.findUniqueOrThrow({
+              where: { id: sourceAttachmentId },
+            })
+          ).storagePath,
+        )
+      ).toString(),
+    ).toBe("durable split contents");
+  });
+});

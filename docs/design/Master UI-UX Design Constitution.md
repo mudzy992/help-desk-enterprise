@@ -1191,3 +1191,30 @@ Krajnji rezultat treba ostaviti osjećaj:
 Ne:
 
 > "Ovo je lijep dashboard template."
+
+---
+
+## 39. Izuzetak: install wizard
+
+Install wizard (first-run) je jedini ekran koji se prikazuje **prije prijave** i prije nego što postoji bilo kakva konfiguracija; zato smije odstupiti od strogih pravila aplikacijskog shell-a, ali samo u navedenom obimu. Izuzetak važi isključivo za rutu `/install` i njene korake (`frontend/src/components/install/`, `frontend/src/pages/install-page.tsx`).
+
+**Dozvoljeno**
+
+- Brend pano i mirna pozadina: logotip, naslov proizvoda i token-based ploha — bez aplikacijskog shell-a (nav/aside nisu dostupni jer nema prijavljenog korisnika).
+- Motion s funkcijom do ~250 ms: ulaz koraka, promjena koraka u `WizardStepper`-u, traka napretka, potvrda snimanja. Animacija mora nositi značenje („stanje se promijenilo“), ne ukras.
+- Ikone funkcija i kratki opisi uz prekidače (npr. dodatak, način prijave) da operater razumije posljedicu bez napuštanja koraka.
+- Završni ekran („sistem je spreman“) i provisioning ekran s popisom koraka.
+- Reduced motion: `prefers-reduced-motion` obavezno gasi ili skraćuje svaku od navedenih animacija.
+
+**I dalje zabranjeno**
+
+- Floating blobs, bounce, cross-fade cijelih ekrana i svaka dekorativna pozadinska animacija.
+- Glassmorphism, blur pozadine, neonski gradijenti i sjene bez tokena.
+- Više od jedne primarne akcije po koraku; korak koji traži podatak ne smije izgledati kao marketinška stranica.
+- Sakrivanje obaveznih polja iza animacije ili odgađanje prikaza forme radi efekta.
+
+**Obavezno**
+
+- Jedan korak = jedan posao; primarni CTA je „Dalje“ (ili „Završi“ na zadnjem koraku).
+- Sve boje, radijusi, sjene i tipografija kroz tokene iz `src/index.css` (nema hardkodovanih boja).
+- Greške se najavljuju čitaču ekrana (`role="alert"`) i nikad ne ostavljaju formu u nepoznatom stanju.

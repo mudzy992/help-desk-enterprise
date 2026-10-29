@@ -9,6 +9,7 @@ import {
   SecurityAuditLogQueryDto,
 } from './security-audit-log.controller';
 import { AuditLogRepository } from '../audit-log/audit-log.repository';
+import { encodeAuditCursor } from '../audit-log/audit-cursor';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
 /*
@@ -124,6 +125,13 @@ describe('AuditLogService.listAuthSecurityEvents', () => {
     expect(result).toEqual({ items: [], nextCursor: null });
   });
 
+  it('rejects malformed cursors before calling the repository', async () => {
+    const { service, listAuthPage } = createFixture();
+    await expect(service.listAuthSecurityEvents({ action: null, userId: null, take: 50, cursor: 'raw-row-id' }))
+      .rejects.toMatchObject({ code: 'AUDIT_INVALID_CURSOR' });
+    expect(listAuthPage).not.toHaveBeenCalled();
+  });
+
   it('maps rows with the same serializer the OU-scoped list uses', async () => {
     const { service, listAuthPage } = createFixture();
     listAuthPage.mockResolvedValue({
@@ -154,7 +162,7 @@ describe('AuditLogService.listAuthSecurityEvents', () => {
       cursor: null,
     });
 
-    expect(result.nextCursor).toBe('row-1');
+    expect(result.nextCursor).toBe(encodeAuditCursor('row-1'));
     expect(result.items[0]).toMatchObject({
       id: 'row-1',
       action: 'auth.login_failed',

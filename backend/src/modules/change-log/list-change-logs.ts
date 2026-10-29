@@ -12,6 +12,73 @@ export type ChangeLogListEntry = {
   readonly diff: ChangeLogDiffPayload;
 };
 
+export type ChangeLogPage = {
+  readonly items: readonly ChangeLogListEntry[];
+  readonly total: number;
+  readonly hasMore: boolean;
+};
+
+export async function listChangeLogPage(
+  prisma: PrismaService,
+  input: {
+    readonly entityType: string;
+    readonly entityId?: string;
+    readonly entityIds?: readonly string[];
+    readonly scopePairs?: readonly {
+      readonly originUnitId: string;
+      readonly serviceId: string | null;
+    }[];
+    readonly take: number;
+    readonly cursor?: { readonly createdAt: Date; readonly id: string };
+  },
+): Promise<ChangeLogPage> {
+  const entityWhere = {
+    entityType: input.entityType,
+    ...(input.entityId === undefined ? {} : { entityId: input.entityId }),
+    ...(input.entityIds === undefined ? {} : { entityId: { in: [...input.entityIds] } }),
+  };
+  const baseWhere = input.scopePairs === undefined
+    ? entityWhere
+    : {
+        AND: [
+          entityWhere,
+          {
+            OR: input.scopePairs.map((pair) => ({
+              scopeOriginUnitId: pair.originUnitId,
+              ...(pair.serviceId === null ? {} : { scopeServiceId: pair.serviceId }),
+            })),
+          },
+        ],
+      };
+  const pageWhere = input.cursor === undefined
+    ? baseWhere
+    : {
+        AND: [
+          baseWhere,
+          {
+            OR: [
+              { createdAt: { lt: input.cursor.createdAt } },
+              { createdAt: input.cursor.createdAt, id: { lt: input.cursor.id } },
+            ],
+          },
+        ],
+      };
+  const [total, entries] = await Promise.all([
+    prisma.changeLog.count({ where: baseWhere }),
+    prisma.changeLog.findMany({
+      where: pageWhere,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: input.take + 1,
+      include: { actor: { select: { displayName: true } } },
+    }),
+  ]);
+  return {
+    items: entries.slice(0, input.take).map(toChangeLogListEntry),
+    total,
+    hasMore: entries.length > input.take,
+  };
+}
+
 export async function listChangeLogs(
   prisma: PrismaService,
   input: {
@@ -31,7 +98,20 @@ export async function listChangeLogs(
       },
     },
   });
-  return entries.map((entry) => ({
+  return entries.map(toChangeLogListEntry);
+}
+
+function toChangeLogListEntry(entry: {
+  readonly id: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly reason: string;
+  readonly actorUserId: string | null;
+  readonly actor: { readonly displayName: string } | null;
+  readonly createdAt: Date;
+  readonly diff: unknown;
+}): ChangeLogListEntry {
+  return {
     id: entry.id,
     entityType: entry.entityType,
     entityId: entry.entityId,
@@ -39,6 +119,6 @@ export async function listChangeLogs(
     actorUserId: entry.actorUserId,
     actorDisplayName: entry.actor?.displayName ?? null,
     createdAt: entry.createdAt.toISOString(),
-    diff: entry.diff as unknown as ChangeLogDiffPayload,
-  }));
+    diff: entry.diff as ChangeLogDiffPayload,
+  };
 }

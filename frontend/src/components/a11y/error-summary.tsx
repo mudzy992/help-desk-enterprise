@@ -25,7 +25,7 @@ export function ErrorSummary({ items, focusKey }: ErrorSummaryProperties) {
       reference.current?.focus();
     }
     // Focus only when a new submit attempt fails.
-  }, [focusKey]);
+  }, [focusKey, items.length]);
 
   if (items.length === 0) {
     return null;

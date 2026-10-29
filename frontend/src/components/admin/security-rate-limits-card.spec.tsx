@@ -15,7 +15,7 @@ import type {
 } from "@/services/security-api";
 
 /*
-  Paket 5.4.0-e.2: the „Ograničenja prijava" card after the review of the live
+  the „Ograničenja prijava" card after the review of the live
   surface. Two things are pinned here:
 
   * the card **reads** — three rows with the live numbers — and never shows an

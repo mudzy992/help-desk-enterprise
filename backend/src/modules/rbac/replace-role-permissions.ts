@@ -12,6 +12,8 @@ import { getRolePermissions } from './get-role-permissions';
 import { loadRoleByKey } from './load-role-by-key';
 import type { ReplaceRolePermissionsInput } from './rbac.types';
 import { verifyRolePermissionPreviewToken } from './role-permission-preview-token';
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { lockActiveSuperAdminInvariant } from '../users/super-admin-invariant';
 
 /**
  * Phase 2.2: a role's permission set is part of every holder's cached principal
@@ -47,6 +49,14 @@ export async function replaceRolePermissions(
   const previousPermissionKeys = await getRolePermissions(prisma, role.key);
   const nextPermissionKeys = assertKnownPermissionKeys(input.permissionKeys);
   const nextPermissionKeysApplied = await prisma.$transaction(async (transaction) => {
+    // The same transaction lock protects admin availability and the permission
+    // matrix. Every permission write is serialized before its invariant check.
+    await lockActiveSuperAdminInvariant(transaction);
+    if (role.key === authorizationRoleKeys.superAdmin) {
+      // Runtime SuperAdmin authority is intentionally the full catalog. Letting
+      // this row be edited creates a deceptive matrix with no runtime effect.
+      throw new RbacError('SYSTEM_ROLE_PERMISSIONS_IMMUTABLE');
+    }
     const idsByKey = await ensurePermissionRows(
       transaction as PrismaService,
       nextPermissionKeys,

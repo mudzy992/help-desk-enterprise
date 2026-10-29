@@ -2,29 +2,37 @@ import { describe, expect, it } from "vitest";
 import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
 
 describe("staffDeepLinkFilters", () => {
-  const url = new URLSearchParams(
-    "view=all&forwarded=any&personal=mentionedMe&hideMerged=false&unroutedOverdue=true",
-  );
-
   it("reads every staff deep-link filter from the URL", () => {
+    const url = new URLSearchParams(
+      "view=all&forwarded=any&personal=mentionedMe&hideMerged=false&unroutedOverdue=true",
+    );
     expect(staffDeepLinkFilters(url, true)).toEqual({
       forwarded: "any",
       personal: "mentionedMe",
       hideMerged: false,
       unroutedOverdue: true,
-      // Without an explicit inboxTab param the helper leaves the default to
-      // the hook (so all/teams do not carry a misleading "unrouted" value).
       inboxTab: undefined,
+      status: "",
+      priority: "",
+      overdue: false,
+      atRisk: false,
     });
   });
 
   it("resolves to empty values while staff status is unknown or denied", () => {
+    const url = new URLSearchParams(
+      "status=UNROUTED&priority=CRITICAL&overdue=true&atRisk=true&inboxTab=unrouted",
+    );
     expect(staffDeepLinkFilters(url, false)).toEqual({
       forwarded: "",
       personal: "",
       hideMerged: false,
       unroutedOverdue: false,
       inboxTab: undefined,
+      status: "",
+      priority: "",
+      overdue: false,
+      atRisk: false,
     });
   });
 
@@ -39,5 +47,39 @@ describe("staffDeepLinkFilters", () => {
 
   it("ignores unknown filter values", () => {
     expect(staffDeepLinkFilters(new URLSearchParams("forwarded=bogus"), true).forwarded).toBe("");
+  });
+
+  // card links from the dashboard carry status,
+  // priority, overdue and atRisk — the list must apply them.
+  it("parses a single status from metric card links", () => {
+    const url = new URLSearchParams("view=all&status=UNROUTED");
+    const result = staffDeepLinkFilters(url, true);
+    expect(result.status).toBe("UNROUTED");
+    expect(result.statusesFromDeepLink).toBeUndefined();
+  });
+
+  it("puts repeated status params into statusesFromDeepLink (server-side filter)", () => {
+    const url = new URLSearchParams(
+      "view=all&status=PENDING&status=UNROUTED&status=PENDING_APPROVAL",
+    );
+    const result = staffDeepLinkFilters(url, true);
+    expect(result.status).toBe("PENDING");
+    expect(result.statusesFromDeepLink).toEqual(["UNROUTED", "PENDING_APPROVAL"]);
+  });
+
+  it("parses priority, overdue and atRisk flags", () => {
+    const url = new URLSearchParams("view=all&priority=CRITICAL&overdue=true&atRisk=true");
+    const result = staffDeepLinkFilters(url, true);
+    expect(result.priority).toBe("CRITICAL");
+    expect(result.overdue).toBe(true);
+    expect(result.atRisk).toBe(true);
+  });
+
+  it("ignores unknown status and priority values", () => {
+    const url = new URLSearchParams("status=FAKE&priority=URGENT");
+    const result = staffDeepLinkFilters(url, true);
+    expect(result.status).toBe("");
+    expect(result.statusesFromDeepLink).toBeUndefined();
+    expect(result.priority).toBe("");
   });
 });

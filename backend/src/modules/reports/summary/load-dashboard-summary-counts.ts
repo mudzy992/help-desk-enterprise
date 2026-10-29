@@ -2,6 +2,7 @@ import type { Prisma } from '../../../generated/prisma/client';
 import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { withTicketWhereClause } from '../../tickets/list/build-ticket-list-where';
+import { buildUnroutedWhere } from '../../tickets/unrouted/build-unrouted-where';
 import { startOfCivilDay } from './start-of-civil-day';
 import type {
   DashboardSummaryCounts,
@@ -50,7 +51,7 @@ const overdueState: Prisma.TicketSlaStateWhereInput = {
 };
 
 /**
- * Phase 2.4 (plan §2.4): the dashboard counters as SQL aggregates over the
+ * the dashboard counters as SQL aggregates over the
  * visibility scope the lists use — no ticket rows ever leave the database.
  *
  * Staging k6 (2026-09-24, 100k tickets): the former eight parallel statements
@@ -76,7 +77,7 @@ export async function loadDashboardSummaryCounts(
   },
 ): Promise<DashboardSummaryCounts> {
   const { where, actorUserId, now, timeZone } = input;
-  const [groupRows, openedToday, requestedByMe, overdue] = await Promise.all([
+  const [groupRows, openedToday, requestedByMe, overdue, unroutedQueueCount] = await Promise.all([
     prisma.ticket.groupBy({
       by: ['status', 'priority', 'assignedUserId'],
       where,
@@ -92,6 +93,13 @@ export async function loadDashboardSummaryCounts(
     }),
     prisma.ticket.count({
       where: withTicketWhereClause(where, { slaState: { is: overdueState } }),
+    }),
+    // one canonical "unrouted" number across the card,
+    // sidebar badge and inbox banner — the unrouted queue (UNROUTED status +
+    // fallback-routed PENDING tickets via `buildUnroutedWhere`), matching
+    // `get-ticket-counts.ts` `unroutedQueue`.
+    prisma.ticket.count({
+      where: withTicketWhereClause(where, buildUnroutedWhere()),
     }),
   ]);
 
@@ -166,7 +174,7 @@ export async function loadDashboardSummaryCounts(
     pendingApproval: countOf('PENDING_APPROVAL'),
     resolved: countOf('RESOLVED'),
     closed: countOf('CLOSED'),
-    unrouted: countOf('UNROUTED'),
+    unrouted: unroutedQueueCount,
     unassigned,
     assignedToMe,
     requestedByMe,

@@ -25,9 +25,10 @@ export class TicketAssignmentService {
     ticket: TicketRecord,
     context: TicketMutationContext,
     messages: TicketPersistedMessageSink = [],
+    prisma: PrismaService = this.prisma,
   ): Promise<TicketRecord> {
     return applyTicketAutoAssignment(
-      this.prisma,
+      prisma,
       this.authorizationContextLoader,
       this.configurationLoader,
       ticket,

@@ -14,14 +14,14 @@ export async function ensureStartingSlaEscalations(
   prisma: PrismaService,
   slaProfileId: string,
 ): Promise<number> {
-  const existingCount = await prisma.slaEscalationRule.count({
+  const existing = await prisma.slaEscalationRule.findMany({
     where: { slaProfileId },
   });
-  if (existingCount > 0) {
-    return 0;
-  }
   let createdCount = 0;
   for (const definition of startingSlaEscalationDefinitions) {
+    if (existing.some((rule) =>
+      rule.triggerOffsetMinutes === definition.triggerOffsetMinutes
+    )) continue;
     await persistStartingEscalation(prisma, {
       slaProfileId,
       triggerOffsetMinutes: definition.triggerOffsetMinutes,
@@ -38,18 +38,16 @@ async function persistStartingEscalation(
   prisma: PrismaService,
   data: Omit<SlaEscalationRuleRecord, 'id'>,
 ): Promise<void> {
-  await prisma.$transaction(async (transaction) => {
-    const created = (await transaction.slaEscalationRule.create({
-      data,
-    })) as SlaEscalationRuleRecord;
-    await recordSlaChange(transaction as PrismaService, {
-      action: changeLogActions.create,
-      entityType: slaChangeLogEntityTypes.escalationRule,
-      entityId: created.id,
-      reason: startingSlaSeedReason,
-      before: {},
-      after: toEscalationRuleSnapshot(created),
-      actorUserId: startingSlaSeedContext.actorUserId,
-    });
+  const created = (await prisma.slaEscalationRule.create({
+    data,
+  })) as SlaEscalationRuleRecord;
+  await recordSlaChange(prisma, {
+    action: changeLogActions.create,
+    entityType: slaChangeLogEntityTypes.escalationRule,
+    entityId: created.id,
+    reason: startingSlaSeedReason,
+    before: {},
+    after: toEscalationRuleSnapshot(created),
+    actorUserId: startingSlaSeedContext.actorUserId,
   });
 }

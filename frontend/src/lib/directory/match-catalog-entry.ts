@@ -2,7 +2,7 @@ import type { ManualDirectoryOrganizationalUnit } from "@/services/directory-syn
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
 /**
- * Paket 5.3.2 (§4.3): a tree node and a manual-catalog entry describe the same
+ * a tree node and a manual-catalog entry describe the same
  * unit from two sides. Before any edit/delete request the screen has to prove
  * that the two still line up — matching only by distinguished name would let a
  * renamed or moved unit be edited under a stale path, and a unit that is not in

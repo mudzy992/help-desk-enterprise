@@ -30,6 +30,8 @@ function ticket(overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">)
     impact: "MEDIUM",
     urgency: "MEDIUM",
     classification: "INTERNAL",
+    requestType: null,
+    dueAt: null,
     isConfidential: false,
     formData: null,
     originUnitId: "ou-1",
@@ -68,6 +70,17 @@ describe("inbox-view-tabs", () => {
     expect(inboxGroupTabsFromMembership(groups, [onlyGroupATicket])).toEqual([
       { groupId: "group-a", name: "Access management", count: 1 },
       { groupId: "group-b", name: "Networking", count: 0 },
+    ]);
+  });
+
+  it("uses fetched server totals and leaves unseen group counts unknown", () => {
+    const groups = [
+      myGroup({ id: "group-a", name: "Access management" }),
+      myGroup({ id: "group-b", name: "Networking" }),
+    ];
+    expect(inboxGroupTabsFromMembership(groups, [], new Map([["group-a", 37]]))).toEqual([
+      { groupId: "group-a", name: "Access management", count: 37 },
+      { groupId: "group-b", name: "Networking", count: null },
     ]);
   });
 

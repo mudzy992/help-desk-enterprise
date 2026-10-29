@@ -14,7 +14,7 @@ import { formatCsat } from "@/lib/reports/report-format";
 import { fetchTicketCsatSummary, type TicketCsatSummary } from "@/services/tickets-csat-api";
 
 /**
- * Val 1 (M9/B3): RAW traži CSAT razrez po OU/servisu/grupi, a `GET
+ * The product requires CSAT razrez po OU/servisu/grupi, a `GET
  * /tickets/csat/summary` ga je već računao bez ijednog pozivaoca. Skala i prag
  * dolaze iz CSAT konfiguracije (`private.csat.scaleMax`), pa se prikazuje
  * „x / 10“ kad je skala 10, a ne „x / 5“.
@@ -44,6 +44,12 @@ export function ReportsCsatPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const scopeNote = (
+    <p role="note" className="mb-3 text-[12px] text-muted-foreground">
+      {t("reports.csat.allTimeScope")}
+    </p>
+  );
 
   if (isLoading && summary === null) {
     return <PanelSkeleton className="mt-0" label={t("reports.csat.title")} />;
@@ -89,6 +95,7 @@ export function ReportsCsatPanel() {
 
   return (
     <div className="mt-2 space-y-3">
+      {scopeNote}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard
           emphasis

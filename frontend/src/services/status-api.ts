@@ -31,9 +31,12 @@ export type Incident = {
   readonly visibility: IncidentVisibility;
   readonly startedAt: string;
   readonly resolvedAt: string | null;
+  readonly revision: string;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
-  /** Newest first. */
+  /** Newest first; overview embeds a bounded first page. */
   readonly updates: readonly IncidentUpdate[];
+  readonly updatesHasMore?: boolean;
+  readonly updatesNextCursor?: string | null;
   readonly linkedTicketCount: number | null;
   readonly subscriberCount: number | null;
   readonly subscribed: boolean;
@@ -57,6 +60,8 @@ export type StatusPageOverview = {
   };
   readonly canManage: boolean;
   readonly affectedServiceCount: number;
+  readonly servicesHasMore: boolean;
+  readonly plannedHasMore: boolean;
   readonly categories: ReadonlyArray<{
     readonly id: string | null;
     readonly name: string | null;
@@ -124,8 +129,15 @@ export function createIncident(
 ): Promise<{ readonly id: string; readonly notified: number }> {
   return apiRequest("/status/incidents", json("POST", input));
 }
-export function editIncident(incidentId: string, input: EditIncidentInput): Promise<void> {
-  return apiRequest(`/status/incidents/${id(incidentId)}`, json("PATCH", input));
+export function editIncident(
+  incidentId: string,
+  revision: string,
+  input: EditIncidentInput,
+): Promise<void> {
+  return apiRequest(`/status/incidents/${id(incidentId)}`, {
+    ...json("PATCH", input),
+    headers: { "If-Match": revision },
+  });
 }
 export function postIncidentUpdate(
   incidentId: string,
@@ -137,20 +149,42 @@ export function postIncidentUpdate(
 ): Promise<{ readonly notified: number }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/updates`, json("POST", input));
 }
+export function listIncidentTimeline(
+  incidentId: string,
+  input: { readonly cursor?: string; readonly take?: number } = {},
+): Promise<{
+  readonly items: readonly IncidentUpdate[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+}> {
+  const query = new URLSearchParams();
+  if (input.cursor !== undefined) query.set("cursor", input.cursor);
+  if (input.take !== undefined) query.set("take", String(input.take));
+  const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+  return apiRequest(`/status/incidents/${id(incidentId)}/timeline${suffix}`);
+}
 export function getResolvePreview(incidentId: string): Promise<ResolvePreview> {
   return apiRequest(`/status/incidents/${id(incidentId)}/resolve-preview`);
 }
 export function linkTicketToIncident(
   incidentId: string,
   ticketId: string,
+  revision: string,
 ): Promise<{ readonly linked: boolean }> {
-  return apiRequest(`/status/incidents/${id(incidentId)}/tickets`, json("POST", { ticketId }));
+  return apiRequest(`/status/incidents/${id(incidentId)}/tickets`, {
+    ...json("POST", { ticketId }),
+    headers: { "If-Match": revision },
+  });
 }
 export function unlinkTicketFromIncident(
   incidentId: string,
   ticketId: string,
+  revision: string,
 ): Promise<{ readonly unlinked: boolean }> {
-  return apiRequest(`/status/incidents/${id(incidentId)}/tickets/${id(ticketId)}`, json("DELETE"));
+  return apiRequest(`/status/incidents/${id(incidentId)}/tickets/${id(ticketId)}`, {
+    ...json("DELETE"),
+    headers: { "If-Match": revision },
+  });
 }
 export function subscribeToIncident(incidentId: string): Promise<{ readonly subscribed: true }> {
   return apiRequest(`/status/incidents/${id(incidentId)}/subscription`, json("POST"));

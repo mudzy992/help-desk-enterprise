@@ -22,9 +22,9 @@ describe("resolveReportWindow", () => {
       customTo: "",
       now,
     });
-    expect(toDateInputValue(fifteen.from)).toBe("2026-09-01");
-    expect(toDateInputValue(thirty.from)).toBe("2026-08-17");
-    expect(fifteen.to).toEqual(now);
+    expect(toDateInputValue(fifteen!.from)).toBe("2026-09-01");
+    expect(toDateInputValue(thirty!.from)).toBe("2026-08-17");
+    expect(fifteen!.to).toEqual(now);
   });
 
   it("rolls 6 and 12 months back from the start of today", () => {
@@ -40,29 +40,39 @@ describe("resolveReportWindow", () => {
       customTo: "",
       now,
     });
-    expect(toDateInputValue(six.from)).toBe("2026-03-15");
-    expect(toDateInputValue(twelve.from)).toBe("2025-09-15");
+    expect(toDateInputValue(six!.from)).toBe("2026-03-15");
+    expect(toDateInputValue(twelve!.from)).toBe("2025-09-15");
   });
 
-  it("parses a custom range and swaps inverted dates", () => {
-    const window = resolveReportWindow({
+  it("parses only a complete, ordered custom range", () => {
+    const valid = resolveReportWindow({
       preset: "custom",
-      customFrom: "2026-09-20",
-      customTo: "2026-09-10",
+      customFrom: "2026-09-10",
+      customTo: "2026-09-20",
       now,
     });
-    expect(toDateInputValue(window.from)).toBe("2026-09-10");
-    expect(toDateInputValue(window.to)).toBe("2026-09-20");
+    expect(toDateInputValue(valid!.from)).toBe("2026-09-10");
+    expect(toDateInputValue(valid!.to)).toBe("2026-09-20");
+    expect(
+      resolveReportWindow({
+        preset: "custom",
+        customFrom: "2026-09-20",
+        customTo: "2026-09-10",
+        now,
+      }),
+    ).toBeNull();
   });
 
-  it("falls back to 30 days when custom dates are missing", () => {
-    const window = resolveReportWindow({
-      preset: "custom",
-      customFrom: "",
-      customTo: "",
-      now,
-    });
-    expect(toDateInputValue(window.from)).toBe("2026-08-17");
+  it("rejects missing and impossible custom dates instead of silently falling back", () => {
+    expect(resolveReportWindow({ preset: "custom", customFrom: "", customTo: "", now })).toBeNull();
+    expect(
+      resolveReportWindow({
+        preset: "custom",
+        customFrom: "2026-02-31",
+        customTo: "2026-03-10",
+        now,
+      }),
+    ).toBeNull();
   });
 });
 

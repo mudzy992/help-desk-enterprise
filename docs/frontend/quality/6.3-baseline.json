@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-22",
+  "gitSha": "7e51f0d0bb6b46a597bdfdac7e1c35fca6898384",
+  "score": 9.82,
+  "inventory": {
+    "productionTypeScriptFiles": 1101,
+    "vitestSpecFiles": 415,
+    "vitestTests": 1623,
+    "pageModules": 47,
+    "componentModules": 540,
+    "libModules": 399,
+    "serviceModules": 99,
+    "e2eSpecFiles": 58,
+    "i18nKeysPerLocale": 8811,
+    "staticTranslationKeys": 4525,
+    "dynamicTranslationPrefixes": 87,
+    "productionDependencyVulnerabilities": 0
+  },
+  "moduleLimits": {
+    "lib": 320,
+    "application": 500
+  },
+  "legacyHotspots": {
+    "pages/asset-detail-page.tsx": 732,
+    "services/problems-api.ts": 578,
+    "pages/announcements-page.tsx": 575,
+    "components/assets/asset-import-panel.tsx": 575,
+    "pages/playbook-editor-page.tsx": 573,
+    "components/announcements/announcement-editor-dialog.tsx": 550,
+    "pages/account-notifications-page.tsx": 540,
+    "pages/changes-page.tsx": 522,
+    "pages/problems-page.tsx": 521,
+    "pages/response-template-editor-page.tsx": 520,
+    "pages/login-page.tsx": 519,
+    "pages/templates-page.tsx": 518,
+    "services/changes-api.ts": 514
+  },
+  "criticalApiBoundaries": [
+    "session/capabilities",
+    "authentication session",
+    "install readiness",
+    "paginated ticket envelope",
+    "config package preview",
+    "routing coverage",
+    "service catalog batch",
+    "admin settings registry"
+  ],
+  "qualityGates": {
+    "format": "passed",
+    "eslint": "passed",
+    "i18n": "passed",
+    "contrast": "passed",
+    "productionBuild": "passed",
+    "bundleBudget": "passed",
+    "vitest": "passed",
+    "productionDependencyAudit": "passed",
+    "e2eTypeScript": "passed",
+    "playwright01To56": "passed-user-confirmed",
+    "backendBuild": "blocked-prisma-engine-network"
+  }
+}

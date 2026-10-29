@@ -11,7 +11,7 @@ import {
 } from "@simplewebauthn/browser";
 
 /**
- * Paket 5.4.0-e: the browser half of the WebAuthn ceremonies. Everything the
+ * e: the browser half of the WebAuthn ceremonies. Everything the
  * UI needs from the platform lives here, so a component never touches the
  * library directly and the flow stays testable:
  *
@@ -71,7 +71,7 @@ function isCancellation(error: unknown): boolean {
  * configuration bug), `InvalidStateError` means a passkey already exists on
  * this device, `NotSupportedError` means no usable algorithm/authenticator.
  * Without the name the UI could only say "something failed" — which is what a
- * live attempt on a phone/QR flow showed (review 2026-10-12).
+ * live attempt on a phone/QR flow showed (10-12).
  */
 export function passkeyErrorCode(error: unknown): string | null {
   if (error instanceof WebAuthnError) return error.code;

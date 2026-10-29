@@ -7,19 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { GroupedBarDatum } from "@/components/charts/grouped-bars";
-import type { HorizontalBarItem } from "@/components/charts/h-bars";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 import type { ReportPreset } from "@/lib/reports/report-window";
 
 interface ReportsChartsProperties {
   readonly preset: ReportPreset;
-  /** Val 1 (M15/B1): kad je postavka isključena, kartica se ne prikazuje. */
+  /** kad je postavka isključena, kartica se ne prikazuje. */
   readonly bottleneckEnabled: boolean;
   readonly bottleneckItems: readonly HorizontalBarItem[];
   readonly bottleneckLabel: string | null;
   readonly serviceItems: readonly HorizontalBarItem[];
-  /** Val 1 (M15 gap): razrez po organizacionoj jedinici. */
+  /** razrez po organizacionoj jedinici. */
   readonly unitItems: readonly HorizontalBarItem[];
-  /** Val 1 (M15 gap): otvoreni tiketi po izvršiocu. */
+  /** otvoreni tiketi po izvršiocu. */
   readonly workloadItems: readonly HorizontalBarItem[];
   readonly volume: readonly GroupedBarDatum[];
   readonly agingItems: readonly HorizontalBarItem[];

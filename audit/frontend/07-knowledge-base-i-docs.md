@@ -1,21 +1,60 @@
 # Modul 7: Baza znanja i dokumentacija
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda i grep). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **KB** (baza znanja i dokumentacija). Ovo se ne miješa sa A (modul 2), T (modul 3), D (modul 4), S (modul 5) i R (modul 6).
+Datum zatvaranja: 2026-10-15
+Val: **6.1.7**
+Status: **zatvoren**
 
-Provjere izvršene u sandboxu:
-- Čitanje u cijelosti: `pages/docs-page.tsx` (224), `lib/docs/use-docs.ts` (138), `components/docs/docs-feedback.tsx` (63), `components/docs/docs-search.tsx` (88), `components/docs/docs-toc.tsx` (78), `components/docs/docs-sidebar.tsx` (91), `components/docs/docs-role-filter.tsx` (23), `components/docs/docs-help-button.tsx` (27), `pages/knowledge-base-page.tsx` (235), `pages/knowledge-article-detail-page.tsx` (102), `lib/knowledge-base/use-knowledge-article.ts` (57), `lib/knowledge-base/knowledge-lifecycle-actions.ts` (44), `lib/directory/use-directory.ts` (52), `lib/directory/load-directory.ts` (60), `components/knowledge-base/knowledge-article-delete-panel.tsx`, `components/knowledge-base/create-knowledge-article-sheet.tsx` (58).
-- Čitanje dijelova: `components/knowledge-base/create-knowledge-article-form.tsx` (28–140), `components/knowledge-base/portal/knowledge-portal-home.tsx` (40–80), `components/knowledge-base/portal/knowledge-placement-card.tsx` (30–60), `components/knowledge-base/portal/article-from-reply-sheet.tsx` (60–115), `components/privacy/markdown-view.tsx` (50–80), `lib/privacy/simple-markdown.ts` (safeHref, safeImageSrc).
-- Provjera backenda: `knowledge-base/review-knowledge-article.ts` (31), `create-knowledge-article.ts` (85), `knowledge-portal.service.ts` (~512–545), `knowledge-base-workflow.service.ts` (provjera prelaza).
-- Metrike (grep): broj fajlova i `useState`; `useEffect` (31); tihi `catch` (4); `setTimeout` (3); `useMutation` (0); `window.confirm` (0); `any` (0); komentari „Paket“, „Faza“, „Val“, „M14“ (36 pojava, 21 u dokumentaciji).
-- E2E: `e2e/tests/34-knowledge-portal.spec.ts` (2 testa). Za `/docs` nema nijednog e2e testa.
-- Unit testovi: `lib/docs/` (4 spec fajla), `lib/knowledge-base/` (4 spec fajla). Nema testova za `use-docs.ts`, `docs-search`, `docs-toc`, `knowledge-base-page`, `knowledge-article-detail-page`.
-- **Nije pokrenut pregledač.** Nalazi označeni sa „za provjeru“ treba potvrditi u pregledaču prije ispravke.
-- **Nije pročitano u punom obimu:** `components/knowledge-base/portal/knowledge-categories-manager.tsx` (293), `knowledge-insights-panel.tsx` (144), `knowledge-star-rating.tsx` (173), `knowledge-portal-home.tsx` (ostatak), `knowledge-article-list.tsx` (206, samo struktura), `knowledge-article-detail-panel.tsx` (170, samo struktura), `knowledge-article-edit-form.tsx` (202, samo validacija), `create-knowledge-article-form.tsx` (1–27 i 140–239), `docs-pager.tsx`, `docs-breadcrumbs.tsx`, `docs-empty-state.tsx`, `lib/docs/docs-slug.ts`, `docs-audience.ts`, `docs-labels.ts`, `lib/knowledge-base/knowledge-portal.ts` (90), `filter-knowledge-articles.ts` (55), `map-knowledge-article-error.ts` (62), `services/knowledge-base-api.ts` (192), `services/knowledge-portal-api.ts` (182). `services/docs-api.ts` i `lib/docs/docs-local.ts` pročitani su ranije.
+## Trenutna implementacija (nakon vala 6.1.7)
 
----
+- Docs navigacija ostaje locale-aware kroz postojeći KB1 test; server-side role filter i sigurni markdown `safeHref`/`safeImageSrc` nisu mijenjani.
+- Knowledge article detalj i lista koriste zajednički latest-request guard; zastarjeli odgovor ne može prepisati noviji izbor.
+- Lifecycle akcije rade soft refresh: postojeći članak ostaje vidljiv uz nenametljiv refresh status.
+- Portal kategorije, service filter, groups i placement kategorije razlikuju grešku od stvarno praznog rezultata.
+- `useDirectory` je backward-compatible React Query hook sa zajedničkim cache ključem; djelimičan OU neuspjeh se propagira kao upozorenje. Modul 3 automatski koristi isti cache preko postojećeg API-ja.
+- Docs pretraga najavljuje rezultate, mobilna navigacija ima `aria-controls`, promjena sluga resetuje stari sadržaj, a TOC resetuje aktivni naslov.
+- Filteri status/service/stale baze znanja nalaze se u URL-u. Server semantika i sigurnosna ograničenja nisu promijenjeni.
+
+## Status ispravki
+
+| ID | Status | Zaključak |
+|---|---|---|
+| KB1 | Urađeno | Postojeći `[locale]` fix i `use-docs.spec.tsx` potvrđuju ponovno učitavanje navigacije pri promjeni jezika. |
+| KB2 | Urađeno | `useKnowledgeArticle` koristi latest-request guard; race regresija je testirana. |
+| KB3 | Urađeno | Lista članaka koristi isti guard pri brzoj promjeni filtera i ne prazni uspješne podatke zbog starog odgovora. |
+| KB4 | Urađeno | `useDirectory` dijeli React Query cache; `loadDirectory` koristi settled rezultate i izlaže `partialFailure` upozorenje. API hooka je backward compatible za tikete. |
+| KB5 | Urađeno | Greška kategorije portala ima alert stanje i više se ne pretvara u praznu listu. |
+| KB6 | Urađeno | Greška service kataloga prikazuje se uz filter. |
+| KB7 | Urađeno | Odvojeni `isLoading` i `isRefreshing`; panel ostaje montiran tokom lifecycle refresha. |
+| KB8 | Urađeno | StrictMode cleanup vraća view guard ako pregled nije snimljen, pa drugi mount ponovo postavlja timer/listener. |
+| KB9 | Urađeno | Frontend komentar sada tačno navodi da se članak iz odgovora kreira kao DRAFT. |
+| KB10 | Prihvaćen rizik (2026-10-15) | Brojači ostaju kontekstualni trenutnoj listi jer prate aktivni radni skup. Odbijena alternativa: dodatni globalni count API samo radi statičnog subtitle broja. |
+| KB11 | Urađeno | Status, service i stale filteri su u URL-u uz postojeće q/view parametre. |
+| KB12 | Zaključeno (istraživanje) | Inicijalizacija forme je funkcionalno stabilna; kozmetičko premještanje state/effect koda ne opravdava regresioni diff. |
+| KB13 | Urađeno | Neuspjeh `listGroups` prikazuje `ApiErrorText`; više nema tihog praznog dropdowna. |
+| KB14 | Urađeno | Greška kategorija je vidljiva, a category/FAQ stanje se sinhronizuje kada se promijeni article prop; dodan RTL test. |
+| KB15 | Urađeno | Docs search rezultati i no-match stanje nalaze se u polite live regionu. |
+| KB16 | Urađeno | Mobilno docs dugme ima `aria-controls` povezano sa stabilnim ID-em panela. |
+| KB17 | Urađeno | Dodani stale/race/soft-refresh/placement testovi i `49-docs-smoke.spec.ts`; postojeći `34` pokriva portal lifecycle. E2E izvor nije izvršen. |
+| KB18 | Urađeno | `useDocsPage` resetuje prethodnu stranicu prije učitavanja novog slug/locale sadržaja. |
+| KB19 | Urađeno | TOC resetuje `activeId` prije registracije observera za novi TOC. |
+| KB20 | Prihvaćen rizik (2026-10-15) | Zadržano je upozorenje uz vidljiv sadržaj: audience filter je navigacijska pomoć, ne sigurnosna granica; server i dalje kontroliše pristup. Odbijeno je skrivanje već dozvoljenog sadržaja bez vlasničke UX odluke. |
+| KB21 | Prihvaćen rizik (2026-10-15) | Istorijski Faza/Val/Paket komentari nemaju runtime uticaj. Odbijeno je masovno čišćenje koje bi povećalo review noise u funkcionalnom valu. |
+
+## Završne provjere
+
+- `npx tsc -b`: prošao.
+- `npm run lint`: prošao sa 0 grešaka; preostala upozorenja su postojeći cross-module hook warning-i.
+- `npm run format:check`: prošao nakon završnog formatiranja.
+- `npx vitest run`: **236 fajlova / 978 testova**, sve prošlo.
+- `npm run build`: prošao; ostaje postojeće Vite upozorenje za velike chunkove.
+- Root guardovi `check-hooks-order` i `check-ticket-id-leaks`: prošli.
+- E2E/browser: **nisu izvršeni**. Dodat je `49-docs-smoke.spec.ts`; postojeći `34-knowledge-portal.spec.ts` ostaje izvor portal lifecycle pokrivenosti.
+- Ručna checklista (KB1 jezik, KB5 category fail, KB3 brzi filter, KB7 lifecycle refresh) nije izvršena u browseru.
+
+## Polazno stanje (arhiva)
+
+Sljedeći sadržaj je originalni audit od 2026-10-13. Formulacije ispod odnose se na stanje prije vala 6.1.7.
 
 ## Modul
 

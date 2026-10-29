@@ -1,4 +1,4 @@
-import { decideAlertTransition, type OpenAlertState } from './alert-state-machine';
+import { alertNotifyRetryMs, decideAlertTransition, type OpenAlertState } from './alert-state-machine';
 import type { OpsObservation } from './evaluate-ops-signals';
 
 const now = new Date('2026-11-20T10:00:00.000Z');
@@ -51,6 +51,24 @@ describe('decideAlertTransition', () => {
 
   it('sends the missed "opened" message once notifications are possible again', () => {
     expect(step(disk(true), firing({ notifyCount: 0, lastNotifiedAt: null }), 5)).toMatchObject({ action: 'touch', notify: 'opened' });
+  });
+
+  it('does not retry an undelivered first message every minute', () => {
+    // Kanal je upravo odbio (npr. provajder je na dnevnom limitu): pokušaj je
+    // zabilježen, ali poruka nije isporučena. Bez donje granice ovo bi se
+    // ponavljalo svake minute — stotine uzaludnih slanja dnevno.
+    const justFailed = new Date(now.getTime() - 60_000);
+    expect(step(disk(true), firing({ notifyCount: 0, lastNotifiedAt: justFailed }), 5)).toMatchObject({
+      action: 'touch',
+      notify: null,
+    });
+    const longAgo = new Date(now.getTime() - alertNotifyRetryMs);
+    expect(step(disk(true), firing({ notifyCount: 0, lastNotifiedAt: longAgo }), 5)).toMatchObject({
+      action: 'touch',
+      notify: 'opened',
+    });
+    // Podsjetnik isporučenog alarma ostaje na svom intervalu (4 h), ne na ovom.
+    expect(step(disk(true), firing({ lastNotifiedAt: justFailed }), 5)).toMatchObject({ notify: null });
   });
 
   it('resolves after the negative streak and announces it only if it was announced', () => {

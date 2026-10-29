@@ -1,4 +1,4 @@
-// Paket 5.4.0-d (M6): `security` is the SuperAdmin-only journal and bulk reset.
+// `security` is the SuperAdmin-only journal and bulk reset.
 export const adminTabKeys = [
   "org",
   "groups",

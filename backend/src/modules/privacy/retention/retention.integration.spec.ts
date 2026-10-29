@@ -9,7 +9,11 @@ import path from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
 import { appendAuditLog } from '../../audit-log/append-audit-log';
-import { defaultAuditHashAlgorithm } from '../../audit-log/audit-log.constants';
+import {
+  auditLogActions,
+  auditLogEntityTypes,
+  defaultAuditHashAlgorithm,
+} from '../../audit-log/audit-log.constants';
 import { verifyAuditLogChain, compareAuditLogChainOrder } from '../../audit-log/verify-audit-log-chain';
 import { DiskTicketAttachmentStorage } from '../../tickets/attachments/disk-ticket-attachment-storage';
 import type { PrivacyConfiguration } from '../privacy-configuration.loader';
@@ -52,6 +56,7 @@ describeIfDatabase('retention (integration)', () => {
         sessions: 90,
         emailDeliveries: 180,
         requestRegister: 365,
+        statusIncidents: 0,
         ...overrides,
       },
     }) as unknown as PrivacyConfiguration;
@@ -130,8 +135,8 @@ describeIfDatabase('retention (integration)', () => {
     for (let index = 0; index < 8; index += 1) {
       await prisma.$transaction((tx) =>
         appendAuditLog(tx as never, {
-          action: 'test.event',
-          entityType: 'test',
+          action: auditLogActions.privacyRetentionRun,
+          entityType: auditLogEntityTypes.retentionRun,
           entityId: `e${index}`,
           metadata: { index },
           actorUserId: null,
@@ -159,6 +164,21 @@ describeIfDatabase('retention (integration)', () => {
   }
 
   const deadline = () => new Date(Date.now() + 60_000);
+
+  it('rolls the audit append back with its failed business transaction', async () => {
+    const entityId = `atomic-${Date.now()}`;
+    await expect(prisma.$transaction(async (transaction) => {
+      await appendAuditLog(transaction as never, {
+        action: auditLogActions.privacyRetentionRun,
+        entityType: auditLogEntityTypes.retentionRun,
+        entityId,
+        metadata: { phase: 'before-business-failure' },
+        actorUserId: null,
+      });
+      throw new Error('simulated business failure');
+    })).rejects.toThrow('simulated business failure');
+    await expect(prisma.auditLog.count({ where: { entityId } })).resolves.toBe(0);
+  });
 
   it('skips content categories without a dry run', async () => {
     const run = await service(configuration()).runCategory({
@@ -244,8 +264,45 @@ describeIfDatabase('retention (integration)', () => {
     expect(result.valid).toBe(true);
     // 3 remaining test rows + retention run audits + the purge entry.
     expect(result.checkedCount).toBe(await prisma.auditLog.count());
-    expect(await prisma.auditLog.count({ where: { action: 'test.event' } })).toBe(3);
+    expect(await prisma.auditLog.count({ where: {
+      action: auditLogActions.privacyRetentionRun,
+      entityId: { startsWith: 'e' },
+    } })).toBe(3);
     expect(await prisma.auditLog.count({ where: { action: 'audit.retention.purged' } })).toBe(1);
+  });
+
+  it('preserves deleted actor/OU identity and verifies a per-row SHA rotation', async () => {
+    const stamp = Date.now();
+    const actor = await prisma.user.create({
+      data: { email: `audit-rotation-${stamp}@example.invalid`, displayName: 'Audit rotation actor' },
+    });
+    const unit = await prisma.organizationalUnit.create({
+      data: { name: 'Audit rotation OU', type: 'DIRECTORATE', distinguishedName: `OU=AUDIT-${stamp}`, ouPath: `/audit-${stamp}` },
+    });
+    for (const hashAlgorithm of ['sha256', 'sha512'] as const) {
+      await prisma.$transaction((transaction) => appendAuditLog(transaction as never, {
+        action: auditLogActions.privacyRetentionRun,
+        entityType: auditLogEntityTypes.retentionRun,
+        entityId: `rotation-${hashAlgorithm}-${stamp}`,
+        metadata: { hashAlgorithm },
+        actorUserId: actor.id,
+        organizationalUnitId: unit.id,
+        hashAlgorithm,
+      }));
+    }
+    await prisma.user.delete({ where: { id: actor.id } });
+    await prisma.organizationalUnit.delete({ where: { id: unit.id } });
+    const rotationRows = await prisma.auditLog.findMany({
+      where: { entityId: { startsWith: 'rotation-' } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    expect(rotationRows.map((row) => [row.actorUserId, row.organizationalUnitId, row.hashAlgorithm])).toEqual([
+      [actor.id, unit.id, 'sha256'],
+      [actor.id, unit.id, 'sha512'],
+    ]);
+    const checkpoint = await prisma.auditChainCheckpoint.findFirst({ orderBy: { createdAt: 'desc' } });
+    const records = (await prisma.auditLog.findMany()).map((row) => ({ ...row, metadata: row.metadata as never }));
+    expect(verifyAuditLogChain({ records: records as never, hashAlgorithm: 'sha256', start: checkpoint }).valid).toBe(true);
   });
 
   it('refuses a disabled category and a parallel run', async () => {

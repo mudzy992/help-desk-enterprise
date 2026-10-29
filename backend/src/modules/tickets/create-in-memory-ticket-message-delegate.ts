@@ -5,6 +5,7 @@ type MessageWhere = {
   readonly id?: string | { in: readonly string[] };
   readonly ticketId?: string;
   readonly type?: string | { notIn: readonly string[] };
+  readonly body?: string;
   readonly createdAt?: { lt: Date };
 };
 
@@ -29,6 +30,9 @@ export function createInMemoryTicketMessageDelegate(
       if (where?.createdAt !== undefined && !(record.createdAt < where.createdAt.lt)) {
         return false;
       }
+      if (where?.body !== undefined && record.body !== where.body) {
+        return false;
+      }
       if (where?.type === undefined) {
         return true;
       }
@@ -37,6 +41,8 @@ export function createInMemoryTicketMessageDelegate(
         : !where.type.notIn.includes(record.type);
     });
   return {
+    count: async ({ where }: { where?: MessageWhere } = {}) =>
+      matching(where).length,
     findMany: async ({
       where,
       orderBy,

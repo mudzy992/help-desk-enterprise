@@ -1,5 +1,5 @@
 import { ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { PartialResourceError } from "@/components/ui/partial-resource-error";
+import { usePartialResource } from "@/lib/async/use-partial-resource";
 import { useToast } from "@/components/ui/toast";
 import {
   buildKnowledgeCategoryTree,
@@ -51,11 +53,19 @@ export function ArticleFromReplySheet({
   const [body, setBody] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [reason, setReason] = useState("");
-  const [categories, setCategories] = useState<readonly KnowledgeCategory[]>([]);
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
+  const loadCategories = useCallback(() => listKnowledgeCategories(), []);
+  const categoriesResource = usePartialResource<
+    readonly KnowledgeCategory[],
+    KnowledgeArticleErrorKey
+  >({
+    load: loadCategories,
+    mapError: mapKnowledgeArticleError,
+    enabled: source !== null,
+    resetKey: source?.ticketId ?? null,
+  });
   useEffect(() => {
     if (source === null) return;
     let cancelled = false;
@@ -64,13 +74,12 @@ export function ArticleFromReplySheet({
     setRequestId(null);
     setCategoryId("");
     setReason(t("knowledgeBase.portal.fromReply.defaultReason"));
-    Promise.all([previewKnowledgeDraftFromReply(source), listKnowledgeCategories().catch(() => [])])
-      .then(([preview, loaded]) => {
+    void previewKnowledgeDraftFromReply(source)
+      .then((preview) => {
         if (cancelled) return;
         setDraft(preview);
         setTitle(preview.title);
         setBody(preview.body);
-        setCategories(loaded);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -84,14 +93,14 @@ export function ArticleFromReplySheet({
 
   const options = useMemo(
     () =>
-      buildKnowledgeCategoryTree(categories).flatMap((node) => [
+      buildKnowledgeCategoryTree(categoriesResource.data ?? []).flatMap((node) => [
         { id: node.id, label: knowledgeCategoryName(node, i18n.language) },
         ...node.children.map((child) => ({
           id: child.id,
           label: `${knowledgeCategoryName(node, i18n.language)} › ${knowledgeCategoryName(child, i18n.language)}`,
         })),
       ]),
-    [categories, i18n.language],
+    [categoriesResource.data, i18n.language],
   );
 
   const canSave =
@@ -120,7 +129,7 @@ export function ArticleFromReplySheet({
       });
       // Val 2 (M14/B1): server ponovo zamjenjuje lične podatke pri upisu. Ako je
       // u tekstu bilo nečega što pregled nije vidio (izmijenjen editor, skripta),
-      // korisnik to mora saznati — članak je već objavljiv svakom prijavljenom.
+      // korisnik to mora saznati — članak se kreira kao nacrt i mora proći lifecycle objave.
       const extra = created.sanitized ? totalReplacements(created.replacements) : 0;
       toast(
         extra > 0
@@ -194,39 +203,62 @@ export function ArticleFromReplySheet({
               </Link>
             </p>
             <Field label={t("knowledgeBase.titleField")} required>
-              <Input
-                value={title}
-                maxLength={200}
-                required
-                onChange={(event) => setTitle(event.target.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  value={title}
+                  maxLength={200}
+                  required
+                  onChange={(event) => setTitle(event.target.value)}
+                />
+              )}
             </Field>
             <Field label={t("knowledgeBase.bodyField")} required>
-              <Textarea
-                value={body}
-                maxLength={20000}
-                required
-                className="min-h-48"
-                onChange={(event) => setBody(event.target.value)}
-              />
+              {(control) => (
+                <Textarea
+                  {...control}
+                  value={body}
+                  maxLength={20000}
+                  required
+                  className="min-h-48"
+                  onChange={(event) => setBody(event.target.value)}
+                />
+              )}
             </Field>
+            {categoriesResource.errorKey ? (
+              <PartialResourceError
+                messageKey={categoriesResource.errorKey}
+                requestId={categoriesResource.requestId}
+                retry={categoriesResource.retry}
+              />
+            ) : null}
             <Field label={t("knowledgeBase.portal.placement.category")}>
-              <Select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-                <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
-                {options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+              {(control) => (
+                <Select
+                  {...control}
+                  value={categoryId}
+                  disabled={categoriesResource.data === null}
+                  onChange={(event) => setCategoryId(event.target.value)}
+                >
+                  <option value="">{t("knowledgeBase.portal.uncategorized")}</option>
+                  {options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
             <Field label={t("knowledgeBase.reason")} required>
-              <Input
-                value={reason}
-                maxLength={512}
-                required
-                onChange={(event) => setReason(event.target.value)}
-              />
+              {(control) => (
+                <Input
+                  {...control}
+                  value={reason}
+                  maxLength={512}
+                  required
+                  onChange={(event) => setReason(event.target.value)}
+                />
+              )}
             </Field>
             {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
             <div className="flex gap-2">

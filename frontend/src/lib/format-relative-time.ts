@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 
 const minute = 60_000;
 const hour = 3_600_000;
@@ -27,7 +27,7 @@ export function formatRelativeTime(
   const absolute = Math.abs(diffMs);
   const isFuture = diffMs > 0;
   if (absolute < minute) {
-    return ticketText(t, "relativeTime.justNow");
+    return translateText(t, "relativeTime.justNow");
   }
   if (absolute < hour) {
     return relative(t, isFuture, "Minutes", Math.round(absolute / minute));
@@ -37,7 +37,7 @@ export function formatRelativeTime(
   }
   const days = Math.round(absolute / day);
   if (days === 1) {
-    return ticketText(t, isFuture ? "relativeTime.tomorrow" : "relativeTime.yesterday");
+    return translateText(t, isFuture ? "relativeTime.tomorrow" : "relativeTime.yesterday");
   }
   if (days <= relativeDaysLimit) {
     return relative(t, isFuture, "Days", days);
@@ -51,5 +51,5 @@ function relative(
   unit: "Minutes" | "Hours" | "Days",
   count: number,
 ): string {
-  return ticketText(t, `relativeTime.${isFuture ? "in" : "ago"}${unit}`, { count });
+  return translateText(t, `relativeTime.${isFuture ? "in" : "ago"}${unit}`, { count });
 }

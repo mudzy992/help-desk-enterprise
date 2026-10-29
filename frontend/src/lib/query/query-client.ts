@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 
 /**
- * Faza 3.3 (plan §3.3): the client-side cache defaults.
+ * the client-side cache defaults.
  *
  * - `staleTime: 30 s` — the realtime socket is what makes data fresh, so a screen
  *   that comes back within half a minute does not fetch again.

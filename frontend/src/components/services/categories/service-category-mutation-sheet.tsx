@@ -5,6 +5,7 @@ import {
   type ServiceCategoryMutationValues,
 } from "@/components/services/categories/service-category-mutation-form";
 import { errorTextClassName } from "@/components/ui/control";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
   mapServiceCategoryError,
@@ -32,35 +33,40 @@ export function ServiceCategoryMutationSheet({
   onSaved,
 }: ServiceCategoryMutationSheetProperties) {
   const { t } = useTranslation();
+  const operationGuard = useOperationGuard();
   const isCreate = category === null;
   const [isSaving, setIsSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<ServiceCategoryErrorKey | null>(null);
 
   const save = async (values: ServiceCategoryMutationValues) => {
-    setIsSaving(true);
-    setErrorKey(null);
-    try {
-      if (isCreate) {
-        await createServiceCategory({
-          name: values.name,
-          slug: values.slug,
-          sortOrder: values.sortOrder,
-          parentId: values.parentId,
-        });
-      } else if (category !== null) {
-        await updateServiceCategory(category.id, {
-          name: values.name,
-          sortOrder: values.sortOrder,
-          parentId: values.parentId,
-        });
+    const operationKey = `category:${category?.id ?? "create"}`;
+    if (operationGuard.isPending(operationKey)) return;
+    await operationGuard.run(operationKey, async () => {
+      setIsSaving(true);
+      setErrorKey(null);
+      try {
+        if (isCreate) {
+          await createServiceCategory({
+            name: values.name,
+            slug: values.slug,
+            sortOrder: values.sortOrder,
+            parentId: values.parentId,
+          });
+        } else if (category !== null) {
+          await updateServiceCategory(category.id, {
+            name: values.name,
+            sortOrder: values.sortOrder,
+            parentId: values.parentId,
+          });
+        }
+        await onSaved();
+        onOpenChange(false);
+      } catch (error) {
+        setErrorKey(mapServiceCategoryError(error));
+      } finally {
+        setIsSaving(false);
       }
-      await onSaved();
-      onOpenChange(false);
-    } catch (error) {
-      setErrorKey(mapServiceCategoryError(error));
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   return (

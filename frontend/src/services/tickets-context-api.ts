@@ -60,7 +60,6 @@ export type TicketAllowedActions = {
   readonly changeStatus: boolean;
   readonly split: boolean;
   readonly forward: boolean;
-  /** Package 1.2 */
   readonly overridePriority: boolean;
   readonly merge: boolean;
   readonly unmerge: boolean;
@@ -71,7 +70,7 @@ export type TicketAllowedActions = {
   readonly trackTime: boolean;
   readonly uploadAttachments: boolean;
   readonly viewActivity: boolean;
-  /** Package 5.2.3 (M8 B7): reflects backend reopen policy + enabled flag. */
+  /** reflects backend reopen policy + enabled flag. */
   readonly reopen: TicketReopenAction;
 };
 

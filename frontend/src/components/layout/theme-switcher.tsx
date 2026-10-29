@@ -96,7 +96,13 @@ export function ThemeSwitcher() {
       <DropdownMenuContent align="end" className="min-w-[15.5rem]">
         <DropdownMenuLabel>{t("theme.designGroup")}</DropdownMenuLabel>
         {THEME_DESIGNS.map((value) => (
-          <DropdownMenuItem key={value} className="items-start" onSelect={() => setDesign(value)}>
+          <DropdownMenuItem
+            key={value}
+            role="menuitemradio"
+            aria-checked={design === value}
+            className="items-start"
+            onSelect={() => setDesign(value)}
+          >
             <Palette size={13} className="mt-0.5 text-muted-foreground" />
             <span className="flex-1">
               <span className="block text-foreground">{t(DESIGN_LABEL_KEY[value])}</span>
@@ -114,7 +120,12 @@ export function ThemeSwitcher() {
             {THEME_MODES.map((value) => {
               const ItemIcon = MODE_ICON[value];
               return (
-                <DropdownMenuItem key={value} onSelect={() => setMode(value)}>
+                <DropdownMenuItem
+                  key={value}
+                  role="menuitemradio"
+                  aria-checked={mode === value}
+                  onSelect={() => setMode(value)}
+                >
                   <ItemIcon size={13} className="text-muted-foreground" />
                   <span className="flex-1">{t(MODE_LABEL_KEY[value])}</span>
                   <span className="text-[10.5px] text-muted-foreground">
@@ -131,7 +142,12 @@ export function ThemeSwitcher() {
             <DropdownMenuSeparator />
             <DropdownMenuLabel>{t("theme.accentGroup")}</DropdownMenuLabel>
             {THEME_ACCENTS.map((value) => (
-              <DropdownMenuItem key={value} onSelect={() => setAccent(value)}>
+              <DropdownMenuItem
+                key={value}
+                role="menuitemradio"
+                aria-checked={accent === value}
+                onSelect={() => setAccent(value)}
+              >
                 <span
                   aria-hidden="true"
                   className={cn(

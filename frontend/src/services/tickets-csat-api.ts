@@ -3,14 +3,14 @@ import type { TicketResponse } from "@/services/tickets-api";
 
 export type TicketCsatBucket = {
   readonly key: string;
-  /** Val 1 (M9/B3): naziv organizacione jedinice, servisa ili grupe. */
+  /** Naziv organizacione jedinice, servisa ili grupe. */
   readonly label: string;
   readonly count: number;
   readonly average: number;
 };
 
 /**
- * Val 1 (M9/B3): agregacija po OU/servisu/grupi je postojala na serveru, ali je
+ * Agregacija po OU/servisu/grupi je postojala na serveru, ali je
  * nijedan ekran nije zvao. `scaleMax` i `satisfiedMinRating` dolaze sa servera,
  * pa prikaz ne pretpostavlja skalu 5.
  */

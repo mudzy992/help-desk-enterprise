@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { TicketPriority } from '../../../generated/prisma/enums';
 import { maximumChangeReasonLength } from '../../change-log/change-log.constants';
+import { SlaListQueryDto } from './sla-list-query.dto';
 
 export class CreateSlaRuleDto {
   @IsString()
@@ -90,7 +91,7 @@ export class UpdateSlaRuleDto {
   reason!: string;
 }
 
-export class ListSlaRulesQueryDto {
+export class ListSlaRulesQueryDto extends SlaListQueryDto {
   @IsOptional()
   @IsString()
   @MinLength(1)

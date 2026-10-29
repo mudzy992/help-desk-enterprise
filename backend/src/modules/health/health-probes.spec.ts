@@ -1,4 +1,10 @@
-import { CachedProbe, evaluateWorkerHeartbeat, probeReadiness, withTimeout } from './health-probes';
+import {
+  CachedProbe,
+  evaluateWorkerHeartbeat,
+  probeReadiness,
+  readWorkerHeartbeatValue,
+  withTimeout,
+} from './health-probes';
 
 describe('health probes (2.7 §3)', () => {
   it('readiness is ok only when database and Redis both answer', async () => {
@@ -6,10 +12,10 @@ describe('health probes (2.7 §3)', () => {
     const down = () => Promise.reject(new Error('ECONNREFUSED 10.0.0.1:5432'));
     await expect(probeReadiness({ pingDatabase: ok, pingRedis: ok })).resolves.toEqual({
       status: 'ok',
-      checks: { database: 'ok', redis: 'ok' },
+      checks: { database: 'ok', redis: 'ok', auditAnchor: 'ok' },
     });
     const failed = await probeReadiness({ pingDatabase: down, pingRedis: ok });
-    expect(failed).toEqual({ status: 'fail', checks: { database: 'fail', redis: 'ok' } });
+    expect(failed).toEqual({ status: 'fail', checks: { database: 'fail', redis: 'ok', auditAnchor: 'ok' } });
     // Nothing from the error (hosts, messages) leaks into the public result.
     expect(JSON.stringify(failed)).not.toContain('10.0.0.1');
   });
@@ -27,6 +33,16 @@ describe('health probes (2.7 §3)', () => {
 
   it('withTimeout returns the value when it arrives in time', async () => {
     await expect(withTimeout(() => Promise.resolve(7), 50)).resolves.toBe(7);
+  });
+
+  it('readWorkerHeartbeatValue retries until a value appears', async () => {
+    let calls = 0;
+    const value = await readWorkerHeartbeatValue(async () => {
+      calls += 1;
+      return calls < 2 ? null : '2026-09-28T12:00:00.000Z';
+    }, { attempts: 3, delayMs: 0 });
+    expect(value).toBe('2026-09-28T12:00:00.000Z');
+    expect(calls).toBe(2);
   });
 
   it('worker heartbeat: fresh → ok, stale or missing → fail', () => {

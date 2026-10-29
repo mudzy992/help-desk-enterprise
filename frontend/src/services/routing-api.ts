@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseRoutingCoveragePage } from "@/services/critical-api-parsers";
 
 export type RoutingOutcome = "EXACT" | "PARENT_FALLBACK" | "UNROUTED";
 
@@ -88,11 +89,25 @@ export function listRoutingCoverage(
   if (query.cursor !== undefined) search.set("cursor", query.cursor);
   const serialized = search.toString();
   const suffix = serialized.length === 0 ? "" : `?${serialized}`;
-  return apiRequest(`/routing/coverage${suffix}`);
+  return apiRequestValidated(`/routing/coverage${suffix}`, parseRoutingCoveragePage);
 }
 
-export function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {
-  return apiRequest("/routing/rules");
+type RoutingRulePage = {
+  readonly items: readonly RoutingRuleResponse[];
+  readonly nextCursor: string | null;
+};
+
+export async function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {
+  const items: RoutingRuleResponse[] = [];
+  let cursor: string | null = null;
+  do {
+    const search = new URLSearchParams({ take: "100" });
+    if (cursor !== null) search.set("cursor", cursor);
+    const page = await apiRequest<RoutingRulePage>(`/routing/rules?${search.toString()}`);
+    items.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor !== null);
+  return items;
 }
 
 export function resolveRouting(
@@ -108,6 +123,7 @@ export type UpdateRoutingRuleInput = {
   readonly serviceId: string;
   readonly groupId: string;
   readonly reason: string;
+  readonly expectedUpdatedAt: string;
 };
 
 export type DeleteRoutingRuleInput = {
@@ -173,6 +189,20 @@ export function getRoutingRuleDeleteImpact(ruleId: string): Promise<RoutingRuleD
   return apiRequest(`/routing/rules/${ruleId}/delete-impact`);
 }
 
-export function listRoutingChanges(): Promise<readonly RoutingChangeLogEntry[]> {
-  return apiRequest("/routing/changes");
+type RoutingChangeLogPage = {
+  readonly items: readonly RoutingChangeLogEntry[];
+  readonly nextCursor: string | null;
+};
+
+export async function listRoutingChanges(): Promise<readonly RoutingChangeLogEntry[]> {
+  const items: RoutingChangeLogEntry[] = [];
+  let cursor: string | null = null;
+  do {
+    const search = new URLSearchParams({ take: "100" });
+    if (cursor !== null) search.set("cursor", cursor);
+    const page = await apiRequest<RoutingChangeLogPage>(`/routing/changes?${search.toString()}`);
+    items.push(...page.items);
+    cursor = page.nextCursor;
+  } while (cursor !== null);
+  return items;
 }

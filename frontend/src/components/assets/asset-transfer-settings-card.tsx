@@ -26,7 +26,7 @@ import {
 } from "@/services/asset-transfers-api";
 
 /**
- * Paket 3.2 C9 (§7a.2, §7a.4): catalog settings of transfer records —
+ * Delivery invariant (requirement, requirement): catalog settings of transfer records —
  * signatories per organizational unit (inherited down the tree) and the
  * DOCX template versions. Admins with asset.type.manage only.
  */

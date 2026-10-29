@@ -10,7 +10,7 @@ import {
   reviewNotesMin,
 } from "@/lib/changes/change-view";
 
-describe("computeChangeRisk (§7)", () => {
+describe("computeChangeRisk (requirement)", () => {
   it("maps impact × likelihood to the four risk levels", () => {
     expect(computeChangeRisk("LOW", "LOW")).toBe("LOW");
     expect(computeChangeRisk("LOW", "MEDIUM")).toBe("LOW");
@@ -21,7 +21,7 @@ describe("computeChangeRisk (§7)", () => {
   });
 });
 
-describe("action rules (§6, §9, §12)", () => {
+describe("action rules (requirement, requirement, requirement)", () => {
   it("asks for a reason on return, withdraw and cancel only", () => {
     expect(actionNeedsReason("cancel")).toBe(true);
     expect(actionNeedsReason("withdraw")).toBe(true);

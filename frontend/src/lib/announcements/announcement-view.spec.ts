@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   acknowledgementPercent,
+  announcementDateTimeFormatter,
   fromLocalInputValue,
   modalShowsLeft,
   recordModalShown,
@@ -48,6 +49,18 @@ describe("announcement view helpers", () => {
     expect(fromLocalInputValue(local)).toBe(new Date(2026, 9, 1, 8, 30).toISOString());
     expect(fromLocalInputValue("")).toBeNull();
     expect(toLocalInputValue("not a date")).toBe("");
+  });
+
+  it("keeps regional English locales and makes the recipient zone explicit", () => {
+    const formatter = announcementDateTimeFormatter("en-GB", "Europe/Sarajevo");
+    expect(formatter.resolvedOptions().locale).toMatch(/^en-GB/i);
+    expect(formatter.resolvedOptions().timeZone).toBe("Europe/Sarajevo");
+    expect(formatter.formatToParts(new Date("2026-03-29T01:30:00Z"))).toContainEqual(
+      expect.objectContaining({ type: "timeZoneName" }),
+    );
+    expect(
+      announcementDateTimeFormatter("bs", "Europe/Sarajevo").resolvedOptions().locale,
+    ).not.toMatch(/^en/i);
   });
 
   it("computes the acknowledgement percentage safely", () => {

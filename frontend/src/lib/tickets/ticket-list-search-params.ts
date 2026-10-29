@@ -12,14 +12,14 @@ export type TicketPageQuery = {
   readonly requesterId?: string;
   readonly groupId?: string;
   readonly unassigned?: boolean;
-  /** Package 1.6 (staff only; the API ignores it for requesters). */
+  /** Staff only; the API ignores it for requesters. */
   readonly forwarded?: "any" | "toMyGroups";
-  /** Paket 2.4 (staff only): personal narrowings. */
+  /** personal narrowings. */
   readonly following?: boolean;
   readonly mentionedMe?: boolean;
-  /** Package 1.2: leave merged children out. */
+  /** leave merged children out. */
   readonly hideMerged?: boolean;
-  /** Paket 1.7 (U3): cleanup deadline filter. */
+  /** cleanup deadline filter. */
   readonly unroutedOverdue?: boolean;
   /** 5.1.4 (E2): both UNROUTED and fallback-routed PENDING tickets. */
   readonly unroutedQueue?: boolean;

@@ -1,4 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { runCreateTicketTransaction } from './run-create-ticket-transaction';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
 import { applyCreateTicketRouting } from './apply-create-ticket-routing';
@@ -50,6 +51,7 @@ import {
   duplicateGuardrailSubjectKey,
 } from './guardrails/apply-create-ticket-guardrails';
 import { runExclusiveGuardrail } from './guardrails/run-exclusive-guardrail';
+import { acquireGuardrailSubjectLock } from './guardrails/acquire-guardrail-subject-lock';
 import type {
   DuplicateTicketMatch,
   TicketGuardrailsConfiguration,
@@ -175,19 +177,24 @@ export async function createTicket(
   const created = await runExclusiveGuardrail(
     duplicateGuardrailSubjectKey(requester.id, serviceId),
     async () => {
-      await applyCreateTicketGuardrails({
-        prisma,
-        createInput: input,
-        requesterId: requester.id,
-        serviceId,
-        description,
-        configuration: guardrails,
-        sink: duplicateWarnings,
-        now: guardrailNow,
-      });
       return withTicketNumberRetry(async () => {
         const reserved = await reserveTicketSequence(prisma);
-        return prisma.$transaction(async (transaction) => {
+        return runCreateTicketTransaction(prisma, async (transaction) => {
+        await acquireGuardrailSubjectLock(
+          transaction,
+          duplicateGuardrailSubjectKey(requester.id, serviceId),
+        );
+        duplicateWarnings.splice(0, duplicateWarnings.length);
+        await applyCreateTicketGuardrails({
+          prisma: transaction as PrismaService,
+          createInput: input,
+          requesterId: requester.id,
+          serviceId,
+          description,
+          configuration: guardrails,
+          sink: duplicateWarnings,
+          now: guardrailNow,
+        });
         const ticketNumber = await nextTicketNumber(
           () => transaction.ticket.count(),
           () => readHighestTicketSequence(transaction),

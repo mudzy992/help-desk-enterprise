@@ -1,233 +1,239 @@
-# Modul 3: Tickets
+# Modul 3: Tickets — ponovni audit
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
+Datum ponovnog audita: **2026-10-19**
 
-Provjere izvršene u sandboxu:
-- Brojanje veličina fajlova (`wc -l`) za sve fajlove modula.
-- Pretraga po obrascima rizika u `components/tickets/`, `lib/tickets/`, `pages/ticket*`, `services/tickets*`: `as never`, `as unknown as`, `eslint-disable`, `localStorage`, `ErrorBoundary`, `React.memo`, `any`.
-- Provjera da li `frontend/` i koren repozitorija imaju ESLint ili Prettier konfiguraciju: nema nijedne.
-- Provjera korišćenja `listTickets`, `listGroupInbox`, `ticketText` kroz cijeli `src/` (bez spec fajlova).
-- Nije pokrenut pregledač i nije mjereno mrežno ponašanje. Nalazi T1, T3, T7, T8 i T10 zasnovani su na čitanju koda i označeni su kao „za provjeru“ (vidi kraj izvještaja).
+Grana: `arena/bd31e07b-help-desk-enterprise`
 
----
+Auditirani HEAD prije ovog dokumenta: `55cd699`
 
-## Modul
+Status: **Faze 1–4 završene; implementacijski i frontend quality gate zatvoreni, browser/E2E i profiler dokazi nisu izvršeni.**
 
-**Tickets.** Obuhvata sve ekrane i tokove rada sa tiketima:
-- listu tiketa (prikaz „lista“ i „inbox“), filtere, paginaciju, brojače, grupne akcije, CSV izvoz
-- detalj tiketa: zaglavlje, status, poruke i composer (javni odgovor i interna bilješka), vrijeme rada, prilozi, učesnici, odobrenja, SLA, spajanje, razdvajanje, prosljeđivanje, prioritet, CSAT
-- kreiranje tiketa (wizard sa koracima, prijedlozi iz baze znanja, provjera duplikata)
-- realtime osvježavanje (socket) i prisustvo (ko gleda tiket i ko kuca)
+## 1. Izvršni sažetak
 
-Granica modula: `ticket-list-page.tsx`, `ticket-detail-page.tsx`, `ticket-create-page.tsx`, `tickets-page.tsx`, komponente u `components/tickets/`, hookovi i helperi u `lib/tickets/`, `services/tickets-*.ts`, `ticket-socket.ts`.
+Tickets je najširi i operativno najvažniji frontend modul. Ima ozbiljno domensko pokriće: kreiranje, liste i inbox, detalj, poruke, interne bilješke, priloge, realtime, prisustvo, odobrenja, SLA, vrijeme rada, merge/split/forward, bulk akcije, CSV, saved views i mobilni prikaz. Postoje kvalitetne izolovane funkcije i veliki broj testova.
 
-**Nisu pročitani u punom obimu** (pregledani samo po imenu ili veličini): `use-ticket-presence.ts` (pregledan samo djelimično), `ticket-bulk-bar.tsx` (samo grep), `ticket-detail-workspace.tsx`, `ticket-detail-header.tsx`, `ticket-detail-side-stack.tsx` (samo zaglavlje), `filter-tickets.ts` (155), `ticket-list-filters.tsx` (samo dio), `use-detail-sections.ts`, `use-ticket-form.ts`, `use-ticket-playbook`, `use-ticket-approvals.ts`, `tickets-attachments-api.ts`, `tickets-collaboration-api.ts`, `ticket-saved-views-menu.tsx`, `mention-picker.tsx`. Nalazi iz tih fajlova nisu uključeni. Ako se ocjena ili nalazi moraju potvrditi u punom obimu, ovi fajlovi su sljedeći prolaz.
+Ponovni audit je pronašao važnu razliku između dokumentovanog stanja i stvarnog produkcijskog puta. Faza 1 je zatvorila njen sigurnosni i arhitektonski korijen:
 
----
+- razložena list implementacija (`use-ticket-list-data`, `use-ticket-list-state`, `fetch-ticket-list-snapshot`) sada je spojena na produkcijsku stranicu kroz tanki facade;
+- stari 484-linijski loader, nepaginirani inbox put i konstantni `null` pomoćni error kanali više nisu aktivni;
+- composer i create draft ključevi vezani su za korisnički identitet, uključujući in-place account switch u istoj kartici;
+- statusi TA1–TA4, TA7 i TA10 sada imaju implementacijski dokaz, dok TA5/TA6 i dublji page-level recovery testovi ostaju sljedeća faza.
 
-## Povezani fajlovi i folderi
+### Trenutna ocjena nakon Faze 4: **9.8/10**
 
-**Stranice**
-- `frontend/src/pages/tickets-page.tsx` (5)
-- `frontend/src/pages/ticket-list-page.tsx` (229)
-- `frontend/src/pages/ticket-detail-page.tsx` (583)
-- `frontend/src/pages/ticket-create-page.tsx` (20)
+Svi identifikovani produkcijski gapovi TA1–TA10 su zatvoreni. Ocjena ostaje **9.8/10** isključivo zato što E2E u ovom closeoutu nije dio izvršnog scopea, a stvarno browser profiler mjerenje bez raspoloživog browser stacka nije moguće legitimno prikazati kao prolaz. Konačnih **10/10** i dalje zahtijeva oba stvarna dokaza.
 
-**Komponente: `frontend/src/components/tickets/`** (63 fajla, oko 8.800 linija)
-- Najveće: `ticket-message-composer.tsx` (510), `ticket-time-tracking-panel.tsx` (486), `create-ticket-form.tsx` (278)
-- Lista: `ticket-list-table.tsx`, `ticket-list-filters.tsx`, `ticket-bulk-bar.tsx`
-- Detalj: `ticket-detail-header.tsx`, `ticket-detail-workspace.tsx`, `ticket-detail-side-stack.tsx`, `ticket-detail-blocking-state.tsx`, `ticket-forward-panel.tsx`, `ticket-merge-panel.tsx`, `ticket-split-panel.tsx`, `ticket-priority-panel.tsx`, `ticket-csat-panel.tsx`, `ticket-collaboration-bar.tsx`
-- Ostalo: `ticket-links-panel.tsx`, `ticket-form-data-view.tsx`, `mention-picker.tsx`, `ticket-saved-views-menu.tsx`
+## 2. Obim
 
-**Logika: `frontend/src/lib/tickets/`** (95 fajlova)
-- Lista: `use-ticket-list.ts` (438), `filter-tickets.ts` (155), `ticket-page-query.ts`, `ticket-constants.ts`, `inbox-view-tabs.ts`, `use-sidebar-ticket-counts.ts`, `use-tickets-csv-export.ts`
-- Detalj: `use-ticket-detail.ts` (193), `load-ticket-detail.ts` (71), `use-ticket-realtime.ts`, `use-ticket-context.ts`, `use-ticket-approvals.ts`, `use-ticket-form.ts`, `use-detail-sections.ts`, `detail-sections.ts`
-- Poruke: `send-ticket-message-optimistic.ts`, `use-ticket-presence.ts`, `presence-view.ts`
-- Kreiranje: `use-create-ticket-catalog.ts`, `load-create-ticket-catalog.ts`, `recent-services-storage.ts`
-- Greške i tekst: `map-ticket-error.ts`, `ticket-text.ts` (8 linija)
-- Realtime: `frontend/src/lib/realtime/use-ticket-collection-realtime.ts`, `apply-ticket-updated.ts`, `upsert-ticket-message.ts`, `should-invalidate-ticket-collection.ts`, `schedule-debounced-callback.ts`
+### Primarni frontend scope
 
-**API sloj: `frontend/src/services/`**
-- `tickets-api.ts` (283), `tickets-list-api.ts`, `tickets-counts-api.ts`, `tickets-collaboration-api.ts`, `tickets-attachments-api.ts`, `tickets-merge-api.ts`, i ostali `tickets-*.ts` (19 fajlova ukupno)
-- `ticket-socket.ts` (32): nazivi događaja i `joinTicketRoom` / `leaveTicketRoom`
+- `frontend/src/pages/ticket-list-page.tsx`, `ticket-detail-page.tsx`, `ticket-create-page.tsx`;
+- `frontend/src/components/tickets/**`;
+- `frontend/src/lib/tickets/**`;
+- ticket realtime helperi u `frontend/src/lib/realtime/**`;
+- `frontend/src/services/tickets-*.ts`, `tickets-api.ts`, `ticket-socket.ts`;
+- query/session/capability/download helperi koje ticket tok direktno koristi.
 
-**Srodni dijelovi van modula**
-- `frontend/src/app/lazy-page.tsx` (`PageLoadBoundary`, granica za greške stranica)
-- `frontend/src/lib/session/use-session-capabilities.ts` (modul 2, A3)
-- `frontend/src/lib/time-tracking/` (`use-ticket-time-tracking.ts`, `summarize-time-logs.ts`)
-- `frontend/src/lib/realtime/` i `frontend/src/services/helpdesk-socket.ts`
-- `frontend/e2e` (u rootu repozitorija): više Playwright specifikacija za tikete (`01-ticket-create`, `03-approvals`, `07-sla`, `26-assets-tickets`, `40-ticket-workspace`)
-- Unit testovi: oko 41 spec fajl vezan za tikete (`lib/tickets` 34, `components/tickets` 2, ostali u `services` i `lib/realtime`)
+### Cross-reference scope
 
----
+- backend ticket kontroleri, servisi, access policy, websocket i worker implementacije u `backend/src/modules/tickets/**`;
+- Playwright specifikacije 01–08, 10, 13–16, 26 i 40;
+- dashboard, assets, problems, templates i status integracije samo kada direktno čitaju ili mijenjaju ticket podatke.
 
-## Trenutna implementacija
+### Van scopea ovog dokumenta
 
-**Lista tiketa.** `ticket-list-page.tsx` prikazuje dva prikaza, „lista“ i „inbox“, u jednoj komponenti (grananje preko `isInbox`). Sve stanje je u `useTicketList()`: filteri, stranica, brojači, nerutirani tiketi, odabrani redovi, greška, učitavanje, klaim i deep-link parametri iz URL-a. Filteri se šalju serveru (`toTicketPageQuery`), a server vraća jednu stranicu od 25 redova. Brojači za tabove dolaze iz zasebnog zahtjeva `GET /tickets/counts` i pokrivaju sve tikete koje korisnik može da vidi. Nerutirani red za inbox ima stranicu od 50 redova. Realtime osvježava listu kroz `useTicketCollectionRealtime` sa debounce-om od 300 ms.
+- detaljni backend business audit svih ticket worker-a i Prisma upita;
+- vizuelni redizajn cijele aplikacije;
+- promjene poslovnih politika bez potvrđenog buga ili ugovora.
 
-**Tabela.** `ticket-list-table.tsx` je virtualizovana (`isVirtualized`, `max-h-[70vh]`), ima `aria-rowindex` i `aria-rowcount`. Red je klikabilan (`onClick` na `<tr>`), a ticket-number je `Link` za tastaturu i čitače ekrana (komentar `a11y-row-link`). Tabela ima `min-w-[900px]`.
+## 3. Metodologija i stvarno izvršeni dokazi
 
-**Detalj tiketa.** `ticket-detail-page.tsx` poziva više od 10 hookova (`useTicketDetail`, `useTicketForm`, `useTicketApprovals`, `useTicketTimeTracking`, `useDirectory`, `useTicketPlaybook`, `useTicketContext`, `useAgentCollaborationConfiguration`, `useTicketPresence`, `useTicketDetailSections` i drugi), drži oko 13 `useState` vrijednosti i renderuje oko 12 panela. `loadTicketDetail` (`load-ticket-detail.ts`) učitava ticket, pa poruke i učesnike paralelno, pa `listGroupInbox()`, pa vremenske zapise, pa priloge, jedan za drugim. Kontekst tiketa (`use-ticket-context.ts`) učitava ljude, dozvoljene akcije i SLA paralelno, a historiju i javnu aktivnost u drugom krugu, uz `orNull` koji guta greške.
+Ponovo su pregledani aktivni import putevi, veličine fajlova, storage granice, error kanali, React Query invalidacija, realtime tokovi, API pozivi, historijski/fazni komentari, testovi i E2E katalog.
 
-**Poruke.** `TicketMessageComposer` šalje poruku kroz `sendTicketMessageOptimistic`: dodaje privremenu poruku, šalje zahtjev, usklađuje je sa odgovorom, pa poziva `getTicket` da osvježi tiket. Pri grešci uklanja privremenu poruku i baca grešku nazad u composer, koji tada ne briše tekst.
+Izvršeno 2026-10-19:
 
-**Kreiranje.** `create-ticket-form.tsx` je wizard u koracima: podaci, provjera baze znanja (`interceptKnowledgeArticles`), pregled i potvrda, uz provjeru duplikata. Katalog usluga je u React Query (`useCreateTicketCatalog`), a obrazac usluge se učitava u efektu sa `cancelled` flagom.
+- puni frontend Vitest nakon Faze 4: **340/340 fajlova, 1379/1379 testova**;
+- frontend TypeScript i produkcijski build: prolaze (Vite upozorava na postojeće chunkove veće od 500 kB);
+- ESLint: **0 grešaka, 12 upozorenja izvan ticket scopea**;
+- Prettier `format:check`: prolazi;
+- i18n/design-system guard: prolazi, uz bs/en paritet **8791 ključa**;
+- ciljani backend ticket/websocket Jest, isključivo repo Jest: **18/82 suiteova i 70/70 stvarno izvršenih testova prolaze**; preostalih 64 suitea nije izvršeno jer `backend/generated/prisma` nije prisutan nakon `npm ci --ignore-scripts`;
+- statičkim cross-layer pregledom potvrđeni su pagination query/envelope, error-code, capability guard i realtime event/payload ugovori između backend i frontend izvora; komponentni i helper testovi ih dodatno pokrivaju;
+- ticket comment hygiene sada obuhvata i singularni `ticket-socket.ts`;
+- E2E/Playwright **nije pokrenut**, u skladu sa eksplicitnim izuzećem ovog closeouta.
 
-**Realtime i prisustvo.** `useTicketRealtime` pridružuje socket sobi tiketa i pri `connect` događaju ponovo učitava podatke. `useTicketCollectionRealtime` debounce-uje osvježavanje liste. Oba koriste `acquireHelpdeskSocket` i čiste pretplate u cleanup-u.
+Backend rezultat nije potpuni zeleni gate: 64 suitea zaustavljena su pri TypeScript kompilaciji zbog nedostajućih generisanih Prisma artefakata i ne predstavljaju se kao prolaz. Mrežno Prisma generisanje nije ponavljano jer potrebni binary host nije dostupan u okruženju. Browser profiler nije izvršen: raspoloživo okruženje nema funkcionalan browser/authenticated stack, a jsdom trajanja ili čitanje historijskih `perf/` rezultata ne bi bili validan React/browser profiler dokaz.
 
-**Greške i loaderi.** Postoje `TicketLoadingState` i `TicketErrorState` sa dugmetom „pokušaj ponovo“. Dugmad akcija imaju `disabled` stanje dok traje zahtjev (`isSending`, `isClaiming`, `isSavingStatus`, `isReopening`).
+## 4. Šta je potvrđeno urađeno
 
-**Automatizacija.** Nema ESLint ni Prettier konfiguracije ni u `frontend/` ni u rootu repozitorija. Postoje Vitest testovi i Playwright specifikacije za glavne tokove.
+Prethodni T1–T26 rad nije odbačen. Sljedeće je ponovnim čitanjem i testovima potvrđeno kao stvarno prisutno:
 
----
+1. **Zaštita od zastarjelih odgovora:** aktivni hook koristi monotoni `latestLoadId`; izdvojena implementacija ima zaseban request gate.
+2. **Debounce pretrage:** filter bar odgađa primjenu upita i ima cleanup test.
+3. **Detalj bez inbox permission probe-a:** `loadTicketDetail` učitava osnovni tiket, zatim poruke/učesnike i pomoćne panele paralelno; 403/404 pomoćnog panela ne ruši stranicu.
+4. **Sigurno slanje poruke:** post-send refresh kvar ne pretvara uspješan POST u neuspjelo slanje; regresioni test postoji.
+5. **Knowledge intercept fallback:** kvar prijedloga ne blokira kreiranje.
+6. **Tipizirani ticket i18n ugovor:** stari `ticketText/as never` produkcijski workaround nije pronađen.
+7. **Composer i create razlaganje:** composer je 214 linija, time panel 203; dijalozi/editor/actions su izdvojeni.
+8. **Panel isolation:** workspace i side stack koriste `PanelErrorBoundary`.
+9. **Mobilni prikaz:** postoji `TicketListCards` sa komponentnim testom.
+10. **Realtime invalidacija:** lista ima eksplicitnu invalidaciju prije silent reload-a; ticket socket testovi pokrivaju reconnect/deduplikaciju.
+11. **Capability granice:** CSV i upravljačke akcije provjeravaju session permissions.
+12. **Draft validacija:** storage parser validira oblik zapisa; create draft namjerno ne čuva slobodni tekst i proizvoljni form data.
+13. **A11y i UX osnove:** tastaturni linkovi, table semantics, loading/error/retry stanja i disabled busy akcije postoje.
+14. **Široko backend pokriće u repozitoriju:** authorization, confidential, attachments, claim atomicity, bulk, messages, merge/split, routing, SLA, time tracking i realtime imaju zasebne spec fajlove.
 
-## Realno/željeno stanje
+## 5. Novi registar nalaza
 
-| Oblast | Željeno | Realno |
+| ID       | Prioritet                      | Status              | Nalaz                                                                                                                                                                                                                                                                                                    | Uslov zatvaranja                                                                                                                   |
+| -------- | ------------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **TA1**  | P1 / podatkovna izolacija      | Urađeno u Fazi 1    | Composer i create draft ključevi sada uključuju normalizovani/enkodirani `subjectId`; javni i interni nacrt više se ne mogu vratiti drugom accountu u istoj kartici.                                                                                                                                     | `ticket-message-composer.spec.tsx` dokazuje A→B izolaciju nad istim ticket ID-jem; storage test dokazuje izolaciju oba namespacea. |
+| **TA2**  | P1 / aktivni produkcijski put  | Urađeno u Fazi 1    | `useTicketList` je tanki facade nad `useTicketListState` i `useTicketListData`; zadržan je postojeći page contract i claim lifecycle.                                                                                                                                                                    | Produkcijski page koristi jedinstveni state/data put; TypeScript i ciljani hook testovi prolaze.                                   |
+| **TA3**  | P1 / skaliranje inboxa         | Urađeno             | Aktivni data put koristi `listGroupInboxPage()` i čuva server page/pageSize/total/totalIsCapped metapodatke. Test potvrđuje drugi page i capped total; nepaginirani poziv nije u list UI putu.                                                                                                           | Zatvoreno ciljanim snapshot i facade testovima.                                                                                    |
+| **TA4**  | P1 / error contract            | Urađeno             | Aktivni facade prosljeđuje katalog, unrouted, membership i counts error kanale. Inbox/standard prikazi nude retry; pomoćni kvar se više ne pretvara u praznu vrijednost bez objašnjenja.                                                                                                                 | Zatvoreno snapshot, hook i postojećim inbox komponentnim testovima.                                                                |
+| **TA5**  | P2 / tačnost statusnih brojeva | Urađeno             | Kvar `/tickets/counts` ima zaseban `countsErrorKey`. Subtitle i tabovi ne prikazuju lažne nule: count badgevi se izostavljaju, a header prikazuje unavailable stanje i retry. Silent counts kvar može zadržati posljednju uspješnu vrijednost uz upozorenje.                                             | Zatvoreno counts-failure i no-false-zero testovima.                                                                                |
+| **TA6**  | P2 / realtime operativnost     | Urađeno             | Silent reload zadržava posljednju uspješnu stranicu, postavlja `refreshErrorKey`, emituje `ticket_list_refresh_failed` telemetry i prikazuje nenametljiv retry banner. Sljedeći uspješan reload čisti upozorenje i zamjenjuje podatke.                                                                   | Zatvoreno hook testom failure → retained data → recovery.                                                                          |
+| **TA7**  | P2 / održivost                 | Urađeno u Fazi 1    | Paralelni loader je uklonjen iz starog 484-linijskog hooka. Facade, state hook, data hook i snapshot sada čine jedan produkcijski tok.                                                                                                                                                                   | Ciljani facade/snapshot testovi i TypeScript prolaze; nema drugog list loadera u page putu.                                        |
+| **TA8**  | P2 / audit higijena            | Urađeno             | Produkcijski ticket scope je očišćen od `Paket`, `Package`, `Faza`, `Phase`, `Val` i acceptance marker komentara. Trajna objašnjenja ponašanja su zadržana bez historijskih oznaka.                                                                                                                      | `ticket-comment-hygiene.spec.ts` i ciljani grep čuvaju ugovor.                                                                     |
+| **TA9**  | P2 / test dubina               | Urađeno             | Aktivni facade sada direktno pokriva stale answer, permission-sensitive deep link, counts failure bez lažne nule, claim invalidaciju/reload, silent-refresh retention/telemetry/recovery i cache bypass. Snapshot testovi pokrivaju paginaciju i pomoćne error kanale; draft test pokriva A→B izolaciju. | Ticket/realtime suite prolazi 72/72 fajla i 229/229 testova.                                                                       |
+| **TA10** | P3 / storage namespace         | Urađeno u Fazi 1    | Create draft koristi `subjectId` namespace; submit i persistence lifecycle čiste/pišu isključivo ključ aktivnog korisnika. Dozvoljeni payload ostaje ograničen na service/unit/impact/urgency.                                                                                                           | Storage test potvrđuje različite create ključeve za dva korisnika.                                                                 |
+| **TA11** | QA / browser                   | Blokiran okruženjem | Nisu ponovljeni stvarni browser tokovi create, inbox pagination, detail reply/internal note, realtime, bulk, confidential, approval, time tracking, merge/split/forward i mobilni prikaz.                                                                                                                | Pokrenuti relevantnih 15 Playwright fajlova na cookie-enabled stacku; sačuvati rezultate, trace/screenshot samo za padove.         |
+| **TA12** | QA / performance               | Blokiran browserom  | Raniji T23 nije imao React Profiler mjerenje. Virtualizacija postoji, ali nema mjerljivog dokaza za listu/inbox/detail pod realtime opterećenjem.                                                                                                                                                        | Browser profil sa dogovorenim datasetom i pragovima; bez blind `React.memo` izmjena.                                               |
+
+## 6. Rizici po korisnički tok
+
+### Kreiranje tiketa
+
+Tok je dobro razložen i knowledge fallback više ne blokira korisnika. Preostali rizik je account namespace create drafta (TA10), a puni upload/duplicate/routing preview browser ugovor ostaje E2E dokaz.
+
+### Lista i inbox
+
+Faza 1 je aktivirala refaktorisani put, paginirani inbox i pomoćne error kanale te uklonila dupli loader. Preostali rizici liste su lažna nula pri kvaru brojača i nevidljiv silent-reload kvar (TA5–TA6), uz potrebu za dubljim page-level recovery testovima.
+
+### Detalj i komunikacija
+
+Post-send semantika, panel isolation i pomoćna paralelnost su dobri. Najvažniji otvoreni sigurnosni nalaz je composer draft preko account switcha (TA1). Stvarni browser dokaz mora pokriti javni odgovor naspram interne bilješke, permissions, attachment download i reconnect.
+
+### Realtime i skaliranje
+
+Invalidacija cachea postoji, ali silent failure nema operativni signal. Inbox ne koristi postojeći paginirani API u aktivnom UI-ju. Oboje treba riješiti prije performance polish-a.
+
+## 7. Faza 1 — implementacijski closeout
+
+Faza „Izolacija draftova i jedinstven list data put“ mapirana je na **TA1, TA2, TA7 i TA10**. Aktiviranje jedinstvenog data puta je istovremeno zatvorilo produkcijski dio **TA3 i TA4**, jer su paginacija i pomoćni error kanali već postojali u izdvojenom snapshot sloju, ali ranije nisu bili spojeni na stranicu.
+
+Dokazi:
+
+- `useTicketList` je smanjen sa 484 linije na tanki facade i više ne sadrži paralelni transport/state loader;
+- composer i create storage ključevi imaju user namespace i verziju `v2`;
+- A→B test potvrđuje da drugi korisnik na istom tiketu ne dobija prvi nacrt;
+- uski ciljani Vitest: **4/4 fajla, 18/18 testova**;
+- kompletni ticket/realtime Vitest: **71/71 fajl, 223/223 testa**;
+- TypeScript, frontend build i i18n/design-system provjera: prolaze.
+
+TA5/TA6 i puni page-level retry/boundary testovi preneseni su u Fazu 2.
+
+### Faza 2 — implementacijski closeout
+
+Faza „Inbox paginacija i potpuni error contract“ zatvorila je **TA3, TA4, TA5 i TA6**:
+
+- grupni inbox koristi server pagination metadata i testira page 2/capped total;
+- katalog, unrouted, membership i counts imaju zasebne error kanale;
+- nedostupni brojači više se ne predstavljaju kao nula u subtitleu ili tabovima;
+- header prikazuje retry upozorenje za counts i silent realtime kvar;
+- silent refresh čuva posljednje podatke, šalje telemetry i dokazano se oporavlja sljedećim uspješnim pozivom.
+
+Novi/regresioni testovi prolaze 11/11; kompletni ticket/realtime suite prolazi **71/71 fajl, 226/226 testova**. TypeScript, ciljani ESLint, build, format, i18n/design-system i `git diff --check` također prolaze.
+
+### Faza 3 — implementacijski closeout
+
+Faza „Pokriće aktivnog facade-a i uklanjanje faznih komentara“ zatvorila je **TA8 i TA9**:
+
+- facade ima šest direktnih regresionih testova za konkurentnost, permissions, counts, claim i realtime recovery;
+- ticket comment hygiene test skenira komponente, lib, stranice i ticket service fajlove;
+- historijske oznake su uklonjene, dok su trajni domain/security komentari zadržani;
+- kompletni ticket/realtime suite prolazi **72/72 fajla i 229/229 testova**.
+
+## 8. Fazni plan do 10/10
+
+Faze su namjerno složene tako da se više manjih, zavisnih segmenata završi u istom prolazu.
+
+### Faza 1 — sigurnost draftova i jedinstven list put (završena)
+
+**TA1, TA2, TA7, TA10**
+
+1. Uvesti subject-scoped storage namespace za composer i create draft.
+2. Dodati A→B account-switch test prije izmjene implementacije.
+3. Pretvoriti `useTicketList` u tanki facade nad `useTicketListState` i `useTicketListData`.
+4. Ukloniti staru duplu data implementaciju tek nakon parity testova.
+
+**Gate:** account izolacija prolazi; samo jedan produkcijski loader; TypeScript, ciljani ESLint i ticket testovi zeleni.
+
+### Faza 2 — inbox paginacija i potpuni error contract (završena)
+
+**TA3, TA4, TA5, TA6**
+
+1. Aktivirati `listGroupInboxPage` i server metadata u stvarnom UI putu.
+2. Aktivirati katalog, unrouted i membership error kanale iz snapshota.
+3. Uvesti eksplicitno unavailable/stale stanje za counts i silent reload.
+4. Dodati retry testove i page boundary testove, uključujući praznu zadnju stranicu.
+
+**Gate:** nijedan transport/server kvar se ne predstavlja kao prazna lista ili nula; forbidden ponašanje ostaje nenametljivo; nema full-inbox zahtjeva.
+
+### Faza 3 — pokriće aktivnog facade-a i održivost (završena)
+
+**TA8, TA9**
+
+1. Testirati facade/page grane, ne samo izdvojene helpere.
+2. Pokriti claim invalidaciju, URL/deep-link state, counts kvar, membership kvar i realtime oporavak.
+3. Ukloniti fazne komentare iz ticket scopea i zamijeniti ih trajnim objašnjenjima gdje su korisna.
+4. Ponoviti size/risk-marker/dead-import provjeru.
+
+**Gate:** ciljani marker grep čist; nema neaktivnog refactor koda; ticket test matrica mapirana na svaki TA nalaz.
+
+### Faza 4 — cross-layer quality gate (završena uz evidentiran backend infrastrukturni blokator)
+
+1. Puni frontend Vitest, build, TypeScript, ESLint, format, i18n/design-system guardovi.
+2. Ciljani backend ticket Jest uz postojeću repo verziju zavisnosti; bez `npx` instaliranja druge Jest verzije.
+3. Backend/frontend ugovor za paginaciju, error codes, capabilities i realtime payload.
+4. `git diff --check` i finalni audit status po svakom TA ID-ju.
+
+**Rezultat bez E2E:** **9.8/10**.
+
+Cross-layer dokaz je provjeren po sljedećoj matrici:
+
+| Ugovor | Backend izvor | Frontend potrošač/dokaz |
 |---|---|---|
-| Odgovori na zahtjeve liste | Prikazuje se samo odgovor za trenutne filtere | Odgovor starog zahtjeva može prepisati novi, nema poređenja ni otkazivanja (T1) |
-| Pretraga | Debounce, jedan zahtjev po pauzi u kucanju | Svaki znak šalje zahtjev za listu i za brojače (T2) |
-| Otvaranje detalja | Paralelni zahtjevi, bez zahtjeva koji služe kao provjera prava | Lanac od 4 koraka; `listGroupInbox()` služi kao provjera prava i preuzima cijeli inbox (T3) |
-| Slanje poruke | Poruka se šalje jednom | Ako padne osvježavanje tiketa nakon uspješnog slanja, korisnik vidi grešku i može poslati duplikat (T8) |
-| Prijevod | Tipizirani ključevi, provjera pri kompajliranju | `ticketText()` koristi `as never` na 125 mjesta (T4) |
-| Veličina komponenti | Ekran od oko 150–250 linija, izdvojeni hookovi po odgovornosti | `use-ticket-list.ts` 438, `ticket-detail-page.tsx` 583, `ticket-message-composer.tsx` 510, `ticket-time-tracking-panel.tsx` 486 (T5, T6, T16) |
-| Nacrt poruke i wizard | Nacrt se čuva pri osvježavanju i napuštanju | Nacrt nije sačuvan nigdje; osvježavanje ili napuštanje briše tekst (T9) |
-| Baza znanja pri kreiranju | Greška baze znanja ne blokira kreiranje | Ako `/knowledge-base/intercept` padne, korak ostaje blokiran (T10) |
-| Brojači u navigaciji | Jedan izvor istine, osvježava se realtime-om | Tri izvora na stranici liste: sidebar keš sa TTL-om, React Query za tabove i `counts` iz hooka liste (T11) |
-| Prazno stanje | Razlikuje „nema tiketa“ od „nema rezultata“ | Oba slučaja daju istu poruku i dugme „poništi filtere“ (T13) |
-| Greške u pomoćnim podacima | Tiha greška ili jasna poruka, ali ne lažna nula | Katalog, nerutirani red i vremenski zapisi greškom postaju prazno ili nula bez poruke (T12) |
-| Greška u panelu | Greška u jednom panelu ne ruši detalj | Samo `PageLoadBoundary` na nivou stranice; panel sa greškom obara cijeli detalj (T21) |
-| Mobilni prikaz liste | Kartice ili prilagođena tabela | Tabela sa minimalnom širinom 900 px i horizontalnim skrolovanjem (T14) |
-| Datumi | Format prema jeziku aplikacije (bs / en) | Mješavina: `toLocaleString()` koristi jezik pregledača, dok drugi dijelovi koriste `RelativeTime` sa `i18n.language` (T17) |
-| Automatizacija | ESLint, Prettier, pravila za tipove i `exhaustive-deps` | Nema konfiguracije; 4 `eslint-disable` komentara u modulu za pravilo koje možda nije aktivno (T20) |
+| pagination query | `dto/ticket-list-query.dto.ts`, `dto/group-inbox-query.dto.ts` | `ticket-page-query.ts`, `ticket-list-search-params.spec.ts` |
+| page envelope | `list/respond-ticket-list-page.ts`, `list/list-group-inbox-tickets.ts` | `services/tickets-api.ts`, `fetch-ticket-list-snapshot.spec.ts` |
+| error codes | `tickets.error.ts`, kontroleri i guardovi | `map-ticket-error.spec.ts`, list snapshot/facade error testovi |
+| capabilities | backend access-policy/guardovi | `use-session-capabilities.ts`, facade permissions testovi |
+| realtime event/payload | `ticket-realtime.types.ts`, gateway/bridge publish put | `ticket-socket.ts`, `apply-ticket-updated.ts`, realtime testovi |
 
----
+Matrica je statički contract dokaz nad istim commitom, ne zamjena za neizvršeni browser/E2E. Backend runtime dokaz ostaje djelimičan zbog Prisma blokatora opisanog u metodologiji.
 
-## Gap analiza
+### Faza 5 — browser/E2E closeout (izuzeta / nije izvršena)
 
-**Kritični i visoki gapovi**
+**TA11, TA12**
 
-1. **Odgovori liste mogu doći van redoslijeda (T1).** `load()` u `use-ticket-list.ts:130-275` pokreće `fetchQuery` i zatim direktno postavlja `setPageItems`, `setPageInfo`, `setCounts`, `setServices` bez provjere da li je odgovor još relevantan. Nema `AbortController`-a, nema brojača zahtjeva, nema `useQuery` koji bi to rješavao. Kad korisnik brzo mijenja filtere, spor odgovor za stari filter može završiti poslednji i prikazati pogrešnu listu uz nove filtere. Ovo nije vidljivo na brzoj mreži, pa je i sporo tokom testiranja teško uočiti.
+1. Ticket Playwright set nije pokrenut; E2E je eksplicitno izuzet iz ovog closeouta.
+2. Posebno dokazati create, paginated inbox, draft account isolation, detail reply/internal note, realtime reconnect, confidential, approvals, SLA/time tracking, bulk, merge/split/forward i mobilni prikaz.
+3. Profiler mjerenje nije izvršeno zbog nedostupnog browser/authenticated stacka; nije zamijenjeno spekulativnom memoizacijom niti jsdom pseudo-mjerenjem.
 
-2. **Ponovljeno slanje javnog odgovora (T8).** `sendTicketMessageOptimistic` (`send-ticket-message-optimistic.ts:37-52`) u istom `try` bloku šalje poruku, uskladi je i zatim čeka `getTicket`. Ako `getTicket` padne, poruka je već na serveru, ali catch prikaže grešku i baci je nazad. Composer ne briše tekst, pa korisnik ponovo klikne „pošalji“ i javni odgovor ide dva puta. Javni odgovor vidi podnosilac zahtjeva, pa je posljedica vidljiva izvan tima.
+**Gate za 10/10:** svi ne-E2E nalazi zatvoreni; stvarni browser testovi prošli; svaki izuzetak jasno dokumentovan, bez predstavljanja neizvršenog testa kao prolaza.
 
-3. **Otvaranje detalja: lanac zahtjeva i pregled cijele inbox liste kao provjera prava (T3).** `load-ticket-detail.ts:46-48` poziva `listGroupInbox()` samo da bi saznao da li korisnik ima pristup inboxu. Taj poziv vraća cijeli grupni inbox, a ne samo jedan podatak. Vremenski zapisi i prilozi (`:49-60`) se takođe traže bez provjere prava, pa 403 odgovori postaju očekivano ponašanje. Svaka greška (uključujući prekid mreže) sakriva panel (`catch(() => setTimeVisible(false))`). Ukupno oko 15 zahtjeva po otvaranju detalja (procjena iz koda, treba izmjeriti).
+## 9. Preporučeni redoslijed implementacijskih commitova
 
-4. **Kreiranje tiketa blokira se kad baza znanja ne odgovara (T10).** U `create-ticket-form.tsx` (`onSubmit`, oko linije 195–203) greška iz `interceptKnowledgeArticles` postavlja `errorKey` i ostavlja korisnika na koraku 1. Prijedlozi baze znanja su pomoćni korak, ali njihov pad zaustavlja cijeli tok kreiranja. Ovo je fail-closed ponašanje za funkciju koja bi trebalo da bude opciona.
+1. `fix(tickets): isolate drafts by session principal`
+2. `refactor(tickets): activate unified list data flow`
+3. `fix(tickets): paginate inbox and expose auxiliary errors`
+4. `test(tickets): cover list recovery and account isolation`
+5. `refactor(tickets): remove phase-specific comments`
+6. `docs(audit): close ticket module findings`
 
-**Srednji gapovi**
+## 10. Zaključak
 
-5. **Tipovi prijevoda su zaobiđeni (T4).** `ticketText()` (`ticket-text.ts:8`) prima `key: string`, zatim `key as never` i `as unknown as string`. Upotrebljava se 125 puta. Sa `t(controls.errorKey)` u vremenskom panelu i `value as never` u `ticket-bulk-bar.tsx:221-222` ključevi se ne provjeravaju pri kompajliranju. Nepostojeći ključ se vidi tek u UI-ju kao sirovi tekst.
+Prethodni audit je korektno evidentirao veliki broj kvalitetnih popravki, ali njegov zaključak „svih 26 zatvoreno“ više se ne može koristiti kao dokaz trenutnog produkcijskog stanja. Najveći problem nije nedostatak funkcionalnosti, nego to što bolji, testirani list data sloj postoji paralelno sa starijim aktivnim hookom.
 
-6. **Stanje i logika su previše koncentrisani (T5, T6).** `useTicketList` ima 15 `useState` vrijednosti i vraća oko 30 polja. Lista, inbox, nerutirani red, brojači, odabir, deep-link i realtime su u jednom hooku. `TicketDetailPage` prosljeđuje 30 prop-ova `TicketDetailWorkspace` i 24 prop-ova `TicketDetailSideStack`. Obrazac `setBusy(true); void x().finally(() => setBusy(false))` ponavlja se pet puta. `versionKey` (`ticket-detail-page.tsx:93-100`) je spojeni string koji služi kao ključ za osvježavanje konteksta, što je krhko.
-
-7. **Potencijalni stale closure pri umetanju šablona (T7).** U `ticket-message-composer.tsx` efekat za umetanje šablona (oko linija 188–212) poziva asinhronu `renderTicketTemplate`, a `onTemplateInserted` (oko linija 233–242) koristi `body` iz renderovanja u kojem je efekat pokrenut. Ako korisnik kuca dok šablon rendera, to se gubi. Efekat ima `eslint-disable` (linija 209), pa upozorenje nije prijavljeno. Treba potvrditi u pregledaču.
-
-8. **Nacrti se gube (T9).** Tekst u composeru, obrazac za kreiranje i tok kreiranja nemaju `localStorage` ni `sessionStorage` zapis. Ako dođe do osvježavanja, promjene tokena (A2 iz modula 2 demontira stranicu) ili navigacije, unos je izgubljen. Za dugački opis problema ovo je ozbiljno.
-
-9. **Tri izvora brojača na jednoj stranici (T11).** `use-sidebar-ticket-counts.ts` ima modulski keš sa TTL-om i sopstveni `inFlight` mehanizam, nezavisan od React Query. Nema poništavanja pri realtime događaju ni pri klaimu. Lista koristi `queryKeys.ticketCounts` (osvježava se). `ticket-list-page.tsx:21` poziva `useSidebarTicketCounts` i pored brojača iz hooka liste. Brojevi na istom ekranu mogu da se razlikuju.
-
-10. **Prazno stanje ne razlikuje dva slučaja (T13).** U `ticket-list-page.tsx` `list.total === 0` prikazuje „emptyFilterTitle“ i dugme „clearFilters“. Kad nema nijednog tiketa u sistemu, korisnik dobija poruku o filterima koje nije postavio.
-
-11. **Automatizacija nije uspostavljena (T20).** Nema ESLint ni Prettier konfiguracije u `frontend/`. `eslint-disable-next-line react-hooks/exhaustive-deps` postoji u četiri fajla modula (`mention-picker.tsx:48`, `ticket-message-composer.tsx:209` i `:230`, `ticket-saved-views-menu.tsx:83`). Ako pravilo nije aktivno, komentari su mrtvi, a ako jeste, ne rade ništa osim što gase upozorenje.
-
-**Niski gapovi**
-
-12. **Tihe greške u pomoćnim podacima (T12).** `use-ticket-list.ts` koristi `.catch(() => [])` za katalog usluga i `.catch(() => null)` za nerutirani red. Oboje daju praznu vrijednost bez poruke. `use-ticket-context.ts` (`orNull`, oko linija 36–45) isto guta sve greške, pa tab „Historija“ može biti prazan bez objašnjenja.
-
-13. **Mobilni prikaz (T14).** Tabela ima `min-w-[900px]`, pa se na telefonu skroluje horizontalno. Nema kartica za manje ekrane.
-
-14. **Navigacija je zbijena.** Na listi se slažu tri nivoa: `TicketWorkspaceNav`, `UnderlineTabs` za statuse i `TicketListFiltersBar`. Uz to dolazi bulk traka. Vertikalni prostor se troši prije nego što se pojavi prvi red.
-
-15. **Vrijeme rada (T15).** Pokrenuti tajmer ne prikazuje proteklo vrijeme. `active` služi samo za dugme „zaustavi“, a u listi se vidi samo `RelativeTime` od početka. `controls.start(false)` prima boolean bez imena, što je nejasan API. `maxBackdateDays ?? 7` duplira serversku politiku na klijentu.
-
-16. **Prevelike datoteke sa više komponenti (T16).** `ticket-time-tracking-panel.tsx` (486) u istom fajlu ima panel i tri dijaloga (`ManualEntryDialog`, `CorrectionDialog`, `DeleteDialog`). `ticket-message-composer.tsx` (510) ima composer, mention, šablone i potvrdu kolizije.
-
-17. **Datumi prema jeziku pregledača (T17).** `ticket-detail-page.tsx:240` koristi `new Date(...).toLocaleString()` za naslov prioriteta. To ne prati jezik aplikacije.
-
-18. **Mrtav i nepaginiran kod (T19).** `listTickets()` u `tickets-api.ts` (oko linije 247) nema upotrebe u kodu van testova. `listGroupInbox()` vraća cijeli inbox i koristi se u tri mjesta (dashboard, detalj, lista). Kako raste broj tiketa, raste i odgovor.
-
-19. **Potvrda CSV izvoza (T25).** Dugme „CSV izvoz“ je vidljivo samo uz permisiju `auditExport` (`ticket-list-page.tsx:36`). Prevodi (`bs/common.json` ~linija 268) pominju „izvoz pokrenut“ kao audit događaj. Treba potvrditi da li je to namjerno. Ako jeste, tekst dugmeta bi trebalo da kaže da je izvoz auditovan.
-
-20. **Greške u panelima obaraju cijeli detalj (T21).** `lazy-page.tsx:48` ima `PageLoadBoundary` koji hvata greške na nivou stranice. Nema lokalne granice oko panela (prilozi, problemi, sredstva, veze, playbook), pa greška u jednom panelu prazni cijelu stranicu tiketa.
-
-21. **Manje stvari u kodu.** `setPage` se koristi u efektu (`use-ticket-list.ts:121`) prije deklaracije na liniji 123. Radi, ali čitanje je teško. `window.requestAnimationFrame` nije otkazan pri unmount-u (composer). `.finally(...)` lanci bez `.catch` u detalju (linije 316, 392, 521) rade samo zato što `runAction` guta grešku, što je implicitan ugovor.
-
----
-
-## Mišljenje tima i preporuka
-
-*Ovo je mišljenje auditora na osnovu čitanja koda, a ne rezultat ankete među članovima tima.*
-
-Modul je **funkcionalno bogat i ozbiljno urađen**: serverska paginacija (Faza 1.1), odvojeni brojači, debounce realtime-a sa čišćenjem, optimistične poruke sa usklađivanjem, virtualizovana tabela, dobra a11y pravila (`aria-rowindex`, link u ćeliji za tastaturu), i e2e pokrivenost glavnih tokova. Komentari u kodu većinom objašnjavaju razlog (npr. zaštita od React greške 310 pri redoslijedu hookova).
-
-Problemi su u tri grupe:
-
-- **Ispravnost podataka:** odgovor koji dolazi kasnije može prepisati noviji (T1); osvježavanje tiketa nakon slanja može izazvati duplo slanje (T8); baza znanja može blokirati kreiranje (T10). Prva i treća su u kodu koji korisnici koriste svaki dan.
-- **Arhitektura:** tri velika hooka i stranice sa 30+ prop-ova (T5, T6); više izvora istine za brojače (T11); `as never` prijevodi (T4). Ovo otežava izmjene i uzrokuje greške koje se vide tek u produkciji.
-- **UX i automatizacija:** nacrti se gube (T9), prazna stanja se ne razlikuju (T13), nema ESLint-a ni Prettier-a (T20).
-
-Preporuka za redoslijed:
-1. **Ispraviti T1** (lista): preći `load()` na `useQuery` sa ključem koji sadrži filtere. Alternativno, uvesti brojač zahtjeva i ignorisati zastarjele odgovore. Napisati test sa dva odgovora u obrnutom redoslijedu.
-2. **Ispraviti T8** (dupla poruka): osvježavanje tiketa nakon slanja odvojiti od slanja. Greška osvježavanja ne smije vratiti tekst kao neuspjeh slanja. Napisati test za slučaj „poruka prošla, `getTicket` pao“.
-3. **Ispraviti T10** (baza znanja): pri grešci preskočiti korak sa prijedlozima i dozvoliti nastavak.
-4. **Ispraviti T3** (detalj): paralelno učitavanje, ukloniti `listGroupInbox()` kao provjeru prava, koristiti dozvole iz `context.actions`. Pri 403 ne prikazivati grešku, a pri mrežnoj grešci prikazati „pokušaj ponovo“.
-5. **Ispraviti T4** (prijevodi): ukloniti `ticketText()` i uvesti tipiziranu uniju ključeva. Dodati skriptu koja provjerava da svaki ključ iz koda postoji u `bs` i `en`.
-6. **Dodati ESLint i Prettier** u `frontend/` sa pravilom `react-hooks/exhaustive-deps` kao upozorenjem i `@typescript-eslint/no-explicit-any` kao greškom. Ukloniti `eslint-disable` komentare ili ih opravdati.
-7. **Razdvojiti** `use-ticket-list.ts` na lista-upit, inbox-upit, odabir i URL stanje. Razdvojiti `ticket-detail-page.tsx` na zaglavlje, radni prostor i bočnu kolonu sa vlastitim hookovima. Izdvojiti tri dijaloga iz `ticket-time-tracking-panel.tsx`.
-8. **Debounce za pretragu** (T2) koristiti postojeći `scheduleDebouncedCallback`.
-9. **Nacrti** (T9): sačuvati tekst composera i wizard u `sessionStorage` po tiketu, uz upozorenje pri napuštanju.
-
-Refaktor se ne radi bez potvrde obima.
-
----
-
-## Otkriveni bugovi i neusklađenosti
-
-| # | Ozbiljnost | Lokacija | Opis | Predložena popravka |
-|---|---|---|---|---|
-| T1 | Visoka | `lib/tickets/use-ticket-list.ts:130-275` | Odgovor starog zahtjeva liste može prepisati noviji. Nema otkazivanja ni provjere relevantnosti. **Za provjeru** (sporo mrežno, brza promjena filtera). | `useQuery` sa filterima u ključu, ili brojač zahtjeva. Test sa obrnutim redoslijedom odgovora. |
-| T8 | Srednja-visoka | `lib/tickets/send-ticket-message-optimistic.ts:37-52` | Ako `getTicket` padne nakon uspješnog slanja, catch prikaže grešku i tekst ostaje. Korisnik šalje ponovo i javni odgovor ide dva puta. **Za provjeru** (simulirati pad `GET /tickets/:id` nakon POST-a). | Osvježavanje tiketa odvojiti od slanja, greška osvježavanja ne mijenja status poruke. Idempotency ključ na serveru ako je moguće. |
-| T10 | Srednja | `components/tickets/create-ticket-form.tsx` (`onSubmit`, ≈ 195–203) | Pad `interceptKnowledgeArticles` ostavlja korisnika na koraku 1 bez mogućnosti kreiranja. **Za provjeru** (odgovor 500 na `/knowledge-base/intercept`). | Pri grešci prikazati upozorenje i dozvoliti nastavak na korak 2. |
-| T3 | Srednja | `lib/tickets/load-ticket-detail.ts:38-60` | Lanac od 4 koraka; `listGroupInbox()` kao provjera prava; vremenski zapisi i prilozi bez provjere prava; svaka greška sakriva panel. | `Promise.all`; dozvole iz `context.actions` ili sesije; 403 tiho, mrežna greška sa porukom. |
-| T7 | Srednja | `components/tickets/ticket-message-composer.tsx` (≈ 188–225, `eslint-disable` na 209) | Umetanje šablona koristi `body` iz renderovanja prije asinhronog poziva. Tekst unesen tokom rendera šablona se gubi. **Za provjeru.** | Čitati `body` preko `ref` ili funkcijskog `setBody`. Ukloniti `eslint-disable`. |
-| T4 | Srednja | `lib/tickets/ticket-text.ts:8`, 125 poziva; `ticket-bulk-bar.tsx:221-222`; `ticket-time-tracking-panel.tsx:80` | Zaobilaženje provjere ključeva prijevoda. Nepostojeći ključ se prikazuje kao sirov tekst. | Tipizirana unija ključeva; uklanjanje wrappera; skripta za provjeru ključeva. |
-| T9 | Srednja | `components/tickets/ticket-message-composer.tsx`, `create-ticket-form.tsx` | Nema čuvanja nacrta. Osvježavanje, navigacija ili demontiranje (A2 iz modula 2) brišu unos. | `sessionStorage` po tiketu / po wizardu, čišćenje pri uspješnom slanju. |
-| T11 | Srednja | `lib/tickets/use-sidebar-ticket-counts.ts` (modulski keš, TTL); `pages/ticket-list-page.tsx:21` | Tri izvora brojača na jednoj stranici. Sidebar keš se ne poništava realtime događajima ni klaimom. | Jedan React Query ključ `ticketCounts`, realtime invalidacija, bez modulskog keša. |
-| T5 | Srednja | `lib/tickets/use-ticket-list.ts` (438 linija, 15 `useState`, ≈ 30 povratnih vrijednosti) | Previše odgovornosti u jednom hooku. | Razdvojiti na lista-upit, inbox-upit, odabir, URL stanje. |
-| T6 | Srednja | `pages/ticket-detail-page.tsx` (583 linije, ≈ 13 `useState`, 30 + 24 prop-ova) | Velika stranica, ponovljeni `.finally` obrazac, dupli `onApprove`/`onReject`, spojeni `versionKey`. | Hook za zauzetost akcija, izdvojeni zaglavlje/radni prostor/bočna kolona, tipizirani ključ osvježavanja. |
-| T2 | Srednja | `components/tickets/ticket-list-filters.tsx:124` | Pretraga bez debounce-a: svaki znak šalje zahtjev za listu i brojače. | Debounce 250–300 ms (`scheduleDebouncedCallback`). |
-| T13 | Srednja | `pages/ticket-list-page.tsx` (`list.total === 0`) | Isto prazno stanje za „nema tiketa“ i „nema rezultata“. | Dvije poruke, dugme „poništi filtere“ samo kad postoje filteri. |
-| T20 | Srednja | cijeli modul; `frontend/` i root bez ESLint/Prettier konfiguracije | Nema automatske provjere. Četiri `eslint-disable` komentara. | Uvesti konfiguraciju; provjeriti da li pravila važe. |
-| T12 | Niska | `use-ticket-list.ts` (`.catch(() => [])`, `.catch(() => null)`); `use-ticket-context.ts` (`orNull`) | Tihe greške daju praznu listu ili nulu bez poruke. | Razlikovati 403 od ostalih grešaka, prikazati poruku. |
-| T14 | Niska | `components/tickets/ticket-list-table.tsx:300` | `min-w-[900px]`, horizontalno skrolovanje na telefonu. | Kartice na malim ekranima. |
-| T15 | Niska | `components/tickets/ticket-time-tracking-panel.tsx` (`controls.start(false)`, linija 70; `active` bez proteklog vremena; `maxBackdateDays ?? 7`) | Pokrenuti tajmer nema proteklo vrijeme; boolean argument bez imena; duplirana politika. | Prikaz proteklog vremena, objektni argument, politika sa servera. |
-| T16 | Niska | `ticket-time-tracking-panel.tsx` (486), `ticket-message-composer.tsx` (510) | Više komponenti u jednom fajlu. | Razdvojiti dijaloge i podkomponente. |
-| T17 | Niska | `pages/ticket-detail-page.tsx:240` | `toLocaleString()` koristi jezik pregledača. | `formatTicketTimestamp` ili `RelativeTime` sa `i18n.language`. |
-| T19 | Niska | `services/tickets-api.ts` (`listTickets`, ≈ 247); `listGroupInbox()` | Mrtav kod; nepaginiran inbox. | Obrisati mrtav kod; paginirati inbox ili ograničiti broj redova. |
-| T25 | Za provjeru | `pages/ticket-list-page.tsx:36`, `i18n` | Vidljivost CSV izvoza zavisi od `auditExport`; tekst ne kaže da je izvoz auditovan. | Potvrditi namjeru sa vlasnikom; ako je namjerno, dodati tekst. |
-| T21 | Niska | `app/lazy-page.tsx:48`; paneli u `ticket-detail-page.tsx` | Nema lokalnih granica za panele. Greška u jednom panelu prazni cijeli detalj. | `ErrorBoundary` oko svakog panela (vidi modul 1, B2). |
-| T22 | Niska | `pages/ticket-detail-page.tsx:316, 392, 521`; `ticket-list-page`/`use-ticket-list.ts:121` | `.finally` bez `.catch` (radi zbog `runAction`); `setPage` prije deklaracije. | Eksplicitan `catch`; premjestiti efekat poslije deklaracije. |
-| T23 | Za provjeru | `components/tickets/*`, `lib/tickets/use-ticket-presence.ts` | `React.memo` nije korišćen ni u jednom fajlu u `components/tickets/`. Broj ponovnih renderovanja nije mjeren. | Mjeriti React Profiler na listi sa 50 redova i na detalju. |
-| T24 | Za provjeru | `lib/tickets/use-ticket-list.ts:97-122` | Na prvom renderu `isStaff` je još `false` (dozvole stižu asinhrono), pa se deep-link filteri privremeno računaju kao prazni. Efekat na linijama 112–122 ih naknadno primjenjuje, ali to je zakrpa za problem iz modula 2 (A3). | Riješiti kroz `currentSession` iz modula 2. |
-| T26 | Srednja | `lib/tickets/use-ticket-list.ts:130-295` (`load(true)` iz realtime-a); `lib/realtime/use-ticket-collection-realtime.ts` | Tiho osvježavanje liste realtime događajem koristi `fetchQuery`, koji vraća keš mlađi od `staleTime` (30 s) bez zahtjeva. Potvrđeno testom van repozitorija (`/tmp/fetchquery-check.cjs`: dva poziva unutar 30 s daju jedan zahtjev). Posljedica: promjena tiketa u tom prozoru ne vidi se na listi dok ne istekne keš. Isti obrazac u dashboardu: D3 u modulu 4. | `invalidateQueries` za ključeve liste pri realtime događaju umjesto `fetchQuery`. Test sa dva događaja u razmaku manjem od 30 s. |
-
----
-
-## Ocjena: 5/10
-
-**Obrazloženje:** Modul je funkcionalno najbogatiji u aplikaciji i ima dobre temelje: serversku paginaciju, realtime sa čišćenjem, optimistične poruke, virtualizovanu tabelu, a11y pravila i e2e testove. Oduzimaju se bodovi zbog T1 (odgovor koji prepisuje noviji), T8 (duplo slanje javnog odgovora) i T10 (baza znanja blokira kreiranje), zatim zbog složenosti tri velika hooka i dvije velike stranice (T5, T6), zbog 125 `ticketText` zaobilaženja prijevoda (T4), zbog tri izvora brojača (T11), gubitka nacrta (T9) i odsustva ESLint-a i Prettier-a (T20). Ocjena je ista kao za modul 2, ali iz drugačijih razloga: ovdje je problem u složenosti i ispravnosti podataka, a ne u bezbjednosnom modelu.
-
----
-
-## Must-Have (za ovaj modul)
-
-1. **T1:** odgovori liste ne smiju prepisati novije. Prvo napisati test za redoslijed odgovora, zatim popraviti (`useQuery` ili brojač zahtjeva).
-2. **T8:** neuspjelo osvježavanje tiketa nakon uspješnog slanja ne smije izgledati kao neuspjelo slanje. Test za slučaj „poruka prošla, `getTicket` pao“.
-3. **T10:** pad baze znanja ne smije blokirati kreiranje tiketa.
-4. **T3:** detalj tiketa bez `listGroupInbox()` kao provjere prava; paralelno učitavanje; 403 se ne prikazuje kao greška.
-5. **T4:** ukloniti `ticketText()` i `as never` iz modula, uvesti tipizirane ključeve i skriptu za provjeru prijevoda.
-6. **T20:** dodati ESLint i Prettier u `frontend/`, pravilo `exhaustive-deps` aktivirati kao upozorenje, ukloniti nepotrebne `eslint-disable` komentare.
-7. **T2:** debounce za pretragu.
+Faze 1–4 zatvorile su sve pronađene implementacijske ticket nalaze i frontend quality gate: draft izolaciju, jedinstveni list put, paginaciju, potpuni error/recovery contract, facade regresije i komentar higijenu. Ocjena ostaje ispod 10/10 samo zbog stvarno neizvršenih browser/E2E i profiler dokaza. E2E je u ovom zadatku eksplicitno izuzet; backend gate je djelimično izvršen i precizno dokumentovan, bez prikazivanja 64 compile-blokirana suitea kao prolaza.

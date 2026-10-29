@@ -1,8 +1,31 @@
+import { applicationDateLocale, dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { TFunction } from "i18next";
 import { ApiError } from "@/services/api";
-import type { OnCallSegmentView } from "@/services/on-call-api";
+import type { OnCallSegmentView, OnCallSwapStatus } from "@/services/on-call-api";
+import type { TranslationKey } from "@/i18n/translation-key";
 
-/** Paket 2.9 (K3): pure helpers for the on-call page. */
+/** pure helpers for the on-call page. */
+export function isValidTimeZone(timeZone: string): boolean {
+  const candidate = timeZone.trim();
+  if (!candidate) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: candidate }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const swapStatusKeys = {
+  PENDING: "onCall.swaps.status.PENDING",
+  ACCEPTED: "onCall.swaps.status.ACCEPTED",
+  DECLINED: "onCall.swaps.status.DECLINED",
+  CANCELLED: "onCall.swaps.status.CANCELLED",
+} as const satisfies Record<OnCallSwapStatus, TranslationKey>;
+
+export function onCallSwapStatusKey(status: OnCallSwapStatus): TranslationKey {
+  return swapStatusKeys[status];
+}
 
 export const onCallErrorKeys = {
   ON_CALL_DISABLED: "onCall.errors.disabled",
@@ -34,7 +57,7 @@ const dayMs = 86_400_000;
 
 function civilDateKey(date: Date, timeZone: string): string {
   // en-CA gives YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", {
+  return dateTimeFormatter("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",
@@ -97,7 +120,7 @@ export function groupSegmentsByDay(
 }
 
 function offsetMs(date: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = dateTimeFormatter("en-US", {
     timeZone,
     hourCycle: "h23",
     year: "numeric",
@@ -167,7 +190,7 @@ export function fromDateTimeLocalValue(value: string): string | null {
 export function toZoneInputValue(iso: string | Date, timeZone: string): string {
   const date = typeof iso === "string" ? new Date(iso) : iso;
   if (Number.isNaN(date.getTime())) return "";
-  const parts = new Intl.DateTimeFormat("en-US", {
+  const parts = dateTimeFormatter("en-US", {
     timeZone,
     hourCycle: "h23",
     year: "numeric",
@@ -266,7 +289,7 @@ export function formatOnCallTime(iso: string, t: TFunction, timeZone?: string): 
 }
 
 export function formatOnCallClock(iso: string, locale: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "bs-BA", {
+  return dateTimeFormatter(applicationDateLocale(locale), {
     ...(timeZone ? { timeZone } : {}),
     hour: "2-digit",
     minute: "2-digit",

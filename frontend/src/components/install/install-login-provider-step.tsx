@@ -1,21 +1,18 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  InstallEntraAdFields,
-  isEntraConfigured,
-} from "@/components/install/install-entra-ad-fields";
-import {
-  InstallLdapsBindFields,
-  isDirectoryBindConfigured,
-} from "@/components/install/install-ldaps-bind-fields";
+import { InstallEntraAdFields } from "@/components/install/install-entra-ad-fields";
+import { InstallLdapsBindFields } from "@/components/install/install-ldaps-bind-fields";
+import { InstallStepLoadError } from "@/components/install/install-step-load-error";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   buildInstallLoginProviderInput,
   isInstallLoginProviderFormReady,
+  toInstallLoginProviderFormValues,
   type InstallLoginProviderFormValues,
 } from "@/lib/build-install-login-provider-input";
+import { useInstallStepResource } from "@/lib/install/use-install-step-resource";
 import {
   mapInstallLoginProviderSaveError,
   type InstallLoginProviderErrorKey,
@@ -23,68 +20,47 @@ import {
 import {
   loadInstallLoginProvider,
   saveInstallLoginProvider,
-  type InstallLoginProviderMode,
   type InstallLoginProviderRecord,
 } from "@/services/install-api";
 
 export function InstallLoginProviderStep({ onSaved }: { readonly onSaved?: () => void }) {
   const { t } = useTranslation();
-  const [record, setRecord] = useState<InstallLoginProviderRecord | null>(null);
-  const [mode, setMode] = useState<InstallLoginProviderMode>("local");
-  const [azureTenantId, setAzureTenantId] = useState("");
-  const [azureClientId, setAzureClientId] = useState("");
-  const [adLdapsUrlsCsv, setAdLdapsUrlsCsv] = useState("");
-  const [adBindDn, setAdBindDn] = useState("");
-  const [adBindPassword, setAdBindPassword] = useState("");
   const [errorKey, setErrorKey] = useState<InstallLoginProviderErrorKey | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [draft, setDraft] = useState<InstallLoginProviderFormValues | null>(null);
 
-  useEffect(() => {
-    let isCancelled = false;
-    void loadInstallLoginProvider()
-      .then((status) => {
-        if (!isCancelled) {
-          applyRecord(status.loginProvider);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+  // F0.2/IN3: without the stored answer the form would start on `local` — a
+  // failed load could then switch a working Entra AD sign-in back to local
+  // accounts. The form is therefore rendered from `ready` only.
+  const resource = useInstallStepResource(loadInstallLoginProvider);
 
-  const formValues: InstallLoginProviderFormValues = {
-    mode,
-    azureTenantId,
-    azureClientId,
-    adLdapsUrlsCsv,
-    adBindDn,
-    adBindPassword,
-    entraAlreadyConfigured: record !== null && isEntraConfigured(record),
-    directoryBindAlreadyConfigured: record !== null && isDirectoryBindConfigured(record),
+  if (resource.status === "loading") {
+    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+  }
+
+  if (resource.status === "error") {
+    return <InstallStepLoadError error={resource.error} onRetry={resource.retry} />;
+  }
+
+  const values = draft ?? toInstallLoginProviderFormValues(resource.data.loginProvider);
+
+  const patch = (partial: Partial<InstallLoginProviderFormValues>) => {
+    setDraft({ ...values, ...partial });
   };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isInstallLoginProviderFormReady(formValues)) {
+    if (!isInstallLoginProviderFormReady(values)) {
       setErrorKey("install.loginProvider.errorIncomplete");
       return;
     }
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      const saved = await saveInstallLoginProvider(buildInstallLoginProviderInput(formValues));
-      applyRecord(saved);
-      setAzureTenantId("");
-      setAzureClientId("");
-      setAdBindDn("");
-      setAdBindPassword("");
+      const saved: InstallLoginProviderRecord = await saveInstallLoginProvider(
+        buildInstallLoginProviderInput(values),
+      );
+      setDraft(toInstallLoginProviderFormValues(saved));
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallLoginProviderSaveError(error));
@@ -92,16 +68,6 @@ export function InstallLoginProviderStep({ onSaved }: { readonly onSaved?: () =>
       setIsSubmitting(false);
     }
   };
-
-  function applyRecord(next: InstallLoginProviderRecord) {
-    setRecord(next);
-    setMode(next.mode);
-    setAdLdapsUrlsCsv(next.directoryBind.urls);
-  }
-
-  if (isLoading) {
-    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
-  }
 
   return (
     <form className="grid gap-4" onSubmit={onSubmit}>
@@ -114,8 +80,8 @@ export function InstallLoginProviderStep({ onSaved }: { readonly onSaved?: () =>
             type="radio"
             name="login-provider-mode"
             value="local"
-            checked={mode === "local"}
-            onChange={() => setMode("local")}
+            checked={values.mode === "local"}
+            onChange={() => patch({ mode: "local" })}
           />
           {t("install.loginProvider.local")}
         </label>
@@ -124,13 +90,13 @@ export function InstallLoginProviderStep({ onSaved }: { readonly onSaved?: () =>
             type="radio"
             name="login-provider-mode"
             value="entra_ad"
-            checked={mode === "entra_ad"}
-            onChange={() => setMode("entra_ad")}
+            checked={values.mode === "entra_ad"}
+            onChange={() => patch({ mode: "entra_ad" })}
           />
           {t("install.loginProvider.entraAd")}
         </label>
       </fieldset>
-      {mode === "local" ? (
+      {values.mode === "local" ? (
         <p className="text-[12.5px] leading-5 text-muted-foreground">
           {t("install.loginProvider.localHint")}
         </p>
@@ -140,41 +106,42 @@ export function InstallLoginProviderStep({ onSaved }: { readonly onSaved?: () =>
             {t("install.loginProvider.entraHint")}
           </p>
           <InstallEntraAdFields
-            tenantId={azureTenantId}
-            clientId={azureClientId}
-            tenantIdConfigured={record?.entra.tenantIdConfigured === true}
-            clientIdConfigured={record?.entra.clientIdConfigured === true}
+            tenantId={values.azureTenantId}
+            clientId={values.azureClientId}
+            tenantIdConfigured={values.entraAlreadyConfigured}
+            clientIdConfigured={values.entraAlreadyConfigured}
             tenantIdLabel={t("install.loginProvider.azureTenantId")}
             clientIdLabel={t("install.loginProvider.azureClientId")}
             configuredLabel={t("install.loginProvider.configured")}
-            onTenantIdChange={setAzureTenantId}
-            onClientIdChange={setAzureClientId}
+            onTenantIdChange={(azureTenantId) => patch({ azureTenantId })}
+            onClientIdChange={(azureClientId) => patch({ azureClientId })}
           />
           <InstallLdapsBindFields
-            urls={adLdapsUrlsCsv}
-            bindDn={adBindDn}
-            bindPassword={adBindPassword}
-            bindDnConfigured={record?.directoryBind.bindDnConfigured === true}
-            bindPasswordConfigured={record?.directoryBind.bindPasswordConfigured === true}
+            urls={values.adLdapsUrlsCsv}
+            bindDn={values.adBindDn}
+            bindPassword={values.adBindPassword}
+            bindDnConfigured={values.directoryBindAlreadyConfigured}
+            bindPasswordConfigured={values.directoryBindAlreadyConfigured}
             urlsLabel={t("install.loginProvider.ldapsUrls")}
             bindDnLabel={t("install.loginProvider.bindDn")}
             bindPasswordLabel={t("install.loginProvider.bindPassword")}
             configuredLabel={t("install.loginProvider.configured")}
-            onUrlsChange={setAdLdapsUrlsCsv}
-            onBindDnChange={setAdBindDn}
-            onBindPasswordChange={setAdBindPassword}
+            onUrlsChange={(adLdapsUrlsCsv) => patch({ adLdapsUrlsCsv })}
+            onBindDnChange={(adBindDn) => patch({ adBindDn })}
+            onBindPasswordChange={(adBindPassword) => patch({ adBindPassword })}
           />
           <p className="text-[12.5px] text-muted-foreground">
             {t("install.loginProvider.breakGlass")}
           </p>
         </>
       )}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey)}
+        </p>
+      ) : null}
       <div>
-        <Button
-          type="submit"
-          disabled={isSubmitting || !isInstallLoginProviderFormReady(formValues)}
-        >
+        <Button type="submit" disabled={isSubmitting || !isInstallLoginProviderFormReady(values)}>
           {isSubmitting ? t("install.loginProvider.saving") : t("install.loginProvider.submit")}
         </Button>
       </div>

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applyTicketListTab, ticketListTabKey } from "@/components/tickets/ticket-list-filters";
+import type { TFunction } from "i18next";
+import {
+  applyTicketListTab,
+  ticketListTabKey,
+  ticketStatusTabItems,
+} from "@/components/tickets/ticket-list-filters";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 
 function filters(overrides: Partial<TicketListFilters> = {}): TicketListFilters {
@@ -24,6 +29,12 @@ describe("ticket list SLA risk tab", () => {
     expect(next.overdue).toBe(true);
     expect(next.status).toBe("");
     expect(ticketListTabKey(next)).toBe("RISK");
+  });
+
+  it("omits counters when the count request is unavailable instead of showing false zeros", () => {
+    const t = ((key: string) => key) as TFunction;
+    const items = ticketStatusTabItems(t, null);
+    expect(items.every((item) => !("count" in item))).toBe(true);
   });
 
   it("clears overdue when a status or ALL tab is selected", () => {

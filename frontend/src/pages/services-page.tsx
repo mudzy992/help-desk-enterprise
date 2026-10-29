@@ -1,6 +1,7 @@
 import { Blocks, Plus } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
 import { ServiceCatalogLifecycleDialog } from "@/components/services/service-catalog-lifecycle-dialog";
 import { ServiceCatalogMutationSheet } from "@/components/services/service-catalog-mutation-sheet";
@@ -13,9 +14,16 @@ import { ServiceCategoryMutationSheet } from "@/components/services/categories/s
 import { ServiceCatalogList } from "@/components/services/service-catalog-list";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { serviceCatalogLoadState } from "@/lib/services/service-catalog-load-state";
+import {
+  canonicalizeServiceCatalogUrl,
+  parseServiceCatalogUrl,
+  resolveServiceWorkspace,
+  updateServiceCatalogUrl,
+  type ServiceWorkspaceKind,
+} from "@/lib/services/service-catalog-url-state";
 import { useCatalogRoutingCoverage } from "@/lib/services/use-catalog-routing-coverage";
 import { useServiceCatalog } from "@/lib/services/use-service-catalog";
 import { useServiceCategories } from "@/lib/services/use-service-categories";
@@ -32,7 +40,6 @@ import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
-import type { ServiceResponse } from "@/services/service-catalog-api";
 
 export function ServicesPage() {
   const { t } = useTranslation();
@@ -46,28 +53,48 @@ export function ServicesPage() {
     hasCatalogWrite: hasPermission(permissionKeys.serviceCatalogWrite),
     hasAvailabilityWrite: hasPermission(permissionKeys.serviceAvailabilityWrite),
     hasFormsWrite: hasPermission(permissionKeys.serviceFormsWrite),
-    isModuleLocked: catalogReadOnly.isLocked,
+    isModuleLocked: !catalogReadOnly.canWrite,
     canBypass: canBypassAdminReadOnly(session),
   });
-  const [wizardServiceId, setWizardServiceId] = useState<string | null | undefined>(undefined);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingService, setEditingService] = useState<ServiceResponse | null>(null);
-  const [lifecycleService, setLifecycleService] = useState<ServiceResponse | null>(null);
-  const [downtimeService, setDowntimeService] = useState<ServiceResponse | null>(null);
-  const [formServiceId, setFormServiceId] = useState<string | null>(null);
-  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlState = useMemo(() => parseServiceCatalogUrl(searchParams), [searchParams]);
+  const workspace = resolveServiceWorkspace(urlState);
+  const workspaceServiceId = "serviceId" in workspace ? workspace.serviceId : null;
+  const selectedService =
+    workspaceServiceId === null
+      ? null
+      : (catalog.rows.find((row) => row.service.id === workspaceServiceId)?.service ?? null);
+  const openWorkspace = (
+    workspace: ServiceWorkspaceKind | null,
+    serviceId: string | null = null,
+  ) => {
+    setSearchParams((current) => updateServiceCatalogUrl(current, { workspace, serviceId }));
+  };
+  const wizardServiceId = workspace.kind === "onboarding" ? workspace.serviceId : undefined;
+  const editingService = workspace.kind === "edit" ? selectedService : null;
+  const lifecycleService = workspace.kind === "lifecycle" ? selectedService : null;
+  const downtimeService = workspace.kind === "downtime" ? selectedService : null;
+  const formServiceId = workspace.kind === "form" ? workspace.serviceId : null;
+  const isCreateOpen = workspace.kind === "create";
+  const isCategoriesOpen = workspace.kind === "categories";
   const [isCategoryCreateOpen, setIsCategoryCreateOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ServiceCategoryResponse | null>(null);
+  const { reload: reloadCatalogRows } = catalog;
+  const { reload: reloadRoutingCoverage } = routingCoverage;
+  const { reload: reloadCategoryRows } = categoryState;
   const reloadCatalog = useCallback(async () => {
-    await Promise.all([catalog.reload(), routingCoverage.reload()]);
-  }, [catalog.reload, routingCoverage.reload]);
+    await Promise.all([reloadCatalogRows(), reloadRoutingCoverage()]);
+  }, [reloadCatalogRows, reloadRoutingCoverage]);
   const reloadCategories = useCallback(async () => {
-    await Promise.all([categoryState.reload(), reloadCatalog()]);
-  }, [categoryState.reload, reloadCatalog]);
+    await Promise.all([reloadCategoryRows(), reloadCatalogRows()]);
+  }, [reloadCategoryRows, reloadCatalogRows]);
+  const reloadAll = useCallback(async () => {
+    await Promise.all([reloadCategoryRows(), reloadCatalogRows(), reloadRoutingCoverage()]);
+  }, [reloadCategoryRows, reloadCatalogRows, reloadRoutingCoverage]);
   const containerRef = useRef<HTMLElement>(null);
   const live = useAdminConfigLiveRefresh({
     domains: ["catalog", "routing"],
-    reload: reloadCategories,
+    reload: reloadAll,
     containerRef,
   });
   const catalogView = serviceCatalogLoadState({
@@ -83,7 +110,33 @@ export function ServicesPage() {
   });
   const hasRefreshError =
     (catalog.hasLoaded && catalog.errorKey !== null) ||
-    (categoryState.hasLoaded && categoryState.errorKey !== null);
+    (categoryState.hasLoaded && categoryState.errorKey !== null) ||
+    (routingCoverage.hasLoaded && routingCoverage.errorKey !== null);
+
+  useEffect(() => {
+    if (!catalog.hasLoaded || !categoryState.hasLoaded) return;
+    const patch = canonicalizeServiceCatalogUrl(urlState, {
+      categoryIds: new Set(categoryState.categories.map((category) => category.id)),
+      originUnitIds:
+        routingCoverage.isLoading || !routingCoverage.isAvailable
+          ? null
+          : new Set(routingCoverage.originUnits.map((unit) => unit.id)),
+      serviceIds: new Set(catalog.rows.map((row) => row.service.id)),
+    });
+    if (Object.keys(patch).length > 0) {
+      setSearchParams((current) => updateServiceCatalogUrl(current, patch), { replace: true });
+    }
+  }, [
+    catalog.hasLoaded,
+    catalog.rows,
+    categoryState.categories,
+    categoryState.hasLoaded,
+    routingCoverage.isAvailable,
+    routingCoverage.isLoading,
+    routingCoverage.originUnits,
+    setSearchParams,
+    urlState,
+  ]);
 
   return (
     <section ref={containerRef}>
@@ -103,19 +156,12 @@ export function ServicesPage() {
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setWizardServiceId(null)}
+                onClick={() => openWorkspace("onboarding")}
               >
                 <Blocks size={14} aria-hidden="true" />
                 {t("services.onboardingWizard")}
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  setEditingService(null);
-                  setIsCreateOpen(true);
-                }}
-              >
+              <Button type="button" size="sm" onClick={() => openWorkspace("create")}>
                 <Plus size={14} aria-hidden="true" />
                 {t("services.createService")}
               </Button>
@@ -133,12 +179,7 @@ export function ServicesPage() {
             requestId={catalog.requestId}
           />
           <div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => void reloadCategories()}
-            >
+            <Button type="button" size="sm" variant="outline" onClick={() => void reloadAll()}>
               {t("services.retryLoad")}
             </Button>
           </div>
@@ -167,13 +208,19 @@ export function ServicesPage() {
                     />
                   </>
                 ) : null}
+                {routingCoverage.hasLoaded && routingCoverage.errorKey ? (
+                  <>
+                    <p className="text-[11.5px] text-muted-foreground">
+                      {t("services.routingRefreshWarning")}
+                    </p>
+                    <ApiErrorText
+                      messageKey={routingCoverage.errorKey}
+                      requestId={routingCoverage.requestId}
+                    />
+                  </>
+                ) : null}
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void reloadCategories()}
-              >
+              <Button type="button" size="sm" variant="outline" onClick={() => void reloadAll()}>
                 {t("services.retryLoad")}
               </Button>
             </div>
@@ -187,23 +234,20 @@ export function ServicesPage() {
             canManageForms={writeFlags.canManageForms}
             canWriteCatalog={writeFlags.canWriteCatalog}
             canWriteAvailability={writeFlags.canWriteAvailability}
-            onPrepareForm={setFormServiceId}
-            onCreate={() => {
-              setEditingService(null);
-              setIsCreateOpen(true);
-            }}
-            onEdit={setEditingService}
-            onStartOnboarding={setWizardServiceId}
-            onManageCategories={() => setIsCategoriesOpen(true)}
-            onManageDowntime={setDowntimeService}
-            onManageLifecycle={setLifecycleService}
+            onPrepareForm={(id) => openWorkspace("form", id)}
+            onCreate={() => openWorkspace("create")}
+            onEdit={(service) => openWorkspace("edit", service.id)}
+            onStartOnboarding={(id) => openWorkspace("onboarding", id)}
+            onManageCategories={() => openWorkspace("categories")}
+            onManageDowntime={(service) => openWorkspace("downtime", service.id)}
+            onManageLifecycle={(service) => openWorkspace("lifecycle", service.id)}
           />
           {wizardServiceId !== undefined ? (
             <ServiceOnboardingWizard
               serviceId={wizardServiceId}
               categories={categoryState.categories}
               canWriteForms={writeFlags.canManageForms}
-              onClose={() => setWizardServiceId(undefined)}
+              onClose={() => openWorkspace(null)}
               onFinished={reloadCatalog}
             />
           ) : null}
@@ -211,7 +255,7 @@ export function ServicesPage() {
       )}
       <ServiceCatalogLifecycleDialog
         service={lifecycleService}
-        onClose={() => setLifecycleService(null)}
+        onClose={() => openWorkspace(null)}
         onChanged={reloadCatalog}
       />
       <ServiceFormBuilderSheet
@@ -219,7 +263,7 @@ export function ServicesPage() {
         canWrite={writeFlags.canManageForms}
         onOpenChange={(open) => {
           if (!open) {
-            setFormServiceId(null);
+            openWorkspace(null);
           }
         }}
         onChanged={reloadCatalog}
@@ -229,8 +273,7 @@ export function ServicesPage() {
         service={editingService}
         onOpenChange={(open) => {
           if (!open) {
-            setIsCreateOpen(false);
-            setEditingService(null);
+            openWorkspace(null);
           }
         }}
         onSaved={reloadCatalog}
@@ -240,7 +283,7 @@ export function ServicesPage() {
         serviceName={downtimeService?.name ?? ""}
         onOpenChange={(open) => {
           if (!open) {
-            setDowntimeService(null);
+            openWorkspace(null);
           }
         }}
         onChanged={reloadCatalog}
@@ -249,7 +292,7 @@ export function ServicesPage() {
         open={isCategoriesOpen}
         categories={categoryState.categories}
         canWrite={writeFlags.canWriteCatalog}
-        onOpenChange={setIsCategoriesOpen}
+        onOpenChange={(open) => !open && openWorkspace(null)}
         onCreate={() => setIsCategoryCreateOpen(true)}
         onEdit={setEditingCategory}
         onChanged={reloadCategories}

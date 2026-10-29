@@ -48,6 +48,8 @@ import { problemSweepQueueName } from './modules/problems/sweep/problem-sweep.co
 import { ProblemSweepProcessor } from './modules/problems/sweep/problem-sweep.processor';
 import { changeSweepQueueName } from './modules/changes/sweep/change-sweep.constants';
 import { ChangeSweepProcessor } from './modules/changes/sweep/change-sweep.processor';
+import { statusIncidentStartDeliveryQueueName } from './modules/status-page/status-incident-start-delivery.constants';
+import { StatusIncidentStartDeliveryProcessor } from './modules/status-page/status-incident-start-delivery.processor';
 
 jest.mock('./common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -77,6 +79,7 @@ const scheduledQueueNames = [
   problemSweepQueueName,
   changeSweepQueueName,
   securityAuditWebhookQueueName,
+  statusIncidentStartDeliveryQueueName,
 ] as const;
 
 const processorTypes = [
@@ -102,6 +105,7 @@ const processorTypes = [
   ProblemSweepProcessor,
   ChangeSweepProcessor,
   SecurityAuditWebhookProcessor,
+  StatusIncidentStartDeliveryProcessor,
 ] as const;
 
 function createFakeQueue() {

@@ -1,7 +1,8 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import type { SlaEscalationRule } from "@/services/sla-api";
 
 /** Loose translate adapter — avoids i18next TFunction overload crashes. */
-type Translate = (key: string, options?: Record<string, string>) => string;
+type Translate = (key: TranslationKey, options?: Record<string, string>) => string;
 
 export function formatSlaEscalationTarget(
   rule: Pick<SlaEscalationRule, "targetRole" | "targetGroupId" | "targetUserId" | "targetOnCall">,
@@ -9,8 +10,14 @@ export function formatSlaEscalationTarget(
   groupNames: ReadonlyMap<string, string> | null,
 ): string {
   if (rule.targetRole) {
-    const roleKey = `policyPacks.roles.${rule.targetRole}`;
-    const roleLabel = translate(roleKey);
+    const roleKeys = {
+      USER: "policyPacks.roles.USER",
+      AGENT: "policyPacks.roles.AGENT",
+      ADMIN: "policyPacks.roles.ADMIN",
+      SUPER_ADMIN: "policyPacks.roles.SUPER_ADMIN",
+    } as const satisfies Readonly<Record<string, TranslationKey>>;
+    const roleKey = (roleKeys as Readonly<Record<string, TranslationKey>>)[rule.targetRole];
+    const roleLabel = roleKey === undefined ? rule.targetRole : translate(roleKey);
     const role = roleLabel === roleKey ? rule.targetRole : roleLabel;
     return translate("sla.escalationTargetRoleValue", { role });
   }

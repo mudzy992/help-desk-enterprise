@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Kbd } from "@/components/ui/kbd";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Modal, ModalContent, ModalDescription, ModalTitle } from "@/components/ui/modal";
 import {
   isSingleKeyShortcut,
@@ -17,6 +18,12 @@ interface ShortcutsHelpDialogProperties {
 }
 
 const CONTEXT_ORDER: readonly ShortcutContext[] = ["global", "list", "detail", "editor"];
+const CONTEXT_LABEL_KEYS = {
+  global: "a11y.shortcuts.contexts.global",
+  list: "a11y.shortcuts.contexts.list",
+  detail: "a11y.shortcuts.contexts.detail",
+  editor: "a11y.shortcuts.contexts.editor",
+} as const satisfies Record<ShortcutContext, TranslationKey>;
 
 /** Only the shortcuts valid on this screen for this user. */
 export function ShortcutsHelpDialog({
@@ -55,7 +62,7 @@ export function ShortcutsHelpDialog({
             return (
               <section key={context}>
                 <h3 className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                  {t(`a11y.shortcuts.contexts.${context}` as never)}
+                  {t(CONTEXT_LABEL_KEYS[context])}
                 </h3>
                 <dl className="divide-y divide-border/60 rounded-md border border-border">
                   {items.map((item) => (
@@ -63,9 +70,7 @@ export function ShortcutsHelpDialog({
                       key={item.id}
                       className="flex items-center justify-between gap-3 px-3 py-1.5"
                     >
-                      <dt className="text-[12.5px] text-foreground">
-                        {t(item.descriptionKey as never)}
-                      </dt>
+                      <dt className="text-[12.5px] text-foreground">{t(item.descriptionKey)}</dt>
                       <dd className="flex shrink-0 items-center gap-1">
                         {item.display.map((label, index) => (
                           <span key={`${label}-${index}`} className="flex items-center gap-1">

@@ -9,7 +9,7 @@ import {
   buildTicketListFilters,
   buildTicketStatusFilter,
 } from './build-ticket-list-filters';
-import { buildTicketVisibilityWhere } from './build-ticket-visibility-where';
+import { buildTicketSurfaceVisibility } from './build-ticket-surface-visibility';
 import { loadTicketVisibilityInputs } from './load-ticket-visibility-inputs';
 
 /**
@@ -62,13 +62,16 @@ export async function buildTicketListWhere(
         visibilityInputs.actorGroupIds,
       ),
       ...buildPersonalCollaborationFilter(query, authContext.subjectId, now),
-      ...buildTicketVisibilityWhere({
-        context: authContext,
-        ...visibilityInputs,
-        configuration:
-          context.confidential ?? defaultTicketConfidentialConfiguration,
-        now,
-      }),
+      buildTicketSurfaceVisibility({
+        surface: 'list',
+        visibility: {
+          context: authContext,
+          ...visibilityInputs,
+          configuration:
+            context.confidential ?? defaultTicketConfidentialConfiguration,
+          now,
+        },
+      })!,
     ],
   };
 }

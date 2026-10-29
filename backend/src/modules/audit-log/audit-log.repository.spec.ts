@@ -34,4 +34,14 @@ describe('AuditLogRepository.listActorDisplayNames', () => {
     await expect(repository.listActorDisplayNames([])).resolves.toEqual(new Map());
     expect(findMany).not.toHaveBeenCalled();
   });
+
+  it('enforces the requested hard cap for an in-memory support snapshot', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const repository = new AuditLogRepository({ auditLog: { findMany } } as never);
+    await expect(repository.listRecentChainSnapshot(5_000)).resolves.toEqual([]);
+    expect(findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 5_000,
+    });
+  });
 });

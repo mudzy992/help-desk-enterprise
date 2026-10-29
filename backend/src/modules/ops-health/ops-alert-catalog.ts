@@ -28,6 +28,9 @@ export const opsAlertKeys = {
   captchaSkippedHigh: 'auth.captchaSkipped.high',
   // Paket 5.4.2 (stavka 4): the signed audit export has not delivered for a streak.
   auditWebhookStalled: 'security.auditWebhook.stalled',
+  // Incident 2026-10-16: the mail provider refused sending (daily quota) and
+  // nothing in the product said so — mail simply stopped going out.
+  emailProviderBlocked: 'email.providerBlocked',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -59,8 +62,24 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
       en: 'Check the worker container (logs, restart). While it is down SLA, e-mail and scheduled jobs stop.',
     },
     runbook: runbook('worker-down'),
-    openAfter: 1,
+    openAfter: 2,
     resolveAfter: 2,
+  },
+  [opsAlertKeys.emailProviderBlocked]: {
+    key: opsAlertKeys.emailProviderBlocked,
+    title: {
+      bs: 'Izlazni e-mail je zaustavljen (limit provajdera)',
+      en: 'Outbound e-mail is paused (provider limit)',
+    },
+    action: {
+      bs: 'Provajder (npr. Gmail) odbija slanje jer je kvota potrošena. Aplikacija ne pokušava ponovo dok kvota ne prođe, a poruke čekaju u redu. Provjerite dnevni limit naloga, broj primalaca i da li treba drugi SMTP nalog.',
+      en: 'The provider (e.g. Gmail) refuses sending because its quota is used up. The application stops retrying until the quota passes and queued mail waits. Check the account daily limit, the recipient count and whether a second SMTP account is needed.',
+    },
+    runbook: runbook('email-provider-blocked'),
+    // The signal debounces itself: the breaker opens only on a refusal from the
+    // provider, and closes on the first accepted message.
+    openAfter: 1,
+    resolveAfter: 1,
   },
   [opsAlertKeys.slaScanLate]: {
     key: opsAlertKeys.slaScanLate,

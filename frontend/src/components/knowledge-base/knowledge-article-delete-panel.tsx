@@ -67,12 +67,15 @@ export function KnowledgeArticleDeletePanel({
         {t("knowledgeBase.deleteConfirm", { title: articleTitle })}
       </p>
       <Field label={t("knowledgeBase.reason")} required>
-        <Input
-          value={reason}
-          required
-          maxLength={512}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            required
+            maxLength={512}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div className="flex flex-wrap gap-2">

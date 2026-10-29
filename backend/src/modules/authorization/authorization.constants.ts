@@ -46,11 +46,15 @@ export const permissionKeys = {
   serviceCatalogWrite: 'service.catalog.write',
   serviceFormsWrite: 'service.forms.write',
   serviceAvailabilityWrite: 'service.availability.write',
+  slaRead: 'sla.read',
   slaWrite: 'sla.write',
   routingRead: 'routing.read',
   routingWrite: 'routing.write',
   groupManage: 'group.manage',
+  settingsRead: 'settings.read',
   settingsWrite: 'settings.write',
+  configVersionRead: 'config.version.read',
+  docsAgentRead: 'docs.agent.read',
   integrationsQueueManage: 'integrations.queue.manage',
   auditExport: 'audit.export',
   reportsExport: 'reports.export',
@@ -157,6 +161,7 @@ const agentPermissionKeys = [
   // Paket 3.4: agents read and request changes; CHANGE_MANAGER runs them.
   permissionKeys.changeRead,
   permissionKeys.changeRequest,
+  permissionKeys.docsAgentRead,
 ] as const;
 
 const changeManagerPermissionKeys = [
@@ -194,8 +199,11 @@ const adminPermissionKeys = [
   permissionKeys.serviceCatalogWrite,
   permissionKeys.serviceFormsWrite,
   permissionKeys.serviceAvailabilityWrite,
+  permissionKeys.slaRead,
   permissionKeys.slaWrite,
+  permissionKeys.settingsRead,
   permissionKeys.settingsWrite,
+  permissionKeys.configVersionRead,
   permissionKeys.integrationsQueueManage,
   permissionKeys.auditExport,
   permissionKeys.reportsExport,

@@ -3,12 +3,13 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Plus, Puzzle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
+import { EntityListQueryError } from "@/components/entity-list/entity-list-query-error";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  errorTextClassName,
   hintClassName,
   selectCompactClassName,
   tableHeadClassName,
@@ -18,11 +19,17 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDate } from "@/lib/assets/asset-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
+import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
+import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
+import { useUrlBackedSearch } from "@/lib/entity-list/use-url-backed-search";
+import { withSearchParam } from "@/lib/entity-list/with-search-param";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { parseProblemStatusFilter, problemStatusesOf } from "@/lib/problems/problem-list-filters";
 import {
   mapProblemError,
   problemAgeDays,
@@ -31,44 +38,26 @@ import {
   rootCauseLabel,
 } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   getProblemCapabilities,
   getProblemOptions,
   listProblemsPage,
-  problemDetailKeys,
-  problemOpenStatuses,
+  problemQueryKeys,
   problemStatuses,
   type ProblemListFilters,
   type ProblemSeverity,
-  type ProblemStatus,
 } from "@/services/problems-api";
 
-/** "open" and "all" are presets; any other value is a single status. */
-type StatusFilter = "open" | "all" | ProblemStatus;
-
-function statusesOf(filter: StatusFilter): readonly ProblemStatus[] | undefined {
-  if (filter === "all") return undefined;
-  if (filter === "open") return problemOpenStatuses;
-  return [filter];
-}
-
-function parseStatusFilter(raw: string | null): StatusFilter {
-  if (raw === "all") return "all";
-  return raw !== null && (problemStatuses as readonly string[]).includes(raw)
-    ? (raw as ProblemStatus)
-    : "open";
-}
-
-/** Paket 3.3 (§14): problem register with filters and cursor paging. */
+/** Delivery invariant (requirement): problem register with filters and cursor paging. */
 export function ProblemsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
-  const [searchText, setSearchText] = useState(params.get("search") ?? "");
-  const [search, setSearch] = useState(searchText.trim());
-  const status = parseStatusFilter(params.get("status"));
+  const [searchText, setSearchText] = useUrlBackedSearch(params.get("search") ?? "");
+  const search = useDebouncedValue(searchText.trim(), 300);
+  const status = parseProblemStatusFilter(params.get("status"));
   const priority = (ticketPriorityValues as readonly string[]).includes(
     params.get("priority") ?? "",
   )
@@ -79,35 +68,30 @@ export function ProblemsPage() {
   const serviceId = params.get("service") ?? "";
   const overdue = params.get("overdue") === "true";
   const category = params.get("category") ?? "";
-  const [nowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const updateNow = () => setNowMs(Date.now());
+    window.addEventListener("focus", updateNow);
+    const handle = window.setInterval(updateNow, 60_000);
+    return () => {
+      window.removeEventListener("focus", updateNow);
+      window.clearInterval(handle);
+    };
+  }, []);
   const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => setSearch(searchText.trim()), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchText]);
-
-  const setParam = (key: string, value: string) => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (value === "") next.delete(key);
-        else next.set(key, value);
-        return next;
-      },
-      { replace: true },
-    );
-  };
+  const setParam = (key: string, value: string) =>
+    setParams((current) => withSearchParam(current, key, value), { replace: true });
 
   const capabilitiesQuery = useQuery({
-    queryKey: problemDetailKeys.capabilities,
+    queryKey: problemQueryKeys.capabilities,
     queryFn: getProblemCapabilities,
     retry: false,
   });
   const capabilities = capabilitiesQuery.data;
   const canRead = capabilities?.enabled === true && capabilities.canRead;
   const optionsQuery = useQuery({
-    queryKey: problemDetailKeys.options,
+    queryKey: problemQueryKeys.options,
     queryFn: getProblemOptions,
     enabled: canRead,
     retry: false,
@@ -116,7 +100,7 @@ export function ProblemsPage() {
   const filters: ProblemListFilters = useMemo(
     () => ({
       search: search || undefined,
-      status: statusesOf(status),
+      status: problemStatusesOf(status),
       priority: priority ? [priority] : undefined,
       ownerUserId: owner || undefined,
       groupId: groupId || undefined,
@@ -127,7 +111,7 @@ export function ProblemsPage() {
     [search, status, priority, owner, groupId, serviceId, overdue, category],
   );
   const listQuery = useInfiniteQuery({
-    queryKey: problemDetailKeys.list(filters),
+    queryKey: problemQueryKeys.list(filters),
     queryFn: ({ pageParam }) => listProblemsPage(filters, pageParam ?? undefined),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
@@ -136,6 +120,11 @@ export function ProblemsPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
+  const listState = resolveEntityListState({
+    isLoading: listQuery.isLoading,
+    hasError: listQuery.error !== null,
+    itemCount: items.length,
+  });
   const advancedCount = [
     status !== "open",
     priority !== "",
@@ -170,48 +159,32 @@ export function ProblemsPage() {
     />
   );
 
-  if (capabilitiesQuery.isLoading) {
+  const gateState = resolveModuleCapabilityGate({
+    isLoading: capabilitiesQuery.isLoading,
+    hasError: capabilitiesQuery.error !== null,
+    hasData: capabilities !== undefined,
+    enabled: capabilities?.enabled,
+    setupRequired: capabilities?.setupRequired,
+    canRead: capabilities?.canRead,
+  });
+  if (gateState !== "ready" || capabilities === undefined) {
     return (
-      <section>
-        {header}
-        <PanelSkeleton label={t("ui.loading")} />
-      </section>
-    );
-  }
-  if (capabilities?.setupRequired === true) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Puzzle size={18} />}
-          title={t("problems.setupTitle")}
-          body={t("problems.setupBody")}
-        />
-      </section>
-    );
-  }
-  if (capabilitiesQuery.error || capabilities === undefined || !capabilities.enabled) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Puzzle size={18} />}
-          title={t("problems.disabledTitle")}
-          body={t("problems.disabledBody")}
-        />
-      </section>
-    );
-  }
-  if (!capabilities.canRead) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<Puzzle size={18} />}
-          title={t("problems.forbiddenTitle")}
-          body={t("problems.forbiddenBody")}
-        />
-      </section>
+      <ModuleCapabilityGate
+        state={gateState}
+        header={header}
+        icon={<Puzzle size={18} />}
+        setupTitle={t("problems.setupTitle")}
+        setupBody={t("problems.setupBody")}
+        disabledTitle={t("problems.disabledTitle")}
+        disabledBody={t("problems.disabledBody")}
+        forbiddenTitle={t("problems.forbiddenTitle")}
+        forbiddenBody={t("problems.forbiddenBody")}
+        errorKey={mapApiError(capabilitiesQuery.error)}
+        requestId={readApiRequestId(capabilitiesQuery.error)}
+        onRetry={() => void capabilitiesQuery.refetch()}
+      >
+        {null}
+      </ModuleCapabilityGate>
     );
   }
 
@@ -263,7 +236,7 @@ export function ProblemsPage() {
               <option value="">{t("problems.list.allPriorities")}</option>
               {ticketPriorityValues.map((value) => (
                 <option key={value} value={value}>
-                  {ticketText(t, ticketPriorityLabelKey[value])}
+                  {translateText(t, ticketPriorityLabelKey[value])}
                 </option>
               ))}
             </select>
@@ -320,7 +293,7 @@ export function ProblemsPage() {
               <option value="none">{t("problems.list.noCategory")}</option>
               {(optionsQuery.data?.rootCauseCategories ?? []).map((value) => (
                 <option key={value} value={value}>
-                  {rootCauseLabel((key) => ticketText(t, key), value)}
+                  {rootCauseLabel((key) => translateText(t, key), value)}
                 </option>
               ))}
             </select>
@@ -336,6 +309,15 @@ export function ProblemsPage() {
           ) : null}
         </FilterBar>
 
+        {optionsQuery.error ? (
+          <EntityListQueryError
+            messageKey={mapProblemError(optionsQuery.error) ?? mapApiError(optionsQuery.error)}
+            requestId={readApiRequestId(optionsQuery.error)}
+            retrying={optionsQuery.isFetching}
+            onRetry={() => void optionsQuery.refetch()}
+          />
+        ) : null}
+
         <p className={hintClassName} aria-live="polite">
           {listQuery.isLoading
             ? t("ui.loading")
@@ -343,14 +325,21 @@ export function ProblemsPage() {
         </p>
 
         {listQuery.error ? (
-          <p role="alert" className={errorTextClassName}>
-            {t(mapProblemError(listQuery.error) ?? mapApiError(listQuery.error))}
-          </p>
+          <EntityListQueryError
+            messageKey={mapProblemError(listQuery.error) ?? mapApiError(listQuery.error)}
+            requestId={readApiRequestId(listQuery.error)}
+            retrying={listQuery.isFetching}
+            onRetry={() =>
+              void (listQuery.isFetchNextPageError
+                ? listQuery.fetchNextPage()
+                : listQuery.refetch())
+            }
+          />
         ) : null}
 
-        {listQuery.isLoading ? (
+        {listState === "loading" ? (
           <PanelSkeleton label={t("ui.loading")} />
-        ) : items.length === 0 ? (
+        ) : listState === "error" ? null : listState === "empty" ? (
           <EmptyState
             icon={<Puzzle size={18} />}
             title={hasFilters ? t("problems.list.noMatchesTitle") : t("problems.list.emptyTitle")}
@@ -419,7 +408,7 @@ export function ProblemsPage() {
                         </Badge>
                       </td>
                       <td className="px-3 py-2">
-                        {ticketText(t, ticketPriorityLabelKey[item.priority])}
+                        {translateText(t, ticketPriorityLabelKey[item.priority])}
                       </td>
                       <td className="px-3 py-2">
                         {item.owner?.displayName ?? (

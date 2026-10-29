@@ -51,7 +51,11 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
   };
   const transaction = {
     $queryRaw: jest.fn().mockResolvedValue([{ lastNumber: 7 }]),
-    assetTransfer: { create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'tr1', number: data.number })) },
+    assetTransferSequence: { update: jest.fn().mockResolvedValue({}) },
+    assetTransfer: {
+      create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'tr1', number: data.number })),
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 0 } }),
+    },
     asset: { updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }) },
     assetEvent: { create: jest.fn().mockResolvedValue({}) },
   };

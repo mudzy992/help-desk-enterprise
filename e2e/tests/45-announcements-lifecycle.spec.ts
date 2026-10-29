@@ -1,7 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { ApiClient } from '../helpers/api-client';
-import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { expect, test, type Page } from "@playwright/test";
+import { expectNoSeriousA11yViolations } from "../helpers/a11y";
+import { ApiClient } from "../helpers/api-client";
+import { readE2EEnvironment } from "../helpers/environment";
+import { signIn } from "../helpers/sign-in";
 
 type ManagedDetail = {
   readonly id: string;
@@ -10,13 +11,13 @@ type ManagedDetail = {
 };
 
 function localInputValue(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T${String(
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(
     date.getHours(),
-  ).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  ).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 function manageRow(page: Page, title: string) {
-  return page.getByRole('row').filter({ hasText: title });
+  return page.getByRole("row").filter({ hasText: title });
 }
 
 /**
@@ -26,8 +27,10 @@ function manageRow(page: Page, title: string) {
  * publisher is in the audience and the report must read "0 of <count>".
  * Cleanup withdraws and deletes through the API, even on failure.
  */
-test.describe('45 announcements lifecycle (5.3.7)', () => {
-  test('draft is created, published and reports acknowledgements', async ({ page }) => {
+test.describe("45 announcements lifecycle (5.3.7)", () => {
+  test("lifecycle, history, responsive and axe contracts", async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(150_000);
     page.setDefaultTimeout(20_000);
     page.setDefaultNavigationTimeout(30_000);
@@ -39,87 +42,157 @@ test.describe('45 announcements lifecycle (5.3.7)', () => {
     let announcementId: string | null = null;
 
     try {
-      await test.step('sign in and open the manage tab', async () => {
+      await test.step("sign in and open the manage tab", async () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
-        await page.goto('/announcements?tab=manage');
-        await page.getByRole('tab', { name: /Upravljanje|Manage/ }).click();
-        await page.getByRole('button', { name: /Nova najava|New announcement/ }).click();
-        await expect(page.getByRole('dialog')).toBeVisible();
+        await page.goto("/announcements?tab=manage");
+        await page.getByRole("tab", { name: /Upravljanje|Manage/ }).click();
+        await page
+          .getByRole("button", { name: /Nova najava|New announcement/ })
+          .click();
+        await expect(page.getByRole("dialog")).toBeVisible();
       });
 
-      await test.step('fill the draft with an immediate window and acknowledgement', async () => {
-        const dialog = page.getByRole('dialog');
+      await test.step("fill the draft with an immediate window and acknowledgement", async () => {
+        const dialog = page.getByRole("dialog");
         // Required labels render a visually-marked asterisk, so the accessible
         // name may carry a suffix — match by prefix, not by exact equality.
-        await dialog.getByRole('textbox', { name: /Naslov|Title/ }).first().fill(title);
-        await dialog.getByRole('textbox', { name: /^(?:Tekst|Body)$/ }).fill(`Sadržaj E2E najave ${stamp}.`);
+        await dialog
+          .getByRole("textbox", { name: /Naslov|Title/ })
+          .first()
+          .fill(title);
+        await dialog
+          .getByRole("textbox", { name: /^(?:Tekst|Body)$/ })
+          .fill(`Sadržaj E2E najave ${stamp}.`);
         const startsAt = new Date(Date.now() - 60_000);
         const endsAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-        await dialog.getByLabel(/Početak prikaza|Starts at/).fill(localInputValue(startsAt));
-        await dialog.getByLabel(/Kraj prikaza|Ends at/).fill(localInputValue(endsAt));
         await dialog
-          .getByRole('checkbox', { name: /Traži potvrdu čitanja|Require read acknowledgement/ })
+          .getByLabel(/Početak prikaza|Starts at/)
+          .fill(localInputValue(startsAt));
+        await dialog
+          .getByLabel(/Kraj prikaza|Ends at/)
+          .fill(localInputValue(endsAt));
+        await dialog
+          .getByRole("checkbox", {
+            name: /Traži potvrdu čitanja|Require read acknowledgement/,
+          })
           .check();
         // No audience filter: the hint says the announcement goes to everyone.
-        await dialog.getByRole('button', { name: /Spremi nacrt|Save draft/ }).click();
+        await dialog
+          .getByRole("button", { name: /Spremi nacrt|Save draft/ })
+          .click();
         await expect(dialog).toBeHidden();
       });
 
-      await test.step('the draft row appears with publish and delete actions', async () => {
+      await test.step("the draft row appears with publish and delete actions", async () => {
         const row = manageRow(page, title);
         await expect(row).toBeVisible();
         await expect(row).toContainText(/Nacrt|Draft/);
-        await expect(row.getByRole('button', { name: /Objavi|Publish/ })).toBeVisible();
+        await expect(
+          row.getByRole("button", { name: /Objavi|Publish/ }),
+        ).toBeVisible();
       });
 
-      await test.step('publish and see the row turn active', async () => {
-        await manageRow(page, title).getByRole('button', { name: /Objavi|Publish/ }).click();
+      await test.step("publish and see the row turn active", async () => {
+        await manageRow(page, title)
+          .getByRole("button", { name: /Objavi|Publish/ })
+          .click();
         // ConfirmDialog renders role="alertdialog", not "dialog".
-        const confirmDialog = page.getByRole('alertdialog');
+        const confirmDialog = page.getByRole("alertdialog");
         await expect(confirmDialog).toBeVisible();
-        await confirmDialog.getByTestId('confirm-dialog-confirm').click();
+        await confirmDialog.getByTestId("confirm-dialog-confirm").click();
         const row = manageRow(page, title);
         await expect(row).toContainText(/Aktivna|Published/i);
       });
 
-      await test.step('the read report shows zero of the audience', async () => {
-        await manageRow(page, title).getByRole('button', { name: /Izvještaj|Report/ }).click();
-        const dialog = page.getByRole('dialog');
+      await test.step("the read report shows zero of the audience", async () => {
+        await manageRow(page, title)
+          .getByRole("button", { name: /Izvještaj|Report/ })
+          .click();
+        const dialog = page.getByRole("dialog");
         await expect(dialog).toBeVisible();
-        await expect(dialog).toContainText(/Izvještaj o potvrdama|Acknowledgement report/i);
+        await expect(dialog).toContainText(
+          /Izvještaj o potvrdama|Acknowledgement report/i,
+        );
         await expect(dialog).toContainText(/Potvrdilo 0 od \d+|\b0 of \d+/);
         // Close before switching tabs — the modal covers the page otherwise.
-        await page.keyboard.press('Escape');
+        await page.keyboard.press("Escape");
         await expect(dialog).toBeHidden();
       });
 
-      await test.step('the publisher sees the announcement in their own tab', async () => {
-        await page.getByRole('tab', { name: /Moje najave|My announcements/ }).click();
+      await test.step("the publisher sees the announcement in their own tab", async () => {
+        const mineTab = page.getByRole("tab", {
+          name: /Moje najave|My announcements/,
+        });
+        await mineTab.focus();
+        await expect(mineTab).toBeFocused();
+        await page.keyboard.press("Enter");
+        // "mine" is the canonical default: the app strips the tab param.
+        await expect(page).toHaveURL(/\/announcements$/);
         await expect(page.getByText(title).first()).toBeVisible();
       });
-    } finally {
-      const cleanedUp = await test.step('restore: withdraw drafts-delete only, published stays archived', async () => {
-        const list = await api.requestJson<{ readonly announcements: readonly ManagedDetail[] }>(
-          '/announcements/manage',
+
+      await test.step("browser history, responsive, zoom and axe contracts remain stable", async () => {
+        await page.goBack();
+        await expect(page).toHaveURL(/(?:\?|&)tab=manage(?:&|$)/);
+        await page.goForward();
+        await expect(page).toHaveURL(/\/announcements$/);
+        for (const width of [320, 375, 768, 1280]) {
+          await page.setViewportSize({ width, height: 900 });
+          await expect(page.getByText(title).first()).toBeVisible();
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth,
+            ),
+          ).toBe(true);
+        }
+        await page.evaluate(() => {
+          document.body.style.zoom = "2";
+        });
+        await expect(page.locator("#main-content h1")).toBeVisible();
+        await page.evaluate(() => {
+          document.body.style.zoom = "";
+        });
+        await expectNoSeriousA11yViolations(
+          page,
+          "announcement archive",
+          testInfo,
         );
-        const created = list.announcements.find((item) => item.title === title) ?? null;
-        if (created === null) return false;
-        if (created.status === 'DRAFT') {
-          const deleted = await api.request(`/announcements/manage/${encodeURIComponent(created.id)}`, { method: 'DELETE' });
-          if (!deleted.ok) console.warn(`[e2e] draft delete returned HTTP ${deleted.status}`);
-          return deleted.ok;
-        }
-        // The server allows deleting drafts only (409 otherwise): a published
-        // announcement is withdrawn and stays in the archive until it ages out.
-        if (created.status === 'PUBLISHED') {
-          const withdrawn = await api.request(`/announcements/manage/${encodeURIComponent(created.id)}/withdraw`, {
-            method: 'POST',
-            body: JSON.stringify({ reason: 'E2E 5.3.7 cleanup' }),
-          });
-          if (!withdrawn.ok) console.warn(`[e2e] withdraw returned HTTP ${withdrawn.status}`);
-        }
-        return true;
       });
+    } finally {
+      const cleanedUp =
+        await test.step("restore: withdraw drafts-delete only, published stays archived", async () => {
+          const list = await api.requestJson<{
+            readonly announcements: readonly ManagedDetail[];
+          }>("/announcements/manage");
+          const created =
+            list.announcements.find((item) => item.title === title) ?? null;
+          if (created === null) return false;
+          if (created.status === "DRAFT") {
+            const deleted = await api.request(
+              `/announcements/manage/${encodeURIComponent(created.id)}`,
+              { method: "DELETE" },
+            );
+            if (!deleted.ok)
+              console.warn(
+                `[e2e] draft delete returned HTTP ${deleted.status}`,
+              );
+            return deleted.ok;
+          }
+          // The server allows deleting drafts only (409 otherwise): a published
+          // announcement is withdrawn and stays in the archive until it ages out.
+          if (created.status === "PUBLISHED") {
+            const withdrawn = await api.request(
+              `/announcements/manage/${encodeURIComponent(created.id)}/withdraw`,
+              {
+                method: "POST",
+                body: JSON.stringify({ reason: "E2E 5.3.7 cleanup" }),
+              },
+            );
+            if (!withdrawn.ok)
+              console.warn(`[e2e] withdraw returned HTTP ${withdrawn.status}`);
+          }
+          return true;
+        });
       void cleanedUp;
     }
   });

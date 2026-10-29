@@ -1,153 +1,247 @@
-# Modul 16: `/admin/teams` (integracija sa Microsoft Teams)
+# Modul 16 — `/admin/teams` (Microsoft Teams administracija)
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda, provjera backend guarda, provjera e2e testa). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **TM** (teams admin).
+**Datum v2 re-audita:** 2026-10-19
+**Auditirani Git SHA:** `bb5e9c5430e319cdd6bc2a6e94fa83012eb57b12`
+**Status:** v2 re-audit završen; samo dokumentacija, bez implementacijskih izmjena.
+**Oznake nalaza:** isključivo **TM1–TM12**.
 
-Provjere izvršene u sandboxu:
-- **Čitanje u cijelosti:** `pages/teams-admin-page.tsx` (515 linija), `services/teams-api.ts` (140, potpisi i tipovi), `lib/teams/map-teams-error.ts` (18), `components/teams/adaptive-card-preview.tsx` (195, mjesta sa `href`).
-- **Backend:** `backend/src/modules/teams/teams-admin.controller.ts` (dekoratori: `SessionAuthenticationGuard`, `RoleGuard`, `RequirePermissions(integrationsTeamsManage)` na svim `admin/*` rutama).
-- **Rutiranje:** `app/router.tsx` (~251–260, `RequireAccess` sa `canOpenTeamsAdminPage`), `lib/session/route-access.ts` (154).
-- **Testovi:** `e2e/tests/33-teams-simulator.spec.ts` (dva testa: simulirani lični chat, tiket, odgovor, stranica admina, axe; i T4b: kartica tiketa, KB pretraga, status, komande agenta). `lib/teams/adaptive-card-text.spec.ts` (tekst kartice). Nema komponentskih testova za stranicu.
-- **Pretraga:** `grep` za `href=`, `!` (non-null), `in`-operator nad mapama, `setInterval`.
+## Provjere izvršene
+
+1. **Inventar i čitanje koda:**
+   - `frontend/src/pages/teams-admin-page.tsx` — **693 linije**;
+   - `frontend/src/services/teams-api.ts` — 150 linija;
+   - `frontend/src/lib/teams/map-teams-error.ts` — 18 linija;
+   - `frontend/src/components/teams/adaptive-card-preview.tsx` — 277 linija;
+   - `frontend/src/lib/teams/adaptive-card-text.ts` — 42 linije;
+   - `adaptive-card-text.spec.ts` — 21 linija;
+   - `frontend/src/lib/download/trigger-blob-download.ts` — 8 linija.
+2. `components/teams/` i dalje sadrži samo `adaptive-card-preview.tsx`. Status, kanali i simulator nisu izdvojeni iz stranice; nema `use-teams-simulator` hooka (**TM2**).
+3. **TM1:** pregledani su `simulatorPollMs`, `refresh`, `setInterval`, promjene `userId/scope`, sticky error, vidljivost dokumenta i aktivni tab.
+4. **TM3:** izvršen grep za `ApiErrorText`, `mapApiError` i `readApiRequestId`. Teams stranica ne koristi nijedan od ta tri zajednička helpera; koristi samo `mapTeamsError`, koji vraća `TeamsErrorKey` bez request ID-a.
+5. **TM5:** pregledana su oba `Action.OpenUrl` izlaza (`Container.selectAction` i action set). Oba direktno prosljeđuju string u `href`; nema `sanitizeUrl`, `URL` parsiranja ni http(s) allowliste.
+6. **TM4/TM6/TM8–TM12:** provjerene readiness ikone, zaglavlja tabele, live transkript, event mapa i non-null assertion, redoslijed brisanja teksta, user picker, nestanak simulator taba, confirm callback, ponovljeni async blokovi i lokalni `fact` helper.
+7. **Pristup:** provjereni su `router.tsx`, `canOpenTeamsAdminPage` i svih osam Teams admin endpointa. Frontend i backend koriste istu permisiju `integrationsTeamsManage`; SuperAdmin frontend bypass odgovara serverskom modelu dozvola.
+8. **AdaptiveCardPreview scope:** grep potvrđuje da ga produkcijski koristi samo `teams-admin-page.tsx`; TM5 je ograničen na admin Teams simulator.
+9. **Izvršeno:** `cd frontend && npx vitest run src/lib/teams` — 1/1 fajl, 2/2 testa prošla.
+10. **E2E 33 nije pokrenut** jer nema podignutog backend/frontend E2E okruženja. Spec je pročitan: provjerava API permisije, status tab, simulator tab i axe za ta dva taba. **Channels tab nema axe prolaz**, suprotno tvrdnji starog audita da su pokrivena sva tri taba.
 
 ---
 
 ## Modul
 
-`/admin/teams` je administracija integracije sa Microsoft Teams: tri kartice (status, kanali, simulator). Status prikazuje režim (isključeno, simulator, live), statistiku, provjeru spremnosti (readiness) i preuzimanje Teams paketa (ZIP, bs ili en). Kanali povezuju grupe sa Teams kanalima i biraju događaje za obavještenja. Simulator (samo ako je uključen) šalje aktivnosti kao da je korisnik u Teams-u i prikazuje odgovore bota, uključujući adaptivne kartice.
+`/admin/teams` ima tri taba:
+
+- **Status** — efektivni i konfigurisani režim, metrike, readiness provjera i preuzimanje Teams ZIP paketa;
+- **Kanali** — veze grupa sa Teams kanalima, događaji i uključivanje naslova;
+- **Simulator** — uslovno dostupan, bira korisnika i personal/channel scope, šalje aktivnosti i prikazuje transkript sa Adaptive Card pregledima.
+
+Simulator tab postoji samo kada API vrati `simulatorAvailable: true`. Backend administrativne rute zahtijevaju `integrationsTeamsManage`.
 
 ---
 
-## Povezani fajlovi i folderi
+## Povezani fajlovi
 
-| Fajl | Uloga | Linija |
-|---|---|---|
-| `frontend/src/pages/teams-admin-page.tsx` | Stranica sa tri taba: `StatusTab`, `ChannelsTab`, `SimulatorTab` i pomoćne funkcije | 515 |
-| `frontend/src/services/teams-api.ts` | API poziv za status, readiness, paket, kanale, simulator | 140 |
-| `frontend/src/lib/teams/map-teams-error.ts` | Mapiranje grešaka u ključ prevoda | 18 |
-| `frontend/src/components/teams/adaptive-card-preview.tsx` | Prikaz adaptivne kartice (tekst, činjenice, akcije) | 195 |
-| `frontend/src/lib/teams/adaptive-card-text.ts` | Parsiranje teksta kartice | — |
-| `frontend/src/lib/download/trigger-blob-download.ts` | Preuzimanje paketa | — |
-| `backend/src/modules/teams/teams-admin.controller.ts` | Admin API (permisija `integrationsTeamsManage`) | — |
-| `e2e/tests/33-teams-simulator.spec.ts` | E2E i axe skeniranje | — |
+| Fajl                                                      | Uloga                                                  | Linije |
+| --------------------------------------------------------- | ------------------------------------------------------ | -----: |
+| `frontend/src/pages/teams-admin-page.tsx`                 | Page, tri taba, polling, helperi i sva akcijska stanja |    693 |
+| `frontend/src/components/teams/adaptive-card-preview.tsx` | Renderer podržanog Adaptive Card podskupa              |    277 |
+| `frontend/src/services/teams-api.ts`                      | Status/readiness/paket/kanali/simulator API i tipovi   |    150 |
+| `frontend/src/lib/teams/map-teams-error.ts`               | Teams API greška → i18n ključ                          |     18 |
+| `frontend/src/lib/teams/adaptive-card-text.ts`            | Bold/escape tekst i merge action podataka              |     42 |
+| `frontend/src/lib/teams/adaptive-card-text.spec.ts`       | Dva unit testa tekst/action helpera                    |     21 |
+| `frontend/src/lib/download/trigger-blob-download.ts`      | Blob download i cleanup URL-a                          |      8 |
+| `backend/src/modules/teams/teams-admin.controller.ts`     | Guardovi i admin/me API ugovor                         |      — |
+| `e2e/tests/33-teams-simulator.spec.ts`                    | Integracijski tok bota, admin status/simulator i axe   |      — |
+
+Install wizard `install-team-*` nije čitan niti mijenjan.
 
 ---
 
 ## Trenutna implementacija
 
-**Stranica.** `TeamsAdminPage` učitava `getTeamsStatus()` jednom (`loadStatus` kao `useCallback` pa `useEffect(loadStatus, [loadStatus])`). Tab „Simulator“ se pojavljuje samo kad je `status.simulatorAvailable`. Dok status nije stigao, prikazuje se `PanelSkeleton`.
+### Page i tabovi
 
-**Status.** Kartica sa činjenicama (`fact` helper), značka režima, vrijeme zadnje poruke (`RelativeTime`), i link na podešavanja kad dodatak nije uključen. Kartica „provjera spremnosti“ poziva `POST …/readiness`, prikazuje ✓/✗ ikone i detalje po provjeri, pa ukupnu značku. Kartica paketa ima dva dugmeta (bs, en).
+`TeamsAdminPage` učitava status preko `loadStatus`, briše page error nakon uspjeha i formira tabove iz statusa. Komponente `StatusTab`, `ChannelsTab`, `SimulatorTab`, `cardsOf` i `inboundLabel` nalaze se u istom fajlu. Sa 693 linije page je dodatno narastao sa 515 linija iz prvog audita i znatno prelazi projektno pravilo približno 200 linija.
 
-**Kanali.** Tabela sa grupom, kanalom (team/channel), režimom i događajima kao checkbox-ovi (`eventKeys` mapa), opcijom „uključi naslov“ i dugmetom za uklanjanje sa `ConfirmDialog` (intent `danger`). Svaka promjena poziva `updateTeamsChannel` pa zamjenjuje listu iz odgovora.
+Ako `simulatorAvailable` postane `false` dok je aktivan simulator, tab nestaje iz liste, ali `tab` state ostaje `"simulator"`; nijedan sadržaj se tada ne prikazuje.
 
-**Simulator.** Birač korisnika (`listUsersSummary`, samo aktivni), segment „lično / kanal“, dugme „instaliraj“, transkript koji se osvježava svake 4 s (`setInterval`), polje za poruku (maks. 2000 znakova) i kartice sa akcijama bota (`onCardAction` šalje `action` aktivnost).
+### Status
 
-**Greške.** `mapTeamsError` vraća jedan od pet ključeva (`appIdRequired`, `publicUrlRequired`, `simulatorOff`, `forbidden` za 403, `generic`). Prikazuju se kao `<p>` sa `errorTextClassName`.
+Status prikazuje metrike i omogućava readiness i ZIP download. Readiness ikone nose `aria-label`, ali SVG nema eksplicitni `role="img"`; pošto pored njih postoji vidljiv naziv provjere, stabilniji obrazac je dekorativna ikona (`aria-hidden`) plus vidljiv ili sr-only status tekst.
 
-**Pristup.** Route: `canOpenTeamsAdminPage`. Backend: `RequirePermissions(integrationsTeamsManage)` na svakoj `admin/*` ruti. Ruta za korisnika (`me`) je otvorena za prijavljene korisnike (drugi kontroler).
+`runReadiness` trenutno poziva `checkTeamsReadiness()` **dva puta uzastopno** i oba rezultata upisuje u isto stanje. To je konkretna regresija unutar ponovljenog async obrasca iz TM10: jedna korisnička akcija šalje dva POST zahtjeva.
 
-**Dobro urađeno.**
-- Backend provjerava permisiju na svakoj admin ruti.
-- Identifikatori u URL-u prolaze `encodeURIComponent`.
-- Kritična brisanja idu kroz `ConfirmDialog` sa `intent="danger"`.
-- Dugmad se onemogućavaju za vrijeme operacije (`busy`).
-- Provjera spremnosti ne oslanja se samo na boju: ikona ima `aria-label` (ok/fail), a tekst je prikazan.
-- Kanali imaju `<table>` sa zaglavljima.
-- E2E test sa axe skeniranjem za oba taba.
+### Kanali
 
----
+Kanali se učitavaju pri mountu. Svaka checkbox izmjena poziva PATCH i zamjenjuje cijeli response. Uklanjanje koristi danger `ConfirmDialog`. Posljednje zaglavlje tabele je prazan `<th aria-label=… />`, bez sr-only tekstualnog sadržaja. `eventKeys` je `Record<string, key>`, filtriranje koristi `event in eventKeys`, a čitanje `eventKeys[event]!`.
 
-## Realno/željeno stanje
+### Simulator i polling
 
-| Oblast | Realno stanje | Željeno stanje |
-|---|---|---|
-| Veličina stranice | Jedna datoteka od 515 linija sa tri taba i pomoćnim funkcijama (TM2) | Jedna komponenta po tabu, hook za simulator |
-| Greške | Četiri nezavisna `errorKey` stanja, prikaz kao obično `<p>`, bez `role="alert"` i bez ID-a zahtjeva (TM3) | `ApiErrorText` kao u ostatku aplikacije |
-| Simulator osvježavanje | Interval od 4 s bez provjere vidljivosti tab-a i bez zaštite od preklapanja zahtjeva (TM1) | Pauza kad tab nije vidljiv; jedan zahtjev u letu |
-| Greška simulatora | Greška osvježavanja ostaje prikazana i nakon uspješnog osvježavanja (TM1) | Greška se briše pri uspjehu |
-| Adaptivne kartice | `Action.OpenUrl` `href` prihvata bilo koju šemu (TM5) | Samo `https:` i `http:` |
-| Tipovi | `Record<string, …>` za događaje, `!` non-null (TM6) | `Record<TeamsEvent, …>` i provjera vlasnih ključeva |
-| Pristupačnost | `aria-label` na `svg` bez `role="img"` (TM4) | `role="img"` ili tekst za čitače |
+`refresh` zavisi od `userId` i `scope`, a effect odmah osvježava i pokreće `setInterval` na 4 sekunde. Trenutno:
 
----
+- nema in-flight zaštite;
+- nema `document.visibilityState` provjere;
+- polling se ne zaustavlja kada Teams page/tab nije vidljiv;
+- uspješan refresh ne radi `setErrorKey(null)`;
+- promjena korisnika ili scopea ne prazni `messages` prije novog odgovora;
+- cijeli transkript ima `aria-live="polite"`, pa polling može ponovo najavljivati veći sadržaj;
+- forma briše `text` prije nego što `send` uspije.
 
-## Gap analiza
+User picker poziva `listUsersSummary()`, filtrira aktivne korisnike i prikazuje ih sve u običnom `<select>` elementu.
 
-1. **Simulator osvježava sam od sebe, bez zaštite (TM1, srednja).** `useEffect` u `SimulatorTab` pokreće `setInterval(refresh, 4000)`. Nema provjere `document.visibilityState` (tab u pozadini i dalje šalje zahtjeve), a sporo mreže mogu stvoriti gomilu zahtjeva jer nema zastavice „u letu“. Također, `refresh` u `catch` postavlja `errorKey`, ali u `try` uspješnog osvježavanja se ne briše. Greška ostaje na ekranu i nakon oporavka, dok se ne uradi uspješno slanje. Pri promjeni korisnika ili opsega stari transkript ostaje prikazan do sljedećeg odgovora (kratko prikazivanje tuđih poruka u istom simulatoru).
-2. **Veličina i odgovornost (TM2, srednja).** `teams-admin-page.tsx` ima 515 linija: stranica, `StatusTab` (~130), `ChannelsTab` (~120), `SimulatorTab` (~140), `inboundLabel`, `cardsOf`. Logika simulatora (učitavanje, interval, slanje, scroll) je u komponenti, pa se ne može testirati bez renderovanja. Preporuka: `components/teams/status-tab.tsx`, `channels-tab.tsx`, `simulator-tab.tsx`, i hook `use-teams-simulator.ts`.
-3. **Greške na više mjesta (TM3, srednja).** `TeamsAdminPage`, `StatusTab`, `ChannelsTab` i `SimulatorTab` imaju svaki svoj `errorKey` i svoj `<p>`. Greška nema `role="alert"`, pa je čitač ekrana ne najavljuje, i nema ID-a zahtjeva (podrška ne može da je prati). U ostatku aplikacije postoji `ApiErrorText` koji to radi. `mapTeamsError` pri tome ne čuva `requestId`.
-4. **Pristupačnost ikona i transkripta (TM4, srednja).** `CheckCircle2` i `XCircle` imaju `aria-label`, ali nemaju `role="img"` (ili `aria-hidden` uz tekst), pa čitači ih često ignorišu. Transkript je `aria-live="polite"` na kontejneru koji se osvježava svake 4 s. Prazan `<th aria-label>` u tabeli kanala treba `sr-only` tekst. Ikona dugmeta „osvježi“ ima `aria-label` (dobro).
-5. **Nevalidirani `href` u adaptivnim karticama (TM5, srednja, odbrana u dubini).** U `adaptive-card-preview.tsx` `href={asText(action.url)}` (i za `select.url`) provjerava samo da je vrijednost string. Šema nije provjerena, pa je `javascript:` URL moguć ako kartica dođe iz nepouzdanog izvora. Trenutno kartice generiše backend, ali poruke iz ticketa mogu ući u tekst kartice. Preporuka: dozvoliti samo `https:` i `http:`, inače ne prikazivati link.
-6. **Tipovi događaja (TM6, niska).** `eventKeys: Record<string, …>` sa `event in eventKeys` i `eventKeys[event]!`. Operator `in` vidi i svojstva iz prototipa (`"constructor" in {}` je `true`), a `!` isključuje provjeru. Tip treba biti `Record<TeamsEvent, …>` (ili `Map`), a `TeamsEvent` iz `teams-api.ts`.
-7. **Ponovljeni obrazac (TM10, niska).** Blok `setBusy(true); setErrorKey(null); try { … } catch { setErrorKey(…) } finally { setBusy(false) }` ponavlja se u `runReadiness`, `runPackage`, `ChannelsTab.run`, `send`. Mali hook (`useAsyncAction`) smanjio bi to.
-8. **Tekst se briše prije slanja (TM8, niska).** U simulatoru `setText("")` se radi prije `send`. Ako slanje padne, poruka je izgubljena i korisnik mora ponovo da je unese.
-9. **Birač korisnika bez pretrage (TM9, niska).** `listUsersSummary()` učitava sve aktivne korisnike u `<select>`. U većoj organizaciji je dugačak spisak i sporo se učitava. Preporuka: pretraga ili ograničen broj rezultata.
-10. **Tab koji nestaje (TM11, niska).** Ako se `simulatorAvailable` promijeni na `false` dok je aktivan tab „simulator“, sadržaj nestane, a tab nije u listi. Nema prelaska na „status“.
-11. **Sitnice (TM7, TM12, niska).** `onOpenChange={(open) => (open ? null : setPendingRemove(null))}` je teško čitljiv obrazac (treba `if (!open)`). Komentar „Paket 3.1 (§16)“ u zaglavlju. `fact` helper unutar komponente se re-kreira pri svakom renderu.
+### Greške
 
-**Što je dobro:** backend provjerava permisiju na svim admin rutama; identifikatori su enkodirani; brisanje ide kroz `ConfirmDialog`; dugmad su onemogućena za vrijeme akcije; readiness ne zavisi samo od boje; tabela kanala ima zaglavlja; e2e test sa axe skeniranjem za sva tri taba; `mapTeamsError` vraća prevedive ključeve, a ne sirove poruke.
+Page i sva tri taba imaju odvojene `errorKey`/busy obrasce. `mapTeamsError` ispravno mapira poznate kodove na prevodne ključeve, ali ne čuva request ID. Prikaz je običan `<p className={errorTextClassName}>`, bez zajedničkog `ApiErrorText` obrasca iz modula 12.
+
+### Adaptive Card preview
+
+Renderer prikazuje podržani Teams podskup i React sigurno escapuje tekst. Međutim, `Container.selectAction` i `Action.OpenUrl` direktno koriste `href={asText(...url)}`. Nema validacije šeme, pa defense-in-depth zaštita od `javascript:`/`data:` URL-a nije implementirana. Komponenta se produkcijski koristi samo na ovoj admin stranici.
+
+### Pristup
+
+- route koristi `RequireAccess(check={canOpenTeamsAdminPage})`;
+- helper dopušta SuperAdmina ili sesiju sa `integrationsTeamsManage`;
+- svih osam `/integrations/teams/admin/*` endpointa ima `@RequirePermissions(integrationsTeamsManage)`;
+- `/integrations/teams/me` je namjerno odvojen i dostupan svakom prijavljenom korisniku;
+- E2E direktno potvrđuje 403 za običnog korisnika na status i simulator activity endpointima.
+
+Pristup je usklađen.
 
 ---
 
-## Mišljenje tima i preporuka
+## Definicija „max full“ za modul 16
 
-Stranica je funkcionalno potpuna i pokrivena e2e testom sa a11y skeniranjem, a backend kontrola pristupa je ispravna. Problemi su u organizaciji koda (jedna velika datoteka sa tri različita toka) i u ponašanju simulatora (polling, sticky greška, stari transkript). Ni jedan od njih nije sigurnosna rupa u backendu. TM5 (`href`) je odbrana u dubini, ali je jeftina za popravku.
+Modul je maksimalno završen kada:
 
-Preporuka redom:
-1. TM1: simulator polling pauzirati kad tab nije vidljiv; jedan zahtjev u letu; greška se briše pri uspjehu; čistiti transkript pri promjeni korisnika i opsega.
-2. TM5: validacija šeme u `href` adaptivnih kartica.
-3. TM2 i TM3: razdvojiti stranicu u tabove i hook; zajednički `ApiErrorText`, sa ID-om zahtjeva.
-4. TM4: `role="img"` na ikonama; `sr-only` tekst za prazan `th`; razmotriti `aria-live` samo na novim porukama.
-5. TM6, TM8, TM9, TM10, TM11, TM7, TM12: tipovi, tekst poruke, pretraga korisnika, fallback taba, čišćenje.
-6. Dodati komponentske testove za `SimulatorTab` (polling, greška, promjena korisnika) i za `ChannelsTab` (uklanjanje sa potvrdom).
-
----
-
-## Bugovi i neusklađenosti
-
-| ID | Ozbiljnost | Nalaz | Lokacija |
-|---|---|---|---|
-| TM1 | Srednja | Polling simulatora bez provjere vidljivosti i bez zaštite od preklapanja; greška osvježavanja se ne briše pri uspjehu; stari transkript pri promjeni korisnika ili opsega. | `pages/teams-admin-page.tsx` (`SimulatorTab`, `refresh`) |
-| TM2 | Srednja | Stranica od 515 linija sa tri taba i logikom u istoj datoteci. | `pages/teams-admin-page.tsx` |
-| TM3 | Srednja | Četiri `errorKey` stanja, bez `role="alert"`, bez ID-a zahtjeva; `ApiErrorText` se ne koristi. | `pages/teams-admin-page.tsx`, `lib/teams/map-teams-error.ts` |
-| TM4 | Srednja (a11y) | Ikone sa `aria-label` na `svg` bez `role="img"`; prazan `<th aria-label>`; `aria-live` na često osvježavanom kontejneru. | `pages/teams-admin-page.tsx` (`StatusTab`, `ChannelsTab`, `SimulatorTab`) |
-| TM5 | Srednja (odbrana u dubini) | `href` iz `Action.OpenUrl` i `select.url` bez provjere šeme. | `components/teams/adaptive-card-preview.tsx` (linije 83, 148) |
-| TM6 | Niska | `Record<string, …>`, `event in eventKeys`, `eventKeys[event]!`. | `pages/teams-admin-page.tsx` (`eventKeys`, `ChannelsTab`) |
-| TM7 | Niska | `onOpenChange={(open) => (open ? null : …)}` obrazac; komentar sa oznakom plana. | `pages/teams-admin-page.tsx` |
-| TM8 | Niska | Tekst poruke se briše prije slanja i gubi se pri grešci. | `pages/teams-admin-page.tsx` (`SimulatorTab`, `form`) |
-| TM9 | Niska | Birač korisnika bez pretrage ili ograničenja. | `pages/teams-admin-page.tsx` (`listUsersSummary`) |
-| TM10 | Niska | Ponovljeni obrazac busy/error/finally u četiri funkcije. | `pages/teams-admin-page.tsx` |
-| TM11 | Niska | Aktivni tab „simulator“ ostaje kad simulator postane nedostupan. | `pages/teams-admin-page.tsx` (`TeamsAdminPage`) |
-| TM12 | Niska | `fact` helper se re-kreira pri svakom renderu. | `pages/teams-admin-page.tsx` (`StatusTab`) |
+1. page je ispod približno 200 linija i delegira status, channels i simulator tabove; simulator logika je u testabilnom hooku (**TM2**);
+2. polling radi samo na aktivnom/vidljivom simulatoru, ima jedan zahtjev u letu, briše oporavljenu grešku i odmah resetuje transkript pri promjeni konteksta (**TM1**);
+3. svi error prikazi koriste `ApiErrorText` i čuvaju request ID (**TM3**);
+4. `Action.OpenUrl` i `selectAction` renderuju link samo za valjan `http:`/`https:` URL (**TM5**);
+5. readiness, tabela i transkript imaju stabilnu a11y semantiku, uključujući channels axe test (**TM4**);
+6. event mapa je iscrpno vezana za `TeamsChannelEvent`, bez `in`/`!` escapeova (**TM6**);
+7. simulator čuva neuspješno poslanu poruku, user picker podržava skalabilnu pretragu i nedostupan simulator vraća aktivni tab na status (**TM8/TM9/TM11**);
+8. async akcije ne dupliraju boilerplate ni zahtjeve, ConfirmDialog callback je jasan, a statični helperi nisu ponovo kreirani pri renderu (**TM7/TM10/TM12**);
+9. postoje komponent/hook testovi za polling, simulator send i channels remove/confirm tok.
 
 ---
 
-## Ocjena: 6/10
+## Realno / željeno — samo otvoreno
 
-Obrazloženje:
-- **Plus:** backend kontrola pristupa po permisiji na svakoj ruti; `ConfirmDialog` za brisanje; readiness bez oslanjanja na boju; e2e test sa axe skeniranjem za sva tri taba; prevodivi ključevi grešaka; enkodirani identifikatori.
-- **Minus:** stranica od 515 linija bez razdvajanja; simulator sa polling-om bez zaštite i sticky greškom; greške bez `role="alert"` i bez ID-a zahtjeva; nevalidiran `href` u karticama; nema komponentskih testova.
-- Ocjena je niža od modula 15 zbog veličine datoteke i ponašanja simulatora. Backend sigurnost je ispravna.
-
----
-
-## Must-Have kandidati (modul 16)
-
-Predloženi redoslijed. Ništa od ovoga nije implementirano.
-
-1. **TM1:** simulator — pauza kad tab nije vidljiv, jedan zahtjev u letu, brisanje greške pri uspjehu, čišćenje transkripta pri promjeni korisnika ili opsega.
-2. **TM5:** dozvoliti samo `https:` i `http:` za `href` u adaptivnim karticama.
-3. **TM3:** `ApiErrorText` za sve greške ove stranice, sa ID-om zahtjeva; `mapTeamsError` da čuva `requestId`.
-4. **TM2:** razdvojiti stranicu na `status-tab`, `channels-tab`, `simulator-tab` i `use-teams-simulator`.
-5. **TM4:** `role="img"` na ikonama i `sr-only` tekst za prazan `th`.
-6. **Testovi:** komponentski testovi za simulator (polling, greška, promjena korisnika) i kanale (uklanjanje sa potvrdom).
-7. **TM6, TM8, TM9, TM10, TM11, TM7, TM12:** tipovi događaja, tekst poruke pri grešci, pretraga korisnika, fallback taba, zajednički async hook, čišćenje.
+| Oblast          | Realno                                                                                            | Željeno                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Struktura       | Page od 693 linije; sva tri taba i helperi u njemu.                                               | Page samo orkestrira tab i status; tri komponente + simulator hook.                                   |
+| Polling         | Stalni interval bez visibility/in-flight zaštite; sticky error i stari transkript.                | Poll samo aktivnog i vidljivog taba; jedan request; čisto stanje konteksta.                           |
+| Greške          | Domenski ključ bez request ID-a; obični paragrafi.                                                | `ApiErrorText` sa request ID-em i zajedničkim obrascem.                                               |
+| Linkovi kartice | Sirov string postaje `href`.                                                                      | Isključivo parsirani `http:` i `https:` URL-ovi.                                                      |
+| A11y            | Nejasna semantika ikona, prazan `<th>`, live cijelog polling transkripta; channels bez axe testa. | Dekorativna ikona + tekst, sr-only naslov akcija, kontrolisana najava novih poruka, axe sva tri taba. |
+| Tipovi          | `Record<string>`, `in`, non-null `!`.                                                             | `Record<TeamsChannelEvent, TranslationKey>` i sigurno vlastito članstvo.                              |
+| Akcije          | Ponavljan busy/error kod; readiness se šalje dvaput.                                              | Jedan action helper i tačno jedan API poziv po akciji.                                                |
+| Simulator UX    | Tekst se briše prije uspjeha; svi korisnici u selectu; tab može nestati.                          | Brisanje nakon uspjeha, pretraživ picker, fallback na status tab.                                     |
+| Testovi         | Dva unit testa helpera; E2E status/simulator.                                                     | Hook/komponent testovi i channels axe/confirm pokrivenost.                                            |
 
 ---
 
-## Status ispravki (2026-10-13)
+## Gap analiza i master tabela
 
-Nijedna ispravka u ovom modulu nije urađena. Pravilo iz sesije: ispravke se rade tek nakon završetka auditnog ciklusa i potvrde obima.
+| ID       | Prioritet    | Status         | Nalaz                                                                                                                                                                | Kriterij zatvaranja                                                                      |
+| -------- | ------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **TM1**  | P0 / visoko  | **Otvoren**    | Poll svakih 4 s bez visibility, aktivnog taba ili in-flight guarda; uspjeh ne briše refresh grešku; user/scope ne prazne transkript.                                 | Hook testovi potvrđuju jedan request u letu, pause/resume, clear error i reset poruka.   |
+| **TM2**  | P0 / visoko  | **Otvoren**    | Page ima 693 linije; tabovi i simulator logika nisu izdvojeni.                                                                                                       | Page približno ≤200 linija; tri tab komponente i `useTeamsSimulator`.                    |
+| **TM3**  | P1 / srednje | **Djelimično** | Poznate Teams greške se lokalizuju, ali nema `ApiErrorText`, request ID-a ni najave konzistentne s aplikacijom.                                                      | Zajednički error model/prikaz po tabu sa `readApiRequestId`.                             |
+| **TM4**  | P1 / srednje | **Djelimično** | Vidljiv tekst sprečava color-only problem, ali ikone imaju nestabilnu semantiku, action `<th>` je prazan, a polling kontejner cijeli je live. Channels nema axe E2E. | Dekorativne ikone/status tekst, sr-only th, kontrolisana live regija i axe sva tri taba. |
+| **TM5**  | P0 / visoko  | **Otvoren**    | Dva Adaptive Card puta prihvataju proizvoljan `href`; nema provjere šeme.                                                                                            | Testirani `safeHttpUrl`: http(s) link; javascript/data/relative nisu linkovi.            |
+| **TM6**  | P1 / nisko   | **Otvoren**    | `Record<string>`, prototipski `in` i `eventKeys[event]!` za API događaje.                                                                                            | Iscrpna `TeamsChannelEvent` mapa i vlastito članstvo bez non-null assertiona.            |
+| **TM7**  | P2 / nisko   | **Otvoren**    | `onOpenChange` koristi ternarni izraz sa `null` samo radi side effecta.                                                                                              | Eksplicitni `if (!open)` callback i confirm komponent test.                              |
+| **TM8**  | P1 / srednje | **Otvoren**    | `setText("")` se izvršava prije uspješnog slanja.                                                                                                                    | Tekst se briše samo nakon uspjeha; neuspjeh čuva draft; test.                            |
+| **TM9**  | P2 / nisko   | **Otvoren**    | `listUsersSummary()` puni obični select svim aktivnim korisnicima.                                                                                                   | Postojeći async/search user picker obrazac ili dokumentovan limit/paginacija.            |
+| **TM10** | P1 / visoko  | **Otvoren**    | Busy/error try/catch/finally se ponavlja; `runReadiness` trenutno šalje dva identična POST-a.                                                                        | Jedan poziv po akciji i zajednički lokalni async action obrazac.                         |
+| **TM11** | P2 / nisko   | **Otvoren**    | Aktivni simulator tab ne vraća se na status kada `simulatorAvailable` postane false.                                                                                 | Effect normalizuje aktivni tab; komponent test.                                          |
+| **TM12** | P2 / nisko   | **Otvoren**    | `fact` se definiše pri svakom `StatusTab` renderu; ostao je fazni komentar „Paket 3.1 (§16)“.                                                                        | Statični helper/komponenta i trajni komentar ugovora.                                    |
+
+---
+
+## Roadmap do „max full“
+
+### P0 — sigurnost, polling i struktura
+
+1. **TM5:** dodati čisti `safeHttpUrl` helper i testove za `https`, `http`, `javascript`, `data` i relativni URL.
+2. **TM2 + TM1:** prvo izdvojiti `use-teams-simulator`, zatim simulator/status/channels tabove; hook dobija active/visibility/in-flight kontrolu i reset stanja.
+3. Dodati hook testove sa fake timerima: overlap, hidden document, povratak u visible, sticky error i promjena user/scope.
+
+### P1 — pouzdanost i a11y
+
+4. **TM10:** odmah ukloniti dupli readiness POST i centralizovati busy/error action obrazac.
+5. **TM3:** `ApiErrorText`, `mapApiError`/domenska mapa i `readApiRequestId` po tabu.
+6. **TM4:** urediti ikone, action header i live najavu; proširiti E2E axe na channels.
+7. **TM6:** tipizovati event mapu.
+8. **TM8:** brisati draft nakon uspješnog send rezultata.
+
+### P2 — završni UX i održavanje
+
+9. **TM9:** uvesti postojeći pretraživi user picker obrazac.
+10. **TM11:** fallback aktivnog taba.
+11. **TM7/TM12:** pojednostaviti confirm callback, izdvojiti `fact`, očistiti fazne komentare.
+12. Dodati channels remove/confirm komponent test i simulator smoke render test.
+
+---
+
+## Status ispravki od 2026-10-13
+
+| Stavka          | Stanje 2026-10-19                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| TM1 polling     | **Nije riješen:** isti interval, sticky error i stari transkript; nema visibility/in-flight zaštite.                |
+| TM2 split       | **Nije riješen:** page je narastao sa 515 na 693 linije; `components/teams` i dalje ima samo Adaptive Card preview. |
+| TM3 error UX    | **Nije riješen:** nema `ApiErrorText` ni request ID-a.                                                              |
+| TM4 a11y        | **Djelimično:** status i simulator imaju axe E2E; channels nema. Ostali nalazi ostaju.                              |
+| TM5 URL zaštita | **Nije riješen:** oba `href` puta su bez allowliste.                                                                |
+| TM6–TM12        | **Nisu riješeni.** Dupli readiness poziv je dodatni konkretni dokaz za TM10.                                        |
+| Pristup         | **Potvrđen kao usklađen:** frontend i backend koriste `integrationsTeamsManage`.                                    |
+| Testovi         | Helper unit testovi i E2E bot tok postoje; nema page/tab/hook komponent testova.                                    |
+
+---
+
+## Status implementacije od 2026-10-19
+
+Implementacija nakon ovog audita zatvara ili bitno smanjuje sve nalaze:
+
+| Nalaz | Status implementacije                                                                                                                                                                            |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| TM1   | **Zatvoren:** polling je u `useTeamsSimulator`; poštuje aktivni/vidljivi tab, sprečava paralelne zahtjeve, resetuje kontekst i briše oporavljenu grešku. Hook testovi pokrivaju ključne tokove.  |
+| TM2   | **Zatvoren:** page je smanjen sa 693 na 65 linija; status, channels i simulator su zasebne komponente, a polling je zaseban hook.                                                                |
+| TM3   | **Zatvoren:** prikazi koriste `ApiErrorText`; `describeTeamsError` čuva lokalizovani ključ i `readApiRequestId` rezultat.                                                                        |
+| TM4   | **Zatvoren:** sređene su readiness ikone, action zaglavlje i live regija; channels axe korak je u E2E 33, koji je dio aktuelne zelene Playwright kolekcije 01–56 prema potvrdi korisnika. |
+| TM5   | **Zatvoren:** oba OpenUrl puta koriste testirani HTTP(S)-only helper; unsafe vrijednosti nisu linkovi.                                                                                           |
+| TM6   | **Zatvoren:** event mapa je iscrpno tipizovana sa `TeamsChannelEvent`, bez `in` i non-null assertion escapeova.                                                                                  |
+| TM7   | **Zatvoren u kodu:** ConfirmDialog callback eksplicitno provjerava zatvaranje; poseban komponent test nije dodat.                                                                                |
+| TM8   | **Zatvoren u kodu:** draft se briše tek nakon uspješnog slanja; poseban send komponent test nije dodat.                                                                                          |
+| TM9   | **Djelimično:** picker sada ima lokalnu pretragu po imenu i e-mailu, ali API i dalje učitava puni `listUsersSummary()` bez server-side paginacije/pretrage.                                      |
+| TM10  | **Zatvoren:** uklonjen je dupli readiness POST, a action busy/error obrazac centralizovan je u `useTeamsAsyncAction`.                                                                            |
+| TM11  | **Zatvoren u kodu:** nedostupan simulator normalizuje aktivni tab na status; poseban komponent test nije dodat.                                                                                  |
+| TM12  | **Zatvoren:** `fact` je statičan helper izvan komponente, a fazni komentar je zamijenjen trajnim opisom ugovora.                                                                                 |
+
+Verifikacija implementacije:
+
+- `npx tsc -b` — prolazi;
+- ciljani ESLint Teams fajlova — prolazi;
+- `npm run i18n:check` — prolazi, bs/en parity potvrđen;
+- puni frontend Vitest — **333/333 fajlova i 1338/1338 testova prolazi**;
+- E2E 33 — **pokrenut i zelen** kao dio aktuelne Playwright kolekcije 01–56 prema potvrdi korisnika; uključuje prošireni channels axe korak.
+
+Preostalo do punog 10/10: izvršenje E2E 33 na konfigurisanom staging okruženju.
+
+## Ocjena
+
+# **6/10**
+
+Funkcionalni Teams tok i serverska autorizacija su dobri, ali page je sada još veći, sigurnost linkova i polling ostaju otvoreni, a readiness akcija trenutno duplira POST. Zbog toga nema osnova za povećanje stare ocjene.
+
+### Do 10/10
+
+- zatvoriti **TM5**, zatim zajedno **TM2 + TM1** uz hook testove;
+- zatvoriti **TM10**, **TM3**, **TM4**, **TM6** i proširiti axe na channels;
+- završiti simulator UX i održavanje kroz **TM7–TM9**, **TM11–TM12** i komponent testove.
+
+## Predložena commit poruka
+
+`docs(audit): rewrite admin Teams module 16 review`

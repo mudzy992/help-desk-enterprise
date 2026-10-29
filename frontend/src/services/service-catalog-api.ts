@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseServiceCatalog } from "@/services/critical-api-parsers";
 import {
   listServiceCategories as listServiceCategoriesFromApi,
   type ServiceCategoryResponse as ServiceCategoryApiResponse,
@@ -24,6 +25,7 @@ export type ServiceRuntimeAvailability = {
   readonly isCurrentlyUnavailable: boolean;
   readonly hasActiveDowntime: boolean;
   readonly hasUpcomingDowntime: boolean;
+  readonly upcomingDowntimeCount: number;
   readonly ticketCreationAllowed: true;
   readonly showStatusInTicketCreate: boolean;
   readonly activeDowntimeWindow: ServiceDowntimeWindowSummary | null;
@@ -35,6 +37,12 @@ export type ServiceActiveFormSummary = {
   readonly activeFormVersionRef: string | null;
   readonly version: number | null;
   readonly fieldCount: number;
+};
+
+export type ServiceOnboardingSummary = {
+  readonly status: "IN_PROGRESS" | "READY_FOR_FINALIZATION" | "ABANDONED" | "COMPLETED";
+  readonly currentStep: "SERVICE" | "FORM" | "ROUTING" | "SLA" | "APPROVALS";
+  readonly completedSteps: readonly ("SERVICE" | "FORM" | "ROUTING" | "SLA" | "APPROVALS")[];
 };
 
 export type ServiceResponse = {
@@ -55,6 +63,7 @@ export type ServiceResponse = {
   readonly policyPackId: string | null;
   readonly openTicketCount: number;
   readonly activeForm: ServiceActiveFormSummary;
+  readonly onboarding?: ServiceOnboardingSummary | null;
   readonly incidentImpact?: "DEGRADED" | "DOWN" | "MAINTENANCE" | null;
   /** Paket 5.3.1: category label on list reads (requesters cannot read categories). */
   readonly category?: { readonly name: string; readonly sortOrder: number } | null;
@@ -151,11 +160,11 @@ export type ServiceTicketCreationEligibility = {
 };
 
 export function listOfferedServices(): Promise<readonly ServiceResponse[]> {
-  return apiRequest("/services?offeredOnly=true");
+  return apiRequestValidated("/services?offeredOnly=true", parseServiceCatalog);
 }
 
 export function listServices(): Promise<readonly ServiceResponse[]> {
-  return apiRequest("/services");
+  return apiRequestValidated("/services", parseServiceCatalog);
 }
 
 export function createService(input: CreateServiceInput): Promise<ServiceResponse> {

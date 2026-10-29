@@ -31,6 +31,8 @@ export type RecordChangeLogInput = {
   readonly reason: string;
   readonly diff: ChangeLogDiffPayload;
   readonly actorUserId: string | null;
+  readonly scopeOriginUnitId?: string;
+  readonly scopeServiceId?: string;
 };
 
 export type ChangeLogPrismaClient = {

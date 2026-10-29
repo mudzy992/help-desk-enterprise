@@ -74,8 +74,8 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     const env = readE2EEnvironment();
     const current = new ApiClient();
     const other = new ApiClient();
-    await current.login(env.userEmail, env.userPassword);
-    await other.login(env.userEmail, env.userPassword);
+    await current.login(env.userEmail, env.userPassword, { newSession: true });
+    await other.login(env.userEmail, env.userPassword, { newSession: true });
 
     const result = await current.requestJson<{ readonly revoked: number }>('/auth/sessions/revoke-others', {
       method: 'POST',
@@ -153,10 +153,20 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
       expect((await fresh.request('/auth/security')).status).toBe(200);
     } finally {
       if (!restored) {
+        // The configured password may be refused (Pwned Passwords); the admin
+        // restore path falls back to a generated value for the rest of the run.
         try {
-          await completeForcedChange();
+          await restoreTestActorPassword(admin, {
+            userId: target.id,
+            email: env.userEmail,
+            password: env.userPassword,
+          });
         } catch (error) {
-          console.error(`[e2e] could not restore the configured user password: ${error instanceof Error ? error.message : String(error)}`);
+          console.error(
+            `[e2e] could not restore the configured user password: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
         }
       }
     }

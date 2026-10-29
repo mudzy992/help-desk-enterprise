@@ -8,6 +8,8 @@ export type ServiceCatalogRow = {
   readonly service: ServiceResponse;
 };
 
+const emptyCatalogRows: readonly ServiceCatalogRow[] = [];
+
 export type ServiceCatalogState = {
   readonly rows: readonly ServiceCatalogRow[];
   readonly hasLoaded: boolean;
@@ -18,7 +20,7 @@ export type ServiceCatalogState = {
 };
 
 /**
- * Faza 3.3 (plan §3.3, grupa (a) — katalozi): servisi i sažetak aktivne forme
+ * katalozi): servisi i sažetak aktivne forme
  * stižu u jednom batch pozivu (`listServices` već uključuje `activeForm`
  * sažetak koji je backend skupio kroz `loadActiveFormSummaries`). Nema N+1
  * round-tripova po servisu; ekran zadržava isti `rows` ugovor, a oblik se
@@ -33,12 +35,13 @@ export function useServiceCatalog(): ServiceCatalogState {
     },
   });
 
+  const { refetch } = query;
   const reload = useCallback(async () => {
-    await query.refetch();
-  }, [query]);
+    await refetch();
+  }, [refetch]);
 
   return {
-    rows: query.data ?? [],
+    rows: query.data ?? emptyCatalogRows,
     hasLoaded: query.data !== undefined,
     isLoading: query.isLoading,
     errorKey: query.error === null ? null : mapApiError(query.error),

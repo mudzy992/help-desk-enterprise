@@ -15,6 +15,7 @@ interface ReportsDateFilterProperties {
   readonly preset: ReportPreset;
   readonly customFrom: string;
   readonly customTo: string;
+  readonly invalid?: boolean;
   readonly onPresetChange: (preset: ReportPreset) => void;
   readonly onCustomFromChange: (value: string) => void;
   readonly onCustomToChange: (value: string) => void;
@@ -32,6 +33,7 @@ export function ReportsDateFilter({
   preset,
   customFrom,
   customTo,
+  invalid = false,
   onPresetChange,
   onCustomFromChange,
   onCustomToChange,
@@ -62,6 +64,7 @@ export function ReportsDateFilter({
               type="date"
               className={cn(controlCompactClassName, "w-[10.5rem]")}
               value={customFrom}
+              aria-invalid={invalid}
               onChange={(event) => onCustomFromChange(event.target.value)}
             />
           </label>
@@ -71,6 +74,7 @@ export function ReportsDateFilter({
               type="date"
               className={cn(controlCompactClassName, "w-[10.5rem]")}
               value={customTo}
+              aria-invalid={invalid}
               onChange={(event) => onCustomToChange(event.target.value)}
             />
           </label>

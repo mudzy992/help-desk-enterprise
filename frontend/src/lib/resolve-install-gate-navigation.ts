@@ -19,8 +19,10 @@ export function resolveInstallGateNavigation(input: {
   if (isVisualQaRoute(input.pathname)) {
     return null;
   }
+  // The completion screen still lives on /install and links to /login, so a
+  // completed installation must not redirect that screen out from under it.
   if (input.isSetupComplete) {
-    return isInstallRoute(input.pathname) ? applicationHomePath : null;
+    return null;
   }
   if (isInstallRoute(input.pathname)) {
     return null;

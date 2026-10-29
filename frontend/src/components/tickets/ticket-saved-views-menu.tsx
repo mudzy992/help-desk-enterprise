@@ -1,5 +1,5 @@
 import { Bookmark, Check, ChevronDown, Plus, Settings2, Trash2 } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,29 +59,32 @@ export function TicketSavedViewsMenu({
   const defaultApplied = useRef(false);
   const filtersReference = useRef(filters);
   filtersReference.current = filters;
+  const applyReference = useRef(onApply);
+  applyReference.current = onApply;
+  const errorReference = useRef(onError);
+  errorReference.current = onError;
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     try {
       const rows = await listSavedViews();
       setViews(rows);
       const fallback = rows.find((item) => item.isDefault);
       if (fallback !== undefined && !defaultApplied.current) {
         defaultApplied.current = true;
-        onApply(filtersFromSavedView(filtersReference.current, fallback));
+        applyReference.current(filtersFromSavedView(filtersReference.current, fallback));
       }
     } catch (error) {
       const mapped = mapTicketError(error);
       if (mapped !== "tickets.errorForbidden") {
-        onError(mapped);
+        errorReference.current(mapped);
       }
       setViews([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reload]);
 
   // Derived, not remembered: editing any stored filter drops the "active" mark.
   const active = useMemo(

@@ -1,12 +1,12 @@
-import type { Queue, RepeatOptions } from 'bullmq';
+import type { Queue, RepeatOptions } from "bullmq";
 
 /** Either an interval (`every`) or a cron pattern — both are BullMQ repeat options. */
 export type RepeatableJobSchedule =
-  | { readonly kind: 'every'; readonly milliseconds: number }
-  | { readonly kind: 'pattern'; readonly pattern: string };
+  | { readonly kind: "every"; readonly milliseconds: number }
+  | { readonly kind: "pattern"; readonly pattern: string };
 
 export type RepeatableJobRegistration = {
-  readonly queue: Pick<Queue, 'upsertJobScheduler'>;
+  readonly queue: Pick<Queue, "upsertJobScheduler">;
   readonly schedulerId: string;
   readonly jobName: string;
   readonly label: string;
@@ -51,7 +51,7 @@ export async function registerRepeatableJob(
         opts: {
           attempts: registration.attempts,
           backoff: {
-            type: 'exponential',
+            type: "exponential",
             delay: registration.backoffMilliseconds,
           },
           removeOnComplete: { count: registration.completedJobsToKeep },
@@ -61,13 +61,17 @@ export async function registerRepeatableJob(
     );
   } catch (error) {
     registration.logger.warn(
-      `${registration.label}_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`,
+      `${registration.label}_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+    );
+    throw new Error(
+      `${registration.label} mandatory schedule registration failed`,
+      { cause: error },
     );
   }
 }
 
 function toRepeatOptions(schedule: RepeatableJobSchedule): RepeatOptions {
-  return schedule.kind === 'every'
+  return schedule.kind === "every"
     ? { every: schedule.milliseconds }
     : { pattern: schedule.pattern };
 }

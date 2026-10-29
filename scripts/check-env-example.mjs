@@ -11,7 +11,14 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoots = ["backend/src"];
 // Variables used outside backend/src (compose, Vite build, tooling).
-const allowedUnread = [/^WORKER_DB_/, /^VITE_/, /^NODE_ENV$/, /^PORT$/];
+const allowedUnread = [
+  /^WORKER_DB_/,
+  /^VITE_/,
+  /^NODE_ENV$/,
+  /^PORT$/,
+  /^APP_FILES_ROOT$/,
+  /^(?:MIGRATION_DATABASE_URL|DB_MAX_CONNECTIONS|DB_CONNECTION_RESERVE|API_REPLICAS|WORKER_REPLICAS|MIGRATOR_CONNECTION_BUDGET)$/,
+];
 // Variables read by code but intentionally not part of the deployment contract.
 const allowedUnlisted = new Set(["NODE_ENV", "JEST_WORKER_ID", "npm_package_version"]);
 

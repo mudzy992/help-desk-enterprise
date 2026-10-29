@@ -85,6 +85,7 @@ model Ticket {
   breakGlassEvents     BreakGlassEvent[]
   guardrailClaims      GuardrailClaim[]
   slaState             TicketSlaState?
+  slaScanFailure       SlaScanFailure?
   notifications        Notification[]
   notificationDigestItems NotificationDigestItem[]
   forwardEvents        TicketForwardEvent[]
@@ -156,6 +157,7 @@ model TicketMessage {
   authorUserId String?
   /// Package 1.4 (T4): the shared/personal template the text started from.
   responseTemplateId String?
+  idempotencyKey     String?           @db.VarChar(128)
   responseTemplate   ResponseTemplate? @relation(fields: [responseTemplateId], references: [id], onDelete: SetNull)
   /// Paket 2.3 (R15): APP or EMAIL (reply to a notification).
   source       MessageSource     @default(APP)
@@ -172,6 +174,7 @@ model TicketMessage {
   @@index([ticketId, createdAt])
   @@index([authorUserId])
   @@index([responseTemplateId])
+  @@unique([ticketId, idempotencyKey])
 }
 
 model TicketActivity {

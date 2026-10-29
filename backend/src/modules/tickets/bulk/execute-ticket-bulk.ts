@@ -31,6 +31,7 @@ export async function executeTicketBulk(input: {
   readonly forwarding: BulkForwardingDependencies;
   /** Package 1.4 (P5). */
   readonly playbookMode?: PlaybookRequiredStepsMode;
+  readonly writeAggregateAudit?: boolean;
 }): Promise<{
   readonly batchId: string | null;
   readonly tickets: readonly TicketRecord[];
@@ -47,10 +48,10 @@ export async function executeTicketBulk(input: {
     tickets: input.tickets,
   });
   const batchId = input.configuration.auditBatchIdEnabled
-    ? randomUUID()
+    ? (input.body.operationId ?? randomUUID())
     : null;
   const tickets = await dispatchBulkAction({ ...input, batchId });
-  await recordAuditEntry(input.prisma, {
+  if (input.writeAggregateAudit !== false) await recordAuditEntry(input.prisma, {
     action: auditLogActions.ticketBulkExecute,
     entityType: auditLogEntityTypes.ticketBulk,
     entityId: batchId ?? tickets.tickets[0]?.id ?? 'ticket_bulk',
@@ -58,6 +59,8 @@ export async function executeTicketBulk(input: {
       actionType: input.body.actionType,
       ticketIds: input.body.ticketIds,
       batchId,
+      ...(input.body.operationId === undefined ? {} : { operationId: input.body.operationId }),
+      ...(input.body.mode === undefined ? {} : { mode: input.body.mode, outcome: 'SUCCEEDED', succeeded: input.body.ticketIds.length, failed: 0 }),
     },
     actorUserId: input.actor.actorUserId,
     organizationalUnitId: resolveBulkOrganizationalUnitId(input.tickets),

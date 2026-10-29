@@ -47,7 +47,7 @@ describe("useSessionCapabilities", () => {
     cleanup();
   });
 
-  it("shares one /auth/session request between all consumers (A3)", async () => {
+  it("shares one /auth/session request between all consumers ", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>

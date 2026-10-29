@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { queryKeys } from "@/lib/query/query-keys";
 import {
-  bumpSettingsGeneration,
   getSettingsGeneration,
   subscribeSettingsGeneration,
 } from "@/lib/settings/settings-realtime-store";
@@ -9,7 +10,6 @@ import {
   getSettingsRegistry,
   updateSetting,
   updateSettings,
-  type SettingRegistryEntry,
   type SettingsWriteResponse,
 } from "@/services/settings-api";
 
@@ -17,17 +17,9 @@ export type SettingsSaveInput = {
   readonly key: string;
   readonly value: string | number | boolean;
   readonly reason: string;
-  /**
-   * Paket 5.3.3 (D7): the administrator confirmed the list of dependent keys
-   * that a switch-off resets. Without it the server refuses such a write.
-   */
   readonly resetDependents?: boolean;
 };
 
-/**
- * Paket 5.3.4: both endpoints answer with what actually changed, and the screen
- * needs that answer to tell the administrator which dependent keys were reset.
- */
 export type SettingsSaver = (input: SettingsSaveInput) => Promise<SettingsWriteResponse>;
 
 export type SettingsSaveManyInput = {
@@ -42,77 +34,113 @@ export type SettingsSaveManyInput = {
 export type SettingsSaverMany = (input: SettingsSaveManyInput) => Promise<SettingsWriteResponse>;
 
 export function useSettingsRegistry() {
+  const queryClient = useQueryClient();
   const settingsGeneration = useSyncExternalStore(
     subscribeSettingsGeneration,
     getSettingsGeneration,
     getSettingsGeneration,
   );
-  const [entries, setEntries] = useState<readonly SettingRegistryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
+  const query = useQuery({
+    queryKey: queryKeys.settingsRegistry,
+    queryFn: getSettingsRegistry,
+  });
+  const [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(new Set());
+  const pendingCounts = useRef(new Map<string, number>());
+  const [writeErrorKey, setWriteErrorKey] = useState<ApiErrorKey | null>(null);
+  const [writeRequestId, setWriteRequestId] = useState<string | null>(null);
+  const observedGeneration = useRef(settingsGeneration);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
-    setErrorKey(null);
-    try {
-      setEntries(await getSettingsRegistry());
-    } catch (error) {
-      setErrorKey(mapApiError(error));
-    } finally {
-      setIsLoading(false);
+  const beginPending = useCallback((keys: readonly string[]) => {
+    for (const key of new Set(keys)) {
+      pendingCounts.current.set(key, (pendingCounts.current.get(key) ?? 0) + 1);
     }
+    setPendingKeys(new Set(pendingCounts.current.keys()));
+  }, []);
+
+  const endPending = useCallback((keys: readonly string[]) => {
+    for (const key of new Set(keys)) {
+      const count = pendingCounts.current.get(key) ?? 0;
+      if (count <= 1) pendingCounts.current.delete(key);
+      else pendingCounts.current.set(key, count - 1);
+    }
+    setPendingKeys(new Set(pendingCounts.current.keys()));
   }, []);
 
   useEffect(() => {
-    void reload();
-  }, [reload, settingsGeneration]);
+    if (settingsGeneration === observedGeneration.current) return;
+    observedGeneration.current = settingsGeneration;
+    void queryClient.invalidateQueries({ queryKey: queryKeys.settingsRegistry });
+  }, [queryClient, settingsGeneration]);
+
+  const invalidate = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.settingsRegistry });
+  }, [queryClient]);
 
   const save = useCallback(
     async (input: SettingsSaveInput): Promise<SettingsWriteResponse> => {
-      setPendingKey(input.key);
-      setErrorKey(null);
+      beginPending([input.key]);
+      setWriteErrorKey(null);
+      setWriteRequestId(null);
       try {
         const response = await updateSetting(input);
-        bumpSettingsGeneration();
-        await reload();
+        await invalidate();
         return response;
       } catch (error) {
-        setErrorKey(mapApiError(error));
+        setWriteErrorKey(mapApiError(error));
+        setWriteRequestId(readApiRequestId(error));
         throw error;
       } finally {
-        setPendingKey(null);
+        endPending([input.key]);
       }
     },
-    [reload],
+    [beginPending, endPending, invalidate],
   );
 
-  /** Paket 4.1: one request, one reload - the card never re-renders mid-save. */
   const saveMany = useCallback(
     async (input: SettingsSaveManyInput): Promise<SettingsWriteResponse> => {
-      setPendingKey(input.entries[0]?.key ?? null);
-      setErrorKey(null);
+      const keys = input.entries.map((entry) => entry.key);
+      beginPending(keys);
+      setWriteErrorKey(null);
+      setWriteRequestId(null);
       try {
         const response = await updateSettings(input);
-        bumpSettingsGeneration();
-        await reload();
+        await invalidate();
         return response;
       } catch (error) {
-        setErrorKey(mapApiError(error));
+        setWriteErrorKey(mapApiError(error));
+        setWriteRequestId(readApiRequestId(error));
         throw error;
       } finally {
-        setPendingKey(null);
+        endPending(keys);
       }
     },
-    [reload],
+    [beginPending, endPending, invalidate],
   );
+
+  const entries = query.data ?? [];
+  const errorKey = useMemo(
+    () => writeErrorKey ?? (query.error === null ? null : mapApiError(query.error)),
+    [query.error, writeErrorKey],
+  );
+  const requestId =
+    writeErrorKey !== null
+      ? writeRequestId
+      : query.error === null
+        ? null
+        : readApiRequestId(query.error);
 
   return {
     entries,
-    isLoading,
-    pendingKey,
+    isLoading: query.isLoading,
+    isRefreshing: query.isFetching && !query.isLoading,
+    pendingKeys,
     errorKey,
-    reload,
+    requestId,
+    reload: async () => {
+      setWriteErrorKey(null);
+      setWriteRequestId(null);
+      await query.refetch();
+    },
     save,
     saveMany,
   };

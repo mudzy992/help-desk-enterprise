@@ -5,7 +5,7 @@ import { hintClassName, labelClassName, selectClassName } from "@/components/ui/
 import { getTicketAssetPicker, ticketAssetQueryKeys } from "@/services/assets-api";
 
 /**
- * Paket 3.2 (§8): "Which equipment is this about?" — optional, only the
+ * "Which equipment is this about?" — optional, only the
  * requester's own equipment, never preselected unless the user came from
  * "Report a problem" on My equipment. Hidden when the module or the picker
  * is off, or the user has no selectable equipment.

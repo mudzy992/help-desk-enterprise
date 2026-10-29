@@ -1,7 +1,8 @@
-import { expect, test } from '@playwright/test';
-import { ApiClient } from '../helpers/api-client';
-import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { expect, test } from "@playwright/test";
+import { expectNoSeriousA11yViolations } from "../helpers/a11y";
+import { ApiClient } from "../helpers/api-client";
+import { readE2EEnvironment } from "../helpers/environment";
+import { dismissAnnouncementModal, signIn } from "../helpers/sign-in";
 
 type OverviewGroup = {
   readonly groupId: string;
@@ -10,7 +11,10 @@ type OverviewGroup = {
 };
 
 type GroupDetail = {
-  readonly candidates: ReadonlyArray<{ readonly userId: string; readonly displayName: string }>;
+  readonly candidates: ReadonlyArray<{
+    readonly userId: string;
+    readonly displayName: string;
+  }>;
 };
 
 type GroupResponse = {
@@ -29,9 +33,9 @@ type UnitNode = {
   readonly children?: readonly UnitNode[];
 };
 
-function tomorrowDate(): string {
-  const day = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+function civilDate(offsetDays: number): string {
+  const day = new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000);
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 }
 
 /**
@@ -43,8 +47,10 @@ function tomorrowDate(): string {
  * group, so if the free group is empty the test adds the super admin to it
  * through the same API the UI uses and removes them again in `finally`.
  */
-test.describe('44 on-call schedules (5.3.7)', () => {
-  test('schedule is visible on the overview, in the week detail and on mobile', async ({ page }) => {
+test.describe("44 on-call schedules (5.3.7)", () => {
+  test("schedule is visible, keyboard accessible, responsive and axe-clean", async ({
+    page,
+  }, testInfo) => {
     test.setTimeout(120_000);
     page.setDefaultTimeout(20_000);
     page.setDefaultNavigationTimeout(30_000);
@@ -52,116 +58,226 @@ test.describe('44 on-call schedules (5.3.7)', () => {
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
 
-    const { groupId, groupName, memberId, memberName, addedSuperAdminAsMember } = await test.step(
-      'pick a free group and a rotation member',
-      async () => {
-        const overview = await api.requestJson<{ readonly groups: readonly OverviewGroup[] }>('/on-call/overview');
-        const free = overview.groups.find((group) => !group.hasSchedule);
-        if (free === undefined) {
+    const {
+      groupId,
+      groupName,
+      memberId,
+      memberName,
+      addedSuperAdminAsMember,
+    } = await test.step("pick a free group and a rotation member", async () => {
+      const overview = await api.requestJson<{
+        readonly groups: readonly OverviewGroup[];
+      }>("/on-call/overview");
+      const free = overview.groups.find((group) => !group.hasSchedule);
+      if (free === undefined) {
+        throw new Error(
+          "[e2e] every group already has an on-call schedule; free one up or run this test against a clean group — the test refuses to overwrite real rotations.",
+        );
+      }
+      const range = new URLSearchParams({
+        from: new Date().toISOString(),
+        to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }).toString();
+      const detail = await api.requestJson<GroupDetail>(
+        `/on-call/groups/${encodeURIComponent(free.groupId)}?${range}`,
+      );
+      let member = detail.candidates[0];
+      let added = false;
+      if (member === undefined) {
+        // An empty free group is normal; the super admin becomes a member
+        // for the duration of the test (restored in `finally`).
+        const users = await api.requestJson<readonly UserSummary[]>("/users");
+        const me = users.find(
+          (user) =>
+            user.email.toLowerCase() === env.superAdminEmail.toLowerCase(),
+        );
+        if (me === undefined || !me.isActive)
+          throw new Error("[e2e] the super admin must exist and be active.");
+        const group = await api.requestJson<GroupResponse>(
+          `/groups/${encodeURIComponent(free.groupId)}`,
+        );
+        if (group.members.some((entry) => entry.userId === me.id)) {
           throw new Error(
-            '[e2e] every group already has an on-call schedule; free one up or run this test against a clean group — the test refuses to overwrite real rotations.',
+            "[e2e] the group reports no candidates but lists the super admin as a member — check their staff role.",
           );
         }
-        const range = new URLSearchParams({
-          from: new Date().toISOString(),
-          to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        }).toString();
-        const detail = await api.requestJson<GroupDetail>(`/on-call/groups/${encodeURIComponent(free.groupId)}?${range}`);
-        let member = detail.candidates[0];
-        let added = false;
-        if (member === undefined) {
-          // An empty free group is normal; the super admin becomes a member
-          // for the duration of the test (restored in `finally`).
-          const users = await api.requestJson<readonly UserSummary[]>('/users');
-          const me = users.find((user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase());
-          if (me === undefined || !me.isActive) throw new Error('[e2e] the super admin must exist and be active.');
-          const group = await api.requestJson<GroupResponse>(`/groups/${encodeURIComponent(free.groupId)}`);
-          if (group.members.some((entry) => entry.userId === me.id)) {
-            throw new Error('[e2e] the group reports no candidates but lists the super admin as a member — check their staff role.');
-          }
-          await api.requestJson(`/groups/${encodeURIComponent(free.groupId)}/members/${encodeURIComponent(me.id)}`, {
-            method: 'POST',
-          });
-          member = { userId: me.id, displayName: me.displayName };
-          added = true;
-        }
-        return {
-          groupId: free.groupId,
-          groupName: free.groupName,
-          memberId: member.userId,
-          memberName: member.displayName,
-          addedSuperAdminAsMember: added,
-        };
-      },
-    );
+        await api.requestJson(
+          `/groups/${encodeURIComponent(free.groupId)}/members/${encodeURIComponent(me.id)}`,
+          {
+            method: "POST",
+          },
+        );
+        member = { userId: me.id, displayName: me.displayName };
+        added = true;
+      }
+      return {
+        groupId: free.groupId,
+        groupName: free.groupName,
+        memberId: member.userId,
+        memberName: member.displayName,
+        addedSuperAdminAsMember: added,
+      };
+    });
 
-    await test.step('create a weekly rotation starting tomorrow', async () => {
-      await api.requestJson<{ readonly id: string }>(`/on-call/groups/${encodeURIComponent(groupId)}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          timezone: 'Europe/Sarajevo',
-          handoffTime: '09:00',
-          rotationLength: 'WEEK',
-          rotationStartDate: tomorrowDate(),
-          isActive: true,
-          autoAssignOutsideHours: false,
-          ownerUserId: null,
-          memberUserIds: [memberId],
-          reason: 'E2E 5.3.7 on-call setup',
-        }),
-      });
+    await test.step("create a weekly rotation starting tomorrow", async () => {
+      await api.requestJson<{ readonly id: string }>(
+        `/on-call/groups/${encodeURIComponent(groupId)}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            timezone: "Europe/Sarajevo",
+            handoffTime: "09:00",
+            rotationLength: "WEEK",
+            rotationStartDate: civilDate(0),
+            isActive: true,
+            autoAssignOutsideHours: false,
+            ownerUserId: null,
+            memberUserIds: [memberId],
+            reason: "E2E 5.3.7 on-call setup",
+          }),
+        },
+      );
+      const detailQuery = new URLSearchParams({
+        from: new Date().toISOString(),
+        to: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
+      }).toString();
+      await expect
+        .poll(
+          async () => {
+            const refreshed = await api.requestJson<{
+              readonly schedule: { readonly id: string } | null;
+            }>(`/on-call/groups/${encodeURIComponent(groupId)}?${detailQuery}`);
+            return refreshed.schedule?.id ?? null;
+          },
+          { timeout: 30_000 },
+        )
+        .not.toBeNull();
     });
 
     try {
-      await test.step('sign in and open the overview', async () => {
+      await test.step("sign in and open the overview", async () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
-        await page.goto('/on-call');
-        const card = page.getByTestId('on-call-group').filter({ hasText: groupName }).first();
-        await expect(card).toBeVisible();
-        await expect(card).not.toContainText(/Bez rasporeda|No schedule/i);
+        await dismissAnnouncementModal(page);
+        await page.goto("/on-call");
+        await page.getByRole("button", { name: /Osvježi|Refresh/i }).click();
+        const groupButton = page
+          .locator('[data-testid="on-call-group"]')
+          .filter({ has: page.getByText(groupName, { exact: true }) });
+        await expect(groupButton).toBeVisible();
+        await expect
+          .poll(
+            async () => {
+              await page
+                .getByRole("button", { name: /Osvježi|Refresh/i })
+                .click();
+              const text = await groupButton.innerText();
+              return !/Bez rasporeda|No schedule/i.test(text);
+            },
+            { timeout: 90_000 },
+          )
+          .toBe(true);
       });
 
-      await test.step('the week detail lists the rotation member', async () => {
-        await page.getByTestId('on-call-group').filter({ hasText: groupName }).first().click();
-        const members = page.locator('section[aria-labelledby="on-call-rotation"]');
-        await expect(members).toBeVisible();
-        await expect(members).toContainText(memberName);
+      await test.step("the week detail lists the rotation member", async () => {
+        const groupButton = page
+          .locator('[data-testid="on-call-group"]')
+          .filter({ has: page.getByText(groupName, { exact: true }) });
+        const detailResponse = page.waitForResponse(
+          (response) =>
+            response.request().method() === "GET" &&
+            response
+              .url()
+              .includes(`/on-call/groups/${encodeURIComponent(groupId)}`) &&
+            response.ok(),
+          { timeout: 60_000 },
+        );
+        await groupButton.focus();
+        await expect(groupButton).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(page).toHaveURL(
+          new RegExp(`[?&]group=${encodeURIComponent(groupId)}(?:&|$)`),
+        );
+        const detail = (await (await detailResponse).json()) as {
+          readonly schedule: {
+            readonly members: ReadonlyArray<{ readonly displayName: string }>;
+          } | null;
+        };
+        expect(
+          detail.schedule?.members.map((member) => member.displayName),
+        ).toContain(memberName);
+        await expect(page.locator("main")).toContainText(memberName, {
+          timeout: 30_000,
+        });
+        await expect(page.locator("main")).not.toContainText(
+          /Grupa nema raspored dežurstva|Group has no on-call schedule/i,
+        );
       });
 
-      await test.step('the overview stays usable at a phone width', async () => {
-        await page.setViewportSize({ width: 360, height: 800 });
-        await page.goto('/on-call');
-        await expect(page.getByTestId('on-call-group').filter({ hasText: groupName }).first()).toBeVisible();
+      await test.step("responsive, 200% zoom and axe contracts stay usable", async () => {
+        for (const width of [320, 375, 768, 1280]) {
+          await page.setViewportSize({ width, height: 900 });
+          await page.goto(`/on-call?group=${encodeURIComponent(groupId)}`);
+          await expect(
+            page
+              .getByTestId("on-call-group")
+              .filter({ hasText: groupName })
+              .first(),
+          ).toBeVisible();
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth,
+            ),
+          ).toBe(true);
+        }
+        await page.evaluate(() => {
+          document.body.style.zoom = "2";
+        });
+        await expect(page.locator("#main-content h1")).toBeVisible();
+        await page.evaluate(() => {
+          document.body.style.zoom = "";
+        });
+        await expectNoSeriousA11yViolations(page, "on-call detail", testInfo);
       });
     } finally {
-      const response = await api.request(`/on-call/groups/${encodeURIComponent(groupId)}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ reason: 'E2E 5.3.7 cleanup' }),
-      });
+      const response = await api.request(
+        `/on-call/groups/${encodeURIComponent(groupId)}`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({ reason: "E2E 5.3.7 cleanup" }),
+        },
+      );
       if (!response.ok && response.status !== 404) {
-        console.warn(`[e2e] cleanup of the on-call schedule returned HTTP ${response.status}`);
+        console.warn(
+          `[e2e] cleanup of the on-call schedule returned HTTP ${response.status}`,
+        );
       }
       if (addedSuperAdminAsMember) {
         // Undo the temporary membership so the group looks untouched.
         const removed = await api.request(
           `/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(memberId)}`,
-          { method: 'DELETE' },
+          { method: "DELETE" },
         );
         if (!removed.ok && removed.status !== 404) {
-          console.warn(`[e2e] cleanup of the temporary group membership returned HTTP ${removed.status}`);
+          console.warn(
+            `[e2e] cleanup of the temporary group membership returned HTTP ${removed.status}`,
+          );
         }
       }
     }
   });
 
-  test('the organizational unit tree endpoint the overview relies on responds', async () => {
+  test("the organizational unit tree endpoint the overview relies on responds", async () => {
     test.setTimeout(60_000);
     const env = readE2EEnvironment();
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
-    const tree = await api.requestJson<readonly UnitNode[]>('/organizational-units/tree');
+    const tree = await api.requestJson<readonly UnitNode[]>(
+      "/organizational-units/tree",
+    );
     expect(Array.isArray(tree)).toBe(true);
-    const overview = await api.requestJson<{ readonly groups: readonly unknown[] }>('/on-call/overview');
+    const overview = await api.requestJson<{
+      readonly groups: readonly unknown[];
+    }>("/on-call/overview");
     expect(Array.isArray(overview.groups)).toBe(true);
   });
 });

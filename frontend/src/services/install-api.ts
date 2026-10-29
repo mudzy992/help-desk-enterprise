@@ -1,23 +1,45 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseInstallSetupStatus } from "@/services/critical-api-parsers";
+import type { InstallProfile } from "@/services/install-profile-api";
+import type { InstallStepKey, InstallWizardStep } from "@/services/install-step-key";
 
-export type InstallWizardStep =
-  "superAdmin" | "loginProvider" | "smtp" | "seed" | "addons" | "complete";
+export type { InstallStepKey, InstallWizardStep } from "@/services/install-step-key";
 
 export type InstallStepState = {
   readonly completed: boolean;
   readonly skipped?: boolean;
+  /** F1: required by the package in effect (which defaults to `minimum`). */
+  readonly required?: boolean;
+  /** F1: present in the wizard of the package in effect. */
+  readonly offered?: boolean;
+  /** F1: still standing between the wizard and the final screen. */
+  readonly blocking?: boolean;
+  /** F3: the registry allows “Podesi kasnije” for this step. */
+  readonly skippable?: boolean;
+};
+
+/**
+ * F6.2: what „Sistem je spreman“ reports about the installation that was built.
+ * The counts come with the status, so the final screen needs no extra request.
+ */
+export type InstallSetupSummary = {
+  readonly organizationName: string;
+  readonly profile: InstallProfile | null;
+  readonly organizationalUnitCount: number;
+  readonly serviceCount: number;
+  readonly groupCount: number;
+  readonly teamMemberCount: number;
+  readonly enabledAddonKeys: readonly string[];
+  readonly deferredSteps: readonly string[];
 };
 
 export type InstallSetupStatus = {
   readonly isCompleted: boolean;
   readonly nextStep?: InstallWizardStep;
-  readonly steps?: {
-    readonly superAdmin: InstallStepState;
-    readonly loginProvider: InstallStepState;
-    readonly smtp: InstallStepState;
-    readonly seed: InstallStepState;
-    readonly addons: InstallStepState;
-  };
+  /** F1: the package chosen in the wizard; `null` while none is stored. */
+  readonly profile?: InstallProfile | null;
+  readonly steps?: Readonly<Record<InstallStepKey, InstallStepState>>;
+  readonly summary?: InstallSetupSummary;
 };
 
 export type InstallSuperAdminRecord = {
@@ -76,17 +98,24 @@ export type SaveInstallLoginProviderInput = {
 };
 
 export function loadInstallSetupStatus(): Promise<InstallSetupStatus> {
-  return apiRequest<InstallSetupStatus>("/install/status");
+  return apiRequestValidated("/install/status", parseInstallSetupStatus);
 }
 
 export function completeInstallSetup(): Promise<InstallSetupStatus> {
-  return apiRequest<InstallSetupStatus>("/install/complete", {
+  return apiRequestValidated("/install/complete", parseInstallSetupStatus, {
     method: "POST",
   });
 }
 
-export function loadInstallSuperAdmin(): Promise<InstallSuperAdminStatus> {
-  return apiRequest<InstallSuperAdminStatus>("/install/super-admin");
+/**
+ * F0.1: the token gate probes a candidate token before it is persisted, so the
+ * request may carry it explicitly. Every other caller reads the stored one.
+ */
+export function loadInstallSuperAdmin(token?: string): Promise<InstallSuperAdminStatus> {
+  return apiRequest<InstallSuperAdminStatus>(
+    "/install/super-admin",
+    token === undefined ? {} : { headers: { "X-Install-Token": token } },
+  );
 }
 
 export function loadInstallPasswordPolicy(): Promise<InstallPasswordPolicy> {

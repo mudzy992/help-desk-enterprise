@@ -1,4 +1,4 @@
-/** Paket 4.1 (§3a): client-side pre-check; the backend validates magic bytes again. */
+/** client-side pre-check; the backend validates magic bytes again. */
 export const logoLimits = {
   maxBytes: 200 * 1024,
   maxDimension: 1024,

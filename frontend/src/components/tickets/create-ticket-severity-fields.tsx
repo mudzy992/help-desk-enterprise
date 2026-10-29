@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Segmented, type SegmentedItem } from "@/components/ui/segmented";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketImpact, TicketPriority } from "@/services/tickets-api";
 
 const levels: readonly TicketImpact[] = ["LOW", "MEDIUM", "HIGH"];
@@ -36,12 +35,12 @@ export function CreateTicketSeverityFields({
           <Segmented<TicketImpact>
             size="sm"
             className="w-full [&>button]:flex-1"
-            ariaLabel={label}
+            label={label}
             value={value}
             onChange={onChange}
             items={levels.map<SegmentedItem<TicketImpact>>((level) => ({
               value: level,
-              label: ticketText(t, ticketSeverityLabelKey[level]),
+              label: t(ticketSeverityLabelKey[level]),
             }))}
           />
         </div>

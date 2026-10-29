@@ -18,8 +18,8 @@ export function resolveRegistryDescription(
 }
 
 /**
- * Paket 5.3.4 (D4): the human line for a setting. The dictionary slot has
- * carried the Bosnian/English sentence since paket 4.1, so a definition only
+ * the human line for a setting. The dictionary slot has
+ * carried the Bosnian/English sentence since , so a definition only
  * moves it by declaring `titleKey`.
  */
 export function resolveRegistryTitle(
@@ -38,7 +38,7 @@ export function resolveRegistryTitle(
 }
 
 /**
- * Paket 5.3.3: the extra note in the detail modal ("what it does, when to turn
+ * the extra note in the detail modal ("what it does, when to turn
  * it on, what happens next"). Only settings that need one carry it — a missing
  * help slot is not an error and returns `null`.
  */
@@ -74,6 +74,15 @@ function readTranslation(translate: TFunction, key: string): string | null {
     return null;
   }
   return text;
+}
+
+/**
+ * Reads one translation slot whose name the **backend** chose (a definition's
+ * `titleKey`, a recommendation's copy). It answers `null` for a slot that is not
+ * translated, so the caller decides what to show instead of leaking the key.
+ */
+export function resolveTranslation(translate: TFunction, key: string): string | null {
+  return readTranslation(translate, key);
 }
 
 export function resolveRegistryCategoryTitle(translate: TFunction, categoryKey: string): string {

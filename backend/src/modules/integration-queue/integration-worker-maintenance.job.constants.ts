@@ -52,9 +52,10 @@ export const integrationDlqRetentionJobLogContext = 'IntegrationDlqRetentionJob'
 export const integrationWorkerMaintenanceLockDurationMilliseconds = 120_000;
 
 /**
- * The heartbeat expires faster than the scheduled interval, which is why the job
- * also runs once at worker boot (`IntegrationQueueWorkerHeartbeatService`): without
- * that immediate write the health check would flap for the first interval.
+ * The heartbeat also runs once at worker boot (`IntegrationQueueWorkerHeartbeatService`):
+ * without that immediate write the health check would flap for the first interval.
+ * Its TTL deliberately outlives the staleness threshold, so a stopped worker is
+ * provably stale instead of merely absent (see `integration-queue.constants.ts`).
  */
 export const integrationWorkerHeartbeatTimeToLiveSecondsValue =
   workerHeartbeatTimeToLiveSeconds;

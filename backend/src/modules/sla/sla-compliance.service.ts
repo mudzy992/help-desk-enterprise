@@ -9,6 +9,7 @@ import {
   loadSlaComplianceRows,
 } from './load-sla-compliance-rows';
 import { resolveSlaComplianceUnitScope } from './resolve-sla-compliance-unit-scope';
+import { loadBoundedSlaCompliance, supportsBoundedSlaCompliance } from './load-bounded-sla-compliance';
 import type { SlaComplianceResponse } from './sla-compliance.types';
 
 @Injectable()
@@ -24,14 +25,25 @@ export class SlaComplianceService {
       days: input.days,
       now: input.now ?? new Date(),
     });
-    const [organizationalUnitIds, profiles] = await Promise.all([
-      resolveSlaComplianceUnitScope(this.prisma, input.organizationalUnitId),
-      loadSlaComplianceProfiles(this.prisma),
-    ]);
-    const { rows, openBreached } = await loadSlaComplianceRows(this.prisma, {
-      window,
-      organizationalUnitIds,
-    });
+    const organizationalUnitIds = await resolveSlaComplianceUnitScope(
+      this.prisma,
+      input.organizationalUnitId,
+    );
+    if (supportsBoundedSlaCompliance(this.prisma)) {
+      return this.prisma.$transaction(
+        (transaction) => loadBoundedSlaCompliance(
+          transaction as unknown as PrismaService,
+          { window, organizationalUnitIds },
+        ),
+        { timeout: 10_000, maxWait: 2_000 },
+      );
+    }
+    // Explicit compatibility path for the deterministic in-memory domain harness.
+    const { rows, openBreached } = await loadSlaComplianceRows(this.prisma, { window, organizationalUnitIds });
+    const profiles = await loadSlaComplianceProfiles(
+      this.prisma,
+      rows.map((row) => row.slaProfileId),
+    );
     return aggregateSlaCompliance({ profiles, rows, window, openBreached });
   }
 }

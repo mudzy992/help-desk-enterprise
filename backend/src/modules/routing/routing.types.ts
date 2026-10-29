@@ -29,6 +29,7 @@ export type CreateRoutingRuleInput = {
 export type UpdateRoutingRuleInput = {
   readonly groupId: string;
   readonly reason: string;
+  readonly expectedUpdatedAt: string;
 };
 
 export type RoutingMutationContext = {
@@ -46,10 +47,27 @@ export type RoutingChangeLogResponse = {
   readonly diff: ChangeLogDiffPayload;
 };
 
-export type ListRoutingRulesQuery = {
+export type RoutingListQuery = {
+  readonly take?: number;
+  readonly cursor?: string;
+};
+
+export type ListRoutingRulesQuery = RoutingListQuery & {
   readonly originUnitId?: string;
   readonly serviceId?: string;
 };
+
+export type RoutingPage<T> = {
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type RoutingRulePage = RoutingPage<RoutingRuleResponse>;
+export type RoutingChangeLogPage = RoutingPage<RoutingChangeLogResponse>;
 
 export type ResolveRoutingInput = {
   readonly originUnitId: string;
@@ -109,6 +127,14 @@ export type RoutingCoveragePage = {
   readonly take: number;
   readonly cursor: string | null;
   readonly nextCursor: string | null;
+  readonly resourceBudget: {
+    readonly maximumItems: number;
+    readonly maximumBytes: number;
+    readonly maximumDurationMs: number;
+    readonly itemCount: number;
+    readonly estimatedBytes: number;
+    readonly limited: boolean;
+  };
 };
 
 export type RoutingCoverageQuery = {

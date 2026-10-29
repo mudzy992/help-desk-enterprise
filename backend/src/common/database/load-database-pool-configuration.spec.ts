@@ -12,6 +12,8 @@ describe('loadDatabasePoolConfiguration', () => {
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 3_000,
       statementTimeoutMillis: 5_000,
+      lockTimeoutMillis: 2_000,
+      idleInTransactionTimeoutMillis: 10_000,
       applicationName: 'service-desk-api',
     });
   });
@@ -39,6 +41,8 @@ describe('loadDatabasePoolConfiguration', () => {
       idleTimeoutMillis: 15_000,
       connectionTimeoutMillis: 1_000,
       statementTimeoutMillis: 9_000,
+      lockTimeoutMillis: 2_000,
+      idleInTransactionTimeoutMillis: 10_000,
       applicationName: 'service-desk-api',
     });
   });
@@ -88,7 +92,7 @@ describe('toDatabasePoolConfig', () => {
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 3_000,
         application_name: 'service-desk-api',
-        options: '-c statement_timeout=5000',
+        options: '-c statement_timeout=5000 -c lock_timeout=2000 -c idle_in_transaction_session_timeout=10000',
       });
   });
 });

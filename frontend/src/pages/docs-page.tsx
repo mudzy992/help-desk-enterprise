@@ -10,6 +10,7 @@ import { DocsRoleFilter } from "@/components/docs/docs-role-filter";
 import { DocsSearch } from "@/components/docs/docs-search";
 import { DocsSidebar } from "@/components/docs/docs-sidebar";
 import { DocsToc } from "@/components/docs/docs-toc";
+import { DocsWhatsNew } from "@/components/docs/docs-whats-new";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,9 @@ export function DocsPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("q") ?? "";
+  const [changesPage, setChangesPageState] = useState(() =>
+    Number(searchParams.get("changesPage") ?? "1"),
+  );
   const [audience, setAudience] = useState<DocsAudience>("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentSlugs, setRecentSlugs] = useState<readonly string[]>([]);
@@ -75,6 +79,17 @@ export function DocsPage() {
 
   const printPage = useCallback((): void => {
     window.print();
+  }, []);
+
+  const setChangesPage = useCallback((pageNumber: number): void => {
+    setChangesPageState(pageNumber);
+    const url = new URL(window.location.href);
+    if (pageNumber <= 1) {
+      url.searchParams.delete("changesPage");
+    } else {
+      url.searchParams.set("changesPage", String(pageNumber));
+    }
+    window.history.replaceState(window.history.state, "", url);
   }, []);
 
   const setQuery = (value: string): void => {
@@ -131,6 +146,7 @@ export function DocsPage() {
       <aside className="print:hidden lg:w-56 lg:shrink-0 lg:border-r lg:border-border lg:pr-4">
         <button
           aria-expanded={sidebarOpen}
+          aria-controls="docs-mobile-navigation"
           className="flex w-full items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-[12.5px] font-medium text-foreground lg:hidden"
           onClick={() => setSidebarOpen((open) => !open)}
           type="button"
@@ -141,7 +157,10 @@ export function DocsPage() {
           </span>
           {sidebarOpen ? <X size={15} strokeWidth={1.8} /> : null}
         </button>
-        <div className={cn("mt-3", sidebarOpen ? "block" : "hidden lg:block")}>
+        <div
+          id="docs-mobile-navigation"
+          className={cn("mt-3", sidebarOpen ? "block" : "hidden lg:block")}
+        >
           {navigation === null ? null : (
             <DocsSidebar
               activeSlug={slug ?? null}
@@ -219,10 +238,19 @@ export function DocsPage() {
                 <span className="text-warning">{t("docs.hiddenByFilter")}</span>
               )}
             </div>
-            <MarkdownView
-              headingIds={page.toc.map((heading) => heading.id)}
-              source={page.markdown}
-            />
+            {page.slug === "sta-je-novo" ? (
+              <DocsWhatsNew
+                headingIds={page.toc.map((heading) => heading.id)}
+                markdown={page.markdown}
+                onPageChange={setChangesPage}
+                page={changesPage}
+              />
+            ) : (
+              <MarkdownView
+                headingIds={page.toc.map((heading) => heading.id)}
+                source={page.markdown}
+              />
+            )}
             <DocsPager next={page.next} previous={page.previous} />
             <DocsFeedback slug={page.slug} />
           </article>
@@ -230,7 +258,9 @@ export function DocsPage() {
       </section>
 
       <aside className="hidden xl:block xl:w-52 xl:shrink-0 print:hidden">
-        {searching || page === null ? null : <DocsToc toc={page.toc} />}
+        <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto overscroll-contain pb-4">
+          {searching || page === null ? null : <DocsToc toc={page.toc} />}
+        </div>
       </aside>
     </div>
   );

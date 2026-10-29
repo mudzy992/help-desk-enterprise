@@ -1,0 +1,470 @@
+@import "@fontsource-variable/space-grotesk/wght.css";
+
+/*
+  Install wizard v2 — „Aurora“ (owner decision, 2026-10-16)
+  ========================================================
+
+  The wizard is its own story: `/install` is the one screen an operator meets
+  *before* the product exists, so it may look like nothing else in the app and
+  it does not follow `data-theme`/`data-accent`. Everything here is scoped to
+  `[data-install-theme="aurora"]`, and the attribute has two placements:
+
+    · `useInstallTheme` puts it on `<html>` for the wizard itself, so Radix
+      portals (the package sheet, the credentials dialog, toasts) inherit it —
+      removing the attribute on unmount is what keeps `/login`, the very next
+      screen, on the product's own theme;
+    · the Visual QA board puts it on its own container, so a page that merely
+      *shows* the design does not repaint the application shell around it.
+
+  Measured pairs (WCAG 2.1 AA, normal text ≥ 4.5:1). Every number below is
+  computed against the *brightest* pixel the aurora can paint: the three radial
+  layers of `.iw-backdrop`, composited in paint order over the canvas base,
+  give (55, 86, 116) — a pixel the real screen only approaches — so the table is
+  a floor, not an average. Re-measured 2026-10-16 after the first pass turned
+  out to be wrong (the panel had the sheen but no base, so muted text sat on the
+  aurora at 2.9:1):
+
+    panel over that pixel, plus the 7.5 % sheen at its top edge
+    (`--iw-panel` at 0.88 → (34, 42, 58)):
+      ink      236 240 255   12.7 : 1
+      ink-soft 168 179 209    6.9 : 1
+      ink-dim  136 148 180    4.8 : 1   (placeholders, disabled buttons)
+      cyan  34 211 238 8.0 : 1 · mint 110 231 183 9.5 : 1
+      violet 167 139 250 5.3 : 1 · amber 252 211 77 10.0 : 1 · danger 248 113 113 5.2 : 1
+    HUD over the same pixel (`--iw-void` at 0.72 → (20, 31, 47)):
+      ink 14.7 : 1 · ink-soft 8.0 : 1 · ink-dim 5.5 : 1
+    CTA gradient (cyan→mint) carrying `--iw-ink-on-accent` 4 16 26:
+      10.6 : 1 on cyan, 12.6 : 1 on mint
+
+  One rule follows from those numbers and the wizard keeps it everywhere:
+  **secondary text never sits on the raw canvas.** The canvas carries the
+  display headline and decoration; every muted line, eyebrow, number and control
+  lives on a surface — the panel, the HUD or the airlock card. That is also why
+  `.iw-panel` has an opaque dark base and not just a white sheen, and why the
+  token gate's header is a HUD strip instead of bare canvas.
+
+  `scripts/check-theme-contrast.mjs` guards the twelve Pulse palettes in
+  `index.css`; this palette has its own guard, `scripts/check-install-aurora.mjs`
+  (run in CI's frontend job). It derives the worst pixel from the `.iw-backdrop`
+  layers above, recomputes every number in the table, refuses a `.iw-panel`
+  without an opaque base, and fails on any install-flow utility class that
+  `install-shim.css` does not re-point. So: change a token, re-run it, and paste
+  the numbers it prints — never by hand.
+*/
+
+[data-install-theme="aurora"] {
+  color-scheme: dark;
+  --iw-void: 6 9 20;
+  --iw-deep: 11 16 32;
+  /* The panel's own base. Glass alone is unreadable over a bright aurora. */
+  --iw-panel: 11 16 32;
+  --iw-ink: 236 240 255;
+  --iw-ink-soft: 168 179 209;
+  --iw-ink-dim: 136 148 180;
+  --iw-glass: 255 255 255;
+  --iw-cyan: 34 211 238;
+  --iw-mint: 110 231 183;
+  --iw-violet: 167 139 250;
+  --iw-violet-deep: 124 58 237;
+  --iw-amber: 252 211 77;
+  --iw-danger: 248 113 113;
+  --iw-ink-on-accent: 4 16 26;
+  --iw-r-lg: 22px;
+  --iw-r-md: 14px;
+  --iw-r-sm: 10px;
+  /* The HUD is sticky (`.iw-hud`): whatever the browser scrolls into view — the
+     step title on focus, a row reached from the checklist — must stop below it,
+     not underneath. */
+  scroll-padding-top: 5.5rem;
+  --iw-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  background-color: rgb(var(--iw-void));
+}
+
+/* ── the canvas ──────────────────────────────────────────────────────────── */
+
+.iw-canvas {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  background-color: rgb(var(--iw-void));
+  color: rgb(var(--iw-ink));
+}
+
+.iw-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background-image:
+    radial-gradient(52rem 40rem at 12% -6%, rgb(var(--iw-violet) / 0.22), transparent 62%),
+    radial-gradient(46rem 34rem at 88% 4%, rgb(var(--iw-cyan) / 0.18), transparent 60%),
+    radial-gradient(40rem 32rem at 46% 108%, rgb(var(--iw-mint) / 0.14), transparent 64%);
+  animation: iw-drift 68s ease-in-out infinite alternate;
+}
+
+/* 48 px grid, faded at the edges — a plan table, not a decoration. */
+.iw-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  background-image:
+    linear-gradient(rgb(var(--iw-glass) / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--iw-glass) / 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(70% 60% at 50% 40%, #000 30%, transparent 100%);
+}
+
+.iw-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 50% 50%,
+    transparent 42%,
+    rgb(var(--iw-void) / 0.86) 100%
+  );
+}
+
+/* ── surfaces ────────────────────────────────────────────────────────────── */
+
+.iw-panel {
+  border: 1px solid rgb(var(--iw-glass) / 0.1);
+  border-radius: var(--iw-r-lg);
+  background-color: rgb(var(--iw-panel) / 0.88);
+  background-image: linear-gradient(
+    180deg,
+    rgb(var(--iw-glass) / 0.075),
+    rgb(var(--iw-glass) / 0.03)
+  );
+  box-shadow:
+    inset 0 1px 0 rgb(var(--iw-glass) / 0.08),
+    0 30px 70px -40px rgb(var(--iw-void) / 0.95);
+  backdrop-filter: blur(16px) saturate(130%);
+}
+
+/* The 1 px aurora hairline: a mask trims a gradient to the border only. */
+.iw-panel--lit {
+  position: relative;
+}
+
+.iw-panel--lit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: linear-gradient(
+    135deg,
+    rgb(var(--iw-cyan) / 0.6),
+    rgb(var(--iw-violet) / 0.45) 42%,
+    transparent 72%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.iw-tile {
+  border: 1px solid rgb(var(--iw-glass) / 0.09);
+  border-radius: var(--iw-r-md);
+  background-color: rgb(var(--iw-glass) / 0.035);
+}
+
+/* ── type ───────────────────────────────────────────────────────────────── */
+
+.iw-display {
+  font-family: var(--iw-display);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.iw-title {
+  font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.35rem);
+  line-height: 1.06;
+  color: rgb(var(--iw-ink));
+}
+
+.iw-eyebrow {
+  font-family: var(--iw-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--iw-cyan));
+}
+
+.iw-num {
+  font-family: var(--iw-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── the flight plan (rail) ─────────────────────────────────────────────── */
+
+/*
+  The map is a *window*, not a wall: fourteen steps do not fit a screen, and a
+  rail that runs off the bottom of the page reads as „the list is broken“, not as
+  „the list is long“. The window scrolls, the fade says there is more, and the
+  fade only exists while there is (`data-scrollable` is measured in
+  `install-step-rail.tsx`). A mask does not scroll with the content, so the fade
+  always sits on the window's edge rather than on an item.
+*/
+.iw-rail-window {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--iw-r-md);
+  /* The fade is the affordance, and it is a better one here than a scrollbar:
+     the window re-centres on the active step by itself, so there is nothing to
+     drag. A native scrollbar would also be part of the element the mask fades —
+     its thumb would dim at the ends of the track. */
+  scrollbar-width: none;
+}
+
+.iw-rail-window::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+  The padding and the fade are the same band, which is why this reads well at
+  both extremes: at `scrollTop: 0` the first step sits *below* the faded band and
+  is fully visible, and at the end the last one sits *above* it. Only content
+  passing through the band is dimmed — the fade promises more without ever
+  clipping what the operator is looking at.
+*/
+.iw-rail-window[data-scrollable="true"] {
+  padding-block: 22px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 22px,
+    #000 calc(100% - 22px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 22px,
+    #000 calc(100% - 22px),
+    transparent 100%
+  );
+}
+
+/* ── the column: capped to the screen, the map takes what is left ────────── */
+
+.iw-plan {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .iw-plan {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 7.5rem);
+  }
+
+  /* `hidden` above the breakpoint is flipped here by source order: this file is
+     imported after `index.css`, so the same specificity resolves to the later
+     rule (the tie is the shim's own mechanism). */
+  .iw-plan-map {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* `hidden` up to here, shown from here on — and hidden again on a short screen
+     by the query below, which is why this is not a Tailwind `lg:block`. */
+  .iw-plan-extra {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .iw-rail-window {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+/* A short screen gives the room to the map, not to the sales pitch. */
+@media (min-width: 1024px) and (max-height: 780px) {
+  .iw-plan-extra {
+    display: none;
+  }
+}
+
+/* ── the timeline itself ────────────────────────────────────────────────── */
+
+.iw-rail {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iw-rail-item {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  /* Air between the nodes is what the connectors live in. */
+  padding-bottom: 18px;
+}
+
+.iw-rail-item:last-child {
+  padding-bottom: 0;
+}
+
+/*
+  One segment per item — from below this node to just before the next one. A
+  single track behind every node passes under the icons, and the icons are glass:
+  transparent, so the line showed through them and looked like it had struck them
+  through. `::before` is the track, `::after` the travelled part.
+*/
+.iw-rail-item:not(:last-child)::before,
+.iw-rail-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 38px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.iw-rail-item:not(:last-child)::before {
+  background-color: rgb(var(--iw-glass) / 0.12);
+}
+
+.iw-rail-item:not(:last-child)::after {
+  background-image: linear-gradient(180deg, rgb(var(--iw-cyan) / 0.9), rgb(var(--iw-violet) / 0.8));
+  box-shadow: 0 0 12px rgb(var(--iw-cyan) / 0.4);
+  opacity: 0;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The step the run has passed keeps its light — „done“ and „deferred“ alike. */
+.iw-rail-item[data-state="done"]:not(:last-child)::after,
+.iw-rail-item[data-state="deferred"]:not(:last-child)::after {
+  opacity: 1;
+}
+
+.iw-rail-label {
+  display: block;
+  padding-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.25rem;
+}
+
+.iw-rail-note {
+  display: block;
+  margin-top: 2px;
+  color: rgb(var(--iw-ink-dim));
+  font-size: 11px;
+  line-height: 1rem;
+}
+
+/* „Podesi kasnije“ is the one state that has to shout quietly. */
+.iw-rail-item[data-state="deferred"] .iw-rail-note {
+  color: rgb(var(--iw-amber));
+}
+
+.iw-node {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid rgb(var(--iw-glass) / 0.14);
+  border-radius: 12px;
+  background-color: rgb(var(--iw-glass) / 0.035);
+  color: rgb(var(--iw-ink-soft));
+  font-family: var(--iw-display);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.iw-node[data-state="done"] {
+  border-color: rgb(var(--iw-cyan) / 0.5);
+  background-image: linear-gradient(150deg, rgb(var(--iw-cyan) / 0.92), rgb(var(--iw-violet-deep)));
+  color: rgb(var(--iw-ink-on-accent));
+  box-shadow: 0 6px 18px -10px rgb(var(--iw-cyan) / 0.9);
+}
+
+.iw-node[data-state="current"] {
+  border-color: rgb(var(--iw-ink) / 0.65);
+  background-color: rgb(var(--iw-ink) / 0.95);
+  color: rgb(var(--iw-void));
+  animation: iw-halo 2.6s ease-in-out infinite;
+}
+
+.iw-node[data-state="deferred"] {
+  border-color: rgb(var(--iw-amber) / 0.55);
+  border-style: dashed;
+  color: rgb(var(--iw-amber));
+}
+
+.iw-node[data-state="locked"] {
+  border-style: dashed;
+  opacity: 0.55;
+}
+
+/* ── HUD (top bar) ──────────────────────────────────────────────────────── */
+
+.iw-seg {
+  flex: 1 1 0;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background-color: rgb(var(--iw-glass) / 0.11);
+}
+
+.iw-seg[data-state="done"] {
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--iw-cyan) / 0.85),
+    rgb(var(--iw-violet) / 0.75)
+  );
+}
+
+.iw-seg[data-state="current"] {
+  background-image: linear-gradient(90deg, rgb(var(--iw-ink) / 0.9), rgb(var(--iw-cyan) / 0.85));
+  animation: iw-beam 2.4s ease-in-out infinite;
+}
+
+@keyframes iw-drift {
+  from {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(1.5%, 1.5%, 0) scale(1.08);
+  }
+}
+
+@keyframes iw-halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(var(--iw-ink) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgb(var(--iw-ink) / 0);
+  }
+}
+
+@keyframes iw-beam {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}

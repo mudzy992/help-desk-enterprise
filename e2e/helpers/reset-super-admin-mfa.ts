@@ -1,6 +1,7 @@
 import { readE2EEnvironment } from './environment';
 import { assertDisposableTestAccount } from './disposable-account';
 import { readMfaSecret } from './mfa';
+import { encryptMfaSecret, readMfaEncryptionKey } from './mfa-secret-cipher';
 import {
   databaseHost,
   describeError,
@@ -19,7 +20,14 @@ import {
  */
 export async function resetSuperAdminMfa(): Promise<void> {
   const env = readE2EEnvironment();
-  const totpSecretKnown = readMfaSecret(env.superAdminEmail) !== null;
+  const totpSecret = readMfaSecret(env.superAdminEmail);
+  const totpSecretKnown = totpSecret !== null;
+  if (totpSecretKnown && process.env.E2E_FORCE_MFA_RESET !== '1') {
+    if (env.databaseUrl !== null && totpSecret !== null) {
+      await ensureSuperAdminMfaRow(env.databaseUrl, env.superAdminEmail, totpSecret);
+    }
+    return;
+  }
   if (env.databaseUrl === null) {
     if (!totpSecretKnown) {
       console.warn(
@@ -60,6 +68,46 @@ export async function resetSuperAdminMfa(): Promise<void> {
     throw new Error(
       `[e2e] MFA reset failed on "${databaseHost(env.databaseUrl) ?? 'DATABASE_URL'}": ${describeError(error)}`,
       { cause: error },
+    );
+  } finally {
+    await client.end();
+  }
+}
+
+/** Repairs a half-finished enrollment so API login can verify TOTP from `.auth/mfa.json`. */
+async function ensureSuperAdminMfaRow(
+  databaseUrl: string,
+  email: string,
+  base32Secret: string,
+): Promise<void> {
+  const key = readMfaEncryptionKey();
+  if (key === null) {
+    console.warn('[e2e] MFA_ENCRYPTION_KEY missing — cannot repair super admin MFA row in the database');
+    return;
+  }
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: databaseUrl });
+  const encrypted = encryptMfaSecret(base32Secret, key);
+  try {
+    await client.connect();
+    await client.query(
+      `
+      INSERT INTO "UserMfa" ("userId", "secretEncrypted", "enabledAt", "createdAt", "updatedAt")
+      SELECT u.id, $2, NOW(), NOW(), NOW()
+      FROM "User" u
+      WHERE lower(u.email) = lower($1)
+      ON CONFLICT ("userId") DO UPDATE SET
+        "secretEncrypted" = EXCLUDED."secretEncrypted",
+        "enabledAt" = COALESCE("UserMfa"."enabledAt", NOW()),
+        "pendingSecretEncrypted" = NULL,
+        "pendingCreatedAt" = NULL,
+        "updatedAt" = NOW()
+      `,
+      [email, encrypted],
+    );
+  } catch (error) {
+    console.warn(
+      `[e2e] could not repair super admin MFA row: ${describeError(error)}`,
     );
   } finally {
     await client.end();

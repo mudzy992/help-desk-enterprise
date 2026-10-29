@@ -42,8 +42,9 @@ tags: [alarms, system-health, monitoring, warning, critical, threshold, acknowle
 ### How an alarm opens and closes
 
 1. The application checks the state **every minute**.
-2. An alarm **opens** only when the condition lasts for two consecutive checks (for some alarms, such as
-   *Worker is down*, one check is enough). This avoids false alarms from a single bad moment.
+2. An alarm **opens** only when the condition lasts for two consecutive checks (for some alarms — *SLA scan is
+   late*, *Failed jobs in the queue (DLQ)*, *Outbound e-mail is paused* — one check is enough). This avoids false
+   alarms from a single bad moment.
 3. An alarm **closes** when the condition is gone for two consecutive checks.
 4. While an alarm is open, recipients get a **reminder** every **4 hours** (default; adjustable from 1 to 48 hours in
    `private.ops.alerts.reminderHours`) until someone acknowledges it.
@@ -80,6 +81,20 @@ The webhook alarm does not read the “switched on” setting: when you switch t
 
 Details about the CAPTCHA check are on the page [Human verification (CAPTCHA)](captcha-provjera.md).
 
+### When outbound e-mail stops (provider limit)
+
+If the SMTP provider refuses sending because of its quota (for example Gmail “Daily user sending limit exceeded”),
+the application **pauses outbound e-mail temporarily** and opens the alarm **Outbound e-mail is paused (provider
+limit)**:
+
+- The alarm details show how many minutes are left until the next attempt and how many sends were held back.
+  Messages are not lost: they wait in the queue and go out as soon as the provider accepts mail again.
+- The pause lasts as long as the provider quota does (with a daily limit usually up to 6 hours). The alarm becomes
+  **critical** after 4 hours without an accepted message.
+- Repeating the same messages by hand does not help — every new refusal extends the pause.
+- The permanent fix is a higher daily limit, a second SMTP account or less mail per event (digests and the weekly
+  report instead of single notifications).
+
 ### Where the thresholds are changed
 
 Thresholds are in **Settings → Operations**:
@@ -111,6 +126,8 @@ basis of measurements in the **Security metrics** card, not in advance.
   If it stays open, check the **System health** card and the instruction next to the alarm.
 - **“The 429 alarm keeps firing from the same office.”** — Many users behind one IP address (NAT) are counted
   together. See the instruction next to the alarm; do not relax the threshold without checking the source.
+- **“Users do not get e-mail although the application works.”** — Check whether the alarm *Outbound e-mail is paused
+  (provider limit)* is open: the SMTP provider has then used up its quota and sending is paused temporarily.
 - **“I cannot see the Security metrics card.”** — The card is for SUPER_ADMIN only.
 
 ## Known limitations
@@ -118,6 +135,8 @@ basis of measurements in the **Security metrics** card, not in advance.
 - Security alarms work on hourly counters, so they react with a delay of up to one minute and do not show single attempts.
 - Security metrics count events per IP address, not per account.
 - Reminders are sent only while an alarm is open and not acknowledged.
+- The number of held-back sends in the outbound e-mail alarm details is approximate (it is counted per process, not
+  per message).
 
 ## Related modules
 

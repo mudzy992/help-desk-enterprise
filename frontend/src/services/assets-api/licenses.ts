@@ -1,0 +1,57 @@
+import { buildCommercialListQuery, jsonBody } from "./http";
+import { apiRequest } from "@/services/api";
+import type {
+  ContractListFilters,
+  LicenseListFilters,
+  SoftwareLicenseDetail,
+  SoftwareLicenseInput,
+  SoftwareLicenseItem,
+} from "./commercial-types";
+
+export const assetContractQueryKeys = {
+  licenses: (filters: LicenseListFilters) => ["assets", "licenses", filters] as const,
+  license: (id: string) => ["assets", "license", id] as const,
+  contracts: (filters: ContractListFilters) => ["assets", "contracts", filters] as const,
+  contract: (id: string) => ["assets", "contract", id] as const,
+};
+
+const licensePath = (id: string) => `/assets/licenses/${encodeURIComponent(id)}`;
+
+export function listLicenses(
+  filters: LicenseListFilters,
+): Promise<{ readonly items: readonly SoftwareLicenseItem[] }> {
+  return apiRequest(`/assets/licenses${buildCommercialListQuery(filters)}`);
+}
+
+export function getLicense(id: string): Promise<SoftwareLicenseDetail> {
+  return apiRequest(licensePath(id));
+}
+
+export function createLicense(input: SoftwareLicenseInput): Promise<{ readonly id: string }> {
+  return apiRequest("/assets/licenses", { method: "POST", ...jsonBody(input) });
+}
+
+export function updateLicense(id: string, input: SoftwareLicenseInput): Promise<unknown> {
+  return apiRequest(licensePath(id), { method: "PUT", ...jsonBody(input) });
+}
+
+export function deleteLicense(id: string): Promise<unknown> {
+  return apiRequest(licensePath(id), { method: "DELETE" });
+}
+
+export function revealLicenseKey(id: string): Promise<{ readonly licenseKey: string }> {
+  return apiRequest(`${licensePath(id)}/key`, { method: "POST" });
+}
+
+export function assignLicense(
+  id: string,
+  target: { readonly assetId?: string; readonly userId?: string },
+): Promise<unknown> {
+  return apiRequest(`${licensePath(id)}/assignments`, { method: "POST", ...jsonBody(target) });
+}
+
+export function releaseLicense(id: string, assignmentId: string): Promise<unknown> {
+  return apiRequest(`${licensePath(id)}/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: "DELETE",
+  });
+}

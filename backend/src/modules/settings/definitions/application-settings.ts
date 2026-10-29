@@ -3,6 +3,7 @@ import { inboundEmailSettings } from './inbound-email-settings';
 import { agentCollaborationSettings } from './agent-collaboration-settings';
 import type { SettingDefinition } from '../settings.types';
 import { addonSettings } from './addon-settings';
+import { installWizardSettings } from './install-wizard-settings';
 import { directorySyncSettings } from './directory-sync-settings';
 import { foundationalSettings } from './foundational-settings';
 import { maintenanceSettings } from './maintenance-settings';
@@ -62,6 +63,7 @@ import { dataLifecycleSettings } from './data-lifecycle-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
+  ...installWizardSettings,
   ...maintenanceSettings,
   ...directorySyncSettings,
   ...readOnlyModeSettings,

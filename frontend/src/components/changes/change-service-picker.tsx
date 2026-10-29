@@ -19,7 +19,7 @@ interface ChangeServicePickerProperties {
 const visibleMax = 8;
 
 /**
- * Paket 3.4 (§11): several services for one change. Chosen services are chips;
+ * Delivery invariant (requirement): several services for one change. Chosen services are chips;
  * a filter narrows the rest (the catalog can hold hundreds of services).
  */
 export function ChangeServicePicker({

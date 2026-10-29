@@ -13,6 +13,7 @@ export const assetSettingKeys = {
   locationsEnabled: 'private.assets.locations.enabled',
   transferEnabled: 'private.assets.transfer.enabled',
   transferRequired: 'private.assets.transfer.required',
+  transferDefaultSignatoryUserId: 'private.assets.transfer.defaultSignatoryUserId',
   ticketPicker: 'private.assets.ticketPicker.enabled',
 } as const;
 
@@ -104,7 +105,11 @@ export async function withSettings(
     // environment dirty.
     await setSettings(api, restored, `${reason} (restore)`, {
       resetDependents: true,
-    }).catch(() => undefined);
+    });
+    const entries = await api.requestJson<RegistryEntry[]>('/settings');
+    for (const [key, expected] of Object.entries(restored)) {
+      expect(entries.find((entry) => entry.key === key)?.value ?? null, `restored setting ${key}`).toEqual(expected);
+    }
   }
 }
 
@@ -138,6 +143,23 @@ export async function createAsset(
   });
   // The create endpoint may answer with the id only; name and tag come from the input.
   return { ...created, id: created.id, name: created.name ?? input.name, assetTag: created.assetTag ?? input.assetTag };
+}
+
+/** Settings bundle for transfer-record specs (25–28): CMDB on, transfers on, optional default signatory. */
+export async function transferRecordSettings(
+  api: ApiClient,
+  extra: Readonly<Record<string, unknown>> = {},
+): Promise<Record<string, unknown>> {
+  const session = await api.requestJson<{ readonly principal: { readonly subjectId: string } }>(
+    '/auth/session',
+  );
+  return {
+    [assetSettingKeys.cmdb]: true,
+    [assetSettingKeys.transferEnabled]: true,
+    [assetSettingKeys.transferRequired]: false,
+    [assetSettingKeys.transferDefaultSignatoryUserId]: session.principal.subjectId,
+    ...extra,
+  };
 }
 
 export async function findAssignableUser(api: ApiClient, email: string): Promise<AssetUserHit> {

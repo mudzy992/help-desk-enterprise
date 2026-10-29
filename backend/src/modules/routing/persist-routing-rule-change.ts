@@ -46,6 +46,8 @@ export async function persistRoutingRuleChange(
       entityId: created.id,
       reason,
       actorUserId: context.actorUserId,
+      scopeOriginUnitId: created.originUnitId,
+      scopeServiceId: created.serviceId,
       diff: buildChangeLogDiff({
         action: changeLogActions.create,
         resourceType: changeLogEntityTypes.routingRule,

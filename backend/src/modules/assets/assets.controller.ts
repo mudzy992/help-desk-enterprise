@@ -20,7 +20,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
-import { auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -297,7 +297,7 @@ export class AssetsController {
       const format = raw.format === 'csv' ? 'csv' : 'xlsx';
       const exported = await this.importer.export(parseListQuery(raw), format, readLocale(raw.locale), actor);
       await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-        action: 'asset.export',
+        action: auditLogActions.assetExported,
         entityType: auditLogEntityTypes.asset,
         entityId: 'export',
         metadata: { format, fileName: exported.fileName } as never,

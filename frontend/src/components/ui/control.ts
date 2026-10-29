@@ -1,14 +1,10 @@
 /*
-  Pulse — shared control styling.
+  Shared control styling for native form controls and reusable UI patterns.
 
-  This module is the single source of truth for ~100 components (imported by
-  103 files). Every class here resolves through the theme tokens declared in
-  `src/index.css`, which means restyling this one file restyles the entire
-  application — in all three theme blocks — without touching a call site.
-
-  Text that sits on a primary tint uses `text-link`, never `text-primary`:
-  `--link` is the "readable brand text" token and is tuned per theme for
-  contrast on tinted surfaces.
+  Every class resolves through the theme tokens declared in `src/index.css`,
+  so controls stay consistent across all supported theme blocks. Text on a
+  primary tint uses `text-link`: `--link` is the readable brand-text token and
+  is tuned per theme for contrast on tinted surfaces.
 */
 
 export const controlClassName =
@@ -58,6 +54,6 @@ export const floatingShadowClassName = "shadow-pop";
 
 export const floatingPanelClassName = `pop-in overflow-hidden rounded-lg border border-border bg-popover ${floatingShadowClassName}`;
 
-/** 2.8 §3.3: the keyboard/screen-reader entry of a clickable table row (the row click stays a mouse shortcut). */
+/** Keyboard and screen-reader entry for a clickable table row; row click remains a pointer shortcut. */
 export const rowActionButtonClassName =
   "rounded-sm text-left underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";

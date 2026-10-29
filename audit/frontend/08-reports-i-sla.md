@@ -1,181 +1,502 @@
-# Modul 8: Izvještaji i SLA
+# Reaudit modula 08: Izvještaji i SLA
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena (čitanje koda, grep, provjera backend zaštite). Nijedan kod nije mijenjan. Ispravke čekaju odobrenje obima.
-Oznake nalaza: **RS** (izvještaji i SLA). Ovo se ne miješa sa R (modul 6), S (modul 5) i KB (modul 7).
-
-Provjere izvršene u sandboxu:
-- Čitanje u cijelosti: `pages/reports-page.tsx` (414), `pages/sla-page.tsx` (215), `lib/sla/use-sla-page-data.ts` (125), `lib/sla/use-sla-page-mutations.ts` (90), `lib/reports/report-window.ts` (134), `lib/reports/report-schedule-form.ts` (54), `components/reports/print/report-print.tsx` (66), `components/reports/reports-date-filter.tsx` (87, dio), `components/reports/reports-csat-panel.tsx` (dio), `components/reports/reports-bottlenecks-panel.tsx` (50–100), `components/reports/report-packs-panel.tsx` (43–130), `components/sla/sla-compliance-card.tsx` (1–60), `components/sla/sla-profile-list.tsx`, `components/sla/sla-escalation-rules-panel.tsx` (36–100), `components/reports/schedules/report-schedules-panel.tsx` (69–180).
-- Čitanje dijelova: `components/reports/trends/report-trends-panel.tsx` (104–200, 296–372, 706–716), `components/reports/schedules/report-schedule-sheet.tsx` (145–160), `lib/reports/report-trends-view.ts` (1–130), `lib/reports/csat-view.ts` (25–49), `lib/reports/report-format.ts` (28–36).
-- Backend: zaštita kontrolera `reports/*.controller.ts` i `sla/*.controller.ts` (klasni dekoratori `@UseGuards`, `@RequireRoles`, `@RequirePermissions`), `authorize-http-execution.ts`, `tickets/csat/tickets-csat-summary.controller.ts` (37–41), `tickets/csat/aggregate-ticket-csat.ts` (40–62).
-- Frontend dozvole: `lib/session/route-access.ts` (`canOpenReports` 57–, `canOpenSla` 136–138).
-- Metrike (grep, 66 fajlova, oko 9.200 linija): `useState` 163, `useEffect` 42, `as never` 10, `eslint-disable` 1, tihi `catch` 7, `setTimeout` 1, komentari sa oznakama plana 36, `window.print` 1, `aria-live`/`role=status|alert` 9.
-- E2E: `12-reports-packs`, `17-reports-trends`, `18-reports-schedules`, `19-reports-print`, `07-sla`, `42-catalog-sla-routing-ux`, `22-accessibility` (dodiruje oba modula).
-- Unit testovi: 15 spec fajlova u `lib/reports/` i `lib/sla/` i `services/sla-api.spec.ts`. Backend: 26 testova za reports.
-- **Nije pokrenut pregledač.** Nalazi označeni „za provjeru“ treba potvrditi u pregledaču.
-- **Nije pročitano u punom obimu:** `components/reports/trends/report-trends-panel.tsx` (200–296, 372–706, 716–762), `components/reports/reports-charts.tsx` (158), `components/reports/reports-metric-grid.tsx` (132), `components/reports/schedules/report-schedules-panel.tsx` (180–491), `components/reports/schedules/report-schedule-sheet.tsx` (1–145, 160–454), `components/reports/reports-bottlenecks-panel.tsx` (100–211), `components/reports/report-packs-panel.tsx` (130–281), `components/sla/priority-matrix-panel.tsx` (206), `components/sla/sla-calendars-panel.tsx` (246), `components/sla/sla-calendar-form.tsx` (239), `components/sla/sla-rule-form.tsx` (178), `components/sla/sla-escalation-rule-form.tsx` (125), `components/sla/sla-profile-detail*.tsx`, `components/sla/sla-override-rules-card.tsx`, `lib/reports/map-report-dashboard-charts.ts` (120), `lib/reports/bottleneck-view.ts` (90), `lib/sla/sla-exposure-index.ts` (49), `services/sla-api.ts` (222), `services/sla-types.ts` (156), `services/reports-api.ts` (110), `services/report-trends-api.ts` (148), `services/report-schedules-api.ts` (138), `services/report-packs-api.ts` (100), `services/report-summary-api.ts` (80). Van ovog obima: `components/dashboard/dashboard-sla-watchlist.tsx`, `components/tickets/ticket-sla-panel.tsx` (pripadaju modulima 3 i 4).
+**Datum reaudit-a:** 20. 10. 2026.
+**Status:** otvoren implementacijski plan
+**Aktuelna ocjena:** **9,8/10 nakon Faze 7**
+**Cilj:** **10/10** uz izvršen browser/E2E closeout; bez browser dokaza maksimalno **9,8/10**
 
 ---
 
-## Modul
+## 1. Scope i metoda
 
-Modul ima dva velika dijela:
+Reaudit je urađen nad aktuelnim kodom, a ne nad arhiviranim stanjem vala 6.1.8.
 
-- **Izvještaji (`/reports`)** su pet tabova (pregled, uska grla, CSAT, trendovi, paketi) i šesti tab za zakazane izvještaje za administratore. Pregled čita dashboard za odabranu organizacionu jedinicu i period. Trendovi imaju filtere u URL-u, šest grafikona, izvoz CSV/JSON i štampu. Paketi su tabele sa pregledom i izvozom. Zakazivanje šalje izvještaj e-poštom po rasporedu.
-- **SLA (`/sla`)** je administracija SLA profila, kalendara radnog vremena, matrice prioriteta, pravila i pravila eskalacije. Tab usklađenosti prikazuje rezultate po organizacionoj jedinici.
+### Frontend
 
-Granica modula: `pages/reports-page.tsx`, `pages/sla-page.tsx`, `components/reports/` (uključujući `trends/`, `schedules/`, `print/`), `components/sla/` (22), `lib/reports/`, `lib/sla/`, `services/sla-*.ts`, `services/report-*.ts`, `services/reports-api.ts`.
+- `frontend/src/pages/reports-page.tsx`
+- `frontend/src/pages/sla-page.tsx`
+- `frontend/src/components/reports/**`
+- `frontend/src/components/sla/**`
+- `frontend/src/lib/reports/**`
+- `frontend/src/lib/sla/**`
+- `frontend/src/services/reports-api.ts`
+- `frontend/src/services/report-*.ts`
+- `frontend/src/services/sla-api.ts`
+- `frontend/src/services/sla-types.ts`
+- povezani CSAT, organizational-unit, session/access i download helperi
 
----
+### Backend i sigurnosne reference
 
-## Povezani fajlovi i folderi
+- `backend/src/modules/reports/**`
+- `backend/src/modules/sla/**`
+- `backend/src/modules/tickets/csat/**`
+- route/access guardovi i reports/SLA konfiguracija
 
-| Fajl ili folder | Uloga | Linija |
-|---|---|---|
-| `frontend/src/pages/reports-page.tsx` | Stranica izvještaja, tabovi, period, organizaciona jedinica | 414 |
-| `frontend/src/pages/sla-page.tsx` | Stranica SLA, profili, kalendari, matrica, usklađenost | 215 |
-| `frontend/src/components/reports/trends/report-trends-panel.tsx` | Trendovi, grafikovi, izvoz, štampa | 762 |
-| `frontend/src/components/reports/schedules/` (3) | Lista zakazanih izvještaja, forma, pokretanje | 491 + 454 + ostalo |
-| `frontend/src/components/reports/reports-csat-panel.tsx` | CSAT tab | 158 |
-| `frontend/src/components/reports/reports-bottlenecks-panel.tsx` | Uska grla | 211 |
-| `frontend/src/components/reports/report-packs-panel.tsx` | Paketi, pregled, izvoz | 281 |
-| `frontend/src/components/reports/print/report-print.tsx` | Svjetla tema za štampu, zaglavlje | 66 |
-| `frontend/src/components/sla/` (22) | Profili, kalendari, matrica, pravila, eskalacije, usklađenost | oko 3.300 |
-| `frontend/src/lib/reports/report-window.ts` | Periodi (15d, 30d, 6m, 12m, custom) | 134 |
-| `frontend/src/lib/reports/report-trends-view.ts` | Parsiranje i pisanje URL stanja trendova | 232 |
-| `frontend/src/lib/reports/report-schedule-form.ts` | Validacija zakazivanja, pregled sljedećeg slanja | 54 |
-| `frontend/src/lib/sla/use-sla-page-data.ts` | Učitavanje svih podataka SLA stranice | 125 |
-| `frontend/src/lib/sla/use-sla-page-mutations.ts` | Snimanje i brisanje profila i pravila | 90 |
-| `frontend/src/services/sla-api.ts` | HTTP za SLA | 222 |
-| `frontend/src/services/report-*.ts`, `reports-api.ts` | HTTP za izvještaje, paketa, zakazivanje, trendove | 80–148 |
-| `backend/src/modules/reports/` | Kontroleri i servisi izvještaja | — |
-| `backend/src/modules/sla/` | Kontroleri i servisi SLA | — |
-| `backend/src/modules/tickets/csat/` | CSAT agregacija (koristi tab izvještaja) | — |
-| `e2e/tests/12, 17, 18, 19, 07, 42` | E2E za pakete, trendove, zakazivanje, štampu, SLA | 8 testova |
+### Testovi i browser izvori
+
+- postojeći frontend unit/hook/component testovi za reports i SLA;
+- E2E izvori `07`, `12`, `17`, `18`, `19`, `29`, `42` i `50`;
+- ukupno **8 E2E fajlova i 12 deklarisanih scenarija**;
+- E2E izvori su pročitani, ali u ovom reaudit-u nisu izvršeni. Lokalni stack je u neposredno prethodnom closeoutu bio nedostupan na `localhost:10001/5173`, što se ne računa kao browser dokaz za ovaj modul.
+
+Metoda: statičko čitanje page/component/hook/API tokova, provjera cache/race/error ugovora, URL i vremenske semantike, permission granice, direktne testne mreže, održivosti, accessibility/responsive ponašanja i browser pokrivenosti.
 
 ---
 
-## Trenutna implementacija
+## 2. Sažetak aktuelnog stanja
 
-**Pregled izvještaja.** `ReportsPage` drži organizacionu jedinicu, period i tab. Tab se čita iz URL-a (`?tab=`), a trendovi imaju sopstveno URL stanje (`parseTrendsSearch` / `toTrendsSearch`). Pregled učitava dashboard kad je tab „overview“. Ostali paneli dobijaju `from`, `to` i jedinicu kao props i sami učitavaju podatke.
+Modul je znatno bolji od arhivske ocjene 6/10:
 
-**Trendovi.** `ReportTrendsPanel` gradi upit iz stanja, učitava ga u `useEffect` sa `cancelled` zaštitom i prikazuje grafikone. Parsiranje URL-a je pažljivo: vrijednosti se provjeravaju kroz liste dozvoljenih, datumi regexom, a dužina teksta je ograničena na 64 znaka.
+- Reports OU katalog razlikuje grešku od praznog stanja i prikazuje request ID/retry.
+- Overview i bottlenecks imaju latest-request zaštitu.
+- Trends imaju validirano URL stanje, cancelled zaštitu, izvoz i print ugovor.
+- CSAT je eksplicitno označen kao all-time i ima breakdown po OU/servisu/grupi.
+- SLA base, detail i compliance loadovi su odvojeni i imaju latest-request guardove.
+- Compliance se učitava samo na aktivnom podtabu.
+- Eskalacije imaju race zaštitu, vidljivu load grešku i validaciju razloga brisanja.
+- Hook testovi za izbor novog profila i ciljani reload sada postoje.
+- Frontend i backend permission granice su u osnovi usklađene.
 
-**Zakazivanje.** Forma je u `report-schedule-sheet.tsx`. Validacija je u čistoj funkciji `validateReportScheduleForm`, sa unit testovima. Pretraga primalaca je sa debounce od 250 ms i zaštitom od zastarjelih odgovora. Lista se učitava jednom i mijenja se lokalno (`replace`).
+Ipak, modul još nije na 10/10. Najveći preostali rizici su:
 
-**SLA stranica.** `useSlaPageData` učitava profile, kalendare, sažetak, usklađenost, a za izabrani profil pravila i promjene. Mutacije su u `useSlaPageMutations`, koji nakon svake promjene zove `data.load()`. Pregled eskalacija (`sla-escalation-rules-panel.tsx`) ima sopstveno učitavanje.
-
-**Dozvole.** `canOpenReports` traži admin područje i `reportsExport` ili `auditExport`. Backend `reports.controller.ts` ima isti uslov na nivou klase (`@RequireRoles(admin, superAdmin)` i `@RequirePermissions(reportsExport, auditExport)`). SLA kontroleri imaju `@RequireRoles(admin)` na nivou klase, a pisanje dodatno traži `slaWrite`. Zakazivanje ima `reportsScheduleManage`. Frontend i backend se poklapaju.
-
----
-
-## Realno/željeno stanje
-
-| Oblast | Realno stanje | Željeno stanje |
-|---|---|---|
-| Učitavanje SLA stranice | Svaki klik na profil ponovo učitava svih 5–6 izvora podataka i prikazuje skeleton (RS1) | Učitavaju se samo podaci koji su se promijenili |
-| Greška vs. prazno | Greška organizacionih jedinica prikazuje „nema tiketa“ (RS2) | Greška se uvijek prikazuje kao greška |
-| Zastarjeli podaci | Pri promjeni filtera stari podaci ostaju bez indikatora (RS4) | Indikator učitavanja ili reset kad se scope promijeni |
-| Race | Pregled, uska grla, SLA učitavanje i pravila eskalacija nemaju zaštitu od zastarjelih odgovora (RS5) | Isti obrazac kao trendovi (`cancelled`) |
-| CSAT | Prikazuje sveukupni CSAT bez perioda i bez filtera jedinice, bez oznake (RS3) | Period i jedinica kao na ostalim tabovima, ili jasna oznaka „sveukupno“ |
-| Stanje u URL-u | Trendovi su u URL-u. Pregled, paketi, uska grla i SLA pod-prikazi nisu (RS13) | Dijeljiv link za svaki prikaz |
-| Vremenska zona | Period i pregled sljedećeg slanja koriste lokalnu zonu pregledača, raspored ima sopstvenu zonu (RS7) | Jedna zona, prikazana korisniku |
-| Greške u formama | Poruke grešaka nisu sve `role="alert"` i prijavljuju tip `as never` (RS11, RS14) | Ista komponenta greške svuda, tipizirani ključevi |
-| Testovi | Lib sloj dobro pokriven (15 spec fajlova), e2e za trendove, zakazivanje, štampu. Nema testa za `useSlaPageData`, `ReportsPage`, `SlaPage`, eskalacije (RS17) | Hook testovi za race i učitavanje |
+1. izbor SLA profila može privremeno prikazati pravila prethodnog profila, a `isDetailLoading` se ne renderuje;
+2. SLA greške nemaju request correlation ni deterministički retry ugovor;
+3. reports filter supporting-data greške se pretvaraju u prazne opcije;
+4. URL nije potpuni source of truth izvan Trends taba;
+5. mutation double-submit i precizna invalidacija nisu dokazani;
+6. custom period i vremenska zona i dalje imaju tihu, nedosljednu semantiku;
+7. najveće Reports komponente i dalje su koncentrisane i gotovo bez direktnih component testova;
+8. browser/responsive/keyboard closeout nije izvršen.
 
 ---
 
-## Gap analiza
+## 3. Pozitivni nalazi koje treba sačuvati
 
-1. **SLA učitavanje na svaki klik (RS1).** `load` u `use-sla-page-data.ts` (57–100) zavisi od `selectedId` i `isCreating`. Efekat (102–104) ga poziva pri svakoj promjeni. Pošto `setSelectedId` mijenja `selectedId`, svaki klik na profil pokreće sve zahtjeve. `isLoading` se postavlja na `true`, pa `SlaAdminListColumn` (`sla-admin-selector.tsx` 111–112) zamijeni listu skeletonom. Usput, `fetchSlaCompliance` se šalje i kad je aktivan tab profila, a njegova greška obara cijeli `Promise.all`, pa ni lista profila ne prikaže podatke.
-2. **Greška koja izgleda kao prazno stanje (RS2).** U `reports-page.tsx` `listOrganizationalUnitTree().catch(() => setOrganizationalUnitId(null))` (116–120) ne postavlja grešku. `reload` (160–165) za `null` samo postavi `dashboard` na `null` bez `errorKey`. Uslov na 375 (`dashboard === null || ticketCount === 0`) prikazuje „nema tiketa“. Korisnik ne zna da li su podaci nedostupni ili ih nema.
-3. **CSAT bez perioda i jedinice (RS3).** `fetchTicketCsatSummary()` nema parametre (`tickets-csat-api.ts` 27–29). Backend `summarize` prima samo kontekst korisnika (`tickets-csat-summary.controller.ts` 37–41), bez vremenskog prozora. Tab CSAT nema `ReportsDateFilter` (`reports-page.tsx` 302). Prikaz je sveukupan, a podnaslov ne kaže to.
-4. **Zastarjeli podaci pri promjeni filtera (RS4).** Tri mjesta prikazuju stare podatke sa novim naslovom ili filterom, bez indikatora: `report-trends-panel.tsx` (344: skeleton samo kad je `trends === null`), `sla-compliance-card.tsx` (42–50: `compliance === null` je jedini uslov za loader, a naslov obima se mijenja odmah pri promjeni jedinice) i `reports-bottlenecks-panel.tsx` (84: isto).
-5. **Race bez zaštite (RS5).** Četiri mjesta nemaju `cancelled`: `reports-page.tsx` `reload` (160–187), `reports-bottlenecks-panel.tsx` `load` (54–82), `use-sla-page-data.ts` `load` (57–100) i `sla-escalation-rules-panel.tsx` (38–45). Poslednji ima i `.then` bez `.catch`, pa je greška neuhvaćena, a pri brzoj promjeni profila lista može pokazivati pravila prethodnog profila.
-6. **Zakazani rad nakon kreiranja profila (RS6, za provjeru).** `saveProfile` (`use-sla-page-mutations.ts` 29–34) za novi profil zove `setSelectedId(created.id)` pa `await data.load()`. `data.load` je iz renderovanja u kojem je `isCreating` još `true`, pa se u zastarjelom zatvaranju vraća rano (`use-sla-page-data.ts` 77–81). Istovremeno efekat pokreće drugo učitavanje. Ishod zavisi od redoslijeda odgovora. Potrebno je provjeriti u pregledaču da li se pravila i promjene nakon kreiranja prikazuju odmah.
-7. **Vremenska zona (RS7).** `previewNextReportRun` (`report-schedule-form.ts` 42–54) računa sljedeće slanje u lokalnoj zoni pregledača (`getDay`, `new Date(y, m, d, h, min)`), dok raspored ima `list.settings.timeZone` (`report-schedule-sheet.tsx` 216). Komentar kaže „same zone in practice“. Za Bosnu i Hercegovinu to obično radi, ali pretpostavka nije provjerena. Isto važi za trendove: period se računa u lokalnim datumima (`toDateInputValue`), a zona podataka je `trends.timeZone`, pa štampani period može da se ne poklapa sa podacima.
-8. **Prazan skeleton bez izlaza (RS8).** `report-packs-panel.tsx`: kad je `organizationalUnitId === null`, efekat (55–57) se vrati bez postavljanja `list`, a uslov na 115–116 (`list === null`) prikazuje skeleton zauvijek.
-9. **Brisanje eskalacije bez poruke (RS9).** `handleDelete` (70–71) vraća se bez ikakvog znaka kad je razlog prazan. Dugme u tabeli izgleda aktivno, a klik ne radi ništa.
-10. **Nedosljedna pravila za brisanje.** Pravila eskalacije i kalendari traže razlog. Zakazani izvještaj (`report-schedules-panel.tsx` 164–177) se briše samo potvrdom, bez razloga. Nije jasno da li je to namjera.
-11. **Testovi (RS17).** Lib sloj je dobro pokriven. Nema testova za hookove sa učitavanjem (race, reset), za `SlaPage` i `ReportsPage`. E2E za eskalacije nema.
+- **Access granica:** route access, frontend capability provjera i backend role/permission guardovi koriste isti domenski smjer (`reportsExport`/`auditExport`, `reportsScheduleManage`, `slaWrite`).
+- **Trends URL parser:** allow-list provjera, validacija datuma, `from <= to` i ograničenje slobodnog teksta su izdvojeni i direktno testirani.
+- **Async race osnova:** `createLatestRequestGuard` je prisutan u Reports overview/bottlenecks i SLA base/detail/compliance tokovima.
+- **Non-destructive namjera:** Reports overview čuva prethodni dashboard tokom refetcha; bottlenecks eksplicitno resetuje snapshot kada se scope promijeni, pa ne prikazuje stari scope kao novi.
+- **CSAT semantika:** all-time obim je sada vidljivo označen umjesto da izgleda kao da slijedi globalni period.
+- **Print cleanup:** light-theme print lifecycle vraća prethodnu temu i čisti event listenere.
+- **Schedule recipient search:** debounce, cancellation i vidljiva greška su implementirani.
+- **SLA dekompozicija:** profile list/detail, kalendari, matrica, compliance i escalation cjeline već imaju razumne prezentacijske granice.
+- **Backend agregacije:** reports pack/trends/summary i SLA agregacije imaju široku pure/backend testnu bazu.
 
 ---
 
-## Mišljenje tima i preporuka
+## 4. Novi nalazi
 
-Modul je dobro strukturisan u sloju čistih funkcija: URL stanje trendova, validacija zakazivanja, periodi, mapiranje grešaka i dozvole su odvojeni i testirani. Backend je zaštićen na nivou kontrolera i frontend dozvole se poklapaju sa njim. Glavni problemi su u komponentama i hookovima: učitavanje se radi na način koji se ne prilagođava promjenama (RS1, RS4, RS5), greške se pretvaraju u prazna stanja (RS2, RS8), i CSAT nije usklađen sa ostalim tabovima (RS3).
+### RSL1 — SLA detail može prikazati podatke prethodnog profila
 
-Preporuka po redu:
+**Prioritet:** P1
+**Lokacije:** `lib/sla/use-sla-page-data.ts`, `pages/sla-page.tsx`, `components/sla/sla-profile-detail.tsx`
 
-1. **Zajednički obrazac učitavanja (RS4, RS5).** Isti obrazac kao u `use-docs.ts` (`active` flag, `loading`, `error`, `reload`), plus pravilo: pri promjeni ulaza prikazati loader ili označiti podatke kao zastarjele. Uvesti za pregled, uska grla, usklađenost, eskalacije.
-2. **SLA: odvojiti učitavanje (RS1).** `load` ne smije zavisiti od `selectedId`. Pri izboru profila učitavaju se samo pravila i promjene za taj profil. Usklađenost se učitava tek kad je aktivan njen tab, a njena greška ne smije obarati listu profila.
-3. **Greške umjesto praznih stanja (RS2, RS8).** Ako organizaciona jedinica ne može da se učita, prikazati grešku sa dugmetom za ponovni pokušaj.
-4. **CSAT: odluka o obimu.** Ili dodati period i jedinicu na backend (`summarize` sa prozorom), ili na tabu jasno napisati „sveukupno, od početka“. Ovo je odluka proizvoda, ne samo ispravka.
-5. **Vremenska zona (RS7).** Odluka: koju zonu koristi izvještaj (zona organizacije ili zona pregledača). Onda uskladiti pregled sljedećeg slanja i periode.
-6. **Testovi.** Hook testovi za `useSlaPageData` (izbor profila, kreiranje, race) i e2e za eskalacije.
+Pri promjeni `selectedId`, `reloadSelected` postavlja `isDetailLoading`, ali ne resetuje niti verzionira `rules` i `changes`. `SlaPage` uopće ne prosljeđuje `isDetailLoading` u detail prikaz. Novi profil zato može biti prikazan zajedno sa pravilima i change-logom prethodnog profila dok zahtjev traje. Ako novi detail zahtjev padne, stari podaci ostaju uz globalnu grešku i mogu izgledati kao podaci odabranog profila.
+
+Latest-request guard sprečava out-of-order commit, ali ne rješava pogrešan snapshot identitet.
+
+**Za zatvaranje:** vezati detail snapshot za `profileId`, renderovati loading/stale/error stanje po identitetu i onemogućiti edit/delete akcije dok prikazani snapshot ne pripada aktivnom profilu. Direktno testirati brzu promjenu A→B, grešku B i out-of-order A response.
+
+### RSL2 — SLA error ugovor nema request ID ni lokalni retry
+
+**Prioritet:** P1
+**Lokacije:** `use-sla-page-data.ts`, `use-sla-page-mutations.ts`, `sla-page.tsx`, `sla-escalation-rules-panel.tsx`, calendars/matrix/profile forme
+
+SLA hookovi čuvaju samo prevedivi `SlaErrorKey`. API request ID se gubi. Base, detail, compliance i escalation greške nemaju zajednički recoverable prikaz sa korelacijom i retryjem. `SlaPage` prikazuje jedan globalni alert, pa detail greška može izgledati kao greška cijele stranice, dok compliance greška nema retry.
+
+**Za zatvaranje:** uvesti typed SLA query/mutation error (`key`, `requestId`, `scope`), lokalne retry akcije za base/detail/compliance/escalations i pending zaštitu. Stale uspješan snapshot ostaje vidljiv samo uz jasno background upozorenje.
+
+### RSL3 — Reports supporting filter greške glume prazne kataloge
+
+**Prioritet:** P1
+**Lokacija:** `pages/reports-page.tsx:112–137`
+
+`listServices()` greška postavlja `[]`, a `listGroups()` greška postavlja `null`. Korisnik ne razlikuje “nema opcija”, “nema dozvolu” i mrežnu/server grešku. Nema request ID-a ni retryja. Trends/schedule filter tada tiho gubi mogućnost izbora i može generisati drugačiji izvještaj od očekivanog.
+
+**Za zatvaranje:** supporting-data state mora razlikovati loading, forbidden/unavailable, empty, error i ready; server greška prikazuje request ID/retry, a controls objašnjavaju zašto su disabled ili skriveni.
+
+### RSL4 — URL nije source of truth za Reports i SLA prikaze
+
+**Prioritet:** P1
+**Lokacije:** `reports-page.tsx`, `sla-page.tsx`
+
+Trends ima dobar URL model, ali ostali Reports tabovi gube OU i period pri `changeTab`: `setSearchParams({ tab: key })` briše scope. `initialUnitId` je `useRef`, pa Back/Forward promjena `organizationalUnitId` dok je stranica mountovana ne ažurira lokalni state. Overview custom period/preset nije dijeljiv. SLA view (`profiles/calendars/matrix`), podtab, OU i aktivni profil žive samo u lokalnom stateu.
+
+**Za zatvaranje:** definisati jedan validirani URL model za Reports i SLA; sačuvati relevantne parametre pri promjeni taba, pratiti Back/Forward bez petlje i direktno testirati deep link, invalidne parametre, reset i history navigaciju.
+
+### RSL5 — Mutation concurrency i cache ugovor nisu kanonski
+
+**Prioritet:** P1
+**Lokacije:** `use-sla-page-mutations.ts`, escalation/calendar/matrix forme, report schedule forme/paneli
+
+Mutation tokovi koriste `useState(isSubmitting)` kao jedinu zaštitu. Dva synchronous submit/click događaja mogu proći prije React rerendera. Nema per-action operation guarda niti direktnog testa da create/update/delete/run-now ne šalju dupli zahtjev. Nakon SLA mutacija često se radi imperativni full base/detail reload umjesto eksplicitne mutation→query matrice.
+
+**Za zatvaranje:** sinhroni guard prije prvog await-a, per-action pending, request-correlation feedback i precizna refresh matrica. Direktno testirati profile/rule/calendar/escalation/schedule create-update-delete i manual run, uključujući error→retry.
+
+### RSL6 — Custom period tiho mijenja korisnički unos
+
+**Prioritet:** P1
+**Lokacije:** `lib/reports/report-window.ts`, `reports-page.tsx`, `reports-date-filter.tsx`
+
+Prazan ili nevalidan custom period pada na rolling 30d bez poruke, iako inputi ostaju prazni. Obrnut raspon se automatski zamijeni. UI zato može prikazati jedan unos, a poslati drugi period. To je posebno rizično za izvoz i audit evidenciju izvještaja.
+
+**Za zatvaranje:** custom period mora imati eksplicitno valid/invalid stanje; ne slati zahtjev niti omogućiti izvoz dok su datumi nepotpuni/nevalidni; obrnut raspon prikazati kao validacijsku grešku umjesto tihog swap-a.
+
+### RSL7 — Vremenska zona nije jedan dokazani ugovor
+
+**Prioritet:** P1 za reporting tačnost
+**Lokacije:** `report-window.ts`, `report-schedule-form.ts`, trends/print/schedule komponente i backend report calendar helperi
+
+Overview period i schedule preview koriste browser-local civil time, schedule konfiguracija ima `settings.timeZone`, a Trends response vraća vlastitu zonu. Print naslov može kombinovati lokalno formatiran period i server zonu. DST i korisnik iz druge zone mogu dobiti drugačiji preview od stvarnog slanja/agregacije.
+
+**Za zatvaranje:** usvojiti eksplicitnu organizacijsku/reporting zonu kao ugovor, prikazati je uz period, koristiti istu civil-calendar funkciju na preview/server strani i dodati DST/boundary contract testove.
+
+### RSL8 — Reports recovery nije dosljedan kroz sve podtokove
+
+**Prioritet:** P2
+**Lokacije:** `report-packs-panel.tsx`, schedule runs sheet, schedules list/preview/run tokovi
+
+Pack list greška prikazuje request ID, ali nema retry. Preview greška nema lokalni retry. Schedule run history postavlja `requestId={null}` i nema retry. Pojedini toastovi imaju `error`, ali inline podtokovi nemaju isti recovery ugovor.
+
+**Za zatvaranje:** shared recoverable query prikaz za list/preview/history sa request ID-em, retryjem i disabled/pending ugovorom; uspješan snapshot ne brisati pri background refresh grešci.
+
+### RSL9 — Dynamic report redovi koriste index key
+
+**Prioritet:** P2
+**Lokacija:** `components/reports/report-packs-panel.tsx:280`
+
+Sortabilni preview redovi koriste `key={index}`. Promjena sorta može prenijeti DOM identitet na drugi red. Trenutno nema inputa u ćeliji, ali screen-reader/selection/focus identitet i buduće interaktivne ćelije ostaju nestabilni.
+
+**Za zatvaranje:** backend descriptor treba dati stabilni row key ili frontend treba izgraditi determinističan ključ iz deklarisanih domain kolona; dodati test sort/reorder identiteta.
+
+### RSL10 — Koncentracija odgovornosti u Reports komponentama je previsoka
+
+**Prioritet:** P2
+**Lokacije:** `report-trends-panel.tsx` (~922), `report-schedules-panel.tsx` (~569), `report-schedule-sheet.tsx` (~530), `reports-page.tsx` (~413)
+
+Komponente kombinuju URL state, API orchestration, validation, export/print, forme, preview i velike prezentacijske cjeline. Pure helperi postoje, ali page/controller i component granice nisu direktno testirane. Promjena jednog recovery ili URL pravila zahtijeva izmjene kroz veliki render scope.
+
+**Za zatvaranje:** izdvojiti typed controller hookove i prezentacijske sekcije po odgovornosti; prvo characterization testovi, zatim mehaničko izdvajanje bez behavior rewritea.
+
+### RSL11 — Direktna testna mreža ne pokriva kritične state mašine
+
+**Prioritet:** P1
+**Dokaz:** aktuelni test katalog
+
+Postoje korisni pure testovi i po jedan minimalni test za `useSlaPageData`, `useSlaPageMutations` i packs. Nedostaju direktni testovi za:
+
+- ReportsPage OU/period/tab/Back-Forward state;
+- overview initial/background error i stale snapshot;
+- service/group supporting-data recovery;
+- bottlenecks/CSAT race i retry pending;
+- pack list/preview/download recovery i sort identitet;
+- schedule list/form/recipient/history/manual-run race i double-submit;
+- SLA base/detail/compliance identitet, request correlation i retry;
+- profile/rule/calendar/matrix/escalation mutation concurrency;
+- timezone/DST parity.
+
+Postojeći hook test ima samo jedan scenario; mutation test provjerava redoslijed select→load, ali ne race, error ni dupli submit.
+
+**Status:** zatvoreno u Fazama 1–7. Deferred hook testovi direktno dokazuju latest-only race, stale/background recovery, correlated retry i mutation concurrency ugovore, dok page testovi dokazuju Reports/SLA deep link, očuvanje scopea pri tab navigaciji, URL-backed prikaz i blokiranje nevalidnog perioda. Browser Back/Forward, responsive viewport i stvarni accessibility run ostaju isključivo u `RSL13`.
+
+### RSL12 — Historijski komentari ostaju production noise
+
+**Prioritet:** P3
+**Lokacije:** Reports/SLA pages, components, libs i service tipovi
+
+Komentari `Paket`, `Package`, `Val`, `Phase` i numerisani `§` opisuju historiju isporuke. Neki korisni opisi su pomiješani s tim oznakama.
+
+**Za zatvaranje:** ukloniti delivery-history prefikse, zadržati samo trajni invariant i dodati scope comment-hygiene test.
+
+### RSL13 — Browser, responsive i accessibility closeout nije izvršen
+
+**Prioritet:** P1 za 10/10
+**Dokaz:** 8 E2E izvora / 12 scenarija pročitano, bez aktuelnog runa
+
+Nisu izvršno dokazani:
+
+- Reports/SLA deep link i Back/Forward;
+- initial/background error + retry sa request ID-em;
+- stale snapshot pri scope promjeni;
+- profile A→B race i mutation double-submit;
+- schedule timezone/DST preview;
+- print lifecycle u stvarnom browseru;
+- 320/375/768/1280 px overflow za charts, široke tabele, calendars i forms;
+- keyboard/focus return za sheet/drawer/confirm;
+- 200% zoom i axe za sve glavne tabove.
+
+**Za zatvaranje:** dopuniti i izvršiti browser matricu na stvarnom stacku, bez skipova koji se računaju kao prolaz. Bez browser dokaza maksimalna ocjena ostaje **9,8/10**.
 
 ---
 
-## Otkriveni bugovi i neusklađenosti
+## 5. Ocjena po oblasti
 
-| ID | Ozbiljnost | Fajl i linija | Opis |
-|---|---|---|---|
-| RS1 | Srednja | `lib/sla/use-sla-page-data.ts` 57–104; `components/sla/sla-admin-selector.tsx` 111–112 | `load` zavisi od `selectedId` i `isCreating`, pa svaki izbor profila pokrene 5–6 zahtjeva i postavi `isLoading`. Lista profila se zamijeni skeletonom. **Potvrđeno čitanjem.** |
-| RS2 | Srednja | `pages/reports-page.tsx` 116–120, 160–165, 375 | Greška učitavanja organizacionih jedinica ne postavlja `errorKey`. Prikazuje se „nema tiketa“. **Potvrđeno čitanjem.** |
-| RS3 | Srednja | `services/tickets-csat-api.ts` 27–29; `backend/.../tickets-csat-summary.controller.ts` 37–41; `pages/reports-page.tsx` 332–333 | CSAT tab prikazuje sveukupne podatke bez perioda i jedinice. Nema filtera i nema oznake. **Potvrđeno u frontendu i backendu.** |
-| RS4 | Srednja | `components/reports/trends/report-trends-panel.tsx` 344; `components/sla/sla-compliance-card.tsx` 42–50; `components/reports/reports-bottlenecks-panel.tsx` 84 | Pri promjeni filtera ili jedinice stari podaci ostaju vidljivi bez loadera. Naslov obima se mijenja odmah. **Potvrđeno čitanjem. Za provjeru u pregledaču.** |
-| RS5 | Srednja | `components/sla/sla-escalation-rules-panel.tsx` 38–45; `reports-page.tsx` 160–187; `reports-bottlenecks-panel.tsx` 54–82; `use-sla-page-data.ts` 57–100 | Nema zaštite od zastarjelih odgovora. Eskalacije imaju `.then` bez `.catch`, pa je greška neuhvaćena. Pri brzoj promjeni profila može se prikazati pogrešan profil. **Potvrđeno čitanjem. Za provjeru.** |
-| RS6 | Srednja (za provjeru) | `lib/sla/use-sla-page-mutations.ts` 29–34; `lib/sla/use-sla-page-data.ts` 77–81 | Nakon kreiranja profila, `data.load` iz zastarjelog zatvaranja vraća se rano, a efekat pokreće drugo učitavanje. Pravila mogu ostati prazna. **Za provjeru u pregledaču.** |
-| RS7 | Niska (dizajn) | `lib/reports/report-schedule-form.ts` 42–54; `lib/reports/report-window.ts` 10–32, 123–134; `components/reports/schedules/report-schedule-sheet.tsx` 216 | Lokalna zona pregledača se koristi za preview i periode, a raspored i podaci imaju zonu organizacije. Pretpostavka „same zone in practice“ nije provjerena. |
-| RS8 | Niska | `components/reports/report-packs-panel.tsx` 55–57, 115–116 | Bez organizacione jedinice, panel paketa ostaje u skeletonu zauvijek. |
-| RS9 | Niska | `components/sla/sla-escalation-rules-panel.tsx` 70–71 | Brisanje bez razloga je tiho bez poruke. Razlog se šalje netrimovan (75). |
-| RS10 | Niska (odluka) | `components/reports/schedules/report-schedules-panel.tsx` 164–177 | Brisanje zakazanog izvještaja nema razlog, a kalendari i eskalacije ga traže. |
-| RS11 | Niska (TS) | `components/sla/sla-rule-form.tsx` 170; `sla-calendar-form.tsx` 215; `sla-profile-form.tsx` 71; `sla-page.tsx` 172; `reports-page.tsx` 232; `report-trends-panel.tsx` 298; `report-schedule-form.ts` 44 | Deset pojava `as never` za prevodne ključeve, plus neprovjereni castovi za select vrijednosti i ključeve. |
-| RS12 | Niska (UX) | `pages/sla-page.tsx` 152–157 i 188 | Dugme „Novi profil“ postoji u zaglavlju i u listi (`onNew`). Dupliran CTA. |
-| RS13 | Niska | `pages/reports-page.tsx` 115, 92–94; `pages/sla-page.tsx` 53–54 | Jedinica se čita iz `window.location.search` pri mountu, a ne iz routera. Period, pregled i SLA pod-prikazi nisu u URL-u, pa se ne mogu dijeliti. |
-| RS14 | Niska (a11y) | `components/sla/sla-rule-form.tsx` 170; `sla-profile-form.tsx` 71; `report-packs-panel.tsx` 113 | Poruke grešaka nisu `role="alert"` (kalendarska forma jeste). Greška liste paketa ne prikazuje `requestId`. |
-| RS15 | Niska (humanizacija) | `components/reports/trends/report-trends-panel.tsx` 320, 328 | Oznake „CSV“ i „JSON“ su tvrdo kodirane, nisu prevedene. |
-| RS16 | Niska (drift) | `lib/reports/report-trends-view.ts` 31–33, 77 | Klijent ponavlja konstante backend-a (`trendBucketLimits`, formula za sedmice). Komentar kaže „Mirrors backend“. Ako se backend promijeni, nema testa koji to hvata. **Za provjeru.** |
-| RS17 | Srednja (testovi) | `lib/sla/`, `components/sla/`, `pages/reports-page.tsx`, `pages/sla-page.tsx` | Nema testova za hookove sa učitavanjem (RS1, RS4, RS5, RS6). E2E za eskalacije nema. |
-| RS18 | Niska (React) | `components/reports/report-packs-panel.tsx` 70–74; `components/reports/schedules/report-schedules-panel.tsx` 95–101 | `useEffect` koji resetuje stanje pri promjeni zavisnosti. Panel rasporeda ima `onDraftConsumed` kao inline funkciju iz roditelja, pa se efekat ponovo pokreće pri svakom renderu. |
-| RS19 | Niska | `lib/reports/report-window.ts` 59–68, 113–116 | Prazan „custom“ period pada na 30 dana bez poruke, dok su datumska polja prazna. Obrnut raspon se tiho zamijeni. |
-| RS20 | Niska (React) | `components/reports/trends/report-trends-panel.tsx` 160 | Jedini `eslint-disable-next-line react-hooks/exhaustive-deps` u modulu. Može se zamijeniti stabilnim ključem bez isključivanja pravila. |
-| RS21 | Niska | `components/reports/schedules/report-schedules-panel.tsx` 179–180 | Greška učitavanja rasporeda nema dugme za ponovni pokušaj. |
-| RS22 | Niska | `components/reports/schedules/report-schedule-sheet.tsx` 152–153 | Greška pretrage primalaca se tiho pretvara u prazan spisak. |
-| RS23 | Niska (humanizacija) | `pages/sla-page.tsx` 59; `lib/sla/use-sla-page-data.ts` 29–30; `components/reports/trends/report-trends-panel.tsx` 105–109; `lib/reports/report-trends-view.ts` 12–14; `components/reports/reports-csat-panel.tsx` 17–23 | Komentari sa oznakama plana („Paket 2.5“, „Phase 2.4“, „Val 1 (M9/B3)“). Ukupno 36 pojava u modulu. |
+| Oblast                                     |   Trenutno |      Cilj |
+| ------------------------------------------ | ---------: | --------: |
+| Route access i backend sigurnosna granica  |        9,5 |        10 |
+| Async state, race i recovery               |        9,3 |        10 |
+| Reporting tačnost, period i vremenska zona |        9,5 |        10 |
+| Mutation i cache konzistentnost            |        9,4 |        10 |
+| URL/shareability i navigacija              |        9,4 |        10 |
+| Testabilnost i održivost                   |       10,0 |        10 |
+| Accessibility/responsive/browser dokaz     |        7,0 |        10 |
+| **Ukupno**                                 | **9,8/10** | **10/10** |
 
-**Pozitivno (ne mijenjati):**
-- `report-trends-view.ts` (94–121): URL stanje trendova provjerava liste dozvoljenih vrijednosti, datume regexom, `from <= to` i dužinu teksta.
-- `report-trends-panel.tsx` (136–161): `cancelled` zaštita i zadržani filteri kad je učitavanje palo.
-- `report-print.tsx` (10–35): svjetla tema za štampu vraća prethodnu temu i čisti listenere pri unmount-u.
-- `report-schedule-sheet.tsx` (147–159): pretraga primalaca sa debounce, `cancelled` i `clearTimeout`.
-- `report-schedule-form.ts`: validacija je čista funkcija sa unit testovima.
-- `report-packs-panel.tsx` (75–78): pregled se briše kad se promijeni paket, jedinica ili period, pa je na ekranu uvijek ono što bi se preuzelo.
-- `aggregate-ticket-csat.ts` (40–62): backend pravi bucket samo kad postoji bar jedna ocjena, pa prosjek nikad nije lažna 0.
-- Zaštita backend-a: svi kontroleri imaju `RoleGuard` na nivou klase, a pisanje ima posebnu dozvolu. Frontend `canOpenReports` i `canOpenSla` se poklapaju sa njom.
+Ocjena priznaje zatvorenu determinističku matricu `RSL1–RSL12`: race/recovery, mutation concurrency, URL stanje, civil-time ugovor, stabilne identitete i direktne page granice. Jedini preostali odbitak je `RSL13`, odnosno neizvršen stvarni browser, responsive viewport, keyboard/focus, zoom i axe closeout.
 
 ---
 
-## Ocjena: 6/10
+## 6. Fazni implementacijski plan do 10/10
 
-Obrazloženje:
-- **Plus:** čisti sloj biblioteka sa testovima, dobro URL stanje za trendove, pažljivo parsiranje, zaštita backend-a usklađena sa frontendom, dobra štampa i paketi.
-- **Minus:** SLA stranica se ponovo učitava na svaki klik (RS1), greške se prikazuju kao prazna stanja (RS2, RS8), stari podaci bez indikatora (RS4), race bez zaštite na četiri mjesta (RS5), CSAT je nejasno sveukupan (RS3), a hookovi nisu testirani (RS17).
+### Faza 1 — SLA detail identitet i recoverable query matrica
 
-Ocjena je u skladu sa modulima 5, 6 i 7.
+**Nalazi:** `RSL1`, SLA dio `RSL2`, dio `RSL11`
+**Cilj:** aktivni profil nikada ne prikazuje detail snapshot drugog profila.
+
+1. Uvesti detail state vezan za `profileId`.
+2. Razdvojiti base/detail/compliance/escalation error objekte (`key`, `requestId`, `scope`).
+3. Renderovati initial, stale/background i blocking state bez destruktivnog brisanja uspješnog snapshot-a.
+4. Dodati lokalni retry i pending zaštitu.
+5. Deferred testovi za A→B, out-of-order, B error, retry i compliance scope promjenu.
+
+**Exit gate:** detail akcije nisu dostupne dok snapshot ne pripada aktivnom profilu; svaka server greška prikazuje request ID gdje postoji.
+
+#### Evidencija zatvaranja Faze 1 (20. 10. 2026.)
+
+- SLA detail snapshot sada nosi eksplicitni `detailProfileId`; `detailReady` je tačan samo kada rules/change-log snapshot pripada trenutno izabranom profilu.
+- Promjena profila više ne može renderovati edit/delete površine nad pravilima prethodnog profila: tokom identity promjene prikazuje se loading stanje, a ne stale detail kao novi profil.
+- Base, detail i compliance query greške razdvojene su u typed state sa mapiranim ključem i API request ID-em.
+- Base, detail i compliance prikazi imaju lokalni retry sa disabled/pending zaštitom; detail koji je pao ostaje blokiran dok retry ne vrati snapshot aktivnog profila.
+- Escalation load ima zaseban query error, request correlation, retry i loading stanje; promjena profila odmah uklanja redove prethodnog profila.
+- Deferred testovi dokazuju A→B identity blokadu, latest-only out-of-order commit, B error + request ID + retry, base error + retry i compliance error + retry. Component test dokazuje escalation request ID i retry aktivnog profila.
+- `RSL1` je zatvoren. Query/recovery dio `RSL2` je zatvoren; mutation request-correlation dio ostaje mapiran na Fazu 4.
+
+**Izvršni dokaz:** ciljni suite ima 3 fajla sa 7/7 testova; puni frontend Vitest prolaz ima 369/369 fajlova odnosno 1479/1479 testova. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 2 — Reports supporting-data i recovery konzistentnost
+
+**Nalazi:** `RSL3`, `RSL8`, Reports dio `RSL11`
+**Cilj:** nijedna server greška ne izgleda kao prazan filter/list/preview/history.
+
+1. Standardizovati service/group supporting-data state.
+2. Dodati request ID/retry za pack list/preview i schedule history.
+3. Zadržati uspješne podatke pri background grešci uz jasno upozorenje.
+4. Retry dugmad onemogućiti tokom aktivnog zahtjeva.
+5. Direktno testirati initial/background/retry matrice.
+
+**Exit gate:** recovery ne zahtijeva reload stranice i ne mijenja tiho scope izvještaja.
+
+#### Evidencija zatvaranja Faze 2 (20. 10. 2026.)
+
+- Service i group filter katalozi izdvojeni su u latest-only supporting-data hook koji razlikuje loading, uspješan snapshot i grešku svakog izvora.
+- Djelimičan kvar više ne briše uspješan susjedni katalog; server greška prikazuje mapiranu poruku, API request ID i retry sa pending zaštitom.
+- Uspješan service/group snapshot ostaje dostupan pri background refresh grešci, uz vidljivo upozorenje, pa scope više ne nestaje tiho.
+- Report pack list ima request correlation i retry za initial grešku; uspješan pack snapshot ostaje vidljiv pri grešci narednog OU refresha.
+- Pack preview greška sada ima lokalni retry i disabled/loading ugovor bez reloadovanja stranice.
+- Schedule run history ima latest-only zaštitu, request ID i lokalni retry; promjena schedule scopea ne može commitovati zakašnjeli odgovor prethodnog rasporeda.
+- Direktni hook/component testovi pokrivaju lazy load, djelimičan catalog failure, stale snapshot + recovery, pack initial/background/preview recovery i schedule-history retry.
+- `RSL3` i `RSL8` su zatvoreni; odgovarajući Reports recovery dio `RSL11` je direktno pokriven.
+
+**Izvršni dokaz:** ciljni suite ima 3 fajla sa 8/8 testova; puni frontend Vitest prolaz ima 371/371 fajl odnosno 1486/1486 testova. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 3 — URL state i validacija perioda
+
+**Nalazi:** `RSL4`, `RSL6`
+**Cilj:** URL je source of truth, a prikazani period jednak je poslanom periodu.
+
+1. Uvesti validirani Reports URL model za tab, OU, preset/custom datume i trends filtere.
+2. Uvesti SLA URL model za view, podtab, OU i profil.
+3. Sačuvati parametre pri tab navigaciji i pratiti Back/Forward.
+4. Custom period učiniti eksplicitno validnim/nevalidnim; ukloniti silent 30d fallback i swap.
+5. Testirati deep link, invalid parametre, reset, history i disabled fetch/export.
+
+**Exit gate:** refresh/share/Back/Forward reproduciraju isti prikaz i isti API scope.
+
+#### Evidencija zatvaranja Faze 3 (20. 10. 2026.)
+
+- Reports tab, OU i overview period sada se čitaju direktno iz validiranog URL modela; overview period koristi zasebne `window`, `windowFrom` i `windowTo` ključeve pa ne kolidira sa Trends URL ugovorom.
+- Promjena taba više ne briše OU, period ni Trends filtere. URL promjena, uključujući browser Back/Forward, neposredno određuje prikaz i API scope bez mount-time `useRef` snapshot-a.
+- SLA view, profiles/compliance podtab, OU i aktivni profil uvedeni su u validirani URL model; nevalidni view/panel/OU/profil se kanonizuju na dozvoljeni fallback nakon učitavanja kataloga.
+- Custom overview period više nema silent 30d fallback niti automatski swap obrnutih datuma. Nepotpun, nemoguć ili obrnut datum daje eksplicitnu grešku, `aria-invalid` stanje i blokira dashboard/pack/bottleneck fetch, print i export tok.
+- Direktni parser/window testovi pokrivaju deep link, invalidne parametre, reset, očuvanje scopea kroz navigaciju, permission fallback i validan/nepotpun/nemoguć/obrnut custom period.
+- `RSL4` i `RSL6` su zatvoreni determinističkim dokazom. Browser Back/Forward dokaz ostaje eksplicitno neizvršen i mapiran na Fazu 8.
+
+**Izvršni dokaz:** ciljni suite ima 3 fajla sa 12/12 testova; puni frontend Vitest prolaz ima 373/373 fajla odnosno 1492/1492 testa. Production TypeScript/Vite build, puni ESLint, i18n/design-system gate i Prettier su prošli; build zadržava postojeće non-fatal chunk-size upozorenje.
+
+### Faza 4 — Mutation concurrency i precizni refresh
+
+**Nalazi:** `RSL5`, mutation dio `RSL11`
+**Cilj:** nema duplih mutation zahtjeva ni nepotrebnog full reloada.
+
+1. Uvesti sinhrone operation guardove i per-action pending.
+2. Definisati mutation→query/state refresh matricu.
+3. Standardizovati request-ID feedback i error→retry.
+4. Primijeniti na profile, rules, calendars, matrix, escalations i schedules.
+5. Deferred testovi create/update/delete/manual-run i synchronous double click.
+
+**Exit gate:** svaki mutation šalje najviše jedan zahtjev i osvježava samo pogođeni snapshot.
+
+#### Evidencija zatvaranja Faze 4 (20. 10. 2026.)
+
+- Uveden je kanonski sinhroni operation guard koji rezerviše akciju prije prvog `await` izraza; synchronous double-click više ne može poslati dupli zahtjev.
+- Profile i rule create/update/delete tokovi imaju odvojene pending identitete. Profile mutacije osvježavaju samo base snapshot, dok rule mutacije osvježavaju samo detail snapshot.
+- SLA mutation greške sada čuvaju API request ID i prikazuju ga kroz standardni error prikaz; nakon greške ista akcija se može deterministički ponoviti.
+- Calendar save/delete, escalation create/update/delete, priority-matrix save i schedule create/update/toggle/test/run-now/delete dobili su sinhronu zaštitu prije mrežnog zahtjeva.
+- Schedule save greška prikazuje request ID. Uspješan schedule create/update direktno upisuje vraćeni entitet u listu bez redundantnog full list reloada; toggle i delete takođe mijenjaju samo pogođeni snapshot.
+- Direktni testovi dokazuju synchronous duplicate blokadu, otključavanje nakon završetka, profile/rule create-update-delete refresh matricu i correlated error→retry tok.
+- `RSL5` i mutation dio `RSL11` zatvoreni su determinističkim dokazom.
+
+**Izvršni dokaz:** ciljni suite ima 4 fajla sa 7/7 testova; puni frontend Vitest prolaz ima 374/374 fajla odnosno 1496/1496 testova. Production build je prošao uz postojeće non-fatal chunk-size upozorenje. Browser/E2E dokaz nije izvršen i ostaje mapiran na Fazu 8.
+
+### Faza 5 — Reporting timezone contract
+
+**Nalazi:** `RSL7`
+**Cilj:** preview, API agregacija, schedule i print koriste isti civil-time ugovor.
+
+1. Donijeti i dokumentovati produkt odluku o reporting zoni.
+2. Centralizovati civil-date/window računanje.
+3. Prikazati zonu uz period i schedule preview.
+4. Uskladiti frontend preview s backend schedulerom.
+5. Dodati DST spring/fall, midnight i korisnik-u-drugoj-zoni contract testove.
+
+**Exit gate:** isti input proizvodi isti period/sljedeće slanje na klijentu i serveru.
+
+#### Evidencija zatvaranja Faze 5 (20. 10. 2026.)
+
+- Produkt odluka je kanonizovana: `private.installation.timeZone` je reporting civil-time zona za dashboard, Trends, schedule preview, scheduler i run history; browser zona nije poslovni input.
+- Reports konfiguracija sada izlaže reporting zonu dashboard builderu, a dashboard API odgovor je vraća klijentu. Overview print period prikazuje server-confirmed zonu, dok Trends i schedule površine nastavljaju prikazivati istu konfiguracijsku zonu.
+- Frontend dobija centralni Intl-only civil-time helper koji semantički prati backend `notification-schedule-time`/`report-schedule-calendar` ugovor.
+- Schedule preview više ne računa ponedjeljak/prvi dan u browser-local vremenu. Koristi `list.settings.timeZone`, civilni datum u toj zoni i isti strictly-after algoritam kao backend `nextReportRunAt`.
+- Preview formatiranje eksplicitno koristi reporting zonu i prikazuje zone abbreviation; korisnik u drugoj zoni zato vidi stvarni server send slot.
+- Contract testovi pokrivaju Sarajevo spring-forward/fall-back, civilnu ponoć, korisnike u različitim zonama i weekly/monthly boundary.
+- `RSL7` je zatvoren determinističkim frontend/backend contract dokazom.
+
+**Izvršni dokaz:** ciljni frontend suite ima 2 fajla sa 7/7 testova, a backend configuration contract 1 fajl sa 9/9 testova. Puni frontend Vitest prolaz ima 375/375 fajlova odnosno 1499/1499 testova; production TypeScript/Vite build, puni ESLint sa 0 warninga i i18n/design-system gate su prošli. Backend production build je pokušavan, ali je generisanje Prisma klijenta blokirano mrežnim ograničenjem prema `binaries.prisma.sh`; ovo je jasno blokiran build dokaz, ne prolaz. Browser/E2E dokaz nije izvršen i ostaje za Fazu 8.
+
+### Faza 6 — Održivost i stabilni identiteti
+
+**Nalazi:** `RSL9`, `RSL10`, `RSL12`
+**Cilj:** velike cjeline imaju testabilne typed granice bez historijskog noisea.
+
+1. Characterization testovi prije refaktora.
+2. Izdvojiti Reports page/trends/schedules controller hookove i prezentacijske sekcije.
+3. Uvesti stabilni report row ID ugovor.
+4. Ukloniti delivery-history komentare uz čuvanje invarijanti.
+5. Dodati scope comment-hygiene test.
+
+**Exit gate:** nema index ključeva na dinamičkim redovima, najveće state mašine su izvan render monolita i hygiene gate je zelen.
+
+#### Evidencija zatvaranja Faze 6 (20. 10. 2026.)
+
+- Prije i uz mehaničko izdvajanje dodani su characterization testovi za dashboard active/scope/latest-only ugovor, Trends correlated error→recovery i schedule-history recovery.
+- Overview dashboard orchestration izdvojen je iz `ReportsPage` u typed `useReportsDashboardData` controller hook; stranica više ne posjeduje request guard, fetch lifecycle ni error korelaciju.
+- Trends query/fetch/cancel/error state mašina izdvojena je iz render monolita u `useReportTrendsData`; prezentacijska komponenta zadržava samo filtere, export i prikaz.
+- Schedule run-history query/retry/latest-only state izdvojen je u `useReportScheduleRuns`, dok sheet ostaje prezentacijska granica.
+- Report-pack redovi sada dobijaju determinističan content key izveden iz deklarisanog redoslijeda kolona i occurrence suffix za stvarne duplikate. Sort/reorder više ne prenosi DOM identitet na drugi red.
+- Trends table period redovi više ne koriste index u React ključu.
+- Delivery-history komentari (`Paket`, `Package`, `Val`, numerisani design/plan `§`) uklonjeni su iz Reports/SLA page/component/lib/service scopea, uz očuvanje trajnih invarijanti.
+- Dodan je scope comment-hygiene gate koji rekurzivno provjerava produkcijske Reports/SLA izvore.
+- `RSL9`, `RSL10` i `RSL12` su zatvoreni.
+
+**Izvršni dokaz:** ciljni suite ima 5 fajlova sa 10/10 testova; puni frontend Vitest prolaz ima 378/378 fajlova odnosno 1504/1504 testa. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli. Browser/E2E dokaz nije izvršen i ostaje za Fazu 8.
+
+### Faza 7 — Puna deterministička testna mreža i statički closeout
+
+**Nalazi:** `RSL11`, završna regresija `RSL1–RSL12`
+**Cilj:** kritični page/hook/component ugovori direktno dokazani.
+
+1. Dopuniti ReportsPage/SlaPage component testove.
+2. Dopuniti hook race/recovery/mutation testove.
+3. Dodati responsive strukturalne i accessibility contract testove gdje su deterministički.
+4. Pokrenuti puni frontend i relevantni backend suite.
+5. Pokrenuti build, ESLint 0/0, i18n/design-system, Prettier i `git diff --check`.
+
+**Exit gate:** svi statički i deterministički gateovi zeleni; bez browser dokaza ocjena najviše 9,8/10.
+
+#### Evidencija zatvaranja Faze 7 (20. 10. 2026.)
+
+- Dodani su direktni `ReportsPage` testovi za Trends deep link i API scope, očuvanje OU/custom-period parametara pri navigaciji na Packs te blokiranje panela i zahtjeva za nevalidan custom period.
+- Dodani su direktni `SlaPage` testovi za matrix deep link sa OU/profil scopeom i URL-backed compliance podtab. Test fixture koristi puni OU ugovor sa `ouPath`, pa dokaz prolazi kroz stvarnu normalizaciju stabla.
+- Postojeća hook mreža zajedno sa novim page granicama pokriva latest-only race, initial/stale/background recovery, request correlation, retry pending i synchronous mutation double-submit. Responsivni i accessibility ugovori koji su deterministički ostaju pokriveni strukturnim komponentnim testovima; stvarni viewport, keyboard/focus i axe dokaz nije proglašen izvršenim.
+- Ciljni page suite prolazi 2/2 fajla i 5/5 testova. Puni frontend Vitest prolazi **380/380 fajlova i 1509/1509 testova**; production build i puni ESLint prolaze, uz postojeće non-fatal Vite chunk-size upozorenje.
+- Relevantni backend Reports/SLA pokušaj obuhvatio je 55 suiteova: 25 suiteova i 91 test su prošli, dok je 30 suiteova zaustavljeno pri TypeScript kompilaciji jer checkout nema generisani `backend/generated/prisma` klijent. To je reprodukovani infrastrukturni preduvjet, a ne test assertion regresija; backend suite zato nije lažno označen zelenim.
+- `RSL11` i završna deterministička regresija `RSL1–RSL12` su zatvoreni. `RSL13` i browser/E2E dokaz ostaju eksplicitno otvoreni, pa je ocjena ograničena na **9,8/10**.
+
+### Faza 8 — Browser/E2E closeout
+
+**Nalazi:** `RSL13`
+**Cilj:** stvarni route, recovery, race, responsive, keyboard i print dokaz.
+
+1. Dopuniti E2E za URL history, error/retry, stale snapshot, A→B race i double-submit.
+2. Izvršiti `07`, `12`, `17`, `18`, `19`, `29`, `42`, `50` i nove scenarije.
+3. Provjeriti 320/375/768/1280 px, 200% zoom, charts/table overflow.
+4. Provjeriti keyboard, focus trap/return, confirm i sheet/drawer ponašanje.
+5. Evidentirati komandu, rezultat bez skipova, trace/screenshot artefakte i revision SHA.
+
+**Exit gate:** `RSL1–RSL13` zatvoreni i stvarni browser run zelen.
+
+#### Evidencija pokretanja Faze 8 (20. 10. 2026.)
+
+- Dodan je `55-reports-sla-closeout.spec.ts` za stvarni Reports Trends/Packs i SLA Compliance/Matrix Back/Forward ugovor, horizontalni overflow na 320/375/768/1280 px te serious/critical axe gate na Trends i Compliance površinama.
+- TypeScript provjera E2E projekta, Prettier i `git diff --check` prolaze.
+- Pokušano je izvršavanje obaveznih `07`, `12`, `17`, `18`, `19`, `29`, `42` i `50` scenarija sa `E2E_RETRIES=0`. Global setup je prije pokretanja ijednog testa zaustavljen jer stack nije dostupan na `http://localhost:10001/health`; frontend nije dostupan ni na `http://localhost:5173`, a Docker CLI nije instaliran.
+- Ovo nije browser prolaz: nema izvršenih testova, trace/screenshot dokaza ni osnove za zatvaranje `RSL13`. Faza 8 ostaje otvorena, a ocjena ostaje ograničena na **9,8/10** dok stvarni stack ne bude dostupan.
 
 ---
 
-## Must-Have kandidati (modul 8)
+## 7. Preporučeni redoslijed
 
-Predloženi redoslijed. Ništa od ovoga nije implementirano.
+Preporučeni redoslijed je **Faza 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8**.
 
-1. **RS2 i RS8:** greška organizacionih jedinica i prazan skeleton paketa prikazuju poruku sa dugmetom za ponovni pokušaj.
-2. **RS5:** `cancelled` zaštita i `.catch` za eskalacije, pregled, uska grla i SLA učitavanje.
-3. **RS1:** SLA `load` odvojiti od izbora profila. Učitavati samo podatke za izabrani profil, a usklađenost tek na njenom tabu.
-4. **RS3:** odluka o CSAT obimu (period i jedinica, ili jasna oznaka „sveukupno“).
-5. **RS4:** indikator učitavanja ili reset pri promjeni filtera u trendovima, usklađenosti i uskim grlima.
-6. **RS6:** provjeriti u pregledaču tok kreiranja profila SLA. Ako je bug potvrđen, dodati hook test.
-7. **RS7:** odluka koja zona važi za izvještaje i raspored (zona organizacije ili pregledača).
-8. **RS17:** hook testovi za `useSlaPageData` (izbor, kreiranje, race) i e2e za eskalacije.
+- Faze 1 i 2 prvo zatvaraju correctness i recovery rizike.
+- Faza 3 stabilizuje reproducibilan scope prije mutation i timezone rada.
+- Faza 4 zatvara write concurrency prije velikog refaktora.
+- Faza 5 zahtijeva eksplicitnu produkt odluku, ali ne treba blokirati prve četiri faze.
+- Faza 6 se radi nakon characterization testova, bez behavior rewritea.
+- Faza 7 zatvara determinističku regresiju.
+- Faza 8 ostaje posljednja integracijska potvrda.
+
+Svaku završenu fazu treba zasebno validirati, auditirati, commitovati i pushati.
+
+---
+
+## 8. Obavezna završna matrica
+
+### Unit/hook
+
+- SLA base/detail/compliance identity i latest-only matrica;
+- request correlation i retry pending;
+- Reports/SLA URL parser i Back/Forward;
+- custom period validacija;
+- mutation synchronous guard;
+- timezone/DST parity;
+- stabilni report row ID.
+
+### Component/page
+
+- Reports overview/supporting-data/list/preview/history recovery;
+- trends filter/export/print state;
+- schedule recipient/form/history/manual-run;
+- SLA profile A→B, create/edit/delete i rule lifecycle;
+- calendars, matrix, compliance i escalations;
+- empty, forbidden, loading, stale i background-error stanja.
+
+### Browser/E2E
+
+- route i permission matrica;
+- deep link/share/Back/Forward;
+- initial i background error + retry/request ID;
+- profile race i mutation double-submit;
+- schedule timezone/DST preview;
+- export i print lifecycle;
+- 320/375/768/1280 px, 200% zoom;
+- keyboard, focus trap/return i axe.
+
+---
+
+## 9. Završni zaključak
+
+Reports i SLA više nisu modul ocjene 6/10 iz arhivskog audita. Nakon prve tri faze imaju scope-safe SLA identitet i recovery, recoverable Reports supporting-data tokove, validirani URL kao source of truth i eksplicitno nevalidan custom period bez tihog fallbacka. Trenutna profesionalna ocjena je **9,8/10**; deterministička mreža je zatvorena, a jedini preostali odbitak je neizvršen browser dokaz.
+
+Plan iznad vodi do **9,8/10** kroz determinističke faze 1–7. Punih **10/10** je opravdano tek nakon stvarno izvršene Faze 8 bez preskočenih kritičnih scenarija.

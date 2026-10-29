@@ -11,8 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlCompactClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { PartialResourceError } from "@/components/ui/partial-resource-error";
+import { usePartialResource } from "@/lib/async/use-partial-resource";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -48,11 +50,15 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [passwordReveal, setPasswordReveal] = useState<CreateUserResponse | null>(null);
-  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [originUnits, setOriginUnits] = useState<readonly { id: string; label: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const loadServices = useCallback(() => listServices(), []);
+  const servicesResource = usePartialResource<readonly ServiceResponse[], ApiErrorKey>({
+    load: loadServices,
+    mapError: mapApiError,
+  });
 
   const reload = useCallback(async () => {
     setIsLoading(true);
@@ -84,11 +90,9 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([listOrganizationalUnitTree(), listServices().catch(() => [])])
-      .then(([tree, loadedServices]) => {
-        if (!active) return;
-        setOriginUnits(flattenOriginUnitOptions(tree));
-        setServices(loadedServices);
+    void listOrganizationalUnitTree()
+      .then((tree) => {
+        if (active) setOriginUnits(flattenOriginUnitOptions(tree));
       })
       .catch((error: unknown) => {
         if (!active) return;
@@ -214,6 +218,13 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
           </div>
         ) : null}
       </Card>
+      {servicesResource.errorKey ? (
+        <PartialResourceError
+          messageKey={servicesResource.errorKey}
+          requestId={servicesResource.requestId}
+          retry={servicesResource.retry}
+        />
+      ) : null}
       <UserDetailDrawer
         user={selectedUser}
         open={selectedUser !== null}
@@ -224,7 +235,8 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
         canLinkDirectory={canLinkDirectory}
         isSelf={selectedUser?.id === currentUserId}
         originUnits={originUnits}
-        services={services}
+        services={servicesResource.data ?? []}
+        servicesAvailable={servicesResource.data !== null}
         onChanged={reload}
         onPasswordIssued={setPasswordReveal}
         onDeleted={() => setSelectedUserId(null)}

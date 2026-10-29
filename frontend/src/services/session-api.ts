@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequestValidated } from "@/services/api";
+import { parseCurrentSession } from "@/services/critical-api-parsers";
 import type { SessionPrincipal } from "@/services/session-store";
 
 export type CurrentSessionResponse = {
@@ -8,7 +9,7 @@ export type CurrentSessionResponse = {
   readonly permissionKeys: readonly string[];
   readonly organizationalUnitId: string | null;
   readonly organizationalUnitName: string | null;
-  /** Paket 3.2: optional modules that are switched on (menus only). */
+  /** optional modules that are switched on (menus only). */
   readonly modules?: {
     readonly cmdb: boolean;
     readonly problems?: boolean;
@@ -17,5 +18,5 @@ export type CurrentSessionResponse = {
 };
 
 export function getCurrentSession(): Promise<CurrentSessionResponse> {
-  return apiRequest("/auth/session");
+  return apiRequestValidated("/auth/session", parseCurrentSession);
 }

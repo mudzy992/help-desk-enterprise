@@ -45,7 +45,7 @@ export function NotificationsPanel({
         <div className="flex items-center gap-2">
           <Segmented
             size="sm"
-            ariaLabel={t("notifications.title")}
+            label={t("notifications.title")}
             value={filter}
             onChange={setFilter}
             items={[

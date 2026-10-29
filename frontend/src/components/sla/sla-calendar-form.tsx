@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/i18n/translation-key";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -209,7 +210,7 @@ export function SlaCalendarForm({
       </label>
       {errorKey ? (
         <p role="alert" className={errorTextClassName}>
-          {t(errorKey as never)}
+          {t(errorKey as TranslationKey)}
         </p>
       ) : null}
       <div>

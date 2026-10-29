@@ -14,6 +14,7 @@ interface CreateTicketFollowUpViewsProperties {
   readonly matrixCells: readonly PriorityMatrixCell[] | null;
   readonly displayedError: TicketErrorKey | "tickets.errorCatalog" | null;
   readonly isSubmitting: boolean;
+  readonly isInterceptUnavailable: boolean;
   readonly suggestions: readonly KnowledgeInterceptSuggestion[];
   readonly helped: boolean;
   readonly helpedArticleId: string | null;
@@ -34,6 +35,7 @@ export function CreateTicketFollowUpViews({
   matrixCells,
   displayedError,
   isSubmitting,
+  isInterceptUnavailable,
   suggestions,
   helped,
   helpedArticleId,
@@ -50,6 +52,7 @@ export function CreateTicketFollowUpViews({
       <CreateTicketInterceptView
         displayedError={displayedError}
         isSubmitting={isSubmitting}
+        isInterceptUnavailable={isInterceptUnavailable}
         items={suggestions}
         helped={helped}
         helpedArticleId={helpedArticleId}

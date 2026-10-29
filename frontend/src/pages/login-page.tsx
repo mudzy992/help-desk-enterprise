@@ -1,12 +1,11 @@
-import { BookOpen, Eye, EyeOff, Lock, ShieldCheck, Ticket, TrendingUp } from "lucide-react";
-import { type FormEvent, type KeyboardEvent, useEffect, useState } from "react";
+import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { type FormEvent, type KeyboardEvent, useEffect, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { CaptchaChallenge } from "@/components/auth/captcha-challenge";
-import { ChangePasswordForm } from "@/components/auth/change-password-form";
-import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
-import { MfaMethodStep } from "@/components/auth/mfa-method-step";
-import { RecoveryCodesPanel } from "@/components/auth/recovery-codes-panel";
+import { CaptchaSlot, hasTurnstileConfiguration } from "@/components/auth/captcha-slot";
+import { type CaptchaLoadState } from "@/components/auth/captcha-challenge";
+import { LoginFlowStep } from "@/components/auth/login-flow-step";
+import { LoginValuePoints, MicrosoftMark } from "@/components/auth/login-presentation";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
 import { useBranding } from "@/lib/branding/branding-store";
@@ -19,11 +18,12 @@ import {
 } from "@/components/ui/control";
 import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { safeReturnPath, startEntraSignIn } from "@/lib/auth/entra-redirect";
+import { scheduleIdlePrefetch } from "@/lib/app/idle-prefetch";
 import {
-  readPreferredMfaMethod,
-  resolveDefaultMfaMethod,
-  type MfaMethod,
-} from "@/lib/auth/mfa-method";
+  readPendingLoginStep,
+  reduceLoginFlow,
+  stepFromSignInOutcome,
+} from "@/lib/auth/login-flow";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/services/api";
 import {
@@ -33,67 +33,15 @@ import {
 } from "@/services/auth-api";
 
 /*
-  Sign-in is a small state machine — credentials → (password
-  change) → (second factor | forced MFA set-up → recovery codes) → session.
-*/
-type SignInStep =
-  | { readonly kind: "credentials" }
-  | {
-      readonly kind: "change";
-      readonly token: string;
-      readonly reason: "temporary" | "expired";
-      readonly passwordMinLength: number;
-    }
-  | {
-      readonly kind: "mfa";
-      readonly token: string;
-      /** What the account can present; `undefined` = TOTP only. */
-      readonly methods?: readonly MfaMethod[];
-    }
-  | { readonly kind: "enroll"; readonly token: string }
-  | { readonly kind: "codes"; readonly codes: readonly string[]; readonly finish: () => void };
-
-function stepFromOutcome(outcome: SignInOutcome): SignInStep | null {
-  switch (outcome.kind) {
-    case "must_change_password":
-      return {
-        kind: "change",
-        token: outcome.passwordChangeToken,
-        reason: outcome.reason,
-        passwordMinLength: outcome.passwordMinLength,
-      };
-    case "mfa_required":
-      return { kind: "mfa", token: outcome.mfaToken, methods: outcome.methods };
-    case "mfa_enrollment_required":
-      return { kind: "enroll", token: outcome.mfaToken };
-    default:
-      return null;
-  }
-}
-
-/** The header sign-in hands a pending step over through router state. */
-function readPendingStep(state: unknown): SignInStep {
-  if (typeof state === "object" && state !== null && "pendingSignIn" in state) {
-    const step = stepFromOutcome((state as { pendingSignIn: SignInOutcome }).pendingSignIn);
-    if (step) return step;
-  }
-  return { kind: "credentials" };
-}
-
-/*
   Pulse sign-in: the brand panel carries the identity on the left, the form
   stays narrow and focused on the right. The form markup (ids, submit button,
   change-password flow) is unchanged on purpose — it is the E2E entry point.
 */
 
-const POINTS = [
-  { icon: Ticket, key: "login.pointTickets" },
-  { icon: BookOpen, key: "login.pointKnowledge" },
-  { icon: TrendingUp, key: "login.pointInsight" },
-] as const;
-
 export function LoginPage() {
   const { t } = useTranslation();
+
+  useEffect(() => scheduleIdlePrefetch(() => import("@/pages/dashboard-page")), []);
   const branding = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,8 +66,9 @@ export function LoginPage() {
    */
   const [isCaptchaRequired, setIsCaptchaRequired] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaLoadState, setCaptchaLoadState] = useState<CaptchaLoadState>("loading");
   const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
-  const [step, setStep] = useState<SignInStep>(() => readPendingStep(location.state));
+  const [step, dispatchFlow] = useReducer(reduceLoginFlow, location.state, readPendingLoginStep);
   // Reveal toggle + Caps Lock hint, the two
   // most common reasons for a failed first attempt.
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -167,16 +116,17 @@ export function LoginPage() {
   }
 
   const advance = (outcome: SignInOutcome) => {
-    const next = stepFromOutcome(outcome);
-    if (next) {
-      setStep(next);
+    if (stepFromSignInOutcome(outcome) === null) {
+      navigate(redirectPath, { replace: true });
       return;
     }
-    navigate(redirectPath, { replace: true });
+    dispatchFlow({ type: "OUTCOME", outcome });
   };
 
-  const isCaptchaBlocked =
-    isCaptchaRequired && providers?.captcha?.provider === "turnstile" && captchaToken === null;
+  const isCaptchaUnavailable =
+    isCaptchaRequired &&
+    (!hasTurnstileConfiguration(providers?.captcha) || captchaLoadState === "unavailable");
+  const isCaptchaBlocked = isCaptchaRequired && !isCaptchaUnavailable && captchaToken === null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -193,6 +143,7 @@ export function LoginPage() {
       const code = error instanceof ApiError ? error.code : null;
       if (code === "CAPTCHA_REQUIRED") {
         // First time the server asks: show the widget and let the user solve it.
+        setCaptchaLoadState("loading");
         setIsCaptchaRequired(true);
         setHasError(false);
       } else if (code === "CAPTCHA_FAILED") {
@@ -224,6 +175,7 @@ export function LoginPage() {
     } catch (error) {
       const errorCode = error instanceof ApiError ? error.code : null;
       if (errorCode === "CAPTCHA_REQUIRED" || errorCode === "CAPTCHA_FAILED") {
+        if (errorCode === "CAPTCHA_REQUIRED") setCaptchaLoadState("loading");
         setIsCaptchaRequired(true);
         setCaptchaToken(null);
         setCaptchaResetSignal((value) => value + 1);
@@ -234,6 +186,15 @@ export function LoginPage() {
       throw error;
     }
   };
+
+  const captchaSlot = isCaptchaRequired ? (
+    <CaptchaSlot
+      configuration={providers?.captcha}
+      onToken={setCaptchaToken}
+      onLoadState={setCaptchaLoadState}
+      resetSignal={captchaResetSignal}
+    />
+  ) : null;
 
   const handleEntraSignIn = async () => {
     if (providers?.entra == null) return;
@@ -280,18 +241,7 @@ export function LoginPage() {
           <p className="mt-3 text-[13.5px] leading-6 text-primary-foreground/85">
             {t("login.panelBody")}
           </p>
-          <ul className="mt-7 space-y-3">
-            {POINTS.map((point) => (
-              <li key={point.key} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 text-primary-foreground">
-                  <point.icon size={14} strokeWidth={2} aria-hidden="true" />
-                </span>
-                <span className="text-[12.5px] leading-5 text-primary-foreground/90">
-                  {t(point.key)}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <LoginValuePoints />
         </div>
 
         <p className="relative flex items-center gap-1.5 text-[11.5px] text-primary-foreground/70">
@@ -319,94 +269,34 @@ export function LoginPage() {
           </div>
 
           <div className="rounded-lg border border-border bg-surface p-5 shadow-card sm:p-7">
-            {step.kind === "change" ? (
-              <>
-                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
-                  {t("auth.changePassword.title")}
-                </h2>
-                <div className="mt-5">
-                  <ChangePasswordForm
-                    reason={step.reason}
-                    passwordMinLength={step.passwordMinLength}
-                    onCompleted={async (newPassword) => {
-                      advance(await completePasswordChange(step.token, newPassword));
-                    }}
-                    onCancel={() => setStep({ kind: "credentials" })}
-                  />
-                </div>
-              </>
-            ) : step.kind === "mfa" ? (
-              <>
-                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
-                  {t("auth.mfa.verifyTitle")}
-                </h2>
-                <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
-                  {t("auth.mfa.verifyIntro")}
-                </p>
-                <div className="mt-5">
-                  <MfaMethodStep
-                    email={email}
-                    token={step.token}
-                    methods={step.methods}
-                    defaultMethod={resolveDefaultMfaMethod(
-                      step.methods,
-                      readPreferredMfaMethod(email),
-                    )}
-                    onVerifyCode={(code) => verifyMfaWithCaptcha(step.token, code)}
-                    captcha={
-                      isCaptchaRequired && providers?.captcha?.siteKey != null ? (
-                        <CaptchaChallenge
-                          siteKey={providers.captcha.siteKey}
-                          onToken={setCaptchaToken}
-                          resetSignal={captchaResetSignal}
-                        />
-                      ) : undefined
-                    }
-                    isCaptchaBlocked={isCaptchaBlocked}
-                    onCompletePasskey={(assertion) => completeMfaWithPasskey(step.token, assertion)}
-                    onVerified={() => navigate(redirectPath, { replace: true })}
-                    onCancel={() => setStep({ kind: "credentials" })}
-                  />
-                </div>
-              </>
-            ) : step.kind === "enroll" ? (
-              <>
-                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
-                  {t("auth.mfa.enrollTitle")}
-                </h2>
-                <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
-                  {t("auth.mfa.enrollRequiredIntro")}
-                </p>
-                <div className="mt-5">
-                  <MfaEnrollment
-                    loadSecret={() => startSignInMfaEnrollment(step.token)}
-                    onConfirm={async (code) => {
-                      const result = await confirmMfaEnrollment(step.token, code);
-                      setStep({
-                        kind: "codes",
-                        codes: result.recoveryCodes,
-                        finish: result.finish,
-                      });
-                    }}
-                    onCancel={() => setStep({ kind: "credentials" })}
-                  />
-                </div>
-              </>
-            ) : step.kind === "codes" ? (
-              <>
-                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
-                  {t("auth.mfa.recoveryTitle")}
-                </h2>
-                <div className="mt-5">
-                  <RecoveryCodesPanel
-                    codes={step.codes}
-                    onDone={() => {
-                      step.finish();
-                      navigate(redirectPath, { replace: true });
-                    }}
-                  />
-                </div>
-              </>
+            {step.kind !== "credentials" ? (
+              <LoginFlowStep
+                step={step}
+                email={email}
+                captcha={captchaSlot ?? undefined}
+                isCaptchaBlocked={isCaptchaBlocked}
+                isCaptchaUnavailable={isCaptchaUnavailable}
+                onPasswordChange={async (token, newPassword) => {
+                  advance(await completePasswordChange(token, newPassword));
+                }}
+                onVerifyCode={verifyMfaWithCaptcha}
+                onCompletePasskey={completeMfaWithPasskey}
+                onVerified={() => navigate(redirectPath, { replace: true })}
+                onLoadEnrollmentSecret={startSignInMfaEnrollment}
+                onConfirmEnrollment={async (token, code) => {
+                  const result = await confirmMfaEnrollment(token, code);
+                  dispatchFlow({
+                    type: "ENROLLMENT_CONFIRMED",
+                    codes: result.recoveryCodes,
+                    finish: result.finish,
+                  });
+                }}
+                onRecoveryCodesDone={(finish) => {
+                  finish();
+                  navigate(redirectPath, { replace: true });
+                }}
+                onCancel={() => dispatchFlow({ type: "CANCEL" })}
+              />
             ) : (
               <>
                 <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
@@ -525,13 +415,7 @@ export function LoginPage() {
                       />
                       <span>{t("login.rememberMe")}</span>
                     </label>
-                    {isCaptchaRequired && providers?.captcha?.siteKey != null ? (
-                      <CaptchaChallenge
-                        siteKey={providers.captcha.siteKey}
-                        onToken={setCaptchaToken}
-                        resetSignal={captchaResetSignal}
-                      />
-                    ) : null}
+                    {captchaSlot}
                     {hasError ? (
                       <p id="login-error" className={errorTextClassName} role="alert">
                         {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
@@ -543,7 +427,7 @@ export function LoginPage() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isSubmitting || isCaptchaBlocked}
+                      disabled={isSubmitting || isCaptchaBlocked || isCaptchaUnavailable}
                     >
                       {isSubmitting ? t("session.signingIn") : t("session.signIn")}
                     </Button>
@@ -599,21 +483,5 @@ export function LoginPage() {
         </section>
       </main>
     </div>
-  );
-}
-
-/** Four-square Microsoft logo (brand colours are fixed by Microsoft). */
-function MicrosoftMark() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 21 21" aria-hidden="true" className="mr-1.5">
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      {/* design-system-allow-hex: Microsoft brand mark */}
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-    </svg>
   );
 }

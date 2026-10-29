@@ -1,4 +1,4 @@
-import type { HorizontalBarItem } from "@/components/charts/h-bars";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
 import type { TicketCsatBucket } from "@/services/tickets-csat-api";
 
@@ -13,7 +13,7 @@ export type CsatBucketRow = {
 };
 
 /**
- * Val 1 (M9/B3): razrez CSAT-a (OU/servis/grupa) je do sada bio „mrtva“ površina
+ * CSAT breakdowns by unit, service and group share this presentation model
  * API-ja. Redovi se sortiraju po broju ocjena (najveći uzorak prvi) — mali uzorci
  * ne smiju izgledati jednako uvjerljivo kao veliki.
  */
@@ -24,7 +24,7 @@ export function csatBucketRows(
   return [...buckets]
     .map((bucket) => ({
       key: bucket.key,
-      // Val 1 (M9/B3): server šalje i naziv; ID je samo rezerva za obrisane zapise.
+      // Prefer the server label; keep the ID as a fallback for deleted records.
       label: bucket.label.length > 0 ? bucket.label : bucket.key,
       count: bucket.count,
       average: bucket.average,

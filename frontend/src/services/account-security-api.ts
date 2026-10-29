@@ -5,7 +5,7 @@ import type {
 import { apiRequest } from "@/services/api";
 import type { MfaEnrollmentSecret } from "@/services/auth-api";
 
-/* Paket 2.1: own account security ("Sigurnost naloga") and the admin view. */
+/* own account security ("Sigurnost naloga") and the admin view. */
 
 export type MfaRequirement = "required" | "optional" | "unavailable";
 
@@ -28,7 +28,7 @@ export type PasskeyView = {
 
 export type AccountSecurityOverview = {
   readonly mfa: MfaStatus;
-  /** Paket 5.4.0-e: the registered passkeys and whether TOTP is enrolled. */
+  /** The registered passkeys and whether TOTP is enrolled. */
   readonly passkeys: readonly PasskeyView[];
   readonly hasTotp: boolean;
   readonly password: {
@@ -68,7 +68,7 @@ const post = (body?: unknown): RequestInit => ({
 export const getAccountSecurity = (): Promise<AccountSecurityOverview> =>
   apiRequest("/auth/security");
 
-/* Paket 5.4.0-e: passkey ceremonies on the caller's own account. The confirm
+/* passkey ceremonies on the caller's own account. The confirm
    call carries the (optional) TOTP code the server asks for when the account
    already has TOTP — a stolen session alone must not be able to add a factor. */
 export const startPasskeyRegistration = (): Promise<{

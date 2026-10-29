@@ -25,9 +25,28 @@ docker exec -i "$BACKEND" node dist/src/cli/secrets.js status
 Uz to prikazuje broj MFA tajni po ključu, broj anonimizacija s tombstone-ima i broj izvoza koji se još mogu
 preuzeti. Exit kod 0 znači `status=ok`, a 1 znači da je potrebna akcija.
 
-**Zavisni ključevi.** Ako `INBOUND_EMAIL_TOKEN_SECRET`, `PRIVACY_TOMBSTONE_KEY` ili `PRIVACY_EXPORT_KEY`
-nisu zadani, izvode se iz `MFA_ENCRYPTION_KEY`. Promjena MFA ključa bi ih tada tiho promijenila. Zato se oni
-rotiraju ili „pinuju“ **prije** MFA ključa (faza C to i provjerava).
+## Production pin i rotation ugovor po namjeni
+
+| Namjena | Aktivna tajna / credential | Pin i rotacija |
+|---|---|---|
+| MFA TOTP | `MFA_ENCRYPTION_KEY` | Tačno 32 bajta base64; rotacija uz `_PREVIOUS` i re-encryption iz faze C. |
+| Inbound reply token | `INBOUND_EMAIL_TOKEN_SECRET` | Zaseban eksplicitni ključ; `_PREVIOUS` ostaje 30 dana. |
+| Privacy tombstone | `PRIVACY_TOMBSTONE_KEY` | Zaseban eksplicitni HMAC ključ; prethodni ostaje dok tombstone treba prepoznavati. |
+| Privacy export | `PRIVACY_EXPORT_KEY` | Zaseban eksplicitni wrapping ključ; rotirati kad nema aktivnih izvoza. |
+| Config package signing | `CONFIG_PACKAGE_SIGNING_KEY` | Zaseban ključ od najmanje 32 znaka; prethodni javni/verifikacijski materijal zadržati za stare pakete. |
+| JWT | settings `private.auth.jwtSigningSecret` | Generisati zasebno; rotacija invalidira postojeće sesije i radi se u kontrolisanom maintenance prozoru. |
+| Install/rerun | `INSTALL_TOKEN` | Privremen, zaseban i najmanje 16 znakova; ukloniti čim je instalacija/rerun završen. |
+| PostgreSQL | `DATABASE_URL`, `MIGRATION_DATABASE_URL` | Runtime i migrator imaju različite credentiale; rotirati pojedinačno uz connection drain i TLS `verify-full`. |
+| Redis | `REDIS_USERNAME`/`REDIS_PASSWORD` | Zaseban ACL principal po aplikaciji; dodati novi credential, redeploy, potvrditi TLS, pa ukinuti stari. |
+| SMTP/Graph/Teams i ostali provideri | provider-specific secret u settings/sefu | Nikad dijeliti između providera; rotirati u provideru, upisati novu verziju, testirati pa opozvati staru. |
+
+Production startup fatalno zahtijeva zasebne MFA, inbound, tombstone, export i config-signing vrijednosti. Implicitno
+izvođenje purpose-specific ključeva iz `MFA_ENCRYPTION_KEY` dozvoljeno je samo radi kompatibilnosti u development/test
+okruženju. Production tajne i credentiali se ne ispisuju u startup grešci ni dependency logu.
+
+**Zavisni ključevi (legacy/non-production).** Ako `INBOUND_EMAIL_TOKEN_SECRET`, `PRIVACY_TOMBSTONE_KEY` ili
+`PRIVACY_EXPORT_KEY` nisu zadani izvan productiona, izvode se iz `MFA_ENCRYPTION_KEY`. Prije prelaska na production
+moraju se „pinovati“ i zatim nezavisno rotirati. Promjena MFA ključa bi ih inače tiho promijenila.
 
 **Pin.** `secrets.js pins` ispisuje trenutno izvedene vrijednosti u obliku `KLJUČ=base64:…`. Kad se takva
 vrijednost upiše u okruženje, ponašanje ostaje **bit-identično**, ali ključ više ne zavisi od MFA ključa.

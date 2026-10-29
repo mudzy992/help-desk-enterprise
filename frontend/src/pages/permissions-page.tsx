@@ -2,7 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PermissionsPanel } from "@/components/rbac/permissions-panel";
 import { RequireAccess } from "@/components/layout/require-access";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { roleKeys } from "@/lib/session/permission-keys";
 
 interface PermissionsPageProperties {

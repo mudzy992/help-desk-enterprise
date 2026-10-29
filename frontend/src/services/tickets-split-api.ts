@@ -12,6 +12,7 @@ export type SplitTicketChildInput = {
 };
 
 export type SplitTicketInput = {
+  readonly operationId: string;
   readonly reason?: string;
   readonly children: readonly SplitTicketChildInput[];
 };

@@ -1,4 +1,5 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
+import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
 import {
   incidentStatuses,
@@ -7,7 +8,7 @@ import {
   type ServiceAvailabilityValue,
 } from "@/services/status-api";
 
-/** Paket 2.7 (§8): pure presentation rules of the status page. */
+/** pure presentation rules of the status page. */
 
 export function availabilityTone(value: ServiceAvailabilityValue): BadgeTone {
   switch (value) {
@@ -47,6 +48,16 @@ export function incidentStatusTone(status: IncidentStatus): BadgeTone {
     default:
       return "success";
   }
+}
+
+export type IncidentStatusTranslationKey = Extract<
+  CommonTranslationKey,
+  `status.status.${IncidentStatus}`
+>;
+
+export function incidentStatusTranslationKey(status: string): IncidentStatusTranslationKey | null {
+  const knownStatus = incidentStatuses.find((candidate) => candidate === status);
+  return knownStatus === undefined ? null : `status.status.${knownStatus}`;
 }
 
 export type OverallStatus = "operational" | "partial" | "major" | "maintenance";

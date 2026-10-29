@@ -16,10 +16,12 @@ interface MfaCodeFormProperties {
   readonly allowRecoveryCode?: boolean;
   readonly submitLabel?: string;
   readonly idPrefix?: string;
-  /** Paket 5.4.1 closeout (M3): the human check, shown only when the server asks for it. */
+  /** The human check, shown only when the server asks for it. */
   readonly captcha?: ReactNode;
-  /** Keeps the submit button off until the human check is solved. */
+  /** Keeps the submit button off until the human check is solved or available. */
   readonly isSubmitBlocked?: boolean;
+  /** A missing/broken CAPTCHA is shown by the shared slot, not as token wait. */
+  readonly isCaptchaUnavailable?: boolean;
 }
 
 type MfaCodeErrorKey =
@@ -45,7 +47,7 @@ const mfaCodeErrorKeys: Readonly<Record<MfaCodeError, MfaCodeErrorKey>> = {
   failed: "auth.mfa.failed",
 };
 
-/** Paket 2.1: one input for a 6-digit TOTP code or an "xxxxx-xxxxx" recovery code. */
+/** One input for a 6-digit TOTP code or an "xxxxx-xxxxx" recovery code. */
 export function MfaCodeForm({
   onSubmit,
   onCancel,
@@ -54,6 +56,7 @@ export function MfaCodeForm({
   idPrefix = "mfa",
   captcha,
   isSubmitBlocked = false,
+  isCaptchaUnavailable = false,
 }: MfaCodeFormProperties) {
   const { t } = useTranslation();
   const [code, setCode] = useState("");
@@ -98,8 +101,10 @@ export function MfaCodeForm({
         />
       </label>
       {captcha ?? null}
-      {isSubmitBlocked ? <p className={hintClassName}>{t("session.captchaBlocked")}</p> : null}
-      {error ? (
+      {isCaptchaUnavailable ? null : isSubmitBlocked ? (
+        <p className={hintClassName}>{t("session.captchaBlocked")}</p>
+      ) : null}
+      {error && !(error === "captchaRequired" && captcha != null) ? (
         <p id={`${inputId}-error`} className={errorTextClassName} role="alert">
           {t(mfaCodeErrorKeys[error])}
         </p>

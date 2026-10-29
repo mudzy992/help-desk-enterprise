@@ -1,7 +1,8 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { TicketListPage } from '../list-tickets';
-import { respondLoadedTickets } from '../to-ticket-client-responses';
-import type { TicketListResponse } from '../tickets.types';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import type { TicketListPage } from "../list-tickets";
+import { respondLoadedTickets } from "../to-ticket-client-responses";
+import type { TicketListResponse } from "../tickets.types";
+import { toTicketListResponseEnvelope } from "./to-ticket-list-response-envelope";
 
 type TicketClientLoaders = Parameters<typeof respondLoadedTickets>[2];
 
@@ -11,11 +12,6 @@ export async function respondTicketListPage(
   page: TicketListPage,
   loaders: TicketClientLoaders,
 ): Promise<TicketListResponse> {
-  return {
-    items: await respondLoadedTickets(prisma, page.records, loaders),
-    total: page.total,
-    ...(page.totalIsCapped === true ? { totalIsCapped: true } : {}),
-    page: page.page,
-    pageSize: page.pageSize,
-  };
+  const items = await respondLoadedTickets(prisma, page.records, loaders);
+  return toTicketListResponseEnvelope(page, items);
 }

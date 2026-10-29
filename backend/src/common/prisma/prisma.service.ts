@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
 import { createInstrumentedPool } from '../database/create-instrumented-pool';
+import { assertDatabaseTransport } from '../database/database-runtime-contract';
 import {
   loadDatabasePoolConfiguration,
   readDatabasePoolRole,
@@ -18,6 +19,7 @@ export class PrismaService
     if (!connectionString) {
       throw new Error('DATABASE_URL is required');
     }
+    assertDatabaseTransport(connectionString);
     // The pool is created here (instead of letting the adapter build one) so it
     // can be sized and timed out explicitly (plan §1.4) and so every statement
     // can be counted for the `db_queries_per_request` metric (plan §5.3).

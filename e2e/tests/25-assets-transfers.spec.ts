@@ -10,6 +10,7 @@ import {
   move,
   pickAssetType,
   retireAssets,
+  transferRecordSettings,
   uniqueStamp,
   withSettings,
 } from '../helpers/assets';
@@ -33,8 +34,6 @@ type SignatoryUnit = {
 };
 
 const transferNumber = /^(\d{2})-(\d{4})-(\d{4})$/;
-const settings = { [assetSettingKeys.cmdb]: true, [assetSettingKeys.transferEnabled]: true, [assetSettingKeys.transferRequired]: false };
-
 /** Smallest well-formed PDF: the server checks the file signature, not the extension. */
 function tinyPdf(): Blob {
   const body = '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n';
@@ -53,7 +52,7 @@ test.describe('25 assets transfer records', () => {
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
     const created: string[] = [];
-    await withSettings(admin, settings, 'E2E 25 UI assign', async () => {
+    await withSettings(admin, await transferRecordSettings(admin), 'E2E 25 UI assign', async () => {
       try {
         const type = await pickAssetType(admin);
         const unit = await firstUnit(admin);
@@ -67,13 +66,20 @@ test.describe('25 assets transfer records', () => {
         const sheet = page.getByRole('dialog');
         await expect(sheet).toBeVisible();
         await sheet.getByLabel(/^(Korisnik|User)/).fill(env.userEmail.split('@')[0]);
-        await sheet.getByRole('radio', { name: new RegExp(env.userEmail.replace(/[.]/g, '\\.')) }).check();
+        await sheet.getByRole('radio', { name: new RegExp(env.userEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).check();
         const giver = `E2E Nabavka ${stamp}`;
         await sheet.getByLabel(/^(Ko predaje|Handed over by)/).fill(giver);
         // The preview prints what the record will say before anything is written.
         await expect(sheet.getByRole('region').getByText(giver, { exact: true })).toBeVisible({ timeout: 15_000 });
         await expectNoSeriousA11yViolations(page, 'asset-assign-sheet', testInfo);
+        const moveResponse = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'POST' && response.url().includes('/assets/movements'),
+          { timeout: 30_000 },
+        );
         await sheet.getByRole('button', { name: /^(Zaduži|Assign)$/ }).click();
+        const movement = await moveResponse;
+        expect(movement.ok(), await movement.text()).toBeTruthy();
 
         const issued = sheet.getByRole('status').filter({ hasText: /\d{2}-\d{4}-\d{4}/ });
         await expect(issued).toBeVisible({ timeout: 15_000 });
@@ -106,7 +112,7 @@ test.describe('25 assets transfer records', () => {
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
     const created: string[] = [];
-    await withSettings(admin, settings, 'E2E 25 scenarios', async () => {
+    await withSettings(admin, await transferRecordSettings(admin), 'E2E 25 scenarios', async () => {
       try {
         const type = await pickAssetType(admin);
         const unit = await firstUnit(admin);
@@ -188,7 +194,7 @@ test.describe('25 assets transfer records', () => {
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
     const created: string[] = [];
-    await withSettings(admin, { ...settings, [assetSettingKeys.transferRequired]: true }, 'E2E 25 required', async () => {
+    await withSettings(admin, await transferRecordSettings(admin, { [assetSettingKeys.transferRequired]: true }), 'E2E 25 required', async () => {
       try {
         const type = await pickAssetType(admin);
         const unit = await firstUnit(admin);
@@ -216,7 +222,7 @@ test.describe('25 assets transfer records', () => {
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
-    await withSettings(admin, settings, 'E2E 25 signatory', async () => {
+    await withSettings(admin, await transferRecordSettings(admin), 'E2E 25 signatory', async () => {
       const catalog = await admin.requestJson<{ units: SignatoryUnit[] }>('/assets/transfers/signatories');
       const child = catalog.units.find((unit) => unit.parentId !== null && unit.own === null);
       if (child === undefined) {

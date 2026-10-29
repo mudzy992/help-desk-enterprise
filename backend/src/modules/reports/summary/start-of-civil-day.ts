@@ -42,11 +42,16 @@ type ZonedParts = CivilDate & {
  * of spinning.
  */
 export function startOfCivilDay(now: Date, timeZone: string): Date {
-  const civil = civilDateOf(now, timeZone);
+  return startOfCivilDate(civilDateOf(now, timeZone), timeZone);
+}
+
+/** `00:00` of an explicit civil date inside `timeZone`. */
+export function startOfCivilDate(civil: CivilDate, timeZone: string): Date {
   const guess = Date.UTC(civil.year, civil.month - 1, civil.day);
   let candidate = guess;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const corrected = guess - offsetMillisecondsAt(new Date(candidate), timeZone);
+    const corrected =
+      guess - offsetMillisecondsAt(new Date(candidate), timeZone);
     if (corrected === candidate) {
       break;
     }
@@ -58,7 +63,7 @@ export function startOfCivilDay(now: Date, timeZone: string): Date {
 /** The civil day of `instant` in `timeZone`, as `YYYY-MM-DD`. */
 export function civilDayKey(instant: Date, timeZone: string): string {
   const civil = civilDateOf(instant, timeZone);
-  return `${String(civil.year).padStart(4, '0')}-${String(civil.month).padStart(2, '0')}-${String(civil.day).padStart(2, '0')}`;
+  return `${String(civil.year).padStart(4, "0")}-${String(civil.month).padStart(2, "0")}-${String(civil.day).padStart(2, "0")}`;
 }
 
 /** The civil date of `instant` in `timeZone` (the zone arithmetic is `Intl`'s). */
@@ -89,25 +94,25 @@ export function offsetMillisecondsAt(instant: Date, timeZone: string): number {
 
 function zonedParts(instant: Date, timeZone: string): ZonedParts {
   const parts = new Map(
-    new Intl.DateTimeFormat('en-US', {
+    new Intl.DateTimeFormat("en-US", {
       timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hourCycle: 'h23',
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
     })
       .formatToParts(instant)
       .map((part) => [part.type, part.value] as const),
   );
   return {
-    year: Number(parts.get('year')),
-    month: Number(parts.get('month')),
-    day: Number(parts.get('day')),
-    hour: Number(parts.get('hour')),
-    minute: Number(parts.get('minute')),
-    second: Number(parts.get('second')),
+    year: Number(parts.get("year")),
+    month: Number(parts.get("month")),
+    day: Number(parts.get("day")),
+    hour: Number(parts.get("hour")),
+    minute: Number(parts.get("minute")),
+    second: Number(parts.get("second")),
   };
 }

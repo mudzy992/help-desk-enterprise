@@ -31,15 +31,17 @@ import {
   ListRoutingCoverageQueryDto,
   ListRoutingRulesQueryDto,
   ResolveRoutingQueryDto,
+  RoutingListQueryDto,
   UpdateRoutingRuleDto,
 } from './dto/routing.dto';
 import type { RoutingRuleDeleteImpact } from './delete-routing-rule';
 import { RoutingService } from './routing.service';
 import type {
-  RoutingChangeLogResponse,
+  RoutingChangeLogPage,
   RoutingCoveragePage,
   RoutingHandlerGroupResponse,
   RoutingResolution,
+  RoutingRulePage,
   RoutingRuleResponse,
 } from './routing.types';
 
@@ -114,23 +116,25 @@ export class RoutingController {
   @RequirePermissions(permissionKeys.routingRead)
   async listRuleChanges(
     @Param('ruleId') ruleId: string,
+    @Query() query: RoutingListQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly RoutingChangeLogResponse[]> {
+  ): Promise<RoutingChangeLogPage> {
     const viewer = await this.routingService.loadViewerContext(
       readAuthenticatedPrincipal(request)?.subjectId ?? null,
     );
-    return this.routingService.listRuleChanges(ruleId, viewer);
+    return this.routingService.listRuleChanges(ruleId, query, viewer);
   }
 
   @Get('changes')
   @RequirePermissions(permissionKeys.routingRead)
   async listChanges(
+    @Query() query: RoutingListQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly RoutingChangeLogResponse[]> {
+  ): Promise<RoutingChangeLogPage> {
     const viewer = await this.routingService.loadViewerContext(
       readAuthenticatedPrincipal(request)?.subjectId ?? null,
     );
-    return this.routingService.listChanges(viewer);
+    return this.routingService.listChanges(query, viewer);
   }
 
   @Get('groups')
@@ -149,7 +153,7 @@ export class RoutingController {
   async listRules(
     @Query() query: ListRoutingRulesQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly RoutingRuleResponse[]> {
+  ): Promise<RoutingRulePage> {
     const viewer = await this.routingService.loadViewerContext(
       readAuthenticatedPrincipal(request)?.subjectId ?? null,
     );

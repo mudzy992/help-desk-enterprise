@@ -1,4 +1,4 @@
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { TicketSlaSnapshot } from "@/services/tickets-api";
 
 export const SLA_RISK_PERCENT = 75;

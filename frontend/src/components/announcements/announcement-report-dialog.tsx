@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BellRing, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import {
   announcementDateTimeFormatter,
   mapAnnouncementError,
 } from "@/lib/announcements/announcement-view";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -26,71 +28,85 @@ interface AnnouncementReportDialogProperties {
   readonly onOpenChange: (open: boolean) => void;
 }
 
-/** Paket 2.9 (K2, §3.3): acknowledged X of Y, per unit, who is missing, CSV and one reminder per 24 h. */
+/** Acknowledgement progress, pending recipients, delivery history and actions. */
 export function AnnouncementReportDialog({
   announcementId,
   onOpenChange,
 }: AnnouncementReportDialogProperties) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const operationGuard = useOperationGuard();
   const [report, setReport] = useState<AnnouncementReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"csv" | "remind" | null>(null);
+  const loadGuard = useRef(createLatestRequestGuard());
 
   const load = useCallback(
     async (id: string) => {
+      const request = loadGuard.current.begin();
       setError(null);
       try {
-        setReport(await getAnnouncementReport(id));
+        const loaded = await getAnnouncementReport(id);
+        if (loadGuard.current.isCurrent(request)) setReport(loaded);
       } catch (caught) {
-        setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+        if (loadGuard.current.isCurrent(request)) {
+          setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+        }
       }
     },
     [t],
   );
 
   useEffect(() => {
+    const guard = loadGuard.current;
     setReport(null);
     if (announcementId !== null) void load(announcementId);
+    return () => guard.cancel();
   }, [announcementId, load]);
 
   const download = async () => {
     if (announcementId === null) return;
-    setBusy("csv");
-    try {
-      const file = await downloadAnnouncementReport(announcementId);
-      triggerBlobDownload(file.blob, file.fileName);
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(null);
-    }
+    const id = announcementId;
+    await operationGuard.run(`csv:${id}`, async () => {
+      setBusy("csv");
+      try {
+        const file = await downloadAnnouncementReport(id);
+        triggerBlobDownload(file.blob, file.fileName);
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(null);
+      }
+    });
   };
 
   const remind = async () => {
     if (announcementId === null) return;
-    setBusy("remind");
-    try {
-      const result = await remindAnnouncement(announcementId);
-      toast({
-        tone: "success",
-        title: t("announcements.report.reminded", { count: result.notified }),
-        ...(result.emailQueued ? { description: t("announcements.report.remindedEmail") } : {}),
-      });
-      await load(announcementId);
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(null);
-    }
+    const id = announcementId;
+    await operationGuard.run(`remind:${id}`, async () => {
+      setBusy("remind");
+      try {
+        const result = await remindAnnouncement(id);
+        toast({
+          tone: "success",
+          title: t("announcements.report.reminded", { count: result.notified }),
+          ...(result.emailQueued ? { description: t("announcements.report.remindedEmail") } : {}),
+        });
+        await load(id);
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(null);
+      }
+    });
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);
@@ -238,7 +254,7 @@ const teamsResultKeys = {
   SKIPPED_DISABLED: "announcements.report.delivery.teams.SKIPPED_DISABLED",
 } as const;
 
-/** K2b: what went out by e-mail (per run) and to Teams. */
+/** Delivery outcomes for e-mail runs and the Teams channel. */
 function AnnouncementDeliverySummary({
   report,
   formatter,

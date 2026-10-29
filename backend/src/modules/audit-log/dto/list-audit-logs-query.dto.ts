@@ -1,17 +1,18 @@
 import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-  MinLength,
-} from 'class-validator';
-import { auditLogListMaxTake } from '../audit-log.constants';
+  auditCursorMaxLength,
+  auditCursorPattern,
+  auditLogListMaxTake,
+  auditOpaqueIdMaxLength,
+  auditOpaqueIdPattern,
+} from '../audit-log.constants';
 
 export class ListAuditLogsQueryDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(auditOpaqueIdMaxLength)
+  @Matches(auditOpaqueIdPattern)
   organizationalUnitId!: string;
 
   @IsOptional()
@@ -24,5 +25,7 @@ export class ListAuditLogsQueryDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(auditCursorMaxLength)
+  @Matches(auditCursorPattern)
   cursor?: string;
 }

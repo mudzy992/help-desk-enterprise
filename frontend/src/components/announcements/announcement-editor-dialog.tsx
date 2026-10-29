@@ -8,10 +8,20 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import {
   announcementErrorDetail,
+  announcementSeverityKeys,
+  announcementTimeZone,
   fromLocalInputValue,
   mapAnnouncementError,
-  toLocalInputValue,
 } from "@/lib/announcements/announcement-view";
+import {
+  announcementDraftOf,
+  announcementRoleKeys,
+  announcementRoleLabelKeys,
+  emptyAnnouncementDraft,
+  toggleAnnouncementAudience,
+  type AnnouncementDraft,
+} from "@/lib/announcements/announcement-editor-model";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   createAnnouncement,
@@ -24,80 +34,6 @@ import {
   type ManagedAnnouncement,
 } from "@/services/announcements-api";
 
-const roleKeys = ["USER", "AGENT", "ADMIN", "SUPER_ADMIN"] as const;
-const roleLabelKeys = {
-  USER: "announcements.roles.USER",
-  AGENT: "announcements.roles.AGENT",
-  ADMIN: "announcements.roles.ADMIN",
-  SUPER_ADMIN: "announcements.roles.SUPER_ADMIN",
-} as const;
-const severityKeys = {
-  INFO: "announcements.severity.INFO",
-  WARNING: "announcements.severity.WARNING",
-  CRITICAL: "announcements.severity.CRITICAL",
-} as const;
-const hourMs = 3_600_000;
-
-type Draft = {
-  title: string;
-  body: string;
-  severity: AnnouncementSeverity;
-  displayMode: AnnouncementDisplayMode;
-  requiresAcknowledgement: boolean;
-  notifyAudience: boolean;
-  sendEmail: boolean;
-  postToTeams: boolean;
-  startsAt: string;
-  endsAt: string;
-  serviceId: string;
-  roles: string[];
-  organizationalUnitIds: string[];
-  groupIds: string[];
-};
-
-function emptyDraft(): Draft {
-  const start = new Date(Math.ceil(Date.now() / (15 * 60_000)) * 15 * 60_000);
-  return {
-    title: "",
-    body: "",
-    severity: "INFO",
-    displayMode: "BANNER",
-    requiresAcknowledgement: false,
-    notifyAudience: false,
-    sendEmail: false,
-    postToTeams: false,
-    startsAt: toLocalInputValue(start),
-    endsAt: toLocalInputValue(new Date(start.getTime() + 7 * 24 * hourMs)),
-    serviceId: "",
-    roles: [],
-    organizationalUnitIds: [],
-    groupIds: [],
-  };
-}
-
-function draftOf(announcement: ManagedAnnouncement): Draft {
-  return {
-    title: announcement.title,
-    body: announcement.body,
-    severity: announcement.severity,
-    displayMode: announcement.displayMode,
-    requiresAcknowledgement: announcement.requiresAcknowledgement,
-    notifyAudience: announcement.notifyAudience,
-    sendEmail: announcement.sendEmail,
-    postToTeams: announcement.postToTeams,
-    startsAt: toLocalInputValue(announcement.startsAt),
-    endsAt: toLocalInputValue(announcement.endsAt),
-    serviceId: announcement.serviceId ?? "",
-    roles: [...announcement.roles],
-    organizationalUnitIds: [...announcement.organizationalUnitIds],
-    groupIds: [...announcement.groupIds],
-  };
-}
-
-function toggle(values: readonly string[], value: string, on: boolean): string[] {
-  return on ? [...new Set([...values, value])] : values.filter((item) => item !== value);
-}
-
 interface AnnouncementEditorDialogProperties {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
@@ -107,11 +43,6 @@ interface AnnouncementEditorDialogProperties {
   readonly onSaved: (saved: ManagedAnnouncement) => void;
 }
 
-/**
- * Paket 2.9 (K2, §3.3): editor with a live preview and the audience estimate.
- * A published announcement keeps its audience and acknowledgement mode (the
- * report counts against the audience captured at publication).
- */
 export function AnnouncementEditorDialog({
   open,
   onOpenChange,
@@ -120,38 +51,40 @@ export function AnnouncementEditorDialog({
   onSaved,
 }: AnnouncementEditorDialogProperties) {
   const { t } = useTranslation();
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [draft, setDraft] = useState<AnnouncementDraft>(emptyAnnouncementDraft);
   const [preview, setPreview] = useState(false);
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [audienceError, setAudienceError] = useState(false);
   const [unitFilter, setUnitFilter] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const operationGuard = useOperationGuard();
+  const timeZone = announcementTimeZone();
 
   const isPublished = announcement !== null && announcement.status === "PUBLISHED";
   const hasStarted = isPublished && Date.parse(announcement.startsAt) <= Date.now();
 
   useEffect(() => {
     if (!open) return;
-    setDraft(announcement === null ? emptyDraft() : draftOf(announcement));
+    setDraft(announcement === null ? emptyAnnouncementDraft() : announcementDraftOf(announcement));
     setPreview(false);
     setError(null);
     setUnitFilter("");
   }, [open, announcement]);
 
-  const audienceKey = `${draft.roles.join(",")}|${draft.organizationalUnitIds.join(",")}|${draft.groupIds.join(",")}`;
+  const { roles, organizationalUnitIds, groupIds } = draft;
   useEffect(() => {
     if (!open) return;
-    if (options.scopedToUnit && draft.organizationalUnitIds.length === 0) {
+    if (options.scopedToUnit && organizationalUnitIds.length === 0) {
       setAudienceCount(null);
       return;
     }
     let cancelled = false;
     const timer = window.setTimeout(() => {
       previewAnnouncementAudience({
-        roles: draft.roles,
-        organizationalUnitIds: draft.organizationalUnitIds,
-        groupIds: draft.groupIds,
+        roles,
+        organizationalUnitIds,
+        groupIds,
       })
         .then((result) => {
           if (!cancelled) {
@@ -167,8 +100,7 @@ export function AnnouncementEditorDialog({
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // audienceKey stands for the three audience arrays.
-  }, [open, audienceKey, options.scopedToUnit]);
+  }, [open, options.scopedToUnit, roles, organizationalUnitIds, groupIds]);
 
   const visibleUnits = useMemo(() => {
     const needle = unitFilter.trim().toLowerCase();
@@ -179,7 +111,7 @@ export function AnnouncementEditorDialog({
         );
   }, [options.organizationalUnits, unitFilter]);
 
-  const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+  const update = <K extends keyof AnnouncementDraft>(key: K, value: AnnouncementDraft[K]) =>
     setDraft((previous) => ({ ...previous, [key]: value }));
 
   const save = async () => {
@@ -209,26 +141,29 @@ export function AnnouncementEditorDialog({
       organizationalUnitIds: draft.organizationalUnitIds,
       groupIds: draft.groupIds,
     };
-    setSaving(true);
-    setError(null);
-    try {
-      const saved =
-        announcement === null
-          ? await createAnnouncement(input)
-          : await updateAnnouncement(announcement.id, input);
-      onSaved(saved);
-    } catch (caught) {
-      const detail = announcementErrorDetail(caught);
-      if (detail !== null && detail.startsWith("duration:")) {
-        setError(
-          t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }),
-        );
-      } else {
-        setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+    if (operationGuard.isPending("save")) return;
+    await operationGuard.run("save", async () => {
+      setSaving(true);
+      setError(null);
+      try {
+        const saved =
+          announcement === null
+            ? await createAnnouncement(input)
+            : await updateAnnouncement(announcement.id, input);
+        onSaved(saved);
+      } catch (caught) {
+        const detail = announcementErrorDetail(caught);
+        if (detail !== null && detail.startsWith("duration:")) {
+          setError(
+            t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }),
+          );
+        } else {
+          setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
+        }
+      } finally {
+        setSaving(false);
       }
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   const canSave =
@@ -312,7 +247,7 @@ export function AnnouncementEditorDialog({
                 >
                   {(["INFO", "WARNING", "CRITICAL"] as const).map((severity) => (
                     <option key={severity} value={severity}>
-                      {t(severityKeys[severity])}
+                      {t(announcementSeverityKeys[severity])}
                     </option>
                   ))}
                 </Select>
@@ -337,7 +272,11 @@ export function AnnouncementEditorDialog({
                 </Select>
               )}
             </Field>
-            <Field label={t("announcements.editor.startsAt")} required>
+            <Field
+              label={t("announcements.editor.startsAt")}
+              hint={t("announcements.editor.timeZoneHint", { timeZone })}
+              required
+            >
               {(control) => (
                 <Input
                   {...control}
@@ -448,13 +387,16 @@ export function AnnouncementEditorDialog({
                 {t("announcements.editor.roles")}
               </span>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
-                {roleKeys.map((role) => (
+                {announcementRoleKeys.map((role) => (
                   <Checkbox
                     key={role}
-                    label={t(roleLabelKeys[role])}
+                    label={t(announcementRoleLabelKeys[role])}
                     checked={draft.roles.includes(role)}
                     onChange={(event) =>
-                      update("roles", toggle(draft.roles, role, event.target.checked))
+                      update(
+                        "roles",
+                        toggleAnnouncementAudience(draft.roles, role, event.target.checked),
+                      )
                     }
                   />
                 ))}
@@ -487,7 +429,11 @@ export function AnnouncementEditorDialog({
                       onChange={(event) =>
                         update(
                           "organizationalUnitIds",
-                          toggle(draft.organizationalUnitIds, unit.id, event.target.checked),
+                          toggleAnnouncementAudience(
+                            draft.organizationalUnitIds,
+                            unit.id,
+                            event.target.checked,
+                          ),
                         )
                       }
                     />
@@ -508,7 +454,14 @@ export function AnnouncementEditorDialog({
                       label={group.name}
                       checked={draft.groupIds.includes(group.id)}
                       onChange={(event) =>
-                        update("groupIds", toggle(draft.groupIds, group.id, event.target.checked))
+                        update(
+                          "groupIds",
+                          toggleAnnouncementAudience(
+                            draft.groupIds,
+                            group.id,
+                            event.target.checked,
+                          ),
+                        )
                       }
                     />
                   ))}

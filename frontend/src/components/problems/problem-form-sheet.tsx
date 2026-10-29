@@ -9,10 +9,10 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError } from "@/lib/problems/problem-view";
 import { ticketPriorityValues, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   createProblemFull,
-  problemDetailKeys,
+  problemQueryKeys,
   searchProblemOwners,
   updateProblem,
   type ProblemDetail,
@@ -34,7 +34,7 @@ interface ProblemFormSheetProperties {
 }
 
 /**
- * Paket 3.3 (§14): create a problem by hand or edit its basics (title,
+ * Delivery invariant (requirement): create a problem by hand or edit its basics (title,
  * description, impact/urgency, unit, owner, group, service). The analysis
  * fields are edited on the Analysis tab.
  */
@@ -86,7 +86,7 @@ export function ProblemFormSheet({
   }, [ownerSearch]);
 
   const owners = useQuery({
-    queryKey: problemDetailKeys.owners(ownerDebounced, groupId),
+    queryKey: problemQueryKeys.owners(ownerDebounced, groupId),
     queryFn: () => searchProblemOwners(ownerDebounced, groupId),
     // Owners are the problem managers of the chosen group (decision 2026-10-01).
     enabled: open && canAssignOwner && groupId !== "",
@@ -151,7 +151,7 @@ export function ProblemFormSheet({
 
   const severityOptions = ticketPriorityValues.map((value) => (
     <option key={value} value={value}>
-      {ticketText(t, ticketSeverityLabelKey[value])}
+      {translateText(t, ticketSeverityLabelKey[value])}
     </option>
   ));
 

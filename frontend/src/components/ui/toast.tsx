@@ -21,7 +21,6 @@ import {
   type ToastTone,
 } from "@/lib/feedback/toast-queue";
 import { cn } from "@/lib/utils";
-import { ApiError } from "@/services/api";
 
 export type { ToastTone } from "@/lib/feedback/toast-queue";
 
@@ -33,7 +32,7 @@ export interface ToastInput {
   readonly duration?: number;
   /** One follow-up action ("Undo", "Open"); the toast closes after it runs. */
   readonly action?: ToastAction;
-  /** The caught error: an `ApiError` contributes its request ID (copyable). */
+  /** A caught error with an optional string request ID contributes that ID. */
   readonly error?: unknown;
   /** Explicit request ID when there is no error object at hand. */
   readonly requestId?: string | null;
@@ -58,8 +57,11 @@ const TOAST_TONES: Record<ToastTone, { readonly icon: ReactNode; readonly accent
 
 function readRequestId(input: ToastInput): string | undefined {
   if (input.requestId) return input.requestId;
-  if (input.error instanceof ApiError && input.error.requestId) return input.error.requestId;
-  return undefined;
+  if (typeof input.error !== "object" || input.error === null || !("requestId" in input.error)) {
+    return undefined;
+  }
+  const requestId = input.error.requestId;
+  return typeof requestId === "string" && requestId.length > 0 ? requestId : undefined;
 }
 
 /**
@@ -75,15 +77,19 @@ function readRequestId(input: ToastInput): string | undefined {
  */
 export function ToastProvider({ children }: { readonly children: ReactNode }) {
   const [queue, setQueue] = useState<readonly ToastRecord[]>([]);
+  // The ref is the synchronous source for imperative toast() return values and
+  // for multiple calls made before React commits the next render.
+  const queueRef = useRef<readonly ToastRecord[]>([]);
 
   const dismiss = useCallback((id: number) => {
-    setQueue((previous) => removeToast(previous, id));
+    const next = removeToast(queueRef.current, id);
+    queueRef.current = next;
+    setQueue(next);
   }, []);
 
   const toast = useCallback((input: ToastInput) => {
     toastSequence += 1;
     const tone = input.tone ?? "info";
-    let resolvedId = toastSequence;
     const candidate = {
       id: toastSequence,
       tone,
@@ -93,12 +99,10 @@ export function ToastProvider({ children }: { readonly children: ReactNode }) {
       action: input.action,
       duration: resolveToastDuration(tone, input.duration),
     };
-    setQueue((previous) => {
-      const next = enqueueToast(previous, candidate);
-      resolvedId = next.id;
-      return next.queue;
-    });
-    return resolvedId;
+    const next = enqueueToast(queueRef.current, candidate);
+    queueRef.current = next.queue;
+    setQueue(next.queue);
+    return next.id;
   }, []);
 
   const value = useMemo<ToastContextValue>(() => ({ toast, dismiss }), [toast, dismiss]);

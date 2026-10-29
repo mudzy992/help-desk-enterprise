@@ -4,6 +4,8 @@ export type RoutingErrorCode =
   | 'GROUP_NOT_FOUND'
   | 'RULE_NOT_FOUND'
   | 'DUPLICATE_RULE'
+  | 'ROUTING_RULE_CONFLICT'
+  | 'ROUTING_COVERAGE_BUDGET_EXCEEDED'
   | 'REASON_REQUIRED'
   | 'ROUTING_COVERAGE_MISSING'
   | 'UNAVAILABLE';
@@ -11,7 +13,7 @@ export type RoutingErrorCode =
 export class RoutingError extends Error {
   constructor(
     readonly code: RoutingErrorCode,
-    message = code,
+    message: string = code,
   ) {
     super(message);
     this.name = 'RoutingError';

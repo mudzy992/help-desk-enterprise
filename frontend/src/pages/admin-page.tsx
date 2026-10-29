@@ -19,20 +19,20 @@ import { GroupsPage } from "@/pages/groups-page";
 import { PermissionsPage } from "@/pages/permissions-page";
 import { UsersPage } from "@/pages/users-page";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { canOpenAdminSecurityTab } from "@/lib/admin/admin-security-tab";
-import { roleKeys } from "@/lib/session/permission-keys";
+import { canOpenAdminArea } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function AdminPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { session, isLoading, hasRole } = useSessionCapabilities();
+  const capabilities = useSessionCapabilities();
+  const { session, isLoading } = capabilities;
   const tab = parseAdminTab(searchParams.get("tab"));
-  const canOpenAdmin =
-    session?.isSuperAdmin === true || hasRole(roleKeys.admin) || hasRole(roleKeys.superAdmin);
+  const canOpenAdmin = canOpenAdminArea(capabilities);
 
   useEffect(() => {
     const raw = searchParams.get("tab");
@@ -129,9 +129,8 @@ export function AdminPage() {
               </span>
             ),
           },
-          // Paket 5.4.0-d (M6): the security journal is offered to a SuperAdmin
-          // only. A deep link by an ADMIN still resolves to the panel, which
-          // renders its forbidden state instead.
+          // The installation-wide security journal is SuperAdmin-only. A deep
+          // link by an ADMIN resolves to the panel's forbidden state.
           ...(canOpenAdminSecurityTab(session)
             ? [
                 {
@@ -150,7 +149,7 @@ export function AdminPage() {
       {tab === "groups" ? renderRestrictedTab(<GroupsPage embedded />) : null}
       {tab === "users" ? renderRestrictedTab(<UsersPage embedded />) : null}
       {tab === "permissions" ? renderRestrictedTab(<PermissionsPage embedded />) : null}
-      {tab === "settings" ? <SettingsPage embedded /> : null}
+      {tab === "settings" ? renderRestrictedTab(<SettingsPage />) : null}
       {tab === "ops" ? renderRestrictedTab(<AdminOpsPanel />) : null}
       {tab === "security" ? <AdminSecurityPanel isLoading={isLoading} session={session} /> : null}
     </section>

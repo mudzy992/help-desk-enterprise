@@ -1,5 +1,5 @@
 /*
-  Paket 4.2 (dio B): detail sections.
+  detail sections.
 
   The ticket detail rail used to stack up to 13 cards of equal weight, so the
   rarely used ones cost the same height as the ones read constantly. The rail is
@@ -33,7 +33,7 @@ export const detailSectionKeys = [
 export type DetailSectionKey = (typeof detailSectionKeys)[number];
 export type DetailSectionOverrides = Partial<Record<DetailSectionKey, boolean>>;
 
-/** `localStorage` key (neutral `service-desk.*` prefix, Paket 4.1). */
+/** `localStorage` key (neutral `service-desk.*` prefix, ). */
 export const detailSectionsStorageKey = "service-desk.ticketDetail.sections";
 
 /*

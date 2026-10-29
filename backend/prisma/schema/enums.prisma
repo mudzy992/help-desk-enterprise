@@ -172,3 +172,23 @@ enum ResponseTemplateKind {
   INTERNAL
   ANY
 }
+
+enum IdempotencyStatus {
+  PROCESSING
+  SUCCEEDED
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  DEAD_LETTER
+}
+
+enum StorageWriteStatus {
+  PENDING_PROMOTION
+  PROCESSING
+  READY
+  FAILED
+  COMPENSATED
+}

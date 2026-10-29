@@ -3,13 +3,14 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { DetailSectionsProvider } from "@/components/ui/detail-section";
+import { DetailSectionsProvider } from "@/components/tickets/detail-section";
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
 import { TicketForwardHistoryPanel } from "@/components/tickets/ticket-forward-history-panel";
 import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
 import { TicketSlaPanel } from "@/components/tickets/ticket-sla-panel";
 import { TicketIncidentsPanel } from "@/components/status/ticket-incidents-panel";
+import { PanelErrorBoundary } from "@/components/tickets/panel-error-boundary";
 import type { useTicketDetailSections } from "@/lib/tickets/use-detail-sections";
 import type {
   ParticipantRole,
@@ -20,7 +21,7 @@ import type { TicketResponse } from "@/services/tickets-api";
 import type { TicketSlaContextResponse } from "@/services/tickets-context-api";
 
 /*
-  Paket 4.2 (dio B): the ticket detail rail.
+  the ticket detail rail.
 
   The right column used to stack up to 13 cards of equal weight, so the panels
   read constantly drowned in the ones read occasionally. The rail is now three
@@ -81,6 +82,22 @@ function RailCard({ title, children }: { readonly title: string; readonly childr
   );
 }
 
+function PanelSlot({
+  name,
+  resetKey,
+  children,
+}: {
+  readonly name: string;
+  readonly resetKey: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <PanelErrorBoundary panelName={name} resetKey={resetKey}>
+      {children}
+    </PanelErrorBoundary>
+  );
+}
+
 export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
   const { t } = useTranslation();
   const { sections, slots } = props;
@@ -107,63 +124,111 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
         </div>
 
         <RailCard title={t("tickets.detail.cards.summary")}>
-          <TicketSlaPanel
-            key={props.ticket.id}
-            ticket={props.ticket}
-            context={props.slaContext}
-            canConfigure={props.canConfigureSla}
-          />
-          <TicketDetailSidebar
-            ticket={props.ticket}
-            originName={props.originName}
-            serviceName={props.serviceName}
-            authorNames={props.authorNames}
-            groupNames={props.groupNames}
-            canOverridePriority={props.canOverridePriority}
-            onEditPriority={props.onEditPriority}
-            priorityOverrideTitle={props.priorityOverrideTitle}
-          />
-          {slots.formData}
+          <PanelSlot name="ticket-sla" resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}>
+            <TicketSlaPanel
+              key={props.ticket.id}
+              ticket={props.ticket}
+              context={props.slaContext}
+              canConfigure={props.canConfigureSla}
+            />
+          </PanelSlot>
+          <PanelSlot
+            name="ticket-summary"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketDetailSidebar
+              ticket={props.ticket}
+              originName={props.originName}
+              serviceName={props.serviceName}
+              authorNames={props.authorNames}
+              groupNames={props.groupNames}
+              canOverridePriority={props.canOverridePriority}
+              onEditPriority={props.onEditPriority}
+              priorityOverrideTitle={props.priorityOverrideTitle}
+            />
+          </PanelSlot>
+          <PanelSlot
+            name="ticket-form-data"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            {slots.formData}
+          </PanelSlot>
         </RailCard>
 
         {props.actionsVisible ? (
           <RailCard title={t("tickets.detail.cards.actions")}>
-            {slots.playbook}
-            <TicketApprovalsPanel
-              items={props.approvals}
-              visible={props.approvalsVisible}
-              isSaving={props.approvalsSaving}
-              authorNames={props.authorNames}
-              onApprove={props.onApprove}
-              onReject={props.onReject}
-            />
+            <PanelSlot
+              name="ticket-playbook"
+              resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+            >
+              {slots.playbook}
+            </PanelSlot>
+            <PanelSlot
+              name="ticket-approvals"
+              resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+            >
+              <TicketApprovalsPanel
+                items={props.approvals}
+                visible={props.approvalsVisible}
+                isSaving={props.approvalsSaving}
+                authorNames={props.authorNames}
+                onApprove={props.onApprove}
+                onReject={props.onReject}
+              />
+            </PanelSlot>
           </RailCard>
         ) : null}
 
         <RailCard title={t("tickets.detail.cards.related")}>
-          {slots.merged}
-          {slots.assets}
-          {slots.problems}
-          {slots.links}
-          <TicketIncidentsPanel
-            ticketId={props.ticket.id}
-            serviceId={props.ticket.serviceId}
-            versionKey={props.ticket.updatedAt}
-          />
-          <TicketForwardHistoryPanel
-            ticketId={props.ticket.id}
-            versionKey={props.ticket.updatedAt}
-            visible={props.forwardHistoryVisible}
-          />
-          <TicketParticipantsPanel
-            items={props.participants}
-            canManage={props.canManageParticipants}
-            directoryUsers={props.participantCandidates}
-            userNames={props.authorNames}
-            groupNames={props.groupNames}
-            onAdd={props.onAddParticipant}
-            onRemove={props.onRemoveParticipant}
-          />
+          <PanelSlot name="ticket-merged" resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}>
+            {slots.merged}
+          </PanelSlot>
+          <PanelSlot name="ticket-assets" resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}>
+            {slots.assets}
+          </PanelSlot>
+          <PanelSlot
+            name="ticket-problems"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            {slots.problems}
+          </PanelSlot>
+          <PanelSlot name="ticket-links" resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}>
+            {slots.links}
+          </PanelSlot>
+          <PanelSlot
+            name="ticket-incidents"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketIncidentsPanel
+              ticketId={props.ticket.id}
+              serviceId={props.ticket.serviceId}
+              versionKey={props.ticket.updatedAt}
+            />
+          </PanelSlot>
+          <PanelSlot
+            name="ticket-forward-history"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketForwardHistoryPanel
+              ticketId={props.ticket.id}
+              versionKey={props.ticket.updatedAt}
+              visible={props.forwardHistoryVisible}
+            />
+          </PanelSlot>
+          <PanelSlot
+            name="ticket-participants"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketParticipantsPanel
+              items={props.participants}
+              canManage={props.canManageParticipants}
+              directoryUsers={props.participantCandidates}
+              userNames={props.authorNames}
+              groupNames={props.groupNames}
+              onAdd={props.onAddParticipant}
+              onRemove={props.onRemoveParticipant}
+            />
+          </PanelSlot>
         </RailCard>
       </div>
     </DetailSectionsProvider>

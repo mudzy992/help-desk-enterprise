@@ -2,6 +2,7 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AccountSecurityError } from '../authentication/security/account-security.error';
 import { defaultSecurityRateLimitConfig as d } from '../authentication/security/security-rate-limit-config';
 import { rateLimitsStepUpPurpose, SecurityRateLimitsService } from './security-rate-limits.service';
+import { StepUpPolicyService } from './step-up-policy.service';
 
 /*
   Paket 5.4.0-b (M2): the retune flow. Pinned here: bounds are enforced before
@@ -40,12 +41,15 @@ function service(overrides: {
       isLocalOnly: true,
     })),
   };
-  const instance = new SecurityRateLimitsService(
-    settingsService as never,
-    configLoader as never,
+  const stepUpPolicy = new StepUpPolicyService(
     mfaService as never,
     identityPasskeyService as never,
     userLoader as never,
+  );
+  const instance = new SecurityRateLimitsService(
+    settingsService as never,
+    configLoader as never,
+    stepUpPolicy,
     {} as never, // audit write is best-effort; the stub makes it throw and be swallowed
   );
   return { instance, settingsService, mfaService, identityPasskeyService };
@@ -115,7 +119,7 @@ describe('SecurityRateLimitsService cross-field rules and audit (5.4.0-f)', () =
     const configLoader = { load: jest.fn(async () => d) };
     const mfaService = { isEnabled: jest.fn(async () => true), verify: jest.fn(async () => 'totp') };
     const identityPasskeyService = { consumeFreshConfirmation: jest.fn(async () => false) };
-    const userLoader = { findById: jest.fn(async () => ({ id: 'admin-1', email: 'admin@desk.ba', roleKeys: ['SUPER_ADMIN'] })) };
+    const userLoader = { findById: jest.fn(async () => ({ id: 'admin-1', email: 'admin@desk.ba', roleKeys: ['SUPER_ADMIN'], isActive: true, isLocalOnly: true })) };
     const auditClient = {
       $executeRaw: jest.fn(async () => 1),
       auditLog: {
@@ -129,12 +133,15 @@ describe('SecurityRateLimitsService cross-field rules and audit (5.4.0-f)', () =
     const prisma = {
       $transaction: async (run: (client: unknown) => Promise<unknown>) => run(auditClient),
     };
-    const instance = new SecurityRateLimitsService(
-      settingsService as never,
-      configLoader as never,
+    const stepUpPolicy = new StepUpPolicyService(
       mfaService as never,
       identityPasskeyService as never,
       userLoader as never,
+    );
+    const instance = new SecurityRateLimitsService(
+      settingsService as never,
+      configLoader as never,
+      stepUpPolicy,
       prisma as never,
     );
     return { instance, settingsService };

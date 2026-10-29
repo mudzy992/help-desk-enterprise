@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
 import { SessionCheckError } from "@/components/auth/session-check-error";
@@ -13,8 +13,9 @@ import { PasswordExpiryBanner } from "@/components/account-security/password-exp
 import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
-import { ActiveTimerHost } from "@/lib/time-tracking/active-timer-host";
+import { ActiveTimerHost } from "@/components/time-tracking/active-timer-host";
 import { isTicketStaff } from "@/lib/session/route-access";
+import { pageRenderKey } from "@/lib/navigation/page-render-key";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { AnnouncerRegions } from "@/components/a11y/announcer-regions";
 import { RouteFocusManager, mainContentId } from "@/components/a11y/route-focus-manager";
@@ -32,6 +33,31 @@ export function ApplicationShell() {
   const { maintenance } = usePublicMaintenance();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const commandPaletteReturnFocus = useRef<HTMLElement | null>(null);
+
+  const openCommandPalette = useCallback(() => {
+    commandPaletteReturnFocus.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setIsCommandPaletteOpen(true);
+  }, []);
+
+  const changeCommandPaletteOpen = useCallback((open: boolean) => {
+    setIsCommandPaletteOpen(open);
+    if (!open) {
+      const returnTarget = commandPaletteReturnFocus.current;
+      window.requestAnimationFrame(() => {
+        if (returnTarget?.isConnected) returnTarget.focus();
+      });
+    }
+  }, []);
+
+  const toggleCommandPalette = useCallback(() => {
+    if (isCommandPaletteOpen) {
+      changeCommandPaletteOpen(false);
+    } else {
+      openCommandPalette();
+    }
+  }, [changeCommandPaletteOpen, isCommandPaletteOpen, openCommandPalette]);
 
   // location.key changes on every navigation, including same-path links and
   // back/forward, so the mobile menu closes whichever way the user moved.
@@ -51,10 +77,7 @@ export function ApplicationShell() {
 
   return (
     <ShortcutsProvider defaultEnabled={isStaff}>
-      <GlobalShortcuts
-        onTogglePalette={() => setIsCommandPaletteOpen((current) => !current)}
-        onOpenPalette={() => setIsCommandPaletteOpen(true)}
-      />
+      <GlobalShortcuts onTogglePalette={toggleCommandPalette} onOpenPalette={openCommandPalette} />
       <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
         <SkipToContentLink targetId={mainContentId} />
         <AnnouncerRegions />
@@ -67,7 +90,7 @@ export function ApplicationShell() {
         <div className="flex min-w-0 flex-1 flex-col print:block">
           <AppHeader
             onOpenNavigation={() => setIsMobileNavigationOpen(true)}
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            onOpenCommandPalette={openCommandPalette}
           />
           <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
             <SheetContent side="left" className="flex w-[min(86vw,280px)] flex-col p-0">
@@ -78,12 +101,12 @@ export function ApplicationShell() {
               <AppSidebar />
             </SheetContent>
           </Sheet>
-          <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+          <CommandPalette open={isCommandPaletteOpen} onOpenChange={changeCommandPaletteOpen} />
           {/* a11y-focus: main only receives programmatic focus (skip link); a ring around the whole page would be noise. */}
           <main
             id={mainContentId}
             tabIndex={-1}
-            className="app-main min-h-0 flex-1 overflow-y-auto focus:outline-none print:overflow-visible"
+            className="app-main min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto focus:outline-none print:overflow-visible"
           >
             <div className="mx-auto w-full max-w-[1400px] px-3 py-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-8 min-[1920px]:max-w-[1680px] print:max-w-none print:p-0">
               <div className="print:hidden">
@@ -91,7 +114,7 @@ export function ApplicationShell() {
                 <PasswordExpiryBanner />
                 <AnnouncementsHost />
               </div>
-              <div key={location.pathname} className="page-in">
+              <div key={pageRenderKey(location)} className="page-in">
                 <RouteErrorBoundary>
                   <Outlet />
                 </RouteErrorBoundary>

@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { Readable } from 'node:stream';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import {
   auditLogActions,
   auditLogEntityTypes,
   auditLogErrorCodes,
+  auditLogSnapshotMaxRecords,
+  auditLogStreamPageSize,
 } from './audit-log.constants';
 import { AuditLogConfigurationLoader } from './audit-log-configuration.loader';
+import { decodeAuditCursor, encodeAuditCursor } from './audit-cursor';
 import { AuditLogError } from './audit-log.error';
 import { AuditLogRepository } from './audit-log.repository';
 import type {
@@ -20,11 +24,13 @@ import type {
 import { recordAuditEntry } from './record-audit-entry';
 import { selectOrganizationalUnitIdsInScope } from './select-organizational-unit-ids-in-scope';
 import {
-  serializeAuditLogCsv,
+  serializeAuditLogCsvHeader,
+  serializeAuditLogCsvRow,
   serializeAuditLogJson,
+  serializeAuditLogJsonRow,
   toAuditLogExportRow,
 } from './serialize-audit-log-export';
-import { verifyAuditLogChain } from './verify-audit-log-chain';
+import { verifyAuditLogChainIncrementally } from './verify-audit-log-chain';
 
 @Injectable()
 export class AuditLogService {
@@ -41,6 +47,7 @@ export class AuditLogService {
     readonly take: number;
     readonly cursor: string | null;
   }): Promise<AuditLogListResult> {
+    const cursorId = decodeAuditCursor(input.cursor);
     const authContext = await this.authorizationContextLoader.loadBySubjectId(
       input.actorUserId,
     );
@@ -57,7 +64,7 @@ export class AuditLogService {
       organizationalUnitIds: scopedIds,
       includeGlobalRecords: authContext.isSuperAdmin,
       take: input.take,
-      cursor: input.cursor,
+      cursor: cursorId,
     });
     return this.toListPage(page.items, page.nextCursor);
   }
@@ -74,11 +81,12 @@ export class AuditLogService {
     readonly take: number;
     readonly cursor: string | null;
   }): Promise<AuditLogListResult> {
+    const cursorId = decodeAuditCursor(input.cursor);
     const page = await this.repository.listAuthPage({
       action: input.action,
       userId: input.userId,
       take: input.take,
-      cursor: input.cursor,
+      cursor: cursorId,
     });
     return this.toListPage(page.items, page.nextCursor);
   }
@@ -111,7 +119,7 @@ export class AuditLogService {
       actorDisplayName:
         row.actorUserId === null ? null : (names.get(row.actorUserId) ?? null),
     }));
-    return { items, nextCursor };
+    return { items, nextCursor: nextCursor === null ? null : encodeAuditCursor(nextCursor) };
   }
 
   async export(input: {
@@ -139,29 +147,61 @@ export class AuditLogService {
       throw new AuditLogError(auditLogErrorCodes.organizationalUnitNotFound);
     }
     const scopedIds = selectOrganizationalUnitIdsInScope(units, requested.ouPath);
-    const records = await this.repository.listForExport({
-      organizationalUnitIds: scopedIds,
-      includeGlobalRecords: authContext.isSuperAdmin,
-    });
-    const rows = records.map(toAuditLogExportRow);
-    await recordAuditEntry(this.prisma, {
-      action: auditLogActions.auditExport,
-      entityType: auditLogEntityTypes.auditLog,
-      entityId: input.organizationalUnitId,
-      metadata: {
-        format: input.format,
-        recordCount: rows.length,
-      },
-      actorUserId: input.actorUserId,
-      requestId: input.requestId,
-      organizationalUnitId: input.organizationalUnitId,
-      hashAlgorithm: configuration.hashAlgorithm,
-    });
-    return serializeExport(input.format, rows);
+    const repository = this.repository;
+    const prisma = this.prisma;
+    const includeGlobalRecords = authContext.isSuperAdmin;
+    const pageSize = auditLogStreamPageSize;
+    async function* chunks(): AsyncGenerator<string> {
+      let after: { createdAt: Date; id: string } | null = null;
+      let recordCount = 0;
+      let completed = false;
+      let firstJson = true;
+      try {
+        yield input.format === 'csv' ? serializeAuditLogCsvHeader() : '[';
+        for (;;) {
+          const page = await repository.listForExportPage({
+            organizationalUnitIds: scopedIds,
+            includeGlobalRecords,
+            take: pageSize,
+            after,
+          });
+          for (const record of page) {
+            const row = toAuditLogExportRow(record);
+            yield input.format === 'csv'
+              ? serializeAuditLogCsvRow(row)
+              : `${firstJson ? '' : ','}${serializeAuditLogJsonRow(row)}`;
+            firstJson = false;
+            recordCount += 1;
+          }
+          const last = page.at(-1);
+          if (last === undefined || page.length < pageSize) break;
+          after = { createdAt: last.createdAt, id: last.id };
+        }
+        if (input.format === 'json') yield ']\n';
+        completed = true;
+      } finally {
+        await recordAuditEntry(prisma, {
+          action: auditLogActions.auditExport,
+          entityType: auditLogEntityTypes.auditLog,
+          entityId: input.organizationalUnitId,
+          metadata: { format: input.format, recordCount, completed },
+          actorUserId: input.actorUserId,
+          requestId: input.requestId,
+          organizationalUnitId: input.organizationalUnitId,
+          hashAlgorithm: configuration.hashAlgorithm,
+        });
+      }
+    }
+    return {
+      format: input.format,
+      fileName: input.format === 'csv' ? 'audit-log.csv' : 'audit-log.json',
+      contentType: input.format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
+      stream: Readable.from(chunks()),
+    };
   }
 
   async snapshotExportJson(): Promise<string> {
-    const records = await this.repository.listChain();
+    const records = await this.repository.listRecentChainSnapshot(auditLogSnapshotMaxRecords);
     return serializeAuditLogJson(records.map(toAuditLogExportRow));
   }
 
@@ -170,30 +210,11 @@ export class AuditLogService {
     if (!configuration.tamperEvidentEnabled) {
       return { enabled: false, status: 'disabled' };
     }
-    return verifyAuditLogChain({
-      records: await this.repository.listChain(),
+    return verifyAuditLogChainIncrementally({
+      readPage: (after, take) => this.repository.listChainPage({ after, take }),
+      pageSize: auditLogStreamPageSize,
       hashAlgorithm: configuration.hashAlgorithm,
       start: await this.repository.findLatestCheckpoint(),
     });
   }
-}
-
-function serializeExport(
-  format: AuditExportFormat,
-  rows: ReturnType<typeof toAuditLogExportRow>[],
-): AuditLogExportResult {
-  if (format === 'csv') {
-    return {
-      format,
-      fileName: 'audit-log.csv',
-      contentType: 'text/csv; charset=utf-8',
-      content: serializeAuditLogCsv(rows),
-    };
-  }
-  return {
-    format,
-    fileName: 'audit-log.json',
-    contentType: 'application/json; charset=utf-8',
-    content: serializeAuditLogJson(rows),
-  };
 }

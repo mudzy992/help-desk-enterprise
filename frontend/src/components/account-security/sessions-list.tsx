@@ -14,7 +14,7 @@ interface SessionsListProperties {
   readonly busySessionId?: string | null;
 }
 
-/** Paket 2.1 (M6): active sign-ins — device, network, last activity. */
+/** active sign-ins — device, network, last activity. */
 export function SessionsList({ sessions, onRevoke, busySessionId = null }: SessionsListProperties) {
   const { t } = useTranslation();
   const { locale } = useLocale();

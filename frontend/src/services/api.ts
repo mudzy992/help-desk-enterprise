@@ -1,10 +1,11 @@
 import { installTokenHeaders } from "@/lib/install/install-token-store";
 import { readStoredSession } from "@/services/session-store";
+import type { ApiParser } from "@/services/api-contract";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 /**
- * Review 2026-09-25 (S10): an expired/revoked session used to surface as a
+ * An expired/revoked session used to surface as a
  * separate "not authorized" error on every screen. A 401 on an authenticated
  * request now calls this handler once (registered by the session module), which
  * clears the session and sends the user to sign in.
@@ -25,8 +26,8 @@ const sessionlessPaths = [
 ];
 
 /**
- * Review 2026-10-12 (5.4.0-e, live test): on these paths a 401 is an *answer to
- * the action*, not "your session ended". The second factor accepts only a
+ * on these paths a 401 is an *answer to
+ * The action*, not "your session ended". The second factor accepts only a
  * correct TOTP/recovery code or a verified passkey assertion, and a rejected
  * one answers 401 (`MFA_INVALID_CODE`, `IDENTITY_CONFIRMATION_FAILED`). Treating
  * that as a lost session signed the person out in the middle of the very dialog
@@ -68,7 +69,7 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly requestId: string | null = null,
-    /** Paket 2.1: structured details (e.g. password policy violations). */
+    /** Structured details (e.g. password policy violations). */
     readonly details: Record<string, unknown> | null = null,
   ) {
     super(message);
@@ -99,7 +100,7 @@ async function readApiError(response: Response): Promise<ApiError> {
   every call (`credentials: "include"`), the install token goes on `/install/`
   paths, a caller-supplied Authorization header is passed through unchanged, and
   a 401 is judged by the same exemption lists. The browser never handles the
-  session token itself (A8).
+  session token itself.
 */
 async function sendRequest(path: string, init: RequestInit, accept: string): Promise<Response> {
   const sentSession = readStoredSession() !== null && !overridesAuthorization(init.headers);
@@ -137,7 +138,16 @@ async function readApiResponse<T>(response: Response): Promise<T> {
   if (text.trim().length === 0) {
     return undefined as T;
   }
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(
+      502,
+      "INVALID_API_RESPONSE",
+      "The API returned malformed JSON",
+      response.headers.get("x-request-id"),
+    );
+  }
 }
 
 /** Body plus response headers for endpoints that return pagination metadata. */
@@ -151,6 +161,28 @@ export async function apiRequestWithHeaders<T>(
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await apiRequestWithHeaders<T>(path, init)).data;
+}
+
+/** Runtime-validated trust boundary for critical API contracts. */
+export async function apiRequestValidated<T>(
+  path: string,
+  parser: ApiParser<T>,
+  init: RequestInit = {},
+): Promise<T> {
+  const response = await apiRequestWithHeaders<unknown>(path, init);
+  try {
+    return parser(response.data);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "INVALID_API_RESPONSE") {
+      throw new ApiError(
+        error.status,
+        error.code,
+        error.message,
+        error.requestId ?? response.headers.get("x-request-id"),
+      );
+    }
+    throw error;
+  }
 }
 
 export async function apiBlobRequest(path: string, init: RequestInit = {}): Promise<Blob> {

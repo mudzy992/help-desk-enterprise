@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyPresenceUpdate, collidingTypist } from "@/lib/tickets/presence-view";
 
-describe("presence view (Paket 2.4)", () => {
+describe("presence view ()", () => {
   const staffPayload = {
     ticketId: "t1",
     audience: "staff",

@@ -1,0 +1,326 @@
+From 528d2ee5e23528d2f0d43569b82c22c0c807285a Mon Sep 17 00:00:00 2001
+From: mudzy992 <83641233+mudzy992@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 07:36:25 +0000
+Subject: [PATCH 1/2] Modul 1 (B19): uklonjene interne oznake Paket/Review/Faza
+ iz modula ljuske
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Preostalih 8 mjesta u components/layout, lib/session i spec-ovima. Izvještaj
+01 ispravljen: prethodni status 'Urađeno' nije važio za sve fajlove.
+
+Co-authored-by: arena-agent <297053741+arena-agent@users.noreply.github.com>
+---
+ audit/frontend/01-ljuska-routing-navigacija.md            | 2 +-
+ frontend/src/components/layout/active-timer-indicator.tsx | 2 +-
+ frontend/src/components/layout/command-palette.tsx        | 2 +-
+ .../src/components/layout/header-search-match.spec.ts     | 2 +-
+ frontend/src/components/layout/header-search-match.tsx    | 2 +-
+ frontend/src/components/layout/notifications-bell.tsx     | 2 +-
+ frontend/src/lib/session/route-access.spec.ts             | 8 ++++----
+ frontend/src/lib/session/session-keep-alive.spec.ts       | 2 +-
+ 8 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/audit/frontend/01-ljuska-routing-navigacija.md b/audit/frontend/01-ljuska-routing-navigacija.md
+index 27242ef..1541145 100644
+--- a/audit/frontend/01-ljuska-routing-navigacija.md
++++ b/audit/frontend/01-ljuska-routing-navigacija.md
+@@ -278,7 +278,7 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
+ | B16 gutanje greške jezika | Urađeno | `reportClientError("locale_sync_failed", …)`, sesija nije blokirana. |
+ | B17 `console.error` | Urađeno | `lib/app/client-logger.ts` je jedini izvor ispisa; pravilo ESLint `no-console`. |
+ | B18 hard-coded „N“ | Urađeno | Tekst prečice dolazi iz kataloga (`shortcutHint("newTicket")`). |
+-| B19 interne oznake u komentarima | Urađeno | Uklonjene oznake „Paket / Review / Faza“ iz 31 fajla modula. |
++| B19 interne oznake u komentarima | Urađeno | Oznake „Paket / Review / Faza / Package / Phase“ uklonjene iz svih fajlova modula (komentari i nazivi testova u `components/layout`, `lib/session`). Provjera: `grep -i` po fajlovima modula vraća samo riječ „preview“. |
+ | B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
+ | B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
+ | B22 zaglavlje na 360 i 390 px | Djelimično | Statička analiza klasa, bez vizuelne provjere (u sandboxu nema browser-a). Naziv tiketa u indikatoru tajmera se skraćuje na malim ekranima. Rizik: dok tajmer radi, polje pretrage se na telefonu svodi na ikonu. |
+diff --git a/frontend/src/components/layout/active-timer-indicator.tsx b/frontend/src/components/layout/active-timer-indicator.tsx
+index 7c0c7bc..6d2f641 100644
+--- a/frontend/src/components/layout/active-timer-indicator.tsx
++++ b/frontend/src/components/layout/active-timer-indicator.tsx
+@@ -7,7 +7,7 @@ import { markActiveTimerChanged, useActiveTimer } from "@/lib/time-tracking/acti
+ import { formatElapsed } from "@/lib/time-tracking/idle-policy";
+ import { stopTicketTimeLog } from "@/services/tickets-collaboration-api";
+
+-/** Package 1.3 (T10): the running timer, visible on every screen. */
++/** The running timer, visible on every screen. */
+ export function ActiveTimerIndicator() {
+   const { t } = useTranslation();
+   const { timer } = useActiveTimer();
+diff --git a/frontend/src/components/layout/command-palette.tsx b/frontend/src/components/layout/command-palette.tsx
+index cf15258..483097a 100644
+--- a/frontend/src/components/layout/command-palette.tsx
++++ b/frontend/src/components/layout/command-palette.tsx
+@@ -114,7 +114,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
+       setIsSearching(false);
+       return;
+     }
+-    // Phase 1.2 (plan §1.2): the debounce stays at 300 ms and the in-flight
++    // The debounce stays at 300 ms and the in-flight
+     // request is aborted when the next keystroke arrives, so typing never
+     // leaves a queue of searches running behind it. An abort is not an error —
+     // the newer request owns the panel.
+diff --git a/frontend/src/components/layout/header-search-match.spec.ts b/frontend/src/components/layout/header-search-match.spec.ts
+index 60b7e08..9ad445a 100644
+--- a/frontend/src/components/layout/header-search-match.spec.ts
++++ b/frontend/src/components/layout/header-search-match.spec.ts
+@@ -40,7 +40,7 @@ describe("header search projection", () => {
+     });
+   });
+
+-  it("keeps the same hrefs the client built before phase 1.2", () => {
++  it("keeps the same hrefs the client built before the server search", () => {
+     const groups = toHeaderSearchGroups("  vpn  ", response);
+     expect(groups.articles[0]?.href).toBe("/knowledge-base?q=vpn");
+   });
+diff --git a/frontend/src/components/layout/header-search-match.tsx b/frontend/src/components/layout/header-search-match.tsx
+index 8fc2e85..f137647 100644
+--- a/frontend/src/components/layout/header-search-match.tsx
++++ b/frontend/src/components/layout/header-search-match.tsx
+@@ -28,7 +28,7 @@ export function flattenHeaderSearchHits(groups: HeaderSearchGroups): readonly He
+ }
+
+ /**
+- * Maps the answer of `GET /search` onto the palette rows (phase 1.2, plan §1.2).
++ * Maps the answer of `GET /search` onto the palette rows.
+  *
+  * The matching itself moved to the server, so this is a pure projection: the
+  * groups arrive already narrowed to what the caller may see and already capped,
+diff --git a/frontend/src/components/layout/notifications-bell.tsx b/frontend/src/components/layout/notifications-bell.tsx
+index f7536ee..82dee3e 100644
+--- a/frontend/src/components/layout/notifications-bell.tsx
++++ b/frontend/src/components/layout/notifications-bell.tsx
+@@ -23,7 +23,7 @@ export function NotificationsBell() {
+   const triggerRef = useRef<HTMLButtonElement>(null);
+   const panelRef = useRef<HTMLDivElement>(null);
+
+-  // Paket 5.3.0 (D3): the desktop panel closes on an outside press or Escape
++  // The desktop panel closes on an outside press or Escape
+   // and hands focus back to the bell; the compact Sheet does this natively.
+   useDismissable({
+     isOpen: isOpen && !isCompact,
+diff --git a/frontend/src/lib/session/route-access.spec.ts b/frontend/src/lib/session/route-access.spec.ts
+index b8f30cd..d7677fb 100644
+--- a/frontend/src/lib/session/route-access.spec.ts
++++ b/frontend/src/lib/session/route-access.spec.ts
+@@ -94,7 +94,7 @@ describe("route access", () => {
+   });
+ });
+
+-describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
++describe("canOpenAssets / canOpenMyAssets", () => {
+   it("needs the module switched on", () => {
+     expect(canOpenAssets(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
+     expect(canOpenMyAssets(buildCapabilities({ roleKeys: [roleKeys.user] }))).toBe(false);
+@@ -111,7 +111,7 @@ describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
+   });
+ });
+
+-describe("canOpenProblems (paket 3.3)", () => {
++describe("canOpenProblems", () => {
+   it("needs the module and problem.read", () => {
+     expect(canOpenProblems(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
+     expect(
+@@ -125,7 +125,7 @@ describe("canOpenProblems (paket 3.3)", () => {
+   });
+ });
+
+-describe("canOpenChanges (paket 3.4)", () => {
++describe("canOpenChanges", () => {
+   it("needs the module and change.read", () => {
+     expect(canOpenChanges(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
+     expect(
+@@ -139,7 +139,7 @@ describe("canOpenChanges (paket 3.4)", () => {
+   });
+ });
+
+-describe("canOpenTeamsAdminPage (paket 3.1)", () => {
++describe("canOpenTeamsAdminPage", () => {
+   it("needs integrations.teams.manage or super admin", () => {
+     expect(canOpenTeamsAdminPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(false);
+     expect(
+diff --git a/frontend/src/lib/session/session-keep-alive.spec.ts b/frontend/src/lib/session/session-keep-alive.spec.ts
+index 5eaa50c..d9fe7e5 100644
+--- a/frontend/src/lib/session/session-keep-alive.spec.ts
++++ b/frontend/src/lib/session/session-keep-alive.spec.ts
+@@ -1,7 +1,7 @@
+ import { describe, expect, it } from "vitest";
+ import { decideKeepAlive, sessionKeepAlive } from "./session-keep-alive";
+
+-describe("session keep-alive (review 2026-09-25)", () => {
++describe("session keep-alive", () => {
+   it("refreshes an active user's token inside the window", () => {
+     const now = 10_000_000;
+     expect(decideKeepAlive({ now, expiresAt: now + 5 * 60_000, lastActivityAt: now - 1000 })).toBe(
+--
+2.39.5
+
+
+From a99ae4890e723d053283669ebce3396e2b242128 Mon Sep 17 00:00:00 2001
+From: mudzy992 <83641233+mudzy992@users.noreply.github.com>
+Date: Wed, 14 Oct 2026 07:42:51 +0000
+Subject: [PATCH 2/2] Modul 1 (B22): zaglavlje na 360 i 390 px sa aktivnim
+ tajmerom
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Indikator tajmera: broj tiketa samo od sm; ikona, vrijeme i zaustavljanje ostaju.
+  Pristupačni naziv i link na tiket ostaju.
+- Pretraga (dugme za paletu): min-w-9, ne skuplja se ispod 36 px.
+- Mjerenje headless Chromiumom na 360, 390 i 1280 px (snimci u assets/).
+- Test active-timer-indicator.spec.tsx.
+- Izvještaji 01 i plan 6.1.1: B19 i B22 urađeni.
+
+Co-authored-by: arena-agent <297053741+arena-agent@users.noreply.github.com>
+---
+ .../frontend/01-ljuska-routing-navigacija.md  |  2 +-
+ .../modules/6.1-frontend-audit-ispravke.md    |  2 +-
+ .../layout/active-timer-indicator.spec.tsx    | 61 +++++++++++++++++++
+ .../layout/active-timer-indicator.tsx         | 14 +++--
+ .../layout/header-search-trigger.tsx          |  2 +-
+ 5 files changed, 72 insertions(+), 9 deletions(-)
+ create mode 100644 frontend/src/components/layout/active-timer-indicator.spec.tsx
+
+diff --git a/audit/frontend/01-ljuska-routing-navigacija.md b/audit/frontend/01-ljuska-routing-navigacija.md
+index 1541145..3a28998 100644
+--- a/audit/frontend/01-ljuska-routing-navigacija.md
++++ b/audit/frontend/01-ljuska-routing-navigacija.md
+@@ -281,7 +281,7 @@ Modul je zatvoren. Sve stavke B1–B22 i Must-Have 1–5 su urađene.
+ | B19 interne oznake u komentarima | Urađeno | Oznake „Paket / Review / Faza / Package / Phase“ uklonjene iz svih fajlova modula (komentari i nazivi testova u `components/layout`, `lib/session`). Provjera: `grep -i` po fajlovima modula vraća samo riječ „preview“. |
+ | B20 `*` preusmjerava na `/` | Urađeno | `NotFoundPage` unutar ljuske (`app.notFound.*`). |
+ | B21 `_visual-qa` u produkciji | Urađeno | `isVisualQaRoute` provjerava `import.meta.env.DEV`. |
+-| B22 zaglavlje na 360 i 390 px | Djelimično | Statička analiza klasa, bez vizuelne provjere (u sandboxu nema browser-a). Naziv tiketa u indikatoru tajmera se skraćuje na malim ekranima. Rizik: dok tajmer radi, polje pretrage se na telefonu svodi na ikonu. |
++| B22 zaglavlje na 360 i 390 px | Urađeno | Provjera u headless Chromiumu (harness sa stvarnom `AppHeader` komponentom, prijavljena sesija, aktivan tajmer). Prije: sa aktivnim tajmerom indikator je bio 186 px, pretraga se svodila na 26 px, bez prelivanja samo zato što su se pretraga i tekst skupljali. Poslije: na 360 px pretraga 95 px, indikator 110 px (prikazani su ikona, vrijeme i dugme za zaustavljanje; broj tiketa samo od `sm`). Pretraga ima `min-w-9` (36 px). Desktop (1280 px) nepromijenjen. Snimci: `assets/01-header-360.png`, `assets/01-header-390.png`, `assets/01-header-360-s-tajmerom.png`, `assets/01-header-390-s-tajmerom.png`. Test: `active-timer-indicator.spec.tsx`. |
+ | ESLint, Prettier, skripta u CI | Urađeno | `lint`, `format:check` u CI-ju; 14 upozorenja `exhaustive-deps` su dug u drugim modulima. |
+
+ ### Zabilješke za druge module
+diff --git a/docs/plans/modules/6.1-frontend-audit-ispravke.md b/docs/plans/modules/6.1-frontend-audit-ispravke.md
+index 3ee7921..31333fa 100644
+--- a/docs/plans/modules/6.1-frontend-audit-ispravke.md
++++ b/docs/plans/modules/6.1-frontend-audit-ispravke.md
+@@ -16,7 +16,7 @@ kao i kod.
+
+ | Val | Modul | Izvještaj | Ocjena | Status | Napomena |
+ |---|---|---|---|---|---|
+-| 6.1.1 | Ljuska, routing, navigacija | `01-ljuska-routing-navigacija.md` | 5/10 | **zatvoren** | Sve stavke B1–B22 i Must-Have 1–5; B22 bez vizuelne provjere (vidjeti izvještaj) |
++| 6.1.1 | Ljuska, routing, navigacija | `01-ljuska-routing-navigacija.md` | 5/10 | **zatvoren** | Sve stavke B1–B22 i Must-Have 1–5. B19 i B22 dovršeni u 6.1.1 (B22: provjera headless Chromiumom na 360 i 390 px, snimci u `audit/frontend/assets/`) |
+ | 6.1.2 | Autentifikacija i sesija | `02` | 5/10 | **kod gotov, čeka provjeru** | Must-Have 1–8 urađeni; A8 = httpOnly kolačić; A14 prihvaćen rizik (fail-open); A11, A15 djelimično; provjera u pregledaču i e2e nisu urađeni |
+diff --git a/frontend/src/components/layout/active-timer-indicator.spec.tsx b/frontend/src/components/layout/active-timer-indicator.spec.tsx
+new file mode 100644
+index 0000000..03b63e8
+--- /dev/null
++++ b/frontend/src/components/layout/active-timer-indicator.spec.tsx
+@@ -0,0 +1,61 @@
++import { describe, expect, it, vi } from "vitest";
++import { renderToStaticMarkup } from "react-dom/server";
++import { MemoryRouter } from "react-router-dom";
++import { ActiveTimerIndicator } from "@/components/layout/active-timer-indicator";
++import type { ActiveTimer } from "@/services/tickets-collaboration-api";
++
++const activeTimer = vi.hoisted(() => ({ current: null as unknown }));
++
++vi.mock("react-i18next", () => ({
++  useTranslation: () => ({
++    t: (key: string, options?: Record<string, unknown>) =>
++      options === undefined ? key : `${key}|${JSON.stringify(options)}`,
++  }),
++}));
++
++vi.mock("@/lib/time-tracking/active-timer-store", () => ({
++  useActiveTimer: () => ({
++    timer: activeTimer.current,
++    policy: null,
++    generation: 0,
++    pausedTicket: null,
++  }),
++  markActiveTimerChanged: vi.fn(),
++}));
++
++const timer: ActiveTimer = {
++  timeLogId: "tl-1",
++  ticketId: "ticket-1",
++  ticketNumber: "TKT-2026-000123",
++  ticketTitle: "Ispad VPN tunela",
++  startedAt: new Date(Date.now() - 60_000).toISOString(),
++};
++
++function render(): string {
++  return renderToStaticMarkup(
++    <MemoryRouter>
++      <ActiveTimerIndicator />
++    </MemoryRouter>,
++  );
++}
++
++describe("ActiveTimerIndicator", () => {
++  it("renders nothing without a running timer", () => {
++    activeTimer.current = null;
++    expect(render()).toBe("");
++  });
++
++  it("links the running timer to its ticket and keeps the ticket number in the accessible name", () => {
++    activeTimer.current = timer;
++    const html = render();
++    expect(html).toContain('href="/tickets/ticket-1"');
++    expect(html).toContain("tickets.timeTracking.indicatorLabel");
++    expect(html).toContain("TKT-2026-000123");
++  });
++
++  it("hides the ticket number on narrow screens so the header keeps room for search", () => {
++    activeTimer.current = timer;
++    const html = render();
++    expect(html).toMatch(/class="[^"]*hidden[^"]*sm:inline[^"]*">TKT-2026-000123</);
++  });
++});
+diff --git a/frontend/src/components/layout/active-timer-indicator.tsx b/frontend/src/components/layout/active-timer-indicator.tsx
+index 6d2f641..e10f047 100644
+--- a/frontend/src/components/layout/active-timer-indicator.tsx
++++ b/frontend/src/components/layout/active-timer-indicator.tsx
+@@ -35,10 +35,9 @@ export function ActiveTimerIndicator() {
+       className="flex min-w-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/8 py-0.5 pl-2.5 pr-0.5 text-[12px] text-primary"
+       data-testid="active-timer-indicator"
+     >
+-      <Timer size={13} strokeWidth={2} aria-hidden className="animate-pulse" />
+       <Link
+         to={`/tickets/${timer.ticketId}`}
+-        className="max-w-[72px] truncate font-medium hover:underline sm:max-w-[180px]"
++        className="flex min-w-0 items-center gap-1 hover:underline"
+         title={
+           timer.ticketTitle.length > 0
+             ? `${timer.ticketNumber} · ${timer.ticketTitle}`
+@@ -46,11 +45,14 @@ export function ActiveTimerIndicator() {
+         }
+         aria-label={label}
+       >
+-        {timer.ticketNumber}
++        <Timer size={13} strokeWidth={2} aria-hidden className="animate-pulse" />
++        <span className="hidden max-w-[180px] truncate font-medium sm:inline">
++          {timer.ticketNumber}
++        </span>
++        <span className="tnum font-mono" aria-hidden>
++          {elapsed}
++        </span>
+       </Link>
+-      <span className="tnum font-mono" aria-hidden>
+-        {elapsed}
+-      </span>
+       <Button
+         type="button"
+         size="icon"
+diff --git a/frontend/src/components/layout/header-search-trigger.tsx b/frontend/src/components/layout/header-search-trigger.tsx
+index eaa5ae6..8056ccf 100644
+--- a/frontend/src/components/layout/header-search-trigger.tsx
++++ b/frontend/src/components/layout/header-search-trigger.tsx
+@@ -19,7 +19,7 @@ export function HeaderSearchTrigger({ onOpen }: HeaderSearchTriggerProperties) {
+       type="button"
+       onClick={onOpen}
+       aria-label={t("palette.open")}
+-      className="group flex h-9 w-full max-w-md min-w-0 items-center gap-2.5 rounded-md border border-border bg-surface px-3 text-left transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
++      className="group flex h-9 w-full max-w-md min-w-9 items-center gap-2.5 rounded-md border border-border bg-surface px-3 text-left transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
+     >
+       <Search size={14.5} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+       <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">
+--
+2.39.5

@@ -1,5 +1,6 @@
 import { TemplatesConfigurationLoader } from '../templates/templates-configuration.loader';
 import { Module } from '@nestjs/common';
+import { StorageWriteModule } from '../../common/storage-write/storage-write.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { RoutingModule } from '../routing/routing.module';
@@ -87,6 +88,7 @@ import { ServiceFormsConfigurationLoader } from '../service-catalog/service-form
     RoutingModule,
     SettingsModule,
     SlaModule,
+    StorageWriteModule,
   ],
   // Controllers with a static path segment under /tickets must register before
   // TicketsController, otherwise its GET /tickets/:ticketId route shadows them.

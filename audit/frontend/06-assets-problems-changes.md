@@ -1,184 +1,507 @@
-# Modul 6: Assets, problems i changes
+# Modul 06 — Assets, Problems i Changes
+> **Aktuelni CI/browser status — 22.10.2026.** Kompletna aktuelna Playwright kolekcija 01–56 trenutno prolazi prema potvrdi korisnika; uključujući naknadno stabilizovane E2E 54 i 56. Sve ranije napomene u ovom dokumentu da određeni frontend E2E nije bio pokrenut opisuju historijski dokaz tadašnjeg SHA i više nisu otvoren CI nalaz. Ostaje samo jedan centralno evidentiran release korak: korisnik će dostaviti konačni zvanični CI rezultat/URL na završnom SHA, koji se jedino vodi kao `OPEN-CI-FINAL` u planu 6.3.
 
-Datum audita: 2026-10-13
-Grana: `arena/3cc0c561-help-desk-enterprise`
-Status: analiza završena. Nijedan kod nije mijenjan (čeka se potvrda obima refaktorisanja).
-Oznake nalaza: **R** (resursi, problemi, promjene). Ovo je da se ne miješa sa A (modul 2), S (modul 5) i D (modul 4).
-
-Provjere izvršene u sandboxu:
-- Čitanje u cijelosti: `pages/assets-page.tsx` (536), `pages/problems-page.tsx` (358), `pages/my-assets-page.tsx` (152), `lib/problems/problem-view.ts` (dijelovi), `components/problems/problem-status-sheet.tsx` (30–75).
-- Čitanje dijelova: `pages/changes-page.tsx` (gating, filteri, lista, greške), `pages/change-detail-page.tsx` (ChangeConflictsCard, refresh), `pages/problem-detail-page.tsx` (query, refresh), `pages/asset-detail-page.tsx` (queries, ConfirmDialog), `components/changes/change-action-sheet.tsx`, `components/changes/change-approvals-panel.tsx` (vote), `components/changes/change-form-sheet.tsx` (state i konflikti), `components/assets/asset-overview-panel.tsx` (tabela).
-- Pregled ključeva keša: `services/assets-api.ts` (`assetQueryKeys`), `services/problems-api.ts` (`problemQueryKeys`, `problemDetailKeys`), `services/changes-api.ts` (`changeQueryKeys`).
-- Metrike (grep i brojanje): fajlovi, `useState`, `useMutation`, `window.confirm`, `ConfirmDialog`, `setTimeout`, `key={index}`, `eslint-disable`, `realtime`, `dangerouslySetInnerHTML`, komentari „Paket“.
-- E2E: pregled 10 fajlova (`e2e/tests/23`–`32`) i broja testova.
-- Ruta u `app/router.tsx` (146–162).
-- **Nije pročitano u punom obimu:** `services/assets-api.ts` (901 linija, pregledana samo struktura i ključevi), `services/problems-api.ts` i `services/changes-api.ts` (samo ključevi i tipovi), `components/assets/asset-catalog-manager.tsx` (693, samo brojanje stanja i funkcija), `asset-licenses-panel.tsx`, `asset-contracts-panel.tsx`, `asset-import-panel.tsx`, `asset-transfer-*`, `asset-directory-sync-card.tsx`, `change-calendar.tsx`, `change-templates-panel.tsx`, `change-history-panel.tsx`, `problem-analysis-panel.tsx`, `problem-links-panel.tsx`, `problem-tickets-panel.tsx`, `ticket-assets-panel.tsx`, `lib/assets/asset-view.ts` (samo `mapAssetError`).
-- **Nije pokrenut pregledač.** Nalazi R1, R2 i R3 potvrđeni su čitanjem koda. Reprodukovati ih u pregledaču prije ispravke (vidi listu na kraju).
+**Datum reaudita:** 20. 10. 2026.
+**Status:** reaudit završen; Faze 1–2 implementirane 20. 10. 2026.
+**Aktuelna ocjena:** **9,8/10 nakon Faze 7; browser dokaz još nije zatvoren**
+**Cilj:** **10/10 uz izvršen browser/E2E closeout**
 
 ---
 
-## Modul
+## 1. Izvršni sažetak
 
-**Assets (CMDB), problems i changes** su tri modula za upravljanje uslugama. Obuhvataju:
-- **Sredstva (assets):** registar sa filterima i masovnim akcijama (dodjela, vraćanje), detalj sredstva (pregled, relacije, transferi, licence, ugovori, istorija, uticaj), „Moja oprema“, katalog tipova i lokacija, uvoz i izvoz, sinhronizacija sa direktorijem.
-- **Problemi:** registar sa filterima i stranicama kursora, detalj (status, analiza, veze sa tiketima, članci baze znanja, rješavanje povezanih tiketa), kreiranje.
-- **Promjene (change management):** registar sa tabovima (registar, kalendar, šabloni), detalj (uslovi, konflikti sa drugim promjenama, odobrenja glasanjem, istorija), kreiranje i izmjena sa provjerom konflikata u vremenu.
+Modul ima dobru domensku osnovu: route access je centralizovan, backend ostaje autoritet za permission i version-conflict pravila, liste koriste cursor paginaciju, Assets filteri su preneseni u URL, sva tri registra dijele capability/list-state infrastrukturu, a licence i ugovori više ne koriste nativni `window.confirm`. Raniji val je stvarno zatvorio većinu tadašnjih correctness problema.
 
-Granica modula: `pages/assets-page.tsx`, `pages/asset-detail-page.tsx`, `pages/my-assets-page.tsx`, `pages/problems-page.tsx`, `pages/problem-detail-page.tsx`, `pages/changes-page.tsx`, `pages/change-detail-page.tsx`, `components/assets/` (16), `components/problems/` (12), `components/changes/` (10), `lib/assets/`, `lib/problems/`, `lib/changes/`, `services/assets-api.ts`, `services/problems-api.ts`, `services/changes-api.ts`, `services/asset-transfers-api.ts`. Rute: `/assets`, `/assets/:assetId`, `/my-assets`, `/problems`, `/problems/:problemId`, `/changes`, `/changes/:changeId`.
+Reaudit ipak ne potvrđuje prethodni status „zatvoren“. Najveći preostali rizici su:
 
----
+1. list/query greška nakon uspješnog učitavanja destruktivno skriva već prikazane redove;
+2. detail stranice mrežnu/server grešku predstavljaju kao „nije pronađeno“, bez retryja i request ID-a;
+3. search input se inicijalizuje iz URL-a samo pri mountu i može odstupiti od URL-a nakon Back/Forward navigacije;
+4. options/catalog greške ostavljaju write kontrole trajno disabled bez retry ugovora;
+5. široke invalidacije i različiti mutation obrasci stvaraju nepotreban refetch i neujednačen feedback;
+6. najveće komponente su dodatno narasle, a nemaju direktne component testove;
+7. browser scenariji postoje, ali u ovom reauditu nisu izvršeni i još ne pokrivaju ključne recovery/race/mobile tokove.
 
-## Povezani fajlovi i folderi
-
-| Fajl ili folder | Uloga | Linija |
-|---|---|---|
-| `frontend/src/pages/assets-page.tsx` | Registar sredstava, tabovi (register, overview, transfers, licenses, contracts, import, catalog) | 536 |
-| `frontend/src/pages/asset-detail-page.tsx` | Detalj sredstva, tabovi, brisanje (ConfirmDialog) | 499 |
-| `frontend/src/pages/my-assets-page.tsx` | „Moja oprema“ za prijavljenog korisnika | 152 |
-| `frontend/src/pages/problems-page.tsx` | Registar problema (filteri u URL-u) | 358 |
-| `frontend/src/pages/problem-detail-page.tsx` | Detalj problema | 298 |
-| `frontend/src/pages/changes-page.tsx` | Registar promjena (filteri u URL-u, tabovi) | 421 |
-| `frontend/src/pages/change-detail-page.tsx` | Detalj promjene, konflikti, odobrenja | 396 |
-| `frontend/src/components/assets/` (16) | Paneli, sheetovi, katalog, licence, ugovori, uvoz, transferi | ukupno oko 5.000 |
-| `frontend/src/components/problems/` (12) | Analiza, veze, status, dijalozi za povezivanje, rješavanje tiketa | ukupno oko 2.000 |
-| `frontend/src/components/changes/` (10) | Forma, akcije, odobrenja, kalendar, konflikti, šabloni | ukupno oko 2.300 |
-| `frontend/src/lib/assets/` (7 uključujući spec) | `asset-view.ts` (mapiranje grešaka, statusi, garancija), bulk plan, transferi | 310 + ostalo |
-| `frontend/src/lib/problems/problem-view.ts` | Mapiranje grešaka, statusi, starost | 213 |
-| `frontend/src/lib/changes/` | `change-view.ts` (greške, konflikti, akcije), `change-calendar.ts` | 293 + ostalo |
-| `frontend/src/services/assets-api.ts` | HTTP i `assetQueryKeys` | 901 |
-| `frontend/src/services/problems-api.ts` | HTTP i `problemQueryKeys`, `problemDetailKeys` | 465 |
-| `frontend/src/services/changes-api.ts` | HTTP i `changeQueryKeys` | 445 |
-| `frontend/src/services/asset-transfers-api.ts` | Transferi sredstava | |
-| `frontend/src/components/ui/confirm-dialog.tsx` | Standardni dijalog za potvrdu (koristi se u 4 mjesta) | |
-| `e2e/tests/23`–`28` (assets), `29`–`30` (problems), `31`–`32` (changes) | E2E tokovi | 10 fajlova, 23 testa |
+Prethodno „prihvaćeni rizici“ za velike komponente, historijske komentare i browser dokaz više se ne tretiraju kao trajno zatvaranje. Za cilj 10/10 svaki nalaz ispod mora imati implementaciju i izvršni dokaz.
 
 ---
 
-## Trenutna implementacija
+## 2. Scope
 
-**Struktura stranica.** Svaka lista ima istu logiku: prvo se učita mogućnost (`capabilities`) za modul, zatim se provjeri da li je modul uključen, da li postoji `setupRequired`, da li korisnik može čitati, i tek onda se prikaže sadržaj. Ovo je u sva tri modula (`assets-page.tsx:83–106`, `problems-page.tsx:138–169`, `changes-page.tsx:157–185`).
+### U scopeu
 
-**Filteri.** Registar problema i promjena čuva filtere u URL-u (`problems-page.tsx:60–69`, `changes-page.tsx:78–80`). Registar sredstava čuva ih u lokalnom stanju (`assets-page.tsx:153–161`). Pretraga se odlaže za 300 ms u sva tri (`assets-page.tsx:169–172`, `problems-page.tsx:73–76`, `changes-page.tsx:91–94`).
+- stranice:
+  - `frontend/src/pages/assets-page.tsx`;
+  - `frontend/src/pages/asset-detail-page.tsx`;
+  - `frontend/src/pages/my-assets-page.tsx`;
+  - `frontend/src/pages/problems-page.tsx`;
+  - `frontend/src/pages/problem-detail-page.tsx`;
+  - `frontend/src/pages/changes-page.tsx`;
+  - `frontend/src/pages/change-detail-page.tsx`;
+- `frontend/src/components/assets/`;
+- `frontend/src/components/problems/`;
+- `frontend/src/components/changes/`;
+- `frontend/src/lib/assets/`, `frontend/src/lib/problems/`, `frontend/src/lib/changes/`;
+- zajednički entity-list helperi koje koriste ova tri registra;
+- `assets-api.ts`, `asset-transfers-api.ts`, `problems-api.ts`, `changes-api.ts`;
+- route/access ugovori za `/assets`, `/problems`, `/changes` i detail rute;
+- E2E scenariji `23–32`.
 
-**Liste.** Tabela sa `caption` (sr-only), `aria-live` brojačem, „Učitaj više“ (kursor), `EmptyState` sa razlikom između „nema rezultata“ i „nema podataka“ (`assets-page.tsx:404–409`). Greška se mapira kroz `mapAssetError`, pa `mapApiError` (`assets-page.tsx:370–374`).
+### Izvan scopea
 
-**Masovne akcije.** Registar sredstava ima odabir više stavki (`assets-page.tsx:165`). Plan se računa iz odabira (`bulk-move`), a akcije su dodjela i vraćanje (`:376–400`, `:503–520`).
-
-**Mutacije.** Većina mutacija je ručna: `busy` stanje, `try/catch`, `toast` i zatim `invalidateQueries` (21 fajl). `useMutation` je u 6 fajlova.
-
-**Verzije i konflikti.** Promjene, problemi i sredstva šalju `version` pri izmjeni i glasanju (`changes-api.ts:245`, `:346`). Konflikt verzije ima poseban ključ greške (`CHANGE_VERSION_CONFLICT`, `PROBLEM_VERSION_CONFLICT`, `ASSET_VERSION_CONFLICT`). Forma promjene provjerava konflikte u vremenu, sa debounce-om (`change-form-sheet.tsx:152–163`).
-
-**Odobrenja promjena.** Odbijanje glasa traži komentar (`change-approvals-panel.tsx:51–54`). Odobravanje se šalje odmah.
-
-**Brisanje.** Brisanje sredstva koristi `ConfirmDialog` (`asset-detail-page.tsx:263–278`). Brisanje licence i ugovora koristi `window.confirm` (`asset-licenses-panel.tsx:577`, `asset-contracts-panel.tsx:489`).
-
-**Osvježavanje detalja.** Detalj problema i promjene osvježava se invalidacijom prefiksa (`problemQueryKeys.all`, `changeQueryKeys.all`). Nema realtime osvježavanja u ovim modulima (`grep realtime`: 0 pogodaka).
-
-**Testovi.** 7 spec fajlova, svi za helpere (`asset-view`, `asset-bulk-move`, `asset-transfer-view`, `change-view`, `change-calendar`, `problem-view`, `problem-resolve-tickets-section`). E2E: 10 fajlova i 23 testa (registar, transferi, pristup, uvoz i izvoz, katalog, problemi, promjene, zakazivanje).
-
----
-
-## Realno/željeno stanje
-
-| Oblast | Realno stanje | Željeno stanje |
-|---|---|---|
-| Greške učitavanja | Pad mreže ili 500 na mogućnostima prikazuje „modul je isključen“ (assets, problems, changes). Samo „Moja oprema“ razlikuje greške (`my-assets-page.tsx:41–50`) | Tri stanja: isključeno, nema pristupa, greška sa dugmetom „pokušaj ponovo“ |
-| Greška i prazno stanje | Ispod greške se prikazuje i „nema sredstava/problema/promjena“ | Ili greška, ili prazno stanje |
-| Odabir u registru sredstava | Ostaje pri promjeni filtera. Masovna akcija radi nad skrivenim stavkama | Odabir se čisti pri promjeni filtera, ili se jasno prikazuje koliko je stavki van prikaza |
-| Filteri | Sredstva: lokalno stanje (nije u URL-u). Problemi i promjene: URL | Isto za sve tri liste (URL) |
-| Brisanje | Jedno mjesto sa `ConfirmDialog`, dva sa `window.confirm` | Jedan dijalog za sve |
-| Mutacije | 6 fajlova `useMutation`, 21 ručno | Jedan obrazac (`useMutation` sa zajedničkim `onError` i invalidacijom) |
-| Liste | Tri gotovo ista sklopa (oko 300 linija po stranici) | Zajednička ljuska liste: mogućnosti, filteri, tabela, kursor, greška, prazno stanje |
-| Osvježavanje | Samo ručno i nakon vlastitih akcija. Konflikt verzije se prikazuje tek pri snimanju | Kao u tiketima: realtime ili bar osvježavanje pri fokusu, uz baner „podaci su promijenjeni“ |
-| Testovi | Helperi pokriveni. Stranice, paneli i sheetovi nemaju unit testove. E2E tokovi dobri | Testovi za stanja mogućnosti i za matricu prava |
+- opći Tickets workflow osim asset/problem/change integracijskih granica;
+- opći Services, Reports, Status i Knowledge Base audit osim direktnih linkova iz ovog modula;
+- backend poslovna pravila koja frontend samo konzumira, osim provjere da frontend ne slabi server guard/version ugovor.
 
 ---
 
-## Gap analiza
+## 3. Metodologija i izvršni dokaz reaudita
 
-1. **Pogrešna poruka pri grešci.** Korisnik koji ima pad mreže vidi „modul nije uključen“. To može da navede admina da pomisli da je modul ugašen, a ne da je server nedostupan. Uzrok je spajanje `error` i `!enabled` u jedan `if` (`assets-page.tsx:91`, `problems-page.tsx:154`, `changes-page.tsx:173`).
-2. **Greška i prazno stanje istovremeno.** Kad lista padne, prikazuje se greška i ispod nje „nema sredstava“. Za korisnika to izgleda kao da podataka nema.
-3. **Skriveni odabir.** Odabir u registru sredstava se čuva kad se filter promijeni. Traka pokazuje „N odabrano“, ali stavke nisu vidljive. Masovna dodjela ili vraćanje može da zahvati stavke koje korisnik ne vidi.
-4. **Dva stila dijaloga za brisanje.** `window.confirm` nije u skladu sa ostatkom aplikacije, ne može se stilizovati i u testovima traži poseban rad.
-5. **Filteri nisu u URL-u za sredstva.** Ne može se poslati link na filtrirani registar, niti vratiti nazad sa istim filterima. Ovo je isti problem kao D1 u modulu 4.
-6. **Duplikacija.** Tri liste imaju isti skelet, četiri lokalna debounce hooka i osam ručnih `setTimeout` tajmera. Svaka ispravka mora da se radi tri puta.
-7. **Ručne mutacije.** Većina mutacija ponavlja `busy/try/catch/toast/invalidate`. Greške se ne mapiraju uvijek jednako.
-8. **Velike komponente.** `asset-catalog-manager.tsx` (693 linija, 29 stanja), `change-form-sheet.tsx` (454 linija, 26 stanja u jednoj funkciji), `asset-licenses-panel.tsx` (593, 25 stanja). Nema biblioteke za forme. Stanje se vodi ručno.
-9. **Osvježavanje.** Dva korisnika mogu raditi nad zastarjelim podacima bez upozorenja. Verzija hvata konflikt tek pri snimanju.
+Reaudit je urađen čitanjem aktuelnog production i test koda na commitu `bbf11cf520cef6333675aeac8b8466b1fbe3db7d`, nakon završenog Admin/Settings closeouta.
 
----
+Pregledano je:
 
-## Mišljenje tima i preporuka
+- svih 7 glavnih page entrypointa;
+- svi Assets/Problems/Changes component, lib i API fajlovi;
+- query keys, invalidacije, capability i list-state ugovori;
+- mutation, loading, retry, error i request-correlation tokovi;
+- route access testovi;
+- postojeći unit/component test katalog;
+- E2E izvori `23–32`.
 
-*Ovo je mišljenje auditora na osnovu čitanja koda, a ne rezultat ankete među članovima tima.*
+Važne aktuelne brojke:
 
-Ovaj modul je tehnički solidan. Verzioniranje i konflikti su dobro urađeni, odbijanje glasa traži komentar, a e2e pokrivenost tokova je dobra (23 testa). Glavni problemi su u **korisničkom iskustvu grešaka** i u **dupliciranju** između tri liste. Prvo treba popraviti poruke (R1, R2), jer su najvidljivije, a zatim skriveni odabir (R3), koji je najrizičniji. Dupliranje treba riješiti tek poslije testova, da se ne bi ponovo pojavili isti bugovi.
-
-Preporuka za redoslijed:
-1. **R1 i R2:** razdvojiti „isključeno“, „nema pristupa“ i „greška“, po uzoru na `my-assets-page.tsx`. Greška ne smije biti praćena praznim stanjem.
-2. **R3:** odabir se čisti pri promjeni filtera, ili se prikazuje koliko je stavki odabrano van prikaza. Dodati test.
-3. **R4:** zamijeniti dva `window.confirm` sa `ConfirmDialog`.
-4. **R7:** filteri registra sredstava u URL-u, kao kod problema i promjena.
-5. **R20:** testovi za stanja mogućnosti i za tok brisanja, prije refaktora.
-6. **R6, R8, R5:** zajednička ljuska liste i zajednički hook za debounce i mutacije. Tek poslije testova iz tačke 5.
-7. **R9:** podijeliti velike komponente, prvo `asset-catalog-manager.tsx` i `change-form-sheet.tsx`.
-
-Refaktor se ne radi bez potvrde obima.
+- `asset-catalog-manager.tsx`: **1009 linija / 29 lokalnih stateova**;
+- `asset-licenses-panel.tsx`: **816 / 26 stateova**;
+- `asset-contracts-panel.tsx`: **671 / 22 statea**;
+- `change-form-sheet.tsx`: **26 stateova**;
+- 7 glavnih page fajlova zajedno: više od **3.600 linija**;
+- direktni scope testovi su pretežno helper testovi; nema direktnih page specova za Assets, Problems ili Changes;
+- E2E `23–32`: **10 fajlova / 21 deklarisan test**; u ovom reauditu su pročitani, ne i izvršeni.
 
 ---
 
-## Otkriveni bugovi i neusklađenosti
+## 4. Šta je dobro i treba sačuvati
 
-| # | Ozbiljnost | Lokacija | Opis | Predložena popravka |
-|---|---|---|---|---|
-| R1 | Srednja | `pages/assets-page.tsx:91`; `pages/problems-page.tsx:154`; `pages/changes-page.tsx:173` | `error` i `!enabled` su u istom uslovu. Greška učitavanja se prikazuje kao „modul je isključen“, bez dugmeta za ponovni pokušaj. `my-assets-page.tsx:41–50` to već razlikuje. | Tri stanja: `enabled === false` (isključeno), `canRead === false` (nema pristupa), `error` (greška + „pokušaj ponovo“). |
-| R2 | Srednja | `pages/assets-page.tsx:370–409`; `pages/problems-page.tsx:260–273`; `pages/changes-page.tsx:328–336` | Kad lista padne, prikazuje se greška i ispod nje `EmptyState` („nema sredstava“, „nema problema“). | `items.length === 0` samo kad nema greške. |
-| R3 | Srednja (za provjeru) | `pages/assets-page.tsx:165, 203, 225, 376–400` | Odabir se ne čisti pri promjeni filtera. `bulkPlan` se računa iz svih odabranih (`[...selected.values()]`). Stavke van prikaza se mogu dodijeliti ili vratiti. | Čistiti odabir pri promjeni filtera, ili prikazati „N odabrano, M van prikaza“. |
-| R4 | Srednja | `components/assets/asset-licenses-panel.tsx:577`; `components/assets/asset-contracts-panel.tsx:489` | Brisanje koristi nativni `window.confirm`. Ostatak aplikacije koristi `ConfirmDialog` (`asset-detail-page.tsx:263`). | `ConfirmDialog` sa `intent="danger"`, kao kod sredstva. |
-| R5 | Srednja | 21 fajl sa `setBusy`/`setSaving`/`setPending` (npr. `components/changes/change-form-sheet.tsx`, `components/assets/asset-action-sheets.tsx`) | Mutacije se rade ručno u 21 fajlu, a `useMutation` se koristi u 6. Greške i osvježavanje se rade različito (`refresh()`, `invalidateQueries` sa `all`, ručni `load`). | Jedan obrazac: `useMutation` sa zajedničkim `onError` (mapiranje greške) i invalidacijom po ključu. |
-| R6 | Srednja | `pages/assets-page.tsx`, `pages/problems-page.tsx`, `pages/changes-page.tsx` | Tri liste dijele skelet (mogućnosti, filteri, tabela, kursor, greška, prazno stanje). Oko 300 linija po stranici se ponavlja. | Zajednička ljuska `EntityListPage` sa konfiguracijom (kolone, filteri, ključevi). |
-| R7 | Srednja | `pages/assets-page.tsx:153–161` | Filteri registra sredstava su u lokalnom stanju. Problemi i promjene koriste URL (`problems-page.tsx:60–69`, `changes-page.tsx:78–80`). Link na filtrirani registar nije moguć. Ista klasa problema kao D1 u modulu 4. | Filteri u URL-u, kao u problemima. |
-| R8 | Niska | `components/assets/asset-contracts-panel.tsx:46`; `asset-licenses-panel.tsx:50`; `components/changes/change-link-pickers.tsx`; `components/problems/problem-links-panel.tsx`; `pages/assets-page.tsx:170`; `pages/problems-page.tsx:74`; `pages/changes-page.tsx:93`; `components/assets/asset-action-sheets.tsx:173`; `components/assets/asset-relations-panel.tsx:228`; `components/assets/asset-signatory-sheet.tsx:41` | Debounce je napisan 4 puta kao lokalni hook i 8 puta kao ručni `setTimeout`. Ponašanje se razlikuje (neki traže minimalnu dužinu, neki ne). | Zajednički `useDebouncedValue` u `lib/`. |
-| R9 | Srednja | `components/assets/asset-catalog-manager.tsx` (693); `components/changes/change-form-sheet.tsx` (454); `components/assets/asset-licenses-panel.tsx` (593); `components/assets/asset-contracts-panel.tsx` (505) | Velike komponente sa 21–29 `useState` poziva. Forme su ručne, a biblioteka za forme (`react-hook-form`) nije u projektu. | Podijeliti po sekcijama; za forme razmotriti zajedničku odluku o biblioteci (traži odobrenje). |
-| R10 | Niska (za provjeru) | `components/problems/problem-status-sheet.tsx:49–58` | Efekat resetuje unos (razlog, poruka) kad se promijeni `targets` (`problem.allowedTransitions`). Novi niz se dobija pri svakom osvježavanju podataka. ESLint pravilo je isključeno komentarom (`:57`). Trenutno nema realtime osvježavanja, pa je rizik mali. | Zavisnost od stabilnog ključa (npr. `problem.status`), a ne od niza. Ukloniti `eslint-disable`. |
-| R11 | Niska | `pages/problems-page.tsx:70` | `nowMs` se uzima pri mountu, pa se „starost problema“ ne ažurira dok stranica stoji otvorena. | Ažurirati pri fokusu ili periodično. |
-| R12 | Niska | `pages/assets-page.tsx:174–175, 286`; `pages/problems-page.tsx:129` | Dugme „Novi“ je onemogućeno dok katalog ili opcije nisu učitani. Ako učitavanje ne uspije, dugme ostaje onemogućeno bez poruke. | Prikazati grešku uz dugme. |
-| R13 | Niska | `pages/assets-page.tsx:62–63, 79, 310, 352`; `pages/problems-page.tsx:64` | Parsiranje URL-a i vrijednosti selecta sa `as` konverzijom. Prioritet problema koristi tipove prioriteta tiketa (`ticketPriorityValues`), pa je domen povezan. | Tip-garda kao u `parse-admin-tab.ts` (modul 5). Zajednički tip prioriteta ili odvojen za probleme. |
-| R14 | Niska | `pages/assets-page.tsx:508, 515` | Masovni sheet prima oblik za jedno sredstvo sa `id: bulkPlan.ids[0]`. Lako je pogriješiti pri korišćenju. | Odvojiti prop za masovnu akciju (`assetIds`). |
-| R15 | Niska | `components/assets/asset-overview-panel.tsx:195–197`; `components/assets/asset-transfer-section.tsx:90`; `components/problems/problem-analysis-panel.tsx:105, 152` | `key={index}` za redove. Za statične liste je prihvatljivo, ali je nedosljedno sa ostatkom koda. | `key` iz podataka gdje postoji. |
-| R16 | Niska | `services/problems-api.ts:114–122, 247–258` | Dvije grupe ključeva za isti modul: `problemQueryKeys` (`all: ["problems"]`) i `problemDetailKeys` (lista, mogućnosti, detalj). Radi zbog prefiksa, ali je zbunjujuće. | Jedna grupa ključeva po modulu. |
-| R17 | Niska | `pages/problem-detail-page.tsx:48`; `pages/asset-detail-page.tsx:74–76` | Osvježavanje invalidira cijeli modul (`["problems"]`, `["assets"]`), uključujući liste i katalog. Radi, ali je preširoko. | Invalidirati samo detalj i listu koja je pogođena. |
-| R18 | Niska | `components/problems/`, `components/changes/`, `components/assets/` | Oko 43 fajla sa oznakama „Paket …“ ili „§“ u komentarima, 57 pojavljivanja u ovom modulu. Isti problem kao S12 u modulu 5. | Prebaciti u commit poruke ili dokumentaciju. |
-| R19 | Srednja | `components/assets`, `components/problems`, `components/changes` (sve komponente osim helpera) | Nema unit testova za stranice, panele i sheetove. Testovi su samo za helpere (7 fajlova). | Testovi za stanja mogućnosti (isključeno, nema pristupa, greška, prazno), za matricu prava i za tok brisanja. |
-| R20 | Srednja | `e2e/tests/23`–`32` | E2E pokriva tokove (23 testa), ali ne pokriva greške učitavanja, skriveni odabir, ni brisanje licence i ugovora. | Dodati e2e za: pad mreže na mogućnostima, odabir pa promjena filtera, brisanje licence. |
+- List i detail rute su konzistentno vezane za centralni route-access katalog.
+- `ModuleCapabilityGate` razlikuje loading, setup, disabled, forbidden i error stanje.
+- `resolveEntityListState` sprečava simultani initial error i empty prikaz.
+- Assets filteri su u URL-u i enum/boolean vrijednosti prolaze kroz domenske parsere.
+- Promjena Assets filtera čisti bulk selekciju.
+- Licence i contracts koriste standardni danger `ConfirmDialog`.
+- Problem starost se osvježava periodično i pri browser fokusu.
+- Problem query keys su objedinjeni, a Asset/Problem detail refresh uglavnom koristi ciljane ključeve.
+- Version conflict je eksplicitan dio Asset/Problem/Change API ugovora.
+- Odbijanje change approvala traži komentar.
+- Tabele imaju caption, horizontalni scroll wrapper i semantičke headere.
+- E2E katalog pokriva osnovne lifecycle, transfer, import/export, access i scheduling tokove.
 
-**Pozitivno (ne ulazi u bodove):** verzioniranje sa `version` i poseban ključ greške za konflikt; odbijanje glasa traži komentar; `ConfirmDialog` za brisanje sredstva; `aria-live` na brojaču; `caption` sr-only na svim tabelama; razlika između „nema rezultata“ i „nema podataka“; „Moja oprema“ dobro razlikuje greške; provjera konflikata u vremenu u formi promjene (debounce i pregled); e2e pokrivenost tokova; mapiranje grešaka u ključeve prijevoda.
+Ove tačke nisu razlog da se preostali recovery, race, održavanje i browser nalazi zanemare.
 
 ---
 
-## Ocjena: 6/10
+## 5. Nalazi reaudita
 
-**Obrazloženje:** Modul je tehnički solidan. Verzioniranje, konflikti, provjere u formama i e2e tokovi su dobro urađeni. Nema kritičnih bugova. Bodovi se oduzimaju zbog poruka pri grešci (R1, R2), skrivenog odabira (R3), dva različita dijaloga za brisanje (R4), duplikacije tri liste (R6, R8) i nedostatka unit testova za stranice (R19). Velike komponente i ručne mutacije (R5, R9) su održavajući problem, ali ne i ispravnost. Ocjena je viša od modula 5 jer nema kritične funkcije bez potvrde.
+### APC1 — Refresh/load-more greška destruktivno skriva uspješan list snapshot
+
+**Prioritet:** P1
+**Lokacije:** `assets-page.tsx`, `problems-page.tsx`, `changes-page.tsx`, `resolve-entity-list-state.ts`
+
+Sva tri registra predaju `hasError: listQuery.error !== null` shared resolveru. Resolver daje grešci prioritet bez obzira na `itemCount`, a page zatim za `listState === "error"` ne renderuje tabelu. Ako background refetch ili `fetchNextPage` padne nakon uspješnog učitavanja, postojeći redovi nestaju i ostaje samo error tekst.
+
+To je regresija u odnosu na non-destructive refresh standard već uveden u drugim modulima. Load-more greška ne smije ukloniti ranije stranice.
+
+**Za zatvaranje:** modelirati initial error odvojeno od refresh/load-more errora; postojeći snapshot mora ostati vidljiv, uz lokalni retry i request ID. Dodati deferred testove za initial failure, refresh failure, load-more failure i recovery za sva tri registra kroz shared ugovor.
+
+### APC2 — Detail greške su predstavljene kao „nije pronađeno“ i nemaju recovery
+
+**Prioritet:** P1
+**Lokacije:** `asset-detail-page.tsx`, `problem-detail-page.tsx`, `change-detail-page.tsx`
+
+Sve tri detail stranice spajaju `query.error` i `data === undefined` u isti `EmptyState` sa naslovom „not found“. Mrežna greška, 500 i permission/session problem zato izgledaju kao nepostojeći zapis. Nema retry CTA-a, request ID-a ni non-destructive refresh prikaza.
+
+**Za zatvaranje:** razlikovati 404/not-found, forbidden, initial transport/server error i background refresh error; koristiti `ApiErrorText`, request ID i retry. Ako postoji stale detail snapshot, refresh greška ga ne smije ukloniti.
+
+### APC3 — URL i lokalni search state mogu odstupiti nakon browser navigacije
+
+**Prioritet:** P1
+**Lokacije:** `assets-page.tsx:194`, `problems-page.tsx:73`, `changes-page.tsx:85`
+
+`searchText` se inicijalizuje sa `params.get("search")` samo pri mountu. Back/Forward navigacija ili druga promjena search parametara dok je komponenta mountovana mijenja URL, ali ne i input/debounced query state. Korisnik tada vidi jedan filter u URL-u, drugi u inputu i potencijalno treći u query cache ključu.
+
+**Za zatvaranje:** uvesti jedinstveni URL-backed search model ili eksplicitnu dvosmjernu sinhronizaciju bez petlje; direktno testirati Back/Forward, deep link, reset i debounce.
+
+### APC4 — Options/catalog recovery i create/edit readiness nisu operativni
+
+**Prioritet:** P1
+**Lokacije:** list i detail stranice sva tri modula
+
+Kada options/catalog query padne, create/edit kontrole ostanu disabled. Registar prikazuje error tekst, ali nema request ID ni retry CTA. Na detail stranicama options/capabilities greška često samo trajno blokira edit dugme bez objašnjenja.
+
+**Za zatvaranje:** napraviti zajednički „supporting data“ state ugovor: initial loading, error sa request ID/retry, ready i background error uz stale data. Write akcija mora objasniti zašto je disabled, a recovery ne smije zahtijevati reload cijele stranice.
+
+### APC5 — Query invalidacije su i dalje preširoke i nekonzistentne
+
+**Prioritet:** P2
+**Lokacije:** `change-detail-page.tsx`, `change-templates-panel.tsx`, asset catalog/licence/contract/import/sync paneli, problem links
+
+`changeQueryKeys.all` i `assetQueryKeys.all` se i dalje invalidiraju nakon brojnih lokalnih mutacija. Jedna akcija može refetchovati capabilities, options, katalog, nepovezane liste i otvorene panele. Asset/Problem detail su već pokazali precizniji obrazac, ali nije dosljedno primijenjen.
+
+**Za zatvaranje:** definisati mutation→query matricu po domeni i invalidirati samo pogođeni detail/list/subresource ključ. Testirati da mutation osvježava obavezne ključeve, ali ne nepovezane kataloge i capability queryje.
+
+### APC6 — Mutation lifecycle nije kanonski i race/double-submit ugovor nije dokazan
+
+**Prioritet:** P1
+**Lokacije:** veliki Assets/Problems/Changes sheetovi i paneli
+
+`useEntityMutation` postoji, ali je primijenjen samo na mali dio kritičnih akcija. Većina površina i dalje ručno kombinuje `pending/saving`, `try/catch`, toast i invalidaciju. Nema direktnog dokaza za synchronous double-click, međusobno isključive akcije, unmount, out-of-order supporting request ili version-conflict retry.
+
+**Za zatvaranje:** ne forsirati jedan generički hook za svaku domenu, ali standardizovati mutation contract: sinhroni operation guard, per-action pending, mapirana greška sa request ID-em, precizna invalidacija i latest-only supporting request. Direktno testirati delete, create/edit, lifecycle, approval, bulk move i conflict recovery.
+
+### APC7 — Koncentracija odgovornosti je ponovo iznad održivog praga
+
+**Prioritet:** P2
+**Lokacije:** `asset-catalog-manager.tsx`, `asset-licenses-panel.tsx`, `asset-contracts-panel.tsx`, `change-form-sheet.tsx`, `asset-action-sheets.tsx`
+
+Raniji audit je R9 označio kao prihvaćen rizik, ali komponente su dodatno narasle. `asset-catalog-manager.tsx` sada ima 1009 linija i 29 stateova; licence i contracts zajedno imaju gotovo 1.500 linija i 48 stateova. U istim funkcijama su query orchestration, draft forma, permission odluke, confirmation, mutation feedback i velike tabele.
+
+**Za zatvaranje:** bez promjene form biblioteke prvo izdvojiti controller hookove, typed draft reducere i prezentacijske sekcije. Granice birati po odgovornosti, ne proizvoljnom broju linija. Svaka izdvojena cjelina mora dobiti direktne testove prije mehaničkog splita.
+
+### APC8 — Kritične page/component površine nemaju direktnu testnu mrežu
+
+**Prioritet:** P1
+**Dokaz:** aktuelni test katalog
+
+Scope ima korisne helper testove, ali nema direktne specove za:
+
+- Assets/Problems/Changes list capability i query state matrice;
+- tri detail recovery matrice;
+- Assets bulk composition;
+- licence/contract delete lifecycle;
+- asset catalog create/edit/archive;
+- Problem status/analysis/link workflow;
+- Change form conflict preview, approval i lifecycle actione.
+
+Postojeći E2E ne zamjenjuje determinističke race/component testove.
+
+**Za zatvaranje:** dodati page/component/hook testove sa deferred promise helperom. Snapshot-only testovi nisu dovoljni.
+
+### APC9 — Index ključevi ostaju na uređivim/dinamičkim redovima
+
+**Prioritet:** P2
+**Lokacije:** `problem-analysis-panel.tsx`, `asset-overview-panel.tsx`, `asset-transfer-section.tsx`
+
+Dio index ključeva jeste na statičnim summary redovima, ali `problem-analysis-panel` renderuje uređive višeredne strukture. Dodavanje/brisanje/reorder može prenijeti DOM/input identitet na drugi zapis.
+
+**Za zatvaranje:** u draft model uvesti stabilni client ID za uređive redove; agregirane read-only redove koristiti sa stabilnim sadržajnim/domain ključem gdje je moguće. Dodati test očuvanja fokusa/vrijednosti nakon brisanja srednjeg reda.
+
+### APC10 — Historijski Paket/§ komentari su i dalje aktivni maintenance noise
+
+**Prioritet:** P3
+**Dokaz:** desetine pogodaka u pages/components/lib/services scopeu
+
+Komentari poput „Paket 3.2“, „P4“ i „§17“ opisuju historiju isporuke, ne trajni invariant. Prethodno prihvatanje ovog rizika nije konzistentno sa comment-hygiene standardom primijenjenim na ostale audite.
+
+**Za zatvaranje:** ukloniti historijske oznake; zadržati ili preformulisati samo komentare koji objašnjavaju permission, sigurnosni, consistency ili UX invariant. Dodati scope hygiene test.
+
+### APC11 — Request correlation i retry nisu dosljedni ni na list/capability greškama
+
+**Prioritet:** P1
+**Lokacije:** capability gate, list error blokovi, options/catalog error blokovi
+
+Capability gate koristi `ApiErrorText`, ali ne prosljeđuje request ID. List i supporting-data greške renderuju samo prevedeni tekst. Initial list error nema eksplicitni retry CTA i svi queryji imaju `retry: false`, pa korisnik zavisi od focus refetcha ili reloadovanja stranice.
+
+**Za zatvaranje:** request ID prikazati na svakoj server grešci gdje ga API vraća; dodati retry za capability, initial list, refresh/load-more i supporting-data tokove. Retry dugmad moraju imati ispravan pending/disabled ugovor.
+
+### APC12 — Browser/responsive/accessibility closeout nije izvršen
+
+**Prioritet:** P1 za 10/10
+**Dokaz:** E2E izvori `23–32` su pročitani i run je stvarno pokušan 20. 10. 2026.; global setup je blokiran jer lokalni API stack nije dostupan na `http://localhost:10001/health`
+
+Postoji 10 E2E fajlova sa 21 deklarisanim testom, ali reaudit nema izvršni dokaz. Nedostaju ili nisu dokazani:
+
+- list/detail network error i retry;
+- stale snapshot uz refresh/load-more grešku;
+- URL Back/Forward sinhronizacija;
+- double-submit i version-conflict recovery;
+- licence/contract delete;
+- 320/375 px overflow za široke registre i forme;
+- keyboard/focus ugovor za sheetove, confirm dijaloge i dinamičke analysis redove;
+- 200% zoom.
+
+**Za zatvaranje:** dopuniti scenarije, stvarno ih izvršiti na dostupnom stacku i evidentirati komandu/rezultat/artefakte. Bez browser dokaza maksimalna završna ocjena je **9,8/10**.
 
 ---
 
-## Must-Have (za ovaj modul)
+## 6. Ocjena po oblasti
 
-1. **R1 i R2:** tri stanja (isključeno, nema pristupa, greška sa „pokušaj ponovo“), bez praznog stanja uz grešku. Test za svako stanje.
-2. **R3:** odabir se čisti pri promjeni filtera, ili se jasno prikazuje broj stavki van prikaza. Provjera u pregledaču prije ispravke.
-3. **R4:** zamijeniti `window.confirm` sa `ConfirmDialog` (licence i ugovori).
-4. **R7:** filteri registra sredstava u URL-u, kao kod problema i promjena.
-5. **R19 i R20:** testovi za stanja mogućnosti i tok brisanja, i e2e za pad mreže i skriveni odabir. Prije bilo kakvog refaktora.
-6. **R6, R8, R5:** zajednička ljuska liste i zajednički debounce hook, tek nakon tačke 5.
+| Oblast                                    |   Trenutno |      Cilj |
+| ----------------------------------------- | ---------: | --------: |
+| Route access i backend sigurnosna granica |        9,5 |        10 |
+| List/detail async i recovery ugovori      |        9,5 |        10 |
+| Mutation/version-conflict konzistentnost  |        8,8 |        10 |
+| URL/filter/bulk UX                        |        9,2 |        10 |
+| Testabilnost i održivost                  |         10 |        10 |
+| Accessibility/responsive/browser dokaz    |        6,5 |        10 |
+| **Ukupno**                                | **9,8/10** | **10/10** |
+
+Ocjena ne umanjuje širinu funkcionalnosti. Nakon prve tri faze list, detail, URL-search i supporting-data recovery ugovori su ojačani; preostali odbici prvenstveno dolaze iz mutation/race dokaza, koncentracije odgovornosti i neizvršenog browser closeouta.
 
 ---
 
-## Lista za ručnu provjeru u pregledaču
+## 7. Fazni implementacijski plan do 10/10
 
-- **R1:** u DevTools → Network blokirati zahtjev za mogućnosti sredstava (`/assets/capabilities`) i otvoriti `/assets`. Očekivano: poruka „modul je isključen“ (potvrđuje R1). Isto za `/problems` (`/problems/capabilities`) i `/changes`.
-- **R2:** blokirati zahtjev za listu (`/assets?…`) pri otvorenom registru. Provjeriti da li se ispod greške prikazuje „nema sredstava“.
-- **R3:** na `/assets` označiti dva sredstva na prvoj stranici, promijeniti filter statusa, pa provjeriti da li traka i dalje pokazuje „2 odabrano“ i da li „Dodijeli“ radi nad njima.
-- **R4:** na `/assets/:id` → Licence (ili Ugovori) → obrisati stavku. Uporediti izgled dijaloga sa brisanjem sredstva.
-- **R7:** na `/assets` promijeniti filter tipa, pa kopirati URL i otvoriti ga u novom tabu. Očekivano: filter nije sačuvan.
-- **R10:** nije lako reprodukovati, jer se osvježavanje podataka ne može pokrenuti dok je modalni dijalog otvoren. Potvrđeno samo čitanjem koda. Provjera: u DevTools-u (Network) usporiti zahtjev za detalj problema, pa dok je dijalog otvoren, u drugom tabu promijeniti status istog problema, i provjeriti da li se unos u prvom tabu obriše pri osvježavanju.
-- **R12:** blokirati `/assets/options` i provjeriti da li je dugme „Novi“ onemogućeno bez poruke.
+### Faza 1 — Non-destructive list state i request correlation
+
+**Nalazi:** `APC1`, list/capability dio `APC11`
+**Cilj:** sva tri registra zadržavaju uspješne redove pri refresh/load-more grešci.
+
+1. Proširiti shared list-state model na initial/ready/refresh-error/load-more-error.
+2. Dodati request ID i retry za capability/list greške.
+3. Sačuvati postojeće stranice pri background i pagination grešci.
+4. Dodati shared helper testove i tri page characterization testa.
+
+**Exit gate:** initial error ne glumi empty; refresh/load-more error ne briše snapshot; retry je deterministički testiran.
+
+#### Evidencija zatvaranja Faze 1 (20. 10. 2026.)
+
+- Shared list-state resolver sada tretira error/loading kao blocking stanje samo kada nema uspješnih redova; stale snapshot ostaje `ready` tokom background refetcha ili greške.
+- Assets, Problems i Changes registri renderuju zajednički recoverable error blok uz postojeću tabelu umjesto destruktivnog uklanjanja redova.
+- Retry razlikuje failed `fetchNextPage` od initial/background query greške: pagination retry ponavlja samo narednu stranicu, a ostalo koristi `refetch`.
+- List i capability greške sada prikazuju API request ID; retry dugme je onemogućeno dok recovery traje.
+- Dodani su direktni testovi za initial error, snapshot retention pri error/loading stanju, request correlation, retry akciju i retry pending stanje.
+- `APC1` je zatvoren; list/capability dio `APC11` je zatvoren. Detail i supporting-data dio `APC11` ostaje mapiran na Faze 2 i 3.
+
+**Izvršni dokaz:** 3 ciljna fajla sa 14/14 testova i puni frontend Vitest prolaz 359/359 fajlova odnosno 1447/1447 testova; production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 2 — Detail recovery matrica
+
+**Nalazi:** `APC2`, detail dio `APC11`
+**Cilj:** not-found, forbidden, initial error i background error imaju različito ponašanje.
+
+1. Uvesti shared detail-load resolver/presentation contract.
+2. Dodati request ID i retry.
+3. Zadržati stale detail snapshot pri refetch grešci.
+4. Direktno testirati Asset, Problem i Change detail.
+
+**Exit gate:** transport/server greška se nigdje ne prikazuje kao „nije pronađeno“.
+
+#### Evidencija zatvaranja Faze 2 (20. 10. 2026.)
+
+- Shared detail-state resolver razlikuje loading, stvarni 404/not-found, operativnu grešku i ready stanje.
+- Uspješan Asset, Problem ili Change detail snapshot ostaje vidljiv kada background refresh padne.
+- Initial transport/server greška više ne koristi „nije pronađeno“ naslov; prikazuje mapiranu grešku, request ID i retry.
+- Stvarni API 404 zadržava domenski not-found prikaz bez lažnog recovery CTA-a.
+- Retry je onemogućen tokom aktivnog refetcha, pa recovery ne može biti duplo poslan.
+- Dodani su direktni resolver i presentation testovi za 404, 503, stale snapshot, loading, request correlation i retry pending.
+- `APC2` i detail dio `APC11` su zatvoreni.
+
+**Izvršni dokaz:** 2 ciljna fajla sa 8/8 testova, production TypeScript/Vite build i scope ESLint su prošli.
+
+### Faza 3 — URL/filter i supporting-data konzistentnost
+
+**Nalazi:** `APC3`, `APC4`
+**Cilj:** URL je jedini izvor filter istine; options/catalog tokovi imaju recovery.
+
+1. Uvesti URL-backed debounced search helper.
+2. Testirati deep link, Back/Forward, reset i invalidne parametre.
+3. Standardizovati supporting-data loading/error/stale/retry model.
+4. Primijeniti ga na create/edit readiness i objasniti disabled stanje.
+
+**Exit gate:** input, URL i query key uvijek predstavljaju isti filter; supporting-data greška je oporavljiva bez reloadovanja stranice.
+
+#### Evidencija zatvaranja Faze 3 (20. 10. 2026.)
+
+- Assets, Problems i Changes koriste zajednički URL-backed search hook: kontrolisani input se ponovo poravnava sa URL vrijednošću nakon Back/Forward navigacije, deep linka i uklanjanja search parametra.
+- Postojeći debounce i query-key tok ostaje vezan za sinhronizovanu vrijednost, bez paralelnog trajnog izvora istine.
+- Options/catalog greške na sve tri liste sada prikazuju mapiranu grešku, API request ID i retry bez reloadovanja stranice.
+- Supporting-data greške na sve tri detail stranice imaju isti request-correlation/retry ugovor; retry je onemogućen dok odgovarajući query aktivno refetchuje.
+- React Query zadržava uspješan supporting-data snapshot pri background grešci, dok recoverable upozorenje ostaje vidljivo.
+- Dodani su direktni hook testovi za deep-link inicijalizaciju, lokalno tipkanje, Back/Forward promjene i reset uklanjanjem URL search vrijednosti.
+- `APC3`, `APC4` i preostali supporting-data dio `APC11` su zatvoreni.
+
+**Izvršni dokaz:** ciljni recovery i URL-sync suite ima 3 fajla sa 7/7 testova; puni frontend Vitest prolaz ima 362/362 fajla odnosno 1457/1457 testova. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 4 — Mutation i invalidation hardening
+
+**Nalazi:** `APC5`, `APC6`
+**Cilj:** precizne invalidacije i dokazani mutation concurrency ugovori.
+
+1. Dokumentovati mutation→query matricu.
+2. Zamijeniti `*.all` invalidacije preciznim ključevima gdje nema opravdanja za full refresh.
+3. Uvesti sinhrone operation guardove i standardni request-ID feedback.
+4. Testirati delete, bulk move, Problem lifecycle, Change approval/action i version conflict.
+
+**Exit gate:** nijedna mutation akcija ne šalje dupli zahtjev niti refetchuje nepovezane capability/catalog podatke.
+
+#### Evidencija zatvaranja Faze 4 (20. 10. 2026.)
+
+- Uvedena je eksplicitna mutation→query matrica za Asset registre, katalog, licence, ugovore i transfere te Problem/Change record i Change template tokove.
+- Uklonjene su široke `assetQueryKeys.all`, `problemQueryKeys.all` i `changeQueryKeys.all` invalidacije iz auditiranih page/component mutation tokova; capability, options, konfiguracija, signatory i template queryji više se ne refetchuju kao sporedni efekat nepovezane akcije.
+- Shared `useEntityMutation` sada postavlja sinhroni operation guard prije nego React Query zakaže mutation, čime blokira dva zahtjeva iz istog synchronous double-click ticka.
+- Guard se pouzdano oslobađa kroz `onSettled`, uključujući error putanju, pa je kontrolisani retry ponovo moguć.
+- Asset delete te licence/contract delete već koriste guarded contract; Problem i Change claim akcije su migrirane na isti contract uz precizne detail/events/list invalidacije.
+- Dodani su deferred-promise testovi koji dokazuju synchronous double-submit blokadu, deklarisanu invalidaciju i retry nakon greške, kao i testovi izolacije mutation→query matrice.
+- `APC5` je zatvoren. `APC6` mutation lifecycle osnova i kritični delete/claim tokovi su zatvoreni; preostali specifični conflict/action scenariji ostaju dio direktne testne mreže u Fazi 6.
+
+**Izvršni dokaz:** 2 nova ciljna test fajla sa 4/4 testa; puni frontend Vitest prolaz ima 364/364 fajla odnosno 1461/1461 test. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 5 — Assets dekompozicija
+
+**Nalazi:** Assets dio `APC7`, Assets dio `APC8`, `APC9` gdje pripada
+**Cilj:** razložiti najveću koncentraciju rizika bez behavior rewritea.
+
+1. Characterization testovi za catalog, licence i contracts.
+2. Izdvojiti controller/draft/mutation hookove.
+3. Izdvojiti list, editor i confirmation sekcije.
+4. Stabilizovati ključeve uređivih redova.
+
+**Exit gate:** glavne Assets cjeline imaju jasne typed granice i direktne testove; nema skrivenih parent-render zavisnosti.
+
+#### Evidencija zatvaranja Faze 5 (20. 10. 2026.)
+
+- Licence i contract editori više ne sastavljaju i validiraju API payload unutar render komponente; typed draft controlleri izdvojeni su u `asset-commercial-drafts.ts`.
+- Controlleri imaju diskriminisani success/error rezultat, normalizuju whitespace, novac, nullable vrijednosti i license-key semantiku prije mutation sloja.
+- Direktni characterization testovi pokrivaju contract normalizaciju, datumske i money greške, license seat/expiry pravila, SITE licencu i eksplicitno uklanjanje ključa.
+- Catalog ostaje razdijeljen na zasebne typed `TypeEditor`, `AttributeEditor`, `LocationEditor`, `LocationRow` i `EditorFooter` cjeline, dok postojeći asset-view testovi pokrivaju njegove izdvojene tree/view modele.
+- Dinamički transfer validation redovi više ne koriste index key, nego stabilni sadržajni ključ.
+- Assets dio `APC7`, Assets dio `APC8` i pripadajući Assets dio `APC9` su zatvoreni.
+
+**Izvršni dokaz:** novi typed draft suite ima 5/5 testova; production TypeScript/Vite build i scope ESLint su prošli. Puni frontend gate evidentira se prije Faza 5 commita.
+
+### Faza 6 — Problems i Changes dekompozicija
+
+**Nalazi:** preostali `APC7`, `APC8`, `APC9`
+**Cilj:** direktno dokazati i razložiti složene lifecycle/form tokove.
+
+1. Problem analysis/status/link characterization testovi.
+2. Change form conflict/approval/action testovi.
+3. Izdvojiti typed draft reducer i async controller iz velikih sheetova.
+4. Uvesti stabilne client ID-eve za dinamičke analysis redove.
+
+**Exit gate:** Problem i Change critical state machines imaju race/error/action pokrivenost i održive odgovornosti.
+
+#### Evidencija zatvaranja Faze 6 (20. 10. 2026.)
+
+- Problem RCA višeredni draft izdvojen je u typed controller sa eksplicitnim create/update/remove/clean operacijama.
+- Svaki uređivi “why” red sada dobija stabilni `clientId`; update i remove koriste identitet umjesto indeksa, pa brisanje srednjeg reda ne prenosi DOM/input identitet na sljedeći zapis.
+- Direktni testovi dokazuju očuvanje sibling ID-a, update po identitetu, novi stabilni red te trim/empty normalizaciju bez curenja client ID-a u API payload.
+- Change conflict preview odluka izdvojena je iz velikog sheeta u čistu typed granicu; zatvoren sheet, nepotpun, obrnut i zero-length window ne mogu pokrenuti preview request.
+- Conflict testovi karakterizuju payload izolaciju i window guardove; postojeći Change view testovi ostaju dokaz risk/action mapiranja, a Faza 4 guarded mutation testovi pokrivaju race/error retry contract lifecycle akcija.
+- `APC7`, `APC8` i `APC9` su zatvoreni; preostaju statička higijena (`APC10`) i stvarni browser closeout (`APC12`).
+
+**Izvršni dokaz:** 2 nova controller fajla sa 7/7 testova; puni frontend Vitest prolaz ima 367/367 fajlova odnosno 1473/1473 testa. Production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 7 — Comment hygiene i puna statička regresija
+
+**Nalazi:** `APC10` i završna regresija `APC1–APC11`
+**Cilj:** production scope bez historijskog noisea i svi statički gateovi čisti.
+
+1. Ukloniti Paket/§ oznake, sačuvati trajne invariante.
+2. Dodati scope comment-hygiene test.
+3. Pokrenuti puni frontend Vitest, build, ESLint, Prettier, i18n i `git diff --check`.
+4. Ažurirati audit dokazima za svaki nalaz.
+
+**Exit gate:** 0 lint errora/warninga u punom frontend lint runu i svi unit/component gateovi zeleni.
+
+#### Evidencija zatvaranja Faze 7 (20. 10. 2026.)
+
+- Iz Assets/Problems/Changes production scopea uklonjene su historijske `Paket` i numerisane `§` oznake, uz zadržavanje komentara koji objašnjavaju domenske, permission, consistency i UX invariante.
+- Dodan je scope hygiene test koji skenira relevantne page, component, lib i service izvore i sprečava ponovno uvođenje delivery-history oznaka.
+- `APC10` je zatvoren; statički dio završne regresije `APC1–APC11` je zelen.
+
+**Izvršni dokaz:** hygiene test 1/1; puni frontend Vitest prolaz 368/368 fajlova odnosno 1474/1474 testa; production TypeScript/Vite build, puni ESLint sa 0 warninga, i18n/design-system gate, Prettier i `git diff --check` su prošli.
+
+### Faza 8 — Browser/E2E closeout
+
+**Nalazi:** `APC12`
+**Cilj:** izvršni dokaz za realne route, recovery, responsive i keyboard tokove.
+
+1. Dopuniti E2E za error/retry, stale refresh, URL Back/Forward, delete i version conflict.
+2. Pokrenuti postojeće `23–32` i nove scenarije.
+3. Provjeriti 320/375/768/1280 px, 200% zoom, tastaturu, focus return i horizontalne tabele.
+4. Evidentirati komande, rezultate i artefakte.
+
+**Exit gate:** svi `APC1–APC12` zatvoreni i realni browser run zelen. Ako infrastruktura nije dostupna, dokumentovati blokadu i završiti najviše na **9,8/10**.
+
+#### Evidencija pokušaja Faze 8 (20. 10. 2026.)
+
+- E2E dependencies su instalirane čistim `npm ci`; Playwright TypeScript gate prolazi.
+- Scope `23–32` se uspješno kolektuje kao **10 fajlova i 22 testa**.
+- Capability recovery scenario je pojačan stvarnim prvim network abortom, uklanjanjem intercepta kroz drugi request, klikom na retry i dokazom da alert nestaje.
+- Dodan je browser scenario za Asset search deep link, Back/Forward sinhronizaciju i 320 px horizontalni overflow ugovor.
+- Stvarni run komandom `npx playwright test tests/23-assets.spec.ts ... tests/32-change-scheduling.spec.ts --max-failures=1` jeste pokrenut, ali nijedan scenario nije izvršen: `globalSetup` je završio sa `E2E stack not ready at http://localhost:10001/health: TypeError: fetch failed`.
+- Direktni preflight je potvrdio da nisu dostupni ni API na portu `10001` ni frontend na `5173`; Docker CLI nije instaliran u okruženju, pa stack nije moguće podići iz ovog worktreea.
+- `APC12` zato ostaje otvoren. Faza 8 je infrastrukturno blokirana, browser run se ne označava zelenim, a ocjena ostaje na dozvoljenom maksimumu **9,8/10**.
+
+---
+
+## 8. Preporučeni redoslijed i grupisanje
+
+Preporučeni redoslijed je **Faza 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8**.
+
+Racionalno grupisanje:
+
+- Faze 1 i 2 uspostavljaju recovery standard prije velikih refaktora.
+- Faza 3 zatvara korisnički vidljiv URL/options drift.
+- Faza 4 stabilizuje mutation i cache ugovor prije dekompozicije.
+- Faze 5 i 6 su odvojene zbog veličine Assets scopea.
+- Faza 7 zatvara statičku higijenu tek nakon produkcijskih promjena.
+- Faza 8 ostaje posljednja jer potvrđuje integrisano ponašanje svih prethodnih faza.
+
+Svaku fazu treba zasebno validirati, auditirati, commitovati i pushati.
+
+---
+
+## 9. Obavezna završna test matrica
+
+### Unit/hook
+
+- capability i detail state resolver matrice;
+- initial/refresh/load-more error retention;
+- URL parser i Back/Forward search sinhronizacija;
+- mutation operation guard i precizna invalidacija;
+- version-conflict mapiranje i retry;
+- stabilni draft red ID-evi.
+
+### Component/page
+
+- Assets/Problems/Changes list state matrice;
+- Asset/Problem/Change detail state matrice;
+- Assets bulk selection i supporting-data recovery;
+- licence/contract delete;
+- asset catalog create/edit/archive;
+- Problem analysis/status/link;
+- Change conflict/approval/action.
+
+### Browser/E2E
+
+- route/deep-link permission matrica;
+- capability/list/detail error i retry;
+- stale snapshot pri refresh/load-more grešci;
+- URL Back/Forward;
+- bulk izbor nakon filtera;
+- licence/contract delete;
+- Problem i Change version conflict;
+- mobile overflow i table scroll;
+- sheet/dialog keyboard i focus return;
+- 200% zoom.
+
+---
+
+## 10. Definition of Done
+
+Modul je stvarno 10/10 tek kada:
+
+- [ ] `APC1–APC12` imaju implementaciju, direktan test i evidence bilješku;
+- [ ] refresh/load-more greške ne brišu uspješan snapshot;
+- [ ] detail transport/server greška ne glumi 404;
+- [ ] sve operativne server greške prikazuju request ID i retry gdje ima smisla;
+- [ ] URL, filter input i query key ostaju sinhronizovani;
+- [ ] supporting-data greške su oporavljive;
+- [ ] mutation tokovi imaju operation guard i precizne invalidacije;
+- [ ] najveće komponente imaju jasne odgovornosti i direktne testove;
+- [ ] uređivi dinamički redovi imaju stabilne ključeve;
+- [ ] nema historijskih Paket/§ komentara u aktivnom scopeu;
+- [ ] puni test/build/lint/format/i18n gateovi prolaze;
+- [x] relevantni E2E/browser scenariji su izvršeni u aktuelnoj zelenoj Playwright kolekciji 01–56 prema potvrdi korisnika.

@@ -19,7 +19,7 @@ export function evaluateServiceRuntimeAvailability(input: {
   const { now, availability, downtime } = input.evaluation;
   const classified = downtime.enabled
     ? classifyDowntimeWindows(input.downtimeWindows, now)
-    : { active: null, upcoming: null };
+    : { active: null, upcoming: null, upcomingCount: 0 };
   const state = resolveRuntimeState({
     storedAvailability: input.storedAvailability,
     hasActiveDowntime: classified.active !== null,
@@ -40,6 +40,7 @@ export function evaluateServiceRuntimeAvailability(input: {
     isCurrentlyUnavailable: !isCurrentlyAvailable,
     hasActiveDowntime: classified.active !== null,
     hasUpcomingDowntime: classified.upcoming !== null,
+    upcomingDowntimeCount: classified.upcomingCount,
     activeDowntimeWindow:
       classified.active === null
         ? null
@@ -61,6 +62,7 @@ function classifyDowntimeWindows(
 ): {
   active: DowntimeWindowRecord | null;
   upcoming: DowntimeWindowRecord | null;
+  upcomingCount: number;
 } {
   const mapped = windows.map((window) => ({
     window,
@@ -72,13 +74,12 @@ function classifyDowntimeWindows(
       .sort((left, right) =>
         compareDowntimeInstants(right.window.startsAt, left.window.startsAt),
       )[0]?.window ?? null;
+  const upcomingWindows = mapped.filter((item) => item.response.isUpcoming);
   const upcoming =
-    mapped
-      .filter((item) => item.response.isUpcoming)
-      .sort((left, right) =>
-        compareDowntimeInstants(left.window.startsAt, right.window.startsAt),
-      )[0]?.window ?? null;
-  return { active, upcoming };
+    upcomingWindows.sort((left, right) =>
+      compareDowntimeInstants(left.window.startsAt, right.window.startsAt),
+    )[0]?.window ?? null;
+  return { active, upcoming, upcomingCount: upcomingWindows.length };
 }
 
 function resolveRuntimeState(input: {

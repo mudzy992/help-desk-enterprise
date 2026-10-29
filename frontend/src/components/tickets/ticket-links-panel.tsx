@@ -5,14 +5,14 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, ticketIdClassName } from "@/components/ui/control";
 import { Input } from "@/components/ui/field";
 import { queryKeys } from "@/lib/query/query-keys";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { ticketStatusTranslationKey } from "@/lib/tickets/ticket-constants";
+import type { TicketTranslationKey } from "@/lib/tickets/ticket-translation-key";
 import {
   addTicketLink,
   listTicketLinks,
@@ -28,14 +28,14 @@ interface TicketLinksPanelProperties {
   readonly versionKey: string;
 }
 
-const relationKey: Readonly<Record<TicketLinkRelation, string>> = {
+const relationKey = {
   parent: "tickets.collaboration.links.relation.parent",
   child: "tickets.collaboration.links.relation.child",
   mergedInto: "tickets.collaboration.links.relation.mergedInto",
   mergedChild: "tickets.collaboration.links.relation.mergedChild",
-};
+} as const satisfies Readonly<Record<TicketLinkRelation, TicketTranslationKey>>;
 
-/** Paket 2.4 (D3/D4): related tickets (staff only). */
+/** related tickets (staff only). */
 export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelProperties) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -102,7 +102,7 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
           <LinkRow
             key={`${item.relation}-${item.ticketNumber}`}
             side={item}
-            badge={ticketText(t, relationKey[item.relation])}
+            badge={t(relationKey[item.relation])}
           />
         ))}
         {data.links.map((link) => (
@@ -124,7 +124,7 @@ export function TicketLinksPanel({ ticketId, versionKey }: TicketLinksPanelPrope
         ) : null}
         {errorKey !== null ? (
           <p role="alert" className={errorTextClassName}>
-            {ticketText(t, errorKey)}
+            {t(errorKey)}
           </p>
         ) : null}
         {data.canManage ? (
@@ -212,10 +212,7 @@ function LinkRow(props: {
 }) {
   const { t } = useTranslation();
   const { side } = props;
-  const statusKey =
-    side.status === null
-      ? null
-      : (ticketStatusLabelKey as Readonly<Record<string, string>>)[side.status];
+  const statusKey = side.status === null ? null : ticketStatusTranslationKey(side.status);
   return (
     <div className="group flex items-start gap-2 text-[12px]">
       <div className="min-w-0 flex-1">
@@ -233,8 +230,8 @@ function LinkRow(props: {
               <Lock size={9} aria-hidden="true" />
               {t("tickets.collaboration.links.noAccess")}
             </Badge>
-          ) : statusKey !== undefined && statusKey !== null ? (
-            <Badge tone="info">{t(statusKey as "tickets.status.PENDING")}</Badge>
+          ) : statusKey !== null ? (
+            <Badge tone="info">{t(statusKey)}</Badge>
           ) : null}
         </div>
         {side.title !== null ? (

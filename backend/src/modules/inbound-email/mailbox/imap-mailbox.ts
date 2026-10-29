@@ -1,4 +1,5 @@
 import { ImapFlow } from 'imapflow';
+import { attachImapClientErrorGuard } from './imap-client-error-guard';
 import { fetchEntraAccessToken, type EntraApplication } from './entra-token';
 import {
   inboundMaxRawBytes,
@@ -43,48 +44,63 @@ export class ImapInboundMailbox implements InboundMailboxConnector {
       logger: false,
       connectionTimeout: 20_000,
       greetingTimeout: 15_000,
-      socketTimeout: 60_000,
+      socketTimeout: 120_000,
     });
-    await client.connect();
-    const lock = await client.getMailboxLock('INBOX');
-    const validity = String(client.mailbox === false ? 0 : client.mailbox.uidValidity);
-    const ensured = new Set<string>();
-    const ensureFolder = async (path: string) => {
-      if (ensured.has(path)) return;
-      const parts = path.split('/').map((part) => part.trim());
-      try {
-        await client.mailboxCreate(parts);
-      } catch {
-        // Exists already (or server-specific delimiter); moving tells us if not.
-      }
-      ensured.add(path);
-    };
-    return {
-      list: async (limit: number): Promise<readonly InboundMailboxItem[]> => {
-        const uids = ((await client.search({ all: true }, { uid: true })) || []).slice(0, limit);
-        const items: InboundMailboxItem[] = [];
-        for (const uid of uids) {
-          const message = await client.fetchOne(String(uid), { size: true, source: true }, { uid: true });
-          if (message === false || message === undefined) continue;
-          const tooLarge = (message.size ?? 0) > inboundMaxRawBytes;
-          items.push({
-            providerMessageId: `${validity}:${uid}`,
-            raw: tooLarge || message.source === undefined ? Buffer.alloc(0) : message.source,
-          });
+    const imapGuard = attachImapClientErrorGuard(client);
+    try {
+      await client.connect();
+      imapGuard.throwIfFailed();
+      const lock = await client.getMailboxLock('INBOX');
+      imapGuard.throwIfFailed();
+      const validity = String(client.mailbox === false ? 0 : client.mailbox.uidValidity);
+      const ensured = new Set<string>();
+      const ensureFolder = async (path: string) => {
+        if (ensured.has(path)) return;
+        const parts = path.split('/').map((part) => part.trim());
+        try {
+          await client.mailboxCreate(parts);
+        } catch {
+          // Exists already (or server-specific delimiter); moving tells us if not.
         }
-        return items;
-      },
-      move: async (providerMessageId: string, destination: InboundMailboxDestination): Promise<void> => {
-        const uid = providerMessageId.split(':')[1] ?? '';
-        const path = this.options.folders[destination];
-        await ensureFolder(path);
-        const moved = await client.messageMove(uid, path.split('/').map((part) => part.trim()), { uid: true });
-        if (moved === false) throw new Error(`IMAP_MOVE_FAILED ${path}`);
-      },
-      close: async () => {
-        lock.release();
-        await client.logout().catch(() => undefined);
-      },
-    };
+        ensured.add(path);
+      };
+      return {
+        list: async (limit: number): Promise<readonly InboundMailboxItem[]> => {
+          imapGuard.throwIfFailed();
+          const uids = ((await client.search({ all: true }, { uid: true })) || []).slice(0, limit);
+          imapGuard.throwIfFailed();
+          const items: InboundMailboxItem[] = [];
+          for (const uid of uids) {
+            const message = await client.fetchOne(String(uid), { size: true, source: true }, { uid: true });
+            imapGuard.throwIfFailed();
+            if (message === false || message === undefined) continue;
+            const tooLarge = (message.size ?? 0) > inboundMaxRawBytes;
+            items.push({
+              providerMessageId: `${validity}:${uid}`,
+              raw: tooLarge || message.source === undefined ? Buffer.alloc(0) : message.source,
+            });
+          }
+          return items;
+        },
+        move: async (providerMessageId: string, destination: InboundMailboxDestination): Promise<void> => {
+          imapGuard.throwIfFailed();
+          const uid = providerMessageId.split(':')[1] ?? '';
+          const path = this.options.folders[destination];
+          await ensureFolder(path);
+          const moved = await client.messageMove(uid, path.split('/').map((part) => part.trim()), { uid: true });
+          imapGuard.throwIfFailed();
+          if (moved === false) throw new Error(`IMAP_MOVE_FAILED ${path}`);
+        },
+        close: async () => {
+          imapGuard.detach();
+          lock.release();
+          await client.logout().catch(() => undefined);
+        },
+      };
+    } catch (error) {
+      imapGuard.detach();
+      await client.logout().catch(() => undefined);
+      throw error;
+    }
   }
 }

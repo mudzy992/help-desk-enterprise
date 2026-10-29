@@ -21,7 +21,7 @@ function event(body: string, createdAt: string): TicketMessageResponse {
 }
 
 describe("describeMergeOrPriorityEvent", () => {
-  it("describes an article draft made from a reply (K1c)", () => {
+  it("describes an article draft made from a reply", () => {
     const result = describeMergeOrPriorityEvent(
       "ticket_knowledge_draft_created",
       "a1|VPN | klijent",

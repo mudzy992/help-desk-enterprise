@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { TemplateScopeCell } from "@/components/templates/template-scope-cell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Textarea } from "@/components/ui/field";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs, type UnderlineTabItem } from "@/components/ui/tabs";
@@ -287,40 +288,19 @@ export function TemplatesPage() {
             required
             hint={t("templates.editor.reasonHint")}
           >
-            <Textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              rows={3}
-              maxLength={500}
-            />
+            {(control) => (
+              <Textarea
+                {...control}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+            )}
           </Field>
         ) : null}
       </ConfirmDialog>
     </section>
-  );
-}
-
-function ScopeCell({
-  serviceIds,
-  categoryIds,
-  groupIds = [],
-}: {
-  readonly serviceIds: readonly string[];
-  readonly categoryIds: readonly string[];
-  readonly groupIds?: readonly string[];
-}) {
-  const { t } = useTranslation();
-  if (serviceIds.length + categoryIds.length + groupIds.length === 0) {
-    return <Badge tone="info">{t("templates.list.global")}</Badge>;
-  }
-  return (
-    <span className="text-[11.5px] text-muted-foreground">
-      {t("templates.list.scopeSummary", {
-        services: serviceIds.length,
-        categories: categoryIds.length,
-        groups: groupIds.length,
-      })}
-    </span>
   );
 }
 
@@ -370,7 +350,7 @@ function TemplateTable({
                 {item.ownership === "personal" ? (
                   <Badge>{t("templates.picker.personal")}</Badge>
                 ) : (
-                  <ScopeCell
+                  <TemplateScopeCell
                     serviceIds={item.serviceIds}
                     categoryIds={item.categoryIds}
                     groupIds={item.groupIds}
@@ -446,7 +426,7 @@ function PlaybookTable({
                 ) : null}
               </td>
               <td>
-                <ScopeCell serviceIds={item.serviceIds} categoryIds={item.categoryIds} />
+                <TemplateScopeCell serviceIds={item.serviceIds} categoryIds={item.categoryIds} />
               </td>
               <td className="tnum text-right">
                 {item.steps.length}

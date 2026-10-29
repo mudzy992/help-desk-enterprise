@@ -2,7 +2,7 @@ import type {
   DashboardSummaryResponse,
   SlaExposureCounts,
   SlaSummaryResponse,
-} from './report-summary.types';
+} from "./report-summary.types";
 
 /**
  * Shape checks for the cached payloads.
@@ -16,31 +16,46 @@ export function parseDashboardSummaryResponse(
   if (!isRecord(value)) {
     return null;
   }
-  if (typeof value.generatedAt !== 'string') {
+  if (typeof value.generatedAt !== "string") {
     return null;
   }
   const numbers = [
-    'total',
-    'open',
-    'critical',
-    'overdue',
-    'openedToday',
-    'waitingForUser',
-    'pendingApproval',
-    'resolved',
-    'closed',
-    'unrouted',
-    'unassigned',
-    'assignedToMe',
-    'requestedByMe',
+    "total",
+    "open",
+    "critical",
+    "overdue",
+    "openedToday",
+    "waitingForUser",
+    "pendingApproval",
+    "resolved",
+    "closed",
+    "unrouted",
+    "unassigned",
+    "assignedToMe",
+    "requestedByMe",
   ] as const;
   for (const field of numbers) {
-    if (typeof value[field] !== 'number') {
+    if (typeof value[field] !== "number") {
       return null;
     }
   }
-  if (!Array.isArray(value.statusCounts) || !Array.isArray(value.priorityCounts)) {
+  if (
+    !Array.isArray(value.statusCounts) ||
+    !Array.isArray(value.priorityCounts) ||
+    !Array.isArray(value.volume14d) ||
+    value.volume14d.length !== 14
+  ) {
     return null;
+  }
+  for (const day of value.volume14d) {
+    if (
+      !isRecord(day) ||
+      typeof day.date !== "string" ||
+      typeof day.created !== "number" ||
+      typeof day.resolved !== "number"
+    ) {
+      return null;
+    }
   }
   return value as unknown as DashboardSummaryResponse;
 }
@@ -48,14 +63,14 @@ export function parseDashboardSummaryResponse(
 export function parseSlaSummaryResponse(
   value: unknown,
 ): SlaSummaryResponse | null {
-  if (!isRecord(value) || typeof value.generatedAt !== 'string') {
+  if (!isRecord(value) || typeof value.generatedAt !== "string") {
     return null;
   }
   if (!isExposure(value.totals) || !Array.isArray(value.profiles)) {
     return null;
   }
   for (const profile of value.profiles) {
-    if (!isRecord(profile) || typeof profile.slaProfileId !== 'string') {
+    if (!isRecord(profile) || typeof profile.slaProfileId !== "string") {
       return null;
     }
     if (!isExposure(profile.exposure) || !Array.isArray(profile.priorities)) {
@@ -70,13 +85,13 @@ function isExposure(value: unknown): value is SlaExposureCounts {
     return false;
   }
   return (
-    typeof value.open === 'number' &&
-    typeof value.onTrack === 'number' &&
-    typeof value.atRisk === 'number' &&
-    typeof value.breached === 'number'
+    typeof value.open === "number" &&
+    typeof value.onTrack === "number" &&
+    typeof value.atRisk === "number" &&
+    typeof value.breached === "number"
   );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }

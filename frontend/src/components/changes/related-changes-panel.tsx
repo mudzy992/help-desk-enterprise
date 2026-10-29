@@ -33,7 +33,7 @@ type RelatedTarget =
   | { readonly kind: "asset"; readonly assetId: string };
 
 /**
- * Paket 3.4 (§11, §17): whether the change tab belongs on a problem or asset
+ * Delivery invariant (requirement, requirement): whether the change tab belongs on a problem or asset
  * detail page — the module is on and the viewer reads changes.
  */
 export function useChangeModuleAccess() {

@@ -2,7 +2,7 @@ import type { IPublicClientApplication } from "@azure/msal-browser";
 import type { AuthenticationProviders } from "@/services/auth-api";
 
 /*
-  Paket 1.8 (A1): Microsoft sign-in with the MSAL redirect flow.
+  Microsoft sign-in with the MSAL redirect flow.
 
   - MSAL is loaded lazily, so the local/break-glass login keeps its bundle.
   - The redirect URI is always `<origin>/auth/callback`; it must be registered
@@ -20,6 +20,11 @@ export const ENTRA_CALLBACK_PATH = "/auth/callback";
 
 let cached: { readonly key: string; readonly instance: Promise<IPublicClientApplication> } | null =
   null;
+
+/** Drops the lazily cached client between isolated sessions/tests. */
+export function resetEntraClient(): void {
+  cached = null;
+}
 
 export function entraRedirectUri(): string {
   return `${window.location.origin}${ENTRA_CALLBACK_PATH}`;

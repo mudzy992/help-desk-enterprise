@@ -14,7 +14,7 @@ export const Switch = forwardRef<
   <SwitchPrimitive.Root
     className={cn(
       "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150",
-      "data-[state=checked]:border-primary data-[state=checked]:bg-primary",
+      "data-[state=checked]:border-transparent data-[state=checked]:bg-primary",
       "data-[state=unchecked]:border-border data-[state=unchecked]:bg-border",
       "disabled:cursor-not-allowed disabled:opacity-45",
       className,
@@ -22,7 +22,7 @@ export const Switch = forwardRef<
     {...properties}
     ref={reference}
   >
-    <SwitchPrimitive.Thumb className="pointer-events-none block size-3.5 rounded-full bg-white shadow-sm transition-transform duration-150 data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[3px]" />
+    <SwitchPrimitive.Thumb className="pointer-events-none block size-3.5 rounded-full bg-control-thumb shadow-sm transition-transform duration-150 data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[3px]" />
   </SwitchPrimitive.Root>
 ));
 

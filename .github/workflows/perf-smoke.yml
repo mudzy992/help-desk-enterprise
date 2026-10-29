@@ -166,10 +166,23 @@ jobs:
             fi
           }
 
+          # Čarobnjak v2 (F1/F6): `POST /install/complete` vraća 409
+          # INSTALL_NOT_READY s `missing: ["profileSteps"]` ako ijedan korak koji
+          # paket **nudi** nije ni odgovoren ni odgođen (`isStepIncludedInProfile`
+          # = requiredIn ∪ offeredIn). Minimum zato traži: paket, super-admin,
+          # identitet, način prijave, početne podatke i add-one, a SMTP i tim se
+          # moraju eksplicitno odgoditi. Perf smoke ne šalje poštu i ne mjeri
+          # timske tokove, pa je „Podesi kasnije" tačan odgovor — add-ons ostaju
+          # na zadanim vrijednostima iz kataloga, kao i prije v2.
+          post /install/profile '{"profile":"minimum"}' "20[0-9]"
           post /install/super-admin \
             "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}" "20[0-9]|409"
           post /install/login-provider '{"mode":"local"}' "20[0-9]"
+          post /install/identity '{"organizationName":"Perf Smoke","timeZone":"Europe/Sarajevo"}' "20[0-9]"
+          post /install/steps/smtp/skip "" "20[0-9]"
           post /install/seed "" "20[0-9]"
+          post /install/steps/team/skip "" "20[0-9]"
+          post /install/steps/addons/skip "" "20[0-9]"
           post /install/complete "" "20[0-9]"
 
           # Paket 2.1: a SUPER_ADMIN must enrol MFA on first sign-in, so a plain password

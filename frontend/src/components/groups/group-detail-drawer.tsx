@@ -7,9 +7,10 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { UnderlineTabs } from "@/components/ui/tabs";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
+import type { GroupDrawerTab } from "@/lib/ui/presentation-types";
 import type { GroupListItemResponse, GroupResponse } from "@/services/groups-api";
 
-export type GroupDrawerTab = "edit" | "members";
+export type { GroupDrawerTab } from "@/lib/ui/presentation-types";
 
 interface GroupDetailDrawerProperties {
   readonly open: boolean;

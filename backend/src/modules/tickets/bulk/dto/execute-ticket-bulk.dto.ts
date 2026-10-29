@@ -6,6 +6,7 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import {
@@ -20,6 +21,12 @@ import type {
 } from '../bulk.types';
 
 export class ExecuteTicketBulkDto implements ExecuteTicketBulkInput {
+  @IsUUID('4')
+  operationId!: string;
+
+  @IsIn(['atomic', 'best-effort'])
+  mode!: 'atomic' | 'best-effort';
+
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(ticketBulkConstants.maximumTicketIds)

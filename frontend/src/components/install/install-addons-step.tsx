@@ -1,11 +1,19 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { Puzzle } from "lucide-react";
+import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InstallFeatureCard } from "@/components/install/install-feature-card";
+import { InstallStepLoadError } from "@/components/install/install-step-load-error";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { buildInstallAddonsInput } from "@/lib/build-install-addons-input";
-import { resolveInstallAddonCopy } from "@/lib/install-addon-copy";
+import {
+  installAddonCategoryKey,
+  installAddonCategoryOrder,
+  resolveInstallAddonPresentation,
+  type InstallAddonCategoryKey,
+} from "@/lib/install/install-addon-presentation";
+import { useInstallStepResource } from "@/lib/install/use-install-step-resource";
 import {
   mapInstallAddonsSaveError,
   type InstallAddonsErrorKey,
@@ -16,31 +24,32 @@ import {
   type InstallAddonItem,
 } from "@/services/install-addons-api";
 
-export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }) {
+/*
+  Install wizard v2 (F4.5): the same fourteen switches, said in the operator's
+  language — „CSAT anketa“ with one sentence about what it brings, grouped by what
+  it is good for, instead of the catalog's technical flags. The technical wording
+  stays in Settings; here the question is „what do you want your help desk to do“.
+  A key the presentation does not know yet is shown as it is rather than dropped.
+*/
+export function InstallAddonsStep({
+  onSaved,
+  isSaved = false,
+}: {
+  readonly onSaved?: () => void;
+  /**
+   * F0.5: `steps.addons.completed` from `/install/status` — true only once the
+   * catalog was saved at least once, so a refresh cannot skip the step (and the
+   * defaults are never silently accepted).
+   */
+  readonly isSaved?: boolean;
+}) {
   const { t } = useTranslation();
-  const [items, setItems] = useState<InstallAddonItem[]>([]);
+  const [draft, setDraft] = useState<readonly InstallAddonItem[] | null>(null);
   const [errorKey, setErrorKey] = useState<InstallAddonsErrorKey | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
-    void loadInstallAddons()
-      .then((status) => {
-        if (!isCancelled) {
-          setItems([...status.addons.items]);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+  // F0.2/IN3: no form until the stored catalog was read.
+  const resource = useInstallStepResource(loadInstallAddons);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,7 +57,7 @@ export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }
     setErrorKey(null);
     try {
       const saved = await saveInstallAddons(buildInstallAddonsInput(items));
-      setItems([...saved.items]);
+      resource.setData({ addons: saved });
       onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallAddonsSaveError(error));
@@ -57,27 +66,61 @@ export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }
     }
   };
 
-  if (isLoading) {
+  if (resource.status === "loading") {
     return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
 
+  if (resource.status === "error") {
+    return <InstallStepLoadError error={resource.error} onRetry={resource.retry} />;
+  }
+
+  const items = draft ?? resource.data.addons.items;
+  const toggle = (key: string, enabled: boolean) =>
+    setDraft(
+      items.map((item) => (item.key === key && item.canEnable ? { ...item, enabled } : item)),
+    );
+  const unclassified = items.filter((item) => resolveInstallAddonPresentation(item.key) === null);
+
   return (
-    <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
-      {items.map((item) => (
-        <AddonSwitch
-          key={item.key}
-          item={item}
-          disabled={isSubmitting}
-          onEnabledChange={(enabled) =>
-            setItems((current) =>
-              current.map((entry) =>
-                entry.key === item.key && entry.canEnable ? { ...entry, enabled } : entry,
-              ),
-            )
-          }
+    <form className="grid gap-4" onSubmit={onSubmit}>
+      <p className="text-sm text-muted-foreground">{t("install.addons.body")}</p>
+      {installAddonCategoryOrder.map((category) => (
+        <AddonSection
+          key={category}
+          category={category}
+          items={items}
+          isDisabled={isSubmitting}
+          onToggle={toggle}
         />
       ))}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {unclassified.length === 0 ? null : (
+        <section className="grid gap-2">
+          <h3 className="text-sm font-semibold text-foreground">{t("install.addons.other")}</h3>
+          <div className="grid gap-2">
+            {unclassified.map((item) => (
+              <InstallFeatureCard
+                key={item.key}
+                icon={Puzzle}
+                title={item.key}
+                control="switch"
+                checked={item.enabled}
+                isDisabled={isSubmitting}
+                onCheckedChange={(enabled) => toggle(item.key, enabled)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+      {isSaved ? null : (
+        <p className="text-[12px] leading-5 text-muted-foreground">
+          {t("install.addons.notSavedHint")}
+        </p>
+      )}
+      {errorKey ? (
+        <p role="alert" className={errorTextClassName}>
+          {t(errorKey)}
+        </p>
+      ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting || items.length === 0}>
           {isSubmitting ? t("install.addons.saving") : t("install.addons.submit")}
@@ -87,32 +130,50 @@ export function InstallAddonsStep({ onSaved }: { readonly onSaved?: () => void }
   );
 }
 
-function AddonSwitch(input: {
-  readonly item: InstallAddonItem;
-  readonly disabled: boolean;
-  readonly onEnabledChange: (enabled: boolean) => void;
+function AddonSection({
+  category,
+  items,
+  isDisabled,
+  onToggle,
+}: {
+  readonly category: InstallAddonCategoryKey;
+  readonly items: readonly InstallAddonItem[];
+  readonly isDisabled: boolean;
+  readonly onToggle: (key: string, enabled: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const copy = resolveInstallAddonCopy(input.item.key);
-  const label = copy === null ? input.item.key : t(copy.label);
-  const description = copy === null ? "" : t(copy.description);
+  const inCategory = items.filter(
+    (item) => resolveInstallAddonPresentation(item.key)?.category === category,
+  );
+  if (inCategory.length === 0) {
+    return null;
+  }
   return (
-    <div className="rounded-lg border border-border bg-surface px-3 py-3">
-      <label className="flex items-center gap-2 text-[13px] font-medium text-foreground">
-        <Switch
-          checked={input.item.enabled}
-          disabled={input.disabled || !input.item.canEnable}
-          onCheckedChange={input.onEnabledChange}
-          aria-label={label}
-        />
-        {label}
-      </label>
-      <p className="mt-1 text-[11.5px] leading-5 text-muted-foreground">
-        {description}
-        {input.item.key === "email" && !input.item.canEnable
-          ? ` ${t("install.addons.emailDisabledHint")}`
-          : ""}
-      </p>
-    </div>
+    <section className="grid gap-2">
+      <h3 className="text-sm font-semibold text-foreground">
+        {t(installAddonCategoryKey(category))}
+      </h3>
+      <div className="grid gap-2">
+        {inCategory.map((item) => {
+          const copy = resolveInstallAddonPresentation(item.key);
+          if (copy === null) {
+            return null;
+          }
+          return (
+            <InstallFeatureCard
+              key={item.key}
+              icon={copy.icon}
+              title={t(copy.titleKey)}
+              description={t(copy.valueKey)}
+              control="switch"
+              checked={item.enabled}
+              disabledReason={item.canEnable ? undefined : t("install.addons.emailDisabledHint")}
+              isDisabled={isDisabled}
+              onCheckedChange={(enabled) => onToggle(item.key, enabled)}
+            />
+          );
+        })}
+      </div>
+    </section>
   );
 }

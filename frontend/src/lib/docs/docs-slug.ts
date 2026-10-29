@@ -1,5 +1,5 @@
 /**
- * Faza 3 (d): kontekstualna „?“ pomoć — mapiranje ruta ekrana na stranice
+ * kontekstualna „?“ pomoć — mapiranje ruta ekrana na stranice
  * dokumentacije. Svaki `slug` mora postojati u `manifest.json`;
  * `scripts/check-docs-content.mjs` to i provjerava.
  */

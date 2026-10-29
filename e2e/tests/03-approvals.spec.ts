@@ -21,10 +21,10 @@ test.describe('03 approvals', () => {
       label: 'Approval',
       requiresApproval: true,
     });
-    const rules = await api.requestJson<
-      Array<{ id: string; groupId: string; originUnitId: string; serviceId: string }>
-    >('/routing/rules');
-    const seedRule = rules.find((rule) => rule.serviceId === catalog.serviceId);
+    const rulesPage = await api.requestJson<{
+      items: Array<{ id: string; groupId: string; originUnitId: string; serviceId: string }>;
+    }>('/routing/rules?take=100');
+    const seedRule = rulesPage.items.find((rule) => rule.serviceId === catalog.serviceId);
     if (seedRule !== undefined) {
       await api.requestJson('/routing/rules', {
         method: 'POST',

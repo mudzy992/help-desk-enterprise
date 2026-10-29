@@ -1,4 +1,5 @@
-import { apiRequest } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
+import { parseSettingsRegistry } from "@/services/critical-api-parsers";
 import type { InstallAddonsStatus } from "@/services/install-addons-api";
 
 export type EmailChannelSettings = {
@@ -45,6 +46,8 @@ export type SettingRegistryEntry = {
   readonly allowedValues?: readonly string[];
   /** The text value that means "switched off" (paket 5.4.1). */
   readonly inactiveValue?: string;
+  /** IN18: written by the install wizard; the screen offers no editor. */
+  readonly readOnly?: boolean;
   /** Paket 5.3.3: resolved i18n keys — title is the human line, help the modal body. */
   readonly titleKey: string;
   readonly helpKey: string;
@@ -75,7 +78,7 @@ export function getEmailChannelSettings(): Promise<EmailChannelSettings> {
 }
 
 export function getSettingsRegistry(): Promise<readonly SettingRegistryEntry[]> {
-  return apiRequest("/settings");
+  return apiRequestValidated("/settings", parseSettingsRegistry);
 }
 
 export function getPublicSettings(): Promise<

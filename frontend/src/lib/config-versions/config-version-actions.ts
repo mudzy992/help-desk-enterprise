@@ -13,11 +13,7 @@ export function canRunConfigVersionShadow(status: ConfigVersionStatus): boolean 
 }
 
 export function canActivateConfigVersion(status: ConfigVersionStatus): boolean {
-  return (
-    status === configVersionStatuses.draft ||
-    status === configVersionStatuses.validated ||
-    status === configVersionStatuses.shadow
-  );
+  return status === configVersionStatuses.validated || status === configVersionStatuses.shadow;
 }
 
 export function canRollbackConfigVersion(status: ConfigVersionStatus): boolean {

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { queryKeys } from "@/lib/query/query-keys";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
 import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
@@ -26,12 +27,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
+import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { entityMutationQueryKeys } from "@/lib/entity-list/entity-mutation-query-keys";
+import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
+import { resolveEntityDetailState } from "@/lib/entity-list/resolve-entity-detail-state";
 import {
   mapProblemError,
   problemStatusKeys,
@@ -40,12 +45,11 @@ import {
   transitionLabelKey,
 } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import {
   claimProblem,
   getProblem,
   getProblemOptions,
-  problemDetailKeys,
   problemQueryKeys,
   type ProblemDetail,
   type ProblemStatus,
@@ -53,7 +57,7 @@ import {
 
 type Tab = "overview" | "analysis" | "tickets" | "links" | "changes" | "history";
 
-/** Paket 3.3 (§14): problem record with overview, analysis, tickets and history. */
+/** Delivery invariant (requirement): problem record with overview, analysis, tickets and history. */
 export function ProblemDetailPage() {
   const { t } = useTranslation();
   const { problemId = "" } = useParams();
@@ -66,7 +70,7 @@ export function ProblemDetailPage() {
   const [statusTarget, setStatusTarget] = useState<ProblemStatus | null | "pick">(null);
 
   const problemQuery = useQuery({
-    queryKey: problemDetailKeys.detail(problemId),
+    queryKey: problemQueryKeys.detail(problemId),
     queryFn: () => getProblem(problemId),
     retry: false,
     enabled: problemId !== "",
@@ -74,19 +78,26 @@ export function ProblemDetailPage() {
   const canManage = problemQuery.data?.permissions.canManage === true;
   const changeAccess = useChangeModuleAccess();
   const optionsQuery = useQuery({
-    queryKey: problemDetailKeys.options,
+    queryKey: problemQueryKeys.options,
     queryFn: getProblemOptions,
     retry: false,
     enabled: problemQuery.data !== undefined,
   });
 
-  const refresh = () => void queryClient.invalidateQueries({ queryKey: problemQueryKeys.all });
-  const claimMutation = useMutation({
+  const refresh = () => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: problemQueryKeys.detail(problemId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.problemLists }),
+      queryClient.invalidateQueries({ queryKey: problemQueryKeys.events(problemId) }),
+      queryClient.invalidateQueries({ queryKey: problemQueryKeys.tickets(problemId) }),
+    ]);
+  };
+  const claimMutation = useEntityMutation<void, ProblemDetail>({
     mutationFn: () => claimProblem(problemId),
-    onSuccess: (next) => {
-      queryClient.setQueryData(problemDetailKeys.detail(problemId), next);
+    invalidate: () => entityMutationQueryKeys.problems.record(problemId),
+    onSuccess: (_variables, next) => {
+      queryClient.setQueryData(problemQueryKeys.detail(problemId), next);
       toast({ tone: "success", title: t("problems.detail.claimed") });
-      refresh();
     },
     onError: (caught) =>
       toast({
@@ -103,7 +114,12 @@ export function ProblemDetailPage() {
     </Button>
   );
 
-  if (problemQuery.isLoading) {
+  const detailState = resolveEntityDetailState({
+    isLoading: problemQuery.isLoading,
+    hasData: problemQuery.data !== undefined,
+    error: problemQuery.error,
+  });
+  if (detailState === "loading") {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("problems.title")} />
@@ -111,29 +127,40 @@ export function ProblemDetailPage() {
       </section>
     );
   }
-  if (problemQuery.error || problemQuery.data === undefined) {
+  if (detailState === "error") {
+    return (
+      <section className="grid gap-4">
+        <PageHeader crumbs={crumbs} title={t("problems.title")} actions={back} />
+        <EntityDetailQueryError
+          messageKey={mapProblemError(problemQuery.error) ?? mapApiError(problemQuery.error)}
+          requestId={readApiRequestId(problemQuery.error)}
+          retrying={problemQuery.isFetching}
+          onRetry={() => void problemQuery.refetch()}
+        />
+      </section>
+    );
+  }
+  if (detailState === "not_found" || problemQuery.data === undefined) {
     return (
       <section>
         <PageHeader crumbs={crumbs} title={t("problems.title")} actions={back} />
         <EmptyState
           icon={<Puzzle size={18} />}
           title={t("problems.detail.notFoundTitle")}
-          body={t(
-            mapProblemError(problemQuery.error) ??
-              (problemQuery.error ? mapApiError(problemQuery.error) : "problems.errors.notFound"),
-          )}
+          body={t("problems.errors.notFound")}
         />
       </section>
     );
   }
 
   const problem = problemQuery.data;
+  const supportingError = optionsQuery.error;
   // The natural next step is the primary action; the rest sit in the status sheet.
   const nextStep = problem.allowedTransitions.find(
     (to) => to !== "CANCELLED" && !(to === "INVESTIGATING" && problem.status !== "NEW"),
   );
 
-  // P4 (§7): a known error (or resolved problem) without an article offers one.
+  // P4 (requirement): a known error (or resolved problem) without an article offers one.
   const canCreateArticle =
     canManage &&
     (problem.status === "KNOWN_ERROR" || problem.status === "RESOLVED") &&
@@ -195,7 +222,7 @@ export function ProblemDetailPage() {
           onClick={() => setStatusTarget(nextStep)}
           data-testid="problem-next-step"
         >
-          {ticketText(t, transitionLabelKey(problem.status, nextStep))}
+          {translateText(t, transitionLabelKey(problem.status, nextStep))}
         </Button>
       ) : null}
     </div>
@@ -217,7 +244,7 @@ export function ProblemDetailPage() {
             </Badge>
             <span>
               {t("problems.detail.priorityLine", {
-                priority: ticketText(t, ticketPriorityLabelKey[problem.priority]),
+                priority: translateText(t, ticketPriorityLabelKey[problem.priority]),
               })}
             </span>
             <span aria-hidden="true">·</span>
@@ -226,6 +253,22 @@ export function ProblemDetailPage() {
         }
         actions={actions}
       />
+      {problemQuery.error !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapProblemError(problemQuery.error) ?? mapApiError(problemQuery.error)}
+          requestId={readApiRequestId(problemQuery.error)}
+          retrying={problemQuery.isFetching}
+          onRetry={() => void problemQuery.refetch()}
+        />
+      ) : null}
+      {supportingError !== null ? (
+        <EntityDetailQueryError
+          messageKey={mapProblemError(supportingError) ?? mapApiError(supportingError)}
+          requestId={readApiRequestId(supportingError)}
+          retrying={optionsQuery.isFetching}
+          onRetry={() => void optionsQuery.refetch()}
+        />
+      ) : null}
       <div className="grid gap-4">
         {problem.status === "NEW" && problem.owner === null && canManage ? (
           <div
@@ -258,7 +301,7 @@ export function ProblemDetailPage() {
             problem={problem}
             categories={optionsQuery.data?.rootCauseCategories ?? []}
             onSaved={(next) => {
-              queryClient.setQueryData(problemDetailKeys.detail(problem.id), next);
+              queryClient.setQueryData(problemQueryKeys.detail(problem.id), next);
               refresh();
             }}
           />
@@ -382,16 +425,16 @@ function ProblemOverview({ problem }: { readonly problem: ProblemDetail }) {
         <CardHeader title={t("problems.detail.classification")} />
         <dl className="divide-y divide-border/60 px-4 py-2">
           <DefinitionRow label={t("problems.fields.impact")}>
-            {ticketText(t, ticketSeverityLabelKey[problem.impact])}
+            {translateText(t, ticketSeverityLabelKey[problem.impact])}
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.urgency")}>
-            {ticketText(t, ticketSeverityLabelKey[problem.urgency])}
+            {translateText(t, ticketSeverityLabelKey[problem.urgency])}
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.priority")}>
-            {ticketText(t, ticketPriorityLabelKey[problem.priority])}
+            {translateText(t, ticketPriorityLabelKey[problem.priority])}
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.rootCauseCategory")}>
-            {rootCauseLabel((key) => ticketText(t, key), problem.rootCauseCategory)}
+            {rootCauseLabel((key) => translateText(t, key), problem.rootCauseCategory)}
           </DefinitionRow>
           <DefinitionRow label={t("problems.detail.knowledgeArticle")}>
             {problem.knowledgeArticle ? (

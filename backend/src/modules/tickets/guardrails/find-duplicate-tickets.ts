@@ -1,14 +1,10 @@
-import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { TicketRecord } from '../tickets.types';
-import { descriptionSimilarity } from './description-similarity';
+import { PrismaService } from "../../../common/prisma/prisma.service";
+import type { TicketRecord } from "../tickets.types";
+import { descriptionSimilarity } from "./description-similarity";
 import type {
   DuplicateTicketMatch,
   TicketGuardrailsConfiguration,
-} from './guardrails.types';
-
-function toDate(value: Date | string): Date {
-  return value instanceof Date ? value : new Date(value);
-}
+} from "./guardrails.types";
 
 export async function findDuplicateTickets(input: {
   readonly prisma: PrismaService;
@@ -29,15 +25,14 @@ export async function findDuplicateTickets(input: {
     where: {
       requesterId: input.requesterId,
       serviceId: input.serviceId,
+      parentTicketId: null,
+      reopenedFromTicketId: null,
+      createdAt: { gte: windowStart },
     },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 100,
   })) as TicketRecord[];
   return recent
-    .filter((ticket) => {
-      if (ticket.parentTicketId !== null || ticket.reopenedFromTicketId !== null) {
-        return false;
-      }
-      return toDate(ticket.createdAt).getTime() >= windowStart.getTime();
-    })
     .map((ticket) => ({
       ticketId: ticket.id,
       ticketNumber: ticket.ticketNumber,

@@ -1,0 +1,87 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { validateContainerContract } from "./check-container-contract.mjs";
+
+const image = "node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402";
+const dockerfile = `
+FROM ${image} AS production-deps
+COPY package*.json ./
+RUN npm ci --omit=dev --omit=optional --ignore-scripts
+FROM ${image} AS builder
+RUN npm ci --include=dev
+FROM builder AS migration
+USER node
+ENTRYPOINT ["node", "scripts/run-release-migrations.mjs"]
+FROM ${image} AS runtime
+WORKDIR /usr/app
+COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /usr/app/dist ./dist
+RUN apk add --no-cache zlib=1.3.2-r1 && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+RUN mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
+ENV UPLOAD_ROOT=/usr/app/uploads
+STOPSIGNAL SIGTERM
+USER node
+CMD ["node", "dist/src/main.js"]
+`;
+
+const service = (name) => `  ${name}:
+    build: ./backend
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    volumes:
+      - \${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+`;
+const compose = `services:
+  storage-init:
+    user: "0:0"
+    command:
+      - chown -R 1000:1000 /usr/app/uploads
+    volumes:
+      - \${APP_FILES_ROOT:-/mnt/shared-app-files/service-desk}:/usr/app/uploads
+  frontend:
+    image: frontend
+  migrator:
+    profiles: ["release"]
+    build:
+      target: migration
+${service("backend")}${service("worker")}  clamav:
+    image: clamav
+`;
+
+test("prihvata digest-pinned production-only runtime i oba process servisa", () => {
+  assert.deepEqual(validateContainerContract(dockerfile, compose), []);
+});
+
+test("odbija root runtime i nedostajuće hardening granice", () => {
+  const problems = validateContainerContract(
+    dockerfile.replace("USER node\nCMD", "USER root\nCMD").replace("STOPSIGNAL SIGTERM\n", ""),
+    compose.replaceAll("    read_only: true\n", ""),
+  );
+  assert.ok(problems.includes("Dockerfile runtime: nedostaje `USER node`"));
+  assert.ok(problems.includes("Dockerfile runtime: nedostaje `STOPSIGNAL SIGTERM`"));
+  assert.ok(problems.includes("compose backend: nedostaje read_only"));
+  assert.ok(problems.includes("compose worker: nedostaje read_only"));
+});
+
+test("builder USER ne može zadovoljiti final-stage pravilo", () => {
+  const unsafe = dockerfile.replace("RUN npm ci --include=dev", "RUN npm ci --include=dev\nUSER node").replace("USER node\nCMD", "CMD");
+  assert.ok(validateContainerContract(unsafe, compose).some((problem) => problem.includes("USER node")));
+});
+
+test("odbija mutable base, install fallback i builder dependencies u runtimeu", () => {
+  const unsafe = dockerfile
+    .replace(image, "node:22-alpine")
+    .replace("RUN npm ci --include=dev", "RUN npm ci --include=dev || npm install")
+    .replace("zlib=1.3.2-r1", "zlib")
+    .replace("--from=production-deps /usr/app/node_modules", "--from=builder /usr/app/node_modules");
+  const problems = validateContainerContract(unsafe, compose);
+  assert.ok(problems.some((problem) => problem.includes("digest-pinned")));
+  assert.ok(problems.some((problem) => problem.includes("fallback")));
+  assert.ok(problems.some((problem) => problem.includes("zlib")));
+  assert.ok(problems.some((problem) => problem.includes("builder node_modules")));
+});

@@ -3,7 +3,7 @@ import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { OnboardingWizardSteps } from "@/components/services/onboarding/onboarding-wizard-steps";
 import { ServiceOnboardingStepper } from "@/components/services/onboarding/service-onboarding-stepper";
-import type { OnboardingServiceValues } from "@/components/services/onboarding/onboarding-service-step";
+import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Modal, ModalContent, ModalDescription, ModalTitle } from "@/components/ui/modal";
@@ -233,7 +233,7 @@ export function ServiceOnboardingWizard({
                 </p>
               ) : null}
 
-              {!isLoadingOnboarding && errorKey === null ? (
+              {!isLoadingOnboarding ? (
                 <section className="rounded-lg border border-border/70 bg-surface p-4 sm:p-6">
                   <OnboardingWizardSteps
                     record={record}
@@ -246,7 +246,12 @@ export function ServiceOnboardingWizard({
                     canFinalize={record?.status === "READY_FOR_FINALIZATION" || completed === 5}
                     onActiveVersion={setActiveFormRef}
                     onService={(values: OnboardingServiceValues) =>
-                      void run(() => completeServiceOnboardingStep(record, values))
+                      void run(() =>
+                        completeServiceOnboardingStep(record, values, {
+                          initialReason: t("services.onboarding.initialRevisionReason"),
+                          onCreated: (created) => setRecord(created),
+                        }),
+                      )
                     }
                     onForm={(formVersionRef) => {
                       if (record) {

@@ -1,10 +1,10 @@
-import type { TicketExportColumn } from './export.constants';
-import type { TicketStatus } from '../../../generated/prisma/enums';
-import type { ListTicketsQuery } from '../tickets.types';
+import type { TicketExportColumn } from "./export.constants";
+import type { TicketStatus } from "../../../generated/prisma/enums";
+import type { ListTicketsQuery } from "../tickets.types";
 
 export type ExportTicketsQuery = Pick<
   ListTicketsQuery,
-  'originUnitId' | 'serviceId' | 'assignedUserId' | 'priority' | 'q'
+  "originUnitId" | "serviceId" | "assignedUserId" | "priority" | "q"
 > & {
   readonly status?: TicketStatus;
   readonly requesterId?: string;
@@ -23,4 +23,11 @@ export type TicketsExportResult = {
   readonly contentType: string;
   readonly content: string;
   readonly recordCount: number;
+  readonly manifest: {
+    readonly exportedCount: number;
+    readonly eligibleCountLowerBound: number;
+    readonly eligibleCountIsLowerBound: boolean;
+    readonly truncated: boolean;
+    readonly maxRows: number;
+  };
 };

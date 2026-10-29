@@ -1,7 +1,10 @@
+import type { Readable } from 'node:stream';
 import type { JsonValue } from '../change-log/change-log.types';
 import type {
   allowedAuditExportFormats,
   allowedAuditHashAlgorithms,
+  auditLogActions,
+  auditLogEntityTypes,
 } from './audit-log.constants';
 
 export type { AuditLogErrorCode } from './audit-log.constants';
@@ -9,6 +12,10 @@ export type { AuditLogErrorCode } from './audit-log.constants';
 export type AuditHashAlgorithm = (typeof allowedAuditHashAlgorithms)[number];
 
 export type AuditExportFormat = (typeof allowedAuditExportFormats)[number];
+export type CoreAuditAction = (typeof auditLogActions)[keyof typeof auditLogActions];
+export type AuditExtensionAction = `ext.${string}.${string}`;
+export type AuditAction = CoreAuditAction | AuditExtensionAction;
+export type AuditEntityType = (typeof auditLogEntityTypes)[keyof typeof auditLogEntityTypes];
 
 export type AuditLogConfiguration = {
   readonly exportEnabled: boolean;
@@ -18,6 +25,7 @@ export type AuditLogConfiguration = {
 };
 
 export type RecordAuditEntryInput = {
+  /** Runtime is closed by the compatibility registry; wrappers may narrow this to AuditAction. */
   readonly action: string;
   readonly entityType: string;
   readonly entityId: string;
@@ -44,6 +52,12 @@ export type AuditLogRecord = {
   readonly hashVersion?: number;
   readonly metadataDigest?: string | null;
   readonly redactedAt?: Date | null;
+  /** Persisted and hash-bound for v3; absent on legacy in-memory fixtures. */
+  readonly hashAlgorithm?: AuditHashAlgorithm;
+  /** v5 independent append chain; legacy rows belong to `global`. */
+  readonly chainPartition?: string;
+  /** v6 hash-bound action metadata schema version. */
+  readonly actionSchemaVersion?: number;
 };
 
 export type AuditLogExportRow = {
@@ -97,7 +111,7 @@ export type AuditLogExportResult = {
   readonly format: AuditExportFormat;
   readonly fileName: string;
   readonly contentType: string;
-  readonly content: string;
+  readonly stream: Readable;
 };
 
 /**
@@ -122,9 +136,10 @@ export type AuditLogWriteClient = {
   ): Promise<unknown>;
   readonly auditLog: {
     findFirst(args: {
+      where?: { chainPartition: string };
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }];
-      select: { hash: true };
-    }): Promise<{ hash: string } | null>;
+      select: { hash: true; createdAt: true };
+    }): Promise<{ hash: string; createdAt?: Date } | null>;
     create(args: { data: Record<string, unknown> }): Promise<unknown>;
   };
 };

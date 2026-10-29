@@ -1,7 +1,7 @@
 import { apiDownloadRequest, apiRequest } from "@/services/api";
 import type { ReportExportFormat } from "@/services/report-packs-api";
 
-/** Paket 2.5 (design §4.4): `GET /reports/trends` — mirrors backend `ReportTrends`. */
+/** `GET /reports/trends` — mirrors backend `ReportTrends`. */
 export const reportTrendGranularities = ["day", "week", "month"] as const;
 export type ReportTrendGranularity = (typeof reportTrendGranularities)[number];
 
@@ -134,7 +134,7 @@ export async function downloadReportTrends(
   };
 }
 
-/** Design §6: audit beacon for „Izvezi PDF” (the print dialog itself is local). */
+/** Audit beacon for PDF export; the print dialog itself remains local. */
 export function recordReportPdfExport(input: {
   readonly organizationalUnitId: string;
   readonly view: "overview" | "trends";

@@ -1,6 +1,7 @@
 import { AdminRealtimeModule } from './common/admin-realtime/admin-realtime.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateRuntimeEnvironment } from './common/config/validate-runtime-environment';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
@@ -20,6 +21,7 @@ import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.
 import { ServiceOnboardingModule } from './modules/service-onboarding/service-onboarding.module';
 import { SlaModule } from './modules/sla/sla.module';
 import { SettingsHttpModule } from './modules/settings/settings-http.module';
+import { SetupChecklistModule } from './modules/setup-checklist/setup-checklist.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TemplatesModule } from './modules/templates/templates.module';
@@ -50,6 +52,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
+      validate: validateRuntimeEnvironment,
     }),
     PrismaModule,
     AdminRealtimeModule,
@@ -58,6 +61,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     SettingsHttpModule,
     HealthModule,
     InstallModule,
+    SetupChecklistModule,
     AuthenticationModule,
     SecurityModule,
     AuthorizationModule,

@@ -5,6 +5,7 @@ import { isInstallWizardMutationLocked } from './is-install-wizard-mutation-lock
 import {
   assertInstallToken,
   installTokenHeader,
+  isInstallTokenAlwaysRequired,
   isInstallTokenProtectedRequest,
 } from './install-token';
 
@@ -27,22 +28,23 @@ export class InstallWizardLockGuard implements CanActivate {
       .switchToHttp()
       .getRequest<InstallWizardLockHttpRequest>();
     const isCompleted = await this.installSetupService.isCompleted();
+    const path = request.path ?? request.url;
     if (
       isInstallWizardMutationLocked({
         method: request.method,
-        path: request.path ?? request.url,
+        path,
         isCompleted,
       })
     ) {
       throw createInstallLockedException();
     }
-    if (
-      !isCompleted &&
-      isInstallTokenProtectedRequest({
-        method: request.method,
-        path: request.path ?? request.url,
-      })
-    ) {
+    const isTokenRequired =
+      // Owner decision 6: `POST /install/restart` is token-guarded in both
+      // states, so the way back into the wizard is never anonymous.
+      isInstallTokenAlwaysRequired({ method: request.method, path }) ||
+      (!isCompleted &&
+        isInstallTokenProtectedRequest({ method: request.method, path }));
+    if (isTokenRequired) {
       assertInstallToken(request.headers?.[installTokenHeader]);
     }
     return true;

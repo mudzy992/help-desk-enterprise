@@ -23,6 +23,7 @@ const runtimeAvailability: ServiceRuntimeAvailability = {
   isCurrentlyUnavailable: false,
   hasActiveDowntime: false,
   hasUpcomingDowntime: false,
+  upcomingDowntimeCount: 0,
   ticketCreationAllowed: true,
   showStatusInTicketCreate: false,
   activeDowntimeWindow: null,

@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { AccountSecurityError } from '../authentication/security/account-security.error';
 import { BulkPasswordResetService, bulkPasswordResetStepUpPurpose } from './bulk-password-reset.service';
+import { StepUpPolicyService } from './step-up-policy.service';
 
 /*
   Paket 5.4.0-d (M5): the SuperAdmin bulk password reset.
@@ -54,11 +55,14 @@ describe('BulkPasswordResetService', () => {
   };
 
   function createService(): BulkPasswordResetService {
-    return new BulkPasswordResetService(
-      prisma as never,
+    const stepUpPolicy = new StepUpPolicyService(
       { isEnabled: mfaIsEnabled, verify: mfaVerify } as never,
       { consumeFreshConfirmation } as never,
       { findById } as never,
+    );
+    return new BulkPasswordResetService(
+      prisma as never,
+      stepUpPolicy,
       { revokeAll } as never,
       { invalidateUsers } as never,
     );
@@ -70,7 +74,7 @@ describe('BulkPasswordResetService', () => {
     consumeFreshConfirmation.mockReset().mockResolvedValue(false);
     mfaIsEnabled.mockReset().mockResolvedValue(true);
     mfaVerify.mockReset().mockResolvedValue('totp');
-    findById.mockReset().mockResolvedValue({ id: 'super-1', email: 'super@example.com' });
+    findById.mockReset().mockResolvedValue({ id: 'super-1', email: 'super@example.com', isActive: true, isLocalOnly: true, roleKeys: ['SUPER_ADMIN'] });
     revokeAll.mockReset().mockResolvedValue(1);
     invalidateUsers.mockReset().mockResolvedValue(undefined);
     findMany.mockReset().mockResolvedValue([candidate('user-1'), candidate('user-2', true)]);
@@ -92,7 +96,7 @@ describe('BulkPasswordResetService', () => {
     );
     expect(bulkPasswordResetStepUpPurpose).toBe('bulk-password-reset');
     expect(mfaVerify).not.toHaveBeenCalled();
-    expect(findById).not.toHaveBeenCalled();
+    expect(findById).toHaveBeenCalledWith('super-1');
     expect(result).toEqual({
       eligibleUsers: 2,
       changedUsers: 1,

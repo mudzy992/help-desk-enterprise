@@ -1,11 +1,11 @@
-import type { HorizontalBarItem } from "@/components/charts/h-bars";
+import type { HorizontalBarItem } from "@/lib/ui/presentation-types";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
 import type { ReportDashboardAging, ReportDashboardNamedBar } from "@/services/reports-api";
 
 export const reportHoursSuffix = "h";
 
 /**
- * Val 1 (M15/B1): koje sekcije pregleda izvještaja ima smisla crtati.
+ * Determines which report overview sections contain meaningful chart data.
  * Postavka `private.dashboard.bottlenecks.enabled` mora važiti i za prikaz —
  * server tada vraća prazan razrez, a ovdje se kartica uopšte ne renderuje
  * (umjesto praznog stanja koje izgleda kao „nema podataka“).
@@ -59,7 +59,7 @@ export function mapServiceVolumeBars(
 }
 
 /**
- * Val 1 (M15 gap): brojčani razrez (po OU, po izvršiocu) ne nosi suffix —
+ * Brojčani razrez (po OU, po izvršiocu) ne nosi suffix —
  * vrijednost je broj tiketa, a ne sati.
  */
 export function mapCountBars(

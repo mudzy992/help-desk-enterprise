@@ -11,6 +11,7 @@ import type {
 
 export type ReportsConfiguration = {
   readonly reportsEnabled: boolean;
+  readonly timeZone?: string;
   readonly addonEnabled: boolean;
   readonly enabledPacks: readonly ReportPackKey[];
   readonly allowedFormats: readonly ReportExportFormat[];

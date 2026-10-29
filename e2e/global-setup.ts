@@ -3,42 +3,53 @@ import path from 'node:path';
 import { ApiClient } from './helpers/api-client';
 import { ensureInstall } from './helpers/ensure-install';
 import { readE2EEnvironment } from './helpers/environment';
+import { loginWithRateLimitBackoff } from './helpers/login-with-backoff';
 import { provisionTestActors } from './helpers/provision-test-actors';
 import { resetSuperAdminMfa } from './helpers/reset-super-admin-mfa';
+import {
+  clearActiveAnnouncements,
+  withdrawPublishedE2eAnnouncements,
+} from './helpers/dismiss-announcements';
 import { stopRunningTimer } from './helpers/time-tracking';
+import { assertCaptchaOff } from './helpers/assert-captcha-off';
 import { waitForStack } from './helpers/wait-for-stack';
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default async function globalSetup(): Promise<void> {
   await waitForStack();
+  await assertCaptchaOff();
   const api = new ApiClient();
   await ensureInstall(api);
-  // Paket 2.1: start every run from a known TOTP secret (re-enrolled at login).
+  const env = readE2EEnvironment();
+  // Paket 2.1: optional MFA reset; one super-admin login feeds provisioning and cleanup.
   await resetSuperAdminMfa();
+  await loginWithRateLimitBackoff(api, env.superAdminEmail, env.superAdminPassword);
   await provisionTestActors(api);
-  await clearStaleTimers();
+  await prepareActorSessions(api);
 }
 
 /**
- * Run `37353690845` (2026-10-05): spec 14 failed only because a timer from the
- * previous run was still running — one timer per agent, so the spec's first
- * `time-start` opened the switch dialog and the header kept the old ticket
- * number. A running timer is state the suite must not inherit (`helpers/time-tracking.ts`),
- * so every run clears it for all three actors. A failure here is a warning, not
- * a stop: an actor whose timer cannot be read must not block the whole suite.
+ * One API login per actor (TOTP replay budget). Super admin withdraws stray E2E
+ * najave; every actor clears inbox modals and stops a leftover timer.
  */
-async function clearStaleTimers(): Promise<void> {
+async function prepareActorSessions(adminApi: ApiClient): Promise<void> {
   const env = readE2EEnvironment();
   const accounts = [
-    { email: env.superAdminEmail, password: env.superAdminPassword },
-    { email: env.agentEmail, password: env.agentPassword },
-    { email: env.userEmail, password: env.userPassword },
+    { email: env.superAdminEmail, password: env.superAdminPassword, isSuperAdmin: true },
+    { email: env.agentEmail, password: env.agentPassword, isSuperAdmin: false },
+    { email: env.userEmail, password: env.userPassword, isSuperAdmin: false },
   ];
   for (const account of accounts) {
-    const client = new ApiClient();
+    const client = account.isSuperAdmin && adminApi.hasSession() ? adminApi : new ApiClient();
     try {
-      await client.login(account.email, account.password);
+      if (!client.hasSession()) {
+        await loginWithRateLimitBackoff(client, account.email, account.password);
+      }
+      if (account.isSuperAdmin) {
+        await withdrawPublishedE2eAnnouncements(client);
+      }
+      await clearActiveAnnouncements(client);
       const stopped = await stopRunningTimer(client);
       if (stopped !== null) {
         console.warn(
@@ -47,7 +58,9 @@ async function clearStaleTimers(): Promise<void> {
       }
     } catch (error) {
       console.warn(
-        `[e2e] could not clear a running timer for ${account.email}: ${error instanceof Error ? error.message : String(error)}`,
+        `[e2e] could not prepare session for ${account.email}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       );
     }
   }

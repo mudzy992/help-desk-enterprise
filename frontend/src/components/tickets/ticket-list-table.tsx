@@ -1,32 +1,18 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { announce } from "@/lib/a11y/announcer";
-import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useShortcut } from "@/lib/shortcuts/shortcuts-context";
 import { saveTicketListContext } from "@/lib/shortcuts/ticket-list-context";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ShieldAlert } from "lucide-react";
-import {
-  TicketAtRiskBadge,
-  TicketOverdueBadge,
-  TicketPriorityBadge,
-  TicketStatusBadge,
-} from "@/components/tickets/ticket-badges";
-import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-  tableWrapClassName,
-  ticketIdClassName,
-} from "@/components/ui/control";
-import { TicketForwardIndicator } from "@/components/tickets/ticket-forward-indicator";
-import { TicketMergeIndicator } from "@/components/tickets/ticket-merge-indicator";
-import { RelativeTime } from "@/components/ui/relative-time";
-import { pickName } from "@/lib/tickets/ticket-names";
-import { useTicketText } from "@/lib/tickets/use-ticket-text";
+import { tableWrapClassName } from "@/components/ui/control";
+import { TicketListCards } from "@/components/tickets/ticket-list-cards";
+import { TicketListRow, directoryAssigneeNames } from "@/components/tickets/ticket-list-row";
+import { TicketListTableHeader } from "@/components/tickets/ticket-list-table-header";
 import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
+
+export { directoryAssigneeNames };
 
 /*
   Pulse list table: a calm surface with one loud element per row (the state
@@ -48,164 +34,13 @@ interface TicketListTableProperties {
 const emptyAssigneeNames: ReadonlyMap<string, string> = new Map();
 
 /**
- * Faza 3.3 (plan §3.3, item 5): above this many rows the body is virtualized, so
- * a long list (the group inbox is not paged) keeps ~60 rows in the DOM. Shorter
- * lists keep the plain table — no internal scrollbar appears for a normal page.
+ * Above this many rows the body is virtualized, keeping only the visible slice
+ * in the DOM. Normal pages (including the paged group inbox) keep the plain
+ * table, so a short result never introduces an unnecessary internal scrollbar.
  */
 export const ticketListVirtualizationThreshold = 60;
 
 const estimatedTicketRowHeightPx = 56;
-
-export function directoryAssigneeNames(
-  users: readonly { id: string; displayName: string }[],
-): ReadonlyMap<string, string> {
-  return new Map(
-    users.flatMap((user) => {
-      const name = user.displayName.trim();
-      return name.length > 0 ? [[user.id, name] as const] : [];
-    }),
-  );
-}
-
-function assigneeDirectoryName(
-  ticket: TicketResponse,
-  assigneeNames: ReadonlyMap<string, string>,
-): string | null {
-  if (ticket.assignedUserId === null) {
-    return null;
-  }
-  return pickName(ticket.assignedUserName, assigneeNames.get(ticket.assignedUserId));
-}
-
-function assignmentCell(
-  ticket: TicketResponse,
-  t: (key: string) => string,
-  assigneeNames: ReadonlyMap<string, string>,
-) {
-  if (ticket.status === "UNROUTED" || ticket.assignedGroupId === null) {
-    return <Badge tone="danger">{t("tickets.assignment.unrouted")}</Badge>;
-  }
-  const assigneeName = assigneeDirectoryName(ticket, assigneeNames);
-  const groupName = pickName(ticket.assignedGroupName) ?? t("tickets.detail.unknownGroup");
-  if (ticket.assignedUserId === null) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
-        <Badge tone="info" dot={false}>
-          {t("tickets.assignment.groupOnly")}
-        </Badge>
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
-      {assigneeName !== null ? (
-        <>
-          <span className="text-muted-foreground">·</span>
-          <Avatar name={assigneeName} size="xs" />
-        </>
-      ) : (
-        <span className="text-[12px] text-foreground/80">{t("tickets.assignment.assigned")}</span>
-      )}
-    </div>
-  );
-}
-
-type TicketListRowProperties = {
-  readonly ticket: TicketResponse;
-  readonly serviceNames: ReadonlyMap<string, string>;
-  readonly originNames: ReadonlyMap<string, string>;
-  readonly assigneeNames: ReadonlyMap<string, string>;
-  readonly selectedIds: ReadonlySet<string>;
-  readonly onToggleSelected: (ticketId: string) => void;
-  /** Set only in the virtualized body, where the row must be measured. */
-  readonly virtualIndex?: number;
-  /** 0-based position in the full list (2.8 §3.3, aria-rowindex). */
-  readonly rowIndex: number;
-  /** The virtualizer measures the real row height through this ref. */
-  readonly measureRef?: (element: Element | null) => void;
-};
-
-function TicketListRow({
-  ticket,
-  serviceNames,
-  originNames,
-  assigneeNames,
-  selectedIds,
-  onToggleSelected,
-  virtualIndex,
-  rowIndex,
-  measureRef,
-}: TicketListRowProperties) {
-  const { t, i18n } = useTicketText();
-  const navigate = useNavigate();
-  const isSelected = selectedIds.has(ticket.id);
-  return (
-    <tr
-      className={cn(
-        tableRowClassName,
-        "cursor-pointer",
-        isSelected && "bg-primary/6 hover:bg-primary/8",
-      )}
-      data-index={virtualIndex}
-      aria-rowindex={rowIndex + 2}
-      ref={measureRef}
-      /* a11y-row-link: the click is a mouse shortcut; keyboard and screen
-         readers use the ticket-number Link in the row. */
-      onClick={() => navigate(`/tickets/${ticket.id}`)}
-    >
-      <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
-        <Checkbox
-          checked={isSelected}
-          onChange={() => onToggleSelected(ticket.id)}
-          aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
-        />
-      </td>
-      <td className="px-2 py-2.5">
-        <div className="flex items-center gap-2">
-          {ticket.isConfidential ? (
-            <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
-          ) : null}
-          <Link
-            to={`/tickets/${ticket.id}`}
-            className={ticketIdClassName}
-            data-ticket-row-link={ticket.id}
-          >
-            {ticket.ticketNumber}
-          </Link>
-          <TicketForwardIndicator ticket={ticket} />
-          <TicketMergeIndicator ticket={ticket} />
-          {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
-          {ticket.isOverdue !== true && ticket.isAtRisk === true ? <TicketAtRiskBadge /> : null}
-        </div>
-        <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/95">
-          {ticket.title}
-        </p>
-      </td>
-      <td className="px-4 py-2.5">
-        <span className="text-[12px] text-muted-foreground">
-          {serviceNames.get(ticket.serviceId) ?? "—"}
-        </span>
-      </td>
-      <td className="px-4 py-2.5">
-        <span className="text-[12px] text-muted-foreground">
-          {originNames.get(ticket.originUnitId) ?? "—"}
-        </span>
-      </td>
-      <td className="px-4 py-2.5">
-        <TicketStatusBadge status={ticket.status} />
-      </td>
-      <td className="px-4 py-2.5">
-        <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
-      </td>
-      <td className="px-4 py-2.5">{assignmentCell(ticket, t, assigneeNames)}</td>
-      <td className="whitespace-nowrap px-4 py-2.5 text-right text-[11.5px] text-muted-foreground">
-        <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
-      </td>
-    </tr>
-  );
-}
 
 export function TicketListTable({
   tickets,
@@ -216,7 +51,7 @@ export function TicketListTable({
   onToggleSelected,
   onTogglePage,
 }: TicketListTableProperties) {
-  const { t } = useTicketText();
+  const { t } = useTranslation();
   const rowOriginNames = originNames ?? emptyAssigneeNames;
   const allSelected = tickets.length > 0 && tickets.every((ticket) => selectedIds.has(ticket.id));
   const someSelected = !allSelected && tickets.some((ticket) => selectedIds.has(ticket.id));
@@ -305,77 +140,63 @@ export function TicketListTable({
     onToggleSelected,
   };
   return (
-    <div
-      ref={scrollRef}
-      className={cn(tableWrapClassName, "fade-in", isVirtualized && "max-h-[70vh] overflow-y-auto")}
-    >
-      <table className="w-full min-w-[900px] text-left" aria-rowcount={tickets.length + 1}>
-        <caption className="sr-only">{t("a11y.list.caption", { count: tickets.length })}</caption>
-        <thead className={isVirtualized ? "sticky top-0 z-10 bg-surface" : undefined}>
-          <tr
-            className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)}
-            aria-rowindex={1}
-          >
-            <th className="w-10 px-4 py-2.5">
-              <Checkbox
-                checked={allSelected}
-                indeterminate={someSelected}
-                onChange={(event) => onTogglePage(event.target.checked)}
-                aria-label={t("tickets.bulk.select")}
+    <>
+      <TicketListCards
+        tickets={tickets}
+        serviceNames={serviceNames}
+        originNames={rowOriginNames}
+        assigneeNames={assigneeNames}
+        selectedIds={selectedIds}
+        onToggleSelected={onToggleSelected}
+        onTogglePage={onTogglePage}
+      />
+      <div
+        ref={scrollRef}
+        className={cn(
+          "hidden md:block",
+          tableWrapClassName,
+          "fade-in",
+          isVirtualized && "max-h-[70vh] overflow-y-auto",
+        )}
+      >
+        <table className="w-full min-w-[900px] text-left" aria-rowcount={tickets.length + 1}>
+          <caption className="sr-only">{t("a11y.list.caption", { count: tickets.length })}</caption>
+          <TicketListTableHeader
+            allSelected={allSelected}
+            someSelected={someSelected}
+            isVirtualized={isVirtualized}
+            onTogglePage={onTogglePage}
+          />
+          <tbody>
+            {isVirtualized ? (
+              <tr aria-hidden="true" style={{ height: virtualRows[0]?.start ?? 0 }} />
+            ) : null}
+            {renderedTickets.map(({ ticket, virtualIndex, rowIndex, key }) =>
+              ticket === undefined ? null : (
+                <TicketListRow
+                  key={key}
+                  ticket={ticket}
+                  virtualIndex={virtualIndex}
+                  rowIndex={rowIndex}
+                  measureRef={virtualIndex === undefined ? undefined : measureRow}
+                  {...rowProperties}
+                />
+              ),
+            )}
+            {isVirtualized ? (
+              <tr
+                aria-hidden="true"
+                style={{
+                  height: Math.max(
+                    0,
+                    virtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0),
+                  ),
+                }}
               />
-            </th>
-            <th scope="col" className="px-2 py-2.5 font-medium">
-              {t("tickets.columns.ticket")}
-            </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
-              {t("tickets.columns.service")}
-            </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
-              {t("tickets.columns.unit")}
-            </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
-              {t("tickets.columns.status")}
-            </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
-              {t("tickets.columns.priority")}
-            </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
-              {t("tickets.columns.assignment")}
-            </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
-              {t("tickets.columns.updated")}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {isVirtualized ? (
-            <tr aria-hidden="true" style={{ height: virtualRows[0]?.start ?? 0 }} />
-          ) : null}
-          {renderedTickets.map(({ ticket, virtualIndex, rowIndex, key }) =>
-            ticket === undefined ? null : (
-              <TicketListRow
-                key={key}
-                ticket={ticket}
-                virtualIndex={virtualIndex}
-                rowIndex={rowIndex}
-                measureRef={virtualIndex === undefined ? undefined : measureRow}
-                {...rowProperties}
-              />
-            ),
-          )}
-          {isVirtualized ? (
-            <tr
-              aria-hidden="true"
-              style={{
-                height: Math.max(
-                  0,
-                  virtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0),
-                ),
-              }}
-            />
-          ) : null}
-        </tbody>
-      </table>
-    </div>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

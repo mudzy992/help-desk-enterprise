@@ -15,7 +15,6 @@ import { useTicketRoutingPreview } from "@/lib/tickets/use-ticket-routing-previe
 import { lookupTicketPriority } from "@/lib/tickets/lookup-ticket-priority";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { PriorityMatrixCell } from "@/services/priority-matrix-api";
 import type { FormVersionResponse, ServiceResponse } from "@/services/service-catalog-api";
 
@@ -44,7 +43,7 @@ export function CreateTicketReviewView({
 }: CreateTicketReviewViewProperties) {
   const { t } = useTranslation();
   const priority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
-  // Val 5, M7 B2: the routing card used to say only that the outcome is decided
+  // the routing card used to say only that the outcome is decided
   // on submit; it now asks the same endpoint creation uses.
   const routingPreview = useTicketRoutingPreview(draft.serviceId, draft.originUnitId);
   const routingLines =
@@ -100,9 +99,9 @@ export function CreateTicketReviewView({
                   <p className="mt-1 flex flex-wrap items-center gap-2">
                     <TicketPriorityBadge priority={priority} />
                     <span className="text-[11px] text-muted-foreground">
-                      {ticketText(t, ticketSeverityLabelKey[draft.impact])}
+                      {t(ticketSeverityLabelKey[draft.impact])}
                       {" × "}
-                      {ticketText(t, ticketSeverityLabelKey[draft.urgency])}
+                      {t(ticketSeverityLabelKey[draft.urgency])}
                     </span>
                   </p>
                 </div>
@@ -112,7 +111,7 @@ export function CreateTicketReviewView({
                   </p>
                   <p className="mt-1 text-[12.5px] text-foreground/90">
                     {selectedService?.requiresApproval
-                      ? ticketText(t, "tickets.approvalsNeeded", { count: 1 })
+                      ? t("tickets.approvalsNeeded", { count: 1 })
                       : t("tickets.createReviewApprovalsNone")}
                   </p>
                 </div>
@@ -132,11 +131,11 @@ export function CreateTicketReviewView({
                 ) : (
                   <>
                     <p className="mt-1.5 text-[12.5px] text-foreground/90">
-                      {ticketText(t, firstRoutingLine.key, firstRoutingLine.params)}
+                      {t(firstRoutingLine.key, firstRoutingLine.params)}
                     </p>
                     {routingLines.slice(1).map((line) => (
                       <p key={line.key} className="mt-1 text-[11.5px] text-muted-foreground">
-                        {ticketText(t, line.key, line.params)}
+                        {t(line.key, line.params)}
                       </p>
                     ))}
                   </>
@@ -150,7 +149,7 @@ export function CreateTicketReviewView({
             </Button>
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-muted-foreground tnum">
-                {ticketText(t, "tickets.stepCount", {
+                {t("tickets.stepCount", {
                   current: 4,
                   total: CREATE_TICKET_STEP_TOTAL,
                 })}

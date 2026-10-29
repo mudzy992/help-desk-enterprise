@@ -1,0 +1,217 @@
+/*
+  Install wizard v2 — „Aurora“: the scenes.
+  ========================================
+
+  Three moments carry the story: the airlock (the token gate), the step stage
+  and the liftoff („Sistem je spreman“). Motion is decoration with a function —
+  it says „this is moving“ or „this is finished“ — and every animation here is
+  switched off under `prefers-reduced-motion` (the last block), which is a hard
+  requirement for the wizard (Constitution §39).
+*/
+
+/*
+  The airlock holds the token form, so it must never animate its own geometry.
+  `.iw-rise` and a rotation both write the `animation` shorthand, the later rule
+  wins and the loser silently disappears — which is exactly what happened here:
+  the ring never spun. The ring therefore lives on a pseudo-element, which keeps
+  every control inside the card at a constant bounding box for Playwright's
+  actionability check (see `scripts/check-install-aurora.mjs`, check B) and keeps
+  a moving layer out of the element holding the token field.
+
+  The ring sits at `z-index: 0` and the card at `1`, so the ordering is explicit
+  rather than a side effect of paint order — a rotating layer may never be the
+  element a click lands on.
+*/
+.iw-airlock {
+  position: relative;
+  width: min(100%, 30rem);
+  padding: 2px;
+  border-radius: calc(var(--iw-r-lg) + 2px);
+}
+
+.iw-airlock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-image: conic-gradient(
+    from 140deg,
+    rgb(var(--iw-cyan) / 0.55),
+    rgb(var(--iw-violet) / 0.45),
+    rgb(var(--iw-mint) / 0.4),
+    rgb(var(--iw-cyan) / 0.55)
+  );
+  animation: iw-spin 24s linear infinite;
+}
+
+.iw-airlock > * {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--iw-r-lg);
+  background-color: rgb(var(--iw-void) / 0.88);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+.iw-liftoff {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 30px 18px 10px;
+  text-align: center;
+}
+
+.iw-orbit {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  margin-left: -130px;
+  pointer-events: none;
+}
+
+.iw-orbit span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(var(--iw-cyan) / 0.28);
+  border-radius: 50%;
+  animation: iw-orbit 6s ease-out infinite;
+}
+
+.iw-orbit span:nth-child(2) {
+  animation-delay: 2s;
+}
+
+.iw-orbit span:nth-child(3) {
+  border-color: rgb(var(--iw-violet) / 0.26);
+  animation-delay: 4s;
+}
+
+.iw-check {
+  position: relative;
+  overflow: hidden;
+}
+
+.iw-check::after {
+  content: "";
+  position: absolute;
+  /* The row carries „Idi na korak“; a sweeping band over it must never be the
+     element a click lands on. */
+  pointer-events: none;
+  top: 0;
+  bottom: 0;
+  left: -30%;
+  width: 26%;
+  background-image: linear-gradient(90deg, transparent, rgb(var(--iw-glass) / 0.07), transparent);
+  animation: iw-sweep 3.4s ease-in-out infinite;
+}
+
+/* A nested surface inside a panel: the same glass, one step lighter, and the
+   hover/selected states the package cards are read by. */
+.iw-card {
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.iw-card:hover {
+  border-color: rgb(var(--iw-glass) / 0.24);
+  transform: translate3d(0, -2px, 0);
+}
+
+.iw-card:has([aria-pressed="true"]),
+.iw-panel--lit.iw-card {
+  border-color: rgb(var(--iw-cyan) / 0.6);
+  box-shadow:
+    0 0 0 4px rgb(var(--iw-cyan) / 0.1),
+    0 24px 50px -34px rgb(var(--iw-cyan) / 0.75);
+}
+
+.iw-dot {
+  background-color: rgb(var(--iw-cyan) / 0.85);
+  box-shadow: 0 0 10px rgb(var(--iw-cyan) / 0.7);
+}
+
+.iw-badge {
+  border: 1px solid rgb(var(--iw-amber) / 0.5);
+  border-radius: 999px;
+  color: rgb(var(--iw-amber));
+}
+
+.iw-cta-link {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.iw-hud {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid rgb(var(--iw-glass) / 0.08);
+  background-color: rgb(var(--iw-void) / 0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+@keyframes iw-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes iw-orbit {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.62);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes iw-sweep {
+  0% {
+    left: -30%;
+  }
+  60%,
+  100% {
+    left: 108%;
+  }
+}
+
+@keyframes iw-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.iw-rise {
+  animation: iw-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iw-card,
+  .iw-backdrop,
+  .iw-airlock::before,
+  .iw-orbit span,
+  .iw-check::after,
+  .iw-rise,
+  .iw-node[data-state="current"],
+  .iw-seg[data-state="current"],
+  .iw-rail-item::after {
+    animation: none;
+    transition: none;
+  }
+}

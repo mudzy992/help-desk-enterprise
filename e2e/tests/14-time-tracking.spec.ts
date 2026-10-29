@@ -91,6 +91,8 @@ test.describe('14 time tracking guard', () => {
     //      earlier run is closed by `globalSetup` at *run start*, which can cover
     //      a window two hours back. Three days back is inside the documented
     //      `maxBackdateDays` default (7) and outside anything a run leaves today.
+    // Three days back (see comment above): two hours still collides with timers
+    // closed by globalSetup / earlier specs for the same SUPER_ADMIN today.
     const manualStart = new Date(Date.now() - 3 * 24 * 3600 * 1000);
     manualStart.setSeconds(0, 0);
     await page.goto(`/tickets/${first.id}`);
@@ -99,7 +101,14 @@ test.describe('14 time tracking guard', () => {
     await page.getByTestId('time-manual-start').fill(localInput(manualStart));
     await page.getByTestId('time-manual-minutes').fill('30');
     await page.getByTestId('time-manual-note').fill('E2E: telefonska podrška');
+    const manualSave = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().includes(`/tickets/${first.id}/time-logs`),
+    );
     await page.getByTestId('time-manual-save').click();
+    const manualResponse = await manualSave;
+    expect(manualResponse.ok(), await manualResponse.text().catch(() => '')).toBeTruthy();
     // Nightly 2026-10-10 (live stack): the save can be refused by server
     // settings (backdate limits, working hours). Poll the API first so a
     // refusal fails with the server state instead of a bare "row not found".

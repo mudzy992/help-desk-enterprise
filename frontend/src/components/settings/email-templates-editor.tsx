@@ -1,10 +1,12 @@
 import { Palette, RotateCcw, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useBeforeUnload, useBlocker } from "react-router-dom";
 import { SettingsReasonConfirm } from "@/components/settings/settings-reason-confirm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { hintClassName, selectCompactClassName } from "@/components/ui/control";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -58,6 +60,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const operation = useRef<"save" | "test" | null>(null);
   const focused = useRef<{
     field: EmailTemplateField;
     element: HTMLInputElement | HTMLTextAreaElement;
@@ -86,19 +89,39 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
     return result;
   }, [content, overview.fields, overview.placeholders]);
   const hasUnknown = Object.keys(unknownByField).length > 0;
+  const blocker = useBlocker(dirty);
+  useBeforeUnload(
+    (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    },
+    { capture: true },
+  );
 
   // Live preview (debounced) through the server renderer — exactly what recipients get.
   useEffect(() => {
+    // Never leave a preview for the previous key/locale/draft visible while the
+    // server validates and renders the current selection.
+    setPreview(null);
+    setPreviewError(null);
     if (content === undefined || hasUnknown) return undefined;
+    let cancelled = false;
     const handle = window.setTimeout(() => {
       previewEmailTemplate({ key, locale, content, confidential: isTicketKey && confidential })
         .then((rendered) => {
+          if (cancelled) return;
           setPreview(rendered);
           setPreviewError(null);
         })
-        .catch((error: unknown) => setPreviewError(describeError(error)));
+        .catch((error: unknown) => {
+          if (!cancelled) setPreviewError(describeError(error));
+        });
     }, 350);
-    return () => window.clearTimeout(handle);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
   }, [key, locale, content, confidential, isTicketKey, hasUnknown]);
 
   const update = (field: EmailTemplateField, value: string) => {
@@ -123,6 +146,8 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
   };
 
   const save = async (reason: string) => {
+    if (!canWrite || hasUnknown || operation.current !== null) return;
+    operation.current = "save";
     setSaving(true);
     try {
       const saved = await saveEmailTemplates({
@@ -140,12 +165,14 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         error: error,
       });
     } finally {
+      operation.current = null;
       setSaving(false);
     }
   };
 
   const sendTest = async () => {
-    if (content === undefined) return;
+    if (!canWrite || content === undefined || hasUnknown || operation.current !== null) return;
+    operation.current = "test";
     setTesting(true);
     try {
       const result = await sendTestEmailTemplate({
@@ -167,6 +194,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         error,
       });
     } finally {
+      operation.current = null;
       setTesting(false);
     }
   };
@@ -176,6 +204,16 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
       className="fade-in flex flex-col overflow-hidden p-0"
       data-testid="email-templates-editor"
     >
+      <ConfirmDialog
+        open={blocker.state === "blocked"}
+        onOpenChange={(open) => {
+          if (!open && blocker.state === "blocked") blocker.reset();
+        }}
+        title={t("settings.emailTemplates.unsavedConfirm")}
+        onConfirm={() => {
+          if (blocker.state === "blocked") blocker.proceed();
+        }}
+      />
       <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-5 py-3">
         <select
           className={cn(selectCompactClassName, "w-72")}
@@ -199,7 +237,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
         </select>
         <Segmented
           size="sm"
-          ariaLabel={t("settings.emailTemplates.language")}
+          label={t("settings.emailTemplates.language")}
           value={locale}
           onChange={setLocale}
           items={overview.locales.map((item) => ({
@@ -237,24 +275,26 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
                   key={field}
                   label={t(`settings.emailTemplates.fields.${field}`)}
                   hint={t(`settings.emailTemplates.hints.${field}`, literalPlaceholders)}
+                  error={
+                    unknown === undefined
+                      ? undefined
+                      : t("settings.emailTemplates.unknownPlaceholder", {
+                          names: unknown.map((name) => `{{${name}}}`).join(", "),
+                        })
+                  }
                 >
-                  <Control
-                    value={content[field]}
-                    disabled={!canWrite}
-                    data-testid={`email-template-field-${field}`}
-                    onFocus={(event) => {
-                      focused.current = { field, element: event.currentTarget };
-                    }}
-                    onChange={(event) => update(field, event.target.value)}
-                    aria-invalid={unknown !== undefined}
-                  />
-                  {unknown !== undefined ? (
-                    <span className="mt-1 block text-[11.5px] text-danger" role="alert">
-                      {t("settings.emailTemplates.unknownPlaceholder", {
-                        names: unknown.map((name) => `{{${name}}}`).join(", "),
-                      })}
-                    </span>
-                  ) : null}
+                  {(control) => (
+                    <Control
+                      {...control}
+                      value={content[field]}
+                      disabled={!canWrite}
+                      data-testid={`email-template-field-${field}`}
+                      onFocus={(event) => {
+                        focused.current = { field, element: event.currentTarget };
+                      }}
+                      onChange={(event) => update(field, event.target.value)}
+                    />
+                  )}
                 </Field>
               );
             })}
@@ -294,7 +334,13 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
                 type="button"
                 size="xs"
                 variant="outline"
-                disabled={!canWrite || testing || hasUnknown || !overview.delivery.hasSmtpTransport}
+                disabled={
+                  !canWrite ||
+                  saving ||
+                  testing ||
+                  hasUnknown ||
+                  !overview.delivery.hasSmtpTransport
+                }
                 data-testid="email-template-send-test"
                 onClick={() => void sendTest()}
               >
@@ -306,7 +352,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
             </div>
             {canWrite && dirty && !hasUnknown ? (
               <SettingsReasonConfirm
-                pending={saving}
+                pending={saving || testing}
                 onCancel={() => setDraft(overview.templates)}
                 onConfirm={save}
               />
@@ -316,7 +362,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <Segmented
                 size="sm"
-                ariaLabel={t("settings.emailTemplates.previewFormat")}
+                label={t("settings.emailTemplates.previewFormat")}
                 value={view}
                 onChange={setView}
                 items={[
@@ -327,7 +373,7 @@ export function EmailTemplatesEditor({ overview, canWrite, onSaved }: EditorProp
               {isTicketKey ? (
                 <Segmented
                   size="sm"
-                  ariaLabel={t("settings.emailTemplates.sensitivity")}
+                  label={t("settings.emailTemplates.sensitivity")}
                   value={confidential ? "confidential" : "normal"}
                   onChange={(value) => setConfidential(value === "confidential")}
                   items={[
@@ -391,48 +437,46 @@ function AccentColorField({
     <Field
       label={t("settings.emailTemplates.fields.accentColor")}
       hint={t("settings.emailTemplates.hints.accentColor")}
+      error={valid ? undefined : t("settings.emailTemplates.accentInvalid")}
     >
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          aria-label={t("settings.emailTemplates.fields.accentColor")}
-          className="h-9 w-12 cursor-pointer rounded-md border border-border bg-surface p-1 disabled:opacity-45"
-          // design-system-allow-hex: e-mail accent is template data, not a UI token.
-          value={colourPattern.test(value) ? value : "#4f46e5"}
-          disabled={disabled}
-          data-testid="email-template-field-accentColor-picker"
-          onChange={(event) => onChange(event.target.value)}
-        />
-        <Input
-          className="w-32 font-mono"
-          value={text}
-          placeholder={t("settings.emailTemplates.accentInherit")}
-          disabled={disabled}
-          aria-invalid={!valid}
-          data-testid="email-template-field-accentColor"
-          onChange={(event) => {
-            setText(event.target.value);
-            if (event.target.value === "" || colourPattern.test(event.target.value)) {
-              onChange(event.target.value);
-            }
-          }}
-        />
-        <Button
-          type="button"
-          size="xs"
-          variant="ghost"
-          disabled={disabled || value === ""}
-          onClick={() => onChange("")}
-        >
-          <Palette size={13} />
-          {t("settings.emailTemplates.accentUseGlobal")}
-        </Button>
-      </div>
-      {!valid ? (
-        <span className="mt-1 block text-[11.5px] text-danger" role="alert">
-          {t("settings.emailTemplates.accentInvalid")}
-        </span>
-      ) : null}
+      {(control) => (
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            aria-label={t("settings.emailTemplates.fields.accentColor")}
+            className="h-9 w-12 cursor-pointer rounded-md border border-border bg-surface p-1 disabled:opacity-45"
+            // design-system-allow-hex: e-mail accent is template data, not a UI token.
+            value={colourPattern.test(value) ? value : "#4f46e5"}
+            disabled={disabled}
+            data-testid="email-template-field-accentColor-picker"
+            onChange={(event) => onChange(event.target.value)}
+          />
+          <Input
+            {...control}
+            className="w-32 font-mono"
+            value={text}
+            placeholder={t("settings.emailTemplates.accentInherit")}
+            disabled={disabled}
+            data-testid="email-template-field-accentColor"
+            onChange={(event) => {
+              setText(event.target.value);
+              if (event.target.value === "" || colourPattern.test(event.target.value)) {
+                onChange(event.target.value);
+              }
+            }}
+          />
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            disabled={disabled || value === ""}
+            onClick={() => onChange("")}
+          >
+            <Palette size={13} />
+            {t("settings.emailTemplates.accentUseGlobal")}
+          </Button>
+        </div>
+      )}
     </Field>
   );
 }

@@ -27,6 +27,30 @@ import {
 } from "@/services/session-store";
 
 const listeners = new Set<() => void>();
+const logoutRequestTimeoutMs = 2_000;
+let observedSubjectId: string | null | undefined;
+let pendingLogout: Promise<void> | null = null;
+
+function beginServerLogout(): void {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const request = logoutSession(controller.signal).catch(() => undefined);
+  const timeout = new Promise<void>((resolve) => {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      resolve();
+    }, logoutRequestTimeoutMs);
+  });
+  const settled = Promise.race([request, timeout]).finally(() => {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+    if (pendingLogout === settled) pendingLogout = null;
+  });
+  pendingLogout = settled;
+}
+
+async function waitForPendingLogout(): Promise<void> {
+  await pendingLogout;
+}
 
 function emitSessionChange(): void {
   for (const listener of listeners) {
@@ -58,9 +82,11 @@ export function notifySessionRefreshed(): void {
  */
 function handleStorageChange(event: StorageEvent): void {
   if (event.key !== null && event.key !== sessionStorageKey) return;
-  if (readStoredSession() === null) {
+  const nextSubjectId = readStoredSession()?.principal.subjectId ?? null;
+  if (observedSubjectId !== undefined && observedSubjectId !== nextSubjectId) {
     clearUserScopedCache();
   }
+  observedSubjectId = nextSubjectId;
   emitSessionChange();
 }
 
@@ -78,7 +104,9 @@ function subscribe(listener: () => void): () => void {
 }
 
 function getSnapshot(): StoredSession | null {
-  return readStoredSession();
+  const session = readStoredSession();
+  observedSubjectId = session?.principal.subjectId ?? null;
+  return session;
 }
 
 function getServerSnapshot(): StoredSession | null {
@@ -104,7 +132,13 @@ export type SignInOutcome =
   | { readonly kind: "mfa_enrollment_required"; readonly mfaToken: string };
 
 function storeSession(response: AuthenticationSessionResponse): void {
-  writeStoredSession(storedSessionFrom(response));
+  const previousSubjectId = readStoredSession()?.principal.subjectId ?? null;
+  const session = storedSessionFrom(response);
+  if (previousSubjectId !== null && previousSubjectId !== session.principal.subjectId) {
+    clearUserScopedCache();
+  }
+  writeStoredSession(session);
+  observedSubjectId = session.principal.subjectId;
   emitSessionChange();
 }
 
@@ -138,6 +172,7 @@ export function useSession() {
       rememberMe = false,
       captchaToken?: string,
     ): Promise<SignInOutcome> => {
+      await waitForPendingLogout();
       const response = await loginWithPassword({
         email,
         password,
@@ -153,9 +188,8 @@ export function useSession() {
 
   /** Microsoft ID token → application session. */
   const signInWithEntra = useCallback(async (idToken: string): Promise<void> => {
-    const response = await loginWithEntraIdToken(idToken);
-    writeStoredSession(storedSessionFrom(response));
-    emitSessionChange();
+    await waitForPendingLogout();
+    storeSession(await loginWithEntraIdToken(idToken));
   }, []);
 
   const completePasswordChange = useCallback(
@@ -210,7 +244,7 @@ export function useSession() {
     // Revoke on the server too; the local sign-out
     // does not wait for it (offline sign-out must still work).
     if (readStoredSession() !== null) {
-      void logoutSession().catch(() => undefined);
+      beginServerLogout();
     }
     clearStoredSession();
     clearUserScopedCache();

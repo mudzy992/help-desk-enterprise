@@ -1,5 +1,6 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { TranslationKey } from "@/i18n/translation-key";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -10,11 +11,9 @@ import type { PersistedPolicyPackOption } from "@/services/policy-packs-api";
 import { listSlaProfiles, type SlaProfile } from "@/services/sla-api";
 import type {
   AutoAssignStrategy,
-  CreateServiceInput,
   DataClassification,
   ServiceCategoryResponse,
   ServiceResponse,
-  UpdateServiceInput,
 } from "@/services/service-catalog-api";
 
 const classificationOptions: readonly DataClassification[] = [
@@ -55,16 +54,18 @@ interface ServiceCatalogMutationFormProperties {
   readonly service: ServiceResponse | null;
   readonly categories: readonly ServiceCategoryResponse[];
   readonly policyPacks: readonly PersistedPolicyPackOption[];
+  readonly policyPacksAvailable: boolean;
   readonly isSaving: boolean;
   readonly errorKey: string | null;
   readonly onCancel: () => void;
-  readonly onSubmit: (values: CreateServiceInput | UpdateServiceInput) => void;
+  readonly onSubmit: (values: ServiceCatalogMutationValues) => void;
 }
 
 export function ServiceCatalogMutationForm({
   service,
   categories,
   policyPacks,
+  policyPacksAvailable,
   isSaving,
   errorKey,
   onCancel,
@@ -87,25 +88,34 @@ export function ServiceCatalogMutationForm({
   );
   const [policyPackId, setPolicyPackId] = useState<string | null>(service?.policyPackId ?? null);
   const [slaProfiles, setSlaProfiles] = useState<readonly SlaProfile[]>([]);
+  const [slaProfilesError, setSlaProfilesError] = useState(false);
   const [slaProfileId, setSlaProfileId] = useState<string | null>(service?.slaProfileId ?? null);
   const [reason, setReason] = useState("");
   const canSubmit = requireCatalogChangeReason(reason) !== null && categoryId.length > 0;
 
+  const loadSlaProfiles = useCallback(async () => {
+    setSlaProfilesError(false);
+    try {
+      setSlaProfiles(await listSlaProfiles());
+    } catch {
+      setSlaProfilesError(true);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
     void listSlaProfiles()
       .then((rows) => {
-        if (!cancelled) {
+        if (active) {
           setSlaProfiles(rows);
+          setSlaProfilesError(false);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setSlaProfiles([]);
-        }
+        if (active) setSlaProfilesError(true);
       });
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, []);
 
@@ -114,24 +124,9 @@ export function ServiceCatalogMutationForm({
     if (!canSubmit) {
       return;
     }
-    const trimmedReason = reason.trim();
-    if (isCreate) {
-      onSubmit({
-        name: name.trim(),
-        slug: slug.trim(),
-        categoryId,
-        classification,
-        requiresApproval,
-        isConfidentialDefault,
-        autoAssignStrategy,
-        policyPackId,
-        slaProfileId,
-        reason: trimmedReason,
-      } satisfies CreateServiceInput);
-      return;
-    }
     onSubmit({
       name: name.trim(),
+      slug: slug.trim(),
       categoryId,
       classification,
       requiresApproval,
@@ -139,118 +134,172 @@ export function ServiceCatalogMutationForm({
       autoAssignStrategy,
       policyPackId,
       slaProfileId,
-      reason: trimmedReason,
-    } satisfies UpdateServiceInput);
+      reason: reason.trim(),
+    });
   };
 
   return (
     <form className="fade-in mt-4 grid gap-3" onSubmit={submit}>
       <Field label={label(t, "services.name")} required>
-        <Input
-          value={name}
-          maxLength={128}
-          required
-          onChange={(event) => setName(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={name}
+            maxLength={128}
+            required
+            onChange={(event) => setName(event.target.value)}
+          />
+        )}
       </Field>
       {isCreate ? (
         <Field label={label(t, "services.slug")} required>
-          <Input
-            value={slug}
-            maxLength={64}
-            required
-            onChange={(event) => setSlug(event.target.value)}
-          />
+          {(control) => (
+            <Input
+              {...control}
+              value={slug}
+              maxLength={64}
+              required
+              onChange={(event) => setSlug(event.target.value)}
+            />
+          )}
         </Field>
       ) : null}
       <Field label={label(t, "services.category")} required>
-        <Select
-          value={categoryId}
-          required
-          disabled={categories.length === 0}
-          onChange={(event) => setCategoryId(event.target.value)}
-        >
-          {categories.length === 0 ? (
-            <option value="">{label(t, "services.categoryEmpty")}</option>
-          ) : (
-            categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))
-          )}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={categoryId}
+            required
+            disabled={categories.length === 0}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            {categories.length === 0 ? (
+              <option value="">{label(t, "services.categoryEmpty")}</option>
+            ) : (
+              categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))
+            )}
+          </Select>
+        )}
       </Field>
       <Field label={label(t, "services.classification")}>
-        <Select
-          value={classification}
-          onChange={(event) => setClassification(event.target.value as DataClassification)}
-        >
-          {classificationOptions.map((option) => (
-            <option key={option} value={option}>
-              {t(classificationLabelKey[option])}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label={t("services.requiresApproval")}>
-        <Switch checked={requiresApproval} onCheckedChange={setRequiresApproval} />
-      </Field>
-      <Field label={label(t, "services.isConfidentialDefault")}>
-        <Switch checked={isConfidentialDefault} onCheckedChange={setIsConfidentialDefault} />
-      </Field>
-      <Field label={label(t, "services.autoAssignStrategy")}>
-        <Select
-          value={autoAssignStrategy}
-          onChange={(event) => setAutoAssignStrategy(event.target.value as AutoAssignStrategy)}
-        >
-          {autoAssignOptions.map((option) => (
-            <option key={option} value={option}>
-              {t(autoAssignLabelKey[option])}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label={label(t, "services.policyPack")}>
-        <Select
-          value={policyPackId ?? ""}
-          onChange={(event) => setPolicyPackId(event.target.value || null)}
-        >
-          <option value="">—</option>
-          {policyPacks
-            .filter((pack) => !pack.isDisabled)
-            .map((pack) => (
-              <option key={pack.id} value={pack.id}>
-                {pack.name}
+        {(control) => (
+          <Select
+            {...control}
+            value={classification}
+            onChange={(event) => setClassification(event.target.value as DataClassification)}
+          >
+            {classificationOptions.map((option) => (
+              <option key={option} value={option}>
+                {t(classificationLabelKey[option])}
               </option>
             ))}
-        </Select>
+          </Select>
+        )}
+      </Field>
+      <Field label={t("services.requiresApproval")}>
+        {(control) => (
+          <Switch {...control} checked={requiresApproval} onCheckedChange={setRequiresApproval} />
+        )}
+      </Field>
+      <Field label={label(t, "services.isConfidentialDefault")}>
+        {(control) => (
+          <Switch
+            {...control}
+            checked={isConfidentialDefault}
+            onCheckedChange={setIsConfidentialDefault}
+          />
+        )}
+      </Field>
+      <Field label={label(t, "services.autoAssignStrategy")}>
+        {(control) => (
+          <Select
+            {...control}
+            value={autoAssignStrategy}
+            onChange={(event) => setAutoAssignStrategy(event.target.value as AutoAssignStrategy)}
+          >
+            {autoAssignOptions.map((option) => (
+              <option key={option} value={option}>
+                {t(autoAssignLabelKey[option])}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
+      <Field label={label(t, "services.policyPack")}>
+        {(control) => (
+          <Select
+            {...control}
+            value={policyPackId ?? ""}
+            disabled={!policyPacksAvailable}
+            onChange={(event) => setPolicyPackId(event.target.value || null)}
+          >
+            <option value="">—</option>
+            {policyPackId !== null && !policyPacks.some((pack) => pack.id === policyPackId) ? (
+              <option value={policyPackId}>{t("services.savedValueUnavailable")}</option>
+            ) : null}
+            {policyPacks
+              .filter((pack) => !pack.isDisabled || pack.id === policyPackId)
+              .map((pack) => (
+                <option key={pack.id} value={pack.id}>
+                  {pack.name}
+                </option>
+              ))}
+          </Select>
+        )}
       </Field>
       <Field label={label(t, "services.slaProfile")}>
-        <Select
-          value={slaProfileId ?? ""}
-          onChange={(event) => setSlaProfileId(event.target.value || null)}
-        >
-          <option value="">—</option>
-          {slaProfiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
-              {formatSlaProfileName(profile.key, profile.name, t as never)}
-            </option>
-          ))}
-        </Select>
+        {(control) => (
+          <Select
+            {...control}
+            value={slaProfileId ?? ""}
+            onChange={(event) => setSlaProfileId(event.target.value || null)}
+          >
+            <option value="">—</option>
+            {slaProfileId !== null &&
+            !slaProfiles.some((profile) => profile.id === slaProfileId) ? (
+              <option value={slaProfileId}>{t("services.savedValueUnavailable")}</option>
+            ) : null}
+            {slaProfiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {formatSlaProfileName(
+                  profile.key,
+                  profile.name,
+                  (key: TranslationKey, options?: Record<string, unknown>) => t(key, options),
+                )}
+              </option>
+            ))}
+          </Select>
+        )}
       </Field>
+      {slaProfilesError ? (
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p role="alert" className={errorTextClassName}>
+            {t("services.slaProfilesLoadError")}
+          </p>
+          <Button type="button" size="xs" variant="outline" onClick={() => void loadSlaProfiles()}>
+            {t("services.retryLoad")}
+          </Button>
+        </div>
+      ) : null}
       <Field
         label={label(t, "services.changeReason")}
         required
         hint={label(t, "services.changeReasonHint")}
       >
-        <Textarea
-          value={reason}
-          maxLength={512}
-          required
-          className="min-h-16"
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={reason}
+            maxLength={512}
+            required
+            className="min-h-16"
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <p className={errorTextClassName}>{label(t, errorKey)}</p> : null}
       <div className="flex gap-2">

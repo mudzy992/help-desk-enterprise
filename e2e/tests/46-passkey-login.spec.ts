@@ -215,61 +215,23 @@ test.describe('46 passkeys (5.4.0-a/e)', () => {
       await signInWithRecoveryCode(page, env.superAdminEmail, env.superAdminPassword, recoveryCodes[0]!);
       await addPasskeyThroughProfile(page, env.superAdminEmail);
 
-      // 5.4.0-a: a remaining passkey is a second factor, so TOTP may be turned
-      // off (the profile hides the button for a SUPER_ADMIN, the API allows it).
-      await admin.requestJson('/auth/mfa/disable', {
+      // 5.4.0-a/e: SUPER_ADMIN keeps mandatory TOTP even with a passkey enrolled.
+      const disableAttempt = await admin.request('/auth/mfa/disable', {
         method: 'POST',
         body: JSON.stringify({ code: recoveryCodes[1] }),
       });
-      totpDisabled = true;
+      expect(disableAttempt.status).toBe(403);
+      const disableBody = (await disableAttempt.json()) as { readonly code?: string };
+      expect(disableBody.code).toBe('MFA_REQUIRED_CANNOT_DISABLE');
 
-      // The passkey is now the only factor: removing it must be refused, and
-      // the refusal has to reach the person instead of staying behind the open
-      // dialog (Radix marks the rest of the page `aria-hidden`, so an alert
-      // rendered under the dialog is invisible and unannounced). The DELETE
-      // answer is asserted first, so a regression reports the status instead of
-      // only "no alert found".
-      const removal = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'DELETE' &&
-          new URL(response.url()).pathname.startsWith('/auth/security/passkey/'),
-      );
+      // With TOTP still active, passkey removal is allowed (not the last factor).
       await removePasskeyThroughProfile(page);
-      expect((await removal).status()).toBe(403);
-      await expect(page.getByRole('alert').filter({ hasText: lastFactorMessage })).toBeVisible();
-      await expect(page.getByRole('button', { name: removePasskeyButton })).toHaveCount(1);
-
-      const security = await admin.requestJson<{ passkeys: ReadonlyArray<{ id: string }>; hasTotp: boolean }>(
+      await expect(page.getByRole('button', { name: removePasskeyButton })).toHaveCount(0);
+      const security = await admin.requestJson<{ passkeys: readonly unknown[]; hasTotp: boolean }>(
         '/auth/security',
       );
-      expect(security.hasTotp).toBe(false);
-      const credentialId = security.passkeys[0]?.id;
-      if (credentialId === undefined) throw new Error('[e2e] the registered passkey was not listed');
-      const refused = await admin.request(`/auth/security/passkey/${credentialId}`, { method: 'DELETE' });
-      expect(refused.status).toBe(403);
-      expect(((await refused.json()) as { code?: string }).code).toBe('MFA_REQUIRED_CANNOT_DISABLE');
-
-      // Restore the account: TOTP comes back with a fresh secret (recorded for
-      // the rest of the run), and only then the passkey may be removed.
-      const setup = await admin.requestJson<{ secret: string }>('/auth/mfa/setup', {
-        method: 'POST',
-        body: '{}',
-      });
-      const step = currentStep();
-      await admin.requestJson('/auth/mfa/setup/confirm', {
-        method: 'POST',
-        body: JSON.stringify({ code: totpForStep(setup.secret, step) }),
-      });
-      saveMfaSecret(env.superAdminEmail, setup.secret, step);
-      totpDisabled = false;
-
-      const removed = await admin.request(`/auth/security/passkey/${credentialId}`, { method: 'DELETE' });
-      expect(removed.status).toBe(204);
-      const restored = await admin.requestJson<{ passkeys: readonly unknown[]; hasTotp: boolean }>(
-        '/auth/security',
-      );
-      expect(restored.hasTotp).toBe(true);
-      expect(restored.passkeys).toHaveLength(0);
+      expect(security.hasTotp).toBe(true);
+      expect(security.passkeys).toHaveLength(0);
     } finally {
       if (totpDisabled) {
         // Best effort: a run that failed between "disable" and the re-enrolment

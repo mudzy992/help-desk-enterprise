@@ -35,9 +35,15 @@ interface UserRolesSectionProperties {
   readonly userId: string;
   readonly originUnits: readonly OriginUnitOption[];
   readonly services: readonly ServiceResponse[];
+  readonly servicesAvailable: boolean;
 }
 
-export function UserRolesSection({ userId, originUnits, services }: UserRolesSectionProperties) {
+export function UserRolesSection({
+  userId,
+  originUnits,
+  services,
+  servicesAvailable,
+}: UserRolesSectionProperties) {
   const { t } = useTranslation();
   const [roles, setRoles] = useState<readonly UserRoleResponse[]>([]);
   const [roleKey, setRoleKey] = useState<string>("AGENT");
@@ -192,6 +198,7 @@ export function UserRolesSection({ userId, originUnits, services }: UserRolesSec
         <select
           className={controlCompactClassName}
           value={serviceId}
+          disabled={!servicesAvailable}
           aria-label={t("users.serviceSelect")}
           onChange={(event) => setServiceId(event.target.value)}
         >
@@ -205,7 +212,7 @@ export function UserRolesSection({ userId, originUnits, services }: UserRolesSec
         <Button
           type="button"
           size="sm"
-          disabled={pending || !canAssignRole}
+          disabled={pending || !canAssignRole || !servicesAvailable}
           onClick={() => void handleAssign()}
         >
           {pending ? t("users.assigningRole") : t("users.assignRole")}

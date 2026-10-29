@@ -5,7 +5,6 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 import { useId } from "react";
-import { useTranslation } from "react-i18next";
 import {
   controlClassName,
   hintClassName,
@@ -37,7 +36,7 @@ export function Textarea({
   return <textarea className={cn(textareaClassName, className)} {...properties} />;
 }
 
-/** Props a Field hands to its control in the render-function form (2.8 §3.2). */
+/** Props that Field hands to its control through the required render function. */
 export interface FieldControlProps {
   readonly id: string;
   readonly "aria-describedby"?: string;
@@ -52,11 +51,8 @@ interface FieldProperties {
   readonly hint?: string;
   /** Validation message; marks the control invalid and is linked to it. */
   readonly error?: string | null;
-  /**
-   * Plain children keep the legacy wrapping-label form. A render function
-   * receives id / aria-describedby / aria-invalid / aria-required for the control.
-   */
-  readonly children: ReactNode | ((control: FieldControlProps) => ReactNode);
+  /** Receives the complete accessible-name, description and validation wiring for the control. */
+  readonly children: (control: FieldControlProps) => ReactNode;
   readonly className?: string;
   /** Explicit control id (otherwise generated). */
   readonly id?: string;
@@ -71,7 +67,6 @@ export function Field({
   className,
   id: explicitId,
 }: FieldProperties) {
-  const { t } = useTranslation();
   const generatedId = useId();
   const controlId = explicitId ?? `field-${generatedId.replace(/:/g, "")}`;
   const hintId = `${controlId}-hint`;
@@ -86,9 +81,6 @@ export function Field({
           <span className="text-danger" aria-hidden="true">
             *
           </span>
-          {typeof children === "function" ? null : (
-            <span className="sr-only">{t("a11y.requiredField")}</span>
-          )}
         </>
       ) : null}
     </>
@@ -104,39 +96,27 @@ export function Field({
     </span>
   ) : null;
 
-  if (typeof children === "function") {
-    const describedBy = [hint ? hintId : null, hasError ? errorId : null]
-      .filter((value): value is string => value !== null)
-      .join(" ");
-    const control: FieldControlProps = {
-      id: controlId,
-      ...(describedBy.length > 0 ? { "aria-describedby": describedBy } : {}),
-      ...(hasError ? { "aria-invalid": true as const, "aria-errormessage": errorId } : {}),
-      ...(required ? { "aria-required": true as const } : {}),
-    };
-    return (
-      <div className={cn("block", className)}>
-        <label
-          htmlFor={controlId}
-          className="mb-1.5 flex items-baseline gap-1 text-[12.5px] font-medium text-foreground"
-        >
-          {labelContent}
-        </label>
-        {children(control)}
-        {hintNode}
-        {errorNode}
-      </div>
-    );
-  }
+  const describedBy = [hint ? hintId : null, hasError ? errorId : null]
+    .filter((value): value is string => value !== null)
+    .join(" ");
+  const control: FieldControlProps = {
+    id: controlId,
+    ...(describedBy.length > 0 ? { "aria-describedby": describedBy } : {}),
+    ...(hasError ? { "aria-invalid": true as const, "aria-errormessage": errorId } : {}),
+    ...(required ? { "aria-required": true as const } : {}),
+  };
 
   return (
-    <label className={cn("block", className)}>
-      <span className="mb-1.5 flex items-baseline gap-1 text-[12.5px] font-medium text-foreground">
+    <div className={cn("block", className)}>
+      <label
+        htmlFor={controlId}
+        className="mb-1.5 flex items-baseline gap-1 text-[12.5px] font-medium text-foreground"
+      >
         {labelContent}
-      </span>
-      {children}
+      </label>
+      {children(control)}
       {hintNode}
       {errorNode}
-    </label>
+    </div>
   );
 }

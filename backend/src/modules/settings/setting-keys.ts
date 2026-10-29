@@ -1,4 +1,69 @@
 import { addonSettingKey } from './addon-catalog';
+import type { InstallStepKey } from '../install/steps/install-step.types';
+
+/**
+ * Install wizard v2 (F1): the "Podesi kasnije" flag of every wizard step. The
+ * set is closed on purpose — `<stepKey>` may only be a key from the step
+ * registry (`install/steps/install-step.registry.ts`), never a free string.
+ *
+ * F5: the wizard's own markers, one pair per step. `skipped` is what „Podesi
+ * kasnije“ writes (owner decision D4), `saved` is what answering a step writes —
+ * for the settings sections the second one is the only completion signal there
+ * is, because an operator may answer a section without changing a single key.
+ * Both are read-only in the registry screen (IN18).
+ *
+ * The step keys of the Full package's sections are written out in full rather
+ * than built from `installSettingsSectionKeys`: the frontend coverage guard reads
+ * this file as **text** to know which keys need translations, and a template
+ * literal would hide them from it.
+ */
+export const installStepSavedKeys = {
+  securityRecommendations: 'private.install.steps.securityRecommendations.saved',
+  'section.inboundEmail': 'private.install.steps.section.inboundEmail.saved',
+  'section.directory': 'private.install.steps.section.directory.saved',
+  'section.knowledgeBase': 'private.install.steps.section.knowledgeBase.saved',
+  'section.statusPage': 'private.install.steps.section.statusPage.saved',
+  'section.onCall': 'private.install.steps.section.onCall.saved',
+  'section.announcements': 'private.install.steps.section.announcements.saved',
+  'section.security': 'private.install.steps.section.security.saved',
+  'section.privacy': 'private.install.steps.section.privacy.saved',
+  'section.auditWebhook': 'private.install.steps.section.auditWebhook.saved',
+  'section.itsm': 'private.install.steps.section.itsm.saved',
+  'section.integrations': 'private.install.steps.section.integrations.saved',
+} as const;
+
+/** Every step that has the saved/skipped marker pair. */
+export type InstallSavedStepKey = keyof typeof installStepSavedKeys;
+
+export const installStepSkippedKeys = {
+  profile: 'private.install.steps.profile.skipped',
+  superAdmin: 'private.install.steps.superAdmin.skipped',
+  identity: 'private.install.steps.identity.skipped',
+  loginProvider: 'private.install.steps.loginProvider.skipped',
+  smtp: 'private.install.steps.smtp.skipped',
+  seed: 'private.install.steps.seed.skipped',
+  team: 'private.install.steps.team.skipped',
+  blueprint: 'private.install.steps.blueprint.skipped',
+  policyPack: 'private.install.steps.policyPack.skipped',
+  slaReview: 'private.install.steps.slaReview.skipped',
+  addons: 'private.install.steps.addons.skipped',
+  // F6.1: the provisioning step is not offered for deferral either; the key
+  // exists because every registry step owns one (`readInstallSkippedSteps`).
+  provisioning: 'private.install.steps.provisioning.skipped',
+  // F5: the Full package's sections and the security-recommendations step.
+  securityRecommendations: 'private.install.steps.securityRecommendations.skipped',
+  'section.inboundEmail': 'private.install.steps.section.inboundEmail.skipped',
+  'section.directory': 'private.install.steps.section.directory.skipped',
+  'section.knowledgeBase': 'private.install.steps.section.knowledgeBase.skipped',
+  'section.statusPage': 'private.install.steps.section.statusPage.skipped',
+  'section.onCall': 'private.install.steps.section.onCall.skipped',
+  'section.announcements': 'private.install.steps.section.announcements.skipped',
+  'section.security': 'private.install.steps.section.security.skipped',
+  'section.privacy': 'private.install.steps.section.privacy.skipped',
+  'section.auditWebhook': 'private.install.steps.section.auditWebhook.skipped',
+  'section.itsm': 'private.install.steps.section.itsm.skipped',
+  'section.integrations': 'private.install.steps.section.integrations.skipped',
+} as const satisfies Readonly<Record<InstallStepKey, string>>;
 
 export const settingKeys = {
   publicBrandingAppName: 'public.branding.appName',
@@ -17,6 +82,15 @@ export const settingKeys = {
   publicMaintenanceIsBlocking: 'public.maintenance.isBlocking',
   privateInstallCompletedAt: 'private.install.completedAt',
   privateInstallCompletedByUserId: 'private.install.completedByUserId',
+  privateInstallProfile: 'private.install.profile',
+  /** F4.2: the blueprint that produced the Standard/Full catalog. */
+  privateInstallBlueprint: 'private.install.blueprint',
+  /** F4.3: the policy pack the wizard applied to the organizational unit. */
+  privateInstallPolicyPack: 'private.install.policyPack',
+  /** F4.4: 'confirmed' or 'adjusted' once the SLA review step was answered. */
+  privateInstallSlaReview: 'private.install.slaReview',
+  /** F6.3: when an administrator hid the post-install checklist on the dashboard. */
+  privateInstallChecklistDismissedAt: 'private.install.checklistDismissedAt',
   privateAuthMode: 'private.auth.mode',
   privateAuthJwtSigningSecret: 'private.auth.jwtSigningSecret',
   privateAuthAzureTenantId: 'private.auth.azureTenantId',
@@ -534,6 +608,7 @@ export const settingKeys = {
   privatePrivacyRetentionSessionDays: 'private.privacy.retention.sessionDays',
   privatePrivacyRetentionEmailDeliveryDays: 'private.privacy.retention.emailDeliveryDays',
   privatePrivacyRetentionRequestRegisterDays: 'private.privacy.retention.requestRegisterDays',
+  privatePrivacyRetentionStatusIncidentsDays: 'private.privacy.retention.statusIncidentsDays',
   privatePrivacyRetentionRunAtLocalTime: 'private.privacy.retention.runAtLocalTime',
   privatePrivacyRetentionMaxMinutesPerNight: 'private.privacy.retention.maxMinutesPerNight',
   privatePrivacyAnonymizationCandidateAfterDays:

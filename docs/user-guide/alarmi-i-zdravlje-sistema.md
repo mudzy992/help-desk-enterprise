@@ -42,8 +42,9 @@ tags: [alarmi, zdravlje-sistema, nadzor, upozorenje, kritično, prag, preuzimanj
 ### Kako alarm nastaje i prestaje
 
 1. Aplikacija provjerava stanje **svake minute**.
-2. Alarm se **otvara** tek kad uslov traje dvije uzastopne provjere (za neke alarme, kao *Worker ne radi*,
-   jedna provjera je dovoljna). Tako se izbjegavaju lažni alarmi zbog jednog lošeg trenutka.
+2. Alarm se **otvara** tek kad uslov traje dvije uzastopne provjere (za neke alarme — *SLA provjera kasni*,
+   *Neuspjeli poslovi u redu (DLQ)*, *Izlazni e-mail je zaustavljen* — jedna provjera je dovoljna).
+   Tako se izbjegavaju lažni alarmi zbog jednog lošeg trenutka.
 3. Alarm se **zatvara** kad uslov nestane u dvije uzastopne provjere.
 4. Dok je alarm otvoren, primaoci dobijaju **podsjetnik** svakih **4 sata** (zadano; podesivo od 1 do 48 sati u
    `private.ops.alerts.reminderHours`), sve dok ga neko ne preuzme.
@@ -79,6 +80,19 @@ Alarm za webhook ne čita postavku „uključen“: kad izvoz isključite, čeka
 
 Detalji o CAPTCHA provjeri su na stranici [Provjera da niste robot (CAPTCHA)](captcha-provjera.md).
 
+### Kad izlazni e-mail stane (limit provajdera)
+
+Ako SMTP provajder odbije slanje zbog svoje kvote (npr. Gmail „Daily user sending limit exceeded“), aplikacija
+**privremeno zaustavi izlazni e-mail** i otvori alarm **Izlazni e-mail je zaustavljen (limit provajdera)**:
+
+- Detalji alarma pokazuju koliko minuta ima do sljedećeg pokušaja i koliko je slanja zadržano. Poruke se ne gube:
+  čekaju u redu i šalju se čim provajder ponovo prihvati slanje.
+- Pauza traje koliko i kvota provajdera (kod dnevnog limita najčešće do 6 sati). Alarm postaje **kritičan** nakon
+  4 sata bez prihvaćene poruke.
+- Ručno ponavljanje istih poruka ne pomaže — svaki novi odbijeni pokušaj produžava pauzu.
+- Trajno rješenje je veći dnevni limit, drugi SMTP nalog ili manje pošte po događaju (digesti i sedmični izvještaji
+  umjesto pojedinačnih obavještenja).
+
 ### Gdje se mijenjaju pragovi
 
 Pragovi su u **Postavke → Operativa**:
@@ -110,6 +124,8 @@ Upozorenje može biti od 1, a kritično od 2 naviše. Prag podižite ili spušta
   otvoren, provjerite karticu **Zdravlje sistema** i uputstvo uz alarm.
 - **„Alarm za 429 se stalno pali iz iste kancelarije.“** — Mnogi korisnici iza jedne IP adrese (NAT) broje se
   zajedno. Vidi uputstvo uz alarm; ne popuštajte prag bez provjere izvora.
+- **„Korisnici ne dobijaju e-mail, a aplikacija radi.“** — Provjerite da li je otvoren alarm *Izlazni e-mail je
+  zaustavljen (limit provajdera)*: tad je SMTP provajder potrošio kvotu, pa je slanje privremeno pauzirano.
 - **„Ne vidim karticu Sigurnosne metrike.“** — Kartica je samo za SUPER_ADMIN.
 
 ## Poznata ograničenja
@@ -118,6 +134,7 @@ Upozorenje može biti od 1, a kritično od 2 naviše. Prag podižite ili spušta
   pojedinačne pokušaje.
 - Sigurnosne metrike broje događaje po IP adresi, a ne po nalogu.
 - Podsjetnici se šalju samo dok je alarm otvoren i nije preuzet.
+- Broj zadržanih slanja u detaljima alarma za izlazni e-mail je približan (broji se po procesu, ne po poruci).
 
 ## Povezani moduli
 

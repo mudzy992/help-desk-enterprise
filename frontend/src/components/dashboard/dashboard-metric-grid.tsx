@@ -12,13 +12,14 @@ import {
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { BadgeTone } from "@/components/ui/badge";
+import type { BadgeTone } from "@/lib/ui/presentation-types";
 import { StatCard } from "@/components/ui/stat-card";
 import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 
 interface DashboardMetricGridProperties {
   readonly summary: DashboardSummary;
   readonly inboxCount: number | null;
+  readonly inboxTotalIsCapped: boolean;
   readonly isStaff: boolean;
 }
 
@@ -49,7 +50,7 @@ type MetricHintKey =
 type Metric = {
   readonly labelKey: MetricLabelKey;
   readonly hintKey: MetricHintKey;
-  readonly value: number;
+  readonly value: number | string;
   readonly to: string;
   readonly icon: ReactNode;
   readonly emphasis?: boolean;
@@ -68,6 +69,7 @@ const requesterMetricLabelKeys: readonly MetricLabelKey[] = [
 export function DashboardMetricGrid({
   summary,
   inboxCount,
+  inboxTotalIsCapped,
   isStaff,
 }: DashboardMetricGridProperties) {
   const { t } = useTranslation();
@@ -75,17 +77,23 @@ export function DashboardMetricGrid({
     summary.openedToday > 0
       ? t("dashboard.deltaOpenedToday", { count: summary.openedToday })
       : undefined;
-  const metrics = buildDashboardMetrics(summary, inboxCount, openedTodayDelta).filter(
-    (metric) => isStaff || requesterMetricLabelKeys.includes(metric.labelKey),
-  );
+  const metrics = buildDashboardMetrics(
+    summary,
+    inboxCount,
+    inboxTotalIsCapped,
+    openedTodayDelta,
+  ).filter((metric) => isStaff || requesterMetricLabelKeys.includes(metric.labelKey));
 
   return (
-    <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div
+      data-testid="dashboard-metric-grid"
+      className="fade-in grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4"
+    >
       {metrics.map((metric) => (
         <Link
           key={metric.labelKey}
           to={metric.to}
-          className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="min-w-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <StatCard
             label={t(metric.labelKey)}
@@ -105,6 +113,7 @@ export function DashboardMetricGrid({
 function buildDashboardMetrics(
   summary: DashboardSummary,
   inboxCount: number | null,
+  inboxTotalIsCapped: boolean,
   openedTodayDelta: string | undefined,
 ): readonly Metric[] {
   const inbox: Metric | null =
@@ -113,7 +122,7 @@ function buildDashboardMetrics(
       : {
           labelKey: "dashboard.metricInbox",
           hintKey: "dashboard.hintInbox",
-          value: inboxCount,
+          value: inboxTotalIsCapped ? `${inboxCount}+` : inboxCount,
           to: "/tickets?view=inbox",
           icon: <Inbox size={15} strokeWidth={1.8} />,
         };
@@ -121,7 +130,7 @@ function buildDashboardMetrics(
     labelKey: "dashboard.metricUnrouted",
     hintKey: "dashboard.hintUnrouted",
     value: summary.unrouted,
-    to: "/tickets?view=all&status=UNROUTED",
+    to: "/tickets?view=inbox&inboxTab=unrouted",
     icon: <TriangleAlert size={15} strokeWidth={1.8} />,
     emphasis: summary.unrouted > 0,
   };
@@ -130,7 +139,7 @@ function buildDashboardMetrics(
       labelKey: "dashboard.metricOpen",
       hintKey: "dashboard.hintOpen",
       value: summary.open,
-      to: "/tickets?view=all",
+      to: "/tickets?view=all&status=PENDING&status=UNROUTED&status=ASSIGNED&status=IN_PROGRESS",
       icon: <TicketCheck size={15} strokeWidth={1.8} />,
       delta: openedTodayDelta,
       deltaTone: "info",
@@ -139,7 +148,7 @@ function buildDashboardMetrics(
       labelKey: "dashboard.metricCritical",
       hintKey: "dashboard.hintCritical",
       value: summary.critical,
-      to: "/tickets?view=all&priority=CRITICAL",
+      to: "/tickets?view=all&priority=CRITICAL&status=PENDING&status=UNROUTED&status=ASSIGNED&status=IN_PROGRESS",
       icon: <Flame size={15} strokeWidth={1.8} />,
       emphasis: summary.critical > 0,
     },

@@ -46,6 +46,7 @@ import {
   transferTemplateLimits,
   type TransferLocale,
 } from './transfer-document';
+import { allocateAssetTransferSequence } from './allocate-asset-transfer-sequence';
 import { defaultTransferNumberFormat, formatTransferNumber, localDateParts } from './transfer-number';
 
 export type MoveInput = {
@@ -325,12 +326,8 @@ export class AssetTransfersService {
 
     const result = await this.prisma.$transaction(async (transaction) => {
       let transfer: { id: string; number: string } | null = null;
-      if (issue && signatory) {
-        const rows = await transaction.$queryRaw<{ lastNumber: number }[]>`
-          INSERT INTO "AssetTransferSequence" ("year", "month", "lastNumber") VALUES (${date.year}, ${date.month}, 1)
-          ON CONFLICT ("year", "month") DO UPDATE SET "lastNumber" = "AssetTransferSequence"."lastNumber" + 1
-          RETURNING "lastNumber"`;
-        const sequence = Number(rows[0]?.lastNumber ?? 1);
+      if (issue && signatory !== null) {
+        const sequence = await allocateAssetTransferSequence(transaction, date.year, date.month);
         const number = formatTransferNumber(configuration.numberFormat, { ...date, sequence });
         const items: TransferSnapshotItem[] = plans.map(({ asset }) => ({
           assetId: asset.id,

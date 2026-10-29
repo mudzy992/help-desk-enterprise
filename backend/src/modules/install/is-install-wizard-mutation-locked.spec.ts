@@ -62,9 +62,25 @@ describe('isInstallWizardMutationLocked', () => {
         isCompleted: true,
       }),
     ).toBe(false);
+    // Owner decision 6: the ops rerun is the second mutation the lock lets
+    // through — its own switches (env flag + install token) do the guarding.
+    expect(
+      isInstallWizardMutationLocked({
+        method: installSetupAllowlist.restartMethod,
+        path: installSetupAllowlist.restartPath,
+        isCompleted: true,
+      }),
+    ).toBe(false);
+    // …but only as the mutation it is: reading the route is not a thing.
+    expect(
+      isInstallWizardMutationLocked({
+        method: 'GET',
+        path: installSetupAllowlist.restartPath,
+        isCompleted: true,
+      }),
+    ).toBe(true);
   });
 });
-
 describe('install reads after completion (review 2026-09-25)', () => {
   const locked = (path: string, method = 'GET') =>
     isInstallWizardMutationLocked({ method, path, isCompleted: true });

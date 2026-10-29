@@ -1,7 +1,7 @@
 import type { SettingCondition, SettingRegistryEntry } from "@/services/settings-api";
 
 /**
- * Paket 5.3.4 (D6): the client half of the dependency rule. The server is the
+ * the client half of the dependency rule. The server is the
  * authority — it refuses a write whose result would strand a dependent — but the
  * screen has to *show* the same rule before the administrator presses save:
  * which parents are missing, and which keys would be switched off with it.

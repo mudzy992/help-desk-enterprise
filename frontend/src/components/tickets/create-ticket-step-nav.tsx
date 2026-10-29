@@ -2,7 +2,6 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CREATE_TICKET_STEP_TOTAL } from "@/components/tickets/create-ticket-stepper";
 import { Button } from "@/components/ui/button";
-import { ticketText } from "@/lib/tickets/ticket-text";
 
 interface CreateTicketStepNavProperties {
   readonly step: number;
@@ -27,7 +26,7 @@ export function CreateTicketStepNav({
       </Button>
       <div className="flex items-center gap-2">
         <span className="tnum text-[11px] text-muted-foreground">
-          {ticketText(t, "tickets.stepCount", {
+          {t("tickets.stepCount", {
             current: step + 1,
             total: CREATE_TICKET_STEP_TOTAL,
           })}

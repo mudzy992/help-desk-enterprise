@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
-import { decideAlertTransition, type AlertNotificationKind, type AlertStreak, type OpenAlertState } from './alert-state-machine';
+import { alertNotifyRetryMs, decideAlertTransition, type AlertNotificationKind, type AlertStreak, type OpenAlertState } from './alert-state-machine';
 import type { OpsObservation } from './evaluate-ops-signals';
 import { opsAlertCatalog, type OpsAlertKey, type OpsAlertSeverity } from './ops-alert-catalog';
 import { OpsAlertNotifier, type OpsChannelResult } from './ops-alert-notifier.service';
@@ -79,8 +79,17 @@ export class OpsAlertEngine {
     const { now } = context;
     const keys = observations.map((observation) => observation.key);
     const streaks = await this.readStreaks(keys, context.redisAvailable);
-    const silence = context.redisAvailable ? await this.store.readSilence(now).catch(() => null) : null;
-    const mayNotify = context.configuration.alertsEnabled && silence === null;
+    // Fail closed: a Redis blip must not deliver alarms while silence is set.
+    // (Live incident 2026-10-16: shared client GET returned null for silence and heartbeat.)
+    const silenceRead = context.redisAvailable
+      ? await this.store
+          .readSilence(now)
+          .then((silence) => ({ silence, readFailed: false as const }))
+          .catch(() => ({ silence: null, readFailed: true as const }))
+      : { silence: null, readFailed: true as const };
+    const silence = silenceRead.silence;
+    const mayNotify =
+      context.configuration.alertsEnabled && silence === null && !silenceRead.readFailed;
 
     if (!context.databaseAvailable) {
       const nextStreaks = new Map<string, AlertStreak>();
@@ -127,6 +136,7 @@ export class OpsAlertEngine {
         streak: streaks.get(observation.key)!,
         now,
         reminderMs: context.configuration.reminderHours * 3_600_000,
+        notifyRetryMs: alertNotifyRetryMs,
       });
       nextStreaks.set(observation.key, decision.streak);
       let row: OpenRow | null = current;
@@ -237,10 +247,12 @@ export class OpsAlertEngine {
     });
     const delivered = results.some((result) => result.delivered > 0);
     if (!delivered) {
-      // Nothing reached anyone: release the claim so the next round retries
-      // (as "opened" while notifyCount is 0), and try the env channel now.
+      // Nothing reached anyone: release the claim so a later round retries (as
+      // "opened" while notifyCount is 0), and try the env channel now. The
+      // timestamp stays: it is the floor for the retry (`alertNotifyRetryMs`),
+      // so a failing channel is retried every 15 minutes, not every minute.
       await this.prisma.opsAlert
-        .updateMany({ where: { id: row.id, notifyCount: sequence }, data: { notifyCount: row.notifyCount, lastNotifiedAt: row.lastNotifiedAt } })
+        .updateMany({ where: { id: row.id, notifyCount: sequence }, data: { notifyCount: row.notifyCount, lastNotifiedAt: now } })
         .catch(() => undefined);
       const channels = await this.fallback.notify(message);
       if (channels.length > 0) {

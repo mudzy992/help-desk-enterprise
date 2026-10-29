@@ -23,6 +23,9 @@ import type {
 import { scanAttachmentWithClamav } from './scan-attachment-with-clamav';
 import { toTicketAttachmentResponse } from './to-attachment-response';
 import { validateTicketAttachment } from './validate-ticket-attachment';
+import { runAttachmentQuotaTransaction } from './run-attachment-quota-transaction';
+import { scanAttachmentPathWithClamav } from './scan-attachment-path-with-clamav';
+import { withAttachmentIoLimit } from './attachment-io-limiter';
 
 export async function createTicketAttachment(
   prisma: PrismaService,
@@ -53,18 +56,22 @@ export async function createTicketAttachment(
     existingCount,
   });
   const contents = file?.buffer;
-  if (contents === undefined) {
-    throw new TicketsError('ATTACHMENT_REQUIRED');
-  }
-  await scanAttachmentWithClamav(contents);
-  const storagePath = await storage.write({
-    ticketId: ticket.id,
-    extension: validated.extension,
-    contents,
+  if (contents === undefined || file === undefined) throw new TicketsError('ATTACHMENT_REQUIRED');
+  const storagePath = await withAttachmentIoLimit(async () => {
+    if (file.temporaryPath !== undefined && storage.writeFromPath !== undefined) {
+      await scanAttachmentPathWithClamav(file.temporaryPath);
+      return storage.writeFromPath({ ticketId: ticket.id, extension: validated.extension, sourcePath: file.temporaryPath });
+    }
+    await scanAttachmentWithClamav(contents);
+    return storage.write({ ticketId: ticket.id, extension: validated.extension, contents });
   });
   try {
     const messages: TicketMessageRecord[] = [];
-    const created = await prisma.$transaction(async (transaction) => {
+    const created = await runAttachmentQuotaTransaction({
+      prisma,
+      ticketId: ticket.id,
+      maxFiles: configuration.maxFilesPerTicket,
+      operation: async (transaction) => {
       const record = (await transaction.ticketAttachment.create({
         data: {
           ticketId: ticket.id,
@@ -93,7 +100,8 @@ export async function createTicketAttachment(
           actorUserId: context.actorUserId,
         }),
       );
-      return record;
+        return record;
+      },
     });
     return {
       attachment: toTicketAttachmentResponse(created, ticket),

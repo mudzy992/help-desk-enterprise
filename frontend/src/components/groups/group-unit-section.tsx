@@ -5,7 +5,7 @@ import type { GroupListItemResponse } from "@/services/groups-api";
 interface GroupUnitSectionProperties {
   readonly organizationalUnitPath: string;
   readonly groups: readonly GroupListItemResponse[];
-  readonly routingRuleCounts: ReadonlyMap<string, number>;
+  readonly routingRuleCounts: ReadonlyMap<string, number> | null;
   readonly expandedId: string | null;
   readonly canWrite: boolean;
   readonly pendingId: string | null;
@@ -41,7 +41,7 @@ export function GroupUnitSection({
           <GroupCard
             key={group.id}
             group={group}
-            routingRuleCount={routingRuleCounts.get(group.id) ?? 0}
+            routingRuleCount={routingRuleCounts?.get(group.id) ?? null}
             isExpanded={expandedId === group.id}
             canWrite={canWrite}
             isPending={pendingId === group.id}

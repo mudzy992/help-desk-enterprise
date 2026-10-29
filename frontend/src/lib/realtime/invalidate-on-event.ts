@@ -7,11 +7,11 @@ import type { Socket } from "socket.io-client";
 export type QueryKey = readonly unknown[];
 
 /**
- * Faza 3.3 (plan §3.3, item 3): the single place that maps a socket event to the
+ * the single place that maps a socket event to the
  * queries it invalidates. Kept pure so the mapping itself is testable — the
  * subscription below is the only part that touches the socket.
  *
- * `group.feed-changed` (Faza 3.2) intentionally invalidates only the list
+ * `group.feed-changed` () intentionally invalidates only the list
  * queries: the group room never carried the ticket content, so there is nothing
  * to update in a ticket detail cache.
  *
@@ -27,20 +27,26 @@ export function queryKeysForTicketEvent(input: {
   switch (input.eventName) {
     case ticketSocketEvents.ticketUpdated:
       return ticketId === null
-        ? [queryKeys.ticketLists, QUERY_KEYS_DASHBOARD_SUMMARY, queryKeys.slaSummary]
+        ? [
+            queryKeys.ticketLists,
+            queryKeys.ticketCountsPrefix,
+            QUERY_KEYS_DASHBOARD_SUMMARY,
+            queryKeys.slaSummary,
+          ]
         : [
             queryKeys.ticketLists,
             queryKeys.ticket(ticketId),
+            queryKeys.ticketCountsPrefix,
             QUERY_KEYS_DASHBOARD_SUMMARY,
             queryKeys.slaSummary,
           ];
     case ticketSocketEvents.messageCreated:
       return ticketId === null
-        ? [queryKeys.ticketLists]
-        : [queryKeys.ticketLists, queryKeys.ticket(ticketId)];
+        ? [queryKeys.ticketLists, queryKeys.ticketCountsPrefix]
+        : [queryKeys.ticketLists, queryKeys.ticket(ticketId), queryKeys.ticketCountsPrefix];
     case ticketSocketEvents.groupFeedChanged:
-      // Only "something changed in your group" — pull the lists, not the detail.
-      return ticketId === null ? [] : [queryKeys.ticketLists];
+      // The group room signals ticket changes, so inbox counts are stale too.
+      return ticketId === null ? [] : [queryKeys.ticketLists, queryKeys.ticketCountsPrefix];
     case ticketSocketEvents.notificationCreated:
     case ticketSocketEvents.notificationRead:
       return [queryKeys.notifications];

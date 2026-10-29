@@ -8,40 +8,52 @@ import { DashboardInboxSnapshot } from "@/components/dashboard/dashboard-inbox-s
 import { DashboardMetricGrid } from "@/components/dashboard/dashboard-metric-grid";
 import { DashboardRecentTickets } from "@/components/dashboard/dashboard-recent-tickets";
 import { DashboardSlaWatchlist } from "@/components/dashboard/dashboard-sla-watchlist";
+import { SetupChecklistCard } from "@/components/dashboard/setup-checklist-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader, brandCrumb } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { Warning } from "@/components/ui/warning";
 import { recentTicketsExcluding } from "@/lib/dashboard/dashboard-ticket-sets";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
-import { canOpenReports } from "@/lib/session/route-access";
+import { canOpenAdminArea, canOpenReports, isTicketStaff } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function DashboardPage() {
   const { t } = useTranslation();
   const capabilities = useSessionCapabilities();
-  // Val 1 (M15/B5): dugme je bilo trajno onemogućeno uz poruku da ruta ne
+  // dugme je bilo trajno onemogućeno uz poruku da ruta ne
   // postoji, iako `/reports` postoji; sada je link, uz isto pravilo pristupa.
   const reportsVisible = canOpenReports(capabilities);
+  const isStaff = isTicketStaff(capabilities);
+  // the post-install checklist is administration content (it names what
+  // the installation is still missing) — read and dismiss both need settings.write.
+  const setupChecklistVisible = canOpenAdminArea(capabilities);
   const {
-    isStaff,
     summary,
     inboxCount,
+    inboxTotalIsCapped,
     inboxTickets,
+    isInboxLoading,
+    inboxErrorKey,
+    inboxRequestId,
+    reloadInbox,
     serviceNames,
     originNames,
     groupNames,
     isLoading,
+    isStale,
     errorKey,
     requestId,
-  } = useDashboardSummary();
+    reload,
+  } = useDashboardSummary(isStaff);
   const recentExclusive =
     summary === null ? [] : recentTicketsExcluding(summary.recent, summary.attention);
 
   return (
-    <section>
+    <section className="min-w-0">
       <PageHeader
         crumbs={[brandCrumb, t("navigation.dashboard")]}
         title={t("navigation.dashboard")}
@@ -63,6 +75,7 @@ export function DashboardPage() {
           </>
         }
       />
+      {setupChecklistVisible ? <SetupChecklistCard /> : null}
       {isLoading ? (
         <PanelSkeleton className="mt-0" label={t("navigation.dashboard")} />
       ) : errorKey ? (
@@ -79,19 +92,42 @@ export function DashboardPage() {
           }
         />
       ) : (
-        <div className="grid gap-4">
-          <DashboardMetricGrid summary={summary} inboxCount={inboxCount} isStaff={isStaff} />
+        <div className="grid min-w-0 gap-4">
+          {isStale ? (
+            <div className="flex items-center gap-2">
+              <Warning text={t("dashboard.refreshStale")} />
+              <Button size="xs" variant="outline" onClick={() => void reload()}>
+                {t("ui.retry")}
+              </Button>
+            </div>
+          ) : null}
+          <DashboardMetricGrid
+            summary={summary}
+            inboxCount={inboxCount}
+            inboxTotalIsCapped={inboxTotalIsCapped}
+            isStaff={isStaff}
+          />
           <DashboardCharts summary={summary} />
           <div
-            className={isStaff ? "grid grid-cols-1 gap-3 xl:grid-cols-3" : "grid grid-cols-1 gap-3"}
+            className={
+              isStaff
+                ? "grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+                : "grid min-w-0 grid-cols-1 gap-3"
+            }
           >
             {isStaff ? (
               <>
                 <DashboardSlaWatchlist items={summary.slaWatchlist} />
                 <DashboardInboxSnapshot
                   unroutedCount={summary.unrouted}
+                  inboxCount={inboxCount}
+                  inboxTotalIsCapped={inboxTotalIsCapped}
                   inboxTickets={inboxTickets}
                   groupNames={groupNames}
+                  isLoading={isInboxLoading}
+                  errorKey={inboxErrorKey}
+                  requestId={inboxRequestId}
+                  onRetry={reloadInbox}
                 />
               </>
             ) : null}
@@ -101,6 +137,11 @@ export function DashboardPage() {
             items={summary.attention}
             serviceNames={serviceNames}
             originNames={originNames}
+            // requesters must not see the assignment
+            // column — the routing terms behind it are internal. The merge that
+            // brought the install wizard in dropped this prop, so the column was
+            // about to come back for requesters; the table requires it.
+            isStaff={isStaff}
           />
           {recentExclusive.length > 0 ? (
             <Card>

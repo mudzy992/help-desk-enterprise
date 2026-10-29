@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { Field, Input } from "@/components/ui/field";
 import {
   canDeleteCatalogService,
@@ -31,6 +32,7 @@ export function ServiceCatalogLifecycleActions({
   onClose,
 }: ServiceCatalogLifecycleActionsProperties) {
   const { t } = useTranslation();
+  const operationGuard = useOperationGuard();
   const [reason, setReason] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<ServiceCatalogErrorKey | null>(null);
@@ -39,32 +41,36 @@ export function ServiceCatalogLifecycleActions({
   const canDelete = canDeleteCatalogService(service.lifecycle);
 
   const run = async (action: string, work: () => Promise<unknown>) => {
-    if (!reasonReady || pendingAction !== null) {
-      return;
-    }
-    setPendingAction(action);
-    setErrorKey(null);
-    try {
-      await work();
-      setReason("");
-      await onChanged();
-      onClose();
-    } catch (error) {
-      setErrorKey(mapServiceCatalogError(error));
-    } finally {
-      setPendingAction(null);
-    }
+    const operationKey = `${service.id}:${action}`;
+    if (!reasonReady || pendingAction !== null || operationGuard.isPending(operationKey)) return;
+    await operationGuard.run(operationKey, async () => {
+      setPendingAction(action);
+      setErrorKey(null);
+      try {
+        await work();
+        setReason("");
+        await onChanged();
+        onClose();
+      } catch (error) {
+        setErrorKey(mapServiceCatalogError(error));
+      } finally {
+        setPendingAction(null);
+      }
+    });
   };
 
   return (
     <div className="grid gap-4">
       <Field label={t("services.changeReason")} required>
-        <Input
-          value={reason}
-          maxLength={512}
-          disabled={pendingAction !== null}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            maxLength={512}
+            disabled={pendingAction !== null}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? (
         <p role="alert" className={errorTextClassName}>

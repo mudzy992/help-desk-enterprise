@@ -1,7 +1,7 @@
 import { apiRequest } from "@/services/api";
 import type { TicketPriority, TicketResponse } from "@/services/tickets-api";
 
-/** Package 1.2 — manual priority, merge and unmerge. */
+/** manual priority, merge and unmerge. */
 export type OverrideTicketPriorityInput =
   | { readonly priority: TicketPriority; readonly reason: string }
   | { readonly resetToMatrix: true; readonly reason: string };

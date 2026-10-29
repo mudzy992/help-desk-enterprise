@@ -4,6 +4,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import {
   isSelectFormFieldType,
+  isValidFieldIdentifier,
   SERVICE_FORM_FIELD_TYPES,
   withSelectOptions,
 } from "@/lib/services/form-field-draft";
@@ -30,61 +31,80 @@ export function FormFieldEditor({
   return (
     <div className="grid gap-2 rounded-lg border border-border bg-elevated/40 p-3">
       <div className="grid gap-2 md:grid-cols-2">
-        <Field label={t("services.forms.fieldId")} required>
-          <Input
-            value={field.id}
-            disabled={disabled}
-            maxLength={64}
-            onChange={(event) => onChange({ ...field, id: event.target.value })}
-          />
+        <Field
+          label={t("services.forms.fieldId")}
+          required
+          error={isValidFieldIdentifier(field.id) ? null : t("services.forms.fieldIdInvalid")}
+        >
+          {(control) => (
+            <Input
+              {...control}
+              value={field.id}
+              disabled={disabled}
+              maxLength={64}
+              onChange={(event) => onChange({ ...field, id: event.target.value })}
+            />
+          )}
         </Field>
         <Field label={t("services.forms.fieldLabel")} required>
-          <Input
-            value={field.label}
-            disabled={disabled}
-            maxLength={128}
-            onChange={(event) => onChange({ ...field, label: event.target.value })}
-          />
+          {(control) => (
+            <Input
+              {...control}
+              value={field.label}
+              disabled={disabled}
+              maxLength={128}
+              onChange={(event) => onChange({ ...field, label: event.target.value })}
+            />
+          )}
         </Field>
         <Field label={t("services.forms.fieldType")} required>
-          <Select
-            value={field.type}
-            disabled={disabled}
-            onChange={(event) =>
-              onChange(
-                withSelectOptions({
-                  ...field,
-                  type: event.target.value as ServiceFormField["type"],
-                }),
-              )
-            }
-          >
-            {SERVICE_FORM_FIELD_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {t(`services.forms.types.${type}`)}
-              </option>
-            ))}
-          </Select>
+          {(control) => (
+            <Select
+              {...control}
+              value={field.type}
+              disabled={disabled}
+              onChange={(event) =>
+                onChange(
+                  withSelectOptions({
+                    ...field,
+                    type: event.target.value as ServiceFormField["type"],
+                  }),
+                )
+              }
+            >
+              {SERVICE_FORM_FIELD_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`services.forms.types.${type}`)}
+                </option>
+              ))}
+            </Select>
+          )}
         </Field>
         <Field label={t("services.forms.fieldRequired")}>
-          <Switch
-            checked={field.required}
-            disabled={disabled}
-            onCheckedChange={(checked) => onChange({ ...field, required: checked })}
-          />
+          {(control) => (
+            <Switch
+              {...control}
+              checked={field.required}
+              disabled={disabled}
+              onCheckedChange={(checked) => onChange({ ...field, required: checked })}
+            />
+          )}
         </Field>
       </div>
       <Field label={t("services.forms.placeholder")}>
-        <Input
-          value={field.config?.placeholder ?? ""}
-          disabled={disabled}
-          onChange={(event) =>
-            onChange({
-              ...field,
-              config: { ...field.config, placeholder: event.target.value || undefined },
-            })
-          }
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={field.config?.placeholder ?? ""}
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({
+                ...field,
+                config: { ...field.config, placeholder: event.target.value || undefined },
+              })
+            }
+          />
+        )}
       </Field>
       {isSelectFormFieldType(field.type) ? (
         <FormFieldOptionsEditor field={field} disabled={disabled} onChange={onChange} />
@@ -116,7 +136,14 @@ function FormFieldOptionsEditor({
   const { t } = useTranslation();
   const options = field.validation?.options ?? [];
   return (
-    <Field label={t("services.forms.options")} required>
+    <fieldset>
+      <legend className="mb-1.5 flex items-baseline gap-1 text-[12.5px] font-medium text-foreground">
+        {t("services.forms.options")}
+        <span className="text-danger" aria-hidden="true">
+          *
+        </span>
+        <span className="sr-only">{t("a11y.requiredField")}</span>
+      </legend>
       <div className="grid gap-2">
         {options.map((option, index) => (
           <div key={`${option.value}-${index}`} className="grid grid-cols-2 gap-2">
@@ -165,6 +192,6 @@ function FormFieldOptionsEditor({
           {t("services.forms.addOption")}
         </Button>
       </div>
-    </Field>
+    </fieldset>
   );
 }

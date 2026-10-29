@@ -117,13 +117,31 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 
 
+## Install Wizard v2 (iz `.cursor/plans/install-wizard-v2`)
+
+F0–F6 su završeni, commitovani i spojeni u `master`: registry i paketi, Minimum/Standard/Full sadržaj, Aurora shell, provisioning, ready ekran, post-install checklist i zaseban E2E projekat. Detalji i dokazi: `.cursor/plans/install-wizard-v2/HANDOFF.md` i `audit/frontend/11-install.md`.
+
+- [x] IN11: relevantna polja imaju `aria-describedby`; fokus pri promjeni ide na naslov koraka.
+- [x] IN18: install ključevi nose `readOnly` **UI metadata**; registry ih označava „Čarobnjak“ i ne crta editor. Ručni `POST /settings/*` i dalje može prihvatiti te ključeve — to nije backend zabrana.
+- [x] IN19: promjena paketa poništava odgodu koraka koje novi paket traži i UI objašnjava ponovno otvaranje.
+- [x] IN21: ops-only rerun je iza `INSTALL_ALLOW_RERUN=true` + install tokena; ruta, CLI i runbook postoje, bez administratorskog UI-a.
+- [x] IN22 (2026-10-18): TASKS i E2E README usklađeni su sa F6 implementacijom, specovima 51/52/53 i CI/SMTP ugovorom.
+- [ ] IN13 (niska komponentna podstavka): širok frontend/backend inventar postoji, ali nema zasebnih `install-login-provider-step.spec.tsx` i `install-security-recommendations.spec.tsx`.
+- [ ] IN14 (mjerenje): UI E2E **51 Minimum, 52 Standard i 53 Full** su napisani i ranije evidentirani kao zeleni. Lighthouse accessibility za stvarni `/install` (gate + Full korak + portal) i dalje nema sačuvan rezultat ≥ 95.
+- [ ] IN20 (niska): inbound e-mail i LDAPS nemaju install-scoped „Testiraj konekciju“ akcije; postojeće domenske funkcije su iza sesijske prijave i rola.
+- [ ] IN23: pozitivni 51/52/53 postoje; mali negativni browser paket za token/status/save/completion greške još nedostaje.
+- [ ] IN24 (vlasnička odluka): CI podržava ručni `workflow_dispatch` sa `install_spec=51|52|53`, ali ne podiže vlastiti clean stack. Dispatch-only nasuprot izolovanom reset-stack poslu ostaje otvoreno; posao zato nije obavezna PR regresijska kapija.
+
+---
+
 ## Faza 9 — Edge + quality (i dalje prva isporuka)
 
 - [x] Edge Manifest V3: WS + throttled polling, redacted toasts, receipts/dedup
 - [x] Quick reply chat (bez attachments) + Request Remote (Quick Assist) + audit
-- [~] IN PROGRESS E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config)
+- [x] Frontend audit closeout (6.1 policy + modules 03, 01, 02; zatvoren 2026-10-14)
+- [~] IN PROGRESS E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config; E2E specs 37/39 i cookie-enabled deployment su još otvoreni)
 - [ ] RBAC test suite u CI
 
 ---
 
-**Trenutni status:** Faza 9 — E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config)
+**Trenutni status:** Faza 9 — frontend audit closeout (plan 6.1 policy + modules 03, 01, 02) zatvoren 2026-10-14; aktivna je E2E kritična provjera. E2E cookie-enabled deployment/specs 37/39 i A2 browser QA nisu izvršeni/proglašeni prošlim. Nema commita; samo po izričitom zahtjevu vlasnika.

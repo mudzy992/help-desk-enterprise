@@ -6,7 +6,7 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { emailDeliveryStatuses } from '../notifications/email/email-template.constants';
 import { countStuckNotificationEmailDeliveries } from '../notifications/email/persist-notification-email-delivery';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
-import { evaluateWorkerHeartbeat, withTimeout } from '../health/health-probes';
+import { evaluateWorkerHeartbeat, readWorkerHeartbeatValue, withTimeout } from '../health/health-probes';
 import type { PrivacyActor } from '../privacy/privacy-actor';
 import type { OpsChannelResult } from './ops-alert-notifier.service';
 import { opsAlertCatalog, isOpsAlertKey } from './ops-alert-catalog';
@@ -87,7 +87,9 @@ export class OpsHealthService {
     const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
-      withTimeout(() => this.redis.getClient().get(workerHeartbeatRedisKey), 1_000).catch(() => null),
+      readWorkerHeartbeatValue(() =>
+        withTimeout(() => this.redis.getClient().get(workerHeartbeatRedisKey), 2_000).catch(() => null),
+      ),
       this.store.readSnapshot<OpsSnapshot>().catch(() => null),
       this.store.readSilence(now).catch(() => null),
       this.configurationLoader.load(),
@@ -147,6 +149,7 @@ export class OpsHealthService {
         state: lateIds.has(`${scheduler.queue}/${scheduler.schedulerId}`) ? ('late' as const) : ('on_time' as const),
       })),
       queues: signals?.queues ?? [],
+      sla: signals?.sla ?? null,
       dlq: {
         integrationDlq: signals?.integrationDlq ?? null,
         growth: snapshot?.dlqGrowth ?? null,

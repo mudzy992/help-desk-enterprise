@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   mapConfigVersionError,
   type ConfigVersionErrorKey,
@@ -9,9 +9,12 @@ import { shadowConfigVersion, type ConfigShadowDiff } from "@/services/config-ve
 export function useConfigVersionShadow() {
   const [result, setResult] = useState<ConfigShadowDiff | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const requestSequence = useRef(0);
 
   const clear = useCallback(() => {
+    requestSequence.current += 1;
     setResult(null);
+    setIsLoading(false);
   }, []);
 
   const run = useCallback(
@@ -19,13 +22,17 @@ export function useConfigVersionShadow() {
       versionId: string,
       onError: (errorKey: ConfigVersionErrorKey, requestId: string | null) => void,
     ): Promise<void> => {
+      const sequence = ++requestSequence.current;
       setIsLoading(true);
       try {
-        setResult(await shadowConfigVersion(versionId));
+        const next = await shadowConfigVersion(versionId);
+        if (sequence === requestSequence.current) setResult(next);
       } catch (error) {
-        onError(mapConfigVersionError(error), readApiRequestId(error));
+        if (sequence === requestSequence.current) {
+          onError(mapConfigVersionError(error), readApiRequestId(error));
+        }
       } finally {
-        setIsLoading(false);
+        if (sequence === requestSequence.current) setIsLoading(false);
       }
     },
     [],

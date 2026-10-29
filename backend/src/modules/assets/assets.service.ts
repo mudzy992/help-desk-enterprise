@@ -149,13 +149,20 @@ export class AssetsService {
     });
   }
 
-  private async audit(action: string, entityId: string, viewer: AssetViewer, metadata: Record<string, unknown>) {
+  private async audit(
+    action: string,
+    entityId: string,
+    viewer: AssetViewer,
+    metadata: Record<string, unknown>,
+    organizationalUnitId?: string,
+  ) {
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action,
       entityType: auditLogEntityTypes.asset,
       entityId,
       metadata: metadata as never,
       actorUserId: viewer.userId,
+      organizationalUnitId,
     });
   }
 
@@ -715,7 +722,7 @@ export class AssetsService {
         assetTag: current.assetTag,
         reason: text,
         releasedLicenses,
-      });
+      }, current.organizationalUnitId);
     }
     return { id, status };
   }

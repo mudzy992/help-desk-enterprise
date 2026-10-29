@@ -20,7 +20,9 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
   const env = readE2EEnvironment();
   assertDisposableTestAccount(env.userEmail, 'overwrite the password');
   assertDisposableTestAccount(env.agentEmail, 'overwrite the password');
-  await api.login(env.superAdminEmail, env.superAdminPassword);
+  if (!api.hasSession()) {
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+  }
   const tree = await api.requestJson<OrganizationalUnitNode | OrganizationalUnitNode[]>(
     '/organizational-units/tree',
   );

@@ -1,38 +1,65 @@
-import { expect, test } from '@playwright/test';
-import { ApiClient } from '../helpers/api-client';
-import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { expect, test } from "@playwright/test";
+import { ApiClient } from "../helpers/api-client";
+import { readE2EEnvironment } from "../helpers/environment";
+import { dismissAnnouncementModal, signIn } from "../helpers/sign-in";
 
-test.describe('09 config ops', () => {
-  test('validate → shadow → activate → rollback', async ({ page }) => {
+test.describe("09 config ops", () => {
+  test("validate → shadow → activate → rollback", async ({ page }) => {
     const env = readE2EEnvironment();
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
-    const created = await api.requestJson<{ id: string }>('/config-versions', {
-      method: 'POST',
-      body: JSON.stringify({ releaseNotes: `E2E config ${Date.now()}` }),
+    const releaseNotes = `E2E config ${Date.now()}`;
+    const created = await api.requestJson<{ id: string }>("/config-versions", {
+      method: "POST",
+      body: JSON.stringify({ releaseNotes }),
     });
     await api.requestJson(`/config-versions/${created.id}/validate`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({}),
     });
     await api.requestJson(`/config-versions/${created.id}/shadow`, {
-      method: 'POST',
+      method: "POST",
     });
-    await api.requestJson(`/config-versions/${created.id}/activate`, {
-      method: 'POST',
-      body: JSON.stringify({ reason: 'E2E activate' }),
-    });
+    await signIn(page, env.superAdminEmail, env.superAdminPassword);
+    await page.goto("/admin/config-versions");
+    await dismissAnnouncementModal(page);
+    await page.getByRole("row").filter({ hasText: releaseNotes }).click();
+    await page
+      .getByLabel(/Activation reason|Razlog aktivacije/i)
+      .fill("E2E activate through UI");
+    await page.getByRole("button", { name: /Activate|Aktiviraj/i }).click();
+    const confirmation = page.getByRole("alertdialog");
+    await expect(confirmation).toBeVisible();
+    const activationResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes(`/config-versions/${created.id}/activate`),
+    );
+    await confirmation
+      .getByRole("button", { name: /Activate|Aktiviraj/i })
+      .click();
+    const activationResponse = await activationResponsePromise;
+    expect(
+      activationResponse.ok(),
+      `activation failed (${activationResponse.status()}): ${await activationResponse.text()}`,
+    ).toBe(true);
+    await expect(confirmation).toBeHidden();
+    await expect
+      .poll(async () => {
+        const version = await api.requestJson<{ status: string }>(
+          `/config-versions/${created.id}`,
+        );
+        return version.status;
+      }, { timeout: 20_000 })
+      .toBe("ACTIVE");
+
     const rolled = await api.requestJson<{ id: string }>(
       `/config-versions/${created.id}/rollback`,
       {
-        method: 'POST',
-        body: JSON.stringify({ reason: 'E2E rollback' }),
+        method: "POST",
+        body: JSON.stringify({ reason: "E2E rollback" }),
       },
     );
     expect(rolled.id.length).toBeGreaterThan(0);
-    await signIn(page, env.superAdminEmail, env.superAdminPassword);
-    await page.goto('/admin/config-versions');
-    await expect(page.getByText(/config|verzij|version/i).first()).toBeVisible();
   });
 });

@@ -58,7 +58,7 @@ export function AccessibilityPreferencesCard() {
         </p>
         <Segmented<ShortcutChoice>
           size="sm"
-          ariaLabel={t("a11y.preferences.shortcutsLabel")}
+          label={t("a11y.preferences.shortcutsLabel")}
           value={choice}
           onChange={(next) => mutation.mutate(next)}
           items={[

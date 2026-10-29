@@ -243,12 +243,14 @@ async function collectRecipients(
         ? []
         : loadMentionedUserIds(prisma, input.messageId);
     case notificationTypes.ticketMessage:
+      // Pickup then mute the queue: once an agent owns the ticket, e-mail goes
+      // to requester / assignee / watchers / followers — not every group member.
+      // Unassigned tickets still notify the handling group (open queue).
       return [
         input.ticket.requesterId,
         ...(input.ticket.assignedUserId === null
-          ? []
+          ? await groupMemberUserIds(prisma, input.ticket.assignedGroupId)
           : [input.ticket.assignedUserId]),
-        ...(await groupMemberUserIds(prisma, input.ticket.assignedGroupId)),
         ...(await participantUserIds(prisma, input.ticket.id, 'WATCHER')),
         ...(await followerUserIds(prisma, input.ticket.id)),
       ];

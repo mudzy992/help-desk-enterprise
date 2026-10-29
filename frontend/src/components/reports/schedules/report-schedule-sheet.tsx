@@ -1,7 +1,15 @@
+import {
+  formErrorKeys,
+  frequencyKeys,
+  priorityKeys,
+  sectionKeys,
+  type ReportScheduleSheetProperties,
+} from "./report-schedule-contract";
 import { Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   controlClassName,
@@ -16,76 +24,22 @@ import {
   previewNextReportRun,
   reportScheduleNameMaxLength,
   validateReportScheduleForm,
-  type ReportScheduleFormError,
 } from "@/lib/reports/report-schedule-form";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
-import { mapApiError } from "@/lib/map-api-error";
-import {
-  reportErrorMessageKeys,
-  type TrendsFilterOption,
-} from "@/components/reports/trends/report-trends-panel";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { reportErrorMessageKeys } from "@/components/reports/trends/report-trends-panel";
 import {
   createReportSchedule,
   listReportRecipientCandidates,
   reportScheduleFrequencies,
   updateReportSchedule,
-  type ReportSchedule,
   type ReportScheduleFrequency,
-  type ReportScheduleList,
   type ReportScheduleRecipient,
   type ReportScheduleSection,
 } from "@/services/report-schedules-api";
 import { reportTrendPriorities, type ReportTrendPriority } from "@/services/report-trends-api";
 
-export type ReportScheduleDraft = {
-  readonly organizationalUnitId: string | null;
-  readonly serviceId: string | null;
-  readonly groupId: string | null;
-  readonly priority: ReportTrendPriority | null;
-};
-
-interface ReportScheduleSheetProperties {
-  readonly open: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly list: ReportScheduleList;
-  /** Existing schedule (edit) or a draft from „Zakaži ovaj izvještaj”. */
-  readonly schedule: ReportSchedule | null;
-  readonly draft: ReportScheduleDraft | null;
-  readonly units: readonly TrendsFilterOption[];
-  readonly services: readonly TrendsFilterOption[];
-  readonly groups: readonly TrendsFilterOption[] | null;
-  readonly onSaved: (schedule: ReportSchedule) => void;
-}
-
-const frequencyKeys = {
-  WEEKLY: "reports.schedules.frequency.WEEKLY",
-  MONTHLY: "reports.schedules.frequency.MONTHLY",
-} as const;
-
-const sectionKeys = {
-  kpi: "reports.schedules.sections.kpi",
-  trend: "reports.schedules.sections.trend",
-  topServices: "reports.schedules.sections.topServices",
-  overdue: "reports.schedules.sections.overdue",
-} as const;
-
-const priorityKeys = {
-  LOW: "reports.trends.priority.LOW",
-  MEDIUM: "reports.trends.priority.MEDIUM",
-  HIGH: "reports.trends.priority.HIGH",
-  CRITICAL: "reports.trends.priority.CRITICAL",
-} as const;
-
-const formErrorKeys = {
-  name: "reports.schedules.form.errors.name",
-  sendTime: "reports.schedules.form.errors.sendTime",
-  unit: "reports.schedules.form.errors.unit",
-  sections: "reports.schedules.form.errors.sections",
-  recipients: "reports.schedules.form.errors.recipients",
-  recipientLimit: "reports.schedules.form.errors.recipientLimit",
-} as const satisfies Record<ReportScheduleFormError, string>;
-
-/** Paket 2.5 (design §7.3): create / edit a schedule (Sheet, max-w-md). */
+/** Create or edit one report schedule. */
 export function ReportScheduleSheet({
   open,
   onOpenChange,
@@ -111,9 +65,13 @@ export function ReportScheduleSheet({
   const [enabled, setEnabled] = useState(true);
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState<readonly ReportScheduleRecipient[]>([]);
+  const [candidateError, setCandidateError] = useState<ApiErrorKey | null>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const savePending = useRef(false);
+  const [saveError, setSaveError] = useState<{ key: string; requestId: string | null } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -151,9 +109,12 @@ export function ReportScheduleSheet({
     if (!open || unitId === "") return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
+      setCandidateError(null);
       listReportRecipientCandidates(unitId, search)
         .then((loaded) => !cancelled && setCandidates(loaded.users))
-        .catch(() => !cancelled && setCandidates([]));
+        .catch((error: unknown) => {
+          if (!cancelled) setCandidateError(mapApiError(error));
+        });
     }, 250);
     return () => {
       cancelled = true;
@@ -172,7 +133,7 @@ export function ReportScheduleSheet({
     },
     list.settings.maxRecipients,
   );
-  const next = previewNextReportRun(frequency, sendTime, new Date());
+  const next = previewNextReportRun(frequency, sendTime, list.settings.timeZone, new Date());
   const selectedIds = useMemo(
     () => new Set(recipients.map((recipient) => recipient.id)),
     [recipients],
@@ -183,8 +144,10 @@ export function ReportScheduleSheet({
       : values.filter((item) => item !== value);
 
   const submit = async () => {
+    if (savePending.current) return;
     setShowErrors(true);
     if (errors.length > 0) return;
+    savePending.current = true;
     setSaving(true);
     setSaveError(null);
     const input = {
@@ -210,8 +173,12 @@ export function ReportScheduleSheet({
       onOpenChange(false);
     } catch (caught) {
       const code = readReportErrorCode(caught);
-      setSaveError(code === null ? t(mapApiError(caught)) : t(reportErrorMessageKeys[code]));
+      setSaveError({
+        key: code === null ? mapApiError(caught) : reportErrorMessageKeys[code],
+        requestId: readApiRequestId(caught),
+      });
     } finally {
+      savePending.current = false;
       setSaving(false);
     }
   };
@@ -234,38 +201,47 @@ export function ReportScheduleSheet({
         </div>
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           <Field label={t("reports.schedules.form.name")} required>
-            <input
-              className={controlClassName}
-              value={name}
-              maxLength={reportScheduleNameMaxLength}
-              onChange={(event) => setName(event.target.value)}
-              data-testid="schedule-name"
-            />
+            {(control) => (
+              <input
+                {...control}
+                className={controlClassName}
+                value={name}
+                maxLength={reportScheduleNameMaxLength}
+                onChange={(event) => setName(event.target.value)}
+                data-testid="schedule-name"
+              />
+            )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("reports.schedules.form.frequency")} required>
-              <select
-                className={selectClassName}
-                value={frequency}
-                onChange={(event) => setFrequency(event.target.value as ReportScheduleFrequency)}
-                data-testid="schedule-frequency"
-              >
-                {reportScheduleFrequencies.map((option) => (
-                  <option key={option} value={option}>
-                    {t(frequencyKeys[option])}
-                  </option>
-                ))}
-              </select>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={frequency}
+                  onChange={(event) => setFrequency(event.target.value as ReportScheduleFrequency)}
+                  data-testid="schedule-frequency"
+                >
+                  {reportScheduleFrequencies.map((option) => (
+                    <option key={option} value={option}>
+                      {t(frequencyKeys[option])}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
             <Field label={t("reports.schedules.form.sendTime")} required>
-              <input
-                type="time"
-                step={300}
-                className={controlClassName}
-                value={sendTime}
-                onChange={(event) => setSendTime(event.target.value)}
-                data-testid="schedule-time"
-              />
+              {(control) => (
+                <input
+                  {...control}
+                  type="time"
+                  step={300}
+                  className={controlClassName}
+                  value={sendTime}
+                  onChange={(event) => setSendTime(event.target.value)}
+                  data-testid="schedule-time"
+                />
+              )}
             </Field>
           </div>
           <p className={hintClassName} data-testid="schedule-next-preview">
@@ -279,71 +255,86 @@ export function ReportScheduleSheet({
                     year: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: list.settings.timeZone,
+                    timeZoneName: "short",
                   }),
+                  zone: list.settings.timeZone,
                 })}
           </p>
 
           <Field label={t("reports.packs.unit")} required>
-            <select
-              className={selectClassName}
-              value={unitId}
-              onChange={(event) => {
-                setUnitId(event.target.value);
-                setRecipients([]);
-              }}
-              data-testid="schedule-unit"
-            >
-              {units.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t("reports.trends.filters.service")}>
+            {(control) => (
               <select
+                {...control}
                 className={selectClassName}
-                value={serviceId}
-                onChange={(event) => setServiceId(event.target.value)}
+                value={unitId}
+                onChange={(event) => {
+                  setUnitId(event.target.value);
+                  setRecipients([]);
+                }}
+                data-testid="schedule-unit"
               >
-                <option value="">{t("reports.trends.filters.all")}</option>
-                {services.map((option) => (
+                {units.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
                 ))}
               </select>
+            )}
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t("reports.trends.filters.service")}>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={serviceId}
+                  onChange={(event) => setServiceId(event.target.value)}
+                >
+                  <option value="">{t("reports.trends.filters.all")}</option>
+                  {services.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
             <Field label={t("reports.trends.filters.priority")}>
-              <select
-                className={selectClassName}
-                value={priority}
-                onChange={(event) => setPriority(event.target.value)}
-              >
-                <option value="">{t("reports.trends.filters.all")}</option>
-                {reportTrendPriorities.map((option) => (
-                  <option key={option} value={option}>
-                    {t(priorityKeys[option])}
-                  </option>
-                ))}
-              </select>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={priority}
+                  onChange={(event) => setPriority(event.target.value)}
+                >
+                  <option value="">{t("reports.trends.filters.all")}</option>
+                  {reportTrendPriorities.map((option) => (
+                    <option key={option} value={option}>
+                      {t(priorityKeys[option])}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
           </div>
           {groups !== null ? (
             <Field label={t("reports.trends.filters.group")}>
-              <select
-                className={selectClassName}
-                value={groupId}
-                onChange={(event) => setGroupId(event.target.value)}
-              >
-                <option value="">{t("reports.trends.filters.all")}</option>
-                {groups.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              {(control) => (
+                <select
+                  {...control}
+                  className={selectClassName}
+                  value={groupId}
+                  onChange={(event) => setGroupId(event.target.value)}
+                >
+                  <option value="">{t("reports.trends.filters.all")}</option>
+                  {groups.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
           ) : null}
 
@@ -439,7 +430,13 @@ export function ReportScheduleSheet({
               />
             </div>
             <ul className="mt-1.5 max-h-44 overflow-y-auto rounded-md border border-border/70">
-              {candidates.filter((candidate) => !selectedIds.has(candidate.id)).length === 0 ? (
+              {candidateError ? (
+                <p role="alert" className={errorTextClassName}>
+                  {t(candidateError)}
+                </p>
+              ) : null}
+              {candidateError === null &&
+              candidates.filter((candidate) => !selectedIds.has(candidate.id)).length === 0 ? (
                 <li className={`${hintClassName} px-3 py-2`}>
                   {t("reports.schedules.form.noCandidates")}
                 </li>
@@ -480,9 +477,10 @@ export function ReportScheduleSheet({
             </ul>
           ) : null}
           {saveError !== null ? (
-            <p className={errorTextClassName} role="alert">
-              {saveError}
-            </p>
+            <ApiErrorText
+              messageKey={saveError.key as ApiErrorKey}
+              requestId={saveError.requestId}
+            />
           ) : null}
         </div>
         <div className="flex justify-end gap-2 border-t border-border/70 px-5 py-3">
@@ -497,3 +495,5 @@ export function ReportScheduleSheet({
     </Sheet>
   );
 }
+
+export type { ReportScheduleDraft } from "./report-schedule-contract";

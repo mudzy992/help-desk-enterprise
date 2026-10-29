@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { translateText } from "@/lib/i18n/translate-text";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   mapProblemError,
@@ -23,7 +23,7 @@ import {
 import {
   changeProblemStatus,
   getProblemResolvePreview,
-  problemDetailKeys,
+  problemQueryKeys,
   type ProblemDetail,
   type ProblemStatus,
   type ProblemTicketResolveOutcome,
@@ -38,7 +38,7 @@ interface ProblemStatusSheetProperties {
 }
 
 /**
- * Paket 3.3 (§5, §8.4): status change with the reason where the rules ask for
+ * Delivery invariant (requirement, requirement): status change with the reason where the rules ask for
  * one; RESOLVED optionally resolves the open linked tickets (P4).
  */
 export function ProblemStatusSheet({
@@ -50,6 +50,7 @@ export function ProblemStatusSheet({
 }: ProblemStatusSheetProperties) {
   const { t } = useTranslation();
   const targets = problem.allowedTransitions;
+  const firstTarget = targets[0];
   const [status, setStatus] = useState<ProblemStatus | "">("");
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
@@ -64,20 +65,18 @@ export function ProblemStatusSheet({
 
   useEffect(() => {
     if (!open) return;
-    setStatus(initialStatus ?? targets[0] ?? "");
+    setStatus(initialStatus ?? firstTarget ?? "");
     setReason("");
     setError(null);
     setOutcome(null);
     setResolveTickets({ enabled: false, message: defaultMessage, closeCode: "" });
-    // The default message only matters when the sheet opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialStatus, targets]);
+  }, [open, initialStatus, problem.status, firstTarget, defaultMessage]);
 
   const offersGroupResolve = status === "RESOLVED" && problem.permissions.canClose;
   const groupResolve = offersGroupResolve && resolveTickets.enabled;
   // Same key as the section below, so the preview is fetched once.
   const preview = useQuery({
-    queryKey: problemDetailKeys.resolvePreview(problem.id),
+    queryKey: problemQueryKeys.resolvePreview(problem.id),
     queryFn: () => getProblemResolvePreview(problem.id),
     retry: false,
     enabled: open && offersGroupResolve,
@@ -147,7 +146,7 @@ export function ProblemStatusSheet({
                 >
                   {targets.map((target) => (
                     <option key={target} value={target}>
-                      {ticketText(t, transitionLabelKey(problem.status, target))}
+                      {translateText(t, transitionLabelKey(problem.status, target))}
                     </option>
                   ))}
                 </Select>
@@ -155,7 +154,7 @@ export function ProblemStatusSheet({
             </Field>
             {status !== "" ? (
               <p className={hintClassName}>
-                {ticketText(t, `problems.statusSheet.hint.${status}`)}
+                {translateText(t, `problems.statusSheet.hint.${status}`)}
               </p>
             ) : null}
             {needsReason ? (

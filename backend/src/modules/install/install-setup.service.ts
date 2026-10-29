@@ -1,23 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { settingKeys } from '../settings/setting-keys';
 import { SettingsService } from '../settings/settings.service';
-import { findInstallSuperAdmin } from './find-install-super-admin';
-import { readInstallAddonsStatus } from './read-install-addons-status';
-import {
-  isLoginProviderSaved,
-  readInstallLoginProviderStatus,
-} from './read-install-login-provider-status';
-import { readInstallSeedStatus } from './read-install-seed-status';
-import { readInstallSmtpEnvPrefill } from './read-install-smtp-env-prefill';
-import { readInstallSmtpStatus } from './read-install-smtp-status';
-import { isInstallSetupComplete } from './is-install-setup-complete';
 import {
   createSetupDatabaseUnavailableException,
   createSetupRequiredException,
 } from './create-setup-required-exception';
 import { isInstallDatabaseUnavailableError } from './is-install-database-unavailable-error';
-import type { InstallSetupStatus, InstallWizardStep } from './install-setup.types';
+import { isInstallSetupComplete } from './is-install-setup-complete';
+import { settingKeys } from '../settings/setting-keys';
+import { readInstallProfile, readInstallStepProgress, toInstallStepStates } from './read-install-step-states';
+import { readInstallSetupSummary } from './read-install-summary';
+import { listInstallStepDefinitions } from './steps/install-step.registry';
+import { resolveInstallNextStep } from './steps/resolve-install-next-step';
+import type { InstallProfile } from './steps/install-step.types';
+import type {
+  InstallSetupStatus,
+  InstallStepStatesRecord,
+} from './install-setup.types';
 
 @Injectable()
 export class InstallSetupService {
@@ -26,32 +25,31 @@ export class InstallSetupService {
     private readonly prisma: PrismaService,
   ) {}
 
+  /**
+   * Install wizard v2 (F1): the step machine moved into the registry
+   * (`steps/`), so this service only reads the state, asks
+   * `resolveInstallNextStep` what comes next, and reports it.
+   */
   async getStatus(): Promise<InstallSetupStatus> {
-    const isCompleted = await this.isCompleted();
-    if (isCompleted) {
-      return completedStatus();
+    if (await this.isCompleted()) {
+      const profile = await this.readProfileSafely();
+      return completedStatus(profile);
     }
-    const [superAdmin, loginProvider, smtp, seed] = await Promise.all([
-      findInstallSuperAdmin(this.prisma).catch(propagateDatabaseFailure),
-      this.readLoginProviderStatus().catch(propagateDatabaseFailure),
-      this.readSmtpStatus().catch(propagateDatabaseFailure),
-      readInstallSeedStatus(this.prisma).catch(propagateDatabaseFailure),
-      // Addons status is read but does not gate setup completion at this
-      // time (the addons step is always complete); keep the call so errors
-      // surface during troubleshooting but don't bind to a variable.
-      readInstallAddonsStatus(this.settingsService).catch(propagateDatabaseFailure),
-    ]);
-    const steps = {
-      superAdmin: { completed: superAdmin !== null },
-      loginProvider: { completed: isLoginProviderSaved(loginProvider) },
-      smtp: { completed: smtp.isConfigured },
-      seed: { completed: seed.isSeeded },
-      addons: { completed: true },
-    };
+    const { profile, progress } = await this.readStepProgress();
+    const states = toInstallStepStates(profile, progress);
     return {
       isCompleted: false,
-      nextStep: resolveNextInstallStep(steps),
-      steps,
+      nextStep: resolveInstallNextStep({ profile, states }),
+      profile,
+      steps: states,
+      // F6.2: the final screen reads the summary from the same payload the step
+      // machine comes in — one request per wizard screen, as before.
+      summary: await readInstallSetupSummary({
+        prisma: this.prisma,
+        settingsService: this.settingsService,
+        profile,
+        deferredSteps: listDeferredSteps(states),
+      }),
     };
   }
 
@@ -75,54 +73,59 @@ export class InstallSetupService {
     );
   }
 
-  private async readLoginProviderStatus() {
-    return readInstallLoginProviderStatus(this.settingsService);
+  private async readStepProgress() {
+    try {
+      return await readInstallStepProgress(this.prisma, this.settingsService);
+    } catch (error) {
+      propagateDatabaseFailure(error);
+      throw error;
+    }
   }
 
-  private async readSmtpStatus() {
-    return readInstallSmtpStatus(
-      this.settingsService,
-      readInstallSmtpEnvPrefill(),
-    );
+  private async readProfileSafely(): Promise<InstallProfile | null> {
+    try {
+      return await readInstallProfile(this.settingsService);
+    } catch {
+      return null;
+    }
   }
 }
 
-function completedStatus(): InstallSetupStatus {
+export function completedStatus(
+  profile: InstallProfile | null = null,
+): InstallSetupStatus {
   return {
     isCompleted: true,
     nextStep: 'complete',
-    steps: {
-      superAdmin: { completed: true },
-      loginProvider: { completed: true },
-      smtp: { completed: true },
-      seed: { completed: true },
-      addons: { completed: true },
-    },
+    profile,
+    steps: completedStepStates(),
   };
 }
 
-function resolveNextInstallStep(steps: InstallSetupStatus['steps']): InstallWizardStep {
-  if (!steps.superAdmin.completed) {
-    return 'superAdmin';
-  }
-  if (!steps.loginProvider.completed) {
-    return 'loginProvider';
-  }
-  if (!steps.smtp.completed) {
-    return 'smtp';
-  }
-  if (!steps.seed.completed) {
-    return 'seed';
-  }
-  if (!steps.addons.completed) {
-    return 'addons';
-  }
-  return 'complete';
+/**
+ * F4: derived from the step registry instead of listing the steps again — a
+ * finished installation reports every step of the registry as done, and a new
+ * step cannot be forgotten here (it was, when `blueprint`, `policyPack` and
+ * `slaReview` arrived).
+ */
+export function completedStepStates(): InstallStepStatesRecord {
+  return Object.fromEntries(
+    listInstallStepDefinitions().map((definition) => [
+      definition.key,
+      { completed: true },
+    ]),
+  ) as InstallStepStatesRecord;
 }
 
-function propagateDatabaseFailure(error: unknown): never {
+/** F6.2: the steps the operator deferred, in registry order. */
+function listDeferredSteps(states: InstallStepStatesRecord): readonly string[] {
+  return listInstallStepDefinitions()
+    .filter((definition) => states[definition.key]?.skipped === true)
+    .map((definition) => definition.key);
+}
+
+function propagateDatabaseFailure(error: unknown): void {
   if (isInstallDatabaseUnavailableError(error)) {
     throw createSetupDatabaseUnavailableException();
   }
-  throw error;
 }

@@ -36,7 +36,7 @@ if [ ! -d "$BACKUP_DIR" ]; then
   exit 1
 fi
 
-archive="$(newest 'uploads-*.tar.gz')"
+archive="$(newest 'app-files-*.tar.gz')"
 if [ -z "$archive" ]; then
   echo "[verify-backups] FAIL: nema uploads arhive u ${BACKUP_DIR}"
   problems=1

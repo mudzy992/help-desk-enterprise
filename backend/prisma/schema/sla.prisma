@@ -55,6 +55,7 @@ model SlaRule {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
 
+  @@unique([slaProfileId, priority, organizationalUnitId, serviceId], map: "SlaRule_effective_key_key")
   @@index([slaProfileId, priority])
   @@index([slaProfileId, evaluationOrder])
   @@index([organizationalUnitId])
@@ -83,6 +84,12 @@ model TicketSlaState {
   /// Phase 2.1: when the scanner has to look at this state again (null = nothing
   /// time-driven is pending). Maintained by computeSlaNextDueAt on every write.
   nextDueAt               DateTime?
+  /// Immutable rule/calendar snapshot used by this timer. Existing timers are
+  /// grandfathered; explicit migration writes RECOMPUTE with a new version.
+  configurationVersion    String?   @db.VarChar(64)
+  configurationSnapshot   Json?
+  configurationAppliedAt  DateTime?
+  configurationPolicy     String    @default("GRANDFATHER") @db.VarChar(16)
   ticket                  Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   updatedAt               DateTime  @updatedAt
 
@@ -90,8 +97,24 @@ model TicketSlaState {
   @@index([responseDueAt])
   @@index([resolutionDueAt])
   @@index([resolutionCompletedAt, nextDueAt])
+  @@index([configurationVersion, resolutionCompletedAt])
   /// Paket 2.5: SLA response trend.
   @@index([respondedAt])
+}
+
+model SlaScanFailure {
+  id             String   @id @default(cuid())
+  ticketId       String   @unique
+  phase          String   @db.VarChar(16)
+  attempts       Int      @default(1)
+  lastError      String   @db.VarChar(1000)
+  nextAttemptAt  DateTime?
+  quarantinedAt  DateTime?
+  firstFailedAt  DateTime @default(now())
+  lastFailedAt   DateTime @default(now())
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([quarantinedAt, nextAttemptAt])
 }
 
 model SlaEscalationRule {
@@ -110,6 +133,7 @@ model SlaEscalationRule {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
+  @@unique([slaProfileId, triggerOffsetMinutes], map: "SlaEscalationRule_profile_offset_key")
   @@index([slaProfileId])
   @@index([targetGroupId])
   @@index([targetUserId])

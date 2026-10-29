@@ -37,7 +37,9 @@ function ticket(
 }
 
 describe("selectSlaWatchlist", () => {
-  it("keeps isOverdue semantics and caps at five newest updates", () => {
+  // Val 6.1 / modul 4 (D2): the helper trusts the server sort (`slaDueAt asc`)
+  // and only filters + caps; it no longer re-sorts by updatedAt.
+  it("keeps isOverdue semantics and caps at five in server order", () => {
     const tickets = [
       ticket("1", "PENDING", { isOverdue: false }),
       ticket("2", "IN_PROGRESS", { isOverdue: true, updatedAt: "2026-09-02T10:00:00.000Z" }),
@@ -48,7 +50,7 @@ describe("selectSlaWatchlist", () => {
       ticket("7", "PENDING", { isOverdue: true, updatedAt: "2026-09-06T10:00:00.000Z" }),
       ticket("8", "PENDING", { isOverdue: true, updatedAt: "2026-09-07T10:00:00.000Z" }),
     ];
-    expect(selectSlaWatchlist(tickets).map((item) => item.id)).toEqual(["8", "7", "3", "6", "2"]);
+    expect(selectSlaWatchlist(tickets).map((item) => item.id)).toEqual(["2", "3", "5", "6", "7"]);
   });
 });
 

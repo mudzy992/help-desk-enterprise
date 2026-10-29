@@ -4,6 +4,7 @@ import {
   type TicketMessageResponse,
 } from "@/services/tickets-collaboration-api";
 import { getTicket, type TicketResponse } from "@/services/tickets-api";
+import { reportClientError } from "@/lib/app/client-logger";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import {
   createPendingMessageId,
@@ -35,6 +36,7 @@ export async function sendTicketMessageOptimistic(input: {
   input.setMessages((current) => [...current, pending]);
   try {
     const created = await createTicketMessage(input.ticketId, {
+      idempotencyKey: crypto.randomUUID(),
       type: input.type,
       body: input.body,
       ...(input.alsoToMerged === true ? { alsoToMerged: true } : {}),
@@ -43,10 +45,17 @@ export async function sendTicketMessageOptimistic(input: {
         : { responseTemplateId: input.responseTemplateId }),
     });
     input.setMessages((current) => reconcileOptimisticMessage(current, created, pendingId));
-    input.setTicket(await getTicket(input.ticketId));
   } catch (error) {
     input.setMessages((current) => current.filter((message) => message.id !== pendingId));
     input.setActionError(mapTicketError(error));
     throw error;
+  }
+  // Poruka je već sačuvana. Pad osvježavanja ne smije je prikazati kao neuspjelu:
+  // composer bi zadržao tekst, pa bi sljedeći klik poslao isti javni odgovor opet.
+  // Zaglavlje može kratko kasniti; socket i naredno učitavanje ga osvježe.
+  try {
+    input.setTicket(await getTicket(input.ticketId));
+  } catch (error) {
+    reportClientError("ticket_refresh_after_send_failed", error, input.ticketId);
   }
 }

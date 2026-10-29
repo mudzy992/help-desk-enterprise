@@ -112,6 +112,11 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Manage service availability windows and downtime.',
   },
   {
+    key: permissionKeys.slaRead,
+    categoryId: permissionCategoryIds.sla,
+    description: 'View SLA configuration and change history within assigned scope.',
+  },
+  {
     key: permissionKeys.slaWrite,
     categoryId: permissionCategoryIds.sla,
     description:
@@ -133,9 +138,24 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Create, edit, and delete groups and manage group members.',
   },
   {
+    key: permissionKeys.settingsRead,
+    categoryId: permissionCategoryIds.settings,
+    description: 'View the global private settings registry and configuration projections.',
+  },
+  {
     key: permissionKeys.settingsWrite,
     categoryId: permissionCategoryIds.settings,
     description: 'Change system settings, policy packs, and config versions.',
+  },
+  {
+    key: permissionKeys.configVersionRead,
+    categoryId: permissionCategoryIds.settings,
+    description: 'View global configuration versions, snapshots, and diffs.',
+  },
+  {
+    key: permissionKeys.docsAgentRead,
+    categoryId: permissionCategoryIds.settings,
+    description: 'Read internal documentation intended for support agents.',
   },
   {
     key: permissionKeys.onCallRead,

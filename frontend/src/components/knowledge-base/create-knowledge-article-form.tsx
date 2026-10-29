@@ -13,7 +13,7 @@ import {
   mapKnowledgeArticleError,
   type KnowledgeArticleErrorKey,
 } from "@/lib/knowledge-base/map-knowledge-article-error";
-import { readApiRequestId } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { defaultOriginUnitId, type OriginUnitOption } from "@/lib/tickets/ticket-display";
 import { listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { createKnowledgeArticle } from "@/services/knowledge-base-api";
@@ -53,6 +53,7 @@ export function CreateKnowledgeArticleForm({
   const [reviewerUserId, setReviewerUserId] = useState("");
   const [classification, setClassification] = useState<KnowledgeClassification>("INTERNAL");
   const [groups, setGroups] = useState<readonly GroupListItemResponse[]>([]);
+  const [groupsErrorKey, setGroupsErrorKey] = useState<ApiErrorKey | null>(null);
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -69,10 +70,8 @@ export function CreateKnowledgeArticleForm({
           setGroups(loaded);
         }
       })
-      .catch(() => {
-        if (!cancelled) {
-          setGroups([]);
-        }
+      .catch((error: unknown) => {
+        if (!cancelled) setGroupsErrorKey(mapApiError(error));
       });
     return () => {
       cancelled = true;
@@ -134,85 +133,110 @@ export function CreateKnowledgeArticleForm({
   return (
     <form className="fade-in mt-4 grid gap-3" onSubmit={onSubmit}>
       <Field label={t("knowledgeBase.titleField")} required>
-        <Input
-          value={title}
-          required
-          maxLength={200}
-          onChange={(event) => setTitle(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={title}
+            required
+            maxLength={200}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+        )}
       </Field>
       <Field label={t("knowledgeBase.bodyField")} required>
-        <Textarea
-          value={body}
-          required
-          maxLength={20000}
-          className="min-h-32"
-          onChange={(event) => setBody(event.target.value)}
-        />
+        {(control) => (
+          <Textarea
+            {...control}
+            value={body}
+            required
+            maxLength={20000}
+            className="min-h-32"
+            onChange={(event) => setBody(event.target.value)}
+          />
+        )}
       </Field>
       <Field label={t("knowledgeBase.serviceId")} required>
-        <Select value={serviceId} required onChange={(event) => setServiceId(event.target.value)}>
-          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
-          {services.map((service) => (
-            <option key={service.id} value={service.id}>
-              {service.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label={t("knowledgeBase.organizationalUnitId")} required>
-        <Select
-          value={organizationalUnitId}
-          required
-          onChange={(event) => setOrganizationalUnitId(event.target.value)}
-        >
-          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
-          {originUnits.map((unit) => (
-            <option key={unit.id} value={unit.id}>
-              {unit.label}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      {isSuperAdmin ? (
-        <KnowledgeArticleAdminFields
-          users={users}
-          groups={groups}
-          ownerMode={ownerMode}
-          ownerUserId={ownerUserId}
-          ownerGroupId={ownerGroupId}
-          reviewerUserId={reviewerUserId}
-          classification={classification}
-          onOwnerModeChange={setOwnerMode}
-          onOwnerUserIdChange={setOwnerUserId}
-          onOwnerGroupIdChange={setOwnerGroupId}
-          onReviewerUserIdChange={setReviewerUserId}
-          onClassificationChange={setClassification}
-          labels={adminLabels}
-        />
-      ) : (
-        <Field label={t("knowledgeBase.ownerUserId")} required>
+        {(control) => (
           <Select
-            value={ownerUserId}
+            {...control}
+            value={serviceId}
             required
-            onChange={(event) => setOwnerUserId(event.target.value)}
+            onChange={(event) => setServiceId(event.target.value)}
           >
             <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName}
+            {services.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.name}
               </option>
             ))}
           </Select>
+        )}
+      </Field>
+      <Field label={t("knowledgeBase.organizationalUnitId")} required>
+        {(control) => (
+          <Select
+            {...control}
+            value={organizationalUnitId}
+            required
+            onChange={(event) => setOrganizationalUnitId(event.target.value)}
+          >
+            <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+            {originUnits.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.label}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
+      {isSuperAdmin ? (
+        <>
+          {groupsErrorKey ? <ApiErrorText messageKey={groupsErrorKey} /> : null}
+          <KnowledgeArticleAdminFields
+            users={users}
+            groups={groups}
+            ownerMode={ownerMode}
+            ownerUserId={ownerUserId}
+            ownerGroupId={ownerGroupId}
+            reviewerUserId={reviewerUserId}
+            classification={classification}
+            onOwnerModeChange={setOwnerMode}
+            onOwnerUserIdChange={setOwnerUserId}
+            onOwnerGroupIdChange={setOwnerGroupId}
+            onReviewerUserIdChange={setReviewerUserId}
+            onClassificationChange={setClassification}
+            labels={adminLabels}
+          />
+        </>
+      ) : (
+        <Field label={t("knowledgeBase.ownerUserId")} required>
+          {(control) => (
+            <Select
+              {...control}
+              value={ownerUserId}
+              required
+              onChange={(event) => setOwnerUserId(event.target.value)}
+            >
+              <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
+                </option>
+              ))}
+            </Select>
+          )}
         </Field>
       )}
       <Field label={t("knowledgeBase.reason")} required>
-        <Input
-          value={reason}
-          required
-          maxLength={512}
-          onChange={(event) => setReason(event.target.value)}
-        />
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            required
+            maxLength={512}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        )}
       </Field>
       {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
       <div>

@@ -43,7 +43,7 @@ export function OnboardingRoutingStep({
   return (
     <div className="fade-in grid w-full max-w-2xl gap-4">
       <Field label={t("services.onboarding.routingSuggestion")}>
-        <Input value={suggestion} readOnly />
+        {(control) => <Input {...control} value={suggestion} readOnly />}
       </Field>
       <Button
         type="button"

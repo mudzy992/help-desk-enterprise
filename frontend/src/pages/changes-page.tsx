@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { GitPullRequestArrow, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ModuleCapabilityGate } from "@/components/entity-list/module-capability-gate";
+import { EntityListQueryError } from "@/components/entity-list/entity-list-query-error";
 import { ChangeCalendar } from "@/components/changes/change-calendar";
 import { ChangeFormSheet } from "@/components/changes/change-form-sheet";
 import { ChangeTemplatesPanel } from "@/components/changes/change-templates-panel";
@@ -11,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  errorTextClassName,
   hintClassName,
   selectCompactClassName,
   tableHeadClassName,
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
@@ -34,9 +35,18 @@ import {
   formatChangeWindow,
   mapChangeError,
 } from "@/lib/changes/change-view";
-import { mapApiError } from "@/lib/map-api-error";
+import { resolveModuleCapabilityGate } from "@/lib/entity-list/module-capability-gate";
+import { resolveEntityListState } from "@/lib/entity-list/resolve-entity-list-state";
+import { useDebouncedValue } from "@/lib/entity-list/use-debounced-value";
+import { useUrlBackedSearch } from "@/lib/entity-list/use-url-backed-search";
+import { withSearchParam } from "@/lib/entity-list/with-search-param";
+import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import {
-  changeOpenStatuses,
+  changeStatusesOf,
+  parseChangeFilterValue,
+  parseChangeStatusFilter,
+} from "@/lib/changes/change-list-filters";
+import {
   changeQueryKeys,
   changeRisks,
   changeStatuses,
@@ -46,43 +56,22 @@ import {
   listChangesPage,
   type ChangeListFilters,
   type ChangeRisk,
-  type ChangeStatus,
   type ChangeType,
 } from "@/services/changes-api";
 
 type PageTab = "register" | "calendar" | "templates";
 
-/** "open" and "all" are presets; any other value is a single status. */
-type StatusFilter = "open" | "all" | ChangeStatus;
-
-function statusesOf(filter: StatusFilter): readonly ChangeStatus[] | undefined {
-  if (filter === "all") return undefined;
-  if (filter === "open") return changeOpenStatuses;
-  return [filter];
-}
-
-function parseStatusFilter(raw: string | null): StatusFilter {
-  if (raw === "all") return "all";
-  return raw !== null && (changeStatuses as readonly string[]).includes(raw)
-    ? (raw as ChangeStatus)
-    : "open";
-}
-
-function parseOne<T extends string>(raw: string | null, values: readonly T[]): T | "" {
-  return raw !== null && (values as readonly string[]).includes(raw) ? (raw as T) : "";
-}
-
-/** Paket 3.4 (§17): change register with the advanced search and cursor paging. */
+/** Delivery invariant (requirement): change register with the advanced search and cursor paging. */
 export function ChangesPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
-  const [searchText, setSearchText] = useState(params.get("search") ?? "");
-  const [search, setSearch] = useState(searchText.trim());
-  const status = parseStatusFilter(params.get("status"));
-  const type = parseOne<ChangeType>(params.get("type"), changeTypes);
-  const risk = parseOne<ChangeRisk>(params.get("risk"), changeRisks);
+  const [searchText, setSearchText] = useUrlBackedSearch(params.get("search") ?? "");
+  const search = useDebouncedValue(searchText.trim(), 300);
+  const status = parseChangeStatusFilter(params.get("status"));
+  const type = parseChangeFilterValue<ChangeType>(params.get("type"), changeTypes);
+  const risk = parseChangeFilterValue<ChangeRisk>(params.get("risk"), changeRisks);
   const owner = params.get("owner") === "me" ? "me" : "";
   const cabGroupId = params.get("cab") ?? "";
   const serviceId = params.get("service") ?? "";
@@ -91,22 +80,8 @@ export function ChangesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const tabParam = params.get("tab");
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => setSearch(searchText.trim()), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchText]);
-
-  const setParam = (key: string, value: string) => {
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current);
-        if (value === "") next.delete(key);
-        else next.set(key, value);
-        return next;
-      },
-      { replace: true },
-    );
-  };
+  const setParam = (key: string, value: string) =>
+    setParams((current) => withSearchParam(current, key, value), { replace: true });
 
   const capabilitiesQuery = useQuery({
     queryKey: changeQueryKeys.capabilities,
@@ -125,7 +100,7 @@ export function ChangesPage() {
   const filters: ChangeListFilters = useMemo(
     () => ({
       search: search || undefined,
-      status: statusesOf(status),
+      status: changeStatusesOf(status),
       type: type ? [type] : undefined,
       risk: risk ? [risk] : undefined,
       ownerUserId: owner || undefined,
@@ -146,6 +121,11 @@ export function ChangesPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
+  const listState = resolveEntityListState({
+    isLoading: listQuery.isLoading,
+    hasError: listQuery.error !== null,
+    itemCount: items.length,
+  });
   const advancedCount = [
     status !== "open",
     type !== "",
@@ -180,48 +160,32 @@ export function ChangesPage() {
     />
   );
 
-  if (capabilitiesQuery.isLoading) {
+  const gateState = resolveModuleCapabilityGate({
+    isLoading: capabilitiesQuery.isLoading,
+    hasError: capabilitiesQuery.error !== null,
+    hasData: capabilities !== undefined,
+    enabled: capabilities?.enabled,
+    setupRequired: capabilities?.setupRequired,
+    canRead: capabilities?.canRead,
+  });
+  if (gateState !== "ready" || capabilities === undefined) {
     return (
-      <section>
-        {header}
-        <PanelSkeleton label={t("ui.loading")} />
-      </section>
-    );
-  }
-  if (capabilities?.setupRequired === true) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<GitPullRequestArrow size={18} />}
-          title={t("changes.setupTitle")}
-          body={t("changes.setupBody")}
-        />
-      </section>
-    );
-  }
-  if (capabilitiesQuery.error || capabilities === undefined || !capabilities.enabled) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<GitPullRequestArrow size={18} />}
-          title={t("changes.disabledTitle")}
-          body={t("changes.disabledBody")}
-        />
-      </section>
-    );
-  }
-  if (!capabilities.canRead) {
-    return (
-      <section>
-        {header}
-        <EmptyState
-          icon={<GitPullRequestArrow size={18} />}
-          title={t("changes.forbiddenTitle")}
-          body={t("changes.forbiddenBody")}
-        />
-      </section>
+      <ModuleCapabilityGate
+        state={gateState}
+        header={header}
+        icon={<GitPullRequestArrow size={18} />}
+        setupTitle={t("changes.setupTitle")}
+        setupBody={t("changes.setupBody")}
+        disabledTitle={t("changes.disabledTitle")}
+        disabledBody={t("changes.disabledBody")}
+        forbiddenTitle={t("changes.forbiddenTitle")}
+        forbiddenBody={t("changes.forbiddenBody")}
+        errorKey={mapApiError(capabilitiesQuery.error)}
+        requestId={readApiRequestId(capabilitiesQuery.error)}
+        onRetry={() => void capabilitiesQuery.refetch()}
+      >
+        {null}
+      </ModuleCapabilityGate>
     );
   }
 
@@ -237,8 +201,6 @@ export function ChangesPage() {
       </select>
     </FilterField>
   );
-
-  // §17: calendar for everyone who reads changes; templates only for change managers.
   const tab: PageTab =
     tabParam === "calendar"
       ? "calendar"
@@ -377,6 +339,15 @@ export function ChangesPage() {
               </FilterToggles>
             </FilterBar>
 
+            {optionsQuery.error ? (
+              <EntityListQueryError
+                messageKey={mapChangeError(optionsQuery.error) ?? mapApiError(optionsQuery.error)}
+                requestId={readApiRequestId(optionsQuery.error)}
+                retrying={optionsQuery.isFetching}
+                onRetry={() => void optionsQuery.refetch()}
+              />
+            ) : null}
+
             <p className={hintClassName} aria-live="polite">
               {listQuery.isLoading
                 ? t("ui.loading")
@@ -384,14 +355,21 @@ export function ChangesPage() {
             </p>
 
             {listQuery.error ? (
-              <p role="alert" className={errorTextClassName}>
-                {t(mapChangeError(listQuery.error) ?? mapApiError(listQuery.error))}
-              </p>
+              <EntityListQueryError
+                messageKey={mapChangeError(listQuery.error) ?? mapApiError(listQuery.error)}
+                requestId={readApiRequestId(listQuery.error)}
+                retrying={listQuery.isFetching}
+                onRetry={() =>
+                  void (listQuery.isFetchNextPageError
+                    ? listQuery.fetchNextPage()
+                    : listQuery.refetch())
+                }
+              />
             ) : null}
 
-            {listQuery.isLoading ? (
+            {listState === "loading" ? (
               <PanelSkeleton label={t("ui.loading")} />
-            ) : items.length === 0 ? (
+            ) : listState === "error" ? null : listState === "empty" ? (
               <EmptyState
                 icon={<GitPullRequestArrow size={18} />}
                 title={hasFilters ? t("changes.list.noMatchesTitle") : t("changes.list.emptyTitle")}

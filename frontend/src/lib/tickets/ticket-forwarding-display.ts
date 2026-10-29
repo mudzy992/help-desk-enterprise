@@ -1,4 +1,5 @@
-/** Package 1.6: "ping-pong" starts at this many forwards (mirrors the report default). */
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
+/** "ping-pong" starts at this many forwards (mirrors the report default). */
 export const forwardWarningThreshold = 3;
 
 export type TicketForwardFacts = {
@@ -26,7 +27,7 @@ export function describeLastForward(
   const when =
     date === null || Number.isNaN(date.getTime())
       ? null
-      : new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(date);
+      : dateTimeFormatter(locale, { dateStyle: "short", timeStyle: "short" }).format(date);
   const from = ticket.lastForwardFromGroupName?.trim()
     ? ticket.lastForwardFromGroupName.trim()
     : null;

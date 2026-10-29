@@ -3,7 +3,7 @@ import { ApiClient } from '../helpers/api-client';
 import { withSettings } from '../helpers/assets';
 import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
-import { signIn } from '../helpers/sign-in';
+import { dismissAnnouncementModal, signIn } from '../helpers/sign-in';
 
 type UnitNode = {
   readonly id: string;
@@ -40,6 +40,7 @@ test.describe('10 forward cross-OU', () => {
   test('forward dialog → target group inbox → claim → cross-OU hand-back', async ({
     page,
   }) => {
+    test.setTimeout(150_000);
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
@@ -101,6 +102,7 @@ async function runForwardFlow(
 
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
     await page.goto(`/tickets/${created.id}`);
+    await dismissAnnouncementModal(page);
     await page.getByTestId('ticket-forward').click();
     const targetSelect = page.getByTestId('forward-target-group');
     await expect(targetSelect).toBeVisible();

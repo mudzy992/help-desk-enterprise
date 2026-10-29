@@ -79,6 +79,7 @@ const texts = {
       sessions: 'Sesije prijave (IP, preglednik)',
       emailDeliveries: 'Evidencija poslanih e-poruka',
       requestRegister: 'Registar zahtjeva nosilaca podataka',
+      statusIncidents: 'Statusni incidenti i njihove stavke',
     } satisfies Record<RetentionCategory, string>,
     retentionNote:
       'Kostur tiketa (broj, datumi, status, usluga, organizaciona jedinica) ostaje radi statistike. Bivši zaposleni se anonimizuju ručno, nakon deaktivacije.',
@@ -144,6 +145,7 @@ const texts = {
       sessions: 'Sign-in sessions (IP, browser)',
       emailDeliveries: 'Sent e-mail log',
       requestRegister: 'Register of data subject requests',
+      statusIncidents: 'Status incidents and their items',
     } satisfies Record<RetentionCategory, string>,
     retentionNote:
       'The ticket skeleton (number, dates, status, service, organizational unit) is kept for statistics. Former employees are anonymized manually after deactivation.',

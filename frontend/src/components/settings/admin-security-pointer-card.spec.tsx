@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AdminSecurityPointerCard } from "@/components/settings/admin-security-pointer-card";
 
 /*
-  Paket 5.4.0-e.2: the review found „Postavke → Sigurnost" holding only the
+  the review found „Postavke → Sigurnost" holding only the
   compliance rows while the actionable cards lived elsewhere. The two surfaces
   are now separate on purpose, so the Postavke tab ends with one row that says
   where they are and takes a SuperAdmin there — and the destination is the exact

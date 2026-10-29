@@ -8,7 +8,10 @@ import {
   rowActionButtonClassName,
 } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
-import { configVersionBadgeTone } from "@/lib/config-versions/config-version-display";
+import {
+  configVersionBadgeTone,
+  configVersionStatusLabelKey,
+} from "@/lib/config-versions/config-version-display";
 import type { ConfigVersion } from "@/services/config-versions-types";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
@@ -60,7 +63,7 @@ export function ConfigVersionList({ versions, selectedId, onSelect }: ConfigVers
               </td>
               <td className="px-3">
                 <Badge tone={configVersionBadgeTone(version.status)}>
-                  {t(`configVersions.statuses.${version.status}`)}
+                  {t(configVersionStatusLabelKey(version.status))}
                 </Badge>
               </td>
               <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground">

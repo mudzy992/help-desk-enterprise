@@ -11,6 +11,7 @@ import { ReportsService } from '../reports.service';
 
 function dashboard(ticketCount: number): ReportsDashboard {
   return {
+    timeZone: 'Europe/Sarajevo',
     window: { from: '2026-08-29T07:00:00.000Z', to: '2026-09-28T07:00:00.000Z' },
     previousWindow: { from: '2026-07-30T07:00:00.000Z', to: '2026-08-29T06:59:59.999Z' },
     ticketCount,

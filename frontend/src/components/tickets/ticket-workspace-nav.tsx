@@ -6,7 +6,6 @@ import {
   workspaceViewsFor,
   type TicketWorkspaceView,
 } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,7 @@ interface TicketWorkspaceNavProperties {
   readonly view: TicketWorkspaceView;
   readonly inboxHidden: boolean;
   readonly isStaff: boolean;
-  /** Paket 5.3.1 (D10): the inbox badge lives on its tab (and on the sidebar item). */
+  /** the inbox badge lives on its tab (and on the sidebar item). */
   readonly counts?: SidebarTicketCounts | null;
 }
 
@@ -51,7 +50,7 @@ export function TicketWorkspaceNav({
               view === item ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {ticketText(t, ticketViewLabelKey[item])}
+            {t(ticketViewLabelKey[item])}
             {inboxCount > 0 ? (
               <>
                 <span className="sr-only">

@@ -29,14 +29,14 @@ export type TicketMessageResponse = {
   readonly body: string;
   readonly authorUserId: string | null;
   readonly createdAt: string;
-  /** Paket 2.3: `EMAIL` when the message arrived as an e-mail reply. */
+  /** `EMAIL` when the message arrived as an e-mail reply. */
   readonly source?: "APP" | "EMAIL" | "TEAMS";
   readonly redactionWarnings?: readonly {
     readonly field: string;
     readonly patternId: string;
     readonly risk: "standard" | "high";
   }[];
-  /** Paket 2.6: names in the body were replaced by a pseudonym (anonymization). */
+  /** names in the body were replaced by a pseudonym (anonymization). */
   readonly redacted?: boolean;
 };
 
@@ -48,7 +48,6 @@ export type TicketTimeLogResponse = {
   readonly endedAt: string | null;
   readonly durationSeconds: number | null;
   readonly createdAt: string;
-  /** Package 1.3 */
   readonly source?: TimeLogSource;
   readonly stopReason?: TimeLogStopReason | null;
   readonly note?: string | null;
@@ -96,11 +95,12 @@ export function listTicketMessages(ticketId: string): Promise<readonly TicketMes
 export function createTicketMessage(
   ticketId: string,
   input: {
+    readonly idempotencyKey: string;
     readonly type: MessageType;
     readonly body: string;
-    /** Package 1.2: copy a public reply to merged child tickets. */
+    /** copy a public reply to merged child tickets. */
     readonly alsoToMerged?: boolean;
-    /** Package 1.4 (T4): the template the text started from (statistics only). */
+    /** the template the text started from (statistics only). */
     readonly responseTemplateId?: string;
   },
 ): Promise<TicketMessageResponse> {
@@ -139,7 +139,7 @@ export function stopTicketTimeLog(
   });
 }
 
-/** Package 1.3 (T3): proof of activity; the server ignores calls closer than 20 s. */
+/** proof of activity; the server ignores calls closer than 20 s. */
 export function heartbeatTicketTimeLog(ticketId: string, timeLogId: string): Promise<void> {
   return apiRequest(`/tickets/${ticketId}/time-logs/${timeLogId}/heartbeat`, {
     method: "POST",

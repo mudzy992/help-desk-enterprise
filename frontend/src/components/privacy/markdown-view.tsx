@@ -21,13 +21,21 @@ export function MarkdownView({
   className,
   headingIds,
   onHeadingClick,
+  renderTableNavigation,
 }: {
   readonly source: string;
   readonly className?: string;
   readonly headingIds?: readonly string[];
   readonly onHeadingClick?: (id: string) => void;
+  readonly renderTableNavigation?: () => ReactNode;
 }) {
-  const state: RenderState = { headingIds: headingIds ?? null, headingIndex: 0, onHeadingClick };
+  const state: RenderState = {
+    headingIds: headingIds ?? null,
+    headingIndex: 0,
+    onHeadingClick,
+    renderTableNavigation,
+    tableIndex: 0,
+  };
   return (
     <div className={className}>
       {parseMarkdown(source).map((block, index) => renderBlock(block, index, state))}
@@ -39,6 +47,8 @@ type RenderState = {
   readonly headingIds: readonly string[] | null;
   headingIndex: number;
   readonly onHeadingClick?: (id: string) => void;
+  readonly renderTableNavigation?: () => ReactNode;
+  tableIndex: number;
 };
 
 function renderInline(nodes: readonly InlineNode[]): ReactNode {
@@ -211,36 +221,43 @@ function renderBlock(block: BlockNode, key: number, state: RenderState): ReactNo
         </div>
       );
     }
-    case "table":
+    case "table": {
+      const navigation = state.tableIndex === 0 ? state.renderTableNavigation : undefined;
+      state.tableIndex += 1;
       return (
-        <div key={key} className="mb-4 overflow-x-auto rounded-md border border-border">
-          <table className="w-full border-collapse text-[12.5px]">
-            <thead className="bg-elevated">
-              <tr>
-                {block.header.map((cell, index) => (
-                  <th
-                    key={index}
-                    className="border-b border-border/70 px-3 py-2 text-left font-semibold text-foreground"
-                  >
-                    {renderInline(cell)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-border/50 last:border-b-0">
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="px-3 py-2 align-top text-foreground/90">
+        <Fragment key={key}>
+          {navigation?.()}
+          <div className="mb-4 overflow-x-auto rounded-md border border-border">
+            <table className="w-full border-collapse text-[12.5px]">
+              <thead className="bg-elevated">
+                <tr>
+                  {block.header.map((cell, index) => (
+                    <th
+                      key={index}
+                      className="border-b border-border/70 px-3 py-2 text-left font-semibold text-foreground"
+                    >
                       {renderInline(cell)}
-                    </td>
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {block.rows.map((row, rowIndex) => (
+                  <tr key={rowIndex} className="border-b border-border/50 last:border-b-0">
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="px-3 py-2 align-top text-foreground/90">
+                        {renderInline(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {navigation?.()}
+        </Fragment>
       );
+    }
     case "codeBlock":
       return (
         <pre

@@ -28,7 +28,7 @@ export function DocsSearch({
   const results = response === null ? [] : filterDocsByAudience(response.results, audience);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" aria-live="polite" data-testid="docs-search-status">
       <label className="block">
         <span className="sr-only">{t("docs.searchLabel")}</span>
         <input

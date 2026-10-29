@@ -7,7 +7,7 @@ import {
 } from "@/components/auth/captcha-challenge";
 
 /*
-  Paket 5.4.1 (M3): the Turnstile widget on the sign-in page.
+  The Turnstile widget on the sign-in page.
 
   The frontend specs run in a node environment (`vitest.config.ts`), so the
   static markup and the loader are covered here, and the real browser path —

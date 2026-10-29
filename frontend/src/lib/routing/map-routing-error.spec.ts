@@ -7,6 +7,9 @@ describe("mapRoutingError", () => {
     expect(mapRoutingError(new ApiError(409, "DUPLICATE_RULE", "x"))).toBe(
       "routing.errorDuplicate",
     );
+    expect(mapRoutingError(new ApiError(409, "ROUTING_RULE_CONFLICT", "x"))).toBe(
+      "routing.errorConflict",
+    );
     expect(mapRoutingError(new ApiError(400, "REASON_REQUIRED", "x"))).toBe("routing.errorReason");
     expect(mapRoutingError(new ApiError(401, "INVALID_CREDENTIALS", "x"))).toBe(
       "routing.errorUnauthorized",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { slugifyHeading } from "./slugify-heading";
 
-describe("slugifyHeading (Faza 3 c)", () => {
+describe("slugifyHeading (c)", () => {
   it("svodi dijakritiku na ASCII i spaja riječi crticom", () => {
     expect(slugifyHeading("Česta pitanja i greške")).toBe("cesta-pitanja-i-greske");
     expect(slugifyHeading("Uloge i dozvole")).toBe("uloge-i-dozvole");

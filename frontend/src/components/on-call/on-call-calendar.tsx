@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { applicationDateLocale } from "@/lib/date-time-formatter";
 import { cn } from "@/lib/utils";
 import {
   formatOnCallClock,
@@ -13,14 +14,10 @@ interface OnCallCalendarProperties {
   readonly currentUserId: string | null;
 }
 
-/**
- * Paket 2.9 (K3, §4.4): four weeks as a CSS grid of days. Each day is a list
- * item with a full text label, so screen readers get the same information as
- * the grid (who, from when) without relying on position or colour.
- */
+/** Accessible four-week calendar with full text labels for each day. */
 export function OnCallCalendar({ days, timeZone, currentUserId }: OnCallCalendarProperties) {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language === "en" ? "en-GB" : "bs-BA";
+  const locale = applicationDateLocale(i18n.language);
   // Samo brojevi (bez naziva mjeseca/dana) — sigurno i sa krnjim ICU podacima.
   const dateFormat = new Intl.DateTimeFormat(locale, {
     timeZone,

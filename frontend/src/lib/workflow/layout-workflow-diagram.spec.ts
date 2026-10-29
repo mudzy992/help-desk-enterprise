@@ -4,9 +4,10 @@ import {
   layoutWorkflowEdges,
   layoutWorkflowNodes,
   primaryActor,
+  isNodeRelatedToSelection,
 } from "./layout-workflow-diagram";
 
-describe("layout-workflow-diagram (paket 1.7 W3)", () => {
+describe("layout-workflow-diagram (W3)", () => {
   const nodes = layoutWorkflowNodes([
     { status: "PENDING", phase: "intake" },
     { status: "ASSIGNED", phase: "work" },
@@ -24,6 +25,21 @@ describe("layout-workflow-diagram (paket 1.7 W3)", () => {
     ]);
     expect(edges).toHaveLength(2);
     expect(edges[0].path).not.toEqual(edges[1].path);
+  });
+
+  it("uses one relation rule for selected nodes", () => {
+    const transitions = [
+      {
+        from: "PENDING",
+        to: "ASSIGNED",
+        actors: ["STAFF"] as const,
+        triggers: ["claim"] as const,
+        guards: [],
+      },
+    ];
+    expect(isNodeRelatedToSelection("ASSIGNED", "PENDING", transitions)).toBe(true);
+    expect(isNodeRelatedToSelection("CLOSED", "PENDING", transitions)).toBe(false);
+    expect(isNodeRelatedToSelection("CLOSED", null, transitions)).toBe(true);
   });
 
   it("exits on the node border and picks the human actor", () => {

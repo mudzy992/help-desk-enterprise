@@ -7,14 +7,14 @@ import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import {
   ticketAssigneeName,
   ticketGroupName,
   ticketRequesterName,
 } from "@/lib/tickets/ticket-names";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { ticketText } from "@/lib/tickets/ticket-text";
+import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketResponse } from "@/services/tickets-api";
 import type { ReactNode } from "react";
 
@@ -24,7 +24,6 @@ interface TicketDetailSidebarProperties {
   readonly serviceName: string;
   readonly authorNames: ReadonlyMap<string, string>;
   readonly groupNames: ReadonlyMap<string, string>;
-  /** Package 1.2 (P6). */
   readonly canOverridePriority?: boolean;
   readonly onEditPriority?: () => void;
   /** Who set the manual priority, when and why (badge tooltip). */
@@ -41,9 +40,9 @@ export function TicketDetailSidebar({
   onEditPriority,
   priorityOverrideTitle,
 }: TicketDetailSidebarProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { hasPermission } = useSessionCapabilities();
-  // Paket 1.7 (U3): fix the cause — a rule for this origin unit + service.
+  // fix the cause — a rule for this origin unit + service.
   const withoutRule = ticket.status === "UNROUTED" || ticket.routedByUnroutedFallback === true;
   const createRuleHref =
     withoutRule && hasPermission(permissionKeys.routingWrite)
@@ -105,7 +104,7 @@ export function TicketDetailSidebar({
         </span>
       ),
     },
-    // M8 #3 (val 5): the request type and the wished deadline the requester gave.
+    // Show the request type and wished deadline supplied by the requester.
     {
       label: t("tickets.requestType"),
       value:
@@ -122,15 +121,13 @@ export function TicketDetailSidebar({
           <span className="text-muted-foreground">{t("tickets.dueAtNone")}</span>
         ) : (
           <span data-testid="ticket-due-at">
-            {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
-              new Date(ticket.dueAt),
-            )}
+            {formatTicketTimestamp(ticket.dueAt, i18n.language)}
           </span>
         ),
     },
     {
       label: t("tickets.detail.impactUrgency"),
-      value: `${ticketText(t, ticketSeverityLabelKey[ticket.impact])} × ${ticketText(t, ticketSeverityLabelKey[ticket.urgency])}`,
+      value: `${t(ticketSeverityLabelKey[ticket.impact])} × ${t(ticketSeverityLabelKey[ticket.urgency])}`,
       hint: ticket.priorityOverridden ? undefined : t("tickets.detail.priorityFromMatrix"),
     },
     {

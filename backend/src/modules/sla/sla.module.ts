@@ -7,6 +7,7 @@ import { SlaCalendarsService } from './sla-calendars.service';
 import { SlaComplianceController } from './sla-compliance.controller';
 import { SlaComplianceService } from './sla-compliance.service';
 import { SlaConfigurationLoader } from './sla-configuration.loader';
+import { SlaGlobalAdministrationGuard } from './sla-global-administration.guard';
 import { PriorityMatrixController } from './priority-matrix.controller';
 import { PriorityMatrixService } from './priority-matrix.service';
 import { SlaEscalationRulesController } from './sla-escalation-rules.controller';
@@ -17,6 +18,8 @@ import { SlaRulesController } from './sla-rules.controller';
 import { SlaRulesService } from './sla-rules.service';
 import { StartingSlaSeedService } from './starting-sla-seed.service';
 import { TicketSlaTimersService } from './ticket-sla-timers.service';
+import { SlaTimerConfigurationMigrationController } from './sla-timer-configuration-migration.controller';
+import { SlaTimerConfigurationMigrationService } from './sla-timer-configuration-migration.service';
 
 @Module({
   imports: [
@@ -31,8 +34,10 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaEscalationRulesController,
     PriorityMatrixController,
     SlaComplianceController,
+    SlaTimerConfigurationMigrationController,
   ],
   providers: [
+    SlaGlobalAdministrationGuard,
     SlaConfigurationLoader,
     SlaCalendarsService,
     SlaProfilesService,
@@ -41,6 +46,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     PriorityMatrixService,
     SlaComplianceService,
     TicketSlaTimersService,
+    SlaTimerConfigurationMigrationService,
     StartingSlaSeedService,
   ],
   exports: [

@@ -3,9 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Star, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { queryKeys } from "@/lib/query/query-keys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Input } from "@/components/ui/field";
@@ -27,7 +28,7 @@ import {
 } from "@/services/assets-api";
 
 /**
- * Paket 3.2 (§8): equipment on a ticket. Staff with `asset.read` add, remove
+ * Delivery invariant (requirement): equipment on a ticket. Staff with `asset.read` add, remove
  * and mark the primary item; the requester sees the linked equipment only.
  * Hidden when the module is off or nothing is linked and editing is not
  * possible.
@@ -58,7 +59,7 @@ export function TicketAssetsPanel({
 
   const query = useQuery({ queryKey: key, queryFn: () => getTicketAssets(ticketId), retry: false });
   const lookup = useQuery({
-    queryKey: ["assets", "lookup", debounced],
+    queryKey: queryKeys.assetLookup(debounced),
     queryFn: () => lookupAssets(debounced),
     enabled: adding && debounced.length >= 2,
     retry: false,

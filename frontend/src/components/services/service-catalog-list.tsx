@@ -1,21 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { ServiceCatalogFilterBar } from "@/components/services/service-catalog-filter-bar";
 import { ServiceCatalogTable } from "@/components/services/service-catalog-table";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { numberFormatter } from "@/lib/number-formatter";
 import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import { filterServiceCatalogRows } from "@/lib/services/filter-service-catalog-rows";
+import {
+  parseServiceCatalogUrl,
+  updateServiceCatalogUrl,
+} from "@/lib/services/service-catalog-url-state";
 import type { CatalogRoutingCoverageState } from "@/lib/services/use-catalog-routing-coverage";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
+import type { VisibleServiceOnboarding } from "@/lib/services/use-visible-onboardings";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
-import type { ServiceLifecycle, ServiceResponse } from "@/services/service-catalog-api";
-import type { ServiceOnboardingResponse } from "@/services/service-onboarding-api";
+import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogListProperties {
   readonly rows: readonly ServiceCatalogRow[];
   readonly categories: readonly ServiceCategoryResponse[];
-  readonly onboardings: readonly ServiceOnboardingResponse[];
+  readonly onboardings: readonly VisibleServiceOnboarding[];
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
   readonly routingCoverage: CatalogRoutingCoverageState;
   readonly canManageForms: boolean;
@@ -48,10 +54,14 @@ export function ServiceCatalogList({
   onManageLifecycle,
 }: ServiceCatalogListProperties) {
   const { t, i18n } = useTranslation();
-  const [query, setQuery] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [lifecycle, setLifecycle] = useState<ServiceLifecycle | "ALL">("ALL");
-  const [originUnitId, setOriginUnitId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { query, categoryId, lifecycle, originUnitId } = useMemo(
+    () => parseServiceCatalogUrl(searchParams),
+    [searchParams],
+  );
+  const patchFilters = (patch: Parameters<typeof updateServiceCatalogUrl>[1]) => {
+    setSearchParams((current) => updateServiceCatalogUrl(current, patch));
+  };
   const categoryNames = useMemo(
     () => new Map(categories.map((category) => [category.id, category.name])),
     [categories],
@@ -82,14 +92,11 @@ export function ServiceCatalogList({
   );
   const hasActiveFilters =
     query.trim().length > 0 || categoryId !== null || lifecycle !== "ALL" || originUnitId !== null;
-  const numberFormat = useMemo(
-    () => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 }),
-    [i18n.language],
-  );
+  const numberFormat = numberFormatter(i18n.language, { maximumFractionDigits: 0 });
 
   useEffect(() => {
     if (!routingCoverage.isLoading && !routingCoverage.isAvailable) {
-      setOriginUnitId(null);
+      setSearchParams((current) => updateServiceCatalogUrl(current, { originUnitId: null }));
       return;
     }
     if (
@@ -97,20 +104,18 @@ export function ServiceCatalogList({
       originUnitId !== null &&
       !routingCoverage.originUnits.some((origin) => origin.id === originUnitId)
     ) {
-      setOriginUnitId(null);
+      setSearchParams((current) => updateServiceCatalogUrl(current, { originUnitId: null }));
     }
   }, [
     originUnitId,
     routingCoverage.isAvailable,
     routingCoverage.isLoading,
     routingCoverage.originUnits,
+    setSearchParams,
   ]);
 
   const clearFilters = () => {
-    setQuery("");
-    setCategoryId(null);
-    setLifecycle("ALL");
-    setOriginUnitId(null);
+    patchFilters({ query: "", categoryId: null, lifecycle: "ALL", originUnitId: null });
   };
 
   return (
@@ -131,10 +136,10 @@ export function ServiceCatalogList({
           visible: numberFormat.format(visibleRows.length),
           total: numberFormat.format(rows.length),
         })}
-        onCategoryChange={setCategoryId}
-        onQueryChange={setQuery}
-        onLifecycleChange={setLifecycle}
-        onOriginUnitChange={setOriginUnitId}
+        onCategoryChange={(value) => patchFilters({ categoryId: value })}
+        onQueryChange={(value) => patchFilters({ query: value })}
+        onLifecycleChange={(value) => patchFilters({ lifecycle: value })}
+        onOriginUnitChange={(value) => patchFilters({ originUnitId: value })}
         onManageCategories={onManageCategories}
         onClearFilters={clearFilters}
       />

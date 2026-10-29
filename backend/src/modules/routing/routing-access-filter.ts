@@ -85,6 +85,35 @@ export function isRoutingScopeVisible(
   );
 }
 
+export function isRoutingTargetGroupEligible(
+  groupOrganizationalUnitPath: string,
+  serviceId: string | null,
+  context: AuthorizationContext | null,
+  requiredPermission: string = permissionKeys.routingWrite,
+): boolean {
+  if (context === null) {
+    return false;
+  }
+  if (context.isSuperAdmin) {
+    return true;
+  }
+  return context.assignments.some(
+    (assignment) =>
+      assignment.permissionKeys.includes(requiredPermission) &&
+      ((assignment.organizationalUnitPath === null &&
+        assignment.serviceId === null) ||
+      (doesOrganizationalUnitScopeCover({
+        assignedPath: assignment.organizationalUnitPath,
+        requestedPath: groupOrganizationalUnitPath,
+      }) &&
+      (serviceId === null ||
+        doesServiceScopeCover({
+          assignedServiceId: assignment.serviceId,
+          requestedServiceId: serviceId,
+        })))),
+  );
+}
+
 export function filterRoutingRules<T extends RoutingRuleResponse | RoutingRuleRecord>(
   rules: readonly T[],
   context: AuthorizationContext | null,

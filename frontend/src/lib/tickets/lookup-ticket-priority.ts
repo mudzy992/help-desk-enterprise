@@ -2,7 +2,7 @@ import type { TicketImpact, TicketPriority, TicketUrgency } from "@/services/tic
 import type { PriorityMatrixCell } from "@/services/priority-matrix-api";
 
 /**
- * 5.2.2 (M7 #8): ticket priority comes exclusively from the backend priority
+ * Ticket priority comes exclusively from the backend priority
  * matrix. The old local impact+urgency score fallback is removed so changing
  * priority bands on the server does not drift from what the UI shows. Before
  * the matrix has loaded we return a stable MEDIUM placeholder only for initial

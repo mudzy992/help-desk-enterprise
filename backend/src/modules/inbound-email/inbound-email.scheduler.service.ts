@@ -1,6 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import {
   inboundEmailPollJobName,
   inboundEmailPollSchedulerId,
@@ -9,17 +9,23 @@ import {
   inboundEmailRetentionJobName,
   inboundEmailRetentionSchedulerId,
   inboundEmailTickMilliseconds,
-} from './inbound-email.constants';
+} from "./inbound-email.constants";
 
 /** Idempotent by id: restarts and extra workers converge on one schedule. */
 @Injectable()
 export class InboundEmailSchedulerService implements OnModuleInit {
   private readonly logger = new Logger(InboundEmailSchedulerService.name);
 
-  constructor(@InjectQueue(inboundEmailQueueName) private readonly queue: Queue) {}
+  constructor(
+    @InjectQueue(inboundEmailQueueName) private readonly queue: Queue,
+  ) {}
 
   async onModuleInit(): Promise<void> {
-    const opts = { attempts: 1, removeOnComplete: { count: 5 }, removeOnFail: { count: 20 } };
+    const opts = {
+      attempts: 1,
+      removeOnComplete: { count: 5 },
+      removeOnFail: { count: 20 },
+    };
     try {
       await this.queue.upsertJobScheduler(
         inboundEmailPollSchedulerId,
@@ -32,7 +38,12 @@ export class InboundEmailSchedulerService implements OnModuleInit {
         { name: inboundEmailRetentionJobName, data: {}, opts },
       );
     } catch (error) {
-      this.logger.warn(`inbound_email_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `inbound_email_schedule_failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+      );
+      throw new Error("inbound_email mandatory schedule registration failed", {
+        cause: error,
+      });
     }
   }
 }

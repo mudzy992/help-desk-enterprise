@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Link2, Plus, Unlink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { IncidentFormDialog } from "@/components/status/incident-form-dialog";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DetailSection } from "@/components/ui/detail-section";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { hintClassName } from "@/components/ui/control";
 import { Select } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
+import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { mapApiError } from "@/lib/map-api-error";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -18,10 +21,10 @@ import {
   localizedIncidentTitle,
   mapStatusError,
 } from "@/lib/status/status-view";
+import { useTicketIncidentsData } from "@/lib/status/use-ticket-incidents-data";
 import {
   getStatusOverview,
   linkTicketToIncident,
-  listTicketIncidents,
   unlinkTicketFromIncident,
   type Incident,
 } from "@/services/status-api";
@@ -34,7 +37,7 @@ interface TicketIncidentsPanelProperties {
 }
 
 /**
- * Paket 2.7 (§8.3). Staff: the incidents this ticket is linked to, link /
+ * Staff view: the incidents this ticket is linked to, link /
  * unlink, and "New incident" from this ticket (manage permission).
  * Requester: a "known problem" banner for public incidents only.
  */
@@ -50,27 +53,18 @@ export function TicketIncidentsPanel({
     session?.isSuperAdmin === true ||
     hasRole(roleKeys.superAdmin) ||
     hasPermission(permissionKeys.statusIncidentsManage);
-  const [state, setState] = useState<{
-    readonly staff: boolean;
-    readonly incidents: readonly Incident[];
-  } | null>(null);
+  const operationGuard = useOperationGuard();
+  const {
+    data: state,
+    error: loadError,
+    pending,
+    reload,
+  } = useTicketIncidentsData(ticketId, versionKey);
   const [candidates, setCandidates] = useState<readonly Incident[] | null>(null);
   const [choice, setChoice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [unlinkTarget, setUnlinkTarget] = useState<Incident | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      setState(await listTicketIncidents(ticketId));
-    } catch {
-      // Informational panel: a failure must not break the ticket screen.
-      setState(null);
-    }
-  }, [ticketId]);
-
-  useEffect(() => {
-    void load();
-  }, [load, versionKey]);
 
   const openPicker = async () => {
     try {
@@ -95,25 +89,42 @@ export function TicketIncidentsPanel({
     }
   };
 
-  const run = async (work: () => Promise<unknown>, success: string) => {
-    setBusy(true);
-    try {
-      await work();
-      toast({ tone: "success", title: success });
-      setCandidates(null);
-      await load();
-    } catch (caught) {
-      toast({
-        tone: "danger",
-        title: t(mapStatusError(caught) ?? mapApiError(caught)),
-        error: caught,
-      });
-    } finally {
-      setBusy(false);
-    }
+  const run = async (key: string, work: () => Promise<unknown>, success: string) => {
+    let succeeded = false;
+    await operationGuard.run(key, async () => {
+      setBusy(true);
+      try {
+        await work();
+        toast({ tone: "success", title: success });
+        setCandidates(null);
+        await reload();
+        succeeded = true;
+      } catch (caught) {
+        toast({
+          tone: "danger",
+          title: t(mapStatusError(caught) ?? mapApiError(caught)),
+          error: caught,
+        });
+      } finally {
+        setBusy(false);
+      }
+    });
+    return succeeded;
   };
 
-  if (state === null) return null;
+  if (state === null) {
+    if (loadError === null) return null;
+    return (
+      <DetailSection id="incidents" testId="ticket-incidents" title={t("status.ticketPanel.title")}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <ApiErrorText messageKey={loadError.key} requestId={loadError.requestId} />
+          <Button size="xs" variant="outline" disabled={pending} onClick={() => void reload()}>
+            {t("ui.retry")}
+          </Button>
+        </div>
+      </DetailSection>
+    );
+  }
 
   if (!state.staff) {
     const open = state.incidents.filter((incident) => incident.status !== "RESOLVED");
@@ -181,12 +192,7 @@ export function TicketIncidentsPanel({
               disabled={busy}
               aria-label={t("status.ticketPanel.unlink")}
               title={t("status.ticketPanel.unlink")}
-              onClick={() =>
-                void run(
-                  () => unlinkTicketFromIncident(incident.id, ticketId),
-                  t("status.ticketPanel.unlinked"),
-                )
-              }
+              onClick={() => setUnlinkTarget(incident)}
             >
               <Unlink />
             </Button>
@@ -230,7 +236,12 @@ export function TicketIncidentsPanel({
                 disabled={busy || choice.length === 0}
                 onClick={() =>
                   void run(
-                    () => linkTicketToIncident(choice, ticketId),
+                    `link:${choice}:${ticketId}`,
+                    () => {
+                      const selected = candidates.find((incident) => incident.id === choice);
+                      if (selected === undefined) throw new Error("Incident selection is stale");
+                      return linkTicketToIncident(choice, ticketId, selected.revision);
+                    },
                     t("status.ticketPanel.linked"),
                   )
                 }
@@ -244,12 +255,34 @@ export function TicketIncidentsPanel({
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={unlinkTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !busy) setUnlinkTarget(null);
+        }}
+        title={t("status.ticketPanel.unlinkTitle")}
+        description={t("status.ticketPanel.unlinkBody")}
+        confirmLabel={t("status.ticketPanel.unlink")}
+        intent="danger"
+        isPending={busy}
+        onConfirm={() => {
+          if (unlinkTarget === null) return;
+          const incidentId = unlinkTarget.id;
+          void run(
+            `unlink:${incidentId}:${ticketId}`,
+            () => unlinkTicketFromIncident(incidentId, ticketId, unlinkTarget.revision),
+            t("status.ticketPanel.unlinked"),
+          ).then((succeeded) => {
+            if (succeeded) setUnlinkTarget(null);
+          });
+        }}
+      />
       {createOpen ? (
         <IncidentFormDialog
           open
           onOpenChange={(open) => (open ? undefined : setCreateOpen(false))}
           mode={{ kind: "create", ticketIds: [ticketId], presetServiceIds: [serviceId] }}
-          onSaved={() => void load()}
+          onSaved={() => void reload()}
         />
       ) : null}
     </DetailSection>

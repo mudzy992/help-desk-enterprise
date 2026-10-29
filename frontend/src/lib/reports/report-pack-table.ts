@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/lib/date-time-formatter";
 import type { ReportCell } from "@/services/report-packs-api";
 
 export type ReportSort = { readonly column: string; readonly direction: "asc" | "desc" };
@@ -25,6 +26,25 @@ export function sortReportRows(
       return (a - b) * factor;
     }
     return collator.compare(String(a), String(b)) * factor;
+  });
+}
+
+export type KeyedReportRow = {
+  readonly key: string;
+  readonly row: Readonly<Record<string, ReportCell>>;
+};
+
+/** Stable content identity; duplicate rows receive a deterministic occurrence suffix. */
+export function keyReportRows(
+  rows: readonly Readonly<Record<string, ReportCell>>[],
+  columns: readonly string[],
+): readonly KeyedReportRow[] {
+  const occurrences = new Map<string, number>();
+  return rows.map((row) => {
+    const content = JSON.stringify(columns.map((column) => [column, row[column] ?? null]));
+    const occurrence = occurrences.get(content) ?? 0;
+    occurrences.set(content, occurrence + 1);
+    return { key: `${content}#${occurrence}`, row };
   });
 }
 
@@ -61,9 +81,7 @@ export function formatReportCell(
   if (isoInstant.test(value)) {
     const date = new Date(value);
     if (!Number.isNaN(date.getTime())) {
-      return new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(
-        date,
-      );
+      return dateTimeFormatter(locale, { dateStyle: "short", timeStyle: "short" }).format(date);
     }
   }
   return value;

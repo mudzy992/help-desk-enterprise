@@ -1,4 +1,4 @@
-import { ApiError } from "@/services/api";
+import { mapDomainApiError } from "@/lib/map-domain-api-error";
 
 export type KnowledgeArticleErrorKey =
   | "knowledgeBase.errorUnauthorized"
@@ -6,7 +6,7 @@ export type KnowledgeArticleErrorKey =
   | "knowledgeBase.errorNotFound"
   | "knowledgeBase.errorValidation"
   | "knowledgeBase.errorGeneric"
-  // Paket 2.9 (K1).
+  // .
   | "knowledgeBase.errorCategory"
   | "knowledgeBase.errorSourceMessage"
   | "knowledgeBase.errorRating";
@@ -37,24 +37,15 @@ const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
 };
 
 export function mapKnowledgeArticleError(error: unknown): KnowledgeArticleErrorKey {
-  if (!(error instanceof ApiError)) {
-    return "knowledgeBase.errorGeneric";
-  }
-  const byCode = codeKeys[error.code];
-  if (byCode !== undefined) {
-    return byCode;
-  }
-  if (error.status === 401) {
-    return "knowledgeBase.errorUnauthorized";
-  }
-  if (error.status === 403) {
-    return "knowledgeBase.errorForbidden";
-  }
-  if (error.status === 404) {
-    return "knowledgeBase.errorNotFound";
-  }
-  if (error.status === 400 || error.status === 422) {
-    return "knowledgeBase.errorValidation";
-  }
-  return "knowledgeBase.errorGeneric";
+  return mapDomainApiError<KnowledgeArticleErrorKey>(error, {
+    fallback: "knowledgeBase.errorGeneric",
+    codes: codeKeys,
+    statuses: {
+      401: "knowledgeBase.errorUnauthorized",
+      403: "knowledgeBase.errorForbidden",
+      404: "knowledgeBase.errorNotFound",
+      400: "knowledgeBase.errorValidation",
+      422: "knowledgeBase.errorValidation",
+    },
+  });
 }

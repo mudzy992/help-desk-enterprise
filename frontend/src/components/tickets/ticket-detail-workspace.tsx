@@ -3,7 +3,7 @@ import type {
   ComposerSendOptions,
   ComposerInsertText,
   ComposerTemplatesOptions,
-} from "@/components/tickets/ticket-message-composer";
+} from "@/lib/tickets/message-composer-contracts";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
@@ -11,6 +11,7 @@ import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-
 import { TicketDetailConversation } from "@/components/tickets/ticket-detail-conversation";
 import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
 import { UnderlineTabs } from "@/components/ui/tabs";
+import { PanelErrorBoundary } from "@/components/tickets/panel-error-boundary";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type {
@@ -33,6 +34,9 @@ interface TicketDetailWorkspaceProperties {
   readonly requesterName: string;
   readonly history: readonly TicketHistoryEntry[];
   readonly publicActivity: readonly TicketPublicActivityEntry[];
+  readonly historyErrorKey?: TicketErrorKey | null;
+  readonly publicActivityErrorKey?: TicketErrorKey | null;
+  readonly onRetryContext?: () => void;
   readonly isStaff: boolean;
   readonly access: ComposerAccess;
   readonly isSending: boolean;
@@ -51,7 +55,7 @@ interface TicketDetailWorkspaceProperties {
   readonly timeTracking: TicketTimeTrackingControls;
   readonly attachments: readonly TicketAttachmentResponse[];
   readonly attachmentsVisible: boolean;
-  /** Paket 2.6: retention removed the attachments at this moment. */
+  /** retention removed the attachments at this moment. */
   readonly attachmentsPurgedAt?: string | null;
   readonly canUpload: boolean;
   readonly onUpload: (file: File) => Promise<void>;
@@ -59,10 +63,10 @@ interface TicketDetailWorkspaceProperties {
   readonly onDelete: (attachmentId: string) => Promise<void>;
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
-  /** Paket 3.3 (P4): text to insert into the public reply ("insert workaround"). */
+  /** text to insert into the public reply ("insert workaround"). */
   readonly composerInsertText?: ComposerInsertText | null;
   readonly composerCollaboration?: ComposerCollaborationOptions;
-  /** Paket 2.9 (K1c): enables "make an article" on public agent replies. */
+  /** enables "make an article" on public agent replies. */
   readonly canWriteKnowledge?: boolean;
 }
 
@@ -91,63 +95,94 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
     });
   }
   return (
-    <div className="page-in min-w-0">
+    <div className="page-in flex min-h-0 min-w-0 flex-1 flex-col">
       <UnderlineTabs
-        className="mb-3"
+        className="mb-3 shrink-0"
         active={tab}
         onChange={(key) => setTab(key as DetailTab)}
         items={tabItems}
       />
       {tab === "chat" ? (
-        <TicketDetailConversation
-          ticket={props.ticket}
-          messages={props.messages}
-          currentUserId={props.currentUserId}
-          authorNames={props.authorNames}
-          requesterName={props.requesterName}
-          access={props.access}
-          isSending={props.isSending}
-          sendErrorKey={props.sendErrorKey}
-          canWaitForUser={props.canWaitForUser}
-          onSend={props.onSend}
-          onWaitForUser={props.onWaitForUser}
-          onUpload={props.canUpload ? props.onUpload : undefined}
-          composerExtra={props.composerExtra}
-          composerTemplates={props.composerTemplates}
-          composerInsertText={props.composerInsertText}
-          composerCollaboration={props.composerCollaboration}
-          canWriteKnowledge={props.canWriteKnowledge}
-        />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <PanelErrorBoundary
+            panelName="ticket-conversation"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketDetailConversation
+              ticket={props.ticket}
+              messages={props.messages}
+              currentUserId={props.currentUserId}
+              authorNames={props.authorNames}
+              requesterName={props.requesterName}
+              access={props.access}
+              isSending={props.isSending}
+              sendErrorKey={props.sendErrorKey}
+              canWaitForUser={props.canWaitForUser}
+              onSend={props.onSend}
+              onWaitForUser={props.onWaitForUser}
+              onUpload={props.canUpload ? props.onUpload : undefined}
+              composerExtra={props.composerExtra}
+              composerTemplates={props.composerTemplates}
+              composerInsertText={props.composerInsertText}
+              composerCollaboration={props.composerCollaboration}
+              canWriteKnowledge={props.canWriteKnowledge}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
       {tab === "activity" ? (
-        <TicketActivityList
-          messages={props.messages}
-          history={props.history}
-          publicEntries={props.publicActivity}
-          isStaff={props.isStaff}
-          authorNames={props.authorNames}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <PanelErrorBoundary
+            panelName="ticket-activity"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketActivityList
+              messages={props.messages}
+              history={props.history}
+              publicEntries={props.publicActivity}
+              isStaff={props.isStaff}
+              authorNames={props.authorNames}
+              errorKey={props.isStaff ? props.historyErrorKey : props.publicActivityErrorKey}
+              onRetry={props.onRetryContext}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
       {tab === "time" ? (
-        <TicketTimeTrackingPanel
-          items={props.timeLogs}
-          visible={props.timeVisible}
-          currentUserId={props.currentUserId}
-          userNames={props.userNames}
-          canTrack={props.canTrackTime}
-          controls={props.timeTracking}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <PanelErrorBoundary
+            panelName="ticket-time"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketTimeTrackingPanel
+              items={props.timeLogs}
+              visible={props.timeVisible}
+              currentUserId={props.currentUserId}
+              ticketNumber={props.ticket.ticketNumber}
+              userNames={props.userNames}
+              canTrack={props.canTrackTime}
+              controls={props.timeTracking}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
       {tab === "files" ? (
-        <TicketAttachmentsPanel
-          items={props.attachments}
-          visible={props.attachmentsVisible}
-          purgedAt={props.attachmentsPurgedAt ?? null}
-          canUpload={props.canUpload}
-          onUpload={props.onUpload}
-          onDownload={props.onDownload}
-          onDelete={props.onDelete}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <PanelErrorBoundary
+            panelName="ticket-attachments"
+            resetKey={`${props.ticket.id}:${props.ticket.updatedAt}`}
+          >
+            <TicketAttachmentsPanel
+              items={props.attachments}
+              visible={props.attachmentsVisible}
+              purgedAt={props.attachmentsPurgedAt ?? null}
+              canUpload={props.canUpload}
+              onUpload={props.onUpload}
+              onDownload={props.onDownload}
+              onDelete={props.onDelete}
+            />
+          </PanelErrorBoundary>
+        </div>
       ) : null}
     </div>
   );

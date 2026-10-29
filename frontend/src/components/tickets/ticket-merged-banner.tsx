@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { errorTextClassName, labelClassName, textareaClassName } from "@/components/ui/control";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
 import { unmergeTicket } from "@/services/tickets-merge-api";
@@ -18,7 +17,7 @@ interface TicketMergedBannerProperties {
 }
 
 /**
- * Package 1.2 (M7): on a merged child — where the work continues, and for
+ * on a merged child — where the work continues, and for
  * staff with `ticket.merge` the way back (unmerge with a reason).
  */
 export function TicketMergedBanner({
@@ -81,7 +80,7 @@ export function TicketMergedBanner({
           </label>
           {errorKey ? (
             <p className={`mt-2 ${errorTextClassName}`} role="alert">
-              {ticketText(t, errorKey)}
+              {t(errorKey)}
             </p>
           ) : null}
           <div className="mt-4 flex gap-2 border-t border-border/70 pt-4">

@@ -11,6 +11,8 @@ export type TicketSlaStateSnapshot = {
   readonly resolutionDueAt: string | null;
   readonly pausedAt: string | null;
   readonly firedEscalationKeys: readonly string[];
+  readonly configurationVersion: string | null;
+  readonly configurationPolicy: string;
 };
 
 export function toTicketSlaStateSnapshot(
@@ -26,6 +28,8 @@ export function toTicketSlaStateSnapshot(
     | 'resolutionDueAt'
     | 'pausedAt'
     | 'firedEscalationKeys'
+    | 'configurationVersion'
+    | 'configurationPolicy'
   >,
 ): TicketSlaStateSnapshot {
   return {
@@ -39,5 +43,7 @@ export function toTicketSlaStateSnapshot(
     resolutionDueAt: state.resolutionDueAt?.toISOString() ?? null,
     pausedAt: state.pausedAt?.toISOString() ?? null,
     firedEscalationKeys: [...state.firedEscalationKeys],
+    configurationVersion: state.configurationVersion ?? null,
+    configurationPolicy: state.configurationPolicy ?? 'GRANDFATHER',
   };
 }

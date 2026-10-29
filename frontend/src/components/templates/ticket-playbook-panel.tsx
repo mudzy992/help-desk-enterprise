@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DetailSection } from "@/components/ui/detail-section";
+import { DetailSection } from "@/components/tickets/detail-section";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Select, Textarea } from "@/components/ui/field";
@@ -253,12 +253,15 @@ export function TicketPlaybookPanel({
         }}
       >
         <Field label={t("templates.checklist.detachReason")} required>
-          <Textarea
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            rows={3}
-            maxLength={500}
-          />
+          {(control) => (
+            <Textarea
+              {...control}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              rows={3}
+              maxLength={500}
+            />
+          )}
         </Field>
       </ConfirmDialog>
     </DetailSection>

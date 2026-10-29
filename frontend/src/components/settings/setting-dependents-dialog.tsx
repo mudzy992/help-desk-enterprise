@@ -18,7 +18,7 @@ interface SettingDependentsDialogProperties {
 }
 
 /**
- * Paket 5.3.4 (D7): before a setting is switched off the administrator sees the
+ * before a setting is switched off the administrator sees the
  * exact list of keys the server will change — and what will happen to each one.
  * The list comes from `GET /settings/dependents`, so it is not a guess: secrets
  * are deleted (the value must be entered again), a dependent whose default is
