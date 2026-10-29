@@ -274,3 +274,4 @@ Na SHA `77c6662`, audit-schema korekciji `6fedf3a` i testnoj izolaciji `deb23bd`
 ## Implementacijski closeout — W6.4 (`BA-status-page-04`)
 
 Na SHA `4ea6fad` uz korekcije `7575f0b`, `cab7d18` i `e97b685`, finalni CI `40766102694`, create atomski upisuje `status.incident.start` transactional-outbox intent. Worker keyset-paginira aktivne requestere otvorenih ticketa u batchu 250 bez ukupnog capa, koristi deterministic recipient dedupe, durable retry/dead-letter/replay i otkazuje javni delivery ako visibility postane `STAFF_ONLY`. Worker wiring i lokalizovani admin scheduler katalog su zaključani testovima. Dokaz: [77-status-page-durable-paginated-start-delivery.md](../implementation/77-status-page-durable-paginated-start-delivery.md). Paket koristi postojeći outbox i nema DB migraciju.
+# BA-status-page-19 W6.17 CI trigger
