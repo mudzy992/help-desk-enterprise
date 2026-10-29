@@ -136,9 +136,13 @@ export function toPublicStatusPage(view: StatusPageView): PublicStatusPage {
     affectedServiceCount: view.affectedServiceCount,
     servicesHasMore: view.servicesHasMore,
     plannedHasMore: view.plannedHasMore,
+    activeHasMore: view.activeHasMore,
+    activeNextCursor: view.activeNextCursor,
     categories: view.categories,
     activeIncidents: view.activeIncidents.filter((incident) => incident.visibility === 'ALL_USERS').map(clean),
     planned: view.planned,
     history: view.history.filter((incident) => incident.visibility === 'ALL_USERS').map(clean),
+    historyHasMore: view.historyHasMore,
+    historyNextCursor: view.historyNextCursor,
   };
 }

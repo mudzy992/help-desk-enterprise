@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
@@ -10,6 +10,7 @@ import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder
 import { StatusPageConfigurationLoader, type StatusPageConfiguration } from './status-page.configuration';
 import { IncidentListQueryDto } from './status-page.dto';
 import {
+  openIncidentStatuses,
   statusPageLimits,
   worstAvailability,
   type ServiceAvailabilityValue,
@@ -185,8 +186,8 @@ export class StatusPageService {
     const plannedHasMore = windows.length > statusPageLimits.downtimeWindowsListed;
     const boundedWindows = plannedHasMore ? windows.slice(0, statusPageLimits.downtimeWindowsListed) : windows;
 
-    const activePage = paginateIncidents(active, activeTake);
-    const historyPage = paginateIncidents(history, historyTake);
+    const activePage = paginateIncidents(active.items, activeTake);
+    const historyPage = paginateIncidents(history.items, historyTake);
     const uptimeByService = configuration.showUptimePercent
       ? await loadUptimePercentByService(this.prisma, boundedServices.map((service) => service.id), historyStart, now)
       : new Map<string, number>();
