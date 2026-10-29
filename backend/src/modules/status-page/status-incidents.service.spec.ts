@@ -242,7 +242,7 @@ describe('StatusIncidentsService.create backdating guard (BA-status-page-18)', (
   });
 
   it('allows backdating within 30 days without a reason', async () => {
-    const { service } = build(open);
+    const { service, prisma } = build(open);
     const thirtyDaysAgo = new Date(Date.now() - 29 * 86_400_000);
     await service.create(
       { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message', startedAt: thirtyDaysAgo.toISOString() },
@@ -263,7 +263,7 @@ describe('StatusIncidentsService.create backdating guard (BA-status-page-18)', (
   });
 
   it('allows backdating beyond 30 days with a reason', async () => {
-    const { service } = build(open);
+    const { service, prisma } = build(open);
     const fortyDaysAgo = new Date(Date.now() - 40 * 86_400_000);
     await service.create(
       { title: 'Test incident', impact: 'DOWN', serviceIds: ['service-a'], message: 'Test message', startedAt: fortyDaysAgo.toISOString(), startedAtReason: 'Outage started before monitoring detected it' },

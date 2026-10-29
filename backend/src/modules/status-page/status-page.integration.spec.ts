@@ -474,6 +474,6 @@ describeIfDatabase('status page (integration)', () => {
       take: 1,
       select: { metadata: true },
     });
-    expect(audits[0]?.metadata.backdated).toBeUndefined();
+    expect((audits[0]?.metadata as { backdated?: unknown })?.backdated).toBeUndefined();
   });
 });
