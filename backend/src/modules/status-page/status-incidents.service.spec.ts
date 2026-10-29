@@ -187,6 +187,46 @@ describe('StatusIncidentsService.addUpdate', () => {
   });
 });
 
+describe('StatusIncidentsService.edit audit reconstruction (BA-status-page-17)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('records title and titleEn from/to in audit metadata', async () => {
+    const { service, prisma } = build(open);
+    await service.edit('i1', { title: 'VPN outage', titleEn: 'VPN outage' }, actor);
+    expect(lastAudit()).toMatchObject({
+      metadata: {
+        title: { from: 'VPN', to: 'VPN outage' },
+        titleEn: { from: null, to: 'VPN outage' },
+      },
+    });
+  });
+
+  it('records service added/removed in audit metadata', async () => {
+    const { service, prisma } = build(open);
+    (prisma.serviceIncidentService as { findMany: jest.Mock }).findMany.mockResolvedValue([
+      { serviceId: 'service-a' },
+      { serviceId: 'service-b' },
+    ]);
+    await service.edit('i1', { serviceIds: ['service-a', 'service-c'] }, actor);
+    expect(lastAudit()).toMatchObject({
+      metadata: {
+        services: { added: ['service-c'], removed: ['service-b'] },
+      },
+    });
+  });
+
+  it('records both title and service changes together', async () => {
+    const { service } = build(open);
+    await service.edit('i1', { title: 'New title', serviceIds: ['service-a'] }, actor);
+    expect(lastAudit()).toMatchObject({
+      metadata: {
+        title: { from: 'VPN', to: 'New title' },
+        services: { added: [], removed: [] },
+      },
+    });
+  });
+});
+
 function lastAudit() {
   const calls = (recordAuditEntry as jest.Mock).mock.calls;
   return calls[calls.length - 1][1];
