@@ -188,9 +188,13 @@ describeIfDatabase(
             data: { fromAssetId: third!, toAssetId: first!, kind: 'RUNS_ON' },
           }),
       ]);
-      const failures = assertOneWinner(outcomes);
-
-      expect(isAssetRelationCycleConflict(failures[0])).toBe(true);
+      const winners = outcomes.filter((outcome) => outcome.status === 'fulfilled');
+      const failures = outcomes.filter(
+        (outcome): outcome is PromiseRejectedResult => outcome.status === 'rejected',
+      );
+      expect(winners).toHaveLength(2);
+      expect(failures).toHaveLength(1);
+      expect(isAssetRelationCycleConflict(failures[0]?.reason)).toBe(true);
       expect(await countEdges([first!, second!, third!])).toBe(2);
     });
 

@@ -43,6 +43,7 @@ export function isAssetRelationExistsConflict(error: unknown): boolean {
 /** Recognize the named PostgreSQL graph CHECK-style error used by the trigger. */
 export function isAssetRelationCycleConflict(error: unknown): boolean {
   const shape = asErrorShape(error);
-  if (shape === null || !['P2004', 'P2010', '23514'].includes(String(shape.code))) return false;
+  if (shape === null || !['P2004', 'P2010', 'P2039', '23514'].includes(String(shape.code)))
+    return false;
   return errorDetails(shape).includes(assetRelationDirectedAcyclicConstraint.toLowerCase());
 }
