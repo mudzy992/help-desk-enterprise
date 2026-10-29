@@ -164,7 +164,7 @@
     {
       "id": "BA-assets-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "22-assets.md",
       "owner": "WS-F",
       "wave": 7
@@ -636,7 +636,7 @@
     {
       "id": "BA-changes-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "24-changes.md",
       "owner": "WS-F",
       "wave": 7
@@ -3220,7 +3220,7 @@
     {
       "id": "BA-problems-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "23-problems.md",
       "owner": "WS-F",
       "wave": 7

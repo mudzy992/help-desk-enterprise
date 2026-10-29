@@ -1,9 +1,10 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline — implementacija nije započeta  
-**Datum:** 2026-10-23  
-**Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)  
-**Trenutno:** 591 otvorenih / 101 zatvorena / 692 ukupno
+**Status:** audit baseline + djelimična implementacija — Val 7 je u toku<br>
+**Datum audita:** 2026-10-23<br>
+**Ažurirano:** 2026-10-29<br>
+**Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
+**Trenutno:** 588 otvorenih / 104 zatvorena / 692 ukupno
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -272,7 +273,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 21 | `on-call` | `BA-on-call-12` | P3 | Token revoke audit nije atomaran sa deleteom | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-13` | P3 | Pending identični swap zahtjevi nemaju semantic dedupe/rate limit | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-14` | P3 | Service/concurrency/revocation integracijska matrica nije pokrivena | otvoreno | [21-on-call.md](audits/21-on-call.md) |
-| 22 | `assets` | `BA-assets-01` | P1 | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-01` | P1 | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-02` | P1 | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-03` | P1 | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-04` | P1 | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -291,7 +292,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-17` | P3 | Template `latest+1` version race vraća konflikt bez alokacijskog retry ugovora | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-18` | P3 | Nema scheduler/import/reminder/file-orphan i audit-failure health/metric seta | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-19` | P3 | Sedam service suiteova je compile-blocked; nema tražene concurrency/failure E2E matrice | otvoreno | [22-assets.md](audits/22-assets.md) |
-| 23 | `problems` | `BA-problems-01` | P1 | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope | otvoreno | [23-problems.md](audits/23-problems.md) |
+| 23 | `problems` | `BA-problems-01` | P1 | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope | zatvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-02` | P1 | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa | otvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-03` | P1 | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope | otvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-04` | P1 | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja | otvoreno | [23-problems.md](audits/23-problems.md) |
@@ -310,7 +311,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 23 | `problems` | `BA-problems-17` | P3 | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan | otvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-18` | P3 | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice | otvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-19` | P3 | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica | otvoreno | [23-problems.md](audits/23-problems.md) |
-| 24 | `changes` | `BA-changes-01` | P1 | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope | otvoreno | [24-changes.md](audits/24-changes.md) |
+| 24 | `changes` | `BA-changes-01` | P1 | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope | zatvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-02` | P1 | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-03` | P1 | Direct problem link write provjerava samo existence, ne `problem.read` visibility | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-04` | P1 | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet | otvoreno | [24-changes.md](audits/24-changes.md) |
@@ -761,13 +762,15 @@ W6.12 je na SHA `6a719b9`, finalni CI `40843156212`, zatvorio `BA-status-page-13
 
 W6.13 je na SHA `fa7e80a`, zatvorio `BA-status-page-15`. Status-page retention i anonymization su formalizovani kroz novu `statusIncidents` retention kategoriju; RESOLVED incidenti stariji od konfiguranog perioda (min 180 dana, default onemogućeno) se arhiviraju sa redaktovanim naslovom/autorom i `retentionArchivedAt`, a povezani updateovi, ticket linkovi i subscriptione se brisu/redaktuju. Pokretanje carries novu DB migraciju `20271027210000_status_page_retention` koju treba ručno pokrenuti pri releaseu/redeployu. Detalji su u [86-status-page-retention-and-anonymization.md](implementation/86-status-page-retention-and-anonymization.md).
 
+W7.1 je na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, zatvorio `BA-assets-01`, `BA-problems-01` i `BA-changes-01`. Zajednički domain viewer sada izvodi globalni scope iz canonical assignment scopea, ne iz role-name bypassa; OU-scoped ADMIN/PROBLEM_MANAGER/CHANGE_MANAGER ostaju u dodijeljenoj jedinici, a globalni manageri i dalje rade samo uz installation-wide assignment. Detalji: [87-domain-assignment-scope.md](implementation/87-domain-assignment-scope.md). Nema nove DB migracije.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **594**
-- Zatvoreno: **98** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **588**
+- Zatvoreno: **104** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

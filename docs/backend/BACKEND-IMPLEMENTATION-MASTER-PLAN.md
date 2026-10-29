@@ -1,8 +1,8 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — implementacijski Val 0 je u toku
-**Datum:** 2026-10-23  
-**Ulaz:** 44 završene audit jedinice, 692 otvoren nalaz  
+**Status:** odobren — Valovi 0–6 su završeni; implementacijski Val 7 je u toku<br>
+**Datum ažuriranja:** 2026-10-29<br>
+**Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
 
 ## 1. Izvršna pravila
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- Sljedeći paket je **W3.1 canonical append-only audit primitive i inventar**.
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1 završen).
 
 ### Redoslijed
 
@@ -433,4 +433,23 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.16 backdating guard (`BA-status-page-18`) — implementiran** na SHA `f8a76f9`, backend build + test zelen, frontend build + test zelen.
 - Incident `create` ograničava `startedAt` backdating: stariji od `maxStartedAtBackdateDays` (30 dana) bez `startedAtReason` baca `INCIDENT_BACKDATE_REQUIRES_REASON` (400). Audit beleži `backdated`, `backdatedDays`, `backdatedReason`. Time je zatvoren `BA-status-page-18`; dokaz je u kodu (unit specovi + integration scenariji).
 - **W6.17 BA-status-page-19 — zatvoren** na SHA `8c7344e`, finalni CI `40895868319` zelen. Dodana failure matrica, paralelni create na istom servisu i 100-incident bounded-read dokaz; nema nove DB migracije.
-- Svi početni nalazi `BA-status-page-01`–`BA-status-page-19` su zatvoreni. Za W6.18 nema još registrovanog BA-status-page-20; sljedeći status-page paket treba krenuti iz fokusirane follow-up revizije i dobiti novi nalaz tek uz konkretan kodni dokaz.
+- Val 6 je zaključen: svi početni nalazi `BA-status-page-01`–`BA-status-page-19` su zatvoreni. W6.18 nije planiran bez novog, dokazivog follow-up nalaza; aktivni rad je prešao na Val 7.
+
+## 8. Val 7 — domain workflows
+
+**Status:** u toku; audit plan svrstava jedinice 22–27 (`assets`, `problems`, `changes`, `knowledge-base`, `reports`, `search`) u WS-F / wave 7.<br>
+**Početno stanje:** 25 P1 nalaza u ovih šest jedinica; W7.1 je zatvorio tri zajednička scope nalaza. Svaki sljedeći paket mora imati vlastiti zeleni CI dokaz prije nastavka.
+
+### W7.1 — očuvanje assignment scopea kroz domain viewere — završeno
+
+- Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, CI [`40911525016`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40911525016) je zelen.
+- Zatvoreni nalazi: `BA-assets-01`, `BA-problems-01`, `BA-changes-01`.
+- Zajednički principal-to-domain viewer više ne pretvara `ADMIN`, `PROBLEM_MANAGER` ili `CHANGE_MANAGER` role name u globalni OU bypass; globalno ponašanje zahtijeva installation-wide assignment. Scoped `SUPER_ADMIN`/nedosljedan scope ne daje SuperAdmin/global authority.
+- Assets permission scope, problem-group authority i CAB membership su regresijski testirani; nema DB migracije.
+- Detaljni acceptance, lokalna environment blokada i CI matrica su u [87-domain-assignment-scope.md](implementation/87-domain-assignment-scope.md).
+
+### Sljedeći paket — W7.2
+
+Prvo nastaviti sa `BA-assets-02` (P1): scope-filterovati i redaktovati foreign asset identitet u relation/contract prikazima. Ovaj rez slijedi W7.1 u assets fazi 1 i ima zaseban acceptance/test/CI gate; ne započinje prije nego što W7.1 kodni CI ostane zelen.
+
+Ostali početni P1 paketi ostaju otvoreni: `BA-assets-03/04`, `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.

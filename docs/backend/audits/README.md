@@ -1,9 +1,10 @@
 # Registar backend audita po modulima
 
-**Status:** aktuelno  
-**Ažurirano:** 2026-10-23
+**Status:** aktuelno<br>
+**Ažurirano:** 2026-10-29<br>
+**Aktivna implementacija:** Val 7 / W7; W7.1 zatvoren, W7.2 (`BA-assets-02`) sljedeći.
 
-Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija ne počinje prije završetka cijelog registra.
+Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; tekući open/closed status je u [globalnom registru](../BACKEND-FINDINGS-REGISTER.md).
 
 | Jedinica                                                | Status        | Audit dokument                                                               | Nalazi           | Baseline ocjena |
 | ------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------- | ---------------- | --------------- |

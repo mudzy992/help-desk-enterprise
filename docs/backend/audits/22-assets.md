@@ -1,10 +1,11 @@
 # Backend audit 22 — `assets`
 
-**Status:** audit završen  
-**Datum:** 2026-10-23  
-**Rizik modula:** visok  
-**Baseline ocjena:** **4,59/10**  
-**Nalazi:** 4 P1, 11 P2, 4 P3
+**Status:** audit završen<br>
+**Datum:** 2026-10-23<br>
+**Rizik modula:** visok<br>
+**Baseline ocjena:** **4,59/10**<br>
+**Nalazi:** 4 P1, 11 P2, 4 P3<br>
+**Implementacija:** W7.1 je djelimično zatvorio `BA-assets-01`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -158,7 +159,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 
 | ID           | Severity | Nalaz                                                                                         | Status   |
 | ------------ | -------- | --------------------------------------------------------------------------------------------- | -------- |
-| BA-assets-01 | P1       | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama                       | otvoreno |
+| BA-assets-01 | P1       | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama                       | zatvoreno |
 | BA-assets-02 | P1       | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type                | otvoreno |
 | BA-assets-03 | P1       | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer          | otvoreno |
 | BA-assets-04 | P1       | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke           | otvoreno |
@@ -180,7 +181,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 
 ## 16. Ključne korekcije
 
-- **01:** ukloniti role-name global bypass; scope iz assignmenta, uz eksplicitni installation-wide grant.
+- **01:** zatvoreno u W7.1 — scope ostaje vezan za assignment, a globalni doseg zahtijeva installation-wide grant; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 - **02:** scope-filter/redact svaki relation/contract/license graph čvor prije shapeanja odgovora.
 - **03:** version/If-Match i CAS predicate na svim status/custody putevima; conflict event nastaje samo iz zaključanog stanja.
 - **04, 11:** persisted per-item/threshold/recipient delivery/outbox; marker tek nakon policy-dovoljnog uspjeha; extra recipient kroz isti sistem.
@@ -254,3 +255,7 @@ Regenerisan Prisma client; svih 13 direktnih suiteova; Postgres concurrency, Red
 10. Liste ne trunciraju tiho, health signalizira drift, a kompletni unit/integration/E2E testovi prolaze.
 
 Modul ima ozbiljan i funkcionalno bogat temelj, posebno u transferu, spreadsheet sigurnosti i osnovnom OU modelu. Ipak scope bypass, cross-boundary metadata, neujednačena custody konkurentnost i reminder marker znače da još nije production-grade enterprise CMDB. Iskren baseline je **4,59/10**.
+
+## 20. Implementacijski closeout — W7.1 (`BA-assets-01`)
+
+Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `assetViewerFromContext` poštuje assignment OU za `asset.read/manage/import/report/type/license/contract`; samo installation-wide assignment može dati globalni scope. Dodani su regresijski testovi za scoped ADMIN, globalni ADMIN, nedosljedan scope i scoped/globalni SUPER_ADMIN. Nema nove migracije. Baseline ocjena ostaje audit snapshot; ostali assets nalazi su i dalje otvoreni. Zajednički dokaz i CI detalji: [87-domain-assignment-scope.md](../implementation/87-domain-assignment-scope.md).

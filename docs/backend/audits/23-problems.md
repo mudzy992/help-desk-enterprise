@@ -1,10 +1,11 @@
 # Backend audit 23 — `problems`
 
-**Status:** audit završen  
-**Datum:** 2026-10-23  
-**Rizik modula:** visok  
-**Baseline ocjena:** **4,21/10**  
-**Nalazi:** 7 P1, 9 P2, 3 P3
+**Status:** audit završen<br>
+**Datum:** 2026-10-23<br>
+**Rizik modula:** visok<br>
+**Baseline ocjena:** **4,21/10**<br>
+**Nalazi:** 7 P1, 9 P2, 3 P3<br>
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -150,7 +151,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 
 | ID             | Severity | Nalaz                                                                                         | Status   |
 | -------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
-| BA-problems-01 | P1       | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope                   | otvoreno |
+| BA-problems-01 | P1       | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope                   | zatvoreno |
 | BA-problems-02 | P1       | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa           | otvoreno |
 | BA-problems-03 | P1       | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope                                  | otvoreno |
 | BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | otvoreno |
@@ -172,7 +173,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 
 ## 16. Ključne korekcije
 
-- **01:** assignment-derived scope; cross-unit group capability eksplicitno, bez role-name global bypassa.
+- **01:** zatvoreno u W7.1 — assignment-derived OU scope, bez role-name global bypassa; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 - **02:** minimal linked-ticket problem projection i per-ticket access/redaction prije liste.
 - **03:** reuse `AssetAccessService`/`asset.read` scope za search, suggestions, link i shape.
 - **04–05:** aktuelni ticket policy na svaki unlink/resolve; eksplicitna audited delegation samo unutar dozvoljenog scopea.
@@ -241,3 +242,7 @@ Cursor/hasMore, truthful totals, resource clamp/metrics, regenerated Prisma clie
 10. Svih 8 direktnih suiteova, concurrency/failure integracije i E2E 29–30 prolaze.
 
 Modul ima dobru lifecycle i optimistic-concurrency jezgru, ali njegove cross-domain prečice trenutno proširuju čitanje i write autoritet izvan prihvatljive enterprise granice. Bulk resolution i reminder delivery nisu crash-recoverable. Iskren baseline je **4,21/10**.
+
+## 20. Implementacijski closeout — W7.1 (`BA-problems-01`)
+
+Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `ProblemAccessService.require()` vraća assignment OU za scoped `ADMIN` i `PROBLEM_MANAGER`; cross-unit manager scope ostaje podržan samo za installation-wide assignment. Problem-group authority pravilo nije promijenjeno. Nema nove migracije; baseline ostaje audit snapshot, a preostali P1 nalazi su otvoreni. Zajednički testni i CI dokaz: [87-domain-assignment-scope.md](../implementation/87-domain-assignment-scope.md).

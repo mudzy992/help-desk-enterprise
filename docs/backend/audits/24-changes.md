@@ -1,10 +1,11 @@
 # Backend audit 24 — `changes`
 
-**Status:** audit završen  
-**Datum:** 2026-10-23  
-**Rizik modula:** visok  
-**Baseline ocjena:** **4,28/10**  
-**Nalazi:** 7 P1, 10 P2, 3 P3
+**Status:** audit završen<br>
+**Datum:** 2026-10-23<br>
+**Rizik modula:** visok<br>
+**Baseline ocjena:** **4,28/10**<br>
+**Nalazi:** 7 P1, 10 P2, 3 P3<br>
+**Implementacija:** W7.1 je djelimično zatvorio `BA-changes-01`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -161,7 +162,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 
 | ID            | Severity | Nalaz                                                                                         | Status   |
 | ------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
-| BA-changes-01 | P1       | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope              | otvoreno |
+| BA-changes-01 | P1       | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope              | zatvoreno |
 | BA-changes-02 | P1       | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope                               | otvoreno |
 | BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | otvoreno |
 | BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | otvoreno |
@@ -184,7 +185,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 
 ## 16. Ključne korekcije
 
-- **01:** assignment-derived scope; global manager pravo samo kao eksplicitni installation grant.
+- **01:** zatvoreno u W7.1 — assignment-derived scope; global manager pravo samo uz eksplicitni installation grant. Dokaz: [W7.1 implementation](../implementation/87-domain-assignment-scope.md).
 - **02–03:** reuse asset/problem access policy na search, direct write i response projection.
 - **04–05:** scope-filter conflict/calendar reference i redact inaccessible konflikt/downtime detalje.
 - **06, 14:** persisted round voter/quorum snapshot ili strogo filtrirana dynamic politika; reject oversized CAB.
@@ -252,3 +253,7 @@ Template versioning, CAB routing, retention/anonymization replike, pagination/co
 10. Sva 4 direktna suitea, Postgres/Redis/fault integracije i E2E 31–32 prolaze.
 
 Change modul ima dobru state-machine i optimistic jezgru, ali global role bypass, cross-domain reference propusti i nepostojan CAB/downtime/delivery model trenutno nisu dovoljni za enterprise change governance. Iskren baseline je **4,28/10**.
+
+## 20. Implementacijski closeout — W7.1 (`BA-changes-01`)
+
+Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `ChangeAccessService.require()` zadržava scoped `CHANGE_MANAGER` i `ADMIN` u assignment OU-u; cross-unit `CHANGE_MANAGER` traži installation-wide assignment. CAB membership je i dalje obavezna zasebna provjera. Nema nove migracije; baseline ostaje audit snapshot, a preostali nalazi su otvoreni. Zajednički testni i CI dokaz: [87-domain-assignment-scope.md](../implementation/87-domain-assignment-scope.md).
