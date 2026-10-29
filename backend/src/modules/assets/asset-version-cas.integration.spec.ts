@@ -258,6 +258,65 @@ describeIfDatabase('asset version/CAS custody contract (PostgreSQL integration)'
     expect(events[0]?.detail).toMatchObject({ userId: firstUserId, statusFrom: 'IN_USE', statusTo: 'IN_STOCK' });
   });
 
+  it('rejects a racing stale retirement without clearing the holder or releasing an installed license', async () => {
+    const id = await createAsset({ status: 'IN_USE', assignedUserId: firstUserId });
+    const license = await prisma.softwareLicense.create({
+      data: { productName: `CAS license ${stamp}`, kind: 'PER_DEVICE', organizationalUnitId: unitId },
+      select: { id: true },
+    });
+    await prisma.licenseAssignment.create({ data: { licenseId: license.id, assetId: id } });
+
+    let markStaleRequestLoaded!: () => void;
+    const staleRequestLoaded = new Promise<void>((resolve) => {
+      markStaleRequestLoaded = resolve;
+    });
+    let releaseStaleRequest!: () => void;
+    const staleRequestGate = new Promise<void>((resolve) => {
+      releaseStaleRequest = resolve;
+    });
+    const internal = assets as unknown as {
+      loadInScope: (assetId: string, scope: unknown) => Promise<{ id: string }>;
+    };
+    const original = internal.loadInScope;
+    let pauseFirstLoad = true;
+    internal.loadInScope = async (assetId, scope) => {
+      const current = await original.call(assets, assetId, scope);
+      if (assetId === id && pauseFirstLoad) {
+        pauseFirstLoad = false;
+        markStaleRequestLoaded();
+        await staleRequestGate;
+      }
+      return current;
+    };
+
+    const staleRetirement = assets.changeStatus(
+      id,
+      { status: 'RETIRED', reason: 'Zastarjeli retirement', version: 1 },
+      viewer,
+    );
+    try {
+      await staleRequestLoaded;
+      await expect(
+        assets.changeStatus(id, { status: 'IN_REPAIR', version: 1 }, viewer),
+      ).resolves.toEqual({ id, status: 'IN_REPAIR', version: 2 });
+      releaseStaleRequest();
+      await expect(staleRetirement).rejects.toMatchObject({ code: assetErrorCodes.versionConflict });
+    } finally {
+      releaseStaleRequest();
+      internal.loadInScope = original;
+    }
+
+    const [state, events, assignmentCount] = await Promise.all([
+      stateOf(id),
+      eventsOf(id),
+      prisma.licenseAssignment.count({ where: { assetId: id } }),
+    ]);
+    expect(state).toMatchObject({ status: 'IN_REPAIR', version: 2, assignedUserId: firstUserId });
+    expect(assignmentCount).toBe(1);
+    expect(events.map((event) => event.action)).toEqual(['status']);
+    expect(events[0]?.detail).toMatchObject({ from: 'IN_USE', to: 'IN_REPAIR' });
+  });
+
   it('allows only one parallel status CAS; the losing LOST request cannot release the holder', async () => {
     const id = await createAsset({ status: 'IN_USE', assignedUserId: firstUserId });
     const outcomes = await runFromSameSnapshot(id, [
