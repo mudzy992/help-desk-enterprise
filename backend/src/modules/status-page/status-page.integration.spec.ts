@@ -407,23 +407,23 @@ describeIfDatabase('status page (integration)', () => {
   });
 
   it('audit records title and titleEn from/to on incident edit', async () => {
-    await incidents.edit(ids.incident, { title: 'Nova naslovna', titleEn: 'New title' }, operator);
+    await incidents.edit(ids.staffIncident, { title: 'Interno obnavlja se', titleEn: 'Internal under repair' }, operator);
     const audits = await prisma.auditLog.findMany({
-      where: { entityId: ids.incident, action: 'status.incident.edited' },
+      where: { entityId: ids.staffIncident, action: 'status.incident.edited' },
       orderBy: { createdAt: 'desc' },
       take: 1,
       select: { metadata: true },
     });
     expect(audits[0]?.metadata).toMatchObject({
-      title: { from: 'VPN prekid', to: 'Nova naslovna' },
-      titleEn: { from: null, to: 'New title' },
+      title: { from: 'Interno', to: 'Interno obnavlja se' },
+      titleEn: { from: null, to: 'Internal under repair' },
     });
   });
 
   it('audit records services added/removed on incident edit', async () => {
-    await incidents.edit(ids.incident, { serviceIds: [ids.vpn, ids.mail] }, operator);
+    await incidents.edit(ids.staffIncident, { serviceIds: [ids.vpn, ids.mail] }, operator);
     const audits = await prisma.auditLog.findMany({
-      where: { entityId: ids.incident, action: 'status.incident.edited' },
+      where: { entityId: ids.staffIncident, action: 'status.incident.edited' },
       orderBy: { createdAt: 'desc' },
       take: 1,
       select: { metadata: true },
