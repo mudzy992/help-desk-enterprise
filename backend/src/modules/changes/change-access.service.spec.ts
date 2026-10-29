@@ -10,12 +10,21 @@ function setup(options: { addon?: boolean; groups?: number; member?: boolean } =
   return new ChangeAccessService(prisma as never, settings as never);
 }
 
-const viewer = (roleKey: string, permissions: string[]) =>
+const viewer = (roleKey: string, permissions: string[], ou: { id: string; path: string } | null = { id: 'ou-a', path: '/a' }) =>
   assetViewerFromContext(
     {
       roleKeys: [roleKey],
       homeOrganizationalUnitId: null,
-      assignments: [{ roleKey, permissionKeys: permissions, organizationalUnitId: null, organizationalUnitPath: '/a', serviceId: null }],
+      assignments: [{
+        roleKey,
+        permissionKeys: permissions,
+        scope: ou
+          ? { kind: 'organizational-unit', organizationalUnitId: ou.id, organizationalUnitPath: ou.path }
+          : { kind: 'global' },
+        organizationalUnitId: ou?.id ?? null,
+        organizationalUnitPath: ou?.path ?? null,
+        serviceId: null,
+      }],
     } as never,
     'u1',
     'change.',
@@ -38,8 +47,19 @@ describe('ChangeAccessService (3.4)', () => {
     expect(await setup({ member: true }).isCabMember(manager, null)).toBe(false);
   });
 
-  it('gives change managers every unit and agents their assignment unit', () => {
-    expect(resolveAssetScope(viewer('CHANGE_MANAGER', ['change.manage']), 'change.manage', null)).toEqual({ all: true });
+  it('keeps CHANGE_MANAGER and scoped ADMIN grants inside their OU; a global manager is explicit', async () => {
+    const scopedManager = viewer('CHANGE_MANAGER', ['change.manage', 'change.read']);
+    const scopedAdmin = viewer('ADMIN', ['change.manage', 'change.read']);
+    const globalManager = viewer('CHANGE_MANAGER', ['change.manage'], null);
+    const access = setup();
+
+    expect(resolveAssetScope(scopedManager, 'change.manage', null)).toEqual({ all: false, paths: ['/a'] });
+    expect(resolveAssetScope(scopedAdmin, 'change.read', null)).toEqual({ all: false, paths: ['/a'] });
+    expect(resolveAssetScope(globalManager, 'change.manage', null)).toEqual({ all: true });
+    await expect(access.require(scopedManager, 'change.manage')).resolves.toEqual({ all: false, paths: ['/a'] });
+  });
+
+  it('gives agents their assignment unit', () => {
     expect(resolveAssetScope(viewer('AGENT', ['change.read']), 'change.read', null)).toEqual({ all: false, paths: ['/a'] });
   });
 

@@ -123,9 +123,16 @@ describe('asset viewer scope (§14)', () => {
     };
   }
 
-  it('ADMIN covers every unit; an unscoped AGENT grant covers the home unit and sub-units', () => {
+  it('only an installation-wide ADMIN assignment covers every unit; an unscoped AGENT grant uses home OU', () => {
     const admin = assetViewerFromContext(
-      context([{ roleKey: 'ADMIN', permissionKeys: ['asset.read'], organizationalUnitId: null, organizationalUnitPath: null, serviceId: null }]),
+      context([{
+        roleKey: 'ADMIN',
+        permissionKeys: ['asset.read'],
+        scope: { kind: 'global' },
+        organizationalUnitId: null,
+        organizationalUnitPath: null,
+        serviceId: null,
+      }]),
       'u1',
     );
     expect(resolveAssetScope(admin, 'asset.read', null)).toEqual({ all: true });
@@ -138,6 +145,87 @@ describe('asset viewer scope (§14)', () => {
     expect(isPathInScope(scope, 'Org/Sarajevo2')).toBe(false);
     expect(resolveAssetScope(agent, 'asset.import', 'Org/Sarajevo')).toEqual({ all: false, paths: [] });
     expect(agent.grants.map((grant) => grant.permission)).toEqual(['asset.read']);
+  });
+
+  it('keeps OU-scoped ADMIN assignments inside their OU for every permission grant', () => {
+    const admin = assetViewerFromContext(
+      context([{
+        roleKey: 'ADMIN',
+        permissionKeys: [
+          'asset.read',
+          'asset.manage',
+          'asset.import',
+          'asset.report.read',
+          'asset.type.manage',
+          'asset.license.manage',
+          'asset.contract.manage',
+        ],
+        scope: { kind: 'organizational-unit', organizationalUnitId: 'ou-most', organizationalUnitPath: 'Org/Mostar' },
+        organizationalUnitId: 'ou-most',
+        organizationalUnitPath: 'Org/Mostar',
+        serviceId: null,
+      }], ['ADMIN']),
+      'u1',
+    );
+
+    for (const permission of [
+      'asset.read',
+      'asset.manage',
+      'asset.import',
+      'asset.report.read',
+      'asset.type.manage',
+      'asset.license.manage',
+      'asset.contract.manage',
+    ]) {
+      const scope = resolveAssetScope(admin, permission, 'Org/Sarajevo');
+      expect(scope).toEqual({ all: false, paths: ['Org/Mostar'] });
+      expect(isPathInScope(scope, 'Org/Mostar/IT')).toBe(true);
+      expect(isPathInScope(scope, 'Org/Sarajevo')).toBe(false);
+    }
+    expect(admin.isAdmin).toBe(true);
+  });
+
+  it('fails closed on an inconsistent global scope and a scoped SUPER_ADMIN assignment', () => {
+    const inconsistent = assetViewerFromContext(
+      context([{
+        roleKey: 'ADMIN',
+        permissionKeys: ['asset.read'],
+        scope: { kind: 'global' },
+        organizationalUnitId: 'ou-most',
+        organizationalUnitPath: 'Org/Mostar',
+        serviceId: null,
+      }]),
+      'u1',
+    );
+    expect(resolveAssetScope(inconsistent, 'asset.read', null)).toEqual({ all: false, paths: ['Org/Mostar'] });
+
+    const scopedSuperAdmin = assetViewerFromContext(
+      context([{
+        roleKey: 'SUPER_ADMIN',
+        permissionKeys: ['asset.read'],
+        scope: { kind: 'organizational-unit', organizationalUnitId: 'ou-most', organizationalUnitPath: 'Org/Mostar' },
+        organizationalUnitId: 'ou-most',
+        organizationalUnitPath: 'Org/Mostar',
+        serviceId: null,
+      }], ['SUPER_ADMIN']),
+      'u1',
+    );
+    expect(scopedSuperAdmin.isSuperAdmin).toBe(false);
+    expect(resolveAssetScope(scopedSuperAdmin, 'asset.read', null)).toEqual({ all: false, paths: ['Org/Mostar'] });
+
+    const globalSuperAdmin = assetViewerFromContext(
+      context([{
+        roleKey: 'SUPER_ADMIN',
+        permissionKeys: [],
+        scope: { kind: 'global' },
+        organizationalUnitId: null,
+        organizationalUnitPath: null,
+        serviceId: null,
+      }], ['SUPER_ADMIN']),
+      'u1',
+    );
+    expect(globalSuperAdmin.isSuperAdmin).toBe(true);
+    expect(resolveAssetScope(globalSuperAdmin, 'asset.read', null)).toEqual({ all: true });
   });
 
   it('a scoped ASSET_MANAGER grant uses its unit; an empty scope matches nothing', () => {
