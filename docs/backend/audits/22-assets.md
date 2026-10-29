@@ -178,7 +178,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 
 - **01:** zatvoreno u W7.1 — scope ostaje vezan za assignment, a globalni doseg zahtijeva installation-wide grant; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 - **02:** zatvoreno u W7.2 za relation/contract graph: foreign asset čvorovi se filtriraju prije shapeanja, a prikazuje se samo hidden count; detalj u [W7.2 implementacijskom dokazu](../implementation/88-assets-graph-scope.md). Licence i cross-boundary relation mutacije ostaju zasebni otvoreni scopeovi.
-- **03:** version/If-Match i CAS predicate na svim status/custody putevima; conflict event nastaje samo iz zaključanog stanja.
+- **03:** zatvoreno u W7.3 — status/assign/unassign imaju obavezni expected version i CAS; generalni update također zahtijeva verziju. Stale conflict vraća HTTP 409 bez eventa ili holder/licence side effecta; detalji su u [W7.3 implementacijskom dokazu](../implementation/89-assets-version-cas.md).
 - **04, 11:** persisted per-item/threshold/recipient delivery/outbox; marker tek nakon policy-dovoljnog uspjeha; extra recipient kroz isti sistem.
 - **05–06:** normalizovane unique attribute vrijednosti i canonical relation edge/invariant uz DB constraint/locking.
 - **07:** user/asset target mora biti u dozvoljenom OU modelu licence; detail redakcija.
