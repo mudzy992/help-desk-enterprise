@@ -75,6 +75,6 @@ describe('clientIp', () => {
   });
 
   it('uses request.ip when socket is missing', () => {
-    expect(clientIp({ ip: '10.0.0.5', socket: undefined } as any)).toBe('10.0.0.5');
+    expect(clientIp({ ip: '10.0.0.5' } as { ip?: string; socket?: { remoteAddress?: string | null } })).toBe('10.0.0.5');
   });
 });

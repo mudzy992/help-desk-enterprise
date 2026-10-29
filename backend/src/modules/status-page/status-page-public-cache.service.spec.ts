@@ -1,3 +1,4 @@
+import type Redis from 'ioredis';
 import { StatusPagePublicCacheService } from './status-page-public-cache.service';
 
 describe('StatusPagePublicCacheService', () => {
@@ -7,7 +8,7 @@ describe('StatusPagePublicCacheService', () => {
     incr: jest.fn(),
     status: 'ready' as const,
     connect: jest.fn().mockResolvedValue(undefined),
-  } as unknown as ReturnType<typeof jest.fn> & { get: jest.Mock; set: jest.Mock; incr: jest.Mock; status: string; connect: jest.Mock };
+  } as unknown as Redis;
 
   beforeEach(() => {
     jest.clearAllMocks();
