@@ -41,6 +41,8 @@ model ServiceIncident {
   visibility      String                        @default("ALL_USERS") @db.VarChar(12)
   startedAt       DateTime
   resolvedAt      DateTime?
+  /// Set when the incident has been retention-archived (title/author redacted).
+  retentionArchivedAt DateTime?
   createdByUserId String?
   createdAt       DateTime                      @default(now())
   updatedAt       DateTime                      @updatedAt
@@ -52,6 +54,7 @@ model ServiceIncident {
   @@index([status])
   @@index([resolvedAt])
   @@index([startedAt])
+  @@index([retentionArchivedAt])
 }
 
 model ServiceIncidentService {
@@ -70,10 +73,13 @@ model ServiceIncidentUpdate {
   status       String          @db.VarChar(14)
   message      String          @db.VarChar(4000)
   authorUserId String?
+  /// Set when the update message/author has been retention-redacted.
+  contentRedactedAt DateTime?
   createdAt    DateTime        @default(now())
   incident     ServiceIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
 
   @@index([incidentId, createdAt])
+  @@index([contentRedactedAt])
 }
 
 /// A user asked to be told when the incident is resolved.

@@ -5,6 +5,7 @@ import { auditLogActions, auditLogMaintenanceLockKey, auditLogEntityTypes } from
 import { appendAuditLog } from '../../audit-log/append-audit-log';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
 import { privacyLimits, type RetentionCategory } from '../privacy.constants';
+import { createStatusIncidentRetentionExecutor } from './status-incident-retention.executor';
 
 /** Marker written over removed free text; the UI shows a translated label (contentRedactedAt / redactedAt). */
 export const retentionRedactionMarker = '[redacted]';
@@ -65,6 +66,8 @@ export function createRetentionExecutors(
   storage: TicketAttachmentStorage,
 ): Readonly<Record<RetentionCategory, RetentionExecutor>> {
   return {
+    statusIncidents: createStatusIncidentRetentionExecutor(prisma),
+
     sessions: {
       category: 'sessions',
       async preview(cutoff) {

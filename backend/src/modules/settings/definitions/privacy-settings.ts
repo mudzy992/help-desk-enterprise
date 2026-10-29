@@ -16,6 +16,7 @@ export const privacyRetentionMinimumDays = {
   sessions: 30,
   emailDeliveries: 30,
   requestRegister: 365,
+  statusIncidents: 180,
 } as const;
 
 export const privacyRetentionMaximumDays = 36_500;
@@ -81,6 +82,12 @@ export const privacySettings: readonly SettingDefinition[] = [
     'Days closed data subject requests are kept (0 = disabled)',
     privacyDefaults.requestRegisterDays,
     privacyRetentionMinimumDays.requestRegister,
+  ),
+  retentionSetting(
+    settingKeys.privatePrivacyRetentionStatusIncidentsDays,
+    'Days after resolution before a status-page incident is archived and its content redacted (0 = disabled)',
+    0,
+    privacyRetentionMinimumDays.statusIncidents,
   ),
   definePrivateSetting({
     key: settingKeys.privatePrivacyRetentionRunAtLocalTime,
