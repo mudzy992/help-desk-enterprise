@@ -49,6 +49,6 @@ Dodatne lokalne provjere: ciljani Prettier check i `git diff --check` su prošli
 
 ## Migracija, rollout i zatvaranje
 
-Nema schema promjene, Prisma migracije ni manual apply koraka. Iskorišteni su postojeći OU path i relation/contract link modeli. Rollout ne zahtijeva DB pripremu; rollback je code revert. Zatvoren je samo `BA-assets-02`; `BA-assets-03/04`, license scope i relation mutation granice ostaju otvoreni.
+Nema schema promjene, Prisma migracije ni manual apply koraka. Iskorišteni su postojeći OU path i relation/contract link modeli. Rollout ne zahtijeva DB pripremu; rollback je code revert. U trenutku W7.2 closeouta zatvoren je samo `BA-assets-02`; `BA-assets-03/04`, license scope i relation mutation granice ostali su otvoreni.
 
-**Sljedeći paket:** W7.3 — `BA-assets-03` (P1), jedinstveni version/CAS ugovor za status i custody mutacije (`changeStatus`, `assign`, `unassign`) i direktni concurrency acceptance dokaz. Ne implementirati prije zelenog CI-ja za W7.2; taj gate je ispunjen runom `40917663219`.
+**Naredni korak nakon ovog paketa:** W7.3 — `BA-assets-03` je naknadno zatvoren uz zeleni finalni CI `40930141682`; detalji su u [89-assets-version-cas.md](89-assets-version-cas.md). Sljedeći paket je W7.4 — `BA-assets-04` (P1), reminder delivery/state semantika. W7.2 je napredovao tek nakon zelenog CI gatea `40917663219`.

@@ -1,10 +1,10 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.2 je zatvorio `BA-assets-02`; W7.3 `BA-assets-03` je sljedeći<br>
+**Status:** audit baseline + djelimična implementacija — W7.3 je zatvorio `BA-assets-03`; W7.4 `BA-assets-04` je sljedeći<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-29<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 587 otvorenih / 105 zatvorenih / 692 ukupno
+**Trenutno:** 586 otvorenih / 106 zatvorenih / 692 ukupno
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -275,7 +275,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 21 | `on-call` | `BA-on-call-14` | P3 | Service/concurrency/revocation integracijska matrica nije pokrivena | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 22 | `assets` | `BA-assets-01` | P1 | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-02` | P1 | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-03` | P1 | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-03` | P1 | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-04` | P1 | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-05` | P2 | Unique custom JSON atribut je read-before-write bez DB zaštite | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-06` | P2 | Parallel relation cycle/symmetric insert može prekršiti graph invariant | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -764,13 +764,17 @@ W6.13 je na SHA `fa7e80a`, zatvorio `BA-status-page-15`. Status-page retention i
 
 W7.1 je na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, zatvorio `BA-assets-01`, `BA-problems-01` i `BA-changes-01`. Zajednički domain viewer sada izvodi globalni scope iz canonical assignment scopea, ne iz role-name bypassa; OU-scoped ADMIN/PROBLEM_MANAGER/CHANGE_MANAGER ostaju u dodijeljenoj jedinici, a globalni manageri i dalje rade samo uz installation-wide assignment. Detalji: [87-domain-assignment-scope.md](implementation/87-domain-assignment-scope.md). Nema nove DB migracije.
 
+W7.2 je na finalnom kodnom SHA `b73a7611ae6b25fa2ff052e2d17df1992e4afef5`, uz zeleni CI `40917663219`, zatvorio samo `BA-assets-02`. Foreign relation/contract asseti filtriraju se prije response shapeanja, a response izlaže samo agregatni hidden count. Detalji: [88-assets-graph-scope.md](implementation/88-assets-graph-scope.md). Nema nove DB migracije.
+
+W7.3 je na finalnom testanom SHA `4ecbed60244c9da33d3c91fc693f5fac6120399b`, uz zeleni CI `40930141682`, zatvorio samo `BA-assets-03` (implementacijski commit `8f929e0ce8b3bf922ab80e80b5141da20ad2a86a`; dodatni acceptance-test commit `4ecbed60244c9da33d3c91fc693f5fac6120399b`). Status/assign/unassign koriste expected-version CAS nad ID-jem, verzijom, statusom i holderom; generalni asset PUT sada zahtijeva verziju, čime je obrađena i audit §4 napomena o opcionalnom versionu. PostgreSQL suite dokazuje stale/paralelne zahtjeve, uključujući da racing stale retirement ne očisti holdera, ne obriše device-license assignment i ne emituje unassign/license-release event. Detalji: [89-assets-version-cas.md](implementation/89-assets-version-cas.md). Nema nove DB migracije.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **587**
-- Zatvoreno: **105** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **586**
+- Zatvoreno: **106** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

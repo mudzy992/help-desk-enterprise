@@ -5,15 +5,15 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1 je zatvorio `BA-assets-01`, a W7.2 je zatvorio `BA-assets-02`; svi ostali nalazi iz ovog audita ostaju otvoreni.
+**Implementacija:** W7.1 zatvorio je `BA-assets-01`, W7.2 `BA-assets-02`, a W7.3 `BA-assets-03`; `BA-assets-04`–`BA-assets-19` ostaju otvoreni.
 
 ## 1. Executive summary
 
 `assets` je širok CMDB domen: tipovi i custom atributi, lokacije, asset CRUD/status/custody, relacije i impact, ticket veze, licence i ugovori, spreadsheet import/export, directory sync, transferi sa DOCX/signed kopijom te expiry reminders. Pozitivna osnova je značajna: OU subtree filteri i not-found direct-ID semantika, optimistic version kod općeg edita i transfera, transactional asset eventi, AES-GCM ključevi, formula escaping, apply-time scope revalidacija, frozen transfer snapshot, DB sekvenca, ClamAV i contained storage path.
 
-Baseline je ipak **4,59/10**. Četiri P1 nalaza pogađaju authorization, povjerljivost, custody integritet i operativnu isporuku. ADMIN assignment je globalan i kada je vezan za OU. Asset detail/contract veze vraćaju identitet foreign asseta preko cross-OU relacije. Direktni status/assign/unassign putevi rade nad ranije učitanim stanjem bez version/CAS preduslova i mogu pregaziti paralelni transfer. Reminder threshold se označava poslanim nakon pokušaja, čak i bez primaoca ili uspješne isporuke, pa upozorenje može trajno nestati.
+Baseline je ipak **4,59/10**. Četiri P1 nalaza pogađaju authorization, povjerljivost, custody integritet i operativnu isporuku. Audit je pronašao globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označava poslanim bez primaoca ili potvrđene isporuke. W7.1, W7.2 i W7.3 su naknadno zatvorili prva tri P1 nalaza; `BA-assets-04` reminder delivery ostaje otvoren.
 
-Dodatni nalazi uključuju race za unique JSON atribut, cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. Nema P0. Baseline ocjena i ovaj opis su audit snapshot; `BA-assets-01` i `BA-assets-02` su naknadno zatvoreni kroz W7.1 i W7.2, dok ostali nalazi ostaju otvoreni.
+Dodatni nalazi uključuju race za unique JSON atribut, cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.3 closeout dokazi su evidentirani na kraju ovog dokumenta.
 
 ## 2. Scope i inventar
 
@@ -39,16 +39,11 @@ Ticket requester namjerno vidi plain linked equipment, dok staff dobija `canOpen
 
 ## 4. CRUD, status, assignment i delete
 
-Create ima DB unique assetTag i retry za automatski tag. General update koristi `where id+version`, transactional event i version increment. Directory/transfer putanje također koriste optimistic predicate. DISPOSED je read-only; RETIRED/DISPOSED oslobađa usera i device licence. Hard delete je SUPER_ADMIN-only i zabranjen uz ticket/relation zavisnosti.
+Create ima DB unique assetTag i retry za automatski tag. General update koristi `where id+version`, transactional event i version increment; W7.3 je verziju učinio obaveznom i u DTO-u i u servisu, pa izostavljeni token više ne dozvoljava blind overwrite. Directory/transfer putanje također koriste optimistic predicate. DISPOSED je read-only; RETIRED/DISPOSED oslobađa usera i device licence. Hard delete je SUPER_ADMIN-only i zabranjen uz ticket/relation zavisnosti.
 
-`changeStatus`, `assign` i `unassign` ipak učitaju current pa u transakciji rade `update({id})`, bez očekivane verzije/statusa/holdera. Paralelni manager zahtjevi ili direktni move nasuprot transferu mogu:
+Prije W7.3, `changeStatus`, `assign` i `unassign` učitavali su current pa u transakciji radili `update({id})`, bez očekivane verzije/statusa/holdera. Paralelni manager zahtjevi ili direktni move nasuprot transferu mogli su vratiti asset starom/drugom holderu, emitovati event prema zastarjelom `assignedUserId`, osloboditi licence na osnovu zastarjelog statusa ili završiti sa custody stanjem koje ne odgovara nijednom event toku.
 
-- vratiti asset starom/drugom holderu;
-- emitovati event prema zastarjelom `assignedUserId`;
-- osloboditi licence na osnovu statusa koji je drugi zahtjev već promijenio;
-- završiti sa custody stanjem koje ne odgovara nijednom od audit/event tokova.
-
-Svi custody/status mutation putevi moraju koristiti isti version/CAS ugovor kao transfer i vratiti conflict. Optional `version` na general update ne smije dozvoliti blind overwrite kada klijent ne pošalje verziju.
+W7.3 sada zahtijeva pozitivan expected `version` na status/assign/unassign i general update. Status/custody mutacije rade transakcijski CAS `id + version + current status + current assignedUserId`, potvrđuju `count === 1` prije događaja/side effecta i mapiraju stale/race rezultat u HTTP 409. Direktni PostgreSQL acceptance testovi dokazuju stale i paralelne requestove, finalni holder/status/version i evente. Ovaj finding je zatvoren; ostali domain scope, audit i lifecycle nalazi ostaju zasebni.
 
 Hard delete ne provjerava transfer items, contract items ili license assignments u vlastitom guardu; FK ponašanje djelimično blokira ili kaskadira, ali API contract zavisi od DB greške. Brisanje asseta kaskadno briše event history, što slabi dokazivost custody historije; formalni retention/legal policy mora odlučiti treba li tombstone umjesto fizičkog brisanja.
 
@@ -161,7 +156,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | ------------ | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-assets-01 | P1       | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama                       | zatvoreno |
 | BA-assets-02 | P1       | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type                | zatvoreno |
-| BA-assets-03 | P1       | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer          | otvoreno |
+| BA-assets-03 | P1       | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer          | zatvoreno |
 | BA-assets-04 | P1       | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke           | otvoreno |
 | BA-assets-05 | P2       | Unique custom JSON atribut je read-before-write bez DB zaštite                                | otvoreno |
 | BA-assets-06 | P2       | Parallel relation cycle/symmetric insert može prekršiti graph invariant                        | otvoreno |
@@ -262,4 +257,10 @@ Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `
 
 ## 21. Implementacijski closeout — W7.2 (`BA-assets-02`)
 
-W7.2 scope-filtera relation endpoint čvorove prema `asset.read` OU subtreeu i contract iteme prije odgovora; foreign asset ID/tag/name/status/type i relation edge ID se ne vraćaju, već samo agregatni hidden count. PostgreSQL acceptance suite pokriva scope-vidljive root/child relacije u oba smjera, foreign veze, ugovor sa vidljivim i foreign opremom te globalnog čitaoca. Kodni commit je `972e5fffbd00aa5ac398bf62e2900cc1faba7c18`; Prettier korekcija je `b73a7611ae6b25fa2ff052e2d17df1992e4afef5`. Prvi CI `40916554238` pao je samo na frontend Prettier koraku; nakon korekcije finalni CI `40917663219` je zelen. Nema nove DB migracije. Potpuni testni, CI i rollout dokaz je u [88-assets-graph-scope.md](../implementation/88-assets-graph-scope.md); `BA-assets-03/04` i ostali nalazi ostaju otvoreni.
+W7.2 scope-filtera relation endpoint čvorove prema `asset.read` OU subtreeu i contract iteme prije odgovora; foreign asset ID/tag/name/status/type i relation edge ID se ne vraćaju, već samo agregatni hidden count. PostgreSQL acceptance suite pokriva scope-vidljive root/child relacije u oba smjera, foreign veze, ugovor sa vidljivim i foreign opremom te globalnog čitaoca. Kodni commit je `972e5fffbd00aa5ac398bf62e2900cc1faba7c18`; Prettier korekcija je `b73a7611ae6b25fa2ff052e2d17df1992e4afef5`. Prvi CI `40916554238` pao je samo na frontend Prettier koraku; nakon korekcije finalni CI `40917663219` je zelen. Nema nove DB migracije. Potpuni testni, CI i rollout dokaz je u [88-assets-graph-scope.md](../implementation/88-assets-graph-scope.md); u tom closeoutu `BA-assets-03/04` i ostali nalazi su ostali otvoreni.
+
+## 22. Implementacijski closeout — W7.3 (`BA-assets-03`)
+
+W7.3 zatvorio je `BA-assets-03` nakon što su status/assign/unassign dobili obavezni expected version, a transakcijski CAS uslov obuhvatio `id`, `version`, trenutni status i holdera. Eventi i custody/status side effecti nastaju samo nakon `count === 1`; stale i paralelni gubitnički zahtjevi vraćaju `ASSET_VERSION_CONFLICT` / HTTP 409 bez dodatnog eventa. Osam real-PostgreSQL acceptance testova pokriva stale general PUT/status/assign/unassign, racing stale RETIRED zahtjev i paralelne status/assign/unassign mutacije. Kriterijski retirement interleaving potvrđuje da gubitnički zahtjev ne čisti holdera, ne briše device `LicenseAssignment` i ne emituje unassign/license-release event.
+
+Audit §4 napomena o opcionalnom `version` na generalnom updateu uključena je u ovaj closure kriterij: update DTO/servis sada zahtijeva verziju i neće prihvatiti blind PUT, dok create ostaje versionless. Feature commit je `8f929e0ce8b3bf922ab80e80b5141da20ad2a86a`; dodatni licence-side-effect acceptance test je u commit `4ecbed60244c9da33d3c91fc693f5fac6120399b`. Finalni CI [`40930141682`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40930141682) je zelen na testanom SHA `4ecbed60244c9da33d3c91fc693f5fac6120399b`; backend, PostgreSQL/Redis integration, frontend, docs, container/supply-chain i CI gate prošli su. Push workflow je preskočio E2E jobove i zero high/critical image enforcement prema workflow uslovima; nema CI pada. Lokalni backend generate/build bio je blokiran sandboxom koji ne može dohvatiti Prisma engine, a CI je uspješno generisao client i izvršio suiteove. Nema schema promjene ni DB migracije. Potpuni testni, rollout i API contract dokaz je u [89-assets-version-cas.md](../implementation/89-assets-version-cas.md). `BA-assets-04` i svi drugi susjedni nalazi ostaju otvoreni.

@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.2 završen; W7.3 sljedeći).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.3 završen; W7.4 sljedeći).
 
 ### Redoslijed
 
@@ -438,7 +438,7 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 ## 8. Val 7 — domain workflows
 
 **Status:** u toku; audit plan svrstava jedinice 22–27 (`assets`, `problems`, `changes`, `knowledge-base`, `reports`, `search`) u WS-F / wave 7.<br>
-**Stanje nakon W7.2:** od 25 početnih P1 nalaza u ovih šest jedinica, W7.1 je zatvorio tri zajednička scope nalaza, a W7.2 još jedan asset graph nalaz; 21 P1 ostaje otvoren. Svaki paket ima vlastiti zeleni CI dokaz prije nastavka.
+**Stanje nakon W7.3:** od 25 početnih P1 nalaza u ovih šest jedinica, W7.1 je zatvorio tri zajednička scope nalaza, W7.2 jedan asset graph nalaz, a W7.3 jedan asset CAS nalaz; 20 P1 ostaje otvoreno. Svaki paket ima vlastiti zeleni CI dokaz prije nastavka.
 
 ### W7.1 — očuvanje assignment scopea kroz domain viewere — završeno
 
@@ -456,8 +456,17 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Prvi CI `40916554238` pao je na Prettier provjeri relation panela; format je korigovan u `b73a761`, a finalni CI je zelen. Backend, PostgreSQL/Redis integration, frontend, docs guard i CI gate su prošli. Push workflow je preskočio E2E; container high/critical enforcement korak je također bio skipped, ne failed.
 - Nema DB migracije; detalji su u [88-assets-graph-scope.md](implementation/88-assets-graph-scope.md).
 
-### Sljedeći paket — W7.3
+### W7.3 — jedinstveni version/CAS ugovor za asset mutacije — završeno
 
-Nastaviti sa `BA-assets-03` (P1): jedinstven version/CAS ugovor za `changeStatus`, `assign` i `unassign`, usklađen s transfer mutacijama; acceptance treba dokazati da paralelni/stari zahtjevi ne pregaze custody stanje niti proizvedu pogrešan event. Ne zatvarati relation-mutability, license OU ili druge susjedne nalaze bez njihovog zasebnog dokaza.
+- Feature commit je `8f929e0ce8b3bf922ab80e80b5141da20ad2a86a`; nakon kriterijskog licence-side-effect testa finalni testani SHA je `4ecbed60244c9da33d3c91fc693f5fac6120399b`, CI [`40930141682`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40930141682) je zelen; zatvoren je samo `BA-assets-03`.
+- `changeStatus`, `assign` i `unassign` zahtijevaju expected version i rade CAS nad `id + version + status + assignedUserId`; eventi i custody side effecti izvršavaju se tek nakon uspješnog CAS-a unutar iste transakcije.
+- W7.3 closure obuhvata i audit §4 napomenu o generalnom asset `PUT`: update DTO više ne prihvata nedostajuću verziju; `POST` create ostaje versionless. Stale PUT/status/assign/unassign vraća HTTP 409.
+- Osam direktnih PostgreSQL acceptance testova pokriva stale update/status/assign/unassign, racing stale RETIRED zahtjev i paralelni status/assign/unassign sa zajedničkim DB snapshotom. Poseban interleaving test dokazuje da stale retirement ne briše holdera niti postojeći `LicenseAssignment` i ne stvara unassign/license-release event. DTO test pokriva obaveznu pozitivnu verziju i HTTP 409 mapiranje.
+- Backend build/test, PostgreSQL+Redis integration, frontend, docs guard, container/supply-chain i CI gate su prošli. Push workflow je preskočio E2E; zero high/critical image-enforcement korak je `skipped` prema workflow uslovu, ne `failed`.
+- Nema DB migracije; postojeća `Asset.version` kolona je dovoljna. Lokalni sandbox nije mogao preuzeti Prisma engine, ali CI je uspješno generisao client i završio backend/integration suiteove. Detalji su u [89-assets-version-cas.md](implementation/89-assets-version-cas.md).
 
-Ostali početni P1 paketi ostaju otvoreni: `BA-assets-04`, `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
+### Sljedeći paket — W7.4
+
+Nastaviti sa `BA-assets-04` (P1): pouzdana reminder delivery/state semantika — threshold se ne označava završenim bez primaoca i potvrđene isporuke, uz failure/retry/recovery acceptance. Ne zatvarati relation-mutability, license OU, audit atomicity ili druge susjedne nalaze bez zasebnog dokaza.
+
+Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
