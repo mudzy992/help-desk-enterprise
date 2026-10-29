@@ -113,10 +113,13 @@ describeIfDatabase('asset license assignment OU and scope (PostgreSQL integratio
     await prisma?.$disconnect();
   });
 
-  function viewer(readScope: { readonly global: boolean; readonly unitPath: string | null }, manageScope = {
-    global: false,
-    unitPath: rootPath,
-  }): AssetViewer {
+  function viewer(
+    readScope: { readonly global: boolean; readonly unitPath: string | null },
+    manageScope: { readonly global: boolean; readonly unitPath: string | null } = {
+      global: false,
+      unitPath: rootPath,
+    },
+  ): AssetViewer {
     return {
       userId: actorId,
       isSuperAdmin: false,

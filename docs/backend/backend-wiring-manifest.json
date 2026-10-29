@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
   "controllerFiles": 99,
-  "routeCount": 613,
+  "routeCount": 614,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 593,
+    "authenticated": 594,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 593,
+    "explicit": 594,
     "inherited-or-public": 20
   },
   "routes": [
@@ -1027,6 +1027,21 @@
       "handler": "revealLicenseKey",
       "method": "POST",
       "path": "/assets/licenses/:licenseId/key",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "assets",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/assets/assets.controller.ts",
+      "controller": "AssetsController",
+      "handler": "licenseUserCandidates",
+      "method": "GET",
+      "path": "/assets/licenses/:licenseId/users",
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
