@@ -217,6 +217,8 @@ model AssetUniqueAttributeValue {
   @@index([assetTypeId, attributeId])
 }
 
+/// PostgreSQL migration 20271027230000 adds database-only directed-acyclic and
+/// canonical CONNECTED_TO uniqueness guards.
 model AssetRelation {
   id              String            @id @default(cuid())
   fromAssetId     String

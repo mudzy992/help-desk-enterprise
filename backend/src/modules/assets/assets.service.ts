@@ -14,6 +14,7 @@ import { AssetTransfersService } from './transfers/asset-transfers.service';
 import { dateOnly, optionalDate, optionalText } from './asset-fields';
 import { validateAssetAttributes, type AssetAttributeDefinition, type AttributeIssue } from './asset-attributes';
 import { isUniqueAssetAttributeValueConflict } from './asset-unique-attributes';
+import { isAssetRelationCycleConflict, isAssetRelationExistsConflict } from './asset-relation-invariants';
 import { collectRelationImpact, isDirectedRelation, wouldCreateRelationCycle, type RelationEdge } from './asset-relations';
 import { isPathInScope, unitScopeWhere, viewerHasPermission, type AssetScope, type AssetViewer } from './asset-viewer';
 import {
@@ -959,15 +960,23 @@ export class AssetsService {
     if (isDirectedRelation(input.kind) && (await wouldCreateRelationCycle(id, input.toAssetId, this.loadEdges))) {
       throw new AssetError(assetErrorCodes.relationCycle);
     }
-    const relation = await this.prisma.$transaction(async (transaction) => {
-      const created = await transaction.assetRelation.create({
-        data: { fromAssetId: id, toAssetId: input.toAssetId, kind: input.kind, createdByUserId: viewer.userId },
+    try {
+      const relation = await this.prisma.$transaction(async (transaction) => {
+        const created = await transaction.assetRelation.create({
+          data: { fromAssetId: id, toAssetId: input.toAssetId, kind: input.kind, createdByUserId: viewer.userId },
+        });
+        await this.event(transaction, id, assetEventActions.relationAdded, viewer, { kind: input.kind, toAssetId: input.toAssetId, direction: 'out' });
+        await this.event(transaction, input.toAssetId, assetEventActions.relationAdded, viewer, { kind: input.kind, fromAssetId: id, direction: 'in' });
+        return created;
       });
-      await this.event(transaction, id, assetEventActions.relationAdded, viewer, { kind: input.kind, toAssetId: input.toAssetId, direction: 'out' });
-      await this.event(transaction, input.toAssetId, assetEventActions.relationAdded, viewer, { kind: input.kind, fromAssetId: id, direction: 'in' });
-      return created;
-    });
-    return { id: relation.id };
+      return { id: relation.id };
+    } catch (error) {
+      // Preserve the established API contract when concurrent requests beat
+      // the read-before-write checks and the database invariant is the arbiter.
+      if (isAssetRelationCycleConflict(error)) throw new AssetError(assetErrorCodes.relationCycle);
+      if (isAssetRelationExistsConflict(error)) throw new AssetError(assetErrorCodes.relationExists);
+      throw error;
+    }
   }
 
   async removeRelation(id: string, relationId: string, viewer: AssetViewer) {
