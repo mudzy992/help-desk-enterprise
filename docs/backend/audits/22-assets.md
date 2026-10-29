@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-assets-01`; ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je zatvorio `BA-assets-01`, a W7.2 je zatvorio `BA-assets-02`; svi ostali nalazi iz ovog audita ostaju otvoreni.
 
 ## 1. Executive summary
 
@@ -13,7 +13,7 @@
 
 Baseline je ipak **4,59/10**. Četiri P1 nalaza pogađaju authorization, povjerljivost, custody integritet i operativnu isporuku. ADMIN assignment je globalan i kada je vezan za OU. Asset detail/contract veze vraćaju identitet foreign asseta preko cross-OU relacije. Direktni status/assign/unassign putevi rade nad ranije učitanim stanjem bez version/CAS preduslova i mogu pregaziti paralelni transfer. Reminder threshold se označava poslanim nakon pokušaja, čak i bez primaoca ili uspješne isporuke, pa upozorenje može trajno nestati.
 
-Dodatni nalazi uključuju race za unique JSON atribut, cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. Nema P0. Popravke nisu implementirane.
+Dodatni nalazi uključuju race za unique JSON atribut, cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. Nema P0. Baseline ocjena i ovaj opis su audit snapshot; `BA-assets-01` i `BA-assets-02` su naknadno zatvoreni kroz W7.1 i W7.2, dok ostali nalazi ostaju otvoreni.
 
 ## 2. Scope i inventar
 
@@ -31,9 +31,9 @@ Registarskih 9.053 LOC korigovano je na 9.009.
 
 Većina list/detail/write putanja koristi centralni `AssetAccessService`, OU path + subtree i uniformni not-found za foreign direct ID. Import apply ponovo računa aktuelni actor scope. Transfer manager mora imati manage scope nad svim aktuelnim itemima. To su dobre granice.
 
-Međutim `assetViewerFromContext` označava svaki ADMIN/SUPER_ADMIN assignment globalnim, neovisno o `organizationalUnitPath`. Scoped ADMIN zato dobija installation-wide `asset.read/manage/import/report/type/license/contract` pristup, transfere, ključeve i reminder podatke. Ovo ponavlja ranije utvrđeni scoped-admin problem i mora koristiti stvarni assignment scope; samo eksplicitni installation-wide assignment smije biti globalan.
+Auditom je utvrđeno da je `assetViewerFromContext` označavao svaki ADMIN/SUPER_ADMIN assignment globalnim, neovisno o `organizationalUnitPath`, pa je scoped ADMIN dobijao installation-wide pristup. `BA-assets-01` zatvoren je u W7.1: globalni scope sada zahtijeva installation-wide assignment, a OU-scoped grant zadržava assignment path za sve asset permissione; detalj je u [W7.1 implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 
-Cross-OU graph nije dosljedno redigovan. `detail()` prvo scope-checka root asset, ali `relationsOf()` bez scope filtera vraća foreign relation asset ID, tag, name, status i type. Contract detail slično vraća tag/name/status svih itema i samo `canOpen=false`; postojanje i identitet foreign opreme su već otkriveni. Impact endpoint pravilno svodi out-of-scope čvorove na hidden count i treba biti obrazac za sve graph prikaze.
+`BA-assets-02` je reprodukovao cross-OU graph leak: `relationsOf()` vraćao je foreign asset ID/tag/name/status/type, a contract detail vraćao je tag/name/status uz `canOpen=false`. W7.2 zatvorio je taj leak scope-filterom u DB upitima prije response shapeanja: relation prikaz vraća samo čvorove u read scopeu, a foreign veze samo kao agregatni hidden count; contract detail vraća samo scope-vidljive assete i hidden item count. Impact endpoint ostaje isti hidden-count obrazac. Scope granica za mutacije cross-OU relation edgea ostaje odvojeno otvorena u dijelu 5 i nije zatvorena ovim paketom.
 
 Ticket requester namjerno vidi plain linked equipment, dok staff dobija `canOpen`; picker je ograničen na vlastitu aktivnu opremu. Ipak acceptance test mora dokazati da requester ne dobija notes, serial, OU, licence, ugovore ili history i da foreign staff link ne proširuje asset pravo.
 
@@ -160,7 +160,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | ID           | Severity | Nalaz                                                                                         | Status   |
 | ------------ | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-assets-01 | P1       | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama                       | zatvoreno |
-| BA-assets-02 | P1       | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type                | otvoreno |
+| BA-assets-02 | P1       | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type                | zatvoreno |
 | BA-assets-03 | P1       | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer          | otvoreno |
 | BA-assets-04 | P1       | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke           | otvoreno |
 | BA-assets-05 | P2       | Unique custom JSON atribut je read-before-write bez DB zaštite                                | otvoreno |
@@ -182,7 +182,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 ## 16. Ključne korekcije
 
 - **01:** zatvoreno u W7.1 — scope ostaje vezan za assignment, a globalni doseg zahtijeva installation-wide grant; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
-- **02:** scope-filter/redact svaki relation/contract/license graph čvor prije shapeanja odgovora.
+- **02:** zatvoreno u W7.2 za relation/contract graph: foreign asset čvorovi se filtriraju prije shapeanja, a prikazuje se samo hidden count; detalj u [W7.2 implementacijskom dokazu](../implementation/88-assets-graph-scope.md). Licence i cross-boundary relation mutacije ostaju zasebni otvoreni scopeovi.
 - **03:** version/If-Match i CAS predicate na svim status/custody putevima; conflict event nastaje samo iz zaključanog stanja.
 - **04, 11:** persisted per-item/threshold/recipient delivery/outbox; marker tek nakon policy-dovoljnog uspjeha; extra recipient kroz isti sistem.
 - **05–06:** normalizovane unique attribute vrijednosti i canonical relation edge/invariant uz DB constraint/locking.
@@ -259,3 +259,7 @@ Modul ima ozbiljan i funkcionalno bogat temelj, posebno u transferu, spreadsheet
 ## 20. Implementacijski closeout — W7.1 (`BA-assets-01`)
 
 Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `assetViewerFromContext` poštuje assignment OU za `asset.read/manage/import/report/type/license/contract`; samo installation-wide assignment može dati globalni scope. Dodani su regresijski testovi za scoped ADMIN, globalni ADMIN, nedosljedan scope i scoped/globalni SUPER_ADMIN. Nema nove migracije. Baseline ocjena ostaje audit snapshot; ostali assets nalazi su i dalje otvoreni. Zajednički dokaz i CI detalji: [87-domain-assignment-scope.md](../implementation/87-domain-assignment-scope.md).
+
+## 21. Implementacijski closeout — W7.2 (`BA-assets-02`)
+
+W7.2 scope-filtera relation endpoint čvorove prema `asset.read` OU subtreeu i contract iteme prije odgovora; foreign asset ID/tag/name/status/type i relation edge ID se ne vraćaju, već samo agregatni hidden count. PostgreSQL acceptance suite pokriva scope-vidljive root/child relacije u oba smjera, foreign veze, ugovor sa vidljivim i foreign opremom te globalnog čitaoca. Kodni commit je `972e5fffbd00aa5ac398bf62e2900cc1faba7c18`; Prettier korekcija je `b73a7611ae6b25fa2ff052e2d17df1992e4afef5`. Prvi CI `40916554238` pao je samo na frontend Prettier koraku; nakon korekcije finalni CI `40917663219` je zelen. Nema nove DB migracije. Potpuni testni, CI i rollout dokaz je u [88-assets-graph-scope.md](../implementation/88-assets-graph-scope.md); `BA-assets-03/04` i ostali nalazi ostaju otvoreni.

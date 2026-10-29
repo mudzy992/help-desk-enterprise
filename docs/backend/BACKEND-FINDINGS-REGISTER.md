@@ -1,10 +1,10 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — Val 7 je u toku<br>
+**Status:** audit baseline + djelimična implementacija — W7.2 je zatvorio `BA-assets-02`; W7.3 `BA-assets-03` je sljedeći<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-29<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 588 otvorenih / 104 zatvorena / 692 ukupno
+**Trenutno:** 587 otvorenih / 105 zatvorenih / 692 ukupno
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -274,7 +274,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 21 | `on-call` | `BA-on-call-13` | P3 | Pending identični swap zahtjevi nemaju semantic dedupe/rate limit | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-14` | P3 | Service/concurrency/revocation integracijska matrica nije pokrivena | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 22 | `assets` | `BA-assets-01` | P1 | OU-scoped ADMIN assignment daje globalni pristup svim assets površinama | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-02` | P1 | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-02` | P1 | Cross-OU relation/contract prikaz otkriva foreign asset ID/tag/name/status/type | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-03` | P1 | Status/assign/unassign nemaju version/CAS i mogu pregaziti paralelni custody/transfer | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-04` | P1 | Reminder threshold se označi poslanim i bez primaoca ili potvrđene uspješne isporuke | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-05` | P2 | Unique custom JSON atribut je read-before-write bez DB zaštite | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -770,7 +770,7 @@ W7.1 je na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `4091152
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **588**
-- Zatvoreno: **104** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
+- Otvoreno: **587**
+- Zatvoreno: **105** (kanonski statusi i pojedinačni implementation trace zapisi iz ovog registra)
 - Duplicirani ID-evi: **0**
 - P0: **0**

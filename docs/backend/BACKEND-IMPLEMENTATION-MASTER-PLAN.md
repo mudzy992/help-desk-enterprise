@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1 završen).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.2 završen; W7.3 sljedeći).
 
 ### Redoslijed
 
@@ -438,7 +438,7 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 ## 8. Val 7 — domain workflows
 
 **Status:** u toku; audit plan svrstava jedinice 22–27 (`assets`, `problems`, `changes`, `knowledge-base`, `reports`, `search`) u WS-F / wave 7.<br>
-**Početno stanje:** 25 P1 nalaza u ovih šest jedinica; W7.1 je zatvorio tri zajednička scope nalaza. Svaki sljedeći paket mora imati vlastiti zeleni CI dokaz prije nastavka.
+**Stanje nakon W7.2:** od 25 početnih P1 nalaza u ovih šest jedinica, W7.1 je zatvorio tri zajednička scope nalaza, a W7.2 još jedan asset graph nalaz; 21 P1 ostaje otvoren. Svaki paket ima vlastiti zeleni CI dokaz prije nastavka.
 
 ### W7.1 — očuvanje assignment scopea kroz domain viewere — završeno
 
@@ -448,8 +448,16 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Assets permission scope, problem-group authority i CAB membership su regresijski testirani; nema DB migracije.
 - Detaljni acceptance, lokalna environment blokada i CI matrica su u [87-domain-assignment-scope.md](implementation/87-domain-assignment-scope.md).
 
-### Sljedeći paket — W7.2
+### W7.2 — scope-filter relation/contract prikaza — završeno
 
-Prvo nastaviti sa `BA-assets-02` (P1): scope-filterovati i redaktovati foreign asset identitet u relation/contract prikazima. Ovaj rez slijedi W7.1 u assets fazi 1 i ima zaseban acceptance/test/CI gate; ne započinje prije nego što W7.1 kodni CI ostane zelen.
+- Finalni kodni SHA `b73a7611ae6b25fa2ff052e2d17df1992e4afef5`, CI [`40917663219`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40917663219) zelen; zatvoren je samo `BA-assets-02`.
+- Relation detail sada upituje samo endpoint čvorove u `asset.read` OU scopeu; foreign veze se svode na hidden count. Contract detail query filtrira linked assets po istom scopeu, vraća samo vidljive iteme i agregatni hidden count.
+- Dodana su dva direktna PostgreSQL acceptance testa za oba smjera relacije, foreign metadata redakciju, contract iteme i globalni viewer; integration runner i njegov contract test uključuju novu suite.
+- Prvi CI `40916554238` pao je na Prettier provjeri relation panela; format je korigovan u `b73a761`, a finalni CI je zelen. Backend, PostgreSQL/Redis integration, frontend, docs guard i CI gate su prošli. Push workflow je preskočio E2E; container high/critical enforcement korak je također bio skipped, ne failed.
+- Nema DB migracije; detalji su u [88-assets-graph-scope.md](implementation/88-assets-graph-scope.md).
 
-Ostali početni P1 paketi ostaju otvoreni: `BA-assets-03/04`, `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
+### Sljedeći paket — W7.3
+
+Nastaviti sa `BA-assets-03` (P1): jedinstven version/CAS ugovor za `changeStatus`, `assign` i `unassign`, usklađen s transfer mutacijama; acceptance treba dokazati da paralelni/stari zahtjevi ne pregaze custody stanje niti proizvedu pogrešan event. Ne zatvarati relation-mutability, license OU ili druge susjedne nalaze bez njihovog zasebnog dokaza.
+
+Ostali početni P1 paketi ostaju otvoreni: `BA-assets-04`, `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.

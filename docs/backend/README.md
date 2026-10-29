@@ -2,7 +2,7 @@
 
 **Status:** aktuelno<br>
 **Ažurirano:** 2026-10-29<br>
-**Aktivna etapa:** Val 7 / W7 — domain workflows; W7.1 je zeleno zatvoren, W7.2 (`BA-assets-02`) je sljedeći paket.
+**Aktivna etapa:** Val 7 / W7 — domain workflows; W7.1 i W7.2 su zeleno zatvoreni, W7.3 (`BA-assets-03`) je sljedeći paket.
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
@@ -17,6 +17,7 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 7. [Konsolidovani audit 45](audits/45-consolidated-backend-audit.md)
 8. [Implementacija Vala 0 — reprodukcija i safety net](implementation/00-safety-net.md)
 9. [W7.1 — assignment scope u domain workflowima](implementation/87-domain-assignment-scope.md)
+10. [W7.2 — scope-filter relation/contract prikaza](implementation/88-assets-graph-scope.md)
 
 ## Trenutni status
 
@@ -24,7 +25,7 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 - inventar sadrži svih **43** direktorija iz `backend/src/modules`;
 - cross-cutting audit je završio pregled `src/common`, bootstrapa, workera, CLI-ja, Prisma konfiguracije i globalnih mehanizama;
 - svih 45 audit jedinica je završeno; implementacijski Valovi 0–6 su zatvoreni, a Val 7 je u toku;
-- W7.1 je zatvorio `BA-assets-01`, `BA-problems-01` i `BA-changes-01` uz zeleni CI `40911525016`; registar trenutno ima 588 otvorenih / 104 zatvorena nalaza;
+- W7.1 je zatvorio `BA-assets-01`, `BA-problems-01` i `BA-changes-01`; W7.2 je zatvorio samo `BA-assets-02` uz zeleni CI `40917663219`. Registar trenutno ima 587 otvorenih / 105 zatvorenih nalaza; W7.3 `BA-assets-03` je sljedeći;
 - frontend `OPEN-CI-FINAL` ostaje zasebna release obaveza i ne blokira backend implementaciju.
 
 ## Pravilo napredovanja
