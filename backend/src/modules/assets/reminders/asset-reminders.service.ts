@@ -1,8 +1,10 @@
+import { createHash } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { authorizationRoleKeys, permissionKeys } from '../../authorization/authorization.constants';
 import { resolveEmailLocale } from '../../notifications/email/compose-ticket-email';
 import { deliverNotificationEmail } from '../../notifications/email/deliver-notification-email';
+import { emailDeliveryStatuses } from '../../notifications/email/email-template.constants';
 import { isAllowedNotificationEmailAddress } from '../../notifications/email/is-allowed-notification-email-address';
 import { loadEmailChannelConfiguration, type EmailChannelConfiguration } from '../../notifications/email/load-email-channel-configuration';
 import { MAIL_TRANSPORT, type MailTransport } from '../../notifications/email/mail-transport';
@@ -28,7 +30,7 @@ import {
 } from './compose-asset-reminder-email';
 import { localHour, planAssetReminders, type ReminderDecision } from './plan-asset-reminders';
 
-type ScopedLine = AssetReminderLine & { readonly unitPath: string };
+type ScopedLine = AssetReminderLine & { readonly unitPath: string; readonly threshold: number };
 
 type Recipient = {
   readonly id: string;
@@ -72,13 +74,27 @@ function localDateKey(now: Date, timeZone: string): string {
   }
 }
 
+function reminderItemKey(line: Pick<ScopedLine, 'kind' | 'id'>): string {
+  return `${line.kind}:${line.id}`;
+}
+
+/** Stable across hourly/daily retries; a new item or crossed threshold gets a new receipt key. */
+function reminderDeliveryKey(lines: readonly ScopedLine[]): string {
+  const fingerprint = lines
+    .map((line) => [line.kind, line.id, line.threshold, line.endsAt].join('\u001f'))
+    .sort()
+    .join('\u001e');
+  const digest = createHash('sha256').update(fingerprint).digest('hex').slice(0, 32);
+  return `asset-expiring:${digest}`;
+}
+
 /**
  * Paket 3.2 (§10): daily expiry reminders. One in-app notification and one
  * e-mail per responsible user with every item of their scope that crossed a
  * threshold, plus the extra (internal) addresses from the settings. The
- * `remindersSent` arrays are written only after the run, so an item is never
- * reminded twice for the same threshold; a crash before that repeats the run
- * and the per-day dedupe keys keep the notification from doubling.
+ * `remindersSent` arrays advance only when each in-scope recipient with an
+ * enabled channel has a persisted in-app or confirmed e-mail delivery; with no
+ * successful target the threshold stays pending for the next hourly sweep.
  */
 @Injectable()
 export class AssetRemindersService {
@@ -169,6 +185,7 @@ export class AssetRemindersService {
         endsAt: formatDate(endsAt, 'bs', 'UTC'),
         daysLeft: decision.daysLeft,
         path,
+        threshold: decision.threshold,
       });
     for (const decision of assetPlan) {
       const row = assetById.get(decision.id);
@@ -196,57 +213,143 @@ export class AssetRemindersService {
     let emails = 0;
     let inApp = 0;
     let reached = 0;
+    const scopedRecipients = new Map<string, Set<string>>();
+    const requiredRecipients = new Map<string, Set<string>>();
+    const deliveredRecipients = new Map<string, Set<string>>();
+    const addRecipient = (map: Map<string, Set<string>>, line: ScopedLine, userId: string) => {
+      const key = reminderItemKey(line);
+      const values = map.get(key) ?? new Set<string>();
+      values.add(userId);
+      map.set(key, values);
+    };
+
     for (const recipient of recipients) {
       const own = lines.filter((line) => isPathInScope(recipient.scopes[line.kind], line.unitPath));
       if (own.length === 0) continue;
       reached += 1;
+      for (const line of own) addRecipient(scopedRecipients, line, recipient.id);
       const decision = decisions.get(recipient.id);
-      const dedupeKey = `asset-expiring:${dateKey}`;
-      if (decision?.inApp !== false) {
-        const created = await persistInAppNotification(this.prisma, {
-          userId: recipient.id,
-          type: notificationTypes.assetExpiring,
-          title: 'notifications.items.assetExpiring',
-          body: `${assetReminderSummary('bs', own.length)}: ${own
-            .slice(0, 3)
-            .map((line) => line.label)
-            .join(', ')}${own.length > 3 ? ' …' : ''}`,
-          ticketId: null,
-          payload: {
-            ticketId: '',
-            ticketNumber: '',
-            event: notificationTypes.assetExpiring,
-            messageId: dedupeKey,
-            actorUserId: null,
-            confidential: false,
-            count: own.length,
-            title: assetReminderSummary('en', own.length),
-          } as never,
-          dedupeKey: `${dedupeKey}:${recipient.id}`,
-        }).catch((error: unknown) => {
-          this.logger.warn(`asset_reminder_in_app_failed user=${recipient.id} reason=${errorText(error)}`);
-          return null;
-        });
-        if (created !== null) inApp += 1;
+      const wantsInApp = decision?.inApp !== false;
+      const wantsEmail = decision?.email !== 'OFF';
+      if (wantsInApp || wantsEmail) {
+        for (const line of own) addRecipient(requiredRecipients, line, recipient.id);
       }
-      if (decision?.email !== 'OFF' && channel !== null && channel.deliveryEnabled && channel.smtp !== null) {
-        if (await this.sendToUser(channel, recipient, own, dateKey, now, timeZone)) emails += 1;
+      const dedupeKey = reminderDeliveryKey(own);
+      let delivered = false;
+      if (wantsInApp) {
+        try {
+          const created = await persistInAppNotification(this.prisma, {
+            userId: recipient.id,
+            type: notificationTypes.assetExpiring,
+            title: 'notifications.items.assetExpiring',
+            body: `${assetReminderSummary('bs', own.length)}: ${own
+              .slice(0, 3)
+              .map((line) => line.label)
+              .join(', ')}${own.length > 3 ? ' …' : ''}`,
+            ticketId: null,
+            payload: {
+              ticketId: '',
+              ticketNumber: '',
+              event: notificationTypes.assetExpiring,
+              messageId: dedupeKey,
+              actorUserId: null,
+              confidential: false,
+              count: own.length,
+              title: assetReminderSummary('en', own.length),
+            } as never,
+            dedupeKey,
+          });
+          // A null result is the helper's existing-dedupe case, i.e. a prior persisted delivery.
+          if (created !== null) inApp += 1;
+          delivered = true;
+        } catch (error) {
+          this.logger.warn(`asset_reminder_in_app_failed user=${recipient.id} reason=${errorText(error)}`);
+        }
+      }
+      if (wantsEmail && channel !== null && channel.deliveryEnabled && channel.smtp !== null) {
+        if (await this.sendToUser(channel, recipient, own, dedupeKey, now, timeZone)) {
+          emails += 1;
+          delivered = true;
+        }
+      }
+      if (delivered) {
+        for (const line of own) addRecipient(deliveredRecipients, line, recipient.id);
       }
     }
-    emails += await this.sendToExtras(channel, lines, dateKey, now, timeZone);
 
-    // Record the thresholds only after delivery was attempted.
-    await this.prisma.$transaction([
-      ...assetPlan.map((decision) =>
-        this.prisma.asset.update({ where: { id: decision.id }, data: { warrantyRemindersSent: decision.remindersSent } }),
-      ),
-      ...contractPlan.map((decision) =>
-        this.prisma.assetContract.update({ where: { id: decision.id }, data: { remindersSent: decision.remindersSent } }),
-      ),
-      ...licensePlan.map((decision) =>
-        this.prisma.softwareLicense.update({ where: { id: decision.id }, data: { remindersSent: decision.remindersSent } }),
-      ),
-    ]);
+    const completedItemKeys = new Set<string>();
+    for (const line of lines) {
+      const key = reminderItemKey(line);
+      const required = requiredRecipients.get(key);
+      if (required !== undefined && required.size > 0 && deliveredRecipients.get(key)?.size === required.size) {
+        completedItemKeys.add(key);
+      }
+    }
+    // Keep the existing extra-address sends independent of primary-channel failures.
+    // They can satisfy a threshold only if they are its sole recipients and at least one send succeeds.
+    const extraEmails = await this.sendToExtras(channel, lines, dateKey, now, timeZone);
+    emails += extraEmails;
+    if (extraEmails > 0) {
+      for (const line of lines) {
+        if ((scopedRecipients.get(reminderItemKey(line))?.size ?? 0) === 0) {
+          completedItemKeys.add(reminderItemKey(line));
+        }
+      }
+    }
+
+    // Advance only completed item-thresholds, and guard against a concurrent expiry-date/reset change.
+    const thresholdUpdates = [
+      ...assetPlan.flatMap((decision) => {
+        const key = `warranty:${decision.id}`;
+        const row = assetById.get(decision.id);
+        return row && completedItemKeys.has(key)
+          ? [
+              this.prisma.asset.updateMany({
+                where: {
+                  id: decision.id,
+                  retiredAt: null,
+                  warrantyEndsAt: row.warrantyEndsAt,
+                  warrantyRemindersSent: { equals: row.warrantyRemindersSent },
+                },
+                data: { warrantyRemindersSent: decision.remindersSent },
+              }),
+            ]
+          : [];
+      }),
+      ...contractPlan.flatMap((decision) => {
+        const key = `contract:${decision.id}`;
+        const row = contractById.get(decision.id);
+        return row && completedItemKeys.has(key)
+          ? [
+              this.prisma.assetContract.updateMany({
+                where: {
+                  id: decision.id,
+                  endsAt: row.endsAt,
+                  remindersSent: { equals: row.remindersSent },
+                },
+                data: { remindersSent: decision.remindersSent },
+              }),
+            ]
+          : [];
+      }),
+      ...licensePlan.flatMap((decision) => {
+        const key = `license:${decision.id}`;
+        const row = licenseById.get(decision.id);
+        return row && completedItemKeys.has(key)
+          ? [
+              this.prisma.softwareLicense.updateMany({
+                where: {
+                  id: decision.id,
+                  validUntil: row.validUntil,
+                  remindersSent: { equals: row.remindersSent },
+                },
+                data: { remindersSent: decision.remindersSent },
+              }),
+            ]
+          : [];
+      }),
+    ];
+    if (thresholdUpdates.length > 0) await this.prisma.$transaction(thresholdUpdates);
     const result = { skipped: null, items: lines.length, recipients: reached, emails, inApp };
     this.logger.log(
       `asset_reminders items=${result.items} recipients=${result.recipients} emails=${result.emails} in_app=${result.inApp}`,
@@ -258,13 +361,12 @@ export class AssetRemindersService {
     channel: EmailChannelConfiguration,
     recipient: Recipient,
     lines: readonly AssetReminderLine[],
-    dateKey: string,
+    dedupeKey: string,
     now: Date,
     timeZone: string,
   ): Promise<boolean> {
     if (!isAllowedNotificationEmailAddress(recipient.email, emailPolicy(channel))) return false;
     const locale = resolveEmailLocale(recipient.preferredLocale, channel);
-    const dedupeKey = `asset-expiring:${dateKey}`;
     const composed = composeAssetReminderEmail({
       configuration: channel,
       locale,
@@ -286,7 +388,11 @@ export class AssetRemindersService {
         messageId: composed.messageId,
         headers: composed.headers,
       });
-      return true;
+      const delivery = await this.prisma.notificationEmailDelivery.findUnique({
+        where: { userId_dedupeKey: { userId: recipient.id, dedupeKey } },
+        select: { status: true },
+      });
+      return delivery?.status === emailDeliveryStatuses.sent;
     } catch (error) {
       this.logger.warn(`asset_reminder_email_failed user=${recipient.id} reason=${errorText(error)}`);
       return false;
