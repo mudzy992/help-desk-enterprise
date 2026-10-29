@@ -13,6 +13,7 @@ import { AssetAccessService } from './asset-access.service';
 import { AssetTransfersService } from './transfers/asset-transfers.service';
 import { dateOnly, optionalDate, optionalText } from './asset-fields';
 import { validateAssetAttributes, type AssetAttributeDefinition, type AttributeIssue } from './asset-attributes';
+import { isUniqueAssetAttributeValueConflict } from './asset-unique-attributes';
 import { collectRelationImpact, isDirectedRelation, wouldCreateRelationCycle, type RelationEdge } from './asset-relations';
 import { isPathInScope, unitScopeWhere, viewerHasPermission, type AssetScope, type AssetViewer } from './asset-viewer';
 import {
@@ -197,10 +198,13 @@ export class AssetsService {
       const value = attributes[definition.key];
       if (value === undefined) continue;
       const rows = await this.prisma.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "Asset"
-        WHERE "typeId" = ${typeId}
-          AND lower("attributes"->>${definition.key}) = lower(${String(value)})
-          AND (${selfId}::text IS NULL OR "id" <> ${selfId})
+        SELECT stored."assetId" AS "id"
+        FROM "AssetUniqueAttributeValue" AS stored
+        JOIN "AssetAttribute" AS attribute_definition ON attribute_definition."id" = stored."attributeId"
+        WHERE attribute_definition."typeId" = ${typeId}
+          AND attribute_definition."key" = ${definition.key}
+          AND stored."canonicalValue" = lower(${String(value)})
+          AND (${selfId}::text IS NULL OR stored."assetId" <> ${selfId})
         LIMIT 1`;
       if (rows.length > 0) throw new AssetError(assetErrorCodes.attributeNotUnique, definition.key);
     }
@@ -599,6 +603,9 @@ export class AssetsService {
         });
         return { id: created.id, assetTag: created.assetTag };
       } catch (error) {
+        if (isUniqueAssetAttributeValueConflict(error)) {
+          throw new AssetError(assetErrorCodes.attributeNotUnique);
+        }
         const known = error as { code?: string; meta?: unknown };
         const isTagConflict = known.code === 'P2002' && JSON.stringify(known.meta ?? {}).includes('assetTag');
         if (!isTagConflict) throw error;
@@ -657,22 +664,29 @@ export class AssetsService {
     };
     const changes = diffAsset(current as unknown as Record<string, unknown>, next as unknown as Record<string, unknown>);
     if (Object.keys(changes).length === 0) return { id, version: current.version };
-    const updated = await this.prisma.$transaction(async (transaction) => {
-      const result = await transaction.asset.updateMany({
-        where: { id, version: input.version },
-        data: {
-          ...next,
-          attributes: next.attributes as Prisma.InputJsonValue,
-          // A changed warranty date re-arms its reminders.
-          ...(changes.warrantyEndsAt ? { warrantyRemindersSent: [] } : {}),
-          version: { increment: 1 },
-        },
+    try {
+      const updated = await this.prisma.$transaction(async (transaction) => {
+        const result = await transaction.asset.updateMany({
+          where: { id, version: input.version },
+          data: {
+            ...next,
+            attributes: next.attributes as Prisma.InputJsonValue,
+            // A changed warranty date re-arms its reminders.
+            ...(changes.warrantyEndsAt ? { warrantyRemindersSent: [] } : {}),
+            version: { increment: 1 },
+          },
+        });
+        if (result.count !== 1) throw new AssetError(assetErrorCodes.versionConflict);
+        await this.event(transaction, id, assetEventActions.updated, viewer, { changes });
+        return current.version + 1;
       });
-      if (result.count !== 1) throw new AssetError(assetErrorCodes.versionConflict);
-      await this.event(transaction, id, assetEventActions.updated, viewer, { changes });
-      return current.version + 1;
-    });
-    return { id, version: updated };
+      return { id, version: updated };
+    } catch (error) {
+      if (isUniqueAssetAttributeValueConflict(error)) {
+        throw new AssetError(assetErrorCodes.attributeNotUnique);
+      }
+      throw error;
+    }
   }
 
   async changeStatus(

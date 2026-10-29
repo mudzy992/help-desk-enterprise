@@ -43,6 +43,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/modules/security/step-up-policy.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-scope-display.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-version-cas.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-unique-attributes.integration.spec.ts"));
   const names = integrationSpecs.map((spec, index) => buildDatabaseName(index + 1, spec));
   assert.equal(new Set(names).size, integrationSpecs.length);
   for (const name of names) {

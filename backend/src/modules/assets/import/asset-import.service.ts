@@ -13,6 +13,7 @@ import type { AssetAttributeDefinition, AttributeValue } from '../asset-attribut
 import { buildLocationPaths } from '../asset-locations';
 import { isPathInScope, type AssetScope, type AssetViewer } from '../asset-viewer';
 import { AssetError, assetErrorCodes, assetEventActions, type AssetStatusValue } from '../assets.constants';
+import { isUniqueAssetAttributeValueConflict } from '../asset-unique-attributes';
 import { AssetsService, type AssetListQuery } from '../assets.service';
 import {
   assetColumnLabels,
@@ -452,9 +453,12 @@ export class AssetImportService {
       const owners = new Map<string, string>();
       for (const part of chunk(values, 1000)) {
         const found = await this.prisma.$queryRaw<{ id: string; value: string }[]>`
-          SELECT "id", lower("attributes"->>${definition.key}) AS "value"
-          FROM "Asset"
-          WHERE "typeId" = ${typeId} AND lower("attributes"->>${definition.key}) = ANY(${part}::text[])`;
+          SELECT stored."assetId" AS "id", stored."canonicalValue" AS "value"
+          FROM "AssetUniqueAttributeValue" AS stored
+          JOIN "AssetAttribute" AS attribute_definition ON attribute_definition."id" = stored."attributeId"
+          WHERE attribute_definition."typeId" = ${typeId}
+            AND attribute_definition."key" = ${definition.key}
+            AND stored."canonicalValue" = ANY(${part}::text[])`;
         for (const row of found) owners.set(row.value, row.id);
       }
       result.set(definition.key, owners);
@@ -581,9 +585,16 @@ export class AssetImportService {
             );
             mergeResult(result, batchResult);
           } catch (error) {
+            const uniqueConflict = isUniqueAssetAttributeValueConflict(error);
             this.logger.warn(`asset_import_batch_failed job=${job.id} reason=${error instanceof Error ? error.message.slice(0, 200) : 'unknown'}`);
             result.failed += batch.length;
-            result.failures.push(...batch.map((entry) => ({ row: entry.row, column: null, code: 'batch_failed' })));
+            result.failures.push(
+              ...batch.map((entry) => ({
+                row: entry.row,
+                column: null,
+                code: uniqueConflict ? 'attribute_not_unique_concurrent' : 'batch_failed',
+              })),
+            );
           }
         }
       }
@@ -597,6 +608,9 @@ export class AssetImportService {
         },
       });
       await this.auditApply(job.id, actor, { status: 'FAILED', allOrNothing: true });
+      if (isUniqueAssetAttributeValueConflict(error)) {
+        throw new AssetError(assetErrorCodes.attributeNotUnique);
+      }
       if (error instanceof AssetError) throw error;
       throw new AssetError(assetErrorCodes.importHasErrors, 'rolled_back');
     }

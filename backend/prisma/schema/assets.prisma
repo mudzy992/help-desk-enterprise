@@ -93,24 +93,26 @@ model AssetType {
 }
 
 model AssetAttribute {
-  id         String                 @id @default(cuid())
-  typeId     String
+  id           String                       @id @default(cuid())
+  typeId       String
   /// Key inside Asset.attributes; unique per type, never changes.
-  key        String                 @db.VarChar(48)
-  labelBs    String                 @db.VarChar(80)
-  labelEn    String                 @db.VarChar(80)
-  dataType   AssetAttributeDataType @default(TEXT)
+  key          String                       @db.VarChar(48)
+  labelBs      String                       @db.VarChar(80)
+  labelEn      String                       @db.VarChar(80)
+  dataType     AssetAttributeDataType       @default(TEXT)
   /// SELECT: allowed values (array of strings).
-  options    Json?
-  isRequired Boolean                @default(false)
-  /// Value unique among assets of the type (checked by the service).
-  isUnique   Boolean                @default(false)
-  sortOrder  Int                    @default(0)
-  archivedAt DateTime?
-  type       AssetType              @relation(fields: [typeId], references: [id], onDelete: Cascade)
-  createdAt  DateTime               @default(now())
-  updatedAt  DateTime               @updatedAt
+  options      Json?
+  isRequired   Boolean                      @default(false)
+  /// Value is canonicalized in AssetUniqueAttributeValue and protected by a PostgreSQL unique index.
+  isUnique     Boolean                      @default(false)
+  sortOrder    Int                          @default(0)
+  archivedAt   DateTime?
+  type         AssetType                    @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  uniqueValues AssetUniqueAttributeValue[]
+  createdAt    DateTime                     @default(now())
+  updatedAt    DateTime                     @updatedAt
 
+  @@unique([id, typeId], map: "AssetAttribute_id_typeId_key")
   @@unique([typeId, key])
   @@index([typeId, sortOrder])
 }
@@ -171,21 +173,23 @@ model Asset {
   retiredAt            DateTime?
   /// Optimistic concurrency for edits.
   version              Int                 @default(1)
-  type                 AssetType           @relation(fields: [typeId], references: [id], onDelete: Restrict)
-  assignedUser         User?               @relation("AssetAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  organizationalUnit   OrganizationalUnit  @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
-  location             AssetLocation?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  service              Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  relationsFrom        AssetRelation[]     @relation("AssetRelationFrom")
-  relationsTo          AssetRelation[]     @relation("AssetRelationTo")
-  tickets              TicketAsset[]
-  transferItems        AssetTransferItem[]
-  contractItems        AssetContractItem[]
-  licenseAssignments   LicenseAssignment[]
-  events               AssetEvent[]
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  type                  AssetType                      @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  assignedUser          User?                          @relation("AssetAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  organizationalUnit    OrganizationalUnit             @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  location              AssetLocation?                 @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  service               Service?                       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  relationsFrom         AssetRelation[]                @relation("AssetRelationFrom")
+  relationsTo           AssetRelation[]                @relation("AssetRelationTo")
+  tickets               TicketAsset[]
+  transferItems         AssetTransferItem[]
+  contractItems         AssetContractItem[]
+  licenseAssignments    LicenseAssignment[]
+  events                AssetEvent[]
+  uniqueAttributeValues AssetUniqueAttributeValue[]
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
 
+  @@unique([id, typeId], map: "Asset_id_typeId_key")
   @@index([organizationalUnitId, status])
   @@index([assignedUserId])
   @@index([typeId, status])
@@ -193,6 +197,24 @@ model Asset {
   @@index([locationId])
   @@index([serviceId])
   @@index([serialNumber])
+}
+
+/// DB-maintained canonical values for active unique custom attributes.
+/// `canonicalValue` is populated with PostgreSQL lower() by triggers; the
+/// unique index is the final concurrency boundary for JSON attribute writes.
+model AssetUniqueAttributeValue {
+  assetId         String
+  assetTypeId     String
+  attributeId     String
+  /// Equals assetTypeId; a migration CHECK enforces equality for the composite foreign keys.
+  attributeTypeId String
+  canonicalValue  String         @db.Text
+  asset           Asset          @relation(fields: [assetId, assetTypeId], references: [id, typeId], onDelete: Cascade, onUpdate: Cascade)
+  attribute       AssetAttribute @relation(fields: [attributeId, attributeTypeId], references: [id, typeId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([assetId, attributeId])
+  @@unique([attributeId, canonicalValue], map: "AssetUniqueAttributeValue_attributeId_canonicalValue_key")
+  @@index([assetTypeId, attributeId])
 }
 
 model AssetRelation {
