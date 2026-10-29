@@ -19,6 +19,7 @@ import {
   statusIncidentResolutionTicketEventTopic,
   statusIncidentStartDeliveryTopic,
 } from './status-incident-start-delivery.constants';
+import { StatusPagePublicCacheService } from './status-page-public-cache.service';
 import { withIncidentVisibility, type StatusViewer } from './status-page.service';
 import {
   isIncidentStatusTransitionAllowed,
@@ -67,6 +68,7 @@ export class StatusIncidentsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly authorization: AuthorizationService,
+    private readonly publicCache: StatusPagePublicCacheService,
   ) {
     this.outbox = new TransactionalOutboxService(prisma);
   }
@@ -125,6 +127,7 @@ export class StatusIncidentsService {
       return created;
     });
     // Delivery is durable and asynchronous; `notified` now reports synchronous writes only.
+    await this.publicCache.bumpVersion();
     return { id: incident.id, notified: 0 };
   }
 
@@ -193,6 +196,7 @@ export class StatusIncidentsService {
         organizationalUnitId: null,
       });
     });
+    await this.publicCache.bumpVersion();
   }
 
   /** A timeline entry; RESOLVED closes the incident and notifies (§8.3). */
@@ -252,6 +256,7 @@ export class StatusIncidentsService {
         });
       }
     });
+    await this.publicCache.bumpVersion();
     return { notified: 0 };
   }
 
@@ -281,7 +286,7 @@ export class StatusIncidentsService {
     if (incident.status === 'RESOLVED') {
       throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident cannot take new tickets' });
     }
-    return this.prisma.$transaction(async (transaction) => {
+    const result = await this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, incidentId);
       await this.assertStaffTickets(transaction as never, [ticketId], actor);
       const locked = await transaction.serviceIncident.findUnique({ where: { id: incidentId }, select: { status: true, updatedAt: true } });
@@ -313,12 +318,14 @@ export class StatusIncidentsService {
       });
       return { linked: true };
     });
+    await this.publicCache.bumpVersion();
+    return result;
   }
 
   async unlinkTicket(incidentId: string, ticketId: string, actor: PrivacyActor, expectedRevision?: string): Promise<{ readonly unlinked: boolean }> {
     await this.requireManageServices(await this.incidentServiceIds(incidentId), actor, true);
     const incident = await this.load(incidentId);
-    return this.prisma.$transaction(async (transaction) => {
+    const result = await this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, incidentId);
       await this.assertStaffTickets(transaction as never, [ticketId], actor);
       const locked = await transaction.serviceIncident.findUnique({ where: { id: incidentId }, select: { updatedAt: true } });
@@ -348,6 +355,8 @@ export class StatusIncidentsService {
       });
       return { unlinked: true };
     });
+    await this.publicCache.bumpVersion();
+    return result;
   }
 
   /** "Notify me when resolved" - serialized with visibility transitions. */

@@ -3,41 +3,57 @@ import type Redis from 'ioredis';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import { anonymousViewer, StatusPageService, type IncidentView, type StatusPageView } from './status-page.service';
 import { statusPageLimits } from './status-page.model';
+import { StatusPagePublicCacheService } from './status-page-public-cache.service';
 
-type PublicRequest = { readonly ip?: string };
+type PublicRequest = { readonly ip?: string; readonly socket?: { readonly remoteAddress?: string | null } };
 type HeaderResponse = { setHeader(name: string, value: string): void };
 
 /**
  * Paket 2.7 (§8.1, §15 odluka 5): the public status page - only when
  * `private.statusPage.public` is on (default off). No STAFF_ONLY incidents,
- * no author names, no counters. One cached answer per process (30 s) and a
- * per-IP limit keep an anonymous endpoint cheap; the limiter fails open
- * (the cache already bounds the database load).
+ * no author names, no counters. Shared Redis cache across API instances with
+ * a version key bumped on every incident mutation, and a per-IP rate limit
+ * that fails closed when Redis is unavailable.
  */
 @Controller('public/status')
 export class PublicStatusPageController {
-  private cached: { readonly at: number; readonly body: PublicStatusPage } | null = null;
-  private readonly memoryHits = new Map<string, { count: number; resetAt: number }>();
+  private memoryHits?: Map<string, { count: number; resetAt: number }>;
 
   constructor(
     private readonly page: StatusPageService,
+    private readonly cache: StatusPagePublicCacheService,
     @Optional() @Inject(redisTokens.client) private readonly redis?: Redis,
   ) {}
 
   @Get()
   async overview(@Req() request: PublicRequest, @Res({ passthrough: true }) response: HeaderResponse): Promise<PublicStatusPage> {
-    await this.limit(request.ip ?? 'unknown');
+    const ip = this.clientIp(request);
+    await this.limit(ip);
     const configuration = await this.page.loadConfiguration();
     if (!configuration.enabled || !configuration.public) {
       response.setHeader('Cache-Control', 'no-store');
       throw new NotFoundException({ code: 'STATUS_PAGE_NOT_PUBLIC', message: 'The status page is not public' });
     }
-    const now = Date.now();
-    if (this.cached === null || now - this.cached.at >= statusPageLimits.publicCacheMs) {
-      this.cached = { at: now, body: toPublicStatusPage(await this.page.page(anonymousViewer, new Date(now))) };
+
+    const version = await this.cache.getVersion();
+    const cached = await this.cache.getPage(version);
+    if (cached !== null) {
+      response.setHeader('Cache-Control', `public, max-age=${statusPageLimits.publicCacheMs / 1000}`);
+      return JSON.parse(cached) as PublicStatusPage;
     }
-    response.setHeader('Cache-Control', `public, max-age=${Math.floor(statusPageLimits.publicCacheMs / 1000)}`);
-    return this.cached.body;
+
+    const body = toPublicStatusPage(await this.page.page(anonymousViewer, new Date()));
+    await this.cache.setPage(version, JSON.stringify(body));
+    response.setHeader('Cache-Control', `public, max-age=${statusPageLimits.publicCacheMs / 1000}`);
+    return body;
+  }
+
+  /** Trust-proxy-aware client IP. Falls back to the connection remote address. */
+  private clientIp(request: PublicRequest): string {
+    if (request.ip && request.ip !== 'unknown' && request.ip !== '::1' && request.ip !== '127.0.0.1') {
+      return request.ip;
+    }
+    return request.socket?.remoteAddress ?? 'unknown';
   }
 
   private async limit(ip: string): Promise<void> {
@@ -49,9 +65,18 @@ export class PublicStatusPageController {
         count = await this.redis.incr(key);
         if (count === 1) await this.redis.expire(key, windowSeconds);
       } catch {
-        return;
+        // Redis down: fail closed - reject the request instead of allowing
+        // unbounded access through a broken limiter.
+        throw new HttpException(
+          { code: 'RATE_LIMITED', message: 'Too many requests' },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
     } else {
+      // Memory fallback (single instance, no Redis): bounded map, same window.
+      if (!this.memoryHits) {
+        this.memoryHits = new Map<string, { count: number; resetAt: number }>();
+      }
       const now = Date.now();
       const entry = this.memoryHits.get(ip);
       if (entry === undefined || entry.resetAt <= now) {

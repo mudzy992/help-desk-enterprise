@@ -67,7 +67,8 @@ describeIfDatabase('status page (integration)', () => {
       } as never,
       prisma as never,
     );
-    incidents = new StatusIncidentsService(prisma as never, {} as never, {} as never, authorization);
+    const publicCache = { getVersion: async () => 0, bumpVersion: async () => undefined };
+    incidents = new StatusIncidentsService(prisma as never, {} as never, {} as never, authorization, publicCache as never);
     startDelivery = new StatusIncidentStartDeliveryService(prisma as never, new TransactionalOutboxService(prisma as never), settings as never);
     // Ticket access is not under test here.
     (incidents as unknown as { assertStaffTickets: () => Promise<void> }).assertStaffTickets = async () => undefined;
@@ -201,11 +202,13 @@ describeIfDatabase('status page (integration)', () => {
   });
 
   it('locks and authorizes a ticket batch inside the incident-create transaction', async () => {
+    const transactionalPublicCache = { getVersion: async () => 0, bumpVersion: async () => undefined };
     const transactional = new StatusIncidentsService(
       prisma as never,
       { loadBySubjectId: async () => ({ subjectId: ids.op, isLocalOnly: true, isSuperAdmin: true, assignments: [] }) } as never,
       { bind: async () => ({ actorUserId: ids.op }) } as never,
       { authorizeResource: async () => ({ allowed: true, reason: 'SUPER_ADMIN_ALLOWED' }) } as never,
+      transactionalPublicCache as never,
     );
     const title = `Batched ticket auth ${stamp}`;
     const before = await prisma.serviceIncident.count({ where: { title } });

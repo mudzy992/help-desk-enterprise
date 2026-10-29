@@ -52,8 +52,9 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
   prisma.$transaction = (callback: (tx: unknown) => unknown) => callback(prisma);
   const authorization = { authorizeResource: jest.fn().mockResolvedValue({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' }) };
   const accessPolicies = { bind: jest.fn().mockResolvedValue({ actorUserId: 'op' }) };
-  const service = new StatusIncidentsService(prisma as never, {} as never, accessPolicies as never, authorization as never);
-  return { service, prisma, authorization, accessPolicies };
+  const publicCache = { getVersion: jest.fn().mockResolvedValue(0), bumpVersion: jest.fn().mockResolvedValue(undefined) };
+  const service = new StatusIncidentsService(prisma as never, {} as never, accessPolicies as never, authorization as never, publicCache as never);
+  return { service, prisma, authorization, accessPolicies, publicCache };
 }
 
 const open = {

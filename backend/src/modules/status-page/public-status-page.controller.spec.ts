@@ -44,3 +44,37 @@ describe('toPublicStatusPage', () => {
     expect(result.configuration).toEqual({ historyDays: 90, showUptimePercent: true });
   });
 });
+
+/** Extracted client-ip rule for unit testing without NestJS DI. */
+function clientIp(request: { ip?: string; socket?: { remoteAddress?: string | null } }): string {
+  if (request.ip && request.ip !== 'unknown' && request.ip !== '::1' && request.ip !== '127.0.0.1') {
+    return request.ip;
+  }
+  return request.socket?.remoteAddress ?? 'unknown';
+}
+
+describe('clientIp', () => {
+  it('uses request.ip when it is a real client address', () => {
+    expect(clientIp({ ip: '10.0.0.5', socket: { remoteAddress: '127.0.0.1' } })).toBe('10.0.0.5');
+  });
+
+  it('treats unknown as missing and falls back to socket', () => {
+    expect(clientIp({ ip: 'unknown', socket: { remoteAddress: '172.16.0.9' } })).toBe('172.16.0.9');
+  });
+
+  it('treats localhost as missing and falls back to socket', () => {
+    expect(clientIp({ ip: '127.0.0.1', socket: { remoteAddress: '10.0.0.5' } })).toBe('10.0.0.5');
+  });
+
+  it('treats ::1 as missing and falls back to socket', () => {
+    expect(clientIp({ ip: '::1', socket: { remoteAddress: '10.0.0.5' } })).toBe('10.0.0.5');
+  });
+
+  it('falls back to unknown when nothing is available', () => {
+    expect(clientIp({ ip: undefined, socket: { remoteAddress: undefined } })).toBe('unknown');
+  });
+
+  it('uses request.ip when socket is missing', () => {
+    expect(clientIp({ ip: '10.0.0.5', socket: undefined } as any)).toBe('10.0.0.5');
+  });
+});
