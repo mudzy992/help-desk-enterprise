@@ -421,15 +421,19 @@ describeIfDatabase('status page (integration)', () => {
   });
 
   it('audit records services added/removed on incident edit', async () => {
-    await incidents.edit(ids.staffIncident, { serviceIds: [ids.vpn, ids.mail] }, operator);
+    const created = await incidents.create(
+      { title: 'Service delta audit', impact: 'DEGRADED', visibility: 'STAFF_ONLY', serviceIds: [ids.mail], message: 'Prije izmjene' },
+      operator,
+    );
+    await incidents.edit(created.id, { serviceIds: [ids.vpn] }, operator);
     const audits = await prisma.auditLog.findMany({
-      where: { entityId: ids.staffIncident, action: 'status.incident.edited' },
+      where: { entityId: created.id, action: 'status.incident.edited' },
       orderBy: { createdAt: 'desc' },
       take: 1,
       select: { metadata: true },
     });
     expect(audits[0]?.metadata).toMatchObject({
-      services: { added: [ids.mail], removed: [] },
+      services: { added: [ids.vpn], removed: [ids.mail] },
     });
   });
 
