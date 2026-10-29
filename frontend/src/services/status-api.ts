@@ -60,6 +60,8 @@ export type StatusPageOverview = {
   };
   readonly canManage: boolean;
   readonly affectedServiceCount: number;
+  readonly servicesHasMore: boolean;
+  readonly plannedHasMore: boolean;
   readonly categories: ReadonlyArray<{
     readonly id: string | null;
     readonly name: string | null;

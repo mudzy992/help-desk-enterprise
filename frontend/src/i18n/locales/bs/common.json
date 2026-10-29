@@ -7703,6 +7703,7 @@
     },
     "affectedServices": "Pogođenih servisa: {{count}}",
     "allOperational": "Nema poznatih problema.",
+    "resourceLimitNotice": "Ovaj prikaz je dosegao granicu servisa ili prozora održavanja. Za kompletan skup suzite katalog ili pregledajte administracijske podatke.",
     "activeIncidents": "Aktivni incidenti",
     "planned": "Planirano održavanje",
     "plannedHint": "Narednih 14 dana",

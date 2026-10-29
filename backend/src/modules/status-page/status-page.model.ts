@@ -23,6 +23,9 @@ export const statusPageLimits = {
   ticketsPerCreateMax: 100,
   openIncidentsListed: 100,
   historyIncidentsListed: 200,
+  /** Explicit response budgets for catalog and current/future downtime windows. */
+  activeServicesListed: 500,
+  downtimeWindowsListed: 1_000,
   /** Nested overview payload and explicit timeline page sizes. */
   timelineUpdatesEmbedded: 20,
   timelineUpdatesPageDefault: 50,

@@ -187,6 +187,15 @@ export function StatusPage() {
         </span>
       </div>
 
+      {overview.servicesHasMore || overview.plannedHasMore ? (
+        <div
+          className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-2.5 text-[12.5px] text-warning"
+          role="status"
+        >
+          {t("status.resourceLimitNotice")}
+        </div>
+      ) : null}
+
       {overview.activeIncidents.length > 0 ? (
         <section className="grid gap-3" aria-labelledby="status-active">
           <h2 id="status-active" className="text-[13px] font-semibold text-foreground">

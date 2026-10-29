@@ -14,6 +14,8 @@ function overview(id: string): StatusPageOverview {
     configuration: { enabled: true, public: false, historyDays: 30, showUptimePercent: true },
     canManage: true,
     affectedServiceCount: 0,
+    servicesHasMore: false,
+    plannedHasMore: false,
     categories: [],
     activeIncidents: [],
     planned: [],

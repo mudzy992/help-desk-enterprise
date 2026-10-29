@@ -27,6 +27,8 @@ describe('toPublicStatusPage', () => {
       configuration: { enabled: true, public: true, historyDays: 90, showUptimePercent: true },
       canManage: true,
       affectedServiceCount: 1,
+      servicesHasMore: false,
+      plannedHasMore: false,
       categories: [],
       activeIncidents: [{ ...incident('a', 'ALL_USERS'), futureInternalField: 'secret' } as IncidentView, incident('b', 'STAFF_ONLY')],
       planned: [],

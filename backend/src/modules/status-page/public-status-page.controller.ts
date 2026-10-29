@@ -103,6 +103,8 @@ export function toPublicStatusPage(view: StatusPageView): PublicStatusPage {
     generatedAt: view.generatedAt,
     configuration: { historyDays: view.configuration.historyDays, showUptimePercent: view.configuration.showUptimePercent },
     affectedServiceCount: view.affectedServiceCount,
+    servicesHasMore: view.servicesHasMore,
+    plannedHasMore: view.plannedHasMore,
     categories: view.categories,
     activeIncidents: view.activeIncidents.filter((incident) => incident.visibility === 'ALL_USERS').map(clean),
     planned: view.planned,

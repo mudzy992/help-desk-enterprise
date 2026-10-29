@@ -17,7 +17,7 @@ import { defaultServiceAvailabilityEvaluationContext } from '../service-catalog/
 import { StatusIncidentsService } from './status-incidents.service';
 import { statusIncidentResolutionDeliveryTopic, statusIncidentStartDeliveryTopic } from './status-incident-start-delivery.constants';
 import { StatusIncidentStartDeliveryService } from './status-incident-start-delivery.service';
-import { StatusPageService, type StatusViewer } from './status-page.service';
+import { loadUptimePercentByService, StatusPageService, type StatusViewer } from './status-page.service';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -155,6 +155,31 @@ describeIfDatabase('status page (integration)', () => {
     const impacts = await loadOpenIncidentImpacts(prisma as never, [ids.vpn, ids.mail]);
     expect(impacts.get(ids.vpn)).toBe('DOWN');
     expect(impacts.has(ids.mail)).toBe(false);
+  });
+
+  it('aggregates overlapping uptime spans in SQL without materializing incident rows', async () => {
+    const windowEnd = new Date();
+    const windowStart = new Date(windowEnd.getTime() - 4 * 3_600_000);
+    const first = await prisma.serviceIncident.create({
+      data: {
+        title: 'SQL uptime overlap A', impact: 'DOWN', status: 'RESOLVED', visibility: 'ALL_USERS',
+        startedAt: windowStart, resolvedAt: new Date(windowStart.getTime() + 2 * 3_600_000), createdByUserId: ids.op,
+        services: { create: { serviceId: ids.mail } },
+      },
+    });
+    const second = await prisma.serviceIncident.create({
+      data: {
+        title: 'SQL uptime overlap B', impact: 'DOWN', status: 'RESOLVED', visibility: 'ALL_USERS',
+        startedAt: new Date(windowStart.getTime() + 3_600_000), resolvedAt: new Date(windowStart.getTime() + 3 * 3_600_000), createdByUserId: ids.op,
+        services: { create: { serviceId: ids.mail } },
+      },
+    });
+    try {
+      const result = await loadUptimePercentByService(prisma as never, [ids.mail], windowStart, windowEnd);
+      expect(result.get(ids.mail)).toBe(25);
+    } finally {
+      await prisma.serviceIncident.deleteMany({ where: { id: { in: [first.id, second.id] } } });
+    }
   });
 
   it('keeps STAFF_ONLY incidents away from requesters, the catalog and notifications', async () => {

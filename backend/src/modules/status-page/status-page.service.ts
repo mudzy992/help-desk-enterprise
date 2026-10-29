@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { evaluateServiceRuntimeAvailability } from '../service-catalog/evaluate-service-runtime-availability';
@@ -10,7 +11,6 @@ import { StatusPageConfigurationLoader, type StatusPageConfiguration } from './s
 import {
   openIncidentStatuses,
   statusPageLimits,
-  uptimePercent,
   worstAvailability,
   type ServiceAvailabilityValue,
 } from './status-page.model';
@@ -75,6 +75,8 @@ export type StatusPageView = {
   readonly configuration: StatusPageConfiguration;
   readonly canManage: boolean;
   readonly affectedServiceCount: number;
+  readonly servicesHasMore: boolean;
+  readonly plannedHasMore: boolean;
   readonly categories: ReadonlyArray<{ readonly id: string | null; readonly name: string | null; readonly services: readonly StatusServiceView[] }>;
   readonly activeIncidents: readonly IncidentView[];
   readonly planned: ReadonlyArray<{ readonly serviceId: string; readonly serviceName: string; readonly startsAt: string; readonly endsAt: string; readonly message: string | null }>;
@@ -132,7 +134,8 @@ export class StatusPageService {
           availability: true,
           category: { select: { id: true, name: true, sortOrder: true } },
         },
-        orderBy: [{ name: 'asc' }],
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: statusPageLimits.activeServicesListed + 1,
       }),
       this.loadIncidents(withIncidentVisibility({ status: { in: [...openIncidentStatuses] } }, viewer), viewer, statusPageLimits.openIncidentsListed),
       this.loadIncidents(
@@ -156,17 +159,18 @@ export class StatusPageService {
           updatedAt: true,
           service: { select: { name: true } },
         },
-        orderBy: { startsAt: 'asc' },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take: statusPageLimits.downtimeWindowsListed + 1,
       }),
     ]);
-    const uptimeSpans = configuration.showUptimePercent
-      ? await this.prisma.serviceIncidentService.findMany({
-          where: { incident: { impact: 'DOWN', startedAt: { lt: now }, OR: [{ resolvedAt: null }, { resolvedAt: { gt: historyStart } }] } },
-          select: { serviceId: true, incident: { select: { impact: true, startedAt: true, resolvedAt: true } } },
-        })
-      : [];
-    const spansByService = groupBy(uptimeSpans, (row) => row.serviceId, (row) => row.incident);
-    const windowsByService = groupBy(windows, (row) => row.serviceId, (row) => row);
+    const servicesHasMore = services.length > statusPageLimits.activeServicesListed;
+    const boundedServices = servicesHasMore ? services.slice(0, statusPageLimits.activeServicesListed) : services;
+    const plannedHasMore = windows.length > statusPageLimits.downtimeWindowsListed;
+    const boundedWindows = plannedHasMore ? windows.slice(0, statusPageLimits.downtimeWindowsListed) : windows;
+    const uptimeByService = configuration.showUptimePercent
+      ? await loadUptimePercentByService(this.prisma, boundedServices.map((service) => service.id), historyStart, now)
+      : new Map<string, number>();
+    const windowsByService = groupBy(boundedWindows, (row) => row.serviceId, (row) => row);
     const incidentsByService = new Map<string, IncidentView[]>();
     for (const incident of active) {
       for (const service of incident.services) {
@@ -176,7 +180,7 @@ export class StatusPageService {
 
     const categories = new Map<string, { id: string | null; name: string | null; sortOrder: number; services: StatusServiceView[] }>();
     let affected = 0;
-    for (const service of services) {
+    for (const service of boundedServices) {
       const effective = evaluateServiceRuntimeAvailability({
         storedAvailability: service.availability,
         downtimeWindows: (windowsByService.get(service.id) ?? []).map(({ service: _service, ...window }) => window),
@@ -197,7 +201,7 @@ export class StatusPageService {
         name: service.name,
         availability,
         incidentIds: incidents.map((incident) => incident.id),
-        uptimePercent: configuration.showUptimePercent ? uptimePercent(spansByService.get(service.id) ?? [], historyStart, now) : null,
+        uptimePercent: configuration.showUptimePercent ? (uptimeByService.get(service.id) ?? 100) : null,
       });
       categories.set(key, bucket);
     }
@@ -207,11 +211,13 @@ export class StatusPageService {
       configuration,
       canManage: viewer.canManage,
       affectedServiceCount: affected,
+      servicesHasMore,
+      plannedHasMore,
       categories: [...categories.values()]
         .sort((left, right) => left.sortOrder - right.sortOrder || (left.name ?? '').localeCompare(right.name ?? ''))
         .map(({ id, name, services: list }) => ({ id, name, services: list })),
       activeIncidents: active,
-      planned: windows
+      planned: boundedWindows
         .filter((window) => window.startsAt.getTime() > now.getTime())
         .map((window) => ({
           serviceId: window.serviceId,
@@ -411,6 +417,56 @@ function toIncidentUpdateView(
     createdAt: update.createdAt.toISOString(),
     authorName: viewer.isStaff && update.authorUserId !== null ? (authors.get(update.authorUserId) ?? null) : null,
   };
+}
+
+type UptimeAggregateRow = { readonly serviceId: string; readonly downtimeMilliseconds: number };
+
+export async function loadUptimePercentByService(
+  prisma: Pick<PrismaService, '$queryRaw'>,
+  serviceIds: readonly string[],
+  windowStart: Date,
+  windowEnd: Date,
+): Promise<Map<string, number>> {
+  if (serviceIds.length === 0 || windowEnd.getTime() <= windowStart.getTime()) return new Map();
+  const rows = await prisma.$queryRaw<UptimeAggregateRow[]>(Prisma.sql`
+    WITH clipped AS (
+      SELECT sis."serviceId",
+             GREATEST(i."startedAt", ${windowStart}) AS start_at,
+             LEAST(COALESCE(i."resolvedAt", ${windowEnd}), ${windowEnd}) AS end_at
+      FROM "ServiceIncidentService" sis
+      JOIN "ServiceIncident" i ON i."id" = sis."incidentId"
+      WHERE sis."serviceId" IN (${Prisma.join([...serviceIds])})
+        AND i."impact" = 'DOWN'
+        AND i."startedAt" < ${windowEnd}
+        AND (i."resolvedAt" IS NULL OR i."resolvedAt" > ${windowStart})
+    ), ordered AS (
+      SELECT "serviceId", start_at, end_at,
+             MAX(end_at) OVER (
+               PARTITION BY "serviceId" ORDER BY start_at, end_at
+               ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+             ) AS previous_max_end
+      FROM clipped
+      WHERE end_at > start_at
+    ), islands AS (
+      SELECT "serviceId", start_at, end_at,
+             SUM(CASE WHEN previous_max_end IS NULL OR start_at > previous_max_end THEN 1 ELSE 0 END)
+               OVER (PARTITION BY "serviceId" ORDER BY start_at, end_at) AS island_id
+      FROM ordered
+    ), merged AS (
+      SELECT "serviceId", island_id, MIN(start_at) AS start_at, MAX(end_at) AS end_at
+      FROM islands
+      GROUP BY "serviceId", island_id
+    )
+    SELECT "serviceId",
+           (SUM(EXTRACT(EPOCH FROM (end_at - start_at))) * 1000)::float8 AS "downtimeMilliseconds"
+    FROM merged
+    GROUP BY "serviceId"
+  `);
+  const total = windowEnd.getTime() - windowStart.getTime();
+  return new Map(rows.map((row) => {
+    const available = Math.max(0, total - Math.min(total, Number(row.downtimeMilliseconds)));
+    return [row.serviceId, Math.floor((available / total) * 1000) / 10] as const;
+  }));
 }
 
 function groupBy<T, V>(rows: readonly T[], key: (row: T) => string, value: (row: T) => V): Map<string, V[]> {

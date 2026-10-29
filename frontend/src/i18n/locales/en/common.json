@@ -7660,6 +7660,7 @@
     },
     "affectedServices": "Affected services: {{count}}",
     "allOperational": "No known issues.",
+    "resourceLimitNotice": "This view reached its service or maintenance-window display limit. Refine the catalog or review administration data for the complete set.",
     "activeIncidents": "Active incidents",
     "planned": "Planned maintenance",
     "plannedHint": "Next 14 days",
