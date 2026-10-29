@@ -70,7 +70,7 @@ describeIfDatabase('status page (integration)', () => {
     incidents = new StatusIncidentsService(prisma as never, {} as never, {} as never, authorization);
     startDelivery = new StatusIncidentStartDeliveryService(prisma as never, new TransactionalOutboxService(prisma as never), settings as never);
     // Ticket access is not under test here.
-    (incidents as unknown as { assertStaffTicket: () => Promise<void> }).assertStaffTicket = async () => undefined;
+    (incidents as unknown as { assertStaffTickets: () => Promise<void> }).assertStaffTickets = async () => undefined;
     const { now: _now, ...bundle } = defaultServiceAvailabilityEvaluationContext();
     page = new StatusPageService(
       prisma as never,
@@ -198,6 +198,29 @@ describeIfDatabase('status page (integration)', () => {
     expect((await loadOpenIncidentImpacts(prisma as never, [ids.mail])).size).toBe(0);
     await expect(incidents.subscribe(created.id, requesterView as StatusViewer & { userId: string })).rejects.toMatchObject({ status: 404 });
     expect((await page.openForService(ids.mail, requesterView)).length).toBe(0);
+  });
+
+  it('locks and authorizes a ticket batch inside the incident-create transaction', async () => {
+    const transactional = new StatusIncidentsService(
+      prisma as never,
+      { loadBySubjectId: async () => ({ subjectId: ids.op, isLocalOnly: true, isSuperAdmin: true, assignments: [] }) } as never,
+      { bind: async () => ({ actorUserId: ids.op }) } as never,
+      { authorizeResource: async () => ({ allowed: true, reason: 'SUPER_ADMIN_ALLOWED' }) } as never,
+    );
+    const title = `Batched ticket auth ${stamp}`;
+    const before = await prisma.serviceIncident.count({ where: { title } });
+    await expect(transactional.create(
+      { title, impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Atomic batch failure', ticketIds: [ids.ticket, 'missing-ticket'] },
+      operator,
+    )).rejects.toMatchObject({ status: 404 });
+    expect(await prisma.serviceIncident.count({ where: { title } })).toBe(before);
+
+    const created = await transactional.create(
+      { title, impact: 'DEGRADED', serviceIds: [ids.vpn], message: 'Atomic batch success', ticketIds: [ids.ticket] },
+      operator,
+    );
+    expect(await prisma.ticketIncidentLink.count({ where: { incidentId: created.id, ticketId: ids.ticket } })).toBe(1);
+    await prisma.serviceIncident.delete({ where: { id: created.id } });
   });
 
   it('enforces status.incidents.manage against every affected service on real PostgreSQL', async () => {

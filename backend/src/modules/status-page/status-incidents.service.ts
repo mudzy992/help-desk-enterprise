@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -78,9 +79,9 @@ export class StatusIncidentsService {
       throw new BadRequestException({ code: 'INCIDENT_START_IN_FUTURE', message: 'An incident cannot start in the future' });
     }
     const ticketIds = [...new Set(input.ticketIds ?? [])];
-    for (const ticketId of ticketIds) await this.assertStaffTicket(ticketId, actor);
     const visibility = input.visibility ?? 'ALL_USERS';
     const incident = await this.prisma.$transaction(async (transaction) => {
+      await this.assertStaffTickets(transaction as never, ticketIds, actor);
       const created = await transaction.serviceIncident.create({
         data: {
           title: input.title,
@@ -280,9 +281,9 @@ export class StatusIncidentsService {
     if (incident.status === 'RESOLVED') {
       throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident cannot take new tickets' });
     }
-    await this.assertStaffTicket(ticketId, actor);
     return this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, incidentId);
+      await this.assertStaffTickets(transaction as never, [ticketId], actor);
       const locked = await transaction.serviceIncident.findUnique({ where: { id: incidentId }, select: { status: true, updatedAt: true } });
       if (locked === null) throw notFound();
       if (locked.status === 'RESOLVED') throw new ConflictException({ code: 'INCIDENT_RESOLVED', message: 'A resolved incident cannot take new tickets' });
@@ -317,9 +318,9 @@ export class StatusIncidentsService {
   async unlinkTicket(incidentId: string, ticketId: string, actor: PrivacyActor, expectedRevision?: string): Promise<{ readonly unlinked: boolean }> {
     await this.requireManageServices(await this.incidentServiceIds(incidentId), actor, true);
     const incident = await this.load(incidentId);
-    await this.assertStaffTicket(ticketId, actor);
     return this.prisma.$transaction(async (transaction) => {
       await lockStatusIncident(transaction as never, incidentId);
+      await this.assertStaffTickets(transaction as never, [ticketId], actor);
       const locked = await transaction.serviceIncident.findUnique({ where: { id: incidentId }, select: { updatedAt: true } });
       if (locked === null) throw notFound();
       assertIncidentRevision(locked.updatedAt, expectedRevision ?? incident.updatedAt.toISOString());
@@ -421,21 +422,31 @@ export class StatusIncidentsService {
     return unique;
   }
 
-  private async assertStaffTicket(ticketId: string, actor: PrivacyActor): Promise<void> {
-    let visibility: string;
+  private async assertStaffTickets(transaction: PrismaService, ticketIds: readonly string[], actor: PrivacyActor): Promise<void> {
+    const unique = [...new Set(ticketIds)].sort();
+    if (unique.length === 0) return;
+    // One deterministic row-lock snapshot closes the authorization/write race.
+    // Every caller invokes this inside the same transaction that writes links.
+    const locked = await transaction.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id" FROM "Ticket"
+      WHERE "id" IN (${Prisma.join(unique)})
+      ORDER BY "id" ASC
+      FOR SHARE
+    `);
+    if (locked.length !== unique.length) throw notFoundTicket();
+    const policy = await this.accessPolicies.bind({ actorUserId: actor.principal.subjectId });
+    let decisions: Array<{ readonly access: { readonly visibility: string } }>;
     try {
-      const { access } = await loadAccessibleTicket(
-        this.prisma,
-        this.authorizationContextLoader,
-        ticketId,
-        await this.accessPolicies.bind({ actorUserId: actor.principal.subjectId }),
+      decisions = await Promise.all(
+        unique.map((ticketId) =>
+          loadAccessibleTicket(transaction, this.authorizationContextLoader, ticketId, policy),
+        ),
       );
-      visibility = access.visibility;
     } catch (error) {
       throw mapTicketError(error);
     }
-    if (visibility !== 'staff') {
-      throw new ForbiddenException({ code: 'INCIDENT_TICKET_FORBIDDEN', message: 'Only staff on the ticket can link it to an incident' });
+    if (decisions.some(({ access }) => access.visibility !== 'staff')) {
+      throw new ForbiddenException({ code: 'INCIDENT_TICKET_FORBIDDEN', message: 'Only staff on every ticket can link it to an incident' });
     }
   }
 
@@ -477,6 +488,10 @@ function assertIncidentRevision(actual: Date, expected: string): void {
 
 function incidentChanged(): ConflictException {
   return new ConflictException({ code: 'INCIDENT_CHANGED', message: 'The incident was changed meanwhile; reload and try again' });
+}
+
+function notFoundTicket(): NotFoundException {
+  return new NotFoundException({ code: 'TICKET_NOT_FOUND', message: 'One or more tickets were not found' });
 }
 
 function notFound(): NotFoundException {

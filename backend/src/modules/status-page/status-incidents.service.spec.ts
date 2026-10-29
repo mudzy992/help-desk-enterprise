@@ -1,6 +1,7 @@
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../tickets/insert-system-ticket-event', () => ({ insertSystemTicketEvent: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn().mockResolvedValue({ access: { visibility: 'staff' } }) }));
 jest.mock('../notifications/preferences/notification-preference-policy', () => ({
   loadNotificationPreferencePolicy: jest.fn().mockResolvedValue(undefined),
 }));
@@ -13,6 +14,7 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import type { PrivacyActor } from '../privacy/privacy-actor';
 import { insertSystemTicketEvent } from '../tickets/insert-system-ticket-event';
+import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { StatusIncidentsService } from './status-incidents.service';
 
 const actor = { principal: { subjectId: 'op' }, requestId: 'r1', sessionId: null } as unknown as PrivacyActor;
@@ -49,8 +51,9 @@ function build(incident: Record<string, unknown>, options: { moved?: number } = 
   prisma.$queryRaw = jest.fn().mockResolvedValue([{ id: 'outbox-1' }]);
   prisma.$transaction = (callback: (tx: unknown) => unknown) => callback(prisma);
   const authorization = { authorizeResource: jest.fn().mockResolvedValue({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' }) };
-  const service = new StatusIncidentsService(prisma as never, {} as never, {} as never, authorization as never);
-  return { service, prisma, authorization };
+  const accessPolicies = { bind: jest.fn().mockResolvedValue({ actorUserId: 'op' }) };
+  const service = new StatusIncidentsService(prisma as never, {} as never, accessPolicies as never, authorization as never);
+  return { service, prisma, authorization, accessPolicies };
 }
 
 const open = {
@@ -92,17 +95,32 @@ describe('StatusIncidentsService.addUpdate', () => {
     expect((prisma.serviceIncident as { updateMany: jest.Mock }).updateMany).not.toHaveBeenCalled();
   });
 
+  it('locks and evaluates a ticket batch with one policy snapshot', async () => {
+    const { service, prisma, accessPolicies } = build(open);
+    (prisma.$queryRaw as jest.Mock).mockResolvedValueOnce([{ id: 'ticket-a' }, { id: 'ticket-b' }]);
+    const assertStaffTickets = (service as unknown as {
+      assertStaffTickets: (transaction: unknown, ticketIds: readonly string[], value: PrivacyActor) => Promise<void>;
+    }).assertStaffTickets.bind(service);
+
+    await assertStaffTickets(prisma, ['ticket-b', 'ticket-a', 'ticket-a'], actor);
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(accessPolicies.bind).toHaveBeenCalledTimes(1);
+    expect(loadAccessibleTicket).toHaveBeenCalledTimes(2);
+    expect((loadAccessibleTicket as jest.Mock).mock.calls.map((call) => call[2])).toEqual(['ticket-a', 'ticket-b']);
+  });
+
   it.each(['link', 'unlink'] as const)('conceals a foreign incident before %s ticket authorization or writes', async (operation) => {
     const { service, prisma, authorization } = build(open);
     authorization.authorizeResource.mockResolvedValue({ allowed: false, reason: 'NO_MATCHING_PERMISSION_SCOPE' });
-    const assertStaffTicket = jest.fn();
-    (service as unknown as { assertStaffTicket: typeof assertStaffTicket }).assertStaffTicket = assertStaffTicket;
+    const assertStaffTickets = jest.fn();
+    (service as unknown as { assertStaffTickets: typeof assertStaffTickets }).assertStaffTickets = assertStaffTickets;
 
     const command = operation === 'link'
       ? service.linkTicket('i1', 'ticket-1', actor)
       : service.unlinkTicket('i1', 'ticket-1', actor);
     await expect(command).rejects.toMatchObject({ response: { code: 'INCIDENT_NOT_FOUND' } });
-    expect(assertStaffTicket).not.toHaveBeenCalled();
+    expect(assertStaffTickets).not.toHaveBeenCalled();
     expect((prisma.ticketIncidentLink as { create: jest.Mock }).create).not.toHaveBeenCalled();
     expect((prisma.ticketIncidentLink as { deleteMany: jest.Mock }).deleteMany).not.toHaveBeenCalled();
     expect(insertSystemTicketEvent).not.toHaveBeenCalled();
@@ -111,11 +129,11 @@ describe('StatusIncidentsService.addUpdate', () => {
   it('requires both incident manage authority and staff ticket access before linking', async () => {
     const { service, prisma } = build(open);
     const ticketDenied = new Error('ticket denied');
-    const assertStaffTicket = jest.fn().mockRejectedValue(ticketDenied);
-    (service as unknown as { assertStaffTicket: typeof assertStaffTicket }).assertStaffTicket = assertStaffTicket;
+    const assertStaffTickets = jest.fn().mockRejectedValue(ticketDenied);
+    (service as unknown as { assertStaffTickets: typeof assertStaffTickets }).assertStaffTickets = assertStaffTickets;
 
     await expect(service.linkTicket('i1', 'ticket-1', actor)).rejects.toBe(ticketDenied);
-    expect(assertStaffTicket).toHaveBeenCalledWith('ticket-1', actor);
+    expect(assertStaffTickets).toHaveBeenCalledWith(prisma, ['ticket-1'], actor);
     expect((prisma.ticketIncidentLink as { create: jest.Mock }).create).not.toHaveBeenCalled();
     expect(insertSystemTicketEvent).not.toHaveBeenCalled();
   });
