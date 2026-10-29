@@ -40,23 +40,30 @@ export class SaveAssetDto {
   @IsOptional() @IsString() @MaxLength(32) warrantyEndsAt?: string | null;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
   @IsOptional() @IsObject() attributes?: Record<string, unknown>;
-  @IsOptional() @IsInt() @Min(1) version?: number;
+}
+
+/** Updates require the version read by the caller; POST/create remains versionless. */
+export class UpdateAssetDto extends SaveAssetDto {
+  @IsInt() @Min(1) version!: number;
 }
 
 export class AssetStatusDto {
   @IsIn(assetStatuses) status!: (typeof assetStatuses)[number];
   @IsOptional() @IsString() @MaxLength(assetLimits.reasonMax) reason?: string;
+  @IsInt() @Min(1) version!: number;
 }
 
 export class AssignAssetDto {
   @IsString() @MaxLength(64) userId!: string;
   @IsOptional() @IsString() @MaxLength(64) organizationalUnitId?: string;
   @IsOptional() @IsString() @MaxLength(assetLimits.reasonMax) note?: string;
+  @IsInt() @Min(1) version!: number;
 }
 
 export class UnassignAssetDto {
   @IsOptional() @IsIn(['IN_STOCK', 'IN_REPAIR', 'IN_USE']) status?: 'IN_STOCK' | 'IN_REPAIR' | 'IN_USE';
   @IsOptional() @IsString() @MaxLength(assetLimits.reasonMax) note?: string;
+  @IsInt() @Min(1) version!: number;
 }
 
 export class AddAssetRelationDto {

@@ -87,7 +87,7 @@ export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSh
     setPending(true);
     setError(null);
     try {
-      await changeAssetStatus(asset.id, status, reason.trim());
+      await changeAssetStatus(asset.id, status, asset.version, reason.trim());
       onDone();
       onOpenChange(false);
     } catch (caught) {

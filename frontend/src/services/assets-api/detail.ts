@@ -9,6 +9,7 @@ import type {
   AssetRelationKind,
   AssetStatus,
   AssetTypeInput,
+  AssetUpdateInput,
   AssetWriteInput,
 } from "./types";
 
@@ -20,7 +21,7 @@ export function createAsset(input: AssetWriteInput): Promise<{ readonly id: stri
   return apiRequest("/assets", { method: "POST", ...jsonBody(input) });
 }
 
-export function updateAsset(id: string, input: AssetWriteInput): Promise<unknown> {
+export function updateAsset(id: string, input: AssetUpdateInput): Promise<unknown> {
   return apiRequest(assetPath(id), { method: "PUT", ...jsonBody(input) });
 }
 
@@ -31,29 +32,36 @@ export function deleteAsset(id: string): Promise<void> {
 export function changeAssetStatus(
   id: string,
   status: AssetStatus,
+  version: number,
   reason?: string,
 ): Promise<unknown> {
   return apiRequest(`${assetPath(id)}/status`, {
     method: "POST",
-    ...jsonBody({ status, reason: reason || undefined }),
+    ...jsonBody({ status, version, reason: reason || undefined }),
   });
 }
 
-export function assignAsset(id: string, userId: string, note?: string): Promise<unknown> {
+export function assignAsset(
+  id: string,
+  userId: string,
+  version: number,
+  note?: string,
+): Promise<unknown> {
   return apiRequest(`${assetPath(id)}/assign`, {
     method: "POST",
-    ...jsonBody({ userId, note: note || undefined }),
+    ...jsonBody({ userId, version, note: note || undefined }),
   });
 }
 
 export function unassignAsset(
   id: string,
   status: "IN_STOCK" | "IN_REPAIR",
+  version: number,
   note?: string,
 ): Promise<unknown> {
   return apiRequest(`${assetPath(id)}/unassign`, {
     method: "POST",
-    ...jsonBody({ status, note: note || undefined }),
+    ...jsonBody({ status, version, note: note || undefined }),
   });
 }
 

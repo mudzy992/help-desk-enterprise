@@ -162,7 +162,6 @@ export function AssetFormSheet({
       warrantyEndsAt: nullable(state.warrantyEndsAt),
       notes: nullable(state.notes),
       attributes: attributeValues,
-      ...(isEdit ? { version: asset.version } : {}),
     };
     if (
       input.purchaseCost !== null &&
@@ -175,7 +174,7 @@ export function AssetFormSheet({
     }
     try {
       if (isEdit) {
-        await updateAsset(asset.id, input);
+        await updateAsset(asset.id, { ...input, version: asset.version });
         onSaved(asset.id);
       } else {
         const created = await createAsset(input);

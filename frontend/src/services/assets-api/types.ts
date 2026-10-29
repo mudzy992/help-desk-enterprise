@@ -243,8 +243,9 @@ export type AssetWriteInput = {
   readonly warrantyEndsAt?: string | null;
   readonly notes?: string | null;
   readonly attributes?: Readonly<Record<string, unknown>>;
-  readonly version?: number;
 };
+
+export type AssetUpdateInput = AssetWriteInput & { readonly version: number };
 
 export type AssetHistoryItem = {
   readonly id: string;

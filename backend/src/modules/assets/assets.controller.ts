@@ -51,6 +51,7 @@ import {
   SaveAssetDto,
   SaveAssetLocationDto,
   SaveAssetTypeDto,
+  UpdateAssetDto,
   UnassignAssetDto,
 } from './assets.dto';
 import { AssetError, assetContractKinds, assetErrorCodes, assetStatuses, softwareLicenseKinds, type AssetStatusValue } from './assets.constants';
@@ -528,7 +529,7 @@ export class AssetsController {
   }
 
   @Put(':id')
-  update(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: SaveAssetDto) {
+  update(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: UpdateAssetDto) {
     return runAsset(() => this.assets.update(id, body, this.viewer(request)));
   }
 
@@ -541,7 +542,7 @@ export class AssetsController {
   @Post(':id/status')
   @HttpCode(200)
   status(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: AssetStatusDto) {
-    return runAsset(() => this.assets.changeStatus(id, body.status, body.reason, this.viewer(request)));
+    return runAsset(() => this.assets.changeStatus(id, body, this.viewer(request)));
   }
 
   @Post(':id/assign')

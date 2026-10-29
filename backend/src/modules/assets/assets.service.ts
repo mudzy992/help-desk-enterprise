@@ -45,9 +45,10 @@ export type SaveAssetInput = {
   readonly warrantyEndsAt?: string | null;
   readonly notes?: string | null;
   readonly attributes?: Readonly<Record<string, unknown>>;
-  /** Optimistic concurrency on update. */
-  readonly version?: number;
 };
+
+/** Edits never accept an implicit "latest" snapshot. */
+export type UpdateAssetInput = SaveAssetInput & { readonly version: number };
 
 export type AssetListQuery = {
   readonly search?: string;
@@ -607,11 +608,11 @@ export class AssetsService {
     throw new AssetError(assetErrorCodes.tagTaken);
   }
 
-  async update(id: string, input: SaveAssetInput, viewer: AssetViewer) {
+  async update(id: string, input: UpdateAssetInput, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetManage);
     const current = await this.loadInScope(id, scope);
+    if (input.version !== current.version) throw new AssetError(assetErrorCodes.versionConflict);
     if (current.status === 'DISPOSED') throw new AssetError(assetErrorCodes.readOnly);
-    if (input.version !== undefined && input.version !== current.version) throw new AssetError(assetErrorCodes.versionConflict);
     if (input.typeId !== current.typeId) {
       // Changing the type would orphan attribute values; allowed only without values.
       if (Object.keys((current.attributes ?? {}) as object).length > 0) throw new AssetError(assetErrorCodes.invalid, 'typeId');
@@ -658,7 +659,7 @@ export class AssetsService {
     if (Object.keys(changes).length === 0) return { id, version: current.version };
     const updated = await this.prisma.$transaction(async (transaction) => {
       const result = await transaction.asset.updateMany({
-        where: { id, version: current.version },
+        where: { id, version: input.version },
         data: {
           ...next,
           attributes: next.attributes as Prisma.InputJsonValue,
@@ -667,25 +668,36 @@ export class AssetsService {
           version: { increment: 1 },
         },
       });
-      if (result.count === 0) throw new AssetError(assetErrorCodes.versionConflict);
+      if (result.count !== 1) throw new AssetError(assetErrorCodes.versionConflict);
       await this.event(transaction, id, assetEventActions.updated, viewer, { changes });
       return current.version + 1;
     });
     return { id, version: updated };
   }
 
-  async changeStatus(id: string, status: AssetStatusValue, reason: string | undefined, viewer: AssetViewer) {
+  async changeStatus(
+    id: string,
+    input: { status: AssetStatusValue; version: number; reason?: string },
+    viewer: AssetViewer,
+  ) {
     const scope = await this.access.require(viewer, permissionKeys.assetManage);
     const current = await this.loadInScope(id, scope);
-    if (current.status === status) return { id, status };
+    if (input.version !== current.version) throw new AssetError(assetErrorCodes.versionConflict);
+    const { status } = input;
+    if (current.status === status) return { id, status, version: current.version };
     if (!canTransitionAssetStatus(current.status, status)) throw new AssetError(assetErrorCodes.statusTransition);
-    const text = reason?.trim() ?? '';
+    const text = input.reason?.trim() ?? '';
     if (text.length > assetLimits.reasonMax) throw new AssetError(assetErrorCodes.invalid, 'reason');
     if (assetStatusesNeedingReason.includes(status) && text.length === 0) throw new AssetError(assetErrorCodes.reasonRequired);
     const releasesUser = status === 'RETIRED' || status === 'DISPOSED' || status === 'LOST';
     const releasedLicenses = await this.prisma.$transaction(async (transaction) => {
-      await transaction.asset.update({
-        where: { id },
+      const updated = await transaction.asset.updateMany({
+        where: {
+          id,
+          version: input.version,
+          status: current.status,
+          assignedUserId: current.assignedUserId,
+        },
         data: {
           status,
           version: { increment: 1 },
@@ -696,6 +708,7 @@ export class AssetsService {
             : {}),
         },
       });
+      if (updated.count !== 1) throw new AssetError(assetErrorCodes.versionConflict);
       await this.event(transaction, id, assetEventActions.status, viewer, { from: current.status, to: status, reason: text || null });
       if (releasesUser && current.assignedUserId !== null) {
         await this.event(transaction, id, assetEventActions.unassigned, viewer, {
@@ -725,13 +738,18 @@ export class AssetsService {
         releasedLicenses,
       }, current.organizationalUnitId);
     }
-    return { id, status };
+    return { id, status, version: input.version + 1 };
   }
 
-  async assign(id: string, input: { userId: string; organizationalUnitId?: string; note?: string }, viewer: AssetViewer) {
+  async assign(
+    id: string,
+    input: { userId: string; organizationalUnitId?: string; note?: string; version: number },
+    viewer: AssetViewer,
+  ) {
     const scope = await this.access.require(viewer, permissionKeys.assetManage);
     await this.transfers.assertDirectMoveAllowed();
     const current = await this.loadInScope(id, scope);
+    if (input.version !== current.version) throw new AssetError(assetErrorCodes.versionConflict);
     if (!assetAssignableStatuses.includes(current.status)) throw new AssetError(assetErrorCodes.statusTransition);
     const user = await this.prisma.user.findUnique({
       where: { id: input.userId },
@@ -744,8 +762,13 @@ export class AssetsService {
     if (note.length > assetLimits.reasonMax) throw new AssetError(assetErrorCodes.invalid, 'note');
     const nextStatus: AssetStatusValue = current.status === 'IN_REPAIR' ? 'IN_REPAIR' : 'IN_USE';
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.asset.update({
-        where: { id },
+      const updated = await transaction.asset.updateMany({
+        where: {
+          id,
+          version: input.version,
+          status: current.status,
+          assignedUserId: current.assignedUserId,
+        },
         data: {
           assignedUserId: user.id,
           assignedAt: new Date(),
@@ -755,6 +778,7 @@ export class AssetsService {
           version: { increment: 1 },
         },
       });
+      if (updated.count !== 1) throw new AssetError(assetErrorCodes.versionConflict);
       if (current.assignedUserId !== null && current.assignedUserId !== user.id) {
         await this.event(transaction, id, assetEventActions.unassigned, viewer, { userId: current.assignedUserId, reassigned: true });
       }
@@ -764,13 +788,18 @@ export class AssetsService {
         ...(nextStatus !== current.status ? { statusFrom: current.status, statusTo: nextStatus } : {}),
       });
     });
-    return { id };
+    return { id, version: input.version + 1 };
   }
 
-  async unassign(id: string, input: { status?: AssetStatusValue; note?: string }, viewer: AssetViewer) {
+  async unassign(
+    id: string,
+    input: { status?: AssetStatusValue; note?: string; version: number },
+    viewer: AssetViewer,
+  ) {
     const scope = await this.access.require(viewer, permissionKeys.assetManage);
     const current = await this.loadInScope(id, scope);
-    if (current.assignedUserId === null) return { id };
+    if (input.version !== current.version) throw new AssetError(assetErrorCodes.versionConflict);
+    if (current.assignedUserId === null) return { id, version: current.version };
     await this.transfers.assertDirectMoveAllowed();
     const nextStatus: AssetStatusValue = input.status ?? (current.status === 'IN_USE' ? 'IN_STOCK' : current.status);
     if (!canTransitionAssetStatus(current.status, nextStatus) || !['IN_STOCK', 'IN_REPAIR', 'IN_USE'].includes(nextStatus)) {
@@ -779,17 +808,23 @@ export class AssetsService {
     const note = input.note?.trim() ?? '';
     if (note.length > assetLimits.reasonMax) throw new AssetError(assetErrorCodes.invalid, 'note');
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.asset.update({
-        where: { id },
+      const updated = await transaction.asset.updateMany({
+        where: {
+          id,
+          version: input.version,
+          status: current.status,
+          assignedUserId: current.assignedUserId,
+        },
         data: { assignedUserId: null, assignedAt: null, assignmentSuggested: false, status: nextStatus, version: { increment: 1 } },
       });
+      if (updated.count !== 1) throw new AssetError(assetErrorCodes.versionConflict);
       await this.event(transaction, id, assetEventActions.unassigned, viewer, {
         userId: current.assignedUserId,
         note: note || null,
         ...(nextStatus !== current.status ? { statusFrom: current.status, statusTo: nextStatus } : {}),
       });
     });
-    return { id };
+    return { id, version: input.version + 1 };
   }
 
   /** §3: hard delete, SUPER_ADMIN only, never for an item with tickets or relations. */
