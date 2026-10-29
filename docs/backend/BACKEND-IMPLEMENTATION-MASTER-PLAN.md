@@ -410,7 +410,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.8 optimistic incident edit/link lifecycle concurrency — završen** na SHA `92ec430`, finalni CI `40777527352`.
 - Postojeći `updatedAt` je izložen kao revision; edit/link/unlink zahtijevaju `If-Match`, koriste zajednički advisory lock i CAS, a frontend propagira učitani token. Time je zatvoren `BA-status-page-08`; dokaz je u [81-status-page-optimistic-lifecycle-concurrency.md](implementation/81-status-page-optimistic-lifecycle-concurrency.md).
 - Registar je sada **601 otvoren / 91 zatvoren / 692 ukupno**; paket nema novu migraciju.
-- Sljedeći paket je **Val 6 / W6.9 bounded SQL uptime aggregation i status-page catalog/window granice za `BA-status-page-10`**.
+- **W6.9 bounded SQL uptime aggregation i catalog/window resource budžeti — završen** na SHA `b0cb593`, finalni CI `40832485277`.
+- Catalog i downtime windows koriste determinističke probe limite i `hasMore` ugovor sa UI upozorenjem; uptime overlap union se agregira u PostgreSQL-u i vraća najviše jedan red po bounded servisu. Time je zatvoren `BA-status-page-10`; dokaz je u [82-status-page-bounded-sql-uptime-and-catalog.md](implementation/82-status-page-bounded-sql-uptime-and-catalog.md).
+- Registar je sada **600 otvorenih / 92 zatvorena / 692 ukupno**; paket nema novu migraciju.
+- Sljedeći paket je **Val 6 / W6.10 bounded incident-resolution ticket event delivery za `BA-status-page-11`**.
 
 ### Canonical primitive
 

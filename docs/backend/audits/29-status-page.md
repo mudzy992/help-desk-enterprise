@@ -131,7 +131,7 @@ E2E 21 pokriva incident create, start notification, signed-in status/banner, res
 | BA-status-page-07 | P2       | Link/unlink ne provjerava incident visibility/manage scope, samo ticket staff access            | zatvoreno |
 | BA-status-page-08 | P2       | Edit/link lifecycle nema opšti version/CAS i može raceati sa resolveom                          | zatvoreno |
 | BA-status-page-09 | P2       | Service IDs se validiraju samo po existenceu, bez actor OU/service scopea                       | zatvoreno |
-| BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | otvoreno |
+| BA-status-page-10 | P2       | Uptime spans, active services i downtime windows su neograničeno učitani                        | zatvoreno |
 | BA-status-page-11 | P2       | Resolve transakcija piše event za neograničen broj naknadno linkanih tiketa                     | otvoreno |
 | BA-status-page-12 | P2       | Ticket authorization je N+1 pre-check izvan transakcije i može zastarjeti prije link writea     | otvoreno |
 | BA-status-page-13 | P2       | Public rate limit zavisi od trust-proxy/IP ispravnosti i fail-open je pri Redis grešci          | otvoreno |
@@ -157,6 +157,10 @@ Link i unlink sada zahtijevaju dvije nezavisne resource odluke: actor mora imati
 ### W6.8 closeout — `BA-status-page-08`
 
 Incident read sada izlaže postojeći `updatedAt` kao ISO `revision`, a HTTP edit/link/unlink zahtijevaju `If-Match`. Svaki mutation pod zajedničkim per-incident advisory lockom ponovo čita lifecycle stanje i izvršava `updatedAt` CAS; uspjeh rotira token, stale klijent dobija `INCIDENT_CHANGED`, a link dodatno unutar locka ponovo odbija `RESOLVED`. Frontend propagira revision iz učitanog incidenta. Stvarni PostgreSQL test potvrđuje tačno jednog pobjednika za dva paralelna edita istog tokena te odbijen stale link poslije resolutiona bez relation side effecta; kompletni CI `40777527352` je zelen. Dokaz je [81-status-page-optimistic-lifecycle-concurrency.md](../implementation/81-status-page-optimistic-lifecycle-concurrency.md). Paket koristi postojeće `updatedAt` polje i nema novu DB migraciju.
+
+### W6.9 closeout — `BA-status-page-10`
+
+Aktivni catalog i downtime windows sada imaju determinističke probe budžete 500+1 i 1.000+1 te response `servicesHasMore`/`plannedHasMore`; UI truncation prikazuje lokalizovano upozorenje. Uptime više ne materijalizuje incident spanove u Node: parametrizovani PostgreSQL CTE reže intervale na history prozor, window funkcijom formira overlap islands i vraća najviše jedan downtime aggregate po bounded servisu. Stvarni PostgreSQL dokaz sa dva preklopljena intervala vraća 25% za tri sata union downtimea u četverosatnom prozoru; kompletni CI `40832485277` je zelen. Dokaz je [82-status-page-bounded-sql-uptime-and-catalog.md](../implementation/82-status-page-bounded-sql-uptime-and-catalog.md). Paket nema novu DB migraciju.
 
 ## 14. Ključne korekcije
 
