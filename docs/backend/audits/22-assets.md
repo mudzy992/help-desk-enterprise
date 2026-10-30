@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, W7.8 samo `BA-assets-08`, a W7.9 samo `BA-assets-09`. `BA-assets-10`–`BA-assets-19` ostaju otvoreni.
+**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, W7.8 samo `BA-assets-08`, W7.9 samo `BA-assets-09`, a W7.10 samo `BA-assets-10`. `BA-assets-11`–`BA-assets-19` ostaju otvoreni.
 
 ## 1. Executive summary
 
@@ -13,7 +13,7 @@
 
 Baseline je **4,59/10**. Četiri početna P1 nalaza pogađala su authorization, povjerljivost, custody integritet i operativnu isporuku: globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označavao poslanim bez primaoca ili potvrđene isporuke. W7.1–W7.4 su zatvorili sva četiri; W7.5 je zasebno zatvorio P2 DB invariant za unique custom JSON atribut, W7.6 P2 DB graph invariant za directed cycles i simetrične `CONNECTED_TO` duplikate, W7.7 per-user license OU/scope, W7.8 ticket primary-link invariant, a W7.9 Redis single-flight lease za directory run. Preostali assets nalazi ostaju zasebni i otvoreni.
 
-Dodatni nalazi uključuju cross-OU license user assignment, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. W7.7 je zatvorio samo per-user license target OU/scope dio; W7.8 ticket primary-link invariant; W7.9 process-local directory lock. Asset-target cross-OU semantika i ostali nalazi ostaju otvoreni. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.9 closeout dokazi evidentirani su na kraju ovog dokumenta.
+Početni audit dodatno je evidentirao cross-OU license user assignment, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. W7.7 je zatvorio samo per-user license target OU/scope dio; W7.8 ticket primary-link invariant; W7.9 process-local directory lock; W7.10 boot-only Redis scheduler recovery i last-success health signal. Asset-target cross-OU semantika i ostali nalazi ostaju otvoreni. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.10 closeout dokazi evidentirani su na kraju ovog dokumenta.
 
 ## 2. Scope i inventar
 
@@ -87,7 +87,7 @@ Planner razlikuje create/update/adopt/skip/missing, manual assignment pobjeđuje
 
 Baseline single-flight `running` zaštita je bila in-memory boolean po procesu. Manualni, scheduled i višestruki worker instance runovi mogli su se preklopiti, duplirati create/adopt plan, međusobno mijenjati missing marker i proizvesti nepouzdan zbirni audit. W7.9 (`BA-assets-09`) je zatvorio ovaj nalaz Redis leaseom sa nasumičnim owner tokenom, run ID-om, PX expiryjem i compare-owner heartbeat/release skriptama. Lease koriste zajednički service put API-ja, workera i CLI-ja; neuspješan Redis arbitration/renewal prekida sync, a TTL vraća mogućnost rada nakon crasha. Nije uveden DB run-state niti je mijenjan API response shape.
 
-Scheduler upisuje repeatable job samo pri bootu. Redis restart/flush ili startup registracijska greška ostavlja sync bez posla do redeploya. Nema periodičnog reconciliationa ni last-success age health gatea; to je zasebni otvoreni `BA-assets-10` i nije obuhvaćen W7.9. W7.9 lease ima test expiry/recovery za prekinut owner, ali ne reconciliira scheduler registraciju.
+U audit baselineu scheduler upsert se radio samo pri bootu. Redis restart/flush ili startup registracijska greška mogla je ostaviti sync bez posla do redeploya, bez periodičnog reconciliationa ili last-success age health gatea. W7.9 je zatvorio samo directory single-flight lease; ne mijenjao je scheduler lifecycle. W7.10 zatvorio je `BA-assets-10`: directory sync i reminders sada se eager-registruju i pokušavaju ponovo svakih pet minuta, asset upsert je ograničen timeoutom, a worker ostaje `degraded` dok schedules ne budu potvrđeni. Ops-health označava nedostajući BullMQ registration i last-success stariji od 75 minuta. Real-Redis suite uklanja i zatim vraća oba schedule zapisa; detalji i rollout/rollback su u [W7.10 closeoutu](../implementation/96-assets-scheduler-reconciliation.md).
 
 ## 10. Transferi i signed dokumenti
 
@@ -163,7 +163,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | BA-assets-07 | P2       | Per-user license assignment nema user OU/scope kompatibilnost                                 | zatvoreno |
 | BA-assets-08 | P2       | Ticket primary link nema partial unique/locking invariant                                     | zatvoreno |
 | BA-assets-09 | P2       | Directory single-flight lock je samo in-memory po procesu                                     | zatvoreno |
-| BA-assets-10 | P2       | Directory i reminder scheduler nemaju Redis-loss reconciliation                               | otvoreno |
+| BA-assets-10 | P2       | Directory i reminder scheduler nemaju Redis-loss reconciliation                               | zatvoreno |
 | BA-assets-11 | P2       | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status                  | otvoreno |
 | BA-assets-12 | P2       | License/contract/transfer i drugi business writeovi nisu atomski sa auditom                    | otvoreno |
 | BA-assets-13 | P2       | Import claim nema eksplicitno APPLYING lease/recovery/idempotency stanje                       | otvoreno |
@@ -222,7 +222,7 @@ Assignment-derived ADMIN scope, graph redakcija i jedinstveni optimistic CAS ugo
 
 ### Faza 2 — reminder delivery i scheduler recovery
 
-BA-assets-04 marker correctness za primarne scoped dostave zatvoren je u W7.4. Preostaju `BA-assets-10` scheduler reconciliation nakon Redis gubitka, `BA-assets-11` durable status/dedupe za extra email i `BA-assets-18` delivery/scheduler health signali; retry/reconcile se ne smatra zatvorenim izvan dokazanog BA-assets-04 toka.
+BA-assets-04 marker correctness za primarne scoped dostave zatvoren je u W7.4, a `BA-assets-10` scheduler reconciliation i last-success signal zatvoreni su u W7.10. Preostaju `BA-assets-11` durable status/dedupe za extra email i `BA-assets-18` širi delivery/scheduler health nalaz; W7.10 ne preuzima njihove dodatne zahtjeve.
 
 ### Faza 3 — DB invarianti i licence
 
@@ -316,3 +316,13 @@ Na tadašnjem W7.8 checkpointu `BA-assets-09`–`BA-assets-19` su ostali otvoren
 W7.9 zatvorio je samo `BA-assets-09` (P2): `AssetDirectorySyncService` sada koristi zajednički Redis single-flight lease za API/manual, worker/scheduled i CLI runove. Lease ključ `assets:directory-sync:full-run` sadrži `runId` i nasumični `ownerToken`, počinje atomarnim `SET NX PX` (TTL 120 s), obnavlja se svakih 30 s, a compare-owner Lua skripte štite renewal/release. Redis komande imaju timeout 2 s; outage, lease expiry/ownership loss ili neuspješan heartbeat fail-closed. Service provjerava lease oko LDAP/planning/report/audit faza i tokom apply; ownership error se nikad ne broji kao običan neuspjeh asseta. `runId` se čuva u audit metadata/logovima. Nema DB schema promjene niti migracije. `BA-assets-10` scheduler reconciliation ostaje zasebno otvoren.
 
 Service/unit testovi dokazuju cross-instance contention i release, fail-closed Redis outage, lease loss nakon LDAP i propagation gubitka leasea iz update transakcije. Real-Redis integration suite sa dva nezavisna klijenta pokriva atomic contention, renewal duži od početnog TTL-a i recovery nakon crash/expiry; suite je u isolated integration runneru. Kodni commit je `0f2e3d3bec3fffb828a651038a571e349352fb3b`, a testni tip/korekcija `2f53edc1de07669f32fb9e1254ee0916eb584d64` je finalni testani SHA. Prvi CI `41009478021` pao je zbog našeg literal-type/mocked-Redis test fixture problema, koji je ispravljen. Zeleni CI [`41010129252`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41010129252) pokrio je backend build/lint/Jest, PostgreSQL+Redis acceptance, frontend, docs guard, container/supply-chain i gate. E2E jobovi su preskočeni na pushu; image vulnerability enforcement je `skipped` jer je scanner actionable count bio 0. Potpuni testni, rollout, rollback i lokalni limit dokaz je u [95-assets-distributed-directory-sync-lease.md](../implementation/95-assets-distributed-directory-sync-lease.md).
+
+## 29. Implementacijski closeout — W7.10 (`BA-assets-10`)
+
+W7.10 zatvorio je samo `BA-assets-10` (P2). Directory sync i asset reminder scheduleri sada ponovo upsertuju BullMQ repeatable schedule zapise nakon Redis gubitka ili prolazne greške pri startup registraciji. Upsert je timeout-ograničen na pet sekundi; worker reconciler armira petominutni retry prije eager pass-a, ne prekida bootstrap zbog greške i zadržava lifecycle kao `degraded` dok schedules ne budu zdravi. Početni worker lifecycle publish je best-effort tokom Redis reconnecta kako bi reconciliation i keepalive timeri ostali aktivni.
+
+Ops-health očekuje oba scheduler ID-a i prikazuje missing registration kao `registered=false`; inspection timeout ostaje unknown, ne missing. Posljednji uspjeh se provjerava prema 75-minutnom pragu za hourly cron poslove, uz postojeći `scheduler.late` alarm. Real-Redis acceptance suite briše tačno ta dva scheduler zapisa u izolovanom prefixu i dokazuje ponovnu registraciju; unit/integration testovi pokrivaju startup error/timeout, retry, schedule konfiguraciju, readiness i UI/API alarm signal.
+
+Finalni testani SHA je `ccbceb1179b37fae2cce243c066deb3ed4fab489`; zeleni CI [`41020243134`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41020243134) je prošao backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test/build, docs guard, container/supply-chain i CI gate. Nije bilo neuspjelog W7.10 CI pokušaja. Push workflow je preskočio E2E jobove; image vulnerability enforcement je `skipped` uz actionable count nula. Lokalni backend runner test bio je blokiran neinstaliranim `pg` paketom (`backend/node_modules` ne postoji), dok su potpuni CI suiteovi prošli. Nema Prisma promjene, DB migracije ni DB rollback koraka. Operativni rollout/rollback dokaz je u [96-assets-scheduler-reconciliation.md](../implementation/96-assets-scheduler-reconciliation.md).
+
+`BA-assets-11`–`BA-assets-19` ostaju otvoreni. Naredni je W7.11 (`BA-assets-11`) — durable delivery i per-recipient dedupe/status za dodatne reminder e-mail adrese.

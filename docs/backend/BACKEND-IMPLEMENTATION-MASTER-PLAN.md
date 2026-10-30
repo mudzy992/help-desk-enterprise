@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.9 završen, W7.10 sljedeći)<br>
+**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.10 zatvoreni, W7.11 sljedeći)<br>
 **Datum ažuriranja:** 2026-10-30<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.9 završen; W7.10 je sljedeći planirani paket).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.10 su zatvoreni; W7.11 je sljedeći planirani paket).
 
 ### Redoslijed
 
@@ -522,8 +522,14 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - CI pokušaj `41009478021` pao je na našim literal-type/mocked-Redis test fixture greškama; ispravljeno je prije finalnog `41010129252`. Zeleni CI je prošao backend, PostgreSQL/Redis integration, frontend, docs guard, container/supply-chain i CI gate; E2E jobovi su preskočeni na pushu, a image vulnerability enforcement je `skipped` uz actionable count 0. Lokalni backend Jest/build nisu pokretani zbog nedostajućih `node_modules`/generated Prisma clienta i ranije zabilježene sandbox TLS blokade.
 - Deklarisani registry poslije W7.9: **580 otvorenih / 112 zatvorenih / 692 ukupno**; machine-readable source statusi su 583 open / 98 closed / 11 historijskih, uz istu preegzistentnu razliku. 19 početnih P1 nalaza u Valu 7 ostaje otvoreno. Potpuni dokaz, rollout i rollback je u [95-assets-distributed-directory-sync-lease.md](implementation/95-assets-distributed-directory-sync-lease.md).
 
-### Sljedeći planirani paket — W7.10
+### W7.10 — zatvoren samo `BA-assets-10` (P2)
 
-**`BA-assets-10` (P2):** periodična reconciliation repeatable scheduler registracije nakon Redis restart/flush-a ili startup greške i last-success health signal. Paket nije započet; ne preuzimati susjedne assets nalaze bez vlastitog scopea.
+Directory sync i asset reminders sada ponovo uspostavljaju repeatable BullMQ schedulere nakon Redis gubitka ili startup registracijske greške: upsert pozivi su ograničeni timeoutom, worker reconciler radi eager pass i petominutni retry, a lifecycle ostaje `degraded` dok reconciliation ne uspije. Ops-health signalizuje nedostajući registration red i last-success stariji od 75 minuta uz postojeći `scheduler.late` alarm. Puni acceptance, rollout i rollback dokaz je u [96-assets-scheduler-reconciliation.md](implementation/96-assets-scheduler-reconciliation.md).
+
+Testani kodni SHA `ccbceb1179b37fae2cce243c066deb3ed4fab489` i zeleni CI [`41020243134`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41020243134) pokrili su backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test/build, docs guard, container/supply-chain i CI gate. Push workflow je preskočio E2E jobove; image vulnerability enforcement je `skipped` jer je actionable high/critical count bio nula. Nije bilo neuspjelog W7.10 CI pokušaja. Nema Prisma schema promjene ni DB migracije. Deklarisani registar je sada **579 otvorenih / 113 zatvorenih / 692 ukupno**; preegzistentna razlika prema machine-readable source statusima ostaje izvan ovog paketa. `BA-assets-11`–`BA-assets-19` nisu dirani.
+
+### Sljedeći planirani paket — W7.11
+
+**`BA-assets-11` (P2):** durable delivery i per-recipient dedupe/status za dodatne reminder e-mail adrese. Paket nije započet; ne preuzimati susjedne assets nalaze bez vlastitog acceptance scopea.
 
 Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
