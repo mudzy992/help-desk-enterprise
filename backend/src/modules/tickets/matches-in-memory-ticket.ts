@@ -46,13 +46,18 @@ function matchesRow(
       return matchesRelation(
         resolveRelated(row as { readonly id: string }) as readonly Row[],
         condition as Row,
+        relations,
       );
     }
     return matchesInMemoryField(row[key], condition);
   });
 }
 
-function matchesRelation(related: readonly Row[], filter: Row): boolean {
+function matchesRelation(
+  related: readonly Row[],
+  filter: Row,
+  relations: InMemoryTicketRelations,
+): boolean {
   const unsupported = Object.keys(filter).filter(
     (key) => !['some', 'none', 'every', 'is', 'isNot'].includes(key),
   );
@@ -60,7 +65,7 @@ function matchesRelation(related: readonly Row[], filter: Row): boolean {
     throw new Error(`Unsupported in-memory relation filter: ${unsupported[0]}`);
   }
   const hit = (where: unknown) =>
-    related.some((item) => matchesRow(item, where as Row, noRelations));
+    related.some((item) => matchesRow(item, where as Row, relations));
   return (
     (filter.some === undefined || hit(filter.some)) &&
     (filter.none === undefined || !hit(filter.none)) &&

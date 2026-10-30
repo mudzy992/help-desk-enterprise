@@ -124,6 +124,22 @@ export function createInMemoryTicketsPrisma() {
     // like Prisma does for the one-to-one relation.
     csat: (ticket) =>
       [...csatSubmissions.values()].filter((row) => row.ticketId === ticket.id),
+    assignedGroup: (ticket) => {
+      const groupId = tickets.get(ticket.id)?.assignedGroupId;
+      if (groupId === undefined || groupId === null) {
+        return [];
+      }
+      return [groups.get(groupId) ?? { id: groupId }];
+    },
+    members: (group) =>
+      [...members.values()].filter((row) => row.groupId === group.id),
+    group: (grant) => {
+      const groupId = confidentialGrants.get(grant.id)?.groupId;
+      if (groupId === undefined || groupId === null) {
+        return [];
+      }
+      return [groups.get(groupId) ?? { id: groupId }];
+    },
   };
 
   const prisma = {

@@ -45,9 +45,15 @@ export async function buildTicketListWhere(
   if (statusFilter === null) {
     return null;
   }
+  const confidential =
+    context.confidential ?? defaultTicketConfidentialConfiguration;
   const visibilityInputs = await loadTicketVisibilityInputs(
     prisma,
     authContext.subjectId,
+    {
+      includeActorGroupIds:
+        confidential.enabled && confidential.allowedViewerGroupIds.length > 0,
+    },
   );
   return {
     AND: [
@@ -60,6 +66,7 @@ export async function buildTicketListWhere(
           roleKeys: authContext.assignments.map((assignment) => assignment.roleKey),
         },
         visibilityInputs.actorGroupIds,
+        authContext.subjectId,
       ),
       ...buildPersonalCollaborationFilter(query, authContext.subjectId, now),
       buildTicketSurfaceVisibility({
@@ -67,8 +74,8 @@ export async function buildTicketListWhere(
         visibility: {
           context: authContext,
           ...visibilityInputs,
-          configuration:
-            context.confidential ?? defaultTicketConfidentialConfiguration,
+          actorMembershipUserId: authContext.subjectId,
+          configuration: confidential,
           now,
         },
       })!,
@@ -126,6 +133,7 @@ export function buildForwardedFilter(
   query: Pick<ListTicketsQuery, 'forwarded'>,
   actor: { readonly isSuperAdmin: boolean; readonly roleKeys: readonly string[] },
   actorGroupIds: readonly string[],
+  actorMembershipUserId?: string,
 ): Prisma.TicketWhereInput[] {
   if (query.forwarded === undefined) {
     return [];
@@ -137,5 +145,19 @@ export function buildForwardedFilter(
   if (query.forwarded === 'any') {
     return [{ forwardCount: { gt: 0 } }];
   }
-  return [{ forwardCount: { gt: 0 }, assignedGroupId: { in: [...actorGroupIds] } }];
+  if (actorGroupIds.length > 0) {
+    return [{ forwardCount: { gt: 0 }, assignedGroupId: { in: [...actorGroupIds] } }];
+  }
+  return actorMembershipUserId === undefined
+    ? [{ forwardCount: { gt: 0 }, assignedGroupId: { in: [] } }]
+    : [
+        {
+          forwardCount: { gt: 0 },
+          assignedGroup: {
+            is: {
+              members: { some: { userId: actorMembershipUserId } },
+            },
+          },
+        },
+      ];
 }

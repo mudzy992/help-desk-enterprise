@@ -51,11 +51,18 @@ export async function listGroupInboxTickets(
   if (!configuration.groupInboxEnabled) {
     throw new TicketsError('GROUP_INBOX_DISABLED');
   }
+  const confidential =
+    context.confidential ?? defaultTicketConfidentialConfiguration;
   const visibility = {
     context: authContext,
-    ...(await loadTicketVisibilityInputs(prisma, authContext.subjectId)),
-    configuration:
-      context.confidential ?? defaultTicketConfidentialConfiguration,
+    ...(await loadTicketVisibilityInputs(prisma, authContext.subjectId, {
+      // Ticket-level membership and group grants use relation predicates. Only
+      // actor-global confidential viewer groups need a separate id catalogue.
+      includeActorGroupIds:
+        confidential.enabled && confidential.allowedViewerGroupIds.length > 0,
+    })),
+    actorMembershipUserId: authContext.subjectId,
+    configuration: confidential,
     now: new Date(),
   };
   const page = Math.max(options.page ?? ticketListPaging.defaultPage, 1);
