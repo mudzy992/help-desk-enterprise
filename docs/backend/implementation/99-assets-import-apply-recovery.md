@@ -5,6 +5,7 @@
 **Kodni commit:** `f6c41bfe75c3c628f763bdfd8320d950d3746802`<br>
 **Finalni testani kodni SHA:** `f6c41bfe75c3c628f763bdfd8320d950d3746802`<br>
 **Kod CI:** [`41036970834`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41036970834) — zelen na finalnom kodnom SHA<br>
+**Closeout/traceability CI:** [`41038313696`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41038313696) — zelen na closeout SHA `b68faa9d934dfc981a578cb3cd7392999b83523d`<br>
 **DB migracija:** `20271030100000_asset_import_apply_lease` — aditivna state/lease/checkpoint polja i constraints
 
 ## Nalaz i acceptance
@@ -58,6 +59,7 @@ Kodna promjena i migracija na SHA `f6c41bfe75c3c628f763bdfd8320d950d3746802` pro
 - **Docs/container/supply-chain:** docs guard, container contract/model, image build, SBOM, skenovi/provenance i ukupni CI gate — zeleni.
 - **Preskočeno po push triggeru:** `E2E critical flows` i `E2E install wizard`. Image `Enforce zero high/critical vulnerabilities` korak je `skipped`, a ne pao; workflow nije imao actionable high/critical nalaz za enforcement.
 - **Neuspjeli CI pokušaji:** nema.
+- Nakon sinhronizacije izvornog audita, findings registra, machine-readable plana i master plana, closeout/traceability CI [`41038313696`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41038313696) je zelen na SHA `b68faa9d934dfc981a578cb3cd7392999b83523d`. Prošao je audit baseline/traceability test, Prisma/backend i PostgreSQL/Redis gate, frontend, docs guard, container/supply-chain i CI gate; E2E push poslovi su preskočeni, a image vulnerability enforcement je `skipped` po uslovu bez actionable nalaza.
 
 ## Registar nalaza
 
