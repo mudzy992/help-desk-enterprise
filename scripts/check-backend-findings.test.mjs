@@ -3,7 +3,10 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { buildFindingsPlan, parseFindingRows, unitPlans, validateFindingsPlan } from "./check-backend-findings.mjs";
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 async function withAuditFixtures(mutate, run) {
   const directory = await mkdtemp(path.join(tmpdir(), "backend-findings-"));
@@ -46,6 +49,15 @@ test("gradi determinističan plan iz source audit tabela", async () => {
       status: "otvoreno",
     });
   });
+});
+
+test("W7.10 BA-assets-10 closeout je zatvoren u izvornom registry planu", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const finding = plan.findings.find(({ id }) => id === "BA-assets-10");
+  assert.deepEqual(
+    { source: finding?.source, status: finding?.status },
+    { source: "22-assets.md", status: "zatvoreno" },
+  );
 });
 
 test("čita escaped pipe u naslovu i izvorni status", () => {
