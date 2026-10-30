@@ -2,6 +2,9 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 import type { PrismaService } from '../common/prisma/prisma.service';
+import { closeRedisClient } from '../common/redis/close-redis-client';
+import { createRedisClient } from '../common/redis/create-redis-client';
+import { loadRedisConfiguration } from '../common/redis/load-redis-configuration';
 import { AssetAccessService } from '../modules/assets/asset-access.service';
 import { AssetError } from '../modules/assets/assets.constants';
 import { AssetDirectorySyncService, type DirectorySyncReport } from '../modules/assets/directory/asset-directory-sync.service';
@@ -58,10 +61,20 @@ async function main(): Promise<number> {
     console.error('DATABASE_URL is required');
     return 2;
   }
+  const redis = createRedisClient(loadRedisConfiguration());
+  redis.on('error', (error: Error) => {
+    console.warn(`asset_directory_sync_redis_error type=${error.name}`);
+  });
   const client = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   const prisma = client as unknown as PrismaService;
   const settings = new SettingsService(createSettingsRegistry(applicationSettings), prisma);
-  const service = new AssetDirectorySyncService(prisma, new AssetAccessService(prisma, settings), new LdapsSyncConfigurationLoader(settings), new DirectoryBackoff());
+  const service = new AssetDirectorySyncService(
+    prisma,
+    new AssetAccessService(prisma, settings),
+    new LdapsSyncConfigurationLoader(settings),
+    new DirectoryBackoff(),
+    redis,
+  );
   try {
     const report = await service.run({ dryRun, actorUserId: null, trigger: 'cli', ...(reason ? { reason: reason.trim() } : {}) });
     if (apply) console.log(`Reason: ${reason?.trim()}`);
@@ -74,7 +87,11 @@ async function main(): Promise<number> {
     }
     throw error;
   } finally {
-    await client.$disconnect();
+    try {
+      await client.$disconnect();
+    } finally {
+      await closeRedisClient(redis);
+    }
   }
 }
 

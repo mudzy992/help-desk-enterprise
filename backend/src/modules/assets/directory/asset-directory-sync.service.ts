@@ -1,6 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import type Redis from 'ioredis';
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { redisTokens } from '../../../common/redis/redis.tokens';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import type { AuditLogTransactionalClient } from '../../audit-log/audit-log.types';
@@ -16,6 +19,7 @@ import { settingKeys } from '../../settings/setting-keys';
 import { AssetAccessService } from '../asset-access.service';
 import { AssetError, assetErrorCodes, assetEventActions, type AssetStatusValue } from '../assets.constants';
 import { allocateAssetTags } from '../asset-tags';
+import { AssetDirectorySyncLease, AssetDirectorySyncLeaseError, type AssetDirectorySyncLeaseHandle } from './asset-directory-sync-lease';
 import {
   planDirectoryComputers,
   type DirectoryAssetState,
@@ -73,6 +77,7 @@ export type DirectorySyncStatus = {
 @Injectable()
 export class AssetDirectorySyncService {
   private readonly logger = new Logger(AssetDirectorySyncService.name);
+  private readonly distributedLease: AssetDirectorySyncLease;
   private running = false;
 
   constructor(
@@ -80,8 +85,11 @@ export class AssetDirectorySyncService {
     private readonly access: AssetAccessService,
     private readonly ldapsConfiguration: LdapsSyncConfigurationLoader,
     private readonly backoff: DirectoryBackoff,
+    @Inject(redisTokens.client) redis: Redis,
     @Optional() @Inject(LDAP_CLIENT_FACTORY) private readonly clientFactory?: LdapClientFactory,
-  ) {}
+  ) {
+    this.distributedLease = new AssetDirectorySyncLease(redis);
+  }
 
   async status(): Promise<DirectorySyncStatus> {
     const [enabled, intervalHours, configuration, lastRun, lastApplied, directoryAssets, missingAssets] = await Promise.all([
@@ -135,8 +143,20 @@ export class AssetDirectorySyncService {
     }
     if (this.running) throw new AssetError(assetErrorCodes.directoryUnavailable, 'busy');
     this.running = true;
-    const startedAt = Date.now();
+    const runId = randomUUID();
+    let lease: AssetDirectorySyncLeaseHandle | null = null;
     try {
+      try {
+        lease = await this.distributedLease.tryAcquire(runId);
+      } catch (error) {
+        if (error instanceof AssetDirectorySyncLeaseError) throw leaseFailure(error);
+        throw error;
+      }
+      if (lease === null) throw new AssetError(assetErrorCodes.directoryUnavailable, 'busy');
+      const assertLease = () => lease!.assertOwned();
+      const assertLeaseHealthy = () => lease!.assertHealthy();
+      const startedAt = Date.now();
+      this.logger.debug(`asset_directory_sync_lease_acquired run=${runId} trigger=${input.trigger}`);
       const configuration = await this.ldapsConfiguration.load().catch((error: unknown) => {
         throw new AssetError(assetErrorCodes.directoryNotConfigured, error instanceof DirectorySyncError ? error.code : 'unreadable');
       });
@@ -164,19 +184,33 @@ export class AssetDirectorySyncService {
         }
         throw error;
       }
+      await assertLease();
       if (read.result.length > assetDirectorySyncLimits.maxComputers) {
         throw new AssetError(assetErrorCodes.directoryUnavailable, 'too_many_computers');
       }
       const plan = await this.plan(read.result, configuration.ouMappingOverrides, configuration.maxDeactivationPercent);
-      const applied = input.dryRun ? null : await this.apply(plan, input.actorUserId);
+      await assertLease();
+      const applied = input.dryRun ? null : await this.apply(plan, input.actorUserId, assertLease, assertLeaseHealthy);
+      await assertLease();
       const report = await this.report(plan, input, startedAt, applied, read.session.url);
-      await this.audit(report, input.actorUserId, input.reason);
+      await assertLease();
+      await this.audit(report, input.actorUserId, input.reason, runId);
+      await assertLease();
       this.logger.log(
-        `asset_directory_sync dryRun=${input.dryRun} trigger=${input.trigger} seen=${plan.totals.seen} create=${plan.totals.create} update=${plan.totals.update + plan.totals.adopt + plan.totals.restore} missing=${plan.totals.missing} conflicts=${plan.totals.conflicts} guard=${plan.missingGuardTripped}`,
+        `asset_directory_sync run=${runId} dryRun=${input.dryRun} trigger=${input.trigger} seen=${plan.totals.seen} create=${plan.totals.create} update=${plan.totals.update + plan.totals.adopt + plan.totals.restore} missing=${plan.totals.missing} conflicts=${plan.totals.conflicts} guard=${plan.missingGuardTripped}`,
       );
       return report;
+    } catch (error) {
+      if (error instanceof AssetDirectorySyncLeaseError) throw leaseFailure(error);
+      throw error;
     } finally {
-      this.running = false;
+      try {
+        if (lease !== null && !(await lease.release())) {
+          this.logger.warn(`asset_directory_sync_lease_release_deferred run=${runId}`);
+        }
+      } finally {
+        this.running = false;
+      }
     }
   }
 
@@ -247,16 +281,24 @@ export class AssetDirectorySyncService {
     });
   }
 
-  private async apply(plan: DirectoryPlan, actorUserId: string | null) {
+  private async apply(
+    plan: DirectoryPlan,
+    actorUserId: string | null,
+    assertLease: () => Promise<void>,
+    assertLeaseHealthy: () => void,
+  ) {
     let created = 0;
     let updated = 0;
     let failed = 0;
+    await assertLease();
     const prefix = await this.access.readSetting<string>(settingKeys.privateAssetsTagPrefix, assetDefaults.tagPrefix);
 
     for (let offset = 0; offset < plan.creates.length; offset += assetDirectorySyncLimits.createBatch) {
       const batch = plan.creates.slice(offset, offset + assetDirectorySyncLimits.createBatch);
+      await assertLease();
       try {
         await this.prisma.$transaction(async (transaction) => {
+          assertLeaseHealthy();
           const tags = await allocateAssetTags(transaction, batch.length, prefix);
           const now = new Date();
           await transaction.asset.createMany({
@@ -285,15 +327,20 @@ export class AssetDirectorySyncService {
               detail: { kind: 'created', userMatchedBy: byExternal.get(row.externalId as string)?.userMatchedBy ?? null } as Prisma.InputJsonValue,
             })),
           });
+          await assertLease();
         });
         created += batch.length;
       } catch (error) {
+        if (error instanceof AssetDirectorySyncLeaseError) throw error;
         failed += batch.length;
         this.logger.warn(`asset_directory_sync_create_failed count=${batch.length} reason=${error instanceof Error ? error.message.slice(0, 200) : 'unknown'}`);
       }
     }
 
-    for (const entry of plan.updates) {
+    for (let index = 0; index < plan.updates.length; index += 1) {
+      const entry = plan.updates[index]!;
+      if (index % assetDirectorySyncLimits.createBatch === 0) await assertLease();
+      assertLeaseHealthy();
       try {
         const data: Prisma.AssetUpdateManyMutationInput = {
           ...entry.data,
@@ -303,8 +350,12 @@ export class AssetDirectorySyncService {
         if (entry.data.assignedUserId !== undefined) data.assignedAt = entry.data.assignedUserId ? new Date() : null;
         if (entry.changes.length > 0) data.version = { increment: 1 };
         const done = await this.prisma.$transaction(async (transaction) => {
+          assertLeaseHealthy();
           const result = await transaction.asset.updateMany({ where: { id: entry.assetId, version: entry.version }, data });
-          if (result.count === 0) return false;
+          if (result.count === 0) {
+            assertLeaseHealthy();
+            return false;
+          }
           if (entry.changes.length > 0) {
             await transaction.assetEvent.create({
               data: {
@@ -315,11 +366,13 @@ export class AssetDirectorySyncService {
               },
             });
           }
+          assertLeaseHealthy();
           return true;
         });
         if (done) updated += 1;
         else failed += 1;
       } catch (error) {
+        if (error instanceof AssetDirectorySyncLeaseError) throw error;
         failed += 1;
         this.logger.warn(`asset_directory_sync_update_failed asset=${entry.assetId} reason=${error instanceof Error ? error.message.slice(0, 200) : 'unknown'}`);
       }
@@ -367,7 +420,7 @@ export class AssetDirectorySyncService {
     };
   }
 
-  private async audit(report: DirectorySyncReport, actorUserId: string | null, reason?: string) {
+  private async audit(report: DirectorySyncReport, actorUserId: string | null, reason: string | undefined, runId: string) {
     try {
       await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
         action: report.dryRun ? auditLogActions.assetDirectorySyncDryRun : auditLogActions.assetDirectorySyncApplied,
@@ -375,6 +428,7 @@ export class AssetDirectorySyncService {
         entityId: assetDirectorySyncEntityId,
         actorUserId,
         metadata: {
+          runId,
           trigger: report.trigger,
           ...(reason ? { reason: reason.slice(0, 500) } : {}),
           totals: report.totals,
@@ -432,6 +486,13 @@ export type DescribedConflict = {
   readonly suggestedUser: string | null;
   readonly matchedBy: string;
 };
+
+function leaseFailure(error: AssetDirectorySyncLeaseError): AssetError {
+  return new AssetError(
+    assetErrorCodes.directoryUnavailable,
+    error.reason === 'unavailable' ? 'lease_unavailable' : 'lease_lost',
+  );
+}
 
 function toState(asset: {
   id: string;
