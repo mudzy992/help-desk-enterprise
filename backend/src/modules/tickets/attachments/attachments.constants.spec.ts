@@ -53,6 +53,7 @@ describe('attachment retention has a single source (val 2, M8/B1)', () => {
     // priloge zatvorenih tiketa; druga putanja brisanja ne postoji.
     const executors = createRetentionExecutors({} as never, {} as never);
     expect(Object.keys(executors).sort()).toEqual([
+      'assetTransfers',
       'attachments',
       'audit',
       'emailDeliveries',

@@ -334,7 +334,7 @@ describeIfDatabase('retention (integration)', () => {
       signedAt: new Date(now.getTime() - 10 * day),
     });
     const issued = await createTransfer('issued', { status: 'ISSUED' });
-    const svc = service(configuration({ assetTransfers: 1 }));
+    const svc = service(configuration({ assetTransfers: 30 }));
     const dry = await svc.runCategory({
       category: 'assetTransfers',
       mode: 'DRY_RUN',
