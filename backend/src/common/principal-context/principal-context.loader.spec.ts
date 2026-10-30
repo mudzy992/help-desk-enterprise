@@ -212,6 +212,29 @@ describe('principal context loading (phase 2.2)', () => {
     expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
   });
 
+  it('uses a version-matched local context when the Redis payload is absent', async () => {
+    const { loader, queries, redis } = setup();
+    const authority = {
+      subjectId: 'user-agent',
+      authzVersion: 0,
+      isActive: true,
+      mustChangePassword: false,
+    } as const;
+    const first = await runWithRequestId('principal-local-prime', () =>
+      loader.load('user-agent', authority),
+    );
+    expect(first?.roleKeys).toEqual(['AGENT']);
+
+    redis.entries.delete(principalContextCacheKey('user-agent', 0));
+    queries.length = 0;
+    const second = await runWithRequestId('principal-local-pointer-hit', () =>
+      loader.load('user-agent', authority),
+    );
+
+    expect(second).toEqual(first);
+    expect(queries).toHaveLength(0);
+  });
+
   it('coalesces concurrent cache-miss loads with the same durable version', async () => {
     const { loader, queries } = setup();
     const authority = {
@@ -494,9 +517,44 @@ describe('principal context cache client contract', () => {
     const reasons: string[] = [];
     const onMiss = (reason: string) => reasons.push(reason);
 
-    expect(await readCachedPrincipalContext(null, 'user-1', onMiss)).toBeNull();
-    expect(await readCachedPrincipalContext(client, 'user-1', onMiss)).toBeNull();
+    expect(
+      await readCachedPrincipalContext(null, 'user-1', { onMiss }),
+    ).toBeNull();
+    expect(
+      await readCachedPrincipalContext(client, 'user-1', { onMiss }),
+    ).toBeNull();
     expect(reasons).toEqual(['no_client', 'no_pointer']);
+  });
+
+  it('uses a local payload only when the Redis pointer has the same version', async () => {
+    const { client, entries } = createFakeRedis();
+    const context = mapPrincipalUser(
+      userRow() as unknown as Parameters<typeof mapPrincipalUser>[0],
+    );
+    entries.set(principalContextVersionKey('user-agent'), {
+      value: '0',
+      ttlSeconds: principalContextCacheTtlSeconds,
+    });
+    const onLocalHit = jest.fn();
+    const onMiss = jest.fn();
+
+    await expect(
+      readCachedPrincipalContext(client, 'user-agent', {
+        localCandidate: context,
+        onLocalHit,
+        onMiss,
+      }),
+    ).resolves.toEqual(context);
+    expect(onLocalHit).toHaveBeenCalledTimes(1);
+    expect(onMiss).not.toHaveBeenCalled();
+
+    await expect(
+      readCachedPrincipalContext(client, 'user-agent', {
+        localCandidate: { ...context, authzVersion: 1 },
+        onMiss,
+      }),
+    ).resolves.toBeNull();
+    expect(onMiss).toHaveBeenCalledWith('no_payload');
   });
 
   it('keeps the pointer pointing at nothing after invalidation', async () => {

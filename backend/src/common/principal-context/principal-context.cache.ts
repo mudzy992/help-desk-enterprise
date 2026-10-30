@@ -72,14 +72,20 @@ export type PrincipalContextCacheMissReason =
   | 'invalid_payload'
   | 'read_error';
 
+export interface PrincipalContextCacheReadOptions {
+  readonly localCandidate?: PrincipalContext | null;
+  readonly onMiss?: (reason: PrincipalContextCacheMissReason) => void;
+  readonly onLocalHit?: () => void;
+}
+
 export async function readCachedPrincipalContext(
   client: PrincipalContextCacheClient | null,
   userId: string,
-  onMiss?: (reason: PrincipalContextCacheMissReason) => void,
+  options: PrincipalContextCacheReadOptions = {},
 ): Promise<PrincipalContext | null> {
   const miss = (reason: PrincipalContextCacheMissReason): null => {
     try {
-      onMiss?.(reason);
+      options.onMiss?.(reason);
     } catch {
       // An optional diagnostic observer can never affect the cache read.
     }
@@ -96,6 +102,20 @@ export async function readCachedPrincipalContext(
     const parsedVersion = Number.parseInt(version, 10);
     if (!Number.isInteger(parsedVersion)) {
       return miss('invalid_pointer');
+    }
+    const localCandidate = options.localCandidate;
+    if (
+      localCandidate !== undefined &&
+      localCandidate !== null &&
+      localCandidate.subjectId === userId &&
+      localCandidate.authzVersion === parsedVersion
+    ) {
+      try {
+        options.onLocalHit?.();
+      } catch {
+        // An optional diagnostic observer can never affect the cache read.
+      }
+      return localCandidate;
     }
     const payload = await client.get(principalContextCacheKey(userId, parsedVersion));
     if (payload === null) {

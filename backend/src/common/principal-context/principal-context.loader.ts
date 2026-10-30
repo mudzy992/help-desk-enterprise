@@ -3,6 +3,7 @@ import type Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { redisTokens } from '../redis/redis.tokens';
 import {
+  principalContextCacheTtlSeconds,
   readCachedPrincipalContext,
   writeCachedPrincipalContext,
   type PrincipalContextCacheClient,
@@ -26,6 +27,60 @@ const principalContextLoadsInFlight = new WeakMap<
   PrismaService,
   Map<string, Promise<PrincipalContext | null>>
 >();
+type LocalPrincipalContextEntry = {
+  readonly context: PrincipalContext;
+  readonly expiresAt: number;
+};
+const localPrincipalContexts = new WeakMap<
+  PrismaService,
+  Map<string, LocalPrincipalContextEntry>
+>();
+const maxLocalPrincipalContexts = 512;
+
+function findLocalPrincipalContext(
+  prisma: PrismaService,
+  userId: string,
+  authzVersion: number,
+): PrincipalContext | null {
+  const entries = localPrincipalContexts.get(prisma);
+  const entry = entries?.get(userId);
+  if (entries === undefined || entry === undefined) {
+    return null;
+  }
+  if (
+    entry.expiresAt <= Date.now() ||
+    entry.context.authzVersion !== authzVersion
+  ) {
+    entries.delete(userId);
+    return null;
+  }
+  entries.delete(userId);
+  entries.set(userId, entry);
+  return entry.context;
+}
+
+function rememberLocalPrincipalContext(
+  prisma: PrismaService,
+  context: PrincipalContext,
+): void {
+  let entries = localPrincipalContexts.get(prisma);
+  if (entries === undefined) {
+    entries = new Map();
+    localPrincipalContexts.set(prisma, entries);
+  }
+  entries.delete(context.subjectId);
+  entries.set(context.subjectId, {
+    context,
+    expiresAt: Date.now() + principalContextCacheTtlSeconds * 1_000,
+  });
+  while (entries.size > maxLocalPrincipalContexts) {
+    const oldestSubjectId = entries.keys().next().value;
+    if (oldestSubjectId === undefined) {
+      break;
+    }
+    entries.delete(oldestSubjectId);
+  }
+}
 
 function loadPrincipalContextSingleFlight(
   prisma: PrismaService,
@@ -101,9 +156,20 @@ export class PrincipalContextLoader {
     durableAuthority?: PrincipalAuthoritySnapshot,
   ): Promise<PrincipalContext | null> {
     const client = await this.cacheClient();
-    const cached = await readCachedPrincipalContext(client, id, (reason) =>
-      tracePrincipalContextCache(`redis_miss_${reason}`),
-    );
+    const localCandidate =
+      durableAuthority?.subjectId === id
+        ? findLocalPrincipalContext(
+            this.prisma,
+            id,
+            durableAuthority.authzVersion,
+          )
+        : null;
+    const cached = await readCachedPrincipalContext(client, id, {
+      localCandidate,
+      onMiss: (reason) =>
+        tracePrincipalContextCache(`redis_miss_${reason}`),
+      onLocalHit: () => tracePrincipalContextCache('local_pointer_hit'),
+    });
     if (cached !== null) {
       const authorityMatches = await this.matchesDurableAuthority(
         id,
@@ -120,6 +186,7 @@ export class PrincipalContextLoader {
             : 'redis_hit_stale_session_fence',
       );
       if (authorityMatches) {
+        rememberLocalPrincipalContext(this.prisma, cached);
         return cached;
       }
     }
@@ -130,6 +197,7 @@ export class PrincipalContextLoader {
       durableAuthority,
     );
     if (fresh !== null) {
+      rememberLocalPrincipalContext(this.prisma, fresh);
       await writeCachedPrincipalContext(client, fresh, () =>
         tracePrincipalContextCache('redis_write_error'),
       );
