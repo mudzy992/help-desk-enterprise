@@ -9,6 +9,9 @@ name: Perf smoke
 # as artefacts so a regression can be read without re-running the pipeline.
 
 on:
+  push:
+    # Push-based performance evidence is scoped to this active Arena branch.
+    branches: [arena/864951a6-help-desk-enterprise]
   pull_request:
     branches: [main, master]
   workflow_dispatch:
