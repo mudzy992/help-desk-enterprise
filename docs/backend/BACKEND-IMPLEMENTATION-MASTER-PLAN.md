@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.12 zatvoreni, W7.13 sljedeći)<br>
+**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.13 zatvoreni; W7.14 nije odobren/započet)<br>
 **Datum ažuriranja:** 2026-10-30<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.12 su zatvoreni; W7.13 je sljedeći planirani paket).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.13 su zatvoreni; W7.14 nije odobren/započet).
 
 ### Redoslijed
 
@@ -547,8 +547,13 @@ Testani kodni SHA `ccbceb1179b37fae2cce243c066deb3ed4fab489` i zeleni CI [`41020
 - Lokalno su prošli migration policy (99 migracija; 2/2 testa), integration harness (3/3), audit policy/schema Jest (3 suite-a/19 testova), lint (0 grešaka; tri nepovezana SLA upozorenja) i `git diff --check`. Generated Prisma client nije se mogao lokalno preuzeti zbog sandbox TLS blokade; puni CI ga je generisao i izvršio sve backend suiteove.
 - Deklarisani zbir nakon W7.12: **577 otvorenih / 115 zatvorenih / 692 ukupno**; machine-readable statusi su **580 otvorenih / 101 zatvoren / 11 historijskih**. Preegzistentna razlika od tri statusa ostaje dokumentovana. Detaljni closeout je u [98-assets-transactional-business-audit.md](implementation/98-assets-transactional-business-audit.md).
 
-### Sljedeći planirani paket — W7.13
+### W7.13 — import apply lease/recovery — završeno
 
-**`BA-assets-13` (P2):** import claim treba eksplicitno `APPLYING` lease/recovery/idempotency stanje. Nije započet prije zelenog CI gatea za W7.12.
+- Zatvoren je samo `BA-assets-13` (P2). Kodni commit i finalni testani SHA `f6c41bfe75c3c628f763bdfd8320d950d3746802`; kodni CI [`41036970834`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41036970834) je zelen.
+- Apply sada CAS-uje `PREVIEW -> APPLYING`, koristi UUID run token, petominutni lease, takeover/fencing, cumulative durable batch checkpoint i all-or-nothing transakcijsku finalizaciju. `discard` je status-CAS; history UI polluje i nudi resume nakon isteka leasea.
+- PostgreSQL acceptance pokriva concurrent claim, stale-token rejection, cursor resume, final reconciliation i all-or-nothing rollback. CI je replayovao svih 100 migracija; nova aditivna migracija je `20271030100000_asset_import_apply_lease`.
+- Lokalno su prošli targeted backend lint/Jest, harness/policy i frontend lint/format/i18n/test/build. Lokalni Prisma generator je bio blokiran TLS-om, a ciljna `DATABASE_URL` nije bila dostupna; puni Prisma/build/PostgreSQL dokaz je CI runu.
+- CI je prošao backend, PostgreSQL+Redis migration/integration, frontend, docs guard, container/supply-chain i gate. Push-trigger E2E poslovi su preskočeni; zero-high/critical image enforcement je `skipped` bez actionable nalaza. Nije bilo neuspjelog pokušaja.
+- Po deklarisanom registryju ostaje **576 otvorenih / 116 zatvorenih / 692 ukupno**; machine-readable source statusi su **579 otvorenih / 102 zatvorena / 11 historijskih**, uz raniju razliku od tri statusa. Zatvoreno je samo `BA-assets-13`; `BA-assets-14`–`BA-assets-19` ostaju otvoreni. Detalji su u [99-assets-import-apply-recovery.md](implementation/99-assets-import-apply-recovery.md).
 
-Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
+Naredni paket nije započet; W7.14 čeka zasebno odobrenje. Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
