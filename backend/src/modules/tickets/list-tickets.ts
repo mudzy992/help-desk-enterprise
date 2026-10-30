@@ -9,33 +9,10 @@ import { buildTicketListOrderBy } from "./list/build-ticket-list-order-by";
 import { ticketListPaging } from "./list/list-tickets.constants";
 import { clampTicketListPageSize } from "./list/clamp-ticket-list-page-size";
 import { ticketListSelect } from "./list/ticket-list-select";
-import {
-  createPerClientSingleFlightCache,
-  readTtlMsFromEnvironment,
-} from "../../common/cache/single-flight-cache";
 import { getRequestId } from "../../common/request-context/request-context.storage";
 import { recordDbQueryTraceLabel } from "../../common/database/db-query-counter";
-import {
-  countTicketsCapped,
-  type CappedTicketTotal,
-} from "./list/count-tickets-capped";
-
-/**
- * Staging slow log (2026-09-25, 100k tickets): the capped `COUNT` (≤ 10 001
- * visible rows) took ~350 ms on EVERY page request while the page itself was
- * fast. The total is the same for every page, sort and direction of a filter,
- * so it is single-flighted and reused per user + filter for
- * `TICKET_LIST_TOTAL_CACHE_TTL_MS` (default 30 s, 0 in tests). The rows are
- * never cached; only the "N tickets / page x of y" figure may lag.
- */
-const ticketListTotals = createPerClientSingleFlightCache<CappedTicketTotal>({
-  ttlMs: () =>
-    readTtlMsFromEnvironment(
-      "TICKET_LIST_TOTAL_CACHE_TTL_MS",
-      process.env.NODE_ENV === "test" ? 0 : 30_000,
-    ),
-  maxEntries: 5000,
-});
+import { countTicketsCapped } from "./list/count-tickets-capped";
+import { ticketListTotals } from "./list/ticket-list-total-cache";
 
 function ticketListTotalKey(
   query: ListTicketsQuery,

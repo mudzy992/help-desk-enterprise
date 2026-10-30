@@ -211,6 +211,10 @@ export type TicketListResponse = {
 
 export type TicketMutationContext = {
   readonly actorUserId: string;
+  /** Durable authorization version from the session guard, for cache fencing. */
+  readonly principalAuthzVersion?: number;
+  /** Fresh principal group ids, used to salt visibility-derived count caches. */
+  readonly principalGroupIds?: readonly string[];
   readonly confidential?: TicketConfidentialConfiguration;
   readonly safeLogging?: TicketSafeLoggingConfiguration;
   readonly archive?: TicketArchiveConfiguration;
