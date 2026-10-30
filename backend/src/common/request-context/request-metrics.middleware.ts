@@ -108,7 +108,7 @@ export class RequestMetricsMiddleware {
       const method = request.method ?? 'UNKNOWN';
       const sampleKey = `${method} ${route}`;
       const sampled = this.queryTraceSamplesByRoute.get(sampleKey) ?? 0;
-      if (sampled < 3) {
+      if (sampled < 12) {
         this.queryTraceSamplesByRoute.set(sampleKey, sampled + 1);
         this.logger.log(
           `db_query_trace method=${method} path=${route} count=${queryCount} statements=${trace.join(',')}`,

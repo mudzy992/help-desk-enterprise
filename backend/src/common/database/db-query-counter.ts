@@ -17,6 +17,20 @@ let totalQueries = 0;
  * Records one statement. `requestId` is absent for background work (worker
  * jobs, startup checks) — those still count towards the process total.
  */
+export function recordDbQueryTraceLabel(
+  requestId: string | undefined,
+  label: string,
+): void {
+  if (requestId === undefined) {
+    return;
+  }
+  const trace = queryTraceByRequestId.get(requestId) ?? [];
+  if (trace.length < 50) {
+    trace.push(label);
+    queryTraceByRequestId.set(requestId, trace);
+  }
+}
+
 export function recordDbQuery(
   requestId: string | undefined,
   statementLabel?: string,

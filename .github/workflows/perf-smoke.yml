@@ -71,7 +71,7 @@ jobs:
       CORS_ORIGIN: http://127.0.0.1:5173
       # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
       DB_QUERY_METRICS: "true"
-      # Opt-in, value-free query labels for a few route samples while diagnosing the budget.
+      # Opt-in, value-free query labels for bounded per-route samples while diagnosing the budget.
       DB_QUERY_TRACE: "true"
       # Measured in CI 2026-09-24 (run 36041855923, 65048 requests): 2.084 queries
       # per application request (local rig showed 1.705 — warm caches, and queries
@@ -398,7 +398,7 @@ jobs:
           echo "::notice::perf_routes_by_volume avg/count=${route_volume_summary}"
           trace_summary=$(grep -E 'db_query_trace method=GET path=/tickets(/inbox)? count=' api.log 2>/dev/null \
             | sed -E 's/\x1B\[[0-9;]*m//g; s/^.*db_query_trace /db_query_trace /' \
-            | head -12 | tr '\n' ';' || true)
+            | head -24 | tr '\n' ';' || true)
           if [ -n "$trace_summary" ]; then
             echo "::notice::db_query_trace_samples=${trace_summary}"
           fi

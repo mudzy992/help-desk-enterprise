@@ -12,6 +12,8 @@ import {
   createPerClientSingleFlightCache,
   readTtlMsFromEnvironment,
 } from "../../common/cache/single-flight-cache";
+import { getRequestId } from "../../common/request-context/request-context.storage";
+import { recordDbQueryTraceLabel } from "../../common/database/db-query-counter";
 import {
   countTicketsCapped,
   type CappedTicketTotal,
@@ -249,6 +251,14 @@ async function runTicketListQuery(
   }
   const cache = ticketListTotals(prisma);
   const totalKey = ticketListTotalKey(query, context, archive);
+  if (process.env.DB_QUERY_TRACE === "true") {
+    const totalCacheState =
+      cache.computedAt(totalKey) === null ? "miss_or_in_flight" : "hit";
+    recordDbQueryTraceLabel(
+      getRequestId(),
+      `ticket_list_total_cache=${totalCacheState}`,
+    );
+  }
   const { total, totalIsCapped } = await cache.get(totalKey, () =>
     countTicketsCapped(prisma, where),
   );
