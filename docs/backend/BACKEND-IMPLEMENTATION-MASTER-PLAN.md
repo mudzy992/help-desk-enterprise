@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.10 zatvoreni, W7.11 sljedeći)<br>
+**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.11 zatvoreni, W7.12 sljedeći)<br>
 **Datum ažuriranja:** 2026-10-30<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.10 su zatvoreni; W7.11 je sljedeći planirani paket).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.11 su zatvoreni; W7.12 je sljedeći planirani paket).
 
 ### Redoslijed
 
@@ -528,8 +528,18 @@ Directory sync i asset reminders sada ponovo uspostavljaju repeatable BullMQ sch
 
 Testani kodni SHA `ccbceb1179b37fae2cce243c066deb3ed4fab489` i zeleni CI [`41020243134`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41020243134) pokrili su backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test/build, docs guard, container/supply-chain i CI gate. Push workflow je preskočio E2E jobove; image vulnerability enforcement je `skipped` jer je actionable high/critical count bio nula. Nije bilo neuspjelog W7.10 CI pokušaja. Nema Prisma schema promjene ni DB migracije. Deklarisani registar je sada **579 otvorenih / 113 zatvorenih / 692 ukupno**; preegzistentna razlika prema machine-readable source statusima ostaje izvan ovog paketa. `BA-assets-11`–`BA-assets-19` nisu dirani.
 
-### Sljedeći planirani paket — W7.11
+### W7.11 — durable extra reminder email delivery — završeno
 
-**`BA-assets-11` (P2):** durable delivery i per-recipient dedupe/status za dodatne reminder e-mail adrese. Paket nije započet; ne preuzimati susjedne assets nalaze bez vlastitog acceptance scopea.
+- Zatvoren je samo `BA-assets-11` (P2). Finalni testani SHA je `b7d0ae64200c8739e6dd55976828b1b63928b545`; CI [`41025718081`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025718081) je zelen.
+- Nova `AssetReminderEmailDelivery` tabela čuva SHA-256 hash normalizovane adrese, batch dedupe key, `CLAIMED`/`SENT`/`FAILED`, attempts i UUID token. Unique identity i DB checks, 10-minutni stale takeover, `FAILED` retry i token fencing štite per-recipient concurrency; `SENT` može dovršiti marker retry bez drugog slanja.
+- Recipient setting je secret, globalno autorizovan, auditiran i redigovan u novim settings/change-log prikazima. Dodatni email ostaje internal-only i installation-wide; scoped user delivery i `BA-assets-18` nisu mijenjani. SMTP accept prije trajnog `SENT` upisa zadržava dokumentovani at-least-once duplicate prozor.
+- PostgreSQL acceptance suite pokriva paralelni claim, `SENT` dedupe, `FAILED` retry, stale reclaim i fencing starog tokena; unit/service/settings testovi pokrivaju hash, marker retry, fail logging i redaction. Migracija `20271028100000_asset_reminder_extra_email_delivery` je aditivna; rollout preflight, release apply, failed-only resolution i forward-only rollback su u [97-assets-reminder-extra-email-delivery.md](implementation/97-assets-reminder-extra-email-delivery.md).
+- Prvi CI [`41025218482`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025218482) našao je direktni PrismaClient/helper type mismatch u backend i PostgreSQL test kompilaciji; suženje na delivery delegate je uključeno u finalni SHA. Zeleni CI je prošao Prisma validate/generate, backend build/lint/Jest, PostgreSQL+Redis replay/integration, frontend, docs guard, container/supply-chain i CI gate. E2E jobovi su preskočeni na pushu; image vulnerability enforcement je `skipped` uz actionable count nula.
+- Lokalno su prošli migration policy (99 migracija, 2/2 testa), runner syntax check i `git diff --check`; lokalni backend testovi nisu dostupni bez `backend/node_modules`/generated Prisma clienta, a puni CI je izvršio relevantne suiteove.
+- Deklarisani registry poslije W7.11: **578 otvorenih / 114 zatvorenih / 692 ukupno**; machine-readable source statusi su **581 otvoren / 100 zatvorenih / 11 historijskih**, uz preegzistentnu razliku od tri statusa. `BA-assets-12`–`BA-assets-19` ostaju otvoreni.
+
+### Sljedeći planirani paket — W7.12
+
+**`BA-assets-12` (P2):** transactional audit ili durable post-commit outbox za asset license/contract/transfer business writeove. Paket nije započet; W7.11 je zatvoren tek nakon zelenog CI gatea.
 
 Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.

@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.7 je zatvorio `BA-assets-07`, W7.8 `BA-assets-08`, W7.9 `BA-assets-09`, a W7.10 `BA-assets-10`; sljedeći je planirani W7.11 `BA-assets-11`<br>
+**Status:** audit baseline + djelimična implementacija — W7.7 je zatvorio `BA-assets-07`, W7.8 `BA-assets-08`, W7.9 `BA-assets-09`, W7.10 `BA-assets-10`, a W7.11 `BA-assets-11`; sljedeći je planirani W7.12 `BA-assets-12`<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-30<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 579 otvorenih / 113 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nastavlja W7 closeout status nakon W7.10; machine-readable source redovi prikazuju 582 otvorena / 99 zatvorenih / 11 historijskih statusa. Preegzistentna razlika prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
+**Trenutno:** 578 otvorenih / 114 zatvorenih / 692 ukupno<br>
+**Napomena:** deklarisani agregat nastavlja W7 closeout status nakon W7.11; machine-readable source redovi prikazuju 581 otvoren / 100 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -284,7 +284,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-08` | P2 | Ticket primary link nema partial unique/locking invariant | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-09` | P2 | Directory single-flight lock je samo in-memory po procesu | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-10` | P2 | Directory i reminder scheduler nemaju Redis-loss reconciliation                               | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-11` | P2 | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-11` | P2 | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-12` | P2 | License/contract/transfer i drugi business writeovi nisu atomski sa auditom | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-13` | P2 | Import claim nema eksplicitno APPLYING lease/recovery/idempotency stanje | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-14` | P2 | Transfer snapshot/signed binary nemaju definisan anonymization i retention lifecycle | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -781,7 +781,9 @@ W7.9 na testanom SHA `2f53edc1de07669f32fb9e1254ee0916eb584d64`, uz zeleni CI [`
 
 W7.10 na finalnom testanom SHA `ccbceb1179b37fae2cce243c066deb3ed4fab489`, uz zeleni CI [`41020243134`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41020243134), zatvorio je samo `BA-assets-10` (P2). Directory sync i reminder scheduleri sada imaju timeout-ograničenu registraciju, eager plus petominutni retry reconciliation nakon registracijske greške/Redis gubitka, a worker ostaje degraded dok svi obavezni rasporedi nisu potvrđeni. Ops-health otkriva nedostajući BullMQ schedule i provjerava 75-minutni last-success prag uz `scheduler.late` alarm. Unit i real-Redis acceptance testovi dokazuju startup recovery, očuvanje schedule opcija i ponovnu registraciju nakon uklanjanja oba scheduler zapisa; testovi pokrivaju i unknown-vs-missing signal.
 
-Backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test/build, docs guard, container/supply-chain i CI gate prošli su. Push workflow je preskočio E2E jobove; image vulnerability enforcement je `skipped` jer je actionable high/critical count bio nula. Nije bilo neuspjelog W7.10 CI pokušaja. Lokalni backend runner test nije mogao importati nedostajući `pg` iz neinstaliranog `backend/node_modules`; CI suiteovi su prošli. Nema Prisma schema promjene ni DB migracije. Detaljni acceptance, rollout i rollback dokaz je u [96-assets-scheduler-reconciliation.md](implementation/96-assets-scheduler-reconciliation.md). `BA-assets-11`–`BA-assets-19` ostaju otvoreni; sljedeći paket je W7.11 (`BA-assets-11`).
+Backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test/build, docs guard, container/supply-chain i CI gate prošli su. Push workflow je preskočio E2E jobove; image vulnerability enforcement je `skipped` jer je actionable high/critical count bio nula. Nije bilo neuspjelog W7.10 CI pokušaja. Lokalni backend runner test nije mogao importati nedostajući `pg` iz neinstaliranog `backend/node_modules`; CI suiteovi su prošli. Nema Prisma schema promjene ni DB migracije. Detaljni acceptance, rollout i rollback dokaz je u [96-assets-scheduler-reconciliation.md](implementation/96-assets-scheduler-reconciliation.md). Na W7.10 checkpointu `BA-assets-11`–`BA-assets-19` ostali su otvoreni; W7.11 je kasnije zatvorio samo `BA-assets-11`.
+
+W7.11 na finalnom testanom SHA `b7d0ae64200c8739e6dd55976828b1b63928b545`, uz zeleni CI [`41025718081`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025718081), zatvorio je samo `BA-assets-11` (P2). `AssetReminderEmailDelivery` čuva hash-only recipient identitet, batch dedupe key, `CLAIMED`/`SENT`/`FAILED`, attempts i token-fenced claim; `FAILED` i claim stariji od 10 minuta mogu se preuzeti, a raniji `SENT` sprečava ponovni SMTP poziv pri marker retryju. Recipient setting je secret, globalno autorizovan, auditiran i redigovan. PostgreSQL suite pokriva concurrency, retry, stale reclaim i stari token; DB migracija `20271028100000_asset_reminder_extra_email_delivery` je aditivna, bez delivery backfilla. Prvi CI [`41025218482`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025218482) otkrio je helper type mismatch za direktni integration `PrismaClient`; ispravka je u finalnom SHA. Backend build/lint/Jest, PostgreSQL+Redis migration replay/integration, frontend, docs guard, container/supply-chain i gate su zeleni. E2E jobovi su preskočeni na pushu, image vulnerability enforcement je `skipped` uz actionable count nula. Potpuni acceptance, rollout, preflight i rollback je u [97-assets-reminder-extra-email-delivery.md](implementation/97-assets-reminder-extra-email-delivery.md). `BA-assets-12`–`BA-assets-19` ostaju otvoreni; sljedeći planirani paket je W7.12 (`BA-assets-12`).
 
 ## Kontrolni zbir
 
@@ -789,7 +791,7 @@ Backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **579**
-- Zatvoreno: **113** (deklarisani W7 agregat nakon W7.10; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
+- Otvoreno: **578**
+- Zatvoreno: **114** (deklarisani W7 agregat nakon W7.11; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**
