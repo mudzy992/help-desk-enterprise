@@ -45,7 +45,10 @@ describe('createInstrumentedPool', () => {
     try {
       const pool = createInstrumentedPool('postgresql://localhost:5432/unused');
       await runWithRequestId('request-trace', async () => {
-        await pool.query('select "id" from "Ticket" where "id" = $1', ['secret-id']);
+        await pool.query(
+          'select "id" from "public"."Ticket" where "id" = $1',
+          ['secret-id'],
+        );
       });
 
       expect(takeDbQueryTrace('request-trace')).toEqual(['SELECT:Ticket']);

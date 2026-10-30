@@ -41,7 +41,7 @@ function describeQuery(args: readonly unknown[]): string {
         ? first.text
         : '';
   const operation = /\b(SELECT|INSERT|UPDATE|DELETE|WITH)\b/i.exec(sql)?.[1]?.toUpperCase() ?? 'SQL';
-  const table = /\b(?:FROM|JOIN|INTO|UPDATE)\s+(?:"([^"]+)"|([A-Za-z_][\w$]*))/i.exec(
+  const table = /\b(?:FROM|JOIN|INTO|UPDATE)\s+(?:(?:"[^"]+"|[A-Za-z_][\w$]*)\s*\.\s*)?(?:"([^"]+)"|([A-Za-z_][\w$]*))/i.exec(
     sql,
   );
   const tableName = table?.[1] ?? table?.[2];

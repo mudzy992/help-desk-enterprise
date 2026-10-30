@@ -112,7 +112,7 @@ describe('RequestMetricsMiddleware', () => {
       response.emit('finish');
 
       expect(logger.log.mock.calls.map(([message]) => String(message))).toContain(
-        'db_query_trace path=/tickets count=2 statements=SELECT:User,SELECT:Ticket',
+        'db_query_trace method=GET path=/tickets count=2 statements=SELECT:User,SELECT:Ticket',
       );
     } finally {
       if (previous === undefined) delete process.env.DB_QUERY_TRACE;

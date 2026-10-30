@@ -394,9 +394,9 @@ jobs:
             | sort -k2,2nr | head -15 | awk '{ printf "%s=%s/%s ", $3, $1, $2 }')
           echo "::notice::perf_query_budget avg=${APP_AVG} requests=${APP_N} p95=${P95} max=${MAX} gate=${BUDGET}; highest_route_avg=${route_summary}"
           echo "::notice::perf_routes_by_volume avg/count=${route_volume_summary}"
-          trace_summary=$(grep -E 'db_query_trace path=' api.log 2>/dev/null \
-            | sed -E 's/^.*db_query_trace /db_query_trace /' \
-            | head -20 | tr '\n' ';' || true)
+          trace_summary=$(grep -E 'db_query_trace method=GET path=/tickets(/inbox)? count=' api.log 2>/dev/null \
+            | sed -E 's/\x1B\[[0-9;]*m//g; s/^.*db_query_trace /db_query_trace /' \
+            | head -12 | tr '\n' ';' || true)
           if [ -n "$trace_summary" ]; then
             echo "::notice::db_query_trace_samples=${trace_summary}"
           fi

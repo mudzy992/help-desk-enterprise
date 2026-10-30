@@ -105,11 +105,13 @@ export class RequestMetricsMiddleware {
     const trace = requestId === null ? [] : takeDbQueryTrace(requestId);
     if (process.env.DB_QUERY_TRACE === 'true' && trace.length > 0) {
       const route = readRouteTemplate(request);
-      const sampled = this.queryTraceSamplesByRoute.get(route) ?? 0;
+      const method = request.method ?? 'UNKNOWN';
+      const sampleKey = `${method} ${route}`;
+      const sampled = this.queryTraceSamplesByRoute.get(sampleKey) ?? 0;
       if (sampled < 3) {
-        this.queryTraceSamplesByRoute.set(route, sampled + 1);
+        this.queryTraceSamplesByRoute.set(sampleKey, sampled + 1);
         this.logger.log(
-          `db_query_trace path=${route} count=${queryCount} statements=${trace.join(',')}`,
+          `db_query_trace method=${method} path=${route} count=${queryCount} statements=${trace.join(',')}`,
           requestMetricsLogContext,
         );
       }
