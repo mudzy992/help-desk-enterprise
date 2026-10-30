@@ -320,7 +320,7 @@ export class TicketsService {
         this.authorizationContextLoader,
         ticketId,
         gated,
-        { auditView: true },
+        { auditView: true, withResponseRelations: true },
       );
       const response = await respondLoadedTicket(this.prisma, record, this.clientLoaders(gated.actorUserId));
       // Paket 2.6: principal context is cached, so this adds no query.

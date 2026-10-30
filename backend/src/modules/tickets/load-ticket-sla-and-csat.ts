@@ -9,12 +9,14 @@ import {
 import type { TicketSlaClientSnapshot } from './tickets.types';
 
 /**
- * Plan §4.2, "maksimum" korak (2026-09-24): SLA stanje i CSAT jedne stranice tiketa
- * u JEDNOM upitu (`LEFT JOIN` oba 1:1 odnosa na listu id-eva), umjesto dva odvojena
- * `findMany`. Lista, inbox i detalj plaćali su ta dva upita na svakom zahtjevu.
+ * Batch fallback for records that did not come from a joined ticket-response read
+ * (for example mutation responses and small test delegates). SLA and CSAT stay in
+ * one `LEFT JOIN` query instead of two separate `findMany` calls. The paginated
+ * list, group inbox and ticket-detail routes now select these relations alongside
+ * the ticket itself using Prisma's PostgreSQL `join` strategy.
  *
- * Klijent bez `$queryRaw` (in-memory delegati u testovima) ide starim putem — dva
- * upita, isti rezultat — pa se ponašanje ne mijenja, samo broj round tripova.
+ * A client without `$queryRaw` uses the two original model reads, preserving the
+ * same response contract for in-memory delegates.
  */
 export async function loadTicketSlaAndCsat(
   prisma: PrismaService,

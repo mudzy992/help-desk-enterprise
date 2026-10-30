@@ -219,6 +219,7 @@ async function runTicketListQuery(
     orderBy,
     skip: paging.skip,
     take: searchWithoutCount ? paging.take + 1 : paging.take,
+    relationLoadStrategy: "join",
   };
   if (select !== null) {
     findManyArguments.select = select;

@@ -10,6 +10,7 @@ import { buildTicketListOrderBy } from './build-ticket-list-order-by';
 import { countTicketsCapped } from './count-tickets-capped';
 import { ticketListPaging } from './list-tickets.constants';
 import { loadTicketVisibilityInputs } from './load-ticket-visibility-inputs';
+import { ticketResponseRelations } from '../ticket-response-relations';
 
 export type GroupInboxPage = {
   readonly records: readonly TicketRecord[];
@@ -76,6 +77,8 @@ export async function listGroupInboxTickets(
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: ticketResponseRelations,
+      relationLoadStrategy: 'join',
     }) as Promise<TicketRecord[]>,
     countTicketsCapped(prisma, where),
   ]);

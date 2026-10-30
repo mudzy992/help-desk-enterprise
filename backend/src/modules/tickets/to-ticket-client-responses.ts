@@ -12,6 +12,10 @@ import { loadParentTicketSummaries } from './load-parent-ticket-summaries';
 import { loadTicketDisplayLabels } from './load-ticket-display-labels';
 import type { TicketLabelCache } from './labels/ticket-label-cache';
 import { loadTicketSlaAndCsat } from './load-ticket-sla-and-csat';
+import {
+  hasTicketResponseRelations,
+} from './ticket-response-relations';
+import { mapTicketResponseJoinedData } from './ticket-response-joined-data';
 import { toTicketLabelFields } from './ticket-label-fields';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -30,19 +34,30 @@ export async function toTicketClientResponses(
     readonly now?: Date;
   },
 ): Promise<readonly TicketResponse[]> {
-  const closeCodes = await loadCloseCodesByIds(
-    prisma,
-    records.map((record) => record.closeCodeId ?? ''),
-  );
   const ticketIds = records.map((record) => record.id);
-  // SLA and CSAT of the whole page in one round trip (`load-ticket-sla-and-csat.ts`).
-  const { sla: slaByTicketId, csat: submissions } = await loadTicketSlaAndCsat(
-    prisma,
-    ticketIds,
-    input.csat !== undefined,
-  );
-  const parentsById = await loadParentTicketSummaries(prisma, records);
-  const labels = await loadTicketDisplayLabels(prisma, records, input.labelCache);
+  const joinedData = hasTicketResponseRelations(records)
+    ? mapTicketResponseJoinedData(records, input.csat !== undefined)
+    : null;
+  const closeCodes =
+    joinedData?.closeCodes ??
+    (await loadCloseCodesByIds(
+      prisma,
+      records.map((record) => record.closeCodeId ?? ''),
+    ));
+  // Joined reads already carry SLA/CSAT and labels; mutation responses and
+  // hand-built test delegates retain the existing batched-loader fallback.
+  const { sla: slaByTicketId, csat: submissions } =
+    joinedData ??
+    (await loadTicketSlaAndCsat(
+      prisma,
+      ticketIds,
+      input.csat !== undefined,
+    ));
+  const parentsById =
+    joinedData?.parents ?? (await loadParentTicketSummaries(prisma, records));
+  const labels =
+    joinedData?.labels ??
+    (await loadTicketDisplayLabels(prisma, records, input.labelCache));
   return records.map((record) => {
     const parent =
       record.parentTicketId === null

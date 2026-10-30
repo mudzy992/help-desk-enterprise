@@ -17,7 +17,10 @@ export async function getTicket(
   authorizationContextLoader: AuthorizationContextLoader,
   ticketId: string,
   context: TicketMutationContext,
-  options: { readonly auditView?: boolean } = {},
+  options: {
+    readonly auditView?: boolean;
+    readonly withResponseRelations?: boolean;
+  } = {},
 ): Promise<TicketRecord> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -25,7 +28,9 @@ export async function getTicket(
   if (authContext === null) {
     throw new TicketsError('FORBIDDEN');
   }
-  const ticket = await loadTicketRecord(prisma, ticketId);
+  const ticket = await loadTicketRecord(prisma, ticketId, {
+    withResponseRelations: options.withResponseRelations,
+  });
   const originUnitPath = await loadOrganizationalUnitPath(
     prisma,
     ticket.originUnitId,
