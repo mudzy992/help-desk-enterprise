@@ -46,6 +46,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-version-cas.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-relations-concurrency.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-unique-attributes.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-business-audit.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-ticket-primary-invariant.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/directory/asset-directory-sync-lease.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-scheduler-reconciliation.integration.spec.ts"));

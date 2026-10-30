@@ -3,8 +3,7 @@ import { buildLocationPaths, formatUnitPath, locationSubtreeIds } from './asset-
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { assetDefaults } from '../settings/definitions/asset-settings';
 import { settingKeys } from '../settings/setting-keys';
@@ -149,23 +148,6 @@ export class AssetsService {
   ) {
     await client.assetEvent.create({
       data: { assetId, action, actorUserId: viewer?.userId ?? null, detail: detail as Prisma.InputJsonValue },
-    });
-  }
-
-  private async audit(
-    action: string,
-    entityId: string,
-    viewer: AssetViewer,
-    metadata: Record<string, unknown>,
-    organizationalUnitId?: string,
-  ) {
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action,
-      entityType: auditLogEntityTypes.asset,
-      entityId,
-      metadata: metadata as never,
-      actorUserId: viewer.userId,
-      organizationalUnitId,
     });
   }
 
@@ -705,7 +687,7 @@ export class AssetsService {
     if (text.length > assetLimits.reasonMax) throw new AssetError(assetErrorCodes.invalid, 'reason');
     if (assetStatusesNeedingReason.includes(status) && text.length === 0) throw new AssetError(assetErrorCodes.reasonRequired);
     const releasesUser = status === 'RETIRED' || status === 'DISPOSED' || status === 'LOST';
-    const releasedLicenses = await this.prisma.$transaction(async (transaction) => {
+    await withAssetAuditTransaction(this.prisma, async (transaction) => {
       const updated = await transaction.asset.updateMany({
         where: {
           id,
@@ -745,14 +727,14 @@ export class AssetsService {
         return assignments.length;
       }
       return 0;
-    });
-    if (status === 'RETIRED' || status === 'DISPOSED') {
-      await this.audit(status === 'RETIRED' ? auditLogActions.assetRetired : auditLogActions.assetDisposed, id, viewer, {
-        assetTag: current.assetTag,
-        reason: text,
-        releasedLicenses,
-      }, current.organizationalUnitId);
-    }
+    }, (releasedLicenses) => status === 'RETIRED' || status === 'DISPOSED' ? ({
+      action: status === 'RETIRED' ? auditLogActions.assetRetired : auditLogActions.assetDisposed,
+      entityType: auditLogEntityTypes.asset,
+      entityId: id,
+      metadata: { assetTag: current.assetTag, reason: text, releasedLicenses },
+      actorUserId: viewer.userId,
+      organizationalUnitId: current.organizationalUnitId,
+    }) : null);
     return { id, status, version: input.version + 1 };
   }
 
@@ -858,8 +840,17 @@ export class AssetsService {
     if (asset._count.tickets + asset._count.relationsFrom + asset._count.relationsTo > 0) {
       throw new AssetError(assetErrorCodes.hasDependents);
     }
-    await this.prisma.asset.delete({ where: { id } });
-    await this.audit(auditLogActions.assetDeleted, id, viewer, { assetTag: asset.assetTag });
+    await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.asset.delete({ where: { id } }),
+      () => ({
+        action: auditLogActions.assetDeleted,
+        entityType: auditLogEntityTypes.asset,
+        entityId: id,
+        metadata: { assetTag: asset.assetTag },
+        actorUserId: viewer.userId,
+      }),
+    );
   }
 
   // ------------------------------------------------------------ history

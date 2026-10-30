@@ -1,6 +1,18 @@
+import { mkdtemp, mkdir, readFile, readdir, rm as removePath, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import { AssetError } from '../assets.constants';
+import { scanAttachmentWithClamav } from '../../tickets/attachments/scan-attachment-with-clamav';
 import type { AssetViewer } from '../asset-viewer';
 import { AssetTransfersService } from './asset-transfers.service';
+
+jest.mock('../../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn() }));
+jest.mock('../../tickets/attachments/scan-attachment-with-clamav', () => ({
+  scanAttachmentWithClamav: jest.fn().mockResolvedValue(undefined),
+}));
+
+const recordAuditEntryMock = jest.mocked(recordAuditEntry);
 
 const viewer: AssetViewer = { userId: 'agent', isSuperAdmin: false, homeOrganizationalUnitId: null, grants: [] };
 const unit = { id: 'ou-it', ouPath: '/root/it', name: 'IT' };
@@ -55,10 +67,13 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
     assetTransfer: {
       create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'tr1', number: data.number })),
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 0 } }),
+      update: jest.fn().mockResolvedValue({ id: 'tr1' }),
     },
     asset: { updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }) },
     assetEvent: { create: jest.fn().mockResolvedValue({}) },
   };
+  let transactionCommitted = false;
+  recordAuditEntryMock.mockReset().mockResolvedValue(undefined);
   const prisma = {
     asset: { findMany: jest.fn().mockResolvedValue(options.assets ?? [asset('a1')]) },
     user: { findUnique: jest.fn(({ where }) => Promise.resolve(users.get(where.id) ?? null)) },
@@ -70,7 +85,11 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
     assetTransferTemplate: { findFirst: jest.fn().mockResolvedValue(null) },
     assetLocation: { findMany: jest.fn().mockResolvedValue([]), findUnique: jest.fn() },
     auditLogEntry: { create: jest.fn() },
-    $transaction: jest.fn((callback: (client: typeof transaction) => unknown) => callback(transaction)),
+    $transaction: jest.fn(async (callback: (client: typeof transaction) => unknown) => {
+      const result = await callback(transaction);
+      transactionCommitted = true;
+      return result;
+    }),
   };
   const access = {
     readSetting: jest.fn((key: string, fallback: unknown) => Promise.resolve(key in settings ? settings[key] : fallback)),
@@ -82,9 +101,7 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
   };
   const settingsService = { getSetting: jest.fn().mockResolvedValue('Europe/Sarajevo') };
   const service = new AssetTransfersService(prisma as never, access as never, settingsService as never);
-  // Audit writes are covered elsewhere.
-  jest.spyOn(service as unknown as { audit: () => Promise<void> }, 'audit').mockResolvedValue(undefined);
-  return { service, prisma, transaction };
+  return { service, prisma, transaction, wasTransactionCommitted: () => transactionCommitted };
 }
 
 describe('AssetTransfersService.move (3.2 C9)', () => {
@@ -104,6 +121,103 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
     });
     expect(transaction.assetEvent.create).toHaveBeenCalledTimes(1);
     expect(transaction.assetEvent.create.mock.calls[0][0].data).toMatchObject({ action: 'assigned', detail: { transferId: 'tr1' } });
+  });
+
+  it('does not commit an issued transfer when its audit append fails', async () => {
+    const { service, transaction, wasTransactionCommitted } = setup();
+    const failure = new Error('audit unavailable');
+    recordAuditEntryMock.mockRejectedValueOnce(failure);
+
+    await expect(service.move({ scenario: 'WAREHOUSE_TO_USER', assetIds: ['a1'], toUserId: 'u1' }, viewer)).rejects.toBe(failure);
+
+    expect(recordAuditEntryMock).toHaveBeenCalledWith(transaction, expect.objectContaining({ action: 'asset.transfer.issued' }));
+    expect(wasTransactionCommitted()).toBe(false);
+  });
+
+  it('removes a newly uploaded signed file when its audit append fails and preserves the prior file', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'asset-transfer-audit-'));
+    const previousStoragePath = 'assets/transfers/tr1/previous.pdf';
+    const previousAbsolutePath = join(root, previousStoragePath);
+    await mkdir(join(root, 'assets/transfers/tr1'), { recursive: true });
+    await writeFile(previousAbsolutePath, 'previous signed copy');
+
+    try {
+      const { service, transaction, wasTransactionCommitted } = setup();
+      const transfer = {
+        id: 'tr1',
+        number: '26-0007-2026',
+        status: 'ISSUED',
+        signedStoragePath: previousStoragePath,
+      };
+      const internals = service as unknown as {
+        loadVisible: jest.Mock;
+        requireManage: jest.Mock;
+        uploadRoot: jest.Mock;
+      };
+      jest.spyOn(internals, 'loadVisible').mockResolvedValue({ transfer });
+      jest.spyOn(internals, 'requireManage').mockResolvedValue(undefined);
+      jest.spyOn(internals, 'uploadRoot').mockReturnValue(root);
+
+      const failure = new Error('audit unavailable');
+      recordAuditEntryMock.mockRejectedValueOnce(failure);
+      const file = { fileName: 'signed.pdf', buffer: Buffer.from('%PDF-1.7 signed transfer') };
+
+      await expect(service.uploadSigned('tr1', file, viewer)).rejects.toBe(failure);
+
+      expect(scanAttachmentWithClamav).toHaveBeenCalledWith(file.buffer);
+      expect(transaction.assetTransfer.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'tr1' },
+        data: expect.objectContaining({ status: 'SIGNED', signedStoragePath: expect.stringMatching(/^assets\/transfers\/tr1\//) }),
+      }));
+      expect(wasTransactionCommitted()).toBe(false);
+      expect(await readFile(previousAbsolutePath, 'utf8')).toBe('previous signed copy');
+      expect(await readdir(join(root, 'assets/transfers/tr1'))).toEqual(['previous.pdf']);
+    } finally {
+      await removePath(root, { recursive: true, force: true });
+    }
+  });
+
+  it('replaces the previous signed file after the audited transaction commits', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'asset-transfer-audit-success-'));
+    const previousStoragePath = 'assets/transfers/tr1/previous.pdf';
+    const directory = join(root, 'assets/transfers/tr1');
+    const previousAbsolutePath = join(root, previousStoragePath);
+    await mkdir(directory, { recursive: true });
+    await writeFile(previousAbsolutePath, 'previous signed copy');
+
+    try {
+      const { service, transaction, wasTransactionCommitted } = setup();
+      const transfer = {
+        id: 'tr1',
+        number: '26-0007-2026',
+        status: 'ISSUED',
+        signedStoragePath: previousStoragePath,
+      };
+      const internals = service as unknown as {
+        loadVisible: jest.Mock;
+        requireManage: jest.Mock;
+        uploadRoot: jest.Mock;
+      };
+      jest.spyOn(internals, 'loadVisible').mockResolvedValue({ transfer });
+      jest.spyOn(internals, 'requireManage').mockResolvedValue(undefined);
+      jest.spyOn(internals, 'uploadRoot').mockReturnValue(root);
+
+      const file = { fileName: 'signed.pdf', buffer: Buffer.from('%PDF-1.7 signed transfer') };
+      await expect(service.uploadSigned('tr1', file, viewer)).resolves.toEqual({
+        id: 'tr1',
+        status: 'SIGNED',
+        signedFileName: 'signed.pdf',
+      });
+
+      expect(wasTransactionCommitted()).toBe(true);
+      const newStoragePath = transaction.assetTransfer.update.mock.calls[0][0].data.signedStoragePath;
+      expect(newStoragePath).toMatch(/^assets\/transfers\/tr1\//);
+      await expect(readFile(join(root, newStoragePath))).resolves.toEqual(file.buffer);
+      await expect(readFile(previousAbsolutePath)).rejects.toMatchObject({ code: 'ENOENT' });
+      expect(await readdir(directory)).toEqual(newStoragePath.split('/').slice(-1));
+    } finally {
+      await removePath(root, { recursive: true, force: true });
+    }
   });
 
   it('C9c: without locations the item place is the unit path; with them the location path', async () => {

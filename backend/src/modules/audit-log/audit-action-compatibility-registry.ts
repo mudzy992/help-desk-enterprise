@@ -1,8 +1,8 @@
 import { auditLogActions, auditLogEntityTypes } from './audit-log.constants';
 
-export type AuditActionCompatibility = Readonly<{ schemaVersion: 1; entityTypes: ReadonlySet<string>; extension: boolean }>;
-function compatibility(entityTypes: readonly string[]): AuditActionCompatibility {
-  return Object.freeze({ schemaVersion: 1, entityTypes: new Set(entityTypes), extension: false });
+export type AuditActionCompatibility = Readonly<{ schemaVersion: number; entityTypes: ReadonlySet<string>; extension: boolean }>;
+function compatibility(entityTypes: readonly string[], schemaVersion = 1): AuditActionCompatibility {
+  return Object.freeze({ schemaVersion, entityTypes: new Set(entityTypes), extension: false });
 }
 
 /** Closed action -> entity/schema contract. Extensions must be declared in the static registry below. */
@@ -121,7 +121,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.announcementReminded]: compatibility([auditLogEntityTypes.announcement]),
   [auditLogActions.announcementReportExported]: compatibility([auditLogEntityTypes.announcement]),
   [auditLogActions.assetTypeSaved]: compatibility([auditLogEntityTypes.assetType]),
-  [auditLogActions.assetLocationSaved]: compatibility([auditLogEntityTypes.assetLocation]),
+  [auditLogActions.assetLocationSaved]: compatibility([auditLogEntityTypes.assetLocation], 2),
   [auditLogActions.assetRetired]: compatibility([auditLogEntityTypes.asset]),
   [auditLogActions.assetDisposed]: compatibility([auditLogEntityTypes.asset]),
   [auditLogActions.assetDeleted]: compatibility([auditLogEntityTypes.asset]),

@@ -3,8 +3,7 @@ import { checkLocationParent } from './asset-locations';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { isUniqueAssetAttributeValueConflict } from './asset-unique-attributes';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { AssetAccessService } from './asset-access.service';
 import type { AssetViewer } from './asset-viewer';
@@ -150,16 +149,6 @@ export class AssetCatalogService {
     }
   }
 
-  private async audit(action: string, entityType: string, entityId: string, viewer: AssetViewer, metadata: Record<string, unknown>) {
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action,
-      entityType,
-      entityId,
-      metadata: metadata as never,
-      actorUserId: viewer.userId,
-    });
-  }
-
   private async validateType(input: SaveAssetTypeInput) {
     const routingGroupId = input.routingGroupId?.trim() || null;
     if (routingGroupId !== null && (await this.prisma.group.findUnique({ where: { id: routingGroupId }, select: { id: true } })) === null) {
@@ -188,8 +177,17 @@ export class AssetCatalogService {
     if ((await this.prisma.assetType.findUnique({ where: { key }, select: { id: true } })) !== null) {
       throw new AssetError(assetErrorCodes.typeKeyTaken);
     }
-    const created = await this.prisma.assetType.create({ data: { key, ...data } });
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, created.id, viewer, { key, created: true });
+    const created = await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.assetType.create({ data: { key, ...data } }),
+      (row) => ({
+        action: auditLogActions.assetTypeSaved,
+        entityType: auditLogEntityTypes.assetType,
+        entityId: row.id,
+        metadata: { key, created: true },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id: created.id };
   }
 
@@ -197,8 +195,20 @@ export class AssetCatalogService {
     await this.access.require(viewer, permissionKeys.assetTypeManage);
     const existing = await this.prisma.assetType.findUnique({ where: { id }, select: { id: true, key: true } });
     if (existing === null) throw new AssetError(assetErrorCodes.typeNotFound);
-    await this.prisma.assetType.update({ where: { id }, data: await this.validateType(input) });
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, id, viewer, { key: existing.key, routingGroupId: input.routingGroupId ?? null });
+    const data = await this.validateType(input);
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        await transaction.assetType.update({ where: { id }, data });
+      },
+      () => ({
+        action: auditLogActions.assetTypeSaved,
+        entityType: auditLogEntityTypes.assetType,
+        entityId: id,
+        metadata: { key: existing.key, routingGroupId: input.routingGroupId ?? null },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id };
   }
 
@@ -206,8 +216,19 @@ export class AssetCatalogService {
     await this.access.require(viewer, permissionKeys.assetTypeManage);
     const existing = await this.prisma.assetType.findUnique({ where: { id }, select: { id: true, key: true } });
     if (existing === null) throw new AssetError(assetErrorCodes.typeNotFound);
-    await this.prisma.assetType.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, id, viewer, { key: existing.key, archived });
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        await transaction.assetType.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+      },
+      () => ({
+        action: auditLogActions.assetTypeSaved,
+        entityType: auditLogEntityTypes.assetType,
+        entityId: id,
+        metadata: { key: existing.key, archived },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id };
   }
 
@@ -251,21 +272,26 @@ export class AssetCatalogService {
     if (taken !== null) throw new AssetError(assetErrorCodes.attributeKeyTaken);
     let created: { id: string };
     try {
-      created = await this.prisma.assetAttribute.create({
-        data: { typeId, key, ...data, options: data.options ?? undefined },
-        select: { id: true },
-      });
+      created = await withAssetAuditTransaction(
+        this.prisma,
+        (transaction) => transaction.assetAttribute.create({
+          data: { typeId, key, ...data, options: data.options ?? undefined },
+          select: { id: true },
+        }),
+        () => ({
+          action: auditLogActions.assetTypeSaved,
+          entityType: auditLogEntityTypes.assetType,
+          entityId: typeId,
+          metadata: { key: type.key, attribute: key, created: true },
+          actorUserId: viewer.userId,
+        }),
+      );
     } catch (error) {
       if (isUniqueAssetAttributeValueConflict(error)) {
         throw new AssetError(assetErrorCodes.attributeNotUnique, key);
       }
       throw error;
     }
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, typeId, viewer, {
-      key: type.key,
-      attribute: key,
-      created: true,
-    });
     return { id: created.id };
   }
 
@@ -279,19 +305,28 @@ export class AssetCatalogService {
       throw new AssetError(assetErrorCodes.attributeHasValues);
     }
     try {
-      await this.prisma.assetAttribute.update({
-        where: { id },
-        data: { ...data, options: data.options ?? (data.dataType === 'SELECT' ? undefined : []) },
-      });
+      await withAssetAuditTransaction(
+        this.prisma,
+        async (transaction) => {
+          await transaction.assetAttribute.update({
+            where: { id },
+            data: { ...data, options: data.options ?? (data.dataType === 'SELECT' ? undefined : []) },
+          });
+        },
+        () => ({
+          action: auditLogActions.assetTypeSaved,
+          entityType: auditLogEntityTypes.assetType,
+          entityId: existing.typeId,
+          metadata: { attribute: existing.key },
+          actorUserId: viewer.userId,
+        }),
+      );
     } catch (error) {
       if (isUniqueAssetAttributeValueConflict(error)) {
         throw new AssetError(assetErrorCodes.attributeNotUnique, existing.key);
       }
       throw error;
     }
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, existing.typeId, viewer, {
-      attribute: existing.key,
-    });
     return { id };
   }
 
@@ -300,17 +335,25 @@ export class AssetCatalogService {
     const existing = await this.prisma.assetAttribute.findUnique({ where: { id }, select: { id: true, typeId: true, key: true } });
     if (existing === null) throw new AssetError(assetErrorCodes.typeNotFound);
     try {
-      await this.prisma.assetAttribute.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+      await withAssetAuditTransaction(
+        this.prisma,
+        async (transaction) => {
+          await transaction.assetAttribute.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+        },
+        () => ({
+          action: auditLogActions.assetTypeSaved,
+          entityType: auditLogEntityTypes.assetType,
+          entityId: existing.typeId,
+          metadata: { attribute: existing.key, archived },
+          actorUserId: viewer.userId,
+        }),
+      );
     } catch (error) {
       if (isUniqueAssetAttributeValueConflict(error)) {
         throw new AssetError(assetErrorCodes.attributeNotUnique, existing.key);
       }
       throw error;
     }
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, existing.typeId, viewer, {
-      attribute: existing.key,
-      archived,
-    });
     return { id };
   }
 
@@ -339,8 +382,18 @@ export class AssetCatalogService {
 
   async createLocation(input: SaveAssetLocationInput, viewer: AssetViewer) {
     await this.access.require(viewer, permissionKeys.assetTypeManage);
-    const created = await this.prisma.assetLocation.create({ data: await this.validateLocation(input, null) });
-    await this.audit(auditLogActions.assetLocationSaved, auditLogEntityTypes.assetLocation, created.id, viewer, { created: true });
+    const data = await this.validateLocation(input, null);
+    const created = await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.assetLocation.create({ data }),
+      (row) => ({
+        action: auditLogActions.assetLocationSaved,
+        entityType: auditLogEntityTypes.assetLocation,
+        entityId: row.id,
+        metadata: { created: true },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id: created.id };
   }
 
@@ -349,8 +402,20 @@ export class AssetCatalogService {
     if ((await this.prisma.assetLocation.findUnique({ where: { id }, select: { id: true } })) === null) {
       throw new AssetError(assetErrorCodes.locationNotFound);
     }
-    await this.prisma.assetLocation.update({ where: { id }, data: await this.validateLocation(input, id) });
-    await this.audit(auditLogActions.assetLocationSaved, auditLogEntityTypes.assetLocation, id, viewer, {});
+    const data = await this.validateLocation(input, id);
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        await transaction.assetLocation.update({ where: { id }, data });
+      },
+      () => ({
+        action: auditLogActions.assetLocationSaved,
+        entityType: auditLogEntityTypes.assetLocation,
+        entityId: id,
+        metadata: {},
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id };
   }
 
@@ -362,8 +427,19 @@ export class AssetCatalogService {
     });
     if (existing === null) throw new AssetError(assetErrorCodes.locationNotFound);
     if (archived && existing._count.children > 0) throw new AssetError(assetErrorCodes.locationInUse);
-    await this.prisma.assetLocation.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
-    await this.audit(auditLogActions.assetLocationSaved, auditLogEntityTypes.assetLocation, id, viewer, { archived });
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        await transaction.assetLocation.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+      },
+      () => ({
+        action: auditLogActions.assetLocationSaved,
+        entityType: auditLogEntityTypes.assetLocation,
+        entityId: id,
+        metadata: { archived },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id };
   }
 }

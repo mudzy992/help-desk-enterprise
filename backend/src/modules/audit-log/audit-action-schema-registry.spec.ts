@@ -7,7 +7,7 @@ describe('audit action schema registry', () => {
     expect(Object.keys(auditActionSchemaRegistry).sort()).toEqual(actions);
     for (const action of actions) {
       const schema = auditActionSchemaRegistry[action];
-      expect(schema?.version).toBe(1);
+      expect(schema?.version).toBe(action === auditLogActions.assetLocationSaved ? 2 : 1);
       expect(schema?.allowedKeys).toBeInstanceOf(Set);
       expect(['operational', 'pseudonymous', 'restricted']).toContain(schema?.sensitivity);
     }

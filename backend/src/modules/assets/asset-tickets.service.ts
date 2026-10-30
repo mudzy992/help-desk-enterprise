@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { settingKeys } from '../settings/setting-keys';
@@ -177,22 +176,15 @@ export class AssetTicketsService {
     return asset;
   }
 
-  private async afterWrite(ticket: TicketRecord, messages: TicketPersistedMessageSink, audit: { action: string; assetId: string; viewer: AssetViewer }) {
+  private afterWrite(ticket: TicketRecord, messages: TicketPersistedMessageSink) {
     publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action: audit.action,
-      entityType: auditLogEntityTypes.asset,
-      entityId: audit.assetId,
-      metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber } as never,
-      actorUserId: audit.viewer.userId,
-    });
   }
 
   async link(ticketId: string, input: { assetId: string; isPrimary?: boolean }, viewer: AssetViewer): Promise<TicketAssetsView> {
     const ticket = await this.requireEditable(ticketId, viewer);
     const asset = await this.loadAssetInReadScope(input.assetId, viewer);
     const messages: TicketPersistedMessageSink = [];
-    await this.prisma.$transaction(async (transaction) => {
+    await withAssetAuditTransaction(this.prisma, async (transaction) => {
       const lockedTickets = await lockTicketAssetPrimaryGroups(transaction, [ticket.id]);
       if (!lockedTickets.has(ticket.id)) throw new AssetError(assetErrorCodes.notFound);
       const existing = await transaction.ticketAsset.findUnique({
@@ -225,15 +217,21 @@ export class AssetTicketsService {
           detail: `${asset.id}|${asset.assetTag} ${asset.name}`,
         }),
       );
-    });
-    await this.afterWrite(ticket, messages, { action: auditLogActions.assetTicketLinked, assetId: asset.id, viewer });
+    }, () => ({
+      action: auditLogActions.assetTicketLinked,
+      entityType: auditLogEntityTypes.asset,
+      entityId: asset.id,
+      metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber },
+      actorUserId: viewer.userId,
+    }));
+    this.afterWrite(ticket, messages);
     return this.list(ticket.id, viewer);
   }
 
   async unlink(ticketId: string, assetId: string, viewer: AssetViewer): Promise<TicketAssetsView> {
     const ticket = await this.requireEditable(ticketId, viewer);
     const messages: TicketPersistedMessageSink = [];
-    await this.prisma.$transaction(async (transaction) => {
+    await withAssetAuditTransaction(this.prisma, async (transaction) => {
       const lockedTickets = await lockTicketAssetPrimaryGroups(transaction, [ticket.id]);
       if (!lockedTickets.has(ticket.id)) throw new AssetError(assetErrorCodes.notFound);
       const link = await transaction.ticketAsset.findUnique({
@@ -271,8 +269,14 @@ export class AssetTicketsService {
           detail: `${assetId}|${link.asset.assetTag} ${link.asset.name}`,
         }),
       );
-    });
-    await this.afterWrite(ticket, messages, { action: auditLogActions.assetTicketUnlinked, assetId, viewer });
+    }, () => ({
+      action: auditLogActions.assetTicketUnlinked,
+      entityType: auditLogEntityTypes.asset,
+      entityId: assetId,
+      metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber },
+      actorUserId: viewer.userId,
+    }));
+    this.afterWrite(ticket, messages);
     return this.list(ticket.id, viewer);
   }
 

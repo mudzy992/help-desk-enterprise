@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { AssetAccessService } from './asset-access.service';
 import { dateOnly, daysUntil, optionalDate, optionalMoney, optionalText, requiredText } from './asset-fields';
@@ -91,16 +90,6 @@ export class AssetContractsService {
       itemCount: row._count.items,
       updatedAt: row.updatedAt.toISOString(),
     };
-  }
-
-  private async audit(action: string, entityId: string, viewer: AssetViewer, metadata: Record<string, unknown>) {
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action,
-      entityType: auditLogEntityTypes.assetContract,
-      entityId,
-      metadata: metadata as never,
-      actorUserId: viewer.userId,
-    });
   }
 
   private async loadInScope(id: string, scope: AssetScope): Promise<ContractRow> {
@@ -197,11 +186,18 @@ export class AssetContractsService {
   async create(input: SaveContractInput, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetContractManage);
     await this.access.requireUnitInScope(scope, input.organizationalUnitId);
-    const created = await this.prisma.assetContract.create({
-      data: { ...this.validate(input), organizationalUnitId: input.organizationalUnitId },
-      select: { id: true },
-    });
-    await this.audit(auditLogActions.assetContractCreated, created.id, viewer, { kind: input.kind });
+    const data = { ...this.validate(input), organizationalUnitId: input.organizationalUnitId };
+    const created = await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.assetContract.create({ data, select: { id: true } }),
+      (row) => ({
+        action: auditLogActions.assetContractCreated,
+        entityType: auditLogEntityTypes.assetContract,
+        entityId: row.id,
+        metadata: { kind: input.kind },
+        actorUserId: viewer.userId,
+      }),
+    );
     return this.detail(created.id, viewer);
   }
 
@@ -212,24 +208,42 @@ export class AssetContractsService {
       await this.access.requireUnitInScope(scope, input.organizationalUnitId);
     }
     const data = this.validate(input);
-    await this.prisma.assetContract.update({
-      where: { id },
-      data: {
-        ...data,
-        organizationalUnitId: input.organizationalUnitId,
-        // A renewed contract (new end date) gets fresh reminders.
-        ...(dateOnly(data.endsAt) !== dateOnly(current.endsAt) ? { remindersSent: [] } : {}),
+    const updateData = {
+      ...data,
+      organizationalUnitId: input.organizationalUnitId,
+      // A renewed contract (new end date) gets fresh reminders.
+      ...(dateOnly(data.endsAt) !== dateOnly(current.endsAt) ? { remindersSent: [] } : {}),
+    };
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        await transaction.assetContract.update({ where: { id }, data: updateData });
       },
-    });
-    await this.audit(auditLogActions.assetContractUpdated, id, viewer, {});
+      () => ({
+        action: auditLogActions.assetContractUpdated,
+        entityType: auditLogEntityTypes.assetContract,
+        entityId: id,
+        metadata: {},
+        actorUserId: viewer.userId,
+      }),
+    );
     return this.detail(id, viewer);
   }
 
   async remove(id: string, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetContractManage);
     const current = await this.loadInScope(id, scope);
-    await this.prisma.assetContract.delete({ where: { id } });
-    await this.audit(auditLogActions.assetContractDeleted, id, viewer, { supplier: current.supplier, items: current._count.items });
+    await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.assetContract.delete({ where: { id } }),
+      () => ({
+        action: auditLogActions.assetContractDeleted,
+        entityType: auditLogEntityTypes.assetContract,
+        entityId: id,
+        metadata: { supplier: current.supplier, items: current._count.items },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { deleted: true };
   }
 
@@ -245,27 +259,38 @@ export class AssetContractsService {
     if (asset === null || !isPathInScope(readScope, asset.organizationalUnit.ouPath)) throw new AssetError(assetErrorCodes.notFound);
     const existing = await this.prisma.assetContractItem.findUnique({ where: { contractId_assetId: { contractId: id, assetId } } });
     if (existing !== null) throw new AssetError(assetErrorCodes.contractItemExists);
-    await this.prisma.$transaction(async (transaction) => {
-      await transaction.assetContractItem.create({ data: { contractId: id, assetId } });
-      await transaction.assetEvent.create({
-        data: {
-          assetId,
-          action: assetEventActions.contractLinked,
-          actorUserId: viewer.userId,
-          detail: { contractId: id, supplier: contract.supplier, kind: contract.kind },
-        },
-      });
-    });
-    await this.audit(auditLogActions.assetContractItemAdded, id, viewer, { assetId });
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        await transaction.assetContractItem.create({ data: { contractId: id, assetId } });
+        await transaction.assetEvent.create({
+          data: {
+            assetId,
+            action: assetEventActions.contractLinked,
+            actorUserId: viewer.userId,
+            detail: { contractId: id, supplier: contract.supplier, kind: contract.kind },
+          },
+        });
+      },
+      () => ({
+        action: auditLogActions.assetContractItemAdded,
+        entityType: auditLogEntityTypes.assetContract,
+        entityId: id,
+        metadata: { assetId },
+        actorUserId: viewer.userId,
+      }),
+    );
     return this.detail(id, viewer);
   }
 
   async removeItem(id: string, assetId: string, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetContractManage);
     const contract = await this.loadInScope(id, scope);
-    const removed = await this.prisma.$transaction(async (transaction) => {
-      const result = await transaction.assetContractItem.deleteMany({ where: { contractId: id, assetId } });
-      if (result.count > 0) {
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        const result = await transaction.assetContractItem.deleteMany({ where: { contractId: id, assetId } });
+        if (result.count === 0) throw new AssetError(assetErrorCodes.notFound);
         await transaction.assetEvent.create({
           data: {
             assetId,
@@ -274,11 +299,16 @@ export class AssetContractsService {
             detail: { contractId: id, supplier: contract.supplier, kind: contract.kind },
           },
         });
-      }
-      return result.count;
-    });
-    if (removed === 0) throw new AssetError(assetErrorCodes.notFound);
-    await this.audit(auditLogActions.assetContractItemRemoved, id, viewer, { assetId });
+        return result.count;
+      },
+      () => ({
+        action: auditLogActions.assetContractItemRemoved,
+        entityType: auditLogEntityTypes.assetContract,
+        entityId: id,
+        metadata: { assetId },
+        actorUserId: viewer.userId,
+      }),
+    );
     return this.detail(id, viewer);
   }
 

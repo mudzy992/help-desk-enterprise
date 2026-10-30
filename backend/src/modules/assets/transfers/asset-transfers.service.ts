@@ -5,8 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
-import type { AuditLogTransactionalClient } from '../../audit-log/audit-log.types';
-import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import { withAssetAuditTransaction } from '../asset-audit-transaction';
 import { permissionKeys } from '../../authorization/authorization.constants';
 import { assetDefaults } from '../../settings/definitions/asset-settings';
 import { readInstallationTimeZone } from '../../settings/read-installation-time-zone';
@@ -324,7 +323,7 @@ export class AssetTransfersService {
     const now = new Date();
     const date = localDateParts(now, timeZone);
 
-    const result = await this.prisma.$transaction(async (transaction) => {
+    const result = await withAssetAuditTransaction(this.prisma, async (transaction) => {
       let transfer: { id: string; number: string } | null = null;
       if (issue && signatory !== null) {
         const sequence = await allocateAssetTransferSequence(transaction, date.year, date.month);
@@ -421,17 +420,19 @@ export class AssetTransfersService {
         }
       }
       return transfer;
-    });
-
-    if (result) {
-      await this.audit(auditLogActions.assetTransferIssued, result.id, viewer, {
-        number: result.number,
+    }, (transfer) => transfer === null ? null : ({
+      action: auditLogActions.assetTransferIssued,
+      entityType: auditLogEntityTypes.assetTransfer,
+      entityId: transfer.id,
+      metadata: {
+        number: transfer.number,
         scenario: input.scenario,
         assetCount: plans.length,
         fromUserId: loaded.fromUser?.id ?? null,
         toUserId: loaded.toUser?.id ?? null,
-      });
-    }
+      },
+      actorUserId: viewer.userId,
+    }));
     return { transferId: result?.id ?? null, number: result?.number ?? null, movedAssetIds: plans.map(({ asset }) => asset.id) };
   }
 
@@ -610,12 +611,23 @@ export class AssetTransfersService {
     if (text.length < assetTransferLimits.cancelReasonMin || text.length > assetTransferLimits.cancelReasonMax) {
       throw new AssetError(assetErrorCodes.transferInvalid, 'reason');
     }
-    const updated = await this.prisma.assetTransfer.updateMany({
-      where: { id, status: 'ISSUED' },
-      data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledByUserId: viewer.userId, cancelReason: text },
-    });
-    if (updated.count !== 1) throw new AssetError(assetErrorCodes.transferNotIssued);
-    await this.audit(auditLogActions.assetTransferCancelled, id, viewer, { number: transfer.number, reason: text });
+    await withAssetAuditTransaction(
+      this.prisma,
+      async (transaction) => {
+        const updated = await transaction.assetTransfer.updateMany({
+          where: { id, status: 'ISSUED' },
+          data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledByUserId: viewer.userId, cancelReason: text },
+        });
+        if (updated.count !== 1) throw new AssetError(assetErrorCodes.transferNotIssued);
+      },
+      () => ({
+        action: auditLogActions.assetTransferCancelled,
+        entityType: auditLogEntityTypes.assetTransfer,
+        entityId: id,
+        metadata: { number: transfer.number, reason: text },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { id, status: 'CANCELLED' as const };
   }
 
@@ -649,31 +661,40 @@ export class AssetTransfersService {
     await writeFile(absolute, file.buffer, { flag: 'wx' });
     const fileName = sanitizeFileName(file.fileName, `${transfer.number}.${extension}`);
     try {
-      await this.prisma.assetTransfer.update({
-        where: { id },
-        data: {
-          status: 'SIGNED',
-          signedAt: new Date(),
-          signedByUserId: viewer.userId,
-          signedStoragePath: storagePath,
-          signedFileName: fileName,
-          signedMimeType: signature.mimeType,
-          signedSizeBytes: file.buffer.length,
-        },
-      });
+      await withAssetAuditTransaction(
+        this.prisma,
+        (transaction) => transaction.assetTransfer.update({
+          where: { id },
+          data: {
+            status: 'SIGNED',
+            signedAt: new Date(),
+            signedByUserId: viewer.userId,
+            signedStoragePath: storagePath,
+            signedFileName: fileName,
+            signedMimeType: signature.mimeType,
+            signedSizeBytes: file.buffer.length,
+          },
+        }),
+        () => ({
+          action: auditLogActions.assetTransferSigned,
+          entityType: auditLogEntityTypes.assetTransfer,
+          entityId: id,
+          metadata: {
+            number: transfer.number,
+            fileName,
+            sizeBytes: file.buffer.length,
+            replaced: transfer.signedStoragePath !== null,
+          },
+          actorUserId: viewer.userId,
+        }),
+      );
     } catch (error) {
-      await rm(absolute, { force: true });
+      await rm(absolute, { force: true }).catch(() => undefined);
       throw error;
     }
     if (transfer.signedStoragePath) {
       await rm(resolveContainedStoragePath(root, transfer.signedStoragePath), { force: true }).catch(() => undefined);
     }
-    await this.audit(auditLogActions.assetTransferSigned, id, viewer, {
-      number: transfer.number,
-      fileName,
-      sizeBytes: file.buffer.length,
-      replaced: transfer.signedStoragePath !== null,
-    });
     return { id, status: 'SIGNED' as const, signedFileName: fileName };
   }
 
@@ -741,19 +762,37 @@ export class AssetTransfersService {
     const user = await this.prisma.user.findUnique({ where: { id: input.userId }, select: { id: true, isActive: true, anonymizedAt: true } });
     if (user === null || !user.isActive || user.anonymizedAt !== null) throw new AssetError(assetErrorCodes.userNotFound);
     const title = cleanText(input.title, 160, 'title') || null;
-    await this.prisma.assetSignatory.upsert({
-      where: { organizationalUnitId },
-      create: { organizationalUnitId, userId: user.id, title },
-      update: { userId: user.id, title },
-    });
-    await this.audit(auditLogActions.assetSignatorySaved, organizationalUnitId, viewer, { userId: user.id, title }, auditLogEntityTypes.assetSignatory);
+    await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.assetSignatory.upsert({
+        where: { organizationalUnitId },
+        create: { organizationalUnitId, userId: user.id, title },
+        update: { userId: user.id, title },
+      }),
+      () => ({
+        action: auditLogActions.assetSignatorySaved,
+        entityType: auditLogEntityTypes.assetSignatory,
+        entityId: organizationalUnitId,
+        metadata: { userId: user.id, title },
+        actorUserId: viewer.userId,
+      }),
+    );
     return { organizationalUnitId, userId: user.id, title };
   }
 
   async removeSignatory(organizationalUnitId: string, viewer: AssetViewer) {
     await this.requireCatalogAdmin(viewer);
-    await this.prisma.assetSignatory.deleteMany({ where: { organizationalUnitId } });
-    await this.audit(auditLogActions.assetSignatorySaved, organizationalUnitId, viewer, { removed: true }, auditLogEntityTypes.assetSignatory);
+    await withAssetAuditTransaction(
+      this.prisma,
+      (transaction) => transaction.assetSignatory.deleteMany({ where: { organizationalUnitId } }),
+      () => ({
+        action: auditLogActions.assetSignatorySaved,
+        entityType: auditLogEntityTypes.assetSignatory,
+        entityId: organizationalUnitId,
+        metadata: { removed: true },
+        actorUserId: viewer.userId,
+      }),
+    );
   }
 
   // ------------------------------------------------------------ templates (catalog)
@@ -792,7 +831,7 @@ export class AssetTransfersService {
     }
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
     const cleanNotes = cleanText(notes, 500, 'notes') || null;
-    const created = await this.prisma.$transaction(async (transaction) => {
+    const created = await withAssetAuditTransaction(this.prisma, async (transaction) => {
       const latest = await transaction.assetTransferTemplate.findFirst({ orderBy: { version: 'desc' }, select: { version: true } });
       return transaction.assetTransferTemplate.create({
         data: {
@@ -807,8 +846,13 @@ export class AssetTransfersService {
         },
         select: { id: true, version: true },
       });
-    });
-    await this.audit(auditLogActions.assetTransferTemplateUploaded, created.id, viewer, { version: created.version, sha256, unknownTags: inspection.unknownTags }, auditLogEntityTypes.assetTransfer);
+    }, (row) => ({
+      action: auditLogActions.assetTransferTemplateUploaded,
+      entityType: auditLogEntityTypes.assetTransfer,
+      entityId: row.id,
+      metadata: { version: row.version, sha256, unknownTags: inspection.unknownTags },
+      actorUserId: viewer.userId,
+    }));
     return { id: created.id, version: created.version, tags: inspection.tags, unknownTags: inspection.unknownTags };
   }
 
@@ -839,17 +883,6 @@ export class AssetTransfersService {
     }
   }
 
-  // ------------------------------------------------------------ shared
-
-  private async audit(action: string, entityId: string, viewer: AssetViewer, metadata: Record<string, unknown>, entityType: string = auditLogEntityTypes.assetTransfer) {
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action,
-      entityType,
-      entityId,
-      metadata: metadata as never,
-      actorUserId: viewer.userId,
-    });
-  }
 }
 
 /**

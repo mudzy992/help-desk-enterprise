@@ -1,10 +1,10 @@
 import { auditLogActions } from './audit-log.constants';
 
 export type AuditMetadataSensitivity = 'operational' | 'pseudonymous' | 'restricted';
-export type AuditActionSchema = Readonly<{ version: 1; allowedKeys: ReadonlySet<string>; sensitivity: AuditMetadataSensitivity }>;
+export type AuditActionSchema = Readonly<{ version: number; allowedKeys: ReadonlySet<string>; sensitivity: AuditMetadataSensitivity }>;
 
-function schema(keys: readonly string[], sensitivity: AuditMetadataSensitivity = 'operational'): AuditActionSchema {
-  return Object.freeze({ version: 1, allowedKeys: new Set(keys), sensitivity });
+function schema(keys: readonly string[], sensitivity: AuditMetadataSensitivity = 'operational', version = 1): AuditActionSchema {
+  return Object.freeze({ version, allowedKeys: new Set(keys), sensitivity });
 }
 
 /** Every registered action has an explicit, versioned top-level metadata allowlist. */
@@ -131,7 +131,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.announcementReminded]: schema(['emailQueued', 'notified']),
   [auditLogActions.announcementReportExported]: schema(['rows'], 'pseudonymous'),
   [auditLogActions.assetTypeSaved]: schema(['archived', 'attribute', 'created', 'key', 'routingGroupId']),
-  [auditLogActions.assetLocationSaved]: schema([]),
+  [auditLogActions.assetLocationSaved]: schema(['archived', 'created'], 'operational', 2),
   [auditLogActions.assetRetired]: schema(['assetTag', 'reason', 'releasedLicenses']),
   [auditLogActions.assetDisposed]: schema(['assetTag', 'reason', 'releasedLicenses']),
   [auditLogActions.assetDeleted]: schema(['assetTag']),

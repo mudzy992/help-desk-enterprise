@@ -50,6 +50,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/assets/asset-version-cas.integration.spec.ts",
   "src/modules/assets/asset-relations-concurrency.integration.spec.ts",
   "src/modules/assets/asset-unique-attributes.integration.spec.ts",
+  "src/modules/assets/asset-business-audit.integration.spec.ts",
   "src/modules/assets/asset-ticket-primary-invariant.integration.spec.ts",
   "src/modules/assets/directory/asset-directory-sync-lease.integration.spec.ts",
   "src/modules/assets/asset-scheduler-reconciliation.integration.spec.ts",
