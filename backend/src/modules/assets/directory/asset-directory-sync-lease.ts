@@ -29,6 +29,12 @@ return 0
 type RedisLeaseClient = Pick<Redis, 'set' | 'eval'>;
 
 type LeaseFailureReason = 'unavailable' | 'lost';
+type AssetDirectorySyncLeaseOptions = {
+  readonly key?: string;
+  readonly ttlMilliseconds?: number;
+  readonly renewEveryMilliseconds?: number;
+  readonly commandTimeoutMilliseconds?: number;
+};
 
 export class AssetDirectorySyncLeaseError extends Error {
   constructor(readonly reason: LeaseFailureReason) {
@@ -64,7 +70,7 @@ export class AssetDirectorySyncLease {
 
   constructor(
     private readonly redis: RedisLeaseClient,
-    policy: Partial<typeof assetDirectorySyncLeasePolicy> & { readonly key?: string } = {},
+    policy: AssetDirectorySyncLeaseOptions = {},
   ) {
     this.policy = {
       ttlMilliseconds: policy.ttlMilliseconds ?? assetDirectorySyncLeasePolicy.ttlMilliseconds,

@@ -39,7 +39,7 @@ function createSharedRedis() {
 
 function setup(
   options: { syncEnabled?: boolean; ldapsEnabled?: boolean } = {},
-  redis: Redis = createSharedRedis(),
+  redis = createSharedRedis(),
 ) {
   const settings: Record<string, unknown> = {
     [settingKeys.privateAssetsDirectorySyncEnabled]: options.syncEnabled ?? false,
@@ -76,7 +76,7 @@ function setup(
     $queryRaw: jest.fn().mockResolvedValue([]),
     $transaction: jest.fn(async (work: (client: unknown) => unknown) => work({ auditLog: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn() }, $executeRaw: jest.fn() })),
   };
-  const service = new AssetDirectorySyncService(prisma as unknown as PrismaService, access, loader, new DirectoryBackoff(), redis, factory);
+  const service = new AssetDirectorySyncService(prisma as unknown as PrismaService, access, loader, new DirectoryBackoff(), redis as unknown as Redis, factory);
   return { service, prisma, search, redis };
 }
 
