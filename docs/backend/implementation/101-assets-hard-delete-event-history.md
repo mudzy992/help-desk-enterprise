@@ -4,7 +4,8 @@
 **Nalaz:** `BA-assets-15` (P2) — zatvoren<br>
 **Kodni commit:** `11f43efd37d448142f6c33f99096555ee8f7419d`<br>
 **Finalni testani SHA:** `11f43efd37d448142f6c33f99096555ee8f7419d`<br>
-**CI:** [`41067304475`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41067304475) — zelen<br>
+**CI (push):** [`41067304475`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41067304475) — zelen; završni docs CI [`41068758830`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41068758830) — zelen<br>
+**PR:** [#11](https://github.com/mudzy992/help-desk-enterprise/pull/11) otvoren prema `master`; dodatni PR gate nije zelen zbog E2E/performance provjera izvan W7.15 (detalji ispod), nije mergeovan.<br>
 **DB migracije:** `20271030120000_asset_hard_delete_event_history`; aditivna migracija, još nije primijenjena na ciljnu instalaciju.
 
 ## Nalaz i acceptance
@@ -37,8 +38,9 @@ CI run [`41067304475`](https://github.com/mudzy992/help-desk-enterprise/actions/
 - **PostgreSQL/Redis integration:** dependency/isolation harnessi, transakcijski rollback, real PostgreSQL integration i provjera release migrator historije — prošli. Svih 102 migracije replayovano je na disposable CI bazi.
 - **Frontend:** lint, format, i18n, 427 testnih fajlova / 1.656 testova, build i bundle budžet — prošli.
 - **Docs/CI gate/container:** docs guard, container/supply-chain provjere i CI gate — prošli.
-- **Skipped:** E2E install wizard i critical-flows poslovi preskočeni su na push triggeru; image high/critical enforcement korak imao je status `skipped`.
-- **Neuspjeli CI pokušaji:** nema.
+- **Push CI skipped:** E2E install wizard i critical-flows poslovi preskočeni su na push triggeru; image high/critical enforcement korak imao je status `skipped`.
+- **Dodatna PR validacija:** PR workflow `41071433209` prošao je backend build/test, PostgreSQL/Redis integration, container/supply-chain, docs guard i frontend build/test, ali je pao na `E2E critical flows`. Test `tests/54-dashboard.spec.ts:17` dobio je strict-mode grešku jer je postojeći selector za neusmjerene tikete pronašao dva linka. Zasebni perf run [`41071433185`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41071433185) pao je na k6 pragovima; prosjek `db_queries_per_request` bio je `6.323` prema budžetu `2.1` preko 3.158 aplikacijskih zahtjeva, uz greške/latenciju na ticket, search i druge opšte rute. Ovi padovi ne ciljaju W7.15 putanje niti mijenjaju acceptance paketa; nije rađen out-of-scope popravak. PR gate zato trenutno nije zelen i merge je blokiran dok se te provjere ne razriješe zasebno.
+- **Neuspjeli push CI pokušaji:** nema; oba navedena push runa su zelena. PR-triggered padovi su posebno evidentirani iznad.
 
 Lokalne ciljane provjere: `npm run lint` u backendu prošao je bez grešaka uz tri postojeća upozorenja u SLA testu; migration policy je prošao za 102 migracije i 2/2 testa. Frontend lint, format check, i18n, build i svi testovi prošli su lokalno. Lokalni ciljani Jest za asset unit test nije mogao učitati nedostajući generisani Prisma client jer je sandbox ranije blokirao TLS preuzimanje Prisma schema enginea; puni CI je uspješno generisao client i izvršio sve suiteove.
 
