@@ -466,6 +466,16 @@ describe('principal context cache client contract', () => {
     await expect(invalidateCachedPrincipalContext(null, 'user-1')).resolves.toBeUndefined();
   });
 
+  it('reports cache miss categories to an optional observer', async () => {
+    const { client } = createFakeRedis();
+    const reasons: string[] = [];
+    const onMiss = (reason: string) => reasons.push(reason);
+
+    expect(await readCachedPrincipalContext(null, 'user-1', onMiss)).toBeNull();
+    expect(await readCachedPrincipalContext(client, 'user-1', onMiss)).toBeNull();
+    expect(reasons).toEqual(['no_client', 'no_pointer']);
+  });
+
   it('keeps the pointer pointing at nothing after invalidation', async () => {
     const { loader, invalidator, redis } = setup();
     await loader.load('user-agent');

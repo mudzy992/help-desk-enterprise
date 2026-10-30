@@ -67,10 +67,10 @@ export class PrincipalContextLoader {
     durableAuthority?: PrincipalAuthoritySnapshot,
   ): Promise<PrincipalContext | null> {
     const client = await this.cacheClient();
-    const cached = await readCachedPrincipalContext(client, id);
-    if (cached === null) {
-      tracePrincipalContextCache('redis_miss');
-    } else {
+    const cached = await readCachedPrincipalContext(client, id, (reason) =>
+      tracePrincipalContextCache(`redis_miss_${reason}`),
+    );
+    if (cached !== null) {
       const authorityMatches = await this.matchesDurableAuthority(
         id,
         cached,
@@ -89,9 +89,12 @@ export class PrincipalContextLoader {
         return cached;
       }
     }
+    tracePrincipalContextCache('full_database_load');
     const fresh = await loadPrincipalContext(this.prisma, id);
     if (fresh !== null) {
-      await writeCachedPrincipalContext(client, fresh);
+      await writeCachedPrincipalContext(client, fresh, () =>
+        tracePrincipalContextCache('redis_write_error'),
+      );
     }
     return fresh;
   }
