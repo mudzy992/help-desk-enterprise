@@ -3,8 +3,9 @@
 **Paket:** W7.11 — durable dostava i deduplikacija dodatnih asset reminder adresa<br>
 **Nalaz:** `BA-assets-11` (P2) — zatvoren<br>
 **Kodni commit:** `4c1be0a` (implementacija), `b7d0ae6` (tipni popravak i finalni testani kod)<br>
-**Finalni testani SHA:** `b7d0ae64200c8739e6dd55976828b1b63928b545`<br>
-**CI:** [`41025718081`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025718081) — zelen na finalnom testanom SHA<br>
+**Finalni testani kodni SHA:** `b7d0ae64200c8739e6dd55976828b1b63928b545`<br>
+**Kod CI:** [`41025718081`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025718081) — zelen na finalnom kodnom SHA<br>
+**Završni closeout CI:** [`41027211279`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41027211279) — zelen na closeout/traceability SHA `43c654293c918f05d0b534add44ea48a13618c92`
 **DB migracija:** `20271028100000_asset_reminder_extra_email_delivery` — aditivna tabela i usklađivanje secret metapodatka settinga
 
 ## Nalaz i acceptance
@@ -42,6 +43,7 @@ Finalni testani kodni SHA `b7d0ae64200c8739e6dd55976828b1b63928b545` prošao je 
 - **Docs/CI/container:** docs guard, CI gate, container contract/model, image build, SBOM, skenovi i provenance — zeleno.
 - **Preskočeno:** `E2E critical flows` i `E2E install wizard` nisu pokrenuti na push workflowu. `Enforce zero high/critical image vulnerabilities` je `skipped` jer nije bilo actionable high/critical nalaza; nije CI pad.
 - **Neuspjeli pokušaj:** CI [`41025218482`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025218482) na SHA `4c1be0af4c90d001d4adff29529c8c111a8f53ec` pao je u backend Jest i PostgreSQL integration TypeScript kompilaciji: helper je tražio puni `PrismaService`, dok integration fixture koristi direktni `PrismaClient` bez Nest lifecycle hookova. API/model/migracija nisu bili uzrok. Helper je sužen na delegate-only `Pick<PrismaService, 'assetReminderEmailDelivery'>`; naredni CI `41025718081` na `b7d0ae6` je zelen. Ovo je greška ovog paketa, ispravljena prije zatvaranja; nije preegzistentna greška.
+- Završni closeout/traceability CI [`41027211279`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41027211279) na SHA `43c654293c918f05d0b534add44ea48a13618c92` ponovo je prošao cijeli gate nakon izmjena audit/registra/master plana i dodavanja assertiona da je `BA-assets-11` zatvoren. Backend, PostgreSQL/Redis, frontend, docs guard, container/supply-chain i CI gate su zeleni. Push workflow je ponovo preskočio oba E2E posla; vulnerability enforcement je `skipped` uz actionable count nula.
 
 Lokalno su prošli `node scripts/check-migration-policy.mjs` (99 migracija, destructive approval hashes važeći), `node --test scripts/check-migration-policy.test.mjs` (2/2), JavaScript `node --check` za integration runner/test i `git diff --check`. Lokalni backend Jest/Prisma/PostgreSQL testovi nisu pokrenuti jer sandbox nema instaliran `backend/node_modules` ni generisani Prisma client; puni CI je izvršio validaciju, generisanje i suiteove.
 
