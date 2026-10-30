@@ -117,7 +117,7 @@ function setup(seed: Record<string, unknown> = userRow()) {
     prisma as never,
     redis.client as never,
   );
-  return { loader, invalidator, state, queries, redis };
+  return { loader, invalidator, state, queries, redis, prisma };
 }
 
 describe('principal context loading (phase 2.2)', () => {
@@ -145,6 +145,31 @@ describe('principal context loading (phase 2.2)', () => {
     });
     // A subsequent HTTP request still performs its own durable authority fence.
     expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
+  });
+
+  it('shares the guard-loaded principal across loader instances in one request', async () => {
+    const { loader, prisma, redis, queries } = setup();
+    // Warm the payload so the second loader would otherwise perform the
+    // independent user-authority query on a Redis hit.
+    await loader.load('user-agent');
+    queries.length = 0;
+    const serviceLoader = new PrincipalContextLoader(
+      prisma as never,
+      redis.client as never,
+    );
+    const authority = {
+      subjectId: 'user-agent',
+      authzVersion: 0,
+      isActive: true,
+      mustChangePassword: false,
+    } as const;
+
+    await runWithRequestId('principal-cross-loader-request', async () => {
+      const guarded = await loader.load('user-agent', authority);
+      const service = await serviceLoader.load('user-agent');
+      expect(service).toEqual(guarded);
+    });
+    expect(queries).toHaveLength(0);
   });
 
   it('reuses the durable session authority snapshot to fence a cache hit', async () => {

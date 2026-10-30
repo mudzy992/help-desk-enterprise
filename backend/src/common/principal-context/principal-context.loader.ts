@@ -14,6 +14,11 @@ import type {
   PrincipalContext,
 } from './principal-context.types';
 
+// All instances of this loader answer the same per-request question. A shared
+// namespace lets guards and services deduplicate even if Nest resolves the
+// loader from different module contexts.
+const requestMemoNamespace = Object.freeze({});
+
 /**
  * The one place that reads authorization data (plan §2.2).
  *
@@ -48,7 +53,7 @@ export class PrincipalContextLoader {
     // SessionAuthenticationGuard may supply authority read in the same durable
     // session query. Otherwise cache hits still perform the independent DB fence.
     // RoleGuard and services share this request-bound result.
-    return memoizeRequestPromise(this, id, () =>
+    return memoizeRequestPromise(requestMemoNamespace, id, () =>
       this.loadFromCache(id, durableAuthority),
     );
   }
