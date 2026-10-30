@@ -388,7 +388,10 @@ jobs:
           sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -5 | sed 's/^/  /' || true
           route_summary=$(sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null \
             | head -5 | awk '{ printf "%s=%s/%s ", $3, $1, $2 }')
-          echo "::notice::perf_query_budget avg=${APP_AVG} requests=${APP_N} p95=${P95} max=${MAX} gate=${BUDGET}; route_avg/count=${route_summary}"
+          route_volume_summary=$(awk '$2 >= 100' /tmp/query-budget-paths.txt 2>/dev/null \
+            | sort -k2,2nr | head -15 | awk '{ printf "%s=%s/%s ", $3, $1, $2 }')
+          echo "::notice::perf_query_budget avg=${APP_AVG} requests=${APP_N} p95=${P95} max=${MAX} gate=${BUDGET}; highest_route_avg=${route_summary}"
+          echo "::notice::perf_routes_by_volume avg/count=${route_volume_summary}"
           if [ -s perf/results/ci-smoke.md ]; then
             k6_evidence=$(grep -E 'GET /tickets|POST /tickets|GET /search|http_req_failed|tickets_list_duration|ticket_detail_duration|ticket_message_duration|FAILED' perf/results/ci-smoke.md \
               | head -15 | tr '\n' ';' || true)
