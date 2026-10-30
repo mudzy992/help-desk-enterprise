@@ -302,6 +302,23 @@ model SoftwareLicense {
   @@index([organizationalUnitId])
 }
 
+/// Durable, pseudonymous status for each extra-address asset reminder batch.
+/// `recipientHash` is SHA-256 of the normalized configured e-mail address. The
+/// raw address remains in its redacted setting; rendered payloads are transient.
+model AssetReminderEmailDelivery {
+  id            String   @id @default(cuid())
+  recipientHash String   @db.Char(64)
+  dedupeKey     String   @db.VarChar(96)
+  status        String   @db.VarChar(16)
+  attempts      Int      @default(1)
+  claimToken    String?  @db.Uuid
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([recipientHash, dedupeKey], map: "AssetReminderEmailDelivery_recipientHash_dedupeKey_key")
+  @@index([status, updatedAt], map: "AssetReminderEmailDelivery_status_updatedAt_idx")
+}
+
 model LicenseAssignment {
   id               String          @id @default(cuid())
   licenseId        String

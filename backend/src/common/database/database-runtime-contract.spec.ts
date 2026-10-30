@@ -34,6 +34,6 @@ describe('database runtime contract', () => {
     const query = schemaCompatibilityQuery();
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
-    expect(expectedSchemaMigration).toBe('20271028000000_asset_ticket_primary_invariant');
+    expect(expectedSchemaMigration).toBe('20271028100000_asset_reminder_extra_email_delivery');
   });
 });

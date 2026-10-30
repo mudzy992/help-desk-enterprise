@@ -29,8 +29,15 @@ import {
   type AssetReminderLine,
 } from './compose-asset-reminder-email';
 import { localHour, planAssetReminders, type ReminderDecision } from './plan-asset-reminders';
+import {
+  assetReminderRecipientHash,
+  claimAssetReminderEmailDelivery,
+  markAssetReminderEmailDeliveryFailed,
+  markAssetReminderEmailDeliverySent,
+} from './asset-reminder-email-delivery';
 
 type ScopedLine = AssetReminderLine & { readonly unitPath: string; readonly threshold: number };
+type ExtraEmailDeliveryResult = { readonly sent: number; readonly confirmed: number };
 
 type Recipient = {
   readonly id: string;
@@ -63,14 +70,6 @@ function formatDate(value: Date, locale: 'bs' | 'en', timeZone: string): string 
     return new Intl.DateTimeFormat(locale === 'bs' ? 'bs-BA' : 'en-GB', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric' }).format(value);
   } catch {
     return value.toISOString().slice(0, 10);
-  }
-}
-
-function localDateKey(now: Date, timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-  } catch {
-    return now.toISOString().slice(0, 10);
   }
 }
 
@@ -109,6 +108,15 @@ export class AssetRemindersService {
   private async read<T>(key: string, fallback: T): Promise<T> {
     try {
       const value = await this.settings.getSetting(key);
+      return value === undefined || value === null ? fallback : (value as T);
+    } catch {
+      return fallback;
+    }
+  }
+
+  private async readSecret<T>(key: string, fallback: T): Promise<T> {
+    try {
+      const value = await this.settings.getSecretForInternalUse(key);
       return value === undefined || value === null ? fallback : (value as T);
     } catch {
       return fallback;
@@ -202,7 +210,6 @@ export class AssetRemindersService {
     if (lines.length === 0) return empty('nothing_due');
 
     const recipients = await this.recipients();
-    const dateKey = localDateKey(now, timeZone);
     const channel = await loadEmailChannelConfiguration(this.settings).catch(() => null);
     const policy = await loadNotificationPreferencePolicy(this.settings);
     const decisions = await resolveDeliveryDecisions(this.prisma, policy, {
@@ -285,11 +292,12 @@ export class AssetRemindersService {
         completedItemKeys.add(key);
       }
     }
-    // Keep the existing extra-address sends independent of primary-channel failures.
-    // They can satisfy a threshold only if they are its sole recipients and at least one send succeeds.
-    const extraEmails = await this.sendToExtras(channel, lines, dateKey, now, timeZone);
-    emails += extraEmails;
-    if (extraEmails > 0) {
+    // Extra addresses stay independent of primary-channel failures. A durable
+    // SENT record (including one from an earlier run whose marker CAS failed)
+    // can satisfy a threshold only when that item has no scoped recipients.
+    const extraDelivery = await this.sendToExtras(channel, lines, now, timeZone);
+    emails += extraDelivery.sent;
+    if (extraDelivery.confirmed > 0) {
       for (const line of lines) {
         if ((scopedRecipients.get(reminderItemKey(line))?.size ?? 0) === 0) {
           completedItemKeys.add(reminderItemKey(line));
@@ -402,13 +410,13 @@ export class AssetRemindersService {
   /** §10: extra internal addresses get the full list (they have no unit scope). */
   private async sendToExtras(
     channel: EmailChannelConfiguration | null,
-    lines: readonly AssetReminderLine[],
-    dateKey: string,
+    lines: readonly ScopedLine[],
     now: Date,
     timeZone: string,
-  ): Promise<number> {
-    if (channel === null || !channel.deliveryEnabled || channel.smtp === null) return 0;
-    const raw = await this.read<string>(settingKeys.privateAssetsRemindersRecipients, '');
+  ): Promise<ExtraEmailDeliveryResult> {
+    const result: ExtraEmailDeliveryResult = { sent: 0, confirmed: 0 };
+    if (channel === null || !channel.deliveryEnabled || channel.smtp === null) return result;
+    const raw = await this.readSecret<string>(settingKeys.privateAssetsRemindersRecipients, '');
     const addresses = [
       ...new Set(
         String(raw)
@@ -417,10 +425,22 @@ export class AssetRemindersService {
           .filter((part) => part.length > 0),
       ),
     ].slice(0, 20);
+    const dedupeKey = reminderDeliveryKey(lines);
     let sent = 0;
+    let confirmed = 0;
     for (const address of addresses) {
       // §10: extra recipients are internal only, whatever the global policy says.
       if (!isAllowedNotificationEmailAddress(address, { ...emailPolicy(channel), internalOnly: true })) continue;
+      const identity = { recipientHash: assetReminderRecipientHash(address), dedupeKey };
+      const claim = await claimAssetReminderEmailDelivery(this.prisma, identity);
+      if (claim.kind === 'sent') {
+        // A prior run may have sent this exact batch but failed before persisting
+        // the item threshold marker. Treat its durable SENT record as evidence.
+        confirmed += 1;
+        continue;
+      }
+      if (claim.kind === 'in_flight') continue;
+
       const locale = resolveEmailLocale(null, channel);
       const composed = composeAssetReminderEmail({
         configuration: channel,
@@ -429,19 +449,27 @@ export class AssetRemindersService {
         recipientName: locale === 'bs' ? 'kolega' : 'colleague',
         lines,
         dateLabel: formatDate(now, locale, timeZone),
-        dedupeKey: `asset-expiring:${dateKey}`,
+        dedupeKey,
       });
       try {
         await this.mailTransport.send(
           { from: channel.smtp.fromAddress, to: address, subject: composed.subject, text: composed.text, html: composed.html, messageId: composed.messageId, headers: composed.headers },
           channel.smtp,
         );
+      } catch {
+        await markAssetReminderEmailDeliveryFailed(this.prisma, identity, claim.claimToken);
+        // SMTP diagnostics can echo a recipient or message fragment; keep logs
+        // address- and content-free, while the durable row records FAILED.
+        this.logger.warn('asset_reminder_extra_failed');
+        continue;
+      }
+
+      if (await markAssetReminderEmailDeliverySent(this.prisma, identity, claim.claimToken)) {
         sent += 1;
-      } catch (error) {
-        this.logger.warn(`asset_reminder_extra_failed reason=${errorText(error)}`);
+        confirmed += 1;
       }
     }
-    return sent;
+    return { sent, confirmed };
   }
 
   /** Active users holding a manage permission, with the unit scope per kind. */

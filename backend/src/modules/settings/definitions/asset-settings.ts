@@ -1,5 +1,5 @@
 import { defaultTransferNumberFormat, validateTransferNumberFormat } from '../../assets/transfers/transfer-number';
-import { definePrivateSetting } from '../registry/define-setting';
+import { definePrivateSetting, defineSecretSetting } from '../registry/define-setting';
 import { settingCategoryIds } from '../setting-categories';
 import { settingKeys } from '../setting-keys';
 import { SettingsError } from '../settings.error';
@@ -20,7 +20,6 @@ export const assetDefaults = {
   frequentFailureDays: 90,
   remindersEnabled: true,
   remindersDaysBefore: '60,30,7',
-  remindersRecipients: '',
   importMaxRows: 5000,
   importMaxFileMb: 5,
   transferEnabled: true,
@@ -180,13 +179,12 @@ export const assetSettings: readonly SettingDefinition[] = [
       if (parseReminderDays(value) === null) throw new SettingsError('Thresholds: 1-6 whole numbers 1-365, comma separated');
     },
   }),
-  definePrivateSetting({
+  defineSecretSetting({
     key: settingKeys.privateAssetsRemindersRecipients,
     categoryId: category,
     valueType: 'string',
     description: 'Extra internal e-mail recipients of expiry reminders, comma separated',
     isRequired: false,
-    defaultValue: assetDefaults.remindersRecipients,
     assertValue: (value) => {
       if (typeof value !== 'string' || value.length > 2000) throw new SettingsError('Recipients: at most 2000 characters');
       const invalid = value

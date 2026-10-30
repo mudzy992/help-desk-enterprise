@@ -55,6 +55,37 @@ describe('settings authorization compatibility', () => {
     else await expect(decision).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('does not allow an OU-scoped settings.write grant to change installation-wide configuration', async () => {
+    const harness = createTestAuthorizationHarness();
+    harness.loadBySubjectId.mockResolvedValue(
+      createAuthorizationContext({
+        id: 'scoped-admin',
+        isActive: true,
+        isLocalOnly: true,
+        entraObjectId: null,
+        assignments: [createTestAssignment({
+          roleKey: authorizationRoleKeys.admin,
+          permissionKeys: [permissionKeys.settingsWrite],
+          organizationalUnitId: 'ou-1',
+          organizationalUnitPath: '/ou-1',
+        })],
+      }),
+    );
+    const guard = new RoleGuard(new Reflector(), harness.authorizationService);
+
+    await expect(
+      guard.canActivate({
+        switchToHttp: () => ({
+          getRequest: () => ({
+            [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: createPrincipal('scoped-admin'),
+          }),
+        }),
+        getHandler: () => SettingsController.prototype.updateSetting,
+        getClass: () => SettingsController,
+      } as never),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('requires settings.write and does not reach the mutation when denied', async () => {
     const harness = createTestAuthorizationHarness();
     harness.loadBySubjectId.mockResolvedValue(

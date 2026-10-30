@@ -110,6 +110,43 @@ describe('SettingsService change log', () => {
     });
   });
 
+  it('redacts extra asset reminder recipients from settings APIs and change logs', async () => {
+    const { service, memory } = await createHarness();
+    const raw = 'ops@example.com,asset-alerts@example.com';
+
+    await service.setSettingValue(
+      settingKeys.privateAssetsRemindersRecipients,
+      raw,
+      { reason: 'Set asset reminder recipients', actorUserId: 'admin-1' },
+    );
+
+    expect(memory.getStored(settingKeys.privateAssetsRemindersRecipients)).toMatchObject({
+      isSecret: true,
+      value: raw,
+    });
+    expect(JSON.stringify(memory.changeLogs)).not.toContain(raw);
+    expect(memory.changeLogs[0]?.diff.after).toEqual({
+      key: settingKeys.privateAssetsRemindersRecipients,
+      visibility: 'secret',
+      value: redactedSecretPlaceholder,
+    });
+    const registry = await service.listRegistry();
+    expect(registry.find((entry) => entry.key === settingKeys.privateAssetsRemindersRecipients)).toMatchObject({
+      visibility: 'secret',
+      value: redactedSecretPlaceholder,
+      isSet: true,
+    });
+    await expect(service.getPrivateSettings()).resolves.not.toHaveProperty(
+      settingKeys.privateAssetsRemindersRecipients,
+    );
+    await expect(service.getSetting(settingKeys.privateAssetsRemindersRecipients)).rejects.toThrow(
+      'must be read via getSecretForInternalUse',
+    );
+    await expect(
+      service.getSecretForInternalUse(settingKeys.privateAssetsRemindersRecipients),
+    ).resolves.toBe(raw);
+  });
+
   it('Paket 4.1: batch saves every key with one change-log entry each', async () => {
     const { service, memory } = await createHarness();
     await service.setSettingValues(

@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271028000000_asset_ticket_primary_invariant';
+  '20271028100000_asset_reminder_extra_email_delivery';
 
 export function assertDatabaseTransport(
   connectionString: string,

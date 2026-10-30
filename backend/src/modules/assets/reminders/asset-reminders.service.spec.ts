@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { settingKeys } from "../../settings/setting-keys";
 import { emailDeliveryStatuses } from "../../notifications/email/email-template.constants";
 import { AssetRemindersService } from "./asset-reminders.service";
@@ -108,6 +109,11 @@ function build(settings: Record<string, unknown>) {
   const contractUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
   const licenseUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
   const users = jest.fn().mockResolvedValue(defaultRecipients());
+  const reminderDelivery = {
+    findUnique: jest.fn().mockResolvedValue(null),
+    create: jest.fn().mockResolvedValue({ id: "extra-delivery-1" }),
+    updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+  };
   const prisma = {
     asset: {
       findMany: jest.fn().mockResolvedValue([
@@ -137,6 +143,7 @@ function build(settings: Record<string, unknown>) {
         .fn()
         .mockResolvedValue({ status: emailDeliveryStatuses.sent }),
     },
+    assetReminderEmailDelivery: reminderDelivery,
     $transaction: jest
       .fn()
       .mockImplementation((operations: readonly Promise<unknown>[]) =>
@@ -157,6 +164,7 @@ function build(settings: Record<string, unknown>) {
     service,
     prisma,
     users,
+    reminderDelivery,
     updates: {
       asset: assetUpdateMany,
       contract: contractUpdateMany,
@@ -363,10 +371,10 @@ describe("AssetRemindersService (paket 3.2 §10)", () => {
   });
 
   it("lets a successful extra internal email satisfy a threshold when no scoped manager exists", async () => {
-    const { service, prisma, updates, mail } = build({
+    const { service, prisma, updates, mail, reminderDelivery } = build({
       [settingKeys.privateAddonsCmdb]: true,
       [settingKeys.privateAssetsRemindersDaysBefore]: "30,7",
-      [settingKeys.privateAssetsRemindersRecipients]: "ops@example.com",
+      [settingKeys.privateAssetsRemindersRecipients]: " Ops@example.com,ops@example.com ",
     });
     prisma.user.findMany.mockResolvedValue([]);
     loadEmailChannelConfiguration.mockResolvedValue(emailChannel());
@@ -376,22 +384,79 @@ describe("AssetRemindersService (paket 3.2 §10)", () => {
     expect(mail.send).toHaveBeenCalledTimes(1);
     expect(result.emails).toBe(1);
     expect(updates.asset).toHaveBeenCalledTimes(1);
+    expect(reminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(reminderDelivery.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        recipientHash: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        dedupeKey: expect.stringMatching(/^asset-expiring:[a-f0-9]{32}$/u),
+        status: "CLAIMED",
+        attempts: 1,
+        claimToken: expect.any(String),
+      }),
+    });
+    expect(reminderDelivery.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "CLAIMED",
+          claimToken: expect.any(String),
+        }),
+        data: expect.objectContaining({ status: "SENT", claimToken: null }),
+      }),
+    );
+    expect(reminderDelivery.create.mock.calls[0]?.[0].data).not.toHaveProperty(
+      "toAddress",
+    );
   });
 
-  it("leaves unscoped thresholds pending when every extra internal email fails", async () => {
-    const { service, prisma, updates, mail } = build({
+  it("uses a prior SENT extra-recipient record to finish a marker retry without resending", async () => {
+    const { service, prisma, updates, mail, reminderDelivery } = build({
       [settingKeys.privateAddonsCmdb]: true,
       [settingKeys.privateAssetsRemindersDaysBefore]: "30,7",
       [settingKeys.privateAssetsRemindersRecipients]: "ops@example.com",
     });
     prisma.user.findMany.mockResolvedValue([]);
     loadEmailChannelConfiguration.mockResolvedValue(emailChannel());
-    mail.send.mockRejectedValueOnce(new Error("SMTP unavailable"));
+    reminderDelivery.findUnique.mockResolvedValue({ status: "SENT" });
 
-    await service.run(now, { ignoreHour: true });
+    const result = await service.run(now, { ignoreHour: true });
+
+    expect(result.emails).toBe(0);
+    expect(mail.send).not.toHaveBeenCalled();
+    expect(reminderDelivery.create).not.toHaveBeenCalled();
+    expect(updates.asset).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves unscoped thresholds pending when every extra internal email fails", async () => {
+    const { service, prisma, updates, mail, reminderDelivery } = build({
+      [settingKeys.privateAddonsCmdb]: true,
+      [settingKeys.privateAssetsRemindersDaysBefore]: "30,7",
+      [settingKeys.privateAssetsRemindersRecipients]: "ops@example.com",
+    });
+    prisma.user.findMany.mockResolvedValue([]);
+    loadEmailChannelConfiguration.mockResolvedValue(emailChannel());
+    mail.send.mockRejectedValueOnce(new Error("SMTP unavailable for ops@example.com: message body"));
+    const warning = jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+
+    try {
+      await service.run(now, { ignoreHour: true });
+      expect(warning).toHaveBeenCalledWith("asset_reminder_extra_failed");
+      expect(warning.mock.calls.flat().join(" ")).not.toContain("ops@example.com");
+    } finally {
+      warning.mockRestore();
+    }
 
     expect(mail.send).toHaveBeenCalledTimes(1);
     expect(updates.asset).not.toHaveBeenCalled();
+    expect(reminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(reminderDelivery.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "CLAIMED",
+          claimToken: expect.any(String),
+        }),
+        data: expect.objectContaining({ status: "FAILED", claimToken: null }),
+      }),
+    );
   });
 
   it("keeps the item threshold pending after a partial delivery and retries only the failed recipient semantically", async () => {
