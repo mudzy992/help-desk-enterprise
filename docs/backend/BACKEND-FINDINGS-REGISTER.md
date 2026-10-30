@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.7 je zatvorio `BA-assets-07`, W7.8 `BA-assets-08`, W7.9 `BA-assets-09`, W7.10 `BA-assets-10`, a W7.11 `BA-assets-11`; sljedeći je planirani W7.12 `BA-assets-12`<br>
+**Status:** audit baseline + djelimična implementacija — W7.7 je zatvorio `BA-assets-07`, W7.8 `BA-assets-08`, W7.9 `BA-assets-09`, W7.10 `BA-assets-10`, W7.11 `BA-assets-11`, a W7.12 `BA-assets-12`; sljedeći je planirani W7.13 `BA-assets-13`<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-30<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 578 otvorenih / 114 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nastavlja W7 closeout status nakon W7.11; machine-readable source redovi prikazuju 581 otvoren / 100 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
+**Trenutno:** 577 otvorenih / 115 zatvorenih / 692 ukupno<br>
+**Napomena:** deklarisani agregat nastavlja W7 closeout status nakon W7.12; machine-readable source redovi prikazuju 580 otvorenih / 101 zatvoren / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -285,7 +285,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-09` | P2 | Directory single-flight lock je samo in-memory po procesu | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-10` | P2 | Directory i reminder scheduler nemaju Redis-loss reconciliation                               | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-11` | P2 | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-12` | P2 | License/contract/transfer i drugi business writeovi nisu atomski sa auditom | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-12` | P2 | License/contract/transfer i drugi business writeovi nisu atomski sa auditom | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-13` | P2 | Import claim nema eksplicitno APPLYING lease/recovery/idempotency stanje | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-14` | P2 | Transfer snapshot/signed binary nemaju definisan anonymization i retention lifecycle | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-15` | P2 | Hard delete oslanja se na FK za dio zavisnosti i briše asset event history | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -785,13 +785,15 @@ Backend build/lint/Jest, PostgreSQL+Redis integration, frontend lint/format/test
 
 W7.11 na finalnom testanom SHA `b7d0ae64200c8739e6dd55976828b1b63928b545`, uz zeleni CI [`41025718081`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025718081), zatvorio je samo `BA-assets-11` (P2). `AssetReminderEmailDelivery` čuva hash-only recipient identitet, batch dedupe key, `CLAIMED`/`SENT`/`FAILED`, attempts i token-fenced claim; `FAILED` i claim stariji od 10 minuta mogu se preuzeti, a raniji `SENT` sprečava ponovni SMTP poziv pri marker retryju. Recipient setting je secret, globalno autorizovan, auditiran i redigovan. PostgreSQL suite pokriva concurrency, retry, stale reclaim i stari token; DB migracija `20271028100000_asset_reminder_extra_email_delivery` je aditivna, bez delivery backfilla. Prvi CI [`41025218482`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41025218482) otkrio je helper type mismatch za direktni integration `PrismaClient`; ispravka je u finalnom SHA. Backend build/lint/Jest, PostgreSQL+Redis migration replay/integration, frontend, docs guard, container/supply-chain i gate su zeleni. E2E jobovi su preskočeni na pushu, image vulnerability enforcement je `skipped` uz actionable count nula. Potpuni acceptance, rollout, preflight i rollback je u [97-assets-reminder-extra-email-delivery.md](implementation/97-assets-reminder-extra-email-delivery.md). `BA-assets-12`–`BA-assets-19` ostaju otvoreni; sljedeći planirani paket je W7.12 (`BA-assets-12`).
 
+W7.12 na finalnom testanom SHA `2917363eea13a58be6f76850aa39ccc6c2e655c2`, uz zeleni CI [`41030516609`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41030516609), zatvorio je samo `BA-assets-12` (P2). Zajednički Prisma transaction helper sada atomarno upisuje postojeći globalni audit zajedno sa relevantnim catalog, license, contract, transfer, core asset retire/dispose/delete i ticket link/unlink promjenama. Signed-transfer DB/audit neuspjeh briše novi fajl, a stari uklanja tek nakon commita; `assetLocationSaved` audit metadata schema je v2. License-key reveal ostaje fail-closed, `setPrimary` nije mijenjan, a import/directory/export i transfer lifecycle su izvan scopea. Novi unit i real-PostgreSQL audit/rollback testovi su u CI; backend, 99-migration replay/PostgreSQL+Redis, frontend, docs, container/supply-chain i CI gate su zeleni. E2E push jobovi su preskočeni; vulnerability enforcement je `skipped` uz actionable count nula. Nije bilo neuspjelog CI pokušaja ni nove Prisma migracije. Lokalna Prisma client generation bila je blokirana sandbox TLS pristupom `binaries.prisma.sh`; puni CI je generisao klijent i izvršio suiteove. Detaljan acceptance i rollout/rollback dokaz je u [98-assets-transactional-business-audit.md](implementation/98-assets-transactional-business-audit.md). `BA-assets-13`–`BA-assets-19` ostaju otvoreni; sljedeći paket je W7.13 (`BA-assets-13`).
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **578**
-- Zatvoreno: **114** (deklarisani W7 agregat nakon W7.11; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
+- Otvoreno: **577**
+- Zatvoreno: **115** (deklarisani W7 agregat nakon W7.12; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

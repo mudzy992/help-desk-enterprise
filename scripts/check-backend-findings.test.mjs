@@ -69,6 +69,13 @@ test("W7.11 BA-assets-11 closeout je zatvoren u izvornom registry planu", async 
   );
 });
 
+test("W7.12 zatvara samo BA-assets-12, a BA-assets-13 ostaje otvoren", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
+  assert.deepEqual(byId.get("BA-assets-12"), { source: "22-assets.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-assets-13"), { source: "22-assets.md", status: "otvoreno" });
+});
+
 test("čita escaped pipe u naslovu i izvorni status", () => {
   assert.deepEqual(
     parseFindingRows("| BA-xcut-04 | P1 | `npm ci \\|\\| npm install` | zatvoreno |"),
