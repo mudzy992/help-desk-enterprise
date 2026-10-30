@@ -9,7 +9,10 @@ import {
 } from './principal-context.cache';
 import { loadPrincipalContext } from './load-principal-context';
 import { memoizeRequestPromise } from '../request-context/request-context.storage';
-import type { PrincipalContext } from './principal-context.types';
+import type {
+  PrincipalAuthoritySnapshot,
+  PrincipalContext,
+} from './principal-context.types';
 
 /**
  * The one place that reads authorization data (plan §2.2).
@@ -28,21 +31,38 @@ export class PrincipalContextLoader {
     @Inject(redisTokens.client) private readonly redis: Redis,
   ) {}
 
-  load(subjectId: string): Promise<PrincipalContext | null> {
+  load(
+    subjectId: string,
+    durableAuthority?: PrincipalAuthoritySnapshot,
+  ): Promise<PrincipalContext | null> {
     const id = subjectId.trim();
     if (id.length === 0) {
       return Promise.resolve(null);
     }
-    // SessionAuthenticationGuard performs the durable authority check first.
-    // RoleGuard and the service can then share that same request-bound result
-    // instead of repeating an identical PostgreSQL read for every layer.
-    return memoizeRequestPromise(this, id, () => this.loadFromCache(id));
+    if (
+      durableAuthority?.subjectId === id &&
+      (!durableAuthority.isActive || durableAuthority.mustChangePassword)
+    ) {
+      return Promise.resolve(null);
+    }
+    // SessionAuthenticationGuard may supply authority read in the same durable
+    // session query. Otherwise cache hits still perform the independent DB fence.
+    // RoleGuard and services share this request-bound result.
+    return memoizeRequestPromise(this, id, () =>
+      this.loadFromCache(id, durableAuthority),
+    );
   }
 
-  private async loadFromCache(id: string): Promise<PrincipalContext | null> {
+  private async loadFromCache(
+    id: string,
+    durableAuthority?: PrincipalAuthoritySnapshot,
+  ): Promise<PrincipalContext | null> {
     const client = await this.cacheClient();
     const cached = await readCachedPrincipalContext(client, id);
-    if (cached !== null && (await this.matchesDurableAuthority(id, cached))) {
+    if (
+      cached !== null &&
+      (await this.matchesDurableAuthority(id, cached, durableAuthority))
+    ) {
       return cached;
     }
     const fresh = await loadPrincipalContext(this.prisma, id);
@@ -54,14 +74,24 @@ export class PrincipalContextLoader {
 
   /**
    * Redis is only a payload cache, never the revocation authority. Every cache
-   * hit is fenced by a small PostgreSQL read so another replica's committed
-   * deactivation/version bump is effective on the next request even when the
-   * Redis tombstone write failed. An unavailable authority fails closed.
+   * hit is fenced by fresh PostgreSQL user state. A session guard can provide
+   * the same state from its joined, durable session read; legacy/no-session
+   * callers perform the user read here. An unavailable authority fails closed.
    */
   private async matchesDurableAuthority(
     subjectId: string,
     cached: PrincipalContext,
+    durableAuthority?: PrincipalAuthoritySnapshot,
   ): Promise<boolean> {
+    if (durableAuthority?.subjectId === subjectId) {
+      return (
+        durableAuthority.isActive &&
+        !durableAuthority.mustChangePassword &&
+        durableAuthority.authzVersion === cached.authzVersion &&
+        cached.isActive &&
+        !cached.mustChangePassword
+      );
+    }
     try {
       const authority = await this.prisma.user.findUnique({
         where: { id: subjectId },

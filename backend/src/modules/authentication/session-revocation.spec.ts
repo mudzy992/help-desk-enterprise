@@ -115,6 +115,57 @@ describe('durable session authority', () => {
     await expect(store.isRevoked(check)).resolves.toBe(true);
   });
 
+  it('returns the user authority snapshot from the joined durable session read', async () => {
+    const redis = { mget: jest.fn(async () => [null, null, null]) };
+    const findFirst = jest.fn(async () => ({
+      user: {
+        id: 'u1',
+        authzVersion: 7,
+        isActive: true,
+        mustChangePassword: false,
+      },
+    }));
+    const store = new SessionRevocationStore(
+      redis as never,
+      { userSession: { findFirst } } as never,
+    );
+
+    await expect(store.check(check)).resolves.toEqual({
+      revoked: false,
+      durableAuthority: {
+        subjectId: 'u1',
+        authzVersion: 7,
+        isActive: true,
+        mustChangePassword: false,
+      },
+    });
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ relationLoadStrategy: 'join' }),
+    );
+  });
+
+  it('rejects a durable active session when its user is inactive or must change password', async () => {
+    const redis = { mget: jest.fn(async () => [null, null, null]) };
+    const store = new SessionRevocationStore(
+      redis as never,
+      {
+        userSession: {
+          findFirst: jest.fn(async () => ({
+            user: {
+              id: 'u1',
+              authzVersion: 7,
+              isActive: false,
+              mustChangePassword: false,
+            },
+          })),
+        },
+      } as never,
+    );
+
+    await expect(store.check(check)).resolves.toEqual({ revoked: true });
+    expect(redis.mget).not.toHaveBeenCalled();
+  });
+
   it('fails closed when PostgreSQL session authority is unavailable', async () => {
     const redis = { mget: jest.fn(async () => [null, null, null]) };
     const prisma = { userSession: { findFirst: jest.fn(async () => { throw new Error('postgres down'); }) } };
@@ -124,7 +175,18 @@ describe('durable session authority', () => {
 
   it('rejects an active durable session when the Redis revocation check is unavailable', async () => {
     const redis = { mget: jest.fn(async () => { throw new Error('redis down'); }) };
-    const prisma = { userSession: { findFirst: jest.fn(async () => ({ id: 'sid-1' })) } };
+    const prisma = {
+      userSession: {
+        findFirst: jest.fn(async () => ({
+          user: {
+            id: 'u1',
+            authzVersion: 0,
+            isActive: true,
+            mustChangePassword: false,
+          },
+        })),
+      },
+    };
     const store = new SessionRevocationStore(redis as never, prisma as never);
     await expect(store.isRevoked(check)).resolves.toBe(true);
   });

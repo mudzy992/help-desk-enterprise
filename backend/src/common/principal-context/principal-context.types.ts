@@ -55,3 +55,9 @@ export type PrincipalContext = {
   readonly assignments: readonly PrincipalAssignment[];
   readonly authzVersion: number;
 };
+
+/** Minimal durable user state returned with an active database session read. */
+export type PrincipalAuthoritySnapshot = Pick<
+  PrincipalContext,
+  'subjectId' | 'authzVersion' | 'isActive' | 'mustChangePassword'
+>;

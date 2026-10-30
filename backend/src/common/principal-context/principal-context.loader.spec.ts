@@ -147,6 +147,61 @@ describe('principal context loading (phase 2.2)', () => {
     expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
   });
 
+  it('reuses the durable session authority snapshot to fence a cache hit', async () => {
+    const { loader, state, queries } = setup();
+    await loader.load('user-agent');
+    const authority = {
+      subjectId: 'user-agent',
+      authzVersion: 0,
+      isActive: true,
+      mustChangePassword: false,
+    } as const;
+
+    const cached = await runWithRequestId('session-authority-hit', () =>
+      loader.load('user-agent', authority),
+    );
+    expect(cached?.roleKeys).toEqual(['AGENT']);
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
+
+    state.users.set(
+      'user-agent',
+      userRow({
+        authzVersion: 1,
+        userRoles: [
+          {
+            id: 'assignment-admin-ou-it',
+            role: {
+              key: 'ADMIN',
+              rolePermissions: [{ permission: { key: 'ticket.merge' } }],
+            },
+            organizationalUnit: { id: 'ou-it', ouPath: '/Korisnici/IT' },
+            service: null,
+          },
+        ],
+      }),
+    );
+    const refreshed = await runWithRequestId('session-authority-change', () =>
+      loader.load('user-agent', { ...authority, authzVersion: 1 }),
+    );
+    expect(refreshed?.roleKeys).toEqual(['ADMIN']);
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
+  });
+
+  it('does not serve a cached principal when the joined authority snapshot denies it', async () => {
+    const { loader, queries } = setup();
+    await loader.load('user-agent');
+
+    await expect(
+      loader.load('user-agent', {
+        subjectId: 'user-agent',
+        authzVersion: 0,
+        isActive: false,
+        mustChangePassword: false,
+      }),
+    ).resolves.toBeNull();
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
+  });
+
   it('serves two consecutive requests with a single database load', async () => {
     const { loader, queries } = setup();
     const first = await loader.load('user-agent');

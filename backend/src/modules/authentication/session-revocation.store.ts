@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { redisTokens } from '../../common/redis/redis.tokens';
+import type { PrincipalAuthoritySnapshot } from '../../common/principal-context/principal-context.types';
 
 /**
  * Review 2026-09-25 (S1/S2): session JWTs could not be revoked — "sign out"
@@ -64,6 +65,11 @@ function parseStoredSessionCutoff(raw: string): StoredSessionCutoff | null {
     return null;
   }
 }
+
+export type SessionRevocationCheckResult = {
+  readonly revoked: boolean;
+  readonly durableAuthority?: PrincipalAuthoritySnapshot;
+};
 
 export type SessionRevocationBackend = {
   isRevoked(input: RevocationCheck): Promise<boolean>;
@@ -194,36 +200,65 @@ export class SessionRevocationStore {
   }
 
   async isRevoked(input: RevocationCheck): Promise<boolean> {
+    return (await this.check(input)).revoked;
+  }
+
+  /**
+   * Confirms the durable session and user authority in one joined SQL read.
+   * The user snapshot lets the request's principal-context cache reuse this
+   * same per-request database check instead of issuing a second user query.
+   */
+  async check(input: RevocationCheck): Promise<SessionRevocationCheckResult> {
+    let durableAuthority: PrincipalAuthoritySnapshot | undefined;
     // A registry session is durable PostgreSQL state. Check it on every request:
     // Redis may accelerate token/cutoff checks, but an outage or a stale replica
     // must never resurrect a revoked session on another API instance.
-    if (input.sessionId) {
-      if (this.prisma === undefined) {
-        // Unit/standalone callers without Prisma retain the explicit in-memory
-        // backend contract; production DI always supplies PrismaService.
-      } else {
-        try {
-          const active = await this.prisma.userSession.findFirst({
-            where: {
-              id: input.sessionId,
-              userId: input.subjectId,
-              revokedAt: null,
-              expiresAt: { gt: new Date() },
+    if (input.sessionId && this.prisma !== undefined) {
+      try {
+        const active = await this.prisma.userSession.findFirst({
+          where: {
+            id: input.sessionId,
+            userId: input.subjectId,
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                authzVersion: true,
+                isActive: true,
+                mustChangePassword: true,
+              },
             },
-            select: { id: true },
-          });
-          if (active === null) return true;
-        } catch (error) {
-          this.logger.error(`session authority unavailable, failing closed: ${String(error)}`);
-          return true;
+          },
+          relationLoadStrategy: 'join',
+        });
+        if (active === null || active.user.id !== input.subjectId) {
+          return { revoked: true };
         }
+        durableAuthority = {
+          subjectId: active.user.id,
+          authzVersion: active.user.authzVersion,
+          isActive: active.user.isActive,
+          mustChangePassword: active.user.mustChangePassword,
+        };
+        if (!durableAuthority.isActive || durableAuthority.mustChangePassword) {
+          return { revoked: true };
+        }
+      } catch (error) {
+        this.logger.error(`session authority unavailable, failing closed: ${String(error)}`);
+        return { revoked: true };
       }
     }
     try {
-      return await this.backend.isRevoked(input);
+      const revoked = await this.backend.isRevoked(input);
+      return revoked
+        ? { revoked: true }
+        : { revoked: false, ...(durableAuthority === undefined ? {} : { durableAuthority }) };
     } catch (error) {
       this.logger.error(`session revocation cache unavailable, failing closed: ${String(error)}`);
-      return true;
+      return { revoked: true };
     }
   }
 

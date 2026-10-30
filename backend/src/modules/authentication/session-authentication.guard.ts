@@ -46,7 +46,10 @@ export class SessionAuthenticationGuard implements CanActivate {
       // Phase 2.2: one load (Redis → database) answers every check below and is
       // then handed to the rest of the request, instead of each guard and
       // service reading the same rows again.
-      const context = await this.principalContextLoader.load(claims.subjectId);
+      const context = await this.principalContextLoader.load(
+        claims.subjectId,
+        claims.durableAuthority,
+      );
       if (context === null || !context.isActive) {
         throw createSessionUnauthorizedException();
       }

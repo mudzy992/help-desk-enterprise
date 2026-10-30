@@ -12,6 +12,7 @@ import type {
   MfaTokenStage,
   PasswordChangeTokenClaims,
   SessionAccessTokenClaims,
+  VerifiedSessionAccessToken,
 } from './authentication.types';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
 import { readPasswordChangeSubjectId } from './read-password-change-subject-id';
@@ -148,7 +149,7 @@ export class SessionTokenService {
     );
   }
 
-  async verify(accessToken: string): Promise<SessionAccessTokenClaims> {
+  async verify(accessToken: string): Promise<VerifiedSessionAccessToken> {
     if (accessToken.trim().length === 0) {
       throw createInvalidCredentialsError();
     }
@@ -178,10 +179,16 @@ export class SessionTokenService {
         expiresAt: typeof record.exp === 'number' ? record.exp : 0,
         rememberMe: record.rem === true,
       };
-      if (await this.revocation.isRevoked({ ...claims })) {
+      const verification = await this.revocation.check({ ...claims });
+      if (verification.revoked) {
         throw createInvalidCredentialsError();
       }
-      return claims;
+      return {
+        ...claims,
+        ...(verification.durableAuthority === undefined
+          ? {}
+          : { durableAuthority: verification.durableAuthority }),
+      };
     } catch (error) {
       if (error instanceof AuthenticationError) {
         throw error;

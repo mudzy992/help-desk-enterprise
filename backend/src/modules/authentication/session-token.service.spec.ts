@@ -62,6 +62,34 @@ describe('SessionTokenService', () => {
     expect(payload.rem).toBe(true);
   });
 
+  it('returns joined durable authority separately from the signed JWT claims', async () => {
+    const durableAuthority = {
+      subjectId: 'user-1',
+      authzVersion: 3,
+      isActive: true,
+      mustChangePassword: false,
+    };
+    const revocation = {
+      check: jest.fn(async () => ({ revoked: false, durableAuthority })),
+    };
+    const authorityService = new SessionTokenService(
+      new JwtService({}),
+      { load: async () => SIGNING_SECRET } as never,
+      revocation as never,
+    );
+    const accessToken = await authorityService.issue(principal, 'session-1');
+
+    await expect(authorityService.verify(accessToken)).resolves.toMatchObject({
+      subjectId: 'user-1',
+      sessionId: 'session-1',
+      durableAuthority,
+    });
+    const payload = JSON.parse(
+      Buffer.from(accessToken.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    expect(payload).not.toHaveProperty('durableAuthority');
+  });
+
   it('keeps the default token free of a remember-me claim', async () => {
     const accessToken = await service.issue(principal, 'session-default');
     const claims = await service.verify(accessToken);
