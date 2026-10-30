@@ -5,6 +5,7 @@
 **Kodni commit:** `2917363eea13a58be6f76850aa39ccc6c2e655c2`<br>
 **Finalni testani kodni SHA:** `2917363eea13a58be6f76850aa39ccc6c2e655c2`<br>
 **Kod CI:** [`41030516609`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41030516609) — zelen na finalnom kodnom SHA<br>
+**Closeout/traceability CI:** [`41031754687`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41031754687) — zelen na closeout SHA `185f79f1af8f8d70e75d8f4f99b075c341521ca8`<br>
 **DB migracija:** nema
 
 ## Nalaz i acceptance
@@ -39,8 +40,9 @@ Kodni SHA `2917363eea13a58be6f76850aa39ccc6c2e655c2` prošao je CI [`41030516609
 - **Docs/CI/container:** docs guard, CI gate, container contract/model, image build, SBOM, skenovi i provenance — zeleno.
 - **Preskočeno:** `E2E critical flows` i `E2E install wizard` nisu pokrenuti na push workflowu. `Enforce zero high/critical image vulnerabilities` je `skipped` jer actionable high/critical broj nije zahtijevao enforcement; nije CI pad.
 - **Neuspjeli CI pokušaji:** nema.
+- Završni closeout/traceability CI [`41031754687`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41031754687) na SHA `185f79f1af8f8d70e75d8f4f99b075c341521ca8` ponovo je prošao full gate nakon findings registry/master plan i plan JSON izmjena. Traceability test je zaključao da je zatvoren samo `BA-assets-12`, a `BA-assets-13` ostao otvoren; docs guard, backend, PostgreSQL/Redis, frontend, container/supply-chain i CI gate su zeleni. Push workflow je ponovo preskočio oba E2E posla; vulnerability enforcement je `skipped` bez actionable high/critical nalaza.
 
-Lokalno su prošli `npm run lint -- --no-warn-ignored` (0 grešaka; tri nepovezana `no-explicit-any` upozorenja u `sla-scan-failure-quarantine.spec.ts`), ciljani audit policy/schema/compatibility Jest (3 suite-a, 19 testova), `npm run test:integration-harness` (3/3), `npm run db:migration-policy:check` (99 migracija) i `npm run db:migration-policy:test` (2/2); `git diff --check` je čist. Lokalni Prisma client nije mogao biti generisan: sandbox TLS veza do `binaries.prisma.sh` nije uspostavljena, pa su lokalni Jest/build testovi koji zahtijevaju generated client prepušteni punom CI-ju, koji ga je uspješno generisao i koristio.
+Lokalno su prošli `npm run lint -- --no-warn-ignored` (0 grešaka; tri nepovezana `no-explicit-any` upozorenja u `sla-scan-failure-quarantine.spec.ts`), ciljani audit policy/schema/compatibility Jest (3 suite-a, 19 testova), `npm run test:integration-harness` (3/3), `npm run db:migration-policy:check` (99 migracija) i `npm run db:migration-policy:test` (2/2). Closeout provjere su prošle: `npm run audit:traceability` (692/692), `npm run audit:traceability:test` (8/8), `node scripts/check-docs-content.mjs` (32 stranice, 8 prevoda, 10 provjera) i pripadajući testovi (9/9); `git diff --check` je čist. Lokalni Prisma client nije mogao biti generisan: sandbox TLS veza do `binaries.prisma.sh` nije uspostavljena, pa su lokalni Jest/build testovi koji zahtijevaju generated client prepušteni punom CI-ju, koji ga je uspješno generisao i koristio.
 
 ## Registar nalaza
 
