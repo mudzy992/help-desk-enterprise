@@ -249,6 +249,9 @@ export type AssetUpdateInput = AssetWriteInput & { readonly version: number };
 
 export type AssetHistoryItem = {
   readonly id: string;
+  readonly assetId: string;
+  readonly assetTag: string;
+  readonly retainedAfterAssetDelete: boolean;
   readonly action: string;
   readonly actorUserId: string | null;
   readonly detail: Readonly<Record<string, unknown>>;

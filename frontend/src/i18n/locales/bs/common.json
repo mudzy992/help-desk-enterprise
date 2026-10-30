@@ -8590,6 +8590,7 @@
       "actions": {
         "created": "Kreirano",
         "updated": "Izmijenjeno",
+        "deleted": "Obrisano (historija sačuvana)",
         "status": "Promjena statusa",
         "assigned": "Zaduženo",
         "unassigned": "Razduženo",

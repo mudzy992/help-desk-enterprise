@@ -156,6 +156,7 @@ export const assetLimits = {
 export const assetEventActions = {
   created: 'created',
   updated: 'updated',
+  deleted: 'deleted',
   status: 'status',
   assigned: 'assigned',
   unassigned: 'unassigned',

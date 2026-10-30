@@ -12,8 +12,10 @@ import { lockTicketAssetPrimaryGroups } from '../modules/assets/asset-ticket-pri
 
   Everything it creates is marked: assets have tag `DEMO-…`, source IMPORT and
   notes "DEMO"; locations have code `DEMO-…`; licences and contracts have notes
-  "DEMO". `--remove` deletes exactly those rows (hard delete — they are demo),
-  including their links, events, assignments and ticket links.
+  "DEMO". `--remove` hard-deletes only unreferenced demo assets and empty
+  demo-owned objects. It never unlinks tickets, relations, transfers, contracts,
+  licences, problems or changes; linked assets fail closed at the DB guard.
+  Asset events are retained as detached history with the original asset identity.
 */
 
 const marker = 'DEMO';
@@ -24,62 +26,34 @@ type Created = { id: string; tag: string; typeKey: string; userId: string | null
 async function remove(prisma: PrismaClient): Promise<void> {
   const assets = await prisma.asset.findMany({ where: { notes: marker, assetTag: { startsWith: 'DEMO-' } }, select: { id: true } });
   const assetIds = assets.map((asset) => asset.id);
-  const licenses = await prisma.softwareLicense.findMany({ where: { notes: marker }, select: { id: true } });
-  const contracts = await prisma.assetContract.findMany({ where: { notes: marker }, select: { id: true } });
   await prisma.$transaction(async (transaction) => {
-    await transaction.licenseAssignment.deleteMany({
-      where: { OR: [{ licenseId: { in: licenses.map((row) => row.id) } }, { assetId: { in: assetIds } }] },
-    });
-    await transaction.softwareLicense.deleteMany({ where: { id: { in: licenses.map((row) => row.id) } } });
-    await transaction.assetContractItem.deleteMany({
-      where: { OR: [{ contractId: { in: contracts.map((row) => row.id) } }, { assetId: { in: assetIds } }] },
-    });
-    await transaction.assetContract.deleteMany({ where: { id: { in: contracts.map((row) => row.id) } } });
-    await transaction.assetRelation.deleteMany({ where: { OR: [{ fromAssetId: { in: assetIds } }, { toAssetId: { in: assetIds } }] } });
-
-    if (assetIds.length > 0) {
-      const affectedTickets = await transaction.ticketAsset.findMany({
-        where: { assetId: { in: assetIds } },
-        select: { ticketId: true },
-      });
-      const affectedTicketIds = [...new Set(affectedTickets.map((link) => link.ticketId))];
-      await lockTicketAssetPrimaryGroups(transaction as unknown as Pick<PrismaService, '$queryRaw'>, affectedTicketIds);
-      const primaryLinks = await transaction.ticketAsset.findMany({
-        where: { assetId: { in: assetIds }, isPrimary: true },
-        select: { ticketId: true },
-      });
-      for (const ticketId of [...new Set(primaryLinks.map((link) => link.ticketId))]) {
-        const replacement = await transaction.ticketAsset.findFirst({
-          where: { ticketId, assetId: { notIn: assetIds } },
-          orderBy: [{ linkedAt: 'asc' }, { assetId: 'asc' }],
-          select: { assetId: true },
-        });
-        if (replacement !== null) {
-          await transaction.ticketAsset.updateMany({ where: { ticketId, isPrimary: true }, data: { isPrimary: false } });
-          await transaction.ticketAsset.update({
-            where: { ticketId_assetId: { ticketId, assetId: replacement.assetId } },
-            data: { isPrimary: true },
-          });
-        }
-      }
-      await transaction.ticketAsset.deleteMany({ where: { assetId: { in: assetIds } } });
-    }
-
-    await transaction.assetEvent.deleteMany({ where: { assetId: { in: assetIds } } });
     await transaction.asset.deleteMany({ where: { id: { in: assetIds } } });
   });
+
+  // Delete only standalone demo-owned business objects, never their links.
+  const [licenses, contracts] = await Promise.all([
+    prisma.softwareLicense.deleteMany({ where: { notes: marker, assignments: { none: {} } } }),
+    prisma.assetContract.deleteMany({ where: { notes: marker, items: { none: {} } } }),
+  ]);
+
   // Children first (the tree is Restrict on delete).
   for (let pass = 0; pass < 6; pass += 1) {
     const locations = await prisma.assetLocation.findMany({ where: { code: { startsWith: 'DEMO-' }, children: { none: {} }, assets: { none: {} } }, select: { id: true } });
     if (locations.length === 0) break;
     await prisma.assetLocation.deleteMany({ where: { id: { in: locations.map((row) => row.id) } } });
   }
-  console.log(`Removed ${assetIds.length} demo assets, ${licenses.length} licences, ${contracts.length} contracts and the DEMO locations.`);
+  console.log(`Removed ${assetIds.length} unreferenced demo assets, ${licenses.count} unassigned licences, ${contracts.count} empty contracts and unreferenced DEMO locations.`);
 }
 
 async function seed(prisma: PrismaClient): Promise<number> {
-  if ((await prisma.asset.count({ where: { notes: marker, assetTag: { startsWith: 'DEMO-' } } })) > 0) {
-    console.log('Demo inventory already exists. Run with --remove first to recreate it.');
+  const existingDemoArtifacts = await Promise.all([
+    prisma.asset.count({ where: { notes: marker, assetTag: { startsWith: 'DEMO-' } } }),
+    prisma.assetLocation.count({ where: { code: { startsWith: 'DEMO-' } } }),
+    prisma.softwareLicense.count({ where: { notes: marker } }),
+    prisma.assetContract.count({ where: { notes: marker } }),
+  ]);
+  if (existingDemoArtifacts.some((count) => count > 0)) {
+    console.log('Demo data already exists or still has business references. Run --remove; resolve any blockers before reseeding.');
     return 0;
   }
   const types = new Map((await prisma.assetType.findMany({ select: { id: true, key: true } })).map((type) => [type.key, type.id]));

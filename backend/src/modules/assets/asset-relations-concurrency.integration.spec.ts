@@ -82,8 +82,16 @@ describeIfDatabase(
 
     afterAll(async () => {
       if (prisma) {
-        if (typeId) await prisma.asset.deleteMany({ where: { typeId } });
-        if (typeId) await prisma.assetType.deleteMany({ where: { id: typeId } });
+        if (typeId) {
+          const assets = await prisma.asset.findMany({ where: { typeId }, select: { id: true } });
+          const assetIds = assets.map((asset) => asset.id);
+          if (assetIds.length > 0) {
+            await prisma.assetRelation.deleteMany({ where: { OR: [{ fromAssetId: { in: assetIds } }, { toAssetId: { in: assetIds } }] } });
+            await prisma.assetEvent.deleteMany({ where: { assetId: { in: assetIds } } });
+            await prisma.asset.deleteMany({ where: { id: { in: assetIds } } });
+          }
+          await prisma.assetType.deleteMany({ where: { id: typeId } });
+        }
         if (actorId) await prisma.user.deleteMany({ where: { id: actorId } });
         if (unitId) await prisma.organizationalUnit.deleteMany({ where: { id: unitId } });
         await prisma.$disconnect();
