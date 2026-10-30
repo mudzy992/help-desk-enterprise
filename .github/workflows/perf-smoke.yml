@@ -54,6 +54,8 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
+      # Uses local plaintext service containers, so exercise development defaults (not test-only cache settings).
+      NODE_ENV: development
       DATABASE_URL: postgresql://servicedesk:servicedesk@127.0.0.1:5432/servicedesk
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: "6379"
