@@ -4,7 +4,7 @@ import { apiDownloadRequest, apiRequest } from "@/services/api";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 
 export type AssetImportMode = "CREATE_ONLY" | "UPSERT";
-export type AssetImportStatus = "PREVIEW" | "APPLIED" | "FAILED" | "EXPIRED";
+export type AssetImportStatus = "PREVIEW" | "APPLYING" | "APPLIED" | "FAILED" | "EXPIRED";
 
 export type AssetImportTotals = {
   readonly total: number;
@@ -81,6 +81,7 @@ export type AssetImportJob = {
   readonly createdAt: string;
   readonly appliedAt: string | null;
   readonly expiresAt: string;
+  readonly applyLeaseUntil: string | null;
 };
 
 export const assetImportQueryKeys = {

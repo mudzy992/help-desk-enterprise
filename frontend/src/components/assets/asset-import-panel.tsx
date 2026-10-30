@@ -61,6 +61,8 @@ export function AssetImportPanel() {
     queryKey: assetImportQueryKeys.jobs,
     queryFn: listAssetImports,
     retry: false,
+    refetchInterval: (query) =>
+      query.state.data?.items.some((job) => job.status === "APPLYING") ? 15_000 : false,
   });
   const types = (catalogQuery.data?.types ?? []).filter((type) => type.archivedAt === null);
   const [typeId, setTypeId] = useState("");
@@ -73,6 +75,7 @@ export function AssetImportPanel() {
   const [pending, setPending] = useState<
     "template" | "preview" | "apply" | "discard" | "errors" | null
   >(null);
+  const [recoveringJobId, setRecoveringJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selectedType = typeId || types[0]?.id || "";
   const language = parseLocale(i18n.resolvedLanguage ?? i18n.language);
@@ -148,6 +151,7 @@ export function AssetImportPanel() {
   async function apply() {
     if (!preview) return;
     const response = await run("apply", () => applyAssetImport(preview.id));
+    void queryClient.invalidateQueries({ queryKey: assetImportQueryKeys.jobs });
     if (response) {
       setResult(response);
       toast({
@@ -159,6 +163,28 @@ export function AssetImportPanel() {
         description: t("assets.import.appliedBody", response.applied),
       });
       void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
+    }
+  }
+
+  async function resumeImport(jobId: string) {
+    setRecoveringJobId(jobId);
+    try {
+      const response = await run("apply", () => applyAssetImport(jobId));
+      void queryClient.invalidateQueries({ queryKey: assetImportQueryKeys.jobs });
+      if (response) {
+        if (preview?.id === jobId) setResult(response);
+        toast({
+          tone: response.status === "APPLIED" ? "success" : "danger",
+          title:
+            response.status === "APPLIED"
+              ? t("assets.import.appliedTitle")
+              : t("assets.import.failedTitle"),
+          description: t("assets.import.appliedBody", response.applied),
+        });
+        void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.records);
+      }
+    } finally {
+      setRecoveringJobId(null);
     }
   }
 
@@ -489,7 +515,12 @@ export function AssetImportPanel() {
         </Card>
       ) : null}
 
-      <AssetImportHistory jobs={jobsQuery.data?.items ?? []} isLoading={jobsQuery.isLoading} />
+      <AssetImportHistory
+        jobs={jobsQuery.data?.items ?? []}
+        isLoading={jobsQuery.isLoading}
+        recoveringJobId={recoveringJobId}
+        onResume={(jobId) => void resumeImport(jobId)}
+      />
     </div>
   );
 }

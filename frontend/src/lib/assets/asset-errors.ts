@@ -41,6 +41,7 @@ export const assetErrorKeys = {
   ASSET_IMPORT_NOT_FOUND: "assets.errors.importNotFound",
   ASSET_IMPORT_EXPIRED: "assets.errors.importExpired",
   ASSET_IMPORT_NOT_PENDING: "assets.errors.importNotPending",
+  ASSET_IMPORT_APPLYING: "assets.errors.importApplying",
   ASSET_IMPORT_HAS_ERRORS: "assets.errors.importHasErrors",
   ASSET_EXPORT_TOO_LARGE: "assets.errors.exportTooLarge",
   ASSET_DIRECTORY_SYNC_DISABLED: "assets.errors.directorySyncDisabled",

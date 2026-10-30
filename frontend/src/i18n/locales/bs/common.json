@@ -8711,6 +8711,7 @@
       "importNotFound": "Uvoz nije pronađen.",
       "importExpired": "Pregled je istekao — pošaljite fajl ponovo.",
       "importNotPending": "Ovaj uvoz je već primijenjen ili odbačen.",
+      "importApplying": "Uvoz je već u toku. Pokušajte ponovo kada se završi ili nakon isteka vremena za oporavak.",
       "importHasErrors": "Uvoz „sve ili ništa“ ima greške i nije primijenjen.",
       "exportTooLarge": "Previše zapisa za izvoz — suzite filtere.",
       "directorySyncDisabled": "Sinhronizacija računara iz AD-a je isključena (postavka private.assets.directorySync.enabled).",
@@ -8946,6 +8947,7 @@
       "problem": "Problem",
       "moreErrors": "Još {{count}} u fajlu s greškama.",
       "apply": "Primijeni ({{count}})",
+      "resume": "Nastavi uvoz",
       "discard": "Odbaci",
       "allOrNothingBlocked": "Ispravite greške ili isključite „sve ili ništa“.",
       "appliedTitle": "Uvoz je primijenjen",
@@ -8959,8 +8961,10 @@
       "historyStatus": "Status",
       "historyResult": "Rezultat",
       "historyWhen": "Vrijeme",
+      "historyAction": "Radnja",
       "statuses": {
         "PREVIEW": "Čeka potvrdu",
+        "APPLYING": "U toku",
         "APPLIED": "Primijenjen",
         "FAILED": "Neuspješan",
         "EXPIRED": "Istekao"

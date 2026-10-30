@@ -50,6 +50,7 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.licenseKeyUnavailable:
     case assetErrorCodes.importExpired:
     case assetErrorCodes.importNotPending:
+    case assetErrorCodes.importApplying:
     case assetErrorCodes.importHasErrors:
     case assetErrorCodes.directorySyncDisabled:
     case assetErrorCodes.directoryNotConfigured:

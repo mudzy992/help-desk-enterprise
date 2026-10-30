@@ -44,6 +44,7 @@ export const assetErrorCodes = {
   importNotFound: 'ASSET_IMPORT_NOT_FOUND',
   importExpired: 'ASSET_IMPORT_EXPIRED',
   importNotPending: 'ASSET_IMPORT_NOT_PENDING',
+  importApplying: 'ASSET_IMPORT_APPLYING',
   importHasErrors: 'ASSET_IMPORT_HAS_ERRORS',
   exportTooLarge: 'ASSET_EXPORT_TOO_LARGE',
   directorySyncDisabled: 'ASSET_DIRECTORY_SYNC_DISABLED',

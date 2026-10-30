@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -41,6 +41,7 @@ import { readAssetSheet } from './read-asset-sheet';
 
 export const assetImportLimits = {
   previewTtlMs: 24 * 60 * 60 * 1000,
+  applyLeaseMs: 5 * 60 * 1000,
   batchSize: 500,
   errorsInResponse: 500,
   exportMaxRows: 10_000,
@@ -66,8 +67,28 @@ type StoredJobRows = {
   readonly planned: readonly PlannedRow[];
   readonly errorRows: readonly { readonly row: number; readonly cells: readonly string[] }[];
 };
+type ApplyJobProgressSource = {
+  readonly id: string;
+  readonly totals: unknown;
+  readonly errors: unknown;
+};
 
 type ApplyResult = { created: number; updated: number; failed: number; failures: ImportRowError[] };
+type ApplyProgress = ApplyResult & { cursor: number };
+
+class AssetImportApplyLeaseLost extends Error {
+  constructor() {
+    super('asset import apply lease lost');
+    this.name = 'AssetImportApplyLeaseLost';
+  }
+}
+
+class AssetImportCheckpointMoved extends Error {
+  constructor() {
+    super('asset import checkpoint moved');
+    this.name = 'AssetImportCheckpointMoved';
+  }
+}
 
 const chunk = <T>(items: readonly T[], size: number): T[][] => {
   const result: T[][] = [];
@@ -75,11 +96,73 @@ const chunk = <T>(items: readonly T[], size: number): T[][] => {
   return result;
 };
 
-function mergeResult(target: ApplyResult, source: ApplyResult) {
-  target.created += source.created;
-  target.updated += source.updated;
-  target.failed += source.failed;
-  target.failures.push(...source.failures);
+const emptyApplyProgress = (): ApplyProgress => ({
+  cursor: 0,
+  created: 0,
+  updated: 0,
+  failed: 0,
+  failures: [],
+});
+
+function isImportRowError(value: unknown): value is ImportRowError {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    Number.isSafeInteger(row.row) &&
+    (row.column === null || typeof row.column === 'string') &&
+    typeof row.code === 'string' &&
+    (row.value === undefined || typeof row.value === 'string')
+  );
+}
+
+function readApplyProgress(value: unknown, plannedRows: number): ApplyProgress {
+  if (value === null) return emptyApplyProgress();
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new AssetError(assetErrorCodes.importNotPending, 'invalid_apply_progress');
+  }
+  const progress = value as Record<string, unknown>;
+  const failures = progress.failures;
+  if (
+    !Number.isSafeInteger(progress.cursor) ||
+    (progress.cursor as number) < 0 ||
+    (progress.cursor as number) > plannedRows ||
+    !Number.isSafeInteger(progress.created) ||
+    (progress.created as number) < 0 ||
+    !Number.isSafeInteger(progress.updated) ||
+    (progress.updated as number) < 0 ||
+    !Number.isSafeInteger(progress.failed) ||
+    (progress.failed as number) < 0 ||
+    !Array.isArray(failures) ||
+    !failures.every(isImportRowError)
+  ) {
+    throw new AssetError(assetErrorCodes.importNotPending, 'invalid_apply_progress');
+  }
+  return {
+    cursor: progress.cursor as number,
+    created: progress.created as number,
+    updated: progress.updated as number,
+    failed: progress.failed as number,
+    failures: failures as ImportRowError[],
+  };
+}
+
+function toApplyProgressJson(progress: ApplyProgress): Prisma.InputJsonValue {
+  return {
+    cursor: progress.cursor,
+    created: progress.created,
+    updated: progress.updated,
+    failed: progress.failed,
+    failures: progress.failures.map((failure) => ({
+      row: failure.row,
+      column: failure.column,
+      code: failure.code,
+      ...(failure.value === undefined ? {} : { value: failure.value }),
+    })),
+  };
+}
+
+function applySummary(progress: ApplyProgress) {
+  return { created: progress.created, updated: progress.updated, failed: progress.failed };
 }
 
 const toDate = (value: string | null) => (value === null ? null : new Date(`${value}T00:00:00Z`));
@@ -91,9 +174,10 @@ function dateOnly(value: Date | null): string | null {
 /**
  * Paket 3.2 (§11, §13): template, preview, apply and export. The preview is
  * computed synchronously (bulk lookups, no per-row query) and stored as an
- * `AssetImportJob`; apply writes it in batches of 500. Decision recorded in
- * the plan: no separate BullMQ queue — the limits (5 MB / 5 000 rows) keep a
- * request in seconds and the CLI shares the same code.
+ * `AssetImportJob`; partial apply commits 500-row batches with a durable cursor,
+ * while all-or-nothing applies and finalizes in one transaction. The bounded
+ * 5 MB / 5 000 row limits keep request execution synchronous; the CLI shares
+ * the same token-fenced recovery path.
  */
 @Injectable()
 export class AssetImportService {
@@ -473,7 +557,7 @@ export class AssetImportService {
       where: actor.scope.all ? {} : { createdByUserId: actor.userId },
       orderBy: { createdAt: 'desc' },
       take: assetImportLimits.listJobs,
-      select: { id: true, fileName: true, status: true, mode: true, allOrNothing: true, totals: true, createdAt: true, appliedAt: true, expiresAt: true, typeId: true, createdByUserId: true },
+      select: { id: true, fileName: true, status: true, mode: true, allOrNothing: true, totals: true, createdAt: true, appliedAt: true, expiresAt: true, applyLeaseUntil: true, typeId: true, createdByUserId: true },
     });
     const [types, users] = await Promise.all([
       this.prisma.assetType.findMany({ where: { id: { in: [...new Set(jobs.map((job) => job.typeId))] } }, select: { id: true, key: true, nameBs: true, nameEn: true } }),
@@ -498,6 +582,7 @@ export class AssetImportService {
         createdAt: job.createdAt.toISOString(),
         appliedAt: job.appliedAt?.toISOString() ?? null,
         expiresAt: job.expiresAt.toISOString(),
+        applyLeaseUntil: job.applyLeaseUntil?.toISOString() ?? null,
       })),
     };
   }
@@ -534,100 +619,563 @@ export class AssetImportService {
 
   async discard(id: string, actor: ImportActor) {
     const job = await this.loadJob(id, actor);
+    if (job.status === 'APPLYING') throw new AssetError(assetErrorCodes.importApplying);
     if (job.status !== 'PREVIEW') throw new AssetError(assetErrorCodes.importNotPending);
-    await this.prisma.assetImportJob.update({ where: { id }, data: { status: 'EXPIRED', rows: Prisma.DbNull } });
+    const discarded = await this.prisma.assetImportJob.updateMany({
+      where: { id, status: 'PREVIEW' },
+      data: { status: 'EXPIRED', rows: Prisma.DbNull },
+    });
+    if (discarded.count !== 1) {
+      const current = await this.loadJob(id, actor);
+      if (current.status === 'APPLYING') throw new AssetError(assetErrorCodes.importApplying);
+      throw new AssetError(assetErrorCodes.importNotPending);
+    }
     return { discarded: true };
   }
 
   // ------------------------------------------------------------ apply (§11.5)
 
   async apply(id: string, actor: ImportActor) {
-    const job = await this.loadJob(id, actor);
-    if (job.status !== 'PREVIEW') throw new AssetError(assetErrorCodes.importNotPending);
-    if (job.expiresAt.getTime() < Date.now() || job.rows === null) {
-      await this.prisma.assetImportJob.update({ where: { id }, data: { status: 'EXPIRED', rows: Prisma.DbNull } });
-      throw new AssetError(assetErrorCodes.importExpired);
-    }
-    const totals = job.totals as unknown as ImportTotals;
-    if (job.allOrNothing && totals.errors > 0) throw new AssetError(assetErrorCodes.importHasErrors, String(totals.errors));
-    // Claim the job first, so a double click cannot apply it twice.
-    const claimed = await this.prisma.assetImportJob.updateMany({ where: { id, status: 'PREVIEW' }, data: { expiresAt: new Date() } });
-    if (claimed.count === 0) throw new AssetError(assetErrorCodes.importNotPending);
-    const stored = job.rows as unknown as StoredJobRows;
-    // Scope may have shrunk since the preview: re-check every target unit.
+    const { job, runToken, stored, progress: initialProgress } = await this.claimApply(id, actor);
+    const planned = stored.planned;
+    const baseTotals = (job.totals ?? {}) as unknown as Record<string, unknown>;
+    const previewErrors = (job.errors ?? []) as unknown as ImportRowError[];
     const unitPaths = new Map(
-      (await this.prisma.organizationalUnit.findMany({
-        where: { id: { in: [...new Set(stored.planned.map((entry) => entry.data.organizationalUnitId))] } },
-        select: { id: true, ouPath: true },
-      })).map((unit) => [unit.id, unit.ouPath]),
+      (
+        await this.prisma.organizationalUnit.findMany({
+          where: { id: { in: [...new Set(planned.map((entry) => entry.data.organizationalUnitId))] } },
+          select: { id: true, ouPath: true },
+        })
+      ).map((unit) => [unit.id, unit.ouPath]),
     );
-    const allowed = stored.planned.filter((entry) => isPathInScope(actor.scope, unitPaths.get(entry.data.organizationalUnitId) ?? null));
-    const outOfScope: ImportRowError[] = stored.planned
-      .filter((entry) => !allowed.includes(entry))
-      .map((entry) => ({ row: entry.row, column: 'organizationalUnit', code: 'unit_out_of_scope' }));
-    const currency = await this.access.readSetting<string>(settingKeys.privateAssetsCurrency, assetDefaults.currency);
-    const prefix = await this.access.readSetting<string>(settingKeys.privateAssetsTagPrefix, assetDefaults.tagPrefix);
-    const result: ApplyResult = { created: 0, updated: 0, failed: outOfScope.length, failures: [...outOfScope] };
-    try {
-      if (job.allOrNothing) {
-        if (outOfScope.length > 0) throw new AssetError(assetErrorCodes.importHasErrors, String(outOfScope.length));
-        const batchResult = await this.prisma.$transaction(
-          async (transaction) => this.applyBatch(transaction, allowed, job.typeId, job.id, actor, currency, prefix, true),
+    const currency = await this.access.readSetting<string>(
+      settingKeys.privateAssetsCurrency,
+      assetDefaults.currency,
+    );
+    const prefix = await this.access.readSetting<string>(
+      settingKeys.privateAssetsTagPrefix,
+      assetDefaults.tagPrefix,
+    );
+
+    if (job.allOrNothing) {
+      const outOfScope = planned
+        .filter((entry) => !isPathInScope(actor.scope, unitPaths.get(entry.data.organizationalUnitId) ?? null))
+        .map((entry) => ({ row: entry.row, column: 'organizationalUnit' as const, code: 'unit_out_of_scope' }));
+      if (outOfScope.length > 0) {
+        const finished = await this.finishAllOrNothingFailure(
+          job,
+          runToken,
+          planned.length,
+          outOfScope,
+        );
+        if (finished.count !== 1) throw new AssetError(assetErrorCodes.importApplying);
+        await this.auditApply(job.id, actor, { status: 'FAILED', allOrNothing: true });
+        throw new AssetError(assetErrorCodes.importHasErrors, String(outOfScope.length));
+      }
+
+      try {
+        const result = await this.prisma.$transaction(
+          async (transaction) => {
+            const current = await this.lockApplyRun(transaction, job.id, runToken);
+            const progress = readApplyProgress(current.applyProgress, planned.length);
+            if (progress.cursor !== 0) {
+              throw new AssetError(assetErrorCodes.importNotPending, 'all_or_nothing_checkpoint');
+            }
+            const appliedResult = await this.applyBatch(
+              transaction,
+              planned,
+              job.typeId,
+              job.id,
+              actor,
+              currency,
+              prefix,
+              true,
+            );
+            const applied = {
+              created: appliedResult.created,
+              updated: appliedResult.updated,
+              failed: appliedResult.failed,
+            };
+            const nothingApplied = applied.created + applied.updated === 0 && applied.failed > 0;
+            const now = new Date();
+            const completed = await transaction.assetImportJob.updateMany({
+              where: {
+                id: job.id,
+                status: 'APPLYING',
+                applyRunToken: runToken,
+                applyLeaseUntil: { gt: now },
+              },
+              data: {
+                status: nothingApplied ? 'FAILED' : 'APPLIED',
+                appliedAt: now,
+                rows: Prisma.DbNull,
+                totals: { ...baseTotals, applied } as unknown as Prisma.InputJsonValue,
+                errors: [...previewErrors, ...appliedResult.failures].slice(0, 5000) as unknown as Prisma.InputJsonValue,
+                applyRunToken: null,
+                applyLeaseUntil: null,
+                applyProgress: Prisma.DbNull,
+              },
+            });
+            if (completed.count !== 1) throw new AssetImportApplyLeaseLost();
+            return {
+              id: job.id,
+              status: nothingApplied ? ('FAILED' as const) : ('APPLIED' as const),
+              applied,
+              failures: appliedResult.failures.slice(0, assetImportLimits.errorsInResponse),
+            };
+          },
           { timeout: assetImportLimits.allOrNothingTimeoutMs, maxWait: 10_000 },
         );
-        mergeResult(result, batchResult);
-      } else {
-        for (const batch of chunk(allowed, assetImportLimits.batchSize)) {
-          try {
-            const batchResult = await this.prisma.$transaction(
-              async (transaction) => this.applyBatch(transaction, batch, job.typeId, job.id, actor, currency, prefix, false),
-              { timeout: 60_000, maxWait: 10_000 },
-            );
-            mergeResult(result, batchResult);
-          } catch (error) {
-            const uniqueConflict = isUniqueAssetAttributeValueConflict(error);
-            this.logger.warn(`asset_import_batch_failed job=${job.id} reason=${error instanceof Error ? error.message.slice(0, 200) : 'unknown'}`);
-            result.failed += batch.length;
-            result.failures.push(
-              ...batch.map((entry) => ({
-                row: entry.row,
-                column: null,
-                code: uniqueConflict ? 'attribute_not_unique_concurrent' : 'batch_failed',
-              })),
-            );
+        await this.auditApply(job.id, actor, {
+          status: result.status,
+          ...result.applied,
+          fileName: job.fileName,
+          mode: job.mode,
+        });
+        return result;
+      } catch (error) {
+        if (error instanceof AssetImportApplyLeaseLost) {
+          throw new AssetError(assetErrorCodes.importApplying);
+        }
+        const finished = await this.finishAllOrNothingFailure(
+          job,
+          runToken,
+          planned.length,
+        );
+        if (finished.count !== 1) {
+          const latest = await this.loadJob(id, actor);
+          if (latest.status === 'APPLIED') {
+            const latestTotals = latest.totals as unknown as {
+              applied?: { created?: number; updated?: number; failed?: number };
+            };
+            const applied = latestTotals.applied;
+            if (applied && Number.isInteger(applied.created) && Number.isInteger(applied.updated) && Number.isInteger(applied.failed)) {
+              return {
+                id,
+                status: 'APPLIED' as const,
+                applied: {
+                  created: applied.created!,
+                  updated: applied.updated!,
+                  failed: applied.failed!,
+                },
+                failures: [],
+              };
+            }
           }
+          throw new AssetError(assetErrorCodes.importApplying);
+        }
+        await this.auditApply(job.id, actor, { status: 'FAILED', allOrNothing: true });
+        if (isUniqueAssetAttributeValueConflict(error)) {
+          throw new AssetError(assetErrorCodes.attributeNotUnique);
+        }
+        if (error instanceof AssetError) throw error;
+        throw new AssetError(assetErrorCodes.importHasErrors, 'rolled_back');
+      }
+    }
+
+    let progress = initialProgress;
+    while (progress.cursor < planned.length) {
+      const batch = planned.slice(progress.cursor, progress.cursor + assetImportLimits.batchSize);
+      const expectedCursor = progress.cursor;
+      try {
+        progress = await this.applyPartialBatch({
+          jobId: job.id,
+          runToken,
+          expectedCursor,
+          batch,
+          plannedRows: planned.length,
+          unitPaths,
+          actor,
+          typeId: job.typeId,
+          currency,
+          prefix,
+        });
+      } catch (error) {
+        if (error instanceof AssetImportApplyLeaseLost) {
+          throw new AssetError(assetErrorCodes.importApplying);
+        }
+        let persisted: ApplyProgress;
+        try {
+          persisted = await this.readOwnedApplyProgress(job.id, runToken, planned.length);
+        } catch {
+          throw error;
+        }
+        // A database connection can fail after COMMIT. The cursor and business
+        // writes share a transaction, so an advanced cursor proves the batch
+        // committed and prevents replaying its side effects.
+        if (persisted.cursor === expectedCursor + batch.length) {
+          progress = persisted;
+          continue;
+        }
+        if (persisted.cursor !== expectedCursor) {
+          throw new AssetError(assetErrorCodes.importApplying);
+        }
+        const uniqueConflict = isUniqueAssetAttributeValueConflict(error);
+        this.logger.warn(
+          `asset_import_batch_failed job=${job.id} reason=${error instanceof Error ? error.message.slice(0, 200) : 'unknown'}`,
+        );
+        try {
+          progress = await this.checkpointFailedBatch({
+            jobId: job.id,
+            runToken,
+            expectedCursor,
+            batch,
+            plannedRows: planned.length,
+            unitPaths,
+            actor,
+            uniqueConflict,
+          });
+        } catch (checkpointError) {
+          if (checkpointError instanceof AssetImportApplyLeaseLost) {
+            throw new AssetError(assetErrorCodes.importApplying);
+          }
+          throw checkpointError;
         }
       }
-    } catch (error) {
-      await this.prisma.assetImportJob.update({
-        where: { id },
-        data: {
-          status: 'FAILED',
-          rows: Prisma.DbNull,
-          totals: { ...totals, applied: { created: 0, updated: 0, failed: allowed.length + outOfScope.length } } as unknown as Prisma.InputJsonValue,
-        },
-      });
-      await this.auditApply(job.id, actor, { status: 'FAILED', allOrNothing: true });
-      if (isUniqueAssetAttributeValueConflict(error)) {
-        throw new AssetError(assetErrorCodes.attributeNotUnique);
-      }
-      if (error instanceof AssetError) throw error;
-      throw new AssetError(assetErrorCodes.importHasErrors, 'rolled_back');
     }
-    const applied = { created: result.created, updated: result.updated, failed: result.failed };
-    const nothingApplied = result.created + result.updated === 0 && result.failed > 0;
-    await this.prisma.assetImportJob.update({
-      where: { id },
+
+    const applied = applySummary(progress);
+    const nothingApplied = applied.created + applied.updated === 0 && applied.failed > 0;
+    const finalized = await this.prisma.assetImportJob.updateMany({
+      where: {
+        id: job.id,
+        status: 'APPLYING',
+        applyRunToken: runToken,
+        applyLeaseUntil: { gt: new Date() },
+      },
       data: {
         status: nothingApplied ? 'FAILED' : 'APPLIED',
         appliedAt: new Date(),
         rows: Prisma.DbNull,
-        totals: { ...totals, applied } as unknown as Prisma.InputJsonValue,
-        errors: [...((job.errors ?? []) as unknown as ImportRowError[]), ...result.failures].slice(0, 5000) as unknown as Prisma.InputJsonValue,
+        totals: { ...baseTotals, applied } as unknown as Prisma.InputJsonValue,
+        errors: [...previewErrors, ...progress.failures].slice(0, 5000) as unknown as Prisma.InputJsonValue,
+        applyRunToken: null,
+        applyLeaseUntil: null,
+        applyProgress: Prisma.DbNull,
       },
     });
-    await this.auditApply(job.id, actor, { status: nothingApplied ? 'FAILED' : 'APPLIED', ...applied, fileName: job.fileName, mode: job.mode });
-    return { id: job.id, status: nothingApplied ? 'FAILED' : 'APPLIED', applied, failures: result.failures.slice(0, assetImportLimits.errorsInResponse) };
+    if (finalized.count !== 1) {
+      const latest = await this.loadJob(id, actor);
+      if (latest.status === 'APPLIED' || latest.status === 'FAILED') {
+        const latestTotals = latest.totals as unknown as {
+          applied?: { created?: number; updated?: number; failed?: number };
+        };
+        const terminal = latestTotals.applied;
+        if (terminal && Number.isInteger(terminal.created) && Number.isInteger(terminal.updated) && Number.isInteger(terminal.failed)) {
+          return {
+            id,
+            status: latest.status,
+            applied: {
+              created: terminal.created!,
+              updated: terminal.updated!,
+              failed: terminal.failed!,
+            },
+            failures: progress.failures.slice(0, assetImportLimits.errorsInResponse),
+          };
+        }
+      }
+      throw new AssetError(assetErrorCodes.importApplying);
+    }
+
+    const status = nothingApplied ? 'FAILED' : 'APPLIED';
+    await this.auditApply(job.id, actor, {
+      status,
+      ...applied,
+      fileName: job.fileName,
+      mode: job.mode,
+    });
+    return {
+      id: job.id,
+      status,
+      applied,
+      failures: progress.failures.slice(0, assetImportLimits.errorsInResponse),
+    };
+  }
+
+  private async claimApply(id: string, actor: ImportActor) {
+    const job = await this.loadJob(id, actor);
+    const now = new Date();
+    if (job.status !== 'PREVIEW' && job.status !== 'APPLYING') {
+      throw new AssetError(assetErrorCodes.importNotPending);
+    }
+    if (job.rows === null) {
+      if (job.status === 'PREVIEW') {
+        const expired = await this.prisma.assetImportJob.updateMany({
+          where: { id, status: 'PREVIEW' },
+          data: { status: 'EXPIRED', rows: Prisma.DbNull },
+        });
+        if (expired.count === 1) throw new AssetError(assetErrorCodes.importExpired);
+        return this.rejectUnclaimedApply(id, actor, now);
+      }
+      throw new AssetError(assetErrorCodes.importNotPending);
+    }
+    if (job.status === 'PREVIEW' && job.expiresAt.getTime() <= now.getTime()) {
+      const expired = await this.prisma.assetImportJob.updateMany({
+        where: { id, status: 'PREVIEW', expiresAt: { lte: now } },
+        data: { status: 'EXPIRED', rows: Prisma.DbNull },
+      });
+      if (expired.count === 1) throw new AssetError(assetErrorCodes.importExpired);
+      return this.rejectUnclaimedApply(id, actor, now);
+    }
+    if (job.status === 'PREVIEW' && job.allOrNothing) {
+      const totals = job.totals as unknown as ImportTotals;
+      if (totals.errors > 0) {
+        throw new AssetError(assetErrorCodes.importHasErrors, String(totals.errors));
+      }
+    }
+
+    const runToken = randomUUID();
+    const leaseUntil = new Date(now.getTime() + assetImportLimits.applyLeaseMs);
+    const claimed = await this.prisma.assetImportJob.updateMany({
+      where: {
+        id,
+        OR: [
+          { status: 'PREVIEW', expiresAt: { gt: now } },
+          { status: 'APPLYING', applyLeaseUntil: { lte: now } },
+        ],
+      },
+      data: {
+        status: 'APPLYING',
+        applyRunToken: runToken,
+        applyLeaseUntil: leaseUntil,
+        applyAttempts: { increment: 1 },
+        ...(job.status === 'PREVIEW' ? { applyProgress: Prisma.DbNull } : {}),
+      },
+    });
+    if (claimed.count !== 1) return this.rejectUnclaimedApply(id, actor, now);
+
+    const owned = await this.loadJob(id, actor);
+    if (owned.status !== 'APPLYING' || owned.applyRunToken !== runToken || owned.rows === null) {
+      throw new AssetError(assetErrorCodes.importApplying);
+    }
+    const stored = owned.rows as unknown as StoredJobRows;
+    if (!Array.isArray(stored.planned)) {
+      throw new AssetError(assetErrorCodes.importNotPending, 'invalid_import_rows');
+    }
+    const progress = readApplyProgress(owned.applyProgress, stored.planned.length);
+    return { job: owned, runToken, stored, progress };
+  }
+
+  private async rejectUnclaimedApply(id: string, actor: ImportActor, now: Date): Promise<never> {
+    const current = await this.loadJob(id, actor);
+    if (
+      current.status === 'APPLYING' &&
+      current.applyLeaseUntil !== null &&
+      current.applyLeaseUntil.getTime() > now.getTime()
+    ) {
+      throw new AssetError(assetErrorCodes.importApplying, current.applyLeaseUntil.toISOString());
+    }
+    if (current.status === 'PREVIEW' && (current.rows === null || current.expiresAt.getTime() <= now.getTime())) {
+      const expired = await this.prisma.assetImportJob.updateMany({
+        where: { id, status: 'PREVIEW' },
+        data: { status: 'EXPIRED', rows: Prisma.DbNull },
+      });
+      if (expired.count === 1) throw new AssetError(assetErrorCodes.importExpired);
+      const latest = await this.loadJob(id, actor);
+      if (
+        latest.status === 'APPLYING' &&
+        latest.applyLeaseUntil !== null &&
+        latest.applyLeaseUntil.getTime() > now.getTime()
+      ) {
+        throw new AssetError(assetErrorCodes.importApplying, latest.applyLeaseUntil.toISOString());
+      }
+    }
+    throw new AssetError(assetErrorCodes.importNotPending);
+  }
+
+  private async lockApplyRun(
+    transaction: Prisma.TransactionClient,
+    jobId: string,
+    runToken: string,
+  ) {
+    const now = new Date();
+    const locked = await transaction.assetImportJob.updateMany({
+      where: {
+        id: jobId,
+        status: 'APPLYING',
+        applyRunToken: runToken,
+        applyLeaseUntil: { gt: now },
+      },
+      data: { applyLeaseUntil: new Date(now.getTime() + assetImportLimits.applyLeaseMs) },
+    });
+    if (locked.count !== 1) throw new AssetImportApplyLeaseLost();
+    const job = await transaction.assetImportJob.findUnique({ where: { id: jobId } });
+    if (job === null || job.status !== 'APPLYING' || job.applyRunToken !== runToken) {
+      throw new AssetImportApplyLeaseLost();
+    }
+    return job;
+  }
+
+  private async persistApplyProgress(
+    transaction: Prisma.TransactionClient,
+    job: ApplyJobProgressSource,
+    runToken: string,
+    progress: ApplyProgress,
+  ) {
+    const now = new Date();
+    const updated = await transaction.assetImportJob.updateMany({
+      where: {
+        id: job.id,
+        status: 'APPLYING',
+        applyRunToken: runToken,
+        applyLeaseUntil: { gt: now },
+      },
+      data: {
+        applyProgress: toApplyProgressJson(progress),
+        applyLeaseUntil: new Date(now.getTime() + assetImportLimits.applyLeaseMs),
+        totals: {
+          ...(job.totals as unknown as Record<string, unknown>),
+          applied: applySummary(progress),
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+    if (updated.count !== 1) throw new AssetImportApplyLeaseLost();
+  }
+
+  private async readOwnedApplyProgress(
+    jobId: string,
+    runToken: string,
+    plannedRows: number,
+  ): Promise<ApplyProgress> {
+    const job = await this.prisma.assetImportJob.findUnique({ where: { id: jobId } });
+    if (
+      job === null ||
+      job.status !== 'APPLYING' ||
+      job.applyRunToken !== runToken ||
+      job.applyLeaseUntil === null ||
+      job.applyLeaseUntil.getTime() <= Date.now()
+    ) {
+      throw new AssetImportApplyLeaseLost();
+    }
+    return readApplyProgress(job.applyProgress, plannedRows);
+  }
+
+  private async applyPartialBatch(input: {
+    readonly jobId: string;
+    readonly runToken: string;
+    readonly expectedCursor: number;
+    readonly batch: readonly PlannedRow[];
+    readonly plannedRows: number;
+    readonly unitPaths: ReadonlyMap<string, string>;
+    readonly actor: ImportActor;
+    readonly typeId: string;
+    readonly currency: string;
+    readonly prefix: string;
+  }): Promise<ApplyProgress> {
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const job = await this.lockApplyRun(transaction, input.jobId, input.runToken);
+        const progress = readApplyProgress(job.applyProgress, input.plannedRows);
+        if (progress.cursor !== input.expectedCursor) throw new AssetImportCheckpointMoved();
+        const inScope = input.batch.filter((entry) =>
+          isPathInScope(
+            input.actor.scope,
+            input.unitPaths.get(entry.data.organizationalUnitId) ?? null,
+          ),
+        );
+        const outOfScopeFailures = input.batch
+          .filter((entry) => !inScope.includes(entry))
+          .map((entry) => ({ row: entry.row, column: 'organizationalUnit' as const, code: 'unit_out_of_scope' }));
+        const applied =
+          inScope.length === 0
+            ? { created: 0, updated: 0, failed: 0, failures: [] as ImportRowError[] }
+            : await this.applyBatch(
+                transaction,
+                inScope,
+                input.typeId,
+                input.jobId,
+                input.actor,
+                input.currency,
+                input.prefix,
+                false,
+              );
+        const next: ApplyProgress = {
+          cursor: progress.cursor + input.batch.length,
+          created: progress.created + applied.created,
+          updated: progress.updated + applied.updated,
+          failed: progress.failed + outOfScopeFailures.length + applied.failed,
+          failures: [...progress.failures, ...outOfScopeFailures, ...applied.failures],
+        };
+        await this.persistApplyProgress(transaction, job, input.runToken, next);
+        return next;
+      },
+      { timeout: 60_000, maxWait: 10_000 },
+    );
+  }
+
+  private async checkpointFailedBatch(input: {
+    readonly jobId: string;
+    readonly runToken: string;
+    readonly expectedCursor: number;
+    readonly batch: readonly PlannedRow[];
+    readonly plannedRows: number;
+    readonly unitPaths: ReadonlyMap<string, string>;
+    readonly actor: ImportActor;
+    readonly uniqueConflict: boolean;
+  }): Promise<ApplyProgress> {
+    return this.prisma.$transaction(async (transaction) => {
+      const job = await this.lockApplyRun(transaction, input.jobId, input.runToken);
+      const progress = readApplyProgress(job.applyProgress, input.plannedRows);
+      if (progress.cursor !== input.expectedCursor) throw new AssetImportCheckpointMoved();
+      const inScope = input.batch.filter((entry) =>
+        isPathInScope(
+          input.actor.scope,
+          input.unitPaths.get(entry.data.organizationalUnitId) ?? null,
+        ),
+      );
+      const failures: ImportRowError[] = [
+        ...input.batch
+          .filter((entry) => !inScope.includes(entry))
+          .map((entry) => ({ row: entry.row, column: 'organizationalUnit' as const, code: 'unit_out_of_scope' })),
+        ...inScope.map((entry) => ({
+          row: entry.row,
+          column: null,
+          code: input.uniqueConflict ? 'attribute_not_unique_concurrent' : 'batch_failed',
+        })),
+      ];
+      const next: ApplyProgress = {
+        cursor: progress.cursor + input.batch.length,
+        created: progress.created,
+        updated: progress.updated,
+        failed: progress.failed + input.batch.length,
+        failures: [...progress.failures, ...failures],
+      };
+      await this.persistApplyProgress(transaction, job, input.runToken, next);
+      return next;
+    });
+  }
+
+  private async finishAllOrNothingFailure(
+    job: ApplyJobProgressSource,
+    runToken: string,
+    failed: number,
+    failures: readonly ImportRowError[] = [],
+  ) {
+    const errors = [
+      ...((job.errors ?? []) as unknown as ImportRowError[]),
+      ...failures,
+    ].slice(0, 5000);
+    return this.prisma.assetImportJob.updateMany({
+      where: {
+        id: job.id,
+        status: 'APPLYING',
+        applyRunToken: runToken,
+        applyLeaseUntil: { gt: new Date() },
+      },
+      data: {
+        status: 'FAILED',
+        appliedAt: new Date(),
+        rows: Prisma.DbNull,
+        totals: {
+          ...((job.totals ?? {}) as unknown as Record<string, unknown>),
+          applied: { created: 0, updated: 0, failed },
+        } as unknown as Prisma.InputJsonValue,
+        errors: errors as unknown as Prisma.InputJsonValue,
+        applyRunToken: null,
+        applyLeaseUntil: null,
+        applyProgress: Prisma.DbNull,
+      },
+    });
   }
 
   private async auditApply(jobId: string, actor: ImportActor, metadata: Record<string, unknown>) {

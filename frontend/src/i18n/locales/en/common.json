@@ -8657,6 +8657,7 @@
       "importNotFound": "Import not found.",
       "importExpired": "The preview expired — upload the file again.",
       "importNotPending": "This import was already applied or discarded.",
+      "importApplying": "This import is already in progress. Retry when it finishes or its recovery lease expires.",
       "importHasErrors": "The all-or-nothing import has errors and was not applied.",
       "exportTooLarge": "Too many records to export — narrow the filters.",
       "directorySyncDisabled": "Computer sync from AD is switched off (setting private.assets.directorySync.enabled).",
@@ -8887,6 +8888,7 @@
       "problem": "Problem",
       "moreErrors": "{{count}} more in the error file.",
       "apply": "Apply ({{count}})",
+      "resume": "Resume import",
       "discard": "Discard",
       "allOrNothingBlocked": "Fix the errors or turn off “all or nothing”.",
       "appliedTitle": "Import applied",
@@ -8900,8 +8902,10 @@
       "historyStatus": "Status",
       "historyResult": "Result",
       "historyWhen": "When",
+      "historyAction": "Action",
       "statuses": {
         "PREVIEW": "Awaiting confirmation",
+        "APPLYING": "Applying",
         "APPLIED": "Applied",
         "FAILED": "Failed",
         "EXPIRED": "Expired"

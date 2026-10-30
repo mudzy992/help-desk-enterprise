@@ -57,6 +57,7 @@ enum SoftwareLicenseKind {
 
 enum AssetImportStatus {
   PREVIEW
+  APPLYING
   APPLIED
   FAILED
   EXPIRED
@@ -361,10 +362,16 @@ model AssetImportJob {
   status          AssetImportStatus @default(PREVIEW)
   mode            AssetImportMode   @default(CREATE_ONLY)
   allOrNothing    Boolean           @default(false)
-  /// Parsed, validated rows waiting for confirmation (cleared after apply/expiry).
+  /// Parsed, validated rows waiting for confirmation or resumable while APPLYING.
   rows            Json?
   totals          Json              @default("{}")
   errors          Json              @default("[]")
+  /// Fencing token and renewable lease for the current apply attempt.
+  applyRunToken   String?           @db.Uuid
+  applyLeaseUntil DateTime?
+  /// Atomic checkpoint for non-atomic mode: cursor, counts and row failures.
+  applyProgress   Json?
+  applyAttempts   Int               @default(0)
   createdByUserId String?
   createdAt       DateTime          @default(now())
   appliedAt       DateTime?
