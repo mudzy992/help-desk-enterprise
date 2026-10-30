@@ -315,19 +315,30 @@ function TransferRow({
               {t("assets.transfers.cancelledBecause", { reason: item.cancelReason })}
             </p>
           ) : null}
+          {item.contentRedacted ? (
+            <p className="text-[11.5px] text-muted-foreground">
+              {t("assets.transfers.contentRedacted")}
+            </p>
+          ) : item.signedCopyUnavailable ? (
+            <p className="text-[11.5px] text-muted-foreground">
+              {t("assets.transfers.signedCopyUnavailable")}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-1.5 md:justify-end">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy !== null}
-            onClick={() => void run("docx", () => downloadTransferDocument(item.id, item.number))}
-            aria-label={t("assets.transfers.downloadDocxFor", { number: item.number })}
-          >
-            <FileDown size={14} aria-hidden="true" />
-            DOCX
-          </Button>
+          {!item.contentRedacted ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busy !== null}
+              onClick={() => void run("docx", () => downloadTransferDocument(item.id, item.number))}
+              aria-label={t("assets.transfers.downloadDocxFor", { number: item.number })}
+            >
+              <FileDown size={14} aria-hidden="true" />
+              DOCX
+            </Button>
+          ) : null}
           {item.hasSignedCopy ? (
             <Button
               type="button"
@@ -341,7 +352,10 @@ function TransferRow({
               {t("assets.transfers.signedCopy")}
             </Button>
           ) : null}
-          {canManage && item.status !== "CANCELLED" ? (
+          {canManage &&
+          item.status !== "CANCELLED" &&
+          !item.contentRedacted &&
+          !item.signedCopyUnavailable ? (
             <>
               <input
                 ref={fileInput}

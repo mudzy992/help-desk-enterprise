@@ -17,6 +17,7 @@ export const privacyRetentionMinimumDays = {
   emailDeliveries: 30,
   requestRegister: 365,
   statusIncidents: 180,
+  assetTransfers: 1,
 } as const;
 
 export const privacyRetentionMaximumDays = 36_500;
@@ -88,6 +89,12 @@ export const privacySettings: readonly SettingDefinition[] = [
     'Days after resolution before a status-page incident is archived and its content redacted (0 = disabled)',
     0,
     privacyRetentionMinimumDays.statusIncidents,
+  ),
+  retentionSetting(
+    settingKeys.privatePrivacyRetentionAssetTransfersDays,
+    'Days after signing or cancellation before transfer details are redacted and signed copies are purged (0 = disabled; the controller/DPO sets the period)',
+    0,
+    privacyRetentionMinimumDays.assetTransfers,
   ),
   definePrivateSetting({
     key: settingKeys.privatePrivacyRetentionRunAtLocalTime,

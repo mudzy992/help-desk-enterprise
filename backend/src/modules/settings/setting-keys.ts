@@ -609,6 +609,7 @@ export const settingKeys = {
   privatePrivacyRetentionEmailDeliveryDays: 'private.privacy.retention.emailDeliveryDays',
   privatePrivacyRetentionRequestRegisterDays: 'private.privacy.retention.requestRegisterDays',
   privatePrivacyRetentionStatusIncidentsDays: 'private.privacy.retention.statusIncidentsDays',
+  privatePrivacyRetentionAssetTransfersDays: 'private.privacy.retention.assetTransfersDays',
   privatePrivacyRetentionRunAtLocalTime: 'private.privacy.retention.runAtLocalTime',
   privatePrivacyRetentionMaxMinutesPerNight: 'private.privacy.retention.maxMinutesPerNight',
   privatePrivacyAnonymizationCandidateAfterDays:

@@ -1388,7 +1388,7 @@
         "service.forms.write": "Kreiraj i uređuj forme zahtjeva za servis.",
         "service.availability.write": "Upravljaj dostupnošću servisa i planiranim prekidima.",
         "sla.read": "Pregledaj SLA kalendare, profile, pravila i historiju izmjena unutar dodijeljenog opsega.",
-      "sla.write": "Upravljaj SLA kalendarima, profilima i pravilima.",
+        "sla.write": "Upravljaj SLA kalendarima, profilima i pravilima.",
         "routing.write": "Kreiraj i uređuj pravila usmjeravanja tiketa.",
         "group.manage": "Kreiraj, uređuj i briši grupe te upravljaj članovima.",
         "settings.read": "Pregledaj globalni privatni registar postavki i konfiguracijske projekcije.",
@@ -2090,6 +2090,7 @@
         "private.privacy.retention.runAtLocalTime": "Lokalno vrijeme noćnog posla zadržavanja (HH:MM).",
         "private.privacy.retention.maxMinutesPerNight": "Najduže trajanje noćnog posla u minutama; ostatak se nastavlja sljedeće noći (5-240).",
         "private.privacy.retention.statusIncidentsDays": "Nakon koliko dana od rezolucije se status-stranica incident arhivira; naslov, autor, vremenska linija ažuriranja, povezivanje tiketa i pretplate se redaktuju ili brišu (0 = isključeno, najmanje 180).",
+        "private.privacy.retention.assetTransfersDays": "Broj dana nakon potpisa ili storniranja prije redakcije detalja prenosnice i brisanja potpisane datoteke (0 = isključeno; period određuje rukovalac/DPO, najmanje 1 dan).",
         "private.privacy.anonymization.candidateAfterDays": "Nakon koliko dana deaktivacije se korisnik prikazuje kao kandidat za anonimizaciju.",
         "private.privacy.anonymization.requireSecondApprover": "Anonimizaciju mora odobriti drugi SUPER_ADMIN („četiri oka\").",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pri anonimizaciji unaprijed označi brisanje priloga koje je osoba sama postavila.",
@@ -2607,6 +2608,7 @@
         "private.privacy.retention.runAtLocalTime": "Lokalno vrijeme (HH:mm, Europe/Sarajevo) noćnog izvršavanja zadržavanja. Postavite ga van radnog vremena i van termina drugih noćnih poslova.",
         "private.privacy.retention.maxMinutesPerNight": "Najduže trajanje noćnog zadržavanja u minutama (5–240). Kratak rok drži posao predvidivim, ali veliki zaostaci se tada obrađuju u više noći.",
         "private.privacy.retention.statusIncidentsDays": "Nakon koliko dana od rezolucije se status-stranica incident arhivira. Naslov, autor, vremenska linija ažuriranja, povezivanje tiketa i pretplate se redaktuju ili brišu; skelet incidenta se čuva za izvještaje. 0 onemogućava arhiviranje. Najmanje 180 dana.",
+        "private.privacy.retention.assetTransfersDays": "Broj dana nakon potpisa ili storniranja prije redakcije snimka prenosnice i brisanja potpisane datoteke. Minimalni zapis prenosnice ostaje. 0 isključuje kategoriju; period određuje rukovalac/DPO (najmanje 1 dan).",
         "private.privacy.anonymization.candidateAfterDays": "Koliko dana nakon deaktivacije korisnik ulazi na listu kandidata za anonimizaciju (30–3650). Prekratak rok može obuhvatiti osobu koja se vratila iz mirovanja.",
         "private.privacy.anonymization.requireSecondApprover": "Uključeno traži odobrenje drugog SUPER_ADMIN naloga prije anonimizacije (princip četiri oka). Uključite kad više od jedne osobe raspolaže tim pravom.",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Uključeno unaprijed označava brisanje privitka koje je osoba sama poslala, pa anonimizacija kreće od strožeg izbora. Radnik i dalje može odznačiti polje.",
@@ -7510,6 +7512,14 @@
         "requestRegister": {
           "name": "Registar zahtjeva",
           "hint": "Zatvoreni zahtjevi nosilaca podataka."
+        },
+        "statusIncidents": {
+          "name": "Statusni incidenti",
+          "hint": "Razriješeni incidenti i povezani lični podaci; zapisi pod pravnom blokadom se preskaču."
+        },
+        "assetTransfers": {
+          "name": "Prenosnice imovine",
+          "hint": "Snimci završenih prenosnica se redaktuju, a potpisane datoteke brišu; minimalni zapis ostaje. Pravna blokada se poštuje, a prije izvršenja potreban je probni prolaz."
         }
       },
       "days_one": "{{count}} dan",
@@ -9119,6 +9129,8 @@
       "downloadDocxFor": "Preuzmi DOCX prenosnice {{number}}",
       "downloadSignedFor": "Preuzmi potpisanu kopiju prenosnice {{number}}",
       "signedCopy": "Potpisana kopija",
+      "signedCopyUnavailable": "Potpisana kopija više nije dostupna nakon zaštitnog čišćenja.",
+      "contentRedacted": "Sadržaj je uklonjen prema pravilu čuvanja; ostao je samo minimalni zapis.",
       "uploadSigned": "Priloži potpisanu",
       "replaceSigned": "Zamijeni potpisanu",
       "uploadSignedFor": "Priloži potpisanu kopiju prenosnice {{number}}",

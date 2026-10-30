@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271030100000_asset_import_apply_lease';
+  '20271030110000_asset_transfer_retention_lifecycle';
 
 export function assertDatabaseTransport(
   connectionString: string,

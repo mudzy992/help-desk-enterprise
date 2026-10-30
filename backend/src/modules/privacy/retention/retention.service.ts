@@ -16,6 +16,7 @@ import {
 } from '../privacy.constants';
 import { PrivacyError } from '../privacy.error';
 import { createRetentionExecutors, type RetentionExecutor } from './retention-executors';
+import { purgePendingAssetTransferFiles } from '../../assets/transfers/purge-asset-transfer-files';
 import {
   evaluateExecutionGate,
   nightlyRunKey,
@@ -115,10 +116,19 @@ export class RetentionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: PrivacyConfigurationLoader,
-    @Inject(TICKET_ATTACHMENT_STORAGE) storage: TicketAttachmentStorage,
+    @Inject(TICKET_ATTACHMENT_STORAGE) private readonly storage: TicketAttachmentStorage,
     @Inject(redisTokens.client) private readonly redis: Redis,
   ) {
     this.executors = createRetentionExecutors(prisma, storage);
+  }
+
+  /**
+   * Purge markers can be created by anonymization while transfer retention is
+   * disabled. Retry them on the regular maintenance cadence independently of
+   * the DPO-configured retention period.
+   */
+  async retryPendingAssetTransferFilePurges() {
+    return purgePendingAssetTransferFiles(this.prisma, this.storage, { limit: 100 });
   }
 
   /** Called every 15 minutes; runs once per local night inside the window. */

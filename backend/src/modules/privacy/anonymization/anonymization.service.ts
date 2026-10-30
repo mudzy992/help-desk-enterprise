@@ -24,9 +24,15 @@ import { AnonymizationExecutor, type AnonymizationPreview } from './anonymizatio
 import { redactAuditForSubject } from './audit-redaction';
 import { createPseudonym, type Pseudonym } from './pseudonym';
 import { scrubAssetTransferSnapshots } from '../../assets/transfers/asset-transfers.service';
+import type { AssetTransferSnapshotScrubResult } from '../../assets/transfers/asset-transfers.service';
+import { purgePendingAssetTransferFiles } from '../../assets/transfers/purge-asset-transfer-files';
 import { createTextScrubber, type TextScrubber } from './text-scrubber';
 import { computeTombstones, readTombstoneKey } from './tombstones';
 import { PRIVACY_ERASURE_LEDGER, type ErasureLedger } from './erasure-ledger';
+
+type AssetTransferAnonymizationResult = AssetTransferSnapshotScrubResult & {
+  readonly textReplacements: number;
+};
 
 export const INBOUND_RAW_STORE = Symbol('PRIVACY_INBOUND_RAW_STORE');
 
@@ -113,7 +119,7 @@ export class AnonymizationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: PrivacyConfigurationLoader,
-    @Inject(TICKET_ATTACHMENT_STORAGE) attachmentStorage: TicketAttachmentStorage,
+    @Inject(TICKET_ATTACHMENT_STORAGE) private readonly attachmentStorage: TicketAttachmentStorage,
     @Inject(INBOUND_RAW_STORE) inboundRawStore: InboundRawStore,
     @Optional() @Inject(PRIVACY_ERASURE_LEDGER) private readonly ledger?: ErasureLedger,
   ) {
@@ -345,8 +351,32 @@ export class AnonymizationService {
         entraObjectId: subject.entraObjectId,
       });
       const report = { ...counts, auditRedacted: audit.redacted, auditSealed: audit.sealed };
-      await this.finalizeUser(erasure, tombstones, report, pausedScheduleIds, now);
+      const assetTransferScrub = await this.finalizeUser(
+        erasure,
+        tombstones,
+        report,
+        scrubber,
+        pausedScheduleIds,
+        now,
+      );
       await this.appendLedger(erasure, tombstones, now);
+      if (assetTransferScrub.signedFilesQueued > 0) {
+        try {
+          const purge = await purgePendingAssetTransferFiles(this.prisma, this.attachmentStorage, {
+            limit: 100,
+          });
+          if (purge.failures > 0 || purge.remaining > 0) {
+            this.logger.warn(
+              `privacy_erasure_transfer_purge_pending erasure=${erasureId} purged=${purge.purged} remaining=${purge.remaining} failures=${purge.failures}`,
+            );
+          }
+        } catch (error) {
+          // The committed marker makes the file unavailable; maintenance retries deletion.
+          this.logger.warn(
+            `privacy_erasure_transfer_purge_failed erasure=${erasureId} reason=${errorText(error)}`,
+          );
+        }
+      }
       return this.getErasure(erasureId);
     } catch (error) {
       this.logger.warn(`privacy_erasure_failed erasure=${erasureId} reason=${errorText(error)}`);
@@ -358,14 +388,15 @@ export class AnonymizationService {
     erasure: ErasureRecord,
     tombstones: string[],
     report: Record<string, number>,
+    scrubber: TextScrubber,
     pausedScheduleIds: readonly string[],
     now: Date,
-  ): Promise<void> {
+  ): Promise<AssetTransferAnonymizationResult> {
     const tag = erasure.pseudonym.slice(erasure.pseudonym.lastIndexOf('#') + 1);
     for (let attempt = 0; ; attempt += 1) {
       const pseudonym = createPseudonym(attempt);
       try {
-        await this.prisma.$transaction(async (transaction) => {
+        const assetTransferScrub = await this.prisma.$transaction(async (transaction) => {
           await lockActiveSuperAdminInvariant(transaction);
           if (await hasSuperAdminRole(transaction, erasure.userId)) {
             throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
@@ -394,15 +425,31 @@ export class AnonymizationService {
           });
           // Nobody reports to an anonymized person any more.
           await transaction.user.updateMany({ where: { managerUserId: erasure.userId }, data: { managerUserId: null } });
-          // Paket 3.2 C9: frozen transfer records print the pseudonym; the person is no signatory any more.
-          const assetTransfers = await scrubAssetTransferSnapshots(transaction, erasure.userId, erasure.pseudonym);
+          // Frozen transfer records print the pseudonym; free text uses the same identifier scrubber.
+          let transferTextReplacements = 0;
+          const assetTransfers = await scrubAssetTransferSnapshots(
+            transaction,
+            erasure.userId,
+            erasure.pseudonym,
+            (value) => {
+              const scrubbed = scrubber.scrub(value);
+              transferTextReplacements += scrubbed.count;
+              return scrubbed.text;
+            },
+          );
           await transaction.assetSignatory.deleteMany({ where: { userId: erasure.userId } });
           await transaction.privacyErasure.update({
             where: { id: erasure.id },
             data: {
               status: 'COMPLETED',
               tombstones,
-              report: { ...report, assetTransfers, pausedScheduleIds: [...pausedScheduleIds] },
+              report: {
+                ...report,
+                assetTransfers: assetTransfers.transfers,
+                assetTransferTextReplacements: transferTextReplacements,
+                assetTransferFilesQueued: assetTransfers.signedFilesQueued,
+                pausedScheduleIds: [...pausedScheduleIds],
+              },
               completedAt: now,
               error: null,
             },
@@ -414,8 +461,9 @@ export class AnonymizationService {
             metadata: { erasureId: erasure.id, pseudonymTag: tag, report },
             actorUserId: erasure.requestedByUserId,
           });
+          return { ...assetTransfers, textReplacements: transferTextReplacements };
         });
-        return;
+        return assetTransferScrub;
       } catch (error) {
         // A random e-mail collision is practically impossible; retry twice anyway.
         if (attempt >= 2 || !isUniqueViolation(error)) throw error;

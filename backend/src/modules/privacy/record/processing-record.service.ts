@@ -60,6 +60,7 @@ const texts = {
       ['Prilozi', 'fajlovi koje korisnici prilože uz zahtjeve'],
       ['Tehnički podaci', 'sesije prijave (vrijeme, IP adresa, preglednik), dnevnik revizije (audit)'],
       ['Rad agenata', 'evidencija utrošenog vremena, dodjele i prosljeđivanja'],
+      ['Imovina', 'prenosnice inventara: učesnici, snimak opreme, potpisi i potpisane kopije'],
     ] as const,
     recipients: 'Primaoci i obrađivači',
     smtp: 'Server za slanje e-pošte',
@@ -80,9 +81,10 @@ const texts = {
       emailDeliveries: 'Evidencija poslanih e-poruka',
       requestRegister: 'Registar zahtjeva nosilaca podataka',
       statusIncidents: 'Statusni incidenti i njihove stavke',
+      assetTransfers: 'Prenosnice inventara (snimak i potpisane kopije)',
     } satisfies Record<RetentionCategory, string>,
     retentionNote:
-      'Kostur tiketa (broj, datumi, status, usluga, organizaciona jedinica) ostaje radi statistike. Bivši zaposleni se anonimizuju ručno, nakon deaktivacije.',
+      'Kostur tiketa (broj, datumi, status, usluga, organizaciona jedinica) ostaje radi statistike. Minimalni zapis prenosnice ostaje nakon redakcije; potpisana kopija se briše. Rok za prenosnice određuje rukovalac/DPO, a 0 isključuje brisanje. Bivši zaposleni se anonimizuju ručno, nakon deaktivacije.',
     exportLink: 'Paket izvoza podataka (šifrovan)',
     measures: 'Tehničke i organizacione mjere',
     measureRows: (facts: SystemFacts) =>
@@ -126,6 +128,7 @@ const texts = {
       ['Attachments', 'files users attach to requests'],
       ['Technical data', 'sign-in sessions (time, IP address, browser), audit log'],
       ['Agent work', 'time tracking, assignments and forwards'],
+      ['Assets', 'asset transfer records: parties, asset snapshot, signatures and signed copies'],
     ] as const,
     recipients: 'Recipients and processors',
     smtp: 'Outgoing e-mail server',
@@ -146,9 +149,10 @@ const texts = {
       emailDeliveries: 'Sent e-mail log',
       requestRegister: 'Register of data subject requests',
       statusIncidents: 'Status incidents and their items',
+      assetTransfers: 'Asset transfers (snapshot and signed copies)',
     } satisfies Record<RetentionCategory, string>,
     retentionNote:
-      'The ticket skeleton (number, dates, status, service, organizational unit) is kept for statistics. Former employees are anonymized manually after deactivation.',
+      'The ticket skeleton (number, dates, status, service, organizational unit) is kept for statistics. The minimal transfer record remains after redaction and the signed copy is deleted. The controller/DPO sets transfer retention; 0 disables deletion. Former employees are anonymized manually after deactivation.',
     exportLink: 'Data export package (encrypted)',
     measures: 'Technical and organizational measures',
     measureRows: (facts: SystemFacts) =>

@@ -1,6 +1,6 @@
 import type { PrismaClient } from '../../../generated/prisma/client';
 import type { RetentionCategory } from '../privacy.constants';
-import { retentionRedactionMarker } from './retention-executors';
+import { retentionRedactionMarker } from './retention-markers';
 
 /** Batch size for status-page retention (incidents + their updates/links/subscriptions). */
 const statusIncidentBatch = 50;

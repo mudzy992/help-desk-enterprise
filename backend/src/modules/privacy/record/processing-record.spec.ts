@@ -10,7 +10,16 @@ import { decideReplay } from '../../../cli/privacy-replay';
 
 const configuration = {
   enabled: true,
-  retentionDays: { attachments: 0, ticketContent: 0, audit: 0, sessions: 90, emailDeliveries: 180, requestRegister: 0 },
+  retentionDays: {
+    attachments: 0,
+    ticketContent: 0,
+    audit: 0,
+    sessions: 90,
+    emailDeliveries: 180,
+    requestRegister: 0,
+    statusIncidents: 0,
+    assetTransfers: 0,
+  },
   exportLinkValidDays: 7,
   controller: { name: 'Primjer d.o.o.', address: '', dpoName: 'Amra H.', dpoEmail: 'dpo@example.com', purpose: '', legalBasis: '' },
   notice: { bs: '', en: '' },
@@ -40,6 +49,7 @@ describe('processing record (§8)', () => {
     const retention = record.sections.find((s) => s.key === 'retention')!;
     expect(retention.rows.find((r) => r.label.startsWith('Sesije'))!.value).toBe('90 dana');
     expect(retention.rows.find((r) => r.label.startsWith('Prilozi'))!.value).toMatch(/isključeno/);
+    expect(retention.rows.find((r) => r.label.startsWith('Prenosnice'))!.value).toMatch(/isključeno/);
     const recipients = record.sections.find((s) => s.key === 'recipients')!;
     expect(recipients.rows[0].value).toMatch(/office365[\s\S]*izvan BiH/);
     expect(recipients.rows.find((r) => r.label === 'Microsoft Entra ID')!.value).toBe('isključeno');

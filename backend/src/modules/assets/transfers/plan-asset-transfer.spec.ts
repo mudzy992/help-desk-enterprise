@@ -107,13 +107,26 @@ describe('snapshot helpers', () => {
     expect(data.stavke[1]).toMatchObject({ rb: '2', inventarni_broj: 'INV-2026-00002' });
   });
 
-  it('scrubs a person everywhere in a snapshot', () => {
+  it('scrubs a person and matching free text while removing their snapshot identity', () => {
     const base = sampleTransferSnapshot('bs', 'UTC');
-    const snapshot = { ...base, to: { ...base.to, userId: 'u1' }, issuedBy: { ...base.issuedBy, userId: 'u1' } };
-    const scrubbed = scrubSnapshotParty(snapshot, 'u1', 'Anonimni korisnik #ab12');
-    expect(scrubbed?.to).toEqual({ userId: 'u1', name: 'Anonimni korisnik #ab12', title: '', unit: '', email: '' });
+    const snapshot = {
+      ...base,
+      to: { ...base.to, userId: 'u1' },
+      issuedBy: { ...base.issuedBy, userId: 'u1' },
+      note: 'Kontakt: amra@example.com',
+      items: [{ ...base.items[0], note: 'Preuzeto od amra@example.com' }, ...base.items.slice(1)],
+    };
+    const scrubbed = scrubSnapshotParty(
+      snapshot,
+      'u1',
+      'Anonimni korisnik #ab12',
+      (value) => value.replace(/amra@example\.com/gi, '[redigovano]'),
+    );
+    expect(scrubbed?.to).toEqual({ userId: null, name: 'Anonimni korisnik #ab12', title: '', unit: '', email: '' });
     expect(scrubbed?.issuedBy.name).toBe('Anonimni korisnik #ab12');
-    expect(scrubbed?.items).toEqual(base.items);
+    expect(scrubbed?.note).toBe('Kontakt: [redigovano]');
+    expect(scrubbed?.items[0].note).toBe('Preuzeto od [redigovano]');
+    expect(scrubbed?.items[1]).toEqual(base.items[1]);
     expect(scrubSnapshotParty(snapshot, 'other', 'x')).toBeNull();
   });
 });

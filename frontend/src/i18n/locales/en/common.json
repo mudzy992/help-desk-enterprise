@@ -1379,7 +1379,7 @@
         "service.forms.write": "Create and edit service request forms.",
         "service.availability.write": "Manage service availability windows and downtime.",
         "sla.read": "View SLA calendars, profiles, rules, and change history within assigned scope.",
-      "sla.write": "Manage SLA calendars, profiles, and rules.",
+        "sla.write": "Manage SLA calendars, profiles, and rules.",
         "routing.write": "Create and edit ticket routing rules.",
         "group.manage": "Create, edit, and delete groups and manage group members.",
         "settings.read": "View the global private settings registry and configuration projections.",
@@ -2079,6 +2079,7 @@
         "private.privacy.retention.runAtLocalTime": "Local time of the nightly retention job (HH:MM).",
         "private.privacy.retention.maxMinutesPerNight": "Maximum minutes per nightly run; the rest continues the next night (5-240).",
         "private.privacy.retention.statusIncidentsDays": "Days after resolution before a status-page incident is archived; title, author, timeline updates, ticket links and subscriptions are redacted or removed (0 = off, minimum 180).",
+        "private.privacy.retention.assetTransfersDays": "Days after signing or cancellation before transfer details are redacted and signed copies are purged (0 = off; the controller/DPO sets the period, minimum 1).",
         "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate.",
         "private.privacy.anonymization.requireSecondApprover": "A second SUPER_ADMIN must approve every anonymization (four eyes).",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pre-select deleting the person’s own attachments during anonymization.",
@@ -2596,6 +2597,7 @@
         "private.privacy.retention.runAtLocalTime": "Local time (HH:mm, Europe/Sarajevo) of the nightly retention run. Put it outside working hours and away from other nightly jobs.",
         "private.privacy.retention.maxMinutesPerNight": "Longest duration of the nightly retention run in minutes (5-240). A short budget keeps the job predictable, but large backlogs then take several nights.",
         "private.privacy.retention.statusIncidentsDays": "Days after resolution before a status-page incident is archived. Title, author, timeline updates, ticket links and subscriptions are redacted or removed; the incident skeleton is kept for reports. 0 disables archiving. Minimum 180 days.",
+        "private.privacy.retention.assetTransfersDays": "Days after signature or cancellation before a transfer snapshot is redacted and its signed binary is deleted. The minimal transfer record remains. 0 disables this category; the controller/DPO sets the period (minimum 1 day).",
         "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate (30-3650). Too short a period may catch someone returning from leave.",
         "private.privacy.anonymization.requireSecondApprover": "When on, anonymization needs a second SUPER_ADMIN approval (four eyes). Enable it whenever more than one person holds that right.",
         "private.privacy.anonymization.deleteOwnAttachmentsDefault": "When on, deleting the attachments the person uploaded is pre-selected, so anonymization starts from the stricter choice. The operator can still uncheck it.",
@@ -7470,6 +7472,14 @@
         "requestRegister": {
           "name": "Request register",
           "hint": "Closed data subject requests."
+        },
+        "statusIncidents": {
+          "name": "Status incidents",
+          "hint": "Resolved incidents and linked personal details; records under legal hold are skipped."
+        },
+        "assetTransfers": {
+          "name": "Asset transfers",
+          "hint": "Terminal transfer snapshots are redacted and signed binaries deleted; the minimal record remains. Legal holds are skipped and execution requires a dry run."
         }
       },
       "days_one": "{{count}} day",
@@ -9057,6 +9067,8 @@
       "downloadDocxFor": "Download DOCX of transfer record {{number}}",
       "downloadSignedFor": "Download signed copy of transfer record {{number}}",
       "signedCopy": "Signed copy",
+      "signedCopyUnavailable": "Signed copy is unavailable after privacy cleanup.",
+      "contentRedacted": "Content was removed by the retention policy; only the minimal register entry remains.",
       "uploadSigned": "Attach signed copy",
       "replaceSigned": "Replace signed copy",
       "uploadSignedFor": "Attach signed copy of transfer record {{number}}",

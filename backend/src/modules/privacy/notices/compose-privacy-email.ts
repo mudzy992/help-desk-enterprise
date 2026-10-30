@@ -29,6 +29,7 @@ export const privacyEmailLabels = {
       emailDeliveries: 'Isporuke e-pošte',
       requestRegister: 'Registar zahtjeva',
       statusIncidents: 'Statusni incidenti',
+      assetTransfers: 'Prenosnice inventara',
     } satisfies Record<RetentionCategory, string>,
     partial: 'Neka pokretanja nisu završila u noćnom prozoru i nastavljaju se sljedeće noći.',
     erasureTitle: 'Izmijenjeno po tabelama',
@@ -48,6 +49,7 @@ export const privacyEmailLabels = {
       emailDeliveries: 'E-mail deliveries',
       requestRegister: 'Request register',
       statusIncidents: 'Status incidents',
+      assetTransfers: 'Asset transfers',
     } satisfies Record<RetentionCategory, string>,
     partial: 'Some runs did not finish within the nightly window and continue the next night.',
     erasureTitle: 'Changed per table',
@@ -151,7 +153,16 @@ export function composePrivacyEmailPreview(input: {
     return composePrivacyEmail({
       ...base,
       variables: { reportName: input.locale === 'bs' ? 'Bivši korisnik #7F3A' : 'Former user #7F3A' },
-      tables: [erasureTable(input.locale, { tickets: 42, messages: 318, sessions: 12, auditRedacted: 57 })],
+      tables: [
+        erasureTable(input.locale, {
+          tickets: 42,
+          messages: 318,
+          sessions: 12,
+          auditRedacted: 57,
+          assetTransfers: 2,
+          assetTransferFilesQueued: 1,
+        }),
+      ],
       notes: [],
       footerReason: labels.erasureFooter,
       ctaPath: '/privacy?tab=anonymization',
@@ -183,6 +194,9 @@ const erasureItemLabels: Readonly<Record<EmailLocale, Readonly<Record<string, st
     reportSchedulesPaused: 'Pauzirani izvještaji',
     ticketsOnLegalHoldSkipped: 'Tiketi pod pravnom blokadom (preskočeni)',
     auditRedacted: 'Redigovani audit zapisi',
+    assetTransfers: 'Anonimizovane prenosnice',
+    assetTransferTextReplacements: 'Zamjene u tekstu prenosnica',
+    assetTransferFilesQueued: 'Potpisane kopije na čekanju za brisanje',
   },
   en: {
     tickets: 'Tickets (text)',
@@ -199,6 +213,9 @@ const erasureItemLabels: Readonly<Record<EmailLocale, Readonly<Record<string, st
     reportSchedulesPaused: 'Paused reports',
     ticketsOnLegalHoldSkipped: 'Tickets under legal hold (skipped)',
     auditRedacted: 'Redacted audit entries',
+    assetTransfers: 'Anonymized asset transfers',
+    assetTransferTextReplacements: 'Text replacements in transfers',
+    assetTransferFilesQueued: 'Signed copies queued for deletion',
   },
 };
 

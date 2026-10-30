@@ -223,14 +223,52 @@ export function sampleTransferSnapshot(locale: TransferLocale, timeZone: string)
   };
 }
 
-/** Anonymization (2.6): replaces a person everywhere in a snapshot. */
-export function scrubSnapshotParty(snapshot: TransferSnapshot, userId: string, pseudonym: string): TransferSnapshot | null {
+/** Anonymization (2.6): replaces a person and matching free text in a snapshot. */
+export function scrubSnapshotParty(
+  snapshot: TransferSnapshot,
+  userId: string,
+  pseudonym: string,
+  scrubText: (value: string) => string = (value) => value,
+): TransferSnapshot | null {
   let changed = false;
-  const scrub = (party: TransferParty): TransferParty => {
-    if (party.userId !== userId) return party;
-    changed = true;
-    return { userId: party.userId, name: pseudonym, title: '', unit: '', email: '' };
+  const text = (value: string): string => {
+    const next = scrubText(value);
+    if (next !== value) changed = true;
+    return next;
   };
-  const next = { ...snapshot, from: scrub(snapshot.from), to: scrub(snapshot.to), signatory: scrub(snapshot.signatory), issuedBy: scrub(snapshot.issuedBy) };
+  const scrub = (party: TransferParty): TransferParty => {
+    if (party.userId === userId) {
+      changed = true;
+      return { userId: null, name: pseudonym, title: '', unit: '', email: '' };
+    }
+    return {
+      ...party,
+      name: text(party.name),
+      title: text(party.title),
+      unit: text(party.unit),
+      email: text(party.email),
+    };
+  };
+  const items = snapshot.items.map((item) => ({
+    ...item,
+    name: text(item.name),
+    assetTag: text(item.assetTag),
+    serialNumber: text(item.serialNumber),
+    type: text(item.type),
+    manufacturer: text(item.manufacturer),
+    model: text(item.model),
+    location: text(item.location),
+    note: text(item.note),
+  }));
+  const next = {
+    ...snapshot,
+    place: text(snapshot.place),
+    note: text(snapshot.note),
+    from: scrub(snapshot.from),
+    to: scrub(snapshot.to),
+    signatory: scrub(snapshot.signatory),
+    issuedBy: scrub(snapshot.issuedBy),
+    items,
+  };
   return changed ? next : null;
 }

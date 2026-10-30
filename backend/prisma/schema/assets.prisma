@@ -465,6 +465,10 @@ model AssetTransfer {
   signedFileName    String?                @db.VarChar(200)
   signedMimeType    String?                @db.VarChar(80)
   signedSizeBytes   Int?
+  /// Durable fail-closed request for filesystem purge of the signed binary.
+  signedFilePurgeRequestedAt DateTime?
+  /// Marks the transfer whose personal snapshot fields were redacted by retention.
+  retentionRedactedAt DateTime?
   fromUser          User?                  @relation("AssetTransferFrom", fields: [fromUserId], references: [id], onDelete: SetNull)
   toUser            User?                  @relation("AssetTransferTo", fields: [toUserId], references: [id], onDelete: SetNull)
   signatory         User?                  @relation("AssetTransferSignatory", fields: [signatoryUserId], references: [id], onDelete: SetNull)
@@ -477,6 +481,10 @@ model AssetTransfer {
   @@index([toUserId])
   @@index([issuedAt(sort: Desc)])
   @@index([status])
+  @@index([status, signedAt])
+  @@index([status, cancelledAt])
+  @@index([signedFilePurgeRequestedAt])
+  @@index([retentionRedactedAt])
 }
 
 model AssetTransferItem {

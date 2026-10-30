@@ -106,6 +106,8 @@ const transferListSelect = {
   cancelledAt: true,
   cancelReason: true,
   signedFileName: true,
+  signedFilePurgeRequestedAt: true,
+  retentionRedactedAt: true,
   snapshot: true,
   _count: { select: { items: true } },
 } as const;
@@ -473,7 +475,9 @@ export class AssetTransfersService {
       signatoryName: snapshot.signatory?.name ?? '',
       itemCount: row._count.items,
       items: (snapshot.items ?? []).slice(0, 5).map((item) => ({ assetId: item.assetId, assetTag: item.assetTag, name: item.name })),
-      hasSignedCopy: row.signedFileName !== null,
+      hasSignedCopy: row.signedFileName !== null && row.signedFilePurgeRequestedAt === null,
+      signedCopyUnavailable: row.signedFilePurgeRequestedAt !== null,
+      contentRedacted: row.retentionRedactedAt !== null,
     };
   }
 
@@ -580,15 +584,18 @@ export class AssetTransfersService {
       cancelledAt: transfer.cancelledAt?.toISOString() ?? null,
       cancelReason: transfer.cancelReason,
       signedAt: transfer.signedAt?.toISOString() ?? null,
-      signedFileName: transfer.signedFileName,
-      signedMimeType: transfer.signedMimeType,
-      signedSizeBytes: transfer.signedSizeBytes,
+      signedFileName: transfer.signedFilePurgeRequestedAt === null ? transfer.signedFileName : null,
+      signedMimeType: transfer.signedFilePurgeRequestedAt === null ? transfer.signedMimeType : null,
+      signedSizeBytes: transfer.signedFilePurgeRequestedAt === null ? transfer.signedSizeBytes : null,
+      signedCopyUnavailable: transfer.signedFilePurgeRequestedAt !== null,
+      contentRedactedAt: transfer.retentionRedactedAt?.toISOString() ?? null,
       canManage,
     };
   }
 
   async document(id: string, viewer: AssetViewer): Promise<{ fileName: string; buffer: Buffer; type: string }> {
     const { transfer } = await this.loadVisible(id, viewer);
+    if (transfer.retentionRedactedAt !== null) throw new AssetError(assetErrorCodes.transferNotFound);
     const snapshot = transfer.snapshot as unknown as TransferSnapshot;
     const template = transfer.template ? Buffer.from(transfer.template.content) : buildDefaultTransferTemplate(snapshot.locale);
     try {
@@ -607,6 +614,9 @@ export class AssetTransfersService {
   async cancel(id: string, reason: string, viewer: AssetViewer) {
     const { transfer } = await this.loadVisible(id, viewer);
     await this.requireManage(transfer, viewer);
+    if (transfer.retentionRedactedAt !== null || transfer.signedFilePurgeRequestedAt !== null) {
+      throw new AssetError(assetErrorCodes.transferNotIssued);
+    }
     const text = reason.trim();
     if (text.length < assetTransferLimits.cancelReasonMin || text.length > assetTransferLimits.cancelReasonMax) {
       throw new AssetError(assetErrorCodes.transferInvalid, 'reason');
@@ -615,7 +625,12 @@ export class AssetTransfersService {
       this.prisma,
       async (transaction) => {
         const updated = await transaction.assetTransfer.updateMany({
-          where: { id, status: 'ISSUED' },
+          where: {
+            id,
+            status: 'ISSUED',
+            retentionRedactedAt: null,
+            signedFilePurgeRequestedAt: null,
+          },
           data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledByUserId: viewer.userId, cancelReason: text },
         });
         if (updated.count !== 1) throw new AssetError(assetErrorCodes.transferNotIssued);
@@ -640,7 +655,13 @@ export class AssetTransfersService {
   async uploadSigned(id: string, file: UploadedFile, viewer: AssetViewer) {
     const { transfer } = await this.loadVisible(id, viewer);
     await this.requireManage(transfer, viewer);
-    if (transfer.status === 'CANCELLED') throw new AssetError(assetErrorCodes.transferNotIssued);
+    if (
+      transfer.status === 'CANCELLED' ||
+      transfer.retentionRedactedAt !== null ||
+      transfer.signedFilePurgeRequestedAt !== null
+    ) {
+      throw new AssetError(assetErrorCodes.transferNotIssued);
+    }
     if (file.buffer.length === 0) throw new AssetError(assetErrorCodes.transferFileInvalid, 'empty');
     if (file.buffer.length > assetTransferLimits.signedMaxBytes) throw new AssetError(assetErrorCodes.transferFileTooLarge);
     const signature = detectFileSignature(file.buffer);
@@ -663,18 +684,29 @@ export class AssetTransfersService {
     try {
       await withAssetAuditTransaction(
         this.prisma,
-        (transaction) => transaction.assetTransfer.update({
-          where: { id },
-          data: {
-            status: 'SIGNED',
-            signedAt: new Date(),
-            signedByUserId: viewer.userId,
-            signedStoragePath: storagePath,
-            signedFileName: fileName,
-            signedMimeType: signature.mimeType,
-            signedSizeBytes: file.buffer.length,
-          },
-        }),
+        async (transaction) => {
+          const updated = await transaction.assetTransfer.updateMany({
+            where: {
+              id,
+              status: transfer.status,
+              signedStoragePath: transfer.signedStoragePath,
+              signedFilePurgeRequestedAt: null,
+              retentionRedactedAt: null,
+            },
+            data: {
+              status: 'SIGNED',
+              signedAt: new Date(),
+              signedByUserId: viewer.userId,
+              signedStoragePath: storagePath,
+              signedFileName: fileName,
+              signedMimeType: signature.mimeType,
+              signedSizeBytes: file.buffer.length,
+              signedFilePurgeRequestedAt: null,
+            },
+          });
+          if (updated.count !== 1) throw new AssetError(assetErrorCodes.transferNotIssued);
+          return { id };
+        },
         () => ({
           action: auditLogActions.assetTransferSigned,
           entityType: auditLogEntityTypes.assetTransfer,
@@ -699,15 +731,38 @@ export class AssetTransfersService {
   }
 
   async signedCopy(id: string, viewer: AssetViewer): Promise<{ fileName: string; buffer: Buffer; type: string }> {
-    const { transfer } = await this.loadVisible(id, viewer);
-    if (!transfer.signedStoragePath || !transfer.signedMimeType) throw new AssetError(assetErrorCodes.transferNoSignedCopy);
-    let buffer: Buffer;
-    try {
-      buffer = await readFile(resolveContainedStoragePath(this.uploadRoot(), transfer.signedStoragePath));
-    } catch {
-      throw new AssetError(assetErrorCodes.transferNoSignedCopy);
-    }
-    return { fileName: transfer.signedFileName ?? `${transfer.number}`, buffer, type: transfer.signedMimeType };
+    await this.loadVisible(id, viewer);
+    return this.prisma.$transaction(async (transaction) => {
+      // Keep a shared row lock while reading: once a committed purge request
+      // exists, this query cannot return the path; an in-flight read completes
+      // before the purge worker can unlink it.
+      const rows = await transaction.$queryRaw<{
+        readonly number: string;
+        readonly signedStoragePath: string | null;
+        readonly signedFileName: string | null;
+        readonly signedMimeType: string | null;
+      }[]>`
+        SELECT "number", "signedStoragePath", "signedFileName", "signedMimeType"
+        FROM "AssetTransfer"
+        WHERE "id" = ${id}
+          AND "signedFilePurgeRequestedAt" IS NULL
+          AND "retentionRedactedAt" IS NULL
+          AND "signedStoragePath" IS NOT NULL
+          AND "signedMimeType" IS NOT NULL
+        FOR SHARE
+      `;
+      const file = rows[0];
+      if (file === undefined || file.signedStoragePath === null || file.signedMimeType === null) {
+        throw new AssetError(assetErrorCodes.transferNoSignedCopy);
+      }
+      let buffer: Buffer;
+      try {
+        buffer = await readFile(resolveContainedStoragePath(this.uploadRoot(), file.signedStoragePath));
+      } catch {
+        throw new AssetError(assetErrorCodes.transferNoSignedCopy);
+      }
+      return { fileName: file.signedFileName ?? `${file.number}`, buffer, type: file.signedMimeType };
+    });
   }
 
   // ------------------------------------------------------------ signatories (catalog)
@@ -886,24 +941,99 @@ export class AssetTransfersService {
 }
 
 /**
- * Anonymization (2.6): names in frozen transfer snapshots are replaced by the
- * pseudonym inside the anonymization transaction. Numbers and items stay.
+ * Erasure scrubs the frozen snapshot and related free-text columns in the same
+ * transaction as the user pseudonymization. Any signed binary is immediately
+ * made unavailable and durably queued for retryable filesystem deletion.
  */
+export type AssetTransferSnapshotScrubResult = {
+  readonly transfers: number;
+  readonly signedFilesQueued: number;
+};
+
 export async function scrubAssetTransferSnapshots(
-  client: Pick<Prisma.TransactionClient, 'assetTransfer'>,
+  client: Pick<Prisma.TransactionClient, 'assetTransfer' | '$queryRaw'>,
   userId: string,
   pseudonym: string,
-): Promise<number> {
+  scrubText: (value: string) => string = (value) => value,
+): Promise<AssetTransferSnapshotScrubResult> {
+  const lockedRows = await client.$queryRaw<{ readonly id: string }[]>`
+    SELECT "id"
+    FROM "AssetTransfer"
+    WHERE "fromUserId" = ${userId}
+      OR "toUserId" = ${userId}
+      OR "signatoryUserId" = ${userId}
+      OR "issuedByUserId" = ${userId}
+      OR "signedByUserId" = ${userId}
+      OR "cancelledByUserId" = ${userId}
+    ORDER BY "id" ASC
+    FOR UPDATE
+  `;
+  if (lockedRows.length === 0) return { transfers: 0, signedFilesQueued: 0 };
   const rows = await client.assetTransfer.findMany({
-    where: { OR: [{ fromUserId: userId }, { toUserId: userId }, { signatoryUserId: userId }, { issuedByUserId: userId }] },
-    select: { id: true, snapshot: true },
+    where: { id: { in: lockedRows.map((row) => row.id) } },
+    select: {
+      id: true,
+      snapshot: true,
+      fromUserId: true,
+      toUserId: true,
+      signatoryUserId: true,
+      issuedByUserId: true,
+      note: true,
+      fromLabel: true,
+      toLabel: true,
+      cancelReason: true,
+      signedFileName: true,
+      signedStoragePath: true,
+      signedFilePurgeRequestedAt: true,
+      signedByUserId: true,
+      cancelledByUserId: true,
+    },
   });
-  let changed = 0;
+  let transfers = 0;
+  let signedFilesQueued = 0;
   for (const row of rows) {
-    const next = scrubSnapshotParty(row.snapshot as unknown as TransferSnapshot, userId, pseudonym);
-    if (next === null) continue;
-    await client.assetTransfer.update({ where: { id: row.id }, data: { snapshot: next as unknown as Prisma.InputJsonValue } });
-    changed += 1;
+    const nextSnapshot = scrubSnapshotParty(row.snapshot as unknown as TransferSnapshot, userId, pseudonym, scrubText);
+    const nextText = (value: string | null): string | null => value === null ? null : scrubText(value);
+    const nextNote = nextText(row.note);
+    const nextFromLabel = nextText(row.fromLabel);
+    const nextToLabel = nextText(row.toLabel);
+    const nextCancelReason = nextText(row.cancelReason);
+    const nextFileName = row.signedStoragePath === null ? nextText(row.signedFileName) : null;
+    const purgeQueued = row.signedStoragePath !== null && row.signedFilePurgeRequestedAt === null;
+    const data: Prisma.AssetTransferUpdateInput = {
+      ...(nextSnapshot === null ? {} : { snapshot: nextSnapshot as unknown as Prisma.InputJsonValue }),
+      ...(nextNote === row.note ? {} : { note: nextNote }),
+      ...(nextFromLabel === row.fromLabel ? {} : { fromLabel: nextFromLabel }),
+      ...(nextToLabel === row.toLabel ? {} : { toLabel: nextToLabel }),
+      ...(nextCancelReason === row.cancelReason ? {} : { cancelReason: nextCancelReason }),
+      ...(nextFileName === row.signedFileName ? {} : { signedFileName: nextFileName }),
+      ...(row.fromUserId === userId ? { fromUserId: null } : {}),
+      ...(row.toUserId === userId ? { toUserId: null } : {}),
+      ...(row.signatoryUserId === userId ? { signatoryUserId: null } : {}),
+      ...(row.issuedByUserId === userId ? { issuedByUserId: null } : {}),
+      ...(row.signedByUserId === userId ? { signedByUserId: null } : {}),
+      ...(row.cancelledByUserId === userId ? { cancelledByUserId: null } : {}),
+      ...(row.signedStoragePath !== null
+        ? { signedFilePurgeRequestedAt: row.signedFilePurgeRequestedAt ?? new Date() }
+        : {}),
+    };
+    const hasChanges = nextSnapshot !== null ||
+      nextNote !== row.note ||
+      nextFromLabel !== row.fromLabel ||
+      nextToLabel !== row.toLabel ||
+      nextCancelReason !== row.cancelReason ||
+      nextFileName !== row.signedFileName ||
+      row.fromUserId === userId ||
+      row.toUserId === userId ||
+      row.signatoryUserId === userId ||
+      row.issuedByUserId === userId ||
+      row.signedByUserId === userId ||
+      row.cancelledByUserId === userId ||
+      purgeQueued;
+    if (!hasChanges) continue;
+    await client.assetTransfer.update({ where: { id: row.id }, data });
+    transfers += 1;
+    if (purgeQueued) signedFilesQueued += 1;
   }
-  return changed;
+  return { transfers, signedFilesQueued };
 }

@@ -41,6 +41,29 @@ describe('retention plan (paket 2.6 §7.3)', () => {
     });
   });
 
+  it('transfer-content retention requires a dry run before execution', () => {
+    expect(evaluateExecutionGate({ category: 'assetTransfers', configDays: 365, now, history: [] })).toEqual({
+      allowed: false,
+      reason: 'dry_run_required',
+    });
+    expect(
+      evaluateExecutionGate({
+        category: 'assetTransfers',
+        configDays: 365,
+        now,
+        history: [
+          {
+            category: 'assetTransfers',
+            mode: 'DRY_RUN',
+            status: 'COMPLETED',
+            configDays: 365,
+            startedAt: new Date(now.getTime() - hour),
+          },
+        ],
+      }),
+    ).toEqual({ allowed: true, basis: 'dry_run' });
+  });
+
   it('content categories need a fresh dry run with the same period', () => {
     const gate = (history: ReturnType<typeof run>[]) =>
       evaluateExecutionGate({ category: 'attachments', configDays: 1095, now, history });

@@ -40,6 +40,15 @@ export class PrivacyProcessor extends WorkerHost {
         for (const erasure of resumed) await this.notifyErasure(erasure);
         await this.sendRetentionWeekly();
         await this.maintainExports();
+        const transferPurges = await this.retentionService.retryPendingAssetTransferFilePurges().catch((error: unknown) => {
+          this.logger.warn(`privacy_asset_transfer_purge_retry_failed reason=${errorText(error)}`);
+          return null;
+        });
+        if (transferPurges !== null && (transferPurges.purged > 0 || transferPurges.failures > 0)) {
+          this.logger.log(
+            `privacy_asset_transfer_purge purged=${transferPurges.purged} remaining=${transferPurges.remaining} failures=${transferPurges.failures}`,
+          );
+        }
         const runs = await this.retentionService.sweepNightly();
         for (const run of runs) {
           this.logger.log(

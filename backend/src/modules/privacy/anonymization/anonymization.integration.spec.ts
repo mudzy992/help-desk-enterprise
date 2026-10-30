@@ -26,6 +26,7 @@ describeIfDatabase('anonymization (integration)', () => {
   jest.setTimeout(120_000);
   let prisma: PrismaClient;
   let service: AnonymizationService;
+  let uploadRoot: string;
   let rawRoot: string;
   let ledger: ErasureLedger;
   const stamp = Date.now();
@@ -36,7 +37,7 @@ describeIfDatabase('anonymization (integration)', () => {
   beforeAll(async () => {
     process.env.PRIVACY_TOMBSTONE_KEY = 'integration-tombstone-key-0123456789';
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
-    const uploadRoot = mkdtempSync(path.join(tmpdir(), 'anon-it-'));
+    uploadRoot = mkdtempSync(path.join(tmpdir(), 'anon-it-'));
     rawRoot = path.join(uploadRoot, 'inbound-raw');
     const loader = { load: async () => ({ enabled: true, candidateAfterDays: 180, requireSecondApprover: false, deleteOwnAttachmentsDefault: false }) };
     service = new AnonymizationService(
@@ -93,6 +94,49 @@ describeIfDatabase('anonymization (integration)', () => {
     const held = await ticket('Sudski predmet Amra Hodžić', { legalHoldAt: new Date(), legalHoldReason: 'Spor u toku' });
     ids.main = main.id;
     ids.held = held.id;
+    const transferStoragePath = `assets/transfers/anon-${stamp}/signed.pdf`;
+    mkdirSync(path.join(uploadRoot, 'assets/transfers/anon-' + stamp), { recursive: true });
+    writeFileSync(path.join(uploadRoot, transferStoragePath), 'signed binary');
+    const transfer = await prisma.assetTransfer.create({
+      data: {
+        number: `ANON-${stamp}`,
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+        sequence: 900_000_000 + (stamp % 1_000_000),
+        scenario: 'WAREHOUSE_TO_USER',
+        status: 'SIGNED',
+        fromUserId: subject.id,
+        toLabel: 'Skladište',
+        signatoryUserId: subject.id,
+        issuedByUserId: agent.id,
+        signedByUserId: subject.id,
+        fromLabel: 'Amra Hodžić',
+        note: 'Za Amra Hodžić',
+        signedAt: new Date(Date.now() - day),
+        signedStoragePath: transferStoragePath,
+        signedFileName: 'signed.pdf',
+        signedMimeType: 'application/pdf',
+        signedSizeBytes: Buffer.byteLength('signed binary'),
+        snapshot: {
+          version: 1,
+          locale: 'bs',
+          number: `ANON-${stamp}`,
+          scenario: 'WAREHOUSE_TO_USER',
+          issuedAt: new Date(Date.now() - day).toISOString(),
+          timeZone: 'Europe/Sarajevo',
+          place: 'Sarajevo',
+          from: { userId: subject.id, name: 'Amra Hodžić', title: '', unit: 'IT', email },
+          to: { userId: null, name: 'Skladište', title: '', unit: '', email: '' },
+          signatory: { userId: subject.id, name: 'Amra Hodžić', title: '', unit: 'IT', email },
+          issuedBy: { userId: agent.id, name: 'Edin Agent', title: '', unit: 'IT', email: agent.email },
+          note: 'Za Amra Hodžić',
+          items: [{ assetId: 'asset-reference', name: 'Laptop za Amru', assetTag: 'INV-1', serialNumber: 'SN-1', type: 'Laptop', manufacturer: 'Dell', model: 'XPS', location: 'IT', note: '' }],
+        },
+        items: { create: [{ position: 1, assetId: null }] },
+      },
+    });
+    ids.transfer = transfer.id;
+    ids.transferStoragePath = transferStoragePath;
     const agentMessage = await prisma.ticketMessage.create({
       data: { ticketId: main.id, type: 'AGENT_REPLY', body: 'Poštovana HODŽIĆ AMRA, riješeno.', authorUserId: agent.id },
     });
@@ -195,8 +239,36 @@ describeIfDatabase('anonymization (integration)', () => {
     expect(inbound.subject).toBe('Upit od Bivši korisnik #AB12');
     expect(existsSync(path.join(rawRoot, rawKey))).toBe(false);
 
+    const transfer = await prisma.assetTransfer.findUniqueOrThrow({ where: { id: ids.transfer }, include: { items: true } });
+    expect(transfer).toMatchObject({
+      number: `ANON-${stamp}`,
+      status: 'SIGNED',
+      fromUserId: null,
+      signatoryUserId: null,
+      signedByUserId: null,
+      fromLabel: 'Bivši korisnik #AB12',
+      signedFilePurgeRequestedAt: expect.any(Date),
+      signedStoragePath: null,
+      signedFileName: null,
+      signedMimeType: null,
+      signedSizeBytes: null,
+    });
+    expect(transfer.snapshot).toMatchObject({
+      from: { userId: null, name: 'Bivši korisnik #AB12', email: '' },
+      signatory: { userId: null, name: 'Bivši korisnik #AB12', email: '' },
+      note: 'Za Bivši korisnik #AB12',
+    });
+    expect(JSON.stringify(transfer.snapshot)).not.toMatch(/amra|hodžić|hodzic/i);
+    expect(transfer.items).toHaveLength(1);
+    expect(existsSync(path.join(uploadRoot, ids.transferStoragePath))).toBe(false);
+
     const erasure = await prisma.privacyErasure.findUniqueOrThrow({ where: { id: ids.erasure } });
     expect(erasure.tombstones).toHaveLength(2);
+    expect(erasure.report).toMatchObject({
+      assetTransfers: 1,
+      assetTransferFilesQueued: 1,
+    });
+    expect((erasure.report as Record<string, unknown>).assetTransferTextReplacements).toBeGreaterThan(0);
     expect(JSON.stringify(erasure)).not.toMatch(/amra|hodžić|hodzic/i);
   });
 

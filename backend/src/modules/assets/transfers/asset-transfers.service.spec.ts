@@ -68,6 +68,7 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
       create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'tr1', number: data.number })),
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 0 } }),
       update: jest.fn().mockResolvedValue({ id: 'tr1' }),
+      updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }),
     },
     asset: { updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }) },
     assetEvent: { create: jest.fn().mockResolvedValue({}) },
@@ -148,6 +149,8 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
         number: '26-0007-2026',
         status: 'ISSUED',
         signedStoragePath: previousStoragePath,
+        signedFilePurgeRequestedAt: null,
+        retentionRedactedAt: null,
       };
       const internals = service as unknown as {
         loadVisible: jest.Mock;
@@ -165,9 +168,13 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
       await expect(service.uploadSigned('tr1', file, viewer)).rejects.toBe(failure);
 
       expect(scanAttachmentWithClamav).toHaveBeenCalledWith(file.buffer);
-      expect(transaction.assetTransfer.update).toHaveBeenCalledWith(expect.objectContaining({
-        where: { id: 'tr1' },
-        data: expect.objectContaining({ status: 'SIGNED', signedStoragePath: expect.stringMatching(/^assets\/transfers\/tr1\//) }),
+      expect(transaction.assetTransfer.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({ id: 'tr1', signedFilePurgeRequestedAt: null, retentionRedactedAt: null }),
+        data: expect.objectContaining({
+          status: 'SIGNED',
+          signedStoragePath: expect.stringMatching(/^assets\/transfers\/tr1\//),
+          signedFilePurgeRequestedAt: null,
+        }),
       }));
       expect(wasTransactionCommitted()).toBe(false);
       expect(await readFile(previousAbsolutePath, 'utf8')).toBe('previous signed copy');
@@ -192,6 +199,8 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
         number: '26-0007-2026',
         status: 'ISSUED',
         signedStoragePath: previousStoragePath,
+        signedFilePurgeRequestedAt: null,
+        retentionRedactedAt: null,
       };
       const internals = service as unknown as {
         loadVisible: jest.Mock;
@@ -210,7 +219,7 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
       });
 
       expect(wasTransactionCommitted()).toBe(true);
-      const newStoragePath = transaction.assetTransfer.update.mock.calls[0][0].data.signedStoragePath;
+      const newStoragePath = transaction.assetTransfer.updateMany.mock.calls[0][0].data.signedStoragePath;
       expect(newStoragePath).toMatch(/^assets\/transfers\/tr1\//);
       await expect(readFile(join(root, newStoragePath))).resolves.toEqual(file.buffer);
       await expect(readFile(previousAbsolutePath)).rejects.toMatchObject({ code: 'ENOENT' });

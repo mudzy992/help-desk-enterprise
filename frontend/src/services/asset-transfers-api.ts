@@ -74,6 +74,8 @@ export type AssetTransferListItem = {
     readonly name: string;
   }[];
   readonly hasSignedCopy: boolean;
+  readonly signedCopyUnavailable: boolean;
+  readonly contentRedacted: boolean;
 };
 
 export type AssetTransferFilters = {

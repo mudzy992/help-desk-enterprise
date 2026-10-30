@@ -78,6 +78,7 @@ export const retentionCategories = [
   "sessions",
   "emailDeliveries",
   "requestRegister",
+  "assetTransfers",
 ] as const;
 export type RetentionCategory = (typeof retentionCategories)[number];
 

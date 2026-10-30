@@ -17,7 +17,7 @@ import {
 import { verifyAuditLogChain, compareAuditLogChainOrder } from '../../audit-log/verify-audit-log-chain';
 import { DiskTicketAttachmentStorage } from '../../tickets/attachments/disk-ticket-attachment-storage';
 import type { PrivacyConfiguration } from '../privacy-configuration.loader';
-import { retentionRedactionMarker } from './retention-executors';
+import { retentionRedactionMarker } from './retention-markers';
 import { RetentionService } from './retention.service';
 import { LegalHoldService } from '../legal-hold/legal-hold.service';
 
@@ -57,6 +57,7 @@ describeIfDatabase('retention (integration)', () => {
         emailDeliveries: 180,
         requestRegister: 365,
         statusIncidents: 0,
+        assetTransfers: 0,
         ...overrides,
       },
     }) as unknown as PrivacyConfiguration;
@@ -100,7 +101,14 @@ describeIfDatabase('retention (integration)', () => {
     const open = await ticket('OPEN', { status: 'IN_PROGRESS', closedAt: null });
     const held = await ticket('HELD', { legalHoldAt: now, legalHoldReason: 'Spor' });
     const heldByRequester = await ticket('HELDREQ', { requesterId: heldRequester.id });
-    Object.assign(ids, { due: due.id, recent: recent.id, open: open.id, held: held.id, heldByRequester: heldByRequester.id });
+    Object.assign(ids, {
+      due: due.id,
+      recent: recent.id,
+      open: open.id,
+      held: held.id,
+      heldByRequester: heldByRequester.id,
+      heldRequester: heldRequester.id,
+    });
     for (const t of [due, recent, open, held, heldByRequester]) {
       const message = await prisma.ticketMessage.create({
         data: { ticketId: t.id, type: 'USER_REPLY', body: 'Pozdrav, Ana', authorUserId: requester.id },
@@ -235,6 +243,195 @@ describeIfDatabase('retention (integration)', () => {
     expect(await prisma.ticketAttachment.count({ where: { ticketId: ids.held } })).toBe(1);
     const csv = await svc.runRefsCsv(executed.id);
     expect(csv.body.split('\n')[1]).toMatch(/^DUE-/);
+  });
+
+  it('retains transfer skeletons, redacts only terminal unheld records and purges signed binaries', async () => {
+    const stamp = Date.now();
+    const sequence = stamp % 1_000_000_000;
+    const transferIds: Record<string, string> = {};
+    const snapshot = {
+      version: 1,
+      locale: 'bs',
+      number: `TR-${stamp}`,
+      scenario: 'WAREHOUSE_TO_USER',
+      issuedAt: old.toISOString(),
+      timeZone: 'Europe/Sarajevo',
+      place: 'Sarajevo',
+      from: { userId: ids.requester, name: 'Ana Anić', title: '', unit: 'IT', email: 'ana@example.com' },
+      to: { userId: null, name: 'Skladište', title: '', unit: '', email: '' },
+      signatory: { userId: null, name: 'Potpisnik', title: '', unit: '', email: '' },
+      issuedBy: { userId: null, name: 'Administrator', title: '', unit: '', email: '' },
+      note: 'Razlog Ana Anić',
+      items: [{
+        assetId: 'old-asset-id',
+        name: 'Laptop za Anu',
+        assetTag: 'INV-1',
+        serialNumber: 'SN-1',
+        type: 'Laptop',
+        manufacturer: 'Dell',
+        model: 'XPS',
+        location: 'IT',
+        note: 'Ana Anić',
+      }],
+    };
+    async function createTransfer(
+      key: string,
+      values: {
+        readonly status: 'SIGNED' | 'CANCELLED' | 'ISSUED';
+        readonly signedAt?: Date | null;
+        readonly cancelledAt?: Date | null;
+        readonly partyUserId?: string | null;
+        readonly file?: boolean;
+      },
+    ) {
+      const id = `retention-${key}-${stamp}`;
+      const storagePath = values.file ? `assets/transfers/${id}/signed.pdf` : null;
+      if (storagePath !== null) {
+        mkdirSync(path.dirname(path.join(uploadRoot, storagePath)), { recursive: true });
+        writeFileSync(path.join(uploadRoot, storagePath), 'signed transfer binary');
+      }
+      const transfer = await prisma.assetTransfer.create({
+        data: {
+          number: `TR-${stamp}-${key}`,
+          year: 2026,
+          month: 10,
+          sequence: sequence + Object.keys(transferIds).length,
+          scenario: 'WAREHOUSE_TO_USER',
+          status: values.status,
+          fromUserId: values.partyUserId === undefined ? ids.requester : values.partyUserId,
+          toLabel: 'Skladište',
+          signatoryUserId: ids.requester,
+          issuedByUserId: ids.requester,
+          signedByUserId: ids.requester,
+          cancelledByUserId: ids.requester,
+          fromLabel: 'Ana Anić',
+          note: 'Razlog Ana Anić',
+          cancelReason: values.status === 'CANCELLED' ? 'Otkazala Ana Anić' : null,
+          snapshot: { ...snapshot, number: `TR-${stamp}-${key}` },
+          issuedAt: old,
+          signedAt: values.signedAt === undefined ? (values.status === 'SIGNED' ? old : null) : values.signedAt,
+          cancelledAt: values.cancelledAt === undefined ? (values.status === 'CANCELLED' ? old : null) : values.cancelledAt,
+          signedStoragePath: storagePath,
+          signedFileName: storagePath === null ? null : 'signed.pdf',
+          signedMimeType: storagePath === null ? null : 'application/pdf',
+          signedSizeBytes: storagePath === null ? null : Buffer.byteLength('signed transfer binary'),
+          items: { create: [{ position: 1, assetId: null }] },
+        },
+      });
+      transferIds[key] = transfer.id;
+      return { ...transfer, storagePath };
+    }
+
+    const dueSigned = await createTransfer('due-signed', { status: 'SIGNED', file: true });
+    const dueCancelled = await createTransfer('due-cancelled', { status: 'CANCELLED' });
+    const held = await createTransfer('held', {
+      status: 'SIGNED',
+      partyUserId: ids.heldRequester,
+      signedAt: old,
+    });
+    const recent = await createTransfer('recent', {
+      status: 'SIGNED',
+      signedAt: new Date(now.getTime() - 10 * day),
+    });
+    const issued = await createTransfer('issued', { status: 'ISSUED' });
+    const svc = service(configuration({ assetTransfers: 1 }));
+    const dry = await svc.runCategory({
+      category: 'assetTransfers',
+      mode: 'DRY_RUN',
+      triggeredByUserId: ids.requester,
+      deadline: deadline(),
+    });
+    expect(dry.status).toBe('COMPLETED');
+    expect(dry.itemCount).toBe(2);
+    expect(dry.bytesFreed).toBe(Buffer.byteLength('signed transfer binary'));
+
+    const executed = await svc.runCategory({
+      category: 'assetTransfers',
+      mode: 'EXECUTE',
+      triggeredByUserId: null,
+      deadline: deadline(),
+    });
+    expect(executed.status).toBe('COMPLETED');
+    expect(executed.itemCount).toBe(dry.itemCount);
+    expect(existsSync(path.join(uploadRoot, dueSigned.storagePath!))).toBe(false);
+
+    const redacted = await prisma.assetTransfer.findUniqueOrThrow({
+      where: { id: dueSigned.id },
+      include: { items: true },
+    });
+    expect(redacted).toMatchObject({
+      number: dueSigned.number,
+      status: 'SIGNED',
+      retentionRedactedAt: expect.any(Date),
+      fromUserId: null,
+      signatoryUserId: null,
+      issuedByUserId: null,
+      signedByUserId: null,
+      cancelledByUserId: null,
+      fromLabel: null,
+      note: null,
+      signedStoragePath: null,
+      signedFileName: null,
+      signedMimeType: null,
+      signedSizeBytes: null,
+    });
+    expect(redacted.snapshot).toMatchObject({
+      number: dueSigned.number,
+      note: '[redacted]',
+      from: { userId: null, name: '[redacted]', email: '' },
+      items: [],
+    });
+    expect(redacted.items).toHaveLength(1);
+    expect(redacted.items[0].assetId).toBeNull();
+
+    const cancelled = await prisma.assetTransfer.findUniqueOrThrow({ where: { id: dueCancelled.id } });
+    expect(cancelled.retentionRedactedAt).not.toBeNull();
+    expect(cancelled.status).toBe('CANCELLED');
+    expect(cancelled.cancelReason).toBeNull();
+    for (const untouched of [held, recent, issued]) {
+      const row = await prisma.assetTransfer.findUniqueOrThrow({ where: { id: untouched.id } });
+      expect(row.retentionRedactedAt).toBeNull();
+      expect(row.fromUserId).not.toBeNull();
+    }
+  });
+
+  it('retries durable signed-file purges even when asset-transfer retention is disabled', async () => {
+    const stamp = Date.now();
+    const id = `pending-purge-${stamp}`;
+    const storagePath = `assets/transfers/${id}/signed.pdf`;
+    mkdirSync(path.dirname(path.join(uploadRoot, storagePath)), { recursive: true });
+    writeFileSync(path.join(uploadRoot, storagePath), 'queued signed copy');
+    const transfer = await prisma.assetTransfer.create({
+      data: {
+        number: `PENDING-${stamp}`,
+        year: 2026,
+        month: 10,
+        sequence: stamp % 1_000_000_000,
+        scenario: 'WAREHOUSE_TO_USER',
+        status: 'SIGNED',
+        issuedAt: old,
+        signedAt: old,
+        signedStoragePath: storagePath,
+        signedFileName: 'signed.pdf',
+        signedMimeType: 'application/pdf',
+        signedSizeBytes: Buffer.byteLength('queued signed copy'),
+        signedFilePurgeRequestedAt: now,
+        snapshot: { number: `PENDING-${stamp}`, from: {}, to: {}, items: [] },
+      },
+    });
+
+    const result = await service(configuration({ assetTransfers: 0 })).retryPendingAssetTransferFilePurges();
+
+    expect(result).toMatchObject({ attempted: 1, purged: 1, failures: 0, remaining: 0 });
+    expect(existsSync(path.join(uploadRoot, storagePath))).toBe(false);
+    const row = await prisma.assetTransfer.findUniqueOrThrow({ where: { id: transfer.id } });
+    expect(row).toMatchObject({
+      signedFilePurgeRequestedAt: expect.any(Date),
+      signedStoragePath: null,
+      signedFileName: null,
+      signedMimeType: null,
+      signedSizeBytes: null,
+    });
   });
 
   it('deletes only ended sessions older than the period', async () => {

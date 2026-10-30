@@ -6,9 +6,10 @@ import { appendAuditLog } from '../../audit-log/append-audit-log';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
 import { privacyLimits, type RetentionCategory } from '../privacy.constants';
 import { createStatusIncidentRetentionExecutor } from './status-incident-retention.executor';
+import { createAssetTransferRetentionExecutor } from './asset-transfer-retention.executor';
+import { retentionRedactionMarker } from './retention-markers';
 
-/** Marker written over removed free text; the UI shows a translated label (contentRedactedAt / redactedAt). */
-export const retentionRedactionMarker = '[redacted]';
+export { retentionRedactionMarker } from './retention-markers';
 
 export type RetentionPreview = {
   readonly count: number;
@@ -67,6 +68,7 @@ export function createRetentionExecutors(
 ): Readonly<Record<RetentionCategory, RetentionExecutor>> {
   return {
     statusIncidents: createStatusIncidentRetentionExecutor(prisma),
+    assetTransfers: createAssetTransferRetentionExecutor(prisma, storage),
 
     sessions: {
       category: 'sessions',
