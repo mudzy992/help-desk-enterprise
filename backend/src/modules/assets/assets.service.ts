@@ -824,29 +824,59 @@ export class AssetsService {
     return { id, version: input.version + 1 };
   }
 
-  /** §3: hard delete, SUPER_ADMIN only, never for an item with tickets or relations. */
+  /**
+   * Physically deletes only an unreferenced asset. The row lock serializes
+   * hard-delete against concurrent FK-backed link creation; all business links
+   * fail closed, while a database trigger archives history before FK cascade.
+   */
   async remove(id: string, viewer: AssetViewer) {
     await this.access.requireEnabled();
     if (!viewer.isSuperAdmin) throw new AssetError(assetErrorCodes.forbidden);
-    const asset = await this.prisma.asset.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        assetTag: true,
-        _count: { select: { tickets: true, relationsFrom: true, relationsTo: true } },
-      },
-    });
-    if (asset === null) throw new AssetError(assetErrorCodes.notFound);
-    if (asset._count.tickets + asset._count.relationsFrom + asset._count.relationsTo > 0) {
-      throw new AssetError(assetErrorCodes.hasDependents);
-    }
     await withAssetAuditTransaction(
       this.prisma,
-      (transaction) => transaction.asset.delete({ where: { id } }),
-      () => ({
+      async (transaction) => {
+        await transaction.$queryRaw`SELECT "id" FROM "Asset" WHERE "id" = ${id} FOR UPDATE`;
+        const asset = await transaction.asset.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            assetTag: true,
+            _count: {
+              select: {
+                tickets: true,
+                relationsFrom: true,
+                relationsTo: true,
+                transferItems: true,
+                contractItems: true,
+                licenseAssignments: true,
+                problems: true,
+                changes: true,
+              },
+            },
+          },
+        });
+        if (asset === null) throw new AssetError(assetErrorCodes.notFound);
+        const dependencies = Object.entries(asset._count)
+          .filter(([, count]) => count > 0)
+          .map(([kind, count]) => `${kind}:${count}`)
+          .join(',');
+        if (dependencies.length > 0) throw new AssetError(assetErrorCodes.hasDependents, dependencies);
+
+        await transaction.assetEvent.create({
+          data: {
+            assetId: id,
+            action: assetEventActions.deleted,
+            actorUserId: viewer.userId,
+            detail: { assetTag: asset.assetTag },
+          },
+        });
+        await transaction.asset.delete({ where: { id } });
+        return { id: asset.id, assetTag: asset.assetTag };
+      },
+      (asset) => ({
         action: auditLogActions.assetDeleted,
         entityType: auditLogEntityTypes.asset,
-        entityId: id,
+        entityId: asset.id,
         metadata: { assetTag: asset.assetTag },
         actorUserId: viewer.userId,
       }),
@@ -857,13 +887,37 @@ export class AssetsService {
 
   async history(id: string, viewer: AssetViewer, cursor?: string) {
     const scope = await this.access.require(viewer, permissionKeys.assetRead);
-    await this.loadInScope(id, scope);
-    const rows = await this.prisma.assetEvent.findMany({
-      where: { assetId: id },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: assetLimits.historyPage + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    const asset = await this.prisma.asset.findUnique({
+      where: { id },
+      select: { assetTag: true, organizationalUnit: { select: { ouPath: true } } },
     });
+    let rows: Array<{
+      id: string;
+      action: string;
+      actorUserId: string | null;
+      detail: Prisma.JsonValue;
+      createdAt: Date;
+      assetTagSnapshot?: string;
+    }>;
+    if (asset === null) {
+      const hasRetainedHistory = viewer.isSuperAdmin &&
+        (await this.prisma.assetEventArchive.count({ where: { originalAssetId: id } })) > 0;
+      if (!hasRetainedHistory) throw new AssetError(assetErrorCodes.notFound);
+      rows = await this.prisma.assetEventArchive.findMany({
+        where: { originalAssetId: id },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: assetLimits.historyPage + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+    } else {
+      if (!isPathInScope(scope, asset.organizationalUnit.ouPath)) throw new AssetError(assetErrorCodes.notFound);
+      rows = await this.prisma.assetEvent.findMany({
+        where: { assetId: id },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: assetLimits.historyPage + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+    }
     const page = rows.slice(0, assetLimits.historyPage);
     const userIds = new Set<string>();
     for (const row of page) {
@@ -878,6 +932,9 @@ export class AssetsService {
     return {
       items: page.map((row) => ({
         id: row.id,
+        assetId: id,
+        assetTag: row.assetTagSnapshot ?? asset?.assetTag ?? '',
+        retainedAfterAssetDelete: asset === null,
         action: row.action,
         actorUserId: row.actorUserId,
         detail: row.detail,

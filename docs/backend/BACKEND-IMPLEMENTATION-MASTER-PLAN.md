@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.14 zatvoreni; W7.15 čeka zasebno odobrenje)<br>
+**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.15 zatvoreni; `BA-assets-16`–`BA-assets-19` čekaju zasebno odobrenje)<br>
 **Datum ažuriranja:** 2026-10-30<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.14 su zatvoreni; W7.15 čeka zasebno odobrenje).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.15 su zatvoreni; `BA-assets-16`–`BA-assets-19` čekaju zasebno odobrenje).
 
 ### Redoslijed
 
@@ -568,4 +568,11 @@ Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
 - Nova aditivna migracija je `20271030110000_asset_transfer_retention_lifecycle`; migracijski replay se desio samo na disposable CI bazi. Ciljna baza nije dostupna iz sandboxa (`DATABASE_URL` nije postavljen) pa target migration status/apply nije provjeren niti izvršen; korisnička potvrda prethodne W7.13 migracije nije ponovljena.
 - Deklarisani registry nakon W7.14: **575 otvorenih / 117 zatvorenih / 692 ukupno**; machine-readable source statusi: **578 otvorenih / 103 zatvorena / 11 historijskih**, uz netaknutu raniju razliku od tri statusa. Detaljni acceptance, rollout i rollback su u [100-assets-transfer-retention-lifecycle.md](implementation/100-assets-transfer-retention-lifecycle.md).
 
-W7.15 / `BA-assets-15` (P2, hard delete dependency cleanup i očuvanje asset event history) nije započet i čeka zasebno odobrenje. Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
+### W7.15 — poslovne zavisnosti pri hard-deleteu i AssetEvent historija — završeno
+
+- Zatvoren je samo `BA-assets-15` (P2), na finalnom testanom kodnom SHA `11f43efd37d448142f6c33f99096555ee8f7419d`, uz zeleni CI [`41067304475`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41067304475).
+- Asset se fizički briše samo bez ticket, relation, transfer, contract, license, problem ili change-request veza; veze daju stabilni `409`, bez brisanja poslovnih redova. Asset row lock pokriva konkurentno kreiranje FK linkova.
+- `BEFORE DELETE` trigger ponavlja fail-closed provjeru i arhivira `AssetEvent` u orphan `AssetEventArchive` sa originalnim asset ID/tag snapshotom prije cascadea. `history()` vraća obrisanu historiju samo `SUPER_ADMIN` korisniku; demo cleanup više ne uklanja poslovne veze.
+- CI je prošao Prisma validate/generate/build/lint/Jest, PostgreSQL+Redis integration, release replay i migration-history provjeru svih 102 migracija, frontend, docs guard, container/supply-chain i gate. Migracija `20271030120000_asset_hard_delete_event_history` je aditivna i replayovana samo na disposable CI bazi.
+- Ciljna baza nije poznata i nije dostupna iz sandboxa; W7.15 migracija nije primijenjena niti joj je target status provjeren. Deployment mora prvo provjeriti `prisma migrate status` i koristiti single-owner release migrator; prethodna W7.14 migracija se ne ponavlja. Rollback ne smije ukloniti event arhivu ili trigger nakon zapisa historije.
+- Deklarisani zbir je **574 otvorena / 118 zatvorenih / 692 ukupno**; machine-readable source statusi su **577 otvorenih / 104 zatvorena / 11 historijskih**, uz nepromijenjenu raniju razliku od tri statusa. `BA-assets-16`–`BA-assets-19` ostaju otvoreni; ostali P1 paketi i naredni scopeovi zahtijevaju zasebno odobrenje.

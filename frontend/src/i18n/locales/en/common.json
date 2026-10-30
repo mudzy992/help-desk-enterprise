@@ -8537,6 +8537,7 @@
       "actions": {
         "created": "Created",
         "updated": "Changed",
+        "deleted": "Deleted (history retained)",
         "status": "Status changed",
         "assigned": "Assigned",
         "unassigned": "Returned",

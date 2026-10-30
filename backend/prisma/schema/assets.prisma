@@ -343,7 +343,7 @@ model AssetEvent {
   assetId     String
   /// created | updated | status | assigned | unassigned | relation_added | relation_removed |
   /// ticket_linked | ticket_unlinked | license_assigned | license_released | contract_linked |
-  /// imported | directory_sync | anonymized
+  /// imported | directory_sync | anonymized | deleted
   action      String   @db.VarChar(40)
   actorUserId String?
   detail      Json     @default("{}")
@@ -352,6 +352,20 @@ model AssetEvent {
 
   @@index([assetId, createdAt(sort: Desc)])
   @@index([actorUserId])
+}
+
+/// Hard-delete archive for append-only AssetEvent history; intentionally has no Asset FK.
+model AssetEventArchive {
+  id               String   @id
+  originalAssetId  String
+  assetTagSnapshot String   @db.VarChar(64)
+  action           String   @db.VarChar(40)
+  actorUserId      String?
+  detail           Json
+  createdAt        DateTime
+  archivedAt       DateTime @default(now())
+
+  @@index([originalAssetId, createdAt(sort: Desc)])
 }
 
 model AssetImportJob {
