@@ -212,6 +212,29 @@ describe('principal context loading (phase 2.2)', () => {
     expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
   });
 
+  it('coalesces concurrent cache-miss loads with the same durable version', async () => {
+    const { loader, queries } = setup();
+    const authority = {
+      subjectId: 'user-agent',
+      authzVersion: 0,
+      isActive: true,
+      mustChangePassword: false,
+    } as const;
+
+    const [first, second] = await Promise.all([
+      runWithRequestId('principal-cold-request-1', () =>
+        loader.load('user-agent', authority),
+      ),
+      runWithRequestId('principal-cold-request-2', () =>
+        loader.load('user-agent', authority),
+      ),
+    ]);
+
+    expect(first?.roleKeys).toEqual(['AGENT']);
+    expect(second).toEqual(first);
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
+  });
+
   it('does not serve a cached principal when the joined authority snapshot denies it', async () => {
     const { loader, queries } = setup();
     await loader.load('user-agent');

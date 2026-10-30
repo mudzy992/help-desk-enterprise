@@ -22,6 +22,40 @@ import type {
 // namespace lets guards and services deduplicate even if Nest resolves the
 // loader from different module contexts.
 const requestMemoNamespace = Object.freeze({});
+const principalContextLoadsInFlight = new WeakMap<
+  PrismaService,
+  Map<string, Promise<PrincipalContext | null>>
+>();
+
+function loadPrincipalContextSingleFlight(
+  prisma: PrismaService,
+  userId: string,
+  durableAuthority?: PrincipalAuthoritySnapshot,
+): Promise<PrincipalContext | null> {
+  let inFlightByAuthority = principalContextLoadsInFlight.get(prisma);
+  if (inFlightByAuthority === undefined) {
+    inFlightByAuthority = new Map();
+    principalContextLoadsInFlight.set(prisma, inFlightByAuthority);
+  }
+
+  const expectedVersion =
+    durableAuthority?.subjectId === userId
+      ? durableAuthority.authzVersion
+      : 'unfenced';
+  const key = `${userId}\u0000${expectedVersion}`;
+  const existing = inFlightByAuthority.get(key);
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const pending = loadPrincipalContext(prisma, userId).finally(() => {
+    if (inFlightByAuthority?.get(key) === pending) {
+      inFlightByAuthority.delete(key);
+    }
+  });
+  inFlightByAuthority.set(key, pending);
+  return pending;
+}
 
 /**
  * The one place that reads authorization data (plan §2.2).
@@ -90,7 +124,11 @@ export class PrincipalContextLoader {
       }
     }
     tracePrincipalContextCache('full_database_load');
-    const fresh = await loadPrincipalContext(this.prisma, id);
+    const fresh = await loadPrincipalContextSingleFlight(
+      this.prisma,
+      id,
+      durableAuthority,
+    );
     if (fresh !== null) {
       await writeCachedPrincipalContext(client, fresh, () =>
         tracePrincipalContextCache('redis_write_error'),
