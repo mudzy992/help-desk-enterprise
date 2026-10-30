@@ -1,5 +1,8 @@
 import { requestIdHeaderName } from './request-context.constants';
-import { takeDbQueryCount } from '../database/db-query-counter';
+import {
+  takeDbQueryCount,
+  takeDbQueryTrace,
+} from '../database/db-query-counter';
 
 /**
  * Emits one post-response line per request so log aggregation can answer the
@@ -33,6 +36,8 @@ type MetricsIncoming = {
   readonly method?: string;
   readonly originalUrl?: string;
   readonly url?: string;
+  readonly baseUrl?: string;
+  readonly route?: { readonly path?: unknown };
 };
 
 type MetricsOutgoing = {
@@ -58,6 +63,8 @@ export function readRequestMetricsOptions(
 }
 
 export class RequestMetricsMiddleware {
+  private readonly queryTraceSamplesByRoute = new Map<string, number>();
+
   constructor(
     private readonly logger: RequestMetricsLogger,
     private readonly options: RequestMetricsOptions = readRequestMetricsOptions(),
@@ -95,6 +102,18 @@ export class RequestMetricsMiddleware {
       ` method=${request.method ?? 'UNKNOWN'}` +
       ` path=${readPath(request)}`;
     this.logger.log(message, requestMetricsLogContext);
+    const trace = requestId === null ? [] : takeDbQueryTrace(requestId);
+    if (process.env.DB_QUERY_TRACE === 'true' && trace.length > 0) {
+      const route = readRouteTemplate(request);
+      const sampled = this.queryTraceSamplesByRoute.get(route) ?? 0;
+      if (sampled < 3) {
+        this.queryTraceSamplesByRoute.set(route, sampled + 1);
+        this.logger.log(
+          `db_query_trace path=${route} count=${queryCount} statements=${trace.join(',')}`,
+          requestMetricsLogContext,
+        );
+      }
+    }
     if (this.options.warnEnabled && queryCount > this.options.warnAboveQueries) {
       // Phase 4.2 (plan §4.2, item 2): the warning has to be actionable on its own,
       // so it carries the correlation id that ties it back to the request log line
@@ -116,6 +135,19 @@ function readPath(request: MetricsIncoming): string {
   const raw = request.originalUrl ?? request.url ?? '/';
   const queryStart = raw.indexOf('?');
   return queryStart === -1 ? raw : raw.slice(0, queryStart);
+}
+
+function readRouteTemplate(request: MetricsIncoming): string {
+  const routePath = request.route?.path;
+  if (typeof routePath !== 'string' || routePath.length === 0) {
+    return readPath(request);
+  }
+  const baseUrl = request.baseUrl ?? '';
+  const combined =
+    baseUrl.length > 0 && routePath !== baseUrl && !routePath.startsWith(`${baseUrl}/`)
+      ? `${baseUrl}/${routePath}`
+      : routePath;
+  return `/${combined}`.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 }
 
 function readBoolean(value: string | undefined, fallback: boolean): boolean {

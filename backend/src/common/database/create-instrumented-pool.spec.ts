@@ -4,6 +4,7 @@ import {
   readTotalDbQueries,
   resetDbQueryCounters,
   takeDbQueryCount,
+  takeDbQueryTrace,
 } from './db-query-counter';
 import { createInstrumentedPool } from './create-instrumented-pool';
 
@@ -36,6 +37,22 @@ describe('createInstrumentedPool', () => {
     expect(takeDbQueryCount('request-1')).toBe(2);
     expect(readTotalDbQueries()).toBe(3);
     expect(runQuery).toHaveBeenCalledTimes(3);
+  });
+
+  it('records only operation/table labels when query tracing is explicitly enabled', async () => {
+    const previous = process.env.DB_QUERY_TRACE;
+    process.env.DB_QUERY_TRACE = 'true';
+    try {
+      const pool = createInstrumentedPool('postgresql://localhost:5432/unused');
+      await runWithRequestId('request-trace', async () => {
+        await pool.query('select "id" from "Ticket" where "id" = $1', ['secret-id']);
+      });
+
+      expect(takeDbQueryTrace('request-trace')).toEqual(['SELECT:Ticket']);
+    } finally {
+      if (previous === undefined) delete process.env.DB_QUERY_TRACE;
+      else process.env.DB_QUERY_TRACE = previous;
+    }
   });
 
   it('accepts a bare connection string like the previous adapter call', () => {

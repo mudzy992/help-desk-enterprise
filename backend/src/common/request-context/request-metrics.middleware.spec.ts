@@ -84,6 +84,42 @@ describe('RequestMetricsMiddleware', () => {
     expect(readTotalDbQueries()).toBe(1);
   });
 
+  it('samples safe query labels for an explicit trace request', () => {
+    const previous = process.env.DB_QUERY_TRACE;
+    process.env.DB_QUERY_TRACE = 'true';
+    try {
+      const logger = createLogger();
+      const response = createResponse();
+      const middleware = new RequestMetricsMiddleware(logger, {
+        enabled: true,
+        warnAboveQueries: 3,
+        warnEnabled: false,
+      });
+
+      middleware.use(
+        {
+          headers: { 'x-request-id': 'request-trace' },
+          method: 'GET',
+          originalUrl: '/tickets?page=2',
+          baseUrl: '/tickets',
+          route: { path: '/' },
+        },
+        response,
+        () => undefined,
+      );
+      recordDbQuery('request-trace', 'SELECT:User');
+      recordDbQuery('request-trace', 'SELECT:Ticket');
+      response.emit('finish');
+
+      expect(logger.log.mock.calls.map(([message]) => String(message))).toContain(
+        'db_query_trace path=/tickets count=2 statements=SELECT:User,SELECT:Ticket',
+      );
+    } finally {
+      if (previous === undefined) delete process.env.DB_QUERY_TRACE;
+      else process.env.DB_QUERY_TRACE = previous;
+    }
+  });
+
   it('warns only when the query budget warning is enabled', () => {
     const logger = createLogger();
     const response = createResponse();
