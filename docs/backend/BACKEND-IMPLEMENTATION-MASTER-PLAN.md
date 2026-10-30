@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.13 zatvoreni; W7.14 nije odobren/započet)<br>
+**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.14 zatvoreni; W7.15 čeka zasebno odobrenje)<br>
 **Datum ažuriranja:** 2026-10-30<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.13 su zatvoreni; W7.14 nije odobren/započet).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.14 su zatvoreni; W7.15 čeka zasebno odobrenje).
 
 ### Redoslijed
 
@@ -556,4 +556,16 @@ Testani kodni SHA `ccbceb1179b37fae2cce243c066deb3ed4fab489` i zeleni CI [`41020
 - CI je prošao backend, PostgreSQL+Redis migration/integration, frontend, docs guard, container/supply-chain i gate. Push-trigger E2E poslovi su preskočeni; zero-high/critical image enforcement je `skipped` bez actionable nalaza. Nije bilo neuspjelog pokušaja.
 - Po deklarisanom registryju ostaje **576 otvorenih / 116 zatvorenih / 692 ukupno**; machine-readable source statusi su **579 otvorenih / 102 zatvorena / 11 historijskih**, uz raniju razliku od tri statusa. Zatvoreno je samo `BA-assets-13`; `BA-assets-14`–`BA-assets-19` ostaju otvoreni. Detalji su u [99-assets-import-apply-recovery.md](implementation/99-assets-import-apply-recovery.md).
 
-Naredni paket nije započet; W7.14 čeka zasebno odobrenje. Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.
+Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
+
+### W7.14 — transfer snapshot/signed-binary retention — završeno
+
+- Zatvoren je samo `BA-assets-14` (P2). Implementacijski commit `d7dcc659bd883d80471a659cc8907ba1a2e69d41`, test-fixture correction `55531c14ec6b8b7fcb1bcec28cf5b2bf9fb135c5`; finalni testani SHA je `55531c14ec6b8b7fcb1bcec28cf5b2bf9fb135c5`, uz zeleni CI [`41057855403`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41057855403).
+- DPO-configurable `assetTransfers` retention je default-off (`0`), minimum 1 dan kada se uključi, zahtijeva dry run i nema fiksni pravni rok. Executor obrađuje samo terminalne `SIGNED`/`CANCELLED` transfere nakon odgovarajućeg terminalnog datuma, isključuje legal-hold zapise, redaktuje snapshot/reference/free text i čuva minimalni record skeleton te item count.
+- Durable purge marker zatvara signed-copy endpoint prije unlinka; brisanje je bounded, idempotentno i retryable preko maintenance cadencea, nezavisno od retention postavke. Anonymization scrubuje transfer snapshot/free text i queue-a signed binary purge; en/bs UI prikazuje redaction/purge stanje.
+- Backend schema/build/lint/Jest i PostgreSQL+Redis integration su zeleni; CI je replayovao svih 101 migracija i potvrdio migration history. Frontend build/lint/format, 427 fajlova/1.656 testova, i18n, docs guard, container/supply-chain i CI gate su prošli. E2E critical flows/install wizard su preskočeni na pushu; image high/critical enforcement je `skipped` jer actionable count nije našao nalaze.
+- Prvi kodni CI [`41056869558`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41056869558) otkrio je stale backend executor-key assertion i nedosljedan integration-test period (10-dnevni fixture uz retention od 1 dana). Test expectation je proširen na novu kategoriju, a test period poravnat na 30 dana; finalni CI `41057855403` je zelen.
+- Nova aditivna migracija je `20271030110000_asset_transfer_retention_lifecycle`; migracijski replay se desio samo na disposable CI bazi. Ciljna baza nije dostupna iz sandboxa (`DATABASE_URL` nije postavljen) pa target migration status/apply nije provjeren niti izvršen; korisnička potvrda prethodne W7.13 migracije nije ponovljena.
+- Deklarisani registry nakon W7.14: **575 otvorenih / 117 zatvorenih / 692 ukupno**; machine-readable source statusi: **578 otvorenih / 103 zatvorena / 11 historijskih**, uz netaknutu raniju razliku od tri statusa. Detaljni acceptance, rollout i rollback su u [100-assets-transfer-retention-lifecycle.md](implementation/100-assets-transfer-retention-lifecycle.md).
+
+W7.15 / `BA-assets-15` (P2, hard delete dependency cleanup i očuvanje asset event history) nije započet i čeka zasebno odobrenje. Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.

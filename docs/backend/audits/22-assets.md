@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, W7.8 samo `BA-assets-08`, W7.9 samo `BA-assets-09`, W7.10 samo `BA-assets-10`, W7.11 samo `BA-assets-11`, W7.12 samo `BA-assets-12`, a W7.13 samo `BA-assets-13`. `BA-assets-14`–`BA-assets-19` ostaju otvoreni.
+**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, W7.8 samo `BA-assets-08`, W7.9 samo `BA-assets-09`, W7.10 samo `BA-assets-10`, W7.11 samo `BA-assets-11`, W7.12 samo `BA-assets-12`, W7.13 samo `BA-assets-13`, a W7.14 samo `BA-assets-14`. `BA-assets-15`–`BA-assets-19` ostaju otvoreni.
 
 ## 1. Executive summary
 
@@ -167,7 +167,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | BA-assets-11 | P2       | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status             | zatvoreno |
 | BA-assets-12 | P2       | License/contract/transfer i drugi business writeovi nisu atomski sa auditom                    | zatvoreno |
 | BA-assets-13 | P2       | Import claim nema eksplicitno APPLYING lease/recovery/idempotency stanje                       | zatvoreno |
-| BA-assets-14 | P2       | Transfer snapshot/signed binary nemaju definisan anonymization i retention lifecycle           | otvoreno |
+| BA-assets-14 | P2       | Transfer snapshot/signed binary nemaju definisan anonymization i retention lifecycle           | zatvoreno |
 | BA-assets-15 | P2       | Hard delete oslanja se na FK za dio zavisnosti i briše asset event history                    | otvoreno |
 | BA-assets-16 | P3       | License/contract/assignment/mine/forAsset liste se tiho hard-trunciraju                        | otvoreno |
 | BA-assets-17 | P3       | Template `latest+1` version race vraća konflikt bez alokacijskog retry ugovora                 | otvoreno |
@@ -189,8 +189,9 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 - **09:** zatvoreno u W7.9 — Redis single-flight lease sa owner tokenom/run ID-om, heartbeatom, bounded Redis commandima i TTL recoveryjem; detalj u [W7.9 closeoutu](../implementation/95-assets-distributed-directory-sync-lease.md).
 - **10:** ostaje otvoreno — periodični repeatable-job reconciliation nakon Redis restart/flush i last-success health gate; nije dio W7.9.
 - **12:** transactional audit ili durable post-commit outbox za filesystem operacije.
-- **13:** zatvoreno u W7.13 — atomarni `PREVIEW -> APPLYING` CAS dodjeljuje UUID run token i 5-minutni lease; partial batches i durable cursor/count/error checkpointi commit-uju zajedno, a stale token ne može nastaviti poslije lease takeovera. All-or-nothing asset/event writes i uspješan terminalni status su ista transakcija; UI nudi resume nakon isteka leasea. Legacy `PREVIEW` jobovi sa isteklim `expiresAt` se označe kao `EXPIRED`, bez opasnog backfill/replaya. PostgreSQL acceptance, CI i rollout/rollback su u [W7.13 closeoutu](../implementation/99-assets-import-apply-recovery.md). `BA-assets-14`–`BA-assets-19` ostaju otvoreni.
-- **14–15:** formalni retention/anonymization, orphan file cleanup i tombstone/history odluka.
+- **13:** zatvoreno u W7.13 — atomarni `PREVIEW -> APPLYING` CAS dodjeljuje UUID run token i 5-minutni lease; partial batches i durable cursor/count/error checkpointi commit-uju zajedno, a stale token ne može nastaviti poslije lease takeovera. All-or-nothing asset/event writes i uspješan terminalni status su ista transakcija; UI nudi resume nakon isteka leasea. Legacy `PREVIEW` jobovi sa isteklim `expiresAt` se označe kao `EXPIRED`, bez opasnog backfill/replaya. PostgreSQL acceptance, CI i rollout/rollback su u [W7.13 closeoutu](../implementation/99-assets-import-apply-recovery.md). Na W7.13 checkpointu `BA-assets-14`–`BA-assets-19` bili su otvoreni.
+- **14:** zatvoreno u W7.14 — DPO-configurable retention ima default `0` (isključeno), obavezni dry-run gate i obrađuje samo terminalne transfere bez legal holda; snapshot/reference podaci se redaktuju, signed binary se fail-closed i retryably briše, a minimalni transfer zapis i broj stavki ostaju. Acceptance, CI, migration rollout i rollback su u [W7.14 closeoutu](../implementation/100-assets-transfer-retention-lifecycle.md). `BA-assets-15`–`BA-assets-19` ostaju otvoreni.
+- **15:** hard-delete dependency cleanup i očuvanje asset event history ostaju zaseban otvoreni nalaz.
 - **16–19:** cursor/hasMore, atomic template sequence, ops metrike i puna Postgres/Redis/filesystem test matrica.
 
 ## 17. Baseline score
@@ -365,4 +366,12 @@ Direktni PostgreSQL acceptance suite `backend/src/modules/assets/asset-import-ap
 
 Kodni commit i finalni testani kodni SHA su `f6c41bfe75c3c628f763bdfd8320d950d3746802`; zeleni kodni CI [`41036970834`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41036970834) prošao je Prisma schema validate/generate, backend build/lint/Jest, release replay svih 100 migracija, migration-history provjeru i real PostgreSQL/Redis integracijske suiteove, frontend lint/format/test/build, docs guard, container/supply-chain i CI gate. E2E critical flows/install wizard su preskočeni po push triggeru; zero-high/critical image enforcement je `skipped` bez actionable nalaza. Nije bilo neuspjelog CI pokušaja. Lokalno su prošli ciljano backend ESLint, Jest `2` suite-a/`6` testova, traceability pre-closeout `8/8`, isolated integration harness `3/3`, migration policy (100 migracija; `2/2`), frontend testovi (`427` fajlova / `1.656` testova), lint, Prettier, i18n check i build. Lokalni generated Prisma client download bio je blokiran TLS-om do `binaries.prisma.sh`; ciljna `DATABASE_URL` nije bila postavljena, pa local migration status nije provjeren.
 
-Po W7.13 zatvoren je samo `BA-assets-13`. `BA-assets-14`–`BA-assets-19` ostaju otvoreni. Deklarisani zbir je sada **576 otvorenih / 116 zatvorenih / 692 ukupno**; machine-readable source plan prikazuje **579 otvorenih / 102 zatvorena / 11 historijskih**. Ranija razlika od tri statusa između deklarisanog agregata i source redova ostaje zasebna reconciliation obaveza; nije proširena niti administrativno zatvorena ovim paketom. Detaljni rollout/preflight/rollback i acceptance dokaz je u [W7.13 closeoutu](../implementation/99-assets-import-apply-recovery.md). W7.14 nije odobren niti započet.
+Na W7.13 checkpointu zatvoren je samo `BA-assets-13`. Tadašnji deklarisani zbir bio je **576 otvorenih / 116 zatvorenih / 692 ukupno**, a machine-readable source plan **579 otvorenih / 102 zatvorena / 11 historijskih**; preegzistentna razlika od tri statusa ostaje zasebna reconciliation obaveza. W7.13 closeout i tadašnji acceptance nalaz su u [99-assets-import-apply-recovery.md](../implementation/99-assets-import-apply-recovery.md).
+
+## 33. Implementacijski closeout — W7.14 (`BA-assets-14`)
+
+W7.14 zatvara samo `BA-assets-14` (P2). `assetTransfers` retention je DPO-configurable, podrazumijevano `0` (isključeno), minimum 1 dan kada se uključi i obavezan dry-run gate; nije uveden fiksni pravni rok. Obrada bira samo `SIGNED`/`CANCELLED` transfere čiji terminalni datum prelazi cutoff i preskače zapise s legal holdom. Retention redaktuje snapshot i tekst/reference polja, uklanja signed binary, čisti template/asset reference i čuva minimalni transfer skeleton, uključujući jedinstveni broj, status, datume i broj stavki.
+
+Signed-file purge request je durable marker koji odmah zatvara signed-copy endpoint; bounded storage deletion je idempotentan i retrya se nezavisno od retention perioda, uključujući kada je kategorija isključena. Anonymization isto scrubuje transfer snapshot/free text i queue-a binary purge bez dugog ID parametra-lista. Backend/frontend acceptance, migration details, rollout i rollback su u [W7.14 closeoutu](../implementation/100-assets-transfer-retention-lifecycle.md). CI [`41057855403`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41057855403) je zelen. Migracija `20271030110000_asset_transfer_retention_lifecycle` je replayovana na disposable CI bazi, ali nije primijenjena na ciljnu instalaciju; ciljna migracijska historija nije dostupna iz ovog sandboxa.
+
+Deklarisani zbir nakon W7.14 je **575 otvorenih / 117 zatvorenih / 692 ukupno**; machine-readable source plan je **578 otvorenih / 103 zatvorena / 11 historijskih**. Prethodna razlika od tri statusa ostaje netaknuta. `BA-assets-15`–`BA-assets-19` ostaju otvoreni; W7.15 nije započet.
