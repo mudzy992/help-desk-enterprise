@@ -1,7 +1,7 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; implementacijski Val 7 je u toku<br>
-**Datum ažuriranja:** 2026-10-29<br>
+**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.9 završen, W7.10 sljedeći)<br>
+**Datum ažuriranja:** 2026-10-30<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
 
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.8 završen; W7.9 je sljedeći planirani paket).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.9 završen; W7.10 je sljedeći planirani paket).
 
 ### Redoslijed
 
@@ -513,8 +513,17 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Lokalni backend lint je imao 0 grešaka i tri postojeća `no-explicit-any` upozorenja u nepovezanom SLA specu. Wiring check/test (614 ruta, 6/6), integration harness (3/3), migration policy (98 migracija, 2/2) i `git diff --check` su prošli. Lokalni Jest nije pokretan jer generated Prisma client nije dostupan; CI ga je generisao i pokrenuo suiteove.
 - Deklarisani registry poslije W7.8: **581 otvoren / 111 zatvorenih / 692 ukupno**; machine-readable statusi su 584 open / 97 closed / 11 historijskih redova, uz preegzistentnu reconciliation razliku. 19 početnih P1 nalaza u Valu 7 ostaje otvoreno.
 
-### Sljedeći planirani paket — W7.9
+### W7.9 — Redis lease za directory sync — završeno
 
-**`BA-assets-09` (P2):** directory sync single-flight lock je samo in-memory po procesu. Paket nije započet; ne preuzimati `BA-assets-10` scheduler Redis-loss reconciliation ni druge susjedne nalaze bez vlastitog scopea.
+- Zatvoren je samo `BA-assets-09` (P2). Finalni testani SHA `2f53edc1de07669f32fb9e1254ee0916eb584d64`; CI [`41010129252`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41010129252) je zelen.
+- Manual/API, scheduled worker i CLI sada arbitriraju preko Redis `SET NX PX` leasea sa `runId`/owner tokenom, TTL-om 120 s, 30 s heartbeat intervalom i 2 s komadnim timeoutom. Compare-owner Lua renewal/release štiti successor lease; Redis outage i ownership loss prekidaju run. Apply update loop propagira lease loss umjesto da ga broji kao običan asset failure; CLI otvara/zatvara zajednički Redis klijent.
+- Unit/service testovi pokrivaju multi-instance contention, release, Redis outage i lease loss; real-Redis suite sa dva klijenta pokriva atomic contention, renewal preko početnog TTL-a i TTL recovery nakon crasha. Suite je registrovan u isolated integration runneru.
+- Nema Prisma schema promjene ni DB migracije. `BA-assets-10` scheduler reconciliation, import recovery i business audit atomarnost nisu preuzeti.
+- CI pokušaj `41009478021` pao je na našim literal-type/mocked-Redis test fixture greškama; ispravljeno je prije finalnog `41010129252`. Zeleni CI je prošao backend, PostgreSQL/Redis integration, frontend, docs guard, container/supply-chain i CI gate; E2E jobovi su preskočeni na pushu, a image vulnerability enforcement je `skipped` uz actionable count 0. Lokalni backend Jest/build nisu pokretani zbog nedostajućih `node_modules`/generated Prisma clienta i ranije zabilježene sandbox TLS blokade.
+- Deklarisani registry poslije W7.9: **580 otvorenih / 112 zatvorenih / 692 ukupno**; machine-readable source statusi su 583 open / 98 closed / 11 historijskih, uz istu preegzistentnu razliku. 19 početnih P1 nalaza u Valu 7 ostaje otvoreno. Potpuni dokaz, rollout i rollback je u [95-assets-distributed-directory-sync-lease.md](implementation/95-assets-distributed-directory-sync-lease.md).
+
+### Sljedeći planirani paket — W7.10
+
+**`BA-assets-10` (P2):** periodična reconciliation repeatable scheduler registracije nakon Redis restart/flush-a ili startup greške i last-success health signal. Paket nije započet; ne preuzimati susjedne assets nalaze bez vlastitog scopea.
 
 Ostali početni P1 paketi ostaju otvoreni: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01/02` i `BA-search-01`. W7 redoslijed ostaje dependency-first; ne zatvara se nalaz bez direktnog acceptance dokaza, a novi DB ugovori zahtijevaju zaseban migration/rollback plan.

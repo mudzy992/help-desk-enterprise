@@ -5,15 +5,15 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,59/10**<br>
 **Nalazi:** 4 P1, 11 P2, 4 P3<br>
-**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, a W7.8 samo `BA-assets-08`; `BA-assets-09`–`BA-assets-19` ostaju otvoreni.
+**Implementacija:** W7.1–W7.6 zatvorili su `BA-assets-01`–`BA-assets-06`; W7.7 je zatvorio samo `BA-assets-07`, W7.8 samo `BA-assets-08`, a W7.9 samo `BA-assets-09`. `BA-assets-10`–`BA-assets-19` ostaju otvoreni.
 
 ## 1. Executive summary
 
 `assets` je širok CMDB domen: tipovi i custom atributi, lokacije, asset CRUD/status/custody, relacije i impact, ticket veze, licence i ugovori, spreadsheet import/export, directory sync, transferi sa DOCX/signed kopijom te expiry reminders. Pozitivna osnova je značajna: OU subtree filteri i not-found direct-ID semantika, optimistic version kod općeg edita i transfera, transactional asset eventi, AES-GCM ključevi, formula escaping, apply-time scope revalidacija, frozen transfer snapshot, DB sekvenca, ClamAV i contained storage path.
 
-Baseline je **4,59/10**. Četiri početna P1 nalaza pogađala su authorization, povjerljivost, custody integritet i operativnu isporuku: globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označavao poslanim bez primaoca ili potvrđene isporuke. W7.1–W7.4 su zatvorili sva četiri; W7.5 je zasebno zatvorio P2 DB invariant za unique custom JSON atribut, W7.6 P2 DB graph invariant za directed cycles i simetrične `CONNECTED_TO` duplikate, W7.7 per-user license OU/scope, a W7.8 ticket primary-link invariant. Preostali assets nalazi ostaju zasebni i otvoreni.
+Baseline je **4,59/10**. Četiri početna P1 nalaza pogađala su authorization, povjerljivost, custody integritet i operativnu isporuku: globalni bypass za scoped ADMIN, foreign asset metadata leak, stale status/custody mutacije i reminder threshold koji se označavao poslanim bez primaoca ili potvrđene isporuke. W7.1–W7.4 su zatvorili sva četiri; W7.5 je zasebno zatvorio P2 DB invariant za unique custom JSON atribut, W7.6 P2 DB graph invariant za directed cycles i simetrične `CONNECTED_TO` duplikate, W7.7 per-user license OU/scope, W7.8 ticket primary-link invariant, a W7.9 Redis single-flight lease za directory run. Preostali assets nalazi ostaju zasebni i otvoreni.
 
-Dodatni nalazi uključuju cross-OU license user assignment, process-local directory lock, primarni ticket link bez DB invariant-a, nedurable extra-recipient email, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. W7.7 je zatvorio samo per-user license target OU/scope dio; W7.8 je zatvorio samo ticket primary-link invariant; asset-target cross-OU semantika ostaje otvorena. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.8 closeout dokazi su evidentirani na kraju ovog dokumenta.
+Dodatni nalazi uključuju cross-OU license user assignment, boot-only schedulere, hard truncation, non-atomic business audit i lifecycle/retention nedostatke. W7.7 je zatvorio samo per-user license target OU/scope dio; W7.8 ticket primary-link invariant; W7.9 process-local directory lock. Asset-target cross-OU semantika i ostali nalazi ostaju otvoreni. Nema P0. Baseline ocjena i audit opis ostaju snapshot početnog stanja; W7.1–W7.9 closeout dokazi evidentirani su na kraju ovog dokumenta.
 
 ## 2. Scope i inventar
 
@@ -85,9 +85,9 @@ Unique attribute race i opći optimistic konflikt postoje i kroz import. Parsed 
 
 Planner razlikuje create/update/adopt/skip/missing, manual assignment pobjeđuje suggestion, missing računar se ne auto-retireuje, a writes koriste verziju gdje je primjenjivo. Setting i addon gate su prisutni.
 
-Single-flight `running` zaštita je in-memory boolean po procesu. Manualni, scheduled i višestruki worker instance runovi mogu se preklopiti. Multi-instance run može duplirati create/adopt plan, međusobno mijenjati missing marker i proizvesti nepouzdan zbirni audit. Potreban je DB/Redis distributed lease sa owner/expiry, run ID i recoveryjem.
+Baseline single-flight `running` zaštita je bila in-memory boolean po procesu. Manualni, scheduled i višestruki worker instance runovi mogli su se preklopiti, duplirati create/adopt plan, međusobno mijenjati missing marker i proizvesti nepouzdan zbirni audit. W7.9 (`BA-assets-09`) je zatvorio ovaj nalaz Redis leaseom sa nasumičnim owner tokenom, run ID-om, PX expiryjem i compare-owner heartbeat/release skriptama. Lease koriste zajednički service put API-ja, workera i CLI-ja; neuspješan Redis arbitration/renewal prekida sync, a TTL vraća mogućnost rada nakon crasha. Nije uveden DB run-state niti je mijenjan API response shape.
 
-Scheduler upisuje repeatable job samo pri bootu. Redis restart/flush ili startup registracijska greška ostavlja sync bez posla do redeploya. Nema periodičnog reconciliationa, last-success age health gatea ni stale-lock/run recovery testa.
+Scheduler upisuje repeatable job samo pri bootu. Redis restart/flush ili startup registracijska greška ostavlja sync bez posla do redeploya. Nema periodičnog reconciliationa ni last-success age health gatea; to je zasebni otvoreni `BA-assets-10` i nije obuhvaćen W7.9. W7.9 lease ima test expiry/recovery za prekinut owner, ali ne reconciliira scheduler registraciju.
 
 ## 10. Transferi i signed dokumenti
 
@@ -162,7 +162,7 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 | BA-assets-06 | P2       | Parallel relation cycle/symmetric insert može prekršiti graph invariant                        | zatvoreno |
 | BA-assets-07 | P2       | Per-user license assignment nema user OU/scope kompatibilnost                                 | zatvoreno |
 | BA-assets-08 | P2       | Ticket primary link nema partial unique/locking invariant                                     | zatvoreno |
-| BA-assets-09 | P2       | Directory single-flight lock je samo in-memory po procesu                                     | otvoreno |
+| BA-assets-09 | P2       | Directory single-flight lock je samo in-memory po procesu                                     | zatvoreno |
 | BA-assets-10 | P2       | Directory i reminder scheduler nemaju Redis-loss reconciliation                               | otvoreno |
 | BA-assets-11 | P2       | Extra reminder email zaobilazi durable delivery i per-recipient dedupe/status                  | otvoreno |
 | BA-assets-12 | P2       | License/contract/transfer i drugi business writeovi nisu atomski sa auditom                    | otvoreno |
@@ -186,7 +186,8 @@ E2E 23–28 pokrivaju glavni assets UI/API katalog, CRUD, import, directory i tr
 - **05–06:** normalizovane unique attribute vrijednosti i canonical relation edge/invariant uz DB constraint/locking.
 - **07:** per-user license target OU/scope je zatvoren u W7.7; asset-target cross-OU semantika ostaje otvorena.
 - **08:** zatvoreno u W7.8 — partial unique indeks, parent-ticket lock, deferred exact-one provjera i deterministična legacy reconciliation procedura.
-- **09–10:** distributed sync lease, run state, periodični repeatable-job reconcile i health gate.
+- **09:** zatvoreno u W7.9 — Redis single-flight lease sa owner tokenom/run ID-om, heartbeatom, bounded Redis commandima i TTL recoveryjem; detalj u [W7.9 closeoutu](../implementation/95-assets-distributed-directory-sync-lease.md).
+- **10:** ostaje otvoreno — periodični repeatable-job reconciliation nakon Redis restart/flush i last-success health gate; nije dio W7.9.
 - **12:** transactional audit ili durable post-commit outbox za filesystem operacije.
 - **13:** APPLYING lease sa run tokenom, retry/reconcile i dokumentovanom all-or-nothing semantikom.
 - **14–15:** formalni retention/anonymization, orphan file cleanup i tombstone/history odluka.
@@ -229,7 +230,7 @@ Unique attribute storage, relation canonical/cycle zaštita, primary partial uni
 
 ### Faza 4 — import/directory i audit
 
-APPLYING lease/idempotency, distributed directory run lock, bounded recovery te transactional/outbox audit standard.
+W7.9 je zatvorio distributed directory run lock (`BA-assets-09`). Preostaju APPLYING lease/idempotency za import, bounded recovery i transactional/outbox audit standard.
 
 ### Faza 5 — privacy, retention i API completeness
 
@@ -308,4 +309,10 @@ Implementacijski commit je `f9a90ba057b612451a5f4868947ce32a0e73ef43`; zeleni CI
 
 Nema schema kolone niti backfill-a. Migracija odbija deployment ako preflight nađe ticket bez tačno jednog primary reda; ne prepravlja tiho stare podatke. [W7.8 closeout](../implementation/94-assets-ticket-primary-invariant.md) sadrži preflight, deterministični repair SQL, rollout, failed-migration recovery i rollback. Aplikacijski rollback ostavlja DB guardove; uklanjanje nakon uspješno primijenjene migracije ide isključivo kroz zasebnu forward cleanup migraciju. Eventualna pre-deploy reconciliation ostaje validna i ne vraća se na poznato neispravno stanje.
 
-`BA-assets-09`–`BA-assets-19` ostaju otvoreni; W7.9 (`BA-assets-09`, directory single-flight lock) je sljedeći paket i nije započet.
+Na tadašnjem W7.8 checkpointu `BA-assets-09`–`BA-assets-19` su ostali otvoreni, a W7.9 još nije bio započet; kasniji W7.9 closeout je u odjeljku 28.
+
+## 28. Implementacijski closeout — W7.9 (`BA-assets-09`)
+
+W7.9 zatvorio je samo `BA-assets-09` (P2): `AssetDirectorySyncService` sada koristi zajednički Redis single-flight lease za API/manual, worker/scheduled i CLI runove. Lease ključ `assets:directory-sync:full-run` sadrži `runId` i nasumični `ownerToken`, počinje atomarnim `SET NX PX` (TTL 120 s), obnavlja se svakih 30 s, a compare-owner Lua skripte štite renewal/release. Redis komande imaju timeout 2 s; outage, lease expiry/ownership loss ili neuspješan heartbeat fail-closed. Service provjerava lease oko LDAP/planning/report/audit faza i tokom apply; ownership error se nikad ne broji kao običan neuspjeh asseta. `runId` se čuva u audit metadata/logovima. Nema DB schema promjene niti migracije. `BA-assets-10` scheduler reconciliation ostaje zasebno otvoren.
+
+Service/unit testovi dokazuju cross-instance contention i release, fail-closed Redis outage, lease loss nakon LDAP i propagation gubitka leasea iz update transakcije. Real-Redis integration suite sa dva nezavisna klijenta pokriva atomic contention, renewal duži od početnog TTL-a i recovery nakon crash/expiry; suite je u isolated integration runneru. Kodni commit je `0f2e3d3bec3fffb828a651038a571e349352fb3b`, a testni tip/korekcija `2f53edc1de07669f32fb9e1254ee0916eb584d64` je finalni testani SHA. Prvi CI `41009478021` pao je zbog našeg literal-type/mocked-Redis test fixture problema, koji je ispravljen. Zeleni CI [`41010129252`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41010129252) pokrio je backend build/lint/Jest, PostgreSQL+Redis acceptance, frontend, docs guard, container/supply-chain i gate. E2E jobovi su preskočeni na pushu; image vulnerability enforcement je `skipped` jer je scanner actionable count bio 0. Potpuni testni, rollout, rollback i lokalni limit dokaz je u [95-assets-distributed-directory-sync-lease.md](../implementation/95-assets-distributed-directory-sync-lease.md).
