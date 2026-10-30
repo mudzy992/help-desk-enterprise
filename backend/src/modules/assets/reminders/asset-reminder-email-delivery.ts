@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 
+export type AssetReminderEmailDeliveryPrisma = Pick<PrismaService, 'assetReminderEmailDelivery'>;
+
 export const assetReminderEmailDeliveryStatuses = {
   claimed: 'CLAIMED',
   sent: 'SENT',
@@ -31,7 +33,7 @@ export function assetReminderRecipientHash(address: string): string {
  * claim after another worker has taken it over.
  */
 export async function claimAssetReminderEmailDelivery(
-  prisma: PrismaService,
+  prisma: AssetReminderEmailDeliveryPrisma,
   identity: AssetReminderEmailDeliveryIdentity,
   options: { readonly now?: Date; readonly staleAfterMs?: number } = {},
 ): Promise<AssetReminderEmailClaim> {
@@ -96,7 +98,7 @@ export async function claimAssetReminderEmailDelivery(
 }
 
 export async function markAssetReminderEmailDeliverySent(
-  prisma: PrismaService,
+  prisma: AssetReminderEmailDeliveryPrisma,
   identity: AssetReminderEmailDeliveryIdentity,
   claimToken: string,
   now: Date = new Date(),
@@ -118,7 +120,7 @@ export async function markAssetReminderEmailDeliverySent(
 }
 
 export async function markAssetReminderEmailDeliveryFailed(
-  prisma: PrismaService,
+  prisma: AssetReminderEmailDeliveryPrisma,
   identity: AssetReminderEmailDeliveryIdentity,
   claimToken: string,
   now: Date = new Date(),
@@ -140,7 +142,7 @@ export async function markAssetReminderEmailDeliveryFailed(
 }
 
 async function readStatus(
-  prisma: PrismaService,
+  prisma: AssetReminderEmailDeliveryPrisma,
   where: {
     readonly recipientHash_dedupeKey: AssetReminderEmailDeliveryIdentity;
   },

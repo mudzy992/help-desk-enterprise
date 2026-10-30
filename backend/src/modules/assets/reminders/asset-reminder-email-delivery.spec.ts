@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../../common/prisma/prisma.service';
+import type { AssetReminderEmailDeliveryPrisma } from './asset-reminder-email-delivery';
 import {
   assetReminderEmailClaimStaleAfterMs,
   assetReminderEmailDeliveryStatuses,
@@ -15,7 +15,7 @@ type DeliveryDelegate = {
 };
 
 function createPrisma(delegate: Partial<DeliveryDelegate> = {}): {
-  prisma: PrismaService;
+  prisma: AssetReminderEmailDeliveryPrisma;
   delivery: DeliveryDelegate;
 } {
   const delivery: DeliveryDelegate = {
@@ -25,7 +25,7 @@ function createPrisma(delegate: Partial<DeliveryDelegate> = {}): {
     ...delegate,
   };
   return {
-    prisma: { assetReminderEmailDelivery: delivery } as unknown as PrismaService,
+    prisma: { assetReminderEmailDelivery: delivery } as unknown as AssetReminderEmailDeliveryPrisma,
     delivery,
   };
 }
