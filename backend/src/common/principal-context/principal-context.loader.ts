@@ -8,6 +8,7 @@ import {
   type PrincipalContextCacheClient,
 } from './principal-context.cache';
 import { loadPrincipalContext } from './load-principal-context';
+import { memoizeRequestPromise } from '../request-context/request-context.storage';
 import type { PrincipalContext } from './principal-context.types';
 
 /**
@@ -27,11 +28,18 @@ export class PrincipalContextLoader {
     @Inject(redisTokens.client) private readonly redis: Redis,
   ) {}
 
-  async load(subjectId: string): Promise<PrincipalContext | null> {
+  load(subjectId: string): Promise<PrincipalContext | null> {
     const id = subjectId.trim();
     if (id.length === 0) {
-      return null;
+      return Promise.resolve(null);
     }
+    // SessionAuthenticationGuard performs the durable authority check first.
+    // RoleGuard and the service can then share that same request-bound result
+    // instead of repeating an identical PostgreSQL read for every layer.
+    return memoizeRequestPromise(this, id, () => this.loadFromCache(id));
+  }
+
+  private async loadFromCache(id: string): Promise<PrincipalContext | null> {
     const client = await this.cacheClient();
     const cached = await readCachedPrincipalContext(client, id);
     if (cached !== null && (await this.matchesDurableAuthority(id, cached))) {

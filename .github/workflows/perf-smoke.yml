@@ -211,7 +211,7 @@ jobs:
           # message endpoints would still report 0,00.
           set -euo pipefail
           read_json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
-          rm -f /tmp/seed-tickets.log
+          rm -f /tmp/seed-tickets.log /tmp/perf-ticket-ids.txt
           note() { echo "$*" | tee -a /tmp/seed-tickets.log; }
 
           # Reuse the already-enrolled SuperAdmin bearer token written by the wizard step.
@@ -259,7 +259,13 @@ jobs:
               -X POST "$BASE_URL/tickets" -H "$auth" -H 'content-type: application/json' \
               -d "{\"title\":\"Perf smoke ticket $index\",\"description\":\"Seeded by the perf-smoke workflow so the detail, message and dashboard endpoints are measurable. Ticket $index of $SEED_TICKETS; safe to delete.\",\"impact\":\"MEDIUM\",\"urgency\":\"MEDIUM\",\"serviceId\":\"$service_id\",\"originUnitId\":\"$organizational_unit_id\",\"acknowledgeDuplicate\":true}")
             case "$status" in
-              2*) created=$((created + 1)) ;;
+              2*)
+                created=$((created + 1))
+                ticket_id=$(read_json 'd.get("id", "")' < /tmp/ticket.json || true)
+                if [ -n "$ticket_id" ]; then
+                  printf '%s\n' "$ticket_id" >> /tmp/perf-ticket-ids.txt
+                fi
+                ;;
               *) failed=$((failed + 1)); [ "$failed" -le 3 ] && head -c 200 /tmp/ticket.json ;;
             esac
           done
@@ -269,6 +275,11 @@ jobs:
             echo "::error::no ticket could be created — the smoke would measure an empty app"
             exit 1
           fi
+          if [ ! -s /tmp/perf-ticket-ids.txt ]; then
+            echo "::error::created tickets returned no ids — agent VUs cannot be distributed across fixtures"
+            exit 1
+          fi
+          note "ticket ids captured for k6 VUs: $(wc -l < /tmp/perf-ticket-ids.txt | tr -d ' ')"
 
           inbox=$(curl -sS -H "$auth" "$BASE_URL/tickets/inbox?pageSize=5" \
             | read_json 'len(d.get("items", []) if isinstance(d, dict) else d)')
@@ -297,6 +308,11 @@ jobs:
           # so a broken threshold or an aborted run left the job green — which is why the
           # 200 VU "gate" could not block anything.
           set -o pipefail
+          # Give each agent VU a stable, distinct seeded ticket so concurrent replies
+          # exercise the message path without all writers contending on the first inbox row.
+          if [ -s /tmp/perf-ticket-ids.txt ]; then
+            export AGENT_TICKET_IDS="$(paste -sd, /tmp/perf-ticket-ids.txt)"
+          fi
           k6 run perf/smoke.js 2>&1 | tee perf-smoke.log
           echo "--- threshold verdict ---"
           grep -E '(✓|✗|•)' perf-smoke.log || true
@@ -394,6 +410,38 @@ jobs:
             echo "::error::avg db_queries_per_request=${APP_AVG} (aplikacija) prelazi budžet od ${BUDGET}"
             exit 1
           fi
+
+      - name: Publish the smoke result in the Actions summary
+        if: always()
+        run: |
+          {
+            echo "## Performance smoke evidence"
+            echo ""
+            if [ -f /tmp/query-budget-report.md ]; then
+              cat /tmp/query-budget-report.md
+            else
+              echo "Query-budget report was not produced; inspect the step log."
+            fi
+            if [ -f perf/results/ci-smoke.md ]; then
+              echo ""
+              echo "## k6 result"
+              echo ""
+              sed -n '1,100p' perf/results/ci-smoke.md
+            fi
+            echo ""
+            echo "## Non-2xx API responses"
+            echo ""
+            echo '```'
+            if [ -f api.log ]; then
+              failures=$(sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' api.log \
+                | grep -oE 'status=[0-9]+ method=[A-Z]+ path=[^ ]+' \
+                | grep -vE 'status=2[0-9][0-9]' | sort | uniq -c | sort -rn | head -10 || true)
+              if [ -n "$failures" ]; then printf '%s\n' "$failures"; else echo "(none)"; fi
+            else
+              echo "API log is not available."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the k6 summary and the API log
         if: always()

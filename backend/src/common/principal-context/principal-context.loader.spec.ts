@@ -10,6 +10,7 @@ import {
 import { mapPrincipalUser } from './load-principal-context';
 import { PrincipalContextLoader } from './principal-context.loader';
 import { PrincipalContextInvalidator } from './principal-context-invalidator.service';
+import { runWithRequestId } from '../request-context/request-context.storage';
 
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -120,6 +121,32 @@ function setup(seed: Record<string, unknown> = userRow()) {
 }
 
 describe('principal context loading (phase 2.2)', () => {
+  it('shares one durable authority read across guards and services per request', async () => {
+    const { loader, queries } = setup();
+    // Prime Redis so each call in the measured request would hit the durable
+    // authority fence if request-local memoization were not in place.
+    await runWithRequestId('principal-cache-prime', () => loader.load('user-agent'));
+    queries.length = 0;
+
+    await runWithRequestId('principal-request-1', async () => {
+      const [guard, roleGuard, service] = await Promise.all([
+        loader.load('user-agent'),
+        loader.load('user-agent'),
+        loader.load('user-agent'),
+      ]);
+      expect(guard).not.toBeNull();
+      expect(roleGuard).toEqual(guard);
+      expect(service).toEqual(guard);
+    });
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
+
+    await runWithRequestId('principal-request-2', async () => {
+      expect(await loader.load('user-agent')).not.toBeNull();
+    });
+    // A subsequent HTTP request still performs its own durable authority fence.
+    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
+  });
+
   it('serves two consecutive requests with a single database load', async () => {
     const { loader, queries } = setup();
     const first = await loader.load('user-agent');

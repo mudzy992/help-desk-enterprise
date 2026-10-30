@@ -11,6 +11,7 @@
 
 import { readFileSync } from 'node:fs';
 import { perfConfig, fullThresholds, scenarioVus } from './config.js';
+import { ticketMessageIdempotencyKey } from './lib/ticket-message-idempotency-key.js';
 import {
   buildSocketUrl,
   encodeConnectPacket,
@@ -57,6 +58,17 @@ check(
   Object.keys(fullThresholds(perfConfig)).includes('tickets_list_duration'),
 );
 
+section('ticket message idempotency');
+const messageKeyA = ticketMessageIdempotencyKey(81, 0, 1_798_000_000_000);
+const messageKeyB = ticketMessageIdempotencyKey(81, 1, 1_798_000_000_000);
+const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/;
+check('message idempotency keys satisfy the DTO UUID v4 contract', uuidV4.test(messageKeyA), messageKeyA);
+check('message idempotency key changes per VU iteration', messageKeyA !== messageKeyB);
+check(
+  'message idempotency key changes between smoke runs',
+  messageKeyA !== ticketMessageIdempotencyKey(81, 0, 1_798_000_000_001),
+);
+
 section('k6 scenario contract');
 
 /**
@@ -86,6 +98,21 @@ for (const entry of ['perf/smoke.js', 'perf/full.js']) {
     /export function setup\(/.test(source),
   );
 }
+
+const scenariosSource = readFileSync('perf/lib/scenarios.js', 'utf8');
+check(
+  'agent reply includes a server-required idempotency key',
+  /idempotencyKey:\s*ticketMessageIdempotencyKey\(__VU,\s*__ITER,\s*now\)/.test(scenariosSource),
+);
+check(
+  'agent flow distributes requests across all available ticket fixtures',
+  /readTicketIds\(inbox\)/.test(scenariosSource) && /config\.behaviour\.agentTicketIds/.test(scenariosSource),
+);
+const configSource = readFileSync('perf/config.js', 'utf8');
+check(
+  'agent fixtures are separate from websocket room subscriptions',
+  /AGENT_TICKET_IDS/.test(configSource) && /env\.TICKET_IDS/.test(configSource),
+);
 
 section('socket.io packets');
 const connect = encodeConnectPacket('/', { token: 'jwt-token' });

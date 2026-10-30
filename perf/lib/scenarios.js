@@ -3,6 +3,7 @@ import http from 'k6/http';
 import { authorizedHeaders, expectOk, login, pickToken } from './http-helpers.js';
 import { recordResponse } from './metrics.js';
 import { openSocketSession } from './ws-client.js';
+import { ticketMessageIdempotencyKey } from './ticket-message-idempotency-key.js';
 
 /**
  * The four behaviours from the plan (§5.1), shared by `smoke.js` and `full.js`
@@ -68,14 +69,18 @@ export function agentTicketFlow(config, data) {
   });
   expectOk(inbox, 'tickets.inbox');
 
-  // Staging seed (2026-09-25): seeded tickets are already claimed, so the inbox is
-  // empty and detail/reply were never measured (p95 = 0). Fall back to TICKET_IDS.
-  const fallbackIds = config.behaviour.ticketIds || [];
+  // Assign a different seeded ticket to each VU when CI supplies the fixture IDs.
+  // Otherwise cycle through the visible page instead of sending every agent to
+  // its first row (which created an unrealistic hot-ticket write pile-up).
+  const seededIds =
+    config.behaviour.agentTicketIds?.length > 0
+      ? config.behaviour.agentTicketIds
+      : config.behaviour.ticketIds || [];
+  const ticketIds = seededIds.length > 0 ? seededIds : readTicketIds(inbox);
   const ticketId =
-    readFirstTicketId(inbox) ??
-    (fallbackIds.length > 0
-      ? fallbackIds[Math.floor(Math.random() * fallbackIds.length)]
-      : null);
+    ticketIds.length === 0
+      ? null
+      : ticketIds[(Number(__VU) - 1) % ticketIds.length];
   if (ticketId === null) {
     sleep(thinkTime(config));
     return;
@@ -95,10 +100,9 @@ export function agentTicketFlow(config, data) {
     const message = http.post(
       `${config.baseUrl}${config.paths.tickets}/${ticketId}/messages`,
       JSON.stringify({
-        // `CreateTicketMessageDto` is exactly `{ type, body }`, and the controller runs
-        // with `forbidNonWhitelisted: true`: the earlier `visibility` field would have
-        // been rejected with a 400 the moment this branch became reachable (the inbox
-        // used to be empty, so the endpoint was never actually called).
+        // The DTO requires a UUID v4 idempotency key as well as the message type
+        // and body; without it ValidationPipe returns 400 before the handler runs.
+        idempotencyKey: ticketMessageIdempotencyKey(__VU, __ITER, now),
         type: 'AGENT_REPLY',
         body: `load test probe ${now}`,
       }),
@@ -177,16 +181,17 @@ export function thinkTime(config) {
   return min + Math.random() * (max - min);
 }
 
-function readFirstTicketId(response) {
+function readTicketIds(response) {
   try {
     const body = response.json();
     const items = Array.isArray(body) ? body : body?.items;
-    if (!Array.isArray(items) || items.length === 0) {
-      return null;
+    if (!Array.isArray(items)) {
+      return [];
     }
-    const first = items[0];
-    return typeof first?.id === 'string' ? first.id : null;
+    return items.flatMap((item) =>
+      typeof item?.id === 'string' && item.id.length > 0 ? [item.id] : [],
+    );
   } catch {
-    return null;
+    return [];
   }
 }

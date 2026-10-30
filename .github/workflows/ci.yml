@@ -18,14 +18,9 @@ name: CI
 #     walk (`install_spec` in the dispatch inputs).
 on:
   push:
-    # TEMPORARY Arena implementation branches use push as their CI evidence
-    # because they are intentionally kept open without a pull request. Remove
-    # these branch entries before merging the completed implementation.
+    # Push-based evidence is enabled only for this active Arena implementation branch.
     branches:
-      - main
-      - arena/7a60171e-help-desk-enterprise
-      - arena/bd31e07b-help-desk-enterprise
-      - arena/298fb5c9-help-desk-enterprise
+      - arena/864951a6-help-desk-enterprise
     # A commit that only touches documentation cannot change product behaviour..
     # Note: this filter is deliberately NOT on `pull_request` (see above).
     paths-ignore:

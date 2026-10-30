@@ -4,7 +4,7 @@
  *
  * Environment overrides: BASE_URL, VU, DURATION, ACTIVE_RATIO, REPORT_LABEL,
  * AGENT_EMAIL/AGENT_PASSWORD, REQUESTER_EMAIL/REQUESTER_PASSWORD,
- * TICKET_IDS (comma separated), SEARCH_TERM.
+ * TICKET_IDS (comma separated), AGENT_TICKET_IDS, SEARCH_TERM.
  *
  * `__ENV` exists inside k6 only; the guard below lets plain Node import this
  * file for the sanity check in `perf/validate.js`.
@@ -62,6 +62,12 @@ export const perfConfig = {
     searchTerm: env.SEARCH_TERM || 'vpn',
     // Ticket ids the WS scenario joins; empty = connect and listen only.
     ticketIds: (env.TICKET_IDS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0),
+    // Dedicated fixtures for the agent write flow; keep the websocket room
+    // subscription list independently configurable.
+    agentTicketIds: (env.AGENT_TICKET_IDS || '')
       .split(',')
       .map((value) => value.trim())
       .filter((value) => value.length > 0),
