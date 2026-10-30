@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.7–W7.14 su zatvorili samo `BA-assets-07`–`BA-assets-14` u svojim paketima; `BA-assets-15`–`BA-assets-19` ostaju otvoreni<br>
+**Status:** audit baseline + djelimična implementacija — W7.7–W7.15 su zatvorili samo `BA-assets-07`–`BA-assets-15` u svojim paketima; `BA-assets-16`–`BA-assets-19` ostaju otvoreni<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-30<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 575 otvorenih / 117 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nakon W7.14; machine-readable source redovi prikazuju 578 otvorenih / 103 zatvorena / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna registry-reconciliation obaveza.
+**Trenutno:** 574 otvorena / 118 zatvorenih / 692 ukupno<br>
+**Napomena:** deklarisani agregat nakon W7.15; machine-readable source redovi prikazuju 577 otvorenih / 104 zatvorena / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -288,7 +288,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-12` | P2 | License/contract/transfer i drugi business writeovi nisu atomski sa auditom | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-13` | P2 | Import claim nema eksplicitno APPLYING lease/recovery/idempotency stanje | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-14` | P2 | Transfer snapshot/signed binary nemaju definisan anonymization i retention lifecycle | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-15` | P2 | Hard delete oslanja se na FK za dio zavisnosti i briše asset event history | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-15` | P2 | Hard delete oslanja se na FK za dio zavisnosti i briše asset event history | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-16` | P3 | License/contract/assignment/mine/forAsset liste se tiho hard-trunciraju | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-17` | P3 | Template `latest+1` version race vraća konflikt bez alokacijskog retry ugovora | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-18` | P3 | Nema scheduler/import/reminder/file-orphan i audit-failure health/metric seta | otvoreno | [22-assets.md](audits/22-assets.md) |
@@ -789,7 +789,9 @@ W7.12 na finalnom testanom SHA `2917363eea13a58be6f76850aa39ccc6c2e655c2`, uz ze
 
 W7.13 je na finalnom testanom SHA `f6c41bfe75c3c628f763bdfd8320d950d3746802`, uz zeleni CI [`41036970834`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41036970834), zatvorio je samo `BA-assets-13` (P2). Import apply sada ima `APPLYING` status, UUID run-token fencing, petominutni lease, durable atomic batch checkpoint i retry/reconcile; all-or-nothing finalizira asset/event writes i terminalni status zajedno. PostgreSQL acceptance testovi i migration replay svih 100 migracija prošli su. Nova migracija je aditivna `20271030100000_asset_import_apply_lease`, bez backfill-a; legacy expired preview jobovi se ne replayaju automatski. Detaljni scope, acceptance, rollout i rollback su u [99-assets-import-apply-recovery.md](implementation/99-assets-import-apply-recovery.md). Na W7.13 checkpointu `BA-assets-14`–`BA-assets-19` su još bili otvoreni.
 
-W7.14 je na finalnom testanom SHA `55531c14ec6b8b7fcb1bcec28cf5b2bf9fb135c5`, uz zeleni CI [`41057855403`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41057855403), zatvorio je samo `BA-assets-14` (P2). DPO retention je default-off/`0`, zahtijeva dry run, obrađuje samo terminalne transfere bez legal holda, redaktuje sadržaj i briše signed binary uz durable retry dok čuva minimalni skeleton. Migracija `20271030110000_asset_transfer_retention_lifecycle` je replayovana na disposable CI bazi, ne na ciljnoj instalaciji. Detalji su u [100-assets-transfer-retention-lifecycle.md](implementation/100-assets-transfer-retention-lifecycle.md). `BA-assets-15`–`BA-assets-19` ostaju otvoreni.
+W7.14 je na finalnom testanom SHA `55531c14ec6b8b7fcb1bcec28cf5b2bf9fb135c5`, uz zeleni CI [`41057855403`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41057855403), zatvorio je samo `BA-assets-14` (P2). DPO retention je default-off/`0`, zahtijeva dry run, obrađuje samo terminalne transfere bez legal holda, redaktuje sadržaj i briše signed binary uz durable retry dok čuva minimalni skeleton. Migracija `20271030110000_asset_transfer_retention_lifecycle` je replayovana na disposable CI bazi, ne na ciljnoj instalaciji. Detalji su u [100-assets-transfer-retention-lifecycle.md](implementation/100-assets-transfer-retention-lifecycle.md). Na W7.14 checkpointu `BA-assets-15`–`BA-assets-19` su ostali otvoreni; W7.15 je kasnije zatvorio samo `BA-assets-15`.
+
+W7.15 je na testanom kodnom SHA `11f43efd37d448142f6c33f99096555ee8f7419d`, uz zeleni CI [`41067304475`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41067304475), zatvorio je samo `BA-assets-15` (P2). Asset fizički briše samo kada nema ticket, relation, transfer, contract, license, problem ili change-request veza; zavisnosti daju stabilni HTTP `409`, a trigger štiti i direktne DB deleteove. `AssetEventArchive` je aditivna orphan arhiva bez Asset FK-a; čuva event ID, originalni asset ID/tag snapshot i cijeli detalj prije cascadea. PostgreSQL acceptance pokriva arhiviranje, SuperAdmin-only history, audit i dependency blocker; CI je prošao Prisma validate/generate/build/lint/Jest, replay svih 102 migracija i PostgreSQL/Redis integration, frontend, docs, container/supply-chain i gate. Migracija nije primijenjena na target; prije primjene provjeriti target status i koristiti single-owner migrator. Detalji su u [101-assets-hard-delete-event-history.md](implementation/101-assets-hard-delete-event-history.md). `BA-assets-16`–`BA-assets-19` ostaju otvoreni.
 
 ## Kontrolni zbir
 
@@ -797,7 +799,7 @@ W7.14 je na finalnom testanom SHA `55531c14ec6b8b7fcb1bcec28cf5b2bf9fb135c5`, uz
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **575**
-- Zatvoreno: **117** (deklarisani W7 agregat nakon W7.14; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
+- Otvoreno: **574**
+- Zatvoreno: **118** (deklarisani W7 agregat nakon W7.15; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

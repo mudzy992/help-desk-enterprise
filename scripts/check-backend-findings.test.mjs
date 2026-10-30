@@ -76,13 +76,22 @@ test("W7.13 closeout ostaje evidentiran za BA-assets-13", async () => {
   assert.deepEqual(byId.get("BA-assets-13"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.14 zatvara samo BA-assets-14, a susjedni nalazi ostaju otvoreni", async () => {
+test("W7.14 closeout ostaje ograničen na BA-assets-14, a BA-assets-16–19 ostaju otvoreni", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
   for (let id = 12; id <= 14; id += 1) {
     assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
   }
-  for (let id = 15; id <= 19; id += 1) {
+  for (let id = 16; id <= 19; id += 1) {
+    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "otvoreno" });
+  }
+});
+
+test("W7.15 zatvara samo BA-assets-15, a BA-assets-16–19 ostaju otvoreni", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
+  assert.deepEqual(byId.get("BA-assets-15"), { source: "22-assets.md", status: "zatvoreno" });
+  for (let id = 16; id <= 19; id += 1) {
     assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "otvoreno" });
   }
 });
