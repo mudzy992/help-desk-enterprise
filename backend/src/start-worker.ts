@@ -28,7 +28,13 @@ export async function startWorker(): Promise<INestApplicationContext> {
       application,
       scheduleReconciler.areSchedulesHealthy() ? "ready" : "degraded",
     );
-  await publishCurrentLifecycle();
+  await publishCurrentLifecycle().catch((error: unknown) => {
+    // Redis may be reconnecting after a restart. Keep the worker/reconciliation
+    // timers alive; the next keepalive republishes the lifecycle state.
+    logger.warn(
+      `Worker lifecycle publish failed type=${error instanceof Error ? error.name : "UnknownError"}`,
+    );
+  });
   const keepAliveTimer = setInterval(() => {
     void publishCurrentLifecycle().catch(() => undefined);
   }, WORKER_KEEP_ALIVE_INTERVAL_MS);
