@@ -72,7 +72,7 @@ function joinedTicket(): TicketResponseJoinedRecord {
       submittedByUserId: 'user-1',
       createdAt: now,
     },
-  } as TicketResponseJoinedRecord;
+  } as unknown as TicketResponseJoinedRecord;
 }
 
 describe('ticket response joined read data', () => {
