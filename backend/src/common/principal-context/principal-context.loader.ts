@@ -8,7 +8,11 @@ import {
   type PrincipalContextCacheClient,
 } from './principal-context.cache';
 import { loadPrincipalContext } from './load-principal-context';
-import { memoizeRequestPromise } from '../request-context/request-context.storage';
+import {
+  getRequestId,
+  memoizeRequestPromise,
+} from '../request-context/request-context.storage';
+import { recordDbQueryTraceLabel } from '../database/db-query-counter';
 import type {
   PrincipalAuthoritySnapshot,
   PrincipalContext,
@@ -64,11 +68,26 @@ export class PrincipalContextLoader {
   ): Promise<PrincipalContext | null> {
     const client = await this.cacheClient();
     const cached = await readCachedPrincipalContext(client, id);
-    if (
-      cached !== null &&
-      (await this.matchesDurableAuthority(id, cached, durableAuthority))
-    ) {
-      return cached;
+    if (cached === null) {
+      tracePrincipalContextCache('redis_miss');
+    } else {
+      const authorityMatches = await this.matchesDurableAuthority(
+        id,
+        cached,
+        durableAuthority,
+      );
+      tracePrincipalContextCache(
+        durableAuthority === undefined
+          ? authorityMatches
+            ? 'redis_hit_database_fence'
+            : 'redis_hit_stale_database_fence'
+          : authorityMatches
+            ? 'redis_hit_session_fence'
+            : 'redis_hit_stale_session_fence',
+      );
+      if (authorityMatches) {
+        return cached;
+      }
     }
     const fresh = await loadPrincipalContext(this.prisma, id);
     if (fresh !== null) {
@@ -134,6 +153,15 @@ export class PrincipalContextLoader {
       );
       return null;
     }
+  }
+}
+
+function tracePrincipalContextCache(outcome: string): void {
+  if (process.env.DB_QUERY_TRACE === 'true') {
+    recordDbQueryTraceLabel(
+      getRequestId(),
+      `principal_context_cache=${outcome}`,
+    );
   }
 }
 

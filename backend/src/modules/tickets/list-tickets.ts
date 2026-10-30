@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuthorizationContextLoader } from "../authorization/authorization-context.loader";
@@ -254,9 +255,13 @@ async function runTicketListQuery(
   if (process.env.DB_QUERY_TRACE === "true") {
     const totalCacheState =
       cache.computedAt(totalKey) === null ? "miss_or_in_flight" : "hit";
+    const keyFingerprint = createHash("sha256")
+      .update(totalKey)
+      .digest("hex")
+      .slice(0, 8);
     recordDbQueryTraceLabel(
       getRequestId(),
-      `ticket_list_total_cache=${totalCacheState}`,
+      `ticket_list_total_cache=${totalCacheState};key=${keyFingerprint}`,
     );
   }
   const { total, totalIsCapped } = await cache.get(totalKey, () =>
