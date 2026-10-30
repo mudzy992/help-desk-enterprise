@@ -11,6 +11,7 @@ import { defaultTicketConfidentialConfiguration } from './confidential/confident
 import { loadTicketRecord } from './load-ticket-record';
 import { TicketsError } from './tickets.error';
 import type { TicketMutationContext, TicketRecord } from './tickets.types';
+import type { TicketResponseJoinedRecord } from './ticket-response-relations';
 
 export async function getTicket(
   prisma: PrismaService,
@@ -31,10 +32,13 @@ export async function getTicket(
   const ticket = await loadTicketRecord(prisma, ticketId, {
     withResponseRelations: options.withResponseRelations,
   });
-  const originUnitPath = await loadOrganizationalUnitPath(
-    prisma,
-    ticket.originUnitId,
-  );
+  const joinedOriginUnit = (
+    ticket as unknown as Partial<TicketResponseJoinedRecord>
+  ).originUnit;
+  const originUnitPath =
+    options.withResponseRelations === true && joinedOriginUnit !== undefined
+      ? (joinedOriginUnit?.ouPath ?? null)
+      : await loadOrganizationalUnitPath(prisma, ticket.originUnitId);
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
