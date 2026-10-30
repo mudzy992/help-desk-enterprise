@@ -1,8 +1,16 @@
 import { directorySyncQueueName } from '../directory-sync/ldaps/directory-sync.job.constants';
-import { assetRemindersQueueName } from '../assets/reminders/asset-reminders.constants';
+import {
+  assetRemindersCronPattern,
+  assetRemindersQueueName,
+  assetRemindersSchedulerId,
+} from '../assets/reminders/asset-reminders.constants';
 import { problemSweepQueueName } from '../problems/sweep/problem-sweep.constants';
 import { changeSweepQueueName } from '../changes/sweep/change-sweep.constants';
-import { assetDirectorySyncQueueName } from '../assets/directory/asset-directory-sync.constants';
+import {
+  assetDirectorySyncCronPattern,
+  assetDirectorySyncQueueName,
+  assetDirectorySyncSchedulerId,
+} from '../assets/directory/asset-directory-sync.constants';
 import { inboundEmailQueueName } from '../inbound-email/inbound-email.constants';
 import { integrationQueueName } from '../integration-queue/integration-queue.constants';
 import { integrationWorkerMaintenanceQueueName } from '../integration-queue/integration-worker-maintenance.job.constants';
@@ -62,3 +70,23 @@ export const opsProbeTimeouts = {
   queueMs: 3_000,
   uptimePushMs: 5_000,
 } as const;
+
+/**
+ * Asset schedules are hourly cron jobs. Permit one complete hourly window plus
+ * the generic cron grace before the last-success gate becomes late.
+ */
+export const assetSchedulerLastSuccessMaxAgeMs = 75 * 60_000;
+export const expectedAssetSchedulers = [
+  {
+    queue: assetDirectorySyncQueueName,
+    schedulerId: assetDirectorySyncSchedulerId,
+    pattern: assetDirectorySyncCronPattern,
+    lastSuccessMaxAgeMs: assetSchedulerLastSuccessMaxAgeMs,
+  },
+  {
+    queue: assetRemindersQueueName,
+    schedulerId: assetRemindersSchedulerId,
+    pattern: assetRemindersCronPattern,
+    lastSuccessMaxAgeMs: assetSchedulerLastSuccessMaxAgeMs,
+  },
+] as const;

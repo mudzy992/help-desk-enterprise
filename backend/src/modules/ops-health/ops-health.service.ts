@@ -146,6 +146,8 @@ export class OpsHealthService {
         lastSuccessAt: scheduler.lastSuccessMs === null ? null : new Date(scheduler.lastSuccessMs).toISOString(),
         lastFailureAt: scheduler.lastFailureMs === null ? null : new Date(scheduler.lastFailureMs).toISOString(),
         graceMs: schedulerGraceMs(scheduler),
+        registered: scheduler.registered !== false,
+        lastSuccessMaxAgeMs: scheduler.lastSuccessMaxAgeMs ?? null,
         state: lateIds.has(`${scheduler.queue}/${scheduler.schedulerId}`) ? ('late' as const) : ('on_time' as const),
       })),
       queues: signals?.queues ?? [],

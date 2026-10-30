@@ -195,6 +195,8 @@ describe("ops health view", () => {
       lastSuccessAt: null,
       lastFailureAt: null,
       graceMs: 0,
+      registered: true,
+      lastSuccessMaxAgeMs: null,
     };
     expect(
       sortSchedulers([

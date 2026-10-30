@@ -48,6 +48,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-unique-attributes.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-ticket-primary-invariant.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/directory/asset-directory-sync-lease.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-scheduler-reconciliation.integration.spec.ts"));
   const names = integrationSpecs.map((spec, index) => buildDatabaseName(index + 1, spec));
   assert.equal(new Set(names).size, integrationSpecs.length);
   for (const name of names) {

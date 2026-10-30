@@ -89,6 +89,53 @@ describe('OpsHealthService', () => {
     expect((await service.overview(now)).components.worker.status).toBe('stale');
   });
 
+  it('surfaces an absent assets scheduler and its last-success gate in the health overview', async () => {
+    const { service, redis } = setup();
+    redis.values.set(
+      'ops:snapshot',
+      JSON.stringify({
+        generatedAt: now.toISOString(),
+        signals: {
+          schedulers: [
+            {
+              queue: 'asset-directory-sync',
+              schedulerId: 'asset-directory-sync-hourly',
+              everyMs: null,
+              pattern: '23 * * * *',
+              nextMs: null,
+              lastSuccessMs: now.getTime() - 80 * 60_000,
+              lastFailureMs: null,
+              registered: false,
+              lastSuccessMaxAgeMs: 75 * 60_000,
+            },
+          ],
+          queues: [],
+        },
+        lateJobs: [
+          {
+            queue: 'asset-directory-sync',
+            schedulerId: 'asset-directory-sync-hourly',
+            reason: 'not_registered',
+            minutesLate: 80,
+          },
+        ],
+        dlqGrowth: null,
+        httpSeries: [],
+      }),
+    );
+
+    expect((await service.overview(now)).schedulers).toEqual([
+      expect.objectContaining({
+        queue: 'asset-directory-sync',
+        schedulerId: 'asset-directory-sync-hourly',
+        registered: false,
+        lastSuccessAt: new Date(now.getTime() - 80 * 60_000).toISOString(),
+        lastSuccessMaxAgeMs: 75 * 60_000,
+        state: 'late',
+      }),
+    ]);
+  });
+
   it('shows only the configured inbound mailbox, with its last error, and nothing while inbound is off', async () => {
     const { service, prisma } = setup();
     expect((await service.overview(now)).components.inbound).toEqual([

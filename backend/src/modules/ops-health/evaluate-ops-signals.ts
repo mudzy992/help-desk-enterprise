@@ -37,6 +37,10 @@ export type SchedulerSignal = {
   readonly nextMs: number | null;
   readonly lastSuccessMs: number | null;
   readonly lastFailureMs: number | null;
+  /** False only for an explicitly expected schedule absent from Redis. */
+  readonly registered?: boolean;
+  /** Per-schedule last-success age gate; unset for schedules without one. */
+  readonly lastSuccessMaxAgeMs?: number;
 };
 
 export type QueueSignal = {
@@ -259,13 +263,28 @@ export function schedulerGraceMs(scheduler: Pick<SchedulerSignal, 'everyMs'>): n
 export function findLateSchedulers(signals: Pick<OpsSignals, 'nowMs' | 'schedulers'>): Array<{
   readonly queue: string;
   readonly schedulerId: string;
-  readonly reason: 'not_picked_up' | 'failing';
+  readonly reason: 'not_registered' | 'not_picked_up' | 'failing' | 'no_recent_success';
   readonly minutesLate: number;
 }> {
-  const late: Array<{ queue: string; schedulerId: string; reason: 'not_picked_up' | 'failing'; minutesLate: number }> = [];
+  const late: Array<{
+    queue: string;
+    schedulerId: string;
+    reason: 'not_registered' | 'not_picked_up' | 'failing' | 'no_recent_success';
+    minutesLate: number;
+  }> = [];
   for (const scheduler of signals.schedulers ?? []) {
     if (scheduler.queue === slaScanQueue) continue;
     const grace = schedulerGraceMs(scheduler);
+    if (scheduler.registered === false) {
+      const age = scheduler.lastSuccessMs === null ? 0 : Math.max(0, signals.nowMs - scheduler.lastSuccessMs);
+      late.push({
+        queue: scheduler.queue,
+        schedulerId: scheduler.schedulerId,
+        reason: 'not_registered',
+        minutesLate: Math.floor(age / minute),
+      });
+      continue;
+    }
     if (scheduler.nextMs !== null && signals.nowMs - scheduler.nextMs > grace) {
       late.push({
         queue: scheduler.queue,
@@ -274,6 +293,39 @@ export function findLateSchedulers(signals: Pick<OpsSignals, 'nowMs' | 'schedule
         minutesLate: Math.floor((signals.nowMs - scheduler.nextMs) / minute),
       });
       continue;
+    }
+    // Asset cron schedules also need a last-success gate: their next cron tick
+    // can already be queued while every previous execution keeps failing.
+    if (scheduler.lastSuccessMaxAgeMs !== undefined) {
+      if (
+        scheduler.lastSuccessMs !== null &&
+        signals.nowMs - scheduler.lastSuccessMs > scheduler.lastSuccessMaxAgeMs
+      ) {
+        late.push({
+          queue: scheduler.queue,
+          schedulerId: scheduler.schedulerId,
+          reason:
+            scheduler.lastFailureMs !== null &&
+            scheduler.lastFailureMs > scheduler.lastSuccessMs
+              ? 'failing'
+              : 'no_recent_success',
+          minutesLate: Math.floor((signals.nowMs - scheduler.lastSuccessMs) / minute),
+        });
+        continue;
+      }
+      if (
+        scheduler.lastSuccessMs === null &&
+        scheduler.lastFailureMs !== null &&
+        signals.nowMs - scheduler.lastFailureMs > grace
+      ) {
+        late.push({
+          queue: scheduler.queue,
+          schedulerId: scheduler.schedulerId,
+          reason: 'failing',
+          minutesLate: Math.floor((signals.nowMs - scheduler.lastFailureMs) / minute),
+        });
+        continue;
+      }
     }
     // Runs happen but keep failing: the last outcome is a failure and the last
     // success (if any) is older than the grace.

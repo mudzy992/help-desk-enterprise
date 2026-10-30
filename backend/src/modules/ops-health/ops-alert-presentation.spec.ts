@@ -45,6 +45,33 @@ describe('opsAlertDetailRows', () => {
     expect(JSON.stringify(rows)).not.toContain('[object Object]');
   });
 
+  it('localizes missing-registration and stale-success scheduler reasons', () => {
+    const details = {
+      jobs: [
+        {
+          queue: 'asset-directory-sync',
+          schedulerId: 'asset-directory-sync-hourly',
+          reason: 'not_registered',
+          minutesLate: 76,
+        },
+        {
+          queue: 'asset-reminders',
+          schedulerId: 'asset-reminders-hourly',
+          reason: 'no_recent_success',
+          minutesLate: 81,
+        },
+      ],
+    };
+    expect(opsAlertDetailRows({ details }, 'bs')).toEqual([
+      { label: 'asset-directory-sync / asset-directory-sync-hourly', value: 'nije registrovan, 76 min' },
+      { label: 'asset-reminders / asset-reminders-hourly', value: 'nema svježeg uspjeha, 81 min' },
+    ]);
+    expect(opsAlertDetailRows({ details }, 'en').map((row) => row.value)).toEqual([
+      'not registered, 76 min',
+      'no recent success, 81 min',
+    ]);
+  });
+
   it('keeps an unknown value readable', () => {
     expect(opsAlertDetailRows({ details: { meanLagMs: null } }, 'en')).toEqual([
       { label: 'Mean delay (ms)', value: 'unknown' },

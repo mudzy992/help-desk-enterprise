@@ -39,6 +39,10 @@ export type OpsScheduler = {
   readonly lastSuccessAt: string | null;
   readonly lastFailureAt: string | null;
   readonly graceMs: number;
+  /** false means an expected asset scheduler is absent from Redis. */
+  readonly registered: boolean;
+  /** Asset-specific stale-success alarm limit; null for schedules without one. */
+  readonly lastSuccessMaxAgeMs: number | null;
   readonly state: "on_time" | "late";
 };
 

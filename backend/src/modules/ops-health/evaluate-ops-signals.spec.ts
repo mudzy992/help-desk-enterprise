@@ -189,6 +189,53 @@ describe('findLateSchedulers', () => {
     expect(late).toEqual([{ queue: 'waiting-for-user', schedulerId: 'w', reason: 'failing', minutesLate: 11 }]);
   });
 
+  it('gates asset cron jobs on registration and last-success age', () => {
+    const expected = {
+      queue: 'asset-directory-sync',
+      schedulerId: 'asset-directory-sync-hourly',
+      everyMs: null,
+      pattern: '23 * * * *',
+      nextMs: now + minute,
+      lastSuccessMs: now - 76 * minute,
+      lastFailureMs: null,
+      registered: true,
+      lastSuccessMaxAgeMs: 75 * minute,
+    };
+    expect(findLateSchedulers({ nowMs: now, schedulers: [expected] })).toEqual([
+      {
+        queue: expected.queue,
+        schedulerId: expected.schedulerId,
+        reason: 'no_recent_success',
+        minutesLate: 76,
+      },
+    ]);
+    expect(
+      findLateSchedulers({
+        nowMs: now,
+        schedulers: [{ ...expected, lastSuccessMs: now - 74 * minute }],
+      }),
+    ).toEqual([]);
+    expect(
+      findLateSchedulers({
+        nowMs: now,
+        schedulers: [{ ...expected, lastFailureMs: now - minute }],
+      }),
+    ).toMatchObject([{ reason: 'failing' }]);
+    expect(
+      findLateSchedulers({
+        nowMs: now,
+        schedulers: [{ ...expected, registered: false, lastSuccessMs: now - 5 * minute }],
+      }),
+    ).toEqual([
+      {
+        queue: expected.queue,
+        schedulerId: expected.schedulerId,
+        reason: 'not_registered',
+        minutesLate: 5,
+      },
+    ]);
+  });
+
   it('leaves the SLA scan to its own alarm', () => {
     expect(
       findLateSchedulers({

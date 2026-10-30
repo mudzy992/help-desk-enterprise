@@ -1,5 +1,8 @@
 /** Paket 3.2 (CMDB): shared constants, errors and the pure rules. */
 
+/** Bound scheduler registration waits so a Redis outage cannot block worker bootstrap. */
+export const assetSchedulerRegistrationTimeoutMs = 5_000;
+
 export const assetErrorCodes = {
   disabled: 'ASSETS_DISABLED',
   notFound: 'ASSET_NOT_FOUND',

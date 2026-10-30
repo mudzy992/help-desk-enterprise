@@ -942,6 +942,8 @@
         "state": "Stanje",
         "every": "svakih {{interval}}",
         "lastFailure": "Greška",
+        "notRegistered": "Nije registrovan u Redis-u",
+        "lastSuccessGate": "Alarm nakon {{duration}} bez uspješnog izvršavanja",
         "states": {
           "on_time": "U roku",
           "late": "Kasni"

@@ -935,6 +935,8 @@
         "state": "State",
         "every": "every {{interval}}",
         "lastFailure": "Failed",
+        "notRegistered": "Not registered in Redis",
+        "lastSuccessGate": "Alert after {{duration}} without a successful run",
         "states": {
           "on_time": "On time",
           "late": "Late"

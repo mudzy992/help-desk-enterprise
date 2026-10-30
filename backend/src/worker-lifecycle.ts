@@ -4,7 +4,7 @@ import { RedisService } from "./common/redis/redis.service";
 export const workerLifecycleRedisKey = "worker:lifecycle";
 export const workerStartupDeadlineMs = 45_000;
 export const workerShutdownDeadlineMs = 30_000;
-export type WorkerLifecycleState = "starting" | "ready" | "draining";
+export type WorkerLifecycleState = "starting" | "ready" | "degraded" | "draining";
 
 export async function publishWorkerLifecycle(
   application: INestApplicationContext,

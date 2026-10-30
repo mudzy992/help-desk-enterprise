@@ -15,6 +15,20 @@ describe("worker lifecycle contract", () => {
     );
   });
 
+  it("publishes degraded readiness while mandatory schedules are unavailable", async () => {
+    const set = jest.fn().mockResolvedValue("OK");
+    await publishWorkerLifecycle(
+      { get: () => ({ getClient: () => ({ set }) }) } as never,
+      "degraded",
+    );
+    expect(set).toHaveBeenCalledWith(
+      "worker:lifecycle",
+      expect.stringContaining('"state":"degraded"'),
+      "EX",
+      120,
+    );
+  });
+
   it("enforces the startup deadline", async () => {
     jest.useFakeTimers();
     const assertion = expect(

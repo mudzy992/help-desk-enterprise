@@ -16,7 +16,11 @@ import { websocketEmitRoomKinds } from '../websocket/websocket-emit-counter';
 import { securityAuditWebhookStateId } from '../security-audit-webhook/security-audit-webhook.constants';
 import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
 import type { LoginSecurityMetricEvent } from '../authentication/security/login-security-metrics.service';
-import { opsMonitoredQueueNames, opsProbeTimeouts } from './ops-health.constants';
+import {
+  expectedAssetSchedulers,
+  opsMonitoredQueueNames,
+  opsProbeTimeouts,
+} from './ops-health.constants';
 import { OpsStateStore } from './ops-state.store';
 import { collectSlaObservability } from '../sla/collect-sla-observability';
 import { slaScanQueueName, slaScanSchedulerId } from '../sla/sla-scan.constants';
@@ -232,12 +236,21 @@ export class OpsSignalCollector implements OnModuleDestroy {
       );
       const schedulers: SchedulerSignal[] = [];
       const counts: QueueSignal[] = [];
+      const outcomes: QueueLastOutcome[] = [];
       for (const entry of perQueue) {
         if (entry === null) continue;
         schedulers.push(...entry.schedulers);
         counts.push(entry.counts);
+        outcomes.push({
+          queue: entry.counts.queue,
+          lastSuccessMs: entry.lastSuccessMs,
+          lastFailureMs: entry.lastFailureMs,
+        });
       }
-      return { schedulers, queues: counts };
+      return {
+        schedulers: includeExpectedAssetSchedulers(schedulers, outcomes),
+        queues: counts,
+      };
     } catch (error) {
       this.logger.warn(`ops_queue_inspection_failed reason=${errorText(error)}`);
       return null;
@@ -254,7 +267,71 @@ export class OpsSignalCollector implements OnModuleDestroy {
   }
 }
 
-async function inspectQueue(queue: Queue): Promise<{ schedulers: SchedulerSignal[]; counts: QueueSignal }> {
+type QueueLastOutcome = {
+  readonly queue: string;
+  readonly lastSuccessMs: number | null;
+  readonly lastFailureMs: number | null;
+};
+
+/**
+ * Add expected assets scheduler rows even when Redis no longer contains their
+ * registrations. The same row carries the queue's last successful execution,
+ * so the health card and alarm gate do not silently lose that evidence.
+ */
+export function includeExpectedAssetSchedulers(
+  schedulers: readonly SchedulerSignal[],
+  outcomes: readonly QueueLastOutcome[],
+): SchedulerSignal[] {
+  const result = schedulers.map((scheduler): SchedulerSignal => {
+    const expected = expectedAssetSchedulers.find(
+      (candidate) =>
+        candidate.queue === scheduler.queue &&
+        schedulerIdMatches(scheduler.schedulerId, candidate.schedulerId),
+    );
+    return expected === undefined
+      ? scheduler
+      : {
+          ...scheduler,
+          registered: true,
+          lastSuccessMaxAgeMs: expected.lastSuccessMaxAgeMs,
+        };
+  });
+
+  for (const expected of expectedAssetSchedulers) {
+    const alreadyPresent = result.some(
+      (scheduler) =>
+        scheduler.queue === expected.queue &&
+        schedulerIdMatches(scheduler.schedulerId, expected.schedulerId),
+    );
+    if (alreadyPresent) continue;
+    const outcome = outcomes.find((candidate) => candidate.queue === expected.queue);
+    // An inspection timeout is unknown, not proof that a schedule is missing.
+    if (outcome === undefined) continue;
+    result.push({
+      queue: expected.queue,
+      schedulerId: expected.schedulerId,
+      everyMs: null,
+      pattern: expected.pattern,
+      nextMs: null,
+      lastSuccessMs: outcome.lastSuccessMs,
+      lastFailureMs: outcome.lastFailureMs,
+      registered: false,
+      lastSuccessMaxAgeMs: expected.lastSuccessMaxAgeMs,
+    });
+  }
+  return result;
+}
+
+function schedulerIdMatches(observed: string, expected: string): boolean {
+  return observed === expected || observed.endsWith(`:${expected}`);
+}
+
+async function inspectQueue(queue: Queue): Promise<{
+  schedulers: SchedulerSignal[];
+  counts: QueueSignal;
+  lastSuccessMs: number | null;
+  lastFailureMs: number | null;
+}> {
   const [jobSchedulers, jobCounts, completed, failed] = await Promise.all([
     queue.getJobSchedulers(0, 49, true),
     queue.getJobCounts('waiting', 'active', 'delayed', 'failed'),
@@ -280,6 +357,8 @@ async function inspectQueue(queue: Queue): Promise<{ schedulers: SchedulerSignal
       delayed: jobCounts.delayed ?? 0,
       failed: jobCounts.failed ?? 0,
     },
+    lastSuccessMs,
+    lastFailureMs,
   };
 }
 

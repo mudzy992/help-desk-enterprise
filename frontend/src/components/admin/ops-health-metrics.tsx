@@ -106,6 +106,11 @@ export function SchedulerTable({ overview }: { readonly overview: OpsOverview })
                       <code className="block text-[11.5px] text-muted-foreground">
                         {scheduler.schedulerId}
                       </code>
+                      {scheduler.registered === false ? (
+                        <span className="block text-[11.5px] text-warning">
+                          {t("admin.opsHealth.schedulers.notRegistered")}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="tnum px-3 text-muted-foreground">
                       {scheduler.everyMs !== null
@@ -120,6 +125,13 @@ export function SchedulerTable({ overview }: { readonly overview: OpsOverview })
                       ) : (
                         <RelativeTime value={scheduler.lastSuccessAt} locale={i18n.language} />
                       )}
+                      {scheduler.lastSuccessMaxAgeMs !== null ? (
+                        <span className="block text-[11.5px] text-muted-foreground">
+                          {t("admin.opsHealth.schedulers.lastSuccessGate", {
+                            duration: formatOpsDuration(scheduler.lastSuccessMaxAgeMs),
+                          })}
+                        </span>
+                      ) : null}
                       {scheduler.lastFailureAt !== null &&
                       (scheduler.lastSuccessAt === null ||
                         scheduler.lastFailureAt > scheduler.lastSuccessAt) ? (

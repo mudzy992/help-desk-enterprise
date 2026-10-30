@@ -1,6 +1,8 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { Queue } from "bullmq";
+import { withTimeout } from "../../health/health-probes";
+import { assetSchedulerRegistrationTimeoutMs } from "../assets.constants";
 import {
   assetDirectorySyncCronPattern,
   assetDirectorySyncJobAttempts,
@@ -19,19 +21,31 @@ export class AssetDirectorySyncSchedulerService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    // A transient Redis error must not abort worker startup: the worker-wide
+    // reconciler retries this schedule as soon as bootstrap completes and then
+    // periodically. Keep the throwing operation separately callable so the
+    // reconciler can observe failures and leave the retry loop armed.
+    await this.reconcileSchedule().catch(() => undefined);
+  }
+
+  async reconcileSchedule(): Promise<void> {
     try {
-      await this.queue.upsertJobScheduler(
-        assetDirectorySyncSchedulerId,
-        { pattern: assetDirectorySyncCronPattern },
-        {
-          name: assetDirectorySyncJobName,
-          data: {},
-          opts: {
-            attempts: assetDirectorySyncJobAttempts,
-            removeOnComplete: { count: 5 },
-            removeOnFail: { count: 20 },
-          },
-        },
+      await withTimeout(
+        () =>
+          this.queue.upsertJobScheduler(
+            assetDirectorySyncSchedulerId,
+            { pattern: assetDirectorySyncCronPattern },
+            {
+              name: assetDirectorySyncJobName,
+              data: {},
+              opts: {
+                attempts: assetDirectorySyncJobAttempts,
+                removeOnComplete: { count: 5 },
+                removeOnFail: { count: 20 },
+              },
+            },
+          ),
+        assetSchedulerRegistrationTimeoutMs,
       );
     } catch (error) {
       this.logger.error(

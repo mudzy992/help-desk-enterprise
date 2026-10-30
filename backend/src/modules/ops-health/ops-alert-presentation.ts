@@ -42,7 +42,12 @@ const labels = {
     runbook: 'Uputstvo',
     footer: 'Primate ovu poruku jer primate operativne alarme (ops.alerts.receive) ili ste na listi dodatnih primalaca.',
     since: 'Od',
-    reasons: { not_picked_up: 'nije preuzet', failing: 'stalno pada' },
+    reasons: {
+      not_registered: 'nije registrovan',
+      not_picked_up: 'nije preuzet',
+      failing: 'stalno pada',
+      no_recent_success: 'nema svježeg uspjeha',
+    },
     fields: {
       usedPercent: 'Zauzeto (%)',
       freeGb: 'Slobodno (GB)',
@@ -100,7 +105,12 @@ const labels = {
     runbook: 'Runbook',
     footer: 'You receive this message because you receive operational alarms (ops.alerts.receive) or are on the extra recipient list.',
     since: 'Since',
-    reasons: { not_picked_up: 'not picked up', failing: 'keeps failing' },
+    reasons: {
+      not_registered: 'not registered',
+      not_picked_up: 'not picked up',
+      failing: 'keeps failing',
+      no_recent_success: 'no recent success',
+    },
     fields: {
       usedPercent: 'Used (%)',
       freeGb: 'Free (GB)',
@@ -189,7 +199,7 @@ export function opsAlertDetailRows(
   for (const [field, value] of Object.entries(message.details)) {
     if (field === 'jobs' && Array.isArray(value)) {
       for (const job of value as Array<Record<string, unknown>>) {
-        const reason = text.reasons[job.reason as 'not_picked_up' | 'failing'] ?? String(job.reason);
+        const reason = text.reasons[job.reason as keyof typeof text.reasons] ?? String(job.reason);
         rows.push({ label: `${String(job.queue)} / ${String(job.schedulerId)}`, value: `${reason}, ${String(job.minutesLate)} min` });
       }
       continue;
