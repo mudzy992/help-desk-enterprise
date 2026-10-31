@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.7–W7.15 su zatvorili samo `BA-assets-07`–`BA-assets-15`; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren zbog ne-zelenog CI gatea; W7.17 je izričito odobren i u toku; `BA-assets-18`–`BA-assets-19` su otvoreni<br>
+**Status:** audit baseline + djelimična implementacija — W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate; `BA-assets-18`–`BA-assets-19` su otvoreni<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-10-31<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 574 otvorena / 118 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nakon W7.15; machine-readable source redovi prikazuju 577 otvorenih / 104 zatvorena / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
+**Trenutno:** 573 otvorena / 119 zatvorenih / 692 ukupno<br>
+**Napomena:** deklarisani agregat nakon W7.17; machine-readable source redovi prikazuju 576 otvorenih / 105 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -290,7 +290,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-14` | P2 | Transfer snapshot/signed binary nemaju definisan anonymization i retention lifecycle | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-15` | P2 | Hard delete oslanja se na FK za dio zavisnosti i briše asset event history | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-16` | P3 | License/contract/assignment/mine/forAsset liste se tiho hard-trunciraju | otvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-17` | P3 | Template `latest+1` version race vraća konflikt bez alokacijskog retry ugovora | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-17` | P3 | Template `latest+1` version race vraća konflikt bez alokacijskog retry ugovora | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-18` | P3 | Nema scheduler/import/reminder/file-orphan i audit-failure health/metric seta | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-19` | P3 | Sedam service suiteova je compile-blocked; nema tražene concurrency/failure E2E matrice | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 23 | `problems` | `BA-problems-01` | P1 | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope | zatvoreno | [23-problems.md](audits/23-problems.md) |
@@ -795,13 +795,15 @@ W7.15 je na testanom kodnom SHA `11f43efd37d448142f6c33f99096555ee8f7419d`, uz z
 
 W7.16 je implementirao cursor paginaciju komercijalnih/transfer lista na SHA `43547a410061cb48c472db4c2ac887cff756f14c`, ali finalni CI [`41227539110`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539110) nije zelen zbog E2E testa 56 (`/tickets?view=all`, 306 ms prema 250 ms pragu); `BA-assets-16` zato ostaje otvoren. Backend build/test, PostgreSQL/Redis integration, frontend, docs guard i supply-chain jobovi prošli su; E2E install wizard je bio `skipped` na push triggeru, a image high/critical enforcement korak `skipped` jer je workflow uslov za taj korak bio false. Finalni perf smoke [`41227539109`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539109) je zelen. Prvi wiring/format i perf pokušaji `41226695090`/`41226695202` na `5647a718` imali su zasebne padove; ispravke i odbijeni GitHub rerun dokumentovani su u [102-assets-commercial-and-transfer-cursors.md](implementation/102-assets-commercial-and-transfer-cursors.md). Korisnik je odobrio početak W7.17 uprkos padu; test nije mijenjan, preskočen niti mu je prag snižen.
 
+W7.17 je na kodnom SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`, uz zeleni CI gate [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097), zatvorio samo `BA-assets-17` (P3). Bounded template-version retry koristi novu transakciju i ponovni latest-read; nepovezani konflikti/audit greške se ne retryaju, a exhaustion vraća stabilan HTTP `409`. Backend/full Jest, real PostgreSQL+Redis integration (uključujući novi concurrency suite), frontend, docs guard, container/supply-chain i E2E critical flows prošli su. E2E install wizard i image enforcement korak su `skipped`. Zasebni Perf smoke [`41235280078`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280078) pao je na search/message latency pragovima; GitHub je odbio rerun. Taj rezultat je zabilježen, nije predstavljen kao passed i nije proširen u ticket/search scope. Detalji su u [103-assets-transfer-template-version-retries.md](implementation/103-assets-transfer-template-version-retries.md). `BA-assets-16`, `BA-assets-18` i `BA-assets-19` ostaju otvoreni.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **574**
-- Zatvoreno: **118** (deklarisani W7 agregat nakon W7.15; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
+- Otvoreno: **573**
+- Zatvoreno: **119** (deklarisani W7 agregat nakon W7.17; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

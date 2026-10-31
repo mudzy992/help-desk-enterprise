@@ -2,7 +2,7 @@
 
 **Status:** aktuelno<br>
 **Ažurirano:** 2026-10-30<br>
-**Aktivna etapa:** Val 7 / W7 — W7.1–W7.15 su zatvoreni uz zeleni CI; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren zbog pada E2E CI gatea; W7.17 je izričito odobren i u toku uprkos toj sekvencijskoj iznimci; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
+**Aktivna etapa:** Val 7 / W7 — W7.1–W7.15 su zatvoreni uz zeleni CI; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate; `BA-assets-18`–`BA-assets-19` ostaju otvoreni i čekaju zasebno odobrenje.
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
@@ -32,7 +32,8 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 22. [W7.14 — transfer retention/anonymization lifecycle](implementation/100-assets-transfer-retention-lifecycle.md)
 23. [W7.15 — poslovne zavisnosti pri brisanju i AssetEvent historija](implementation/101-assets-hard-delete-event-history.md)
 24. [W7.16 — cursor paginacija komercijalnih i transfer lista](implementation/102-assets-commercial-and-transfer-cursors.md)
-25. [Reusable package-closeout predložak](implementation/PACKAGE-CLOSEOUT-TEMPLATE.md)
+25. [W7.17 — template version alokacija i bounded retry](implementation/103-assets-transfer-template-version-retries.md)
+26. [Reusable package-closeout predložak](implementation/PACKAGE-CLOSEOUT-TEMPLATE.md)
 
 ## Trenutni status
 
@@ -40,7 +41,7 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 - inventar sadrži svih **43** direktorija iz `backend/src/modules`;
 - cross-cutting audit je završio pregled `src/common`, bootstrapa, workera, CLI-ja, Prisma konfiguracije i globalnih mehanizama;
 - svih 45 audit jedinica je završeno; implementacijski Valovi 0–6 su zatvoreni, a Val 7 je u toku;
-- W7.1 je zatvorio `BA-assets-01`, `BA-problems-01` i `BA-changes-01`; W7.2 je zatvorio samo `BA-assets-02` uz zeleni CI `40917663219`; W7.3 je zatvorio samo `BA-assets-03` uz zeleni CI `40930141682`; W7.4 je zatvorio samo `BA-assets-04` uz zeleni CI `40934782196`; W7.5 je zatvorio samo `BA-assets-05` uz zeleni CI `40942023054`; W7.6 je zatvorio samo `BA-assets-06` uz zeleni CI `40950115033`; W7.7 je zatvorio samo `BA-assets-07` uz zeleni CI `40956304026`; W7.8 je zatvorio samo `BA-assets-08` uz zeleni CI `40962089973`; W7.9 je zatvorio samo `BA-assets-09` uz zeleni CI `41010129252`; W7.10 je zatvorio samo `BA-assets-10` uz zeleni CI `41020243134`; W7.11 je zatvorio samo `BA-assets-11` uz zeleni CI `41025718081`; W7.12 je zatvorio samo `BA-assets-12` uz zeleni CI `41030516609`; W7.13 je zatvorio samo `BA-assets-13` uz zeleni CI `41036970834`; W7.14 je zatvorio samo `BA-assets-14` uz zeleni CI `41057855403`; W7.15 je zatvorio samo `BA-assets-15` uz zeleni CI `41067304475`. W7.16 je implementirao cursor paginaciju, ali CI `41227539110` na SHA `43547a41` pao je na E2E testu 56; `BA-assets-16` ostaje otvoren. Korisnik je izričito odobrio W7.17 uprkos tom padu; W7.17 je u toku, a to nije waiver testa niti zelen CI. Deklarisani zbir na W7.16 checkpointu je 574 otvorena / 118 zatvorenih; machine-readable source statusi su 577 otvorenih / 104 zatvorena / 11 historijskih uz preegzistentno odstupanje od tri statusa.
+- W7.1 je zatvorio `BA-assets-01`, `BA-problems-01` i `BA-changes-01`; W7.2 je zatvorio samo `BA-assets-02` uz zeleni CI `40917663219`; W7.3 je zatvorio samo `BA-assets-03` uz zeleni CI `40930141682`; W7.4 je zatvorio samo `BA-assets-04` uz zeleni CI `40934782196`; W7.5 je zatvorio samo `BA-assets-05` uz zeleni CI `40942023054`; W7.6 je zatvorio samo `BA-assets-06` uz zeleni CI `40950115033`; W7.7 je zatvorio samo `BA-assets-07` uz zeleni CI `40956304026`; W7.8 je zatvorio samo `BA-assets-08` uz zeleni CI `40962089973`; W7.9 je zatvorio samo `BA-assets-09` uz zeleni CI `41010129252`; W7.10 je zatvorio samo `BA-assets-10` uz zeleni CI `41020243134`; W7.11 je zatvorio samo `BA-assets-11` uz zeleni CI `41025718081`; W7.12 je zatvorio samo `BA-assets-12` uz zeleni CI `41030516609`; W7.13 je zatvorio samo `BA-assets-13` uz zeleni CI `41036970834`; W7.14 je zatvorio samo `BA-assets-14` uz zeleni CI `41057855403`; W7.15 je zatvorio samo `BA-assets-15` uz zeleni CI `41067304475`. W7.16 je implementirao cursor paginaciju, ali finalni CI `41227539110` na SHA `43547a41` pao je na E2E testu 56; `BA-assets-16` ostaje otvoren. W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate `41235280097`; odvojeni Perf smoke `41235280078` pao je na search/message latency pragovima i dokumentovan je, bez proširenja scopea. Deklarisani zbir nakon W7.17 je 573 otvorena / 119 zatvorenih; machine-readable source statusi su 576 otvorenih / 105 zatvorenih / 11 historijskih uz preegzistentno odstupanje od tri statusa.
 - frontend `OPEN-CI-FINAL` ostaje zasebna release obaveza i ne blokira backend implementaciju.
 
 ## Pravilo napredovanja

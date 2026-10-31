@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.15 su zatvoreni; W7.16 je implementiran ali `BA-assets-16` ostaje otvoren zbog E2E CI pada; W7.17 je u toku po izričitom korisničkom odobrenju uprkos tom gateu; `BA-assets-18`–`BA-assets-19` ostaju otvoreni<br>
+**Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.15 su zatvoreni; W7.16 je implementiran ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate; `BA-assets-18`–`BA-assets-19` ostaju otvoreni<br>
 **Datum ažuriranja:** 2026-10-31<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelni rad je na Valu 7: W7.1–W7.15 su zatvoreni, W7.16 je implementiran ali ostaje otvoren zbog E2E CI pada, a W7.17 je odobren za nastavak; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelni status Vala 7: W7.1–W7.15 su zatvoreni; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
 
 ### Redoslijed
 
@@ -583,6 +583,9 @@ Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
 - Backend build/test, PostgreSQL/Redis integration, frontend, docs guard i container/supply-chain prošli su; E2E install wizard je `skipped` na push triggeru, a high/critical image enforcement korak `skipped` jer je workflow uslov bio false. Perf smoke [`41227539109`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539109) na istom SHA je zelen.
 - `BA-assets-16` ostaje otvoren jer package gate nije zelen. Puni runovi, neuspjeli raniji pokušaji, lokalni blokatori, rollout i rollback su u [102-assets-commercial-and-transfer-cursors.md](implementation/102-assets-commercial-and-transfer-cursors.md). Registarski kontrolni zbir se ne mijenja.
 
-### W7.17 — template verzije: alokacija i retry ugovor — u toku
+### W7.17 — template verzije: alokacija i retry ugovor — zatvoreno (`BA-assets-17`)
 
-- Korisnik je odobrio samo `BA-assets-17` (P3), uz poznat W7.16 E2E pad. Scope je sigurna alokacija `latest + 1`, retry samo za version unique conflict i stabilan bounded-exhaustion `409`; susjedni nalazi ostaju izvan scopea.
+- Kodni/testani SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`; CI [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) prošao je backend/full Jest, real PostgreSQL+Redis integration (uključujući pet paralelnih template uploadova), frontend, docs, container/supply-chain, E2E critical flows i CI gate. E2E install wizard i image high/critical enforcement korak su `skipped`; nisu računati kao passed.
+- Advisory lock + nova transakcija za svaki od najviše tri ukupna pokušaja ponovo računa `latest + 1`. Retry važi samo za prepoznati version unique conflict; template i audit ostaju atomski, a exhaustion vraća stabilan HTTP `409` / `ASSET_TRANSFER_TEMPLATE_VERSION_CONFLICT`. Susjedni nalazi nisu mijenjani.
+- Zasebni Perf smoke [`41235280078`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280078) pao je na `search_duration` i `ticket_message_duration` pragovima; GitHub je odbio rerun. Rezultat je dokumentovan, nije predstavljen kao passed i nije proširen u ticket/search scope.
+- Zatvoren je samo `BA-assets-17`; `BA-assets-16` i `BA-assets-18`–`BA-assets-19` ostaju otvoreni. Deklarisani zbir je **573 otvorena / 119 zatvorenih**; machine-readable source **576 otvorenih / 105 zatvorenih / 11 historijskih**. Detaljni dokaz, API contract, lokalna ograničenja i rollout/rollback su u [103-assets-transfer-template-version-retries.md](implementation/103-assets-transfer-template-version-retries.md).
