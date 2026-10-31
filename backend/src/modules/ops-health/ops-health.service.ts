@@ -118,6 +118,7 @@ export class OpsHealthService {
     return {
       generatedAt: now.toISOString(),
       snapshot: snapshot === null ? null : { generatedAt: snapshot.generatedAt, ageSeconds: ageSeconds(snapshot.generatedAt, now) },
+      assetOperations: signals?.assetOperations ?? null,
       components: {
         api: 'ok' as const,
         database,

@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { withAssetAuditTransaction } from '../asset-audit-transaction';
+import { AssetOperationsMetrics } from '../asset-operations-metrics';
 import { permissionKeys } from '../../authorization/authorization.constants';
 import { assetDefaults } from '../../settings/definitions/asset-settings';
 import { readInstallationTimeZone } from '../../settings/read-installation-time-zone';
@@ -153,6 +154,7 @@ export class AssetTransfersService {
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
     private readonly settings: SettingsService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   // ------------------------------------------------------------ configuration
@@ -440,7 +442,7 @@ export class AssetTransfersService {
         toUserId: loaded.toUser?.id ?? null,
       },
       actorUserId: viewer.userId,
-    }));
+    }), this.assetOperationsMetrics);
     return { transferId: result?.id ?? null, number: result?.number ?? null, movedAssetIds: plans.map(({ asset }) => asset.id) };
   }
 
@@ -654,6 +656,7 @@ export class AssetTransfersService {
         metadata: { number: transfer.number, reason: text },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id, status: 'CANCELLED' as const };
   }
@@ -731,6 +734,7 @@ export class AssetTransfersService {
           },
           actorUserId: viewer.userId,
         }),
+        this.assetOperationsMetrics,
       );
     } catch (error) {
       await rm(absolute, { force: true }).catch(() => undefined);
@@ -843,6 +847,7 @@ export class AssetTransfersService {
         metadata: { userId: user.id, title },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { organizationalUnitId, userId: user.id, title };
   }
@@ -859,6 +864,7 @@ export class AssetTransfersService {
         metadata: { removed: true },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
   }
 
@@ -940,7 +946,7 @@ export class AssetTransfersService {
           entityId: row.id,
           metadata: { version: row.version, sha256: input.sha256, unknownTags: input.unknownTags },
           actorUserId: input.viewer.userId,
-        }));
+        }), this.assetOperationsMetrics);
       } catch (error) {
         if (!isAssetTransferTemplateVersionConflict(error)) throw error;
       }

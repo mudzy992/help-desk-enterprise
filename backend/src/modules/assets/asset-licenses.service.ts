@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAssetAuditEntry, withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -115,6 +116,7 @@ export class AssetLicensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   private toItem(row: LicenseRow, now: Date = new Date()) {
@@ -141,7 +143,7 @@ export class AssetLicensesService {
       entityId,
       metadata,
       actorUserId: viewer.userId,
-    });
+    }, this.assetOperationsMetrics);
   }
 
   private async loadInScope(id: string, scope: AssetScope): Promise<LicenseRow> {
@@ -342,6 +344,7 @@ export class AssetLicensesService {
         metadata: { kind: input.kind, hasKey: Boolean(input.licenseKey?.trim()) },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(created.id, viewer);
   }
@@ -399,6 +402,7 @@ export class AssetLicensesService {
         metadata: { keyChanged: input.licenseKey !== undefined },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
@@ -416,6 +420,7 @@ export class AssetLicensesService {
         metadata: { productName: current.productName, assignments: current._count.assignments },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { deleted: true };
   }
@@ -500,6 +505,7 @@ export class AssetLicensesService {
         metadata: { target: assetId ? 'asset' : 'user', assetId: assetId ?? null, userId: userId ?? null },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
@@ -531,6 +537,7 @@ export class AssetLicensesService {
         metadata: { assignmentId },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }

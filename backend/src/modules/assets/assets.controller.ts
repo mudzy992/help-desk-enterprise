@@ -7,6 +7,7 @@ import {
   Header,
   HttpCode,
   Param,
+  Optional,
   Post,
   Put,
   Query,
@@ -19,9 +20,9 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
+import { recordAssetAuditEntry } from './asset-audit-transaction';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AssetImportService } from './import/asset-import.service';
@@ -156,6 +157,7 @@ export class AssetsController {
     private readonly prisma: PrismaService,
     private readonly directorySync: AssetDirectorySyncService,
     private readonly overviewService: AssetOverviewService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -306,13 +308,13 @@ export class AssetsController {
       const actor = await this.importer.actorFor(viewer, permissionKeys.assetRead);
       const format = raw.format === 'csv' ? 'csv' : 'xlsx';
       const exported = await this.importer.export(parseListQuery(raw), format, readLocale(raw.locale), actor);
-      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
+      await recordAssetAuditEntry(this.prisma, {
         action: auditLogActions.assetExported,
         entityType: auditLogEntityTypes.asset,
         entityId: 'export',
         metadata: { format, fileName: exported.fileName } as never,
         actorUserId: viewer.userId,
-      }).catch(() => undefined);
+      }, this.assetOperationsMetrics).catch(() => undefined);
       return fileResponse(exported, exported.contentType);
     });
   }

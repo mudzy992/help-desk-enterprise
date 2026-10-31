@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/control";
 import { ComponentTile } from "@/components/admin/ops-health-components";
 import {
+  componentStateTone,
   formatOpsDuration,
   httpBars,
   sortSchedulers,
@@ -18,6 +20,136 @@ import {
 } from "@/lib/ops/ops-health-view";
 import { scheduledJobTranslationKey } from "@/lib/ops/scheduled-job-i18n";
 import type { OpsOverview } from "@/services/ops-health-api";
+
+export function AssetOperationsSummary({ overview }: { readonly overview: OpsOverview }) {
+  const { t } = useTranslation();
+  const metrics = overview.assetOperations;
+  return (
+    <section className="grid gap-2" data-testid="ops-health-assets">
+      <div>
+        <h4 className={sectionTitleClassName}>{t("admin.opsHealth.assetOperations.title")}</h4>
+        <p className={hintClassName}>{t("admin.opsHealth.assetOperations.hint")}</p>
+      </div>
+      {metrics === null ? (
+        <p className={hintClassName}>{t("admin.opsHealth.assetOperations.unavailable")}</p>
+      ) : (
+        <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <AssetMetric
+            label={t("admin.opsHealth.assetOperations.directorySyncOverlaps")}
+            value={
+              metrics.directorySyncOverlapsLastHour === null
+                ? t("admin.opsHealth.assetOperations.unknown")
+                : t("admin.opsHealth.assetOperations.countValue", {
+                    count: metrics.directorySyncOverlapsLastHour,
+                  })
+            }
+          />
+          <AssetMetric
+            label={t("admin.opsHealth.assetOperations.importStuckClaims")}
+            state={metrics.importStuckClaims > 0 ? "warning" : "ok"}
+            value={t("admin.opsHealth.assetOperations.countValue", {
+              count: metrics.importStuckClaims,
+            })}
+          />
+          <AssetMetric
+            label={t("admin.opsHealth.assetOperations.overAllocatedLicenses")}
+            value={t("admin.opsHealth.assetOperations.licenseOverAllocationValue", {
+              licenses: metrics.overAllocatedLicenseCount,
+              seats: metrics.overAllocatedSeatCount,
+            })}
+          />
+          <AssetMetric
+            label={t("admin.opsHealth.assetOperations.reminderDelivery")}
+            state={
+              metrics.failedReminderDeliveries + metrics.staleReminderClaims > 0 ? "warning" : "ok"
+            }
+            value={t("admin.opsHealth.assetOperations.reminderDeliveryValue", {
+              failed: metrics.failedReminderDeliveries,
+              stale: metrics.staleReminderClaims,
+            })}
+          />
+          <AssetMetric
+            label={t("admin.opsHealth.assetOperations.transferFiles")}
+            state={
+              metrics.staleTransferFilePurges > 0 ||
+              (metrics.transferFileScanState === "complete" &&
+                ((metrics.orphanedTransferFiles ?? 0) > 0 ||
+                  (metrics.missingTransferFiles ?? 0) > 0))
+                ? "warning"
+                : metrics.transferFileScanState === "complete"
+                  ? "ok"
+                  : "unknown"
+            }
+            value={t("admin.opsHealth.assetOperations.transferPurgeValue", {
+              pending: metrics.pendingTransferFilePurges,
+              stale: metrics.staleTransferFilePurges,
+              oldest:
+                metrics.oldestTransferFilePurgeAgeMinutes === null
+                  ? t("admin.opsHealth.assetOperations.none")
+                  : metrics.oldestTransferFilePurgeAgeMinutes,
+            })}
+          >
+            {metrics.transferFileScanState === "complete"
+              ? t("admin.opsHealth.assetOperations.transferScanValue", {
+                  scanned: metrics.scannedTransferFiles ?? 0,
+                  referenced: metrics.referencedTransferFiles ?? 0,
+                  orphaned: metrics.orphanedTransferFiles ?? 0,
+                  missing: metrics.missingTransferFiles ?? 0,
+                })
+              : t(`admin.opsHealth.assetOperations.transferScan.${metrics.transferFileScanState}`)}
+          </AssetMetric>
+          <AssetMetric
+            label={t("admin.opsHealth.assetOperations.auditFailures")}
+            state={
+              metrics.auditWriteFailuresLastHour === null
+                ? "unknown"
+                : metrics.auditWriteFailuresLastHour >= 5
+                  ? "fail"
+                  : metrics.auditWriteFailuresLastHour > 0
+                    ? "warning"
+                    : "ok"
+            }
+            value={
+              metrics.auditWriteFailuresLastHour === null
+                ? t("admin.opsHealth.assetOperations.unknown")
+                : t("admin.opsHealth.assetOperations.countValue", {
+                    count: metrics.auditWriteFailuresLastHour,
+                  })
+            }
+          />
+        </dl>
+      )}
+    </section>
+  );
+}
+
+function AssetMetric({
+  label,
+  value,
+  state,
+  children,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly state?: ComponentState;
+  readonly children?: ReactNode;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="grid content-start gap-1 rounded-md border border-border bg-surface px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <dt className="text-[12.5px] font-medium text-foreground">{label}</dt>
+        {state === undefined ? null : (
+          <Badge tone={componentStateTone[state]} dot>
+            {t(`admin.opsHealth.state.${state}`)}
+          </Badge>
+        )}
+      </div>
+      <dd className={`${hintClassName} tnum`}>{value}</dd>
+      {children ? <div className={`${hintClassName} tnum`}>{children}</div> : null}
+    </div>
+  );
+}
 
 export function HttpChart({ overview }: { readonly overview: OpsOverview }) {
   const { t, i18n } = useTranslation();

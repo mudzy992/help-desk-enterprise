@@ -12,6 +12,10 @@ export const opsAlertSlugs = [
   // Incident 2026-10-16: the provider (Gmail) refused sending, so outbound mail
   // is paused by the breaker. Without the slug the card printed the raw key.
   "email_providerBlocked",
+  "asset_import_stuck",
+  "asset_reminders_deliveryBacklog",
+  "asset_transferFiles_integrity",
+  "asset_audit_writeFailures",
   "sla_scan_late",
   "scheduler_late",
   "disk_usage",

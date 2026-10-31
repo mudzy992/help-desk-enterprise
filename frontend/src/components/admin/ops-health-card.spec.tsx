@@ -29,6 +29,7 @@ vi.mock("@/components/admin/ops-health-metrics", () => ({
   SchedulerTable: () => null,
   QueueTable: () => null,
   ChannelSummary: () => null,
+  AssetOperationsSummary: () => null,
 }));
 vi.mock("@/components/admin/ops-health-alerts", () => ({
   AlertHistory: () => null,
@@ -59,6 +60,7 @@ const acknowledgedAlert = {
 const overview = {
   generatedAt: "2026-10-19T00:00:00.000Z",
   snapshot: { generatedAt: "2026-10-19T00:00:00.000Z", ageSeconds: 30 },
+  assetOperations: null,
   components: {
     api: "ok",
     database: "ok",

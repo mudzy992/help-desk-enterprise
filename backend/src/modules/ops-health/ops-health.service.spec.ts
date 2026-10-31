@@ -96,6 +96,23 @@ describe('OpsHealthService', () => {
       JSON.stringify({
         generatedAt: now.toISOString(),
         signals: {
+          assetOperations: {
+            directorySyncOverlapsLastHour: 3,
+            auditWriteFailuresLastHour: 1,
+            importStuckClaims: 0,
+            overAllocatedLicenseCount: 1,
+            overAllocatedSeatCount: 2,
+            failedReminderDeliveries: 0,
+            staleReminderClaims: 0,
+            pendingTransferFilePurges: 0,
+            staleTransferFilePurges: 0,
+            oldestTransferFilePurgeAgeMinutes: null,
+            transferFileScanState: 'limited',
+            scannedTransferFiles: null,
+            referencedTransferFiles: null,
+            orphanedTransferFiles: null,
+            missingTransferFiles: null,
+          },
           schedulers: [
             {
               queue: 'asset-directory-sync',
@@ -124,7 +141,14 @@ describe('OpsHealthService', () => {
       }),
     );
 
-    expect((await service.overview(now)).schedulers).toEqual([
+    const overview = await service.overview(now);
+    expect(overview.assetOperations).toMatchObject({
+      directorySyncOverlapsLastHour: 3,
+      auditWriteFailuresLastHour: 1,
+      transferFileScanState: 'limited',
+      orphanedTransferFiles: null,
+    });
+    expect(overview.schedulers).toEqual([
       expect.objectContaining({
         queue: 'asset-directory-sync',
         schedulerId: 'asset-directory-sync-hourly',

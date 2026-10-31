@@ -872,6 +872,28 @@
         "fails_other": "{{count}} failures in a row",
         "lastError": "Error: {{error}}"
       },
+      "assetOperations": {
+        "title": "Asset operational metrics",
+        "hint": "Import, reminder, license, transfer-file, and audit counters; no personal data.",
+        "unavailable": "Asset metrics are unavailable (waiting for a worker snapshot or database response).",
+        "unknown": "Unknown",
+        "countValue": "{{count}}",
+        "directorySyncOverlaps": "Rejected directory-sync overlaps (previous 60 min)",
+        "importStuckClaims": "Imports with stuck apply claims (lease expired +10 min)",
+        "overAllocatedLicenses": "Licenses above seat count",
+        "licenseOverAllocationValue": "{{licenses}} licenses · {{seats}} seats over limit (allowed; review)",
+        "reminderDelivery": "Reminder delivery",
+        "reminderDeliveryValue": "Failed: {{failed}} · CLAIMED older than 10 min: {{stale}}",
+        "transferFiles": "Signed transfer files",
+        "transferPurgeValue": "Purge requests: {{pending}} · older than 30 min: {{stale}} · oldest request (min): {{oldest}}",
+        "transferScanValue": "Scanned: {{scanned}} · references: {{referenced}} · unreferenced: {{orphaned}} · missing: {{missing}}",
+        "transferScan": {
+          "limited": "Comparison is incomplete; unreferenced or missing-file counts are not reliable.",
+          "unavailable": "File comparison is currently unavailable."
+        },
+        "auditFailures": "Asset audit write failures (previous 60 min)",
+        "none": "none"
+      },
       "alerts": {
         "title": "Active alarms",
         "emptyTitle": "No active alarms",
@@ -1080,6 +1102,22 @@
         "security_auditWebhook_stalled": {
           "title": "Security audit webhook export is not delivering",
           "action": "The receiver does not accept events (the answer is not 2xx, the deadline passed or there is no connection). Check the address and the receiver from the server, then the Audit webhook export tile on the Security metrics card (last error). Events are kept while the outage is shorter than 24 hours; after that the waiting events are dropped."
+        },
+        "asset_import_stuck": {
+          "title": "Asset imports have stuck apply claims",
+          "action": "Review APPLYING jobs whose lease expired more than 10 minutes ago. Check the durable cursor and row errors; use Resume/Discard in the application rather than editing the row directly in the database."
+        },
+        "asset_reminders_deliveryBacklog": {
+          "title": "Asset reminders have a delivery backlog",
+          "action": "Review failed deliveries and CLAIMED rows older than 10 minutes. Check SMTP/the provider and allow the next scheduled retry; the metric contains no recipient address."
+        },
+        "asset_transferFiles_integrity": {
+          "title": "Transfer files are inconsistent",
+          "action": "Review old purge requests, unreferenced files, and missing files still referenced by the database. The scan is read-only; reconcile the records and backup first—nothing is deleted automatically."
+        },
+        "asset_audit_writeFailures": {
+          "title": "Asset audit writes are failing",
+          "action": "Check backend logs, audit action-schema validation, and database/Redis availability. Transactional mutations remain fail-closed; do not disable auditing to bypass the error."
         }
       },
       "alertDetailLabels": {
@@ -1117,7 +1155,20 @@
         "captchaSkippedLastHour": "Skipped CAPTCHA checks in the last hour",
         "auditWebhookPendingMinutes": "Minutes without a successful webhook delivery",
         "warnAfterMinutes": "Warning after (min)",
-        "criticalAfterMinutes": "Critical after (min)"
+        "criticalAfterMinutes": "Critical after (min)",
+        "auditWriteFailuresLastHour": "Asset audit write failures in the last hour",
+        "importStuckClaims": "Stuck import apply claims",
+        "failedReminderDeliveries": "Failed reminder deliveries",
+        "staleReminderClaims": "Stale reminder claims",
+        "reminderBacklogTotal": "Total reminder backlog",
+        "pendingTransferFilePurges": "Pending transfer-file purge requests",
+        "staleTransferFilePurges": "Purge requests older than 30 minutes",
+        "orphanedTransferFiles": "Unreferenced transfer files",
+        "missingTransferFiles": "Missing referenced transfer files",
+        "scannedTransferFiles": "Files scanned",
+        "referencedTransferFiles": "Database file references",
+        "staleAfterMinutes": "Stale after (min)",
+        "oldestTransferFilePurgeAgeMinutes": "Age of oldest purge request (min)"
       }
     }
   },

@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -74,6 +75,7 @@ export class AssetContractsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   private toItem(row: ContractRow, now: Date = new Date()) {
@@ -221,6 +223,7 @@ export class AssetContractsService {
         metadata: { kind: input.kind },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(created.id, viewer);
   }
@@ -250,6 +253,7 @@ export class AssetContractsService {
         metadata: {},
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
@@ -267,6 +271,7 @@ export class AssetContractsService {
         metadata: { supplier: current.supplier, items: current._count.items },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { deleted: true };
   }
@@ -303,6 +308,7 @@ export class AssetContractsService {
         metadata: { assetId },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
@@ -332,6 +338,7 @@ export class AssetContractsService {
         metadata: { assetId },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }

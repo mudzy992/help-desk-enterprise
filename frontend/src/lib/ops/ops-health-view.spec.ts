@@ -40,6 +40,7 @@ function overview(
   return {
     generatedAt: "2026-11-20T10:00:00.000Z",
     snapshot: { generatedAt: "2026-11-20T09:59:30.000Z", ageSeconds: 30 },
+    assetOperations: null,
     components: {
       api: "ok",
       database: "ok",

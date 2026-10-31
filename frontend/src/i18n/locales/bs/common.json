@@ -876,6 +876,28 @@
         "fails_other": "{{count}} neuspjeha zaredom",
         "lastError": "Greška: {{error}}"
       },
+      "assetOperations": {
+        "title": "Operativne metrike imovine",
+        "hint": "Brojači za uvoz, podsjetnike, licence, prenosnice i audit; bez ličnih podataka.",
+        "unavailable": "Metrike imovine nisu dostupne (čeka se mjerenje workera ili odgovor baze).",
+        "unknown": "Nepoznato",
+        "countValue": "{{count}}",
+        "directorySyncOverlaps": "Odbijena preklapanja sinhronizacije (prethodnih 60 min)",
+        "importStuckClaims": "Uvozi sa zaglavljenom primjenom (lease istekao +10 min)",
+        "overAllocatedLicenses": "Licence iznad broja mjesta",
+        "licenseOverAllocationValue": "{{licenses}} licenci · {{seats}} mjesta preko limita (dozvoljeno; pregledati)",
+        "reminderDelivery": "Dostava podsjetnika",
+        "reminderDeliveryValue": "Neuspjelo: {{failed}} · CLAIMED starije od 10 min: {{stale}}",
+        "transferFiles": "Datoteke potpisanih prenosnica",
+        "transferPurgeValue": "Zahtjevi za brisanje: {{pending}} · stariji od 30 min: {{stale}} · najstariji zahtjev (min): {{oldest}}",
+        "transferScanValue": "Skenirano: {{scanned}} · reference: {{referenced}} · nepovezane: {{orphaned}} · nedostaju: {{missing}}",
+        "transferScan": {
+          "limited": "Poređenje je nepotpuno; broj nepovezanih ili nedostajućih datoteka nije pouzdan.",
+          "unavailable": "Poređenje datoteka trenutno nije dostupno."
+        },
+        "auditFailures": "Neuspjeli zapisi audita imovine (prethodnih 60 min)",
+        "none": "nema"
+      },
       "alerts": {
         "title": "Aktivni alarmi",
         "emptyTitle": "Nema aktivnih alarma",
@@ -1089,6 +1111,22 @@
         "security_auditWebhook_stalled": {
           "title": "Izvoz sigurnosnog dnevnika na webhook ne isporučuje",
           "action": "Prijemnik ne prima događaje (odgovor nije 2xx, istekao je rok ili nema veze). Provjerite adresu i dostupnost prijemnika sa servera, pa pločicu Izvoz na webhook u kartici Sigurnosne metrike (zadnja greška). Događaji se ne gube dok je prekid kraći od 24 sata; nakon toga se čekajući odbacuju."
+        },
+        "asset_import_stuck": {
+          "title": "Uvoz imovine ima zaglavljene primjene",
+          "action": "Pregledajte APPLYING poslove čiji je lease istekao prije više od 10 minuta. Provjerite trajni cursor i greške; koristite Resume/Discard kroz aplikaciju, ne mijenjajte red direktno u bazi."
+        },
+        "asset_reminders_deliveryBacklog": {
+          "title": "Podsjetnici za imovinu imaju zastoj isporuke",
+          "action": "Pregledajte neuspjele isporuke i CLAIMED zapise starije od 10 minuta. Provjerite SMTP/provajdera i dozvolite sljedeći zakazani pokušaj; evidencija ne sadrži adresu primaoca."
+        },
+        "asset_transferFiles_integrity": {
+          "title": "Datoteke prenosnica nisu usklađene",
+          "action": "Provjerite stare zahtjeve za brisanje, nepovezane datoteke i nedostajuće datoteke koje baza još referencira. Skeniranje je samo za čitanje; prvo uskladite evidenciju i sigurnosnu kopiju, bez automatskog brisanja."
+        },
+        "asset_audit_writeFailures": {
+          "title": "Zapisi audita imovine nisu uspjeli",
+          "action": "Provjerite backend logove, audit action-schema validaciju i dostupnost baze/Redis-a. Transakcijske izmjene ostaju fail-closed; nemojte isključivati audit da biste zaobišli grešku."
         }
       },
       "alertDetailLabels": {
@@ -1126,7 +1164,20 @@
         "captchaSkippedLastHour": "Preskočene CAPTCHA provjere u zadnjih sat",
         "auditWebhookPendingMinutes": "Minuta bez uspješne isporuke na webhook",
         "warnAfterMinutes": "Upozorenje posle (min)",
-        "criticalAfterMinutes": "Kritično posle (min)"
+        "criticalAfterMinutes": "Kritično posle (min)",
+        "auditWriteFailuresLastHour": "Neuspjeli zapisi audita imovine u zadnjem satu",
+        "importStuckClaims": "Zaglavljene primjene uvoza",
+        "failedReminderDeliveries": "Neuspjele isporuke podsjetnika",
+        "staleReminderClaims": "Zastarjeli zahtjevi isporuke podsjetnika",
+        "reminderBacklogTotal": "Ukupno podsjetnika u zaostatku",
+        "pendingTransferFilePurges": "Zahtjevi za brisanje datoteka prenosnica",
+        "staleTransferFilePurges": "Zahtjevi za brisanje stariji od 30 minuta",
+        "orphanedTransferFiles": "Nepovezane datoteke prenosnica",
+        "missingTransferFiles": "Nedostajuće referencirane datoteke",
+        "scannedTransferFiles": "Skenirane datoteke",
+        "referencedTransferFiles": "Reference datoteka u bazi",
+        "staleAfterMinutes": "Zastarjelo nakon (min)",
+        "oldestTransferFilePurgeAgeMinutes": "Starost najstarijeg zahtjeva za purge (min)"
       }
     }
   },

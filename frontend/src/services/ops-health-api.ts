@@ -54,6 +54,24 @@ export type OpsQueue = {
   readonly failed: number;
 };
 
+export type OpsAssetOperations = {
+  readonly directorySyncOverlapsLastHour: number | null;
+  readonly auditWriteFailuresLastHour: number | null;
+  readonly importStuckClaims: number;
+  readonly overAllocatedLicenseCount: number;
+  readonly overAllocatedSeatCount: number;
+  readonly failedReminderDeliveries: number;
+  readonly staleReminderClaims: number;
+  readonly pendingTransferFilePurges: number;
+  readonly staleTransferFilePurges: number;
+  readonly oldestTransferFilePurgeAgeMinutes: number | null;
+  readonly transferFileScanState: "complete" | "limited" | "unavailable";
+  readonly scannedTransferFiles: number | null;
+  readonly referencedTransferFiles: number | null;
+  readonly orphanedTransferFiles: number | null;
+  readonly missingTransferFiles: number | null;
+};
+
 export type OpsThresholds = {
   readonly diskWarnPercent: number;
   readonly diskCriticalPercent: number;
@@ -74,6 +92,8 @@ export type OpsOverview = {
   readonly generatedAt: string;
   /** Latest worker measurement; null until the first run after a deploy. */
   readonly snapshot: { readonly generatedAt: string; readonly ageSeconds: number | null } | null;
+  /** Asset workflow/retention metrics from the worker snapshot; null if unavailable. */
+  readonly assetOperations: OpsAssetOperations | null;
   readonly components: {
     readonly api: ProbeState;
     readonly database: ProbeState;
