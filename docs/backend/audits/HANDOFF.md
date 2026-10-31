@@ -1,6 +1,6 @@
 # HANDOFF — Help Desk Enterprise
 
-**Datum:** 2026-10-30  
+**Datum:** 2026-10-31<br>
 **Jezička pravila:** svaka komunikacija i closeout izvještaj korisniku moraju biti isključivo na bosanskom.  
 **Svrha:** kontinuitet rada u narednoj Arena sesiji. Sve putanje ispod su relativne putanje unutar repozitorija.
 
@@ -27,11 +27,13 @@ Ključna implementacija: `AssetsService.remove()` zaključava red i provjerava o
 - PR blocker zapis: `0bd5970593da5791efcec9c5e548a0db2e1fdb5d`.
 - PR rerun zapis: `f776c387cdfe96af37d9cfe733ed2ba7e516b59b`.
 
-W7.16 **nije započet**. Počinje tek nakon razrješenja perf i ostalih PR CI blokatora. Tačan W7.16 nalaz još nije odabran/odobren: prije implementacije konsultovati aktivni registar i tražiti eksplicitno odobrenje za konkretan scope.
+W7.16 je isporučio cursor paginaciju na SHA `43547a410061cb48c472db4c2ac887cff756f14c`, ali `BA-assets-16` ostaje otvoren jer CI [`41227539110`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539110) pao je na E2E testu 56 (`/tickets?view=all`, 306 ms prema 250 ms pragu). Test nije mijenjan, preskočen niti oslabljen. Korisnik je izričito odobrio početak W7.17 uprkos tom gateu; ovo je samo sekvencijska iznimka, ne zelen CI rezultat. W7.16 closeout je `docs/backend/implementation/102-assets-commercial-and-transfer-cursors.md`.
 
-### PR i korisnička dozvola u ovoj sesiji
+W7.17 / `BA-assets-17` (P3) je jedini trenutno odobreni nalaz i aktivan scope. Tačan acceptance je iz audita §10 i koda: paralelni `latest + 1` uploadi ne smiju završavati nekontrolisanim unique konfliktom; alokacija treba biti serijalizovana i imati ograničen retry samo za template `version` unique conflict, audit ostaje u istoj transakciji, a iscrpljeni retry daje stabilan HTTP 409. Ne mijenjati `BA-assets-18`, `BA-assets-19` niti druge nalaze.
 
-PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) je otvoren. Korisnik je u ovoj sesiji izričito zatražio da se nakon HANDOFF commit/push koraka pokuša normalni merge PR-a #11. Ta dozvola je **samo za PR #11 u ovoj sesiji**; ne daje dozvolu za nove PR-ove niti za buduće mergeove. Koristiti normalni `gh pr merge 11 --merge`, bez `--auto` i bez administrativnog bypassa. Ako GitHub odbije merge zbog CI/zaštite grane, ne zaobilaziti blokadu; prijaviti rezultat korisniku. U novoj sesiji prvo provjeriti stvarno stanje PR-a i grane, ne pretpostavljati da je merge uspio.
+### PR i korisnička dozvola
+
+PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) i jednokratna dozvola za njega pripadaju ranijoj sesiji/grani; ta dozvola je iskorištena i **ne važi** za ovaj branch ili budući PR. Za aktuelnu granu `arena/864951a6-help-desk-enterprise` W7.16/W7.17 nije otvoren PR. Ne otvarati novi PR prema `master` bez tri zasebna jasna odobrenja korisnika; ne mergeovati, zatvarati niti brisati PR/granu bez zasebne dozvole.
 
 ## 3. CI dokaz i nerazriješeni blokatori
 
@@ -40,12 +42,14 @@ PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) je otvoren. Korisnik
 - `41068758830` na closeout SHA `c631fc06e9c5309487434123273ca252237a68ae` — završni push CI zelen.
 - Push CI je preskočio E2E poslove i image high/critical vulnerability enforcement; ne predstavljati ih kao izvršene/prošle.
 
-**PR CI nije zelen; ne tretirati W7.15 kao merge-ready samo na osnovu push CI:**
+**W7.16 push CI nije zelen:** run [`41227539110`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539110) na `43547a410061cb48c472db4c2ac887cff756f14c` pao je samo na E2E critical flows testu 56 (306 ms prema 250 ms); ostali navedeni build/test/integration/frontend/docs/supply-chain poslovi su prošli. E2E install wizard i image high/critical enforcement su `skipped`, ne passed. Perf run [`41227539109`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539109) je passed. Rerun je GitHub odbio; puni pokušaji i dokaz su u `docs/backend/implementation/102-assets-commercial-and-transfer-cursors.md`. Test nije skipovan niti oslabljen.
+
+**Historijski PR CI W7.15 na ranijoj grani (ne važi kao check za aktuelnu granu):**
 - Prvi PR pokušaj: CI `41071433209` pao je na `tests/54-dashboard.spec.ts:17` zbog Playwright strict-mode selectora koji je pronašao dva linka; osnovni backend, PostgreSQL/Redis, frontend i docs poslovi su prošli. Perf `41071433185` imao je prosjek `db_queries_per_request=6.323` prema budžetu `2.1`.
 - Ponovni PR pokušaj na SHA `0bd5970593da5791efcec9c5e548a0db2e1fdb5d`: CI `41073878957` prošao je backend build/test, PostgreSQL/Redis, container/supply-chain, docs guard i frontend, ali je E2E `GET /services` pao zbog `UND_ERR_CONNECT_TIMEOUT` prema `api.desk.ba101.top`. Perf `41073878668` prošao je 7/9 pragova; pali su `tickets_list_duration` i `http_req_failed`; query prosjek `6.216` prema budžetu `2.1` preko 3.381 aplikacijskih zahtjeva.
 - Posljednji tada poznati tip `f776c38` bio je docs-only i nije imao novi prijavljeni GitHub check. U svakoj sesiji ponovo provjeriti checks na aktuelnom SHA.
 
-Ovi problemi nisu klasifikovani kao raniji/pre-existing; samo je utvrđeno da su u E2E/performance putanjama izvan W7.15 asset hard-delete diff-a. Nisu popravljani u W7.15. Korisnik je izričito rekao da ne idemo na naredni paket dok CI nije razriješen. Prvo trijažirati E2E target/dostupnost i selector problem ako se ponovi; zatim profile-ovati k6 query budget, ticket-list latenciju i HTTP greške. Ne spuštati pragove bez dokaza.
+Ovi E2E/performance rezultati odnose se samo na raniji W7.15 PR branch i ne predstavljaju checks za aktuelnu granu. Nisu popravljani u W7.15. Za aktuelni W7.16 gate status, dopušteni nastavak W7.17 i neizmijenjeni test 56 pogledati W7.16 closeout iznad i [102 closeout](../implementation/102-assets-commercial-and-transfer-cursors.md).
 
 ## 4. Obavezna promjena CI grane u narednoj sesiji
 
@@ -59,7 +63,7 @@ Za W7.15: kad korisnik obezbijedi tačan target kroz sigurno okruženje, prvo iz
 
 ## 6. Registar nalaza
 
-- W7.15 je zatvorio samo `BA-assets-15`; `BA-assets-16`–`BA-assets-19` ostaju otvoreni.
+- W7.15 je zatvorio samo `BA-assets-15`. W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren zbog CI pada; `BA-assets-17` je odobren i aktivan, dok `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
 - Deklarisani zbir registra: 574 otvorena / 118 zatvorenih / 692 ukupno.
 - Machine-readable plan: 577 otvorenih / 104 zatvorena / 11 historijskih / 692 ukupno. „11 historijskih“ su zapisi `BA-audit-log-01`–`BA-audit-log-11` sa statusima `završen (W3.x)` iz ranijih W3 workstreamova; to nisu novi zatvoren nalaz W7.15 niti 11 zasebnih registara. Postojeća razlika između zbirnih statusa ostaje zasebna i nije usaglašena ovim paketom.
 
@@ -83,6 +87,7 @@ Svaki detaljni closeout odgovor mora sadržavati: **paket/nalaz; implementaciju;
 - Machine-readable plan: `docs/backend/backend-findings-plan.json`
 - Asset audit: `docs/backend/audits/22-assets.md`
 - W7.15 closeout: `docs/backend/implementation/101-assets-hard-delete-event-history.md`
+- W7.16 closeout/run evidence: `docs/backend/implementation/102-assets-commercial-and-transfer-cursors.md`
 - W7.15 migration: `backend/prisma/migrations/20271030120000_asset_hard_delete_event_history/`
 - Single-owner migrator: `backend/scripts/run-release-migrations.mjs`
 - Runtime migration sentinel: `backend/src/common/database/database-runtime-contract.ts`

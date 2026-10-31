@@ -8686,6 +8686,7 @@
       "transferScanUnavailable": "The antivirus check is currently unavailable.",
       "transferTemplateInvalid": "The template is not a valid DOCX.",
       "transferTemplateNotFound": "Template version not found.",
+      "transferTemplateVersionConflict": "A new template version could not be reserved because of concurrent uploads. Please try again.",
       "transferRenderFailed": "The record cannot be generated from the template."
     },
     "ticket": {

@@ -59,6 +59,7 @@ export const assetErrorKeys = {
   ASSET_TRANSFER_SCAN_UNAVAILABLE: "assets.errors.transferScanUnavailable",
   ASSET_TRANSFER_TEMPLATE_INVALID: "assets.errors.transferTemplateInvalid",
   ASSET_TRANSFER_TEMPLATE_NOT_FOUND: "assets.errors.transferTemplateNotFound",
+  ASSET_TRANSFER_TEMPLATE_VERSION_CONFLICT: "assets.errors.transferTemplateVersionConflict",
   ASSET_TRANSFER_RENDER_FAILED: "assets.errors.transferRenderFailed",
 } as const;
 

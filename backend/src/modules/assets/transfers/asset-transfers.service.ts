@@ -47,6 +47,11 @@ import {
   type TransferLocale,
 } from './transfer-document';
 import { allocateAssetTransferSequence } from './allocate-asset-transfer-sequence';
+import {
+  allocateAssetTransferTemplateVersion,
+  assetTransferTemplateVersionAllocationMaxAttempts,
+  isAssetTransferTemplateVersionConflict,
+} from './asset-transfer-template-version';
 import { defaultTransferNumberFormat, formatTransferNumber, localDateParts } from './transfer-number';
 
 export type MoveInput = {
@@ -893,29 +898,55 @@ export class AssetTransfersService {
     }
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
     const cleanNotes = cleanText(notes, 500, 'notes') || null;
-    const created = await withAssetAuditTransaction(this.prisma, async (transaction) => {
-      const latest = await transaction.assetTransferTemplate.findFirst({ orderBy: { version: 'desc' }, select: { version: true } });
-      return transaction.assetTransferTemplate.create({
-        data: {
-          version: (latest?.version ?? 0) + 1,
-          fileName: sanitizeFileName(file.fileName, 'prenosnica.docx'),
-          content: new Uint8Array(file.buffer),
-          sizeBytes: file.buffer.length,
-          sha256,
-          tags: [...inspection.tags],
-          notes: cleanNotes,
-          uploadedByUserId: viewer.userId,
-        },
-        select: { id: true, version: true },
-      });
-    }, (row) => ({
-      action: auditLogActions.assetTransferTemplateUploaded,
-      entityType: auditLogEntityTypes.assetTransfer,
-      entityId: row.id,
-      metadata: { version: row.version, sha256, unknownTags: inspection.unknownTags },
-      actorUserId: viewer.userId,
-    }));
+    const created = await this.persistUploadedTemplate({
+      file,
+      notes: cleanNotes,
+      sha256,
+      tags: inspection.tags,
+      unknownTags: inspection.unknownTags,
+      viewer,
+    });
     return { id: created.id, version: created.version, tags: inspection.tags, unknownTags: inspection.unknownTags };
+  }
+
+  private async persistUploadedTemplate(input: {
+    readonly file: UploadedFile;
+    readonly notes: string | null;
+    readonly sha256: string;
+    readonly tags: readonly string[];
+    readonly unknownTags: readonly string[];
+    readonly viewer: AssetViewer;
+  }): Promise<{ id: string; version: number }> {
+    for (let attempt = 0; attempt < assetTransferTemplateVersionAllocationMaxAttempts; attempt += 1) {
+      try {
+        return await withAssetAuditTransaction(this.prisma, async (transaction) => {
+          const version = await allocateAssetTransferTemplateVersion(transaction);
+          return transaction.assetTransferTemplate.create({
+            data: {
+              version,
+              fileName: sanitizeFileName(input.file.fileName, 'prenosnica.docx'),
+              content: new Uint8Array(input.file.buffer),
+              sizeBytes: input.file.buffer.length,
+              sha256: input.sha256,
+              tags: [...input.tags],
+              notes: input.notes,
+              uploadedByUserId: input.viewer.userId,
+            },
+            select: { id: true, version: true },
+          });
+        }, (row) => ({
+          action: auditLogActions.assetTransferTemplateUploaded,
+          entityType: auditLogEntityTypes.assetTransfer,
+          entityId: row.id,
+          metadata: { version: row.version, sha256: input.sha256, unknownTags: input.unknownTags },
+          actorUserId: input.viewer.userId,
+        }));
+      } catch (error) {
+        if (!isAssetTransferTemplateVersionConflict(error)) throw error;
+      }
+    }
+
+    throw new AssetError(assetErrorCodes.transferTemplateVersionConflict);
   }
 
   /** version = null → the built-in default template (starting point for Word). */

@@ -8740,6 +8740,7 @@
       "transferScanUnavailable": "Antivirusna provjera trenutno nije dostupna.",
       "transferTemplateInvalid": "Šablon nije ispravan DOCX.",
       "transferTemplateNotFound": "Verzija šablona nije pronađena.",
+      "transferTemplateVersionConflict": "Nije moguće rezervisati novu verziju šablona zbog istovremenih izmjena. Pokušajte ponovo.",
       "transferRenderFailed": "Prenosnicu nije moguće generisati iz šablona."
     },
     "ticket": {

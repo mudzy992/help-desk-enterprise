@@ -1,7 +1,7 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; Val 7 je u toku (W7.1–W7.15 zatvoreni; `BA-assets-16`–`BA-assets-19` čekaju zasebno odobrenje)<br>
-**Datum ažuriranja:** 2026-10-30<br>
+**Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.15 su zatvoreni; W7.16 je implementiran ali `BA-assets-16` ostaje otvoren zbog E2E CI pada; W7.17 je u toku po izričitom korisničkom odobrenju uprkos tom gateu; `BA-assets-18`–`BA-assets-19` ostaju otvoreni<br>
+**Datum ažuriranja:** 2026-10-31<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
 
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelna implementacija je na Valu 7 (W7.1–W7.15 su zatvoreni; `BA-assets-16`–`BA-assets-19` čekaju zasebno odobrenje).
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelni rad je na Valu 7: W7.1–W7.15 su zatvoreni, W7.16 je implementiran ali ostaje otvoren zbog E2E CI pada, a W7.17 je odobren za nastavak; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
 
 ### Redoslijed
 
@@ -576,3 +576,13 @@ Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
 - CI je prošao Prisma validate/generate/build/lint/Jest, PostgreSQL+Redis integration, release replay i migration-history provjeru svih 102 migracija, frontend, docs guard, container/supply-chain i gate. Migracija `20271030120000_asset_hard_delete_event_history` je aditivna i replayovana samo na disposable CI bazi.
 - Ciljna baza nije poznata i nije dostupna iz sandboxa; W7.15 migracija nije primijenjena niti joj je target status provjeren. Deployment mora prvo provjeriti `prisma migrate status` i koristiti single-owner release migrator; prethodna W7.14 migracija se ne ponavlja. Rollback ne smije ukloniti event arhivu ili trigger nakon zapisa historije.
 - Deklarisani zbir je **574 otvorena / 118 zatvorenih / 692 ukupno**; machine-readable source statusi su **577 otvorenih / 104 zatvorena / 11 historijskih**, uz nepromijenjenu raniju razliku od tri statusa. `BA-assets-16`–`BA-assets-19` ostaju otvoreni; ostali P1 paketi i naredni scopeovi zahtijevaju zasebno odobrenje.
+
+### W7.16 — cursor paginacija komercijalnih i transfer lista — implementiran, CI gate otvoren
+
+- Finalni testani kodni SHA `43547a410061cb48c472db4c2ac887cff756f14c`; CI [`41227539110`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539110) nije zelen zbog E2E testa 56: `/tickets?view=all` je izmjeren na 306 ms prema 250 ms pragu. Test nije mijenjan, preskočen niti oslabljen; korisnik je odobrio nastavak W7.17 uprkos ovom padu.
+- Backend build/test, PostgreSQL/Redis integration, frontend, docs guard i container/supply-chain prošli su; E2E install wizard je `skipped` na push triggeru, a high/critical image enforcement korak `skipped` jer je workflow uslov bio false. Perf smoke [`41227539109`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539109) na istom SHA je zelen.
+- `BA-assets-16` ostaje otvoren jer package gate nije zelen. Puni runovi, neuspjeli raniji pokušaji, lokalni blokatori, rollout i rollback su u [102-assets-commercial-and-transfer-cursors.md](implementation/102-assets-commercial-and-transfer-cursors.md). Registarski kontrolni zbir se ne mijenja.
+
+### W7.17 — template verzije: alokacija i retry ugovor — u toku
+
+- Korisnik je odobrio samo `BA-assets-17` (P3), uz poznat W7.16 E2E pad. Scope je sigurna alokacija `latest + 1`, retry samo za version unique conflict i stabilan bounded-exhaustion `409`; susjedni nalazi ostaju izvan scopea.

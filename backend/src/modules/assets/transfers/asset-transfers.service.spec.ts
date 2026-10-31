@@ -2,10 +2,12 @@ import { mkdtemp, mkdir, readFile, readdir, rm as removePath, writeFile } from '
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { AssetError } from '../assets.constants';
 import { scanAttachmentWithClamav } from '../../tickets/attachments/scan-attachment-with-clamav';
 import type { AssetViewer } from '../asset-viewer';
 import { AssetTransfersService } from './asset-transfers.service';
+import { buildDefaultTransferTemplate } from './transfer-document';
 
 jest.mock('../../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn() }));
 jest.mock('../../tickets/attachments/scan-attachment-with-clamav', () => ({
@@ -69,6 +71,10 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 0 } }),
       update: jest.fn().mockResolvedValue({ id: 'tr1' }),
       updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }),
+    },
+    assetTransferTemplate: {
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: `template-${data.version}`, version: data.version })),
     },
     asset: { updateMany: jest.fn().mockResolvedValue({ count: options.updateCount ?? 1 }) },
     assetEvent: { create: jest.fn().mockResolvedValue({}) },
@@ -288,6 +294,112 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
   it('an asset out of scope reads as not found', async () => {
     const { service } = setup({ assets: [] });
     await expect(service.move({ scenario: 'WAREHOUSE_TO_USER', assetIds: ['a1'], toUserId: 'u1' }, viewer)).rejects.toMatchObject({ code: 'ASSET_NOT_FOUND' });
+  });
+});
+
+describe('AssetTransfersService.uploadTemplate version allocation (W7.17)', () => {
+  const file = () => ({ fileName: 'prenosnica.docx', buffer: buildDefaultTransferTemplate('bs') });
+
+  it('allocates the next version under the transaction lock and writes one matching audit row', async () => {
+    const { service, prisma, transaction } = setup();
+    transaction.assetTransferTemplate.findFirst.mockResolvedValue({ version: 7 });
+
+    const result = await service.uploadTemplate(file(), 'W7.17 acceptance', viewer);
+
+    expect(result).toMatchObject({ id: 'template-8', version: 8 });
+    expect(transaction.assetTransferTemplate.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ version: 8, notes: 'W7.17 acceptance' }),
+    }));
+    expect(recordAuditEntryMock).toHaveBeenCalledTimes(1);
+    expect(recordAuditEntryMock).toHaveBeenCalledWith(transaction, expect.objectContaining({
+      action: auditLogActions.assetTransferTemplateUploaded,
+      entityType: auditLogEntityTypes.assetTransfer,
+      entityId: 'template-8',
+      metadata: expect.objectContaining({ version: 8 }),
+    }));
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a version-index collision in a fresh transaction and audits only the successful allocation', async () => {
+    const { service, prisma, transaction } = setup();
+    const collision = Object.assign(new Error('template version already allocated'), {
+      code: 'P2002',
+      meta: { modelName: 'AssetTransferTemplate', target: ['version'] },
+    });
+    const firstTransaction = {
+      ...transaction,
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      assetTransferTemplate: {
+        ...transaction.assetTransferTemplate,
+        findFirst: jest.fn().mockResolvedValue({ version: 12 }),
+        create: jest.fn().mockRejectedValue(collision),
+      },
+    };
+    const secondTransaction = {
+      ...transaction,
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      assetTransferTemplate: {
+        ...transaction.assetTransferTemplate,
+        findFirst: jest.fn().mockResolvedValue({ version: 13 }),
+        create: jest.fn().mockResolvedValue({ id: 'template-14', version: 14 }),
+      },
+    };
+    prisma.$transaction
+      .mockImplementationOnce(async (callback) => callback(firstTransaction))
+      .mockImplementationOnce(async (callback) => callback(secondTransaction));
+
+    await expect(service.uploadTemplate(file(), undefined, viewer)).resolves.toMatchObject({ id: 'template-14', version: 14 });
+
+    expect(firstTransaction.assetTransferTemplate.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ version: 13 }) }));
+    expect(secondTransaction.assetTransferTemplate.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ version: 14 }) }));
+    expect(firstTransaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(secondTransaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+    expect(recordAuditEntryMock).toHaveBeenCalledTimes(1);
+    expect(recordAuditEntryMock).toHaveBeenCalledWith(secondTransaction, expect.objectContaining({
+      entityId: 'template-14',
+      metadata: expect.objectContaining({ version: 14 }),
+    }));
+  });
+
+  it('returns a stable HTTP 409 domain error after the bounded retry budget is exhausted', async () => {
+    const { service, prisma, transaction } = setup();
+    const collision = Object.assign(new Error('template version already allocated'), {
+      code: 'P2002',
+      meta: { modelName: 'AssetTransferTemplate', target: ['version'] },
+    });
+    transaction.assetTransferTemplate.findFirst.mockResolvedValue({ version: 20 });
+    transaction.assetTransferTemplate.create.mockRejectedValue(collision);
+
+    await expect(service.uploadTemplate(file(), undefined, viewer)).rejects.toMatchObject({
+      code: 'ASSET_TRANSFER_TEMPLATE_VERSION_CONFLICT',
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    expect(recordAuditEntryMock).not.toHaveBeenCalled();
+  });
+
+  it('does not retry an unrelated unique constraint or an audit failure', async () => {
+    const unrelatedCreateConflict = Object.assign(new Error('another unique constraint'), {
+      code: 'P2002',
+      meta: { modelName: 'AssetTransferTemplate', target: ['sha256'] },
+    });
+    const first = setup();
+    first.transaction.assetTransferTemplate.create.mockRejectedValueOnce(unrelatedCreateConflict);
+    await expect(first.service.uploadTemplate(file(), undefined, viewer)).rejects.toBe(unrelatedCreateConflict);
+    expect(first.prisma.$transaction).toHaveBeenCalledTimes(1);
+
+    const second = setup();
+    const auditFailure = Object.assign(new Error('audit uniqueness failure'), {
+      code: 'P2002',
+      meta: { modelName: 'AuditLog', target: ['actionSchemaVersion'] },
+    });
+    recordAuditEntryMock.mockRejectedValueOnce(auditFailure);
+    await expect(second.service.uploadTemplate(file(), undefined, viewer)).rejects.toBe(auditFailure);
+    expect(second.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(second.transaction.assetTransferTemplate.create).toHaveBeenCalledTimes(1);
+    expect(second.wasTransactionCommitted()).toBe(false);
   });
 });
 
