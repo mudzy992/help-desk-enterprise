@@ -6,11 +6,11 @@ name: CI
 #     every one of them is created on every PR — a docs-only PR therefore also
 #     reports them, so no required check can stay "Expected" and block a merge.
 #   * push to the active Arena implementation branch -> backend + frontend and
-#     the full E2E suite as push-based evidence. Docs-only commits are skipped
-#     (paths-ignore); other push branches do not launch the long browser suite.
-#   * schedule (nightly) -> the full 71-test E2E run on a quiet stack.
-#   * workflow_dispatch -> triage: `specs=10,18,22`, `retries: 0`,
-#     `max_failures: 8` turn a red run into minutes instead of ~35.
+#     other code gates; package-level E2E is dispatched with targeted `specs`.
+#     Docs-only commits are skipped (paths-ignore).
+#   * schedule (nightly) -> the full E2E run on a quiet stack.
+#   * workflow_dispatch -> targeted E2E (`specs=10,18,22`) or full E2E when
+#     `specs` is empty; reserve the full run for segment closeout.
 #   * workflow_dispatch + `install_spec=51|52|53` -> only the F6 install-wizard job on
 #     a stack whose wizard is still open. The normal e2e job steps aside, because
 #     its global setup completes the installation the wizard specs are about to
@@ -547,8 +547,8 @@ jobs:
       checks: write
     runs-on: ubuntu-latest
     # Pull request -> smoke subset (the gate); schedule -> full run; dispatch ->
-    # triage or full. Pushes to the active Arena branch are the explicit
-    # push-based evidence path for this session's E2E triage.
+    # triage or full. Package-level E2E runs are manually dispatched with the
+    # targeted spec list; an empty list reserves the full run for segment closeout.
     # `needs.*.result == 'success'` keeps a red unit job from being followed by a
     # 15-minute browser run — except on a manual dispatch with `skip_gates` (the
     # default), where the two jobs are skipped on purpose so E2E starts right away.
@@ -560,7 +560,6 @@ jobs:
       (
         (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
         github.event_name == 'schedule' ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/arena/864951a6-help-desk-enterprise') ||
         (github.event_name == 'workflow_dispatch' && inputs.install_spec == '')
       ) &&
       (
@@ -766,14 +765,6 @@ jobs:
               retries="${E2E_RETRIES:-1}"
               max_failures="${{ inputs.max_failures || '0' }}"
               echo "Dispatch: specs='${specs:-all}', retries=$retries, max_failures=$max_failures."
-              ;;
-            push)
-              # The active Arena branch uses pushes as CI evidence; run the full
-              # suite there rather than the PR-only smoke subset.
-              specs=""
-              retries="${E2E_RETRIES:-1}"
-              max_failures="0"
-              echo "Arena push evidence: full run, retries=$retries."
               ;;
             *)
               specs=""

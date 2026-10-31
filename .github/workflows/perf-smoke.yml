@@ -8,10 +8,10 @@ name: Perf smoke
 # A failing threshold fails the job; the k6 summary and the API log are uploaded
 # as artefacts so a regression can be read without re-running the pipeline.
 
+# Performance smoke is an expensive segment-level signal: run it explicitly at
+# segment closeout, and retain the PR gate. Do not spend a full smoke on every
+# package push.
 on:
-  push:
-    # Push-based performance evidence is scoped to this active Arena branch.
-    branches: [arena/864951a6-help-desk-enterprise]
   pull_request:
     branches: [main, master]
   workflow_dispatch:

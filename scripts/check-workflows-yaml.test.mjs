@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { findWorkflowProblems } from "./check-workflows-yaml.mjs";
 
 const workflowPath = new URL("../.github/workflows/ci.yml", import.meta.url);
+const perfWorkflowPath = new URL("../.github/workflows/perf-smoke.yml", import.meta.url);
 
 /** Blok jednog joba: od `  ime:` do sljedećeg ključa na istom uvlačenju. */
 function readJob(workflow, name) {
@@ -91,10 +92,11 @@ test("backend findings dokumenti pokreću code i docs gateove", () => {
   assert.ok(workflow.includes("code=true\n                  docs=true"));
 });
 
-// Push na `master` ne provjerava stabilan deployment: Coolify ga istovremeno rebuilda.
-// Aktivni Arena branch je eksplicitni push-evidence izuzetak. Dispatch sa `install_spec`
-// (F6) i dalje povlači obični E2E, čiji `globalSetup` završi instalaciju za wizard spec.
-test("CI E2E se pokreće na PR-u, scheduleu, aktivnoj Arena grani i ručnom dispatchu", () => {
+// Package-level work uses targeted E2E by workflow_dispatch; full E2E is reserved
+// for segment closeout (empty `specs`) and the nightly run. Pushes do not launch
+// the expensive full browser suite. Dispatch with `install_spec` remains isolated
+// from the ordinary E2E job because its global setup would finish the wizard.
+test("CI E2E se pokreće na PR-u, scheduleu i ručnom dispatchu, ne na pushu", () => {
   const workflow = readFileSync(workflowPath, "utf8");
 
   assert.equal(
@@ -102,8 +104,6 @@ test("CI E2E se pokreće na PR-u, scheduleu, aktivnoj Arena grani i ručnom disp
     "!cancelled() && " +
       "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
       "github.event_name == 'schedule' || " +
-      // Only the active Arena implementation branch has push-based E2E evidence.
-      "(github.event_name == 'push' && github.ref == 'refs/heads/arena/864951a6-help-desk-enterprise') || " +
       "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
       "( inputs.skip_gates == true || " +
       "(needs.backend.result == 'success' && needs.frontend.result == 'success') )",
@@ -112,6 +112,14 @@ test("CI E2E se pokreće na PR-u, scheduleu, aktivnoj Arena grani i ručnom disp
 
 // Zajedno se ne smiju pokrenuti: obični E2E bi kroz API završio instalaciju koju
 // wizard spec (51/52) prolazi kroz UI, pa bi oba speca pala na `isCompleted`.
+test("Perf smoke se pokreće na PR-u i ručno, ne na svakom pushu", () => {
+  const workflow = readFileSync(perfWorkflowPath, "utf8");
+  const triggers = workflow.slice(workflow.indexOf("on:"), workflow.indexOf("\nconcurrency:"));
+  assert.ok(triggers.includes("  pull_request:"));
+  assert.ok(triggers.includes("  workflow_dispatch:"));
+  assert.ok(!/^  push:/mu.test(triggers), "Perf smoke ne smije imati push trigger");
+});
+
 test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec", () => {
   const workflow = readFileSync(workflowPath, "utf8");
   const wizard = readJobCondition(workflow, "e2e-install-wizard");

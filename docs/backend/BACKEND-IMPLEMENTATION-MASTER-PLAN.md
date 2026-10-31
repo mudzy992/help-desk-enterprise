@@ -1,6 +1,6 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.15 su zatvoreni; W7.16 je implementiran ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate; `BA-assets-18`–`BA-assets-19` ostaju otvoreni<br>
+**Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.15 su zatvoreni; W7.16 je implementiran ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni feature CI gate `41235280097`; kasniji traceability/closeout CI `41240229050` je pao na E2E; W7.17 concurrency suite-specific log nije mogao biti preuzet (`EOF`) pa se izvršenje ne potvrđuje; `BA-assets-18`–`BA-assets-19` ostaju otvoreni<br>
 **Datum ažuriranja:** 2026-10-31<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
@@ -160,7 +160,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelni status Vala 7: W7.1–W7.15 su zatvoreni; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni CI gate; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
+- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelni status Vala 7: W7.1–W7.15 su zatvoreni; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni feature CI gate `41235280097`, a kasniji traceability/closeout CI `41240229050` pao je na E2E; suite-specific W7.17 concurrency log nije potvrđen zbog `EOF`; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
 
 ### Redoslijed
 
@@ -585,7 +585,7 @@ Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
 
 ### W7.17 — template verzije: alokacija i retry ugovor — zatvoreno (`BA-assets-17`)
 
-- Kodni/testani SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`; CI [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) prošao je backend/full Jest, real PostgreSQL+Redis integration (uključujući pet paralelnih template uploadova), frontend, docs, container/supply-chain, E2E critical flows i CI gate. E2E install wizard i image high/critical enforcement korak su `skipped`; nisu računati kao passed.
+- Kodni/testani SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`; CI [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) prošao je backend/full Jest, PostgreSQL+Redis integration job, frontend, docs, container/supply-chain, E2E critical flows i CI gate. E2E install wizard i image high/critical enforcement korak su `skipped`; nisu računati kao passed. W7.17 concurrency suite je registrovan, ali suite-specific CI log preuzimanje vratilo je `EOF`, pa njegovo konkretno izvršenje nije nezavisno potvrđeno i nije označeno kao passed.
 - Advisory lock + nova transakcija za svaki od najviše tri ukupna pokušaja ponovo računa `latest + 1`. Retry važi samo za prepoznati version unique conflict; template i audit ostaju atomski, a exhaustion vraća stabilan HTTP `409` / `ASSET_TRANSFER_TEMPLATE_VERSION_CONFLICT`. Susjedni nalazi nisu mijenjani.
-- Zasebni Perf smoke [`41235280078`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280078) pao je na `search_duration` i `ticket_message_duration` pragovima; GitHub je odbio rerun. Rezultat je dokumentovan, nije predstavljen kao passed i nije proširen u ticket/search scope.
+- Zasebni Perf smoke [`41235280078`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280078) pao je na `search_duration` i `ticket_message_duration` pragovima; GitHub je odbio rerun. Kasniji traceability/closeout commit `451414ae` nije mijenjao product runtime kod, ali CI [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050) pao je na E2E testovima 25/54/56; njegov Perf smoke [`41240228922`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240228922) pao je na ticket-message pragu. Nijedan crveni rezultat nije prikazan kao passed niti je proširen u W7.17 scope.
 - Zatvoren je samo `BA-assets-17`; `BA-assets-16` i `BA-assets-18`–`BA-assets-19` ostaju otvoreni. Deklarisani zbir je **573 otvorena / 119 zatvorenih**; machine-readable source **576 otvorenih / 105 zatvorenih / 11 historijskih**. Detaljni dokaz, API contract, lokalna ograničenja i rollout/rollback su u [103-assets-transfer-template-version-retries.md](implementation/103-assets-transfer-template-version-retries.md).

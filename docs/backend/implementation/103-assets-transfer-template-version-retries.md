@@ -1,10 +1,11 @@
 # Package closeout — W7.17
 
 **Paket:** W7.17 — template version alokacija i bounded retry ugovor<br>
-**Nalaz:** `BA-assets-17` (P3) — zatvoren; acceptance je prošao na zelenom CI gateu<br>
+**Nalaz:** `BA-assets-17` (P3) — zatvoren na feature SHA sa zelenim CI gateom; specifično izvršenje PostgreSQL concurrency suitea nije nezavisno potvrđeno iz preuzetog CI loga<br>
 **Kodni commit:** `f8fff7e5f651fa2d57f49e03d1950af917514c7e`<br>
 **Finalni testani SHA:** `f8fff7e5f651fa2d57f49e03d1950af917514c7e`<br>
-**CI:** [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) — CI gate zelen<br>
+**CI paketa:** [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) na `f8fff7e5f651fa2d57f49e03d1950af917514c7e` — CI gate zelen<br>
+**Kasniji CI traceability/closeout commit:** [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050) — nije zelen; full E2E gate pao nakon promjene samo testnog/traceability i dokumentacijskog sadržaja, bez promjene product runtime koda<br>
 **DB migracije:** nema
 
 ## Nalaz i acceptance
@@ -26,14 +27,14 @@ W7.17 je započet nakon izričitog korisničkog odobrenja uprkos W7.16 CI padu n
 - `backend/src/modules/assets/transfers/asset-transfer-template-version.spec.ts` — lock prije čitanja, početna verzija 1, prepoznavanje tačnog unique indeksa i odbijanje nepovezanih/ambiguous konflikata.
 - `backend/src/modules/assets/transfers/asset-transfers.service.spec.ts` — uspješan bounded retry u dvije različite transakcije sa ponovnim latest-readom; audit samo za uspješan upis; najviše tri pokušaja pa stabilni error kod; nepovezani unique konflikt bez retrya; audit greška bez retrya i bez commita.
 - `backend/src/modules/assets/assets-version.dto.spec.ts` — novi domain error mapira se na HTTP 409.
-- `backend/src/modules/assets/transfers/asset-transfer-template-version.integration.spec.ts` — real-PostgreSQL concurrency acceptance izvršava pet paralelnih uploadova, provjerava jedinstvene uzastopne verzije i tačno jedan odgovarajući transactional audit zapis po uspješnom uploadu. Suite je registrovan u isolated integration runneru i njegovom harness testu.
+- `backend/src/modules/assets/transfers/asset-transfer-template-version.integration.spec.ts` — test je napisan da na realnom PostgreSQL-u izvrši pet paralelnih uploadova i provjeri jedinstvene uzastopne verzije te tačno jedan odgovarajući transactional audit zapis po uspješnom uploadu. Suite je registrovan u isolated integration runneru i njegovom harness testu; opis testa nije dokaz da je baš ovaj suite izvršen u konkretnom CI runu.
 
 ## CI i testni dokaz
 
 CI run [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) na `f8fff7e5f651fa2d57f49e03d1950af917514c7e`:
 
 - **Backend build + test:** passed; Prisma schema/klijent, lint, suiteovi koji su ranije bili blokirani nedostajućim generisanim Prisma tipovima, wiring/SLA provjere i puni Jest prolaz.
-- **PostgreSQL/Redis integration:** passed; real PostgreSQL suiteovi su izvršeni, uključujući novi W7.17 concurrency suite.
+- **PostgreSQL/Redis integration:** job i korak `Run real PostgreSQL integration suites` su `success` prema GitHub job metapodacima. Međutim, specifično izvršenje `asset-transfer-template-version.integration.spec.ts` nije nezavisno potvrđeno iz loga: `gh run view 41235280097 --job 124637672849 --log` i REST log download vratili su `EOF`, a run nije objavio integration-test artifact. Suite postoji u runner listi na testanom SHA-u; to i uspješan job nisu zamjena za traženi suite-specific log dokaz, pa se pet-upload acceptance ne prijavljuje kao CI-izvršena/prošla.
 - **Frontend build + test:** passed; lint, format, testovi, build i bundle/cold-route budžeti.
 - **Docs guard:** passed.
 - **Backend container + supply chain:** job passed; inventory, vulnerability scan, provenance i runtime contract su prošli. Korak `Enforce zero high/critical image vulnerabilities` je `skipped` jer high/critical broj nije aktivirao workflow uslov; ne računati ga kao izvršen.
@@ -45,18 +46,29 @@ Odvojeni Perf smoke [`41235280078`](https://github.com/mudzy992/help-desk-enterp
 
 Prethodni W7.16 CI [`41227539110`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539110) na W7.16 finalnom SHA pao je na E2E testu 56; korisnik je izričito odobrio da se W7.17 nastavi bez izmjene tog testa. W7.17 CI run iznad je zaseban i njegov gate je zelen; `BA-assets-16` se ovim paketom ne zatvara.
 
+### Naknadna provjera closeout/traceability commita
+
+Nakon što je kod W7.17 testiran i prošao gate na SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`, traceability/status testovi i closeout dokumentacija su ažurirani u commitu `451414ae832e203261dab2305dfb7d5f4cfb645e`. Taj commit nije mijenjao product runtime kod, ali je pokrenuo novi full push CI [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050), koji **nije zelen**:
+
+- Backend build/test i traceability guard, PostgreSQL/Redis integration, frontend, docs guard i container/supply-chain jobovi su passed; `CI gate` je failed zbog E2E critical flows.
+- E2E je prijavio **111 passed / 3 failed / 6 flaky / 2 skipped**; flaky i skipped nisu računati kao passed. `E2E install wizard` job i image high/critical enforcement korak su dodatno `skipped`.
+- `tests/25-assets-transfers.spec.ts:50` pao je zbog `UND_ERR_CONNECT_TIMEOUT` prema `api.desk.ba101.top:443`; `tests/54-dashboard.spec.ts:17` pao je jer strict locator za unrouted link našao dva elementa (isti problem je zabilježen u ranijem W7.15 PR closeoutu); `tests/56-definitive-frontend-closeout.spec.ts:186` na `/services` izmjerio je 375 ms prema pragu 250 ms. Test 56 nije mijenjan, preskočen ni oslabljen.
+- Zasebni Perf smoke [`41240228922`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240228922) na istom traceability/closeout SHA-u također je failed na `ticket_message_duration: p(95)<1000`; search, list, detail, HTTP error-rate i query budget (prosjek `1.894` prema `2.1`) su prošli.
+
+Ovi naknadni crveni rezultati su tačno evidentirani, ne predstavljaju zelen gate za commit `451414ae`, i nisu pripisani niti sakriveni kao passed. `BA-assets-17` se zatvara na zasebnom W7.17 kodnom SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`, čiji je feature CI gate [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) zelen; PostgreSQL/Redis job i suite-runner korak su prošli, ali izvršenje baš W7.17 concurrency suitea nije potvrđeno iz loga zbog `EOF` pri preuzimanju. Nema runtime izmjena poslije tog testanog koda. `BA-assets-16` i postojeći E2E/performance blokatori ostaju izvan W7.17 scopea.
+
 ## Lokalna provjera i ograničenja
 
 - Backend `npm run lint` prošao je bez grešaka uz tri postojeća `no-explicit-any` upozorenja u `src/modules/sla/sla-scan-failure-quarantine.spec.ts`.
 - `npm run audit:traceability` i `npm run audit:traceability:test` su prošli (692/692 nalaza; 11/11 guard testova); `npm run wiring:check`, `npm run db:migration-policy:check` i `npm run test:integration-harness` su prošli (harness 3/3).
 - Lokalni targeted Jest helper suite nije mogao kompajlirati jer nedostaje generisani `backend/src/generated/prisma/client`; ponovni Prisma generate bio je blokiran ranijom sandbox TLS greškom prema Prisma schema-engine hostu. DTO spec je lokalno prošao. Ovo lokalno ograničenje nije prikazano kao testni prolaz; CI je generisao klijent i izvršio suiteove.
-- Lokalni PostgreSQL concurrency suite nije izvršen jer sandbox nema `PRIVACY_IT_DATABASE_URL`; realni suite je prošao u CI integration poslu.
+- Lokalni PostgreSQL concurrency suite nije izvršen jer sandbox nema `PRIVACY_IT_DATABASE_URL`. CI integration job i suite-runner korak su `success`, ali raw log nije dostupan (`EOF`), pa se suite-specific CI izvršenje ne proglašava potvrđenim.
 - Frontend `npm run lint`, `npm run format:check`, `npm run i18n:check`, puni `npm test -- --run` i `npm run build` su prošli; bs/en parity je provjeren za 8.869 ključeva. Lokalni frontend testovi su bili 427 fajlova / 1.656 testova.
 - `node scripts/check-docs-content.mjs`, njegov testni suite i `git diff --check` su prošli. Docs guard prijavio je samo ranije poznate datumske razlike u tri mirrored stranice; ukupna provjera je `OK`.
 
 ## Registar nalaza
 
-- Zatvoren: samo `BA-assets-17` (P3), uz unit, real-PostgreSQL concurrency acceptance i zeleni W7.17 CI gate.
+- Zatvoren: samo `BA-assets-17` (P3), uz unit, zeleni W7.17 feature CI gate i prolaz integration joba; suite-specific PostgreSQL concurrency output nije potvrđen iz CI loga (`EOF`) i nije označen kao izvršen/prošao.
 - Ostaju otvoreni: `BA-assets-16` (status se ne mijenja ovim paketom), `BA-assets-18` i `BA-assets-19`.
 - Deklarisani kontrolni zbir nakon W7.17: **573 otvorena / 119 zatvorenih / 692 ukupno**.
 - Machine-readable source nakon zatvaranja samo `BA-assets-17`: **576 otvorenih / 105 zatvorenih / 11 historijskih statusa**. Preegzistentna razlika od tri statusa ostaje zasebna reconciliation obaveza; nije izmijenjena radi ovog paketa.
