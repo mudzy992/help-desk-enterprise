@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
   "controllerFiles": 99,
-  "routeCount": 614,
+  "routeCount": 618,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 594,
+    "authenticated": 598,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 594,
+    "explicit": 598,
     "inherited-or-public": 20
   },
   "routes": [
@@ -394,6 +394,21 @@
     {
       "source": "backend/src/modules/assets/assets.controller.ts",
       "controller": "AssetsController",
+      "handler": "assetContracts",
+      "method": "GET",
+      "path": "/assets/:id/contracts",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "assets",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/assets/assets.controller.ts",
+      "controller": "AssetsController",
       "handler": "history",
       "method": "GET",
       "path": "/assets/:id/history",
@@ -412,6 +427,21 @@
       "handler": "impact",
       "method": "GET",
       "path": "/assets/:id/impact",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "assets",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/assets/assets.controller.ts",
+      "controller": "AssetsController",
+      "handler": "assetLicenses",
+      "method": "GET",
+      "path": "/assets/:id/licenses",
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
@@ -739,6 +769,21 @@
     {
       "source": "backend/src/modules/assets/assets.controller.ts",
       "controller": "AssetsController",
+      "handler": "contractItems",
+      "method": "GET",
+      "path": "/assets/contracts/:contractId/items",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "assets",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/assets/assets.controller.ts",
+      "controller": "AssetsController",
       "handler": "addContractItem",
       "method": "POST",
       "path": "/assets/contracts/:contractId/items",
@@ -982,6 +1027,21 @@
       "handler": "updateLicense",
       "method": "PUT",
       "path": "/assets/licenses/:licenseId",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "assets",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/assets/assets.controller.ts",
+      "controller": "AssetsController",
+      "handler": "licenseAssignments",
+      "method": "GET",
+      "path": "/assets/licenses/:licenseId/assignments",
       "classGuards": [
         "SessionAuthenticationGuard"
       ],

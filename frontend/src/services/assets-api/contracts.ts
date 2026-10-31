@@ -11,7 +11,9 @@ import type {
   ContractListFilters,
 } from "./commercial-types";
 
-export function listContracts(filters: ContractListFilters): Promise<CursorPage<AssetContractItem>> {
+export function listContracts(
+  filters: ContractListFilters,
+): Promise<CursorPage<AssetContractItem>> {
   return apiRequest(`/assets/contracts${buildCommercialListQuery(filters)}`);
 }
 

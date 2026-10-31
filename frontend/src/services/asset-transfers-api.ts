@@ -157,7 +157,9 @@ export function moveAssets(input: AssetMovementInput): Promise<AssetMovementResu
   return apiRequest("/assets/movements", { method: "POST", ...json(input) });
 }
 
-export function listAssetTransfers(filters: AssetTransferFilters): Promise<CursorPage<AssetTransferListItem>> {
+export function listAssetTransfers(
+  filters: AssetTransferFilters,
+): Promise<CursorPage<AssetTransferListItem>> {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
   if (filters.status) params.set("status", filters.status);
@@ -181,10 +183,15 @@ export function listAssetTransfersForAsset(
   cursor?: string,
   limit?: number,
 ): Promise<CursorPage<AssetTransferListItem>> {
-  return apiRequest(`/assets/${encodeURIComponent(assetId)}/transfers${transferPageQuery(cursor, limit)}`);
+  return apiRequest(
+    `/assets/${encodeURIComponent(assetId)}/transfers${transferPageQuery(cursor, limit)}`,
+  );
 }
 
-export function listMyAssetTransfers(cursor?: string, limit?: number): Promise<CursorPage<AssetTransferListItem>> {
+export function listMyAssetTransfers(
+  cursor?: string,
+  limit?: number,
+): Promise<CursorPage<AssetTransferListItem>> {
   return apiRequest(`/assets/transfers/mine${transferPageQuery(cursor, limit)}`);
 }
 

@@ -63,7 +63,9 @@ export function ContractDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [itemPages, setItemPages] = useState<CursorPage<AssetContractDetail["items"][number]>[]>([]);
+  const [itemPages, setItemPages] = useState<CursorPage<AssetContractDetail["items"][number]>[]>(
+    [],
+  );
   const [loadingItems, setLoadingItems] = useState(false);
   const [searchText, setSearchText] = useState("");
   const search = useCommercialSearch(searchText);
@@ -79,7 +81,10 @@ export function ContractDetailSheet({
   const latestItemPage = itemPages.at(-1);
   const items = [...(contract?.items ?? []), ...itemPages.flatMap((page) => page.items)];
   const itemsHasMore = latestItemPage?.hasMore ?? contract?.itemsPage.hasMore ?? false;
-  const itemsCursor = itemPages.length > 0 ? latestItemPage?.nextCursor ?? undefined : contract?.itemsPage.nextCursor ?? undefined;
+  const itemsCursor =
+    itemPages.length > 0
+      ? (latestItemPage?.nextCursor ?? undefined)
+      : (contract?.itemsPage.nextCursor ?? undefined);
   const deleteMutation = useEntityMutation<string>({
     mutationFn: deleteContract,
     invalidate: () => [["assets", "contracts"]],

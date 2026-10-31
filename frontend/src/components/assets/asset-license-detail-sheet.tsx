@@ -61,7 +61,9 @@ export function LicenseDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [assignmentPages, setAssignmentPages] = useState<CursorPage<SoftwareLicenseAssignment>[]>([]);
+  const [assignmentPages, setAssignmentPages] = useState<CursorPage<SoftwareLicenseAssignment>[]>(
+    [],
+  );
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [target, setTarget] = useState<"asset" | "user">("asset");
   const [searchText, setSearchText] = useState("");
@@ -77,10 +79,16 @@ export function LicenseDetailSheet({
 
   const license = detailQuery.data;
   const latestAssignmentPage = assignmentPages.at(-1);
-  const assignments = [...(license?.assignments ?? []), ...assignmentPages.flatMap((page) => page.items)];
-  const assignmentsHasMore = latestAssignmentPage?.hasMore ?? license?.assignmentsPage.hasMore ?? false;
+  const assignments = [
+    ...(license?.assignments ?? []),
+    ...assignmentPages.flatMap((page) => page.items),
+  ];
+  const assignmentsHasMore =
+    latestAssignmentPage?.hasMore ?? license?.assignmentsPage.hasMore ?? false;
   const assignmentsCursor =
-    assignmentPages.length > 0 ? latestAssignmentPage?.nextCursor ?? undefined : license?.assignmentsPage.nextCursor ?? undefined;
+    assignmentPages.length > 0
+      ? (latestAssignmentPage?.nextCursor ?? undefined)
+      : (license?.assignmentsPage.nextCursor ?? undefined);
   const deleteMutation = useEntityMutation<string>({
     mutationFn: deleteLicense,
     invalidate: () => [["assets", "licenses"]],

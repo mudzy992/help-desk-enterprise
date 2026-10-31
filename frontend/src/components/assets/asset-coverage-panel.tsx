@@ -39,8 +39,14 @@ export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
   const contracts = [...(asset.contracts ?? []), ...contractPages.flatMap((page) => page.items)];
   const licensesHasMore = licensePage?.hasMore ?? asset.licensesPage?.hasMore ?? false;
   const contractsHasMore = contractPage?.hasMore ?? asset.contractsPage?.hasMore ?? false;
-  const licenseCursor = licensePages.length > 0 ? licensePage?.nextCursor ?? undefined : asset.licensesPage?.nextCursor ?? undefined;
-  const contractCursor = contractPages.length > 0 ? contractPage?.nextCursor ?? undefined : asset.contractsPage?.nextCursor ?? undefined;
+  const licenseCursor =
+    licensePages.length > 0
+      ? (licensePage?.nextCursor ?? undefined)
+      : (asset.licensesPage?.nextCursor ?? undefined);
+  const contractCursor =
+    contractPages.length > 0
+      ? (contractPage?.nextCursor ?? undefined)
+      : (asset.contractsPage?.nextCursor ?? undefined);
 
   async function loadMoreLicenses() {
     if (!licenseCursor || loadingLicenses) return;

@@ -44,7 +44,8 @@ export function useAssetTransferPages(mode: AssetTransferPanelMode, filters: Ass
     loading: mode.kind === "all" ? registerQuery.isLoading : scopedQuery.isLoading,
     error: mode.kind === "all" ? registerQuery.error : scopedQuery.error,
     hasNextPage: mode.kind === "all" ? registerQuery.hasNextPage : scopedQuery.hasNextPage,
-    isFetchingNextPage: mode.kind === "all" ? registerQuery.isFetchingNextPage : scopedQuery.isFetchingNextPage,
+    isFetchingNextPage:
+      mode.kind === "all" ? registerQuery.isFetchingNextPage : scopedQuery.isFetchingNextPage,
     fetchNextPage: mode.kind === "all" ? registerQuery.fetchNextPage : scopedQuery.fetchNextPage,
   };
 }

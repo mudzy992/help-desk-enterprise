@@ -21,7 +21,9 @@ export const assetContractQueryKeys = {
 
 const licensePath = (id: string) => `/assets/licenses/${encodeURIComponent(id)}`;
 
-export function listLicenses(filters: LicenseListFilters): Promise<CursorPage<SoftwareLicenseItem>> {
+export function listLicenses(
+  filters: LicenseListFilters,
+): Promise<CursorPage<SoftwareLicenseItem>> {
   return apiRequest(`/assets/licenses${buildCommercialListQuery(filters)}`);
 }
 
