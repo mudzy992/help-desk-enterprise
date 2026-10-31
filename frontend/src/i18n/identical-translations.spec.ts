@@ -26,6 +26,7 @@ const intentionallyIdentical = new Set([
   "admin.ops.auditLog.values.format.json",
   "admin.ops.auditLog.values.format.xlsx",
   "admin.ops.auditLog.values.provider.entra",
+  "admin.opsHealth.assetOperations.countValue",
   "admin.opsHealth.channels.email",
   "admin.opsHealth.channels.teams",
   "admin.opsHealth.components.api",
@@ -209,6 +210,6 @@ describe("identical Bosnian and English translations", () => {
     const en = flatten(english);
     const identical = [...bs].filter(([key, value]) => en.get(key) === value).map(([key]) => key);
     expect(identical.sort()).toEqual([...intentionallyIdentical].sort());
-    expect(identical).toHaveLength(186);
+    expect(identical).toHaveLength(187);
   });
 });
