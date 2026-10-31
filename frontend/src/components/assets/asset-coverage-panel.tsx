@@ -1,22 +1,86 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { hintClassName } from "@/components/ui/control";
+import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { AssetExpiryBadge } from "@/components/assets/asset-expiry-badge";
-import { formatAssetDate } from "@/lib/assets/asset-view";
-import type { AssetDetail } from "@/services/assets-api";
+import { formatAssetDate, mapAssetError } from "@/lib/assets/asset-view";
+import { mapApiError } from "@/lib/map-api-error";
+import type { CursorPage } from "@/services/cursor-page";
+import {
+  listAssetContractCoverage,
+  listAssetLicenseCoverage,
+  type AssetContractLink,
+  type AssetDetail,
+  type AssetLicenseLink,
+} from "@/services/assets-api";
 
 /** Delivery invariant (requirement): licences on the device (or its user) and covering contracts. */
 export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
   const { t, i18n } = useTranslation();
-  const licenses = asset.licenses ?? [];
-  const contracts = asset.contracts ?? [];
+  const [licensePages, setLicensePages] = useState<CursorPage<AssetLicenseLink>[]>([]);
+  const [contractPages, setContractPages] = useState<CursorPage<AssetContractLink>[]>([]);
+  const [loadingLicenses, setLoadingLicenses] = useState(false);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLicensePages([]);
+    setContractPages([]);
+    setLoadingLicenses(false);
+    setLoadingContracts(false);
+    setError(null);
+  }, [asset]);
+
+  const licensePage = licensePages.at(-1);
+  const contractPage = contractPages.at(-1);
+  const licenses = [...(asset.licenses ?? []), ...licensePages.flatMap((page) => page.items)];
+  const contracts = [...(asset.contracts ?? []), ...contractPages.flatMap((page) => page.items)];
+  const licensesHasMore = licensePage?.hasMore ?? asset.licensesPage?.hasMore ?? false;
+  const contractsHasMore = contractPage?.hasMore ?? asset.contractsPage?.hasMore ?? false;
+  const licenseCursor = licensePages.length > 0 ? licensePage?.nextCursor ?? undefined : asset.licensesPage?.nextCursor ?? undefined;
+  const contractCursor = contractPages.length > 0 ? contractPage?.nextCursor ?? undefined : asset.contractsPage?.nextCursor ?? undefined;
+
+  async function loadMoreLicenses() {
+    if (!licenseCursor || loadingLicenses) return;
+    setLoadingLicenses(true);
+    setError(null);
+    try {
+      const page = await listAssetLicenseCoverage(asset.id, licenseCursor);
+      setLicensePages((current) => [...current, page]);
+    } catch (caught) {
+      setError(t(mapAssetError(caught) ?? mapApiError(caught)));
+    } finally {
+      setLoadingLicenses(false);
+    }
+  }
+
+  async function loadMoreContracts() {
+    if (!contractCursor || loadingContracts) return;
+    setLoadingContracts(true);
+    setError(null);
+    try {
+      const page = await listAssetContractCoverage(asset.id, contractCursor);
+      setContractPages((current) => [...current, page]);
+    } catch (caught) {
+      setError(t(mapAssetError(caught) ?? mapApiError(caught)));
+    } finally {
+      setLoadingContracts(false);
+    }
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {error ? (
+        <p role="alert" className={`lg:col-span-2 ${errorTextClassName}`}>
+          {error}
+        </p>
+      ) : null}
       <Card className="p-0">
         <CardHeader title={t("assets.coverage.licensesTitle")} />
         <div className="grid gap-1 p-4 text-[12.5px]">
-          {licenses.length === 0 ? (
+          {licenses.length === 0 && !licensesHasMore ? (
             <p className={hintClassName}>{t("assets.coverage.noLicenses")}</p>
           ) : null}
           {licenses.map((entry) => (
@@ -41,12 +105,24 @@ export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
               </Badge>
             </div>
           ))}
+          {licensesHasMore ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 justify-self-start"
+              disabled={loadingLicenses}
+              onClick={() => void loadMoreLicenses()}
+            >
+              {loadingLicenses ? t("ui.loading") : t("assets.list.loadMore")}
+            </Button>
+          ) : null}
         </div>
       </Card>
       <Card className="p-0">
         <CardHeader title={t("assets.coverage.contractsTitle")} />
         <div className="grid gap-1 p-4 text-[12.5px]">
-          {contracts.length === 0 ? (
+          {contracts.length === 0 && !contractsHasMore ? (
             <p className={hintClassName}>{t("assets.coverage.noContracts")}</p>
           ) : null}
           {contracts.map((contract) => (
@@ -65,6 +141,18 @@ export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
               <AssetExpiryBadge daysLeft={contract.daysLeft} />
             </div>
           ))}
+          {contractsHasMore ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2 justify-self-start"
+              disabled={loadingContracts}
+              onClick={() => void loadMoreContracts()}
+            >
+              {loadingContracts ? t("ui.loading") : t("assets.list.loadMore")}
+            </Button>
+          ) : null}
         </div>
       </Card>
     </div>

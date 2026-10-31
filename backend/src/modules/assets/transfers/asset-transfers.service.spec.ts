@@ -76,7 +76,8 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
   let transactionCommitted = false;
   recordAuditEntryMock.mockReset().mockResolvedValue(undefined);
   const prisma = {
-    asset: { findMany: jest.fn().mockResolvedValue(options.assets ?? [asset('a1')]) },
+    asset: { findMany: jest.fn().mockResolvedValue(options.assets ?? [asset('a1')]), findUnique: jest.fn() },
+    assetTransfer: { findMany: jest.fn().mockResolvedValue([]) },
     user: { findUnique: jest.fn(({ where }) => Promise.resolve(users.get(where.id) ?? null)) },
     organizationalUnit: { findMany: jest.fn().mockResolvedValue([{ id: 'ou-root', parentId: null }, { id: 'ou-it', parentId: 'ou-root' }]) },
     assetSignatory: {
@@ -287,5 +288,57 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
   it('an asset out of scope reads as not found', async () => {
     const { service } = setup({ assets: [] });
     await expect(service.move({ scenario: 'WAREHOUSE_TO_USER', assetIds: ['a1'], toUserId: 'u1' }, viewer)).rejects.toMatchObject({ code: 'ASSET_NOT_FOUND' });
+  });
+});
+
+describe('AssetTransfersService cursor pages', () => {
+  const transferRow = (id: string) => ({
+    id,
+    number: `N-${id}`,
+    scenario: 'WAREHOUSE_TO_USER',
+    status: 'ISSUED',
+    fromUserId: null,
+    toUserId: viewer.userId,
+    fromLabel: 'Skladište',
+    toLabel: null,
+    issuedAt: new Date('2026-10-31T10:00:00Z'),
+    signedAt: null,
+    cancelledAt: null,
+    cancelReason: null,
+    signedFileName: null,
+    signedFilePurgeRequestedAt: null,
+    retentionRedactedAt: null,
+    snapshot: { from: { name: 'Skladište' }, to: { name: 'Agent' }, signatory: { name: '' }, items: [] },
+    _count: { items: 0 },
+  });
+
+  it('paginates my transfer records with a deterministic cursor and hasMore', async () => {
+    const { service, prisma } = setup();
+    prisma.assetTransfer.findMany.mockResolvedValue([transferRow('tr-1'), transferRow('tr-2')] as never);
+
+    const result = await service.mine(viewer, { cursor: 'tr-0', limit: 1 });
+
+    expect(result).toMatchObject({ items: [{ id: 'tr-1' }], hasMore: true, nextCursor: 'tr-1' });
+    expect(prisma.assetTransfer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 2, cursor: { id: 'tr-0' }, skip: 1, orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }] }),
+    );
+  });
+
+  it('paginates an asset transfer history after checking asset scope', async () => {
+    const { service, prisma } = setup();
+    prisma.asset.findUnique.mockResolvedValue({ organizationalUnit: { ouPath: '/root/it' } } as never);
+    prisma.assetTransfer.findMany.mockResolvedValue([transferRow('tr-1'), transferRow('tr-2')] as never);
+
+    const result = await service.forAsset('asset-1', viewer, { cursor: 'tr-0', limit: 1 });
+
+    expect(result).toMatchObject({ items: [{ id: 'tr-1' }], hasMore: true, nextCursor: 'tr-1' });
+    expect(prisma.assetTransfer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { items: { some: { assetId: 'asset-1' } } },
+        take: 2,
+        cursor: { id: 'tr-0' },
+        skip: 1,
+      }),
+    );
   });
 });

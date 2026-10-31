@@ -179,11 +179,11 @@ export function MyAssetsPage() {
 function MyTransfers() {
   const { t } = useTranslation();
   const { data } = useQuery({
-    queryKey: assetTransferQueryKeys.mine,
-    queryFn: listMyAssetTransfers,
+    queryKey: assetTransferQueryKeys.minePreview,
+    queryFn: () => listMyAssetTransfers(undefined, 1),
     retry: false,
   });
-  if (!data || data.length === 0) return null;
+  if (!data || (data.items.length === 0 && !data.hasMore)) return null;
   return (
     <section className="grid gap-3" aria-labelledby="my-transfers-heading">
       <h2 id="my-transfers-heading" className="text-[14px] font-semibold text-foreground">

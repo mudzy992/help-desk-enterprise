@@ -187,8 +187,6 @@ export const assetContractKinds = ['WARRANTY', 'SUPPORT', 'LEASE', 'MAINTENANCE'
 export type AssetContractKindValue = (typeof assetContractKinds)[number];
 
 export const assetContractLimits = {
-  listMax: 200,
   itemsPerContract: 500,
-  assignmentsPerLicense: 5000,
   keyMax: 500,
 } as const;

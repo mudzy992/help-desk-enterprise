@@ -1,9 +1,12 @@
 import { buildCommercialListQuery, jsonBody } from "./http";
 import { apiRequest } from "@/services/api";
 import type { AssetUserSummary } from "./types";
+import type { CursorPage } from "@/services/cursor-page";
 import type {
+  AssetLicenseLink,
   ContractListFilters,
   LicenseListFilters,
+  SoftwareLicenseAssignment,
   SoftwareLicenseDetail,
   SoftwareLicenseInput,
   SoftwareLicenseItem,
@@ -18,14 +21,30 @@ export const assetContractQueryKeys = {
 
 const licensePath = (id: string) => `/assets/licenses/${encodeURIComponent(id)}`;
 
-export function listLicenses(
-  filters: LicenseListFilters,
-): Promise<{ readonly items: readonly SoftwareLicenseItem[] }> {
+export function listLicenses(filters: LicenseListFilters): Promise<CursorPage<SoftwareLicenseItem>> {
   return apiRequest(`/assets/licenses${buildCommercialListQuery(filters)}`);
 }
 
 export function getLicense(id: string): Promise<SoftwareLicenseDetail> {
   return apiRequest(licensePath(id));
+}
+
+export function listLicenseAssignments(
+  id: string,
+  cursor?: string,
+  limit?: number,
+): Promise<CursorPage<SoftwareLicenseAssignment>> {
+  const query = buildCommercialListQuery({ cursor, limit });
+  return apiRequest(`${licensePath(id)}/assignments${query}`);
+}
+
+export function listAssetLicenseCoverage(
+  assetId: string,
+  cursor?: string,
+  limit?: number,
+): Promise<CursorPage<AssetLicenseLink>> {
+  const query = buildCommercialListQuery({ cursor, limit });
+  return apiRequest(`/assets/${encodeURIComponent(assetId)}/licenses${query}`);
 }
 
 export function searchLicenseUsers(

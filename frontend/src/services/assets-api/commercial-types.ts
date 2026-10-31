@@ -1,4 +1,5 @@
 import type { AssetStatus } from "./types";
+import type { CursorPageMetadata } from "@/services/cursor-page";
 
 export const softwareLicenseKinds = ["PER_DEVICE", "PER_USER", "SITE", "SUBSCRIPTION"] as const;
 export type SoftwareLicenseKind = (typeof softwareLicenseKinds)[number];
@@ -44,24 +45,28 @@ export type SoftwareLicenseItem = {
   readonly updatedAt: string;
 };
 
+export type SoftwareLicenseAssignment = {
+  readonly id: string;
+  readonly assignedAt: string;
+  readonly asset: {
+    readonly id: string;
+    readonly assetTag: string;
+    readonly name: string;
+  } | null;
+  readonly user: {
+    readonly id: string;
+    readonly displayName: string;
+    readonly email: string;
+    readonly isActive: boolean;
+  } | null;
+};
+
 export type SoftwareLicenseDetail = SoftwareLicenseItem & {
   readonly assignmentTarget: "asset" | "user" | "either" | "none";
+  /** Assignments omitted because the viewer cannot read their targets. */
   readonly hiddenAssignmentsCount: number;
-  readonly assignments: readonly {
-    readonly id: string;
-    readonly assignedAt: string;
-    readonly asset: {
-      readonly id: string;
-      readonly assetTag: string;
-      readonly name: string;
-    } | null;
-    readonly user: {
-      readonly id: string;
-      readonly displayName: string;
-      readonly email: string;
-      readonly isActive: boolean;
-    } | null;
-  }[];
+  readonly assignments: readonly SoftwareLicenseAssignment[];
+  readonly assignmentsPage: CursorPageMetadata;
 };
 
 export type SoftwareLicenseInput = {
@@ -93,6 +98,7 @@ export type AssetContractItem = {
 };
 
 export type AssetContractDetail = AssetContractItem & {
+  /** Linked items omitted because they are outside the viewer's asset scope. */
   readonly hiddenItemsCount: number;
   readonly items: readonly {
     readonly id: string;
@@ -101,6 +107,7 @@ export type AssetContractDetail = AssetContractItem & {
     readonly status: AssetStatus;
     readonly canOpen: boolean;
   }[];
+  readonly itemsPage: CursorPageMetadata;
 };
 
 export type AssetContractInput = {
@@ -119,10 +126,14 @@ export type LicenseListFilters = {
   readonly kind?: SoftwareLicenseKind;
   readonly expiringWithinDays?: number;
   readonly overAllocated?: boolean;
+  readonly cursor?: string;
+  readonly limit?: number;
 };
 export type ContractListFilters = {
   readonly search?: string;
   readonly kind?: AssetContractKind;
   readonly expiringWithinDays?: number;
   readonly includeExpired?: boolean;
+  readonly cursor?: string;
+  readonly limit?: number;
 };

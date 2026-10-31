@@ -108,8 +108,8 @@ export class AssetTransfersController {
 
   @Get('transfers/mine')
   @Header('Cache-Control', 'no-store')
-  mine(@Req() request: AuthenticatedHttpRequest) {
-    return runAsset(() => this.transfers.mine(this.viewer(request)));
+  mine(@Req() request: AuthenticatedHttpRequest, @Query() query: Record<string, string | undefined>) {
+    return runAsset(() => this.transfers.mine(this.viewer(request), parseListQuery(query)));
   }
 
   // ---------------------------------------------------------- catalog: signatories + templates
@@ -207,7 +207,11 @@ export class AssetTransfersController {
 
   @Get(':id/transfers')
   @Header('Cache-Control', 'no-store')
-  forAsset(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    return runAsset(() => this.transfers.forAsset(id, this.viewer(request)));
+  forAsset(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return runAsset(() => this.transfers.forAsset(id, this.viewer(request), parseListQuery(query)));
   }
 }

@@ -20,15 +20,18 @@ import {
 import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { mapApiError } from "@/lib/map-api-error";
 import { queryKeys } from "@/lib/query/query-keys";
+import type { CursorPage } from "@/services/cursor-page";
 import {
   assetContractQueryKeys,
   assignLicense,
   deleteLicense,
   getLicense,
+  listLicenseAssignments,
   lookupAssets,
   releaseLicense,
   revealLicenseKey,
   searchLicenseUsers,
+  type SoftwareLicenseAssignment,
   type SoftwareLicenseItem,
 } from "@/services/assets-api";
 import { useCommercialSearch } from "./use-commercial-search";
@@ -58,6 +61,8 @@ export function LicenseDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [assignmentPages, setAssignmentPages] = useState<CursorPage<SoftwareLicenseAssignment>[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [target, setTarget] = useState<"asset" | "user">("asset");
   const [searchText, setSearchText] = useState("");
   const search = useCommercialSearch(searchText);
@@ -66,9 +71,16 @@ export function LicenseDetailSheet({
     setRevealed(null);
     setError(null);
     setSearchText("");
+    setAssignmentPages([]);
+    setLoadingAssignments(false);
   }, [licenseId]);
 
   const license = detailQuery.data;
+  const latestAssignmentPage = assignmentPages.at(-1);
+  const assignments = [...(license?.assignments ?? []), ...assignmentPages.flatMap((page) => page.items)];
+  const assignmentsHasMore = latestAssignmentPage?.hasMore ?? license?.assignmentsPage.hasMore ?? false;
+  const assignmentsCursor =
+    assignmentPages.length > 0 ? latestAssignmentPage?.nextCursor ?? undefined : license?.assignmentsPage.nextCursor ?? undefined;
   const deleteMutation = useEntityMutation<string>({
     mutationFn: deleteLicense,
     invalidate: () => [["assets", "licenses"]],
@@ -113,6 +125,7 @@ export function LicenseDetailSheet({
     setError(null);
     try {
       await action();
+      setAssignmentPages([]);
       if (success) toast({ tone: "success", title: success });
       void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.licenses);
       return true;
@@ -121,6 +134,20 @@ export function LicenseDetailSheet({
       return false;
     } finally {
       setPending(false);
+    }
+  }
+
+  async function loadMoreAssignments() {
+    if (!license || !assignmentsCursor || loadingAssignments) return;
+    setLoadingAssignments(true);
+    setError(null);
+    try {
+      const page = await listLicenseAssignments(license.id, assignmentsCursor);
+      setAssignmentPages((current) => [...current, page]);
+    } catch (caught) {
+      setError(t(mapAssetError(caught) ?? mapApiError(caught)));
+    } finally {
+      setLoadingAssignments(false);
     }
   }
 
@@ -202,13 +229,14 @@ export function LicenseDetailSheet({
                 {license.assignmentTarget === "none" ? (
                   <p className={hintClassName}>{t("assets.licenses.siteHint")}</p>
                 ) : null}
-                {license.assignments.length === 0 &&
+                {assignments.length === 0 &&
                 license.hiddenAssignmentsCount === 0 &&
+                !assignmentsHasMore &&
                 license.assignmentTarget !== "none" ? (
                   <p className={hintClassName}>{t("assets.licenses.noAssignments")}</p>
                 ) : null}
                 <ul className="grid gap-1">
-                  {license.assignments.map((assignment) => (
+                  {assignments.map((assignment) => (
                     <li
                       key={assignment.id}
                       className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5"
@@ -257,6 +285,18 @@ export function LicenseDetailSheet({
                       count: license.hiddenAssignmentsCount,
                     })}
                   </p>
+                ) : null}
+                {assignmentsHasMore ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="justify-self-start"
+                    disabled={loadingAssignments}
+                    onClick={() => void loadMoreAssignments()}
+                  >
+                    {loadingAssignments ? t("ui.loading") : t("assets.list.loadMore")}
+                  </Button>
                 ) : null}
                 {canManage && license.assignmentTarget !== "none" ? (
                   <div className="grid gap-2 rounded-md border border-dashed border-border p-3">

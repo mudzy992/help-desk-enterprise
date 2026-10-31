@@ -19,6 +19,7 @@ import { AssetAccessService } from '../asset-access.service';
 import { buildLocationPaths, formatUnitPath } from '../asset-locations';
 import { isPathInScope, unitScopeWhere, viewerHasPermission, type AssetScope, type AssetViewer } from '../asset-viewer';
 import { AssetError, assetErrorCodes, assetEventActions, canTransitionAssetStatus, type AssetStatusValue } from '../assets.constants';
+import { assetPageLimit, toAssetCursorPage } from '../asset-pagination';
 import {
   assetTransferLimits,
   resolveSignatory,
@@ -516,32 +517,38 @@ export class AssetTransfersService {
       take: limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });
-    const page = rows.slice(0, limit);
-    return { items: page.map((row) => this.listItem(row)), nextCursor: rows.length > limit ? page[page.length - 1].id : null };
+    const page = toAssetCursorPage(rows, limit, (row) => row.id);
+    return { ...page, items: page.items.map((row) => this.listItem(row)) };
   }
 
-  async mine(viewer: AssetViewer) {
+  async mine(viewer: AssetViewer, query: TransferListQuery = {}) {
     await this.access.requireEnabled();
+    const limit = assetPageLimit(query.limit, 50, assetTransferLimits.listMax);
     const rows = await this.prisma.assetTransfer.findMany({
       where: { OR: [{ fromUserId: viewer.userId }, { toUserId: viewer.userId }], status: { not: 'CANCELLED' } },
       select: transferListSelect,
-      orderBy: { issuedAt: 'desc' },
-      take: assetTransferLimits.listMax,
+      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });
-    return rows.map((row) => this.listItem(row));
+    const page = toAssetCursorPage(rows, limit, (row) => row.id);
+    return { ...page, items: page.items.map((row) => this.listItem(row)) };
   }
 
-  async forAsset(assetId: string, viewer: AssetViewer) {
+  async forAsset(assetId: string, viewer: AssetViewer, query: TransferListQuery = {}) {
     const scope = await this.access.require(viewer, permissionKeys.assetRead);
     const asset = await this.prisma.asset.findUnique({ where: { id: assetId }, select: { organizationalUnit: { select: { ouPath: true } } } });
     if (asset === null || !isPathInScope(scope, asset.organizationalUnit.ouPath)) throw new AssetError(assetErrorCodes.notFound);
+    const limit = assetPageLimit(query.limit, 50, assetTransferLimits.listMax);
     const rows = await this.prisma.assetTransfer.findMany({
       where: { items: { some: { assetId } } },
       select: transferListSelect,
-      orderBy: { issuedAt: 'desc' },
-      take: assetTransferLimits.listMax,
+      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });
-    return rows.map((row) => this.listItem(row));
+    const page = toAssetCursorPage(rows, limit, (row) => row.id);
+    return { ...page, items: page.items.map((row) => this.listItem(row)) };
   }
 
   private async loadVisible(id: string, viewer: AssetViewer) {

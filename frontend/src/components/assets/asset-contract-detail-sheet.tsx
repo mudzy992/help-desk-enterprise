@@ -25,13 +25,16 @@ import {
 import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { mapApiError } from "@/lib/map-api-error";
 import { queryKeys } from "@/lib/query/query-keys";
+import type { CursorPage } from "@/services/cursor-page";
 import {
   addContractItem,
   assetContractQueryKeys,
   deleteContract,
   getContract,
+  listContractItems,
   lookupAssets,
   removeContractItem,
+  type AssetContractDetail,
   type AssetContractItem,
 } from "@/services/assets-api";
 import { useCommercialSearch } from "./use-commercial-search";
@@ -60,15 +63,23 @@ export function ContractDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [itemPages, setItemPages] = useState<CursorPage<AssetContractDetail["items"][number]>[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
   const [searchText, setSearchText] = useState("");
   const search = useCommercialSearch(searchText);
 
   useEffect(() => {
     setError(null);
     setSearchText("");
+    setItemPages([]);
+    setLoadingItems(false);
   }, [contractId]);
 
   const contract = detailQuery.data;
+  const latestItemPage = itemPages.at(-1);
+  const items = [...(contract?.items ?? []), ...itemPages.flatMap((page) => page.items)];
+  const itemsHasMore = latestItemPage?.hasMore ?? contract?.itemsPage.hasMore ?? false;
+  const itemsCursor = itemPages.length > 0 ? latestItemPage?.nextCursor ?? undefined : contract?.itemsPage.nextCursor ?? undefined;
   const deleteMutation = useEntityMutation<string>({
     mutationFn: deleteContract,
     invalidate: () => [["assets", "contracts"]],
@@ -85,7 +96,7 @@ export function ContractDetailSheet({
     enabled: open && canManage && search.length >= 2,
     retry: false,
   });
-  const linked = new Set(contract?.items.map((item) => item.id) ?? []);
+  const linked = new Set(items.map((item) => item.id));
   const candidates = (candidatesQuery.data?.items ?? []).filter((item) => !linked.has(item.id));
 
   async function run(action: () => Promise<unknown>, success: string) {
@@ -93,6 +104,7 @@ export function ContractDetailSheet({
     setError(null);
     try {
       await action();
+      setItemPages([]);
       toast({ tone: "success", title: success });
       void invalidateEntityQueries(queryClient, entityMutationQueryKeys.assets.contracts);
       return true;
@@ -101,6 +113,20 @@ export function ContractDetailSheet({
       return false;
     } finally {
       setPending(false);
+    }
+  }
+
+  async function loadMoreItems() {
+    if (!contract || !itemsCursor || loadingItems) return;
+    setLoadingItems(true);
+    setError(null);
+    try {
+      const page = await listContractItems(contract.id, itemsCursor);
+      setItemPages((current) => [...current, page]);
+    } catch (caught) {
+      setError(t(mapAssetError(caught) ?? mapApiError(caught)));
+    } finally {
+      setLoadingItems(false);
     }
   }
 
@@ -141,13 +167,13 @@ export function ContractDetailSheet({
 
               <section aria-labelledby="contract-items-title" className="grid gap-2">
                 <h3 id="contract-items-title" className="text-[13px] font-semibold text-foreground">
-                  {t("assets.contracts.itemsTitle", { count: contract.items.length })}
+                  {t("assets.contracts.itemsTitle", { count: contract.itemCount })}
                 </h3>
-                {contract.items.length === 0 && contract.hiddenItemsCount === 0 ? (
+                {items.length === 0 && contract.hiddenItemsCount === 0 && !itemsHasMore ? (
                   <p className={hintClassName}>{t("assets.contracts.noItems")}</p>
                 ) : null}
                 <ul className="grid gap-1">
-                  {contract.items.map((item) => (
+                  {items.map((item) => (
                     <li
                       key={item.id}
                       className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5"
@@ -192,6 +218,18 @@ export function ContractDetailSheet({
                   <p className={hintClassName}>
                     {t("assets.impact.hidden", { count: contract.hiddenItemsCount })}
                   </p>
+                ) : null}
+                {itemsHasMore ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="justify-self-start"
+                    disabled={loadingItems}
+                    onClick={() => void loadMoreItems()}
+                  >
+                    {loadingItems ? t("ui.loading") : t("assets.list.loadMore")}
+                  </Button>
                 ) : null}
                 {canManage ? (
                   <div className="grid gap-2 rounded-md border border-dashed border-border p-3">

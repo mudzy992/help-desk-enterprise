@@ -1,4 +1,5 @@
 import type { AssetContractLink, AssetLicenseLink } from "./commercial-types";
+import type { CursorPageMetadata } from "@/services/cursor-page";
 
 export const assetStatuses = [
   "ORDERED",
@@ -223,7 +224,9 @@ export type AssetDetail = Omit<AssetListItem, "organizationalUnit"> & {
   };
   readonly canManage: boolean;
   readonly licenses?: readonly AssetLicenseLink[];
+  readonly licensesPage?: CursorPageMetadata;
   readonly contracts?: readonly AssetContractLink[];
+  readonly contractsPage?: CursorPageMetadata;
 };
 
 export type AssetWriteInput = {

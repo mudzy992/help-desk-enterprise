@@ -1,5 +1,6 @@
 import { apiDownloadRequest, apiRequest } from "@/services/api";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
+import type { CursorPage } from "@/services/cursor-page";
 
 /**
  * Delivery invariant (requirement): equipment moves and transfer records (`prenosnice`).
@@ -83,6 +84,7 @@ export type AssetTransferFilters = {
   readonly status?: AssetTransferStatus;
   readonly scenario?: AssetTransferScenario;
   readonly cursor?: string;
+  readonly limit?: number;
 };
 
 export type AssetSignatoryUnit = {
@@ -132,6 +134,7 @@ export const assetTransferQueryKeys = {
   list: (filters: AssetTransferFilters) => ["assets", "transfers", "list", filters] as const,
   forAsset: (assetId: string) => ["assets", "transfers", "asset", assetId] as const,
   mine: ["assets", "transfers", "mine"] as const,
+  minePreview: ["assets", "transfers", "mine", "preview"] as const,
   signatories: ["assets", "transfers", "signatories"] as const,
   templates: ["assets", "transfers", "templates"] as const,
 };
@@ -154,27 +157,35 @@ export function moveAssets(input: AssetMovementInput): Promise<AssetMovementResu
   return apiRequest("/assets/movements", { method: "POST", ...json(input) });
 }
 
-export function listAssetTransfers(filters: AssetTransferFilters): Promise<{
-  readonly items: readonly AssetTransferListItem[];
-  readonly nextCursor: string | null;
-}> {
+export function listAssetTransfers(filters: AssetTransferFilters): Promise<CursorPage<AssetTransferListItem>> {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
   if (filters.status) params.set("status", filters.status);
   if (filters.scenario) params.set("scenario", filters.scenario);
   if (filters.cursor) params.set("cursor", filters.cursor);
+  if (filters.limit) params.set("limit", String(filters.limit));
   const query = params.toString();
   return apiRequest(`/assets/transfers${query ? `?${query}` : ""}`);
 }
 
-export function listAssetTransfersForAsset(
-  assetId: string,
-): Promise<readonly AssetTransferListItem[]> {
-  return apiRequest(`/assets/${encodeURIComponent(assetId)}/transfers`);
+function transferPageQuery(cursor?: string, limit?: number): string {
+  const params = new URLSearchParams();
+  if (cursor) params.set("cursor", cursor);
+  if (limit) params.set("limit", String(limit));
+  const query = params.toString();
+  return query ? `?${query}` : "";
 }
 
-export function listMyAssetTransfers(): Promise<readonly AssetTransferListItem[]> {
-  return apiRequest("/assets/transfers/mine");
+export function listAssetTransfersForAsset(
+  assetId: string,
+  cursor?: string,
+  limit?: number,
+): Promise<CursorPage<AssetTransferListItem>> {
+  return apiRequest(`/assets/${encodeURIComponent(assetId)}/transfers${transferPageQuery(cursor, limit)}`);
+}
+
+export function listMyAssetTransfers(cursor?: string, limit?: number): Promise<CursorPage<AssetTransferListItem>> {
+  return apiRequest(`/assets/transfers/mine${transferPageQuery(cursor, limit)}`);
 }
 
 export async function downloadTransferDocument(id: string, number: string): Promise<void> {

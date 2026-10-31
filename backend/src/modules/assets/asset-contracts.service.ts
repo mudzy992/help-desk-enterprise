@@ -7,6 +7,7 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { AssetAccessService } from './asset-access.service';
 import { dateOnly, daysUntil, optionalDate, optionalMoney, optionalText, requiredText } from './asset-fields';
 import { isPathInScope, unitScopeWhere, type AssetScope, type AssetViewer } from './asset-viewer';
+import { assetPageLimit, type AssetPageQuery, toAssetCursorPage } from './asset-pagination';
 import {
   AssetError,
   assetContractKinds,
@@ -27,7 +28,7 @@ export type SaveContractInput = {
   readonly organizationalUnitId: string;
 };
 
-export type ContractListQuery = {
+export type ContractListQuery = AssetPageQuery & {
   readonly search?: string;
   readonly kind?: AssetContractKindValue;
   readonly expiringWithinDays?: number;
@@ -104,6 +105,7 @@ export class AssetContractsService {
     const search = query.search?.trim();
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const limit = assetPageLimit(query.limit);
     const rows = (await this.prisma.assetContract.findMany({
       where: {
         ...(unitWhere === null ? {} : { organizationalUnit: unitWhere }),
@@ -121,16 +123,16 @@ export class AssetContractsService {
           ...(query.expiringWithinDays !== undefined ? { lte: new Date(today.getTime() + query.expiringWithinDays * 86_400_000) } : {}),
         },
       },
-      orderBy: [{ endsAt: 'asc' }],
-      take: assetContractLimits.listMax,
+      orderBy: [{ endsAt: 'asc' }, { id: 'asc' }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       select: contractSelect,
     })) as ContractRow[];
-    return { items: rows.map((row) => this.toItem(row, now)) };
+    const page = toAssetCursorPage(rows, limit, (row) => row.id);
+    return { ...page, items: page.items.map((row) => this.toItem(row, now)) };
   }
 
-  async detail(id: string, viewer: AssetViewer) {
-    const scope = await this.access.require(viewer, permissionKeys.assetRead);
-    const row = await this.loadInScope(id, scope);
+  private async contractItemsPage(id: string, scope: AssetScope, query: AssetPageQuery = {}) {
     const unitWhere = unitScopeWhere(scope);
     const itemsWhere: Prisma.AssetContractItemWhereInput = {
       contractId: id,
@@ -138,31 +140,53 @@ export class AssetContractsService {
         ? {}
         : { asset: { organizationalUnit: unitWhere as Prisma.OrganizationalUnitWhereInput } }),
     };
-    const visibleCountPromise = scope.all
-      ? Promise.resolve(row._count.items)
-      : this.prisma.assetContractItem.count({ where: itemsWhere });
-    const [items, visibleItemCount] = await Promise.all([
+    const limit = assetPageLimit(query.limit);
+    const visibleCountPromise = this.prisma.assetContractItem.count({ where: itemsWhere });
+    const [rows, visibleItemCount] = await Promise.all([
       this.prisma.assetContractItem.findMany({
         where: itemsWhere,
-        take: assetContractLimits.itemsPerContract,
+        take: limit + 1,
+        ...(query.cursor
+          ? { cursor: { contractId_assetId: { contractId: id, assetId: query.cursor } }, skip: 1 }
+          : {}),
         include: {
           asset: { select: { id: true, assetTag: true, name: true, status: true } },
         },
-        orderBy: { asset: { assetTag: 'asc' } },
+        orderBy: [{ asset: { assetTag: 'asc' } }, { assetId: 'asc' }],
       }),
       visibleCountPromise,
     ]);
+    const page = toAssetCursorPage(rows, limit, (item) => item.assetId);
     return {
-      ...this.toItem(row),
-      itemCount: visibleItemCount,
-      hiddenItemsCount: Math.max(0, row._count.items - visibleItemCount),
-      items: items.map((item) => ({
+      ...page,
+      visibleItemCount,
+      items: page.items.map((item) => ({
         id: item.asset.id,
         assetTag: item.asset.assetTag,
         name: item.asset.name,
         status: item.asset.status,
         canOpen: true,
       })),
+    };
+  }
+
+  async listItems(id: string, query: AssetPageQuery, viewer: AssetViewer) {
+    const scope = await this.access.require(viewer, permissionKeys.assetRead);
+    await this.loadInScope(id, scope);
+    const page = await this.contractItemsPage(id, scope, query);
+    return { items: page.items, hasMore: page.hasMore, nextCursor: page.nextCursor };
+  }
+
+  async detail(id: string, viewer: AssetViewer) {
+    const scope = await this.access.require(viewer, permissionKeys.assetRead);
+    const row = await this.loadInScope(id, scope);
+    const itemsPage = await this.contractItemsPage(id, scope);
+    return {
+      ...this.toItem(row),
+      itemCount: itemsPage.visibleItemCount,
+      hiddenItemsCount: Math.max(0, row._count.items - itemsPage.visibleItemCount),
+      items: itemsPage.items,
+      itemsPage: { hasMore: itemsPage.hasMore, nextCursor: itemsPage.nextCursor },
     };
   }
 
@@ -313,17 +337,26 @@ export class AssetContractsService {
   }
 
   /** Asset card (§17): contracts covering the item. */
-  async forAsset(assetId: string) {
+  async forAsset(assetId: string, query: AssetPageQuery = {}) {
+    const limit = assetPageLimit(query.limit);
     const rows = await this.prisma.assetContractItem.findMany({
       where: { assetId },
-      take: 50,
+      orderBy: [{ contract: { endsAt: 'asc' } }, { contractId: 'asc' }],
+      take: limit + 1,
+      ...(query.cursor
+        ? { cursor: { contractId_assetId: { contractId: query.cursor, assetId } }, skip: 1 }
+        : {}),
       include: { contract: { select: { id: true, kind: true, supplier: true, reference: true, endsAt: true } } },
     });
+    const page = toAssetCursorPage(rows, limit, (row) => row.contractId);
     const now = new Date();
-    return rows.map((row) => ({
-      ...row.contract,
-      endsAt: dateOnly(row.contract.endsAt) as string,
-      daysLeft: daysUntil(row.contract.endsAt, now),
-    }));
+    return {
+      ...page,
+      items: page.items.map((row) => ({
+        ...row.contract,
+        endsAt: dateOnly(row.contract.endsAt) as string,
+        daysLeft: daysUntil(row.contract.endsAt, now),
+      })),
+    };
   }
 }

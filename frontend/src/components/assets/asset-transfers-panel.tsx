@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Ban, FileCheck2, FileDown, FileText, Upload } from "lucide-react";
@@ -27,29 +27,21 @@ import {
 } from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
 import {
-  assetTransferQueryKeys,
   assetTransferScenarios,
   assetTransferStatuses,
   cancelAssetTransfer,
   downloadSignedTransfer,
   downloadTransferDocument,
-  listAssetTransfers,
-  listAssetTransfersForAsset,
-  listMyAssetTransfers,
   uploadSignedTransfer,
   type AssetTransferFilters,
   type AssetTransferListItem,
   type AssetTransferScenario,
   type AssetTransferStatus,
 } from "@/services/asset-transfers-api";
-
-type PanelMode =
-  | { readonly kind: "all" }
-  | { readonly kind: "asset"; readonly assetId: string }
-  | { readonly kind: "mine" };
+import { useAssetTransferPages, type AssetTransferPanelMode } from "./use-asset-transfer-pages";
 
 interface AssetTransfersPanelProperties {
-  readonly mode: PanelMode;
+  readonly mode: AssetTransferPanelMode;
   /** asset.manage: cancel and signed copies (the server checks the unit scope again). */
   readonly canManage: boolean;
 }
@@ -72,31 +64,8 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
     return () => window.clearTimeout(handle);
   }, [searchText]);
 
-  const registerQuery = useInfiniteQuery({
-    queryKey: assetTransferQueryKeys.list(filters),
-    queryFn: ({ pageParam }) => listAssetTransfers({ ...filters, cursor: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: mode.kind === "all",
-    retry: false,
-  });
-  const scopedQuery = useQuery({
-    queryKey:
-      mode.kind === "asset"
-        ? assetTransferQueryKeys.forAsset(mode.assetId)
-        : assetTransferQueryKeys.mine,
-    queryFn: () =>
-      mode.kind === "asset" ? listAssetTransfersForAsset(mode.assetId) : listMyAssetTransfers(),
-    enabled: mode.kind !== "all",
-    retry: false,
-  });
-
-  const items =
-    mode.kind === "all"
-      ? (registerQuery.data?.pages.flatMap((page) => page.items) ?? [])
-      : (scopedQuery.data ?? []);
-  const loading = mode.kind === "all" ? registerQuery.isLoading : scopedQuery.isLoading;
-  const error = mode.kind === "all" ? registerQuery.error : scopedQuery.error;
+  const { items, loading, error, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useAssetTransferPages(mode, filters);
 
   return (
     <div className="grid gap-3">
@@ -192,15 +161,15 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
           ))}
         </ul>
       ) : null}
-      {mode.kind === "all" && registerQuery.hasNextPage ? (
+      {hasNextPage ? (
         <Button
           type="button"
           variant="outline"
           className="justify-self-center"
-          disabled={registerQuery.isFetchingNextPage}
-          onClick={() => void registerQuery.fetchNextPage()}
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
         >
-          {registerQuery.isFetchingNextPage ? t("ui.loading") : t("assets.transfers.loadMore")}
+          {isFetchingNextPage ? t("ui.loading") : t("assets.transfers.loadMore")}
         </Button>
       ) : null}
       <CancelTransferSheet

@@ -35,6 +35,7 @@ import { AssetCatalogService } from './asset-catalog.service';
 import { AssetTicketsService } from './asset-tickets.service';
 import { AssetContractsService } from './asset-contracts.service';
 import { AssetLicensesService } from './asset-licenses.service';
+import type { AssetPageQuery } from './asset-pagination';
 import { assetViewerOf, type AssetViewer } from './asset-viewer';
 import {
   AddAssetRelationDto,
@@ -116,6 +117,14 @@ function parseListQuery(raw: RawListQuery): AssetListQuery {
     warrantyWithinDays: within !== undefined && Number.isInteger(within) && within >= 0 && within <= 3650 ? within : undefined,
     source,
     serviceId: raw.serviceId || undefined,
+    cursor: raw.cursor || undefined,
+    limit: limit !== undefined && Number.isInteger(limit) ? limit : undefined,
+  };
+}
+
+function parsePageQuery(raw: RawListQuery): AssetPageQuery {
+  const limit = raw.limit === undefined ? undefined : Number(raw.limit);
+  return {
     cursor: raw.cursor || undefined,
     limit: limit !== undefined && Number.isInteger(limit) ? limit : undefined,
   };
@@ -321,6 +330,7 @@ export class AssetsController {
           kind,
           expiringWithinDays: parseDays(raw.expiringWithinDays),
           overAllocated: raw.overAllocated === 'true',
+          ...parsePageQuery(raw),
         },
         this.viewer(request),
       ),
@@ -340,6 +350,16 @@ export class AssetsController {
     @Req() request: AuthenticatedHttpRequest,
   ) {
     return runAsset(() => this.licenses.searchUserCandidates(licenseId, search.slice(0, 120), this.viewer(request)));
+  }
+
+  @Get('licenses/:licenseId/assignments')
+  @Header('Cache-Control', 'no-store')
+  licenseAssignments(
+    @Param('licenseId') licenseId: string,
+    @Query() raw: RawListQuery,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return runAsset(() => this.licenses.listAssignments(licenseId, parsePageQuery(raw), this.viewer(request)));
   }
 
   @Get('licenses/:licenseId')
@@ -393,6 +413,7 @@ export class AssetsController {
           kind,
           expiringWithinDays: parseDays(raw.expiringWithinDays),
           includeExpired: raw.includeExpired === 'true',
+          ...parsePageQuery(raw),
         },
         this.viewer(request),
       ),
@@ -402,6 +423,16 @@ export class AssetsController {
   @Post('contracts')
   createContract(@Body() body: SaveContractDto, @Req() request: AuthenticatedHttpRequest) {
     return runAsset(() => this.contracts.create(body, this.viewer(request)));
+  }
+
+  @Get('contracts/:contractId/items')
+  @Header('Cache-Control', 'no-store')
+  contractItems(
+    @Param('contractId') contractId: string,
+    @Query() raw: RawListQuery,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return runAsset(() => this.contracts.listItems(contractId, parsePageQuery(raw), this.viewer(request)));
   }
 
   @Get('contracts/:contractId')
@@ -534,7 +565,39 @@ export class AssetsController {
         this.licenses.forAsset(asset.id, asset.assignedUser?.id ?? null),
         this.contracts.forAsset(asset.id),
       ]);
-      return { ...asset, licenses, contracts };
+      return {
+        ...asset,
+        licenses: licenses.items,
+        licensesPage: { hasMore: licenses.hasMore, nextCursor: licenses.nextCursor },
+        contracts: contracts.items,
+        contractsPage: { hasMore: contracts.hasMore, nextCursor: contracts.nextCursor },
+      };
+    });
+  }
+
+  @Get(':id/licenses')
+  @Header('Cache-Control', 'no-store')
+  assetLicenses(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query() raw: RawListQuery,
+  ) {
+    return runAsset(async () => {
+      const asset = await this.assets.detail(id, this.viewer(request));
+      return this.licenses.forAsset(asset.id, asset.assignedUser?.id ?? null, parsePageQuery(raw));
+    });
+  }
+
+  @Get(':id/contracts')
+  @Header('Cache-Control', 'no-store')
+  assetContracts(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query() raw: RawListQuery,
+  ) {
+    return runAsset(async () => {
+      const asset = await this.assets.detail(id, this.viewer(request));
+      return this.contracts.forAsset(asset.id, parsePageQuery(raw));
     });
   }
 
