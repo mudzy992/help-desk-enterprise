@@ -48,6 +48,8 @@ PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) i jednokratna dozvol
 
 Traceability/closeout commit `451414ae` nije mijenjao product runtime kod, ali CI [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050) pao je na E2E: 111 passed / 3 failed / 6 flaky / 2 skipped; testovi 25, 54 i 56 su uzrokovali neuspjeh, a CI gate je failed. Njegov Perf smoke [`41240228922`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240228922) pao je na ticket-message latency pragu. Neuspjesi su eksplicitno evidentirani u W7.17 closeoutu; ne prikazivati ih kao passed, ne mijenjati test 56 i ne proširivati W7.17 scope.
 
+Cadence/workflow commit `fc103fa4cc7ccb01e6b0c4f2bbdf6f18c6043feb` ima CI run [`41246096796`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41246096796) s green gateom za backend, PostgreSQL/Redis job, frontend, docs i container/supply-chain. Oba E2E posla su `skipped` po politici; image high/critical enforcement korak je `skipped`; Perf smoke nije pokrenut na pushu. Ovo nije full E2E/Perf pass i ne poništava raniji crveni run `41240229050`.
+
 **Historijski PR CI W7.15 na ranijoj grani (ne važi kao check za aktuelnu granu):**
 - Prvi PR pokušaj: CI `41071433209` pao je na `tests/54-dashboard.spec.ts:17` zbog Playwright strict-mode selectora koji je pronašao dva linka; osnovni backend, PostgreSQL/Redis, frontend i docs poslovi su prošli. Perf `41071433185` imao je prosjek `db_queries_per_request=6.323` prema budžetu `2.1`.
 - Ponovni PR pokušaj na SHA `0bd5970593da5791efcec9c5e548a0db2e1fdb5d`: CI `41073878957` prošao je backend build/test, PostgreSQL/Redis, container/supply-chain, docs guard i frontend, ali je E2E `GET /services` pao zbog `UND_ERR_CONNECT_TIMEOUT` prema `api.desk.ba101.top`. Perf `41073878668` prošao je 7/9 pragova; pali su `tickets_list_duration` i `http_req_failed`; query prosjek `6.216` prema budžetu `2.1` preko 3.381 aplikacijskih zahtjeva.
@@ -67,7 +69,7 @@ Za W7.15: kad korisnik obezbijedi tačan target kroz sigurno okruženje, prvo iz
 
 ## 6. Registar nalaza
 
-- W7.15 je zatvorio samo `BA-assets-15`. W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 zatvorio je samo `BA-assets-17` uz feature CI gate `41235280097`; W7.17 concurrency suite-specific log nije potvrđen zbog `EOF`; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
+- W7.15 je zatvorio samo `BA-assets-15`. W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 zatvorio je samo `BA-assets-17` uz feature CI gate `41235280097`; W7.17 concurrency suite-specific log nije potvrđen zbog `EOF`. Kasniji cadence CI `41246096796` je zelen za kodne gateove uz E2E `skipped` i Perf bez push runa; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
 - Deklarisani zbir registra nakon W7.17: 573 otvorena / 119 zatvorenih / 692 ukupno.
 - Machine-readable plan nakon zatvaranja samo `BA-assets-17`: 576 otvorenih / 105 zatvorenih / 11 historijskih / 692 ukupno. „11 historijskih“ su zapisi `BA-audit-log-01`–`BA-audit-log-11` sa statusima `završen (W3.x)` iz ranijih W3 workstreamova; to nisu novi zatvoreni nalazi Vala 7 niti 11 zasebnih registara. Postojeća razlika od tri statusa ostaje zasebna i nije usaglašena ovim paketom.
 

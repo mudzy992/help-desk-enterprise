@@ -5,7 +5,8 @@
 **Kodni commit:** `f8fff7e5f651fa2d57f49e03d1950af917514c7e`<br>
 **Finalni testani SHA:** `f8fff7e5f651fa2d57f49e03d1950af917514c7e`<br>
 **CI paketa:** [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) na `f8fff7e5f651fa2d57f49e03d1950af917514c7e` — CI gate zelen<br>
-**Kasniji CI traceability/closeout commit:** [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050) — nije zelen; full E2E gate pao nakon promjene samo testnog/traceability i dokumentacijskog sadržaja, bez promjene product runtime koda<br>
+**CI traceability/closeout commit `451414ae`:** [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050) — nije zelen; full E2E gate pao nakon promjene samo testnog/traceability i dokumentacijskog sadržaja, bez promjene product runtime koda<br>
+**Kasniji CI cadence commit `fc103fa4cc7ccb01e6b0c4f2bbdf6f18c6043feb`:** [`41246096796`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41246096796) — CI gate zelen; oba E2E posla su `skipped` po novoj cadence politici, Perf smoke nije pokrenut na pushu<br>
 **DB migracije:** nema
 
 ## Nalaz i acceptance
@@ -55,13 +56,17 @@ Nakon što je kod W7.17 testiran i prošao gate na SHA `f8fff7e5f651fa2d57f49e03
 - `tests/25-assets-transfers.spec.ts:50` pao je zbog `UND_ERR_CONNECT_TIMEOUT` prema `api.desk.ba101.top:443`; `tests/54-dashboard.spec.ts:17` pao je jer strict locator za unrouted link našao dva elementa (isti problem je zabilježen u ranijem W7.15 PR closeoutu); `tests/56-definitive-frontend-closeout.spec.ts:186` na `/services` izmjerio je 375 ms prema pragu 250 ms. Test 56 nije mijenjan, preskočen ni oslabljen.
 - Zasebni Perf smoke [`41240228922`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240228922) na istom traceability/closeout SHA-u također je failed na `ticket_message_duration: p(95)<1000`; search, list, detail, HTTP error-rate i query budget (prosjek `1.894` prema `2.1`) su prošli.
 
+### CI cadence follow-up
+
+Commit `fc103fa4cc7ccb01e6b0c4f2bbdf6f18c6043feb` je uskladio workflowe s dogovorenom cadence politikom: package push više ne pokreće full E2E ni Perf smoke; ciljane E2E se biraju kroz ručni `specs` dispatch, a full E2E/Perf se čuva za segment-closeout (uz postojeći nightly E2E i PR smoke). CI [`41246096796`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41246096796) na ovom workflow/docs SHA-u imao je green CI gate: backend/full Jest, PostgreSQL/Redis integration job, frontend, docs guard i container/supply-chain su passed. `E2E critical flows` i `E2E install wizard` su `skipped` po novoj politici; image high/critical enforcement korak je takođe `skipped`; Perf smoke nije pokrenut na pushu. Ovaj run potvrđuje workflow/code gates, ne predstavlja full E2E ili Perf rezultat i ne mijenja starije neuspjehe na `451414ae`.
+
 Ovi naknadni crveni rezultati su tačno evidentirani, ne predstavljaju zelen gate za commit `451414ae`, i nisu pripisani niti sakriveni kao passed. `BA-assets-17` se zatvara na zasebnom W7.17 kodnom SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`, čiji je feature CI gate [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097) zelen; PostgreSQL/Redis job i suite-runner korak su prošli, ali izvršenje baš W7.17 concurrency suitea nije potvrđeno iz loga zbog `EOF` pri preuzimanju. Nema runtime izmjena poslije tog testanog koda. `BA-assets-16` i postojeći E2E/performance blokatori ostaju izvan W7.17 scopea.
 
 ## Lokalna provjera i ograničenja
 
 - Backend `npm run lint` prošao je bez grešaka uz tri postojeća `no-explicit-any` upozorenja u `src/modules/sla/sla-scan-failure-quarantine.spec.ts`.
 - `npm run audit:traceability` i `npm run audit:traceability:test` su prošli (692/692 nalaza; 11/11 guard testova); `npm run wiring:check`, `npm run db:migration-policy:check` i `npm run test:integration-harness` su prošli (harness 3/3).
-- Lokalni targeted Jest helper suite nije mogao kompajlirati jer nedostaje generisani `backend/src/generated/prisma/client`; ponovni Prisma generate bio je blokiran ranijom sandbox TLS greškom prema Prisma schema-engine hostu. DTO spec je lokalno prošao. Ovo lokalno ograničenje nije prikazano kao testni prolaz; CI je generisao klijent i izvršio suiteove.
+- Lokalni targeted Jest helper suite nije mogao kompajlirati jer nedostaje generisani `backend/src/generated/prisma/client`; ponovni Prisma generate bio je blokiran ranijom sandbox TLS greškom prema Prisma schema-engine hostu. DTO spec je lokalno prošao. Ovo lokalno ograničenje nije prikazano kao testni prolaz; CI backend build/test job je generisao klijent i prijavio puni Jest prolaz, dok je PostgreSQL suite-specific log ograničenje navedeno zasebno iznad.
 - Lokalni PostgreSQL concurrency suite nije izvršen jer sandbox nema `PRIVACY_IT_DATABASE_URL`. CI integration job i suite-runner korak su `success`, ali raw log nije dostupan (`EOF`), pa se suite-specific CI izvršenje ne proglašava potvrđenim.
 - Frontend `npm run lint`, `npm run format:check`, `npm run i18n:check`, puni `npm test -- --run` i `npm run build` su prošli; bs/en parity je provjeren za 8.869 ključeva. Lokalni frontend testovi su bili 427 fajlova / 1.656 testova.
 - `node scripts/check-docs-content.mjs`, njegov testni suite i `git diff --check` su prošli. Docs guard prijavio je samo ranije poznate datumske razlike u tri mirrored stranice; ukupna provjera je `OK`.

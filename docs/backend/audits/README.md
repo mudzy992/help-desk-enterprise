@@ -2,7 +2,7 @@
 
 **Status:** aktuelno<br>
 **Ažurirano:** 2026-10-31<br>
-**Aktivna implementacija:** Val 7 / W7; W7.1–W7.15 zatvoreni uz zeleni kodni CI; W7.16 implementiran, ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni feature CI gate `41235280097`, dok je kasniji traceability/closeout CI `41240229050` pao na E2E; specifični W7.17 concurrency-suite log nije mogao biti preuzet (`EOF`) i suite-specific izvršenje nije potvrđeno; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
+**Aktivna implementacija:** Val 7 / W7; W7.1–W7.15 zatvoreni uz zeleni kodni CI; W7.16 implementiran, ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17` uz zeleni feature CI gate `41235280097`, dok je kasniji traceability/closeout CI `41240229050` pao na E2E; naknadni cadence CI `41246096796` je zelen za kodne gateove uz E2E `skipped`, Perf nije pokrenut na pushu; specifični W7.17 concurrency-suite log nije mogao biti preuzet (`EOF`) i suite-specific izvršenje nije potvrđeno; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
 
 Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; tekući open/closed status je u [globalnom registru](../BACKEND-FINDINGS-REGISTER.md).
 
