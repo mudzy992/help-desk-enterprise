@@ -262,7 +262,12 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         });
         await expect(manageLifecycle).toBeVisible();
         await expect(manageLifecycle).toBeEnabled();
-        await manageLifecycle.click();
+        // This selection changes the URL-backed workspace and unmounts the Radix
+        // menu; its accessible keyboard path avoids retrying a pointer click on
+        // the detached portal node.
+        await page.keyboard.press('End');
+        await expect(manageLifecycle).toBeFocused();
+        await page.keyboard.press('Enter');
         const lifecycleDialog = page.getByTestId('service-lifecycle-dialog');
         await expect(lifecycleDialog).toBeVisible();
         const activateButton = lifecycleDialog.getByRole('button', { name: /Activate|Aktiviraj/i });
@@ -345,7 +350,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         timeout: 20_000,
       });
 
-      const calendars = await api.requestJson<readonly CalendarRecord[]>('/sla/calendars');
+      const calendars = await api.requestAllPages<CalendarRecord>('/sla/calendars');
       const created = calendars.find((calendar) => calendar.key === key);
       if (created === undefined) {
         throw new Error('[e2e] calendar created in the UI was not returned by GET /sla/calendars.');
@@ -367,7 +372,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       await expect(confirm).toBeHidden();
       calendarId = null;
       expect(
-        (await api.requestJson<readonly CalendarRecord[]>('/sla/calendars')).some(
+        (await api.requestAllPages<CalendarRecord>('/sla/calendars')).some(
           (calendar) => calendar.key === key,
         ),
       ).toBe(false);
@@ -395,7 +400,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     } finally {
       if (calendarId === null) {
         const calendars = await api
-          .requestJson<readonly CalendarRecord[]>('/sla/calendars')
+          .requestAllPages<CalendarRecord>('/sla/calendars')
           .catch(() => [] as readonly CalendarRecord[]);
         calendarId = calendars.find((calendar) => calendar.key === key)?.id ?? null;
       }

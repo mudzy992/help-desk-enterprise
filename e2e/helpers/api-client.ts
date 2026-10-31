@@ -153,6 +153,42 @@ export class ApiClient {
     return JSON.parse(text) as T;
   }
 
+  /** Read a cursor-based endpoint until the server reports that the last page was reached. */
+  async requestAllPages<T>(path: string, take = 100): Promise<readonly T[]> {
+    if (!Number.isInteger(take) || take < 1 || take > 100) {
+      throw new RangeError('[e2e] paginated API take must be an integer between 1 and 100.');
+    }
+
+    const endpoint = new URL(path, 'http://e2e.invalid');
+    endpoint.searchParams.set('take', String(take));
+    const seenCursors = new Set<string>();
+    const items: T[] = [];
+    let cursor: string | null = null;
+
+    while (true) {
+      if (cursor === null) endpoint.searchParams.delete('cursor');
+      else endpoint.searchParams.set('cursor', cursor);
+      const page = await this.requestJson<{
+        readonly items: readonly T[];
+        readonly hasMore: boolean;
+        readonly nextCursor: string | null;
+      }>(`${endpoint.pathname}${endpoint.search}`);
+      if (!Array.isArray(page.items) || typeof page.hasMore !== 'boolean') {
+        throw new Error(`[e2e] ${path} did not return a cursor-paginated response.`);
+      }
+      items.push(...page.items);
+      if (!page.hasMore) return items;
+      if (typeof page.nextCursor !== 'string' || page.nextCursor.length === 0) {
+        throw new Error(`[e2e] ${path} reported another page without a next cursor.`);
+      }
+      if (seenCursors.has(page.nextCursor)) {
+        throw new Error(`[e2e] ${path} repeated cursor ${page.nextCursor}.`);
+      }
+      seenCursors.add(page.nextCursor);
+      cursor = page.nextCursor;
+    }
+  }
+
   async request(path: string, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers);
     // FormData (uploads) sets its own multipart boundary.

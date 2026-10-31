@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   collectFailures,
+  collectFlaky,
   collectSkipped,
   errorDetail,
   firstErrorLine,
@@ -35,6 +36,20 @@ const failedSpec = (title, line, message, attempts = 1) => ({
   ],
 });
 
+const flakySpec = (title, line, message) => ({
+  title,
+  line,
+  tests: [
+    {
+      status: 'flaky',
+      results: [
+        { status: 'failed', error: { message } },
+        { status: 'passed' },
+      ],
+    },
+  ],
+});
+
 const passedSpec = (title) => ({
   title,
   line: 1,
@@ -44,7 +59,7 @@ const passedSpec = (title) => ({
 const skippedSpec = (title) => ({
   title,
   line: 1,
-  tests: [{ results: [{ status: 'skipped' }] }],
+  tests: [{ status: 'skipped', results: [{ status: 'skipped' }] }],
 });
 
 test('firstErrorLine strips ANSI codes and keeps the first line', () => {
@@ -72,12 +87,24 @@ test('collectFailures skips passing specs and keeps retries', () => {
   assert.equal(failures[0].retries, 1);
 });
 
+test('collectFailures separates tests that pass on retry from final unexpected failures', () => {
+  const report = reportWith({
+    specs: [
+      failedSpec('still fails after retry', 41, 'Error: persistent', 2),
+      flakySpec('passes on retry', 42, 'Error: first attempt timed out'),
+    ],
+  });
+  assert.equal(collectFailures(report).length, 1);
+  assert.equal(collectFailures(report)[0].title, '20 privacy › still fails after retry');
+  assert.deepEqual(collectFlaky(report).map((item) => item.title), ['20 privacy › passes on retry']);
+});
+
 test('formatSummary reports a clean run without a failure list', () => {
   const text = formatSummary(
-    { stats: { expected: 70, unexpected: 0, flaky: 1, skipped: 0 }, suites: [] },
+    { stats: { expected: 70, unexpected: 0, flaky: 0, skipped: 0 }, suites: [] },
     'results.json',
   );
-  assert.match(text, /70 passed, 0 failed, 1 flaky, 0 skipped/);
+  assert.match(text, /70 passed, 0 failed, 0 flaky, 0 skipped/);
   assert.match(text, /No failures/);
 });
 
@@ -110,11 +137,26 @@ test('formatSummary lists all failing tests before bounding noisy error details'
   assert.match(text, /Expected: status\.incidentResolved/);
 });
 
+test('formatSummary reports flaky and skipped tests separately from unexpected failures', () => {
+  const report = reportWith({
+    specs: [
+      flakySpec('eventually connects', 51, 'Error: UND_ERR_CONNECT_TIMEOUT'),
+      skippedSpec('optional install wizard'),
+    ],
+  });
+  report.stats = { expected: 0, unexpected: 0, flaky: 1, skipped: 1 };
+  const text = formatSummary(report);
+  assert.match(text, /No unexpected failures; 1 flaky test\(s\) recovered on retry/);
+  assert.match(text, /FLAKY 20-privacy\.spec\.ts:51 — 20 privacy › eventually connects/);
+  assert.match(text, /SKIPPED 1 test\(s\)/);
+  assert.doesNotMatch(text, /^FAIL /m);
+});
+
 test('errorDetail keeps the lines that explain the failure', () => {
   const message = [
     'Error: expect(received).toMatch(expected)',
     '',
-    'Expected pattern: /^\[HD-2026-000123\] /',
+    'Expected pattern: /^\\[HD-2026-000123\\] /',
     'Received string:  "[HD-2026-000124] Nova poruka"',
   ].join('\n');
   const detail = errorDetail({ message });
@@ -142,14 +184,14 @@ test('formatSummary prints detail lines and never hides a skip', () => {
         failedSpec(
           'API: preview hides confidential data',
           33,
-          'Error: expect(received).toMatch(expected)\nExpected pattern: /^\[HD-2026-000123\] /\nReceived string: "[HD-2026-000124]"',
+          'Error: expect(received).toMatch(expected)\nExpected pattern: /^\\[HD-2026-000123\\] /\nReceived string: "[HD-2026-000124]"',
         ),
         skippedSpec('send test to me (e-mail channel disabled)'),
       ],
     }),
   );
   assert.match(text, /FAIL 20-privacy\.spec\.ts:33/);
-  assert.ok(text.includes('Expected pattern: /^[HD-2026-000123] /'), text);
+  assert.ok(text.includes(String.raw`Expected pattern: /^\[HD-2026-000123\] /`), text);
   assert.ok(text.includes('Received string: "[HD-2026-000124]"'), text);
   assert.match(text, /SKIPPED 1 test\(s\) — a skip is not a pass:/);
   assert.match(text, /send test to me \(e-mail channel disabled\)/);

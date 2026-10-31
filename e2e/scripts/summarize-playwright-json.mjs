@@ -80,7 +80,7 @@ export function collectSkipped(report) {
 }
 
 /**
- * Every failed test in the report, flattened:
+ * Only tests that remain unexpected after all configured retries:
  * `{ file, line, title, status, error }`.
  */
 export function collectFailures(report) {
@@ -91,8 +91,12 @@ export function collectFailures(report) {
     for (const spec of suite.specs ?? []) {
       const testTitles = [...titles, spec.title];
       for (const test of spec.tests ?? []) {
-        const results = test.results ?? [];
-        const failed = results.filter((result) => result.status === 'failed' || result.status === 'timedOut');
+        // Playwright marks tests that pass on retry as `flaky`; their failed
+        // attempts are not final failures and must not be reported as `FAIL`.
+        if (test.status !== undefined && test.status !== 'unexpected') continue;
+        const failed = (test.results ?? []).filter(
+          (result) => result.status === 'failed' || result.status === 'timedOut',
+        );
         if (failed.length === 0) continue;
         const last = failed[failed.length - 1];
         failures.push({
@@ -112,9 +116,40 @@ export function collectFailures(report) {
   return failures;
 }
 
+/** Tests that had a failed attempt but passed on retry; kept separate from failures. */
+export function collectFlaky(report) {
+  const flaky = [];
+  const walk = (suite, trail) => {
+    const file = suite.file ?? null;
+    const titles = suite.title === '' ? trail : [...trail, suite.title];
+    for (const spec of suite.specs ?? []) {
+      const testTitles = [...titles, spec.title];
+      for (const test of spec.tests ?? []) {
+        if (test.status !== 'flaky') continue;
+        const failed = (test.results ?? []).filter(
+          (result) => result.status === 'failed' || result.status === 'timedOut',
+        );
+        if (failed.length === 0) continue;
+        flaky.push({
+          file: file === null ? '(unknown file)' : file.replace(/^.*[\\/]/, ''),
+          line: spec.line ?? 0,
+          title: testTitles.filter((part) => part.length > 0).join(' › '),
+          retries: failed.length,
+          error: firstErrorLine(failed[0].error),
+        });
+      }
+    }
+    for (const child of suite.suites ?? []) walk(child, titles);
+  };
+  for (const suite of report.suites ?? []) walk(suite, []);
+  return flaky;
+}
+
 /** Grouped, human-readable summary; also usable as a plain string. */
 export function formatSummary(report, fileName = 'results.json') {
   const failures = collectFailures(report);
+  const flakyTests = collectFlaky(report);
+  const skippedTitles = collectSkipped(report);
   const stats = report.stats ?? {};
   const lines = [];
   const total = stats.expected ?? 0;
@@ -123,36 +158,46 @@ export function formatSummary(report, fileName = 'results.json') {
   const skipped = stats.skipped ?? 0;
   lines.push(`Playwright (${fileName}): ${total} passed, ${unexpected} failed, ${flaky} flaky, ${skipped} skipped.`);
   if (failures.length === 0) {
-    lines.push('No failures: every executed spec passed on the first try.');
-    return lines.join('\n');
-  }
-  lines.push('');
-  // Keep every failing test visible in the first CI annotations. A single error
-  // line can contain a whole API response (for example a 50-notification poll),
-  // so cap it and print detail excerpts only after listing all failures.
-  for (const failure of failures) {
-    const retryNote = failure.retries > 0 ? ` (after ${failure.retries} retry/retries)` : '';
-    lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}`);
-    const firstLine = failure.error.length > 500 ? `${failure.error.slice(0, 499)}…` : failure.error;
-    lines.push(`     ${firstLine}`);
-  }
-  const failuresWithDetails = failures.filter((failure) => (failure.detail ?? []).length > 0);
-  if (failuresWithDetails.length > 0) {
+    lines.push(
+      flakyTests.length === 0
+        ? 'No failures: every executed spec passed on the first try.'
+        : `No unexpected failures; ${flakyTests.length} flaky test(s) recovered on retry.`,
+    );
+  } else {
     lines.push('');
-    lines.push('Failure detail excerpts:');
-    for (const failure of failuresWithDetails) {
-      lines.push(`DETAIL ${failure.file}:${failure.line}`);
-      for (const line of failure.detail ?? []) lines.push(line);
+    // Keep every final failing test visible in the first CI annotations. A single
+    // error line can contain a whole API response, so cap it and print details later.
+    for (const failure of failures) {
+      const retryNote = failure.retries > 0 ? ` (after ${failure.retries} retry/retries)` : '';
+      lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}`);
+      const firstLine = failure.error.length > 500 ? `${failure.error.slice(0, 499)}…` : failure.error;
+      lines.push(`     ${firstLine}`);
+    }
+    const failuresWithDetails = failures.filter((failure) => (failure.detail ?? []).length > 0);
+    if (failuresWithDetails.length > 0) {
+      lines.push('');
+      lines.push('Failure detail excerpts:');
+      for (const failure of failuresWithDetails) {
+        lines.push(`DETAIL ${failure.file}:${failure.line}`);
+        for (const line of failure.detail ?? []) lines.push(line);
+      }
+    }
+    const triage = triageSpecNumbers(failures);
+    if (triage.length > 0 && triage.length < 36) {
+      lines.push('');
+      lines.push(
+        `NEXT TRIAGE RUN: specs=${triage.join(',')} (Actions → CI → Run workflow, max_failures=8, retries=0)`,
+      );
     }
   }
-  const triage = triageSpecNumbers(failures);
-  if (triage.length > 0 && triage.length < 36) {
+  if (flakyTests.length > 0) {
     lines.push('');
-    lines.push(
-      `NEXT TRIAGE RUN: specs=${triage.join(',')} (Actions → CI → Run workflow, max_failures=8, retries=0)`,
-    );
+    lines.push(`FLAKY ${flakyTests.length} test(s) passed on retry; separate from final failures:`);
+    for (const item of flakyTests) {
+      lines.push(`FLAKY ${item.file}:${item.line} — ${item.title}`);
+      lines.push(`     ${item.error}`);
+    }
   }
-  const skippedTitles = collectSkipped(report);
   if (skippedTitles.length > 0) {
     lines.push('');
     lines.push(`SKIPPED ${skippedTitles.length} test(s) — a skip is not a pass:`);
