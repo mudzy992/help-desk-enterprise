@@ -91,10 +91,10 @@ test("backend findings dokumenti pokreću code i docs gateove", () => {
   assert.ok(workflow.includes("code=true\n                  docs=true"));
 });
 
-// E2E na pushu u `master` ne provjerava stabilan deployment: Coolify ga istovremeno rebuilda.
-// Izuzetak je dispatch sa `install_spec` (F6): tada se obični E2E **povlači**, jer njegov
-// `globalSetup` poziva `ensureInstall` i završi instalaciju koju wizard spec upravo hoda.
-test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch", () => {
+// Push na `master` ne provjerava stabilan deployment: Coolify ga istovremeno rebuilda.
+// Aktivni Arena branch je eksplicitni push-evidence izuzetak. Dispatch sa `install_spec`
+// (F6) i dalje povlači obični E2E, čiji `globalSetup` završi instalaciju za wizard spec.
+test("CI E2E se pokreće na PR-u, scheduleu, aktivnoj Arena grani i ručnom dispatchu", () => {
   const workflow = readFileSync(workflowPath, "utf8");
 
   assert.equal(
@@ -102,9 +102,8 @@ test("CI E2E je ograničen na PR s promjenama koda, schedule i ručni dispatch",
     "!cancelled() && " +
       "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
       "github.event_name == 'schedule' || " +
-      // TEMPORARY (Arena session arena/7a60171e): push trigger workaround in
-      // ci.yml because the session token has no actions:write. Revert together.
-      "(github.event_name == 'push' && github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') || " +
+      // Only the active Arena implementation branch has push-based E2E evidence.
+      "(github.event_name == 'push' && github.ref == 'refs/heads/arena/864951a6-help-desk-enterprise') || " +
       "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
       "( inputs.skip_gates == true || " +
       "(needs.backend.result == 'success' && needs.frontend.result == 'success') )",

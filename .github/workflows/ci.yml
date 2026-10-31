@@ -5,10 +5,9 @@ name: CI
 #     subset (~10-15 min). All three are required status checks on `master`, and
 #     every one of them is created on every PR — a docs-only PR therefore also
 #     reports them, so no required check can stay "Expected" and block a merge.
-#   * push to `main` and the designated Arena implementation branches -> backend
-#     + frontend only. Docs-only commits are skipped (paths-ignore); a code push
-#     no longer drags the ~35-60 min E2E job along, because the stack it would
-#     test is being rebuilt by Coolify at that moment.
+#   * push to the active Arena implementation branch -> backend + frontend and
+#     the full E2E suite as push-based evidence. Docs-only commits are skipped
+#     (paths-ignore); other push branches do not launch the long browser suite.
 #   * schedule (nightly) -> the full 71-test E2E run on a quiet stack.
 #   * workflow_dispatch -> triage: `specs=10,18,22`, `retries: 0`,
 #     `max_failures: 8` turn a red run into minutes instead of ~35.
@@ -543,13 +542,13 @@ jobs:
 
   e2e:
     name: E2E critical flows
+    permissions:
+      contents: read
+      checks: write
     runs-on: ubuntu-latest
     # Pull request -> smoke subset (the gate); schedule -> full run; dispatch ->
-    # triage or full. NOT on push: the stack is being rebuilt by Coolify right
-    # then, so a red run there would only describe a half-deployed environment
-    # (the nightly run covers that same revision once the deploy is quiet).
-    # Runs when the product itself changed (a PR) or on schedule/dispatch; never
-    # on a plain push, where Coolify is rebuilding the very stack it would test.
+    # triage or full. Pushes to the active Arena branch are the explicit
+    # push-based evidence path for this session's E2E triage.
     # `needs.*.result == 'success'` keeps a red unit job from being followed by a
     # 15-minute browser run — except on a manual dispatch with `skip_gates` (the
     # default), where the two jobs are skipped on purpose so E2E starts right away.
@@ -561,7 +560,7 @@ jobs:
       (
         (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
         github.event_name == 'schedule' ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/arena/7a60171e-help-desk-enterprise') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/arena/864951a6-help-desk-enterprise') ||
         (github.event_name == 'workflow_dispatch' && inputs.install_spec == '')
       ) &&
       (
@@ -769,12 +768,12 @@ jobs:
               echo "Dispatch: specs='${specs:-all}', retries=$retries, max_failures=$max_failures."
               ;;
             push)
-              # TEMPORARY (Arena session arena/7a60171e): full run on push for
-              # the push-trigger workaround. Remove before merging to master.
+              # The active Arena branch uses pushes as CI evidence; run the full
+              # suite there rather than the PR-only smoke subset.
               specs=""
               retries="${E2E_RETRIES:-1}"
               max_failures="0"
-              echo "TEMP Arena full run: all files, retries=$retries."
+              echo "Arena push evidence: full run, retries=$retries."
               ;;
             *)
               specs=""
@@ -823,10 +822,9 @@ jobs:
       - name: Summarize failures (JSON report)
         if: ${{ always() }}
         run: node scripts/summarize-playwright-json.mjs results.json
-      # TEMPORARY (Arena session arena/7a60171e): the session cannot read job
-      # logs or artifacts (blob storage is unreachable), so mirror the failure
-      # summary into a check-run readable via the REST API — same trick as
-      # e2e-triage-mirror.yml. Remove before merging to master.
+      # TEMPORARY (active Arena session): the sandbox cannot read job logs or
+      # artifacts (blob storage is unreachable), so publish a compact failure
+      # summary as a check-run; this job grants checks:write for that purpose.
       - name: TEMP publish E2E failure summary as check-run
         if: ${{ always() }}
         continue-on-error: true

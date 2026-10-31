@@ -91,6 +91,25 @@ test('formatSummary lists every failure with file and first error line', () => {
   assert.match(text, /Error: expected 200, received 403/);
 });
 
+test('formatSummary lists all failing tests before bounding noisy error details', () => {
+  const text = formatSummary(
+    reportWith({
+      specs: [
+        failedSpec('incident notification poll', 50, `Error: ${'x'.repeat(6_000)}\nExpected: status.incidentResolved`),
+        failedSpec('plain user authorization', 80, 'Error: expected 403, received 400'),
+        failedSpec('transfer required switch', 100, 'Error: expected 409, received 400'),
+      ],
+    }),
+  );
+  const first = text.indexOf('FAIL 20-privacy.spec.ts:50');
+  const second = text.indexOf('FAIL 20-privacy.spec.ts:80');
+  const third = text.indexOf('FAIL 20-privacy.spec.ts:100');
+  const details = text.indexOf('Failure detail excerpts:');
+  assert.ok(first >= 0 && first < second && second < third && third < details, text);
+  assert.ok(!text.includes('x'.repeat(1_000)), 'the noisy first line is bounded');
+  assert.match(text, /Expected: status\.incidentResolved/);
+});
+
 test('errorDetail keeps the lines that explain the failure', () => {
   const message = [
     'Error: expect(received).toMatch(expected)',

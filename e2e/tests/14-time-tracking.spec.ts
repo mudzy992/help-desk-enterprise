@@ -28,7 +28,7 @@ function localInput(date: Date): string {
  * timer, and the "logged time" report pack.
  */
 test.describe('14 time tracking guard', () => {
-  test('start → switch → manual → correction → resolve stops timer → report', async ({ page }) => {
+  test('start → switch → manual → correction → resolve stops timer → report', async ({ page }, testInfo) => {
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
@@ -79,21 +79,12 @@ test.describe('14 time tracking guard', () => {
     await page.getByTestId('time-stop').click();
     await expect(page.getByTestId('active-timer-indicator')).toHaveCount(0);
 
-    // T7: manual entry on A.
-    //
-    // Run 2026-10-05 (specs=11,14,22,23,24): the switch part passed, but the
-    // manual entry never showed up in the list. Two causes are possible and both
-    // are handled here:
-    //   1. the read happened before the save round-trip finished (the "first row"
-    //      was already there from the switched timer) — hence `expect.poll` below;
-    //   2. `addManualTicketTimeLog` refuses an entry that overlaps existing work
-    //      (`TIME_LOG_OVERLAP`, `time-log-guards.ts`), and a timer left by an
-    //      earlier run is closed by `globalSetup` at *run start*, which can cover
-    //      a window two hours back. Three days back is inside the documented
-    //      `maxBackdateDays` default (7) and outside anything a run leaves today.
-    // Three days back (see comment above): two hours still collides with timers
-    // closed by globalSetup / earlier specs for the same SUPER_ADMIN today.
-    const manualStart = new Date(Date.now() - 3 * 24 * 3600 * 1000);
+    // T7: manual entry on A. The API rejects overlapping entries across every
+    // ticket for this person. A failed first attempt may already have persisted
+    // its 30-minute row, so retries use a separate one-hour slot while remaining
+    // inside the default seven-day backdate window.
+    const retrySlotMs = testInfo.retry * 60 * 60 * 1000;
+    const manualStart = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + retrySlotMs);
     manualStart.setSeconds(0, 0);
     await page.goto(`/tickets/${first.id}`);
     await page.getByTestId('tab-time').click();

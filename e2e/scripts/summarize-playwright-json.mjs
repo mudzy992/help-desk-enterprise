@@ -127,11 +127,23 @@ export function formatSummary(report, fileName = 'results.json') {
     return lines.join('\n');
   }
   lines.push('');
+  // Keep every failing test visible in the first CI annotations. A single error
+  // line can contain a whole API response (for example a 50-notification poll),
+  // so cap it and print detail excerpts only after listing all failures.
   for (const failure of failures) {
     const retryNote = failure.retries > 0 ? ` (after ${failure.retries} retry/retries)` : '';
     lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}`);
-    lines.push(`     ${failure.error}`);
-    for (const line of failure.detail ?? []) lines.push(line);
+    const firstLine = failure.error.length > 500 ? `${failure.error.slice(0, 499)}…` : failure.error;
+    lines.push(`     ${firstLine}`);
+  }
+  const failuresWithDetails = failures.filter((failure) => (failure.detail ?? []).length > 0);
+  if (failuresWithDetails.length > 0) {
+    lines.push('');
+    lines.push('Failure detail excerpts:');
+    for (const failure of failuresWithDetails) {
+      lines.push(`DETAIL ${failure.file}:${failure.line}`);
+      for (const line of failure.detail ?? []) lines.push(line);
+    }
   }
   const triage = triageSpecNumbers(failures);
   if (triage.length > 0 && triage.length < 36) {
