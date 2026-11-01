@@ -92,8 +92,10 @@ export type OpsOverview = {
   readonly generatedAt: string;
   /** Latest worker measurement; null until the first run after a deploy. */
   readonly snapshot: { readonly generatedAt: string; readonly ageSeconds: number | null } | null;
-  /** Asset workflow/retention metrics from the worker snapshot; null if unavailable. */
-  readonly assetOperations: OpsAssetOperations | null;
+  /** Asset workflow/retention metrics from the worker snapshot; null if unavailable.
+   * Optional during rolling deploys where an older API has not added this field yet.
+   */
+  readonly assetOperations?: OpsAssetOperations | null;
   readonly components: {
     readonly api: ProbeState;
     readonly database: ProbeState;

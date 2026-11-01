@@ -49,4 +49,9 @@ describe("AssetOperationsSummary", () => {
     render(<AssetOperationsSummary overview={{ assetOperations: null } as OpsOverview} />);
     expect(screen.getByText("admin.opsHealth.assetOperations.unavailable")).not.toBeNull();
   });
+
+  it("treats the omitted field from an older API as unavailable during a rolling deploy", () => {
+    render(<AssetOperationsSummary overview={{} as OpsOverview} />);
+    expect(screen.getByText("admin.opsHealth.assetOperations.unavailable")).not.toBeNull();
+  });
 });

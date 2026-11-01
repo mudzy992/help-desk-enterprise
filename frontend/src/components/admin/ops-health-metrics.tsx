@@ -23,7 +23,7 @@ import type { OpsOverview } from "@/services/ops-health-api";
 
 export function AssetOperationsSummary({ overview }: { readonly overview: OpsOverview }) {
   const { t } = useTranslation();
-  const metrics = overview.assetOperations;
+  const metrics = overview.assetOperations ?? null;
   return (
     <section className="grid gap-2" data-testid="ops-health-assets">
       <div>
