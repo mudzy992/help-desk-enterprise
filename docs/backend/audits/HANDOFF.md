@@ -1,6 +1,6 @@
 # HANDOFF — Help Desk Enterprise
 
-**Datum:** 2026-10-31<br>
+**Datum:** 2026-11-01<br>
 **Jezička pravila:** svaka komunikacija i closeout izvještaj korisniku moraju biti isključivo na bosanskom.  
 **Svrha:** kontinuitet rada u narednoj Arena sesiji. Sve putanje ispod su relativne putanje unutar repozitorija.
 
@@ -29,11 +29,13 @@ Ključna implementacija: `AssetsService.remove()` zaključava red i provjerava o
 
 W7.16 je isporučio cursor paginaciju na SHA `43547a410061cb48c472db4c2ac887cff756f14c`, ali `BA-assets-16` ostaje otvoren jer CI [`41227539110`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41227539110) pao je na E2E testu 56 (`/tickets?view=all`, 306 ms prema 250 ms pragu). Test nije mijenjan, preskočen niti oslabljen. Korisnik je izričito odobrio početak W7.17 uprkos tom gateu; ovo je samo sekvencijska iznimka, ne zelen CI rezultat. W7.16 closeout je `docs/backend/implementation/102-assets-commercial-and-transfer-cursors.md`.
 
-W7.17 / `BA-assets-17` (P3) zatvoren je na SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e` uz CI gate [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097). Bounded version retry, atomic audit, HTTP 409 i PostgreSQL concurrency test su dokumentovani u `docs/backend/implementation/103-assets-transfer-template-version-retries.md`; CI integration job je prošao, ali suite-specific concurrency log nije dostupan (`EOF`), pa izvršenje nije posebno potvrđeno. `BA-assets-16` ostaje otvoren prema zasebnom W7.16 closeoutu; `BA-assets-18`–`BA-assets-19` ostaju otvoreni i nisu odobreni za naredni rad.
+W7.17 / `BA-assets-17` (P3) zatvoren je na SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e` uz CI gate [`41235280097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41235280097). Bounded version retry, atomic audit, HTTP 409 i PostgreSQL concurrency test su dokumentovani u `docs/backend/implementation/103-assets-transfer-template-version-retries.md`; CI integration job je prošao, ali suite-specific concurrency log nije dostupan (`EOF`), pa izvršenje nije posebno potvrđeno. Na W7.17 checkpointu `BA-assets-16`, `BA-assets-18` i `BA-assets-19` ostali su otvoreni.
+
+W7.18 / `BA-assets-18` (P3) je zatvoren na finalnom testanom SHA `aae99fc8cf08422a7413ad8d60f6e8a1f5e5f84b`, uz zeleni CI [`41255976886`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41255976886). Closeout je `docs/backend/implementation/104-assets-operations-health-metrics.md`. Dodani su bounded Redis overlap/audit-failure counteri, DB workflow metrike i read-only transfer-file scan; W7.10 scheduler-presence/last-success nisu duplicirani, a BA-assets-19 i susjedni nalazi su izvan scopea. E2E critical/install jobovi su `skipped` po cadence politici, Perf nije pokrenut na pushu i ostaje za kraj assets segmenta. `BA-assets-16` ostaje otvoren prema zasebnom W7.16 closeoutu.
 
 ### PR i korisnička dozvola
 
-PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) i jednokratna dozvola za njega pripadaju ranijoj sesiji/grani; ta dozvola je iskorištena i **ne važi** za ovaj branch ili budući PR. Za aktuelnu granu `arena/864951a6-help-desk-enterprise` W7.16/W7.17 nije otvoren PR. Ne otvarati novi PR prema `master` bez tri zasebna jasna odobrenja korisnika; ne mergeovati, zatvarati niti brisati PR/granu bez zasebne dozvole.
+PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) i jednokratna dozvola za njega pripadaju ranijoj sesiji/grani; ta dozvola je iskorištena i **ne važi** za ovaj branch ili budući PR. Za aktuelnu granu `arena/864951a6-help-desk-enterprise` W7.16/W7.17/W7.18 nije otvoren PR. Ne otvarati novi PR prema `master` bez tri zasebna jasna odobrenja korisnika; ne mergeovati, zatvarati niti brisati PR/granu bez zasebne dozvole.
 
 ## 3. CI dokaz i nerazriješeni blokatori
 
@@ -49,6 +51,8 @@ PR #11 (`arena/298fb5c9-help-desk-enterprise` → `master`) i jednokratna dozvol
 Traceability/closeout commit `451414ae` nije mijenjao product runtime kod, ali CI [`41240229050`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240229050) pao je na E2E: 111 passed / 3 failed / 6 flaky / 2 skipped; testovi 25, 54 i 56 su uzrokovali neuspjeh, a CI gate je failed. Njegov Perf smoke [`41240228922`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41240228922) pao je na ticket-message latency pragu. Neuspjesi su eksplicitno evidentirani u W7.17 closeoutu; ne prikazivati ih kao passed, ne mijenjati test 56 i ne proširivati W7.17 scope.
 
 Cadence/workflow commit `fc103fa4cc7ccb01e6b0c4f2bbdf6f18c6043feb` ima CI run [`41246096796`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41246096796) s green gateom za backend, PostgreSQL/Redis job, frontend, docs i container/supply-chain. Oba E2E posla su `skipped` po politici; image high/critical enforcement korak je `skipped`; Perf smoke nije pokrenut na pushu. Ovo nije full E2E/Perf pass i ne poništava raniji crveni run `41240229050`.
+
+**W7.18:** CI [`41255976886`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41255976886) na `aae99fc8cf08422a7413ad8d60f6e8a1f5e5f84b` je zelen za backend build/full Jest, PostgreSQL+Redis integration, frontend, docs guard, container/supply-chain job i CI gate. Novi `asset-operations-metrics.integration.spec.ts` je u isolated runneru, a CI job postavlja `REDIS_HOST`; suite-specific raw log preuzimanje vratilo je `EOF`, pa test-count nije zasebno potvrđen iz loga. E2E critical flows/install wizard su `skipped` po cadence politici; image enforcement step je `skipped` jer workflow uslov nije ispunjen. Perf smoke nije pokrenut na pushu. Početni W7.18 run [`41253138945`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41253138945) pao je na namjerno identičnom i18n placeholderu koji nije bio eksplicitno allowlistan; `8db2fea` ga je klasifikovao i očekivani count ažurirao na 187, a finalni gate je zelen.
 
 **Historijski PR CI W7.15 na ranijoj grani (ne važi kao check za aktuelnu granu):**
 - Prvi PR pokušaj: CI `41071433209` pao je na `tests/54-dashboard.spec.ts:17` zbog Playwright strict-mode selectora koji je pronašao dva linka; osnovni backend, PostgreSQL/Redis, frontend i docs poslovi su prošli. Perf `41071433185` imao je prosjek `db_queries_per_request=6.323` prema budžetu `2.1`.
@@ -69,9 +73,9 @@ Za W7.15: kad korisnik obezbijedi tačan target kroz sigurno okruženje, prvo iz
 
 ## 6. Registar nalaza
 
-- W7.15 je zatvorio samo `BA-assets-15`. W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom finalnom ne-zelenom CI closeoutu; W7.17 zatvorio je samo `BA-assets-17` uz feature CI gate `41235280097`; W7.17 concurrency suite-specific log nije potvrđen zbog `EOF`. Kasniji cadence CI `41246096796` je zelen za kodne gateove uz E2E `skipped` i Perf bez push runa; `BA-assets-18`–`BA-assets-19` ostaju otvoreni.
-- Deklarisani zbir registra nakon W7.17: 573 otvorena / 119 zatvorenih / 692 ukupno.
-- Machine-readable plan nakon zatvaranja samo `BA-assets-17`: 576 otvorenih / 105 zatvorenih / 11 historijskih / 692 ukupno. „11 historijskih“ su zapisi `BA-audit-log-01`–`BA-audit-log-11` sa statusima `završen (W3.x)` iz ranijih W3 workstreamova; to nisu novi zatvoreni nalazi Vala 7 niti 11 zasebnih registara. Postojeća razlika od tri statusa ostaje zasebna i nije usaglašena ovim paketom.
+- W7.15 zatvorio je samo `BA-assets-15`; W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom ne-zelenom CI closeoutu; W7.17 zatvorio je samo `BA-assets-17`; W7.18 zatvorio je samo `BA-assets-18` uz zeleni CI `41255976886`. `BA-assets-19` i ostali susjedni nalazi ostaju otvoreni i izvan scopea.
+- Deklarisani zbir nakon W7.18: **572 otvorena / 120 zatvorenih / 692 ukupno**.
+- Machine-readable plan nakon W7.18: **575 otvorenih / 106 zatvorenih / 11 historijskih / 692 ukupno**. „11 historijskih“ su zapisi `BA-audit-log-01`–`BA-audit-log-11` sa statusima `završen (W3.x)` iz ranijih W3 workstreamova; to nisu novi zatvoreni nalazi Vala 7 niti 11 zasebnih registara. Postojeća razlika od tri statusa ostaje zasebna i nije usaglašena ovim paketom.
 
 ## 7. Način rada i obavezni format odgovora
 
@@ -85,7 +89,7 @@ Za svaki paket:
 
 ### CI cadence za W7 / assets segment
 
-Za package-level promjene koristiti ciljane E2E `specs` preko `workflow_dispatch`; ne pokretati kompletan E2E critical flow niti Perf smoke za svaki paket. Kompletan E2E critical flow i Perf smoke pokrenuti na kraju segmenta, nakon završetka odobrenih stavki u `docs/backend/audits/22-assets.md`. Na pushu su backend/frontend/integration i drugi relevantni kodni gateovi i dalje dio CI-ja. `.github/workflows/ci.yml` je podešen da ne pokreće skupi E2E na svakom pushu; E2E ostaje PR smoke, noćni full run i ručni targeted/full dispatch. `.github/workflows/perf-smoke.yml` nema push trigger; Perf ostaje na PR-u i ručnom segment-closeout dispatchu. Izvještavati `skipped`, `not run` i neuspjele rezultate odvojeno; test 56 se ne mijenja/ne preskače. `BA-assets-18`–`BA-assets-19` ostaju otvoreni i za implementaciju i dalje traže zasebno odobrenje.
+Za package-level promjene koristiti ciljane E2E `specs` preko `workflow_dispatch`; ne pokretati kompletan E2E critical flow niti Perf smoke za svaki paket. Kompletan E2E critical flow i Perf smoke pokrenuti na kraju segmenta, nakon završetka odobrenih stavki u `docs/backend/audits/22-assets.md`. Na pushu su backend/frontend/integration i drugi relevantni kodni gateovi i dalje dio CI-ja. `.github/workflows/ci.yml` je podešen da ne pokreće skupi E2E na svakom pushu; E2E ostaje PR smoke, noćni full run i ručni targeted/full dispatch. `.github/workflows/perf-smoke.yml` nema push trigger; Perf ostaje na PR-u i ručnom segment-closeout dispatchu. Izvještavati `skipped`, `not run` i neuspjele rezultate odvojeno; test 56 se ne mijenja/ne preskače. W7.18 je zatvoren, ali E2E critical flow i Perf smoke za cijeli assets segment još nisu pokrenuti. `BA-assets-19` ostaje otvoren i izvan trenutnog odobrenja; daljnji rad zahtijeva zasebnu saglasnost.
 
 Svaki detaljni closeout odgovor mora sadržavati: **paket/nalaz; implementaciju; testove; commit i CI SHA/run linkove; PR stanje; registry brojeve; migraciju/rollout; nerazriješene blokatore; sljedeći paket i uslove za početak.**
 
@@ -99,6 +103,7 @@ Svaki detaljni closeout odgovor mora sadržavati: **paket/nalaz; implementaciju;
 - W7.15 closeout: `docs/backend/implementation/101-assets-hard-delete-event-history.md`
 - W7.16 closeout/run evidence: `docs/backend/implementation/102-assets-commercial-and-transfer-cursors.md`
 - W7.17 closeout/run evidence: `docs/backend/implementation/103-assets-transfer-template-version-retries.md`
+- W7.18 closeout/run evidence: `docs/backend/implementation/104-assets-operations-health-metrics.md`
 - W7.15 migration: `backend/prisma/migrations/20271030120000_asset_hard_delete_event_history/`
 - Single-owner migrator: `backend/scripts/run-release-migrations.mjs`
 - Runtime migration sentinel: `backend/src/common/database/database-runtime-contract.ts`
