@@ -21,15 +21,18 @@ test.describe("54 dashboard contracts", () => {
     await signIn(page, env.agentEmail, env.agentPassword);
     await page.goto("/");
 
-    const open = page
+    const metricGrid = page.getByTestId("dashboard-metric-grid");
+    const open = metricGrid
       .locator('a[href*="view=all"]:not([href*="priority=CRITICAL"])')
       .filter({ hasText: /otvoreni tiketi|open tickets/i });
-    const critical = page.locator('a[href*="priority=CRITICAL"]');
-    const unrouted = page.locator(
+    const critical = metricGrid.locator('a[href*="priority=CRITICAL"]');
+    const unrouted = metricGrid.locator(
       'a[href="/tickets?view=inbox&inboxTab=unrouted"]',
     );
+    await expect(metricGrid).toBeVisible();
     await expect(open).toBeVisible();
     await expect(critical).toBeVisible();
+    await expect(unrouted).toHaveCount(1);
     await expect(unrouted).toBeVisible();
 
     expect(
@@ -52,7 +55,9 @@ test.describe("54 dashboard contracts", () => {
     await page.goto("/");
 
     await expect(
-      page.locator('a[href="/tickets?view=inbox&inboxTab=unrouted"]'),
+      page
+        .getByTestId("dashboard-metric-grid")
+        .locator('a[href="/tickets?view=inbox&inboxTab=unrouted"]'),
     ).toHaveCount(0);
     await expect(page.getByText(/SLA nadzor|SLA watch/i)).toHaveCount(0);
     await expect(page.getByText(/Grupni inbox|Group inbox/i)).toHaveCount(0);

@@ -137,16 +137,16 @@ function AssetMetric({
   const { t } = useTranslation();
   return (
     <div className="grid content-start gap-1 rounded-md border border-border bg-surface px-3 py-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <dt className="text-[12.5px] font-medium text-foreground">{label}</dt>
+      <dt className="flex items-center justify-between gap-2 text-[12.5px] font-medium text-foreground">
+        <span className="min-w-0">{label}</span>
         {state === undefined ? null : (
           <Badge tone={componentStateTone[state]} dot>
             {t(`admin.opsHealth.state.${state}`)}
           </Badge>
         )}
-      </div>
+      </dt>
       <dd className={`${hintClassName} tnum`}>{value}</dd>
-      {children ? <div className={`${hintClassName} tnum`}>{children}</div> : null}
+      {children ? <dd className={`${hintClassName} tnum`}>{children}</dd> : null}
     </div>
   );
 }

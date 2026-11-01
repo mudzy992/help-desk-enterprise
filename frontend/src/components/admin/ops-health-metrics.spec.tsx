@@ -45,6 +45,23 @@ describe("AssetOperationsSummary", () => {
     ).not.toBeNull();
   });
 
+  it("keeps each metric term and value in a valid description-list group", () => {
+    const { container } = render(<AssetOperationsSummary overview={overview} />);
+    const list = container.querySelector("dl");
+
+    expect(list).not.toBeNull();
+    const groups = Array.from(list!.children);
+    expect(groups).toHaveLength(6);
+
+    for (const group of groups) {
+      const children = Array.from(group.children);
+      expect(children[0]?.tagName).toBe("DT");
+      expect(children.slice(1).length).toBeGreaterThan(0);
+      expect(children.slice(1).every((child) => child.tagName === "DD")).toBe(true);
+      expect(group.querySelectorAll("dt")).toHaveLength(1);
+    }
+  });
+
   it("explains when the asset signal snapshot is unavailable", () => {
     render(<AssetOperationsSummary overview={{ assetOperations: null } as OpsOverview} />);
     expect(screen.getByText("admin.opsHealth.assetOperations.unavailable")).not.toBeNull();
