@@ -1,9 +1,10 @@
 # Backend audit 15 — `service-catalog`
 
-**Status:** audit završen  
-**Datum:** 2026-10-23  
-**Rizik modula:** visok  
-**Baseline ocjena:** **5,23/10**  
+**Status:** audit završen; implementacija Faze 0 u toku — samo `BA-service-catalog-10`<br>
+**Datum audita:** 2026-10-23<br>
+**Ažurirano:** 2026-11-01<br>
+**Rizik modula:** visok<br>
+**Baseline ocjena:** **5,23/10**<br>
 **Nalazi:** 4 P1, 8 P2, 3 P3
 
 ## 1. Executive summary
@@ -12,7 +13,15 @@
 
 Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Draft forma može postati korištena između immutable provjere i updatea, pa se schema historijskog ticketa retroaktivno mijenja. Config-versioning direktno prepisuje schema/status postojećih formi i zaobilazi immutable/lifecycle/multiple-active invariante. Administrator može konfigurirati regularni izraz sa katastrofalnim backtrackingom, a svaki prijavljeni requester ga pokreće nad vlastitim inputom. Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`.
 
-Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Implementacija ostaje zabranjena do završetka cijelog backend audit ciklusa.
+Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; aktivni implementacijski scope je samo `BA-service-catalog-10` (P2), dok ostali nalazi ostaju nepromijenjeni i izvan paketa.
+
+## Aktivni implementacijski ulaz — `BA-service-catalog-10` (2026-11-01)
+
+Odobreni paket obuhvata samo nalaz 10: bounded/paginirani service, list, form i downtime readovi uz stable response envelope, vremenski period za downtime i projekciju/summary umjesto punih schema/related podataka. Ostali nalazi 01–09 i 11–15 ostaju izvan scopea. Nalaz 10 ostaje `otvoreno` dok se svi acceptance kriteriji iz sekcije 17 ne dokažu.
+
+Faza 0 je započeta pregledom audit plana, relevantnih frontend putanja i CI dokaza. Run [`41325198062`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41325198062) na SHA `6606ce475fd08092dbe863fd714b09ba2d236b77` imao je **3 passed / 1 failed / 0 flaky / 0 skipped**; jedini neuspjeh je spec 56 `/services` long-task od **292 ms prema 250 ms**. Raniji full E2E run `41283381903` zabilježio je `/services` 359 ms na starijem SHA, a `41317644590` timeout speca 56 na keyboard-surfaces testu. Ovo su reprodukovane gate činjenice, ne dokazana uzročna analiza; test 56, njegova očekivanja i prag ostaju nepromijenjeni.
+
+U trenutku ovog statusnog zapisa nema product-code/test izmjena za service catalog niti DB/migracijskog rada. Lokalni browser reproduction je blokiran nedostupnim `e2e/.env` i Docker executable; naredni korak Faze 0 je instrumentirati/reproducirati 500-service katalog, utvrditi long-task uzrok te zabilježiti query/response bound baseline prije korekcije. Ne zatvarati nalaz na osnovu samog audit statusa niti CI/build jobs koji nisu E2E acceptance.
 
 ## 2. Scope i inventar
 

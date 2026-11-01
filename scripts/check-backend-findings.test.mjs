@@ -76,43 +76,36 @@ test("W7.13 closeout ostaje evidentiran za BA-assets-13", async () => {
   assert.deepEqual(byId.get("BA-assets-13"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.14 ostaje ograničen na BA-assets-14 uz sačuvane kasnije closeoute", async () => {
+test("W7.14 statusi ostaju tačni uz kasniji owner-directed BA-assets-16 closeout", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
-  for (let id = 12; id <= 15; id += 1) {
+  for (let id = 12; id <= 19; id += 1) {
     assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
   }
-  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
-  assert.deepEqual(byId.get("BA-assets-17"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.15 zatvara samo BA-assets-15; kasniji W7.17/W7.18/W7.19 statusi ostaju tačni", async () => {
+test("W7.15 i naknadni asset closeouti čuvaju samo pojedinačne BA statuse", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
-  assert.deepEqual(byId.get("BA-assets-15"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
-  assert.deepEqual(byId.get("BA-assets-17"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
+  for (let id = 15; id <= 19; id += 1) {
+    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
+  }
 });
 
-test("W7.17 and W7.18 remain closed; W7.19 closes only BA-assets-19", async () => {
+test("W7.16 owner closeout, W7.17, W7.18 i W7.19 imaju pojedinačne zatvorene statuse", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
-  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
-  assert.deepEqual(byId.get("BA-assets-17"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
+  for (let id = 16; id <= 19; id += 1) {
+    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
+  }
 });
 
-test("W7.18 i W7.19 zatvoreni su, ali BA-assets-16 ostaje otvoren", async () => {
+test("owner-directed W7.16 closeout does not change W7.18/W7.19 status", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
+  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "zatvoreno" });
   assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
   assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
 });
 
 test("čita escaped pipe u naslovu i izvorni status", () => {
