@@ -58,7 +58,11 @@ CI run [`41255976886`](https://github.com/mudzy992/help-desk-enterprise/actions/
 - **Perf smoke:** nije pokrenut na pushu (workflow nema push trigger); ostaje za završetak assets segmenta.
 - **CI gate:** passed.
 
-**Neuspjeli pokušaj i korekcija:** CI [`41253138945`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41253138945) na početnom feature SHA-u `e45547403786beef317ad3a55304a6e47e561085` pao je na frontend `identical-translations.spec.ts`: `admin.opsHealth.assetOperations.countValue` imao je namjerno isti placeholder u bs/en, ali nije bio u eksplicitnom allowlistu. To je bila vlastita regresija test klasifikacije, ne preegzistentna greška. Commit `8db2fea` dodao je baš taj ključ i promijenio expected count 186→187; ciljano i puno lokalno frontend testiranje prošli su, a finalni CI na `aae99fc` je zelen. Neuspjeli run se ne prikazuje kao passed.
+**Neuspjeli pokušaj i korekcija:** CI [`41253138945`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41253138945) na početnom feature SHA-u `e45547403786beef317ad3a55304a6e47e561085` pao je na frontend `identical-translations.spec.ts`: `admin.opsHealth.assetOperations.countValue` imao je namjerno isti placeholder u bs/en, ali nije bio u eksplicitnom allowlistu. To je bila vlastita regresija test klasifikacije, ne preegzistentna greška. Commit `8db2feaa31b68111295c01b1e6fb124460f266b4` dodao je baš taj ključ i promijenio expected count 186→187; ciljano i puno lokalno frontend testiranje prošli su, a finalni CI na `aae99fc` je zelen. Neuspjeli run se ne prikazuje kao passed.
+
+### Closeout/registar commit
+
+Dokumentacijski i traceability commit `6e6c1eed27c85bf1a88714381aa77c6009a82a69` sadrži ovaj W7.18 closeout, assets audit update, deklarisani/machine-readable registry status i W7.18 traceability assertione. Njegov CI [`41257340005`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41257340005) na tom SHA-u je također zelen: backend build/full Jest, PostgreSQL+Redis integration, frontend lint/format/test/build/budgets, docs guard, container/supply-chain job i CI gate passed. E2E critical flows i install wizard su `skipped` na push triggeru; image high/critical enforcement je `skipped` jer count-uslov nije ispunjen; Perf smoke nije pokrenut na pushu.
 
 ### Dodatne lokalne provjere i ograničenja
 
