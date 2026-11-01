@@ -85,35 +85,34 @@ test("W7.14 ostaje ograničen na BA-assets-14 uz sačuvane kasnije closeoute", a
   assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
   assert.deepEqual(byId.get("BA-assets-17"), { source: "22-assets.md", status: "zatvoreno" });
   assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "otvoreno" });
+  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.15 zatvara samo BA-assets-15; kasniji W7.17/W7.18 statusi ostaju tačni", async () => {
+test("W7.15 zatvara samo BA-assets-15; kasniji W7.17/W7.18/W7.19 statusi ostaju tačni", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
   assert.deepEqual(byId.get("BA-assets-15"), { source: "22-assets.md", status: "zatvoreno" });
   assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
   assert.deepEqual(byId.get("BA-assets-17"), { source: "22-assets.md", status: "zatvoreno" });
   assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "otvoreno" });
+  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.17 remains closed; W7.18 closes only BA-assets-18", async () => {
+test("W7.17 and W7.18 remain closed; W7.19 closes only BA-assets-19", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
   assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
   assert.deepEqual(byId.get("BA-assets-17"), { source: "22-assets.md", status: "zatvoreno" });
   assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "otvoreno" });
+  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.18 zatvara BA-assets-18, a BA-assets-16/19 ostaju otvoreni", async () => {
+test("W7.18 i W7.19 zatvoreni su, ali BA-assets-16 ostaje otvoren", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
   assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
-  for (const id of [16, 19]) {
-    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "otvoreno" });
-  }
+  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "otvoreno" });
 });
 
 test("čita escaped pipe u naslovu i izvorni status", () => {

@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.16 je implementiran, ali `BA-assets-16` ostaje otvoren prema svom ne-zelenom CI closeoutu; W7.17 je zatvorio samo `BA-assets-17`; W7.18 je zatvorio samo `BA-assets-18` uz zeleni CI gate `41255976886`; `BA-assets-19` je otvoren i izvan trenutnog scopea<br>
+**Status:** audit baseline + djelimična implementacija — W7.16 je implementiran ali `BA-assets-16` ostaje otvoren nakon ne-zelenog E2E gatea; W7.17, W7.18 i W7.19 zatvorili su samo svoje pojedinačne asset nalaze. W7.19 ima targeted E2E `41314175993` (8/8 na SHA `93f9…`) i zeleni branch code CI `41302730701` na `3ee7…`; full E2E `41283381903` na starijem SHA pao je, a Perf smoke nije pokrenut. Full segment sign-off nije ostvaren.<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-01<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 572 otvorena / 120 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nakon W7.18; machine-readable source redovi prikazuju 575 otvorenih / 106 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
+**Trenutno:** 571 otvoren / 121 zatvoren / 692 ukupno<br>
+**Napomena:** deklarisani agregat nakon W7.19; machine-readable source redovi prikazuju 574 otvorena / 107 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -292,7 +292,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 22 | `assets` | `BA-assets-16` | P3 | License/contract/assignment/mine/forAsset liste se tiho hard-trunciraju | otvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-17` | P3 | Template `latest+1` version race vraća konflikt bez alokacijskog retry ugovora | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 22 | `assets` | `BA-assets-18` | P3 | Nema scheduler/import/reminder/file-orphan i audit-failure health/metric seta | zatvoreno | [22-assets.md](audits/22-assets.md) |
-| 22 | `assets` | `BA-assets-19` | P3 | Sedam service suiteova je compile-blocked; nema tražene concurrency/failure E2E matrice | otvoreno | [22-assets.md](audits/22-assets.md) |
+| 22 | `assets` | `BA-assets-19` | P3 | Sedam service suiteova je compile-blocked; nema tražene concurrency/failure E2E matrice | zatvoreno | [22-assets.md](audits/22-assets.md) |
 | 23 | `problems` | `BA-problems-01` | P1 | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope | zatvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-02` | P1 | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa | otvoreno | [23-problems.md](audits/23-problems.md) |
 | 23 | `problems` | `BA-problems-03` | P1 | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope | otvoreno | [23-problems.md](audits/23-problems.md) |
@@ -799,13 +799,15 @@ W7.17 je na kodnom SHA `f8fff7e5f651fa2d57f49e03d1950af917514c7e`, uz zeleni CI 
 
 W7.18 je na finalnom testanom SHA `aae99fc8cf08422a7413ad8d60f6e8a1f5e5f84b`, uz zeleni CI [`41255976886`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41255976886), zatvorio samo `BA-assets-18` (P3). Dodaje bounded cross-process Redis counters za directory-sync overlap/audit write failures, asset import/reminder/purge metrics i read-only `assets/transfers` integrity scan; preallocation i overlap ostaju vidljive metrike bez samostalnih alarma, a W7.10 scheduler presence/last-success se ne dupliciraju. PostgreSQL/Redis integration runner i novi real-Redis test shard su na testanom SHA; raw job log preuzimanje vratilo je `EOF`, pa suite-specific broj testova nije naveden. Backend, frontend, docs, container/supply-chain poslovi i CI gate su passed; E2E critical flows/install wizard su `skipped` po cadence politici, image enforcement step je `skipped` zbog neispunjenog `count != 0` uslova. Perf smoke nije pokrenut na pushu i ostaje za kraj assets segmenta. Prvi W7.18 CI [`41253138945`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41253138945) na `e45547403786beef317ad3a55304a6e47e561085` pao je na vlastitoj i18n identical-translation klasifikaciji za `admin.opsHealth.assetOperations.countValue`; commit `8db2fea` je dodao eksplicitni allowlist entry i expected count 187, a završni zeleni gate je na novijem SHA `aae99fc`. Potpuni acceptance, lokalna ograničenja, API compatibility i rollout/rollback su u [104-assets-operations-health-metrics.md](implementation/104-assets-operations-health-metrics.md). `BA-assets-16` i `BA-assets-19` ostaju otvoreni.
 
+W7.19 je na testiranom package SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a` zatvorio samo `BA-assets-19` (P3). Targeted E2E [`41314175993`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41314175993) na istom SHA-u je 8/8 passed; push CI [`41302730701`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41302730701) na Arena SHA `3ee7de073639719d5591a399ffbc0f3057668f14` prošao je backend, PostgreSQL/Redis, frontend, container/supply-chain, docs i CI gate. E2E poslovi i image enforcement korak na pushu bili su `skipped`. Full scheduled E2E [`41283381903`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41283381903) na starijem `master` SHA je pao; `/services` test 56 povezan je s otvorenim `BA-service-catalog-10`, ne sa zatvorenim assets nalazom. Perf smoke nije pokrenut. Detalji su u [W7.19 closeoutu](implementation/105-assets-concurrency-failure-matrix.md). Zatvoren je samo `BA-assets-19`; `BA-assets-16` ostaje otvoren.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **572**
-- Zatvoreno: **120** (deklarisani W7 agregat nakon W7.18; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
+- Otvoreno: **571**
+- Zatvoreno: **121** (deklarisani W7 agregat nakon W7.19; source redovi i machine-readable plan zadržavaju ranije postojeću razliku u raspodjeli statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

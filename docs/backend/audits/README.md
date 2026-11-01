@@ -2,7 +2,7 @@
 
 **Status:** aktuelno<br>
 **Ažurirano:** 2026-11-01<br>
-**Aktivna implementacija:** Val 7 / W7; W7.1–W7.15 i W7.17 zatvoreni; W7.16 (`BA-assets-16`) ostaje otvoren nakon svog ne-zelenog E2E gatea; W7.18 je zatvorio samo `BA-assets-18` na SHA `aae99fc8cf08422a7413ad8d60f6e8a1f5e5f84b` uz zeleni CI `41255976886`. W7.18 E2E critical/install jobs su `skipped` po cadence politici, Perf nije pokrenut na pushu i ostaje za assets segment closeout; `BA-assets-19` i susjedni nalazi ostaju izvan scopea.
+**Aktivna implementacija:** Val 7 / W7; W7.1–W7.15 i W7.17–W7.19 zatvoreni; W7.16 (`BA-assets-16`) ostaje otvoren nakon svog ne-zelenog E2E gatea. W7.19 je zatvorio samo `BA-assets-19` uz targeted E2E `41314175993` (8/8 na SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a`) i zeleni branch code CI `41302730701` na `3ee7de073639719d5591a399ffbc0f3057668f14`; full E2E run `41283381903` na starijem `master` SHA je ostao crven, a Perf smoke nije pokrenut. `BA-assets-16` i svi susjedni statusi nisu mijenjani. Nakon W7.19 najdirektniji naredni scope je otvoreni P2 `BA-service-catalog-10` iz audita 15, ne onboarding test-gap `BA-service-onboarding-20` iz audita 34; taj rad još nije započet.
 
 Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; tekući open/closed status je u [globalnom registru](../BACKEND-FINDINGS-REGISTER.md).
 
