@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectNoSeriousA11yViolations } from '../helpers/a11y';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
-import { retireAssets } from '../helpers/assets';
+import { errorCode, retireAssets } from '../helpers/assets';
 import { signIn } from '../helpers/sign-in';
 
 type RegistryEntry = { readonly key: string; readonly value: unknown };
@@ -170,10 +170,74 @@ test.describe('23 assets (CMDB)', () => {
             body: JSON.stringify({ scenario: 'USER_TO_WAREHOUSE', assetIds: [assetId], returnStatus: 'IN_STOCK', issueDocument: false }),
           })
           .catch(() => undefined);
-        await admin
-          .request(`/assets/${assetId}/status`, { method: 'POST', body: JSON.stringify({ status: 'RETIRED', reason: 'E2E 23 cleanup' }) })
-          .catch(() => undefined);
+        const current = await admin.requestJson<{ status: string; version: number }>(`/assets/${assetId}`).catch(() => null);
+        if (current !== null && current.status !== 'RETIRED' && current.status !== 'DISPOSED') {
+          await admin
+            .request(`/assets/${assetId}/status`, {
+              method: 'POST',
+              body: JSON.stringify({ status: 'RETIRED', reason: 'E2E 23 cleanup', version: current.version }),
+            })
+            .catch(() => undefined);
+        }
       }
+      await setSetting(admin, cmdbKey, previous === true);
+    }
+  });
+
+  test('concurrent status writes with one version commit once and return a stale conflict', async () => {
+    const env = readE2EEnvironment();
+    const admin = new ApiClient();
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+    const previous = await readSetting(admin, cmdbKey);
+    let assetId: string | null = null;
+    try {
+      await setSetting(admin, cmdbKey, true);
+      const catalog = await admin.requestJson<Catalog>('/assets/catalog');
+      const type = catalog.types.find((entry) => entry.archivedAt === null && entry.key === 'laptop') ?? catalog.types.find((entry) => entry.archivedAt === null);
+      expect(type, 'a seeded asset type').toBeTruthy();
+      const options = await admin.requestJson<Options>('/assets/options');
+      const unit = options.units[0];
+      expect(unit, 'an organizational unit in scope').toBeTruthy();
+      const stamp = Date.now();
+      const asset = await admin.requestJson<{ id: string }>('/assets', {
+        method: 'POST',
+        body: JSON.stringify({
+          typeId: type!.id,
+          name: `E2E CAS ${stamp}`,
+          assetTag: `E2E-CAS-${stamp}`,
+          organizationalUnitId: unit.id,
+          status: 'IN_STOCK',
+        }),
+      });
+      assetId = asset.id;
+      const initial = await admin.requestJson<{ version: number; status: string }>(`/assets/${asset.id}`);
+      const changes = [
+        { status: 'IN_REPAIR', reason: 'E2E concurrent repair' },
+        { status: 'LOST', reason: 'E2E concurrent loss' },
+      ] as const;
+      const responses = await Promise.all(
+        changes.map((change) =>
+          admin.request(`/assets/${asset.id}/status`, {
+            method: 'POST',
+            body: JSON.stringify({ ...change, version: initial.version }),
+          }),
+        ),
+      );
+      const winners = responses.filter((response) => response.ok);
+      const conflicts = responses.filter((response) => response.status === 409);
+      expect(winners, 'exactly one compare-and-set write commits').toHaveLength(1);
+      expect(conflicts, 'the competing stale write is rejected').toHaveLength(1);
+      expect(await errorCode(conflicts[0]!)).toBe('ASSET_VERSION_CONFLICT');
+
+      const committed = (await winners[0]!.json()) as { status: string; version: number };
+      const final = await admin.requestJson<{ status: string; version: number }>(`/assets/${asset.id}`);
+      expect(final).toMatchObject({ status: committed.status, version: initial.version + 1 });
+      expect(committed.version).toBe(final.version);
+      const history = await admin.requestJson<ReadonlyArray<{ action: string }> | { items: ReadonlyArray<{ action: string }> }>(`/assets/${asset.id}/history`);
+      const events = Array.isArray(history) ? history : (history as { items: ReadonlyArray<{ action: string }> }).items;
+      expect(events.filter((event) => event.action === 'status')).toHaveLength(1);
+    } finally {
+      if (assetId !== null) await retireAssets(admin, [assetId], 'E2E 23 CAS cleanup');
       await setSetting(admin, cmdbKey, previous === true);
     }
   });
