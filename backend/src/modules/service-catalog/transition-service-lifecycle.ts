@@ -3,7 +3,7 @@ import { routingCoverageMissingCode } from '../routing/routing.constants';
 import type {
   ServiceRoutingCoverageEvaluation,
 } from '../routing/evaluate-service-routing-coverage';
-import { settingKeys } from '../settings/setting-keys';
+import { buildActivationRoutingCoverageAudit } from './build-activation-routing-coverage-audit';
 import { assertServiceLifecycleTransition } from './assert-service-lifecycle-transition';
 import { buildServiceResponse } from './build-service-response';
 import { loadService } from './load-service';
@@ -31,16 +31,7 @@ export async function transitionServiceLifecycle(
 ): Promise<ServiceResponse> {
   const routingCoverageAudit =
     input.lifecycle === 'ACTIVE' && coverageEvaluation !== null
-      ? {
-          policySettingKey: settingKeys.privateTicketRoutingRequireCoverage,
-          requireCoverage: coverageEvaluation.requireCoverage,
-          hasCoverage: coverageEvaluation.hasCoverage,
-          requiredOriginUnitCount: coverageEvaluation.requiredOriginUnitCount,
-          missingOriginUnitIds: [...coverageEvaluation.missingOriginUnitIds],
-          overrideApplied:
-            !coverageEvaluation.requireCoverage &&
-            !coverageEvaluation.hasCoverage,
-        }
+      ? buildActivationRoutingCoverageAudit(coverageEvaluation)
       : null;
   const current = await loadService(prisma, serviceId);
   assertServiceLifecycleTransition({

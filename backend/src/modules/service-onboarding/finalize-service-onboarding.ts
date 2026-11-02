@@ -1,4 +1,9 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { routingCoverageMissingCode } from '../routing/routing.constants';
+import {
+  buildActivationRoutingCoverageAudit,
+  type ActivationRoutingCoverageAudit,
+} from '../service-catalog/build-activation-routing-coverage-audit';
 import { loadService } from '../service-catalog/load-service';
 import { assertServiceLifecycleTransition } from '../service-catalog/assert-service-lifecycle-transition';
 import {
@@ -62,8 +67,16 @@ export async function finalizeServiceOnboarding(
     });
     throw new ServiceOnboardingError('FINAL_VALIDATION_FAILED');
   }
-  const coverageWarning =
+  const coverageEvaluation =
     await providers.routing.evaluateActivationCoverage(serviceId);
+  const coverageWarning =
+    coverageEvaluation !== null && !coverageEvaluation.hasCoverage
+      ? routingCoverageMissingCode
+      : null;
+  const routingCoverageAudit =
+    coverageEvaluation === null
+      ? null
+      : buildActivationRoutingCoverageAudit(coverageEvaluation);
   const sla = await providers.sla.validate({
     serviceId,
     reference: record.slaConfigurationRef ?? '',
@@ -85,6 +98,7 @@ export async function finalizeServiceOnboarding(
       slaProfileId: sla.resolvedEntityId ?? service.slaProfileId,
       requiresApproval: approvals.requiresApproval,
       actorUserId: context.actorUserId,
+      routingCoverageAudit,
     }),
   );
   return {
@@ -101,6 +115,7 @@ async function applyFinalization(
     readonly slaProfileId: string | null;
     readonly requiresApproval: boolean;
     readonly actorUserId: string | null;
+    readonly routingCoverageAudit: ActivationRoutingCoverageAudit | null;
   },
 ): Promise<ServiceOnboardingRecord> {
   await prisma.service.update({
@@ -119,6 +134,9 @@ async function applyFinalization(
       before: { lifecycle: 'DRAFT' },
       after: { lifecycle: 'ACTIVE' },
       onboardingId: input.record.id,
+      ...(input.routingCoverageAudit === null
+        ? {}
+        : { routingCoverage: input.routingCoverageAudit }),
     },
     actorUserId: input.actorUserId,
   });

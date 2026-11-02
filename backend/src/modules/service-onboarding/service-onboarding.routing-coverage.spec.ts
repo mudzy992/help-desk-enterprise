@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { RoutingError } from '../routing/routing.error';
 import { createServiceOnboardingHarness } from './create-service-onboarding-harness';
+import type { ServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
 import { DefaultOnboardingRoutingProvider } from './default-onboarding-routing.provider';
 import type { ServiceOnboardingRoutingProvider } from './service-onboarding.types';
 
@@ -14,7 +15,7 @@ class CoverageRoutingProvider
 {
   constructor(
     private readonly coverageResult:
-      | 'ROUTING_COVERAGE_MISSING'
+      | ServiceRoutingCoverageEvaluation
       | 'throw'
       | null,
   ) {
@@ -23,7 +24,7 @@ class CoverageRoutingProvider
 
   override async evaluateActivationCoverage(
     _serviceId: string,
-  ): Promise<'ROUTING_COVERAGE_MISSING' | null> {
+  ): Promise<ServiceRoutingCoverageEvaluation | null> {
     if (this.coverageResult === 'throw') {
       throw new RoutingError('ROUTING_COVERAGE_MISSING');
     }
@@ -33,7 +34,7 @@ class CoverageRoutingProvider
 
 describe('service onboarding finalize routing coverage', () => {
   const completeThroughApprovals = async (
-    coverageResult: 'ROUTING_COVERAGE_MISSING' | 'throw' | null,
+    coverageResult: ServiceRoutingCoverageEvaluation | 'throw' | null,
   ) => {
     const harness = createServiceOnboardingHarness(
       undefined,
@@ -85,12 +86,33 @@ describe('service onboarding finalize routing coverage', () => {
     });
   });
 
-  it('finalizes with warning when coverage is optional and missing', async () => {
+  it('finalizes with warning and coverage audit evidence when the override is active', async () => {
+    const coverageEvaluation: ServiceRoutingCoverageEvaluation = {
+      hasCoverage: false,
+      requireCoverage: false,
+      requiredOriginUnitCount: 3,
+      missingOriginUnitIds: ['ou-child'],
+    };
     const { harness, serviceId } =
-      await completeThroughApprovals('ROUTING_COVERAGE_MISSING');
+      await completeThroughApprovals(coverageEvaluation);
     const finalized = await harness.onboarding.finalize(serviceId);
     expect(finalized.status).toBe('COMPLETED');
     expect(finalized.serviceLifecycle).toBe('ACTIVE');
     expect(finalized.warnings).toEqual(['ROUTING_COVERAGE_MISSING']);
+    const lifecycleChangeLogs = harness.memory.changeLogs.filter(
+      (changeLog) => changeLog.reason === 'lifecycle_transition',
+    );
+    expect(lifecycleChangeLogs[lifecycleChangeLogs.length - 1]).toMatchObject({
+      diff: {
+        routingCoverage: {
+          policySettingKey: 'private.ticket.routing.requireCoverage',
+          requireCoverage: false,
+          hasCoverage: false,
+          requiredOriginUnitCount: 3,
+          missingOriginUnitIds: ['ou-child'],
+          overrideApplied: true,
+        },
+      },
+    });
   });
 });
