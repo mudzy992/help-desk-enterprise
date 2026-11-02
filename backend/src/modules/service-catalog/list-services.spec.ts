@@ -101,6 +101,61 @@ describe("GET /services cursor pagination", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it("confines non-public lifecycles to scoped service IDs and fingerprints scope in cursors", async () => {
+    const memory = createInMemoryServiceCatalogPrisma();
+    const service = new ServiceCatalogService(
+      memory.prisma as never,
+      { load: async () => defaultServiceLifecycleConfiguration } as never,
+    );
+    const category = await service.createCategory({ name: "IT", slug: "it" });
+    const assignedDraft = await service.create({
+      name: "Assigned draft",
+      slug: "assigned-draft",
+      categoryId: category.id,
+    });
+    const foreignDraft = await service.create({
+      name: "Foreign draft",
+      slug: "foreign-draft",
+      categoryId: category.id,
+    });
+
+    const scoped = await service.list({
+      visibleLifecycles: ["ACTIVE"],
+      scopedServiceIds: [assignedDraft.id],
+    });
+    expect(scoped.total).toBe(1);
+    expect(scoped.items.map((item) => item.id)).toEqual([assignedDraft.id]);
+
+    const explicitlyRequested = await service.list({
+      lifecycle: "DRAFT",
+      visibleLifecycles: ["ACTIVE"],
+      scopedServiceIds: [assignedDraft.id],
+    });
+    expect(explicitlyRequested.items.map((item) => item.id)).toEqual([
+      assignedDraft.id,
+    ]);
+    const noScope = await service.list({
+      lifecycle: "DRAFT",
+      visibleLifecycles: ["ACTIVE"],
+    });
+    expect(noScope.total).toBe(0);
+
+    const cursorSeed = await service.list({
+      take: 1,
+      visibleLifecycles: ["ACTIVE"],
+      scopedServiceIds: [assignedDraft.id, foreignDraft.id],
+    });
+    expect(cursorSeed.nextCursor).toEqual(expect.any(String));
+    await expect(
+      service.list({
+        take: 1,
+        cursor: cursorSeed.nextCursor ?? undefined,
+        visibleLifecycles: ["ACTIVE"],
+        scopedServiceIds: [assignedDraft.id],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it("honours the caller lifecycle visibility and bounds the response by the requested page size", async () => {
     const memory = createInMemoryServiceCatalogPrisma();
     const service = new ServiceCatalogService(

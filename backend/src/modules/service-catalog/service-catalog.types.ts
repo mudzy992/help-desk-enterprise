@@ -145,8 +145,10 @@ export type ListServicesInput = {
   readonly originUnitId?: string;
   readonly take?: number;
   readonly cursor?: string;
-  /** Val 2 (M6/B2): šta pozivalac smije vidjeti; `undefined` = bez filtera. */
+  /** Val 2 (M6/B2): public lifecycle visibility; `undefined` = internal unfiltered read. */
   readonly visibleLifecycles?: readonly ServiceLifecycle[];
+  /** BA-12: extra service IDs whose non-public lifecycles are visible to scoped admins. */
+  readonly scopedServiceIds?: readonly string[];
 };
 
 export type ServiceListPage = {

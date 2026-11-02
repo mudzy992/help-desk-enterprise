@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import {
   serviceListDefaultTake,
@@ -8,7 +9,10 @@ import {
   decodeServiceListCursor,
   encodeServiceListCursor,
 } from "./service-list-cursor";
-import { requestedServiceLifecycles } from "./service-visible-lifecycles";
+import {
+  allServiceLifecycles,
+  requestedServiceLifecycles,
+} from "./service-visible-lifecycles";
 import { countOpenTicketsByService } from "./count-open-tickets-by-service";
 import { loadActiveFormSummaries } from "./load-active-form-summaries";
 import { loadServiceCategoryLabels } from "./load-service-category-labels";
@@ -39,19 +43,46 @@ export async function listServices(
   );
   const search = input.search?.trim() ?? "";
   const lifecycle = requestedLifecycle(input);
-  // Val 2 (M6/B2): drafts (and, for requesters, deprecated services) are filtered
-  // in the query itself, not after mapping — a caller asking for a state they may
-  // not see gets an empty page instead of a 403 that would reveal it exists.
-  const lifecycles =
+  // Public lifecycle visibility stays global; a scoped admin's extra lifecycle
+  // access is constrained to the service IDs from that principal's assignments.
+  const visibleLifecycles =
     lifecycle === null
       ? []
       : requestedServiceLifecycles({ ...input, lifecycle });
+  const scopedServiceIds = [
+    ...new Set(
+      (input.scopedServiceIds ?? [])
+        .filter((serviceId) => serviceId.trim().length > 0)
+        .map((serviceId) => serviceId.trim()),
+    ),
+  ].sort();
+  const requestedScopedLifecycles =
+    lifecycle === null || scopedServiceIds.length === 0
+      ? []
+      : lifecycle === undefined
+        ? allServiceLifecycles
+        : [lifecycle];
+  const scopedLifecycles = requestedScopedLifecycles.filter(
+    (candidate) => !visibleLifecycles.includes(candidate),
+  );
+  const lifecycles = [
+    ...new Set([...visibleLifecycles, ...scopedLifecycles]),
+  ].sort();
+  const scopeFingerprint =
+    scopedServiceIds.length === 0
+      ? null
+      : createHash("sha256")
+          .update(JSON.stringify(scopedServiceIds))
+          .digest("hex");
   const filterKey = JSON.stringify({
-    lifecycles: [...lifecycles].sort(),
+    lifecycles,
     categoryId: input.categoryId ?? null,
     offeredOnly: input.offeredOnly === true,
     search,
     originUnitId: input.originUnitId ?? null,
+    ...(scopeFingerprint === null
+      ? {}
+      : { scopedServiceIds: scopeFingerprint }),
   });
   const cursor = decodeServiceListCursor(input.cursor, filterKey);
   const emptyPage = (): ServiceListPage => ({
@@ -64,21 +95,51 @@ export async function listServices(
   });
   if (lifecycles.length === 0) return emptyPage();
 
-  const filterWhere = {
-    lifecycle: { in: [...lifecycles] },
-    ...(input.categoryId === undefined ? {} : { categoryId: input.categoryId }),
-    ...(search.length === 0
+  const searchWhere =
+    search.length === 0
       ? {}
       : {
           OR: [
             { name: { contains: search, mode: "insensitive" as const } },
             { slug: { contains: search, mode: "insensitive" as const } },
           ],
-        }),
-    ...(input.originUnitId === undefined
+        };
+  const categoryWhere =
+    input.categoryId === undefined ? {} : { categoryId: input.categoryId };
+  const originWhere =
+    input.originUnitId === undefined
       ? {}
-      : { routingRules: { some: { originUnitId: input.originUnitId } } }),
-  };
+      : { routingRules: { some: { originUnitId: input.originUnitId } } };
+  const scopedLifecycleWhere =
+    scopedLifecycles.length === 0
+      ? null
+      : {
+          lifecycle: { in: [...scopedLifecycles] },
+          id: { in: scopedServiceIds },
+        };
+  const filterWhere =
+    scopedLifecycleWhere === null
+      ? {
+          lifecycle: { in: [...visibleLifecycles] },
+          ...categoryWhere,
+          ...searchWhere,
+          ...originWhere,
+        }
+      : {
+          AND: [
+            {
+              OR: [
+                ...(visibleLifecycles.length === 0
+                  ? []
+                  : [{ lifecycle: { in: [...visibleLifecycles] } }]),
+                scopedLifecycleWhere,
+              ],
+            },
+            ...(input.categoryId === undefined ? [] : [categoryWhere]),
+            ...(search.length === 0 ? [] : [searchWhere]),
+            ...(input.originUnitId === undefined ? [] : [originWhere]),
+          ],
+        };
   const pageWhere =
     cursor === null
       ? filterWhere

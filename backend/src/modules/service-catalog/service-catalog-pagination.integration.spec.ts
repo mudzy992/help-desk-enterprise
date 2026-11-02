@@ -25,6 +25,7 @@ const maximumServicePageQueries = 10;
 const stamp = `${Date.now()}${process.pid}`;
 const categorySlugPrefix = `ba10-pagination-${stamp}`;
 const serviceSlugPrefix = `ba10-service-${stamp}-`;
+const scopeTestServiceSlugPrefix = `ba12-scope-${stamp}-`;
 const seededAt = new Date("2026-10-01T00:00:00.000Z");
 const downtimeFrom = "2030-01-01T00:00:00.000Z";
 const downtimeTo = "2030-01-03T00:00:00.000Z";
@@ -189,6 +190,15 @@ describeIfDatabase(
             where: { id: { in: fixtureServiceIds } },
           });
         }
+        const scopeTestServices = await prisma.service.findMany({
+          where: { slug: { startsWith: scopeTestServiceSlugPrefix } },
+          select: { id: true },
+        });
+        if (scopeTestServices.length > 0) {
+          await prisma.service.deleteMany({
+            where: { id: { in: scopeTestServices.map((service) => service.id) } },
+          });
+        }
         await prisma.serviceCategory.deleteMany({
           where: { slug: { startsWith: categorySlugPrefix } },
         });
@@ -263,6 +273,88 @@ describeIfDatabase(
         }),
       );
       expect(page.nextCursor).toBeNull();
+    });
+
+    it("limits scoped-admin drafts while keeping ACTIVE services global and scope-bound cursors", async () => {
+      const catalog = new ServiceCatalogService(
+        prisma as never,
+        { load: async () => defaultServiceLifecycleConfiguration } as never,
+      );
+      const search = `ba12-scope-marker-${process.pid}`;
+      const assignedDraft = await prisma!.service.create({
+        data: {
+          name: `BA-12 scoped draft ${search}`,
+          slug: `${scopeTestServiceSlugPrefix}assigned-draft`,
+          categoryId: categoryId!,
+          lifecycle: "DRAFT",
+        },
+        select: { id: true },
+      });
+      const foreignDraft = await prisma!.service.create({
+        data: {
+          name: `BA-12 foreign draft ${search}`,
+          slug: `${scopeTestServiceSlugPrefix}foreign-draft`,
+          categoryId: categoryId!,
+          lifecycle: "DRAFT",
+        },
+        select: { id: true },
+      });
+      const publicActive = await prisma!.service.create({
+        data: {
+          name: `BA-12 public active ${search}`,
+          slug: `${scopeTestServiceSlugPrefix}public-active`,
+          categoryId: categoryId!,
+          lifecycle: "ACTIVE",
+        },
+        select: { id: true },
+      });
+
+      const page = await catalog.list({
+        search,
+        take: 10,
+        visibleLifecycles: ["ACTIVE"],
+        scopedServiceIds: [assignedDraft.id],
+      });
+      expect(page.total).toBe(2);
+      expect(page.items.map((service) => service.id).sort()).toEqual(
+        [assignedDraft.id, publicActive.id].sort(),
+      );
+      expect(page.items.map((service) => service.id)).not.toContain(
+        foreignDraft.id,
+      );
+
+      const draftOnlyPage = await catalog.list({
+        search,
+        lifecycle: "DRAFT",
+        visibleLifecycles: ["ACTIVE"],
+        scopedServiceIds: [assignedDraft.id],
+      });
+      expect(draftOnlyPage.total).toBe(1);
+      expect(draftOnlyPage.items[0]?.id).toBe(assignedDraft.id);
+
+      const noScopeDraftPage = await catalog.list({
+        search,
+        lifecycle: "DRAFT",
+        visibleLifecycles: ["ACTIVE"],
+      });
+      expect(noScopeDraftPage.total).toBe(0);
+
+      const cursorSeedPage = await catalog.list({
+        search,
+        take: 1,
+        visibleLifecycles: ["ACTIVE"],
+        scopedServiceIds: [assignedDraft.id],
+      });
+      expect(cursorSeedPage.nextCursor).toEqual(expect.any(String));
+      await expect(
+        catalog.list({
+          search,
+          take: 1,
+          cursor: cursorSeedPage.nextCursor ?? undefined,
+          visibleLifecycles: ["ACTIVE"],
+          scopedServiceIds: [foreignDraft.id],
+        }),
+      ).rejects.toThrow("INVALID_SERVICE_LIST_CURSOR");
     });
 
     it("paginates the category envelope without duplicates or oversized responses", async () => {

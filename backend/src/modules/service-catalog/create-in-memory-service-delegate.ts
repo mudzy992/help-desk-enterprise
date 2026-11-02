@@ -16,7 +16,7 @@ import {
 export type InMemoryWhere = {
   lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
   categoryId?: string;
-  id?: string | { gt?: string };
+  id?: string | { gt?: string; in?: readonly string[] };
   name?: string | { contains?: string; gt?: string; mode?: "insensitive" };
   slug?: string | { contains?: string; mode?: "insensitive" };
   OR?: readonly InMemoryWhere[];
@@ -190,10 +190,16 @@ function matchesServiceWhere(
 
 function matchesStringFilter(
   value: string,
-  filter: string | { contains?: string; gt?: string; mode?: "insensitive" },
+  filter: string | {
+    contains?: string;
+    gt?: string;
+    in?: readonly string[];
+    mode?: "insensitive";
+  },
 ): boolean {
   if (typeof filter === "string") return value === filter;
   if (filter.gt !== undefined && value <= filter.gt) return false;
+  if (filter.in !== undefined && !filter.in.includes(value)) return false;
   if (filter.contains !== undefined) {
     const candidate =
       filter.mode === "insensitive" ? value.toLocaleLowerCase() : value;

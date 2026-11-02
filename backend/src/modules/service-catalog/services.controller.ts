@@ -34,7 +34,7 @@ import { TransitionServiceLifecycleDto } from "./dto/transition-service-lifecycl
 import { UpdateServiceDto } from "./dto/update-service.dto";
 import { readCatalogMutationContext } from "./read-catalog-mutation-context";
 import { ServiceCatalogService } from "./service-catalog.service";
-import { visibleServiceLifecycles } from "./service-visible-lifecycles";
+import { serviceListVisibilityForPrincipal } from "./service-visible-lifecycles";
 import type { ServiceListPage, ServiceResponse } from "./service-catalog.types";
 
 @AdminConfigDomains("catalog")
@@ -69,13 +69,11 @@ export class ServicesController {
     @Query() query: ListServicesQueryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceListPage> {
-    // Val 2 (M6/B2): nacrti nisu javni — vidljivost se filtrira po roli pozivaoca.
-    // Ako kontekst iz nekog razloga nije tu, `[]` daje najuži skup (fail-closed).
+    // BA-12: service-scoped ADMIN assignments may read drafts only inside
+    // their assigned services; a global ADMIN still receives the full catalog.
     return this.serviceCatalogService.list({
       ...query,
-      visibleLifecycles: visibleServiceLifecycles(
-        readPrincipalContext(request)?.roleKeys ?? [],
-      ),
+      ...serviceListVisibilityForPrincipal(readPrincipalContext(request)),
     });
   }
 
