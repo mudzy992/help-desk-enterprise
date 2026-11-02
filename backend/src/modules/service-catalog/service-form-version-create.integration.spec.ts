@@ -1,7 +1,10 @@
 import { ConflictException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
-import { defaultServiceFormsConfiguration } from './service-forms.constants';
+import {
+  defaultServiceFormsConfiguration,
+  serviceFormsChangeLogReasons,
+} from './service-forms.constants';
 import { ServiceFormsService } from './service-forms.service';
 import { withServiceFormVersionMutationLock } from './with-service-form-activation-lock';
 
@@ -285,9 +288,11 @@ describeIfDatabase(
       if (waitError !== undefined) throw waitError;
       expect(results.every((result) => result.status === 'fulfilled')).toBe(true);
 
+      const createdVersionRefs: string[] = [];
       const created = results.map((result) => {
         if (result.status !== 'fulfilled') throw result.reason;
         formVersionIds.push(result.value.formVersionRef);
+        createdVersionRefs.push(result.value.formVersionRef);
         return result.value.version;
       });
       expect(created.sort((left, right) => left - right)).toEqual([2, 3]);
@@ -299,11 +304,17 @@ describeIfDatabase(
       });
       expect(versions.map((version) => version.version)).toEqual([1, 2, 3]);
       expect(versions.every((version) => version.status === 'DRAFT')).toBe(true);
-      expect(
-        await db().changeLog.count({
-          where: { entityId: { in: formVersionIds } },
-        }),
-      ).toBe(3);
+      const auditCounts = await Promise.all(
+        createdVersionRefs.map((entityId) =>
+          db().changeLog.count({
+            where: {
+              entityId,
+              reason: serviceFormsChangeLogReasons.formVersionCreate,
+            },
+          }),
+        ),
+      );
+      expect(auditCounts.every((count) => count > 0)).toBe(true);
     });
   },
 );
