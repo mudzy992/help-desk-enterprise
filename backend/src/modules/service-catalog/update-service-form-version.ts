@@ -32,6 +32,21 @@ export async function updateServiceFormVersion(
   context: CatalogMutationContext,
 ): Promise<FormVersionResponse> {
   assertServiceFormsEnabled(configuration);
+  // Retain the existing fast rejection and error precedence. This observation
+  // is not authoritative; the state and ticket count are rechecked after the
+  // row lock inside the transaction below.
+  const observed = await loadFormVersionForService(
+    prisma,
+    serviceId,
+    formVersionRef,
+  );
+  const observedTicketCount = await countTicketsForFormVersion(
+    prisma,
+    observed.id,
+  );
+  if (isFormVersionImmutable(observed, observedTicketCount)) {
+    throw new ServiceFormsError('FORM_VERSION_IMMUTABLE');
+  }
   const schema = parseConfiguredFormSchema(input.schema, configuration);
   const updated = await prisma.$transaction(
     async (transaction) => {

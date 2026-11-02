@@ -123,11 +123,13 @@ describe("ServiceFormsService", () => {
   });
 
   it("updates an unused draft schema without changing its version identity", async () => {
-    const { catalog, forms } = createHarness();
+    const { catalog, forms, memory } = createHarness();
     const service = await createDraftService(catalog);
     const original = await forms.createForm(service.id, {
       schema: validSchema,
     });
+    // This harness cannot model row locks; PostgreSQL integration tests cover them.
+    Object.assign(memory.prisma, { $queryRaw: async () => [] });
 
     const updated = await forms.updateFormVersion(
       service.id,

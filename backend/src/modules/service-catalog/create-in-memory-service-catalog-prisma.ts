@@ -37,7 +37,6 @@ export function createInMemoryServiceCatalogPrisma(): {
     serviceOnboarding: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
-    $queryRaw?: (...args: unknown[]) => Promise<unknown>;
     $transaction: (
       callback: (client: unknown) => Promise<unknown>,
     ) => Promise<unknown>;
@@ -122,9 +121,6 @@ export function createInMemoryServiceCatalogPrisma(): {
         return data;
       },
     },
-    // The in-memory harness cannot model PostgreSQL row locks; integration
-    // coverage exercises this transaction boundary against a real database.
-    $queryRaw: async () => [],
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
       callback(prisma),
   };
