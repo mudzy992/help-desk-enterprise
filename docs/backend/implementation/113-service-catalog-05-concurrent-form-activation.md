@@ -20,6 +20,7 @@ Acceptance uključuje zajedničku transakcijsku koordinaciju API-ja i install-se
 - `activateServiceFormVersion` sada obavlja advisory/table lock, zaključava ciljnu verziju, ponovo učitava stanje nakon čekanja i zahtijeva `DRAFT`. U jednoj `ReadCommitted` transakciji retire-a ostale `ACTIVE` verzije samo kada je `allowMultipleActiveVersions=false`, zatim aktivira ciljnu verziju i bilježi change log.
 - `ensureInstallSeedFormVersion` koristi isti per-service lock u transakciji za pronalaženje/kreiranje i aktivaciju; postavka koja dopušta više aktivnih verzija ostaje poštovana. Nema migracije.
 - Dodani su unit testovi za lock redoslijed i ponašanje obje vrijednosti postavke, te PostgreSQL integration testovi za dvije konkurentne API aktivacije, API-vs-install-seed aktivaciju i serijalizaciju sa stvarnim `applyCatalogSnapshot` table-lock tokom. BA-05 suite je upisan u izolovani PostgreSQL integration runner i njegov registry test.
+- In-memory service-catalog, onboarding i install-seed harnessi izlažu raw-query/write metode potrebne za zajednički lock helper.
 
 ## Lokalna verifikacija
 
@@ -32,6 +33,12 @@ Acceptance uključuje zajedničku transakcijsku koordinaciju API-ja i install-se
 
 Lokalni Jest load failures i neizvršeni integration suite nisu predstavljeni kao passed. Potrebni su CI build/full Jest i disposable PostgreSQL integration na commit-u koji sadrži BA-05.
 
+## CI checkpoint na `ee7229e`
+
+Push CI [`41526774775`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41526774775) završio je **failure**. Generated Prisma validation/generation, route wiring checks, frontend build/test i Docs guard bili su **passed**. Backend build **failed** na `TS2322` u `create-in-memory-service-onboarding-prisma.ts`: BA-05 je dodao `$queryRaw`/`$executeRaw` ugovore u zajednički service-catalog fake, ali izvedeni onboarding fake ih nije deklarisao u svom eksplicitnom tipu. U follow-up izmjeni su ta dva fake raw metoda dodana u taj tip. Zbog build failurea backend lint i full Jest nisu se pokrenuli.
+
+Backend container/supply-chain image build je **failed**, a PostgreSQL/Redis integration job je **failed** na deployment-wide connection-budget koraku; `Run real PostgreSQL integration suites` je bio **skipped**. E2E critical/install i read-only service-form inventory bili su **skipped**. CI gate je **failure**. `gh run view --log-failed` vratio je `EOF`, pa nema dostupnog detaljnog dokaza za image-build i connection-budget uzroke; ne pripisuju se BA-05 bez loga. Perf smoke [`41526774529`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41526774529) je **failure** na API build koraku; k6 nije pokrenut i nema perf mjerenja. Ovaj CI pokušaj zato nije acceptance; potrebno je ponoviti nakon type-fixa.
+
 ## Status i sljedeći korak
 
-BA-05 ostaje **otvoren** dok se generated Prisma CI build/full Jest i registrovani PostgreSQL integration suite ne izvrše i dok owner ne prihvati paket. Zatim pregledati CI rezultat i lock-wait/invariant dokaze te ažurirati statusne dokumente. Ne otvarati PR prema `master`, ne mergeati i ne deployati bez zasebne dozvole. Nema promjene BA-routing-02, BA-06, drugih nalaza, speca 56, praga `250 ms` ni W7.15 ponašanja.
+BA-05 ostaje **otvoren** dok generated Prisma CI build/full Jest i registrovani PostgreSQL integration suite ne prođu i dok owner ne prihvati paket. Nakon CI-ja pregledati lock-wait/invariant dokaze i dokumentovati svaki `passed`, `skipped` ili `failure` odvojeno. Ne otvarati PR prema `master`, ne mergeati i ne deployati bez zasebne dozvole. Nema promjene BA-routing-02, BA-06, drugih nalaza, speca 56, praga `250 ms` ni W7.15 ponašanja.
