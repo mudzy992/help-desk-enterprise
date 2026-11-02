@@ -103,6 +103,10 @@ export function createInMemoryInstallSeedPrisma() {
         return created;
       },
     },
+    $queryRaw: async (
+      _query: TemplateStringsArray,
+      ..._values: unknown[]
+    ) => [],
     $executeRaw: async (_query: TemplateStringsArray, ..._values: unknown[]) => 0,
     $transaction: async <T>(
       callback: (client: unknown) => Promise<T>,

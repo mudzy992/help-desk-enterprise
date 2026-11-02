@@ -187,6 +187,45 @@ describe("ServiceFormsService", () => {
     });
   });
 
+  it("keeps exactly one active version when multiple active forms are disabled", async () => {
+    const { catalog, forms } = createHarness();
+    const service = await createDraftService(catalog);
+    const first = await forms.createForm(service.id, { schema: validSchema });
+    const second = await forms.createFormVersion(service.id, {
+      schema: nextSchema,
+    });
+
+    await forms.activateFormVersion(service.id, first.formVersionRef);
+    await forms.activateFormVersion(service.id, second.formVersionRef);
+
+    const history = await forms.getForm(service.id);
+    expect(history.versions.map(({ formVersionRef, status }) => [formVersionRef, status])).toEqual([
+      [second.formVersionRef, "ACTIVE"],
+      [first.formVersionRef, "RETIRED"],
+    ]);
+  });
+
+  it("preserves multiple active versions when the setting allows them", async () => {
+    const { catalog, forms } = createHarness({
+      ...defaultServiceFormsConfiguration,
+      allowMultipleActiveVersions: true,
+    });
+    const service = await createDraftService(catalog);
+    const first = await forms.createForm(service.id, { schema: validSchema });
+    const second = await forms.createFormVersion(service.id, {
+      schema: nextSchema,
+    });
+
+    await forms.activateFormVersion(service.id, first.formVersionRef);
+    await forms.activateFormVersion(service.id, second.formVersionRef);
+
+    const history = await forms.getForm(service.id);
+    expect(history.versions.map(({ status }) => status)).toEqual([
+      "ACTIVE",
+      "ACTIVE",
+    ]);
+  });
+
   it("makes a version immutable after tickets reference it", async () => {
     const { catalog, forms, memory } = createHarness();
     const service = await createDraftService(catalog);

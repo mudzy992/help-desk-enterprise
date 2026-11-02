@@ -1,11 +1,11 @@
-# Paketni checkpoint — `BA-service-catalog-04` (implementacija validirana; nalaz otvoren)
+# Paketni checkpoint i owner-directed closeout — `BA-service-catalog-04` (status zatvoren)
 
 **Paket:** audit 15 / `service-catalog` — dokaz routing coverage pri aktivaciji<br>
-**Nalaz:** `BA-service-catalog-04` (P1) — implementacija je prošla full CI; status ostaje otvoren do owner-directed closeouta<br>
+**Nalaz:** `BA-service-catalog-04` (P1) — zatvoren po izričitom owner-directed zahtjevu 2026-11-02 nakon korisnikove potvrde mergea na `master` i uspješnog redeploya<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **Politika koju je korisnik izabrao:** postojeći globalni `private.ticket.routing.requireCoverage` ostaje eksplicitni, reason-audited override. `true` blokira nepotpunu coverage; `false` dopušta aktivaciju uz warning, a lifecycle change log bilježi politiku i coverage rezultat.<br>
 **Migracija / DB:** nema nove schema migracije ni pristupa/upisa u ciljnu bazu; CI integration testovi koriste disposable bazu i postojeći migration replay tok<br>
-**CI / deployment:** commit `88ad398` ima zeleni CI [`41511684641`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41511684641) na punom backend build/test i integration gateu. E2E, inventory i uslovni image-enforcement koraci bili su `skipped`; deployment nije potvrđen
+**CI / deployment:** commit `88ad398` ima zeleni CI [`41511684641`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41511684641) na punom backend build/test i integration gateu. E2E, inventory i uslovni image-enforcement koraci bili su `skipped`; korisnik je prijavio uspješan redeploy; nezavisna deployment potvrda nije dostupna
 
 ## Nalaz i acceptance
 
@@ -48,4 +48,4 @@ Najnoviji relevantni Perf run `41509926840` je na `ef9333a` (runtime kod identi�
 
 ## Scope i naredni korak
 
-Promjene ostaju ograničene na BA-04 coverage evaluation, evidence u oba lifecycle activation loga, downstream onboarding type adapter i ciljane testove/dokumentaciju. Finalni CI acceptance za kod je zelen na `88ad398`; nema nove migracije, target-DB pristupa/upisa ni potvrđenog deploymenta. BA-04 status namjerno ostaje otvoren do owner-directed closeouta; ne započinje se drugi nalaz. Nema PR-a ni mergea prema `master`.
+Promjene ostaju ograničene na BA-04 coverage evaluation, evidence u oba lifecycle activation loga, downstream onboarding type adapter i ciljane testove/dokumentaciju. Korisnik je 2026-11-02 izričito odobrio owner-directed zatvaranje nakon prijave mergea na `master` i uspješnog redeploya. Read-only provjera je potvrdila da remote `master` i aktivna Arena grana pokazuju na `bd9ab32`, čiji je parent kodni CI SHA `88ad398`; pretraga merged PR-ova za aktivnu granu vratila je praznu listu. CI `41511684641` na `88ad398` je success, ali E2E critical/install, inventory i conditional image enforcement bili su `skipped`; nema spec 56 sign-offa. Redeploy je korisnikova potvrda i nije nezavisno provjeren. BA-04 je zatvoren owner-directed; u ovom koraku nije kreiran PR niti je izvršen novi merge/deployment. Nema migracije ni target-DB pristupa/upisa. Sljedeći i jedini novi scope je BA-05.
