@@ -16,6 +16,8 @@ import type {
   ServiceFormsConfiguration,
 } from './service-forms.types';
 import { toFormVersionResponse } from './to-form-version-response';
+import { parseFormSchema } from './parse-form-schema';
+import { assertServiceFormPatternsSafe } from './assert-service-form-patterns-safe';
 
 export async function activateServiceFormVersion(
   prisma: PrismaService,
@@ -29,6 +31,7 @@ export async function activateServiceFormVersion(
   if (current.status !== 'DRAFT') {
     throw new ServiceFormsError('FORM_VERSION_NOT_DRAFT');
   }
+  assertServiceFormPatternsSafe(parseFormSchema(current.schema));
   const activated = await prisma.$transaction(async (transaction) => {
     if (!configuration.allowMultipleActiveVersions) {
       await transaction.formVersion.updateMany({

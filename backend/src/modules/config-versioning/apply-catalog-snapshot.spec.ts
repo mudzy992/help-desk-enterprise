@@ -330,6 +330,86 @@ describe("applyCatalogSnapshot", () => {
     });
   });
 
+  it("preserves unchanged legacy patterns on retired versions without evaluating them", async () => {
+    const legacyUnsafeSchema = {
+      schemaVersion: 1,
+      fields: [
+        {
+          id: "payload",
+          label: "Payload",
+          type: "text",
+          required: true,
+          order: 0,
+          validation: { pattern: "^(a+)+$" },
+        },
+      ],
+    };
+    const initial: MutableState = {
+      services: [serviceRow()],
+      forms: [
+        formRow({ status: "RETIRED", schema: legacyUnsafeSchema }),
+        formRow({ id: "form-2", version: 2, schema: originalSchema }),
+      ],
+    };
+    const fake = createFakeTransaction(initial);
+
+    await expect(
+      applyCatalogSnapshot(
+        fake.transaction,
+        createSnapshot(initial),
+        defaultServiceLifecycleConfiguration,
+      ),
+    ).resolves.toMatchObject({
+      forms: {
+        versions: expect.arrayContaining([
+          expect.objectContaining({ id: "form-1", status: "RETIRED" }),
+        ]),
+      },
+    });
+    expect(fake.state.forms[0]!.schema).toEqual(legacyUnsafeSchema);
+    expect(fake.state.forms[0]!.status).toBe("RETIRED");
+  });
+
+  it("rejects an unsafe legacy pattern if a config snapshot tries to activate it", async () => {
+    const legacyUnsafeSchema = {
+      schemaVersion: 1,
+      fields: [
+        {
+          id: "payload",
+          label: "Payload",
+          type: "text",
+          required: true,
+          order: 0,
+          validation: { pattern: "^(a+)+$" },
+        },
+      ],
+    };
+    const initial: MutableState = {
+      services: [serviceRow()],
+      forms: [formRow({ status: "DRAFT", schema: legacyUnsafeSchema })],
+    };
+    const fake = createFakeTransaction(initial);
+    const snapshot = createSnapshot(initial, {
+      forms: [
+        {
+          ...toFormVersionSnapshot(initial.forms[0]!),
+          status: "ACTIVE",
+        },
+      ],
+    });
+
+    await expect(
+      applyCatalogSnapshot(
+        fake.transaction,
+        snapshot,
+        defaultServiceLifecycleConfiguration,
+      ),
+    ).rejects.toMatchObject({
+      code: configVersioningErrorCodes.catalogInvariantViolation,
+    });
+    expect(fake.state.forms[0]!.status).toBe("DRAFT");
+  });
+
   it("rejects a stale expected catalog hash before making writes", async () => {
     const initial: MutableState = {
       services: [serviceRow()],

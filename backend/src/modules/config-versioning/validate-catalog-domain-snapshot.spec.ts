@@ -37,6 +37,36 @@ describe("validateCatalogDomainSnapshot", () => {
     );
   });
 
+  it("rejects unsafe service-form regex syntax during catalog snapshot validation", () => {
+    const base = createConfigSnapshotFixture();
+    const snapshot = createConfigSnapshotFixture({
+      forms: {
+        versions: [
+          {
+            ...base.forms.versions[0]!,
+            schema: {
+              schemaVersion: 1,
+              fields: [
+                {
+                  id: "payload",
+                  label: "Payload",
+                  type: "text",
+                  required: true,
+                  order: 0,
+                  validation: { pattern: "^(a+)+$" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    expect(validateCatalogDomainSnapshot(snapshot)).toContainEqual(
+      expect.objectContaining({ code: "UNSAFE_FORM_PATTERN" }),
+    );
+  });
+
   it("requires every ACTIVE service to have an ACTIVE form, independent of the optional validator flag", () => {
     const snapshot = createConfigSnapshotFixture({
       forms: { versions: [] },

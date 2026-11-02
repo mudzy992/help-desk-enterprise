@@ -52,7 +52,8 @@
     "db:budget:check": "node -e \"require('./dist/src/common/database/database-runtime-contract.js').assertConnectionBudget(process.env)\"",
     "redis:tls-contract": "node scripts/redis-tls-contract.mjs",
     "worker:recovery-contract": "node scripts/worker-recovery-contract.mjs",
-    "authz:assignments:report": "node dist/src/cli/report-role-assignment-anomalies.js"
+    "authz:assignments:report": "node dist/src/cli/report-role-assignment-anomalies.js",
+    "service-forms:patterns:audit": "node dist/src/cli/classify-service-form-patterns.js"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

@@ -8,9 +8,11 @@ import type {
 import type { Prisma } from "../../generated/prisma/client";
 import { assertServiceLifecycleTransition } from "../service-catalog/assert-service-lifecycle-transition";
 import { isFormVersionImmutable } from "../service-catalog/is-form-version-immutable";
-import { parseConfiguredFormSchema } from "../service-catalog/parse-configured-form-schema";
+import { assertServiceFormPatternsSafe } from "../service-catalog/assert-service-form-patterns-safe";
+import { parseConfiguredLegacyFormSchema } from "../service-catalog/parse-configured-form-schema";
 import { ServiceFormsError } from "../service-catalog/service-forms.error";
 import type { ServiceFormsConfiguration } from "../service-catalog/service-forms.types";
+import type { ServiceFormSchema } from "../service-catalog/form-schema.types";
 import type { ServiceLifecycleConfiguration } from "../service-catalog/service-catalog.types";
 import { configVersioningErrorCodes } from "./config-versioning.constants";
 import { ConfigVersioningError } from "./config-versioning.error";
@@ -63,7 +65,7 @@ type CurrentFormVersion = {
 type FormPlan = {
   readonly current: CurrentFormVersion;
   readonly desired: ConfigFormVersionSnapshot;
-  readonly schema: ReturnType<typeof parseConfiguredFormSchema>;
+  readonly schema: ServiceFormSchema;
   readonly schemaChanged: boolean;
   readonly replacement: boolean;
   readonly replacementVersion: number | null;
@@ -447,9 +449,9 @@ function buildFormPlans(
       ]);
     }
 
-    let schema: ReturnType<typeof parseConfiguredFormSchema>;
+    let schema: ServiceFormSchema;
     try {
-      schema = parseConfiguredFormSchema(desired.schema, configuration);
+      schema = parseConfiguredLegacyFormSchema(desired.schema, configuration);
     } catch (error) {
       const code =
         error instanceof ServiceFormsError ? error.code : "INVALID_FORM_SCHEMA";
@@ -468,6 +470,19 @@ function buildFormPlans(
       (current.status === "ACTIVE" && desired.status === "DRAFT");
     const replacement =
       (schemaChanged && immutable) || requiresNewLifecycleVersion;
+    if (schemaChanged || desired.status === "ACTIVE" || replacement) {
+      try {
+        assertServiceFormPatternsSafe(schema);
+      } catch (error) {
+        const code =
+          error instanceof ServiceFormsError
+            ? error.code
+            : "INVALID_FORM_SCHEMA";
+        throw invariantViolation([
+          issue(code, `forms.versions.${desired.id}.schema`),
+        ]);
+      }
+    }
     if (replacement && desired.status === "RETIRED") {
       throw invariantViolation([
         issue(
@@ -660,7 +675,7 @@ async function activateFormVersion(
   serviceId: string,
   formVersionId: string,
   allowMultipleActiveVersions: boolean,
-  schema?: ReturnType<typeof parseConfiguredFormSchema>,
+  schema?: ServiceFormSchema,
 ): Promise<void> {
   if (!allowMultipleActiveVersions) {
     await transaction.formVersion.updateMany({

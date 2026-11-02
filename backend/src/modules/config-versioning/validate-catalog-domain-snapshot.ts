@@ -4,7 +4,10 @@ import {
   formVersionStatuses,
 } from "../service-catalog/service-forms.constants";
 import type { ServiceFormsConfiguration } from "../service-catalog/service-forms.types";
-import { parseConfiguredFormSchema } from "../service-catalog/parse-configured-form-schema";
+import {
+  parseConfiguredFormSchema,
+  parseConfiguredLegacyFormSchema,
+} from "../service-catalog/parse-configured-form-schema";
 import { ServiceFormsError } from "../service-catalog/service-forms.error";
 import { settingKeys } from "../settings/setting-keys";
 import type {
@@ -132,7 +135,11 @@ export function validateCatalogDomainSnapshot(
       issues.push(issue("INVALID_FORM_VERSION_STATUS", `${path}.status`));
     }
     try {
-      parseConfiguredFormSchema(form.schema, formsConfiguration);
+      if (form.status === "ACTIVE") {
+        parseConfiguredFormSchema(form.schema, formsConfiguration);
+      } else {
+        parseConfiguredLegacyFormSchema(form.schema, formsConfiguration);
+      }
     } catch (error) {
       const code =
         error instanceof ServiceFormsError ? error.code : "INVALID_FORM_SCHEMA";

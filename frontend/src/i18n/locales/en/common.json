@@ -3991,6 +3991,7 @@
       "errorDuplicateField": "Field identifiers must be unique.",
       "errorFieldId": "A field identifier must be lowercase letters, digits, and underscore.",
       "errorFieldConfig": "The field configuration is not valid.",
+      "errorUnsafePattern": "The regular expression uses unsupported syntax. Use simple literals, character classes, or one anchored repetition.",
       "errorImmutable": "This form version cannot be mutated.",
       "errorVersioningDisabled": "Form versioning is disabled.",
       "errorNotDraft": "Only a DRAFT version can be activated.",

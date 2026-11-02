@@ -1,6 +1,6 @@
 # Backend audit 15 — `service-catalog`
 
-**Status:** audit završen; `BA-service-catalog-01`, `BA-service-catalog-02`, `BA-service-catalog-10`, `BA-service-catalog-11` i `BA-service-catalog-12` zatvoreni su odvojenim closeoutima. BA-02 CI [`41481182959`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481182959) je success na SHA `32bf508036bffc2ba9ac07094f04e952edb5de08`; Perf [`41481183334`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481183334) je failure samo na ticket-message pragu, dok su service-catalog/query-budget gates passed. E2E critical/install su skipped; nema browser/spec 56 sign-offa. Sljedeći neobrađeni service-catalog kandidat je P1 `BA-service-catalog-03`; nije započet i traži zaseban acceptance<br>
+**Status:** audit završen; `BA-service-catalog-01`, `BA-service-catalog-02`, `BA-service-catalog-10`, `BA-service-catalog-11` i `BA-service-catalog-12` zatvoreni su odvojenim closeoutima. BA-02 CI [`41481182959`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481182959) je success na SHA `32bf508036bffc2ba9ac07094f04e952edb5de08`; Perf [`41481183334`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481183334) je failure samo na ticket-message pragu, dok su service-catalog/query-budget gates passed. E2E critical/install su skipped; nema browser/spec 56 sign-offa. `BA-service-catalog-03` je u aktivnoj implementaciji, ali ostaje otvoren: target-DB inventura, CI i rollout još nisu izvršeni; checkpoint je [111 BA-03](../implementation/111-service-catalog-03-regex-redos-closeout.md).<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-02<br>
 **Rizik modula:** visok<br>
@@ -11,9 +11,9 @@
 
 `service-catalog` upravlja kategorijama, servisima, lifecycleom, verzioniranim formama, availability statusom i downtime prozorima. Modul ima dobru funkcionalnu osnovu: strict DTO pipeline, odvojene write permisije, service scope na mutacijama postojećih servisa, lifecycle vidljivost po ulozi, DB unique slug/version ugovore, historijsko vezivanje ticketa za `formVersionId` i transakcijski change log za većinu mutacija.
 
-Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Originalni BA-01 root cause bio je race u kojem je Draft forma mogla postati korištena između immutable provjere i updatea; taj standardni `updateServiceFormVersion` put sada je serijalizovan i BA-01 zatvoren uz PostgreSQL concurrency dokaz. BA-02 je zatvorio config-versioning put: activation/rollback sada imaju hash precondition, puni ID/reference/lifecycle/form-validator i routing-domain guard, uz immutable historiju. Administrator može konfigurirati regularni izraz sa katastrofalnim backtrackingom, a svaki prijavljeni requester ga pokreće nad vlastitim inputom. Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`; to je susjedni nalaz i nije dio BA-02 closeouta.
+Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Originalni BA-01 root cause bio je race u kojem je Draft forma mogla postati korištena između immutable provjere i updatea; taj standardni `updateServiceFormVersion` put sada je serijalizovan i BA-01 zatvoren uz PostgreSQL concurrency dokaz. BA-02 je zatvorio config-versioning put: activation/rollback sada imaju hash precondition, puni ID/reference/lifecycle/form-validator i routing-domain guard, uz immutable historiju. BA-03 audit baseline je otkrio administratorski regex sa katastrofalnim backtrackingom nad requester inputom; njegov active code checkpoint sada uvodi safe-subset zaštitu i hard byte cap, ali ostaje otvoren dok se ne klasificira target baza i ne prođe acceptance iz [111 BA-03 checkpointa](../implementation/111-service-catalog-03-regex-redos-closeout.md). Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`; to je susjedni nalaz.
 
-Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-01` i `BA-service-catalog-02` (P1), te `BA-service-catalog-10`, `11` i `12` (P2) zatvoreni su prema zasebnim closeout dokazima. BA-02 zatvara config snapshot activation/rollback granicu, ali ne zatvara susjedne nalaze za standardni lifecycle/routing API. Sljedeći neobrađeni service-catalog kandidat je `BA-service-catalog-03` (P1); nije započet i traži zaseban acceptance. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
+Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-01` i `BA-service-catalog-02` (P1), te `BA-service-catalog-10`, `11` i `12` (P2) zatvoreni su prema zasebnim closeout dokazima. BA-02 zatvara config snapshot activation/rollback granicu, ali ne zatvara susjedne nalaze za standardni lifecycle/routing API. `BA-service-catalog-03` je sada aktivni implementacijski scope, ali je i dalje otvoren: lokalni ciljano ograničen testni paket je prošao, dok target-DB inventura, full CI i rollout još nisu izvršeni. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
 
 ## Historijski implementacijski ulaz — `BA-service-catalog-10` (2026-11-02)
 
@@ -109,7 +109,9 @@ Unique constraint spriječi fizički duplikat verzijskog broja, ali caller dobij
 
 Parser ograničava 64 polja, ID, label, help text, 64 opcije i pattern dužinu na 256 znakova; odbacuje unknown keys, duple ID/order i type-mismatched validation. Ticket validator odbacuje nepoznata data polja i provjerava required/type/range/options.
 
-`pattern` se ipak samo kompajlira sa `new RegExp`. Nema safe-regex analize, timeouta niti RE2 enginea. Requester kontroliše tekst; obrazac poput ugniježđenog kvantifikatora može blokirati Node event loop već na malom inputu. `maxLength` nije obavezan, pa nema ni schema-level gornje granice teksta prije regex izvršenja.
+`pattern` je na audit baselineu bio samo kompajliran sa `new RegExp`. Nije bilo safe-regex analize, timeouta ni RE2 enginea. Requester kontroliše tekst; obrazac poput ugniježđenog kvantifikatora mogao je blokirati Node event loop već na malom inputu. `maxLength` nije bio obavezan, pa nije bilo ni schema-level gornje granice teksta prije regex izvršenja.
+
+**BA-03 implementation checkpoint:** backend sada prihvata samo strogi safe subset, odbija unsafe/malformed pattern prije matcha i nameće 4.096 UTF-8 bajta po patterned polju / 16.384 bajta po zahtjevu prije evaluacije. Frontend uopšte ne izvršava admin regex. Novi read-only CLI klasificira sve sačuvane verzije, a config snapshot put čuva samo nepromijenjene legacy DRAFT/RETIRED schemata; izmjene i aktivacija traže safe pattern. Produkcijska/target inventura nije izvršena, zato BA-03 ostaje otvoren i rollout je blokiran; detalji su u [111 checkpointu](../implementation/111-service-catalog-03-regex-redos-closeout.md).
 
 Email provjera je samo `includes('@')`; to je kvalitet validacije, ne sigurnosna granica. Number validator prihvata numeric string, dok se originalna vrijednost ne normalizuje prije persistencea, pa forma može čuvati različite JSON tipove za semantički isti broj.
 
@@ -146,7 +148,7 @@ npm test -- --runInBand --runTestsByPath $(find src/modules/service-catalog -nam
 
 Rezultat tog pokušaja: **4/23 suitea prošla, 19/23 compile-blocked; 15/15 stvarno izvršenih testova prošlo**. Blokada je nepotpun generated Prisma client/enumi i delegati (`serviceCategory`, `ticket`, `group`, `serviceIncidentService`, `$transaction`). Nijedan izvršeni test nije pao.
 
-Izvršeni testovi dokazuju dio schema/form-data i downtime range pure logike. Statički postoje CRUD/lifecycle/availability/auth compatibility testovi, ali nema concurrent activation/version/update, immutable ticket race, regex adversarial, config rollback invariant, downtime reconciliation, category cycle race ni large-catalog testa.
+Audit-baseline testovi dokazivali su dio schema/form-data i downtime range pure logike. BA-03 checkpoint dodaje targeted regex adversarial/byte-cap/unit coverage, ali lokalno blokirani service-form/config suites, puni backend CI, real-DB klasifikacija i rollout još nisu potvrđeni. Ostali testni nedostaci — concurrent activation/version/update, immutable ticket race, config rollback invariant izvan BA-02, downtime reconciliation, category cycle race i large-catalog test — ostaju zasebni nalazi.
 
 E2E 42 pokriva create/edit/delete draft servisa, onboarding, lifecycle/routing UX i responsive katalog. E2E 52/53 potvrđuju blueprint katalog, a 56 frontend closeout. Korisnikov potvrđeni Playwright 01–56 prolaz ne dokazuje race/failure/security/load matricu.
 
@@ -203,7 +205,9 @@ Ovo ne zatvara config snapshot apply put; BA-02 ostaje otvoren. Perf smoke `4145
 
 ### BA-service-catalog-03 — Regex ReDoS
 
-Pattern dužina 256 nije zaštita od ugniježđenih kvantifikatora. `validateServiceFormData` sinhrono izvršava JavaScript regex nad requester tekstom bez sigurnog enginea/timeouta i bez obaveznog maxLengtha. Koristiti RE2 ili strogi safe-regex subset, obavezni input byte cap i adversarial latency test; postojeće nesigurne pattern-e klasificirati prije enforcea.
+Pattern dužina 256 sama po sebi nije zaštita od ugniježđenih kvantifikatora. Audit baseline `validateServiceFormData` sinhrono je izvršavao JavaScript regex nad requester tekstom bez sigurnog enginea/timeouta i bez obaveznog maxLengtha.
+
+BA-03 code checkpoint uvodi strogi safe-regex subset, mandatory byte cap i adversarial latency test; classifier CLI postoji, ali target baza nije pregledana. Enforcement je fail-closed za legacy pattern koji se pokuša evaluirati, a standardne schema writes/activation i izmjene/aktivacije kroz config snapshot prihvataju samo safe pattern. Nepromijenjeni legacy DRAFT/RETIRED patterni mogu ostati bez evaluacije. **Nalaz ostaje otvoren** dok se ne potvrdi nula unsafe ACTIVE patterna na tačnoj ciljnoj bazi, ne prođu puni backend/CI testovi i rollout ne bude odobren. Test statusi i operativni gate su u [111 BA-03 checkpointu](../implementation/111-service-catalog-03-regex-redos-closeout.md).
 
 ### BA-service-catalog-04 — Aktivacija ne dokazuje routing coverage
 
@@ -272,7 +276,7 @@ Metrike za invariant conflict, regex rejection/latency, config drift, downtime s
 
 ## 17. Rizik, rollback i acceptance
 
-Najveći rollout rizik su postojeće multiple-active forme, nesigurni patterni i snapshoti koji mijenjaju korištene forme. Prvo napraviti read-only classifier; ne retireati ili prepisivati automatski. Safe-regex uvesti observe pa enforce. Active pointer/version i optimistic kolone su additive. Coverage enforcement prvo mora ponuditi preview missing OU seta.
+Najveći rollout rizik su postojeće multiple-active forme, nesigurni patterni i snapshoti koji mijenjaju korištene forme. BA-03 checkpoint dodaje read-only classifier; prije deploya ga treba pokrenuti na tačnoj ciljnoj bazi i ne smije se retireati ili prepisivati historijska forma automatski. Unsafe ACTIVE patterni moraju biti zamijenjeni safe verzijom prije enforcement rollouta; nepromijenjeni DRAFT/RETIRED legacy patterni se klasificiraju i ne evaluiraju. Active pointer/version i optimistic kolone su additive. Coverage enforcement prvo mora ponuditi preview missing OU seta.
 
 Globalni acceptance:
 

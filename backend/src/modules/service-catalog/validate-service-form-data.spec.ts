@@ -1,4 +1,5 @@
 import type { ServiceFormSchema } from './form-schema.types';
+import { serviceFormRegexSafetyConstants } from './form-schema.constants';
 import { validateServiceFormData } from './validate-service-form-data';
 
 const schema: ServiceFormSchema = {
@@ -95,18 +96,14 @@ describe('validateServiceFormData', () => {
 
   it('validates only sent fields for a partial update but checks fields being cleared', () => {
     expect(
-      validateServiceFormData(
-        schema,
-        { email: 'updated@example.org' },
-        { partial: true },
-      ),
+      validateServiceFormData(schema, { email: 'updated@example.org' }, { partial: true }),
     ).toEqual([]);
-    expect(
-      validateServiceFormData(schema, { hostname: null }, { partial: true }),
-    ).toEqual([{ fieldId: 'hostname', code: 'REQUIRED' }]);
-    expect(
-      validateServiceFormData(schema, { unknown: true }, { partial: true }),
-    ).toEqual([{ fieldId: 'unknown', code: 'INVALID' }]);
+    expect(validateServiceFormData(schema, { hostname: null }, { partial: true })).toEqual([
+      { fieldId: 'hostname', code: 'REQUIRED' },
+    ]);
+    expect(validateServiceFormData(schema, { unknown: true }, { partial: true })).toEqual([
+      { fieldId: 'unknown', code: 'INVALID' },
+    ]);
   });
 
   it('rejects any supplied key when there is no schema', () => {
@@ -114,5 +111,95 @@ describe('validateServiceFormData', () => {
     expect(validateServiceFormData(null, { stray: 'value' })).toEqual([
       { fieldId: 'stray', code: 'INVALID' },
     ]);
+  });
+
+  it('fails closed on a ReDoS pattern within the byte cap under a 1 second budget', () => {
+    const attackSchema: ServiceFormSchema = {
+      schemaVersion: 1,
+      fields: [
+        {
+          id: 'payload',
+          label: 'Payload',
+          type: 'text',
+          required: true,
+          order: 0,
+          validation: { pattern: '^(a+)+$' },
+        },
+      ],
+    };
+    const attack = `${'a'.repeat(serviceFormRegexSafetyConstants.maximumInputBytes - 1)}!`;
+    const matcherSpy = jest.spyOn(RegExp.prototype, 'test');
+    const startedAt = performance.now();
+    let result: ReturnType<typeof validateServiceFormData>;
+    let matcherCalls = 0;
+    try {
+      result = validateServiceFormData(attackSchema, { payload: attack });
+      matcherCalls = matcherSpy.mock.calls.length;
+    } finally {
+      matcherSpy.mockRestore();
+    }
+
+    expect(result!).toEqual([{ fieldId: 'payload', code: 'INVALID' }]);
+    expect(matcherCalls).toBe(0);
+    expect(performance.now() - startedAt).toBeLessThan(1000);
+  });
+
+  it('enforces the UTF-8 byte cap before matching and permits exactly-cap multibyte input', () => {
+    const patternSchema: ServiceFormSchema = {
+      schemaVersion: 1,
+      fields: [
+        {
+          id: 'label',
+          label: 'Label',
+          type: 'text',
+          required: true,
+          order: 0,
+          validation: { pattern: '^é+$' },
+        },
+      ],
+    };
+    const oversized = 'é'.repeat(2049);
+    const matcherSpy = jest.spyOn(RegExp.prototype, 'test');
+    let oversizedResult: ReturnType<typeof validateServiceFormData>;
+    let matcherCalls = 0;
+    try {
+      oversizedResult = validateServiceFormData(patternSchema, { label: oversized });
+      matcherCalls = matcherSpy.mock.calls.length;
+    } finally {
+      matcherSpy.mockRestore();
+    }
+    expect(oversizedResult!).toEqual([{ fieldId: 'label', code: 'INVALID' }]);
+    expect(matcherCalls).toBe(0);
+    expect(validateServiceFormData(patternSchema, { label: 'é'.repeat(2048) })).toEqual([]);
+  });
+
+  it('caps aggregate regex input before evaluating any field pattern', () => {
+    const patternFields = Array.from({ length: 5 }, (_, order) => ({
+      id: `field_${order}`,
+      label: `Field ${order}`,
+      type: 'text' as const,
+      required: true,
+      order,
+      validation: { pattern: '^a+$' },
+    }));
+    const aggregateSchema: ServiceFormSchema = { schemaVersion: 1, fields: patternFields };
+    const data = Object.fromEntries(
+      patternFields.map((field) => [
+        field.id,
+        'a'.repeat(serviceFormRegexSafetyConstants.maximumInputBytes),
+      ]),
+    );
+    const matcherSpy = jest.spyOn(RegExp.prototype, 'test');
+    let result: ReturnType<typeof validateServiceFormData>;
+    let matcherCalls = 0;
+    try {
+      result = validateServiceFormData(aggregateSchema, data);
+      matcherCalls = matcherSpy.mock.calls.length;
+    } finally {
+      matcherSpy.mockRestore();
+    }
+    expect(result!).toHaveLength(5);
+    expect(result!.every((error) => error.code === 'INVALID')).toBe(true);
+    expect(matcherCalls).toBe(0);
   });
 });

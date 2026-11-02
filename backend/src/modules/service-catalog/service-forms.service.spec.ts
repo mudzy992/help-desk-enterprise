@@ -245,4 +245,48 @@ describe("ServiceFormsService", () => {
       forms.createForm(service.id, { schema: { schemaVersion: 1 } }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("rejects unsafe patterns and blocks legacy unsafe-draft activation", async () => {
+    const { catalog, forms, memory } = createHarness();
+    const service = await createDraftService(catalog);
+    const unsafeSchema = {
+      schemaVersion: 1,
+      fields: [
+        {
+          id: "payload",
+          label: "Payload",
+          type: "text",
+          required: true,
+          order: 0,
+          validation: { pattern: "^(a+)+$" },
+        },
+      ],
+    };
+    await expect(
+      forms.createForm(service.id, { schema: unsafeSchema }),
+    ).rejects.toMatchObject({
+      response: { code: "UNSAFE_FORM_PATTERN" },
+    });
+
+    const draft = await forms.createForm(service.id, { schema: validSchema });
+    memory.seedFormVersion({
+      id: draft.formVersionRef,
+      serviceId: draft.serviceId,
+      version: draft.version,
+      schema: unsafeSchema,
+      status: draft.status,
+      createdAt: new Date(draft.createdAt),
+      updatedAt: new Date(draft.updatedAt),
+    });
+    await expect(
+      forms.activateFormVersion(service.id, draft.formVersionRef),
+    ).rejects.toMatchObject({
+      response: { code: "UNSAFE_FORM_PATTERN" },
+    });
+    await expect(
+      forms.getFormVersion(service.id, draft.formVersionRef),
+    ).resolves.toMatchObject({
+      status: "DRAFT",
+    });
+  });
 });

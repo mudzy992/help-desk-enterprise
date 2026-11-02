@@ -29,6 +29,7 @@ const messages: Record<ServiceFormsErrorCode, string> = {
   DUPLICATE_FIELD_IDENTIFIER: 'Form field identifiers must be unique',
   INVALID_FIELD_IDENTIFIER: 'Form field identifier is invalid',
   INVALID_FIELD_CONFIGURATION: 'Form field configuration is invalid',
+  UNSAFE_FORM_PATTERN: 'Form pattern uses syntax that is not supported by the safe validator',
   FORM_VERSION_IMMUTABLE: 'This form version cannot be mutated',
   FORM_VERSIONING_DISABLED: 'Form versioning is disabled',
   NO_ACTIVE_FORM_VERSION: 'No active form version exists for this service',

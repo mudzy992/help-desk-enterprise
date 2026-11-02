@@ -4009,6 +4009,7 @@
       "errorDuplicateField": "Identifikatori polja moraju biti jedinstveni.",
       "errorFieldId": "Identifikator polja mora biti mali slova, brojevi i donja crta.",
       "errorFieldConfig": "Konfiguracija polja nije ispravna.",
+      "errorUnsafePattern": "Regularni izraz koristi nepodržanu sintaksu. Koristite jednostavne znakove, skupove znakova ili jedno ponavljanje usidreno na početku.",
       "errorImmutable": "Ova verzija forme se ne može mijenjati.",
       "errorVersioningDisabled": "Verzionisanje formi je ugašeno.",
       "errorNotDraft": "Aktivirati se može samo DRAFT verzija.",
