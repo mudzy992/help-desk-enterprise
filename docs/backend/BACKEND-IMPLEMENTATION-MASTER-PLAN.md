@@ -1,7 +1,7 @@
 # Backend implementacijski master plan
 
 **Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.19 su zatvoreni za pojedinačne navedene nalaze. `BA-assets-16` je zatvoren 2026-11-01 izričitom korisničkom acceptance odlukom uz vidljivo zabilježen ne-zeleni globalni E2E gate; ovo nije tvrdnja o zelenom CI niti full E2E/Perf sign-offu. W7.18 i W7.19 su zatvorili samo svoje nalaze; targeted E2E `41314175993` bio je 8/8 na `93f9…` i branch code CI `41302730701` zelen na `3ee7…`. Full E2E `41283381903` na starijem master SHA pao je, a Perf smoke nije pokrenut; full assets segment sign-off nije ostvaren.<br>
-**Datum ažuriranja:** 2026-11-01<br>
+**Datum ažuriranja:** 2026-11-02<br>
 **Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
 
@@ -611,3 +611,9 @@ Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
 - Statusna promjena je owner-directed acceptance iznimka, ne green-gate tvrdnja, test waiver, prag izmjena ili full assets E2E/Perf sign-off. Nema target DB pristupa ni migracije. Closeout/traceability SHA `5be8591cc2ef51875575bf51601b0a61ee6f420d` imao je CI `41329745071` zelen za backend, frontend, PostgreSQL/Redis, docs, container job i gate, ali E2E critical/install i image-enforcement korak `skipped`, a Perf nije pokrenut. Cijeli dokaz je u [102-assets-commercial-and-transfer-cursors.md](implementation/102-assets-commercial-and-transfer-cursors.md).
 - Trenutni deklarisani zbir: **570 otvorenih / 122 zatvorena / 692 ukupno**; machine-readable: **573 otvorena / 108 zatvorenih / 11 historijskih**. Preegzistentna razlika od tri statusa ostaje.
 - Aktuelni naredni scope je samo `BA-service-catalog-10` iz audita 15. Prvi korak je Faza 0: reproducirati/profilerati 500-service katalog, bounded service/form/downtime readove i test 56; uzročnost `/services` long-taska nije proglašena dok se ne dokaže. Nalaz ostaje `otvoreno` do potpunog acceptancea; test 56 i 250 ms prag ostaju nepromijenjeni.
+
+### Statusna dopuna — BA-10 implementacijski checkpoint (2026-11-02)
+
+- Implementiran je bounded/paginirani read slice za service/category/form/downtime i frontend consumere; scope ostaje isključivo `BA-service-catalog-10`. Implementacijski detalji i rollout/rollback su u [auditu 15](audits/15-service-catalog.md). Kategorije 01–09 i 11–15 nisu zatvarane niti su registry brojevi/statusi mijenjani.
+- Lokalni frontend full suite je prošao **430/430 suites, 1.668/1.668 tests**, kao i frontend build, i18n check i ciljano lint/formatiranje. Backend standardni Jest nije mogao izvršiti testove (5 suites / 0 tests) zbog nedostajućeg generated Prisma Clienta/enuma; backend `npm run build` prijavio je **3.380 TypeScript grešaka** počevši od nedostajućeg `src/generated/prisma/client`, pa se kaskadne greške ne mogu klasifikovati bez pravog klijenta. Privremeni stub/transpile-only smoke nije official gate.
+- Nema target-DB pristupa ni BA-10 migracije. Nisu završeni reproduction/profiling, query-plan/row/byte/time budget, stvarni 500/100k-service load fixture niti E2E/Perf. Test 500 servisa bio je mock collector fixture, ne DB/load test. Spec 56, njegova očekivanja i 250 ms prag nisu mijenjani; root cause nije potvrđen.

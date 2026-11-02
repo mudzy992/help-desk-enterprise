@@ -1,41 +1,44 @@
-import { Injectable, Optional } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { mapRoutingError } from '../routing/map-routing-error';
-import { RoutingError } from '../routing/routing.error';
-import { RoutingService } from '../routing/routing.service';
-import { createService } from './create-service';
-import { createServiceCategory } from './create-service-category';
-import { deleteService } from './delete-service';
-import { deleteServiceCategory } from './delete-service-category';
-import { getService } from './get-service';
-import { getServiceCategory } from './get-service-category';
-import { listServiceCategories } from './list-service-categories';
-import { listServices } from './list-services';
-import { mapServiceCatalogError } from './map-service-catalog-error';
-import { defaultServiceAvailabilityConfigurationBundle } from './service-availability.constants';
-import { ServiceAvailabilityConfigurationLoader } from './service-availability-configuration.loader';
+import { Injectable, Optional } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { mapRoutingError } from "../routing/map-routing-error";
+import { RoutingError } from "../routing/routing.error";
+import { RoutingService } from "../routing/routing.service";
+import { createService } from "./create-service";
+import { createServiceCategory } from "./create-service-category";
+import { deleteService } from "./delete-service";
+import { deleteServiceCategory } from "./delete-service-category";
+import { getService } from "./get-service";
+import { getServiceCategory } from "./get-service-category";
+import { listServiceCategories } from "./list-service-categories";
+import { listServices } from "./list-services";
+import { mapServiceCatalogError } from "./map-service-catalog-error";
+import { defaultServiceAvailabilityConfigurationBundle } from "./service-availability.constants";
+import { ServiceAvailabilityConfigurationLoader } from "./service-availability-configuration.loader";
 import type {
   ServiceAvailabilityConfigurationBundle,
   ServiceAvailabilityEvaluationContext,
-} from './service-availability.types';
-import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
-import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
-import { TicketApprovalsConfigurationLoader } from '../tickets/approvals/ticket-approvals-configuration.loader';
-import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
+} from "./service-availability.types";
+import { ServiceLifecycleConfigurationLoader } from "./service-lifecycle-configuration.loader";
+import { defaultTicketApprovalsConfiguration } from "../tickets/approvals/approvals.constants";
+import { TicketApprovalsConfigurationLoader } from "../tickets/approvals/ticket-approvals-configuration.loader";
+import type { TicketApprovalsConfiguration } from "../tickets/approvals/approvals.types";
 import type {
   CatalogMutationContext,
   CreateServiceCategoryInput,
+  ServiceCategoryListInput,
+  ServiceCategoryListPage,
   CreateServiceInput,
   ListServicesInput,
   ServiceCategoryResponse,
+  ServiceListPage,
   ServiceResponse,
   TransitionServiceLifecycleInput,
   UpdateServiceCategoryInput,
   UpdateServiceInput,
-} from './service-catalog.types';
-import { transitionServiceLifecycle } from './transition-service-lifecycle';
-import { updateService } from './update-service';
-import { updateServiceCategory } from './update-service-category';
+} from "./service-catalog.types";
+import { transitionServiceLifecycle } from "./transition-service-lifecycle";
+import { updateService } from "./update-service";
+import { updateServiceCategory } from "./update-service-category";
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
 const defaultAvailabilityConfigurationLoader = {
@@ -67,15 +70,21 @@ export class ServiceCatalogService {
     input: CreateServiceCategoryInput,
     context: CatalogMutationContext = emptyContext,
   ): Promise<ServiceCategoryResponse> {
-    return this.execute(() => createServiceCategory(this.prisma, input, context));
+    return this.execute(() =>
+      createServiceCategory(this.prisma, input, context),
+    );
   }
 
-  listCategories(): Promise<readonly ServiceCategoryResponse[]> {
-    return this.execute(() => listServiceCategories(this.prisma));
+  listCategories(
+    input: ServiceCategoryListInput = {},
+  ): Promise<ServiceCategoryListPage> {
+    return this.execute(() => listServiceCategories(this.prisma, input));
   }
 
   getCategory(serviceCategoryId: string): Promise<ServiceCategoryResponse> {
-    return this.execute(() => getServiceCategory(this.prisma, serviceCategoryId));
+    return this.execute(() =>
+      getServiceCategory(this.prisma, serviceCategoryId),
+    );
   }
 
   updateCategory(
@@ -110,7 +119,7 @@ export class ServiceCatalogService {
   list(
     input: ListServicesInput = {},
     evaluatedAt: Date = new Date(),
-  ): Promise<readonly ServiceResponse[]> {
+  ): Promise<ServiceListPage> {
     return this.execute(async () =>
       listServices(
         this.prisma,
@@ -143,7 +152,9 @@ export class ServiceCatalogService {
     input: UpdateServiceInput,
     context: CatalogMutationContext = emptyContext,
   ): Promise<ServiceResponse> {
-    return this.execute(() => updateService(this.prisma, serviceId, input, context));
+    return this.execute(() =>
+      updateService(this.prisma, serviceId, input, context),
+    );
   }
 
   async transitionLifecycle(
@@ -154,7 +165,7 @@ export class ServiceCatalogService {
     return this.execute(async () => {
       const configuration = await this.lifecycleConfigurationLoader.load();
       const coverageWarning =
-        input.lifecycle === 'ACTIVE' && this.routingService !== null
+        input.lifecycle === "ACTIVE" && this.routingService !== null
           ? await this.routingService.evaluateActivationCoverage(serviceId)
           : null;
       return transitionServiceLifecycle(

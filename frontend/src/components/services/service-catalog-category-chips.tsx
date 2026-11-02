@@ -9,6 +9,8 @@ interface ServiceCatalogCategoryChipsProperties {
   readonly categories: readonly ServiceCategoryResponse[];
   readonly rows: readonly ServiceCatalogRow[];
   readonly activeCategoryId: string | null;
+  readonly showCounts: boolean;
+  readonly totalCount: number;
   readonly canWrite: boolean;
   readonly onChange: (categoryId: string | null) => void;
   readonly onManage: () => void;
@@ -18,6 +20,8 @@ export function ServiceCatalogCategoryChips({
   categories,
   rows,
   activeCategoryId,
+  showCounts,
+  totalCount,
   canWrite,
   onChange,
   onManage,
@@ -27,7 +31,7 @@ export function ServiceCatalogCategoryChips({
     <div className="fade-in flex flex-wrap items-center gap-1.5">
       <ServiceCategoryChip
         label={t("services.allCategories")}
-        count={rows.length}
+        count={showCounts ? totalCount : undefined}
         active={activeCategoryId === null}
         onClick={() => onChange(null)}
       />
@@ -35,7 +39,7 @@ export function ServiceCatalogCategoryChips({
         <ServiceCategoryChip
           key={category.id}
           label={category.name}
-          count={countServicesInCategory(rows, category.id)}
+          count={showCounts ? countServicesInCategory(rows, category.id) : undefined}
           active={activeCategoryId === category.id}
           onClick={() => onChange(category.id)}
         />

@@ -1,4 +1,4 @@
-import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
+import { AdminConfigDomains } from "../../common/admin-realtime/admin-config-domain.decorator";
 import {
   Body,
   Controller,
@@ -8,28 +8,33 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
-} from '@nestjs/common';
-import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+} from "@nestjs/common";
+import { SessionAuthenticationGuard } from "../authentication/session-authentication.guard";
+import type { AuthenticatedHttpRequest } from "../authentication/authenticated-request";
 import {
   authorizationRoleKeys,
   permissionKeys,
-} from '../authorization/authorization.constants';
-import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
-import { RoleGuard } from '../authorization/role.guard';
-import { CreateServiceCategoryDto } from './dto/create-service-category.dto';
-import { UpdateServiceCategoryDto } from './dto/update-service-category.dto';
-import { readCatalogMutationContext } from './read-catalog-mutation-context';
-import { ServiceCatalogService } from './service-catalog.service';
-import type { ServiceCategoryResponse } from './service-catalog.types';
+} from "../authorization/authorization.constants";
+import { RequirePermissions } from "../authorization/require-permissions.decorator";
+import { RequireRoles } from "../authorization/require-roles.decorator";
+import { RoleGuard } from "../authorization/role.guard";
+import { CreateServiceCategoryDto } from "./dto/create-service-category.dto";
+import { ListServiceCategoriesQueryDto } from "./dto/list-service-categories-query.dto";
+import { UpdateServiceCategoryDto } from "./dto/update-service-category.dto";
+import { readCatalogMutationContext } from "./read-catalog-mutation-context";
+import { ServiceCatalogService } from "./service-catalog.service";
+import type {
+  ServiceCategoryListPage,
+  ServiceCategoryResponse,
+} from "./service-catalog.types";
 
-@AdminConfigDomains('catalog')
-@Controller('service-categories')
+@AdminConfigDomains("catalog")
+@Controller("service-categories")
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
@@ -55,21 +60,23 @@ export class ServiceCategoriesController {
   }
 
   @Get()
-  list(): Promise<readonly ServiceCategoryResponse[]> {
-    return this.serviceCatalogService.listCategories();
+  list(
+    @Query() query: ListServiceCategoriesQueryDto,
+  ): Promise<ServiceCategoryListPage> {
+    return this.serviceCatalogService.listCategories(query);
   }
 
-  @Get(':serviceCategoryId')
+  @Get(":serviceCategoryId")
   getById(
-    @Param('serviceCategoryId') serviceCategoryId: string,
+    @Param("serviceCategoryId") serviceCategoryId: string,
   ): Promise<ServiceCategoryResponse> {
     return this.serviceCatalogService.getCategory(serviceCategoryId);
   }
 
-  @Patch(':serviceCategoryId')
+  @Patch(":serviceCategoryId")
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
   update(
-    @Param('serviceCategoryId') serviceCategoryId: string,
+    @Param("serviceCategoryId") serviceCategoryId: string,
     @Body() body: UpdateServiceCategoryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceCategoryResponse> {
@@ -80,11 +87,11 @@ export class ServiceCategoriesController {
     );
   }
 
-  @Delete(':serviceCategoryId')
+  @Delete(":serviceCategoryId")
   @HttpCode(204)
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
   async delete(
-    @Param('serviceCategoryId') serviceCategoryId: string,
+    @Param("serviceCategoryId") serviceCategoryId: string,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<void> {
     await this.serviceCatalogService.deleteCategory(

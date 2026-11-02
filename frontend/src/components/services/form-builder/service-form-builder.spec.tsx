@@ -49,6 +49,12 @@ function form(serviceId: string, activeFormVersionRef: string | null, fieldId = 
     formsEnabled: true,
     requireVersionOnTicket: false,
     activeFormVersionRef,
+    activeForm: null,
+    total: 1,
+    take: 20,
+    cursor: null,
+    nextCursor: null,
+    hasMore: false,
     versions: [
       {
         formVersionRef: `${serviceId}-draft`,

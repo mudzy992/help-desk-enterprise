@@ -170,7 +170,12 @@ export function createInMemoryTicketsPrisma() {
         return created;
       },
     },
-    formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
+    formVersion: createInMemoryFormVersionDelegate(
+      formVersions,
+      nextId,
+      now,
+      (formVersionId) => [...tickets.values()].filter((ticket) => ticket.formVersionId === formVersionId).length,
+    ),
     priorityMatrixRule: {
       findUnique: async () => null,
     },

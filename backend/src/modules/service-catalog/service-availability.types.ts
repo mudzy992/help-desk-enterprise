@@ -1,11 +1,9 @@
-import type { ServiceAvailability } from '../../generated/prisma/enums';
+import type { ServiceAvailability } from "../../generated/prisma/enums";
 
 export type ServiceRuntimeAvailabilityState =
-  | 'CURRENTLY_AVAILABLE'
-  | 'CURRENTLY_UNAVAILABLE'
-  | 'SCHEDULED_DOWNTIME';
+  "CURRENTLY_AVAILABLE" | "CURRENTLY_UNAVAILABLE" | "SCHEDULED_DOWNTIME";
 
-export type DowntimeWindowPhase = 'UPCOMING' | 'ACTIVE' | 'EXPIRED';
+export type DowntimeWindowPhase = "UPCOMING" | "ACTIVE" | "EXPIRED";
 
 export type DowntimeWindowRecord = {
   readonly id: string;
@@ -15,6 +13,23 @@ export type DowntimeWindowRecord = {
   readonly message: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+};
+
+export type DowntimeWindowListInput = {
+  readonly take?: number;
+  readonly cursor?: string;
+  readonly from?: string;
+  readonly to?: string;
+};
+
+export type DowntimeWindowListPage = {
+  readonly items: readonly DowntimeWindowResponse[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+  readonly period: { readonly from: string; readonly to: string };
 };
 
 export type DowntimeWindowResponse = {

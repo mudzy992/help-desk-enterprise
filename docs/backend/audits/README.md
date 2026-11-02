@@ -1,8 +1,8 @@
 # Registar backend audita po modulima
 
 **Status:** aktuelno<br>
-**Ažurirano:** 2026-11-01<br>
-**Aktivna implementacija:** W7.1–W7.19 su zatvoreni za svoje pojedinačne nalaze; `BA-assets-16` je zatvoren 2026-11-01 izričitom korisničkom odlukom uprkos crvenom globalnom E2E gateu, koji ostaje vidljiv i nije proglašen passed. W7.19 je zatvorio samo `BA-assets-19` uz targeted E2E `41314175993` (8/8 na SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a`) i zeleni branch code CI `41302730701` na `3ee7de073639719d5591a399ffbc0f3057668f14`; full E2E `41283381903` pao je, a Perf smoke nije pokrenut. Full assets E2E/Perf sign-off nije ostvaren. Aktuelni scope je samo P2 `BA-service-catalog-10` iz audita 15, Faza 0 (profiling/reproduction); spec 56 i 250 ms prag ostaju netaknuti. `BA-service-onboarding-20` nije scope.
+**Ažurirano:** 2026-11-02<br>
+**Aktivna implementacija:** W7.1–W7.19 su zatvoreni za svoje pojedinačne nalaze; `BA-assets-16` je zatvoren 2026-11-01 izričitom korisničkom odlukom uprkos crvenom globalnom E2E gateu, koji ostaje vidljiv i nije proglašen passed. W7.19 je zatvorio samo `BA-assets-19` uz targeted E2E `41314175993` (8/8 na SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a`) i zeleni branch code CI `41302730701` na `3ee7de073639719d5591a399ffbc0f3057668f14`; full E2E `41283381903` pao je, a Perf smoke nije pokrenut. Full assets E2E/Perf sign-off nije ostvaren. Aktuelni scope je samo P2 `BA-service-catalog-10` iz audita 15: bounded/paginirani reads su implementirani u checkpointu, ali reprodukcija/profiling, backend verification i puna acceptance provjera nisu završeni. Uzročnost speca 56 nije utvrđena; test i prag od 250 ms ostaju netaknuti. `BA-service-onboarding-20` nije scope.
 
 Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; tekući open/closed status je u [globalnom registru](../BACKEND-FINDINGS-REGISTER.md).
 

@@ -54,10 +54,10 @@ const criticalBoundaries = [
     owner: "routing",
   },
   {
-    label: "service catalog batch",
+    label: "service catalog page",
     file: "./service-catalog-api.ts",
-    parser: "parseServiceCatalog",
-    fixture: "serviceCatalog",
+    parser: "parseServiceCatalogPage",
+    fixture: "serviceCatalogPage",
     owner: "services",
   },
   {

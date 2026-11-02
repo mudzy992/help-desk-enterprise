@@ -1,6 +1,6 @@
 # HANDOFF — Help Desk Enterprise
 
-**Datum:** 2026-11-01<br>
+**Datum:** 2026-11-02<br>
 **Jezička pravila:** svaka komunikacija i closeout izvještaj korisniku moraju biti isključivo na bosanskom.  
 **Svrha:** kontinuitet rada u narednoj Arena sesiji. Sve putanje ispod su relativne putanje unutar repozitorija.
 
@@ -82,7 +82,9 @@ Za W7.15: kad korisnik obezbijedi tačan target kroz sigurno okruženje, prvo iz
 - W7.15 zatvorio je samo `BA-assets-15`; W7.16 je zatvoren 2026-11-01 isključivo izričitom korisničkom acceptance odlukom uz crveni globalni E2E gate; W7.17, W7.18 i W7.19 zatvorili su samo svoje pojedinačne nalaze. Ostali asset statusi nisu promijenjeni.
 - Trenutni deklarisani zbir: **570 otvorenih / 122 zatvorena / 692 ukupno**.
 - Machine-readable plan: **573 otvorena / 108 zatvorenih / 11 historijskih / 692 ukupno**. „11 historijskih“ su zapisi `BA-audit-log-01`–`BA-audit-log-11` sa statusima `završen (W3.x)` iz ranijih W3 workstreamova; nisu novi zatvoreni nalazi Vala 7. Preegzistentna razlika od tri statusa ostaje netaknuta.
-- Aktuelni scope je samo `BA-service-catalog-10` (P2) iz audita 15. Faza 0 je počela kao read-only triage/profiling; product code/test changes još nema. `BA-service-onboarding-20` nije scope.
+- Aktuelni scope je samo `BA-service-catalog-10` (P2) iz audita 15; `BA-service-onboarding-20` nije scope. Lokalni checkpoint sadrži bounded/paginirane service/category/form/downtime readove, frontend consumere i ciljanje testove, ali BA-10 ostaje otvoren. Detaljni scope i verification evidence su u `docs/backend/audits/15-service-catalog.md`.
+- Lokalni frontend suite/build/i18n/lint prolazi su zabilježeni u auditu 15; backend standardni Jest je blokiran prije izvršenja testova (5 suites, 0 tests) zbog nedostajućeg generisanog Prisma Clienta, a `npm run build` pao je sa 3.380 TypeScript grešaka počevši od nedostajućih generated-client fajlova. Privremeni stub/transpile-only smoke nije zvanični gate. Nema target-DB pristupa ni BA-10 migracije; E2E/Perf nisu pokrenuti. Uzročnost speca 56 nije utvrđena; test i prag od 250 ms nisu mijenjani.
+- Korisnik je izričito odobrio checkpoint i push svih tadašnjih 239 status-entries dok BA-10 ostaje otvoren; commit `e3218fbfd90edff78a7e4513e3ace4f06d3273fe` je napravljen na ovoj grani. Normalni push je odbijen kao non-fast-forward. Korisnik je odobrio rebase na `origin/arena/864951a6-help-desk-enterprise` tip `ebef75c8cba9fdbcd61c3e1449b75c4153b9f2df`; rebase je trenutno pauziran na konfliktima u pet dokumentacijskih fajlova i `e2e/helpers/api-client.ts`. Nastaviti isti rebase, sačuvati W7 remote historiju i BA-10 diff, pa nakon resolve-a pushovati normalno. Ne force-pushovati i ne otvarati PR prema `master`.
 
 ## 7. Način rada i obavezni format odgovora
 

@@ -1,4 +1,4 @@
-import type { IncidentImpact } from '../status-page/status-page.model';
+import type { IncidentImpact } from "../status-page/status-page.model";
 import type {
   AutoAssignStrategy,
   DataClassification,
@@ -6,8 +6,8 @@ import type {
   ServiceLifecycle,
   ServiceOnboardingStatus,
   ServiceOnboardingStep,
-} from '../../generated/prisma/enums';
-import type { ServiceRuntimeAvailability } from './service-availability.types';
+} from "../../generated/prisma/enums";
+import type { ServiceRuntimeAvailability } from "./service-availability.types";
 
 export type ServiceCategoryRecord = {
   readonly id: string;
@@ -141,8 +141,35 @@ export type ListServicesInput = {
   readonly lifecycle?: ServiceLifecycle;
   readonly categoryId?: string;
   readonly offeredOnly?: boolean;
+  readonly search?: string;
+  readonly originUnitId?: string;
+  readonly take?: number;
+  readonly cursor?: string;
   /** Val 2 (M6/B2): šta pozivalac smije vidjeti; `undefined` = bez filtera. */
   readonly visibleLifecycles?: readonly ServiceLifecycle[];
+};
+
+export type ServiceListPage = {
+  readonly items: readonly ServiceResponse[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type ServiceCategoryListPage = {
+  readonly items: readonly ServiceCategoryResponse[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type ServiceCategoryListInput = {
+  readonly take?: number;
+  readonly cursor?: string;
 };
 
 export type TransitionServiceLifecycleInput = {

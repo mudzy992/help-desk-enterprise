@@ -16,11 +16,16 @@ import {
   activateServiceFormVersion,
   createServiceForm,
   getServiceForm,
+  serviceFormVersionsClientMaximumPages,
   type FormVersionResponse,
   type ServiceFormField,
   type ServiceFormResponse,
 } from "@/services/service-catalog-api";
-import { createServiceFormVersion, updateServiceFormVersion } from "@/services/service-forms-api";
+import {
+  createServiceFormVersion,
+  getServiceFormVersion,
+  updateServiceFormVersion,
+} from "@/services/service-forms-api";
 
 interface ServiceFormBuilderProperties {
   readonly serviceId: string;
@@ -42,29 +47,89 @@ export function ServiceFormBuilder({
   const [fields, setFields] = useState<ServiceFormField[]>([]);
   const [errorKey, setErrorKey] = useState<ServiceFormsErrorKey | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadedHistoryPages, setLoadedHistoryPages] = useState(1);
   const selected = form?.versions.find((item) => item.formVersionRef === selectedRef) ?? null;
   const editable = canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
   const validDraft = isValidFormFieldDraft(fields);
 
   const applyForm = useCallback((loaded: ServiceFormResponse, preferredRef?: string) => {
+    const versions =
+      loaded.activeForm !== null &&
+      !loaded.versions.some((item) => item.formVersionRef === loaded.activeForm?.formVersionRef)
+        ? [...loaded.versions, loaded.activeForm]
+        : loaded.versions;
+    const normalized = { ...loaded, versions };
+    const preferred = normalized.versions.find((item) => item.formVersionRef === preferredRef);
     const nextRef =
-      preferredRef ??
-      loaded.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
-      loaded.activeFormVersionRef ??
-      loaded.versions[0]?.formVersionRef ??
+      preferred?.formVersionRef ??
+      normalized.versions.find((item) => item.status === "DRAFT")?.formVersionRef ??
+      normalized.versions.find((item) => item.formVersionRef === normalized.activeFormVersionRef)
+        ?.formVersionRef ??
+      normalized.versions[0]?.formVersionRef ??
       null;
-    const version = loaded.versions.find((item) => item.formVersionRef === nextRef);
-    setForm(loaded);
+    const version = normalized.versions.find((item) => item.formVersionRef === nextRef);
+    setForm(normalized);
+    setLoadedHistoryPages(1);
     setSelectedRef(nextRef);
     setFields(version ? [...version.schema.fields] : []);
   }, []);
 
   const reload = async (preferredRef?: string) => {
     const requestedServiceId = serviceId;
-    const loaded = await getServiceForm(requestedServiceId);
+    let loaded = await getServiceForm(requestedServiceId);
     if (serviceIdentity.current !== requestedServiceId) return null;
+    if (
+      preferredRef &&
+      !loaded.versions.some((item) => item.formVersionRef === preferredRef) &&
+      loaded.activeForm?.formVersionRef !== preferredRef
+    ) {
+      const preferred = await getServiceFormVersion(requestedServiceId, preferredRef);
+      if (serviceIdentity.current !== requestedServiceId) return null;
+      loaded = { ...loaded, versions: [...loaded.versions, preferred] };
+    }
     applyForm(loaded, preferredRef);
     return loaded;
+  };
+
+  const loadMoreVersions = async () => {
+    if (
+      form === null ||
+      !form.hasMore ||
+      form.nextCursor === null ||
+      loadingMore ||
+      loadedHistoryPages >= serviceFormVersionsClientMaximumPages
+    )
+      return;
+    const requestedServiceId = serviceId;
+    setLoadingMore(true);
+    setErrorKey(null);
+    try {
+      const page = await getServiceForm(requestedServiceId, {
+        take: form.take,
+        cursor: form.nextCursor,
+      });
+      if (serviceIdentity.current !== requestedServiceId) return;
+      setLoadedHistoryPages((current) => current + 1);
+      setForm((current) => {
+        if (current === null || current.serviceId !== requestedServiceId) return current;
+        const existingRefs = new Set(current.versions.map((item) => item.formVersionRef));
+        return {
+          ...current,
+          versions: [
+            ...current.versions,
+            ...page.versions.filter((item) => !existingRefs.has(item.formVersionRef)),
+          ],
+          total: page.total,
+          nextCursor: page.nextCursor,
+          hasMore: page.hasMore,
+        };
+      });
+    } catch (error) {
+      setErrorKey(mapServiceFormsError(error));
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   useEffect(() => {
@@ -110,6 +175,14 @@ export function ServiceFormBuilder({
       <FormVersionHistory
         versions={form?.versions ?? []}
         selectedRef={selectedRef}
+        hasMore={Boolean(
+          form?.hasMore && loadedHistoryPages < serviceFormVersionsClientMaximumPages,
+        )}
+        limitReached={Boolean(
+          form?.hasMore && loadedHistoryPages >= serviceFormVersionsClientMaximumPages,
+        )}
+        isLoadingMore={loadingMore}
+        onLoadMore={() => void loadMoreVersions()}
         onSelect={(formVersionRef) => {
           setSelectedRef(formVersionRef);
           const version = form?.versions.find((item) => item.formVersionRef === formVersionRef);
@@ -129,7 +202,7 @@ export function ServiceFormBuilder({
           editable={Boolean(editable)}
           canWrite={canWrite}
           selected={selected}
-          hasVersions={(form?.versions.length ?? 0) > 0}
+          hasVersions={(form?.total ?? 0) > 0}
           hasFields={validDraft}
           pending={pending}
           onCreateFirst={() => {

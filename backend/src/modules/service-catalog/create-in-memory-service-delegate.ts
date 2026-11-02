@@ -3,15 +3,28 @@ import type {
   DataClassification,
   ServiceAvailability,
   ServiceLifecycle,
-} from '../../generated/prisma/enums';
-import type { ServiceRecord } from './service-catalog.types';
+} from "../../generated/prisma/enums";
+import type { ServiceRecord } from "./service-catalog.types";
 import {
   assertUniqueSlug,
   emptyServiceDependents,
   findByIdOrSlug,
   pickSelectedFields,
   type ServiceDependents,
-} from './in-memory-service-catalog-store';
+} from "./in-memory-service-catalog-store";
+
+type InMemoryWhere = {
+  lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
+  categoryId?: string;
+  id?: string | { gt?: string };
+  name?: string | { contains?: string; gt?: string; mode?: "insensitive" };
+  slug?: string | { contains?: string; mode?: "insensitive" };
+  OR?: readonly InMemoryWhere[];
+  AND?: readonly InMemoryWhere[];
+  routingRules?: { some: { originUnitId: string } };
+};
+
+type InMemoryOrder = { name?: "asc" | "desc"; id?: "asc" | "desc" };
 
 export function createInMemoryServiceDelegate(
   services: Map<string, ServiceRecord>,
@@ -39,12 +52,9 @@ export function createInMemoryServiceDelegate(
         return {
           ...record,
           _count: {
-            tickets:
-              seeded.tickets +
-              countByServiceId(tickets, record.id),
+            tickets: seeded.tickets + countByServiceId(tickets, record.id),
             formVersions:
-              seeded.formVersions +
-              countByServiceId(formVersions, record.id),
+              seeded.formVersions + countByServiceId(formVersions, record.id),
             routingRules: seeded.routingRules,
             userRoles: seeded.userRoles,
           },
@@ -57,24 +67,27 @@ export function createInMemoryServiceDelegate(
     },
     findMany: async ({
       where,
+      orderBy,
+      take,
     }: {
-      where?: {
-        lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
-        categoryId?: string;
-      };
-    } = {}) =>
-      [...services.values()]
+      where?: InMemoryWhere;
+      orderBy?: readonly InMemoryOrder[];
+      take?: number;
+    } = {}) => {
+      const sorted = [...services.values()]
         .filter((item) => matchesServiceWhere(item, where))
-        .sort((left, right) => left.name.localeCompare(right.name)),
-    count: async ({ where }: { where: { categoryId: string } }) =>
-      [...services.values()].filter((item) => item.categoryId === where.categoryId)
+        .sort((left, right) => compareServices(left, right, orderBy));
+      return take === undefined ? sorted : sorted.slice(0, take);
+    },
+    count: async ({ where }: { where?: InMemoryWhere } = {}) =>
+      [...services.values()].filter((item) => matchesServiceWhere(item, where))
         .length,
     create: async ({
       data,
     }: {
       data: Omit<
         ServiceRecord,
-        'id' | 'createdAt' | 'updatedAt' | 'availability' | 'slaProfileId'
+        "id" | "createdAt" | "updatedAt" | "availability" | "slaProfileId"
       > & {
         id?: string;
         availability?: ServiceAvailability;
@@ -90,7 +103,7 @@ export function createInMemoryServiceDelegate(
         slug: data.slug,
         categoryId: data.categoryId,
         lifecycle: data.lifecycle,
-        availability: data.availability ?? 'OPERATIONAL',
+        availability: data.availability ?? "OPERATIONAL",
         classification: data.classification,
         requiresApproval: data.requiresApproval,
         isConfidentialDefault: data.isConfidentialDefault,
@@ -141,25 +154,69 @@ function countByServiceId(
 
 function matchesServiceWhere(
   item: ServiceRecord,
-  where?: {
-    lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
-    categoryId?: string;
-  },
+  where?: InMemoryWhere,
 ): boolean {
-  // Val 2 (M6/B2): listServices filtrira vidljiva stanja preko `in`.
-  const lifecycle = where?.lifecycle;
-  if (typeof lifecycle === 'string' && item.lifecycle !== lifecycle) {
+  if (where === undefined) return true;
+  const lifecycle = where.lifecycle;
+  if (typeof lifecycle === "string" && item.lifecycle !== lifecycle)
     return false;
-  }
   if (
     lifecycle !== undefined &&
-    typeof lifecycle === 'object' &&
+    typeof lifecycle === "object" &&
     !lifecycle.in.includes(item.lifecycle)
-  ) {
+  )
     return false;
-  }
-  if (where?.categoryId !== undefined && item.categoryId !== where.categoryId) {
+  if (where.categoryId !== undefined && item.categoryId !== where.categoryId)
     return false;
+  if (where.id !== undefined && !matchesStringFilter(item.id, where.id))
+    return false;
+  if (where.name !== undefined && !matchesStringFilter(item.name, where.name))
+    return false;
+  if (where.slug !== undefined && !matchesStringFilter(item.slug, where.slug))
+    return false;
+  if (where.routingRules !== undefined) return false;
+  if (
+    where.OR !== undefined &&
+    !where.OR.some((clause) => matchesServiceWhere(item, clause))
+  )
+    return false;
+  if (
+    where.AND !== undefined &&
+    !where.AND.every((clause) => matchesServiceWhere(item, clause))
+  )
+    return false;
+  return true;
+}
+
+function matchesStringFilter(
+  value: string,
+  filter: string | { contains?: string; gt?: string; mode?: "insensitive" },
+): boolean {
+  if (typeof filter === "string") return value === filter;
+  if (filter.gt !== undefined && value <= filter.gt) return false;
+  if (filter.contains !== undefined) {
+    const candidate =
+      filter.mode === "insensitive" ? value.toLocaleLowerCase() : value;
+    const search =
+      filter.mode === "insensitive"
+        ? filter.contains.toLocaleLowerCase()
+        : filter.contains;
+    if (!candidate.includes(search)) return false;
   }
   return true;
+}
+
+function compareServices(
+  left: ServiceRecord,
+  right: ServiceRecord,
+  orderBy: readonly InMemoryOrder[] | undefined,
+): number {
+  const order = orderBy ?? [{ name: "asc" }];
+  for (const item of order) {
+    const key = item.name !== undefined ? "name" : "id";
+    const direction = item.name ?? item.id ?? "asc";
+    const result = left[key].localeCompare(right[key]);
+    if (result !== 0) return direction === "desc" ? -result : result;
+  }
+  return 0;
 }

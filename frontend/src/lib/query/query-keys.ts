@@ -22,6 +22,7 @@ export const queryKeys = {
   routingRules: ["catalog", "routing-rules"] as const,
   organizationalUnits: ["catalog", "organizational-units"] as const,
   services: ["catalog", "services"] as const,
+  service: (serviceId: string) => ["catalog", "services", "detail", serviceId] as const,
   serviceCategories: ["catalog", "service-categories"] as const,
   serviceRoutingCoverage: ["catalog", "service-routing-coverage"] as const,
   serviceOnboardings: (draftKey: string) => ["catalog", "service-onboardings", draftKey] as const,

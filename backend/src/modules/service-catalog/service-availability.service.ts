@@ -1,24 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { createServiceDowntimeWindow } from './create-service-downtime-window';
-import { deleteServiceDowntimeWindow } from './delete-service-downtime-window';
-import { evaluateServiceTicketCreationEligibility } from './evaluate-service-ticket-creation-eligibility';
-import { listServiceDowntimeWindows } from './list-service-downtime-windows';
-import { mapServiceCatalogError } from './map-service-catalog-error';
-import { ServiceCatalogService } from './service-catalog.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { createServiceDowntimeWindow } from "./create-service-downtime-window";
+import { deleteServiceDowntimeWindow } from "./delete-service-downtime-window";
+import { evaluateServiceTicketCreationEligibility } from "./evaluate-service-ticket-creation-eligibility";
+import { listServiceDowntimeWindows } from "./list-service-downtime-windows";
+import { mapServiceCatalogError } from "./map-service-catalog-error";
+import { ServiceCatalogService } from "./service-catalog.service";
 import type {
   CreateServiceDowntimeWindowInput,
-  DowntimeWindowResponse,
+  DowntimeWindowListInput,
+  DowntimeWindowListPage,
   ServiceTicketCreationEligibility,
   UpdateServiceAvailabilityInput,
   UpdateServiceDowntimeWindowInput,
-} from './service-availability.types';
+} from "./service-availability.types";
 import type {
   CatalogMutationContext,
   ServiceResponse,
-} from './service-catalog.types';
-import { updateServiceAvailability } from './update-service-availability';
-import { updateServiceDowntimeWindow } from './update-service-downtime-window';
+} from "./service-catalog.types";
+import { updateServiceAvailability } from "./update-service-availability";
+import { updateServiceDowntimeWindow } from "./update-service-downtime-window";
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
 
@@ -36,7 +37,8 @@ export class ServiceAvailabilityService {
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation =
+        await this.serviceCatalogService.evaluation(evaluatedAt);
       return updateServiceAvailability(
         this.prisma,
         serviceId,
@@ -50,10 +52,11 @@ export class ServiceAvailabilityService {
 
   listDowntimeWindows(
     serviceId: string,
+    input: DowntimeWindowListInput = {},
     evaluatedAt: Date = new Date(),
-  ): Promise<readonly DowntimeWindowResponse[]> {
+  ): Promise<DowntimeWindowListPage> {
     return this.execute(() =>
-      listServiceDowntimeWindows(this.prisma, serviceId, evaluatedAt),
+      listServiceDowntimeWindows(this.prisma, serviceId, evaluatedAt, input),
     );
   }
 
@@ -64,7 +67,8 @@ export class ServiceAvailabilityService {
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation =
+        await this.serviceCatalogService.evaluation(evaluatedAt);
       return createServiceDowntimeWindow(
         this.prisma,
         serviceId,
@@ -84,7 +88,8 @@ export class ServiceAvailabilityService {
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation =
+        await this.serviceCatalogService.evaluation(evaluatedAt);
       return updateServiceDowntimeWindow(
         this.prisma,
         serviceId,
@@ -105,7 +110,8 @@ export class ServiceAvailabilityService {
     reason?: string,
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation =
+        await this.serviceCatalogService.evaluation(evaluatedAt);
       return deleteServiceDowntimeWindow(
         this.prisma,
         serviceId,

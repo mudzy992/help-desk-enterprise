@@ -7,12 +7,20 @@ interface FormVersionHistoryProperties {
   readonly versions: readonly FormVersionResponse[];
   readonly selectedRef: string | null;
   readonly onSelect: (formVersionRef: string) => void;
+  readonly hasMore?: boolean;
+  readonly isLoadingMore?: boolean;
+  readonly onLoadMore?: () => void;
+  readonly limitReached?: boolean;
 }
 
 export function FormVersionHistory({
   versions,
   selectedRef,
   onSelect,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
+  limitReached = false,
 }: FormVersionHistoryProperties) {
   const { t } = useTranslation();
   const sorted = [...versions].sort((left, right) => right.version - left.version);
@@ -55,6 +63,23 @@ export function FormVersionHistory({
           );
         })}
       </ul>
+      {hasMore && onLoadMore ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-2 w-full"
+          disabled={isLoadingMore}
+          onClick={onLoadMore}
+        >
+          {t(isLoadingMore ? "services.forms.loadingVersions" : "services.forms.loadMoreVersions")}
+        </Button>
+      ) : null}
+      {limitReached ? (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {t("services.forms.historyLimitReached")}
+        </p>
+      ) : null}
     </div>
   );
 }

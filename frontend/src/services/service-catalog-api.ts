@@ -1,5 +1,5 @@
-import { apiRequest, apiRequestValidated } from "@/services/api";
-import { parseServiceCatalog } from "@/services/critical-api-parsers";
+import { ApiError, apiRequest, apiRequestValidated } from "@/services/api";
+import { parseServiceCatalogPage } from "@/services/critical-api-parsers";
 import {
   listServiceCategories as listServiceCategoriesFromApi,
   type ServiceCategoryResponse as ServiceCategoryApiResponse,
@@ -69,6 +69,25 @@ export type ServiceResponse = {
   readonly category?: { readonly name: string; readonly sortOrder: number } | null;
 };
 
+export type ServiceListPage = {
+  readonly items: readonly ServiceResponse[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type ServiceListQuery = {
+  readonly lifecycle?: ServiceLifecycle;
+  readonly categoryId?: string | null;
+  readonly offeredOnly?: boolean;
+  readonly search?: string;
+  readonly originUnitId?: string | null;
+  readonly take?: number;
+  readonly cursor?: string | null;
+};
+
 export type CreateServiceInput = {
   readonly name: string;
   readonly slug: string;
@@ -135,6 +154,9 @@ export type ServiceFormSchema = {
 
 export type FormVersionStatus = "DRAFT" | "ACTIVE" | "RETIRED";
 
+export const serviceFormVersionsClientPageSize = 20;
+export const serviceFormVersionsClientMaximumPages = 25;
+
 export type FormVersionResponse = {
   readonly formVersionRef: string;
   readonly serviceId: string;
@@ -149,7 +171,20 @@ export type ServiceFormResponse = {
   readonly formsEnabled: boolean;
   readonly requireVersionOnTicket: boolean;
   readonly activeFormVersionRef: string | null;
+  readonly activeForm: FormVersionResponse | null;
   readonly versions: readonly FormVersionResponse[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type ServiceActiveFormResponse = {
+  readonly serviceId: string;
+  readonly formsEnabled: boolean;
+  readonly requireVersionOnTicket: boolean;
+  readonly activeForm: FormVersionResponse | null;
 };
 
 export type ServiceTicketCreationEligibility = {
@@ -159,12 +194,60 @@ export type ServiceTicketCreationEligibility = {
   readonly runtimeAvailability: ServiceRuntimeAvailability;
 };
 
+export const serviceListPageSize = 100;
+export const serviceListMaximumAggregatePages = 10;
+
+export function listServicePage(query: ServiceListQuery = {}): Promise<ServiceListPage> {
+  const params = new URLSearchParams();
+  if (query.lifecycle !== undefined) params.set("lifecycle", query.lifecycle);
+  if (query.categoryId !== undefined && query.categoryId !== null)
+    params.set("categoryId", query.categoryId);
+  if (query.offeredOnly === true) params.set("offeredOnly", "true");
+  if (query.search !== undefined && query.search.length > 0) params.set("search", query.search);
+  if (query.originUnitId !== undefined && query.originUnitId !== null)
+    params.set("originUnitId", query.originUnitId);
+  if (query.take !== undefined) params.set("take", String(query.take));
+  if (query.cursor !== undefined && query.cursor !== null) params.set("cursor", query.cursor);
+  const serialized = params.toString();
+  const path = serialized.length === 0 ? "/services" : `/services?${serialized}`;
+  return apiRequestValidated(path, parseServiceCatalogPage);
+}
+
+export async function collectServicePages(
+  loadPage: (query: ServiceListQuery) => Promise<ServiceListPage>,
+  filters: Omit<ServiceListQuery, "take" | "cursor"> = {},
+): Promise<readonly ServiceResponse[]> {
+  const items: ServiceResponse[] = [];
+  const seenCursors = new Set<string>();
+  let cursor: string | null = null;
+  for (let pageNumber = 0; pageNumber < serviceListMaximumAggregatePages; pageNumber += 1) {
+    const page = await loadPage({ ...filters, take: serviceListPageSize, cursor });
+    items.push(...page.items);
+    if (!page.hasMore) return items;
+    const nextCursor = page.nextCursor;
+    if (nextCursor === null || seenCursors.has(nextCursor) || page.items.length === 0) {
+      throw new ApiError(
+        502,
+        "INVALID_SERVICE_LIST_PAGINATION",
+        "Service list pagination did not advance safely",
+      );
+    }
+    seenCursors.add(nextCursor);
+    cursor = nextCursor;
+  }
+  throw new ApiError(
+    502,
+    "SERVICE_CATALOG_RESOURCE_LIMIT_EXCEEDED",
+    `Service list exceeds the ${serviceListMaximumAggregatePages * serviceListPageSize}-item client aggregation ceiling; use a filtered catalog page.`,
+  );
+}
+
 export function listOfferedServices(): Promise<readonly ServiceResponse[]> {
-  return apiRequestValidated("/services?offeredOnly=true", parseServiceCatalog);
+  return collectServicePages(listServicePage, { offeredOnly: true });
 }
 
 export function listServices(): Promise<readonly ServiceResponse[]> {
-  return apiRequestValidated("/services", parseServiceCatalog);
+  return collectServicePages(listServicePage);
 }
 
 export function createService(input: CreateServiceInput): Promise<ServiceResponse> {
@@ -221,8 +304,23 @@ export function getService(serviceId: string): Promise<ServiceResponse> {
   return apiRequest(`/services/${serviceId}`);
 }
 
-export function getServiceForm(serviceId: string): Promise<ServiceFormResponse> {
-  return apiRequest(`/services/${serviceId}/form`);
+export function getServiceForm(
+  serviceId: string,
+  query: { readonly take?: number; readonly cursor?: string | null } = {},
+): Promise<ServiceFormResponse> {
+  const params = new URLSearchParams();
+  if (query.take !== undefined) params.set("take", String(query.take));
+  if (query.cursor !== undefined && query.cursor !== null) params.set("cursor", query.cursor);
+  const serialized = params.toString();
+  const path =
+    serialized.length === 0
+      ? `/services/${serviceId}/form`
+      : `/services/${serviceId}/form?${serialized}`;
+  return apiRequest(path);
+}
+
+export function getActiveServiceForm(serviceId: string): Promise<ServiceActiveFormResponse> {
+  return apiRequest(`/services/${serviceId}/form/active`);
 }
 
 export function getTicketCreationEligibility(
@@ -236,5 +334,8 @@ export function activeFormVersion(form: ServiceFormResponse): FormVersionRespons
   if (activeRef === null) {
     return null;
   }
-  return form.versions.find((version) => version.formVersionRef === activeRef) ?? null;
+  return (
+    form.versions.find((version) => version.formVersionRef === activeRef) ??
+    (form.activeForm?.formVersionRef === activeRef ? form.activeForm : null)
+  );
 }

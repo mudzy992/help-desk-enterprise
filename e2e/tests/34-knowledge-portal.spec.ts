@@ -90,7 +90,7 @@ test.describe('34 knowledge portal', () => {
     const tree = await admin.requestJson<UnitNode | readonly UnitNode[]>('/organizational-units/tree');
     const organizationalUnitId = firstUnitId(tree);
     expect(organizationalUnitId).not.toBeNull();
-    const services = await admin.requestJson<readonly ServiceRecord[]>('/services');
+    const services = await admin.requestAllPages<ServiceRecord>('/services', 100, 10);
     const service = services[0];
     expect(service).toBeDefined();
     const users = await admin.requestJson<readonly UserRecord[]>('/users?limit=50');
@@ -162,7 +162,7 @@ test.describe('34 knowledge portal', () => {
     await admin.login(env.superAdminEmail, env.superAdminPassword);
     const tree = await admin.requestJson<UnitNode | readonly UnitNode[]>('/organizational-units/tree');
     const organizationalUnitId = firstUnitId(tree);
-    const services = await admin.requestJson<readonly ServiceRecord[]>('/services');
+    const services = await admin.requestAllPages<ServiceRecord>('/services', 100, 10);
     const users = await admin.requestJson<readonly UserRecord[]>('/users?limit=50');
     const owner = users.find((user) => user.email.toLowerCase() === env.superAdminEmail.toLowerCase()) ?? users[0];
 

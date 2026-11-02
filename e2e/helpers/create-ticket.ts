@@ -1,4 +1,4 @@
-import { ApiClient } from './api-client';
+import { ApiClient } from "./api-client";
 
 export type CreatedTicket = {
   readonly id: string;
@@ -22,24 +22,24 @@ export async function createTicketViaApi(
     readonly urgency?: string;
   },
 ): Promise<CreatedTicket> {
-  return api.requestJson<CreatedTicket>('/tickets', {
-    method: 'POST',
+  return api.requestJson<CreatedTicket>("/tickets", {
+    method: "POST",
     body: JSON.stringify({
       title: input.title,
-      description: input.description ?? 'E2E ticket body',
+      description: input.description ?? "E2E ticket body",
       serviceId: input.serviceId,
       originUnitId: input.originUnitId,
       formVersionRef: input.formVersionRef,
       isConfidential: input.isConfidential === true,
-      impact: input.impact ?? 'MEDIUM',
-      urgency: input.urgency ?? 'MEDIUM',
+      impact: input.impact ?? "MEDIUM",
+      urgency: input.urgency ?? "MEDIUM",
       // Install seed form (`installSeedFormSchema`) uses `dodatne_informacije`,
       // not a legacy `opis` key — unknown keys are rejected as FORM_DATA_INVALID.
       formData:
         input.formData ??
         (input.formVersionRef === undefined
           ? {}
-          : { dodatne_informacije: input.description ?? 'E2E ticket body' }),
+          : { dodatne_informacije: input.description ?? "E2E ticket body" }),
     }),
   });
 }
@@ -49,24 +49,28 @@ export async function loadSeedCatalog(api: ApiClient): Promise<{
   readonly originUnitId: string;
   readonly formVersionRef: string | undefined;
 }> {
-  const services = await api.requestJson<
-    Array<{ id: string; name: string; slug?: string }>
-  >('/services');
+  const services = await api.requestAllPages<{
+    id: string;
+    name: string;
+    slug?: string;
+  }>("/services", 100, 10);
   const service =
-    services.find((item) => item.slug === 'opsti-zahtjev') ??
+    services.find((item) => item.slug === "opsti-zahtjev") ??
     services.find((item) => /opšti|opsti|general/i.test(item.name));
   if (service === undefined) {
-    throw new Error('Seed service Opšti zahtjev not found');
+    throw new Error("Seed service Opšti zahtjev not found");
   }
   const tree = await api.requestJson<{ id: string } | Array<{ id: string }>>(
-    '/organizational-units/tree',
+    "/organizational-units/tree",
   );
   const originUnitId = Array.isArray(tree) ? tree[0]?.id : tree.id;
   if (originUnitId === undefined) {
-    throw new Error('Organizational unit tree empty');
+    throw new Error("Organizational unit tree empty");
   }
   const form = await api
-    .requestJson<{ activeFormVersionRef: string | null }>(`/services/${service.id}/form`)
+    .requestJson<{ activeFormVersionRef: string | null }>(
+      `/services/${service.id}/form`,
+    )
     .catch(() => null);
   return {
     serviceId: service.id,
@@ -76,12 +80,14 @@ export async function loadSeedCatalog(api: ApiClient): Promise<{
 }
 
 export async function firstServiceCategoryId(api: ApiClient): Promise<string> {
-  const categories = await api.requestJson<Array<{ id: string }>>(
-    '/service-categories',
+  const categories = await api.requestAllPages<{ id: string }>(
+    "/service-categories",
+    100,
+    10,
   );
   const id = categories[0]?.id;
   if (id === undefined) {
-    throw new Error('No service category available for E2E services');
+    throw new Error("No service category available for E2E services");
   }
   return id;
 }
@@ -101,8 +107,8 @@ export async function firstServiceCategoryId(api: ApiClient): Promise<string> {
 export function slugifyServiceLabel(label: string): string {
   return label
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export async function createOfferedService(
@@ -110,13 +116,13 @@ export async function createOfferedService(
   input: { readonly label: string; readonly requiresApproval?: boolean },
 ): Promise<{ readonly id: string }> {
   const stamp = Date.now();
-  const service = await api.requestJson<{ id: string }>('/services', {
-    method: 'POST',
+  const service = await api.requestJson<{ id: string }>("/services", {
+    method: "POST",
     body: JSON.stringify({
       name: `E2E ${input.label} ${stamp}`,
       slug: `e2e-${slugifyServiceLabel(input.label)}-${stamp}`,
       categoryId: await firstServiceCategoryId(api),
-      classification: 'INTERNAL',
+      classification: "INTERNAL",
       /**
        * `CreateServiceDto.reason` is **required** (`@IsString` + `@MinLength(1)`
        * + `@MaxLength(512)`) and goes into the service change log. Without it the
@@ -132,15 +138,15 @@ export async function createOfferedService(
   const form = await api.requestJson<{ formVersionRef: string }>(
     `/services/${service.id}/form`,
     {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({
         schema: {
           schemaVersion: 1,
           fields: [
             {
-              id: 'dodatne_informacije',
-              label: 'Dodatne informacije',
-              type: 'textarea',
+              id: "dodatne_informacije",
+              label: "Dodatne informacije",
+              type: "textarea",
               required: false,
               order: 0,
               validation: { maxLength: 4000 },
@@ -152,11 +158,11 @@ export async function createOfferedService(
   );
   await api.requestJson(
     `/services/${service.id}/form/versions/${form.formVersionRef}/activate`,
-    { method: 'POST' },
+    { method: "POST" },
   );
   await api.requestJson(`/services/${service.id}/lifecycle`, {
-    method: 'POST',
-    body: JSON.stringify({ lifecycle: 'ACTIVE' }),
+    method: "POST",
+    body: JSON.stringify({ lifecycle: "ACTIVE" }),
   });
   return service;
 }

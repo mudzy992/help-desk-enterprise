@@ -1,4 +1,4 @@
-import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
+import { AdminConfigDomains } from "../../common/admin-realtime/admin-config-domain.decorator";
 import {
   Body,
   Controller,
@@ -7,36 +7,39 @@ import {
   Patch,
   Post,
   Req,
+  Query,
   UseGuards,
   UsePipes,
   ValidationPipe,
-} from '@nestjs/common';
-import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+} from "@nestjs/common";
+import { SessionAuthenticationGuard } from "../authentication/session-authentication.guard";
 import {
   readPrincipalContext,
   type AuthenticatedHttpRequest,
-} from '../authentication/authenticated-request';
+} from "../authentication/authenticated-request";
 import {
   authorizationRoleKeys,
   permissionKeys,
-} from '../authorization/authorization.constants';
-import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
-import { RequireServiceScope } from '../authorization/require-service-scope.decorator';
-import { RoleGuard } from '../authorization/role.guard';
-import { catalogTicketCreateReadRoles } from './catalog-ticket-create-read-roles';
-import { CreateServiceFormDto } from './dto/create-service-form.dto';
-import { CreateServiceFormVersionDto } from './dto/create-service-form-version.dto';
-import { UpdateServiceFormVersionDto } from './dto/update-service-form-version.dto';
-import { readCatalogMutationContext } from './read-catalog-mutation-context';
-import { ServiceFormsService } from './service-forms.service';
+} from "../authorization/authorization.constants";
+import { RequirePermissions } from "../authorization/require-permissions.decorator";
+import { RequireRoles } from "../authorization/require-roles.decorator";
+import { RequireServiceScope } from "../authorization/require-service-scope.decorator";
+import { RoleGuard } from "../authorization/role.guard";
+import { catalogTicketCreateReadRoles } from "./catalog-ticket-create-read-roles";
+import { CreateServiceFormDto } from "./dto/create-service-form.dto";
+import { CreateServiceFormVersionDto } from "./dto/create-service-form-version.dto";
+import { ListServiceFormVersionsQueryDto } from "./dto/list-service-form-versions-query.dto";
+import { UpdateServiceFormVersionDto } from "./dto/update-service-form-version.dto";
+import { readCatalogMutationContext } from "./read-catalog-mutation-context";
+import { ServiceFormsService } from "./service-forms.service";
 import type {
   FormVersionResponse,
+  ServiceActiveFormResponse,
   ServiceFormResponse,
-} from './service-forms.types';
+} from "./service-forms.types";
 
-@AdminConfigDomains('catalog')
-@Controller('services')
+@AdminConfigDomains("catalog")
+@Controller("services")
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
@@ -49,11 +52,11 @@ import type {
 export class ServiceFormsController {
   constructor(private readonly serviceFormsService: ServiceFormsService) {}
 
-  @Post(':serviceId/form')
+  @Post(":serviceId/form")
   @RequirePermissions(permissionKeys.serviceFormsWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   createForm(
-    @Param('serviceId') serviceId: string,
+    @Param("serviceId") serviceId: string,
     @Body() body: CreateServiceFormDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
@@ -64,25 +67,40 @@ export class ServiceFormsController {
     );
   }
 
-  @Get(':serviceId/form')
+  @Get(":serviceId/form")
   @RequireRoles(...catalogTicketCreateReadRoles)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   getForm(
-    @Param('serviceId') serviceId: string,
+    @Param("serviceId") serviceId: string,
+    @Query() query: ListServiceFormVersionsQueryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceFormResponse> {
     // Val 2 (M6/B2): šema forme nacrta nije javna (RAW `:304`).
     return this.serviceFormsService.getForm(
       serviceId,
       readPrincipalContext(request)?.roleKeys ?? [],
+      query,
     );
   }
 
-  @Post(':serviceId/form/versions')
+  @Get(":serviceId/form/active")
+  @RequireRoles(...catalogTicketCreateReadRoles)
+  @RequireServiceScope({ field: "serviceId" })
+  getActiveForm(
+    @Param("serviceId") serviceId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<ServiceActiveFormResponse> {
+    return this.serviceFormsService.getActiveForm(
+      serviceId,
+      readPrincipalContext(request)?.roleKeys ?? [],
+    );
+  }
+
+  @Post(":serviceId/form/versions")
   @RequirePermissions(permissionKeys.serviceFormsWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   createFormVersion(
-    @Param('serviceId') serviceId: string,
+    @Param("serviceId") serviceId: string,
     @Body() body: CreateServiceFormVersionDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
@@ -93,12 +111,12 @@ export class ServiceFormsController {
     );
   }
 
-  @Get(':serviceId/form/versions/:formVersionRef')
+  @Get(":serviceId/form/versions/:formVersionRef")
   @RequireRoles(...catalogTicketCreateReadRoles)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   getFormVersion(
-    @Param('serviceId') serviceId: string,
-    @Param('formVersionRef') formVersionRef: string,
+    @Param("serviceId") serviceId: string,
+    @Param("formVersionRef") formVersionRef: string,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
     return this.serviceFormsService.getFormVersion(
@@ -108,12 +126,12 @@ export class ServiceFormsController {
     );
   }
 
-  @Patch(':serviceId/form/versions/:formVersionRef')
+  @Patch(":serviceId/form/versions/:formVersionRef")
   @RequirePermissions(permissionKeys.serviceFormsWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   updateFormVersion(
-    @Param('serviceId') serviceId: string,
-    @Param('formVersionRef') formVersionRef: string,
+    @Param("serviceId") serviceId: string,
+    @Param("formVersionRef") formVersionRef: string,
     @Body() body: UpdateServiceFormVersionDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
@@ -125,12 +143,12 @@ export class ServiceFormsController {
     );
   }
 
-  @Post(':serviceId/form/versions/:formVersionRef/activate')
+  @Post(":serviceId/form/versions/:formVersionRef/activate")
   @RequirePermissions(permissionKeys.serviceFormsWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   activateFormVersion(
-    @Param('serviceId') serviceId: string,
-    @Param('formVersionRef') formVersionRef: string,
+    @Param("serviceId") serviceId: string,
+    @Param("formVersionRef") formVersionRef: string,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
     return this.serviceFormsService.activateFormVersion(

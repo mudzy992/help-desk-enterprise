@@ -106,7 +106,7 @@ test.describe('52 install wizard — Standard package', () => {
     // The blueprint really wrote its catalog: the services of the IT template are
     // in the catalog of the finished installation.
     await api.login(env.superAdminEmail, env.superAdminPassword);
-    const services = await api.requestJson<Array<{ readonly slug?: string }>>('/services');
+    const services = await api.requestAllPages<{ readonly slug?: string }>('/services', 100, 10);
     const slugs = services.map((service) => service.slug);
     expect(slugs).toContain('racunar-i-oprema');
     expect(slugs).toContain('greske-u-aplikacijama');

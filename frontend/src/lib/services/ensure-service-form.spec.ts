@@ -22,7 +22,13 @@ const emptyForm = (serviceId: string): ServiceFormResponse => ({
   formsEnabled: true,
   requireVersionOnTicket: true,
   activeFormVersionRef: null,
+  activeForm: null,
   versions: [],
+  total: 0,
+  take: 20,
+  cursor: null,
+  nextCursor: null,
+  hasMore: false,
 });
 
 const draftForm = (serviceId: string): ServiceFormResponse => ({
@@ -30,6 +36,7 @@ const draftForm = (serviceId: string): ServiceFormResponse => ({
   formsEnabled: true,
   requireVersionOnTicket: true,
   activeFormVersionRef: null,
+  activeForm: null,
   versions: [
     {
       formVersionRef: "fv-1",
@@ -39,6 +46,11 @@ const draftForm = (serviceId: string): ServiceFormResponse => ({
       schema: defaultServiceFormSchema,
     },
   ],
+  total: 1,
+  take: 20,
+  cursor: null,
+  nextCursor: null,
+  hasMore: false,
 });
 
 describe("ensureServiceForm", () => {

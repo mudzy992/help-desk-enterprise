@@ -1,18 +1,15 @@
-import {
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
-import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
-import { ServiceCatalogService } from './service-catalog.service';
-import { ServiceFormsConfigurationLoader } from './service-forms-configuration.loader';
-import { defaultServiceFormsConfiguration } from './service-forms.constants';
-import { ServiceFormsService } from './service-forms.service';
-import type { ServiceFormsConfiguration } from './service-forms.types';
+import { BadRequestException, ConflictException } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { createInMemoryServiceCatalogPrisma } from "./create-in-memory-service-catalog-prisma";
+import { defaultServiceLifecycleConfiguration } from "./service-catalog.constants";
+import { ServiceCatalogService } from "./service-catalog.service";
+import { ServiceFormsConfigurationLoader } from "./service-forms-configuration.loader";
+import { defaultServiceFormsConfiguration } from "./service-forms.constants";
+import { ServiceFormsService } from "./service-forms.service";
+import type { ServiceFormsConfiguration } from "./service-forms.types";
 
-jest.mock('../../common/prisma/prisma.service', () => ({
+jest.mock("../../common/prisma/prisma.service", () => ({
   PrismaService: class PrismaService {},
 }));
 
@@ -20,9 +17,9 @@ const validSchema = {
   schemaVersion: 1,
   fields: [
     {
-      id: 'asset_tag',
-      label: 'Asset tag',
-      type: 'text',
+      id: "asset_tag",
+      label: "Asset tag",
+      type: "text",
       required: true,
       order: 0,
     },
@@ -33,24 +30,24 @@ const nextSchema = {
   schemaVersion: 1,
   fields: [
     {
-      id: 'asset_tag',
-      label: 'Asset tag',
-      type: 'text',
+      id: "asset_tag",
+      label: "Asset tag",
+      type: "text",
       required: true,
       order: 0,
     },
     {
-      id: 'serial_number',
-      label: 'Serial number',
-      type: 'text',
+      id: "serial_number",
+      label: "Serial number",
+      type: "text",
       required: true,
       order: 1,
     },
   ],
 };
 
-describe('ServiceFormsService', () => {
-  it('resolves the forms configuration loader through Nest DI', async () => {
+describe("ServiceFormsService", () => {
+  it("resolves the forms configuration loader through Nest DI", async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ServiceFormsService,
@@ -61,37 +58,45 @@ describe('ServiceFormsService', () => {
         },
       ],
     }).compile();
-    expect(moduleRef.get(ServiceFormsService)).toBeInstanceOf(ServiceFormsService);
+    expect(moduleRef.get(ServiceFormsService)).toBeInstanceOf(
+      ServiceFormsService,
+    );
   });
 
   const createHarness = (
     configuration: ServiceFormsConfiguration = defaultServiceFormsConfiguration,
   ) => {
     const memory = createInMemoryServiceCatalogPrisma();
-    const catalog = new ServiceCatalogService(memory.prisma as never, {
-      load: async () => defaultServiceLifecycleConfiguration,
-    } as never);
-    const forms = new ServiceFormsService(memory.prisma as never, {
-      load: async () => configuration,
-    } as never);
+    const catalog = new ServiceCatalogService(
+      memory.prisma as never,
+      {
+        load: async () => defaultServiceLifecycleConfiguration,
+      } as never,
+    );
+    const forms = new ServiceFormsService(
+      memory.prisma as never,
+      {
+        load: async () => configuration,
+      } as never,
+    );
     return { catalog, forms, memory };
   };
 
   const createDraftService = async (catalog: ServiceCatalogService) => {
-    const category = await catalog.createCategory({ name: 'IT', slug: 'it' });
+    const category = await catalog.createCategory({ name: "IT", slug: "it" });
     return catalog.create({
-      name: 'VPN access',
-      slug: 'vpn-access',
+      name: "VPN access",
+      slug: "vpn-access",
       categoryId: category.id,
     });
   };
 
-  it('creates a form as version 1 without hardcoded service fields', async () => {
+  it("creates a form as version 1 without hardcoded service fields", async () => {
     const { catalog, forms } = createHarness();
     const service = await createDraftService(catalog);
     const created = await forms.createForm(service.id, { schema: validSchema });
     expect(created.version).toBe(1);
-    expect(created.status).toBe('DRAFT');
+    expect(created.status).toBe("DRAFT");
     expect(created.isImmutable).toBe(false);
     expect(created.schema).toEqual(validSchema);
     expect(created.formVersionRef).toBe(created.formVersionRef);
@@ -100,7 +105,7 @@ describe('ServiceFormsService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('creates a new form version without mutating the previous one', async () => {
+  it("creates a new form version without mutating the previous one", async () => {
     const { catalog, forms } = createHarness();
     const service = await createDraftService(catalog);
     const first = await forms.createForm(service.id, { schema: validSchema });
@@ -109,22 +114,65 @@ describe('ServiceFormsService', () => {
     });
     expect(second.version).toBe(2);
     expect(second.formVersionRef).not.toBe(first.formVersionRef);
-    const original = await forms.getFormVersion(service.id, first.formVersionRef);
+    const original = await forms.getFormVersion(
+      service.id,
+      first.formVersionRef,
+    );
     expect(original.schema).toEqual(validSchema);
     expect(original.version).toBe(1);
   });
 
-  it('makes a version immutable after tickets reference it', async () => {
+  it("pages bounded form history and keeps the active schema independently available", async () => {
+    const { catalog, forms } = createHarness();
+    const service = await createDraftService(catalog);
+    const active = await forms.createForm(service.id, { schema: validSchema });
+    await forms.activateFormVersion(service.id, active.formVersionRef);
+    for (let version = 2; version <= 5; version += 1) {
+      await forms.createFormVersion(service.id, { schema: nextSchema });
+    }
+
+    const first = await forms.getForm(service.id, undefined, { take: 2 });
+    expect(first).toMatchObject({
+      total: 5,
+      take: 2,
+      hasMore: true,
+      activeFormVersionRef: active.formVersionRef,
+    });
+    expect(first.versions.map((item) => item.version)).toEqual([5, 4]);
+    expect(first.nextCursor).toEqual(expect.any(String));
+
+    const second = await forms.getForm(service.id, undefined, {
+      take: 2,
+      cursor: first.nextCursor ?? undefined,
+    });
+    expect(second.versions.map((item) => item.version)).toEqual([3, 2]);
+    expect(second.hasMore).toBe(true);
+
+    const final = await forms.getForm(service.id, undefined, {
+      take: 2,
+      cursor: second.nextCursor ?? undefined,
+    });
+    expect(final.versions.map((item) => item.version)).toEqual([1]);
+    expect(final.hasMore).toBe(false);
+    await expect(forms.getActiveForm(service.id)).resolves.toMatchObject({
+      activeForm: {
+        formVersionRef: active.formVersionRef,
+        schema: validSchema,
+      },
+    });
+  });
+
+  it("makes a version immutable after tickets reference it", async () => {
     const { catalog, forms, memory } = createHarness();
     const service = await createDraftService(catalog);
     const first = await forms.createForm(service.id, { schema: validSchema });
     memory.seedTicket({
-      id: 'ticket-bound-form',
-      ticketNumber: 'T-1',
+      id: "ticket-bound-form",
+      ticketNumber: "T-1",
       serviceId: service.id,
       formVersionId: first.formVersionRef,
-      status: 'PENDING',
-      formData: { asset_tag: 'LPT-1' },
+      status: "PENDING",
+      formData: { asset_tag: "LPT-1" },
     });
     await expect(
       forms.updateFormVersion(service.id, first.formVersionRef, {
@@ -136,7 +184,7 @@ describe('ServiceFormsService', () => {
     expect(locked.schema).toEqual(validSchema);
   });
 
-  it('exposes form enablement and ticket version requirement to API clients', async () => {
+  it("exposes form enablement and ticket version requirement to API clients", async () => {
     const { catalog, forms } = createHarness({
       ...defaultServiceFormsConfiguration,
       enabled: false,
@@ -151,7 +199,7 @@ describe('ServiceFormsService', () => {
     });
   });
 
-  it('exposes optional form-version policy while forms remain enabled', async () => {
+  it("exposes optional form-version policy while forms remain enabled", async () => {
     const { catalog, forms } = createHarness({
       ...defaultServiceFormsConfiguration,
       requireVersionOnTicket: false,
@@ -165,7 +213,7 @@ describe('ServiceFormsService', () => {
     });
   });
 
-  it('rejects invalid schemas through create', async () => {
+  it("rejects invalid schemas through create", async () => {
     const { catalog, forms } = createHarness();
     const service = await createDraftService(catalog);
     await expect(

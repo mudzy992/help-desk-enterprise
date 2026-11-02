@@ -139,7 +139,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       });
 
       await test.step('create the explicit-OU routing rule', async () => {
-        const services = await api.requestJson<readonly ServiceRecord[]>('/services');
+        const services = await api.requestAllPages<ServiceRecord>('/services', 100, 10);
         const created = services.find((service) => service.slug === slug);
         if (created === undefined) {
           throw new Error('[e2e] service created in the UI was not returned by GET /services.');
@@ -203,8 +203,8 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         ]);
         expect(servicesResponse.ok()).toBe(true);
         expect(await servicesResponse.headerValue('content-type')).toContain('application/json');
-        const browserCatalog = (await servicesResponse.json()) as readonly ServiceRecord[];
-        const browserService = browserCatalog.find((service) => service.id === targetServiceId);
+        const browserCatalog = (await servicesResponse.json()) as { readonly items: readonly ServiceRecord[] };
+        const browserService = browserCatalog.items.find((service) => service.id === targetServiceId);
         expect(browserService?.onboarding?.status).toBe('IN_PROGRESS');
 
         const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
@@ -280,7 +280,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     } finally {
       if (serviceId === null) {
         const services = await api
-          .requestJson<readonly ServiceRecord[]>('/services')
+          .requestAllPages<ServiceRecord>('/services', 100, 10)
           .catch(() => [] as readonly ServiceRecord[]);
         serviceId = services.find((service) => service.slug === slug)?.id ?? null;
       }

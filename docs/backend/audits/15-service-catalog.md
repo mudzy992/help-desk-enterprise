@@ -2,7 +2,7 @@
 
 **Status:** audit završen; implementacija Faze 0 u toku — samo `BA-service-catalog-10`<br>
 **Datum audita:** 2026-10-23<br>
-**Ažurirano:** 2026-11-01<br>
+**Ažurirano:** 2026-11-02<br>
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **5,23/10**<br>
 **Nalazi:** 4 P1, 8 P2, 3 P3
@@ -15,13 +15,19 @@ Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost
 
 Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; aktivni implementacijski scope je samo `BA-service-catalog-10` (P2), dok ostali nalazi ostaju nepromijenjeni i izvan paketa.
 
-## Aktivni implementacijski ulaz — `BA-service-catalog-10` (2026-11-01)
+## Aktivni implementacijski ulaz — `BA-service-catalog-10` (2026-11-02)
 
-Odobreni paket obuhvata samo nalaz 10: bounded/paginirani service, list, form i downtime readovi uz stable response envelope, vremenski period za downtime i projekciju/summary umjesto punih schema/related podataka. Ostali nalazi 01–09 i 11–15 ostaju izvan scopea. Nalaz 10 ostaje `otvoreno` dok se svi acceptance kriteriji iz sekcije 17 ne dokažu.
+Odobreni paket obuhvata samo nalaz 10: bounded/paginirani service, list, form i downtime readovi uz stabilan response envelope, vremenski period za downtime i projekciju/summary umjesto punih schema/related podataka. Ostali nalazi 01–09 i 11–15 ostaju izvan scopea. Nalaz 10 ostaje `otvoreno` dok se svi acceptance kriteriji iz sekcije 17 ne dokažu.
 
-Faza 0 je započeta pregledom audit plana, relevantnih frontend putanja i CI dokaza. Run [`41325198062`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41325198062) na SHA `6606ce475fd08092dbe863fd714b09ba2d236b77` imao je **3 passed / 1 failed / 0 flaky / 0 skipped**; jedini neuspjeh je spec 56 `/services` long-task od **292 ms prema 250 ms**. Raniji full E2E run `41283381903` zabilježio je `/services` 359 ms na starijem SHA, a `41317644590` timeout speca 56 na keyboard-surfaces testu. Ovo su reprodukovane gate činjenice, ne dokazana uzročna analiza; test 56, njegova očekivanja i prag ostaju nepromijenjeni.
+Faza 0 je započeta pregledom audit plana, relevantnih frontend putanja i CI dokaza. Run [`41317644590`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41317644590) na SHA `6606ce475fd08092dbe863fd714b09ba2d236b77` prošao je assets specs 25/28 **8/8**, ali E2E suite je imao **11 passed / 1 failed**: spec 56 keyboard-surfaces timeoutovao je nakon 90 sekundi, pa su E2E critical flow i gate pali. Run [`41325198062`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41325198062) na istom SHA imao je **3 passed / 1 failed / 0 flaky / 0 skipped**; neuspjeh speca 56 `/services` bio je **292 ms prema 250 ms**, pa su E2E i gate pali. Full scheduled run [`41283381903`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41283381903) na starijem SHA `24ed17a0a347d0205ef5f0b4496e5830ed2e250e` zabilježio je `/services` **359 ms** i nije bio zelen. Ovo su gate činjenice, ne dokazana uzročna analiza; test 56, njegova očekivanja i prag ostaju nepromijenjeni.
 
-U trenutku ovog statusnog zapisa nema product-code/test izmjena za service catalog niti DB/migracijskog rada. Lokalni browser reproduction je blokiran nedostupnim `e2e/.env` i Docker executable; naredni korak Faze 0 je instrumentirati/reproducirati 500-service katalog, utvrditi long-task uzrok te zabilježiti query/response bound baseline prije korekcije. Ne zatvarati nalaz na osnovu samog audit statusa niti CI/build jobs koji nisu E2E acceptance.
+**Lokalni napredak 2026-11-02 — BA-10 ostaje otvoren.** Implementacijski diff obuhvata: (1) `/services` default 50/max 100, cursor-straničenje sa stabilnim sortiranjem i filter-bound cursorom, `total`/`hasMore`, server-side filterima i response-byte limitom; katalog UI učitava 50 po strani i prestaje na 500 redova, a frontend collector unit test modelira 500 stavki kroz pet 100-item stranica (nije DB/load fixture); (2) kategorije imaju cursor-envelope, default 50/max 100 i response cap, a frontend agregacija staje na 1.000; (3) historija formi ima default 20/max 50, cursor i tačan total, ticket count se čita kroz projekciju umjesto sekvencijalnog N+1, aktivna forma se za catalog summary projektuje na identitet/broj polja, a ticket-create dobija poseban read jedne aktivne scheme; builder učitava najviše 25 stranica/500 verzija i eksplicitno prikazuje limit; (4) downtime lista ima period-overlap filter, period najviše 730 dana, cursor vezan za servis i period, default 50/max 100, exact total/hasMore i response cap; runtime service readovi učitavaju najviše jedan aktivni i najbliži upcoming prozor po servisu uz agregirani upcoming count, a overlap provjera traži najviše jedan konfliktni red. Za BA-10 nema schema promjene ni migracije.
+
+**Lokalna verifikacija na checkpointu prije rebase-a:** frontend full suite `npm test` — **430 suites / 1.668 tests passed**; `npm run build` i `npm run i18n:check` (8.914 locale keys, 4.558 statičkih `t()` keys, 88 dynamic prefixes) su prošli, a ciljani ESLint je prošao za backend service-catalog i relevantni frontend. Prettier check je prošao za izmijenjene/dodane BA-10 backend source i relevantne frontend fajlove; širi check nad cijelim backend modulom uključuje baseline razlike. Backend standardni Jest pokušaj (5 suites, 0 testova izvršeno) nije mogao kompajlirati jer checkout nema generisani `src/generated/prisma/enums`. `npm run build` je **pao**: Nest/TypeScript je prijavio **3.380 grešaka**, počevši od nedostajućeg `src/generated/prisma/client`; bez generisanog klijenta kaskadne delegate/type greške ne mogu se razdvojiti od stvarnih tipnih problema. Prisma schema-engine download/help pokušaj je blokiran TLS pristupom `binaries.prisma.sh`. Dodatno je pokrenuto **22 lokalna logic-smoke testa / 5 suites** preko privremenog generated-client stuba i `ts-jest` transpile-only; svi su prošli, ali to **nije** zvanična backend typecheck/Jest potvrda i privremeni stubovi su uklonjeni. Nema target-DB pristupa ni BA-10 migracije. E2E/Perf nisu pokrenuti; lokalni browser E2E je blokiran nedostupnim `e2e/.env` i Docker executable. Prethodni CI run `41329745071` na SHA `5be8591cc2ef51875575bf51601b0a61ee6f420d` imao je backend, frontend, PostgreSQL/Redis integration, docs, container/supply-chain i CI gate **passed**, E2E critical/install jobove **skipped**, Perf **not run**; taj SHA ne uključuje BA-10 izmjene.
+
+Uzročnost speca 56 nije profilisana niti potvrđena. Nisu mijenjani spec 56, njegov prag od 250 ms ni njegova očekivanja; nema dokaza da nova lokalna paginacija rješava 292 ms/timeout. Preostaju standardni backend build/Jest sa stvarnim generisanim Prisma Clientom, DB query-plan/row/byte/time verifikacija nad kontrolisanim 500/100k-service fixtureom i relevantni E2E/Perf na finalnom SHA. API DB pool default `statement_timeout=5.000 ms` (`DB_STATEMENT_TIMEOUT_MS` configurable do 600.000 ms) je globalni limit po SQL statementu, ne BA-10 end-to-end request budget; stvarno trajanje requesta nije izmjereno. Ne zatvarati nalaz na osnovu privremenog stuba ili CI poslova koji nisu E2E acceptance.
+
+**Rollout/rollback i scope:** nema deploya, target-DB pristupa ni BA-10 migracije za rollback. Promijenjeni response-envelope-i zahtijevaju zajednički rollout/rollback backend API-ja i frontend potrošača. Korisnik je izričito odobrio checkpoint i push svih tadašnjih 239 status-entries na Arena grani, dok BA-10 ostaje otvoren; taj nalog ne mijenja acceptance niti zatvara susjedne nalaze. Registry brojevi/statusi nisu mijenjani, nalazi 01–09 i 11–15 ostaju izvan scopea, a naredni scope ostaje isključivo `BA-service-catalog-10`. Ne otvarati PR prema `master` bez tri zasebna eksplicitna odobrenja.
 
 ## 2. Scope i inventar
 
@@ -93,7 +99,7 @@ Manual downtime overlap je aplikacijska provjera bez concurrency zaštite. Chang
 
 Category parent walker detektuje postojeći ciklus i self-parent, ali paralelne promjene mogu zajedno napraviti ciklus. Missing ancestor se tretira kao kraj lanca (`ancestor?.parentId ?? null`), pa postojeća korupcija ne proizvodi integrity alarm.
 
-`GET /services`, categories, downtime windows i form versions nemaju paginaciju. Service list učitava sve vidljive servise i zatim paralelno sve downtime prozore, open-ticket groupBy, incidente, aktivne forme/schema JSON, kategorije i onboarding. Aktivna forma summary učitava kompletnu schema vrijednost samo da izbroji polja. Na velikom katalogu nema row/byte/time budgeta.
+Na baseline snapshotu audita (2026-10-23), `GET /services`, categories, downtime windows i form versions nisu imali paginaciju. Service list je učitavao sve vidljive servise i zatim paralelno sve downtime prozore, open-ticket groupBy, incidente, aktivne forme/schema JSON, kategorije i onboarding. Aktivna forma summary učitavala je kompletnu schema vrijednost samo da izbroji polja. Na velikom katalogu nije bilo row/byte/time budgeta; lokalni BA-10 napredak iz 2026-11-02 je opisan u aktivnom ulazu na vrhu dokumenta.
 
 Incident impact read namjerno fail-open vraća “nema incidenta” na svaku DB grešku. Time katalog/status može prikazati OPERATIONAL tokom stvarnog incidenta bez health signala.
 
@@ -105,14 +111,14 @@ Install/blueprint putanje ponovo koriste dio helpera i pišu change log, ali ima
 
 ## 10. Testovi i E2E dokaz
 
-Pokrenuto:
+Baseline audit test pokušaj od 2026-10-23 (ne predstavlja verifikaciju aktuelnog BA-10 diffa):
 
 ```bash
 cd backend
 npm test -- --runInBand --runTestsByPath $(find src/modules/service-catalog -name '*.spec.ts' -print | sort)
 ```
 
-Rezultat: **4/23 suitea prošla, 19/23 compile-blocked; 15/15 stvarno izvršenih testova prošlo**. Blokada je nepotpun generated Prisma client/enumi i delegati (`serviceCategory`, `ticket`, `group`, `serviceIncidentService`, `$transaction`). Nijedan izvršeni test nije pao.
+Rezultat tog pokušaja: **4/23 suitea prošla, 19/23 compile-blocked; 15/15 stvarno izvršenih testova prošlo**. Blokada je nepotpun generated Prisma client/enumi i delegati (`serviceCategory`, `ticket`, `group`, `serviceIncidentService`, `$transaction`). Nijedan izvršeni test nije pao.
 
 Izvršeni testovi dokazuju dio schema/form-data i downtime range pure logike. Statički postoje CRUD/lifecycle/availability/auth compatibility testovi, ali nema concurrent activation/version/update, immutable ticket race, regex adversarial, config rollback invariant, downtime reconciliation, category cycle race ni large-catalog testa.
 

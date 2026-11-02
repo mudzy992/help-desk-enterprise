@@ -9,6 +9,8 @@ import {
   parseInstallSetupStatus,
   parseRoutingCoveragePage,
   parseServiceCatalog,
+  parseServiceCatalogPage,
+  parseServiceCategoryListPage,
   parseSettingsRegistry,
   parseTicketPage,
 } from "@/services/critical-api-parsers";
@@ -48,6 +50,7 @@ describe("critical API parsers", () => {
     });
     expect(parseRoutingCoveragePage(fixtures.routingCoveragePage).items).toHaveLength(1);
     expect(parseServiceCatalog(fixtures.serviceCatalog)).toHaveLength(1);
+    expect(parseServiceCatalogPage(fixtures.serviceCatalogPage).items).toHaveLength(1);
     expect(parseSettingsRegistry(fixtures.settingsRegistry)).toHaveLength(1);
     expect(parseConfigPackageImportReport(fixtures.configPackagePreview).canImport).toBe(true);
   });
@@ -100,7 +103,7 @@ describe("critical API parsers", () => {
     });
   });
 
-  it("validates paginated ticket and routing envelopes", () => {
+  it("validates paginated ticket, routing, and service-catalog envelopes", () => {
     const ticket = {
       id: "ticket-1",
       ticketNumber: "HD-44",
@@ -133,6 +136,38 @@ describe("critical API parsers", () => {
       cursor: null,
       nextCursor: null,
     });
+    const validService = (fixtures.serviceCatalog as readonly unknown[])[0];
+    const servicePage = {
+      items: [validService],
+      total: 1,
+      take: 50,
+      cursor: null,
+      nextCursor: null,
+      hasMore: false,
+    };
+    expect(parseServiceCatalogPage(servicePage).items).toHaveLength(1);
+    invalid(parseServiceCatalogPage, { ...servicePage, take: 101 });
+    invalid(parseServiceCatalogPage, { ...servicePage, hasMore: true });
+
+    const category = {
+      id: "category-1",
+      name: "Operations",
+      slug: "operations",
+      sortOrder: 10,
+      parentId: null,
+      createdAt: "2026-09-10T10:00:00.000Z",
+      updatedAt: "2026-09-10T10:00:00.000Z",
+    };
+    const categoryPage = {
+      items: [category],
+      total: 1,
+      take: 50,
+      cursor: null,
+      nextCursor: null,
+      hasMore: false,
+    };
+    expect(parseServiceCategoryListPage(categoryPage).items).toEqual([category]);
+    invalid(parseServiceCategoryListPage, { ...categoryPage, take: 101 });
   });
 
   it("validates service batch and permission-sensitive settings registries", () => {

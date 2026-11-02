@@ -1,8 +1,8 @@
 # Backend audit — ulazna tačka
 
 **Status:** aktuelno<br>
-**Ažurirano:** 2026-11-01<br>
-**Aktivna etapa:** Val 7 / W7 — W7.1–W7.19 su zatvoreni za svoje pojedinačne nalaze; `BA-assets-16` je zatvoren 2026-11-01 po izričitoj korisničkoj odluci uz vidljivo zabilježen crveni globalni E2E gate, ne kao CI pass. W7.19 je imao targeted E2E `41314175993` (8/8 na SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a`) i zeleni branch code CI `41302730701` na `3ee7de073639719d5591a399ffbc0f3057668f14`. Full E2E `41283381903` pao je, Perf smoke nije pokrenut, a full assets segment sign-off nije ostvaren. Aktuelni implementacijski scope: samo `BA-service-catalog-10` iz audita 15; `/services` spec 56 i prag 250 ms ostaju nepromijenjeni.
+**Ažurirano:** 2026-11-02<br>
+**Aktivna etapa:** Val 7 / W7 — W7.1–W7.19 su zatvoreni za svoje pojedinačne nalaze; `BA-assets-16` je zatvoren 2026-11-01 po izričitoj korisničkoj odluci uz vidljivo zabilježen crveni globalni E2E gate, ne kao CI pass. W7.19 je imao targeted E2E `41314175993` (8/8 na SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a`) i zeleni branch code CI `41302730701` na `3ee7de073639719d5591a399ffbc0f3057668f14`. Full E2E `41283381903` pao je, Perf smoke nije pokrenut, a full assets segment sign-off nije ostvaren. Aktuelni implementacijski scope je samo `BA-service-catalog-10` iz audita 15; bounded/paginirani readovi su implementirani u checkpointu, ali reprodukcija/profiling, backend verification i acceptance nisu završeni. Uzročnost speca 56 nije potvrđena; spec 56 i prag 250 ms ostaju nepromijenjeni.
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
