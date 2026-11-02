@@ -68,7 +68,7 @@ describe("ops health presentation sections", () => {
           clamavFailuresBeforeAlert: 3,
         },
       },
-    } as OpsOverview;
+    } as unknown as OpsOverview;
     const html = renderToStaticMarkup(
       <ComponentGrid overview={overview} nowMs={Date.parse("2026-10-19T00:02:00.000Z")} />,
     );

@@ -50,11 +50,11 @@ describeIfDatabase("change downtime outbox (integration)", () => {
 
     expect(first).toMatchObject({ created: true });
     expect(duplicate).toEqual({ id: first.id, created: false });
+    const dedupeKey = `change:${input.changeId}:v1`;
     expect(
-      await db.outboxMessage.count({
-        where: { topic, dedupeKey: `change:${input.changeId}:v1` },
-      }),
+      await db.outboxMessage.count({ where: { topic, dedupeKey } }),
     ).toBe(1);
+    await db.outboxMessage.deleteMany({ where: { topic, dedupeKey } });
   });
 
   it("rolls back lifecycle intent with its parent transaction", async () => {
