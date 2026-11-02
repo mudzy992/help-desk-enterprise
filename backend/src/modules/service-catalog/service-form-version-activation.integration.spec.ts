@@ -239,21 +239,18 @@ describeIfDatabase(
       throw new Error('BA-05 PostgreSQL klijent nije čekao na očekivani DB lock');
     };
 
-    const snapshotForService = async (
-      serviceId: string,
-    ): Promise<ConfigSnapshot> => {
-      const [service, versions] = await Promise.all([
-        db().service.findUniqueOrThrow({ where: { id: serviceId } }),
+    const snapshotForCatalog = async (): Promise<ConfigSnapshot> => {
+      const [services, versions] = await Promise.all([
+        db().service.findMany({ orderBy: { id: 'asc' } }),
         db().formVersion.findMany({
-          where: { serviceId },
-          orderBy: { version: 'asc' },
+          orderBy: [{ serviceId: 'asc' }, { version: 'asc' }],
         }),
       ]);
       const base = createConfigSnapshotFixture();
       return {
         ...base,
-        catalogStateHash: computeCatalogStateHash([service], versions),
-        catalog: { services: [toServiceSnapshot(service)] },
+        catalogStateHash: computeCatalogStateHash(services, versions),
+        catalog: { services: services.map(toServiceSnapshot) },
         forms: { versions: versions.map(toFormVersionSnapshot) },
       };
     };
@@ -409,7 +406,7 @@ describeIfDatabase(
         where: { id: fixture.formVersionIds[0] },
         data: { status: 'ACTIVE' },
       });
-      const snapshot = await snapshotForService(fixture.serviceId);
+      const snapshot = await snapshotForCatalog();
       const held = await holdCatalogSnapshotLock(snapshot);
       const activation = createFormsService(
         activator(snapshotActivator),

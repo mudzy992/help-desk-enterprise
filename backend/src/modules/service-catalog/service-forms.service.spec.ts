@@ -67,6 +67,16 @@ describe("ServiceFormsService", () => {
     configuration: ServiceFormsConfiguration = defaultServiceFormsConfiguration,
   ) => {
     const memory = createInMemoryServiceCatalogPrisma();
+    Object.assign(memory.prisma, {
+      $queryRaw: async (
+        _query: TemplateStringsArray,
+        ..._values: unknown[]
+      ) => [],
+      $executeRaw: async (
+        _query: TemplateStringsArray,
+        ..._values: unknown[]
+      ) => 0,
+    });
     const catalog = new ServiceCatalogService(
       memory.prisma as never,
       {

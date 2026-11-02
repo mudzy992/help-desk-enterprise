@@ -37,14 +37,6 @@ export function createInMemoryServiceCatalogPrisma(): {
     serviceOnboarding: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
-    $queryRaw: (
-      query: TemplateStringsArray,
-      ...values: unknown[]
-    ) => Promise<unknown[]>;
-    $executeRaw: (
-      query: TemplateStringsArray,
-      ...values: unknown[]
-    ) => Promise<number>;
     $transaction: (
       callback: (client: unknown) => Promise<unknown>,
     ) => Promise<unknown>;
@@ -129,14 +121,6 @@ export function createInMemoryServiceCatalogPrisma(): {
         return data;
       },
     },
-    $queryRaw: async (
-      _query: TemplateStringsArray,
-      ..._values: unknown[]
-    ) => [],
-    $executeRaw: async (
-      _query: TemplateStringsArray,
-      ..._values: unknown[]
-    ) => 0,
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
       callback(prisma),
   };

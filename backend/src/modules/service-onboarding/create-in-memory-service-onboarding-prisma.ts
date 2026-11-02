@@ -29,14 +29,6 @@ export function createInMemoryServiceOnboardingPrisma(): {
     changeLog: Record<string, unknown>;
     serviceOnboarding: Record<string, unknown>;
     slaProfile: Record<string, unknown>;
-    $queryRaw: (
-      query: TemplateStringsArray,
-      ...values: unknown[]
-    ) => Promise<unknown[]>;
-    $executeRaw: (
-      query: TemplateStringsArray,
-      ...values: unknown[]
-    ) => Promise<number>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
   } = {
     ...catalog.prisma,
