@@ -5,7 +5,7 @@
 **Ažurirano:** 2026-11-02<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
 **Trenutno:** 563 otvorenih / 129 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nakon owner-directed W7.16 i BA-10/11/12/01/02/03/04 closeouta; machine-readable source redovi prikazuju 566 otvoreno / 115 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra. `BA-service-catalog-05` je jedini aktivni implementacijski scope i ostaje otvoren do CI i owner acceptancea ([checkpoint 113](implementation/113-service-catalog-05-concurrent-form-activation.md)).
+**Napomena:** deklarisani agregat nakon owner-directed W7.16 i BA-10/11/12/01/02/03/04 closeouta; machine-readable source redovi prikazuju 566 otvoreno / 115 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra. `BA-service-catalog-05` je jedini aktivni implementacijski scope; backend build/full Jest i PostgreSQL/Redis integration su passed na `6d98cff` u CI [`41529212182`]. Odvojeni Perf [`41529212249`] je failure samo na nepovezanom ticket-message p95; detalji i tačan skip status su u [checkpointu 113](implementation/113-service-catalog-05-concurrent-form-activation.md). BA-05 ostaje otvoren do owner acceptancea; nema spec 56 sign-offa.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -837,7 +837,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **564**
-- Zatvoreno: **128** (deklarisani zbir nakon owner-directed statusnih odluka za `BA-assets-16`/`BA-service-catalog-10`/`BA-service-catalog-03` i package closeouta za `BA-service-catalog-11`/`BA-service-catalog-12`/`BA-service-catalog-01`/`BA-service-catalog-02`; source redovi i machine-readable plan zadržavaju raniju razliku od tri statusa)
+- Otvoreno: **563**
+- Zatvoreno: **129** (deklarisani zbir nakon owner-directed statusnih odluka za `BA-assets-16`/`BA-service-catalog-10`/`BA-service-catalog-03`/`BA-service-catalog-04` i package closeouta za `BA-service-catalog-11`/`BA-service-catalog-12`/`BA-service-catalog-01`/`BA-service-catalog-02`; source redovi i machine-readable plan zadržavaju raniju razliku od tri statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

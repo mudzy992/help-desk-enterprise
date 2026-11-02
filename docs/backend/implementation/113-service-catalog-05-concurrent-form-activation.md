@@ -1,7 +1,7 @@
-# Implementacijski checkpoint — `BA-service-catalog-05` (u toku)
+# Implementacijski checkpoint — `BA-service-catalog-05` (CI prošao; owner acceptance čeka)
 
 **Paket:** audit 15 / `service-catalog` — konkurentna aktivacija verzija forme<br>
-**Nalaz:** `BA-service-catalog-05` (P2) — **otvoren**; implementacija započeta, acceptance nije završen<br>
+**Nalaz:** `BA-service-catalog-05` (P2) — **otvoren**; implementacija i obavezne CI provjere su završene, owner acceptance nije evidentiran<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **BA-04 prethodni status:** zatvoren odvojeno po izričitoj owner-directed odluci 2026-11-02; deklarisani agregat je 563 otvorena / 129 zatvorenih / 692 ukupno, machine-readable 566 otvorenih / 115 zatvorenih / 11 historijskih; `service-catalog` ima 8 otvorenih / 7 zatvorenih<br>
 **Migracija / ciljna baza:** nema Prisma schema promjene, migracije ni pristupa/upisa u ciljnu bazu<br>
@@ -13,7 +13,7 @@ Audit je utvrdio da standardna API aktivacija retire-a druge `ACTIVE` verzije pr
 
 Acceptance uključuje zajedničku transakcijsku koordinaciju API-ja i install-seeda, ponovno čitanje/validaciju ciljne verzije nakon dobijanja locka, atomsku retire/activate operaciju, concurrency dokaz na PostgreSQL-u i dokaz da lock redoslijed ne deadlocka sa `applyCatalogSnapshot`. BA-06 create/version-allocation race i svi drugi nalazi ostaju van scopea.
 
-## Implementacija u radu
+## Implementacija
 
 - Novi `withServiceFormActivationLock` koristi postojeći `DatabaseLockService.withAdvisoryLock` sa namespaceom `service-catalog.form-activation` i ključem `serviceId`, pa uzima `LOCK TABLE "FormVersion" IN ROW EXCLUSIVE MODE` prije callbacka. Aktivacija ne zaključava `Service`, pa se ne formira kružni lock redoslijed sa snapshot apply-jem.
 - `applyCatalogSnapshot` uzima `SHARE ROW EXCLUSIVE` lock nad `Service`/`FormVersion`. API activation lock se uzima prije ciljnoj verziji pripadajućeg `SELECT ... FOR UPDATE`; time activation ne drži red dok čeka snapshot table lock. Snapshotov lock i activationov writer lock se serijalizuju na FormVersion tabeli.
@@ -24,14 +24,14 @@ Acceptance uključuje zajedničku transakcijsku koordinaciju API-ja i install-se
 
 ## Lokalna verifikacija
 
-- Ciljani ESLint nad BA-05 TypeScript fajlovima i izmijenjenim harnessima: **passed** (ponoviti nakon finalnog diff pregleda).
+- Ciljani ESLint nad BA-05 TypeScript fajlovima i izmijenjenim harnessima: **passed**.
 - `with-service-form-activation-lock.spec.ts`: **1/1 passed**; potvrđuje redoslijed advisory lock → FormVersion writer table lock → operacija.
 - Install-seed `service`, `reuse` i `rollback` suiteovi: **12/12 passed**. `install-seed.parametrized.spec.ts` je **failure pri učitavanju**, prije izvršavanja testova, jer lokalno nedostaje `generated/prisma/client`; nije sign-off.
 - `service-forms.service.spec.ts` je također **failure pri učitavanju**, prije izvršavanja testova, zbog nedostajućeg generated Prisma clienta; nije sign-off.
 - `npm ci` je završio. `npm run db:generate` nije mogao završiti jer Prisma CLI nije mogao preuzeti schema-engine sa `binaries.prisma.sh` u ovom sandboxu; nije bilo DB konekcije ni migracije. `PRIVACY_IT_DATABASE_URL` nije postavljen, pa novi real-PostgreSQL concurrency suite nije lokalno izvršen.
 - Backend findings traceability: **692/692**, severity `P1=174, P2=368, P3=150`; registry testovi **12/12 passed**. Docs-content testovi **9/9 passed**; docs guard **passed** (32 stranice, 8 prevoda, 10 provjera); isolated-integration runner registry testovi **3/3 passed**. `git diff --check`: **passed**.
 
-Lokalni Jest load failures i neizvršeni integration suite nisu predstavljeni kao passed. Potrebni su CI build/full Jest i disposable PostgreSQL integration na commit-u koji sadrži BA-05.
+Lokalni Jest load failures i lokalno neizvršeni integration suite nisu predstavljeni kao passed; zvanični CI build/full Jest i disposable PostgreSQL rezultati dokumentovani su u završnom checkpointu ispod.
 
 ## CI checkpoint na `ee7229e`
 
@@ -45,6 +45,12 @@ CI [`41527594722`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 
 PostgreSQL/Redis integration job je stigao do real suiteova; BA-05 suite je imao **2 passed / 1 failed**. Dvije konkurentne API aktivacije i API-vs-install-seed su passed; snapshot-interaction test je pao sa `CONFIG_CATALOG_STATE_CONFLICT` jer je njegov catalog snapshot sadržavao samo fixture trenutnog testa, dok su ranija fixture-i u istom suiteu još postojala. Popravka sada snima sve service/form redove fixture-ima tog izolovanog suitea i pokreće pravi `applyCatalogSnapshot` pod zadržanim table lockom. Nema dokaza da je to produkcijski lock conflict; greška je testnog snapshot fixturea. Ostali CI jobs: detect, frontend, Docs guard i container/supply-chain su **passed**; inventory i oba E2E posla su **skipped**; CI gate je **failure** zbog Jest/integration neuspjeha. Nema spec 56 sign-offa.
 
+## Završni CI checkpoint na `6d98cff`
+
+CI [`41529212182`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212182) završio je **success**. Generated-Prisma backend build, backend lint, suiteovi blokirani tipovima, wiring provjere, SLA matrix i **puni backend Jest** bili su **passed**. PostgreSQL/Redis integration job je **passed**, uključujući BA-05 izolovani suite: dvije konkurentne API aktivacije, API-vs-install-seed aktivacija i interakcija sa stvarnim `applyCatalogSnapshot` table-lockom. Frontend build/test, Docs guard, container/supply-chain i CI gate također su **passed**. Read-only service-form inventory, E2E critical flows, E2E install wizard i uslovni high/critical image-enforcement korak bili su **skipped**. Nema browser/spec 56 sign-offa.
+
+Odvojeni Perf smoke [`41529212249`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212249) je **failure** samo na `POST /tickets/:id/messages` p95 **1160.83 ms** prema `<1000 ms`. Service-catalog p95 je **33.31 ms** prema `<500 ms`, catalog contract failures **0**, payload **111.16 KB** prema `<=1024 KB`, a query-budget avg **2.093** preko **48,355** zahtjeva prema `2.1` su **passed**; `GET /search` p95 **496.88 ms** prema `<500 ms` je također passed. K6 je izvršen, ali ukupni Perf workflow ostaje failure zbog nepovezanog ticket-message praga; endpoint nije BA-05 scope i nije mijenjan. Spec 56/prag `250 ms` nisu mijenjani.
+
 ## Status i sljedeći korak
 
-BA-05 ostaje **otvoren** dok ponovljeni generated-Prisma CI build/full Jest i registrovani PostgreSQL integration suite ne prođu i dok owner ne prihvati paket. Nakon CI-ja pregledati lock-wait/invariant dokaze i dokumentovati svaki `passed`, `skipped` ili `failure` odvojeno. Ne otvarati PR prema `master`, ne mergeati i ne deployati bez zasebne dozvole. Nema promjene BA-routing-02, BA-06, drugih nalaza, speca 56, praga `250 ms` ni W7.15 ponašanja.
+BA-05 ostaje **otvoren do owner acceptancea**; CI build/full Jest i PostgreSQL integration su passed na `6d98cff`. Prije bilo kakvog zatvaranja treba od ownera dobiti zasebnu acceptance odluku i sačuvati tačan CI/Perf status; Perf failure se ne predstavlja kao BA-05 failure niti kao green cijelog smokea. Ne otvarati PR prema `master`, ne mergeati i ne deployati bez zasebne dozvole. Nema promjene BA-routing-02, BA-06, drugih nalaza, speca 56, praga `250 ms` ni W7.15 ponašanja.
