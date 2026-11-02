@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
   "controllerFiles": 99,
-  "routeCount": 618,
+  "routeCount": 619,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 598,
+    "authenticated": 599,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 598,
+    "explicit": 599,
     "inherited-or-public": 20
   },
   "routes": [
@@ -6881,6 +6881,22 @@
       "handler": "createForm",
       "method": "POST",
       "path": "/services/:serviceId/form",
+      "classGuards": [
+        "SessionAuthenticationGuard",
+        "RoleGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "service-catalog",
+      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+    },
+    {
+      "source": "backend/src/modules/service-catalog/service-forms.controller.ts",
+      "controller": "ServiceFormsController",
+      "handler": "getActiveForm",
+      "method": "GET",
+      "path": "/services/:serviceId/form/active",
       "classGuards": [
         "SessionAuthenticationGuard",
         "RoleGuard"
