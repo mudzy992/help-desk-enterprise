@@ -111,10 +111,39 @@ test("CI E2E se pokreće na PR-u, scheduleu i ručnom dispatchu, ne na pushu", (
     "!cancelled() && " +
       "( (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') || " +
       "github.event_name == 'schedule' || " +
-      "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '') ) && " +
+      "(github.event_name == 'workflow_dispatch' && inputs.install_spec == '' && " +
+      "inputs.service_form_pattern_audit != true) ) && " +
       "( inputs.skip_gates == true || " +
       "(needs.backend.result == 'success' && needs.frontend.result == 'success') )",
   );
+});
+
+test("manual service-form inventory is confirmed, read-only and isolated from E2E", () => {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const audit = readJob(workflow, "service-form-audit");
+  const e2e = readJobCondition(workflow, "e2e");
+  const wizard = readJobCondition(workflow, "e2e-install-wizard");
+  const gate = readJob(workflow, "gate");
+
+  assert.equal(
+    readJobCondition(workflow, "service-form-audit"),
+    "github.event_name == 'workflow_dispatch' && inputs.service_form_pattern_audit == true",
+  );
+  assert.ok(audit.includes("inputs.confirm_e2e_database_read_only"));
+  assert.ok(audit.includes("secrets.E2E_DATABASE_URL"));
+  assert.ok(audit.includes("npm run service-forms:patterns:audit"));
+  assert.ok(audit.includes("RUNNER_TEMP/service-form-pattern-inventory.json"));
+  assert.ok(
+    audit.includes("byStatus") && audit.includes("pattern.classification"),
+  );
+  assert.ok(
+    !audit.includes("patternSha256") && !audit.includes("upload-artifact"),
+  );
+  assert.ok(!audit.includes("npm run db:migrate"));
+  assert.ok(e2e.includes("inputs.service_form_pattern_audit != true"));
+  assert.ok(wizard.includes("inputs.service_form_pattern_audit != true"));
+  assert.ok(gate.includes("service-form-audit"));
+  assert.ok(gate.includes("needs['service-form-audit'].result"));
 });
 
 // Zajedno se ne smiju pokrenuti: obični E2E bi kroz API završio instalaciju koju

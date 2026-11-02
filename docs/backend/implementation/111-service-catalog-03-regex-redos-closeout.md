@@ -3,16 +3,16 @@
 **Paket:** audit 15 / `service-catalog` — regex ReDoS zaštita<br>
 **Nalaz:** `BA-service-catalog-03` (P1) — implementacija na radnoj grani; status ostaje otvoren dok ne prođu inventura ciljnih patterna i rollout acceptance<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
-**Kodni SHA / CI:** nema novog commit-a ni CI runa u ovom checkpointu<br>
-**Target-DB inventura:** nije pokrenuta; nema pregleda produkcijske baze niti pretpostavke da su postojeći patterni sigurni<br>
+**Kodni SHA / CI:** `06e92d6`; CI run `41493052519` **passed**; Perf smoke `41493052534` **failed** na `search_duration p(95)<500 ms` (izvan BA-03 scopea)<br>
+**Target-DB inventura:** korisnik je potvrdio `E2E_DATABASE_URL` kao prod-identičan cilj; inventura još nije pokrenuta i nema pretpostavke da su postojeći patterni sigurni<br>
 **Migracija / dependency:** nema Prisma migracije i nema nove runtime dependency<br>
-**E2E / Perf / deployment:** nisu pokrenuti; nema browser/spec 56 ili Perf sign-offa i nije izvršen deployment
+**E2E / deployment:** E2E critical/install jobs **skipped** na pushu; nema E2E/spec 56 sign-offa i nije izvršen deployment
 
 ## Nalaz i trenutni status
 
 Audit je utvrdio da backend sinhrono izvršava administratorski JavaScript regex nad requester inputom. Ograničenje patterna na 256 znakova ne sprečava katastrofalni backtracking, a `maxLength` nije obavezan.
 
-Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-closed ponašanje za legacy pattern koji nije siguran, zaštitu svih standardnih schema-write/activation i config-snapshot puteva, browser-side zabranu regex evaluacije te read-only inventuru postojećih konfiguracija. **Nalaz se ne zatvara:** produkcijska/target baza nije klasificirana, CI sa generisanim Prisma Clientom nije izvršen i kod nije redeployan. Rollout je blokiran do inventure i remedijacije unsafe ACTIVE patterna.
+Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-closed ponašanje za legacy pattern koji nije siguran, zaštitu svih standardnih schema-write/activation i config-snapshot puteva, browser-side zabranu regex evaluacije te read-only inventuru postojećih konfiguracija. CI sa generisanim Prisma Clientom i ciljanim backend/frontend testovima je prošao, ali **nalaz se ne zatvara**: prod-identična ciljna baza još nije klasificirana i kod nije redeployan. Rollout je blokiran do inventure i remedijacije unsafe ACTIVE patterna.
 
 ## Implementacija
 
@@ -23,6 +23,7 @@ Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-close
 - `applyCatalogSnapshot` i katalog snapshot validator ne mogu uvesti, izmijeniti ili aktivirati unsafe pattern. Poseban `parseConfiguredLegacyFormSchema` služi samo kompatibilnosti: nepromijenjeni DRAFT/RETIRED pattern može ostati u snapshotu, ali promjena schemme, kreiranje replacement verzije ili ACTIVE status ponovo zahtijeva safe subset. Time se ne prepisuju historijske/immutable forme samo radi migracije regexa. Snapshot koji bi aktivirao unsafe legacy pattern odbija se.
 - Frontend više ne poziva `new RegExp` za administratorski pattern. Serverska provjera ostaje autoritativna; browser validacija i input `maxLength` dodatno ograničavaju patterned vrijednosti. Frontend ne prikazuje pattern mismatch lokalno; server vraća postojeću field-validation grešku. Novi `UNSAFE_FORM_PATTERN` dobija lokalizovanu poruku za upravljanje formama.
 - `backend/src/cli/classify-service-form-patterns.ts` i `npm run service-forms:patterns:audit` daju read-only, keyset-paginiranu inventuru svih `FormVersion` zapisa. Izvještaj klasificira svaki pattern po statusu, verziji i field ID-u, uključuje dužinu i SHA-256 fingerprint, ali **ne ispisuje raw pattern**. Izlazni fajl se kreira bez overwrite-a (`0600`); exit code `2` označava najmanje jedan unsafe pattern.
+- GitHub CI ima ručni `service-form-audit` posao, aktiviran samo inputom `service_form_pattern_audit=true` i potvrdom `confirm_e2e_database_read_only=true`. Koristi samo `E2E_DATABASE_URL`, ne izvodi migracije ni E2E testove; report ostaje privremeno na runneru, dok javni job log prikazuje samo aggregate count-e po statusu, bez ID-a, fingerprinta ili regex teksta. Posao pada ako postoji unsafe ACTIVE pattern; unsafe DRAFT/RETIRED se prijavljuju kao count-i bez blokiranja gatea.
 
 ## Kompatibilnost i rollout gate
 
@@ -43,6 +44,17 @@ DATABASE_URL="$TARGET_DATABASE_URL" npm run service-forms:patterns:audit -- --ou
 
 `TARGET_DATABASE_URL` treba postaviti iz odobrenog secret store-a; ne upisivati niti dijeliti credential u terminal logu, chatu ili izvještaju. Izlazni report ne sadrži regex tekst, ali sadrži interne service/form/field identifikatore i mora se čuvati kao operativni artefakt.
 
+Za prod-identičnu `E2E_DATABASE_URL` može se dispatchati izolirani read-only job (browser E2E poslovi su tada eksplicitno preskočeni):
+
+```bash
+gh workflow run ci.yml --ref arena/864951a6-help-desk-enterprise \
+  -f service_form_pattern_audit=true \
+  -f confirm_e2e_database_read_only=true \
+  -f skip_gates=true
+```
+
+Repository je javan, zato taj job **ne uploaduje report i ne ispisuje ID-eve, fingerprint-e ili pattern tekst**; javni log prikazuje samo aggregate count-e po statusu. Za detaljnu remedijaciju unsafe ACTIVE patterna operator treba sačuvati privatni report iz odobrenog secure runnera.
+
 ## Verifikacija
 
 **Passed lokално:**
@@ -52,15 +64,18 @@ DATABASE_URL="$TARGET_DATABASE_URL" npm run service-forms:patterns:audit -- --ou
 - Frontend targeted Vitest: **2 suites / 4 tests passed**, uključujući provjeru da browser ne poziva regex matcher i da odbija input iznad UTF-8 capa.
 - Frontend `npm run build`: **passed**.
 - Frontend `npm run i18n:check`: **passed** (8.917 locale keys, 4.560 statičkih `t()` ključeva, 88 dinamičkih prefiksa).
+- GitHub CI run `41493052519` na `06e92d6`: **passed** — backend build/lint/full Jest (uključujući ranije compile-blocked suiteove), backend PostgreSQL/Redis integration na disposable servisima, frontend build/tests, docs guard i završni CI gate.
+- GitHub workflow YAML guard nakon dodavanja read-only inventory joba: **12/12 tests passed**, YAML guard passed, YAML je parsiran i 7 shell steps u novom jobu prošlo `bash -n`.
 
 **Blocked / nije passed:**
 
-- Backend `service-forms.service.spec.ts`, `validate-catalog-domain-snapshot.spec.ts` i `apply-catalog-snapshot.spec.ts` pokušani su, ali lokalni checkout nema generisani `backend/src/generated/prisma/enums`/Prisma Client; suiteovi su blokirani na TypeScript compile/preflightu (0 testova izvršeno). To nije uspjeh testa niti dokaz da su ovi suiteovi prošli.
-- Puni backend build/Jest, PostgreSQL/Redis integration, CI i disposable-DB testovi nisu izvršeni u ovom checkpointu. Korisnik je odabrao staging za inventuru, ali ovaj runner nema `DATABASE_URL`, `.env` ni generisani Prisma Client. Pokušaj učitavanja Prisma CLI-a s inertnim placeholder URL-om bio je blokiran TLS pristupom `binaries.prisma.sh`; nije uspostavljena DB konekcija niti pokrenuta migracija. Target-DB classifier nije pokrenut.
-- E2E i Perf nisu pokrenuti/skipped; nema E2E/spec 56 sign-offa. Postojeći spec 56 i njegov prag `250 ms` nisu mijenjani.
+- Lokalni `service-forms.service.spec.ts`, `validate-catalog-domain-snapshot.spec.ts` i `apply-catalog-snapshot.spec.ts` bili su compile-blocked zbog nedostajućeg generisanog Prisma Clienta (0 lokalnih testova izvršeno); isti compile-blocked suiteovi zatim su prošli u punom GitHub backend CI runu nakon generisanja Clienta.
+- Target inventory još nije izvršen. Lokalnom runneru nisu dostupni `DATABASE_URL`/`E2E_DATABASE_URL`, `.env` ni generated client; lokalni Prisma CLI bootstrap je blokiran TLS pristupom `binaries.prisma.sh`. Dodan je zaseban manual read-only job, ali još nije dispatchan; do tada nema DB konekcije ni migracije iz ove sesije.
+- U CI runu `41493052519`, E2E critical flows i E2E install wizard bili su **skipped** na push triggeru; conditional image high/critical enforcement step je također **skipped**. Nema E2E/spec 56 sign-offa.
+- Perf smoke run `41493052534` je **failed** na `search_duration p(95)<500 ms`; to je izvan BA-03 scopea i nije mijenjano. Postojeći spec 56 i prag `250 ms` nisu mijenjani.
 
 ## Scope i završni uslovi
 
-Mijenjan je samo BA-03 regex sigurnosni put, njegove direktne write/config integration tačke, frontend matcher/cap i povezani testovi/lokalizacija/dokumentacija. Nema izmjene speca 56, globalnog praga `250 ms`, W7.15 hard-delete ili event-archival ponašanja, drugih audit nalaza, migracije, deploymenta, commita, pushanja ili PR-a.
+Mijenjan je samo BA-03 regex sigurnosni put, njegove direktne write/config integration tačke, frontend matcher/cap, read-only inventory CI job i povezani testovi/lokalizacija/dokumentacija. Nema izmjene speca 56, globalnog praga `250 ms`, W7.15 hard-delete ili event-archival ponašanja, drugih audit nalaza, migracije, DB upisa, deploymenta ili PR-a. Kodni commit `06e92d6` i push na fiksnu granu su završeni; nije bilo mergea.
 
-`BA-service-catalog-03` ostaje **otvoren** dok se ne izvrši target-DB inventura, otklone unsafe ACTIVE patterni, backend CI i relevantni testovi prođu na stvarnom generisanom Prisma Clientu te korisnik odobri rollout.
+`BA-service-catalog-03` ostaje **otvoren** dok se ne izvrši target-DB inventura, otklone unsafe ACTIVE patterni i korisnik odobri rollout. Backend CI i relevantni testovi su prošli na stvarnom generisanom Prisma Clientu.
