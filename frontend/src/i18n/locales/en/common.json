@@ -852,6 +852,8 @@
         "clamav": "Antivirus (ClamAV)",
         "email": "Outgoing e-mail",
         "ldapsCa": "LDAPS CA certificate",
+        "changeDowntimeSync": "Change downtime sync",
+        "changeDowntimeSyncValue": "Pending: {{pending}} · processing: {{processing}} · dead-letter: {{deadLetter}} · oldest: {{age}}",
         "inbound": "Mailbox {{mailbox}}",
         "eventLoop": "Event-loop lag {{ms}} ms",
         "heartbeat": "Heartbeat {{age}} ago",

@@ -54,6 +54,7 @@ export function ComponentGrid({
   const disk = components.disk;
   const ldaps = ldapsCaState(components.ldapsCaExpiresAt, nowMs);
   const clamav = components.clamav;
+  const changeDowntimeSync = components.changeDowntimeSync ?? null;
   return (
     <section className="grid gap-2">
       <h4 className={sectionTitleClassName}>{t("admin.opsHealth.components.title")}</h4>
@@ -139,6 +140,25 @@ export function ComponentGrid({
           {ldaps.daysLeft === null
             ? t("admin.opsHealth.components.notConfigured")
             : t("admin.opsHealth.components.daysLeft", { count: ldaps.daysLeft })}
+        </ComponentTile>
+        <ComponentTile
+          label={t("admin.opsHealth.components.changeDowntimeSync")}
+          state={
+            changeDowntimeSync === null
+              ? "unknown"
+              : changeDowntimeSync.status === "degraded"
+                ? "warning"
+                : "ok"
+          }
+        >
+          {changeDowntimeSync === null
+            ? t("admin.opsHealth.components.unknown")
+            : t("admin.opsHealth.components.changeDowntimeSyncValue", {
+                pending: changeDowntimeSync.pending,
+                processing: changeDowntimeSync.processing,
+                deadLetter: changeDowntimeSync.deadLetter,
+                age: formatOpsDuration(changeDowntimeSync.oldestPendingAgeMs),
+              })}
         </ComponentTile>
         {components.inbound.map((mailbox) => (
           <ComponentTile

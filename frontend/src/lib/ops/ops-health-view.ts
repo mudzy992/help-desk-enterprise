@@ -70,7 +70,13 @@ export function overallOpsState(overview: OpsOverview): OpsOverallState {
     overview.snapshot === null ||
     overview.snapshot.ageSeconds === null ||
     overview.snapshot.ageSeconds > opsSnapshotStaleSeconds;
-  if (overview.alerts.length > 0 || snapshotStale || components.worker.status === "unknown") {
+  if (
+    overview.alerts.length > 0 ||
+    snapshotStale ||
+    components.worker.status === "unknown" ||
+    components.changeDowntimeSync === null ||
+    components.changeDowntimeSync?.status === "degraded"
+  ) {
     return "degraded";
   }
   return "ok";

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { OutboxModule } from '../../common/outbox/outbox.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -14,7 +15,7 @@ import { ChangesService } from './changes.service';
 
 /** Paket 3.4: change management (behind the private.addons.changes addon). */
 @Module({
-  imports: [SettingsModule, AuthenticationModule, AuthorizationModule, NotificationsModule],
+  imports: [SettingsModule, AuthenticationModule, AuthorizationModule, NotificationsModule, OutboxModule],
   controllers: [ChangesController],
   providers: [
     ChangeAccessService,

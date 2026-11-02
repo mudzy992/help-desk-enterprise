@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { AlertItem } from "@/components/admin/ops-health-alerts";
-import { ComponentTile } from "@/components/admin/ops-health-components";
+import { ComponentGrid, ComponentTile } from "@/components/admin/ops-health-components";
 import { QueueTable } from "@/components/admin/ops-health-metrics";
 import type { OpsAlert, OpsOverview } from "@/services/ops-health-api";
 
@@ -34,6 +34,48 @@ describe("ops health presentation sections", () => {
     expect(html).toContain("Database");
     expect(html).toContain("admin.opsHealth.state.fail");
     expect(html).toContain("unavailable");
+  });
+
+  it("surfaces change downtime backlog and dead-letter state in the component grid", () => {
+    const overview = {
+      components: {
+        api: "ok",
+        database: "ok",
+        redis: "ok",
+        worker: { status: "active", heartbeatAgeSeconds: 1 },
+        clamav: null,
+        disk: null,
+        eventLoopLagMs: null,
+        ldapsCaExpiresAt: null,
+        email: { lastSentAt: null },
+        changeDowntimeSync: {
+          status: "degraded",
+          pending: 2,
+          processing: 1,
+          deadLetter: 1,
+          oldestPendingAgeMs: 360_000,
+        },
+        inbound: [],
+      },
+      configuration: {
+        thresholds: {
+          diskWarnPercent: 80,
+          diskCriticalPercent: 90,
+          http5xxMinCount: 20,
+          http5xxMinPercent: 2,
+          slaScanLateMinutes: 5,
+          workerHeartbeatStaleSeconds: 120,
+          clamavFailuresBeforeAlert: 3,
+        },
+      },
+    } as OpsOverview;
+    const html = renderToStaticMarkup(
+      <ComponentGrid overview={overview} nowMs={Date.parse("2026-10-19T00:02:00.000Z")} />,
+    );
+
+    expect(html).toContain("admin.opsHealth.components.changeDowntimeSync");
+    expect(html).toContain("admin.opsHealth.state.warning");
+    expect(html).toContain("admin.opsHealth.components.changeDowntimeSyncValue");
   });
 
   it("keeps unknown alerts renderable with details and acknowledgement action", () => {

@@ -108,6 +108,23 @@ describe("ops health view", () => {
     expect(overallOpsState(overview({ alerts: [alert({ severity: "CRITICAL" })] }))).toBe("down");
     expect(overallOpsState(overview({}, { redis: "fail" }))).toBe("down");
     expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            changeDowntimeSync: {
+              status: "degraded",
+              pending: 1,
+              processing: 0,
+              deadLetter: 0,
+              oldestPendingAgeMs: 300_000,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
+    expect(overallOpsState(overview({}, { changeDowntimeSync: null }))).toBe("degraded");
+    expect(
       overallOpsState(overview({}, { worker: { status: "stale", heartbeatAgeSeconds: 500 } })),
     ).toBe("down");
   });

@@ -18,6 +18,7 @@ import { OpsStateStore, type OpsSilence } from './ops-state.store';
 import { schedulerGraceMs } from './evaluate-ops-signals';
 import { SettingsService } from '../settings/settings.service';
 import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
+import { changeDowntimePendingWarningAgeMs, changeDowntimeSyncTopic } from '../changes/change-downtime-outbox';
 
 export type OpsAlertView = {
   readonly id: string;
@@ -84,7 +85,7 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound] = await Promise.all([
+    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound, changeDowntimeSync] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       readWorkerHeartbeatValue(() =>
@@ -106,6 +107,7 @@ export class OpsHealthService {
       // what makes the state visible instead of silently "healthy".
       countStuckNotificationEmailDeliveries(this.prisma, now).catch(() => null),
       this.currentInboundState(),
+      this.changeDowntimeSyncState(now).catch(() => null),
     ]);
     const worker = evaluateWorkerHeartbeat({
       lastHeartbeatAt: heartbeat,
@@ -137,6 +139,7 @@ export class OpsHealthService {
           stuckClaims: stuckEmailClaims,
         },
         inbound,
+        changeDowntimeSync,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({
         queue: scheduler.queue,
@@ -293,6 +296,28 @@ export class OpsHealthService {
   private async silenceView(silence: OpsSilence) {
     const users = await this.userNames([silence.byUserId]);
     return { until: silence.until, reason: silence.reason, by: users.get(silence.byUserId) ?? null };
+  }
+
+  private async changeDowntimeSyncState(now: Date) {
+    const where = { topic: changeDowntimeSyncTopic };
+    const [pending, processing, deadLetter, oldest] = await Promise.all([
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'PENDING' } }),
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'PROCESSING' } }),
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'DEAD_LETTER' } }),
+      this.prisma.outboxMessage.findFirst({
+        where: { ...where, status: { in: ['PENDING', 'PROCESSING'] } },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+    ]);
+    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
+    return {
+      status: deadLetter > 0 || oldestPendingAgeMs >= changeDowntimePendingWarningAgeMs ? ('degraded' as const) : ('ok' as const),
+      pending,
+      processing,
+      deadLetter,
+      oldestPendingAgeMs,
+    };
   }
 
   /**

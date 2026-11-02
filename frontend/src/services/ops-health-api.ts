@@ -26,6 +26,14 @@ export type OpsAlert = {
   readonly runbook: string | null;
 };
 
+export type ChangeDowntimeSyncHealth = {
+  readonly status: "ok" | "degraded";
+  readonly pending: number;
+  readonly processing: number;
+  readonly deadLetter: number;
+  readonly oldestPendingAgeMs: number;
+};
+
 export type OpsClamavState =
   | { readonly configured: false }
   | { readonly configured: true; readonly ok: boolean; readonly failOpen: boolean };
@@ -117,6 +125,8 @@ export type OpsOverview = {
       /** Val 3 (M12/B1): rows stuck in CLAIMED; reclaimed after 10 minutes. */
       readonly stuckClaims?: number | null;
     };
+    /** Optional during rolling deploys where the API has not added this signal yet. */
+    readonly changeDowntimeSync?: ChangeDowntimeSyncHealth | null;
     readonly inbound: ReadonlyArray<{
       readonly mailboxKey: string;
       readonly lastRunAt: string | null;

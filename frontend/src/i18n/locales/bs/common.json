@@ -854,6 +854,8 @@
         "clamav": "Antivirus (ClamAV)",
         "email": "Slanje e-maila",
         "ldapsCa": "LDAPS CA certifikat",
+        "changeDowntimeSync": "Sinhronizacija prekida usluga za promjene",
+        "changeDowntimeSyncValue": "Na čekanju: {{pending}} · u obradi: {{processing}} · u mrtvom redu: {{deadLetter}} · najstarije: {{age}}",
         "inbound": "Sandučić {{mailbox}}",
         "eventLoop": "Kašnjenje petlje događaja {{ms}} ms",
         "heartbeat": "Signal prije {{age}}",

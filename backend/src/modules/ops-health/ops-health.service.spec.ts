@@ -1,5 +1,6 @@
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../settings/settings.service', () => ({ SettingsService: class SettingsService {} }));
+jest.mock('../integration-queue/integration-queue.constants', () => ({ workerHeartbeatRedisKey: 'worker:heartbeat:test' }));
 jest.mock('../inbound-email/inbound-email-configuration', () => ({
   loadInboundEmailConfiguration: jest.fn(async () => ({ enabled: true })),
   inboundMailboxKey: jest.fn(() => 'imap:helpdesk@example.com'),
@@ -56,6 +57,10 @@ function setup() {
     inboundMailboxState: {
       findUnique: jest.fn(async () => ({ lastRunAt: now, lastSuccessAt: null, lastError: 'AUTHENTICATIONFAILED', lastErrorAt: now, consecutiveFails: 4 })),
     },
+    outboxMessage: {
+      count: jest.fn(async (_args?: unknown): Promise<number> => 0),
+      findFirst: jest.fn(async (_args?: unknown): Promise<{ createdAt: Date } | null> => null),
+    },
   };
   const engine = { sendTest: jest.fn(async () => [{ channel: 'email', status: 'sent', delivered: 2, failed: 0, reason: null }]) };
   const loader = { load: jest.fn(async () => fallbackOpsConfiguration) };
@@ -87,6 +92,32 @@ describe('OpsHealthService', () => {
     expect((await service.overview(now)).components.worker).toEqual({ status: 'active', heartbeatAgeSeconds: 10 });
     redis.values.set(workerHeartbeatRedisKey, new Date(now.getTime() - 600_000).toISOString());
     expect((await service.overview(now)).components.worker.status).toBe('stale');
+  });
+
+  it('reports change downtime outbox backlog and degrades on dead-letter work', async () => {
+    const { service, prisma } = setup();
+    prisma.outboxMessage.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1).mockResolvedValueOnce(0);
+    prisma.outboxMessage.findFirst.mockResolvedValueOnce({ createdAt: new Date(now.getTime() - 60_000) });
+    expect((await service.overview(now)).components.changeDowntimeSync).toEqual({
+      status: 'ok',
+      pending: 2,
+      processing: 1,
+      deadLetter: 0,
+      oldestPendingAgeMs: 60_000,
+    });
+
+    prisma.outboxMessage.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+    prisma.outboxMessage.findFirst.mockResolvedValueOnce(null);
+    expect((await service.overview(now)).components.changeDowntimeSync).toMatchObject({ status: 'degraded', deadLetter: 1 });
+  });
+
+  it('returns an unknown change downtime signal when the outbox health query fails', async () => {
+    const { service, prisma } = setup();
+    prisma.outboxMessage.count.mockRejectedValueOnce(new Error('outbox table unavailable'));
+
+    await expect(service.overview(now)).resolves.toMatchObject({
+      components: { changeDowntimeSync: null },
+    });
   });
 
   it('surfaces an absent assets scheduler and its last-success gate in the health overview', async () => {
