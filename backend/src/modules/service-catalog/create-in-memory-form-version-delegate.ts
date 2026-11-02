@@ -1,7 +1,7 @@
 import type { FormVersionStatus } from "../../generated/prisma/enums";
 import type { FormVersionRecord } from "./service-forms.types";
 
-type FormVersionWhere = {
+export type FormVersionWhere = {
   id?: string | { lt?: string; gt?: string };
   serviceId?: string | { in: readonly string[] };
   status?: FormVersionStatus;

@@ -13,7 +13,7 @@ import {
   type ServiceDependents,
 } from "./in-memory-service-catalog-store";
 
-type InMemoryWhere = {
+export type InMemoryWhere = {
   lifecycle?: ServiceLifecycle | { in: readonly ServiceLifecycle[] };
   categoryId?: string;
   id?: string | { gt?: string };

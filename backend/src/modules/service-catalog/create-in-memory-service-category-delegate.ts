@@ -5,7 +5,7 @@ import {
   pickSelectedFields,
 } from "./in-memory-service-catalog-store";
 
-type CategoryWhere = {
+export type CategoryWhere = {
   id?: string | { in?: readonly string[]; gt?: string };
   parentId?: string | null;
   sortOrder?: number | { gt?: number };
