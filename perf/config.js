@@ -4,7 +4,8 @@
  *
  * Environment overrides: BASE_URL, VU, DURATION, ACTIVE_RATIO, REPORT_LABEL,
  * AGENT_EMAIL/AGENT_PASSWORD, REQUESTER_EMAIL/REQUESTER_PASSWORD,
- * TICKET_IDS (comma separated), AGENT_TICKET_IDS, SEARCH_TERM.
+ * TICKET_IDS (comma separated), AGENT_TICKET_IDS, SEARCH_TERM,
+ * SERVICE_CATALOG_VUS, SERVICE_CATALOG_INTERVAL_SECONDS.
  *
  * `__ENV` exists inside k6 only; the guard below lets plain Node import this
  * file for the sanity check in `perf/validate.js`.
@@ -25,7 +26,13 @@ export const perfConfig = {
     activeRatio: Number(env.ACTIVE_RATIO || 0.7),
     duration: env.DURATION || '30m',
     thinkTimeSeconds: { min: 1, max: 4 },
-    smoke: { virtualUsers: 200, duration: '5m' },
+    smoke: {
+      virtualUsers: 200,
+      duration: '5m',
+      // Add a dedicated BA-10 catalog load without reducing the four existing
+      // smoke behaviours; these VUs are intentionally additive.
+      serviceCatalogVirtualUsers: Number(env.SERVICE_CATALOG_VUS || 10),
+    },
     // Share of the active pool per behaviour (plan §5.1).
     behaviourMix: {
       browserDashboard: 0.4,
@@ -53,6 +60,7 @@ export const perfConfig = {
     notifications: '/notifications',
     search: '/search',
     dashboardSummary: '/reports/dashboard/summary',
+    serviceCatalog: '/services',
   },
   behaviour: {
     // One message every 30 s per virtual agent (plan §5.1).
@@ -60,6 +68,7 @@ export const perfConfig = {
     // One search per minute per search-heavy user (plan §5.1).
     searchEverySeconds: 60,
     searchTerm: env.SEARCH_TERM || 'vpn',
+    serviceCatalogIntervalSeconds: Number(env.SERVICE_CATALOG_INTERVAL_SECONDS || 5),
     // Ticket ids the WS scenario joins; empty = connect and listen only.
     ticketIds: (env.TICKET_IDS || '')
       .split(',')
@@ -78,6 +87,7 @@ export const perfConfig = {
     mutationP95Ms: 400,
     errorRate: 0.005,
     dashboardPayloadKb: 100,
+    serviceCatalogPayloadKb: 1024,
     searchRequestsPerInput: 1,
     ticketListPayloadKb: 100,
   },
@@ -134,9 +144,26 @@ export function ciThresholds(config) {
     unread_count_duration: [`p(95)<${readP95Ms}`],
     search_duration: [`p(95)<${readP95Ms}`],
     dashboard_summary_duration: [`p(95)<${readP95Ms}`],
+    // BA-10 uses the same existing read SLO and CI margin; no threshold relaxation.
+    service_catalog_duration: [`p(95)<${readP95Ms}`],
     ticket_message_duration: [`p(95)<${mutationP95Ms}`],
     ticket_list_payload_kb: [`p(95)<${config.budgets.ticketListPayloadKb}`],
     dashboard_payload_kb: [`p(95)<${config.budgets.dashboardPayloadKb}`],
+    // The payload limit is the service-list API's 1 MiB response cap.
+    service_catalog_payload_kb: [`p(95)<=${config.budgets.serviceCatalogPayloadKb}`],
+    // BA-10 response-envelope contract gate: any invalid catalog page fails CI.
+    service_catalog_contract_failures: ['count<1'],
+  };
+}
+
+/** Smoke-specific catalog gates without changing the full-profile mix. */
+export function smokeThresholds(config) {
+  if (config.profile === 'ci') return ciThresholds(config);
+  return {
+    ...fullThresholds(config),
+    service_catalog_duration: [`p(95)<${config.budgets.readP95Ms}`],
+    service_catalog_payload_kb: [`p(95)<=${config.budgets.serviceCatalogPayloadKb}`],
+    service_catalog_contract_failures: ['count<1'],
   };
 }
 

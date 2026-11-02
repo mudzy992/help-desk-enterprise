@@ -1,17 +1,18 @@
-import { perfConfig, fullThresholds, ciThresholds } from './config.js';
+import { perfConfig, smokeThresholds } from './config.js';
 import {
   setup as setupSession,
   browserDashboard as runBrowserDashboard,
   agentTicketFlow as runAgentTicketFlow,
   searchHeavy as runSearchHeavy,
+  serviceCatalog as runServiceCatalog,
   websocketClients as runWebsocketClients,
 } from './lib/scenarios.js';
-import { handleSummary } from './report.js';
+import { buildSummaryOutputs } from './report.js';
 
 /**
- * Smoke run: 200 virtual users, 5 minutes. Same behaviours as `full.js`, short
- * enough for CI and for a laptop. Phase 0 uses it to prove the package works
- * before the long baseline is started.
+ * Smoke run: the existing 200 virtual users for five minutes, plus 10 additive
+ * BA-10 service-catalog users. Existing behaviours are not reweighted; the
+ * catalog read is gated with the same CI read budget as the other endpoints.
  *
  *   k6 run perf/smoke.js
  *
@@ -26,6 +27,14 @@ const smokeVus = {
   agentTicketFlow: Math.round(smoke.virtualUsers * 0.35),
   searchHeavy: Math.round(smoke.virtualUsers * 0.1),
   websocketClients: Math.round(smoke.virtualUsers * 0.15),
+  serviceCatalog: smoke.serviceCatalogVirtualUsers,
+};
+const smokeReportConfig = {
+  ...perfConfig,
+  load: {
+    ...perfConfig.load,
+    virtualUsers: smoke.virtualUsers + smoke.serviceCatalogVirtualUsers,
+  },
 };
 
 export const options = {
@@ -59,9 +68,15 @@ export const options = {
       duration: smoke.duration,
       tags: { behaviour: 'ws_clients' },
     },
+    service_catalog: {
+      executor: 'constant-vus',
+      exec: 'serviceCatalog',
+      vus: smokeVus.serviceCatalog,
+      duration: smoke.duration,
+      tags: { behaviour: 'service_catalog' },
+    },
   },
-  thresholds:
-    perfConfig.profile === 'ci' ? ciThresholds(perfConfig) : fullThresholds(perfConfig),
+  thresholds: smokeThresholds(perfConfig),
 };
 
 export function setup() {
@@ -92,8 +107,14 @@ export function searchHeavy(data) {
   return runSearchHeavy(perfConfig, data);
 }
 
+export function serviceCatalog(data) {
+  return runServiceCatalog(perfConfig, data);
+}
+
 export function websocketClients(data) {
   return runWebsocketClients(perfConfig, data);
 }
 
-export { handleSummary };
+export function handleSummary(data) {
+  return buildSummaryOutputs(data, smokeReportConfig);
+}

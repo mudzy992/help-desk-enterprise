@@ -1,13 +1,13 @@
-import { sleep } from 'k6';
+import { check, sleep } from 'k6';
 import http from 'k6/http';
 import { authorizedHeaders, expectOk, login, pickToken } from './http-helpers.js';
-import { recordResponse } from './metrics.js';
+import { performanceMetrics, recordResponse } from './metrics.js';
 import { openSocketSession } from './ws-client.js';
 import { ticketMessageIdempotencyKey } from './ticket-message-idempotency-key.js';
 
 /**
- * The four behaviours from the plan (§5.1), shared by `smoke.js` and `full.js`
- * so a smoke run exercises exactly the same code paths as the full run.
+ * The four plan behaviours are shared by `smoke.js` and `full.js`. The smoke
+ * additionally runs a BA-10 `/services` page against its 500-row fixture.
  */
 
 /** Last message timestamp per virtual user, to honour "1 message / 30 s". */
@@ -146,6 +146,44 @@ export function searchHeavy(config, data) {
   }
 
   sleep(config.behaviour.searchEverySeconds);
+}
+
+/** BA-10: exercise the bounded service-list envelope against a 500-row fixture. */
+export function serviceCatalog(config, data) {
+  const headers = authorizedHeaders(pickToken(data.tokens, __VU));
+  const response = http.get(
+    `${config.baseUrl}${config.paths.serviceCatalog}?take=100`,
+    { ...headers, tags: { endpoint: 'services.catalog' } },
+  );
+  expectOk(response, 'services.catalog');
+
+  let validEnvelope = false;
+  try {
+    const page = response.json();
+    validEnvelope =
+      response.status >= 200 &&
+      response.status < 300 &&
+      Array.isArray(page?.items) &&
+      page.items.length === 100 &&
+      page.items.length <= page.take &&
+      page.total >= 500 &&
+      page.take === 100 &&
+      page.hasMore === true &&
+      typeof page.nextCursor === 'string' &&
+      page.items.every(
+        (item) =>
+          typeof item?.activeForm?.fieldCount === 'number' &&
+          !Object.prototype.hasOwnProperty.call(item.activeForm, 'schema'),
+      );
+  } catch {
+    validEnvelope = false;
+  }
+  check(response, {
+    'services.catalog returns a bounded page and summary projection': () => validEnvelope,
+  });
+  performanceMetrics.serviceCatalogContractFailures.add(validEnvelope ? 0 : 1);
+  recordResponse('services.catalog', response, config);
+  sleep(config.behaviour.serviceCatalogIntervalSeconds);
 }
 
 /** 15%: hold a Socket.IO session and count inbound events. */

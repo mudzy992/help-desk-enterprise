@@ -10,7 +10,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { perfConfig, fullThresholds, scenarioVus } from './config.js';
+import { perfConfig, fullThresholds, ciThresholds, smokeThresholds, scenarioVus } from './config.js';
 import { ticketMessageIdempotencyKey } from './lib/ticket-message-idempotency-key.js';
 import {
   buildSocketUrl,
@@ -56,6 +56,27 @@ check('budgets come from the plan (§4.2)', perfConfig.budgets.readP95Ms === 200
 check(
   'thresholds reference the custom trends',
   Object.keys(fullThresholds(perfConfig)).includes('tickets_list_duration'),
+);
+const catalogThresholds = ciThresholds(perfConfig);
+check(
+  'CI gates /services with the existing read p95 budget',
+  catalogThresholds.service_catalog_duration?.[0] ===
+    `p(95)<${perfConfig.budgets.readP95Ms * 2.5}`,
+);
+check(
+  'CI gates the service-list payload at its 1 MiB response cap',
+  catalogThresholds.service_catalog_payload_kb?.[0] ===
+    `p(95)<=${perfConfig.budgets.serviceCatalogPayloadKb}`,
+);
+check(
+  'CI fails if the BA-10 catalog envelope contract is invalid',
+  catalogThresholds.service_catalog_contract_failures?.[0] === 'count<1',
+);
+const localSmokeThresholds = smokeThresholds({ ...perfConfig, profile: 'full' });
+check(
+  'non-CI smoke still gates the service catalog at the SLO read budget',
+  localSmokeThresholds.service_catalog_duration?.[0] ===
+    `p(95)<${perfConfig.budgets.readP95Ms}`,
 );
 
 section('ticket message idempotency');

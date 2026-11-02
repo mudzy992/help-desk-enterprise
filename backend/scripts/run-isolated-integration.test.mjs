@@ -38,6 +38,10 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     integrationSpecs.includes("src/modules/routing/routing-critical-matrix.integration.spec.ts"),
     "nedostaje obavezni routing critical-matrix PostgreSQL shard",
   );
+  assert.ok(
+    integrationSpecs.includes("src/modules/service-catalog/service-catalog-pagination.integration.spec.ts"),
+    "nedostaje obavezni BA-10 service-catalog PostgreSQL shard",
+  );
   assert.ok(integrationSpecs.includes("src/modules/audit-log/partitioned-audit-chain.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/audit-log/audit-scope-provenance.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/security/step-up-policy.integration.spec.ts"));
