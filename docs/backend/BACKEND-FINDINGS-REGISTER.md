@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.16 je zatvoren 2026-11-01 izričitom korisničkom acceptance odlukom uz dokumentovani ne-zeleni globalni E2E gate; CI nije proglašen zelenim. W7.17–W7.19 zatvorili su samo svoje pojedinačne asset nalaze. W7.19 targeted E2E `41314175993` je 8/8 na SHA `93f9…`, a branch code CI `41302730701` je zelen na `3ee7…`; full E2E `41283381903` na starijem SHA pao je, a Perf smoke nije pokrenut. Full assets segment sign-off nije ostvaren. `BA-service-catalog-10` je naknadno zatvoren owner-directed odlukom; njegov CI gate je zelen, ali E2E jobs su skipped, a Perf ostaje crven na ticket-message/search pragovima.<br>
+**Status:** audit baseline + djelimična implementacija — W7.16 je zatvoren 2026-11-01 owner-directed odlukom uz dokumentovani ne-zeleni globalni E2E gate; full assets segment sign-off nije ostvaren. `BA-service-catalog-10` i `BA-service-catalog-11` zatvoreni su kroz zasebne closeoute. BA-11 CI gate `41444022450` je zelen, Perf smoke `41442784187` je zelen na runtime SHA-u; E2E critical/install i uslovni image vulnerability enforcement koraci bili su `skipped`, ne passed. Sljedeći kandidat je `BA-service-catalog-12`, još nezapočet.<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-02<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 569 otvorenih / 123 zatvorena / 692 ukupno<br>
-**Napomena:** deklarisani agregat nakon owner-directed W7.16 i BA-10 statusnih promjena; machine-readable source redovi prikazuju 572 otvorena / 109 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
+**Trenutno:** 568 otvorenih / 124 zatvorena / 692 ukupno<br>
+**Napomena:** deklarisani agregat nakon owner-directed W7.16, BA-10 i BA-11 statusnih promjena; machine-readable source redovi prikazuju 571 otvoreno / 110 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -185,7 +185,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 15 | `service-catalog` | `BA-service-catalog-08` | P2 | Concurrent category parent update može napraviti ciklus | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-09` | P2 | Service/category/lifecycle/availability updatei su silent last-write-wins | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-10` | P2 | Service/list/form/downtime readovi su neograničeni i resource-unbounded | zatvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
-| 15 | `service-catalog` | `BA-service-catalog-11` | P2 | Change-owned downtime sync je best-effort bez durable retry/reconciliationa | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
+| 15 | `service-catalog` | `BA-service-catalog-11` | P2 | Change-owned downtime sync je best-effort bez durable retry/reconciliationa | zatvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-12` | P2 | Scoped catalog writer može globalno kreirati servise/kategorije i vidjeti sve admin draftove | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-13` | P3 | Category/lifecycle/form mutacije nemaju dosljedan caller-supplied reason ugovor | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-14` | P3 | Incident read fail-open tiho prikazuje zdrav servis na DB grešci | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
@@ -807,7 +807,11 @@ Korisnik je izričito naložio zatvaranje samo `BA-assets-16`, svjestan crvenog 
 
 ### Naknadna statusna promjena — `BA-service-catalog-10` (2026-11-02)
 
-Korisnik je izričito naložio zatvaranje samo `BA-service-catalog-10` uprkos crvenom punom Perf smokeu `41431538128` na implementation SHA `039992064bfea250d95a1b8fc177b59dd3bdf239`. BA-10 service p95/payload/contract i globalni query-budget gateovi prošli su; Perf je pao na nepovezanim ticket-message p95 `1320.14 ms` i search p95 `505.82 ms`. CI `41431538084` na istom SHA-u imao je zeleni CI gate, ali E2E critical/install i image vulnerability enforcement bili su `skipped`, ne passed. Odluka nije green Perf/E2E sign-off niti mijenja spec 56/prag 250 ms; susjedni nalazi ostaju nepromijenjeni. Detaljni dokaz i rollback su u [106-service-catalog-10-owner-directed-closeout.md](implementation/106-service-catalog-10-owner-directed-closeout.md). Naredni scope je samo otvoreni `BA-service-catalog-11`.
+Korisnik je izričito naložio zatvaranje samo `BA-service-catalog-10` uprkos crvenom punom Perf smokeu `41431538128` na implementation SHA `039992064bfea250d95a1b8fc177b59dd3bdf239`. BA-10 service p95/payload/contract i globalni query-budget gateovi prošli su; Perf je pao na nepovezanim ticket-message p95 `1320.14 ms` i search p95 `505.82 ms`. CI `41431538084` na istom SHA-u imao je zeleni CI gate, ali E2E critical/install i image vulnerability enforcement bili su `skipped`, ne passed. Odluka nije green Perf/E2E sign-off niti mijenja spec 56/prag 250 ms; susjedni nalazi ostaju nepromijenjeni. Detaljni dokaz i rollback su u [106-service-catalog-10-owner-directed-closeout.md](implementation/106-service-catalog-10-owner-directed-closeout.md). U tom checkpointu naredni scope bio je BA-11.
+
+### Package closeout — `BA-service-catalog-11` (2026-11-02)
+
+`BA-service-catalog-11` zatvoren je na finalnom testanom SHA `faf00f497032a1ed380f9500bf4c762c56a6aebe` nakon zelenog CI [`41444022450`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41444022450), uključujući backend, real PostgreSQL/Redis integration, frontend, docs/container i gate poslove. Odvojeni Perf [`41442784187`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784187) prošao je na runtime SHA-u `4a0a0011d0f4b95f5a50267c54ebadc7bea57158`; follow-up `faf00f4` je mijenjao samo test fixturee. E2E critical/install i uslovni image vulnerability enforcement bili su `skipped`. Prvi CI [`41442784115`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784115) pao je na frontend `OpsOverview` test-fixture tipu i PostgreSQL dispatch testu koji je pokupio pending red prethodnog casea; oba test-only uzroka su ispravljena prije zelenog CI-ja. Nema BA-11 Prisma migracije ni target-DB promjene. `BA-changes-08` i `BA-changes-13` ostaju otvoreni. Potpuni acceptance, testni dokaz, skipped koraci, local limits i rollout/rollback su u [107-service-catalog-11-durable-downtime-closeout.md](implementation/107-service-catalog-11-durable-downtime-closeout.md).
 
 ## Kontrolni zbir
 
@@ -815,7 +819,7 @@ Korisnik je izričito naložio zatvaranje samo `BA-service-catalog-10` uprkos cr
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **569**
-- Zatvoreno: **123** (deklarisani zbir nakon owner-directed statusnih odluka samo `BA-assets-16` i `BA-service-catalog-10`; source redovi i machine-readable plan i dalje nose raniju razliku u raspodjeli statusa)
+- Otvoreno: **568**
+- Zatvoreno: **124** (deklarisani zbir nakon owner-directed statusnih odluka za `BA-assets-16`/`BA-service-catalog-10` i package closeouta za `BA-service-catalog-11`; source redovi i machine-readable plan zadržavaju raniju razliku od tri statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**

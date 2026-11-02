@@ -4036,7 +4036,7 @@
     {
       "id": "BA-service-catalog-11",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "15-service-catalog.md",
       "owner": "WS-F",
       "wave": 5

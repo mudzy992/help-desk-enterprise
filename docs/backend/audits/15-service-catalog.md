@@ -1,6 +1,6 @@
 # Backend audit 15 — `service-catalog`
 
-**Status:** audit završen; `BA-service-catalog-10` zatvoren owner-directed odlukom; aktivni implementacijski scope je samo `BA-service-catalog-11`<br>
+**Status:** audit završen; `BA-service-catalog-10` i `BA-service-catalog-11` zatvoreni uz njihove odvojene closeout dokaze; sljedeći kandidat je `BA-service-catalog-12` i nije započet<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-02<br>
 **Rizik modula:** visok<br>
@@ -13,7 +13,7 @@
 
 Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Draft forma može postati korištena između immutable provjere i updatea, pa se schema historijskog ticketa retroaktivno mijenja. Config-versioning direktno prepisuje schema/status postojećih formi i zaobilazi immutable/lifecycle/multiple-active invariante. Administrator može konfigurirati regularni izraz sa katastrofalnim backtrackingom, a svaki prijavljeni requester ga pokreće nad vlastitim inputom. Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`.
 
-Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-10` (P2) je zatvoren owner-directed odlukom, a aktivni implementacijski scope je samo `BA-service-catalog-11` (P2). Ostali nalazi ostaju nepromijenjeni i izvan paketa.
+Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-10` (P2) i `BA-service-catalog-11` (P2) su zatvoreni prema zasebnim closeout dokazima. Sljedeći kandidat je `BA-service-catalog-12`; nije započet. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
 
 ## Historijski implementacijski ulaz — `BA-service-catalog-10` (2026-11-02)
 
@@ -53,7 +53,7 @@ Uzročnost speca 56 i dalje nije profilisana niti potvrđena. Najnoviji E2E pado
 
 **Dokumentacijske provjere nakon dopune:** `node scripts/check-docs-content.mjs` je prošao (`Docs provjera: OK`, 32 stranice, 8 prevoda, 10 provjera), a guard suite je prošao **9/9**. `npm run audit:traceability` je prošao **692/692** (`P1=174, P2=368, P3=150`), a traceability testovi **12/12**; `git diff --check` je prošao. Prettier `--check` je prošao za ovaj audit i `docs/backend/README.md`; `BACKEND-IMPLEMENTATION-MASTER-PLAN.md`, `HANDOFF.md` i `audits/README.md` zadržavaju preegzistentne formatting razlike koje su potvrđene i na parent SHA-u (historijske tabele/lista nisu masovno preformatirane). CI `41419059330` ostaje kodni dokaz na SHA `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e`; ova docs-only dopuna je provjerena lokalno.
 
-**Rollout/rollback i scope:** korisnik je potvrdio da je Coolify redeploy uspješno prošao; zasebni Coolify log ni deployed SHA nisu dostupni za nezavisnu provjeru (oba GitHub dispatcha navode `master` / `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e`). TS4058 korekcija je tipna i ne mijenja runtime/schema ponašanje; rollback nije izvršen. Nema target-DB pristupa niti BA-10 migracije/deployment DB promjene potvrđene u ovom radu. Širi BA-10 response-envelope-i i dalje zahtijevaju koordinisan rollout/rollback backend API-ja i frontend potrošača. Korisnik je ranije odobrio checkpoint/push dok BA-10 još nije bio zatvoren; ta historijska dozvola nije bila acceptance. Kasnija zasebna odluka zatvorila je samo BA-10. Registry status BA-10 i agregati ažurirani su; nalazi 01–09 i 11–15 ostaju nepromijenjeni, a naredni scope je isključivo `BA-service-catalog-11`. Ne otvarati PR prema `master` bez tri zasebna eksplicitna odobrenja.
+**Rollout/rollback i scope:** korisnik je potvrdio da je Coolify redeploy uspješno prošao; zasebni Coolify log ni deployed SHA nisu dostupni za nezavisnu provjeru (oba GitHub dispatcha navode `master` / `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e`). TS4058 korekcija je tipna i ne mijenja runtime/schema ponašanje; rollback nije izvršen. Nema target-DB pristupa niti BA-10 migracije/deployment DB promjene potvrđene u ovom radu. Širi BA-10 response-envelope-i i dalje zahtijevaju koordinisan rollout/rollback backend API-ja i frontend potrošača. Korisnik je ranije odobrio checkpoint/push dok BA-10 još nije bio zatvoren; ta historijska dozvola nije bila acceptance. Kasnija zasebna odluka zatvorila je samo BA-10. Registry status BA-10 i agregati ažurirani su u tom BA-10 checkpointu; tada su nalazi 01–09 i 11–15 ostali nepromijenjeni, a naredni scope bio je `BA-service-catalog-11`. BA-11 je od tada zasebno zatvoren (vidi [107 closeout](../implementation/107-service-catalog-11-durable-downtime-closeout.md)); trenutni sljedeći kandidat je BA-12, koji nije započet. Ne otvarati PR prema `master` bez tri zasebna eksplicitna odobrenja.
 
 ## 2. Scope i inventar
 
@@ -181,7 +181,7 @@ E2E 42 pokriva create/edit/delete draft servisa, onboarding, lifecycle/routing U
 | BA-service-catalog-08 | P2       | Concurrent category parent update može napraviti ciklus                                        | otvoreno |
 | BA-service-catalog-09 | P2       | Service/category/lifecycle/availability updatei su silent last-write-wins                      | otvoreno |
 | BA-service-catalog-10 | P2       | Service/list/form/downtime readovi su neograničeni i resource-unbounded                        | zatvoreno |
-| BA-service-catalog-11 | P2       | Change-owned downtime sync je best-effort bez durable retry/reconciliationa                    | otvoreno |
+| BA-service-catalog-11 | P2       | Change-owned downtime sync je best-effort bez durable retry/reconciliationa                    | zatvoreno |
 | BA-service-catalog-12 | P2       | Scoped catalog writer može globalno kreirati servise/kategorije i vidjeti sve admin draftove   | otvoreno |
 | BA-service-catalog-13 | P3       | Category/lifecycle/form mutacije nemaju dosljedan caller-supplied reason ugovor                | otvoreno |
 | BA-service-catalog-14 | P3       | Incident read fail-open tiho prikazuje zdrav servis na DB grešci                               | otvoreno |
@@ -312,13 +312,17 @@ Odvojeni Perf smoke [`41431538128`](https://github.com/mudzy992/help-desk-enterp
 
 Raniji E2E dispatch [`41420600750`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420600750) na starijem SHA `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e` imao je **6 passed / 2 failed** u specu 56 na početnoj navigaciji; finalni CI E2E jobs su skipped. Uzročnost `/services` long-taska nije utvrđena. Spec 56, očekivanja i prag `250 ms` nisu mijenjani, preskočeni niti oslabljeni. Status je owner-directed acceptance exception, ne full Perf/E2E green sign-off. Nema BA-10 migracije ni pristupa ciljnoj bazi. Detaljni package evidence, local limits, rollout i rollback su u [106-service-catalog-10-owner-directed-closeout.md](../implementation/106-service-catalog-10-owner-directed-closeout.md).
 
-### `BA-service-catalog-11` — P2, naredni aktivni scope
+### `BA-service-catalog-11` — P2, zatvoren
 
-Implementacija se nastavlja na durable retry/reconciliation za downtime koji posjeduje change. `ChangeScheduleService.syncDowntime` i `release` trenutno gutaju greške poslije lifecycle commita; audit 24 već nosi preklapajuće `BA-changes-08` (lifecycle/downtime durability) i `BA-changes-13` (scheduler reconciliation/health). Ovaj paket smije mijenjati samo ponašanje potrebno za BA-11; `BA-changes-08`/`13` ostaju otvoreni i neće biti zatvoreni bez zasebnog acceptancea. Ticket-message/search ostaju van scopea.
+Paket je zatvoren nakon durable retry/reconciliation implementacije i zelenog CI gatea. Root cause je bio best-effort change-owned downtime sync koji je mogao zakazati nakon lifecycle commita, bez trajne retry ili drift-correction namjere. Lifecycle transakcije sada enqueueaju `change.downtime.sync` u postojećem transactional outboxu; worker dispatchuje validirani payload, a periodični reconciler traži drift i osigurava durable retry/replay. Schedule sync prima outbox dedupe key, čime se skip-only audit događaji dedupliciraju i key se bilježi u event detailu. Ops Health backend/UI prikazuju backlog i dead-letter stanje.
+
+CI [`41444022450`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41444022450) na finalnom testanom SHA `faf00f497032a1ed380f9500bf4c762c56a6aebe` prošao je backend build/test, PostgreSQL/Redis integration (uključujući novi BA-11 suite), frontend build/test, Docs guard, container/supply chain i CI gate. E2E critical flows i install wizard bili su `skipped`; image vulnerability enforcement je bio `skipped` jer uslovni korak nije imao high/critical nalaze. Perf smoke [`41442784187`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784187) prošao je na runtime SHA-u `4a0a0011d0f4b95f5a50267c54ebadc7bea57158`; kasniji `faf00f4` mijenjao je samo test fixturee. Početni CI [`41442784115`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784115) pao je na dva BA-11 test-fixture problema; oba su ispravljena u `faf00f4` i finalni CI je zelen. Tačni testovi, neuspjeli pokušaj, local limits, rollout/rollback i DB stanje su u [107-service-catalog-11-durable-downtime-closeout.md](../implementation/107-service-catalog-11-durable-downtime-closeout.md).
+
+Preklapanje s auditom 24 ostaje samo dokumentovano: `BA-changes-08` (lifecycle/downtime durability) i `BA-changes-13` (scheduler reconciliation/health) **ostaju otvoreni** i nisu dio ovog statusnog zatvaranja. Ticket-message/search i spec 56/prag 250 ms nisu mijenjani.
 
 ### Registar i DB
 
-- Zatvoren: samo `BA-service-catalog-10`; `BA-service-catalog-11` ostaje otvoren tokom implementacije.
-- Modul `service-catalog`: 4 P1, 8 P2, 3 P3 ukupno; **14 otvorenih / 1 zatvoren**.
-- Globalni deklarisani zbir: **569 otvorenih / 123 zatvorena / 692 ukupno**. Machine-readable redovi: **572 otvorena / 109 zatvorenih / 11 historijskih**; ranija razlika od tri statusa ostaje.
-- Za BA-10 nije mijenjana schema i nije pokrenuta migracija. BA-11 migracija/DB target state procjenjuje se prije implementacije; nikakva ciljna baza nije korištena u BA-10 closeoutu.
+- Zatvoreni u modulu: samo `BA-service-catalog-10` i `BA-service-catalog-11`; ostali nalazi modula nepromijenjeni.
+- Modul `service-catalog`: 4 P1, 8 P2, 3 P3 ukupno; **13 otvorenih / 2 zatvorena**.
+- Globalni deklarisani zbir: **568 otvorenih / 124 zatvorena / 692 ukupno**. Machine-readable redovi: **571 otvoreno / 110 zatvorenih / 11 historijskih**; preegzistentna razlika od tri statusa ostaje.
+- Za BA-10 i BA-11 nije mijenjana Prisma schema i nije dodana ni primijenjena paketna migracija. Nema pristupa ni promjene ciljne baze; CI je koristio disposable PostgreSQL.
