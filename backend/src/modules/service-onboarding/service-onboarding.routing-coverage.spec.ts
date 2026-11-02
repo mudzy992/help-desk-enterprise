@@ -99,7 +99,7 @@ describe('service onboarding finalize routing coverage', () => {
     expect(finalized.status).toBe('COMPLETED');
     expect(finalized.serviceLifecycle).toBe('ACTIVE');
     expect(finalized.warnings).toEqual(['ROUTING_COVERAGE_MISSING']);
-    const lifecycleChangeLogs = harness.memory.changeLogs.filter(
+    const lifecycleChangeLogs = harness.memory.catalog.changeLogs.filter(
       (changeLog) => changeLog.reason === 'lifecycle_transition',
     );
     expect(lifecycleChangeLogs[lifecycleChangeLogs.length - 1]).toMatchObject({
