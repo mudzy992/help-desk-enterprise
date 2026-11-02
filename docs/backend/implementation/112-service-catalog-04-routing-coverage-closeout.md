@@ -1,11 +1,11 @@
-# Paketni checkpoint — `BA-service-catalog-04` (implementacija u toku)
+# Paketni checkpoint — `BA-service-catalog-04` (implementacija validirana; nalaz otvoren)
 
 **Paket:** audit 15 / `service-catalog` — dokaz routing coverage pri aktivaciji<br>
-**Nalaz:** `BA-service-catalog-04` (P1) — otvoren; CI je otkrio neusklađen downstream consumer i slijedi njegov BA-04 adapter-fix<br>
+**Nalaz:** `BA-service-catalog-04` (P1) — implementacija je prošla full CI; status ostaje otvoren do owner-directed closeouta<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **Politika koju je korisnik izabrao:** postojeći globalni `private.ticket.routing.requireCoverage` ostaje eksplicitni, reason-audited override. `true` blokira nepotpunu coverage; `false` dopušta aktivaciju uz warning, a lifecycle change log bilježi politiku i coverage rezultat.<br>
-**Migracija / DB:** nema schema promjene, migracije, DB upisa ni pristupa ciljnoj bazi<br>
-**CI / deployment:** follow-up commit `ef9333a` je pushovan; backend build/lint prolaze, ali CI `41509926839` pao je na TS2339 u novom onboarding testu. Test harness referenca je korigovana u lokalnom worktreeju i čeka naredni CI. Nema potvrđenog deployment/rollouta
+**Migracija / DB:** nema nove schema migracije ni pristupa/upisa u ciljnu bazu; CI integration testovi koriste disposable bazu i postojeći migration replay tok<br>
+**CI / deployment:** commit `88ad398` ima zeleni CI [`41511684641`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41511684641) na punom backend build/test i integration gateu. E2E, inventory i uslovni image-enforcement koraci bili su `skipped`; deployment nije potvrđen
 
 ## Nalaz i acceptance
 
@@ -34,14 +34,18 @@ Perf run [41508326537](https://github.com/mudzy992/help-desk-enterprise/actions/
 
 ### Drugi CI pokušaj na `ef9333a`
 
-Run [CI `41509926839`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41509926839) završio je **failure**. Backend build, lint, API wiring/SLA checks, PostgreSQL/Redis integration sa real suiteovima, frontend build/test, container/supply-chain i Docs guard **passed**. Full backend Jest pao je na test-compile grešci `TS2339`/`TS7006` u `service-onboarding.routing-coverage.spec.ts`: assertion je čitao `harness.memory.changeLogs`, koje test harness ne izlaže; pravi log niz je `harness.memory.catalog.changeLogs`. Ta referenca je ispravljena u trenutnom lokalnom worktreeju, ali follow-up još nije commitovan/pushovan ni CI-provjeren. `CI gate` je zato failure. Read-only inventory, E2E critical flows i E2E install wizard bili su **skipped**. High/critical image enforcement je također **skipped**; nije označen kao passed. `gh run view --log-failed` završio je `EOF`; tačna Jest dijagnostika je sačuvana kroz GitHub check annotation.
+Run [CI `41509926839`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41509926839) završio je **failure**. Backend build, lint, API wiring/SLA checks, PostgreSQL/Redis integration sa real suiteovima, frontend build/test, container/supply-chain i Docs guard **passed**. Full backend Jest pao je na test-compile grešci `TS2339`/`TS7006` u `service-onboarding.routing-coverage.spec.ts`: assertion je čitao `harness.memory.changeLogs`, koje test harness ne izlaže; pravi log niz je `harness.memory.catalog.changeLogs`. Ta referenca je ispravljena u narednom commitu `88ad398`; test je potvrđen u završnom CI runu `41511684641`. `CI gate` drugog pokušaja je zbog te greške bio failure. Read-only inventory, E2E critical flows i E2E install wizard bili su **skipped**. High/critical image enforcement je također **skipped**; nije označen kao passed. `gh run view --log-failed` završio je `EOF`; tačna Jest dijagnostika je sačuvana kroz GitHub check annotation.
 
 PostgreSQL/Redis connection-budget i container image-build failures iz prvog runa `41508326486` nisu se ponovili u `41509926839`; oba odgovarajuća jobs su prošla u drugom runu.
 
 Perf run [41509926840](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41509926840) izvršio je k6, ali je **failure** na nepovezanom `GET /search p(95)<500 ms` pragu: izmjereno **685.08 ms**. BA-04/service-catalog p95 **35.03 ms** (`<500 ms`) i payload **111.16 KB** (`<=1024 KB`) passed; query-budget avg **2.090** preko **48,240** zahtjeva (gate **2.1**) passed; ticket-message p95 **855.16 ms** (`<1000 ms`) passed. K6 nije BA-04 acceptance, search nije mijenjan, a ukupni Perf smoke ostaje failure.
 
-Full Jest/CI gate za `ef9333a` još nisu potvrđeni zeleno; TS2339 test-harness korekcija čeka naredni CI. E2E/spec 56 nije izvršen niti je sign-off ostvaren. Deployment se ne tvrdi.
+### Završni CI na `88ad398`
+
+Run [CI `41511684641`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41511684641) na SHA `88ad398786cebaf0b1686a0c5ed86d27ade8e812` završio je **success**. Backend annotated build, lint, puni Jest (uključujući ispravljeni onboarding coverage-evidence test), API wiring/SLA checks, PostgreSQL/Redis integration i real suiteovi, frontend build/test, Docs guard, container/supply-chain i CI gate svi su **passed**. `Read-only service-form pattern inventory`, E2E critical flows, E2E install wizard i uslovni high/critical image-enforcement korak bili su **skipped**. Nema E2E/spec 56 sign-offa niti deployment tvrdnje.
+
+Najnoviji relevantni Perf run `41509926840` je na `ef9333a` (runtime kod identičan `88ad398`; kasnija izmjena je bila test/docs-only): ukupni smoke je **failure** na search p95 `685.08 ms` prema `<500 ms`; BA-04/service-catalog p95, payload i query-budget gates su **passed**. Nema Perf runa na `88ad398`; search nije BA-04 scope i nije mijenjan.
 
 ## Scope i naredni korak
 
-Promjene ostaju ograničene na BA-04 coverage evaluation, evidence u oba lifecycle activation loga, downstream onboarding type adapter i ciljane testove/dokumentaciju. Nema migracije ni deploymenta. Sljedeće je završiti lokalne provjere, commitovati i pushati follow-up isključivo na `arena/864951a6-help-desk-enterprise`, pa provjeriti CI za tačan SHA. Nalaz ostaje otvoren do CI acceptancea i owner-directed closeouta. Nema PR-a ni mergea prema `master`.
+Promjene ostaju ograničene na BA-04 coverage evaluation, evidence u oba lifecycle activation loga, downstream onboarding type adapter i ciljane testove/dokumentaciju. Finalni CI acceptance za kod je zelen na `88ad398`; nema nove migracije, target-DB pristupa/upisa ni potvrđenog deploymenta. BA-04 status namjerno ostaje otvoren do owner-directed closeouta; ne započinje se drugi nalaz. Nema PR-a ni mergea prema `master`.
