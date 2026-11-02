@@ -200,6 +200,9 @@ export async function createTicket(
           () => readHighestTicketSequence(transaction),
           reserved,
         );
+        // This is the form-version bind point for normal, reopened, and split
+        // tickets. PostgreSQL's FK check holds KEY SHARE on FormVersion until
+        // this transaction commits; the form editor's FOR UPDATE lock conflicts.
         const record = (await transaction.ticket.create({
           data: {
             ticketNumber,

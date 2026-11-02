@@ -122,6 +122,29 @@ describe("ServiceFormsService", () => {
     expect(original.version).toBe(1);
   });
 
+  it("updates an unused draft schema without changing its version identity", async () => {
+    const { catalog, forms } = createHarness();
+    const service = await createDraftService(catalog);
+    const original = await forms.createForm(service.id, {
+      schema: validSchema,
+    });
+
+    const updated = await forms.updateFormVersion(
+      service.id,
+      original.formVersionRef,
+      { schema: nextSchema },
+    );
+
+    expect(updated).toMatchObject({
+      formVersionRef: original.formVersionRef,
+      serviceId: service.id,
+      version: original.version,
+      status: "DRAFT",
+      schema: nextSchema,
+      isImmutable: false,
+    });
+  });
+
   it("pages bounded form history and keeps the active schema independently available", async () => {
     const { catalog, forms } = createHarness();
     const service = await createDraftService(catalog);

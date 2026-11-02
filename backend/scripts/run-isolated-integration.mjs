@@ -38,6 +38,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
   "src/modules/routing/routing-critical-matrix.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",
+  "src/modules/service-catalog/service-form-version-immutability.integration.spec.ts",
   "src/modules/sla/sla-write-lock.integration.spec.ts",
   "src/modules/sla/sla-compliance-aggregation.integration.spec.ts",
   "src/modules/audit-log/partitioned-audit-chain.integration.spec.ts",

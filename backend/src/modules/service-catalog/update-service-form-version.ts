@@ -32,25 +32,44 @@ export async function updateServiceFormVersion(
   context: CatalogMutationContext,
 ): Promise<FormVersionResponse> {
   assertServiceFormsEnabled(configuration);
-  const current = await loadFormVersionForService(prisma, serviceId, formVersionRef);
-  const ticketCount = await countTicketsForFormVersion(prisma, current.id);
-  if (isFormVersionImmutable(current, ticketCount)) {
-    throw new ServiceFormsError('FORM_VERSION_IMMUTABLE');
-  }
   const schema = parseConfiguredFormSchema(input.schema, configuration);
-  const updated = await prisma.$transaction(async (transaction) => {
-    const version = await transaction.formVersion.update({
-      where: { id: current.id },
-      data: { schema: schema as Prisma.InputJsonValue },
-    });
-    await recordServiceCatalogChange(transaction as PrismaService, {
-      entityType: serviceFormsChangeLogEntityType,
-      entityId: version.id,
-      reason: serviceFormsChangeLogReasons.formVersionUpdate,
-      diff: { formVersionRef: version.id, version: version.version },
-      actorUserId: context.actorUserId,
-    });
-    return version;
-  });
-  return toFormVersionResponse(updated, ticketCount);
+  const updated = await prisma.$transaction(
+    async (transaction) => {
+      // Ticket.formVersionId's PostgreSQL FK check holds KEY SHARE until the
+      // ticket transaction commits. FOR UPDATE conflicts with that lock and
+      // serializes this status/count check with an in-flight ticket bind.
+      await transaction.$queryRaw`
+        SELECT "id"
+        FROM "FormVersion"
+        WHERE "id" = ${formVersionRef}
+        FOR UPDATE
+      `;
+      const current = await loadFormVersionForService(
+        transaction as PrismaService,
+        serviceId,
+        formVersionRef,
+      );
+      const ticketCount = await countTicketsForFormVersion(
+        transaction as PrismaService,
+        current.id,
+      );
+      if (isFormVersionImmutable(current, ticketCount)) {
+        throw new ServiceFormsError('FORM_VERSION_IMMUTABLE');
+      }
+      const version = await transaction.formVersion.update({
+        where: { id: current.id },
+        data: { schema: schema as Prisma.InputJsonValue },
+      });
+      await recordServiceCatalogChange(transaction as PrismaService, {
+        entityType: serviceFormsChangeLogEntityType,
+        entityId: version.id,
+        reason: serviceFormsChangeLogReasons.formVersionUpdate,
+        diff: { formVersionRef: version.id, version: version.version },
+        actorUserId: context.actorUserId,
+      });
+      return { version, ticketCount };
+    },
+    { isolationLevel: 'ReadCommitted' },
+  );
+  return toFormVersionResponse(updated.version, updated.ticketCount);
 }
