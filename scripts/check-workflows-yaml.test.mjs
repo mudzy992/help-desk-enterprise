@@ -4,7 +4,10 @@ import { test } from "node:test";
 import { findWorkflowProblems } from "./check-workflows-yaml.mjs";
 
 const workflowPath = new URL("../.github/workflows/ci.yml", import.meta.url);
-const perfWorkflowPath = new URL("../.github/workflows/perf-smoke.yml", import.meta.url);
+const perfWorkflowPath = new URL(
+  "../.github/workflows/perf-smoke.yml",
+  import.meta.url,
+);
 
 /** Blok jednog joba: od `  ime:` do sljedećeg ključa na istom uvlačenju. */
 function readJob(workflow, name) {
@@ -73,11 +76,11 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
     "    steps:",
     "      - run: npm ci",
     "      - run: npm test -- --ci --coverage=false",
-    "      - name: \"Korak: sa dvotočkom\"",
+    '      - name: "Korak: sa dvotočkom"',
     "        run: node script.mjs",
     "      - name: Bez problema (Paket 4.1 §7a)",
     "        run: |",
-    "          echo \"Note: ovo je sadržaj blok skalara\"",
+    '          echo "Note: ovo je sadržaj blok skalara"',
     "          node -e \"console.log('a: b')\"",
     "      # komentar: sa dvotočkom",
     "      - uses: actions/checkout@v4",
@@ -88,7 +91,11 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
 
 test("backend findings dokumenti pokreću code i docs gateove", () => {
   const workflow = readFileSync(workflowPath, "utf8");
-  assert.ok(workflow.includes("docs/backend/BACKEND-FINDINGS-REGISTER.md|docs/backend/backend-findings-plan.json|docs/backend/audits/*)"));
+  assert.ok(
+    workflow.includes(
+      "docs/backend/BACKEND-FINDINGS-REGISTER.md|docs/backend/backend-findings-plan.json|docs/backend/audits/*)",
+    ),
+  );
   assert.ok(workflow.includes("code=true\n                  docs=true"));
 });
 
@@ -112,12 +119,28 @@ test("CI E2E se pokreće na PR-u, scheduleu i ručnom dispatchu, ne na pushu", (
 
 // Zajedno se ne smiju pokrenuti: obični E2E bi kroz API završio instalaciju koju
 // wizard spec (51/52) prolazi kroz UI, pa bi oba speca pala na `isCompleted`.
-test("Perf smoke se pokreće na PR-u i ručno, ne na svakom pushu", () => {
+test("Perf smoke push je ograničen na BA-10 dokaz na aktivnoj grani", () => {
   const workflow = readFileSync(perfWorkflowPath, "utf8");
-  const triggers = workflow.slice(workflow.indexOf("on:"), workflow.indexOf("\nconcurrency:"));
+  const triggers = workflow.slice(
+    workflow.indexOf("on:"),
+    workflow.indexOf("\nconcurrency:"),
+  );
   assert.ok(triggers.includes("  pull_request:"));
   assert.ok(triggers.includes("  workflow_dispatch:"));
-  assert.ok(!/^  push:/mu.test(triggers), "Perf smoke ne smije imati push trigger");
+
+  const pushStart = triggers.indexOf("  push:");
+  const pullRequestStart = triggers.indexOf("  pull_request:", pushStart);
+  assert.notEqual(pushStart, -1, "BA-10 closeout zahtijeva push Perf smoke");
+  assert.notEqual(
+    pullRequestStart,
+    -1,
+    "push filter završava prije pull_request",
+  );
+  const push = triggers.slice(pushStart, pullRequestStart);
+  assert.ok(push.includes("arena/864951a6-help-desk-enterprise"));
+  assert.ok(push.includes('"backend/src/modules/service-catalog/**"'));
+  assert.ok(push.includes('"docs/backend/audits/15-service-catalog.md"'));
+  assert.ok(push.includes('"perf/smoke.js"'));
 });
 
 test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec", () => {
@@ -137,8 +160,9 @@ test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec"
   // i tada oba E2E posla moraju prihvatiti preskočene gateove, inače se wizard
   // posao nikad ne pokrene iako su mu zavisnosti „skipped“.
   assert.ok(
-    readJobCondition(workflow, "e2e-install-wizard").includes("inputs.skip_gates == true") &&
-      e2e.includes("inputs.skip_gates == true"),
+    readJobCondition(workflow, "e2e-install-wizard").includes(
+      "inputs.skip_gates == true",
+    ) && e2e.includes("inputs.skip_gates == true"),
     "oba E2E posla moraju imati `skip_gates` izlaz",
   );
   for (const gated of ["backend", "frontend"]) {
@@ -159,7 +183,10 @@ test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec"
       `${name} mora početi sa !cancelled(): ${condition}`,
     );
   }
-  const inputs = workflow.slice(workflow.indexOf("  workflow_dispatch:"), workflow.indexOf("concurrency:"));
+  const inputs = workflow.slice(
+    workflow.indexOf("  workflow_dispatch:"),
+    workflow.indexOf("concurrency:"),
+  );
   assert.ok(
     inputs.includes("skip_gates:") && inputs.includes("default: true"),
     "skip_gates je dispatch input sa zadanim `true`",
@@ -196,9 +223,21 @@ test("backend container job gradi image, izvršava runtime probe i ulazi u gate"
   assert.ok(container.includes("docker compose config --quiet"));
   assert.ok(container.includes("docker build --pull"));
   assert.ok(container.includes("npm audit --omit=dev --audit-level=high"));
-  assert.ok(container.includes("anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c"));
-  assert.ok(container.includes("anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"));
-  assert.ok(container.includes("actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8"));
+  assert.ok(
+    container.includes(
+      "anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c",
+    ),
+  );
+  assert.ok(
+    container.includes(
+      "anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439",
+    ),
+  );
+  assert.ok(
+    container.includes(
+      "actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8",
+    ),
+  );
   assert.ok(container.includes("severity-cutoff: high"));
   assert.ok(container.includes("only-fixed: true"));
   assert.ok(container.includes("npm run container:runtime:test"));

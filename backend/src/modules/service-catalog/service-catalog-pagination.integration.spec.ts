@@ -61,7 +61,12 @@ describeIfDatabase(
         adapter: new PrismaPg({ connectionString: url! }),
         log: [{ emit: "event", level: "query" }],
       });
-      prisma.$on("query", () => {
+      // Prisma 7's generated client types `query` as `never` for this adapter
+      // even though the configured runtime log emitter supports query events.
+      const queryEventClient = prisma as unknown as {
+        $on: (event: "query", listener: (event: unknown) => void) => void;
+      };
+      queryEventClient.$on("query", () => {
         queryCount += 1;
       });
 
