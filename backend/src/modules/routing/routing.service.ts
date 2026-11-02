@@ -20,6 +20,7 @@ import {
 import {
   assertOrWarnActivationRoutingCoverage,
   evaluateServiceRoutingCoverage,
+  type ServiceRoutingCoverageEvaluation,
 } from './evaluate-service-routing-coverage';
 import { mapRoutingError } from './map-routing-error';
 import { persistRoutingRuleChange } from './persist-routing-rule-change';
@@ -30,7 +31,6 @@ import {
   resolveRoutingReadAssignments,
 } from './routing-access-filter';
 import {
-  routingCoverageMissingCode,
   routingListDefaultTake,
   routingListMaximumTake,
 } from './routing.constants';
@@ -300,14 +300,14 @@ export class RoutingService {
 
   async evaluateActivationCoverage(
     serviceId: string,
-  ): Promise<typeof routingCoverageMissingCode | null> {
-    return assertOrWarnActivationRoutingCoverage(
-      await evaluateServiceRoutingCoverage(
-        this.prisma,
-        serviceId,
-        await this.configurationLoader.load(),
-      ),
+  ): Promise<ServiceRoutingCoverageEvaluation> {
+    const evaluation = await evaluateServiceRoutingCoverage(
+      this.prisma,
+      serviceId,
+      await this.configurationLoader.load(),
     );
+    assertOrWarnActivationRoutingCoverage(evaluation);
+    return evaluation;
   }
 
   suggestOnboardingReference(serviceId: string): Promise<string | null> {

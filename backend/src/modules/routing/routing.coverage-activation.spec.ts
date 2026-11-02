@@ -131,7 +131,7 @@ describe('RoutingService.evaluateActivationCoverage', () => {
     ).rejects.toMatchObject({ code: 'ROUTING_COVERAGE_MISSING' });
   });
 
-  it('returns warning when not required', async () => {
+  it('returns the missing coverage details when the audited override is active', async () => {
     const { memory } = createRoutingServiceHarness();
     const service = new RoutingService(
       memory.prisma as never,
@@ -144,8 +144,11 @@ describe('RoutingService.evaluateActivationCoverage', () => {
       } as never,
       { loadBySubjectId: async () => null } as never,
     );
-    await expect(service.evaluateActivationCoverage('service-vpn')).resolves.toBe(
-      'ROUTING_COVERAGE_MISSING',
-    );
+    await expect(service.evaluateActivationCoverage('service-vpn')).resolves.toEqual({
+      hasCoverage: false,
+      requireCoverage: false,
+      requiredOriginUnitCount: 3,
+      missingOriginUnitIds: ['ou-root', 'ou-child', 'ou-leaf'],
+    });
   });
 });

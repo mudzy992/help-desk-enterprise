@@ -1,4 +1,9 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { routingCoverageMissingCode } from '../routing/routing.constants';
+import type {
+  ServiceRoutingCoverageEvaluation,
+} from '../routing/evaluate-service-routing-coverage';
+import { settingKeys } from '../settings/setting-keys';
 import { assertServiceLifecycleTransition } from './assert-service-lifecycle-transition';
 import { buildServiceResponse } from './build-service-response';
 import { loadService } from './load-service';
@@ -22,8 +27,21 @@ export async function transitionServiceLifecycle(
   input: TransitionServiceLifecycleInput,
   configuration: ServiceLifecycleConfiguration,
   context: CatalogMutationContext,
-  coverageWarning: string | null = null,
+  coverageEvaluation: ServiceRoutingCoverageEvaluation | null = null,
 ): Promise<ServiceResponse> {
+  const routingCoverageAudit =
+    input.lifecycle === 'ACTIVE' && coverageEvaluation !== null
+      ? {
+          policySettingKey: settingKeys.privateTicketRoutingRequireCoverage,
+          requireCoverage: coverageEvaluation.requireCoverage,
+          hasCoverage: coverageEvaluation.hasCoverage,
+          requiredOriginUnitCount: coverageEvaluation.requiredOriginUnitCount,
+          missingOriginUnitIds: [...coverageEvaluation.missingOriginUnitIds],
+          overrideApplied:
+            !coverageEvaluation.requireCoverage &&
+            !coverageEvaluation.hasCoverage,
+        }
+      : null;
   const current = await loadService(prisma, serviceId);
   assertServiceLifecycleTransition({
     from: current.lifecycle,
@@ -63,14 +81,17 @@ export async function transitionServiceLifecycle(
           id: service.id,
           slug: service.slug,
         },
+        ...(routingCoverageAudit === null
+          ? {}
+          : { routingCoverage: routingCoverageAudit }),
       },
       actorUserId: context.actorUserId,
     });
     return service;
   });
   const response = await buildServiceResponse(prisma, updated);
-  if (coverageWarning === null) {
+  if (routingCoverageAudit === null || routingCoverageAudit.hasCoverage) {
     return response;
   }
-  return { ...response, warnings: [coverageWarning] };
+  return { ...response, warnings: [routingCoverageMissingCode] };
 }

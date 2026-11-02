@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { RoutingError } from '../routing/routing.error';
+import type { ServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
 import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
 import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
 import { ServiceCatalogService } from './service-catalog.service';
@@ -12,7 +13,7 @@ describe('ServiceCatalogService routing coverage on activation', () => {
   const createHarness = (routingStub: {
     evaluateActivationCoverage: (
       serviceId: string,
-    ) => Promise<'ROUTING_COVERAGE_MISSING' | null>;
+    ) => Promise<ServiceRoutingCoverageEvaluation>;
   }) => {
     const memory = createInMemoryServiceCatalogPrisma();
     const catalog = new ServiceCatalogService(
@@ -47,8 +48,14 @@ describe('ServiceCatalogService routing coverage on activation', () => {
   });
 
   it('activates with warning when coverage is optional and missing', async () => {
+    const coverageEvaluation: ServiceRoutingCoverageEvaluation = {
+      hasCoverage: false,
+      requireCoverage: false,
+      requiredOriginUnitCount: 3,
+      missingOriginUnitIds: ['ou-child'],
+    };
     const { catalog, memory } = createHarness({
-      evaluateActivationCoverage: async () => 'ROUTING_COVERAGE_MISSING',
+      evaluateActivationCoverage: async () => coverageEvaluation,
     });
     const category = await catalog.createCategory({ name: 'IT', slug: 'it' });
     const created = await catalog.create({
@@ -71,5 +78,18 @@ describe('ServiceCatalogService routing coverage on activation', () => {
     });
     expect(activated.lifecycle).toBe('ACTIVE');
     expect(activated.warnings).toEqual(['ROUTING_COVERAGE_MISSING']);
+    expect(memory.changeLogs[memory.changeLogs.length - 1]).toMatchObject({
+      reason: 'lifecycle_transition',
+      diff: {
+        routingCoverage: {
+          policySettingKey: 'private.ticket.routing.requireCoverage',
+          requireCoverage: false,
+          hasCoverage: false,
+          requiredOriginUnitCount: 3,
+          missingOriginUnitIds: ['ou-child'],
+          overrideApplied: true,
+        },
+      },
+    });
   });
 });

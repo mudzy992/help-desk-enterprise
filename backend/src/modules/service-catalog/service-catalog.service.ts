@@ -164,7 +164,7 @@ export class ServiceCatalogService {
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
       const configuration = await this.lifecycleConfigurationLoader.load();
-      const coverageWarning =
+      const coverageEvaluation =
         input.lifecycle === "ACTIVE" && this.routingService !== null
           ? await this.routingService.evaluateActivationCoverage(serviceId)
           : null;
@@ -174,7 +174,7 @@ export class ServiceCatalogService {
         input,
         configuration,
         context,
-        coverageWarning,
+        coverageEvaluation,
       );
     });
   }
