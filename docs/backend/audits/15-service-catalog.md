@@ -1,6 +1,6 @@
 # Backend audit 15 — `service-catalog`
 
-**Status:** audit završen; `BA-service-catalog-10` i `BA-service-catalog-11` zatvoreni uz njihove odvojene closeout dokaze; sljedeći kandidat je `BA-service-catalog-12` i nije započet<br>
+**Status:** audit završen; `BA-service-catalog-10`, `BA-service-catalog-11` i `BA-service-catalog-12` zatvoreni uz odvojene closeout dokaze; sljedeći kandidat je `BA-service-catalog-13` i nije započet<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-02<br>
 **Rizik modula:** visok<br>
@@ -13,7 +13,7 @@
 
 Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Draft forma može postati korištena između immutable provjere i updatea, pa se schema historijskog ticketa retroaktivno mijenja. Config-versioning direktno prepisuje schema/status postojećih formi i zaobilazi immutable/lifecycle/multiple-active invariante. Administrator može konfigurirati regularni izraz sa katastrofalnim backtrackingom, a svaki prijavljeni requester ga pokreće nad vlastitim inputom. Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`.
 
-Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-10` (P2) i `BA-service-catalog-11` (P2) su zatvoreni prema zasebnim closeout dokazima. Sljedeći kandidat je `BA-service-catalog-12`; nije započet. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
+Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-10` (P2), `BA-service-catalog-11` (P2) i `BA-service-catalog-12` (P2) zatvoreni su prema zasebnim closeout dokazima. Sljedeći kandidat je `BA-service-catalog-13`; nije započet. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
 
 ## Historijski implementacijski ulaz — `BA-service-catalog-10` (2026-11-02)
 
@@ -79,15 +79,15 @@ Config-versioning snapshot skuplja sve servise i forme te pri aktivaciji direktn
 
 | Površina                            | Guard                                      | Scope                                | Zaključak                                                  |
 | ----------------------------------- | ------------------------------------------ | ------------------------------------ | ---------------------------------------------------------- |
-| `POST /services`                    | ADMIN + `service.catalog.write`            | nema service scope za novi resurs    | scoped assignment može globalno kreirati                   |
+| `POST /services`                    | ADMIN + `service.catalog.write`            | novi resurs nema route scope locator | globalni `RoleGuard` check odbija scoped assignment; BA-12 testom potvrđeno |
 | service update/lifecycle/delete/get | role/permission prema ruti                 | `serviceId` scope                    | dobro za postojeći servis                                  |
-| `GET /services`                     | user/agent/admin                           | lifecycle filter, bez service scopea | javni aktivni katalog namjeran; admin draft lista globalna |
-| category CRUD                       | ADMIN; write permission na mutaciji        | kategorije su globalne               | scoped catalog writer ima globalni category write          |
+| `GET /services`                     | user/agent/admin                           | lifecycle filter, bez service scopea | javni ACTIVE katalog namjeran; admin draft lista globalna   |
+| category CRUD                       | ADMIN; write permission na mutaciji        | kategorije su globalne               | globalni `RoleGuard` check odbija scoped assignment; BA-12 testom potvrđeno |
 | form write/read                     | dedicated write + service scope; role read | service scope                        | dobra osnovna izolacija                                    |
 | availability/downtime write         | dedicated write + service scope            | service scope                        | dobra osnovna izolacija                                    |
 | category/list downtime read         | ADMIN role, bez dedicated read prava       | global/category ili service scope    | role-only read ugovor                                      |
 
-Requesteri vide samo ACTIVE, agenti ACTIVE/DEPRECATED, a admini sva stanja. Skriveni single service/form vraća not-found. Međutim administrativni list svih draftova ne filtrira service assignment scope.
+Na audit baselineu requesteri su vidjeli samo ACTIVE, agenti ACTIVE/DEPRECATED, a admini sva stanja; skriveni single service/form vraćao je not-found. Baseline `GET /services` nije filtrirao draftove po service assignment scopeu; BA-12 closeout je to suzio na dodijeljene servise. Globalni service/category create nije ostao otvorenim problemom: targeted RoleGuard testovi u BA-12 potvrđuju da service- i OU-scoped ADMIN assignment bez global assignmenta bude odbijen.
 
 ## 5. Podaci, transakcije i konkurencija
 
@@ -182,7 +182,7 @@ E2E 42 pokriva create/edit/delete draft servisa, onboarding, lifecycle/routing U
 | BA-service-catalog-09 | P2       | Service/category/lifecycle/availability updatei su silent last-write-wins                      | otvoreno |
 | BA-service-catalog-10 | P2       | Service/list/form/downtime readovi su neograničeni i resource-unbounded                        | zatvoreno |
 | BA-service-catalog-11 | P2       | Change-owned downtime sync je best-effort bez durable retry/reconciliationa                    | zatvoreno |
-| BA-service-catalog-12 | P2       | Scoped catalog writer može globalno kreirati servise/kategorije i vidjeti sve admin draftove   | otvoreno |
+| BA-service-catalog-12 | P2       | Scoped catalog writer može globalno kreirati servise/kategorije i vidjeti sve admin draftove   | zatvoreno |
 | BA-service-catalog-13 | P3       | Category/lifecycle/form mutacije nemaju dosljedan caller-supplied reason ugovor                | otvoreno |
 | BA-service-catalog-14 | P3       | Incident read fail-open tiho prikazuje zdrav servis na DB grešci                               | otvoreno |
 | BA-service-catalog-15 | P3       | Kritična concurrency/security/config test matrica nije izvršiva ni kompletna                   | otvoreno |
@@ -326,3 +326,11 @@ Preklapanje s auditom 24 ostaje samo dokumentovano: `BA-changes-08` (lifecycle/d
 - Modul `service-catalog`: 4 P1, 8 P2, 3 P3 ukupno; **13 otvorenih / 2 zatvorena**.
 - Globalni deklarisani zbir: **568 otvorenih / 124 zatvorena / 692 ukupno**. Machine-readable redovi: **571 otvoreno / 110 zatvorenih / 11 historijskih**; preegzistentna razlika od tri statusa ostaje.
 - Za BA-10 i BA-11 nije mijenjana Prisma schema i nije dodana ni primijenjena paketna migracija. Nema pristupa ni promjene ciljne baze; CI je koristio disposable PostgreSQL.
+
+## 20. Statusna dopuna — BA-12 closeout (2026-11-02)
+
+`BA-service-catalog-12` (P2) zatvoren je na kodnom/testanom SHA `14dbb9451326074f777b5d6102773e88f06c2286`. Targeted `RoleGuard` testovima je dokazano da service-scoped i OU-scoped ADMIN ne mogu globalno kreirati servise/kategorije; postojeća write policy ostala je nepromijenjena. `/services` sada globalno izlaže javne lifecycle statuse, a non-public statuse service-scoped ADMIN-u samo za dodijeljene service ID-jeve. OU-only ADMIN bez service mapiranja ne dobija globalne draftove; scope je uključen u cursor filter fingerprint.
+
+CI [`41448717393`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717393) i Perf [`41448717783`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717783) na istom SHA-u su `success`. Backend, real PostgreSQL/Redis integration, frontend, docs/container i CI gate su passed; E2E critical/install i image vulnerability enforcement bili su `skipped`, ne passed. Perf `/services?take=100` p95 je **28.68 ms**, payload p95/max **111.16 KB**, a global query-budget avg **2.094** preko **48.393** zahtjeva. E2E/spec 56 nije izvršen u tom push runu; njegov kod i prag `250 ms` nisu mijenjani, pa nema browser E2E sign-off.
+
+Nema Prisma schema promjene, BA-12 migracije ni target-DB pristupa. Deklarisani globalni zbir je **567 otvorenih / 125 zatvorenih / 692 ukupno**; machine-readable source je **570 otvorenih / 111 zatvorenih / 11 historijskih** uz preegzistentnu razliku od tri statusa. `service-catalog` ima **12 otvorenih / 3 zatvorena** (ukupno 4 P1, 8 P2, 3 P3). BA-10/11 ostaju zatvoreni, `BA-service-catalog-13` ostaje otvoren i nezapočet, `BA-changes-08`/`13` ostaju zasebno otvoreni. Detaljni testovi, local limits, CI skips, DB i rollout/rollback su u [108-service-catalog-12-scoped-catalog-admin-closeout.md](../implementation/108-service-catalog-12-scoped-catalog-admin-closeout.md).
