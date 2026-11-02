@@ -3,16 +3,16 @@
 **Paket:** audit 15 / `service-catalog` — regex ReDoS zaštita<br>
 **Nalaz:** `BA-service-catalog-03` (P1) — implementacija na radnoj grani; status ostaje otvoren dok ne prođu inventura ciljnih patterna i rollout acceptance<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
-**Kodni SHA / CI:** `06e92d6`; CI run `41493052519` **passed**; Perf smoke `41493052534` **failed** na `search_duration p(95)<500 ms` (izvan BA-03 scopea)<br>
-**Target-DB inventura:** korisnik je potvrdio `E2E_DATABASE_URL` kao prod-identičan cilj; inventura još nije pokrenuta i nema pretpostavke da su postojeći patterni sigurni<br>
+**Kodni SHA / CI:** implementacija `06e92d6`, read-only workflow `2704f74`; CI `41493052519` i `41496718042` **passed**; Perf smoke `41493052534` **failed** na `search_duration p(95)<500 ms` (izvan BA-03 scopea)<br>
+**Target-DB inventura:** korisnik je potvrdio `E2E_DATABASE_URL` kao prod-identičan cilj; audit nije izvršen jer je workflow dispatch odbijen HTTP 403 prije kreiranja runa<br>
 **Migracija / dependency:** nema Prisma migracije i nema nove runtime dependency<br>
-**E2E / deployment:** E2E critical/install jobs **skipped** na pushu; nema E2E/spec 56 sign-offa i nije izvršen deployment
+**E2E / deployment:** audit i E2E critical/install jobs **skipped** na pushu; nema E2E/spec 56 sign-offa i nije izvršen deployment
 
 ## Nalaz i trenutni status
 
 Audit je utvrdio da backend sinhrono izvršava administratorski JavaScript regex nad requester inputom. Ograničenje patterna na 256 znakova ne sprečava katastrofalni backtracking, a `maxLength` nije obavezan.
 
-Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-closed ponašanje za legacy pattern koji nije siguran, zaštitu svih standardnih schema-write/activation i config-snapshot puteva, browser-side zabranu regex evaluacije te read-only inventuru postojećih konfiguracija. CI sa generisanim Prisma Clientom i ciljanim backend/frontend testovima je prošao, ali **nalaz se ne zatvara**: prod-identična ciljna baza još nije klasificirana i kod nije redeployan. Rollout je blokiran do inventure i remedijacije unsafe ACTIVE patterna.
+Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-closed ponašanje za legacy pattern koji nije siguran, zaštitu svih standardnih schema-write/activation i config-snapshot puteva, browser-side zabranu regex evaluacije te read-only inventuru postojećih konfiguracija. CI sa generisanim Prisma Clientom i ciljanim backend/frontend testovima je prošao. Manualni read-only inventory job je pushan, ali `gh workflow run` dispatch je odbijen HTTP 403 prije kreiranja runa; nije uspostavljena DB konekcija. **Nalaz se ne zatvara**: prod-identična ciljna baza još nije klasificirana i kod nije redeployan. Rollout je blokiran do inventure i remedijacije unsafe ACTIVE patterna.
 
 ## Implementacija
 
@@ -70,7 +70,7 @@ Repository je javan, zato taj job **ne uploaduje report i ne ispisuje ID-eve, fi
 **Blocked / nije passed:**
 
 - Lokalni `service-forms.service.spec.ts`, `validate-catalog-domain-snapshot.spec.ts` i `apply-catalog-snapshot.spec.ts` bili su compile-blocked zbog nedostajućeg generisanog Prisma Clienta (0 lokalnih testova izvršeno); isti compile-blocked suiteovi zatim su prošli u punom GitHub backend CI runu nakon generisanja Clienta.
-- Target inventory još nije izvršen. Lokalnom runneru nisu dostupni `DATABASE_URL`/`E2E_DATABASE_URL`, `.env` ni generated client; lokalni Prisma CLI bootstrap je blokiran TLS pristupom `binaries.prisma.sh`. Dodan je zaseban manual read-only job, ali još nije dispatchan; do tada nema DB konekcije ni migracije iz ove sesije.
+- Target inventory još nije izvršen. Lokalnom runneru nisu dostupni `DATABASE_URL`/`E2E_DATABASE_URL`, `.env` ni generated client; lokalni Prisma CLI bootstrap je blokiran TLS pristupom `binaries.prisma.sh`. Zaseban manual read-only job je dodan i pushan; pokušaj `gh workflow run` završio je HTTP 403 `Resource not accessible by integration` prije kreiranja runa. Nije bilo DB konekcije ni migracije iz ove sesije.
 - U CI runu `41493052519`, E2E critical flows i E2E install wizard bili su **skipped** na push triggeru; conditional image high/critical enforcement step je također **skipped**. Nema E2E/spec 56 sign-offa.
 - Perf smoke run `41493052534` je **failed** na `search_duration p(95)<500 ms`; to je izvan BA-03 scopea i nije mijenjano. Postojeći spec 56 i prag `250 ms` nisu mijenjani.
 
