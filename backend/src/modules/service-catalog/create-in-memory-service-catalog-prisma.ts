@@ -37,7 +37,7 @@ export function createInMemoryServiceCatalogPrisma(): {
     serviceOnboarding: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
-    $queryRaw: (...args: unknown[]) => Promise<unknown>;
+    $queryRaw?: (...args: unknown[]) => Promise<unknown>;
     $transaction: (
       callback: (client: unknown) => Promise<unknown>,
     ) => Promise<unknown>;
