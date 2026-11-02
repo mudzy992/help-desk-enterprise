@@ -119,7 +119,7 @@ test("CI E2E se pokreće na PR-u, scheduleu i ručnom dispatchu, ne na pushu", (
 
 // Zajedno se ne smiju pokrenuti: obični E2E bi kroz API završio instalaciju koju
 // wizard spec (51/52) prolazi kroz UI, pa bi oba speca pala na `isCompleted`.
-test("Perf smoke push je ograničen na BA-10 dokaz na aktivnoj grani", () => {
+test("Perf smoke push je ograničen na BA-10 runtime/perf kod na aktivnoj grani", () => {
   const workflow = readFileSync(perfWorkflowPath, "utf8");
   const triggers = workflow.slice(
     workflow.indexOf("on:"),
@@ -139,8 +139,9 @@ test("Perf smoke push je ograničen na BA-10 dokaz na aktivnoj grani", () => {
   const push = triggers.slice(pushStart, pullRequestStart);
   assert.ok(push.includes("arena/864951a6-help-desk-enterprise"));
   assert.ok(push.includes('"backend/src/modules/service-catalog/**"'));
-  assert.ok(push.includes('"docs/backend/audits/15-service-catalog.md"'));
   assert.ok(push.includes('"perf/smoke.js"'));
+  assert.ok(!push.includes('"docs/backend/audits/15-service-catalog.md"'));
+  assert.ok(!push.includes('"PERF_BUDGETS.md"'));
 });
 
 test("install-wizard dispatch povlači obični E2E, a zaseban posao traži spec", () => {

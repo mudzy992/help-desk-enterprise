@@ -10,8 +10,8 @@ name: Perf smoke
 # as artefacts so a regression can be read without re-running the pipeline.
 
 # Performance smoke is an expensive segment-level signal. Keep the PR gate, and
-# run it on this active Arena branch only when BA-10 runtime/perf code or its
-# recorded evidence changes; this avoids spending a smoke on every package push.
+# run it on this active Arena branch only when BA-10 runtime/perf code changes;
+# documentation-only closeout updates do not spend another expensive smoke.
 on:
   push:
     branches:
@@ -21,8 +21,6 @@ on:
       - "backend/src/modules/service-catalog/**"
       - "backend/scripts/run-isolated-integration.*"
       - "backend/scripts/seed-service-catalog-perf.mjs"
-      - "docs/backend/audits/15-service-catalog.md"
-      - "PERF_BUDGETS.md"
       - "perf/config.js"
       - "perf/lib/metrics.js"
       - "perf/lib/scenarios.js"
