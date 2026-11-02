@@ -110,9 +110,40 @@ describe("ServiceFormsService", () => {
     expect(created.isImmutable).toBe(false);
     expect(created.schema).toEqual(validSchema);
     expect(created.formVersionRef).toBe(created.formVersionRef);
-    await expect(
-      forms.createForm(service.id, { schema: validSchema }),
-    ).rejects.toBeInstanceOf(ConflictException);
+    const duplicateError = await forms
+      .createForm(service.id, { schema: validSchema })
+      .catch((error: unknown) => error);
+    expect(duplicateError).toBeInstanceOf(ConflictException);
+    const duplicateConflict = duplicateError as ConflictException;
+    expect(duplicateConflict.getStatus()).toBe(409);
+    expect(duplicateConflict.getResponse()).toMatchObject({
+      code: 'FORM_ALREADY_EXISTS',
+    });
+  });
+
+  it("maps a version-1 unique conflict to the stable 409 contract", async () => {
+    const { catalog, forms, memory } = createHarness();
+    const service = await createDraftService(catalog);
+    const delegate = memory.prisma.formVersion as unknown as {
+      create: (input: unknown) => Promise<unknown>;
+    };
+    delegate.create = async () => {
+      throw Object.assign(new Error("unique constraint violation"), {
+        code: "P2002",
+        meta: { target: ["serviceId", "version"] },
+      });
+    };
+
+    const creationError = await forms
+      .createForm(service.id, { schema: validSchema })
+      .catch((error: unknown) => error);
+
+    expect(creationError).toBeInstanceOf(ConflictException);
+    const conflict = creationError as ConflictException;
+    expect(conflict.getStatus()).toBe(409);
+    expect(conflict.getResponse()).toMatchObject({
+      code: "FORM_ALREADY_EXISTS",
+    });
   });
 
   it("creates a new form version without mutating the previous one", async () => {
@@ -130,6 +161,67 @@ describe("ServiceFormsService", () => {
     );
     expect(original.schema).toEqual(validSchema);
     expect(original.version).toBe(1);
+  });
+
+  it("retries a service/version unique conflict after reading the fresh version", async () => {
+    const { catalog, forms, memory } = createHarness();
+    const service = await createDraftService(catalog);
+    await forms.createForm(service.id, { schema: validSchema });
+    const transaction = jest.spyOn(memory.prisma, "$transaction");
+    const delegate = memory.prisma.formVersion as unknown as {
+      create: (input: unknown) => Promise<unknown>;
+    };
+    const originalCreate = delegate.create.bind(delegate);
+    let attempts = 0;
+    delegate.create = async (input: unknown) => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw Object.assign(new Error("unique constraint violation"), {
+          code: "P2002",
+          meta: { target: ["serviceId", "version"] },
+        });
+      }
+      return originalCreate(input as never);
+    };
+
+    const created = await forms.createFormVersion(service.id, {
+      schema: nextSchema,
+    });
+
+    expect(attempts).toBe(2);
+    expect(transaction).toHaveBeenCalledTimes(2);
+    expect(created.version).toBe(2);
+  });
+
+  it("maps repeated version allocation conflicts to a stable HTTP 409", async () => {
+    const { catalog, forms, memory } = createHarness();
+    const service = await createDraftService(catalog);
+    await forms.createForm(service.id, { schema: validSchema });
+    const transaction = jest.spyOn(memory.prisma, "$transaction");
+    const delegate = memory.prisma.formVersion as unknown as {
+      create: (input: unknown) => Promise<unknown>;
+    };
+    let attempts = 0;
+    delegate.create = async () => {
+      attempts += 1;
+      throw Object.assign(new Error("unique constraint violation"), {
+        code: "P2002",
+        meta: { target: ["serviceId", "version"] },
+      });
+    };
+
+    const allocationError = await forms
+      .createFormVersion(service.id, { schema: nextSchema })
+      .catch((error: unknown) => error);
+
+    expect(attempts).toBe(3);
+    expect(transaction).toHaveBeenCalledTimes(3);
+    expect(allocationError).toBeInstanceOf(ConflictException);
+    const conflict = allocationError as ConflictException;
+    expect(conflict.getStatus()).toBe(409);
+    expect(conflict.getResponse()).toMatchObject({
+      code: "FORM_VERSION_CREATE_CONFLICT",
+    });
   });
 
   it("updates an unused draft schema without changing its version identity", async () => {

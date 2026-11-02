@@ -40,6 +40,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",
   "src/modules/service-catalog/service-form-version-immutability.integration.spec.ts",
   "src/modules/service-catalog/service-form-version-activation.integration.spec.ts",
+  "src/modules/service-catalog/service-form-version-create.integration.spec.ts",
   "src/modules/config-versioning/apply-catalog-snapshot.integration.spec.ts",
   "src/modules/sla/sla-write-lock.integration.spec.ts",
   "src/modules/sla/sla-compliance-aggregation.integration.spec.ts",

@@ -1,7 +1,7 @@
-# Implementacijski checkpoint — `BA-service-catalog-05` (CI prošao; owner acceptance čeka)
+# Implementacijski checkpoint — `BA-service-catalog-05` (owner-directed closeout)
 
 **Paket:** audit 15 / `service-catalog` — konkurentna aktivacija verzija forme<br>
-**Nalaz:** `BA-service-catalog-05` (P2) — **otvoren**; implementacija i obavezne CI provjere su završene, owner acceptance nije evidentiran<br>
+**Nalaz:** `BA-service-catalog-05` (P2) — **zatvoren owner-directed 2026-11-02** nakon korisnikove prijave urednog redeploya; deployment nije nezavisno provjeren<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **BA-04 prethodni status:** zatvoren odvojeno po izričitoj owner-directed odluci 2026-11-02; deklarisani agregat je 563 otvorena / 129 zatvorenih / 692 ukupno, machine-readable 566 otvorenih / 115 zatvorenih / 11 historijskih; `service-catalog` ima 8 otvorenih / 7 zatvorenih<br>
 **Migracija / ciljna baza:** nema Prisma schema promjene, migracije ni pristupa/upisa u ciljnu bazu<br>
@@ -51,6 +51,8 @@ CI [`41529212182`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 
 Odvojeni Perf smoke [`41529212249`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212249) je **failure** samo na `POST /tickets/:id/messages` p95 **1160.83 ms** prema `<1000 ms`. Service-catalog p95 je **33.31 ms** prema `<500 ms`, catalog contract failures **0**, payload **111.16 KB** prema `<=1024 KB`, a query-budget avg **2.093** preko **48,355** zahtjeva prema `2.1` su **passed**; `GET /search` p95 **496.88 ms** prema `<500 ms` je također passed. K6 je izvršen, ali ukupni Perf workflow ostaje failure zbog nepovezanog ticket-message praga; endpoint nije BA-05 scope i nije mijenjan. Spec 56/prag `250 ms` nisu mijenjani.
 
-## Status i sljedeći korak
+## Owner-directed closeout i status
 
-BA-05 ostaje **otvoren do owner acceptancea**; CI build/full Jest i PostgreSQL integration su passed na `6d98cff`. Prije bilo kakvog zatvaranja treba od ownera dobiti zasebnu acceptance odluku i sačuvati tačan CI/Perf status; Perf failure se ne predstavlja kao BA-05 failure niti kao green cijelog smokea. Ne otvarati PR prema `master`, ne mergeati i ne deployati bez zasebne dozvole. Nema promjene BA-routing-02, BA-06, drugih nalaza, speca 56, praga `250 ms` ni W7.15 ponašanja.
+Korisnik je 2026-11-02 potvrdio da je BA-05 uredno redeployan i izričito odobrio početak BA-06. BA-05 je zato evidentiran kao **zatvoren owner-directed**. Deploy nije nezavisno provjeren u ovom okruženju; CI `41529212182` potvrđuje kodni build/test/integration, ne produkcijski rollout. Odvojeni Perf `41529212249` ostaje **failure** samo na nepovezanom ticket-message p95; E2E/inventory su bili **skipped**, pa nema spec 56 sign-offa. Ovi statusi ostaju razdvojeni i nisu predstavljeni kao green ukupnog Perf/E2E gatea.
+
+Sljedeći i jedini aktivni scope je BA-06; detalji su u [114 checkpointu](114-service-catalog-06-form-version-create-race.md). Ne otvarati PR prema `master`, ne izvršavati novi merge ili deployment bez zasebne dozvole. Nema promjene BA-routing-02, drugih nalaza, speca 56, praga `250 ms` ni W7.15 ponašanja.

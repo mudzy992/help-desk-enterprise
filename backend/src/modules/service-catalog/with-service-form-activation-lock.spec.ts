@@ -1,7 +1,11 @@
-import { withServiceFormActivationLock } from './with-service-form-activation-lock';
+import {
+  withServiceFormActivationLock,
+  withServiceFormVersionMutationLock,
+} from './with-service-form-activation-lock';
 
-describe('withServiceFormActivationLock', () => {
-  it('acquires the service advisory lock and writer table lock before mutation', async () => {
+describe('withServiceFormVersionMutationLock', () => {
+  it('shares the BA-05 lock identity and takes the writer table lock before mutation', async () => {
+    expect(withServiceFormActivationLock).toBe(withServiceFormVersionMutationLock);
     const events: string[] = [];
     const queryRaw = jest.fn(
       async (query: TemplateStringsArray, ..._values: unknown[]) => {
@@ -17,7 +21,7 @@ describe('withServiceFormActivationLock', () => {
     );
     const transaction = { $queryRaw: queryRaw, $executeRaw: executeRaw } as never;
 
-    const result = await withServiceFormActivationLock(
+    const result = await withServiceFormVersionMutationLock(
       transaction,
       'service-activation-lock-test',
       async () => {
