@@ -31,14 +31,14 @@ BA-02 acceptance je ispunjen: aktivacija poredi hash i pune skupove Service/Form
 - `apply-catalog-snapshot.integration.spec.ts` je dodat u `backend/scripts/run-isolated-integration.mjs`; PostgreSQL testovi provjeravaju zaključavanje i novu verziju za immutable ACTIVE formu te da stale hash odbije apply bez prepisivanja intervenišućeg service updatea.
 - `validate-catalog-domain-snapshot.spec.ts`, `catalog-state-hash.spec.ts`, `load-current-service-lifecycle-configuration.spec.ts` i prošireni `config-versioning.validate.spec.ts` pokrivaju ACTIVE formu, obavezni routing validation i kad je opcionalni validator isključen, hash stabilnost, aktuelni lifecycle policy i rollback merge/hash.
 - Lokalni targeted backend Jest na ekvivalentnom BA-02 patchu `cb8b27b6686e2360dedee2b419917da4be272d54` prošao je **7 suites / 32 tests**; ESLint za `config-versioning`, targeted Prettier i integration harness (**3/3**) prošli su. Frontend config-version mapper/helper testovi prošli su **5/5**, a produkcijski frontend build je prošao. Ovo su lokalni testovi iz prije rebase checkpointa; konačni rebased kodni SHA je dodatno pokriven punim CI-jem ispod.
-- Lokalni full frontend `npm test` timeoutovao je nakon **180,665 ms** bez aggregate rezultata — **nije passed**. Lokalni backend build/typecheck nije potvrđen jer generated Prisma Client/enumi nisu bili dostupni. Lokalni `npm run test:integration` stao je na preflightu zbog nedostajućeg `DATABASE_URL`; stvarni PostgreSQL testovi nisu se izvršili u sandboxu.
+- Lokalni full frontend `npm test` timeoutovao je nakon približno **180,7 s** bez aggregate rezultata — **nije passed**. Lokalni backend build/typecheck nije potvrđen jer generated Prisma Client/enumi nisu bili dostupni. Lokalni `npm run test:integration` stao je na preflightu zbog nedostajućeg `DATABASE_URL`; stvarni PostgreSQL testovi nisu se izvršili u sandboxu.
 
 ## CI, PostgreSQL i performance dokaz
 
 CI [`41481182959`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481182959) na `32bf508036bffc2ba9ac07094f04e952edb5de08` završio je **success**:
 
 - **Backend build + test:** passed — Prisma schema/client generation, build, lint i puni backend Jest završili su uspješno.
-- **Backend PostgreSQL + Redis integration:** passed — uključujući migracije na disposable CI bazi, izolacijski harness i korak `Run real PostgreSQL integration suites`; BA-02 integration spec je u registru runnera i izvršen u zelenom jobu. Pojedinačni suite count nije deklarisan jer raw job-log preuzimanje nije dalo per-suite rezultat.
+- **Backend PostgreSQL + Redis integration:** passed — uključujući migracije na disposable CI bazi, izolacijski harness i korak `Run real PostgreSQL integration suites`; BA-02 integration spec je u registru runnera i izvršen u zelenom jobu. Pojedinačni suite count nije deklarisan jer CI run summary ne izlaže per-suite test count.
 - **Frontend build + test:** passed — lint, format, full test suite, production build i budžeti prošli su.
 - **Docs guard, backend container + supply chain i CI gate:** passed.
 - **Skipped:** `E2E critical flows`, `E2E install wizard` i uslovni `Enforce zero high/critical image vulnerabilities` korak. Nema browser E2E/spec 56 sign-offa; ti koraci se ne računaju kao passed.
