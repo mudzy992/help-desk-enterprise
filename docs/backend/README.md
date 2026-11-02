@@ -2,7 +2,7 @@
 
 **Status:** aktuelno<br>
 **Ažurirano:** 2026-11-02<br>
-**Aktivna etapa:** Val 7 / W7 — W7.1–W7.19 su zatvoreni za svoje pojedinačne nalaze; `BA-assets-16` je zatvoren 2026-11-01 po izričitoj korisničkoj odluci uz vidljivo zabilježen crveni globalni E2E gate, ne kao CI pass. W7.19 je imao targeted E2E `41314175993` (8/8 na SHA `93f9feb8ada3aef1ce9d8480ce4f96d1472f751a`) i zeleni branch code CI `41302730701` na `3ee7de073639719d5591a399ffbc0f3057668f14`. Full E2E `41283381903` pao je, a full assets segment sign-off nije ostvaren. Aktuelni implementacijski scope je samo `BA-service-catalog-10` iz audita 15; backend build/Jest je prošao u CI `41419059330` na SHA `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e`, a korisnik je potvrdio uspješan Coolify redeploy. Naknadni targeted CI [`41420600750`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420600750) pao je na dva spec-56 početna page-navigation testa (6 passed / 2 failed); Perf [`41420750853`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420750853) pao je na search i ticket-message p95 pragovima, dok je query budget prošao. Reproduction/profiling i DB query-plan/time-budget nisu završeni; uzročnost speca 56 nije potvrđena, a spec 56 i prag 250 ms ostaju nepromijenjeni.
+**Aktivna etapa:** Val 7 / W7 — W7.1–W7.19 su zatvoreni za svoje pojedinačne nalaze; full assets E2E/Perf sign-off nije ostvaren. `BA-service-catalog-10` zatvoren je 2026-11-02 izričitom korisničkom odlukom: CI [`41431538084`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41431538084) imao je zeleni CI gate, ali E2E critical/install i image vulnerability enforcement bili su `skipped`; odvojeni Perf [`41431538128`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41431538128) ostao je crven na nepovezanim ticket-message/search pragovima, dok su BA-10 service i global query-budget gates prošli. Ovo nije globalni Perf/E2E green sign-off; spec 56 i prag 250 ms nisu mijenjani. Aktuelni scope je samo `BA-service-catalog-11` (P2), koji se preklapa sa otvorenim `BA-changes-08`/`BA-changes-13`; ti statusi ostaju zasebni i otvoreni. Closeout je [106-service-catalog-10-owner-directed-closeout.md](implementation/106-service-catalog-10-owner-directed-closeout.md).
 
 Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po modul; implementacija nalaza počinje tek nakon završetka i odobrenja cijelog audit ciklusa.
 
@@ -36,6 +36,7 @@ Ovo je kanonska ulazna tačka za potpuni backend audit. Audit se radi modul po m
 26. [W7.18 — asset operations health metrics](implementation/104-assets-operations-health-metrics.md)
 27. [W7.19 — concurrency/failure E2E matrica za assets](implementation/105-assets-concurrency-failure-matrix.md)
 28. [Reusable package-closeout predložak](implementation/PACKAGE-CLOSEOUT-TEMPLATE.md)
+29. [BA-service-catalog-10 — owner-directed closeout](implementation/106-service-catalog-10-owner-directed-closeout.md)
 
 ## Trenutni status
 
