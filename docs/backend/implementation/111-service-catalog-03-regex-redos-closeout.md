@@ -1,18 +1,18 @@
 # Paketni checkpoint — `BA-service-catalog-03` (rollout još nije odobren)
 
 **Paket:** audit 15 / `service-catalog` — regex ReDoS zaštita<br>
-**Nalaz:** `BA-service-catalog-03` (P1) — implementacija na radnoj grani; status ostaje otvoren dok ne prođu inventura ciljnih patterna i rollout acceptance<br>
+**Nalaz:** `BA-service-catalog-03` (P1) — implementacija je na radnoj grani; read-only inventura je završena, a status ostaje otvoren do potvrđenog deploya i rollout acceptancea<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **Kodni SHA / CI:** implementacija `06e92d6`, read-only workflow `2704f74`; CI `41493052519` i `41496718042` **passed**; audit `41498990874` na SHA `07592a7` (run ref `master`) **passed**; Perf smoke `41493052534` **failed** na `search_duration p(95)<500 ms` (izvan BA-03 scopea)<br>
-**Target-DB inventura:** read-only audit `41498990874` nad prod-identičnim `E2E_DATABASE_URL` **passed**; unsafe ACTIVE count je nula. Ostali aggregate count-i su u workflow logu.<br>
+**Target-DB inventura:** read-only audit `41498990874` nad prod-identičnim `E2E_DATABASE_URL` **passed**: `formVersionCount=205`, `formsWithPatterns=0`, `patternCount=0`, `safePatternCount=0`, `unsafePatternCount=0`. DRAFT, ACTIVE i RETIRED: svaki `safe=0`, `unsafe=0`. Nema patterna za remedijaciju.<br>
 **Migracija / dependency:** nema Prisma migracije i nema nove runtime dependency<br>
-**E2E / deployment:** browser E2E poslovi **skipped** na audit dispatchu; nema E2E/spec 56 sign-offa i nije izvršen deployment
+**E2E / deployment:** browser E2E poslovi **skipped** na audit dispatchu; nema E2E/spec 56 sign-offa, a BA-03 deployment/rollout acceptance nije potvrđen ovim dokazima
 
 ## Nalaz i trenutni status
 
 Audit je utvrdio da backend sinhrono izvršava administratorski JavaScript regex nad requester inputom. Ograničenje patterna na 256 znakova ne sprečava katastrofalni backtracking, a `maxLength` nije obavezan.
 
-Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-closed ponašanje za legacy pattern koji nije siguran, zaštitu svih standardnih schema-write/activation i config-snapshot puteva, browser-side zabranu regex evaluacije te read-only inventuru postojećih konfiguracija. CI sa generisanim Prisma Clientom i ciljanim backend/frontend testovima je prošao. Korisnik je ručno pokrenuo inventory job `41498990874`; read-only klasifikacija prod-identične baze je prošla, a unsafe ACTIVE count je nula. **Nalaz se ne zatvara**: BA-03 kod još nije redeployan niti rollout acceptance završen. Tačni aggregate count-i po statusu ostaju u workflow logu, bez javnog artefakta.
+Kodni checkpoint uvodi safe-subset zaštitu, obavezni UTF-8 byte cap, fail-closed ponašanje za legacy pattern koji nije siguran, zaštitu svih standardnih schema-write/activation i config-snapshot puteva, browser-side zabranu regex evaluacije te read-only inventuru postojećih konfiguracija. CI sa generisanim Prisma Clientom i ciljanim backend/frontend testovima je prošao. Korisnik je ručno pokrenuo inventory job `41498990874`; read-only klasifikacija prod-identične baze je prošla. Rezultat: `formVersionCount=205`, `formsWithPatterns=0`, `patternCount=0`, `safePatternCount=0`, `unsafePatternCount=0`; za svaki od statusa DRAFT/ACTIVE/RETIRED vrijedi `safe=0`, `unsafe=0`. Nije bilo DB upisa ni migracije. **Nalaz se ne zatvara**: nema potvrde da je BA-03 kod deployan niti da je rollout acceptance završen. Audit job nije objavio report artifact, a javni log prikazuje samo aggregate count-e.
 
 ## Implementacija
 
@@ -70,12 +70,12 @@ Repository je javan, zato taj job **ne uploaduje report i ne ispisuje ID-eve, fi
 **Prepreke, skipped i failure:**
 
 - Lokalni `service-forms.service.spec.ts`, `validate-catalog-domain-snapshot.spec.ts` i `apply-catalog-snapshot.spec.ts` bili su compile-blocked zbog nedostajućeg generisanog Prisma Clienta (0 lokalnih testova izvršeno); isti compile-blocked suiteovi zatim su prošli u punom GitHub backend CI runu nakon generisanja Clienta.
-- Prod-identični target inventory je **passed** u runu `41498990874` na SHA `07592a7`: uspješan gate potvrđuje unsafe ACTIVE count `0`. Workflow log prikazuje samo aggregate counts po statusu; detaljni report/artefakt se ne čuva. Agentov pokušaj preuzimanja loga završio je `EOF`, zato tačni safe/unsafe DRAFT/RETIRED count-i nisu prepisani u checkpoint. Nije bilo DB upisa ni migracije.
+- Prod-identični target inventory je **passed** u runu `41498990874` na SHA `07592a7` (run ref `master`): `formVersionCount=205`, `formsWithPatterns=0`, `patternCount=0`, `safePatternCount=0`, `unsafePatternCount=0`; DRAFT/ACTIVE/RETIRED imaju svaki `safe=0`, `unsafe=0`. Audit je bio read-only; nije bilo DB upisa ni migracije. Detaljni privatni report nije sačuvan kao workflow artifact; javni log prikazuje samo aggregate count-e.
 - U CI runu `41493052519`, E2E critical flows i E2E install wizard bili su **skipped** na push triggeru; u izoliranom audit dispatchu `41498990874` browser E2E poslovi su također **skipped** po dizajnu. Conditional image high/critical enforcement step je **skipped**. Nema E2E/spec 56 sign-offa.
 - Perf smoke run `41493052534` je **failed** na `search_duration p(95)<500 ms`; to je izvan BA-03 scopea i nije mijenjano. Postojeći spec 56 i prag `250 ms` nisu mijenjani.
 
 ## Scope i završni uslovi
 
-Mijenjan je samo BA-03 regex sigurnosni put, njegove direktne write/config integration tačke, frontend matcher/cap, read-only inventory CI job i povezani testovi/lokalizacija/dokumentacija. Nema izmjene speca 56, globalnog praga `250 ms`, W7.15 hard-delete ili event-archival ponašanja, drugih audit nalaza, migracije, DB upisa, deploymenta ili PR-a. Kodni commit `06e92d6` i push na fiksnu granu su završeni; nije bilo mergea.
+Mijenjan je samo BA-03 regex sigurnosni put, njegove direktne write/config integration tačke, frontend matcher/cap, read-only inventory CI job i povezani testovi/lokalizacija/dokumentacija. Nema izmjene speca 56, globalnog praga `250 ms`, W7.15 hard-delete ili event-archival ponašanja, drugih audit nalaza, migracije ni DB upisa; agent nije izvršio deployment niti otvorio PR. Kodni commit `06e92d6` i workflow commit `2704f74` pushani su na fiksnu granu; nije bilo mergea.
 
-`BA-service-catalog-03` ostaje **otvoren** do BA-03 koda deploya i rollout acceptancea. Prod-identična target inventura je završena, a unsafe ACTIVE count je `0`; zato nema ACTIVE-pattern remedijacije kao rollout preuslova. Ako postoje unsafe DRAFT/RETIRED zapisi, ostaju neizvršivi kroz enforcement. Backend CI i relevantni testovi su prošli na stvarnom generisanom Prisma Clientu.
+`BA-service-catalog-03` ostaje **otvoren** do potvrđenog deploya BA-03 koda i rollout acceptancea. Prod-identična target inventura je završena: u 205 FormVersion zapisa nema formi sa patternima (`formsWithPatterns=0`, `patternCount=0`), pa su safe/unsafe count-i `0` za ACTIVE, DRAFT i RETIRED; nema patterna za remedijaciju. Backend CI i relevantni testovi su prošli na stvarnom generisanom Prisma Clientu. Audit dispatch nije full E2E sign-off jer su browser E2E poslovi bili skipped.
