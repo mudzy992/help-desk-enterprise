@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
+import { computeCatalogStateHash } from './catalog-state-hash';
 import {
   mergeSettingRecords,
   routingConfigurationFromSettings,
@@ -69,6 +70,7 @@ export async function collectConfigSnapshot(
     capturedAt,
     scopes,
     rollbackOfVersion: null,
+    catalogStateHash: computeCatalogStateHash(services, forms),
     settings,
     routing: {
       rules: rules.map((rule) => ({

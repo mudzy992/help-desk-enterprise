@@ -131,6 +131,8 @@ export type ConfigSnapshot = {
   readonly capturedAt: string;
   readonly scopes: readonly string[];
   readonly rollbackOfVersion: number | null;
+  /** SHA-256 precondition over the Service/FormVersion row set; absent on legacy snapshots. */
+  readonly catalogStateHash?: string;
   readonly settings: Readonly<Record<string, SettingValue>>;
   readonly routing: {
     readonly rules: readonly ConfigRoutingRuleSnapshot[];

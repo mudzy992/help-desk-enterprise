@@ -49,6 +49,12 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     ),
     "nedostaje obavezni BA-01 form-version concurrency PostgreSQL shard",
   );
+  assert.ok(
+    integrationSpecs.includes(
+      "src/modules/config-versioning/apply-catalog-snapshot.integration.spec.ts",
+    ),
+    "nedostaje obavezni BA-02 config catalog PostgreSQL shard",
+  );
   assert.ok(integrationSpecs.includes("src/modules/audit-log/partitioned-audit-chain.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/audit-log/audit-scope-provenance.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/security/step-up-policy.integration.spec.ts"));

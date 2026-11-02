@@ -380,6 +380,9 @@ export function resolvePortableConfig(input: {
           capturedAt: input.capturedAt,
           scopes: target.scopes,
           rollbackOfVersion: null,
+          ...(target.catalogStateHash === undefined
+            ? {}
+            : { catalogStateHash: target.catalogStateHash }),
           settings,
           routing: { rules: routingRules, configuration: routingConfigurationFromSettings(settings) },
           sla: { calendars, profiles, rules: slaRules, escalations, priorityMatrix },

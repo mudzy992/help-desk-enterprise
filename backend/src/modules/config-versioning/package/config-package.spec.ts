@@ -133,6 +133,17 @@ describe('config package (Paket 2.9 K4)', () => {
     expect(result.created).toEqual({ calendars: [], slaProfiles: [] });
   });
 
+  it('preserves the target catalog concurrency hash while overlaying portable values', () => {
+    const targetHash = 'c'.repeat(64);
+    const result = resolvePortableConfig(
+      resolveInput({
+        target: { ...productionSnapshot(), catalogStateHash: targetHash },
+      }),
+    );
+
+    expect(result.snapshot?.catalogStateHash).toBe(targetHash);
+  });
+
   it('applies env-bound settings only when confirmed', () => {
     const result = resolvePortableConfig(resolveInput({ applyEnvironmentBound: true }));
     expect(result.snapshot!.settings['private.smtp.host']).toBe('mail.staging.example.com');

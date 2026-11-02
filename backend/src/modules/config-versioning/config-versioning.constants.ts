@@ -30,6 +30,8 @@ export const configVersioningErrorCodes = {
   noPreviousVersion: 'NO_PREVIOUS_CONFIG_VERSION',
   reasonRequired: 'REASON_REQUIRED',
   applyFailed: 'CONFIG_APPLY_FAILED',
+  catalogStateConflict: 'CONFIG_CATALOG_STATE_CONFLICT',
+  catalogInvariantViolation: 'CONFIG_CATALOG_INVARIANT_VIOLATION',
   // Paket 2.9 (K4): config packages.
   packageInvalid: 'CONFIG_PACKAGE_INVALID',
   packageChecksumMismatch: 'CONFIG_PACKAGE_CHECKSUM_MISMATCH',
@@ -58,6 +60,10 @@ export const configVersioningErrorMessages: Record<
   NO_PREVIOUS_CONFIG_VERSION: 'No previous config version is available to restore',
   REASON_REQUIRED: 'A reason is required for this config version change',
   CONFIG_APPLY_FAILED: 'Config version could not be applied to live state',
+  CONFIG_CATALOG_STATE_CONFLICT:
+    'Service catalog changed after this config snapshot was captured; create or import a fresh snapshot',
+  CONFIG_CATALOG_INVARIANT_VIOLATION:
+    'Config snapshot violates service-catalog domain invariants',
   CONFIG_PACKAGE_INVALID: 'The file is not a valid configuration package',
   CONFIG_PACKAGE_CHECKSUM_MISMATCH: 'The configuration package was modified after export (checksum mismatch)',
   CONFIG_PACKAGE_SIGNATURE_INVALID: 'The configuration package signature is invalid',

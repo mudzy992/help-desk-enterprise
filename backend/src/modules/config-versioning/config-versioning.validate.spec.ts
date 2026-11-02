@@ -1,5 +1,4 @@
 import { createSettingsRegistry } from '../settings/registry/create-settings-registry';
-import { applicationSettings } from '../settings/definitions/application-settings';
 import { buildRollbackSnapshot } from './build-rollback-snapshot';
 import { configVersioningScopes } from './config-versioning.constants';
 import { configVersioningErrorCodes } from './config-versioning.constants';
@@ -10,7 +9,7 @@ import { assertConfigActivationAllowed } from './config-versioning-access';
 import { validateConfigSnapshot } from './validate-config-snapshot';
 import type { ConfigVersioningConfiguration } from './config-versioning.types';
 
-const registry = createSettingsRegistry(applicationSettings);
+const registry = createSettingsRegistry([]);
 
 const configuration = (
   scopes: readonly string[],
@@ -87,6 +86,65 @@ describe('validateConfigSnapshot', () => {
   });
 });
 
+describe('mandatory catalog validation', () => {
+  it('blocks routing coverage failures even when configurable validation is disabled', () => {
+    const snapshot = createConfigSnapshotFixture({
+      routing: {
+        configuration: {
+          unroutedQueueEnabled: false,
+          unroutedQueueOwnerRole: 'SUPER_ADMIN',
+          requireCoverage: true,
+        },
+        rules: [],
+      },
+    });
+    const permissive = {
+      ...configuration([]),
+      validationEnabled: false,
+      blockActivationOnError: false,
+    };
+
+    expect(validateConfigSnapshot(snapshot, registry, permissive)).toContainEqual(
+      expect.objectContaining({ code: 'ROUTING_UNCOVERED' }),
+    );
+    expect(() =>
+      assertConfigActivationAllowed(snapshot, registry, permissive),
+    ).toThrow(ConfigVersioningError);
+  });
+
+  it('blocks invalid form lifecycle state even when configurable validation is disabled', () => {
+    const base = createConfigSnapshotFixture();
+    const activeForm = base.forms.versions[0]!;
+    const snapshot = createConfigSnapshotFixture({
+      forms: {
+        versions: [
+          activeForm,
+          { ...activeForm, id: 'form-vpn-2', version: 2 },
+        ],
+      },
+    });
+    const permissive = {
+      ...configuration([]),
+      validationEnabled: false,
+      blockActivationOnError: false,
+    };
+
+    expect(validateConfigSnapshot(snapshot, registry, permissive)).toContainEqual(
+      expect.objectContaining({ code: 'MULTIPLE_ACTIVE_FORM_VERSIONS' }),
+    );
+    expect(() =>
+      assertConfigActivationAllowed(snapshot, registry, permissive),
+    ).toThrow(ConfigVersioningError);
+    try {
+      assertConfigActivationAllowed(snapshot, registry, permissive);
+    } catch (error) {
+      expect(error).toMatchObject({
+        code: configVersioningErrorCodes.validationFailed,
+      });
+    }
+  });
+});
+
 describe('diffConfigSnapshots', () => {
   it('reuses the deterministic change-log diff for snapshot JSON', () => {
     const before = createConfigSnapshotFixture();
@@ -117,5 +175,50 @@ describe('buildRollbackSnapshot', () => {
     expect(rolled.rollbackOfVersion).toBe(3);
     expect(rolled.routing).toEqual(previous.routing);
     expect(rolled.capturedAt).toBe('2026-09-14T09:00:00.000Z');
+  });
+
+  it('keeps live catalog rows missing from the historical target and rebases its hash', () => {
+    const previous = createConfigSnapshotFixture();
+    const current = createConfigSnapshotFixture({
+      catalogStateHash: 'a'.repeat(64),
+      catalog: {
+        services: [
+          ...previous.catalog.services,
+          { ...previous.catalog.services[0]!, id: 'service-new', slug: 'new' },
+        ],
+      },
+      forms: {
+        versions: [
+          ...previous.forms.versions,
+          {
+            ...previous.forms.versions[0]!,
+            id: 'form-new',
+            serviceId: 'service-new',
+          },
+        ],
+      },
+    });
+    const historical = createConfigSnapshotFixture({
+      catalog: {
+        services: [
+          { ...previous.catalog.services[0]!, name: 'Historical VPN' },
+        ],
+      },
+    });
+
+    const rolled = buildRollbackSnapshot(
+      historical,
+      3,
+      '2026-09-14T09:00:00.000Z',
+      current,
+    );
+
+    expect(rolled.catalog.services).toEqual([
+      ...historical.catalog.services,
+      current.catalog.services[1],
+    ]);
+    expect(rolled.catalog.services[0]?.name).toBe('Historical VPN');
+    expect(rolled.forms.versions).toEqual(current.forms.versions);
+    expect(rolled.catalogStateHash).toBe(current.catalogStateHash);
   });
 });
