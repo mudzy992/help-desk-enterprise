@@ -1,6 +1,6 @@
 # Backend audit 15 — `service-catalog`
 
-**Status:** audit završen; `BA-service-catalog-10`, `BA-service-catalog-11` i `BA-service-catalog-12` zatvoreni uz odvojene closeout dokaze; sljedeći kandidat je `BA-service-catalog-13` i nije započet<br>
+**Status:** audit završen; `BA-service-catalog-01`, `BA-service-catalog-10`, `BA-service-catalog-11` i `BA-service-catalog-12` zatvoreni uz odvojene closeout dokaze; sljedeći kandidat je P1 `BA-service-catalog-02`, nezapočet i zahtijeva zaseban acceptance<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-02<br>
 **Rizik modula:** visok<br>
@@ -11,9 +11,9 @@
 
 `service-catalog` upravlja kategorijama, servisima, lifecycleom, verzioniranim formama, availability statusom i downtime prozorima. Modul ima dobru funkcionalnu osnovu: strict DTO pipeline, odvojene write permisije, service scope na mutacijama postojećih servisa, lifecycle vidljivost po ulozi, DB unique slug/version ugovore, historijsko vezivanje ticketa za `formVersionId` i transakcijski change log za većinu mutacija.
 
-Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Draft forma može postati korištena između immutable provjere i updatea, pa se schema historijskog ticketa retroaktivno mijenja. Config-versioning direktno prepisuje schema/status postojećih formi i zaobilazi immutable/lifecycle/multiple-active invariante. Administrator može konfigurirati regularni izraz sa katastrofalnim backtrackingom, a svaki prijavljeni requester ga pokreće nad vlastitim inputom. Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`.
+Baseline je ipak **5,23/10**. Četiri P1 nalaza pogađaju integritet, dostupnost i operativnost. Originalni BA-01 root cause bio je race u kojem je Draft forma mogla postati korištena između immutable provjere i updatea; taj standardni `updateServiceFormVersion` put sada je serijalizovan i BA-01 zatvoren uz PostgreSQL concurrency dokaz. Config-versioning i dalje direktno prepisuje schema/status postojećih formi i zaobilazi immutable/lifecycle/multiple-active invariante; to je zaseban otvoreni BA-02. Administrator može konfigurirati regularni izraz sa katastrofalnim backtrackingom, a svaki prijavljeni requester ga pokreće nad vlastitim inputom. Aktivacija servisa nasljeđuje routing “any rule” provjeru i može objaviti servis dok relevantni OU-ovi ostaju `UNROUTED`.
 
-Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-10` (P2), `BA-service-catalog-11` (P2) i `BA-service-catalog-12` (P2) zatvoreni su prema zasebnim closeout dokazima. Sljedeći kandidat je `BA-service-catalog-13`; nije započet. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
+Dodatno postoje race aktivacije i numerisanja formi, preklapajući downtime prozori, category ciklusi, silent last-write-wins, neograničene liste i nedosljedan audit-reason ugovor. Nema P0. Cijeli backend audit ciklus je završen; `BA-service-catalog-01` (P1), `BA-service-catalog-10` (P2), `BA-service-catalog-11` (P2) i `BA-service-catalog-12` (P2) zatvoreni su prema zasebnim closeout dokazima. Sljedeći service-catalog kandidat je `BA-service-catalog-02` (P1); nije započet i traži zaseban acceptance. Ostali nalazi ostaju nepromijenjeni i izvan zatvorenih paketa.
 
 ## Historijski implementacijski ulaz — `BA-service-catalog-10` (2026-11-02)
 
@@ -171,7 +171,7 @@ E2E 42 pokriva create/edit/delete draft servisa, onboarding, lifecycle/routing U
 
 | ID                    | Severity | Nalaz                                                                                          | Status   |
 | --------------------- | -------- | ---------------------------------------------------------------------------------------------- | -------- |
-| BA-service-catalog-01 | P1       | Form schema se može izmijeniti nakon što je ticket veže zbog TOCTOU immutable provjere         | otvoreno |
+| BA-service-catalog-01 | P1       | TOCTOU immutable provjera u `updateServiceFormVersion` nije serijalizovala ticket bind i edit | zatvoreno |
 | BA-service-catalog-02 | P1       | Config activation/rollback zaobilazi form/lifecycle invariante i historijsku immutable zaštitu | otvoreno |
 | BA-service-catalog-03 | P1       | Admin regex pattern omogućava requester-triggered catastrophic backtracking/ReDoS              | otvoreno |
 | BA-service-catalog-04 | P1       | ACTIVE lifecycle prihvata parcijalnu routing coverage i ostavlja OU-ove unrouted               | otvoreno |
@@ -189,9 +189,13 @@ E2E 42 pokriva create/edit/delete draft servisa, onboarding, lifecycle/routing U
 
 ## 13. Detalji P1 nalaza
 
-### BA-service-catalog-01 — Historijska forma nije stvarno immutable
+### BA-service-catalog-01 — TOCTOU immutable provjera (`zatvoreno` za standardni update API)
 
-`updateServiceFormVersion` učita formu, izbroji tickete, zatim tek u kasnijoj transakciji radi bezuslovni update schema JSON-a. Ticket create može vezati isti draft/ACTIVE red između counta i updatea. Posljedica je retroaktivno drugačije značenje već sačuvanog `formData`, prikaza i audit dokaza. Potreban je row/version lock ili conditional update zajedno sa `NOT EXISTS(ticket)` preconditionom; ticket binding i status/schema policy moraju dijeliti isti concurrency protokol.
+**Audit baseline:** `updateServiceFormVersion` je učitavao formu i brojao tickete prije kasnije transakcije koja je bezuslovno mijenjala schema JSON. Ticket create mogao je vezati isti red između counta i updatea, mijenjajući retroaktivno značenje sačuvanog `formData`, prikaza i audit dokaza.
+
+**Closeout:** standardna `updateServiceFormVersion` putanja sada zadržava početni read/count samo radi ranijeg error precedencea, a autoritativni status i ticket count provjerava ponovo nakon `SELECT ... FOR UPDATE` unutar iste `ReadCommitted` transakcije. Ticket FK `KEY SHARE` bind lock se tako serijalizuje sa edit lockom; stale/race rejection zadržava `FORM_VERSION_IMMUTABLE` / HTTP 409. Unit i dvije real-PostgreSQL concurrency provjere, uključujući bind i paralelnu aktivaciju, prošle su zelenom CI `41456326648` na SHA `18456f845f07b67207a9fb8e4ba12ce1bdf79247`.
+
+Ovo ne zatvara config snapshot apply put; BA-02 ostaje otvoren. Perf smoke `41456326902` je failure samo na search i ticket-message latency pragovima; service-catalog i query-budget pragovi su prošli. E2E critical/install su `skipped`, pa nema spec 56 sign-off. Puni acceptance, svaki failed attempt, local limits, CI skips, DB i rollout/rollback su u [109-service-catalog-01-form-version-toctou-closeout.md](../implementation/109-service-catalog-01-form-version-toctou-closeout.md); spec 56 i prag `250 ms` nisu mijenjani.
 
 ### BA-service-catalog-02 — Config apply zaobilazi domenu
 
@@ -334,3 +338,13 @@ Preklapanje s auditom 24 ostaje samo dokumentovano: `BA-changes-08` (lifecycle/d
 CI [`41448717393`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717393) i Perf [`41448717783`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717783) na istom SHA-u su `success`. Backend, real PostgreSQL/Redis integration, frontend, docs/container i CI gate su passed; E2E critical/install i image vulnerability enforcement bili su `skipped`, ne passed. Perf `/services?take=100` p95 je **28.68 ms**, payload p95/max **111.16 KB**, a global query-budget avg **2.094** preko **48.393** zahtjeva. E2E/spec 56 nije izvršen u tom push runu; njegov kod i prag `250 ms` nisu mijenjani, pa nema browser E2E sign-off.
 
 Nema Prisma schema promjene, BA-12 migracije ni target-DB pristupa. Deklarisani globalni zbir je **567 otvorenih / 125 zatvorenih / 692 ukupno**; machine-readable source je **570 otvorenih / 111 zatvorenih / 11 historijskih** uz preegzistentnu razliku od tri statusa. `service-catalog` ima **12 otvorenih / 3 zatvorena** (ukupno 4 P1, 8 P2, 3 P3). BA-10/11 ostaju zatvoreni, `BA-service-catalog-13` ostaje otvoren i nezapočet, `BA-changes-08`/`13` ostaju zasebno otvoreni. Detaljni testovi, local limits, CI skips, DB i rollout/rollback su u [108-service-catalog-12-scoped-catalog-admin-closeout.md](../implementation/108-service-catalog-12-scoped-catalog-admin-closeout.md).
+
+## 21. Statusna dopuna — BA-01 closeout (2026-11-02)
+
+`BA-service-catalog-01` (P1) zatvoren je za standardnu `updateServiceFormVersion` putanju na kodnom/testanom SHA `18456f845f07b67207a9fb8e4ba12ce1bdf79247`. CI [`41456326648`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326648) je `success`: backend build/full Jest, PostgreSQL/Redis integration (uključujući registrovani BA-01 concurrency suite), frontend, docs guard, container/supply-chain i CI gate prošli su. `E2E critical flows` i `E2E install wizard` bili su `skipped` na pushu; conditional image-enforcement korak je također `skipped`. Zato nema browser E2E/spec 56 sign-off.
+
+Odvojeni Perf smoke [`41456326902`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326902) na istom SHA-u je **failure** na `GET /search` p95 **859.54 ms** (limit `<500 ms`) i `POST /tickets/:id/messages` p95 **1026.25 ms** (limit `<1000 ms`). BA service-catalog p95 **99.72 ms** prema `<500 ms`, catalog contract failures **0** i query-budget prosjek **2.092** preko **48.151** zahtjeva prema `2.1` prošli su. Search/message kod nije diran; ti endpointi nisu BA-01 acceptance i ne prikazuju se kao green. Spec 56/prag `250 ms` nisu mijenjani.
+
+Standardni API update sada zaključava FormVersion red (`FOR UPDATE`) i pod `ReadCommitted` ponovo provjerava status i ticket count; PostgreSQL FK `KEY SHARE` veže taj lock sa ticket insertom. Nema Prisma schema promjene, migracije ni target-DB pristupa. Config snapshot put `applyCatalogSnapshot` ostaje zaseban otvoreni `BA-service-catalog-02`; `BA-changes-08`/`13` ostaju otvoreni.
+
+Nakon BA-01: `service-catalog` ima **11 otvorenih / 4 zatvorena** (ukupno 4 P1, 8 P2, 3 P3). Globalni deklarisani zbir je **566 otvorenih / 126 zatvorenih / 692 ukupno**; machine-readable source je **569 otvorenih / 112 zatvorenih / 11 historijskih / 692 ukupno**, uz preegzistentnu razliku od tri statusa. Puni acceptance, failed attempts, local limits, skips, Perf rezultat, rollout/rollback i sljedeći paket su u [109-service-catalog-01-form-version-toctou-closeout.md](../implementation/109-service-catalog-01-form-version-toctou-closeout.md). Sljedeći service-catalog kandidat je `BA-service-catalog-02` (P1), nezapočet i zahtijeva zaseban acceptance.

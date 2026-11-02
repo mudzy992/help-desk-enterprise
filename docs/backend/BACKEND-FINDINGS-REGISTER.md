@@ -1,11 +1,11 @@
 # Globalni registar backend nalaza
 
-**Status:** audit baseline + djelimična implementacija — W7.16 je zatvoren 2026-11-01 owner-directed odlukom uz dokumentovani ne-zeleni globalni E2E gate; full assets segment sign-off nije ostvaren. `BA-service-catalog-10`, `BA-service-catalog-11` i `BA-service-catalog-12` zatvoreni su kroz zasebne closeoute. BA-12 CI [`41448717393`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717393) i Perf [`41448717783`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717783) zeleni su na SHA `14dbb9451326074f777b5d6102773e88f06c2286`; E2E critical/install i uslovni image vulnerability enforcement bili su `skipped`, ne passed. Sljedeći kandidat je `BA-service-catalog-13`, nije započet.<br>
+**Status:** audit baseline + djelimična implementacija — W7.16 je zatvoren 2026-11-01 owner-directed odlukom uz dokumentovani ne-zeleni globalni E2E gate; full assets segment sign-off nije ostvaren. `BA-service-catalog-10`, `11`, `12` i `01` zatvoreni su kroz zasebne closeoute. BA-01 CI [`41456326648`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326648) zelen je na SHA `18456f845f07b67207a9fb8e4ba12ce1bdf79247`; Perf [`41456326902`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326902) ostao je crven na search/message pragovima, uz prošle service-catalog i query-budget gateove. E2E critical/install i uslovni image enforcement bili su `skipped`, ne passed. Sljedeći service-catalog kandidat je P1 `BA-service-catalog-02`, nezapočet i zahtijeva zaseban acceptance.<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-02<br>
 **Opseg:** 44 audit jedinice, 692 jedinstvenih nalaza (174 P1, 368 P2, 150 P3)<br>
-**Trenutno:** 567 otvorenih / 125 zatvorenih / 692 ukupno<br>
-**Napomena:** deklarisani agregat nakon owner-directed W7.16 te BA-10/11/12 package closeouta; machine-readable source redovi prikazuju 570 otvoreno / 111 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
+**Trenutno:** 566 otvorenih / 126 zatvorenih / 692 ukupno<br>
+**Napomena:** deklarisani agregat nakon owner-directed W7.16 te BA-10/11/12/01 package closeouta; machine-readable source redovi prikazuju 569 otvoreno / 112 zatvorenih / 11 historijskih statusa. Preegzistentna razlika od tri statusa prema pojedinačnim redovima/traceability planu ostaje zasebna obaveza usaglašavanja registra.
 
 Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz, root cause, korekcija i lokalni acceptance ostaju u povezanom izvornom auditu. ID provjera potvrđuje da nema duplikata. Konsolidacija grupiše izvršenje, ali ne briše niti administrativno zatvara izvorne nalaze.
 
@@ -175,7 +175,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 14 | `sla` | `BA-sla-14` | P3 | Compliance i resolution ponavljano učitavaju široke OU/profile skupove | zatvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-15` | P3 | Observability nema per-failure/outbox lag/recipient-empty/DST integrity metrike | zatvoreno | [14-sla.md](audits/14-sla.md) |
 | 14 | `sla` | `BA-sla-16` | P3 | Kritična failure/concurrency/scope/DST test matrica nije izvršiva ni kompletna | zatvoreno | [14-sla.md](audits/14-sla.md) |
-| 15 | `service-catalog` | `BA-service-catalog-01` | P1 | Form schema se može izmijeniti nakon što je ticket veže zbog TOCTOU immutable provjere | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
+| 15 | `service-catalog` | `BA-service-catalog-01` | P1 | TOCTOU immutable provjera u `updateServiceFormVersion` nije serijalizovala ticket bind i edit | zatvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-02` | P1 | Config activation/rollback zaobilazi form/lifecycle invariante i historijsku immutable zaštitu | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-03` | P1 | Admin regex pattern omogućava requester-triggered catastrophic backtracking/ReDoS | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
 | 15 | `service-catalog` | `BA-service-catalog-04` | P1 | ACTIVE lifecycle prihvata parcijalnu routing coverage i ostavlja OU-ove unrouted | otvoreno | [15-service-catalog.md](audits/15-service-catalog.md) |
@@ -819,13 +819,17 @@ Korisnik je izričito naložio zatvaranje samo `BA-service-catalog-10` uprkos cr
 
 Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN već nemaju global service/category create; write policy nije mijenjan. `/services` draft access je ograničen na dodijeljene service ID-jeve, dok public ACTIVE katalog ostaje globalan. Nema BA-12 schema promjene, migracije ni target-DB pristupa. Puni acceptance, testovi, lokalni generated-Prisma blocker, disposable DB, rollout/rollback i registry dokaz su u [108-service-catalog-12-scoped-catalog-admin-closeout.md](implementation/108-service-catalog-12-scoped-catalog-admin-closeout.md). `BA-service-catalog-13` ostaje otvoren i nezapočet; `BA-changes-08`/`13` ostaju zasebno otvoreni.
 
+### Package closeout — `BA-service-catalog-01` (2026-11-02)
+
+`BA-service-catalog-01` zatvoren je za `updateServiceFormVersion` na testanom SHA `18456f845f07b67207a9fb8e4ba12ce1bdf79247`; CI [`41456326648`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326648) je success za backend/full Jest, PostgreSQL/Redis integration, frontend, docs/container i CI gate. PostgreSQL integration suite je registrovan u isolated runneru i step je passed. E2E critical/install i uslovni image-enforcement bili su `skipped`, ne passed. Odvojeni Perf [`41456326902`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326902) je failure na search p95 `859.54 ms` / `<500 ms` i ticket-message p95 `1026.25 ms` / `<1000 ms`; service-catalog p95 `99.72 ms` i query-budget avg `2.092` / limit `2.1` prošli su. Spec 56/prag `250 ms` nisu mijenjani i nema E2E sign-offa. Konfiguracijski `applyCatalogSnapshot` put ostaje BA-02, a BA-changes-08/13 ostaju zasebno otvoreni. Nema Prisma migracije ni target-DB promjene; potpuni acceptance, failed attempts i rollout/rollback su u [109-service-catalog-01-form-version-toctou-closeout.md](implementation/109-service-catalog-01-form-version-toctou-closeout.md). Sljedeći service-catalog kandidat je `BA-service-catalog-02` (P1), nezapočet i traži zaseban acceptance.
+
 ## Kontrolni zbir
 
 - Ukupno: **692**
 - P1: **174**
 - P2: **368**
 - P3: **150**
-- Otvoreno: **567**
-- Zatvoreno: **125** (deklarisani zbir nakon owner-directed statusnih odluka za `BA-assets-16`/`BA-service-catalog-10` i package closeouta za `BA-service-catalog-11`/`BA-service-catalog-12`; source redovi i machine-readable plan zadržavaju raniju razliku od tri statusa)
+- Otvoreno: **566**
+- Zatvoreno: **126** (deklarisani zbir nakon owner-directed statusnih odluka za `BA-assets-16`/`BA-service-catalog-10` i package closeouta za `BA-service-catalog-11`/`BA-service-catalog-12`/`BA-service-catalog-01`; source redovi i machine-readable plan zadržavaju raniju razliku od tri statusa)
 - Duplicirani ID-evi: **0**
 - P0: **0**
