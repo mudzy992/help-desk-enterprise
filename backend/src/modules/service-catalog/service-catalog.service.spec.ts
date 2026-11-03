@@ -136,6 +136,29 @@ describe("ServiceCatalogService CRUD", () => {
     expect(listed.items.map((item) => item.id)).toEqual([created.id]);
   });
 
+  it("returns 503 for catalog list and single reads when incident status cannot be determined", async () => {
+    const { service, memory } = createHarness();
+    const category = await service.createCategory({ name: "IT", slug: "it" });
+    const created = await service.create({
+      name: "VPN access",
+      slug: "vpn-access",
+      categoryId: category.id,
+    });
+    const incidentRead = jest
+      .spyOn(memory.prisma.serviceIncidentService, "findMany")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    for (const read of [service.list(), service.getById(created.id)]) {
+      const error = await read.catch((failure: unknown) => failure);
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect((error as ServiceUnavailableException).getStatus()).toBe(503);
+      expect((error as ServiceUnavailableException).getResponse()).toMatchObject({
+        code: "INCIDENT_STATUS_UNAVAILABLE",
+      });
+    }
+    expect(incidentRead).toHaveBeenCalledTimes(2);
+  });
+
   it("serves the GET /services onboarding contract with one batch read", async () => {
     const { service, memory } = createHarness();
     const category = await service.createCategory({ name: "IT", slug: "it" });

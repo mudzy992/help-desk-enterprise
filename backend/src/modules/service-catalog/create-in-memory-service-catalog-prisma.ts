@@ -35,6 +35,9 @@ export function createInMemoryServiceCatalogPrisma(): {
     formVersion: Record<string, unknown>;
     ticket: Record<string, unknown>;
     serviceOnboarding: Record<string, unknown>;
+    serviceIncidentService: {
+      findMany: () => Promise<readonly { serviceId: string; incident: { impact: string } }[]>;
+    };
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
     $transaction: (
@@ -93,6 +96,9 @@ export function createInMemoryServiceCatalogPrisma(): {
         ).length,
     ),
     ticket: createInMemoryTicketDelegate(tickets, nextId),
+    serviceIncidentService: {
+      findMany: async () => [],
+    },
     serviceOnboarding: {
       findMany: async ({
         where,

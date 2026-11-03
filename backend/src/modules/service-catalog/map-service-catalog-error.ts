@@ -54,6 +54,7 @@ const messages: Record<ServiceCatalogErrorCode, string> = {
   INVALID_AVAILABILITY_STATUS: "Availability status is not allowed",
   AVAILABILITY_DISABLED: "Service availability updates are disabled",
   AVAILABILITY_UNAVAILABLE: "Service availability configuration is unavailable",
+  INCIDENT_STATUS_UNAVAILABLE: "Service incident status is temporarily unavailable",
   REASON_REQUIRED: "A reason is required for this catalog change",
   INVALID_DOWNTIME_RANGE: "Downtime window end must be after start",
   OVERLAPPING_DOWNTIME_WINDOW: "Downtime windows must not overlap",
@@ -79,6 +80,7 @@ export function mapServiceCatalogError(error: unknown): HttpException {
   if (
     error.code === "LIFECYCLE_UNAVAILABLE" ||
     error.code === "AVAILABILITY_UNAVAILABLE" ||
+    error.code === "INCIDENT_STATUS_UNAVAILABLE" ||
     error.code === "DOWNTIME_UNAVAILABLE" ||
     error.code === "CATEGORY_TREE_LOCK_UNAVAILABLE" ||
     error.code === "CATALOG_RESOURCE_LIMIT_EXCEEDED"
