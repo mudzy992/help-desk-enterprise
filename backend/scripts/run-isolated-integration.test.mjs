@@ -45,6 +45,12 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   );
   assert.ok(
     integrationSpecs.includes(
+      "src/modules/service-catalog/service-downtime-window-overlap.integration.spec.ts",
+    ),
+    "nedostaje obavezni BA-07 downtime-overlap PostgreSQL shard",
+  );
+  assert.ok(
+    integrationSpecs.includes(
       "src/modules/service-catalog/service-form-version-immutability.integration.spec.ts",
     ),
     "nedostaje obavezni BA-01 form-version concurrency PostgreSQL shard",

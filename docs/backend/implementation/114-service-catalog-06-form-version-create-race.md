@@ -1,43 +1,28 @@
-# Implementacijski checkpoint — `BA-service-catalog-06` (u toku)
+# Implementacijski closeout — `BA-service-catalog-06` (owner-directed)
 
-**Paket:** audit 15 / `service-catalog` — konkurentno kreiranje prve forme i narednih verzija<br>
-**Nalaz:** `BA-service-catalog-06` (P2) — **otvoren**; implementacija započeta, CI acceptance čeka<br>
-**Grana:** `arena/864951a6-help-desk-enterprise`<br>
-**BA-05 prethodni status:** korisnik je 2026-11-02 prijavio uredan redeploy BA-05 i izričito odobrio početak BA-06; BA-05 je evidentiran kao owner-directed zatvoren, ali redeploy nije nezavisno provjeren. Kodni CI BA-05 [`41529212182`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212182) na `6d98cff` je passed; odvojeni Perf [`41529212249`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212249) je failure samo na nepovezanom ticket-message p95. E2E, inventory i uslovni image-enforcement bili su skipped; nema spec 56 sign-offa.<br>
-**Kontrolni zbir poslije BA-05:** deklarisano 562 otvorena / 130 zatvorenih / 692 ukupno; machine-readable 565 otvorenih / 116 zatvorenih / 11 historijskih; `service-catalog` 7 otvorenih / 8 zatvorenih. Preegzistentna razlika od tri statusa ostaje dokumentovana.<br>
-**Migracija / ciljna baza:** nema Prisma schema promjene, migracije ni pristupa/upisa u ciljnu bazu<br>
-**Spec 56 / prag:** nisu mijenjani; nema browser/spec 56 sign-offa
+**Paket:** audit 15 / `service-catalog` — race kreiranja prve forme i narednih verzija<br>
+**Nalaz:** `BA-service-catalog-06` (P2) — **zatvoren owner-directed 2026-11-02** nakon ispunjenja korisnikovog uslova da CI bude zelen<br>
+**Grana / finalni testani SHA:** `arena/864951a6-help-desk-enterprise` / `964c8f49ee6ee4ffe1033baf389c9ecf64db1f12`<br>
+**Migracija / ciljna baza:** nema schema promjene ni migracije; nije korištena ciljna baza<br>
+**Spec 56 / prag:** nisu mijenjani; E2E/spec 56 sign-off nije ostvaren
 
-## Nalaz i acceptance
+## Finalni CI i odvojeni Perf rezultat
 
-Audit 15 utvrdio je da `createServiceForm` prvo provjerava postojeće redove izvan transakcije, a zatim bez ponovne provjere ubacuje verziju 1. `createServiceFormVersion` isto tako računa `MAX(version) + 1` prije transakcije. Paralelni zahtjevi mogu zato naletjeti na `@@unique([serviceId, version])` i klijentu vratiti sirovu Prisma `P2002` grešku umjesto stabilnog application-level ugovora.
+Finalni kodni CI [`41537673319`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41537673319) na SHA `964c8f4` je **success**. Backend generated-Prisma build, lint, full Jest, PostgreSQL/Redis integration (uključujući oba BA-06 real-PostgreSQL concurrency scenarija), frontend build/test, Docs guard, container/supply-chain i CI gate bili su **passed**.
 
-Acceptance ovog paketa:
+Read-only service-form inventory, E2E install wizard, E2E critical flows i uslovni image-enforcement korak bili su **skipped**, ne passed. Nema browser/spec 56 sign-offa ni promjene praga `250 ms`.
 
-1. Prvo kreiranje forme ponovo provjerava stanje nakon per-service locka u transakciji. Kod dva istovremena zahtjeva jedan kreira verziju 1, a drugi dobija stabilni HTTP 409 `FORM_ALREADY_EXISTS`; nema drugog reda ni sirove provider greške.
-2. Kreiranje naredne verzije čita najviši broj tek unutar zaključane `ReadCommitted` transakcije. Istovremeni pozivi dobijaju različite uzastopne brojeve. Preostali `P2002` za baš `(serviceId, version)` se retry-a u svježoj transakciji; nakon ograničenog broja pokušaja API vraća HTTP 409 `FORM_VERSION_CREATE_CONFLICT`.
-3. API create, API activation i install-seed koriste istu per-service advisory-lock identity. Writer uzima `FormVersion` `ROW EXCLUSIVE` table lock prije čitanja/mutacije, čime zadržava siguran redoslijed sa `applyCatalogSnapshot` `SHARE ROW EXCLUSIVE` lockom.
-4. Real PostgreSQL integration suite dokazuje da se oba create scenarija zaista takmiče pod lockom i ostavljaju ispravne jedinstvene verzije/audit zapise.
+Odvojeni Perf smoke [`41537673253`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41537673253) je **failure** samo na nepovezanom `POST /tickets/:id/messages` p95 **1151.73 ms** prema `<1000 ms`. Service-catalog p95 **385.05 ms** prema `<500 ms` i query-budget avg **2.090** prema `2.1` bili su **passed**; to nije BA-06 ili service-catalog Perf failure.
 
-Nema client idempotency-key ugovora niti obećanja da ponovljen zahtjev vraća prethodni uspješan rezultat; ovaj paket definiše samo stabilno ponašanje za concurrent conflict. Nema zahtjeva za schema migracijom: postojeći unique constraint ostaje konačna DB zaštita. BA-07 i svi drugi nalazi ostaju van scopea.
+Početni CI [`41536256944`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41536256944) prošao je build/full Jest i ostale glavne jobove, ali je integration job pao na preuskoj aserciji koja je očekivala tačno tri audit reda; stvarni zbir je bio četiri. Asercija je prilagođena da provjerava potreban `form_version_create` događaj za svaku novu verziju, a finalni CI `41537673319` je prošao cijeli PostgreSQL/Redis integration job. Taj početni failure nije prikazan kao pass.
 
-## Implementacija
+## Implementacija koja je zatvorena
 
-- Zajednički helper je generalizovan kao `withServiceFormVersionMutationLock`; legacy BA-05 namespace `service-catalog.form-activation` i aktivacijski alias ostaju nepromijenjeni radi serijalizacije sa već redeployanim BA-05 instancama tokom rollouta.
-- `createServiceForm` premješta provjeru broja postojećih formi u lockom zaštićenu transakciju i ponovo učitava servis nakon čekanja. `P2002` na composite service/version key-u mapira se na postojeći 409 `FORM_ALREADY_EXISTS`.
-- `createServiceFormVersion` premješta latest-version read u istu transakciju, alocira sljedeći broj nakon locka i bounded-retry-a klasifikovani composite-key `P2002`; iscrpljeni retry dobija stabilni 409 `FORM_VERSION_CREATE_CONFLICT`.
-- Dodani su klasifikator/testovi za Prisma unique-conflict oblik, provjera stabilnog HTTP ugovora, dvije real-PostgreSQL concurrency provjere i novi isolated-integration registry unos.
+- Prvo kreiranje ponovo provjerava postojeće forme unutar per-service zaključane transakcije; loser vraća HTTP 409 `FORM_ALREADY_EXISTS`.
+- Kreiranje naredne verzije čita latest version nakon locka u `ReadCommitted` transakciji; klasifikovani `[serviceId, version]` unique conflict pokušava se ponovo u najviše tri svježe transakcije, a iscrpljenje vraća HTTP 409 `FORM_VERSION_CREATE_CONFLICT`.
+- Sačuvani su BA-05 advisory-lock namespace i `FormVersion` `ROW EXCLUSIVE` table-lock ordering za aktivaciju, install-seed i snapshot writer kompatibilnost.
+- Nema client idempotency-key ugovora ni obećanja replaya prethodnog uspješnog zahtjeva. Nema migracije.
 
-## Verifikacija
+## Status i naredni scope
 
-- Ciljani ESLint nad izmijenjenim BA-06 TypeScript fajlovima: **passed**.
-- Lock-helper i unique-conflict unit testovi, uz lokalni `ts-jest` diagnostics workaround: **3/3 passed**.
-- Isolated-integration registry/harness testovi: **3/3 passed**.
-- Backend findings traceability: **passed** (692/692; P1=174, P2=368, P3=150); source-registry testovi: **12/12 passed**.
-- Docs guard: **passed** (32 stranice, 8 prevoda, 10 provjera); docs ogledalo sinhronizovano; docs testovi: **9/9 passed**.
-- `ServiceFormsService` unit suite je pokušan, ali nije mogao učitati nedostajući `backend/src/generated/prisma/client`; `npm run db:generate` nije uspio jer je Prisma engine download sa `binaries.prisma.sh` nedostupan u ovom okruženju. Zato generated-client build/full Jest ostaju **unverified** (ne passed/skipped). Generisanje je korišteno samo s privremenim lokalnim placeholder URL-om; target baza nije kontaktirana.
-- PostgreSQL suite nije lokalno izvršen jer `PRIVACY_IT_DATABASE_URL` nije postavljen. Potrebni su generated-Prisma build/full Jest i disposable PostgreSQL integration run.
-
-## Status i sljedeći korak
-
-BA-06 ostaje **otvoren** dok build/full Jest, real PostgreSQL concurrency suite i ostali potrebni CI gateovi ne prođu i dok owner ne prihvati paket. Ne praviti PR prema `master`, merge niti deployment bez zasebne dozvole. Nema migracije, target-DB pristupa, promjene BA-routing-02, speca 56, praga `250 ms` ili W7.15 ponašanja.
+BA-06 je zatvoren owner-directed prema korisnikovoj izričitoj dozvoli pod uslovom zelenog CI-ja. BA-07 je jedini naredni aktivni scope; početna implementacija je u [115 BA-07 checkpointu](115-service-catalog-07-downtime-overlap-race.md). BA-05 redeploy je i dalje samo korisnikova prijava, bez nezavisne deployment provjere. Nema novog PR-a, mergea ili deploymenta.

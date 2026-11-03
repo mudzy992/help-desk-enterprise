@@ -5,6 +5,7 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { recordServiceCatalogChange, serviceDowntimeWindowChangeLogEntityType } from '../service-catalog/record-service-catalog-change';
 import { serviceAvailabilityChangeLogReasons, serviceAvailabilityConstants } from '../service-catalog/service-availability.constants';
 import { ServiceAvailabilityConfigurationLoader } from '../service-catalog/service-availability-configuration.loader';
+import { withServiceDowntimeWindowMutationLocks } from '../service-catalog/with-service-downtime-window-mutation-lock';
 import { ChangeAccessService, type ChangeConfiguration, type ChangeViewer } from './change-access.service';
 import {
   detectChangeConflicts,
@@ -320,83 +321,102 @@ export class ChangeScheduleService {
       });
       if (change === null) return;
       const own = change.downtimeWindows;
-      const active = change.status === 'SCHEDULED' || change.status === 'IMPLEMENTING';
-      if (!active || change.plannedStart === null || change.plannedEnd === null) {
-        if (own.length > 0) {
-          const reason = downtimeReleaseReason(change.status);
-          await this.apply(
-            transaction,
-            changeId,
-            actorUserId,
-            planDowntimeRelease(own, new Date()),
-            '',
-            reason,
-            null,
-            commandKey,
-          );
-        }
-        return;
-      }
-      if (!change.causesDowntime) {
-        if (own.length > 0) {
-          await this.apply(
-            transaction,
-            changeId,
-            actorUserId,
-            planDowntimeRelease(own, new Date()),
-            '',
-            'scheduled',
-            null,
-            commandKey,
-          );
-        }
-        return;
-      }
-      if (!enabled) {
-        if (own.length > 0) {
-          await this.apply(
-            transaction,
-            changeId,
-            actorUserId,
-            planDowntimeRelease(own, new Date()),
-            '',
-            'downtime_disabled',
-            null,
-            commandKey,
-          );
-        } else {
-          await this.event(
-            transaction,
-            changeId,
-            actorUserId,
-            { skipped: 'downtime_disabled' },
-            commandKey,
-          );
-        }
-        return;
-      }
-
-      const window = { start: change.plannedStart, end: change.plannedEnd };
       const serviceIds = change.services.map((link) => link.serviceId);
-      const foreign =
-        serviceIds.length === 0
-          ? []
-          : await transaction.serviceDowntimeWindow.findMany({
-              where: { serviceId: { in: serviceIds }, OR: [{ changeRequestId: null }, { changeRequestId: { not: changeId } }] },
-              select: { serviceId: true, startsAt: true, endsAt: true },
-            });
-      const message = `${formatChangeNumber(configuration!.numberPrefix, change.sequence)}: ${change.title}`.slice(0, serviceAvailabilityConstants.maximumMessageLength);
-      await this.apply(
+      const lockServiceIds = [
+        ...new Set([
+          ...serviceIds,
+          ...own.map((window) => window.serviceId),
+        ]),
+      ];
+      await withServiceDowntimeWindowMutationLocks(
         transaction,
-        changeId,
-        actorUserId,
-        planChangeDowntime({ window, serviceIds, own, foreign }),
-        message,
-        'scheduled',
-        window,
-        commandKey,
+        lockServiceIds,
+        async () => {
+          const active =
+            change.status === 'SCHEDULED' || change.status === 'IMPLEMENTING';
+          if (!active || change.plannedStart === null || change.plannedEnd === null) {
+            if (own.length > 0) {
+              const reason = downtimeReleaseReason(change.status);
+              await this.apply(
+                transaction,
+                changeId,
+                actorUserId,
+                planDowntimeRelease(own, new Date()),
+                '',
+                reason,
+                null,
+                commandKey,
+              );
+            }
+            return;
+          }
+          if (!change.causesDowntime) {
+            if (own.length > 0) {
+              await this.apply(
+                transaction,
+                changeId,
+                actorUserId,
+                planDowntimeRelease(own, new Date()),
+                '',
+                'scheduled',
+                null,
+                commandKey,
+              );
+            }
+            return;
+          }
+          if (!enabled) {
+            if (own.length > 0) {
+              await this.apply(
+                transaction,
+                changeId,
+                actorUserId,
+                planDowntimeRelease(own, new Date()),
+                '',
+                'downtime_disabled',
+                null,
+                commandKey,
+              );
+            } else {
+              await this.event(
+                transaction,
+                changeId,
+                actorUserId,
+                { skipped: 'downtime_disabled' },
+                commandKey,
+              );
+            }
+            return;
+          }
+
+          const window = { start: change.plannedStart, end: change.plannedEnd };
+          const foreign =
+            serviceIds.length === 0
+              ? []
+              : await transaction.serviceDowntimeWindow.findMany({
+                  where: {
+                    serviceId: { in: serviceIds },
+                    OR: [
+                      { changeRequestId: null },
+                      { changeRequestId: { not: changeId } },
+                    ],
+                  },
+                  select: { serviceId: true, startsAt: true, endsAt: true },
+                });
+          const message = `${formatChangeNumber(configuration!.numberPrefix, change.sequence)}: ${change.title}`.slice(0, serviceAvailabilityConstants.maximumMessageLength);
+          await this.apply(
+            transaction,
+            changeId,
+            actorUserId,
+            planChangeDowntime({ window, serviceIds, own, foreign }),
+            message,
+            'scheduled',
+            window,
+            commandKey,
+          );
+        },
       );
-    });
+    }, { isolationLevel: 'ReadCommitted' });
   }
 
   private releaseHasChanges(own: readonly { id: string; serviceId: string; startsAt: Date; endsAt: Date }[]): boolean {

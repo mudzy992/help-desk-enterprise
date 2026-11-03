@@ -7,6 +7,20 @@ import { defaultServiceLifecycleConfiguration } from './service-catalog.constant
 import { ServiceAvailabilityService } from './service-availability.service';
 import { ServiceCatalogService } from './service-catalog.service';
 
+jest.mock(
+  '../../generated/prisma/client',
+  () => ({
+    Prisma: {
+      sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+        strings,
+        values,
+      }),
+      join: (values: readonly unknown[]) => values,
+    },
+  }),
+  { virtual: true },
+);
+
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
@@ -16,6 +30,18 @@ const now = new Date('2026-09-10T10:00:00.000Z');
 describe('service catalog availability and downtime', () => {
   const createHarness = () => {
     const memory = createInMemoryServiceCatalogPrisma();
+    const inMemoryTransaction = memory.prisma.$transaction;
+    memory.prisma.$transaction = async (callback) =>
+      inMemoryTransaction((client) =>
+        callback(
+          Object.assign(Object.create(client), {
+            $queryRaw: async (
+              _query: TemplateStringsArray,
+              ..._values: unknown[]
+            ) => [],
+          }),
+        ),
+      );
     const catalog = new ServiceCatalogService(memory.prisma as never, {
       load: async () => defaultServiceLifecycleConfiguration,
     } as never);

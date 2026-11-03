@@ -80,12 +80,15 @@ describe("ChangeScheduleService downtime sync", () => {
     expect(prisma.serviceDowntimeWindow.findMany).toHaveBeenCalled();
   });
 
-  it("writes the desired downtime and audit event under the change transaction lock", async () => {
+  it("writes desired downtime and audit under change and per-service overlap locks", async () => {
     const { transaction, service } = setup();
     await service.syncDowntime("change-1", "actor-1");
 
     expect(transaction.$executeRaw).not.toHaveBeenCalled();
-    expect(transaction.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(
+      transaction.serviceDowntimeWindow.findMany.mock.invocationCallOrder[0],
+    ).toBeGreaterThan(transaction.$queryRaw.mock.invocationCallOrder[2]!);
     expect(transaction.serviceDowntimeWindow.create).toHaveBeenCalledWith({
       data: {
         serviceId: "service-1",

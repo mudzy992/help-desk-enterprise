@@ -4,6 +4,7 @@ import { assertDowntimeWindowsDoNotOverlap } from "./assert-downtime-windows-do-
 import { buildServiceResponse } from "./build-service-response";
 import { loadService } from "./load-service";
 import { loadServiceDowntimeOverlaps } from "./load-service-downtime-overlaps";
+import { withServiceDowntimeWindowMutationLock } from "./with-service-downtime-window-mutation-lock";
 import { normalizeChangeReason } from "./normalize-change-reason";
 import { normalizeDowntimeMessage } from "./normalize-downtime-message";
 import { parseDowntimeInstant } from "./parse-downtime-instant";
@@ -43,41 +44,53 @@ export async function createServiceDowntimeWindow(
     required: configuration.downtime.requireReason,
     fallback: serviceAvailabilityChangeLogReasons.downtimeWindowCreate,
   });
-  const service = await loadService(prisma, serviceId);
-  const existingWindows = await loadServiceDowntimeOverlaps(
-    prisma,
-    serviceId,
-    startsAt,
-    endsAt,
-  );
-  assertDowntimeWindowsDoNotOverlap({
-    existingWindows,
-    candidate: { startsAt, endsAt },
-  });
-  await prisma.$transaction(async (transaction) => {
-    const created = await transaction.serviceDowntimeWindow.create({
-      data: {
+  const service = await prisma.$transaction(
+    (transaction) =>
+      withServiceDowntimeWindowMutationLock(
+        transaction,
         serviceId,
-        startsAt,
-        endsAt,
-        message,
-      },
-    });
-    await recordServiceCatalogChange(transaction as PrismaService, {
-      entityType: serviceDowntimeWindowChangeLogEntityType(),
-      entityId: created.id,
-      reason,
-      diff: {
-        action: serviceAvailabilityChangeLogReasons.downtimeWindowCreate,
-        serviceId,
-        after: {
-          startsAt: startsAt.toISOString(),
-          endsAt: endsAt.toISOString(),
-          message,
+        async () => {
+          const service = await loadService(
+            transaction as PrismaService,
+            serviceId,
+          );
+          const existingWindows = await loadServiceDowntimeOverlaps(
+            transaction as PrismaService,
+            serviceId,
+            startsAt,
+            endsAt,
+          );
+          assertDowntimeWindowsDoNotOverlap({
+            existingWindows,
+            candidate: { startsAt, endsAt },
+          });
+          const created = await transaction.serviceDowntimeWindow.create({
+            data: {
+              serviceId,
+              startsAt,
+              endsAt,
+              message,
+            },
+          });
+          await recordServiceCatalogChange(transaction as PrismaService, {
+            entityType: serviceDowntimeWindowChangeLogEntityType(),
+            entityId: created.id,
+            reason,
+            diff: {
+              action: serviceAvailabilityChangeLogReasons.downtimeWindowCreate,
+              serviceId,
+              after: {
+                startsAt: startsAt.toISOString(),
+                endsAt: endsAt.toISOString(),
+                message,
+              },
+            },
+            actorUserId: context.actorUserId,
+          });
+          return service;
         },
-      },
-      actorUserId: context.actorUserId,
-    });
-  });
+      ),
+    { isolationLevel: 'ReadCommitted' },
+  );
   return buildServiceResponse(prisma, service, evaluation);
 }
