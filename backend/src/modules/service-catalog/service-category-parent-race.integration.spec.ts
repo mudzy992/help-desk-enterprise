@@ -121,7 +121,9 @@ describeIfDatabase(
         if (waiting.every(Boolean)) return;
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
-      throw new Error('BA-08 category writers nisu čekali na graph advisory lock');
+      throw new Error(
+        'BA-08 category writers nisu čekali na graph advisory lock',
+      );
     };
 
     const expectCircularCategoryError = (error: unknown): void => {
@@ -189,12 +191,16 @@ describeIfDatabase(
       const second = await createRoot('second-root');
       const held = await holdCategoryTreeLock();
       const pending = [
-        createCatalog(writer(firstWriter)).updateCategory(first.id, {
-          parentId: second.id,
-        }),
-        createCatalog(writer(secondWriter)).updateCategory(second.id, {
-          parentId: first.id,
-        }),
+        createCatalog(writer(firstWriter)).updateCategory(
+          first.id,
+          { parentId: second.id },
+          '"v1"',
+        ),
+        createCatalog(writer(secondWriter)).updateCategory(
+          second.id,
+          { parentId: first.id },
+          '"v1"',
+        ),
       ];
 
       let waitError: unknown;
@@ -268,9 +274,9 @@ describeIfDatabase(
         select: { id: true, parentId: true },
       });
       expect(children).toHaveLength(2);
-      expect(children.every((category) => categoryIds.includes(category.id))).toBe(
-        true,
-      );
+      expect(
+        children.every((category) => categoryIds.includes(category.id)),
+      ).toBe(true);
     });
   },
 );
