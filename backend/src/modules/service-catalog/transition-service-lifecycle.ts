@@ -1,25 +1,24 @@
-import type { OptimisticConcurrencyService } from '../../common/optimistic-concurrency/optimistic-concurrency.service';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { routingCoverageMissingCode } from '../routing/routing.constants';
-import type {
-  ServiceRoutingCoverageEvaluation,
-} from '../routing/evaluate-service-routing-coverage';
-import { buildActivationRoutingCoverageAudit } from './build-activation-routing-coverage-audit';
-import { assertServiceLifecycleTransition } from './assert-service-lifecycle-transition';
-import { buildServiceResponse } from './build-service-response';
-import { selectActiveFormVersionRef } from './select-active-form-version-ref';
-import { ServiceFormsError } from './service-forms.error';
-import { ServiceCatalogError } from './service-catalog.error';
+import type { OptimisticConcurrencyService } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { routingCoverageMissingCode } from "../routing/routing.constants";
+import type { ServiceRoutingCoverageEvaluation } from "../routing/evaluate-service-routing-coverage";
+import { buildActivationRoutingCoverageAudit } from "./build-activation-routing-coverage-audit";
+import { assertServiceLifecycleTransition } from "./assert-service-lifecycle-transition";
+import { buildServiceResponse } from "./build-service-response";
+import { selectActiveFormVersionRef } from "./select-active-form-version-ref";
+import { ServiceFormsError } from "./service-forms.error";
+import { ServiceCatalogError } from "./service-catalog.error";
+import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
 import {
   recordServiceCatalogChange,
   serviceChangeLogEntityType,
-} from './record-service-catalog-change';
+} from "./record-service-catalog-change";
 import type {
   CatalogMutationContext,
   ServiceLifecycleConfiguration,
   ServiceResponse,
   TransitionServiceLifecycleInput,
-} from './service-catalog.types';
+} from "./service-catalog.types";
 
 export async function transitionServiceLifecycle(
   prisma: PrismaService,
@@ -31,8 +30,13 @@ export async function transitionServiceLifecycle(
   optimisticConcurrency: OptimisticConcurrencyService,
   coverageEvaluation: ServiceRoutingCoverageEvaluation | null = null,
 ): Promise<ServiceResponse> {
+  const reason = normalizeCatalogMutationReason({
+    reason: input.reason,
+    context,
+    systemFallback: "lifecycle_transition",
+  });
   const routingCoverageAudit =
-    input.lifecycle === 'ACTIVE' && coverageEvaluation !== null
+    input.lifecycle === "ACTIVE" && coverageEvaluation !== null
       ? buildActivationRoutingCoverageAudit(coverageEvaluation)
       : null;
   const result = await optimisticConcurrency.execute({
@@ -51,15 +55,15 @@ export async function transitionServiceLifecycle(
           to: input.lifecycle,
           configuration,
         });
-        if (input.lifecycle === 'ACTIVE') {
+        if (input.lifecycle === "ACTIVE") {
           try {
             await selectActiveFormVersionRef(transactionPrisma, serviceId);
           } catch (error) {
             if (
               error instanceof ServiceFormsError &&
-              error.code === 'NO_ACTIVE_FORM_VERSION'
+              error.code === "NO_ACTIVE_FORM_VERSION"
             ) {
-              throw new ServiceCatalogError('NO_ACTIVE_FORM_VERSION');
+              throw new ServiceCatalogError("NO_ACTIVE_FORM_VERSION");
             }
             throw error;
           }
@@ -78,13 +82,16 @@ export async function transitionServiceLifecycle(
           where: { id: serviceId },
         });
         if (service === null) {
-          throw new Error('Updated service disappeared before transaction commit');
+          throw new Error(
+            "Updated service disappeared before transaction commit",
+          );
         }
         await recordServiceCatalogChange(transactionPrisma, {
           entityType: serviceChangeLogEntityType(),
           entityId: service.id,
-          reason: 'lifecycle_transition',
+          reason,
           diff: {
+            action: "service.lifecycle_transition",
             before: {
               lifecycle: current.lifecycle,
               id: current.id,

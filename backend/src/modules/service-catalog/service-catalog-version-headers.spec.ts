@@ -32,11 +32,15 @@ describe("service catalog revision headers", () => {
       (headers: ReturnType<typeof createHeaderResponse>) =>
         controller.getById("service-1", actorRequest, headers),
       (headers: ReturnType<typeof createHeaderResponse>) =>
-        controller.create({ name: "VPN" } as never, actorRequest, headers),
+        controller.create(
+          { name: "VPN", reason: "Add VPN service" } as never,
+          actorRequest,
+          headers,
+        ),
       (headers: ReturnType<typeof createHeaderResponse>) =>
         controller.update(
           "service-1",
-          { name: "VPN" } as never,
+          { name: "VPN", reason: "Rename service" } as never,
           actorRequest,
           '"v3"',
           headers,
@@ -44,7 +48,7 @@ describe("service catalog revision headers", () => {
       (headers: ReturnType<typeof createHeaderResponse>) =>
         controller.transitionLifecycle(
           "service-1",
-          { lifecycle: "ACTIVE" } as never,
+          { lifecycle: "ACTIVE", reason: "Publish approved service" } as never,
           actorRequest,
           '"v3"',
           headers,
@@ -57,13 +61,13 @@ describe("service catalog revision headers", () => {
 
     expect(service.update).toHaveBeenCalledWith(
       "service-1",
-      { name: "VPN" },
+      { name: "VPN", reason: "Rename service" },
       '"v3"',
       { actorUserId: "actor-1" },
     );
     expect(service.transitionLifecycle).toHaveBeenCalledWith(
       "service-1",
-      { lifecycle: "ACTIVE" },
+      { lifecycle: "ACTIVE", reason: "Publish approved service" },
       '"v3"',
       { actorUserId: "actor-1" },
     );
@@ -82,7 +86,11 @@ describe("service catalog revision headers", () => {
 
     const createHeaders = createHeaderResponse();
     await controller.create(
-      { name: "Support", slug: "support" } as never,
+      {
+        name: "Support",
+        slug: "support",
+        reason: "Add service group",
+      } as never,
       actorRequest,
       createHeaders,
     );
@@ -91,14 +99,14 @@ describe("service catalog revision headers", () => {
     const updateHeaders = createHeaderResponse();
     await controller.update(
       "category-1",
-      { name: "Renamed" } as never,
+      { name: "Renamed", reason: "Rename service group" } as never,
       actorRequest,
       '"v6"',
       updateHeaders,
     );
     expect(service.updateCategory).toHaveBeenCalledWith(
       "category-1",
-      { name: "Renamed" },
+      { name: "Renamed", reason: "Rename service group" },
       '"v6"',
       { actorUserId: "actor-1" },
     );

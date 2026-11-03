@@ -1,25 +1,26 @@
-import { Prisma } from '../../generated/prisma/client';
-import type { OptimisticConcurrencyService } from '../../common/optimistic-concurrency/optimistic-concurrency.service';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { assertPolicyPackExists } from './assert-policy-pack-exists';
-import { assertServiceCategoryExists } from './assert-service-category-exists';
-import { assertSlaProfileExists } from './assert-sla-profile-exists';
-import { buildServiceResponse } from './build-service-response';
+import { Prisma } from "../../generated/prisma/client";
+import type { OptimisticConcurrencyService } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { assertPolicyPackExists } from "./assert-policy-pack-exists";
+import { assertServiceCategoryExists } from "./assert-service-category-exists";
+import { assertSlaProfileExists } from "./assert-sla-profile-exists";
+import { buildServiceResponse } from "./build-service-response";
 import {
   buildServiceMutationDiff,
   hasServiceMutationChanges,
-} from './build-service-mutation-diff';
-import { normalizeServiceName } from './normalize-service-name';
+} from "./build-service-mutation-diff";
+import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
+import { normalizeServiceName } from "./normalize-service-name";
 import {
   recordServiceCatalogChange,
   serviceChangeLogEntityType,
-} from './record-service-catalog-change';
-import { ServiceCatalogError } from './service-catalog.error';
+} from "./record-service-catalog-change";
+import { ServiceCatalogError } from "./service-catalog.error";
 import type {
   CatalogMutationContext,
   ServiceResponse,
   UpdateServiceInput,
-} from './service-catalog.types';
+} from "./service-catalog.types";
 
 export async function updateService(
   prisma: PrismaService,
@@ -29,6 +30,11 @@ export async function updateService(
   context: CatalogMutationContext,
   optimisticConcurrency: OptimisticConcurrencyService,
 ): Promise<ServiceResponse> {
+  const reason = normalizeCatalogMutationReason({
+    reason: input.reason,
+    context,
+    systemFallback: "update",
+  });
   const result = await optimisticConcurrency.execute({
     ifMatch,
     mutate: (expectedRevision) =>
@@ -40,19 +46,29 @@ export async function updateService(
         if (current === null || current.revision !== expectedRevision) {
           return null;
         }
-        if ('slug' in input && input.slug !== undefined && input.slug !== current.slug) {
-          throw new ServiceCatalogError('SLUG_IMMUTABLE');
+        if (
+          "slug" in input &&
+          input.slug !== undefined &&
+          input.slug !== current.slug
+        ) {
+          throw new ServiceCatalogError("SLUG_IMMUTABLE");
         }
         const name =
-          input.name === undefined ? current.name : normalizeServiceName(input.name);
+          input.name === undefined
+            ? current.name
+            : normalizeServiceName(input.name);
         const categoryId = input.categoryId ?? current.categoryId;
         if (categoryId !== current.categoryId) {
           await assertServiceCategoryExists(transactionPrisma, categoryId);
         }
         const policyPackId =
-          input.policyPackId === undefined ? current.policyPackId : input.policyPackId;
+          input.policyPackId === undefined
+            ? current.policyPackId
+            : input.policyPackId;
         const slaProfileId =
-          input.slaProfileId === undefined ? current.slaProfileId : input.slaProfileId;
+          input.slaProfileId === undefined
+            ? current.slaProfileId
+            : input.slaProfileId;
         await assertPolicyPackExists(transactionPrisma, policyPackId);
         await assertSlaProfileExists(transactionPrisma, slaProfileId);
         const next = {
@@ -62,7 +78,8 @@ export async function updateService(
           requiresApproval: input.requiresApproval ?? current.requiresApproval,
           isConfidentialDefault:
             input.isConfidentialDefault ?? current.isConfidentialDefault,
-          autoAssignStrategy: input.autoAssignStrategy ?? current.autoAssignStrategy,
+          autoAssignStrategy:
+            input.autoAssignStrategy ?? current.autoAssignStrategy,
           policyPackId,
           slaProfileId,
         };
@@ -81,15 +98,19 @@ export async function updateService(
           where: { id: serviceId },
         });
         if (updated === null) {
-          throw new Error('Updated service disappeared before transaction commit');
+          throw new Error(
+            "Updated service disappeared before transaction commit",
+          );
         }
         if (changed) {
-          const changelogReason = (input.reason ?? 'update').trim();
           await recordServiceCatalogChange(transactionPrisma, {
             entityType: serviceChangeLogEntityType(),
             entityId: updated.id,
-            reason: changelogReason,
-            diff: buildServiceMutationDiff(current, updated) as unknown as Prisma.InputJsonValue,
+            reason,
+            diff: {
+              action: "service.update",
+              ...buildServiceMutationDiff(current, updated),
+            } as unknown as Prisma.InputJsonValue,
             actorUserId: context.actorUserId,
           });
         }

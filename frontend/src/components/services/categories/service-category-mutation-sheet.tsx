@@ -51,6 +51,7 @@ export function ServiceCategoryMutationSheet({
             slug: values.slug,
             sortOrder: values.sortOrder,
             parentId: values.parentId,
+            reason: values.reason,
           });
         } else if (category !== null) {
           await updateServiceCategory(
@@ -59,6 +60,7 @@ export function ServiceCategoryMutationSheet({
               name: values.name,
               sortOrder: values.sortOrder,
               parentId: values.parentId,
+              reason: values.reason,
             },
             category.revision,
           );

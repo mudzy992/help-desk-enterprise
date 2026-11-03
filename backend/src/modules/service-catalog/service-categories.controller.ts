@@ -26,6 +26,7 @@ import {
 import { RequirePermissions } from "../authorization/require-permissions.decorator";
 import { RequireRoles } from "../authorization/require-roles.decorator";
 import { RoleGuard } from "../authorization/role.guard";
+import { CatalogMutationReasonDto } from "./dto/catalog-mutation-reason.dto";
 import { CreateServiceCategoryDto } from "./dto/create-service-category.dto";
 import { ListServiceCategoriesQueryDto } from "./dto/list-service-categories-query.dto";
 import { UpdateServiceCategoryDto } from "./dto/update-service-category.dto";
@@ -38,7 +39,10 @@ import type {
 
 type HeaderResponse = { setHeader(name: string, value: string): void };
 
-function setRevisionEtag(response: HeaderResponse | undefined, revision: number): void {
+function setRevisionEtag(
+  response: HeaderResponse | undefined,
+  revision: number,
+): void {
   response?.setHeader("ETag", formatVersionEtag(revision));
 }
 
@@ -83,7 +87,8 @@ export class ServiceCategoriesController {
     @Param("serviceCategoryId") serviceCategoryId: string,
     @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceCategoryResponse> {
-    const category = await this.serviceCatalogService.getCategory(serviceCategoryId);
+    const category =
+      await this.serviceCatalogService.getCategory(serviceCategoryId);
     setRevisionEtag(response, category.revision);
     return category;
   }
@@ -112,11 +117,13 @@ export class ServiceCategoriesController {
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
   async delete(
     @Param("serviceCategoryId") serviceCategoryId: string,
+    @Query() query: CatalogMutationReasonDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<void> {
     await this.serviceCatalogService.deleteCategory(
       serviceCategoryId,
       readCatalogMutationContext(request),
+      query.reason,
     );
   }
 }

@@ -4,9 +4,11 @@ import { FormBuilderActions } from "@/components/services/form-builder/form-buil
 import { FormFieldList } from "@/components/services/form-builder/form-field-list";
 import { FormVersionHistory } from "@/components/services/form-builder/form-version-history";
 import { errorTextClassName } from "@/components/ui/control";
+import { Field, Input } from "@/components/ui/field";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { defaultServiceFormSchema } from "@/lib/services/default-service-form-schema";
 import { ensureServiceForm } from "@/lib/services/ensure-service-form";
+import { requireCatalogChangeReason } from "@/lib/services/require-catalog-change-reason";
 import { isValidFormFieldDraft, orderedFormSchema } from "@/lib/services/form-field-draft";
 import {
   mapServiceFormsError,
@@ -45,6 +47,7 @@ export function ServiceFormBuilder({
   const [form, setForm] = useState<ServiceFormResponse | null>(null);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [fields, setFields] = useState<ServiceFormField[]>([]);
+  const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<ServiceFormsErrorKey | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -52,6 +55,8 @@ export function ServiceFormBuilder({
   const selected = form?.versions.find((item) => item.formVersionRef === selectedRef) ?? null;
   const editable = canWrite && selected?.status === "DRAFT" && selected.isImmutable !== true;
   const validDraft = isValidFormFieldDraft(fields);
+  const normalizedReason = requireCatalogChangeReason(reason);
+  const reasonReady = normalizedReason !== null;
 
   const applyForm = useCallback((loaded: ServiceFormResponse, preferredRef?: string) => {
     const versions =
@@ -134,7 +139,7 @@ export function ServiceFormBuilder({
 
   useEffect(() => {
     let cancelled = false;
-    void ensureServiceForm(serviceId, canWrite)
+    void ensureServiceForm(serviceId)
       .then((loaded) => {
         if (!cancelled) {
           applyForm(loaded);
@@ -148,16 +153,19 @@ export function ServiceFormBuilder({
     return () => {
       cancelled = true;
     };
-  }, [applyForm, canWrite, serviceId]);
+  }, [applyForm, serviceId]);
 
-  const run = async (key: string, work: () => Promise<FormVersionResponse>) => {
+  const run = async (key: string, work: (reason: string) => Promise<FormVersionResponse>) => {
+    const normalizedReason = requireCatalogChangeReason(reason);
+    if (normalizedReason === null) return;
     const operationKey = `${serviceId}:${key}`;
     await operationGuard.run(operationKey, async () => {
       setPending(key);
       setErrorKey(null);
       try {
         const previousActiveRef = form?.activeFormVersionRef ?? null;
-        const result = await work();
+        const result = await work(normalizedReason);
+        setReason("");
         const loaded = await reload(result.formVersionRef);
         if (loaded !== null && loaded.activeFormVersionRef !== previousActiveRef) {
           onActiveVersion(loaded.activeFormVersionRef);
@@ -194,6 +202,19 @@ export function ServiceFormBuilder({
           <p className="text-[12px] text-muted-foreground">{t("services.forms.immutableHint")}</p>
         ) : null}
         <FormFieldList fields={fields} editable={Boolean(editable)} onChange={setFields} />
+        {canWrite ? (
+          <Field label={t("services.changeReason")} required hint={t("services.changeReasonHint")}>
+            {(control) => (
+              <Input
+                {...control}
+                value={reason}
+                maxLength={512}
+                disabled={pending !== null}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            )}
+          </Field>
+        ) : null}
         {editable && fields.length > 0 && !validDraft ? (
           <p className={errorTextClassName}>{t("services.forms.draftInvalid")}</p>
         ) : null}
@@ -204,32 +225,40 @@ export function ServiceFormBuilder({
           selected={selected}
           hasVersions={(form?.total ?? 0) > 0}
           hasFields={validDraft}
+          reasonReady={reasonReady}
           pending={pending}
           onCreateFirst={() => {
-            void run("create", () => createServiceForm(serviceId, defaultServiceFormSchema));
+            void run("create", (changeReason) =>
+              createServiceForm(serviceId, defaultServiceFormSchema, changeReason),
+            );
           }}
           onSave={() => {
             if (selected) {
-              void run("save", () =>
+              void run("save", (changeReason) =>
                 updateServiceFormVersion(
                   serviceId,
                   selected.formVersionRef,
                   orderedFormSchema(fields),
+                  changeReason,
                 ),
               );
             }
           }}
           onActivate={() => {
             if (selected) {
-              void run("activate", () =>
-                activateServiceFormVersion(serviceId, selected.formVersionRef),
+              void run("activate", (changeReason) =>
+                activateServiceFormVersion(serviceId, selected.formVersionRef, changeReason),
               );
             }
           }}
           onCopy={() => {
             if (selected) {
-              void run("copy", () =>
-                createServiceFormVersion(serviceId, orderedFormSchema(selected.schema.fields)),
+              void run("copy", (changeReason) =>
+                createServiceFormVersion(
+                  serviceId,
+                  orderedFormSchema(selected.schema.fields),
+                  changeReason,
+                ),
               );
             }
           }}

@@ -3813,7 +3813,7 @@
     "categoryEmpty": "Nema kategorija — uslugu nije moguće kreirati",
     "mutationHint": "Kreiranje počinje u statusu Nacrt. Slug se ne mijenja nakon unosa.",
     "changeReason": "Razlog izmjene",
-    "changeReasonHint": "Obavezno za potvrdu radnje. Backend change log trenutno bilježi sistemski razlog.",
+    "changeReasonHint": "Obavezno za izmjene kataloga (do 512 znakova). Razlog se bilježi u change logu.",
     "activate": "Aktiviraj",
     "deprecate": "Označi zastarjelim",
     "reactivate": "Vrati u aktivno",

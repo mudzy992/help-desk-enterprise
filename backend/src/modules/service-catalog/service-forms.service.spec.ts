@@ -117,8 +117,66 @@ describe("ServiceFormsService", () => {
     const duplicateConflict = duplicateError as ConflictException;
     expect(duplicateConflict.getStatus()).toBe(409);
     expect(duplicateConflict.getResponse()).toMatchObject({
-      code: 'FORM_ALREADY_EXISTS',
+      code: "FORM_ALREADY_EXISTS",
     });
+  });
+
+  it("records caller-supplied reasons for each human form mutation", async () => {
+    const { catalog, forms, memory } = createHarness();
+    const service = await createDraftService(catalog);
+    const context = { actorUserId: "admin-1" };
+    const created = await forms.createForm(
+      service.id,
+      { schema: validSchema, reason: "  Create the intake form  " },
+      context,
+    );
+    const next = await forms.createFormVersion(
+      service.id,
+      { schema: nextSchema, reason: "  Add serial number collection  " },
+      context,
+    );
+    await forms.updateFormVersion(
+      service.id,
+      next.formVersionRef,
+      { schema: validSchema, reason: "  Match the approved intake fields  " },
+      context,
+    );
+    await forms.activateFormVersion(
+      service.id,
+      next.formVersionRef,
+      context,
+      "  Approved for production  ",
+    );
+
+    expect(memory.changeLogs.slice(-4).map((entry) => entry.reason)).toEqual([
+      "Create the intake form",
+      "Add serial number collection",
+      "Match the approved intake fields",
+      "Approved for production",
+    ]);
+    expect(
+      memory.changeLogs
+        .slice(-4)
+        .map((entry) => (entry.diff as { action?: string }).action),
+    ).toEqual([
+      "service_form.create",
+      "service_form.version_create",
+      "service_form.version_update",
+      "service_form.version_activate",
+    ]);
+    expect(
+      memory.changeLogs
+        .slice(-4)
+        .every((entry) => entry.actorUserId === "admin-1"),
+    ).toBe(true);
+
+    const missingReason = await forms
+      .createForm(service.id, { schema: validSchema }, context)
+      .catch((error: unknown) => error);
+    expect(missingReason).toMatchObject({
+      response: { code: "REASON_REQUIRED" },
+    });
+    expect(created.version).toBe(1);
   });
 
   it("maps a version-1 unique conflict to the stable 409 contract", async () => {
@@ -301,7 +359,12 @@ describe("ServiceFormsService", () => {
     await forms.activateFormVersion(service.id, second.formVersionRef);
 
     const history = await forms.getForm(service.id);
-    expect(history.versions.map(({ formVersionRef, status }) => [formVersionRef, status])).toEqual([
+    expect(
+      history.versions.map(({ formVersionRef, status }) => [
+        formVersionRef,
+        status,
+      ]),
+    ).toEqual([
       [second.formVersionRef, "ACTIVE"],
       [first.formVersionRef, "RETIRED"],
     ]);

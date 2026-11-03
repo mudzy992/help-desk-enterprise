@@ -1,20 +1,21 @@
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { assertCategoryParentIsValid } from './assert-category-parent-is-valid';
-import { assertServiceCategorySlugIsAvailable } from './assert-slug-is-available';
-import { normalizeServiceName } from './normalize-service-name';
-import { normalizeServiceSlug } from './normalize-service-slug';
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { assertCategoryParentIsValid } from "./assert-category-parent-is-valid";
+import { assertServiceCategorySlugIsAvailable } from "./assert-slug-is-available";
+import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
+import { normalizeServiceName } from "./normalize-service-name";
+import { normalizeServiceSlug } from "./normalize-service-slug";
 import {
   recordServiceCatalogChange,
   serviceCategoryChangeLogEntityType,
-} from './record-service-catalog-change';
+} from "./record-service-catalog-change";
 import type {
   CatalogMutationContext,
   CreateServiceCategoryInput,
   ServiceCategoryResponse,
-} from './service-catalog.types';
-import { throwIfSlugConstraintViolated } from './throw-if-slug-constraint-violated';
-import { toServiceCategoryResponse } from './to-service-category-response';
-import { withServiceCategoryParentMutationLock } from './with-service-category-parent-mutation-lock';
+} from "./service-catalog.types";
+import { throwIfSlugConstraintViolated } from "./throw-if-slug-constraint-violated";
+import { toServiceCategoryResponse } from "./to-service-category-response";
+import { withServiceCategoryParentMutationLock } from "./with-service-category-parent-mutation-lock";
 
 export async function createServiceCategory(
   prisma: PrismaService,
@@ -24,6 +25,11 @@ export async function createServiceCategory(
   const name = normalizeServiceName(input.name);
   const slug = normalizeServiceSlug(input.slug);
   const parentId = input.parentId ?? null;
+  const reason = normalizeCatalogMutationReason({
+    reason: input.reason,
+    context,
+    systemFallback: "create",
+  });
   try {
     const created = await prisma.$transaction(
       async (transaction) => {
@@ -42,8 +48,11 @@ export async function createServiceCategory(
           await recordServiceCatalogChange(transactionPrisma, {
             entityType: serviceCategoryChangeLogEntityType(),
             entityId: category.id,
-            reason: 'create',
-            diff: { after: { name, slug, parentId } },
+            reason,
+            diff: {
+              action: "service_category.create",
+              after: { name, slug, parentId },
+            },
             actorUserId: context.actorUserId,
           });
           return category;
@@ -55,7 +64,7 @@ export async function createServiceCategory(
           ? create()
           : withServiceCategoryParentMutationLock(transaction, create);
       },
-      { isolationLevel: 'ReadCommitted' },
+      { isolationLevel: "ReadCommitted" },
     );
     return toServiceCategoryResponse(created);
   } catch (error) {

@@ -139,6 +139,7 @@ export class ServiceFormsService {
     serviceId: string,
     formVersionRef: string,
     context: CatalogMutationContext = emptyContext,
+    reason?: string,
   ): Promise<FormVersionResponse> {
     return this.execute(async () =>
       activateServiceFormVersion(
@@ -147,6 +148,7 @@ export class ServiceFormsService {
         formVersionRef,
         await this.configurationLoader.load(),
         context,
+        reason,
       ),
     );
   }

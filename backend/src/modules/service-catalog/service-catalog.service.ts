@@ -114,9 +114,10 @@ export class ServiceCatalogService {
   deleteCategory(
     serviceCategoryId: string,
     context: CatalogMutationContext = emptyContext,
+    reason?: string,
   ): Promise<void> {
     return this.execute(() =>
-      deleteServiceCategory(this.prisma, serviceCategoryId, context),
+      deleteServiceCategory(this.prisma, serviceCategoryId, context, reason),
     );
   }
 
@@ -208,8 +209,11 @@ export class ServiceCatalogService {
   delete(
     serviceId: string,
     context: CatalogMutationContext = emptyContext,
+    reason?: string,
   ): Promise<void> {
-    return this.execute(() => deleteService(this.prisma, serviceId, context));
+    return this.execute(() =>
+      deleteService(this.prisma, serviceId, context, reason),
+    );
   }
 
   async evaluation(now: Date): Promise<ServiceAvailabilityEvaluationContext> {

@@ -1,19 +1,20 @@
-import type { OptimisticConcurrencyService } from '../../common/optimistic-concurrency/optimistic-concurrency.service';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { assertCategoryParentIsValid } from './assert-category-parent-is-valid';
-import { loadServiceCategory } from './load-service-category';
-import { normalizeServiceName } from './normalize-service-name';
+import type { OptimisticConcurrencyService } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { assertCategoryParentIsValid } from "./assert-category-parent-is-valid";
+import { loadServiceCategory } from "./load-service-category";
+import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
+import { normalizeServiceName } from "./normalize-service-name";
 import {
   recordServiceCatalogChange,
   serviceCategoryChangeLogEntityType,
-} from './record-service-catalog-change';
+} from "./record-service-catalog-change";
 import type {
   CatalogMutationContext,
   ServiceCategoryResponse,
   UpdateServiceCategoryInput,
-} from './service-catalog.types';
-import { toServiceCategoryResponse } from './to-service-category-response';
-import { withServiceCategoryParentMutationLock } from './with-service-category-parent-mutation-lock';
+} from "./service-catalog.types";
+import { toServiceCategoryResponse } from "./to-service-category-response";
+import { withServiceCategoryParentMutationLock } from "./with-service-category-parent-mutation-lock";
 
 export async function updateServiceCategory(
   prisma: PrismaService,
@@ -23,6 +24,11 @@ export async function updateServiceCategory(
   context: CatalogMutationContext,
   optimisticConcurrency: OptimisticConcurrencyService,
 ): Promise<ServiceCategoryResponse> {
+  const reason = normalizeCatalogMutationReason({
+    reason: input.reason,
+    context,
+    systemFallback: "update",
+  });
   const result = await optimisticConcurrency.execute({
     ifMatch,
     mutate: (expectedRevision) =>
@@ -69,20 +75,25 @@ export async function updateServiceCategory(
             await recordServiceCatalogChange(transactionPrisma, {
               entityType: serviceCategoryChangeLogEntityType(),
               entityId: updated.id,
-              reason: 'update',
+              reason,
               diff: {
+                action: "service_category.update",
                 before: {
                   name: current.name,
                   parentId: current.parentId,
                   sortOrder: current.sortOrder,
                 },
-                after: { name: updated.name, parentId: updated.parentId, sortOrder: updated.sortOrder },
+                after: {
+                  name: updated.name,
+                  parentId: updated.parentId,
+                  sortOrder: updated.sortOrder,
+                },
               },
               actorUserId: context.actorUserId,
             });
             return { value: updated, version: updated.revision };
           }),
-        { isolationLevel: 'ReadCommitted' },
+        { isolationLevel: "ReadCommitted" },
       ),
     readCurrentVersion: async () => {
       const current = await prisma.serviceCategory.findUnique({

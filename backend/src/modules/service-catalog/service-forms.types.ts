@@ -77,12 +77,15 @@ export type TicketFormVersionBinding = {
 
 export type CreateServiceFormInput = {
   readonly schema: unknown;
+  readonly reason?: string;
 };
 
 export type CreateServiceFormVersionInput = {
   readonly schema: unknown;
+  readonly reason?: string;
 };
 
 export type UpdateServiceFormVersionInput = {
   readonly schema: unknown;
+  readonly reason?: string;
 };

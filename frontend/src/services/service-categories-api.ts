@@ -29,12 +29,14 @@ export type CreateServiceCategoryInput = {
   readonly slug: string;
   readonly sortOrder?: number;
   readonly parentId?: string | null;
+  readonly reason: string;
 };
 
 export type UpdateServiceCategoryInput = {
   readonly name?: string;
   readonly sortOrder?: number;
   readonly parentId?: string | null;
+  readonly reason: string;
 };
 
 export const serviceCategoryListPageSize = 100;
@@ -113,8 +115,9 @@ export function updateServiceCategory(
   );
 }
 
-export function deleteServiceCategory(serviceCategoryId: string): Promise<void> {
-  return apiRequest(`/service-categories/${serviceCategoryId}`, {
+export function deleteServiceCategory(serviceCategoryId: string, reason: string): Promise<void> {
+  const params = new URLSearchParams({ reason });
+  return apiRequest(`/service-categories/${serviceCategoryId}?${params.toString()}`, {
     method: "DELETE",
   });
 }

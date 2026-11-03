@@ -274,11 +274,12 @@ export function transitionServiceLifecycle(
   serviceId: string,
   lifecycle: ServiceLifecycle,
   revision: number,
+  reason: string,
 ): Promise<ServiceResponse> {
   return apiRequestValidated(`/services/${serviceId}/lifecycle`, parseServiceResponse, {
     method: "POST",
     headers: { "If-Match": `"v${revision}"` },
-    body: JSON.stringify({ lifecycle }),
+    body: JSON.stringify({ lifecycle, reason }),
   });
 }
 
@@ -295,26 +296,30 @@ export function updateServiceAvailability(
   });
 }
 
-export function deleteService(serviceId: string): Promise<void> {
-  return apiRequest(`/services/${serviceId}`, { method: "DELETE" });
+export function deleteService(serviceId: string, reason: string): Promise<void> {
+  const params = new URLSearchParams({ reason });
+  return apiRequest(`/services/${serviceId}?${params.toString()}`, { method: "DELETE" });
 }
 
 export function createServiceForm(
   serviceId: string,
   schema: ServiceFormSchema,
+  reason: string,
 ): Promise<FormVersionResponse> {
   return apiRequest(`/services/${serviceId}/form`, {
     method: "POST",
-    body: JSON.stringify({ schema }),
+    body: JSON.stringify({ schema, reason }),
   });
 }
 
 export function activateServiceFormVersion(
   serviceId: string,
   formVersionRef: string,
+  reason: string,
 ): Promise<FormVersionResponse> {
   return apiRequest(`/services/${serviceId}/form/versions/${formVersionRef}/activate`, {
     method: "POST",
+    body: JSON.stringify({ reason }),
   });
 }
 

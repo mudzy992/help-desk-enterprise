@@ -103,12 +103,14 @@ export type CreateServiceCategoryInput = {
   readonly slug: string;
   readonly sortOrder?: number;
   readonly parentId?: string | null;
+  readonly reason?: string;
 };
 
 export type UpdateServiceCategoryInput = {
   readonly name?: string;
   readonly sortOrder?: number;
   readonly parentId?: string | null;
+  readonly reason?: string;
 };
 
 export type CreateServiceInput = {
@@ -121,8 +123,7 @@ export type CreateServiceInput = {
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
   readonly slaProfileId?: string | null;
-  /** Audit reason; required when invoked from HTTP endpoints (DTO validation),
-   *  optional for internal/seeding calls which record a generic 'create' reason. */
+  /** Human callers provide a reason; system/seed calls may use the stable fallback. */
   readonly reason?: string;
 };
 
@@ -135,9 +136,7 @@ export type UpdateServiceInput = {
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
   readonly slaProfileId?: string | null;
-  /** Audit reason; required when invoked from HTTP endpoints (DTO validation),
-   *  optional for internal/seeding calls which omit change-log entries when no
-   *  caller-supplied reason is present. */
+  /** Human callers provide a reason; system calls may use the stable fallback. */
   readonly reason?: string;
 };
 
@@ -180,6 +179,7 @@ export type ServiceCategoryListInput = {
 
 export type TransitionServiceLifecycleInput = {
   readonly lifecycle: ServiceLifecycle;
+  readonly reason?: string;
 };
 
 export type CatalogMutationContext = {

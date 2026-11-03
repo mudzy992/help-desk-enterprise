@@ -54,7 +54,7 @@ const messages: Record<ServiceCatalogErrorCode, string> = {
   INVALID_AVAILABILITY_STATUS: "Availability status is not allowed",
   AVAILABILITY_DISABLED: "Service availability updates are disabled",
   AVAILABILITY_UNAVAILABLE: "Service availability configuration is unavailable",
-  REASON_REQUIRED: "A reason is required for this availability change",
+  REASON_REQUIRED: "A reason is required for this catalog change",
   INVALID_DOWNTIME_RANGE: "Downtime window end must be after start",
   OVERLAPPING_DOWNTIME_WINDOW: "Downtime windows must not overlap",
   DOWNTIME_DISABLED: "Service downtime scheduling is disabled",

@@ -26,6 +26,7 @@ import { RequireRoles } from "../authorization/require-roles.decorator";
 import { RequireServiceScope } from "../authorization/require-service-scope.decorator";
 import { RoleGuard } from "../authorization/role.guard";
 import { catalogTicketCreateReadRoles } from "./catalog-ticket-create-read-roles";
+import { CatalogMutationReasonDto } from "./dto/catalog-mutation-reason.dto";
 import { CreateServiceFormDto } from "./dto/create-service-form.dto";
 import { CreateServiceFormVersionDto } from "./dto/create-service-form-version.dto";
 import { ListServiceFormVersionsQueryDto } from "./dto/list-service-form-versions-query.dto";
@@ -149,12 +150,14 @@ export class ServiceFormsController {
   activateFormVersion(
     @Param("serviceId") serviceId: string,
     @Param("formVersionRef") formVersionRef: string,
+    @Body() body: CatalogMutationReasonDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<FormVersionResponse> {
     return this.serviceFormsService.activateFormVersion(
       serviceId,
       formVersionRef,
       readCatalogMutationContext(request),
+      body.reason,
     );
   }
 }

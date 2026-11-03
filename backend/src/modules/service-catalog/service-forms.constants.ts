@@ -20,6 +20,7 @@ export const serviceFormVersionsDefaultTake = 20;
 export const serviceFormVersionsMaximumTake = 50;
 export const serviceFormVersionsMaximumResponseBytes = 1_048_576;
 
+// Stable reasons for system/internal writes only; human API mutations pass a caller reason.
 export const serviceFormsChangeLogReasons = {
   formCreate: "form_create",
   formVersionCreate: "form_version_create",

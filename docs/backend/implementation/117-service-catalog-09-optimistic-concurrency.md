@@ -1,12 +1,12 @@
-# Implementacijski checkpoint — `BA-service-catalog-09` (u toku)
+# Implementacijski checkpoint — `BA-service-catalog-09` (završni status u closeoutu 118)
 
 **Paket:** audit 15 / `service-catalog` — optimistic concurrency za service/category izmjene<br>
-**Nalaz:** `BA-service-catalog-09` (P2) — **otvoren**; implementacija započeta po izričitoj korisničkoj uputi<br>
+**Nalaz:** `BA-service-catalog-09` (P2) — **zatvoren owner-directed 2026-11-03**; ovaj dokument čuva historijski checkpoint prije closeouta<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
-**Odluka:** korisnik je 2026-11-03 odobrio BA-08 closeout i naložio početak BA-09<br>
+**Odluka pri početku:** korisnik je 2026-11-03 odobrio BA-08 closeout i naložio početak BA-09; kasnija BA-09 statusna odluka i evidence su u [118 closeoutu](118-service-catalog-09-owner-directed-closeout.md)<br>
 **BA-08 prethodni status:** zatvoren owner-directed nakon zelenih CI/Perf runova `41638462836` / `41638462783` na `5415f502`; closeout je u [116 checkpointu](116-service-catalog-08-category-parent-cycle-race.md)<br>
-**Kontrolni zbir nakon BA-08:** deklarisano 559 otvoren / 133 zatvoren / 692 ukupno; machine-readable 562 otvorena / 119 zatvorenih / 11 historijskih; `service-catalog` 4 otvorena / 11 zatvorenih. Preegzistentna razlika od tri statusa ostaje dokumentovana.<br>
-**Schema / ciljna baza:** Prisma schema i aditivna migracija `20271030130000_service_catalog_optimistic_revisions` dodani su u radno stablo; migracija nije primijenjena. `DATABASE_URL` i `E2E_DATABASE_URL` nisu konfigurirani, ciljna baza nije identifikovana i nijedna baza nije korištena.<br>
+**Kontrolni zbir na BA-09 početnom checkpointu (historijski):** deklarisano 559 otvoren / 133 zatvoren / 692 ukupno; machine-readable 562 otvorena / 119 zatvorenih / 11 historijskih; `service-catalog` 4 otvorena / 11 zatvorenih. Preegzistentna razlika od tri statusa ostaje dokumentovana; nakon BA-09 closeouta ažurirani zbir je naveden u [118](118-service-catalog-09-owner-directed-closeout.md).<br>
+**Schema / ciljna baza u tom checkpointu:** Prisma schema i aditivna migracija `20271030130000_service_catalog_optimistic_revisions` dodani su u radno stablo; tada nije bilo lokalne primjene migracije, konfiguriranih `DATABASE_URL`/`E2E_DATABASE_URL` ni pristupa ciljnoj bazi. Kasniju korisnikovu prijavu primjene migracije i ograničenje nezavisne provjere bilježi [118 closeout](118-service-catalog-09-owner-directed-closeout.md).<br>
 **Acceptance:** optimistic `revision` + strong `If-Match`, atomic compare-and-swap, stale-write konflikt i committed before/after change-log snapshot; detalji su ispod.
 
 ## Nalaz i početni pregled
@@ -31,18 +31,18 @@ Početni code review potvrdio je:
 6. Uspješan CAS, business write i change log su u istoj transakciji. `before` dolazi iz revision-a koji je CAS pobijedio, `after` iz committable write-a; stale gubitnik ne ostavlja change log niti parcijalni side effect.
 7. Frontend service/category/lifecycle i onboarding service edit putanje šalju revision koji su stvarno učitale; stale konflikt prikazuje lokalizovanu poruku i zahtijeva refresh prije novog pokušaja.
 8. Unit/controller testovi pokrivaju header/error ugovor i stale CAS; real PostgreSQL suite koristi odvojene klijente sa istim ETag-om, dokazuje najviše jedan uspješan upis, jedan 412, tačan revision i tačan audit snapshot.
-9. Bez BA-routing-02 izmjene, bez zatvaranja drugih nalaza, bez speca 56 ili promjene praga `250 ms`, bez W7.15 hard-delete/event-archival izmjene. BA-09 ostaje otvoren do završetka provjera i zasebne statusne odluke.
+9. U trenutku checkpointa, bez BA-routing-02 izmjene, zatvaranja drugih nalaza, speca 56/praga `250 ms` ili W7.15 hard-delete/event-archival izmjene; BA-09 je tada ostao otvoren do provjera i zasebne statusne odluke. Ta historijska odluka je kasnije supersedena owner-directed closeoutom 118.
 
-## Trenutni status i validacija
+## Status i validacija u trenutku checkpointa (prije closeouta)
 
-`BA-service-catalog-09` je **otvoren; implementacija je u toku**. Schema/migracija, atomic revision CAS za service/category mutacije, shared service revision za lifecycle/availability, response revision/strong ETag i `If-Match` kontroleri, direktni service-writer revision increments (uključujući onboarding service-step CAS/If-Match), stale-write greške te frontend revision propagacija i lokalizacija implementirani su u radnom stablu. Pozitivni safe-integer response parseri su povezani sa service/category create/update i category detail/list putanjama; `getService` ostaje bez parsera prema ranijoj prihvatljivoj odluci. Unit/controller testovi i real-PostgreSQL concurrency suite su dodani; integration suite zahtijeva `PRIVACY_IT_DATABASE_URL`.
+U trenutku ovog checkpointa `BA-service-catalog-09` je bio **otvoren; implementacija u toku**. Taj status je supersediran owner-directed closeoutom 2026-11-03, poslije zelenog CI runa `41662410362` i korisnikove prijave uspješnog redeploya i primijenjene migracije. CI/Perf detalji, jasna evidencija `skipped` poslova i napomena da redeploy/migracija nisu nezavisno provjereni nalaze se u [118 closeoutu](118-service-catalog-09-owner-directed-closeout.md). Schema/migracija, atomic revision CAS za service/category mutacije, shared service revision za lifecycle/availability, response revision/strong ETag i `If-Match` kontroleri, direktni service-writer revision increments (uključujući onboarding service-step CAS/If-Match), stale-write greške te frontend revision propagacija i lokalizacija bili su implementirani. Pozitivni safe-integer response parseri su povezani sa service/category create/update i category detail/list putanjama; `getService` ostaje bez parsera prema ranijoj prihvatljivoj odluci.
 
 Lokalna validacija:
 
 - Frontend ciljano: **5 Vitest fajlova / 18 testova passed**; `npx tsc -b --pretty false`, ciljani ESLint/Prettier i `npm run i18n:check` su passed.
 - Backend ciljani ESLint: **passed**. Zajednički `OptimisticConcurrencyService` primitive Jest suite: **12/12 passed**. `node scripts/check-migration-policy.mjs` validirao je 103 migracije; policy testovi **2/2 passed**.
-- `node scripts/check-backend-findings.mjs` je passed za **692/692** nalaza; registry testovi **13/13 passed**. BA-08 je `zatvoreno`, a BA-09 ostaje `otvoreno` u sinhronizovanom machine-readable planu.
+- U tom checkpointu `node scripts/check-backend-findings.mjs` je passed za **692/692** nalaza; registry testovi **13/13 passed**. Tada je BA-08 bio `zatvoreno`, a BA-09 `otvoreno` u sinhronizovanom machine-readable planu; BA-09 status je poslije ažuriran na `zatvoreno` owner-directed (118).
 - BA-09-specific backend service/controller Jest suite-i pokušani su, ali nisu izvršili nijedan test: lokalni generisani Prisma Client nedostaje. Zasebni shared `OptimisticConcurrencyService` primitive suite je passed **12/12**. Prisma CLI pokušaj je zapeo pri TLS preuzimanju schema enginea sa `binaries.prisma.sh`; taj host trenutno nije dostupan u sandboxu. Zato BA-09 service/controller testovi nisu označeni kao passed.
-- Real PostgreSQL integration suite, migracijski replay na disposable PostgreSQL i cijeli CI nisu lokalno pokrenuti. Nema ciljane baze, migracija nije primijenjena i nema database writea.
+- U tom trenutku real PostgreSQL integration suite, migracijski replay na disposable PostgreSQL i cijeli CI nisu lokalno pokrenuti. Tada nije korištena ciljna baza, migracija nije bila primijenjena u lokalnom checkoutu i nije bilo database writea iz ovog checkpointa.
 
-**Sljedeće:** nakon što Prisma schema-engine preuzimanje postane dostupno, generisati client i ponoviti ciljane backend Jest suite-e. Za concurrent integration proof treba dostaviti/konfigurirati izolovanu PostgreSQL bazu; ne koristiti produkcijsku/target bazu dok ona nije identifikovana. BA-09 ostaje otvoren do punog acceptance dokaza i zasebne statusne odluke. BA-08 je zatvoren owner-directed; ostali statusi, BA-routing-02, spec 56/prag `250 ms` i W7.15 fail-closed hard-delete/event archival ponašanje ostaju nepromijenjeni.
+**Historijski sljedeći korak:** ponoviti generated-Prisma backend suiteove i integraciju na disposable PostgreSQL CI bazi. To je kasnije ispunjeno u CI `41662410362`; target migration/redeploy je korisnik prijavio, ali nisu nezavisno provjereni. BA-09 closeout i owner-directed statusna odluka su u [118](118-service-catalog-09-owner-directed-closeout.md). Ostali statusi, BA-routing-02, spec 56/prag `250 ms` i W7.15 fail-closed hard-delete/event archival ponašanje nisu mijenjani.

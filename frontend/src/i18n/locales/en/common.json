@@ -3795,7 +3795,7 @@
     "categoryEmpty": "No categories — a service cannot be created",
     "mutationHint": "Create starts in Draft. The slug cannot be changed after create.",
     "changeReason": "Change reason",
-    "changeReasonHint": "Required to confirm the action. The backend change log currently stores a system reason.",
+    "changeReasonHint": "Required for catalog changes (up to 512 characters). This reason is recorded in the change log.",
     "activate": "Activate",
     "deprecate": "Deprecate",
     "reactivate": "Reactivate",

@@ -31,6 +31,7 @@ import { RequireRoles } from "../authorization/require-roles.decorator";
 import { RequireServiceScope } from "../authorization/require-service-scope.decorator";
 import { RoleGuard } from "../authorization/role.guard";
 import { catalogTicketCreateReadRoles } from "./catalog-ticket-create-read-roles";
+import { CatalogMutationReasonDto } from "./dto/catalog-mutation-reason.dto";
 import { CreateServiceDto } from "./dto/create-service.dto";
 import { ListServicesQueryDto } from "./dto/list-services-query.dto";
 import { TransitionServiceLifecycleDto } from "./dto/transition-service-lifecycle.dto";
@@ -42,7 +43,10 @@ import type { ServiceListPage, ServiceResponse } from "./service-catalog.types";
 
 type HeaderResponse = { setHeader(name: string, value: string): void };
 
-function setRevisionEtag(response: HeaderResponse | undefined, revision: number): void {
+function setRevisionEtag(
+  response: HeaderResponse | undefined,
+  revision: number,
+): void {
   response?.setHeader("ETag", formatVersionEtag(revision));
 }
 
@@ -152,11 +156,13 @@ export class ServicesController {
   @RequireServiceScope({ field: "serviceId" })
   async delete(
     @Param("serviceId") serviceId: string,
+    @Query() query: CatalogMutationReasonDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<void> {
     await this.serviceCatalogService.delete(
       serviceId,
       readCatalogMutationContext(request),
+      query.reason,
     );
   }
 }
