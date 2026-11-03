@@ -27,7 +27,6 @@ export function createInMemoryServiceOnboardingPrisma(): {
     ticket: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
-    $queryRaw: (...args: unknown[]) => Promise<unknown[]>;
     serviceOnboarding: Record<string, unknown>;
     slaProfile: Record<string, unknown>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;

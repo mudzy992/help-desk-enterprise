@@ -274,7 +274,18 @@ describe("ServiceCatalogService CRUD", () => {
       slug: "child-category",
       parentId: root.id,
     });
-    jest.spyOn(memory.prisma, "$queryRaw").mockRejectedValueOnce({ code: "55P03" });
+    const timeoutError = Object.assign(new Error("lock timeout"), {
+      code: "55P03",
+    });
+    jest.spyOn(memory.prisma, "$transaction").mockImplementationOnce(
+      async (callback) =>
+        callback({
+          ...memory.prisma,
+          $queryRaw: async () => {
+            throw timeoutError;
+          },
+        }),
+    );
 
     const error = await service
       .updateCategory(root.id, { parentId: child.id })
