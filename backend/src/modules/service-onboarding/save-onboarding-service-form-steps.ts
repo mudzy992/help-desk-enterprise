@@ -1,3 +1,4 @@
+import type { OptimisticConcurrencyService } from '../../common/optimistic-concurrency/optimistic-concurrency.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { updateService } from '../service-catalog/update-service';
 import { loadFormVersionForService } from '../service-catalog/load-form-version';
@@ -21,12 +22,21 @@ export async function saveOnboardingServiceStep(
   prisma: PrismaService,
   serviceId: string,
   input: SaveOnboardingServiceStepInput,
+  ifMatch: string | string[] | undefined,
   configuration: ServiceOnboardingConfiguration,
   context: OnboardingMutationContext,
+  optimisticConcurrency: OptimisticConcurrencyService,
 ): Promise<ServiceOnboardingRecord> {
   const record = await loadMutableOnboarding(prisma, serviceId, configuration);
   assertStepIsReachable(record.completedSteps, 'SERVICE');
-  await updateService(prisma, serviceId, input, context);
+  await updateService(
+    prisma,
+    serviceId,
+    input,
+    ifMatch,
+    context,
+    optimisticConcurrency,
+  );
   await recordOnboardingChange(prisma, {
     entityId: record.id,
     reason: onboardingReasons.saveStep,

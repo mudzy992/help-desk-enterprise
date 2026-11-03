@@ -65,9 +65,11 @@ export function saveOnboardingServiceStep(
     readonly categoryId?: string;
     readonly requiresApproval?: boolean;
   },
+  revision: number,
 ): Promise<ServiceOnboardingResponse> {
   return apiRequest(`/services/${serviceId}/onboarding/service`, {
     method: "PATCH",
+    headers: { "If-Match": `"v${revision}"` },
     body: JSON.stringify(input),
   });
 }

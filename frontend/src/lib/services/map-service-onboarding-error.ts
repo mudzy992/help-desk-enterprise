@@ -18,7 +18,8 @@ export type ServiceOnboardingErrorKey =
   | "services.onboarding.errorNotDraft"
   | "services.onboarding.errorNotResumable"
   | "services.onboarding.errorUnavailable"
-  | "services.onboarding.errorGeneric";
+  | "services.onboarding.errorGeneric"
+  | "services.errorStaleWrite";
 
 const codeKeys: Partial<Record<string, ServiceOnboardingErrorKey>> = {
   INVALID_CREDENTIALS: "services.onboarding.errorUnauthorized",
@@ -38,6 +39,7 @@ const codeKeys: Partial<Record<string, ServiceOnboardingErrorKey>> = {
   INCONSISTENT_ONBOARDING_STATE: "services.onboarding.errorStatus",
   SERVICE_NOT_DRAFT: "services.onboarding.errorNotDraft",
   ONBOARDING_NOT_RESUMABLE: "services.onboarding.errorNotResumable",
+  OPTIMISTIC_STALE_WRITE: "services.errorStaleWrite",
   UNAVAILABLE: "services.onboarding.errorUnavailable",
 };
 
@@ -50,6 +52,7 @@ export function mapServiceOnboardingError(error: unknown): ServiceOnboardingErro
       403: "services.onboarding.errorForbidden",
       404: "services.onboarding.errorNotFound",
       409: "services.onboarding.errorAlreadyExists",
+      412: "services.errorStaleWrite",
       503: "services.onboarding.errorUnavailable",
       400: "services.onboarding.errorPrerequisites",
       422: "services.onboarding.errorPrerequisites",

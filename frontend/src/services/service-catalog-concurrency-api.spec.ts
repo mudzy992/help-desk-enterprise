@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiRequestValidated } from "@/services/api";
+import { apiRequest, apiRequestValidated } from "@/services/api";
 import {
   createService,
   transitionServiceLifecycle,
@@ -11,6 +11,7 @@ import {
   getServiceCategory,
   updateServiceCategory,
 } from "@/services/service-categories-api";
+import { saveOnboardingServiceStep } from "@/services/service-onboarding-api";
 
 vi.mock("@/services/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/api")>();
@@ -84,6 +85,17 @@ describe("service catalog concurrency request headers", () => {
       3,
       "/service-categories/category-1",
       expect.any(Function),
+    );
+  });
+
+  it("sends the loaded service revision for onboarding service edits", () => {
+    saveOnboardingServiceStep("service-1", { name: "VPN" }, 12);
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/services/service-1/onboarding/service",
+      expect.objectContaining({
+        method: "PATCH",
+        headers: { "If-Match": '"v12"' },
+      }),
     );
   });
 

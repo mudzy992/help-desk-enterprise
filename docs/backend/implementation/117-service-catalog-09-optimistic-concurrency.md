@@ -25,17 +25,17 @@ Početni code review potvrdio je:
 
 1. `Service` i `ServiceCategory` dobijaju additive pozitivan integer `revision`, početna vrijednost `1`; postojeći zapisi ostaju čitljivi bez backfill upisa. Svaki write na servis koji može promijeniti API vidljivo stanje mora rotirati revision, uključujući API, onboarding, config apply, policy-pack i install/seed putanje.
 2. Service i category response/list stavke izlažu revision, a pojedinačni GET i uspješni create/update odgovori emituju strong `ETag: "vN"`.
-3. `PATCH /services/:serviceId`, `POST /services/:serviceId/lifecycle`, `PATCH /services/:serviceId/availability` i `PATCH /service-categories/:serviceCategoryId` zahtijevaju tačno jedan strong `If-Match: "vN"`.
+3. `PATCH /services/:serviceId`, `POST /services/:serviceId/lifecycle`, `PATCH /services/:serviceId/availability`, `PATCH /services/:serviceId/onboarding/service` i `PATCH /service-categories/:serviceCategoryId` zahtijevaju tačno jedan strong `If-Match: "vN"`.
 4. Missing precondition vraća `OPTIMISTIC_PRECONDITION_REQUIRED` / HTTP 428; malformed/weak/wildcard/multi-value token vraća `OPTIMISTIC_IF_MATCH_INVALID` / HTTP 400; stale writer vraća `OPTIMISTIC_STALE_WRITE` / HTTP 412 uz aktuelni ETag. Mutacije koriste atomic `WHERE id = ? AND revision = expected` i uspješno povećavaju revision tačno jednom.
 5. Service metadata, lifecycle i availability koriste isti service revision, pa se izmjene različitih polja međusobno ne mogu tiho pregaziti. Category update koristi zaseban category revision i zadržava BA-08 hierarchy lock.
 6. Uspješan CAS, business write i change log su u istoj transakciji. `before` dolazi iz revision-a koji je CAS pobijedio, `after` iz committable write-a; stale gubitnik ne ostavlja change log niti parcijalni side effect.
-7. Frontend service/category/lifecycle edit putanje šalju revision koji su stvarno učitale; stale konflikt prikazuje lokalizovanu poruku i zahtijeva refresh prije novog pokušaja.
+7. Frontend service/category/lifecycle i onboarding service edit putanje šalju revision koji su stvarno učitale; stale konflikt prikazuje lokalizovanu poruku i zahtijeva refresh prije novog pokušaja.
 8. Unit/controller testovi pokrivaju header/error ugovor i stale CAS; real PostgreSQL suite koristi odvojene klijente sa istim ETag-om, dokazuje najviše jedan uspješan upis, jedan 412, tačan revision i tačan audit snapshot.
 9. Bez BA-routing-02 izmjene, bez zatvaranja drugih nalaza, bez speca 56 ili promjene praga `250 ms`, bez W7.15 hard-delete/event-archival izmjene. BA-09 ostaje otvoren do završetka provjera i zasebne statusne odluke.
 
 ## Trenutni status i validacija
 
-`BA-service-catalog-09` je **otvoren; implementacija je u toku**. Schema/migracija, atomic revision CAS za service/category mutacije, shared service revision za lifecycle/availability, response revision/strong ETag i `If-Match` kontroleri, direktni service-writer revision increments, stale-write greške te frontend revision propagacija i lokalizacija implementirani su u radnom stablu. Pozitivni safe-integer response parseri su povezani sa service/category create/update i category detail/list putanjama; `getService` ostaje bez parsera prema ranijoj prihvatljivoj odluci. Unit/controller testovi i real-PostgreSQL concurrency suite su dodani; integration suite zahtijeva `PRIVACY_IT_DATABASE_URL`.
+`BA-service-catalog-09` je **otvoren; implementacija je u toku**. Schema/migracija, atomic revision CAS za service/category mutacije, shared service revision za lifecycle/availability, response revision/strong ETag i `If-Match` kontroleri, direktni service-writer revision increments (uključujući onboarding service-step CAS/If-Match), stale-write greške te frontend revision propagacija i lokalizacija implementirani su u radnom stablu. Pozitivni safe-integer response parseri su povezani sa service/category create/update i category detail/list putanjama; `getService` ostaje bez parsera prema ranijoj prihvatljivoj odluci. Unit/controller testovi i real-PostgreSQL concurrency suite su dodani; integration suite zahtijeva `PRIVACY_IT_DATABASE_URL`.
 
 Lokalna validacija:
 
