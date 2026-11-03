@@ -19,17 +19,9 @@ export function createInMemoryServiceOnboardingPrisma(): {
   const catalog = createInMemoryServiceCatalogPrisma();
   const onboardings = new Map<string, ServiceOnboardingPersistence>();
   const slaProfiles = new Set<string>();
-  const prisma: {
-    serviceCategory: Record<string, unknown>;
-    service: Record<string, unknown>;
-    serviceDowntimeWindow: Record<string, unknown>;
-    formVersion: Record<string, unknown>;
-    ticket: Record<string, unknown>;
-    policyPack: Record<string, unknown>;
-    changeLog: Record<string, unknown>;
+  const prisma: ReturnType<typeof createInMemoryServiceCatalogPrisma>['prisma'] & {
     serviceOnboarding: Record<string, unknown>;
     slaProfile: Record<string, unknown>;
-    $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
   } = {
     ...catalog.prisma,
     serviceOnboarding: {},

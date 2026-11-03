@@ -40,9 +40,10 @@ Read path je potvrđen u `backend/src/modules/service-catalog/list-services.ts`,
 **Nije passed / nije izvršeno:**
 
 - `service-catalog.service.spec.ts` — **nije izvršen lokalno**: generated Prisma Client/enums nisu prisutni (`TS2307`, `../../generated/prisma/enums`). `npm run db:generate -- --no-engine` nije mogao preuzeti Prisma schema-engine zbog TLS veze do `binaries.prisma.sh`; zato se ovaj ServiceCatalogService 503 regression i backend build/full Jest ne označavaju kao passed. Test je dodan i mora se izvršiti u CI okruženju sa generisanim klijentom.
-- BA-14 CI/full build i Perf: **pending / nisu pokrenuti za ove izmjene**. Ne preuzimati BA-13 run kao BA-14 CI dokaz.
 
-Nije korištena ciljna DB, nije pokrenuta migracija niti deployment. Generisanje Prisma Clienta nije uspjelo prije DB interakcije. Nema PR-a/mergea.
+**CI prvi pokušaj `41727639882` / Perf `41727639876` na SHA `69b55985574928a6a1d5ff166209c5fd8c1ece51`: failure, BA-14 nije prihvaćen.** Frontend build/test i Docs guard su passed. Backend build je pao na `TS2322` u `create-in-memory-service-onboarding-prisma.ts`: eksplicitni tip fixturea nije sadržavao novo obavezno `serviceIncidentService` polje vraćeno iz service-catalog fixturea. Popravka sada izvodi taj tip direktno iz `ReturnType<typeof createInMemoryServiceCatalogPrisma>`. Container image build i backend integration korak `Verify deployment-wide connection budget` također su failure; budget korak prvo izvršava backend build pa ne postoji potvrđen budget rezultat. Sirovi CI logovi nisu mogli biti preuzeti (`gh run view --log-failed` vratio je `EOF`), zato se ne tvrdi uzrok container/integration koraka izvan vidljivog outputa. Perf smoke nije došao do k6-a: API build je pao, pa nema izmjerenog Perf rezultata. CI gate je failure; inventory i E2E install/critical su skipped. Ispravka se pushuje u follow-up commit; BA-14 ostaje otvoren do zelenog CI-ja.
+
+Nije korištena ciljna DB, lokalno nije pokrenuta migracija niti deployment. CI integration koristi disposable test okruženje. Generisanje Prisma Clienta lokalno nije uspjelo prije DB interakcije. Nema PR-a/mergea.
 
 ## Status i granice
 
