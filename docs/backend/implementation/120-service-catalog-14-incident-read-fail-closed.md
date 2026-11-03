@@ -1,52 +1,65 @@
-# Implementacijski checkpoint — `BA-service-catalog-14` (u toku)
+# Closeout — `BA-service-catalog-14` (incident read fail-closed)
 
-**Nalaz:** `BA-service-catalog-14` (P3) — **otvoren; implementacija lokalno u toku, CI acceptance još nije potvrđen**.<br>
+**Status:** zatvoreno owner-directed 2026-11-03 nakon zelenog kodnog CI-ja.<br>
+**Nalaz:** `BA-service-catalog-14` (P3) — DB/missing-delegate greška pri čitanju incident impacta ne smije se prikazati kao potvrđeno odsustvo incidenta.<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
-**Početak:** 2026-11-03, nakon owner-directed zatvaranja BA-13; prethodni dokaz je u [119 closeoutu](119-service-catalog-13-caller-supplied-change-reasons.md).<br>
-**Schema / migracija / ciljna baza:** nema schema promjene ni migracije; ciljnoj bazi nije pristupljeno.
+**Finalni kodni SHA:** `7dd9c05c1655f1c5ce0dee881cfbee037b9c5028`<br>
+**CI:** [`41728680530`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41728680530) — **success**.<br>
+**Schema / ciljna baza:** nema schema promjene; ciljnoj bazi nije pristupljeno. CI integration koristi disposable test okruženje.
 
-## Nalaz i potvrđeni read path
+## Nalaz i ugovor
 
-`listServices` i `getService` pozivaju `loadOpenIncidentImpacts` prije izgradnje odgovora. Loader je ranije vraćao praznu mapu kad bi `serviceIncidentService` delegate nedostajao ili bi query bacio grešku. `toServiceResponse` tumači nedostajući impact kao `incidentImpact: null` — “nema incidenta” — pa bi response mogao zadržati `OPERATIONAL` i tiho sakriti nepoznato stanje.
+`listServices` i `getService` pozivaju `loadOpenIncidentImpacts` prije izgradnje odgovora. Loader je ranije vraćao praznu mapu kada bi `serviceIncidentService` delegate nedostajao ili bi incident query pao. `toServiceResponse` je nedostajući impact tumačio kao `incidentImpact: null`, što znači „uspješno potvrđeno da nema javno vidljivog otvorenog incidenta“. Kvar čitanja je zato mogao pogrešno ostaviti servis `OPERATIONAL` bez vidljivog health signala.
 
-Read path je potvrđen u `backend/src/modules/service-catalog/list-services.ts`, `get-service.ts`, `load-open-incident-impacts.ts`, `to-service-response.ts` i `ServiceCatalogService.execute`. Status page ima zaseban incident read path; on ne koristi ovaj loader niti guta DB grešku, pa nije mijenjan.
+Dogovoreni API/UI ugovor je:
 
-## Postojeći API/UI ugovor i odluka
+- incident query/delegate greška vraća `INCIDENT_STATUS_UNAVAILABLE`, mapiran u HTTP **503**;
+- frontend prikazuje postojeći `errors.server` tekst;
+- `incidentImpact: null` i dalje znači samo uspješno potvrđeno odsustvo javno vidljivog otvorenog incidenta;
+- nema `UNKNOWN` availability statusa, API response-union promjene ni promjene availability ponašanja.
 
-- Backend `ServiceResponse.incidentImpact` je obavezan i nullable: `null` znači uspješno potvrđeno odsustvo javno vidljivog otvorenog incidenta. `runtimeAvailability` nema `UNKNOWN` vrijednost.
-- Frontend `ServiceResponse.incidentImpact` je opcionalan zbog create/update responsea; postojeći catalog/ticket UI tumači `null` kao odsustvo incidenta. Zato se DB kvar ne smije predstavljati kao `null`, niti je dodan novi availability status.
-- Izabrano ponašanje je eksplicitan fail-closed API odgovor: `ServiceCatalogError('INCIDENT_STATUS_UNAVAILABLE')`, mapiran u HTTP **503** sa stabilnim kodom. `mapApiError` za taj kod prikazuje postojeću server-error poruku.
-- Pri prvom catalog učitavanju 503 vodi u postojeći blocking error state. Na neuspjelom osvježavanju UI zadržava posljednje uspješne redove, ali prikazuje vidljivo upozorenje o grešci. Ticket-create loader vraća prazan services skup uz vidljiv `tickets.errorCatalog`, ne lažno zdrav servis.
+Status-page incident read je zaseban put koji već ne guta DB grešku; nije mijenjan.
 
 ## Implementacija
 
-- `loadOpenIncidentImpacts` vraća praznu mapu bez queryja samo kad nema service ID-jeva. Nedostajući delegate ili bilo koji incident read/processing failure sada baca `INCIDENT_STATUS_UNAVAILABLE`; uspješan prazan rezultat i dalje znači da nema incidenta.
-- `ServiceCatalogError` i `mapServiceCatalogError` dodaju stabilan HTTP 503 ugovor. Query ograničenje na open `ALL_USERS` incidente ostaje nepromijenjeno.
-- Backend regresije pokrivaju worst-impact agregaciju, empty input, missing delegate, DB failure i 503 mapping. Dodatni `ServiceCatalogService` regression test provjerava da list i single reads propagiraju 503 umjesto payload-a sa zdravim servisom.
-- Frontend error mapper veže `INCIDENT_STATUS_UNAVAILABLE` za postojeći `errors.server`; response data types i i18n ključevi nisu mijenjani.
+- `loadOpenIncidentImpacts` vraća praznu mapu bez queryja samo kada nema service ID-jeva; missing delegate ili query/processing failure baca `INCIDENT_STATUS_UNAVAILABLE`.
+- `ServiceCatalogError` mapper daje stabilan HTTP 503 kod; existing open `ALL_USERS` incident filter ostaje nepromijenjen.
+- Service-level list/get regresije potvrđuju propagaciju greške umjesto payload-a sa lažno zdravim servisom.
+- Frontend API error mapper veže novi API kod za postojeći server-error tekst; response types i i18n ključevi nisu mijenjani.
+- Follow-up tipna korekcija u onboarding in-memory Prisma fixtureu izvodi tip iz `ReturnType<typeof createInMemoryServiceCatalogPrisma>['prisma']`, tako da fixture prati novi incident delegate bez ručnog nepotpunog Prisma tipa.
 
-## Lokalna provjera
+## CI pokušaji i konačna acceptance odluka
 
-**Passed:**
+Prvi CI run [`41727639882`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41727639882) na SHA `69b55985574928a6a1d5ff166209c5fd8c1ece51` bio je **failure**, pa BA-14 tada nije bio prihvaćen. Frontend i Docs guard su prošli; backend build pao je na `TS2322` jer je eksplicitni onboarding fixture tip izostavio `serviceIncidentService`. Container image build i PostgreSQL/Redis integration connection-budget korak također su prijavili failure; budget korak pokreće backend build, pa nema potvrđenog budget rezultata. Sirovi logovi nisu mogli biti preuzeti (`EOF`), zato se ne tvrdi uzrok izvan vidljivih annotations. Follow-up commit `7dd9c05` popravio je fixture tip i dopunio ovaj checkpoint.
 
-- `load-open-incident-impacts.spec.ts` + `map-service-catalog-error.spec.ts`: **2 suitea / 5 testova passed**.
-- Ciljani backend ESLint za izmijenjene module/testove: **passed**.
-- Frontend `npx tsc -b --pretty false`: **passed**.
-- Frontend `map-api-error.spec.ts`: **1 fajl / 4 testa passed**; ciljani ESLint i Prettier check za izmijenjene mapper fajlove: **passed**.
-- Backend findings traceability: **692/692**, severity `P1=174, P2=368, P3=150`; traceability guard testovi: **13/13 passed**.
-- Docs content guard: **passed** (`32 stranice, 8 prevoda, 10 provjera`); docs guard testovi **9/9 passed**. Guard je prijavio shallow-clone napomenu: `updatedAt` se preuzima iz postojećeg `manifest.json`, a ne računa iz Git istorije (§3.3); sadržaj/provjera su prošli.
-- `git diff --check`: **passed**.
+Finalni CI [`41728680530`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41728680530) na finalnom SHA `7dd9c05c1655f1c5ce0dee881cfbee037b9c5028` završio je **success**:
 
-**Nije passed / nije izvršeno:**
+| Job / provjera | Rezultat |
+| --- | --- |
+| Frontend build + test | **passed** |
+| Backend generated-Prisma build, lint i full Jest (uključujući BA-14 regressions) | **passed** |
+| PostgreSQL + Redis integration, uključujući migration replay i connection budget | **passed** |
+| Backend container + supply-chain | **passed** |
+| Docs guard | **passed** |
+| CI gate | **passed** |
+| Read-only service-form inventory | **skipped** |
+| E2E critical flows / install wizard | **skipped** |
+| Conditional zero high/critical image-vulnerability enforcement | **skipped** |
 
-- `service-catalog.service.spec.ts` — **nije izvršen lokalno**: generated Prisma Client/enums nisu prisutni (`TS2307`, `../../generated/prisma/enums`). `npm run db:generate -- --no-engine` nije mogao preuzeti Prisma schema-engine zbog TLS veze do `binaries.prisma.sh`; zato se ovaj ServiceCatalogService 503 regression i backend build/full Jest ne označavaju kao passed. Test je dodan i mora se izvršiti u CI okruženju sa generisanim klijentom.
+`skipped` nije označen kao `passed`. Ovaj run ne daje browser/spec 56 sign-off niti deployment potvrdu.
 
-**CI prvi pokušaj `41727639882` / Perf `41727639876` na SHA `69b55985574928a6a1d5ff166209c5fd8c1ece51`: failure, BA-14 nije prihvaćen.** Frontend build/test i Docs guard su passed. Backend build je pao na `TS2322` u `create-in-memory-service-onboarding-prisma.ts`: eksplicitni tip fixturea nije sadržavao novo obavezno `serviceIncidentService` polje vraćeno iz service-catalog fixturea. Popravka sada izvodi taj tip direktno iz `ReturnType<typeof createInMemoryServiceCatalogPrisma>`. Container image build i backend integration korak `Verify deployment-wide connection budget` također su failure; budget korak prvo izvršava backend build pa ne postoji potvrđen budget rezultat. Sirovi CI logovi nisu mogli biti preuzeti (`gh run view --log-failed` vratio je `EOF`), zato se ne tvrdi uzrok container/integration koraka izvan vidljivog outputa. Perf smoke nije došao do k6-a: API build je pao, pa nema izmjerenog Perf rezultata. CI gate je failure; inventory i E2E install/critical su skipped. Ispravka se pushuje u follow-up commit; BA-14 ostaje otvoren do zelenog CI-ja.
+## Perf, lokalna provjera i ograničenja
 
-Nije korištena ciljna DB, lokalno nije pokrenuta migracija niti deployment. CI integration koristi disposable test okruženje. Generisanje Prisma Clienta lokalno nije uspjelo prije DB interakcije. Nema PR-a/mergea.
+**Lokalno passed:** backend incident-loader/error-mapper testovi **2 suitea / 5 testova**; targeted backend ESLint; frontend `npx tsc -b --pretty false`; frontend `map-api-error.spec.ts` **1 fajl / 4 testa**; targeted frontend ESLint/Prettier; findings traceability prije closeouta **692/692** i guard tests **13/13**; Docs guard **32 stranice / 8 prevoda / 10 provjera** i tests **9/9**; `git diff --check`.
 
-## Status i granice
+ServiceCatalogService regression nije lokalno kompajlirao zbog nedostajućeg generated Prisma Clienta. Lokalni pokušaj `prisma generate` bio je blokiran TLS pristupom `binaries.prisma.sh`; mrežno zavisan pokušaj nije ponavljan. Finalni CI generisao je klijenta i prošao full backend build/Jest, čime je taj lokalni nedostatak prevaziđen za acceptance.
 
-BA-14 ostaje **otvoren** dok ServiceCatalogService list/get regression, generated-Prisma backend build/full Jest i CI acceptance ne budu potvrđeni. Nakon izmjena status registra je `service-catalog`: **2 otvorena / 13 zatvorenih** (`BA-service-catalog-14` i `15` ostaju otvoreni); deklarisani globalni zbir je **557 otvoren / 135 zatvoren / 692 ukupno**, machine-readable izvor **560 otvoren / 121 zatvoren / 11 historijskih**. Ranija razlika od tri statusa ostaje vidljiva.
+Perf run [`41727639876`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41727639876) na početnom BA-14 SHA bio je **failure prije k6-a** zbog API builda. Na finalnom SHA `7dd9c05` nije pokrenut Perf run; zato nema finalnog BA-14 Perf rezultata/mjerenja i Perf se ne navodi kao passed. Ovaj P3 acceptance se oslanja na kodni CI, ne na Perf gate.
 
-BA-routing-02, BA-15, Perf search failure `41697055530` i drugi nalazi nisu mijenjani niti pripisani BA-14. Nema target-DB pristupa, migracije, deploya, PR-a prema `master` ni mergea. Sljedeći acceptance korak je pokretanje novih ServiceCatalogService testova i punog CI-ja na aktivnoj Arena grani; tek zatim odlučiti o zasebnom owner-directed closeoutu.
+**Dokumentacijska provjera nakon closeouta:** `node scripts/check-backend-findings.mjs` — **692/692**; findings plan tests **13/13 passed**; Docs guard — **32 stranice / 8 prevoda / 10 provjera passed** (uz postojeću shallow-clone `updatedAt` napomenu); docs guard tests **9/9 passed**; `git diff --check` — **passed**.
+
+## Statusni closeout i scope granice
+
+Korisnik je odobrio zatvaranje BA-14 nakon zelenog CI-ja. BA-14 je **zatvoren owner-directed** na osnovu finalnog CI-ja `41728680530` na `7dd9c05`; BA-service-catalog-15 ostaje **otvoren** i započinje kroz [checkpoint 121](121-service-catalog-15-executable-test-matrix.md). Trenutni service-catalog zbir je **1 otvoren / 14 zatvorenih**. Globalni deklarisani zbir je **556 otvoren / 136 zatvoren / 692 ukupno**; machine-readable source nakon regeneracije je očekivano **559 otvoren / 122 zatvoren / 11 historijskih**. Ranija razlika od tri statusa ostaje zasebna reconciliation obaveza.
+
+BA-routing-02, BA-changes-08/13 i svi drugi nalazi nisu mijenjani. Nema target-DB pristupa, lokalne migracije, deploymenta, PR-a prema `master` niti mergea. Zadnje provjereni `origin/master` je `8cfd54c1a28b04b150424691b113420b89730c58`; BA-14 commits su ostali na Arena grani.
