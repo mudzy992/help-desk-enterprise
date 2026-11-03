@@ -38,6 +38,8 @@ const messages: Record<ServiceCatalogErrorCode, string> = {
   SELF_PARENT_CATEGORY: "A category cannot be its own parent",
   CIRCULAR_CATEGORY:
     "The requested parent would create a circular category tree",
+  CATEGORY_TREE_LOCK_UNAVAILABLE:
+    "Category hierarchy is busy; retry the mutation",
   CATEGORY_HAS_CHILDREN: "Service category still has child categories",
   CATEGORY_HAS_SERVICES: "Service category still has services",
   INVALID_LIFECYCLE_STATE: "Lifecycle state is not allowed",
@@ -78,6 +80,7 @@ export function mapServiceCatalogError(error: unknown): HttpException {
     error.code === "LIFECYCLE_UNAVAILABLE" ||
     error.code === "AVAILABILITY_UNAVAILABLE" ||
     error.code === "DOWNTIME_UNAVAILABLE" ||
+    error.code === "CATEGORY_TREE_LOCK_UNAVAILABLE" ||
     error.code === "CATALOG_RESOURCE_LIMIT_EXCEEDED"
   ) {
     return new ServiceUnavailableException(body);

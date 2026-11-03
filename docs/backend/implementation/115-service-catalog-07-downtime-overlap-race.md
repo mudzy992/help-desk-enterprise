@@ -1,11 +1,12 @@
-# Implementacijski checkpoint — `BA-service-catalog-07` (CI validirano; otvoreno)
+# Closeout — `BA-service-catalog-07` (zatvoreno owner-directed)
 
 **Paket:** audit 15 / `service-catalog` — concurrency-safe downtime overlap invariant<br>
-**Nalaz:** `BA-service-catalog-07` (P2) — **otvoren**; implementacija i tehnički acceptance kriteriji validirani, status nije zatvaran bez zasebne korisničke odluke<br>
+**Nalaz:** `BA-service-catalog-07` (P2) — **zatvoreno owner-directed** 2026-11-03 nakon izričite korisničke dozvole uz zelene CI/Perf runove<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
-**Zadnji commit:** `65bad6e7f5e6d37a9964364e77615e7f0b392a83` (`test(service-catalog): fix BA-07 test type errors`), pushed na aktivnu Arena granu<br>
+**Odluka:** korisnik je 2026-11-03 izričito odobrio BA-07 zatvaranje jer su CI i Perf prošli, te naložio početak BA-08<br>
+**BA-07 kod/test commit:** `65bad6e7f5e6d37a9964364e77615e7f0b392a83` (`test(service-catalog): fix BA-07 test type errors`), pushed na aktivnu Arena granu<br>
 **BA-06 prethodni status:** zatvoren owner-directed nakon zelenog CI-ja `41537673319` na `964c8f4`; detalji i odvojeni Perf/E2E statusi su u [114 BA-06 closeoutu](114-service-catalog-06-form-version-create-race.md).<br>
-**Kontrolni zbir:** deklarisano 561 otvoren / 131 zatvoren / 692 ukupno; machine-readable 564 otvorena / 117 zatvorenih / 11 historijskih; `service-catalog` 6 otvorenih / 9 zatvorenih. Preegzistentna razlika od tri statusa ostaje dokumentovana.<br>
+**Kontrolni zbir nakon zatvaranja:** deklarisano 560 otvoren / 132 zatvoren / 692 ukupno; machine-readable 563 otvorena / 118 zatvorenih / 11 historijskih; `service-catalog` 5 otvorenih / 10 zatvorenih. Preegzistentna razlika od tri statusa ostaje dokumentovana.<br>
 **Migracija / ciljna baza:** nema schema promjene ni migracije; ciljna baza nije korištena<br>
 **Spec 56 / prag:** nisu mijenjani; E2E poslovi su skipped, nema browser/spec 56 sign-offa
 
@@ -20,7 +21,7 @@ Acceptance ovog paketa:
 3. Istovremeni overlap pokušaj daje tačno jedan uspješan write, dok gubitnik dobija postojeći stabilni HTTP 409 `OVERLAPPING_DOWNTIME_WINDOW`. Poluotvoreni `[startsAt, endsAt)` ugovor ostaje: susjedni prozori su dozvoljeni.
 4. Real PostgreSQL integration pokriva create-vs-create, update-vs-create i `ChangeScheduleService.syncDowntime`-vs-API-create trke; potvrđuje da su konačni prozori nepreklapajući, API loser dobija 409, a API create se evidentira u change logu.
 
-Nema DB exclusion constraint ni migracije; konkurenciju koordinira postojeći `DatabaseLockService`. BA-08 i svi drugi nalazi ostaju van scopea.
+Nema DB exclusion constraint ni migracije; konkurenciju koordinira postojeći `DatabaseLockService`. BA-08 nije bio dio BA-07 implementacije i sada počinje kao zaseban scope u [116 checkpointu](116-service-catalog-08-category-parent-cycle-race.md). Ostali nalazi nisu mijenjani.
 
 ## Implementacija
 
@@ -43,4 +44,4 @@ Nema DB exclusion constraint ni migracije; konkurenciju koordinira postojeći `D
 
 ## Status i sljedeći korak
 
-Tehnički acceptance kriteriji za BA-07 sada su CI-validirani, ali nalaz ostaje **otvoren** dok korisnik ne zatraži zasebnu statusnu odluku/zatvaranje. Nema PR-a prema `master`, mergea, deploymenta ni target-DB akcije. Nema ciljane DB migracije, promjene BA-routing-02, drugih finding statusa, speca 56, praga `250 ms` ili W7.15 ponašanja.
+BA-07 je **zatvoren owner-directed** nakon korisnikove izričite dozvole nakon zelenog CI `41628259091` i Perf `41628258814` na `65bad6e7`. CI je prošao generated-Prisma build/lint/full Jest i PostgreSQL/Redis integration; Perf pragovi su prošli. E2E/install/critical, inventory i conditional image-enforcement bili su skipped, pa nema browser/spec 56 sign-offa. BA-08 je sljedeći aktivni scope u checkpointu 116. Nije bilo PR-a prema `master`, mergea, deploymenta ni target-DB akcije. Nema schema migracije, promjene BA-routing-02, drugih finding statusa, speca 56, praga `250 ms` ili W7.15 ponašanja.

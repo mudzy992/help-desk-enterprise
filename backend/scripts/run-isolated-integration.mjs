@@ -39,6 +39,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/routing/routing-critical-matrix.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",
   "src/modules/service-catalog/service-downtime-window-overlap.integration.spec.ts",
+  "src/modules/service-catalog/service-category-parent-race.integration.spec.ts",
   "src/modules/service-catalog/service-form-version-immutability.integration.spec.ts",
   "src/modules/service-catalog/service-form-version-activation.integration.spec.ts",
   "src/modules/service-catalog/service-form-version-create.integration.spec.ts",

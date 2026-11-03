@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { PrismaService } from "../../common/prisma/prisma.service";
@@ -227,6 +228,74 @@ describe("ServiceCatalogService CRUD", () => {
       NotFoundException,
     );
     await service.deleteCategory(category.id);
+  });
+
+  it("rejects reparenting a category beneath one of its descendants", async () => {
+    const { memory, service } = createHarness();
+    const root = await service.createCategory({
+      name: "Root",
+      slug: "root-category",
+    });
+    const child = await service.createCategory({
+      name: "Child",
+      slug: "child-category",
+      parentId: root.id,
+    });
+
+    const error = await service
+      .updateCategory(root.id, { parentId: child.id })
+      .catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect((error as BadRequestException).getResponse()).toMatchObject({
+      code: "CIRCULAR_CATEGORY",
+    });
+    await expect(service.getCategory(root.id)).resolves.toMatchObject({
+      id: root.id,
+      parentId: null,
+    });
+    await expect(service.getCategory(child.id)).resolves.toMatchObject({
+      id: child.id,
+      parentId: root.id,
+    });
+    expect(memory.changeLogs.map((item) => item.reason)).toEqual([
+      "create",
+      "create",
+    ]);
+  });
+
+  it("returns retryable service-unavailable when the category-tree lock times out", async () => {
+    const { memory, service } = createHarness();
+    const root = await service.createCategory({
+      name: "Root",
+      slug: "root-category",
+    });
+    const child = await service.createCategory({
+      name: "Child",
+      slug: "child-category",
+      parentId: root.id,
+    });
+    jest.spyOn(memory.prisma, "$queryRaw").mockRejectedValueOnce({ code: "55P03" });
+
+    const error = await service
+      .updateCategory(root.id, { parentId: child.id })
+      .catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(ServiceUnavailableException);
+    expect((error as ServiceUnavailableException).getStatus()).toBe(503);
+    expect((error as ServiceUnavailableException).getResponse()).toMatchObject({
+      code: "CATEGORY_TREE_LOCK_UNAVAILABLE",
+    });
+    await expect(service.getCategory(root.id)).resolves.toMatchObject({
+      id: root.id,
+      parentId: null,
+    });
+    await expect(service.getCategory(child.id)).resolves.toMatchObject({
+      id: child.id,
+      parentId: root.id,
+    });
+    expect(memory.changeLogs.map((item) => item.reason)).toEqual([
+      "create",
+      "create",
+    ]);
   });
 
   it("rejects invalid names and slugs", async () => {

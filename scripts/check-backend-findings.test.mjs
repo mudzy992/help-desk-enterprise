@@ -69,11 +69,12 @@ test("W7.11 BA-assets-11 closeout je zatvoren u izvornom registry planu", async 
   );
 });
 
-test("BA-06 closeout je evidentiran, a BA-07 ostaje otvoren", async () => {
+test("BA-06/07 closeouti su evidentirani, a BA-08 ostaje otvoren", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
   assert.deepEqual(byId.get("BA-service-catalog-06"), { source: "15-service-catalog.md", status: "zatvoreno" });
-  assert.deepEqual(byId.get("BA-service-catalog-07"), { source: "15-service-catalog.md", status: "otvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-07"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-08"), { source: "15-service-catalog.md", status: "otvoreno" });
 });
 
 test("W7.13 closeout ostaje evidentiran za BA-assets-13", async () => {
