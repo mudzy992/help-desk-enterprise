@@ -35,8 +35,14 @@ Form builder više ne kreira prvu formu kao sporedni efekat čitanja/otvaranja e
 - Ciljani frontend Vitest: **4 fajla / 11 testova passed** (service-catalog concurrency/reason API, form-builder i ensure-form ponašanje).
 - Ciljani frontend ESLint, `npm run i18n:check` i Prettier provjera izmijenjenih TS/TSX/JSON fajlova: **passed**.
 - Ciljani backend ESLint za izmijenjene module i testove: **passed**.
-- Backend Jest/full build još nisu izvršeni lokalno; generated Prisma Client nije prisutan u ovom checkoutu. Ne označavaju se kao passed. CI provjera BA-13 tek predstoji.
+- Backend Jest/full build nisu izvršeni lokalno jer generated Prisma Client nije prisutan u ovom checkoutu; lokalno se ne označavaju kao passed. Njih je potom validirao CI `41697055454` (detalji ispod).
+
+## CI provjera (2026-11-03)
+
+CI [`41697055454`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41697055454) na SHA `6a3546b2ebd46ff75dde7cba435709468d17f3a3` je **success**: backend generated-Prisma build/lint/full Jest, PostgreSQL/Redis integration na disposable CI bazi, frontend build/test, docs guard, container/supply-chain i CI gate su **passed**. Read-only inventory, E2E critical/install i conditional zero-high/critical image enforcement su **skipped**; nema browser/spec 56 sign-offa.
+
+Perf smoke [`41697055530`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41697055530) na istom SHA-u je **failure** samo na nepovezanom search p95 `956.26 ms` prema `<500 ms`. Ticket-message p95 `945.25 ms`, service-catalog p95 `60.03 ms`, service-catalog contract failures `0`, payload p95 `112.42 KB` i query-budget avg `2.088` prema `2.1` su **passed**. Ovaj Perf neuspjeh nije BA-13 acceptance i nije razlog za proširenje scopea.
 
 ## Granice i sljedeći koraci
 
-BA-13 ostaje **otvoren** dok backend generated-Prisma build/full Jest i CI ne validiraju novi DTO/domain/API contract i sve promijenjene call-siteove. Nema target-DB pristupa, migracije, deploya, statusne promjene drugih nalaza, BA-routing-02 izmjene, PR-a prema `master` ni mergea. Odvojeni Perf smoke `41662410321` ostaje **failure** na nepovezanim search/ticket-message pragovima; service-catalog p95 i query-budget su **passed** ([118 closeout](118-service-catalog-09-owner-directed-closeout.md)).
+BA-13 ostaje **otvoren**: CI je potvrdio tehničku implementaciju, ali status nalaza nije zatvoren bez zasebne owner statusne odluke. Nema target-DB pristupa, migracije ni deployment akcije. Nisu mijenjani statusi drugih nalaza niti BA-routing-02; nema PR-a prema `master` ni mergea. Perf failure je zabilježen odvojeno od zelenog CI-ja i ne pripisuje se BA-13.

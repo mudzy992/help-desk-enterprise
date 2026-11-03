@@ -5,7 +5,7 @@
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **Odluka:** korisnik je izričito odobrio closeout nakon vlastite prijave uspješnog redeploya i primijenjene migracije.<br>
 **Ciljna baza / redeploy:** korisnički prijavljeni, ali **nisu nezavisno provjereni**; iz ovog rada nije pristupljeno ciljnoj bazi i migracija nije ponovo pokretana.<br>
-**Sljedeći scope:** `BA-service-catalog-13` (P3), implementacija u toku i nalaz ostaje otvoren — [119 checkpoint](119-service-catalog-13-caller-supplied-change-reasons.md).
+**Sljedeći scope:** `BA-service-catalog-13` (P3), ostaje otvoren nakon CI `41697055454` success; Perf `41697055530` je failure samo na nepovezanom search pragu, dok su service-catalog i query-budget passed. Dokaz je u [119 checkpointu](119-service-catalog-13-caller-supplied-change-reasons.md).
 
 ## Closeout dokaz
 
