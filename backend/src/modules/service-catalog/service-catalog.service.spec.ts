@@ -120,10 +120,14 @@ describe("ServiceCatalogService CRUD", () => {
       slug: "leave-request",
       categoryId: category.id,
     });
-    const updated = await service.update(created.id, {
-      name: "Leave requests",
-      requiresApproval: true,
-    });
+    const updated = await service.update(
+      created.id,
+      {
+        name: "Leave requests",
+        requiresApproval: true,
+      },
+      '"v1"',
+    );
     expect(updated.name).toBe("Leave requests");
     expect(updated.slug).toBe("leave-request");
     expect(updated.id).toBe(created.id);
@@ -243,7 +247,7 @@ describe("ServiceCatalogService CRUD", () => {
     });
 
     const error = await service
-      .updateCategory(root.id, { parentId: child.id })
+      .updateCategory(root.id, { parentId: child.id }, '"v1"')
       .catch((failure: unknown) => failure);
     expect(error).toBeInstanceOf(BadRequestException);
     expect((error as BadRequestException).getResponse()).toMatchObject({
@@ -288,7 +292,7 @@ describe("ServiceCatalogService CRUD", () => {
     );
 
     const error = await service
-      .updateCategory(root.id, { parentId: child.id })
+      .updateCategory(root.id, { parentId: child.id }, '"v1"')
       .catch((failure: unknown) => failure);
     expect(error).toBeInstanceOf(ServiceUnavailableException);
     expect((error as ServiceUnavailableException).getStatus()).toBe(503);

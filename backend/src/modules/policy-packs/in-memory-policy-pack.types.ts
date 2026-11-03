@@ -14,6 +14,7 @@ export type InMemoryPolicyPackOrganizationalUnit = {
 export type InMemoryPolicyPackService = {
   id: string;
   policyPackId: string | null;
+  revision?: number;
   /** M5 B1 (val 5): the bundle fields a pack writes onto a service. */
   classification?: string;
   requiresApproval?: boolean;

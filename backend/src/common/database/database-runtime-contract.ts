@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271030120000_asset_hard_delete_event_history';
+  '20271030130000_service_catalog_optimistic_revisions';
 
 export function assertDatabaseTransport(
   connectionString: string,

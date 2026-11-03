@@ -41,7 +41,7 @@ export async function unbindPolicyPackTargets(
     if (service !== null && service.policyPackId === policyPackId) {
       await prisma.service.update({
         where: { id: target.serviceId },
-        data: { policyPackId: null },
+        data: { policyPackId: null, revision: { increment: 1 } },
       });
       unboundService = true;
     }

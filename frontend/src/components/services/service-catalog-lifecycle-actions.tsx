@@ -95,7 +95,9 @@ export function ServiceCatalogLifecycleActions({
             variant="outline"
             disabled={!reasonReady || pendingAction !== null}
             onClick={() => {
-              void run(target, () => transitionServiceLifecycle(service.id, target));
+              void run(target, () =>
+                transitionServiceLifecycle(service.id, target, service.revision),
+              );
             }}
           >
             {pendingAction === target

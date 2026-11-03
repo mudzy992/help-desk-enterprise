@@ -93,6 +93,10 @@ function service(value: unknown, context: string): ServiceResponse {
   const item = record(value, context);
   for (const key of ["id", "name", "slug", "categoryId", "lifecycle", "availability"])
     nonEmptyString(item[key], `${context}.${key}`);
+  const revision = number(item.revision, `${context}.revision`);
+  if (!Number.isSafeInteger(revision) || revision < 1) {
+    invalidApiResponse(`${context}.revision must be a positive integer`);
+  }
   boolean(item.offeredToRequesters, `${context}.offeredToRequesters`);
   number(item.openTicketCount, `${context}.openTicketCount`);
   const runtime = record(item.runtimeAvailability, `${context}.runtimeAvailability`);
@@ -112,21 +116,35 @@ function service(value: unknown, context: string): ServiceResponse {
   return item as ServiceResponse;
 }
 
+export function parseServiceResponse(value: unknown): ServiceResponse {
+  return service(value, "service");
+}
+
 export function parseServiceCatalog(value: unknown): readonly ServiceResponse[] {
   return objectArray(value, "services", service);
 }
 
+function serviceCategory(value: unknown, context: string): ServiceCategoryResponse {
+  const item = record(value, context);
+  for (const key of ["id", "name", "slug", "createdAt", "updatedAt"]) {
+    nonEmptyString(item[key], `${context}.${key}`);
+  }
+  const revision = number(item.revision, `${context}.revision`);
+  if (!Number.isSafeInteger(revision) || revision < 1) {
+    invalidApiResponse(`${context}.revision must be a positive integer`);
+  }
+  number(item.sortOrder, `${context}.sortOrder`);
+  nullableString(item.parentId, `${context}.parentId`);
+  return item as ServiceCategoryResponse;
+}
+
+export function parseServiceCategoryResponse(value: unknown): ServiceCategoryResponse {
+  return serviceCategory(value, "service category");
+}
+
 export function parseServiceCategoryListPage(value: unknown): ServiceCategoryListPage {
   const page = record(value, "service category page");
-  const items = objectArray(page.items, "service category page.items", (entry, context) => {
-    const item = record(entry, context);
-    for (const key of ["id", "name", "slug", "createdAt", "updatedAt"]) {
-      nonEmptyString(item[key], `${context}.${key}`);
-    }
-    number(item.sortOrder, `${context}.sortOrder`);
-    nullableString(item.parentId, `${context}.parentId`);
-    return item as ServiceCategoryResponse;
-  });
+  const items = objectArray(page.items, "service category page.items", serviceCategory);
   const total = number(page.total, "service category page.total");
   const take = number(page.take, "service category page.take");
   const cursor = nullableString(page.cursor, "service category page.cursor");

@@ -41,6 +41,7 @@ export function toServiceResponse(
   });
   return {
     id: record.id,
+    revision: record.revision,
     name: record.name,
     slug: record.slug,
     categoryId: record.categoryId,

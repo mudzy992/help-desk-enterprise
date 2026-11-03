@@ -124,6 +124,7 @@ async function applyFinalization(
       lifecycle: 'ACTIVE',
       slaProfileId: input.slaProfileId,
       requiresApproval: input.requiresApproval,
+      revision: { increment: 1 },
     },
   });
   await recordServiceCatalogChange(prisma, {

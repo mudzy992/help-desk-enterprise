@@ -607,7 +607,10 @@ async function applyServicePlans(
     if (!changed) {
       continue;
     }
-    await transaction.service.update({ where: { id: current.id }, data });
+    await transaction.service.update({
+      where: { id: current.id },
+      data: { ...data, revision: { increment: 1 } },
+    });
   }
 }
 

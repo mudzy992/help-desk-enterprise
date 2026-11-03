@@ -1,4 +1,8 @@
 import { Injectable, Optional } from "@nestjs/common";
+import {
+  OptimisticConcurrencyService,
+  parseIfMatch,
+} from "../../common/optimistic-concurrency/optimistic-concurrency.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { mapRoutingError } from "../routing/map-routing-error";
 import { RoutingError } from "../routing/routing.error";
@@ -58,6 +62,8 @@ export class ServiceCatalogService {
     // requiresApproval flag (no configured overlay).
     @Optional()
     private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader | null = null,
+    @Optional()
+    private readonly optimisticConcurrency: OptimisticConcurrencyService = new OptimisticConcurrencyService(),
   ) {}
 
   private async approvalsConfiguration(): Promise<TicketApprovalsConfiguration> {
@@ -90,10 +96,18 @@ export class ServiceCatalogService {
   updateCategory(
     serviceCategoryId: string,
     input: UpdateServiceCategoryInput,
+    ifMatch: string | string[] | undefined,
     context: CatalogMutationContext = emptyContext,
   ): Promise<ServiceCategoryResponse> {
     return this.execute(() =>
-      updateServiceCategory(this.prisma, serviceCategoryId, input, context),
+      updateServiceCategory(
+        this.prisma,
+        serviceCategoryId,
+        input,
+        ifMatch,
+        context,
+        this.optimisticConcurrency,
+      ),
     );
   }
 
@@ -150,18 +164,28 @@ export class ServiceCatalogService {
   update(
     serviceId: string,
     input: UpdateServiceInput,
+    ifMatch: string | string[] | undefined,
     context: CatalogMutationContext = emptyContext,
   ): Promise<ServiceResponse> {
     return this.execute(() =>
-      updateService(this.prisma, serviceId, input, context),
+      updateService(
+        this.prisma,
+        serviceId,
+        input,
+        ifMatch,
+        context,
+        this.optimisticConcurrency,
+      ),
     );
   }
 
   async transitionLifecycle(
     serviceId: string,
     input: TransitionServiceLifecycleInput,
+    ifMatch: string | string[] | undefined,
     context: CatalogMutationContext = emptyContext,
   ): Promise<ServiceResponse> {
+    parseIfMatch(ifMatch);
     return this.execute(async () => {
       const configuration = await this.lifecycleConfigurationLoader.load();
       const coverageEvaluation =
@@ -172,8 +196,10 @@ export class ServiceCatalogService {
         this.prisma,
         serviceId,
         input,
+        ifMatch,
         configuration,
         context,
+        this.optimisticConcurrency,
         coverageEvaluation,
       );
     });

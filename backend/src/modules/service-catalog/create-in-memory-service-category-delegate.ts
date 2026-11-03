@@ -11,6 +11,11 @@ export type CategoryWhere = {
   sortOrder?: number | { gt?: number };
   name?: string | { gt?: string };
   OR?: readonly CategoryWhere[];
+  revision?: number;
+};
+
+type CategoryUpdateData = Omit<Partial<ServiceCategoryRecord>, "revision"> & {
+  revision?: number | { readonly increment: number };
 };
 
 type CategoryOrder = {
@@ -30,7 +35,7 @@ export function createInMemoryServiceCategoryDelegate(
       select,
     }: {
       where: { id?: string; slug?: string };
-      select?: { id?: boolean; parentId?: boolean };
+      select?: { id?: boolean; parentId?: boolean; revision?: boolean };
     }) => {
       const record = findByIdOrSlug(categories, where);
       if (record === null || select === undefined) {
@@ -52,6 +57,7 @@ export function createInMemoryServiceCategoryDelegate(
         slug?: boolean;
         sortOrder?: boolean;
         parentId?: boolean;
+        revision?: boolean;
       };
       take?: number;
     } = {}) => {
@@ -70,8 +76,9 @@ export function createInMemoryServiceCategoryDelegate(
     create: async ({
       data,
     }: {
-      data: Omit<ServiceCategoryRecord, "id" | "createdAt" | "updatedAt"> & {
+      data: Omit<ServiceCategoryRecord, "id" | "createdAt" | "updatedAt" | "revision"> & {
         id?: string;
+        revision?: number;
       };
     }) => {
       assertUniqueSlug(categories, data.slug);
@@ -81,6 +88,7 @@ export function createInMemoryServiceCategoryDelegate(
         slug: data.slug,
         sortOrder: data.sortOrder,
         parentId: data.parentId,
+        revision: data.revision ?? 1,
         createdAt: now(),
         updatedAt: now(),
       };
@@ -92,22 +100,52 @@ export function createInMemoryServiceCategoryDelegate(
       data,
     }: {
       where: { id: string };
-      data: Partial<ServiceCategoryRecord>;
+      data: CategoryUpdateData;
     }) => {
       const current = categories.get(where.id);
       if (current === undefined) {
         return null;
       }
-      const updated = { ...current, ...data, updatedAt: now() };
+      const updated = applyCategoryUpdate(current, data, now);
       categories.set(where.id, updated);
       return updated;
     },
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where: { id: string; revision?: number };
+      data: CategoryUpdateData;
+    }) => {
+      const current = categories.get(where.id);
+      if (current === undefined || (where.revision !== undefined && current.revision !== where.revision)) {
+        return { count: 0 };
+      }
+      categories.set(where.id, applyCategoryUpdate(current, data, now));
+      return { count: 1 };
+    },
+
     delete: async ({ where }: { where: { id: string } }) => {
       const current = categories.get(where.id);
       categories.delete(where.id);
       return current;
     },
   };
+}
+
+function applyCategoryUpdate(
+  current: ServiceCategoryRecord,
+  data: CategoryUpdateData,
+  now: () => Date,
+): ServiceCategoryRecord {
+  const revision = data.revision;
+  const revisionValue =
+    revision === undefined
+      ? current.revision
+      : typeof revision === "number"
+        ? revision
+        : current.revision + revision.increment;
+  return { ...current, ...data, revision: revisionValue, updatedAt: now() };
 }
 
 function matchesCategoryWhere(
@@ -122,6 +160,8 @@ function matchesCategoryWhere(
     if (where.id.gt !== undefined && item.id <= where.id.gt) return false;
   }
   if (where.parentId !== undefined && item.parentId !== where.parentId)
+    return false;
+  if (where.revision !== undefined && item.revision !== where.revision)
     return false;
   if (typeof where.sortOrder === "number" && item.sortOrder !== where.sortOrder)
     return false;

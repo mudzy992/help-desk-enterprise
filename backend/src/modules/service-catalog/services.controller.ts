@@ -1,15 +1,18 @@
 import { AdminConfigDomains } from "../../common/admin-realtime/admin-config-domain.decorator";
+import { formatVersionEtag } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
 import {
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -37,6 +40,12 @@ import { ServiceCatalogService } from "./service-catalog.service";
 import { serviceListVisibilityForPrincipal } from "./service-visible-lifecycles";
 import type { ServiceListPage, ServiceResponse } from "./service-catalog.types";
 
+type HeaderResponse = { setHeader(name: string, value: string): void };
+
+function setRevisionEtag(response: HeaderResponse | undefined, revision: number): void {
+  response?.setHeader("ETag", formatVersionEtag(revision));
+}
+
 @AdminConfigDomains("catalog")
 @Controller("services")
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -53,14 +62,17 @@ export class ServicesController {
 
   @Post()
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
-  create(
+  async create(
     @Body() body: CreateServiceDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceResponse> {
-    return this.serviceCatalogService.create(
+    const service = await this.serviceCatalogService.create(
       body,
       readCatalogMutationContext(request),
     );
+    setRevisionEtag(response, service.revision);
+    return service;
   }
 
   @Get()
@@ -80,45 +92,58 @@ export class ServicesController {
   @Get(":serviceId")
   @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: "serviceId" })
-  getById(
+  async getById(
     @Param("serviceId") serviceId: string,
     @Req() request: AuthenticatedHttpRequest,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceResponse> {
-    return this.serviceCatalogService.getById(
+    const service = await this.serviceCatalogService.getById(
       serviceId,
       new Date(),
       readPrincipalContext(request)?.roleKeys ?? [],
     );
+    setRevisionEtag(response, service.revision);
+    return service;
   }
 
   @Patch(":serviceId")
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
   @RequireServiceScope({ field: "serviceId" })
-  update(
+  async update(
     @Param("serviceId") serviceId: string,
     @Body() body: UpdateServiceDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Headers("if-match") ifMatch: string | string[] | undefined,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceResponse> {
-    return this.serviceCatalogService.update(
+    const service = await this.serviceCatalogService.update(
       serviceId,
       body,
+      ifMatch,
       readCatalogMutationContext(request),
     );
+    setRevisionEtag(response, service.revision);
+    return service;
   }
 
   @Post(":serviceId/lifecycle")
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
   @RequireServiceScope({ field: "serviceId" })
-  transitionLifecycle(
+  async transitionLifecycle(
     @Param("serviceId") serviceId: string,
     @Body() body: TransitionServiceLifecycleDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Headers("if-match") ifMatch: string | string[] | undefined,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceResponse> {
-    return this.serviceCatalogService.transitionLifecycle(
+    const service = await this.serviceCatalogService.transitionLifecycle(
       serviceId,
       body,
+      ifMatch,
       readCatalogMutationContext(request),
     );
+    setRevisionEtag(response, service.revision);
+    return service;
   }
 
   @Delete(":serviceId")

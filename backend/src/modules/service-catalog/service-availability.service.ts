@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
+import {
+  OptimisticConcurrencyService,
+  parseIfMatch,
+} from "../../common/optimistic-concurrency/optimistic-concurrency.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { createServiceDowntimeWindow } from "./create-service-downtime-window";
 import { deleteServiceDowntimeWindow } from "./delete-service-downtime-window";
@@ -28,14 +32,18 @@ export class ServiceAvailabilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly serviceCatalogService: ServiceCatalogService,
+    @Optional()
+    private readonly optimisticConcurrency: OptimisticConcurrencyService = new OptimisticConcurrencyService(),
   ) {}
 
   updateAvailability(
     serviceId: string,
     input: UpdateServiceAvailabilityInput,
+    ifMatch: string | string[] | undefined,
     context: CatalogMutationContext = emptyContext,
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
+    parseIfMatch(ifMatch);
     return this.execute(async () => {
       const evaluation =
         await this.serviceCatalogService.evaluation(evaluatedAt);
@@ -43,9 +51,11 @@ export class ServiceAvailabilityService {
         this.prisma,
         serviceId,
         input,
+        ifMatch,
         evaluation,
         context,
         evaluation,
+        this.optimisticConcurrency,
       );
     });
   }

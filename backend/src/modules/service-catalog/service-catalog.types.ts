@@ -15,6 +15,7 @@ export type ServiceCategoryRecord = {
   readonly slug: string;
   readonly sortOrder: number;
   readonly parentId: string | null;
+  readonly revision: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -32,6 +33,7 @@ export type ServiceRecord = {
   readonly autoAssignStrategy: AutoAssignStrategy;
   readonly slaProfileId: string | null;
   readonly policyPackId: string | null;
+  readonly revision: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -42,6 +44,7 @@ export type ServiceCategoryResponse = {
   readonly slug: string;
   readonly sortOrder: number;
   readonly parentId: string | null;
+  readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -66,6 +69,7 @@ export type ServiceOnboardingSummary = {
 
 export type ServiceResponse = {
   readonly id: string;
+  readonly revision: number;
   readonly name: string;
   readonly slug: string;
   readonly categoryId: string;

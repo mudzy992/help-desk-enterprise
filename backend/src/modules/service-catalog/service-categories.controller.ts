@@ -1,15 +1,18 @@
 import { AdminConfigDomains } from "../../common/admin-realtime/admin-config-domain.decorator";
+import { formatVersionEtag } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
 import {
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -33,6 +36,12 @@ import type {
   ServiceCategoryResponse,
 } from "./service-catalog.types";
 
+type HeaderResponse = { setHeader(name: string, value: string): void };
+
+function setRevisionEtag(response: HeaderResponse | undefined, revision: number): void {
+  response?.setHeader("ETag", formatVersionEtag(revision));
+}
+
 @AdminConfigDomains("catalog")
 @Controller("service-categories")
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -49,14 +58,17 @@ export class ServiceCategoriesController {
 
   @Post()
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
-  create(
+  async create(
     @Body() body: CreateServiceCategoryDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceCategoryResponse> {
-    return this.serviceCatalogService.createCategory(
+    const category = await this.serviceCatalogService.createCategory(
       body,
       readCatalogMutationContext(request),
     );
+    setRevisionEtag(response, category.revision);
+    return category;
   }
 
   @Get()
@@ -67,24 +79,32 @@ export class ServiceCategoriesController {
   }
 
   @Get(":serviceCategoryId")
-  getById(
+  async getById(
     @Param("serviceCategoryId") serviceCategoryId: string,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceCategoryResponse> {
-    return this.serviceCatalogService.getCategory(serviceCategoryId);
+    const category = await this.serviceCatalogService.getCategory(serviceCategoryId);
+    setRevisionEtag(response, category.revision);
+    return category;
   }
 
   @Patch(":serviceCategoryId")
   @RequirePermissions(permissionKeys.serviceCatalogWrite)
-  update(
+  async update(
     @Param("serviceCategoryId") serviceCategoryId: string,
     @Body() body: UpdateServiceCategoryDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Headers("if-match") ifMatch: string | string[] | undefined,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceCategoryResponse> {
-    return this.serviceCatalogService.updateCategory(
+    const category = await this.serviceCatalogService.updateCategory(
       serviceCategoryId,
       body,
+      ifMatch,
       readCatalogMutationContext(request),
     );
+    setRevisionEtag(response, category.revision);
+    return category;
   }
 
   @Delete(":serviceCategoryId")

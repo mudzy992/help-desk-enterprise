@@ -22,9 +22,14 @@ export type InMemoryWhere = {
   OR?: readonly InMemoryWhere[];
   AND?: readonly InMemoryWhere[];
   routingRules?: { some: { originUnitId: string } };
+  revision?: number;
 };
 
 type InMemoryOrder = { name?: "asc" | "desc"; id?: "asc" | "desc" };
+type RevisionUpdate = number | { readonly increment: number };
+type ServiceUpdateData = Omit<Partial<ServiceRecord>, "revision"> & {
+  revision?: RevisionUpdate;
+};
 
 export function createInMemoryServiceDelegate(
   services: Map<string, ServiceRecord>,
@@ -41,7 +46,7 @@ export function createInMemoryServiceDelegate(
       select,
     }: {
       where: { id?: string; slug?: string };
-      select?: { id?: boolean; _count?: { select: ServiceDependents } };
+      select?: { id?: boolean; revision?: boolean; _count?: { select: ServiceDependents } };
     }) => {
       const record = findByIdOrSlug(services, where);
       if (record === null) {
@@ -87,11 +92,12 @@ export function createInMemoryServiceDelegate(
     }: {
       data: Omit<
         ServiceRecord,
-        "id" | "createdAt" | "updatedAt" | "availability" | "slaProfileId"
+        "id" | "createdAt" | "updatedAt" | "availability" | "slaProfileId" | "revision"
       > & {
         id?: string;
         availability?: ServiceAvailability;
         slaProfileId?: string | null;
+        revision?: number;
         classification: DataClassification;
         autoAssignStrategy: AutoAssignStrategy;
       };
@@ -110,6 +116,7 @@ export function createInMemoryServiceDelegate(
         autoAssignStrategy: data.autoAssignStrategy,
         slaProfileId: data.slaProfileId ?? null,
         policyPackId: data.policyPackId,
+        revision: data.revision ?? 1,
         createdAt: now(),
         updatedAt: now(),
       };
@@ -121,16 +128,31 @@ export function createInMemoryServiceDelegate(
       data,
     }: {
       where: { id: string };
-      data: Partial<ServiceRecord>;
+      data: ServiceUpdateData;
     }) => {
       const current = services.get(where.id);
       if (current === undefined) {
         return null;
       }
-      const updated = { ...current, ...data, updatedAt: now() };
+      const updated = applyServiceUpdate(current, data, now);
       services.set(where.id, updated);
       return updated;
     },
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where: { id: string; revision?: number };
+      data: ServiceUpdateData;
+    }) => {
+      const current = services.get(where.id);
+      if (current === undefined || (where.revision !== undefined && current.revision !== where.revision)) {
+        return { count: 0 };
+      }
+      services.set(where.id, applyServiceUpdate(current, data, now));
+      return { count: 1 };
+    },
+
     delete: async ({ where }: { where: { id: string } }) => {
       const current = services.get(where.id);
       services.delete(where.id);
@@ -141,6 +163,26 @@ export function createInMemoryServiceDelegate(
       }
       return current;
     },
+  };
+}
+
+function applyServiceUpdate(
+  current: ServiceRecord,
+  data: ServiceUpdateData,
+  now: () => Date,
+): ServiceRecord {
+  const revision = data.revision;
+  const revisionValue =
+    revision === undefined
+      ? current.revision
+      : typeof revision === "number"
+        ? revision
+        : current.revision + revision.increment;
+  return {
+    ...current,
+    ...data,
+    revision: revisionValue,
+    updatedAt: now(),
   };
 }
 
@@ -167,6 +209,8 @@ function matchesServiceWhere(
   )
     return false;
   if (where.categoryId !== undefined && item.categoryId !== where.categoryId)
+    return false;
+  if (where.revision !== undefined && item.revision !== where.revision)
     return false;
   if (where.id !== undefined && !matchesStringFilter(item.id, where.id))
     return false;

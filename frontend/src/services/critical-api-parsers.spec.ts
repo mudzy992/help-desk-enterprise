@@ -11,6 +11,8 @@ import {
   parseServiceCatalog,
   parseServiceCatalogPage,
   parseServiceCategoryListPage,
+  parseServiceCategoryResponse,
+  parseServiceResponse,
   parseSettingsRegistry,
   parseTicketPage,
 } from "@/services/critical-api-parsers";
@@ -137,6 +139,11 @@ describe("critical API parsers", () => {
       nextCursor: null,
     });
     const validService = (fixtures.serviceCatalog as readonly unknown[])[0];
+    expect(parseServiceResponse(validService)).toMatchObject({ revision: 1 });
+    invalid(parseServiceResponse, {
+      ...(validService as Record<string, unknown>),
+      revision: 0,
+    });
     const servicePage = {
       items: [validService],
       total: 1,
@@ -146,11 +153,18 @@ describe("critical API parsers", () => {
       hasMore: false,
     };
     expect(parseServiceCatalogPage(servicePage).items).toHaveLength(1);
+    for (const revision of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      invalid(parseServiceCatalogPage, {
+        ...servicePage,
+        items: [{ ...(validService as Record<string, unknown>), revision }],
+      });
+    }
     invalid(parseServiceCatalogPage, { ...servicePage, take: 101 });
     invalid(parseServiceCatalogPage, { ...servicePage, hasMore: true });
 
     const category = {
       id: "category-1",
+      revision: 1,
       name: "Operations",
       slug: "operations",
       sortOrder: 10,
@@ -167,12 +181,21 @@ describe("critical API parsers", () => {
       hasMore: false,
     };
     expect(parseServiceCategoryListPage(categoryPage).items).toEqual([category]);
+    expect(parseServiceCategoryResponse(category)).toEqual(category);
+    invalid(parseServiceCategoryResponse, { ...category, revision: 0 });
+    for (const revision of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      invalid(parseServiceCategoryListPage, {
+        ...categoryPage,
+        items: [{ ...category, revision }],
+      });
+    }
     invalid(parseServiceCategoryListPage, { ...categoryPage, take: 101 });
   });
 
   it("validates service batch and permission-sensitive settings registries", () => {
     const service = {
       id: "s1",
+      revision: 1,
       name: "Access",
       slug: "access",
       categoryId: "c1",

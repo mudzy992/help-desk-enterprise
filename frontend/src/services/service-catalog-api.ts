@@ -1,5 +1,5 @@
 import { ApiError, apiRequest, apiRequestValidated } from "@/services/api";
-import { parseServiceCatalogPage } from "@/services/critical-api-parsers";
+import { parseServiceCatalogPage, parseServiceResponse } from "@/services/critical-api-parsers";
 import {
   listServiceCategories as listServiceCategoriesFromApi,
   type ServiceCategoryResponse as ServiceCategoryApiResponse,
@@ -47,6 +47,7 @@ export type ServiceOnboardingSummary = {
 
 export type ServiceResponse = {
   readonly id: string;
+  readonly revision: number;
   readonly name: string;
   readonly slug: string;
   readonly categoryId: string;
@@ -251,7 +252,7 @@ export function listServices(): Promise<readonly ServiceResponse[]> {
 }
 
 export function createService(input: CreateServiceInput): Promise<ServiceResponse> {
-  return apiRequest("/services", {
+  return apiRequestValidated("/services", parseServiceResponse, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -260,9 +261,11 @@ export function createService(input: CreateServiceInput): Promise<ServiceRespons
 export function updateService(
   serviceId: string,
   input: UpdateServiceInput,
+  revision: number,
 ): Promise<ServiceResponse> {
-  return apiRequest(`/services/${serviceId}`, {
+  return apiRequestValidated(`/services/${serviceId}`, parseServiceResponse, {
     method: "PATCH",
+    headers: { "If-Match": `"v${revision}"` },
     body: JSON.stringify(input),
   });
 }
@@ -270,10 +273,25 @@ export function updateService(
 export function transitionServiceLifecycle(
   serviceId: string,
   lifecycle: ServiceLifecycle,
+  revision: number,
 ): Promise<ServiceResponse> {
-  return apiRequest(`/services/${serviceId}/lifecycle`, {
+  return apiRequestValidated(`/services/${serviceId}/lifecycle`, parseServiceResponse, {
     method: "POST",
+    headers: { "If-Match": `"v${revision}"` },
     body: JSON.stringify({ lifecycle }),
+  });
+}
+
+export function updateServiceAvailability(
+  serviceId: string,
+  availability: ServiceAvailability,
+  revision: number,
+  reason?: string,
+): Promise<ServiceResponse> {
+  return apiRequestValidated(`/services/${serviceId}/availability`, parseServiceResponse, {
+    method: "PATCH",
+    headers: { "If-Match": `"v${revision}"` },
+    body: JSON.stringify({ availability, ...(reason === undefined ? {} : { reason }) }),
   });
 }
 

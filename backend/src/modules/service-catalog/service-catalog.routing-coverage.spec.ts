@@ -9,6 +9,18 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+type LifecycleInput = Parameters<ServiceCatalogService['transitionLifecycle']>[1];
+type CatalogResponse = Awaited<ReturnType<ServiceCatalogService['getById']>>;
+
+async function transitionWithCurrentRevision(
+  catalog: ServiceCatalogService,
+  serviceId: string,
+  input: LifecycleInput,
+): Promise<CatalogResponse> {
+  const current = await catalog.getById(serviceId);
+  return catalog.transitionLifecycle(serviceId, input, `"v${current.revision}"`);
+}
+
 describe('ServiceCatalogService routing coverage on activation', () => {
   const createHarness = (routingStub: {
     evaluateActivationCoverage: (
@@ -38,10 +50,10 @@ describe('ServiceCatalogService routing coverage on activation', () => {
       categoryId: category.id,
     });
     await expect(
-      catalog.transitionLifecycle(created.id, { lifecycle: 'ACTIVE' }),
+      transitionWithCurrentRevision(catalog, created.id, { lifecycle: 'ACTIVE' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
-      catalog.transitionLifecycle(created.id, { lifecycle: 'ACTIVE' }),
+      transitionWithCurrentRevision(catalog, created.id, { lifecycle: 'ACTIVE' }),
     ).rejects.toMatchObject({
       response: { code: 'ROUTING_COVERAGE_MISSING' },
     });
@@ -73,7 +85,7 @@ describe('ServiceCatalogService routing coverage on activation', () => {
       createdAt: now,
       updatedAt: now,
     });
-    const activated = await catalog.transitionLifecycle(created.id, {
+    const activated = await transitionWithCurrentRevision(catalog, created.id, {
       lifecycle: 'ACTIVE',
     });
     expect(activated.lifecycle).toBe('ACTIVE');

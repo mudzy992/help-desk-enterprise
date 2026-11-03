@@ -1,8 +1,12 @@
 import { ApiError, apiRequest, apiRequestValidated } from "@/services/api";
-import { parseServiceCategoryListPage } from "@/services/critical-api-parsers";
+import {
+  parseServiceCategoryListPage,
+  parseServiceCategoryResponse,
+} from "@/services/critical-api-parsers";
 
 export type ServiceCategoryResponse = {
   readonly id: string;
+  readonly revision: number;
   readonly name: string;
   readonly slug: string;
   readonly sortOrder: number;
@@ -78,13 +82,16 @@ export async function listServiceCategories(): Promise<readonly ServiceCategoryR
 }
 
 export function getServiceCategory(serviceCategoryId: string): Promise<ServiceCategoryResponse> {
-  return apiRequest(`/service-categories/${serviceCategoryId}`);
+  return apiRequestValidated(
+    `/service-categories/${serviceCategoryId}`,
+    parseServiceCategoryResponse,
+  );
 }
 
 export function createServiceCategory(
   input: CreateServiceCategoryInput,
 ): Promise<ServiceCategoryResponse> {
-  return apiRequest("/service-categories", {
+  return apiRequestValidated("/service-categories", parseServiceCategoryResponse, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -93,11 +100,17 @@ export function createServiceCategory(
 export function updateServiceCategory(
   serviceCategoryId: string,
   input: UpdateServiceCategoryInput,
+  revision: number,
 ): Promise<ServiceCategoryResponse> {
-  return apiRequest(`/service-categories/${serviceCategoryId}`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  });
+  return apiRequestValidated(
+    `/service-categories/${serviceCategoryId}`,
+    parseServiceCategoryResponse,
+    {
+      method: "PATCH",
+      headers: { "If-Match": `"v${revision}"` },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function deleteServiceCategory(serviceCategoryId: string): Promise<void> {

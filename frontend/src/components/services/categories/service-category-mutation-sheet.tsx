@@ -53,11 +53,15 @@ export function ServiceCategoryMutationSheet({
             parentId: values.parentId,
           });
         } else if (category !== null) {
-          await updateServiceCategory(category.id, {
-            name: values.name,
-            sortOrder: values.sortOrder,
-            parentId: values.parentId,
-          });
+          await updateServiceCategory(
+            category.id,
+            {
+              name: values.name,
+              sortOrder: values.sortOrder,
+              parentId: values.parentId,
+            },
+            category.revision,
+          );
         }
         await onSaved();
         onOpenChange(false);

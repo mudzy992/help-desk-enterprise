@@ -1,14 +1,17 @@
 import { AdminConfigDomains } from "../../common/admin-realtime/admin-config-domain.decorator";
+import { formatVersionEtag } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
 import {
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -37,6 +40,8 @@ import type {
 } from "./service-availability.types";
 import type { ServiceResponse } from "./service-catalog.types";
 
+type HeaderResponse = { setHeader(name: string, value: string): void };
+
 @AdminConfigDomains("catalog")
 @Controller("services")
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -56,16 +61,21 @@ export class ServiceAvailabilityController {
   @Patch(":serviceId/availability")
   @RequirePermissions(permissionKeys.serviceAvailabilityWrite)
   @RequireServiceScope({ field: "serviceId" })
-  updateAvailability(
+  async updateAvailability(
     @Param("serviceId") serviceId: string,
     @Body() body: UpdateServiceAvailabilityDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Headers("if-match") ifMatch: string | string[] | undefined,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceResponse> {
-    return this.serviceAvailabilityService.updateAvailability(
+    const service = await this.serviceAvailabilityService.updateAvailability(
       serviceId,
       body,
+      ifMatch,
       readCatalogMutationContext(request),
     );
+    response?.setHeader("ETag", formatVersionEtag(service.revision));
+    return service;
   }
 
   @Get(":serviceId/downtime-windows")

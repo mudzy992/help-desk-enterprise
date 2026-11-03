@@ -9,6 +9,18 @@ jest.mock("../../common/prisma/prisma.service", () => ({
   PrismaService: class PrismaService {},
 }));
 
+type LifecycleInput = Parameters<ServiceCatalogService['transitionLifecycle']>[1];
+type CatalogResponse = Awaited<ReturnType<ServiceCatalogService['getById']>>;
+
+async function transitionWithCurrentRevision(
+  catalog: ServiceCatalogService,
+  serviceId: string,
+  input: LifecycleInput,
+): Promise<CatalogResponse> {
+  const current = await catalog.getById(serviceId);
+  return catalog.transitionLifecycle(serviceId, input, `"v${current.revision}"`);
+}
+
 describe("ServiceCatalogService lifecycle", () => {
   const createHarness = (
     configuration: ServiceLifecycleConfiguration = defaultServiceLifecycleConfiguration,
@@ -67,21 +79,21 @@ describe("ServiceCatalogService lifecycle", () => {
   it("publishes, retires, and reactivates without changing id or slug", async () => {
     const { catalog, memory } = createHarness();
     const created = await createDraft(catalog, memory);
-    const published = await catalog.transitionLifecycle(created.id, {
+    const published = await transitionWithCurrentRevision(catalog, created.id, {
       lifecycle: "ACTIVE",
     });
     expect(published.lifecycle).toBe("ACTIVE");
     expect(published.offeredToRequesters).toBe(true);
     expect(published.id).toBe(created.id);
     expect(published.slug).toBe("vpn-access");
-    const retired = await catalog.transitionLifecycle(created.id, {
+    const retired = await transitionWithCurrentRevision(catalog, created.id, {
       lifecycle: "DEPRECATED",
     });
     expect(retired.lifecycle).toBe("DEPRECATED");
     expect(retired.offeredToRequesters).toBe(false);
     expect(retired.id).toBe(created.id);
     expect(retired.slug).toBe(created.slug);
-    const reactivated = await catalog.transitionLifecycle(created.id, {
+    const reactivated = await transitionWithCurrentRevision(catalog, created.id, {
       lifecycle: "ACTIVE",
     });
     expect(reactivated.lifecycle).toBe("ACTIVE");
@@ -96,16 +108,16 @@ describe("ServiceCatalogService lifecycle", () => {
   it("hides draft and deprecated services from requester listing", async () => {
     const { catalog, memory } = createHarness();
     const created = await createDraft(catalog, memory);
-    await catalog.transitionLifecycle(created.id, { lifecycle: "ACTIVE" });
+    await transitionWithCurrentRevision(catalog, created.id, { lifecycle: "ACTIVE" });
     const second = await catalog.create({
       name: "Draft only",
       slug: "draft-only",
       categoryId: created.categoryId,
     });
-    await catalog.transitionLifecycle(created.id, { lifecycle: "DEPRECATED" });
+    await transitionWithCurrentRevision(catalog, created.id, { lifecycle: "DEPRECATED" });
     const offered = await catalog.list({ offeredOnly: true });
     expect(offered.items.map((item) => item.id)).toEqual([]);
-    await catalog.transitionLifecycle(created.id, { lifecycle: "ACTIVE" });
+    await transitionWithCurrentRevision(catalog, created.id, { lifecycle: "ACTIVE" });
     const offeredAfter = await catalog.list({ offeredOnly: true });
     expect(offeredAfter.items.map((item) => item.slug)).toEqual(["vpn-access"]);
     expect(offeredAfter.items.map((item) => item.slug)).not.toContain(
@@ -116,15 +128,15 @@ describe("ServiceCatalogService lifecycle", () => {
   it("val 2 (M6/B2): vidljivost po roli — nacrt nikad ne prolazi do korisnika", async () => {
     const { catalog, memory } = createHarness();
     const active = await createDraft(catalog, memory);
-    await catalog.transitionLifecycle(active.id, { lifecycle: "ACTIVE" });
+    await transitionWithCurrentRevision(catalog, active.id, { lifecycle: "ACTIVE" });
     const deprecated = await catalog.create({
       name: "Legacy mail",
       slug: "legacy-mail",
       categoryId: active.categoryId,
     });
     seedActiveForm(memory, deprecated.id);
-    await catalog.transitionLifecycle(deprecated.id, { lifecycle: "ACTIVE" });
-    await catalog.transitionLifecycle(deprecated.id, {
+    await transitionWithCurrentRevision(catalog, deprecated.id, { lifecycle: "ACTIVE" });
+    await transitionWithCurrentRevision(catalog, deprecated.id, {
       lifecycle: "DEPRECATED",
     });
     const draft = await catalog.create({
@@ -199,7 +211,7 @@ describe("ServiceCatalogService lifecycle", () => {
       withActiveForm: false,
     });
     await expect(
-      catalog.transitionLifecycle(withoutForm.id, { lifecycle: "ACTIVE" }),
+      transitionWithCurrentRevision(catalog, withoutForm.id, { lifecycle: "ACTIVE" }),
     ).rejects.toMatchObject({
       status: 409,
       response: { code: "NO_ACTIVE_FORM_VERSION" },
@@ -209,11 +221,11 @@ describe("ServiceCatalogService lifecycle", () => {
       slug: "vpn-with-form",
     });
     await expect(
-      catalog.transitionLifecycle(withForm.id, { lifecycle: "ACTIVE" }),
+      transitionWithCurrentRevision(catalog, withForm.id, { lifecycle: "ACTIVE" }),
     ).resolves.toMatchObject({ lifecycle: "ACTIVE" });
     seedActiveForm(memory, withForm.id, "RETIRED");
     await expect(
-      catalog.transitionLifecycle(withForm.id, { lifecycle: "DEPRECATED" }),
+      transitionWithCurrentRevision(catalog, withForm.id, { lifecycle: "DEPRECATED" }),
     ).resolves.toMatchObject({ lifecycle: "DEPRECATED" });
   });
 
@@ -221,16 +233,16 @@ describe("ServiceCatalogService lifecycle", () => {
     const { catalog, memory } = createHarness();
     const created = await createDraft(catalog, memory);
     await expect(
-      catalog.transitionLifecycle(created.id, { lifecycle: "DEPRECATED" }),
+      transitionWithCurrentRevision(catalog, created.id, { lifecycle: "DEPRECATED" }),
     ).rejects.toMatchObject({
       response: { code: "INVALID_LIFECYCLE_TRANSITION" },
     });
     await expect(
-      catalog.transitionLifecycle(created.id, { lifecycle: "DEPRECATED" }),
+      transitionWithCurrentRevision(catalog, created.id, { lifecycle: "DEPRECATED" }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    await catalog.transitionLifecycle(created.id, { lifecycle: "ACTIVE" });
+    await transitionWithCurrentRevision(catalog, created.id, { lifecycle: "ACTIVE" });
     await expect(
-      catalog.transitionLifecycle(created.id, { lifecycle: "DRAFT" }),
+      transitionWithCurrentRevision(catalog, created.id, { lifecycle: "DRAFT" }),
     ).rejects.toMatchObject({
       response: { code: "INVALID_LIFECYCLE_TRANSITION" },
     });
@@ -245,7 +257,7 @@ describe("ServiceCatalogService lifecycle", () => {
     const created = await createDraft(catalog, memory);
     expect(created.lifecycle).toBe("DRAFT");
     await expect(
-      catalog.transitionLifecycle(created.id, { lifecycle: "ACTIVE" }),
+      transitionWithCurrentRevision(catalog, created.id, { lifecycle: "ACTIVE" }),
     ).rejects.toMatchObject({
       response: { code: "LIFECYCLE_DISABLED" },
     });
@@ -254,12 +266,12 @@ describe("ServiceCatalogService lifecycle", () => {
   it("refuses to delete active or deprecated services", async () => {
     const { catalog, memory } = createHarness();
     const created = await createDraft(catalog, memory);
-    await catalog.transitionLifecycle(created.id, { lifecycle: "ACTIVE" });
+    await transitionWithCurrentRevision(catalog, created.id, { lifecycle: "ACTIVE" });
     await expect(catalog.delete(created.id)).rejects.toBeInstanceOf(
       ConflictException,
     );
     memory.seedServiceDependents(created.id, { tickets: 1 });
-    await catalog.transitionLifecycle(created.id, { lifecycle: "DEPRECATED" });
+    await transitionWithCurrentRevision(catalog, created.id, { lifecycle: "DEPRECATED" });
     await expect(catalog.delete(created.id)).rejects.toMatchObject({
       response: { code: "NOT_DELETABLE" },
     });

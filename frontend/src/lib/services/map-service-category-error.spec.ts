@@ -19,5 +19,8 @@ describe("mapServiceCategoryError", () => {
     expect(mapServiceCategoryError(new ApiError(400, "CIRCULAR_CATEGORY", "x"))).toBe(
       "services.categories.errorCircular",
     );
+    expect(mapServiceCategoryError(new ApiError(412, "OPTIMISTIC_STALE_WRITE", "x"))).toBe(
+      "services.categories.errorStaleWrite",
+    );
   });
 });

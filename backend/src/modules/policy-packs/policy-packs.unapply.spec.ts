@@ -1,11 +1,11 @@
-import { HttpException } from '@nestjs/common';
-import { policyPackKeys } from './policy-pack.constants';
+import { HttpException } from "@nestjs/common";
+import { policyPackKeys } from "./policy-pack.constants";
 import {
   createPolicyPackTestWorld,
   policyPackTestIds,
-} from './create-policy-pack-test-world';
+} from "./create-policy-pack-test-world";
 
-jest.mock('../../common/prisma/prisma.service', () => ({
+jest.mock("../../common/prisma/prisma.service", () => ({
   PrismaService: class PrismaService {},
 }));
 
@@ -13,8 +13,8 @@ jest.mock('../../common/prisma/prisma.service', () => ({
  * M5 B5 (val 5): apply used to be a one-way street. These tests pin down what
  * "unapply" removes — and, just as important, what it leaves alone.
  */
-describe('policy pack unapply', () => {
-  it('removes the grants and the OU/service link that apply created', async () => {
+describe("policy pack unapply", () => {
+  it("removes the grants and the OU/service link that apply created", async () => {
     const { memory, service } = createPolicyPackTestWorld();
     await service.apply({
       packKey: policyPackKeys.hrRestricted,
@@ -22,8 +22,14 @@ describe('policy pack unapply', () => {
       serviceId: policyPackTestIds.service,
       userIds: [policyPackTestIds.localUser, policyPackTestIds.entraUser],
     });
-    expect(memory.getOrganizationalUnit(policyPackTestIds.organizationalUnit)?.policyPackId).toBeTruthy();
-    expect(memory.getService(policyPackTestIds.service)?.policyPackId).toBeTruthy();
+    expect(
+      memory.getOrganizationalUnit(policyPackTestIds.organizationalUnit)
+        ?.policyPackId,
+    ).toBeTruthy();
+    expect(
+      memory.getService(policyPackTestIds.service)?.policyPackId,
+    ).toBeTruthy();
+    expect(memory.getService(policyPackTestIds.service)?.revision).toBe(3);
     expect(memory.listUserRoles()).toHaveLength(2);
 
     const result = await service.unapply({
@@ -37,15 +43,21 @@ describe('policy pack unapply', () => {
     expect(result.unboundOrganizationalUnit).toBe(true);
     expect(result.unboundService).toBe(true);
     expect(memory.listUserRoles()).toHaveLength(0);
-    expect(memory.getOrganizationalUnit(policyPackTestIds.organizationalUnit)?.policyPackId).toBeNull();
-    expect(memory.getService(policyPackTestIds.service)?.policyPackId).toBeNull();
+    expect(
+      memory.getOrganizationalUnit(policyPackTestIds.organizationalUnit)
+        ?.policyPackId,
+    ).toBeNull();
+    expect(
+      memory.getService(policyPackTestIds.service)?.policyPackId,
+    ).toBeNull();
+    expect(memory.getService(policyPackTestIds.service)?.revision).toBe(4);
     // Roles and their permissions stay: they are global rows other targets may
     // still be using.
-    expect(memory.listRoles().some((role) => role.key === 'AGENT')).toBe(true);
+    expect(memory.listRoles().some((role) => role.key === "AGENT")).toBe(true);
     expect(memory.listRolePermissions().length).toBeGreaterThan(0);
   });
 
-  it('removes only the grants of the named target', async () => {
+  it("removes only the grants of the named target", async () => {
     const { memory, service } = createPolicyPackTestWorld();
     await service.apply({
       packKey: policyPackKeys.itStandard,
@@ -74,7 +86,7 @@ describe('policy pack unapply', () => {
     ).toBeTruthy();
   });
 
-  it('leaves a different pack bound to the same unit untouched', async () => {
+  it("leaves a different pack bound to the same unit untouched", async () => {
     const { memory, service } = createPolicyPackTestWorld();
     await service.apply({
       packKey: policyPackKeys.itStandard,
@@ -100,20 +112,20 @@ describe('policy pack unapply', () => {
     ).not.toBeNull();
   });
 
-  it('refuses a request without any target', async () => {
+  it("refuses a request without any target", async () => {
     const { service } = createPolicyPackTestWorld();
     try {
       await service.unapply({ packKey: policyPackKeys.itStandard });
-      throw new Error('expected MISSING_TARGET');
+      throw new Error("expected MISSING_TARGET");
     } catch (error) {
       expect(error).toBeInstanceOf(HttpException);
       expect((error as HttpException).getResponse()).toMatchObject({
-        code: 'MISSING_TARGET',
+        code: "MISSING_TARGET",
       });
     }
   });
 
-  it('accepts a service-only target even for a pack that needs an OU', async () => {
+  it("accepts a service-only target even for a pack that needs an OU", async () => {
     const { service } = createPolicyPackTestWorld();
     const result = await service.unapply({
       packKey: policyPackKeys.itStandard,
