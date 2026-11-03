@@ -315,7 +315,7 @@ describeIfDatabase(
         select: { id: true },
       });
       expect(existingWindow).not.toBeNull();
-      expect(existing.serviceId).toBe(fixture.serviceId);
+      expect(existing.id).toBe(fixture.serviceId);
 
       const held = await holdDowntimeLock(fixture.serviceId);
       const pending = [

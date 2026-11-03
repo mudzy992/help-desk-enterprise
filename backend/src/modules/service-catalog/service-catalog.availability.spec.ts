@@ -34,7 +34,7 @@ describe('service catalog availability and downtime', () => {
     memory.prisma.$transaction = async (callback) =>
       inMemoryTransaction((client) =>
         callback(
-          Object.assign(Object.create(client), {
+          Object.assign(Object.create(client as object), {
             $queryRaw: async (
               _query: TemplateStringsArray,
               ..._values: unknown[]
