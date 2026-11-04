@@ -12,7 +12,7 @@
 
 Baseline je ipak **5,35/10**. Tri P1 nalaza pogađaju izolaciju i enforcement. Service-scoped manager kroz management list/get može pročitati tijela svih shared templatea i sve playbook instrukcije iz drugih servisa, iako ih ne može izmijeniti. Settings kvar se tiho prevodi u default `enabled/warn`, pa instalacija konfigurirana na `block` može dozvoliti resolve/close sa otvorenim obaveznim koracima. Concurrent playbook update radi višekoračni delete/upsert/update bez locka/version preconditiona, pa paralelni administratori mogu proizvesti mješovitu definiciju, izgubljene korake i verziju koja ne opisuje nijedan originalni zahtjev.
 
-Dodatno su step/upgrade događaji race-osjetljivi, auto-attach je best-effort bez recoveryja, config rollback zaobilazi template domenske provjere, playbook name uniqueness je aplikacijska, a management/candidate liste su hard-truncated bez paginacije. Nema P0. Popravke se ne implementiraju prije završetka cijelog audit ciklusa.
+Dodatno su step/upgrade događaji race-osjetljivi, auto-attach je best-effort bez recoveryja, config rollback zaobilazi template domenske provjere, playbook name uniqueness je aplikacijska, a management/candidate liste su hard-truncated bez paginacije. Nema P0. Implementacije se rade serijski, po preciznom BA ID scopeu i uz zasebno odobrenje; trenutno odobreni paket je `BA-templates-02` (W5.48), bez preuzimanja susjednih nalaza.
 
 ## 2. Scope i inventar
 
@@ -76,7 +76,7 @@ Najveći privacy problem je management read scope: response template može sadr�
 
 Snapshot dizajn čuva historijski naziv/verziju/korake nakon edit/delete definicije. Required-step guard queryja sve aktivne checkliste u bulk status promjeni i blokira samo relevantne resolve/close tranzicije. Detach zahtijeva razlog.
 
-`TemplatesConfigurationLoader` hvata svaku settings grešku i vraća default: templates/playbooks/autoAttach `true`, required mode `warn`. Time konfigurirana sigurnosna politika `block` postaje neblokirajući warning tokom settings incidenta. Isto tako eksplicitno ugašena funkcija može biti uključena.
+Nalaz je opažen u baseline auditu: prethodni `TemplatesConfigurationLoader` hvatao je svaku settings grešku i vraćao default templates/playbooks/autoAttach `true` i required mode `warn`. Time je konfigurirana sigurnosna politika `block` mogla postati neblokirajući warning tokom settings incidenta, a eksplicitno ugašena funkcija mogla se uključiti. W5.48 je promijenio ovaj put na fail-closed 503 (bez defaulta); acceptance i dokaz su u [124 — BA-templates-02](../implementation/124-templates-02-fail-closed-settings.md). Nalaz ostaje otvoren do završetka branch CI/Perf i zakazanog relevantnog E2E acceptancea.
 
 Auto-attach se izvršava nakon ticket createa kao best-effort callback. Greška se samo loguje; nema joba, outboxa ni reconciliationa. Ticket ostaje trajno bez jedinstveno primjenjivog playbooka. Candidate query je `take:1000`; truncation može promijeniti ambiguity/choice rezultat bez indikacije.
 
@@ -155,6 +155,8 @@ E2E 16 potvrđuje shared service template, auto-attach, render/send, usage count
 
 Loader guta settings grešku i vraća `requiredStepsOnResolve:'warn'`. Ako je stvarna politika `block`, resolve/close prolazi upravo tokom settings/DB incidenta. Za enforcement setting koristiti last-known-good cache ili fail-closed `block`; feature enable state ne smije iz `false` preći u default `true` zbog read greške. Fallback mora imati metric/health signal.
 
+**W5.48 implementation checkpoint (2026-11-04):** fail-closed 503, read-failure metric i zaštićeni Ops-health signal su implementirani; resolve test provjerava da ticket ostane nepromijenjen. `BA-templates-02` i dalje je otvoren do CI/Perf i scheduled E2E pregleda. Detalji/lokalni ograničeni dokaz: [implementation note 124](../implementation/124-templates-02-fail-closed-settings.md).
+
 ### BA-templates-03 — Concurrent definition corruption
 
 Playbook update učita current, zatim bez locka briše joinove/uklonjene korake, upsertuje svaki korak i inkrementira version. Dva administratora mogu međusobno obrisati/dodati korake i scope, a oba change loga tvrde drugačiji before/after. Uvesti optimistic version/If-Match ili `FOR UPDATE`, conditional version increment i atomic replacement; jedan writer mora dobiti conflict.
@@ -221,7 +223,7 @@ Svih šest direktnih specova, povezani tickets/config/privacy testovi i E2E 16 n
 
 ## 17. Rizik, rollback i acceptance
 
-Postojeći scoped manageri možda se oslanjaju na globalni read, pa prvo izmjeriti usage i uvesti eksplicitno global read/manage pravo. DB unique migracije trebaju classifier duplikata/više aktivnih checklisti bez automatskog brisanja. Fail-closed settings mora koristiti last-known-good da izolovani settings incident ne blokira sav rad nepotrebno.
+Postojeći scoped manageri možda se oslanjaju na globalni read, pa prvo izmjeriti usage i uvesti eksplicitno global read/manage pravo. DB unique migracije trebaju classifier duplikata/više aktivnih checklisti bez automatskog brisanja. Settings incident ne smije oslabiti enforcement ni uključiti ugašenu funkciju. Last-known-good je dozvoljen samo ako oba svojstva čuva; eksplicitni fail-closed 503 je sigurnija alternativa, uz metric/health signal i vidljiv oporavak. W5.48 bira fail-closed, pa konfiguracijski zavisni zahtjevi mogu biti privremeno odbijeni dok se čitanje ne oporavi.
 
 Acceptance:
 

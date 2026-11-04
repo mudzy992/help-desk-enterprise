@@ -34,6 +34,13 @@ export type ChangeDowntimeSyncHealth = {
   readonly oldestPendingAgeMs: number;
 };
 
+export type TemplatesConfigurationHealth = {
+  readonly status: "ok" | "degraded";
+  readonly readFailuresTotal: number;
+  readonly lastFailureAt: string | null;
+  readonly lastRecoveryAt: string | null;
+};
+
 export type OpsClamavState =
   | { readonly configured: false }
   | { readonly configured: true; readonly ok: boolean; readonly failOpen: boolean };
@@ -127,6 +134,8 @@ export type OpsOverview = {
     };
     /** Optional during rolling deploys where the API has not added this signal yet. */
     readonly changeDowntimeSync?: ChangeDowntimeSyncHealth | null;
+    /** Per-process fail-closed settings-read health; optional during rolling deploys. */
+    readonly templatesConfiguration?: TemplatesConfigurationHealth | null;
     readonly inbound: ReadonlyArray<{
       readonly mailboxKey: string;
       readonly lastRunAt: string | null;

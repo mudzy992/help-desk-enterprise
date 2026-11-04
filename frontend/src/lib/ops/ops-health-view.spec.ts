@@ -125,6 +125,21 @@ describe("ops health view", () => {
     ).toBe("degraded");
     expect(overallOpsState(overview({}, { changeDowntimeSync: null }))).toBe("degraded");
     expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            templatesConfiguration: {
+              status: "degraded",
+              readFailuresTotal: 1,
+              lastFailureAt: "2026-11-20T09:59:00.000Z",
+              lastRecoveryAt: null,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
+    expect(
       overallOpsState(overview({}, { worker: { status: "stale", heartbeatAgeSeconds: 500 } })),
     ).toBe("down");
   });

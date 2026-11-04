@@ -78,6 +78,47 @@ describe("ops health presentation sections", () => {
     expect(html).toContain("admin.opsHealth.components.changeDowntimeSyncValue");
   });
 
+  it("shows template settings degradation as a health warning", () => {
+    const overview = {
+      components: {
+        api: "ok",
+        database: "ok",
+        redis: "ok",
+        worker: { status: "active", heartbeatAgeSeconds: 1 },
+        clamav: null,
+        disk: null,
+        eventLoopLagMs: null,
+        ldapsCaExpiresAt: null,
+        email: { lastSentAt: null },
+        templatesConfiguration: {
+          status: "degraded",
+          readFailuresTotal: 2,
+          lastFailureAt: "2026-10-19T00:00:00.000Z",
+          lastRecoveryAt: null,
+        },
+        inbound: [],
+      },
+      configuration: {
+        thresholds: {
+          diskWarnPercent: 80,
+          diskCriticalPercent: 90,
+          http5xxMinCount: 20,
+          http5xxMinPercent: 2,
+          slaScanLateMinutes: 5,
+          workerHeartbeatStaleSeconds: 120,
+          clamavFailuresBeforeAlert: 3,
+        },
+      },
+    } as unknown as OpsOverview;
+    const html = renderToStaticMarkup(
+      <ComponentGrid overview={overview} nowMs={Date.parse("2026-10-19T00:02:00.000Z")} />,
+    );
+
+    expect(html).toContain("admin.opsHealth.components.templatesConfiguration");
+    expect(html).toContain("admin.opsHealth.components.templatesConfigurationDegraded");
+    expect(html).toContain("admin.opsHealth.state.warning");
+  });
+
   it("keeps unknown alerts renderable with details and acknowledgement action", () => {
     const html = renderToStaticMarkup(
       <AlertItem

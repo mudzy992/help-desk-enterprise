@@ -75,7 +75,8 @@ export function overallOpsState(overview: OpsOverview): OpsOverallState {
     snapshotStale ||
     components.worker.status === "unknown" ||
     components.changeDowntimeSync === null ||
-    components.changeDowntimeSync?.status === "degraded"
+    components.changeDowntimeSync?.status === "degraded" ||
+    components.templatesConfiguration?.status === "degraded"
   ) {
     return "degraded";
   }

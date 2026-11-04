@@ -55,6 +55,7 @@ export function ComponentGrid({
   const ldaps = ldapsCaState(components.ldapsCaExpiresAt, nowMs);
   const clamav = components.clamav;
   const changeDowntimeSync = components.changeDowntimeSync ?? null;
+  const templatesConfiguration = components.templatesConfiguration ?? null;
   return (
     <section className="grid gap-2">
       <h4 className={sectionTitleClassName}>{t("admin.opsHealth.components.title")}</h4>
@@ -79,6 +80,26 @@ export function ComponentGrid({
           label={t("admin.opsHealth.components.database")}
           state={components.database === "ok" ? "ok" : "fail"}
         />
+        <ComponentTile
+          label={t("admin.opsHealth.components.templatesConfiguration")}
+          state={
+            templatesConfiguration === null
+              ? "unknown"
+              : templatesConfiguration.status === "degraded"
+                ? "warning"
+                : "ok"
+          }
+        >
+          {templatesConfiguration === null
+            ? t("admin.opsHealth.components.unknown")
+            : templatesConfiguration.status === "degraded"
+              ? t("admin.opsHealth.components.templatesConfigurationDegraded", {
+                  count: templatesConfiguration.readFailuresTotal,
+                })
+              : t("admin.opsHealth.components.templatesConfigurationAvailable", {
+                  count: templatesConfiguration.readFailuresTotal,
+                })}
+        </ComponentTile>
         <ComponentTile
           label={t("admin.opsHealth.components.redis")}
           state={components.redis === "ok" ? "ok" : "fail"}

@@ -19,6 +19,7 @@ import { schedulerGraceMs } from './evaluate-ops-signals';
 import { SettingsService } from '../settings/settings.service';
 import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
 import { changeDowntimePendingWarningAgeMs, changeDowntimeSyncTopic } from '../changes/change-downtime-outbox';
+import { readTemplatesConfigurationHealth } from '../templates/templates-configuration-health';
 
 export type OpsAlertView = {
   readonly id: string;
@@ -125,6 +126,7 @@ export class OpsHealthService {
         api: 'ok' as const,
         database,
         redis: redisState,
+        templatesConfiguration: readTemplatesConfigurationHealth(),
         // The card speaks the integration-queue vocabulary (active/stale/unknown).
         worker: {
           status: worker.heartbeatAgeSeconds === null ? ('unknown' as const) : worker.status === 'ok' ? ('active' as const) : ('stale' as const),

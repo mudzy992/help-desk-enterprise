@@ -13,6 +13,11 @@ import { OpsHealthService } from './ops-health.service';
 import { loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { fallbackOpsConfiguration } from './ops-configuration.loader';
+import {
+  readTemplatesConfigurationHealth,
+  recordTemplatesConfigurationReadFailure,
+  recordTemplatesConfigurationReadRecovery,
+} from '../templates/templates-configuration-health';
 
 const now = new Date('2026-11-20T10:00:00.000Z');
 const actor = { principal: { subjectId: 'admin-1', email: 'a@x.ba', displayName: 'Admin', isLocalOnly: false }, requestId: 'r1', sessionId: 's1' };
@@ -92,6 +97,24 @@ describe('OpsHealthService', () => {
     expect((await service.overview(now)).components.worker).toEqual({ status: 'active', heartbeatAgeSeconds: 10 });
     redis.values.set(workerHeartbeatRedisKey, new Date(now.getTime() - 600_000).toISOString());
     expect((await service.overview(now)).components.worker.status).toBe('stale');
+  });
+
+  it('surfaces template settings read failures and recovery in the protected health overview', async () => {
+    const { service } = setup();
+    recordTemplatesConfigurationReadRecovery(now);
+    const degraded = recordTemplatesConfigurationReadFailure(now);
+
+    await expect(service.overview(now)).resolves.toMatchObject({
+      components: { templatesConfiguration: degraded },
+    });
+
+    const recovered = recordTemplatesConfigurationReadRecovery(
+      new Date(now.getTime() + 1_000),
+    );
+    await expect(service.overview(now)).resolves.toMatchObject({
+      components: { templatesConfiguration: recovered },
+    });
+    expect(readTemplatesConfigurationHealth().status).toBe('ok');
   });
 
   it('reports change downtime outbox backlog and degrades on dead-letter work', async () => {
