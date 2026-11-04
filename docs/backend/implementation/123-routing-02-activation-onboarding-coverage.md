@@ -1,6 +1,6 @@
 # BA-routing-02 — activation i onboarding coverage follow-up
 
-**Status:** implementation je na `c098ad4ee102bca3ed84745080afd1175867ab5c`, a CI/generated-Prisma/PG-integration gateovi su prošli; `BA-routing-02` ostaje otvoren dok relevantni E2E i završni acceptance ne budu potvrđeni.
+**Status:** implementation je na `c098ad4ee102bca3ed84745080afd1175867ab5c`, a CI/generated-Prisma/PG-integration gateovi su prošli. CI/E2E [`41905212413`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905212413) na `e32a999` je passed za odabrani spec 42, ali taj test samo započinje onboarding i ne asertuje persisted `suggest`/`validate` missing-set ugovor; zato `BA-routing-02` ostaje otvoren do direktnog acceptancea.
 **Val:** 5
 **Audit izvor:** [13 — routing, BA-routing-02](../audits/13-routing.md#ba-routing-02--activation-coverage-je-postoji-jedno-pravilo)
 **Prethodni zapis:** [W5.21 historical closeout](48-routing-service-activation-coverage.md)
@@ -34,8 +34,9 @@ Izvorni statusni red `BA-routing-02` ostaje **otvoren**. Ovaj follow-up ne prepi
 - CI [`41850862952`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850862952) na SHA `c098ad4ee102bca3ed84745080afd1175867ab5c` je **success** za generated Prisma, backend build/lint/full Jest, PostgreSQL+Redis integration, frontend, docs, container/supply-chain i CI gate. Push CI E2E critical/install poslovi su `skipped`.
 - CI integration runner uključuje `routing-critical-matrix.integration.spec.ts`; real PostgreSQL/Redis integration job je passed na disposable bazi. Nema nove migracije niti target-DB pristupa.
 - Dispatch [`41836729106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41836729106) na prethodnom code SHA `78ba1c1` imao je E2E critical-flow job success (12 passed), ali log download je vratio `EOF`; tačan spec-set nije potvrđen i taj run se ne tretira kao full post-merge acceptance.
+- CI/E2E [`41905212413`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905212413) na SHA `e32a999117fdc44bb7ece178587bd0aeca7af039` je success; korisnikov odabir obuhvatao je specove 02/15/42. Spec 42 prolazi onboarding UI start, ali ne poziva niti asertuje persisted `suggest`/`validate` missing-set kontrakt koji je specifičan za ovaj nalaz. E2E report download je završio `EOF`, pa per-spec counts nisu nezavisno pregledani. Ovaj run se bilježi, ali sam ne zatvara `BA-routing-02`.
 - Scheduled full E2E [`41790672838`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41790672838) pao je na starijem `master` SHA `8aab8e46` (103 passed, 16 failed, 2 flaky, 2 skipped). Trinaest testova je zapelo na obaveznom `reason`; kasniji commit `2706ea1a` s E2E reason-helper korekcijom je predak trenutnog SHA-a. Još su bila dva API timeouta i jedan change-scheduling assertion mismatch. Ovaj run nije dokaz trenutnog BA-routing-02 koda.
-- Zato puni relevantni E2E/critical-flow acceptance ostaje **pending**; ne pokretati ga ručno. Čekati sljedeći scheduled run i korisnikov post-merge run ID, pa provjeriti tačan SHA/job i `skipped`/failed rezultate.
-- Nema target-DB pristupa ni migration runa. BA status i Val 5 brojevi nisu mijenjani.
+- Iako su selected specs 02/15/42 prošli, direktni E2E acceptance za persisted onboarding `suggest`/`validate` missing-set kontrakt i puni post-merge critical-flow acceptance ostaju **pending**. Ne pokretati puni flow ručno; čekati sljedeći scheduled run ili korisnikov post-merge run ID, pa provjeriti tačan SHA/job i `skipped`/failed rezultate.
+- Nema target-DB pristupa ni migration runa. `BA-routing-02` status nije promijenjen ovim paketom; W5.50 je zasebno zatvorio `BA-routing-03/04`.
 
-`BA-routing-02` ostaje otvoren do propisanog E2E/owner acceptancea; Val 5 ostaje 58/74 na finding statusu.
+`BA-routing-02` ostaje otvoren do propisanog E2E/owner acceptancea; Val 5 je trenutno 60/74 na finding statusu.

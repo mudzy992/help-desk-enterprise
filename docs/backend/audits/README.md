@@ -10,6 +10,8 @@
 
 **Val 5 / W5.49 checkpoint (2026-11-04):** korisnik je odobrio samo `BA-templates-03`. Implementiran je `expectedUpdatedAt` precondition i transakcijski CAS prije bilo kakve scope/step/audit izmjene; checklist `version` i dalje raste samo kad se promijeni sadržaj koraka. Frontend full suite (432 fajla / 1.676 testova), novi error-map spec (1/1), production build, i18n, targeted ESLint/format i integration-runner harness (6/6) su passed. Push CI [`41886832531`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41886832531) na `d983943` je passed, uključujući generated-Prisma backend suite i PostgreSQL/Redis integration; push Perf smoke [`41886832553`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41886832553) na istom SHA-u je passed bez promjene pragova. E2E install-wizard i critical-flow poslovi su skipped, pa nalaz ostaje otvoren do zakazanog finalnog acceptancea. Lokalno se nije koristila baza niti pokretala migracija; nije ručno dispatchan full CI/E2E, niti je otvoren PR, mergean kod ili izvršen deploy. `BA-templates-01/02`, routing nalazi i BA-15 gate ostaju zasebni. Detalji: [paket 125](../implementation/125-templates-03-playbook-concurrency.md) i [audit 16](16-templates.md).
 
+**Val 5 / W5.50 acceptance (2026-11-04):** CI routing integration [`41901987106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41901987106) na `2e67f84` je passed uz generated-Prisma/PostgreSQL test za scoped cursor i exact `total=75`. Perf [`41905093216`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905093216) i CI [`41905212413`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905212413) prošli su na istom SHA-u `e32a999117fdc44bb7ece178587bd0aeca7af039`; query-budget je avg `1.925` kroz `50,454` zahtjeva, p95 `2`, max `34`, prag `2.1`. E2E critical-flow job za korisnikove specove `02/15/42` je passed; install-wizard i read-only inventory su skipped. Kanonski audit, globalni registar i generisani plan sada zatvaraju samo `BA-routing-03/04`; routing audit je 10/11, a Val 5 ukupno 60/74 (14 otvorenih: 4 P1, 7 P2, 3 P3). `BA-routing-02`, template nalazi i odvojeni BA-15 full-flow gate nisu promijenjeni ovim closeoutom. Nisu mijenjani Perf pragovi, korištena target baza niti pokretane migracije.
+
 Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; statusni presjek ispod razdvaja izvore jer [globalni registar](../BACKEND-FINDINGS-REGISTER.md) trenutno nije usklađen s izvornim audit-tabelama.
 
 ## Trenutni status nalaza i kompletni scopeovi
@@ -18,9 +20,9 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 
 | Status u izvornim audit-tabelama | Broj | Tumačenje |
 | --- | ---: | --- |
-| `otvoreno` | 558 | Još nije zatvoreno u izvornoj tabeli. |
-| `zatvoreno` | 134 | Eksplicitni formalni status `zatvoreno`, uključujući svih 11 ranijih W3 završetaka. |
-| **Ukupno** | **692** | **558 otvorenih + 134 zatvorenih.** |
+| `otvoreno` | 556 | Još nije zatvoreno u izvornoj tabeli. |
+| `zatvoreno` | 136 | Eksplicitni formalni status `zatvoreno`, uključujući svih 11 ranijih W3 završetaka. |
+| **Ukupno** | **692** | **556 otvorenih + 136 zatvorenih.** |
 
 Statusne ćelije za svih 11 nalaza koji su ranije nosili `završen (W3.x)` sada su normalizovane na `zatvoreno` u izvornoj tabeli, globalnom registru i generisanom planu. W3.x ostaje samo kao historijski kontekst implementacijskih paketa, ne kao status nalaza.
 
@@ -41,8 +43,8 @@ Ako se filtriraju izvorne audit-tabele, kompletno je **6/44** scopeova. Trenutna
 
 ### Preostala neusklađenost između statusnih prikaza
 
-- Izvorne tabele / generisani plan: **558 otvoren / 134 zatvoren**.
-- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **568 otvoren / 124 zatvoren** (692 reda ukupno); zaglavlje i kontrolni zbir tog registra sada odražavaju brojanje njegovih redova.
+- Izvorne tabele / generisani plan: **556 otvoren / 136 zatvoren**.
+- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **566 otvoren / 126 zatvoren** (692 reda ukupno); zaglavlje i kontrolni zbir tog registra sada odražavaju brojanje njegovih redova.
 - Deset nalaza koje izvorne tabele označavaju `zatvoreno`, a redovi globalnog registra još prikazuju kao `otvoreno`: `BA-authorization-02`, `BA-rbac-04`, `BA-routing-05`, `BA-routing-06`, `BA-routing-07`, `BA-status-page-07`, `BA-status-page-08`, `BA-status-page-10`, `BA-users-04`, `BA-users-05`. Ovaj zahtjev je ograničen na W3 statusne redove; ostalih 10 nalaza nisu mijenjani.
 
 Za BA-15 nema preostalih implementacijskih nalaza; preostala je samo završna full critical-flow CI/E2E potvrda. Remote `master` je trenutno na SHA `e1a48995decf3196e33bb0076d833f16c44d020e`, istom SHA-u kao CORS/`If-Match` ispravka. Ciljani spec 42 run `41815308161` prošao je 4/4, ali puni critical-flow run na `master` još nije potvrđen; detaljni slijed je u [auditu 15, sekcija 34](15-service-catalog.md#34-ba-15-e2e-critical-flow-follow-up-2026-11-04).
