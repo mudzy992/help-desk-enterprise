@@ -161,8 +161,21 @@ export async function createOfferedService(
       body: JSON.stringify({ reason: `E2E setup: activate form for ${input.label} (${stamp})` }),
     },
   );
+  // BA-09 requires a strong If-Match for lifecycle transitions. Read after the
+  // form writes so the precondition reflects the service's current revision.
+  const currentServiceResponse = await api.request(`/services/${service.id}`);
+  if (!currentServiceResponse.ok) {
+    throw new Error(
+      `[e2e] cannot read service ${service.id} before lifecycle activation: HTTP ${currentServiceResponse.status}`,
+    );
+  }
+  const serviceEtag = currentServiceResponse.headers.get("etag");
+  if (serviceEtag === null) {
+    throw new Error(`[e2e] service ${service.id} did not return an ETag for lifecycle activation.`);
+  }
   await api.requestJson(`/services/${service.id}/lifecycle`, {
     method: "POST",
+    headers: { "If-Match": serviceEtag },
     body: JSON.stringify({
       lifecycle: "ACTIVE",
       reason: `E2E setup: activate service ${input.label} (${stamp})`,

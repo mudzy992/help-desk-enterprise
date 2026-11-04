@@ -269,7 +269,30 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         const editDialog = page.getByRole('dialog');
         await editDialog.getByRole('textbox', { name: /^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i }).fill(editedName);
         await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
+        const serviceUpdateResponsePromise = page.waitForResponse((response) => {
+          const url = new URL(response.url());
+          return (
+            response.request().method() === 'PATCH' &&
+            url.pathname.replace(/\/+$/, '').endsWith(`/services/${targetServiceId}`)
+          );
+        });
         await editDialog.locator('form button[type="submit"]').click();
+        const serviceUpdateResponse = await serviceUpdateResponsePromise;
+        const serviceUpdateIfMatch = await serviceUpdateResponse.request().headerValue('if-match');
+        expect(
+          serviceUpdateIfMatch,
+          'service update request must include the loaded service revision as If-Match',
+        ).toMatch(/^"v[1-9][0-9]*"$/);
+        const serviceUpdatePayload = serviceUpdateResponse.request().postDataJSON() as {
+          readonly reason?: unknown;
+        };
+        expect(serviceUpdatePayload.reason).toBe('Edit from catalogue UX E2E');
+        const updateResponseDetails = (await serviceUpdateResponse.text()).slice(0, 512);
+        expect(
+          serviceUpdateResponse.ok(),
+          `PATCH /services/${targetServiceId} returned HTTP ${serviceUpdateResponse.status()}; ` +
+            `If-Match=${serviceUpdateIfMatch}: ${updateResponseDetails}`,
+        ).toBe(true);
         await expect(editDialog).toBeHidden();
         await expect(serviceRow.getByText(editedName)).toBeVisible();
 
