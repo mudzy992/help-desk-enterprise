@@ -121,6 +121,13 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   }
 });
 
+test("BA-templates-01 management-read PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/templates/management-read-scope.integration.spec.ts"),
+    "nedostaje obavezni BA-templates-01 management-read scope PostgreSQL shard",
+  );
+});
+
 test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", () => {
   const directory = path.join(backendRoot, "src/modules/service-catalog");
   const discovered = discoverServiceCatalogIntegrationSpecs(directory).sort();
