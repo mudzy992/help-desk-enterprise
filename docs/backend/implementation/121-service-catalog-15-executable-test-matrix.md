@@ -1,7 +1,7 @@
 # Implementacijski checkpoint — `BA-service-catalog-15`
 
 **Nalaz:** `BA-service-catalog-15` (P3) — kritična concurrency/security/config test matrica nije izvršiva ni kompletna.<br>
-**Status:** otvoren; BA-09 runner-gap je popravljen i validiran kroz candidate CI, ali Perf smoke je pao na nepovezanim search/ticket-message pragovima.<br>
+**Status:** zatvoren nakon zelenog finalnog CI-ja i Perf smokea na SHA `8660953d8a70312dd55768504e348ea2cbd2d304`; BA-09 runner-gap je popravljen, a autorizovani ticket-message perf fix je prošao završne pragove.<br>
 **Grana:** `arena/864951a6-help-desk-enterprise`<br>
 **Početak:** 2026-11-03, nakon BA-14 closeouta u [closeoutu 120](120-service-catalog-14-incident-read-fail-closed.md).<br>
 **Schema / ciljna baza:** nema schema promjene ni pristupa ciljnoj bazi. Ako se izvršava PostgreSQL matrica, koristiti samo izolovane disposable CI baze.
@@ -65,4 +65,16 @@ Korisnik je izričito odobrio validacijski commit/push samo na ovoj Arena grani 
 - Perf [`41779289337`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41779289337) na istom SHA-u je **failure**: `ticket_message_duration` p95 `1246.30 ms` prema `<1000 ms` i `search_duration` p95 `557.34 ms` prema `<500 ms` nisu prošli. Service-catalog p95 `75.44 ms` prema `<500 ms`, contract failures `0` i query-budget avg `2.094` prema `2.1` su **passed**. Search/ticket-message pragovi su izvan BA-15 scopea i ostaju nepromijenjeni.
 - Ručni `workflow_dispatch` pokušaj je odbijen sa HTTP **403 `Resource not accessible by integration`**, ali push je automatski pokrenuo navedeni Perf run. `gh run rerun 41779289337 --failed` je odbijen porukom da se run ne može rerunati; novi pokušaj nije kreiran.
 
-**Status:** BA-15 ostaje **otvoren**, jer Perf nije green. CI workflow conclusion je success uz eksplicitno navedene skipove; Perf je izvršen i pao, ne skipped niti passed. Ne mijenjati druge nalaze, BA-routing-02, search/ticket-message kod ili pragove. Nema pristupa target DB-u, migracije nad ciljnom bazom, PR-a, mergea, deploymenta ni dodatnog commit/pusha nakon validacijskog SHA-a.
+**Status u candidate fazi:** BA-15 je ostao **otvoren** nakon CI `41779289336` success i Perf `41779289337` failure na nepovezanim ticket-message/search pragovima. Taj snapshot je historijski i zamijenjen je završnim dokazima ispod. U toj fazi nije mijenjan search niti pragovi; target DB, PR, merge i deployment nisu korišteni.
+
+## Završna validacija i BA-15 closeout (2026-11-04)
+
+Korisnik je autorizovao korekciju samo za ticket-message, jer Perf `41789448801` na ranijem SHA `8aab8e46fa3742fff64d3cec0fe29386f2ccdf0f` pao je na `ticket_message_duration` p95 `1308.61 ms` / `<1000 ms`; search p95 `484.76 ms` / `<500 ms` je prošao. Korekcija je usko uklonila sinhrono čekanje SLA timer sinhronizacije iz idempotentnog HTTP message puta: `firstResponseAt` ostaje dio message transakcije, a prvi agentski odgovor upisuje deduplikovani `ticket.sla.effects` outbox intent, koji obrađuje postojeći worker. Search kod i pragovi nisu mijenjani.
+
+Kodni validacijski commit/push je `8660953d8a70312dd55768504e348ea2cbd2d304` na istoj Arena grani. CI [`41793987045`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41793987045) na tom SHA-u je **success**: backend build/lint/full Jest, PostgreSQL/Redis integration, frontend, Docs guard, container/supply-chain i CI gate su **passed**. Read-only service-form inventory, E2E install wizard, E2E critical flows i conditional high/critical image-enforcement korak bili su **skipped**, ne passed; nema spec 56/E2E sign-offa.
+
+Perf [`41795380371`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41795380371), ručno pokrenut na istoj grani i istom SHA-u, je **success**. `POST /tickets/:id/messages` p95 je `740.19 ms` / `<1000 ms` (**passed**); `GET /search` p95 je `166.03 ms` / `<500 ms` (**passed**). Service-catalog p95 je `17.70 ms` / `<500 ms` (**passed**), a application query-budget average `1.924` prema gateu `2.1` je **passed**. Perf PR-comment korak je **skipped** jer nije otvoren PR.
+
+Ciljani lokalni ESLint i `git diff --check` su passed; dva nova ciljana Jest suitea su **5/5 passed** uz `ts-jest` type diagnostics isključenu samo zbog nedostajućeg lokalno generisanog Prisma Clienta. Lokalni `prisma generate` nije uspio jer je schema-engine download host nedostupan u ovom sandboxu; ciljnoj bazi nije pristupljeno i lokalno nisu pokretane migracije. Finalni CI je generisao Prisma Client, buildao backend i prošao puni Jest/integration gate. CI/Perf su pokrenuli svoje provjere u disposable CI okruženju.
+
+**Finalni status:** BA-15 je **zatvoren** na osnovu završnog zelenog CI-ja i Perf-a na istom SHA-u. Nisu mijenjani drugi nalazi, BA-routing-02, search kod ili pragovi. Nema PR-a prema `master`, mergea, deploymenta ni pristupa ciljnoj bazi; `master` nije mijenjan.
