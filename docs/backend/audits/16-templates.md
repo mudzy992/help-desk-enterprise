@@ -12,7 +12,7 @@
 
 Baseline je ipak **5,35/10**. Tri P1 nalaza pogađaju izolaciju i enforcement. Service-scoped manager kroz management list/get može pročitati tijela svih shared templatea i sve playbook instrukcije iz drugih servisa, iako ih ne može izmijeniti. Settings kvar se tiho prevodi u default `enabled/warn`, pa instalacija konfigurirana na `block` može dozvoliti resolve/close sa otvorenim obaveznim koracima. Concurrent playbook update radi višekoračni delete/upsert/update bez locka/version preconditiona, pa paralelni administratori mogu proizvesti mješovitu definiciju, izgubljene korake i verziju koja ne opisuje nijedan originalni zahtjev.
 
-Dodatno su step/upgrade događaji race-osjetljivi, auto-attach je best-effort bez recoveryja, config rollback zaobilazi template domenske provjere, playbook name uniqueness je aplikacijska, a management/candidate liste su hard-truncated bez paginacije. Nema P0. Implementacije se rade serijski, po preciznom BA ID scopeu i uz zasebno odobrenje; trenutno odobreni paket je `BA-templates-02` (W5.48), bez preuzimanja susjednih nalaza.
+Dodatno su step/upgrade događaji race-osjetljivi, auto-attach je best-effort bez recoveryja, config rollback zaobilazi template domenske provjere, playbook name uniqueness je aplikacijska, a management/candidate liste su hard-truncated bez paginacije. Nema P0. Implementacije se rade serijski, po preciznom BA ID scopeu i uz zasebno odobrenje; trenutno odobreni paket je `BA-templates-03` (W5.49). `BA-templates-02` ostaje otvoren do relevantnog E2E acceptancea; susjedni nalazi nisu uključeni u W5.49.
 
 ## 2. Scope i inventar
 
@@ -160,6 +160,8 @@ Loader guta settings grešku i vraća `requiredStepsOnResolve:'warn'`. Ako je st
 ### BA-templates-03 — Concurrent definition corruption
 
 Playbook update učita current, zatim bez locka briše joinove/uklonjene korake, upsertuje svaki korak i inkrementira version. Dva administratora mogu međusobno obrisati/dodati korake i scope, a oba change loga tvrde drugačiji before/after. Uvesti optimistic version/If-Match ili `FOR UPDATE`, conditional version increment i atomic replacement; jedan writer mora dobiti conflict.
+
+**W5.49 implementation checkpoint (2026-11-04):** edit šalje `expectedUpdatedAt` iz učitanog playbooka; backend odbija nedostajući token, a zastarjeli token mapira u HTTP 409. Unutar jedne transakcije conditional `updateMany` claim na `updatedAt` je prva izmjena; tek nakon njega slijede zamjena scope joinova/koraka i audit. Gubitnik CAS-a ne može ostaviti djelimičan scope, korak ili audit. Semantika checklist `version` ostaje nepromijenjena: povećava se samo ako se promijeni sadržaj koraka. Dodati su direktni testovi za missing/stale token i nulti CAS count te registrovani PostgreSQL test za dvije paralelne zamjene i konačni koherentni snapshot. Lokalni frontend test/build i integration-runner harness su zeleni; backend Prisma-dependent suite i PostgreSQL test čekaju push-triggered CI. `BA-templates-03` ostaje otvoren do propisanog CI/E2E acceptancea. Detalji su u [implementation note 125](../implementation/125-templates-03-playbook-concurrency.md); W5.49 ne obuhvata `BA-templates-08` ili druge susjedne nalaze.
 
 ## 14. Ostali nalazi i korekcije
 

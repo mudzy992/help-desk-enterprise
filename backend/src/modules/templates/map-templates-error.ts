@@ -29,6 +29,8 @@ const messages: Record<TemplatesErrorCode, string> = {
   PLAYBOOK_NAME_TAKEN: 'A playbook with this name already exists',
   PLAYBOOK_STEPS_INVALID: 'A playbook needs 1 to 50 steps with a title',
   PLAYBOOK_REFERENCE_INVALID: 'A linked article or template does not exist',
+  PLAYBOOK_PRECONDITION_REQUIRED: 'The current playbook revision is required to update it',
+  PLAYBOOK_VERSION_CONFLICT: 'The playbook changed since it was loaded',
   TICKET_PLAYBOOK_NOT_FOUND: 'The ticket has no playbook',
   TICKET_PLAYBOOK_ALREADY_ATTACHED: 'The ticket already has a playbook',
   TICKET_PLAYBOOK_NOT_APPLICABLE: 'The playbook is inactive or does not apply to this ticket',
@@ -52,6 +54,7 @@ const forbidden: readonly TemplatesErrorCode[] = [
 const conflict: readonly TemplatesErrorCode[] = [
   'TEMPLATE_NAME_TAKEN',
   'PLAYBOOK_NAME_TAKEN',
+  'PLAYBOOK_VERSION_CONFLICT',
   'TICKET_PLAYBOOK_ALREADY_ATTACHED',
   'TICKET_PLAYBOOK_UP_TO_DATE',
   'TICKET_PLAYBOOK_READ_ONLY',

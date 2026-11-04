@@ -7019,6 +7019,8 @@
       "PLAYBOOK_NAME_TAKEN": "Playbook s ovim nazivom već postoji.",
       "PLAYBOOK_STEPS_INVALID": "Playbook treba od 1 do 50 koraka, svaki s naslovom do 200 znakova.",
       "PLAYBOOK_REFERENCE_INVALID": "Povezani članak ili šablon ne postoji.",
+      "PLAYBOOK_PRECONDITION_REQUIRED": "Nedostaje aktuelna revizija playbooka. Ponovo učitajte playbook prije čuvanja.",
+      "PLAYBOOK_VERSION_CONFLICT": "Playbook je izmijenjen nakon što ste ga otvorili. Izmjene nisu sačuvane; kopirajte ih, učitajte najnoviju verziju i ponovo ih primijenite.",
       "TICKET_PLAYBOOK_NOT_FOUND": "Tiket nema playbook.",
       "TICKET_PLAYBOOK_ALREADY_ATTACHED": "Tiket već ima playbook.",
       "TICKET_PLAYBOOK_NOT_APPLICABLE": "Playbook je neaktivan ili se ne odnosi na ovaj tiket.",

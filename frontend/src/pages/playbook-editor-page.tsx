@@ -46,6 +46,7 @@ export function PlaybookEditorPage() {
   const [steps, setSteps] = useState<readonly PlaybookStepDraft[]>([blankPlaybookStep()]);
   const [reason, setReason] = useState("");
   const [version, setVersion] = useState<number | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [activeTickets, setActiveTickets] = useState(0);
   const [canEdit, setCanEdit] = useState(true);
   const [loaded, setLoaded] = useState(isNew);
@@ -60,6 +61,7 @@ export function PlaybookEditorPage() {
 
   const load = useCallback(async () => {
     if (playbookId === undefined) return;
+    setUpdatedAt(null);
     try {
       const playbook = await getPlaybook(playbookId);
       setName(playbook.name);
@@ -68,6 +70,7 @@ export function PlaybookEditorPage() {
       setServiceIds(playbook.serviceIds);
       setCategoryIds(playbook.categoryIds);
       setVersion(playbook.version);
+      setUpdatedAt(playbook.updatedAt);
       setActiveTickets(playbook.activeTicketCount);
       setCanEdit(playbook.canEdit);
       setSteps(
@@ -143,12 +146,20 @@ export function PlaybookEditorPage() {
       })),
     };
     try {
-      if (isNew) await createPlaybook(input);
-      else await updatePlaybook(playbookId, input);
+      if (isNew) {
+        await createPlaybook(input);
+      } else if (updatedAt === null) {
+        setErrorKey("templates.errors.PLAYBOOK_PRECONDITION_REQUIRED");
+        return;
+      } else {
+        await updatePlaybook(playbookId, { ...input, expectedUpdatedAt: updatedAt });
+      }
       toast({ tone: "success", title: t("templates.playbook.saved") });
       navigate("/admin/templates?tab=playbooks");
     } catch (error) {
-      setErrorKey(mapTemplatesError(error));
+      const mapped = mapTemplatesError(error);
+      setErrorKey(mapped);
+      if (mapped === "templates.errors.PLAYBOOK_VERSION_CONFLICT") setUpdatedAt(null);
     } finally {
       setSaving(false);
     }
@@ -159,6 +170,7 @@ export function PlaybookEditorPage() {
   const canSubmit =
     canEdit &&
     !saving &&
+    (isNew || updatedAt !== null) &&
     name.trim().length >= 2 &&
     steps.length > 0 &&
     steps.every((step) => step.title.trim().length > 0) &&

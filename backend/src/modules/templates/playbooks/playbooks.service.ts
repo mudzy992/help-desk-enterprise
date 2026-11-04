@@ -131,9 +131,21 @@ export class PlaybooksService {
     return this.toResponse(created, context, 0);
   }
 
-  async update(playbookId: string, body: PlaybookInput & { reason?: string }, actor: Actor): Promise<PlaybookResponse> {
+  async update(
+    playbookId: string,
+    body: PlaybookInput & { reason?: string; expectedUpdatedAt?: string },
+    actor: Actor,
+  ): Promise<PlaybookResponse> {
     const context = await this.requireManage(actor);
+    const expectedUpdatedAt = body.expectedUpdatedAt;
+    if (expectedUpdatedAt === undefined || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
+      throw new TemplatesError('PLAYBOOK_PRECONDITION_REQUIRED');
+    }
+
     const current = await this.load(playbookId);
+    if (Date.parse(expectedUpdatedAt) !== current.updatedAt.getTime()) {
+      throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
+    }
     const normalized = normalizePlaybookInput(body);
     this.assertScope(context, { serviceIds: toServiceIds(current), categoryIds: toCategoryIds(current) });
     this.assertScope(context, normalized);
@@ -144,6 +156,24 @@ export class PlaybooksService {
     const keys = normalized.steps.map((step) => step.stepKey);
     const updated = await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
+      const nextUpdatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
+      const claimed = await tx.playbook.updateMany({
+        where: { id: playbookId, deletedAt: null, updatedAt: current.updatedAt },
+        data: {
+          name: normalized.name,
+          description: normalized.description,
+          isActive: normalized.isActive,
+          updatedById: context.subjectId,
+          updatedAt: nextUpdatedAt,
+          ...(bump ? { version: { increment: 1 } } : {}),
+        },
+      });
+      if (claimed.count !== 1) {
+        throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
+      }
+
+      // The parent compare-and-set is deliberately first. A stale writer must
+      // fail before it can touch any scope, step, or audit rows.
       await tx.playbookService.deleteMany({ where: { playbookId } });
       await tx.playbookCategory.deleteMany({ where: { playbookId } });
       await tx.playbookStep.deleteMany({ where: { playbookId, stepKey: { notIn: keys } } });
@@ -154,19 +184,23 @@ export class PlaybooksService {
           update: { ...step },
         });
       }
-      const row = await tx.playbook.update({
+      if (normalized.serviceIds.length > 0) {
+        await tx.playbookService.createMany({
+          data: normalized.serviceIds.map((serviceId) => ({ playbookId, serviceId })),
+        });
+      }
+      if (normalized.categoryIds.length > 0) {
+        await tx.playbookCategory.createMany({
+          data: normalized.categoryIds.map((categoryId) => ({ playbookId, categoryId })),
+        });
+      }
+      const row = await tx.playbook.findUnique({
         where: { id: playbookId },
-        data: {
-          name: normalized.name,
-          description: normalized.description,
-          isActive: normalized.isActive,
-          updatedById: context.subjectId,
-          ...(bump ? { version: { increment: 1 } } : {}),
-          services: { create: normalized.serviceIds.map((serviceId) => ({ serviceId })) },
-          categories: { create: normalized.categoryIds.map((categoryId) => ({ categoryId })) },
-        },
         include: playbookInclude,
       });
+      if (row === null) {
+        throw new TemplatesError('PLAYBOOK_NOT_FOUND');
+      }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.playbook,
         entityId: row.id,

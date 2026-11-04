@@ -128,6 +128,15 @@ test("BA-templates-01 management-read PostgreSQL integration spec je registrovan
   );
 });
 
+test("BA-templates-03 concurrent definition PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes(
+      "src/modules/templates/playbooks/playbook-definition-concurrency.integration.spec.ts",
+    ),
+    "nedostaje obavezni BA-templates-03 playbook definition concurrency shard",
+  );
+});
+
 test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", () => {
   const directory = path.join(backendRoot, "src/modules/service-catalog");
   const discovered = discoverServiceCatalogIntegrationSpecs(directory).sort();

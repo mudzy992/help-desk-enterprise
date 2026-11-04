@@ -6986,6 +6986,8 @@
       "PLAYBOOK_NAME_TAKEN": "A playbook with this name already exists.",
       "PLAYBOOK_STEPS_INVALID": "A playbook needs 1 to 50 steps, each with a title of up to 200 characters.",
       "PLAYBOOK_REFERENCE_INVALID": "A linked article or template does not exist.",
+      "PLAYBOOK_PRECONDITION_REQUIRED": "The current playbook revision is missing. Reload the playbook before saving.",
+      "PLAYBOOK_VERSION_CONFLICT": "This playbook changed after you opened it. Your changes were not saved; copy them, reload the latest version, and reapply them.",
       "TICKET_PLAYBOOK_NOT_FOUND": "The ticket has no playbook.",
       "TICKET_PLAYBOOK_ALREADY_ATTACHED": "The ticket already has a playbook.",
       "TICKET_PLAYBOOK_NOT_APPLICABLE": "The playbook is inactive or does not apply to this ticket.",

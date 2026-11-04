@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsIn,
   IsOptional,
   IsString,
@@ -78,6 +79,8 @@ export class SavePlaybookDto {
   @ValidateNested({ each: true })
   @Type(() => PlaybookStepDto)
   steps!: PlaybookStepDto[];
+  /** Required for updates; the exact loaded revision prevents stale replacement. */
+  @IsOptional() @IsDateString() @MaxLength(40) expectedUpdatedAt?: string;
   @IsOptional() @IsString() @MaxLength(templateLimits.reasonMax + 20) reason?: string;
 }
 

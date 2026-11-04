@@ -226,6 +226,10 @@ export type SavePlaybookInput = {
   readonly reason?: string;
 };
 
+export type UpdatePlaybookInput = SavePlaybookInput & {
+  readonly expectedUpdatedAt: string;
+};
+
 export function listPlaybooks(input: {
   readonly q?: string;
   readonly serviceId?: string;
@@ -244,7 +248,7 @@ export function createPlaybook(input: SavePlaybookInput): Promise<Playbook> {
   return apiRequest("/playbooks", { method: "POST", body: JSON.stringify(input) });
 }
 
-export function updatePlaybook(playbookId: string, input: SavePlaybookInput): Promise<Playbook> {
+export function updatePlaybook(playbookId: string, input: UpdatePlaybookInput): Promise<Playbook> {
   return apiRequest(`/playbooks/${playbookId}`, { method: "PUT", body: JSON.stringify(input) });
 }
 
