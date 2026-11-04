@@ -1,4 +1,4 @@
-import { expect, test, type Request } from '@playwright/test';
+import { expect, test, type Request, type Response } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { firstServiceCategoryId } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
@@ -269,15 +269,61 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         const editDialog = page.getByRole('dialog');
         await editDialog.getByRole('textbox', { name: /^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i }).fill(editedName);
         await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
-        const serviceUpdateResponsePromise = page.waitForResponse((response) => {
+        const serviceMutationRequests: string[] = [];
+        const serviceMutationResponses: string[] = [];
+        const serviceRequestFailures: string[] = [];
+        const captureServiceRequest = (request: Request) => {
+          const url = new URL(request.url());
+          if (!url.pathname.includes('/services')) return;
+          const ifMatch = request.headers()['if-match'] ?? '<missing>';
+          serviceMutationRequests.push(`${request.method()} ${url.pathname}; If-Match=${ifMatch}`);
+        };
+        const captureServiceResponse = (response: Response) => {
           const url = new URL(response.url());
-          return (
-            response.request().method() === 'PATCH' &&
-            url.pathname.replace(/\/+$/, '').endsWith(`/services/${targetServiceId}`)
+          if (!url.pathname.includes('/services')) return;
+          serviceMutationResponses.push(
+            `${response.request().method()} ${url.pathname} -> HTTP ${response.status()}`,
           );
-        });
-        await editDialog.locator('form button[type="submit"]').click();
-        const serviceUpdateResponse = await serviceUpdateResponsePromise;
+        };
+        const captureServiceRequestFailure = (request: Request) => {
+          const url = new URL(request.url());
+          if (!url.pathname.includes('/services')) return;
+          serviceRequestFailures.push(
+            `${request.method()} ${url.pathname} -> ${request.failure()?.errorText ?? 'unknown'}`,
+          );
+        };
+        page.on('request', captureServiceRequest);
+        page.on('response', captureServiceResponse);
+        page.on('requestfailed', captureServiceRequestFailure);
+        let serviceUpdateResponse: Response;
+        try {
+          await editDialog.locator('form button[type="submit"]').click();
+          serviceUpdateResponse = await page.waitForResponse(
+            (response) => {
+              const url = new URL(response.url());
+              return (
+                response.request().method() === 'PATCH' &&
+                url.pathname.replace(/\/+$/, '').endsWith(`/services/${targetServiceId}`)
+              );
+            },
+            { timeout: 20_000 },
+          );
+        } catch (error) {
+          const dialogText = await editDialog.innerText().catch(() => '<edit dialog unavailable>');
+          const summarize = (items: readonly string[]) => (items.length > 0 ? items.join(' | ') : 'none');
+          throw new Error(
+            `[e2e] no matching PATCH response for service ${targetServiceId}. ` +
+              `Observed service requests: ${summarize(serviceMutationRequests)}. ` +
+              `Responses: ${summarize(serviceMutationResponses)}. ` +
+              `Network failures: ${summarize(serviceRequestFailures)}. ` +
+              `Edit dialog: ${dialogText.slice(0, 512)}. ` +
+              `Wait error: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        } finally {
+          page.off('request', captureServiceRequest);
+          page.off('response', captureServiceResponse);
+          page.off('requestfailed', captureServiceRequestFailure);
+        }
         const serviceUpdateIfMatch = await serviceUpdateResponse.request().headerValue('if-match');
         expect(
           serviceUpdateIfMatch,
