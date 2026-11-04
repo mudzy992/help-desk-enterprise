@@ -8,9 +8,19 @@ export type ServiceOnboardingStep = (typeof SERVICE_ONBOARDING_STEPS)[number];
 export type ServiceOnboardingStatus =
   "IN_PROGRESS" | "READY_FOR_FINALIZATION" | "COMPLETED" | "ABANDONED";
 
+export type ServiceRoutingCoverageEvaluation = {
+  readonly hasCoverage: boolean;
+  readonly requireCoverage: boolean;
+  readonly requiredOriginUnitCount: number;
+  readonly missingOriginUnitIds: readonly string[];
+};
+
 export type ServiceOnboardingValidationIssue = {
   readonly code: string;
   readonly step?: ServiceOnboardingStep;
+  readonly details?: {
+    readonly routingCoverage: ServiceRoutingCoverageEvaluation;
+  };
 };
 
 export type ServiceOnboardingResponse = {

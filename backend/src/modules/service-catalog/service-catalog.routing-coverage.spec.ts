@@ -38,9 +38,19 @@ describe('ServiceCatalogService routing coverage on activation', () => {
   };
 
   it('blocks DRAFT→ACTIVE when coverage is required and missing', async () => {
+    const coverageEvaluation: ServiceRoutingCoverageEvaluation = {
+      hasCoverage: false,
+      requireCoverage: true,
+      requiredOriginUnitCount: 3,
+      missingOriginUnitIds: ['ou-child'],
+    };
     const { catalog } = createHarness({
       evaluateActivationCoverage: async () => {
-        throw new RoutingError('ROUTING_COVERAGE_MISSING');
+        throw new RoutingError(
+          'ROUTING_COVERAGE_MISSING',
+          'ROUTING_COVERAGE_MISSING',
+          { routingCoverage: coverageEvaluation },
+        );
       },
     });
     const category = await catalog.createCategory({ name: 'IT', slug: 'it' });
@@ -55,7 +65,10 @@ describe('ServiceCatalogService routing coverage on activation', () => {
     await expect(
       transitionWithCurrentRevision(catalog, created.id, { lifecycle: 'ACTIVE' }),
     ).rejects.toMatchObject({
-      response: { code: 'ROUTING_COVERAGE_MISSING' },
+      response: {
+        code: 'ROUTING_COVERAGE_MISSING',
+        details: { routingCoverage: coverageEvaluation },
+      },
     });
   });
 

@@ -3929,7 +3929,7 @@
         "APPROVALS": "Odobrenja i objava"
       },
       "routingMissing": "Nema routing pravila za ovu uslugu. Kreirajte pravilo, zatim se vratite i potvrdite prijedlog.",
-      "routingCoverageWarning": "Ova usluga nema routing pokrivenost. Tiketi mogu završiti u UNROUTED dok se pravila ne podese.",
+      "routingCoverageWarning": "Routing pokrivenost ove usluge nije potpuna. Tiketi iz nekih organizacionih jedinica mogu završiti u UNROUTED dok se ne podese sva obavezna pravila.",
       "routingOpen": "Otvori usmjeravanje",
       "routingConfirm": "Potvrdi prijedlog",
       "routingSuggestion": "Prijedlog refa",

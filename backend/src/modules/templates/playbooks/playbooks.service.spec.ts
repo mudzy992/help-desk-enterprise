@@ -202,14 +202,16 @@ describe('PlaybooksService', () => {
   });
 
   describe('list', () => {
-    it('queries only live playbooks and translates the state and search filters', async () => {
-      const { service, prisma } = createHarness();
+    it('queries only live playbooks and combines service filters with the manager scope', async () => {
+      const { service, prisma } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+      });
       await service.list({ q: ' mreža ', state: 'inactive', serviceId: 'service-1' }, { actorUserId: 'actor-1' });
       const args = prisma.playbook.findMany.mock.calls[0][0] as {
         where: {
           deletedAt: null;
           isActive: boolean;
-          services: { some: { serviceId: string } };
+          AND: readonly unknown[];
           name: { contains: string; mode: string };
         };
         orderBy: unknown;
@@ -217,19 +219,38 @@ describe('PlaybooksService', () => {
       };
       expect(args.where.deletedAt).toBeNull();
       expect(args.where.isActive).toBe(false);
-      expect(args.where.services).toEqual({ some: { serviceId: 'service-1' } });
+      expect(args.where.AND).toContainEqual({
+        services: {
+          some: { serviceId: { in: ['service-1'] } },
+          every: { serviceId: { in: ['service-1'] } },
+        },
+        categories: { none: {} },
+      });
+      expect(args.where.AND).toContainEqual({ services: { some: { serviceId: 'service-1' } } });
       expect(args.where.name).toEqual({ contains: 'mreža', mode: 'insensitive' });
       expect(args.orderBy).toEqual({ name: 'asc' });
       expect(args.take).toBe(1000);
     });
 
-    it('fills activeTicketCount from the checklist table and canEdit from the scope', async () => {
+    it('filters foreign and mixed-scope playbooks before exposing rows or counting tickets', async () => {
       const { service, prisma } = createHarness({
         context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
       });
       prisma.playbook.findMany.mockResolvedValueOnce([
         row({ id: 'mine', services: [{ serviceId: 'service-1' }] }),
         row({ id: 'other', name: 'Tuđi', services: [{ serviceId: 'service-2' }] }),
+        row({ id: 'global', name: 'Globalni', services: [] }),
+        row({
+          id: 'mixed',
+          name: 'Miješani',
+          services: [{ serviceId: 'service-1' }, { serviceId: 'service-2' }],
+        }),
+        row({
+          id: 'category',
+          name: 'Kategorijski',
+          services: [{ serviceId: 'service-1' }],
+          categories: [{ categoryId: 'category-1' }],
+        }),
       ]);
       prisma.ticketPlaybook.groupBy.mockResolvedValueOnce([
         { playbookId: 'mine', _count: { _all: 3 } },
@@ -237,13 +258,25 @@ describe('PlaybooksService', () => {
       const listed = await service.list({}, { actorUserId: 'actor-1' });
       expect(listed.map((item) => [item.id, item.activeTicketCount, item.canEdit])).toEqual([
         ['mine', 3, true],
-        ['other', 0, false],
       ]);
       expect(prisma.ticketPlaybook.groupBy).toHaveBeenCalledWith({
         by: ['playbookId'],
-        where: { playbookId: { in: ['mine', 'other'] }, detachedAt: null },
+        where: { playbookId: { in: ['mine'] }, detachedAt: null },
         _count: { _all: true },
       });
+
+      const args = prisma.playbook.findMany.mock.calls[0]?.[0] as {
+        where: { AND: readonly unknown[] };
+        take: number;
+      };
+      expect(args.where.AND).toContainEqual({
+        services: {
+          some: { serviceId: { in: ['service-1'] } },
+          every: { serviceId: { in: ['service-1'] } },
+        },
+        categories: { none: {} },
+      });
+      expect(args.take).toBe(1000);
     });
 
     it('skips the counting query when the listing is empty', async () => {
@@ -259,6 +292,29 @@ describe('PlaybooksService', () => {
       expect(await codeOf(service.get('missing', { actorUserId: 'actor-1' }))).toBe(
         'PLAYBOOK_NOT_FOUND',
       );
+    });
+
+    it('hides foreign playbooks on get and constrains the database lookup', async () => {
+      const { service, prisma } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+      });
+      prisma.playbook.findFirst.mockResolvedValueOnce(
+        row({ services: [{ serviceId: 'service-2' }] }),
+      );
+
+      expect(await codeOf(service.get('foreign', { actorUserId: 'actor-1' }))).toBe('PLAYBOOK_NOT_FOUND');
+      const args = prisma.playbook.findFirst.mock.calls[0]?.[0] as {
+        where: Record<string, unknown>;
+      };
+      expect(args.where).toMatchObject({
+        id: 'foreign',
+        deletedAt: null,
+        services: {
+          some: { serviceId: { in: ['service-1'] } },
+          every: { serviceId: { in: ['service-1'] } },
+        },
+        categories: { none: {} },
+      });
     });
 
     it('requires a reason', async () => {

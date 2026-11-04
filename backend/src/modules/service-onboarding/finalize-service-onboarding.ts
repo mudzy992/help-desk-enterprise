@@ -31,6 +31,7 @@ import type {
 } from './service-onboarding.types';
 import {
   collectStepValidationIssues,
+  routingCoverageValidationError,
   type OnboardingDomainProviders,
 } from './validate-onboarding-steps';
 
@@ -65,6 +66,10 @@ export async function finalizeServiceOnboarding(
     await persistOnboardingRecord(prisma, record, {
       lastValidationErrors: issues,
     });
+    const routingCoverageError = routingCoverageValidationError(issues);
+    if (routingCoverageError !== null) {
+      throw routingCoverageError;
+    }
     throw new ServiceOnboardingError('FINAL_VALIDATION_FAILED');
   }
   const coverageEvaluation =

@@ -17,6 +17,7 @@ import {
   type ResponseTemplateInput,
 } from './normalize-template-input';
 import { recordTemplatesChange } from './record-templates-change';
+import { responseTemplateSharedReadScopeWhere } from './management-read-where';
 import { extractPlaceholders, fillTemplate, findUnknownPlaceholders } from './template-placeholders';
 import {
   canManageSharedScope,
@@ -273,12 +274,20 @@ export class ResponseTemplatesService {
     }
     const search = query.q?.trim() ?? '';
     const state = query.state ?? 'all';
+    const filters: Prisma.ResponseTemplateWhereInput[] = [];
+    if (!mine) {
+      const scopeWhere = responseTemplateSharedReadScopeWhere(context);
+      if (scopeWhere !== null) filters.push(scopeWhere);
+    }
+    if (query.serviceId !== undefined) {
+      filters.push({ services: { some: { serviceId: query.serviceId } } });
+    }
     const rows = await this.prisma.responseTemplate.findMany({
       where: {
         deletedAt: null,
         ownerUserId: mine ? context.subjectId : null,
         ...(state === 'all' ? {} : { isActive: state === 'active' }),
-        ...(query.serviceId === undefined ? {} : { services: { some: { serviceId: query.serviceId } } }),
+        ...(filters.length === 0 ? {} : { AND: filters }),
         ...(search.length === 0
           ? {}
           : {
@@ -293,13 +302,14 @@ export class ResponseTemplatesService {
       orderBy: { name: 'asc' },
       take: 1000,
     });
-    return rows.map((row) => this.toResponse(row, context));
+    const visibleRows = mine ? rows : rows.filter((row) => canManageSharedScope(context, toScope(row)));
+    return visibleRows.map((row) => this.toResponse(row, context));
   }
 
   async get(templateId: string, actor: Actor): Promise<ResponseTemplateResponse> {
     await this.requireTemplatesEnabled();
     const context = await this.loadContext(actor);
-    const row = await this.loadVisibleForManagement(templateId, context);
+    const row = await this.loadVisibleForManagement(templateId, context, undefined, true);
     return this.toResponse(row, context);
   }
 
@@ -473,9 +483,14 @@ export class ResponseTemplatesService {
     templateId: string,
     context: AuthorizationContext,
     ownership?: ResponseTemplateOwnership,
+    enforceReadScope = false,
   ): Promise<TemplateRow> {
     const row = await this.prisma.responseTemplate.findFirst({
-      where: { id: templateId, deletedAt: null },
+      where: {
+        id: templateId,
+        deletedAt: null,
+        ...(enforceReadScope ? this.managementReadWhere(context) : {}),
+      },
       include: templateInclude,
     });
     if (row === null) {
@@ -487,11 +502,24 @@ export class ResponseTemplatesService {
         : row.ownerUserId === context.subjectId;
     const pathMatches =
       ownership === undefined || (ownership === 'shared') === (row.ownerUserId === null);
-    if (!visible || !pathMatches) {
-      // Someone else's personal template does not exist for the caller.
+    const scopeMatches =
+      !enforceReadScope ||
+      row.ownerUserId !== null ||
+      canManageSharedScope(context, toScope(row));
+    if (!visible || !pathMatches || !scopeMatches) {
+      // Someone else's personal or out-of-scope shared template does not exist for the caller.
       throw new TemplatesError('TEMPLATE_NOT_FOUND');
     }
     return row;
+  }
+
+  private managementReadWhere(context: AuthorizationContext): Prisma.ResponseTemplateWhereInput {
+    const alternatives: Prisma.ResponseTemplateWhereInput[] = [{ ownerUserId: context.subjectId }];
+    if (hasPermission(context, permissionKeys.ticketTemplatesManage)) {
+      const scopeWhere = responseTemplateSharedReadScopeWhere(context);
+      alternatives.push({ ownerUserId: null, ...(scopeWhere ?? {}) });
+    }
+    return { OR: alternatives };
   }
 
   private assertCanWrite(context: AuthorizationContext, shared: boolean, scope: TemplateScope): void {

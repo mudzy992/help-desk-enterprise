@@ -3911,7 +3911,7 @@
         "APPROVALS": "Approvals and publish"
       },
       "routingMissing": "This service has no routing rule. Create a rule, then return and confirm the suggestion.",
-      "routingCoverageWarning": "This service has no routing coverage. Tickets may land in UNROUTED until rules are configured.",
+      "routingCoverageWarning": "This service has incomplete routing coverage. Tickets from some organizational units may land in UNROUTED until all required rules are configured.",
       "routingOpen": "Open routing",
       "routingConfirm": "Confirm suggestion",
       "routingSuggestion": "Suggested ref",

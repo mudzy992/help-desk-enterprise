@@ -310,15 +310,23 @@ export class RoutingService {
     return evaluation;
   }
 
-  suggestOnboardingReference(serviceId: string): Promise<string | null> {
-    return suggestRoutingOnboardingReference(this.prisma, serviceId);
+  async suggestOnboardingReference(serviceId: string): Promise<string | null> {
+    return suggestRoutingOnboardingReference(
+      this.prisma,
+      serviceId,
+      await this.configurationLoader.load(),
+    );
   }
 
-  acceptsOnboardingReference(input: {
+  async acceptsOnboardingReference(input: {
     readonly serviceId: string;
     readonly reference: string;
   }): Promise<boolean> {
-    return acceptsRoutingOnboardingReference(this.prisma, input);
+    return acceptsRoutingOnboardingReference(
+      this.prisma,
+      input,
+      await this.configurationLoader.load(),
+    );
   }
 
   private async assertTargetGroupEligible(

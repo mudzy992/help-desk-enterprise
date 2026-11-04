@@ -4,6 +4,7 @@ import type {
   ServiceOnboardingStep,
 } from '../../generated/prisma/enums';
 import type { ServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
+import type { RoutingErrorDetails } from '../routing/routing.error';
 import type { CatalogMutationContext } from '../service-catalog/service-catalog.types';
 import type { CreateServiceInput, UpdateServiceInput } from '../service-catalog/service-catalog.types';
 
@@ -32,6 +33,7 @@ export type ServiceOnboardingRecord = {
 export type ServiceOnboardingValidationIssue = {
   readonly code: string;
   readonly step?: ServiceOnboardingStep;
+  readonly details?: RoutingErrorDetails;
 };
 
 export type ConfigurationReferenceValidation = {

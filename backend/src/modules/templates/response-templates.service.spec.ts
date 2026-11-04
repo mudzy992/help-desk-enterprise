@@ -412,6 +412,65 @@ describe('ResponseTemplatesService', () => {
   });
 
   describe('management', () => {
+    it('filters shared management rows to authorized service scopes before the bounded take', async () => {
+      const { service, prisma } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+      });
+      prisma.responseTemplate.findMany.mockResolvedValueOnce([
+        row({ id: 'allowed', services: [{ serviceId: 'service-1' }] }),
+        row({ id: 'foreign', services: [{ serviceId: 'service-2' }] }),
+        row({ id: 'global' }),
+        row({ id: 'mixed', services: [{ serviceId: 'service-1' }, { serviceId: 'service-2' }] }),
+        row({ id: 'category', services: [{ serviceId: 'service-1' }], categories: [{ categoryId: 'category-1' }] }),
+        row({ id: 'group', services: [{ serviceId: 'service-1' }], groups: [{ groupId: 'group-1' }] }),
+      ]);
+
+      const listed = await service.listManaged({}, { actorUserId: 'actor-1' });
+      expect(listed.map((item) => item.id)).toEqual(['allowed']);
+
+      const args = prisma.responseTemplate.findMany.mock.calls[0]?.[0] as {
+        where: {
+          ownerUserId: string | null;
+          AND: readonly unknown[];
+        };
+        take: number;
+      };
+      expect(args.where.ownerUserId).toBeNull();
+      expect(args.where.AND).toContainEqual({
+        services: {
+          some: { serviceId: { in: ['service-1'] } },
+          every: { serviceId: { in: ['service-1'] } },
+        },
+        categories: { none: {} },
+        groups: { none: {} },
+      });
+      expect(args.take).toBe(1000);
+    });
+
+    it('hides a foreign shared template on get and constrains the database lookup', async () => {
+      const { service, prisma } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+      });
+      prisma.responseTemplate.findFirst.mockResolvedValueOnce(
+        row({ ownerUserId: null, services: [{ serviceId: 'service-2' }] }),
+      );
+
+      expect(await codeOf(service.get('foreign', { actorUserId: 'actor-1' }))).toBe('TEMPLATE_NOT_FOUND');
+      const args = prisma.responseTemplate.findFirst.mock.calls[0]?.[0] as {
+        where: { OR: readonly Record<string, unknown>[] };
+      };
+      const sharedBranch = args.where.OR.find((branch) => branch.ownerUserId === null);
+      expect(sharedBranch).toMatchObject({
+        ownerUserId: null,
+        services: {
+          some: { serviceId: { in: ['service-1'] } },
+          every: { serviceId: { in: ['service-1'] } },
+        },
+        categories: { none: {} },
+        groups: { none: {} },
+      });
+    });
+
     it('hides another user’s personal template behind the shared listing path', async () => {
       const { service, prisma } = createHarness();
       prisma.responseTemplate.findFirst.mockResolvedValueOnce(

@@ -7,6 +7,7 @@ import type { AuthorizationContext } from '../../authorization/authorization.typ
 import { changeLogActions } from '../../change-log/change-log.constants';
 import { normalizeReason } from '../normalize-template-input';
 import { recordTemplatesChange } from '../record-templates-change';
+import { playbookSharedReadScopeWhere } from '../management-read-where';
 import { canManageSharedScope, hasPermission, type TemplateScope } from '../template-scope';
 import { templateChangeLogEntityTypes } from '../templates.constants';
 import { TemplatesConfigurationLoader } from '../templates-configuration.loader';
@@ -65,24 +66,31 @@ export class PlaybooksService {
     const context = await this.requireManage(actor);
     const search = query.q?.trim() ?? '';
     const state = query.state ?? 'all';
+    const filters: Prisma.PlaybookWhereInput[] = [];
+    const scopeWhere = playbookSharedReadScopeWhere(context);
+    if (scopeWhere !== null) filters.push(scopeWhere);
+    if (query.serviceId !== undefined) {
+      filters.push({ services: { some: { serviceId: query.serviceId } } });
+    }
     const rows = await this.prisma.playbook.findMany({
       where: {
         deletedAt: null,
         ...(state === 'all' ? {} : { isActive: state === 'active' }),
-        ...(query.serviceId === undefined ? {} : { services: { some: { serviceId: query.serviceId } } }),
+        ...(filters.length === 0 ? {} : { AND: filters }),
         ...(search.length === 0 ? {} : { name: { contains: search, mode: 'insensitive' } }),
       },
       include: playbookInclude,
       orderBy: { name: 'asc' },
       take: 1000,
     });
-    const counts = await this.countActiveTickets(rows.map((row) => row.id));
-    return rows.map((row) => this.toResponse(row, context, counts.get(row.id) ?? 0));
+    const visibleRows = rows.filter((row) => this.canReadScope(context, row));
+    const counts = await this.countActiveTickets(visibleRows.map((row) => row.id));
+    return visibleRows.map((row) => this.toResponse(row, context, counts.get(row.id) ?? 0));
   }
 
   async get(playbookId: string, actor: Actor): Promise<PlaybookResponse> {
     const context = await this.requireManage(actor);
-    const row = await this.load(playbookId);
+    const row = await this.loadVisibleForRead(playbookId, context);
     const counts = await this.countActiveTickets([row.id]);
     return this.toResponse(row, context, counts.get(row.id) ?? 0);
   }
@@ -219,6 +227,29 @@ export class PlaybooksService {
       throw new TemplatesError('PLAYBOOK_NOT_FOUND');
     }
     return row;
+  }
+
+  private async loadVisibleForRead(
+    playbookId: string,
+    context: AuthorizationContext,
+  ): Promise<PlaybookRow> {
+    const scopeWhere = playbookSharedReadScopeWhere(context);
+    const row = await this.prisma.playbook.findFirst({
+      where: { id: playbookId, deletedAt: null, ...(scopeWhere ?? {}) },
+      include: playbookInclude,
+    });
+    if (row === null || !this.canReadScope(context, row)) {
+      throw new TemplatesError('PLAYBOOK_NOT_FOUND');
+    }
+    return row;
+  }
+
+  private canReadScope(context: AuthorizationContext, row: PlaybookRow): boolean {
+    return canManageSharedScope(context, {
+      serviceIds: toServiceIds(row),
+      categoryIds: toCategoryIds(row),
+      groupIds: [],
+    });
   }
 
   private assertScope(

@@ -33,7 +33,7 @@ Javne rute: create/update/delete rule; delete impact; per-rule/global changes; h
 
 Create/update/delete rade target existence provjere, razlog promjene, effective before/after resolution snapshot i change log. DB write i change log su u istoj Prisma transakciji. Update/delete dodatno upoređuju immutable rule scope sa body scopeom, pa `ruleId` ne može biti iskorišten uz lažni OU/service body.
 
-Coverage paginira po service name/id, a za svaki servis računa sve ili odabrani origin OU. Authorization se, međutim, primjenjuje tek nakon generisanja globalne stranice. Onboarding i service activation koriste samo `count(rule where serviceId)>0`, ne stvarnu matricu pokrivenosti.
+Coverage paginira po service name/id, a za svaki servis računa sve ili odabrani origin OU. Authorization se, međutim, primjenjuje tek nakon generisanja globalne stranice. Na audit baselineu (2026-10-23), onboarding i service activation koristili su samo `count(rule where serviceId)>0`, ne stvarnu matricu pokrivenosti; kasniji W5.21 i Val 5 BA-routing-02 follow-up status zabilježeni su u detaljnom nalazu ispod.
 
 ## 4. API/permission/scope matrica
 
@@ -138,14 +138,16 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 
 ### BA-routing-02 — Activation coverage je “postoji jedno pravilo”
 
-**Dokaz:** `evaluateServiceRoutingCoverage` poziva `hasRoutingRulesForService`, odnosno `routingRule.count({serviceId}) > 0`.  
+**Dokaz (audit baseline, 2026-10-23):** prvobitna `evaluateServiceRoutingCoverage` putanja je pozivala `hasRoutingRulesForService`, odnosno `routingRule.count({serviceId}) > 0`. Kasniji W5.21 package je promijenio activation/finalization evaluaciju; residualni onboarding false-positive opisan je u status reconciliation bilješci ispod.
 **Uticaj:** uz `requireCoverage=true` servis se aktivira sa pravilom za samo jedan OU, dok svi drugi relevantni origin OU-ovi ostaju `UNROUTED`. Onboarding reference daje istu lažnu potvrdu potpunosti.  
 **Root cause:** “configuration exists” je zamijenjeno za stvarnu coverage matricu/politiku.  
 **Korekcija:** formalno definirati relevantne OU-ove i zahtijevani exact/ancestor fallback; validirati target eligibility i vratiti strukturirani missing set.  
 **Acceptance:** aktivacija pada kada ijedan obavezni OU nema validan resolution; warning/override je eksplicitan i auditiran.  
 **Owner/veličina:** routing + service-catalog/onboarding, L.
 
-**Closeout:** W5.21 (`da66f2c`), zeleni CI `40374063956`; aktivacija sada zahtijeva exact/ancestor resolution za svaki OU i vraća determinističan missing skup. Dokaz: [48-routing-service-activation-coverage.md](../implementation/48-routing-service-activation-coverage.md). Paket nema novu DB migraciju.
+**Historijski closeout zapis:** W5.21 (`da66f2c`), zeleni CI `40374063956`; taj paket je uveo exact/ancestor resolution i determinističan missing skup za activation/finalization. Detalji prvobitnog paketa ostaju u [48-routing-service-activation-coverage.md](../implementation/48-routing-service-activation-coverage.md); paket nije imao novu DB migraciju.
+
+**Val 5 status reconciliation (2026-11-04; status ostaje otvoreno):** reinspection je potvrdio da W5.21 ne uklonio residualni `count(rule)>0` u persisted onboarding reference `suggest`/`validate` putanjama (`routing-onboarding-support.ts`); zbog toga jedno leaf pravilo još može dati lažnu onboarding potvrdu. Activation/finalization evaluator je već bio prisutan, ali finding-level acceptance kroz onboarding i structured blocker response nije potpun. Korisnik je izričito odobrio follow-up koji ponovo koristi istu coverage evaluaciju, nosi missing OU skup u activation/onboarding errorima i čuva ga u onboarding validation recordu. Scope, testovi i preostali CI/generated-Prisma gateovi su u [123](../implementation/123-routing-02-activation-onboarding-coverage.md). Izvorni statusni red se ne mijenja: `BA-routing-02` ostaje **otvoren** do propisanog acceptancea; nema target-DB pristupa niti migration runa.
 
 ### BA-routing-03 — Scoped coverage paginira globalni skup
 
