@@ -7,9 +7,16 @@ import { publishPersistedTicketMessages } from './publish-persisted-ticket-messa
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import type { TicketRecord } from './tickets.types';
 import type { TicketMessageRecord } from './collaboration.types';
+import {
+  ticketMessageDeliveryTopic,
+  ticketSlaEffectsTopic,
+} from './ticket-side-effect-outbox.constants';
 
-export const ticketMessageDeliveryTopic = 'ticket.message.delivery';
-export const ticketSlaEffectsTopic = 'ticket.sla.effects';
+export {
+  ticketMessageDeliveryTopic,
+  ticketSlaEffectsTopic,
+} from './ticket-side-effect-outbox.constants';
+
 const intervalMs = 2_000;
 
 @Injectable()
@@ -61,13 +68,18 @@ export class TicketSideEffectOutboxReconciler implements OnModuleInit, OnApplica
   private async deliverSla(delivery: OutboxDelivery): Promise<void> {
     const payload = delivery.payload as Record<string, unknown>;
     if (typeof payload.ticketId !== 'string' || typeof payload.previousStatus !== 'string' || typeof payload.occurredAt !== 'string') throw new Error('INVALID_TICKET_SLA_DELIVERY');
+    if (payload.event !== undefined && payload.event !== 'agent_replied') throw new Error('INVALID_TICKET_SLA_DELIVERY');
     const ticket = await this.prisma.ticket.findUnique({ where: { id: payload.ticketId } });
     if (ticket === null) return;
     await this.slaTimers.apply({
       ticket: { id: ticket.id, status: ticket.status, priority: ticket.priority, serviceId: ticket.serviceId, originUnitId: ticket.originUnitId, createdAt: ticket.createdAt, firstResponseAt: ticket.firstResponseAt, resolvedAt: ticket.resolvedAt },
       previousStatus: payload.previousStatus as TicketStatus,
       now: new Date(payload.occurredAt),
-      event: payload.priorityChanged === true && payload.statusChanged !== true ? 'priority_changed' : 'status_changed',
+      event: payload.event === 'agent_replied'
+        ? 'agent_replied'
+        : payload.priorityChanged === true && payload.statusChanged !== true
+          ? 'priority_changed'
+          : 'status_changed',
     });
   }
 }
