@@ -1,6 +1,6 @@
 # Backend audit 15 — `service-catalog`
 
-**Status:** audit završen; `BA-service-catalog-01`–`BA-service-catalog-15` zatvoreni su kroz zasebne closeoute. BA-15 zatvoren je nakon CI [`41793987045`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41793987045) i Perf [`41795380371`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41795380371) success na istom SHA `8660953d8a70312dd55768504e348ea2cbd2d304` ([checkpoint 121](../implementation/121-service-catalog-15-executable-test-matrix.md)). E2E critical/install, read-only inventory i conditional image enforcement bili su skipped; nema E2E/spec 56 sign-offa ni deployment tvrdnje. BA-14 finalni Perf nije pokrenut na njegovom SHA-u; detalji su u [120](../implementation/120-service-catalog-14-incident-read-fail-closed.md).
+**Status nalaza:** `BA-service-catalog-01`–`BA-service-catalog-15` su formalno zatvoreni (15/15); nema preostalog implementacijskog nalaza u ovom scopeu. BA-15 code/CI/Perf closeout je bio zelen na SHA `8660953d8a70312dd55768504e348ea2cbd2d304` ([CI `41793987045`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41793987045), [Perf `41795380371`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41795380371)), ali su E2E critical/install, read-only inventory i conditional image enforcement u tom runu bili skipped. Naknadni ciljano pokrenuti spec 42 prošao je 4/4 na SHA `e1a48995decf3196e33bb0076d833f16c44d020e`; puni critical-flow CI/E2E acceptance na `master` još čeka i mora biti green prije konačnog sign-offa (detalji u sekciji 34). Nema deployment tvrdnje. BA-14 finalni Perf nije pokrenut na njegovom SHA-u; detalji su u [120](../implementation/120-service-catalog-14-incident-read-fail-closed.md).<br>
 **Datum audita:** 2026-10-23<br>
 **Ažurirano:** 2026-11-04<br>
 **Rizik modula:** visok<br>
@@ -452,4 +452,23 @@ Ručni Perf [`41795380371`](https://github.com/mudzy992/help-desk-enterprise/act
 
 Ciljani lokalni ESLint i `git diff --check` su **passed**. Dva nova targeted Jest suitea su **5/5 passed** uz `ts-jest` type diagnostics isključenu zbog nedostajućeg lokalno generisanog Prisma Clienta; lokalni `prisma generate` nije uspio jer schema-engine download host nije dostupan u sandboxu. Remote CI je generisao client i prošao puni backend/Jest gate. Nije se pristupilo target DB-u niti su lokalno pokretane migracije; CI koristi disposable okruženja.
 
-**Status:** BA-15 je **zatvoren** nakon zelenih finalnih CI/Perf rezultata na istom SHA-u. Nema PR-a prema `master`, mergea, deploymenta ni target-DB pristupa; `master` nije mijenjan. Završni checkpoint je [121](../implementation/121-service-catalog-15-executable-test-matrix.md).
+**Status na tadašnjem code/CI/Perf closeoutu:** BA-15 je zatvoren nakon zelenih finalnih CI/Perf rezultata na istom SHA-u. E2E critical/install, inventory i image-enforcement su tada bili skipped, pa taj run nije potvrdio full E2E acceptance; noviji dokaz i preostali full critical-flow gate navedeni su u sekciji 34. U trenutku tog closeouta nije bilo PR-a prema `master`, mergea, deploymenta ni target-DB pristupa, a `master` nije mijenjan. Završni checkpoint je [121](../implementation/121-service-catalog-15-executable-test-matrix.md).
+
+## 34. BA-15 E2E critical-flow follow-up (2026-11-04)
+
+### Nalazni status i preostali acceptance
+
+Svi nalazi `BA-service-catalog-01`–`15` ostaju formalno `zatvoreno`; nema preostalog implementacijskog zadatka unutar BA-15. Ipak, CI/Perf closeout iz sekcije 33 nije uključio E2E critical flows, pa konačni full critical-flow acceptance ostaje nepotvrđen. Ciljani spec 42 runovi su korisni dokaz za upravo taj servis-edit tok, ali nisu zamjena za puni critical-flow/full-CI run.
+
+### E2E kvarovi i ispravke
+
+- Full scheduled E2E [`41790672838`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41790672838) imao je **103 passed / 16 failed / 2 flaky / 2 skipped**. Trinaest kvarova uključivalo je E2E fixture `createOfferedService` koji nije slao obavezni audit `reason`; pomoćni fixture/testovi su naknadno popravljeni u commit-u `2706ea1`.
+- Nakon te ispravke, E2E run [`41806023108`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41806023108) imao je **4 passed / 7 failed**; šest lifecycle requestova nije slalo `If-Match` i dobijalo je HTTP 428. ETag helper i spec-42 zahtjev su korigovani u `bb8194a`.
+- Ciljani run [`41809116377`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41809116377) imao je **10 passed / 1 failed**: specovi 02 i 15 prošli su, a spec 42 je timeoutovao čekajući odgovarajući PATCH.
+- Dodatna dijagnostika je dodana u `ec9b19e`. Run [`41812238094`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41812238094) imao je **3 passed / 1 failed**; PATCH je nosio `If-Match="v1"`, ali nije dobio response (`net::ERR_FAILED`).
+- Commit `e1a48995decf3196e33bb0076d833f16c44d020e` dodao je `If-Match` u CORS preflight allowlist. Dva ciljana CORS Jest suitea prošla su **5/5**. Prvi ciljani E2E ponovni pokušaj [`41814618823`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41814618823) na tom istom SHA-u imao je **3 passed / 1 failed** uz isti network-level `net::ERR_FAILED`; uzrok te pojedinačne run-to-run razlike nije dokazan.
+- Naredni targeted run [`41815308161`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41815308161), na istom SHA-u `e1a4899`, završio je **4 passed / 0 failed / 0 flaky / 0 skipped**. Time je spec 42 ciljano prošao nakon CORS ispravke, ali puni critical-flow suite još nije ponovljen.
+
+GitHub remote `master` je trenutno na SHA `e1a48995decf3196e33bb0076d833f16c44d020e`, pa sadrži i navedenu CORS ispravku. Standardni CI run [`41812968898`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41812968898) na tom SHA-u bio je success, ali su E2E poslovi bili skipped; on ne zadovoljava preostali acceptance.
+
+**Jedina preostala stavka:** pokrenuti puni CI na `master` uz stvarno izvršen (ne `skipped`) E2E critical-flow job i dobiti potpuno green rezultat. Run ID još nije dostavljen. Dok to ne prođe, BA-15 nema otvorenih implementacijskih nalaza, ali nema ni konačnog full E2E acceptance sign-offa.

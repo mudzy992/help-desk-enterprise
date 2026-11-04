@@ -316,7 +316,7 @@
     {
       "id": "BA-audit-log-01",
       "severity": "P1",
-      "status": "završen (W3.2)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -324,7 +324,7 @@
     {
       "id": "BA-audit-log-02",
       "severity": "P1",
-      "status": "završen (W3.2)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -332,7 +332,7 @@
     {
       "id": "BA-audit-log-03",
       "severity": "P1",
-      "status": "završen (W3.4)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -340,7 +340,7 @@
     {
       "id": "BA-audit-log-04",
       "severity": "P2",
-      "status": "završen (W3.5)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -348,7 +348,7 @@
     {
       "id": "BA-audit-log-05",
       "severity": "P2",
-      "status": "završen (W3.6)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -356,7 +356,7 @@
     {
       "id": "BA-audit-log-06",
       "severity": "P2",
-      "status": "završen (W3.7)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -364,7 +364,7 @@
     {
       "id": "BA-audit-log-07",
       "severity": "P2",
-      "status": "završen (W3.8)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -372,7 +372,7 @@
     {
       "id": "BA-audit-log-08",
       "severity": "P2",
-      "status": "završen (W3.3)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -380,7 +380,7 @@
     {
       "id": "BA-audit-log-09",
       "severity": "P2",
-      "status": "završen (W3.9)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -388,7 +388,7 @@
     {
       "id": "BA-audit-log-10",
       "severity": "P3",
-      "status": "završen (W3.10)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
@@ -396,7 +396,7 @@
     {
       "id": "BA-audit-log-11",
       "severity": "P3",
-      "status": "završen (W3.11)",
+      "status": "zatvoreno",
       "source": "08-audit-log.md",
       "owner": "WS-C",
       "wave": 3
