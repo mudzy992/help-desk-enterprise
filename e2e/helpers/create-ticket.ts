@@ -124,12 +124,9 @@ export async function createOfferedService(
       categoryId: await firstServiceCategoryId(api),
       classification: "INTERNAL",
       /**
-       * `CreateServiceDto.reason` is **required** (`@IsString` + `@MinLength(1)`
-       * + `@MaxLength(512)`) and goes into the service change log. Without it the
-       * server answers `VALIDATION` with the triplet "reason must be shorter than
-       * or equal to 512 characters / longer than or equal to 1 characters / a
-       * string" — the exact error every spec calling this helper hit on the
-       * 2026-10-08 server run, because the request was sent without the field.
+       * Every service-catalog mutation DTO requires a caller-supplied reason.
+       * The fixture sends a distinct reason for service, form, form activation,
+       * and lifecycle writes so setup failures identify the exact mutation.
        */
       reason: `E2E setup: usluga ${input.label} (${stamp})`,
       ...(input.requiresApproval === true ? { requiresApproval: true } : {}),
@@ -153,16 +150,23 @@ export async function createOfferedService(
             },
           ],
         },
+        reason: `E2E setup: create form for ${input.label} (${stamp})`,
       }),
     },
   );
   await api.requestJson(
     `/services/${service.id}/form/versions/${form.formVersionRef}/activate`,
-    { method: "POST" },
+    {
+      method: "POST",
+      body: JSON.stringify({ reason: `E2E setup: activate form for ${input.label} (${stamp})` }),
+    },
   );
   await api.requestJson(`/services/${service.id}/lifecycle`, {
     method: "POST",
-    body: JSON.stringify({ lifecycle: "ACTIVE" }),
+    body: JSON.stringify({
+      lifecycle: "ACTIVE",
+      reason: `E2E setup: activate service ${input.label} (${stamp})`,
+    }),
   });
   return service;
 }

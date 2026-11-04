@@ -134,7 +134,27 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
             .filter({ hasText: /Round robin|Kružno/ }),
         ).toHaveCount(1);
         await dialog.getByLabel(/Change reason|Razlog izmjene/).fill('Create from catalogue UX E2E');
+        const serviceCreateResponsePromise = page.waitForResponse((response) => {
+          const url = new URL(response.url());
+          return (
+            response.request().method() === 'POST' &&
+            url.pathname.replace(/\/+$/, '').endsWith('/services')
+          );
+        });
         await dialog.locator('form button[type="submit"]').click();
+        const serviceCreateResponse = await serviceCreateResponsePromise;
+        const serviceCreatePayload = serviceCreateResponse.request().postDataJSON() as {
+          readonly reason?: unknown;
+        };
+        expect(
+          serviceCreatePayload.reason,
+          'service create request must include the caller-supplied audit reason',
+        ).toBe('Create from catalogue UX E2E');
+        const createResponseDetails = (await serviceCreateResponse.text()).slice(0, 512);
+        expect(
+          serviceCreateResponse.ok(),
+          `POST /services returned HTTP ${serviceCreateResponse.status()}: ${createResponseDetails}`,
+        ).toBe(true);
         await expect(dialog).toBeHidden();
       });
 
