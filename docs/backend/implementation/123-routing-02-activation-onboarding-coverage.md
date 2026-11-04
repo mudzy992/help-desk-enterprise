@@ -1,6 +1,6 @@
 # BA-routing-02 — activation i onboarding coverage follow-up
 
-**Status:** lokalna implementacija u toku; nalaz ostaje otvoren do propisanog acceptance dokaza.
+**Status:** implementation je na `c098ad4ee102bca3ed84745080afd1175867ab5c`, a CI/generated-Prisma/PG-integration gateovi su prošli; `BA-routing-02` ostaje otvoren dok relevantni E2E i završni acceptance ne budu potvrđeni.
 **Val:** 5
 **Audit izvor:** [13 — routing, BA-routing-02](../audits/13-routing.md#ba-routing-02--activation-coverage-je-postoji-jedno-pravilo)
 **Prethodni zapis:** [W5.21 historical closeout](48-routing-service-activation-coverage.md)
@@ -30,10 +30,12 @@ Izvorni statusni red `BA-routing-02` ostaje **otvoren**. Ovaj follow-up ne prepi
 
 ## Lokalna validacija i preostali gateovi
 
-- Ciljani ESLint za promijenjene routing, service-catalog i onboarding fajlove: **prošao**.
-- Četiri ciljana Jest suite-a (routing activation, routing onboarding reference, catalog activation, onboarding coverage): **15/15 testova prošlo** u transpile-only režimu uz privremeni, ignored dummy Prisma Client shim. Shim je uklonjen nakon testa. Ovo nije generated-Prisma type-check niti PostgreSQL dokaz.
-- Backend generated Prisma Client nedostaje; prethodni `db:generate` pokušaj je blokiran nedostupnim `binaries.prisma.sh`. Target DB nije korišten, migracija nije pokrenuta.
-- PostgreSQL integration/E2E i GitHub CI na finalnom SHA-u još nisu potvrđeni; čekaju korisnikov merge/run ID prema handoff pravilima.
-- Dokumentacijski checker/testovi i `git diff --check` su prošli nakon ove izmjene.
+- Ciljani ESLint za routing, service-catalog i onboarding fajlove je prošao; četiri targeted Jest suite-a su **15/15 passed** uz transpile-only režim i privremeni ignored Prisma shim. Shim je uklonjen. Ovo lokalno izvođenje samo po sebi nije generated-Prisma dokaz.
+- CI [`41850862952`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850862952) na SHA `c098ad4ee102bca3ed84745080afd1175867ab5c` je **success** za generated Prisma, backend build/lint/full Jest, PostgreSQL+Redis integration, frontend, docs, container/supply-chain i CI gate. Push CI E2E critical/install poslovi su `skipped`.
+- CI integration runner uključuje `routing-critical-matrix.integration.spec.ts`; real PostgreSQL/Redis integration job je passed na disposable bazi. Nema nove migracije niti target-DB pristupa.
+- Dispatch [`41836729106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41836729106) na prethodnom code SHA `78ba1c1` imao je E2E critical-flow job success (12 passed), ali log download je vratio `EOF`; tačan spec-set nije potvrđen i taj run se ne tretira kao full post-merge acceptance.
+- Scheduled full E2E [`41790672838`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41790672838) pao je na starijem `master` SHA `8aab8e46` (103 passed, 16 failed, 2 flaky, 2 skipped). Trinaest testova je zapelo na obaveznom `reason`; kasniji commit `2706ea1a` s E2E reason-helper korekcijom je predak trenutnog SHA-a. Još su bila dva API timeouta i jedan change-scheduling assertion mismatch. Ovaj run nije dokaz trenutnog BA-routing-02 koda.
+- Zato puni relevantni E2E/critical-flow acceptance ostaje **pending**; ne pokretati ga ručno. Čekati sljedeći scheduled run i korisnikov post-merge run ID, pa provjeriti tačan SHA/job i `skipped`/failed rezultate.
+- Nema target-DB pristupa ni migration runa. BA status i Val 5 brojevi nisu mijenjani.
 
-Dok ne prođu zahtijevani gateovi, `BA-routing-02` ostaje otvoren; Val 5 ostaje 58/74 na finding statusu.
+`BA-routing-02` ostaje otvoren do propisanog E2E/owner acceptancea; Val 5 ostaje 58/74 na finding statusu.

@@ -1,6 +1,6 @@
 # W5.47 — BA-templates-01: izolacija management reads
 
-**Status:** implementacija u toku; `BA-templates-01` ostaje otvoren.
+**Status:** implementacija i CI/izolirani PostgreSQL dokaz su na `c098ad4ee102bca3ed84745080afd1175867ab5c`; `BA-templates-01` ostaje otvoren dok relevantni E2E 16 i završni acceptance ne budu potvrđeni.
 **Scope:** samo shared response-template i playbook management list/get; ne zatvara BA-templates-02/03 niti susjedne nalaze.
 
 ## Nalaz i granica paketa
@@ -27,18 +27,22 @@ Paket mijenja samo čitanje shared resursa. Personal templates, pickerovo namjer
 
 ## Trenutni dokaz i ograničenja
 
-- Ciljani ESLint za izmijenjene TS fajlove: prošao.
-- Četiri ciljane Jest suite grupe: **68/68 testova passed** uz transpile-only lokalni harness. Zbog nedostajućeg generated Prisma Clienta korišten je privremeni ignored shim samo da se učitaju service moduli; ovo **nije** type-check niti generated-Prisma/DB dokaz.
-- Obični Jest pokušaj i `npm run db:generate` nisu mogli koristiti generated client: repou nedostaju `backend/src/generated/prisma/*`, a Prisma generator nije mogao dohvatiti engine sa `binaries.prisma.sh` (host nije dostupan iz ovog sandboxa). Privremeni shim je uklonjen nakon testiranja.
-- Dodan je PostgreSQL integration test: 1.001 foreign redovi sortirani prije dozvoljenog reda za oba resource tipa provjeravaju da scope uđe u query prije limita 1.000; provjerava se i da foreign `get` vraća not-found. Test nije pokrenut jer nije korištena disposable `PRIVACY_IT_DATABASE_URL`.
-- `git diff --check` je prošao. Nema promjene Prisma sheme ni migracije; ciljnoj bazi nije pristupano niti je migracija izvršavana. E2E, Perf i full CI nisu pokrenuti.
+**Presjek ažuriran 2026-11-04:**
+
+- Ciljani ESLint i četiri lokalne Jest suite grupe: **68/68 passed** uz transpile-only harness i privremeni ignored Prisma shim. Ovo nije lokalni generated-Prisma type-check niti DB dokaz; shim je uklonjen nakon testiranja. Lokalni `npm run db:generate` je ranije bio blokiran nedostupnim `binaries.prisma.sh`.
+- CI [`41850862952`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850862952), SHA `c098ad4ee102bca3ed84745080afd1175867ab5c`: **success**. Generated Prisma, backend build/lint/full Jest, PostgreSQL+Redis integration, frontend, docs, container/supply-chain i CI gate su passed. E2E critical flows/install wizard i read-only inventory su `skipped`, ne passed.
+- Važna korekcija dokaznog harness-a: `management-read-scope.integration.spec.ts` ranije nije bio naveden u `backend/scripts/run-isolated-integration.mjs`, pa raniji green integration jobovi nisu dokazivali baš ovaj test. Commit `c098ad4` ga je registrovao i dodao guard test; lokalni integration-harness testovi su **5/5 passed**. U CI `41850862952` korak `Run real PostgreSQL integration suites` je passed na disposable PostgreSQL-u uz taj registrovani spec. GitHub log download je vratio `EOF`, pa per-spec transcript nije nezavisno pročitan; job-level rezultat je success.
+- Perf [`41850863346`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850863346) je passed na istom SHA-u; to je opći load-smoke gate, ne funkcionalni dokaz za templates.
+- Scheduled full E2E [`41790672838`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41790672838) pao je na starijem `master` SHA `8aab8e46`: summary **103 passed, 16 failed, 2 flaky, 2 skipped**. Test 16 je među neuspjelima zbog obaveznog `reason`; taj test-helper propust je kasnije korigovan commitom `2706ea1a`, koji je predak trenutnog SHA-a. Taj stari run ne validira trenutni kod. U njemu su se dodatno javili dva API connection timeouta i change-scheduling assertion mismatch.
+- Dispatch run [`41836729106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41836729106) na `78ba1c1` imao je uspješan E2E job sa 12 passed; logovi nisu bili dostupni (`EOF`), pa tačan spec-set nije potvrđen i run se ne koristi kao dokaz za E2E 16.
+- Nema Prisma schema promjene, migracije ili target-DB pristupa. PostgreSQL dokaz koristio je samo disposable CI okruženje.
 
 ## Acceptance prije zatvaranja BA ID-a
 
-1. Generated Prisma compile i šest direktnih audit-16 specova prolaze.
-2. Novi PostgreSQL interleaved-limit test prolazi na disposable CI bazi.
-3. Service-only manager dobija samo redove čiji je puni service scope dozvoljen; global, category/group, mixed i foreign redovi nisu vraćeni ni brojani.
-4. Global manager, superadmin i personal-template putanje zadržavaju postojeće ponašanje.
-5. Relevantni E2E 16 i svi required CI gateovi imaju passed dokaz na finalnom SHA-u. `skipped`/`not run` se ne računaju kao passed.
+1. Generated Prisma compile i šest direktnih audit-16 specova imaju passed dokaz u CI `41850862952`.
+2. Novi PostgreSQL interleaved-limit test je registrovan u isolated runneru; CI `41850862952` integration job je passed uz taj spec. Per-spec log download je bio nedostupan (`EOF`), pa je raspoloživ job-level exit status.
+3. Service-only manager dobija samo redove čiji je puni service scope dozvoljen; global, category/group, mixed i foreign redovi nisu vraćeni ni brojani — pokriveno postojećim testovima paketa.
+4. Global manager, superadmin i personal-template putanje zadržavaju postojeće ponašanje — pokriveno postojećim targeted testovima.
+5. Relevantni E2E 16 i svi required acceptance gateovi moraju biti `passed` na prihvaćenom finalnom SHA-u. Push CI `41850862952` je E2E critical/install `skipped`; scheduled E2E `41790672838` je na starijem SHA-u i pao je. Zato E2E acceptance ostaje **pending**; `skipped`/`not run` se ne računaju kao passed.
 
-Do ispunjenja tih uslova, BA-templates-01 i Val 5 ostaju otvoreni. Nema promjene registra/generisanog plana za ovaj ID.
+`BA-templates-01` i Val 5 ostaju otvoreni do ispunjenja završnih acceptance gateova; status izvornog nalaza i generisanog plana nije mijenjan. Nema target-DB pristupa niti migracije.
