@@ -155,7 +155,7 @@ E2E 16 potvrđuje shared service template, auto-attach, render/send, usage count
 
 Loader guta settings grešku i vraća `requiredStepsOnResolve:'warn'`. Ako je stvarna politika `block`, resolve/close prolazi upravo tokom settings/DB incidenta. Za enforcement setting koristiti last-known-good cache ili fail-closed `block`; feature enable state ne smije iz `false` preći u default `true` zbog read greške. Fallback mora imati metric/health signal.
 
-**W5.48 implementation checkpoint (2026-11-04):** fail-closed 503, read-failure metric i zaštićeni Ops-health signal su implementirani; resolve test provjerava da ticket ostane nepromijenjen. `BA-templates-02` i dalje je otvoren do CI/Perf i scheduled E2E pregleda. Detalji/lokalni ograničeni dokaz: [implementation note 124](../implementation/124-templates-02-fail-closed-settings.md).
+**W5.48 implementation checkpoint (2026-11-04):** fail-closed 503, read-failure metric i zaštićeni Ops-health signal su implementirani; resolve test provjerava da ticket ostane nepromijenjen. Branch CI [`41876403874`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41876403874) na kodnom SHA `f1077dc` je passed; push E2E poslovi su `skipped`. Perf nije pokrenut jer active-branch path filter pokriva service-catalog/perf fajlove, a W5.48 ih ne mijenja; prethodni Perf [`41850863346`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850863346) na `c098ad4` nije dokaz za ovaj SHA. `BA-templates-02` ostaje otvoren do zakazanog full E2E pregleda. Detalji/lokalni i CI dokazi su u [implementation note 124](../implementation/124-templates-02-fail-closed-settings.md).
 
 ### BA-templates-03 — Concurrent definition corruption
 
