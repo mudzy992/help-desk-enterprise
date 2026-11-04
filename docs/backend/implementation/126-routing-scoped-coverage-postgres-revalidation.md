@@ -3,7 +3,7 @@
 - **Datum:** 2026-11-04
 - **Grana:** `arena/864951a6-help-desk-enterprise`
 - **Scope:** `BA-routing-03` i `BA-routing-04` zajedno, prema odobrenju korisnika.
-- **Stanje:** postojeća query implementacija je ponovo pregledana; dodan je generisani-Prisma/PostgreSQL regresijski test. Push CI i Perf dokaz se upisuju nakon završetka runova. Izvorni nalazi ostaju otvoreni do propisanog finalnog acceptancea.
+- **Stanje:** postojeća query implementacija je ponovo pregledana; generisani-Prisma/PostgreSQL regresijski test prošao je u push CI-ju `41901987106` na SHA-u `2e67f84`. E2E finalni acceptance ostaje pending, pa su izvorni nalazi i dalje otvoreni. Novi Perf smoke nije pokrenut jer paket nije mijenjao runtime kod.
 
 ## Reconciliation prije implementacije
 
@@ -26,9 +26,10 @@ W5.50 ne mijenja runtime ponašanje, API envelope, scope pravila ni Prisma schem
 
 Test je u već registrovanom `routing-critical-matrix.integration.spec.ts` shardu, koji izolovani CI integration runner izvršava nad vlastitom disposable PostgreSQL bazom. Ne koristi se ciljna baza.
 
-## Provjere i acceptance granice
+## CI, lokalne provjere i acceptance granice
 
-- Backend Jest, generisani Prisma integration suite i Perf se izvršavaju kroz push-triggered CI; lokalno nisu pokretani jer checkout nema `backend/node_modules` ni generisani Prisma client. Čak ni integration-runner harness test nije lokalno startao: Node nije našao `pg` iz nedostajućeg backend `node_modules` (`ERR_MODULE_NOT_FOUND`).
-- Nema nove migracije, izmjene Perf pragova, target-DB pristupa ni ručnog full CI/E2E dispatcha.
+- Push CI [`41901987106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41901987106) na SHA-u `2e67f84df77e1b8b9e708d52ff6f5bc9a6eff7bb` je **passed**: generated-Prisma backend build/lint/Jest, real PostgreSQL+Redis integration shard (uključujući ovaj routing coverage test), frontend, docs guard, container/supply-chain i CI gate. E2E install-wizard i critical-flow jobovi su **skipped**, ne passed.
+- Novi Perf smoke nije pokrenut: workflow path filter ne obuhvata routing integration test ni docs, a W5.50 nije mijenjao runtime. Posljednji relevantni Perf [`41886832553`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41886832553) je passed na `d9839433a9c43bb9e3fce2eb55c0868595948d0b` (average **1.926** upita/request kroz **50.503** zahtjeva; gate **2.1**). Runtime kod se od tog SHA-a nije mijenjao. Nisu mijenjani pragovi niti je Perf ručno dispatchan.
+- Lokalno su prošli `node scripts/check-backend-findings.mjs` (**692/692**), njegovih **13/13** guard testova, docs guard (**32 stranice, 8 prevoda, 10 provjera**), docs testovi (**9/9**) i `git diff --check`. Backend Jest i integration test nisu lokalno pokretani jer checkout nema `backend/node_modules` ni generisani Prisma client; integration-runner harness test također nije startao jer nedostaje `pg` (`ERR_MODULE_NOT_FOUND`). Realni DB dokaz dolazi iz izolovanog CI-ja.
+- Nema nove migracije, target-DB pristupa ni ručnog full CI/E2E dispatcha.
 - `BA-routing-03/04` ostaju otvoreni u auditu, registru i JSON-u dok relevantni E2E `02/15/42` i finalni acceptance ne budu potvrđeni na odgovarajućem SHA-u. `skipped` E2E nije prolaz.
-- Poslije push CI/Perf runova ovdje se bilježe tačni SHA, run ID-evi i `passed/skipped` statusi; bez toga se paket ne opisuje kao finalno prihvaćen.
