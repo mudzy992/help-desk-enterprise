@@ -35,7 +35,8 @@ node perf/validate.js     # offline provjere configa, k6 ugovora, Socket.IO i iz
 ## Pokretanje
 
 ```bash
-# 5 minuta: 200 VU postojećeg profila + 10 BA-10 service-catalog VU (CI fixture mora biti seedan)
+# 30 s ramp-up + 5 min na ciljnom profilu: 200 VU + 10 BA-10 service-catalog VU
+# (CI fixture mora biti seedan; RAMP_UP=constant vraća stari oblik bez ramp-upa)
 k6 run perf/smoke.js
 
 # puni baseline: 2.800 VU / 30 min
@@ -63,7 +64,8 @@ Izlaz ide u `perf/results/`: `<REPORT_LABEL>.json` (sirovi k6 summary) i
 |---|---|---|
 | `BASE_URL` | `http://localhost:10001` | API; WebSocket URL se izvodi zamjenom `http` → `ws` |
 | `VU` | `2800` | broj registrovanih korisnika iz kojih se izvodi 70% aktivnih |
-| `DURATION` | `30m` | trajanje svakog scenarija |
+| `DURATION` | `30m` | trajanje svakog full profila; smoke drži cilj 5 min nakon ramp-upa |
+| `RAMP_UP` | `30s` za smoke; unset za full | početno postepeno dodavanje VU-a; `constant` zadržava stari `constant-vus` oblik |
 | `ACTIVE_RATIO` | `0.7` | udio istovremeno aktivnih |
 | `REPORT_LABEL` | `baseline` | ime izvještaja u `perf/results/` |
 | `AGENT_EMAIL` / `AGENT_PASSWORD` | `agent.it@example.test` / `change-me` | kredencijali za `setup()` |
@@ -86,8 +88,11 @@ mjeri 401 odgovore kao "saobraćaj".
 | `websocket_clients` | 15% | Socket.IO konekcija s tokenom, join tiket soba, brojanje eventova |
 | `service_catalog` | dodatnih 10 VU-a samo u smoke | `GET /services?take=100` nad 500 servisa; provjerava bounded envelope, summary projekciju, p95 i payload |
 
-Četiri postojeća scenarija dijele isti kod u `lib/scenarios.js`; puni profil ostaje
-nepromijenjen. `smoke.js` dodatno izvršava BA-10 katalog scenario.
+Četiri postojeća scenarija dijele isti kod u `lib/scenarios.js`; `smoke.js` dodatno
+izvršava BA-10 katalog scenario. Smoke postepeno podiže sve scenarije od 0 do ciljnog
+VU-a tokom 30 sekundi, zatim zadržava puni profil pet minuta. To izbjegava nerealan
+istovremeni cold-start udar; pragovi i broj ciljnih VU-a ostaju nepromijenjeni. Za
+poređenje starog oblika pokreni `k6 run -e RAMP_UP=constant perf/smoke.js`.
 
 ## Metrike
 

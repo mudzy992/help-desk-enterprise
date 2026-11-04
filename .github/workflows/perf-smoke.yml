@@ -2,8 +2,9 @@ name: Perf smoke
 
 # Phase 4.2 (plan §4.2, item 1): the performance gate the program was missing.
 #
-# It is a *smoke*, not the full run: the existing 200 VU profile plus 10
-# additive BA-10 service-catalog VUs for 5 minutes against throwaway Postgres + Redis,
+# It is a *smoke*, not the full run: a 30-second ramp, then the existing 200 VU
+# profile plus 10 additive BA-10 service-catalog VUs held for 5 minutes against
+# throwaway Postgres + Redis,
 # with the CI thresholds from `perf/config.js`
 # (`ciThresholds`) — every one of them carries a comment naming its source.
 # A failing threshold fails the job; the k6 summary and the API log are uploaded
@@ -22,6 +23,7 @@ on:
       - "backend/scripts/run-isolated-integration.*"
       - "backend/scripts/seed-service-catalog-perf.mjs"
       - "perf/config.js"
+      - "perf/lib/load-shape.js"
       - "perf/lib/metrics.js"
       - "perf/lib/scenarios.js"
       - "perf/report.js"
@@ -327,6 +329,7 @@ jobs:
         timeout-minutes: 20
         env:
           REPORT_LABEL: ci-smoke
+          RAMP_UP: 30s
           AGENT_EMAIL: perf-agent@example.test
           AGENT_PASSWORD: Kanal-Odgovor-042!
           REQUESTER_EMAIL: perf-requester@example.test

@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { perfConfig, fullThresholds, ciThresholds, smokeThresholds, scenarioVus } from './config.js';
 import { ticketMessageIdempotencyKey } from './lib/ticket-message-idempotency-key.js';
+import { buildScenarioLoadShape } from './lib/load-shape.js';
 import {
   buildSocketUrl,
   encodeConnectPacket,
@@ -72,11 +73,72 @@ check(
   'CI fails if the BA-10 catalog envelope contract is invalid',
   catalogThresholds.service_catalog_contract_failures?.[0] === 'count<1',
 );
+check(
+  'CI search and message p95 gates remain unchanged',
+  catalogThresholds.search_duration?.[0] === 'p(95)<500' &&
+    catalogThresholds.ticket_message_duration?.[0] === 'p(95)<1000',
+);
 const localSmokeThresholds = smokeThresholds({ ...perfConfig, profile: 'full' });
 check(
   'non-CI smoke still gates the service catalog at the SLO read budget',
   localSmokeThresholds.service_catalog_duration?.[0] ===
     `p(95)<${perfConfig.budgets.readP95Ms}`,
+);
+
+section('k6 load shape');
+const rampedSmoke = buildScenarioLoadShape({
+  exec: 'searchHeavy',
+  vus: 20,
+  duration: '5m',
+  behaviour: 'search_heavy',
+  rampUp: '30s',
+});
+check(
+  'smoke ramp spreads VU startup and holds the target for five minutes',
+  rampedSmoke.executor === 'ramping-vus' &&
+    rampedSmoke.startVUs === 0 &&
+    JSON.stringify(rampedSmoke.stages) ===
+      JSON.stringify([
+        { duration: '30s', target: 20 },
+        { duration: '5m', target: 20 },
+      ]) &&
+    rampedSmoke.gracefulRampDown === '30s',
+);
+const constantSmoke = buildScenarioLoadShape({
+  exec: 'searchHeavy',
+  vus: 20,
+  duration: '5m',
+  behaviour: 'search_heavy',
+  rampUp: 'constant',
+});
+check(
+  'constant-VU profile remains available for explicit comparisons',
+  constantSmoke.executor === 'constant-vus' &&
+    constantSmoke.vus === 20 &&
+    constantSmoke.duration === '5m',
+);
+const fullWithoutRamp = buildScenarioLoadShape({
+  exec: 'browserDashboard',
+  vus: 784,
+  duration: '30m',
+  behaviour: 'browser_dashboard',
+});
+check(
+  'full profile keeps its previous constant shape when RAMP_UP is unset',
+  fullWithoutRamp.executor === 'constant-vus' &&
+    fullWithoutRamp.vus === 784 &&
+    fullWithoutRamp.duration === '30m',
+);
+const smokeSourceForLoadShape = readFileSync('perf/smoke.js', 'utf8');
+check(
+  'smoke defaults to a 30-second ramp and uses the tested shape builder',
+  /const rampUp = __ENV\\.RAMP_UP \\|\\| '30s'/.test(smokeSourceForLoadShape) &&
+    /buildScenarioLoadShape/.test(smokeSourceForLoadShape),
+);
+const perfWorkflowSource = readFileSync('.github/workflows/perf-smoke.yml', 'utf8');
+check(
+  'CI explicitly runs the smoke with the 30-second ramp',
+  /RAMP_UP: 30s/.test(perfWorkflowSource),
 );
 
 section('ticket message idempotency');

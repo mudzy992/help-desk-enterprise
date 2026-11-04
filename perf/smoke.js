@@ -1,4 +1,5 @@
 import { perfConfig, smokeThresholds } from './config.js';
+import { buildScenarioLoadShape } from './lib/load-shape.js';
 import {
   setup as setupSession,
   browserDashboard as runBrowserDashboard,
@@ -10,9 +11,10 @@ import {
 import { buildSummaryOutputs } from './report.js';
 
 /**
- * Smoke run: the existing 200 virtual users for five minutes, plus 10 additive
- * BA-10 service-catalog users. Existing behaviours are not reweighted; the
- * catalog read is gated with the same CI read budget as the other endpoints.
+ * Smoke run: the existing 200 virtual users held for five minutes after a
+ * 30-second ramp, plus 10 additive BA-10 service-catalog users. The ramp avoids
+ * releasing every cold VU against shared CI services at once. Existing behaviours
+ * are not reweighted; thresholds and the catalog read budget are unchanged.
  *
  *   k6 run perf/smoke.js
  *
@@ -37,44 +39,46 @@ const smokeReportConfig = {
   },
 };
 
+const rampUp = __ENV.RAMP_UP || '30s';
+
 export const options = {
   discardResponseBodies: false,
   scenarios: {
-    browser_dashboard: {
-      executor: 'constant-vus',
+    browser_dashboard: buildScenarioLoadShape({
       exec: 'browserDashboard',
       vus: smokeVus.browserDashboard,
       duration: smoke.duration,
-      tags: { behaviour: 'browser_dashboard' },
-    },
-    agent_ticket_flow: {
-      executor: 'constant-vus',
+      behaviour: 'browser_dashboard',
+      rampUp,
+    }),
+    agent_ticket_flow: buildScenarioLoadShape({
       exec: 'agentTicketFlow',
       vus: smokeVus.agentTicketFlow,
       duration: smoke.duration,
-      tags: { behaviour: 'agent_ticket_flow' },
-    },
-    search_heavy: {
-      executor: 'constant-vus',
+      behaviour: 'agent_ticket_flow',
+      rampUp,
+    }),
+    search_heavy: buildScenarioLoadShape({
       exec: 'searchHeavy',
       vus: smokeVus.searchHeavy,
       duration: smoke.duration,
-      tags: { behaviour: 'search_heavy' },
-    },
-    websocket_clients: {
-      executor: 'constant-vus',
+      behaviour: 'search_heavy',
+      rampUp,
+    }),
+    websocket_clients: buildScenarioLoadShape({
       exec: 'websocketClients',
       vus: smokeVus.websocketClients,
       duration: smoke.duration,
-      tags: { behaviour: 'ws_clients' },
-    },
-    service_catalog: {
-      executor: 'constant-vus',
+      behaviour: 'ws_clients',
+      rampUp,
+    }),
+    service_catalog: buildScenarioLoadShape({
       exec: 'serviceCatalog',
       vus: smokeVus.serviceCatalog,
       duration: smoke.duration,
-      tags: { behaviour: 'service_catalog' },
-    },
+      behaviour: 'service_catalog',
+      rampUp,
+    }),
   },
   thresholds: smokeThresholds(perfConfig),
 };
