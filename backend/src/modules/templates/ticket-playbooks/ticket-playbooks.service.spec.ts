@@ -7,6 +7,17 @@ import { TemplatesError } from '../templates.error';
 import { TicketPlaybooksService, sanitize } from './ticket-playbooks.service';
 import type { PlaybookStepSnapshot } from './ticket-playbook-snapshot';
 
+jest.mock('../../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../../authorization/authorization-context.loader', () => ({
+  AuthorizationContextLoader: class AuthorizationContextLoader {},
+}));
+jest.mock('../../tickets/ticket-access-policy-binder', () => ({
+  TicketAccessPolicyBinder: class TicketAccessPolicyBinder {},
+}));
+jest.mock('../templates-configuration.loader', () => ({
+  TemplatesConfigurationLoader: class TemplatesConfigurationLoader {},
+}));
+jest.mock('../playbooks/playbooks.service', () => ({ playbookInclude: {} }));
 jest.mock('../../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
 jest.mock('./attach-playbook-to-ticket', () => ({
   attachPlaybookToTicket: jest.fn(),
@@ -129,8 +140,9 @@ type HarnessPrisma = {
   readonly user: { readonly findMany: jest.Mock };
   readonly knowledgeArticle: { readonly findMany: jest.Mock };
   readonly responseTemplate: { readonly findMany: jest.Mock };
-  readonly ticketMessage: { readonly create: jest.Mock };
+  readonly ticketMessage: { readonly create: jest.Mock; readonly upsert: jest.Mock };
   readonly changeLog: { readonly create: jest.Mock };
+  readonly $queryRaw: jest.Mock;
   readonly $transaction: jest.Mock;
 };
 
@@ -179,6 +191,19 @@ function createHarness(
         messages.push(record);
         return record;
       }),
+      upsert: jest.fn(async (args: { create: { ticketId: string; type: string; body: string; authorUserId: string | null } }) => {
+        messageCounter += 1;
+        const record = {
+          id: `message-${messageCounter}`,
+          ticketId: args.create.ticketId,
+          type: args.create.type,
+          body: args.create.body,
+          authorUserId: args.create.authorUserId,
+          createdAt: new Date('2026-03-04T05:06:07.000Z'),
+        };
+        messages.push(record);
+        return record;
+      }),
     },
     changeLog: {
       create: jest.fn(async (args: { data: Record<string, unknown> }) => {
@@ -186,6 +211,7 @@ function createHarness(
         return args.data;
       }),
     },
+    $queryRaw: jest.fn(async () => [{ id: 'ticket-playbook-1' }]),
     $transaction: jest.fn(async (fn: (tx: HarnessPrisma) => Promise<unknown>) => fn(prisma)),
   };
 
@@ -579,6 +605,13 @@ describe('TicketPlaybooksService', () => {
         'ticket_playbook_step_checked:2:Drugi',
         'ticket_playbook_completed:Mrežni kvar',
       ]);
+      const completion = prisma.ticketMessage.upsert.mock.calls[0]?.[0] as {
+        where: { ticketId_idempotencyKey: { ticketId: string; idempotencyKey: string } };
+      };
+      expect(completion.where.ticketId_idempotencyKey.ticketId).toBe('ticket-1');
+      expect(completion.where.ticketId_idempotencyKey.idempotencyKey).toMatch(
+        /^playbook-completed:ticket-playbook-1:/,
+      );
     });
 
     it('does not complete while a step is still open', async () => {

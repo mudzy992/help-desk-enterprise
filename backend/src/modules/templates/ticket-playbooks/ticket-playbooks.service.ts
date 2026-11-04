@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { permissionKeys } from '../../authorization/authorization.constants';
@@ -211,25 +212,27 @@ export class TicketPlaybooksService {
   async upgrade(ticketId: string, actor: Actor): Promise<TicketPlaybookView> {
     const configuration = await this.requireEnabled();
     const { ticket } = await this.loadTicket(ticketId, actor, true);
-    const current = await this.loadActive(ticket.id);
-    const latest = await this.prisma.playbook.findFirst({
-      where: { id: current.playbookId, deletedAt: null, isActive: true },
-      include: playbookInclude,
-    });
-    if (latest === null) {
-      throw new TemplatesError('TICKET_PLAYBOOK_NOT_APPLICABLE');
-    }
-    if (latest.version <= current.playbookVersion) {
-      throw new TemplatesError('TICKET_PLAYBOOK_UP_TO_DATE');
-    }
-    const nextSteps = toStepSnapshots(latest.steps);
-    const kept = keysKeptOnUpgrade(
-      current.steps.map((step) => step.stepKey),
-      nextSteps,
-    );
     const messages: TicketPersistedMessageSink = [];
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
+      // Upgrade and step mutations share the parent row lock. Reload only
+      // after taking it so checked rows and the JSON snapshot are one state.
+      const current = await this.lockActiveForTicket(tx, ticket.id);
+      const latest = await tx.playbook.findFirst({
+        where: { id: current.playbookId, deletedAt: null, isActive: true },
+        include: playbookInclude,
+      });
+      if (latest === null) {
+        throw new TemplatesError('TICKET_PLAYBOOK_NOT_APPLICABLE');
+      }
+      if (latest.version <= current.playbookVersion) {
+        throw new TemplatesError('TICKET_PLAYBOOK_UP_TO_DATE');
+      }
+      const nextSteps = toStepSnapshots(latest.steps);
+      const kept = keysKeptOnUpgrade(
+        current.steps.map((step) => step.stepKey),
+        nextSteps,
+      );
       await tx.ticketPlaybookStep.deleteMany({
         where: { ticketPlaybookId: current.id, stepKey: { notIn: [...kept] } },
       });
@@ -266,28 +269,37 @@ export class TicketPlaybooksService {
   async setStep(ticketId: string, stepKey: string, checked: boolean, actor: Actor): Promise<TicketPlaybookView> {
     const configuration = await this.requireEnabled();
     const { ticket } = await this.loadTicket(ticketId, actor, true);
-    const current = await this.loadActive(ticket.id);
-    const steps = parseStepSnapshots(current.stepsSnapshot);
-    const step = steps.find((candidate) => candidate.stepKey === stepKey);
-    if (step === undefined) {
-      throw new TemplatesError('TICKET_PLAYBOOK_STEP_NOT_FOUND');
-    }
-    const wasChecked = current.steps.some((row) => row.stepKey === stepKey);
-    if (wasChecked === checked) {
-      // Idempotent: a double click or a second agent doing the same.
-      return this.buildView(ticket, configuration.requiredStepsOnResolve);
-    }
     const messages: TicketPersistedMessageSink = [];
+    // Keep one event identity if the transaction callback is retried. The
+    // checklist row lock plus the incomplete→complete check suppresses later
+    // request retries after the state has already committed.
+    const completionEventId = randomUUID();
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
+      // The state check is inside the same lock/transaction as the mutation;
+      // otherwise two stale readers can emit duplicate logical completion events.
+      const current = await this.lockActiveForTicket(tx, ticket.id);
+      const steps = parseStepSnapshots(current.stepsSnapshot);
+      const step = steps.find((candidate) => candidate.stepKey === stepKey);
+      if (step === undefined) {
+        throw new TemplatesError('TICKET_PLAYBOOK_STEP_NOT_FOUND');
+      }
+      const checkedKeys = new Set(current.steps.map((row) => row.stepKey));
+      const wasChecked = checkedKeys.has(stepKey);
+      if (wasChecked === checked) {
+        return;
+      }
+      const wasComplete = computePlaybookProgress(steps, checkedKeys).complete;
       if (checked) {
         await tx.ticketPlaybookStep.upsert({
           where: { ticketPlaybookId_stepKey: { ticketPlaybookId: current.id, stepKey } },
           create: { ticketPlaybookId: current.id, stepKey, checkedById: actor.actorUserId, checkedAt: new Date() },
           update: {},
         });
+        checkedKeys.add(stepKey);
       } else {
         await tx.ticketPlaybookStep.deleteMany({ where: { ticketPlaybookId: current.id, stepKey } });
+        checkedKeys.delete(stepKey);
       }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.ticketPlaybook,
@@ -307,18 +319,16 @@ export class TicketPlaybooksService {
           detail: `${position}:${sanitize(step.title)}`,
         }),
       );
-      if (checked) {
-        const checkedKeys = new Set([...current.steps.map((row) => row.stepKey), stepKey]);
-        if (computePlaybookProgress(steps, checkedKeys).complete) {
-          messages.push(
-            await insertSystemTicketEvent(tx, {
-              ticketId: ticket.id,
-              action: ticketSystemEventActions.playbookCompleted,
-              actorUserId: actor.actorUserId,
-              detail: sanitize(current.playbookName),
-            }),
-          );
-        }
+      if (!wasComplete && computePlaybookProgress(steps, checkedKeys).complete) {
+        messages.push(
+          await insertSystemTicketEvent(tx, {
+            ticketId: ticket.id,
+            action: ticketSystemEventActions.playbookCompleted,
+            actorUserId: actor.actorUserId,
+            detail: sanitize(current.playbookName),
+            idempotencyKey: `playbook-completed:${current.id}:${completionEventId}`,
+          }),
+        );
       }
     });
     publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
@@ -363,6 +373,26 @@ export class TicketPlaybooksService {
       where: { ticketId, detachedAt: null },
       include: { steps: true },
       orderBy: { createdAt: 'desc' },
+    });
+    if (current === null) {
+      throw new TemplatesError('TICKET_PLAYBOOK_NOT_FOUND');
+    }
+    return current;
+  }
+
+  private async lockActiveForTicket(transaction: PrismaService, ticketId: string) {
+    const locked = await transaction.$queryRaw<Array<{ readonly id: string }>>`
+      SELECT "id" FROM "TicketPlaybook"
+      WHERE "ticketId" = ${ticketId} AND "detachedAt" IS NULL
+      FOR UPDATE
+    `;
+    const id = locked[0]?.id;
+    if (id === undefined) {
+      throw new TemplatesError('TICKET_PLAYBOOK_NOT_FOUND');
+    }
+    const current = await transaction.ticketPlaybook.findFirst({
+      where: { id, detachedAt: null },
+      include: { steps: true },
     });
     if (current === null) {
       throw new TemplatesError('TICKET_PLAYBOOK_NOT_FOUND');

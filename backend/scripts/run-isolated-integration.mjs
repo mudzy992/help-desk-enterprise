@@ -40,6 +40,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/service-onboarding/service-onboarding-routing-coverage.integration.spec.ts",
   "src/modules/templates/management-read-scope.integration.spec.ts",
   "src/modules/templates/playbooks/playbook-definition-concurrency.integration.spec.ts",
+  "src/modules/templates/ticket-playbooks/ticket-playbooks-concurrency.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",
   "src/modules/service-catalog/service-downtime-window-overlap.integration.spec.ts",
