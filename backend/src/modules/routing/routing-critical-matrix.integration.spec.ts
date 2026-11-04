@@ -1,17 +1,20 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
-import { defaultRoutingConfiguration } from './routing.constants';
+import { permissionKeys } from '../authorization/authorization.constants';
+import type { AuthorizationContext } from '../authorization/authorization.types';
 import { listRoutingRules } from './list-routing-rules';
 import { resolveTicketRouting } from './resolve-ticket-routing';
+import { RoutingService } from './routing.service';
+import { defaultRoutingConfiguration } from './routing.constants';
 import { updateRoutingRule } from './update-routing-rule';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
 
 /**
- * BA-routing-11: mandatory generated-Prisma/PostgreSQL evidence for the
- * routing invariants whose focused unit suites use the in-memory harness.
- * The isolated-integration runner gives this suite its own migrated database.
+ * BA-routing-03/04/11: generated-Prisma/PostgreSQL evidence for scoped coverage
+ * pagination/count and the routing invariants whose focused suites use the
+ * in-memory harness. The runner gives this suite its own migrated database.
  */
 describeIfDatabase('routing critical PostgreSQL matrix', () => {
   jest.setTimeout(120_000);
@@ -92,6 +95,78 @@ describeIfDatabase('routing critical PostgreSQL matrix', () => {
     expect(page.total).toBe(1);
     expect(page.items.map((rule) => rule.originUnitId)).toEqual([scopedId]);
     expect(page.hasMore).toBe(false);
+  });
+
+  it('filters scoped coverage before PostgreSQL pagination and returns the exact total above fifty', async () => {
+    const serviceCount = 75;
+    const take = 7;
+    const allowedServiceIds = Array.from({ length: serviceCount }, (_, index) => {
+      const suffix = String(index).padStart(3, '0');
+      return `routing-allowed-${stamp}-${suffix}`;
+    });
+    const serviceRows = Array.from({ length: serviceCount }, (_, index) => {
+      const suffix = String(index).padStart(3, '0');
+      return [
+        {
+          id: allowedServiceIds[index]!,
+          name: `Routing coverage ${stamp} ${suffix} A`,
+          slug: `routing-coverage-${stamp}-${suffix}-a`,
+          categoryId,
+          lifecycle: 'ACTIVE' as const,
+        },
+        {
+          id: `routing-hidden-${stamp}-${suffix}`,
+          name: `Routing coverage ${stamp} ${suffix} B`,
+          slug: `routing-coverage-${stamp}-${suffix}-b`,
+          categoryId,
+          lifecycle: 'ACTIVE' as const,
+        },
+      ];
+    }).flat();
+    await prisma.service.createMany({ data: serviceRows });
+
+    const viewer: AuthorizationContext = {
+      subjectId: `routing-scoped-reader-${stamp}`,
+      isLocalOnly: false,
+      isSuperAdmin: false,
+      assignments: allowedServiceIds.map((allowedServiceId) => ({
+        roleKey: 'routing-reader',
+        permissionKeys: [permissionKeys.routingRead],
+        organizationalUnitId: scopedId,
+        organizationalUnitPath: `/Routing matrix ${stamp}/Scoped`,
+        serviceId: allowedServiceId,
+      })),
+    };
+    const routing = new RoutingService(
+      prisma as never,
+      { load: async () => defaultRoutingConfiguration } as never,
+      { loadBySubjectId: async () => viewer } as never,
+    );
+
+    const allowedServiceIdSet = new Set(allowedServiceIds);
+    const pagedServiceIds = new Set<string>();
+    let cursor: string | undefined;
+    let pageCount = 0;
+    do {
+      const page = await routing.coverage({ take, cursor }, viewer);
+      expect(page.total).toBe(serviceCount);
+      expect(page.items).toHaveLength(
+        Math.min(take, serviceCount - pagedServiceIds.size),
+      );
+      const pageServiceIds = page.items.map((item) => item.serviceId);
+      expect(new Set(pageServiceIds).size).toBe(pageServiceIds.length);
+      expect(pageServiceIds.every((id) => allowedServiceIdSet.has(id))).toBe(true);
+      expect(page.items.every((item) => item.originUnitId === scopedId)).toBe(true);
+      for (const serviceId of pageServiceIds) {
+        expect(pagedServiceIds.has(serviceId)).toBe(false);
+        pagedServiceIds.add(serviceId);
+      }
+      pageCount += 1;
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor !== undefined);
+
+    expect(pageCount).toBe(Math.ceil(serviceCount / take));
+    expect(pagedServiceIds).toEqual(allowedServiceIdSet);
   });
 
   it('resolves a deep origin through a bounded parent fallback on generated Prisma', async () => {

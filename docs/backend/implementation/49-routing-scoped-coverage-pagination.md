@@ -39,6 +39,6 @@ CI `40375898079` je potpuno zelen: backend build/lint/svi unit suiteovi, real Po
 
 Paket **nema novu DB migraciju**.
 
-## Ishod
+## Ishod implementacije i kanonski status
 
-`BA-routing-03` je zatvoren. Registar prelazi na **634 otvorena / 58 zatvorenih / 692 ukupno**.
+W5.22 je isporučio query promjenu i interleaved unit dokaz; historijski paketni zapis je evidentirao **634 otvorena / 58 zatvorenih / 692 ukupno**. Međutim, izvorni red u auditu 13, globalni registar i JSON plan i dalje označavaju `BA-routing-03` kao **otvoren**. Taj paketni zapis sam po sebi nije mijenjao kanonski status niti predstavlja finalni acceptance. PostgreSQL revalidacija i aktuelni gateovi su u [126-routing-scoped-coverage-postgres-revalidation.md](126-routing-scoped-coverage-postgres-revalidation.md).

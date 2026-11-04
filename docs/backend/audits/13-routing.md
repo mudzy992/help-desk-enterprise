@@ -153,13 +153,15 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 
 `computeRoutingCoverage` prvo bira globalnu service stranicu/cursor, a `RoutingService.coverage` zatim filtrira items prema vieweru. Scoped stranica može biti prazna i preskočiti vidljive servise na kasnijim globalnim stranicama; `nextCursor` opisuje globalni skup. Scope predicate mora ući prije count/cursor/page, uz test međusobno isprepletenih dozvoljenih/zabranjenih servisa. **P2, M/L, routing/authorization.**
 
-**Closeout:** W5.22 (`93ead93`), zeleni CI `40375898079`; service scope sada ulazi u DB count/cursor/page, OU/service assignment parovi ostaju povezani, a interleaved pagination test dokazuje scoped cursor. Dokaz: [49-routing-scoped-coverage-pagination.md](../implementation/49-routing-scoped-coverage-pagination.md). Paket nema novu DB migraciju.
+**Closeout implementacije:** W5.22 (`93ead93`), zeleni CI `40375898079`; service scope sada ulazi u DB count/cursor/page, OU/service assignment parovi ostaju povezani, a interleaved pagination unit test dokazuje scoped cursor. Dokaz: [49-routing-scoped-coverage-pagination.md](../implementation/49-routing-scoped-coverage-pagination.md). Paket nema novu DB migraciju.
 
 ### BA-routing-04 — Scoped total je ograničena aproksimacija
 
 Scoped grana poziva coverage sa `take:10000`, ali funkcija clampuje na `routingCoverageMaximumTake`, zatim broji filtrirane service ID-eve samo te stranice. UI računa broj stranica iz netačnog totala. Potreban je DB scope-aware distinct count ili autorizovani service query. **P2, M, routing/data.**
 
-**Closeout:** W5.23 (`93ead93`, dokaz `568141a`), zeleni CI `40377931686`; DB count koristi isti scope-aware service predicate kao cursor stranica, a 75-allowed/75-hidden test prelazi raniji cap 50. Dokaz: [50-routing-exact-scoped-coverage-total.md](../implementation/50-routing-exact-scoped-coverage-total.md). Paket nema novu DB migraciju.
+**Closeout implementacije:** W5.23 (`93ead93`, dokaz `568141a`), zeleni CI `40377931686`; DB count koristi isti scope-aware service predicate kao cursor stranica, a 75-allowed/75-hidden unit test prelazi raniji cap 50. Dokaz: [50-routing-exact-scoped-coverage-total.md](../implementation/50-routing-exact-scoped-coverage-total.md). Paket nema novu DB migraciju.
+
+**Val 5 status reconciliation (2026-11-04):** `BA-routing-03` i `BA-routing-04` ostaju **otvoreni** u tabeli ovog audita, globalnom registru i JSON planu. W5.22/W5.23 bilješke dokazuju implementaciju, ali njihove stare formulacije „zatvoren“ nisu promijenile kanonske redove niti zadovoljile finalni acceptance. W5.50 dodaje generated-Prisma/PostgreSQL test za 75 dozvoljenih i 75 isprepletenih zabranjenih servisa, scoped cursor stranice i `total=75`; dokaz i pending CI/E2E granice su u [126](../implementation/126-routing-scoped-coverage-postgres-revalidation.md). Statusi se ne mijenjaju do relevantnog E2E `02/15/42` i finalnog acceptancea.
 
 ### BA-routing-05 — Rules i change logs nemaju paginaciju
 
