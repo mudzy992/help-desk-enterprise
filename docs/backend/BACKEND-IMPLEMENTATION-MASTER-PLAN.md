@@ -1,13 +1,69 @@
 # Backend implementacijski master plan
 
-**Status:** odobren — Valovi 0–6 su završeni; W7.1–W7.19 su zatvoreni za pojedinačne navedene nalaze. `BA-assets-16` je zatvoren 2026-11-01 izričitom korisničkom acceptance odlukom uz vidljivo zabilježen ne-zeleni globalni E2E gate; ovo nije tvrdnja o zelenom CI niti full E2E/Perf sign-offu. W7.18 i W7.19 su zatvorili samo svoje nalaze; targeted E2E `41314175993` bio je 8/8 na `93f9…` i branch code CI `41302730701` zelen na `3ee7…`. Full E2E `41283381903` na starijem master SHA pao je, a Perf smoke nije pokrenut; full assets segment sign-off nije ostvaren. `BA-service-catalog-02` je naknadno zatvoren na kodnom SHA `32bf508036bffc2ba9ac07094f04e952edb5de08` uz zeleni CI [`41481182959`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481182959); browser E2E ostaje skipped, a Perf [`41481183334`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481183334) failure je zabilježen odvojeno.<br>
-**Datum ažuriranja:** 2026-11-03<br>
-**Ulaz:** 44 završene audit jedinice, 692 ukupna nalaza (588 otvorenih / 104 zatvorena)<br>
+**Status:** aktivan — paketni closeout nije isto što i zatvaranje cijelog vala. Presjek po izvornim audit-nalazima i trenutno stanje nalaze se ispod.<br>
+**Datum ažuriranja:** 2026-11-04<br>
+**Ulaz:** 44 audit-izvora, 692 jedinstvena nalaza; izvorne audit-tabele/generisani plan: 558 otvorenih / 134 zatvorena. Redovi globalnog registra trenutno su 568 otvorenih / 124 zatvorena; deset razlika ostaje evidentirano i ne mijenja se implicitno.<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 368 P2 i 150 P3 nalaza
+
+## Trenutni status, tumačenje završetka i handoff (presjek 2026-11-04)
+
+Ovaj master plan je kanonski za **redoslijed, sadržaj valova/paketa, zbirni status i sljedeći korak**. Status i dokaz svakog `BA-*` ID-a ostaju u njegovom redu u izvornom auditu. [`backend-findings-plan.json`](backend-findings-plan.json) je generisani owner/val/status presjek tih redova; [`BACKEND-FINDINGS-REGISTER.md`](BACKEND-FINDINGS-REGISTER.md) je indeks, a njegove poznate statusne razlike prema izvorima su navedene u [audit README-u](audits/README.md#trenutni-status-nalaza-i-kompletni-scopeovi).
+
+**Koliko je plan razrađen:** mapiranje svih **692/692 BA nalaza** na ownera/valove 1–9 postoji u JSON-u, a ovaj dokument sada opisuje makro-scope svih valova 0–11 i završne kriterije. Ipak, ovo još nije odobren raspored svakog preostalog paketa: Val 5 redoslijed ispod je prijedlog bez dodijeljenih W5 brojeva; nastavak W7, W8/W9 paketi i W10.x paketi traže konkretan BA ID scope, acceptance i odobrenje prije rada. Dakle, potpuna wave mapa postoji; potpuni izvršni raspored do posljednjeg paketa još ne.
+
+**Važno:** ranija zbirna tvrdnja „Valovi 0–6 su završeni” bila je preširoka. Ona opisivala je zatvorene *pakete koji su navedeni u dnevniku*, a ne sve BA nalaze dodijeljene tim valovima. Po izvornom mapiranju valova, Valovi 1–6 imaju **364 direktno dodijeljena BA nalaza: 112 zatvorenih i 252 otvorena**; Val 4 je zajednička platforma i nema vlastiti skup direktno dodijeljenih audit ID-eva. Zato Valovi 1, 2, 3, 5 i 6 nisu završeni na nivou cijelog dodijeljenog audit scopea.
+
+| Val | Dodijeljeni audit obuhvat (jedinice) | Paketni dnevnik | Izvorni nalazi zatvoreno / ukupno | Otvoreno (P1/P2/P3) | Zaključak |
+| --- | --- | --- | ---: | ---: | --- |
+| 0 | reprodukcija i audit safety net | W0.1–W0.7 završeni | — | — | Osnovni harness/checker je završen. |
+| 1 | 44 — cross-cutting infrastruktura (container/supply chain, DB/migracije, Redis/tajne, workers) | W1.1–W1.4 završeni | 15 / 32 | 17 (1/12/4) | Paketi završeni; 17 dodijeljenih nalaza još otvoreno. |
+| 2 | 01–06, 09 (authentication, authorization, RBAC, users, OU/groups, security) | W2.1–W2.8 završeni | 6 / 63 | 57 (13/30/14) | Paketi završeni; wave scope nije zatvoren. |
+| 3 | 07–08, 10–11, 30, 43 (settings, audit, webhook, privacy, config, change-log) | W3.1–W3.11 završeni | 14 / 86 | 72 (20/38/14) | Zatvoreno je svih 11 nalaza iz `08 — audit-log`; ostali dodijeljeni scopeovi ostaju otvoreni. |
+| 4 | zajednički idempotency/outbox/concurrency/storage/cache primitives; nema direktnog BA wave assignmenta | W4.1–W4.7 završeni | — | — | Platformska osnova završena; sama po sebi ne zatvara domenske BA ID-eve. |
+| 5 | 12–16 (tickets, routing, SLA, service catalog, templates) | W5.1–W5.46 završeni | 58 / 74 | 16 (4/9/3) | Najbliži val za finding-closeout; `BA-routing-02` je P1 i ostaje blokiran za rad bez nove izričite dozvole. `15 — service-catalog` je 15/15 zatvoren na ID nivou, ali BA-15 full critical-flow E2E acceptance još čeka. |
+| 6 | 17–21, 28–29 (notifications, websocket, integration queue, inbound email, on-call, announcements, status-page) | W6.1–W6.17 pokrivaju status-page | 19 / 109 | 90 (21/49/20) | Zatvoren je `29 — status-page`; preostalih 90 nalaza je u 17–21 i 28. Cijeli Val 6 nije zatvoren. |
+| 7 | 22–27 (assets, problems, changes, knowledge-base, reports, search) | W7.1–W7.19 zapisi o paketima; 21 pojedinačni izvorni red je zatvoren | 21 / 109 | 88 (19/49/20) | Val 7 je u toku; backlog i nastavak su u §11. |
+| 8 | 31–38 (install, setup, policy packs, onboarding, directory sync, Teams, extension, branding) | Nema još W8.x paketa | 0 / 148 | 148 (41/76/31) | Planiran, nije započet; detalji u §12. |
+| 9 | 39–42 (health, observability, ops-health, docs) | Nema još W9.x paketa | 1 / 71 | 70 (13/39/18) | `BA-docs-01` zatvoren je ranijim paketom; preostalih 70 nalaza je otvoreno. |
+| 10 | CLI, data-repair i migration closure; završni cross-cutting workstream bez novog BA ID bucket-a | Nema W10.x paketa | — | — | Planiran nakon zatvaranja W1–W9 scopeova; ciljna baza/migracije ostaju van ovog handoffa. |
+| 11 | full regression, recovery drill, rescore i završni acceptance/release gate; nema direktnog BA wave assignmenta | Nema W11 gate-a u toku | — | — | Posljednji gate; njegov prolaz uz niže navedene kriterije znači da je audit implementacija završena. |
+
+Workstream izvori iz §2 se preklapaju; tabela koristi **jedino dodijeljeno polje `wave` svakog BA ID-a** u generisanom planu, ne zbir svih modula koje jedan workstream može dotaći. Implementacijski paket može zatvoriti nalaz čiji je direktni wave assignment kasniji (npr. `BA-docs-01` je zatvoren ranijim W2.7 paketom, ali ostaje brojan u Valu 9). „Paket završen” znači da je navedeni bounded paket zatvoren; „val završen” zahtijeva zatvorene sve BA ID-eve direktno dodijeljene tom valu i završene obavezne acceptance gateove. `skipped`/`not run` nisu zeleni gateovi. Kontrolni zbirovi u historijskim statusnim dopunama niže su checkpointi svog datuma i ne prepisuju se retroaktivno; za aktuelni status koristi se ova tabela i trenutni generisani plan.
+
+**Valovi 1–6 — direktan odgovor:** ne treba ih označiti „kompletno” ako kompletno znači da su svi nalazi dodijeljeni tim valovima zatvoreni. Njihovi trenutno navedeni implementacijski paketi jesu evidentirani kao završeni; audit obuhvati zajedno i dalje imaju 252 otvorena nalaza. Val 4 je zasebna, završena platformska podloga, ne dokaz zatvaranja tih 252 nalaza.
+
+### Kanonski izvori i podržavajući zapisi
+
+- [Trenutni izvorni statusi, kompletni moduli i deset poznatih razlika](audits/README.md#trenutni-status-nalaza-i-kompletni-scopeovi).
+- [Generisani plan svih 692 nalaza sa owner/val/status mapiranjem](backend-findings-plan.json) i njegov checker [`scripts/check-backend-findings.mjs`](../../scripts/check-backend-findings.mjs).
+- [Globalni BA indeks](BACKEND-FINDINGS-REGISTER.md); ne prepisivati postojeće razlike automatski.
+- [Konsolidovani audit i sistemski owneri](audits/45-consolidated-backend-audit.md), [audit standard](BACKEND-AUDIT-STANDARD.md) i [inventar modula](MODULE-INVENTORY.md).
+- [Historijski implementacijski handoff](audits/HANDOFF.md); aktuelni wave snapshot i sljedeći korak su u ovom master planu.
+- [Audit 13 — routing](audits/13-routing.md), [audit 15 — service catalog](audits/15-service-catalog.md#34-ba-15-e2e-critical-flow-follow-up-2026-11-04), [audit 16 — templates](audits/16-templates.md) i [BA-15 executable matrix closeout](implementation/121-service-catalog-15-executable-test-matrix.md).
+- [Val 7 izvori](audits/22-assets.md), [problems](audits/23-problems.md), [changes](audits/24-changes.md), [knowledge base](audits/25-knowledge-base.md), [reports](audits/26-reports.md) i [search](audits/27-search.md).
+
+### Standardni paketni i audit ciklus
+
+1. Prije izmjene navesti **tačne BA ID-eve**, njihove izvorne audit redove, ownera, dependency, pre/post uslove i acceptance. Koristiti §2–3 za zajedničke owner/dependency odluke; ne birati scope samo po rednom broju modula.
+2. Prvo dodati reprodukciju ili izvršiv regression/safety test, pa implementirati samo odobreni paket. Reuse-ati W4 primitive; ne praviti paralelni outbox/idempotency/authorization ugovor.
+3. Za DB promjenu dokumentovati expand/backfill/verify/contract, rollout i forward-only rollback/recovery. Koristiti samo disposable testnu/CI bazu; **ne koristiti ciljnu bazu niti izvršavati migracije u ovom handoffu**. Migracijski kod i plan mogu se pregledati, ali se migracija ne pokreće.
+4. Na finalnom SHA-u pokrenuti ciljane testove i relevantne real-PostgreSQL/Redis, concurrency/failure, build/lint, frontend/E2E/Perf gateove. `skipped`, `not run` i `failed` su različiti od `passed`; targeted E2E ne zamjenjuje propisani full-flow gate.
+5. BA ID zatvoriti tek kada izvorni audit red i implementacijski closeout sadrže korekciju i njen acceptance dokaz (commit/SHA, testovi, CI run, migracija/rollout gdje važi). Izričit owner-directed statusni izuzetak zabilježiti kao izuzetak; nikad ga ne opisati kao zeleni CI ili puni sign-off.
+6. Nakon promjene izvornog audit statusa osvježiti globalni indeks i generisani plan; za plan pokrenuti `node scripts/check-backend-findings.mjs --write`, zatim checker i `node --test scripts/check-backend-findings.test.mjs`. Za dokumente pokrenuti `node scripts/check-docs-content.mjs`, `node --test scripts/check-docs-content.test.mjs` i `git diff --check`. Ne mijenjati severity/pragove, BA-routing-02, deset poznatih statusnih razlika ni nalaze izvan odobrenog scopea.
+7. Ažurirati ovaj master plan tek nakon što je status provjeren u izvornim redovima; navesti snapshot datum, preostali scope, gateove, blokatore i sljedeći **nezapočeti** paket.
+
+### Trenutni handoff za sesiju
+
+- Ostati na grani `arena/864951a6-help-desk-enterprise`; ne otvarati PR, ne mergeati i ne deployati bez posebnog odobrenja. U ovom handoffu ne pristupati ciljnoj bazi i ne pokretati migracije.
+- BA-15 pripada Valu 5 (audit jedinica 15 — service-catalog): svih 15/15 nalaza je formalno zatvoreno, CI `41793987045` i Perf `41795380371` su prošli, a targeted spec 42 run `41815308161` je prošao 4/4. **Puni critical-flow acceptance nije potvrđen**: čekati korisnikov merge i run ID; kada ga korisnik dostavi, provjeriti tačan SHA, critical-flow job i sve skipped/failed rezultate. Ne pokretati taj full flow umjesto korisnika.
+- Preporučeni sljedeći milestone je zatvaranje Vala 5 prema predloženom redoslijedu u §9; `BA-routing-02` ostaje blokiran bez nove izričite dozvole. To je prioritizacija, ne tvrda zavisnost koja sprečava paralelno planiranje drugih valova.
+- Val 7 i Val 8 ostaju nepotpuni; Val 7 nema odobren W7.20, a Val 8 nema odobrene W8.x pakete. Njihovi scopeovi i daljnji redoslijed su u §11–12.
+- Valovi 9–11 i konačna definicija „audit implementacija završena” opisani su u §13–15.
+- Ova dokumentacijska promjena sama po sebi nije CI, merge, release ili acceptance dokaz. Lokalno su prošli backend-findings checker/testovi, docs content checker/testovi i `git diff --check`; nije pokrenut GitHub CI, E2E, Perf, target-DB pristup, migracija, merge ni deploy.
 
 ## 1. Izvršna pravila
 
-Ovaj dokument je jedinstveni redoslijed implementacije. Lokalni planovi iz 44 audita ostaju izvor detalja, ali se rad ne smije voditi samo rednim brojem modula: zajedničke sigurnosne i podatkovne osnove moraju prethoditi domenima koji ih koriste.
+Ovaj dokument je kanonski redoslijed implementacije i zbirni wave/package status. Izvorni audit redovi ostaju kanonski za pojedinačni BA status i acceptance dokaz; generisani JSON i globalni registar služe traceabilityju. Rad se ne smije voditi samo rednim brojem modula: zajedničke sigurnosne i podatkovne osnove moraju prethoditi domenima koji ih koriste.
 
 Obavezna pravila za svaki paket:
 
@@ -49,8 +105,10 @@ W0 reproducible evidence + generated Prisma
  │          ├─> W6 notifications/websocket/queues/email/on-call
  │          ├─> W7 assets/problems/changes/knowledge/reports/search
  │          └─> W8 install/config/integrations/directory/Teams/extension
- ├─> W9 health/observability/ops and scale hardening
- └─> W10 documentation, full regression, score and release gate
+ └─> W9 health/observability/ops and scale hardening
+W1–W9 assigned scopes converge
+ └─> W10 CLI/data-repair/migration closure
+      └─> W11 full regression, recovery drill, rescore and final acceptance/release gate
 ```
 
 Cross-cutting zabrane:
@@ -90,6 +148,8 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 ## 5. Val 1 — production safety perimeter
 
+**Paketni status:** W1.1–W1.4 su završeni; **status vala:** jedinica 44 ima 15/32 zatvorena i 17 otvorenih nalaza po generisanom planu.
+
 **Prioritet:** svi cross-cutting P1 koji povećavaju blast radius svake naredne faze.
 
 ### W1.1 Container i supply chain
@@ -117,6 +177,8 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 ### W1.3 Redis i secret transport
 
+**Status:** završeno; CI run [`40087131166`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40087131166) zelen na SHA `954f85c147eb4341e7f2eea9cd6eb4f0c40fc96f`; detaljan dokaz u [Val 1 implementacijskom dnevniku](implementation/01-production-safety-perimeter.md).
+
 - `rediss`/TLS, CA/server identity, auth i environment namespace;
 - centralna typed startup validacija svih tajni i dependency URL-ova;
 - pin/rotation ugovor po secret purposeu i zabrana nesigurnog fallbacka u productionu.
@@ -124,6 +186,8 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 **Acceptance:** plaintext production Redis config fatalno pada; pogrešan CA/hostname ne prolazi; staging i production ključevi/queueovi ne kolidiraju; secret vrijednosti nisu u logovima.
 
 ### W1.4 Worker lifecycle
+
+**Status:** završeno; CI run [`40094120401`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/40094120401) zelen na SHA `90d93f1739df132cc28cbf6af1f8a11b85c15960`; detaljan dokaz u [Val 1 implementacijskom dnevniku](implementation/01-production-safety-perimeter.md).
 
 - mandatory scheduler registration/reconcile sa startup deadlineom;
 - worker readiness/liveness, queue capability i draining stanje;
@@ -133,6 +197,8 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 **Acceptance:** nedostupan Redis drži readiness crvenom; djelimična registracija nije “started”; SIGTERM pod aktivnim jobom deterministički drainuje ili ostavlja retry-safe stanje.
 
 ## 6. Val 2 — identity, scope i authorization
+
+**Paketni status:** W2.1–W2.8 su završeni; **status vala:** audit jedinice 01–06 i 09 imaju 6/63 zatvorena i 57 otvorenih nalaza.
 
 ### Status
 
@@ -160,7 +226,6 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 - **W2.8 završna route-level negativna authorization matrica — završena** na SHA `386b206`, CI `40130219620`.
 - Stvarni PostgreSQL dokaz pokriva owner/cross-user, child/sibling OU, OU-scoped grant na globalnoj ruti i inactive principal kroz kanonske route/resource entry pointove; registracija suitea je zaključana runner contract testom.
 - W2.8 ne zatvara dodatne nalaze nego završno dokazuje zajedničke granice Vala 2; dokaz je u [09-route-authorization-negative-matrix.md](implementation/09-route-authorization-negative-matrix.md).
-- W3.1 je tada bio sljedeći paket; njegov closeout i kasniji valovi dokumentovani su niže. Aktuelni status Vala 7: W7.1–W7.19 su zatvoreni za pojedinačne nalaze, pri čemu je samo `BA-assets-16` zatvoren izričitom owner acceptance iznimkom uprkos crvenom globalnom E2E gateu. W7.18 i W7.19 zatvorili su samo svoje ID-eve; W7.19 je imao targeted E2E + code CI dokaz. Full E2E `41283381903` nije zelen, Perf smoke nije pokrenut, a full assets segment sign-off nije završen.
 
 ### Redoslijed
 
@@ -175,7 +240,7 @@ Nema schema promjene. Harness i checker se mogu vratiti bez runtime uticaja; bui
 
 ### Pogođene jedinice
 
-01 authentication, 02 authorization, 03 rbac, 04 users, 05 organizational-units, 06 groups, 09 security, 31 install, 33 policy-packs, 42 docs, 44 infrastructure; zatim svi domain controlleri.
+Direktno Val 2 audit-mapiranje: 01 authentication, 02 authorization, 03 rbac, 04 users, 05 organizational-units, 06 groups i 09 security. Jedinice 31 install, 33 policy-packs, 42 docs i 44 infrastructure, kao i domain controlleri, jesu dodatno pogođene surfaces/dependencies; njihovi BA nalazi ostaju u zasebnim valovima iz `backend-findings-plan.json` i nisu dio 63 direktno dodijeljena Val 2 nalaza.
 
 ### Migracijski rizik
 
@@ -191,6 +256,8 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - authz negative suite prolazi na realnom PostgreSQL-u i sa dvije API replike.
 
 ## 7. Val 3 — audit, config i change trust
+
+**Paketni status:** W3.1–W3.11 su završeni; **status vala:** dodijeljeni izvori imaju 14/86 zatvorenih i 72 otvorena nalaza. `08 — audit-log` je kompletan 11/11; otvoreni nalazi ostaju u drugim jedinicama vala.
 
 ### Status
 
@@ -227,6 +294,10 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W3.11 typed action/entity/schema compatibility i extension namespace — završen** na SHA `b4e04d7`, CI `40191639867`.
 - Svih 145 core akcija ima zatvoren action→entity→schema ugovor; mismatch pada prije writea, a `ext.<provider>.<event>` ostaje fail-closed bez statičke pune definicije.
 - `BA-audit-log-11` je zatvoren; audit-log modul je zatvorio svih 11 nalaza. Dokaz je u [20-closed-audit-action-entity-contract.md](implementation/20-closed-audit-action-entity-contract.md).
+## 8. Val 4 — zajedničke transaction/outbox/concurrency/storage osnove
+
+**Status:** W4.1–W4.7 završeni. Val 4 nema direktno dodijeljen BA audit red u generisanom wave planu; njegovi reusable primitives zatvaraju BA nalaze tek kada su integrisani i prihvaćeni u domenskom paketu.
+
 - **W4.1 persisted request-idempotency claim/result primitive — završen** na SHA `f475adc`, CI `40211114841`.
 - Centralni servis daje atomic insert/CAS claim, canonical request hash conflict, owner-token lease recovery te isti-transaction business effect + persisted rezultat; response je capped na 64 KiB, retention je 24 sata i cleanup je bounded.
 - Platformski paket ne zatvara domenske nalaze prije integracije njihovih command handlera; dokaz je u [21-persisted-request-idempotency-primitive.md](implementation/21-persisted-request-idempotency-primitive.md).
@@ -249,6 +320,11 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - Transactional outbox invalidation intent, cross-replica retry delivery i DB-revision-validated read-through ugovor osiguravaju da cache/realtime ostane izvedena optimizacija, nikad source of truth.
 - Paket nema migraciju i ne zatvara domenske nalaze prije integracije njihovih mutation/read handlera; dokaz je u [27-durable-post-commit-cache-invalidation.md](implementation/27-durable-post-commit-cache-invalidation.md).
 - **Val 4 je potpuno završen (W4.1–W4.7).**
+
+## 9. Val 5 — tickets, routing, SLA, service catalog i templates
+
+**Paketni status:** W5.1–W5.46 su evidentirani kao završeni; **status vala:** jedinice 12–16 imaju 58/74 zatvorena i 16 otvorenih nalaza (4 P1, 9 P2, 3 P3). Otvoreni su `BA-routing-02`–`04` i `BA-templates-01`–`13`; `BA-routing-02` ne dirati bez nove izričite dozvole. Audit 15 (`BA-service-catalog-01`–`15`) je 15/15 zatvoren na ID nivou, ali BA-15 full critical-flow gate ostaje odvojen i pending.
+
 - **W5.1 tickets transactional message command boundary — završen** na SHA `15d86c9`, CI `40223728831`.
 - Required HTTP idempotency key, persisted result, DB unique message key i jedna transaction granica za message/mention/redaction/waiting/merged-copy/audit/outbox zatvorili su `BA-tickets-01`; dokaz je u [28-ticket-message-transactional-command-boundary.md](implementation/28-ticket-message-transactional-command-boundary.md).
 - **W5.2 ticket confidential break-glass atomic audit boundary — završen** na SHA `b842ac0`, CI `40225951703`.
@@ -386,6 +462,82 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W5.46 executable SLA failure/concurrency/scope/DST test matrix — završen** na SHA `9ba00dd`, CI `40704810126`.
 - Verzionarni matrix inventariše 20 kritičnih specova u failure, concurrency, scope, DST, fake-clock i PostgreSQL kategorijama, fail-closed provjerava fajlove i CI preduvjete te ima zaseban generated-Prisma unit gate i real-DB shard. Time je zatvoren `BA-sla-16`; dokaz je u [73-sla-executable-critical-test-matrix.md](implementation/73-sla-executable-critical-test-matrix.md).
 - Registar je sada **610 otvorenih / 82 zatvorenih / 692 ukupno**; SLA audit jedinica nema otvorenih nalaza, a paket nema novu migraciju.
+### BA-service-catalog closeout history (Val 5; historijski detaljni checkpointi)
+
+### Statusna dopuna — BA-10 implementacijski checkpoint (2026-11-02)
+
+- Implementiran je bounded/paginirani read slice za service/category/form/downtime i frontend consumere; scope ostaje isključivo `BA-service-catalog-10`. Implementacijski detalji i rollout/rollback su u [auditu 15](audits/15-service-catalog.md). Nalazi 01–09 i 11–15 nisu zatvarani niti su registry brojevi/statusi mijenjani.
+- Lokalna provjera prije rebase-a: frontend full suite je prošao **430/430 suites, 1.668/1.668 tests**, kao i frontend build, i18n check i ciljano lint/formatiranje. Backend standardni Jest nije mogao izvršiti testove (5 suites / 0 tests) zbog nedostajućeg generated Prisma Clienta/enuma; backend `npm run build` prijavio je **3.380 TypeScript grešaka** počevši od nedostajućeg `src/generated/prisma/client`, pa se kaskadne greške ne mogu klasifikovati bez pravog klijenta. Privremeni stub/transpile-only smoke nije official gate.
+- Nema target-DB pristupa ni BA-10 migracije. Nisu završeni reproduction/profiling, query-plan/row/byte/time budget, stvarni 500/100k-service load fixture niti E2E/Perf. Test 500 servisa bio je mock collector fixture, ne DB/load test. Spec 56, njegova očekivanja i 250 ms prag nisu mijenjani; root cause nije potvrđen.
+- Na rebased checkpoint SHA `1b5b0422ab6882fd39164a3185e9b6fc64f8a34f`, frontend full suite je ponovljen (**430/430 suites, 1.668/1.668 tests**), frontend build/i18n, ciljano ESLint za BA-10 backend/frontend te `e2e` TypeScript `npx tsc --noEmit`; svi su prošli. Browser E2E/Perf nisu pokrenuti zbog nedostupnih `e2e/.env` i Docker. Nakon popravke TS4058 lokalni backend build i dalje je ograničen nedostajućim generated Prisma Clientom (3.366 dijagnostika; bez TS4058); ciljani ESLint je prošao.
+- Coolify log od 2026-11-02 09:06 prijavio je 14 TS4058 grešaka jer tri rekurzivna where-aliasa u in-memory katalog delegatima nisu bila exportovana. U commit `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e` ta tri tipa su exportovana. CI [`41419059330`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41419059330) na tom SHA-u je **success**: backend build/lint/Jest, frontend, PostgreSQL/Redis integration, container build/supply-chain i docs guard passed; `E2E critical flows`, `E2E install wizard` i image high/critical enforcement su `skipped`, Perf nije pokrenut. Backend build blocker je ovime otklonjen u CI.
+- Korisnik je potvrdio da je naredni Coolify redeploy prošao. Targeted CI [`41420600750`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420600750) za specs `42,56` i Perf smoke [`41420750853`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420750853) oba su `workflow_dispatch` na SHA `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e`; GitHub metadata za oba navodi `head_branch=master`. CI run je **failure** zbog E2E critical flows (6 passed / 2 failed / 0 flaky / 0 skipped) i CI gate; svi ostali aktivni build/test, integration, frontend, container i docs poslovi prošli su, dok su install wizard i image/provenance koraci navedeni u auditu 15 `skipped`. Oba imenovana spec-56 pada su početna navigacija na `https://desk.ba101.top/` (90 s `page.goto('/')` timeout i `chrome-error://chromewebdata/`); uzrok nije potvrđen. Perf smoke je **failure** na `GET /search` p95 972.53 ms (prag <500) i `POST /tickets/:id/messages` p95 1,131.40 ms (prag <1,000); application query budget je prošao (avg 1.888 preko 47,051 zahtjeva, gate 2.1). Ti k6 endpointi nisu service-catalog mjerenja. Oba runa ne zatvaraju BA-10; spec 56 i prag 250 ms ostaju nepromijenjeni, a detalji i EOF ograničenje raw log/artifact preuzimanja su u auditu 15.
+- Historijski push CI [`41415377244`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41415377244) na SHA `bc0f83a662850b08587209586b4c093cad089a9b` završio je **failure** na wiring snapshotu, digest-pinned image buildu i deployment-wide connection-budget step-u; frontend/docs guard su passed, E2E critical/install `skipped`, Perf nije pokrenut. Manifest commit `ab385a40359ffb92fcfb2372ba717dd0738c06fd` bio je docs-only i nije pokrenuo novi CI. Raniji targeted dispatch `42,56` odbijen je HTTP 403; kasniji dispatch rezultat je zabilježen iznad. Historijski neuspjeh nije trenutni build status i ne utvrđuje uzrok speca 56.
+
+### Statusna dopuna — BA-10 closeout i naredni scope (2026-11-02)
+
+- Korisnik je izričito naložio zatvaranje samo `BA-service-catalog-10` (P2). CI [`41431538084`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41431538084) na kodnom SHA `039992064bfea250d95a1b8fc177b59dd3bdf239` imao je zeleni CI gate i PostgreSQL BA-10 dokaz. E2E critical/install i image vulnerability enforcement bili su `skipped`; odvojeni Perf [`41431538128`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41431538128) ostao je crven samo na ticket-message/search pragovima, dok su BA-10 service i global query-budget gates prošli. To je owner-directed status exception, ne globalni Perf/E2E green sign-off; spec 56/prag 250 ms nisu mijenjani.
+- U tom checkpointu zatvoren je samo BA-10. BA-11 i svi ostali service-catalog nalazi su tada ostali otvoreni; BA-changes-08/13 su ostali otvoreni, a preklapanje je dokumentovano bez implicitnog zatvaranja. Scope nije proširen na ticket-message/search.
+- Kontrolni zbir u BA-10 checkpointu: deklarisano **569 otvorenih / 123 zatvorena / 692 ukupno**; machine-readable redovi **572 otvorena / 109 zatvorenih / 11 historijskih**. Preegzistentna razlika od tri statusa ostaje.
+- Tada naredni scope bio je samo `BA-service-catalog-11` (P2). BA-10 closeout, CI/Perf evidence, lokalna ograničenja, DB/migration i rollout/rollback ostaju u [106-service-catalog-10-owner-directed-closeout.md](implementation/106-service-catalog-10-owner-directed-closeout.md). Nije bilo target-DB pristupa ni BA-10 migracije.
+
+### Statusna dopuna — `BA-service-catalog-11` closeout (2026-11-02)
+
+- `BA-service-catalog-11` (P2) zatvoren je na finalnom testanom SHA `faf00f497032a1ed380f9500bf4c762c56a6aebe`. CI [`41444022450`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41444022450) je zelen za backend build/test, PostgreSQL/Redis integration (uključujući BA-11 real-PostgreSQL suite), frontend build/test, docs guard, container/supply-chain i CI gate.
+- Prvi CI [`41442784115`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784115) na SHA `4a0a0011d0f4b95f5a50267c54ebadc7bea57158` pao je zbog test-only `OpsOverview` cast greške i integration testa koji je dispatchovao raniji pending fixture red. Popravke su u `faf00f497032a1ed380f9500bf4c762c56a6aebe`; konačni CI prošao je i integration test. Perf [`41442784187`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784187) prošao je na runtime SHA-u `4a0a0011d0f4b95f5a50267c54ebadc7bea57158`; follow-up je mijenjao samo testove. E2E critical/install i uslovni image enforcement bili su `skipped`, ne passed.
+- Nema Prisma schema promjene ni BA-11 migracije; ciljna baza nije korištena. BA-changes-08/13 ostaju otvoreni. Trenutni zbir je **568 otvorenih / 124 zatvorena / 692 ukupno**, machine-readable **571 otvoreno / 110 zatvorenih / 11 historijskih**; severity ostaje P1=174, P2=368, P3=150, a preegzistentna razlika od tri statusa ostaje.
+- Detaljni acceptance, testovi, runovi, failed attempt, skips, local limits, rollout/rollback i sljedeći paket BA-11 opisani su u [107-service-catalog-11-durable-downtime-closeout.md](implementation/107-service-catalog-11-durable-downtime-closeout.md). Tada sljedeći kandidat BA-12 je naknadno zatvoren u zasebnom paketu ispod.
+
+### Statusna dopuna — `BA-service-catalog-12` closeout (2026-11-02)
+
+- `BA-service-catalog-12` (P2) zatvoren je na finalnom testanom SHA `14dbb9451326074f777b5d6102773e88f06c2286`. CI [`41448717393`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717393) i Perf smoke [`41448717783`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717783) završili su `success` na tom SHA-u. Backend build/test, PostgreSQL/Redis integration, frontend, docs guard, container/supply-chain i CI gate prošli su; E2E critical/install i image high/critical enforcement bili su `skipped`, pa nema browser E2E/spec 56 sign-off.
+- `RoleGuard` regresijski testovi potvrđuju da service-scoped i OU-scoped ADMIN ne mogu globalno kreirati servise/kategorije; policy nije mijenjan. Service-scoped draft list je ograničen na dodijeljene service ID-jeve, public ACTIVE ostaje globalan, a cursor fingerprint veže trenutni scope. Nema Prisma schema promjene, migracije ni target-DB pristupa.
+- BA-12 Perf: `GET /services?take=100` p95 **28.68 ms**, max **361.41 ms**, payload p95/max **111.16 KB**, 1.200 zahtjeva; globalni query budget avg **2.094** preko **48.393** zahtjeva. To nije browser long-task rezultat; spec 56/prag `250 ms` nisu mijenjani.
+- Kontrolni zbir: deklarisano **567 otvorenih / 125 zatvorenih / 692 ukupno**; machine-readable source **570 otvorenih / 111 zatvorenih / 11 historijskih**. Severity ostaje P1=174, P2=368, P3=150; preegzistentna razlika od tri statusa ostaje.
+- Puni acceptance, local generated-Prisma blocker, disposable DB, skip list, rollout/rollback i evidence su u [108-service-catalog-12-scoped-catalog-admin-closeout.md](implementation/108-service-catalog-12-scoped-catalog-admin-closeout.md). `BA-service-catalog-13` (P3) je sljedeći kandidat u checkpointu BA-12; nakon BA-01 closeouta trenutni naredni service-catalog kandidat je P1 `BA-service-catalog-02`, bez započetog rada i uz zaseban acceptance.
+
+### Statusna dopuna — `BA-service-catalog-01` closeout (2026-11-02)
+
+- `BA-service-catalog-01` je zatvoren na finalnom kodnom/testanom SHA `18456f845f07b67207a9fb8e4ba12ce1bdf79247`, uz zeleni CI [`41456326648`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326648). Backend full Jest/build/lint, PostgreSQL/Redis integration (uključujući registrovani BA-01 concurrency suite), frontend, docs guard, container/supply-chain i CI gate su passed. E2E critical/install i conditional image enforcement bili su `skipped`; nema browser E2E/spec 56 sign-offa.
+- Odvojeni Perf [`41456326902`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326902) je failure na search p95 `859.54 ms` prema `<500 ms` i ticket-message p95 `1026.25 ms` prema `<1000 ms`; service-catalog p95 `99.72 ms` i query-budget avg `2.092` prema `2.1` prošli su. Nepovezani search/message kod nije mijenjan; spec 56/prag `250 ms` nisu mijenjani.
+- `updateServiceFormVersion` sada serializuje ticket FK bind i schema edit preko `FOR UPDATE`, fresh status/ticket-count provjere unutar `ReadCommitted` transakcije i nepromijenjenog HTTP 409 contracta. Config snapshot `applyCatalogSnapshot` ostaje otvoreni BA-02. Nema Prisma migracije ni target-DB promjene. Failed attempts, local limits, exact skip statusi i rollback su u [109-service-catalog-01-form-version-toctou-closeout.md](implementation/109-service-catalog-01-form-version-toctou-closeout.md).
+- Kontrolni zbir u BA-01 checkpointu (historijski): deklarisani **566 otvorenih / 126 zatvorenih / 692 ukupno**; machine-readable **569 otvorenih / 112 zatvorenih / 11 historijskih**. `service-catalog` je tada imao **11 otvorenih / 4 zatvorena**; BA-02 je kasnije zatvoren odvojeno.
+
+### Statusna dopuna — `BA-service-catalog-02` closeout (2026-11-02)
+
+- `BA-service-catalog-02` (P1) zatvoren je na implementacijskom i testanom SHA `32bf508036bffc2ba9ac07094f04e952edb5de08`. CI [`41481182959`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481182959) je success za backend build/full Jest, PostgreSQL/Redis integration, frontend build/test, docs guard, container/supply-chain i CI gate. E2E critical/install i uslovni image enforcement bili su `skipped`; nema browser/spec 56 sign-offa.
+- Perf [`41481183334`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481183334) je failure na `POST /tickets/:id/messages` p95 `1712.97 ms` / prag `<1000 ms`; service-catalog p95 `69.31 ms`, payload `111.16 KB`, catalog contract failures `0` i query-budget avg `2.091` / limit `2.1` prošli su. Ticket-message nije dio BA-02 i nije mijenjan. Spec 56/prag `250 ms` nisu mijenjani.
+- Nema Prisma schema promjene, migracije ni target-DB pristupa; PostgreSQL/Redis integration je pokrenut na disposable CI bazi, a lokalni `DATABASE_URL` nedostajao je. Rollout je kod-only: pauzirati activation/rollback tokom miješanog starog/novog backend rollouta; pri povratku starog koda ponovo pauzirati do zaštićenog redeploya. Potpuni acceptance, local skips, error/rollback contract i evidence su u [110-service-catalog-02-config-snapshot-invariants.md](implementation/110-service-catalog-02-config-snapshot-invariants.md).
+- Tekući deklarisani zbir nakon BA-15 closeouta: **555 otvoren / 137 zatvoren / 692 ukupno**; machine-readable source: **558 otvoren / 123 zatvoren / 11 historijskih** (pre-existing razlika od tri statusa ostaje). `service-catalog` ima **0 otvorenih / 15 zatvorenih** (4 P1, 8 P2, 3 P3 ukupno). BA-03 je zatvoren po izričitom owner-directed zahtjevu nakon mergea na `master` i green CI/inventory runa [`41501000022`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41501000022), koji je našao 0 patterna u 205 FormVersion zapisa; E2E install/critical bili su skipped i nema spec 56 sign-offa. Detalji su u [111 BA-03 closeoutu](implementation/111-service-catalog-03-regex-redos-closeout.md). P1 `BA-service-catalog-04` zatvoren je owner-directed 2026-11-02 nakon korisnikove potvrde mergea na `master` i uspješnog redeploya; remote `master`/Arena refovi su `bd9ab32` (parent `88ad398`), CI `41511684641` na `88ad398` je success; merged-PR pretraga nije našla PR, a redeploy nije nezavisno provjeren. Korisnik je izabrao globalni, reason-audited `requireCoverage=false` override. Finalni CI [`41511684641`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41511684641) na SHA `88ad398` je **success** za backend/full Jest, PostgreSQL/Redis integration, frontend, docs, container/supply-chain i gate. E2E critical/install, inventory i conditional image enforcement bili su `skipped`; nema spec 56 sign-offa. Korisnik je prijavio redeploy, koji nije nezavisno provjeren. Raniji CI failures i Perf search failure su u [112 BA-04 checkpointu](implementation/112-service-catalog-04-routing-coverage-closeout.md). `BA-changes-08`/`13` ostaju otvoreni i nisu dio BA-03. `BA-service-catalog-05` zatvoren je owner-directed nakon korisnikove prijave urednog redeploya 2026-11-02; kodni CI [`41529212182`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212182) je passed, a odvojeni Perf [`41529212249`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212249) je failure samo na nepovezanom ticket-message p95. E2E/inventory bili su skipped; deployment nije nezavisno provjeren. Detalji su u [113 BA-05 closeoutu](implementation/113-service-catalog-05-concurrent-form-activation.md). `BA-service-catalog-06` zatvoren je owner-directed nakon zelenog CI-ja [`41537673319`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41537673319) na `964c8f4`; Perf [`41537673253`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41537673253) je failure samo na nepovezanom ticket-message p95, a E2E/inventory su skipped. Detalji su u [114 closeoutu](implementation/114-service-catalog-06-form-version-create-race.md). `BA-service-catalog-07` zatvoren je owner-directed nakon izričite korisničke dozvole uz zeleni backend CI/PostgreSQL integration run `41628259091` i Perf smoke `41628258814` na `65bad6e7`; E2E poslovi su skipped, bez spec 56 sign-offa ([115 closeout](implementation/115-service-catalog-07-downtime-overlap-race.md)). `BA-service-catalog-08` zatvoren je owner-directed 2026-11-03 nakon izričite korisničke dozvole; CI `41638462836` i Perf `41638462783` na `5415f502` su passed, uključujući real PostgreSQL race suite. E2E/inventory i image-enforcement bili su skipped; nema spec 56 sign-offa ([116 closeout](implementation/116-service-catalog-08-category-parent-cycle-race.md)). `BA-service-catalog-09` zatvoren je owner-directed uz CI `41662410362` success; korisnik je prijavio uspješan redeploy i primijenjenu migraciju, koji nisu nezavisno provjereni. Perf `41662410321` ostaje failure samo na nepovezanim search/ticket-message pragovima, a service-catalog p95/query-budget su passed ([118 closeout](implementation/118-service-catalog-09-owner-directed-closeout.md)). `BA-service-catalog-13` (P3 caller-supplied reason contract) zatvoren je owner-directed 2026-11-03 uz izričitu korisničku dozvolu; CI `41697055454` je success, a Perf `41697055530` je failure samo na nepovezanom search p95, uz passed service-catalog/query-budget gates ([119 closeout](implementation/119-service-catalog-13-caller-supplied-change-reasons.md)). `BA-service-catalog-14` zatvoren je owner-directed nakon finalnog CI-ja [`41728680530`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41728680530) success na SHA `7dd9c05`; E2E/inventory su skipped, a Perf nije pokrenut na finalnom SHA ([120 closeout](implementation/120-service-catalog-14-incident-read-fail-closed.md)). `BA-service-catalog-15` (P3) zatvoren je nakon zelenih finalnih CI/Perf runova `41793987045`/`41795380371` na istom SHA-u; test-matrix inventory i ticket-message correction su dokumentovani u [121 closeoutu](implementation/121-service-catalog-15-executable-test-matrix.md). Sljedeći nalaz nije započet u ovom scopeu.
+
+### Preporučeni plan zatvaranja Vala 5 (prijedlog, 2026-11-04)
+
+Val 5 je najbliži zatvaranju nalaza: **58/74 zatvoreno (78,4%)**, a preostalih 16 nalaza je koncentrisano u routing i templates. Ovo je prioritetni plan, ne odobrenje za izmjenu svakog ID-a.
+
+| Audit izvor | Zatvoreno / ukupno | Preostali nalaz(i) |
+| --- | ---: | --- |
+| [`12 — tickets`](audits/12-tickets.md) | 19/19 | Nema otvorenih BA ID-eva. |
+| [`13 — routing`](audits/13-routing.md) | 8/11 | `BA-routing-02` (P1), `BA-routing-03` i `BA-routing-04` (P2). |
+| [`14 — SLA`](audits/14-sla.md) | 16/16 | Nema otvorenih BA ID-eva. |
+| [`15 — service-catalog`](audits/15-service-catalog.md) | 15/15 | Finding statusi zatvoreni; puni BA-15 critical-flow E2E acceptance je zaseban pending gate. |
+| [`16 — templates`](audits/16-templates.md) | 0/13 | `BA-templates-01`–`03` (P1), `04`–`10` (P2), `11`–`13` (P3). |
+| **Val 5 ukupno** | **58/74** | **4 P1, 9 P2, 3 P3; ukupno 16 otvorenih.** |
+
+#### Predloženi redoslijed nakon W5.46 (brojevi novih paketa nisu dodijeljeni)
+
+1. **P1 templates:** prvo tri nezavisna kriterija prihvatanja iz audita 16: `BA-templates-01` (čitanja upravljanja ograničena ovlaštenim opsegom), `BA-templates-02` (kvar settingsa mora ostati fail-closed/last-known-good) i `BA-templates-03` (atomska izmjena playbooka uz provjeru verzije). Svaki ID mora imati vlastitu reprodukciju i dokaz; ne zatvarati susjedne nalaze usput.
+2. **P1 routing:** `BA-routing-02` traži ispravnu coverage evaluaciju tokom aktivacije/onboardinga. Postoji ranija izričita korisnička zabrana dirati taj ID; bez nove, konkretne dozvole ne implementirati ga niti mijenjati njegov status. Dok dozvola ne postoji, Val 5 može napredovati, ali se ne može označiti potpuno zatvorenim.
+3. **P2 routing:** nakon zavisnosti od pravila pristupa, `BA-routing-03/04` zatvarati zajedno samo ako jedan ograničeni query/API paket zaista rješava filtriranje opsega prije paginacije i daje tačan ukupan broj; prihvatanje prema fazama 0–3 audita 13 i E2E 02/15/42.
+4. **P2 templates:** razbiti `BA-templates-04`–`10` prema invariantama iz audita 16: konkurentnost checklisti i jedinstvenost u bazi (`04`, `10`), pouzdan auto-attach i config snapshot (`05`, `06`), jedinstvenost playbooka i verzijski preduvjet (`07`, `08`), te opsegom ograničena paginacija/truncation (`09`). Redoslijed se može prilagoditi potvrđenim zajedničkim W4/W3 zavisnostima; svaka grupa dobija vlastiti BA ID scope.
+5. **P3 templates/završni dokaz:** `BA-templates-11`–`13` (realtime isporuka, ograničeni bulk attach i izvršiva matrica kvarova/konkurentnosti), uz svih šest direktnih testova, povezane tickets/config/privacy testove i E2E 16 na završnom SHA-u.
+6. **BA-15 acceptance:** nezavisno od 16 otvorenih ID-eva, čekati korisnikov merge i full critical-flow run ID. Ciljani spec 42 4/4 ne zamjenjuje puni flow. Val 5 je finding-level zatvoren tek na 74/74; package/segment acceptance tek kada routing/templates gateovi i BA-15 full-flow gate imaju prihvaćen dokaz, bez potrebnih `skipped` poslova.
+
+Ne dodjeljivati brojeve novih W5 paketa niti počinjati implementaciju prije preciznog BA ID scopea, vlasnika, liste prihvatanja/testova i potrebnih odobrenja. Nema pristupa ciljnoj bazi niti izvršavanja migracija u ovom handoffu.
+
+## 10. Val 6 — async delivery i status-page workflows
+
+**Status:** W6.1–W6.17 zatvaraju zabilježeni status-page paketni niz; audit jedinica 29 je 19/19 zatvorena. To nije zatvaranje cijelog Vala 6: jedinice 17–21 i 28 i dalje imaju 90 otvorenih nalaza.
+
 - **W6.1 status-page resource-aware STAFF_ONLY read granica — završen** na SHA `e60e997`, CI `40732153002`.
 - Service-scoped staff odluka sada fail-closed pokriva overview, incident, service i ticket-linked read, autore i counters; public sanitizer koristi eksplicitnu allowlist projekciju. Time je zatvoren `BA-status-page-01`; dokaz je u [74-status-page-resource-aware-staff-reads.md](implementation/74-status-page-resource-aware-staff-reads.md).
 - Registar je sada **609 otvorenih / 83 zatvorenih / 692 ukupno**; paket nema novu migraciju.
@@ -433,12 +585,33 @@ Role assignment anomalije mogu postojati u aktuelnim podacima. Prvo report-only 
 - **W6.16 backdating guard (`BA-status-page-18`) — implementiran** na SHA `f8a76f9`, backend build + test zelen, frontend build + test zelen.
 - Incident `create` ograničava `startedAt` backdating: stariji od `maxStartedAtBackdateDays` (30 dana) bez `startedAtReason` baca `INCIDENT_BACKDATE_REQUIRES_REASON` (400). Audit beleži `backdated`, `backdatedDays`, `backdatedReason`. Time je zatvoren `BA-status-page-18`; dokaz je u kodu (unit specovi + integration scenariji).
 - **W6.17 BA-status-page-19 — zatvoren** na SHA `8c7344e`, finalni CI `40895868319` zelen. Dodana failure matrica, paralelni create na istom servisu i 100-incident bounded-read dokaz; nema nove DB migracije.
-- Val 6 je zaključen: svi početni nalazi `BA-status-page-01`–`BA-status-page-19` su zatvoreni. W6.18 nije planiran bez novog, dokazivog follow-up nalaza; aktivni rad je prešao na Val 7.
+- Zatvoren je status-page pod-scope: `BA-status-page-01`–`BA-status-page-19` su svi zatvoreni. Val 6 kao cjelina **nije** zaključen: wave plan i dalje dodjeljuje jedinice 17–21 i 28, sa ukupno 90 otvorenih nalaza. W6.18 nije planiran za status-page bez novog dokazivog follow-upa; preostali Val 6 moduli traže eksplicitne W6.x pakete i vlastiti acceptance.
 
-## 8. Val 7 — domain workflows
+## 11. Val 7 — domain workflows
 
-**Status:** u toku; audit plan svrstava jedinice 22–27 (`assets`, `problems`, `changes`, `knowledge-base`, `reports`, `search`) u WS-F / wave 7.<br>
-**Stanje nakon W7.6:** od 25 početnih P1 nalaza u ovih šest jedinica, W7.1 je zatvorio tri zajednička scope nalaza, W7.2 jedan asset graph nalaz, W7.3 jedan asset CAS nalaz, a W7.4 `BA-assets-04` reminder delivery nalaz; 19 P1 ostaje otvoreno. W7.5 je zatvorio P2 `BA-assets-05`, a W7.6 P2 `BA-assets-06`; svaki paket ima vlastiti zeleni CI dokaz prije nastavka.
+**Status:** u toku; Val 7 pokriva audit jedinice 22–27 (`assets`, `problems`, `changes`, `knowledge-base`, `reports`, `search`) u WS-F / wave 7. W7.1–W7.19 su paketni zapisi, ne dokaz da je svih 109 BA nalaza zatvoreno.
+
+### Aktuelni audit status (2026-11-04)
+
+| Izvor | Zatvoreno / ukupno | Otvoreno P1/P2/P3 | Napomena |
+| --- | ---: | ---: | --- |
+| [`22 — assets`](audits/22-assets.md) | 19/19 | 0 | Svi source nalazi zatvoreni; full assets E2E/Perf segment sign-off i dalje nije ostvaren. |
+| [`23 — problems`](audits/23-problems.md) | 1/19 | 6/9/3 (18) | Zatvoren je samo `BA-problems-01`; `BA-problems-02`–`19` otvoreni. |
+| [`24 — changes`](audits/24-changes.md) | 1/20 | 6/10/3 (19) | Zatvoren je samo `BA-changes-01`; `BA-changes-02`–`20` otvoreni. |
+| [`25 — knowledge-base`](audits/25-knowledge-base.md) | 0/19 | 4/11/4 (19) | Svi otvoreni. |
+| [`26 — reports`](audits/26-reports.md) | 0/19 | 2/12/5 (19) | Svi otvoreni. |
+| [`27 — search`](audits/27-search.md) | 0/13 | 1/7/5 (13) | Svi otvoreni. |
+| **Val 7 ukupno** | **21/109** | **19/49/20 (88)** | **Nezavršen val.** |
+
+W7.1–W7.19 zatvorili su 21 pojedinačni nalaz (19 assets + `BA-problems-01` + `BA-changes-01`); preostalih 88 nalaza nije dio tih closeouta. Asset redovi su formalno zatvoreni, uključujući izričitu owner acceptance iznimku za `BA-assets-16`; ta odluka nije green-CI tvrdnja niti full-segment waiver. Targeted W7.19 E2E [`41314175993`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41314175993) bio je 8/8, ali full scheduled E2E [`41283381903`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41283381903) nije bio zelen, a Perf smoke nije pokrenut. Zato full assets segment sign-off ostaje otvoren; detalji su u [W7.19 closeoutu](implementation/105-assets-concurrency-failure-matrix.md) i [audit 22](audits/22-assets.md).
+
+### Nastavak Vala 7
+
+1. Prije implementacije definisati W7.20 kao ograničen paket sa tačnim BA ID-evima, ownerom, testnim i DB/migration acceptanceom. Prioritet je 19 preostalih P1 nalaza: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01`–`02` i `BA-search-01`.
+2. Prvi kandidat za triage je faza P1 authorization/visibility u auditima 23–24 (posebno `BA-problems-02`–`05` i `BA-changes-02`–`05`). Provjeriti shared policy/dependency; ne spajati ih u jedan prevelik paket automatski. Zatim planirati preostale P1 workflow-recovery/delivery nalaze, pa P2/P3 prema faznim planovima iz pojedinačnih audita.
+3. Svaki paket zatvara samo navedene ID-eve uz vlastiti acceptance. Ne mijenjati susjedne findings ili severity/threshold. Nakon svakog closeouta ažurirati izvorni red, register/plan po standardnom postupku i ovaj wave snapshot.
+4. Val 7 može biti označen završen tek kada svih 109 dodijeljenih BA ID-eva ima zatvoren status i dokaz, a full assets E2E/Perf segment gate ima zabilježen prihvaćen rezultat. `BA-assets-16` owner acceptance i targeted W7.19 E2E ne zamjenjuju taj gate.
+
 
 ### W7.1 — očuvanje assignment scopea kroz domain viewere — završeno
 
@@ -612,48 +785,56 @@ Na W7.13 checkpointu W7.14 je bio naredni paket i čekao zasebno odobrenje.
 - Trenutni deklarisani zbir: **570 otvorenih / 122 zatvorena / 692 ukupno**; machine-readable: **573 otvorena / 108 zatvorenih / 11 historijskih**. Preegzistentna razlika od tri statusa ostaje.
 - U tom historijskom checkpointu, prije kasnije owner-directed closeout odluke, naredni scope je bio samo `BA-service-catalog-10` iz audita 15. Plan je bio reproducirati/profilerati 500-service katalog, bounded service/form/downtime readove i test 56; uzročnost `/services` long-taska nije proglašena dok se ne dokaže. Tada je nalaz ostao `otvoreno`; test 56 i prag 250 ms nisu mijenjani.
 
-### Statusna dopuna — BA-10 implementacijski checkpoint (2026-11-02)
+## 12. Val 8 — install, config/integrations, directory, Teams i extension (planiran)
 
-- Implementiran je bounded/paginirani read slice za service/category/form/downtime i frontend consumere; scope ostaje isključivo `BA-service-catalog-10`. Implementacijski detalji i rollout/rollback su u [auditu 15](audits/15-service-catalog.md). Nalazi 01–09 i 11–15 nisu zatvarani niti su registry brojevi/statusi mijenjani.
-- Lokalna provjera prije rebase-a: frontend full suite je prošao **430/430 suites, 1.668/1.668 tests**, kao i frontend build, i18n check i ciljano lint/formatiranje. Backend standardni Jest nije mogao izvršiti testove (5 suites / 0 tests) zbog nedostajućeg generated Prisma Clienta/enuma; backend `npm run build` prijavio je **3.380 TypeScript grešaka** počevši od nedostajućeg `src/generated/prisma/client`, pa se kaskadne greške ne mogu klasifikovati bez pravog klijenta. Privremeni stub/transpile-only smoke nije official gate.
-- Nema target-DB pristupa ni BA-10 migracije. Nisu završeni reproduction/profiling, query-plan/row/byte/time budget, stvarni 500/100k-service load fixture niti E2E/Perf. Test 500 servisa bio je mock collector fixture, ne DB/load test. Spec 56, njegova očekivanja i 250 ms prag nisu mijenjani; root cause nije potvrđen.
-- Na rebased checkpoint SHA `1b5b0422ab6882fd39164a3185e9b6fc64f8a34f`, frontend full suite je ponovljen (**430/430 suites, 1.668/1.668 tests**), frontend build/i18n, ciljano ESLint za BA-10 backend/frontend te `e2e` TypeScript `npx tsc --noEmit`; svi su prošli. Browser E2E/Perf nisu pokrenuti zbog nedostupnih `e2e/.env` i Docker. Nakon popravke TS4058 lokalni backend build i dalje je ograničen nedostajućim generated Prisma Clientom (3.366 dijagnostika; bez TS4058); ciljani ESLint je prošao.
-- Coolify log od 2026-11-02 09:06 prijavio je 14 TS4058 grešaka jer tri rekurzivna where-aliasa u in-memory katalog delegatima nisu bila exportovana. U commit `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e` ta tri tipa su exportovana. CI [`41419059330`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41419059330) na tom SHA-u je **success**: backend build/lint/Jest, frontend, PostgreSQL/Redis integration, container build/supply-chain i docs guard passed; `E2E critical flows`, `E2E install wizard` i image high/critical enforcement su `skipped`, Perf nije pokrenut. Backend build blocker je ovime otklonjen u CI.
-- Korisnik je potvrdio da je naredni Coolify redeploy prošao. Targeted CI [`41420600750`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420600750) za specs `42,56` i Perf smoke [`41420750853`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41420750853) oba su `workflow_dispatch` na SHA `0b1824faecba34f0c624a81c0ad8d4fbbca19a4e`; GitHub metadata za oba navodi `head_branch=master`. CI run je **failure** zbog E2E critical flows (6 passed / 2 failed / 0 flaky / 0 skipped) i CI gate; svi ostali aktivni build/test, integration, frontend, container i docs poslovi prošli su, dok su install wizard i image/provenance koraci navedeni u auditu 15 `skipped`. Oba imenovana spec-56 pada su početna navigacija na `https://desk.ba101.top/` (90 s `page.goto('/')` timeout i `chrome-error://chromewebdata/`); uzrok nije potvrđen. Perf smoke je **failure** na `GET /search` p95 972.53 ms (prag <500) i `POST /tickets/:id/messages` p95 1,131.40 ms (prag <1,000); application query budget je prošao (avg 1.888 preko 47,051 zahtjeva, gate 2.1). Ti k6 endpointi nisu service-catalog mjerenja. Oba runa ne zatvaraju BA-10; spec 56 i prag 250 ms ostaju nepromijenjeni, a detalji i EOF ograničenje raw log/artifact preuzimanja su u auditu 15.
-- Historijski push CI [`41415377244`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41415377244) na SHA `bc0f83a662850b08587209586b4c093cad089a9b` završio je **failure** na wiring snapshotu, digest-pinned image buildu i deployment-wide connection-budget step-u; frontend/docs guard su passed, E2E critical/install `skipped`, Perf nije pokrenut. Manifest commit `ab385a40359ffb92fcfb2372ba717dd0738c06fd` bio je docs-only i nije pokrenuo novi CI. Raniji targeted dispatch `42,56` odbijen je HTTP 403; kasniji dispatch rezultat je zabilježen iznad. Historijski neuspjeh nije trenutni build status i ne utvrđuje uzrok speca 56.
+**Status:** planiran, nije započet; nema odobrenih W8.1+ paketa ni zatvorenih nalaza. Dependency mapa definiše visoki nivo kao install/config/integrations/directory/Teams/extension; generisani owner/val plan dodjeljuje wave 8 audit jedinice 31–38.
 
-### Statusna dopuna — BA-10 closeout i naredni scope (2026-11-02)
+| Audit jedinica | Scope | Status prema generisanom planu |
+| --- | --- | ---: |
+| [`31 — install`](audits/31-install.md) | instalacija | 0/21 zatvoreno; 21 otvoreno |
+| [`32 — setup-checklist`](audits/32-setup-checklist.md) | setup checklist | 0/11; 11 otvorenih |
+| [`33 — policy-packs`](audits/33-policy-packs.md) | policy packs | 0/19; 19 otvorenih |
+| [`34 — service-onboarding`](audits/34-service-onboarding.md) | service onboarding | 0/20; 20 otvorenih |
+| [`35 — directory-sync`](audits/35-directory-sync.md) | directory sync | 0/23; 23 otvorena |
+| [`36 — teams`](audits/36-teams.md) | Teams | 0/20; 20 otvorenih |
+| [`37 — edge-extension`](audits/37-edge-extension.md) | edge extension | 0/21; 21 otvoren |
+| [`38 — branding`](audits/38-branding.md) | branding | 0/13; 13 otvorenih |
+| **Ukupno** | **wave 8** | **0/148 zatvoreno; 148 otvorenih (41 P1, 76 P2, 31 P3)** |
 
-- Korisnik je izričito naložio zatvaranje samo `BA-service-catalog-10` (P2). CI [`41431538084`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41431538084) na kodnom SHA `039992064bfea250d95a1b8fc177b59dd3bdf239` imao je zeleni CI gate i PostgreSQL BA-10 dokaz. E2E critical/install i image vulnerability enforcement bili su `skipped`; odvojeni Perf [`41431538128`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41431538128) ostao je crven samo na ticket-message/search pragovima, dok su BA-10 service i global query-budget gates prošli. To je owner-directed status exception, ne globalni Perf/E2E green sign-off; spec 56/prag 250 ms nisu mijenjani.
-- U tom checkpointu zatvoren je samo BA-10. BA-11 i svi ostali service-catalog nalazi su tada ostali otvoreni; BA-changes-08/13 su ostali otvoreni, a preklapanje je dokumentovano bez implicitnog zatvaranja. Scope nije proširen na ticket-message/search.
-- Kontrolni zbir u BA-10 checkpointu: deklarisano **569 otvorenih / 123 zatvorena / 692 ukupno**; machine-readable redovi **572 otvorena / 109 zatvorenih / 11 historijskih**. Preegzistentna razlika od tri statusa ostaje.
-- Tada naredni scope bio je samo `BA-service-catalog-11` (P2). BA-10 closeout, CI/Perf evidence, lokalna ograničenja, DB/migration i rollout/rollback ostaju u [106-service-catalog-10-owner-directed-closeout.md](implementation/106-service-catalog-10-owner-directed-closeout.md). Nije bilo target-DB pristupa ni BA-10 migracije.
+Prije prvog paketa napraviti W8 plan vođen zavisnostima, sa primarnim ownerom, tačnom BA ID listom, zajedničkim W4/W2/W3 preduvjetima, stvarnim integration/E2E dokazom, migracijskim/rollout planom i jasnim rollbackom. Ne pretpostavljati da su svi moduli u tabeli jedan paket. `30 — config-versioning` je prema aktuelnom mapiranju Val 3, a ne Val 8; ne duplirati ga zbog široke riječi „config” u dependency mapi. Val 8 može se planirati paralelno samo kada su zavisnosti i prioritet ownera potvrđeni; preporučeni naredni milestone je Val 5 (§9), a Val 7 ostaje otvoren i može se nastaviti po izboru vlasnika nakon pregleda zavisnosti.
 
-### Statusna dopuna — `BA-service-catalog-11` closeout (2026-11-02)
+## 13. Val 9 — health, observability, ops-health i docs
 
-- `BA-service-catalog-11` (P2) zatvoren je na finalnom testanom SHA `faf00f497032a1ed380f9500bf4c762c56a6aebe`. CI [`41444022450`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41444022450) je zelen za backend build/test, PostgreSQL/Redis integration (uključujući BA-11 real-PostgreSQL suite), frontend build/test, docs guard, container/supply-chain i CI gate.
-- Prvi CI [`41442784115`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784115) na SHA `4a0a0011d0f4b95f5a50267c54ebadc7bea57158` pao je zbog test-only `OpsOverview` cast greške i integration testa koji je dispatchovao raniji pending fixture red. Popravke su u `faf00f497032a1ed380f9500bf4c762c56a6aebe`; konačni CI prošao je i integration test. Perf [`41442784187`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41442784187) prošao je na runtime SHA-u `4a0a0011d0f4b95f5a50267c54ebadc7bea57158`; follow-up je mijenjao samo testove. E2E critical/install i uslovni image enforcement bili su `skipped`, ne passed.
-- Nema Prisma schema promjene ni BA-11 migracije; ciljna baza nije korištena. BA-changes-08/13 ostaju otvoreni. Trenutni zbir je **568 otvorenih / 124 zatvorena / 692 ukupno**, machine-readable **571 otvoreno / 110 zatvorenih / 11 historijskih**; severity ostaje P1=174, P2=368, P3=150, a preegzistentna razlika od tri statusa ostaje.
-- Detaljni acceptance, testovi, runovi, failed attempt, skips, local limits, rollout/rollback i sljedeći paket BA-11 opisani su u [107-service-catalog-11-durable-downtime-closeout.md](implementation/107-service-catalog-11-durable-downtime-closeout.md). Tada sljedeći kandidat BA-12 je naknadno zatvoren u zasebnom paketu ispod.
+**Status:** scope je mapiran na jedinice 39–42; nema još W9.x package plana. Generisani plan pokazuje **1/71 zatvoreno, 70 otvorenih (13 P1, 39 P2, 18 P3)**. `BA-docs-01` je zatvoren ranijim W2.7 paketom, ali se i dalje broji u Valu 9 prema direktnom wave assignmentu.
 
-### Statusna dopuna — `BA-service-catalog-12` closeout (2026-11-02)
+| Audit izvor | Zatvoreno / ukupno | Otvoreno |
+| --- | ---: | ---: |
+| [`39 — health`](audits/39-health.md) | 0/14 | 14 |
+| [`40 — observability`](audits/40-observability.md) | 0/18 | 18 |
+| [`41 — ops-health`](audits/41-ops-health.md) | 0/24 | 24 |
+| [`42 — docs`](audits/42-docs.md) | 1/15 | 14 |
+| **Val 9 ukupno** | **1/71** | **70** |
 
-- `BA-service-catalog-12` (P2) zatvoren je na finalnom testanom SHA `14dbb9451326074f777b5d6102773e88f06c2286`. CI [`41448717393`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717393) i Perf smoke [`41448717783`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41448717783) završili su `success` na tom SHA-u. Backend build/test, PostgreSQL/Redis integration, frontend, docs guard, container/supply-chain i CI gate prošli su; E2E critical/install i image high/critical enforcement bili su `skipped`, pa nema browser E2E/spec 56 sign-off.
-- `RoleGuard` regresijski testovi potvrđuju da service-scoped i OU-scoped ADMIN ne mogu globalno kreirati servise/kategorije; policy nije mijenjan. Service-scoped draft list je ograničen na dodijeljene service ID-jeve, public ACTIVE ostaje globalan, a cursor fingerprint veže trenutni scope. Nema Prisma schema promjene, migracije ni target-DB pristupa.
-- BA-12 Perf: `GET /services?take=100` p95 **28.68 ms**, max **361.41 ms**, payload p95/max **111.16 KB**, 1.200 zahtjeva; globalni query budget avg **2.094** preko **48.393** zahtjeva. To nije browser long-task rezultat; spec 56/prag `250 ms` nisu mijenjani.
-- Kontrolni zbir: deklarisano **567 otvorenih / 125 zatvorenih / 692 ukupno**; machine-readable source **570 otvorenih / 111 zatvorenih / 11 historijskih**. Severity ostaje P1=174, P2=368, P3=150; preegzistentna razlika od tri statusa ostaje.
-- Puni acceptance, local generated-Prisma blocker, disposable DB, skip list, rollout/rollback i evidence su u [108-service-catalog-12-scoped-catalog-admin-closeout.md](implementation/108-service-catalog-12-scoped-catalog-admin-closeout.md). `BA-service-catalog-13` (P3) je sljedeći kandidat u checkpointu BA-12; nakon BA-01 closeouta trenutni naredni service-catalog kandidat je P1 `BA-service-catalog-02`, bez započetog rada i uz zaseban acceptance.
+Planirati W9 prema health capability ugovorima, strukturisanim logovima/traceovima, ograničenim metrikama i alert/recovery/runbook zahtjevima iz audit izvora 39–42. W9 paketi trebaju imati dokaze oporavka alarma i rada više instanci; ne svoditi ih na dodavanje metrika bez operativnog prihvatanja.
 
-### Statusna dopuna — `BA-service-catalog-01` closeout (2026-11-02)
+## 14. Val 10 — CLI, data repair i migration closure (planiran)
 
-- `BA-service-catalog-01` je zatvoren na finalnom kodnom/testanom SHA `18456f845f07b67207a9fb8e4ba12ce1bdf79247`, uz zeleni CI [`41456326648`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326648). Backend full Jest/build/lint, PostgreSQL/Redis integration (uključujući registrovani BA-01 concurrency suite), frontend, docs guard, container/supply-chain i CI gate su passed. E2E critical/install i conditional image enforcement bili su `skipped`; nema browser E2E/spec 56 sign-offa.
-- Odvojeni Perf [`41456326902`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41456326902) je failure na search p95 `859.54 ms` prema `<500 ms` i ticket-message p95 `1026.25 ms` prema `<1000 ms`; service-catalog p95 `99.72 ms` i query-budget avg `2.092` prema `2.1` prošli su. Nepovezani search/message kod nije mijenjan; spec 56/prag `250 ms` nisu mijenjani.
-- `updateServiceFormVersion` sada serializuje ticket FK bind i schema edit preko `FOR UPDATE`, fresh status/ticket-count provjere unutar `ReadCommitted` transakcije i nepromijenjenog HTTP 409 contracta. Config snapshot `applyCatalogSnapshot` ostaje otvoreni BA-02. Nema Prisma migracije ni target-DB promjene. Failed attempts, local limits, exact skip statusi i rollback su u [109-service-catalog-01-form-version-toctou-closeout.md](implementation/109-service-catalog-01-form-version-toctou-closeout.md).
-- Kontrolni zbir u BA-01 checkpointu (historijski): deklarisani **566 otvorenih / 126 zatvorenih / 692 ukupno**; machine-readable **569 otvorenih / 112 zatvorenih / 11 historijskih**. `service-catalog` je tada imao **11 otvorenih / 4 zatvorena**; BA-02 je kasnije zatvoren odvojeno.
+**Status:** završni zajednički workstream prema [konsolidovanom auditu §10](audits/45-consolidated-backend-audit.md); u `backend-findings-plan.json` nema direktno dodijeljenih BA ID-eva. Ovo je inventar i operativno zatvaranje već dodijeljenih BA obaveza, a ne novi skup u koji se prebacuju otvoreni nalazi.
 
-### Statusna dopuna — `BA-service-catalog-02` closeout (2026-11-02)
+Ulazni uslov je da W1–W9 imaju zatvoren ili izričito razriješen BA scope i da su svi popravni/migracijski postupci povezani s tačnim vlasničkim ID-evima. W10 treba zaključiti inventar svih CLI/data-repair/migration putanja; read-only klasifikator/preflight; tačne izvorne/ciljne verzije sheme; expand/backfill/verify/contract; očekivani broj redova; backup/restore/recovery plan; kvarove i forward-recovery postupak; te vlasnika ručnog release migratora. Završetak W10 dokazuje se policy/CI replayom i testovima oporavka na privremenoj bazi, a ne pokretanjem na ciljnoj/produkcijskoj bazi. U ovom handoffu migracije se ne izvršavaju.
 
-- `BA-service-catalog-02` (P1) zatvoren je na implementacijskom i testanom SHA `32bf508036bffc2ba9ac07094f04e952edb5de08`. CI [`41481182959`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481182959) je success za backend build/full Jest, PostgreSQL/Redis integration, frontend build/test, docs guard, container/supply-chain i CI gate. E2E critical/install i uslovni image enforcement bili su `skipped`; nema browser/spec 56 sign-offa.
-- Perf [`41481183334`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41481183334) je failure na `POST /tickets/:id/messages` p95 `1712.97 ms` / prag `<1000 ms`; service-catalog p95 `69.31 ms`, payload `111.16 KB`, catalog contract failures `0` i query-budget avg `2.091` / limit `2.1` prošli su. Ticket-message nije dio BA-02 i nije mijenjan. Spec 56/prag `250 ms` nisu mijenjani.
-- Nema Prisma schema promjene, migracije ni target-DB pristupa; PostgreSQL/Redis integration je pokrenut na disposable CI bazi, a lokalni `DATABASE_URL` nedostajao je. Rollout je kod-only: pauzirati activation/rollback tokom miješanog starog/novog backend rollouta; pri povratku starog koda ponovo pauzirati do zaštićenog redeploya. Potpuni acceptance, local skips, error/rollback contract i evidence su u [110-service-catalog-02-config-snapshot-invariants.md](implementation/110-service-catalog-02-config-snapshot-invariants.md).
-- Tekući deklarisani zbir nakon BA-15 closeouta: **555 otvoren / 137 zatvoren / 692 ukupno**; machine-readable source: **558 otvoren / 123 zatvoren / 11 historijskih** (pre-existing razlika od tri statusa ostaje). `service-catalog` ima **0 otvorenih / 15 zatvorenih** (4 P1, 8 P2, 3 P3 ukupno). BA-03 je zatvoren po izričitom owner-directed zahtjevu nakon mergea na `master` i green CI/inventory runa [`41501000022`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41501000022), koji je našao 0 patterna u 205 FormVersion zapisa; E2E install/critical bili su skipped i nema spec 56 sign-offa. Detalji su u [111 BA-03 closeoutu](implementation/111-service-catalog-03-regex-redos-closeout.md). P1 `BA-service-catalog-04` zatvoren je owner-directed 2026-11-02 nakon korisnikove potvrde mergea na `master` i uspješnog redeploya; remote `master`/Arena refovi su `bd9ab32` (parent `88ad398`), CI `41511684641` na `88ad398` je success; merged-PR pretraga nije našla PR, a redeploy nije nezavisno provjeren. Korisnik je izabrao globalni, reason-audited `requireCoverage=false` override. Finalni CI [`41511684641`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41511684641) na SHA `88ad398` je **success** za backend/full Jest, PostgreSQL/Redis integration, frontend, docs, container/supply-chain i gate. E2E critical/install, inventory i conditional image enforcement bili su `skipped`; nema spec 56 sign-offa. Korisnik je prijavio redeploy, koji nije nezavisno provjeren. Raniji CI failures i Perf search failure su u [112 BA-04 checkpointu](implementation/112-service-catalog-04-routing-coverage-closeout.md). `BA-changes-08`/`13` ostaju otvoreni i nisu dio BA-03. `BA-service-catalog-05` zatvoren je owner-directed nakon korisnikove prijave urednog redeploya 2026-11-02; kodni CI [`41529212182`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212182) je passed, a odvojeni Perf [`41529212249`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41529212249) je failure samo na nepovezanom ticket-message p95. E2E/inventory bili su skipped; deployment nije nezavisno provjeren. Detalji su u [113 BA-05 closeoutu](implementation/113-service-catalog-05-concurrent-form-activation.md). `BA-service-catalog-06` zatvoren je owner-directed nakon zelenog CI-ja [`41537673319`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41537673319) na `964c8f4`; Perf [`41537673253`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41537673253) je failure samo na nepovezanom ticket-message p95, a E2E/inventory su skipped. Detalji su u [114 closeoutu](implementation/114-service-catalog-06-form-version-create-race.md). `BA-service-catalog-07` zatvoren je owner-directed nakon izričite korisničke dozvole uz zeleni backend CI/PostgreSQL integration run `41628259091` i Perf smoke `41628258814` na `65bad6e7`; E2E poslovi su skipped, bez spec 56 sign-offa ([115 closeout](implementation/115-service-catalog-07-downtime-overlap-race.md)). `BA-service-catalog-08` zatvoren je owner-directed 2026-11-03 nakon izričite korisničke dozvole; CI `41638462836` i Perf `41638462783` na `5415f502` su passed, uključujući real PostgreSQL race suite. E2E/inventory i image-enforcement bili su skipped; nema spec 56 sign-offa ([116 closeout](implementation/116-service-catalog-08-category-parent-cycle-race.md)). `BA-service-catalog-09` zatvoren je owner-directed uz CI `41662410362` success; korisnik je prijavio uspješan redeploy i primijenjenu migraciju, koji nisu nezavisno provjereni. Perf `41662410321` ostaje failure samo na nepovezanim search/ticket-message pragovima, a service-catalog p95/query-budget su passed ([118 closeout](implementation/118-service-catalog-09-owner-directed-closeout.md)). `BA-service-catalog-13` (P3 caller-supplied reason contract) zatvoren je owner-directed 2026-11-03 uz izričitu korisničku dozvolu; CI `41697055454` je success, a Perf `41697055530` je failure samo na nepovezanom search p95, uz passed service-catalog/query-budget gates ([119 closeout](implementation/119-service-catalog-13-caller-supplied-change-reasons.md)). `BA-service-catalog-14` zatvoren je owner-directed nakon finalnog CI-ja [`41728680530`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41728680530) success na SHA `7dd9c05`; E2E/inventory su skipped, a Perf nije pokrenut na finalnom SHA ([120 closeout](implementation/120-service-catalog-14-incident-read-fail-closed.md)). `BA-service-catalog-15` (P3) zatvoren je nakon zelenih finalnih CI/Perf runova `41793987045`/`41795380371` na istom SHA-u; test-matrix inventory i ticket-message correction su dokumentovani u [121 closeoutu](implementation/121-service-catalog-15-executable-test-matrix.md). Sljedeći nalaz nije započet u ovom scopeu.
+Prije početka razbiti W10 u ograničene W10.x pakete s linkovima na konkretne migracije/CLI alate i pripadajuće BA ID-eve. Ako postupak ne odgovara postojećem BA ID-u, ne evidentirati zatvaranje BA statusa bez novog odobrenja vlasnika audita.
+
+## 15. Val 11 — full regression, recovery, rescore i završni acceptance gate
+
+**Status:** posljednji audit-implementation gate; nije započet. Naziv i pozicija su usklađeni s [konsolidovanim auditom §10](audits/45-consolidated-backend-audit.md). Valovi 10 i 11 nemaju zaseban BA ID bucket; oni potvrđuju da su raniji finding waves i operativne obaveze zaista zatvoreni.
+
+### Strogi kriteriji da se audit implementacija može označiti završena
+
+1. Svih **692/692** izvornih BA ID-eva imaju status `zatvoreno` i vlastiti dokaz prihvatanja; nema otvorenih P0/P1 ni nerazriješenih P2/P3. Izuzeci koje je vlasnik prihvatio moraju biti posebno navedeni i ne smiju se prikazati kao „potpuno implementirano” ako ID ostaje otvoren.
+2. Izvorne audit tabele, generisani plan, globalni registar i closeout evidencija su međusobno sljedivi i usaglašeni. Deset trenutno poznatih razlika između izvornih/globalnih statusa ostaje netaknuto do izričite odluke korisnika; W11 ih mora riješiti uz odobrenje ili dokumentovati kao formalni blocker/exception, ne ignorisati.
+3. Svi direktni W1–W9 scopeovi su zatvoreni; W10 CLI/data-repair/migration inventar i dokazi oporavka na privremenoj bazi su kompletni; nijedan obavezni acceptance gate nije `skipped` ili `not run`.
+4. Na jednom finalnom testanom SHA-u prolaze kompletni backend/Prisma, PostgreSQL/Redis, frontend/docs, container/supply-chain, concurrency/failure/recovery i multi-replica testovi, full critical-flow E2E, install-wizard E2E i traženi Perf gateovi. BA-15 full-flow i assets full E2E/Perf sign-off moraju imati zasebno zabilježen prihvaćen rezultat; targeted runovi ih ne zamjenjuju.
+5. Svih 44 audita se ponovo provjere prema završnom kodu; severity/ocjena se ne mijenja administrativno. Objaviti novu ocjenu, završni pregled 692 ID-a, SHA/run linkove, sve skip/failure/exception odluke i migration/rollout status.
+
+Kad su ovi kriteriji zadovoljeni i korisnik prihvati završni izvještaj, Val 11 prolaz znači **backend audit implementacija završena**. To ne znači da je sistem deployan: produkcijski release, target DB migracije i deployment ostaju odvojena korisnička odluka i nisu odobreni ovim planom.
