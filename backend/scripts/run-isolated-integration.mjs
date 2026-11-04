@@ -37,6 +37,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
   "src/modules/routing/routing-critical-matrix.integration.spec.ts",
+  "src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",
   "src/modules/service-catalog/service-downtime-window-overlap.integration.spec.ts",
   "src/modules/service-catalog/service-category-parent-race.integration.spec.ts",

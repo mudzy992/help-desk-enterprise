@@ -1,7 +1,20 @@
 import assert from "node:assert/strict";
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
-import { URL } from "node:url";
+import { URL, fileURLToPath } from "node:url";
 import { buildDatabaseName, integrationSpecs, withDatabaseName } from "./run-isolated-integration.mjs";
+
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function discoverServiceCatalogIntegrationSpecs(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) return discoverServiceCatalogIntegrationSpecs(file);
+    if (!entry.isFile() || !entry.name.endsWith(".integration.spec.ts")) return [];
+    return [path.relative(backendRoot, file).split(path.sep).join("/")];
+  });
+}
 
 test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/common/principal-context/role-assignment-analyzer.integration.spec.ts"));
@@ -38,6 +51,10 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/routing/routing-critical-matrix.integration.spec.ts"),
     "nedostaje obavezni routing critical-matrix PostgreSQL shard",
+  );
+  assert.ok(
+    integrationSpecs.includes("src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts"),
+    "nedostaje obavezni BA-09 service-catalog optimistic-concurrency PostgreSQL shard",
   );
   assert.ok(
     integrationSpecs.includes("src/modules/service-catalog/service-catalog-pagination.integration.spec.ts"),
@@ -102,6 +119,19 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     assert.match(name, /^[a-z0-9_]+$/u);
     assert.ok(name.length <= 63);
   }
+});
+
+test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", () => {
+  const directory = path.join(backendRoot, "src/modules/service-catalog");
+  const discovered = discoverServiceCatalogIntegrationSpecs(directory).sort();
+  const registered = integrationSpecs
+    .filter((spec) => spec.startsWith("src/modules/service-catalog/") && spec.endsWith(".integration.spec.ts"))
+    .sort();
+  assert.deepEqual(
+    registered,
+    discovered,
+    "svaki service-catalog integration fajl mora biti izvršen u isolated PostgreSQL runneru",
+  );
 });
 
 test("mijenja samo database pathname u URL-u", () => {
