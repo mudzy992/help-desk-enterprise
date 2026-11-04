@@ -6,13 +6,63 @@ import { signIn } from '../helpers/sign-in';
 
 type UnitNode = {
   readonly id: string;
-  readonly children?: readonly UnitNode[];
+  readonly ouPath: string;
+  readonly children: readonly UnitNode[];
 };
 
 type NamedRecord = {
   readonly id: string;
   readonly name: string;
 };
+
+type SettingEntry = {
+  readonly key: string;
+  readonly value: unknown;
+};
+
+type UnitWithAncestors = {
+  readonly id: string;
+  readonly ouPath: string;
+  readonly ancestorIds: readonly string[];
+  readonly isLeaf: boolean;
+};
+
+type OnboardingResponse = {
+  readonly status: string;
+  readonly routingSuggestion: string | null;
+};
+
+const routingCoverageSettingKey = 'private.ticket.routing.requireCoverage';
+const onboardingRoutingReference = (serviceId: string) => `routing:${serviceId}`;
+
+function flattenUnitTree(tree: readonly UnitNode[]): readonly UnitWithAncestors[] {
+  const units: UnitWithAncestors[] = [];
+  const visit = (unit: UnitNode, ancestorIds: readonly string[]) => {
+    units.push({ id: unit.id, ouPath: unit.ouPath, ancestorIds, isLeaf: unit.children.length === 0 });
+    for (const child of unit.children) visit(child, [...ancestorIds, unit.id]);
+  };
+  for (const root of tree) visit(root, []);
+  return units.sort((left, right) =>
+    left.ouPath < right.ouPath ? -1 : left.ouPath > right.ouPath ? 1 :
+      left.id < right.id ? -1 : left.id > right.id ? 1 : 0,
+  );
+}
+
+async function readSetting(api: ApiClient, key: string): Promise<unknown> {
+  const entries = await api.requestJson<readonly SettingEntry[]>('/settings');
+  return entries.find((entry) => entry.key === key)?.value ?? null;
+}
+
+async function setRoutingCoverageSetting(api: ApiClient, value: boolean): Promise<void> {
+  await api.requestJson('/settings', {
+    method: 'PUT',
+    body: JSON.stringify({
+      key: routingCoverageSettingKey,
+      value,
+      reason: 'BA-routing-02 targeted E2E coverage validation',
+    }),
+  });
+}
 
 type ServiceRecord = NamedRecord & {
   readonly slug: string;
@@ -555,6 +605,81 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       if (!response.ok && response.status !== 404) {
         console.warn(`[e2e] cleanup of service ${service.id} returned HTTP ${response.status}`);
       }
+    }
+  });
+
+  // Keep this targeted API E2E cleanup-safe: backend PostgreSQL integration covers validation persistence and finalization audit/warning.
+  test('persisted onboarding suggestion respects strict coverage and the explicit override', async () => {
+    test.setTimeout(90_000);
+    const env = readE2EEnvironment();
+    const api = new ApiClient();
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+    const previousCoverageSetting = await readSetting(api, routingCoverageSettingKey);
+    const restoreCoverageSetting = typeof previousCoverageSetting === 'boolean'
+      ? previousCoverageSetting
+      : true;
+    const tree = await api.requestJson<readonly UnitNode[]>('/organizational-units/tree');
+    const units = flattenUnitTree(tree);
+    const partialOrigin = units.find((unit) => unit.isLeaf && unit.ancestorIds.length > 0);
+    const groups = await api.requestJson<readonly NamedRecord[]>('/routing/groups');
+    const targetGroup = groups[0];
+    if (partialOrigin === undefined || targetGroup === undefined) {
+      throw new Error('[e2e] a non-root leaf organizational unit and routing group are required.');
+    }
+
+    let serviceId: string | null = null;
+    let ruleId: string | null = null;
+    try {
+      await setRoutingCoverageSetting(api, true);
+      const service = await createDraftService(api, 'routing-coverage-suggestion');
+      serviceId = service.id;
+      const rule = await api.requestJson<{ readonly id: string }>('/routing/rules', {
+        method: 'POST',
+        body: JSON.stringify({
+          originUnitId: partialOrigin.id,
+          serviceId,
+          groupId: targetGroup.id,
+          reason: 'BA-routing-02 incomplete persisted coverage setup',
+        }),
+      });
+      ruleId = rule.id;
+      const started = await api.requestJson<OnboardingResponse>(
+        `/services/${serviceId}/onboarding`,
+        { method: 'POST' },
+      );
+      expect(started.status).toBe('IN_PROGRESS');
+      expect(started.routingSuggestion).toBeNull();
+
+      const strictCoverage = await api.requestJson<OnboardingResponse>(
+        `/services/${serviceId}/onboarding`,
+      );
+      expect(strictCoverage.routingSuggestion).toBeNull();
+
+      await setRoutingCoverageSetting(api, false);
+      const overriddenCoverage = await api.requestJson<OnboardingResponse>(
+        `/services/${serviceId}/onboarding`,
+      );
+      expect(overriddenCoverage.routingSuggestion).toBe(onboardingRoutingReference(serviceId));
+    } finally {
+      if (serviceId !== null) {
+        try {
+          const onboardingResponse = await api.request(`/services/${serviceId}/onboarding`);
+          if (onboardingResponse.ok) {
+            const onboarding = await onboardingResponse.json() as OnboardingResponse;
+            if (onboarding.status === 'IN_PROGRESS') {
+              await api.request(`/services/${serviceId}/onboarding/abandon`, { method: 'POST' });
+            }
+          }
+          await deleteRoutingRule(api, ruleId, partialOrigin.id, serviceId);
+          const deleteResponse = await api.request(`/services/${serviceId}`, { method: 'DELETE' });
+          if (!deleteResponse.ok && deleteResponse.status !== 404) {
+            console.warn(`[e2e] cleanup of routing-coverage service ${serviceId} returned HTTP ${deleteResponse.status}`);
+          }
+        } catch (error) {
+          console.warn(`[e2e] cleanup of routing-coverage service ${serviceId} failed: ${String(error)}`);
+        }
+      }
+      await setRoutingCoverageSetting(api, restoreCoverageSetting);
     }
   });
 

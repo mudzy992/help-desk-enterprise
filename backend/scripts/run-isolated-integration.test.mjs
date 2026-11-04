@@ -53,6 +53,12 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     "nedostaje obavezni routing critical-matrix PostgreSQL shard",
   );
   assert.ok(
+    integrationSpecs.includes(
+      "src/modules/service-onboarding/service-onboarding-routing-coverage.integration.spec.ts",
+    ),
+    "nedostaje BA-routing-02 onboarding routing-coverage PostgreSQL shard",
+  );
+  assert.ok(
     integrationSpecs.includes("src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts"),
     "nedostaje obavezni BA-09 service-catalog optimistic-concurrency PostgreSQL shard",
   );
