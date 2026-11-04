@@ -1,9 +1,9 @@
 # W5.48 — BA-templates-02: fail-closed settings enforcement
 
-- **Status:** branch CI passed; `BA-templates-02` remains open pending its scheduled full critical-flow E2E acceptance. Perf smoke did not run for this package because its active-branch path filter is limited to service-catalog/performance files.
+- **Status:** W5.48 branch CI je prošao; `BA-templates-02` je naknadno zatvoren po izričitoj owner-directed uputi 2026-11-04. E2E 16 je ostao `skipped`/nepokrenut na finalnom SHA-u, pa puni Val-5 acceptance nije proglašen završenim.
 - **Authorized scope:** only `BA-templates-02`, user-approved 2026-11-04.
 - **Branch:** `arena/864951a6-help-desk-enterprise`.
-- **Next P1:** `BA-templates-03` — concurrent playbook-definition updates; tracked, not started.
+- **Next P1 at the W5.48 checkpoint:** `BA-templates-03` — concurrent playbook-definition updates; subsequently implemented in W5.49 and closed owner-directed together with 01/02.
 
 ## Finding and acceptance boundary
 
@@ -32,11 +32,15 @@ The pre-fix loader swallowed each settings read error. An installation whose `re
 - Perf smoke did not trigger: `.github/workflows/perf-smoke.yml` path-filters active-branch runs to service-catalog/performance files; W5.48 changes no such path. Latest Perf run [`41850863346`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850863346) passed on earlier SHA `c098ad4`, but is not a W5.48/current-SHA result. No thresholds were changed and no manual Perf dispatch was made.
 - No target DB was used, no migration was executed, and no full E2E was manually dispatched.
 
-## Val-5 sequence and closure state
+## Val-5 sequence and closure state at the W5.48 checkpoint
 
-- `BA-templates-01` remains open pending its own final relevant E2E/acceptance evidence.
-- `BA-templates-02` is the current authorized package. Its finding status remains **open** until the scheduled full critical-flow E2E acceptance on the current code lineage is reviewed; a green unit test or CI alone does not close it. The push E2E jobs were skipped, and there is no current-SHA Perf run.
-- `BA-templates-03` is the next P1 in sequence, but has not started and is not bundled into W5.48.
-- `BA-routing-02` and BA-15 full critical-flow acceptance remain independent pending gates.
+- At the W5.48 checkpoint, `BA-templates-01` and `BA-templates-02` were open pending relevant E2E acceptance; this historical state is superseded by the owner-directed closeout below.
+- At that checkpoint, `BA-templates-03` was the next P1 and was not part of W5.48. It was subsequently implemented in W5.49 and closed with 01/02 per the 2026-11-04 owner instruction.
+- `BA-routing-02` and the BA-15 full critical-flow acceptance were independent gates.
 
 There is no Prisma schema change, migration, target-database action, deployment, PR, merge, or threshold change in this package.
+
+
+## Subsequent owner-directed closeout (2026-11-04)
+
+Korisnik je izričito zatražio zatvaranje `BA-templates-02` zajedno s već implementiranim nalazima 01 i 03. W5.48 CI [`41876403874`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41876403874) prošao je generated-Prisma backend i PostgreSQL/Redis integration suite; E2E poslovi su bili `skipped`. Perf nije pokrenut za W5.48 zbog path filtera. Noviji zajednički CI [`41915186268`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186268) i Perf [`41915186314`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186314) prošli su na `70f52e4b`, ali E2E 16 nije izvršen. Run `41916949315` je na starijem SHA-u `a625446c` i odnosi se na spec 42, ne templates E2E 16. Status je zatvoren owner-directed; relevantni templates E2E/finalni Val-5 acceptance ostaje pending i nije predstavljen kao passed. Nije bilo target-DB pristupa ni migracije. Ovaj agent nije otvorio PR niti izvršio merge/deploy; read-only GitHub pokazuje `master` na `70f52e4b`, bez deployment potvrde.

@@ -4852,7 +4852,7 @@
     {
       "id": "BA-templates-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "16-templates.md",
       "owner": "WS-F",
       "wave": 5
@@ -4860,7 +4860,7 @@
     {
       "id": "BA-templates-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "16-templates.md",
       "owner": "WS-F",
       "wave": 5
@@ -4868,7 +4868,7 @@
     {
       "id": "BA-templates-03",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "16-templates.md",
       "owner": "WS-F",
       "wave": 5

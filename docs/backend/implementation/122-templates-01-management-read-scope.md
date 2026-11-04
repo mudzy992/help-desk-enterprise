@@ -1,7 +1,7 @@
 # W5.47 — BA-templates-01: izolacija management reads
 
-**Status:** implementacija i CI/izolirani PostgreSQL dokaz su na `c098ad4ee102bca3ed84745080afd1175867ab5c`; `BA-templates-01` ostaje otvoren dok relevantni E2E 16 i završni acceptance ne budu potvrđeni.
-**Scope:** samo shared response-template i playbook management list/get; ne zatvara BA-templates-02/03 niti susjedne nalaze.
+**Status:** implementacija i CI/izolirani PostgreSQL dokaz su na `c098ad4ee102bca3ed84745080afd1175867ab5c`; status `BA-templates-01` zatvoren je 2026-11-04 po izričitoj owner-directed uputi. E2E 16 nije izvršen na finalnom SHA-u i ostaje gate za puni Val-5 acceptance; detalji su u završnom dodatku.
+**W5.47 implementation scope:** samo shared response-template i playbook management list/get; nije implementirao BA-templates-02/03 niti susjedne nalaze. Njihovi kasniji statusi zatvaranja dokumentovani su u owner-directed closeout dodatku ispod.
 
 ## Nalaz i granica paketa
 
@@ -45,4 +45,9 @@ Paket mijenja samo čitanje shared resursa. Personal templates, pickerovo namjer
 4. Global manager, superadmin i personal-template putanje zadržavaju postojeće ponašanje — pokriveno postojećim targeted testovima.
 5. Relevantni E2E 16 i svi required acceptance gateovi moraju biti `passed` na prihvaćenom finalnom SHA-u. Push CI `41850862952` je E2E critical/install `skipped`; scheduled E2E `41790672838` je na starijem SHA-u i pao je. Zato E2E acceptance ostaje **pending**; `skipped`/`not run` se ne računaju kao passed.
 
-`BA-templates-01` i Val 5 ostaju otvoreni do ispunjenja završnih acceptance gateova; status izvornog nalaza i generisanog plana nije mijenjan. Nema target-DB pristupa niti migracije.
+Ovo je historijski pre-closeout zapis. Status `BA-templates-01` i generisani plan su naknadno zatvoreni po owner-directed uputi, uz E2E 16 ograničenje dokumentovano ispod. Nema target-DB pristupa niti migracije.
+
+
+## Owner-directed closeout (2026-11-04)
+
+Korisnik je izričito zatražio zatvaranje `BA-templates-01` uz paketno dokumentovanje. CI [`41850862952`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850862952) na `c098ad4` prošao je generated-Prisma backend suite i real PostgreSQL/Redis integration; nakon harness korekcije CI job je uključio `management-read-scope.integration.spec.ts`. Perf [`41850863346`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850863346) prošao je na istom SHA-u. Noviji zajednički CI [`41915186268`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186268) i Perf [`41915186314`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186314) prošli su na SHA `70f52e4b`. Push E2E poslovi su bili `skipped`; `41916949315` je spec-42 run na starijem SHA-u `a625446c`, ne E2E 16. Status je zatvoren po izričitoj owner-directed uputi; ne tvrdi se da je E2E 16 prošao. Puni Val-5 acceptance ostaje zaseban pending gate. Nije korištena ciljna baza niti migracija.

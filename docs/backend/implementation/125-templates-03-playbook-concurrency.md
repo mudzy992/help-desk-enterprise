@@ -3,7 +3,7 @@
 - **Date:** 2026-11-04
 - **Branch:** `arena/864951a6-help-desk-enterprise`
 - **Scope:** `BA-templates-03` only — stale/concurrent playbook definition updates.
-- **State:** code and tests added; push-triggered CI and Perf passed. The scheduled E2E/Val-5 acceptance gate remains pending, so the finding stays open.
+- **State:** code, direct tests, isolated PostgreSQL race test, push CI and Perf passed; `BA-templates-03` was subsequently closed per explicit owner-directed instruction together with 01/02. E2E 16 remained skipped, so full Val-5 acceptance is still pending.
 
 ## Change
 
@@ -36,7 +36,12 @@ The existing `version` meaning is intentionally preserved: it describes the chec
 
 ## Acceptance and boundary
 
-- `BA-templates-03` stays open until the scheduled relevant E2E/final Val-5 acceptance is reviewed on the current code lineage.
-- `BA-templates-01`, `BA-templates-02`, `BA-templates-04` onward, routing findings, and BA-15 acceptance remain independent.
-- No target database, migration, deployment, PR, merge, Perf-threshold change, or manual E2E dispatch was performed.
+- At the W5.49 checkpoint, `BA-templates-03` remained open pending scheduled E2E/final Val-5 acceptance. This historical status was superseded by the owner-directed 2026-11-04 closeout below.
+- `BA-templates-01/02` were independent of W5.49 at that checkpoint; both were later closed together with 03. `BA-templates-04` onward, routing findings, and BA-15 acceptance remain separate.
+- No target database, migration, deployment, PR, merge, Perf-threshold change, or manual E2E dispatch was performed in W5.49.
 - Playbook update clients must send the loaded `expectedUpdatedAt`; the current frontend editor does so. The server rejects a missing revision rather than silently reverting to last-write-wins.
+
+
+## Subsequent owner-directed closeout (2026-11-04)
+
+Po izričitoj korisničkoj uputi `BA-templates-03` je zatvoren zajedno s `BA-templates-01/02`. W5.49 CI [`41886832531`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41886832531) na `d983943` i Perf [`41886832553`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41886832553) prošli su; registrovani PostgreSQL dual-writer integration suite bio je dio CI integration joba. Noviji zajednički CI [`41915186268`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186268) i Perf [`41915186314`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186314) prošli su na `70f52e4b`. E2E install/critical-flow poslovi su bili `skipped`, a run `41916949315` na ranijem `a625446c` nije pokretao templates E2E 16. Status je owner-directed zatvoren, uz izričito pending templates E2E 16/finalni Val-5 acceptance; nema tvrdnje o E2E sign-offu.
