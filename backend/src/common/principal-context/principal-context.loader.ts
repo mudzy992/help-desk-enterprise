@@ -151,6 +151,20 @@ export class PrincipalContextLoader {
     );
   }
 
+  /**
+   * Bypass every request/process/Redis cache for revocation-sensitive work such
+   * as rendering held digest content. The current roles and group memberships
+   * are read together in one database snapshot; callers must fail closed on an
+   * unavailable read.
+   */
+  loadAuthoritatively(subjectId: string): Promise<PrincipalContext | null> {
+    const id = subjectId.trim();
+    if (id.length === 0) {
+      return Promise.resolve(null);
+    }
+    return loadPrincipalContext(this.prisma, id);
+  }
+
   private async loadFromCache(
     id: string,
     durableAuthority?: PrincipalAuthoritySnapshot,
@@ -166,8 +180,7 @@ export class PrincipalContextLoader {
         : null;
     const cached = await readCachedPrincipalContext(client, id, {
       localCandidate,
-      onMiss: (reason) =>
-        tracePrincipalContextCache(`redis_miss_${reason}`),
+      onMiss: (reason) => tracePrincipalContextCache(`redis_miss_${reason}`),
       onLocalHit: () => tracePrincipalContextCache('local_pointer_hit'),
     });
     if (cached !== null) {

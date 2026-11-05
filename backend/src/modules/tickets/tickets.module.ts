@@ -186,6 +186,7 @@ import { ServiceFormsConfigurationLoader } from '../service-catalog/service-form
     TicketRealtimeHub,
     TicketAccessPolicyBinder,
     TicketCloseCodesConfigurationLoader,
+    TicketConfidentialConfigurationLoader,
     TicketApprovalsConfigurationLoader,
     // M7 B5: problems read the same impact/urgency matrix through
     // resolveTicketPriority, so the switch has to travel with it.
