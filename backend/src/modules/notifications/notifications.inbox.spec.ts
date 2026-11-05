@@ -1,3 +1,6 @@
+import { runWithRequestId } from '../../common/request-context/request-context.storage';
+import { loadActorGroupMemberships } from '../../common/cache/scope-catalog-cache';
+import { countUnreadNotifications } from './count-unread-notifications';
 import { fanOutInAppNotifications } from './fan-out/fan-out-in-app-notifications';
 import { notificationTypes } from './notifications.constants';
 import { listNotifications } from './list-notifications';
@@ -145,6 +148,62 @@ describe('in-app notification isolation', () => {
     );
     expect(after.items).toEqual([]);
     expect(after.unreadCount).toBe(0);
+  });
+
+  it('denies group reads immediately after revocation despite a warm process cache', async () => {
+    const harness = await routedWithGroupMember();
+    const created = await harness.tickets.create(vpnCreateInput(), {
+      actorUserId: ticketsTestIds.requester,
+    });
+    await ingestTicketMessages(harness);
+    const prisma = harness.memory.prisma as never;
+    const memberId = ticketsTestIds.agentIt;
+
+    const beforeRevocation = await runWithRequestId(
+      'notification-membership-before-revoke',
+      async () => {
+        await expect(
+          loadActorGroupMemberships(prisma, memberId),
+        ).resolves.toMatchObject([{ groupId: ticketsTestIds.groupIt }]);
+        return listNotifications(prisma, memberId);
+      },
+    );
+    expect(beforeRevocation.items).toHaveLength(1);
+    expect(beforeRevocation.items[0]).toMatchObject({
+      ticketId: created.id,
+      payload: expect.objectContaining({ ticketId: created.id }),
+    });
+    const notificationId = beforeRevocation.items[0]?.id;
+    expect(notificationId).toBeDefined();
+
+    // Simulate a committed membership removal on another app instance. This process'
+    // WeakMap is deliberately not invalidated, so its old entry remains warm.
+    await harness.memory.prisma.groupMember.deleteMany({
+      where: { groupId: ticketsTestIds.groupIt, userId: memberId },
+    });
+
+    await runWithRequestId('notification-membership-after-revoke', async () => {
+      await expect(
+        loadActorGroupMemberships(prisma, memberId),
+      ).resolves.toMatchObject([{ groupId: ticketsTestIds.groupIt }]);
+
+      const afterRevocation = await listNotifications(prisma, memberId);
+      expect(afterRevocation.items).toEqual([]);
+      expect(afterRevocation.unreadCount).toBe(0);
+      await expect(countUnreadNotifications(prisma, memberId)).resolves.toBe(0);
+      await expect(
+        markNotificationRead(prisma, memberId, notificationId!),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+      const createReceipt = jest.spyOn(
+        harness.memory.prisma.notificationReceipt,
+        'createMany',
+      );
+      await expect(markAllNotificationsRead(prisma, memberId)).resolves.toEqual({
+        unreadCount: 0,
+      });
+      expect(createReceipt).not.toHaveBeenCalled();
+    });
   });
 });
 

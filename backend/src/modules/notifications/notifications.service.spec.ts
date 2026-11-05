@@ -17,6 +17,7 @@ jest.mock('./list-notifications', () => ({
 }));
 jest.mock('./notification-audience', () => ({
   loadNotificationAudience: jest.fn(async () => [{ groupId: 'group-1' }]),
+  notificationAudienceFingerprint: jest.fn(() => 'audience-1'),
 }));
 jest.mock('./mark-notification-read', () => ({
   markNotificationRead: jest.fn(async () => ({ id: 'n-1', isRead: true })),

@@ -48,6 +48,6 @@ export async function listNotifications(
         readAt: receipt?.readAt ?? null,
       });
     }),
-    unreadCount: await countUnreadNotifications(prisma, userId),
+    unreadCount: await countUnreadNotifications(prisma, userId, memberships),
   };
 }

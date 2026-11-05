@@ -19,7 +19,9 @@
  * gornja granica zastarjelosti i na drugim instancama — ista pogodba kao 60 s keš
  * autorizacijskog konteksta (koji već nosi uloge aktera) i keš labela. Brisanje
  * korisnika iz grupe na drugoj instanci djeluje najkasnije za 30 s; na instanci gdje
- * je izmjena napravljena — odmah.
+ * je izmjena napravljena — odmah. Ovaj procesni keš nije autoritativan za
+ * revocation-sensitive notification rute: one koriste direktno čitanje članstva iz
+ * baze, jer invalidacija WeakMap-a ne može sinhrono očistiti keš na drugoj instanci.
  *
  * Keš je vezan za Prisma klijent (`WeakMap`): testovi s vlastitim in-memory klijentom
  * nikad ne vide tuđe podatke, a transakcijski klijent ima svoj (prazan) prostor.
@@ -60,8 +62,18 @@ type GroupSource = {
   readonly groupMember: {
     findMany: (args: {
       readonly where: { readonly userId: string };
-      readonly select: { readonly groupId: true; readonly createdAt: true };
-    }) => Promise<readonly { readonly groupId: string; readonly createdAt?: Date }[]>;
+      readonly select: {
+        readonly id: true;
+        readonly groupId: true;
+        readonly createdAt: true;
+      };
+    }) => Promise<
+      readonly {
+        readonly id?: string;
+        readonly groupId: string;
+        readonly createdAt?: Date;
+      }[]
+    >;
   };
 };
 
@@ -131,6 +143,8 @@ export async function loadCachedOrganizationalUnitPath(
 
 /** One membership of the actor: the group and when the actor joined it. */
 export type ActorGroupMembership = {
+  /** Stable identity for count-cache fingerprinting across remove/re-add of a group. */
+  readonly membershipId: string;
   readonly groupId: string;
   readonly joinedAt: Date;
 };
@@ -140,16 +154,7 @@ export function loadActorGroupMemberships(
   prisma: GroupSource,
   userId: string,
 ): Promise<readonly ActorGroupMembership[]> {
-  const read = () =>
-    prisma.groupMember
-      .findMany({ where: { userId }, select: { groupId: true, createdAt: true } })
-      .then((rows) =>
-        rows.map((row) => ({
-          groupId: row.groupId,
-          // Hand-written test delegates may not carry `createdAt`; "since forever".
-          joinedAt: row.createdAt instanceof Date ? row.createdAt : new Date(0),
-        })),
-      );
+  const read = () => readActorGroupMemberships(prisma, userId);
   if (getRequestId() === undefined) {
     return read();
   }
@@ -178,6 +183,44 @@ export function loadActorGroupMemberships(
     },
   );
   return value;
+}
+
+/**
+ * Authoritative membership snapshot for revocation-sensitive reads. This always
+ * queries the current database state and deliberately ignores the process cache.
+ */
+export function loadActorGroupMembershipsAuthoritatively(
+  prisma: GroupSource,
+  userId: string,
+): Promise<readonly ActorGroupMembership[]> {
+  return readActorGroupMemberships(prisma, userId);
+}
+
+function readActorGroupMemberships(
+  prisma: GroupSource,
+  userId: string,
+): Promise<readonly ActorGroupMembership[]> {
+  return prisma.groupMember
+    .findMany({
+      where: { userId },
+      select: { id: true, groupId: true, createdAt: true },
+    })
+    .then((rows) =>
+      rows.map((row) => {
+        // Hand-written test delegates may not carry `createdAt`; "since forever".
+        const joinedAt = row.createdAt instanceof Date ? row.createdAt : new Date(0);
+        return {
+          // Real Prisma rows always have an id; this fallback keeps narrow test
+          // delegates usable while still distinguishing different join times.
+          membershipId:
+            typeof row.id === 'string'
+              ? row.id
+              : `${row.groupId}:${joinedAt.getTime()}`,
+          groupId: row.groupId,
+          joinedAt,
+        };
+      }),
+    );
 }
 
 /** Group ids of one user, cached for 30 s (same entry as the memberships). */
