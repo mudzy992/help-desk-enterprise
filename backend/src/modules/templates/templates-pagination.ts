@@ -149,7 +149,7 @@ export function decodeTemplatePickerCursor(
 export function afterTemplatesNameCursor(cursor: Pick<TemplatesNameCursor, 'name' | 'id'>) {
   return {
     OR: [{ name: { gt: cursor.name } }, { name: cursor.name, id: { gt: cursor.id } }],
-  } as const;
+  };
 }
 
 export function afterTemplatePickerCursor(cursor: Pick<TemplatePickerCursor, 'usageCount' | 'name' | 'id'>) {
@@ -163,7 +163,7 @@ export function afterTemplatePickerCursor(cursor: Pick<TemplatePickerCursor, 'us
         id: { gt: cursor.id },
       },
     ],
-  } as const;
+  };
 }
 
 function encodeCursor(value: Record<string, unknown>): string {
