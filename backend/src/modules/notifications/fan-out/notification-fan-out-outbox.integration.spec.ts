@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
 import { TransactionalOutboxService } from '../../../common/outbox/transactional-outbox.service';
+import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.types';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { notificationTicketMessageFanOutTopic } from './notification-fan-out-outbox.constants';
 import { NotificationFanOutOutboxProcessor } from './notification-fan-out-outbox.processor';
@@ -165,7 +166,7 @@ describeIfDatabase('notification ticket-message fan-out outbox', () => {
       prisma as never,
       new TransactionalOutboxService(prisma as never),
       {
-        processDurableTicketMessage: async (payload) => {
+        processDurableTicketMessage: async (payload: TicketRealtimeMessagePayload) => {
           await fanOutInAppNotifications(prisma as never, payload);
         },
       } as never,
