@@ -1,16 +1,25 @@
 import { ConflictException, HttpException } from '@nestjs/common';
 import { executeTemplatesOperation } from './map-templates-error';
 
-function uniqueError(target: string): Error & { code: string; meta: { target: string } } {
+function uniqueError(meta: unknown): Error & { code: string; meta: unknown } {
   return Object.assign(new Error('Unique constraint failed'), {
     code: 'P2002',
-    meta: { target },
+    meta,
   });
 }
 
 describe('executeTemplatesOperation unique-name mapping', () => {
   it('maps the live playbook name index to a stable 409 conflict', async () => {
-    const error = uniqueError('playbook_live_name_lower_key');
+    const error = uniqueError({
+      modelName: 'Playbook',
+      driverAdapterError: {
+        cause: {
+          kind: 'UniqueConstraintViolation',
+          constraint: { index: 'playbook_live_name_lower_key' },
+          table: 'Playbook',
+        },
+      },
+    });
     const mapped = await executeTemplatesOperation(async () => {
       throw error;
     }).catch((caught: unknown) => caught);
@@ -23,7 +32,7 @@ describe('executeTemplatesOperation unique-name mapping', () => {
   });
 
   it('keeps response-template name conflicts on their existing stable code', async () => {
-    const error = uniqueError('response_template_shared_name_lower_key');
+    const error = uniqueError({ target: 'response_template_shared_name_lower_key' });
     const mapped = await executeTemplatesOperation(async () => {
       throw error;
     }).catch((caught: unknown) => caught);
@@ -35,7 +44,7 @@ describe('executeTemplatesOperation unique-name mapping', () => {
   });
 
   it('does not reinterpret other unique indexes as a playbook name conflict', async () => {
-    const error = uniqueError('Playbook_pkey');
+    const error = uniqueError({ target: 'Playbook_pkey' });
     await expect(
       executeTemplatesOperation(async () => {
         throw error;

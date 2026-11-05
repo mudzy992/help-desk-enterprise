@@ -94,11 +94,38 @@ export async function executeTemplatesOperation<T>(operation: () => Promise<T>):
 function uniqueConstraintTarget(error: unknown): string | null {
   if (typeof error !== 'object' || error === null) return null;
   const candidate = error as { readonly code?: unknown; readonly meta?: unknown };
-  if (candidate.code !== 'P2002' || typeof candidate.meta !== 'object' || candidate.meta === null) {
-    return null;
+  if (candidate.code !== 'P2002' || !isRecord(candidate.meta)) return null;
+
+  const meta = candidate.meta;
+  const directTarget = normalizeTarget(meta.target);
+  if (directTarget !== null) return directTarget;
+
+  const directConstraint = constraintTarget(meta.constraint);
+  if (directConstraint !== null) return directConstraint;
+
+  // Prisma 7's driver adapters keep PostgreSQL's named index under
+  // meta.driverAdapterError.cause.constraint.index rather than meta.target.
+  const adapterError = isRecord(meta.driverAdapterError) ? meta.driverAdapterError : null;
+  const adapterCause = adapterError !== null && isRecord(adapterError.cause) ? adapterError.cause : null;
+  return adapterCause === null ? null : constraintTarget(adapterCause.constraint);
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeTarget(target: unknown): string | null {
+  if (typeof target === 'string') return target.toLowerCase();
+  if (Array.isArray(target) && target.every((value): value is string => typeof value === 'string')) {
+    return target.join(',').toLowerCase();
   }
-  const target = (candidate.meta as { readonly target?: unknown }).target;
-  return typeof target === 'string' ? target.toLowerCase() : null;
+  return null;
+}
+
+function constraintTarget(constraint: unknown): string | null {
+  if (!isRecord(constraint)) return null;
+  if (typeof constraint.index === 'string') return constraint.index.toLowerCase();
+  return normalizeTarget(constraint.fields);
 }
 
 function isTemplateNameTakenError(error: unknown): boolean {
