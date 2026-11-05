@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { mapTicketError } from '../tickets/map-ticket-error';
+import { templateLimits } from './templates.constants';
 import { TemplatesError, type TemplatesErrorCode } from './templates.error';
 
 const messages: Record<TemplatesErrorCode, string> = {
@@ -38,6 +39,7 @@ const messages: Record<TemplatesErrorCode, string> = {
   TICKET_PLAYBOOK_UP_TO_DATE: 'The ticket already uses the newest playbook version',
   TICKET_PLAYBOOK_STEP_NOT_FOUND: 'The step is not part of this checklist',
   TICKET_PLAYBOOK_READ_ONLY: 'The checklist of a closed, archived or merged ticket cannot change',
+  TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED: `A synchronous bulk attach is limited to ${templateLimits.bulkAttachSyncMaxTickets} tickets`,
 };
 
 const notFound: readonly TemplatesErrorCode[] = [

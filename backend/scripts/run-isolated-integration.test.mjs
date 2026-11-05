@@ -7,10 +7,10 @@ import { buildDatabaseName, integrationSpecs, withDatabaseName } from "./run-iso
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-function discoverServiceCatalogIntegrationSpecs(directory) {
+function discoverIntegrationSpecs(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) return discoverServiceCatalogIntegrationSpecs(file);
+    if (entry.isDirectory()) return discoverIntegrationSpecs(file);
     if (!entry.isFile() || !entry.name.endsWith(".integration.spec.ts")) return [];
     return [path.relative(backendRoot, file).split(path.sep).join("/")];
   });
@@ -166,10 +166,10 @@ test("BA-templates-04/10 checklist concurrency PostgreSQL spec je registrovan za
   );
 });
 
-test("BA-templates-05 auto-attach outbox PostgreSQL spec je registrovan za CI", () => {
+test("BA-templates-05/11 auto-attach/realtime outbox PostgreSQL spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/tickets/ticket-playbook-auto-attach.integration.spec.ts"),
-    "nedostaje obavezni BA-templates-05 auto-attach recovery shard",
+    "nedostaje obavezni BA-templates-05/11 auto-attach/realtime recovery shard",
   );
 });
 
@@ -180,9 +180,22 @@ test("BA-templates-06 config snapshot PostgreSQL spec je registrovan za CI", () 
   );
 });
 
+test("svaki templates PostgreSQL integration spec je registrovan za CI (BA-templates-13)", () => {
+  const directory = path.join(backendRoot, "src/modules/templates");
+  const discovered = discoverIntegrationSpecs(directory).sort();
+  const registered = integrationSpecs
+    .filter((spec) => spec.startsWith("src/modules/templates/") && spec.endsWith(".integration.spec.ts"))
+    .sort();
+  assert.deepEqual(
+    registered,
+    discovered,
+    "svaki templates integration fajl mora biti izvršen u isolated PostgreSQL runneru",
+  );
+});
+
 test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", () => {
   const directory = path.join(backendRoot, "src/modules/service-catalog");
-  const discovered = discoverServiceCatalogIntegrationSpecs(directory).sort();
+  const discovered = discoverIntegrationSpecs(directory).sort();
   const registered = integrationSpecs
     .filter((spec) => spec.startsWith("src/modules/service-catalog/") && spec.endsWith(".integration.spec.ts"))
     .sort();

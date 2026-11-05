@@ -15,7 +15,7 @@ import type { TicketRecord } from '../../tickets/tickets.types';
 import { normalizeReason } from '../normalize-template-input';
 import { recordTemplatesChange } from '../record-templates-change';
 import { hasPermission } from '../template-scope';
-import { templateChangeLogEntityTypes, type PlaybookRequiredStepsMode } from '../templates.constants';
+import { templateChangeLogEntityTypes, templateLimits, type PlaybookRequiredStepsMode } from '../templates.constants';
 import { TemplatesConfigurationLoader } from '../templates-configuration.loader';
 import { TemplatesError } from '../templates.error';
 import { templatesPageLimit } from '../templates-pagination';
@@ -120,10 +120,9 @@ export class TicketPlaybooksService {
   }
 
   /**
-   * Package 5.2.4 (M13 B4): attach a playbook to many tickets in one call.
-   * Tickets that are closed/merged, already have a playbook, or are forbidden
-   * are reported in `skipped` rather than aborting the batch; the happy path
-   * runs with bounded concurrency so long ticket lists don't spike the DB.
+   * Package 5.2.4 (M13 B4): bounded synchronous attach for a small ticket set.
+   * Closed/merged, already-attached, and forbidden tickets are reported in
+   * `skipped`; accepted requests still process tickets with bounded concurrency.
    */
   async bulkAttach(
     playbookId: string,
@@ -136,8 +135,14 @@ export class TicketPlaybooksService {
       readonly reason: string;
     }[];
   }> {
+    if (ticketIds.length > templateLimits.bulkAttachSyncMaxTickets) {
+      throw new TemplatesError('TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED', {
+        limit: templateLimits.bulkAttachSyncMaxTickets,
+        requested: ticketIds.length,
+      });
+    }
     await this.requireEnabled();
-    const uniqueIds = [...new Set(ticketIds)].slice(0, 500);
+    const uniqueIds = [...new Set(ticketIds)];
     const playbook = await this.prisma.playbook.findFirst({
       where: { id: playbookId, deletedAt: null, isActive: true },
       select: { id: true },

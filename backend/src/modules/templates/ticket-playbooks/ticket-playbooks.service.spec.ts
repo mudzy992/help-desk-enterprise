@@ -1,5 +1,6 @@
 import { permissionKeys } from '../../authorization/authorization.constants';
 import type { AuthorizationAssignment, AuthorizationContext } from '../../authorization/authorization.types';
+import { templateLimits } from '../templates.constants';
 import { TemplatesError } from '../templates.error';
 import { TicketPlaybooksService, sanitize } from './ticket-playbooks.service';
 import type { PlaybookStepSnapshot } from './ticket-playbook-snapshot';
@@ -277,7 +278,7 @@ function createHarness(
     access: { visibility: 'staff' },
   }));
 
-  return { service, prisma, changeLogs, messages, realtimeHub, accessPolicies };
+  return { service, prisma, changeLogs, messages, realtimeHub, accessPolicies, configurationLoader };
 }
 
 /**
@@ -479,6 +480,62 @@ describe('TicketPlaybooksService', () => {
         requiredTotal: 1,
         requiredDone: 1,
       });
+    });
+  });
+
+  describe('bulkAttach', () => {
+    it('rejects oversized synchronous requests before database work or partial writes', async () => {
+      const { service, prisma, configurationLoader } = createHarness();
+      const ticketIds = Array.from(
+        { length: templateLimits.bulkAttachSyncMaxTickets + 1 },
+        (_, index) => `ticket-${index}`,
+      );
+
+      await expect(
+        service.bulkAttach('playbook-1', ticketIds, { actorUserId: 'actor-1' }),
+      ).rejects.toMatchObject({
+        code: 'TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED',
+        details: {
+          limit: templateLimits.bulkAttachSyncMaxTickets,
+          requested: templateLimits.bulkAttachSyncMaxTickets + 1,
+        },
+      });
+      expect(configurationLoader.load).not.toHaveBeenCalled();
+      expect(prisma.playbook.findFirst).not.toHaveBeenCalled();
+      expect(loadTicketMock).not.toHaveBeenCalled();
+      expect(attachMock).not.toHaveBeenCalled();
+    });
+
+    it('deduplicates IDs and returns independent attach/skip outcomes', async () => {
+      const { service, prisma } = createHarness();
+      prisma.playbook.findFirst.mockResolvedValue({ id: 'playbook-1' });
+      prisma.ticketPlaybook.findFirst.mockImplementation(async (args: { where: { ticketId: string } }) =>
+        args.where.ticketId === 'already' ? { id: 'active-checklist' } : null,
+      );
+      loadTicketMock.mockImplementation(async (_prisma, _authorization, ticketId: string) => ({
+        ticket: {
+          ...ticket,
+          id: ticketId,
+          status: ticketId === 'closed' ? 'CLOSED' : 'OPEN',
+        },
+        access: { visibility: ticketId === 'private' ? 'public' : 'staff' },
+      }));
+      attachMock.mockResolvedValue(undefined);
+
+      const result = await service.bulkAttach(
+        'playbook-1',
+        ['attach', 'attach', 'closed', 'already', 'private'],
+        { actorUserId: 'actor-1' },
+      );
+      expect(result.attached).toEqual(['attach']);
+      expect(result.skipped).toHaveLength(3);
+      expect(result.skipped).toEqual(expect.arrayContaining([
+        { ticketId: 'closed', reason: 'read_only' },
+        { ticketId: 'already', reason: 'already_attached' },
+        { ticketId: 'private', reason: 'forbidden' },
+      ]));
+      expect(loadTicketMock).toHaveBeenCalledTimes(4);
+      expect(attachMock).toHaveBeenCalledTimes(1);
     });
   });
 

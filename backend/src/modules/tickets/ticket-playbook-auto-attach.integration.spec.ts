@@ -27,7 +27,7 @@ const describeIfDatabase = databaseUrl ? describe : describe.skip;
 const stamp = `${Date.now()}-${process.pid}`;
 let sequence = 0;
 
-describeIfDatabase('ticket playbook auto-attach outbox (PostgreSQL integration, BA-templates-05)', () => {
+describeIfDatabase('ticket playbook auto-attach/realtime outbox (PostgreSQL integration, BA-templates-05/11)', () => {
   jest.setTimeout(120_000);
   let prisma: PrismaClient | undefined;
   let outbox: TransactionalOutboxService;
@@ -176,16 +176,27 @@ describeIfDatabase('ticket playbook auto-attach outbox (PostgreSQL integration, 
     );
   }
 
-  function createReconciler(configuration: {
-    readonly playbooksEnabled: boolean;
-    readonly autoAttach: boolean;
-    readonly load?: () => Promise<{ readonly playbooksEnabled: boolean; readonly autoAttach: boolean }>;
-  }): TicketSideEffectOutboxReconciler {
+  function createReconciler(
+    configuration: {
+      readonly playbooksEnabled: boolean;
+      readonly autoAttach: boolean;
+      readonly load?: () => Promise<{ readonly playbooksEnabled: boolean; readonly autoAttach: boolean }>;
+    },
+    realtimeHub?: TicketRealtimeHub,
+  ): TicketSideEffectOutboxReconciler {
     if (prisma === undefined) throw new Error('PostgreSQL fixture was not initialized');
+    const hub = realtimeHub ?? new TicketRealtimeHub();
+    if (realtimeHub === undefined) {
+      // The ordinary auto-attach cases are not testing WebSocket delivery.
+      // Keep their worker fixture wired like production, where the Redis
+      // forwarder subscribes to both projections.
+      hub.subscribe(() => undefined);
+      hub.subscribeTicketUpdated(() => undefined);
+    }
     return new TicketSideEffectOutboxReconciler(
       prisma as never,
       outbox,
-      new TicketRealtimeHub(),
+      hub,
       { apply: async () => undefined } as never,
       {
         load: configuration.load ?? (async () => ({
@@ -326,5 +337,51 @@ describeIfDatabase('ticket playbook auto-attach outbox (PostgreSQL integration, 
       autoAttached: true,
       attachedById: null,
     });
+  });
+
+  it('retries a persisted playbook event when realtime bridge delivery fails', async () => {
+    if (prisma === undefined) throw new Error('PostgreSQL fixture was not initialized');
+    const fixture = await createFixture({ matchingPlaybooks: 1 });
+    await enqueueIntent(fixture.ticketId);
+
+    const hub = new TicketRealtimeHub();
+    let failFirstDelivery = true;
+    const deliveredMessageIds: string[] = [];
+    const updatedMessageIds: string[] = [];
+    hub.subscribeAwaited((payload) => {
+      if (payload.ticketId !== fixture.ticketId) return;
+      if (failFirstDelivery) {
+        failFirstDelivery = false;
+        throw new Error('injected realtime bridge failure');
+      }
+      deliveredMessageIds.push(payload.id);
+    });
+    hub.subscribeTicketUpdatedAwaited((payload) => {
+      if (payload.ticketId === fixture.ticketId && payload.sourceMessageId !== null) {
+        updatedMessageIds.push(payload.sourceMessageId);
+      }
+    });
+
+    const reconciler = createReconciler({ playbooksEnabled: true, autoAttach: true }, hub);
+    await reconciler.drain();
+
+    const event = await prisma.ticketMessage.findFirstOrThrow({
+      where: { ticketId: fixture.ticketId, body: { startsWith: 'ticket_playbook_attached:' } },
+      select: { id: true },
+    });
+    const pending = await prisma.outboxMessage.findUniqueOrThrow({
+      where: { topic_dedupeKey: { topic: ticketMessageDeliveryTopic, dedupeKey: event.id } },
+    });
+    expect(pending).toMatchObject({ status: 'PENDING', attempts: 1 });
+    expect(pending.lastError).toContain('injected realtime bridge failure');
+    expect(await reconciler.health()).toMatchObject({ pending: 1, deadLetter: 0 });
+
+    await prisma.outboxMessage.update({ where: { id: pending.id }, data: { nextAttemptAt: new Date(0) } });
+    await reconciler.drain();
+
+    const delivered = await prisma.outboxMessage.findUniqueOrThrow({ where: { id: pending.id } });
+    expect(delivered.status).toBe('SUCCEEDED');
+    expect(deliveredMessageIds).toEqual([event.id]);
+    expect(updatedMessageIds).toEqual([event.id]);
   });
 });

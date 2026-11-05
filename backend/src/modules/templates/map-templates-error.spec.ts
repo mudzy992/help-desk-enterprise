@@ -1,5 +1,6 @@
-import { ConflictException, HttpException } from '@nestjs/common';
-import { executeTemplatesOperation } from './map-templates-error';
+import { BadRequestException, ConflictException, HttpException } from '@nestjs/common';
+import { executeTemplatesOperation, mapTemplatesError } from './map-templates-error';
+import { TemplatesError } from './templates.error';
 
 function uniqueError(meta: unknown): Error & { code: string; meta: unknown } {
   return Object.assign(new Error('Unique constraint failed'), {
@@ -9,6 +10,20 @@ function uniqueError(meta: unknown): Error & { code: string; meta: unknown } {
 }
 
 describe('executeTemplatesOperation unique-name mapping', () => {
+  it('maps an oversized synchronous bulk attach to a stable 400 error', () => {
+    const mapped = mapTemplatesError(
+      new TemplatesError('TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED', { limit: 25, requested: 26 }),
+    );
+
+    expect(mapped).toBeInstanceOf(BadRequestException);
+    if (!(mapped instanceof HttpException)) throw new Error('expected a bad request');
+    expect(mapped.getStatus()).toBe(400);
+    expect(mapped.getResponse()).toMatchObject({
+      code: 'TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED',
+      details: { limit: 25, requested: 26 },
+    });
+  });
+
   it('maps the live playbook name index to a stable 409 conflict', async () => {
     const error = uniqueError({
       modelName: 'Playbook',

@@ -41,3 +41,26 @@ export function publishPersistedTicketMessages(
     }
   }
 }
+
+/**
+ * Worker/outbox variant: do not acknowledge durable delivery until the realtime
+ * bridge has accepted both projections of each persisted message.
+ */
+export async function publishPersistedTicketMessagesAwaited(
+  hub: TicketRealtimeHub,
+  ticket: TicketRecord,
+  messages: readonly TicketMessageRecord[],
+): Promise<void> {
+  const known = ticketsBySink.get(messages);
+  for (const message of messages) {
+    const owner =
+      message.ticketId === ticket.id
+        ? ticket
+        : (known?.get(message.ticketId) ?? ticket);
+    await hub.publishAwaited(toTicketRealtimePayload(message, owner));
+    const updated = toTicketUpdatedPayload(message, owner);
+    if (updated !== null) {
+      await hub.publishTicketUpdatedAwaited(updated);
+    }
+  }
+}

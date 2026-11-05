@@ -27,7 +27,8 @@ export type TemplatesErrorCode =
   | 'TICKET_PLAYBOOK_NOT_APPLICABLE'
   | 'TICKET_PLAYBOOK_UP_TO_DATE'
   | 'TICKET_PLAYBOOK_STEP_NOT_FOUND'
-  | 'TICKET_PLAYBOOK_READ_ONLY';
+  | 'TICKET_PLAYBOOK_READ_ONLY'
+  | 'TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED';
 
 export class TemplatesError extends Error {
   constructor(

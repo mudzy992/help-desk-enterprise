@@ -161,14 +161,13 @@ export class AttachTicketPlaybookDto {
 }
 
 /**
- * Paket 5.2.4 (M13 B4): bulk-attach one playbook to many tickets. Each ticket
- * is processed independently so a closed ticket or an already-attached ticket
- * cannot abort the whole batch.
+ * Paket 5.2.4 (M13 B4): bounded synchronous bulk attach. Each ticket is
+ * processed independently; larger jobs must be split into separate requests.
  */
 export class BulkAttachPlaybookDto {
   @IsString() @MaxLength(64) playbookId!: string;
   @IsArray()
-  @ArrayMaxSize(500)
+  @ArrayMaxSize(templateLimits.bulkAttachSyncMaxTickets)
   @IsString({ each: true })
   ticketIds!: readonly string[];
 }

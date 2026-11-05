@@ -38,6 +38,8 @@ export const templateLimits = {
   scopeItemsMax: 200,
   reasonMin: 3,
   reasonMax: 500,
+  /** Maximum number of tickets handled synchronously by one bulk-attach request. */
+  bulkAttachSyncMaxTickets: 25,
   playbookDescriptionMax: 2_000,
   stepTitleMax: 200,
   stepInstructionsMax: 4_000,

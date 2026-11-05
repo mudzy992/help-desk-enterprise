@@ -6,7 +6,7 @@ import type { TicketStatus } from '../../generated/prisma/enums';
 import { TemplatesConfigurationLoader } from '../templates/templates-configuration.loader';
 import { autoAttachPlaybook } from '../templates/ticket-playbooks/attach-playbook-to-ticket';
 import { TemplatesError } from '../templates/templates.error';
-import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+import { publishPersistedTicketMessagesAwaited } from './publish-persisted-ticket-messages';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import type { TicketRecord } from './tickets.types';
 import type { TicketMessageRecord } from './collaboration.types';
@@ -79,7 +79,11 @@ export class TicketSideEffectOutboxReconciler implements OnModuleInit, OnApplica
     ]);
     // Retention/deletion can legitimately remove the source before delivery.
     if (message === null || ticket === null) return;
-    publishPersistedTicketMessages(this.realtimeHub, ticket as TicketRecord, [message as TicketMessageRecord]);
+    await publishPersistedTicketMessagesAwaited(
+      this.realtimeHub,
+      ticket as TicketRecord,
+      [message as TicketMessageRecord],
+    );
   }
 
   private async deliverPlaybookAutoAttach(delivery: OutboxDelivery): Promise<void> {
