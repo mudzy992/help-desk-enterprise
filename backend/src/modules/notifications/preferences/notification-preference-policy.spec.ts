@@ -32,6 +32,20 @@ describe('notification preference policy loading (BA-notifications-04)', () => {
     expect(policy.quietBypass).toEqual(new Set(['ticket.sla']));
   });
 
+  it('canonicalizes mixed-case category keys after CSV normalization', async () => {
+    const getSetting = jest.fn(async (key: string) =>
+      key === settingKeys.privateNotificationsLockedInAppTypesCsv
+        ? 'ticket.timeAutoStopped,report.weeklyTickets'
+        : undefined,
+    );
+    const policy = await loadNotificationPreferencePolicy({ getSetting } as unknown as SettingsService);
+
+    expect(policy.lockedInApp).toEqual(new Set(['ticket.timeAutoStopped', 'report.weeklyTickets']));
+    expect(defaultNotificationPreferencePolicy.lockedEmail).toEqual(
+      new Set(['ticket.approval', 'ticket.sla', 'report.weeklyTickets']),
+    );
+  });
+
   it('fails closed on a rejected setting read when no good snapshot exists', async () => {
     const getSetting = jest.fn(async (key: string) => {
       if (key === settingKeys.privateNotificationsLockedEmailTypesCsv) {

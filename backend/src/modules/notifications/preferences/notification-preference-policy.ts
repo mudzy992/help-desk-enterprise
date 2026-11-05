@@ -42,6 +42,9 @@ export class NotificationPreferenceReadUnavailableError extends Error {
 }
 
 const d = notificationPreferenceSettingDefaults;
+const configurablePreferenceCategoryKeyByNormalized = new Map(
+  configurablePreferenceCategoryKeys.map((key) => [key.toLowerCase(), key] as const),
+);
 const policyLogger = new Logger('NotificationPreferencePolicy');
 const policyDegradedLogIntervalMs = 60_000;
 let lastPolicyDegradedLogAt = Number.NEGATIVE_INFINITY;
@@ -168,12 +171,15 @@ async function readCompletePolicy(
 
 function parseCategorySet(value: unknown): ReadonlySet<string> {
   if (typeof value !== 'string') throw new Error('INVALID_NOTIFICATION_PREFERENCE_CATEGORY_SET');
-  const parsed = parseSettingsCsv(value);
-  const allowed = new Set(configurablePreferenceCategoryKeys);
-  if (parsed.some((key) => !allowed.has(key))) {
-    throw new Error('INVALID_NOTIFICATION_PREFERENCE_CATEGORY_SET');
+  const categories = new Set<string>();
+  for (const normalizedKey of parseSettingsCsv(value)) {
+    const canonicalKey = configurablePreferenceCategoryKeyByNormalized.get(normalizedKey);
+    if (canonicalKey === undefined) {
+      throw new Error('INVALID_NOTIFICATION_PREFERENCE_CATEGORY_SET');
+    }
+    categories.add(canonicalKey);
   }
-  return new Set(parsed);
+  return categories;
 }
 
 function isValidTimeZone(value: string): boolean {
@@ -211,14 +217,14 @@ function logPreferenceReadUnavailable(): void {
 
 export const defaultNotificationPreferencePolicy: NotificationPreferencePolicy = {
   preferencesEnabled: d.preferencesEnabled,
-  lockedInApp: new Set(parseSettingsCsv(d.lockedInApp)),
-  lockedEmail: new Set(parseSettingsCsv(d.lockedEmail)),
-  defaultDigest: new Set(parseSettingsCsv(d.digestTypes)),
+  lockedInApp: parseCategorySet(d.lockedInApp),
+  lockedEmail: parseCategorySet(d.lockedEmail),
+  defaultDigest: parseCategorySet(d.digestTypes),
   digestEnabled: d.digestEnabled,
   digestDefaultMinute: parseClockMinute(d.digestDefaultTime, 450),
   digestMaxItems: d.digestMaxItems.default,
   quietHoursEnabled: d.quietHoursEnabled,
-  quietBypass: new Set(parseSettingsCsv(d.quietBypass)),
+  quietBypass: parseCategorySet(d.quietBypass),
   timeZone: defaultReportsTimeZone,
 };
 
