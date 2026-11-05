@@ -9,7 +9,16 @@ import {
 } from '../../tickets/create-tickets-service-harness';
 import { toTicketRealtimePayload } from '../../tickets/to-collaboration-response';
 import { vpnCreateInput } from '../../tickets/vpn-create-input';
-import { defaultNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+import {
+  defaultNotificationPreferencePolicy,
+  NotificationPreferenceReadUnavailableError,
+} from '../preferences/notification-preference-policy';
+
+const noUserPreferencePolicy = {
+  ...defaultNotificationPreferencePolicy,
+  preferencesEnabled: false,
+  quietHoursEnabled: false,
+};
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -100,6 +109,7 @@ describe('email notification fan-out', () => {
             enqueued.push(work);
           },
         },
+        noUserPreferencePolicy,
       );
     }
     expect(mail.messages).toEqual([]);
@@ -219,6 +229,26 @@ describe('email fan-out with personal preferences (paket 2.2)', () => {
     }
   }
 
+  it('stops email fan-out when a recipient preference read fails', async () => {
+    const harness = await routedWithInternalAgent();
+    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
+    const { proxy } = withPreferences(harness.memory.prisma, []);
+    const failing = new Proxy(proxy as object, {
+      get(target, property, receiver) {
+        if (property === 'userNotificationPreference') {
+          return { findMany: async () => { throw new Error('sensitive preference query detail'); } };
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const mail = createRecordingTransport();
+
+    await expect(ingestWith(harness, failing, mail)).rejects.toBeInstanceOf(
+      NotificationPreferenceReadUnavailableError,
+    );
+    expect(mail.messages).toEqual([]);
+  });
+
   it('holds the e-mail for the digest instead of sending it', async () => {
     const harness = await routedWithInternalAgent();
     await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
@@ -313,6 +343,8 @@ async function ingestEmail(
       configuration,
       mailTransport,
       toTicketRealtimePayload(message, ticket),
+      undefined,
+      noUserPreferencePolicy,
     );
   }
 }

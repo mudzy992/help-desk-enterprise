@@ -265,7 +265,7 @@ export class AssetRemindersService {
               title: assetReminderSummary('en', own.length),
             } as never,
             dedupeKey,
-          });
+          }, policy, decision);
           // A null result is the helper's existing-dedupe case, i.e. a prior persisted delivery.
           if (created !== null) inApp += 1;
           delivered = true;

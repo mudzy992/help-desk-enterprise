@@ -9,6 +9,7 @@ import { loadEmailChannelConfiguration } from '../notifications/email/load-email
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTitleKeys, notificationTypes, type NotificationType } from '../notifications/notifications.constants';
 import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
+import { resolveDeliveryDecisions } from '../notifications/preferences/resolve-delivery-decisions';
 import { announcementDefaults } from '../settings/definitions/announcement-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { resolveAnnouncementTeamsUrl } from './announcement-teams-url';
@@ -846,8 +847,11 @@ export class AnnouncementsService {
   private async fanOut(userIds: readonly string[], type: NotificationType, row: AnnouncementRow, dedupePrefix: string): Promise<number> {
     if (userIds.length === 0) return 0;
     const policy = await loadNotificationPreferencePolicy(this.settings);
+    const decisions = await resolveDeliveryDecisions(this.prisma, policy, { type, userIds });
     let sent = 0;
     for (const userId of userIds) {
+      const decision = decisions.get(userId);
+      if (decision?.inApp === false) continue;
       try {
         const created = await persistInAppNotification(
           this.prisma,
@@ -871,6 +875,7 @@ export class AnnouncementsService {
             dedupeKey: `${dedupePrefix}:${userId}`,
           },
           policy,
+          decision,
         );
         if (created !== null) sent += 1;
       } catch (error) {

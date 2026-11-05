@@ -27,6 +27,8 @@ import { NotificationUnreadCountCache } from '../notification-unread-count.cache
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
 import {
   loadNotificationPreferencePolicy,
+  NotificationPreferencePolicyUnavailableError,
+  NotificationPreferenceReadUnavailableError,
   type NotificationPreferencePolicy,
 } from '../preferences/notification-preference-policy';
 
@@ -69,19 +71,23 @@ export class NotificationsFanOutService
       await this.persistInApp(payload, policy);
     } catch (error) {
       failures.push(error);
-      this.logger.error(
-        `Failed to persist in-app notification for ticket ${payload.ticketId}`,
-        error instanceof Error ? error.stack : String(error),
-      );
+      if (!isNotificationPreferenceFailure(error)) {
+        this.logger.error(
+          `Failed to persist in-app notification for ticket ${payload.ticketId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
     }
     try {
       await this.deliverEmail(payload, policy);
     } catch (error) {
       failures.push(error);
-      this.logger.error(
-        `Failed to send notification email for ticket ${payload.ticketId}`,
-        error instanceof Error ? error.stack : String(error),
-      );
+      if (!isNotificationPreferenceFailure(error)) {
+        this.logger.error(
+          `Failed to send notification email for ticket ${payload.ticketId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
     }
     if (failures.length > 0) {
       throw new Error(
@@ -200,4 +206,11 @@ export class NotificationsFanOutService
         deliverNotificationEmail(this.prisma, this.mailTransport, configuration, work),
     };
   }
+}
+
+function isNotificationPreferenceFailure(error: unknown): boolean {
+  return (
+    error instanceof NotificationPreferencePolicyUnavailableError ||
+    error instanceof NotificationPreferenceReadUnavailableError
+  );
 }

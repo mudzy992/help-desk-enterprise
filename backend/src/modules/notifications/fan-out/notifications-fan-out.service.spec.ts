@@ -34,6 +34,8 @@ jest.mock('../preferences/notification-preference-policy', () => ({
   loadNotificationPreferencePolicy: jest.fn(async () => ({
     preferencesEnabled: true,
   })),
+  NotificationPreferencePolicyUnavailableError: class NotificationPreferencePolicyUnavailableError extends Error {},
+  NotificationPreferenceReadUnavailableError: class NotificationPreferenceReadUnavailableError extends Error {},
 }));
 jest.mock('../../integration-queue/load-integration-queue-settings', () => ({
   loadIntegrationQueueSettings: jest.fn(async () => ({

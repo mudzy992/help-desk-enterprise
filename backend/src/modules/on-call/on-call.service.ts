@@ -8,6 +8,8 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { JsonValue } from '../change-log/change-log.types';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
+import { findPreferenceCategoryForType } from '../notifications/preferences/notification-preference-catalog';
+import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
 import { notificationTitleKeys, notificationTypes, type NotificationType } from '../notifications/notifications.constants';
 import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
 import { settingKeys } from '../settings/setting-keys';
@@ -853,7 +855,7 @@ export class OnCallService {
     }
   }
 
-  /** In-app notification in the recipient's language; never fails the caller. */
+  /** In-app notification in the recipient's language; voluntary types follow preferences, oncall.gap stays mandatory. */
   async notify(
     userId: string,
     type: NotificationType,
@@ -867,6 +869,8 @@ export class OnCallService {
       });
       if (user === null || !user.isActive || user.anonymizedAt !== null) return false;
       const locale = toOnCallLocale(user.preferredLocale, await this.defaultLocale());
+      const category = findPreferenceCategoryForType(type);
+      const policy = category?.alwaysOn ? undefined : await loadNotificationPreferencePolicy(this.settings);
       const created = await persistInAppNotification(this.prisma, {
         userId,
         type,
@@ -882,7 +886,7 @@ export class OnCallService {
           confidential: false,
         } as never,
         dedupeKey: `oncall:${dedupeKey}`,
-      });
+      }, policy);
       return created !== null;
     } catch (error) {
       this.logger.warn(`on-call notification failed (${type}): ${error instanceof Error ? error.name : 'unknown'}`);

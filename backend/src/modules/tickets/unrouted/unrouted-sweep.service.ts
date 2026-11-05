@@ -39,10 +39,10 @@ export class UnroutedSweepService {
 
   async processDue(now = new Date()): Promise<UnroutedSweepResult> {
     const configuration = await this.configurationLoader.load();
-    const policy = await loadNotificationPreferencePolicy(this.settingsService);
     if (configuration.cleanupSlaHours === 0) {
       return { warnedTickets: 0, notifications: 0, digestNotifications: 0 };
     }
+    const policy = await loadNotificationPreferencePolicy(this.settingsService);
     const targetGroupId = await this.existingTargetGroupId(configuration);
     const overdueWhere = buildUnroutedOverdueWhere({
       cutoff: unroutedCutoff(now, configuration.cleanupSlaHours),

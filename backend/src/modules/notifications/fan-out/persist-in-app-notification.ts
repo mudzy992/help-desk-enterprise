@@ -1,7 +1,11 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { NotificationPayload, NotificationRecord } from '../notifications.types';
 import type { NotificationType } from '../notifications.constants';
-import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+import {
+  requireNotificationPreferencePolicyForType,
+  type DeliveryDecision,
+  type NotificationPreferencePolicy,
+} from '../preferences/notification-preference-policy';
 import { resolveDeliveryDecisions } from '../preferences/resolve-delivery-decisions';
 import { emitNotificationsCreated } from './notification-created-sinks';
 
@@ -16,13 +20,16 @@ export async function persistInAppNotification(
     readonly payload: NotificationPayload;
     readonly dedupeKey: string;
   },
-  /** Paket 2.2: honour the recipient's in-app choice (security types always pass). */
+  /** Preference policy is required except for categories explicitly marked always-on. */
   policy?: NotificationPreferencePolicy,
+  /** Reuse a decision already resolved for a fan-out batch. */
+  resolvedDecision?: DeliveryDecision,
 ): Promise<NotificationRecord | null> {
+  requireNotificationPreferencePolicyForType(input.type, policy);
   if (policy !== undefined) {
-    const decision = (
-      await resolveDeliveryDecisions(prisma, policy, { type: input.type, userIds: [input.userId] })
-    ).get(input.userId);
+    const decision =
+      resolvedDecision ??
+      (await resolveDeliveryDecisions(prisma, policy, { type: input.type, userIds: [input.userId] })).get(input.userId);
     if (decision?.inApp === false) {
       return null;
     }

@@ -5,6 +5,13 @@ import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.t
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { notificationTicketMessageFanOutTopic } from './notification-fan-out-outbox.constants';
 import { NotificationFanOutOutboxProcessor } from './notification-fan-out-outbox.processor';
+import { defaultNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+
+const noUserPreferencePolicy = {
+  ...defaultNotificationPreferencePolicy,
+  preferencesEnabled: false,
+  quietHoursEnabled: false,
+};
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -167,7 +174,7 @@ describeIfDatabase('notification ticket-message fan-out outbox', () => {
       new TransactionalOutboxService(prisma as never),
       {
         processDurableTicketMessage: async (payload: TicketRealtimeMessagePayload) => {
-          await fanOutInAppNotifications(prisma as never, payload);
+          await fanOutInAppNotifications(prisma as never, payload, noUserPreferencePolicy);
         },
       } as never,
     );
