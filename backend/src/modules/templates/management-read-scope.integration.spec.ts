@@ -104,7 +104,7 @@ describeIfDatabase('templates management scope and pagination (PostgreSQL integr
         })),
         ...visibleTemplateIds.map((id, index) => ({
           id,
-          name: `b-visible-template-${stamp}`,
+          name: `b-visible-template-${String(index).padStart(4, '0')}-${stamp}`,
           bodyBs: `Visible instructions ${index}`,
           kind: 'REPLY' as const,
           createdAt,
@@ -112,7 +112,7 @@ describeIfDatabase('templates management scope and pagination (PostgreSQL integr
         })),
         ...pickerTemplateIds.map((id, index) => ({
           id,
-          name: `c-picker-template-${stamp}`,
+          name: `c-picker-template-${String(index).padStart(4, '0')}-${stamp}`,
           bodyBs: `Picker instructions ${index}`,
           kind: 'REPLY' as const,
           createdAt,
@@ -150,9 +150,9 @@ describeIfDatabase('templates management scope and pagination (PostgreSQL integr
           createdAt,
           updatedAt: createdAt,
         })),
-        ...visiblePlaybookIds.map((id) => ({
+        ...visiblePlaybookIds.map((id, index) => ({
           id,
-          name: `b-visible-playbook-${stamp}`,
+          name: `b-visible-playbook-${String(index).padStart(4, '0')}-${stamp}`,
           createdAt,
           updatedAt: createdAt,
         })),
