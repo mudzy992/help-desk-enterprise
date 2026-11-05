@@ -134,6 +134,13 @@ test("BA-templates-01 management-read PostgreSQL integration spec je registrovan
   );
 });
 
+test("BA-templates-07 playbook name uniqueness PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/templates/playbooks/playbook-name-uniqueness.integration.spec.ts"),
+    "nedostaje BA-templates-07 playbook name uniqueness PostgreSQL shard",
+  );
+});
+
 test("BA-templates-03 concurrent definition PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes(

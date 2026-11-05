@@ -5,7 +5,6 @@ import {
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
 import { mapTicketError } from '../tickets/map-ticket-error';
 import { TemplatesError, type TemplatesErrorCode } from './templates.error';
 
@@ -79,22 +78,35 @@ export async function executeTemplatesOperation<T>(operation: () => Promise<T>):
   try {
     return await operation();
   } catch (error) {
-    // Package 5.2.4 (M13 B3): partial UNIQUE indexes guard response template
-    // names at the DB level (see migration 20271007190000) so parallel
-    // creates/renames cannot race past the application-level `assertNameFree`.
-    // Map P2002 on those indexes onto the same TEMPLATE_NAME_TAKEN code the
-    // pre-check throws.
+    // Partial UNIQUE indexes guard response-template and playbook names at the
+    // DB boundary, so parallel creates/renames cannot race past assertNameFree.
+    // Translate only their named P2002 constraints into stable conflict codes.
     if (isTemplateNameTakenError(error)) {
-      throw new TemplatesError('TEMPLATE_NAME_TAKEN');
+      throw mapTemplatesError(new TemplatesError('TEMPLATE_NAME_TAKEN'));
+    }
+    if (isPlaybookNameTakenError(error)) {
+      throw mapTemplatesError(new TemplatesError('PLAYBOOK_NAME_TAKEN'));
     }
     throw mapTemplatesError(error);
   }
 }
 
-function isTemplateNameTakenError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
-    return false;
+function uniqueConstraintTarget(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null) return null;
+  const candidate = error as { readonly code?: unknown; readonly meta?: unknown };
+  if (candidate.code !== 'P2002' || typeof candidate.meta !== 'object' || candidate.meta === null) {
+    return null;
   }
-  const target = error.meta?.target;
-  return typeof target === 'string' && target.includes('response_template') && target.includes('name_lower_key');
+  const target = (candidate.meta as { readonly target?: unknown }).target;
+  return typeof target === 'string' ? target.toLowerCase() : null;
+}
+
+function isTemplateNameTakenError(error: unknown): boolean {
+  const target = uniqueConstraintTarget(error);
+  return target !== null && target.includes('response_template') && target.includes('name_lower_key');
+}
+
+function isPlaybookNameTakenError(error: unknown): boolean {
+  const target = uniqueConstraintTarget(error);
+  return target !== null && target.includes('playbook_live_name_lower_key');
 }

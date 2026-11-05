@@ -53,7 +53,7 @@ describe('database runtime contract', () => {
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
     expect(expectedSchemaMigration).toBe(
-      '20271030140000_ticket_playbook_single_active_invariant',
+      '20271030150000_playbook_live_name_unique',
     );
   });
 });

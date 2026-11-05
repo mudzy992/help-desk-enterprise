@@ -9,6 +9,8 @@ import { mapTemplatesError } from '../map-templates-error';
 import { TemplatesError } from '../templates.error';
 import type { PlaybookInput } from './normalize-playbook-input';
 
+jest.mock('../../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+
 type StepRow = {
   stepKey: string;
   position: number;
