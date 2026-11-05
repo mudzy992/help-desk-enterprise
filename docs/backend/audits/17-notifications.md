@@ -138,7 +138,7 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 | ------------------- | -------- | ------------------------------------------------------------------------------------------- | -------- |
 | BA-notifications-01 | P1       | Primarni fan-out je detached in-memory tok bez outboxa, replaya ili recoveryja              | zatvoreno |
 | BA-notifications-02 | P1       | Stale membership cache privremeno zadržava pristup group notification sadržaju              | zatvoreno |
-| BA-notifications-03 | P1       | Digest šalje aktuelni ticket sadržaj bez ponovne provjere recipient pristupa                | otvoreno |
+| BA-notifications-03 | P1       | Digest šalje aktuelni ticket sadržaj bez ponovne provjere recipient pristupa                | zatvoreno |
 | BA-notifications-04 | P2       | Preference/settings kvar fail-open zaobilazi user opt-out i administratorske lockove        | otvoreno |
 | BA-notifications-05 | P2       | Concurrent batch dedupe gubitnik publishuje phantom notification ID i dupli downstream event| otvoreno |
 | BA-notifications-06 | P2       | `mark-all-read` nema transaction/cutoff i može progutati ili netačno prijaviti novi unread   | otvoreno |
@@ -278,3 +278,15 @@ Acceptance testovi zagrijavaju scope i unread-count keševe, simuliraju revokaci
 Finalni SHA [`390ad86`](https://github.com/mudzy992/help-desk-enterprise/commit/390ad8608521eb5f37bf2af7a424d669194b742b) prošao je automatski CI [`42088943970`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42088943970): generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend, docs, container/supply-chain i gate su success. E2E critical flows, install wizard i read-only inventory bili su `skipped`; novi Perf nije pokrenut jer notification/Edge putanje nisu u push path filteru. Nema nove migracije, target baza nije korištena i nema PR-a/mergea/deploymenta.
 
 Ova dopuna zatvara samo `BA-notifications-02`. Notifications ima 2/15 zatvorenih; `BA-notifications-03`–`15` ostaju otvoreni. Val 6 je 21/109 zatvorenih sa 88 otvorenih (19 P1 / 49 P2 / 20 P3) i nije završen. Baseline **5,05/10** i BA-15 full critical-flow pending status ostaju nepromijenjeni.
+
+## 21. Statusna dopuna — BA-notifications-03 closeout (2026-11-05)
+
+`BA-notifications-03` (P1) zatvoren je kroz W6.20. Prije svakog digest rendera worker sada batch-queryja held ticket IDs uz centralni `buildTicketSurfaceVisibility` predicate (`surface: 'detail'`) za primaoca. Principal/role/group kontekst i OU scopeovi se učitavaju aktuelno, mimo request/Redis/process scope keševa; confidential policy konfiguracija se učitava fail-closed. Facts query vraća samo vidljive tikete, a denied itemi se izbacuju iz composer ulaza i brišu iz held reda prije slanja.
+
+Ista reautorizacija pokriva `sendTest`: revoked/denied stavke se ne predaju composeru i brišu se. Normalni digest i test-send loguju samo agregatni broj sa razlogom `ticket_visibility_denied`, bez user/ticket ID-jeva ili ticket činjenica. Kvar authz/config/OU/ticket visibility čitanja sprečava slanje; normalni held itemi ostaju za retry, a test-send vraća `TICKET_VISIBILITY_UNAVAILABLE`.
+
+Regresijski testovi zagrijavaju membership scope cache, uklanjaju članstvo i odmah dokazuju deny i u scheduled i u test-digest putanji; dodatni failure test potvrđuje fail-closed ponašanje. Dokazi su u [paketu 135](../implementation/135-notifications-03-digest-recipient-reauthorization.md).
+
+Finalni kodni SHA [`aaf5ea1`](https://github.com/mudzy992/help-desk-enterprise/commit/aaf5ea1ef747144a06dc9a754af2a5159270414e) prošao je automatski CI [`42096685123`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42096685123): generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend, docs guard, container/supply-chain i CI gate su success. E2E critical/install i read-only inventory bili su `skipped`; Perf nije pokrenut jer notification digest putanja nije u push path filteru. Nema nove migracije, target-DB upotrebe, PR-a/mergea/deploymenta.
+
+Ova dopuna zatvara samo `BA-notifications-03`. Notifications ima 3/15 zatvorenih; `BA-notifications-04`–`15` ostaju otvoreni. Val 6 je 22/109 zatvorenih sa 87 otvorenih (18 P1 / 49 P2 / 20 P3) i nije završen. Baseline **5,05/10** i BA-15 full critical-flow pending status ostaju nepromijenjeni.

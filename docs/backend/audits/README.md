@@ -19,6 +19,8 @@
 
 **Val 6 / W6.19 closeout (2026-11-05):** `BA-notifications-02` (P1) je zatvoren nakon authoritative membership revocation i audience-bound unread cache implementacije. Finalni SHA [`390ad86`](https://github.com/mudzy992/help-desk-enterprise/commit/390ad8608521eb5f37bf2af7a424d669194b742b) prošao je CI [`42088943970`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42088943970): backend generated-Prisma build/lint/full Jest, PostgreSQL/Redis integration, frontend, docs, container/supply-chain i gate. E2E critical/install i read-only inventory bili su `skipped`; Perf nije pokrenut jer notification/Edge paths nisu u push path filteru. Nema nove migracije ni target-DB/deployment dokaza. Notifications sada ima 2/15 zatvorenih (`BA-notifications-03`–`15` otvoreni); Val 6 je 21/109 zatvorenih i 88 otvorenih (19 P1 / 49 P2 / 20 P3), a status-page 29 ostaje 19/19. Dokazi: [BA-notifications-02 closeout](../implementation/134-notifications-02-immediate-group-membership-revocation.md) i [audit 17, §20](17-notifications.md#20-statusna-dopuna--ba-notifications-02-closeout-2026-11-05). BA-15 full critical-flow acceptance ostaje zasebno pending.
 
+**Val 6 / W6.20 closeout (2026-11-05):** `BA-notifications-03` (P1) je zatvoren nakon recipient-specific digest reautorizacije, uključujući test-digest putanju i audit-safe uklanjanje denied held stavki. Kodni SHA [`aaf5ea1`](https://github.com/mudzy992/help-desk-enterprise/commit/aaf5ea1ef747144a06dc9a754af2a5159270414e) prošao je CI [`42096685123`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42096685123): generated-Prisma backend build/lint/full Jest, PostgreSQL/Redis integration, frontend, docs guard, container/supply-chain i gate su success. E2E critical/install i read-only inventory bili su `skipped`; Perf nije pokrenut zbog push path filtera. Nema nove migracije, target-DB upotrebe, PR-a, mergea ni deploymenta. Notifications ima 3/15 zatvorenih; Val 6 je 22/109 zatvorenih sa 87 otvorenih (18 P1 / 49 P2 / 20 P3), a status-page 29 je 19/19. Source audit/generisani plan su 539 otvoren / 153 zatvoren, a globalni registar 549/143; deset ranijih statusnih razlika ostaje netaknuto. Dokazi: [audit 17, §21](17-notifications.md#21-statusna-dopuna--ba-notifications-03-closeout-2026-11-05) i [paket 135](../implementation/135-notifications-03-digest-recipient-reauthorization.md). BA-15 full critical-flow acceptance ostaje zasebno pending.
+
 Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md) i redoslijed iz [inventara](../MODULE-INVENTORY.md). Implementacija je počela nakon završetka cijelog registra. Brojevi nalaza i baseline ocjene u tabeli ostaju audit snapshot; statusni presjek ispod razdvaja izvore jer [globalni registar](../BACKEND-FINDINGS-REGISTER.md) trenutno nije usklađen s izvornim audit-tabelama.
 
 ## Trenutni status nalaza i kompletni scopeovi
@@ -27,9 +29,9 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 
 | Status u izvornim audit-tabelama | Broj | Tumačenje |
 | --- | ---: | --- |
-| `otvoreno` | 540 | Još nije zatvoreno u izvornoj tabeli. |
-| `zatvoreno` | 152 | Eksplicitni formalni status `zatvoreno`, uključujući ranije normalizovane W3 redove, owner-directed templates closeout, BA-templates-08/09/11–13 i BA-notifications-01/02. |
-| **Ukupno** | **692** | **540 otvorenih + 152 zatvorenih.** |
+| `otvoreno` | 539 | Još nije zatvoreno u izvornoj tabeli. |
+| `zatvoreno` | 153 | Eksplicitni formalni status `zatvoreno`, uključujući ranije normalizovane W3 redove, owner-directed templates closeout, BA-templates-08/09/11–13 i BA-notifications-01/02/03. |
+| **Ukupno** | **692** | **539 otvorenih + 153 zatvorenih.** |
 
 Statusne ćelije za svih 11 nalaza koji su ranije nosili `završen (W3.x)` sada su normalizovane na `zatvoreno` u izvornoj tabeli, globalnom registru i generisanom planu. W3.x ostaje samo kao historijski kontekst implementacijskih paketa, ne kao status nalaza.
 
@@ -52,8 +54,8 @@ Ako se filtriraju izvorne audit-tabele, kompletno je **8/44** scopeova. Trenutna
 
 ### Preostala neusklađenost između statusnih prikaza
 
-- Izvorne tabele / generisani plan: **540 otvoren / 152 zatvoren**.
-- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **550 otvoren / 142 zatvoren** (692 reda ukupno); zaglavlje i kontrolni zbir tog registra odražavaju brojanje njegovih redova.
+- Izvorne tabele / generisani plan: **539 otvoren / 153 zatvoren**.
+- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **549 otvoren / 143 zatvoren** (692 reda ukupno); zaglavlje i kontrolni zbir tog registra odražavaju brojanje njegovih redova.
 - Deset nalaza koje izvorne tabele označavaju `zatvoreno`, a redovi globalnog registra još prikazuju kao `otvoreno`: `BA-authorization-02`, `BA-rbac-04`, `BA-routing-05`, `BA-routing-06`, `BA-routing-07`, `BA-status-page-07`, `BA-status-page-08`, `BA-status-page-10`, `BA-users-04`, `BA-users-05`. Ovaj zahtjev je ograničen na W3 statusne redove; ostalih 10 nalaza nisu mijenjani.
 
 Za BA-15 nema preostalih implementacijskih nalaza, ali puni critical-flow acceptance nije potvrđen. CI [`42032046504`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42032046504) na `1fb7c9f` passed za backend/full Jest, disposable PostgreSQL/Redis integration, frontend, docs i container/supply-chain; E2E poslovi su tada bili `skipped`. Noviji CI [`42036534042`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42036534042) na `master` SHA [`f3cbadf`](https://github.com/mudzy992/help-desk-enterprise/commit/f3cbadfddf4ed08a9b0deb8ca5b8a86691d25b2f) prošao je full code CI i izvršio odabrane E2E specs 16/25/32: **6 passed / 0 failed / 0 flaky / 0 skipped**. To zatvara templates E2E 16 i potvrđuje testove 25/32, ali nije puni critical-flow suite i ne uključuje servisni spec 42; BA-15 gate zato ostaje pending. E2E install wizard i read-only inventory su `skipped`. Raniji targeted spec42 `41916949315` bio je na starijem SHA-u i ne nadomješta full suite. Ne dispatchati dodatni full E2E ručno bez nove upute; detalji su u [auditu 15, sekcija 35](15-service-catalog.md#35-ba-15-targeted-e2e-follow-up-2026-11-05) i [paketu 132](../implementation/132-templates-11-13-closeout-e2e-25-32-triage.md).
