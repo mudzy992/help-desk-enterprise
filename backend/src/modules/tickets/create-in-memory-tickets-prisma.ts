@@ -248,10 +248,19 @@ export function createInMemoryTicketsPrisma() {
       () => nextPrefixedId('audit'),
       now,
     ),
-    // The ticket-create path persists its transactional outbox intent with a tagged INSERT.
-    $queryRaw: async (_query: TemplateStringsArray, id: string) => [{ id }],
-    $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
-      callback(prisma),
+    // Keep this tagged INSERT on the transaction client only. Response serializers
+    // detect root `$queryRaw` to select the real-Prisma joined-read path.
+    $transaction: async (callback: (client: unknown) => Promise<unknown>) => {
+      const transaction = {
+        ...prisma,
+        $queryRaw: async (strings: TemplateStringsArray, ...values: unknown[]) => {
+          const sql = strings.join('?');
+          if (!sql.includes('INSERT INTO "OutboxMessage"')) return [];
+          return typeof values[0] === 'string' ? [{ id: values[0] }] : [];
+        },
+      };
+      return callback(transaction);
+    },
   };
 
   return {

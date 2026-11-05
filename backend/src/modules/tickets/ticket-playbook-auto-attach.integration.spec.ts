@@ -62,7 +62,7 @@ describeIfDatabase('ticket playbook auto-attach outbox (PostgreSQL integration, 
           },
         });
         await prisma.ticket.deleteMany({ where: { id: fixture.ticketId } });
-        await prisma.playbook.deleteMany({ where: { id: { in: fixture.playbookIds } } });
+        await prisma.playbook.deleteMany({ where: { id: { in: [...fixture.playbookIds] } } });
         await prisma.service.deleteMany({ where: { id: fixture.serviceId } });
         await prisma.serviceCategory.deleteMany({ where: { id: fixture.categoryId } });
         await prisma.organizationalUnit.deleteMany({ where: { id: fixture.unitId } });
