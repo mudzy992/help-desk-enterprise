@@ -17,10 +17,12 @@ import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
 import {
   emptyResponseTemplateForm,
+  toResponseTemplateForm,
+  toResponseTemplateSaveInput,
   type ResponseTemplateBodyField,
   type ResponseTemplateForm,
 } from "@/lib/templates/response-template-editor-model";
-import { parseTagsInput, unknownTemplateVariables } from "@/lib/templates/template-variables";
+import { unknownTemplateVariables } from "@/lib/templates/template-variables";
 import { cn } from "@/lib/utils";
 import { listGroups } from "@/services/groups-api";
 import { listServices } from "@/services/service-catalog-api";
@@ -194,22 +196,7 @@ export function ResponseTemplateEditorPage() {
     }
     setSaving(true);
     setErrorKey(null);
-    const input = {
-      name: form.name,
-      kind: form.kind,
-      bodyBs: form.bodyBs,
-      bodyEn: form.bodyEn.trim().length > 0 ? form.bodyEn : null,
-      tags: parseTagsInput(form.tags),
-      isActive: form.isActive,
-      ...(shared
-        ? {
-            serviceIds: form.serviceIds,
-            categoryIds: form.categoryIds,
-            groupIds: form.groupIds,
-            reason: form.reason.trim(),
-          }
-        : {}),
-    };
+    const input = toResponseTemplateSaveInput(form, shared);
     try {
       const saved = isNew
         ? await createResponseTemplate(ownership, input)
@@ -528,19 +515,4 @@ export function ResponseTemplateEditorPage() {
       )}
     </section>
   );
-}
-
-function toResponseTemplateForm(template: ResponseTemplate): ResponseTemplateForm {
-  return {
-    name: template.name,
-    kind: template.kind,
-    bodyBs: template.bodyBs,
-    bodyEn: template.bodyEn ?? "",
-    tags: template.tags.join(", "),
-    isActive: template.isActive,
-    serviceIds: template.serviceIds,
-    categoryIds: template.categoryIds,
-    groupIds: template.groupIds,
-    reason: "",
-  };
 }
