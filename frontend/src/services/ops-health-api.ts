@@ -34,6 +34,14 @@ export type ChangeDowntimeSyncHealth = {
   readonly oldestPendingAgeMs: number;
 };
 
+export type TicketSideEffectOutboxHealth = {
+  readonly status: "ok" | "degraded";
+  readonly pending: number;
+  readonly processing: number;
+  readonly deadLetter: number;
+  readonly oldestPendingAgeMs: number;
+};
+
 export type TemplatesConfigurationHealth = {
   readonly status: "ok" | "degraded";
   readonly readFailuresTotal: number;
@@ -134,6 +142,8 @@ export type OpsOverview = {
     };
     /** Optional during rolling deploys where the API has not added this signal yet. */
     readonly changeDowntimeSync?: ChangeDowntimeSyncHealth | null;
+    /** Optional during rolling deploys where the API has not added this signal yet. */
+    readonly ticketSideEffectOutbox?: TicketSideEffectOutboxHealth | null;
     /** Per-process fail-closed settings-read health; optional during rolling deploys. */
     readonly templatesConfiguration?: TemplatesConfigurationHealth | null;
     readonly inbound: ReadonlyArray<{

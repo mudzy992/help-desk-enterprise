@@ -19,6 +19,7 @@ import { schedulerGraceMs } from './evaluate-ops-signals';
 import { SettingsService } from '../settings/settings.service';
 import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
 import { changeDowntimePendingWarningAgeMs, changeDowntimeSyncTopic } from '../changes/change-downtime-outbox';
+import { ticketSideEffectOutboxTopics, ticketSideEffectOutboxWarningAgeMs } from '../tickets/ticket-side-effect-outbox.constants';
 import { readTemplatesConfigurationHealth } from '../templates/templates-configuration-health';
 
 export type OpsAlertView = {
@@ -86,7 +87,7 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound, changeDowntimeSync] = await Promise.all([
+    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound, changeDowntimeSync, ticketSideEffectOutbox] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       readWorkerHeartbeatValue(() =>
@@ -109,6 +110,7 @@ export class OpsHealthService {
       countStuckNotificationEmailDeliveries(this.prisma, now).catch(() => null),
       this.currentInboundState(),
       this.changeDowntimeSyncState(now).catch(() => null),
+      this.ticketSideEffectOutboxState(now).catch(() => null),
     ]);
     const worker = evaluateWorkerHeartbeat({
       lastHeartbeatAt: heartbeat,
@@ -142,6 +144,7 @@ export class OpsHealthService {
         },
         inbound,
         changeDowntimeSync,
+        ticketSideEffectOutbox,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({
         queue: scheduler.queue,
@@ -315,6 +318,32 @@ export class OpsHealthService {
     const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
     return {
       status: deadLetter > 0 || oldestPendingAgeMs >= changeDowntimePendingWarningAgeMs ? ('degraded' as const) : ('ok' as const),
+      pending,
+      processing,
+      deadLetter,
+      oldestPendingAgeMs,
+    };
+  }
+
+  private async ticketSideEffectOutboxState(now: Date) {
+    const topic = { in: [...ticketSideEffectOutboxTopics] };
+    const activeStatuses: Array<'PENDING' | 'PROCESSING'> = ['PENDING', 'PROCESSING'];
+    const active = { topic, status: { in: activeStatuses } };
+    const [pending, processing, deadLetter, oldest] = await Promise.all([
+      this.prisma.outboxMessage.count({ where: { topic, status: 'PENDING' } }),
+      this.prisma.outboxMessage.count({ where: { topic, status: 'PROCESSING' } }),
+      this.prisma.outboxMessage.count({ where: { topic, status: 'DEAD_LETTER' } }),
+      this.prisma.outboxMessage.findFirst({
+        where: active,
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+    ]);
+    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
+    return {
+      status: deadLetter > 0 || oldestPendingAgeMs >= ticketSideEffectOutboxWarningAgeMs
+        ? ('degraded' as const)
+        : ('ok' as const),
       pending,
       processing,
       deadLetter,

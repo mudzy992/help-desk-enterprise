@@ -33,6 +33,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/tickets/reopen/reopen-same-ticket.integration.spec.ts",
   "src/modules/tickets/saved-views/saved-view-concurrency.integration.spec.ts",
   "src/modules/tickets/ticket-side-effect-outbox.integration.spec.ts",
+  "src/modules/tickets/ticket-playbook-auto-attach.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",

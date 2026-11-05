@@ -152,6 +152,13 @@ test("BA-templates-04/10 checklist concurrency PostgreSQL spec je registrovan za
   );
 });
 
+test("BA-templates-05 auto-attach outbox PostgreSQL spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/tickets/ticket-playbook-auto-attach.integration.spec.ts"),
+    "nedostaje obavezni BA-templates-05 auto-attach recovery shard",
+  );
+});
+
 test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", () => {
   const directory = path.join(backendRoot, "src/modules/service-catalog");
   const discovered = discoverServiceCatalogIntegrationSpecs(directory).sort();

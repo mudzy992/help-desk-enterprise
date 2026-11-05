@@ -134,6 +134,38 @@ describe('OpsHealthService', () => {
     expect((await service.overview(now)).components.changeDowntimeSync).toMatchObject({ status: 'degraded', deadLetter: 1 });
   });
 
+  it('reports ticket side-effect outbox backlog and degrades on dead-letter work', async () => {
+    const { service, prisma } = setup();
+    let deadLetter = 0;
+    prisma.outboxMessage.count.mockImplementation(async (args: unknown) => {
+      const where = (args as { where: { topic: { in: string[] }; status: string } }).where;
+      if (!where.topic.in.includes('ticket.playbook.auto-attach')) return 0;
+      if (where.status === 'PENDING') return 2;
+      if (where.status === 'PROCESSING') return 1;
+      return deadLetter;
+    });
+    prisma.outboxMessage.findFirst.mockImplementation(async (args: unknown) => {
+      const where = (args as { where: { topic: { in: string[] } } }).where;
+      return where.topic.in.includes('ticket.playbook.auto-attach')
+        ? { createdAt: new Date(now.getTime() - 60_000) }
+        : null;
+    });
+
+    expect((await service.overview(now)).components.ticketSideEffectOutbox).toEqual({
+      status: 'ok',
+      pending: 2,
+      processing: 1,
+      deadLetter: 0,
+      oldestPendingAgeMs: 60_000,
+    });
+
+    deadLetter = 1;
+    expect((await service.overview(now)).components.ticketSideEffectOutbox).toMatchObject({
+      status: 'degraded',
+      deadLetter: 1,
+    });
+  });
+
   it('returns an unknown change downtime signal when the outbox health query fails', async () => {
     const { service, prisma } = setup();
     prisma.outboxMessage.count.mockRejectedValueOnce(new Error('outbox table unavailable'));

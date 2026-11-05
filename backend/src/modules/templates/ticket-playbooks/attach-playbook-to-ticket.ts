@@ -14,6 +14,8 @@ import {
   type PlaybookCandidate,
 } from './ticket-playbook-snapshot';
 
+const autoAttachTerminalStatuses = new Set(['RESOLVED', 'CLOSED', 'ARCHIVED']);
+
 /** Active, not deleted playbooks with their scope (small table, one query). */
 export async function loadPlaybookCandidates(prisma: PrismaService): Promise<PlaybookCandidate[]> {
   const rows = await prisma.playbook.findMany({
@@ -47,10 +49,24 @@ export async function attachPlaybookToTicket(input: {
   readonly actorUserId: string | null;
   readonly autoAttached: boolean;
   readonly messages: TicketPersistedMessageSink;
-}): Promise<void> {
-  await input.prisma.$transaction(async (transaction) => {
+}): Promise<boolean> {
+  return input.prisma.$transaction(async (transaction) => {
     const tx = transaction as PrismaService;
-    await tx.$queryRaw`SELECT "id" FROM "Ticket" WHERE "id" = ${input.ticket.id} FOR UPDATE`;
+    const lockedTickets = await tx.$queryRaw<Array<{ readonly id: string; readonly status: string; readonly mergedIntoTicketId: string | null }>>`
+      SELECT "id", "status", "mergedIntoTicketId" FROM "Ticket"
+      WHERE "id" = ${input.ticket.id}
+      FOR UPDATE
+    `;
+    const lockedTicket = lockedTickets[0];
+    if (lockedTicket === undefined) {
+      if (input.autoAttached) return false;
+      throw new TemplatesError('TICKET_PLAYBOOK_NOT_APPLICABLE');
+    }
+    if (input.autoAttached && (
+      autoAttachTerminalStatuses.has(lockedTicket.status) || lockedTicket.mergedIntoTicketId !== null
+    )) {
+      return false;
+    }
     const existing = await tx.ticketPlaybook.findFirst({
       where: { ticketId: input.ticket.id, detachedAt: null },
       select: { id: true },
@@ -96,6 +112,7 @@ export async function attachPlaybookToTicket(input: {
         detail: `${input.autoAttached ? 'auto' : 'manual'}:${playbook.version}:${playbook.name.replace(/[\r\n]+/g, ' ')}`,
       }),
     );
+    return true;
   });
 }
 
@@ -119,7 +136,7 @@ export async function autoAttachPlaybook(input: {
     }),
   );
   if (choice === null) return false;
-  await attachPlaybookToTicket({
+  return attachPlaybookToTicket({
     prisma: input.prisma,
     ticket: input.ticket,
     playbookId: choice.id,
@@ -128,5 +145,4 @@ export async function autoAttachPlaybook(input: {
     autoAttached: true,
     messages: input.messages,
   });
-  return true;
 }

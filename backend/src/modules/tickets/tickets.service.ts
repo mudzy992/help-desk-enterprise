@@ -166,7 +166,7 @@ export class TicketsService {
     );
   }
 
-  /** Package 1.4 (P3): best effort — a playbook problem never fails creation. */
+  /** Package 1.4 (P3): fast path; the transactionally queued intent retries failures. */
   private async autoAttachPlaybook(
     ticket: TicketRecord,
     messages: TicketPersistedMessageSink,

@@ -76,6 +76,8 @@ export function overallOpsState(overview: OpsOverview): OpsOverallState {
     components.worker.status === "unknown" ||
     components.changeDowntimeSync === null ||
     components.changeDowntimeSync?.status === "degraded" ||
+    components.ticketSideEffectOutbox === null ||
+    components.ticketSideEffectOutbox?.status === "degraded" ||
     components.templatesConfiguration?.status === "degraded"
   ) {
     return "degraded";

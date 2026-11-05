@@ -124,6 +124,23 @@ describe("ops health view", () => {
       ),
     ).toBe("degraded");
     expect(overallOpsState(overview({}, { changeDowntimeSync: null }))).toBe("degraded");
+    expect(overallOpsState(overview({}, { ticketSideEffectOutbox: null }))).toBe("degraded");
+    expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            ticketSideEffectOutbox: {
+              status: "degraded",
+              pending: 0,
+              processing: 0,
+              deadLetter: 1,
+              oldestPendingAgeMs: 0,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
     expect(
       overallOpsState(
         overview(
