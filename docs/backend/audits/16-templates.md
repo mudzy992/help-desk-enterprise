@@ -17,6 +17,11 @@ Dodatno su step/upgrade događaji race-osjetljivi, auto-attach je best-effort be
 
 **BA-templates-01/02/03 — owner-directed closeout (2026-11-04):** korisnik je izričito zatražio dokumentovanje i zatvaranje ovih već implementiranih nalaza. W5.47/`41850862952` (uz registrovani PostgreSQL test) i Perf `41850863346`, W5.48/CI `41876403874`, te W5.49/CI `41886832531` i Perf `41886832553` daju dokaz implementacije; zajednički noviji CI `41915186268` i Perf `41915186314` prošli su na `70f52e4b`. E2E install/critical-flow poslovi su u push CI-ju `skipped`; run `41916949315` prošao je 4/4 na starijem SHA-u `a625446c` i pokrivao spec 42, ne templates E2E 16. Zato redovi su zatvoreni owner-directed, ali se ne tvrdi da je relevantni templates E2E ili puni Val-5 acceptance prošao; E2E 16 i ukupni Val-5 segment sign-off ostaju pending. Nije pristupljeno ciljnoj bazi niti pokretana migracija. Ovaj agent nije otvorio PR niti izvršio merge/deploy; read-only GitHub provjera pokazuje `master` na `70f52e4b`, a deployment nije potvrđen.
 
+
+**BA-templates-04/10 code closeout (2026-11-05):** checklist mutacije/upgrade sada se serijalizuju, completion je tranzicijski idempotentan, a migracija štiti jedan aktivni checklist red uz fail-fast preflight. Commit `8e2692ca` prošao je automatski CI [`41923550409`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41923550409) i Perf [`41923550410`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41923550410); CI je uključio disposable PostgreSQL suite i migration replay. Nije korištena ciljna baza niti pokretana target migracija. E2E 16 je bio skipped/nepokrenut, pa Val-5 segment i puni critical-flow acceptance ostaju odvojeni pending gateovi.
+
+**BA-templates-05 code closeout (2026-11-05):** ticket create transakcijski zapisuje deduplicirani auto-attach intent; worker ga retry/reconcile-a, a ops-health UI pokazuje pending/processing/dead-letter stanje. CI [`41984028707`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41984028707) na finalnom SHA `9158730b` prošao je backend build/lint/test, PostgreSQL/Redis integraciju i frontend build/test; BA-05 PostgreSQL integration spec bio je u runneru. Prvi CI `41983148763` otkrio je readonly fixture tip i in-memory fake `$queryRaw` koji je aktivirao SQL serializer putanju; oba testa popravljena su u `9158730`. Perf [`41983148764`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41983148764) prošao je na `bf302d0`, tj. glavnom implementacijskom commitu prije finalnog test-fixture-only popravka; zaseban Perf run za `9158730` nije se pojavio. Nije korištena ciljna baza niti pokretana migracija. E2E critical-flow/install poslovi su skipped, tako da se ne tvrdi full Val-5/E2E acceptance.
+
 ## 2. Scope i inventar
 
 - 24 produkcijska TypeScript fajla;
@@ -137,13 +142,13 @@ E2E 16 potvrđuje shared service template, auto-attach, render/send, usage count
 | BA-templates-01 | P1       | Service-scoped manager može čitati sve foreign shared templatee i playbooke             | zatvoreno |
 | BA-templates-02 | P1       | Settings kvar fail-open spušta `block` na `warn` i može uključiti ugašene funkcije      | zatvoreno |
 | BA-templates-03 | P1       | Concurrent playbook update može proizvesti hibrid koraka/scopea i netačnu verziju       | zatvoreno |
-| BA-templates-04 | P2       | Concurrent step/upgrade operacije daju duple ili izostale evente i stale checked redove | otvoreno |
-| BA-templates-05 | P2       | Auto-attach je best-effort bez durable retry/reconciliationa                            | otvoreno |
+| BA-templates-04 | P2       | Concurrent step/upgrade operacije daju duple ili izostale evente i stale checked redove | zatvoreno |
+| BA-templates-05 | P2       | Auto-attach je best-effort bez durable retry/reconciliationa                            | zatvoreno |
 | BA-templates-06 | P2       | Config snapshot nije potpun i apply zaobilazi domenske invariante/audit                 | otvoreno |
 | BA-templates-07 | P2       | Playbook name uniqueness je read-before-write bez DB zaštite                            | otvoreno |
 | BA-templates-08 | P2       | Definition updatei su silent last-write-wins bez optimistic preconditiona               | otvoreno |
 | BA-templates-09 | P2       | Management/candidate liste su hard-truncated bez paginacije/truncation ugovora          | otvoreno |
-| BA-templates-10 | P2       | Aktivna ticket-checklista nema DB partial unique invariant                              | otvoreno |
+| BA-templates-10 | P2       | Aktivna ticket-checklista nema DB partial unique invariant                              | zatvoreno |
 | BA-templates-11 | P3       | Realtime publish poslije commita nema retry/delivery signal                             | otvoreno |
 | BA-templates-12 | P3       | Bulk attach do 500 ticketa nema async job/time budget i može biti dug HTTP zahtjev      | otvoreno |
 | BA-templates-13 | P3       | Kritična scope/failure/concurrency matrica nije lokalno izvršiva ni kompletna           | otvoreno |
