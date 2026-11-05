@@ -136,7 +136,7 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 
 | ID                  | Severity | Nalaz                                                                                       | Status   |
 | ------------------- | -------- | ------------------------------------------------------------------------------------------- | -------- |
-| BA-notifications-01 | P1       | Primarni fan-out je detached in-memory tok bez outboxa, replaya ili recoveryja              | otvoreno |
+| BA-notifications-01 | P1       | Primarni fan-out je detached in-memory tok bez outboxa, replaya ili recoveryja              | zatvoreno |
 | BA-notifications-02 | P1       | Stale membership cache privremeno zadržava pristup group notification sadržaju              | otvoreno |
 | BA-notifications-03 | P1       | Digest šalje aktuelni ticket sadržaj bez ponovne provjere recipient pristupa                | otvoreno |
 | BA-notifications-04 | P2       | Preference/settings kvar fail-open zaobilazi user opt-out i administratorske lockove        | otvoreno |
@@ -260,3 +260,11 @@ Acceptance:
 | 13–15 | fallback mapa, E2E matrica i Jest rezultat             | 0–6   |
 
 Notifications ima široku funkcionalnost i više dobrih dedupe, privacy i scale odluka, ali notification sistem bez durable izvora, neposredne revocation garancije i digest reautorizacije nije enterprise-pouzdan. Iskren baseline je **5,05/10**.
+
+## 19. Statusna dopuna — BA-notifications-01 closeout (2026-11-05)
+
+`BA-notifications-01` (P1) je zatvoren na nivou nalaza kroz Val 6 paket W6.18. Trigger upisuje fan-out intent u istoj PostgreSQL transakciji kao novi `TicketMessage`; registered worker obavlja replayable delivery. Nema historical backfilla. Integration acceptance u [paketu 133](../implementation/133-notifications-01-durable-ticket-message-fanout.md) potvrđuje commit/rollback zajedno i restart replay u tačno jedan requester inbox red sa `SUCCEEDED` outbox statusom.
+
+Finalni CI [`42043805181`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42043805181) na SHA `0e84472` je success za backend generated-Prisma build/lint/full Jest/SLA matrix, real PostgreSQL+Redis integration, frontend, docs, container/supply-chain i CI gate. E2E critical flows, install wizard i read-only service-form inventory bili su `skipped`; oni nisu BA-notifications-01 replay acceptance. Perf [`42042167541`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42042167541) na runtime SHA `c5cfac4` je success; naredni `0e84472` commit mijenjao je samo testne fajlove, a Perf pragovi nisu mijenjani.
+
+Ova dopuna mijenja samo `BA-notifications-01` status. `BA-notifications-02`–`15` ostaju otvoreni, baseline **5,05/10** se ne rescora, a BA-15 puni critical-flow acceptance ostaje zasebno pending. Migracija `20271031160000_notifications_ticket_message_fanout_outbox` je replayovana samo na disposable CI bazi; ciljna baza nije korištena ni migrirana.
