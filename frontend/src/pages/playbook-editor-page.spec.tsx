@@ -81,7 +81,14 @@ describe("PlaybookEditorPage revision handling", () => {
     vi.mocked(listKnowledgeArticles).mockResolvedValue([]);
     vi.mocked(listServices).mockResolvedValue([]);
     vi.mocked(listServiceCategories).mockResolvedValue([]);
-    vi.mocked(listManagedTemplates).mockResolvedValue([]);
+    vi.mocked(listManagedTemplates).mockResolvedValue({
+      items: [],
+      total: 0,
+      take: 50,
+      cursor: null,
+      nextCursor: null,
+      hasMore: false,
+    });
   });
   afterEach(cleanup);
 

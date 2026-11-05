@@ -42,8 +42,10 @@ export const templateLimits = {
   stepTitleMax: 200,
   stepInstructionsMax: 4_000,
   stepsMax: 50,
-  pickerLimit: 200,
 } as const;
+
+export const templatesListDefaultTake = 50;
+export const templatesListMaximumTake = 100;
 
 export const templateChangeLogEntityTypes = {
   responseTemplate: 'response_template',

@@ -1,19 +1,22 @@
 import { HttpException } from '@nestjs/common';
 import { permissionKeys } from '../authorization/authorization.constants';
-import type {
-  AuthorizationAssignment,
-  AuthorizationContext,
-} from '../authorization/authorization.types';
+import type { AuthorizationAssignment, AuthorizationContext } from '../authorization/authorization.types';
 import { mapTemplatesError } from './map-templates-error';
 import { TemplatesError } from './templates.error';
 import { ResponseTemplatesService } from './response-templates.service';
 
-jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 jest.mock('../tickets/ticket-access-policy-binder', () => ({
   TicketAccessPolicyBinder: class TicketAccessPolicyBinder {},
 }));
-jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
-jest.mock('./assert-response-template-usable', () => ({ assertResponseTemplateUsable: jest.fn() }));
+jest.mock('../tickets/load-accessible-ticket', () => ({
+  loadAccessibleTicket: jest.fn(),
+}));
+jest.mock('./assert-response-template-usable', () => ({
+  assertResponseTemplateUsable: jest.fn(),
+}));
 jest.mock('./build-template-variables', () => ({
   buildTemplateVariables: jest.fn(),
   sampleTemplateVariables: jest.fn(() => ({ ticketNumber: 'SAMPLE-1' })),
@@ -73,7 +76,10 @@ const assignment = (keys: readonly string[], serviceId: string | null = null): A
 
 const contextFor = (
   keys: readonly string[],
-  options: { readonly isSuperAdmin?: boolean; readonly serviceId?: string | null } = {},
+  options: {
+    readonly isSuperAdmin?: boolean;
+    readonly serviceId?: string | null;
+  } = {},
 ): AuthorizationContext => ({
   subjectId: 'actor-1',
   isLocalOnly: false,
@@ -117,6 +123,7 @@ type HarnessPrisma = {
     readonly findMany: jest.Mock;
     readonly findFirst: jest.Mock;
     readonly findUnique: jest.Mock;
+    readonly count: jest.Mock;
     readonly create: jest.Mock;
     readonly update: jest.Mock;
     readonly updateMany: jest.Mock;
@@ -133,7 +140,10 @@ type HarnessPrisma = {
     readonly deleteMany: jest.Mock;
     readonly createMany: jest.Mock;
   };
-  readonly service: { readonly count: jest.Mock; readonly findUnique: jest.Mock };
+  readonly service: {
+    readonly count: jest.Mock;
+    readonly findUnique: jest.Mock;
+  };
   readonly serviceCategory: { readonly count: jest.Mock };
   readonly group: { readonly count: jest.Mock };
   readonly user: { readonly findUnique: jest.Mock };
@@ -159,6 +169,7 @@ function createHarness(options: HarnessOptions = {}) {
       findMany: jest.fn(async (_args: unknown): Promise<Row[]> => []),
       findFirst: jest.fn(async (_args: unknown): Promise<Row | null> => null),
       findUnique: jest.fn(async (_args: unknown): Promise<Row | null> => row()),
+      count: jest.fn(async () => 0),
       create: jest.fn(async (_args: unknown): Promise<Row> => row()),
       update: jest.fn(async (_args: unknown): Promise<Row> => row()),
       updateMany: jest.fn(async () => ({ count: 1 })),
@@ -181,7 +192,11 @@ function createHarness(options: HarnessOptions = {}) {
     },
     serviceCategory: { count: jest.fn(async () => 1) },
     group: { count: jest.fn(async () => 1) },
-    user: { findUnique: jest.fn(async () => ({ preferredLocale: options.requesterLocale ?? 'bs' })) },
+    user: {
+      findUnique: jest.fn(async () => ({
+        preferredLocale: options.requesterLocale ?? 'bs',
+      })),
+    },
     changeLog: {
       create: jest.fn(async (args: { data: Record<string, unknown> }) => {
         changeLogs.push(args.data);
@@ -217,7 +232,10 @@ function createHarness(options: HarnessOptions = {}) {
     configurationLoader as never,
   );
 
-  loadTicketMock.mockImplementation(async () => ({ ticket, access: { visibility: 'staff' } }));
+  loadTicketMock.mockImplementation(async () => ({
+    ticket,
+    access: { visibility: 'staff' },
+  }));
 
   return { service, prisma, changeLogs, authorizationLoader };
 }
@@ -238,23 +256,30 @@ describe('ResponseTemplatesService', () => {
     // leftover from an earlier test cannot satisfy a later call; the two
     // module-level defaults are then re-applied.
     jest.resetAllMocks();
-    loadTicketMock.mockImplementation(async () => ({ ticket, access: { visibility: 'staff' } }));
+    loadTicketMock.mockImplementation(async () => ({
+      ticket,
+      access: { visibility: 'staff' },
+    }));
     sampleVariablesMock.mockImplementation(() => ({ ticketNumber: 'SAMPLE-1' }) as never);
   });
 
   describe('permission and feature gates', () => {
     it('refuses every use when the templates feature is off', async () => {
       const { service } = createHarness({ templatesEnabled: false });
-      expect(await codeOf(service.listForPicker({}, { actorUserId: 'actor-1' }))).toBe(
-        'TEMPLATES_DISABLED',
-      );
+      expect(await codeOf(service.listForPicker({}, { actorUserId: 'actor-1' }))).toBe('TEMPLATES_DISABLED');
     });
 
     it('requires ticket.templates.use in the picker and for rendering', async () => {
-      const { service } = createHarness({ context: contextFor([permissionKeys.ticketTemplatesManage]) });
+      const { service } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage]),
+      });
       expect(await codeOf(service.listForPicker({}, { actorUserId: 'actor-1' }))).toBe('FORBIDDEN');
       expect(
-        await codeOf(service.render('ticket-1', 'template-1', undefined, { actorUserId: 'actor-1' })),
+        await codeOf(
+          service.render('ticket-1', 'template-1', undefined, {
+            actorUserId: 'actor-1',
+          }),
+        ),
       ).toBe('FORBIDDEN');
     });
 
@@ -267,8 +292,12 @@ describe('ResponseTemplatesService', () => {
       const { service, prisma } = createHarness({
         context: { ...contextFor([]), isSuperAdmin: true },
       });
-      await expect(service.listForPicker({}, { actorUserId: 'actor-1' })).resolves.toEqual([]);
-      expect(prisma.responseTemplate.findMany).toHaveBeenCalledTimes(1);
+      await expect(service.listForPicker({}, { actorUserId: 'actor-1' })).resolves.toMatchObject({
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+      expect(prisma.responseTemplate.findMany).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -280,16 +309,18 @@ describe('ResponseTemplatesService', () => {
         take: number;
       };
 
-    it('queries only active, undeleted, shared-or-own templates and caps the result', async () => {
+    it('queries only active, undeleted templates with a stable bounded page', async () => {
       const { service, prisma } = createHarness();
-      await service.listForPicker(
-        { kind: 'REPLY', q: '  štampač ' },
-        { actorUserId: 'actor-1' },
-      );
+      await service.listForPicker({ kind: 'REPLY', q: '  štampač ' }, { actorUserId: 'actor-1' });
       const args = pickerArgs(prisma);
       expect(args.where.deletedAt).toBeNull();
       expect(args.where.isActive).toBe(true);
-      expect(args.where.AND).toContainEqual({ OR: [{ ownerUserId: null }, { ownerUserId: 'actor-1' }] });
+      expect(args.where.AND).toContainEqual({ ownerUserId: null });
+      expect(args.where.AND).toContainEqual({
+        services: { none: {} },
+        categories: { none: {} },
+        groups: { none: {} },
+      });
       expect(args.where.AND).toContainEqual({ kind: { in: ['REPLY', 'ANY'] } });
       expect(args.where.AND).toContainEqual({
         OR: [
@@ -299,67 +330,141 @@ describe('ResponseTemplatesService', () => {
           { tags: { has: 'štampač' } },
         ],
       });
-      expect(args.orderBy).toEqual([{ usageCount: 'desc' }, { name: 'asc' }]);
-      expect(args.take).toBe(200);
+      expect(args.orderBy).toEqual([{ usageCount: 'desc' }, { name: 'asc' }, { id: 'asc' }]);
+      expect(args.take).toBe(51);
     });
 
     it('ranks by scope match before usage and puts shared before personal on a tie', async () => {
       const { service, prisma } = createHarness();
+      prisma.responseTemplate.findMany
+        .mockResolvedValueOnce([
+          row({
+            id: 'service',
+            name: 'Servisna',
+            usageCount: 1,
+            services: [{ serviceId: 'service-1' }],
+          }),
+        ])
+        .mockResolvedValueOnce([
+          row({
+            id: 'personal-service',
+            name: 'Moja servisna',
+            usageCount: 2,
+            ownerUserId: 'actor-1',
+            services: [{ serviceId: 'service-1' }],
+          }),
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([row({ id: 'global', name: 'Globalna', usageCount: 9 })])
+        .mockResolvedValueOnce([])
+        .mockResolvedValue([]);
+      const page = await service.listForPicker({ ticketId: 'ticket-1' }, { actorUserId: 'actor-1' });
+      expect(page.items.map((item) => item.id)).toEqual(['service', 'personal-service', 'global']);
+      expect(page.items.map((item) => item.scopeMatch)).toEqual([3, 3, 0]);
+      expect(page.items.find((item) => item.id === 'personal-service')?.ownership).toBe('personal');
+      expect(page.items.find((item) => item.id === 'service')?.ownership).toBe('shared');
+    });
+
+    it('uses a usage/name/ID cursor inside the matching-scope tier', async () => {
+      const { service, prisma } = createHarness();
       prisma.responseTemplate.findMany.mockResolvedValueOnce([
-        row({ id: 'global', name: 'Globalna', usageCount: 9 }),
         row({
-          id: 'service',
-          name: 'Servisna',
-          usageCount: 1,
+          id: 'template-a',
+          name: 'Same name',
+          usageCount: 5,
           services: [{ serviceId: 'service-1' }],
         }),
         row({
-          id: 'personal-service',
-          name: 'Moja servisna',
-          usageCount: 2,
-          ownerUserId: 'actor-1',
+          id: 'template-b',
+          name: 'Same name',
+          usageCount: 5,
           services: [{ serviceId: 'service-1' }],
         }),
       ]);
-      const items = await service.listForPicker(
-        { ticketId: 'ticket-1' },
+      const first = await service.listForPicker({ ticketId: 'ticket-1', take: 1 }, { actorUserId: 'actor-1' });
+      expect(first.items.map((item) => item.id)).toEqual(['template-a']);
+      expect(first.hasMore).toBe(true);
+      expect(first.nextCursor).not.toBeNull();
+
+      prisma.responseTemplate.findMany.mockResolvedValueOnce([
+        row({
+          id: 'template-b',
+          name: 'Same name',
+          usageCount: 5,
+          services: [{ serviceId: 'service-1' }],
+        }),
+      ]);
+      const second = await service.listForPicker(
+        {
+          ticketId: 'ticket-1',
+          take: 1,
+          cursor: first.nextCursor ?? undefined,
+        },
         { actorUserId: 'actor-1' },
       );
-      expect(items.map((item) => item.id)).toEqual(['service', 'personal-service', 'global']);
-      expect(items.map((item) => item.scopeMatch)).toEqual([3, 3, 0]);
-      expect(items.find((item) => item.id === 'personal-service')?.ownership).toBe('personal');
-      expect(items.find((item) => item.id === 'service')?.ownership).toBe('shared');
+      expect(second.items.map((item) => item.id)).toEqual(['template-b']);
+      expect(second.items[0]?.scopeMatch).toBe(3);
+      expect(second.hasMore).toBe(false);
+      expect(prisma.responseTemplate.findMany.mock.calls[1]?.[0]).toMatchObject({
+        where: {
+          AND: [
+            { ownerUserId: null },
+            { services: { some: { serviceId: 'service-1' } } },
+            {
+              OR: [
+                { usageCount: { lt: 5 } },
+                { usageCount: 5, name: { gt: 'Same name' } },
+                {
+                  usageCount: 5,
+                  name: 'Same name',
+                  id: { gt: 'template-a' },
+                },
+              ],
+            },
+          ],
+        },
+      });
     });
 
     it('drops templates scoped to another service unless the caller asked for all', async () => {
       const { service, prisma } = createHarness();
-      const offScope = row({ id: 'elsewhere', services: [{ serviceId: 'service-99' }] });
-      prisma.responseTemplate.findMany.mockResolvedValueOnce([offScope]);
-      const withoutAll = await service.listForPicker(
-        { ticketId: 'ticket-1' },
-        { actorUserId: 'actor-1' },
-      );
-      expect(withoutAll).toEqual([]);
+      const offScope = row({
+        id: 'elsewhere',
+        services: [{ serviceId: 'service-99' }],
+      });
+      const withoutAll = await service.listForPicker({ ticketId: 'ticket-1' }, { actorUserId: 'actor-1' });
+      expect(withoutAll.items).toEqual([]);
 
       prisma.responseTemplate.findMany
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([offScope]);
-      const withAll = await service.listForPicker(
-        { ticketId: 'ticket-1', all: true },
-        { actorUserId: 'actor-1' },
-      );
-      expect(withAll.map((item) => item.id)).toEqual(['elsewhere']);
-      expect(withAll[0].scopeMatch).toBe(-1);
-      // one query for the first call, two for the "show all" call
-      expect(prisma.responseTemplate.findMany).toHaveBeenCalledTimes(3);
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([offScope])
+        .mockResolvedValueOnce([]);
+      const withAll = await service.listForPicker({ ticketId: 'ticket-1', all: true }, { actorUserId: 'actor-1' });
+      expect(withAll.items.map((item) => item.id)).toEqual(['elsewhere']);
+      expect(withAll.items[0]?.scopeMatch).toBe(-1);
+      // Four eligible scope tiers have shared/personal queries, then show-all adds two.
+      expect(prisma.responseTemplate.findMany).toHaveBeenCalledTimes(18);
     });
 
     it('refuses a caller who cannot see the ticket as staff', async () => {
       const { service } = createHarness();
-      loadTicketMock.mockResolvedValueOnce({ ticket, access: { visibility: 'requester' } });
-      expect(
-        await codeOf(service.listForPicker({ ticketId: 'ticket-1' }, { actorUserId: 'actor-1' })),
-      ).toBe('FORBIDDEN');
+      loadTicketMock.mockResolvedValueOnce({
+        ticket,
+        access: { visibility: 'requester' },
+      });
+      expect(await codeOf(service.listForPicker({ ticketId: 'ticket-1' }, { actorUserId: 'actor-1' }))).toBe(
+        'FORBIDDEN',
+      );
     });
   });
 
@@ -379,9 +484,14 @@ describe('ResponseTemplatesService', () => {
     it('fills the bosnian body and reports variables it could not fill', async () => {
       const { service, prisma } = createHarness();
       prisma.responseTemplate.findFirst.mockResolvedValueOnce(
-        row({ bodyBs: 'Zdravo {{requesterFirstName}}, tiket {{ticketNumber}} — {{agentName}}' }),
+        row({
+          bodyBs: 'Zdravo {{requesterFirstName}}, tiket {{ticketNumber}} — {{agentName}}',
+        }),
       );
-      buildVariablesMock.mockResolvedValueOnce({ requesterFirstName: 'Amina', ticketNumber: 'HD-1' });
+      buildVariablesMock.mockResolvedValueOnce({
+        requesterFirstName: 'Amina',
+        ticketNumber: 'HD-1',
+      });
       const rendered = await service.render('ticket-1', 'template-1', 'bs', {
         actorUserId: 'actor-1',
       });
@@ -394,35 +504,45 @@ describe('ResponseTemplatesService', () => {
 
     it('uses the english body for an english requester and falls back when it is empty', async () => {
       const { service, prisma } = createHarness({ requesterLocale: 'en' });
-      prisma.responseTemplate.findFirst.mockResolvedValueOnce(
-        row({ bodyBs: 'Bosanski', bodyEn: 'English' }),
-      );
+      prisma.responseTemplate.findFirst.mockResolvedValueOnce(row({ bodyBs: 'Bosanski', bodyEn: 'English' }));
       buildVariablesMock.mockResolvedValueOnce({});
       expect(
-        (await service.render('ticket-1', 'template-1', undefined, { actorUserId: 'actor-1' })).text,
+        (
+          await service.render('ticket-1', 'template-1', undefined, {
+            actorUserId: 'actor-1',
+          })
+        ).text,
       ).toBe('English');
 
       prisma.responseTemplate.findFirst.mockResolvedValueOnce(row({ bodyBs: 'Bosanski' }));
       buildVariablesMock.mockResolvedValueOnce({});
       expect(
-        (await service.render('ticket-1', 'template-1', undefined, { actorUserId: 'actor-1' })).text,
+        (
+          await service.render('ticket-1', 'template-1', undefined, {
+            actorUserId: 'actor-1',
+          })
+        ).text,
       ).toBe('Bosanski');
     });
 
     it('reports a template that is not visible to the actor as missing', async () => {
       const { service } = createHarness();
       expect(
-        await codeOf(service.render('ticket-1', 'template-1', 'bs', { actorUserId: 'actor-1' })),
+        await codeOf(
+          service.render('ticket-1', 'template-1', 'bs', {
+            actorUserId: 'actor-1',
+          }),
+        ),
       ).toBe('TEMPLATE_NOT_FOUND');
     });
   });
 
   describe('preview', () => {
     it('needs one of the two write permissions', async () => {
-      const { service } = createHarness({ context: contextFor([permissionKeys.ticketTemplatesUse]) });
-      expect(
-        await codeOf(service.preview({ body: 'Zdravo' }, { actorUserId: 'actor-1' })),
-      ).toBe('FORBIDDEN');
+      const { service } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesUse]),
+      });
+      expect(await codeOf(service.preview({ body: 'Zdravo' }, { actorUserId: 'actor-1' }))).toBe('FORBIDDEN');
     });
 
     it('reports unknown placeholders instead of failing, and trims the body to the limit', async () => {
@@ -440,30 +560,27 @@ describe('ResponseTemplatesService', () => {
   });
 
   describe('management', () => {
-    it('filters shared management rows to authorized service scopes before the bounded take', async () => {
+    it('filters shared management rows before count and returns a stable cursor page', async () => {
       const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], {
+          serviceId: 'service-1',
+        }),
       });
       prisma.responseTemplate.findMany.mockResolvedValueOnce([
         row({ id: 'allowed', services: [{ serviceId: 'service-1' }] }),
-        row({ id: 'foreign', services: [{ serviceId: 'service-2' }] }),
-        row({ id: 'global' }),
-        row({ id: 'mixed', services: [{ serviceId: 'service-1' }, { serviceId: 'service-2' }] }),
-        row({ id: 'category', services: [{ serviceId: 'service-1' }], categories: [{ categoryId: 'category-1' }] }),
-        row({ id: 'group', services: [{ serviceId: 'service-1' }], groups: [{ groupId: 'group-1' }] }),
       ]);
+      prisma.responseTemplate.count.mockResolvedValueOnce(1);
 
-      const listed = await service.listManaged({}, { actorUserId: 'actor-1' });
-      expect(listed.map((item) => item.id)).toEqual(['allowed']);
+      const page = await service.listManaged({}, { actorUserId: 'actor-1' });
+      expect(page.items.map((item) => item.id)).toEqual(['allowed']);
+      expect(page.total).toBe(1);
+      expect(page.hasMore).toBe(false);
 
       const args = prisma.responseTemplate.findMany.mock.calls[0]?.[0] as {
-        where: {
-          ownerUserId: string | null;
-          AND: readonly unknown[];
-        };
+        where: { AND: readonly unknown[] };
+        orderBy: unknown;
         take: number;
       };
-      expect(args.where.ownerUserId).toBeNull();
       expect(args.where.AND).toContainEqual({
         services: {
           some: { serviceId: { in: ['service-1'] } },
@@ -472,12 +589,58 @@ describe('ResponseTemplatesService', () => {
         categories: { none: {} },
         groups: { none: {} },
       });
-      expect(args.take).toBe(1000);
+      expect(args.orderBy).toEqual([{ name: 'asc' }, { id: 'asc' }]);
+      expect(args.take).toBe(51);
+      expect(prisma.responseTemplate.count).toHaveBeenCalledWith({
+        where: args.where,
+      });
+    });
+
+    it('uses the ID tie-breaker across equal-name management page boundaries', async () => {
+      const { service, prisma } = createHarness();
+      prisma.responseTemplate.count.mockResolvedValue(3);
+      prisma.responseTemplate.findMany.mockResolvedValueOnce([
+        row({ id: 'template-a', name: 'A' }),
+        row({ id: 'template-b', name: 'B' }),
+        row({ id: 'template-c', name: 'B' }),
+      ]);
+      const first = await service.listManaged({ take: 2 }, { actorUserId: 'actor-1' });
+      expect(first.items.map((item) => item.id)).toEqual(['template-a', 'template-b']);
+      expect(first.total).toBe(3);
+      expect(first.hasMore).toBe(true);
+      expect(first.nextCursor).not.toBeNull();
+
+      prisma.responseTemplate.findMany.mockResolvedValueOnce([row({ id: 'template-c', name: 'B' })]);
+      const second = await service.listManaged(
+        { take: 2, cursor: first.nextCursor ?? undefined },
+        { actorUserId: 'actor-1' },
+      );
+      expect(second.items.map((item) => item.id)).toEqual(['template-c']);
+      expect(second.total).toBe(3);
+      expect(second.hasMore).toBe(false);
+      expect(second.nextCursor).toBeNull();
+      expect(prisma.responseTemplate.findMany.mock.calls[0]?.[0]).toMatchObject({
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: 3,
+      });
+      expect(prisma.responseTemplate.findMany.mock.calls[1]?.[0]).toMatchObject({
+        where: {
+          AND: [
+            { deletedAt: null, ownerUserId: null },
+            {
+              OR: [{ name: { gt: 'B' } }, { name: 'B', id: { gt: 'template-b' } }],
+            },
+          ],
+        },
+      });
+      expect(prisma.responseTemplate.count).toHaveBeenCalledTimes(2);
     });
 
     it('hides a foreign shared template on get and constrains the database lookup', async () => {
       const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], {
+          serviceId: 'service-1',
+        }),
       });
       prisma.responseTemplate.findFirst.mockResolvedValueOnce(
         row({ ownerUserId: null, services: [{ serviceId: 'service-2' }] }),
@@ -501,15 +664,13 @@ describe('ResponseTemplatesService', () => {
 
     it('hides another user’s personal template behind the shared listing path', async () => {
       const { service, prisma } = createHarness();
-      prisma.responseTemplate.findFirst.mockResolvedValueOnce(
-        row({ ownerUserId: 'someone-else' }),
-      );
-      expect(await codeOf(service.get('template-1', { actorUserId: 'actor-1' }))).toBe(
-        'TEMPLATE_NOT_FOUND',
-      );
+      prisma.responseTemplate.findFirst.mockResolvedValueOnce(row({ ownerUserId: 'someone-else' }));
+      expect(await codeOf(service.get('template-1', { actorUserId: 'actor-1' }))).toBe('TEMPLATE_NOT_FOUND');
 
       prisma.responseTemplate.findFirst.mockResolvedValueOnce(row({ ownerUserId: null }));
-      const shared = await service.get('template-1', { actorUserId: 'actor-1' });
+      const shared = await service.get('template-1', {
+        actorUserId: 'actor-1',
+      });
       expect(shared.ownership).toBe('shared');
       expect(shared.canEdit).toBe(true);
     });
@@ -519,7 +680,9 @@ describe('ResponseTemplatesService', () => {
         context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
       });
       await service.listManaged({ ownership: 'mine' }, { actorUserId: 'actor-1' });
-      const args = prisma.responseTemplate.findMany.mock.calls[0][0] as { where: { ownerUserId: string } };
+      const args = prisma.responseTemplate.findMany.mock.calls[0][0] as {
+        where: { ownerUserId: string };
+      };
       expect(args.where.ownerUserId).toBe('actor-1');
     });
 
@@ -532,31 +695,17 @@ describe('ResponseTemplatesService', () => {
 
     it('requires a reason on the shared path and supplies its own on the personal one', async () => {
       const { service, prisma, changeLogs } = createHarness({
-        context: contextFor([
-          permissionKeys.ticketTemplatesManage,
-          permissionKeys.ticketTemplatesPersonal,
-        ]),
+        context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
       });
-      prisma.responseTemplate.findFirst
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValue(null);
+      prisma.responseTemplate.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValue(null);
       prisma.responseTemplate.create.mockResolvedValue(row());
       expect(
         await codeOf(
-          service.create(
-            'shared',
-            { name: 'Novi', bodyBs: 'Tijelo', kind: 'REPLY' },
-            { actorUserId: 'actor-1' },
-          ),
+          service.create('shared', { name: 'Novi', bodyBs: 'Tijelo', kind: 'REPLY' }, { actorUserId: 'actor-1' }),
         ),
       ).toBe('REASON_REQUIRED');
 
-      await service.create(
-        'personal',
-        { name: 'Novi', bodyBs: 'Tijelo', kind: 'REPLY' },
-        { actorUserId: 'actor-1' },
-      );
+      await service.create('personal', { name: 'Novi', bodyBs: 'Tijelo', kind: 'REPLY' }, { actorUserId: 'actor-1' });
       expect(changeLogs.at(-1)?.reason).toBe('personal_template');
       const createArgs = prisma.responseTemplate.create.mock.calls.at(-1)?.[0] as {
         data: { ownerUserId: string | null };
@@ -571,7 +720,12 @@ describe('ResponseTemplatesService', () => {
         await codeOf(
           service.create(
             'shared',
-            { name: 'Zdravo', bodyBs: 'Tijelo', kind: 'REPLY', reason: 'uveden šablon' },
+            {
+              name: 'Zdravo',
+              bodyBs: 'Tijelo',
+              kind: 'REPLY',
+              reason: 'uveden šablon',
+            },
             { actorUserId: 'actor-1' },
           ),
         ),
@@ -600,13 +754,20 @@ describe('ResponseTemplatesService', () => {
 
     it('stops a service-restricted admin from writing a global shared template', async () => {
       const { service } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], {
+          serviceId: 'service-1',
+        }),
       });
       expect(
         await codeOf(
           service.create(
             'shared',
-            { name: 'Zdravo', bodyBs: 'Tijelo', kind: 'REPLY', reason: 'uveden šablon' },
+            {
+              name: 'Zdravo',
+              bodyBs: 'Tijelo',
+              kind: 'REPLY',
+              reason: 'uveden šablon',
+            },
             { actorUserId: 'actor-1' },
           ),
         ),
@@ -617,7 +778,10 @@ describe('ResponseTemplatesService', () => {
       const { service, prisma, changeLogs } = createHarness();
       prisma.responseTemplate.findFirst.mockResolvedValue(null);
       prisma.responseTemplate.create.mockResolvedValue(
-        row({ services: [{ serviceId: 'service-1' }], categories: [{ categoryId: 'category-1' }] }),
+        row({
+          services: [{ serviceId: 'service-1' }],
+          categories: [{ categoryId: 'category-1' }],
+        }),
       );
       const created = await service.create(
         'shared',
@@ -660,9 +824,7 @@ describe('ResponseTemplatesService', () => {
       prisma.responseTemplate.findFirst
         .mockResolvedValueOnce(row({ services: [{ serviceId: 'service-1' }] }))
         .mockResolvedValueOnce(null);
-      prisma.responseTemplate.findUnique.mockResolvedValue(
-        row({ services: [{ serviceId: 'service-2' }] }),
-      );
+      prisma.responseTemplate.findUnique.mockResolvedValue(row({ services: [{ serviceId: 'service-2' }] }));
       const updated = await service.update(
         'shared',
         'template-1',
@@ -688,7 +850,10 @@ describe('ResponseTemplatesService', () => {
         where: { id: string; updatedAt: Date };
         data: { updatedAt: Date };
       };
-      expect(claim.where).toMatchObject({ id: 'template-1', updatedAt: row().updatedAt });
+      expect(claim.where).toMatchObject({
+        id: 'template-1',
+        updatedAt: row().updatedAt,
+      });
       expect(claim.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
       expect(prisma.responseTemplate.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
         prisma.responseTemplateService.deleteMany.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
@@ -706,7 +871,9 @@ describe('ResponseTemplatesService', () => {
 
     it('refuses to move a template out of the scope the actor may manage', async () => {
       const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], {
+          serviceId: 'service-1',
+        }),
       });
       prisma.responseTemplate.findFirst
         .mockResolvedValueOnce(row({ services: [{ serviceId: 'service-1' }] }))
@@ -737,7 +904,10 @@ describe('ResponseTemplatesService', () => {
       const result = await service.remove(
         'shared',
         'template-1',
-        { reason: 'šablon više ne treba', expectedUpdatedAt: row().updatedAt.toISOString() },
+        {
+          reason: 'šablon više ne treba',
+          expectedUpdatedAt: row().updatedAt.toISOString(),
+        },
         { actorUserId: 'actor-1' },
       );
       expect(result).toEqual({ id: 'template-1' });
@@ -745,7 +915,10 @@ describe('ResponseTemplatesService', () => {
         where: { id: string; updatedAt: Date };
         data: { deletedAt: Date; isActive: boolean; updatedAt: Date };
       };
-      expect(updateArgs.where).toMatchObject({ id: 'template-1', updatedAt: row().updatedAt });
+      expect(updateArgs.where).toMatchObject({
+        id: 'template-1',
+        updatedAt: row().updatedAt,
+      });
       expect(updateArgs.data.deletedAt).toBeInstanceOf(Date);
       expect(updateArgs.data.isActive).toBe(false);
       expect(updateArgs.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
@@ -753,39 +926,35 @@ describe('ResponseTemplatesService', () => {
       expect(changeLogs[0].reason).toBe('šablon više ne treba');
     });
 
-    it.each(['shared', 'personal'] as const)(
-      'requires a revision before updating a %s template',
-      async (ownership) => {
-        const { service, prisma } = createHarness({
-          context: contextFor([
-            permissionKeys.ticketTemplatesManage,
-            permissionKeys.ticketTemplatesPersonal,
-          ]),
-        });
-        const code = await codeOf(
-          service.update(
-            ownership,
-            'template-1',
-            { name: 'Zdravo', bodyBs: 'Novo', kind: 'REPLY', reason: 'uređeno' },
-            { actorUserId: 'actor-1' },
-          ),
-        );
-        expect(code).toBe('TEMPLATE_PRECONDITION_REQUIRED');
-        expect(prisma.responseTemplate.findFirst).not.toHaveBeenCalled();
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-        const missing = mapTemplatesError(new TemplatesError('TEMPLATE_PRECONDITION_REQUIRED'));
-        expect((missing as HttpException).getStatus()).toBe(400);
-      },
-    );
+    it.each(['shared', 'personal'] as const)('requires a revision before updating a %s template', async (ownership) => {
+      const { service, prisma } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
+      });
+      const code = await codeOf(
+        service.update(
+          ownership,
+          'template-1',
+          {
+            name: 'Zdravo',
+            bodyBs: 'Novo',
+            kind: 'REPLY',
+            reason: 'uređeno',
+          },
+          { actorUserId: 'actor-1' },
+        ),
+      );
+      expect(code).toBe('TEMPLATE_PRECONDITION_REQUIRED');
+      expect(prisma.responseTemplate.findFirst).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      const missing = mapTemplatesError(new TemplatesError('TEMPLATE_PRECONDITION_REQUIRED'));
+      expect((missing as HttpException).getStatus()).toBe(400);
+    });
 
     it.each(['shared', 'personal'] as const)(
       'rejects a stale %s update before scope or audit changes',
       async (ownership) => {
         const { service, prisma, changeLogs } = createHarness({
-          context: contextFor([
-            permissionKeys.ticketTemplatesManage,
-            permissionKeys.ticketTemplatesPersonal,
-          ]),
+          context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
         });
         prisma.responseTemplate.findFirst.mockResolvedValueOnce(
           row({
@@ -808,9 +977,9 @@ describe('ResponseTemplatesService', () => {
           ),
         );
         expect(code).toBe('TEMPLATE_VERSION_CONFLICT');
-        expect(
-          (mapTemplatesError(new TemplatesError('TEMPLATE_VERSION_CONFLICT')) as HttpException).getStatus(),
-        ).toBe(409);
+        expect((mapTemplatesError(new TemplatesError('TEMPLATE_VERSION_CONFLICT')) as HttpException).getStatus()).toBe(
+          409,
+        );
         expect(prisma.$transaction).not.toHaveBeenCalled();
         expect(prisma.responseTemplateService.deleteMany).not.toHaveBeenCalled();
         expect(prisma.responseTemplateCategory.deleteMany).not.toHaveBeenCalled();
@@ -823,10 +992,7 @@ describe('ResponseTemplatesService', () => {
       'does not modify scope or audit when the %s update loses the CAS',
       async (ownership) => {
         const { service, prisma, changeLogs } = createHarness({
-          context: contextFor([
-            permissionKeys.ticketTemplatesManage,
-            permissionKeys.ticketTemplatesPersonal,
-          ]),
+          context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
         });
         prisma.responseTemplate.findFirst
           .mockResolvedValueOnce(row({ ownerUserId: ownership === 'personal' ? 'actor-1' : null }))
@@ -856,32 +1022,23 @@ describe('ResponseTemplatesService', () => {
       },
     );
 
-    it.each(['shared', 'personal'] as const)(
-      'requires a revision before deleting a %s template',
-      async (ownership) => {
-        const { service, prisma } = createHarness({
-          context: contextFor([
-            permissionKeys.ticketTemplatesManage,
-            permissionKeys.ticketTemplatesPersonal,
-          ]),
-        });
-        const code = await codeOf(
-          service.remove(ownership, 'template-1', { reason: 'ukinut' }, { actorUserId: 'actor-1' }),
-        );
-        expect(code).toBe('TEMPLATE_PRECONDITION_REQUIRED');
-        expect(prisma.responseTemplate.findFirst).not.toHaveBeenCalled();
-        expect(prisma.$transaction).not.toHaveBeenCalled();
-      },
-    );
+    it.each(['shared', 'personal'] as const)('requires a revision before deleting a %s template', async (ownership) => {
+      const { service, prisma } = createHarness({
+        context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
+      });
+      const code = await codeOf(
+        service.remove(ownership, 'template-1', { reason: 'ukinut' }, { actorUserId: 'actor-1' }),
+      );
+      expect(code).toBe('TEMPLATE_PRECONDITION_REQUIRED');
+      expect(prisma.responseTemplate.findFirst).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
 
     it.each(['shared', 'personal'] as const)(
       'rejects a stale %s delete before tombstone or audit changes',
       async (ownership) => {
         const { service, prisma, changeLogs } = createHarness({
-          context: contextFor([
-            permissionKeys.ticketTemplatesManage,
-            permissionKeys.ticketTemplatesPersonal,
-          ]),
+          context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
         });
         prisma.responseTemplate.findFirst.mockResolvedValueOnce(
           row({
@@ -893,7 +1050,10 @@ describe('ResponseTemplatesService', () => {
           service.remove(
             ownership,
             'template-1',
-            { reason: 'ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            {
+              reason: 'ukinut',
+              expectedUpdatedAt: row().updatedAt.toISOString(),
+            },
             { actorUserId: 'actor-1' },
           ),
         );
@@ -908,10 +1068,7 @@ describe('ResponseTemplatesService', () => {
       'does not soft-delete or audit when the %s delete loses the CAS',
       async (ownership) => {
         const { service, prisma, changeLogs } = createHarness({
-          context: contextFor([
-            permissionKeys.ticketTemplatesManage,
-            permissionKeys.ticketTemplatesPersonal,
-          ]),
+          context: contextFor([permissionKeys.ticketTemplatesManage, permissionKeys.ticketTemplatesPersonal]),
         });
         prisma.responseTemplate.findFirst.mockResolvedValueOnce(
           row({ ownerUserId: ownership === 'personal' ? 'actor-1' : null }),
@@ -921,7 +1078,10 @@ describe('ResponseTemplatesService', () => {
           service.remove(
             ownership,
             'template-1',
-            { reason: 'ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            {
+              reason: 'ukinut',
+              expectedUpdatedAt: row().updatedAt.toISOString(),
+            },
             { actorUserId: 'actor-1' },
           ),
         );

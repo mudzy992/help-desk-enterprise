@@ -68,6 +68,23 @@ const template = (overrides: Partial<ResponseTemplate> = {}): ResponseTemplate =
   ...overrides,
 });
 
+const templatePage = (
+  items: readonly ResponseTemplate[],
+  options: {
+    readonly cursor?: string | null;
+    readonly nextCursor?: string | null;
+    readonly hasMore?: boolean;
+    readonly total?: number;
+  } = {},
+) => ({
+  items,
+  total: options.total ?? items.length,
+  take: 50,
+  cursor: options.cursor ?? null,
+  nextCursor: options.nextCursor ?? null,
+  hasMore: options.hasMore ?? false,
+});
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/admin/templates?tab=mine"]}>
@@ -82,14 +99,36 @@ describe("TemplatesPage revision handling", () => {
   });
   afterEach(cleanup);
 
+  it("appends the next management page when the visible load-more control is used", async () => {
+    const first = template({ id: "template-1", name: "First page template" });
+    const second = template({ id: "template-2", name: "Second page template" });
+    vi.mocked(listManagedTemplates)
+      .mockResolvedValueOnce(
+        templatePage([first], { total: 2, nextCursor: "cursor-1", hasMore: true }),
+      )
+      .mockResolvedValueOnce(templatePage([second], { cursor: "cursor-1", total: 2 }));
+
+    renderPage();
+    await screen.findByText("First page template");
+    fireEvent.click(screen.getByRole("button", { name: "templates.list.loadMore" }));
+
+    await screen.findByText("Second page template");
+    expect(screen.getByText("First page template")).toBeTruthy();
+    expect(listManagedTemplates).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ cursor: "cursor-1" }),
+    );
+    expect(screen.queryByRole("button", { name: "templates.list.loadMore" })).toBeNull();
+  });
+
   it("sends the listed revision and reloads the list after a delete conflict", async () => {
     const latest = template({
       name: "Latest personal template",
       updatedAt: "2026-01-03T03:04:05.000Z",
     });
     vi.mocked(listManagedTemplates)
-      .mockResolvedValueOnce([template()])
-      .mockResolvedValueOnce([latest]);
+      .mockResolvedValueOnce(templatePage([template()]))
+      .mockResolvedValueOnce(templatePage([latest]));
     vi.mocked(deleteResponseTemplate).mockRejectedValueOnce(
       new ApiError(409, "TEMPLATE_VERSION_CONFLICT", "stale"),
     );

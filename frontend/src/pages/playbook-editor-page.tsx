@@ -107,7 +107,7 @@ export function PlaybookEditorPage() {
       if (articleResult.status === "fulfilled")
         setArticles(articleResult.value.map((item) => ({ id: item.id, name: item.title })));
       if (templateResult.status === "fulfilled")
-        setTemplates(templateResult.value.map((item) => ({ id: item.id, name: item.name })));
+        setTemplates(templateResult.value.items.map((item) => ({ id: item.id, name: item.name })));
     });
     return () => {
       active = false;

@@ -19,27 +19,31 @@ import {
 import { recordTemplatesChange } from './record-templates-change';
 import { responseTemplateSharedReadScopeWhere } from './management-read-where';
 import { extractPlaceholders, fillTemplate, findUnknownPlaceholders } from './template-placeholders';
-import {
-  canManageSharedScope,
-  hasPermission,
-  scoreTemplateScope,
-  type TemplateScope,
-  type TicketScopeFacts,
-} from './template-scope';
+import { canManageSharedScope, hasPermission, type TemplateScope, type TicketScopeFacts } from './template-scope';
 import {
   templateChangeLogEntityTypes,
   templateLimits,
   type ResponseTemplateVariable,
   type TemplateLocale,
 } from './templates.constants';
-import { pickerOffScopeWhere, pickerScopeWhere } from './picker-candidate-where';
+import { pickerScopeScores, pickerScopeTierWhere, type PickerScopeScore } from './picker-candidate-where';
+import {
+  afterTemplatePickerCursor,
+  afterTemplatesNameCursor,
+  decodeTemplatePickerCursor,
+  decodeTemplatesNameCursor,
+  encodeTemplatePickerCursor,
+  encodeTemplatesNameCursor,
+  templatesCursorKinds,
+  templatesFilterKey,
+  templatesPageLimit,
+  type TemplatesCountedCursorPage,
+  type TemplatesCursorPage,
+} from './templates-pagination';
 import { TemplatesConfigurationLoader } from './templates-configuration.loader';
 import { loadTemplateEnvironment, resolveTemplateLocale } from './templates-environment';
 import { TemplatesError } from './templates.error';
-import {
-  assertResponseTemplateUsable,
-  type UsableTemplateKind,
-} from './assert-response-template-usable';
+import { assertResponseTemplateUsable, type UsableTemplateKind } from './assert-response-template-usable';
 
 const templateInclude = {
   services: { select: { serviceId: true } },
@@ -47,7 +51,9 @@ const templateInclude = {
   groups: { select: { groupId: true } },
 } as const;
 
-type TemplateRow = Prisma.ResponseTemplateGetPayload<{ include: typeof templateInclude }>;
+type TemplateRow = Prisma.ResponseTemplateGetPayload<{
+  include: typeof templateInclude;
+}>;
 
 export type ResponseTemplateOwnership = 'shared' | 'personal';
 
@@ -107,21 +113,47 @@ export class ResponseTemplatesService {
   // ---------------------------------------------------------------- picker
 
   async listForPicker(
-    query: { ticketId?: string; kind?: 'REPLY' | 'INTERNAL'; q?: string; all?: boolean },
+    query: {
+      ticketId?: string;
+      kind?: 'REPLY' | 'INTERNAL';
+      q?: string;
+      all?: boolean;
+      cursor?: string;
+      take?: number;
+    },
     actor: Actor,
-  ): Promise<readonly ResponseTemplatePickerItem[]> {
+  ): Promise<TemplatesCursorPage<ResponseTemplatePickerItem>> {
     const context = await this.requireUse(actor);
-    const facts =
-      query.ticketId === undefined ? null : (await this.loadTicket(query.ticketId, actor)).facts;
+    const facts = query.ticketId === undefined ? null : (await this.loadTicket(query.ticketId, actor)).facts;
     const search = query.q?.trim() ?? '';
-    // Val 3 (M13/B2): the scope filter and the order are part of the query, so
-    // the rows cut off by `take` are the least used/scoped-elsewhere ones and
-    // the same query always returns the same subset.
+    const take = templatesPageLimit(query.take);
+    const filterKey = templatesFilterKey({
+      resource: 'response-template-picker',
+      subjectId: context.subjectId,
+      ticketId: query.ticketId ?? null,
+      facts,
+      kind: query.kind ?? null,
+      search,
+      all: query.all === true,
+    });
+    const scores = pickerScopeScores(facts, query.all === true);
+    const tiers = scores.flatMap((score) => [
+      { rank: score * 2 + 1, score, ownerUserId: null },
+      { rank: score * 2, score, ownerUserId: context.subjectId },
+    ]);
+    const cursor = decodeTemplatePickerCursor(
+      query.cursor,
+      filterKey,
+      tiers.map((tier) => tier.rank),
+    );
     const baseAnd: Prisma.ResponseTemplateWhereInput[] = [
-      { OR: [{ ownerUserId: null }, { ownerUserId: context.subjectId }] },
       ...(query.kind === undefined
         ? []
-        : [{ kind: { in: [query.kind, 'ANY'] } } as Prisma.ResponseTemplateWhereInput]),
+        : [
+            {
+              kind: { in: [query.kind, 'ANY'] },
+            } as Prisma.ResponseTemplateWhereInput,
+          ]),
       ...(search.length === 0
         ? []
         : [
@@ -135,50 +167,65 @@ export class ResponseTemplatesService {
             } as Prisma.ResponseTemplateWhereInput,
           ]),
     ];
-    const baseWhere: Prisma.ResponseTemplateWhereInput = {
-      deletedAt: null,
-      isActive: true,
-      AND: baseAnd,
-    };
     const pickerOrderBy: Prisma.ResponseTemplateOrderByWithRelationInput[] = [
       { usageCount: 'desc' },
       { name: 'asc' },
+      { id: 'asc' },
     ];
-    const rows = await this.prisma.responseTemplate.findMany({
-      where: { ...baseWhere, AND: [...baseAnd, pickerScopeWhere(facts)] },
-      include: templateInclude,
-      orderBy: pickerOrderBy,
-      take: templateLimits.pickerLimit,
-    });
-    if (query.all === true) {
-      rows.push(
-        ...(await this.prisma.responseTemplate.findMany({
-          where: {
-            ...baseWhere,
-            AND: [...baseAnd, pickerOffScopeWhere(facts)],
-          },
-          include: templateInclude,
-          orderBy: pickerOrderBy,
-          take: templateLimits.pickerLimit,
-        })),
-      );
+    const pageRows: {
+      readonly row: TemplateRow;
+      readonly score: PickerScopeScore;
+      readonly rank: number;
+    }[] = [];
+    for (const tier of tiers) {
+      if (cursor !== null && tier.rank > cursor.rank) continue;
+      const scopeWhere = pickerScopeTierWhere(facts, tier.score);
+      if (scopeWhere === null) continue;
+      const afterWhere = cursor !== null && tier.rank === cursor.rank ? afterTemplatePickerCursor(cursor) : null;
+      const where: Prisma.ResponseTemplateWhereInput = {
+        deletedAt: null,
+        isActive: true,
+        AND: [...baseAnd, { ownerUserId: tier.ownerUserId }, scopeWhere, ...(afterWhere === null ? [] : [afterWhere])],
+      };
+      const rows = await this.prisma.responseTemplate.findMany({
+        where,
+        include: templateInclude,
+        orderBy: pickerOrderBy,
+        take: take + 1 - pageRows.length,
+      });
+      pageRows.push(...rows.map((row) => ({ row, score: tier.score, rank: tier.rank })));
+      if (pageRows.length > take) break;
     }
-    const items = rows
-      .map((row) => ({ row, score: scoreTemplateScope(toScope(row), facts) }))
-      .filter((entry) => query.all === true || entry.score >= 0)
-      .sort((a, b) => rankOf(b) - rankOf(a) || b.row.usageCount - a.row.usageCount || a.row.name.localeCompare(b.row.name, 'bs'))
-      .slice(0, templateLimits.pickerLimit);
-    return items.map(({ row, score }) => ({
+    const hasMore = pageRows.length > take;
+    const entries = hasMore ? pageRows.slice(0, take) : pageRows;
+    const items = entries.map(({ row, score }) => ({
       id: row.id,
       name: row.name,
       kind: row.kind,
       tags: row.tags,
-      ownership: row.ownerUserId === null ? 'shared' : 'personal',
+      ownership: row.ownerUserId === null ? ('shared' as const) : ('personal' as const),
       scopeMatch: score,
       usageCount: row.usageCount,
       preview: row.bodyBs.slice(0, 200),
       hasEnglish: row.bodyEn !== null,
     }));
+    const last = entries.at(-1);
+    return {
+      items,
+      take,
+      cursor: query.cursor ?? null,
+      nextCursor:
+        hasMore && last !== undefined
+          ? encodeTemplatePickerCursor({
+              rank: last.rank,
+              usageCount: last.row.usageCount,
+              name: last.row.name,
+              id: last.row.id,
+              filterKey,
+            })
+          : null,
+      hasMore,
+    };
   }
 
   async render(
@@ -222,7 +269,13 @@ export class ResponseTemplatesService {
       environment: await loadTemplateEnvironment(this.settingsService),
     });
     const filled = fillTemplate(body, values);
-    return { templateId: template.id, text: filled.text, locale: usedLocale, missing: filled.missing, unknown: [] };
+    return {
+      templateId: template.id,
+      text: filled.text,
+      locale: usedLocale,
+      missing: filled.missing,
+      unknown: [],
+    };
   }
 
   /** Editor live preview: never throws on unknown variables, reports them. */
@@ -263,9 +316,16 @@ export class ResponseTemplatesService {
   // ----------------------------------------------------------- management
 
   async listManaged(
-    query: { ownership?: 'shared' | 'mine'; q?: string; serviceId?: string; state?: 'active' | 'inactive' | 'all' },
+    query: {
+      ownership?: 'shared' | 'mine';
+      q?: string;
+      serviceId?: string;
+      state?: 'active' | 'inactive' | 'all';
+      cursor?: string;
+      take?: number;
+    },
     actor: Actor,
-  ): Promise<readonly ResponseTemplateResponse[]> {
+  ): Promise<TemplatesCountedCursorPage<ResponseTemplateResponse>> {
     await this.requireTemplatesEnabled();
     const context = await this.loadContext(actor);
     const mine = query.ownership === 'mine';
@@ -274,6 +334,7 @@ export class ResponseTemplatesService {
     }
     const search = query.q?.trim() ?? '';
     const state = query.state ?? 'all';
+    const take = templatesPageLimit(query.take);
     const filters: Prisma.ResponseTemplateWhereInput[] = [];
     if (!mine) {
       const scopeWhere = responseTemplateSharedReadScopeWhere(context);
@@ -282,28 +343,57 @@ export class ResponseTemplatesService {
     if (query.serviceId !== undefined) {
       filters.push({ services: { some: { serviceId: query.serviceId } } });
     }
-    const rows = await this.prisma.responseTemplate.findMany({
-      where: {
-        deletedAt: null,
-        ownerUserId: mine ? context.subjectId : null,
-        ...(state === 'all' ? {} : { isActive: state === 'active' }),
-        ...(filters.length === 0 ? {} : { AND: filters }),
-        ...(search.length === 0
-          ? {}
-          : {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { bodyBs: { contains: search, mode: 'insensitive' } },
-                { tags: { has: search.toLocaleLowerCase('bs') } },
-              ],
-            }),
-      },
-      include: templateInclude,
-      orderBy: { name: 'asc' },
-      take: 1000,
+    const where: Prisma.ResponseTemplateWhereInput = {
+      deletedAt: null,
+      ownerUserId: mine ? context.subjectId : null,
+      ...(state === 'all' ? {} : { isActive: state === 'active' }),
+      ...(filters.length === 0 ? {} : { AND: filters }),
+      ...(search.length === 0
+        ? {}
+        : {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { bodyBs: { contains: search, mode: 'insensitive' } },
+              { tags: { has: search.toLocaleLowerCase('bs') } },
+            ],
+          }),
+    };
+    const filterKey = templatesFilterKey({
+      resource: 'managed-response-templates',
+      subjectId: context.subjectId,
+      ownership: mine ? 'mine' : 'shared',
+      where,
     });
-    const visibleRows = mine ? rows : rows.filter((row) => canManageSharedScope(context, toScope(row)));
-    return visibleRows.map((row) => this.toResponse(row, context));
+    const cursor = decodeTemplatesNameCursor(query.cursor, templatesCursorKinds.managedResponseTemplates, filterKey);
+    const pageWhere: Prisma.ResponseTemplateWhereInput =
+      cursor === null ? where : { AND: [where, afterTemplatesNameCursor(cursor)] };
+    const [total, rows] = await Promise.all([
+      this.prisma.responseTemplate.count({ where }),
+      this.prisma.responseTemplate.findMany({
+        where: pageWhere,
+        include: templateInclude,
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: take + 1,
+      }),
+    ]);
+    const hasMore = rows.length > take;
+    const pageRows = hasMore ? rows.slice(0, take) : rows;
+    const last = pageRows.at(-1);
+    return {
+      items: pageRows.map((row) => this.toResponse(row, context)),
+      total,
+      take,
+      cursor: query.cursor ?? null,
+      nextCursor:
+        hasMore && last !== undefined
+          ? encodeTemplatesNameCursor(templatesCursorKinds.managedResponseTemplates, {
+              name: last.name,
+              id: last.id,
+              filterKey,
+            })
+          : null,
+      hasMore,
+    };
   }
 
   async get(templateId: string, actor: Actor): Promise<ResponseTemplateResponse> {
@@ -355,7 +445,10 @@ export class ResponseTemplatesService {
   async update(
     ownership: ResponseTemplateOwnership,
     templateId: string,
-    body: ResponseTemplateInput & { reason?: string; expectedUpdatedAt?: string },
+    body: ResponseTemplateInput & {
+      reason?: string;
+      expectedUpdatedAt?: string;
+    },
     actor: Actor,
   ): Promise<ResponseTemplateResponse> {
     await this.requireTemplatesEnabled();
@@ -383,7 +476,11 @@ export class ResponseTemplatesService {
           ownerUserId: current.ownerUserId,
           updatedAt: current.updatedAt,
         },
-        data: { ...toColumns(normalized), updatedById: context.subjectId, updatedAt: nextUpdatedAt },
+        data: {
+          ...toColumns(normalized),
+          updatedById: context.subjectId,
+          updatedAt: nextUpdatedAt,
+        },
       });
       if (claimed.count !== 1) {
         throw new TemplatesError('TEMPLATE_VERSION_CONFLICT');
@@ -399,17 +496,26 @@ export class ResponseTemplatesService {
         normalized.scope.serviceIds.length === 0
           ? Promise.resolve()
           : tx.responseTemplateService.createMany({
-              data: normalized.scope.serviceIds.map((serviceId) => ({ templateId, serviceId })),
+              data: normalized.scope.serviceIds.map((serviceId) => ({
+                templateId,
+                serviceId,
+              })),
             }),
         normalized.scope.categoryIds.length === 0
           ? Promise.resolve()
           : tx.responseTemplateCategory.createMany({
-              data: normalized.scope.categoryIds.map((categoryId) => ({ templateId, categoryId })),
+              data: normalized.scope.categoryIds.map((categoryId) => ({
+                templateId,
+                categoryId,
+              })),
             }),
         normalized.scope.groupIds.length === 0
           ? Promise.resolve()
           : tx.responseTemplateGroup.createMany({
-              data: normalized.scope.groupIds.map((groupId) => ({ templateId, groupId })),
+              data: normalized.scope.groupIds.map((groupId) => ({
+                templateId,
+                groupId,
+              })),
             }),
       ]);
       const row = await tx.responseTemplate.findUnique({
@@ -509,7 +615,9 @@ export class ResponseTemplatesService {
   }
 
   private async loadTicket(ticketId: string, actor: Actor) {
-    const gated = await this.accessPolicies.bind({ actorUserId: actor.actorUserId });
+    const gated = await this.accessPolicies.bind({
+      actorUserId: actor.actorUserId,
+    });
     const { ticket, access } = await loadAccessibleTicket(
       this.prisma,
       this.authorizationContextLoader,
@@ -552,12 +660,8 @@ export class ResponseTemplatesService {
       row.ownerUserId === null
         ? hasPermission(context, permissionKeys.ticketTemplatesManage)
         : row.ownerUserId === context.subjectId;
-    const pathMatches =
-      ownership === undefined || (ownership === 'shared') === (row.ownerUserId === null);
-    const scopeMatches =
-      !enforceReadScope ||
-      row.ownerUserId !== null ||
-      canManageSharedScope(context, toScope(row));
+    const pathMatches = ownership === undefined || (ownership === 'shared') === (row.ownerUserId === null);
+    const scopeMatches = !enforceReadScope || row.ownerUserId !== null || canManageSharedScope(context, toScope(row));
     if (!visible || !pathMatches || !scopeMatches) {
       // Someone else's personal or out-of-scope shared template does not exist for the caller.
       throw new TemplatesError('TEMPLATE_NOT_FOUND');
@@ -591,11 +695,21 @@ export class ResponseTemplatesService {
 
   private async assertScopeExists(scope: TemplateScope): Promise<void> {
     const [services, categories, groups] = await Promise.all([
-      scope.serviceIds.length === 0 ? 0 : this.prisma.service.count({ where: { id: { in: [...scope.serviceIds] } } }),
+      scope.serviceIds.length === 0
+        ? 0
+        : this.prisma.service.count({
+            where: { id: { in: [...scope.serviceIds] } },
+          }),
       scope.categoryIds.length === 0
         ? 0
-        : this.prisma.serviceCategory.count({ where: { id: { in: [...scope.categoryIds] } } }),
-      scope.groupIds.length === 0 ? 0 : this.prisma.group.count({ where: { id: { in: [...scope.groupIds] } } }),
+        : this.prisma.serviceCategory.count({
+            where: { id: { in: [...scope.categoryIds] } },
+          }),
+      scope.groupIds.length === 0
+        ? 0
+        : this.prisma.group.count({
+            where: { id: { in: [...scope.groupIds] } },
+          }),
     ]);
     if (
       services !== scope.serviceIds.length ||
@@ -648,10 +762,6 @@ export class ResponseTemplatesService {
 }
 
 /** T5: scope match first; on equal match shared before personal. */
-function rankOf(entry: { row: TemplateRow; score: number }): number {
-  return entry.score * 2 + (entry.row.ownerUserId === null ? 1 : 0);
-}
-
 function requireTemplateRevision(value: string | undefined): Date {
   const timestamp = value === undefined ? Number.NaN : Date.parse(value);
   if (!Number.isFinite(timestamp)) {
@@ -682,7 +792,9 @@ function toColumns(normalized: NormalizedResponseTemplate) {
 function scopeCreate(scope: TemplateScope) {
   return {
     services: { create: scope.serviceIds.map((serviceId) => ({ serviceId })) },
-    categories: { create: scope.categoryIds.map((categoryId) => ({ categoryId })) },
+    categories: {
+      create: scope.categoryIds.map((categoryId) => ({ categoryId })),
+    },
     groups: { create: scope.groupIds.map((groupId) => ({ groupId })) },
   };
 }
