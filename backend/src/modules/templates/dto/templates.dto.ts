@@ -30,6 +30,8 @@ export class ManageResponseTemplatesQueryDto {
 
 export class SaveResponseTemplateDto {
   @IsOptional() @IsIn(['shared', 'personal']) ownership?: 'shared' | 'personal';
+  /** Required for updates; the exact loaded revision prevents stale replacement. */
+  @IsOptional() @IsDateString() @MaxLength(40) expectedUpdatedAt?: string;
   @IsString() @MaxLength(templateLimits.nameMax + 20) name!: string;
   @IsString() @MaxLength(templateLimits.bodyMax + 100) bodyBs!: string;
   @IsOptional() @IsString() @MaxLength(templateLimits.bodyMax + 100) bodyEn?: string | null;
@@ -45,6 +47,15 @@ export class SaveResponseTemplateDto {
 
 export class DeleteWithReasonDto {
   @IsOptional() @IsString() @MaxLength(templateLimits.reasonMax + 20) reason?: string;
+}
+
+/** Definition deletes must carry the revision returned by the management read. */
+export class DeleteResponseTemplateDto extends DeleteWithReasonDto {
+  @IsOptional() @IsDateString() @MaxLength(40) expectedUpdatedAt?: string;
+}
+
+export class DeletePlaybookDto extends DeleteWithReasonDto {
+  @IsOptional() @IsDateString() @MaxLength(40) expectedUpdatedAt?: string;
 }
 
 export class PreviewResponseTemplateDto {

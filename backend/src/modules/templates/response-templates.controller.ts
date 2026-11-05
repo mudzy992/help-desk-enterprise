@@ -5,7 +5,7 @@ import type { AuthenticatedHttpRequest } from '../authentication/authenticated-r
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import {
-  DeleteWithReasonDto,
+  DeleteResponseTemplateDto,
   ListResponseTemplatesQueryDto,
   ManageResponseTemplatesQueryDto,
   PreviewResponseTemplateDto,
@@ -66,9 +66,13 @@ export class ResponseTemplatesController {
   }
 
   @Delete('mine/:templateId')
-  removePersonal(@Param('templateId') templateId: string, @Req() request: AuthenticatedHttpRequest) {
+  removePersonal(
+    @Param('templateId') templateId: string,
+    @Body() body: DeleteResponseTemplateDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
     return executeTemplatesOperation(() =>
-      this.templates.remove('personal', templateId, undefined, readActor(request)),
+      this.templates.remove('personal', templateId, body, readActor(request)),
     );
   }
 
@@ -99,11 +103,11 @@ export class ResponseTemplatesController {
   @AdminConfigDomains('templates')
   removeShared(
     @Param('templateId') templateId: string,
-    @Body() body: DeleteWithReasonDto,
+    @Body() body: DeleteResponseTemplateDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
     return executeTemplatesOperation(() =>
-      this.templates.remove('shared', templateId, body.reason, readActor(request)),
+      this.templates.remove('shared', templateId, body, readActor(request)),
     );
   }
 }

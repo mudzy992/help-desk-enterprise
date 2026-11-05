@@ -80,6 +80,20 @@ export type SaveResponseTemplateInput = {
   readonly reason?: string;
 };
 
+export type UpdateResponseTemplateInput = SaveResponseTemplateInput & {
+  readonly expectedUpdatedAt: string;
+};
+
+export type TemplateDefinitionDeleteInput = {
+  readonly reason?: string;
+  readonly expectedUpdatedAt: string;
+};
+
+export type PlaybookDeleteInput = {
+  readonly reason: string;
+  readonly expectedUpdatedAt: string;
+};
+
 export type TemplateListState = "active" | "inactive" | "all";
 
 function query(params: Record<string, string | undefined>): string {
@@ -157,7 +171,7 @@ export function createResponseTemplate(
 export function updateResponseTemplate(
   ownership: ResponseTemplateOwnership,
   templateId: string,
-  input: SaveResponseTemplateInput,
+  input: UpdateResponseTemplateInput,
 ): Promise<ResponseTemplate> {
   return apiRequest(`${basePath(ownership)}/${templateId}`, {
     method: "PUT",
@@ -168,11 +182,14 @@ export function updateResponseTemplate(
 export function deleteResponseTemplate(
   ownership: ResponseTemplateOwnership,
   templateId: string,
-  reason?: string,
+  input: TemplateDefinitionDeleteInput,
 ): Promise<{ readonly id: string }> {
   return apiRequest(`${basePath(ownership)}/${templateId}`, {
     method: "DELETE",
-    ...(ownership === "shared" ? { body: JSON.stringify({ reason }) } : {}),
+    body: JSON.stringify({
+      expectedUpdatedAt: input.expectedUpdatedAt,
+      ...(ownership === "shared" ? { reason: input.reason } : {}),
+    }),
   });
 }
 
@@ -254,11 +271,11 @@ export function updatePlaybook(playbookId: string, input: UpdatePlaybookInput): 
 
 export function deletePlaybook(
   playbookId: string,
-  reason: string,
+  input: PlaybookDeleteInput,
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/playbooks/${playbookId}`, {
     method: "DELETE",
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(input),
   });
 }
 

@@ -355,12 +355,16 @@ export class ResponseTemplatesService {
   async update(
     ownership: ResponseTemplateOwnership,
     templateId: string,
-    body: ResponseTemplateInput & { reason?: string },
+    body: ResponseTemplateInput & { reason?: string; expectedUpdatedAt?: string },
     actor: Actor,
   ): Promise<ResponseTemplateResponse> {
     await this.requireTemplatesEnabled();
     const context = await this.loadContext(actor);
+    const expectedUpdatedAt = requireTemplateRevision(body.expectedUpdatedAt);
     const current = await this.loadVisibleForManagement(templateId, context, ownership);
+    if (expectedUpdatedAt.getTime() !== current.updatedAt.getTime()) {
+      throw new TemplatesError('TEMPLATE_VERSION_CONFLICT');
+    }
     const shared = current.ownerUserId === null;
     const normalized = normalizeResponseTemplateInput(body);
     // Both the old and the new scope must be the admin's (no "moving out").
@@ -371,20 +375,50 @@ export class ResponseTemplatesService {
     await this.assertNameFree(normalized.name, current.ownerUserId, current.id);
     const updated = await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
+      const nextUpdatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
+      const claimed = await tx.responseTemplate.updateMany({
+        where: {
+          id: templateId,
+          deletedAt: null,
+          ownerUserId: current.ownerUserId,
+          updatedAt: current.updatedAt,
+        },
+        data: { ...toColumns(normalized), updatedById: context.subjectId, updatedAt: nextUpdatedAt },
+      });
+      if (claimed.count !== 1) {
+        throw new TemplatesError('TEMPLATE_VERSION_CONFLICT');
+      }
+
+      // Claim the parent revision before touching any scope relation or audit row.
       await Promise.all([
         tx.responseTemplateService.deleteMany({ where: { templateId } }),
         tx.responseTemplateCategory.deleteMany({ where: { templateId } }),
         tx.responseTemplateGroup.deleteMany({ where: { templateId } }),
       ]);
-      const row = await tx.responseTemplate.update({
+      await Promise.all([
+        normalized.scope.serviceIds.length === 0
+          ? Promise.resolve()
+          : tx.responseTemplateService.createMany({
+              data: normalized.scope.serviceIds.map((serviceId) => ({ templateId, serviceId })),
+            }),
+        normalized.scope.categoryIds.length === 0
+          ? Promise.resolve()
+          : tx.responseTemplateCategory.createMany({
+              data: normalized.scope.categoryIds.map((categoryId) => ({ templateId, categoryId })),
+            }),
+        normalized.scope.groupIds.length === 0
+          ? Promise.resolve()
+          : tx.responseTemplateGroup.createMany({
+              data: normalized.scope.groupIds.map((groupId) => ({ templateId, groupId })),
+            }),
+      ]);
+      const row = await tx.responseTemplate.findUnique({
         where: { id: templateId },
-        data: {
-          ...toColumns(normalized),
-          updatedById: context.subjectId,
-          ...scopeCreate(normalized.scope),
-        },
         include: templateInclude,
       });
+      if (row === null) {
+        throw new TemplatesError('TEMPLATE_NOT_FOUND');
+      }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.responseTemplate,
         entityId: row.id,
@@ -403,21 +437,39 @@ export class ResponseTemplatesService {
   async remove(
     ownership: ResponseTemplateOwnership,
     templateId: string,
-    reasonInput: string | undefined,
+    body: { reason?: string; expectedUpdatedAt?: string },
     actor: Actor,
   ): Promise<{ readonly id: string }> {
     await this.requireTemplatesEnabled();
     const context = await this.loadContext(actor);
+    const expectedUpdatedAt = requireTemplateRevision(body.expectedUpdatedAt);
     const current = await this.loadVisibleForManagement(templateId, context, ownership);
+    if (expectedUpdatedAt.getTime() !== current.updatedAt.getTime()) {
+      throw new TemplatesError('TEMPLATE_VERSION_CONFLICT');
+    }
     const shared = current.ownerUserId === null;
     this.assertCanWrite(context, shared, toScope(current));
-    const reason = shared ? normalizeReason(reasonInput) : 'personal_template';
+    const reason = shared ? normalizeReason(body.reason) : 'personal_template';
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
-      await tx.responseTemplate.update({
-        where: { id: templateId },
-        data: { deletedAt: new Date(), isActive: false, updatedById: context.subjectId },
+      const nextUpdatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
+      const claimed = await tx.responseTemplate.updateMany({
+        where: {
+          id: templateId,
+          deletedAt: null,
+          ownerUserId: current.ownerUserId,
+          updatedAt: current.updatedAt,
+        },
+        data: {
+          deletedAt: nextUpdatedAt,
+          isActive: false,
+          updatedById: context.subjectId,
+          updatedAt: nextUpdatedAt,
+        },
       });
+      if (claimed.count !== 1) {
+        throw new TemplatesError('TEMPLATE_VERSION_CONFLICT');
+      }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.responseTemplate,
         entityId: templateId,
@@ -598,6 +650,14 @@ export class ResponseTemplatesService {
 /** T5: scope match first; on equal match shared before personal. */
 function rankOf(entry: { row: TemplateRow; score: number }): number {
   return entry.score * 2 + (entry.row.ownerUserId === null ? 1 : 0);
+}
+
+function requireTemplateRevision(value: string | undefined): Date {
+  const timestamp = value === undefined ? Number.NaN : Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    throw new TemplatesError('TEMPLATE_PRECONDITION_REQUIRED');
+  }
+  return new Date(timestamp);
 }
 
 function toScope(row: TemplateRow): TemplateScope {

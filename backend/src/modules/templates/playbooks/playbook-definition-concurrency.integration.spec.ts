@@ -208,4 +208,73 @@ describeIfDatabase('playbook definition optimistic concurrency (PostgreSQL integ
       after: { name: winner.name, version: 2 },
     });
   });
+
+  it('allows one parallel soft-delete and records exactly one additional change log', async () => {
+    if (prisma === undefined) throw new Error('PostgreSQL fixture was not initialized');
+    const configuration = {
+      load: async () => ({
+        templatesEnabled: true,
+        playbooksEnabled: true,
+        autoAttach: true,
+        requiredStepsOnResolve: 'warn' as const,
+      }),
+    };
+    const authorization = {
+      loadBySubjectId: async () => authorizationContext,
+    };
+    const originalTransaction = prisma.$transaction.bind(prisma) as unknown as (...args: unknown[]) => Promise<unknown>;
+    let transactionArrivals = 0;
+    let releaseTransactions: () => void = () => {};
+    const bothWritersReady = new Promise<void>((resolve) => {
+      releaseTransactions = resolve;
+    });
+    const concurrentPrisma = new Proxy(prisma, {
+      get(target, property) {
+        if (property !== '$transaction') return Reflect.get(target, property, target);
+        return async (...args: unknown[]) => {
+          transactionArrivals += 1;
+          if (transactionArrivals === 2) releaseTransactions();
+          await bothWritersReady;
+          return originalTransaction(...args);
+        };
+      },
+    });
+    const playbooks = new PlaybooksService(concurrentPrisma as never, authorization as never, configuration as never);
+    const current = await playbooks.get(playbookId, { actorUserId });
+    const expectedUpdatedAt = current.updatedAt;
+    const beforeAudit = await prisma.changeLog.findMany({
+      where: { entityType: 'playbook', entityId: playbookId },
+      select: { diff: true },
+    });
+
+    const results = await Promise.allSettled(
+      ['Concurrent delete A', 'Concurrent delete B'].map((reason) =>
+        playbooks.remove(
+          playbookId,
+          { reason, expectedUpdatedAt },
+          { actorUserId },
+        ),
+      ),
+    );
+
+    expect(transactionArrivals).toBe(2);
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter((result) => result.status === 'rejected');
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({
+      status: 'rejected',
+      reason: { code: 'PLAYBOOK_VERSION_CONFLICT' },
+    });
+
+    const finalPlaybook = await prisma.playbook.findUnique({ where: { id: playbookId } });
+    expect(finalPlaybook?.deletedAt).toBeInstanceOf(Date);
+    expect(finalPlaybook?.isActive).toBe(false);
+
+    const afterAudit = await prisma.changeLog.findMany({
+      where: { entityType: 'playbook', entityId: playbookId },
+      select: { diff: true },
+    });
+    expect(afterAudit).toHaveLength(beforeAudit.length + 1);
+    expect(afterAudit.filter((entry) => (entry.diff as { action?: string }).action === 'delete')).toHaveLength(1);
+  });
 });

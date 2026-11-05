@@ -42,6 +42,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/templates/management-read-scope.integration.spec.ts",
   "src/modules/templates/playbooks/playbook-name-uniqueness.integration.spec.ts",
   "src/modules/templates/playbooks/playbook-definition-concurrency.integration.spec.ts",
+  "src/modules/templates/response-template-definition-concurrency.integration.spec.ts",
   "src/modules/templates/ticket-playbooks/ticket-playbooks-concurrency.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts",
   "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",

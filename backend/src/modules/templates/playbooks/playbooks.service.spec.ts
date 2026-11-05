@@ -621,15 +621,69 @@ describe('PlaybooksService', () => {
     it('soft-deletes and audits, so a running checklist keeps its copy of the steps', async () => {
       const { service, prisma, changeLogs } = createHarness();
       queueFindFirst(prisma, row());
-      const result = await service.remove('playbook-1', 'playbook ukinut', { actorUserId: 'actor-1' });
+      const result = await service.remove(
+        'playbook-1',
+        { reason: 'playbook ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+        { actorUserId: 'actor-1' },
+      );
       expect(result).toEqual({ id: 'playbook-1' });
-      const updateArgs = prisma.playbook.update.mock.calls[0][0] as {
-        data: { deletedAt: Date; isActive: boolean };
+      const updateArgs = prisma.playbook.updateMany.mock.calls[0][0] as {
+        where: { id: string; updatedAt: Date };
+        data: { deletedAt: Date; isActive: boolean; updatedAt: Date };
       };
+      expect(updateArgs.where).toMatchObject({ id: 'playbook-1', updatedAt: row().updatedAt });
       expect(updateArgs.data.deletedAt).toBeInstanceOf(Date);
       expect(updateArgs.data.isActive).toBe(false);
+      expect(updateArgs.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
       expect((changeLogs[0].diff as { action: string }).action).toBe('delete');
       expect(changeLogs[0].reason).toBe('playbook ukinut');
+    });
+
+    it('requires a loaded revision before opening a delete transaction', async () => {
+      const { service, prisma } = createHarness();
+      expect(
+        await codeOf(service.remove('playbook-1', { reason: 'playbook ukinut' }, { actorUserId: 'actor-1' })),
+      ).toBe('PLAYBOOK_PRECONDITION_REQUIRED');
+      expect(prisma.playbook.findFirst).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects a stale revision before the delete transaction or audit', async () => {
+      const { service, prisma, changeLogs } = createHarness();
+      queueFindFirst(prisma, row({ updatedAt: new Date('2026-01-03T00:00:00.000Z') }));
+      expect(
+        await codeOf(
+          service.remove(
+            'playbook-1',
+            { reason: 'playbook ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            { actorUserId: 'actor-1' },
+          ),
+        ),
+      ).toBe('PLAYBOOK_VERSION_CONFLICT');
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
+      expect(changeLogs).toHaveLength(0);
+    });
+
+    it('does not delete or audit when another writer wins the revision CAS', async () => {
+      const { service, prisma, changeLogs } = createHarness();
+      queueFindFirst(prisma, row());
+      prisma.playbook.updateMany.mockResolvedValueOnce({ count: 0 });
+      expect(
+        await codeOf(
+          service.remove(
+            'playbook-1',
+            { reason: 'playbook ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            { actorUserId: 'actor-1' },
+          ),
+        ),
+      ).toBe('PLAYBOOK_VERSION_CONFLICT');
+      expect(prisma.playbook.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.playbookService.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.playbookStep.deleteMany).not.toHaveBeenCalled();
+      expect(prisma.playbookStep.upsert).not.toHaveBeenCalled();
+      expect(changeLogs).toHaveLength(0);
     });
 
     it('refuses to delete a playbook outside the managed scope', async () => {
@@ -638,9 +692,15 @@ describe('PlaybooksService', () => {
       });
       queueFindFirst(prisma, row({ services: [{ serviceId: 'service-9' }] }));
       expect(
-        await codeOf(service.remove('playbook-1', 'playbook ukinut', { actorUserId: 'actor-1' })),
+        await codeOf(
+          service.remove(
+            'playbook-1',
+            { reason: 'playbook ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            { actorUserId: 'actor-1' },
+          ),
+        ),
       ).toBe('TEMPLATE_SCOPE_FORBIDDEN');
-      expect(prisma.playbook.update).not.toHaveBeenCalled();
+      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
     });
   });
 });

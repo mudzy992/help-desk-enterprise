@@ -150,6 +150,13 @@ test("BA-templates-03 concurrent definition PostgreSQL integration spec je regis
   );
 });
 
+test("BA-templates-08 response-template concurrency PostgreSQL spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/templates/response-template-definition-concurrency.integration.spec.ts"),
+    "nedostaje BA-templates-08 response-template definition concurrency shard",
+  );
+});
+
 test("BA-templates-04/10 checklist concurrency PostgreSQL spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes(

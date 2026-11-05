@@ -217,17 +217,37 @@ export class PlaybooksService {
   }
 
   /** Soft delete: running checklists keep their copy of the steps (P2). */
-  async remove(playbookId: string, reasonInput: string | undefined, actor: Actor): Promise<{ readonly id: string }> {
+  async remove(
+    playbookId: string,
+    body: { reason?: string; expectedUpdatedAt?: string },
+    actor: Actor,
+  ): Promise<{ readonly id: string }> {
     const context = await this.requireManage(actor);
+    const expectedUpdatedAt = body.expectedUpdatedAt;
+    if (expectedUpdatedAt === undefined || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
+      throw new TemplatesError('PLAYBOOK_PRECONDITION_REQUIRED');
+    }
     const current = await this.load(playbookId);
+    if (Date.parse(expectedUpdatedAt) !== current.updatedAt.getTime()) {
+      throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
+    }
     this.assertScope(context, { serviceIds: toServiceIds(current), categoryIds: toCategoryIds(current) });
-    const reason = normalizeReason(reasonInput);
+    const reason = normalizeReason(body.reason);
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
-      await tx.playbook.update({
-        where: { id: playbookId },
-        data: { deletedAt: new Date(), isActive: false, updatedById: context.subjectId },
+      const nextUpdatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
+      const claimed = await tx.playbook.updateMany({
+        where: { id: playbookId, deletedAt: null, updatedAt: current.updatedAt },
+        data: {
+          deletedAt: nextUpdatedAt,
+          isActive: false,
+          updatedById: context.subjectId,
+          updatedAt: nextUpdatedAt,
+        },
       });
+      if (claimed.count !== 1) {
+        throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
+      }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.playbook,
         entityId: playbookId,

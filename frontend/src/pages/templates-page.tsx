@@ -124,21 +124,32 @@ export function TemplatesPage() {
     setDeleting(true);
     try {
       if (deleteTarget.type === "playbook") {
-        await deletePlaybook(deleteTarget.item.id, reason.trim());
+        await deletePlaybook(deleteTarget.item.id, {
+          reason: reason.trim(),
+          expectedUpdatedAt: deleteTarget.item.updatedAt,
+        });
         toast({ tone: "success", title: t("templates.playbook.deleted") });
       } else {
-        await deleteResponseTemplate(
-          deleteTarget.item.ownership,
-          deleteTarget.item.id,
-          reason.trim(),
-        );
+        await deleteResponseTemplate(deleteTarget.item.ownership, deleteTarget.item.id, {
+          reason: reason.trim(),
+          expectedUpdatedAt: deleteTarget.item.updatedAt,
+        });
         toast({ tone: "success", title: t("templates.editor.deleted") });
       }
       setDeleteTarget(null);
       setReason("");
       await load();
     } catch (error) {
-      toast({ tone: "danger", title: t(mapTemplatesError(error)), error: error });
+      const mapped = mapTemplatesError(error);
+      toast({ tone: "danger", title: t(mapped), error: error });
+      if (
+        mapped === "templates.errors.TEMPLATE_VERSION_CONFLICT" ||
+        mapped === "templates.errors.PLAYBOOK_VERSION_CONFLICT"
+      ) {
+        setDeleteTarget(null);
+        setReason("");
+        await load();
+      }
     } finally {
       setDeleting(false);
     }

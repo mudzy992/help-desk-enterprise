@@ -1,11 +1,17 @@
+import { HttpException } from '@nestjs/common';
 import { permissionKeys } from '../authorization/authorization.constants';
 import type {
   AuthorizationAssignment,
   AuthorizationContext,
 } from '../authorization/authorization.types';
+import { mapTemplatesError } from './map-templates-error';
 import { TemplatesError } from './templates.error';
 import { ResponseTemplatesService } from './response-templates.service';
 
+jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../tickets/ticket-access-policy-binder', () => ({
+  TicketAccessPolicyBinder: class TicketAccessPolicyBinder {},
+}));
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
 jest.mock('./assert-response-template-usable', () => ({ assertResponseTemplateUsable: jest.fn() }));
 jest.mock('./build-template-variables', () => ({
@@ -110,12 +116,23 @@ type HarnessPrisma = {
   readonly responseTemplate: {
     readonly findMany: jest.Mock;
     readonly findFirst: jest.Mock;
+    readonly findUnique: jest.Mock;
     readonly create: jest.Mock;
     readonly update: jest.Mock;
+    readonly updateMany: jest.Mock;
   };
-  readonly responseTemplateService: { readonly deleteMany: jest.Mock };
-  readonly responseTemplateCategory: { readonly deleteMany: jest.Mock };
-  readonly responseTemplateGroup: { readonly deleteMany: jest.Mock };
+  readonly responseTemplateService: {
+    readonly deleteMany: jest.Mock;
+    readonly createMany: jest.Mock;
+  };
+  readonly responseTemplateCategory: {
+    readonly deleteMany: jest.Mock;
+    readonly createMany: jest.Mock;
+  };
+  readonly responseTemplateGroup: {
+    readonly deleteMany: jest.Mock;
+    readonly createMany: jest.Mock;
+  };
   readonly service: { readonly count: jest.Mock; readonly findUnique: jest.Mock };
   readonly serviceCategory: { readonly count: jest.Mock };
   readonly group: { readonly count: jest.Mock };
@@ -141,12 +158,23 @@ function createHarness(options: HarnessOptions = {}) {
     responseTemplate: {
       findMany: jest.fn(async (_args: unknown): Promise<Row[]> => []),
       findFirst: jest.fn(async (_args: unknown): Promise<Row | null> => null),
+      findUnique: jest.fn(async (_args: unknown): Promise<Row | null> => row()),
       create: jest.fn(async (_args: unknown): Promise<Row> => row()),
       update: jest.fn(async (_args: unknown): Promise<Row> => row()),
+      updateMany: jest.fn(async () => ({ count: 1 })),
     },
-    responseTemplateService: { deleteMany: jest.fn(async () => ({ count: 0 })) },
-    responseTemplateCategory: { deleteMany: jest.fn(async () => ({ count: 0 })) },
-    responseTemplateGroup: { deleteMany: jest.fn(async () => ({ count: 0 })) },
+    responseTemplateService: {
+      deleteMany: jest.fn(async () => ({ count: 0 })),
+      createMany: jest.fn(async () => ({ count: 0 })),
+    },
+    responseTemplateCategory: {
+      deleteMany: jest.fn(async () => ({ count: 0 })),
+      createMany: jest.fn(async () => ({ count: 0 })),
+    },
+    responseTemplateGroup: {
+      deleteMany: jest.fn(async () => ({ count: 0 })),
+      createMany: jest.fn(async () => ({ count: 0 })),
+    },
     service: {
       count: jest.fn(async () => 1),
       findUnique: jest.fn(async () => ({ categoryId: 'category-1' })),
@@ -632,7 +660,7 @@ describe('ResponseTemplatesService', () => {
       prisma.responseTemplate.findFirst
         .mockResolvedValueOnce(row({ services: [{ serviceId: 'service-1' }] }))
         .mockResolvedValueOnce(null);
-      prisma.responseTemplate.update.mockResolvedValue(
+      prisma.responseTemplate.findUnique.mockResolvedValue(
         row({ services: [{ serviceId: 'service-2' }] }),
       );
       const updated = await service.update(
@@ -644,6 +672,7 @@ describe('ResponseTemplatesService', () => {
           kind: 'REPLY',
           serviceIds: ['service-2'],
           reason: 'preciziran opseg',
+          expectedUpdatedAt: row().updatedAt.toISOString(),
         },
         { actorUserId: 'actor-1' },
       );
@@ -652,6 +681,18 @@ describe('ResponseTemplatesService', () => {
       });
       expect(prisma.responseTemplateCategory.deleteMany).toHaveBeenCalled();
       expect(prisma.responseTemplateGroup.deleteMany).toHaveBeenCalled();
+      expect(prisma.responseTemplateService.createMany).toHaveBeenCalledWith({
+        data: [{ templateId: 'template-1', serviceId: 'service-2' }],
+      });
+      const claim = prisma.responseTemplate.updateMany.mock.calls[0]?.[0] as {
+        where: { id: string; updatedAt: Date };
+        data: { updatedAt: Date };
+      };
+      expect(claim.where).toMatchObject({ id: 'template-1', updatedAt: row().updatedAt });
+      expect(claim.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
+      expect(prisma.responseTemplate.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+        prisma.responseTemplateService.deleteMany.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+      );
       expect(updated.serviceIds).toEqual(['service-2']);
       const diff = changeLogs[0].diff as {
         action: string;
@@ -681,31 +722,214 @@ describe('ResponseTemplatesService', () => {
               kind: 'REPLY',
               serviceIds: ['service-2'],
               reason: 'preciziran opseg',
+              expectedUpdatedAt: row().updatedAt.toISOString(),
             },
             { actorUserId: 'actor-1' },
           ),
         ),
       ).toBe('TEMPLATE_SCOPE_FORBIDDEN');
-      expect(prisma.responseTemplate.update).not.toHaveBeenCalled();
+      expect(prisma.responseTemplate.updateMany).not.toHaveBeenCalled();
     });
 
     it('soft-deletes instead of removing, so sent messages keep their link', async () => {
       const { service, prisma, changeLogs } = createHarness();
       prisma.responseTemplate.findFirst.mockResolvedValueOnce(row());
-      const result = await service.remove('shared', 'template-1', 'šablon više ne treba', {
-        actorUserId: 'actor-1',
-      });
+      const result = await service.remove(
+        'shared',
+        'template-1',
+        { reason: 'šablon više ne treba', expectedUpdatedAt: row().updatedAt.toISOString() },
+        { actorUserId: 'actor-1' },
+      );
       expect(result).toEqual({ id: 'template-1' });
-      const updateArgs = prisma.responseTemplate.update.mock.calls[0][0] as {
-        where: { id: string };
-        data: { deletedAt: Date; isActive: boolean };
+      const updateArgs = prisma.responseTemplate.updateMany.mock.calls[0][0] as {
+        where: { id: string; updatedAt: Date };
+        data: { deletedAt: Date; isActive: boolean; updatedAt: Date };
       };
-      expect(updateArgs.where).toEqual({ id: 'template-1' });
+      expect(updateArgs.where).toMatchObject({ id: 'template-1', updatedAt: row().updatedAt });
       expect(updateArgs.data.deletedAt).toBeInstanceOf(Date);
       expect(updateArgs.data.isActive).toBe(false);
+      expect(updateArgs.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
       expect((changeLogs[0].diff as { action: string }).action).toBe('delete');
       expect(changeLogs[0].reason).toBe('šablon više ne treba');
     });
+
+    it.each(['shared', 'personal'] as const)(
+      'requires a revision before updating a %s template',
+      async (ownership) => {
+        const { service, prisma } = createHarness({
+          context: contextFor([
+            permissionKeys.ticketTemplatesManage,
+            permissionKeys.ticketTemplatesPersonal,
+          ]),
+        });
+        const code = await codeOf(
+          service.update(
+            ownership,
+            'template-1',
+            { name: 'Zdravo', bodyBs: 'Novo', kind: 'REPLY', reason: 'uređeno' },
+            { actorUserId: 'actor-1' },
+          ),
+        );
+        expect(code).toBe('TEMPLATE_PRECONDITION_REQUIRED');
+        expect(prisma.responseTemplate.findFirst).not.toHaveBeenCalled();
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        const missing = mapTemplatesError(new TemplatesError('TEMPLATE_PRECONDITION_REQUIRED'));
+        expect((missing as HttpException).getStatus()).toBe(400);
+      },
+    );
+
+    it.each(['shared', 'personal'] as const)(
+      'rejects a stale %s update before scope or audit changes',
+      async (ownership) => {
+        const { service, prisma, changeLogs } = createHarness({
+          context: contextFor([
+            permissionKeys.ticketTemplatesManage,
+            permissionKeys.ticketTemplatesPersonal,
+          ]),
+        });
+        prisma.responseTemplate.findFirst.mockResolvedValueOnce(
+          row({
+            ownerUserId: ownership === 'personal' ? 'actor-1' : null,
+            updatedAt: new Date('2026-01-03T03:04:05.000Z'),
+          }),
+        );
+        const code = await codeOf(
+          service.update(
+            ownership,
+            'template-1',
+            {
+              name: 'Zdravo',
+              bodyBs: 'Novo',
+              kind: 'REPLY',
+              reason: 'uređeno',
+              expectedUpdatedAt: row().updatedAt.toISOString(),
+            },
+            { actorUserId: 'actor-1' },
+          ),
+        );
+        expect(code).toBe('TEMPLATE_VERSION_CONFLICT');
+        expect(
+          (mapTemplatesError(new TemplatesError('TEMPLATE_VERSION_CONFLICT')) as HttpException).getStatus(),
+        ).toBe(409);
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(prisma.responseTemplateService.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.responseTemplateCategory.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.responseTemplateGroup.deleteMany).not.toHaveBeenCalled();
+        expect(changeLogs).toHaveLength(0);
+      },
+    );
+
+    it.each(['shared', 'personal'] as const)(
+      'does not modify scope or audit when the %s update loses the CAS',
+      async (ownership) => {
+        const { service, prisma, changeLogs } = createHarness({
+          context: contextFor([
+            permissionKeys.ticketTemplatesManage,
+            permissionKeys.ticketTemplatesPersonal,
+          ]),
+        });
+        prisma.responseTemplate.findFirst
+          .mockResolvedValueOnce(row({ ownerUserId: ownership === 'personal' ? 'actor-1' : null }))
+          .mockResolvedValueOnce(null);
+        prisma.responseTemplate.updateMany.mockResolvedValueOnce({ count: 0 });
+        const code = await codeOf(
+          service.update(
+            ownership,
+            'template-1',
+            {
+              name: 'Zdravo',
+              bodyBs: 'Novo',
+              kind: 'REPLY',
+              serviceIds: ['service-2'],
+              reason: 'uređeno',
+              expectedUpdatedAt: row().updatedAt.toISOString(),
+            },
+            { actorUserId: 'actor-1' },
+          ),
+        );
+        expect(code).toBe('TEMPLATE_VERSION_CONFLICT');
+        expect(prisma.responseTemplateService.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.responseTemplateService.createMany).not.toHaveBeenCalled();
+        expect(prisma.responseTemplateCategory.deleteMany).not.toHaveBeenCalled();
+        expect(prisma.responseTemplateGroup.deleteMany).not.toHaveBeenCalled();
+        expect(changeLogs).toHaveLength(0);
+      },
+    );
+
+    it.each(['shared', 'personal'] as const)(
+      'requires a revision before deleting a %s template',
+      async (ownership) => {
+        const { service, prisma } = createHarness({
+          context: contextFor([
+            permissionKeys.ticketTemplatesManage,
+            permissionKeys.ticketTemplatesPersonal,
+          ]),
+        });
+        const code = await codeOf(
+          service.remove(ownership, 'template-1', { reason: 'ukinut' }, { actorUserId: 'actor-1' }),
+        );
+        expect(code).toBe('TEMPLATE_PRECONDITION_REQUIRED');
+        expect(prisma.responseTemplate.findFirst).not.toHaveBeenCalled();
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['shared', 'personal'] as const)(
+      'rejects a stale %s delete before tombstone or audit changes',
+      async (ownership) => {
+        const { service, prisma, changeLogs } = createHarness({
+          context: contextFor([
+            permissionKeys.ticketTemplatesManage,
+            permissionKeys.ticketTemplatesPersonal,
+          ]),
+        });
+        prisma.responseTemplate.findFirst.mockResolvedValueOnce(
+          row({
+            ownerUserId: ownership === 'personal' ? 'actor-1' : null,
+            updatedAt: new Date('2026-01-03T03:04:05.000Z'),
+          }),
+        );
+        const code = await codeOf(
+          service.remove(
+            ownership,
+            'template-1',
+            { reason: 'ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            { actorUserId: 'actor-1' },
+          ),
+        );
+        expect(code).toBe('TEMPLATE_VERSION_CONFLICT');
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+        expect(prisma.responseTemplate.updateMany).not.toHaveBeenCalled();
+        expect(changeLogs).toHaveLength(0);
+      },
+    );
+
+    it.each(['shared', 'personal'] as const)(
+      'does not soft-delete or audit when the %s delete loses the CAS',
+      async (ownership) => {
+        const { service, prisma, changeLogs } = createHarness({
+          context: contextFor([
+            permissionKeys.ticketTemplatesManage,
+            permissionKeys.ticketTemplatesPersonal,
+          ]),
+        });
+        prisma.responseTemplate.findFirst.mockResolvedValueOnce(
+          row({ ownerUserId: ownership === 'personal' ? 'actor-1' : null }),
+        );
+        prisma.responseTemplate.updateMany.mockResolvedValueOnce({ count: 0 });
+        const code = await codeOf(
+          service.remove(
+            ownership,
+            'template-1',
+            { reason: 'ukinut', expectedUpdatedAt: row().updatedAt.toISOString() },
+            { actorUserId: 'actor-1' },
+          ),
+        );
+        expect(code).toBe('TEMPLATE_VERSION_CONFLICT');
+        expect(prisma.responseTemplate.updateMany).toHaveBeenCalledTimes(1);
+        expect(changeLogs).toHaveLength(0);
+      },
+    );
 
     it('exposes ownership, variables and edit rights in the response', async () => {
       const { service, prisma } = createHarness();
