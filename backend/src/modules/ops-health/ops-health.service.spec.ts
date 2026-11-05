@@ -18,6 +18,7 @@ import {
   recordTemplatesConfigurationReadFailure,
   recordTemplatesConfigurationReadRecovery,
 } from '../templates/templates-configuration-health';
+import { notificationTicketMessageFanOutTopic } from '../notifications/fan-out/notification-fan-out-outbox.constants';
 
 const now = new Date('2026-11-20T10:00:00.000Z');
 const actor = { principal: { subjectId: 'admin-1', email: 'a@x.ba', displayName: 'Admin', isLocalOnly: false }, requestId: 'r1', sessionId: 's1' };
@@ -138,15 +139,15 @@ describe('OpsHealthService', () => {
     const { service, prisma } = setup();
     let deadLetter = 0;
     prisma.outboxMessage.count.mockImplementation(async (args: unknown) => {
-      const where = (args as { where: { topic: { in: string[] }; status: string } }).where;
-      if (!where.topic.in.includes('ticket.playbook.auto-attach')) return 0;
+      const where = (args as { where: { topic: { in?: string[] } | string; status: string } }).where;
+      if (typeof where.topic === 'string' || !where.topic.in?.includes('ticket.playbook.auto-attach')) return 0;
       if (where.status === 'PENDING') return 2;
       if (where.status === 'PROCESSING') return 1;
       return deadLetter;
     });
     prisma.outboxMessage.findFirst.mockImplementation(async (args: unknown) => {
-      const where = (args as { where: { topic: { in: string[] } } }).where;
-      return where.topic.in.includes('ticket.playbook.auto-attach')
+      const where = (args as { where: { topic: { in?: string[] } | string } }).where;
+      return typeof where.topic !== 'string' && where.topic.in?.includes('ticket.playbook.auto-attach')
         ? { createdAt: new Date(now.getTime() - 60_000) }
         : null;
     });
@@ -161,6 +162,38 @@ describe('OpsHealthService', () => {
 
     deadLetter = 1;
     expect((await service.overview(now)).components.ticketSideEffectOutbox).toMatchObject({
+      status: 'degraded',
+      deadLetter: 1,
+    });
+  });
+
+  it('reports notification fan-out outbox backlog and dead-letter recovery state', async () => {
+    const { service, prisma } = setup();
+    let deadLetter = 0;
+    prisma.outboxMessage.count.mockImplementation(async (args: unknown) => {
+      const where = (args as { where: { topic: string | { in?: string[] }; status: string } }).where;
+      if (where.topic !== notificationTicketMessageFanOutTopic) return 0;
+      if (where.status === 'PENDING') return 2;
+      if (where.status === 'PROCESSING') return 1;
+      return deadLetter;
+    });
+    prisma.outboxMessage.findFirst.mockImplementation(async (args: unknown) => {
+      const where = (args as { where: { topic: string | { in?: string[] } } }).where;
+      return where.topic === notificationTicketMessageFanOutTopic
+        ? { createdAt: new Date(now.getTime() - 60_000) }
+        : null;
+    });
+
+    expect((await service.overview(now)).components.notificationFanOutOutbox).toEqual({
+      status: 'ok',
+      pending: 2,
+      processing: 1,
+      deadLetter: 0,
+      oldestPendingAgeMs: 60_000,
+    });
+
+    deadLetter = 1;
+    expect((await service.overview(now)).components.notificationFanOutOutbox).toMatchObject({
       status: 'degraded',
       deadLetter: 1,
     });

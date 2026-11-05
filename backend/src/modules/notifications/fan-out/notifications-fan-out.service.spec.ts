@@ -9,7 +9,6 @@ import { loadNotificationPreferencePolicy } from '../preferences/notification-pr
 import { loadIntegrationQueueSettings } from '../../integration-queue/load-integration-queue-settings';
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
-import { dispatchSlaRuntimeNotification } from './dispatch-sla-runtime-notification';
 import { publishCreatedNotifications } from './publish-created-notifications';
 import { NotificationsFanOutService } from './notifications-fan-out.service';
 
@@ -78,26 +77,19 @@ const payload = {
 } as unknown as TicketRealtimeMessagePayload;
 
 /**
- * M13 (val 4/5): the fan-out worker is the only place where a realtime event
- * becomes an in-app row, an unread-count change, an edge event and an e-mail.
- * It is also the only place that must never let one broken channel take the
- * other down — both halves catch their own errors.
+ * BA-notifications-01: the outbox worker is the source of ticket-message fan-out.
+ * Both channels are attempted, and a channel failure propagates so the durable
+ * outbox can retry instead of silently acknowledging lost work.
  */
-describe('NotificationsFanOutService (M13)', () => {
+describe('NotificationsFanOutService (BA-notifications-01)', () => {
   function createService() {
-    const listened: ((payload: TicketRealtimeMessagePayload) => void)[] = [];
-    const unsubscribed: number[] = [];
+    const hub = { subscribe: jest.fn() };
     const enqueued: unknown[] = [];
     const invalidatedUsers: string[] = [];
     const bumpedGroups: string[] = [];
     const service = new NotificationsFanOutService(
       {} as never,
-      {
-        subscribe: (listener: (payload: TicketRealtimeMessagePayload) => void) => {
-          listened.push(listener);
-          return () => unsubscribed.push(listened.length);
-        },
-      } as never,
+      hub as never,
       {} as never,
       {
         enqueue: async (job: unknown) => void enqueued.push(job),
@@ -111,8 +103,7 @@ describe('NotificationsFanOutService (M13)', () => {
     );
     return {
       service,
-      listened,
-      unsubscribed,
+      hub,
       enqueued,
       invalidatedUsers,
       bumpedGroups,
@@ -123,22 +114,19 @@ describe('NotificationsFanOutService (M13)', () => {
     jest.clearAllMocks();
   });
 
-  it('subscribes on init and drops the subscription on destroy', () => {
-    const { service, listened, unsubscribed } = createService();
+  it('does not attach a detached in-memory ticket listener', () => {
+    const { service, hub } = createService();
 
     service.onModuleInit();
-    expect(listened).toHaveLength(1);
+    expect(hub.subscribe).not.toHaveBeenCalled();
 
     service.onModuleDestroy();
-    expect(unsubscribed).toHaveLength(1);
   });
 
-  it('turns one event into rows, cache changes, edge events and e-mail', async () => {
-    const { service, listened, invalidatedUsers, bumpedGroups } = createService();
-    service.onModuleInit();
+  it('turns one durable event into rows, cache changes, edge events and e-mail', async () => {
+    const { service, invalidatedUsers, bumpedGroups } = createService();
 
-    listened[0]?.(payload);
-    await new Promise((resolve) => setImmediate(resolve));
+    await service.processDurableTicketMessage(payload);
 
     // One settings read per event, shared by both channels.
     expect(loadNotificationPreferencePolicy).toHaveBeenCalledTimes(1);
@@ -150,41 +138,29 @@ describe('NotificationsFanOutService (M13)', () => {
     expect(bumpedGroups).toEqual(['group-1']);
   });
 
-  it('still sends e-mail when the in-app half throws', async () => {
-    const { service, listened } = createService();
+  it('attempts e-mail and propagates an in-app failure for outbox retry', async () => {
+    const { service } = createService();
     (fanOutInAppNotifications as jest.Mock).mockRejectedValueOnce(
       new Error('database is down'),
     );
-    service.onModuleInit();
 
-    listened[0]?.(payload);
-    await new Promise((resolve) => setImmediate(resolve));
-
+    await expect(service.processDurableTicketMessage(payload)).rejects.toThrow(
+      'NOTIFICATION_FAN_OUT_FAILED',
+    );
     expect(fanOutEmailNotifications).toHaveBeenCalledTimes(1);
   });
 
-  it('does not lose the in-app row when the e-mail half throws', async () => {
-    const { service, listened } = createService();
+  it('keeps the persisted inbox work and propagates an e-mail failure for retry', async () => {
+    const { service } = createService();
     (fanOutEmailNotifications as jest.Mock).mockRejectedValueOnce(
       new Error('smtp is down'),
     );
-    service.onModuleInit();
 
-    listened[0]?.(payload);
-    await new Promise((resolve) => setImmediate(resolve));
-
+    await expect(service.processDurableTicketMessage(payload)).rejects.toThrow(
+      'NOTIFICATION_FAN_OUT_FAILED',
+    );
     expect(fanOutInAppNotifications).toHaveBeenCalledTimes(1);
     expect(publishCreatedNotifications).toHaveBeenCalledTimes(1);
-  });
-
-  it('hands the SLA worker the same channel the hub gets', async () => {
-    const { service } = createService();
-    service.onModuleInit();
-
-    await dispatchSlaRuntimeNotification({} as never, payload);
-
-    expect(fanOutInAppNotifications).toHaveBeenCalledTimes(1);
-    service.onModuleDestroy();
   });
 
   /**

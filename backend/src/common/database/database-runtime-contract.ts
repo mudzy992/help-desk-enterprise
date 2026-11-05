@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271030150000_playbook_live_name_unique';
+  '20271031160000_notifications_ticket_message_fanout_outbox';
 
 export function assertDatabaseTransport(
   connectionString: string,

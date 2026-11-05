@@ -62,6 +62,13 @@ describe("ops health presentation sections", () => {
           deadLetter: 1,
           oldestPendingAgeMs: 360_000,
         },
+        notificationFanOutOutbox: {
+          status: "degraded",
+          pending: 3,
+          processing: 1,
+          deadLetter: 1,
+          oldestPendingAgeMs: 360_000,
+        },
         inbound: [],
       },
       configuration: {
@@ -85,6 +92,8 @@ describe("ops health presentation sections", () => {
     expect(html).toContain("admin.opsHealth.components.changeDowntimeSyncValue");
     expect(html).toContain("admin.opsHealth.components.ticketSideEffectOutbox");
     expect(html).toContain("admin.opsHealth.components.ticketSideEffectOutboxValue");
+    expect(html).toContain("admin.opsHealth.components.notificationFanOutOutbox");
+    expect(html).toContain("admin.opsHealth.components.notificationFanOutOutboxValue");
   });
 
   it("shows template settings degradation as a health warning", () => {

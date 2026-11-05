@@ -56,6 +56,7 @@ export function ComponentGrid({
   const clamav = components.clamav;
   const changeDowntimeSync = components.changeDowntimeSync ?? null;
   const ticketSideEffectOutbox = components.ticketSideEffectOutbox ?? null;
+  const notificationFanOutOutbox = components.notificationFanOutOutbox ?? null;
   const templatesConfiguration = components.templatesConfiguration ?? null;
   return (
     <section className="grid gap-2">
@@ -199,6 +200,25 @@ export function ComponentGrid({
                 processing: ticketSideEffectOutbox.processing,
                 deadLetter: ticketSideEffectOutbox.deadLetter,
                 age: formatOpsDuration(ticketSideEffectOutbox.oldestPendingAgeMs),
+              })}
+        </ComponentTile>
+        <ComponentTile
+          label={t("admin.opsHealth.components.notificationFanOutOutbox")}
+          state={
+            notificationFanOutOutbox === null
+              ? "unknown"
+              : notificationFanOutOutbox.status === "degraded"
+                ? "warning"
+                : "ok"
+          }
+        >
+          {notificationFanOutOutbox === null
+            ? t("admin.opsHealth.components.unknown")
+            : t("admin.opsHealth.components.notificationFanOutOutboxValue", {
+                pending: notificationFanOutOutbox.pending,
+                processing: notificationFanOutOutbox.processing,
+                deadLetter: notificationFanOutOutbox.deadLetter,
+                age: formatOpsDuration(notificationFanOutOutbox.oldestPendingAgeMs),
               })}
         </ComponentTile>
         {components.inbound.map((mailbox) => (

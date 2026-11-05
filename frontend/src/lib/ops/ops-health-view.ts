@@ -78,6 +78,8 @@ export function overallOpsState(overview: OpsOverview): OpsOverallState {
     components.changeDowntimeSync?.status === "degraded" ||
     components.ticketSideEffectOutbox === null ||
     components.ticketSideEffectOutbox?.status === "degraded" ||
+    components.notificationFanOutOutbox === null ||
+    components.notificationFanOutOutbox?.status === "degraded" ||
     components.templatesConfiguration?.status === "degraded"
   ) {
     return "degraded";

@@ -859,6 +859,8 @@
         "changeDowntimeSyncValue": "Na čekanju: {{pending}} · u obradi: {{processing}} · u mrtvom redu: {{deadLetter}} · najstarije: {{age}}",
         "ticketSideEffectOutbox": "Sporedni efekti tiketa",
         "ticketSideEffectOutboxValue": "Na čekanju: {{pending}} · u obradi: {{processing}} · u mrtvom redu: {{deadLetter}} · najstarije: {{age}}",
+        "notificationFanOutOutbox": "Red isporuke obavijesti",
+        "notificationFanOutOutboxValue": "Na čekanju: {{pending}} · u obradi: {{processing}} · u mrtvom redu: {{deadLetter}} · najstarije: {{age}}",
         "templatesConfigurationAvailable": "Čitanje radi · neuspjela čitanja od pokretanja: {{count}}",
         "templatesConfigurationDegraded": "Postavke nedostupne; izmjene statusa se blokiraju · ukupno grešaka: {{count}}",
         "inbound": "Sandučić {{mailbox}}",

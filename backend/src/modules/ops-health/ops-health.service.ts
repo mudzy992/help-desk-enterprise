@@ -21,6 +21,10 @@ import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-ema
 import { changeDowntimePendingWarningAgeMs, changeDowntimeSyncTopic } from '../changes/change-downtime-outbox';
 import { ticketSideEffectOutboxTopics, ticketSideEffectOutboxWarningAgeMs } from '../tickets/ticket-side-effect-outbox.constants';
 import { readTemplatesConfigurationHealth } from '../templates/templates-configuration-health';
+import {
+  notificationFanOutOutboxWarningAgeMs,
+  notificationTicketMessageFanOutTopic,
+} from '../notifications/fan-out/notification-fan-out-outbox.constants';
 
 export type OpsAlertView = {
   readonly id: string;
@@ -87,7 +91,7 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound, changeDowntimeSync, ticketSideEffectOutbox] = await Promise.all([
+    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound, changeDowntimeSync, ticketSideEffectOutbox, notificationFanOutOutbox] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       readWorkerHeartbeatValue(() =>
@@ -111,6 +115,7 @@ export class OpsHealthService {
       this.currentInboundState(),
       this.changeDowntimeSyncState(now).catch(() => null),
       this.ticketSideEffectOutboxState(now).catch(() => null),
+      this.notificationFanOutOutboxState(now).catch(() => null),
     ]);
     const worker = evaluateWorkerHeartbeat({
       lastHeartbeatAt: heartbeat,
@@ -145,6 +150,7 @@ export class OpsHealthService {
         inbound,
         changeDowntimeSync,
         ticketSideEffectOutbox,
+        notificationFanOutOutbox,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({
         queue: scheduler.queue,
@@ -318,6 +324,32 @@ export class OpsHealthService {
     const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
     return {
       status: deadLetter > 0 || oldestPendingAgeMs >= changeDowntimePendingWarningAgeMs ? ('degraded' as const) : ('ok' as const),
+      pending,
+      processing,
+      deadLetter,
+      oldestPendingAgeMs,
+    };
+  }
+
+  private async notificationFanOutOutboxState(now: Date) {
+    const where = { topic: notificationTicketMessageFanOutTopic };
+    const activeStatuses: Array<'PENDING' | 'PROCESSING'> = ['PENDING', 'PROCESSING'];
+    const active = { ...where, status: { in: activeStatuses } };
+    const [pending, processing, deadLetter, oldest] = await Promise.all([
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'PENDING' } }),
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'PROCESSING' } }),
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'DEAD_LETTER' } }),
+      this.prisma.outboxMessage.findFirst({
+        where: active,
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+    ]);
+    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
+    return {
+      status: deadLetter > 0 || oldestPendingAgeMs >= notificationFanOutOutboxWarningAgeMs
+        ? ('degraded' as const)
+        : ('ok' as const),
       pending,
       processing,
       deadLetter,

@@ -857,6 +857,8 @@
         "changeDowntimeSyncValue": "Pending: {{pending}} · processing: {{processing}} · dead-letter: {{deadLetter}} · oldest: {{age}}",
         "ticketSideEffectOutbox": "Ticket side-effect outbox",
         "ticketSideEffectOutboxValue": "Pending: {{pending}} · processing: {{processing}} · dead-letter: {{deadLetter}} · oldest: {{age}}",
+        "notificationFanOutOutbox": "Notification fan-out outbox",
+        "notificationFanOutOutboxValue": "Pending: {{pending}} · processing: {{processing}} · dead-letter: {{deadLetter}} · oldest: {{age}}",
         "templatesConfigurationAvailable": "Reads available · failures since process start: {{count}}",
         "templatesConfigurationDegraded": "Settings unavailable; status changes fail closed · total failures: {{count}}",
         "inbound": "Mailbox {{mailbox}}",
