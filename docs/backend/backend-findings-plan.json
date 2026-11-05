@@ -2348,7 +2348,7 @@
     {
       "id": "BA-notifications-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "17-notifications.md",
       "owner": "WS-D",
       "wave": 6
