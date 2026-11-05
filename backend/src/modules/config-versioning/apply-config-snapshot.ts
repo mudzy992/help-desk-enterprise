@@ -22,6 +22,7 @@ export async function applyConfigSnapshot(
   transaction: Prisma.TransactionClient,
   snapshot: ConfigSnapshot,
   registry: SettingsRegistry,
+  audit: { readonly reason: string; readonly actorUserId: string | null },
 ): Promise<ConfigSnapshot> {
   const mandatoryIssues = validateMandatoryConfigSnapshot(snapshot);
   if (mandatoryIssues.length > 0) {
@@ -39,8 +40,14 @@ export async function applyConfigSnapshot(
     applyCatalogSnapshot(transaction, snapshot, currentLifecycleConfiguration),
   );
   await applyPhase('routing', () => applyRoutingSnapshot(transaction, snapshot));
-  await applyPhase('templates', () => applyTemplatesSnapshot(transaction, snapshot));
-  return { ...snapshot, ...appliedCatalog };
+  const appliedTemplates = await applyPhase('templates', () =>
+    applyTemplatesSnapshot(transaction, snapshot, audit),
+  );
+  return {
+    ...snapshot,
+    ...appliedCatalog,
+    ...(appliedTemplates === undefined ? {} : { templates: appliedTemplates }),
+  };
 }
 
 async function applyPhase<T>(

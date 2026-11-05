@@ -159,6 +159,13 @@ test("BA-templates-05 auto-attach outbox PostgreSQL spec je registrovan za CI", 
   );
 });
 
+test("BA-templates-06 config snapshot PostgreSQL spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/config-versioning/apply-templates-snapshot.integration.spec.ts"),
+    "nedostaje BA-templates-06 config snapshot shard",
+  );
+});
+
 test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", () => {
   const directory = path.join(backendRoot, "src/modules/service-catalog");
   const discovered = discoverServiceCatalogIntegrationSpecs(directory).sort();

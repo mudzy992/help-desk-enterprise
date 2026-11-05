@@ -10,6 +10,43 @@ describe("parseConfigSnapshot catalog precondition", () => {
     expect(parsed.catalogStateHash).toBeUndefined();
   });
 
+  it("parses BA-templates-06 scopes and ordered steps through the whole snapshot parser", () => {
+    const templates = {
+      responseTemplates: [{
+        id: "template-1",
+        name: "VPN reply",
+        bodyBs: "Pozdrav {ticketNumber}",
+        bodyEn: null,
+        kind: "REPLY" as const,
+        tags: ["support"],
+        isActive: true,
+        deletedAt: null,
+        scope: { serviceIds: ["service-vpn"], categoryIds: ["cat-1"], groupIds: ["group-it"] },
+      }],
+      playbooks: [{
+        id: "playbook-1",
+        name: "VPN checklist",
+        description: null,
+        isActive: true,
+        version: 2,
+        deletedAt: null,
+        scope: { serviceIds: ["service-vpn"], categoryIds: ["cat-1"] },
+        steps: [{
+          stepKey: "verify_access",
+          position: 0,
+          title: "Verify access",
+          instructions: null,
+          required: true,
+          knowledgeArticleId: "article-1",
+          responseTemplateId: "template-1",
+        }],
+      }],
+    };
+    const parsed = parseConfigSnapshot(createConfigSnapshotFixture({ templates }));
+
+    expect(parsed.templates).toEqual(templates);
+  });
+
   it("round-trips a well-formed SHA-256 catalog hash", () => {
     const hash = "A".repeat(64);
     const parsed = parseConfigSnapshot({

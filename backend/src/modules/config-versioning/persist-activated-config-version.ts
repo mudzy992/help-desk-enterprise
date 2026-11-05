@@ -28,6 +28,7 @@ export async function persistActivatedConfigVersion(
     transaction,
     input.snapshot,
     input.registry,
+    { reason: input.reason, actorUserId: input.actorUserId },
   );
   if (input.previousActive !== null) {
     await transaction.configVersion.update({

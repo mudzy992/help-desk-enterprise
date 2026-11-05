@@ -41,6 +41,8 @@ export function buildPortableConfig(
   const service = lookup(keyLookup(index.services), 'service');
   const category = lookup(keyLookup(index.serviceCategories), 'serviceCategory');
   const policyPack = lookup(keyLookup(index.policyPacks), 'policyPack');
+  const responseTemplate = lookup(keyLookup(index.responseTemplates), 'responseTemplate');
+  const knowledgeArticle = lookup(keyLookup(index.knowledgeArticles), 'knowledgeArticle');
   const calendarKeys = new Map(snapshot.sla.calendars.map((calendar) => [calendar.id, calendar.key]));
   const profileKeys = new Map(snapshot.sla.profiles.map((profile) => [profile.id, profile.key]));
   const calendar = lookup(calendarKeys, 'calendar');
@@ -112,15 +114,56 @@ export function buildPortableConfig(
         status: form.status,
       })),
     },
-    templates:
+      templates:
       snapshot.templates === undefined
         ? null
         : {
-            responseTemplates: snapshot.templates.responseTemplates.map(({ id: _id, ...rest }) => ({
-              ...rest,
-              tags: [...rest.tags],
+            responseTemplates: snapshot.templates.responseTemplates.map((template) => ({
+              name: template.name,
+              bodyBs: template.bodyBs,
+              bodyEn: template.bodyEn,
+              kind: template.kind,
+              tags: [...template.tags],
+              isActive: template.isActive,
+              deletedAt: template.deletedAt,
+              ...(template.scope === undefined
+                ? {}
+                : {
+                    scope: {
+                      services: template.scope.serviceIds.map(service),
+                      categories: template.scope.categoryIds.map(category),
+                      groups: template.scope.groupIds.map(group),
+                    },
+                  }),
             })),
-            playbooks: snapshot.templates.playbooks.map(({ id: _id, ...rest }) => rest),
+            playbooks: snapshot.templates.playbooks.map((playbook) => ({
+              name: playbook.name,
+              description: playbook.description,
+              isActive: playbook.isActive,
+              deletedAt: playbook.deletedAt,
+              ...(playbook.version === undefined ? {} : { version: playbook.version }),
+              ...(playbook.scope === undefined
+                ? {}
+                : {
+                    scope: {
+                      services: playbook.scope.serviceIds.map(service),
+                      categories: playbook.scope.categoryIds.map(category),
+                    },
+                  }),
+              ...(playbook.steps === undefined
+                ? {}
+                : {
+                    steps: playbook.steps.map((step) => ({
+                      stepKey: step.stepKey,
+                      position: step.position,
+                      title: step.title,
+                      instructions: step.instructions,
+                      required: step.required,
+                      knowledgeArticle: optional(knowledgeArticle)(step.knowledgeArticleId),
+                      responseTemplate: optional(responseTemplate)(step.responseTemplateId),
+                    })),
+                  }),
+            })),
           },
   };
   if (missing.size > 0) {
