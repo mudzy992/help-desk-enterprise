@@ -4345,6 +4345,7 @@
         "errorUnreachable": "The server is unreachable — check the host and port.",
         "errorSend": "The server accepted the connection but refused the message.",
         "errorRateLimited": "Too many attempts; wait a moment and try again.",
+        "errorRateLimitUnavailable": "The shared rate limiter is unavailable; try again later.",
         "errorSuperAdmin": "The test is sent by the super admin.",
         "errorGeneric": "The send failed. Please try again.",
         "savingFirst": "Save your changes before sending — the test uses the stored settings.",

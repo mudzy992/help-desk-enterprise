@@ -4365,6 +4365,7 @@
         "errorUnreachable": "Server nije dostupan — provjerite host i port.",
         "errorSend": "Server je prihvatio vezu, ali poruku je odbio.",
         "errorRateLimited": "Previše pokušaja; sačekajte pa pokušajte ponovo.",
+        "errorRateLimitUnavailable": "Dijeljeni limitator nije dostupan; pokušajte kasnije.",
         "errorSuperAdmin": "Test šalje super admin.",
         "errorGeneric": "Slanje nije uspjelo. Pokušajte ponovo.",
         "savingFirst": "Sačuvajte izmjene pa pošaljite test — test koristi sačuvane postavke.",
