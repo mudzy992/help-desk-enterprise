@@ -59,10 +59,12 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
       await this.recordProviderRefusal(error);
       throw error;
     }
+    const accepted = info.accepted ?? [];
+    const rejected = info.rejected ?? [];
     const responseCode = parseSmtpResponseCode(info.response);
     const hasProviderRejection =
-      info.rejected.length > 0 ||
-      (info.accepted.length === 0 && responseCode !== null && responseCode >= 400);
+      rejected.length > 0 ||
+      (accepted.length === 0 && responseCode !== null && responseCode >= 400);
     const failure =
       !hasProviderRejection
         ? null
@@ -73,7 +75,7 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
             response: info.response,
             message: info.response ?? 'SMTP rejected recipient',
           });
-    if (failure !== null && isMailProviderLimit(failure.kind) && info.accepted.length === 0) {
+    if (failure !== null && isMailProviderLimit(failure.kind) && accepted.length === 0) {
       await this.recordProviderRefusal({
         code: 'EENVELOPE',
         responseCode,
@@ -84,8 +86,8 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
       await this.providerBreaker().recordSuccess().catch(() => undefined);
     }
     return {
-      acceptedRecipientCount: info.accepted.length,
-      rejectedRecipientCount: info.rejected.length,
+      acceptedRecipientCount: accepted.length,
+      rejectedRecipientCount: rejected.length,
       messageId: readProviderMessageId(info.messageId),
       responseCode,
       failureKind: failure?.kind ?? null,

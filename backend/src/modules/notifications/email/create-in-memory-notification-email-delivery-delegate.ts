@@ -17,7 +17,7 @@ export type NotificationEmailDeliveryRecord = {
   readonly updatedAt: Date;
 };
 
-type DeliveryWhere = {
+export type DeliveryWhere = {
   readonly userId?: string;
   readonly dedupeKey?: string;
   readonly status?: string | { readonly in: readonly string[] };
@@ -26,7 +26,7 @@ type DeliveryWhere = {
   readonly OR?: readonly DeliveryWhere[];
 };
 
-type DeliveryCreateData = Pick<
+export type DeliveryCreateData = Pick<
   NotificationEmailDeliveryRecord,
   'userId' | 'dedupeKey' | 'toAddress' | 'templateKey' | 'status'
 > &
@@ -47,7 +47,7 @@ type DeliveryCreateData = Pick<
     >
   >;
 
-type DeliveryUpdateData = Partial<
+export type DeliveryUpdateData = Partial<
   Omit<
     NotificationEmailDeliveryRecord,
     'id' | 'userId' | 'dedupeKey' | 'createdAt' | 'attempts'
