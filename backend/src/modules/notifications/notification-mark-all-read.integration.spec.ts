@@ -234,10 +234,10 @@ describeIfDatabase('notification mark-all-read cutoff (PostgreSQL integration, B
       groupMember: transaction.groupMember,
       notification: {
         updateMany: (
-          args: Parameters<typeof transaction.notification.updateMany>[0],
+          args: NonNullable<Parameters<typeof transaction.notification.updateMany>[0]>,
         ) => transaction.notification.updateMany(args),
         findMany: async (
-          args: Parameters<typeof transaction.notification.findMany>[0],
+          args: NonNullable<Parameters<typeof transaction.notification.findMany>[0]>,
         ) => {
           pageSizes.push(args.take ?? 0);
           return transaction.notification.findMany(args);
@@ -245,7 +245,9 @@ describeIfDatabase('notification mark-all-read cutoff (PostgreSQL integration, B
       },
       notificationReceipt: {
         createMany: async (
-          args: Parameters<typeof transaction.notificationReceipt.createMany>[0],
+          args: NonNullable<
+            Parameters<typeof transaction.notificationReceipt.createMany>[0]
+          >,
         ) => {
           receiptBatchSizes.push(Array.isArray(args.data) ? args.data.length : 1);
           return transaction.notificationReceipt.createMany(args);

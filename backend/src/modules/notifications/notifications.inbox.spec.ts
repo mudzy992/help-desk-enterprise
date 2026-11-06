@@ -287,7 +287,7 @@ describe('in-app notification isolation', () => {
         markAllNotificationsRead(harness.memory.prisma as never, memberId, () => readAt),
       ).resolves.toEqual({ unreadCount: 0 });
 
-      expect(findMany.mock.calls.map(([query]) => query.take)).toEqual([
+      expect(findMany.mock.calls.map(([query]) => query?.take)).toEqual([
         batchSize,
         batchSize,
         batchSize,
@@ -295,7 +295,7 @@ describe('in-app notification isolation', () => {
       const receiptBatches = createMany.mock.calls.map(([input]) => input.data ?? []);
       expect(receiptBatches.map((batch) => batch.length)).toEqual([batchSize, batchSize, 17]);
       const cursors = findMany.mock.calls.slice(1).map(([query]) => {
-        const cursorClause = query.where?.AND?.find(
+        const cursorClause = query?.where?.AND?.find(
           (clause) =>
             typeof clause.id === 'object' &&
             clause.id !== null &&
