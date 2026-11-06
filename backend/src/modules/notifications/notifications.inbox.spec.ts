@@ -2,7 +2,7 @@ import { runWithRequestId } from '../../common/request-context/request-context.s
 import { loadActorGroupMemberships } from '../../common/cache/scope-catalog-cache';
 import { countUnreadNotifications } from './count-unread-notifications';
 import { fanOutInAppNotifications } from './fan-out/fan-out-in-app-notifications';
-import { notificationTypes } from './notifications.constants';
+import { notificationMarkAllLimits, notificationTypes } from './notifications.constants';
 import { listNotifications } from './list-notifications';
 import { markAllNotificationsRead } from './mark-all-notifications-read';
 import { markNotificationRead } from './mark-notification-read';
@@ -248,6 +248,72 @@ describe('in-app notification isolation', () => {
       groupMemberDelegate.findMany = originalFindMany;
       notificationDelegate.updateMany = originalUpdateMany;
       transaction.mockRestore();
+    }
+  });
+
+  it('writes group receipts in bounded keyset pages', async () => {
+    const harness = await routedWithGroupMember();
+    const memberId = ticketsTestIds.agentIt;
+    const batchSize = notificationMarkAllLimits.groupReceiptBatchSize;
+    const total = batchSize * 2 + 17;
+    const readAt = new Date(Date.now() + 10_000);
+    const createdAt = new Date();
+    await harness.memory.prisma.notification.createMany({
+      data: Array.from({ length: total }, (_, index) => {
+        const id = `mark-all-group-batch-${String(index).padStart(4, '0')}`;
+        return {
+          id,
+          userId: null,
+          groupId: ticketsTestIds.groupIt,
+          excludedUserIds: [],
+          type: notificationTypes.ticketCreated,
+          title: 'Group notification',
+          body: null,
+          isRead: false,
+          readAt: null,
+          ticketId: null,
+          payload: {},
+          dedupeKey: id,
+          createdAt,
+        };
+      }),
+      skipDuplicates: true,
+    });
+    const findMany = jest.spyOn(harness.memory.prisma.notification, 'findMany');
+    const createMany = jest.spyOn(harness.memory.prisma.notificationReceipt, 'createMany');
+
+    try {
+      await expect(
+        markAllNotificationsRead(harness.memory.prisma as never, memberId, () => readAt),
+      ).resolves.toEqual({ unreadCount: 0 });
+
+      expect(findMany.mock.calls.map(([query]) => query.take)).toEqual([
+        batchSize,
+        batchSize,
+        batchSize,
+      ]);
+      const receiptBatches = createMany.mock.calls.map(([input]) => input.data ?? []);
+      expect(receiptBatches.map((batch) => batch.length)).toEqual([batchSize, batchSize, 17]);
+      const cursors = findMany.mock.calls.slice(1).map(([query]) => {
+        const cursorClause = query.where?.AND?.find(
+          (clause) =>
+            typeof clause.id === 'object' &&
+            clause.id !== null &&
+            clause.id.gt !== undefined,
+        );
+        return typeof cursorClause?.id === 'object' && cursorClause.id !== null
+          ? cursorClause.id.gt
+          : undefined;
+      });
+      expect(cursors).toEqual(
+        receiptBatches.slice(0, -1).map((batch) => batch.at(-1)?.notificationId),
+      );
+      await expect(
+        harness.memory.prisma.notificationReceipt.findMany({ where: { userId: memberId } }),
+      ).resolves.toHaveLength(total);
+    } finally {
+      findMany.mockRestore();
+      createMany.mockRestore();
     }
   });
 

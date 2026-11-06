@@ -7,7 +7,13 @@ type NotificationOrderBy = {
 };
 
 export type NotificationWhere = {
-  readonly id?: string | { readonly in?: readonly string[]; readonly lt?: string };
+  readonly id?:
+    | string
+    | {
+        readonly in?: readonly string[];
+        readonly lt?: string;
+        readonly gt?: string;
+      };
   readonly userId?: string | null | { readonly in: readonly string[] };
   /** Option A: group rows, their audience and the caller's receipts. */
   readonly groupId?: string | null;
@@ -288,6 +294,9 @@ function matchesNotification(
         return false;
       }
       if (where.id.lt !== undefined && record.id >= where.id.lt) {
+        return false;
+      }
+      if (where.id.gt !== undefined && record.id <= where.id.gt) {
         return false;
       }
     }

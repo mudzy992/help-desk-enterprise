@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, type Prisma } from '../../generated/prisma/client';
 import { markAllNotificationsRead } from './mark-all-notifications-read';
+import { notificationMarkAllLimits } from './notifications.constants';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -204,6 +205,60 @@ describeIfDatabase('notification mark-all-read cutoff (PostgreSQL integration, B
         where: { notificationId_userId: { notificationId: newGroupId, userId } },
       }),
     ).resolves.toBeNull();
+  });
+
+  it('reads and inserts group receipts in bounded keyset pages', async () => {
+    const cutoff = new Date(Date.now() + 20_000);
+    const createdAt = new Date();
+    const batchSize = notificationMarkAllLimits.groupReceiptBatchSize;
+    const total = batchSize + 1;
+    const ids = Array.from(
+      { length: total },
+      (_, index) => `mark-all-group-page-${stamp}-${String(index).padStart(4, '0')}`,
+    );
+    await prisma.notification.createMany({
+      data: ids.map((id) =>
+        notificationData({
+          id,
+          userId: null,
+          groupId,
+          dedupeKey: id,
+          createdAt,
+        }),
+      ),
+    });
+
+    const pageSizes: number[] = [];
+    const receiptBatchSizes: number[] = [];
+    const transactionalPrisma = withTransactionOverride(prisma, (transaction) => ({
+      groupMember: transaction.groupMember,
+      notification: {
+        updateMany: (
+          args: Parameters<typeof transaction.notification.updateMany>[0],
+        ) => transaction.notification.updateMany(args),
+        findMany: async (
+          args: Parameters<typeof transaction.notification.findMany>[0],
+        ) => {
+          pageSizes.push(args.take ?? 0);
+          return transaction.notification.findMany(args);
+        },
+      },
+      notificationReceipt: {
+        createMany: async (
+          args: Parameters<typeof transaction.notificationReceipt.createMany>[0],
+        ) => {
+          receiptBatchSizes.push(Array.isArray(args.data) ? args.data.length : 1);
+          return transaction.notificationReceipt.createMany(args);
+        },
+      },
+    }));
+
+    await expect(
+      markAllNotificationsRead(transactionalPrisma, userId, () => cutoff),
+    ).resolves.toEqual({ unreadCount: 0 });
+    expect(pageSizes).toEqual([batchSize, 1]);
+    expect(receiptBatchSizes).toEqual([batchSize, 1]);
+    await expect(prisma.notificationReceipt.count({ where: { userId } })).resolves.toBe(total);
   });
 
   it('rolls back personal updates when the group receipt write fails', async () => {
