@@ -48,7 +48,10 @@ type DeliveryCreateData = Pick<
   >;
 
 type DeliveryUpdateData = Partial<
-  Omit<NotificationEmailDeliveryRecord, 'id' | 'userId' | 'dedupeKey' | 'createdAt'>
+  Omit<
+    NotificationEmailDeliveryRecord,
+    'id' | 'userId' | 'dedupeKey' | 'createdAt' | 'attempts'
+  >
 > & {
   readonly attempts?: number | { readonly increment: number };
 };

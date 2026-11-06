@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { createTransport, type Transporter } from 'nodemailer';
+import { createTransport, type SentMessageInfo, type Transporter } from 'nodemailer';
 import {
   classifyMailSendError,
   isMailProviderLimit,
@@ -52,7 +52,7 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
   ): Promise<MailTransportResult> {
     await this.assertProviderAllowsSending();
     const transporter = this.transporterFor(smtp);
-    let info: Awaited<ReturnType<Transporter['sendMail']>>;
+    let info: SentMessageInfo;
     try {
       info = await this.sendNow(transporter, message);
     } catch (error) {
