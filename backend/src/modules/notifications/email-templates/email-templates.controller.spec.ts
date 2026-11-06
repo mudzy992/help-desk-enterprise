@@ -5,6 +5,33 @@ import type { EmailTemplatesService } from './email-templates.service';
 import { EmailTemplatesController } from './email-templates.controller';
 
 describe('EmailTemplatesController test-send rate limit', () => {
+  it('preserves HTTP 429 when the shared rate limit is reached', async () => {
+    const emailTemplates = {
+      sendTest: jest
+        .fn()
+        .mockRejectedValue(
+          new SettingsError('Too many test e-mails', 'TEST_RATE_LIMITED'),
+        ),
+    } as unknown as EmailTemplatesService;
+    const controller = new EmailTemplatesController(emailTemplates);
+
+    let failure: unknown;
+    try {
+      await controller.sendTest(
+        { key: 'ticket.assigned', locale: 'en' },
+        {} as AuthenticatedHttpRequest,
+      );
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toBeInstanceOf(HttpException);
+    expect((failure as HttpException).getStatus()).toBe(429);
+    expect((failure as HttpException).getResponse()).toMatchObject({
+      code: 'TEST_RATE_LIMITED',
+    });
+  });
+
   it('returns 503 when shared Redis cannot enforce the test-send limit', async () => {
     const emailTemplates = {
       sendTest: jest
