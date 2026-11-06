@@ -431,6 +431,14 @@ jobs:
           if [ -n "$trace_summary" ]; then
             echo "::notice::db_query_trace_samples=${trace_summary}"
           fi
+          # Recent runs show /services as the highest-average route. Expose a bounded,
+          # value-free sample here as well, so its query shape is visible in annotations.
+          service_trace_summary=$(grep -E 'db_query_trace method=GET path=[/]services count=' api.log 2>/dev/null \
+            | sed -E 's/\x1B\[[0-9;]*m//g; s/^.*db_query_trace /db_query_trace /' \
+            | head -12 | tr '\n' ';' || true)
+          if [ -n "$service_trace_summary" ]; then
+            echo "::notice::db_query_trace_services=${service_trace_summary}"
+          fi
           if [ -s perf/results/ci-smoke.md ]; then
             k6_evidence=$(grep -E 'GET /tickets|POST /tickets|GET /search|GET /services|http_req_failed|tickets_list_duration|ticket_detail_duration|ticket_message_duration|service_catalog|FAILED' perf/results/ci-smoke.md \
               | head -15 | tr '\n' ';' || true)
