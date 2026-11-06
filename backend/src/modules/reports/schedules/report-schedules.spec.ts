@@ -15,6 +15,7 @@ import { parseReportSchedulesConfiguration } from './report-schedules-configurat
 import { composeScheduledReportPreview } from './scheduled-report-preview';
 import { ScheduledReportRunner, slotKeyOf } from './scheduled-report.runner';
 import type { ReportScheduleRecord } from './report-schedule.record';
+import type { OutboundMailMessage } from '../../notifications/email/mail-transport';
 
 const zone = 'Europe/Sarajevo';
 
@@ -360,7 +361,18 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
             : { ok: false, userId: id, reason: 'inactive' },
         ),
     } as never,
-    { send: async (message: { to: string; subject: string }) => void sent.push(message) },
+    {
+      send: async (message: OutboundMailMessage) => {
+        sent.push({ to: message.to, subject: message.subject });
+        return {
+          acceptedRecipientCount: 1,
+          rejectedRecipientCount: 0,
+          messageId: '<scheduled-report@example.test>',
+          responseCode: 250,
+          failureKind: null,
+        };
+      },
+    },
   );
   return { runner, runs, sent, prisma, scheduleUpdates };
 }

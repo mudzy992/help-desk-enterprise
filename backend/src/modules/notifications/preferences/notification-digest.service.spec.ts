@@ -232,7 +232,15 @@ describe('NotificationDigestService (M13)', () => {
       $transaction: async (input: unknown) =>
         Promise.all(input as readonly Promise<unknown>[]),
     };
-    const transport = { send: jest.fn(async () => undefined) };
+    const transport = {
+      send: jest.fn(async () => ({
+        acceptedRecipientCount: 1,
+        rejectedRecipientCount: 0,
+        messageId: '<notification-digest@example.test>',
+        responseCode: 250,
+        failureKind: null,
+      })),
+    };
     const authorizationContextLoader =
       options.makeAuthorizationContextLoader?.(prisma) ??
       options.authorizationContextLoader ??
