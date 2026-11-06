@@ -20,6 +20,11 @@ on:
     paths:
       - ".github/workflows/perf-smoke.yml"
       - "backend/src/modules/service-catalog/**"
+      # BA-notifications-10 delivery and retry lifecycle changes are runtime changes too.
+      - "backend/src/modules/notifications/email/**"
+      - "backend/src/modules/integration-queue/**"
+      - "backend/prisma/schema/ops.prisma"
+      - "backend/prisma/migrations/20271031170000_notifications_email_delivery_attempt_state/**"
       - "backend/scripts/run-isolated-integration.*"
       - "backend/scripts/seed-service-catalog-perf.mjs"
       - "perf/config.js"
