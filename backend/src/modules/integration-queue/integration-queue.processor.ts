@@ -58,7 +58,7 @@ export class IntegrationQueueProcessor extends WorkerHost {
       await handleIntegrationJobFailure({
         repository: this.integrationJobRepository,
         queue: this.integrationQueue,
-        job: processing,
+        job: { ...processing, payload: processing.payload },
         settings,
         error,
         log: (message) => this.logger.warn(message),

@@ -1,7 +1,10 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { IntegrationJobStatus } from '../../generated/prisma/enums';
+import {
+  IntegrationJobStatus,
+  IntegrationJobType,
+} from '../../generated/prisma/enums';
 import { RedisService } from '../../common/redis/redis.service';
 import {
   integrationQueueName,
@@ -57,6 +60,9 @@ export class IntegrationQueueService {
       existing.status !== IntegrationJobStatus.DLQ
     ) {
       throw new IntegrationQueueError('INVALID_STATUS');
+    }
+    if (existing.type === IntegrationJobType.EMAIL) {
+      await this.integrationJobRepository.resetEmailDeliveryForAdminRetry(existing.payload);
     }
     const pending = await this.integrationJobRepository.resetForAdminRetry(jobId);
     await this.integrationQueue.add(

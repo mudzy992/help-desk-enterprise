@@ -6,6 +6,10 @@ import {
 } from '../notifications/email/classify-mail-send-error';
 import { readMailSuppressionRetryAfterSeconds } from '../notifications/email/mail-provider-limit-breaker';
 import {
+  NotificationEmailDeliveryDeadError,
+  NotificationEmailOutcomeUnknownError,
+} from '../notifications/email/notification-email-delivery-errors';
+import {
   computeIntegrationJobBackoffMilliseconds,
   resolveDeadLetterAttemptThreshold,
 } from './compute-integration-job-backoff';
@@ -23,6 +27,7 @@ export async function handleIntegrationJobFailure(input: {
     readonly id: string;
     readonly type: IntegrationJobType;
     readonly attempts: number;
+    readonly payload?: unknown;
   };
   readonly settings: IntegrationQueueSettings;
   readonly error: unknown;
@@ -37,12 +42,27 @@ export async function handleIntegrationJobFailure(input: {
   const recipientRejected =
     input.job.type === IntegrationJobType.EMAIL &&
     isPermanentRecipientFailure(classifyMailSendError(input.error).kind);
-  if (recipientRejected || input.job.attempts >= threshold) {
+  const emailOutcomeUnknown = input.error instanceof NotificationEmailOutcomeUnknownError;
+  const emailAlreadyDead = input.error instanceof NotificationEmailDeliveryDeadError;
+  if (
+    emailOutcomeUnknown ||
+    emailAlreadyDead ||
+    recipientRejected ||
+    input.job.attempts >= threshold
+  ) {
+    if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
+      await input.repository.markEmailDeliveryDead(input.job.payload);
+    }
     await input.repository.markDeadLetter(input.job.id, lastError);
+    const reason = emailOutcomeUnknown
+      ? ' reason=outcome_unknown_no_resend'
+      : emailAlreadyDead
+        ? ' reason=delivery_dead'
+        : recipientRejected
+          ? ' reason=recipient_rejected'
+          : '';
     input.log(
-      `integration_job id=${input.job.id} type=${input.job.type} status=DLQ attempts=${input.job.attempts}${
-        recipientRejected ? ' reason=recipient_rejected' : ''
-      }`,
+      `integration_job id=${input.job.id} type=${input.job.type} status=DLQ attempts=${input.job.attempts}${reason}`,
     );
     return 'DLQ';
   }
@@ -71,6 +91,9 @@ export async function handleIntegrationJobFailure(input: {
       removeOnFail: true,
     },
   );
+  if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
+    await input.repository.scheduleEmailDeliveryRetry(input.job.payload, nextRetryAt);
+  }
   input.log(
     `integration_job id=${input.job.id} type=${input.job.type} status=FAILED attempts=${input.job.attempts} nextRetryAt=${nextRetryAt.toISOString()}${
       suppressedRetryAfterSeconds === null ? '' : ' reason=mail_provider_blocked'

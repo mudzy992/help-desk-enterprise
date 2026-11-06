@@ -1,32 +1,46 @@
 import { createHash } from 'node:crypto';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { createInMemoryNotificationEmailDeliveryDelegate } from './create-in-memory-notification-email-delivery-delegate';
+import { emailDeliveryStatuses } from './email-template.constants';
+import {
+  NotificationEmailOutcomeUnknownError,
+} from './notification-email-delivery-errors';
 import { deliverNotificationEmail } from './deliver-notification-email';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
-import type { MailTransport } from './mail-transport';
+import type { MailTransport, MailTransportResult } from './mail-transport';
+import { notificationEmailClaimStaleAfterMs } from './persist-notification-email-delivery';
+import type { NotificationEmailDeliveryRecord } from './create-in-memory-notification-email-delivery-delegate';
 
-function createPrisma(claimCreates: boolean): {
+function createPrisma(): {
   prisma: PrismaService;
-  updateMany: jest.Mock;
-  create: jest.Mock;
+  records: Map<string, NotificationEmailDeliveryRecord>;
 } {
-  const updateMany = jest.fn(async () => ({ count: 0 }));
-  const create = jest.fn(async () => {
-    if (!claimCreates) {
-      throw Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
-    }
-    return { id: 'delivery-1' };
-  });
-  const prisma = {
-    notificationEmailDelivery: {
-      updateMany,
-      create,
-      deleteMany: jest.fn(async () => ({ count: 0 })),
-    },
-  } as unknown as PrismaService;
-  return { prisma, updateMany, create };
+  const records = new Map<string, NotificationEmailDeliveryRecord>();
+  let id = 0;
+  return {
+    prisma: {
+      notificationEmailDelivery: createInMemoryNotificationEmailDeliveryDelegate(
+        records,
+        () => `delivery-${++id}`,
+        () => new Date(),
+      ),
+    } as unknown as PrismaService,
+    records,
+  };
 }
 
-describe('deliverNotificationEmail (BA-notifications-07)', () => {
+function acceptedReceipt(overrides: Partial<MailTransportResult> = {}): MailTransportResult {
+  return {
+    acceptedRecipientCount: 1,
+    rejectedRecipientCount: 0,
+    messageId: '<provider-message-1@example.test>',
+    responseCode: 250,
+    failureKind: null,
+    ...overrides,
+  };
+}
+
+describe('deliverNotificationEmail (BA-notifications-10)', () => {
   const configuration = {
     smtp: { fromAddress: 'desk@example.com' },
   } as unknown as EmailChannelConfiguration;
@@ -45,9 +59,9 @@ describe('deliverNotificationEmail (BA-notifications-07)', () => {
     .digest('hex')
     .slice(0, 32)}@example.com>`;
 
-  it('sends once with a stable Message-ID and marks the row as sent', async () => {
-    const { prisma, updateMany } = createPrisma(true);
-    const send = jest.fn(async () => undefined);
+  it('marks SENT only after a provider acceptance receipt and persists its evidence', async () => {
+    const { prisma, records } = createPrisma();
+    const send = jest.fn(async () => acceptedReceipt());
 
     await deliverNotificationEmail(
       prisma,
@@ -65,16 +79,21 @@ describe('deliverNotificationEmail (BA-notifications-07)', () => {
       }),
       configuration.smtp,
     );
-    // Second updateMany call is the sent marker (first one is the stale-claim check).
-    expect(updateMany).toHaveBeenLastCalledWith({
-      where: { userId: 'user-1', dedupeKey: 'ticket.resolved:1' },
-      data: { status: 'SENT' },
+    expect([...records.values()][0]).toMatchObject({
+      status: emailDeliveryStatuses.sent,
+      attempts: 1,
+      lastAttemptAt: expect.any(Date),
+      providerMessageId: '<provider-message-1@example.test>',
+      providerResponseCode: 250,
+      providerAcceptedAt: expect.any(Date),
+      nextRetryAt: null,
+      lastErrorCode: null,
     });
   });
 
   it('preserves a composer-provided stable Message-ID', async () => {
-    const { prisma } = createPrisma(true);
-    const send = jest.fn(async () => undefined);
+    const { prisma } = createPrisma();
+    const send = jest.fn(async () => acceptedReceipt());
 
     await deliverNotificationEmail(
       prisma,
@@ -89,46 +108,137 @@ describe('deliverNotificationEmail (BA-notifications-07)', () => {
     );
   });
 
-  it('does not send when the claim already exists', async () => {
-    const { prisma } = createPrisma(false);
-    const send = jest.fn(async () => undefined);
+  it('does not send a duplicate after the provider acceptance was recorded', async () => {
+    const { prisma, records } = createPrisma();
+    const send = jest.fn(async () => acceptedReceipt());
 
-    await deliverNotificationEmail(
-      prisma,
-      { send } as unknown as MailTransport,
-      configuration,
-      input,
-    );
+    await deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input);
+    await deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input);
 
-    expect(send).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledTimes(1);
+    expect([...records.values()][0]?.status).toBe(emailDeliveryStatuses.sent);
   });
 
-  it('does not resend a stale CLAIMED row after an ambiguous SMTP outcome', async () => {
-    const updateMany = jest.fn(async () => ({ count: 1 }));
-    const create = jest.fn(async () => ({ id: 'delivery-1' }));
-    const prisma = {
-      notificationEmailDelivery: {
-        updateMany,
-        create,
-        deleteMany: jest.fn(async () => ({ count: 0 })),
-      },
-    } as unknown as PrismaService;
-    const send = jest.fn(async () => undefined);
+  it('records a known pre-acceptance refusal as FAILED without storing raw error text', async () => {
+    const { prisma, records } = createPrisma();
+    const failure = Object.assign(new Error('SMTP said private response text'), {
+      command: 'RCPT TO',
+      responseCode: 451,
+    });
+    const send = jest.fn(async () => {
+      throw failure;
+    });
 
-    await deliverNotificationEmail(
-      prisma,
-      { send } as unknown as MailTransport,
-      configuration,
-      input,
-    );
+    await expect(
+      deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input),
+    ).rejects.toBe(failure);
 
-    expect(updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ status: 'CLAIMED' }),
-        data: expect.objectContaining({ status: 'UNKNOWN' }),
+    expect([...records.values()][0]).toMatchObject({
+      status: emailDeliveryStatuses.failed,
+      attempts: 1,
+      lastErrorCode: 'transient',
+      lastErrorResponseCode: 451,
+      nextRetryAt: null,
+    });
+    expect([...records.values()][0]?.lastErrorCode).not.toContain('private');
+  });
+
+  it('blocks automatic resend when the SMTP outcome is ambiguous', async () => {
+    const { prisma, records } = createPrisma();
+    const send = jest.fn(async () => {
+      throw new Error('socket closed after DATA');
+    });
+
+    await expect(
+      deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input),
+    ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
+
+    expect([...records.values()][0]).toMatchObject({
+      status: emailDeliveryStatuses.unknown,
+      attempts: 1,
+      lastErrorCode: 'ambiguous_outcome',
+      nextRetryAt: null,
+    });
+  });
+
+  it('does not retry a partial acceptance and retains its non-sensitive provider receipt', async () => {
+    const { prisma, records } = createPrisma();
+    const send = jest.fn(async () =>
+      acceptedReceipt({
+        acceptedRecipientCount: 1,
+        rejectedRecipientCount: 1,
+        failureKind: 'recipient',
       }),
     );
-    expect(create).not.toHaveBeenCalled();
+
+    await expect(
+      deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input),
+    ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
+
+    expect([...records.values()][0]).toMatchObject({
+      status: emailDeliveryStatuses.unknown,
+      lastErrorCode: 'partial_acceptance',
+      providerMessageId: '<provider-message-1@example.test>',
+      providerResponseCode: 250,
+    });
+  });
+
+  it('marks a classified permanent rejection DEAD and returns only a safe queue error', async () => {
+    const { prisma, records } = createPrisma();
+    const send = jest.fn(async () =>
+      acceptedReceipt({
+        acceptedRecipientCount: 0,
+        rejectedRecipientCount: 1,
+        messageId: null,
+        responseCode: 550,
+        failureKind: 'recipient',
+      }),
+    );
+
+    const result = deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input);
+    await expect(result).rejects.toMatchObject({
+      code: 'EENVELOPE',
+      responseCode: 550,
+      response: '550 recipient address rejected',
+    });
+    expect([...records.values()][0]).toMatchObject({
+      status: emailDeliveryStatuses.dead,
+      lastErrorCode: 'recipient',
+      lastErrorResponseCode: 550,
+    });
+  });
+
+  it('preserves a stale CLAIMED row as UNKNOWN instead of taking it over', async () => {
+    const { prisma, records } = createPrisma();
+    const staleAt = new Date(Date.now() - notificationEmailClaimStaleAfterMs - 60_000);
+    records.set('delivery-stale', {
+      id: 'delivery-stale',
+      ...input,
+      status: emailDeliveryStatuses.claimed,
+      attempts: 1,
+      lastAttemptAt: staleAt,
+      nextRetryAt: null,
+      lastErrorCode: null,
+      lastErrorResponseCode: null,
+      providerMessageId: null,
+      providerResponseCode: null,
+      providerAcceptedAt: null,
+      createdAt: staleAt,
+      updatedAt: staleAt,
+    });
+    const send = jest.fn(async () => acceptedReceipt());
+
+    await expect(
+      deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input),
+    ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
+
+    const row = records.get('delivery-stale');
+    expect(row).toMatchObject({
+      status: emailDeliveryStatuses.unknown,
+      lastErrorCode: 'stale_claim',
+      nextRetryAt: null,
+    });
+    expect(row?.updatedAt.getTime()).toBeGreaterThan(staleAt.getTime());
     expect(send).not.toHaveBeenCalled();
   });
 });

@@ -68,23 +68,31 @@ describe('email notification fan-out', () => {
     expect([...harness.memory.emailDeliveries.values()]).toEqual([]);
   });
 
-  it('releases the claim when SMTP send fails so a retry can send', async () => {
+  it('records a known pre-acceptance failure and permits a later explicit retry', async () => {
     const harness = await routedWithInternalAgent();
     await harness.tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
     });
     const failing: MailTransport = {
       send: async () => {
-        throw new Error('SMTP unavailable');
+        throw Object.assign(new Error('SMTP unavailable'), {
+          command: 'RCPT TO',
+          responseCode: 451,
+        });
       },
     };
     await expect(
       ingestEmail(harness, failing, enabledConfiguration()),
     ).rejects.toThrow(/SMTP unavailable/);
-    expect([...harness.memory.emailDeliveries.values()]).toEqual([]);
+    expect([...harness.memory.emailDeliveries.values()]).toMatchObject([
+      { status: 'FAILED', attempts: 1, lastErrorCode: 'transient', lastErrorResponseCode: 451 },
+    ]);
     const mail = createRecordingTransport();
     await ingestEmail(harness, mail, enabledConfiguration());
     expect(mail.messages).toHaveLength(1);
+    expect([...harness.memory.emailDeliveries.values()]).toMatchObject([
+      { status: 'SENT', attempts: 2, providerResponseCode: 250 },
+    ]);
   });
 
   it('can enqueue outbound mail instead of sending SMTP immediately', async () => {
@@ -304,6 +312,13 @@ function createRecordingTransport(): MailTransport & {
     messages,
     send: async (message) => {
       messages.push(message);
+      return {
+        acceptedRecipientCount: 1,
+        rejectedRecipientCount: 0,
+        messageId: '<fan-out-test@example.test>',
+        responseCode: 250,
+        failureKind: null,
+      };
     },
   };
 }

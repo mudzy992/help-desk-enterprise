@@ -107,7 +107,13 @@ describe('OpsHealthService', () => {
     const { service, prisma } = setup();
     prisma.notificationEmailDelivery.count.mockImplementation(async (args?: unknown) => {
       const where = (args as { where: { status: string } } | undefined)?.where;
-      return where?.status === 'UNKNOWN' ? 2 : 0;
+      const counts: Record<string, number> = {
+        UNKNOWN: 2,
+        PENDING: 3,
+        FAILED: 4,
+        DEAD: 1,
+      };
+      return counts[where?.status ?? ''] ?? 0;
     });
 
     const overview = await service.overview(now);
@@ -115,9 +121,21 @@ describe('OpsHealthService', () => {
     expect(overview.components.email).toMatchObject({
       stuckClaims: 0,
       unknownDeliveries: 2,
+      pendingRetries: 3,
+      failedDeliveries: 4,
+      deadDeliveries: 1,
     });
     expect(prisma.notificationEmailDelivery.count).toHaveBeenCalledWith({
       where: { status: 'UNKNOWN' },
+    });
+    expect(prisma.notificationEmailDelivery.count).toHaveBeenCalledWith({
+      where: { status: 'PENDING' },
+    });
+    expect(prisma.notificationEmailDelivery.count).toHaveBeenCalledWith({
+      where: { status: 'FAILED' },
+    });
+    expect(prisma.notificationEmailDelivery.count).toHaveBeenCalledWith({
+      where: { status: 'DEAD' },
     });
   });
 

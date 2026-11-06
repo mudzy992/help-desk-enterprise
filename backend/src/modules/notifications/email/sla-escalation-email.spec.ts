@@ -41,7 +41,15 @@ describe('SLA escalation email gate', () => {
         },
       } as never,
       enabledConfiguration({ slaEscalationEmailEnabled: false }),
-      { send: async () => undefined },
+      {
+        send: async () => ({
+          acceptedRecipientCount: 1,
+          rejectedRecipientCount: 0,
+          messageId: '<sla-test@example.test>',
+          responseCode: 250,
+          failureKind: null,
+        }),
+      },
       {
         id: 'msg-1',
         ticketId: 't1',
@@ -80,7 +88,15 @@ describe('SLA escalation email gate', () => {
         },
       } as never,
       enabledConfiguration({ slaEscalationEmailEnabled: true }),
-      { send: async () => undefined },
+      {
+        send: async () => ({
+          acceptedRecipientCount: 1,
+          rejectedRecipientCount: 0,
+          messageId: '<sla-test@example.test>',
+          responseCode: 250,
+          failureKind: null,
+        }),
+      },
       {
         id: 'msg-2',
         ticketId: 't1',

@@ -53,7 +53,7 @@ describe('database runtime contract', () => {
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
     expect(expectedSchemaMigration).toBe(
-      '20271031160000_notifications_ticket_message_fanout_outbox',
+      '20271031170000_notifications_email_delivery_attempt_state',
     );
   });
 });

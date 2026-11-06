@@ -6,6 +6,12 @@ import {
 } from '../../generated/prisma/enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
+  markNotificationEmailDeliveryDead,
+  resetNotificationEmailDeliveryForAdminRetry,
+  scheduleNotificationEmailDeliveryRetry,
+} from '../notifications/email/persist-notification-email-delivery';
+import { parseEmailIntegrationJobPayload } from './parse-email-integration-job-payload';
+import {
   integrationQueueAdminPageSize,
   integrationQueueAdminStatuses,
 } from './integration-queue.constants';
@@ -105,6 +111,34 @@ export class IntegrationJobRepository {
         lastError: null,
         nextRetryAt: null,
       },
+    });
+  }
+
+  resetEmailDeliveryForAdminRetry(payload: unknown) {
+    const email = parseEmailIntegrationJobPayload(payload);
+    if (email === null) return Promise.resolve(0);
+    return resetNotificationEmailDeliveryForAdminRetry(this.prisma, {
+      userId: email.userId,
+      dedupeKey: email.dedupeKey,
+    });
+  }
+
+  scheduleEmailDeliveryRetry(payload: unknown, nextRetryAt: Date) {
+    const email = parseEmailIntegrationJobPayload(payload);
+    if (email === null) return Promise.resolve(0);
+    return scheduleNotificationEmailDeliveryRetry(this.prisma, {
+      userId: email.userId,
+      dedupeKey: email.dedupeKey,
+      nextRetryAt,
+    });
+  }
+
+  markEmailDeliveryDead(payload: unknown) {
+    const email = parseEmailIntegrationJobPayload(payload);
+    if (email === null) return Promise.resolve(0);
+    return markNotificationEmailDeliveryDead(this.prisma, {
+      userId: email.userId,
+      dedupeKey: email.dedupeKey,
     });
   }
 

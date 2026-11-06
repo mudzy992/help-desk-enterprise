@@ -30,7 +30,18 @@ function createService(values: Record<string, unknown> = {}) {
     },
   } as unknown as SettingsService;
   const sent: OutboundMailMessage[] = [];
-  const transport: MailTransport = { send: async (message) => void sent.push(message) };
+  const transport: MailTransport = {
+    send: async (message) => {
+      sent.push(message);
+      return {
+        acceptedRecipientCount: 1,
+        rejectedRecipientCount: 0,
+        messageId: '<template-test@example.test>',
+        responseCode: 250,
+        failureKind: null,
+      };
+    },
+  };
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   let auditId = 0;
   const prisma = {

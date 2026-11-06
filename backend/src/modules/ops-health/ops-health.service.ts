@@ -5,6 +5,9 @@ import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.con
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { emailDeliveryStatuses } from '../notifications/email/email-template.constants';
 import {
+  countDeadNotificationEmailDeliveries,
+  countFailedNotificationEmailDeliveries,
+  countPendingNotificationEmailRetries,
   countStuckNotificationEmailDeliveries,
   countUnknownNotificationEmailDeliveries,
 } from '../notifications/email/persist-notification-email-delivery';
@@ -94,7 +97,25 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, unknownEmailDeliveries, inbound, changeDowntimeSync, ticketSideEffectOutbox, notificationFanOutOutbox] = await Promise.all([
+    const [
+      database,
+      redisState,
+      heartbeat,
+      snapshot,
+      silence,
+      configuration,
+      alerts,
+      emailLast,
+      stuckEmailClaims,
+      unknownEmailDeliveries,
+      pendingEmailRetries,
+      failedEmailDeliveries,
+      deadEmailDeliveries,
+      inbound,
+      changeDowntimeSync,
+      ticketSideEffectOutbox,
+      notificationFanOutOutbox,
+    ] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       readWorkerHeartbeatValue(() =>
@@ -109,12 +130,19 @@ export class OpsHealthService {
         orderBy: [{ severity: 'asc' }, { firstSeenAt: 'asc' }],
       }),
       this.prisma.notificationEmailDelivery
-        .findFirst({ where: { status: emailDeliveryStatuses.sent }, orderBy: { createdAt: 'desc' }, select: { updatedAt: true } })
+        .findFirst({
+          where: { status: emailDeliveryStatuses.sent },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true, providerAcceptedAt: true },
+        })
         .catch(() => null),
       // Stale CLAIMED rows remain visible until a retry can safely move them to
       // UNKNOWN; uncertain outcomes are counted separately for reconciliation.
       countStuckNotificationEmailDeliveries(this.prisma, now).catch(() => null),
       countUnknownNotificationEmailDeliveries(this.prisma).catch(() => null),
+      countPendingNotificationEmailRetries(this.prisma).catch(() => null),
+      countFailedNotificationEmailDeliveries(this.prisma).catch(() => null),
+      countDeadNotificationEmailDeliveries(this.prisma).catch(() => null),
       this.currentInboundState(),
       this.changeDowntimeSyncState(now).catch(() => null),
       this.ticketSideEffectOutboxState(now).catch(() => null),
@@ -147,9 +175,12 @@ export class OpsHealthService {
         eventLoopLagMs: signals?.eventLoopLagMs ?? null,
         ldapsCaExpiresAt: signals?.ldapsCaExpiresAtMs == null ? null : new Date(signals.ldapsCaExpiresAtMs).toISOString(),
         email: {
-          lastSentAt: emailLast?.updatedAt.toISOString() ?? null,
+          lastSentAt: emailLast?.providerAcceptedAt?.toISOString() ?? emailLast?.updatedAt.toISOString() ?? null,
           stuckClaims: stuckEmailClaims,
           unknownDeliveries: unknownEmailDeliveries,
+          pendingRetries: pendingEmailRetries,
+          failedDeliveries: failedEmailDeliveries,
+          deadDeliveries: deadEmailDeliveries,
         },
         inbound,
         changeDowntimeSync,

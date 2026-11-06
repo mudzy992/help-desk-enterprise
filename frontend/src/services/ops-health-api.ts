@@ -143,6 +143,10 @@ export type OpsOverview = {
       readonly stuckClaims?: number | null;
       /** BA-notifications-07: ambiguous SMTP outcomes awaiting operator reconciliation. */
       readonly unknownDeliveries?: number | null;
+      /** Delivery ledger retries coordinated with the integration queue. */
+      readonly pendingRetries?: number | null;
+      readonly failedDeliveries?: number | null;
+      readonly deadDeliveries?: number | null;
     };
     /** Optional during rolling deploys where the API has not added this signal yet. */
     readonly changeDowntimeSync?: ChangeDowntimeSyncHealth | null;

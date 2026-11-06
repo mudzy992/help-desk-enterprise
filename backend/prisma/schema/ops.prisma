@@ -41,18 +41,31 @@ model NotificationReceipt {
 }
 
 model NotificationEmailDelivery {
-  id          String   @id @default(cuid())
-  userId      String
-  dedupeKey   String
-  toAddress   String
-  templateKey String
-  status      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  userId                  String
+  dedupeKey               String
+  toAddress               String
+  templateKey             String
+  /// PENDING | CLAIMED | SENT | FAILED | UNKNOWN | DEAD.
+  status                  String
+  /// Number of SMTP attempts initiated for this delivery.
+  attempts                Int       @default(0)
+  lastAttemptAt           DateTime?
+  nextRetryAt             DateTime?
+  /// Sanitized classifier key only; never persist raw provider text.
+  lastErrorCode           String?   @db.VarChar(32)
+  lastErrorResponseCode   Int?
+  /// SMTP-reported RFC Message-ID; it is a correlation ID, not proof of mailbox delivery.
+  providerMessageId       String?   @db.VarChar(500)
+  providerResponseCode    Int?
+  providerAcceptedAt      DateTime?
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   @@unique([userId, dedupeKey])
   @@index([status])
+  @@index([status, nextRetryAt, createdAt])
   @@index([createdAt])
 }
 

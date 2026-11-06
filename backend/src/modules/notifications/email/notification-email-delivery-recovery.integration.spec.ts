@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
 import { emailDeliveryStatuses } from './email-template.constants';
 import { deliverNotificationEmail } from './deliver-notification-email';
+import { NotificationEmailOutcomeUnknownError } from './notification-email-delivery-errors';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import type { MailTransport } from './mail-transport';
 import {
@@ -13,7 +14,7 @@ import {
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
 
-describeIfDatabase('notification e-mail crash recovery (PostgreSQL integration, BA-notifications-07)', () => {
+describeIfDatabase('notification e-mail delivery ledger (PostgreSQL integration, BA-notifications-10)', () => {
   jest.setTimeout(120_000);
   let prisma: PrismaClient;
   let userId: string;
@@ -39,6 +40,79 @@ describeIfDatabase('notification e-mail crash recovery (PostgreSQL integration, 
     await prisma.notificationEmailDelivery.deleteMany({ where: { userId } });
     await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
     await prisma.$disconnect();
+  });
+
+  it('persists the SMTP provider acceptance evidence in the delivery row', async () => {
+    const send = jest.fn(async () => ({
+      acceptedRecipientCount: 1,
+      rejectedRecipientCount: 0,
+      messageId: `<notification-${stamp}@example.test>`,
+      responseCode: 250,
+      failureKind: null,
+    }));
+    const transport = { send } as unknown as MailTransport;
+    const configuration = {
+      smtp: { fromAddress: 'desk@example.test' },
+    } as unknown as EmailChannelConfiguration;
+    const input = {
+      userId,
+      toAddress: `notification-crash-recovery-${stamp}@example.test`,
+      subject: 'Notification receipt test',
+      text: 'Test only',
+      templateKey: 'ticket.message',
+      dedupeKey,
+    };
+
+    await deliverNotificationEmail(prisma as never, transport, configuration, input);
+
+    const row = await prisma.notificationEmailDelivery.findUniqueOrThrow({
+      where: { userId_dedupeKey: { userId, dedupeKey } },
+    });
+    expect(row).toMatchObject({
+      status: emailDeliveryStatuses.sent,
+      attempts: 1,
+      providerMessageId: `<notification-${stamp}@example.test>`,
+      providerResponseCode: 250,
+      providerAcceptedAt: expect.any(Date),
+      nextRetryAt: null,
+    });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('records a known pre-acceptance SMTP failure with a retryable classification', async () => {
+    const send = jest.fn(async () => {
+      throw Object.assign(new Error('SMTP temporary rejection'), {
+        command: 'RCPT TO',
+        responseCode: 451,
+      });
+    });
+    const transport = { send } as unknown as MailTransport;
+    const configuration = {
+      smtp: { fromAddress: 'desk@example.test' },
+    } as unknown as EmailChannelConfiguration;
+    const input = {
+      userId,
+      toAddress: `notification-crash-recovery-${stamp}@example.test`,
+      subject: 'Notification retry test',
+      text: 'Test only',
+      templateKey: 'ticket.message',
+      dedupeKey,
+    };
+
+    await expect(
+      deliverNotificationEmail(prisma as never, transport, configuration, input),
+    ).rejects.toThrow('SMTP temporary rejection');
+
+    const row = await prisma.notificationEmailDelivery.findUniqueOrThrow({
+      where: { userId_dedupeKey: { userId, dedupeKey } },
+    });
+    expect(row).toMatchObject({
+      status: emailDeliveryStatuses.failed,
+      attempts: 1,
+      lastErrorCode: 'transient',
+      lastErrorResponseCode: 451,
+      nextRetryAt: null,
+    });
   });
 
   it('preserves a stale claim as UNKNOWN and never retries SMTP without operator reconciliation', async () => {
@@ -70,7 +144,9 @@ describeIfDatabase('notification e-mail crash recovery (PostgreSQL integration, 
       messageId: `<notification-${stamp}@example.test>`,
     };
 
-    await deliverNotificationEmail(prisma as never, transport, configuration, input);
+    await expect(
+      deliverNotificationEmail(prisma as never, transport, configuration, input),
+    ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
 
     const row = await prisma.notificationEmailDelivery.findUniqueOrThrow({
       where: { userId_dedupeKey: { userId, dedupeKey } },
@@ -82,7 +158,9 @@ describeIfDatabase('notification e-mail crash recovery (PostgreSQL integration, 
     await expect(countStuckNotificationEmailDeliveries(prisma as never)).resolves.toBe(0);
 
     // A later queue replay sees the unique UNKNOWN row and remains a no-op.
-    await deliverNotificationEmail(prisma as never, transport, configuration, input);
+    await expect(
+      deliverNotificationEmail(prisma as never, transport, configuration, input),
+    ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
     expect(send).not.toHaveBeenCalled();
     await expect(countUnknownNotificationEmailDeliveries(prisma as never)).resolves.toBe(1);
   });

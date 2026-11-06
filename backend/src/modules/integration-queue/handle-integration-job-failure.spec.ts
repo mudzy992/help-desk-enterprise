@@ -1,6 +1,7 @@
 import { IntegrationJobType } from '../../generated/prisma/enums';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
 import { MailDeliverySuppressedError } from '../notifications/email/mail-provider-limit-breaker';
+import { NotificationEmailOutcomeUnknownError } from '../notifications/email/notification-email-delivery-errors';
 
 describe('handleIntegrationJobFailure', () => {
   const settings = {
@@ -19,14 +20,24 @@ describe('handleIntegrationJobFailure', () => {
     const repository = {
       markFailed: jest.fn().mockResolvedValue(undefined),
       markDeadLetter: jest.fn(),
+      scheduleEmailDeliveryRetry: jest.fn().mockResolvedValue(1),
+      markEmailDeliveryDead: jest.fn().mockResolvedValue(1),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
     const log = jest.fn();
+    const payload = {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    };
     await expect(
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1 },
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1, payload },
         settings,
         error: new Error('SMTP unavailable'),
         log,
@@ -42,25 +53,41 @@ describe('handleIntegrationJobFailure', () => {
       { integrationJobId: 'job-1' },
       expect.objectContaining({ jobId: 'job-1:1', delay: 60_000 }),
     );
+    expect(repository.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
+      payload,
+      repository.markFailed.mock.calls[0]?.[2],
+    );
+    expect(repository.markFailed.mock.calls[0]?.[2]).toBeInstanceOf(Date);
     expect(repository.markDeadLetter).not.toHaveBeenCalled();
   });
 
-  it('moves the job to DLQ once the attempt threshold is reached', async () => {
+  it('moves the job and delivery ledger to DLQ once the attempt threshold is reached', async () => {
     const repository = {
       markFailed: jest.fn(),
       markDeadLetter: jest.fn().mockResolvedValue(undefined),
+      scheduleEmailDeliveryRetry: jest.fn(),
+      markEmailDeliveryDead: jest.fn().mockResolvedValue(1),
     };
     const queue = { add: jest.fn() };
+    const payload = {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    };
     await expect(
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 3 },
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 3, payload },
         settings,
         error: new Error('SMTP unavailable'),
         log: jest.fn(),
       }),
     ).resolves.toBe('DLQ');
+    expect(repository.markEmailDeliveryDead).toHaveBeenCalledWith(payload);
     expect(repository.markDeadLetter).toHaveBeenCalledWith(
       'job-1',
       'SMTP unavailable',
@@ -136,6 +163,42 @@ describe('handleIntegrationJobFailure', () => {
         log: jest.fn(),
       }),
     ).resolves.toBe('FAILED');
+  });
+
+  it('stops an ambiguous email job without resending and moves the queue item to DLQ', async () => {
+    const repository = {
+      markFailed: jest.fn(),
+      markDeadLetter: jest.fn().mockResolvedValue(undefined),
+      scheduleEmailDeliveryRetry: jest.fn(),
+      markEmailDeliveryDead: jest.fn().mockResolvedValue(0),
+    };
+    const queue = { add: jest.fn() };
+    const payload = {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    };
+
+    await expect(
+      handleIntegrationJobFailure({
+        repository: repository as never,
+        queue: queue as never,
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1, payload },
+        settings,
+        error: new NotificationEmailOutcomeUnknownError(),
+        log: jest.fn(),
+      }),
+    ).resolves.toBe('DLQ');
+
+    expect(repository.markEmailDeliveryDead).toHaveBeenCalledWith(payload);
+    expect(repository.markDeadLetter).toHaveBeenCalledWith(
+      'job-1',
+      'Email provider outcome is unknown; automatic resend is blocked.',
+    );
+    expect(queue.add).not.toHaveBeenCalled();
   });
 
   it('zaustavljeno slanje (prekidač) čeka kraj blokade umjesto da troši pokušaje', async () => {

@@ -21,6 +21,13 @@ async function createService(failure?: unknown) {
         throw failure;
       }
       sent.push(message);
+      return {
+        acceptedRecipientCount: 1,
+        rejectedRecipientCount: 0,
+        messageId: '<smtp-test@example.test>',
+        responseCode: 250,
+        failureKind: null,
+      };
     },
   };
   const saveSmtp = async () => {

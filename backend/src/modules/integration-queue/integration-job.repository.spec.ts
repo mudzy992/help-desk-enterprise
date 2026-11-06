@@ -16,10 +16,14 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       integrationJob: {
         findMany: jest.fn().mockResolvedValue(rows),
       },
+      notificationEmailDelivery: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
     };
     return {
       repository: new IntegrationJobRepository(prisma as never),
       findMany: prisma.integrationJob.findMany,
+      updateDelivery: prisma.notificationEmailDelivery.updateMany,
     };
   }
 
@@ -84,5 +88,61 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       repository.listByStatusPage('UNSUPPORTED' as IntegrationJobStatus, null),
     ).resolves.toEqual({ items: [], nextCursor: null });
     expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('resets known email delivery failures for an explicit queue-admin retry', async () => {
+    const { repository, updateDelivery } = createRepository([]);
+    const payload = {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    };
+
+    await repository.resetEmailDeliveryForAdminRetry(payload);
+
+    expect(updateDelivery).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        dedupeKey: 'ticket.message:1',
+        status: { in: ['PENDING', 'FAILED', 'DEAD'] },
+      },
+      data: { status: 'PENDING', nextRetryAt: null },
+    });
+  });
+
+  it('mirrors the integration queue retry time to the email delivery ledger', async () => {
+    const { repository, updateDelivery } = createRepository([]);
+    const payload = {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    };
+    const nextRetryAt = new Date('2026-10-08T12:01:00.000Z');
+
+    await repository.scheduleEmailDeliveryRetry(payload, nextRetryAt);
+
+    expect(updateDelivery).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        dedupeKey: 'ticket.message:1',
+        status: { in: ['PENDING', 'FAILED'] },
+      },
+      data: { status: 'PENDING', nextRetryAt },
+    });
+  });
+
+  it('does not look up an email delivery for a malformed or non-email payload', async () => {
+    const { repository, updateDelivery } = createRepository([]);
+
+    await repository.scheduleEmailDeliveryRetry({ unsupported: true }, new Date());
+    await repository.markEmailDeliveryDead({ unsupported: true });
+
+    expect(updateDelivery).not.toHaveBeenCalled();
   });
 });

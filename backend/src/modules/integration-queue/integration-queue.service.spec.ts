@@ -14,7 +14,14 @@ describe('IntegrationQueueService', () => {
     id: 'job-1',
     type: IntegrationJobType.EMAIL,
     status: IntegrationJobStatus.DLQ as IntegrationJobStatus,
-    payload: { userId: 'user-1' },
+    payload: {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    },
     lastError: 'SMTP unavailable',
     attempts: 10,
     nextRetryAt: null,
@@ -39,6 +46,7 @@ describe('IntegrationQueueService', () => {
         nextCursor: null,
       }),
       findById: jest.fn().mockResolvedValue(overrides?.existing ?? dlqJob),
+      resetEmailDeliveryForAdminRetry: jest.fn().mockResolvedValue(1),
       resetForAdminRetry: jest.fn().mockResolvedValue(pending),
     };
     const settingsService = {
@@ -92,6 +100,7 @@ describe('IntegrationQueueService', () => {
   it('resets a DLQ job to PENDING and re-enqueues it', async () => {
     const { service, repository, queue } = createService();
     const retried = await service.retryNow('job-1');
+    expect(repository.resetEmailDeliveryForAdminRetry).toHaveBeenCalledWith(dlqJob.payload);
     expect(repository.resetForAdminRetry).toHaveBeenCalledWith('job-1');
     expect(queue.add).toHaveBeenCalledWith(
       IntegrationJobType.EMAIL,
