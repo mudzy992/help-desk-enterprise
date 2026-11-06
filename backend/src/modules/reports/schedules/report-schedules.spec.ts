@@ -276,7 +276,11 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
     notificationEmailDelivery: {
       create: async () => ({}),
       update: async () => ({}),
-      updateMany: async () => ({ count: 1 }),
+      updateMany: async (args: { where?: { status?: string } }) => ({
+        // Claim attempts first check for a stale CLAIMED row. This fixture has
+        // none; the later SENT update applies to the newly-created row.
+        count: args.where?.status === 'CLAIMED' ? 0 : 1,
+      }),
       deleteMany: async () => ({ count: 0 }),
       findUnique: async () => null,
     },
