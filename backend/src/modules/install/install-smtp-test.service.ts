@@ -1,29 +1,23 @@
-import { Inject, Injectable, Optional } from "@nestjs/common";
-import type Redis from "ioredis";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { redisTokens } from "../../common/redis/redis.tokens";
-import { MAIL_TRANSPORT } from "../notifications/email/mail-transport";
-import type { MailTransport } from "../notifications/email/mail-transport";
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { redisTokens } from '../../common/redis/redis.tokens';
+import { MAIL_TRANSPORT } from '../notifications/email/mail-transport';
+import type { MailTransport } from '../notifications/email/mail-transport';
 import {
   TestEmailRateLimiter,
   TestEmailRateLimiterUnavailableError,
-} from "../notifications/email-templates/test-email-rate-limiter";
-import { SettingsService } from "../settings/settings.service";
-import { findInstallSuperAdmin } from "./find-install-super-admin";
-import {
-  installSmtpTestConstants,
-  installSmtpTestErrorCodes,
-} from "./install-smtp-test.constants";
-import { InstallSmtpTestError } from "./install-smtp-test.error";
-import type { InstallSmtpTestErrorCode } from "./install-smtp-test.error";
-import type { InstallSmtpTestResult } from "./install-smtp-test.types";
-import { mapInstallSmtpTestError } from "./map-install-smtp-test-error";
-import { readOptionalInstallString } from "./read-optional-install-string";
-import { readInstallSmtpEnvPrefill } from "./read-install-smtp-env-prefill";
-import {
-  readInstallSmtpStatus,
-  readStoredInstallSmtp,
-} from "./read-install-smtp-status";
+  type TestEmailRateLimiterRedis,
+} from '../notifications/email-templates/test-email-rate-limiter';
+import { SettingsService } from '../settings/settings.service';
+import { findInstallSuperAdmin } from './find-install-super-admin';
+import { installSmtpTestConstants, installSmtpTestErrorCodes } from './install-smtp-test.constants';
+import { InstallSmtpTestError } from './install-smtp-test.error';
+import type { InstallSmtpTestErrorCode } from './install-smtp-test.error';
+import type { InstallSmtpTestResult } from './install-smtp-test.types';
+import { mapInstallSmtpTestError } from './map-install-smtp-test-error';
+import { readOptionalInstallString } from './read-optional-install-string';
+import { readInstallSmtpEnvPrefill } from './read-install-smtp-env-prefill';
+import { readInstallSmtpStatus, readStoredInstallSmtp } from './read-install-smtp-status';
 
 /**
  * F4.1: „Pošalji test“ in the SMTP step. The wizard sends through the same mail
@@ -40,7 +34,9 @@ export class InstallSmtpTestService {
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
-    @Optional() @Inject(redisTokens.client) redis?: Redis,
+    @Optional()
+    @Inject(redisTokens.client)
+    redis?: TestEmailRateLimiterRedis,
   ) {
     this.rateLimiter = new TestEmailRateLimiter(redis ?? null);
   }
@@ -74,9 +70,7 @@ export class InstallSmtpTestService {
     const toAddress =
       readOptionalInstallString(input.toAddress) ?? superAdmin.email;
     if (!installSmtpTestConstants.addressPattern.test(toAddress)) {
-      throw new InstallSmtpTestError(
-        installSmtpTestErrorCodes.invalidRecipient,
-      );
+      throw new InstallSmtpTestError(installSmtpTestErrorCodes.invalidRecipient);
     }
     let rateLimitAllowed: boolean;
     try {
@@ -102,8 +96,8 @@ export class InstallSmtpTestService {
           subject: installSmtpTestConstants.subject,
           text: installSmtpTestConstants.body,
           headers: {
-            "Auto-Submitted": "auto-generated",
-            "X-Auto-Response-Suppress": "All",
+            'Auto-Submitted': 'auto-generated',
+            'X-Auto-Response-Suppress': 'All',
           },
         },
         {
@@ -112,7 +106,7 @@ export class InstallSmtpTestService {
           tls: status.tls,
           username: status.username,
           password:
-            readOptionalInstallString(stored.password) ?? env.password ?? "",
+            readOptionalInstallString(stored.password) ?? env.password ?? '',
         },
       );
     } catch (error) {
@@ -135,27 +129,24 @@ type SendFailureCode = InstallSmtpTestErrorCode;
  * keeps the raw message.
  */
 export function classifySendFailure(error: unknown): SendFailureCode {
-  const code = readErrorField(error, "code");
+  const code = readErrorField(error, 'code');
   const message = `${String(code)} ${
     error instanceof Error ? error.message : String(error)
   }`.toLowerCase();
-  if (
-    code === "EAUTH" ||
-    /auth|535|534|invalid login|credentials/.test(message)
-  ) {
+  if (code === 'EAUTH' || /auth|535|534|invalid login|credentials/.test(message)) {
     return installSmtpTestErrorCodes.authFailed;
   }
-  if (code === "ETLS" || /tls|ssl|certificate|self.signed/.test(message)) {
+  if (code === 'ETLS' || /tls|ssl|certificate|self.signed/.test(message)) {
     return installSmtpTestErrorCodes.tlsFailed;
   }
-  if (code === "ETIMEDOUT" || /timeout|timed out/.test(message)) {
+  if (code === 'ETIMEDOUT' || /timeout|timed out/.test(message)) {
     return installSmtpTestErrorCodes.timeout;
   }
   if (
-    code === "ECONNECTION" ||
-    code === "ESOCKET" ||
-    code === "ENOTFOUND" ||
-    code === "ECONNREFUSED" ||
+    code === 'ECONNECTION' ||
+    code === 'ESOCKET' ||
+    code === 'ENOTFOUND' ||
+    code === 'ECONNREFUSED' ||
     /connect|getaddrinfo|enotfound|refused|unreachable/.test(message)
   ) {
     return installSmtpTestErrorCodes.unreachable;
@@ -164,9 +155,9 @@ export function classifySendFailure(error: unknown): SendFailureCode {
 }
 
 function readErrorField(error: unknown, field: string): string | null {
-  if (typeof error !== "object" || error === null) {
+  if (typeof error !== 'object' || error === null) {
     return null;
   }
   const value = (error as Record<string, unknown>)[field];
-  return typeof value === "string" ? value : null;
+  return typeof value === 'string' ? value : null;
 }

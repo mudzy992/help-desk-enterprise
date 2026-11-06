@@ -3,93 +3,33 @@ import { readdirSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { URL, fileURLToPath } from "node:url";
-import {
-  buildDatabaseName,
-  integrationSpecs,
-  withDatabaseName,
-} from "./run-isolated-integration.mjs";
+import { buildDatabaseName, integrationSpecs, withDatabaseName } from "./run-isolated-integration.mjs";
 
-const backendRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-);
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function discoverIntegrationSpecs(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(directory, entry.name);
     if (entry.isDirectory()) return discoverIntegrationSpecs(file);
-    if (!entry.isFile() || !entry.name.endsWith(".integration.spec.ts"))
-      return [];
+    if (!entry.isFile() || !entry.name.endsWith(".integration.spec.ts")) return [];
     return [path.relative(backendRoot, file).split(path.sep).join("/")];
   });
 }
 
 test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/principal-context/role-assignment-analyzer.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/principal-context/user-role-constraint-migration.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/idempotency/request-idempotency.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/outbox/transactional-outbox.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/notifications/fan-out/notification-fan-out-outbox.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/changes/change-downtime-outbox.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/sla/sla-write-lock.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/sla/sla-compliance-aggregation.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/database-lock/database-lock.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/bulk-command/bulk-command.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/storage-write/storage-write.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/common/cache-invalidation/cache-invalidation.integration.spec.ts",
-    ),
-  );
+  assert.ok(integrationSpecs.includes("src/common/principal-context/role-assignment-analyzer.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/principal-context/user-role-constraint-migration.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/idempotency/request-idempotency.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/outbox/transactional-outbox.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/notifications/fan-out/notification-fan-out-outbox.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/changes/change-downtime-outbox.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/sla/sla-write-lock.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/sla/sla-compliance-aggregation.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/database-lock/database-lock.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/bulk-command/bulk-command.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/storage-write/storage-write.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/common/cache-invalidation/cache-invalidation.integration.spec.ts"));
   const requiredTicketEvidence = [
     "src/modules/tickets/ticket-message-command.integration.spec.ts",
     "src/modules/tickets/approvals/ticket-approval-concurrency.integration.spec.ts",
@@ -104,35 +44,13 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     "src/modules/tickets/split/split-attachment-storage.integration.spec.ts",
     "src/modules/tickets/ticket-side-effect-outbox.integration.spec.ts",
   ];
-  for (const spec of requiredTicketEvidence)
-    assert.ok(
-      integrationSpecs.includes(spec),
-      `nedostaje obavezni ticket evidence shard: ${spec}`,
-    );
+  for (const spec of requiredTicketEvidence) assert.ok(integrationSpecs.includes(spec), `nedostaje obavezni ticket evidence shard: ${spec}`);
+  assert.ok(integrationSpecs.includes("src/common/principal-context/principal-authority.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/authentication/session-revocation.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/authorization/evaluate-resource-policy.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts"));
   assert.ok(
-    integrationSpecs.includes(
-      "src/common/principal-context/principal-authority.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/authentication/session-revocation.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/routing/routing-critical-matrix.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/routing/routing-critical-matrix.integration.spec.ts"),
     "nedostaje obavezni routing critical-matrix PostgreSQL shard",
   );
   assert.ok(
@@ -142,15 +60,11 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     "nedostaje BA-routing-02 onboarding routing-coverage PostgreSQL shard",
   );
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/service-catalog/service-catalog-optimistic-concurrency.integration.spec.ts"),
     "nedostaje obavezni BA-09 service-catalog optimistic-concurrency PostgreSQL shard",
   );
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/service-catalog/service-catalog-pagination.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/service-catalog/service-catalog-pagination.integration.spec.ts"),
     "nedostaje obavezni BA-10 service-catalog PostgreSQL shard",
   );
   assert.ok(
@@ -189,94 +103,24 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
     ),
     "nedostaje obavezni BA-02 config catalog PostgreSQL shard",
   );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/audit-log/partitioned-audit-chain.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/audit-log/audit-scope-provenance.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/security/step-up-policy.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-scope-display.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-hard-delete.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-license-assignment-scope.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-version-cas.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-relations-concurrency.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-unique-attributes.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-import-apply.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-business-audit.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-operations-metrics.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/transfers/asset-transfer-template-version.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-ticket-primary-invariant.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/directory/asset-directory-sync-lease.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/asset-scheduler-reconciliation.integration.spec.ts",
-    ),
-  );
-  assert.ok(
-    integrationSpecs.includes(
-      "src/modules/assets/reminders/asset-reminder-email-delivery.integration.spec.ts",
-    ),
-  );
-  const names = integrationSpecs.map((spec, index) =>
-    buildDatabaseName(index + 1, spec),
-  );
+  assert.ok(integrationSpecs.includes("src/modules/audit-log/partitioned-audit-chain.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/audit-log/audit-scope-provenance.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/security/step-up-policy.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-scope-display.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-hard-delete.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-license-assignment-scope.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-version-cas.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-relations-concurrency.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-unique-attributes.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-import-apply.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-business-audit.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-operations-metrics.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/transfers/asset-transfer-template-version.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-ticket-primary-invariant.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/directory/asset-directory-sync-lease.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/asset-scheduler-reconciliation.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/assets/reminders/asset-reminder-email-delivery.integration.spec.ts"));
+  const names = integrationSpecs.map((spec, index) => buildDatabaseName(index + 1, spec));
   assert.equal(new Set(names).size, integrationSpecs.length);
   for (const name of names) {
     assert.match(name, /^[a-z0-9_]+$/u);
@@ -286,27 +130,21 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
 
 test("BA-notifications-06 mark-all-read PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/notifications/notification-mark-all-read.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/notifications/notification-mark-all-read.integration.spec.ts"),
     "nedostaje BA-notifications-06 mark-all-read cutoff PostgreSQL shard",
   );
 });
 
 test("BA-notifications-07 SMTP crash-recovery PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts"),
     "nedostaje BA-notifications-07 UNKNOWN delivery recovery PostgreSQL shard",
   );
 });
 
 test("BA-notifications-08 inbox pagination PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/notifications/notifications-list-pagination.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/notifications/notifications-list-pagination.integration.spec.ts"),
     "nedostaje BA-notifications-08 inbox pagination PostgreSQL shard",
   );
 });
@@ -322,18 +160,14 @@ test("BA-notifications-13 shared test-email Redis integration spec je registrova
 
 test("BA-templates-01 management-read PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/templates/management-read-scope.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/templates/management-read-scope.integration.spec.ts"),
     "nedostaje obavezni BA-templates-01 management-read scope PostgreSQL shard",
   );
 });
 
 test("BA-templates-07 playbook name uniqueness PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/templates/playbooks/playbook-name-uniqueness.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/templates/playbooks/playbook-name-uniqueness.integration.spec.ts"),
     "nedostaje BA-templates-07 playbook name uniqueness PostgreSQL shard",
   );
 });
@@ -349,9 +183,7 @@ test("BA-templates-03 concurrent definition PostgreSQL integration spec je regis
 
 test("BA-templates-08 response-template concurrency PostgreSQL spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/templates/response-template-definition-concurrency.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/templates/response-template-definition-concurrency.integration.spec.ts"),
     "nedostaje BA-templates-08 response-template definition concurrency shard",
   );
 });
@@ -367,18 +199,14 @@ test("BA-templates-04/10 checklist concurrency PostgreSQL spec je registrovan za
 
 test("BA-templates-05/11 auto-attach/realtime outbox PostgreSQL spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/tickets/ticket-playbook-auto-attach.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/tickets/ticket-playbook-auto-attach.integration.spec.ts"),
     "nedostaje obavezni BA-templates-05/11 auto-attach/realtime recovery shard",
   );
 });
 
 test("BA-templates-06 config snapshot PostgreSQL spec je registrovan za CI", () => {
   assert.ok(
-    integrationSpecs.includes(
-      "src/modules/config-versioning/apply-templates-snapshot.integration.spec.ts",
-    ),
+    integrationSpecs.includes("src/modules/config-versioning/apply-templates-snapshot.integration.spec.ts"),
     "nedostaje BA-templates-06 config snapshot shard",
   );
 });
@@ -387,11 +215,7 @@ test("svaki templates PostgreSQL integration spec je registrovan za CI (BA-templ
   const directory = path.join(backendRoot, "src/modules/templates");
   const discovered = discoverIntegrationSpecs(directory).sort();
   const registered = integrationSpecs
-    .filter(
-      (spec) =>
-        spec.startsWith("src/modules/templates/") &&
-        spec.endsWith(".integration.spec.ts"),
-    )
+    .filter((spec) => spec.startsWith("src/modules/templates/") && spec.endsWith(".integration.spec.ts"))
     .sort();
   assert.deepEqual(
     registered,
@@ -404,11 +228,7 @@ test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", (
   const directory = path.join(backendRoot, "src/modules/service-catalog");
   const discovered = discoverIntegrationSpecs(directory).sort();
   const registered = integrationSpecs
-    .filter(
-      (spec) =>
-        spec.startsWith("src/modules/service-catalog/") &&
-        spec.endsWith(".integration.spec.ts"),
-    )
+    .filter((spec) => spec.startsWith("src/modules/service-catalog/") && spec.endsWith(".integration.spec.ts"))
     .sort();
   assert.deepEqual(
     registered,
@@ -418,12 +238,10 @@ test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", (
 });
 
 test("mijenja samo database pathname u URL-u", () => {
-  const result = new URL(
-    withDatabaseName(
-      "postgresql://user:pass@127.0.0.1:5432/template?schema=public",
-      "it_1_retention",
-    ),
-  );
+  const result = new URL(withDatabaseName(
+    "postgresql://user:pass@127.0.0.1:5432/template?schema=public",
+    "it_1_retention",
+  ));
   assert.equal(result.pathname, "/it_1_retention");
   assert.equal(result.username, "user");
   assert.equal(result.password, "pass");
@@ -432,11 +250,7 @@ test("mijenja samo database pathname u URL-u", () => {
 
 test("odbija database ime koje može postati SQL/URL injection", () => {
   assert.throws(
-    () =>
-      withDatabaseName(
-        "postgresql://u:p@localhost/base",
-        'bad";DROP DATABASE base',
-      ),
+    () => withDatabaseName("postgresql://u:p@localhost/base", 'bad";DROP DATABASE base'),
     /nesigurno ime/u,
   );
 });

@@ -1,11 +1,11 @@
-import { Inject, Injectable, Optional } from "@nestjs/common";
-import type Redis from "ioredis";
-import { PrismaService } from "../../../common/prisma/prisma.service";
-import { redisTokens } from "../../../common/redis/redis.tokens";
-import { settingKeys } from "../../settings/setting-keys";
-import { SettingsError } from "../../settings/settings.error";
-import { SettingsService } from "../../settings/settings.service";
-import { defaultEmailTemplates } from "../email/default-email-templates";
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import type Redis from 'ioredis';
+import { PrismaService } from '../../../common/prisma/prisma.service';
+import { redisTokens } from '../../../common/redis/redis.tokens';
+import { settingKeys } from '../../settings/setting-keys';
+import { SettingsError } from '../../settings/settings.error';
+import { SettingsService } from '../../settings/settings.service';
+import { defaultEmailTemplates } from '../email/default-email-templates';
 import {
   emailLocales,
   emailProviders,
@@ -17,28 +17,25 @@ import {
   type EmailProvider,
   type EmailReplyMode,
   type EmailTemplateKey,
-} from "../email/email-template.constants";
-import type { EmailTemplateRegistry } from "../email/email-template.types";
-import { renderEmailTemplatePreview } from "../email/email-template-preview";
+} from '../email/email-template.constants';
+import type { EmailTemplateRegistry } from '../email/email-template.types';
+import { renderEmailTemplatePreview } from '../email/email-template-preview';
 import {
   loadEmailChannelConfiguration,
   type EmailChannelConfiguration,
-} from "../email/load-email-channel-configuration";
-import { MAIL_TRANSPORT, type MailTransport } from "../email/mail-transport";
-import { recordAuditEntry } from "../../audit-log/record-audit-entry";
-import {
-  auditLogActions,
-  auditLogEntityTypes,
-} from "../../audit-log/audit-log.constants";
+} from '../email/load-email-channel-configuration';
+import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import {
   diffEmailTemplateRegistry,
   parseEmailTemplateRegistry,
-} from "../email/parse-email-template-registry";
-import type { RenderedEmailMessage } from "../email/render-email-message";
+} from '../email/parse-email-template-registry';
+import type { RenderedEmailMessage } from '../email/render-email-message';
 import {
   TestEmailRateLimiter,
   TestEmailRateLimiterUnavailableError,
-} from "./test-email-rate-limiter";
+} from './test-email-rate-limiter';
 
 export type EmailTemplatesOverview = {
   readonly locales: readonly EmailLocale[];
@@ -87,9 +84,7 @@ export class EmailTemplatesService {
   }
 
   async overview(): Promise<EmailTemplatesOverview> {
-    const configuration = await loadEmailChannelConfiguration(
-      this.settingsService,
-    );
+    const configuration = await loadEmailChannelConfiguration(this.settingsService);
     const templates = await this.storedTemplates();
     const provider = await this.provider(configuration);
     return {
@@ -121,15 +116,10 @@ export class EmailTemplatesService {
     overrides: Record<string, unknown>,
     mutation: { readonly reason: string; readonly actorUserId: string | null },
   ): Promise<EmailTemplatesOverview> {
-    const parsed = parseEmailTemplateRegistry(
-      JSON.stringify({ version: 2, locales: overrides }),
-    );
+    const parsed = parseEmailTemplateRegistry(JSON.stringify({ version: 2, locales: overrides }));
     await this.settingsService.setSettingValue(
       settingKeys.privateNotificationsTemplatesRegistryJson,
-      JSON.stringify({
-        version: 2,
-        locales: diffEmailTemplateRegistry(parsed),
-      }),
+      JSON.stringify({ version: 2, locales: diffEmailTemplateRegistry(parsed) }),
       mutation,
     );
     return this.overview();
@@ -144,9 +134,7 @@ export class EmailTemplatesService {
     },
     actorUserId: string | null,
   ): Promise<RenderedEmailMessage> {
-    const configuration = await loadEmailChannelConfiguration(
-      this.settingsService,
-    );
+    const configuration = await loadEmailChannelConfiguration(this.settingsService);
     const actor = await this.actor(actorUserId);
     return renderEmailTemplatePreview({
       configuration,
@@ -154,8 +142,8 @@ export class EmailTemplatesService {
       key: input.key,
       locale: input.locale,
       confidential: input.confidential === true,
-      recipientName: actor?.displayName ?? "Administrator",
-      recipientEmail: actor?.email ?? "admin@example.org",
+      recipientName: actor?.displayName ?? 'Administrator',
+      recipientEmail: actor?.email ?? 'admin@example.org',
     });
   }
 
@@ -169,40 +157,35 @@ export class EmailTemplatesService {
     },
     actorUserId: string | null,
   ): Promise<TestEmailResult> {
-    const configuration = await loadEmailChannelConfiguration(
-      this.settingsService,
-    );
+    const configuration = await loadEmailChannelConfiguration(this.settingsService);
     if (configuration.smtp === null) {
       throw new SettingsError(
-        "SMTP is off or incomplete (host and From address are required)",
-        "SMTP_NOT_CONFIGURED",
+        'SMTP is off or incomplete (host and From address are required)',
+        'SMTP_NOT_CONFIGURED',
       );
     }
     const actor = await this.actor(actorUserId);
     if (actor === null || actor.email.trim().length === 0) {
-      throw new SettingsError(
-        "Your account has no e-mail address",
-        "TEST_RECIPIENT_MISSING",
-      );
+      throw new SettingsError('Your account has no e-mail address', 'TEST_RECIPIENT_MISSING');
     }
     let testSendAllowed: boolean;
     try {
       testSendAllowed = await this.testSendRateLimiter.consume(
-        actorUserId ?? "anonymous",
+        actorUserId ?? 'anonymous',
       );
     } catch (error) {
       if (error instanceof TestEmailRateLimiterUnavailableError) {
         throw new SettingsError(
-          "Test e-mail sending is temporarily unavailable because its shared rate limiter is unavailable",
-          "TEST_RATE_LIMIT_UNAVAILABLE",
+          'Test e-mail sending is temporarily unavailable because its shared rate limiter is unavailable',
+          'TEST_RATE_LIMIT_UNAVAILABLE',
         );
       }
       throw error;
     }
     if (!testSendAllowed) {
       throw new SettingsError(
-        "Too many test e-mails, try again in a few minutes",
-        "TEST_RATE_LIMITED",
+        'Too many test e-mails, try again in a few minutes',
+        'TEST_RATE_LIMITED',
       );
     }
     const rendered = renderEmailTemplatePreview({
@@ -225,33 +208,27 @@ export class EmailTemplatesService {
           ...(configuration.presentation.replyToAddress === null
             ? {}
             : { replyTo: configuration.presentation.replyToAddress }),
-          headers: {
-            "Auto-Submitted": "auto-generated",
-            "X-Auto-Response-Suppress": "All",
-          },
+          headers: { 'Auto-Submitted': 'auto-generated', 'X-Auto-Response-Suppress': 'All' },
         },
         configuration.smtp,
       );
     } catch (error) {
-      await this.auditTestSend(actorUserId, input, "failed");
+      await this.auditTestSend(actorUserId, input, 'failed');
       // The server's answer (e.g. "535 Authentication unsuccessful") is what the
       // admin needs to fix the configuration; it never contains the password.
       throw new SettingsError(
-        `SMTP send failed: ${error instanceof Error ? error.message : String(error)}`.slice(
-          0,
-          500,
-        ),
-        "SMTP_SEND_FAILED",
+        `SMTP send failed: ${error instanceof Error ? error.message : String(error)}`.slice(0, 500),
+        'SMTP_SEND_FAILED',
       );
     }
-    await this.auditTestSend(actorUserId, input, "sent");
+    await this.auditTestSend(actorUserId, input, 'sent');
     return { toAddress: actor.email };
   }
 
   private async auditTestSend(
     actorUserId: string | null,
     input: { readonly key: EmailTemplateKey; readonly locale: EmailLocale },
-    outcome: "sent" | "failed",
+    outcome: 'sent' | 'failed',
   ): Promise<void> {
     await recordAuditEntry(this.prisma as never, {
       action: auditLogActions.emailTemplateTestSent,
@@ -264,9 +241,7 @@ export class EmailTemplatesService {
 
   private async storedTemplates(): Promise<EmailTemplateRegistry> {
     return parseEmailTemplateRegistry(
-      await this.settingsService.getSetting(
-        settingKeys.privateNotificationsTemplatesRegistryJson,
-      ),
+      await this.settingsService.getSetting(settingKeys.privateNotificationsTemplatesRegistryJson),
     );
   }
 
@@ -281,33 +256,22 @@ export class EmailTemplatesService {
     }
     // Validate the draft exactly like a save would, then overlay it.
     const draft = parseEmailTemplateRegistry(
-      JSON.stringify({
-        version: 2,
-        locales: { [input.locale]: { [input.key]: input.content } },
-      }),
+      JSON.stringify({ version: 2, locales: { [input.locale]: { [input.key]: input.content } } }),
     );
     return {
       ...stored,
-      [input.locale]: {
-        ...stored[input.locale],
-        [input.key]: draft[input.locale][input.key],
-      },
+      [input.locale]: { ...stored[input.locale], [input.key]: draft[input.locale][input.key] },
     };
   }
 
-  private async provider(
-    configuration: EmailChannelConfiguration,
-  ): Promise<EmailProvider> {
+  private async provider(configuration: EmailChannelConfiguration): Promise<EmailProvider> {
     if (configuration.smtp !== null) {
       return configuration.smtp.provider;
     }
-    const value = await this.settingsService.getSetting(
-      settingKeys.privateSmtpProvider,
-    );
-    return typeof value === "string" &&
-      (emailProviders as readonly string[]).includes(value)
+    const value = await this.settingsService.getSetting(settingKeys.privateSmtpProvider);
+    return typeof value === 'string' && (emailProviders as readonly string[]).includes(value)
       ? (value as EmailProvider)
-      : "o365";
+      : 'o365';
   }
 
   private async actor(
@@ -321,4 +285,5 @@ export class EmailTemplatesService {
       select: { email: true, displayName: true },
     });
   }
+
 }

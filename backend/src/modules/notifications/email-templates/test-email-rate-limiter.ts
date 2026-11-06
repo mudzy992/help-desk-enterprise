@@ -20,8 +20,8 @@ export type TestEmailRateLimiterRedis = {
 
 export class TestEmailRateLimiterUnavailableError extends Error {
   constructor() {
-    super("Shared test-email rate limiter is unavailable");
-    this.name = "TestEmailRateLimiterUnavailableError";
+    super('Shared test-email rate limiter is unavailable');
+    this.name = 'TestEmailRateLimiterUnavailableError';
   }
 }
 
@@ -30,8 +30,8 @@ const incrementWithExpiry = [
   "if ttl == -2 then redis.call('SET', KEYS[1], '0', 'PX', ARGV[1]) end",
   "if ttl == -1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end",
   "local count = redis.call('INCR', KEYS[1])",
-  "return count",
-].join("; ");
+  'return count',
+].join('; ');
 
 export function testEmailRateLimiterKey(actorKey: string, now: number): string {
   const bucket = Math.floor(now / testEmailSendWindowMs);
@@ -39,9 +39,7 @@ export function testEmailRateLimiterKey(actorKey: string, now: number): string {
 }
 
 export class TestEmailRateLimiter {
-  constructor(
-    private readonly redis: TestEmailRateLimiterRedis | null = null,
-  ) {}
+  constructor(private readonly redis: TestEmailRateLimiterRedis | null = null) {}
 
   /** `true` = the send is allowed and has been counted. */
   async consume(actorKey: string, now: number = Date.now()): Promise<boolean> {

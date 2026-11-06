@@ -1,29 +1,24 @@
-import { settingKeys } from "../../settings/setting-keys";
-import type { SettingsService } from "../../settings/settings.service";
-import { defaultEmailTemplates } from "../email/default-email-templates";
-import type {
-  MailTransport,
-  OutboundMailMessage,
-} from "../email/mail-transport";
-import { assertEmailTemplateRegistryJson } from "../email/parse-email-template-registry";
-import { EmailTemplatesService } from "./email-templates.service";
-import { createInMemoryAuditLogDelegate } from "../../audit-log/create-in-memory-audit-log-delegate";
-import type { TestEmailRateLimiterRedis } from "./test-email-rate-limiter";
+import { settingKeys } from '../../settings/setting-keys';
+import type { SettingsService } from '../../settings/settings.service';
+import { defaultEmailTemplates } from '../email/default-email-templates';
+import type { MailTransport, OutboundMailMessage } from '../email/mail-transport';
+import { assertEmailTemplateRegistryJson } from '../email/parse-email-template-registry';
+import { EmailTemplatesService } from './email-templates.service';
+import { createInMemoryAuditLogDelegate } from '../../audit-log/create-in-memory-audit-log-delegate';
+import type { TestEmailRateLimiterRedis } from './test-email-rate-limiter';
 
-jest.mock("../../../common/prisma/prisma.service", () => ({
+jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 function createTestEmailRedis(): TestEmailRateLimiterRedis {
   const counts = new Map<string, number>();
   return {
-    eval: jest.fn(
-      async (_script: string, _numberOfKeys: number, key: string) => {
-        const next = (counts.get(key) ?? 0) + 1;
-        counts.set(key, next);
-        return next;
-      },
-    ),
+    eval: jest.fn(async (_script: string, _numberOfKeys: number, key: string) => {
+      const next = (counts.get(key) ?? 0) + 1;
+      counts.set(key, next);
+      return next;
+    }),
   };
 }
 
@@ -33,19 +28,15 @@ function createService(
 ) {
   const store: Record<string, unknown> = {
     [settingKeys.privateSmtpEnabled]: true,
-    [settingKeys.privateSmtpFromAddress]: "helpdesk@example.com",
+    [settingKeys.privateSmtpFromAddress]: 'helpdesk@example.com',
     [settingKeys.privateNotificationsTemplatesEnabled]: true,
     ...values,
   };
   const writes: { key: string; value: unknown; reason: string }[] = [];
   const settings = {
     getSetting: async (key: string) => store[key],
-    getSecretForInternalUse: async () => "secret",
-    setSettingValue: async (
-      key: string,
-      value: unknown,
-      mutation: { reason: string },
-    ) => {
+    getSecretForInternalUse: async () => 'secret',
+    setSettingValue: async (key: string, value: unknown, mutation: { reason: string }) => {
       if (key === settingKeys.privateNotificationsTemplatesRegistryJson) {
         assertEmailTemplateRegistryJson(value as string);
       }
@@ -60,7 +51,7 @@ function createService(
       return {
         acceptedRecipientCount: 1,
         rejectedRecipientCount: 0,
-        messageId: "<template-test@example.test>",
+        messageId: '<template-test@example.test>',
         responseCode: 250,
         failureKind: null,
       };
@@ -69,184 +60,154 @@ function createService(
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   let auditId = 0;
   const prisma = {
-    ...createInMemoryAuditLogDelegate(
-      auditLogs,
-      () => `audit-${++auditId}`,
-      () => new Date(),
-    ),
+    ...createInMemoryAuditLogDelegate(auditLogs, () => `audit-${++auditId}`, () => new Date()),
     user: {
-      findUnique: async () => ({
-        email: "admin@example.com",
-        displayName: "Admin Adminović",
-      }),
+      findUnique: async () => ({ email: 'admin@example.com', displayName: 'Admin Adminović' }),
     },
   };
   return {
-    service: new EmailTemplatesService(
-      settings,
-      prisma as never,
-      transport,
-      redis as never,
-    ),
+    service: new EmailTemplatesService(settings, prisma as never, transport, redis as never),
     writes,
     sent,
     store,
     auditLogs,
     prisma,
+    redis,
   };
 }
 
-describe("EmailTemplatesService", () => {
-  it("describes templates, defaults and the delivery set-up", async () => {
+describe('EmailTemplatesService', () => {
+  it('describes templates, defaults and the delivery set-up', async () => {
     const { service } = createService();
     const overview = await service.overview();
-    expect(overview.locales).toEqual(["bs", "en"]);
-    expect(overview.keys).toContain("ticket.broadcast");
+    expect(overview.locales).toEqual(['bs', 'en']);
+    expect(overview.keys).toContain('ticket.broadcast');
     expect(overview.templates).toEqual(defaultEmailTemplates);
     expect(overview.overrides).toEqual({});
     expect(overview.delivery).toMatchObject({
       hasSmtpTransport: true,
-      provider: "o365",
-      replyMode: "no_reply",
-      fromAddress: "helpdesk@example.com",
+      provider: 'o365',
+      replyMode: 'no_reply',
+      fromAddress: 'helpdesk@example.com',
     });
   });
 
-  it("stores only the changed texts with the reason", async () => {
+  it('stores only the changed texts with the reason', async () => {
     const { service, writes } = createService();
     const overview = await service.save(
       {
         en: {
-          "ticket.created": {
-            ...defaultEmailTemplates.en["ticket.created"],
-            heading: "Fresh ticket",
+          'ticket.created': {
+            ...defaultEmailTemplates.en['ticket.created'],
+            heading: 'Fresh ticket',
           },
         },
       },
-      { reason: "Friendlier heading", actorUserId: "admin" },
+      { reason: 'Friendlier heading', actorUserId: 'admin' },
     );
     expect(writes).toHaveLength(1);
     expect(JSON.parse(writes[0]?.value as string)).toEqual({
       version: 2,
-      locales: { en: { "ticket.created": { heading: "Fresh ticket" } } },
+      locales: { en: { 'ticket.created': { heading: 'Fresh ticket' } } },
     });
-    expect(writes[0]?.reason).toBe("Friendlier heading");
-    expect(overview.templates.en["ticket.created"].heading).toBe(
-      "Fresh ticket",
-    );
+    expect(writes[0]?.reason).toBe('Friendlier heading');
+    expect(overview.templates.en['ticket.created'].heading).toBe('Fresh ticket');
   });
 
-  it("refuses unknown placeholders on save and preview", async () => {
+  it('refuses unknown placeholders on save and preview', async () => {
     const { service, writes } = createService();
     await expect(
       service.save(
-        { bs: { "ticket.created": { subject: "Hi {{password}}" } } },
-        { reason: "x", actorUserId: "admin" },
+        { bs: { 'ticket.created': { subject: 'Hi {{password}}' } } },
+        { reason: 'x', actorUserId: 'admin' },
       ),
     ).rejects.toThrow(/unsupported placeholder/);
     await expect(
       service.preview(
-        { key: "ticket.created", locale: "bs", content: { body: "{{nope}}" } },
-        "admin",
+        { key: 'ticket.created', locale: 'bs', content: { body: '{{nope}}' } },
+        'admin',
       ),
     ).rejects.toThrow(/unsupported placeholder/);
     expect(writes).toEqual([]);
   });
 
-  it("previews an unsaved draft with sample data", async () => {
+  it('previews an unsaved draft with sample data', async () => {
     const { service } = createService();
     const preview = await service.preview(
-      {
-        key: "ticket.message",
-        locale: "bs",
-        content: { heading: "Stigla je poruka" },
-      },
-      "admin",
+      { key: 'ticket.message', locale: 'bs', content: { heading: 'Stigla je poruka' } },
+      'admin',
     );
-    expect(preview.subject).toBe(
-      "[HD-2026-000123] Nova poruka: VPN ne radi nakon promjene lozinke",
-    );
-    expect(preview.html).toContain("Stigla je poruka");
-    expect(preview.text).toContain("resetovali smo vaš VPN profil");
+    expect(preview.subject).toBe('[HD-2026-000123] Nova poruka: VPN ne radi nakon promjene lozinke');
+    expect(preview.html).toContain('Stigla je poruka');
+    expect(preview.text).toContain('resetovali smo vaš VPN profil');
     const confidential = await service.preview(
-      { key: "ticket.message", locale: "bs", confidential: true },
-      "admin",
+      { key: 'ticket.message', locale: 'bs', confidential: true },
+      'admin',
     );
-    expect(confidential.text).not.toContain("VPN ne radi");
+    expect(confidential.text).not.toContain('VPN ne radi');
   });
 
-  it("sends a test only to the signed-in admin and rate-limits it", async () => {
+  it('sends a test only to the signed-in admin and rate-limits it', async () => {
     const { service, sent, auditLogs } = createService();
     await expect(
-      service.sendTest({ key: "ticket.assigned", locale: "en" }, "admin"),
-    ).resolves.toEqual({ toAddress: "admin@example.com" });
-    expect(sent[0]).toMatchObject({
-      to: "admin@example.com",
-      from: "helpdesk@example.com",
-    });
-    expect(sent[0]?.subject.startsWith("[TEST] ")).toBe(true);
-    expect(sent[0]?.html).toContain("<!DOCTYPE html>");
+      service.sendTest({ key: 'ticket.assigned', locale: 'en' }, 'admin'),
+    ).resolves.toEqual({ toAddress: 'admin@example.com' });
+    expect(sent[0]).toMatchObject({ to: 'admin@example.com', from: 'helpdesk@example.com' });
+    expect(sent[0]?.subject.startsWith('[TEST] ')).toBe(true);
+    expect(sent[0]?.html).toContain('<!DOCTYPE html>');
     expect(auditLogs[0]).toMatchObject({
-      action: "email_template.test_sent",
-      entityId: "ticket.assigned",
+      action: 'email_template.test_sent',
+      entityId: 'ticket.assigned',
     });
     for (let index = 0; index < 4; index += 1) {
-      await service.sendTest({ key: "ticket.assigned", locale: "en" }, "admin");
+      await service.sendTest({ key: 'ticket.assigned', locale: 'en' }, 'admin');
     }
     await expect(
-      service.sendTest({ key: "ticket.assigned", locale: "en" }, "admin"),
-    ).rejects.toMatchObject({ code: "TEST_RATE_LIMITED" });
+      service.sendTest({ key: 'ticket.assigned', locale: 'en' }, 'admin'),
+    ).rejects.toMatchObject({ code: 'TEST_RATE_LIMITED' });
   });
 
-  it("fails closed when the shared rate limiter is missing or unavailable", async () => {
+  it('fails closed when the shared rate limiter is missing or unavailable', async () => {
     const missing = createService({}, null);
     await expect(
       missing.service.sendTest(
-        { key: "ticket.assigned", locale: "en" },
-        "admin",
+        { key: 'ticket.assigned', locale: 'en' },
+        'admin',
       ),
-    ).rejects.toMatchObject({ code: "TEST_RATE_LIMIT_UNAVAILABLE" });
+    ).rejects.toMatchObject({ code: 'TEST_RATE_LIMIT_UNAVAILABLE' });
     expect(missing.sent).toHaveLength(0);
 
     const failing = createService(
       {},
       {
         eval: jest.fn(async () => {
-          throw new Error("redis outage");
+          throw new Error('redis outage');
         }),
       },
     );
     await expect(
       failing.service.sendTest(
-        { key: "ticket.assigned", locale: "en" },
-        "admin",
+        { key: 'ticket.assigned', locale: 'en' },
+        'admin',
       ),
-    ).rejects.toMatchObject({ code: "TEST_RATE_LIMIT_UNAVAILABLE" });
+    ).rejects.toMatchObject({ code: 'TEST_RATE_LIMIT_UNAVAILABLE' });
     expect(failing.sent).toHaveLength(0);
   });
 
-  it("explains a missing SMTP set-up and surfaces the server answer", async () => {
+  it('explains a missing SMTP set-up and surfaces the server answer', async () => {
     const off = createService({ [settingKeys.privateSmtpEnabled]: false });
     await expect(
-      off.service.sendTest({ key: "ticket.created", locale: "bs" }, "admin"),
-    ).rejects.toMatchObject({ code: "SMTP_NOT_CONFIGURED" });
+      off.service.sendTest({ key: 'ticket.created', locale: 'bs' }, 'admin'),
+    ).rejects.toMatchObject({ code: 'SMTP_NOT_CONFIGURED' });
     const failing = createService();
     const service = new EmailTemplatesService(
-      {
-        ...(failing.service as unknown as { settingsService: SettingsService })
-          .settingsService,
-      } as never,
+      { ...(failing.service as unknown as { settingsService: SettingsService }).settingsService } as never,
       failing.prisma as never,
-      {
-        send: async () =>
-          Promise.reject(new Error("535 5.7.3 Authentication unsuccessful")),
-      },
+      { send: async () => Promise.reject(new Error('535 5.7.3 Authentication unsuccessful')) },
+      failing.redis as never,
     );
     await expect(
-      service.sendTest({ key: "ticket.created", locale: "bs" }, "admin"),
-    ).rejects.toMatchObject({
-      code: "SMTP_SEND_FAILED",
-      message: expect.stringContaining("535"),
-    });
+      service.sendTest({ key: 'ticket.created', locale: 'bs' }, 'admin'),
+    ).rejects.toMatchObject({ code: 'SMTP_SEND_FAILED', message: expect.stringContaining('535') });
   });
 });

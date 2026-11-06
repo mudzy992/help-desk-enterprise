@@ -1,21 +1,21 @@
-import { randomUUID } from "node:crypto";
-import { closeRedisClient } from "../../../common/redis/close-redis-client";
-import { createRedisClient } from "../../../common/redis/create-redis-client";
-import { loadRedisConfiguration } from "../../../common/redis/load-redis-configuration";
-import type Redis from "ioredis";
+import { randomUUID } from 'node:crypto';
+import { closeRedisClient } from '../../../common/redis/close-redis-client';
+import { createRedisClient } from '../../../common/redis/create-redis-client';
+import { loadRedisConfiguration } from '../../../common/redis/load-redis-configuration';
+import type Redis from 'ioredis';
 import {
   TestEmailRateLimiter,
   testEmailRateLimiterKey,
   testEmailSendLimit,
   testEmailSendWindowMs,
-} from "./test-email-rate-limiter";
+} from './test-email-rate-limiter';
 
 const describeIfRedis = process.env.REDIS_HOST?.trim()
   ? describe
   : describe.skip;
 
 describeIfRedis(
-  "test-email rate limit (Redis acceptance, BA-notifications-13)",
+  'test-email rate limit (Redis acceptance, BA-notifications-13)',
   () => {
     jest.setTimeout(15_000);
     let firstClient: Redis;
@@ -28,8 +28,8 @@ describeIfRedis(
       const configuration = loadRedisConfiguration();
       firstClient = createRedisClient(configuration);
       secondClient = createRedisClient(configuration);
-      firstClient.on("error", () => undefined);
-      secondClient.on("error", () => undefined);
+      firstClient.on('error', () => undefined);
+      secondClient.on('error', () => undefined);
       firstLimiter = new TestEmailRateLimiter(firstClient);
       secondLimiter = new TestEmailRateLimiter(secondClient);
     });
@@ -46,7 +46,7 @@ describeIfRedis(
       if (secondClient) await closeRedisClient(secondClient);
     });
 
-    it("enforces one atomic limit across two clients and expires each Redis bucket", async () => {
+    it('enforces one atomic limit across two clients and expires each Redis bucket', async () => {
       const actorKey = `ba13-integration-${randomUUID()}`;
       const now = Date.now();
       const firstBucketKey = testEmailRateLimiterKey(actorKey, now);
@@ -78,7 +78,7 @@ describeIfRedis(
       await expect(
         secondLimiter.consume(actorKey, nextBucketTime),
       ).resolves.toBe(true);
-      expect(await secondClient.get(nextBucketKey)).toBe("1");
+      expect(await secondClient.get(nextBucketKey)).toBe('1');
       const nextBucketTtl = await secondClient.pttl(nextBucketKey);
       expect(nextBucketTtl).toBeGreaterThan(0);
       expect(nextBucketTtl).toBeLessThanOrEqual(testEmailSendWindowMs);
