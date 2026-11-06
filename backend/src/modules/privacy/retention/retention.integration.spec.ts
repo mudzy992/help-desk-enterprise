@@ -559,6 +559,9 @@ describeIfDatabase('retention (integration)', () => {
     for (const address of [...staleAddresses, recentAddress]) {
       expect(aggregateEvidence).not.toContain(address);
     }
+    for (const deliveryStatus of Object.values(emailDeliveryStatuses)) {
+      expect(aggregateEvidence).not.toContain(deliveryStatus);
+    }
   });
 
   it('purges old audit rows behind a checkpoint and the chain still verifies', async () => {
