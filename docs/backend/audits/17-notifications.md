@@ -146,7 +146,7 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 | BA-notifications-08 | P2       | Inbox nema cursor/hasMore i starija historija je nedostupna                                 | zatvoreno |
 | BA-notifications-09 | P2       | Email delivery adresa/status nemaju retention/redaction lifecycle                           | zatvoreno |
 | BA-notifications-10 | P2       | Delivery state nema attempts/error/dead/retry ugovor ni dokaz stvarnog provider ishoda      | otvoreno |
-| BA-notifications-11 | P2       | Group mark-all učitava i insertuje neograničen skup ID-eva u jednom HTTP zahtjevu           | otvoreno |
+| BA-notifications-11 | P2       | Group mark-all učitava i insertuje neograničen skup ID-eva u jednom HTTP zahtjevu           | zatvoreno |
 | BA-notifications-12 | P3       | Digest retention grešku guta i izvještava kao nula                                          | otvoreno |
 | BA-notifications-13 | P3       | Redis fallback test-email limit je per-instance i mapa nema cleanup                         | otvoreno |
 | BA-notifications-14 | P3       | Kritični recovery/scope/concurrency scenariji nemaju E2E dokaz                              | otvoreno |
@@ -368,3 +368,19 @@ Perf nije pokrenut jer privacy retention putanje nisu u push path filteru. Poslj
 Ova dopuna zatvara samo `BA-notifications-09`. Notifications ima **9/15** zatvorenih; `BA-notifications-10`–`15` ostaju otvoreni. Val 6 je **28/109** zatvorenih i **81 otvoren** (18 P1 / 43 P2 / 20 P3), a status-page 29 ostaje 19/19. Izvorni audit/generisani plan su **533 otvorena / 159 zatvorenih**; redovi globalnog registra su **543/149**. Deset poznatih statusnih razlika ostaje netaknuto; baseline **5,05/10** nije rescoraan. BA-15 full critical-flow acceptance ostaje pending; Val 6 nije završen.
 
 Nema PR-a, mergea ili deploymenta; Perf nije zelen, pa nema pull/merge/redeploy preporuke. Ciljna instalacija i stvarni setting override nisu provjereni — default 180 dana nije tvrdnja o deployment konfiguraciji. Raniji Coolify redeploy handoff propustio je navesti migraciju; tačan migration ID ostaje neutvrđen i ne smije se pogađati. Sljedeći mogući bounded kandidat je `BA-notifications-10` (P2); nije započet i zahtijeva zasebnu autorizaciju.
+
+## 28. Statusna dopuna — BA-notifications-11 closeout (2026-11-06)
+
+`BA-notifications-11` (P2) zatvoren je kroz W6.27. Group `mark-all-read` više ne materijalizira sve notification ID-eve niti ih šalje u jednom insertu: stranice se čitaju uzlazno po ID-u, `id > lastNotificationId`, sa `take=250`, a receipt-i se upisuju u odvojenom `createMany` batchu za svaku stranicu.
+
+Postojeće BA-06 garancije su sačuvane. Jedan `readAt` cutoff uzima se prije transakcije; autoritativno članstvo i unread group predicate učitavaju se unutar iste `RepeatableRead` transakcije; personal update i sve group receipt stranice ostaju u istom snapshotu. Receipt dedupe, ograničeni P2034 retry i post-commit unread count nisu promijenjeni. Nema schema izmjene ni migracije.
+
+Unit regresija obrađuje 517 group rows u batchovima 250/250/17 i provjerava cursore i sve kreirane receipte. Disposable PostgreSQL regresija obrađuje 251 row: upitni limiti su 250/250, stvarni read page size je 250/1, a receipt insert batchovi su 250/1; svih 251 receipt je potvrđen.
+
+Implementacijski SHA [`2f88329`](https://github.com/mudzy992/help-desk-enterprise/commit/2f8832993441c5f393c25c1dc60b6d1ee83333dc), uz test-fixture follow-upe, završno je testiran na SHA [`040a308`](https://github.com/mudzy992/help-desk-enterprise/commit/040a30863b4979d88b3dfacbec0115de7b16b03c). CI [`42277072185`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42277072185) je success za generated-Prisma backend build/lint/full Jest, real PostgreSQL/Redis integration, frontend build/test, Docs guard, container/supply-chain i CI gate. E2E critical/install i read-only inventory poslovi bili su `skipped`. Odvojeni spec-36 status-matcher fix još nema browser-run potvrdu; targeted dispatch nije bio dostupan (`HTTP 403`), pa se ne računa kao passed E2E niti BA-15 sign-off.
+
+Perf nije pokrenut: BA-11 runtime putanja nije u `.github/workflows/perf-smoke.yml` push filteru. Posljednji automatski Perf [`42269793891`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42269793891) ostaje stvarni globalni query-budget failure `2.125 > 2.1`; prag nije mijenjan, a run ne pripisuje uzrok BA-11. Nije korištena ciljna baza niti je pokrenuta migracija.
+
+Ova dopuna zatvara samo `BA-notifications-11`. Notifications ima **10/15** zatvorenih; `BA-notifications-10` i `BA-notifications-12`–`15` ostaju otvoreni. Val 6 ima **29/109** zatvorenih i **80 otvorenih** nalaza (18 P1 / 42 P2 / 20 P3); audit jedinica `29 — status-page` ostaje 19/19. Izvorni audit/generisani plan prikazuju **532 otvorena / 160 zatvorenih**, a redovi globalnog registra **542/150**. Deset poznatih source/global statusnih razlika ostaje netaknuto; baseline **5,05/10** nije rescoraan. BA-15 full critical-flow acceptance ostaje pending; Val 6 nije završen.
+
+Nema PR-a, mergea ili deploymenta; Perf nije zelen, pa nema pull/merge/redeploy preporuke. BA-11 nema migraciju, ali raniji Coolify redeploy handoff ostaje zaseban blocker: tačan migration ID nije potvrđen i ne smije se pogađati. Svaka buduća redeploy uputa mora unaprijed navesti tačnu potrebnu migraciju i redoslijed. Detalji paketa su u [142 — bounded group mark-all receipt paging](../implementation/142-notifications-11-bounded-group-mark-all-receipts.md).
