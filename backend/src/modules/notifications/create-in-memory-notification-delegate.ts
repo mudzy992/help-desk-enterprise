@@ -12,7 +12,7 @@ export type NotificationWhere = {
   readonly dedupeKey?: string;
   readonly isRead?: boolean;
   /** Phase 2.3: the retention job deletes by age. */
-  readonly createdAt?: { readonly lt?: Date; readonly gte?: Date };
+  readonly createdAt?: { readonly lt?: Date; readonly lte?: Date; readonly gte?: Date };
 };
 
 /** Option A: `(notificationId, userId)` read marks of group notifications. */
@@ -306,6 +306,12 @@ function matchesNotification(
   if (
     where.createdAt?.lt !== undefined &&
     record.createdAt.getTime() >= where.createdAt.lt.getTime()
+  ) {
+    return false;
+  }
+  if (
+    where.createdAt?.lte !== undefined &&
+    record.createdAt.getTime() > where.createdAt.lte.getTime()
   ) {
     return false;
   }

@@ -105,11 +105,12 @@ describe('NotificationsService (M13)', () => {
     ]);
   });
 
-  it('publishes a read-all event with the fresh count', async () => {
+  it('publishes a read-all event with the post-operation unread count', async () => {
     const { service, published, cacheCalls } = createService();
+    jest.mocked(markAllNotificationsRead).mockResolvedValueOnce({ unreadCount: 2 });
 
     await expect(service.markAllRead('user-1')).resolves.toEqual({
-      unreadCount: 0,
+      unreadCount: 2,
     });
     expect(markAllNotificationsRead).toHaveBeenCalled();
     expect(cacheCalls.invalidations).toBe(1);
@@ -117,7 +118,12 @@ describe('NotificationsService (M13)', () => {
       eventName: ticketRealtimeEventNames.notificationRead,
       notification: null,
       readAll: true,
-      unreadCount: 0,
+      unreadCount: 2,
+    });
+    expect(published[1]).toMatchObject({
+      eventName: ticketRealtimeEventNames.notificationUnreadCount,
+      notification: null,
+      unreadCount: 2,
     });
   });
 

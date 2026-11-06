@@ -3,7 +3,10 @@ import {
   loadActorGroupMembershipsAuthoritatively,
   type ActorGroupMembership,
 } from '../../common/cache/scope-catalog-cache';
-import { PrismaService } from '../../common/prisma/prisma.service';
+
+type NotificationAudienceClient = {
+  readonly groupMember?: Prisma.TransactionClient['groupMember'];
+};
 
 /**
  * Option A (F2.3, 2026-09-24): who sees which notification.
@@ -22,13 +25,16 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  * (`{ userId }`), so personal-only users run exactly the queries they ran before.
  */
 export async function loadNotificationAudience(
-  prisma: PrismaService,
+  prisma: NotificationAudienceClient,
   userId: string,
 ): Promise<readonly ActorGroupMembership[]> {
-  if (typeof (prisma as { groupMember?: { findMany?: unknown } }).groupMember?.findMany !== 'function') {
+  if (typeof prisma.groupMember?.findMany !== 'function') {
     return [];
   }
-  return loadActorGroupMembershipsAuthoritatively(prisma, userId);
+  return loadActorGroupMembershipsAuthoritatively(
+    prisma as Pick<Prisma.TransactionClient, 'groupMember'>,
+    userId,
+  );
 }
 
 /** Stable cache identity for a user's exact group-membership snapshot. */
