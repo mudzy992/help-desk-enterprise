@@ -72,9 +72,17 @@ export function NotificationsBell() {
     <NotificationsPanel
       items={inbox.items}
       unreadCount={inbox.unreadCount}
+      unreadOnly={inbox.unreadOnly}
+      hasMore={inbox.hasMore}
+      isLoadingMore={inbox.isLoadingMore}
+      listErrorKey={inbox.listErrorKey}
+      listRequestId={inbox.listRequestId}
       onClose={() => setIsOpen(false)}
       onSelect={onSelect}
+      onUnreadOnlyChange={inbox.setUnreadOnly}
       onMarkAllRead={() => void inbox.markAllRead()}
+      onLoadMore={() => void inbox.loadMore()}
+      onRetry={() => void (inbox.hasMore ? inbox.loadMore() : inbox.refreshList())}
     />
   );
 

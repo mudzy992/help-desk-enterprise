@@ -142,6 +142,13 @@ test("BA-notifications-07 SMTP crash-recovery PostgreSQL integration spec je reg
   );
 });
 
+test("BA-notifications-08 inbox pagination PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/notifications/notifications-list-pagination.integration.spec.ts"),
+    "nedostaje BA-notifications-08 inbox pagination PostgreSQL shard",
+  );
+});
+
 test("BA-templates-01 management-read PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/templates/management-read-scope.integration.spec.ts"),

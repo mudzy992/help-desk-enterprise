@@ -1,18 +1,26 @@
 import { pickInMemoryFields } from '../routing/in-memory-routing-store';
 import type { NotificationRecord } from './notifications.types';
 
+type NotificationOrderBy = {
+  readonly createdAt?: 'asc' | 'desc';
+  readonly id?: 'asc' | 'desc';
+};
+
 export type NotificationWhere = {
-  readonly id?: string | { readonly in: readonly string[] };
+  readonly id?: string | { readonly in?: readonly string[]; readonly lt?: string };
   readonly userId?: string | null | { readonly in: readonly string[] };
   /** Option A: group rows, their audience and the caller's receipts. */
   readonly groupId?: string | null;
+  readonly AND?: readonly NotificationWhere[];
   readonly OR?: readonly NotificationWhere[];
   readonly NOT?: { readonly excludedUserIds?: { readonly has: string } };
   readonly receipts?: { readonly none: { readonly userId: string } };
   readonly dedupeKey?: string;
   readonly isRead?: boolean;
   /** Phase 2.3: the retention job deletes by age. */
-  readonly createdAt?: { readonly lt?: Date; readonly lte?: Date; readonly gte?: Date };
+  readonly createdAt?:
+    | Date
+    | { readonly lt?: Date; readonly lte?: Date; readonly gte?: Date };
 };
 
 /** Option A: `(notificationId, userId)` read marks of group notifications. */
@@ -143,7 +151,7 @@ export function createInMemoryNotificationDelegate(
       include,
     }: {
       where?: NotificationWhere;
-      orderBy?: { createdAt: 'asc' | 'desc' };
+      orderBy?: NotificationOrderBy | readonly NotificationOrderBy[];
       take?: number;
       select?: Record<string, boolean>;
       include?: { receipts?: { where?: { userId?: string } } };
@@ -259,6 +267,12 @@ function matchesNotification(
     return true;
   }
   if (
+    where.AND !== undefined &&
+    !where.AND.every((branch) => matchesNotification(record, branch, receipts))
+  ) {
+    return false;
+  }
+  if (
     where.OR !== undefined &&
     !where.OR.some((branch) => matchesNotification(record, branch, receipts))
   ) {
@@ -269,8 +283,13 @@ function matchesNotification(
       if (record.id !== where.id) {
         return false;
       }
-    } else if (!where.id.in.includes(record.id)) {
-      return false;
+    } else {
+      if (where.id.in !== undefined && !where.id.in.includes(record.id)) {
+        return false;
+      }
+      if (where.id.lt !== undefined && record.id >= where.id.lt) {
+        return false;
+      }
     }
   }
   if (where.userId !== undefined) {
@@ -303,36 +322,56 @@ function matchesNotification(
   if (where.isRead !== undefined && record.isRead !== where.isRead) {
     return false;
   }
-  if (
-    where.createdAt?.lt !== undefined &&
-    record.createdAt.getTime() >= where.createdAt.lt.getTime()
-  ) {
-    return false;
-  }
-  if (
-    where.createdAt?.lte !== undefined &&
-    record.createdAt.getTime() > where.createdAt.lte.getTime()
-  ) {
-    return false;
-  }
-  if (
-    where.createdAt?.gte !== undefined &&
-    record.createdAt.getTime() < where.createdAt.gte.getTime()
-  ) {
-    return false;
+  const createdAtFilter = where.createdAt;
+  if (createdAtFilter instanceof Date) {
+    if (record.createdAt.getTime() !== createdAtFilter.getTime()) return false;
+  } else {
+    if (
+      createdAtFilter?.lt !== undefined &&
+      record.createdAt.getTime() >= createdAtFilter.lt.getTime()
+    ) {
+      return false;
+    }
+    if (
+      createdAtFilter?.lte !== undefined &&
+      record.createdAt.getTime() > createdAtFilter.lte.getTime()
+    ) {
+      return false;
+    }
+    if (
+      createdAtFilter?.gte !== undefined &&
+      record.createdAt.getTime() < createdAtFilter.gte.getTime()
+    ) {
+      return false;
+    }
   }
   return true;
 }
 
 function sortNotifications(
   items: NotificationRecord[],
-  orderBy?: { createdAt: 'asc' | 'desc' },
+  orderBy?: NotificationOrderBy | readonly NotificationOrderBy[],
 ): NotificationRecord[] {
+  const requestedOrdering: readonly NotificationOrderBy[] =
+    orderBy === undefined
+      ? [{ createdAt: 'desc' }, { id: 'desc' }]
+      : Array.isArray(orderBy)
+        ? orderBy
+        : [orderBy as NotificationOrderBy];
+  const ordering = requestedOrdering.some((field) => field.id !== undefined)
+    ? requestedOrdering
+    : [...requestedOrdering, { id: 'desc' as const }];
   return [...items].sort((left, right) => {
-    const delta = left.createdAt.getTime() - right.createdAt.getTime();
-    if (delta !== 0) {
-      return orderBy?.createdAt === 'asc' ? delta : -delta;
+    for (const field of ordering) {
+      if (field.createdAt !== undefined) {
+        const delta = left.createdAt.getTime() - right.createdAt.getTime();
+        if (delta !== 0) return field.createdAt === 'asc' ? delta : -delta;
+      }
+      if (field.id !== undefined) {
+        const comparison = left.id.localeCompare(right.id);
+        if (comparison !== 0) return field.id === 'asc' ? comparison : -comparison;
+      }
     }
-    return right.id.localeCompare(left.id);
+    return 0;
   });
 }

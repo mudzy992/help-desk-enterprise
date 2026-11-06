@@ -151,6 +151,9 @@
     "filterAll": "All",
     "filterUnread": "Unread",
     "markAllRead": "Mark all read",
+    "loadMore": "Load older notifications",
+    "loadingMore": "Loading…",
+    "retry": "Try again",
     "empty": "There are no notifications.",
     "emptyUnread": "There are no unread notifications.",
     "items": {

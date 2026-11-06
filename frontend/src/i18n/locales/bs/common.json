@@ -153,6 +153,9 @@
     "filterAll": "Sve",
     "filterUnread": "Nepročitane",
     "markAllRead": "Označi sve",
+    "loadMore": "Učitaj starija obavještenja",
+    "loadingMore": "Učitavam…",
+    "retry": "Pokušaj ponovo",
     "empty": "Nema obavještenja.",
     "emptyUnread": "Nema nepročitanih obavještenja.",
     "items": {

@@ -13,7 +13,12 @@ jest.mock('./count-unread-notifications', () => ({
   countUnreadNotifications: jest.fn(async () => 7),
 }));
 jest.mock('./list-notifications', () => ({
-  listNotifications: jest.fn(async () => ({ items: [], nextCursor: null })),
+  listNotifications: jest.fn(async () => ({
+    items: [],
+    unreadCount: 0,
+    hasMore: false,
+    nextCursor: null,
+  })),
 }));
 jest.mock('./notification-audience', () => ({
   loadNotificationAudience: jest.fn(async () => [{ groupId: 'group-1' }]),
@@ -129,9 +134,12 @@ describe('NotificationsService (M13)', () => {
 
   it('keeps the list path behind the same error mapping', async () => {
     const { service } = createService();
-    await expect(
-      service.list('user-1', { limit: 20 } as never),
-    ).resolves.toEqual({ items: [], nextCursor: null });
+    await expect(service.list('user-1', { limit: 20 })).resolves.toEqual({
+      items: [],
+      unreadCount: 0,
+      hasMore: false,
+      nextCursor: null,
+    });
     expect(listNotifications).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',
