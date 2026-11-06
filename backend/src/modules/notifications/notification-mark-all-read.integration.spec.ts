@@ -229,6 +229,7 @@ describeIfDatabase('notification mark-all-read cutoff (PostgreSQL integration, B
     });
 
     const pageSizes: number[] = [];
+    const queryBatchLimits: number[] = [];
     const receiptBatchSizes: number[] = [];
     const transactionalPrisma = withTransactionOverride(prisma, (transaction) => ({
       groupMember: transaction.groupMember,
@@ -239,8 +240,10 @@ describeIfDatabase('notification mark-all-read cutoff (PostgreSQL integration, B
         findMany: async (
           args: NonNullable<Parameters<typeof transaction.notification.findMany>[0]>,
         ) => {
-          pageSizes.push(args.take ?? 0);
-          return transaction.notification.findMany(args);
+          queryBatchLimits.push(args.take ?? 0);
+          const rows = await transaction.notification.findMany(args);
+          pageSizes.push(rows.length);
+          return rows;
         },
       },
       notificationReceipt: {
@@ -258,6 +261,7 @@ describeIfDatabase('notification mark-all-read cutoff (PostgreSQL integration, B
     await expect(
       markAllNotificationsRead(transactionalPrisma, userId, () => cutoff),
     ).resolves.toEqual({ unreadCount: 0 });
+    expect(queryBatchLimits).toEqual([batchSize, batchSize]);
     expect(pageSizes).toEqual([batchSize, 1]);
     expect(receiptBatchSizes).toEqual([batchSize, 1]);
     await expect(prisma.notificationReceipt.count({ where: { userId } })).resolves.toBe(total);
