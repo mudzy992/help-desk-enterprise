@@ -144,7 +144,7 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 | BA-notifications-06 | P2       | `mark-all-read` nema transaction/cutoff i može progutati ili netačno prijaviti novi unread   | zatvoreno |
 | BA-notifications-07 | P2       | Stale email claim takeover može duplirati već poslanu poruku                                | zatvoreno |
 | BA-notifications-08 | P2       | Inbox nema cursor/hasMore i starija historija je nedostupna                                 | zatvoreno |
-| BA-notifications-09 | P2       | Email delivery adresa/status nemaju retention/redaction lifecycle                           | otvoreno |
+| BA-notifications-09 | P2       | Email delivery adresa/status nemaju retention/redaction lifecycle                           | zatvoreno |
 | BA-notifications-10 | P2       | Delivery state nema attempts/error/dead/retry ugovor ni dokaz stvarnog provider ishoda      | otvoreno |
 | BA-notifications-11 | P2       | Group mark-all učitava i insertuje neograničen skup ID-eva u jednom HTTP zahtjevu           | otvoreno |
 | BA-notifications-12 | P3       | Digest retention grešku guta i izvještava kao nula                                          | otvoreno |
@@ -173,7 +173,7 @@ Held item pamti user/ticket, a `sendFor` kasnije queryja ticket direktno po ID-u
 - **06:** server cutoff/notification version i transakcija; odgovor izračunati nakon operacije, a novi red ostaviti unread.
 - **07:** provider idempotency key gdje postoji, stable Message-ID, status `UNKNOWN` i operator reconciliation umjesto slijepog resenda.
 - **08:** stabilan `(createdAt,id)` cursor, `hasMore` i unread filter parity.
-- **09:** definisati minimalnu delivery retention/redaction politiku i agregirane metrike nakon brisanja PII-ja.
+- **09 (zatvoreno W6.26):** postojeća privacy retention kategorija `emailDeliveries` definiše DPO-konfigurabilni rok i briše due redove batchirano; RetentionRun/audit čuvaju agregate bez recipient adrese/statusa. Direktni regression dokaz i caveat za ciljnu postavku su u §27.
 - **10:** eksplicitan state machine PENDING/CLAIMED/SENT/FAILED/UNKNOWN/DEAD sa attempts, nextRetryAt, error code i provider ID-em.
 - **11:** batch/cursor receipts ili background command za vrlo veliki inbox; request resource budget.
 - **12:** retention failure mora failati job/retry i podići health metric.
@@ -350,3 +350,21 @@ Automatski Perf [`42233259566`](https://github.com/mudzy992/help-desk-enterprise
 Ova dopuna zatvara samo `BA-notifications-08`. Notifications ima **8/15** zatvorenih; `BA-notifications-09`–`15` ostaju otvoreni. Val 6 je **27/109** zatvorenih i **82 otvorena** (18 P1 / 44 P2 / 20 P3) i nije završen. Izvorni audit/generisani plan su **534 otvorena / 158 zatvorenih**; redovi globalnog registra su **544/148**. Deset poznatih statusnih razlika ostaje netaknuto; `BA-status-page-01`–`19` ostaju 19/19. Baseline **5,05/10** i BA-15 status ostaju nepromijenjeni; BA-15 nije zatvoren.
 
 Nije korištena target baza niti je lokalno pokrenuta migracija; CI koristi disposable baze. Nema PR-a, mergea ili deploymenta. Raniji Coolify redeploy handoff je propustio navesti potrebnu migraciju; blocker ostaje zaseban, a tačan migration ID nije utvrđen. Ne zaključivati niti pogađati ga na osnovu ovog schema-neutral paketa. Svaka buduća redeploy uputa mora prvo navesti tačan potreban migration ID i sequencing.
+
+## 27. Statusna dopuna — BA-notifications-09 closeout (2026-11-06)
+
+`BA-notifications-09` (P2) zatvoren je kroz W6.26 nakon provjere postojećeg privacy-retention lifecyclea i dodavanja direktnog regression dokaza. `NotificationEmailDelivery` je pokriven kategorijom `emailDeliveries` u centralnom `RetentionService`; nije uveden drugi notification-specific scheduler niti je mijenjan statusni ugovor.
+
+Postavka `private.privacy.retention.emailDeliveryDays` ima fallback/default **180 dana**, configurable opseg **30–36.500 dana**, a `0` eksplicitno isključuje retention. Period se računa od `createdAt`; nightly sweep je konfigurabilan, sa zadanim vremenom 02:30 `Europe/Sarajevo`, a executor briše redove cutoffom u batchovima do 500. Brisanje cijelog due reda uklanja adresu, status, dedupe ključ i vezu ka korisniku zajedno. Privacy anonymization zasebno briše delivery redove anonimiziranog korisnika.
+
+Dry-run i izvršeni `RetentionRun` čuvaju kategoriju, period, broj i vremenski raspon; email-delivery executor ne zapisuje delivery ID-jeve u `refs`. Audit metadata čuva agregat izvršenja, bez recipient adrese ili delivery-status detalja. Tako se nakon brisanja PII-ja zadržava agregatni dokaz bez čuvanja delivery row-a.
+
+Dodani testovi zaključavaju loader default/config/disable ponašanje i real-PostgreSQL lifecycle: stari `SENT`, `UNKNOWN` i `CLAIMED` zapisi se uklanjaju, noviji zapis ostaje, a RetentionRun/audit dokaz ne sadrže adrese ni delivery status vrijednosti. Suite `retention.integration.spec.ts` već je registrovan u isolated integration runneru.
+
+Finalni kodni/testani SHA [`1b578cb`](https://github.com/mudzy992/help-desk-enterprise/commit/1b578cbf2f636788fa7ec67875470700dfe195f5) prošao je automatski CI [`42254318025`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42254318025): generated-Prisma backend build/lint/full Jest, disposable PostgreSQL/Redis integration, frontend build/test, Docs guard, container/supply-chain i CI gate su success. E2E critical flows, install wizard, read-only inventory i uslovni image-enforcement korak bili su `skipped`. CI integration job je prošao; raw per-suite log preuzimanje vratilo je `EOF`, pa se ne navodi suite-specific broj testova.
+
+Perf nije pokrenut jer privacy retention putanje nisu u push path filteru. Posljednji automatski Perf [`42233259566`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42233259566) ostaje failure na globalnom `2.125` prema nepromijenjenom `2.1` query budgetu; BA-09 nije utvrđen kao uzrok i prag nije mijenjan. Lokalno nisu pokrenuti puni CI/E2E testovi; dependencies i generated Prisma artefakti nisu bili prisutni. Nije korištena ciljna baza niti je izvršena migracija; nema schema promjene.
+
+Ova dopuna zatvara samo `BA-notifications-09`. Notifications ima **9/15** zatvorenih; `BA-notifications-10`–`15` ostaju otvoreni. Val 6 je **28/109** zatvorenih i **81 otvoren** (18 P1 / 43 P2 / 20 P3), a status-page 29 ostaje 19/19. Izvorni audit/generisani plan su **533 otvorena / 159 zatvorenih**; redovi globalnog registra su **543/149**. Deset poznatih statusnih razlika ostaje netaknuto; baseline **5,05/10** nije rescoraan. BA-15 full critical-flow acceptance ostaje pending; Val 6 nije završen.
+
+Nema PR-a, mergea ili deploymenta; Perf nije zelen, pa nema pull/merge/redeploy preporuke. Ciljna instalacija i stvarni setting override nisu provjereni — default 180 dana nije tvrdnja o deployment konfiguraciji. Raniji Coolify redeploy handoff propustio je navesti migraciju; tačan migration ID ostaje neutvrđen i ne smije se pogađati. Sljedeći mogući bounded kandidat je `BA-notifications-10` (P2); nije započet i zahtijeva zasebnu autorizaciju.
