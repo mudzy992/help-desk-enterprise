@@ -6,6 +6,9 @@ import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { notificationTicketMessageFanOutTopic } from './notification-fan-out-outbox.constants';
 import { NotificationFanOutOutboxProcessor } from './notification-fan-out-outbox.processor';
 import { defaultNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+import { notificationTypes } from '../notifications.constants';
+import { insertNotificationBatch } from './insert-notification-batch';
+import { registerNotificationCreatedSink } from './notification-created-sinks';
 
 const noUserPreferencePolicy = {
   ...defaultNotificationPreferencePolicy,
@@ -156,6 +159,75 @@ describeIfDatabase('notification ticket-message fan-out outbox', () => {
         },
       }),
     ).toBe(0);
+  });
+
+  it('returns and emits only rows persisted by concurrent duplicate batches', async () => {
+    const dedupeKey = `notification-batch-race:${stamp}`;
+    const emitted: { id: string; userId: string | null }[] = [];
+    const unregister = registerNotificationCreatedSink(async (records) => {
+      emitted.push(...records.map(({ id, userId }) => ({ id, userId })));
+    });
+
+    try {
+      const batch = {
+        userIds: [actorId, agentId],
+        type: notificationTypes.ticketCreated,
+        title: 'Concurrent ticket notification',
+        body: 'proof',
+        ticketId,
+        payload: {
+          ticketId,
+          ticketNumber: `NF-${stamp}`,
+          event: 'created',
+          messageId: `notification-batch-race-${stamp}`,
+          actorUserId: actorId,
+          confidential: false,
+        },
+        dedupeKey,
+      } as const;
+      let releasePreReadBarrier: () => void = () => {};
+      const preReadBarrier = new Promise<void>((resolve) => {
+        releasePreReadBarrier = resolve;
+      });
+      let preReadCount = 0;
+      const concurrentPrisma = {
+        notification: {
+          findMany: async (args: unknown) => {
+            const rows = await prisma.notification.findMany(args as never);
+            preReadCount += 1;
+            if (preReadCount === 2) releasePreReadBarrier();
+            await preReadBarrier;
+            return rows;
+          },
+          createManyAndReturn: (args: unknown) =>
+            prisma.notification.createManyAndReturn(args as never),
+        },
+      } as never;
+      const [first, second] = await Promise.all([
+        insertNotificationBatch(concurrentPrisma, batch),
+        insertNotificationBatch(concurrentPrisma, batch),
+      ]);
+      const returned = [...first, ...second].map(({ id, userId }) => ({ id, userId }));
+      const persisted = await prisma.notification.findMany({
+        where: { dedupeKey },
+        select: { id: true, userId: true },
+      });
+      const normalize = (
+        rows: readonly { readonly id: string; readonly userId: string | null }[],
+      ) => rows.map(({ id, userId }) => `${userId}:${id}`).sort();
+
+      expect(preReadCount).toBe(2);
+      expect(persisted).toHaveLength(2);
+      expect(new Set(returned.map(({ id }) => id)).size).toBe(2);
+      expect(normalize(returned)).toEqual(normalize(persisted));
+      expect(normalize(emitted)).toEqual(normalize(persisted));
+      expect(new Set(persisted.map(({ userId }) => userId))).toEqual(
+        new Set([actorId, agentId]),
+      );
+    } finally {
+      unregister();
+      await prisma.notification.deleteMany({ where: { dedupeKey } });
+    }
   });
 
   it('replays a committed message after consumer restart into one inbox row', async () => {

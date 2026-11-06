@@ -91,6 +91,48 @@ export function createInMemoryNotificationDelegate(
                 receipt.userId === include.receipts.where.userId),
           ),
         }));
+  const insertMany = ({
+    data,
+    skipDuplicates,
+  }: {
+    data?: readonly NotificationCreateData[];
+    skipDuplicates?: boolean;
+  }): NotificationRecord[] => {
+    const inserted: NotificationRecord[] = [];
+    for (const item of data ?? []) {
+      const duplicate = [...records.values()].some((record) =>
+        item.userId === null || item.userId === undefined
+          ? (record.groupId ?? null) === (item.groupId ?? null) &&
+            record.userId === null &&
+            record.dedupeKey === item.dedupeKey
+          : record.userId === item.userId && record.dedupeKey === item.dedupeKey,
+      );
+      if (duplicate) {
+        if (skipDuplicates !== true) {
+          throw { code: 'P2002', meta: { target: ['userId', 'dedupeKey'] } };
+        }
+        continue;
+      }
+      const created: NotificationRecord = {
+        id: item.id ?? nextId(),
+        userId: item.userId ?? null,
+        groupId: item.groupId ?? null,
+        excludedUserIds: [...(item.excludedUserIds ?? [])],
+        type: item.type,
+        title: item.title,
+        body: item.body,
+        isRead: item.isRead ?? false,
+        readAt: item.readAt ?? null,
+        ticketId: item.ticketId,
+        payload: item.payload,
+        dedupeKey: item.dedupeKey,
+        createdAt: item.createdAt ?? now(),
+      };
+      records.set(created.id, created);
+      inserted.push(created);
+    }
+    return inserted;
+  };
 
   return {
     findMany: async ({
@@ -150,48 +192,15 @@ export function createInMemoryNotificationDelegate(
      * statement. Duplicates are skipped when asked to (the unique constraint is
      * `(userId, dedupeKey)`), like `skipDuplicates` on the real client.
      */
-    createMany: async ({
-      data,
-      skipDuplicates,
-    }: {
+    createMany: async (input: {
       data?: readonly NotificationCreateData[];
       skipDuplicates?: boolean;
-    }) => {
-      let count = 0;
-      for (const item of data ?? []) {
-        const duplicate = [...records.values()].some((record) =>
-          item.userId === null || item.userId === undefined
-            ? (record.groupId ?? null) === (item.groupId ?? null) &&
-              record.userId === null &&
-              record.dedupeKey === item.dedupeKey
-            : record.userId === item.userId && record.dedupeKey === item.dedupeKey,
-        );
-        if (duplicate) {
-          if (skipDuplicates !== true) {
-            throw { code: 'P2002', meta: { target: ['userId', 'dedupeKey'] } };
-          }
-          continue;
-        }
-        const created: NotificationRecord = {
-          id: item.id ?? nextId(),
-          userId: item.userId ?? null,
-          groupId: item.groupId ?? null,
-          excludedUserIds: [...(item.excludedUserIds ?? [])],
-          type: item.type,
-          title: item.title,
-          body: item.body,
-          isRead: item.isRead ?? false,
-          readAt: item.readAt ?? null,
-          ticketId: item.ticketId,
-          payload: item.payload,
-          dedupeKey: item.dedupeKey,
-          createdAt: item.createdAt ?? now(),
-        };
-        records.set(created.id, created);
-        count += 1;
-      }
-      return { count };
-    },
+    }) => ({ count: insertMany(input).length }),
+    /** Mirrors Prisma `createManyAndReturn`: only successfully inserted rows. */
+    createManyAndReturn: async (input: {
+      data?: readonly NotificationCreateData[];
+      skipDuplicates?: boolean;
+    }) => insertMany(input),
     groupBy: async ({
       by,
       where,
