@@ -2,14 +2,14 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { emailDeliveryStatuses } from './email-template.constants';
 
 /**
- * Val 3 (M12/B1): a row is claimed before the send; the claim is only released in
- * the `catch` of the same process. If the process dies in between (OOM, kill -9,
- * a redeploy) the row stayed `CLAIMED` forever, and every later attempt — even a
- * durable-queue retry — was a silent no-op, so the e-mail was lost without a
- * trace. A claim older than this is therefore treated as abandoned and taken
- * over; the same filter feeds the stuck-claim counter in ops-health.
+ * A claim older than this is ambiguous: the process may have died before SMTP,
+ * or SMTP may have accepted the message before the process died. BA-07 therefore
+ * never takes a stale claim over for another automatic send. A retry moves it to
+ * `UNKNOWN`; an operator must reconcile the outcome before any explicit replay.
  */
 export const notificationEmailClaimStaleAfterMs = 10 * 60_000;
+
+export type NotificationEmailClaimResult = 'CLAIMED' | 'DUPLICATE' | 'UNKNOWN';
 
 export function stuckNotificationEmailClaimWhere(
   now: Date,
@@ -31,6 +31,14 @@ export async function countStuckNotificationEmailDeliveries(
   });
 }
 
+export async function countUnknownNotificationEmailDeliveries(
+  prisma: PrismaService,
+): Promise<number> {
+  return prisma.notificationEmailDelivery.count({
+    where: { status: emailDeliveryStatuses.unknown },
+  });
+}
+
 export async function claimNotificationEmailDelivery(
   prisma: PrismaService,
   input: {
@@ -40,20 +48,20 @@ export async function claimNotificationEmailDelivery(
     readonly templateKey: string;
   },
   options: { readonly now?: Date; readonly staleAfterMs?: number } = {},
-): Promise<boolean> {
+): Promise<NotificationEmailClaimResult> {
   const now = options.now ?? new Date();
-  // First: take over a claim left behind by a process that died mid-send. The
-  // update refreshes `updatedAt`, so a takeover cannot happen twice.
-  const takenOver = await prisma.notificationEmailDelivery.updateMany({
+  // Do not convert a stale claim back to CLAIMED: SMTP's outcome is unknowable
+  // after a process crash, so the row is preserved as operator-visible evidence.
+  const markedUnknown = await prisma.notificationEmailDelivery.updateMany({
     where: {
       userId: input.userId,
       dedupeKey: input.dedupeKey,
       ...stuckNotificationEmailClaimWhere(now, options.staleAfterMs),
     },
-    data: { status: emailDeliveryStatuses.claimed, updatedAt: now },
+    data: { status: emailDeliveryStatuses.unknown, updatedAt: now },
   });
-  if (takenOver.count > 0) {
-    return true;
+  if (markedUnknown.count > 0) {
+    return 'UNKNOWN';
   }
   try {
     await prisma.notificationEmailDelivery.create({
@@ -65,10 +73,10 @@ export async function claimNotificationEmailDelivery(
         status: emailDeliveryStatuses.claimed,
       },
     });
-    return true;
+    return 'CLAIMED';
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      return false;
+      return 'DUPLICATE';
     }
     throw error;
   }

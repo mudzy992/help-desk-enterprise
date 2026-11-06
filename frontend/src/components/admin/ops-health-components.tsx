@@ -139,6 +139,7 @@ export function ComponentGrid({
         <ComponentTile
           label={t("admin.opsHealth.components.email")}
           state={
+            (components.email.unknownDeliveries ?? 0) > 0 ||
             (components.email.stuckClaims ?? 0) > 0
               ? "warning"
               : components.email.lastSentAt === null
@@ -146,7 +147,11 @@ export function ComponentGrid({
                 : "ok"
           }
         >
-          {(components.email.stuckClaims ?? 0) > 0 ? (
+          {(components.email.unknownDeliveries ?? 0) > 0 ? (
+            t("admin.opsHealth.components.unknownEmailDeliveries", {
+              count: components.email.unknownDeliveries ?? 0,
+            })
+          ) : (components.email.stuckClaims ?? 0) > 0 ? (
             t("admin.opsHealth.components.stuckEmailClaims", {
               count: components.email.stuckClaims ?? 0,
             })

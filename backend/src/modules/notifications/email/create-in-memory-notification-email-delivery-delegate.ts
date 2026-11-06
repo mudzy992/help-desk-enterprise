@@ -13,6 +13,7 @@ type DeliveryWhere = {
   readonly userId?: string;
   readonly dedupeKey?: string;
   readonly status?: string;
+  readonly updatedAt?: { readonly lt: Date };
 };
 
 export function createInMemoryNotificationEmailDeliveryDelegate(
@@ -56,14 +57,14 @@ export function createInMemoryNotificationEmailDeliveryDelegate(
       data,
     }: {
       where?: DeliveryWhere;
-      data: { status?: string };
+      data: { status?: string; updatedAt?: Date };
     }) => {
       const matched = matching(where);
       for (const record of matched) {
         records.set(record.id, {
           ...record,
           status: data.status ?? record.status,
-          updatedAt: now(),
+          updatedAt: data.updatedAt ?? now(),
         });
       }
       return { count: matched.length };
@@ -93,5 +94,8 @@ function matchesDelivery(
   if (where.dedupeKey !== undefined && record.dedupeKey !== where.dedupeKey) {
     return false;
   }
-  return where.status === undefined || record.status === where.status;
+  if (where.status !== undefined && record.status !== where.status) {
+    return false;
+  }
+  return where.updatedAt === undefined || record.updatedAt < where.updatedAt.lt;
 }

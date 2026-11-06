@@ -59,7 +59,10 @@ function setup() {
     integrationJob: { count: jest.fn(async () => 3) },
     $queryRaw: jest.fn(async () => [{ '?column?': 1 }]),
     opsAlert: { findMany: jest.fn(async () => []) },
-    notificationEmailDelivery: { findFirst: jest.fn(async () => null) },
+    notificationEmailDelivery: {
+      findFirst: jest.fn(async () => null),
+      count: jest.fn(async (_args?: unknown) => 0),
+    },
     inboundMailboxState: {
       findUnique: jest.fn(async () => ({ lastRunAt: now, lastSuccessAt: null, lastError: 'AUTHENTICATIONFAILED', lastErrorAt: now, consecutiveFails: 4 })),
     },
@@ -98,6 +101,24 @@ describe('OpsHealthService', () => {
     expect((await service.overview(now)).components.worker).toEqual({ status: 'active', heartbeatAgeSeconds: 10 });
     redis.values.set(workerHeartbeatRedisKey, new Date(now.getTime() - 600_000).toISOString());
     expect((await service.overview(now)).components.worker.status).toBe('stale');
+  });
+
+  it('surfaces unknown notification email outcomes for operator reconciliation', async () => {
+    const { service, prisma } = setup();
+    prisma.notificationEmailDelivery.count.mockImplementation(async (args?: unknown) => {
+      const where = (args as { where: { status: string } } | undefined)?.where;
+      return where?.status === 'UNKNOWN' ? 2 : 0;
+    });
+
+    const overview = await service.overview(now);
+
+    expect(overview.components.email).toMatchObject({
+      stuckClaims: 0,
+      unknownDeliveries: 2,
+    });
+    expect(prisma.notificationEmailDelivery.count).toHaveBeenCalledWith({
+      where: { status: 'UNKNOWN' },
+    });
   });
 
   it('surfaces template settings read failures and recovery in the protected health overview', async () => {

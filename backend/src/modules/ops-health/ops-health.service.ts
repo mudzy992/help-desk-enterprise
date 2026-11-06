@@ -4,7 +4,10 @@ import { RedisService } from '../../common/redis/redis.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { emailDeliveryStatuses } from '../notifications/email/email-template.constants';
-import { countStuckNotificationEmailDeliveries } from '../notifications/email/persist-notification-email-delivery';
+import {
+  countStuckNotificationEmailDeliveries,
+  countUnknownNotificationEmailDeliveries,
+} from '../notifications/email/persist-notification-email-delivery';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { evaluateWorkerHeartbeat, readWorkerHeartbeatValue, withTimeout } from '../health/health-probes';
 import type { PrivacyActor } from '../privacy/privacy-actor';
@@ -91,7 +94,7 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound, changeDowntimeSync, ticketSideEffectOutbox, notificationFanOutOutbox] = await Promise.all([
+    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, unknownEmailDeliveries, inbound, changeDowntimeSync, ticketSideEffectOutbox, notificationFanOutOutbox] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       readWorkerHeartbeatValue(() =>
@@ -108,10 +111,10 @@ export class OpsHealthService {
       this.prisma.notificationEmailDelivery
         .findFirst({ where: { status: emailDeliveryStatuses.sent }, orderBy: { createdAt: 'desc' }, select: { updatedAt: true } })
         .catch(() => null),
-      // Val 3 (M12/B1): rows stuck in CLAIMED (a process died between claim and
-      // send). They are reclaimed automatically after 10 minutes; this counter is
-      // what makes the state visible instead of silently "healthy".
+      // Stale CLAIMED rows remain visible until a retry can safely move them to
+      // UNKNOWN; uncertain outcomes are counted separately for reconciliation.
       countStuckNotificationEmailDeliveries(this.prisma, now).catch(() => null),
+      countUnknownNotificationEmailDeliveries(this.prisma).catch(() => null),
       this.currentInboundState(),
       this.changeDowntimeSyncState(now).catch(() => null),
       this.ticketSideEffectOutboxState(now).catch(() => null),
@@ -146,6 +149,7 @@ export class OpsHealthService {
         email: {
           lastSentAt: emailLast?.updatedAt.toISOString() ?? null,
           stuckClaims: stuckEmailClaims,
+          unknownDeliveries: unknownEmailDeliveries,
         },
         inbound,
         changeDowntimeSync,

@@ -15,6 +15,7 @@ export const integrationSpecs = Object.freeze([
   "src/common/idempotency/request-idempotency.integration.spec.ts",
   "src/common/outbox/transactional-outbox.integration.spec.ts",
   "src/modules/notifications/fan-out/notification-fan-out-outbox.integration.spec.ts",
+  "src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts",
   "src/modules/notifications/notification-mark-all-read.integration.spec.ts",
   "src/modules/changes/change-downtime-outbox.integration.spec.ts",
   "src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts",

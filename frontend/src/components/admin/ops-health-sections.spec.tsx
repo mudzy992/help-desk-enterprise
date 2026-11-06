@@ -36,6 +36,40 @@ describe("ops health presentation sections", () => {
     expect(html).toContain("unavailable");
   });
 
+  it("warns when an e-mail outcome needs operator reconciliation", () => {
+    const overview = {
+      components: {
+        api: "ok",
+        database: "ok",
+        redis: "ok",
+        worker: { status: "active", heartbeatAgeSeconds: 1 },
+        clamav: null,
+        disk: null,
+        eventLoopLagMs: null,
+        ldapsCaExpiresAt: null,
+        email: { lastSentAt: null, stuckClaims: 0, unknownDeliveries: 2 },
+        inbound: [],
+      },
+      configuration: {
+        thresholds: {
+          diskWarnPercent: 80,
+          diskCriticalPercent: 90,
+          http5xxMinCount: 20,
+          http5xxMinPercent: 2,
+          slaScanLateMinutes: 5,
+          workerHeartbeatStaleSeconds: 120,
+          clamavFailuresBeforeAlert: 3,
+        },
+      },
+    } as unknown as OpsOverview;
+    const html = renderToStaticMarkup(
+      <ComponentGrid overview={overview} nowMs={Date.parse("2026-10-19T00:02:00.000Z")} />,
+    );
+
+    expect(html).toContain("admin.opsHealth.components.unknownEmailDeliveries");
+    expect(html).toContain("admin.opsHealth.state.warning");
+  });
+
   it("surfaces change downtime backlog and dead-letter state in the component grid", () => {
     const overview = {
       components: {

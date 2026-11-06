@@ -6,7 +6,7 @@ export type OutboundMailMessage = {
   /** HTML alternative; clients without HTML show `text`. */
   readonly html?: string;
   readonly replyTo?: string;
-  /** Stable Message-ID so a retry is recognised as the same message. */
+  /** Stable Message-ID for correlation across retries; SMTP servers need not deduplicate it. */
   readonly messageId?: string;
   /** Threading and automation headers (In-Reply-To, References, Auto-Submitted…). */
   readonly headers?: Readonly<Record<string, string>>;

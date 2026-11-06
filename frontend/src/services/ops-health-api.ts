@@ -139,8 +139,10 @@ export type OpsOverview = {
     readonly ldapsCaExpiresAt: string | null;
     readonly email: {
       readonly lastSentAt: string | null;
-      /** Val 3 (M12/B1): rows stuck in CLAIMED; reclaimed after 10 minutes. */
+      /** Stale CLAIMED rows awaiting an attempted recovery check. */
       readonly stuckClaims?: number | null;
+      /** BA-notifications-07: ambiguous SMTP outcomes awaiting operator reconciliation. */
+      readonly unknownDeliveries?: number | null;
     };
     /** Optional during rolling deploys where the API has not added this signal yet. */
     readonly changeDowntimeSync?: ChangeDowntimeSyncHealth | null;

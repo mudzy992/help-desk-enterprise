@@ -120,6 +120,7 @@ export type EmailTemplatePlaceholder =
 export const emailDeliveryStatuses = {
   claimed: 'CLAIMED',
   sent: 'SENT',
+  unknown: 'UNKNOWN',
 } as const;
 
 export type EmailDeliveryStatus =
