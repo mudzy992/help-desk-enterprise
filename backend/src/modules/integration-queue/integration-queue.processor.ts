@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { IntegrationJobType } from '../../generated/prisma/enums';
+import {
+  IntegrationJobStatus,
+  IntegrationJobType,
+} from '../../generated/prisma/enums';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
 import {
   integrationJobProcessingLeaseDurationMilliseconds,
@@ -65,16 +68,26 @@ export class IntegrationQueueProcessor extends WorkerHost {
     }
 
     try {
-      await this.dispatch(processing.type, processing.payload);
-      const completed = await this.integrationJobRepository.markCompleted(processing);
-      if (!completed) {
+      const dispatchedStatus = await this.dispatch(
+        processing.type,
+        processing.payload,
+      );
+      const terminalStatus =
+        dispatchedStatus ?? IntegrationJobStatus.COMPLETED;
+      const transitioned =
+        dispatchedStatus === IntegrationJobStatus.PUBLISHED_BEST_EFFORT
+          ? await this.integrationJobRepository.markPublishedBestEffort(
+              processing,
+            )
+          : await this.integrationJobRepository.markCompleted(processing);
+      if (!transitioned) {
         this.logger.warn(
-          `integration_job completion_fenced id=${integrationJobId} attemptId=${attemptId}`,
+          `integration_job terminal_transition_fenced id=${integrationJobId} attemptId=${attemptId} status=${terminalStatus}`,
         );
         return;
       }
       this.logger.log(
-        `integration_job id=${integrationJobId} type=${processing.type} status=COMPLETED`,
+        `integration_job id=${integrationJobId} type=${processing.type} status=${terminalStatus}`,
       );
     } catch (error) {
       await handleIntegrationJobFailure({
@@ -91,18 +104,23 @@ export class IntegrationQueueProcessor extends WorkerHost {
   private async dispatch(
     type: IntegrationJobType,
     payload: unknown,
-  ): Promise<void> {
+  ): Promise<typeof IntegrationJobStatus.PUBLISHED_BEST_EFFORT | null> {
     if (type === IntegrationJobType.EMAIL) {
       await this.processEmailIntegrationJobService.process(payload);
-      return;
+      return null;
     }
     if (type === IntegrationJobType.EDGE_EVENT) {
-      await this.processEdgeEventIntegrationJobService.process(payload);
-      return;
+      const status = await this.processEdgeEventIntegrationJobService.process(
+        payload,
+      );
+      if (status !== IntegrationJobStatus.PUBLISHED_BEST_EFFORT) {
+        throw new Error('EDGE_EVENT dispatch did not return PUBLISHED_BEST_EFFORT');
+      }
+      return status;
     }
     if (type === IntegrationJobType.TEAMS) {
       await this.teamsDeliveryService.process(payload);
-      return;
+      return null;
     }
     throw new Error(`Unsupported integration job type: ${type}`);
   }

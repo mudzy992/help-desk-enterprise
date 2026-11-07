@@ -5348,7 +5348,7 @@
   },
   "integrationQueue": {
     "heading": "Trajni integracioni red",
-    "headingHint": "BullMQ + Redis worker; Postgres job red za admin pregled; neuspjeli nakon max pokušaja → DLQ s ručnim retry-jem.",
+    "headingHint": "BullMQ + Redis worker; Postgres red poslova za admin pregled. Edge događaji su best-effort ako Redis prijavi pretplatnike (to nije potvrda krajnje isporuke); bez pretplatnika slijedi retry. Ostali neuspjeli nakon max pokušaja → DLQ s ručnim retry-jem.",
     "loading": "Učitavanje reda poslova",
     "emptyTitle": "Nema jobova u ovom statusu",
     "emptyBody": "Promijenite filter statusa ili sačekajte da worker zabilježi nove pokušaje.",
@@ -5369,6 +5369,7 @@
       "PENDING": "Na čekanju",
       "PROCESSING": "U obradi",
       "COMPLETED": "Završeno",
+      "PUBLISHED_BEST_EFFORT": "Objavljeno (best-effort)",
       "FAILED": "Neuspjelo",
       "DLQ": "Mrtvi red (DLQ)"
     },

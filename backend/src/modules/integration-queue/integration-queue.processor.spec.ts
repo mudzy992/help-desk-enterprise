@@ -56,6 +56,9 @@ function createHarness(input: {
   const repository = {
     claimForProcessing: jest.fn().mockResolvedValue(input.claim),
     markCompleted: jest.fn().mockResolvedValue(true),
+    markPublishedBestEffort: jest.fn().mockResolvedValue(true),
+    markFailed: jest.fn().mockResolvedValue(true),
+    markDeadLetter: jest.fn().mockResolvedValue(true),
   };
   const settingsService = {
     getSetting: jest.fn(async (key: string) => {
@@ -135,6 +138,59 @@ describe('IntegrationQueueProcessor', () => {
     expect(harness.processTeams.process).toHaveBeenCalledWith(record.payload);
     expect(harness.processEmail.process).not.toHaveBeenCalled();
     expect(harness.repository.markCompleted).toHaveBeenCalledWith(claim);
+  });
+
+  it('records a Redis publication as PUBLISHED_BEST_EFFORT, never COMPLETED', async () => {
+    const claim = processingClaim({
+      id: 'job-edge-published',
+      type: IntegrationJobType.EDGE_EVENT,
+      payload: { userId: 'user-1', eventName: 'ticket.updated', data: {} },
+    });
+    const harness = createHarness({ claim });
+    harness.processEdge.process.mockResolvedValue(
+      IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+    );
+
+    await harness.processor.process({
+      id: 'job-edge-published',
+      data: { integrationJobId: 'job-edge-published' },
+    } as never);
+
+    expect(harness.processEdge.process).toHaveBeenCalledWith(claim.payload);
+    expect(harness.repository.markPublishedBestEffort).toHaveBeenCalledWith(claim);
+    expect(harness.repository.markCompleted).not.toHaveBeenCalled();
+    expect(harness.repository.markFailed).not.toHaveBeenCalled();
+    expect(harness.queue.add).not.toHaveBeenCalled();
+  });
+
+  it('sends a zero-subscriber Edge event through retryable FAILED handling', async () => {
+    const claim = processingClaim({
+      id: 'job-edge-no-subscribers',
+      type: IntegrationJobType.EDGE_EVENT,
+      payload: { userId: 'user-1', eventName: 'ticket.updated', data: {} },
+    });
+    const harness = createHarness({ claim });
+    harness.processEdge.process.mockRejectedValue(
+      new Error('EDGE_EVENT_NO_SUBSCRIBERS'),
+    );
+
+    await harness.processor.process({
+      id: 'job-edge-no-subscribers',
+      data: { integrationJobId: 'job-edge-no-subscribers' },
+    } as never);
+
+    expect(harness.repository.markFailed).toHaveBeenCalledWith(
+      claim,
+      'EDGE_EVENT_NO_SUBSCRIBERS',
+      expect.any(Date),
+    );
+    expect(harness.queue.add).toHaveBeenCalledWith(
+      IntegrationJobType.EDGE_EVENT,
+      { integrationJobId: 'job-edge-no-subscribers' },
+      expect.objectContaining({ jobId: 'job-edge-no-subscribers:1', delay: 1_000 }),
+    );
+    expect(harness.repository.markCompleted).not.toHaveBeenCalled();
+    expect(harness.repository.markPublishedBestEffort).not.toHaveBeenCalled();
   });
 
   it('does not dispatch a duplicate or stale BullMQ delivery when its claim loses', async () => {

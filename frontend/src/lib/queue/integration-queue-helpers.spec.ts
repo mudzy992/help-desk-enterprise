@@ -62,6 +62,7 @@ describe("integration queue helpers", () => {
     expect(truncateQueueError("short")).toBe("short");
     expect(truncateQueueError("abcdefghij", 8)).toBe("abcdefgh…");
     expect(integrationJobBadgeTone("PENDING")).toBe("warning");
+    expect(integrationJobBadgeTone("PUBLISHED_BEST_EFFORT")).toBe("info");
     expect(integrationJobBadgeTone("DLQ")).toBe("danger");
   });
 });

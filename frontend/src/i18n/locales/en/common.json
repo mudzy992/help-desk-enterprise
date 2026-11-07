@@ -5328,7 +5328,7 @@
   },
   "integrationQueue": {
     "heading": "Durable integration queue",
-    "headingHint": "BullMQ + Redis worker; Postgres job table for admin review; failures after max attempts → DLQ with manual retry.",
+    "headingHint": "BullMQ + Redis worker; Postgres job table for admin review. Edge events are best-effort when Redis reports subscribers (not end-to-end delivery); zero subscribers are retried. Other failures after max attempts → DLQ with manual retry.",
     "loading": "Loading integration queue",
     "emptyTitle": "No jobs in this status",
     "emptyBody": "Switch the status filter or wait for the worker to record new attempts.",
@@ -5349,6 +5349,7 @@
       "PENDING": "Pending",
       "PROCESSING": "Processing",
       "COMPLETED": "Completed",
+      "PUBLISHED_BEST_EFFORT": "Published (best-effort)",
       "FAILED": "Failed",
       "DLQ": "Dead-letter queue (DLQ)"
     },

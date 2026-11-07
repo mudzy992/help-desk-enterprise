@@ -150,6 +150,15 @@ test("BA-integration-queue-02 processor claim PostgreSQL integration spec je reg
   );
 });
 
+test("BA-integration-queue-03 Edge publication outcome integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes(
+      "src/modules/integration-queue/integration-job-edge-event-delivery.integration.spec.ts",
+    ),
+    "nedostaje BA-integration-queue-03 PostgreSQL + Redis outcome shard",
+  );
+});
+
 test("BA-notifications-07 SMTP crash-recovery PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts"),

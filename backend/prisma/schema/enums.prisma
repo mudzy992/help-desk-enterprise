@@ -149,6 +149,7 @@ enum IntegrationJobStatus {
   PENDING
   PROCESSING
   COMPLETED
+  PUBLISHED_BEST_EFFORT
   FAILED
   DLQ
 }

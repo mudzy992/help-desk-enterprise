@@ -161,6 +161,19 @@ export class IntegrationJobRepository {
     });
   }
 
+  markPublishedBestEffort(
+    claim: IntegrationJobProcessingClaim,
+  ): Promise<boolean> {
+    if (claim.type !== IntegrationJobType.EDGE_EVENT) {
+      throw new Error('PUBLISHED_BEST_EFFORT is only valid for EDGE_EVENT jobs');
+    }
+    return this.transitionClaim(claim, {
+      status: IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+      lastError: null,
+      nextRetryAt: null,
+    });
+  }
+
   markFailed(
     claim: IntegrationJobProcessingClaim,
     lastError: string,

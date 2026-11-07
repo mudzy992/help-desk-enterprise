@@ -2,6 +2,7 @@ export const integrationJobStatuses = {
   pending: "PENDING",
   processing: "PROCESSING",
   completed: "COMPLETED",
+  publishedBestEffort: "PUBLISHED_BEST_EFFORT",
   failed: "FAILED",
   dlq: "DLQ",
 } as const;
@@ -13,6 +14,7 @@ export const integrationJobAdminStatuses: readonly IntegrationJobAdminStatus[] =
   integrationJobStatuses.pending,
   integrationJobStatuses.processing,
   integrationJobStatuses.completed,
+  integrationJobStatuses.publishedBestEffort,
   integrationJobStatuses.failed,
   integrationJobStatuses.dlq,
 ];

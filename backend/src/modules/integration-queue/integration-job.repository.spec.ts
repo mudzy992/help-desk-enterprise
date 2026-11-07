@@ -4,7 +4,10 @@ import {
   IntegrationJobType,
 } from '../../generated/prisma/enums';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
-import { integrationQueueAdminPageSize } from './integration-queue.constants';
+import {
+  integrationQueueAdminPageSize,
+  integrationQueueAdminStatuses,
+} from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -188,6 +191,66 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     });
   });
 
+  it('claim-fences the explicit best-effort outcome for EDGE_EVENT jobs', async () => {
+    const claim = {
+      id: 'job-edge-best-effort',
+      type: IntegrationJobType.EDGE_EVENT,
+      payload: { eventName: 'claim-test' },
+      attempts: 2,
+      version: 9,
+      processingAttemptId: 'job-edge-best-effort:1',
+      processingOwnerToken: 'owner-a',
+      processingLeaseExpiresAt: new Date('2026-10-08T12:05:00.000Z'),
+    };
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const repository = new IntegrationJobRepository({
+      integrationJob: { updateMany },
+    } as never);
+
+    await expect(repository.markPublishedBestEffort(claim)).resolves.toBe(true);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: claim.id,
+        status: IntegrationJobStatus.PROCESSING,
+        version: claim.version,
+        attempts: claim.attempts,
+        processingAttemptId: claim.processingAttemptId,
+        processingOwnerToken: claim.processingOwnerToken,
+        processingLeaseExpiresAt: claim.processingLeaseExpiresAt,
+      },
+      data: {
+        status: IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+        lastError: null,
+        nextRetryAt: null,
+        version: { increment: 1 },
+        processingAttemptId: null,
+        processingOwnerToken: null,
+        processingLeaseExpiresAt: null,
+      },
+    });
+  });
+
+  it('does not allow PUBLISHED_BEST_EFFORT for non-Edge jobs', () => {
+    const updateMany = jest.fn();
+    const repository = new IntegrationJobRepository({
+      integrationJob: { updateMany },
+    } as never);
+
+    expect(() =>
+      repository.markPublishedBestEffort({
+        id: 'job-email',
+        type: IntegrationJobType.EMAIL,
+        payload: {},
+        attempts: 1,
+        version: 1,
+        processingAttemptId: 'job-email',
+        processingOwnerToken: 'owner-a',
+        processingLeaseExpiresAt: new Date('2026-10-08T12:05:00.000Z'),
+      }),
+    ).toThrow('PUBLISHED_BEST_EFFORT is only valid for EDGE_EVENT jobs');
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
   function row(id: string) {
     const createdAt = new Date('2026-10-08T12:00:00.000Z');
     return {
@@ -206,6 +269,33 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       updatedAt: createdAt,
     };
   }
+
+  it('includes PUBLISHED_BEST_EFFORT in the supported admin status filters', async () => {
+    expect(integrationQueueAdminStatuses).toContain(
+      IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+    );
+    const published = {
+      ...row('job-best-effort'),
+      type: IntegrationJobType.EDGE_EVENT,
+      status: IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+    };
+    const { repository, findMany } = createRepository([published]);
+
+    await expect(
+      repository.listByStatusPage(
+        IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+        null,
+      ),
+    ).resolves.toMatchObject({
+      items: [published],
+      nextCursor: null,
+    });
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: IntegrationJobStatus.PUBLISHED_BEST_EFFORT },
+      }),
+    );
+  });
 
   it('orders by created time and id, fetches one look-ahead row and returns the last visible id', async () => {
     // Equal timestamps exercise the deterministic id tiebreaker in the query.
