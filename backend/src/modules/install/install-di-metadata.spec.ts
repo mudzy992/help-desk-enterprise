@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common/constants";
 import { AccountSecurityPolicyLoader } from "../authentication/security/account-security-policy.loader";
 import { SmtpMailTransport } from "../notifications/email/smtp-mail-transport";
+import { PrincipalContextInvalidator } from "../../common/principal-context/principal-context-invalidator.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { InstallAddonsService } from "./install-addons.service";
@@ -57,6 +58,7 @@ const providers: Readonly<Record<string, object>> = {
   InstallLoginProviderService,
   InstallSmtpService,
   InstallSeedService,
+  PrincipalContextInvalidator,
   InstallAddonsService,
   InstallProfileService,
   InstallStepSkipService,
