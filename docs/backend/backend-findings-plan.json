@@ -2396,7 +2396,7 @@
     {
       "id": "BA-notifications-10",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "17-notifications.md",
       "owner": "WS-D",
       "wave": 6
@@ -2420,7 +2420,7 @@
     {
       "id": "BA-notifications-13",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "17-notifications.md",
       "owner": "WS-D",
       "wave": 6
@@ -2436,7 +2436,7 @@
     {
       "id": "BA-notifications-15",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "17-notifications.md",
       "owner": "WS-D",
       "wave": 6

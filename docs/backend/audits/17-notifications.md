@@ -145,12 +145,12 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 | BA-notifications-07 | P2       | Stale email claim takeover može duplirati već poslanu poruku                                | zatvoreno |
 | BA-notifications-08 | P2       | Inbox nema cursor/hasMore i starija historija je nedostupna                                 | zatvoreno |
 | BA-notifications-09 | P2       | Email delivery adresa/status nemaju retention/redaction lifecycle                           | zatvoreno |
-| BA-notifications-10 | P2       | Delivery state nema attempts/error/dead/retry ugovor ni dokaz stvarnog provider ishoda      | otvoreno |
+| BA-notifications-10 | P2       | Delivery state nema attempts/error/dead/retry ugovor ni dokaz stvarnog provider ishoda      | zatvoreno |
 | BA-notifications-11 | P2       | Group mark-all učitava i insertuje neograničen skup ID-eva u jednom HTTP zahtjevu           | zatvoreno |
 | BA-notifications-12 | P3       | Digest retention grešku guta i izvještava kao nula                                          | zatvoreno |
-| BA-notifications-13 | P3       | Redis fallback test-email limit je per-instance i mapa nema cleanup                         | otvoreno |
+| BA-notifications-13 | P3       | Redis fallback test-email limit je per-instance i mapa nema cleanup                         | zatvoreno |
 | BA-notifications-14 | P3       | Kritični recovery/scope/concurrency scenariji nemaju E2E dokaz                              | otvoreno |
-| BA-notifications-15 | P3       | Većina DB direktnih suiteova lokalno je compile-blocked generated Prisma klijentom           | otvoreno |
+| BA-notifications-15 | P3       | Većina DB direktnih suiteova lokalno je compile-blocked generated Prisma klijentom           | zatvoreno |
 
 ## 13. Detalji P1 nalaza
 
@@ -400,3 +400,16 @@ Perf nije pokrenut jer notification retention processor putanja nije u `.github/
 Ova dopuna zatvara samo `BA-notifications-12`. Notifications ima **11/15** zatvorenih; `BA-notifications-10`, `BA-notifications-13`, `BA-notifications-14` i `BA-notifications-15` ostaju otvoreni. Val 6 ima **30/109** zatvorenih i **79 otvorenih** nalaza (18 P1 / 42 P2 / 19 P3); audit jedinica `29 — status-page` ostaje 19/19. Izvorni audit/generisani plan prikazuju **531 otvoren / 161 zatvoren**, a redovi globalnog registra **541/151**. Deset poznatih source/global statusnih razlika ostaje netaknuto; baseline **5,05/10** nije rescoraan. BA-15 full critical-flow acceptance ostaje pending; Val 6 nije završen.
 
 Nema PR-a, mergea ili deploymenta. BA-12 nema migraciju, ali raniji Coolify redeploy blocker je zaseban: tačan potreban migration ID nije potvrđen i ne smije se pogađati. Svaka buduća redeploy uputa mora unaprijed navesti tačnu potrebnu migraciju i redoslijed. Detalji paketa su u [143 — digest retention failure visibility](../implementation/143-notifications-12-digest-retention-fail-visible.md).
+
+## 30. Statusna dopuna — BA-notifications-10/13/15 closeout (2026-11-07)
+
+`BA-notifications-10`, `BA-notifications-13` i `BA-notifications-15` zatvaraju se na već implementiranom kodu i automatizovanom CI dokazu; detaljni statusni closeout je u [paketu 144](../implementation/144-notifications-10-13-15-status-closeout.md).
+
+- `BA-notifications-10`: delivery state bilježi attempts/retry i `FAILED`/`DEAD`/`UNKNOWN` ishode, a SMTP provider receipt se persistira. Unit regresije su u `deliver-notification-email.spec.ts` i `persist-notification-email-delivery.spec.ts`; `notification-email-delivery-recovery.integration.spec.ts` pokriva DB recovery/provider receipt. CI [`42291432145`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42291432145) na `d93ca280` prošao je backend build/full Jest i PostgreSQL+Redis integration.
+- `BA-notifications-13`: Redis test-email limiter ograničava na pet po actoru u deset minuta; unavailable/missing Redis je fail-closed (`503`), a stvarni limit breach ostaje `429`. Redis integration suite je registrovan i CI [`42286710936`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42286710936) je passed; najnoviji puni CI [`42291432145`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42291432145) također je passed.
+- `BA-notifications-15`: CI generiše Prisma client prije backend build/testa; generated-client safety-net compile, puni backend Jest i PostgreSQL+Redis integration job su passed. Puni backend Jest je dokaz za notification suites; safety-net compile nije pogrešno predstavljen kao direktno pokretanje baš tih putanja.
+- `BA-notifications-14` ostaje otvoren. Najnoviji CI je preskočio E2E critical flows, install wizard i read-only inventory; traženi kritični recovery/scope/concurrency browser dokaz nije dostupan i nije ručno dispatchan. Odvojeni globalni `BA-15` full critical-flow acceptance također ostaje pending.
+
+Posljednji Perf [`42289613508`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42289613508) ostaje **failed** na nepromijenjenom globalnom query budgetu: prosjek `2.128` prema `2.1` kroz `50,597` zahtjeva (p95 `3`, max `34`). Nema dokaza da se neuspjeh može pripisati ovim notification nalazima; prag nije mijenjan i Perf se ne označava zelenim.
+
+Nema schema izmjene, migracije, target-DB upotrebe, PR-a, mergea ni deploymenta. Zatvorena su tri nalaza: notifications je **14/15**; Val 6 je **33/109** zatvorenih i **76 otvorenih** (18 P1 / 41 P2 / 17 P3); status-page 29 ostaje 19/19. Source audit/generisani plan su **528 otvoren / 164 zatvoren**, a redovi globalnog registra **538/154**. Deset poznatih source/global statusnih razlika ostaje netaknuto; baseline **5,05/10** nije rescoraan. Val 6 nije završen.
