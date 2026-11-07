@@ -76,18 +76,17 @@ function groupFeedChangeKind(
 }
 
 /**
- * Phase 3.2 transition switch.
+ * Temporary rolling-deploy compatibility switch for old group-room clients.
  *
- * Rule: "klijent mora raditi i protiv servera prije faze" — and the other way
- * around during a rolling deploy. A client build from before this phase only
- * knows `ticket.updated`, which used to reach group rooms, so the group room
- * keeps receiving it **and** the new light event until every client has been
- * reloaded. Flip this to `off` (env `WS_GROUP_FEED_LEGACY_FULL_EMIT=off`) after
- * the rollout — the runbook in `ops/ws-rolling-deploy.md` describes the order.
+ * Group membership alone does not authorize a full ticket/message payload, so
+ * the legacy broadcast is disabled unless an operator explicitly opts in with
+ * `WS_GROUP_FEED_LEGACY_FULL_EMIT=on` (also accepts `true` or `1`). Unset,
+ * false-like, and unknown values all stay fail-closed. See
+ * `ops/ws-rolling-deploy.md` before enabling the compatibility mode.
  */
 export function isLegacyGroupFullEmitEnabled(
   environment: { readonly WS_GROUP_FEED_LEGACY_FULL_EMIT?: string } = process.env,
 ): boolean {
   const value = environment.WS_GROUP_FEED_LEGACY_FULL_EMIT?.trim().toLowerCase();
-  return value !== 'off' && value !== 'false' && value !== '0';
+  return value === 'on' || value === 'true' || value === '1';
 }

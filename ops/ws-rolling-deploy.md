@@ -60,3 +60,28 @@ node ops/ws-cross-instance-check.mjs  # 2 socket.io servera + 1 klijent
 Skripta podiže dvije Socket.IO instance s Redis adapterom, spoji klijenta na B,
 emituje s A i traži da poruka stigne — to je isti dokaz koji kapija Faze 3 traži
 („cross-instance emit dokazan").
+
+## 5. Group feed payload compatibility
+
+`group.feed-changed` je podržan događaj za osvježavanje grupnih listi; repo frontend
+se na njega pretplaćuje. Group sobe su zasnovane na članstvu, a članstvo samo po sebi
+nije per-ticket autorizacija. Zato je puni legacy `ticket.updated`/`ticket.message.created`
+payload prema `group:*` sobama **isključen po defaultu**.
+
+`WS_GROUP_FEED_LEGACY_FULL_EMIT=on` je isključivo eksplicitni, privremeni rolling-deploy
+compatibility izuzetak za klijente starije od 3.2. Dok je uključen, puni javni ticket/message
+payload ide svim članovima grupe bez per-ticket provjere; startup warning je namjerna
+sigurnosna eskalacija, ne odobrenje za trajnu upotrebu. Ne uključivati ga kao trajni
+fallback. Ako je potreban tokom kontrolisanog prelaza:
+
+1. prvo potvrditi i pustiti klijentsku verziju koja sluša `group.feed-changed`;
+2. samo ako još postoje stari povezani klijenti, eksplicitno postaviti flag na `on` kroz
+   dokumentovani, vremenski ograničen compatibility window;
+3. nakon što su stari klijenti zamijenjeni/reconnected, ukloniti varijablu ili postaviti
+   `WS_GROUP_FEED_LEGACY_FULL_EMIT=off`, zatim rolling-redeploy backend;
+4. provjeriti startup log da je legacy emit `OFF`; ne oslanjati se na automatsko gašenje po
+   uptimeu ili na samu metriku emitova.
+
+Nepoznata vrijednost, prazna varijabla i unset stanje tretiraju se kao `off`. Ako se ne može
+potvrditi kompatibilnost klijenata, ne uključivati puni payload; radije pustiti novi UI koji
+podržava laki event i provjeriti list refresh kroz uobičajeni release acceptance.

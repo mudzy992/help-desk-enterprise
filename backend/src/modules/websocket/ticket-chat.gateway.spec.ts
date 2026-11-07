@@ -16,6 +16,8 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+const originalLegacyGroupEmit = process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
+
 describe('TicketChatGateway', () => {
   const authorizeSocketJoin = jest.fn();
   let hub: TicketRealtimeHub;
@@ -23,6 +25,7 @@ describe('TicketChatGateway', () => {
   const emitted: { room: string; event: string; payload: unknown }[] = [];
 
   beforeEach(() => {
+    delete process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
     authorizeSocketJoin.mockReset();
     emitted.length = 0;
     hub = new TicketRealtimeHub();
@@ -40,6 +43,14 @@ describe('TicketChatGateway', () => {
       emit: jest.fn(),
     } as unknown as Server;
     gateway.afterInit();
+  });
+
+  afterEach(() => {
+    if (originalLegacyGroupEmit === undefined) {
+      delete process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
+      return;
+    }
+    process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = originalLegacyGroupEmit;
   });
 
   it('joins public or staff rooms after the same ticket authorization', async () => {
@@ -112,11 +123,11 @@ describe('TicketChatGateway', () => {
       visibility: 'public',
     };
     hub.publish(publicPayload);
-    // Faza 3.2: group soba dobija laki `group.feed-changed`, a dok traje
-    // tranzicija i stari puni payload (vidi `isLegacyGroupFullEmitEnabled`).
+    // Group membership alone is not ticket-level authorization: default room
+    // fan-out is limited to the lightweight change signal.
     expect(
-      emitted.filter((item) => item.room === 'group:group-it').map((item) => item.event).sort(),
-    ).toEqual(['group.feed-changed', ticketRealtimeEventNames.messageCreated]);
+      emitted.filter((item) => item.room === 'group:group-it').map((item) => item.event),
+    ).toEqual(['group.feed-changed']);
     expect([...new Set(emitted.map((item) => item.room))].sort()).toEqual([
       'group:group-it',
       ticketPublicRoomName('ticket-1'),
