@@ -5342,7 +5342,11 @@
     "columnType": "Type",
     "columnStatus": "Status",
     "columnAttempts": "Attempts",
-    "columnError": "Last error",
+    "columnError": "Error code",
+    "errorCodes": {
+      "EDGE_EVENT_NO_SUBSCRIBERS": "No active event subscribers",
+      "INTEGRATION_JOB_FAILED": "Integration job failed"
+    },
     "columnUpdated": "Updated",
     "columnActions": "Actions",
     "statuses": {

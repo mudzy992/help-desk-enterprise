@@ -88,7 +88,15 @@ describe('IntegrationQueueService', () => {
     const { service, repository } = createService();
     const listed = await service.list(IntegrationJobStatus.DLQ, 'previous-cursor');
     expect(listed.items).toHaveLength(1);
-    expect(listed.items[0]?.status).toBe(IntegrationJobStatus.DLQ);
+    expect(listed.items[0]).toMatchObject({
+      id: 'job-1',
+      status: IntegrationJobStatus.DLQ,
+      lastErrorCode: 'INTEGRATION_JOB_FAILED',
+    });
+    expect(listed.items[0]).not.toHaveProperty('payload');
+    expect(listed.items[0]).not.toHaveProperty('lastError');
+    expect(JSON.stringify(listed.items[0])).not.toContain('user@example.com');
+    expect(JSON.stringify(listed.items[0])).not.toContain('SMTP unavailable');
     expect(listed.nextCursor).toBeNull();
     expect(repository.listByStatusPage).toHaveBeenCalledWith(
       IntegrationJobStatus.DLQ,
@@ -112,6 +120,9 @@ describe('IntegrationQueueService', () => {
     );
     expect(retried.status).toBe(IntegrationJobStatus.PENDING);
     expect(retried.attempts).toBe(0);
+    expect(retried).not.toHaveProperty('payload');
+    expect(retried).not.toHaveProperty('lastError');
+    expect(JSON.stringify(retried)).not.toContain('user@example.com');
   });
 
   it('keeps the admin retry PENDING when BullMQ add fails so reconciliation can recover it', async () => {

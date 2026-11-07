@@ -28,12 +28,13 @@ export const integrationJobTypes = ["EMAIL", "EDGE_EVENT", "TEAMS"] as const;
 
 export type IntegrationJobType = (typeof integrationJobTypes)[number];
 
+export type IntegrationJobAdminErrorCode = "EDGE_EVENT_NO_SUBSCRIBERS" | "INTEGRATION_JOB_FAILED";
+
 export type IntegrationJob = {
   readonly id: string;
   readonly type: IntegrationJobType;
   readonly status: IntegrationJobAdminStatus;
-  readonly payload: unknown;
-  readonly lastError: string | null;
+  readonly lastErrorCode: IntegrationJobAdminErrorCode | null;
   readonly attempts: number;
   readonly nextRetryAt: string | null;
   readonly createdAt: string;

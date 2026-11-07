@@ -5,8 +5,10 @@ import {
   toEdgeEventRealtimePublish,
 } from './parse-edge-event-integration-job-payload';
 import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.service';
+import { integrationJobAdminErrorCodes } from './integration-queue.types';
 
-export const edgeEventNoSubscribersCode = 'EDGE_EVENT_NO_SUBSCRIBERS';
+export const edgeEventNoSubscribersCode =
+  integrationJobAdminErrorCodes.edgeEventNoSubscribers;
 
 export class EdgeEventNoSubscribersError extends Error {
   readonly code = edgeEventNoSubscribersCode;

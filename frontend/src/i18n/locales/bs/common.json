@@ -5362,7 +5362,11 @@
     "columnType": "Tip",
     "columnStatus": "Status",
     "columnAttempts": "Pokušaji",
-    "columnError": "Posljednja greška",
+    "columnError": "Šifra greške",
+    "errorCodes": {
+      "EDGE_EVENT_NO_SUBSCRIBERS": "Nema aktivnih pretplatnika za događaj",
+      "INTEGRATION_JOB_FAILED": "Integracioni posao nije uspio"
+    },
     "columnUpdated": "Ažurirano",
     "columnActions": "Radnje",
     "statuses": {

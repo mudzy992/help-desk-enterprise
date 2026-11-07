@@ -73,6 +73,17 @@ export class IntegrationJobRepository {
     }
     const rows = await this.prisma.integrationJob.findMany({
       where: { status },
+      // The admin list reads only operational metadata; job payloads remain internal.
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        lastError: true,
+        attempts: true,
+        nextRetryAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       // `id` breaks ties when jobs share a timestamp, keeping page boundaries stable.
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: integrationQueueAdminPageSize + 1,

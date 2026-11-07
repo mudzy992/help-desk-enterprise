@@ -3,7 +3,6 @@ import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
 import { appendUniqueIntegrationJobs } from "@/lib/queue/use-integration-queue";
 import { canManageIntegrationQueue } from "@/lib/queue/can-manage-integration-queue";
 import { mapIntegrationQueueError } from "@/lib/queue/map-integration-queue-error";
-import { truncateQueueError } from "@/lib/queue/truncate-queue-error";
 import { integrationJobBadgeTone } from "@/lib/queue/integration-job-badge-tone";
 import { ApiError } from "@/services/api";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -43,8 +42,7 @@ describe("integration queue helpers", () => {
       id,
       type: "EMAIL" as const,
       status: "FAILED" as const,
-      payload: null,
-      lastError: null,
+      lastErrorCode: null,
       attempts: 1,
       nextRetryAt: null,
       createdAt: "2026-10-08T12:00:00.000Z",
@@ -57,10 +55,7 @@ describe("integration queue helpers", () => {
     ).toEqual(["a", "b", "c"]);
   });
 
-  it("truncates lastError and maps status tones", () => {
-    expect(truncateQueueError(null)).toBe("");
-    expect(truncateQueueError("short")).toBe("short");
-    expect(truncateQueueError("abcdefghij", 8)).toBe("abcdefgh…");
+  it("maps status tones", () => {
     expect(integrationJobBadgeTone("PENDING")).toBe("warning");
     expect(integrationJobBadgeTone("PUBLISHED_BEST_EFFORT")).toBe("info");
     expect(integrationJobBadgeTone("DLQ")).toBe("danger");

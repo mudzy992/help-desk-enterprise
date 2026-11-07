@@ -61,12 +61,19 @@ export type IntegrationQueueSettings = {
   readonly adminUiEnabled: boolean;
 };
 
+export const integrationJobAdminErrorCodes = {
+  edgeEventNoSubscribers: 'EDGE_EVENT_NO_SUBSCRIBERS',
+  genericFailure: 'INTEGRATION_JOB_FAILED',
+} as const;
+
+export type IntegrationJobAdminErrorCode =
+  (typeof integrationJobAdminErrorCodes)[keyof typeof integrationJobAdminErrorCodes];
+
 export type IntegrationJobResponse = {
   readonly id: string;
   readonly type: IntegrationJobType;
   readonly status: IntegrationJobStatus;
-  readonly payload: unknown;
-  readonly lastError: string | null;
+  readonly lastErrorCode: IntegrationJobAdminErrorCode | null;
   readonly attempts: number;
   readonly nextRetryAt: string | null;
   readonly createdAt: string;

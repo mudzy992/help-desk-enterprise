@@ -17,6 +17,17 @@ jest.mock('../audit-log/record-audit-entry', () => ({
   recordAuditEntry: jest.fn().mockResolvedValue(undefined),
 }));
 
+const adminPageSelection = {
+  id: true,
+  type: true,
+  status: true,
+  lastError: true,
+  attempts: true,
+  nextRetryAt: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
 describe('IntegrationJobRepository admin cursor pages', () => {
   function createRepository(rows: readonly unknown[]) {
     const prisma = {
@@ -287,12 +298,16 @@ describe('IntegrationJobRepository admin cursor pages', () => {
         null,
       ),
     ).resolves.toMatchObject({
-      items: [published],
+      items: [expect.objectContaining({
+        id: published.id,
+        status: IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+      })],
       nextCursor: null,
     });
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { status: IntegrationJobStatus.PUBLISHED_BEST_EFFORT },
+        select: adminPageSelection,
       }),
     );
   });
@@ -308,6 +323,7 @@ describe('IntegrationJobRepository admin cursor pages', () => {
 
     expect(findMany).toHaveBeenCalledWith({
       where: { status: IntegrationJobStatus.DLQ },
+      select: adminPageSelection,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: integrationQueueAdminPageSize + 1,
     });
@@ -327,6 +343,7 @@ describe('IntegrationJobRepository admin cursor pages', () => {
 
     expect(findMany).toHaveBeenCalledWith({
       where: { status: IntegrationJobStatus.FAILED },
+      select: adminPageSelection,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: integrationQueueAdminPageSize + 1,
       cursor: { id: 'job-previous' },

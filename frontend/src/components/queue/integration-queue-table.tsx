@@ -5,7 +5,7 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
 import { integrationJobBadgeTone } from "@/lib/queue/integration-job-badge-tone";
-import { truncateQueueError } from "@/lib/queue/truncate-queue-error";
+import { mapIntegrationJobErrorCode } from "@/lib/queue/map-integration-job-error-code";
 import type { IntegrationJob } from "@/services/integration-queue-types";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
@@ -48,7 +48,7 @@ export function IntegrationQueueTable({
               </td>
               <td className="tnum px-3">{job.attempts}</td>
               <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground">
-                {truncateQueueError(job.lastError) || t("integrationQueue.noError")}
+                {t(mapIntegrationJobErrorCode(job.lastErrorCode))}
               </td>
               <td className="px-3">
                 <RelativeTime value={job.updatedAt} locale={i18n.language} />
