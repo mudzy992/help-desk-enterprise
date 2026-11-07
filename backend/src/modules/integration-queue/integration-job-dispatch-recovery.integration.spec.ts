@@ -250,7 +250,7 @@ describeIfDatabase(
         }),
       ).resolves.toMatchObject({ status: 'PENDING', nextRetryAt: null });
       expect(queue.add).toHaveBeenCalledWith(
-        IntegrationJobType.EDGE_EVENT,
+        IntegrationJobType.EMAIL,
         { integrationJobId: job.id },
         expect.objectContaining({ jobId: job.id }),
       );
