@@ -395,6 +395,27 @@ describe('principal context loading (phase 2.2)', () => {
     expect(after?.isActive).toBe(false);
   });
 
+  it('publishes a committed authorization version without incrementing it again', async () => {
+    const { invalidator, redis, state, queries } = setup(
+      userRow({ authzVersion: 7 }),
+    );
+
+    await invalidator.notifyUserChanged('user-agent', 7);
+
+    expect(state.users.get('user-agent')?.authzVersion).toBe(7);
+    expect(queries).toEqual([]);
+    expect(redis.entries.get(principalContextVersionKey('user-agent'))).toEqual({
+      value: '7',
+      ttlSeconds: principalContextCacheTtlSeconds,
+    });
+    expect(redis.publications).toHaveLength(1);
+    expect(JSON.parse(redis.publications[0]!.message)).toEqual({
+      version: 1,
+      kind: 'users',
+      subjectIds: ['user-agent'],
+    });
+  });
+
   it('publishes a user socket invalidation after the durable authz-version bump', async () => {
     const { invalidator, redis } = setup();
     await invalidator.invalidateUser('user-agent');

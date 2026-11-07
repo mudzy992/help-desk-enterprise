@@ -4,6 +4,10 @@ import type { InstallSeedSlaProfile } from './install-seed-sla-profile';
 import type { RoutingConfiguration } from '../routing/routing.types';
 import type { ServiceLifecycleConfiguration } from '../service-catalog/service-catalog.types';
 import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
+import type {
+  PrincipalBatchInvalidationHook,
+  PrincipalInvalidationHook,
+} from '../../common/principal-context/principal-context.types';
 
 export type InstallSeedOrganizationalUnit = {
   readonly id: string;
@@ -80,6 +84,9 @@ export type InstallSeedContext = {
   readonly forms: ServiceFormsConfiguration;
   /** F2: names from the structure step; omitted means the pre-v2 defaults. */
   readonly names?: InstallSeedNames;
+  /** Post-commit cache hooks for memberships and changed role permissions. */
+  readonly invalidatePrincipal?: PrincipalInvalidationHook;
+  readonly invalidatePrincipals?: PrincipalBatchInvalidationHook;
 };
 
 /** F2: the names the operator typed, compared with the stored records. */

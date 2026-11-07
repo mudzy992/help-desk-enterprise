@@ -14,10 +14,12 @@ function createFakePrisma(input?: {
   readonly roles?: readonly { key: string; name?: string }[];
   readonly permissions?: readonly string[];
   readonly links?: readonly { roleKey: string; permissionKey: string }[];
+  readonly userRoles?: readonly { userId: string; roleKey: string }[];
 }) {
   const roles = new Map<string, FakeRole>();
   const permissions = new Map<string, FakePermission>();
   const rolePermissions: FakeRolePermission[] = [];
+  const userRoles: { userId: string; roleId: string }[] = [];
   let next = 1;
   for (const role of input?.roles ?? []) {
     const id = `role-${next++}`;
@@ -43,6 +45,12 @@ function createFakePrisma(input?: {
         roleId: role.id,
         permissionId: permission.id,
       });
+    }
+  }
+  for (const holder of input?.userRoles ?? []) {
+    const role = [...roles.values()].find((row) => row.key === holder.roleKey);
+    if (role !== undefined) {
+      userRoles.push({ userId: holder.userId, roleId: role.id });
     }
   }
   const prisma = {
@@ -100,6 +108,23 @@ function createFakePrisma(input?: {
         const created = { id: `link-${next++}`, ...data };
         rolePermissions.push(created);
         return created;
+      },
+    },
+    userRole: {
+      findMany: async ({ where, distinct }: {
+        where: { roleId: { in: readonly string[] } };
+        distinct?: readonly string[];
+      }) => {
+        let holders = userRoles.filter((row) => where.roleId.in.includes(row.roleId));
+        if (distinct?.includes('userId')) {
+          const seen = new Set<string>();
+          holders = holders.filter((row) => {
+            if (seen.has(row.userId)) return false;
+            seen.add(row.userId);
+            return true;
+          });
+        }
+        return holders.map(({ userId }) => ({ userId }));
       },
     },
   };
@@ -200,6 +225,119 @@ describe('seedDefaultRolePermissions', () => {
       keys.filter((key) => key === permissionKeys.knowledgeArticleWrite),
     ).toHaveLength(1);
     expect(keys).toHaveLength(role.existing + role.added);
+  });
+
+  it('invalidates distinct holders once after adding role permissions', async () => {
+    const fake = createFakePrisma({
+      roles: [{ key: authorizationRoleKeys.agent }],
+      userRoles: [
+        { userId: 'holder-a', roleKey: authorizationRoleKeys.agent },
+        { userId: 'holder-b', roleKey: authorizationRoleKeys.agent },
+        { userId: 'holder-a', roleKey: authorizationRoleKeys.agent },
+      ],
+    });
+    const invalidatePrincipals = jest.fn().mockResolvedValue(undefined);
+
+    await seedDefaultRolePermissions(fake.prisma, {
+      roleKeys: [authorizationRoleKeys.agent],
+      invalidatePrincipals,
+    });
+
+    expect(invalidatePrincipals).toHaveBeenCalledTimes(1);
+    expect(invalidatePrincipals).toHaveBeenCalledWith(['holder-a', 'holder-b']);
+  });
+
+  it('invalidates holders of links that committed before a later seed error', async () => {
+    const fake = createFakePrisma({
+      roles: [{ key: authorizationRoleKeys.agent }],
+      userRoles: [{ userId: 'holder-a', roleKey: authorizationRoleKeys.agent }],
+    });
+    const delegates = fake.prisma as unknown as {
+      rolePermission: {
+        create: (input: {
+          data: { roleId: string; permissionId: string };
+        }) => Promise<unknown>;
+      };
+    };
+    const createLink = delegates.rolePermission.create;
+    let createCount = 0;
+    delegates.rolePermission.create = async (input) => {
+      createCount += 1;
+      if (createCount === 2) throw new Error('seed interrupted');
+      return createLink(input);
+    };
+    const invalidatePrincipals = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      seedDefaultRolePermissions(fake.prisma, {
+        roleKeys: [authorizationRoleKeys.agent],
+        invalidatePrincipals,
+      }),
+    ).rejects.toThrow('seed interrupted');
+
+    expect(invalidatePrincipals).toHaveBeenCalledTimes(1);
+    expect(invalidatePrincipals).toHaveBeenCalledWith(['holder-a']);
+  });
+
+  it('invalidates holders if a permission-link insert reports an error after commit', async () => {
+    const fake = createFakePrisma({
+      roles: [{ key: authorizationRoleKeys.agent }],
+      userRoles: [{ userId: 'holder-a', roleKey: authorizationRoleKeys.agent }],
+    });
+    const delegates = fake.prisma as unknown as {
+      rolePermission: {
+        create: (input: {
+          data: { roleId: string; permissionId: string };
+        }) => Promise<unknown>;
+      };
+    };
+    const createLink = delegates.rolePermission.create;
+    delegates.rolePermission.create = async (input) => {
+      await createLink(input);
+      throw new Error('response lost after commit');
+    };
+    const invalidatePrincipals = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      seedDefaultRolePermissions(fake.prisma, {
+        roleKeys: [authorizationRoleKeys.agent],
+        invalidatePrincipals,
+      }),
+    ).rejects.toThrow('response lost after commit');
+
+    expect(invalidatePrincipals).toHaveBeenCalledWith(['holder-a']);
+  });
+
+  it('invalidates holders if a permission-link insert reports an error after commit', async () => {
+    const fake = createFakePrisma({
+      roles: [{ key: authorizationRoleKeys.agent }],
+      userRoles: [{ userId: 'holder-a', roleKey: authorizationRoleKeys.agent }],
+    });
+    const delegates = fake.prisma as unknown as {
+      rolePermission: {
+        create: (input: {
+          data: { roleId: string; permissionId: string };
+        }) => Promise<unknown>;
+      };
+    };
+    const createLink = delegates.rolePermission.create;
+    let committed = false;
+    delegates.rolePermission.create = async (input) => {
+      await createLink(input);
+      committed = true;
+      throw new Error('connection lost after commit');
+    };
+    const invalidatePrincipals = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      seedDefaultRolePermissions(fake.prisma, {
+        roleKeys: [authorizationRoleKeys.agent],
+        invalidatePrincipals,
+      }),
+    ).rejects.toThrow('connection lost after commit');
+
+    expect(committed).toBe(true);
+    expect(invalidatePrincipals).toHaveBeenCalledWith(['holder-a']);
   });
 
   it('writes nothing in a dry run but reports what would be added', async () => {

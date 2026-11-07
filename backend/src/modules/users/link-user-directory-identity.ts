@@ -1,6 +1,7 @@
 import { authenticationConstants } from '../authentication/authentication.constants';
 import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { PrincipalInvalidationHook } from '../../common/principal-context/principal-context.types';
 import { lockActiveSuperAdminInvariant } from './super-admin-invariant';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
@@ -17,6 +18,7 @@ export async function linkUserDirectoryIdentity(input: {
   readonly userId: string;
   readonly directoryExternalId: string;
   readonly context?: UserAuditContext;
+  readonly invalidatePrincipal?: PrincipalInvalidationHook;
 }): Promise<UserSummaryResponse> {
   const userId = input.userId.trim();
   const directoryExternalId = input.directoryExternalId.trim();
@@ -132,6 +134,13 @@ export async function linkUserDirectoryIdentity(input: {
       },
     });
   });
+  if (input.invalidatePrincipal !== undefined) {
+    try {
+      await input.invalidatePrincipal(existing.id);
+    } catch {
+      // The directory link is committed; cache invalidation is best effort.
+    }
+  }
   const summaries = await listUsersSummary(input.prisma, { ids: [existing.id] });
   const summary = summaries.find((user) => user.id === existing.id);
   if (summary === undefined) {

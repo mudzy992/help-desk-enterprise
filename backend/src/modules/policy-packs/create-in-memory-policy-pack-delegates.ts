@@ -226,7 +226,35 @@ export function createInMemoryPolicyPackDelegates(
         stores.userRoles.push(created);
         return created;
       },
-      findMany: async () => [...stores.userRoles],
+      findMany: async (args?: {
+        where?: { roleId?: string | { in: readonly string[] }; userId?: string };
+        select?: { userId?: boolean };
+        distinct?: readonly string[];
+      }) => {
+        let records = [...stores.userRoles];
+        const roleId = args?.where?.roleId;
+        if (typeof roleId === 'string') {
+          records = records.filter((record) => record.roleId === roleId);
+        } else if (roleId !== undefined) {
+          const roleIds = new Set(roleId.in);
+          records = records.filter((record) => roleIds.has(record.roleId));
+        }
+        if (args?.where?.userId !== undefined) {
+          records = records.filter((record) => record.userId === args.where?.userId);
+        }
+        if (args?.distinct?.includes('userId')) {
+          const seen = new Set<string>();
+          records = records.filter((record) => {
+            if (seen.has(record.userId)) return false;
+            seen.add(record.userId);
+            return true;
+          });
+        }
+        if (args?.select?.userId === true) {
+          return records.map(({ userId }) => ({ userId }));
+        }
+        return records;
+      },
       deleteMany: async ({
         where,
       }: {

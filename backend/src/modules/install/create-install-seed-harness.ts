@@ -20,6 +20,8 @@ export const seedNow = new Date('2026-09-11T10:00:00.000Z');
 export async function createInstallSeedHarness(input?: {
   readonly withSuperAdmin?: boolean;
   readonly lifecycle?: ServiceLifecycleConfiguration;
+  readonly invalidatePrincipal?: (userId: string) => Promise<unknown>;
+  readonly invalidatePrincipals?: (userIds: readonly string[]) => Promise<unknown>;
 }) {
   const memory = createInMemoryInstallSeedPrisma();
   const service = new InstallSeedService(
@@ -33,6 +35,13 @@ export async function createInstallSeedHarness(input?: {
     {
       load: async () => defaultServiceFormsConfiguration,
     } as unknown as ServiceFormsConfigurationLoader,
+    input?.invalidatePrincipal === undefined &&
+      input?.invalidatePrincipals === undefined
+      ? undefined
+      : ({
+          invalidateUser: input.invalidatePrincipal ?? (async () => null),
+          invalidateUsers: input.invalidatePrincipals ?? (async () => undefined),
+        } as never),
   );
   if (input?.withSuperAdmin !== false) {
     await createInstallSuperAdmin(

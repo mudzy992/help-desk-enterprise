@@ -60,9 +60,33 @@ export class PrincipalContextInvalidator {
         `authz_version_bump_skipped user=${id} reason=${describeError(error)}`,
       );
     }
-    await invalidateCachedPrincipalContext(await this.cacheClient(), id, version);
-    await this.publishSocketInvalidations([id]);
+    await this.notifyUserChanged(id, version);
     return version;
+  }
+
+  /**
+   * Publish a mutation whose authzVersion was already committed atomically by
+   * its caller. This avoids a second DB bump while still tombstoning the shared
+   * cache pointer and revoking sockets after the transaction commits.
+   */
+  async notifyUserChanged(
+    userId: string,
+    authzVersion: number | null,
+  ): Promise<void> {
+    const id = userId.trim();
+    if (id.length === 0) return;
+    try {
+      await invalidateCachedPrincipalContext(
+        await this.cacheClient(),
+        id,
+        authzVersion,
+      );
+      await this.publishSocketInvalidations([id]);
+    } catch (error) {
+      this.logger.warn(
+        `authz_notification_skipped user=${id} reason=${describeError(error)}`,
+      );
+    }
   }
 
   /**

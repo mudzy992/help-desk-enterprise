@@ -38,6 +38,9 @@ export type PrincipalAssignment = {
  * the write itself (rule 2.2.5, fail-open).
  */
 export type PrincipalInvalidationHook = (userId: string) => Promise<unknown>;
+export type PrincipalBatchInvalidationHook = (
+  userIds: readonly string[],
+) => Promise<unknown>;
 
 export type PrincipalContext = {
   readonly subjectId: string;

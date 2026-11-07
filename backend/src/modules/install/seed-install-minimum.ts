@@ -28,11 +28,24 @@ export async function seedInstallMinimum(
   const seeded = await invalidateConfigurationCachesAfter(prisma.$transaction((transaction) =>
     seedInstallMinimumWithClient(transaction as PrismaService, context),
   ));
-  // Val 0 (finding M4/B1): the system roles and their default permission mapping
-  // used to be created nowhere, so a fresh installation handed out 403s to
-  // ADMIN/AGENT. Seeded right after the minimum data, before the wizard lets
-  // anyone log in; additive and idempotent, so a repeated seed step is harmless.
-  await seedDefaultRolePermissions(prisma);
+  // The membership helper owns a transaction and must run after the outer seed
+  // transaction commits; its invalidation hook then observes committed state.
+  if (seeded.fallbackGroup !== null) {
+    await ensureInstallFallbackGroupMember(prisma, {
+      groupId: seeded.fallbackGroup.id,
+      userId: context.actorUserId,
+      ...(context.invalidatePrincipal === undefined
+        ? {}
+        : { invalidatePrincipal: context.invalidatePrincipal }),
+    });
+  }
+  // Val 0 (finding M4/B1): permission links are seeded only after the minimum
+  // data commits, so holder invalidation also runs after the writes it covers.
+  await seedDefaultRolePermissions(prisma, {
+    ...(context.invalidatePrincipals === undefined
+      ? {}
+      : { invalidatePrincipals: context.invalidatePrincipals }),
+  });
   return seeded;
 }
 
@@ -50,13 +63,6 @@ async function seedInstallMinimumWithClient(
     organizationalUnitId: organizationalUnit.id,
     preferredGroupId: existingFallbackHint,
     names,
-  });
-  // F0.6: a fallback group without members means routed tickets reach nobody
-  // (readiness `handlerGroup`). The founder joins it through the same domain
-  // function the groups endpoint uses; repeated seeds do not duplicate it.
-  await ensureInstallFallbackGroupMember(prisma, {
-    groupId: fallbackGroup.id,
-    userId: context.actorUserId,
   });
   // F2: the first ticket needs an SLA clock, so the service is created under the
   // standard profile when the deployment has one.

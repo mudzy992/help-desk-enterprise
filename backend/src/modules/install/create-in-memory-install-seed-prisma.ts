@@ -64,6 +64,7 @@ export function createInMemoryInstallSeedPrisma() {
     role: users.prisma.role,
     permission: users.prisma.permission,
     rolePermission: users.prisma.rolePermission,
+    userRole: users.prisma.userRole,
     organizationalUnit: createInMemoryInstallSeedUnitDelegate(units, nextId, now),
     group: {
       ...baseGroupDelegate,

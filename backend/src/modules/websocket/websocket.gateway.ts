@@ -114,8 +114,8 @@ export class WebsocketGateway
     );
     // Phase 3.2 metric: emit-ova/s po vrsti sobe (staff/public/user/group).
     this.stopEmitCountReporter = startWebsocketEmitCountReporter(this.logger);
-    // Val 3 (M11/B1): membership and the admin role are read at handshake; this
-    // re-reads them every 5 minutes so a revoked room is actually left.
+    // BA-websocket-03: membership and the admin role are read at handshake;
+    // this re-reads them every 30 seconds as a bounded reconciliation fallback.
     this.stopRoomRevalidation = startSocketRoomRevalidation(
       server,
       this.socketGroupMembershipService,

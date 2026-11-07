@@ -13,7 +13,7 @@ import { unbindPolicyPackTargets } from './unbind-policy-pack-targets';
 import type {
   PolicyPackApplyInput,
   PolicyPackUnapplyResult,
-  PrincipalInvalidationHook,
+  PrincipalBatchInvalidationHook,
 } from './policy-pack.types';
 
 /**
@@ -32,7 +32,7 @@ export async function unapplyPolicyPack(
     readonly actorUserId: string | null;
     readonly requestId: string | null;
   } = { actorUserId: null, requestId: null },
-  invalidatePrincipal: PrincipalInvalidationHook = async () => {},
+  invalidatePrincipals: PrincipalBatchInvalidationHook = async () => undefined,
 ): Promise<PolicyPackUnapplyResult> {
   const target = await resolvePolicyPackUnapplyTarget(prisma, input);
   const plannedAssignments = planPolicyPackAssignments(target);
@@ -52,7 +52,18 @@ export async function unapplyPolicyPack(
       catalog.policyPackId,
       target,
     );
-    affectedUserIds = removed.affectedUserIds;
+    const changedPrincipalIds = new Set(removed.affectedUserIds);
+    if (catalog.roleIdsWithAddedPermissions.length > 0) {
+      const existingRoleHolders = await transaction.userRole.findMany({
+        where: { roleId: { in: [...catalog.roleIdsWithAddedPermissions] } },
+        select: { userId: true },
+        distinct: ['userId'],
+      });
+      for (const holder of existingRoleHolders) {
+        changedPrincipalIds.add(holder.userId);
+      }
+    }
+    affectedUserIds = [...changedPrincipalIds].sort();
     await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.policyPackUnapply,
       entityType: auditLogEntityTypes.policyPack,
@@ -80,8 +91,8 @@ export async function unapplyPolicyPack(
       plannedAssignments,
     };
   });
-  for (const userId of affectedUserIds) {
-    await invalidatePrincipal(userId);
+  if (affectedUserIds.length > 0) {
+    await invalidatePrincipals(affectedUserIds);
   }
   return result;
 }
