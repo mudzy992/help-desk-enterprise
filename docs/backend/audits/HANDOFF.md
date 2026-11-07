@@ -51,7 +51,19 @@ Finalni automatski CI [`42404889174`](https://github.com/mudzy992/help-desk-ente
 
 Lokalno: fokusirani Jest 10 suites/41 tests passed, ali PostgreSQL suite 2 testa je skipped bez lokalnog DB/generated Prisma Clienta; scheduler wiring 2/2, integration harness 17/17, wiring 99 controllers/619 routes, frontend i18n coverage 16/16, lint/format/diff-check passed. CI je izvršio real PostgreSQL suite. `BA-integration-queue-02/05`, stale `PROCESSING` recovery, exclusive claim, BA-15 full-flow acceptance i preostali Val 6 scope ostaju otvoreni/pending. Val 6 je 38/109 sa 71 otvorenim (13 P1 / 41 P2 / 17 P3); source/plan 523/169, globalni registar 533/159. Deset statusnih divergencija ostaje netaknuto. Nema target-DB upotrebe, migracije, PR-a, mergea ni deploymenta. Detalji: [audit 19, §18](19-integration-queue.md#18-w634-closeout--ba-integration-queue-01-2026-11-07) i [paket 149](../implementation/149-integration-queue-01-dispatch-recovery-closeout.md).
 
-Sljedeći W6 nalaz nije odabran. Nemoj širiti posao na `BA-integration-queue-02/05` ili druge nalaze bez zasebne scope odluke.
+W6.35 je zatim zatvorio samo `BA-integration-queue-02`; `BA-integration-queue-05` stale `PROCESSING` recovery i svi drugi susjedni nalazi ostaju van scopea. Sljedeći W6 nalaz nije odabran; nemoj širiti posao na BA-05 ili druge nalaze bez zasebne scope odluke.
+
+### W6.35 / `BA-integration-queue-02` (P1) — processor claim fencing closeout
+
+`BA-integration-queue-02` je zatvoren na finding nivou na SHA [`1677c74`](https://github.com/mudzy992/help-desk-enterprise/commit/1677c74578c459050b72a5777d469378b7493f5d). Processor koristi jedan conditional database claim nad status/version/attempt count/retry time, validira logical BullMQ attempt ID, te bilježi owner token i lease expiry; samo pobjednički claimant dispatchuje. Terminal/failure update-i i retry side-effecti zahtijevaju isti version/attempt/owner/lease dokaz. Stale/wrong-owner tranzicije ne mijenjaju status, email ledger ili retry queue.
+
+Novi PostgreSQL integration spec potvrđuje tačno jednog pobjednika concurrent duplicate claimova, odbijanje stale-attempt/wrong-owner finalizacija i da expired `PROCESSING` nije reclaimed. To posljednje je boundary test; stale `PROCESSING` recovery nije implementiran i `BA-integration-queue-05` ostaje otvoren. Nova migracija je `20271031180000_integration_job_processor_claim_fence`; Prisma runtime readiness je pinovan na nju. CI migration replay prošao je samo na disposable CI bazi. `be1c79db` nije mijenjana.
+
+CI [`42408942663`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42408942663) na `1677c74` prošao je generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test i Docs guard. E2E critical/install i read-only inventory su `skipped`. Ukupni CI **failed** na container zero-high/critical enforcementu zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]` (fixed `1.4-r0`); CI nije zelen. Perf [`42408942726`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42408942726) **failed** na query budgetu `2.122 > 2.1` kroz 51.120 zahtjeva (p95 3, max 34). Ostali zabilježeni Perf thresholds su passed; BA-02 uzročnost nije utvrđena i threshold nije mijenjan.
+
+Source/plan brojevi su 522 open / 170 closed; globalni registar 532/160; deset statusnih divergencija ostaje netaknuto. Val 6 je 39/109 zatvorenih, 70 otvorenih (12 P1 / 41 P2 / 17 P3); status-page audit 29 ostaje 19/19. Target DB nije korištena i nikakva migration nije izvršena van disposable CI; nema PR-a, mergea ili deploymenta. Svaki budući release handoff mora prvo potvrditi sve tačne pending migration ID-eve i njihov redoslijed; ne nagađati ranije neusaglašeni `be1c79db` lineage.
+
+Detalji: [audit 19, §19](19-integration-queue.md#19-w635-closeout--ba-integration-queue-02-2026-11-07) i [paket 150](../implementation/150-integration-queue-02-processor-claim-fencing.md).
 
 ### W7.15 / `BA-assets-15` (P2)
 

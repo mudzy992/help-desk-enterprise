@@ -6,7 +6,7 @@
 **Baseline ocjena:** **4,41/10**  
 **Nalazi:** 4 P1, 8 P2, 3 P3
 
-> Ovaj audit čuva baseline presjek od 2026-10-23. Kasniji finding-level closeouti se dodaju kao statusne dopune; ne mijenjaju retrospektivne baseline opise, broj nalaza ni ocjenu. W6.34 je zatvorio samo `BA-integration-queue-01`; vidi §18.
+> Ovaj audit čuva baseline presjek od 2026-10-23. Kasniji finding-level closeouti se dodaju kao statusne dopune; ne mijenjaju retrospektivne baseline opise, broj nalaza ni ocjenu. W6.34 je zatvorio samo `BA-integration-queue-01` (§18); W6.35 je zatvorio samo `BA-integration-queue-02` (§19). `BA-integration-queue-05` stale `PROCESSING` recovery i ostali nalazi ostaju otvoreni.
 
 ## 1. Executive summary
 
@@ -133,7 +133,7 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 | ID                   | Severity | Nalaz                                                                                     | Status   |
 | -------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
 | BA-integration-queue-01 | P1    | DB/Bull dual-write crash gap trajno orphanira enqueue, retry i admin-retry poslove        | zatvoreno |
-| BA-integration-queue-02 | P1    | Processor nema conditional lease claim pa dupli Bull poslovi paralelno dispatchuju        | otvoreno |
+| BA-integration-queue-02 | P1    | Processor nema conditional lease claim pa dupli Bull poslovi paralelno dispatchuju        | zatvoreno |
 | BA-integration-queue-03 | P1    | EDGE_EVENT `PUBLISH=0` postaje COMPLETED bez ijednog primaoca ili replaya                 | otvoreno |
 | BA-integration-queue-04 | P1    | Scoped ADMIN može čitati globalne sirove email/Edge/Teams payloadove                       | otvoreno |
 | BA-integration-queue-05 | P2    | PROCESSING nema lease/stale recovery i može ostati zauvijek                               | otvoreno |
@@ -154,11 +154,13 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 
 Postgres i Redis ne dijele transakciju. Uvesti transactional outbox: producer samo atomarno piše domain/outbox red; dispatcher claimuje lease i idempotentno upisuje Bull job. Alternativno obavezni reconciler mora nalaziti PENDING bez queue potvrde, due FAILED i stale PROCESSING. `queue.add` ID mora biti stabilan po logical attemptu. Admin retry mora biti auditirana state tranzicija koju isti dispatcher obrađuje.
 
-**W6.34 scope odluka:** ovaj finding-level closeout dokazuje oporavak `PENDING` i due `FAILED` redova te auditiranu admin-retry tranziciju koju dispatcher ponovo obrađuje. Stale `PROCESSING` recovery i ekskluzivni processor claim nisu obuhvaćeni niti se tvrdi da su riješeni; ostaju u granicama `BA-integration-queue-02/05`.
+**W6.34 scope odluka (historijski):** taj finding-level closeout dokazao je oporavak `PENDING` i due `FAILED` redova te auditiranu admin-retry tranziciju koju dispatcher ponovo obrađuje. Tada stale `PROCESSING` recovery i ekskluzivni processor claim nisu bili obuhvaćeni; `BA-integration-queue-02` je kasnije zasebno zatvoren u §19, dok `BA-integration-queue-05` ostaje otvoren.
 
 ### BA-integration-queue-02 — nema ekskluzivnog claima
 
 Početni status read i `markProcessing` nisu atomic compare-and-swap. Uvesti conditional update `status/version/nextRetryAt`, owner token, lease expiry i attempt ID. Samo claimant dispatchuje; completion/failure update mora zahtijevati isti lease/version da stale worker ne prepiše novije stanje.
+
+**W6.35 acceptance:** finding-level closeout je u §19; samo pobjednik conditional claim-a smije dispatchovati. Terminal/failure CAS je vezan za status, verziju, pokušaj, attempt ID, owner token i lease timestamp. Stale `PROCESSING` recovery nije implementiran i ostaje u `BA-integration-queue-05`.
 
 ### BA-integration-queue-03 — lažni Edge success
 
@@ -259,3 +261,15 @@ Izmjene na grani `arena/864951a6-help-desk-enterprise` završene su na SHA [`034
 **Finalni automatski CI:** [`42404889174`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42404889174), SHA `03456b0`. Generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration (uključujući registrovani BA-01 recovery spec), frontend build/test i Docs guard su passed. E2E critical/install i read-only inventory su skipped. Container/supply-chain job i CI gate **failed** samo na zero-high/critical enforcementu zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]` (fix naveden kao `1.4-r0`); ukupni CI nije zelen. Automatski Perf smoke [`42404889214`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42404889214) **failed** na nepromijenjenom DB-query budžetu: `2.124 > 2.1` kroz 50.707 zahtjeva (p95 3, max 35). Run ne pripisuje uzrok `BA-integration-queue-01`; prag nije mijenjan.
 
 Ovaj closeout zatvara samo `BA-integration-queue-01`. `BA-integration-queue-02/05`, preostali nalazi audit 19, globalni BA-15 full critical-flow acceptance, E2E acceptance i ostali Val 6 scope nisu zatvoreni ovim paketom. Brojevi nakon ove promjene: Val 6 **38/109 zatvorenih, 71 otvoren** (13 P1 / 41 P2 / 17 P3); source audit/generisani plan **523 otvoren / 169 zatvoren**, globalni registar **533/159**. Deset ranijih statusnih divergencija, status-page zapisi i historijski closeouti nisu mijenjani. Detaljni paket: [149 — BA-integration-queue-01 dispatch recovery](../implementation/149-integration-queue-01-dispatch-recovery-closeout.md).
+
+## 19. W6.35 closeout — `BA-integration-queue-02` (2026-11-07)
+
+**Status:** zatvoreno na finding nivou; `BA-integration-queue-05` stale `PROCESSING` recovery i ostali nalazi audit 19 ostaju otvoreni.
+
+Na SHA [`1677c74`](https://github.com/mudzy992/help-desk-enterprise/commit/1677c74578c459050b72a5777d469378b7493f5d), claim se dobija jednim DB compare-and-swap-om nad `status`, `version`, `attempts` i `nextRetryAt`, uz provjeru logical BullMQ attempt ID-a i upis owner tokena/lease expiryja. Processor zove kanalni dispatcher samo poslije uspješnog claima. `COMPLETED`/`FAILED`/`DLQ` tranzicije i retry side-effecti zahtijevaju isti version/attempt/owner/lease dokaz; stale tranzicija ne mijenja status, email ledger ni retry queue. Nova PostgreSQL integration spec dokazuje jednog pobjednika concurrent claima, stale/wrong-owner fencing i nepreuzimanje expired `PROCESSING` reda.
+
+Dodana je migracija `20271031180000_integration_job_processor_claim_fence`; Prisma runtime readiness pinovan je na ovu najnoviju migraciju. CI [`42408942663`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42408942663) prošao je generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration uključujući registrovani BA-02 spec, frontend i Docs guard; migration replay prošao je na disposable CI bazi. **Ukupni CI nije zelen:** container zero-high/critical gate i CI gate failed zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]`. E2E critical/install i read-only inventory su skipped. Perf [`42408942726`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42408942726) **failed** na query budgetu `2.122 > 2.1` kroz 51.120 zahtjeva (p95 3, max 34); uzročnost BA-02 nije utvrđena i prag nije mijenjan.
+
+Migration ID je naveden kao release preduvjet, ali nije pokrenuta nikakva target/local deployment migracija; `be1c79db` nije mijenjana. Nema target-DB pristupa, PR-a, mergea, deploymenta ili redeploy preporuke. Svaka buduća release uputa mora potvrditi sve pending migration ID-eve i njihov redoslijed.
+
+Ovaj closeout zatvara samo `BA-integration-queue-02`; `BA-integration-queue-05`, `BA-integration-queue-03/04`, preostali nalazi audit 19, globalni BA-15 acceptance i ostali Val 6 scope ostaju otvoreni/pending. Novi zbir: Val 6 **39/109 zatvorenih, 70 otvorenih** (12 P1 / 41 P2 / 17 P3); source audit/generisani plan **522 otvoren / 170 zatvoren**, globalni registar **532/160**. Deset statusnih divergencija, status-page zapisi i historijski closeouti nisu mijenjani. Detaljni paket: [150 — BA-integration-queue-02 processor claim fencing](../implementation/150-integration-queue-02-processor-claim-fencing.md).

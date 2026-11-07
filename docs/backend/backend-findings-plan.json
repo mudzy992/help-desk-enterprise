@@ -2060,7 +2060,7 @@
     {
       "id": "BA-integration-queue-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
