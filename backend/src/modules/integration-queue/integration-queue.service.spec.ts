@@ -46,7 +46,6 @@ describe('IntegrationQueueService', () => {
         nextCursor: null,
       }),
       findById: jest.fn().mockResolvedValue(overrides?.existing ?? dlqJob),
-      resetEmailDeliveryForAdminRetry: jest.fn().mockResolvedValue(1),
       resetForAdminRetry: jest.fn().mockResolvedValue(pending),
     };
     const settingsService = {
@@ -99,30 +98,50 @@ describe('IntegrationQueueService', () => {
 
   it('resets a DLQ job to PENDING and re-enqueues it', async () => {
     const { service, repository, queue } = createService();
-    const retried = await service.retryNow('job-1');
-    expect(repository.resetEmailDeliveryForAdminRetry).toHaveBeenCalledWith(dlqJob.payload);
-    expect(repository.resetForAdminRetry).toHaveBeenCalledWith('job-1');
+    const retried = await service.retryNow('job-1', 'admin-1');
+    expect(repository.resetForAdminRetry).toHaveBeenCalledWith(
+      'job-1',
+      'admin-1',
+    );
     expect(queue.add).toHaveBeenCalledWith(
       IntegrationJobType.EMAIL,
       { integrationJobId: 'job-1' },
       expect.objectContaining({
-        jobId: expect.stringContaining('job-1:admin:'),
+        jobId: 'job-1',
       }),
     );
     expect(retried.status).toBe(IntegrationJobStatus.PENDING);
     expect(retried.attempts).toBe(0);
   });
 
+  it('keeps the admin retry PENDING when BullMQ add fails so reconciliation can recover it', async () => {
+    const { service, repository, queue } = createService();
+    queue.add.mockRejectedValueOnce(new Error('Redis unavailable'));
+
+    const retried = await service.retryNow('job-1', 'admin-1');
+
+    expect(repository.resetForAdminRetry).toHaveBeenCalledWith(
+      'job-1',
+      'admin-1',
+    );
+    expect(retried.status).toBe(IntegrationJobStatus.PENDING);
+    expect(queue.add).toHaveBeenCalledWith(
+      IntegrationJobType.EMAIL,
+      { integrationJobId: 'job-1' },
+      expect.objectContaining({ jobId: 'job-1' }),
+    );
+  });
+
   it('rejects retry of a completed job', async () => {
     const { service } = createService({
       existing: { ...dlqJob, status: IntegrationJobStatus.COMPLETED },
     });
-    await expect(service.retryNow('job-1')).rejects.toMatchObject({
+    await expect(service.retryNow('job-1', 'admin-1')).rejects.toMatchObject({
       code: 'INVALID_STATUS',
     });
-    await expect(service.retryNow('job-1')).rejects.toBeInstanceOf(
-      IntegrationQueueError,
-    );
+    await expect(
+      service.retryNow('job-1', 'admin-1'),
+    ).rejects.toBeInstanceOf(IntegrationQueueError);
   });
 
   it('rejects admin APIs when the admin UI setting is off', async () => {

@@ -5,6 +5,10 @@ import {
 
 export const integrationQueueName = 'integration';
 
+/** Bounded periodic recovery for durable IntegrationJob rows not confirmed in BullMQ. */
+export const integrationQueueDispatchReconcileIntervalMilliseconds = 15_000;
+export const integrationQueueDispatchReconcileBatchSize = 100;
+
 /** Fixed-size, stable cursor pages for the Admin → Operations queue table. */
 export const integrationQueueAdminPageSize = 50;
 

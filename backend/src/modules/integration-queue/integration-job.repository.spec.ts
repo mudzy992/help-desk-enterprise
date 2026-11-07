@@ -3,11 +3,15 @@ import {
   IntegrationJobStatus,
   IntegrationJobType,
 } from '../../generated/prisma/enums';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { integrationQueueAdminPageSize } from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
+}));
+jest.mock('../audit-log/record-audit-entry', () => ({
+  recordAuditEntry: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('IntegrationJobRepository admin cursor pages', () => {
@@ -26,6 +30,31 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       updateDelivery: prisma.notificationEmailDelivery.updateMany,
     };
   }
+
+  it('selects a bounded oldest-first page of PENDING and due FAILED rows', async () => {
+    const { repository, findMany } = createRepository([]);
+    const now = new Date('2026-10-08T12:00:00.000Z');
+
+    await repository.listDispatchablePage(now, 100);
+
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { status: IntegrationJobStatus.PENDING },
+          {
+            status: IntegrationJobStatus.FAILED,
+            OR: [
+              { nextRetryAt: null },
+              { nextRetryAt: { lte: now } },
+            ],
+          },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: 100,
+      select: { id: true, type: true, status: true, attempts: true },
+    });
+  });
 
   function row(id: string) {
     const createdAt = new Date('2026-10-08T12:00:00.000Z');
@@ -90,8 +119,8 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     expect(findMany).not.toHaveBeenCalled();
   });
 
-  it('resets known email delivery failures for an explicit queue-admin retry', async () => {
-    const { repository, updateDelivery } = createRepository([]);
+  it('atomically resets admin retry state, email ledger, and audit evidence', async () => {
+    const createdAt = new Date('2026-10-08T12:00:00.000Z');
     const payload = {
       userId: 'user-1',
       toAddress: 'user@example.com',
@@ -100,10 +129,54 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       templateKey: 'ticket.message',
       dedupeKey: 'ticket.message:1',
     };
+    const existing = {
+      ...row('job-1'),
+      status: IntegrationJobStatus.DLQ,
+      payload,
+      attempts: 5,
+      createdAt,
+      updatedAt: createdAt,
+    };
+    const pending = {
+      ...existing,
+      status: IntegrationJobStatus.PENDING,
+      attempts: 0,
+      lastError: null,
+      nextRetryAt: null,
+    };
+    const transaction = {
+      integrationJob: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce(existing)
+          .mockResolvedValueOnce(pending),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      notificationEmailDelivery: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (work: (tx: unknown) => Promise<unknown>) =>
+        work(transaction),
+      ),
+    };
+    const repository = new IntegrationJobRepository(prisma as never);
 
-    await repository.resetEmailDeliveryForAdminRetry(payload);
+    await expect(
+      repository.resetForAdminRetry('job-1', 'admin-1'),
+    ).resolves.toEqual(pending);
 
-    expect(updateDelivery).toHaveBeenCalledWith({
+    expect(transaction.integrationJob.updateMany).toHaveBeenCalledWith({
+      where: { id: 'job-1', status: IntegrationJobStatus.DLQ },
+      data: {
+        status: IntegrationJobStatus.PENDING,
+        attempts: 0,
+        lastError: null,
+        nextRetryAt: null,
+      },
+    });
+    expect(transaction.notificationEmailDelivery.updateMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
         dedupeKey: 'ticket.message:1',
@@ -111,6 +184,20 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       },
       data: { status: 'PENDING', nextRetryAt: null },
     });
+    expect(recordAuditEntry).toHaveBeenCalledWith(
+      transaction,
+      expect.objectContaining({
+        action: 'integration.job.retried',
+        entityType: 'integration_job',
+        entityId: 'job-1',
+        actorUserId: 'admin-1',
+        metadata: {
+          fromStatus: IntegrationJobStatus.DLQ,
+          previousAttempts: 5,
+          toStatus: IntegrationJobStatus.PENDING,
+        },
+      }),
+    );
   });
 
   it('mirrors the integration queue retry time to the email delivery ledger', async () => {

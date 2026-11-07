@@ -57,8 +57,50 @@ describe('handleIntegrationJobFailure', () => {
       payload,
       repository.markFailed.mock.calls[0]?.[2],
     );
+    expect(repository.scheduleEmailDeliveryRetry.mock.invocationCallOrder[0]).toBeLessThan(
+      queue.add.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
+    );
     expect(repository.markFailed.mock.calls[0]?.[2]).toBeInstanceOf(Date);
     expect(repository.markDeadLetter).not.toHaveBeenCalled();
+  });
+
+  it('leaves a due FAILED row recoverable when the retry enqueue fails', async () => {
+    const repository = {
+      markFailed: jest.fn().mockResolvedValue(undefined),
+      markDeadLetter: jest.fn(),
+      scheduleEmailDeliveryRetry: jest.fn().mockResolvedValue(1),
+      markEmailDeliveryDead: jest.fn(),
+    };
+    const queue = { add: jest.fn().mockRejectedValue(new Error('Redis unavailable')) };
+    const payload = {
+      userId: 'user-1',
+      toAddress: 'user@example.com',
+      subject: 'Subject',
+      text: 'Body',
+      templateKey: 'ticket.message',
+      dedupeKey: 'ticket.message:1',
+    };
+
+    await expect(
+      handleIntegrationJobFailure({
+        repository: repository as never,
+        queue: queue as never,
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1, payload },
+        settings,
+        error: new Error('SMTP unavailable'),
+        log: jest.fn(),
+      }),
+    ).rejects.toThrow('Redis unavailable');
+
+    expect(repository.markFailed).toHaveBeenCalledWith(
+      'job-1',
+      'SMTP unavailable',
+      expect.any(Date),
+    );
+    expect(repository.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
+      payload,
+      repository.markFailed.mock.calls[0]?.[2],
+    );
   });
 
   it('moves the job and delivery ledger to DLQ once the attempt threshold is reached', async () => {

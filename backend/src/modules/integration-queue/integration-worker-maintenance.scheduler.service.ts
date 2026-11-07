@@ -16,6 +16,14 @@ import {
   integrationDlqRetentionJobLabel,
   integrationDlqRetentionJobName,
   integrationDlqRetentionSchedulerId,
+  integrationJobDispatchReconcileCompletedJobsToKeep,
+  integrationJobDispatchReconcileFailedJobsToKeep,
+  integrationJobDispatchReconcileJobAttempts,
+  integrationJobDispatchReconcileJobBackoffMilliseconds,
+  integrationJobDispatchReconcileJobLabel,
+  integrationJobDispatchReconcileJobName,
+  integrationJobDispatchReconcileRepeatEveryMilliseconds,
+  integrationJobDispatchReconcileSchedulerId,
   integrationWorkerHeartbeatCompletedJobsToKeep,
   integrationWorkerHeartbeatFailedJobsToKeep,
   integrationWorkerHeartbeatJobAttempts,
@@ -31,8 +39,8 @@ import { loadIntegrationQueueSettings } from "./load-integration-queue-settings"
 const fallbackPollSeconds = 15;
 
 /**
- * How often the two schedules are re-asserted in Redis. `upsertJobScheduler` is
- * idempotent by scheduler id, so this costs two Redis calls per interval and buys
+ * How often the maintenance schedules are re-asserted in Redis. `upsertJobScheduler` is
+ * idempotent by scheduler id, so this costs three Redis calls per interval and buys
  * self-healing: a registration that failed at boot (Redis blip — `registerRepeatableJob`
  * logs and moves on) or that disappeared with a Redis restart/flush comes back
  * without a worker redeploy. Incident 2026-10-17: without it the heartbeat
@@ -42,12 +50,11 @@ export const integrationWorkerMaintenanceReconcileIntervalMilliseconds =
   5 * 60_000;
 
 /**
- * Phase 4.1 (plan §4.1): registers the worker's two maintenance schedules in Redis.
- *
- * Both are idempotent by scheduler id, so starting a second worker (or restarting
- * one) never doubles them. The DLQ interval keeps coming from the same settings
- * value the old `setInterval` used, so the cadence is unchanged; the heartbeat keeps
- * its own 10 s constant.
+ * Registers the worker heartbeat, DLQ retention, and durable dispatch-reconcile
+ * schedules in Redis. All are idempotent by scheduler id, so starting a second
+ * worker (or restarting one) never doubles them. The DLQ interval keeps coming
+ * from the same settings value the old `setInterval` used, so its cadence is
+ * unchanged; heartbeat and dispatch recovery use explicit constants.
  */
 @Injectable()
 export class IntegrationWorkerMaintenanceSchedulerService
@@ -113,6 +120,24 @@ export class IntegrationWorkerMaintenanceSchedulerService
       backoffMilliseconds: integrationDlqRetentionJobBackoffMilliseconds,
       completedJobsToKeep: integrationDlqRetentionCompletedJobsToKeep,
       failedJobsToKeep: integrationDlqRetentionFailedJobsToKeep,
+      logger: this.logger,
+    });
+
+    await registerRepeatableJob({
+      queue: this.queue,
+      schedulerId: integrationJobDispatchReconcileSchedulerId,
+      jobName: integrationJobDispatchReconcileJobName,
+      label: integrationJobDispatchReconcileJobLabel,
+      schedule: {
+        kind: "every",
+        milliseconds: integrationJobDispatchReconcileRepeatEveryMilliseconds,
+      },
+      attempts: integrationJobDispatchReconcileJobAttempts,
+      backoffMilliseconds:
+        integrationJobDispatchReconcileJobBackoffMilliseconds,
+      completedJobsToKeep:
+        integrationJobDispatchReconcileCompletedJobsToKeep,
+      failedJobsToKeep: integrationJobDispatchReconcileFailedJobsToKeep,
       logger: this.logger,
     });
   }

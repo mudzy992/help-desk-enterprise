@@ -136,6 +136,13 @@ test("BA-notifications-06 mark-all-read PostgreSQL integration spec je registrov
   );
 });
 
+test("BA-integration-queue-01 dispatch recovery PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/integration-queue/integration-job-dispatch-recovery.integration.spec.ts"),
+    "nedostaje BA-integration-queue-01 dual-write recovery PostgreSQL shard",
+  );
+});
+
 test("BA-notifications-07 SMTP crash-recovery PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts"),

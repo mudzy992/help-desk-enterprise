@@ -22,6 +22,27 @@ describe('closed audit action/entity/schema compatibility registry', () => {
     })).toThrow('AUDIT_ACTION_ENTITY_SCHEMA_NOT_REGISTERED:audit.export:user:1');
   });
 
+  it('accepts only the registered integration-job retry audit contract', () => {
+    expect(() => prepareAuditEntry({
+      action: auditLogActions.integrationJobRetried,
+      entityType: auditLogEntityTypes.integrationJob,
+      entityId: 'job-1',
+      metadata: {
+        fromStatus: 'DLQ',
+        previousAttempts: 5,
+        toStatus: 'PENDING',
+      },
+      actorUserId: 'admin-1',
+    })).not.toThrow();
+    expect(() => prepareAuditEntry({
+      action: auditLogActions.integrationJobRetried,
+      entityType: auditLogEntityTypes.integrationJob,
+      entityId: 'job-1',
+      metadata: { rawError: 'should not be admitted' },
+      actorUserId: 'admin-1',
+    })).toThrow('AUDIT_METADATA_FIELD_NOT_ALLOWED:integration.job.retried:rawError');
+  });
+
   it('does not admit a syntactically valid extension unless statically declared', () => {
     expect(getAuditActionCompatibility('ext.acme.case_opened')).toBeUndefined();
     expect(() => prepareAuditEntry({

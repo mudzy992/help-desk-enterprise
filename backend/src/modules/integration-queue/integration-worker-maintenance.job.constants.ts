@@ -1,17 +1,16 @@
 import {
+  integrationQueueDispatchReconcileIntervalMilliseconds,
   workerHeartbeatIntervalMilliseconds,
   workerHeartbeatTimeToLiveSeconds,
 } from './integration-queue.constants';
 
 /**
- * Phase 4.1 (plan §4.1): the two worker-maintenance jobs of the integration queue.
- *
- * Both used to be `setInterval` timers inside the worker. Timers are per-process:
- * with two workers the heartbeat was simply written twice (harmless) and the DLQ
- * sweep ran twice against the same rows (wasteful, and the reason the plan asks for
- * a queue-owned schedule). As BullMQ schedulers they are registered in Redis under
- * a stable id, so N workers converge on exactly one occurrence per interval and the
- * queue's lock decides which worker runs it.
+ * The worker-maintenance jobs are BullMQ schedules registered in Redis under
+ * stable ids, so N workers converge on exactly one occurrence per interval and the
+ * queue's lock decides which worker runs each job. The heartbeat and DLQ sweep
+ * replaced per-process timers; the dispatch reconciler periodically repairs the
+ * database/BullMQ dual-write boundary using IntegrationJob rows as its durable
+ * source of truth.
  *
  * Each entry also documents its own budget and dead-letter policy:
  * - `lockDuration` on the processor is the timeout enforcement (BullMQ v5 has no
@@ -47,6 +46,21 @@ export const integrationDlqRetentionCompletedJobsToKeep = 20;
 export const integrationDlqRetentionFailedJobsToKeep = 50;
 export const integrationDlqRetentionJobLabel = 'integration_dlq_retention';
 export const integrationDlqRetentionJobLogContext = 'IntegrationDlqRetentionJob';
+
+export const integrationJobDispatchReconcileJobName =
+  'integration-job-dispatch-reconcile';
+export const integrationJobDispatchReconcileSchedulerId =
+  'integration-job-dispatch-reconcile-interval';
+export const integrationJobDispatchReconcileRepeatEveryMilliseconds =
+  integrationQueueDispatchReconcileIntervalMilliseconds;
+export const integrationJobDispatchReconcileJobAttempts = 2;
+export const integrationJobDispatchReconcileJobBackoffMilliseconds = 30_000;
+export const integrationJobDispatchReconcileCompletedJobsToKeep = 20;
+export const integrationJobDispatchReconcileFailedJobsToKeep = 50;
+export const integrationJobDispatchReconcileJobLabel =
+  'integration_job_dispatch_reconcile';
+export const integrationJobDispatchReconcileJobLogContext =
+  'IntegrationJobDispatchReconcileJob';
 
 /** The longest job on the queue bounds how long a stalled run may hold its lock. */
 export const integrationWorkerMaintenanceLockDurationMilliseconds = 120_000;

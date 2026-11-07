@@ -5,6 +5,9 @@ import {
   IntegrationJobType,
 } from '../../generated/prisma/enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
+import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import {
   markNotificationEmailDeliveryDead,
   resetNotificationEmailDeliveryForAdminRetry,
@@ -35,6 +38,26 @@ export class IntegrationJobRepository {
 
   findById(id: string) {
     return this.prisma.integrationJob.findUnique({ where: { id } });
+  }
+
+  listDispatchablePage(now: Date, take: number) {
+    return this.prisma.integrationJob.findMany({
+      where: {
+        OR: [
+          { status: IntegrationJobStatus.PENDING },
+          {
+            status: IntegrationJobStatus.FAILED,
+            OR: [
+              { nextRetryAt: null },
+              { nextRetryAt: { lte: now } },
+            ],
+          },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take,
+      select: { id: true, type: true, status: true, attempts: true },
+    });
   }
 
   async listByStatusPage(
@@ -102,24 +125,56 @@ export class IntegrationJobRepository {
     });
   }
 
-  resetForAdminRetry(id: string) {
-    return this.prisma.integrationJob.update({
-      where: { id },
-      data: {
-        status: IntegrationJobStatus.PENDING,
-        attempts: 0,
-        lastError: null,
-        nextRetryAt: null,
-      },
-    });
-  }
+  async resetForAdminRetry(id: string, actorUserId: string) {
+    return this.prisma.$transaction(async (transaction) => {
+      const existing = await transaction.integrationJob.findUnique({
+        where: { id },
+      });
+      if (
+        existing === null ||
+        (existing.status !== IntegrationJobStatus.FAILED &&
+          existing.status !== IntegrationJobStatus.DLQ)
+      ) {
+        return null;
+      }
 
-  resetEmailDeliveryForAdminRetry(payload: unknown) {
-    const email = parseEmailIntegrationJobPayload(payload);
-    if (email === null) return Promise.resolve(0);
-    return resetNotificationEmailDeliveryForAdminRetry(this.prisma, {
-      userId: email.userId,
-      dedupeKey: email.dedupeKey,
+      const updated = await transaction.integrationJob.updateMany({
+        where: { id, status: existing.status },
+        data: {
+          status: IntegrationJobStatus.PENDING,
+          attempts: 0,
+          lastError: null,
+          nextRetryAt: null,
+        },
+      });
+      if (updated.count !== 1) return null;
+
+      if (existing.type === IntegrationJobType.EMAIL) {
+        const email = parseEmailIntegrationJobPayload(existing.payload);
+        if (email !== null) {
+          await resetNotificationEmailDeliveryForAdminRetry(
+            transaction as unknown as PrismaService,
+            { userId: email.userId, dedupeKey: email.dedupeKey },
+          );
+        }
+      }
+
+      await recordAuditEntry(
+        transaction as unknown as AuditLogTransactionalClient,
+        {
+          action: auditLogActions.integrationJobRetried,
+          entityType: auditLogEntityTypes.integrationJob,
+          entityId: id,
+          metadata: {
+            fromStatus: existing.status,
+            previousAttempts: existing.attempts,
+            toStatus: IntegrationJobStatus.PENDING,
+          },
+          actorUserId,
+        },
+      );
+
+      return transaction.integrationJob.findUnique({ where: { id } });
     });
   }
 

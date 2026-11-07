@@ -81,6 +81,12 @@ export async function handleIntegrationJobFailure(input: {
       : Math.max(backoffMs, (suppressedRetryAfterSeconds + providerBlockRetryMarginSeconds) * 1_000);
   const nextRetryAt = new Date(Date.now() + delayMs);
   await input.repository.markFailed(input.job.id, lastError, nextRetryAt);
+  if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
+    // Persist the ledger's due time before crossing the Redis boundary. If
+    // queue.add is lost, the durable IntegrationJob row and email ledger agree
+    // and the periodic dispatcher will enqueue the same logical attempt at due time.
+    await input.repository.scheduleEmailDeliveryRetry(input.job.payload, nextRetryAt);
+  }
   await input.queue.add(
     input.job.type,
     { integrationJobId: input.job.id },
@@ -91,9 +97,6 @@ export async function handleIntegrationJobFailure(input: {
       removeOnFail: true,
     },
   );
-  if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
-    await input.repository.scheduleEmailDeliveryRetry(input.job.payload, nextRetryAt);
-  }
   input.log(
     `integration_job id=${input.job.id} type=${input.job.type} status=FAILED attempts=${input.job.attempts} nextRetryAt=${nextRetryAt.toISOString()}${
       suppressedRetryAfterSeconds === null ? '' : ' reason=mail_provider_blocked'
