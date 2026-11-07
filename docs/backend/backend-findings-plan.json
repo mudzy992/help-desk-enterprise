@@ -5204,7 +5204,7 @@
     {
       "id": "BA-websocket-04",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6

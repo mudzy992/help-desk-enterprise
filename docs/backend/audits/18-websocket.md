@@ -119,7 +119,7 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-01 | P1     | Aktivni socket ignoriše logout/revoke/expiry/password/authz-version promjene               | otvoreno |
 | BA-websocket-02 | P1     | Ticket staff/public/base sobe se nakon joina nikad ne reautorizuju                         | otvoreno |
 | BA-websocket-03 | P1     | Group/admin revocation kasni 5 min i DB kvar ostavlja stare sobe fail-open                 | otvoreno |
-| BA-websocket-04 | P1     | Default-on legacy group emit šalje puni payload bez per-ticket authorizationa              | otvoreno |
+| BA-websocket-04 | P1     | Default-on legacy group emit šalje puni payload bez per-ticket authorizationa              | zatvoreno |
 | BA-websocket-05 | P2     | Runtime Redis adapter kvar nema pouzdan fallback/effective-health i gubi cross-instance emit| otvoreno |
 | BA-websocket-06 | P2     | Join/presence limiter je per-socket bez user/IP/connection limita                          | otvoreno |
 | BA-websocket-07 | P2     | Private setting key metadata emituje se svim autentifikovanim korisnicima                  | otvoreno |
@@ -187,7 +187,7 @@ Socket ostaje otvoren kroz logout/revoke/password/expiry; ticket forward/confide
 
 ### Faza 1 — P1 session i room revocation
 
-Session/authz lease + revocation pub/sub/disconnect; ticket subscription registry i access invalidation; event-driven group/admin revoke + fail-closed lease; legacy default off/uklanjanje.
+Session/authz lease + revocation pub/sub/disconnect; ticket subscription registry i access invalidation; event-driven group/admin revoke + fail-closed lease; legacy default-off je zatvoren u W6.30, dok uklanjanje compatibility grane čeka potvrdu klijentskog rollouta.
 
 ### Faza 2 — adapter i delivery correctness
 
@@ -228,4 +228,14 @@ Acceptance:
 
 ## 18. Konačna presuda
 
-Websocket modul ima dobru početnu handshake, ticket join, staff/public i Redis strukturu, ali authorization nije trajna osobina konekcije. Bez session i ticket revocationa, uz fail-open group polling i default-on puni group payload, realtime kanal može nastaviti otkrivati podatke nakon što ih HTTP sloj više ne dozvoljava. Iskren baseline je **4,88/10**.
+Websocket modul ima dobru početnu handshake, ticket join, staff/public i Redis strukturu, ali authorization nije trajna osobina konekcije. Bez session i ticket revocationa, uz fail-open group polling i default-on puni group payload, realtime kanal može nastaviti otkrivati podatke nakon što ih HTTP sloj više ne dozvoljava. Iskren baseline je **4,88/10**. Ovaj zaključak opisuje audit baseline; W6.30 je naknadno zatvorio samo `BA-websocket-04` promjenom defaulta na off (dokaz u §19), bez rescoringa. `BA-websocket-01`–`03` i širi revocation/cross-instance acceptance ostaju otvoreni.
+
+## 19. Statusna dopuna — BA-websocket-04 closeout (2026-11-07)
+
+`BA-websocket-04` (P1) zatvara se kroz W6.30. Legacy full-payload emit više nije default-on: samo eksplicitni `WS_GROUP_FEED_LEGACY_FULL_EMIT=on|true|1` uključuje compatibility granu; unset, off/false/0, prazna i nepoznata vrijednost ostaju fail-closed. U normalnom radu membership-only group sobe dobijaju samo laki `group.feed-changed` signal. Repo frontend već sluša taj događaj. Compatibility grana ostaje samo kao dokumentovan, privremeni opt-in za stare klijente i mora se ugasiti nakon potvrde rollouta; nije omogućena na ciljnoj instalaciji niti je rollout/deployment nezavisno provjeren. Detalji su u [paketu 145](../implementation/145-websocket-04-default-off-group-payload.md) i [rolling-deploy runbooku](../../../ops/ws-rolling-deploy.md#5-group-feed-payload-compatibility).
+
+Automatski CI [`42374380242`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42374380242) na kodnom SHA-u [`7d47e44`](https://github.com/mudzy992/help-desk-enterprise/commit/7d47e44a4aa7d039b63bdbb82bd51907a6af9cdf) prošao je backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test i Docs guard. E2E critical/install/inventory su `skipped`, ne passed; full E2E nije ručno dispatchan. Backend container/supply-chain enforcement i ukupni CI gate su **failed** zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]` (scan navodi fixed version `1.4-r0`); ovo nije zeleni CI run i ovaj websocket paket nije mijenjao image/dependencies.
+
+Perf nije pokrenut jer WebSocket path nije u push filteru. Posljednji Perf [`42289613508`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42289613508) ostaje **failed** na globalnom, nepromijenjenom query budgetu `2.128 > 2.1`; nema dokaza koji ga pripisuje BA-websocket-04 i threshold nije mijenjan.
+
+Zatvara se samo nalaz da je legacy group payload uključen po defaultu. Ako se izričito uključi compatibility flag, puni public payload i dalje ide članovima grupe bez per-ticket authorizationa; zato je opt-in sigurnosno osjetljiv i privremen. `BA-websocket-01`, `BA-websocket-02`, `BA-websocket-03` i širi `BA-websocket-14` ostaju otvoreni. Baseline **4,88/10** nije rescoraan. Nema target-DB upotrebe, migracije, PR-a, mergea ni deploymenta.
