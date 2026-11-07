@@ -6,13 +6,15 @@
 **Baseline ocjena:** **4,41/10**  
 **Nalazi:** 4 P1, 8 P2, 3 P3
 
+> Ovaj audit čuva baseline presjek od 2026-10-23. Kasniji finding-level closeouti se dodaju kao statusne dopune; ne mijenjaju retrospektivne baseline opise, broj nalaza ni ocjenu. W6.34 je zatvorio samo `BA-integration-queue-01`; vidi §18.
+
 ## 1. Executive summary
 
 `integration-queue` persistira i izvršava EMAIL, EDGE_EVENT i TEAMS poslove, vodi attempts/backoff/DLQ stanje, daje administratorski pregled/retry, worker heartbeat i DLQ retention. Dobra osnova uključuje DB evidenciju, tipizirane parsere, email dedupe u downstreamu, eksponencijalni backoff, permanent-recipient klasifikaciju, provider suppression delay, stabilne schedulere, cursor admin listu i heartbeat self-healing.
 
 Baseline je ipak **4,41/10**. Četiri P1 nalaza pogađaju delivery correctness i privatnost. DB red i BullMQ posao nisu atomarno povezani: pad nakon DB writea, prije queue add-a, ostavlja trajno orphanovan PENDING/FAILED posao bez reconciliationa; isti gap postoji pri retryju. Processor nema conditional claim/lease pa dupli Bull poslovi mogu paralelno izvršiti isti integration job. EDGE_EVENT tretira Redis `PUBLISH` rezultat nula kao uspjeh i označava posao COMPLETED iako nije bilo subscriber isporuke. Admin queue API vraća kompletne email/Edge/Teams payloadove globalno svakom ADMIN assignmentu sa permisijom, bez scope filtriranja ili redakcije.
 
-Dodatni rizici su provider-side duplicate nakon crasha, status transition race, neograničeni payloadi i DLQ delete, heartbeat koji ne dokazuje processing, settings promjena između pokušaja, nepostojanje retentiona za COMPLETED poslove i slaba E2E crash/recovery matrica. Nema P0. Popravke nisu implementirane.
+Dodatni rizici su provider-side duplicate nakon crasha, status transition race, neograničeni payloadi i DLQ delete, heartbeat koji ne dokazuje processing, settings promjena između pokušaja, nepostojanje retentiona za COMPLETED poslove i slaba E2E crash/recovery matrica. Nema P0. Na datum baseline audita popravke nisu bile implementirane; W6.34 kasnije je zatvorio samo `BA-integration-queue-01`.
 
 ## 2. Scope i inventar
 
@@ -130,7 +132,7 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 
 | ID                   | Severity | Nalaz                                                                                     | Status   |
 | -------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
-| BA-integration-queue-01 | P1    | DB/Bull dual-write crash gap trajno orphanira enqueue, retry i admin-retry poslove        | otvoreno |
+| BA-integration-queue-01 | P1    | DB/Bull dual-write crash gap trajno orphanira enqueue, retry i admin-retry poslove        | zatvoreno |
 | BA-integration-queue-02 | P1    | Processor nema conditional lease claim pa dupli Bull poslovi paralelno dispatchuju        | otvoreno |
 | BA-integration-queue-03 | P1    | EDGE_EVENT `PUBLISH=0` postaje COMPLETED bez ijednog primaoca ili replaya                 | otvoreno |
 | BA-integration-queue-04 | P1    | Scoped ADMIN može čitati globalne sirove email/Edge/Teams payloadove                       | otvoreno |
@@ -151,6 +153,8 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 ### BA-integration-queue-01 — orphanovani poslovi
 
 Postgres i Redis ne dijele transakciju. Uvesti transactional outbox: producer samo atomarno piše domain/outbox red; dispatcher claimuje lease i idempotentno upisuje Bull job. Alternativno obavezni reconciler mora nalaziti PENDING bez queue potvrde, due FAILED i stale PROCESSING. `queue.add` ID mora biti stabilan po logical attemptu. Admin retry mora biti auditirana state tranzicija koju isti dispatcher obrađuje.
+
+**W6.34 scope odluka:** ovaj finding-level closeout dokazuje oporavak `PENDING` i due `FAILED` redova te auditiranu admin-retry tranziciju koju dispatcher ponovo obrađuje. Stale `PROCESSING` recovery i ekskluzivni processor claim nisu obuhvaćeni niti se tvrdi da su riješeni; ostaju u granicama `BA-integration-queue-02/05`.
 
 ### BA-integration-queue-02 — nema ekskluzivnog claima
 
@@ -241,3 +245,17 @@ Acceptance:
 10. Direktni, fault-injection, integration i E2E testovi prolaze.
 
 Modul ima solidne pomoćne mehanizme, ali DB evidencija trenutno nije pouzdan source of truth jer queue linkage, claim i recovery nisu atomarni. Uz Edge lažni success i globalni raw admin read, enterprise baseline ne može biti iznad **4,41/10**.
+
+## 18. W6.34 closeout — `BA-integration-queue-01` (2026-11-07)
+
+**Status:** zatvoreno na finding nivou; drugi nalazi audit jedinice 19 i širi Val 6 ostaju nepromijenjeni.
+
+Izmjene na grani `arena/864951a6-help-desk-enterprise` završene su na SHA [`03456b0`](https://github.com/mudzy992/help-desk-enterprise/commit/03456b0471d392b7243db0361868918f558e6461). Kodni commit [`2f76faf`](https://github.com/mudzy992/help-desk-enterprise/commit/2f76faff6422af77486f70c7a753881555cb981b) dodaje bounded oldest-first dispatcher za `PENDING` i due `FAILED` redove, stabilne BullMQ ID-eve i worker-maintenance schedule. Enqueue/admin queue-add neuspjeh ostavlja DB red oporavljivim; retry failure zapisuje email ledger due-time prije prelaska Redis granice. Admin retry sada je transakcijski statusni reset, retryable email-ledger reset i actor-attributed, hash-chained audit zapis; `UNKNOWN` email delivery ostaje blokiran. Ako admin queue-add ne uspije, periodični dispatcher ponovo šalje isti pending job sa stabilnim ID-em. Audit action/schema/compatibility registri i BS/EN admin audit/scheduler prijevodi su usklađeni.
+
+**Acceptance granica:** potvrđeni su enqueue gap, due retry gap, stabilan attempt ID i audited admin retry koji dispatcher ponovo obrađuje. `PROCESSING` stale/lease recovery, exclusive claim i konkurentni processor state-machine problemi nisu riješeni u ovom paketu; ostaju u scopeu `BA-integration-queue-02/05`. Nema tvrdnje o exactly-once provider isporuci. Nisu korišteni target DB, pokretane/mijenjane migracije, otvoren PR, mergean kod niti izvršen deployment.
+
+**Lokalna provjera:** fokusirani Jest je dao 10 suiteova / 41 test passed; jedini PostgreSQL integration spec bio je lokalno skipped (2 testa), jer lokalni generated Prisma client i DB nisu dostupni. Dodatno: `scheduled-jobs.wiring.spec.ts` 2/2; `npm run test:integration-harness` 17/17; `npm run wiring:check` 99 controllers / 619 routes; `npm run audit:traceability` 692/692 prije statusnog updatea; targeted ESLint, frontend audit-i18n coverage 16/16, frontend lint, Prettier i `git diff --check` passed. Privremeni ignored Prisma shims korišteni samo za diagnostics-off Jest su uklonjeni.
+
+**Finalni automatski CI:** [`42404889174`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42404889174), SHA `03456b0`. Generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration (uključujući registrovani BA-01 recovery spec), frontend build/test i Docs guard su passed. E2E critical/install i read-only inventory su skipped. Container/supply-chain job i CI gate **failed** samo na zero-high/critical enforcementu zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]` (fix naveden kao `1.4-r0`); ukupni CI nije zelen. Automatski Perf smoke [`42404889214`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42404889214) **failed** na nepromijenjenom DB-query budžetu: `2.124 > 2.1` kroz 50.707 zahtjeva (p95 3, max 35). Run ne pripisuje uzrok `BA-integration-queue-01`; prag nije mijenjan.
+
+Ovaj closeout zatvara samo `BA-integration-queue-01`. `BA-integration-queue-02/05`, preostali nalazi audit 19, globalni BA-15 full critical-flow acceptance, E2E acceptance i ostali Val 6 scope nisu zatvoreni ovim paketom. Brojevi nakon ove promjene: Val 6 **38/109 zatvorenih, 71 otvoren** (13 P1 / 41 P2 / 17 P3); source audit/generisani plan **523 otvoren / 169 zatvoren**, globalni registar **533/159**. Deset ranijih statusnih divergencija, status-page zapisi i historijski closeouti nisu mijenjani. Detaljni paket: [149 — BA-integration-queue-01 dispatch recovery](../implementation/149-integration-queue-01-dispatch-recovery-closeout.md).
