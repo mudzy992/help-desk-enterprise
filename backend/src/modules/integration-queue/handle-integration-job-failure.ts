@@ -14,8 +14,11 @@ import {
   resolveDeadLetterAttemptThreshold,
 } from './compute-integration-job-backoff';
 import type { IntegrationJobRepository } from './integration-job.repository';
-import type { IntegrationQueueJobData } from './integration-queue.types';
-import type { IntegrationQueueSettings } from './integration-queue.types';
+import type {
+  IntegrationJobProcessingClaim,
+  IntegrationQueueJobData,
+  IntegrationQueueSettings,
+} from './integration-queue.types';
 
 /** Rezerva na granici isteka blokade, da buđenje ne padne unutar iste sekunde. */
 const providerBlockRetryMarginSeconds = 60;
@@ -23,16 +26,11 @@ const providerBlockRetryMarginSeconds = 60;
 export async function handleIntegrationJobFailure(input: {
   readonly repository: IntegrationJobRepository;
   readonly queue: Queue<IntegrationQueueJobData>;
-  readonly job: {
-    readonly id: string;
-    readonly type: IntegrationJobType;
-    readonly attempts: number;
-    readonly payload?: unknown;
-  };
+  readonly job: IntegrationJobProcessingClaim;
   readonly settings: IntegrationQueueSettings;
   readonly error: unknown;
   readonly log: (message: string) => void;
-}): Promise<'FAILED' | 'DLQ'> {
+}): Promise<'FAILED' | 'DLQ' | 'STALE'> {
   const lastError =
     input.error instanceof Error ? input.error.message : String(input.error);
   const threshold = resolveDeadLetterAttemptThreshold(input.settings);
@@ -50,10 +48,19 @@ export async function handleIntegrationJobFailure(input: {
     recipientRejected ||
     input.job.attempts >= threshold
   ) {
+    const transitioned = await input.repository.markDeadLetter(
+      input.job,
+      lastError,
+    );
+    if (!transitioned) {
+      input.log(
+        `integration_job claim_lost id=${input.job.id} attemptId=${input.job.processingAttemptId}`,
+      );
+      return 'STALE';
+    }
     if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
       await input.repository.markEmailDeliveryDead(input.job.payload);
     }
-    await input.repository.markDeadLetter(input.job.id, lastError);
     const reason = emailOutcomeUnknown
       ? ' reason=outcome_unknown_no_resend'
       : emailAlreadyDead
@@ -80,7 +87,17 @@ export async function handleIntegrationJobFailure(input: {
       ? backoffMs
       : Math.max(backoffMs, (suppressedRetryAfterSeconds + providerBlockRetryMarginSeconds) * 1_000);
   const nextRetryAt = new Date(Date.now() + delayMs);
-  await input.repository.markFailed(input.job.id, lastError, nextRetryAt);
+  const transitioned = await input.repository.markFailed(
+    input.job,
+    lastError,
+    nextRetryAt,
+  );
+  if (!transitioned) {
+    input.log(
+      `integration_job claim_lost id=${input.job.id} attemptId=${input.job.processingAttemptId}`,
+    );
+    return 'STALE';
+  }
   if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
     // Persist the ledger's due time before crossing the Redis boundary. If
     // queue.add is lost, the durable IntegrationJob row and email ledger agree

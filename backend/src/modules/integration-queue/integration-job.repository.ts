@@ -18,6 +18,10 @@ import {
   integrationQueueAdminPageSize,
   integrationQueueAdminStatuses,
 } from './integration-queue.constants';
+import type {
+  IntegrationJobProcessingClaim,
+  IntegrationJobProcessingClaimInput,
+} from './integration-queue.types';
 
 @Injectable()
 export class IntegrationJobRepository {
@@ -82,47 +86,131 @@ export class IntegrationJobRepository {
     };
   }
 
-  markProcessing(id: string) {
-    return this.prisma.integrationJob.update({
-      where: { id },
+  async claimForProcessing(
+    input: IntegrationJobProcessingClaimInput,
+  ): Promise<IntegrationJobProcessingClaim | null> {
+    if (
+      input.attemptId.length === 0 ||
+      input.ownerToken.length === 0 ||
+      input.leaseExpiresAt.getTime() <= input.now.getTime()
+    ) {
+      throw new Error('invalid integration job processing claim');
+    }
+
+    const existing = await this.findById(input.id);
+    if (
+      existing === null ||
+      (existing.status !== IntegrationJobStatus.PENDING &&
+        existing.status !== IntegrationJobStatus.FAILED)
+    ) {
+      return null;
+    }
+    if (
+      existing.status === IntegrationJobStatus.FAILED &&
+      existing.nextRetryAt !== null &&
+      existing.nextRetryAt.getTime() > input.now.getTime()
+    ) {
+      return null;
+    }
+
+    const expectedAttemptId =
+      existing.status === IntegrationJobStatus.PENDING
+        ? existing.id
+        : `${existing.id}:${existing.attempts}`;
+    if (input.attemptId !== expectedAttemptId) return null;
+
+    // A single conditional update wins the status/version/retry-time CAS. A
+    // second Bull delivery that observed the same row gets count=0 and never
+    // reaches a provider. `version` also fences old completion/failure writers.
+    const claimed = await this.prisma.integrationJob.updateMany({
+      where: {
+        id: existing.id,
+        status: existing.status,
+        version: existing.version,
+        attempts: existing.attempts,
+        nextRetryAt: existing.nextRetryAt,
+      },
       data: {
         status: IntegrationJobStatus.PROCESSING,
         attempts: { increment: 1 },
+        version: { increment: 1 },
+        processingAttemptId: input.attemptId,
+        processingOwnerToken: input.ownerToken,
+        processingLeaseExpiresAt: input.leaseExpiresAt,
       },
+    });
+    if (claimed.count !== 1) return null;
+
+    return {
+      id: existing.id,
+      type: existing.type,
+      payload: existing.payload,
+      attempts: existing.attempts + 1,
+      version: existing.version + 1,
+      processingAttemptId: input.attemptId,
+      processingOwnerToken: input.ownerToken,
+      processingLeaseExpiresAt: input.leaseExpiresAt,
+    };
+  }
+
+  markCompleted(claim: IntegrationJobProcessingClaim): Promise<boolean> {
+    return this.transitionClaim(claim, {
+      status: IntegrationJobStatus.COMPLETED,
+      lastError: null,
+      nextRetryAt: null,
     });
   }
 
-  markCompleted(id: string) {
-    return this.prisma.integrationJob.update({
-      where: { id },
-      data: {
-        status: IntegrationJobStatus.COMPLETED,
-        lastError: null,
-        nextRetryAt: null,
-      },
+  markFailed(
+    claim: IntegrationJobProcessingClaim,
+    lastError: string,
+    nextRetryAt: Date,
+  ): Promise<boolean> {
+    return this.transitionClaim(claim, {
+      status: IntegrationJobStatus.FAILED,
+      lastError,
+      nextRetryAt,
     });
   }
 
-  markFailed(id: string, lastError: string, nextRetryAt: Date) {
-    return this.prisma.integrationJob.update({
-      where: { id },
-      data: {
-        status: IntegrationJobStatus.FAILED,
-        lastError,
-        nextRetryAt,
-      },
+  markDeadLetter(
+    claim: IntegrationJobProcessingClaim,
+    lastError: string,
+  ): Promise<boolean> {
+    return this.transitionClaim(claim, {
+      status: IntegrationJobStatus.DLQ,
+      lastError,
+      nextRetryAt: null,
     });
   }
 
-  markDeadLetter(id: string, lastError: string) {
-    return this.prisma.integrationJob.update({
-      where: { id },
+  private async transitionClaim(
+    claim: IntegrationJobProcessingClaim,
+    data: {
+      readonly status: IntegrationJobStatus;
+      readonly lastError: string | null;
+      readonly nextRetryAt: Date | null;
+    },
+  ): Promise<boolean> {
+    const updated = await this.prisma.integrationJob.updateMany({
+      where: {
+        id: claim.id,
+        status: IntegrationJobStatus.PROCESSING,
+        version: claim.version,
+        attempts: claim.attempts,
+        processingAttemptId: claim.processingAttemptId,
+        processingOwnerToken: claim.processingOwnerToken,
+        processingLeaseExpiresAt: claim.processingLeaseExpiresAt,
+      },
       data: {
-        status: IntegrationJobStatus.DLQ,
-        lastError,
-        nextRetryAt: null,
+        ...data,
+        version: { increment: 1 },
+        processingAttemptId: null,
+        processingOwnerToken: null,
+        processingLeaseExpiresAt: null,
       },
     });
+    return updated.count === 1;
   }
 
   async resetForAdminRetry(id: string, actorUserId: string) {
@@ -139,12 +227,22 @@ export class IntegrationJobRepository {
       }
 
       const updated = await transaction.integrationJob.updateMany({
-        where: { id, status: existing.status },
+        where: {
+          id,
+          status: existing.status,
+          version: existing.version,
+          attempts: existing.attempts,
+          nextRetryAt: existing.nextRetryAt,
+        },
         data: {
           status: IntegrationJobStatus.PENDING,
           attempts: 0,
           lastError: null,
           nextRetryAt: null,
+          version: { increment: 1 },
+          processingAttemptId: null,
+          processingOwnerToken: null,
+          processingLeaseExpiresAt: null,
         },
       });
       if (updated.count !== 1) return null;

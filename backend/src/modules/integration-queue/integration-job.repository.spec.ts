@@ -56,6 +56,138 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     });
   });
 
+  it('claims the expected logical attempt with a status/version/retry-time CAS', async () => {
+    const now = new Date('2026-10-08T12:00:00.000Z');
+    const leaseExpiresAt = new Date('2026-10-08T12:05:00.000Z');
+    const existing = {
+      ...row('job-claim'),
+      type: IntegrationJobType.EDGE_EVENT,
+      status: IntegrationJobStatus.PENDING,
+      payload: { eventName: 'claim-test' },
+      attempts: 0,
+      version: 7,
+    };
+    const integrationJob = {
+      findUnique: jest.fn().mockResolvedValue(existing),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    };
+    const repository = new IntegrationJobRepository({ integrationJob } as never);
+
+    await expect(
+      repository.claimForProcessing({
+        id: existing.id,
+        attemptId: existing.id,
+        ownerToken: 'owner-a',
+        now,
+        leaseExpiresAt,
+      }),
+    ).resolves.toMatchObject({
+      id: existing.id,
+      attempts: 1,
+      version: 8,
+      processingAttemptId: 'job-claim',
+      processingOwnerToken: 'owner-a',
+      processingLeaseExpiresAt: leaseExpiresAt,
+    });
+    expect(integrationJob.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'job-claim',
+        status: IntegrationJobStatus.PENDING,
+        version: 7,
+        attempts: 0,
+        nextRetryAt: null,
+      },
+      data: {
+        status: IntegrationJobStatus.PROCESSING,
+        attempts: { increment: 1 },
+        version: { increment: 1 },
+        processingAttemptId: 'job-claim',
+        processingOwnerToken: 'owner-a',
+        processingLeaseExpiresAt: leaseExpiresAt,
+      },
+    });
+  });
+
+  it('refuses a future retry and a stale BullMQ attempt id before updating', async () => {
+    const now = new Date('2026-10-08T12:00:00.000Z');
+    const future = new Date('2026-10-08T12:01:00.000Z');
+    const existing = {
+      ...row('job-retry'),
+      status: IntegrationJobStatus.FAILED,
+      attempts: 3,
+      version: 5,
+      nextRetryAt: future,
+    };
+    const integrationJob = {
+      findUnique: jest.fn().mockResolvedValue(existing),
+      updateMany: jest.fn(),
+    };
+    const repository = new IntegrationJobRepository({ integrationJob } as never);
+
+    await expect(
+      repository.claimForProcessing({
+        id: existing.id,
+        attemptId: `${existing.id}:3`,
+        ownerToken: 'owner-a',
+        now,
+        leaseExpiresAt: new Date(now.getTime() + 60_000),
+      }),
+    ).resolves.toBeNull();
+    expect(integrationJob.updateMany).not.toHaveBeenCalled();
+
+    existing.nextRetryAt = new Date('2026-10-08T11:59:00.000Z');
+    integrationJob.findUnique.mockResolvedValue(existing);
+    await expect(
+      repository.claimForProcessing({
+        id: existing.id,
+        attemptId: `${existing.id}:2`,
+        ownerToken: 'owner-b',
+        now,
+        leaseExpiresAt: new Date(now.getTime() + 60_000),
+      }),
+    ).resolves.toBeNull();
+    expect(integrationJob.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fences completion by status, version, attempt id, and owner token', async () => {
+    const claim = {
+      id: 'job-claim',
+      type: IntegrationJobType.EDGE_EVENT,
+      payload: { eventName: 'claim-test' },
+      attempts: 2,
+      version: 9,
+      processingAttemptId: 'job-claim:1',
+      processingOwnerToken: 'owner-a',
+      processingLeaseExpiresAt: new Date('2026-10-08T12:05:00.000Z'),
+    };
+    const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const repository = new IntegrationJobRepository({
+      integrationJob: { updateMany },
+    } as never);
+
+    await expect(repository.markCompleted(claim)).resolves.toBe(false);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'job-claim',
+        status: IntegrationJobStatus.PROCESSING,
+        version: 9,
+        attempts: 2,
+        processingAttemptId: 'job-claim:1',
+        processingOwnerToken: 'owner-a',
+        processingLeaseExpiresAt: claim.processingLeaseExpiresAt,
+      },
+      data: {
+        status: IntegrationJobStatus.COMPLETED,
+        lastError: null,
+        nextRetryAt: null,
+        version: { increment: 1 },
+        processingAttemptId: null,
+        processingOwnerToken: null,
+        processingLeaseExpiresAt: null,
+      },
+    });
+  });
+
   function row(id: string) {
     const createdAt = new Date('2026-10-08T12:00:00.000Z');
     return {
@@ -65,6 +197,10 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       payload: { safe: true },
       lastError: null,
       attempts: 2,
+      version: 0,
+      processingAttemptId: null,
+      processingOwnerToken: null,
+      processingLeaseExpiresAt: null,
       nextRetryAt: null,
       createdAt,
       updatedAt: createdAt,
@@ -106,7 +242,7 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       cursor: { id: 'job-previous' },
       skip: 1,
     });
-    expect(page.items.map((item) => item.id)).toEqual(['job-next']);
+    expect(page.items.map((item: { readonly id: string }) => item.id)).toEqual(['job-next']);
     expect(page.nextCursor).toBeNull();
   });
 
@@ -143,6 +279,10 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       attempts: 0,
       lastError: null,
       nextRetryAt: null,
+      version: existing.version + 1,
+      processingAttemptId: null,
+      processingOwnerToken: null,
+      processingLeaseExpiresAt: null,
     };
     const transaction = {
       integrationJob: {
@@ -168,12 +308,22 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     ).resolves.toEqual(pending);
 
     expect(transaction.integrationJob.updateMany).toHaveBeenCalledWith({
-      where: { id: 'job-1', status: IntegrationJobStatus.DLQ },
+      where: {
+        id: 'job-1',
+        status: IntegrationJobStatus.DLQ,
+        version: existing.version,
+        attempts: existing.attempts,
+        nextRetryAt: existing.nextRetryAt,
+      },
       data: {
         status: IntegrationJobStatus.PENDING,
         attempts: 0,
         lastError: null,
         nextRetryAt: null,
+        version: { increment: 1 },
+        processingAttemptId: null,
+        processingOwnerToken: null,
+        processingLeaseExpiresAt: null,
       },
     });
     expect(transaction.notificationEmailDelivery.updateMany).toHaveBeenCalledWith({

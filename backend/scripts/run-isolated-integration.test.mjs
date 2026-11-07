@@ -143,6 +143,13 @@ test("BA-integration-queue-01 dispatch recovery PostgreSQL integration spec je r
   );
 });
 
+test("BA-integration-queue-02 processor claim PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/integration-queue/integration-job-processor-claim.integration.spec.ts"),
+    "nedostaje BA-integration-queue-02 atomic processor-claim PostgreSQL shard",
+  );
+});
+
 test("BA-notifications-07 SMTP crash-recovery PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts"),

@@ -8,6 +8,7 @@ import {
 import { EnqueueIntegrationJobService } from './enqueue-integration-job.service';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
 import { IntegrationJobDispatchReconcilerService } from './integration-job-dispatch-reconciler.service';
+import { integrationJobProcessingLeaseDurationMilliseconds } from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 import { IntegrationQueueService } from './integration-queue.service';
 import type { IntegrationQueueSettings } from './integration-queue.types';
@@ -118,7 +119,18 @@ describeIfDatabase(
         } as never,
       });
       jobIds.push(retry.id);
-      const processing = await repository.markProcessing(retry.id);
+      const claimNow = new Date();
+      const processing = await repository.claimForProcessing({
+        id: retry.id,
+        attemptId: retry.id,
+        ownerToken: `integration-test-owner-${stamp}`,
+        now: claimNow,
+        leaseExpiresAt: new Date(
+          claimNow.getTime() + integrationJobProcessingLeaseDurationMilliseconds,
+        ),
+      });
+      expect(processing).not.toBeNull();
+      if (processing === null) throw new Error('failed to claim integration test job');
       const retryQueue = {
         add: jest.fn().mockRejectedValue(new Error('injected Redis retry failure')),
       };
@@ -126,12 +138,7 @@ describeIfDatabase(
         handleIntegrationJobFailure({
           repository,
           queue: retryQueue as never,
-          job: {
-            id: processing.id,
-            type: processing.type,
-            attempts: processing.attempts,
-            payload: processing.payload,
-          },
+          job: processing,
           settings,
           error: new Error('transient provider failure'),
           log: jest.fn(),
@@ -218,7 +225,10 @@ describeIfDatabase(
           status: 'DEAD',
         },
       });
-      await repository.markDeadLetter(job.id, 'test-only failure');
+      await prisma.integrationJob.update({
+        where: { id: job.id },
+        data: { status: IntegrationJobStatus.DLQ, lastError: 'test-only failure' },
+      });
 
       const queue = {
         add: jest.fn().mockRejectedValue(new Error('injected Redis admin-retry failure')),

@@ -15,8 +15,9 @@ import type { IntegrationQueueJobData } from './integration-queue.types';
  * rows are eligible only when their recorded backoff is due. Stable BullMQ job
  * ids make a lost enqueue acknowledgement safe to retry on the next sweep.
  *
- * This deliberately does not reclaim PROCESSING rows; that requires the separate
- * processor lease/CAS lifecycle and remains BA-integration-queue-02/05 scope.
+ * This deliberately does not reclaim PROCESSING rows. Processor claim/CAS
+ * prevents concurrent duplicate dispatches; stale PROCESSING lease recovery
+ * remains the separate BA-integration-queue-05 scope.
  */
 @Injectable()
 export class IntegrationJobDispatchReconcilerService {

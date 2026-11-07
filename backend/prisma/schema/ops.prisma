@@ -177,15 +177,23 @@ model SecurityAuditWebhookState {
 }
 
 model IntegrationJob {
-  id          String                @id @default(cuid())
-  type        IntegrationJobType
-  status      IntegrationJobStatus  @default(PENDING)
-  payload     Json
-  lastError   String?
-  attempts    Int                   @default(0)
-  nextRetryAt DateTime?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  id                       String                @id @default(cuid())
+  type                     IntegrationJobType
+  status                   IntegrationJobStatus  @default(PENDING)
+  payload                  Json
+  lastError                String?
+  attempts                 Int                   @default(0)
+  /// Monotonic fencing version for processor claims and terminal transitions.
+  version                  Int                   @default(0)
+  /// Stable BullMQ logical attempt currently owning a PROCESSING claim.
+  processingAttemptId      String?
+  /// Random per-claim owner token; completion/failure must present this token.
+  processingOwnerToken     String?
+  /// Lease metadata only; reclaiming stale PROCESSING rows is BA-05 scope.
+  processingLeaseExpiresAt DateTime?
+  nextRetryAt              DateTime?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
 
   @@index([status, nextRetryAt])
   @@index([status, createdAt, id])

@@ -1,12 +1,13 @@
+import { randomUUID } from 'node:crypto';
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import {
-  IntegrationJobStatus,
-  IntegrationJobType,
-} from '../../generated/prisma/enums';
+import { IntegrationJobType } from '../../generated/prisma/enums';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
-import { integrationQueueName } from './integration-queue.constants';
+import {
+  integrationJobProcessingLeaseDurationMilliseconds,
+  integrationQueueName,
+} from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 import type { IntegrationQueueJobData } from './integration-queue.types';
 import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
@@ -33,24 +34,45 @@ export class IntegrationQueueProcessor extends WorkerHost {
 
   async process(job: Job<IntegrationQueueJobData>): Promise<void> {
     const integrationJobId = job.data.integrationJobId;
-    const record =
-      await this.integrationJobRepository.findById(integrationJobId);
-    if (record === null) {
-      this.logger.warn(`integration_job missing id=${integrationJobId}`);
+    const attemptId = job.id;
+    if (typeof attemptId !== 'string' || attemptId.length === 0) {
+      this.logger.warn(
+        `integration_job claim_skipped id=${integrationJobId} reason=missing_attempt_id`,
+      );
       return;
     }
-    if (
-      record.status === IntegrationJobStatus.COMPLETED ||
-      record.status === IntegrationJobStatus.DLQ
-    ) {
-      return;
-    }
+
+    // Read configuration before claiming so a transient settings failure cannot
+    // strand a durable row in PROCESSING.
     const settings = await loadIntegrationQueueSettings(this.settingsService);
-    const processing =
-      await this.integrationJobRepository.markProcessing(integrationJobId);
+    const now = new Date();
+    const processing = await this.integrationJobRepository.claimForProcessing({
+      id: integrationJobId,
+      attemptId,
+      ownerToken: randomUUID(),
+      now,
+      leaseExpiresAt: new Date(
+        now.getTime() + integrationJobProcessingLeaseDurationMilliseconds,
+      ),
+    });
+    if (processing === null) {
+      // Duplicate/stale Bull deliveries are expected to lose this CAS; they
+      // complete without calling a provider or mutating the row.
+      this.logger.debug(
+        `integration_job claim_skipped id=${integrationJobId} attemptId=${attemptId} reason=not_current`,
+      );
+      return;
+    }
+
     try {
       await this.dispatch(processing.type, processing.payload);
-      await this.integrationJobRepository.markCompleted(integrationJobId);
+      const completed = await this.integrationJobRepository.markCompleted(processing);
+      if (!completed) {
+        this.logger.warn(
+          `integration_job completion_fenced id=${integrationJobId} attemptId=${attemptId}`,
+        );
+        return;
+      }
       this.logger.log(
         `integration_job id=${integrationJobId} type=${processing.type} status=COMPLETED`,
       );
@@ -58,7 +80,7 @@ export class IntegrationQueueProcessor extends WorkerHost {
       await handleIntegrationJobFailure({
         repository: this.integrationJobRepository,
         queue: this.integrationQueue,
-        job: { ...processing, payload: processing.payload },
+        job: processing,
         settings,
         error,
         log: (message) => this.logger.warn(message),

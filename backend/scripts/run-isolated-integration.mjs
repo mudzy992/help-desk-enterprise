@@ -17,6 +17,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/notifications/fan-out/notification-fan-out-outbox.integration.spec.ts",
   "src/modules/notifications/email/notification-email-delivery-recovery.integration.spec.ts",
   "src/modules/integration-queue/integration-job-dispatch-recovery.integration.spec.ts",
+  "src/modules/integration-queue/integration-job-processor-claim.integration.spec.ts",
   "src/modules/notifications/email-templates/test-email-rate-limiter.integration.spec.ts",
   "src/modules/notifications/notifications-list-pagination.integration.spec.ts",
   "src/modules/notifications/notification-mark-all-read.integration.spec.ts",

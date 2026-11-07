@@ -7,6 +7,27 @@ export type IntegrationQueueJobData = {
   readonly integrationJobId: string;
 };
 
+export type IntegrationJobProcessingClaimInput = {
+  readonly id: string;
+  /** Stable BullMQ job id for this logical attempt. */
+  readonly attemptId: string;
+  /** Unique random token for this worker invocation. */
+  readonly ownerToken: string;
+  readonly now: Date;
+  readonly leaseExpiresAt: Date;
+};
+
+export type IntegrationJobProcessingClaim = {
+  readonly id: string;
+  readonly type: IntegrationJobType;
+  readonly payload: unknown;
+  readonly attempts: number;
+  readonly version: number;
+  readonly processingAttemptId: string;
+  readonly processingOwnerToken: string;
+  readonly processingLeaseExpiresAt: Date;
+};
+
 export type EmailIntegrationJobPayload = {
   readonly userId: string;
   readonly toAddress: string;
