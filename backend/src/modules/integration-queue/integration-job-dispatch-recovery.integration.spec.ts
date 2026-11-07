@@ -281,7 +281,7 @@ describeIfDatabase(
       );
       await reconciler.sweep(new Date());
       expect(recoveredQueue.add).toHaveBeenCalledWith(
-        IntegrationJobType.EDGE_EVENT,
+        IntegrationJobType.EMAIL,
         { integrationJobId: job.id },
         expect.objectContaining({ jobId: job.id }),
       );
