@@ -6,7 +6,7 @@
 **Baseline ocjena:** **4,41/10**  
 **Nalazi:** 4 P1, 8 P2, 3 P3
 
-> Ovaj audit čuva baseline presjek od 2026-10-23. Kasniji finding-level closeouti se dodaju kao statusne dopune; ne mijenjaju retrospektivne baseline opise, broj nalaza ni ocjenu. W6.34 je zatvorio samo `BA-integration-queue-01` (§18); W6.35 je zatvorio samo `BA-integration-queue-02` (§19). `BA-integration-queue-05` stale `PROCESSING` recovery i ostali nalazi ostaju otvoreni.
+> Ovaj audit čuva baseline presjek od 2026-10-23. Kasniji finding-level closeouti se dodaju kao statusne dopune; ne mijenjaju retrospektivne baseline opise, broj nalaza ni ocjenu. W6.34 je zatvorio samo `BA-integration-queue-01` (§18); W6.35 je zatvorio samo `BA-integration-queue-02` (§19); W6.36 je zatvorio samo `BA-integration-queue-03` (§20) kroz eksplicitni `PUBLISHED_BEST_EFFORT` ishod. `BA-integration-queue-04/05` i ostali nalazi ostaju otvoreni.
 
 ## 1. Executive summary
 
@@ -134,7 +134,7 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 | -------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
 | BA-integration-queue-01 | P1    | DB/Bull dual-write crash gap trajno orphanira enqueue, retry i admin-retry poslove        | zatvoreno |
 | BA-integration-queue-02 | P1    | Processor nema conditional lease claim pa dupli Bull poslovi paralelno dispatchuju        | zatvoreno |
-| BA-integration-queue-03 | P1    | EDGE_EVENT `PUBLISH=0` postaje COMPLETED bez ijednog primaoca ili replaya                 | otvoreno |
+| BA-integration-queue-03 | P1    | EDGE_EVENT bez primaoca ne smije biti COMPLETED; ishod je best-effort ili durable delivery                 | zatvoreno |
 | BA-integration-queue-04 | P1    | Scoped ADMIN može čitati globalne sirove email/Edge/Teams payloadove                       | otvoreno |
 | BA-integration-queue-05 | P2    | PROCESSING nema lease/stale recovery i može ostati zauvijek                               | otvoreno |
 | BA-integration-queue-06 | P2    | SMTP/Teams send-before-final-state crash može duplirati provider isporuku                  | otvoreno |
@@ -165,6 +165,8 @@ Početni status read i `markProcessing` nisu atomic compare-and-swap. Uvesti con
 ### BA-integration-queue-03 — lažni Edge success
 
 Redis pub/sub broj subscriber-a je ignorisan, a ni broj >0 nije end-to-end ack. Prebaciti Edge delivery na durable Redis Stream/Bull→API inbox sa consumer groupom i idempotentnim event ID-em, ili jasno označiti `PUBLISHED_BEST_EFFORT` umjesto COMPLETED/delivered. Nula mora biti retryable/observable, ne success.
+
+**W6.36 acceptance:** Redis `PUBLISH` rezultat `> 0` sada vodi u `PUBLISHED_BEST_EFFORT`, nikada `COMPLETED`; pozitivan subscriber count nije end-to-end acknowledgement. Rezultat `0` daje retryable/observable `EDGE_EVENT_NO_SUBSCRIBERS` i koristi postojeći `FAILED`/backoff/queue put. Ovo zadovoljava eksplicitnu best-effort alternativu iz nalaza; durable Stream/inbox i client acknowledgement nisu implementirani.
 
 ### BA-integration-queue-04 — globalni payload disclosure
 
@@ -238,7 +240,7 @@ Acceptance:
 1. Nijedan crash između DB i Redis koraka ne ostavlja posao bez eventualnog recoveryja.
 2. Samo jedan validan lease dispatchuje logical attempt.
 3. Stale PROCESSING se oporavlja ili jasno ide DLQ.
-4. Edge success ima durable consumer dokaz; nula subscriber-a nije COMPLETED.
+4. Edge delivery ima durable consumer dokaz ili eksplicitni `PUBLISHED_BEST_EFFORT` status; nula subscribera je retryable i nije `COMPLETED`.
 5. Scoped admin ne vidi foreign/raw payload.
 6. Provider crash recovery ne šalje slijepi duplikat i čuva UNKNOWN dokaz.
 7. Payloadi imaju stroge per-type resource granice.
@@ -273,3 +275,13 @@ Dodana je migracija `20271031180000_integration_job_processor_claim_fence`; Pris
 Migration ID je naveden kao release preduvjet, ali nije pokrenuta nikakva target/local deployment migracija; `be1c79db` nije mijenjana. Nema target-DB pristupa, PR-a, mergea, deploymenta ili redeploy preporuke. Svaka buduća release uputa mora potvrditi sve pending migration ID-eve i njihov redoslijed.
 
 Ovaj closeout zatvara samo `BA-integration-queue-02`; `BA-integration-queue-05`, `BA-integration-queue-03/04`, preostali nalazi audit 19, globalni BA-15 acceptance i ostali Val 6 scope ostaju otvoreni/pending. Novi zbir: Val 6 **39/109 zatvorenih, 70 otvorenih** (12 P1 / 41 P2 / 17 P3); source audit/generisani plan **522 otvoren / 170 zatvoren**, globalni registar **532/160**. Deset statusnih divergencija, status-page zapisi i historijski closeouti nisu mijenjani. Detaljni paket: [150 — BA-integration-queue-02 processor claim fencing](../implementation/150-integration-queue-02-processor-claim-fencing.md).
+
+## 20. W6.36 closeout — `BA-integration-queue-03` (2026-11-07)
+
+**Status:** zatvoreno na finding nivou kroz eksplicitnu best-effort alternativu; `BA-integration-queue-04/05` i svi ostali nalazi audit 19 ostaju otvoreni.
+
+Na kodnom SHA [`b9dcc6c`](https://github.com/mudzy992/help-desk-enterprise/commit/b9dcc6cdedc072c542813d8de3653ccaed24c5f0) Redis `PUBLISH` subscriber count više se ne odbacuje. Pozitivan count završava claim-fenced Edge job u `PUBLISHED_BEST_EFFORT`; processor ne označava događaj kao `COMPLETED` niti tvrdi potvrdu krajnjeg klijenta. Nula subscribera baca retryable `EDGE_EVENT_NO_SUBSCRIBERS`; postojeći failure/backoff put čuva error code i `nextRetryAt`, pa job ostaje oporavljiv. Status filter, UI badge i BS/EN prijevodi prikazuju best-effort granicu. PostgreSQL+Redis integration spec pokriva stvarni positive subscriber/payload i zero-subscriber retry stanje; registrovan je u isolated integration runneru.
+
+Migracija `20271031190000_integration_job_edge_publish_best_effort` dodaje Prisma status i postavljena je iza `20271031180000_integration_job_processor_claim_fence`. CI [`42423568636`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42423568636) prošao je generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration i disposable migration replay, frontend build/test i Docs guard. Ukupni CI **nije zelen**: container high/critical gate i CI gate failed zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]` (fix `1.4-r0`); E2E critical/install i read-only inventory su skipped. Perf [`42423568707`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42423568707) **failed** na nepromijenjenom query budgetu `2.122 > 2.1` kroz 50.797 zahtjeva (p95 3, max 34); uzročnost BA-03 nije utvrđena.
+
+Migracija je izvršena samo u disposable CI bazi; nema target-DB pristupa, lokalnog migration runa, PR-a, mergea ili deploymenta. `be1c79db` nije mijenjana niti je njen neusaglašeni ID pogađan. Zatvara se samo `BA-integration-queue-03`; `BA-integration-queue-04/05`, preostali nalazi audit 19, BA-15 full critical-flow acceptance i ostali Val 6 scope ostaju otvoreni/pending. Audit 19 je **3/15 zatvorena**; Val 6 **40/109 zatvorenih, 69 otvorenih** (11 P1 / 41 P2 / 17 P3); source audit/generisani plan **521 otvoren / 171 zatvoren**, globalni registar **531/161**. Deset poznatih statusnih divergencija, status-page zapisi i raniji closeouti nisu mijenjani. Detalji: [paket 151 — BA-integration-queue-03](../implementation/151-integration-queue-03-edge-best-effort-closeout.md).
