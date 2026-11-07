@@ -39,7 +39,7 @@ describe('publishPersistedTicketMessages', () => {
   it('keeps the same ordering on the awaited durable path', async () => {
     const order: string[] = [];
     const hub = {
-      publishTicketUpdatedAwaited: jest.fn(async () => {
+      publishTicketUpdatedAwaitedOnce: jest.fn(async () => {
         order.push('updated');
       }),
       publishAwaited: jest.fn(async () => {

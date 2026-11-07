@@ -61,7 +61,7 @@ export async function publishPersistedTicketMessagesAwaited(
         : (known?.get(message.ticketId) ?? ticket);
     const updated = toTicketUpdatedPayload(message, owner);
     if (updated !== null) {
-      await hub.publishTicketUpdatedAwaited(updated);
+      await hub.publishTicketUpdatedAwaitedOnce(updated);
     }
     await hub.publishAwaited(toTicketRealtimePayload(message, owner));
   }

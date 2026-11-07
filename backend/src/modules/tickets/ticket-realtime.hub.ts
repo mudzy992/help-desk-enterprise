@@ -17,6 +17,9 @@ type NotificationListener = (payload: NotificationRealtimePublish) => void;
 type EdgeEventListener = (payload: EdgeEventRealtimePublish) => void;
 type GroupNotificationListener = (payload: GroupNotificationRealtimePublish) => void;
 
+const ticketUpdatePublicationRetentionMs = 24 * 60 * 60 * 1_000;
+const maxRememberedTicketUpdatePublications = 10_000;
+
 @Injectable()
 export class TicketRealtimeHub {
   private readonly logger = new Logger(TicketRealtimeHub.name);
@@ -25,6 +28,8 @@ export class TicketRealtimeHub {
   private readonly notificationListeners = new Set<NotificationListener>();
   private readonly edgeEventListeners = new Set<EdgeEventListener>();
   private readonly groupNotificationListeners = new Set<GroupNotificationListener>();
+  private readonly pendingTicketUpdatePublications = new Map<string, Promise<void>>();
+  private readonly completedTicketUpdatePublications = new Map<string, number>();
 
   subscribeGroupNotification(listener: GroupNotificationListener): () => void {
     this.groupNotificationListeners.add(listener);
@@ -104,6 +109,43 @@ export class TicketRealtimeHub {
     await this.publishAwaitedToListeners(this.ticketUpdatedListeners, payload, 'ticket-updated');
   }
 
+  /**
+   * Idempotent awaited projection for the durable message outbox: if the update
+   * delivered but its paired message failed, an outbox retry must not repeat a
+   * successful update publication. Failures remain retryable. Dedupe is bounded
+   * and process-local; it is not a durable or cross-instance exactly-once claim.
+   */
+  async publishTicketUpdatedAwaitedOnce(
+    payload: TicketUpdatedRealtimePayload,
+  ): Promise<void> {
+    if (payload.sourceMessageId === null) {
+      await this.publishTicketUpdatedAwaited(payload);
+      return;
+    }
+    const key = `${payload.ticketId}\u0000${payload.sourceMessageId}`;
+    const now = Date.now();
+    this.pruneCompletedTicketUpdates(now);
+    if (this.completedTicketUpdatePublications.has(key)) {
+      return;
+    }
+    const pending = this.pendingTicketUpdatePublications.get(key);
+    if (pending !== undefined) {
+      await pending;
+      return;
+    }
+    const publication = this.publishTicketUpdatedAwaited(payload);
+    this.pendingTicketUpdatePublications.set(key, publication);
+    try {
+      await publication;
+      this.completedTicketUpdatePublications.set(key, Date.now());
+      this.pruneCompletedTicketUpdates(Date.now());
+    } finally {
+      if (this.pendingTicketUpdatePublications.get(key) === publication) {
+        this.pendingTicketUpdatePublications.delete(key);
+      }
+    }
+  }
+
   publishNotification(payload: NotificationRealtimePublish): void {
     for (const listener of this.notificationListeners) {
       listener(payload);
@@ -113,6 +155,25 @@ export class TicketRealtimeHub {
   publishEdgeEvent(payload: EdgeEventRealtimePublish): void {
     for (const listener of this.edgeEventListeners) {
       listener(payload);
+    }
+  }
+
+  private pruneCompletedTicketUpdates(now: number): void {
+    for (const [key, completedAt] of this.completedTicketUpdatePublications) {
+      if (now - completedAt <= ticketUpdatePublicationRetentionMs) {
+        break;
+      }
+      this.completedTicketUpdatePublications.delete(key);
+    }
+    while (
+      this.completedTicketUpdatePublications.size >
+      maxRememberedTicketUpdatePublications
+    ) {
+      const oldest = this.completedTicketUpdatePublications.keys().next().value;
+      if (oldest === undefined) {
+        return;
+      }
+      this.completedTicketUpdatePublications.delete(oldest);
     }
   }
 
