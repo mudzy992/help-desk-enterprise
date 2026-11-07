@@ -1,4 +1,3 @@
-import { adminRealtimeRoomName } from '../../common/admin-realtime/admin-config-realtime.types';
 import { Inject, Logger, Optional } from '@nestjs/common';
 import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
@@ -26,10 +25,13 @@ import { isSocketPrincipal } from './is-socket-principal';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
-import { startSocketRoomRevalidation } from './socket-room-revalidation';
+import {
+  revalidateSocketRooms,
+  startSocketRoomRevalidation,
+} from './socket-room-revalidation';
 import { startSocketSessionInvalidationSubscriber } from './socket-session-invalidation-subscriber';
 import { startSocketSessionRevalidation } from './socket-session-revalidation';
-import { groupRoomName, userRoomName } from './ticket-socket-rooms';
+import { userRoomName } from './ticket-socket-rooms';
 import {
   startWebsocketEmitCountReporter,
 } from './websocket-emit-counter';
@@ -209,22 +211,21 @@ export class WebsocketGateway
     userId: string,
   ): Promise<void> {
     await runWithSocketRequestId(client, async () => {
+      const principal = getSocketPrincipal(client);
+      if (!isSocketPrincipal(principal) || principal.subjectId !== userId) {
+        client.disconnect(true);
+        return;
+      }
       try {
-        const groupIds =
-          await this.socketGroupMembershipService.groupIdsForUser(userId);
-        await Promise.all(
-          groupIds.map((groupId) => client.join(groupRoomName(groupId))),
+        await revalidateSocketRooms(
+          client,
+          this.socketGroupMembershipService,
         );
-        // Package 1.7 (R1): admin configuration events. Optional-chained so
-        // the unit specs' membership double without `isAdmin` still works.
-        if (
-          (await this.socketGroupMembershipService.isAdmin?.(userId)) === true
-        ) {
-          await client.join(adminRealtimeRoomName);
-        }
       } catch {
+        // Failed room reconciliation has already removed managed rooms; a
+        // failed leave disconnects in the revalidation helper.
         this.logger.warn(
-          `socket_group_rooms_failed connectionId=${client.id}`,
+          `socket_group_rooms_failed connectionId=${client.id} fail_closed=1`,
         );
       }
     });

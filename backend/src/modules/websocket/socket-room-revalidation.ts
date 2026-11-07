@@ -5,26 +5,27 @@ import { isSocketPrincipal } from './is-socket-principal';
 import { groupRoomName } from './ticket-socket-rooms';
 
 /**
- * Val 3 (M11/B1): group membership and the ADMIN/SUPER_ADMIN role are read once,
- * at handshake, and the socket joins `group:{id}` / `role:admins` accordingly
- * (`socket-group-membership.service.ts`). After that nothing re-checks them, so a
- * user whose membership was revoked keeps receiving group notifications — and an
- * ex-admin keeps receiving admin configuration events — until they reconnect.
- * The HTTP layer already honours the change (`PrincipalContextInvalidator` bumps
- * `authzVersion`), which is exactly why the drift is invisible in the UI.
- *
- * This module closes the gap the cheap way the finding allows: every connected
- * socket re-checks its own rooms periodically (default 5 minutes), leaves the
- * managed rooms it no longer qualifies for and joins the ones it gained. The
- * Ticket rooms (`ticket:*`) remain outside this group/admin pass. They are
- * owned by `TicketChatGateway`'s `TicketSocketSubscriptionRegistry`, which
- * reauthorizes them on ticket updates and in its own periodic safety sweep.
+ * Group/admin changes normally invalidate the user's authz version and publish
+ * a cross-instance socket disconnect. The 30-second room sweep is a bounded
+ * reconciliation lease for missed events and changes made outside those paths;
+ * unlike the old five-minute poll, it is not the primary revocation mechanism.
  */
-export const socketRoomRevalidationIntervalMs = 5 * 60_000;
+export const socketRoomRevalidationIntervalMs = 30_000;
+export const socketRoomRevalidationTimeoutMs = 5_000;
+export const socketRoomRevalidationConcurrency = 25;
+
+export type SocketRoomAuthorizationSnapshot = {
+  readonly authzVersion: number;
+  readonly isActive: boolean;
+  readonly groupIds: readonly string[];
+  readonly isAdmin: boolean;
+};
 
 export type SocketRoomMembershipSource = {
-  readonly groupIdsForUser: (userId: string) => Promise<readonly string[]>;
-  readonly isAdmin?: (userId: string) => Promise<boolean>;
+  /** One authoritative snapshot of group membership, admin role and authz version. */
+  readonly roomAccessForUser: (
+    userId: string,
+  ) => Promise<SocketRoomAuthorizationSnapshot | null>;
 };
 
 export type SocketRoomRevalidationLogger = {
@@ -41,96 +42,314 @@ export type SocketRoomRevalidationResult = {
   readonly left: number;
 };
 
+/**
+ * Refreshes the managed rooms from one database snapshot. If the authorization
+ * read fails, all managed rooms are removed; if room cleanup itself fails, the
+ * socket is disconnected so an uncertain room cannot remain subscribed.
+ */
 export async function revalidateSocketRooms(
   client: Socket,
   membership: SocketRoomMembershipSource,
+  options: { readonly timeoutMs?: number } = {},
 ): Promise<SocketRoomRevalidationResult> {
   const principal = getSocketPrincipal(client);
   if (!isSocketPrincipal(principal)) {
+    disconnectSocket(client);
     return { joined: 0, left: 0 };
   }
-  const desired = new Set<string>(
-    (await membership.groupIdsForUser(principal.subjectId)).map(groupRoomName),
-  );
-  if ((await membership.isAdmin?.(principal.subjectId)) === true) {
-    desired.add(adminRealtimeRoomName);
+  if (socketIsDisconnected(client)) {
+    return { joined: 0, left: 0 };
   }
-  let left = 0;
-  for (const room of [...client.rooms]) {
-    if (isManagedSocketRoom(room) && !desired.has(room)) {
-      await client.leave(room);
-      left += 1;
-    }
+
+  let snapshot: SocketRoomAuthorizationSnapshot | null;
+  try {
+    snapshot = await withTimeout(
+      membership.roomAccessForUser(principal.subjectId),
+      options.timeoutMs ?? socketRoomRevalidationTimeoutMs,
+    );
+  } catch (error) {
+    await leaveManagedRoomsFailClosed(client);
+    throw error;
   }
-  let joined = 0;
-  for (const room of desired) {
-    if (!client.rooms.has(room)) {
-      await client.join(room);
-      joined += 1;
-    }
-  }
-  return { joined, left };
+  return applyRoomAuthorizationSnapshot(client, principal.authzVersion, snapshot);
 }
 
 export type SocketRoomRevalidationSummary = {
+  /** Number of authenticated sockets in the local process. */
   readonly checked: number;
   readonly joined: number;
   readonly left: number;
+  /** Sockets whose refresh failed and had managed rooms revoked fail-closed. */
   readonly failed: number;
 };
 
+type SocketUserGroup = {
+  readonly userId: string;
+  readonly sockets: Socket[];
+};
+
 /**
- * Revalidates every given socket, one failure at a time: a socket whose
- * membership could not be read keeps its current rooms (fail-open, the same
- * direction as the handshake) and is counted, not thrown.
+ * Revalidates local sockets with one authorization read per distinct user and
+ * bounded cross-user concurrency. A failed user snapshot strips every managed
+ * room for that user's local sockets; unrelated users continue to be checked.
  */
 export async function revalidateConnectedSocketRooms(
   sockets: Iterable<Socket>,
   membership: SocketRoomMembershipSource,
   logger: SocketRoomRevalidationLogger,
+  options: {
+    readonly timeoutMs?: number;
+    readonly concurrency?: number;
+  } = {},
 ): Promise<SocketRoomRevalidationSummary> {
   const summary = { checked: 0, joined: 0, left: 0, failed: 0 };
+  const groups = new Map<string, SocketUserGroup>();
+
   for (const client of sockets) {
-    if (!isSocketPrincipal(getSocketPrincipal(client))) {
+    const principal = getSocketPrincipal(client);
+    if (!isSocketPrincipal(principal)) {
+      disconnectSocket(client);
       continue;
     }
+    if (socketIsDisconnected(client)) continue;
     summary.checked += 1;
-    try {
-      const result = await revalidateSocketRooms(client, membership);
-      summary.joined += result.joined;
-      summary.left += result.left;
-    } catch (error) {
-      summary.failed += 1;
-      logger.warn(
-        `socket_room_revalidation_failed connectionId=${client.id} reason=${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+    const group = groups.get(principal.subjectId);
+    if (group === undefined) {
+      groups.set(principal.subjectId, {
+        userId: principal.subjectId,
+        sockets: [client],
+      });
+    } else {
+      group.sockets.push(client);
     }
+  }
+
+  await mapWithConcurrency(
+    [...groups.values()],
+    options.concurrency ?? socketRoomRevalidationConcurrency,
+    async (group) => {
+      let snapshot: SocketRoomAuthorizationSnapshot | null;
+      try {
+        snapshot = await withTimeout(
+          membership.roomAccessForUser(group.userId),
+          options.timeoutMs ?? socketRoomRevalidationTimeoutMs,
+        );
+      } catch {
+        summary.failed += group.sockets.length;
+        await Promise.all(
+          group.sockets.map(async (client) => {
+            const left = await leaveManagedRoomsFailClosed(client);
+            summary.left += left;
+          }),
+        );
+        return;
+      }
+
+      for (const client of group.sockets) {
+        const principal = getSocketPrincipal(client);
+        if (!isSocketPrincipal(principal) || socketIsDisconnected(client)) {
+          disconnectSocket(client);
+          continue;
+        }
+        try {
+          const result = await applyRoomAuthorizationSnapshot(
+            client,
+            principal.authzVersion,
+            snapshot,
+          );
+          summary.joined += result.joined;
+          summary.left += result.left;
+        } catch {
+          summary.failed += 1;
+        }
+      }
+    },
+  );
+
+  if (summary.failed > 0) {
+    logger.warn(
+      `socket_room_revalidation_failed checked=${summary.checked} failed=${summary.failed} fail_closed=1`,
+    );
   }
   return summary;
 }
 
 /**
- * Starts the periodic revalidation and returns the stop function. Only the local
- * sockets are walked (`server.sockets.sockets`): with the Redis adapter every
- * instance is responsible for its own connections, and a socket revalidates
- * itself on whichever instance it lives.
+ * Starts an immediate refresh and a non-overlapping periodic reconciliation.
+ * Only local sockets are walked: with the Redis adapter, every instance owns
+ * its local connections, while authz-version invalidation is cross-instance.
  */
 export function startSocketRoomRevalidation(
   server: Server,
   membership: SocketRoomMembershipSource,
   logger: SocketRoomRevalidationLogger,
-  options: { readonly intervalMs?: number } = {},
+  options: {
+    readonly intervalMs?: number;
+    readonly timeoutMs?: number;
+    readonly concurrency?: number;
+  } = {},
 ): () => void {
-  const intervalMs = options.intervalMs ?? socketRoomRevalidationIntervalMs;
-  const timer = setInterval(() => {
-    void revalidateConnectedSocketRooms(
-      server.sockets?.sockets?.values() ?? [],
-      membership,
-      logger,
-    );
-  }, intervalMs);
+  let stopped = false;
+  let running = false;
+  const run = async (): Promise<void> => {
+    if (stopped || running) return;
+    running = true;
+    try {
+      await revalidateConnectedSocketRooms(
+        server.sockets?.sockets?.values() ?? [],
+        membership,
+        logger,
+        {
+          timeoutMs: options.timeoutMs ?? socketRoomRevalidationTimeoutMs,
+          concurrency: options.concurrency ?? socketRoomRevalidationConcurrency,
+        },
+      );
+    } catch {
+      // Keep the timer from creating an unhandled rejection; per-user failures
+      // have already stripped managed rooms. This line is a process-health alert.
+      logger.warn('socket_room_revalidation_failed reason=unexpected fail_closed=1');
+    } finally {
+      running = false;
+    }
+  };
+  void run();
+  const timer = setInterval(
+    () => void run(),
+    options.intervalMs ?? socketRoomRevalidationIntervalMs,
+  );
   timer.unref?.();
-  return () => clearInterval(timer);
+  return () => {
+    stopped = true;
+    clearInterval(timer);
+  };
+}
+
+async function applyRoomAuthorizationSnapshot(
+  client: Socket,
+  principalAuthzVersion: number,
+  snapshot: SocketRoomAuthorizationSnapshot | null,
+): Promise<SocketRoomRevalidationResult> {
+  if (socketIsDisconnected(client)) return { joined: 0, left: 0 };
+  if (
+    snapshot === null ||
+    !snapshot.isActive ||
+    !Number.isSafeInteger(snapshot.authzVersion) ||
+    snapshot.authzVersion !== principalAuthzVersion
+  ) {
+    // Any membership/role mutation changes authzVersion. A socket carrying the
+    // prior version is not upgraded in place; it must authenticate a fresh lease.
+    disconnectSocket(client);
+    return { joined: 0, left: 0 };
+  }
+
+  const desired = new Set<string>(snapshot.groupIds.map(groupRoomName));
+  if (snapshot.isAdmin) desired.add(adminRealtimeRoomName);
+
+  try {
+    let left = 0;
+    for (const room of [...client.rooms]) {
+      if (isManagedSocketRoom(room) && !desired.has(room)) {
+        if (socketIsDisconnected(client)) return { joined: 0, left };
+        await awaitRoomOperation(client.leave(room));
+        left += 1;
+        if (socketIsDisconnected(client)) {
+          await leaveManagedRoomsFailClosed(client);
+          return { joined: 0, left };
+        }
+      }
+    }
+    let joined = 0;
+    for (const room of desired) {
+      if (socketIsDisconnected(client)) return { joined, left };
+      if (!client.rooms.has(room)) {
+        await awaitRoomOperation(client.join(room));
+        joined += 1;
+        if (socketIsDisconnected(client)) {
+          await leaveManagedRoomsFailClosed(client);
+          return { joined: 0, left };
+        }
+      }
+    }
+    return { joined, left };
+  } catch (error) {
+    // A partial leave/join can leave the membership set uncertain. Strip every
+    // managed room, disconnecting if the adapter cannot confirm the cleanup.
+    await leaveManagedRoomsFailClosed(client);
+    throw error;
+  }
+}
+
+async function leaveManagedRoomsFailClosed(client: Socket): Promise<number> {
+  let left = 0;
+  let failed = false;
+  for (const room of [...client.rooms]) {
+    if (!isManagedSocketRoom(room)) continue;
+    try {
+      await awaitRoomOperation(client.leave(room));
+      left += 1;
+    } catch {
+      failed = true;
+    }
+  }
+  if (
+    failed ||
+    [...client.rooms].some(isManagedSocketRoom)
+  ) {
+    disconnectSocket(client);
+  }
+  return left;
+}
+
+function socketIsDisconnected(client: Socket): boolean {
+  return client.disconnected === true || !client.rooms.has(client.id);
+}
+
+function disconnectSocket(client: Socket): void {
+  try {
+    client.disconnect(true);
+  } catch {
+    // Nothing else can make a broken Socket.IO connection safer.
+  }
+}
+
+function awaitRoomOperation(operation: void | Promise<void>): Promise<void> {
+  return Promise.resolve(operation);
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('socket room authorization timeout')),
+          timeoutMs,
+        );
+        timeout.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
+
+async function mapWithConcurrency<T>(
+  values: readonly T[],
+  concurrency: number,
+  work: (value: T) => Promise<void>,
+): Promise<void> {
+  if (values.length === 0) return;
+  const workerCount = Math.max(1, Math.min(values.length, Math.floor(concurrency)));
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (next < values.length) {
+        const index = next;
+        next += 1;
+        const value = values[index];
+        if (value !== undefined) await work(value);
+      }
+    }),
+  );
 }

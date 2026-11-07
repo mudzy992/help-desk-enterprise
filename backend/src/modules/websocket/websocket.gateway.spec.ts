@@ -30,12 +30,16 @@ type HandshakeMiddleware = (
 ) => void;
 
 function createSocket(auth: unknown): Socket {
+  const rooms = new Set(['connection-test-1']);
   return {
     id: 'connection-test-1',
     handshake: { auth, headers: {} },
     data: {},
-    disconnect: jest.fn(),
-    join: jest.fn(),
+    rooms,
+    disconnected: false,
+    disconnect: jest.fn(() => rooms.clear()),
+    join: jest.fn(async (room: string) => rooms.add(room)),
+    leave: jest.fn(async (room: string) => rooms.delete(room)),
   } as unknown as Socket;
 }
 
@@ -82,7 +86,12 @@ describe('WebsocketGateway', () => {
       reason: 'invalid_credentials',
     }),
   );
-  const groupIdsForUser = jest.fn(async (): Promise<readonly string[]> => []);
+  const roomAccessForUser = jest.fn(async () => ({
+    authzVersion: LEASE_PRINCIPAL.authzVersion,
+    isActive: true,
+    groupIds: [] as readonly string[],
+    isAdmin: false,
+  }));
   let moduleRef: TestingModule | undefined;
   let logSpy: jest.SpiedFunction<Logger['log']>;
   let warnSpy: jest.SpiedFunction<Logger['warn']>;
@@ -95,7 +104,7 @@ describe('WebsocketGateway', () => {
         { provide: SOCKET_AUTHENTICATION_VERIFIER, useValue: { verify } },
         {
           provide: SocketGroupMembershipService,
-          useValue: { groupIdsForUser },
+          useValue: { roomAccessForUser },
         },
         {
           provide: SessionTokenService,
@@ -108,8 +117,13 @@ describe('WebsocketGateway', () => {
 
   beforeEach(() => {
     verify.mockReset();
-    groupIdsForUser.mockReset();
-    groupIdsForUser.mockResolvedValue([]);
+    roomAccessForUser.mockReset();
+    roomAccessForUser.mockResolvedValue({
+      authzVersion: LEASE_PRINCIPAL.authzVersion,
+      isActive: true,
+      groupIds: [],
+      isAdmin: false,
+    });
     logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
   });
@@ -202,15 +216,19 @@ describe('WebsocketGateway', () => {
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
-  it('joins handler group rooms for the connected user', async () => {
-    groupIdsForUser.mockResolvedValue(['group-it']);
+  it('joins the groups in one current room-authorization snapshot', async () => {
+    roomAccessForUser.mockResolvedValue({
+      authzVersion: LEASE_PRINCIPAL.authzVersion,
+      isActive: true,
+      groupIds: ['group-it'],
+      isAdmin: false,
+    });
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
     socket.data.principal = LEASE_PRINCIPAL;
     gateway.handleConnection(socket);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(groupIdsForUser).toHaveBeenCalledWith('subject-user-1');
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(roomAccessForUser).toHaveBeenCalledWith('subject-user-1');
     expect(socket.join).toHaveBeenCalledWith('group:group-it');
   });
 
