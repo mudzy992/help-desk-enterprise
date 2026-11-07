@@ -16,9 +16,9 @@ import { groupRoomName } from './ticket-socket-rooms';
  * This module closes the gap the cheap way the finding allows: every connected
  * socket re-checks its own rooms periodically (default 5 minutes), leaves the
  * managed rooms it no longer qualifies for and joins the ones it gained. The
- * ticket rooms (`ticket:*`) are not touched — they are per-ticket, joined only
- * through `ticket:join` with its own authorization, and the visibility room is
- * re-checked on every join.
+ * Ticket rooms (`ticket:*`) remain outside this group/admin pass. They are
+ * owned by `TicketChatGateway`'s `TicketSocketSubscriptionRegistry`, which
+ * reauthorizes them on ticket updates and in its own periodic safety sweep.
  */
 export const socketRoomRevalidationIntervalMs = 5 * 60_000;
 

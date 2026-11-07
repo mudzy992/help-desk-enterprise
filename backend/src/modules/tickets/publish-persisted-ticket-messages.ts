@@ -34,11 +34,13 @@ export function publishPersistedTicketMessages(
       message.ticketId === ticket.id
         ? ticket
         : (known?.get(message.ticketId) ?? ticket);
-    hub.publish(toTicketRealtimePayload(message, owner));
     const updated = toTicketUpdatedPayload(message, owner);
     if (updated !== null) {
+      // Access-changing system actions invalidate active socket rooms before the
+      // related message is fanned out to those rooms.
       hub.publishTicketUpdated(updated);
     }
+    hub.publish(toTicketRealtimePayload(message, owner));
   }
 }
 
@@ -57,10 +59,10 @@ export async function publishPersistedTicketMessagesAwaited(
       message.ticketId === ticket.id
         ? ticket
         : (known?.get(message.ticketId) ?? ticket);
-    await hub.publishAwaited(toTicketRealtimePayload(message, owner));
     const updated = toTicketUpdatedPayload(message, owner);
     if (updated !== null) {
       await hub.publishTicketUpdatedAwaited(updated);
     }
+    await hub.publishAwaited(toTicketRealtimePayload(message, owner));
   }
 }
