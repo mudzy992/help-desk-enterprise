@@ -180,13 +180,15 @@ describe("install module dependency injection metadata", () => {
     }
   });
 
-  it("never emits Function for a constructor parameter", () => {
-    // `Function` means a class was imported as a type: the container then looks
-    // for a provider literally called `Function` and the whole app stops booting.
+  it("never emits Function for a constructor parameter without an explicit token", () => {
+    // `Function` means a class was imported as a type, so Nest may look for a
+    // provider literally called `Function`. An explicit @Inject token overrides
+    // that reflected type and is safe; inferred Function metadata is not.
     for (const [name, provider] of injectorBound()) {
+      const injected = injectedIndexes(provider);
       const offenders = declaredTypes(provider)
         .map((type, index) => ({ index, type }))
-        .filter(({ type }) => type === Function);
+        .filter(({ index, type }) => type === Function && !injected.includes(index));
       expect({ name, offenders }).toEqual({ name, offenders: [] });
     }
   });
