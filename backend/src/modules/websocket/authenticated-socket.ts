@@ -13,7 +13,7 @@ export function attachSocketPrincipal(
   socket: Socket,
   principal: SocketPrincipal,
 ): void {
-  socket.data.principal = createSocketPrincipal(principal.subjectId);
+  socket.data.principal = createSocketPrincipal(principal);
 }
 
 export function getSocketPrincipal(socket: Socket): SocketPrincipal | undefined {

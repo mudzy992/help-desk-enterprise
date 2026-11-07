@@ -7,6 +7,7 @@ import { SocketAuthenticationService } from './socket-authentication.service';
 import type { SocketAuthenticationResult } from './socket-authentication.types';
 import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
+import { SessionTokenService } from '../authentication/session-token.service';
 import { WebsocketGateway } from './websocket.gateway';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -14,6 +15,14 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 const SYNTHETIC_TOKEN = 'synthetic-handshake-token-test-only';
+const LEASE_PRINCIPAL = {
+  subjectId: 'subject-user-1',
+  sessionId: 'session-user-1',
+  jti: 'token-id-1',
+  issuedAt: 1_800_000_000,
+  expiresAt: 1_800_003_600,
+  authzVersion: 7,
+} as const;
 
 type HandshakeMiddleware = (
   socket: Socket,
@@ -88,6 +97,10 @@ describe('WebsocketGateway', () => {
           provide: SocketGroupMembershipService,
           useValue: { groupIdsForUser },
         },
+        {
+          provide: SessionTokenService,
+          useValue: { isSocketSessionCurrent: jest.fn(async () => true) },
+        },
       ],
     }).compile();
     return moduleRef.get(WebsocketGateway);
@@ -112,18 +125,25 @@ describe('WebsocketGateway', () => {
   it('attaches a minimal principal on a valid authenticated handshake', async () => {
     verify.mockResolvedValue({
       status: 'authenticated',
-      principal: { subjectId: 'subject-user-1' },
+      principal: LEASE_PRINCIPAL,
     });
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    socket.handshake.headers.cookie =
+      `helpdesk_session=${SYNTHETIC_TOKEN}; theme=compact`;
+    socket.handshake.headers.authorization = `Bearer ${SYNTHETIC_TOKEN}`;
     const error = await completeHandshake(
       captureHandshakeMiddleware(gateway),
       socket,
     );
     expect(error).toBeUndefined();
     expect(verify).toHaveBeenCalledWith({ token: SYNTHETIC_TOKEN });
-    expect(socket.data.principal).toEqual({ subjectId: 'subject-user-1' });
+    expect(socket.data.principal).toEqual(LEASE_PRINCIPAL);
     expect(socket.data.principal).not.toHaveProperty('token');
+    expect(socket.handshake.auth).not.toHaveProperty('token');
+    expect(socket.handshake.headers.cookie).toBe('theme=compact');
+    expect(socket.handshake.headers.authorization).toBeUndefined();
+    expect(JSON.stringify(socket.handshake)).not.toContain(SYNTHETIC_TOKEN);
     expect(typeof socket.data.requestId).toBe('string');
     expect(joinedLogOutput(logSpy, warnSpy)).not.toContain(SYNTHETIC_TOKEN);
   });
@@ -176,7 +196,7 @@ describe('WebsocketGateway', () => {
   it('joins the user room after an authenticated connection', async () => {
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
-    socket.data.principal = { subjectId: 'subject-user-1' };
+    socket.data.principal = LEASE_PRINCIPAL;
     gateway.handleConnection(socket);
     expect(socket.join).toHaveBeenCalledWith('user:subject-user-1');
     expect(socket.disconnect).not.toHaveBeenCalled();
@@ -186,7 +206,7 @@ describe('WebsocketGateway', () => {
     groupIdsForUser.mockResolvedValue(['group-it']);
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
-    socket.data.principal = { subjectId: 'subject-user-1' };
+    socket.data.principal = LEASE_PRINCIPAL;
     gateway.handleConnection(socket);
     await Promise.resolve();
     await Promise.resolve();

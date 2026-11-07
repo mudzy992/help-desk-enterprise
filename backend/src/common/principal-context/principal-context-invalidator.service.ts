@@ -6,6 +6,10 @@ import {
   invalidateCachedPrincipalContext,
   type PrincipalContextCacheClient,
 } from './principal-context.cache';
+import {
+  publishSocketSessionInvalidation,
+  socketSessionInvalidationBatchSize,
+} from '../security/socket-session-invalidation';
 
 /**
  * Invalidates the cached authorization data of one user (plan §2.2).
@@ -18,11 +22,14 @@ import {
  * 2. The pointer is moved to the new version (a tombstone: no payload exists
  *    for it), so the next request is a guaranteed miss and reloads from the
  *    database.
+ * 3. A best-effort Pub/Sub invalidation disconnects this user's live sockets on
+ *    every API instance. The 15-second durable socket-lease recheck is the
+ *    fallback if Redis is unavailable or a message is missed.
  *
- * Both steps are best effort and neither throws: a mutation must not fail
- * because its cache could not be told about it (rule 2.2.5). If the bump fails
- * the pointer is deleted instead, and if Redis is unreachable the next request
- * fails open into a database read anyway.
+ * All steps are best effort and neither throws: a mutation must not fail because
+ * its cache or socket notification could not be told about it (rule 2.2.5). If
+ * the bump fails the pointer is deleted instead, and if Redis is unreachable the
+ * next request falls back to a database read anyway.
  */
 @Injectable()
 export class PrincipalContextInvalidator {
@@ -54,6 +61,7 @@ export class PrincipalContextInvalidator {
       );
     }
     await invalidateCachedPrincipalContext(await this.cacheClient(), id, version);
+    await this.publishSocketInvalidations([id]);
     return version;
   }
 
@@ -92,6 +100,7 @@ export class PrincipalContextInvalidator {
         }
         await invalidateCachedPrincipalContext(client, id, version);
       }
+      await this.publishSocketInvalidations(ids);
     } catch (error) {
       this.logger.warn(
         `authz_batch_invalidation_skipped users=${ids.length} reason=${describeError(error)}`,
@@ -123,6 +132,31 @@ export class PrincipalContextInvalidator {
         `authz_role_invalidation_skipped role=${id} reason=${describeError(error)}`,
       );
       return 0;
+    }
+  }
+
+  private async publishSocketInvalidations(
+    subjectIds: readonly string[],
+  ): Promise<void> {
+    if (typeof this.redis.publish !== 'function') {
+      return;
+    }
+    for (
+      let offset = 0;
+      offset < subjectIds.length;
+      offset += socketSessionInvalidationBatchSize
+    ) {
+      const published = await publishSocketSessionInvalidation(this.redis, {
+        version: 1,
+        kind: 'users',
+        subjectIds: subjectIds.slice(
+          offset,
+          offset + socketSessionInvalidationBatchSize,
+        ),
+      });
+      if (!published && this.redis.status === 'ready') {
+        this.logger.warn('socket_authz_invalidation_publish_unavailable');
+      }
     }
   }
 

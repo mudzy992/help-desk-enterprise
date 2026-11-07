@@ -135,7 +135,7 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 
 ### BA-websocket-01 — sesija živi samo na handshakeu
 
-Principal nakon verifikacije sadrži samo subject ID. Revocation store, registry, expiry i authzVersion se više ne konsultuju. Uvesti socket credential lease sa expiryjem, session ID/authzVersionom, revocation pub/sub koji odmah disconnectuje odgovarajuće sockete i periodični fail-closed recheck kao safety net. Test mora zadržati otvoren socket, izvršiti logout/revoke/password change/deactivate i dokazati disconnect + izostanak novih događaja.
+Principal nakon verifikacije sadrži samo subject ID. Revocation store, registry, expiry i authzVersion se više ne konsultuju. Uvesti socket credential lease sa expiryjem, session ID/authzVersionom, revocation pub/sub koji odmah disconnectuje odgovarajuće sockete i periodični fail-closed recheck kao safety net. Test mora zadržati otvoren socket, izvršiti logout/revoke/password change/deactivate i dokazati disconnect + izostanak novih događaja. Ovo je audit baseline; W6.31 implementacijski checkpoint i granice trenutnog dokaza su u §20.
 
 ### BA-websocket-02 — stale ticket access
 
@@ -239,3 +239,13 @@ Automatski CI [`42374380242`](https://github.com/mudzy992/help-desk-enterprise/a
 Perf nije pokrenut jer WebSocket path nije u push filteru. Posljednji Perf [`42289613508`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42289613508) ostaje **failed** na globalnom, nepromijenjenom query budgetu `2.128 > 2.1`; nema dokaza koji ga pripisuje BA-websocket-04 i threshold nije mijenjan.
 
 Zatvara se samo nalaz da je legacy group payload uključen po defaultu. Ako se izričito uključi compatibility flag, puni public payload i dalje ide članovima grupe bez per-ticket authorizationa; zato je opt-in sigurnosno osjetljiv i privremen. `BA-websocket-01`, `BA-websocket-02`, `BA-websocket-03` i širi `BA-websocket-14` ostaju otvoreni. Baseline **4,88/10** nije rescoraan. Nema target-DB upotrebe, migracije, PR-a, mergea ni deploymenta.
+
+## 20. W6.31 implementation checkpoint — BA-websocket-01 (2026-11-07)
+
+Kod za `BA-websocket-01` implementiran je na aktivnoj Arena grani, ali finding ostaje **otvoren** dok CI ne potvrdi generated-Prisma build i registrirani Redis integration suite. Verified lease uključuje `subjectId`, nullable `sessionId` (`sid`), `jti`, `issuedAt` (`iat`), `expiresAt` (`exp`) i durable `authzVersion`; sirovi credential se ne stavlja u principal, a nakon uspješnog handshaka se uklanja i iz `handshake.auth.token`, `helpdesk_session` cookieja i Authorization headera. Legacy token bez `sid` mora dobiti durable user-authority snapshot; opcionalni cache sam po sebi nije dovoljan za socket lease.
+
+Revocation/authz događaji šalju best-effort Redis Pub/Sub invalidaciju, a subscriber svake instance prekida podudarne lokalne sockete. Safety sweep se pokreće odmah i svakih 15 sekundi; authority check timeout je 5 sekundi, concurrency cap 25, a neuspješan check je fail-closed. Repo ACL primjer sadrži `&servicedesk:*`, što pokriva static kanal `servicedesk:auth:socket:invalidate`; stvarna deployed ACL konfiguracija nije provjerena.
+
+Lokalni targeted Jest s isključenim ts-jest diagnostics prošao je **11/12 suiteova, 78/79 testova**; samo Redis integration suite je skipovan jer `REDIS_HOST` nije postavljen. Lifecycle regresija koristi otvoreni Socket.IO test double za logout/session revoke/password revoke-all/deactivation i potvrđuje da nakon disconnecta nema novih isporučenih događaja. Odvojena registered integration spec namijenjena je stvarnom Redis Pub/Sub deliveryju na dvije API instance, ali ni ona još nije lokalno izvršena, a Socket.IO utičnice/servery su test doubleovi. Runner guard je **16/16**, ciljano lintanje i `git diff --check` su passed. Normalni ts-jest diagnostics run je compile-blocked nedostajućim generated Prisma članovima (`user`, `groupMember`, `userRole`); ovo nije potvrđen TypeScript type-check niti generated-Prisma build. CI rezultat na ovom checkpointu nije dostupan.
+
+Zbog ovih granica status `BA-websocket-01` i agregatni brojevi ostaju nepromijenjeni; `BA-websocket-02`, `BA-websocket-03` i `BA-websocket-14` ostaju izvan scopea. Baseline **4,88/10** nije rescoraan. Detaljni dokazni zapis: [W6.31 / paket 146](../implementation/146-websocket-01-session-lease.md). Nema target-DB upotrebe, migracije, PR-a, mergea ni deploymenta.

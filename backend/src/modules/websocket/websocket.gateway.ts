@@ -10,6 +10,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import type { RedisConfiguration } from '../../common/redis/redis.types';
+import { SESSION_COOKIE_NAME } from '../authentication/session-cookie';
+import { SessionTokenService } from '../authentication/session-token.service';
 import { startWebsocketClientCountReporter } from '../observability/metrics/websocket-client-count.reporter';
 import {
   attachSocketPrincipal,
@@ -25,6 +27,8 @@ import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
 import { startSocketRoomRevalidation } from './socket-room-revalidation';
+import { startSocketSessionInvalidationSubscriber } from './socket-session-invalidation-subscriber';
+import { startSocketSessionRevalidation } from './socket-session-revalidation';
 import { groupRoomName, userRoomName } from './ticket-socket-rooms';
 import {
   startWebsocketEmitCountReporter,
@@ -57,6 +61,8 @@ export class WebsocketGateway
   private stopClientCountReporter: (() => void) | null = null;
   private stopEmitCountReporter: (() => void) | null = null;
   private stopRoomRevalidation: (() => void) | null = null;
+  private stopSessionRevalidation: (() => void) | null = null;
+  private stopSessionInvalidationSubscriber: (() => void) | null = null;
   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
 
   /**
@@ -69,6 +75,7 @@ export class WebsocketGateway
   constructor(
     private readonly socketAuthenticationService: SocketAuthenticationService,
     private readonly socketGroupMembershipService: SocketGroupMembershipService,
+    private readonly sessionTokenService: SessionTokenService,
     // Optional on purpose: the unit specs build the gateway without the global
     // Redis module. No configuration means no adapter — the in-memory one stays,
     // which is exactly the degraded mode Phase 3.1 asks for.
@@ -112,6 +119,22 @@ export class WebsocketGateway
       this.socketGroupMembershipService,
       this.logger,
     );
+    this.stopSessionRevalidation = startSocketSessionRevalidation(
+      server,
+      {
+        isCurrent: (principal) =>
+          this.sessionTokenService.isSocketSessionCurrent(principal),
+      },
+      this.logger,
+    );
+    if (this.redisConfiguration !== undefined) {
+      this.stopSessionInvalidationSubscriber =
+        startSocketSessionInvalidationSubscriber(
+          this.redisConfiguration,
+          server,
+          this.logger,
+        );
+    }
   }
 
   onModuleDestroy(): void {
@@ -121,6 +144,10 @@ export class WebsocketGateway
     this.stopEmitCountReporter = null;
     this.stopRoomRevalidation?.();
     this.stopRoomRevalidation = null;
+    this.stopSessionRevalidation?.();
+    this.stopSessionRevalidation = null;
+    this.stopSessionInvalidationSubscriber?.();
+    this.stopSessionInvalidationSubscriber = null;
     void this.realtimeAdapter?.close();
     this.realtimeAdapter = null;
   }
@@ -222,6 +249,7 @@ export class WebsocketGateway
           return;
         }
         attachSocketPrincipal(socket, outcome.principal);
+        clearHandshakeCredentials(socket);
         this.logger.log(
           `socket_authentication_accepted connectionId=${socket.id} requestId=${requestId}`,
         );
@@ -234,4 +262,29 @@ export class WebsocketGateway
       }
     });
   }
+}
+
+function clearHandshakeCredentials(socket: Socket): void {
+  if (typeof socket.handshake.auth === 'object' && socket.handshake.auth !== null) {
+    delete socket.handshake.auth['token'];
+  }
+  const cookieHeader = socket.handshake.headers.cookie;
+  if (typeof cookieHeader === 'string') {
+    const remainingCookies = cookieHeader
+      .split(';')
+      .map((cookie) => cookie.trim())
+      .filter((cookie) => {
+        const separator = cookie.indexOf('=');
+        return (
+          separator < 0 ||
+          cookie.slice(0, separator).trim() !== SESSION_COOKIE_NAME
+        );
+      });
+    if (remainingCookies.length === 0) {
+      delete socket.handshake.headers.cookie;
+    } else {
+      socket.handshake.headers.cookie = remainingCookies.join('; ');
+    }
+  }
+  delete socket.handshake.headers.authorization;
 }

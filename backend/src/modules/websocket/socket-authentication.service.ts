@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { isAllowedOrigin } from '../../common/cors/is-allowed-origin';
 import { readSessionCookie } from '../authentication/session-cookie';
 import { createSocketPrincipal } from './create-socket-principal';
+import { isSocketPrincipal } from './is-socket-principal';
 import { parseSocketHandshakeCredentials } from './parse-socket-handshake-credentials';
 import type { SocketAuthenticationVerifier } from './socket-authentication.verifier';
 import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
@@ -37,12 +38,12 @@ export class SocketAuthenticationService {
     if (result.status !== 'authenticated') {
       return { status: 'unauthenticated', reason: result.reason };
     }
-    if (result.principal.subjectId.trim().length === 0) {
+    if (!isSocketPrincipal(result.principal)) {
       return { status: 'unauthenticated', reason: 'invalid_credentials' };
     }
     return {
       status: 'authenticated',
-      principal: createSocketPrincipal(result.principal.subjectId),
+      principal: createSocketPrincipal(result.principal),
     };
   }
 }

@@ -17,7 +17,16 @@ function createSocket(
   const set = new Set(rooms);
   const socket = {
     id: `socket-${userId}`,
-    data: { principal: { subjectId: userId } },
+    data: {
+      principal: {
+        subjectId: userId,
+        sessionId: `session-${userId}`,
+        jti: `jti-${userId}`,
+        issuedAt: 1,
+        expiresAt: 9_999_999_999,
+        authzVersion: 0,
+      },
+    },
     rooms: set,
     join: jest.fn(async (room: string) => {
       set.add(room);

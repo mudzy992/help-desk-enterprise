@@ -11,6 +11,7 @@ import { mapPrincipalUser } from './load-principal-context';
 import { PrincipalContextLoader } from './principal-context.loader';
 import { PrincipalContextInvalidator } from './principal-context-invalidator.service';
 import { runWithRequestId } from '../request-context/request-context.storage';
+import { socketSessionInvalidationChannel } from '../security/socket-session-invalidation';
 
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -21,6 +22,7 @@ type StoredEntry = { readonly value: string; readonly ttlSeconds: number };
 function createFakeRedis() {
   const entries = new Map<string, StoredEntry>();
   const calls: string[] = [];
+  const publications: Array<{ channel: string; message: string }> = [];
   const client = {
     status: 'ready',
     connect: async () => undefined,
@@ -46,8 +48,12 @@ function createFakeRedis() {
       calls.push(`del ${key}`);
       return entries.delete(key) ? 1 : 0;
     },
+    publish: async (channel: string, message: string) => {
+      publications.push({ channel, message });
+      return 1;
+    },
   };
-  return { client, entries, calls };
+  return { client, entries, calls, publications };
 }
 
 /** The database row shape the loader reads, plus a query counter. */
@@ -387,6 +393,21 @@ describe('principal context loading (phase 2.2)', () => {
     // The guard turns "not active" into 401; the loader only has to stop
     // serving the stale, active copy.
     expect(after?.isActive).toBe(false);
+  });
+
+  it('publishes a user socket invalidation after the durable authz-version bump', async () => {
+    const { invalidator, redis } = setup();
+    await invalidator.invalidateUser('user-agent');
+
+    expect(redis.publications).toHaveLength(1);
+    expect(redis.publications[0]).toEqual({
+      channel: socketSessionInvalidationChannel,
+      message: JSON.stringify({
+        version: 1,
+        kind: 'users',
+        subjectIds: ['user-agent'],
+      }),
+    });
   });
 
   it('leaves a tombstone pointer on the new version instead of the old payload', async () => {

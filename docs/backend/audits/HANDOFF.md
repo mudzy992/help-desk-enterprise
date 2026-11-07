@@ -1,6 +1,6 @@
 # HANDOFF — Help Desk Enterprise
 
-**Datum:** 2026-11-04<br>
+**Datum:** 2026-11-07<br>
 **Jezička pravila:** svaka komunikacija i closeout izvještaj korisniku moraju biti isključivo na bosanskom.  
 **Svrha:** kontinuitet rada u narednoj Arena sesiji. Sve putanje ispod su relativne putanje unutar repozitorija.
 
@@ -14,6 +14,14 @@
 6. Odgovaraj korisniku isključivo na bosanskom i koristi detaljni closeout format iz odjeljka 7.
 
 ## 2. Stanje implementacije
+
+### W6.31 / `BA-websocket-01` (P1) — implementation checkpoint
+
+Kod za socket-session lease je na `arena/864951a6-help-desk-enterprise`; finding ostaje `otvoreno` dok generated-Prisma CI build i registrovani stvarni Redis integration suite ne budu potvrđeni. Socket principal čuva samo `subjectId`, nullable `sessionId`/`sid`, `jti`, `issuedAt`/`iat`, `expiresAt`/`exp` i durable `authzVersion`; nakon autentikacije raw token se uklanja iz `handshake.auth`, session cookie iz handshake cookie headera i Authorization headera. Legacy no-`sid` token mora proći durable user-authority lookup. Revocation/authz Pub/Sub promptno prekida podudarne lokalne sockete; 15 s periodic fail-closed recheck, 5 s authority timeout, concurrency 25.
+
+Lokalni dokaz: targeted Jest s ts-jest diagnostics isključenim **78 passed / 1 skipped** (Redis integration nije izvršen jer nema `REDIS_HOST`); integration-runner harness **16/16**, targeted ESLint i `git diff --check` passed. Lifecycle test koristi Socket.IO test double; Redis integration spec (stvarni Pub/Sub, dva subscriber-a, Socket.IO test doubleovi) registrovana je, ali CI izvršenje još nije poznato. Normalni diagnostics compile-blocked su nedostajućim generated Prisma članovima; nema potvrđenog TypeScript type-checka. ACL primjer `&servicedesk:*` odgovara static kanalu, ali deployed Redis ACL nije nezavisno provjeren. BA-websocket-02/03/14 i W6.30 status/countovi nisu mijenjani; BA-01 se ne označava zatvorenim prije potrebnog CI dokaza. Paket: `docs/backend/implementation/146-websocket-01-session-lease.md`.
+
+Target DB nije korištena, migracija nije pokrenuta, PR/merge/deployment nisu urađeni. Ne pokretati ručno full CI/E2E/Perf; push CI cadence i njegovi results bilježe se odvojeno.
 
 ### W7.15 / `BA-assets-15` (P2)
 

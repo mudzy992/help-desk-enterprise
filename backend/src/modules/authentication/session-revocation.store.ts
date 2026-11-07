@@ -3,6 +3,10 @@ import type Redis from 'ioredis';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import type { PrincipalAuthoritySnapshot } from '../../common/principal-context/principal-context.types';
+import {
+  publishSocketSessionInvalidation,
+  type SocketSessionInvalidation,
+} from '../../common/security/socket-session-invalidation';
 
 /**
  * Review 2026-09-25 (S1/S2): session JWTs could not be revoked — "sign out"
@@ -15,8 +19,9 @@ import type { PrincipalAuthoritySnapshot } from '../../common/principal-context/
  *                                   may exempt the caller's sid/jti; TTL = session TTL
  *
  * Tokens are short (1 h), so the records never outlive what they protect. A
- * Redis outage fails OPEN (logged) — sessions keep working rather than
- * everybody being signed out; the 1 h expiry still bounds the exposure.
+ * Verification fails closed when Redis is unavailable. Revocation writes are
+ * best effort because the durable registry row and periodic socket re-check
+ * remain independent safety fences.
  */
 export type RevocationCheck = {
   jti: string | null;
@@ -190,7 +195,7 @@ export class SessionRevocationStore {
   private readonly backend: SessionRevocationBackend;
 
   constructor(
-    @Optional() @Inject(redisTokens.client) redis?: Redis,
+    @Optional() @Inject(redisTokens.client) private readonly redis?: Redis,
     @Optional() private readonly prisma?: PrismaService,
   ) {
     this.backend =
@@ -204,9 +209,10 @@ export class SessionRevocationStore {
   }
 
   /**
-   * Confirms the durable session and user authority in one joined SQL read.
-   * The user snapshot lets the request's principal-context cache reuse this
-   * same per-request database check instead of issuing a second user query.
+   * Confirms the durable session and user authority in one joined SQL read for
+   * `sid` tokens; legacy no-`sid` tokens get a direct user authority read. The
+   * returned snapshot lets the request principal-context cache reuse the same
+   * per-request database check instead of issuing a second user query.
    */
   async check(input: RevocationCheck): Promise<SessionRevocationCheckResult> {
     let durableAuthority: PrincipalAuthoritySnapshot | undefined;
@@ -250,6 +256,36 @@ export class SessionRevocationStore {
         this.logger.error(`session authority unavailable, failing closed: ${String(error)}`);
         return { revoked: true };
       }
+    } else if (this.prisma !== undefined) {
+      // Legacy access tokens have no registry `sid`. They still need a fresh
+      // durable account/authz snapshot so logout/password/deactivation and the
+      // socket lease check do not depend on an optional cache entry.
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: input.subjectId },
+          select: {
+            id: true,
+            authzVersion: true,
+            isActive: true,
+            mustChangePassword: true,
+          },
+        });
+        if (user === null || user.id !== input.subjectId) {
+          return { revoked: true };
+        }
+        durableAuthority = {
+          subjectId: user.id,
+          authzVersion: user.authzVersion,
+          isActive: user.isActive,
+          mustChangePassword: user.mustChangePassword,
+        };
+        if (!durableAuthority.isActive || durableAuthority.mustChangePassword) {
+          return { revoked: true };
+        }
+      } catch (error) {
+        this.logger.error(`session authority unavailable, failing closed: ${String(error)}`);
+        return { revoked: true };
+      }
     }
     try {
       const revoked = await this.backend.isRevoked(input);
@@ -267,10 +303,12 @@ export class SessionRevocationStore {
     const ttl = expiresAt - Math.floor(Date.now() / 1000);
     if (ttl <= 0) return;
     await this.safe(() => this.backend.revokeToken(jti, ttl));
+    await this.publishInvalidation({ version: 1, kind: 'token', jti });
   }
 
   async revokeSession(sessionId: string, ttlSeconds: number): Promise<void> {
     await this.safe(() => this.backend.revokeSession(sessionId, ttlSeconds));
+    await this.publishInvalidation({ version: 1, kind: 'session', sessionId });
   }
 
   async revokeAllForUser(
@@ -286,6 +324,20 @@ export class SessionRevocationStore {
         exceptions,
       ),
     );
+    await this.publishInvalidation({
+      version: 1,
+      kind: 'user',
+      subjectId,
+      exceptSessionId: exceptions?.sessionId ?? null,
+      exceptJti: exceptions?.jti ?? null,
+    });
+  }
+
+  private async publishInvalidation(event: SocketSessionInvalidation): Promise<void> {
+    const published = await publishSocketSessionInvalidation(this.redis, event);
+    if (!published && this.redis !== undefined && this.redis !== null) {
+      this.logger.warn(`session_socket_invalidation_publish_unavailable kind=${event.kind}`);
+    }
   }
 
   private async safe(run: () => Promise<void>): Promise<void> {

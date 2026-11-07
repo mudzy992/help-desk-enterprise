@@ -184,7 +184,16 @@ describe('TicketChatGateway', () => {
 
 function createClient(subjectId: string): Socket {
   return {
-    data: { principal: { subjectId } },
+    data: {
+      principal: {
+        subjectId,
+        sessionId: `session-${subjectId}`,
+        jti: `jti-${subjectId}`,
+        issuedAt: 1,
+        expiresAt: 9_999_999_999,
+        authzVersion: 0,
+      },
+    },
     join: jest.fn(),
     leave: jest.fn(),
   } as unknown as Socket;
