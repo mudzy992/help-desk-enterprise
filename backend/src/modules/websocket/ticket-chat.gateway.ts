@@ -379,7 +379,7 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     ticketId: string,
   ): Promise<void> {
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      if (client.disconnected === true) {
+      if (socketIsDisconnected(client)) {
         throw new WsException({ code: 'FORBIDDEN' });
       }
       const epoch = this.ticketSubscriptions.currentEpoch(ticketId);
@@ -396,7 +396,7 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
         continue;
       }
       await this.replaceTicketRooms(client, ticketId, access.visibility);
-      if (client.disconnected === true) {
+      if (socketIsDisconnected(client)) {
         throw new WsException({ code: 'FORBIDDEN' });
       }
       if (
@@ -551,6 +551,10 @@ function requireTicketId(payload: unknown): string {
     throw new WsException({ code: 'NOT_FOUND' });
   }
   return parsed.ticketId;
+}
+
+function socketIsDisconnected(client: Socket): boolean {
+  return client.disconnected;
 }
 
 const ticketSocketLocks = new WeakMap<Socket, Map<string, Promise<void>>>();
