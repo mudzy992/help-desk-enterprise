@@ -862,7 +862,7 @@ export class AnnouncementsService {
     let cursor: string | null = null;
     let sent = 0;
     while (true) {
-      const members = await this.prisma.user.findMany({
+      const members: { readonly id: string }[] = await this.prisma.user.findMany({
         where: { ...baseWhere, ...(cursor === null ? {} : { id: { gt: cursor } }) },
         select: { id: true },
         orderBy: { id: 'asc' },
