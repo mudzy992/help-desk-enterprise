@@ -4,6 +4,7 @@ import {
 } from '../notifications/email/is-allowed-notification-email-address';
 import { checkSenderAuthentication } from './check-sender-authentication';
 import { detectAutoReply } from './detect-auto-reply';
+import { inboundEmailIdempotencyKey } from './inbound-email-idempotency';
 import { cleanSubject, extractReplyText } from './extract-reply-text';
 import type { InboundAttachment, InboundMessage, InboundOutcome, InboundRejectReason } from './inbound-email.types';
 import { resolveInboundTarget } from './resolve-inbound-target';
@@ -32,16 +33,29 @@ export class InboundTicketError extends Error {
 
 /** Everything the processing step needs from the outside world. */
 export type InboundProcessingPorts = {
+  beginMutation(): Promise<void>;
   findSenderByEmail(address: string): Promise<InboundSender | null>;
   findTicketById(ticketId: string): Promise<InboundTicket | null>;
   findTicketByNumber(ticketNumber: string): Promise<InboundTicket | null>;
   countRecentFromSender(address: string, since: Date): Promise<number>;
-  addReply(ticketId: string, senderId: string, body: string): Promise<{ readonly messageId: string }>;
-  reopenWithReply(ticketId: string, senderId: string, body: string): Promise<{ readonly messageId: string | null }>;
-  attach(ticketId: string, senderId: string, attachment: InboundAttachment): Promise<void>;
-  noteRejectedAttachment(ticketId: string, filename: string, reason: string): Promise<void>;
+  addReply(ticketId: string, senderId: string, body: string, idempotencyKey?: string): Promise<{ readonly messageId: string }>;
+  reopenWithReply(
+    ticketId: string,
+    senderId: string,
+    body: string,
+    idempotencyKey?: string,
+  ): Promise<{ readonly messageId: string | null; readonly ticketId?: string; readonly createdTicketId?: string }>;
+  attach(ticketId: string, senderId: string, attachment: InboundAttachment, idempotencyKey?: string): Promise<void>;
+  noteRejectedAttachment(ticketId: string, filename: string, reason: string, idempotencyKey?: string): Promise<void>;
   createTicket(senderId: string, title: string, description: string): Promise<{ readonly ticketId: string }>;
+  resumeCreatedTicket(ticketId: string, senderId: string | undefined): Promise<void>;
   sendNotice(kind: InboundNoticeKind, sender: InboundSender, ticket: InboundTicket): Promise<void>;
+};
+
+export type InboundPersistedResult = {
+  readonly ticketId: string;
+  readonly ticketMessageId?: string | null;
+  readonly createdTicketId?: string | null;
 };
 
 export type InboundProcessingOptions = {
@@ -54,6 +68,10 @@ export type InboundProcessingOptions = {
   readonly createTickets: boolean;
   readonly maxBodyLength: number;
   readonly now: Date;
+  /** Provider-row identity; used to derive stable ticket and attachment idempotency keys. */
+  readonly inboundEmailId?: string;
+  /** Durable ticket result discovered after a crash; resume post-create effects and attachments. */
+  readonly existingResult?: InboundPersistedResult;
 };
 
 const closedStatuses = new Set(['CLOSED', 'ARCHIVED']);
@@ -91,6 +109,28 @@ export async function processInboundMessage(
   if (ignored !== null) return { status: 'IGNORED', reason: ignored };
   const from = message.fromAddress;
   if (from === null || from.length === 0) return reject('UNKNOWN_SENDER');
+  const attachments = message.attachments.filter((attachment) => !(attachment.inline && attachment.size < inlineSkipBytes));
+
+  // A persisted ticket write proves that sender/authentication and target checks
+  // already succeeded on the previous attempt. Finish idempotent attachments
+  // and the inbound ledger even if ticket state/policy changed after the crash.
+  if (options.existingResult !== undefined) {
+    await ports.beginMutation();
+    const sender = await ports.findSenderByEmail(from);
+    if (options.existingResult.createdTicketId != null) {
+      await ports.resumeCreatedTicket(options.existingResult.createdTicketId, sender?.id);
+    }
+    const notes = sender !== null
+      ? await attachAll(ports, options.existingResult.ticketId, sender.id, attachments, options.inboundEmailId)
+      : [];
+    return {
+      status: 'PROCESSED',
+      ticketId: options.existingResult.ticketId,
+      ...(options.existingResult.ticketMessageId == null ? {} : { ticketMessageId: options.existingResult.ticketMessageId }),
+      ...(options.existingResult.createdTicketId == null ? {} : { createdTicketId: options.existingResult.createdTicketId }),
+      notes,
+    };
+  }
 
   const hourAgo = new Date(options.now.getTime() - 3_600_000);
   if ((await ports.countRecentFromSender(from, hourAgo)) >= options.maxPerSenderPerHour) return reject('RATE_LIMITED');
@@ -101,7 +141,6 @@ export async function processInboundMessage(
   if (sender === null) return reject('UNKNOWN_SENDER');
   if (!sender.isActive) return reject('SENDER_INACTIVE');
 
-  const attachments = message.attachments.filter((attachment) => !(attachment.inline && attachment.size < inlineSkipBytes));
   const text = extractReplyText(message.text, options.maxBodyLength);
 
   const target = resolveInboundTarget(message, options.replyTokenSecret);
@@ -112,12 +151,13 @@ export async function processInboundMessage(
     if (title.length === 0 || description.length === 0) return reject('EMPTY_REPLY');
     let created: { readonly ticketId: string };
     try {
+      await ports.beginMutation();
       created = await ports.createTicket(sender.id, title, description);
     } catch (error) {
       if (error instanceof InboundTicketError) return reject('CREATE_FAILED');
       throw error;
     }
-    const notes = await attachAll(ports, created.ticketId, sender.id, attachments);
+    const notes = await attachAll(ports, created.ticketId, sender.id, attachments, options.inboundEmailId);
     return { status: 'PROCESSED', ticketId: created.ticketId, createdTicketId: created.ticketId, notes };
   }
 
@@ -138,10 +178,30 @@ export async function processInboundMessage(
   }
 
   let messageId: string | null;
+  let resultTicketId = ticket.id;
+  let createdTicketId: string | undefined;
   try {
-    messageId = reopenStatuses.has(ticket.status)
-      ? (await ports.reopenWithReply(ticket.id, sender.id, body)).messageId
-      : (await ports.addReply(ticket.id, sender.id, body)).messageId;
+    if (reopenStatuses.has(ticket.status)) {
+      await ports.beginMutation();
+      const reopenKey = options.inboundEmailId === undefined
+        ? undefined
+        : inboundEmailIdempotencyKey(options.inboundEmailId, 'reopen');
+      const reopened = reopenKey === undefined
+        ? await ports.reopenWithReply(ticket.id, sender.id, body)
+        : await ports.reopenWithReply(ticket.id, sender.id, body, reopenKey);
+      messageId = reopened.messageId;
+      resultTicketId = reopened.ticketId ?? ticket.id;
+      createdTicketId = reopened.createdTicketId ?? undefined;
+    } else {
+      await ports.beginMutation();
+      const replyKey = options.inboundEmailId === undefined
+        ? undefined
+        : inboundEmailIdempotencyKey(options.inboundEmailId, 'reply');
+      const reply = replyKey === undefined
+        ? await ports.addReply(ticket.id, sender.id, body)
+        : await ports.addReply(ticket.id, sender.id, body, replyKey);
+      messageId = reply.messageId;
+    }
   } catch (error) {
     if (!(error instanceof InboundTicketError)) throw error;
     const reason = mapTicketErrorCode(error.code);
@@ -149,11 +209,12 @@ export async function processInboundMessage(
     if (reason === 'REDACTION_BLOCKED') await ports.sendNotice('reply_blocked', sender, ticket);
     return reject(reason, ticket.id);
   }
-  const notes = await attachAll(ports, ticket.id, sender.id, attachments);
+  const notes = await attachAll(ports, resultTicketId, sender.id, attachments, options.inboundEmailId);
   return {
     status: 'PROCESSED',
-    ticketId: ticket.id,
+    ticketId: resultTicketId,
     ...(messageId === null ? {} : { ticketMessageId: messageId }),
+    ...(createdTicketId === undefined ? {} : { createdTicketId }),
     notes,
   };
 }
@@ -164,15 +225,27 @@ async function attachAll(
   ticketId: string,
   senderId: string,
   attachments: readonly InboundAttachment[],
+  inboundEmailId?: string,
 ): Promise<string[]> {
   const notes: string[] = [];
-  for (const attachment of attachments) {
+  for (const [index, attachment] of attachments.entries()) {
+    const attachmentKey = inboundEmailId === undefined
+      ? undefined
+      : inboundEmailIdempotencyKey(inboundEmailId, 'attachment', index);
     try {
-      await ports.attach(ticketId, senderId, attachment);
+      if (attachmentKey === undefined) await ports.attach(ticketId, senderId, attachment);
+      else await ports.attach(ticketId, senderId, attachment, attachmentKey);
     } catch (error) {
       const reason = error instanceof InboundTicketError ? error.code : 'UPLOAD_FAILED';
       notes.push(`${attachment.filename}:${reason}`);
-      await ports.noteRejectedAttachment(ticketId, attachment.filename, reason).catch(() => undefined);
+      const rejectionKey = inboundEmailId === undefined
+        ? undefined
+        : inboundEmailIdempotencyKey(inboundEmailId, 'attachment-rejected', index);
+      if (rejectionKey === undefined) {
+        await ports.noteRejectedAttachment(ticketId, attachment.filename, reason).catch(() => undefined);
+      } else {
+        await ports.noteRejectedAttachment(ticketId, attachment.filename, reason, rejectionKey).catch(() => undefined);
+      }
     }
   }
   return notes;

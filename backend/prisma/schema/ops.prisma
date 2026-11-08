@@ -242,6 +242,9 @@ model InboundEmail {
   subject           String             @db.VarChar(200)
   receivedAt        DateTime?
   status            InboundEmailStatus @default(PROCESSING)
+  processingPhase   InboundEmailProcessingPhase?
+  processingOwnerToken String?         @db.Uuid
+  processingLeaseExpiresAt DateTime?
   reason            String?            @db.VarChar(64)
   ticketId          String?
   ticketMessageId   String?
@@ -253,6 +256,7 @@ model InboundEmail {
 
   @@unique([mailboxKey, providerMessageId])
   @@index([status, createdAt])
+  @@index([status, processingLeaseExpiresAt])
   @@index([createdAt])
   @@index([fromAddress, createdAt])
 }

@@ -46,6 +46,7 @@ export class TicketsAttachmentsService {
     ticketId: string,
     file: TicketAttachmentUploadInput | undefined,
     context: TicketMutationContext,
+    idempotencyKey?: string,
   ): Promise<TicketAttachmentResponse> {
     return executeTicketOperation(async () => {
       const result = await createTicketAttachment(
@@ -56,6 +57,7 @@ export class TicketsAttachmentsService {
         ticketId,
         file,
         await this.accessPolicies.bind(context),
+        idempotencyKey,
       );
       await publishForTicketId(
         this.prisma,

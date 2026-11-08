@@ -210,6 +210,7 @@ export async function createTicket(
         const record = (await transaction.ticket.create({
           data: {
             ticketNumber,
+            sourceInboundEmailId: context.sourceInboundEmailId ?? null,
             title,
             description,
             status,

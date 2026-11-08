@@ -48,6 +48,7 @@ function ports(overrides: Partial<InboundProcessingPorts> = {}) {
       return value;
     };
   const base: InboundProcessingPorts = {
+    beginMutation: record('beginMutation', undefined),
     findSenderByEmail: record('findSender', { id: 'user00001', email: 'ana@example.com', isActive: true }),
     findTicketById: record('findTicketById', ticket()),
     findTicketByNumber: record('findTicketByNumber', ticket()),
@@ -57,6 +58,7 @@ function ports(overrides: Partial<InboundProcessingPorts> = {}) {
     attach: record('attach', undefined),
     noteRejectedAttachment: record('note', undefined),
     createTicket: record('createTicket', { ticketId: 'newticket1' }),
+    resumeCreatedTicket: record('resumeCreatedTicket', undefined),
     sendNotice: record('notice', undefined),
   };
   return { ports: { ...base, ...overrides }, calls };
@@ -151,6 +153,54 @@ describe('Paket 2.3 — processInboundMessage', () => {
     expect(calls.find((call) => call.kind === 'addReply')?.args).toEqual(['ticket0001', 'user00001', 'Printer radi, hvala.']);
   });
 
+  it('uses the inbound row id as a stable ticket-message idempotency key', async () => {
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message(), p, { ...options, inboundEmailId: 'inbound-row-01' });
+    expect(outcome.status).toBe('PROCESSED');
+    expect(calls.find((call) => call.kind === 'addReply')?.args).toEqual([
+      'ticket0001',
+      'user00001',
+      'Printer radi, hvala.',
+      'inbound-email:inbound-row-01:reply',
+    ]);
+  });
+
+  it('resumes persisted ticket writes without repeating the reply and keys attachments by stable index', async () => {
+    const { ports: p, calls } = ports();
+    const attachment: InboundAttachment = {
+      filename: 'proof.png',
+      contentType: 'image/png',
+      size: 100,
+      content: Buffer.from('proof'),
+      inline: false,
+    };
+    const outcome = await processInboundMessage(message({ attachments: [attachment] }), p, {
+      ...options,
+      inboundEmailId: 'inbound-row-01',
+      existingResult: { ticketId: 'ticket0001', ticketMessageId: 'msg-existing' },
+    });
+    expect(outcome).toMatchObject({ status: 'PROCESSED', ticketId: 'ticket0001', ticketMessageId: 'msg-existing' });
+    expect(calls.some((call) => call.kind === 'addReply')).toBe(false);
+    expect(calls.find((call) => call.kind === 'attach')?.args).toEqual([
+      'ticket0001',
+      'user00001',
+      attachment,
+      'inbound-email:inbound-row-01:attachment:0',
+    ]);
+  });
+
+  it('replays post-create effects before completing a persisted new ticket', async () => {
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message(), p, {
+      ...options,
+      existingResult: { ticketId: 'newticket1', createdTicketId: 'newticket1' },
+    });
+
+    expect(outcome).toMatchObject({ status: 'PROCESSED', ticketId: 'newticket1', createdTicketId: 'newticket1' });
+    expect(calls.find((call) => call.kind === 'resumeCreatedTicket')?.args).toEqual(['newticket1', 'user00001']);
+    expect(calls.some((call) => call.kind === 'createTicket')).toBe(false);
+  });
+
   it.each<[string, Partial<InboundProcessingPorts>, Partial<InboundProcessingOptions>, Partial<InboundMessage> & { headerList?: [string, string[]][] }, string]>([
     ['unknown sender', { findSenderByEmail: async () => null }, {}, {}, 'UNKNOWN_SENDER'],
     ['inactive sender', { findSenderByEmail: async () => ({ id: 'u', email: 'ana@example.com', isActive: false }) }, {}, {}, 'SENDER_INACTIVE'],
@@ -186,6 +236,25 @@ describe('Paket 2.3 — processInboundMessage', () => {
     const outcome = await processInboundMessage(message(), p, options);
     expect(outcome).toMatchObject({ status: 'PROCESSED', ticketMessageId: 'msg2' });
     expect(calls.some((call) => call.kind === 'reopen')).toBe(true);
+  });
+
+  it('uses a stable inbound key and the new ticket id when reopening as a new ticket', async () => {
+    const { ports: p, calls } = ports({
+      findTicketByNumber: async () => ticket({ status: 'RESOLVED' }),
+    });
+    p.reopenWithReply = async (ticketId, senderId, body, idempotencyKey) => {
+      calls.push({ kind: 'reopen', args: [ticketId, senderId, body, idempotencyKey] });
+      return { messageId: 'reopen-comment', ticketId: 'reopened-ticket', createdTicketId: 'reopened-ticket' };
+    };
+    const outcome = await processInboundMessage(message(), p, { ...options, inboundEmailId: 'inbound-row-01' });
+
+    expect(outcome).toMatchObject({
+      status: 'PROCESSED',
+      ticketId: 'reopened-ticket',
+      ticketMessageId: 'reopen-comment',
+      createdTicketId: 'reopened-ticket',
+    });
+    expect(calls.find((call) => call.kind === 'reopen')?.args[3]).toBe('inbound-email:inbound-row-01:reopen');
   });
 
   it('redaction block notifies the sender without quoting', async () => {

@@ -2,6 +2,7 @@ import {
   createTicketsServiceHarness,
   ticketsTestIds,
 } from './create-tickets-service-harness';
+import type { TicketRecord } from './tickets.types';
 import { vpnCreateInput } from './vpn-create-input';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -111,5 +112,33 @@ describe('TicketsService CRUD', () => {
     ).rejects.toMatchObject({
       response: { code: 'SERVICE_NOT_OFFERED' },
     });
+  });
+
+  it('fences concurrent post-create replays for one inbound-created ticket', async () => {
+    const { memory, routing, tickets, assignmentConfig } = createTicketsServiceHarness();
+    assignmentConfig.autoAssignEnabled = false;
+    memory.seedGroupMember({ groupId: ticketsTestIds.groupIt, userId: ticketsTestIds.agentIt });
+    await routing.createRule({
+      originUnitId: ticketsTestIds.ouIt,
+      serviceId: ticketsTestIds.serviceVpn,
+      groupId: ticketsTestIds.groupIt,
+      reason: 'inbound recovery test',
+    });
+    const inboundId = 'inbound-row-auto-assign';
+    const created = await tickets.create(vpnCreateInput(), {
+      ...actor,
+      sourceInboundEmailId: inboundId,
+    });
+    assignmentConfig.autoAssignEnabled = true;
+
+    await Promise.all([
+      tickets.resumeInboundCreatedTicket(created.id, inboundId, ticketsTestIds.requester),
+      tickets.resumeInboundCreatedTicket(created.id, inboundId, ticketsTestIds.requester),
+    ]);
+
+    const persisted = await memory.prisma.ticket.findUnique({ where: { id: created.id } }) as TicketRecord;
+    const messages = await memory.prisma.ticketMessage.findMany({ where: { ticketId: created.id } });
+    expect(persisted.assignedUserId).not.toBeNull();
+    expect(messages.filter((message) => message.body.startsWith('ticket_assigned:'))).toHaveLength(1);
   });
 });

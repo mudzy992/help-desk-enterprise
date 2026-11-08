@@ -21,6 +21,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/common/principal-context/user-role-constraint-migration.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/idempotency/request-idempotency.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/common/outbox/transactional-outbox.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/inbound-email/inbound-email-recovery.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/notifications/fan-out/notification-fan-out-outbox.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/changes/change-downtime-outbox.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/sla/sla-write-lock.integration.spec.ts"));
