@@ -130,6 +130,13 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   }
 });
 
+test("BA-announcements-02 visibility PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/announcements/announcement-visibility.integration.spec.ts"),
+    "nedostaje BA-announcements-02 active/archive audience-cap PostgreSQL shard",
+  );
+});
+
 test("BA-notifications-06 mark-all-read PostgreSQL integration spec je registrovan za CI", () => {
   assert.ok(
     integrationSpecs.includes("src/modules/notifications/notification-mark-all-read.integration.spec.ts"),

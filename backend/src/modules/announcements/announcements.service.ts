@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { appendAuditLog } from '../audit-log/append-audit-log';
@@ -22,6 +23,7 @@ import {
   effectiveAnnouncementStatus,
   expandAudienceUnits,
   isInAnnouncementAudience,
+  organizationalUnitAncestorPaths,
   type AnnouncementAudience,
 } from './announcement-audience';
 import { authorizeAnnouncementAudiences, type AnnouncementAudienceAuthorizationCandidate } from './announcement-resource-authorization';
@@ -253,9 +255,45 @@ export class AnnouncementsService {
     return rows.filter((row) => isInAnnouncementAudience(audienceOf(row), member, paths));
   }
 
+  /**
+   * Pushes the same AND audience semantics used by `isInAnnouncementAudience`
+   * into PostgreSQL, before the active/archive result cap is applied.
+   */
+  private async audienceWhereForViewer(viewer: AnnouncementViewer): Promise<Prisma.AnnouncementWhereInput> {
+    const unitPath = await this.viewerUnitPath(viewer);
+    const ancestorPaths = organizationalUnitAncestorPaths(unitPath);
+    const units = ancestorPaths.length === 0
+      ? []
+      : await this.prisma.organizationalUnit.findMany({
+          where: { ouPath: { in: ancestorPaths } },
+          select: { id: true },
+        });
+    const audienceUnitIds = units.map((unit) => unit.id);
+    const roleKeys = [...new Set(viewer.roleKeys)];
+    const groupIds = [...new Set(viewer.groupIds)];
+
+    const roleFilters: Prisma.AnnouncementWhereInput[] = [{ audienceRoles: { isEmpty: true } }];
+    if (roleKeys.length > 0) roleFilters.push({ audienceRoles: { hasSome: roleKeys } });
+    const organizationalUnitFilters: Prisma.AnnouncementWhereInput[] = [{ audienceOrganizationalUnitIds: { isEmpty: true } }];
+    if (audienceUnitIds.length > 0) {
+      organizationalUnitFilters.push({ audienceOrganizationalUnitIds: { hasSome: audienceUnitIds } });
+    }
+    const groupFilters: Prisma.AnnouncementWhereInput[] = [{ audienceGroupIds: { isEmpty: true } }];
+    if (groupIds.length > 0) groupFilters.push({ audienceGroupIds: { hasSome: groupIds } });
+
+    return {
+      AND: [
+        { OR: roleFilters },
+        { OR: organizationalUnitFilters },
+        { OR: groupFilters },
+      ],
+    };
+  }
+
   /** §3.2: active announcements for the viewer that still need attention. */
   async active(viewer: AnnouncementViewer, now: Date = new Date()) {
     if (!(await this.isEnabled())) return { enabled: false, announcements: [] };
+    const audienceWhere = await this.audienceWhereForViewer(viewer);
     const rows = (await this.prisma.announcement.findMany({
       where: {
         status: 'PUBLISHED',
@@ -263,17 +301,17 @@ export class AnnouncementsService {
         endsAt: { gt: now },
         acknowledgements: { none: { userId: viewer.userId } },
         dismissals: { none: { userId: viewer.userId } },
+        ...audienceWhere,
       },
-      orderBy: [{ startsAt: 'desc' }],
-      take: 50,
+      orderBy: [{ severity: 'desc' }, { startsAt: 'desc' }, { id: 'asc' }],
+      take: announcementLimits.activeMax,
     })) as AnnouncementRow[];
-    const visible = await this.filterForViewer(rows, viewer);
-    const serviceNames = await this.serviceNames(visible.map((row) => row.serviceId));
+    const serviceNames = await this.serviceNames(rows.map((row) => row.serviceId));
     const rank = { CRITICAL: 0, WARNING: 1, INFO: 2 } as const;
     return {
       enabled: true,
-      announcements: visible
-        .sort((a, b) => rank[a.severity] - rank[b.severity] || b.startsAt.getTime() - a.startsAt.getTime())
+      announcements: rows
+        .sort((a, b) => rank[a.severity] - rank[b.severity] || b.startsAt.getTime() - a.startsAt.getTime() || a.id.localeCompare(b.id))
         .map((row) => ({
           id: row.id,
           title: row.title,
@@ -292,12 +330,18 @@ export class AnnouncementsService {
   /** §3.2: the last 90 days of announcements the viewer was in the audience of. */
   async archive(viewer: AnnouncementViewer, now: Date = new Date()) {
     await this.requireEnabled();
+    const audienceWhere = await this.audienceWhereForViewer(viewer);
     const rows = (await this.prisma.announcement.findMany({
-      where: { status: 'PUBLISHED', startsAt: { lte: now }, endsAt: { gt: new Date(now.getTime() - announcementLimits.archiveDays * dayMs) } },
-      orderBy: [{ startsAt: 'desc' }],
+      where: {
+        status: 'PUBLISHED',
+        startsAt: { lte: now },
+        endsAt: { gt: new Date(now.getTime() - announcementLimits.archiveDays * dayMs) },
+        ...audienceWhere,
+      },
+      orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
       take: announcementLimits.archiveMax,
     })) as AnnouncementRow[];
-    const visible = await this.filterForViewer(rows, viewer);
+    const visible = rows;
     const acknowledgements = await this.prisma.announcementAcknowledgement.findMany({
       where: { userId: viewer.userId, announcementId: { in: visible.map((row) => row.id) } },
       select: { announcementId: true, acknowledgedAt: true },

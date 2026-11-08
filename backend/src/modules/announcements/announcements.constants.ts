@@ -15,7 +15,9 @@ export const announcementLimits = {
   titleMax: 120,
   bodyMax: 4000,
   audienceFilterMax: 100,
-  /** Archive shown to the user (§3.2). */
+  /** Active announcements returned per viewer after DB audience matching. */
+  activeMax: 50,
+  /** Archive shown to the user (§3.2), after DB audience matching. */
   archiveDays: 90,
   archiveMax: 100,
   /** A reminder to those who did not acknowledge, at most once per this window (§3.3). */
