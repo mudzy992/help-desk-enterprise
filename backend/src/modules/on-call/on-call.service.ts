@@ -23,7 +23,7 @@ import {
 } from './on-call-data';
 import { OnCallError, onCallErrorCodes, onCallLimits } from './on-call.constants';
 import { formatOnCallTime, onCallText, toOnCallLocale, type OnCallLocale } from './on-call-text';
-import type { OnCallViewer } from './on-call-viewer';
+import { canManageOnCallGroup, canReadOnCallGroup, type OnCallViewer } from './on-call-viewer';
 import { overridesOverlap, parseCivilDate, type OnCallSegment } from './resolve-on-call';
 
 const dayMs = 86_400_000;
@@ -117,19 +117,29 @@ export class OnCallService {
 
   async overview(viewer: OnCallViewer) {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const now = new Date();
-    const [schedules, groups] = await Promise.all([
-      this.prisma.onCallSchedule.findMany({ select: { groupId: true, isActive: true, timezone: true } }),
-      this.prisma.group.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    const groups = await this.listReadableGroups(viewer);
+    const groupIds = groups.map((group) => group.id);
+    const canManageAnyGroup = groups.some((group) =>
+      canManageOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null),
+    );
+    if (groupIds.length === 0) return { canManage: false, groups: [] };
+
+    const [schedules, contexts] = await Promise.all([
+      this.prisma.onCallSchedule.findMany({
+        where: { groupId: { in: groupIds } },
+        select: { groupId: true, isActive: true, timezone: true },
+      }),
+      loadActiveOnCallContexts(this.prisma, { from: now, to: new Date(now.getTime() + 1) }, { groupIds }),
     ]);
-    const contexts = await loadActiveOnCallContexts(this.prisma, { from: now, to: new Date(now.getTime() + 1) });
     const currentByGroup = new Map(contexts.map((context) => [context.groupId, resolveContextAt(context, now)]));
     const names = await this.loadNames([...currentByGroup.values()].map((segment) => segment.userId));
     const scheduleByGroup = new Map(schedules.map((schedule) => [schedule.groupId, schedule]));
     return {
-      canManage: viewer.canManage,
+      canManage: canManageAnyGroup,
       groups: groups
-        .filter((group) => viewer.canManage || scheduleByGroup.has(group.id))
+        .filter((group) => canManageOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null) || scheduleByGroup.has(group.id))
         .map((group) => {
           const schedule = scheduleByGroup.get(group.id);
           const current = currentByGroup.get(group.id);
@@ -155,8 +165,8 @@ export class OnCallService {
 
   async detail(groupId: string, range: { readonly from?: string; readonly to?: string }, viewer: OnCallViewer) {
     await this.requireEnabled();
-    const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { id: true, name: true } });
-    if (group === null) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    const group = await this.requireGroupAccess(groupId, viewer, 'read');
+    const groupCanManage = canManageOnCallGroup(viewer, group.organizationalUnitPath);
     const now = new Date();
     const from = range.from ? parseInstant(range.from, 'from') : new Date(now.getTime() - 7 * dayMs);
     const to = range.to ? parseInstant(range.to, 'to') : new Date(from.getTime() + 35 * dayMs);
@@ -177,10 +187,10 @@ export class OnCallService {
         members: { select: { userId: true, position: true }, orderBy: { position: 'asc' } },
       },
     });
-    const candidates = viewer.canManage ? await this.listEligibleMembers(groupId) : [];
+    const candidates = groupCanManage ? await this.listEligibleMembers(groupId) : [];
     if (schedule === null) {
       return {
-        group,
+        group: { id: group.id, name: group.name },
         schedule: null,
         segments: [],
         current: null,
@@ -188,7 +198,7 @@ export class OnCallService {
         swaps: [],
         candidates,
         defaultTimezone: await readInstallationTimeZone(this.settings),
-        canManage: viewer.canManage,
+        canManage: groupCanManage,
       };
     }
     const context = await loadOnCallScheduleContext(this.prisma, groupId, {
@@ -223,7 +233,7 @@ export class OnCallService {
         ? null
         : { userId, displayName: names.get(userId)?.displayName ?? '', isAvailable: names.get(userId)?.isAvailable ?? false };
     return {
-      group,
+      group: { id: group.id, name: group.name },
       schedule: {
         id: schedule.id,
         timezone: schedule.timezone,
@@ -255,20 +265,24 @@ export class OnCallService {
       })),
       candidates,
       defaultTimezone: schedule.timezone,
-      canManage: viewer.canManage,
+      canManage: groupCanManage,
     };
   }
 
   /** Header indicator and "my shifts": current and next shift of the viewer (14 days ahead). */
   async me(viewer: OnCallViewer) {
     if (!(await this.isEnabled())) return { enabled: false, current: [], next: null };
+    this.requireReader(viewer);
     const now = new Date();
     const ahead = new Date(now.getTime() + 14 * dayMs);
-    const contexts = await loadActiveOnCallContexts(this.prisma, { from: now, to: ahead }, { userIds: [viewer.userId] });
-    const groups = await this.prisma.group.findMany({
-      where: { id: { in: contexts.map((context) => context.groupId) } },
-      select: { id: true, name: true },
-    });
+    const groups = await this.listReadableGroups(viewer);
+    const groupIds = groups.map((group) => group.id);
+    if (groupIds.length === 0) return { enabled: true, current: [], next: null };
+    const contexts = await loadActiveOnCallContexts(
+      this.prisma,
+      { from: now, to: ahead },
+      { userIds: [viewer.userId], groupIds },
+    );
     const groupName = new Map(groups.map((group) => [group.id, group.name]));
     const current: { groupId: string; groupName: string; timezone: string; endsAt: string }[] = [];
     let next: { groupId: string; groupName: string; timezone: string; startsAt: string; endsAt: string } | null = null;
@@ -298,8 +312,19 @@ export class OnCallService {
 
   async mySwaps(viewer: OnCallViewer) {
     await this.requireEnabled();
+    this.requireReader(viewer);
+    const groups = await this.listReadableGroups(viewer);
+    const groupIds = groups.map((group) => group.id);
+    if (groupIds.length === 0) return [];
+    const schedules = await this.prisma.onCallSchedule.findMany({
+      where: { groupId: { in: groupIds } },
+      select: { id: true },
+    });
+    const scheduleIds = schedules.map((schedule) => schedule.id);
+    if (scheduleIds.length === 0) return [];
     const rows = await this.prisma.onCallSwapRequest.findMany({
       where: {
+        scheduleId: { in: scheduleIds },
         OR: [{ requesterId: viewer.userId }, { colleagueId: viewer.userId }],
         endsAt: { gt: new Date(Date.now() - 30 * dayMs) },
       },
@@ -340,9 +365,7 @@ export class OnCallService {
 
   async save(groupId: string, input: SaveOnCallScheduleInput, viewer: OnCallViewer) {
     await this.requireEnabled();
-    this.requireManager(viewer);
-    const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { id: true, name: true } });
-    if (group === null) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    await this.requireGroupAccess(groupId, viewer, 'manage');
     const reason = requireReason(input.reason);
     const timezone = assertTimeZone(input.timezone);
     const handoffMinute = parseHandoffTime(input.handoffTime);
@@ -417,7 +440,7 @@ export class OnCallService {
 
   async remove(groupId: string, reasonInput: string, viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
-    this.requireManager(viewer);
+    await this.requireGroupAccess(groupId, viewer, 'manage');
     const reason = requireReason(reasonInput);
     const schedule = await this.prisma.onCallSchedule.findUnique({ where: { groupId }, select: { id: true } });
     if (schedule === null) throw new OnCallError(onCallErrorCodes.scheduleNotFound);
@@ -433,7 +456,7 @@ export class OnCallService {
     viewer: OnCallViewer,
   ) {
     await this.requireEnabled();
-    this.requireManager(viewer);
+    await this.requireGroupAccess(groupId, viewer, 'manage');
     const schedule = await this.requireSchedule(groupId);
     const reason = requireReason(input.reason);
     const range = this.validateRange(input.startsAt, input.endsAt);
@@ -451,13 +474,22 @@ export class OnCallService {
 
   async deleteOverride(overrideId: string, reasonInput: string, viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
-    this.requireManager(viewer);
+    this.requireManagerPermission(viewer);
     const reason = requireReason(reasonInput);
     const override = await this.prisma.onCallOverride.findUnique({
       where: { id: overrideId },
-      select: { id: true, scheduleId: true, userId: true, startsAt: true, endsAt: true },
+      select: {
+        id: true,
+        scheduleId: true,
+        userId: true,
+        startsAt: true,
+        endsAt: true,
+        schedule: { select: { group: { select: { organizationalUnit: { select: { ouPath: true } } } } } },
+      },
     });
-    if (override === null) throw new OnCallError(onCallErrorCodes.overrideNotFound);
+    if (override === null || !canManageOnCallGroup(viewer, override.schedule.group.organizationalUnit?.ouPath ?? null)) {
+      throw new OnCallError(onCallErrorCodes.overrideNotFound);
+    }
     await this.prisma.$transaction(async (transaction) => {
       await transaction.onCallOverride.delete({ where: { id: override.id } });
       await this.audit(transaction, auditLogActions.onCallOverrideDeleted, override.scheduleId, viewer.userId, {
@@ -476,12 +508,12 @@ export class OnCallService {
     viewer: OnCallViewer,
   ) {
     await this.requireEnabled();
+    const group = await this.requireGroupAccess(groupId, viewer, 'read');
     const schedule = await this.prisma.onCallSchedule.findUnique({
       where: { groupId },
       select: {
         id: true,
         timezone: true,
-        group: { select: { name: true } },
         members: { select: { userId: true, user: { select: { isActive: true, anonymizedAt: true } } } },
       },
     });
@@ -522,7 +554,7 @@ export class OnCallService {
     const requesterName = (await this.loadNames([viewer.userId])).get(viewer.userId)?.displayName ?? '';
     await this.notify(input.colleagueId, notificationTypes.onCallSwap, `swap:${created.id}:requested`, (locale) =>
       onCallText(locale, 'swapRequested', {
-        group: schedule.group.name,
+        group: group.name,
         name: requesterName,
         from: formatOnCallTime(range.startsAt, schedule.timezone, locale),
         to: formatOnCallTime(range.endsAt, schedule.timezone, locale),
@@ -533,6 +565,7 @@ export class OnCallService {
 
   async decideSwap(swapId: string, decision: 'accept' | 'decline', viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const swap = await this.prisma.onCallSwapRequest.findUnique({
       where: { id: swapId },
       select: {
@@ -544,10 +577,17 @@ export class OnCallService {
         endsAt: true,
         reason: true,
         status: true,
-        schedule: { select: { timezone: true, group: { select: { name: true } } } },
+        schedule: {
+          select: {
+            timezone: true,
+            group: { select: { name: true, organizationalUnit: { select: { ouPath: true } } } },
+          },
+        },
       },
     });
-    if (swap === null) throw new OnCallError(onCallErrorCodes.swapNotFound);
+    if (swap === null || !canReadOnCallGroup(viewer, swap.schedule.group.organizationalUnit?.ouPath ?? null)) {
+      throw new OnCallError(onCallErrorCodes.swapNotFound);
+    }
     if (swap.colleagueId !== viewer.userId) throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     if (swap.status !== 'PENDING') throw new OnCallError(onCallErrorCodes.swapNotPending);
     const now = new Date();
@@ -599,12 +639,24 @@ export class OnCallService {
 
   async cancelSwap(swapId: string, viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const swap = await this.prisma.onCallSwapRequest.findUnique({
       where: { id: swapId },
-      select: { id: true, scheduleId: true, requesterId: true, status: true },
+      select: {
+        id: true,
+        scheduleId: true,
+        requesterId: true,
+        status: true,
+        schedule: { select: { group: { select: { organizationalUnit: { select: { ouPath: true } } } } } },
+      },
     });
-    if (swap === null) throw new OnCallError(onCallErrorCodes.swapNotFound);
-    if (swap.requesterId !== viewer.userId && !viewer.canManage) throw new OnCallError(onCallErrorCodes.swapNotAllowed);
+    if (swap === null || !canReadOnCallGroup(viewer, swap.schedule.group.organizationalUnit?.ouPath ?? null)) {
+      throw new OnCallError(onCallErrorCodes.swapNotFound);
+    }
+    if (
+      swap.requesterId !== viewer.userId &&
+      !canManageOnCallGroup(viewer, swap.schedule.group.organizationalUnit?.ouPath ?? null)
+    ) throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     await this.prisma.$transaction(async (transaction) => {
       const updated = await transaction.onCallSwapRequest.updateMany({
         where: { id: swap.id, status: 'PENDING' },
@@ -620,6 +672,7 @@ export class OnCallService {
   // ----------------------------------------------------------------- iCal
 
   async calendarTokenStatus(viewer: OnCallViewer) {
+    this.requireReader(viewer);
     const row = await this.prisma.onCallCalendarToken.findUnique({
       where: { userId: viewer.userId },
       select: { createdAt: true },
@@ -630,6 +683,7 @@ export class OnCallService {
   /** Returns the token once; only its hash is stored. Rotating invalidates the previous URL. */
   async rotateCalendarToken(viewer: OnCallViewer): Promise<{ token: string }> {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const token = randomBytes(32).toString('base64url');
     const tokenHash = hashCalendarToken(token);
     await this.prisma.$transaction(async (transaction) => {
@@ -650,6 +704,7 @@ export class OnCallService {
   }
 
   async revokeCalendarToken(viewer: OnCallViewer): Promise<void> {
+    this.requireReader(viewer);
     const deleted = await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: viewer.userId } });
     if (deleted.count > 0) {
       await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
@@ -715,8 +770,52 @@ export class OnCallService {
 
   // -------------------------------------------------------------- helpers
 
-  private requireManager(viewer: OnCallViewer): void {
+  private requireReader(viewer: OnCallViewer): void {
+    if (!viewer.canRead) throw new OnCallError(onCallErrorCodes.forbidden);
+  }
+
+  private requireManagerPermission(viewer: OnCallViewer): void {
     if (!viewer.canManage) throw new OnCallError(onCallErrorCodes.forbidden);
+  }
+
+  /** Resolve authorized IDs from OU paths before loading names or schedules. */
+  private async listReadableGroups(viewer: OnCallViewer) {
+    this.requireReader(viewer);
+    const candidates = await this.prisma.group.findMany({
+      select: { id: true, organizationalUnit: { select: { ouPath: true } } },
+    });
+    const readableIds = candidates
+      .filter((group) => canReadOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null))
+      .map((group) => group.id);
+    if (readableIds.length === 0) return [];
+    const groups = await this.prisma.group.findMany({
+      where: { id: { in: readableIds } },
+      select: { id: true, name: true, organizationalUnit: { select: { ouPath: true } } },
+      orderBy: { name: 'asc' },
+    });
+    // Recheck the current OU in case membership changed between the two reads.
+    return groups.filter((group) => canReadOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null));
+  }
+
+  /** Returns a group only when the requested read/manage capability covers its OU. */
+  private async requireGroupAccess(
+    groupId: string,
+    viewer: OnCallViewer,
+    access: 'read' | 'manage',
+  ): Promise<{ readonly id: string; readonly name: string; readonly organizationalUnitPath: string | null }> {
+    if (access === 'read') this.requireReader(viewer);
+    else this.requireManagerPermission(viewer);
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true, organizationalUnit: { select: { ouPath: true } } },
+    });
+    const organizationalUnitPath = group?.organizationalUnit?.ouPath ?? null;
+    if (group === null) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    const allowed = access === 'read'
+      ? canReadOnCallGroup(viewer, organizationalUnitPath)
+      : canManageOnCallGroup(viewer, organizationalUnitPath);
+    if (!allowed) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    return { id: group.id, name: group.name, organizationalUnitPath };
   }
 
   private async requireSchedule(groupId: string): Promise<{ id: string }> {

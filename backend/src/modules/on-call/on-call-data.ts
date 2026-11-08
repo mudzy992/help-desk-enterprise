@@ -117,16 +117,18 @@ export async function loadOnCallScheduleContext(
   return toContext(row, overrides.get(row.id) ?? []);
 }
 
-/** Every active schedule (optionally only those a set of users belong to). */
+/** Every active schedule, optionally restricted to users and/or authorized groups. */
 export async function loadActiveOnCallContexts(
   prisma: PrismaService,
   window: { readonly from: Date; readonly to: Date },
-  filter?: { readonly userIds: readonly string[] },
+  filter?: { readonly userIds?: readonly string[]; readonly groupIds?: readonly string[] },
 ): Promise<OnCallScheduleContext[]> {
+  if (filter?.userIds?.length === 0 || filter?.groupIds?.length === 0) return [];
   const rows = (await prisma.onCallSchedule.findMany({
     where: {
       isActive: true,
-      ...(filter === undefined
+      ...(filter?.groupIds === undefined ? {} : { groupId: { in: [...filter.groupIds] } }),
+      ...(filter?.userIds === undefined
         ? {}
         : {
             OR: [

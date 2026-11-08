@@ -113,12 +113,15 @@ export const permissionKeys = {
 /**
  * Permissions that a unit- or service-scoped assignment may satisfy on routes
  * without an OU/service scope requirement. Only for permissions whose data is
- * either shared by design or filtered by the service itself; everything else
- * stays fail-closed (a scoped grant never satisfies a global check).
- * - oncall.read: the on-call calendar is shared across groups by design
- *   (Paket 2.9 K3); agents are normally scoped to their unit.
+ * filtered or whose resource is validated by the owning service; everything
+ * else stays fail-closed (a scoped grant never satisfies a global check).
+ * On-call routes enforce group OU scope in OnCallService for both collection
+ * reads and every direct-ID read/write path.
  */
-export const scopeAgnosticPermissionKeys: readonly string[] = [permissionKeys.onCallRead];
+export const scopeAgnosticPermissionKeys: readonly string[] = [
+  permissionKeys.onCallRead,
+  permissionKeys.onCallManage,
+];
 
 /**
  * A global (unscoped) ADMIN grant manages groups in every OU. OU-scoped grants

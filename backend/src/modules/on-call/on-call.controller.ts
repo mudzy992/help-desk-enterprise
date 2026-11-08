@@ -34,9 +34,10 @@ import { OnCallService } from './on-call.service';
 import { onCallViewerOf, type OnCallViewer } from './on-call-viewer';
 
 /**
- * Paket 2.9 (K3, §4): on-call calendar. Everyone with `oncall.read` sees all
- * schedules and can ask a rotation colleague for a swap; `oncall.manage`
- * edits schedules and overrides.
+ * Paket 2.9 (K3, §4): on-call calendar. `OnCallService` applies each grant's
+ * OU scope to group collections and rechecks it on direct-ID reads and writes;
+ * read holders can ask a colleague for a swap, while managers edit schedules
+ * and overrides only within their manage scope.
  */
 @Controller('on-call')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
