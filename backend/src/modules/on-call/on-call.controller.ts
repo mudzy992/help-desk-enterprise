@@ -74,7 +74,15 @@ export class OnCallController {
   @RequirePermissions(permissionKeys.onCallManage)
   save(@Req() request: AuthenticatedHttpRequest, @Param('groupId') groupId: string, @Body() body: SaveOnCallScheduleDto) {
     return runOnCall(() =>
-      this.onCall.save(groupId, { ...body, ownerUserId: body.ownerUserId ?? null }, this.viewer(request)),
+      this.onCall.save(
+        groupId,
+        {
+          ...body,
+          expectedUpdatedAt: body.expectedUpdatedAt ?? null,
+          ownerUserId: body.ownerUserId ?? null,
+        },
+        this.viewer(request),
+      ),
     );
   }
 

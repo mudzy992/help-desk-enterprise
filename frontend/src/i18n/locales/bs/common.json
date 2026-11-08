@@ -8241,6 +8241,7 @@
       "disabled": "Dežurstva nisu uključena.",
       "groupNotFound": "Grupa ne postoji.",
       "scheduleNotFound": "Grupa nema raspored dežurstva.",
+      "scheduleConflict": "Ovaj raspored je izmijenjen nakon što ste ga otvorili. Osvježite prikaz prije ponovnog snimanja.",
       "invalidSchedule": "Postavke rasporeda nisu ispravne (zona, vrijeme ili datum).",
       "invalidMember": "Osoba nije aktivan član grupe s ulogom AGENT ili višom.",
       "invalidRange": "Period nije ispravan: mora završiti u budućnosti, trajati najviše 31 dan i biti unutar godine dana.",

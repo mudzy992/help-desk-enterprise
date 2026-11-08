@@ -31,6 +31,7 @@ const dayMs = 86_400_000;
 const staffRoleKeys = [authorizationRoleKeys.agent, authorizationRoleKeys.admin, authorizationRoleKeys.superAdmin];
 
 export type SaveOnCallScheduleInput = {
+  readonly expectedUpdatedAt: string | null;
   readonly timezone: string;
   readonly handoffTime: string;
   readonly rotationLength: 'DAY' | 'WEEK';
@@ -85,6 +86,11 @@ function requireReason(value: string): string {
   const reason = value.trim();
   if (reason.length < 3 || reason.length > 500) throw new OnCallError(onCallErrorCodes.invalidRange, 'reason');
   return reason;
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error &&
+    (error as { readonly code: unknown }).code === 'P2002';
 }
 
 /** Partial and full swaps are valid only when every instant is in the requester's base rotation segment. */
@@ -200,6 +206,7 @@ export class OnCallService {
       where: { groupId },
       select: {
         id: true,
+        updatedAt: true,
         timezone: true,
         handoffMinute: true,
         rotationLength: true,
@@ -259,6 +266,7 @@ export class OnCallService {
       group: { id: group.id, name: group.name },
       schedule: {
         id: schedule.id,
+        updatedAt: schedule.updatedAt.toISOString(),
         timezone: schedule.timezone,
         handoffTime: formatHandoffTime(schedule.handoffMinute),
         rotationLength: schedule.rotationLength,
@@ -402,11 +410,22 @@ export class OnCallService {
     if (new Set(memberUserIds).size !== memberUserIds.length || memberUserIds.length > onCallLimits.maxMembers) {
       throw new OnCallError(onCallErrorCodes.invalidMember, 'members');
     }
-    const eligible = new Set((await this.listEligibleMembers(groupId)).map((candidate) => candidate.userId));
     const previous = await this.prisma.onCallSchedule.findUnique({
       where: { groupId },
-      select: { members: { select: { userId: true } } },
+      select: { updatedAt: true, members: { select: { userId: true } } },
     });
+    const expectedUpdatedAt = input.expectedUpdatedAt === null
+      ? null
+      : parseInstant(input.expectedUpdatedAt, 'expectedUpdatedAt');
+    if (
+      (previous === null && expectedUpdatedAt !== null) ||
+      (previous !== null &&
+        (expectedUpdatedAt === null || expectedUpdatedAt.getTime() !== previous.updatedAt.getTime()))
+    ) {
+      throw new OnCallError(onCallErrorCodes.scheduleConflict);
+    }
+
+    const eligible = new Set((await this.listEligibleMembers(groupId)).map((candidate) => candidate.userId));
     const previousMembers = new Set(previous?.members.map((member) => member.userId) ?? []);
     for (const userId of memberUserIds) {
       // A member who has since left the group may stay (their shifts show as uncovered) but not be added.
@@ -437,26 +456,54 @@ export class OnCallService {
       ownerUserId: input.ownerUserId ?? viewer.userId,
     };
     const saved = await this.prisma.$transaction(async (transaction) => {
-      const schedule = await transaction.onCallSchedule.upsert({
-        where: { groupId },
-        create: { groupId, ...data },
-        update: data,
-        select: { id: true },
-      });
-      await transaction.onCallRotationMember.deleteMany({ where: { scheduleId: schedule.id } });
+      let scheduleId: string;
+      if (previous === null) {
+        try {
+          const schedule = await transaction.onCallSchedule.create({
+            data: { groupId, ...data },
+            select: { id: true },
+          });
+          scheduleId = schedule.id;
+        } catch (error) {
+          // Two first-time saves can both observe no row; the groupId unique key
+          // chooses one winner, and the loser receives the same stale-write conflict.
+          if (isPrismaUniqueConstraintError(error)) {
+            throw new OnCallError(onCallErrorCodes.scheduleConflict);
+          }
+          throw error;
+        }
+      } else {
+        if (expectedUpdatedAt === null) throw new OnCallError(onCallErrorCodes.scheduleConflict);
+        const updatedAt = new Date(Math.max(Date.now(), expectedUpdatedAt.getTime() + 1));
+        const result = await transaction.onCallSchedule.updateMany({
+          where: { groupId, updatedAt: expectedUpdatedAt },
+          data: { ...data, updatedAt },
+        });
+        if (result.count !== 1) throw new OnCallError(onCallErrorCodes.scheduleConflict);
+        const schedule = await transaction.onCallSchedule.findUnique({
+          where: { groupId },
+          select: { id: true },
+        });
+        if (schedule === null) throw new OnCallError(onCallErrorCodes.scheduleConflict);
+        scheduleId = schedule.id;
+      }
+
+      // The revision CAS and child replacement share one transaction: a stale
+      // writer cannot delete or reorder the winner's rotation members.
+      await transaction.onCallRotationMember.deleteMany({ where: { scheduleId } });
       if (memberUserIds.length > 0) {
         await transaction.onCallRotationMember.createMany({
-          data: memberUserIds.map((userId, position) => ({ scheduleId: schedule.id, userId, position })),
+          data: memberUserIds.map((userId, position) => ({ scheduleId, userId, position })),
         });
       }
-      await this.audit(transaction, auditLogActions.onCallScheduleSaved, schedule.id, viewer.userId, {
+      await this.audit(transaction, auditLogActions.onCallScheduleSaved, scheduleId, viewer.userId, {
         groupId,
         reason,
         ...data,
         memberUserIds,
         created: previous === null,
       });
-      return schedule;
+      return { id: scheduleId };
     });
     return { id: saved.id };
   }

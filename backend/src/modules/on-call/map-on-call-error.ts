@@ -20,6 +20,7 @@ export function mapOnCallError(error: unknown): unknown {
     case onCallErrorCodes.swapNotFound:
       return new NotFoundException(body);
     case onCallErrorCodes.overlap:
+    case onCallErrorCodes.scheduleConflict:
     case onCallErrorCodes.swapNotPending:
       return new ConflictException(body);
     case onCallErrorCodes.forbidden:

@@ -2,6 +2,7 @@ export const onCallErrorCodes = {
   disabled: 'ON_CALL_DISABLED',
   groupNotFound: 'ON_CALL_GROUP_NOT_FOUND',
   scheduleNotFound: 'ON_CALL_SCHEDULE_NOT_FOUND',
+  scheduleConflict: 'ON_CALL_SCHEDULE_CONFLICT',
   invalidSchedule: 'ON_CALL_INVALID_SCHEDULE',
   invalidMember: 'ON_CALL_INVALID_MEMBER',
   invalidRange: 'ON_CALL_INVALID_RANGE',

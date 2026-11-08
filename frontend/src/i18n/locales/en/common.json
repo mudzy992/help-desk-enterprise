@@ -8195,6 +8195,7 @@
       "disabled": "On-call is not enabled.",
       "groupNotFound": "The group does not exist.",
       "scheduleNotFound": "The group has no on-call schedule.",
+      "scheduleConflict": "This schedule changed after you opened it. Refresh the page before saving again.",
       "invalidSchedule": "The schedule settings are invalid (zone, time or date).",
       "invalidMember": "The person is not an active group member with the AGENT role or higher.",
       "invalidRange": "Invalid period: it must end in the future, last at most 31 days and be within a year.",

@@ -43,6 +43,8 @@ export type OnCallRotationLength = "DAY" | "WEEK";
 
 export type OnCallScheduleView = {
   readonly id: string;
+  /** Optimistic-concurrency token returned by schedule detail. */
+  readonly updatedAt: string;
   readonly timezone: string;
   readonly handoffTime: string;
   readonly rotationLength: OnCallRotationLength;
@@ -119,6 +121,8 @@ export type OnCallSwapView = {
 };
 
 export type SaveOnCallScheduleInput = {
+  /** Current schedule revision; null only when creating a schedule. */
+  readonly expectedUpdatedAt: string | null;
   readonly timezone: string;
   readonly handoffTime: string;
   readonly rotationLength: OnCallRotationLength;

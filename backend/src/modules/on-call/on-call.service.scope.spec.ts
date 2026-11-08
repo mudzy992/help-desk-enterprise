@@ -70,6 +70,7 @@ function group(id: string, name: string, ouPath: string) {
 }
 
 const scheduleInput = {
+  expectedUpdatedAt: null,
   timezone: 'UTC',
   handoffTime: '08:00',
   rotationLength: 'WEEK',

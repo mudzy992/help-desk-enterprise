@@ -31,6 +31,7 @@ export const onCallErrorKeys = {
   ON_CALL_DISABLED: "onCall.errors.disabled",
   ON_CALL_GROUP_NOT_FOUND: "onCall.errors.groupNotFound",
   ON_CALL_SCHEDULE_NOT_FOUND: "onCall.errors.scheduleNotFound",
+  ON_CALL_SCHEDULE_CONFLICT: "onCall.errors.scheduleConflict",
   ON_CALL_INVALID_SCHEDULE: "onCall.errors.invalidSchedule",
   ON_CALL_INVALID_MEMBER: "onCall.errors.invalidMember",
   ON_CALL_INVALID_RANGE: "onCall.errors.invalidRange",

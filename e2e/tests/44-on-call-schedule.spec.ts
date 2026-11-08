@@ -131,6 +131,7 @@ test.describe("44 on-call schedules (5.3.7)", () => {
             rotationStartDate: civilDate(0),
             isActive: true,
             autoAssignOutsideHours: false,
+            expectedUpdatedAt: null,
             ownerUserId: null,
             memberUserIds: [memberId],
             reason: "E2E 5.3.7 on-call setup",
