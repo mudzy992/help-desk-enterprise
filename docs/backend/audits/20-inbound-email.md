@@ -6,6 +6,8 @@
 **Baseline ocjena:** **5,06/10**  
 **Nalazi:** 3 P1, 7 P2, 3 P3
 
+> Baseline opis iz 2026-10-23 je historijski; `BA-inbound-email-01` zatvoren je naknadno u W6.38 (§16), bez promjene preostalih nalaza ili baseline ocjene.
+
 ## 1. Executive summary
 
 `inbound-email` polluje Microsoft Graph ili IMAP mailbox, parsira raw MIME, filtrira bounce/auto-reply, provjerava sendera i autentikaciju, razrješava ticket, kreira reply/reopen/new ticket, prenosi attachment i vodi raw/metadata retention. Temelj je dobar: mailbox/provider dedupe ključ, centralni ticket mutation policy, DMARC/SPF/DKIM gate, signed reply token, anti-loop pravila, 35 MB cap, attachment upload policy, secret reader, RFC 3834 notice i batch raw cleanup.
@@ -102,7 +104,7 @@ Nisu pokriveni PROCESSING crash prozori, forged/untrusted Authentication-Results
 
 | ID                  | Severity | Nalaz                                                                                     | Status   |
 | ------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
-| BA-inbound-email-01 | P1       | PROCESSING crash recovery odbacuje poruku bez sigurnog replaya/reconciliationa            | otvoreno |
+| BA-inbound-email-01 | P1       | PROCESSING crash recovery odbacuje poruku bez sigurnog replaya/reconciliationa            | zatvoreno |
 | BA-inbound-email-02 | P1       | Sender auth vjeruje neprovjerenom prvom Authentication-Results/ARC headeru                | otvoreno |
 | BA-inbound-email-03 | P1       | Scoped ADMIN čita globalne sender/subject/ticket/error metapodatke                         | otvoreno |
 | BA-inbound-email-04 | P2       | Signed token recipientId se ne poredi sa stvarnim senderom                                | otvoreno |
@@ -187,3 +189,16 @@ Oldest inbox/PROCESSING age, reject/failure ratio, move/raw orphan, scheduler pr
 10. Direktni, integration, crash i E2E testovi prolaze.
 
 Inbound email ima razumno širok funkcionalni i testni temelj, ali email kao write kanal zahtijeva jaču sender trust granicu i crash-safe exactly-once poslovnu semantiku. Iskren baseline je **5,06/10**.
+
+
+## 16. W6.38 closeout — `BA-inbound-email-01`
+
+**Status:** zatvoreno na finding nivou; samo crash-safe attempt recovery je obuhvaćen.
+
+CI [`42495558412`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42495558412) na testanom SHA [`23f8d08`](https://github.com/mudzy992/help-desk-enterprise/commit/23f8d084b077132bd6fd62ed47755c979e75547a) potvrdio je zeleni backend full Jest i PostgreSQL/Redis integration. Inbound implementation je u kodnom SHA [`4349140`](https://github.com/mudzy992/help-desk-enterprise/commit/4349140f4e1a420546bc82a2cc2094ab540e3009).
+
+Novi attempt zapisuje `CLAIMED`/progress faze, owner token i lease expiry; expired `PROCESSING` može preuzeti samo jedan worker. Ticket create, reply/reopen i attachment imaju stabilne unique idempotency ključeve, a recovery prvo traži već persistiran ticket/message rezultat. Tehnički kvar ostavlja poruku retryable u inboxu; konačni DB status se upisuje prije mailbox movea. Legacy attempt bez phase/lease dokaza se ne replaya naslijepo i ne šalje automatski u `rejected`; ostaje u inboxu za operator reconciliation. Ciljna baza nije pregledana i prisustvo takvih legacy redova nije potvrđeno.
+
+Dokazi su `inbound-email-recovery.spec.ts` (lost response nakon durable ticket writea, bez duplog messagea; legacy red se ne premješta) i registrovani `inbound-email-recovery.integration.spec.ts` (real PostgreSQL claim/lease fencing i unique source/reply/attachment ključevi). Recovery spec je dio isolated PostgreSQL/Redis runnera.
+
+Migracija `20271031200000_inbound_email_crash_safe_recovery` replayovana je samo nad disposable CI bazom. Nije korištena target baza, pokretana migracija, PR, merge ili deployment. E2E critical/install, inventory i conditional high/critical image-enforcement korak u runu su `skipped`; nema E2E, inventory ili independent vulnerability-enforcement sign-offa. `BA-inbound-email-02/03` i svi susjedni inbound nalazi ostaju otvoreni.
