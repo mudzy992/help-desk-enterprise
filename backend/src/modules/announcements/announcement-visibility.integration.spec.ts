@@ -144,7 +144,7 @@ describeIfDatabase('announcement active/archive audience cap (PostgreSQL integra
       ...Array.from({ length: 101 }, (_, index) => ({
         id: `${idPrefix}-foreign-archive-${String(index).padStart(3, '0')}`,
         severity: 'INFO' as const,
-        startsAt: new Date(now.getTime() - 3_600_000 - index * 3_600_000),
+        startsAt: new Date(now.getTime() - 25 * 3_600_000 - index * 3_600_000),
         endsAt: new Date(now.getTime() - 86_400_000),
         audienceRoles: ['AGENT'],
         audienceOrganizationalUnitIds: [foreign.id],
@@ -153,7 +153,7 @@ describeIfDatabase('announcement active/archive audience cap (PostgreSQL integra
       {
         id: `${idPrefix}-visible-archive`,
         severity: 'INFO',
-        startsAt: new Date(now.getTime() - 5 * 86_400_000),
+        startsAt: new Date(now.getTime() - 7 * 86_400_000),
         endsAt: new Date(now.getTime() - 86_400_000),
         audienceRoles: ['AGENT'],
         audienceOrganizationalUnitIds: [root.id],
