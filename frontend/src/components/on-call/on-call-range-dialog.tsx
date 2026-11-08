@@ -181,6 +181,9 @@ export function OnCallRangeDialog({
             </Field>
           </div>
           <p className={hintClassName}>{t("onCall.zoneHint", { zone: timeZone })}</p>
+          {mode === "swap" ? (
+            <p className={hintClassName}>{t("onCall.swap.intervalHint")}</p>
+          ) : null}
           <Field
             label={t("onCall.reason")}
             required

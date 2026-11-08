@@ -2588,7 +2588,7 @@
     {
       "id": "BA-on-call-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W6.41)",
       "source": "21-on-call.md",
       "owner": "WS-D",
       "wave": 6

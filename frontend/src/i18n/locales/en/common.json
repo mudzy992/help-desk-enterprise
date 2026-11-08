@@ -8165,6 +8165,7 @@
       "title": "Shift swap request",
       "description": "A rotation colleague of {{group}} takes the period you choose once they confirm.",
       "colleague": "Colleague",
+      "intervalHint": "You may request part or all of your own rotation shift; the period cannot include another member's on-call time.",
       "reasonHint": "Your colleague sees the reason in the request.",
       "send": "Send request",
       "requested": "Request sent to your colleague."
@@ -8200,7 +8201,7 @@
       "overlap": "The period overlaps an existing override.",
       "overrideNotFound": "The override no longer exists.",
       "swapNotFound": "The request no longer exists.",
-      "swapNotAllowed": "You can only ask a colleague from the same rotation; only that colleague can answer.",
+      "swapNotAllowed": "You can only request part or all of your own rotation shift from a colleague in the same rotation; only that colleague can answer.",
       "swapNotPending": "The request has already been handled.",
       "forbidden": "This action needs the oncall.manage permission.",
       "order": "The end must be after the start."

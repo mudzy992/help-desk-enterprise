@@ -1,6 +1,6 @@
 # Backend audit 21 — `on-call`
 
-**Status:** audit završen  
+**Status:** audit završen; `BA-on-call-01` zatvoren u W6.41, `BA-on-call-02/03` otvoreni<br>
 **Datum:** 2026-10-23  
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,84/10**  
@@ -10,9 +10,9 @@
 
 `on-call` pruža grupne rotacije, timezone/DST-aware smjene, overrideove, bilateralne swap zahtjeve, javni personalni iCal feed, reminder/gap sweep, SLA recipient i outside-hours auto-assignment integraciju. Temelj je dobar: centralizovan resolver, civil-date rotacija, DST-aware instanti, serializable override insert, transactional audit, kriptografski iCal token hash, dedupe notification ključevi i ograničeni range/članovi.
 
-Baseline je **4,84/10**. Tri P1 nalaza pogađaju scope i integritet rasporeda. `onCallViewer` svodi permisiju na boolean i odbacuje assignment scope, pa scoped reader/manager može vidjeti i mijenjati sve grupe. Swap request ne dokazuje da interval pripada smjeni requestera; prihvaćeni zahtjev može zamijeniti stvarno dežurnu treću osobu. Concurrent schedule save nema lock/version precondition: paralelni upsert + delete/create članova može proizvesti header jednog zahtjeva i redoslijed ili praznu listu drugog.
+Baseline je **4,84/10**. U baselineu su tri P1 nalaza pogađala scope i integritet rasporeda. `onCallViewer` je svodio permisiju na boolean i odbacivao assignment scope, pa je scoped reader/manager mogao vidjeti i mijenjati sve grupe; ovaj P1 je zatvoren u W6.41 (vidi §16). Swap request još ne dokazuje da interval pripada smjeni requestera; prihvaćeni zahtjev može zamijeniti stvarno dežurnu treću osobu. Concurrent schedule save još nema lock/version precondition: paralelni upsert + delete/create članova može proizvesti header jednog zahtjeva i redoslijed ili praznu listu drugog.
 
-Dodatni rizici su stale eligibility pri acceptu, foreign owner, iCal koji nadživljava permission revoke, best-effort reminder bez recoveryja, scheduler bez reconciliationa, silent retention failure, hard truncation i nedovoljna integracijska/concurrency pokrivenost. Nema P0. Popravke nisu implementirane.
+Dodatni otvoreni rizici su stale eligibility pri acceptu, foreign owner, iCal koji nadživljava permission revoke, best-effort reminder bez recoveryja, scheduler bez reconciliationa, silent retention failure, hard truncation i nedovoljna integracijska/concurrency pokrivenost. Nema P0. Izvorni 4,84/10 je baseline prije implementacija; BA-on-call-02/03 i svi P2/P3 ostaju otvoreni.
 
 ## 2. Scope i inventar
 
@@ -30,7 +30,7 @@ Registarskih 2.101 LOC korigovano je na 2.083.
 
 Autentifikovane rute zahtijevaju `oncall.read` ili `oncall.manage`; write rute imaju DTO whitelist i reason. Javni iCal koristi 256-bitni bearer token, hash u bazi, no-store i uniformni 404.
 
-`onCallViewerFromContext` provjerava samo postoji li assignment sa permission keyem. Ne prenosi organizational-unit/service scope niti group set. Overview čita sve grupe/schedule, detail čita arbitrary group ID, a manage save/delete/override radi nad arbitrary groupom. Scoped manager zato može enumerisati imena/dežurne osobe/razloge i mijenjati foreign raspored. Scope filter mora biti primijenjen prije listanja i ponovljen na svaki direct-ID write.
+Baseline `onCallViewerFromContext` provjeravao je samo postoji li assignment sa permission keyem. Ne prenosio je organizational-unit/service scope niti group set. Overview je čitao sve grupe/schedule, detail arbitrary group ID, a manage save/delete/override radio nad arbitrary groupom. To je ispravljeno za BA-on-call-01: viewer sada nosi odvojene read/manage OU scopeove, kolekcije se filtriraju prije učitavanja schedule podataka, a direct-ID putanje ponovo provjeravaju grupni scope. Service-only grant ne mapira se na grupe jer `Group` nema service vezu. Preostale P1 scope granice su u §16.
 
 Svi korisnici sa read pravom vide sve schedule članove, override razloge i pending swap razloge. I nakon scope popravke treba odlučiti jesu li reason i pending bilateralni zahtjevi manager-only ili participants-only podaci.
 
@@ -123,7 +123,7 @@ Direktni specovi ne pokrivaju controller/service/Prisma writes. E2E 44 provjerav
 
 | ID            | Severity | Nalaz                                                                                     | Status   |
 | ------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
-| BA-on-call-01 | P1       | Scoped read/manage assignment daje globalni read i write nad svim grupama                 | otvoreno |
+| BA-on-call-01 | P1       | Scoped read/manage assignment daje globalni read i write nad svim grupama                 | zatvoreno (W6.41) |
 | BA-on-call-02 | P1       | Swap interval nije vezan za requesterovu smjenu i može istisnuti treću osobu              | otvoreno |
 | BA-on-call-03 | P1       | Concurrent schedule save može korumpirati header/member kombinaciju                       | otvoreno |
 | BA-on-call-04 | P2       | Bivši active član grupe ostaje resolver/auto-assignment/SLA/quiet-hours kandidat          | otvoreno |
@@ -195,3 +195,18 @@ Sva 3 direktna speca, PostgreSQL concurrency/integration, tickets/SLA/notificati
 10. Direktni, integracijski, concurrency i E2E testovi prolaze.
 
 On-call ima kvalitetan temporalni resolver i dobru osnovu override/audit modela, ali globalizovan scope, nevalidan swap contract i concurrent schedule replacement ruše enterprise integritet. Iskren baseline je **4,84/10**.
+
+## 16. W6.41 closeout — BA-on-call-01
+
+`BA-on-call-01` je zatvoren na finding nivou nakon što su on-call čitanja i izmjene ograničeni na grupne OU scopeove.
+
+- `OnCallViewer` izvodi odvojene read/manage scopeove iz `oncall.read` i `oncall.manage`; manage grant može čitati svoje manage-scope grupe, ali read grant ne autorizuje upise.
+- `overview`, `me` i `mySwaps` ograničavaju podatke na čitljive grupe. Detail, schedule/override writes, deleteOverride i swap read/write putanje ponovo provjeravaju OU putanju konkretne grupe.
+- Service-only grant ne daje group access jer `Group` nema service relaciju. `oncall.read/manage` prolaze generički `RoleGuard`, dok group-level OU provjera ostaje u `OnCallService`.
+- Token-based `icalFeed` nije mijenjan; to je zaseban P2 (`BA-on-call-07`) i ostaje otvoren.
+
+Testovi pokrivaju OU boundary, global/SuperAdmin i service-only scope, filtriranje kolekcija i zabrane direct-ID read/write/swap prije pristupa rasporedu. Prije strict CI-ja lokalno su prošli ciljano 7 suitea/39 testova, dodatni diagnostics-enabled 2 suitea/13 testova i ESLint; nakon strict-TypeScript harness korekcije targeted service-scope suite je prošao 12/12, uz ESLint.
+
+Finalni SHA [`bd05e0e`](https://github.com/mudzy992/help-desk-enterprise/commit/bd05e0ece040685ba1070971cb00fc7b03ef7341) prošao je CI [`42515632097`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42515632097): backend build/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain job i CI gate su passed. Read-only inventory, E2E install/critical i conditional high/critical image-enforcement korak bili su `skipped`, ne passed.
+
+Nije korištena target baza, nije dodana ni pokrenuta migracija, niti je otvoren PR, izvršen merge ili deployment. `BA-on-call-02` (swap interval/requester smjena) i `BA-on-call-03` (concurrent schedule save) ostaju otvoreni P1; P2/P3 i BA-15 acceptance nisu dio ovog closeouta.

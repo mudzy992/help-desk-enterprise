@@ -20,6 +20,7 @@ import {
   loadActiveOnCallContexts,
   loadOnCallScheduleContext,
   resolveContextAt,
+  type OnCallScheduleContext,
 } from './on-call-data';
 import { OnCallError, onCallErrorCodes, onCallLimits } from './on-call.constants';
 import { formatOnCallTime, onCallText, toOnCallLocale, type OnCallLocale } from './on-call-text';
@@ -84,6 +85,28 @@ function requireReason(value: string): string {
   const reason = value.trim();
   if (reason.length < 3 || reason.length > 500) throw new OnCallError(onCallErrorCodes.invalidRange, 'reason');
   return reason;
+}
+
+/** Partial and full swaps are valid only when every instant is in the requester's base rotation segment. */
+function isEntireRangeInRequesterRotation(
+  context: OnCallScheduleContext,
+  startsAt: Date,
+  endsAt: Date,
+  requesterId: string,
+): boolean {
+  const segments = listContextSegments(context, startsAt, endsAt);
+  if (segments.length === 0) return false;
+
+  let coveredUntil = startsAt.getTime();
+  for (const segment of segments) {
+    if (
+      segment.startsAt.getTime() !== coveredUntil ||
+      segment.userId !== requesterId ||
+      segment.source !== 'rotation'
+    ) return false;
+    coveredUntil = segment.endsAt.getTime();
+  }
+  return coveredUntil === endsAt.getTime();
 }
 
 /**
@@ -509,32 +532,23 @@ export class OnCallService {
   ) {
     await this.requireEnabled();
     const group = await this.requireGroupAccess(groupId, viewer, 'read');
-    const schedule = await this.prisma.onCallSchedule.findUnique({
-      where: { groupId },
-      select: {
-        id: true,
-        timezone: true,
-        members: { select: { userId: true, user: { select: { isActive: true, anonymizedAt: true } } } },
-      },
-    });
-    if (schedule === null) throw new OnCallError(onCallErrorCodes.scheduleNotFound);
     const reason = requireReason(input.reason);
     const range = this.validateRange(input.startsAt, input.endsAt);
-    const members = new Map(schedule.members.map((member) => [member.userId, member.user]));
-    const colleague = members.get(input.colleagueId);
+    const context = await loadOnCallScheduleContext(this.prisma, groupId, { from: range.startsAt, to: range.endsAt });
+    if (context === null) throw new OnCallError(onCallErrorCodes.scheduleNotFound);
+    const members = new Map(context.members.map((member) => [member.userId, member.isAvailable]));
     if (
       !members.has(viewer.userId) ||
       input.colleagueId === viewer.userId ||
-      colleague === undefined ||
-      !colleague.isActive ||
-      colleague.anonymizedAt !== null
+      members.get(input.colleagueId) !== true ||
+      !isEntireRangeInRequesterRotation(context, range.startsAt, range.endsAt, viewer.userId)
     ) {
       throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     }
     const created = await this.prisma.$transaction(async (transaction) => {
       const row = await transaction.onCallSwapRequest.create({
         data: {
-          scheduleId: schedule.id,
+          scheduleId: context.id,
           requesterId: viewer.userId,
           colleagueId: input.colleagueId,
           startsAt: range.startsAt,
@@ -543,7 +557,7 @@ export class OnCallService {
         },
         select: { id: true },
       });
-      await this.audit(transaction, auditLogActions.onCallSwapRequested, schedule.id, viewer.userId, {
+      await this.audit(transaction, auditLogActions.onCallSwapRequested, context.id, viewer.userId, {
         swapRequestId: row.id,
         colleagueId: input.colleagueId,
         startsAt: range.startsAt.toISOString(),
@@ -556,8 +570,8 @@ export class OnCallService {
       onCallText(locale, 'swapRequested', {
         group: group.name,
         name: requesterName,
-        from: formatOnCallTime(range.startsAt, schedule.timezone, locale),
-        to: formatOnCallTime(range.endsAt, schedule.timezone, locale),
+        from: formatOnCallTime(range.startsAt, context.shape.timezone, locale),
+        to: formatOnCallTime(range.endsAt, context.shape.timezone, locale),
       }),
     );
     return { id: created.id };
