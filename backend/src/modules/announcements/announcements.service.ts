@@ -844,29 +844,63 @@ export class AnnouncementsService {
     );
   }
 
+  /**
+   * Walk every matching user in bounded keyset pages. The page size is a memory
+   * bound, not an audience limit; stable ID ordering prevents OFFSET drift.
+   */
+  private async fanOutAudienceInPages(input: {
+    readonly row: AnnouncementRow;
+    readonly audience: AnnouncementAudience;
+    readonly type: NotificationType;
+    readonly dedupePrefix: string;
+    readonly additionalWhere?: Prisma.UserWhereInput;
+  }): Promise<number> {
+    const baseWhere: Prisma.UserWhereInput = {
+      ...(await this.audienceWhere(input.audience)),
+      ...input.additionalWhere,
+    };
+    let cursor: string | null = null;
+    let sent = 0;
+    while (true) {
+      const members = await this.prisma.user.findMany({
+        where: { ...baseWhere, ...(cursor === null ? {} : { id: { gt: cursor } }) },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: announcementLimits.notifyBatchSize,
+      });
+      if (members.length === 0) break;
+      sent += await this.fanOut(
+        members.map((member) => member.id),
+        input.type,
+        input.row,
+        input.dedupePrefix,
+      );
+      cursor = members[members.length - 1]!.id;
+      if (members.length < announcementLimits.notifyBatchSize) break;
+    }
+    return sent;
+  }
+
   /** §3.3: one notification to everyone who has not acknowledged, at most once in 24 h. */
   async remind(id: string, viewer: AnnouncementViewer, now: Date = new Date()): Promise<{ notified: number; emailQueued: boolean }> {
     const row = await this.requireReport(id, viewer);
     if (!row.requiresAcknowledgement || effectiveAnnouncementStatus(row, now) !== 'PUBLISHED') {
       throw new AnnouncementError(announcementErrorCodes.notActive);
     }
+    if (!this.canRemind(row, now)) throw new AnnouncementError(announcementErrorCodes.reminderTooSoon);
+    const notified = await this.fanOutAudienceInPages({
+      row,
+      audience: audienceOf(row),
+      type: notificationTypes.announcementReminder,
+      dedupePrefix: `announcement-reminder:${id}:${now.toISOString().slice(0, 10)}`,
+      additionalWhere: { announcementAcknowledgements: { none: { announcementId: id } } },
+    });
     const since = new Date(now.getTime() - announcementLimits.reminderIntervalMs);
     const claimed = await this.prisma.announcement.updateMany({
       where: { id, OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: since } }] },
       data: { lastReminderAt: now },
     });
     if (claimed.count !== 1) throw new AnnouncementError(announcementErrorCodes.reminderTooSoon);
-    const members = await this.prisma.user.findMany({
-      where: { ...(await this.audienceWhere(audienceOf(row))), announcementAcknowledgements: { none: { announcementId: id } } },
-      select: { id: true },
-      take: announcementLimits.notifyMaxRecipients,
-    });
-    const notified = await this.fanOut(
-      members.map((member) => member.id),
-      notificationTypes.announcementReminder,
-      row,
-      `announcement-reminder:${id}:${now.toISOString().slice(0, 10)}`,
-    );
     const emailQueued = row.sendEmail ? await this.queueEmailRun(id, 'REMINDER') : false;
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action: auditLogActions.announcementReminded,
@@ -880,27 +914,39 @@ export class AnnouncementsService {
 
   // ------------------------------------------------------------ sweep
 
-  /** In-app notification to the audience once the announcement has started (idempotent). */
+  /** In-app notification to the complete audience once the announcement has started (idempotent). */
   async notifyStarted(id: string, now: Date = new Date()): Promise<number> {
-    const claimed = await this.prisma.announcement.updateMany({
-      where: { id, status: 'PUBLISHED', notifyAudience: true, audienceNotifiedAt: null, startsAt: { lte: now }, endsAt: { gt: now } },
+    const row = (await this.prisma.announcement.findFirst({
+      where: {
+        id,
+        status: 'PUBLISHED',
+        notifyAudience: true,
+        audienceNotifiedAt: null,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
+    })) as AnnouncementRow | null;
+    if (row === null) return 0;
+    const notified = await this.fanOutAudienceInPages({
+      row,
+      audience: audienceOf(row),
+      type: notificationTypes.announcementPublished,
+      dedupePrefix: `announcement-published:${id}`,
+    });
+    const completed = await this.prisma.announcement.updateMany({
+      where: {
+        id,
+        status: 'PUBLISHED',
+        notifyAudience: true,
+        audienceNotifiedAt: null,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
       data: { audienceNotifiedAt: now },
     });
-    if (claimed.count !== 1) return 0;
-    const row = (await this.prisma.announcement.findUnique({ where: { id } })) as AnnouncementRow | null;
-    if (row === null) return 0;
+    if (completed.count !== 1) return 0;
     if (row.sendEmail) await this.queueEmailRun(id, 'PUBLISHED');
-    const members = await this.prisma.user.findMany({
-      where: await this.audienceWhere(audienceOf(row)),
-      select: { id: true },
-      take: announcementLimits.notifyMaxRecipients,
-    });
-    return this.fanOut(
-      members.map((member) => member.id),
-      notificationTypes.announcementPublished,
-      row,
-      `announcement-published:${id}`,
-    );
+    return notified;
   }
 
   /** Worker: notifications for announcements that started, and receipt retention. */

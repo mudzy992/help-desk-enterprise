@@ -24,8 +24,8 @@ export const announcementLimits = {
   reminderIntervalMs: 24 * 60 * 60 * 1000,
   /** Names listed in the report (the CSV has everyone). */
   reportPendingListed: 200,
-  /** Largest audience notified in one go (in-app notifications are rows). */
-  notifyMaxRecipients: 20_000,
+  /** Maximum recipients held in memory for one in-app fan-out page. */
+  notifyBatchSize: 1_000,
   /** A draft may be scheduled at most this far ahead. */
   maxStartAheadDays: 366,
   manageListMax: 200,
