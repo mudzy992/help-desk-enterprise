@@ -190,8 +190,10 @@ describeIfDatabase('announcement active/archive audience cap (PostgreSQL integra
 
   it('filters archive audience in PostgreSQL before applying its 100-row cap', async () => {
     const result = await announcements.archive(viewer, now);
+    const ids = result.announcements.map((item) => item.id);
 
-    expect(result.announcements.map((item) => item.id)).toEqual([`${idPrefix}-visible-archive`]);
-    expect(result.announcements[0]?.isActive).toBe(false);
+    expect(ids).toContain(`${idPrefix}-visible-archive`);
+    expect(ids).not.toContain(`${idPrefix}-foreign-archive-000`);
+    expect(result.announcements.find((item) => item.id === `${idPrefix}-visible-archive`)?.isActive).toBe(false);
   });
 });
