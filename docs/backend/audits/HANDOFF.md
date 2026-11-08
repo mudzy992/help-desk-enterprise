@@ -1,6 +1,6 @@
 # HANDOFF — Help Desk Enterprise
 
-**Datum:** 2026-11-08<br>
+**Datum:** 2026-10-29<br>
 **Jezička pravila:** svaka komunikacija i closeout izvještaj korisniku moraju biti isključivo na bosanskom.  
 **Svrha:** kontinuitet rada u narednoj Arena sesiji. Sve putanje ispod su relativne putanje unutar repozitorija.
 
@@ -15,7 +15,15 @@
 
 ## 2. Stanje implementacije
 
-### W6.37 / `BA-integration-queue-04` (P1) — finding closeout
+### W6.44 / `BA-announcements-01` (P1) — finding closeout
+
+`BA-announcements-01` je zatvoren na finding nivou na kodnom/testanom SHA [`90fc15c655bba90fc8f69ca17f2dc76c6bf67819`](https://github.com/mudzy992/help-desk-enterprise/commit/90fc15c655bba90fc8f69ca17f2dc76c6bf67819). `AnnouncementViewer` čuva odvojene manage/report scopeove iz canonical assignments; scoped `announcement.manage` i `announcement.report.read` ne postaju globalni. Authorization veže odluke za announcement audience OU-ove: svaki OU u filteru mora biti dozvoljen, audience bez OU filtera traži globalni grant, a service-only grant se fail-closed jer `Service` nema OU relaciju. Pravila se primjenjuju na list/detail/lifecycle mutation, create/update publiku, preview, report, CSV i reminder; report/CSV denial nastupa prije PII queryja. Agent home-OU fallback ostaje zaseban; P2 group/service reference validacija nije obuhvaćena.
+
+Lokalno su prošli targeted ESLint, **5/5 Jest suitea / 36/36 testova** i `git diff --check`. Zbog nedostajućeg generated Prisma clienta, lokalni Jest je koristio privremeni ts-jest `diagnostics:false` config, a lokalna Prisma engine/client generacija nije uspjela preuzeti `schema-engine` sa `binaries.prisma.sh`; to nije lokalni generated-Prisma type-check. Push-triggered CI [`42527240382`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42527240382) prošao je pravi generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain posao i CI gate. Read-only inventory, E2E critical/install i conditional high/critical image enforcement bili su `skipped`, ne passed. Nema target-DB upotrebe ni migration/schema izmjene. Nema PR-a, mergea ili deploymenta.
+
+Val 6 je **48/109 zatvorenih, 61 otvorenih (3 P1 / 41 P2 / 17 P3)**; source/plan **513/179**, globalni registar **523/169**; deset ranijih statusnih razlika ostaje netaknuto. Preostali Val 6 P1 su `BA-announcements-02/03/04`; P2/P3 i BA-15 full critical-flow acceptance ostaju izvan scopea/pending. Detalji: [audit 28, §17](28-announcements.md#17-w644-closeout--ba-announcements-01) / [paket 159](../implementation/159-announcements-01-scoped-permission-authorization.md).
+
+### Historijski W6.37 / `BA-integration-queue-04` (P1) — finding closeout
 
 `BA-integration-queue-04` je zatvoren na finding nivou na kodnom/testanom SHA [`f0fe7e3`](https://github.com/mudzy992/help-desk-enterprise/commit/f0fe7e38f0d56b40be0a09809872ef16919a5e8b). Kanonski `RoleGuard`/evaluator odbija OU- i service-scoped `ADMIN` assignmente za globalnu queue operaciju, a globalni `ADMIN` sa `integrations.queue.manage` prolazi. List query bira samo operativna metadata polja; API ne vraća `payload` ni sirovi `lastError`, već stabilni `lastErrorCode`. UI koristi BS/EN prijevode i generički fallback. Full-payload inspect endpoint/pravo/reason/audit nije uveden.
 

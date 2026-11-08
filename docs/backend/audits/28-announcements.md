@@ -1,6 +1,6 @@
 # Backend audit 28 — `announcements`
 
-**Status:** audit završen  
+**Status:** audit završen; `BA-announcements-01` zatvoren u W6.44<br>
 **Datum:** 2026-10-23  
 **Rizik modula:** srednji  
 **Baseline ocjena:** **4,31/10**  
@@ -10,9 +10,9 @@
 
 `announcements` pokriva draft/publish/withdraw lifecycle, vremenski aktivne banner/modal najave, role/OU/group publiku, acknowledgement/dismissal, revision historiju, izvještaj i CSV, in-app/e-mail/Teams distribuciju, reminder, retention i BullMQ sweep. Pozitivna osnova je jaka: strict DTO, server-side audience predicate, aktivnost izvedena iz vremena, transakcijski core mutation+audit, idempotent acknowledge/dismiss, publish status claim, e-mail batch/cursor/delivery ledger, preference/domain provjera i CSV formula neutralizacija.
 
-Baseline je **4,31/10**. Četiri P1 nalaza pogađaju authorization, availability i resource safety. `announcement.manage` ili `announcement.report.read` u bilo kojem assignmentu tretira se kao globalna dozvola bez OU/service scopea, pa scoped actor može upravljati svim najavama ili izvesti identitete/e-mailove cijele publike. Active i archive uzimaju globalnih 50/100 redova prije visibility filtera, pa foreign najave mogu istisnuti kritičnu najavu namijenjenu vieweru. In-app fan-out uzima prvih 20.000 korisnika, ali prije toga trajno postavlja `audienceNotifiedAt`; ostatak publike se nikad ne obrađuje. Report/CSV učitava cijelu aktuelnu publiku i sve acknowledgement redove bez limita/paginacije, stvarajući memory/PII export rizik.
+Baseline je **4,31/10** prije implementacija. Četiri P1 nalaza u tom izvornom baselineu pogađaju authorization, availability i resource safety. `announcement.manage` ili `announcement.report.read` u bilo kojem assignmentu tretirao se kao globalna dozvola bez OU/service scopea, čime je scoped actor mogao upravljati svim najavama ili izvesti identitete/e-mailove cijele publike; `BA-announcements-01` je zatvoren u W6.44. Ostala tri P1 i dalje su otvorena: active/archive uzimaju globalnih 50/100 redova prije visibility filtera, pa foreign najave mogu istisnuti kritičnu najavu namijenjenu vieweru; in-app fan-out uzima prvih 20.000 korisnika, ali prije toga trajno postavlja `audienceNotifiedAt`, pa se ostatak publike ne obrađuje; report/CSV učitava cijelu aktuelnu publiku i sve acknowledgement redove bez limita/paginacije, stvarajući memory/PII export rizik.
 
-Dodatni rizici su agentova foreign group/service referenca, concurrent lifecycle bez version/CAS-a, queue/reminder recovery prozori, Teams terminal claim prije slanja, SMTP duplicate crash prozor, scheduler bez Redis-loss reconciliationa, current-audience izvještaj nasuprot publish snapshotu i nepotpuna retention/anonymization matrica. Nema P0. Popravke nisu implementirane.
+Dodatni rizici su agentova foreign group/service referenca, concurrent lifecycle bez version/CAS-a, queue/reminder recovery prozori, Teams terminal claim prije slanja, SMTP duplicate crash prozor, scheduler bez Redis-loss reconciliationa, current-audience izvještaj nasuprot publish snapshotu i nepotpuna retention/anonymization matrica. Nema P0. Baseline 4,31/10 ostaje ocjena prije implementacija; `BA-announcements-01` je zatvoren u W6.44, dok `BA-announcements-02/03/04` ostaju otvoreni P1. P2/P3 nisu dio ovog closeouta.
 
 ## 2. Scope i inventar
 
@@ -30,7 +30,7 @@ Registarskih 2.102 LOC korigovano je na 2.086.
 
 Svi user endpointi traže sesiju. Active/ack/dismiss dodatno provjeravaju vremensku aktivnost i audience membership. Management je u serviceu: SUPER_ADMIN ili actor sa `announcement.manage`; report traži `announcement.report.read`. Agent može objavljivati samo kada je postavka uključena i announcement ima eksplicitne audience OU-ove unutar njegovog home podstabla.
 
-`announcementViewerFromContext` ipak radi `assignments.some(permission)` bez scope evaluacije. Dozvola dodijeljena za jednu OU/service jedinicu postaje `canManageAll` nad svim najavama. Isto važi za `announcement.report.read`, čiji CSV sadrži puno ime, e-mail, jedinicu i vrijeme acknowledgementa. Ovo je direktan cross-scope privilege escalation. Potrebna je authorization-service odluka za konkretan announcement/audience OU, a globalni pristup samo za eksplicitno globalan assignment ili SUPER_ADMIN.
+Baseline `announcementViewerFromContext` radio je `assignments.some(permission)` bez scope evaluacije, pa je scoped `announcement.manage` ili `announcement.report.read` postajao globalan. To je zatvoreno u W6.44: viewer sada drži manage/report scopeove odvojeno; service provjerava konkretan audience preko `AuthorizationService.authorizeResource`, zahtijeva dozvolu za svaki OU u filteru i odbija scoped pristup publici bez OU filtera. Globalna putanja prolazi samo za globalni resource decision (eksplicitan globalni assignment ili lokalni SUPER_ADMIN). Service-only scope se ne pretvara u OU/global scope jer `Service` nema audience OU relaciju; takav grant za announcements fail-closed.
 
 Agent restriction provjerava samo `audienceOrganizationalUnitIds`. Group ID mora samo postojati, service ID mora samo postojati; ne provjerava se pripadnost agentovom podstablu. Options agentu filtrira units/groups, ali vraća sve services, a API se ne smije oslanjati na UI. Foreign group/service reference može otkriti naziv i proizvesti publiku/oznaku izvan namjeravanog scopea. Preview audience također ne potvrđuje da IDs postoje za globalnog managera i može služiti kao count oracle.
 
@@ -118,7 +118,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 
 | ID                  | Severity | Nalaz                                                                                       | Status   |
 | ------------------- | -------- | ------------------------------------------------------------------------------------------- | -------- |
-| BA-announcements-01 | P1       | Scoped manage/report permission postaje globalna i omogućava cross-OU mutation/PII export  | otvoreno |
+| BA-announcements-01 | P1       | Scoped manage/report permission postaje globalna i omogućava cross-OU mutation/PII export  | zatvoreno (W6.44) |
 | BA-announcements-02 | P1       | Active/archive cap se primjenjuje prije audience filtera i može sakriti kritičnu najavu     | otvoreno |
 | BA-announcements-03 | P1       | In-app/reminder fan-out terminalno odsijeca publiku nakon 20.000 korisnika                  | otvoreno |
 | BA-announcements-04 | P1       | Report/CSV neograničeno učitava current audience, e-mailove i acknowledgement redove        | otvoreno |
@@ -140,7 +140,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 
 ## 13. Ključne korekcije
 
-- **01,05:** resource-aware authorization service za manage/report; OU/group/service relacijska validacija.
+- **01:** resource-aware authorization service za manage/report — zatvoreno u W6.44. **05** ostaje otvoren: OU/group/service relacijska validacija.
 - **02,14,18:** audience/scope pushdown ili bounded cursor scan; cursor/hasMore i stabilan order.
 - **03,08:** durable in-app fan-out run/cursor/ledger; claim+outbox transakcija; retry/reconcile.
 - **04:** DB agregati, paginated pending i streaming CSV sa hard budgetom.
@@ -165,7 +165,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | I. Operativnost/perf.        |     7% |   4,00 |
 | **Ukupno**                   | **100%** | **4,31/10** |
 
-Ponderisani zbir je 4,310, odnosno **4,31/10**. Otvoreni P1 nalazi ograničavaju maksimum na 7,49.
+Ponderisani zbir je 4,310, odnosno **4,31/10** na izvornom baselineu prije implementacija. Četiri P1 nalaza tada su ograničavala maksimum na 7,49; nakon W6.44 `BA-announcements-01` je zatvoren, dok `BA-announcements-02/03/04` ostaju otvoreni. Nova agregatna ocjena nije izračunata.
 
 ## 15. Fazni plan
 
@@ -205,5 +205,19 @@ Regenerisan Prisma client; oba suitea; Postgres concurrency/large audience, Redi
 8. Group/service audience reference ostaje unutar odobrenog scopea.
 9. Retention/anonymization pokriva sve receipt, revision, notification, e-mail, Teams i audit replike.
 10. Oba direktna suitea i large-audience/concurrency/fault E2E prolaze.
+11. `BA-announcements-01` (W6.44) zatvoren je: manage/report authorization je per-permission i per-audience OU; unfiltered audience traži globalni grant; cross-OU create/report/CSV se odbijaju prije mutation/PII query.
 
-Modul ima dobru funkcionalnu osnovu, transakcijski audit i promišljen e-mail batching, ali globalizacija scoped permissiona, pre-visibility cap, terminalni 20k fan-out i neograničen PII report sprečavaju enterprise ocjenu. Iskren ponderisani baseline je **4,31/10**.
+Modul ima dobru funkcionalnu osnovu, transakcijski audit i promišljen e-mail batching. Izvorni ponderisani baseline prije implementacija je **4,31/10**; W6.44 je zatvorio nalaz o globalizaciji scoped manage/report dozvola, ali pre-visibility cap, terminalni 20k fan-out i neograničen PII report i dalje sprečavaju enterprise ocjenu. Nova agregatna ocjena nije dodijeljena.
+
+## 17. W6.44 closeout — BA-announcements-01
+
+`BA-announcements-01` zatvoren je na finding nivou nakon što scoped manage/report grantovi više ne postaju globalni.
+
+- `AnnouncementViewer` izvodi odvojeni `manageScope` i `reportScope` iz canonical assignments. Globalni bypass zahtijeva globalnu assignment/resource odluku ili lokalni `SUPER_ADMIN`; service-only grant se fail-closed, jer `Service` nema OU relaciju kojom bi se audience membership ograničio.
+- List, detail, create/update, publish/withdraw/delete, preview, report, CSV i reminder authorization provjeravaju announcement publiku. Za scoped grant svaki OU u višestrukom audience filteru mora biti dozvoljen kroz `AuthorizationService.authorizeResource`; audience bez OU filtera se odbija. Create/update validiraju novu publiku prije transakcije, a list ograniči redove prije acknowledgement counta. Report/CSV se odbija prije queryja za identitete/e-mailove i acknowledgemente izvan dozvoljenog scopea.
+- Agent-only postavka ostaje zaseban home-OU fallback. Editor OU/grupe su filtrirani po dodijeljenim OU scopeovima; P2 `BA-announcements-05` (group/service reference relacijska validacija) i P2/P3 nisu mijenjani.
+- Dodani su scope-derivation, canonical mismatch, service-only, SuperAdmin-local, svaki-OU i resource authorization testovi, te service regresije za cross-OU create/list, odvojeni report grant, global audience denial i CSV PII-query denial.
+
+Lokalno je prošlo targeted ESLint i **5/5 Jest suitea, 36/36 testova** (announcement audience/delivery i tri nova authorization suites). Zbog nedostajućeg lokalnog generated Prisma clienta, lokalni Jest je pokrenut kroz privremeni ts-jest `diagnostics:false` config; Prisma Client generacija lokalno nije mogla preuzeti schema engine sa `binaries.prisma.sh`. Push-triggered CI [`42527240382`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42527240382) na kodnom SHA [`90fc15c`](https://github.com/mudzy992/help-desk-enterprise/commit/90fc15c655bba90fc8f69ca17f2dc76c6bf67819) je **success**, uključujući pravi generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain posao i CI gate. Read-only inventory, E2E critical/install i conditional high/critical image enforcement bili su `skipped`, ne `passed`; nisu pokretani ručno.
+
+Nema schema izmjene ni migracije, target baza nije korištena; nema PR-a, mergea ili deploymenta. Nakon W6.44 Val 6 je **48/109 zatvorenih, 61 otvorenih (3 P1 / 41 P2 / 17 P3)**; izvorni auditi/generisani plan **513/179**, globalni registar **523/169**. Deset ranijih statusnih razlika ostaje netaknuto. Preostali Val 6 P1 su `BA-announcements-02/03/04`; P2/P3 i BA-15 full critical-flow acceptance ostaju otvoreni/pending i izvan ovog closeouta.
