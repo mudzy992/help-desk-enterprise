@@ -5,6 +5,9 @@ import { appendAuditLog } from '../audit-log/append-audit-log';
 import type { AuditLogTransactionalClient, AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import type { JsonValue } from '../change-log/change-log.types';
+import { AuthorizationService } from '../authorization/authorization.service';
+import { permissionKeys } from '../authorization/authorization.constants';
+import { doesOrganizationalUnitScopeCover } from '../authorization/does-organizational-unit-scope-cover';
 import { loadEmailChannelConfiguration } from '../notifications/email/load-email-channel-configuration';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTitleKeys, notificationTypes, type NotificationType } from '../notifications/notifications.constants';
@@ -18,10 +21,11 @@ import {
   csvCell,
   effectiveAnnouncementStatus,
   expandAudienceUnits,
-  isAudienceWithinUnit,
   isInAnnouncementAudience,
   type AnnouncementAudience,
 } from './announcement-audience';
+import { authorizeAnnouncementAudiences, type AnnouncementAudienceAuthorizationCandidate } from './announcement-resource-authorization';
+import { announcementUnitPathCoveredByScope, hasAnnouncementPermissionScope } from './announcement-permission-scope';
 import type { AnnouncementViewer } from './announcement-viewer';
 import { AnnouncementError, announcementErrorCodes, announcementLimits } from './announcements.constants';
 
@@ -105,6 +109,7 @@ export class AnnouncementsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   private async readSetting<T>(key: string, fallback: T): Promise<T> {
@@ -134,14 +139,28 @@ export class AnnouncementsService {
     return unit?.ouPath ?? null;
   }
 
-  /** What the viewer may do in the management screen. */
+  private async agentManagementUnitPath(viewer: AnnouncementViewer): Promise<string | null> {
+    if (!viewer.isAgent || viewer.homeOrganizationalUnitId === null) return null;
+    const enabled = await this.readSetting<unknown>(
+      settingKeys.privateAnnouncementsAgentsMayPublish,
+      announcementDefaults.agentsMayPublish,
+    );
+    return enabled === true ? this.unitPathOf(viewer.homeOrganizationalUnitId) : null;
+  }
+
+  /** What the viewer may do in the management screen; resource access is checked again per audience. */
   async capabilities(viewer: AnnouncementViewer): Promise<{ canManage: boolean; scopedToUnit: boolean; canReadReports: boolean }> {
-    if (viewer.canManageAll) return { canManage: true, scopedToUnit: false, canReadReports: viewer.canReadReports };
-    const agentsMayPublish =
-      viewer.isAgent &&
-      viewer.homeOrganizationalUnitId !== null &&
-      (await this.readSetting<unknown>(settingKeys.privateAnnouncementsAgentsMayPublish, announcementDefaults.agentsMayPublish)) === true;
-    return { canManage: agentsMayPublish, scopedToUnit: agentsMayPublish, canReadReports: viewer.canReadReports || agentsMayPublish };
+    const agentPath = await this.agentManagementUnitPath(viewer);
+    const agentMayPublish = agentPath !== null;
+    const hasManageScope = hasAnnouncementPermissionScope(viewer.manageScope);
+    const hasReportScope = hasAnnouncementPermissionScope(viewer.reportScope);
+    return {
+      canManage: hasManageScope || agentMayPublish,
+      scopedToUnit:
+        !viewer.manageScope.global &&
+        (viewer.manageScope.organizationalUnits.length > 0 || agentMayPublish),
+      canReadReports: hasReportScope || agentMayPublish,
+    };
   }
 
   private async requireManage(viewer: AnnouncementViewer) {
@@ -151,18 +170,66 @@ export class AnnouncementsService {
     return capabilities;
   }
 
-  /** Loads an announcement the viewer may manage (agents: audience inside the own unit). */
-  private async loadManaged(id: string, viewer: AnnouncementViewer, scopedToUnit: boolean): Promise<AnnouncementRow> {
+  private async unitPathsForAudience(organizationalUnitIds: readonly string[]): Promise<Map<string, string>> {
+    const ids = unique(organizationalUnitIds);
+    if (ids.length === 0) return new Map();
+    const units = await this.prisma.organizationalUnit.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, ouPath: true },
+    });
+    return new Map(units.map((unit) => [unit.id, unit.ouPath]));
+  }
+
+  private async authorizedAudienceKeys(
+    viewer: AnnouncementViewer,
+    permissionKey: string,
+    candidates: readonly AnnouncementAudienceAuthorizationCandidate[],
+    allowAgentScope: boolean,
+  ): Promise<ReadonlySet<string>> {
+    const organizationalUnitIds = unique(candidates.flatMap((candidate) => [...candidate.organizationalUnitIds]));
+    const [unitPaths, agentPath] = await Promise.all([
+      this.unitPathsForAudience(organizationalUnitIds),
+      allowAgentScope ? this.agentManagementUnitPath(viewer) : Promise.resolve(null),
+    ] as const);
+    const permissionScope = permissionKey === permissionKeys.announcementManage ? viewer.manageScope : viewer.reportScope;
+    return authorizeAnnouncementAudiences({
+      authorization: this.authorization,
+      principal: viewer.authorizationPrincipal,
+      permissionKey,
+      permissionScope,
+      candidates,
+      unitPaths,
+      fallbackOrganizationalUnitPaths: agentPath === null ? [] : [agentPath],
+    });
+  }
+
+  private async assertManageAudience(viewer: AnnouncementViewer, organizationalUnitIds: readonly string[]): Promise<void> {
+    const key = 'announcement-input';
+    const allowed = await this.authorizedAudienceKeys(
+      viewer,
+      permissionKeys.announcementManage,
+      [{ key, organizationalUnitIds }],
+      true,
+    );
+    if (!allowed.has(key)) throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'scope');
+  }
+
+  /** Loads an announcement only when the permission covers every audience OU. */
+  private async loadManaged(
+    id: string,
+    viewer: AnnouncementViewer,
+    permissionKey: string,
+    allowAgentScope = false,
+  ): Promise<AnnouncementRow> {
     const row = (await this.prisma.announcement.findUnique({ where: { id } })) as AnnouncementRow | null;
     if (row === null) throw new AnnouncementError(announcementErrorCodes.notFound);
-    if (scopedToUnit) {
-      const units = await this.loadUnits();
-      const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      if (!isAudienceWithinUnit(row.audienceOrganizationalUnitIds, ownPath, paths)) {
-        throw new AnnouncementError(announcementErrorCodes.notFound);
-      }
-    }
+    const allowed = await this.authorizedAudienceKeys(
+      viewer,
+      permissionKey,
+      [{ key: id, organizationalUnitIds: row.audienceOrganizationalUnitIds }],
+      allowAgentScope,
+    );
+    if (!allowed.has(id)) throw new AnnouncementError(announcementErrorCodes.notFound);
     return row;
   }
 
@@ -300,8 +367,15 @@ export class AnnouncementsService {
     let visibleUnits = units;
     let visibleGroups = groups;
     if (capabilities.scopedToUnit) {
-      const own = units.find((unit) => unit.id === viewer.homeOrganizationalUnitId);
-      const inside = new Set(own === undefined ? [] : expandAudienceUnits([own.id], units));
+      const agentPath = await this.agentManagementUnitPath(viewer);
+      const inside = new Set(
+        units
+          .filter((unit) =>
+            announcementUnitPathCoveredByScope(unit.ouPath, viewer.manageScope) ||
+            (agentPath !== null && doesOrganizationalUnitScopeCover({ assignedPath: agentPath, requestedPath: unit.ouPath })),
+          )
+          .map((unit) => unit.id),
+      );
       visibleUnits = units.filter((unit) => inside.has(unit.id));
       visibleGroups = groups.filter((group) => inside.has(group.organizationalUnitId));
     }
@@ -341,12 +415,13 @@ export class AnnouncementsService {
       orderBy: [{ createdAt: 'desc' }],
       take: announcementLimits.manageListMax,
     })) as AnnouncementRow[];
-    if (capabilities.scopedToUnit) {
-      const units = await this.loadUnits();
-      const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      rows = rows.filter((row) => isAudienceWithinUnit(row.audienceOrganizationalUnitIds, ownPath, paths));
-    }
+    const allowed = await this.authorizedAudienceKeys(
+      viewer,
+      permissionKeys.announcementManage,
+      rows.map((row) => ({ key: row.id, organizationalUnitIds: row.audienceOrganizationalUnitIds })),
+      true,
+    );
+    rows = rows.filter((row) => allowed.has(row.id));
     const counts = await this.prisma.announcementAcknowledgement.groupBy({
       by: ['announcementId'],
       where: { announcementId: { in: rows.map((row) => row.id) } },
@@ -363,8 +438,8 @@ export class AnnouncementsService {
   }
 
   async detail(id: string, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     const revisions = await this.prisma.announcementRevision.findMany({
       where: { announcementId: id },
       orderBy: { version: 'desc' },
@@ -408,7 +483,7 @@ export class AnnouncementsService {
   }
 
   /** Validates the editor input; returns the normalised write data. */
-  private async validate(input: SaveAnnouncementInput, viewer: AnnouncementViewer, scopedToUnit: boolean, now: Date) {
+  private async validate(input: SaveAnnouncementInput, now: Date) {
     const title = input.title.trim();
     const body = input.body.trim();
     if (title.length < 3 || title.length > announcementLimits.titleMax) throw new AnnouncementError(announcementErrorCodes.invalid, 'title');
@@ -443,12 +518,6 @@ export class AnnouncementsService {
     if (input.serviceId !== undefined && input.serviceId !== null && input.serviceId.trim().length > 0 && service === null) {
       throw new AnnouncementError(announcementErrorCodes.invalid, 'serviceId');
     }
-    if (scopedToUnit) {
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      if (!isAudienceWithinUnit(organizationalUnitIds, ownPath, paths)) {
-        throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'ownUnit');
-      }
-    }
     // K2b: e-mail rides on the audience notification; Teams only when offered.
     const postToTeams = input.postToTeams === true && (await this.channelAvailability()).teamsAvailable;
     return {
@@ -470,8 +539,9 @@ export class AnnouncementsService {
   }
 
   async create(input: SaveAnnouncementInput, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const data = await this.validate(input, viewer, capabilities.scopedToUnit, now);
+    await this.requireManage(viewer);
+    const data = await this.validate(input, now);
+    await this.assertManageAudience(viewer, data.audienceOrganizationalUnitIds);
     const row = await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.announcement.create({ data: { ...data, createdById: viewer.userId } });
       await this.audit(transaction, auditLogActions.announcementCreated, created.id, viewer.userId, {
@@ -489,12 +559,13 @@ export class AnnouncementsService {
    * severity, display and end can change, and the previous text is kept.
    */
   async update(id: string, input: SaveAnnouncementInput, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status === 'WITHDRAWN' || effectiveAnnouncementStatus(row, now) === 'ENDED') {
       throw new AnnouncementError(announcementErrorCodes.invalidState, 'closed');
     }
-    const data = await this.validate(input, viewer, capabilities.scopedToUnit, now);
+    const data = await this.validate(input, now);
+    await this.assertManageAudience(viewer, data.audienceOrganizationalUnitIds);
     await this.prisma.$transaction(async (transaction) => {
       if (row.status === 'DRAFT') {
         await transaction.announcement.update({ where: { id }, data });
@@ -543,8 +614,8 @@ export class AnnouncementsService {
   }
 
   async publish(id: string, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
     if (row.endsAt.getTime() <= now.getTime()) throw new AnnouncementError(announcementErrorCodes.invalid, 'endsAt');
     const audienceSize = await this.countAudience(audienceOf(row));
@@ -570,8 +641,8 @@ export class AnnouncementsService {
   }
 
   async withdraw(id: string, reason: string, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'PUBLISHED') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notPublished');
     await this.prisma.$transaction(async (transaction) => {
       await transaction.announcement.update({ where: { id }, data: { status: 'WITHDRAWN', withdrawnAt: now } });
@@ -581,8 +652,8 @@ export class AnnouncementsService {
   }
 
   async remove(id: string, viewer: AnnouncementViewer): Promise<void> {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
     await this.prisma.$transaction(async (transaction) => {
       await transaction.announcement.delete({ where: { id } });
@@ -592,20 +663,13 @@ export class AnnouncementsService {
 
   /** §3.3 "≈ 342 korisnika" before publication. */
   async previewAudience(audience: AnnouncementAudience, viewer: AnnouncementViewer): Promise<{ count: number }> {
-    const capabilities = await this.requireManage(viewer);
+    await this.requireManage(viewer);
     const normalized = {
       roles: unique(audience.roles),
       organizationalUnitIds: unique(audience.organizationalUnitIds),
       groupIds: unique(audience.groupIds),
     };
-    if (capabilities.scopedToUnit) {
-      const units = await this.loadUnits();
-      const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      if (!isAudienceWithinUnit(normalized.organizationalUnitIds, ownPath, paths)) {
-        throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'ownUnit');
-      }
-    }
+    await this.assertManageAudience(viewer, normalized.organizationalUnitIds);
     return { count: await this.countAudience(normalized) };
   }
 
@@ -636,7 +700,7 @@ export class AnnouncementsService {
     await this.requireEnabled();
     const capabilities = await this.capabilities(viewer);
     if (!capabilities.canReadReports) throw new AnnouncementError(announcementErrorCodes.forbidden);
-    const row = await this.loadManaged(id, viewer, !viewer.canManageAll && !viewer.canReadReports);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementReportRead, true);
     if (row.status === 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'draft');
     return row;
   }
