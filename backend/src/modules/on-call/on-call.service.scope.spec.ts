@@ -25,7 +25,7 @@ function createHarness(options: PrismaHarnessOptions = {}) {
       findUnique: jest.fn(async () => options.group ?? null),
     },
     onCallSchedule: {
-      findMany: jest.fn(async (query: { where?: Record<string, unknown> }) => {
+      findMany: jest.fn<Promise<unknown[]>, [{ where?: Record<string, unknown> }]>(async (query) => {
         if (query.where?.isActive === true) return [];
         return [...(options.schedules ?? [])];
       }),
@@ -41,7 +41,9 @@ function createHarness(options: PrismaHarnessOptions = {}) {
     },
     groupMember: { findMany: jest.fn(async () => []) },
     user: { findMany: jest.fn(async () => []) },
-    $transaction: jest.fn(async (operation: (transaction: unknown) => Promise<unknown>) => operation(prisma)),
+    $transaction: jest.fn(async (): Promise<never> => {
+      throw new Error('Unexpected transaction in scoped group access test');
+    }),
   };
   const settings = { getSetting: jest.fn(async () => true) };
   const service = new OnCallService(prisma as unknown as PrismaService, settings as unknown as SettingsService);
@@ -107,7 +109,7 @@ describe('OnCallService scoped group access (BA-on-call-01)', () => {
     const result = await service.overview(scopedViewer(permissionKeys.onCallRead));
 
     expect(result).toMatchObject({ canManage: false });
-    expect(result.groups.map((entry) => entry.groupId)).toEqual(['it']);
+    expect(result.groups.map((entry: { groupId: string }) => entry.groupId)).toEqual(['it']);
     const scheduleQueries = prisma.onCallSchedule.findMany.mock.calls.map(([query]) => query.where);
     expect(scheduleQueries).toEqual(expect.arrayContaining([
       { groupId: { in: ['it', 'it-child'] } },
