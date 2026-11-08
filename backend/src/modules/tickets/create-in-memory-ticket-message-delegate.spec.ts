@@ -21,26 +21,22 @@ describe('in-memory ticket message delegate', () => {
     const first = await delegate.upsert({
       where,
       create: {
-        data: {
-          ticketId: 'ticket-1',
-          type: 'SYSTEM_EVENT',
-          body: 'ticket_reopened',
-          authorUserId: 'actor-1',
-          idempotencyKey: 'reopen:ticket-1:request-1',
-        },
+        ticketId: 'ticket-1',
+        type: 'SYSTEM_EVENT',
+        body: 'ticket_reopened',
+        authorUserId: 'actor-1',
+        idempotencyKey: 'reopen:ticket-1:request-1',
       },
       update: {},
     });
     const replay = await delegate.upsert({
       where,
       create: {
-        data: {
-          ticketId: 'ticket-1',
-          type: 'SYSTEM_EVENT',
-          body: 'duplicate event must not replace the original',
-          authorUserId: 'actor-2',
-          idempotencyKey: 'reopen:ticket-1:request-1',
-        },
+        ticketId: 'ticket-1',
+        type: 'SYSTEM_EVENT',
+        body: 'duplicate event must not replace the original',
+        authorUserId: 'actor-2',
+        idempotencyKey: 'reopen:ticket-1:request-1',
       },
       update: {},
     });

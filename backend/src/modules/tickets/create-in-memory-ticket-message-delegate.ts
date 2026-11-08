@@ -73,7 +73,7 @@ export function createInMemoryTicketMessageDelegate(
         readonly idempotencyKey: string;
       };
     };
-    create: { readonly data: MessageCreateData };
+    create: MessageCreateData;
     update: Partial<Omit<TicketMessageRecord, 'id' | 'createdAt'>>;
   }) => {
     const { ticketId, idempotencyKey } = where.ticketId_idempotencyKey;
@@ -82,7 +82,7 @@ export function createInMemoryTicketMessageDelegate(
         record.ticketId === ticketId && record.idempotencyKey === idempotencyKey,
     );
     if (existing === undefined) {
-      return create(createInput);
+      return create({ data: createInput });
     }
     if (Object.keys(update).length === 0) {
       return existing;
