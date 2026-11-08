@@ -16,7 +16,7 @@ FROM ${image} AS runtime
 WORKDIR /usr/app
 COPY --chown=node:node --from=production-deps /usr/app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /usr/app/dist ./dist
-RUN apk add --no-cache zlib=1.3.2-r1 && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+RUN apk add --no-cache zlib=1.4-r0 && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 RUN mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
 ENV UPLOAD_ROOT=/usr/app/uploads
 STOPSIGNAL SIGTERM
@@ -57,6 +57,15 @@ test("prihvata digest-pinned production-only runtime i oba process servisa", () 
   assert.deepEqual(validateContainerContract(dockerfile, compose), []);
 });
 
+test("odbija poznatu ranjivu zlib verziju", () => {
+  const vulnerable = dockerfile.replace("zlib=1.4-r0", "zlib=1.3.2-r1");
+  assert.ok(
+    validateContainerContract(vulnerable, compose).some((problem) =>
+      problem.includes("sigurnosna zlib verzija nije zaključana"),
+    ),
+  );
+});
+
 test("odbija root runtime i nedostajuće hardening granice", () => {
   const problems = validateContainerContract(
     dockerfile.replace("USER node\nCMD", "USER root\nCMD").replace("STOPSIGNAL SIGTERM\n", ""),
@@ -77,7 +86,7 @@ test("odbija mutable base, install fallback i builder dependencies u runtimeu", 
   const unsafe = dockerfile
     .replace(image, "node:22-alpine")
     .replace("RUN npm ci --include=dev", "RUN npm ci --include=dev || npm install")
-    .replace("zlib=1.3.2-r1", "zlib")
+    .replace("zlib=1.4-r0", "zlib")
     .replace("--from=production-deps /usr/app/node_modules", "--from=builder /usr/app/node_modules");
   const problems = validateContainerContract(unsafe, compose);
   assert.ok(problems.some((problem) => problem.includes("digest-pinned")));

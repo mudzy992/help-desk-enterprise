@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
 import { TicketDetailWorkspace } from "@/components/tickets/ticket-detail-workspace";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
@@ -12,6 +13,7 @@ import type { TicketDetailPageReadyModel } from "@/components/tickets/ticket-det
 const DETAIL_COLUMN_HEIGHT = "xl:h-[calc(100dvh-5.5rem)]";
 
 export function TicketDetailMainSection({ model }: { readonly model: TicketDetailPageReadyModel }) {
+  const { t } = useTranslation();
   const { ticket, actions, detail, context, approvals } = model;
   return (
     <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px] xl:items-start">
@@ -73,7 +75,10 @@ export function TicketDetailMainSection({ model }: { readonly model: TicketDetai
         />
       </div>
       <div
-        className={`min-w-0 space-y-4 xl:sticky xl:top-4 xl:overflow-y-auto xl:pr-1 ${DETAIL_COLUMN_HEIGHT}`}
+        role="region"
+        aria-label={t("tickets.detail.title")}
+        tabIndex={0}
+        className={`min-w-0 space-y-4 xl:sticky xl:top-4 xl:overflow-y-auto xl:pr-1 ${DETAIL_COLUMN_HEIGHT} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70`}
       >
         <TicketDetailSideStack
           sections={model.detailSections}
