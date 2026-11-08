@@ -86,6 +86,21 @@ test("W6.38–W6.40 zatvaraju BA-inbound-email-01/02/03, a BA-04 ostaje P2 otvor
   });
 });
 
+test("W6.46 zatvara samo BA-announcements-03, a BA-04 ostaje otvoren P1", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, severity, status }) => [id, { source, severity, status }]));
+  assert.deepEqual(byId.get("BA-announcements-03"), {
+    source: "28-announcements.md",
+    severity: "P1",
+    status: "zatvoreno (W6.46)",
+  });
+  assert.deepEqual(byId.get("BA-announcements-04"), {
+    source: "28-announcements.md",
+    severity: "P1",
+    status: "otvoreno",
+  });
+});
+
 test("BA-06/07/08/09/13/14/15 closeouti su evidentirani", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));

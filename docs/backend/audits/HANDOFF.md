@@ -15,7 +15,14 @@
 
 ## 2. Stanje implementacije
 
-### W6.45 / `BA-announcements-02` (P1) — finding closeout
+### W6.46 / `BA-announcements-03` (P1) — finding closeout
+
+`BA-announcements-03` zatvoren je na finalnom kod/test SHA [`aa03659`](https://github.com/mudzy992/help-desk-enterprise/commit/aa036595f9ec15bcf1389b98cd48a3d023b1a42f). Publish/reminder in-app fan-out sada prolazi matching audience kroz stabilne keyset stranice od 1.000 korisnika bez ukupnog capa; completion/reminder markeri se claimuju tek nakon prolaza svih stranica. Reminder zadržava acknowledgement filter, a durable per-recipient retry/outbox ostaje zasebni, otvoreni BA-08 scope.
+
+Lokalno su prošli targeted ESLint, `git diff --check` i fokusirani Jest **4 suitea / 23 testa** uz temporary `diagnostics:false`, jer lokalni generated Prisma Client nije dostupan. Prvi CI [`42534858528`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42534858528) na `007dd55` otkrio je TS7022 implicit-any inference u paged query resultu; explicit recipient-row type je dodat u `aa03659`. Finalni CI [`42535212761`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42535212761) je **success** za generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, production-image build/supply chain i CI gate. E2E install/critical, read-only inventory i conditional high/critical image enforcement su `skipped`, ne passed.
+
+Perf nije pokrenut na W6.46 SHA; posljednji Perf [`42530385320`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42530385320) ostaje **failed** `2.123 > 2.1` bez BA-03 atribucije i bez izmijenjenog praga. Nema target-DB upotrebe, migracije, PR-a, mergea ili deploymenta. Val 6 je **50/109 zatvorenih, 59 otvorenih (1 P1 / 41 P2 / 17 P3)**; source/plan **511/181**, globalni registar **521/171**; deset ranijih statusnih razlika ostaje netaknuto. Preostali P1 je `BA-announcements-04`; P2/P3 i BA-15 acceptance ostaju izvan scopea. Detalji: [audit 28, §19](28-announcements.md#19-w646-closeout--ba-announcements-03) / [paket 161](../implementation/161-announcements-03-complete-keyset-fanout.md).
+### Historijski W6.45 / `BA-announcements-02` (P1) — finding closeout
 
 `BA-announcements-02` je zatvoren na finding nivou na kodnom/testanom SHA [`94a7fd9de25ea7882190959ad9e6eadde98785c6`](https://github.com/mudzy992/help-desk-enterprise/commit/94a7fd9de25ea7882190959ad9e6eadde98785c6). `AnnouncementsService` sada gura isti AND audience predicate (roles, home-OU/ancestor OU IDs, groups; prazne dimenzije ostaju globalne, nedostajući viewer scope fail-closed) u active/archive PostgreSQL upite prije capa. Active sortira severity prije `take: 50`; archive zadržava postojeći 90-dnevni prozor i `take: 100`, a active acknowledgement/dismissal uslovi nisu promijenjeni. Dodani su unit regressions i registered PostgreSQL integration spec za foreign-row crowding oba capa.
 
