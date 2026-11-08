@@ -6,15 +6,15 @@
 **Baseline ocjena:** **5,06/10**  
 **Nalazi:** 3 P1, 7 P2, 3 P3
 
-> Baseline opis iz 2026-10-23 je historijski; `BA-inbound-email-01` zatvoren je na finding nivou u W6.38 (§16), a `BA-inbound-email-02` u W6.39 (§17), bez promjene baseline ocjene. Puna acceptance lista iz §15 ostaje pending.
+> Baseline opis iz 2026-10-23 je historijski; `BA-inbound-email-01/02/03` zatvoreni su na finding nivou u W6.38–W6.40 (§16–§18), bez promjene baseline ocjene. Puna acceptance lista iz §15 ostaje pending.
 
 ## 1. Executive summary
 
 `inbound-email` polluje Microsoft Graph ili IMAP mailbox, parsira raw MIME, filtrira bounce/auto-reply, provjerava sendera i autentikaciju, razrješava ticket, kreira reply/reopen/new ticket, prenosi attachment i vodi raw/metadata retention. Temelj je dobar: mailbox/provider dedupe ključ, centralni ticket mutation policy, DMARC/SPF/DKIM gate, signed reply token, anti-loop pravila, 35 MB cap, attachment upload policy, secret reader, RFC 3834 notice i batch raw cleanup.
 
-Baseline je **5,06/10**. Tri P1 nalaza pogađala su delivery correctness, sender trust i privatnost. `BA-inbound-email-01` je naknadno zatvoren za novi recovery path u W6.38 (§16), a `BA-inbound-email-02` za konfigurabilnu authserv-id provjeru u W6.39 (§17). `BA-inbound-email-03` ostaje otvoren: globalni admin status vraća sender adresu, subject, ticket reference i connector error svakom scoped ADMIN assignmentu. Ovi finding closeouti ne predstavljaju punu acceptance potvrdu modula.
+Baseline je **5,06/10**. Tri P1 nalaza pogađala su delivery correctness, sender trust i privatnost. `BA-inbound-email-01` je zatvoren za novi recovery path u W6.38 (§16), `BA-inbound-email-02` za konfigurabilnu authserv-id provjeru u W6.39 (§17), a `BA-inbound-email-03` za globalnu autorizaciju admin statusa u W6.40 (§18). Ovi finding closeouti ne predstavljaju punu acceptance potvrdu modula.
 
-Dodatni baseline rizici su neprovjeren recipient binding signed tokena, skupi test-connection koji preuzima raw poruke, provider ID truncation mismatch, read-before-write Message-ID dedupe, scheduler bez reconciliationa, unbounded metadata delete i slaba lifecycle/E2E matrica. Nema P0. W6.38/W6.39 su zatvorili samo P1 nalaze 01/02 na finding nivou; ostali nalazi i puna §15 acceptance lista ostaju otvoreni/pending.
+Dodatni baseline rizici su neprovjeren recipient binding signed tokena, skupi test-connection koji preuzima raw poruke, provider ID truncation mismatch, read-before-write Message-ID dedupe, scheduler bez reconciliationa, unbounded metadata delete i slaba lifecycle/E2E matrica. Nema P0. W6.38–W6.40 su zatvorili P1 nalaze 01/02/03 samo na finding nivou; nalazi 04–13 i puna §15 acceptance lista ostaju otvoreni/pending.
 
 ## 2. Scope i inventar
 
@@ -69,7 +69,7 @@ Auto-reply/bounce/list detekcija je široka, ali heuristic subject/header filter
 
 ## 7. Admin API i privatnost
 
-Controller zahtijeva ADMIN i `AdminReadOperation`, ali nema global-scope requirement. Status query je globalan i vraća posljednjih 50 redova sa fromAddress, subject, ticket ID/brojem, reasonom i createdAt, plus raw `lastError`. Scoped ADMIN tako vidi foreign OU/service komunikacijsku metapodatkovnu historiju. Potrebno je global ops pravo ili scope-aware query; sender/subject trebaju default redakciju.
+Baseline controller je zahtijevao ADMIN i `AdminReadOperation`, ali nije zahtijevao global scope. Zato je globalni status vraćao posljednjih 50 redova sa fromAddress, subject, ticket ID/brojem, reasonom i createdAt, plus raw `lastError`, i scoped ADMIN je mogao vidjeti foreign OU/service komunikacijske metapodatke. W6.40 dodaje `settings.read` uz ADMIN role preko canonical `RoleGuard`; postojeća scope evaluacija odbija OU- i service-scoped grants na oba endpointa (`status` i `test-connection`), prije ulaska u servis. Globalni ADMIN s `settings.read` zadržava mailbox-wide status i operativne ticket reference, ali servis ni ne bira sender/subject kolone iz recent queryja i vraća samo `[redacted]`; `state.lastError` se mapira na isti marker, a test-connection vraća stabilni `CONNECTION_FAILED` kod umjesto provider exception teksta. Redakcija vrijedi i za sve greške koje UI prikaže. Tako je spriječen scoped pristup i istovremeno implementirana zadana redakcija sendera, subjecta i error detalja bez novog scope-filtera ili permission key.
 
 `test-connection` otvara konektor i poziva `list(10)`. Implementacije `list` preuzimaju raw `$value`/IMAP source, pa read-only test može downloadovati do približno 350 MB, parsiranje nije potrebno, a Graph/IMAP mailbox se nepotrebno opterećuje. Uvesti metadata-only count/probe sa timeoutom i rate limitom/auditom.
 
@@ -98,7 +98,7 @@ npm test -- --runInBand --runTestsByPath $(find src/modules/inbound-email -name 
 
 Rezultat baseline audita bio je **2/2 suitea i 39/39 testova prošlo**. Tada su pokriveni token roundtrip/tamper, target fallback, anti-loop, sender auth parser, reply extraction, sender/domain/rate/access odbijanja, reopen, merged target, ticket create, attachment rejection, MIME parse, configuration secrets i notice headers.
 
-Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authentication-Results chain, token recipient mismatch, scoped admin read, >500 provider ID, duplicate concurrency, raw save/link/delete crash, Graph/IMAP oversized actual response, scheduler loss, metadata batching niti pravi mailbox→ticket E2E. W6.39 je dodao forged-chain negativne testove i coverage za trusted authserv-id/configuration (detalji §17); stvarna Graph/Exchange/IMAP receiver sanitizacija i mailbox→ticket E2E i dalje nisu potvrđeni.
+Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authentication-Results chain, token recipient mismatch, scoped admin read, >500 provider ID, duplicate concurrency, raw save/link/delete crash, Graph/IMAP oversized actual response, scheduler loss, metadata batching niti pravi mailbox→ticket E2E. W6.38–W6.40 su dodali recovery, forged-chain/trusted-authserv-id i scoped-admin authorization testove (§16–§18); stvarna Graph/Exchange/IMAP receiver sanitizacija i mailbox→ticket E2E i dalje nisu potvrđeni.
 
 ## 11. Registar nalaza
 
@@ -106,7 +106,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | ------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
 | BA-inbound-email-01 | P1       | PROCESSING crash recovery odbacuje poruku bez sigurnog replaya/reconciliationa            | zatvoreno |
 | BA-inbound-email-02 | P1       | Sender auth vjeruje neprovjerenom prvom Authentication-Results/ARC headeru                | zatvoreno |
-| BA-inbound-email-03 | P1       | Scoped ADMIN čita globalne sender/subject/ticket/error metapodatke                         | otvoreno |
+| BA-inbound-email-03 | P1       | Scoped ADMIN čita globalne sender/subject/ticket/error metapodatke                         | zatvoreno |
 | BA-inbound-email-04 | P2       | Signed token recipientId se ne poredi sa stvarnim senderom                                | otvoreno |
 | BA-inbound-email-05 | P2       | Test-connection preuzima do deset punih raw poruka                                        | otvoreno |
 | BA-inbound-email-06 | P2       | Provider ID lookup/store truncation nije ista i može trajno preskočiti poruku              | otvoreno |
@@ -122,7 +122,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 
 - **01:** inbound attempt phases + idempotency key na ticket writeu; stale PROCESSING reconciler sigurno nastavlja ili utvrđuje već završen rezultat.
 - **02:** vjerovati samo konfiguriranom authserv-id/receiver-added headeru; dokumentovati Exchange/Graph/IMAP trust boundary i negativni forged-chain test.
-- **03:** global ops permission ili scope metadata/filter prije paginationa; redigovati sender/subject/error po defaultu.
+- **03:** global ops permission ili scope metadata/filter prije paginationa; W6.40 zahtijeva unscoped `settings.read` za oba mailbox-wide admin endpointa i rediguje sender/subject/error detalje u defaultnom responseu.
 - **04:** porediti token recipient sa senderom ili eksplicitno ukloniti binding iz token contracta.
 - **05:** metadata-only no-body probe, mali timeout, rate limit i audit.
 - **06–07:** hash normalizovanog provider ID-a i DB unique mailbox+Message-ID gdje postoji.
@@ -188,7 +188,7 @@ Oldest inbox/PROCESSING age, reject/failure ratio, move/raw orphan, scheduler pr
 9. Errori su stabilni i redigovani.
 10. Direktni, integration, crash i E2E testovi prolaze.
 
-Inbound email ima razumno širok funkcionalni i testni temelj, ali email kao write kanal zahtijeva dokazivu sender trust granicu i crash-safe poslovnu semantiku. Baseline ocjena ostaje **5,06/10**; W6.38/6.39 finding closeouti za `BA-inbound-email-01/02` ne znače da je puna §15/module acceptance ostvarena. `BA-inbound-email-03` i ostali nalazi ostaju otvoreni.
+Inbound email ima razumno širok funkcionalni i testni temelj, ali email kao write kanal zahtijeva dokazivu sender trust granicu i crash-safe poslovnu semantiku. Baseline ocjena ostaje **5,06/10**; W6.38–W6.40 finding closeouti za `BA-inbound-email-01/02/03` ne znače da je puna §15/module acceptance ostvarena. `BA-inbound-email-04`–`13` ostaju otvoreni.
 
 
 ## 16. W6.38 closeout — `BA-inbound-email-01`
@@ -215,4 +215,18 @@ Implementacijski commit [`199ca64`](https://github.com/mudzy992/help-desk-enterp
 
 Implementacija uvodi `private.inbound.trustedAuthservId` s praznim defaultom. Kada je `private.inbound.requireAuthPass` uključen, nedostajući/neispravan authserv-id zaustavlja inbound obradu fail-closed. Checker razmatra samo najviše `Authentication-Results` header i zahtijeva tačno poklapanje normalizovanog authserv-id-a; forged niži headeri ne mogu nadjačati prvi. ARC i `X-MS-Exchange-Organization-AuthAs` nisu dokaz. Dodani su negativni forged-chain testovi, configuration/spec testovi i frontend setting-registry coverage.
 
-Ovo zatvara kodni nalaz, ali `authserv-id` u zaglavlju sam po sebi nije kriptografski dokaz porijekla. Operator mora potvrditi da stvarna Exchange Online/Graph ili IMAP/MX putanja uklanja nepouzdane `Authentication-Results` instance ili pouzdano dodaje svoj rezultat ispred njih, te konfigurirati tačan ID koji checker vidi. Graph/Exchange mailbox ili IMAP receiver konfiguracija, MX/header sanitizacija i runtime ponašanje nisu provjereni u target okruženju. Nije korištena target baza/mailbox, pokretana migracija, PR, merge ili deployment. Puna §15/module acceptance ostaje pending.
+Ovo zatvara kodni nalaz, ali `authserv-id` u zaglavlju sam po sebi nije kriptografski dokaz porijekla. Operator mora potvrditi da stvarna Exchange Online/Graph ili IMAP/MX putanja uklanja nepouzdane `Authentication-Results` instance ili pouzdano dodaje svoj rezultat ispred njih, te konfigurirati tačan ID koji checker vidi. Graph/Exchange mailbox ili IMAP receiver konfiguracija, MX/header sanitizacija i runtime ponašanje nisu provjereni u target okruženju. Nije korištena target baza/mailbox, pokretana migracija, PR, merge ili deployment. Puna §15/module acceptance ostaje pending; u trenutku W6.39 `BA-inbound-email-03` je i dalje bio otvoren.
+
+## 18. W6.40 closeout — `BA-inbound-email-03`
+
+**Status:** zatvoreno na finding nivou: scoped ADMIN pristup je odbijen, a sender/subject/error detalji su redigovani i za dopuštenog globalnog ADMIN-a. Puna §15/module acceptance ostaje pending.
+
+Controller dodaje `@RequirePermissions(permissionKeys.settingsRead)` uz postojeće ADMIN role i canonical `RoleGuard`. `settings.read` nije scope-agnostic: OU- ili service-scoped assignment ne može zadovoljiti mailbox-wide zahtjev i dobija `403` prije poziva admin servisa. Pravilo važi za oba endpointa: `GET /admin/inbound-email/status` i `POST /admin/inbound-email/test-connection`. Globalni ADMIN sa `settings.read` zadržava mailbox status, counters i ticket reference; nije dodana permission key, schema ni migracija.
+
+Defaultna redakcija je server-side. Recent status query više ne bira `fromAddress` ili `subject`, a response šalje samo `[redacted]` oznaku. Sačuvani `state.lastError` također se mapira na `[redacted]`; connection test vraća stabilni `CONNECTION_FAILED` kod umjesto exception/provider teksta. UI prikazuje lokalizovanu redaction oznaku i generičku grešku, ne raw vrijednosti ni iz API-ja ni iz client-side catch grana. Message bodies se i dalje ne vraćaju.
+
+`inbound-email-admin.controller.authorization.spec.ts` pokriva guard wiring, scoped deny na oba endpointa, global ADMIN allow i role/permission deny. `inbound-email-admin.service.spec.ts` dokazuje da status ne vraća sender/subject/stored error i da connection-test odgovor ne sadrži provider exception detalje; test provjerava i da recent query uopće ne selektuje sender/subject. Lokalno su ciljana dva backend suitea prošla **6/6** uz isključen ts-jest diagnostics zbog nedostajućeg generisanog Prisma clienta; frontend ESLint, i18n paritet i TypeScript build check prošli su. Finalni CI je generisao Prisma client i prošao standardni backend build/full tests.
+
+Finalni SHA [`8c0ba54`](https://github.com/mudzy992/help-desk-enterprise/commit/8c0ba54a1718c5217db1694a366af8f05adbed31) prošao je CI [`42509394030`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42509394030) (**success**): backend build/full tests, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain i CI gate su passed. Read-only inventory, E2E install wizard i E2E critical flows bili su `skipped`, ne passed; conditional zero-high/critical image-enforcement step je također `skipped`. Nije korištena target baza/mailbox, pokretana migracija, PR, merge ili deployment.
+
+Ovim je `BA-inbound-email-03` zatvoren za scope prekoračaj i defaultni sender/subject/error redaction. Redakcija ne skriva globalne mailbox counters ni ticket reference; to je namjerna administratorska funkcionalnost. Kriterij 3 iz §15 ima kodni/guard i response-test dokaz, ali ponašanje nije provjereno na target deploymentu. `BA-inbound-email-01` legacy attempts i `BA-inbound-email-02` receiver/authserv-id trust i dalje nisu operativno potvrđeni; puna §15/module acceptance ostaje pending. Paketni zapis: [W6.40 / paket 155](../implementation/155-inbound-email-03-global-admin-status-access.md).
