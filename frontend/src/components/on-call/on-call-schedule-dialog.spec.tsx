@@ -60,7 +60,12 @@ function renderDialog(currentDetail: OnCallGroupDetail = detail) {
   const onOpenChange = vi.fn();
   const onSaved = vi.fn();
   render(
-    <OnCallScheduleDialog open onOpenChange={onOpenChange} detail={currentDetail} onSaved={onSaved} />,
+    <OnCallScheduleDialog
+      open
+      onOpenChange={onOpenChange}
+      detail={currentDetail}
+      onSaved={onSaved}
+    />,
   );
   return { onOpenChange, onSaved };
 }
@@ -137,7 +142,9 @@ describe("OnCallScheduleDialog", () => {
     fillReason("replace the rotation");
     fireEvent.click(screen.getByRole("button", { name: "onCall.schedule.save" }));
 
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("onCall.errors.scheduleConflict"));
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toBe("onCall.errors.scheduleConflict"),
+    );
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
   });
