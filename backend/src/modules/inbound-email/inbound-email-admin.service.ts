@@ -11,6 +11,10 @@ import {
 import { createInboundMailbox } from './mailbox/create-inbound-mailbox';
 import type { InboundMailboxSession } from './mailbox/inbound-mailbox';
 
+export const inboundEmailAdminRedactedValue = '[redacted]' as const;
+export const inboundEmailAdminConnectionFailureCode =
+  'CONNECTION_FAILED' as const;
+
 export type InboundEmailStatusResponse = {
   readonly enabled: boolean;
   readonly provider: string;
@@ -22,26 +26,43 @@ export type InboundEmailStatusResponse = {
   readonly state: {
     readonly lastRunAt: string | null;
     readonly lastSuccessAt: string | null;
-    readonly lastError: string | null;
+    readonly lastError: typeof inboundEmailAdminRedactedValue | null;
     readonly lastErrorAt: string | null;
     readonly consecutiveFails: number;
   } | null;
-  readonly last24h: { readonly processed: number; readonly rejected: number; readonly ignored: number; readonly failed: number };
+  readonly last24h: {
+    readonly processed: number;
+    readonly rejected: number;
+    readonly ignored: number;
+    readonly failed: number;
+  };
   readonly recent: readonly {
     readonly id: string;
     readonly status: string;
     readonly reason: string | null;
-    readonly fromAddress: string | null;
-    readonly subject: string;
+    readonly fromAddress: typeof inboundEmailAdminRedactedValue;
+    readonly subject: typeof inboundEmailAdminRedactedValue;
     readonly ticketId: string | null;
     readonly ticketNumber: string | null;
     readonly createdAt: string;
   }[];
 };
 
+export type InboundEmailConnectionTestResponse =
+  | {
+      readonly ok: true;
+      readonly inboxCount: number;
+      readonly problems: readonly string[];
+    }
+  | {
+      readonly ok: false;
+      readonly errorCode?: typeof inboundEmailAdminConnectionFailureCode;
+      readonly problems: readonly string[];
+    };
+
 const recentLimit = 50;
 
-/** Paket 2.3 (R13): read-only status for admins, plus a connection test. */
+/** Paket 2.3 (R13): global-admin status with default sensitive-detail redaction. */
 @Injectable()
 export class InboundEmailAdminService {
   constructor(
@@ -56,20 +77,42 @@ export class InboundEmailAdminService {
     const since = new Date(now.getTime() - 86_400_000);
     const [state, grouped, recent] = await Promise.all([
       this.prisma.inboundMailboxState.findUnique({ where: { mailboxKey } }),
-      this.prisma.inboundEmail.groupBy({ by: ['status'], where: { createdAt: { gte: since } }, _count: { _all: true } }),
+      this.prisma.inboundEmail.groupBy({
+        by: ['status'],
+        where: { createdAt: { gte: since } },
+        _count: { _all: true },
+      }),
       this.prisma.inboundEmail.findMany({
         orderBy: { createdAt: 'desc' },
         take: recentLimit,
-        select: { id: true, status: true, reason: true, fromAddress: true, subject: true, ticketId: true, createdAt: true },
+        select: {
+          id: true,
+          status: true,
+          reason: true,
+          ticketId: true,
+          createdAt: true,
+        },
       }),
     ]);
-    const ticketIds = [...new Set(recent.map((row) => row.ticketId).filter((id): id is string => id !== null))];
+    const ticketIds = [
+      ...new Set(
+        recent
+          .map((row) => row.ticketId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
     const tickets =
       ticketIds.length === 0
         ? []
-        : await this.prisma.ticket.findMany({ where: { id: { in: ticketIds } }, select: { id: true, ticketNumber: true } });
-    const numbers = new Map(tickets.map((ticket) => [ticket.id, ticket.ticketNumber]));
-    const count = (status: string) => grouped.find((row) => row.status === status)?._count._all ?? 0;
+        : await this.prisma.ticket.findMany({
+            where: { id: { in: ticketIds } },
+            select: { id: true, ticketNumber: true },
+          });
+    const numbers = new Map(
+      tickets.map((ticket) => [ticket.id, ticket.ticketNumber]),
+    );
+    const count = (status: string) =>
+      grouped.find((row) => row.status === status)?._count._all ?? 0;
     return {
       enabled: configuration.enabled,
       provider: configuration.provider,
@@ -83,25 +126,34 @@ export class InboundEmailAdminService {
           : {
               lastRunAt: state.lastRunAt?.toISOString() ?? null,
               lastSuccessAt: state.lastSuccessAt?.toISOString() ?? null,
-              lastError: state.lastError,
+              lastError:
+                state.lastError === null
+                  ? null
+                  : inboundEmailAdminRedactedValue,
               lastErrorAt: state.lastErrorAt?.toISOString() ?? null,
               consecutiveFails: state.consecutiveFails,
             },
-      last24h: { processed: count('PROCESSED'), rejected: count('REJECTED'), ignored: count('IGNORED'), failed: count('FAILED') },
+      last24h: {
+        processed: count('PROCESSED'),
+        rejected: count('REJECTED'),
+        ignored: count('IGNORED'),
+        failed: count('FAILED'),
+      },
       recent: recent.map((row) => ({
         id: row.id,
         status: row.status,
         reason: row.reason,
-        fromAddress: row.fromAddress,
-        subject: row.subject,
+        fromAddress: inboundEmailAdminRedactedValue,
+        subject: inboundEmailAdminRedactedValue,
         ticketId: row.ticketId,
-        ticketNumber: row.ticketId === null ? null : (numbers.get(row.ticketId) ?? null),
+        ticketNumber:
+          row.ticketId === null ? null : (numbers.get(row.ticketId) ?? null),
         createdAt: row.createdAt.toISOString(),
       })),
     };
   }
 
-  async testConnection(): Promise<{ readonly ok: boolean; readonly inboxCount?: number; readonly error?: string; readonly problems: readonly string[] }> {
+  async testConnection(): Promise<InboundEmailConnectionTestResponse> {
     const configuration = await loadInboundEmailConfiguration(this.settings);
     const problems = inboundConfigurationProblems(configuration);
     if (problems.length > 0) return { ok: false, problems };
@@ -110,8 +162,12 @@ export class InboundEmailAdminService {
       session = await createInboundMailbox(configuration).open();
       const items = await session.list(10);
       return { ok: true, inboxCount: items.length, problems };
-    } catch (error) {
-      return { ok: false, error: (error instanceof Error ? error.message : String(error)).slice(0, 300), problems };
+    } catch {
+      return {
+        ok: false,
+        errorCode: inboundEmailAdminConnectionFailureCode,
+        problems,
+      };
     } finally {
       await session?.close().catch(() => undefined);
     }

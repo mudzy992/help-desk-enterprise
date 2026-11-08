@@ -22,7 +22,8 @@ import {
 
 /**
  * Paket 2.3 (R13): "Inbound e-mail" admin page. Mailbox-wide status and logs
- * require an unscoped `settings.read` grant; message bodies are never returned.
+ * require an unscoped `settings.read` grant. Sender, subject and error details are
+ * redacted by default, and message bodies are never returned.
  */
 @Controller('admin/inbound-email')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)

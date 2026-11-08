@@ -2990,7 +2990,10 @@
       "lastSuccess": "Zadnja uspješna provjera",
       "last24h": "Zadnja 24 h",
       "counts": "{{processed}} obrađeno · {{rejected}} odbijeno · {{ignored}} ignorisano",
-      "lastError": "Zadnja greška: {{error}}",
+      "redacted": "Redigovano",
+      "errorDetailsRedacted": "Detalji greške su redigovani radi privatnosti.",
+      "connectionFailed": "Test konekcije nije uspio. Detalji greške su redigovani radi privatnosti.",
+      "statusUnavailable": "Stanje dolazne pošte nije moguće učitati. Detalji greške su redigovani radi privatnosti.",
       "problems": {
         "ADDRESS_MISSING": "Adresa sandučića nije postavljena.",
         "ENTRA_APP_MISSING": "Nedostaju podaci Entra aplikacije (tenant, client ID, tajna).",
@@ -3008,7 +3011,7 @@
       "openLog": "Dnevnik",
       "refresh": "Osvježi",
       "logTitle": "Dnevnik dolazne pošte",
-      "logSubtitle": "Zadnjih 50 poruka. Tijelo poruke se ne prikazuje.",
+      "logSubtitle": "Zadnjih 50 poruka. Pošiljalac, naslov i detalji greške su redigovani; tijelo poruke se ne prikazuje.",
       "logEmpty": "Još nema primljenih poruka.",
       "ticket": "tiket",
       "statuses": {

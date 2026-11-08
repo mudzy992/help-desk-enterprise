@@ -2978,7 +2978,10 @@
       "lastSuccess": "Last successful check",
       "last24h": "Last 24 h",
       "counts": "{{processed}} processed · {{rejected}} rejected · {{ignored}} ignored",
-      "lastError": "Last error: {{error}}",
+      "redacted": "Redacted",
+      "errorDetailsRedacted": "Error details are redacted for privacy.",
+      "connectionFailed": "Connection test failed. Error details are redacted for privacy.",
+      "statusUnavailable": "Inbound e-mail status could not be loaded. Error details are redacted for privacy.",
       "problems": {
         "ADDRESS_MISSING": "The mailbox address is not set.",
         "ENTRA_APP_MISSING": "Entra application details are missing (tenant, client ID, secret).",
@@ -2996,7 +2999,7 @@
       "openLog": "Log",
       "refresh": "Refresh",
       "logTitle": "Inbound e-mail log",
-      "logSubtitle": "Last 50 messages. Message bodies are never shown.",
+      "logSubtitle": "Last 50 messages. Sender, subject and error details are redacted; message bodies are never shown.",
       "logEmpty": "No messages received yet.",
       "ticket": "ticket",
       "statuses": {
