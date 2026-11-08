@@ -1,6 +1,6 @@
 # Backend audit 21 — `on-call`
 
-**Status:** audit završen; `BA-on-call-01` (W6.41) i `BA-on-call-02` (W6.42) zatvoreni, `BA-on-call-03` otvoren<br>
+**Status:** audit završen; `BA-on-call-01` (W6.41), `BA-on-call-02` (W6.42) i `BA-on-call-03` (W6.43) zatvoreni<br>
 **Datum:** 2026-10-23  
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,84/10**  
@@ -10,9 +10,9 @@
 
 `on-call` pruža grupne rotacije, timezone/DST-aware smjene, overrideove, bilateralne swap zahtjeve, javni personalni iCal feed, reminder/gap sweep, SLA recipient i outside-hours auto-assignment integraciju. Temelj je dobar: centralizovan resolver, civil-date rotacija, DST-aware instanti, serializable override insert, transactional audit, kriptografski iCal token hash, dedupe notification ključevi i ograničeni range/članovi.
 
-Baseline je **4,84/10**. U baselineu su tri P1 nalaza pogađala scope i integritet rasporeda. `onCallViewer` je svodio permisiju na boolean i odbacivao assignment scope, pa je scoped reader/manager mogao vidjeti i mijenjati sve grupe; ovaj P1 je zatvoren u W6.41 (vidi §16). Swap request više ne prihvata interval izvan requesterove stvarne rotation smjene: BA-on-call-02 je zatvoren u W6.42 (vidi §17). Concurrent schedule save još nema lock/version precondition: paralelni upsert + delete/create članova može proizvesti header jednog zahtjeva i redoslijed ili praznu listu drugog.
+Baseline je **4,84/10**. U baselineu su tri P1 nalaza pogađala scope i integritet rasporeda. `onCallViewer` je svodio permisiju na boolean i odbacivao assignment scope, pa je scoped reader/manager mogao vidjeti i mijenjati sve grupe; ovaj P1 je zatvoren u W6.41 (vidi §16). Swap request više ne prihvata interval izvan requesterove stvarne rotation smjene: BA-on-call-02 je zatvoren u W6.42 (vidi §17). Concurrent schedule save je zatvoren u W6.43: `updatedAt` revision token i conditional CAS odbijaju stale writer, a header, member replacement i audit ostaju u istoj transakciji.
 
-Dodatni otvoreni rizici su stale eligibility pri acceptu, foreign owner, iCal koji nadživljava permission revoke, best-effort reminder bez recoveryja, scheduler bez reconciliationa, silent retention failure, hard truncation i nedovoljna integracijska/concurrency pokrivenost. Nema P0. Izvorni 4,84/10 je baseline prije implementacija; `BA-on-call-02` zatvoren je u W6.42, `BA-on-call-03` i svi P2/P3 ostaju otvoreni.
+Dodatni otvoreni rizici su stale eligibility pri acceptu, foreign owner, iCal koji nadživljava permission revoke, best-effort reminder bez recoveryja, scheduler bez reconciliationa, silent retention failure, hard truncation i nedovoljna integracijska/concurrency pokrivenost. Nema P0. Izvorni 4,84/10 je baseline prije implementacija; `BA-on-call-02` zatvoren je u W6.42, `BA-on-call-03` u W6.43, a on-call P2/P3 ostaju otvoreni.
 
 ## 2. Scope i inventar
 
@@ -119,6 +119,7 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 14. Outside-hours assignment poštuje SLA business calendar.
 15. Pure resolver/sweep/iCal testovi su zeleni.
 16. W6.42: swap request prihvata samo potpuno requester-rotation-pokriven interval bez overlap overridea.
+17. W6.43: schedule update traži current `updatedAt` revision; concurrent loser dobija 409, a pobjednički header/member set/audit commitaju se zajedno.
 
 ## 12. Registar nalaza
 
@@ -126,7 +127,7 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 | ------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
 | BA-on-call-01 | P1       | Scoped read/manage assignment daje globalni read i write nad svim grupama                 | zatvoreno (W6.41) |
 | BA-on-call-02 | P1       | Swap interval nije vezan za requesterovu smjenu i može istisnuti treću osobu              | zatvoreno (W6.42) |
-| BA-on-call-03 | P1       | Concurrent schedule save može korumpirati header/member kombinaciju                       | otvoreno |
+| BA-on-call-03 | P1       | Concurrent schedule save može korumpirati header/member kombinaciju                       | zatvoreno (W6.43) |
 | BA-on-call-04 | P2       | Bivši active član grupe ostaje resolver/auto-assignment/SLA/quiet-hours kandidat          | otvoreno |
 | BA-on-call-05 | P2       | Swap accept ne revalidira colleague membership/availability ni schedule verziju           | otvoreno |
 | BA-on-call-06 | P2       | Owner može biti foreign staff i primati gap informacije                                   | otvoreno |
@@ -164,7 +165,7 @@ Scoped foreign read/write; parallel schedule save; requester-off-shift swap; sta
 
 ### Faza 1 — P1 scope i integritet
 
-`BA-on-call-01` je zatvoren u W6.41 uz scope-aware viewer/group query i direct-ID OU provjere; `BA-on-call-02` je zatvoren u W6.42 uz kontinuirani requester-rotation interval za swap. `BA-on-call-03` ostaje otvoren: schedule save i dalje treba row lock/version/If-Match i atomarnu zaštitu member replacementa.
+`BA-on-call-01` je zatvoren u W6.41 uz scope-aware viewer/group query i direct-ID OU provjere; `BA-on-call-02` je zatvoren u W6.42 uz kontinuirani requester-rotation interval za swap; `BA-on-call-03` je zatvoren u W6.43 uz `updatedAt` revision CAS, stale-write conflict i atomarnu member replacement/audit transakciju.
 
 ### Faza 2 — membership i swap lifecycle
 
@@ -186,7 +187,7 @@ Sva 3 direktna speca, PostgreSQL concurrency/integration, tickets/SLA/notificati
 
 1. Scoped actor vidi/mijenja samo dozvoljene grupe — `BA-on-call-01`, zatvoreno u W6.41.
 2. Swap može pokriti samo stvarnu requesterovu smjenu i ne može istisnuti treću osobu — `BA-on-call-02`, zatvoreno u W6.42.
-3. Jedan concurrent save dobija conflict; finalni header i članovi pripadaju jednom zahtjevu — `BA-on-call-03`, otvoreno.
+3. Jedan concurrent save dobija conflict; finalni header i članovi pripadaju jednom zahtjevu — `BA-on-call-03`, zatvoreno u W6.43.
 4. Removed/deactivated user nije resolver ni auto-assignment kandidat.
 5. Accept ponovo provjerava membership, availability i schedule version.
 6. Owner je legitimno vezan za grupu/scope.
@@ -224,3 +225,15 @@ Nije korištena target baza, nije dodana ni pokrenuta migracija, niti je otvoren
 Lokalno je prošao ciljani on-call run **7/7 suitea, 37/37 testova** uz ts-jest diagnostics disabled zbog nedostajućeg lokalnog generated Prisma clienta, backend ESLint i targeted frontend Vitest **2/2**, frontend ESLint i i18n check. Finalni commit [`31cd058`](https://github.com/mudzy992/help-desk-enterprise/commit/31cd0582469ce2c904864bfcde42da7c031cbf90) prošao je push-triggered CI [`42518032045`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42518032045) (**success**): generated-Prisma backend build/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain job i CI gate. Read-only inventory, E2E install/critical i conditional image-vulnerability enforcement bili su `skipped`; nisu pokretani ručno.
 
 Val 6 nakon W6.42 je **46/109 zatvorenih, 63 otvorena (5 P1 / 41 P2 / 17 P3)**; izvorni audit/generisani plan **515/177**, globalni registar **525/167**. Deset ranijih statusnih razlika ostaje netaknuto. `BA-on-call-03` ostaje P1; `BA-on-call-05` i svi ostali P2/P3, kao i BA-15 full critical-flow acceptance, nisu dio ovog closeouta. Nije dodana migracija, korištena ciljna baza, otvoren PR, izvršen merge ili deployment.
+
+## 18. W6.43 closeout — BA-on-call-03
+
+`BA-on-call-03` zatvoren je na finding nivou nakon što schedule save zahtijeva revision rasporeda i atomski veže scalar header, rotation member replacement i audit zapis.
+
+- Detail vraća postojeći `updatedAt`; editor šalje ga nazad kao `expectedUpdatedAt`. Update odbija missing/stale revision stabilnim `ON_CALL_SCHEDULE_CONFLICT` / HTTP 409. Za dva paralelna updatea samo jedan conditional `updateMany({ where: { groupId, updatedAt } })` može dobiti CAS; revision se pomjera monotono.
+- Header CAS, brisanje/ponovni upis članova i audit ostaju u jednoj transakciji. Writer koji izgubi CAS ne mijenja članove i ne stvara audit. Prva-kreacija koristi unique `groupId`; P2002 race se vraća kao isti 409.
+- Nije uvedena Prisma schema promjena ni migracija. `updatedAt` već je postojao.
+
+Lokalno: targeted on-call suite **8/8, 40/40** uz ts-jest diagnostics disabled zbog nedostajućeg lokalnog generated Prisma clienta; backend ESLint, frontend TypeScript check/ESLint/Prettier, targeted Vitest **22/22** i i18n check prošli. Prvi CI [`42522111519`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42522111519) pao je na frontend Prettier provjeri; format je ispravljen u [`49f2b91`](https://github.com/mudzy992/help-desk-enterprise/commit/49f2b91e0f910cd070835e635388be649b064a5c). Finalni SHA `49f2b91` prošao je push-triggered CI [`42522885254`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42522885254) (**success**) za generated-Prisma backend build/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain job i CI gate. Read-only inventory, E2E install/critical i conditional high/critical image enforcement bili su `skipped`, ne `passed`.
+
+Val 6 nakon W6.43 je **47/109 zatvorenih, 62 otvorena (4 P1 / 41 P2 / 17 P3)**; izvorni audit/generisani plan **514/178**, globalni registar **524/168**. Deset ranijih statusnih razlika ostaje netaknuto. Preostali Val 6 P1 su `BA-announcements-01/02/03/04`; `BA-on-call-04`–`14` (P2/P3) i BA-15 full critical-flow acceptance ostaju otvoreni/pending i izvan ovog closeouta. CI nije koristio ciljnu bazu; nije otvoren PR, izvršen merge ili deployment.
