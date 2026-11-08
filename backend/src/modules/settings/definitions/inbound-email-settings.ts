@@ -2,6 +2,7 @@ import { defineSecretSetting, definePrivateSetting } from '../registry/define-se
 import { settingCategoryIds } from '../setting-categories';
 import { settingKeys } from '../setting-keys';
 import { SettingsError } from '../settings.error';
+import { normalizeAuthservId } from '../../inbound-email/normalize-authserv-id';
 import type { SettingDefinition, SettingValue } from '../settings.types';
 
 /** Paket 2.3 (§6): inbound mailbox defaults and ranges. */
@@ -15,6 +16,7 @@ export const inboundEmailSettingDefaults = {
   metadataRetentionDays: { min: 30, max: 1095, default: 180 },
   maxPerSenderPerHour: { min: 1, max: 500, default: 20 },
   maxMessagesPerRun: { min: 1, max: 500, default: 50 },
+  trustedAuthservId: '',
 } as const;
 
 export const inboundProviders = ['graph', 'imap'] as const;
@@ -42,6 +44,12 @@ function folderPath(label: string) {
 function optionalEmail(value: SettingValue): void {
   if (typeof value !== 'string' || (value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))) {
     throw new SettingsError('Inbound mailbox address must be an e-mail address');
+  }
+}
+
+function optionalTrustedAuthservId(value: SettingValue): void {
+  if (typeof value !== 'string' || (value.trim().length > 0 && normalizeAuthservId(value) === null)) {
+    throw new SettingsError('Trusted authserv-id must be one DNS-style host name without a wildcard');
   }
 }
 
@@ -178,6 +186,16 @@ export const inboundEmailSettings: readonly SettingDefinition[] = [
     description: 'Accept only e-mails that passed DMARC, or SPF and DKIM (protection against forged senders)',
     isRequired: true,
     defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateInboundTrustedAuthservId,
+    categoryId: category,
+    valueType: 'string',
+    description:
+      'Exact authserv-id of the receiving mail server; required while sender authentication is enforced. The receiving server must remove sender-supplied Authentication-Results/ARC headers or prepend its own trusted Authentication-Results header.',
+    isRequired: false,
+    defaultValue: d.trustedAuthservId,
+    assertValue: optionalTrustedAuthservId,
   }),
   definePrivateSetting({
     key: settingKeys.privateInboundCreateTickets,

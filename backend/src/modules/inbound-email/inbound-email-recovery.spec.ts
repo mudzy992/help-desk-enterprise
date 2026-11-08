@@ -212,6 +212,7 @@ describe('InboundEmailService crash recovery', () => {
       address: 'helpdesk@example.test',
       rawRetentionDays: 0,
       requireAuthPass: true,
+      trustedAuthservId: 'mx.example.test',
       maxPerSenderPerHour: 20,
       createTickets: false,
       defaultServiceId: 'service-01',

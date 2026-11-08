@@ -18,5 +18,19 @@ describe('loadInboundEmailConfiguration', () => {
     const configuration = await loadInboundEmailConfiguration(settings);
     expect(configuration.imap.password).toBe('abcdabcdabcdabcd');
     expect(configuration.graph.clientSecret).toBe('graph-secret');
+    expect(configuration.trustedAuthservId).toBe('');
+  });
+
+  it('loads the configured receiving authserv-id as a non-secret setting', async () => {
+    const settings = {
+      getSetting: jest.fn(async (key: string) => {
+        if (key === settingKeys.privateInboundProvider) return 'imap';
+        if (key === settingKeys.privateInboundTrustedAuthservId) return 'mx.example.com';
+        return undefined;
+      }),
+      getSecretForInternalUse: jest.fn(async () => undefined),
+    } as unknown as SettingsService;
+    const configuration = await loadInboundEmailConfiguration(settings);
+    expect(configuration.trustedAuthservId).toBe('mx.example.com');
   });
 });

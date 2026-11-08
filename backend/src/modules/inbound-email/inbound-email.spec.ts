@@ -68,6 +68,7 @@ const options: InboundProcessingOptions = {
   ownAddresses: ['helpdesk@example.com'],
   replyTokenSecret: secret,
   requireAuthPass: true,
+  trustedAuthservId: 'mx.example.com',
   recipientPolicy: { internalOnly: true, internalDomains: ['example.com'], allowedExternalDomains: [], allowedExternalEmails: [] },
   maxPerSenderPerHour: 20,
   createTickets: false,
@@ -119,12 +120,50 @@ describe('Paket 2.3 — anti-loop and sender authentication', () => {
     expect(detectAutoReply(message(), ['helpdesk@example.com'])).toBeNull();
   });
 
-  it('reads DMARC / SPF+DKIM from the topmost Authentication-Results', () => {
-    expect(checkSenderAuthentication(message())).toBe('pass');
-    expect(checkSenderAuthentication(message({ headerList: [['authentication-results', ['x; spf=pass; dkim=pass']]] }))).toBe('pass');
-    expect(checkSenderAuthentication(message({ headerList: [['authentication-results', ['x; spf=fail; dmarc=fail']]] }))).toBe('fail');
-    expect(checkSenderAuthentication(message({ headerList: [] }))).toBe('none');
-    expect(checkSenderAuthentication(message({ headerList: [['x-ms-exchange-organization-authas', ['Internal']]] }))).toBe('pass');
+  it('requires the configured authserv-id on the first Authentication-Results header', () => {
+    expect(checkSenderAuthentication(message(), 'mx.example.com')).toBe('pass');
+    expect(checkSenderAuthentication(message(), '')).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['authentication-results', ['MX.EXAMPLE.COM. 1; spf=pass; dkim=pass']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('pass');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['authentication-results', ['mx.example.com; spf=fail; dmarc=fail']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('fail');
+    expect(checkSenderAuthentication(message({ headerList: [] }), 'mx.example.com')).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['authentication-results', ['mx.example.com.attacker.test; dmarc=pass']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({
+          headerList: [
+            ['authentication-results', ['attacker.example; dmarc=pass', 'mx.example.com; dmarc=pass']],
+          ],
+        }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['arc-authentication-results', ['mx.example.com; dmarc=pass']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['x-ms-exchange-organization-authas', ['Internal']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
   });
 });
 
@@ -205,7 +244,14 @@ describe('Paket 2.3 — processInboundMessage', () => {
     ['unknown sender', { findSenderByEmail: async () => null }, {}, {}, 'UNKNOWN_SENDER'],
     ['inactive sender', { findSenderByEmail: async () => ({ id: 'u', email: 'ana@example.com', isActive: false }) }, {}, {}, 'SENDER_INACTIVE'],
     ['external domain', {}, {}, { fromAddress: 'eve@gmail.com' }, 'SENDER_DOMAIN_NOT_ALLOWED'],
-    ['DMARC fail', {}, {}, { headerList: [['authentication-results', ['x; dmarc=fail']]] }, 'AUTHENTICATION_FAILED'],
+    ['DMARC fail', {}, {}, { headerList: [['authentication-results', ['mx.example.com; dmarc=fail']]] }, 'AUTHENTICATION_FAILED'],
+    [
+      'forged Authentication-Results chain',
+      {},
+      {},
+      { headerList: [['authentication-results', ['attacker.example; dmarc=pass', 'mx.example.com; dmarc=pass']]] },
+      'AUTHENTICATION_FAILED',
+    ],
     ['rate limit', { countRecentFromSender: async () => 20 }, {}, {}, 'RATE_LIMITED'],
     ['no ticket match', {}, {}, { subject: 'Pitanje' }, 'NO_TICKET_MATCH'],
     ['ticket missing', { findTicketByNumber: async () => null }, {}, {}, 'TICKET_NOT_FOUND'],
@@ -339,10 +385,32 @@ describe('Paket 2.3 — parsing, configuration and notices', () => {
       address: '',
       graph: { tenantId: '', clientId: '', clientSecret: '' },
       imap: { host: '', port: 993, tls: true, username: '', password: '', authMethod: 'password' },
+      requireAuthPass: true,
+      trustedAuthservId: '',
       createTickets: true,
       defaultServiceId: '',
     } as unknown as InboundEmailConfiguration;
-    expect(inboundConfigurationProblems(configuration)).toEqual(['ADDRESS_MISSING', 'ENTRA_APP_MISSING', 'DEFAULT_SERVICE_MISSING']);
+    expect(inboundConfigurationProblems(configuration)).toEqual([
+      'ADDRESS_MISSING',
+      'ENTRA_APP_MISSING',
+      'TRUSTED_AUTHSERV_ID_MISSING',
+      'DEFAULT_SERVICE_MISSING',
+    ]);
+  });
+
+  it('flags an invalid trusted authserv-id instead of trusting it', () => {
+    const configuration = {
+      enabled: true,
+      provider: 'imap',
+      address: 'helpdesk@example.com',
+      graph: { tenantId: '', clientId: '', clientSecret: '' },
+      imap: { host: 'imap.example.com', port: 993, tls: true, username: 'helpdesk', password: 'secret', authMethod: 'password' },
+      requireAuthPass: true,
+      trustedAuthservId: '*.example.com',
+      createTickets: false,
+      defaultServiceId: '',
+    } as InboundEmailConfiguration;
+    expect(inboundConfigurationProblems(configuration)).toContain('TRUSTED_AUTHSERV_ID_INVALID');
   });
 
   it('notice carries RFC 3834 headers and never the original text', () => {

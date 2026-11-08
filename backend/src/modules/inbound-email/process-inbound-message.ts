@@ -63,6 +63,7 @@ export type InboundProcessingOptions = {
   /** Current secret first, then the previous one during a rotation. */
   readonly replyTokenSecret: Buffer | readonly Buffer[] | null;
   readonly requireAuthPass: boolean;
+  readonly trustedAuthservId: string;
   readonly recipientPolicy: NotificationEmailRecipientPolicy;
   readonly maxPerSenderPerHour: number;
   readonly createTickets: boolean;
@@ -134,7 +135,7 @@ export async function processInboundMessage(
 
   const hourAgo = new Date(options.now.getTime() - 3_600_000);
   if ((await ports.countRecentFromSender(from, hourAgo)) >= options.maxPerSenderPerHour) return reject('RATE_LIMITED');
-  if (options.requireAuthPass && checkSenderAuthentication(message) !== 'pass') return reject('AUTHENTICATION_FAILED');
+  if (options.requireAuthPass && checkSenderAuthentication(message, options.trustedAuthservId) !== 'pass') return reject('AUTHENTICATION_FAILED');
   if (!isAllowedNotificationEmailAddress(from, options.recipientPolicy)) return reject('SENDER_DOMAIN_NOT_ALLOWED');
 
   const sender = await ports.findSenderByEmail(from);

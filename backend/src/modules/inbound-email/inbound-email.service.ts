@@ -311,6 +311,7 @@ export class InboundEmailService {
         ownAddresses,
         replyTokenSecret: readReplyTokenVerificationSecrets(),
         requireAuthPass: configuration.requireAuthPass,
+        trustedAuthservId: configuration.trustedAuthservId,
         recipientPolicy: email,
         maxPerSenderPerHour: configuration.maxPerSenderPerHour,
         createTickets: configuration.createTickets,
