@@ -1,6 +1,6 @@
 # HANDOFF — Help Desk Enterprise
 
-**Datum:** 2026-11-07<br>
+**Datum:** 2026-11-08<br>
 **Jezička pravila:** svaka komunikacija i closeout izvještaj korisniku moraju biti isključivo na bosanskom.  
 **Svrha:** kontinuitet rada u narednoj Arena sesiji. Sve putanje ispod su relativne putanje unutar repozitorija.
 
@@ -14,6 +14,14 @@
 6. Odgovaraj korisniku isključivo na bosanskom i koristi detaljni closeout format iz odjeljka 7.
 
 ## 2. Stanje implementacije
+
+### W6.37 / `BA-integration-queue-04` (P1) — finding closeout
+
+`BA-integration-queue-04` je zatvoren na finding nivou na kodnom/testanom SHA [`f0fe7e3`](https://github.com/mudzy992/help-desk-enterprise/commit/f0fe7e38f0d56b40be0a09809872ef16919a5e8b). Kanonski `RoleGuard`/evaluator odbija OU- i service-scoped `ADMIN` assignmente za globalnu queue operaciju, a globalni `ADMIN` sa `integrations.queue.manage` prolazi. List query bira samo operativna metadata polja; API ne vraća `payload` ni sirovi `lastError`, već stabilni `lastErrorCode`. UI koristi BS/EN prijevode i generički fallback. Full-payload inspect endpoint/pravo/reason/audit nije uveden.
+
+Lokalno frontend testovi su 3 fajla/8 testova, build, ciljano ESLint i i18n parity prošli. Backend ciljani Jest je 4 suite/31 test uz privremene generated-Prisma stubove i `diagnostics:false`; taj lokalni prolaz nije type-check. Automatski CI [`42427621411`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42427621411) prošao je pravi generated-Prisma backend build/lint/full Jest, frontend, Docs guard i PostgreSQL+Redis integration/disposable migration replay, ali **ukupni CI failed** na critical `zlib@1.3.2-r1: CVE-2026-4738` (`1.4-r0` fix). E2E critical/install i inventory su skipped. Perf [`42427621434`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42427621434) **failed** query-budget avg `2.125 > 2.1`, 50.759 zahtjeva, p95 3/max 34; prag nije mijenjan i nema BA-04 uzročne atribucije.
+
+Nema schema/migration promjene, target DB nije korištena. Korisnik je naveo da su postojeće migracije primijenjene; to nije nezavisno provjereno. Nema PR-a, mergea ili deploymenta. Source/plan su 520 open/172 closed; globalni registar 530/162; deset poznatih divergencija netaknuto. Val 6 je 41/109 zatvorenih, 68 otvorenih (10 P1/41 P2/17 P3); `BA-integration-queue-05`, `BA-notifications-14`, `BA-websocket-14` i BA-15 full critical-flow acceptance ostaju otvoreni/pending. Naredni W6 package nije odabran; nemoj uključiti susjedne nalaze bez zasebne scope odluke. Detalji: [audit 19, §21](19-integration-queue.md#21-w637-closeout--ba-integration-queue-04-2026-11-08) / [paket 152](../implementation/152-integration-queue-04-global-admin-response-redaction.md).
 
 ### W6.31 / `BA-websocket-01` (P1) — finding closeout
 
@@ -51,7 +59,7 @@ Finalni automatski CI [`42404889174`](https://github.com/mudzy992/help-desk-ente
 
 Lokalno: fokusirani Jest 10 suites/41 tests passed, ali PostgreSQL suite 2 testa je skipped bez lokalnog DB/generated Prisma Clienta; scheduler wiring 2/2, integration harness 17/17, wiring 99 controllers/619 routes, frontend i18n coverage 16/16, lint/format/diff-check passed. CI je izvršio real PostgreSQL suite. `BA-integration-queue-02/05`, stale `PROCESSING` recovery, exclusive claim, BA-15 full-flow acceptance i preostali Val 6 scope ostaju otvoreni/pending. Val 6 je 38/109 sa 71 otvorenim (13 P1 / 41 P2 / 17 P3); source/plan 523/169, globalni registar 533/159. Deset statusnih divergencija ostaje netaknuto. Nema target-DB upotrebe, migracije, PR-a, mergea ni deploymenta. Detalji: [audit 19, §18](19-integration-queue.md#18-w634-closeout--ba-integration-queue-01-2026-11-07) i [paket 149](../implementation/149-integration-queue-01-dispatch-recovery-closeout.md).
 
-W6.35 je zatim zatvorio samo `BA-integration-queue-02`; W6.36 je zatvorio samo `BA-integration-queue-03` kroz eksplicitni `PUBLISHED_BEST_EFFORT` ishod. `BA-integration-queue-04/05`, stale `PROCESSING` recovery i svi drugi susjedni nalazi ostaju van scopea. Sljedeći W6 nalaz nije odabran; nemoj širiti posao bez zasebne scope odluke.
+Historijski checkpoint prije W6.37: W6.35 je zatvorio samo `BA-integration-queue-02`, a W6.36 samo `BA-integration-queue-03` kroz eksplicitni `PUBLISHED_BEST_EFFORT` ishod. Tada su `BA-integration-queue-04/05` i stale `PROCESSING` recovery ostali van scopea. W6.37 je zatvorio samo BA-04; `BA-integration-queue-05`, stale `PROCESSING` recovery i svi drugi susjedni nalazi ostaju van scopea. Sljedeći W6 nalaz nije odabran; nemoj širiti posao bez zasebne scope odluke.
 
 ### W6.36 / `BA-integration-queue-03` (P1) — Edge best-effort publish closeout
 
@@ -59,7 +67,7 @@ W6.35 je zatim zatvorio samo `BA-integration-queue-02`; W6.36 je zatvorio samo `
 
 Kodni SHA [`b9dcc6c`](https://github.com/mudzy992/help-desk-enterprise/commit/b9dcc6cdedc072c542813d8de3653ccaed24c5f0). Migracija `20271031190000_integration_job_edge_publish_best_effort` je replayovana samo na disposable CI bazi; nije pokrenuta nad target DB-om. CI [`42423568636`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42423568636) prošao je backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test i Docs guard, ali ukupni gate **failed** zbog critical `zlib@1.3.2-r1: CVE-2026-4738`; E2E/inventory su skipped. Perf [`42423568707`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42423568707) **failed** `2.122 > 2.1` (50.797 zahtjeva; p95 3, max 34), bez BA-03 atribucije ili threshold izmjene.
 
-Source/plan su 521 open / 171 closed; globalni registar 531/161; deset statusnih divergencija ostaje netaknuto. Val 6 je 40/109 zatvorenih, 69 otvorenih (11 P1 / 41 P2 / 17 P3); status-page audit 29 ostaje 19/19. `BA-integration-queue-04/05`, `BA-notifications-14`, `BA-websocket-14` i BA-15 full critical-flow acceptance ostaju otvoreni/pending. Nema target-DB upotrebe, lokalne migracije, PR-a, mergea ili deploymenta. Ranije neusaglašeni `be1c79db` ID nije nagađan. Detalji: [audit 19, §20](19-integration-queue.md#20-w636-closeout--ba-integration-queue-03-2026-11-07) i [paket 151](../implementation/151-integration-queue-03-edge-best-effort-closeout.md).
+Source/plan su 520 open / 172 closed; globalni registar 530/162; deset statusnih divergencija ostaje netaknuto. Val 6 je 41/109 zatvorenih, 68 otvorenih (10 P1 / 41 P2 / 17 P3); status-page audit 29 ostaje 19/19. `BA-integration-queue-05`, `BA-notifications-14`, `BA-websocket-14` i BA-15 full critical-flow acceptance ostaju otvoreni/pending. Nema target-DB upotrebe, lokalne migracije, PR-a, mergea ili deploymenta. Ranije neusaglašeni `be1c79db` ID nije nagađan. Detalji: [audit 19, §20](19-integration-queue.md#20-w636-closeout--ba-integration-queue-03-2026-11-07) i [paket 151](../implementation/151-integration-queue-03-edge-best-effort-closeout.md).
 
 ### Historijski W6.35 / `BA-integration-queue-02` (P1) — processor claim fencing (prije W6.36)
 
