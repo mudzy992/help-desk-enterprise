@@ -15,7 +15,17 @@
 
 ## 2. Stanje implementacije
 
-### W6.44 / `BA-announcements-01` (P1) — finding closeout
+### W6.45 / `BA-announcements-02` (P1) — finding closeout
+
+`BA-announcements-02` je zatvoren na finding nivou na kodnom/testanom SHA [`94a7fd9de25ea7882190959ad9e6eadde98785c6`](https://github.com/mudzy992/help-desk-enterprise/commit/94a7fd9de25ea7882190959ad9e6eadde98785c6). `AnnouncementsService` sada gura isti AND audience predicate (roles, home-OU/ancestor OU IDs, groups; prazne dimenzije ostaju globalne, nedostajući viewer scope fail-closed) u active/archive PostgreSQL upite prije capa. Active sortira severity prije `take: 50`; archive zadržava postojeći 90-dnevni prozor i `take: 100`, a active acknowledgement/dismissal uslovi nisu promijenjeni. Dodani su unit regressions i registered PostgreSQL integration spec za foreign-row crowding oba capa.
+
+Lokalno su prošli targeted ESLint, `git diff --check`, isolated-runner guard **20/20** i fokusirani Jest **2/2 suitea / 13/13 testova** uz privremeni diagnostics-off config zbog nedostajućeg lokalnog Prisma clienta. Push-triggered CI [`42531561241`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42531561241) na SHA [`94a7fd9`](https://github.com/mudzy992/help-desk-enterprise/commit/94a7fd9de25ea7882190959ad9e6eadde98785c6) je **success** za generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain i CI gate. Read-only inventory, E2E install/critical i conditional high/critical image enforcement su `skipped`. Raniji push integration failures odnosili su se na test fixture range i archive expectation; test-only ispravke su uključene prije finalnog zelenog CI-ja.
+
+Odvojeni Perf smoke [`42530385320`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42530385320) na početnom kodnom SHA `60b16dd` zabilježio je globalni `2.123 > 2.1` query-budget failure bez BA-02 atribucije; threshold nije mijenjan i Perf nije proglašen zelenim. Nema schema izmjene/migracije, target-DB upotrebe, PR-a, mergea ili deploymenta.
+
+Val 6 je **49/109 zatvorenih, 60 otvorenih (2 P1 / 41 P2 / 17 P3)**; source/plan **512/180**, globalni registar **522/170**; deset ranijih statusnih razlika je sačuvano. Preostali Val 6 P1 su `BA-announcements-03/04`; P2/P3 i BA-15 full critical-flow acceptance ostaju pending/izvan scopea. Sljedeći audit-order nalaz je `BA-announcements-03`; ne proširivati scope bez zasebne odluke. Detalji: [audit 28, §18](28-announcements.md#18-w645-closeout--ba-announcements-02) / [paket 160](../implementation/160-announcements-02-viewer-audience-before-caps.md).
+
+### Historijski W6.44 / `BA-announcements-01` (P1) — finding closeout
 
 `BA-announcements-01` je zatvoren na finding nivou na kodnom/testanom SHA [`90fc15c655bba90fc8f69ca17f2dc76c6bf67819`](https://github.com/mudzy992/help-desk-enterprise/commit/90fc15c655bba90fc8f69ca17f2dc76c6bf67819). `AnnouncementViewer` čuva odvojene manage/report scopeove iz canonical assignments; scoped `announcement.manage` i `announcement.report.read` ne postaju globalni. Authorization veže odluke za announcement audience OU-ove: svaki OU u filteru mora biti dozvoljen, audience bez OU filtera traži globalni grant, a service-only grant se fail-closed jer `Service` nema OU relaciju. Pravila se primjenjuju na list/detail/lifecycle mutation, create/update publiku, preview, report, CSV i reminder; report/CSV denial nastupa prije PII queryja. Agent home-OU fallback ostaje zaseban; P2 group/service reference validacija nije obuhvaćena.
 
