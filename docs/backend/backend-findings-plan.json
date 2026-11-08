@@ -1788,7 +1788,7 @@
     {
       "id": "BA-inbound-email-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6

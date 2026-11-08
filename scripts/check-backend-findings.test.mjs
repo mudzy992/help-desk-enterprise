@@ -69,21 +69,21 @@ test("W7.11 BA-assets-11 closeout je zatvoren u izvornom registry planu", async 
   );
 });
 
-test("W6.38 zatvara samo BA-inbound-email-01 od inbound-email P1 nalaza", async () => {
+test("W6.38/W6.39 zatvaraju BA-inbound-email-01/02, a BA-03 ostaje otvoren", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, severity, status }) => [id, { source, severity, status }]));
-  assert.deepEqual(byId.get("BA-inbound-email-01"), {
-    source: "20-inbound-email.md",
-    severity: "P1",
-    status: "zatvoreno",
-  });
-  for (const id of ["BA-inbound-email-02", "BA-inbound-email-03"]) {
+  for (const id of ["BA-inbound-email-01", "BA-inbound-email-02"]) {
     assert.deepEqual(byId.get(id), {
       source: "20-inbound-email.md",
       severity: "P1",
-      status: "otvoreno",
+      status: "zatvoreno",
     });
   }
+  assert.deepEqual(byId.get("BA-inbound-email-03"), {
+    source: "20-inbound-email.md",
+    severity: "P1",
+    status: "otvoreno",
+  });
 });
 
 test("BA-06/07/08/09/13/14/15 closeouti su evidentirani", async () => {
