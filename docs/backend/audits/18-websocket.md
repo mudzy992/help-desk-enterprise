@@ -358,3 +358,15 @@ Detalji implementacije i artefakti: [paket 163 / W6.48](../implementation/163-we
 - Nema schema promjene, migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. `BA-websocket-05`, `BA-websocket-14`, susjedni nalazi i Val 6/plan 6.3 release acceptance nisu obuhvaćeni.
 
 Detalji i datoteke: [paket 164 / W6.49](../implementation/164-websocket-06-distributed-admission-limits.md). `BA-websocket-06` ostaje **otvoren** do potrebnog CI/generated-Prisma i stvarnog dvoklijentskog Redis acceptance dokaza.
+
+## 25. W6.50 implementation status — BA-websocket-07 (2026-10-29)
+
+`BA-websocket-07` je naredni P2 po prirodnom WebSocket audit redoslijedu. Ova dopuna bilježi samo promjenu realtime rutiranja; **ne zatvara finding** i ne mijenja audit/plan/globalni registar brojčano.
+
+- `settings.updated` svim socketima šalje samo `occurredAt`, kao keyless invalidation signal. `key`, `visibility` i druga setting metadata ne napuštaju globalni broadcast.
+- Private/secret metadata ide pod `settings.private-metadata.updated` samo u postojeći `role:admins` room, čije članstvo dolazi iz serverskog role snapshot-a i održava ga socket room revalidation. Taj room je uži od `settings.read`; ne-admin korisnici s tom permission dobijaju keyless signal i podatke mogu refreshati autorizovanim HTTP API pozivom. Namjerno se ne uvodi nova settings-permission soba.
+- `session.invalidated` ostaje globalan radi sign-out ponašaja, ali nosi samo timestamp, bez naziva settinga.
+- Ciljani dokaz provjerava globalni keyless signal, admin-only private metadata, javni setting bez privatnog eventa i session invalidation bez ključa. CI i puna acceptance verifikacija nisu tvrdjeni.
+- Nema API/schema/migracije ni promjene susjednih nalaza. `BA-websocket-07` ostaje **otvoren** do provedenih ciljanih testova i CI potvrde.
+
+Detalji: [paket 165 / W6.50](../implementation/165-websocket-07-private-settings-metadata-routing.md).
