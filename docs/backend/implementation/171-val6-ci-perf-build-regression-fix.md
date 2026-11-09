@@ -1,6 +1,6 @@
 # W6 CI/Perf regresija — ispravka builda
 
-**Status:** build ispravljen na `591f87c`; Perf query-budget follow-up čeka dokaz na sljedećem pushu. Datum: 2026-10-29.
+**Status:** build i Perf ispravke potvrđene na kodnom SHA `3678b4e`; detalji i granice dokaza ispod. Datum: 2026-10-29.
 
 - CI [42680779580](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42680779580) (`ec35492`) i [42681847238](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42681847238) (`e2e00e0`) pali su na backend build-u: anotacije navode tri TS2540 greške zbog mutiranja readonly sweep summary-ja u BA-websocket-10. Popravka zadržava javni readonly ugovor i koristi mutabilni interni tip.
 - CI [42687805115](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42687805115) (`7d7d5dc`) imao je iste tri greške i dodatni TS2783 na dvostrukom `updatedAt` u BA-integration-queue-05. Uslov isteka je preoblikovan bez dupliranog polja uz očuvan CAS za lease i timestamp. Frontend Prettier prijavio je `integration-queue-table.tsx`; taj fajl je formatiran.
@@ -16,3 +16,11 @@ Na `591f87c` automatski CI [42695227727](https://github.com/mudzy992/help-desk-e
 Perf [42695227938](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42695227938) prošao je API build i k6 thresholds, ali **failed** na globalnom query budgetu: prosjek **2.125 > 2.1**, 50.644 zahtjeva, p95 3, max 34. `/services` je imao 10 SQL upita za 1.262 zahtjeva; trace prikazuje odvojene ServiceCategory i ServiceOnboarding upite. Ne mijenja se prag. Follow-up učitava samo potrebne category/onboarding projekcije kao Prisma `relationLoadStrategy: join` u istom ograničenom service page readu, zadržava postojeće authorization filtre, broj, cursor i parse validaciju. Test-only delegati bez uključenih relacija zadržavaju prethodni fallback. Cilj je ukloniti dvije round-trip SQL naredbe po nepraznoj stranici; stvarni efekat tek treba izmjeriti u novom Perf runu.
 
 Lokalno 3 ciljana service-catalog Jest suitea / 20 testova prošla su uz Prisma stub i `diagnostics:false`; targeted ESLint je passed. PostgreSQL pagination integration test dopunjen je provjerom category/onboarding i strožom granicom od 8 queryja, ali nije lokalno izvršen bez generated Prisma/baze. Ne tvrdi se zeleni Perf ni integration dok novi run ne završi. Nema promjene schema, migracije, praga, PR-a, mergea ili deploymenta.
+
+## Konačni automatski dokaz na kodnom SHA `3678b4e`
+
+CI [42697302950](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42697302950) je **success**: generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend format/build/test, Docs guard, container/supply-chain job i CI gate su prošli. Runner sadrži processor-claim i service-catalog-pagination integration specove, a čitav integration korak je success; raw suite log nije dostupan zbog EOF-a, pa se ne tvrdi zaseban broj testova. E2E critical/install i inventory bili su `skipped`; conditional high/critical image enforcement također je `skipped`, ne passed.
+
+Perf [42697303253](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42697303253) je **success**: query budget **2.074 ≤ 2.1**, 51.108 zahtjeva, p95 3, max 34; `/services` prosjek **8.002** na 1.258 zahtjeva, a trace potvrđuje pad sa 10 na 8 SQL naredbi. k6 thresholds su prošli: service-catalog p95 139.67 ms, ticket list 202.41 ms, detail 109.32 ms, ticket message 567.77 ms. Pragovi nisu mijenjani.
+
+Ovim se ne zatvaraju BA-websocket-06–11 ni BA-integration-queue-05; njihove pojedinačne acceptance/operativne granice ostaju. Nema ručnog full CI/E2E/Perf dispatcha, target migracije, PR-a, mergea ni deploymenta.
