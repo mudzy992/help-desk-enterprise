@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Readable } from 'node:stream';
 import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -26,6 +27,7 @@ import {
   organizationalUnitAncestorPaths,
   type AnnouncementAudience,
 } from './announcement-audience';
+import { decodeAnnouncementReportCursor, encodeAnnouncementReportCursor } from './announcement-report-cursor';
 import { authorizeAnnouncementAudiences, type AnnouncementAudienceAuthorizationCandidate } from './announcement-resource-authorization';
 import { announcementUnitPathCoveredByScope, hasAnnouncementPermissionScope } from './announcement-permission-scope';
 import type { AnnouncementViewer } from './announcement-viewer';
@@ -84,6 +86,14 @@ type AnnouncementRow = {
 };
 
 type Unit = { readonly id: string; readonly name: string; readonly ouPath: string };
+
+type ReportCsvMember = {
+  readonly id: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly organizationalUnit: { readonly name: string } | null;
+  readonly announcementAcknowledgements: readonly { readonly acknowledgedAt: Date }[];
+};
 
 function audienceOf(row: Pick<AnnouncementRow, 'audienceRoles' | 'audienceOrganizationalUnitIds' | 'audienceGroupIds'>): AnnouncementAudience {
   return { roles: row.audienceRoles, organizationalUnitIds: row.audienceOrganizationalUnitIds, groupIds: row.audienceGroupIds };
@@ -749,91 +759,248 @@ export class AnnouncementsService {
     return row;
   }
 
-  /** Current audience members with their unit and acknowledgement (ordered by name). */
-  private async reportRows(row: AnnouncementRow) {
-    const [members, acknowledgements] = await Promise.all([
-      this.prisma.user.findMany({
-        where: await this.audienceWhere(audienceOf(row)),
-        select: { id: true, displayName: true, email: true, organizationalUnit: { select: { name: true } } },
-        orderBy: { displayName: 'asc' },
-      }),
-      this.prisma.announcementAcknowledgement.findMany({
-        where: { announcementId: row.id },
-        select: { userId: true, acknowledgedAt: true, user: { select: { organizationalUnit: { select: { name: true } } } } },
-      }),
-    ]);
-    return { members, acknowledgements };
+  private pendingReportWhere(
+    row: AnnouncementRow,
+    audienceWhere: Prisma.UserWhereInput,
+    afterUserId: string | null,
+  ): Prisma.UserWhereInput {
+    const terms: Prisma.UserWhereInput[] = [
+      audienceWhere,
+      { announcementAcknowledgements: { none: { announcementId: row.id } } },
+    ];
+    if (afterUserId !== null) terms.push({ id: { gt: afterUserId } });
+    return { AND: terms };
+  }
+
+  private async reportPendingRows(
+    row: AnnouncementRow,
+    audienceWhere: Prisma.UserWhereInput,
+    afterUserId: string | null,
+  ) {
+    const limit = announcementLimits.reportPendingListed;
+    const members = await this.prisma.user.findMany({
+      where: this.pendingReportWhere(row, audienceWhere, afterUserId),
+      select: { id: true, displayName: true, organizationalUnit: { select: { name: true } } },
+      orderBy: { id: 'asc' },
+      take: limit + 1,
+    });
+    const hasMore = members.length > limit;
+    const listed = members.slice(0, limit);
+    const lastListed = listed.at(-1);
+    return {
+      pending: listed.map((member) => ({
+        id: member.id,
+        displayName: member.displayName,
+        unit: member.organizationalUnit?.name ?? '',
+      })),
+      pendingNextCursor:
+        hasMore && lastListed !== undefined ? encodeAnnouncementReportCursor(row.id, lastListed.id) : null,
+    };
   }
 
   /**
-   * §3.3: "X of Y" (Y captured at publication), per unit, and who has not
-   * acknowledged yet (current audience minus acknowledgements).
+   * §3.3: DB aggregates keep the audience and acknowledgement summary bounded;
+   * pending identities are fetched separately in a fixed-size keyset page.
    */
   async report(id: string, viewer: AnnouncementViewer) {
     const row = await this.requireReport(id, viewer);
-    const { members, acknowledgements } = await this.reportRows(row);
-    const acknowledged = new Map(acknowledgements.map((ack) => [ack.userId, ack.acknowledgedAt]));
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    const acknowledgedAudienceWhere: Prisma.UserWhereInput = {
+      AND: [audienceWhere, { announcementAcknowledgements: { some: { announcementId: row.id } } }],
+    };
+    const pendingWhere = this.pendingReportWhere(row, audienceWhere, null);
+    const [audienceByUnit, acknowledgedByUnit, acknowledgementCount, pendingCount, pendingPage, emailRuns] = await Promise.all([
+      this.prisma.user.groupBy({
+        by: ['organizationalUnitId'],
+        where: audienceWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.user.groupBy({
+        by: ['organizationalUnitId'],
+        where: acknowledgedAudienceWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.announcementAcknowledgement.count({ where: { announcementId: row.id } }),
+      this.prisma.user.count({ where: pendingWhere }),
+      this.reportPendingRows(row, audienceWhere, null),
+      this.prisma.announcementEmailRun.findMany({
+        where: { announcementId: row.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { kind: true, sentCount: true, skippedCount: true, failedCount: true, endReason: true, createdAt: true, completedAt: true },
+      }),
+    ]);
+    const currentAudienceSize = audienceByUnit.reduce((total, group) => total + group._count._all, 0);
+    const unitIds = [
+      ...new Set(
+        [...audienceByUnit, ...acknowledgedByUnit]
+          .map((group) => group.organizationalUnitId)
+          .filter((unitId): unitId is string => unitId !== null),
+      ),
+    ];
+    const unitRows =
+      unitIds.length === 0
+        ? []
+        : await this.prisma.organizationalUnit.findMany({
+            where: { id: { in: unitIds } },
+            select: { id: true, name: true },
+          });
+    const unitNames = new Map(unitRows.map((unit) => [unit.id, unit.name]));
     const byUnit = new Map<string, { unit: string; audience: number; acknowledged: number }>();
-    for (const member of members) {
-      const unit = member.organizationalUnit?.name ?? '';
+    for (const group of audienceByUnit) {
+      const unit = group.organizationalUnitId === null ? '' : (unitNames.get(group.organizationalUnitId) ?? '');
       const entry = byUnit.get(unit) ?? { unit, audience: 0, acknowledged: 0 };
-      entry.audience += 1;
-      if (acknowledged.has(member.id)) entry.acknowledged += 1;
+      entry.audience += group._count._all;
       byUnit.set(unit, entry);
     }
-    const pending = members.filter((member) => !acknowledged.has(member.id));
+    for (const group of acknowledgedByUnit) {
+      const unit = group.organizationalUnitId === null ? '' : (unitNames.get(group.organizationalUnitId) ?? '');
+      const entry = byUnit.get(unit) ?? { unit, audience: 0, acknowledged: 0 };
+      entry.acknowledged += group._count._all;
+      byUnit.set(unit, entry);
+    }
     return {
       id: row.id,
       title: row.title,
       requiresAcknowledgement: row.requiresAcknowledgement,
-      audienceSizeAtPublish: row.audienceSizeAtPublish ?? members.length,
-      currentAudienceSize: members.length,
-      acknowledgedCount: acknowledgements.length + row.anonymizedAcknowledgements,
-      pendingCount: pending.length,
+      audienceSizeAtPublish: row.audienceSizeAtPublish ?? currentAudienceSize,
+      currentAudienceSize,
+      acknowledgedCount: acknowledgementCount + row.anonymizedAcknowledgements,
+      pendingCount,
       lastReminderAt: row.lastReminderAt?.toISOString() ?? null,
       canRemind: this.canRemind(row, new Date()),
       sendEmail: row.sendEmail,
       postToTeams: row.postToTeams,
       teamsPostedAt: row.teamsPostedAt?.toISOString() ?? null,
       teamsResult: row.teamsResult,
-      emailRuns: (
-        await this.prisma.announcementEmailRun.findMany({
-          where: { announcementId: row.id },
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-          select: { kind: true, sentCount: true, skippedCount: true, failedCount: true, endReason: true, createdAt: true, completedAt: true },
-        })
-      ).map((run) => ({ ...run, createdAt: run.createdAt.toISOString(), completedAt: run.completedAt?.toISOString() ?? null })),
-      byUnit: [...byUnit.values()].sort((a, b) => a.unit.localeCompare(b.unit)),
-      pending: pending.slice(0, announcementLimits.reportPendingListed).map((member) => ({
-        id: member.id,
-        displayName: member.displayName,
-        unit: member.organizationalUnit?.name ?? '',
+      emailRuns: emailRuns.map((run) => ({
+        ...run,
+        createdAt: run.createdAt.toISOString(),
+        completedAt: run.completedAt?.toISOString() ?? null,
       })),
+      byUnit: [...byUnit.values()].sort((a, b) => a.unit.localeCompare(b.unit)),
+      pending: pendingPage.pending,
+      pendingNextCursor: pendingPage.pendingNextCursor,
     };
   }
 
-  async reportCsv(id: string, viewer: AnnouncementViewer): Promise<{ filename: string; content: string }> {
+  async reportPending(id: string, cursor: string | null, viewer: AnnouncementViewer) {
     const row = await this.requireReport(id, viewer);
-    const { members, acknowledgements } = await this.reportRows(row);
-    const acknowledged = new Map(acknowledgements.map((ack) => [ack.userId, ack.acknowledgedAt]));
-    const lines = [
-      ['name', 'email', 'unit', 'acknowledgedAt'].map(csvCell).join(','),
-      ...members.map((member) =>
-        [member.displayName, member.email, member.organizationalUnit?.name ?? '', acknowledged.get(member.id)?.toISOString() ?? '']
-          .map(csvCell)
-          .join(','),
-      ),
-    ];
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action: auditLogActions.announcementReportExported,
-      entityType: auditLogEntityTypes.announcement,
-      entityId: id,
-      metadata: { rows: members.length },
-      actorUserId: viewer.userId,
+    const afterUserId = decodeAnnouncementReportCursor(cursor, row.id);
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    const pendingWhere = this.pendingReportWhere(row, audienceWhere, null);
+    const [pendingCount, page] = await Promise.all([
+      this.prisma.user.count({ where: pendingWhere }),
+      this.reportPendingRows(row, audienceWhere, afterUserId),
+    ]);
+    return { pendingCount, ...page };
+  }
+
+  private reportCsvPage(
+    audienceWhere: Prisma.UserWhereInput,
+    announcementId: string,
+    afterUserId: string | null,
+    take: number,
+  ): Promise<ReportCsvMember[]> {
+    return this.prisma.user.findMany({
+      where:
+        afterUserId === null
+          ? audienceWhere
+          : { AND: [audienceWhere, { id: { gt: afterUserId } }] },
+      select: {
+        id: true,
+        displayName: true,
+        email: true,
+        organizationalUnit: { select: { name: true } },
+        announcementAcknowledgements: {
+          where: { announcementId },
+          select: { acknowledgedAt: true },
+          take: 1,
+        },
+      },
+      orderBy: { id: 'asc' },
+      take,
     });
-    // BOM so spreadsheet programs read UTF-8 (č, ć, š, ž, đ).
-    return { filename: `announcement-${id}.csv`, content: `\uFEFF${lines.join('\r\n')}\r\n` };
+  }
+
+  private async *reportCsvChunks(input: {
+    readonly row: AnnouncementRow;
+    readonly viewer: AnnouncementViewer;
+    readonly audienceWhere: Prisma.UserWhereInput;
+    readonly firstPage: ReportCsvMember[];
+  }): AsyncGenerator<string> {
+    let page = input.firstPage;
+    let requestedTake = announcementLimits.reportCsvBatchSize;
+    let exportedRows = 0;
+    try {
+      // BOM so spreadsheet programs read UTF-8 (č, ć, š, ž, đ).
+      yield `\uFEFF${['name', 'email', 'unit', 'acknowledgedAt'].map(csvCell).join(',')}\r\n`;
+      while (true) {
+        const remainingBudget = announcementLimits.reportCsvMaxRows - exportedRows;
+        if (page.length > remainingBudget) {
+          throw new AnnouncementError(
+            announcementErrorCodes.reportExportTooLarge,
+            String(announcementLimits.reportCsvMaxRows),
+          );
+        }
+        if (page.length > 0) {
+          const chunk = `${page
+            .map((member) =>
+              [
+                member.displayName,
+                member.email,
+                member.organizationalUnit?.name ?? '',
+                member.announcementAcknowledgements[0]?.acknowledgedAt.toISOString() ?? '',
+              ]
+                .map(csvCell)
+                .join(','),
+            )
+            .join('\r\n')}\r\n`;
+          exportedRows += page.length;
+          yield chunk;
+        }
+        const last = page.at(-1);
+        if (last === undefined || page.length < requestedTake) break;
+        requestedTake = Math.min(
+          announcementLimits.reportCsvBatchSize,
+          announcementLimits.reportCsvMaxRows - exportedRows + 1,
+        );
+        page = await this.reportCsvPage(input.audienceWhere, input.row.id, last.id, requestedTake);
+      }
+    } finally {
+      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.announcementReportExported,
+        entityType: auditLogEntityTypes.announcement,
+        entityId: input.row.id,
+        metadata: { rows: exportedRows },
+        actorUserId: input.viewer.userId,
+      });
+    }
+  }
+
+  async reportCsv(
+    id: string,
+    viewer: AnnouncementViewer,
+  ): Promise<{ filename: string; stream: Readable }> {
+    const row = await this.requireReport(id, viewer);
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    const rowCount = await this.prisma.user.count({ where: audienceWhere });
+    if (rowCount > announcementLimits.reportCsvMaxRows) {
+      throw new AnnouncementError(
+        announcementErrorCodes.reportExportTooLarge,
+        String(announcementLimits.reportCsvMaxRows),
+      );
+    }
+    const firstPage = await this.reportCsvPage(
+      audienceWhere,
+      row.id,
+      null,
+      announcementLimits.reportCsvBatchSize,
+    );
+    return {
+      filename: `announcement-${id}.csv`,
+      stream: Readable.from(this.reportCsvChunks({ row, viewer, audienceWhere, firstPage })),
+    };
   }
 
   private canRemind(row: AnnouncementRow, now: Date): boolean {

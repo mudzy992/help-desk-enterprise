@@ -6,6 +6,7 @@ export const announcementErrorCodes = {
   invalidState: 'ANNOUNCEMENT_INVALID_STATE',
   notActive: 'ANNOUNCEMENT_NOT_ACTIVE',
   reminderTooSoon: 'ANNOUNCEMENT_REMINDER_TOO_SOON',
+  reportExportTooLarge: 'ANNOUNCEMENT_REPORT_EXPORT_TOO_LARGE',
   forbidden: 'ANNOUNCEMENT_FORBIDDEN',
 } as const;
 
@@ -22,8 +23,14 @@ export const announcementLimits = {
   archiveMax: 100,
   /** A reminder to those who did not acknowledge, at most once per this window (§3.3). */
   reminderIntervalMs: 24 * 60 * 60 * 1000,
-  /** Names listed in the report (the CSV has everyone). */
+  /** Maximum pending identities returned by one report API page. */
   reportPendingListed: 200,
+  /** Maximum length of the opaque report-pagination cursor. */
+  reportPendingCursorMaxLength: 1_024,
+  /** CSV reads this many recipients per DB page and stream chunk. */
+  reportCsvBatchSize: 500,
+  /** Hard ceiling for one CSV export; larger reports fail before streaming PII. */
+  reportCsvMaxRows: 50_000,
   /** Maximum recipients held in memory for one in-app fan-out page. */
   notifyBatchSize: 1_000,
   /** A draft may be scheduled at most this far ahead. */

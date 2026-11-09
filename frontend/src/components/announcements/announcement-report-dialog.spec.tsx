@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   t: (key: string) => key,
   download: vi.fn(),
   getReport: vi.fn(),
+  getPendingPage: vi.fn(),
   remind: vi.fn(),
   triggerDownload: vi.fn(),
   toast: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("@/lib/download/trigger-blob-download", () => ({
 vi.mock("@/services/announcements-api", async (original) => ({
   ...(await original<typeof import("@/services/announcements-api")>()),
   downloadAnnouncementReport: mocks.download,
+  getAnnouncementPendingReportPage: mocks.getPendingPage,
   getAnnouncementReport: mocks.getReport,
   remindAnnouncement: mocks.remind,
 }));
@@ -43,6 +45,7 @@ const report = (id: string): AnnouncementReport => ({
   emailRuns: [],
   byUnit: [],
   pending: [{ id: "user-1", displayName: "Ana", unit: "Ops" }],
+  pendingNextCursor: null,
 });
 
 function deferred<T>() {
@@ -57,6 +60,7 @@ describe("AnnouncementReportDialog state machine", () => {
   beforeEach(() => {
     mocks.download.mockReset();
     mocks.getReport.mockReset();
+    mocks.getPendingPage.mockReset();
     mocks.remind.mockReset();
     mocks.triggerDownload.mockReset();
     mocks.toast.mockReset();
@@ -94,5 +98,37 @@ describe("AnnouncementReportDialog state machine", () => {
     await waitFor(() =>
       expect(mocks.triggerDownload).toHaveBeenCalledWith(file.blob, file.fileName),
     );
+  });
+
+  it("navigates bounded pending pages without retaining prior identities", async () => {
+    mocks.getReport.mockResolvedValue({ ...report("one"), pendingNextCursor: "next-page" });
+    mocks.getPendingPage
+      .mockResolvedValueOnce({
+        pendingCount: 2,
+        pending: [{ id: "user-2", displayName: "Besa", unit: "HR" }],
+        pendingNextCursor: null,
+      })
+      .mockResolvedValueOnce({
+        pendingCount: 2,
+        pending: [{ id: "user-1", displayName: "Ana", unit: "Ops" }],
+        pendingNextCursor: "next-page",
+      });
+    render(<AnnouncementReportDialog announcementId="one" onOpenChange={vi.fn()} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "announcements.report.showMorePending" }),
+    );
+
+    expect(mocks.getPendingPage).toHaveBeenNthCalledWith(1, "one", "next-page");
+    expect(await screen.findByText("Besa")).toBeTruthy();
+    expect(screen.queryByText("Ana")).toBeNull();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "announcements.report.showPreviousPending" }),
+    );
+
+    expect(mocks.getPendingPage).toHaveBeenNthCalledWith(2, "one", null);
+    expect(await screen.findByText("Ana")).toBeTruthy();
+    expect(screen.queryByText("Besa")).toBeNull();
   });
 });
