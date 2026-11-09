@@ -1,8 +1,9 @@
 # WebSocket — rolling deploy i horizontalno skaliranje (Faza 3.1)
 
-> Vrijedi od Faze 3.1: Socket.IO više ne koristi in-memory adapter, nego Redis
-> pub/sub (`ws-redis-adapter.ts`). Time sobe i emit-i vrijede za **sve** instance,
-> ali uvodi dva zahtjeva na infrastrukturu: **sticky sesije** i **drain pri deployu**.
+> U zdravom runtime režimu Socket.IO koristi Redis pub/sub (`ws-redis-adapter.ts`),
+> pa sobe i emit-i vrijede za **sve** instance. Boot-time ACL/config deny i dalje može
+> ostaviti lokalni in-memory fallback, ali on je readiness-degraded i nije horizontalno
+> funkcionalan. Redis režim traži **sticky sesije** i **drain pri deployu**.
 
 ## 1. Zašto sticky sesije
 
@@ -23,7 +24,7 @@ ali handshake i dalje mora ostati na jednoj.
 Cilj: nijedan klijent ne ostane bez događaja, a pauza ostane < 5 s za < 1% klijenata.
 
 1. **Označi instancu kao "ne primaj nove"** — u LB-u skini instancu iz rotacije
-   (health check → 503 na `/health`), pa **sačekaj 30 s**. Postojeći WebSocketi
+   (`/health/ready` → 503 ili ručni drain), pa **sačekaj 30 s**. Postojeći WebSocketi
    ostaju otvoreni, novi ne dolaze.
 2. **Zatvori sokete meko**: instanca šalje `server.disconnectSockets(false)` ili se
    gasi nakon `SO_LINGER`-a (postojeći `onModuleDestroy` prvo zatvara adapter, pa
@@ -42,10 +43,16 @@ klijenti se sami reconnectuju (jitter).
 
 | Linija u logu | Značenje | Alarm |
 |---|---|---|
-| `ws_adapter_redis_ok=1` | adapter instaliran pri bootu | nema (očekivano) |
-| `ws_adapter_redis_ok=0 fallback=in_memory` | **degradirano**: sobe su samo lokalne | alarm (instanca ne vidi druge) |
-| `ws_adapter_redis_error reason=…` | ioredis reconnectuje | alarm ako traje > 1 min |
+| `ws_adapter_redis_ok=1 ws_adapter_redis_state=healthy` | stvarni adapter `PSUBSCRIBE`/`SUBSCRIBE` i room-channel Pub/Sub echo probe su prošli | nema; očekuje se na svakoj spremnoj instanci |
+| `ws_adapter_redis_ok=0 ws_adapter_redis_state=starting/degraded` | adapter još nije dokazan ili je Redis/ACL put pao; runtime ostaje Redis adapter, bez lokalnog switcha | readiness `/health/ready` je 503; alarm na pogođenu instancu |
+| `fallback=in_memory reason=acl_denied` | boot-time Redis adapter nije instaliran; sobe su samo lokalne | readiness 503; popravi ACL pa rolling-restartuj instancu |
+| `ws_adapter_redis_error` / `ws_adapter_redis_command_denied/failed` | ioredis reconnectuje ili je command odbijen; health probe pokušava oporavak svakih 15 s | alarm dok readiness ne postane zelen |
 | `ws_clients_count=N` | broj konekcija | pad na 0 po instanci = završen drain |
+
+Readiness je procesno/per-instance signal, ne dokaz da svaki realtime event ima client
+acknowledgement. Tokom Redis outagea mogu se izgubiti eventi; ne postoji durable replay
+ugovor i reconnect klijent treba osvježiti stanje preko REST-a. Boot fallback nakon ACL
+deny-ja traži rolling restart poslije ACL popravke.
 
 ## 4. Dokaz da dvije instance dijele sobe
 

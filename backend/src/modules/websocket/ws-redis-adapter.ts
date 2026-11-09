@@ -1,8 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { createAdapter } from '@socket.io/redis-adapter';
 import type { Redis } from 'ioredis';
 import { closeRedisClient } from '../../common/redis/close-redis-client';
 import { createRedisClient } from '../../common/redis/create-redis-client';
 import type { RedisConfiguration } from '../../common/redis/redis.types';
+import type {
+  WebsocketAdapterFailureListener,
+  WebsocketAdapterHealthListener,
+  WebsocketAdapterHealthState,
+} from './websocket-adapter-health.types';
 
 /** The slice of `Logger` this module needs (keeps the unit test logger-free). */
 export type WebsocketAdapterLogger = {
@@ -10,10 +16,24 @@ export type WebsocketAdapterLogger = {
   readonly log: (message: string) => void;
 };
 
+export type WebsocketAdapterHealthMonitorOptions = {
+  readonly intervalMs: number;
+  readonly timeoutMs: number;
+};
+
+type RealtimeAdapterHealthMonitor = {
+  readonly stop: () => void;
+  readonly reportFailure: WebsocketAdapterFailureListener;
+};
+
 export type WebsocketRedisAdapterHandle = {
   readonly adapter: ReturnType<typeof createAdapter>;
   readonly publishClient: Redis;
   readonly subscribeClient: Redis;
+  startHealthMonitor(
+    listener: WebsocketAdapterHealthListener,
+    options?: Partial<WebsocketAdapterHealthMonitorOptions>,
+  ): () => void;
   close(): Promise<void>;
 };
 
@@ -39,13 +59,11 @@ export const realtimeAdapterChannelPattern = `${realtimeAdapterChannelPrefix}#/#
 export const realtimeAdapterRequestChannel = `${realtimeAdapterChannelPrefix}-request#/#`;
 export const realtimeAdapterResponseChannel = `${realtimeAdapterChannelPrefix}-response#/#`;
 
-/**
- * How long the boot-time probe waits before it stops caring. Two seconds is
- * longer than a healthy local Redis needs and short enough that a Redis that is
- * down cannot delay the API: an unfinished probe is "unknown", and "unknown"
- * behaves exactly like before this check existed.
- */
+/** Boot probe budget; failure to prove ACL access leaves runtime probing to the gateway. */
 export const realtimeAdapterCheckTimeoutMs = 2_000;
+/** Effective-health probe cadence and deadline. */
+export const realtimeAdapterHealthProbeIntervalMs = 15_000;
+export const realtimeAdapterHealthProbeTimeoutMs = 2_000;
 
 export type RealtimeAdapterSubscriptionCheck = 'allowed' | 'denied' | 'unknown';
 
@@ -53,46 +71,82 @@ export type RealtimeAdapterSubscriptionCheck = 'allowed' | 'denied' | 'unknown';
  * Phase 3.1 (plan §3.1): the Socket.IO Redis adapter, so two API instances share
  * one set of rooms instead of each serving a private universe.
  *
- * Four rules the plan calls out:
- * 1. **Dedicated connections.** The subscriber connection cannot run normal
- *    commands, and BullMQ already owns its own connections — so this creates two
- *    fresh clients through the existing factory (`create-redis-client.ts`), with
- *    the same credentials and key prefix as everything else.
- * 2. **Never block the boot.** If the clients cannot even be constructed the
- *    gateway keeps the in-memory adapter (degraded, single instance) and logs why.
- *    Connection failures after that are ioredis' own retry loop: the adapter comes
- *    back on its own once Redis is reachable again.
- * 3. **No unhandled errors.** ioredis emits `error` on connection loss; without a
- *    listener that is an uncaught exception. Both clients get a listener here.
- * 4. **No unhandled command rejections.** The adapter subscribes and publishes
- *    without awaiting, so a *reply* error (an ACL that denies the channel) is a
- *    rejected promise nobody handles — Node then kills the process. The subscribe
- *    and publish commands are wrapped (`attachRealtimeCommandGuards`) so that a
- *    denial is logged and the process stays up.
+ * The runtime health probe uses the live adapter publish/subscriber clients. It
+ * re-acknowledges the required adapter subscriptions on the real subscriber,
+ * then PUBLISHes a nonce to a random, unjoined room through the real publisher
+ * and waits for it on the adapter's actual PSUBSCRIBE stream. This exercises the
+ * real room-channel ACL without delivering a user event; a local adapter
+ * fallback is never treated as equivalent to cross-instance delivery.
  */
 export function createWebsocketRedisAdapter(
   configuration: RedisConfiguration,
   logger: WebsocketAdapterLogger,
+  onFailure?: WebsocketAdapterFailureListener,
 ): WebsocketRedisAdapterHandle | null {
+  let publishClient: Redis | undefined;
+  let subscribeClient: Redis | undefined;
   try {
-    const publishClient = createRedisClient(configuration);
-    const subscribeClient = createRedisClient(configuration);
-    attachConnectionErrorLogging(publishClient, logger);
-    attachConnectionErrorLogging(subscribeClient, logger);
-    attachRealtimeCommandGuards(publishClient, logger);
-    attachRealtimeCommandGuards(subscribeClient, logger);
+    const activePublishClient = createRedisClient(configuration);
+    publishClient = activePublishClient;
+    const activeSubscribeClient = createRedisClient(configuration);
+    subscribeClient = activeSubscribeClient;
+    let activeHealthMonitor: RealtimeAdapterHealthMonitor | null = null;
+    const reportFailure: WebsocketAdapterFailureListener = (reason) => {
+      activeHealthMonitor?.reportFailure(reason);
+      onFailure?.(reason);
+    };
+    attachConnectionErrorLogging(activePublishClient, logger, reportFailure);
+    attachConnectionErrorLogging(activeSubscribeClient, logger, reportFailure);
+    attachRealtimeCommandGuards(activePublishClient, logger, reportFailure);
+    attachRealtimeCommandGuards(activeSubscribeClient, logger, reportFailure);
+
+    const adapter = createAdapter(activePublishClient, activeSubscribeClient);
+    let closed = false;
+
     return {
-      adapter: createAdapter(publishClient, subscribeClient),
-      publishClient,
-      subscribeClient,
+      adapter,
+      publishClient: activePublishClient,
+      subscribeClient: activeSubscribeClient,
+      startHealthMonitor: (listener, options = {}) => {
+        if (closed) {
+          return () => undefined;
+        }
+        if (activeHealthMonitor === null) {
+          activeHealthMonitor = startRealtimeAdapterHealthMonitor(
+            activePublishClient,
+            activeSubscribeClient,
+            listener,
+            options,
+          );
+        }
+        const monitor = activeHealthMonitor;
+        return () => {
+          if (activeHealthMonitor !== monitor) {
+            return;
+          }
+          monitor.stop();
+          activeHealthMonitor = null;
+        };
+      },
       close: async () => {
+        closed = true;
+        activeHealthMonitor?.stop();
+        activeHealthMonitor = null;
         await Promise.all([
-          closeRedisClient(publishClient),
-          closeRedisClient(subscribeClient),
+          closeRedisClient(activePublishClient),
+          closeRedisClient(activeSubscribeClient),
         ]);
       },
     };
   } catch (error) {
+    for (const client of [publishClient, subscribeClient]) {
+      try {
+        client?.disconnect();
+      } catch {
+        // Construction failed before a connection was usable; keep the original error.
+      }
+    }
+    onFailure?.('client_creation_failed');
     logger.warn(
       `ws_adapter_redis_unavailable reason=${error instanceof Error ? error.message : String(error)}`,
     );
@@ -102,17 +156,9 @@ export function createWebsocketRedisAdapter(
 
 /**
  * Asks Redis whether this user may subscribe to the channels the adapter will
- * use, before the adapter is installed.
- *
- * `denied` is the answer to act on: the gateway then keeps the in-memory adapter
- * and the API boots degraded instead of dying on the first `PSUBSCRIBE`
- * (`NOPERM No permissions to access a channel`, which is what a Redis ACL that
- * only grants `&socket.io#*` produces — see `ops/redis-acl.line`).
- *
- * `unknown` covers everything else — Redis unreachable, a reply we do not
- * recognise, the timeout above — and means "do what we did before": install the
- * adapter and let ioredis retry, because a Redis that is merely down must not
- * cost us the cross-instance adapter.
+ * use, before the adapter is installed. This boot result is only an initial
+ * decision; `unknown` does not count as healthy and the runtime probe remains
+ * responsible for proving effective Pub/Sub delivery.
  */
 export async function checkRealtimeAdapterSubscriptions(
   configuration: RedisConfiguration,
@@ -160,20 +206,25 @@ export async function checkRealtimeAdapterSubscriptions(
   }
 }
 
-/** One line per state change, same shape as the other `ws_*` metrics from Faza 0. */
-export function formatWebsocketAdapterStatus(active: boolean): string {
-  return `ws_adapter_redis_ok=${active ? 1 : 0}`;
+/** One line per effective-state transition, same shape as the other `ws_*` metrics. */
+export function formatWebsocketAdapterStatus(
+  active: boolean,
+  state?: WebsocketAdapterHealthState,
+): string {
+  const base = `ws_adapter_redis_ok=${active ? 1 : 0}`;
+  return state === undefined ? base : `${base} ws_adapter_redis_state=${state}`;
 }
 
 /**
- * The adapter never awaits its own commands, so this is where an ACL denial stops
- * being an unhandled rejection: the promise the caller ignores gets a handler that
- * logs one line and keeps the process alive. Methods a client does not have (the
- * fakes in the unit tests) are simply skipped.
+ * The adapter never awaits its own commands, so a rejected promise needs an
+ * explicit handler. It also reports command failures to the process-local
+ * effective-health state. Clients without a command (the unit-test fakes) are
+ * simply skipped.
  */
 export function attachRealtimeCommandGuards(
   client: Redis,
   logger: WebsocketAdapterLogger,
+  onFailure?: WebsocketAdapterFailureListener,
 ): Redis {
   for (const method of [
     'pSubscribe',
@@ -197,8 +248,12 @@ export function attachRealtimeCommandGuards(
         typeof (result as Promise<unknown>).catch === 'function'
       ) {
         void (result as Promise<unknown>).catch((error: unknown) => {
+          onFailure?.(
+            method === 'publish' ? 'publish_rejected' : 'subscribe_rejected',
+          );
+          const outcome = isChannelPermissionDenied(error) ? 'denied' : 'failed';
           logger.warn(
-            `ws_adapter_redis_command_denied command=${method} reason=${error instanceof Error ? error.message : String(error)}`,
+            `ws_adapter_redis_command_${outcome} command=${method} reason=${error instanceof Error ? error.message : String(error)}`,
           );
         });
       }
@@ -217,6 +272,189 @@ async function probeSubscriptions(probe: Redis): Promise<void> {
     realtimeAdapterRequestChannel,
     realtimeAdapterResponseChannel,
   );
+}
+
+function startRealtimeAdapterHealthMonitor(
+  publishClient: Redis,
+  subscribeClient: Redis,
+  listener: WebsocketAdapterHealthListener,
+  options: Partial<WebsocketAdapterHealthMonitorOptions>,
+): RealtimeAdapterHealthMonitor {
+  const intervalMs = options.intervalMs ?? realtimeAdapterHealthProbeIntervalMs;
+  const timeoutMs = options.timeoutMs ?? realtimeAdapterHealthProbeTimeoutMs;
+  const healthRoom = `health-${randomUUID()}`;
+  const healthChannel = `${realtimeAdapterChannelPrefix}#/#${healthRoom}#`;
+  let stopped = false;
+  let inFlight: Promise<void> | null = null;
+  let failureGeneration = 0;
+
+  const probe = async (): Promise<void> => {
+    // These are idempotent Redis subscriptions. Re-acknowledging them on the
+    // actual adapter subscriber checks its ACL/connection after reconnects too.
+    await subscribeClient.psubscribe(realtimeAdapterChannelPattern);
+    await subscribeClient.subscribe(
+      realtimeAdapterRequestChannel,
+      realtimeAdapterResponseChannel,
+    );
+    await publishAndWaitForEcho(
+      publishClient,
+      subscribeClient,
+      healthChannel,
+      randomUUID(),
+      timeoutMs,
+    );
+  };
+
+  const reportFailure: WebsocketAdapterFailureListener = (reason) => {
+    failureGeneration += 1;
+    if (!stopped) listener('degraded', reason);
+  };
+
+  const check = (): void => {
+    if (stopped || inFlight !== null) {
+      return;
+    }
+    const generationAtStart = failureGeneration;
+    const current = probe();
+    inFlight = current;
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      if (!stopped) listener('degraded', 'probe_timeout');
+    }, timeoutMs);
+    void current
+      .then(() => {
+        if (
+          !stopped &&
+          !timedOut &&
+          failureGeneration === generationAtStart
+        ) {
+          listener('healthy', 'probe_ok');
+        }
+      })
+      .catch((error: unknown) => {
+        if (
+          !stopped &&
+          !timedOut &&
+          failureGeneration === generationAtStart
+        ) {
+          listener(
+            'degraded',
+            isChannelPermissionDenied(error) ? 'acl_denied' : 'probe_failed',
+          );
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        if (inFlight === current) {
+          inFlight = null;
+        }
+      });
+  };
+
+  const onReady = (): void => check();
+  const onConnectionProblem = (): void => reportFailure('connection_error');
+  const clients = [publishClient, subscribeClient];
+  for (const client of clients) {
+    client.on('ready', onReady);
+    client.on('close', onConnectionProblem);
+    client.on('reconnecting', onConnectionProblem);
+    client.on('end', onConnectionProblem);
+  }
+
+  check();
+  const interval = setInterval(check, intervalMs);
+  interval.unref();
+
+  return {
+    reportFailure,
+    stop: () => {
+      if (stopped) {
+        return;
+      }
+      stopped = true;
+      clearInterval(interval);
+      for (const client of clients) {
+        client.removeListener('ready', onReady);
+        client.removeListener('close', onConnectionProblem);
+        client.removeListener('reconnecting', onConnectionProblem);
+        client.removeListener('end', onConnectionProblem);
+      }
+    },
+  };
+}
+
+function publishAndWaitForEcho(
+  publishClient: Redis,
+  subscribeClient: Redis,
+  channel: string,
+  nonce: string,
+  timeoutMs: number,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let publishAcknowledged = false;
+    let echoReceived = false;
+    const timeout = setTimeout(() => {
+      finish(new Error('websocket adapter Pub/Sub echo timed out'));
+    }, timeoutMs);
+
+    const finish = (error?: unknown): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      subscribeClient.removeListener('pmessageBuffer', onPatternMessage);
+      if (error !== undefined) {
+        reject(error);
+        return;
+      }
+      resolve();
+    };
+    const maybeFinish = (): void => {
+      if (publishAcknowledged && echoReceived) finish();
+    };
+    const onPatternMessage = (
+      _pattern: string,
+      receivedChannel: Buffer,
+      receivedNonce: Buffer,
+    ): void => {
+      if (
+        _pattern.toString() !== realtimeAdapterChannelPattern ||
+        receivedChannel.toString() !== channel ||
+        receivedNonce.toString() !== nonce
+      ) {
+        return;
+      }
+      echoReceived = true;
+      maybeFinish();
+    };
+
+    // `@socket.io/redis-adapter` ignores unknown rooms before decoding the
+    // payload. The random health room is never joined by a socket, so this
+    // exercises the real room-channel PUBLISH/PSUBSCRIBE path without emitting
+    // an application event or feeding a synthetic packet to the adapter.
+    subscribeClient.on('pmessageBuffer', onPatternMessage);
+    let publication: Promise<number>;
+    try {
+      publication = publishClient.publish(channel, nonce);
+    } catch (error) {
+      finish(error);
+      return;
+    }
+    void publication.then(
+      (subscribers) => {
+        if (typeof subscribers !== 'number' || subscribers < 1) {
+          finish(new Error('websocket adapter room channel has no subscriber'));
+          return;
+        }
+        publishAcknowledged = true;
+        maybeFinish();
+      },
+      (error: unknown) => finish(error),
+    );
+  });
 }
 
 async function withTimeout<T>(
@@ -263,8 +501,10 @@ function readDeniedChannel(error: unknown): string | null {
 function attachConnectionErrorLogging(
   client: Redis,
   logger: WebsocketAdapterLogger,
+  onFailure?: WebsocketAdapterFailureListener,
 ): void {
   client.on('error', (error: Error) => {
+    onFailure?.('connection_error');
     logger.warn(`ws_adapter_redis_error reason=${error.message}`);
   });
 }

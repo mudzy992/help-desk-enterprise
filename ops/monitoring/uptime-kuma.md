@@ -39,7 +39,7 @@ prije isteka je zahtjev iz §7.2.
 |---|---|---|---|---|
 | Frontend | HTTP(s) – Keyword | `https://<desk>/` | 60 s | 200 i riječ `Service Desk` |
 | API liveness | HTTP(s) | `https://<api>/health` | 60 s | 200 |
-| API readiness | HTTP(s) | `https://<api>/health/ready` | 60 s | 200 (503 = baza ili Redis) |
+| API readiness | HTTP(s) | `https://<api>/health/ready` | 60 s | 200 (503 = baza, Redis, audit anchor ili efektivni WebSocket adapter) |
 | Worker | HTTP(s) | `https://<api>/health/worker` | 120 s | 200 (503 = nema heartbeata 120 s) |
 | Worker push | Push | — | 120 s | vidi §4 |
 
@@ -84,7 +84,7 @@ Prazan `OPS_UPTIME_PUSH_URL` isključuje push. Dozvoljeni su samo `http(s)://` U
 |---|---|
 | Frontend | Coolify → frontend healthy? Traefik ignoriše kontejnere koji nisu healthy. |
 | API liveness | Backend kontejner pao ili se restartuje: logovi backenda. |
-| API readiness | `curl -s https://<api>/health/ready` pokazuje koji check pada (`database`, `redis`). |
+| API readiness | `curl -s https://<api>/health/ready` prikazuje fail check (`database`, `redis`, `auditAnchor`, `websocketAdapter`); za WS pogledaj `ws_adapter_redis_state`/reason u logu konkretne instance. |
 | Worker / Worker push | Coolify → worker healthy? `docker logs` workera; provjeri Redis. |
 | TLS | Coolify → Traefik → certifikati (Let's Encrypt obnova). |
 

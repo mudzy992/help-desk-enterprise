@@ -8,6 +8,7 @@ import type { SocketAuthenticationResult } from './socket-authentication.types';
 import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
 import { SessionTokenService } from '../authentication/session-token.service';
+import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
 import { WebsocketGateway } from './websocket.gateway';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -110,6 +111,7 @@ describe('WebsocketGateway', () => {
           provide: SessionTokenService,
           useValue: { isSocketSessionCurrent: jest.fn(async () => true) },
         },
+        WebsocketAdapterHealthService,
       ],
     }).compile();
     return moduleRef.get(WebsocketGateway);
@@ -160,6 +162,31 @@ describe('WebsocketGateway', () => {
     expect(JSON.stringify(socket.handshake)).not.toContain(SYNTHETIC_TOKEN);
     expect(typeof socket.data.requestId).toBe('string');
     expect(joinedLogOutput(logSpy, warnSpy)).not.toContain(SYNTHETIC_TOKEN);
+  });
+
+  it('keeps readiness failed when only the in-memory adapter is available', async () => {
+    const gateway = await createGateway();
+    const adapter = jest.fn();
+    gateway.afterInit({ use: jest.fn(), adapter } as unknown as Server);
+
+    expect(moduleRef?.get(WebsocketAdapterHealthService).isReady()).toBe(false);
+    expect(adapter).not.toHaveBeenCalled();
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'ws_adapter_redis_state=degraded fallback=in_memory reason=redis_unconfigured',
+    );
+  });
+
+  it('keeps readiness failed when the boot ACL probe denies adapter channels', async () => {
+    const gateway = await createGateway();
+    Object.assign(gateway, { adapterSubscriptionCheck: 'denied' });
+    const adapter = jest.fn();
+    gateway.afterInit({ use: jest.fn(), adapter } as unknown as Server);
+
+    expect(moduleRef?.get(WebsocketAdapterHealthService).isReady()).toBe(false);
+    expect(adapter).not.toHaveBeenCalled();
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'ws_adapter_redis_state=degraded fallback=in_memory reason=acl_denied',
+    );
   });
 
   it('rejects missing authentication without exposing credentials', async () => {

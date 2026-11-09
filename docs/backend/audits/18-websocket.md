@@ -12,7 +12,7 @@
 
 Baseline je ipak **4,88/10**. Četiri P1 nalaza ruše revocation i privacy granicu. Socket autentikacija se provjerava samo na handshakeu: logout, revoke-all, promjena lozinke, idle/session expiry i authz-version promjena ne prekidaju postojeću konekciju. Ticket sobe se autorizuju samo pri joinu i nikad revalidiraju, pa forward, promjena OU/grupe, confidential flag ili role revocation ne oduzima stream. Group/admin sobe se provjeravaju tek svakih pet minuta, a DB greška je fail-open. Konačno, legacy full-payload group emit je uključen po defaultu i šalje puni javni ticket/message payload svim članovima grupe iako članstvo samo po sebi nije dokaz pune ticket vidljivosti.
 
-Dodatni problemi su runtime Redis degradacija bez pouzdanog fallback/state signala, per-socket rate-limit koji se lako multiplicira, globalno emitovanje private setting key metadata, neawaitani room join, izostanak replay/catch-up ugovora i nedovoljna E2E revocation/cross-instance matrica. Nema P0. Popravke nisu implementirane prije završetka kompletnog audita.
+Dodatni problemi su bili runtime Redis degradacija bez pouzdanog fallback/state signala (`BA-websocket-05`), per-socket rate-limit koji se lako multiplicira, globalno emitovanje private setting key metadata, neawaitani room join, izostanak replay/catch-up ugovora i nedovoljna E2E revocation/cross-instance matrica. W6.48 implementira BA-05 kandidat; finding ostaje otvoren do push-triggered CI closeouta. Nema P0. Ostali nalazi nisu dio ovog paketa.
 
 ## 2. Scope i inventar
 
@@ -69,17 +69,22 @@ Room revalidation iterira socket po socket i radi dvije DB query grupe po konekc
 
 ## 8. Redis adapter i multi-instance ponašanje
 
-Pozitivno su odvojeni pub/sub client, error listeneri, guarded ignored Promisei, ACL probe i clean-close helper. Poznati ACL deny jasno ostavlja in-memory adapter i warning. Runbook dokumentuje sticky sessions i drain.
+Pozitivno ostaju odvojeni pub/sub klijenti, error listeneri, guarded ignored Promisei, boot ACL probe i close helper. Implementacijski dodatak za `BA-websocket-05` uvodi effective health state i runtime probe bez treće Redis konekcije:
 
-Za `unknown` se adapter ipak instalira. Kasniji ACL command reject se samo loguje; Socket.IO i dalje smatra Redis adapter aktivnim, nema prebacivanja na in-memory, health state promjene, reconnect validationa niti alarma zasnovanog na isporuci. Emit može nestati cross-instance dok boot log ostaje `ws_adapter_redis_ok=1`. In-memory fallback u horizontalnom deploymentu takođe nije funkcionalno siguran: lokalni user/ticket socket na drugoj instanci ne prima događaj.
+- nakon instalacije adaptera, periodična probe ponovo potvrđuje `PSUBSCRIBE socket.io#/#*` i `SUBSCRIBE` request/response kanale na stvarnom adapter subscriberu;
+- stvarni publisher šalje nonce na random `socket.io#/#<health-room>#` kanal, a ista adapter PSUBSCRIBE veza mora primiti `pmessageBuffer`. Soba nije joinovana; `@socket.io/redis-adapter` odbaci nepoznatu sobu prije decode-a, pa probe ne isporučuje aplikacijski događaj. Time se provjeravaju i room-channel `PUBLISH` ACL i efektivni pub/sub put;
+- command reject ili ioredis connection error odmah postavlja adapter u `degraded`; probe se ponavlja svakih 15 s, a stanje se vraća na `healthy` samo nakon punog uspješnog round-tripa. Runtime ne prebacuje Redis adapter u in-memory, jer bi to lokalizovalo sobe i tiho razdvojilo horizontalni cluster;
+- `GET /health/ready` uključuje javni, redigovani `checks.websocketAdapter`; `starting`/`degraded` daje 503. Adapter status se ponovo čita za svaki request, mimo postojećeg 5 s dependency cache-a, pa promjena stanja ne čeka TTL. Log prelaza zadržava `ws_adapter_redis_ok=0` i dodaje `ws_adapter_redis_state`/sigurni reason enum. Uptime Kuma/Coolify readiness i log alarmi su operativni signal.
 
-`onModuleDestroy` pokreće `void realtimeAdapter.close()` i ne awaita ga. NestJS lifecycle zato može nastaviti shutdown prije zatvaranja pub/sub konekcija, suprotno runbook tvrdnji o redoslijedu drain/close.
+Poznati boot-time ACL deny (ili nedostajuća Redis konfiguracija) i dalje ostavlja in-memory adapter samo kao API fail-open ponašanje; readiness je **crven**, a cross-instance isporuka se ne smatra funkcionalnom. Nakon ACL popravke ove boot-fallback instance treba rolling-restartati da instaliraju Redis adapter. Runtime kvar ne mijenja adapter u in-memory: ioredis nastavlja reconnect, ali događaji mogu biti izgubljeni dok je stanje degraded; nema durable replay/cursor garancije i klijenti se oporavljaju REST refreshom.
+
+`onModuleDestroy` i dalje pokreće `void realtimeAdapter.close()` i ne awaita ga. Shutdown redoslijed je zaseban otvoreni P3 `BA-websocket-12`, van ovog paketa.
 
 ## 9. Rate limit, resource bounds i observability
 
 Join/leave dijele 30/min po socketu; presence ima sličan per-socket limit. Payload parser prihvata bilo koji non-empty ticket ID bez maksimalne dužine/UUID validationa, pa limit ublažava ali ne uklanja nepotrebne DB queryje. Nema globalnog/user/IP connect limita niti max joined ticket rooms; jedan dugovječan socket može akumulirati proizvoljno mnogo autorizovanih ticket soba.
 
-Metrike broje clients i emit vrste te loguju adapter greške i join-limit rejection. Nedostaju: active rooms po useru/socketu, auth/session revocation lag, stale ticket room, room revalidation duration/overlap, Redis adapter effective delivery, reconnect/drop gap i private metadata emit. Logovi connection ID-a ne uključuju user ID, što je privatnosno konzervativno, ali incident korelacija mora koristiti siguran hashed/trace identifikator.
+Metrike broje clients i emit vrste. BA-05 dodatak sada loguje promjenu efektivnog Redis adapter stanja i izlaže ga u readinessu, ali ne mjeri end-to-end Socket.IO client acknowledgement niti reconnect/drop gap. Ostaju active rooms po useru/socketu, auth/session revocation lag, stale ticket room, room revalidation duration/overlap i private metadata emit. Logovi connection ID-a ne uključuju user ID, što je privatnosno konzervativno, ali incident korelacija mora koristiti siguran hashed/trace identifikator.
 
 ## 10. Testovi i E2E dokaz
 
@@ -92,7 +97,7 @@ npm test -- --runInBand --runTestsByPath $(find src/modules/websocket -name '*.s
 
 Rezultat: **16 suiteova ukupno; 10 prošlo, 6 compile-blocked; 44/44 izvršena testa prošla**. Blokada je nepotpun generated Prisma client: nedostaje `generated/prisma/enums` i `groupMember`/`userRole` delegati. Prošli testovi pokrivaju auth parsing/cookie origin, room helper/revalidation, local limiter, Redis adapter helper, emit counter i dio broadcast logike.
 
-E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revocation. E2E 04 primarno provjerava integration job i ticket stranicu, ne socket delivery. Nema handshake logout/revoke/expiry testa, ticket access revoke dok je soba otvorena, group/admin immediate revoke, legacy foreign-group disclosure, cross-instance Redis delivery/failure, reconnect replay ni multi-socket rate testa.
+E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revocation. E2E 04 primarno provjerava integration job i ticket stranicu, ne socket delivery. BA-05 ciljane unit suite sada pokrivaju adapter-health round-trip preko fake ioredis `pmessageBuffer`, kasnije `PUBLISH`/`PSUBSCRIBE`/`SUBSCRIBE` greške, fail-closed readiness i recovery; sandbox nema live Redis pa nije pokrenut stvarni two-instance acceptance. I dalje nema handshake logout/revoke/expiry testa, ticket access revoke dok je soba otvorena, group/admin immediate revoke, legacy foreign-group disclosure, live cross-instance Redis delivery/failure E2E, reconnect replay ni multi-socket rate testa.
 
 ## 11. Pozitivni nalazi
 

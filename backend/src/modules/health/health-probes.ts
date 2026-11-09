@@ -9,7 +9,12 @@ export type ProbeState = 'ok' | 'fail';
 
 export type ReadinessResult = {
   readonly status: ProbeState;
-  readonly checks: { readonly database: ProbeState; readonly redis: ProbeState; readonly auditAnchor: ProbeState };
+  readonly checks: {
+    readonly database: ProbeState;
+    readonly redis: ProbeState;
+    readonly auditAnchor: ProbeState;
+    readonly websocketAdapter: ProbeState;
+  };
 };
 
 export type WorkerProbeResult = {
@@ -63,17 +68,41 @@ async function probe(work: () => Promise<unknown>, timeoutMs: number): Promise<P
   }
 }
 
+export function withWebsocketAdapterHealth(
+  cached: ReadinessResult,
+  ready: boolean,
+): ReadinessResult {
+  const websocketAdapter: ProbeState = ready ? 'ok' : 'fail';
+  const checks = { ...cached.checks, websocketAdapter };
+  return {
+    status: Object.values(checks).every((state) => state === 'ok') ? 'ok' : 'fail',
+    checks,
+  };
+}
+
 export async function probeReadiness(dependencies: {
   readonly pingDatabase: () => Promise<unknown>;
   readonly pingRedis: () => Promise<unknown>;
   readonly auditAnchorReady?: () => boolean;
+  readonly websocketAdapterReady?: () => boolean;
 }): Promise<ReadinessResult> {
   const [database, redis] = await Promise.all([
     probe(dependencies.pingDatabase, readinessTimeouts.databaseMs),
     probe(dependencies.pingRedis, readinessTimeouts.redisMs),
   ]);
   const auditAnchor = dependencies.auditAnchorReady?.() === false ? 'fail' : 'ok';
-  return { status: database === 'ok' && redis === 'ok' && auditAnchor === 'ok' ? 'ok' : 'fail', checks: { database, redis, auditAnchor } };
+  const websocketAdapter =
+    dependencies.websocketAdapterReady?.() === false ? 'fail' : 'ok';
+  return {
+    status:
+      database === 'ok' &&
+      redis === 'ok' &&
+      auditAnchor === 'ok' &&
+      websocketAdapter === 'ok'
+        ? 'ok'
+        : 'fail',
+    checks: { database, redis, auditAnchor, websocketAdapter },
+  };
 }
 
 export function evaluateWorkerHeartbeat(input: {

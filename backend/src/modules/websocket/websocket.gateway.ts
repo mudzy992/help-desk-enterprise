@@ -32,6 +32,11 @@ import {
 import { startSocketSessionInvalidationSubscriber } from './socket-session-invalidation-subscriber';
 import { startSocketSessionRevalidation } from './socket-session-revalidation';
 import { userRoomName } from './ticket-socket-rooms';
+import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
+import type {
+  WebsocketAdapterHealthReason,
+  WebsocketAdapterHealthState,
+} from './websocket-adapter-health.types';
 import {
   startWebsocketEmitCountReporter,
 } from './websocket-emit-counter';
@@ -65,6 +70,7 @@ export class WebsocketGateway
   private stopRoomRevalidation: (() => void) | null = null;
   private stopSessionRevalidation: (() => void) | null = null;
   private stopSessionInvalidationSubscriber: (() => void) | null = null;
+  private stopRealtimeAdapterHealthMonitor: (() => void) | null = null;
   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
 
   /**
@@ -78,9 +84,10 @@ export class WebsocketGateway
     private readonly socketAuthenticationService: SocketAuthenticationService,
     private readonly socketGroupMembershipService: SocketGroupMembershipService,
     private readonly sessionTokenService: SessionTokenService,
-    // Optional on purpose: the unit specs build the gateway without the global
-    // Redis module. No configuration means no adapter — the in-memory one stays,
-    // which is exactly the degraded mode Phase 3.1 asks for.
+    private readonly adapterHealth: WebsocketAdapterHealthService,
+    // Optional on purpose: isolated gateway specs build without the global Redis
+    // module. A missing runtime configuration is still reported as degraded;
+    // in-memory mode is not an effective horizontal fallback.
     @Optional()
     @Inject(redisTokens.configuration)
     private readonly redisConfiguration?: RedisConfiguration,
@@ -92,7 +99,9 @@ export class WebsocketGateway
    * the adapter decision is already known when it is applied.
    */
   async onModuleInit(): Promise<void> {
+    this.setAdapterHealth('starting', 'startup');
     if (this.redisConfiguration === undefined) {
+      this.setAdapterHealth('degraded', 'redis_unconfigured');
       return;
     }
     this.adapterSubscriptionCheck = await checkRealtimeAdapterSubscriptions(
@@ -150,38 +159,75 @@ export class WebsocketGateway
     this.stopSessionRevalidation = null;
     this.stopSessionInvalidationSubscriber?.();
     this.stopSessionInvalidationSubscriber = null;
+    this.stopRealtimeAdapterHealthMonitor?.();
+    this.stopRealtimeAdapterHealthMonitor = null;
     void this.realtimeAdapter?.close();
     this.realtimeAdapter = null;
   }
 
   /**
-   * Phase 3.1 (plan §3.1): rooms must mean the same thing on every instance, so
-   * the adapter is installed before the first client joins. Nothing here touches
-   * the handshake or the room rules — only how an emit travels between processes.
+   * Rooms must mean the same thing on every instance, so install the adapter
+   * before the first client joins. Runtime Redis loss keeps the Redis adapter
+   * installed for ioredis recovery; switching to local rooms would silently split
+   * the cluster. Readiness stays failed until a live Pub/Sub probe passes.
    */
   private applyRealtimeAdapter(server: Server): void {
-    // An ACL that denies the channel would kill the process on the adapter's
-    // first `PSUBSCRIBE` (the adapter does not await it), so a known denial is
-    // answered here instead: in-memory adapter, one explicit log line, API up.
     if (this.adapterSubscriptionCheck === 'denied') {
+      this.setAdapterHealth('degraded', 'acl_denied', false);
       this.logger.warn(
-        `${formatWebsocketAdapterStatus(false)} fallback=in_memory reason=acl_denied`,
+        `${formatWebsocketAdapterStatus(false, 'degraded')} fallback=in_memory reason=acl_denied`,
       );
       return;
     }
-    const handle =
-      this.redisConfiguration === undefined
-        ? null
-        : createWebsocketRedisAdapter(this.redisConfiguration, this.logger);
+    if (this.redisConfiguration === undefined) {
+      this.setAdapterHealth('degraded', 'redis_unconfigured', false);
+      this.logger.warn(
+        `${formatWebsocketAdapterStatus(false, 'degraded')} fallback=in_memory reason=redis_unconfigured`,
+      );
+      return;
+    }
+    const handle = createWebsocketRedisAdapter(
+      this.redisConfiguration,
+      this.logger,
+      (reason) => this.setAdapterHealth('degraded', reason),
+    );
     if (handle === null) {
+      this.setAdapterHealth('degraded', 'client_creation_failed', false);
       this.logger.warn(
-        `${formatWebsocketAdapterStatus(false)} fallback=in_memory`,
+        `${formatWebsocketAdapterStatus(false, 'degraded')} fallback=in_memory reason=client_creation_failed`,
       );
       return;
     }
-    server.adapter(handle.adapter);
-    this.realtimeAdapter = handle;
-    this.logger.log(formatWebsocketAdapterStatus(true));
+    try {
+      server.adapter(handle.adapter);
+      this.realtimeAdapter = handle;
+      this.stopRealtimeAdapterHealthMonitor = handle.startHealthMonitor(
+        (state, reason) => this.setAdapterHealth(state, reason),
+      );
+    } catch (error) {
+      this.setAdapterHealth('degraded', 'adapter_install_failed');
+      this.logger.warn(
+        `ws_adapter_redis_install_failed reason=${error instanceof Error ? error.message : String(error)}`,
+      );
+      void handle.close();
+    }
+  }
+
+  private setAdapterHealth(
+    state: WebsocketAdapterHealthState,
+    reason: WebsocketAdapterHealthReason,
+    logTransition = true,
+  ): void {
+    const changed = this.adapterHealth.setState(state, reason);
+    if (!changed || !logTransition) {
+      return;
+    }
+    const message = `${formatWebsocketAdapterStatus(state === 'healthy', state)} reason=${reason}`;
+    if (state === 'healthy') {
+      this.logger.log(message);
+      return;
+    }
+    this.logger.warn(message);
   }
 
   handleConnection(client: Socket): void {
