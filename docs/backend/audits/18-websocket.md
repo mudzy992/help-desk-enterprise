@@ -382,3 +382,15 @@ Detalji: [paket 165 / W6.50](../implementation/165-websocket-07-private-settings
 - `BA-websocket-08` ostaje **otvoren** do ciljanih testova i CI potvrde. Nema schema promjene, migracije ni zatvaranja susjednih nalaza.
 
 Detalji: [paket 166 / W6.51](../implementation/166-websocket-08-await-room-readiness.md).
+
+## 27. W6.52 implementation status — BA-websocket-09 (2026-10-29)
+
+`BA-websocket-09` je naredni WebSocket P2. Ovaj paket formalizuje reconnect oporavak preko postojećih REST snapshot API-ja za aktivne ticket i notification prikaze; ne dodaje durable event log, socket sequence, ack ili replay cursor i **ne zatvara finding**.
+
+- Pri kasnijem socket reconnectu, `HelpdeskSocketHost` invalidira samo aktivne ticket list/count, group inbox, dashboard/SLA i notifications query projekcije. React Query radi aktivni REST refetch; ako je tab skriven, invalidacija se odgađa dok tab ne postane vidljiv.
+- Otvoreni inbox i dashboard activity feed ponovo čitaju prvu REST cursor stranicu nakon reconnecta, uz zadržavanje trenutnog unread filtera; skriveni notification panel ne pokreće list fetch. Unread count i dalje se osvježava pri connectu.
+- Ticket detail rejoin-a svoju autorizovanu ticket sobu i ponovo učitava REST snapshot na connectu; regression test to eksplicitno potvrđuje.
+- Ovo je snapshot catch-up ugovor, ne garancija replaya svakog tranzijentnog događaja niti redoslijeda. Presence ostaje best-effort; event ID/sequence/durable replay i dalje nisu implementirani.
+- Ciljani frontend testovi i type/lint provjere prolaze; CI status nije potvrđen. `BA-websocket-09` ostaje **otvoren** do CI i acceptance potvrde. Nema schema promjene, migracije ili promjene susjednih nalaza.
+
+Detalji: [paket 167 / W6.52](../implementation/167-websocket-09-rest-snapshot-catch-up.md).

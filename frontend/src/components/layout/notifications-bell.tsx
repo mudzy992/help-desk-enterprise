@@ -17,9 +17,9 @@ export function NotificationsBell() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { session } = useSession();
-  const inbox = useInboxNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  const inbox = useInboxNotifications({ isListVisible: isOpen });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 

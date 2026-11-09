@@ -31,7 +31,13 @@ import {
  * only runs as a fallback while the socket is not connected. Inbox pages use a
  * stable server cursor; the in-memory list contains only pages the user opened.
  */
-export function useInboxNotifications() {
+export type UseInboxNotificationsOptions = {
+  readonly isListVisible?: boolean;
+};
+
+export function useInboxNotifications({
+  isListVisible = false,
+}: UseInboxNotificationsOptions = {}) {
   const { session } = useSession();
   const [items, setItems] = useState<readonly InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -156,6 +162,7 @@ export function useInboxNotifications() {
   }, [session]);
 
   const previousSocketHealth = useRef(socketHealth);
+  const hasConnectedBefore = useRef(socketHealth === "connected");
   useVisibilityAwarePolling({
     poll: refreshUnread,
     intervalMs: unreadCountFallbackIntervalMs,
@@ -168,10 +175,32 @@ export function useInboxNotifications() {
       previousSocketHealth.current !== "connected" && socketHealth === "connected";
     previousSocketHealth.current = socketHealth;
     if (!reconnected || session === null) return;
+    const hadConnectedBefore = hasConnectedBefore.current;
+    hasConnectedBefore.current = true;
     void refreshUnread().catch((error) =>
       reportClientError("notifications.unread_reconnect_failed", error, readApiRequestId(error)),
     );
-  }, [refreshUnread, session, socketHealth]);
+    if (hadConnectedBefore && isListVisible && isDocumentVisible()) {
+      void refreshList();
+    }
+  }, [isListVisible, refreshList, refreshUnread, session, socketHealth]);
+
+  useEffect(() => {
+    if (!isListVisible || typeof document === "undefined") return;
+    const refreshVisibleInboxOnFocus = () => {
+      if (
+        document.visibilityState === "visible" &&
+        socketHealth === "connected" &&
+        hasConnectedBefore.current
+      ) {
+        void refreshList();
+      }
+    };
+    document.addEventListener("visibilitychange", refreshVisibleInboxOnFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshVisibleInboxOnFocus);
+    };
+  }, [isListVisible, refreshList, socketHealth]);
 
   useEffect(() => {
     if (session === null) {
@@ -215,14 +244,10 @@ export function useInboxNotifications() {
       ticketSocketEvents.notificationUnreadCount,
       applyCount,
     );
-    const stopConnect = subscribeSocketEvent(socket, "connect", () => {
-      void refreshUnread();
-    });
     return () => {
       stopCreated();
       stopRead();
       stopCount();
-      stopConnect();
       setSocket(null);
       releaseHelpdeskSocket();
     };
@@ -271,6 +296,10 @@ export function useInboxNotifications() {
     markOneRead,
     markAllRead,
   };
+}
+
+function isDocumentVisible(): boolean {
+  return typeof document === "undefined" || document.visibilityState === "visible";
 }
 
 function appendUniqueNotifications(

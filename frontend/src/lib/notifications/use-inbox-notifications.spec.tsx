@@ -13,12 +13,17 @@ const apiMocks = vi.hoisted(() => ({
 const sessionState = vi.hoisted(() => ({
   session: { principal: { subjectId: "user-1" } },
 }));
+const socketHealthState = vi.hoisted(() => ({
+  value: "disconnected" as "connected" | "disconnected",
+}));
 
 vi.mock("@/lib/session/use-session", () => ({ useSession: () => sessionState }));
 vi.mock("@/lib/async/use-visibility-aware-polling", () => ({
   useVisibilityAwarePolling: vi.fn(),
 }));
-vi.mock("@/lib/realtime/use-socket-health", () => ({ useSocketHealth: () => "disconnected" }));
+vi.mock("@/lib/realtime/use-socket-health", () => ({
+  useSocketHealth: () => socketHealthState.value,
+}));
 vi.mock("@/services/helpdesk-socket", () => ({
   acquireHelpdeskSocket: () => ({}),
   releaseHelpdeskSocket: vi.fn(),
@@ -33,6 +38,11 @@ afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
   apiMocks.listNotifications.mockReset();
+  socketHealthState.value = "disconnected";
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    value: "visible",
+  });
 });
 
 describe("useInboxNotifications pagination", () => {
@@ -151,6 +161,91 @@ describe("useInboxNotifications pagination", () => {
 
     expect(result.current.items.map((item) => item.id)).toEqual(["fresh"]);
     expect(result.current.hasMore).toBe(false);
+  });
+
+  it("refreshes the visible notification page after a reconnect", async () => {
+    socketHealthState.value = "connected";
+    apiMocks.getNotificationUnreadCount.mockResolvedValue({ unreadCount: 2 });
+    apiMocks.listNotifications.mockResolvedValue(
+      page([notification("after-reconnect")], false, null, 2),
+    );
+    const { rerender, result } = renderHook(
+      ({ isListVisible }) => useInboxNotifications({ isListVisible }),
+      { initialProps: { isListVisible: true } },
+    );
+
+    await act(async () => {
+      socketHealthState.value = "disconnected";
+      rerender({ isListVisible: true });
+    });
+    await act(async () => {
+      socketHealthState.value = "connected";
+      rerender({ isListVisible: true });
+    });
+
+    await waitFor(() =>
+      expect(result.current.items.map((item) => item.id)).toEqual(["after-reconnect"]),
+    );
+    expect(apiMocks.getNotificationUnreadCount).toHaveBeenCalled();
+  });
+
+  it("catches up a visible notification page after a background reconnect", async () => {
+    socketHealthState.value = "connected";
+    apiMocks.getNotificationUnreadCount.mockResolvedValue({ unreadCount: 1 });
+    apiMocks.listNotifications.mockResolvedValue(
+      page([notification("visible-again")], false, null, 1),
+    );
+    const { rerender, result } = renderHook(
+      ({ isListVisible }) => useInboxNotifications({ isListVisible }),
+      { initialProps: { isListVisible: true } },
+    );
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+
+    await act(async () => {
+      socketHealthState.value = "disconnected";
+      rerender({ isListVisible: true });
+    });
+    await act(async () => {
+      socketHealthState.value = "connected";
+      rerender({ isListVisible: true });
+    });
+    expect(apiMocks.listNotifications).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await waitFor(() =>
+      expect(result.current.items.map((item) => item.id)).toEqual(["visible-again"]),
+    );
+  });
+
+  it("does not fetch the notification page on reconnect while the list is hidden", async () => {
+    socketHealthState.value = "connected";
+    apiMocks.getNotificationUnreadCount.mockResolvedValue({ unreadCount: 0 });
+    const { rerender } = renderHook(
+      ({ isListVisible }) => useInboxNotifications({ isListVisible }),
+      { initialProps: { isListVisible: false } },
+    );
+
+    await act(async () => {
+      socketHealthState.value = "disconnected";
+      rerender({ isListVisible: false });
+    });
+    await act(async () => {
+      socketHealthState.value = "connected";
+      rerender({ isListVisible: false });
+    });
+
+    expect(apiMocks.listNotifications).not.toHaveBeenCalled();
+    expect(apiMocks.getNotificationUnreadCount).toHaveBeenCalled();
   });
 });
 

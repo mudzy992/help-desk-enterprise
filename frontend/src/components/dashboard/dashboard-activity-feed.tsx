@@ -32,7 +32,9 @@ export function DashboardActivityFeed() {
   // instance still has its own React state because the hook mounts in two
   // places, but socket reference counting in `acquireHelpdeskSocket` keeps
   // only one live socket connection.
-  const { items, listErrorKey, listRequestId, refreshList } = useInboxNotifications();
+  const { items, listErrorKey, listRequestId, refreshList } = useInboxNotifications({
+    isListVisible: true,
+  });
 
   useEffect(() => {
     void refreshList();
