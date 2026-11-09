@@ -15,7 +15,17 @@
 
 ## 2. Stanje implementacije
 
-### W6.46 / `BA-announcements-03` (P1) — finding closeout
+### W6.47 / `BA-announcements-04` (P1) — finding closeout
+
+`BA-announcements-04` zatvoren je na finding nivou na kod/test SHA [`598cdc7`](https://github.com/mudzy992/help-desk-enterprise/commit/598cdc797ee6bc287ac5141305e38c3d627687fe). `report()` koristi DB agregate; pending identiteti se vraćaju kroz announcement-bound ID-keyset stranice do 200 bez e-maila; CSV se streama kroz batcheve do 500 uz preflight i runtime budžet od 50.000 redova. Report i export i dalje koriste trenutnu publiku. P2 `BA-announcements-12` — publish-time membership/report konzistentnost — i P3 `BA-announcements-18` nisu zatvoreni.
+
+Lokalno su prošli targeted backend Jest **2 suitea / 12 testova** uz `diagnostics:false`, targeted ESLint, frontend Vitest **3/3**, ESLint, TypeScript build, BS/EN i18n paritet (**8.964 ključa**), Prettier, production build, wiring guard **6/6** i manifest od **620 ruta**. Lokalni Prisma generate nije mogao preuzeti `schema-engine` zbog sandbox mrežnog ograničenja; zato lokalni backend type-check nije potvrđen.
+
+Finalni CI [`42579038875`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42579038875) je **success** za generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, production-image/supply-chain i CI gate. E2E install/critical, read-only inventory i conditional high/critical enforcement bili su `skipped`. Perf nije pokrenut na W6.47 SHA; posljednji Perf [`42530385320`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42530385320) ostaje **failed** `2.123 > 2.1`, bez BA-04 atribucije i bez promjene praga. Nema schema izmjene/migracije, target-DB upotrebe, PR-a, mergea ili deploymenta.
+
+Val 6 je **51/109 zatvorenih, 58 otvorenih (0 P1 / 41 P2 / 17 P3)**; source/plan **510/182**, globalni registar **520/172**; deset ranijih statusnih razlika ostaje netaknuto. Nema preostalih Val 6 P1. P2/P3, ostali announcement findings i BA-15 full critical-flow acceptance ostaju pending i izvan scopea. Val 6 nije završen. Detalji: [audit 28, §20](28-announcements.md#20-w647-closeout--ba-announcements-04) / [paket 162](../implementation/162-announcements-04-bounded-report-csv-export.md).
+
+### Historijski W6.46 / `BA-announcements-03` (P1) — finding closeout
 
 `BA-announcements-03` zatvoren je na finalnom kod/test SHA [`aa03659`](https://github.com/mudzy992/help-desk-enterprise/commit/aa036595f9ec15bcf1389b98cd48a3d023b1a42f). Publish/reminder in-app fan-out sada prolazi matching audience kroz stabilne keyset stranice od 1.000 korisnika bez ukupnog capa; completion/reminder markeri se claimuju tek nakon prolaza svih stranica. Reminder zadržava acknowledgement filter, a durable per-recipient retry/outbox ostaje zasebni, otvoreni BA-08 scope.
 

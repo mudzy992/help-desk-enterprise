@@ -69,7 +69,7 @@ test("W7.11 BA-assets-11 closeout je zatvoren u izvornom registry planu", async 
   );
 });
 
-test("W6.38–W6.40 zatvaraju BA-inbound-email-01/02/03, a BA-04 ostaje P2 otvoren", async () => {
+test("W6.38–W6.40 zatvaraju inbound-email-01/02/03, a inbound-email-04 ostaje P2 otvoren", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, severity, status }) => [id, { source, severity, status }]));
   for (const id of ["BA-inbound-email-01", "BA-inbound-email-02", "BA-inbound-email-03"]) {
@@ -86,17 +86,29 @@ test("W6.38–W6.40 zatvaraju BA-inbound-email-01/02/03, a BA-04 ostaje P2 otvor
   });
 });
 
-test("W6.46 zatvara samo BA-announcements-03, a BA-04 ostaje otvoren P1", async () => {
+test("W6.47 zatvara BA-announcements-04, a P2/P3 ostaju otvoreni", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, severity, status }) => [id, { source, severity, status }]));
-  assert.deepEqual(byId.get("BA-announcements-03"), {
+  for (const [id, closeout] of [
+    ["BA-announcements-01", "W6.44"],
+    ["BA-announcements-02", "W6.45"],
+    ["BA-announcements-03", "W6.46"],
+    ["BA-announcements-04", "W6.47"],
+  ]) {
+    assert.deepEqual(byId.get(id), {
+      source: "28-announcements.md",
+      severity: "P1",
+      status: `zatvoreno (${closeout})`,
+    });
+  }
+  assert.deepEqual(byId.get("BA-announcements-12"), {
     source: "28-announcements.md",
-    severity: "P1",
-    status: "zatvoreno (W6.46)",
+    severity: "P2",
+    status: "otvoreno",
   });
-  assert.deepEqual(byId.get("BA-announcements-04"), {
+  assert.deepEqual(byId.get("BA-announcements-18"), {
     source: "28-announcements.md",
-    severity: "P1",
+    severity: "P3",
     status: "otvoreno",
   });
 });
