@@ -30,6 +30,7 @@ import type {
 import { loadOpenIncidentImpacts } from "./load-open-incident-impacts";
 import { toServiceResponse } from "./to-service-response";
 import { ServiceCatalogError } from "./service-catalog.error";
+import { parseCompletedSteps } from "../service-onboarding/parse-onboarding-json";
 
 export async function listServices(
   prisma: PrismaService,
@@ -160,6 +161,11 @@ export async function listServices(
       where: pageWhere,
       orderBy: [{ name: "asc" }, { id: "asc" }],
       take: take + 1,
+      relationLoadStrategy: "join",
+      include: {
+        category: { select: { name: true, sortOrder: true } },
+        onboarding: { select: { status: true, currentStep: true, completedSteps: true } },
+      },
     }),
   ]);
   const hasMore = records.length > take;
@@ -177,11 +183,20 @@ export async function listServices(
     countOpenTicketsByService(prisma, serviceIds),
     loadOpenIncidentImpacts(prisma, serviceIds),
     loadActiveFormSummaries(prisma, serviceIds),
-    loadServiceCategoryLabels(
-      prisma,
-      pageRecords.map((record) => record.categoryId),
-    ),
-    loadServiceOnboardingSummaries(prisma, serviceIds),
+    // Some test doubles predate relation includes. Real Prisma returns both
+    // relations in the same joined query; fall back only for those delegates.
+    pageRecords.some((record) => record.category === undefined)
+      ? loadServiceCategoryLabels(prisma, pageRecords.map((record) => record.categoryId))
+      : Promise.resolve(new Map(pageRecords.map((record) => [record.categoryId, record.category]))),
+    pageRecords.some((record) => record.onboarding === undefined)
+      ? loadServiceOnboardingSummaries(prisma, serviceIds)
+      : Promise.resolve(new Map(pageRecords.flatMap((record) =>
+          record.onboarding === null ? [] : [[record.id, {
+            status: record.onboarding.status,
+            currentStep: record.onboarding.currentStep,
+            completedSteps: parseCompletedSteps(record.onboarding.completedSteps),
+          }] as const],
+        ))),
   ]);
   const items = pageRecords.map((record): ServiceResponse => ({
     ...toServiceResponse(

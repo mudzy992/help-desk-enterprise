@@ -21,7 +21,7 @@ const servicePageSize = 100;
 const categoryPageSize = 100;
 const formPageSize = 50;
 const downtimePageSize = 100;
-const maximumServicePageQueries = 10;
+const maximumServicePageQueries = 8;
 const stamp = `${Date.now()}${process.pid}`;
 const categorySlugPrefix = `ba10-pagination-${stamp}`;
 const serviceSlugPrefix = `ba10-service-${stamp}-`;
@@ -235,6 +235,8 @@ describeIfDatabase(
         Buffer.byteLength(JSON.stringify(page), "utf8"),
       ).toBeLessThanOrEqual(serviceListMaximumResponseBytes);
       const projectedService = page.items.find((item) => item.id === serviceId);
+      expect(projectedService?.category).toEqual({ name: `BA-10 category 0000 ${stamp}`, sortOrder: 100_000 });
+      expect(projectedService?.onboarding).toBeNull();
       expect(projectedService?.activeForm).toEqual({
         activeFormVersionRef: expect.any(String),
         version: fixtureFormVersionCount,

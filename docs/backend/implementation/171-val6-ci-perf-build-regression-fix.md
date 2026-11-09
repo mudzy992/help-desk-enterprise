@@ -1,6 +1,6 @@
 # W6 CI/Perf regresija — ispravka builda
 
-**Status:** lokalna ispravka; konačni CI/Perf dokaz tek nakon push-triggered runova. Datum: 2026-10-29.
+**Status:** build ispravljen na `591f87c`; Perf query-budget follow-up čeka dokaz na sljedećem pushu. Datum: 2026-10-29.
 
 - CI [42680779580](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42680779580) (`ec35492`) i [42681847238](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42681847238) (`e2e00e0`) pali su na backend build-u: anotacije navode tri TS2540 greške zbog mutiranja readonly sweep summary-ja u BA-websocket-10. Popravka zadržava javni readonly ugovor i koristi mutabilni interni tip.
 - CI [42687805115](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42687805115) (`7d7d5dc`) imao je iste tri greške i dodatni TS2783 na dvostrukom `updatedAt` u BA-integration-queue-05. Uslov isteka je preoblikovan bez dupliranog polja uz očuvan CAS za lease i timestamp. Frontend Prettier prijavio je `integration-queue-table.tsx`; taj fajl je formatiran.
@@ -8,3 +8,11 @@
 - Perf [42687805136](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42687805136) (`7d7d5dc`) pao je na `Build the API`; k6 i query budget nisu izvršeni. To nije perf threshold failure niti dokaz prolaznog perfa. Raw log je nedostupan (EOF). Novi run treba posebno provjeriti.
 
 Lokalno: stvarni ts-jest type diagnostics za websocket suite **18/18 passed**; šest ciljanih suiteova **54/54 passed** uz Prisma stubove i diagnostics off za preostale suiteove; targeted ESLint, frontend Vitest **2/2**, frontend `tsc -b` i kompletni frontend Prettier check su prošli. Lokalni `prisma generate` nije uspio zbog nedostupnog `binaries.prisma.sh`; puni backend `tsc --noEmit` je blokiran nedostajućim generated Prisma klijentom (4.046 izlaznih redova), ali više ne prijavljuje četiri navedene TS2540/TS2783 dijagnostike. To nije generated-Prisma build dokaz. Nisu ručno pokretani full CI/E2E ni Perf. Ne mijenjaju se pragovi ni statusi nalaza; nema migracije, PR-a, mergea ni deploymenta.
+
+## Rezultat prvog push-triggered follow-upa i Perf optimizacija
+
+Na `591f87c` automatski CI [42695227727](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42695227727) prošao je generated-Prisma backend build/lint/full Jest, frontend format/build/test, Docs i container job (conditional image enforcement skipped); PostgreSQL+Redis integration još je bio u toku pri bilježenju, pa ukupni CI nije proglašen zelenim. E2E/install/inventory su skipped.
+
+Perf [42695227938](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42695227938) prošao je API build i k6 thresholds, ali **failed** na globalnom query budgetu: prosjek **2.125 > 2.1**, 50.644 zahtjeva, p95 3, max 34. `/services` je imao 10 SQL upita za 1.262 zahtjeva; trace prikazuje odvojene ServiceCategory i ServiceOnboarding upite. Ne mijenja se prag. Follow-up učitava samo potrebne category/onboarding projekcije kao Prisma `relationLoadStrategy: join` u istom ograničenom service page readu, zadržava postojeće authorization filtre, broj, cursor i parse validaciju. Test-only delegati bez uključenih relacija zadržavaju prethodni fallback. Cilj je ukloniti dvije round-trip SQL naredbe po nepraznoj stranici; stvarni efekat tek treba izmjeriti u novom Perf runu.
+
+Lokalno 3 ciljana service-catalog Jest suitea / 20 testova prošla su uz Prisma stub i `diagnostics:false`; targeted ESLint je passed. PostgreSQL pagination integration test dopunjen je provjerom category/onboarding i strožom granicom od 8 queryja, ali nije lokalno izvršen bez generated Prisma/baze. Ne tvrdi se zeleni Perf ni integration dok novi run ne završi. Nema promjene schema, migracije, praga, PR-a, mergea ili deploymenta.

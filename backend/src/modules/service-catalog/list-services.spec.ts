@@ -8,6 +8,38 @@ jest.mock("../../common/prisma/prisma.service", () => ({
 }));
 
 describe("GET /services cursor pagination", () => {
+  it("uses joined category and onboarding data without separate relation reads", async () => {
+    const memory = createInMemoryServiceCatalogPrisma();
+    const service = new ServiceCatalogService(
+      memory.prisma as never,
+      { load: async () => defaultServiceLifecycleConfiguration } as never,
+    );
+    const category = await service.createCategory({ name: "IT", slug: "it" });
+    await service.create({ name: "VPN", slug: "vpn", categoryId: category.id });
+    const serviceDelegate = memory.prisma.service as unknown as { findMany: (args: unknown) => Promise<Record<string, unknown>[]> };
+    const categoryDelegate = memory.prisma.serviceCategory as unknown as { findMany: (...args: never[]) => Promise<unknown> };
+    const onboardingDelegate = memory.prisma.serviceOnboarding as unknown as { findMany: (...args: never[]) => Promise<unknown> };
+    const originalFindMany = serviceDelegate.findMany.bind(serviceDelegate);
+    const findMany = jest.spyOn(serviceDelegate, "findMany").mockImplementation(async (args) => {
+      const records = await originalFindMany(args);
+      return records.map((record) => ({
+        ...record,
+        category: { name: "IT", sortOrder: 0 },
+        onboarding: { status: "IN_PROGRESS", currentStep: "SERVICE", completedSteps: ["SERVICE"] },
+      }));
+    });
+    const categoryRead = jest.spyOn(categoryDelegate, "findMany");
+    const onboardingRead = jest.spyOn(onboardingDelegate, "findMany");
+    const page = await service.list({ visibleLifecycles: ["DRAFT"] });
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      relationLoadStrategy: "join",
+      include: expect.objectContaining({ category: expect.any(Object), onboarding: expect.any(Object) }),
+    }));
+    expect(page.items[0]).toMatchObject({ category: { name: "IT", sortOrder: 0 }, onboarding: { status: "IN_PROGRESS", currentStep: "SERVICE", completedSteps: ["SERVICE"] } });
+    expect(categoryRead).not.toHaveBeenCalled();
+    expect(onboardingRead).not.toHaveBeenCalled();
+  });
+
   it("returns a stable name/id ordered page, total, hasMore, and a continuation cursor", async () => {
     const memory = createInMemoryServiceCatalogPrisma();
     const service = new ServiceCatalogService(
