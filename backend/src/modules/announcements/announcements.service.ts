@@ -930,7 +930,7 @@ export class AnnouncementsService {
     readonly firstPage: ReportCsvMember[];
   }): AsyncGenerator<string> {
     let page = input.firstPage;
-    let requestedTake = announcementLimits.reportCsvBatchSize;
+    let requestedTake: number = announcementLimits.reportCsvBatchSize;
     let exportedRows = 0;
     try {
       // BOM so spreadsheet programs read UTF-8 (č, ć, š, ž, đ).
