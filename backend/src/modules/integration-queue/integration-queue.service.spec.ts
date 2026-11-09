@@ -47,6 +47,7 @@ describe('IntegrationQueueService', () => {
       }),
       findById: jest.fn().mockResolvedValue(overrides?.existing ?? dlqJob),
       resetForAdminRetry: jest.fn().mockResolvedValue(pending),
+      findOldestDispatchable: jest.fn().mockResolvedValue(null),
     };
     const settingsService = {
       getSetting: jest.fn(async (key: string) => {
@@ -190,6 +191,24 @@ describe('IntegrationQueueService', () => {
     await expect(service.getWorkerStatus()).resolves.toEqual({
       status: 'unknown',
       lastHeartbeatAt: null,
+      dispatchableBacklog: { status: 'available', oldestCreatedAt: null },
+    });
+  });
+
+  it('reports dispatchable backlog independently of a fresh process heartbeat', async () => {
+    const { service, repository } = createService({ redisGet: jest.fn().mockResolvedValue(new Date().toISOString()) });
+    repository.findOldestDispatchable.mockResolvedValue({ createdAt: new Date('2026-01-01T00:00:00Z') });
+    await expect(service.getWorkerStatus()).resolves.toMatchObject({
+      status: 'active', dispatchableBacklog: { status: 'available', oldestCreatedAt: '2026-01-01T00:00:00.000Z' },
+    });
+    expect(repository.findOldestDispatchable).toHaveBeenCalledWith(expect.any(Date));
+  });
+
+  it('reports an unknown backlog rather than an empty queue when the database read fails', async () => {
+    const { service, repository } = createService({ redisGet: jest.fn().mockRejectedValue(new Error('redis unavailable')) });
+    repository.findOldestDispatchable.mockRejectedValue(new Error('database unavailable'));
+    await expect(service.getWorkerStatus()).resolves.toMatchObject({
+      status: 'unknown', dispatchableBacklog: { status: 'unknown', oldestCreatedAt: null },
     });
   });
 });

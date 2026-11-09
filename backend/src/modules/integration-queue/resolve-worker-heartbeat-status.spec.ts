@@ -34,6 +34,10 @@ describe('resolveWorkerHeartbeatStatus', () => {
     ).toBe('active');
   });
 
+  it('does not claim active for a heartbeat too far in the future', () => {
+    expect(resolveWorkerHeartbeatStatus({ lastHeartbeatAt: '2026-09-16T12:01:00.000Z', nowMilliseconds, staleThresholdMilliseconds })).toBe('unknown');
+  });
+
   it('returns stale when heartbeat is older than the stale threshold', () => {
     expect(
       resolveWorkerHeartbeatStatus({

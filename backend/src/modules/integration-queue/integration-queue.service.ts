@@ -92,23 +92,29 @@ export class IntegrationQueueService {
 
   async getWorkerStatus(): Promise<IntegrationWorkerStatusResponse> {
     await this.assertAdminUiEnabled();
+    const now = new Date();
     let lastHeartbeatAt: string | null = null;
     try {
-      const value = await this.redisService
-        .getClient()
-        .get(workerHeartbeatRedisKey);
-      lastHeartbeatAt =
-        typeof value === 'string' && value.length > 0 ? value : null;
+      const value = await this.redisService.getClient().get(workerHeartbeatRedisKey);
+      lastHeartbeatAt = typeof value === 'string' && value.length > 0 ? value : null;
     } catch {
-      return { status: 'unknown', lastHeartbeatAt: null };
+      // Liveness and backlog are independent observations.
+    }
+    let dispatchableBacklog: IntegrationWorkerStatusResponse['dispatchableBacklog'];
+    try {
+      const oldest = await this.integrationJobRepository.findOldestDispatchable(now);
+      dispatchableBacklog = { status: 'available', oldestCreatedAt: oldest?.createdAt.toISOString() ?? null };
+    } catch {
+      dispatchableBacklog = { status: 'unknown', oldestCreatedAt: null };
     }
     return {
       status: resolveWorkerHeartbeatStatus({
         lastHeartbeatAt,
-        nowMilliseconds: Date.now(),
+        nowMilliseconds: now.getTime(),
         staleThresholdMilliseconds: workerHeartbeatStaleThresholdMilliseconds,
       }),
       lastHeartbeatAt,
+      dispatchableBacklog,
     };
   }
 

@@ -238,6 +238,19 @@ describeIfDatabase(
       await expect(prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } })).resolves.toMatchObject({ status: IntegrationJobStatus.PENDING, version: 1 });
     });
 
+    it('observes the oldest dispatchable job without counting future retries or processing jobs', async () => {
+      const future = await createPendingJob('backlog-future');
+      const pending = await createPendingJob('backlog-pending');
+      const processing = await createPendingJob('backlog-processing');
+      const due = await createPendingJob('backlog-due');
+      const now = new Date('2026-10-10T00:00:00.000Z');
+      await prisma.integrationJob.update({ where: { id: future.id }, data: { status: IntegrationJobStatus.FAILED, createdAt: new Date('2020-01-01'), nextRetryAt: new Date('2027-01-01') } });
+      await prisma.integrationJob.update({ where: { id: pending.id }, data: { createdAt: new Date('2023-01-01') } });
+      await prisma.integrationJob.update({ where: { id: processing.id }, data: { status: IntegrationJobStatus.PROCESSING, createdAt: new Date('2019-01-01') } });
+      await prisma.integrationJob.update({ where: { id: due.id }, data: { status: IntegrationJobStatus.FAILED, createdAt: new Date('2022-01-01'), nextRetryAt: new Date('2026-01-01') } });
+      await expect(repository.findOldestDispatchable(now)).resolves.toEqual({ createdAt: new Date('2022-01-01') });
+    });
+
     it('does not directly reclaim an expired PROCESSING lease', async () => {
       const job = await createPendingJob('expired');
       const now = new Date();

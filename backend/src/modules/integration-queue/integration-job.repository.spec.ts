@@ -104,6 +104,17 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ processingLeaseExpiresAt: null, updatedAt: { equals: updatedAt, lte: new Date(now.getTime() - 300_000) } }) }));
   });
 
+  it('selects only the oldest currently dispatchable job without reading payloads', async () => {
+    const findFirst = jest.fn().mockResolvedValue(null);
+    const repository = new IntegrationJobRepository({ integrationJob: { findFirst } } as never);
+    const now = new Date('2026-10-08T12:00:00Z');
+    await repository.findOldestDispatchable(now);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { OR: [{ status: IntegrationJobStatus.PENDING }, { status: IntegrationJobStatus.FAILED, OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }] }] },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { createdAt: true },
+    });
+  });
+
   it('selects one ordered DLQ batch and rechecks eligibility and version before deletion', async () => {
     const findMany = jest.fn().mockResolvedValue([{ id: 'old', version: 3 }, { id: 'retry-race', version: 7 }]);
     const deleteMany = jest.fn().mockResolvedValue({ count: 1 });

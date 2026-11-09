@@ -68,6 +68,20 @@ export class IntegrationJobRepository {
     });
   }
 
+  /** Oldest currently dispatchable job creation time, not proof of processing health. */
+  findOldestDispatchable(now: Date) {
+    return this.prisma.integrationJob.findFirst({
+      where: {
+        OR: [
+          { status: IntegrationJobStatus.PENDING },
+          { status: IntegrationJobStatus.FAILED, OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }] },
+        ],
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { createdAt: true },
+    });
+  }
+
   /** Select only bounded stale claims; null leases are legacy rows. */
   listExpiredProcessingPage(now: Date, take: number) {
     return this.prisma.integrationJob.findMany({

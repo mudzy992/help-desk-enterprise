@@ -101,4 +101,8 @@ export type IntegrationWorkerStatus = 'active' | 'stale' | 'unknown';
 export type IntegrationWorkerStatusResponse = {
   readonly status: IntegrationWorkerStatus;
   readonly lastHeartbeatAt: string | null;
+  readonly dispatchableBacklog: {
+    readonly status: 'available' | 'unknown';
+    readonly oldestCreatedAt: string | null;
+  };
 };
