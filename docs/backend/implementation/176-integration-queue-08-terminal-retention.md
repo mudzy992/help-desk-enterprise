@@ -1,6 +1,6 @@
 # BA-integration-queue-08: retention završenih integration poslova
 
-Status: **otvoreno** do generated-Prisma, PostgreSQL/race, operativnog i privacy acceptance dokaza. Korisnik je potvrdio: redakcija payloadova završenih poslova nakon 30 dana, zadržavanje minimalnog reda dodatnih 90 dana, te bez automatskog brisanja ili redakcije neriješenih poslova. Odabrao je globalno pauziranje novog retentiona dok postoji bilo koji legal hold korisnika ili tiketa; greška provjere mora zaustaviti promjene.
+Status: **otvoreno** do operativnog i privacy acceptance dokaza. Automatski CI `42715684160` i Perf smoke `42715683718` za commit `b208f87` prošli su uspješno, uključujući generated Prisma Client i stvarne PostgreSQL integration suiteove. Korisnik je potvrdio: redakcija payloadova završenih poslova nakon 30 dana, zadržavanje minimalnog reda dodatnih 90 dana, te bez automatskog brisanja ili redakcije neriješenih poslova. Odabrao je globalno pauziranje novog retentiona dok postoji bilo koji legal hold korisnika ili tiketa; greška provjere mora zaustaviti promjene.
 
 ## Mehanizam
 
