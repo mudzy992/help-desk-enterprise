@@ -15,7 +15,15 @@
 
 ## 2. Stanje implementacije
 
-### W6.47 / `BA-announcements-04` (P1) — finding closeout
+### W6.48 / `BA-websocket-05` (P2) — finding closeout
+
+`BA-websocket-05` je zatvoren na finding nivou kroz process-local effective Redis adapter health, runtime room-channel Pub/Sub probe preko dva stvarna adapter klijenta, degraded signal na kasnijim command/connection greškama i `/health/ready` 503. Runtime ne prebacuje sobe u lokalni in-memory fallback; boot ACL/config fallback ostaje crven i traži rolling restart poslije ACL popravke. Isključivo BA-05 je u scopeu.
+
+Finalni kod/test SHA [`ef52725`](https://github.com/mudzy992/help-desk-enterprise/commit/ef5272504b834aace79a3d6d20d24b1e6ad7e983) prošao je CI [`42591845905`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42591845905) (**overall success**): generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain job i CI gate. E2E critical/install, read-only inventory i conditional image enforcement bili su `skipped`; full E2E/Perf nisu ručno pokretani. Lokalno prije code push-a: adapter/health/readiness 3 suites/25 tests, gateway/module 2 suites/11 tests (diagnostics false samo lokalno zbog mock Prisma delegates), targeted ESLint i wiring guard (99 controllera/620 ruta) prošli su. Tokom ovog docs closeouta findings guard, docs guard 9/9 i `git diff --check` prošli su; ponovljeni lokalni `wiring:check` nije se pokrenuo jer sandbox nema instaliran TypeScript dependency.
+
+Sandbox nema `redis-server`/Docker; `ops/ws-cross-instance-check.mjs` i live two-instance/ACL probe acceptance nisu izvršeni. PostgreSQL+Redis integracija u CI-ju je prošla, ali ne tvrdimo da je taj job direktno provjerio BA-05 room probe na dvije stvarne Socket.IO instance. Nema migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. Val 6 sada je **52/109 zatvorenih, 57 otvorenih (0 P1 / 40 P2 / 17 P3)**; source/plan **509/183**, globalni registar **519/173**; deset statusnih divergencija ostaje netaknuto. BA-15 i ostali Val 6 P2/P3 ostaju pending; sljedeći W6 nalaz nije odabran. Detalji: [audit 18, §23](18-websocket.md#23-w648-closeout--ba-websocket-05-2026-10-29) / [paket 163](../implementation/163-websocket-05-runtime-adapter-health.md).
+
+### Historijski W6.47 / `BA-announcements-04` (P1) — finding closeout
 
 `BA-announcements-04` zatvoren je na finding nivou na kod/test SHA [`598cdc7`](https://github.com/mudzy992/help-desk-enterprise/commit/598cdc797ee6bc287ac5141305e38c3d627687fe). `report()` koristi DB agregate; pending identiteti se vraćaju kroz announcement-bound ID-keyset stranice do 200 bez e-maila; CSV se streama kroz batcheve do 500 uz preflight i runtime budžet od 50.000 redova. Report i export i dalje koriste trenutnu publiku. P2 `BA-announcements-12` — publish-time membership/report konzistentnost — i P3 `BA-announcements-18` nisu zatvoreni.
 

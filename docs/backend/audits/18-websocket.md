@@ -12,7 +12,7 @@
 
 Baseline je ipak **4,88/10**. Četiri P1 nalaza ruše revocation i privacy granicu. Socket autentikacija se provjerava samo na handshakeu: logout, revoke-all, promjena lozinke, idle/session expiry i authz-version promjena ne prekidaju postojeću konekciju. Ticket sobe se autorizuju samo pri joinu i nikad revalidiraju, pa forward, promjena OU/grupe, confidential flag ili role revocation ne oduzima stream. Group/admin sobe se provjeravaju tek svakih pet minuta, a DB greška je fail-open. Konačno, legacy full-payload group emit je uključen po defaultu i šalje puni javni ticket/message payload svim članovima grupe iako članstvo samo po sebi nije dokaz pune ticket vidljivosti.
 
-Dodatni problemi su bili runtime Redis degradacija bez pouzdanog fallback/state signala (`BA-websocket-05`), per-socket rate-limit koji se lako multiplicira, globalno emitovanje private setting key metadata, neawaitani room join, izostanak replay/catch-up ugovora i nedovoljna E2E revocation/cross-instance matrica. W6.48 implementira BA-05 kandidat; finding ostaje otvoren do push-triggered CI closeouta. Nema P0. Ostali nalazi nisu dio ovog paketa.
+Dodatni problemi su bili runtime Redis degradacija bez pouzdanog fallback/state signala (`BA-websocket-05`), per-socket rate-limit koji se lako multiplicira, globalno emitovanje private setting key metadata, neawaitani room join, izostanak replay/catch-up ugovora i nedovoljna E2E revocation/cross-instance matrica. W6.48 zatvorio je samo BA-05 nakon zelenog push-triggered CI-ja; preostali problemi nisu dio ovog paketa. Nema P0.
 
 ## 2. Scope i inventar
 
@@ -125,7 +125,7 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-02 | P1     | Ticket staff/public/base sobe se nakon joina nikad ne reautorizuju                         | zatvoreno |
 | BA-websocket-03 | P1     | Group/admin revocation kasni 5 min i DB kvar ostavlja stare sobe fail-open                 | zatvoreno |
 | BA-websocket-04 | P1     | Default-on legacy group emit šalje puni payload bez per-ticket authorizationa              | zatvoreno |
-| BA-websocket-05 | P2     | Runtime Redis adapter kvar nema pouzdan fallback/effective-health i gubi cross-instance emit| otvoreno |
+| BA-websocket-05 | P2     | Runtime Redis adapter kvar nema pouzdan fallback/effective-health i gubi cross-instance emit| zatvoreno (W6.48) |
 | BA-websocket-06 | P2     | Join/presence limiter je per-socket bez user/IP/connection limita                          | otvoreno |
 | BA-websocket-07 | P2     | Private setting key metadata emituje se svim autentifikovanim korisnicima                  | otvoreno |
 | BA-websocket-08 | P2     | User/group room join nije awaitan i početni događaj može biti propušten                    | otvoreno |
@@ -233,7 +233,7 @@ Acceptance:
 
 ## 18. Konačna presuda
 
-Websocket modul ima dobru početnu handshake, ticket join, staff/public i Redis strukturu, ali authorization nije trajna osobina konekcije. Izvorni audit baseline je bilježio session/ticket/group revocation praznine i default-on puni group payload. Iskren, nepromijenjeni baseline je **4,88/10**. Naknadni finding-level closeouti su: W6.30 `BA-websocket-04` (default off; §19), W6.31 `BA-websocket-01` (session lease; §20), W6.32 `BA-websocket-02` (ticket-room revalidation; §21) i W6.33 `BA-websocket-03` (group/admin lease i fail-closed; §22), bez rescoringa. `BA-websocket-05`–`13` i širi revocation/cross-instance acceptance `BA-websocket-14` ostaju otvoreni.
+Websocket modul ima dobru početnu handshake, ticket join, staff/public i Redis strukturu, ali authorization nije trajna osobina konekcije. Izvorni audit baseline je bilježio session/ticket/group revocation praznine i default-on puni group payload. Iskren, nepromijenjeni baseline je **4,88/10**. Finding-level closeouti su: W6.30 `BA-websocket-04` (default off; §19), W6.31 `BA-websocket-01` (session lease; §20), W6.32 `BA-websocket-02` (ticket-room revalidation; §21), W6.33 `BA-websocket-03` (group/admin lease i fail-closed; §22) i W6.48 `BA-websocket-05` (effective Redis adapter health; §23), bez rescoringa. `BA-websocket-06`–`13` i širi revocation/cross-instance acceptance `BA-websocket-14` ostaju otvoreni.
 
 ## 19. Statusna dopuna — BA-websocket-04 closeout (2026-11-07)
 
@@ -317,3 +317,32 @@ Lokalno na originalnom kodnom SHA-u `4210ed2`: targeted ESLint passed; **8 targe
 Automatski push CI [`42390943711`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42390943711) na `4210ed292b222fa9bf832f2561a8479d0333f50c` prošao je generated-Prisma backend build/lint/full Jest, cijeli PostgreSQL+Redis integration job (uključujući `Run real PostgreSQL integration suites` i novi Redis/Socket.IO authz invalidation test), frontend build/test i Docs guard. **Ukupni CI gate nije zelen:** jedini failed job je zero-high/critical image enforcement zbog `zlib@1.3.2-r1: CVE-2026-4738 [Critical]` (annotated fix `1.4-r0`); image build, SBOM, attestation i runtime-contract koraci su passed. E2E critical/install i read-only inventory su `skipped`. Perf nije pokrenut; posljednji opaženi Perf [`42379825934`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42379825934) i dalje je globalni failure `2.124 > 2.1`; prag nije mijenjan niti je rezultat pripisan BA-03.
 
 Zatvoren je samo `BA-websocket-03`. `BA-websocket-05`–`13` i širi `BA-websocket-14` ostaju otvoreni; baseline **4,88/10** nije rescoraan. Source audit/plan sada prikazuju **524 otvoren / 168 zatvoren / 692 ukupno**; redovi globalnog registra **534 otvoren / 158 zatvoren / 692 ukupno**. Deset poznatih divergencija prema globalnom registru ostaje netaknuto. Val 6 je **37/109 zatvorenih**, **72 otvorena** (14 P1 / 41 P2 / 17 P3). Nema target-DB upotrebe, schema promjene, migracije, PR-a, mergea ili deploymenta. Paket: [W6.33 / paket 148](../implementation/148-websocket-03-group-admin-room-lease.md).
+
+## 23. W6.48 closeout — BA-websocket-05 (2026-10-29)
+
+`BA-websocket-05` (P2) zatvoren je na finding nivou uz effective process-local adapter health, fail-closed readiness i runtime signal za Redis publish/subscribe/connection kvarove. Scope je samo `BA-websocket-05`; susjedni WebSocket nalazi i BA-15 nisu dirani.
+
+### Implementacija i prihvat
+
+- Adapter koristi samo dva stalna Redis klijenta (dedicated publisher i subscriber). Nakon instalacije se odmah i svakih 15 s na stvarnom adapter subscriberu ponovo potvrđuju tačni `PSUBSCRIBE`/`SUBSCRIBE` kanali; stvarni publisher šalje nonce na random, nejoinovanu `socket.io#/#health-<uuid>#` room putanju i monitor čeka isti `pmessageBuffer` na adapterovom PSUBSCRIBE toku. Probe provjerava room-channel `PUBLISH` ACL i aktivnu lokalnu adapter putanju, bez aplikacijskog eventa ili treće health konekcije.
+- Adapter `healthy` važi samo nakon uspješne kompletne probe. Command rejection, ACL deny ili ioredis connection lifecycle odmah postavlja `degraded`; generation guard sprečava da starija probe koja je već bila in-flight pregazi noviju grešku. Naredna, poslije greške pokrenuta probe vraća `healthy` tek nakon punog uspjeha.
+- Runtime ne prebacuje postojeći Redis adapter u in-memory. ioredis zadržava reconnect; boot-time ACL/config fallback ostaje samo kao API fail-open stanje i readiness je degraded. Nakon ACL popravke fallback instance traže rolling restart.
+- `/health/ready` prikazuje samo `checks.websocketAdapter: ok|fail`, vraća 503 kada je stanje `starting`/`degraded` i čita process-local adapter stanje za svaki request mimo postojećeg 5 s dependency cache-a. Log prelaza zadržava `ws_adapter_redis_ok=0/1`, dodaje `ws_adapter_redis_state` i safe reason enum.
+- Runbooki opisuju readiness/alarm, ACL, reconnect, rolling-restart za boot fallback i REST refresh ograničenje: Redis outage može izgubiti in-flight evente; ne uvodi se durable replay/ack ugovor.
+
+### Testovi i CI
+
+Finalni kod/test SHA je [`ef52725`](https://github.com/mudzy992/help-desk-enterprise/commit/ef5272504b834aace79a3d6d20d24b1e6ad7e983). Push-triggered CI [`42591845905`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42591845905) je **overall success**: generated-Prisma backend build/lint/full Jest, real PostgreSQL+Redis integration job, frontend build/test, Docs guard, container/supply-chain job i završni CI gate su passed. E2E critical/install i read-only service-form inventory bili su `skipped`; conditional high/critical image enforcement je takođe `skipped`, ne passed. Full E2E nije ručno pokretan. Perf nije pokrenut.
+
+Lokalno su prošli adapter/health/readiness Jest **3 suitea / 25 testova**, gateway/module Jest **2 suitea / 11 testova** (lokalni `diagnostics:false` workaround zbog nedostajućih generated Prisma delegate tipova u test mocku), targeted ESLint, docs-content guard **9/9**, backend wiring guard (**99 controllera / 620 ruta**) i `git diff --check`. CI generated-Prisma build/full Jest potvrđuje tipove i suiteove koji nisu mogli lokalno pokrenuti s tim mockom.
+
+**Granica integracijskog dokaza:** sandbox nema `redis-server` ni Docker; `ops/ws-cross-instance-check.mjs` i zaseban live Redis/ACL Socket.IO adapter round-trip nisu pokrenuti lokalno. CI PostgreSQL+Redis job je prošao, ali se ne tvrdi da je taj job izvršio BA-05 probe kanal na dvije stvarne Socket.IO instance. Unit fake-client test pokriva runtime `pmessageBuffer` kontrakt, command greške, stale-probe race i recovery; staging runbook zadržava stvarni dvostruki cross-instance emit kao dodatnu operativnu provjeru.
+
+### Status i granice
+
+- W6.48 zatvara samo `BA-websocket-05`; severity ostaje P2, baseline ocjena audita **4,88/10** nije rescoraan.
+- Izvorne audit-tabele i generisani plan: **509 otvoren / 183 zatvoren / 692 ukupno**. Redovi globalnog registra: **519 otvoren / 173 zatvoren / 692 ukupno**. Deset historijskih statusnih razlika ostaje netaknuto.
+- Val 6: **52/109 zatvorenih, 57 otvorenih** (**0 P1 / 40 P2 / 17 P3**). `BA-websocket-06`–`13`, `BA-websocket-14`, `BA-notifications-14`, `BA-integration-queue-05`, ostali P2/P3 i BA-15 full critical-flow acceptance ostaju otvoreni/pending. Val 6 nije završen.
+- Nema schema promjene, migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. Naredni Val 6 nalaz nije odabran ovim closeoutom; ne širiti scope bez nove odluke.
+
+Detalji implementacije i artefakti: [paket 163 / W6.48](../implementation/163-websocket-05-runtime-adapter-health.md), [Redis-down runbook](../../../ops/runbook/redis-down.md), [WS reconnect runbook](../../../ops/runbook/ws-reconnect-storm.md) i [rolling-deploy runbook](../../../ops/ws-rolling-deploy.md).

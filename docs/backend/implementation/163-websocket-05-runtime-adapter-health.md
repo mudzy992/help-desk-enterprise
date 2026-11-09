@@ -1,6 +1,6 @@
 # W6.48 — `BA-websocket-05`: effective Redis adapter health i readiness
 
-**Status:** implementacija je dodana; `BA-websocket-05` ostaje otvoren dok push-triggered CI za testani SHA ne završi green.<br>
+**Status:** `BA-websocket-05` zatvoren na finding nivou nakon zelenog push-triggered CI-ja; nijedan drugi Val 6 nalaz nije zatvoren.<br>
 **Scope:** samo prvi odabrani Val 6 P2 nalaz `BA-websocket-05`; nijedan susjedni WebSocket nalaz nije zatvoren.<br>
 **Datum:** 2026-10-29
 
@@ -42,6 +42,10 @@ Sandbox nema `redis-server` niti Docker, pa stvarni Redis/two-instance harness `
 - Poznati boot ACL deny ne može se sigurno pretvoriti u Redis adapter bez restarta; nakon ispravke ACL-a rolling-restartati fallback instance. Runtime kvar na već instaliranom adapteru se oporavlja probeom, bez restart switcha.
 - Nema Prisma schema izmjene, migracije ni target-DB upotrebe. Nema deploymenta, PR-a ili mergea.
 
-## CI i status
+## CI closeout i konačni status
 
-Commit/test SHA, push-triggered CI run, CI `skipped` poslovi i konačni finding status biće dopunjeni nakon zelenog CI-ja. Do tada izvorni audit red `BA-websocket-05` ostaje `otvoreno`, a status Val 6 brojeva se ne mijenja.
+Finalni kod/test SHA je [`ef52725`](https://github.com/mudzy992/help-desk-enterprise/commit/ef5272504b834aace79a3d6d20d24b1e6ad7e983). Push-triggered CI [`42591845905`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42591845905) je **overall success**: generated-Prisma backend build/lint/full Jest, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain job i CI gate su passed. E2E critical/install i read-only inventory bili su `skipped`; conditional high/critical image enforcement je takođe `skipped`, ne passed. Full E2E i Perf nisu ručno pokretani.
+
+Sandbox nema `redis-server` ni Docker, pa `ops/ws-cross-instance-check.mjs` i live two-instance/ACL provjera BA-05 adapter probe nisu izvršeni. CI integration job je prošao, ali ne tvrdimo da je taj job sam pokrenuo novi probe kanal na dvije stvarne Socket.IO instance. Ovo je eksplicitna granica dokaza; unit fake-client testovi provjeravaju runtime event/command contract.
+
+Zatvoren je samo `BA-websocket-05` (P2); audit baseline **4,88/10** nije rescoraan. Izvorni audit/plan: **509 otvoren / 183 zatvoren / 692 ukupno**. Globalni registar: **519 otvoren / 173 zatvoren / 692 ukupno**. Deset historijskih statusnih razlika nije rekoncilirano. Val 6: **52/109 zatvorenih, 57 otvorenih** (0 P1 / 40 P2 / 17 P3). `BA-websocket-06`–`14`, `BA-notifications-14`, `BA-integration-queue-05`, ostali P2/P3 i BA-15 full critical-flow acceptance ostaju otvoreni/pending; Val 6 nije završen. Nema schema promjene, migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. Sljedeći Val 6 nalaz nije odabran ovim closeoutom.

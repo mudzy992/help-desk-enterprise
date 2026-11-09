@@ -5212,7 +5212,7 @@
     {
       "id": "BA-websocket-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W6.48)",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
