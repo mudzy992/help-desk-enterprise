@@ -157,12 +157,15 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   async handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
-  ): Promise<{ ok: boolean; visibility?: 'public' | 'staff' }> {
+  ): Promise<{ ok: boolean; visibility?: 'public' | 'staff'; code?: 'TICKET_ROOM_LIMIT' }> {
     if (!(await this.allowJoinLeave(client, ticketRealtimeEventNames.join))) {
       return { ok: false };
     }
     const ticketId = requireTicketId(payload);
-    this.ticketSubscriptions.beginJoin(client, ticketId);
+    if (socketIsDisconnected(client)) return { ok: false };
+    if (!this.ticketSubscriptions.beginJoin(client, ticketId)) {
+      return { ok: false, code: 'TICKET_ROOM_LIMIT' };
+    }
     let joinAttemptFinished = false;
     try {
       // Do not wait while holding the per-socket lock: the invalidation that owns
@@ -287,10 +290,10 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
+    this.ticketSubscriptions.removeSocket(client);
     for (const ticketId of client.data.presenceTickets ?? []) {
       await this.leavePresence(client, ticketId);
     }
-    this.ticketSubscriptions.removeSocket(client);
   }
 
   /**
@@ -496,8 +499,10 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     client: Socket,
     ticketId: string,
   ): Promise<void> {
-    this.ticketSubscriptions.remove(client, ticketId);
+    // Keep the slot occupied until room removal is complete so a concurrent
+    // join cannot exceed the limit while an adapter leave is still in flight.
     await this.leaveTicketRooms(client, ticketId);
+    this.ticketSubscriptions.remove(client, ticketId);
     await this.leavePresence(client, ticketId);
   }
 

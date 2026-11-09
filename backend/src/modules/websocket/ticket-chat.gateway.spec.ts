@@ -14,6 +14,7 @@ import {
   userRoomName,
 } from './ticket-socket-rooms';
 import { ticketSocketRevalidationIntervalMs } from './ticket-socket-revalidation';
+import { maxTicketSubscriptionsPerSocket } from './ticket-socket-subscriptions';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -302,6 +303,59 @@ describe('TicketChatGateway', () => {
     await expect(
       gateway.handleLeave(client, { ticketId: 'ticket-1' }),
     ).resolves.toEqual({ ok: false });
+  });
+
+  it('caps distinct active tickets, permits duplicate joins and frees a slot on leave', async () => {
+    authorizeSocketJoin.mockResolvedValue({ visibility: 'public' });
+    const client = createClient('user-cap');
+    for (let i = 0; i < maxTicketSubscriptionsPerSocket; i += 1) {
+      await expect(gateway.handleJoin(client, { ticketId: `cap-${i}` })).resolves.toEqual({ ok: true, visibility: 'public' });
+    }
+    await expect(gateway.handleJoin(client, { ticketId: 'cap-0' })).resolves.toEqual({ ok: true, visibility: 'public' });
+    const calls = authorizeSocketJoin.mock.calls.length;
+    await expect(gateway.handleJoin(client, { ticketId: 'overflow' })).resolves.toEqual({ ok: false, code: 'TICKET_ROOM_LIMIT' });
+    expect(authorizeSocketJoin).toHaveBeenCalledTimes(calls);
+    await expect(gateway.handleLeave(client, { ticketId: 'cap-0' })).resolves.toEqual({ ok: true });
+    await expect(gateway.handleJoin(client, { ticketId: 'overflow' })).resolves.toEqual({ ok: true, visibility: 'public' });
+  });
+
+  it('retains a slot until an asynchronous room leave completes', async () => {
+    authorizeSocketJoin.mockResolvedValue({ visibility: 'public' });
+    const client = createClient('user-leave-cap');
+    for (let i = 0; i < maxTicketSubscriptionsPerSocket; i += 1) {
+      await gateway.handleJoin(client, { ticketId: `leave-${i}` });
+    }
+    let finishLeave: (() => void) | undefined;
+    const originalLeave = client.leave.bind(client);
+    client.leave = jest.fn(async (room: string) => {
+      if (room === 'ticket:leave-0') {
+        await new Promise<void>((resolve) => { finishLeave = resolve; });
+      }
+      await originalLeave(room);
+    }) as Socket['leave'];
+    const leaving = gateway.handleLeave(client, { ticketId: 'leave-0' });
+    await flushMicrotasks();
+    await expect(gateway.handleJoin(client, { ticketId: 'overflow' })).resolves.toEqual({ ok: false, code: 'TICKET_ROOM_LIMIT' });
+    finishLeave?.();
+    await leaving;
+    await expect(gateway.handleJoin(client, { ticketId: 'overflow' })).resolves.toEqual({ ok: true, visibility: 'public' });
+  });
+
+  it('reserves capacity before concurrent authorization and releases failed joins', async () => {
+    const pending: Array<{ ticketId: string; resolve: (v: { visibility: 'public' }) => void; reject: (e: Error) => void }> = [];
+    authorizeSocketJoin.mockImplementation((ticketId: string) => new Promise((resolve, reject) => pending.push({ ticketId, resolve, reject })));
+    const client = createClient('user-pending-cap');
+    const joins = Array.from({ length: maxTicketSubscriptionsPerSocket }, (_, i) => gateway.handleJoin(client, { ticketId: `pending-${i}` }));
+    await flushMicrotasks();
+    await expect(gateway.handleJoin(client, { ticketId: 'overflow' })).resolves.toEqual({ ok: false, code: 'TICKET_ROOM_LIMIT' });
+    expect(authorizeSocketJoin).toHaveBeenCalledTimes(maxTicketSubscriptionsPerSocket);
+    const failed = joins[0]!.catch(() => undefined);
+    pending[0]!.reject(new Error('denied'));
+    await failed;
+    authorizeSocketJoin.mockResolvedValue({ visibility: 'public' });
+    await expect(gateway.handleJoin(client, { ticketId: 'overflow' })).resolves.toEqual({ ok: true, visibility: 'public' });
+    for (const item of pending.slice(1)) item.resolve({ visibility: 'public' });
+    await Promise.all(joins.slice(1));
   });
 
   it('applies a shared per-user join/leave ceiling before authorization work', async () => {

@@ -1,5 +1,8 @@
 import type { Socket } from 'socket.io';
-import { TicketSocketSubscriptionRegistry } from './ticket-socket-subscriptions';
+import {
+  maxTicketSubscriptionsPerSocket,
+  TicketSocketSubscriptionRegistry,
+} from './ticket-socket-subscriptions';
 
 function socket(id: string): Socket {
   return { id } as Socket;
@@ -37,6 +40,28 @@ describe('TicketSocketSubscriptionRegistry', () => {
 
     expect(registry.activeTicketIds()).toEqual([]);
     expect(registry.currentEpoch('ticket-2')).toBe(0);
+  });
+
+  it('bounds the union of active and pending tickets, without counting duplicates twice', () => {
+    const registry = new TicketSocketSubscriptionRegistry();
+    const client = socket('socket-limit');
+    expect(registry.beginJoin(client, 'active')).toBe(true);
+    expect(registry.register(client, 'active', 'public', 0)).toBe(true);
+    registry.finishJoin(client, 'active');
+    for (let i = 0; i < maxTicketSubscriptionsPerSocket - 1; i += 1) {
+      expect(registry.beginJoin(client, `pending-${i}`)).toBe(true);
+    }
+    expect(registry.beginJoin(client, 'pending-0')).toBe(true);
+    registry.finishJoin(client, 'pending-0');
+    expect(registry.socketsForTicket('pending-0')).toEqual([client]);
+    expect(registry.beginJoin(client, 'overflow')).toBe(false);
+    expect(registry.beginJoin(client, 'active')).toBe(true);
+    registry.finishJoin(client, 'active');
+    registry.finishJoin(client, 'pending-0');
+    expect(registry.beginJoin(client, 'overflow')).toBe(true);
+    registry.removeSocket(client);
+    expect(registry.activeTicketIds()).toEqual([]);
+    expect(registry.register(client, 'overflow', 'public', 0)).toBe(false);
   });
 
   it('removes all of a disconnected socket’s subscriptions', () => {

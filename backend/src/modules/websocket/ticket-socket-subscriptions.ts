@@ -1,5 +1,7 @@
 import type { Socket } from 'socket.io';
 
+export const maxTicketSubscriptionsPerSocket = 20;
+
 export type TicketSocketVisibility = 'public' | 'staff';
 
 export type TicketSocketSubscription = {
@@ -23,19 +25,40 @@ export class TicketSocketSubscriptionRegistry {
   >();
   private readonly socketsByTicket = new Map<string, Set<Socket>>();
   private readonly pendingJoinsByTicket = new Map<string, Set<Socket>>();
+  private readonly pendingJoinsBySocket = new Map<Socket, Map<string, number>>();
   private readonly epochsByTicket = new Map<string, number>();
 
   currentEpoch(ticketId: string): number {
     return this.epochsByTicket.get(ticketId) ?? 0;
   }
 
-  beginJoin(client: Socket, ticketId: string): void {
+  /** Atomically reserves a distinct ticket slot, including in-flight joins. */
+  beginJoin(client: Socket, ticketId: string): boolean {
+    const active = this.subscriptionsBySocket.get(client);
+    const pending = this.pendingJoinsBySocket.get(client);
+    if (active?.has(ticketId) !== true && pending?.has(ticketId) !== true) {
+      const occupied = new Set([...(active?.keys() ?? []), ...(pending?.keys() ?? [])]);
+      if (occupied.size >= maxTicketSubscriptionsPerSocket) return false;
+    }
+    const byTicket = pending ?? new Map<string, number>();
+    byTicket.set(ticketId, (byTicket.get(ticketId) ?? 0) + 1);
+    this.pendingJoinsBySocket.set(client, byTicket);
     const joining = this.pendingJoinsByTicket.get(ticketId) ?? new Set<Socket>();
     joining.add(client);
     this.pendingJoinsByTicket.set(ticketId, joining);
+    return true;
   }
 
   finishJoin(client: Socket, ticketId: string): void {
+    const byTicket = this.pendingJoinsBySocket.get(client);
+    const count = byTicket?.get(ticketId);
+    if (count === undefined) return;
+    if (count > 1) {
+      byTicket?.set(ticketId, count - 1);
+      return;
+    }
+    byTicket?.delete(ticketId);
+    if (byTicket?.size === 0) this.pendingJoinsBySocket.delete(client);
     const joining = this.pendingJoinsByTicket.get(ticketId);
     joining?.delete(client);
     if (joining?.size === 0) {
@@ -60,7 +83,7 @@ export class TicketSocketSubscriptionRegistry {
     visibility: TicketSocketVisibility,
     epoch: number,
   ): boolean {
-    if (this.currentEpoch(ticketId) !== epoch) {
+    if (this.currentEpoch(ticketId) !== epoch || !this.hasInterest(client, ticketId)) {
       return false;
     }
     const byTicket =
@@ -137,9 +160,12 @@ export class TicketSocketSubscriptionRegistry {
         this.remove(client, ticketId);
       }
     }
-    for (const [ticketId, joining] of this.pendingJoinsByTicket) {
-      joining.delete(client);
-      if (joining.size === 0) {
+    const pending = this.pendingJoinsBySocket.get(client);
+    this.pendingJoinsBySocket.delete(client);
+    for (const ticketId of pending?.keys() ?? []) {
+      const joining = this.pendingJoinsByTicket.get(ticketId);
+      joining?.delete(client);
+      if (joining?.size === 0) {
         this.pendingJoinsByTicket.delete(ticketId);
       }
       this.pruneEpoch(ticketId);
@@ -150,6 +176,7 @@ export class TicketSocketSubscriptionRegistry {
     this.subscriptionsBySocket.clear();
     this.socketsByTicket.clear();
     this.pendingJoinsByTicket.clear();
+    this.pendingJoinsBySocket.clear();
     this.epochsByTicket.clear();
   }
 
