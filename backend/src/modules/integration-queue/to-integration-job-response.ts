@@ -13,6 +13,9 @@ function toSafeErrorCode(
   if (lastError === integrationJobAdminErrorCodes.processingOutcomeUnknown) {
     return integrationJobAdminErrorCodes.processingOutcomeUnknown;
   }
+  if (lastError === integrationJobAdminErrorCodes.providerOutcomeUnknown) {
+    return integrationJobAdminErrorCodes.providerOutcomeUnknown;
+  }
   if (
     type === IntegrationJobType.EDGE_EVENT &&
     lastError === integrationJobAdminErrorCodes.edgeEventNoSubscribers

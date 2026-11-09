@@ -5,6 +5,8 @@ import {
   isPermanentRecipientFailure,
 } from '../notifications/email/classify-mail-send-error';
 import { readMailSuppressionRetryAfterSeconds } from '../notifications/email/mail-provider-limit-breaker';
+import { TeamsDeliveryOutcomeUnknownError } from '../teams/teams-delivery-outcome-unknown.error';
+import { integrationJobProviderOutcomeUnknown } from './integration-queue.constants';
 import {
   NotificationEmailDeliveryDeadError,
   NotificationEmailOutcomeUnknownError,
@@ -41,16 +43,17 @@ export async function handleIntegrationJobFailure(input: {
     input.job.type === IntegrationJobType.EMAIL &&
     isPermanentRecipientFailure(classifyMailSendError(input.error).kind);
   const emailOutcomeUnknown = input.error instanceof NotificationEmailOutcomeUnknownError;
+  const providerOutcomeUnknown = emailOutcomeUnknown || input.error instanceof TeamsDeliveryOutcomeUnknownError;
   const emailAlreadyDead = input.error instanceof NotificationEmailDeliveryDeadError;
   if (
-    emailOutcomeUnknown ||
+    providerOutcomeUnknown ||
     emailAlreadyDead ||
     recipientRejected ||
     input.job.attempts >= threshold
   ) {
     const transitioned = await input.repository.markDeadLetter(
       input.job,
-      lastError,
+      providerOutcomeUnknown ? integrationJobProviderOutcomeUnknown : lastError,
     );
     if (!transitioned) {
       input.log(
@@ -61,7 +64,7 @@ export async function handleIntegrationJobFailure(input: {
     if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
       await input.repository.markEmailDeliveryDead(input.job.payload);
     }
-    const reason = emailOutcomeUnknown
+    const reason = providerOutcomeUnknown
       ? ' reason=outcome_unknown_no_resend'
       : emailAlreadyDead
         ? ' reason=delivery_dead'

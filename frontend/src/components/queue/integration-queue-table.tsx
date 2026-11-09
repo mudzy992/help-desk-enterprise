@@ -59,7 +59,8 @@ export function IntegrationQueueTable({
               <td className="px-3">
                 {canRetry &&
                 canRetryIntegrationJob(job.status) &&
-                job.lastErrorCode !== "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN" ? (
+                job.lastErrorCode !== "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN" &&
+                job.lastErrorCode !== "PROVIDER_DELIVERY_OUTCOME_UNKNOWN" ? (
                   <Button
                     type="button"
                     size="xs"

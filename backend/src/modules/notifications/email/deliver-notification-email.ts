@@ -91,7 +91,7 @@ export async function deliverNotificationEmail(
         dedupeKey: input.dedupeKey,
         errorCode: 'ambiguous_outcome',
         responseCode: failure.responseCode,
-      });
+      }).catch(() => undefined);
       logger.warn(
         `notification_email_delivery_unknown fingerprint=${deliveryFingerprint(input)} template=${input.templateKey} reason=ambiguous_provider_outcome`,
       );
@@ -122,15 +122,21 @@ export async function deliverNotificationEmail(
     finalResponseAccepted &&
     receipt.failureKind === null
   ) {
-    const updated = await markNotificationEmailDeliverySent(
-      prisma,
-      { userId: input.userId, dedupeKey: input.dedupeKey },
-      receipt,
-    );
+    let updated: number;
+    try {
+      updated = await markNotificationEmailDeliverySent(
+        prisma,
+        { userId: input.userId, dedupeKey: input.dedupeKey },
+        receipt,
+      );
+    } catch {
+      throw new NotificationEmailOutcomeUnknownError();
+    }
     if (updated === 0) {
       logger.warn(
         `notification_email_delivery_receipt_not_persisted fingerprint=${deliveryFingerprint(input)} template=${input.templateKey}`,
       );
+      throw new NotificationEmailOutcomeUnknownError();
     }
     return;
   }
@@ -146,7 +152,7 @@ export async function deliverNotificationEmail(
       errorCode,
       responseCode: receipt.responseCode,
       providerMessageId: receipt.messageId,
-    });
+    }).catch(() => undefined);
     logger.warn(
       `notification_email_delivery_unknown fingerprint=${deliveryFingerprint(input)} template=${input.templateKey} reason=${errorCode}`,
     );
@@ -159,7 +165,7 @@ export async function deliverNotificationEmail(
       dedupeKey: input.dedupeKey,
       errorCode: 'missing_provider_receipt',
       providerMessageId: receipt.messageId,
-    });
+    }).catch(() => undefined);
     throw new NotificationEmailOutcomeUnknownError();
   }
 

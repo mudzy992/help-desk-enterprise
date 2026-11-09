@@ -17,6 +17,7 @@ import { parseEmailIntegrationJobPayload } from './parse-email-integration-job-p
 import {
   integrationJobProcessingLeaseDurationMilliseconds,
   integrationJobProcessingOutcomeUnknown,
+  integrationJobProviderOutcomeUnknown,
   integrationQueueAdminPageSize,
   integrationQueueAdminStatuses,
 } from './integration-queue.constants';
@@ -299,6 +300,7 @@ export class IntegrationJobRepository {
       if (
         existing === null ||
         existing.lastError === integrationJobProcessingOutcomeUnknown ||
+        existing.lastError === integrationJobProviderOutcomeUnknown ||
         (existing.status !== IntegrationJobStatus.FAILED &&
           existing.status !== IntegrationJobStatus.DLQ)
       ) {
@@ -381,7 +383,7 @@ export class IntegrationJobRepository {
         updatedAt: { lt: before },
         OR: [
           { lastError: null },
-          { lastError: { not: integrationJobProcessingOutcomeUnknown } },
+          { lastError: { notIn: [integrationJobProcessingOutcomeUnknown, integrationJobProviderOutcomeUnknown] } },
         ],
       },
     });

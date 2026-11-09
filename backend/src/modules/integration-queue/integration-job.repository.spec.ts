@@ -6,6 +6,7 @@ import {
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import {
   integrationJobProcessingOutcomeUnknown,
+  integrationJobProviderOutcomeUnknown,
   integrationQueueAdminPageSize,
   integrationQueueAdminStatuses,
 } from './integration-queue.constants';
@@ -87,6 +88,8 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       data: expect.objectContaining({ status: IntegrationJobStatus.DLQ, lastError: integrationJobProcessingOutcomeUnknown, version: { increment: 1 } }),
     }));
     await expect(repository.resetForAdminRetry(job.id, 'admin')).resolves.toBeNull();
+    transaction.integrationJob.findUnique.mockResolvedValue({ status: IntegrationJobStatus.DLQ, lastError: integrationJobProviderOutcomeUnknown });
+    await expect(repository.resetForAdminRetry(job.id, 'admin')).resolves.toBeNull();
     expect(transaction.integrationJob.updateMany).not.toHaveBeenCalled();
   });
 
@@ -105,7 +108,7 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     const repository = new IntegrationJobRepository({ integrationJob: { deleteMany } } as never);
     const before = new Date('2026-10-01T00:00:00Z');
     await repository.deleteDeadLetterOlderThan(before);
-    expect(deleteMany).toHaveBeenCalledWith({ where: { status: IntegrationJobStatus.DLQ, updatedAt: { lt: before }, OR: [{ lastError: null }, { lastError: { not: integrationJobProcessingOutcomeUnknown } }] } });
+    expect(deleteMany).toHaveBeenCalledWith({ where: { status: IntegrationJobStatus.DLQ, updatedAt: { lt: before }, OR: [{ lastError: null }, { lastError: { notIn: [integrationJobProcessingOutcomeUnknown, integrationJobProviderOutcomeUnknown] } }] } });
   });
 
   it('claims the expected logical attempt with a status/version/retry-time CAS', async () => {

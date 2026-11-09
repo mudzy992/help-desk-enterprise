@@ -91,6 +91,24 @@ describe('deliverNotificationEmail (BA-notifications-10)', () => {
     });
   });
 
+  it('reports an unknown outcome when SMTP accepted but the receipt write fails or loses its claim', async () => {
+    for (const failure of ['throw', 'lost-claim'] as const) {
+      const { prisma } = createPrisma();
+      const delegate = prisma.notificationEmailDelivery as unknown as { updateMany: (args: { data: { status?: string } }) => Promise<{ count: number }> };
+      const update = delegate.updateMany.bind(delegate);
+      jest.spyOn(delegate, 'updateMany').mockImplementation(async (args) => {
+        if (args.data.status === emailDeliveryStatuses.sent) {
+          if (failure === 'throw') throw new Error('database response lost');
+          return { count: 0 };
+        }
+        return update(args);
+      });
+      const send = jest.fn(async () => acceptedReceipt());
+      await expect(deliverNotificationEmail(prisma, { send } as unknown as MailTransport, configuration, input)).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
+      expect(send).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it('preserves a composer-provided stable Message-ID', async () => {
     const { prisma } = createPrisma();
     const send = jest.fn(async () => acceptedReceipt());

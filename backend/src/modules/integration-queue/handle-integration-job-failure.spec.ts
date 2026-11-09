@@ -2,6 +2,7 @@ import { IntegrationJobType } from '../../generated/prisma/enums';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
 import { MailDeliverySuppressedError } from '../notifications/email/mail-provider-limit-breaker';
 import { NotificationEmailOutcomeUnknownError } from '../notifications/email/notification-email-delivery-errors';
+import { TeamsDeliveryOutcomeUnknownError } from '../teams/teams-delivery-outcome-unknown.error';
 import type { IntegrationJobProcessingClaim } from './integration-queue.types';
 
 function processingClaim(
@@ -255,8 +256,17 @@ describe('handleIntegrationJobFailure', () => {
     expect(repository.markEmailDeliveryDead).toHaveBeenCalledWith(payload);
     expect(repository.markDeadLetter).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
-      'Email provider outcome is unknown; automatic resend is blocked.',
+      'PROVIDER_DELIVERY_OUTCOME_UNKNOWN',
     );
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('quarantines uncertain Teams delivery without enqueuing another send', async () => {
+    const repository = { markDeadLetter: jest.fn().mockResolvedValue(true), markFailed: jest.fn(), markEmailDeliveryDead: jest.fn() };
+    const queue = { add: jest.fn() };
+    await expect(handleIntegrationJobFailure({ repository: repository as never, queue: queue as never, job: processingClaim({ type: IntegrationJobType.TEAMS }), settings, error: new TeamsDeliveryOutcomeUnknownError(), log: jest.fn() })).resolves.toBe('DLQ');
+    expect(repository.markDeadLetter).toHaveBeenCalledWith(expect.any(Object), 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN');
+    expect(repository.markFailed).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
   });
 

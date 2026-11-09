@@ -80,6 +80,10 @@ describe('toIntegrationJobResponse', () => {
       lastError: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN', attempts: 1, ...timestamps,
     });
     expect(response.lastErrorCode).toBe('PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN');
+    expect(toIntegrationJobResponse({
+      id: 'job-provider', type: IntegrationJobType.TEAMS, status: IntegrationJobStatus.DLQ,
+      lastError: 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN', attempts: 1, ...timestamps,
+    }).lastErrorCode).toBe('PROVIDER_DELIVERY_OUTCOME_UNKNOWN');
   });
 
   it('returns null error code when there is no stored error', () => {

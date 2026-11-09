@@ -3,6 +3,7 @@ import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
 import { appendUniqueIntegrationJobs } from "@/lib/queue/use-integration-queue";
 import { canManageIntegrationQueue } from "@/lib/queue/can-manage-integration-queue";
 import { mapIntegrationQueueError } from "@/lib/queue/map-integration-queue-error";
+import { mapIntegrationJobErrorCode } from "@/lib/queue/map-integration-job-error-code";
 import { integrationJobBadgeTone } from "@/lib/queue/integration-job-badge-tone";
 import { ApiError } from "@/services/api";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -53,6 +54,12 @@ describe("integration queue helpers", () => {
         (item) => item.id,
       ),
     ).toEqual(["a", "b", "c"]);
+  });
+
+  it("maps the provider outcome quarantine to a safe translated message", () => {
+    expect(mapIntegrationJobErrorCode("PROVIDER_DELIVERY_OUTCOME_UNKNOWN")).toBe(
+      "integrationQueue.errorCodes.PROVIDER_DELIVERY_OUTCOME_UNKNOWN",
+    );
   });
 
   it("maps status tones", () => {

@@ -31,6 +31,7 @@ export type IntegrationJobType = (typeof integrationJobTypes)[number];
 export type IntegrationJobAdminErrorCode =
   | "EDGE_EVENT_NO_SUBSCRIBERS"
   | "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN"
+  | "PROVIDER_DELIVERY_OUTCOME_UNKNOWN"
   | "INTEGRATION_JOB_FAILED";
 
 export type IntegrationJob = {
