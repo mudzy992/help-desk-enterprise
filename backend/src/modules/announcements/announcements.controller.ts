@@ -137,6 +137,7 @@ export class AnnouncementsController {
     return runAnnouncement(() => this.announcements.report(id, this.viewer(request)));
   }
 
+  /** One bounded pending-identity page; the opaque cursor is scoped to this announcement. */
   @Get('manage/:id/report/pending')
   @Header('Cache-Control', 'no-store')
   pendingReport(
