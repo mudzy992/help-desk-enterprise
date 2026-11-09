@@ -4,6 +4,7 @@ import {
   isManagedSocketRoom,
   revalidateConnectedSocketRooms,
   revalidateSocketRooms,
+  socketRoomRevalidationBatchSize,
   socketRoomRevalidationIntervalMs,
   startSocketRoomRevalidation,
   type SocketRoomAuthorizationSnapshot,
@@ -162,7 +163,14 @@ describe('socket room revalidation (BA-websocket-03)', () => {
       logger,
     );
 
-    expect(summary).toEqual({ checked: 2, joined: 1, left: 2, failed: 1 });
+    expect(summary).toEqual({
+      checked: 2,
+      distinctUsers: 2,
+      authorizationReads: 2,
+      joined: 1,
+      left: 2,
+      failed: 1,
+    });
     expect(logger.warn).toHaveBeenCalledWith(
       'socket_room_revalidation_failed checked=2 failed=1 fail_closed=1',
     );
@@ -243,10 +251,158 @@ describe('socket room revalidation (BA-websocket-03)', () => {
       { warn: jest.fn() },
     );
 
-    expect(summary).toEqual({ checked: 2, joined: 2, left: 2, failed: 0 });
+    expect(summary).toEqual({
+      checked: 2,
+      distinctUsers: 1,
+      authorizationReads: 1,
+      joined: 2,
+      left: 2,
+      failed: 0,
+    });
     expect(membership.roomAccessForUser).toHaveBeenCalledTimes(1);
     expect(first.rooms.has('group:new')).toBe(true);
     expect(second.rooms.has('group:new')).toBe(true);
+  });
+
+  it('loads deduplicated users in bounded multi-user chunks', async () => {
+    const firstTab = createSocket('batch-user-1', ['group:stale']);
+    const secondTab = createSocket('batch-user-1');
+    const third = createSocket('batch-user-2');
+    const fourth = createSocket('batch-user-3');
+    const roomAccessForUsers = jest.fn(async (userIds: readonly string[]) =>
+      new Map(
+        userIds.map((userId) => [userId, snapshot(['current'])] as const),
+      ),
+    );
+    const membership = {
+      roomAccessForUser: jest.fn(),
+      roomAccessForUsers,
+    };
+
+    const summary = await revalidateConnectedSocketRooms(
+      [firstTab, secondTab, third, fourth],
+      membership,
+      { warn: jest.fn() },
+      { batchSize: 2, concurrency: 1 },
+    );
+
+    expect(roomAccessForUsers).toHaveBeenCalledTimes(2);
+    expect(roomAccessForUsers).toHaveBeenNthCalledWith(1, [
+      'batch-user-1',
+      'batch-user-2',
+    ]);
+    expect(roomAccessForUsers).toHaveBeenNthCalledWith(2, ['batch-user-3']);
+    expect(membership.roomAccessForUser).not.toHaveBeenCalled();
+    expect(summary).toEqual({
+      checked: 4,
+      distinctUsers: 3,
+      authorizationReads: 2,
+      joined: 4,
+      left: 1,
+      failed: 0,
+    });
+    expect(firstTab.rooms.has('group:current')).toBe(true);
+    expect(firstTab.rooms.has('group:stale')).toBe(false);
+    expect(secondTab.rooms.has('group:current')).toBe(true);
+  });
+
+  it('preserves the membership source receiver for batch reads', async () => {
+    const client = createSocket('receiver-user');
+    const membership = {
+      roomAccessForUser: jest.fn(),
+      groupId: 'receiver-group',
+      async roomAccessForUsers(userIds: readonly string[]) {
+        return new Map(userIds.map((id) => [id, snapshot([this.groupId])] as const));
+      },
+    };
+
+    await revalidateConnectedSocketRooms([client], membership, { warn: jest.fn() });
+    expect(client.rooms.has('group:receiver-group')).toBe(true);
+  });
+
+  it('clears a failed batch without waiting for unrelated slow batches', async () => {
+    const failed = createSocket('fail-fast', ['group:stale']);
+    const slow = createSocket('slow');
+    let finish: ((value: ReadonlyMap<string, SocketRoomAuthorizationSnapshot | null>) => void) | undefined;
+    const membership = {
+      roomAccessForUser: jest.fn(),
+      roomAccessForUsers: jest.fn((ids: readonly string[]) =>
+        ids[0] === 'fail-fast'
+          ? Promise.reject(new Error('failure'))
+          : new Promise<ReadonlyMap<string, SocketRoomAuthorizationSnapshot | null>>((resolve) => {
+              finish = resolve;
+            }),
+      ),
+    };
+    const sweep = revalidateConnectedSocketRooms([failed, slow], membership, { warn: jest.fn() }, { batchSize: 1, concurrency: 2 });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(failed.rooms.has('group:stale')).toBe(false);
+    finish?.(new Map([['slow', snapshot([])]]));
+    await sweep;
+  });
+
+  it('fails a batch closed while continuing later batches', async () => {
+    const failed = createSocket('batch-fail', ['group:stale']);
+    const working = createSocket('batch-ok');
+    const roomAccessForUsers = jest.fn(async (userIds: readonly string[]) => {
+      if (userIds[0] === 'batch-fail') throw new Error('database unavailable');
+      return new Map(userIds.map((userId) => [userId, snapshot(['current'])] as const));
+    });
+    const logger = { warn: jest.fn() };
+
+    const summary = await revalidateConnectedSocketRooms(
+      [failed, working],
+      {
+        roomAccessForUser: jest.fn(),
+        roomAccessForUsers,
+      },
+      logger,
+      { batchSize: 1, concurrency: 1 },
+    );
+
+    expect(summary).toEqual({
+      checked: 2,
+      distinctUsers: 2,
+      authorizationReads: 2,
+      joined: 1,
+      left: 1,
+      failed: 1,
+    });
+    expect(failed.rooms.has('group:stale')).toBe(false);
+    expect(failed.disconnect).not.toHaveBeenCalled();
+    expect(working.rooms.has('group:current')).toBe(true);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'socket_room_revalidation_failed checked=2 failed=1 fail_closed=1',
+    );
+  });
+
+  it('caps concurrent batch reads at the configured process limit', async () => {
+    const clients = Array.from({ length: 30 }, (_, index) =>
+      createSocket(`batch-limit-${index}`),
+    );
+    let activeReads = 0;
+    let maximumActiveReads = 0;
+    const roomAccessForUsers = jest.fn(async (userIds: readonly string[]) => {
+      activeReads += 1;
+      maximumActiveReads = Math.max(maximumActiveReads, activeReads);
+      await Promise.resolve();
+      activeReads -= 1;
+      return new Map(userIds.map((userId) => [userId, snapshot([])] as const));
+    });
+
+    const summary = await revalidateConnectedSocketRooms(
+      clients,
+      {
+        roomAccessForUser: jest.fn(),
+        roomAccessForUsers,
+      },
+      { warn: jest.fn() },
+      { batchSize: 1, concurrency: 100 },
+    );
+
+    expect(maximumActiveReads).toBe(25);
+    expect(summary.authorizationReads).toBe(30);
+    expect(socketRoomRevalidationBatchSize).toBe(250);
   });
 
   it('revalidates immediately, then at a bounded interval, and stops on demand', async () => {
@@ -259,13 +415,23 @@ describe('socket room revalidation (BA-websocket-03)', () => {
       const server = {
         sockets: { sockets: new Map([[client.id, client]]) },
       } as unknown as Server;
+      const logger = { warn: jest.fn(), log: jest.fn() };
 
-      const stop = startSocketRoomRevalidation(server, membership, { warn: jest.fn() });
+      const stop = startSocketRoomRevalidation(server, membership, logger);
       await jest.advanceTimersByTimeAsync(0);
       expect(membership.roomAccessForUser).toHaveBeenCalledWith('user-3');
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /socket_room_revalidation checked=1 distinct_users=1 authorization_reads=1 .*duration_ms=\d+ sweep_lag_ms=\d+ skipped_overlap_ticks=0 outcome=ok/,
+        ),
+      );
       expect(socketRoomRevalidationIntervalMs).toBe(30_000);
+      jest.setSystemTime(Date.now() + 500);
       await jest.advanceTimersByTimeAsync(socketRoomRevalidationIntervalMs);
       expect(membership.roomAccessForUser).toHaveBeenCalledTimes(2);
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringMatching(/duration_ms=\d+ sweep_lag_ms=500 skipped_overlap_ticks=0 outcome=ok/),
+      );
       expect(client.rooms.has('group:group-3')).toBe(true);
 
       stop();
@@ -292,7 +458,8 @@ describe('socket room revalidation (BA-websocket-03)', () => {
       const server = {
         sockets: { sockets: new Map([[client.id, client]]) },
       } as unknown as Server;
-      const stop = startSocketRoomRevalidation(server, membership, { warn: jest.fn() }, {
+      const logger = { warn: jest.fn(), log: jest.fn() };
+      const stop = startSocketRoomRevalidation(server, membership, logger, {
         intervalMs: 1_000,
         timeoutMs: 100_000,
       });
@@ -300,6 +467,16 @@ describe('socket room revalidation (BA-websocket-03)', () => {
       await jest.advanceTimersByTimeAsync(0);
       await jest.advanceTimersByTimeAsync(3_000);
       expect(membership.roomAccessForUser).toHaveBeenCalledTimes(1);
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /socket_room_revalidation_overlap skipped=1 total_skipped=1 sweep_lag_ms=0/,
+        ),
+      );
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /socket_room_revalidation_overlap skipped=1 total_skipped=3 sweep_lag_ms=0/,
+        ),
+      );
 
       finishRead?.(snapshot([]));
       await Promise.resolve();

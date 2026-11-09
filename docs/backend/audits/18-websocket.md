@@ -10,7 +10,7 @@
 
 `websocket` autentifikuje Socket.IO handshake, pridružuje user/group/admin i ticket visibility sobe, prenosi ticket, notification, Edge, settings i admin-config događaje, održava presence i koristi Redis adapter za horizontalno skaliranje. Temelj sadrži dobre odluke: cookie handshake zahtijeva dozvoljen origin, ticket join koristi centralnu access policy, internal note ide samo staff sobi, group feed ima lagani payload, Redis ima posebne pub/sub konekcije i ACL probe, a join/presence imaju lokalne limite.
 
-Baseline je ipak **4,88/10**. Četiri P1 nalaza ruše revocation i privacy granicu. Socket autentikacija se provjerava samo na handshakeu: logout, revoke-all, promjena lozinke, idle/session expiry i authz-version promjena ne prekidaju postojeću konekciju. Ticket sobe se autorizuju samo pri joinu i nikad revalidiraju, pa forward, promjena OU/grupe, confidential flag ili role revocation ne oduzima stream. Group/admin sobe se provjeravaju tek svakih pet minuta, a DB greška je fail-open. Konačno, legacy full-payload group emit je uključen po defaultu i šalje puni javni ticket/message payload svim članovima grupe iako članstvo samo po sebi nije dokaz pune ticket vidljivosti.
+Baseline je ipak **4,88/10**. Četiri P1 nalaza ruše revocation i privacy granicu. Izvorni audit baseline je ustanovio da socket auth/session promjene ne prekidaju postojeću konekciju, ticket sobe se ne revalidiraju nakon join-a, group/admin sobe imaju petominutni fail-open polling, a legacy full-payload group emit je default-on. W6.30–W6.33 su naknadno zatvorili nalaze BA-websocket-01–04 (§19–22); sadašnji otvoreni WebSocket P2 scope uključuje BA-websocket-06–11, a BA-10 je batch/resource/observability hardening, ne ponovno otvaranje BA-03 revocation ugovora. Baseline ocjena i izvorne analize ostaju nepromijenjeni.
 
 Dodatni problemi su bili runtime Redis degradacija bez pouzdanog fallback/state signala (`BA-websocket-05`), per-socket rate-limit koji se lako multiplicira, globalno emitovanje private setting key metadata, neawaitani room join, izostanak replay/catch-up ugovora i nedovoljna E2E revocation/cross-instance matrica. W6.48 zatvorio je samo BA-05 nakon zelenog push-triggered CI-ja; preostali problemi nisu dio ovog paketa. Nema P0.
 
@@ -31,7 +31,7 @@ Ranijih 1.707 LOC iz registra korigovano je direktnim brojanjem na 1.679.
 
 ## 3. Arhitektura i tok
 
-`WebsocketGateway` registruje namespace middleware, verifikuje token, attachuje principal i nakon connecta pridružuje user, group i eventualno admin sobu. Periodični lokalni sweep svakih pet minuta usklađuje samo group/admin sobe. `TicketChatGateway` registruje procesne hub listenere, autorizuje explicit `ticket:join`, pridružuje baznu i staff/public sobu, obrađuje presence i mapira hub događaje u sobe.
+`WebsocketGateway` registruje namespace middleware, verifikuje token, attachuje principal i nakon connecta pridružuje user, group i eventualno admin sobu. Nakon W6.33, lokalni group/admin reconciliation sweep radi odmah i potom svakih 30 sekundi, uz user dedup, concurrency cap 25, authorization timeout od 5 sekundi i single-flight guard. W6.53 dodaje batch membership/role reads do 250 korisnika i sweep metrike; BA-10 dokaz još je pending (§22, §28). `TicketChatGateway` registruje procesne hub listenere, autorizuje explicit `ticket:join`, pridružuje baznu i staff/public sobu, obrađuje presence i mapira hub događaje u sobe.
 
 Redis adapter prenosi room emit između instanci. Boot ACL probe razlikuje `allowed/denied/unknown`; poznati deny ostavlja in-memory adapter, dok unknown instalira Redis adapter i oslanja se na ioredis reconnect. Događaji nemaju sequence/cursor/ack; REST refresh je implicitni recovery.
 
@@ -49,7 +49,7 @@ Ticket join ispravno poziva `TicketsCollaborationService.authorizeSocketJoin`, k
 
 Ali ticket room nije u managed revalidation skupu. Nakon joina socket ostaje u baznoj i visibility sobi bez obzira na forward, requester promjenu, OU/group scope, confidential status, role/permisiju ili deaktivaciju usera. Edge event se dodatno emituje baznoj `ticket:*` sobi, pa ista stale autorizacija obuhvata proizvoljni `data: unknown` payload.
 
-Group/admin sobe se revalidiraju svakih pet minuta. Do tada revocirani member/admin prima događaje. Ako membership query padne, exception se loguje i stare sobe ostaju aktivne neograničeno kroz ponovljeni incident. Revocation-sensitive sistem treba event-driven invalidaciju/disconnect i kratki fail-closed lease, ne petominutni fail-open polling.
+Izvorni audit baseline je imao petominutni fail-open polling: revocirani member/admin mogao je nastaviti primati događaje, a DB greška je ostavljala stare sobe aktivne. W6.33 je taj P1 propust ispravio event-driven authz-version invalidacijom/disconnectom i 30-sekundnim fail-closed reconciliation lease-om; mutation producenti i cross-instance acceptance granice su dokumentovani u §22. BA-10 je preostali P2 resource/performance nalaz: sadašnja implementacija batch-a joined membership/role snapshotove u grupama do 250 korisnika uz bounded concurrency i single-flight sweep, ciljani testovi su prošli, ali CI/generated-Prisma i acceptance potvrda još čekaju (§28).
 
 ## 6. Payload privatnost i routing
 
@@ -65,7 +65,7 @@ Admin config room zavisi od ADMIN/SUPER_ADMIN assignmenta, ali bilo koji scoped 
 
 Hub listeneri i emitovi su process-local callbacks; Redis distribuira emit, ali nema durable event log. Reconnect nema `lastEventId`, replay ni monotoni sequence. Client mora osvježiti REST stanje, ali taj ugovor nije formalizovan za sve evente. Presence je namjerno best-effort sa 45-sekundnim expiryjem i razdvojenim staff/requester payloadom.
 
-Room revalidation iterira socket po socket i radi dvije DB query grupe po konekciji, sekvencijalno. Velik broj socketova može produžiti sweep preko intervala; nema overlap guarda, batch queryja, concurrency limita ni trajanja/lag metrike.
+Izvorni audit nalaz je bilježio revalidation po socketu, bez multi-user batch queryja i bez resource/overlap metrike. BA-03 je od tada uveo deduplikaciju po korisniku, concurrency cap 25, 5-sekundni authorization timeout i 30-sekundni single-flight sweep. W6.53 implementacija za BA-10 dodaje joined multi-user membership/role čitanje u batch-evima do 250 različitih korisnika te structured duration, sweep-lag i overlap-skip logove; batch DB greška i dalje čisti managed sobe fail-closed. Ciljani testovi su prošli, a CI/generated-Prisma i acceptance potvrda još čekaju, pa nalaz ostaje otvoren; detalji i granice su u §28.
 
 ## 8. Redis adapter i multi-instance ponašanje
 
@@ -84,7 +84,7 @@ Poznati boot-time ACL deny (ili nedostajuća Redis konfiguracija) i dalje ostavl
 
 Join/leave dijele 30/min po socketu; presence ima sličan per-socket limit. Payload parser prihvata bilo koji non-empty ticket ID bez maksimalne dužine/UUID validationa, pa limit ublažava ali ne uklanja nepotrebne DB queryje. Nema globalnog/user/IP connect limita niti max joined ticket rooms; jedan dugovječan socket može akumulirati proizvoljno mnogo autorizovanih ticket soba.
 
-Metrike broje clients i emit vrste. BA-05 dodatak sada loguje promjenu efektivnog Redis adapter stanja i izlaže ga u readinessu, ali ne mjeri end-to-end Socket.IO client acknowledgement niti reconnect/drop gap. Ostaju active rooms po useru/socketu, auth/session revocation lag, stale ticket room, room revalidation duration/overlap i private metadata emit. Logovi connection ID-a ne uključuju user ID, što je privatnosno konzervativno, ali incident korelacija mora koristiti siguran hashed/trace identifikator.
+Metrike broje clients i emit vrste. BA-05 dodatak loguje promjenu efektivnog Redis adapter stanja i izlaže ga u readinessu, ali ne mjeri end-to-end Socket.IO client acknowledgement niti reconnect/drop gap. BA-10 implementacija sada loguje trajanje room sweepa, sweep lag i preskočene overlap tickove; ciljani testovi su prošli, a CI i acceptance su pending (§28). I dalje nedostaju active rooms po useru/socketu, potpuni auth/session revocation lag, stale ticket-room metric i private metadata emit metrika. Logovi connection ID-a ne uključuju user ID, što je privatnosno konzervativno, ali incident korelacija mora koristiti siguran hashed/trace identifikator.
 
 ## 10. Testovi i E2E dokaz
 
@@ -161,7 +161,7 @@ Flag vraća true kada env nije postavljen. Group room je membership soba, ali do
 - **07:** public signal bez private keya; private metadata samo settings-authorized/admin roomu.
 - **08:** connection readiness mora awaitati obavezne sobe ili eksplicitno emitovati `ready`; join greške moraju imati metric.
 - **09:** event ID/sequence i reconnect catch-up preko REST cursor/durable streama, najmanje za notification/ticket state.
-- **10:** batch membership/role query, bounded concurrency, single-flight sweep i duration/lag metric.
+- **10:** W6.53 implementira batch membership/role query (do 250 korisnika), bounded concurrency, single-flight sweep i duration/lag/overlap logove; finding ostaje otvoren do CI/generated-Prisma i acceptance potvrde; ciljani testovi su prošli.
 - **11:** cap aktivnih ticket subscriptiona, idempotent room registry i leave/LRU UX.
 - **12:** lifecycle destroy vratiti/awaitati Promise i uskladiti runbook sa stvarnim Nest shutdown redoslijedom.
 - **13:** definisati global admin-only ili scope-aware config event ugovor prije dodavanja sadržaja.
@@ -394,3 +394,9 @@ Detalji: [paket 166 / W6.51](../implementation/166-websocket-08-await-room-readi
 - Ciljani frontend testovi i type/lint provjere prolaze; CI status nije potvrđen. `BA-websocket-09` ostaje **otvoren** do CI i acceptance potvrde. Nema schema promjene, migracije ili promjene susjednih nalaza.
 
 Detalji: [paket 167 / W6.52](../implementation/167-websocket-09-rest-snapshot-catch-up.md).
+
+## 28. W6.53 implementation status — BA-websocket-10 (2026-10-29)
+
+`BA-websocket-10` (P2) ostaje **otvoren** do CI/generated-Prisma i acceptance potvrde; nema promjene registra ni brojčanog statusa Vala 6. Raniji BA-03 već je imao user dedup, concurrency cap 25, 5 s authorization timeout i 30 s single-flight sweep. W6.53 dodaje joined batch membership/role/authz-version read do 250 različitih korisnika i structured logove za trajanje, scheduler lag, authorization reads i preskočene overlap tickove. Neuspješan batch fail-closed čisti group/admin sobe bez čekanja drugih batch-eva; početni setup i fallback bez batch API-ja ostaju per-user.
+
+Lokalno su prošli ciljani Jest **2 suitea / 22 testa** uz `diagnostics:false` i ciljani ESLint; mockovi nisu PostgreSQL/load acceptance. Timeout ne otkazuje underlying Prisma query, pa cap wrapper workera nije čvrsta granica svih stvarnih in-flight DB upita. Push-triggered CI, generated-Prisma potvrda i runtime load/query-trace dokaz nisu potvrđeni; full CI/E2E nije ručno pokretan. Nema migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. Detalji: [paket 168 / W6.53](../implementation/168-websocket-10-batched-room-revalidation.md).

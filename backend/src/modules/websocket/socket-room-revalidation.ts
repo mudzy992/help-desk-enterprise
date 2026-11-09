@@ -13,6 +13,7 @@ import { groupRoomName } from './ticket-socket-rooms';
 export const socketRoomRevalidationIntervalMs = 30_000;
 export const socketRoomRevalidationTimeoutMs = 5_000;
 export const socketRoomRevalidationConcurrency = 25;
+export const socketRoomRevalidationBatchSize = 250;
 
 export type SocketRoomAuthorizationSnapshot = {
   readonly authzVersion: number;
@@ -26,10 +27,15 @@ export type SocketRoomMembershipSource = {
   readonly roomAccessForUser: (
     userId: string,
   ) => Promise<SocketRoomAuthorizationSnapshot | null>;
+  /** Optional multi-user read used by the bounded periodic sweep. */
+  readonly roomAccessForUsers?: (
+    userIds: readonly string[],
+  ) => Promise<ReadonlyMap<string, SocketRoomAuthorizationSnapshot | null>>;
 };
 
 export type SocketRoomRevalidationLogger = {
   readonly warn: (message: string) => void;
+  readonly log?: (message: string) => void;
 };
 
 /** Rooms this revalidation owns; everything else on the socket is left alone. */
@@ -77,6 +83,10 @@ export async function revalidateSocketRooms(
 export type SocketRoomRevalidationSummary = {
   /** Number of authenticated sockets in the local process. */
   readonly checked: number;
+  /** Number of distinct authenticated subjects in the local process. */
+  readonly distinctUsers: number;
+  /** Number of authoritative single- or multi-user membership reads. */
+  readonly authorizationReads: number;
   readonly joined: number;
   readonly left: number;
   /** Sockets whose refresh failed and had managed rooms revoked fail-closed. */
@@ -89,9 +99,10 @@ type SocketUserGroup = {
 };
 
 /**
- * Revalidates local sockets with one authorization read per distinct user and
- * bounded cross-user concurrency. A failed user snapshot strips every managed
- * room for that user's local sockets; unrelated users continue to be checked.
+ * Revalidates local sockets with one authorization read per bounded batch of
+ * distinct users (or per user for legacy sources) and bounded concurrency. A
+ * failed batch strips every managed room for its users; unrelated batches
+ * continue to be checked.
  */
 export async function revalidateConnectedSocketRooms(
   sockets: Iterable<Socket>,
@@ -100,9 +111,17 @@ export async function revalidateConnectedSocketRooms(
   options: {
     readonly timeoutMs?: number;
     readonly concurrency?: number;
+    readonly batchSize?: number;
   } = {},
 ): Promise<SocketRoomRevalidationSummary> {
-  const summary = { checked: 0, joined: 0, left: 0, failed: 0 };
+  const summary = {
+    checked: 0,
+    distinctUsers: 0,
+    authorizationReads: 0,
+    joined: 0,
+    left: 0,
+    failed: 0,
+  };
   const groups = new Map<string, SocketUserGroup>();
 
   for (const client of sockets) {
@@ -124,47 +143,70 @@ export async function revalidateConnectedSocketRooms(
     }
   }
 
-  await mapWithConcurrency(
-    [...groups.values()],
-    options.concurrency ?? socketRoomRevalidationConcurrency,
-    async (group) => {
+  const userGroups = [...groups.values()];
+  summary.distinctUsers = userGroups.length;
+  const requestedConcurrency =
+    options.concurrency ?? socketRoomRevalidationConcurrency;
+  const concurrency = Number.isFinite(requestedConcurrency)
+    ? Math.min(
+        socketRoomRevalidationConcurrency,
+        Math.max(1, Math.floor(requestedConcurrency)),
+      )
+    : socketRoomRevalidationConcurrency;
+  const timeoutMs = options.timeoutMs ?? socketRoomRevalidationTimeoutMs;
+  const requestedBatchSize =
+    options.batchSize ?? socketRoomRevalidationBatchSize;
+  const batchSize = Number.isFinite(requestedBatchSize)
+    ? Math.min(
+        socketRoomRevalidationBatchSize,
+        Math.max(1, Math.floor(requestedBatchSize)),
+      )
+    : socketRoomRevalidationBatchSize;
+  const loadMany = membership.roomAccessForUsers;
+
+  if (loadMany !== undefined && userGroups.length > 0) {
+    const batches = chunkValues(userGroups, batchSize);
+
+    await mapWithConcurrency(batches, concurrency, async (batch) => {
+      summary.authorizationReads += 1;
+      let snapshots: ReadonlyMap<string, SocketRoomAuthorizationSnapshot | null>;
+      try {
+        snapshots = await withTimeout(
+          loadMany.call(membership, batch.map(({ userId }) => userId)),
+          timeoutMs,
+        );
+      } catch {
+        for (const group of batch) {
+          summary.failed += group.sockets.length;
+          summary.left += await clearManagedRoomsForUserGroup(group);
+        }
+        return;
+      }
+      for (const group of batch) {
+        await applySnapshotToUserGroup(
+          group,
+          snapshots.get(group.userId) ?? null,
+          summary,
+        );
+      }
+    });
+  } else {
+    await mapWithConcurrency(userGroups, concurrency, async (group) => {
+      summary.authorizationReads += 1;
       let snapshot: SocketRoomAuthorizationSnapshot | null;
       try {
         snapshot = await withTimeout(
           membership.roomAccessForUser(group.userId),
-          options.timeoutMs ?? socketRoomRevalidationTimeoutMs,
+          timeoutMs,
         );
       } catch {
         summary.failed += group.sockets.length;
-        await Promise.all(
-          group.sockets.map(async (client) => {
-            const left = await leaveManagedRoomsFailClosed(client);
-            summary.left += left;
-          }),
-        );
+        summary.left += await clearManagedRoomsForUserGroup(group);
         return;
       }
-
-      for (const client of group.sockets) {
-        const principal = getSocketPrincipal(client);
-        if (!isSocketPrincipal(principal) || socketIsDisconnected(client)) {
-          disconnectSocket(client);
-          continue;
-        }
-        try {
-          const result = await applyRoomAuthorizationSnapshot(
-            client,
-            principal.authzVersion,
-            snapshot,
-          );
-          summary.joined += result.joined;
-          summary.left += result.left;
-        } catch {
-          summary.failed += 1;
-        }
-      }
-    },
-  );
+      await applySnapshotToUserGroup(group, snapshot, summary);
+    });
+  }
 
   if (summary.failed > 0) {
     logger.warn(
@@ -172,6 +214,40 @@ export async function revalidateConnectedSocketRooms(
     );
   }
   return summary;
+}
+
+async function applySnapshotToUserGroup(
+  group: SocketUserGroup,
+  snapshot: SocketRoomAuthorizationSnapshot | null,
+  summary: SocketRoomRevalidationSummary,
+): Promise<void> {
+  for (const client of group.sockets) {
+    const principal = getSocketPrincipal(client);
+    if (!isSocketPrincipal(principal) || socketIsDisconnected(client)) {
+      disconnectSocket(client);
+      continue;
+    }
+    try {
+      const result = await applyRoomAuthorizationSnapshot(
+        client,
+        principal.authzVersion,
+        snapshot,
+      );
+      summary.joined += result.joined;
+      summary.left += result.left;
+    } catch {
+      summary.failed += 1;
+    }
+  }
+}
+
+async function clearManagedRoomsForUserGroup(
+  group: SocketUserGroup,
+): Promise<number> {
+  const leftBySocket = await Promise.all(
+    group.sockets.map((client) => leaveManagedRoomsFailClosed(client)),
+  );
+  return leftBySocket.reduce((total, left) => total + left, 0);
 }
 
 /**
@@ -187,36 +263,61 @@ export function startSocketRoomRevalidation(
     readonly intervalMs?: number;
     readonly timeoutMs?: number;
     readonly concurrency?: number;
+    readonly batchSize?: number;
   } = {},
 ): () => void {
   let stopped = false;
   let running = false;
-  const run = async (): Promise<void> => {
-    if (stopped || running) return;
+  let skippedOverlapTicks = 0;
+  const intervalMs = options.intervalMs ?? socketRoomRevalidationIntervalMs;
+  const run = async (scheduledAt: number): Promise<void> => {
+    const startedAt = Date.now();
+    const sweepLagMs = Math.max(0, startedAt - scheduledAt);
+    if (stopped) return;
+    if (running) {
+      skippedOverlapTicks += 1;
+      logger.log?.(
+        `socket_room_revalidation_overlap skipped=1 total_skipped=${skippedOverlapTicks} sweep_lag_ms=${sweepLagMs}`,
+      );
+      return;
+    }
     running = true;
+    const overlapSkipsForSweep = skippedOverlapTicks;
+    skippedOverlapTicks = 0;
+    let summary: SocketRoomRevalidationSummary | undefined;
+    let unexpectedFailure = false;
     try {
-      await revalidateConnectedSocketRooms(
+      summary = await revalidateConnectedSocketRooms(
         server.sockets?.sockets?.values() ?? [],
         membership,
         logger,
         {
           timeoutMs: options.timeoutMs ?? socketRoomRevalidationTimeoutMs,
           concurrency: options.concurrency ?? socketRoomRevalidationConcurrency,
+          batchSize: options.batchSize ?? socketRoomRevalidationBatchSize,
         },
       );
     } catch {
+      unexpectedFailure = true;
       // Keep the timer from creating an unhandled rejection; per-user failures
       // have already stripped managed rooms. This line is a process-health alert.
       logger.warn('socket_room_revalidation_failed reason=unexpected fail_closed=1');
     } finally {
+      const durationMs = Date.now() - startedAt;
       running = false;
+      logger.log?.(
+        `socket_room_revalidation checked=${summary?.checked ?? 0} distinct_users=${summary?.distinctUsers ?? 0} authorization_reads=${summary?.authorizationReads ?? 0} joined=${summary?.joined ?? 0} left=${summary?.left ?? 0} failed=${summary?.failed ?? 0} duration_ms=${durationMs} sweep_lag_ms=${sweepLagMs} skipped_overlap_ticks=${overlapSkipsForSweep} outcome=${unexpectedFailure ? 'error' : 'ok'}`,
+      );
     }
   };
-  void run();
-  const timer = setInterval(
-    () => void run(),
-    options.intervalMs ?? socketRoomRevalidationIntervalMs,
-  );
+  const initialScheduledAt = Date.now();
+  void run(initialScheduledAt);
+  let nextScheduledAt = initialScheduledAt + intervalMs;
+  const timer = setInterval(() => {
+    const scheduledAt = nextScheduledAt;
+    nextScheduledAt += intervalMs;
+    void run(scheduledAt);
+  }, intervalMs);
   timer.unref?.();
   return () => {
     stopped = true;
@@ -332,6 +433,15 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);
   }
+}
+
+function chunkValues<T>(values: readonly T[], requestedSize: number): T[][] {
+  const size = Math.max(1, Math.floor(requestedSize));
+  const chunks: T[][] = [];
+  for (let start = 0; start < values.length; start += size) {
+    chunks.push(values.slice(start, start + size));
+  }
+  return chunks;
 }
 
 async function mapWithConcurrency<T>(
