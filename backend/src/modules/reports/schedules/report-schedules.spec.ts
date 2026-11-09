@@ -7,6 +7,8 @@ import {
   AUTHORIZATION_REQUIRED_ROLES_KEY,
 } from '../../authorization/authorization.constants';
 import { defaultEmailTemplates } from '../../notifications/email/default-email-templates';
+import { createInMemoryNotificationEmailDeliveryDelegate } from '../../notifications/email/create-in-memory-notification-email-delivery-delegate';
+import type { NotificationEmailDeliveryRecord } from '../../notifications/email/create-in-memory-notification-email-delivery-delegate';
 import { ReportsController } from '../reports.controller';
 import { composeScheduledReportEmail, trendsLinkQuery } from './compose-scheduled-report-email';
 import { reportsAccessRequirements } from './report-access.checker';
@@ -244,6 +246,8 @@ function schedule(overrides: Partial<ReportScheduleRecord> = {}): ReportSchedule
 
 function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: boolean }) {
   const runs: Record<string, unknown>[] = [];
+  const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
+  let deliveryId = 0;
   const sent: { to: string; subject: string }[] = [];
   const scheduleUpdates: unknown[] = [];
   const prisma = {
@@ -274,17 +278,11 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
       }),
       deleteMany: async () => ({ count: 0 }),
     },
-    notificationEmailDelivery: {
-      create: async () => ({}),
-      update: async () => ({}),
-      updateMany: async (args: { where?: { status?: string } }) => ({
-        // Claim attempts first check for a stale CLAIMED row. This fixture has
-        // none; the later SENT update applies to the newly-created row.
-        count: args.where?.status === 'CLAIMED' ? 0 : 1,
-      }),
-      deleteMany: async () => ({ count: 0 }),
-      findUnique: async () => null,
-    },
+    notificationEmailDelivery: createInMemoryNotificationEmailDeliveryDelegate(
+      emailDeliveries,
+      () => `delivery-${++deliveryId}`,
+      () => new Date(),
+    ),
   };
   const trendPoint = {
     key: '2026-03-23',
@@ -374,7 +372,7 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
       },
     },
   );
-  return { runner, runs, sent, prisma, scheduleUpdates };
+  return { runner, runs, sent, prisma, scheduleUpdates, emailDeliveries };
 }
 
 describe('ScheduledReportRunner sweep (design §5.4)', () => {
@@ -391,15 +389,32 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
   });
 
   it('sends only to eligible recipients and records the skipped ones', async () => {
-    const { runner, runs, sent } = createRunner({ due: [schedule()] });
+    const { runner, runs, sent, emailDeliveries } = createRunner({ due: [schedule()] });
     await runner.runDue(new Date('2026-03-30T05:01:00Z'));
     expect(sent.map((message) => message.to)).toEqual(['ok@example.com']);
+    expect([...emailDeliveries.values()]).toEqual([
+      expect.objectContaining({ status: 'SENT', providerResponseCode: 250 }),
+    ]);
     const final = runs.find((run) => 'final' in run)?.final as Record<string, unknown>;
     expect(final).toMatchObject({
       status: 'PARTIAL',
       recipientCount: 2,
       sentCount: 1,
       skipped: [{ userId: 'u-gone', reason: 'inactive' }],
+    });
+  });
+
+  it('records a failed recipient when the accepted SMTP receipt cannot be persisted', async () => {
+    const { runner, runs, sent, prisma } = createRunner({ due: [schedule()] });
+    const update = prisma.notificationEmailDelivery.updateMany.bind(prisma.notificationEmailDelivery);
+    jest.spyOn(prisma.notificationEmailDelivery, 'updateMany').mockImplementation(async (args) =>
+      args.data.status === 'SENT' ? { count: 0 } : update(args),
+    );
+    await runner.runDue(new Date('2026-03-30T05:01:00Z'));
+    expect(sent).toHaveLength(1);
+    expect(runs.find((run) => 'final' in run)?.final).toMatchObject({
+      status: 'FAILED', sentCount: 0,
+      skipped: expect.arrayContaining([expect.objectContaining({ userId: 'u-ok', reason: 'delivery_failed' })]),
     });
   });
 
