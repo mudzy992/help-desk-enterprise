@@ -24,6 +24,7 @@ describe('IntegrationJobDispatchReconcilerService', () => {
       },
     ];
     const repository = {
+      listExpiredProcessingPage: jest.fn().mockResolvedValue([]),
       listDispatchablePage: jest.fn().mockResolvedValue(jobs),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
@@ -63,8 +64,24 @@ describe('IntegrationJobDispatchReconcilerService', () => {
     );
   });
 
+  it('quarantines expired claims without enqueueing them and continues after failures', async () => {
+    const claims = [{ id: 'stale' }, { id: 'raced' }, { id: 'db-failure' }];
+    const repository = {
+      listExpiredProcessingPage: jest.fn().mockResolvedValue(claims),
+      quarantineExpiredProcessing: jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('db')),
+      listDispatchablePage: jest.fn().mockResolvedValue([]),
+    };
+    const queue = { add: jest.fn() };
+    const service = new IntegrationJobDispatchReconcilerService(repository as never, queue as never);
+    await expect(service.sweep(now)).resolves.toEqual({ processed: 3, failed: 1 });
+    expect(repository.listExpiredProcessingPage).toHaveBeenCalledWith(now, integrationQueueDispatchReconcileBatchSize);
+    expect(repository.quarantineExpiredProcessing).toHaveBeenCalledTimes(3);
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+
   it('continues the bounded page after an enqueue error and reports failed dispatches', async () => {
     const repository = {
+      listExpiredProcessingPage: jest.fn().mockResolvedValue([]),
       listDispatchablePage: jest.fn().mockResolvedValue([
         {
           id: 'pending-1',

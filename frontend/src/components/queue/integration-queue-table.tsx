@@ -47,14 +47,14 @@ export function IntegrationQueueTable({
                 </Badge>
               </td>
               <td className="tnum px-3">{job.attempts}</td>
-              <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground">
+              <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground" title={t(mapIntegrationJobErrorCode(job.lastErrorCode))}>
                 {t(mapIntegrationJobErrorCode(job.lastErrorCode))}
               </td>
               <td className="px-3">
                 <RelativeTime value={job.updatedAt} locale={i18n.language} />
               </td>
               <td className="px-3">
-                {canRetry && canRetryIntegrationJob(job.status) ? (
+                {canRetry && canRetryIntegrationJob(job.status) && job.lastErrorCode !== "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN" ? (
                   <Button
                     type="button"
                     size="xs"

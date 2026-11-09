@@ -181,7 +181,30 @@ describeIfDatabase(
       });
     });
 
-    it('does not reclaim even an expired PROCESSING lease (BA-05 remains separate)', async () => {
+    it('quarantines an expired claim once and fences the original worker', async () => {
+      const job = await createPendingJob('quarantine');
+      const now = new Date();
+      const claim = await repository.claimForProcessing(claimInput({
+        id: job.id, attemptId: job.id, ownerToken: `quarantine-${stamp}`,
+        now: new Date(now.getTime() - integrationJobProcessingLeaseDurationMilliseconds - 1000),
+      }));
+      if (claim === null) throw new Error('claim failed');
+      const snapshot = await prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } });
+      const results = await Promise.all([
+        repository.quarantineExpiredProcessing(snapshot, now),
+        repository.quarantineExpiredProcessing(snapshot, now),
+      ]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+      expect(await repository.markCompleted(claim)).toBe(false);
+      expect(await repository.resetForAdminRetry(job.id, 'admin-test')).toBeNull();
+      await expect(prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } })).resolves.toMatchObject({
+        status: IntegrationJobStatus.DLQ,
+        lastError: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN',
+        processingOwnerToken: null,
+      });
+    });
+
+    it('does not directly reclaim an expired PROCESSING lease', async () => {
       const job = await createPendingJob('expired');
       const now = new Date();
       const expiredAt = new Date(now.getTime() - 1_000);

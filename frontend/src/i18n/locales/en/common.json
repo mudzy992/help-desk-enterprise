@@ -5351,6 +5351,7 @@
     "columnAttempts": "Attempts",
     "columnError": "Error code",
     "errorCodes": {
+      "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN": "Delivery outcome unknown — investigate; retry is blocked",
       "EDGE_EVENT_NO_SUBSCRIBERS": "No active event subscribers",
       "INTEGRATION_JOB_FAILED": "Integration job failed"
     },

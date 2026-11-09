@@ -8,8 +8,9 @@ export const integrationQueueName = 'integration';
 /** Bounded periodic recovery for durable IntegrationJob rows not confirmed in BullMQ. */
 export const integrationQueueDispatchReconcileIntervalMilliseconds = 15_000;
 export const integrationQueueDispatchReconcileBatchSize = 100;
-/** Stored on each processor claim; expired PROCESSING reclamation stays BA-05 scope. */
+/** A timed-out claim has an unknown provider outcome, not permission to replay. */
 export const integrationJobProcessingLeaseDurationMilliseconds = 5 * 60 * 1_000;
+export const integrationJobProcessingOutcomeUnknown = 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN';
 
 /** Fixed-size, stable cursor pages for the Admin → Operations queue table. */
 export const integrationQueueAdminPageSize = 50;

@@ -5,6 +5,7 @@ import {
 } from '../../generated/prisma/enums';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import {
+  integrationJobProcessingOutcomeUnknown,
   integrationQueueAdminPageSize,
   integrationQueueAdminStatuses,
 } from './integration-queue.constants';
@@ -68,6 +69,43 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       take: 100,
       select: { id: true, type: true, status: true, attempts: true },
     });
+  });
+
+  it('quarantines expired claims with a fenced CAS and blocks blind admin retry', async () => {
+    const now = new Date('2026-10-08T12:00:00.000Z');
+    const expired = new Date('2026-10-08T11:59:00.000Z');
+    const job = { id: 'stale', version: 3, attempts: 1, processingAttemptId: 'stale', processingOwnerToken: 'owner', processingLeaseExpiresAt: expired, updatedAt: expired };
+    const integrationJob = { findMany: jest.fn().mockResolvedValue([job]), updateMany: jest.fn().mockResolvedValue({ count: 1 }) };
+    const transaction = { integrationJob: { findUnique: jest.fn().mockResolvedValue({ status: IntegrationJobStatus.DLQ, lastError: integrationJobProcessingOutcomeUnknown }), updateMany: jest.fn() } };
+    const prisma = { integrationJob, $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn(transaction)) };
+    const repository = new IntegrationJobRepository(prisma as never);
+    await repository.listExpiredProcessingPage(now, 100);
+    expect(integrationJob.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 100, where: expect.objectContaining({ status: IntegrationJobStatus.PROCESSING }) }));
+    await expect(repository.quarantineExpiredProcessing(job, now)).resolves.toBe(true);
+    expect(integrationJob.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: job.id, status: IntegrationJobStatus.PROCESSING, version: 3, processingOwnerToken: 'owner', processingLeaseExpiresAt: { equals: expired, lte: now } }),
+      data: expect.objectContaining({ status: IntegrationJobStatus.DLQ, lastError: integrationJobProcessingOutcomeUnknown, version: { increment: 1 } }),
+    }));
+    await expect(repository.resetForAdminRetry(job.id, 'admin')).resolves.toBeNull();
+    expect(transaction.integrationJob.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fences legacy claims without a lease by their age and update timestamp', async () => {
+    const now = new Date('2026-10-08T12:00:00.000Z');
+    const updatedAt = new Date('2026-10-08T11:40:00.000Z');
+    const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const repository = new IntegrationJobRepository({ integrationJob: { updateMany } } as never);
+    const claim = { id: 'legacy', version: 0, attempts: 1, processingAttemptId: null, processingOwnerToken: null, processingLeaseExpiresAt: null, updatedAt };
+    await expect(repository.quarantineExpiredProcessing(claim, now)).resolves.toBe(false);
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ processingLeaseExpiresAt: null, updatedAt: { equals: updatedAt, lte: new Date(now.getTime() - 300_000) } }) }));
+  });
+
+  it('keeps ambiguous DLQ rows outside automatic retention', async () => {
+    const deleteMany = jest.fn().mockResolvedValue({ count: 0 });
+    const repository = new IntegrationJobRepository({ integrationJob: { deleteMany } } as never);
+    const before = new Date('2026-10-01T00:00:00Z');
+    await repository.deleteDeadLetterOlderThan(before);
+    expect(deleteMany).toHaveBeenCalledWith({ where: { status: IntegrationJobStatus.DLQ, updatedAt: { lt: before }, OR: [{ lastError: null }, { lastError: { not: integrationJobProcessingOutcomeUnknown } }] } });
   });
 
   it('claims the expected logical attempt with a status/version/retry-time CAS', async () => {

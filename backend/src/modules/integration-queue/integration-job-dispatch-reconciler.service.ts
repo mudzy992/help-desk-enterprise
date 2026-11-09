@@ -15,9 +15,8 @@ import type { IntegrationQueueJobData } from './integration-queue.types';
  * rows are eligible only when their recorded backoff is due. Stable BullMQ job
  * ids make a lost enqueue acknowledgement safe to retry on the next sweep.
  *
- * This deliberately does not reclaim PROCESSING rows. Processor claim/CAS
- * prevents concurrent duplicate dispatches; stale PROCESSING lease recovery
- * remains the separate BA-integration-queue-05 scope.
+ * Expired PROCESSING claims are quarantined as unknown, never blindly replayed:
+ * a provider side effect may already have happened or still be in flight.
  */
 @Injectable()
 export class IntegrationJobDispatchReconcilerService {
@@ -32,11 +31,25 @@ export class IntegrationJobDispatchReconcilerService {
   ) {}
 
   async sweep(now: Date = new Date()): Promise<{ processed: number; failed: number }> {
-    const jobs = await this.integrationJobRepository.listDispatchablePage(
+    const expired = await this.integrationJobRepository.listExpiredProcessingPage(
       now,
       integrationQueueDispatchReconcileBatchSize,
     );
     let failed = 0;
+    for (const claim of expired) {
+      try {
+        if (await this.integrationJobRepository.quarantineExpiredProcessing(claim, now)) {
+          this.logger.warn(`integration_job_processing_expired id=${claim.id} outcome=unknown replay=blocked`);
+        }
+      } catch {
+        failed += 1;
+        this.logger.warn(`integration_job_processing_quarantine_failed id=${claim.id}`);
+      }
+    }
+    const jobs = await this.integrationJobRepository.listDispatchablePage(
+      now,
+      integrationQueueDispatchReconcileBatchSize,
+    );
 
     for (const job of jobs) {
       const jobId =
@@ -61,6 +74,6 @@ export class IntegrationJobDispatchReconcilerService {
       }
     }
 
-    return { processed: jobs.length, failed };
+    return { processed: expired.length + jobs.length, failed };
   }
 }

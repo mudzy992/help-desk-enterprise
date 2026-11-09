@@ -63,6 +63,7 @@ export type IntegrationQueueSettings = {
 
 export const integrationJobAdminErrorCodes = {
   edgeEventNoSubscribers: 'EDGE_EVENT_NO_SUBSCRIBERS',
+  processingOutcomeUnknown: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN',
   genericFailure: 'INTEGRATION_JOB_FAILED',
 } as const;
 

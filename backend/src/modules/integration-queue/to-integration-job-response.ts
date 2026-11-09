@@ -10,6 +10,9 @@ function toSafeErrorCode(
   lastError: string | null,
 ): IntegrationJobResponse['lastErrorCode'] {
   if (lastError === null) return null;
+  if (lastError === integrationJobAdminErrorCodes.processingOutcomeUnknown) {
+    return integrationJobAdminErrorCodes.processingOutcomeUnknown;
+  }
   if (
     type === IntegrationJobType.EDGE_EVENT &&
     lastError === integrationJobAdminErrorCodes.edgeEventNoSubscribers

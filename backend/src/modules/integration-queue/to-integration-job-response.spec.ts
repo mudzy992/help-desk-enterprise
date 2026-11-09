@@ -74,6 +74,14 @@ describe('toIntegrationJobResponse', () => {
     expect(response.lastErrorCode).toBe('INTEGRATION_JOB_FAILED');
   });
 
+  it('exposes the safe unknown-outcome code without a raw provider error', () => {
+    const response = toIntegrationJobResponse({
+      id: 'job-stale', type: IntegrationJobType.EMAIL, status: IntegrationJobStatus.DLQ,
+      lastError: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN', attempts: 1, ...timestamps,
+    });
+    expect(response.lastErrorCode).toBe('PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN');
+  });
+
   it('returns null error code when there is no stored error', () => {
     const response = toIntegrationJobResponse({
       id: 'job-pending-1',

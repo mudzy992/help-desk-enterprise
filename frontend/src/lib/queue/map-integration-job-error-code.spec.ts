@@ -7,6 +7,9 @@ describe("mapIntegrationJobErrorCode", () => {
     expect(mapIntegrationJobErrorCode("EDGE_EVENT_NO_SUBSCRIBERS")).toBe(
       "integrationQueue.errorCodes.EDGE_EVENT_NO_SUBSCRIBERS",
     );
+    expect(mapIntegrationJobErrorCode("PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN")).toBe(
+      "integrationQueue.errorCodes.PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN",
+    );
     expect(mapIntegrationJobErrorCode("INTEGRATION_JOB_FAILED")).toBe(
       "integrationQueue.errorCodes.INTEGRATION_JOB_FAILED",
     );

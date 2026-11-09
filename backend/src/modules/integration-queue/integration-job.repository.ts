@@ -15,6 +15,8 @@ import {
 } from '../notifications/email/persist-notification-email-delivery';
 import { parseEmailIntegrationJobPayload } from './parse-email-integration-job-payload';
 import {
+  integrationJobProcessingLeaseDurationMilliseconds,
+  integrationJobProcessingOutcomeUnknown,
   integrationQueueAdminPageSize,
   integrationQueueAdminStatuses,
 } from './integration-queue.constants';
@@ -62,6 +64,57 @@ export class IntegrationJobRepository {
       take,
       select: { id: true, type: true, status: true, attempts: true },
     });
+  }
+
+  /** Select only bounded stale claims; null leases are legacy rows. */
+  listExpiredProcessingPage(now: Date, take: number) {
+    return this.prisma.integrationJob.findMany({
+      where: {
+        status: IntegrationJobStatus.PROCESSING,
+        OR: [
+          { processingLeaseExpiresAt: { lte: now } },
+          {
+            processingLeaseExpiresAt: null,
+            updatedAt: { lte: new Date(now.getTime() - integrationJobProcessingLeaseDurationMilliseconds) },
+          },
+        ],
+      },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take,
+      select: { id: true, version: true, attempts: true, processingAttemptId: true, processingOwnerToken: true, processingLeaseExpiresAt: true, updatedAt: true },
+    });
+  }
+
+  /** Quarantine, never replay: a live or crashed worker may have sent already. */
+  async quarantineExpiredProcessing(
+    job: { readonly id: string; readonly version: number; readonly attempts: number; readonly processingAttemptId: string | null; readonly processingOwnerToken: string | null; readonly processingLeaseExpiresAt: Date | null; readonly updatedAt: Date },
+    now: Date,
+  ): Promise<boolean> {
+    const result = await this.prisma.integrationJob.updateMany({
+      where: {
+        id: job.id,
+        status: IntegrationJobStatus.PROCESSING,
+        version: job.version,
+        attempts: job.attempts,
+        processingAttemptId: job.processingAttemptId,
+        processingOwnerToken: job.processingOwnerToken,
+        processingLeaseExpiresAt: job.processingLeaseExpiresAt,
+        updatedAt: job.updatedAt,
+        ...(job.processingLeaseExpiresAt === null
+          ? { updatedAt: { equals: job.updatedAt, lte: new Date(now.getTime() - integrationJobProcessingLeaseDurationMilliseconds) } }
+          : { processingLeaseExpiresAt: { equals: job.processingLeaseExpiresAt, lte: now } }),
+      },
+      data: {
+        status: IntegrationJobStatus.DLQ,
+        lastError: integrationJobProcessingOutcomeUnknown,
+        nextRetryAt: null,
+        version: { increment: 1 },
+        processingAttemptId: null,
+        processingOwnerToken: null,
+        processingLeaseExpiresAt: null,
+      },
+    });
+    return result.count === 1;
   }
 
   async listByStatusPage(
@@ -244,6 +297,7 @@ export class IntegrationJobRepository {
       });
       if (
         existing === null ||
+        existing.lastError === integrationJobProcessingOutcomeUnknown ||
         (existing.status !== IntegrationJobStatus.FAILED &&
           existing.status !== IntegrationJobStatus.DLQ)
       ) {
@@ -324,6 +378,10 @@ export class IntegrationJobRepository {
       where: {
         status: IntegrationJobStatus.DLQ,
         updatedAt: { lt: before },
+        OR: [
+          { lastError: null },
+          { lastError: { not: integrationJobProcessingOutcomeUnknown } },
+        ],
       },
     });
   }
