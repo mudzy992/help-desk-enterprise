@@ -12,6 +12,8 @@ export const integrationQueueDispatchReconcileBatchSize = 100;
 export const integrationJobProcessingLeaseDurationMilliseconds = 5 * 60 * 1_000;
 export const integrationJobProcessingOutcomeUnknown = 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN';
 export const integrationJobProviderOutcomeUnknown = 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN';
+/** At most one bounded DLQ batch per maintenance sweep. */
+export const integrationJobDlqRetentionBatchSize = 100;
 
 /** Fixed-size, stable cursor pages for the Admin → Operations queue table. */
 export const integrationQueueAdminPageSize = 50;

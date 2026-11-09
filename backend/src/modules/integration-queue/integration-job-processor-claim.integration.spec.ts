@@ -1,10 +1,11 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import {
   IntegrationJobStatus,
   IntegrationJobType,
 } from '../../generated/prisma/enums';
-import { integrationJobProcessingLeaseDurationMilliseconds } from './integration-queue.constants';
+import { integrationJobDlqRetentionBatchSize, integrationJobProcessingLeaseDurationMilliseconds } from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -202,6 +203,39 @@ describeIfDatabase(
         lastError: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN',
         processingOwnerToken: null,
       });
+    });
+
+    it('bounds DLQ retention and preserves both unknown-outcome quarantines', async () => {
+      const before = new Date('2000-01-01T00:00:00Z');
+      const old = new Date('1999-01-01T00:00:00Z');
+      const ids = Array.from({ length: integrationJobDlqRetentionBatchSize + 5 }, (_, i) => `retention-${stamp}-${String(i).padStart(4, '0')}`);
+      const protectedIds = [`quarantine-lease-${stamp}`, `quarantine-provider-${stamp}`];
+      jobIds.push(...ids, ...protectedIds);
+      await prisma.integrationJob.createMany({ data: [
+        ...ids.map((id) => ({ id, type: IntegrationJobType.TEAMS, status: IntegrationJobStatus.DLQ, payload: {}, updatedAt: old })),
+        ...protectedIds.map((id, i) => ({ id, type: IntegrationJobType.TEAMS, status: IntegrationJobStatus.DLQ, payload: {}, updatedAt: old, lastError: i === 0 ? 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN' : 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN' })),
+      ] });
+      expect((await repository.deleteDeadLetterOlderThan(before)).count).toBe(integrationJobDlqRetentionBatchSize);
+      expect(await prisma.integrationJob.count({ where: { id: { in: ids } } })).toBe(5);
+      expect((await repository.deleteDeadLetterOlderThan(before)).count).toBe(5);
+      expect(await prisma.integrationJob.count({ where: { id: { in: protectedIds } } })).toBe(2);
+    });
+
+    it('does not delete a candidate changed after retention selection', async () => {
+      const job = await createPendingJob('retention-race');
+      const before = new Date('2000-01-01T00:00:00Z');
+      await prisma.integrationJob.update({ where: { id: job.id }, data: { status: IntegrationJobStatus.DLQ, updatedAt: new Date('1999-01-01T00:00:00Z') } });
+      const integrationJob = {
+        findMany: async (args: Prisma.IntegrationJobFindManyArgs) => {
+          const rows = await prisma.integrationJob.findMany(args);
+          await prisma.integrationJob.update({ where: { id: job.id }, data: { status: IntegrationJobStatus.PENDING, version: { increment: 1 } } });
+          return rows;
+        },
+        deleteMany: prisma.integrationJob.deleteMany.bind(prisma.integrationJob),
+      };
+      const racingRepository = new IntegrationJobRepository({ integrationJob } as never);
+      expect((await racingRepository.deleteDeadLetterOlderThan(before)).count).toBe(0);
+      await expect(prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } })).resolves.toMatchObject({ status: IntegrationJobStatus.PENDING, version: 1 });
     });
 
     it('does not directly reclaim an expired PROCESSING lease', async () => {

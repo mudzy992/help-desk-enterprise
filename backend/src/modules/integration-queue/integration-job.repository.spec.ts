@@ -5,6 +5,7 @@ import {
 } from '../../generated/prisma/enums';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import {
+  integrationJobDlqRetentionBatchSize,
   integrationJobProcessingOutcomeUnknown,
   integrationJobProviderOutcomeUnknown,
   integrationQueueAdminPageSize,
@@ -103,12 +104,23 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ processingLeaseExpiresAt: null, updatedAt: { equals: updatedAt, lte: new Date(now.getTime() - 300_000) } }) }));
   });
 
-  it('keeps ambiguous DLQ rows outside automatic retention', async () => {
-    const deleteMany = jest.fn().mockResolvedValue({ count: 0 });
-    const repository = new IntegrationJobRepository({ integrationJob: { deleteMany } } as never);
+  it('selects one ordered DLQ batch and rechecks eligibility and version before deletion', async () => {
+    const findMany = jest.fn().mockResolvedValue([{ id: 'old', version: 3 }, { id: 'retry-race', version: 7 }]);
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const repository = new IntegrationJobRepository({ integrationJob: { findMany, deleteMany } } as never);
     const before = new Date('2026-10-01T00:00:00Z');
-    await repository.deleteDeadLetterOlderThan(before);
-    expect(deleteMany).toHaveBeenCalledWith({ where: { status: IntegrationJobStatus.DLQ, updatedAt: { lt: before }, OR: [{ lastError: null }, { lastError: { notIn: [integrationJobProcessingOutcomeUnknown, integrationJobProviderOutcomeUnknown] } }] } });
+    const eligible = { status: IntegrationJobStatus.DLQ, updatedAt: { lt: before }, OR: [{ lastError: null }, { lastError: { notIn: [integrationJobProcessingOutcomeUnknown, integrationJobProviderOutcomeUnknown] } }] };
+    await expect(repository.deleteDeadLetterOlderThan(before)).resolves.toEqual({ count: 1 });
+    expect(findMany).toHaveBeenCalledWith({ where: eligible, orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }], take: integrationJobDlqRetentionBatchSize, select: { id: true, version: true } });
+    expect(deleteMany).toHaveBeenCalledWith({ where: { ...eligible, AND: [{ OR: [{ id: 'old', version: 3 }, { id: 'retry-race', version: 7 }] }] } });
+  });
+
+  it('does not issue a delete when the retention batch is empty', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const deleteMany = jest.fn();
+    const repository = new IntegrationJobRepository({ integrationJob: { findMany, deleteMany } } as never);
+    await expect(repository.deleteDeadLetterOlderThan(new Date())).resolves.toEqual({ count: 0 });
+    expect(deleteMany).not.toHaveBeenCalled();
   });
 
   it('claims the expected logical attempt with a status/version/retry-time CAS', async () => {

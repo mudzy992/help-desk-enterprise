@@ -15,6 +15,7 @@ import {
 } from '../notifications/email/persist-notification-email-delivery';
 import { parseEmailIntegrationJobPayload } from './parse-email-integration-job-payload';
 import {
+  integrationJobDlqRetentionBatchSize,
   integrationJobProcessingLeaseDurationMilliseconds,
   integrationJobProcessingOutcomeUnknown,
   integrationJobProviderOutcomeUnknown,
@@ -376,15 +377,28 @@ export class IntegrationJobRepository {
     });
   }
 
-  deleteDeadLetterOlderThan(before: Date) {
+  async deleteDeadLetterOlderThan(before: Date) {
+    const eligible: Prisma.IntegrationJobWhereInput = {
+      status: IntegrationJobStatus.DLQ,
+      updatedAt: { lt: before },
+      OR: [
+        { lastError: null },
+        { lastError: { notIn: [integrationJobProcessingOutcomeUnknown, integrationJobProviderOutcomeUnknown] } },
+      ],
+    };
+    const candidates = await this.prisma.integrationJob.findMany({
+      where: eligible,
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      take: integrationJobDlqRetentionBatchSize,
+      select: { id: true, version: true },
+    });
+    if (candidates.length === 0) return { count: 0 };
+    // Recheck eligibility and the fencing version at deletion time: an admin
+    // retry or other transition after selection must never delete a live job.
     return this.prisma.integrationJob.deleteMany({
       where: {
-        status: IntegrationJobStatus.DLQ,
-        updatedAt: { lt: before },
-        OR: [
-          { lastError: null },
-          { lastError: { notIn: [integrationJobProcessingOutcomeUnknown, integrationJobProviderOutcomeUnknown] } },
-        ],
+        ...eligible,
+        AND: [{ OR: candidates.map(({ id, version }) => ({ id, version })) }],
       },
     });
   }
