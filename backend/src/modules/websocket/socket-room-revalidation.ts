@@ -93,6 +93,10 @@ export type SocketRoomRevalidationSummary = {
   readonly failed: number;
 };
 
+type MutableSocketRoomRevalidationSummary = {
+  -readonly [Key in keyof SocketRoomRevalidationSummary]: SocketRoomRevalidationSummary[Key];
+};
+
 type SocketUserGroup = {
   readonly userId: string;
   readonly sockets: Socket[];
@@ -219,7 +223,7 @@ export async function revalidateConnectedSocketRooms(
 async function applySnapshotToUserGroup(
   group: SocketUserGroup,
   snapshot: SocketRoomAuthorizationSnapshot | null,
-  summary: SocketRoomRevalidationSummary,
+  summary: MutableSocketRoomRevalidationSummary,
 ): Promise<void> {
   for (const client of group.sockets) {
     const principal = getSocketPrincipal(client);

@@ -98,11 +98,12 @@ export class IntegrationJobRepository {
         attempts: job.attempts,
         processingAttemptId: job.processingAttemptId,
         processingOwnerToken: job.processingOwnerToken,
-        processingLeaseExpiresAt: job.processingLeaseExpiresAt,
-        updatedAt: job.updatedAt,
-        ...(job.processingLeaseExpiresAt === null
-          ? { updatedAt: { equals: job.updatedAt, lte: new Date(now.getTime() - integrationJobProcessingLeaseDurationMilliseconds) } }
-          : { processingLeaseExpiresAt: { equals: job.processingLeaseExpiresAt, lte: now } }),
+        updatedAt: job.processingLeaseExpiresAt === null
+          ? { equals: job.updatedAt, lte: new Date(now.getTime() - integrationJobProcessingLeaseDurationMilliseconds) }
+          : job.updatedAt,
+        processingLeaseExpiresAt: job.processingLeaseExpiresAt === null
+          ? null
+          : { equals: job.processingLeaseExpiresAt, lte: now },
       },
       data: {
         status: IntegrationJobStatus.DLQ,
