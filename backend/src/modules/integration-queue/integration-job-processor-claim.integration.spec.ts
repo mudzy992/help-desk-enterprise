@@ -7,6 +7,8 @@ import {
 } from '../../generated/prisma/enums';
 import { integrationJobDlqRetentionBatchSize, integrationJobProcessingLeaseDurationMilliseconds } from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
+import { IntegrationJobTerminalRetentionService } from './integration-job-terminal-retention.service';
+import { integrationRetentionLegalHoldLockKey } from '../privacy/legal-hold/integration-retention-hold-lock';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -236,6 +238,56 @@ describeIfDatabase(
       const racingRepository = new IntegrationJobRepository({ integrationJob } as never);
       expect((await racingRepository.deleteDeadLetterOlderThan(before)).count).toBe(0);
       await expect(prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } })).resolves.toMatchObject({ status: IntegrationJobStatus.PENDING, version: 1 });
+    });
+
+    it('redacts terminal jobs after 30 days, waits another 90, and pauses globally on legal hold', async () => {
+      const terminal = await createPendingJob('terminal-retention');
+      const pending = await createPendingJob('terminal-pending');
+      const now = new Date('2026-10-30T12:00:00Z');
+      await prisma.integrationJob.update({ where: { id: terminal.id }, data: { status: IntegrationJobStatus.COMPLETED, updatedAt: new Date('2026-09-01T00:00:00Z'), payload: { text: 'private' } } });
+      await prisma.integrationJob.update({ where: { id: pending.id }, data: { updatedAt: new Date('2026-01-01T00:00:00Z'), payload: { text: 'pending' } } });
+      const heldUser = await prisma.user.create({ data: { email: `terminal-hold-${stamp}@example.test`, displayName: 'held', legalHoldAt: now } });
+      try {
+        const retention = new IntegrationJobTerminalRetentionService(prisma as never);
+        await expect(retention.sweep(now)).resolves.toEqual({ held: true, redacted: 0, deleted: 0 });
+        expect((await prisma.integrationJob.findUniqueOrThrow({ where: { id: terminal.id } })).payload).toEqual({ text: 'private' });
+        await prisma.user.update({ where: { id: heldUser.id }, data: { legalHoldAt: null } });
+        await expect(retention.sweep(now)).resolves.toEqual({ held: false, redacted: 1, deleted: 0 });
+        await expect(prisma.integrationJob.findUniqueOrThrow({ where: { id: terminal.id } })).resolves.toMatchObject({ payload: { redacted: true }, lastError: 'INTEGRATION_JOB_PAYLOAD_REDACTED_V1', updatedAt: now });
+        expect((await prisma.integrationJob.findUniqueOrThrow({ where: { id: pending.id } })).payload).toEqual({ text: 'pending' });
+        await expect(retention.sweep(new Date('2027-01-28T12:00:00Z'))).resolves.toEqual({ held: false, redacted: 0, deleted: 0 });
+        await expect(retention.sweep(new Date('2027-01-29T12:00:01Z'))).resolves.toEqual({ held: false, redacted: 0, deleted: 1 });
+        expect(await prisma.integrationJob.findUnique({ where: { id: terminal.id } })).toBeNull();
+      } finally {
+        await prisma.user.delete({ where: { id: heldUser.id } });
+      }
+    });
+
+    it('serializes retention behind an in-flight legal-hold transaction', async () => {
+      const job = await createPendingJob('hold-lock');
+      await prisma.integrationJob.update({ where: { id: job.id }, data: { status: IntegrationJobStatus.COMPLETED, updatedAt: new Date('2026-01-01'), payload: { secret: true } } });
+      const user = await prisma.user.create({ data: { email: `hold-race-${stamp}@example.test`, displayName: 'hold race' } });
+      let release!: () => void;
+      let acquired!: () => void;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      const locked = new Promise<void>((resolve) => { acquired = resolve; });
+      try {
+        const hold = prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${integrationRetentionLegalHoldLockKey})`;
+          await tx.user.update({ where: { id: user.id }, data: { legalHoldAt: new Date('2026-10-30') } });
+          acquired();
+          await gate;
+        });
+        await locked;
+        const sweep = new IntegrationJobTerminalRetentionService(prisma as never).sweep(new Date('2026-10-30'));
+        release();
+        await hold;
+        await expect(sweep).resolves.toEqual({ held: true, redacted: 0, deleted: 0 });
+        expect((await prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } })).payload).toEqual({ secret: true });
+      } finally {
+        release();
+        await prisma.user.delete({ where: { id: user.id } });
+      }
     });
 
     it('observes the oldest dispatchable job without counting future retries or processing jobs', async () => {

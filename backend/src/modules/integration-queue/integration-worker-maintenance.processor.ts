@@ -4,6 +4,7 @@ import type { Job } from 'bullmq';
 import { formatJobMetrics } from '../../common/scheduled-jobs/format-job-metrics';
 import { IntegrationJobDispatchReconcilerService } from './integration-job-dispatch-reconciler.service';
 import { IntegrationJobDlqRetentionService } from './integration-job-dlq-retention.service';
+import { IntegrationJobTerminalRetentionService } from './integration-job-terminal-retention.service';
 import { IntegrationQueueWorkerHeartbeatService } from './integration-queue-worker-heartbeat.service';
 import {
   integrationDlqRetentionJobLogContext,
@@ -42,6 +43,7 @@ export class IntegrationWorkerMaintenanceProcessor extends WorkerHost {
     private readonly heartbeat: IntegrationQueueWorkerHeartbeatService,
     private readonly dlqRetention: IntegrationJobDlqRetentionService,
     private readonly dispatchReconciler: IntegrationJobDispatchReconcilerService,
+    private readonly terminalRetention: IntegrationJobTerminalRetentionService,
   ) {
     super();
   }
@@ -51,7 +53,17 @@ export class IntegrationWorkerMaintenanceProcessor extends WorkerHost {
       await this.run(
         integrationDlqRetentionJobName,
         this.retentionLogger,
-        async () => this.dlqRetention.sweep(),
+        async () => {
+          const dlqDeleted = await this.dlqRetention.sweep();
+          // Default-off rollout barrier: all API instances must first use the
+          // shared legal-hold lock before any worker starts redacting data.
+          if (process.env.INTEGRATION_TERMINAL_RETENTION_ENABLED !== 'true') {
+            this.retentionLogger.warn('integration_terminal_retention_disabled');
+            return dlqDeleted;
+          }
+          const terminal = await this.terminalRetention.sweep();
+          return dlqDeleted + terminal.redacted + terminal.deleted;
+        },
       );
       return;
     }

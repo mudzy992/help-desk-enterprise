@@ -1,5 +1,5 @@
-import { IntegrationJobType } from '../../generated/prisma/enums';
-import type { IntegrationJobStatus } from '../../generated/prisma/enums';
+import { IntegrationJobStatus, IntegrationJobType } from '../../generated/prisma/enums';
+import { terminalJobPayloadRedactedMarker } from './integration-queue.constants';
 import {
   integrationJobAdminErrorCodes,
   type IntegrationJobResponse,
@@ -44,7 +44,10 @@ export function toIntegrationJobResponse(job: {
     id: job.id,
     type: job.type,
     status: job.status,
-    lastErrorCode: toSafeErrorCode(job.type, job.lastError),
+    lastErrorCode:
+      (job.status === IntegrationJobStatus.COMPLETED || job.status === IntegrationJobStatus.PUBLISHED_BEST_EFFORT) && job.lastError === terminalJobPayloadRedactedMarker
+        ? null
+        : toSafeErrorCode(job.type, job.lastError),
     attempts: job.attempts,
     nextRetryAt: job.nextRetryAt?.toISOString() ?? null,
     createdAt: job.createdAt.toISOString(),

@@ -14,6 +14,7 @@ export const integrationJobProcessingOutcomeUnknown = 'PROCESSING_LEASE_EXPIRED_
 export const integrationJobProviderOutcomeUnknown = 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN';
 /** At most one bounded DLQ batch per maintenance sweep. */
 export const integrationJobDlqRetentionBatchSize = 100;
+export const terminalJobPayloadRedactedMarker = 'INTEGRATION_JOB_PAYLOAD_REDACTED_V1';
 
 /** Fixed-size, stable cursor pages for the Admin → Operations queue table. */
 export const integrationQueueAdminPageSize = 50;

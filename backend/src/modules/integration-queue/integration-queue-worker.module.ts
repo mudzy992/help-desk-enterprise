@@ -5,6 +5,7 @@ import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { SettingsModule } from '../settings/settings.module';
 import { TeamsCoreModule } from '../teams/teams-core.module';
 import { IntegrationJobDlqRetentionService } from './integration-job-dlq-retention.service';
+import { IntegrationJobTerminalRetentionService } from './integration-job-terminal-retention.service';
 import { IntegrationQueueCoreModule } from './integration-queue-core.module';
 import { IntegrationQueueProcessor } from './integration-queue.processor';
 import { IntegrationQueueWorkerHeartbeatService } from './integration-queue-worker-heartbeat.service';
@@ -32,6 +33,7 @@ import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.se
     ProcessEdgeEventIntegrationJobService,
     IntegrationQueueProcessor,
     IntegrationJobDlqRetentionService,
+    IntegrationJobTerminalRetentionService,
     IntegrationQueueWorkerHeartbeatService,
     IntegrationWorkerMaintenanceProcessor,
     IntegrationWorkerMaintenanceSchedulerService,
