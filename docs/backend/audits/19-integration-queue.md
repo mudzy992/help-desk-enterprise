@@ -148,7 +148,7 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 | BA-integration-queue-14 | P3    | Teams skipped/gone/nonretryable završava kao generički COMPLETED                          | otvoreno |
 | BA-integration-queue-15 | P3    | Kritični DB/processor/crash testovi su compile-blocked i E2E je statusno slab             | otvoreno |
 
-Djelimična mitigacija BA-integration-queue-06 i njena ograničenja dokumentovani su u [paketu 172](../implementation/172-integration-queue-06-provider-outcome-quarantine.md); nalaz ostaje otvoren.
+Djelimična mitigacija BA-integration-queue-06 i njena ograničenja dokumentovani su u [paketu 172](../implementation/172-integration-queue-06-provider-outcome-quarantine.md); nalaz ostaje otvoren. Djelimična worker zaštita BA-integration-queue-07 opisana je u [paketu 173](../implementation/173-integration-queue-07-worker-payload-budget.md); i taj nalaz ostaje otvoren.
 
 ## 13. Detalji P1 nalaza
 

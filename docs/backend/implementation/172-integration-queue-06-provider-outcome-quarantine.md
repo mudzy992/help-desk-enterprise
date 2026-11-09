@@ -9,7 +9,7 @@ Status nalaza: **otvoreno**. Ova promjena smanjuje rizik dupliranja; nije exactl
 
 ## CI nastavak
 
-Automatski CI za `4e03469` prijavio je neuspjeh testa zakazanih izvještaja: fixture je vraćao nula ažuriranih redova i za stvarni SENT upis. Zamijenjen je stateful in-memory ledgerom; dodat je test da izgubljeni SENT claim nakon prihvata ne bude prijavljen kao uspješna isporuka. Ciljani testovi zakazanih izvještaja i email isporuke prošli su lokalno sa Prisma stubovima i isključenom TS dijagnostikom; to nije generated-Prisma CI dokaz. Perf smoke za `4e03469` prošao je automatski. CI za ispravku treba zasebno potvrditi.
+Automatski CI za `4e03469` prijavio je neuspjeh testa zakazanih izvještaja: fixture je vraćao nula ažuriranih redova i za stvarni SENT upis. Zamijenjen je stateful in-memory ledgerom; dodat je test da izgubljeni SENT claim nakon prihvata ne bude prijavljen kao uspješna isporuka. Ciljani testovi zakazanih izvještaja i email isporuke prošli su lokalno sa Prisma stubovima i isključenom TS dijagnostikom; to nije generated-Prisma CI dokaz. Perf smoke za `4e03469` prošao je automatski. Automatski CI za ispravku `79acdf9` je [prošao](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42704420334), uključujući backend build/test s generated Prisma i PostgreSQL + Redis integration. E2E koraci su preskočeni. Korisnik je također prijavio uspješan redeploy. To samo po sebi ne potvrđuje konkurentnu isporuku prema stvarnom provideru niti exactly-once.
 
 ## Ograničenja
 

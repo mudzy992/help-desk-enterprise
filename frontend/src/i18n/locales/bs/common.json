@@ -5373,6 +5373,7 @@
     "errorCodes": {
       "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN": "Ishod isporuke nije poznat — potrebna je provjera; ponovno slanje je blokirano",
       "PROVIDER_DELIVERY_OUTCOME_UNKNOWN": "Ishod isporuke nije poznat — provjerite providera; ponovno slanje je blokirano",
+      "INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED": "Podaci posla prelaze dozvoljene granice — potrebna je provjera",
       "EDGE_EVENT_NO_SUBSCRIBERS": "Nema aktivnih pretplatnika za događaj",
       "INTEGRATION_JOB_FAILED": "Integracioni posao nije uspio"
     },

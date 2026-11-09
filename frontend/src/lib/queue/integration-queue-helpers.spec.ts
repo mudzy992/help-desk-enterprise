@@ -62,6 +62,12 @@ describe("integration queue helpers", () => {
     );
   });
 
+  it("maps payload resource limits to a safe translated message", () => {
+    expect(mapIntegrationJobErrorCode("INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED")).toBe(
+      "integrationQueue.errorCodes.INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED",
+    );
+  });
+
   it("maps status tones", () => {
     expect(integrationJobBadgeTone("PENDING")).toBe("warning");
     expect(integrationJobBadgeTone("PUBLISHED_BEST_EFFORT")).toBe("info");

@@ -7,6 +7,7 @@ import {
   IntegrationJobType,
 } from '../../generated/prisma/enums';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
+import { assertIntegrationJobPayloadWithinLimits } from './integration-job-payload-limits';
 import {
   integrationJobProcessingLeaseDurationMilliseconds,
   integrationQueueName,
@@ -68,6 +69,7 @@ export class IntegrationQueueProcessor extends WorkerHost {
     }
 
     try {
+      assertIntegrationJobPayloadWithinLimits(processing.type, processing.payload);
       const dispatchedStatus = await this.dispatch(
         processing.type,
         processing.payload,

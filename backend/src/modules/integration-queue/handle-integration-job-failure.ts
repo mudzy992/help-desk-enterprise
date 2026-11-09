@@ -7,6 +7,7 @@ import {
 import { readMailSuppressionRetryAfterSeconds } from '../notifications/email/mail-provider-limit-breaker';
 import { TeamsDeliveryOutcomeUnknownError } from '../teams/teams-delivery-outcome-unknown.error';
 import { integrationJobProviderOutcomeUnknown } from './integration-queue.constants';
+import { IntegrationJobPayloadLimitError } from './integration-job-payload-limits';
 import {
   NotificationEmailDeliveryDeadError,
   NotificationEmailOutcomeUnknownError,
@@ -45,7 +46,9 @@ export async function handleIntegrationJobFailure(input: {
   const emailOutcomeUnknown = input.error instanceof NotificationEmailOutcomeUnknownError;
   const providerOutcomeUnknown = emailOutcomeUnknown || input.error instanceof TeamsDeliveryOutcomeUnknownError;
   const emailAlreadyDead = input.error instanceof NotificationEmailDeliveryDeadError;
+  const payloadLimitExceeded = input.error instanceof IntegrationJobPayloadLimitError;
   if (
+    payloadLimitExceeded ||
     providerOutcomeUnknown ||
     emailAlreadyDead ||
     recipientRejected ||
@@ -61,7 +64,7 @@ export async function handleIntegrationJobFailure(input: {
       );
       return 'STALE';
     }
-    if (input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
+    if (!payloadLimitExceeded && input.job.type === IntegrationJobType.EMAIL && input.job.payload !== undefined) {
       await input.repository.markEmailDeliveryDead(input.job.payload);
     }
     const reason = providerOutcomeUnknown

@@ -65,6 +65,7 @@ export const integrationJobAdminErrorCodes = {
   edgeEventNoSubscribers: 'EDGE_EVENT_NO_SUBSCRIBERS',
   processingOutcomeUnknown: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN',
   providerOutcomeUnknown: 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN',
+  payloadLimitExceeded: 'INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED',
   genericFailure: 'INTEGRATION_JOB_FAILED',
 } as const;
 

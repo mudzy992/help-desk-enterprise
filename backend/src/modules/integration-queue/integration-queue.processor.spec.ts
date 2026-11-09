@@ -116,6 +116,18 @@ describe('IntegrationQueueProcessor', () => {
     expect(harness.queue.add).not.toHaveBeenCalled();
   });
 
+  it.each([IntegrationJobType.EMAIL, IntegrationJobType.EDGE_EVENT, IntegrationJobType.TEAMS])('dead-letters oversized %s payloads before parsers and delivery', async (type) => {
+    const claim = processingClaim({ id: 'large', type, payload: { text: 'x'.repeat(2 * 1024 * 1024 + 1) } });
+    const harness = createHarness({ claim });
+    await harness.processor.process({ id: 'large', data: { integrationJobId: 'large' } } as never);
+    expect(harness.repository.markDeadLetter).toHaveBeenCalledWith(claim, 'INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED');
+    expect(harness.processEmail.process).not.toHaveBeenCalled();
+    expect(harness.processEdge.process).not.toHaveBeenCalled();
+    expect(harness.processTeams.process).not.toHaveBeenCalled();
+    expect(harness.queue.add).not.toHaveBeenCalled();
+    expect(harness.repository.markCompleted).not.toHaveBeenCalled();
+  });
+
   it('dispatches a TEAMS job only after its claim and marks that claim completed', async () => {
     const record = {
       id: 'job-2',

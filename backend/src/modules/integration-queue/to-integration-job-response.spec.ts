@@ -86,6 +86,14 @@ describe('toIntegrationJobResponse', () => {
     }).lastErrorCode).toBe('PROVIDER_DELIVERY_OUTCOME_UNKNOWN');
   });
 
+  it('exposes the safe payload limit code', () => {
+    const response = toIntegrationJobResponse({
+      id: 'job-large', type: IntegrationJobType.EMAIL, status: IntegrationJobStatus.DLQ,
+      lastError: 'INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED', attempts: 1, ...timestamps,
+    });
+    expect(response.lastErrorCode).toBe('INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED');
+  });
+
   it('returns null error code when there is no stored error', () => {
     const response = toIntegrationJobResponse({
       id: 'job-pending-1',
