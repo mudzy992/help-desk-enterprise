@@ -11,6 +11,7 @@ import { SessionTokenService } from '../authentication/session-token.service';
 import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
 import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 import { WebsocketGateway } from './websocket.gateway';
+import { consumeWebsocketRoomSetupFailures } from './websocket-room-setup-counter';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -81,6 +82,14 @@ function joinedLogOutput(
     .join('\n');
 }
 
+function createDeferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
 describe('WebsocketGateway', () => {
   const verify = jest.fn(
     async (): Promise<SocketAuthenticationResult> => ({
@@ -132,6 +141,7 @@ describe('WebsocketGateway', () => {
     abuseLimiter.renewConnection.mockReset().mockResolvedValue(true);
     abuseLimiter.releaseConnection.mockReset().mockResolvedValue(undefined);
     roomAccessForUser.mockReset();
+    consumeWebsocketRoomSetupFailures();
     roomAccessForUser.mockResolvedValue({
       authzVersion: LEASE_PRINCIPAL.authzVersion,
       isActive: true,
@@ -311,9 +321,64 @@ describe('WebsocketGateway', () => {
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
     socket.data.principal = LEASE_PRINCIPAL;
     socket.data.websocketConnectionLeaseMember = socket.id;
-    gateway.handleConnection(socket);
+    await gateway.handleConnection(socket);
     expect(socket.join).toHaveBeenCalledWith('user:subject-user-1');
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('waits for the user room join before reading group membership', async () => {
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const joinGate = createDeferred();
+    const join = socket.join as unknown as jest.Mock;
+    join.mockReturnValueOnce(joinGate.promise);
+    socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
+
+    const pending = gateway.handleConnection(socket);
+    expect(socket.join).toHaveBeenCalledWith('user:subject-user-1');
+    expect(roomAccessForUser).not.toHaveBeenCalled();
+    expect(joinedLogOutput(logSpy, warnSpy)).not.toContain('socket_connected');
+
+    joinGate.resolve();
+    await pending;
+
+    expect(roomAccessForUser).toHaveBeenCalledWith('subject-user-1');
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain('socket_connected');
+  });
+
+  it('waits for authorized group room joins before logging the connection ready', async () => {
+    roomAccessForUser.mockResolvedValue({
+      authzVersion: LEASE_PRINCIPAL.authzVersion,
+      isActive: true,
+      groupIds: ['group-it'],
+      isAdmin: false,
+    });
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const groupJoinGate = createDeferred();
+    const groupJoinStarted = createDeferred();
+    const join = socket.join as unknown as jest.Mock;
+    join.mockImplementation(async (room: string) => {
+      if (room === 'group:group-it') {
+        groupJoinStarted.resolve();
+        await groupJoinGate.promise;
+      }
+      socket.rooms.add(room);
+    });
+    socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
+
+    const pending = gateway.handleConnection(socket);
+    await groupJoinStarted.promise;
+    expect(joinedLogOutput(logSpy, warnSpy)).not.toContain('socket_connected');
+
+    groupJoinGate.resolve();
+    await pending;
+
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'socket_connected connectionId=connection-test-1 group_rooms_ready=1',
+    );
   });
 
   it('joins the groups in one current room-authorization snapshot', async () => {
@@ -327,17 +392,64 @@ describe('WebsocketGateway', () => {
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
     socket.data.principal = LEASE_PRINCIPAL;
     socket.data.websocketConnectionLeaseMember = socket.id;
-    gateway.handleConnection(socket);
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    await gateway.handleConnection(socket);
     expect(roomAccessForUser).toHaveBeenCalledWith('subject-user-1');
     expect(socket.join).toHaveBeenCalledWith('group:group-it');
+  });
+
+  it('disconnects and counts user room join failures', async () => {
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const join = socket.join as unknown as jest.Mock;
+    join.mockRejectedValueOnce(new Error('user room join failed'));
+    socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
+
+    await gateway.handleConnection(socket);
+
+    expect(socket.disconnect).toHaveBeenCalledWith(true);
+    expect(consumeWebsocketRoomSetupFailures()).toEqual({ user: 1, group: 0 });
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'socket_room_setup_failed connectionId=connection-test-1 room=user fail_closed=1',
+    );
+  });
+
+  it('counts group room join failures while retaining the fail-closed user room', async () => {
+    roomAccessForUser.mockResolvedValue({
+      authzVersion: LEASE_PRINCIPAL.authzVersion,
+      isActive: true,
+      groupIds: ['group-it'],
+      isAdmin: false,
+    });
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const join = socket.join as unknown as jest.Mock;
+    join.mockImplementation(async (room: string) => {
+      if (room === 'group:group-it') {
+        throw new Error('group room join failed');
+      }
+      socket.rooms.add(room);
+    });
+    socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
+
+    await gateway.handleConnection(socket);
+
+    expect(socket.disconnect).not.toHaveBeenCalled();
+    expect(consumeWebsocketRoomSetupFailures()).toEqual({ user: 0, group: 1 });
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'socket_group_rooms_failed connectionId=connection-test-1 fail_closed=1',
+    );
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'socket_connected connectionId=connection-test-1 group_rooms_ready=0',
+    );
   });
 
   it('disconnects authenticated sockets that bypass admission middleware', async () => {
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
     socket.data.principal = LEASE_PRINCIPAL;
-    gateway.handleConnection(socket);
+    await gateway.handleConnection(socket);
     expect(socket.disconnect).toHaveBeenCalledWith(true);
     expect(socket.join).not.toHaveBeenCalled();
   });
@@ -345,7 +457,7 @@ describe('WebsocketGateway', () => {
   it('disconnects unauthenticated sockets that reach the connection handler', async () => {
     const gateway = await createGateway();
     const socket = createSocket(undefined);
-    gateway.handleConnection(socket);
+    await gateway.handleConnection(socket);
     expect(socket.disconnect).toHaveBeenCalledWith(true);
     expect(socket.data.principal).toBeUndefined();
   });

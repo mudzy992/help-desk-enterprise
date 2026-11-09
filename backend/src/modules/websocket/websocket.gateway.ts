@@ -46,6 +46,10 @@ import {
   startWebsocketEmitCountReporter,
 } from './websocket-emit-counter';
 import {
+  recordWebsocketRoomSetupFailure,
+  startWebsocketRoomSetupFailureReporter,
+} from './websocket-room-setup-counter';
+import {
   checkRealtimeAdapterSubscriptions,
   createWebsocketRedisAdapter,
   formatWebsocketAdapterStatus,
@@ -72,6 +76,7 @@ export class WebsocketGateway
 
   private stopClientCountReporter: (() => void) | null = null;
   private stopEmitCountReporter: (() => void) | null = null;
+  private stopRoomSetupFailureReporter: (() => void) | null = null;
   private stopRoomRevalidation: (() => void) | null = null;
   private stopSessionRevalidation: (() => void) | null = null;
   private stopSessionInvalidationSubscriber: (() => void) | null = null;
@@ -130,6 +135,8 @@ export class WebsocketGateway
     );
     // Phase 3.2 metric: emit-ova/s po vrsti sobe (staff/public/user/group).
     this.stopEmitCountReporter = startWebsocketEmitCountReporter(this.logger);
+    this.stopRoomSetupFailureReporter =
+      startWebsocketRoomSetupFailureReporter(this.logger);
     // BA-websocket-03: membership and the admin role are read at handshake;
     // this re-reads them every 30 seconds as a bounded reconciliation fallback.
     this.stopRoomRevalidation = startSocketRoomRevalidation(
@@ -165,6 +172,8 @@ export class WebsocketGateway
     this.stopClientCountReporter = null;
     this.stopEmitCountReporter?.();
     this.stopEmitCountReporter = null;
+    this.stopRoomSetupFailureReporter?.();
+    this.stopRoomSetupFailureReporter = null;
     this.stopRoomRevalidation?.();
     this.stopRoomRevalidation = null;
     this.stopSessionRevalidation?.();
@@ -244,8 +253,8 @@ export class WebsocketGateway
     this.logger.warn(message);
   }
 
-  handleConnection(client: Socket): void {
-    runWithSocketRequestId(client, () => {
+  async handleConnection(client: Socket): Promise<void> {
+    await runWithSocketRequestId(client, async () => {
       const principal = getSocketPrincipal(client);
       if (!isSocketPrincipal(principal)) {
         this.logger.warn(
@@ -261,9 +270,27 @@ export class WebsocketGateway
         client.disconnect(true);
         return;
       }
-      void client.join(userRoomName(principal.subjectId));
-      void this.joinHandlerGroupRooms(client, principal.subjectId);
-      this.logger.log(`socket_connected connectionId=${client.id}`);
+
+      try {
+        await client.join(userRoomName(principal.subjectId));
+      } catch {
+        recordWebsocketRoomSetupFailure('user');
+        this.logger.warn(
+          `socket_room_setup_failed connectionId=${client.id} room=user fail_closed=1`,
+        );
+        client.disconnect(true);
+        return;
+      }
+      if (client.disconnected) return;
+
+      const groupRoomsReady = await this.joinHandlerGroupRooms(
+        client,
+        principal.subjectId,
+      );
+      if (client.disconnected) return;
+      this.logger.log(
+        `socket_connected connectionId=${client.id} group_rooms_ready=${groupRoomsReady ? 1 : 0}`,
+      );
     });
   }
 
@@ -288,24 +315,27 @@ export class WebsocketGateway
   private async joinHandlerGroupRooms(
     client: Socket,
     userId: string,
-  ): Promise<void> {
-    await runWithSocketRequestId(client, async () => {
+  ): Promise<boolean> {
+    return runWithSocketRequestId(client, async () => {
       const principal = getSocketPrincipal(client);
       if (!isSocketPrincipal(principal) || principal.subjectId !== userId) {
         client.disconnect(true);
-        return;
+        return false;
       }
       try {
         await revalidateSocketRooms(
           client,
           this.socketGroupMembershipService,
         );
+        return !client.disconnected;
       } catch {
         // Failed room reconciliation has already removed managed rooms; a
         // failed leave disconnects in the revalidation helper.
+        recordWebsocketRoomSetupFailure('group');
         this.logger.warn(
           `socket_group_rooms_failed connectionId=${client.id} fail_closed=1`,
         );
+        return false;
       }
     });
   }

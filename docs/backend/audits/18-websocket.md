@@ -370,3 +370,15 @@ Detalji i datoteke: [paket 164 / W6.49](../implementation/164-websocket-06-distr
 - Nema API/schema/migracije ni promjene susjednih nalaza. `BA-websocket-07` ostaje **otvoren** do provedenih ciljanih testova i CI potvrde.
 
 Detalji: [paket 165 / W6.50](../implementation/165-websocket-07-private-settings-metadata-routing.md).
+
+## 26. W6.51 implementation status — BA-websocket-08 (2026-10-29)
+
+`BA-websocket-08` je naredni P2 u WebSocket redoslijedu. Ova dopuna obuhvata samo asinhrono čekanje obaveznih user/group room setup operacija i njihov alertabilni brojač; **ne zatvara finding** i ne mijenja audit/plan/globalni registar brojčano.
+
+- `handleConnection` sada await-a user-room join, zatim autoritativnu group/admin room revalidaciju i sve room join promise-e prije `socket_connected` loga. Log nosi `group_rooms_ready=0|1`, da se djelimična user-room readiness ne predstavi kao potpuno spreman room set.
+- User-room join greška se broji u `ws_room_setup_failures_user`, loguje i prekida socket fail-closed. Group/admin setup greška se broji u `ws_room_setup_failures_group`; postojeća revalidation logika uklanja managed sobe, a user room može ostati dostupan dok periodic reconciliation pokuša ponovo.
+- Counter je process-local i emituje strukturisane vrijednosti svakih 30 s pod `WebsocketMetrics`; instanci se mogu agregirati kroz log pipeline. Nema Redis metric persistence ni novi client `ready` event.
+- Ciljani testovi provjeravaju da `socket_connected` ne loguje prije user/group join Promise-a, da room failure broji metric i da user join greška disconnecta. Ne uvodi se replay/catch-up ugovor (`BA-websocket-09`), koji ostaje izvan scopea.
+- `BA-websocket-08` ostaje **otvoren** do ciljanih testova i CI potvrde. Nema schema promjene, migracije ni zatvaranja susjednih nalaza.
+
+Detalji: [paket 166 / W6.51](../implementation/166-websocket-08-await-room-readiness.md).
