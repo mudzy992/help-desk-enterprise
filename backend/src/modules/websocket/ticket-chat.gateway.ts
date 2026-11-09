@@ -31,6 +31,7 @@ import {
   broadcastSettingsUpdated,
 } from './broadcast-user-realtime';
 import { isSocketPrincipal } from './is-socket-principal';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 import {
   allowJoinLeaveMessage,
   countJoinLeaveRejections,
@@ -71,6 +72,7 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     private readonly ticketsCollaborationService: TicketsCollaborationService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
     private readonly settingsRealtimeHub: SettingsRealtimeHub,
+    private readonly websocketAbuseLimiter: WebsocketAbuseLimiter,
     @Optional()
     private readonly adminConfigRealtimeHub?: AdminConfigRealtimeHub,
     @Optional()
@@ -156,7 +158,7 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
   ): Promise<{ ok: boolean; visibility?: 'public' | 'staff' }> {
-    if (!this.allowJoinLeave(client, ticketRealtimeEventNames.join)) {
+    if (!(await this.allowJoinLeave(client, ticketRealtimeEventNames.join))) {
       return { ok: false };
     }
     const ticketId = requireTicketId(payload);
@@ -206,7 +208,7 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
   ): Promise<{ ok: boolean }> {
-    if (!this.allowJoinLeave(client, ticketRealtimeEventNames.leave)) {
+    if (!(await this.allowJoinLeave(client, ticketRealtimeEventNames.leave))) {
       return { ok: false };
     }
     const ticketId = requireTicketId(payload);
@@ -235,6 +237,9 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
       !isSocketPrincipal(principal) ||
       !allowPresenceMessage(client.data)
     ) {
+      return { ok: false };
+    }
+    if (!(await this.allowSharedUserAction(client, 'presence', 'presence'))) {
       return { ok: false };
     }
     try {
@@ -289,19 +294,59 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   }
 
   /**
-   * Val 3 (M11/B2): `ticket:join` and `ticket:leave` each run a full authorization
-   * pass, so they share one per-socket window (30/min, the same as `presence`).
-   * Over the limit the answer is `{ ok: false }` and the log carries a real
-   * rejection counter instead of a bare denial.
+   * The original per-socket window protects one connection; the additional
+   * Redis-backed account bucket prevents extra sockets/instances multiplying
+   * that budget. Limiter errors fail closed before authorization queries.
    */
-  private allowJoinLeave(client: Socket, event: string): boolean {
-    if (allowJoinLeaveMessage(client.data)) {
-      return true;
+  private async allowJoinLeave(client: Socket, event: string): Promise<boolean> {
+    if (!allowJoinLeaveMessage(client.data)) {
+      this.logger.warn(
+        `ws_join_leave_rate_limited event=${event} connectionId=${client.id} rejections=${countJoinLeaveRejections(client.data)}`,
+      );
+      return false;
     }
-    this.logger.warn(
-      `ws_join_leave_rate_limited event=${event} connectionId=${client.id} rejections=${countJoinLeaveRejections(client.data)}`,
-    );
+    return this.allowSharedUserAction(client, event, 'join_leave');
+  }
+
+  private async allowSharedUserAction(
+    client: Socket,
+    event: string,
+    action: 'join_leave' | 'presence',
+  ): Promise<boolean> {
+    const principal = getSocketPrincipal(client);
+    if (
+      !isSocketPrincipal(principal) ||
+      client.data.websocketConnectionLeaseMember !== client.id
+    ) {
+      return false;
+    }
+    try {
+      if (
+        await this.websocketAbuseLimiter.consumeUserAction(
+          principal.subjectId,
+          action,
+        )
+      ) {
+        return true;
+      }
+      this.logSharedLimitRejection(client, event, 'rate_limited');
+    } catch {
+      this.logSharedLimitRejection(client, event, 'limiter_unavailable');
+    }
     return false;
+  }
+
+  private logSharedLimitRejection(
+    client: Socket,
+    event: string,
+    reason: 'rate_limited' | 'limiter_unavailable',
+  ): void {
+    const now = Date.now();
+    if (now - (client.data.websocketRateLimitLogAt ?? 0) < 10_000) return;
+    client.data.websocketRateLimitLogAt = now;
+    this.logger.warn(
+      `ws_user_action_rejected event=${event} connectionId=${client.id} reason=${reason} fail_closed=${reason === 'limiter_unavailable' ? 1 : 0}`,
+    );
   }
 
   private async revalidateActiveTicketSubscriptions(): Promise<void> {

@@ -31,6 +31,7 @@ import {
 } from './time-tracking/tickets-time-tracking.controller';
 import { TimeTrackingConfigurationLoader } from './time-tracking/time-tracking-configuration.loader';
 import { TicketChatGateway } from '../websocket/ticket-chat.gateway';
+import { WebsocketAbuseLimiterModule } from '../websocket/websocket-abuse-limiter.module';
 import { TICKET_ATTACHMENT_STORAGE } from './attachments/attachment-storage.token';
 import { DiskTicketAttachmentStorage } from './attachments/disk-ticket-attachment-storage';
 import { resolveUploadRoot } from './attachments/resolve-upload-root';
@@ -84,6 +85,7 @@ import { ServiceFormsConfigurationLoader } from '../service-catalog/service-form
 @Module({
   imports: [
     AuthenticationModule,
+    WebsocketAbuseLimiterModule,
     AuthorizationModule,
     RoutingModule,
     SettingsModule,

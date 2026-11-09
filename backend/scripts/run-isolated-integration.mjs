@@ -46,6 +46,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/tickets/ticket-playbook-auto-attach.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/websocket/socket-session-invalidation.integration.spec.ts",
+  "src/modules/websocket/websocket-abuse-limiter.integration.spec.ts",
   "src/modules/authorization/evaluate-resource-policy.integration.spec.ts",
   "src/modules/authorization/route-authorization-negative-matrix.integration.spec.ts",
   "src/modules/routing/routing-critical-matrix.integration.spec.ts",

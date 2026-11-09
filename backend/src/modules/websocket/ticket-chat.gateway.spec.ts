@@ -7,6 +7,7 @@ import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.ty
 import { SettingsRealtimeHub } from '../settings/settings-realtime.hub';
 import { joinLeaveRateLimit } from './join-leave-rate-limiter';
 import { TicketChatGateway } from './ticket-chat.gateway';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 import {
   ticketPublicRoomName,
   ticketStaffRoomName,
@@ -26,6 +27,9 @@ const originalLegacyGroupEmit = process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
 
 describe('TicketChatGateway', () => {
   const authorizeSocketJoin = jest.fn();
+  const abuseLimiter = {
+    consumeUserAction: jest.fn(async () => true),
+  };
   let hub: TicketRealtimeHub;
   let gateway: TicketChatGateway;
   let presenceService: { update: jest.Mock };
@@ -34,6 +38,7 @@ describe('TicketChatGateway', () => {
   beforeEach(() => {
     delete process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
     authorizeSocketJoin.mockReset();
+    abuseLimiter.consumeUserAction.mockReset().mockResolvedValue(true);
     emitted.length = 0;
     presenceService = {
       update: jest.fn().mockResolvedValue({
@@ -50,6 +55,7 @@ describe('TicketChatGateway', () => {
       { authorizeSocketJoin } as never,
       hub,
       new SettingsRealtimeHub(),
+      abuseLimiter as unknown as WebsocketAbuseLimiter,
       undefined,
       presenceService as never,
     );
@@ -253,6 +259,7 @@ describe('TicketChatGateway', () => {
       { authorizeSocketJoin } as never,
       hub,
       new SettingsRealtimeHub(),
+      abuseLimiter as unknown as WebsocketAbuseLimiter,
       undefined,
       presenceService as never,
     );
@@ -295,6 +302,37 @@ describe('TicketChatGateway', () => {
     await expect(
       gateway.handleLeave(client, { ticketId: 'ticket-1' }),
     ).resolves.toEqual({ ok: false });
+  });
+
+  it('applies a shared per-user join/leave ceiling before authorization work', async () => {
+    abuseLimiter.consumeUserAction.mockResolvedValue(false);
+    const client = createClient('user-agent-it');
+    await expect(
+      gateway.handleJoin(client, { ticketId: 'ticket-1' }),
+    ).resolves.toEqual({ ok: false });
+    expect(abuseLimiter.consumeUserAction).toHaveBeenCalledWith(
+      'user-agent-it',
+      'join_leave',
+    );
+    expect(authorizeSocketJoin).not.toHaveBeenCalled();
+    expect(client.join).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the shared presence limiter is unavailable', async () => {
+    authorizeSocketJoin.mockResolvedValue({ visibility: 'public' });
+    const client = createClient('user-requester');
+    await gateway.handleJoin(client, { ticketId: 'ticket-1' });
+    abuseLimiter.consumeUserAction.mockRejectedValueOnce(
+      new Error('Redis unavailable'),
+    );
+    await expect(
+      gateway.handlePresence(client, {
+        ticketId: 'ticket-1',
+        state: 'typing',
+        channel: 'public',
+      }),
+    ).resolves.toEqual({ ok: false });
+    expect(presenceService.update).not.toHaveBeenCalled();
   });
 
   it('leaves previously joined ticket rooms', async () => {
@@ -396,6 +434,7 @@ function createClient(subjectId: string): TestSocket {
         expiresAt: 9_999_999_999,
         authzVersion: 0,
       },
+      websocketConnectionLeaseMember: `socket-${subjectId}`,
     },
     rooms,
     operationLog,

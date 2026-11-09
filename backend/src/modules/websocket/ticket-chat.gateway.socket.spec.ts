@@ -9,6 +9,7 @@ import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.ty
 import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
 import { SettingsRealtimeHub } from '../settings/settings-realtime.hub';
 import { TicketChatGateway } from './ticket-chat.gateway';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 import {
   ticketPublicRoomName,
   ticketRoomName,
@@ -54,6 +55,9 @@ describe('TicketChatGateway live socket room revalidation', () => {
       { authorizeSocketJoin } as never,
       realtimeHub,
       new SettingsRealtimeHub(),
+      {
+        consumeUserAction: jest.fn(async () => true),
+      } as unknown as WebsocketAbuseLimiter,
     );
     gateway = socketGateway;
     const httpServer = createHttpServer();
@@ -70,6 +74,7 @@ describe('TicketChatGateway live socket room revalidation', () => {
         expiresAt: Math.floor(Date.now() / 1000) + 3_600,
         authzVersion: 0,
       });
+      socket.data.websocketConnectionLeaseMember = socket.id;
       socket.on('disconnect', () => {
         void socketGateway.handleDisconnect(socket);
       });

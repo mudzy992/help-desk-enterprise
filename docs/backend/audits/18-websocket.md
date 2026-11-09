@@ -346,3 +346,15 @@ Lokalno su prošli adapter/health/readiness Jest **3 suitea / 25 testova**, gate
 - Nema schema promjene, migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. Naredni Val 6 nalaz nije odabran ovim closeoutom; ne širiti scope bez nove odluke.
 
 Detalji implementacije i artefakti: [paket 163 / W6.48](../implementation/163-websocket-05-runtime-adapter-health.md), [Redis-down runbook](../../../ops/runbook/redis-down.md), [WS reconnect runbook](../../../ops/runbook/ws-reconnect-storm.md) i [rolling-deploy runbook](../../../ops/ws-rolling-deploy.md).
+
+## 24. W6.49 implementation status — BA-websocket-06 (2026-10-29)
+
+`BA-websocket-06` je odabran u prirodnom Val 6 P2 redoslijedu nakon W6.48. Ova dopuna bilježi implementaciju u radnoj grani; **ne zatvara finding** i ne mijenja audit/plan/globalni registar brojčano.
+
+- Handshake uzima Socket.IO transport adresu bez `X-Forwarded-For`; IP bucket je burst 120/refill 1 token na 500 ms. Poslije autentikacije postoji user reconnect bucket burst 8/refill 1 token na 5 s i atomarna granica od 8 aktivnih konekcija po korisniku.
+- Redis Lua token bucket koristi Redis server vrijeme. User/IP ključevi su HMAC pseudonimi. Ticket join/leave i presence zadržavaju socket-level zaštitu i dodatno koriste odvojene shared per-user bucket-e burst 60/refill 1 token na 250 ms.
+- Konekcija dobija 60-sekundni Redis lease, obnavlja se svakih 20 sekundi i otpušta se na disconnect; neuredno prekinut socket se čisti istekom leasea. Odbijanje/prekoračenje i Redis/signing-secret nedostupnost su fail-closed; limiter operacija ima 2 s hard timeout.
+- Lokalni targeted Jest: **5 suiteova passed, 46 passed tests; Redis integration suite skipped (2 tests)** jer `REDIS_HOST` nije postavljen. `diagnostics:false` je korišten zbog nedostajućih generated Prisma artefakata. Targeted ESLint je passed. `prisma generate` nije uspio jer sandbox nema pristup `binaries.prisma.sh`; local generated-Prisma build/type verification nije dostupna. Nema live Redis/two-instance acceptance niti push-triggered CI dokaza.
+- Nema schema promjene, migracije, target-DB upotrebe, PR-a, mergea ili deploymenta. `BA-websocket-05`, `BA-websocket-14`, susjedni nalazi i Val 6/plan 6.3 release acceptance nisu obuhvaćeni.
+
+Detalji i datoteke: [paket 164 / W6.49](../implementation/164-websocket-06-distributed-admission-limits.md). `BA-websocket-06` ostaje **otvoren** do potrebnog CI/generated-Prisma i stvarnog dvoklijentskog Redis acceptance dokaza.

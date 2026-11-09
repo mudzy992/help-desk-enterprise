@@ -9,6 +9,7 @@ import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier
 import { SocketGroupMembershipService } from './socket-group-membership.service';
 import { SessionTokenService } from '../authentication/session-token.service';
 import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 import { WebsocketGateway } from './websocket.gateway';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -34,7 +35,7 @@ function createSocket(auth: unknown): Socket {
   const rooms = new Set(['connection-test-1']);
   return {
     id: 'connection-test-1',
-    handshake: { auth, headers: {} },
+    handshake: { auth, headers: {}, address: '203.0.113.20' },
     data: {},
     rooms,
     disconnected: false,
@@ -87,6 +88,12 @@ describe('WebsocketGateway', () => {
       reason: 'invalid_credentials',
     }),
   );
+  const abuseLimiter = {
+    consumeHandshakeIp: jest.fn(async () => true),
+    admitConnection: jest.fn(async () => true),
+    renewConnection: jest.fn(async () => true),
+    releaseConnection: jest.fn(async () => undefined),
+  };
   const roomAccessForUser = jest.fn(async () => ({
     authzVersion: LEASE_PRINCIPAL.authzVersion,
     isActive: true,
@@ -111,6 +118,7 @@ describe('WebsocketGateway', () => {
           provide: SessionTokenService,
           useValue: { isSocketSessionCurrent: jest.fn(async () => true) },
         },
+        { provide: WebsocketAbuseLimiter, useValue: abuseLimiter },
         WebsocketAdapterHealthService,
       ],
     }).compile();
@@ -119,6 +127,10 @@ describe('WebsocketGateway', () => {
 
   beforeEach(() => {
     verify.mockReset();
+    abuseLimiter.consumeHandshakeIp.mockReset().mockResolvedValue(true);
+    abuseLimiter.admitConnection.mockReset().mockResolvedValue(true);
+    abuseLimiter.renewConnection.mockReset().mockResolvedValue(true);
+    abuseLimiter.releaseConnection.mockReset().mockResolvedValue(undefined);
     roomAccessForUser.mockReset();
     roomAccessForUser.mockResolvedValue({
       authzVersion: LEASE_PRINCIPAL.authzVersion,
@@ -155,6 +167,12 @@ describe('WebsocketGateway', () => {
     expect(error).toBeUndefined();
     expect(verify).toHaveBeenCalledWith({ token: SYNTHETIC_TOKEN });
     expect(socket.data.principal).toEqual(LEASE_PRINCIPAL);
+    expect(socket.data.websocketConnectionLeaseMember).toBe(socket.id);
+    expect(abuseLimiter.consumeHandshakeIp).toHaveBeenCalledWith('203.0.113.20');
+    expect(abuseLimiter.admitConnection).toHaveBeenCalledWith(
+      LEASE_PRINCIPAL.subjectId,
+      socket.id,
+    );
     expect(socket.data.principal).not.toHaveProperty('token');
     expect(socket.handshake.auth).not.toHaveProperty('token');
     expect(socket.handshake.headers.cookie).toBe('theme=compact');
@@ -162,6 +180,60 @@ describe('WebsocketGateway', () => {
     expect(JSON.stringify(socket.handshake)).not.toContain(SYNTHETIC_TOKEN);
     expect(typeof socket.data.requestId).toBe('string');
     expect(joinedLogOutput(logSpy, warnSpy)).not.toContain(SYNTHETIC_TOKEN);
+  });
+
+  it('rejects over-limit IP handshakes before credential verification', async () => {
+    abuseLimiter.consumeHandshakeIp.mockResolvedValue(false);
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const error = await completeHandshake(
+      captureHandshakeMiddleware(gateway),
+      socket,
+    );
+    expect(error?.message).toBe(SOCKET_AUTHENTICATION_FAILED_MESSAGE);
+    expect(verify).not.toHaveBeenCalled();
+    expect(abuseLimiter.admitConnection).not.toHaveBeenCalled();
+    expect(socket.data.principal).toBeUndefined();
+  });
+
+  it('rejects reconnects when the shared user bucket or connection cap denies admission', async () => {
+    verify.mockResolvedValue({
+      status: 'authenticated',
+      principal: LEASE_PRINCIPAL,
+    });
+    abuseLimiter.admitConnection.mockResolvedValue(false);
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const error = await completeHandshake(
+      captureHandshakeMiddleware(gateway),
+      socket,
+    );
+    expect(error?.message).toBe(SOCKET_AUTHENTICATION_FAILED_MESSAGE);
+    expect(socket.data.principal).toBeUndefined();
+    expect(socket.data.websocketConnectionLeaseMember).toBeUndefined();
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'reason=user_rate_or_connection_cap',
+    );
+  });
+
+  it('fails closed when authenticated admission cannot reserve a user connection slot', async () => {
+    verify.mockResolvedValue({
+      status: 'authenticated',
+      principal: LEASE_PRINCIPAL,
+    });
+    abuseLimiter.admitConnection.mockRejectedValue(new Error('Redis unavailable'));
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    const error = await completeHandshake(
+      captureHandshakeMiddleware(gateway),
+      socket,
+    );
+    expect(error?.message).toBe(SOCKET_AUTHENTICATION_FAILED_MESSAGE);
+    expect(socket.data.principal).toBeUndefined();
+    expect(socket.data.websocketConnectionLeaseMember).toBeUndefined();
+    expect(joinedLogOutput(logSpy, warnSpy)).toContain(
+      'reason=admission_control_unavailable fail_closed=1',
+    );
   });
 
   it('keeps readiness failed when only the in-memory adapter is available', async () => {
@@ -238,6 +310,7 @@ describe('WebsocketGateway', () => {
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
     socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
     gateway.handleConnection(socket);
     expect(socket.join).toHaveBeenCalledWith('user:subject-user-1');
     expect(socket.disconnect).not.toHaveBeenCalled();
@@ -253,10 +326,20 @@ describe('WebsocketGateway', () => {
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
     socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
     gateway.handleConnection(socket);
     await new Promise<void>((resolve) => setImmediate(resolve));
     expect(roomAccessForUser).toHaveBeenCalledWith('subject-user-1');
     expect(socket.join).toHaveBeenCalledWith('group:group-it');
+  });
+
+  it('disconnects authenticated sockets that bypass admission middleware', async () => {
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    socket.data.principal = LEASE_PRINCIPAL;
+    gateway.handleConnection(socket);
+    expect(socket.disconnect).toHaveBeenCalledWith(true);
+    expect(socket.join).not.toHaveBeenCalled();
   });
 
   it('disconnects unauthenticated sockets that reach the connection handler', async () => {
@@ -267,11 +350,18 @@ describe('WebsocketGateway', () => {
     expect(socket.data.principal).toBeUndefined();
   });
 
-  it('does not throw on disconnect', async () => {
+  it('releases the active user connection lease on disconnect', async () => {
     const gateway = await createGateway();
     const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    socket.data.principal = LEASE_PRINCIPAL;
+    socket.data.websocketConnectionLeaseMember = socket.id;
     expect(() => {
       gateway.handleDisconnect(socket);
     }).not.toThrow();
+    expect(abuseLimiter.releaseConnection).toHaveBeenCalledWith(
+      LEASE_PRINCIPAL.subjectId,
+      socket.id,
+    );
+    expect(socket.data.websocketConnectionLeaseMember).toBeUndefined();
   });
 });

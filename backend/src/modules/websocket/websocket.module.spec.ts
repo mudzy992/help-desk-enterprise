@@ -8,6 +8,7 @@ import { SOCKET_AUTHENTICATION_FAILED_MESSAGE } from './socket-authentication-fa
 import { WebsocketGateway } from './websocket.gateway';
 import { WebsocketModule } from './websocket.module';
 import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 
 jest.mock('./ws-redis-adapter', () => {
   const actual = jest.requireActual('./ws-redis-adapter') as typeof import('./ws-redis-adapter');
@@ -44,6 +45,13 @@ describe('WebsocketModule', () => {
     })
       .overrideProvider(redisTokens.client)
       .useValue(createFakeRedisClient())
+      .overrideProvider(WebsocketAbuseLimiter)
+      .useValue({
+        consumeHandshakeIp: jest.fn(async () => true),
+        admitConnection: jest.fn(async () => true),
+        renewConnection: jest.fn(async () => true),
+        releaseConnection: jest.fn(async () => undefined),
+      })
       .compile();
     const gateway = moduleRef.get(WebsocketGateway);
     expect(gateway).toBeDefined();
@@ -62,7 +70,11 @@ describe('WebsocketModule', () => {
     expect(middleware).toBeDefined();
     const socket = {
       id: 'connection-module-1',
-      handshake: { auth: { token: 'synthetic-handshake-token-test-only' } },
+      handshake: {
+        auth: { token: 'synthetic-handshake-token-test-only' },
+        headers: {},
+        address: '203.0.113.21',
+      },
       data: {},
       join: jest.fn(),
     } as unknown as Socket;

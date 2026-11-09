@@ -22,6 +22,11 @@ import {
 } from './attach-socket-request-id';
 import { createSocketAuthenticationFailureError } from './create-socket-authentication-failure-error';
 import { isSocketPrincipal } from './is-socket-principal';
+import {
+  resolveSocketClientAddress,
+  startSocketConnectionLeaseRenewal,
+  WebsocketAbuseLimiter,
+} from './websocket-abuse-limiter';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
@@ -71,6 +76,7 @@ export class WebsocketGateway
   private stopSessionRevalidation: (() => void) | null = null;
   private stopSessionInvalidationSubscriber: (() => void) | null = null;
   private stopRealtimeAdapterHealthMonitor: (() => void) | null = null;
+  private stopConnectionLeaseRenewal: (() => void) | null = null;
   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
 
   /**
@@ -85,6 +91,7 @@ export class WebsocketGateway
     private readonly socketGroupMembershipService: SocketGroupMembershipService,
     private readonly sessionTokenService: SessionTokenService,
     private readonly adapterHealth: WebsocketAdapterHealthService,
+    private readonly websocketAbuseLimiter: WebsocketAbuseLimiter,
     // Optional on purpose: isolated gateway specs build without the global Redis
     // module. A missing runtime configuration is still reported as degraded;
     // in-memory mode is not an effective horizontal fallback.
@@ -146,6 +153,11 @@ export class WebsocketGateway
           this.logger,
         );
     }
+    this.stopConnectionLeaseRenewal = startSocketConnectionLeaseRenewal(
+      server,
+      this.websocketAbuseLimiter,
+      this.logger,
+    );
   }
 
   onModuleDestroy(): void {
@@ -161,6 +173,8 @@ export class WebsocketGateway
     this.stopSessionInvalidationSubscriber = null;
     this.stopRealtimeAdapterHealthMonitor?.();
     this.stopRealtimeAdapterHealthMonitor = null;
+    this.stopConnectionLeaseRenewal?.();
+    this.stopConnectionLeaseRenewal = null;
     void this.realtimeAdapter?.close();
     this.realtimeAdapter = null;
   }
@@ -240,6 +254,13 @@ export class WebsocketGateway
         client.disconnect(true);
         return;
       }
+      if (client.data.websocketConnectionLeaseMember !== client.id) {
+        this.logger.warn(
+          `socket_connection_rejected connectionId=${client.id} reason=admission_missing`,
+        );
+        client.disconnect(true);
+        return;
+      }
       void client.join(userRoomName(principal.subjectId));
       void this.joinHandlerGroupRooms(client, principal.subjectId);
       this.logger.log(`socket_connected connectionId=${client.id}`);
@@ -249,6 +270,18 @@ export class WebsocketGateway
   handleDisconnect(client: Socket): void {
     runWithSocketRequestId(client, () => {
       this.logger.log(`socket_disconnected connectionId=${client.id}`);
+      const principal = getSocketPrincipal(client);
+      const member = client.data.websocketConnectionLeaseMember;
+      delete client.data.websocketConnectionLeaseMember;
+      if (isSocketPrincipal(principal) && member === client.id) {
+        void this.websocketAbuseLimiter
+          .releaseConnection(principal.subjectId, member)
+          .catch(() => {
+            this.logger.warn(
+              `ws_connection_lease_release_failed connectionId=${client.id}`,
+            );
+          });
+      }
     });
   }
 
@@ -283,27 +316,90 @@ export class WebsocketGateway
   ): Promise<void> {
     const requestId = attachSocketRequestId(socket);
     await runWithSocketRequestId(socket, async () => {
-      try {
-        const outcome = await this.socketAuthenticationService.authenticate(
-          socket.handshake.auth,
-          socket.handshake.headers,
+      const clientAddress = resolveSocketClientAddress(socket);
+      if (clientAddress === null) {
+        this.logger.warn(
+          `socket_authentication_rejected connectionId=${socket.id} reason=client_address_missing`,
         );
-        if (outcome.status !== 'authenticated') {
+        next(createSocketAuthenticationFailureError());
+        return;
+      }
+
+      try {
+        if (!(await this.websocketAbuseLimiter.consumeHandshakeIp(clientAddress))) {
           this.logger.warn(
-            `socket_authentication_rejected connectionId=${socket.id} reason=${outcome.reason}`,
+            `socket_authentication_rejected connectionId=${socket.id} reason=ip_rate_limited`,
           );
           next(createSocketAuthenticationFailureError());
           return;
         }
+      } catch {
+        this.logger.warn(
+          `socket_authentication_rejected connectionId=${socket.id} reason=admission_control_unavailable fail_closed=1`,
+        );
+        next(createSocketAuthenticationFailureError());
+        return;
+      }
+
+      let outcome: Awaited<
+        ReturnType<SocketAuthenticationService['authenticate']>
+      >;
+      try {
+        outcome = await this.socketAuthenticationService.authenticate(
+          socket.handshake.auth,
+          socket.handshake.headers,
+        );
+      } catch {
+        this.logger.warn(
+          `socket_authentication_rejected connectionId=${socket.id} reason=invalid_credentials`,
+        );
+        next(createSocketAuthenticationFailureError());
+        return;
+      }
+      if (outcome.status !== 'authenticated') {
+        this.logger.warn(
+          `socket_authentication_rejected connectionId=${socket.id} reason=${outcome.reason}`,
+        );
+        next(createSocketAuthenticationFailureError());
+        return;
+      }
+
+      let admitted: boolean;
+      try {
+        admitted = await this.websocketAbuseLimiter.admitConnection(
+          outcome.principal.subjectId,
+          socket.id,
+        );
+      } catch {
+        this.logger.warn(
+          `socket_authentication_rejected connectionId=${socket.id} reason=admission_control_unavailable fail_closed=1`,
+        );
+        next(createSocketAuthenticationFailureError());
+        return;
+      }
+      if (!admitted) {
+        this.logger.warn(
+          `socket_authentication_rejected connectionId=${socket.id} reason=user_rate_or_connection_cap`,
+        );
+        next(createSocketAuthenticationFailureError());
+        return;
+      }
+
+      try {
         attachSocketPrincipal(socket, outcome.principal);
+        socket.data.websocketConnectionLeaseMember = socket.id;
         clearHandshakeCredentials(socket);
         this.logger.log(
           `socket_authentication_accepted connectionId=${socket.id} requestId=${requestId}`,
         );
         next();
       } catch {
+        delete socket.data.websocketConnectionLeaseMember;
+        await this.websocketAbuseLimiter
+          .releaseConnection(outcome.principal.subjectId, socket.id)
+          .catch(() => undefined);
         this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=invalid_credentials`,
+          `socket_authentication_rejected connectionId=${socket.id} reason=handshake_finalize_failed`,
         );
         next(createSocketAuthenticationFailureError());
       }
