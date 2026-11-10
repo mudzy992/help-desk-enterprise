@@ -433,6 +433,12 @@ export class OnCallService {
         throw new OnCallError(onCallErrorCodes.invalidMember, userId);
       }
     }
+    if (input.ownerUserId !== null && input.ownerUserId !== viewer.userId && !eligible.has(input.ownerUserId)) {
+      // BA-on-call-06: the owner receives gap alerts for this group, so a
+      // foreign staff user may not be owner. Eligible group members and the
+      // saving (scoped) manager themselves are the only valid owners.
+      throw new OnCallError(onCallErrorCodes.invalidMember, 'owner');
+    }
     if (input.ownerUserId !== null) {
       const owner = await this.prisma.user.findFirst({
         where: {

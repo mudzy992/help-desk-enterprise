@@ -54,6 +54,26 @@ describe('on-call data loader membership availability (BA-on-call-04)', () => {
     });
   });
 
+  it('nulls a foreign-staff owner and keeps a group-member owner (BA-on-call-06)', async () => {
+    const base = prismaFake();
+    const withOwner = (ownerUserId: string) => ({
+      ...base,
+      onCallSchedule: {
+        findUnique: jest.fn().mockResolvedValue({ ...scheduleRow, ownerUserId }),
+        findMany: jest.fn().mockResolvedValue([{ ...scheduleRow, ownerUserId }]),
+      },
+      user: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: ownerUserId, isActive: true, anonymizedAt: null, userRoles: [{ role: { key: 'AGENT' } }] },
+        ]),
+      },
+    });
+    const foreign = await loadOnCallScheduleContext(withOwner('former-member') as never, 'group-1', window);
+    expect(foreign?.ownerUserId).toBeNull();
+    const member = await loadOnCallScheduleContext(withOwner('current-member') as never, 'group-1', window);
+    expect(member?.ownerUserId).toBe('current-member');
+  });
+
   it('applies the same membership check to bulk active contexts', async () => {
     const prisma = prismaFake();
     const contexts = await loadActiveOnCallContexts(prisma as never, window);
