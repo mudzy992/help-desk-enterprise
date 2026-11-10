@@ -11,6 +11,8 @@ export const onCallErrorCodes = {
   swapNotFound: 'ON_CALL_SWAP_NOT_FOUND',
   swapNotAllowed: 'ON_CALL_SWAP_NOT_ALLOWED',
   swapNotPending: 'ON_CALL_SWAP_NOT_PENDING',
+  swapDuplicate: 'ON_CALL_SWAP_DUPLICATE',
+  swapLimitReached: 'ON_CALL_SWAP_LIMIT_REACHED',
   forbidden: 'ON_CALL_FORBIDDEN',
 } as const;
 
