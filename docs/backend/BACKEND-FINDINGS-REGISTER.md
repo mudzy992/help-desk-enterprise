@@ -292,8 +292,8 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 21 | `on-call` | `BA-on-call-04` | P2 | Bivši active član grupe ostaje resolver/auto-assignment/SLA/quiet-hours kandidat | zatvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-05` | P2 | Swap accept ne revalidira colleague membership/availability ni schedule verziju | zatvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-06` | P2 | Owner može biti foreign staff i primati gap informacije | zatvoreno | [21-on-call.md](audits/21-on-call.md) |
-| 21 | `on-call` | `BA-on-call-07` | P2 | iCal feed ostaje aktivan nakon oncall.read/scope revokea | zatvoreno | [21-on-call.md](audits/21-on-call.md) |
-| 21 | `on-call` | `BA-on-call-08` | P2 | Best-effort sweep notification nema durable recovery nakon prozora | otvoreno | [21-on-call.md](audits/21-on-call.md) |
+| 21 | `on-call` | `BA-on-call-07` | P2 | iCal feed ostaje aktivan nakon oncall.read/scope revokea | otvoreno | [21-on-call.md](audits/21-on-call.md) |
+| 21 | `on-call` | `BA-on-call-08` | P2 | Best-effort sweep notification nema durable recovery nakon prozora | zatvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-09` | P2 | Scheduler nema reconciliation nakon Redis gubitka | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-10` | P2 | Retention je unbounded, guta grešku i nema health signal | otvoreno | [21-on-call.md](audits/21-on-call.md) |
 | 21 | `on-call` | `BA-on-call-11` | P2 | Override/swap liste su hard-truncated bez pagination/hasMore | otvoreno | [21-on-call.md](audits/21-on-call.md) |

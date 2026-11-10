@@ -1,6 +1,6 @@
 # BA-on-call-07: iCal feed poštuje trenutnu permisiju i scope
 
-Status: **zatvoreno** (operativna potvrda korisnika: feed radi u incognito prozoru, nakon uklanjanja uloge vraća 404, nakon vraćanja uloge radi bez rotacije tokena, scope test prolazi). Automatski CI `42861541883` za commit `6610f3c` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Javni iCal feed je uz bearer token provjeravao samo da je korisnik aktivan i da ima bilo koju staff rolu, pa je URL nastavio raditi i nakon što se korisniku ukine `oncall.read` ili suzi OU scope — calendar klijent je i dalje dobijao smjene, uključujući grupe izvan novog scopea.
+Status: **otvoreno** (ranija operativna potvrda povučena: korisnik je naknadno prijavio da testove nije izveo jer sekcija nije pronađena po prvobitnom uputstvu — iCal kartica je na stranici Moje notifikacije, ne na Dežurstvima; ispravljeni koraci su izdati i potvrda se čeka ponovo). Automatski CI `42861541883` za commit `6610f3c` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Javni iCal feed je uz bearer token provjeravao samo da je korisnik aktivan i da ima bilo koju staff rolu, pa je URL nastavio raditi i nakon što se korisniku ukine `oncall.read` ili suzi OU scope — calendar klijent je i dalje dobijao smjene, uključujući grupe izvan novog scopea.
 
 ## Izmjena
 

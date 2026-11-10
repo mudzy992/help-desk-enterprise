@@ -1,6 +1,6 @@
 # BA-on-call-08: propuštene sweep notifikacije se nadoknađuju
 
-Status: **otvoreno**. Automatski CI `42866390060` za commit `73ad1e7` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Sweep notifikacije su best-effort: reminder se planirao samo unutar jednog sata dnevno, a shift-start samo 30 minuta nakon početka smjene. Ako je worker bio nedostupan ili je slanje padalo duže od tog prozora, notifikacija je zauvijek gubljena — bez ikakvog recoveryja.
+Status: **zatvoreno** (operativna potvrda korisnika: zakasneli početak smjene i podsjetnik stižu nakon prozora, bez duplikata). Automatski CI `42866390060` za commit `73ad1e7` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Sweep notifikacije su best-effort: reminder se planirao samo unutar jednog sata dnevno, a shift-start samo 30 minuta nakon početka smjene. Ako je worker bio nedostupan ili je slanje padalo duže od tog prozora, notifikacija je zauvijek gubljena — bez ikakvog recoveryja.
 
 ## Izmjena
 
