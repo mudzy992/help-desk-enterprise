@@ -1,6 +1,6 @@
 # BA-on-call-04: bivši član grupe više nije on-call kandidat
 
-Status: **otvoreno**. Rotation član koji je napustio grupu ostajao je u `OnCallScheduleMember` listi, a data loader je availability računao samo iz `user.isActive`/`anonymizedAt`, pa je bivši član i dalje bio resolver rezultat, outside-hours auto-assignment kandidat, SLA primalac i quiet-hours bypass — suprotno dokumentovanom ponašanju da bivši član postaje uncovered.
+Status: **otvoreno**. Automatski CI `42818904859` za commit `4a48373` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Rotation član koji je napustio grupu ostajao je u `OnCallScheduleMember` listi, a data loader je availability računao samo iz `user.isActive`/`anonymizedAt`, pa je bivši član i dalje bio resolver rezultat, outside-hours auto-assignment kandidat, SLA primalac i quiet-hours bypass — suprotno dokumentovanom ponašanju da bivši član postaje uncovered.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Status: **otvoreno**. Rotation član koji je napustio grupu ostajao je u `OnCall
 
 ## Granice
 
-Manualni/swap override zapisi se ne diraju: override i dalje ima prioritet prema postojećem ugovoru, a accept-time revalidacija članstva kolege ostaje `BA-on-call-05`. Član koji je napustio grupu namjerno ostaje u rotation listi (save ga smije zadržati), samo više nije dostupan kandidat. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Manualni/swap override zapisi se ne diraju: override i dalje ima prioritet prema postojećem ugovoru, a accept-time revalidacija članstva kolege ostaje `BA-on-call-05`. Član koji je napustio grupu namjerno ostaje u rotation listi (save ga smije zadržati), samo više nije dostupan kandidat. Automatski CI `42818904859` za `4a48373` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
