@@ -1,6 +1,6 @@
 # BA-on-call-12: revoke iCal tokena i audit zapis sada su atomarni
 
-Status: **otvoreno**. `revokeCalendarToken` je token brisao izvan transakcije, a audit zapis (`oncall.calendar_token.revoked`) pisao naknadno zasebnim pozivom — pad procesa ili greška audita između dvije operacije ostavljali su opoziv bez audit traga.
+Status: **zatvoreno** (operativna potvrda korisnika: sve DA — opoziv radi, audit zapis „Token kalendara dežurstava — opozvan" postoji, stara adresa vraća 404). `revokeCalendarToken` je token brisao izvan transakcije, a audit zapis (`oncall.calendar_token.revoked`) pisao naknadno zasebnim pozivom — pad procesa ili greška audita između dvije operacije ostavljali su opoziv bez audit traga.
 
 ## Izmjena
 
