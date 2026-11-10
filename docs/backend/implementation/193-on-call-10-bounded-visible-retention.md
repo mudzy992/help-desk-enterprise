@@ -1,6 +1,6 @@
 # BA-on-call-10: retention je ograničen i fail-visible
 
-Status: **otvoreno**. On-call retention je brisala stare override/swap redove dvama neograničenim `deleteMany` pozivima, grešku hvatala i samo logovala ime tipa, a sweep je ipak završavao uspješno — veliki backlog je mogao zaključati tabelu, a trajni kvar retencije nije imao nikakav operativni signal.
+Status: **otvoreno**. Automatski CI `42876155635` za commit `20d374d` prošao je uspješno (generated Prisma + stvarni PostgreSQL/Redis). On-call retention je brisala stare override/swap redove dvama neograničenim `deleteMany` pozivima, grešku hvatala i samo logovala ime tipa, a sweep je ipak završavao uspješno — veliki backlog je mogao zaključati tabelu, a trajni kvar retencije nije imao nikakav operativni signal.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Retention sada briše u batch-evima od 500 redova (po `endsAt` uzlazno), najviš
 
 ## Testovi i granice
 
-Novi sweep spec pokriva batch granicu od 500 (500+3 kroz dva delete poziva), cap od 20 batch-eva uz backlog, i propagaciju greške do pozivaoca. Operativna potvrda se u praksi svodi na posmatranje: pri uključenoj retenciji worker log ne smije imati `on_call_retention_failed`. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Novi sweep spec pokriva batch granicu od 500 (500+3 kroz dva delete poziva), cap od 20 batch-eva uz backlog, i propagaciju greške do pozivaoca. Operativna potvrda se u praksi svodi na posmatranje: pri uključenoj retenciji worker log ne smije imati `on_call_retention_failed`. Automatski CI `42876155635` za `20d374d` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
