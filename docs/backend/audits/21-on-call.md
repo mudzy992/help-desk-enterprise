@@ -128,9 +128,9 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 | BA-on-call-01 | P1       | Scoped read/manage assignment daje globalni read i write nad svim grupama                 | zatvoreno (W6.41) |
 | BA-on-call-02 | P1       | Swap interval nije vezan za requesterovu smjenu i može istisnuti treću osobu              | zatvoreno (W6.42) |
 | BA-on-call-03 | P1       | Concurrent schedule save može korumpirati header/member kombinaciju                       | zatvoreno (W6.43) |
-| BA-on-call-04 | P2       | Bivši active član grupe ostaje resolver/auto-assignment/SLA/quiet-hours kandidat (loader provjerava članstvo, paket 186) | otvoreno |
-| BA-on-call-05 | P2       | Swap accept ne revalidira colleague membership/availability ni schedule verziju (accept-time revalidacija, paket 187) | otvoreno |
-| BA-on-call-06 | P2       | Owner može biti foreign staff i primati gap informacije (owner eligibilnost pri saveu i sweepu, paket 189) | otvoreno |
+| BA-on-call-04 | P2       | Bivši active član grupe ostaje resolver/auto-assignment/SLA/quiet-hours kandidat (loader provjerava članstvo, paket 186) | zatvoreno |
+| BA-on-call-05 | P2       | Swap accept ne revalidira colleague membership/availability ni schedule verziju (accept-time revalidacija, paket 187) | zatvoreno |
+| BA-on-call-06 | P2       | Owner može biti foreign staff i primati gap informacije (owner eligibilnost pri saveu i sweepu, paket 189) | zatvoreno |
 | BA-on-call-07 | P2       | iCal feed ostaje aktivan nakon oncall.read/scope revokea                                  | otvoreno |
 | BA-on-call-08 | P2       | Best-effort sweep notification nema durable recovery nakon prozora                        | otvoreno |
 | BA-on-call-09 | P2       | Scheduler nema reconciliation nakon Redis gubitka                                         | otvoreno |

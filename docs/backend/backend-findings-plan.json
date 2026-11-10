@@ -2612,7 +2612,7 @@
     {
       "id": "BA-on-call-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "21-on-call.md",
       "owner": "WS-D",
       "wave": 6
@@ -2620,7 +2620,7 @@
     {
       "id": "BA-on-call-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "21-on-call.md",
       "owner": "WS-D",
       "wave": 6
@@ -2628,7 +2628,7 @@
     {
       "id": "BA-on-call-06",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "21-on-call.md",
       "owner": "WS-D",
       "wave": 6

@@ -1,6 +1,6 @@
 # BA-on-call-06: owner rasporeda mora pripadati grupi
 
-Status: **otvoreno**. Automatski CI `42831878115` za commit `30c51e0` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Schedule owner prima gap obavještenja za grupu (koja smjena je nepokrivena i kada), a save je ownera validirao samo kao bilo kojeg aktivnog staff korisnika — strani staff bez ikakve veze s grupom mogao je postati owner i primati te informacije, uključujući i nakon što napusti organizaciju.
+Status: **zatvoreno** (operativna potvrda korisnika: owner lista nudi samo članove grupe). Automatski CI `42831878115` za commit `30c51e0` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Schedule owner prima gap obavještenja za grupu (koja smjena je nepokrivena i kada), a save je ownera validirao samo kao bilo kojeg aktivnog staff korisnika — strani staff bez ikakve veze s grupom mogao je postati owner i primati te informacije, uključujući i nakon što napusti organizaciju.
 
 ## Izmjena
 

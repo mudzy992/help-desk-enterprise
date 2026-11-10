@@ -1,6 +1,6 @@
 # BA-on-call-05: swap accept revalidira trenutno stanje rasporeda
 
-Status: **otvoreno**. Automatski CI `42821926787` za commit `5fddc3d` prošao je uspješno (generated Prisma + stvarni PostgreSQL). `decideSwap` je prihvatao zamjenu prema snapshotu iz trenutka zahtjeva: kolega je u međuvremenu mogao biti uklonjen iz rotacije ili grupe, deaktiviran ili anonimizovan, a izmjena rasporeda mogla je interval pomjeriti izvan requesterove rotacije — accept bi ipak stvorio override za neeligibilnu osobu ili tuđi interval.
+Status: **zatvoreno** (operativna potvrda korisnika: swap accept radi, a nakon uklanjanja kolege iz rotacije accept je odbijen i zahtjev ostaje na čekanju). Automatski CI `42821926787` za commit `5fddc3d` prošao je uspješno (generated Prisma + stvarni PostgreSQL). `decideSwap` je prihvatao zamjenu prema snapshotu iz trenutka zahtjeva: kolega je u međuvremenu mogao biti uklonjen iz rotacije ili grupe, deaktiviran ili anonimizovan, a izmjena rasporeda mogla je interval pomjeriti izvan requesterove rotacije — accept bi ipak stvorio override za neeligibilnu osobu ili tuđi interval.
 
 ## Izmjena
 

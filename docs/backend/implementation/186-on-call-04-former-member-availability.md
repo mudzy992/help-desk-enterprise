@@ -1,6 +1,6 @@
 # BA-on-call-04: bivši član grupe više nije on-call kandidat
 
-Status: **otvoreno**. Automatski CI `42818904859` za commit `4a48373` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Rotation član koji je napustio grupu ostajao je u `OnCallScheduleMember` listi, a data loader je availability računao samo iz `user.isActive`/`anonymizedAt`, pa je bivši član i dalje bio resolver rezultat, outside-hours auto-assignment kandidat, SLA primalac i quiet-hours bypass — suprotno dokumentovanom ponašanju da bivši član postaje uncovered.
+Status: **zatvoreno** (operativna potvrda korisnika: bivši član grupe prikazan kao rupa u kalendaru). Automatski CI `42818904859` za commit `4a48373` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Rotation član koji je napustio grupu ostajao je u `OnCallScheduleMember` listi, a data loader je availability računao samo iz `user.isActive`/`anonymizedAt`, pa je bivši član i dalje bio resolver rezultat, outside-hours auto-assignment kandidat, SLA primalac i quiet-hours bypass — suprotno dokumentovanom ponašanju da bivši član postaje uncovered.
 
 ## Izmjena
 
