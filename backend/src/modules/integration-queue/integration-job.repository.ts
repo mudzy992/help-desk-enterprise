@@ -49,6 +49,14 @@ export class IntegrationJobRepository {
     return this.prisma.integrationJob.findUnique({ where: { id } });
   }
 
+  /** Lightweight type/status lookup so a paused job never pays a claim. */
+  findTypeAndStatus(id: string) {
+    return this.prisma.integrationJob.findUnique({
+      where: { id },
+      select: { type: true, status: true },
+    });
+  }
+
   listDispatchablePage(now: Date, take: number) {
     return this.prisma.integrationJob.findMany({
       where: {

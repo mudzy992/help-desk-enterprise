@@ -175,6 +175,7 @@ describeIfDatabase(
       const reconciler = new IntegrationJobDispatchReconcilerService(
         repository as never,
         recoveredQueue as never,
+        fakeSettingsService() as never,
       );
       const result = await reconciler.sweep(failed.nextRetryAt!);
 
@@ -291,6 +292,7 @@ describeIfDatabase(
       const reconciler = new IntegrationJobDispatchReconcilerService(
         repository as never,
         recoveredQueue as never,
+        fakeSettingsService() as never,
       );
       await reconciler.sweep(new Date());
       expect(recoveredQueue.add).toHaveBeenCalledWith(

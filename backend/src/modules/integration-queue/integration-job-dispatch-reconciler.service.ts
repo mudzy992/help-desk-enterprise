@@ -8,6 +8,9 @@ import {
   integrationQueueName,
 } from './integration-queue.constants';
 import type { IntegrationQueueJobData } from './integration-queue.types';
+import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
+import { isQueuedIntegrationJobType } from './parse-integration-queue-types';
+import { SettingsService } from '../settings/settings.service';
 
 /**
  * Repairs the PostgreSQL/BullMQ dual-write boundary. IntegrationJob is the
@@ -28,6 +31,7 @@ export class IntegrationJobDispatchReconcilerService {
     private readonly integrationJobRepository: IntegrationJobRepository,
     @InjectQueue(integrationQueueName)
     private readonly integrationQueue: Queue<IntegrationQueueJobData>,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async sweep(now: Date = new Date()): Promise<{ processed: number; failed: number }> {
@@ -46,10 +50,30 @@ export class IntegrationJobDispatchReconcilerService {
         this.logger.warn(`integration_job_processing_quarantine_failed id=${claim.id}`);
       }
     }
-    const jobs = await this.integrationJobRepository.listDispatchablePage(
+    const listed = await this.integrationJobRepository.listDispatchablePage(
       now,
       integrationQueueDispatchReconcileBatchSize,
     );
+    // Paused (runtime-disabled) types are not re-offered to BullMQ: offering
+    // them would only churn the queue every sweep. The expired-claim
+    // quarantine above runs regardless, since it is a safety path, not a
+    // dispatch. If settings cannot be read we fail closed and offer nothing.
+    let jobs: typeof listed;
+    try {
+      const settings = await loadIntegrationQueueSettings(this.settingsService);
+      jobs = settings.enabled
+        ? listed.filter((job) => isQueuedIntegrationJobType(job.type, settings.typeTokens))
+        : [];
+      const paused = listed.length - jobs.length;
+      if (paused > 0) {
+        this.logger.warn(
+          `integration_job_dispatch_reconcile_paused paused=${paused} reason=${settings.enabled ? 'type_disabled' : 'queue_disabled'}`,
+        );
+      }
+    } catch {
+      jobs = [];
+      this.logger.warn('integration_job_dispatch_reconcile_paused reason=settings_unavailable');
+    }
 
     for (const job of jobs) {
       const jobId =

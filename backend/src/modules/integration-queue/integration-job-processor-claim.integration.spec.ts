@@ -8,6 +8,7 @@ import {
 import { integrationJobDlqRetentionBatchSize, integrationJobProcessingLeaseDurationMilliseconds } from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 import { IntegrationJobTerminalRetentionService } from './integration-job-terminal-retention.service';
+import { IntegrationQueueProcessor } from './integration-queue.processor';
 import { integrationRetentionLegalHoldLockKey } from '../privacy/legal-hold/integration-retention-hold-lock';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -301,6 +302,37 @@ describeIfDatabase(
       await prisma.integrationJob.update({ where: { id: processing.id }, data: { status: IntegrationJobStatus.PROCESSING, createdAt: new Date('2019-01-01') } });
       await prisma.integrationJob.update({ where: { id: due.id }, data: { status: IntegrationJobStatus.FAILED, createdAt: new Date('2022-01-01'), nextRetryAt: new Date('2026-01-01') } });
       await expect(repository.findOldestDispatchable(now)).resolves.toEqual({ createdAt: new Date('2022-01-01') });
+    });
+
+    it('pauses a runtime-disabled type without claiming or consuming an attempt', async () => {
+      const job = await createPendingJob('paused-type');
+      const before = await prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } });
+      const dispatch = jest.fn().mockResolvedValue(undefined);
+      const settings = {
+        getSetting: async (key: string) => {
+          if (key.endsWith('typesCsv')) return 'email,teams';
+          if (key.endsWith('enabled')) return true;
+          return undefined;
+        },
+      };
+      const processor = new IntegrationQueueProcessor(
+        repository,
+        settings as never,
+        { process: dispatch } as never,
+        { process: dispatch } as never,
+        { process: dispatch } as never,
+        { add: jest.fn() } as never,
+      );
+
+      await processor.process({ id: job.id, data: { integrationJobId: job.id } } as never);
+
+      expect(dispatch).not.toHaveBeenCalled();
+      await expect(prisma.integrationJob.findUniqueOrThrow({ where: { id: job.id } })).resolves.toMatchObject({
+        status: IntegrationJobStatus.PENDING,
+        attempts: before.attempts,
+        version: before.version,
+        nextRetryAt: before.nextRetryAt,
+      });
     });
 
     it('does not directly reclaim an expired PROCESSING lease', async () => {

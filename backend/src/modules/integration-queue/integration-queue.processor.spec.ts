@@ -4,6 +4,7 @@ import {
 } from '../../generated/prisma/enums';
 import { integrationJobProcessingLeaseDurationMilliseconds } from './integration-queue.constants';
 import { IntegrationQueueProcessor } from './integration-queue.processor';
+import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
 import type { IntegrationJobProcessingClaim } from './integration-queue.types';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -54,6 +55,11 @@ function createHarness(input: {
   readonly claim: IntegrationJobProcessingClaim | null;
 }) {
   const repository = {
+    findTypeAndStatus: jest.fn().mockResolvedValue(
+      input.claim === null
+        ? null
+        : { type: input.claim.type, status: IntegrationJobStatus.PENDING },
+    ),
     claimForProcessing: jest.fn().mockResolvedValue(input.claim),
     markCompleted: jest.fn().mockResolvedValue(true),
     markPublishedBestEffort: jest.fn().mockResolvedValue(true),
@@ -83,6 +89,65 @@ function createHarness(input: {
 }
 
 describe('IntegrationQueueProcessor', () => {
+  it('pauses a runtime-disabled type before claiming, consuming no attempt', async () => {
+    const claim = processingClaim({
+      id: 'job-paused',
+      type: IntegrationJobType.TEAMS,
+      payload: { target: 'personal' },
+    });
+    const harness = createHarness({ claim });
+    (loadIntegrationQueueSettings as jest.Mock).mockResolvedValueOnce({
+      enabled: true,
+      typeTokens: new Set(['email', 'edge']),
+      maxAttempts: 3,
+      initialBackoffSeconds: 1,
+      maxBackoffSeconds: 10,
+      deadLetterAfterAttempts: 3,
+      deadLetterRetentionDays: 30,
+      workerPollSeconds: 5,
+      adminUiEnabled: true,
+    });
+
+    await harness.processor.process({
+      id: 'job-paused',
+      data: { integrationJobId: 'job-paused' },
+    } as never);
+
+    expect(harness.repository.findTypeAndStatus).toHaveBeenCalledWith('job-paused');
+    expect(harness.repository.claimForProcessing).not.toHaveBeenCalled();
+    expect(harness.processTeams.process).not.toHaveBeenCalled();
+    expect(harness.repository.markFailed).not.toHaveBeenCalled();
+    expect(harness.repository.markDeadLetter).not.toHaveBeenCalled();
+  });
+
+  it('pauses every type while the queue itself is disabled', async () => {
+    const claim = processingClaim({
+      id: 'job-queue-paused',
+      type: IntegrationJobType.EMAIL,
+      payload: { userId: 'user-1' },
+    });
+    const harness = createHarness({ claim });
+    (loadIntegrationQueueSettings as jest.Mock).mockResolvedValueOnce({
+      enabled: false,
+      typeTokens: new Set(['email', 'edge', 'teams']),
+      maxAttempts: 3,
+      initialBackoffSeconds: 1,
+      maxBackoffSeconds: 10,
+      deadLetterAfterAttempts: 3,
+      deadLetterRetentionDays: 30,
+      workerPollSeconds: 5,
+      adminUiEnabled: true,
+    });
+
+    await harness.processor.process({
+      id: 'job-queue-paused',
+      data: { integrationJobId: 'job-queue-paused' },
+    } as never);
+
+    expect(harness.repository.claimForProcessing).not.toHaveBeenCalled();
+    expect(harness.processEmail.process).not.toHaveBeenCalled();
+  });
+
   it('uses the BullMQ attempt id and only dispatches after winning a fenced claim', async () => {
     const record = {
       id: 'job-1',

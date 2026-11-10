@@ -7,6 +7,13 @@ import { integrationQueueDispatchReconcileBatchSize } from './integration-queue.
 
 describe('IntegrationJobDispatchReconcilerService', () => {
   const now = new Date('2026-10-08T12:00:00.000Z');
+  const allTypesSettings = {
+    getSetting: async (key: string) => {
+      if (key.endsWith('typesCsv')) return 'email,edge,teams';
+      if (key.endsWith('enabled')) return true;
+      return undefined;
+    },
+  };
 
   it('re-enqueues PENDING and due FAILED rows with stable logical-attempt ids', async () => {
     const jobs = [
@@ -31,6 +38,7 @@ describe('IntegrationJobDispatchReconcilerService', () => {
     const service = new IntegrationJobDispatchReconcilerService(
       repository as never,
       queue as never,
+      allTypesSettings as never,
     );
 
     await expect(service.sweep(now)).resolves.toEqual({
@@ -64,6 +72,39 @@ describe('IntegrationJobDispatchReconcilerService', () => {
     );
   });
 
+  it('does not re-offer runtime-disabled types, but still quarantines expired claims', async () => {
+    const repository = {
+      listExpiredProcessingPage: jest.fn().mockResolvedValue([{ id: 'stale' }]),
+      quarantineExpiredProcessing: jest.fn().mockResolvedValue(true),
+      listDispatchablePage: jest.fn().mockResolvedValue([
+        { id: 'email-1', type: IntegrationJobType.EMAIL, status: IntegrationJobStatus.PENDING, attempts: 0 },
+        { id: 'teams-1', type: IntegrationJobType.TEAMS, status: IntegrationJobStatus.PENDING, attempts: 0 },
+      ]),
+    };
+    const queue = { add: jest.fn().mockResolvedValue(undefined) };
+    const emailOnlySettings = {
+      getSetting: async (key: string) => {
+        if (key.endsWith('typesCsv')) return 'email';
+        if (key.endsWith('enabled')) return true;
+        return undefined;
+      },
+    };
+    const service = new IntegrationJobDispatchReconcilerService(
+      repository as never,
+      queue as never,
+      emailOnlySettings as never,
+    );
+
+    await expect(service.sweep(now)).resolves.toEqual({ processed: 2, failed: 0 });
+    expect(repository.quarantineExpiredProcessing).toHaveBeenCalledTimes(1);
+    expect(queue.add).toHaveBeenCalledTimes(1);
+    expect(queue.add).toHaveBeenCalledWith(
+      IntegrationJobType.EMAIL,
+      { integrationJobId: 'email-1' },
+      expect.objectContaining({ jobId: 'email-1' }),
+    );
+  });
+
   it('quarantines expired claims without enqueueing them and continues after failures', async () => {
     const claims = [{ id: 'stale' }, { id: 'raced' }, { id: 'db-failure' }];
     const repository = {
@@ -72,7 +113,7 @@ describe('IntegrationJobDispatchReconcilerService', () => {
       listDispatchablePage: jest.fn().mockResolvedValue([]),
     };
     const queue = { add: jest.fn() };
-    const service = new IntegrationJobDispatchReconcilerService(repository as never, queue as never);
+    const service = new IntegrationJobDispatchReconcilerService(repository as never, queue as never, allTypesSettings as never);
     await expect(service.sweep(now)).resolves.toEqual({ processed: 3, failed: 1 });
     expect(repository.listExpiredProcessingPage).toHaveBeenCalledWith(now, integrationQueueDispatchReconcileBatchSize);
     expect(repository.quarantineExpiredProcessing).toHaveBeenCalledTimes(3);
@@ -106,6 +147,7 @@ describe('IntegrationJobDispatchReconcilerService', () => {
     const service = new IntegrationJobDispatchReconcilerService(
       repository as never,
       queue as never,
+      allTypesSettings as never,
     );
 
     await expect(service.sweep(now)).resolves.toEqual({

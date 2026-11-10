@@ -15,6 +15,7 @@ import {
 import { IntegrationJobRepository } from './integration-job.repository';
 import type { IntegrationQueueJobData } from './integration-queue.types';
 import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
+import { isQueuedIntegrationJobType } from './parse-integration-queue-types';
 import { ProcessEdgeEventIntegrationJobService } from './process-edge-event-integration-job.service';
 import { ProcessEmailIntegrationJobService } from './process-email-integration-job.service';
 import { SettingsService } from '../settings/settings.service';
@@ -49,6 +50,24 @@ export class IntegrationQueueProcessor extends WorkerHost {
     // Read configuration before claiming so a transient settings failure cannot
     // strand a durable row in PROCESSING.
     const settings = await loadIntegrationQueueSettings(this.settingsService);
+    // Runtime disable is a pause, not a failure: while the queue or this job
+    // type is disabled the row is never claimed, so it consumes no attempt,
+    // keeps its retry schedule, and resumes when the type is re-enabled. The
+    // periodic reconciler re-offers it (it also skips disabled types), and a
+    // Bull job that still fires lands here and returns without side effects.
+    const current = await this.integrationJobRepository.findTypeAndStatus(integrationJobId);
+    if (current === null) {
+      this.logger.debug(
+        `integration_job claim_skipped id=${integrationJobId} attemptId=${attemptId} reason=not_found`,
+      );
+      return;
+    }
+    if (!settings.enabled || !isQueuedIntegrationJobType(current.type, settings.typeTokens)) {
+      this.logger.warn(
+        `integration_job_dispatch_paused id=${integrationJobId} type=${current.type} reason=${settings.enabled ? 'type_disabled' : 'queue_disabled'}`,
+      );
+      return;
+    }
     const now = new Date();
     const processing = await this.integrationJobRepository.claimForProcessing({
       id: integrationJobId,
