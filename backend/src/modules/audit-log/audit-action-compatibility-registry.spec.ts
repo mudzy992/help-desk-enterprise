@@ -7,7 +7,12 @@ describe('closed audit action/entity/schema compatibility registry', () => {
     expect(Object.keys(auditActionCompatibilityRegistry).sort()).toEqual(Object.values(auditLogActions).sort());
     const knownEntities = new Set<string>(Object.values(auditLogEntityTypes));
     for (const [action, contract] of Object.entries(auditActionCompatibilityRegistry)) {
-      expect(contract.schemaVersion).toBe(action === auditLogActions.assetLocationSaved ? 2 : 1);
+      expect(contract.schemaVersion).toBe(
+        action === auditLogActions.assetLocationSaved ||
+          action === auditLogActions.integrationJobRetried
+          ? 2
+          : 1,
+      );
       expect(contract.extension).toBe(false);
       expect(contract.entityTypes.size).toBeGreaterThan(0);
       for (const entityType of contract.entityTypes) expect(knownEntities.has(entityType)).toBe(true);
@@ -30,6 +35,9 @@ describe('closed audit action/entity/schema compatibility registry', () => {
       metadata: {
         fromStatus: 'DLQ',
         previousAttempts: 5,
+        previousErrorCode: 'INTEGRATION_JOB_FAILED',
+        previousNextRetryAt: null,
+        previousAdminRetries: 2,
         toStatus: 'PENDING',
       },
       actorUserId: 'admin-1',

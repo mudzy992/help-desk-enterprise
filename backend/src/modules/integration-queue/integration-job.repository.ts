@@ -26,6 +26,7 @@ import type {
   IntegrationJobProcessingClaim,
   IntegrationJobProcessingClaimInput,
 } from './integration-queue.types';
+import { resolveIntegrationJobAdminErrorCode } from './to-integration-job-response';
 
 @Injectable()
 export class IntegrationJobRepository {
@@ -353,6 +354,20 @@ export class IntegrationJobRepository {
         }
       }
 
+      // The reset above erases the in-row forensic trace (attempts and the
+      // last error). Preserve a safe, durable copy in the hash-chained audit
+      // entry committed by this same transaction: only the stable admin
+      // error code is stored, never the raw provider message. Counting the
+      // prior retry entries keeps a cumulative admin-retry history even
+      // though the row itself restarts its attempt counter.
+      const previousAdminRetries = await transaction.auditLog.count({
+        where: {
+          action: auditLogActions.integrationJobRetried,
+          entityType: auditLogEntityTypes.integrationJob,
+          entityId: id,
+        },
+      });
+
       await recordAuditEntry(
         transaction as unknown as AuditLogTransactionalClient,
         {
@@ -362,6 +377,12 @@ export class IntegrationJobRepository {
           metadata: {
             fromStatus: existing.status,
             previousAttempts: existing.attempts,
+            previousErrorCode: resolveIntegrationJobAdminErrorCode(
+              existing.type,
+              existing.lastError,
+            ),
+            previousNextRetryAt: existing.nextRetryAt?.toISOString() ?? null,
+            previousAdminRetries,
             toStatus: IntegrationJobStatus.PENDING,
           },
           actorUserId,

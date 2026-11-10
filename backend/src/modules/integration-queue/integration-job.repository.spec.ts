@@ -441,6 +441,8 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       status: IntegrationJobStatus.DLQ,
       payload,
       attempts: 5,
+      lastError: 'SMTP provider said mailbox full for user@example.com',
+      nextRetryAt: new Date('2026-10-09T12:00:00.000Z'),
       createdAt,
       updatedAt: createdAt,
     };
@@ -465,6 +467,9 @@ describe('IntegrationJobRepository admin cursor pages', () => {
       },
       notificationEmailDelivery: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      auditLog: {
+        count: jest.fn().mockResolvedValue(2),
       },
     };
     const prisma = {
@@ -515,10 +520,20 @@ describe('IntegrationJobRepository admin cursor pages', () => {
         metadata: {
           fromStatus: IntegrationJobStatus.DLQ,
           previousAttempts: 5,
+          previousErrorCode: 'INTEGRATION_JOB_FAILED',
+          previousNextRetryAt: '2026-10-09T12:00:00.000Z',
+          previousAdminRetries: 2,
           toStatus: IntegrationJobStatus.PENDING,
         },
       }),
     );
+    expect(transaction.auditLog.count).toHaveBeenCalledWith({
+      where: {
+        action: 'integration.job.retried',
+        entityType: 'integration_job',
+        entityId: 'job-1',
+      },
+    });
   });
 
   it('mirrors the integration queue retry time to the email delivery ledger', async () => {

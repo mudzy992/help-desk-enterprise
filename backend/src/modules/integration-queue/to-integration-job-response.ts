@@ -5,7 +5,7 @@ import {
   type IntegrationJobResponse,
 } from './integration-queue.types';
 
-function toSafeErrorCode(
+export function resolveIntegrationJobAdminErrorCode(
   type: IntegrationJobResponse['type'],
   lastError: string | null,
 ): IntegrationJobResponse['lastErrorCode'] {
@@ -47,7 +47,7 @@ export function toIntegrationJobResponse(job: {
     lastErrorCode:
       (job.status === IntegrationJobStatus.COMPLETED || job.status === IntegrationJobStatus.PUBLISHED_BEST_EFFORT) && job.lastError === terminalJobPayloadRedactedMarker
         ? null
-        : toSafeErrorCode(job.type, job.lastError),
+        : resolveIntegrationJobAdminErrorCode(job.type, job.lastError),
     attempts: job.attempts,
     nextRetryAt: job.nextRetryAt?.toISOString() ?? null,
     createdAt: job.createdAt.toISOString(),

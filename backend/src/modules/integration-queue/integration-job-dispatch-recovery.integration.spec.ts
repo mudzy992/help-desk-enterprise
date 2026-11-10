@@ -280,6 +280,9 @@ describeIfDatabase(
         metadata: {
           fromStatus: IntegrationJobStatus.DLQ,
           previousAttempts: 0,
+          previousErrorCode: 'INTEGRATION_JOB_FAILED',
+          previousNextRetryAt: null,
+          previousAdminRetries: 0,
           toStatus: IntegrationJobStatus.PENDING,
         },
       });
