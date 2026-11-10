@@ -535,11 +535,25 @@ export class InboundEmailService {
       });
     return {
       beginMutation,
-      findSenderByEmail: async (address) =>
-        this.prisma.user.findFirst({
+      findSenderByEmail: async (address) => {
+        // E-mail uniqueness is case-sensitive in PostgreSQL, so 'Ana@x' and
+        // 'ana@x' can be different users. An unordered insensitive findFirst
+        // would pick a nondeterministic actor; resolve deterministically and
+        // refuse to guess when the address is ambiguous.
+        const matches = await this.prisma.user.findMany({
           where: { email: { equals: address, mode: 'insensitive' } },
           select: { id: true, email: true, isActive: true },
-        }),
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          take: 2,
+        });
+        if (matches.length > 1) {
+          this.logger.warn(
+            `inbound_email_sender_ambiguous matches=${matches.length} resolution=refused`,
+          );
+          return null;
+        }
+        return matches[0] ?? null;
+      },
       findTicketById: async (ticketId) => this.prisma.ticket.findUnique({ where: { id: ticketId }, select: ticketSelect }),
       findTicketByNumber: async (ticketNumber) =>
         this.prisma.ticket.findUnique({ where: { ticketNumber }, select: ticketSelect }),

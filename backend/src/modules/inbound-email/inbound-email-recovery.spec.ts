@@ -165,7 +165,7 @@ describe('InboundEmailService crash recovery', () => {
     const prisma = {
       inboundEmail,
       user: {
-        findFirst: jest.fn(async () => ({ id: 'user-01', email: 'ana@example.test', isActive: true })),
+        findMany: jest.fn(async () => [{ id: 'user-01', email: 'ana@example.test', isActive: true }]),
       },
       ticket: {
         findUnique: jest.fn(async ({ where }: { where: Record<string, string> }) => {
