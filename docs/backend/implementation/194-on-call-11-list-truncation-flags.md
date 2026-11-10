@@ -1,6 +1,6 @@
 # BA-on-call-11: liste zamjena/zahtjeva prijavljuju skraćenje (hasMore)
 
-Status: **otvoreno**. Detalj grupe je zamjene rezao na 200, a pending zahtjeve na 100; `mySwaps` na 50 — bez ikakve naznake da lista nije potpuna, pa je duža historija tiho nestajala iz UI ugovora.
+Status: **zatvoreno** (operativna potvrda korisnika: sve DA; zabilježeno i kratko treperenje pri prelasku među grupama kao prijelazno stanje učitavanja detalja, bez utjecaja na prikaz). Detalj grupe je zamjene rezao na 200, a pending zahtjeve na 100; `mySwaps` na 50 — bez ikakve naznake da lista nije potpuna, pa je duža historija tiho nestajala iz UI ugovora.
 
 ## Izmjena
 
