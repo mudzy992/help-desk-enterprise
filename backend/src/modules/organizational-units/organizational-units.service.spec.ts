@@ -214,29 +214,6 @@ describe('OrganizationalUnitsService CRUD', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('invalidates role holders when an OU path rewrite changes authorization scopes', async () => {
-    const { service, memory, invalidateUsers } = createService();
-    const root = await service.create({
-      name: 'Korisnici',
-      type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
-    });
-    const child = await service.create({
-      name: 'IT',
-      type: 'BRANCH',
-      distinguishedName: 'OU=IT,OU=Korisnici,DC=example,DC=com',
-      parentId: root.id,
-    });
-    memory.seedUserRole({ userId: 'root-holder', organizationalUnitId: root.id });
-    memory.seedUserRole({ userId: 'child-holder', organizationalUnitId: child.id });
-    memory.seedUserRole({ userId: 'root-holder', organizationalUnitId: child.id });
-
-    await service.update(root.id, { name: 'Directorate' });
-
-    expect(invalidateUsers).toHaveBeenCalledTimes(1);
-    expect(invalidateUsers).toHaveBeenCalledWith(['child-holder', 'root-holder']);
-  });
-
   it('drops the cached authorization data of a user moved to another unit', async () => {
     // Phase 2.2 (plan §2.2): the unit is part of the principal context.
     const { service, invalidateUsers, memory } = createService();

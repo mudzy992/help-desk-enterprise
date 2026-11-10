@@ -3,8 +3,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { loadService } from '../service-catalog/load-service';
 import { loadFormVersionForService } from '../service-catalog/load-form-version';
 import { ServiceFormsError } from '../service-catalog/service-forms.error';
-import { routingCoverageMissingCode } from '../routing/routing.constants';
-import { RoutingError } from '../routing/routing.error';
 import { ServiceOnboardingError } from './service-onboarding.error';
 import type {
   ServiceOnboardingApprovalsProvider,
@@ -76,38 +74,12 @@ async function validateStep(
     });
     return null;
   } catch (error) {
-    if (
-      error instanceof RoutingError &&
-      error.code === routingCoverageMissingCode
-    ) {
-      return {
-        code: error.code,
-        step,
-        ...(error.details === undefined ? {} : { details: error.details }),
-      };
-    }
     const code =
       error instanceof ServiceOnboardingError || error instanceof ServiceFormsError
         ? error.code
         : 'STEP_PREREQUISITES_NOT_MET';
     return { code, step };
   }
-}
-
-export function routingCoverageValidationError(
-  issues: readonly ServiceOnboardingValidationIssue[],
-): RoutingError | null {
-  const issue = issues.find(
-    (candidate) => candidate.code === routingCoverageMissingCode,
-  );
-  if (issue === undefined) {
-    return null;
-  }
-  return new RoutingError(
-    routingCoverageMissingCode,
-    routingCoverageMissingCode,
-    issue.details,
-  );
 }
 
 export async function assertActiveFormVersionRef(

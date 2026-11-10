@@ -217,7 +217,7 @@ export class ChangeNotifier {
             changeNumber: facts.number,
           } as never,
           dedupeKey: `${dedupeKey}:${user.id}`,
-        }, policy, decision).catch((error: unknown) => {
+        }).catch((error: unknown) => {
           this.logger.warn(`change_notice_in_app_failed user=${user.id} reason=${errorText(error)}`);
           return null;
         });

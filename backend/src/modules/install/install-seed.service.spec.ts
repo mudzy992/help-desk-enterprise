@@ -73,31 +73,6 @@ describe('InstallSeedService', () => {
     });
   });
 
-  it('invalidates the founder after adding fallback membership and stays quiet on reseed', async () => {
-    const invalidatePrincipal = jest.fn().mockResolvedValue(1);
-    const invalidatePrincipals = jest.fn().mockResolvedValue(undefined);
-    const { service } = await createInstallSeedHarness({
-      invalidatePrincipal,
-      invalidatePrincipals,
-    });
-
-    const first = await service.seed();
-    expect(invalidatePrincipal).toHaveBeenCalledTimes(1);
-    expect(invalidatePrincipal).toHaveBeenCalledWith(expect.any(String));
-    expect(invalidatePrincipals).toHaveBeenCalledTimes(1);
-    expect(invalidatePrincipals).toHaveBeenCalledWith([
-      invalidatePrincipal.mock.calls[0]?.[0],
-    ]);
-    expect(first.fallbackGroup).not.toBeNull();
-
-    invalidatePrincipal.mockClear();
-    invalidatePrincipals.mockClear();
-    await service.seed();
-
-    expect(invalidatePrincipal).not.toHaveBeenCalled();
-    expect(invalidatePrincipals).not.toHaveBeenCalled();
-  });
-
   it('is idempotent on repeated execution', async () => {
     const { service, memory } = await createInstallSeedHarness();
     const first = await service.seed();

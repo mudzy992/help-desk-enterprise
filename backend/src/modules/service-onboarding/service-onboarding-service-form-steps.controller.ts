@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Headers,
   Param,
   Patch,
   Post,
@@ -45,13 +44,11 @@ export class ServiceOnboardingServiceFormStepsController {
   saveService(
     @Param('serviceId') serviceId: string,
     @Body() body: UpdateServiceDto,
-    @Headers('if-match') ifMatch: string | string[] | undefined,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceOnboardingResponse> {
     return this.stepsService.saveServiceStep(
       serviceId,
       body,
-      ifMatch,
       readCatalogMutationContext(request),
     );
   }

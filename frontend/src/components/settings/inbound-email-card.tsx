@@ -11,7 +11,6 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { toInboundProblemKeys, toInboundReasonKey } from "@/lib/settings/inbound-email-labels";
 import {
   getInboundEmailStatus,
-  inboundEmailRedactedValue,
   testInboundEmailConnection,
   type InboundEmailConnectionTest,
   type InboundEmailLogEntry,
@@ -26,11 +25,11 @@ const statusTones: Readonly<Record<InboundEmailLogEntry["status"], BadgeTone>> =
   FAILED: "warning",
 };
 
-/** Mailbox health and recent log; sender, subject and error details are redacted. */
+/** inbound mailbox health, connection test and the recent log (no message bodies). */
 export function InboundEmailCard() {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<InboundEmailStatus | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [test, setTest] = useState<InboundEmailConnectionTest | null>(null);
   const [testing, setTesting] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
@@ -38,9 +37,9 @@ export function InboundEmailCard() {
   const reload = useCallback(async () => {
     try {
       setStatus(await getInboundEmailStatus());
-      setLoadError(false);
-    } catch {
-      setLoadError(true);
+      setLoadError(null);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : String(error));
     }
   }, []);
 
@@ -52,10 +51,10 @@ export function InboundEmailCard() {
     setTesting(true);
     try {
       setTest(await testInboundEmailConnection());
-    } catch {
+    } catch (error) {
       setTest({
         ok: false,
-        errorCode: "CONNECTION_FAILED",
+        error: error instanceof Error ? error.message : String(error),
         problems: [],
       });
     } finally {
@@ -72,9 +71,7 @@ export function InboundEmailCard() {
         subtitle={t("settings.inboundEmail.subtitle")}
       />
       <div className="space-y-2.5 px-4 pb-4 pt-4 text-[12px]">
-        {loadError ? (
-          <p className="text-danger">{t("settings.inboundEmail.statusUnavailable")}</p>
-        ) : null}
+        {loadError !== null ? <p className="text-danger">{loadError}</p> : null}
         {status !== null ? (
           <>
             <p className="flex items-center justify-between">
@@ -130,10 +127,10 @@ export function InboundEmailCard() {
               </span>
             </p>
             {status.enabled &&
-            state?.lastError === inboundEmailRedactedValue &&
+            state?.lastError &&
             state.consecutiveFails > 0 &&
-            status.problems.length === 0 ? (
-              <Warning text={t("settings.inboundEmail.errorDetailsRedacted")} />
+            !state.lastError.startsWith("MISCONFIGURED") ? (
+              <Warning text={t("settings.inboundEmail.lastError", { error: state.lastError })} />
             ) : null}
             {status.enabled
               ? toInboundProblemKeys(status.problems).map((problem) => (
@@ -160,11 +157,10 @@ export function InboundEmailCard() {
               ) : (
                 <Warning
                   text={
-                    test.errorCode === "CONNECTION_FAILED" || test.problems.length === 0
-                      ? t("settings.inboundEmail.connectionFailed")
-                      : toInboundProblemKeys(test.problems)
-                          .map((problem) => t(`settings.inboundEmail.problems.${problem}`))
-                          .join(" ")
+                    test.error ??
+                    toInboundProblemKeys(test.problems)
+                      .map((problem) => t(`settings.inboundEmail.problems.${problem}`))
+                      .join(" ")
                   }
                 />
               )
@@ -240,10 +236,10 @@ export function InboundEmailCard() {
                     />
                   </div>
                   <p className="truncate font-medium text-foreground/90">
-                    {t("settings.inboundEmail.redacted")}
+                    {entry.subject.length > 0 ? entry.subject : "—"}
                   </p>
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-                    <span className="break-all">{t("settings.inboundEmail.redacted")}</span>
+                    <span className="break-all">{entry.fromAddress ?? "—"}</span>
                     {reason !== null ? (
                       <span>· {t(`settings.inboundEmail.reasons.${reason}`)}</span>
                     ) : null}

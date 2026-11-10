@@ -46,7 +46,6 @@ export const configPackageReferenceKinds = [
   'formVersion',
   'responseTemplate',
   'playbook',
-  'knowledgeArticle',
   'slaProfile',
   'calendar',
 ] as const;

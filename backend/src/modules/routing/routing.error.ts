@@ -1,5 +1,3 @@
-import type { ServiceRoutingCoverageEvaluation } from './evaluate-service-routing-coverage';
-
 export type RoutingErrorCode =
   | 'ORIGIN_UNIT_NOT_FOUND'
   | 'SERVICE_NOT_FOUND'
@@ -12,15 +10,10 @@ export type RoutingErrorCode =
   | 'ROUTING_COVERAGE_MISSING'
   | 'UNAVAILABLE';
 
-export type RoutingErrorDetails = {
-  readonly routingCoverage: ServiceRoutingCoverageEvaluation;
-};
-
 export class RoutingError extends Error {
   constructor(
     readonly code: RoutingErrorCode,
     message: string = code,
-    readonly details?: RoutingErrorDetails,
   ) {
     super(message);
     this.name = 'RoutingError';

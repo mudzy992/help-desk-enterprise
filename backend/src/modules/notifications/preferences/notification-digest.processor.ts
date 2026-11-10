@@ -20,7 +20,7 @@ export class NotificationDigestProcessor extends WorkerHost {
     const result = await this.digestService.runDue();
     if (result.usersWithItems > 0) {
       this.logger.log(
-        `notification_digest_users=${result.usersWithItems} notification_digest_sent_total=${result.emailsSent} notification_digest_items_delivered=${result.itemsDelivered} notification_digest_items_dropped=${result.itemsDropped} notification_digest_items_dropped_for_access=${result.itemsDroppedForAccess} notification_digest_items_dropped_for_access_reason=ticket_visibility_denied notification_digest_visibility_check_failures=${result.visibilityCheckFailures} notification_digest_failures=${result.failures} notification_digest_duration_ms=${Date.now() - startedAt}`,
+        `notification_digest_users=${result.usersWithItems} notification_digest_sent_total=${result.emailsSent} notification_digest_items_delivered=${result.itemsDelivered} notification_digest_items_dropped=${result.itemsDropped} notification_digest_failures=${result.failures} notification_digest_duration_ms=${Date.now() - startedAt}`,
       );
     }
     // Paket 2.2a: the weekly report shares the 5-minute tick (slot logic inside).

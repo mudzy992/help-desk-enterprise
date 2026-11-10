@@ -3,8 +3,6 @@ model Ticket {
   assets TicketAsset[]
   id                   String                     @id @default(cuid())
   ticketNumber         String                     @unique
-  /// Paket W6.38: unique source marker for crash-safe inbound-email ticket creation.
-  sourceInboundEmailId String?                    @unique @db.VarChar(64)
   title                String
   description          String
   status               TicketStatus               @default(PENDING)

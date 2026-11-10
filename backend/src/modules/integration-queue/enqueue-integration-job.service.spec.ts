@@ -43,38 +43,6 @@ describe('EnqueueIntegrationJobService', () => {
     );
   });
 
-  it('keeps the durable row PENDING when Redis enqueue fails', async () => {
-    const repository = {
-      createPending: jest.fn().mockResolvedValue(pending),
-      markFailed: jest.fn(),
-    };
-    const queue = { add: jest.fn().mockRejectedValue(new Error('Redis unavailable')) };
-    const service = new EnqueueIntegrationJobService(
-      repository as never,
-      queue as never,
-    );
-
-    await expect(
-      service.enqueue({
-        type: IntegrationJobType.EMAIL,
-        payload: {
-          userId: 'user-1',
-          toAddress: 'agent@example.com',
-          subject: 'Ticket',
-          text: 'Body',
-          templateKey: 'ticket.created',
-          dedupeKey: 'ticket.created:msg-1',
-        },
-      }),
-    ).resolves.toEqual(pending);
-    expect(repository.markFailed).not.toHaveBeenCalled();
-    expect(queue.add).toHaveBeenCalledWith(
-      IntegrationJobType.EMAIL,
-      { integrationJobId: 'job-1' },
-      expect.objectContaining({ jobId: 'job-1' }),
-    );
-  });
-
   it('adds TEAMS jobs to BullMQ', async () => {
     const teamsJob = { ...pending, type: IntegrationJobType.TEAMS };
     const repository = {

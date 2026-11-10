@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
-import { recordAssetAuditEntry } from '../asset-audit-transaction';
-import { AssetOperationsMetrics } from '../asset-operations-metrics';
+import type { AuditLogTransactionalClient } from '../../audit-log/audit-log.types';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import { permissionKeys } from '../../authorization/authorization.constants';
 import { assetDefaults } from '../../settings/definitions/asset-settings';
 import { settingKeys } from '../../settings/setting-keys';
@@ -187,7 +187,6 @@ export class AssetImportService {
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
     private readonly assets: AssetsService,
-    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   async actorFor(viewer: AssetViewer, permission: string = permissionKeys.assetImport): Promise<ImportActor> {
@@ -1180,13 +1179,13 @@ export class AssetImportService {
   }
 
   private async auditApply(jobId: string, actor: ImportActor, metadata: Record<string, unknown>) {
-    await recordAssetAuditEntry(this.prisma, {
+    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action: auditLogActions.assetImportApplied,
       entityType: auditLogEntityTypes.assetImport,
       entityId: jobId,
       metadata: metadata as never,
       actorUserId: actor.userId,
-    }, this.assetOperationsMetrics).catch(() => undefined);
+    }).catch(() => undefined);
   }
 
   private columnsData(data: ImportAssetState, currency: string, currentCurrency: string | null = null) {

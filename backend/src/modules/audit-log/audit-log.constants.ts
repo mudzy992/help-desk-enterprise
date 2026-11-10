@@ -131,7 +131,6 @@ export const auditLogActions = {
   opsAlertsUnsilenced: 'ops.alerts.unsilenced',
   opsAlertTestSent: 'ops.alert.test_sent',
   opsDlqBaselineAcknowledged: 'ops.dlq.baseline_acknowledged',
-  integrationJobRetried: 'integration.job.retried',
   // Paket 2.7: status page incidents (§8.3).
   statusIncidentCreated: 'status.incident.created',
   statusIncidentEdited: 'status.incident.edited',
@@ -249,7 +248,6 @@ export const auditLogEntityTypes = {
   // Paket 2.7
   opsAlert: 'ops_alert',
   opsMonitoring: 'ops_monitoring',
-  integrationJob: 'integration_job',
   statusIncident: 'status_incident',
   // Paket 2.9
   onCallSchedule: 'on_call_schedule',

@@ -25,7 +25,6 @@ export async function createReopenedTicket(input: {
   readonly body: ReopenTicketInput;
   readonly context: TicketMutationContext;
   readonly now: Date;
-  readonly idempotencyKey: string;
   readonly messages: TicketPersistedMessageSink;
 }): Promise<TicketRecord> {
   const { ticket } = await loadAccessibleTicket(
@@ -47,48 +46,35 @@ export async function createReopenedTicket(input: {
     throw new TicketsError('REOPEN_NOT_ELIGIBLE');
   }
   const comment = normalizeReopenComment(input.body.comment);
-  const sourceInboundEmailId = input.context.sourceInboundEmailId;
-  let created = sourceInboundEmailId === undefined
-    ? null
-    : await input.prisma.ticket.findUnique({ where: { sourceInboundEmailId } }) as TicketRecord | null;
-  if (created === null) {
-    try {
-      created = await createTicket(
-        input.prisma,
-        input.routingService,
-        input.authorizationContextLoader,
-        input.approvalsConfigurationLoader,
-        {
-          title: ticket.title,
-          description: ticket.description,
-          impact: ticket.impact,
-          urgency: ticket.urgency,
-          serviceId: ticket.serviceId,
-          originUnitId: ticket.originUnitId,
-          formVersionRef: ticket.formVersionId ?? undefined,
-          formData: input.formsConfiguration.enabled ? ticket.formData : undefined,
-          requesterUserId: ticket.requesterId,
-          reopenedFromTicketId: ticket.id,
-        },
-        input.context,
-        input.messages,
-        undefined,
-        undefined,
-        [],
-        input.formsConfiguration,
-      );
-    } catch (error) {
-      if (sourceInboundEmailId === undefined || !isUniqueConstraintError(error)) throw error;
-      created = await input.prisma.ticket.findUnique({ where: { sourceInboundEmailId } }) as TicketRecord | null;
-      if (created === null) throw error;
-    }
-  }
+  const created = await createTicket(
+    input.prisma,
+    input.routingService,
+    input.authorizationContextLoader,
+    input.approvalsConfigurationLoader,
+    {
+      title: ticket.title,
+      description: ticket.description,
+      impact: ticket.impact,
+      urgency: ticket.urgency,
+      serviceId: ticket.serviceId,
+      originUnitId: ticket.originUnitId,
+      formVersionRef: ticket.formVersionId ?? undefined,
+      formData: input.formsConfiguration.enabled ? ticket.formData : undefined,
+      requesterUserId: ticket.requesterId,
+      reopenedFromTicketId: ticket.id,
+    },
+    input.context,
+    input.messages,
+    undefined,
+    undefined,
+    [],
+    input.formsConfiguration,
+  );
   input.messages.push(
     await insertSystemTicketEvent(input.prisma, {
       ticketId: created.id,
       action: ticketSystemEventActions.ticketReopenedNew,
       actorUserId: input.context.actorUserId,
-      idempotencyKey: `${input.idempotencyKey}:reopened`,
     }),
   );
   if (comment !== null) {
@@ -97,13 +83,8 @@ export async function createReopenedTicket(input: {
         ticketId: created.id,
         action: comment,
         actorUserId: input.context.actorUserId,
-        idempotencyKey: `${input.idempotencyKey}:comment`,
       }),
     );
   }
   return created;
-}
-
-function isUniqueConstraintError(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'P2002';
 }

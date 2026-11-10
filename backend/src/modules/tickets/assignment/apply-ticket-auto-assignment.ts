@@ -134,16 +134,10 @@ async function assignTicket(
   const nextStatus = ticket.status === 'PENDING' ? 'ASSIGNED' : ticket.status;
   assertTicketStatusTransition(ticket.status, nextStatus);
   return prisma.$transaction(async (transaction) => {
-    const claimed = await transaction.ticket.updateMany({
-      where: { id: ticket.id, status: ticket.status, assignedUserId: null },
+    const updated = (await transaction.ticket.update({
+      where: { id: ticket.id },
       data: { assignedUserId, status: nextStatus },
-    });
-    if (claimed.count !== 1) {
-      const latest = await transaction.ticket.findUnique({ where: { id: ticket.id } });
-      if (latest === null) throw new TicketsError('NOT_FOUND');
-      return latest as TicketRecord;
-    }
-    const updated = (await transaction.ticket.findUniqueOrThrow({ where: { id: ticket.id } })) as TicketRecord;
+    })) as TicketRecord;
     await recordTicketChange(transaction as PrismaService, {
       action: changeLogActions.update,
       reason: ticketAssignmentChangeLogReasons.assign,

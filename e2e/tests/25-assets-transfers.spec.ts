@@ -205,13 +205,7 @@ test.describe('25 assets transfer records', () => {
         const configuration = await admin.requestJson<{ enabled: boolean; required: boolean }>('/assets/transfers/configuration');
         expect(configuration).toEqual({ enabled: true, required: true });
 
-        const currentAsset = await admin.requestJson<{ version: number }>(`/assets/${asset.id}`);
-        // The assign DTO requires the caller's current version; omitting it
-        // returns 400 before the transfer-required policy can be exercised.
-        const direct = await admin.request(`/assets/${asset.id}/assign`, {
-          method: 'POST',
-          body: JSON.stringify({ userId: user.id, version: currentAsset.version }),
-        });
+        const direct = await admin.request(`/assets/${asset.id}/assign`, { method: 'POST', body: JSON.stringify({ userId: user.id }) });
         expect(direct.status).toBe(409);
         expect(await errorCode(direct)).toBe('ASSET_TRANSFER_REQUIRED');
         // Asking for no document is ignored while records are required.

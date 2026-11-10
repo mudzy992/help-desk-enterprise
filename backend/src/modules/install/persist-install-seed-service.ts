@@ -111,7 +111,7 @@ export async function activateInstallSeedService(
   });
   const updated = await prisma.service.update({
     where: { id: service.id },
-    data: { lifecycle: 'ACTIVE', revision: { increment: 1 } },
+    data: { lifecycle: 'ACTIVE' },
   });
   await recordServiceCatalogChange(prisma, {
     entityType: serviceChangeLogEntityType(),

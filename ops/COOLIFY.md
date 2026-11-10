@@ -45,12 +45,12 @@ Opciono, i neoslonjeno na provjeru iz ovog repoa: „Watch Paths" može preskoč
    | Servis | Provjera | Znači |
    |---|---|---|
    | frontend | `wget http://127.0.0.1:10000/` svakih 30 s | nginx servira SPA |
-   | backend | `GET /health/ready` svakih 15 s, start 120 s | baza, Redis, audit anchor i efektivni WS adapter zdravi (503 = bar jedan check pada) |
+   | backend | `GET /health/ready` svakih 15 s, start 120 s | baza i Redis dostupni (503 = nisu) |
    | worker | `node dist/src/cli/worker-health.js` svakih 30 s | heartbeat u Redisu mlađi od 120 s |
 
    Endpointi (javni, bez prijave):
    - `/health`: liveness (proces živ), uvijek 200;
-   - `/health/ready`: readiness (baza, Redis, audit anchor i efektivni WS adapter); 503 s javnim `ok/fail` checkom koji pada;
+   - `/health/ready`: readiness (baza i Redis); 503 s tijelom koje pokazuje koji check pada;
    - `/health/worker`: 200 ako je worker javio heartbeat u zadnjih 120 s, inače 503.
 
    Gdje se vidi *healthy*: Coolify → projekat → servis (zelena oznaka `running (healthy)`) ili

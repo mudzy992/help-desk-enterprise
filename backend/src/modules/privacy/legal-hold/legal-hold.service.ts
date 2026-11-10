@@ -5,7 +5,6 @@ import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import type { PrivacyActor } from '../privacy-actor';
 import { privacyErrorCodes } from '../privacy.constants';
 import { PrivacyError } from '../privacy.error';
-import { integrationRetentionLegalHoldLockKey } from './integration-retention-hold-lock';
 
 export type LegalHoldTarget = 'ticket' | 'user';
 
@@ -79,8 +78,6 @@ export class LegalHoldService {
   ): Promise<LegalHoldView> {
     const setting = input.reason !== undefined;
     return this.prisma.$transaction(async (transaction) => {
-      // Serialize setting/clearing holds against integration payload retention.
-      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(${integrationRetentionLegalHoldLockKey})`;
       let view: LegalHoldView;
       let organizationalUnitId: string | null = null;
       if (target === 'ticket') {

@@ -15,7 +15,7 @@ import { resolvePolicyPackApplyTarget } from './resolve-policy-pack-apply-target
 import type {
   PolicyPackApplyInput,
   PolicyPackApplyResult,
-  PrincipalBatchInvalidationHook,
+  PrincipalInvalidationHook,
 } from './policy-pack.types';
 
 export async function applyPolicyPack(
@@ -25,7 +25,7 @@ export async function applyPolicyPack(
     readonly actorUserId: string | null;
     readonly requestId: string | null;
   } = { actorUserId: null, requestId: null },
-  invalidatePrincipals: PrincipalBatchInvalidationHook = async () => undefined,
+  invalidatePrincipal: PrincipalInvalidationHook = async () => {},
 ): Promise<PolicyPackApplyResult> {
   const target = await resolvePolicyPackApplyTarget(prisma, input);
   const plannedAssignments = planPolicyPackAssignments(target);
@@ -45,18 +45,7 @@ export async function applyPolicyPack(
       catalog,
       plannedAssignments,
     );
-    const changedPrincipalIds = new Set(userGrants.affectedUserIds);
-    if (catalog.roleIdsWithAddedPermissions.length > 0) {
-      const existingRoleHolders = await transaction.userRole.findMany({
-        where: { roleId: { in: [...catalog.roleIdsWithAddedPermissions] } },
-        select: { userId: true },
-        distinct: ['userId'],
-      });
-      for (const holder of existingRoleHolders) {
-        changedPrincipalIds.add(holder.userId);
-      }
-    }
-    affectedUserIds = [...changedPrincipalIds].sort();
+    affectedUserIds = userGrants.affectedUserIds;
     const servicePolicy =
       servicePolicyPlan.plan === null
         ? null
@@ -106,10 +95,10 @@ export async function applyPolicyPack(
       plannedAssignments,
     };
   });
-  // Only after commit: both newly assigned users and pre-existing holders of
-  // roles whose global permission catalogue changed need a fresh principal.
-  if (affectedUserIds.length > 0) {
-    await invalidatePrincipals(affectedUserIds);
+  // Phase 2.2: only now that the grants are committed. Every user whose
+  // authorization data actually changed gets a fresh entry on the next request.
+  for (const userId of affectedUserIds) {
+    await invalidatePrincipal(userId);
   }
   return result;
 }

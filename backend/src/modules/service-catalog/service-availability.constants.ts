@@ -1,27 +1,27 @@
-import type { ServiceAvailability } from "../../generated/prisma/enums";
+import type { ServiceAvailability } from '../../generated/prisma/enums';
 import type {
   ServiceAvailabilityConfiguration,
   ServiceAvailabilityConfigurationBundle,
   ServiceDowntimeConfiguration,
   ServiceRuntimeAvailabilityState,
-} from "./service-availability.types";
+} from './service-availability.types';
 
 export const serviceAvailabilityStatuses = [
-  "OPERATIONAL",
-  "DEGRADED",
-  "DOWN",
-  "MAINTENANCE",
+  'OPERATIONAL',
+  'DEGRADED',
+  'DOWN',
+  'MAINTENANCE',
 ] as const satisfies readonly ServiceAvailability[];
 
 export const unavailableStoredAvailabilityStatuses = [
-  "DOWN",
-  "MAINTENANCE",
+  'DOWN',
+  'MAINTENANCE',
 ] as const satisfies readonly ServiceAvailability[];
 
 export const serviceRuntimeAvailabilityStates = [
-  "CURRENTLY_AVAILABLE",
-  "CURRENTLY_UNAVAILABLE",
-  "SCHEDULED_DOWNTIME",
+  'CURRENTLY_AVAILABLE',
+  'CURRENTLY_UNAVAILABLE',
+  'SCHEDULED_DOWNTIME',
 ] as const satisfies readonly ServiceRuntimeAvailabilityState[];
 
 export const defaultServiceAvailabilityConfiguration: ServiceAvailabilityConfiguration =
@@ -47,17 +47,11 @@ export const defaultServiceAvailabilityConfigurationBundle: ServiceAvailabilityC
     downtime: defaultServiceDowntimeConfiguration,
   };
 
-export const serviceDowntimeWindowListDefaultTake = 50;
-export const serviceDowntimeWindowListMaximumTake = 100;
-export const serviceDowntimeWindowListMaximumResponseBytes = 262_144;
-export const serviceDowntimeWindowListMaximumPeriodMs =
-  730 * 24 * 60 * 60 * 1000;
-
 export const serviceAvailabilityChangeLogReasons = {
-  availabilityUpdate: "availability_update",
-  downtimeWindowCreate: "downtime_window_create",
-  downtimeWindowUpdate: "downtime_window_update",
-  downtimeWindowDelete: "downtime_window_delete",
+  availabilityUpdate: 'availability_update',
+  downtimeWindowCreate: 'downtime_window_create',
+  downtimeWindowUpdate: 'downtime_window_update',
+  downtimeWindowDelete: 'downtime_window_delete',
 } as const;
 
 export const serviceAvailabilityConstants = {

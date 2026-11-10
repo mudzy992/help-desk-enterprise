@@ -118,12 +118,8 @@ export type EmailTemplatePlaceholder =
 
 
 export const emailDeliveryStatuses = {
-  pending: 'PENDING',
   claimed: 'CLAIMED',
   sent: 'SENT',
-  failed: 'FAILED',
-  unknown: 'UNKNOWN',
-  dead: 'DEAD',
 } as const;
 
 export type EmailDeliveryStatus =

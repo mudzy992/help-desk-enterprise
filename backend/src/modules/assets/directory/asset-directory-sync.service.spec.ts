@@ -40,7 +40,6 @@ function createSharedRedis() {
 function setup(
   options: { syncEnabled?: boolean; ldapsEnabled?: boolean } = {},
   redis = createSharedRedis(),
-  metrics?: { recordDirectorySyncOverlap: jest.Mock },
 ) {
   const settings: Record<string, unknown> = {
     [settingKeys.privateAssetsDirectorySyncEnabled]: options.syncEnabled ?? false,
@@ -77,8 +76,8 @@ function setup(
     $queryRaw: jest.fn().mockResolvedValue([]),
     $transaction: jest.fn(async (work: (client: unknown) => unknown) => work({ auditLog: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn() }, $executeRaw: jest.fn() })),
   };
-  const service = new AssetDirectorySyncService(prisma as unknown as PrismaService, access, loader, new DirectoryBackoff(), redis as unknown as Redis, factory, metrics as never);
-  return { service, prisma, search, redis, metrics };
+  const service = new AssetDirectorySyncService(prisma as unknown as PrismaService, access, loader, new DirectoryBackoff(), redis as unknown as Redis, factory);
+  return { service, prisma, search, redis };
 }
 
 describe('AssetDirectorySyncService (paket 3.2 §12)', () => {
@@ -94,8 +93,7 @@ describe('AssetDirectorySyncService (paket 3.2 §12)', () => {
   it('serializes manual runs across two service instances and releases the lease afterwards', async () => {
     const redis = createSharedRedis();
     const first = setup({}, redis);
-    const metrics = { recordDirectorySyncOverlap: jest.fn().mockResolvedValue(undefined) };
-    const second = setup({}, redis, metrics);
+    const second = setup({}, redis);
     let signalStarted!: () => void;
     let releaseSearch!: () => void;
     const searchStarted = new Promise<void>((resolve) => { signalStarted = resolve; });
@@ -119,7 +117,6 @@ describe('AssetDirectorySyncService (paket 3.2 §12)', () => {
       detail: 'busy',
     });
     expect(second.search).not.toHaveBeenCalled();
-    expect(metrics.recordDirectorySyncOverlap).toHaveBeenCalledTimes(1);
 
     releaseSearch();
     await expect(firstRun).resolves.toMatchObject({ dryRun: true });

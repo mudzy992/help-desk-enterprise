@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { OnCallTruncationNote } from "@/components/on-call/on-call-truncation-note";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ export function OnCallOverviewCards({
   me,
   meError,
   swaps,
-  swapsHasMore,
   swapsError,
   pending,
   busy,
@@ -28,7 +26,6 @@ export function OnCallOverviewCards({
   readonly me: OnCallMe | null;
   readonly meError: OnCallQueryError | null;
   readonly swaps: readonly OnCallSwapView[];
-  readonly swapsHasMore?: boolean;
   readonly swapsError: OnCallQueryError | null;
   readonly pending: { readonly me: boolean; readonly swaps: boolean };
   readonly busy: string | null;
@@ -194,7 +191,6 @@ export function OnCallOverviewCards({
                 </ul>
               </details>
             ) : null}
-            {swapsHasMore ? <OnCallTruncationNote limit={50} /> : null}
           </div>
         </Card>
       </div>

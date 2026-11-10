@@ -113,7 +113,7 @@ async function withSlaProfile(
   }
   await prisma.service.update({
     where: { id: service.id },
-    data: { slaProfileId: slaProfile.id, revision: { increment: 1 } },
+    data: { slaProfileId: slaProfile.id },
   });
   return { ...service, slaProfileId: slaProfile.id, slaProfileKey: slaProfile.key };
 }

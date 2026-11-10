@@ -6,7 +6,6 @@ import {
 } from "@nestjs/common/constants";
 import { AccountSecurityPolicyLoader } from "../authentication/security/account-security-policy.loader";
 import { SmtpMailTransport } from "../notifications/email/smtp-mail-transport";
-import { PrincipalContextInvalidator } from "../../common/principal-context/principal-context-invalidator.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { SettingsService } from "../settings/settings.service";
 import { InstallAddonsService } from "./install-addons.service";
@@ -58,7 +57,6 @@ const providers: Readonly<Record<string, object>> = {
   InstallLoginProviderService,
   InstallSmtpService,
   InstallSeedService,
-  PrincipalContextInvalidator,
   InstallAddonsService,
   InstallProfileService,
   InstallStepSkipService,
@@ -180,15 +178,13 @@ describe("install module dependency injection metadata", () => {
     }
   });
 
-  it("never emits Function for a constructor parameter without an explicit token", () => {
-    // `Function` means a class was imported as a type, so Nest may look for a
-    // provider literally called `Function`. An explicit @Inject token overrides
-    // that reflected type and is safe; inferred Function metadata is not.
+  it("never emits Function for a constructor parameter", () => {
+    // `Function` means a class was imported as a type: the container then looks
+    // for a provider literally called `Function` and the whole app stops booting.
     for (const [name, provider] of injectorBound()) {
-      const injected = injectedIndexes(provider);
       const offenders = declaredTypes(provider)
         .map((type, index) => ({ index, type }))
-        .filter(({ index, type }) => type === Function && !injected.includes(index));
+        .filter(({ type }) => type === Function);
       expect({ name, offenders }).toEqual({ name, offenders: [] });
     }
   });

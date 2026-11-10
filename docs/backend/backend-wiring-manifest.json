@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
   "controllerFiles": 99,
-  "routeCount": 620,
+  "routeCount": 614,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 600,
+    "authenticated": 594,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 600,
+    "explicit": 594,
     "inherited-or-public": 20
   },
   "routes": [
@@ -244,21 +244,6 @@
     {
       "source": "backend/src/modules/announcements/announcements.controller.ts",
       "controller": "AnnouncementsController",
-      "handler": "pendingReport",
-      "method": "GET",
-      "path": "/announcements/manage/:id/report/pending",
-      "classGuards": [
-        "SessionAuthenticationGuard"
-      ],
-      "methodGuards": [],
-      "guardBoundary": "explicit",
-      "classification": "authenticated",
-      "policyOwner": "announcements",
-      "policyProof": "SessionAuthenticationGuard"
-    },
-    {
-      "source": "backend/src/modules/announcements/announcements.controller.ts",
-      "controller": "AnnouncementsController",
       "handler": "withdraw",
       "method": "POST",
       "path": "/announcements/manage/:id/withdraw",
@@ -409,21 +394,6 @@
     {
       "source": "backend/src/modules/assets/assets.controller.ts",
       "controller": "AssetsController",
-      "handler": "assetContracts",
-      "method": "GET",
-      "path": "/assets/:id/contracts",
-      "classGuards": [
-        "SessionAuthenticationGuard"
-      ],
-      "methodGuards": [],
-      "guardBoundary": "explicit",
-      "classification": "authenticated",
-      "policyOwner": "assets",
-      "policyProof": "SessionAuthenticationGuard"
-    },
-    {
-      "source": "backend/src/modules/assets/assets.controller.ts",
-      "controller": "AssetsController",
       "handler": "history",
       "method": "GET",
       "path": "/assets/:id/history",
@@ -442,21 +412,6 @@
       "handler": "impact",
       "method": "GET",
       "path": "/assets/:id/impact",
-      "classGuards": [
-        "SessionAuthenticationGuard"
-      ],
-      "methodGuards": [],
-      "guardBoundary": "explicit",
-      "classification": "authenticated",
-      "policyOwner": "assets",
-      "policyProof": "SessionAuthenticationGuard"
-    },
-    {
-      "source": "backend/src/modules/assets/assets.controller.ts",
-      "controller": "AssetsController",
-      "handler": "assetLicenses",
-      "method": "GET",
-      "path": "/assets/:id/licenses",
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
@@ -784,21 +739,6 @@
     {
       "source": "backend/src/modules/assets/assets.controller.ts",
       "controller": "AssetsController",
-      "handler": "contractItems",
-      "method": "GET",
-      "path": "/assets/contracts/:contractId/items",
-      "classGuards": [
-        "SessionAuthenticationGuard"
-      ],
-      "methodGuards": [],
-      "guardBoundary": "explicit",
-      "classification": "authenticated",
-      "policyOwner": "assets",
-      "policyProof": "SessionAuthenticationGuard"
-    },
-    {
-      "source": "backend/src/modules/assets/assets.controller.ts",
-      "controller": "AssetsController",
       "handler": "addContractItem",
       "method": "POST",
       "path": "/assets/contracts/:contractId/items",
@@ -1042,21 +982,6 @@
       "handler": "updateLicense",
       "method": "PUT",
       "path": "/assets/licenses/:licenseId",
-      "classGuards": [
-        "SessionAuthenticationGuard"
-      ],
-      "methodGuards": [],
-      "guardBoundary": "explicit",
-      "classification": "authenticated",
-      "policyOwner": "assets",
-      "policyProof": "SessionAuthenticationGuard"
-    },
-    {
-      "source": "backend/src/modules/assets/assets.controller.ts",
-      "controller": "AssetsController",
-      "handler": "licenseAssignments",
-      "method": "GET",
-      "path": "/assets/licenses/:licenseId/assignments",
       "classGuards": [
         "SessionAuthenticationGuard"
       ],
@@ -6896,22 +6821,6 @@
       "handler": "createForm",
       "method": "POST",
       "path": "/services/:serviceId/form",
-      "classGuards": [
-        "SessionAuthenticationGuard",
-        "RoleGuard"
-      ],
-      "methodGuards": [],
-      "guardBoundary": "explicit",
-      "classification": "authenticated",
-      "policyOwner": "service-catalog",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
-    },
-    {
-      "source": "backend/src/modules/service-catalog/service-forms.controller.ts",
-      "controller": "ServiceFormsController",
-      "handler": "getActiveForm",
-      "method": "GET",
-      "path": "/services/:serviceId/form/active",
       "classGuards": [
         "SessionAuthenticationGuard",
         "RoleGuard"

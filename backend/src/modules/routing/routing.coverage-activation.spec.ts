@@ -1,4 +1,3 @@
-import { mapRoutingError } from './map-routing-error';
 import { RoutingError } from './routing.error';
 import {
   assertOrWarnActivationRoutingCoverage,
@@ -26,21 +25,9 @@ describe('evaluateServiceRoutingCoverage', () => {
       requiredOriginUnitCount: 3,
       missingOriginUnitIds: ['ou-root', 'ou-child', 'ou-leaf'],
     });
-    let coverageError: unknown;
-    try {
-      assertOrWarnActivationRoutingCoverage(evaluation);
-    } catch (error) {
-      coverageError = error;
-    }
-    expect(coverageError).toBeInstanceOf(RoutingError);
-    expect(coverageError).toMatchObject({
-      code: 'ROUTING_COVERAGE_MISSING',
-      details: { routingCoverage: evaluation },
-    });
-    expect(mapRoutingError(coverageError).getResponse()).toMatchObject({
-      code: 'ROUTING_COVERAGE_MISSING',
-      details: { routingCoverage: evaluation },
-    });
+    expect(() => assertOrWarnActivationRoutingCoverage(evaluation)).toThrow(
+      RoutingError,
+    );
   });
 
   it('warns when requireCoverage is false and no rules exist', async () => {
@@ -141,20 +128,10 @@ describe('RoutingService.evaluateActivationCoverage', () => {
     );
     await expect(
       service.evaluateActivationCoverage('service-vpn'),
-    ).rejects.toMatchObject({
-      code: 'ROUTING_COVERAGE_MISSING',
-      details: {
-        routingCoverage: {
-          hasCoverage: false,
-          requireCoverage: true,
-          requiredOriginUnitCount: 3,
-          missingOriginUnitIds: ['ou-root', 'ou-child', 'ou-leaf'],
-        },
-      },
-    });
+    ).rejects.toMatchObject({ code: 'ROUTING_COVERAGE_MISSING' });
   });
 
-  it('returns the missing coverage details when the audited override is active', async () => {
+  it('returns warning when not required', async () => {
     const { memory } = createRoutingServiceHarness();
     const service = new RoutingService(
       memory.prisma as never,
@@ -167,11 +144,8 @@ describe('RoutingService.evaluateActivationCoverage', () => {
       } as never,
       { loadBySubjectId: async () => null } as never,
     );
-    await expect(service.evaluateActivationCoverage('service-vpn')).resolves.toEqual({
-      hasCoverage: false,
-      requireCoverage: false,
-      requiredOriginUnitCount: 3,
-      missingOriginUnitIds: ['ou-root', 'ou-child', 'ou-leaf'],
-    });
+    await expect(service.evaluateActivationCoverage('service-vpn')).resolves.toBe(
+      'ROUTING_COVERAGE_MISSING',
+    );
   });
 });

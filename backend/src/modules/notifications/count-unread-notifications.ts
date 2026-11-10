@@ -1,5 +1,4 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
-import type { ActorGroupMembership } from '../../common/cache/scope-catalog-cache';
 import {
   loadNotificationAudience,
   visibleNotificationWhere,
@@ -20,9 +19,8 @@ export const unreadNotificationCountCap = 1000;
 export async function countUnreadNotifications(
   prisma: PrismaService,
   userId: string,
-  knownMemberships?: readonly ActorGroupMembership[],
 ): Promise<number> {
-  const memberships = knownMemberships ?? (await loadNotificationAudience(prisma, userId));
+  const memberships = await loadNotificationAudience(prisma, userId);
   return prisma.notification.count({
     where: visibleNotificationWhere(userId, memberships, { unreadOnly: true }),
     take: unreadNotificationCountCap,

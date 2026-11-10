@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '../../generated/prisma/client';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
-import { recordAssetAuditEntry, withAssetAuditTransaction } from './asset-audit-transaction';
+import { withAssetAuditTransaction } from './asset-audit-transaction';
 
 jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn() }));
 
@@ -52,16 +52,6 @@ describe('withAssetAuditTransaction', () => {
     expect(committedWrites).toEqual(['asset-location-created']);
   });
 
-  it('counts failures from standalone best-effort audit writes', async () => {
-    const failure = new Error('audit unavailable');
-    const metrics = { recordAuditWriteFailure: jest.fn().mockResolvedValue(undefined) };
-    recordAuditEntryMock.mockRejectedValueOnce(failure);
-
-    await expect(recordAssetAuditEntry({} as never, audit('standalone'), metrics)).rejects.toBe(failure);
-
-    expect(metrics.recordAuditWriteFailure).toHaveBeenCalledTimes(1);
-  });
-
   it('does not commit the business write when audit persistence fails', async () => {
     const { prisma, committedWrites } = setup();
     const failure = new Error('audit unavailable');
@@ -74,45 +64,6 @@ describe('withAssetAuditTransaction', () => {
         return { id: 'location-2' };
       },
       ({ id }) => audit(id),
-    )).rejects.toBe(failure);
-
-    expect(committedWrites).toEqual([]);
-  });
-
-  it('records a failed audit write in the shared metric before rolling back the business transaction', async () => {
-    const { prisma, committedWrites } = setup();
-    const failure = new Error('audit unavailable');
-    const metrics = { recordAuditWriteFailure: jest.fn().mockResolvedValue(undefined) };
-    recordAuditEntryMock.mockRejectedValueOnce(failure);
-
-    await expect(withAssetAuditTransaction(
-      prisma,
-      async (transaction) => {
-        (transaction as FakeTransaction).stagedWrites.push('asset-location-created');
-        return { id: 'location-3' };
-      },
-      ({ id }) => audit(id),
-      metrics,
-    )).rejects.toBe(failure);
-
-    expect(metrics.recordAuditWriteFailure).toHaveBeenCalledTimes(1);
-    expect(committedWrites).toEqual([]);
-  });
-
-  it('does not fail a business rollback when the best-effort metric store is unavailable', async () => {
-    const { prisma, committedWrites } = setup();
-    const failure = new Error('audit unavailable');
-    const metrics = { recordAuditWriteFailure: jest.fn().mockRejectedValue(new Error('redis unavailable')) };
-    recordAuditEntryMock.mockRejectedValueOnce(failure);
-
-    await expect(withAssetAuditTransaction(
-      prisma,
-      async (transaction) => {
-        (transaction as FakeTransaction).stagedWrites.push('asset-location-created');
-        return { id: 'location-4' };
-      },
-      ({ id }) => audit(id),
-      metrics,
     )).rejects.toBe(failure);
 
     expect(committedWrites).toEqual([]);

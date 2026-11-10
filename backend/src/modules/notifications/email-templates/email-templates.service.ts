@@ -32,10 +32,7 @@ import {
   parseEmailTemplateRegistry,
 } from '../email/parse-email-template-registry';
 import type { RenderedEmailMessage } from '../email/render-email-message';
-import {
-  TestEmailRateLimiter,
-  TestEmailRateLimiterUnavailableError,
-} from './test-email-rate-limiter';
+import { TestEmailRateLimiter } from './test-email-rate-limiter';
 
 export type EmailTemplatesOverview = {
   readonly locales: readonly EmailLocale[];
@@ -66,9 +63,9 @@ export type TestEmailResult = { readonly toAddress: string };
 @Injectable()
 export class EmailTemplatesService {
   /**
-   * At most five test sends per admin in 10 minutes. Both test-send routes use
-   * the shared Redis counter; an unavailable limiter rejects the send instead
-   * of falling back to a process-local counter.
+   * Design §5: at most 5 real test sends per admin in 10 minutes. Val 3 (M12/B4):
+   * the counter is in Redis (shared by all instances) with the in-memory window
+   * as the fallback, so a restart no longer resets the limit.
    */
   private readonly testSendRateLimiter: TestEmailRateLimiter;
 
@@ -168,21 +165,7 @@ export class EmailTemplatesService {
     if (actor === null || actor.email.trim().length === 0) {
       throw new SettingsError('Your account has no e-mail address', 'TEST_RECIPIENT_MISSING');
     }
-    let testSendAllowed: boolean;
-    try {
-      testSendAllowed = await this.testSendRateLimiter.consume(
-        actorUserId ?? 'anonymous',
-      );
-    } catch (error) {
-      if (error instanceof TestEmailRateLimiterUnavailableError) {
-        throw new SettingsError(
-          'Test e-mail sending is temporarily unavailable because its shared rate limiter is unavailable',
-          'TEST_RATE_LIMIT_UNAVAILABLE',
-        );
-      }
-      throw error;
-    }
-    if (!testSendAllowed) {
+    if (!(await this.testSendRateLimiter.consume(actorUserId ?? 'anonymous'))) {
       throw new SettingsError(
         'Too many test e-mails, try again in a few minutes',
         'TEST_RATE_LIMITED',

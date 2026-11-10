@@ -68,9 +68,6 @@ export const opsProbeTimeouts = {
   redisMs: 1_000,
   clamavMs: 3_000,
   queueMs: 3_000,
-  assetDatabaseMs: 3_000,
-  assetFileScanMs: 3_000,
-  assetOperationsMs: 6_000,
   uptimePushMs: 5_000,
 } as const;
 

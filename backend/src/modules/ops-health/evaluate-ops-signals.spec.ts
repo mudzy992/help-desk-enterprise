@@ -57,23 +57,6 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
     captchaSkippedLastHour: 0,
     auditWebhookPendingSinceMs: null,
     mailProviderBlock: null,
-    assetOperations: {
-      directorySyncOverlapsLastHour: 0,
-      auditWriteFailuresLastHour: 0,
-      importStuckClaims: 0,
-      overAllocatedLicenseCount: 0,
-      overAllocatedSeatCount: 0,
-      failedReminderDeliveries: 0,
-      staleReminderClaims: 0,
-      pendingTransferFilePurges: 0,
-      staleTransferFilePurges: 0,
-      oldestTransferFilePurgeAgeMinutes: null,
-      transferFileScanState: 'complete',
-      scannedTransferFiles: 0,
-      referencedTransferFiles: 0,
-      orphanedTransferFiles: 0,
-      missingTransferFiles: 0,
-    },
     ...overrides,
   };
 }
@@ -113,63 +96,6 @@ describe('evaluateOpsSignals', () => {
     const observations = evaluateOpsSignals(healthy(), thresholds, baseline);
     expect(observations.filter((observation) => observation.active)).toEqual([]);
     expect(new Set(observations.map((observation) => observation.key)).size).toBe(observations.length);
-  });
-
-  it('alerts on stuck imports, reminder backlog, and asset audit failures at the fixed thresholds', () => {
-    const assetOperations = {
-      ...healthy().assetOperations!,
-      importStuckClaims: 2,
-      failedReminderDeliveries: 1,
-      staleReminderClaims: 3,
-      auditWriteFailuresLastHour: 5,
-    };
-    const observations = byKey(healthy({ assetOperations }));
-
-    expect(observations.get(opsAlertKeys.assetImportStuck)).toMatchObject({
-      active: true,
-      severity: 'WARNING',
-      details: { importStuckClaims: 2, staleAfterMinutes: 10 },
-    });
-    expect(observations.get(opsAlertKeys.assetReminderDeliveryBacklog)).toMatchObject({
-      active: true,
-      severity: 'WARNING',
-      details: { failedReminderDeliveries: 1, staleReminderClaims: 3, reminderBacklogTotal: 4 },
-    });
-    expect(observations.get(opsAlertKeys.assetAuditWriteFailures)).toMatchObject({
-      active: true,
-      severity: 'CRITICAL',
-      details: { auditWriteFailuresLastHour: 5, windowMinutes: 60, criticalThreshold: 5 },
-    });
-    expect(byKey(healthy({
-      assetOperations: { ...assetOperations, auditWriteFailuresLastHour: 1 },
-    })).get(opsAlertKeys.assetAuditWriteFailures)).toMatchObject({ active: true, severity: 'WARNING' });
-  });
-
-  it('does not turn an incomplete file scan into zero integrity issues', () => {
-    const assetOperations = {
-      ...healthy().assetOperations!,
-      transferFileScanState: 'limited' as const,
-      orphanedTransferFiles: null,
-      missingTransferFiles: null,
-    };
-    expect(byKey(healthy({ assetOperations })).get(opsAlertKeys.assetTransferFileIntegrity)?.active).toBe(false);
-
-    const stalePurge = byKey(healthy({
-      assetOperations: { ...assetOperations, staleTransferFilePurges: 1 },
-    })).get(opsAlertKeys.assetTransferFileIntegrity)!;
-    expect(stalePurge).toMatchObject({ active: true, details: { staleTransferFilePurges: 1 } });
-    expect(stalePurge.details).not.toHaveProperty('orphanedTransferFiles');
-  });
-
-  it('keeps directory-sync overlap and license preallocation visible without alerting on them alone', () => {
-    const assetOperations = {
-      ...healthy().assetOperations!,
-      directorySyncOverlapsLastHour: 9,
-      overAllocatedLicenseCount: 2,
-      overAllocatedSeatCount: 7,
-    };
-    const observations = evaluateOpsSignals(healthy({ assetOperations }), thresholds, baseline);
-    expect(observations.filter((observation) => observation.active)).toEqual([]);
   });
 
   it('raises the disk alarm as a warning, then critical', () => {

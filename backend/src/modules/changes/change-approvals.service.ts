@@ -1,5 +1,4 @@
 import { Injectable, Optional } from '@nestjs/common';
-import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -7,9 +6,9 @@ import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { ChangeAccessService, type ChangeViewer } from './change-access.service';
-import { enqueueChangeDowntimeSync } from './change-downtime-outbox';
 import { computeChangeQuorum, evaluateChangeVotes } from './change-cab';
 import { ChangeNotifier } from './change-notifier';
+import { ChangeScheduleService } from './change-schedule.service';
 import type { ChangeVoteDto } from './changes.dto';
 import { ChangeError, changeErrorCodes, changeEventActions, changeLimits } from './changes.constants';
 import { ChangesService } from './changes.service';
@@ -28,7 +27,7 @@ export class ChangeApprovalsService {
     private readonly prisma: PrismaService,
     private readonly access: ChangeAccessService,
     private readonly changes: ChangesService,
-    private readonly outbox: TransactionalOutboxService,
+    private readonly schedule: ChangeScheduleService,
     @Optional() private readonly notifier?: ChangeNotifier,
   ) {}
 
@@ -137,11 +136,9 @@ export class ChangeApprovalsService {
         actorUserId: viewer.userId,
         organizationalUnitId: change.organizationalUnitId,
       });
-      if (target !== null) {
-        await enqueueChangeDowntimeSync(this.outbox, transaction, { changeId: id, version: change.version + 1, actorUserId: viewer.userId });
-      }
       return result;
     });
+    if (outcome === 'APPROVED') await this.schedule.syncDowntime(id, viewer.userId);
     if (outcome !== 'PENDING') {
       const notifier = this.notifier;
       if (notifier !== undefined) notifier.run('decided', () => notifier.decided(id, outcome, round, viewer.userId));

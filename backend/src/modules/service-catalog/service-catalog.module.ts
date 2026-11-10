@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { OptimisticConcurrencyModule } from '../../common/optimistic-concurrency/optimistic-concurrency.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { RoutingModule } from '../routing/routing.module';
@@ -20,7 +19,6 @@ import { TicketApprovalsConfigurationLoader } from '../tickets/approvals/ticket-
   imports: [
     AuthenticationModule,
     AuthorizationModule,
-    OptimisticConcurrencyModule,
     SettingsModule,
     forwardRef(() => RoutingModule),
   ],

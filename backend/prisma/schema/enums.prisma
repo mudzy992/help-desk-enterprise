@@ -113,16 +113,6 @@ enum InboundEmailStatus {
   FAILED
 }
 
-enum InboundEmailProcessingPhase {
-  CLAIMED
-  RAW_STORED
-  PARSED
-  TICKET_MUTATION
-  TICKET_WRITTEN
-  ATTACHMENTS
-  READY_TO_FINALIZE
-}
-
 enum ApprovalStatus {
   PENDING
   APPROVED
@@ -159,7 +149,6 @@ enum IntegrationJobStatus {
   PENDING
   PROCESSING
   COMPLETED
-  PUBLISHED_BEST_EFFORT
   FAILED
   DLQ
 }

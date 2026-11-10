@@ -38,16 +38,12 @@ export const templateLimits = {
   scopeItemsMax: 200,
   reasonMin: 3,
   reasonMax: 500,
-  /** Maximum number of tickets handled synchronously by one bulk-attach request. */
-  bulkAttachSyncMaxTickets: 25,
   playbookDescriptionMax: 2_000,
   stepTitleMax: 200,
   stepInstructionsMax: 4_000,
   stepsMax: 50,
+  pickerLimit: 200,
 } as const;
-
-export const templatesListDefaultTake = 50;
-export const templatesListMaximumTake = 100;
 
 export const templateChangeLogEntityTypes = {
   responseTemplate: 'response_template',

@@ -1,27 +1,28 @@
-import { Prisma } from "../../generated/prisma/client";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { assertPolicyPackExists } from "./assert-policy-pack-exists";
-import { assertServiceCategoryExists } from "./assert-service-category-exists";
-import { isAllowedServiceLifecycleState } from "./assert-service-lifecycle-transition";
-import { assertServiceSlugIsAvailable } from "./assert-slug-is-available";
-import { assertSlaProfileExists } from "./assert-sla-profile-exists";
-import { buildServiceResponse } from "./build-service-response";
-import { buildServiceMutationSnapshot } from "./build-service-mutation-diff";
-import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
-import { normalizeServiceName } from "./normalize-service-name";
-import { normalizeServiceSlug } from "./normalize-service-slug";
+import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { assertPolicyPackExists } from './assert-policy-pack-exists';
+import { assertServiceCategoryExists } from './assert-service-category-exists';
+import {
+  isAllowedServiceLifecycleState,
+} from './assert-service-lifecycle-transition';
+import { assertServiceSlugIsAvailable } from './assert-slug-is-available';
+import { assertSlaProfileExists } from './assert-sla-profile-exists';
+import { buildServiceResponse } from './build-service-response';
+import { buildServiceMutationSnapshot } from './build-service-mutation-diff';
+import { normalizeServiceName } from './normalize-service-name';
+import { normalizeServiceSlug } from './normalize-service-slug';
 import {
   recordServiceCatalogChange,
   serviceChangeLogEntityType,
-} from "./record-service-catalog-change";
-import { ServiceCatalogError } from "./service-catalog.error";
+} from './record-service-catalog-change';
+import { ServiceCatalogError } from './service-catalog.error';
 import type {
   CatalogMutationContext,
   CreateServiceInput,
   ServiceLifecycleConfiguration,
   ServiceResponse,
-} from "./service-catalog.types";
-import { throwIfSlugConstraintViolated } from "./throw-if-slug-constraint-violated";
+} from './service-catalog.types';
+import { throwIfSlugConstraintViolated } from './throw-if-slug-constraint-violated';
 
 export async function createService(
   prisma: PrismaService,
@@ -31,18 +32,13 @@ export async function createService(
 ): Promise<ServiceResponse> {
   const name = normalizeServiceName(input.name);
   const slug = normalizeServiceSlug(input.slug);
-  const reason = normalizeCatalogMutationReason({
-    reason: input.reason,
-    context,
-    systemFallback: "create",
-  });
   if (
     !isAllowedServiceLifecycleState(
       configuration.defaultStateOnCreate,
       configuration.allowedStates,
     )
   ) {
-    throw new ServiceCatalogError("INVALID_LIFECYCLE_STATE");
+    throw new ServiceCatalogError('INVALID_LIFECYCLE_STATE');
   }
   await assertServiceCategoryExists(prisma, input.categoryId);
   await assertPolicyPackExists(prisma, input.policyPackId ?? null);
@@ -56,20 +52,20 @@ export async function createService(
           slug,
           categoryId: input.categoryId,
           lifecycle: configuration.defaultStateOnCreate,
-          classification: input.classification ?? "INTERNAL",
+          classification: input.classification ?? 'INTERNAL',
           requiresApproval: input.requiresApproval ?? false,
           isConfidentialDefault: input.isConfidentialDefault ?? false,
-          autoAssignStrategy: input.autoAssignStrategy ?? "NONE",
+          autoAssignStrategy: input.autoAssignStrategy ?? 'NONE',
           policyPackId: input.policyPackId ?? null,
           slaProfileId: input.slaProfileId ?? null,
         },
       });
+      const changelogReason = (input.reason ?? 'create').trim();
       await recordServiceCatalogChange(transaction as PrismaService, {
         entityType: serviceChangeLogEntityType(),
         entityId: service.id,
-        reason,
+        reason: changelogReason,
         diff: {
-          action: "service.create",
           after: {
             ...buildServiceMutationSnapshot({
               name: service.name,

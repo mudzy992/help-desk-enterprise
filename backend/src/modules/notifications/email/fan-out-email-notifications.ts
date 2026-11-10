@@ -15,10 +15,7 @@ import {
 import { composeTicketEmail, redactForEmail, resolveEmailLocale } from './compose-ticket-email';
 import type { EmailTemplateKey } from './email-template.constants';
 import { emailTemplateKeys } from './email-template.constants';
-import {
-  requireNotificationPreferencePolicyForType,
-  type NotificationPreferencePolicy,
-} from '../preferences/notification-preference-policy';
+import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
 import { resolveDeliveryDecisions } from '../preferences/resolve-delivery-decisions';
 import { holdForDigest, type HeldDigestItem } from '../preferences/hold-for-digest';
 
@@ -37,7 +34,7 @@ export async function fanOutEmailNotifications(
   mailTransport: MailTransport,
   payload: TicketRealtimeMessagePayload,
   workHandler?: OutboundEmailWorkHandler,
-  /** Preference policy is required except for categories explicitly marked always-on. */
+  /** Paket 2.2: personal preferences; absent = everyone immediately (as before). */
   policy?: NotificationPreferencePolicy,
   /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
   approvals?: TicketApprovalsConfiguration,
@@ -52,7 +49,6 @@ export async function fanOutEmailNotifications(
   if (!isSlaEmailAllowed(mapped.type, mapped.event, configuration)) {
     return;
   }
-  requireNotificationPreferencePolicyForType(mapped.type, policy);
   const ticket = await prisma.ticket.findUnique({
     where: { id: payload.ticketId },
   });

@@ -8,7 +8,6 @@ import {
   Post,
   Put,
   Req,
-  ServiceUnavailableException,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -92,15 +91,6 @@ export class EmailTemplatesController {
           { code: error.code, message: error.message },
           HttpStatus.TOO_MANY_REQUESTS,
         );
-      }
-      if (
-        error instanceof SettingsError &&
-        error.code === 'TEST_RATE_LIMIT_UNAVAILABLE'
-      ) {
-        throw new ServiceUnavailableException({
-          code: error.code,
-          message: error.message,
-        });
       }
       throw mapSettingsError(error);
     }

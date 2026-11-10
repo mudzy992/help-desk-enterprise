@@ -98,7 +98,6 @@
   "serviceCatalog": [
     {
       "id": "service-access",
-      "revision": 1,
       "name": "Access",
       "slug": "access",
       "categoryId": "category-it",
@@ -122,40 +121,6 @@
       "onboarding": null
     }
   ],
-  "serviceCatalogPage": {
-    "items": [
-      {
-        "id": "service-access",
-        "revision": 1,
-        "name": "Access",
-        "slug": "access",
-        "categoryId": "category-it",
-        "lifecycle": "ACTIVE",
-        "availability": "OPERATIONAL",
-        "offeredToRequesters": true,
-        "openTicketCount": 4,
-        "runtimeAvailability": {
-          "isCurrentlyAvailable": true,
-          "isCurrentlyUnavailable": false,
-          "hasActiveDowntime": false,
-          "hasUpcomingDowntime": true,
-          "upcomingDowntimeCount": 1,
-          "showStatusInTicketCreate": true
-        },
-        "activeForm": {
-          "id": "form-access-v2",
-          "version": 2,
-          "fieldCount": 3
-        },
-        "onboarding": null
-      }
-    ],
-    "total": 1,
-    "take": 50,
-    "cursor": null,
-    "nextCursor": null,
-    "hasMore": false
-  },
   "settingsRegistry": [
     {
       "key": "private.security.mfa_required",

@@ -1,7 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import {
   readAuthenticatedPrincipal,
-  readPrincipalContext,
   type AuthenticatedHttpRequest,
 } from '../authentication/authenticated-request';
 import type { TicketMutationContext } from './tickets.types';
@@ -22,14 +21,5 @@ export function readTicketMutationContext(
       message: 'Authorization failed',
     });
   }
-  const principalContext = readPrincipalContext(request);
-  return {
-    actorUserId,
-    ...(principalContext === null
-      ? {}
-      : {
-          principalAuthzVersion: principalContext.authzVersion,
-          principalGroupIds: principalContext.groupIds,
-        }),
-  };
+  return { actorUserId };
 }

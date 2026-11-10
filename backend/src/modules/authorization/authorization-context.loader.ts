@@ -5,11 +5,6 @@ import { PrincipalContextLoader } from '../../common/principal-context/principal
 import { createAuthorizationContext } from './create-authorization-context';
 import type { AuthorizationContext } from './authorization.types';
 
-export type AuthoritativeAuthorizationSnapshot = {
-  readonly context: AuthorizationContext | null;
-  readonly groupIds: readonly string[];
-};
-
 function toAuthorizationContext(
   principal: PrincipalContext | null,
 ): AuthorizationContext | null {
@@ -48,30 +43,6 @@ export class AuthorizationContextLoader {
     }
     const principal = await this.principalContextLoader.load(id);
     return toAuthorizationContext(principal);
-  }
-
-  /**
-   * Digest delivery is revocation-sensitive: it must not reuse a request/Redis
-   * principal snapshot or the group ids attached to that snapshot. Read the
-   * principal and current memberships together from PostgreSQL immediately
-   * before the ticket visibility query.
-   */
-  async loadAuthoritativeSnapshotBySubjectId(
-    subjectId: string,
-  ): Promise<AuthoritativeAuthorizationSnapshot> {
-    const id = subjectId.trim();
-    if (id.length === 0) {
-      return { context: null, groupIds: [] };
-    }
-    const principal = await this.principalContextLoader.loadAuthoritatively(id);
-    if (principal === null || principal.mustChangePassword) {
-      return { context: null, groupIds: [] };
-    }
-    const context = toAuthorizationContext(principal);
-    if (context === null) {
-      return { context: null, groupIds: [] };
-    }
-    return { context, groupIds: principal.groupIds };
   }
 
   async loadHomeOrganizationalUnit(

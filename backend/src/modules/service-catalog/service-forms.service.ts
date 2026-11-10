@@ -1,31 +1,28 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { activateServiceFormVersion } from "./activate-service-form-version";
-import { createServiceForm } from "./create-service-form";
-import { createServiceFormVersion } from "./create-service-form-version";
-import { getActiveServiceForm } from "./get-active-service-form";
-import { getServiceForm } from "./get-service-form";
-import { getServiceFormVersion } from "./get-service-form-version";
-import { mapServiceCatalogError } from "./map-service-catalog-error";
-import { mapServiceFormsError } from "./map-service-forms-error";
-import { resolveTicketFormVersion } from "./resolve-ticket-form-version";
-import { selectActiveFormVersionRef } from "./select-active-form-version-ref";
-import { ServiceCatalogError } from "./service-catalog.error";
-import type { CatalogMutationContext } from "./service-catalog.types";
-import { defaultServiceFormsConfiguration } from "./service-forms.constants";
-import { ServiceFormsConfigurationLoader } from "./service-forms-configuration.loader";
-import { ServiceFormsError } from "./service-forms.error";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { activateServiceFormVersion } from './activate-service-form-version';
+import { createServiceForm } from './create-service-form';
+import { createServiceFormVersion } from './create-service-form-version';
+import { getServiceForm } from './get-service-form';
+import { getServiceFormVersion } from './get-service-form-version';
+import { mapServiceCatalogError } from './map-service-catalog-error';
+import { mapServiceFormsError } from './map-service-forms-error';
+import { resolveTicketFormVersion } from './resolve-ticket-form-version';
+import { selectActiveFormVersionRef } from './select-active-form-version-ref';
+import { ServiceCatalogError } from './service-catalog.error';
+import type { CatalogMutationContext } from './service-catalog.types';
+import { defaultServiceFormsConfiguration } from './service-forms.constants';
+import { ServiceFormsConfigurationLoader } from './service-forms-configuration.loader';
+import { ServiceFormsError } from './service-forms.error';
 import type {
   CreateServiceFormInput,
   CreateServiceFormVersionInput,
   FormVersionResponse,
-  ServiceActiveFormResponse,
-  ServiceFormListInput,
   ServiceFormResponse,
   TicketFormVersionBinding,
   UpdateServiceFormVersionInput,
-} from "./service-forms.types";
-import { updateServiceFormVersion } from "./update-service-form-version";
+} from './service-forms.types';
+import { updateServiceFormVersion } from './update-service-form-version';
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
 const defaultConfigurationLoader = {
@@ -59,28 +56,10 @@ export class ServiceFormsService {
     serviceId: string,
     /** Val 2 (M6/B2): role pozivaoca; `undefined` = interni poziv bez filtera. */
     roleKeys?: readonly string[],
-    input: ServiceFormListInput = {},
   ): Promise<ServiceFormResponse> {
     return this.execute(async () => {
       const configuration = await this.configurationLoader.load();
       return getServiceForm(
-        this.prisma,
-        serviceId,
-        roleKeys,
-        configuration.enabled,
-        configuration.requireVersionOnTicket,
-        input,
-      );
-    });
-  }
-
-  getActiveForm(
-    serviceId: string,
-    roleKeys?: readonly string[],
-  ): Promise<ServiceActiveFormResponse> {
-    return this.execute(async () => {
-      const configuration = await this.configurationLoader.load();
-      return getActiveServiceForm(
         this.prisma,
         serviceId,
         roleKeys,
@@ -139,7 +118,6 @@ export class ServiceFormsService {
     serviceId: string,
     formVersionRef: string,
     context: CatalogMutationContext = emptyContext,
-    reason?: string,
   ): Promise<FormVersionResponse> {
     return this.execute(async () =>
       activateServiceFormVersion(
@@ -148,21 +126,16 @@ export class ServiceFormsService {
         formVersionRef,
         await this.configurationLoader.load(),
         context,
-        reason,
       ),
     );
   }
 
-  resolveTicketFormVersion(
-    ticketId: string,
-  ): Promise<TicketFormVersionBinding> {
+  resolveTicketFormVersion(ticketId: string): Promise<TicketFormVersionBinding> {
     return this.execute(() => resolveTicketFormVersion(this.prisma, ticketId));
   }
 
   selectActiveFormVersionRef(serviceId: string): Promise<string> {
-    return this.execute(() =>
-      selectActiveFormVersionRef(this.prisma, serviceId),
-    );
+    return this.execute(() => selectActiveFormVersionRef(this.prisma, serviceId));
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

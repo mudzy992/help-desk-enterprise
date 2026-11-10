@@ -26,7 +26,6 @@ export const knownAuditEntityTypes = [
   "security_key",
   "ops_alert",
   "ops_monitoring",
-  "integration_job",
   "status_incident",
   "on_call_schedule",
   "announcement",

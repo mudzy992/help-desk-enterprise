@@ -22,7 +22,6 @@ export function useTicketPlaybook(
   const [view, setView] = useState<TicketPlaybookView | null>(null);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
   const [busy, setBusy] = useState(false);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
   const requestReference = useRef(0);
 
   const reload = useCallback(async () => {
@@ -85,42 +84,11 @@ export function useTicketPlaybook(
     [reload, run, ticketId],
   );
 
-  const loadMoreAvailable = useCallback(async () => {
-    const cursor = view?.availablePage.nextCursor;
-    if (ticketId === undefined || cursor === null || cursor === undefined || loadingCandidates)
-      return false;
-    const request = ++requestReference.current;
-    setLoadingCandidates(true);
-    setErrorKey(null);
-    try {
-      const next = await getTicketPlaybook(ticketId, { cursor });
-      if (request === requestReference.current) {
-        setView((current) =>
-          current === null
-            ? next
-            : {
-                ...current,
-                ...next,
-                available: [...current.available, ...next.available],
-              },
-        );
-      }
-      return true;
-    } catch (error) {
-      if (request === requestReference.current) setErrorKey(mapTemplatesError(error));
-      return false;
-    } finally {
-      setLoadingCandidates(false);
-    }
-  }, [loadingCandidates, ticketId, view]);
-
   return {
     view,
     errorKey,
     busy,
-    loadingCandidates,
     reload,
-    loadMoreAvailable,
     setStep,
     attach: (playbookId: string) =>
       ticketId === undefined

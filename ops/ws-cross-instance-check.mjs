@@ -21,13 +21,13 @@
  * SUBSCRIBE i PUBLISH korak po korak i ispiše TAČAN odgovor Redisa, pa se
  * razlikuju `WRONGPASS`, `NOPERM` i mrežni reset.
  *
- * Napomena o stvarnoj aplikaciji: nakon starta efektivna health probe u
- * `backend/src/modules/websocket/ws-redis-adapter.ts` provjerava adapterovu
- * stvarnu room-channel PUBLISH/PSUBSCRIBE putanju i readiness pada dok ona nije
- * zdrava. Logovi sadrže `ws_adapter_redis_ok=1 ws_adapter_redis_state=healthy`
- * ili `state=degraded`; boot ACL deny ostavlja samo in-memory adapter i readiness
- * fail. Na stagingu provjeri log/readiness svake instance. Ova skripta je dodatni,
- * aktivni dvostruki dokaz da emit stvarno prelazi s A na B.
+ * Napomena o stvarnoj aplikaciji: ona već sama sebi dokazuje adapter pri startu —
+ * `checkRealtimeAdapterSubscriptions()` u `backend/src/modules/websocket/ws-redis-adapter.ts`
+ * upiše jednu liniju u API log:
+ *   ws_adapter_redis_ok=1                      (adapter aktivan)
+ *   ws_adapter_redis_acl_denied channel=...    (ACL odbija — radi s in-memory adapterom)
+ * Na stagingu je to najjeftiniji dokaz: procitaj log obje instance, bez tunela.
+ * Ova skripta je dodatni, aktivni dokaz (emit stvarno prelazi s A na B).
  */
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';

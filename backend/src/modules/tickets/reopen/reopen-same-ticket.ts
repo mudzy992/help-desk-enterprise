@@ -55,18 +55,8 @@ export async function reopenSameTicket(input: {
       updated = (await transaction.ticket.update({ where: { id: ticket.id }, data: { status: 'IN_PROGRESS', ...timestamps } })) as TicketRecord;
     }
       await recordTicketChange(transaction as PrismaService, { action: changeLogActions.update, reason: ticketChangeLogReasons.reopen, before: ticket, after: updated, actorUserId: input.context.actorUserId });
-      commandMessages.push(await insertSystemTicketEvent(transaction as PrismaService, {
-        ticketId: updated.id,
-        action: ticketSystemEventActions.ticketReopened,
-        actorUserId: input.context.actorUserId,
-        idempotencyKey: `${input.idempotencyKey}:reopened`,
-      }));
-      if (comment !== null) commandMessages.push(await insertSystemTicketEvent(transaction as PrismaService, {
-        ticketId: updated.id,
-        action: comment,
-        actorUserId: input.context.actorUserId,
-        idempotencyKey: `${input.idempotencyKey}:comment`,
-      }));
+      commandMessages.push(await insertSystemTicketEvent(transaction as PrismaService, { ticketId: updated.id, action: ticketSystemEventActions.ticketReopened, actorUserId: input.context.actorUserId }));
+      if (comment !== null) commandMessages.push(await insertSystemTicketEvent(transaction as PrismaService, { ticketId: updated.id, action: comment, actorUserId: input.context.actorUserId }));
       const propagated = await propagateMergedStatus({ tx: transaction as PrismaService, parent: updated, previousStatus: ticket.status, actorUserId: input.context.actorUserId, messages: commandMessages, now: input.now });
       await outbox?.enqueue(transaction, {
         topic: reopenSlaOutboxTopic,

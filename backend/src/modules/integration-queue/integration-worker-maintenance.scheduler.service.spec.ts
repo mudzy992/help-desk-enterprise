@@ -4,9 +4,6 @@ import {
 } from "./integration-worker-maintenance.scheduler.service";
 import {
   integrationDlqRetentionSchedulerId,
-  integrationJobDispatchReconcileJobName,
-  integrationJobDispatchReconcileRepeatEveryMilliseconds,
-  integrationJobDispatchReconcileSchedulerId,
   integrationWorkerHeartbeatJobName,
   integrationWorkerHeartbeatRepeatEveryMilliseconds,
   integrationWorkerHeartbeatSchedulerId,
@@ -33,9 +30,8 @@ const registeredIds = (calls: unknown[][]) => calls.map((call) => call[0]);
   moves on when Redis refuses it — and a Redis restart or flush drops the
   registration for good. Nothing ever re-asserted it, so the only way back was a
   redeploy of the worker. The schedule is now re-asserted on an interval;
-  `upsertJobScheduler` is idempotent by scheduler id, so the registrations cannot
-  double a job. The same self-heal loop also
-  reasserts the DLQ retention and durable dispatch-reconcile schedules.
+  `upsertJobScheduler` is idempotent by scheduler id, so this costs two Redis
+  calls per interval and cannot double a job.
 */
 describe("IntegrationWorkerMaintenanceSchedulerService", () => {
   beforeEach(() => jest.useFakeTimers());
@@ -44,40 +40,33 @@ describe("IntegrationWorkerMaintenanceSchedulerService", () => {
     jest.clearAllMocks();
   });
 
-  it("registers heartbeat, DLQ retention, and dispatch recovery at boot", async () => {
+  it("registers the heartbeat and the DLQ sweep at boot", async () => {
     const { service, upsertJobScheduler } = harness();
     await service.onModuleInit();
     expect(registeredIds(upsertJobScheduler.mock.calls)).toEqual([
       integrationWorkerHeartbeatSchedulerId,
       integrationDlqRetentionSchedulerId,
-      integrationJobDispatchReconcileSchedulerId,
     ]);
     expect(upsertJobScheduler).toHaveBeenCalledWith(
       integrationWorkerHeartbeatSchedulerId,
       { every: integrationWorkerHeartbeatRepeatEveryMilliseconds },
       expect.objectContaining({ name: integrationWorkerHeartbeatJobName }),
     );
-    expect(upsertJobScheduler).toHaveBeenCalledWith(
-      integrationJobDispatchReconcileSchedulerId,
-      { every: integrationJobDispatchReconcileRepeatEveryMilliseconds },
-      expect.objectContaining({ name: integrationJobDispatchReconcileJobName }),
-    );
     service.onModuleDestroy();
   });
 
-  it("re-asserts all schedules so a lost registration heals without a redeploy", async () => {
+  it("re-asserts both schedules so a lost registration heals without a redeploy", async () => {
     const { service, upsertJobScheduler } = harness();
     await service.onModuleInit();
-    expect(upsertJobScheduler).toHaveBeenCalledTimes(3);
+    expect(upsertJobScheduler).toHaveBeenCalledTimes(2);
 
     await jest.advanceTimersByTimeAsync(
       integrationWorkerMaintenanceReconcileIntervalMilliseconds,
     );
-    expect(upsertJobScheduler).toHaveBeenCalledTimes(6);
-    expect(registeredIds(upsertJobScheduler.mock.calls.slice(3))).toEqual([
+    expect(upsertJobScheduler).toHaveBeenCalledTimes(4);
+    expect(registeredIds(upsertJobScheduler.mock.calls.slice(2))).toEqual([
       integrationWorkerHeartbeatSchedulerId,
       integrationDlqRetentionSchedulerId,
-      integrationJobDispatchReconcileSchedulerId,
     ]);
     service.onModuleDestroy();
   });
@@ -89,7 +78,7 @@ describe("IntegrationWorkerMaintenanceSchedulerService", () => {
     await jest.advanceTimersByTimeAsync(
       integrationWorkerMaintenanceReconcileIntervalMilliseconds * 3,
     );
-    expect(upsertJobScheduler).toHaveBeenCalledTimes(3);
+    expect(upsertJobScheduler).toHaveBeenCalledTimes(2);
   });
 
   it("fails startup when Redis refuses mandatory registration", async () => {

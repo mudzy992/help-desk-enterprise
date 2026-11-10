@@ -64,82 +64,39 @@ function isPrincipalContext(value: unknown): value is PrincipalContext {
  * A miss, a broken client and a payload written by another version all end as
  * `null`: the caller then reads the database. Never throws (rule 2.2.5).
  */
-export type PrincipalContextCacheMissReason =
-  | 'no_client'
-  | 'no_pointer'
-  | 'invalid_pointer'
-  | 'no_payload'
-  | 'invalid_payload'
-  | 'read_error';
-
-export interface PrincipalContextCacheReadOptions {
-  readonly localCandidate?: PrincipalContext | null;
-  readonly onMiss?: (reason: PrincipalContextCacheMissReason) => void;
-  readonly onLocalHit?: () => void;
-}
-
 export async function readCachedPrincipalContext(
   client: PrincipalContextCacheClient | null,
   userId: string,
-  options: PrincipalContextCacheReadOptions = {},
 ): Promise<PrincipalContext | null> {
-  const miss = (reason: PrincipalContextCacheMissReason): null => {
-    try {
-      options.onMiss?.(reason);
-    } catch {
-      // An optional diagnostic observer can never affect the cache read.
-    }
-    return null;
-  };
   if (client === null) {
-    return miss('no_client');
+    return null;
   }
   try {
     const version = await client.get(principalContextVersionKey(userId));
     if (version === null) {
-      return miss('no_pointer');
+      return null;
     }
     const parsedVersion = Number.parseInt(version, 10);
     if (!Number.isInteger(parsedVersion)) {
-      return miss('invalid_pointer');
-    }
-    const localCandidate = options.localCandidate;
-    if (
-      localCandidate !== undefined &&
-      localCandidate !== null &&
-      localCandidate.subjectId === userId &&
-      localCandidate.authzVersion === parsedVersion
-    ) {
-      try {
-        options.onLocalHit?.();
-      } catch {
-        // An optional diagnostic observer can never affect the cache read.
-      }
-      return localCandidate;
+      return null;
     }
     const payload = await client.get(principalContextCacheKey(userId, parsedVersion));
     if (payload === null) {
-      return miss('no_payload');
+      return null;
     }
-    let context: unknown;
-    try {
-      context = JSON.parse(payload);
-    } catch {
-      return miss('invalid_payload');
-    }
+    const context: unknown = JSON.parse(payload);
     if (!isPrincipalContext(context) || context.authzVersion !== parsedVersion) {
-      return miss('invalid_payload');
+      return null;
     }
     return context;
   } catch {
-    return miss('read_error');
+    return null;
   }
 }
 
 export async function writeCachedPrincipalContext(
   client: PrincipalContextCacheClient | null,
   context: PrincipalContext,
-  onWriteError?: () => void,
 ): Promise<void> {
   if (client === null) {
     return;
@@ -161,11 +118,6 @@ export async function writeCachedPrincipalContext(
       'NX',
     );
   } catch {
-    try {
-      onWriteError?.();
-    } catch {
-      // An optional diagnostic observer can never affect the cache write.
-    }
     // The database stays the source of truth; a failed write only means the
     // next request reads it again.
   }

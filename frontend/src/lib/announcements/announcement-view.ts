@@ -16,7 +16,6 @@ export const announcementErrorKeys = {
   ANNOUNCEMENT_INVALID_STATE: "announcements.errors.invalidState",
   ANNOUNCEMENT_NOT_ACTIVE: "announcements.errors.notActive",
   ANNOUNCEMENT_REMINDER_TOO_SOON: "announcements.errors.reminderTooSoon",
-  ANNOUNCEMENT_REPORT_EXPORT_TOO_LARGE: "announcements.errors.reportExportTooLarge",
   ANNOUNCEMENT_FORBIDDEN: "announcements.errors.forbidden",
 } as const;
 

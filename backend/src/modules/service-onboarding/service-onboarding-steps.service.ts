@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { OptimisticConcurrencyService } from '../../common/optimistic-concurrency/optimistic-concurrency.service';
 import type { ServiceOnboardingStep } from '../../generated/prisma/enums';
 import { completeOnboardingStep } from './complete-onboarding-step';
 import {
@@ -27,15 +26,11 @@ import type {
 
 @Injectable()
 export class ServiceOnboardingStepsService {
-  constructor(
-    private readonly executor: ServiceOnboardingExecutor,
-    private readonly optimisticConcurrency: OptimisticConcurrencyService = new OptimisticConcurrencyService(),
-  ) {}
+  constructor(private readonly executor: ServiceOnboardingExecutor) {}
 
   saveServiceStep(
     serviceId: string,
     input: SaveOnboardingServiceStepInput,
-    ifMatch: string | string[] | undefined,
     context: OnboardingMutationContext = emptyOnboardingContext,
   ): Promise<ServiceOnboardingResponse> {
     return this.executor.execute(async () =>
@@ -44,10 +39,8 @@ export class ServiceOnboardingStepsService {
           this.executor.prisma,
           serviceId,
           input,
-          ifMatch,
           await this.executor.onboardingConfigurationLoader.load(),
           context,
-          this.optimisticConcurrency,
         ),
       ),
     );

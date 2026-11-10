@@ -1,12 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { withAssetAuditTransaction } from '../asset-audit-transaction';
-import { AssetOperationsMetrics } from '../asset-operations-metrics';
 import { permissionKeys } from '../../authorization/authorization.constants';
 import { assetDefaults } from '../../settings/definitions/asset-settings';
 import { readInstallationTimeZone } from '../../settings/read-installation-time-zone';
@@ -20,7 +19,6 @@ import { AssetAccessService } from '../asset-access.service';
 import { buildLocationPaths, formatUnitPath } from '../asset-locations';
 import { isPathInScope, unitScopeWhere, viewerHasPermission, type AssetScope, type AssetViewer } from '../asset-viewer';
 import { AssetError, assetErrorCodes, assetEventActions, canTransitionAssetStatus, type AssetStatusValue } from '../assets.constants';
-import { assetPageLimit, toAssetCursorPage } from '../asset-pagination';
 import {
   assetTransferLimits,
   resolveSignatory,
@@ -48,11 +46,6 @@ import {
   type TransferLocale,
 } from './transfer-document';
 import { allocateAssetTransferSequence } from './allocate-asset-transfer-sequence';
-import {
-  allocateAssetTransferTemplateVersion,
-  assetTransferTemplateVersionAllocationMaxAttempts,
-  isAssetTransferTemplateVersionConflict,
-} from './asset-transfer-template-version';
 import { defaultTransferNumberFormat, formatTransferNumber, localDateParts } from './transfer-number';
 
 export type MoveInput = {
@@ -154,7 +147,6 @@ export class AssetTransfersService {
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
     private readonly settings: SettingsService,
-    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   // ------------------------------------------------------------ configuration
@@ -442,7 +434,7 @@ export class AssetTransfersService {
         toUserId: loaded.toUser?.id ?? null,
       },
       actorUserId: viewer.userId,
-    }), this.assetOperationsMetrics);
+    }));
     return { transferId: result?.id ?? null, number: result?.number ?? null, movedAssetIds: plans.map(({ asset }) => asset.id) };
   }
 
@@ -524,38 +516,32 @@ export class AssetTransfersService {
       take: limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });
-    const page = toAssetCursorPage(rows, limit, (row) => row.id);
-    return { ...page, items: page.items.map((row) => this.listItem(row)) };
+    const page = rows.slice(0, limit);
+    return { items: page.map((row) => this.listItem(row)), nextCursor: rows.length > limit ? page[page.length - 1].id : null };
   }
 
-  async mine(viewer: AssetViewer, query: TransferListQuery = {}) {
+  async mine(viewer: AssetViewer) {
     await this.access.requireEnabled();
-    const limit = assetPageLimit(query.limit, 50, assetTransferLimits.listMax);
     const rows = await this.prisma.assetTransfer.findMany({
       where: { OR: [{ fromUserId: viewer.userId }, { toUserId: viewer.userId }], status: { not: 'CANCELLED' } },
       select: transferListSelect,
-      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      orderBy: { issuedAt: 'desc' },
+      take: assetTransferLimits.listMax,
     });
-    const page = toAssetCursorPage(rows, limit, (row) => row.id);
-    return { ...page, items: page.items.map((row) => this.listItem(row)) };
+    return rows.map((row) => this.listItem(row));
   }
 
-  async forAsset(assetId: string, viewer: AssetViewer, query: TransferListQuery = {}) {
+  async forAsset(assetId: string, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetRead);
     const asset = await this.prisma.asset.findUnique({ where: { id: assetId }, select: { organizationalUnit: { select: { ouPath: true } } } });
     if (asset === null || !isPathInScope(scope, asset.organizationalUnit.ouPath)) throw new AssetError(assetErrorCodes.notFound);
-    const limit = assetPageLimit(query.limit, 50, assetTransferLimits.listMax);
     const rows = await this.prisma.assetTransfer.findMany({
       where: { items: { some: { assetId } } },
       select: transferListSelect,
-      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+      orderBy: { issuedAt: 'desc' },
+      take: assetTransferLimits.listMax,
     });
-    const page = toAssetCursorPage(rows, limit, (row) => row.id);
-    return { ...page, items: page.items.map((row) => this.listItem(row)) };
+    return rows.map((row) => this.listItem(row));
   }
 
   private async loadVisible(id: string, viewer: AssetViewer) {
@@ -656,7 +642,6 @@ export class AssetTransfersService {
         metadata: { number: transfer.number, reason: text },
         actorUserId: viewer.userId,
       }),
-      this.assetOperationsMetrics,
     );
     return { id, status: 'CANCELLED' as const };
   }
@@ -734,7 +719,6 @@ export class AssetTransfersService {
           },
           actorUserId: viewer.userId,
         }),
-        this.assetOperationsMetrics,
       );
     } catch (error) {
       await rm(absolute, { force: true }).catch(() => undefined);
@@ -847,7 +831,6 @@ export class AssetTransfersService {
         metadata: { userId: user.id, title },
         actorUserId: viewer.userId,
       }),
-      this.assetOperationsMetrics,
     );
     return { organizationalUnitId, userId: user.id, title };
   }
@@ -864,7 +847,6 @@ export class AssetTransfersService {
         metadata: { removed: true },
         actorUserId: viewer.userId,
       }),
-      this.assetOperationsMetrics,
     );
   }
 
@@ -904,55 +886,29 @@ export class AssetTransfersService {
     }
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
     const cleanNotes = cleanText(notes, 500, 'notes') || null;
-    const created = await this.persistUploadedTemplate({
-      file,
-      notes: cleanNotes,
-      sha256,
-      tags: inspection.tags,
-      unknownTags: inspection.unknownTags,
-      viewer,
-    });
+    const created = await withAssetAuditTransaction(this.prisma, async (transaction) => {
+      const latest = await transaction.assetTransferTemplate.findFirst({ orderBy: { version: 'desc' }, select: { version: true } });
+      return transaction.assetTransferTemplate.create({
+        data: {
+          version: (latest?.version ?? 0) + 1,
+          fileName: sanitizeFileName(file.fileName, 'prenosnica.docx'),
+          content: new Uint8Array(file.buffer),
+          sizeBytes: file.buffer.length,
+          sha256,
+          tags: [...inspection.tags],
+          notes: cleanNotes,
+          uploadedByUserId: viewer.userId,
+        },
+        select: { id: true, version: true },
+      });
+    }, (row) => ({
+      action: auditLogActions.assetTransferTemplateUploaded,
+      entityType: auditLogEntityTypes.assetTransfer,
+      entityId: row.id,
+      metadata: { version: row.version, sha256, unknownTags: inspection.unknownTags },
+      actorUserId: viewer.userId,
+    }));
     return { id: created.id, version: created.version, tags: inspection.tags, unknownTags: inspection.unknownTags };
-  }
-
-  private async persistUploadedTemplate(input: {
-    readonly file: UploadedFile;
-    readonly notes: string | null;
-    readonly sha256: string;
-    readonly tags: readonly string[];
-    readonly unknownTags: readonly string[];
-    readonly viewer: AssetViewer;
-  }): Promise<{ id: string; version: number }> {
-    for (let attempt = 0; attempt < assetTransferTemplateVersionAllocationMaxAttempts; attempt += 1) {
-      try {
-        return await withAssetAuditTransaction(this.prisma, async (transaction) => {
-          const version = await allocateAssetTransferTemplateVersion(transaction);
-          return transaction.assetTransferTemplate.create({
-            data: {
-              version,
-              fileName: sanitizeFileName(input.file.fileName, 'prenosnica.docx'),
-              content: new Uint8Array(input.file.buffer),
-              sizeBytes: input.file.buffer.length,
-              sha256: input.sha256,
-              tags: [...input.tags],
-              notes: input.notes,
-              uploadedByUserId: input.viewer.userId,
-            },
-            select: { id: true, version: true },
-          });
-        }, (row) => ({
-          action: auditLogActions.assetTransferTemplateUploaded,
-          entityType: auditLogEntityTypes.assetTransfer,
-          entityId: row.id,
-          metadata: { version: row.version, sha256: input.sha256, unknownTags: input.unknownTags },
-          actorUserId: input.viewer.userId,
-        }), this.assetOperationsMetrics);
-      } catch (error) {
-        if (!isAssetTransferTemplateVersionConflict(error)) throw error;
-      }
-    }
-
-    throw new AssetError(assetErrorCodes.transferTemplateVersionConflict);
   }
 
   /** version = null → the built-in default template (starting point for Word). */

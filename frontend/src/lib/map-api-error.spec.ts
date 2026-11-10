@@ -14,7 +14,6 @@ describe("mapApiError", () => {
 
   it("prefers the backend error code over the status", () => {
     expect(mapApiError(new ApiError(503, "SETUP_REQUIRED", ""))).toBe("errors.setupRequired");
-    expect(mapApiError(new ApiError(503, "INCIDENT_STATUS_UNAVAILABLE", ""))).toBe("errors.server");
     expect(mapApiError(new ApiError(403, "READ_ONLY_MODE", ""))).toBe("errors.readOnly");
   });
 

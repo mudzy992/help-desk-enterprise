@@ -34,10 +34,9 @@ import { OnCallService } from './on-call.service';
 import { onCallViewerOf, type OnCallViewer } from './on-call-viewer';
 
 /**
- * Paket 2.9 (K3, §4): on-call calendar. `OnCallService` applies each grant's
- * OU scope to group collections and rechecks it on direct-ID reads and writes;
- * read holders can ask a colleague for a swap, while managers edit schedules
- * and overrides only within their manage scope.
+ * Paket 2.9 (K3, §4): on-call calendar. Everyone with `oncall.read` sees all
+ * schedules and can ask a rotation colleague for a swap; `oncall.manage`
+ * edits schedules and overrides.
  */
 @Controller('on-call')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -74,15 +73,7 @@ export class OnCallController {
   @RequirePermissions(permissionKeys.onCallManage)
   save(@Req() request: AuthenticatedHttpRequest, @Param('groupId') groupId: string, @Body() body: SaveOnCallScheduleDto) {
     return runOnCall(() =>
-      this.onCall.save(
-        groupId,
-        {
-          ...body,
-          expectedUpdatedAt: body.expectedUpdatedAt ?? null,
-          ownerUserId: body.ownerUserId ?? null,
-        },
-        this.viewer(request),
-      ),
+      this.onCall.save(groupId, { ...body, ownerUserId: body.ownerUserId ?? null }, this.viewer(request)),
     );
   }
 
@@ -120,8 +111,7 @@ export class OnCallController {
   @Header('Cache-Control', 'no-store')
   @RequirePermissions(permissionKeys.onCallRead)
   async swaps(@Req() request: AuthenticatedHttpRequest) {
-    const result = await runOnCall(() => this.onCall.mySwaps(this.viewer(request)));
-    return { swaps: result.items, hasMore: result.hasMore };
+    return { swaps: await runOnCall(() => this.onCall.mySwaps(this.viewer(request))) };
   }
 
   @Post('swaps/:id/accept')

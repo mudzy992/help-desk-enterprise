@@ -4,7 +4,6 @@ import { DirectoryBackoff } from '../../directory-sync/ldaps/directory-backoff';
 import { LdapsSyncConfigurationLoader } from '../../directory-sync/ldaps/ldaps-sync-configuration.loader';
 import { SettingsModule } from '../../settings/settings.module';
 import { AssetAccessService } from '../asset-access.service';
-import { AssetOperationsMetrics } from '../asset-operations-metrics';
 import { assetDirectorySyncQueueName } from './asset-directory-sync.constants';
 import { AssetDirectorySyncProcessor } from './asset-directory-sync.processor';
 import { AssetDirectorySyncSchedulerService } from './asset-directory-sync.scheduler.service';
@@ -14,7 +13,6 @@ import { AssetDirectorySyncService } from './asset-directory-sync.service';
 @Module({
   imports: [BullModule.registerQueue({ name: assetDirectorySyncQueueName }), SettingsModule],
   providers: [
-    AssetOperationsMetrics,
     AssetAccessService,
     LdapsSyncConfigurationLoader,
     DirectoryBackoff,

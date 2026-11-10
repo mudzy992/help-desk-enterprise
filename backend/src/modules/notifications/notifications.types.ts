@@ -47,14 +47,11 @@ export type NotificationResponse = {
 export type NotificationListQuery = {
   readonly unreadOnly?: boolean;
   readonly limit?: number;
-  readonly cursor?: string;
 };
 
 export type NotificationListResponse = {
   readonly items: readonly NotificationResponse[];
   readonly unreadCount: number;
-  readonly hasMore: boolean;
-  readonly nextCursor: string | null;
 };
 
 export type NotificationUnreadCountResponse = {

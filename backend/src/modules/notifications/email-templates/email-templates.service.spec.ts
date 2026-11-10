@@ -5,27 +5,12 @@ import type { MailTransport, OutboundMailMessage } from '../email/mail-transport
 import { assertEmailTemplateRegistryJson } from '../email/parse-email-template-registry';
 import { EmailTemplatesService } from './email-templates.service';
 import { createInMemoryAuditLogDelegate } from '../../audit-log/create-in-memory-audit-log-delegate';
-import type { TestEmailRateLimiterRedis } from './test-email-rate-limiter';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-function createTestEmailRedis(): TestEmailRateLimiterRedis {
-  const counts = new Map<string, number>();
-  return {
-    eval: jest.fn(async (_script: string, _numberOfKeys: number, key: string) => {
-      const next = (counts.get(key) ?? 0) + 1;
-      counts.set(key, next);
-      return next;
-    }),
-  };
-}
-
-function createService(
-  values: Record<string, unknown> = {},
-  redis: TestEmailRateLimiterRedis | null = createTestEmailRedis(),
-) {
+function createService(values: Record<string, unknown> = {}) {
   const store: Record<string, unknown> = {
     [settingKeys.privateSmtpEnabled]: true,
     [settingKeys.privateSmtpFromAddress]: 'helpdesk@example.com',
@@ -45,18 +30,7 @@ function createService(
     },
   } as unknown as SettingsService;
   const sent: OutboundMailMessage[] = [];
-  const transport: MailTransport = {
-    send: async (message) => {
-      sent.push(message);
-      return {
-        acceptedRecipientCount: 1,
-        rejectedRecipientCount: 0,
-        messageId: '<template-test@example.test>',
-        responseCode: 250,
-        failureKind: null,
-      };
-    },
-  };
+  const transport: MailTransport = { send: async (message) => void sent.push(message) };
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   let auditId = 0;
   const prisma = {
@@ -66,13 +40,12 @@ function createService(
     },
   };
   return {
-    service: new EmailTemplatesService(settings, prisma as never, transport, redis as never),
+    service: new EmailTemplatesService(settings, prisma as never, transport),
     writes,
     sent,
     store,
     auditLogs,
     prisma,
-    redis,
   };
 }
 
@@ -167,33 +140,6 @@ describe('EmailTemplatesService', () => {
     ).rejects.toMatchObject({ code: 'TEST_RATE_LIMITED' });
   });
 
-  it('fails closed when the shared rate limiter is missing or unavailable', async () => {
-    const missing = createService({}, null);
-    await expect(
-      missing.service.sendTest(
-        { key: 'ticket.assigned', locale: 'en' },
-        'admin',
-      ),
-    ).rejects.toMatchObject({ code: 'TEST_RATE_LIMIT_UNAVAILABLE' });
-    expect(missing.sent).toHaveLength(0);
-
-    const failing = createService(
-      {},
-      {
-        eval: jest.fn(async () => {
-          throw new Error('redis outage');
-        }),
-      },
-    );
-    await expect(
-      failing.service.sendTest(
-        { key: 'ticket.assigned', locale: 'en' },
-        'admin',
-      ),
-    ).rejects.toMatchObject({ code: 'TEST_RATE_LIMIT_UNAVAILABLE' });
-    expect(failing.sent).toHaveLength(0);
-  });
-
   it('explains a missing SMTP set-up and surfaces the server answer', async () => {
     const off = createService({ [settingKeys.privateSmtpEnabled]: false });
     await expect(
@@ -204,7 +150,6 @@ describe('EmailTemplatesService', () => {
       { ...(failing.service as unknown as { settingsService: SettingsService }).settingsService } as never,
       failing.prisma as never,
       { send: async () => Promise.reject(new Error('535 5.7.3 Authentication unsuccessful')) },
-      failing.redis as never,
     );
     await expect(
       service.sendTest({ key: 'ticket.created', locale: 'bs' }, 'admin'),

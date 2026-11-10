@@ -95,7 +95,6 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.opsAlertsUnsilenced]: compatibility([auditLogEntityTypes.opsMonitoring]),
   [auditLogActions.opsAlertTestSent]: compatibility([auditLogEntityTypes.opsMonitoring]),
   [auditLogActions.opsDlqBaselineAcknowledged]: compatibility([auditLogEntityTypes.opsMonitoring]),
-  [auditLogActions.integrationJobRetried]: compatibility([auditLogEntityTypes.integrationJob], 2),
   [auditLogActions.statusIncidentCreated]: compatibility([auditLogEntityTypes.statusIncident]),
   [auditLogActions.statusIncidentEdited]: compatibility([auditLogEntityTypes.statusIncident]),
   [auditLogActions.statusIncidentUpdatePosted]: compatibility([auditLogEntityTypes.statusIncident]),

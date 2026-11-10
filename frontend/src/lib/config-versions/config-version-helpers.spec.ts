@@ -89,11 +89,5 @@ describe("config version helpers", () => {
     expect(mapConfigVersionError(new ApiError(400, "CONFIG_VALIDATION_FAILED", "x"))).toBe(
       "configVersions.errorValidation",
     );
-    expect(mapConfigVersionError(new ApiError(409, "CONFIG_CATALOG_STATE_CONFLICT", "x"))).toBe(
-      "configVersions.errorValidation",
-    );
-    expect(
-      mapConfigVersionError(new ApiError(400, "CONFIG_CATALOG_INVARIANT_VIOLATION", "x")),
-    ).toBe("configVersions.errorValidation");
   });
 });

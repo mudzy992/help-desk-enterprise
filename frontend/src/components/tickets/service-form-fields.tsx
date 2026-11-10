@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import type { ServiceFormField, ServiceFormSchema } from "@/services/service-catalog-api";
-import { SERVICE_FORM_PATTERN_INPUT_MAX_BYTES } from "@/lib/tickets/service-form-pattern-limits";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   controlClassName,
@@ -42,13 +41,6 @@ function FieldControl({
   readonly a11y: ControlA11y;
 }) {
   const placeholder = field.config?.placeholder;
-  const patternInputMaxLength =
-    field.validation?.pattern === undefined
-      ? undefined
-      : Math.min(
-          field.validation?.maxLength ?? SERVICE_FORM_PATTERN_INPUT_MAX_BYTES,
-          SERVICE_FORM_PATTERN_INPUT_MAX_BYTES,
-        );
   if (field.type === "boolean") {
     return (
       <Checkbox
@@ -65,7 +57,6 @@ function FieldControl({
         className={textareaClassName}
         value={typeof value === "string" ? value : ""}
         placeholder={placeholder}
-        maxLength={patternInputMaxLength}
         onChange={(event) => onChange(event.target.value)}
       />
     );
@@ -104,7 +95,6 @@ function FieldControl({
       type={inputType}
       value={typeof value === "string" || typeof value === "number" ? String(value) : ""}
       placeholder={placeholder}
-      maxLength={patternInputMaxLength}
       onChange={(event) =>
         onChange(field.type === "number" ? event.target.value : event.target.value)
       }

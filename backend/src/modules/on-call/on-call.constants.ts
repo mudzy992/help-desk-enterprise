@@ -2,7 +2,6 @@ export const onCallErrorCodes = {
   disabled: 'ON_CALL_DISABLED',
   groupNotFound: 'ON_CALL_GROUP_NOT_FOUND',
   scheduleNotFound: 'ON_CALL_SCHEDULE_NOT_FOUND',
-  scheduleConflict: 'ON_CALL_SCHEDULE_CONFLICT',
   invalidSchedule: 'ON_CALL_INVALID_SCHEDULE',
   invalidMember: 'ON_CALL_INVALID_MEMBER',
   invalidRange: 'ON_CALL_INVALID_RANGE',
@@ -11,8 +10,6 @@ export const onCallErrorCodes = {
   swapNotFound: 'ON_CALL_SWAP_NOT_FOUND',
   swapNotAllowed: 'ON_CALL_SWAP_NOT_ALLOWED',
   swapNotPending: 'ON_CALL_SWAP_NOT_PENDING',
-  swapDuplicate: 'ON_CALL_SWAP_DUPLICATE',
-  swapLimitReached: 'ON_CALL_SWAP_LIMIT_REACHED',
   forbidden: 'ON_CALL_FORBIDDEN',
 } as const;
 
@@ -25,8 +22,6 @@ export const onCallLimits = {
   maxAheadDays: 366,
   maxOverrideDays: 31,
   maxMembers: 50,
-  /** BA-on-call-13: bound on open swap requests per requester (anti-spam). */
-  maxPendingSwapRequests: 50,
   icalAheadDays: 90,
   icalBehindDays: 7,
 } as const;

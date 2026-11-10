@@ -7,8 +7,6 @@ import {
   IsOptional,
   IsString,
   Length,
-  Matches,
-  MinLength,
   MaxLength,
 } from 'class-validator';
 import { announcementLimits, announcementRoleKeys } from './announcements.constants';
@@ -43,13 +41,4 @@ export class SaveAnnouncementDto extends AnnouncementAudienceDto {
 
 export class AnnouncementReasonDto {
   @IsString() @Length(3, 500) reason!: string;
-}
-
-export class AnnouncementReportPendingQueryDto {
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(announcementLimits.reportPendingCursorMaxLength)
-  @Matches(/^[A-Za-z0-9_-]+$/)
-  cursor?: string;
 }

@@ -1,11 +1,10 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { recordServiceCatalogChange, serviceDowntimeWindowChangeLogEntityType } from '../service-catalog/record-service-catalog-change';
 import { serviceAvailabilityChangeLogReasons, serviceAvailabilityConstants } from '../service-catalog/service-availability.constants';
 import { ServiceAvailabilityConfigurationLoader } from '../service-catalog/service-availability-configuration.loader';
-import { withServiceDowntimeWindowMutationLocks } from '../service-catalog/with-service-downtime-window-mutation-lock';
 import { ChangeAccessService, type ChangeConfiguration, type ChangeViewer } from './change-access.service';
 import {
   detectChangeConflicts,
@@ -30,19 +29,6 @@ import {
 /** Statuses shown in the calendar (drafts and dead ends stay out). */
 const calendarStatuses: readonly ChangeStatusValue[] = ['ASSESSMENT', 'AUTHORIZATION', 'SCHEDULED', 'IMPLEMENTING', 'REVIEW', 'CLOSED'];
 
-function downtimeReleaseReason(status: ChangeStatusValue): string {
-  switch (status) {
-    case 'CANCELLED':
-      return 'cancel';
-    case 'REVIEW':
-      return 'finish';
-    case 'AUTHORIZATION':
-      return 'reschedule';
-    default:
-      return 'not_applicable';
-  }
-}
-
 export type ConflictSubject = {
   readonly changeId: string | null;
   readonly type: ChangeTypeValue;
@@ -51,13 +37,18 @@ export type ConflictSubject = {
   readonly assetIds: readonly string[];
 };
 
+function errorText(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error)).slice(0, 200);
+}
+
 /**
  * Paket 3.4 (§9, §10, §17): conflicts, the change calendar and the downtime
- * windows a scheduled change owns. Lifecycle writes enqueue desired-state
- * sync in the same transaction; the worker retries failures through the outbox.
+ * windows a scheduled change owns. Downtime work never breaks the lifecycle
+ * action that triggered it: failures are logged and written to the history.
  */
 @Injectable()
 export class ChangeScheduleService {
+  private readonly logger = new Logger(ChangeScheduleService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -249,64 +240,20 @@ export class ChangeScheduleService {
 
   private async downtimeEnabled(): Promise<boolean> {
     if (this.availability === undefined) return false;
-    return (await this.availability.load()).downtime.enabled;
-  }
-
-  /**
-   * Read-only drift check used by the periodic reconciler. A blocked foreign
-   * overlap is an acknowledged plan outcome, not missing desired state.
-   */
-  async hasDowntimeDrift(changeId: string): Promise<boolean> {
-    const change = await this.prisma.changeRequest.findUnique({
-      where: { id: changeId },
-      select: {
-        status: true,
-        causesDowntime: true,
-        plannedStart: true,
-        plannedEnd: true,
-        services: { select: { serviceId: true } },
-        downtimeWindows: { select: { id: true, serviceId: true, startsAt: true, endsAt: true } },
-      },
-    });
-    if (change === null) return false;
-    const own = change.downtimeWindows;
-    const active = change.status === 'SCHEDULED' || change.status === 'IMPLEMENTING';
-    if (!active || !change.causesDowntime || change.plannedStart === null || change.plannedEnd === null) {
-      return this.releaseHasChanges(own);
+    try {
+      return (await this.availability.load()).downtime.enabled;
+    } catch {
+      return false;
     }
-    if (!(await this.downtimeEnabled())) return this.releaseHasChanges(own);
-
-    const serviceIds = change.services.map((link) => link.serviceId);
-    const foreign =
-      serviceIds.length === 0
-        ? []
-        : await this.prisma.serviceDowntimeWindow.findMany({
-            where: { serviceId: { in: serviceIds }, OR: [{ changeRequestId: null }, { changeRequestId: { not: changeId } }] },
-            select: { serviceId: true, startsAt: true, endsAt: true },
-          });
-    const plan = planChangeDowntime({
-      window: { start: change.plannedStart, end: change.plannedEnd },
-      serviceIds,
-      own,
-      foreign,
-    });
-    return plan.create.length + plan.update.length + plan.delete.length > 0;
   }
 
   /**
-   * §10: recompute and apply the latest desired state. Errors deliberately
-   * propagate to the transactional outbox so retry/dead-letter state is durable.
+   * §10: a scheduled change that causes downtime owns one window per affected
+   * service over its planned window (MAINTENANCE comes from the catalog).
    */
-  async syncDowntime(
-    changeId: string,
-    actorUserId: string | null,
-    commandKey?: string,
-  ): Promise<void> {
-    const enabled = await this.downtimeEnabled();
-    const configuration = enabled ? await this.access.configuration() : null;
-    await this.prisma.$transaction(async (transaction) => {
-      await this.acquireChangeLock(transaction, changeId);
-      const change = await transaction.changeRequest.findUnique({
+  async syncDowntime(changeId: string, actorUserId: string | null): Promise<void> {
+    try {
+      const change = await this.prisma.changeRequest.findUnique({
         where: { id: changeId },
         select: {
           sequence: true,
@@ -321,230 +268,118 @@ export class ChangeScheduleService {
       });
       if (change === null) return;
       const own = change.downtimeWindows;
+      const active = change.status === 'SCHEDULED' || change.status === 'IMPLEMENTING';
+      if (!active || !change.causesDowntime || change.plannedStart === null || change.plannedEnd === null) {
+        if (own.length > 0) await this.release(changeId, actorUserId, 'not_applicable');
+        return;
+      }
+      if (!(await this.downtimeEnabled())) {
+        await this.event(changeId, actorUserId, { skipped: 'downtime_disabled' });
+        return;
+      }
+      const window = { start: change.plannedStart, end: change.plannedEnd };
       const serviceIds = change.services.map((link) => link.serviceId);
-      const lockServiceIds = [
-        ...new Set([
-          ...serviceIds,
-          ...own.map((window) => window.serviceId),
-        ]),
-      ];
-      await withServiceDowntimeWindowMutationLocks(
-        transaction,
-        lockServiceIds,
-        async () => {
-          const active =
-            change.status === 'SCHEDULED' || change.status === 'IMPLEMENTING';
-          if (!active || change.plannedStart === null || change.plannedEnd === null) {
-            if (own.length > 0) {
-              const reason = downtimeReleaseReason(change.status);
-              await this.apply(
-                transaction,
-                changeId,
-                actorUserId,
-                planDowntimeRelease(own, new Date()),
-                '',
-                reason,
-                null,
-                commandKey,
-              );
-            }
-            return;
-          }
-          if (!change.causesDowntime) {
-            if (own.length > 0) {
-              await this.apply(
-                transaction,
-                changeId,
-                actorUserId,
-                planDowntimeRelease(own, new Date()),
-                '',
-                'scheduled',
-                null,
-                commandKey,
-              );
-            }
-            return;
-          }
-          if (!enabled) {
-            if (own.length > 0) {
-              await this.apply(
-                transaction,
-                changeId,
-                actorUserId,
-                planDowntimeRelease(own, new Date()),
-                '',
-                'downtime_disabled',
-                null,
-                commandKey,
-              );
-            } else {
-              await this.event(
-                transaction,
-                changeId,
-                actorUserId,
-                { skipped: 'downtime_disabled' },
-                commandKey,
-              );
-            }
-            return;
-          }
-
-          const window = { start: change.plannedStart, end: change.plannedEnd };
-          const foreign =
-            serviceIds.length === 0
-              ? []
-              : await transaction.serviceDowntimeWindow.findMany({
-                  where: {
-                    serviceId: { in: serviceIds },
-                    OR: [
-                      { changeRequestId: null },
-                      { changeRequestId: { not: changeId } },
-                    ],
-                  },
-                  select: { serviceId: true, startsAt: true, endsAt: true },
-                });
-          const message = `${formatChangeNumber(configuration!.numberPrefix, change.sequence)}: ${change.title}`.slice(0, serviceAvailabilityConstants.maximumMessageLength);
-          await this.apply(
-            transaction,
-            changeId,
-            actorUserId,
-            planChangeDowntime({ window, serviceIds, own, foreign }),
-            message,
-            'scheduled',
-            window,
-            commandKey,
-          );
-        },
-      );
-    }, { isolationLevel: 'ReadCommitted' });
+      const foreign =
+        serviceIds.length === 0
+          ? []
+          : await this.prisma.serviceDowntimeWindow.findMany({
+              where: { serviceId: { in: serviceIds }, OR: [{ changeRequestId: null }, { changeRequestId: { not: changeId } }] },
+              select: { serviceId: true, startsAt: true, endsAt: true },
+            });
+      const configuration = await this.access.configuration();
+      const message = `${formatChangeNumber(configuration.numberPrefix, change.sequence)}: ${change.title}`.slice(0, serviceAvailabilityConstants.maximumMessageLength);
+      await this.apply(changeId, actorUserId, planChangeDowntime({ window, serviceIds, own, foreign }), message, 'scheduled', window);
+    } catch (error) {
+      this.logger.warn(`change_downtime_sync_failed change=${changeId} reason=${errorText(error)}`);
+    }
   }
 
-  private releaseHasChanges(own: readonly { id: string; serviceId: string; startsAt: Date; endsAt: Date }[]): boolean {
-    const plan = planDowntimeRelease(own, new Date());
-    return plan.update.length + plan.delete.length > 0;
-  }
-
-  private async acquireChangeLock(transaction: Prisma.TransactionClient, changeId: string): Promise<void> {
-    await transaction.$queryRaw`SELECT "id" FROM "ChangeRequest" WHERE "id" = ${changeId} FOR UPDATE`;
+  /** §10: cancellation / end of implementation: future windows go, a running one ends now. */
+  async release(changeId: string, actorUserId: string | null, reason: string): Promise<void> {
+    try {
+      const own = await this.prisma.serviceDowntimeWindow.findMany({
+        where: { changeRequestId: changeId },
+        select: { id: true, serviceId: true, startsAt: true, endsAt: true },
+      });
+      if (own.length === 0) return;
+      await this.apply(changeId, actorUserId, planDowntimeRelease(own, new Date()), '', reason);
+    } catch (error) {
+      this.logger.warn(`change_downtime_release_failed change=${changeId} reason=${errorText(error)}`);
+    }
   }
 
   private async apply(
-    transaction: Prisma.TransactionClient,
     changeId: string,
     actorUserId: string | null,
     plan: DowntimePlan,
     message: string,
     reason = 'scheduled',
     window: ConflictWindow | null = null,
-    commandKey?: string,
   ): Promise<void> {
-    const hasOperations = plan.create.length + plan.update.length + plan.delete.length > 0;
-    if (!hasOperations && plan.skipped.length === 0) return;
-    if (
-      !hasOperations &&
-      commandKey !== undefined &&
-      (await this.hasDowntimeCommandEvent(transaction, changeId, commandKey))
-    ) {
-      return;
-    }
-    const client = transaction as unknown as PrismaService;
+    if (plan.create.length + plan.update.length + plan.delete.length + plan.skipped.length === 0) return;
     const entityType = serviceDowntimeWindowChangeLogEntityType();
-    if (window !== null) {
-      for (const serviceId of plan.create) {
-        const created = await transaction.serviceDowntimeWindow.create({
-          data: { serviceId, startsAt: window.start, endsAt: window.end, message, changeRequestId: changeId },
-          select: { id: true },
+    await this.prisma.$transaction(async (transaction) => {
+      const client = transaction as unknown as PrismaService;
+      if (window !== null) {
+        for (const serviceId of plan.create) {
+          const created = await transaction.serviceDowntimeWindow.create({
+            data: { serviceId, startsAt: window.start, endsAt: window.end, message, changeRequestId: changeId },
+            select: { id: true },
+          });
+          await recordServiceCatalogChange(client, {
+            entityType,
+            entityId: created.id,
+            reason: serviceAvailabilityChangeLogReasons.downtimeWindowCreate,
+            diff: { action: serviceAvailabilityChangeLogReasons.downtimeWindowCreate, serviceId, changeRequestId: changeId, after: { startsAt: window.start.toISOString(), endsAt: window.end.toISOString(), message } },
+            actorUserId,
+          });
+        }
+      }
+      for (const item of plan.update) {
+        await transaction.serviceDowntimeWindow.update({
+          where: { id: item.id },
+          data: { startsAt: item.startsAt, endsAt: item.endsAt, ...(message.length > 0 ? { message } : {}) },
         });
         await recordServiceCatalogChange(client, {
           entityType,
-          entityId: created.id,
-          reason: serviceAvailabilityChangeLogReasons.downtimeWindowCreate,
-          diff: { action: serviceAvailabilityChangeLogReasons.downtimeWindowCreate, serviceId, changeRequestId: changeId, after: { startsAt: window.start.toISOString(), endsAt: window.end.toISOString(), message } },
+          entityId: item.id,
+          reason: serviceAvailabilityChangeLogReasons.downtimeWindowUpdate,
+          diff: { action: serviceAvailabilityChangeLogReasons.downtimeWindowUpdate, changeRequestId: changeId, after: { startsAt: item.startsAt.toISOString(), endsAt: item.endsAt.toISOString() } },
           actorUserId,
         });
       }
-    }
-    for (const item of plan.update) {
-      await transaction.serviceDowntimeWindow.update({
-        where: { id: item.id },
-        data: { startsAt: item.startsAt, endsAt: item.endsAt, ...(message.length > 0 ? { message } : {}) },
-      });
-      await recordServiceCatalogChange(client, {
-        entityType,
-        entityId: item.id,
-        reason: serviceAvailabilityChangeLogReasons.downtimeWindowUpdate,
-        diff: { action: serviceAvailabilityChangeLogReasons.downtimeWindowUpdate, changeRequestId: changeId, after: { startsAt: item.startsAt.toISOString(), endsAt: item.endsAt.toISOString() } },
-        actorUserId,
-      });
-    }
-    if (plan.delete.length > 0) {
-      await transaction.serviceDowntimeWindow.deleteMany({ where: { id: { in: [...plan.delete] }, changeRequestId: changeId } });
-      for (const id of plan.delete) {
-        await recordServiceCatalogChange(client, {
-          entityType,
-          entityId: id,
-          reason: serviceAvailabilityChangeLogReasons.downtimeWindowDelete,
-          diff: { action: serviceAvailabilityChangeLogReasons.downtimeWindowDelete, changeRequestId: changeId },
-          actorUserId,
-        });
+      if (plan.delete.length > 0) {
+        await transaction.serviceDowntimeWindow.deleteMany({ where: { id: { in: [...plan.delete] }, changeRequestId: changeId } });
+        for (const id of plan.delete) {
+          await recordServiceCatalogChange(client, {
+            entityType,
+            entityId: id,
+            reason: serviceAvailabilityChangeLogReasons.downtimeWindowDelete,
+            diff: { action: serviceAvailabilityChangeLogReasons.downtimeWindowDelete, changeRequestId: changeId },
+            actorUserId,
+          });
+        }
       }
-    }
-    await transaction.changeEvent.create({
-      data: {
-        changeId,
-        action: changeEventActions.downtime,
-        actorUserId,
-        detail: {
-          reason,
-          created: window === null ? 0 : plan.create.length,
-          updated: plan.update.length,
-          deleted: plan.delete.length,
-          skippedServiceIds: [...plan.skipped],
-          ...(commandKey === undefined ? {} : { outboxDedupeKey: commandKey }),
-        } as never,
-      },
+      await transaction.changeEvent.create({
+        data: {
+          changeId,
+          action: changeEventActions.downtime,
+          actorUserId,
+          detail: {
+            reason,
+            created: window === null ? 0 : plan.create.length,
+            updated: plan.update.length,
+            deleted: plan.delete.length,
+            skippedServiceIds: [...plan.skipped],
+          } as never,
+        },
+      });
     });
   }
 
-  private async hasDowntimeCommandEvent(
-    transaction: Prisma.TransactionClient,
-    changeId: string,
-    commandKey: string,
-  ): Promise<boolean> {
-    const existing = await transaction.changeEvent.findFirst({
-      where: {
-        changeId,
-        action: changeEventActions.downtime,
-        detail: { path: ['outboxDedupeKey'], equals: commandKey },
-      },
-      select: { id: true },
-    });
-    return existing !== null;
-  }
-
-  private async event(
-    transaction: Prisma.TransactionClient,
-    changeId: string,
-    actorUserId: string | null,
-    detail: Record<string, unknown>,
-    commandKey?: string,
-  ): Promise<void> {
-    if (
-      commandKey !== undefined &&
-      (await this.hasDowntimeCommandEvent(transaction, changeId, commandKey))
-    ) {
-      return;
-    }
-    await transaction.changeEvent.create({
-      data: {
-        changeId,
-        action: changeEventActions.downtime,
-        actorUserId,
-        detail: {
-          ...detail,
-          ...(commandKey === undefined ? {} : { outboxDedupeKey: commandKey }),
-        } as never,
-      },
+  private async event(changeId: string, actorUserId: string | null, detail: Record<string, unknown>): Promise<void> {
+    await this.prisma.changeEvent.create({
+      data: { changeId, action: changeEventActions.downtime, actorUserId, detail: detail as never },
     });
   }
 }

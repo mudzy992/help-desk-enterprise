@@ -1,9 +1,4 @@
 import type { ServiceFormField, ServiceFormSchema } from './form-schema.types';
-import { serviceFormRegexSafetyConstants } from './form-schema.constants';
-import {
-  classifyServiceFormPattern,
-  utf8ByteLengthWithinLimit,
-} from './service-form-pattern-safety';
 
 export type ServiceFormDataValidationCode = 'REQUIRED' | 'INVALID';
 
@@ -19,10 +14,8 @@ type ValidationOptions = {
 
 /**
  * Server-side counterpart to `frontend/src/lib/tickets/validate-service-form.ts`.
- * Structural schemas are parsed by `parseFormSchema`; legacy patterns are
- * independently reclassified here and fail closed if they are not in the safe
- * subset. Pattern inputs are byte-capped before any regex match. Unknown keys
- * are rejected so API clients cannot persist unmodelled data.
+ * The schema is trusted only after `parseFormSchema`; submitted data is not.
+ * Unknown keys are rejected so API clients cannot persist unmodelled data.
  */
 export function validateServiceFormData(
   schema: ServiceFormSchema | null,
@@ -43,12 +36,11 @@ export function validateServiceFormData(
     }
   }
 
-  const patternInputErrors = findPatternInputBudgetErrors(fields, data, options.partial === true);
   for (const field of fields) {
     if (options.partial === true && !Object.hasOwn(data, field.id)) {
       continue;
     }
-    const error = validateField(field, data[field.id], patternInputErrors.has(field.id));
+    const error = validateField(field, data[field.id]);
     if (error !== null) {
       errors.push(error);
     }
@@ -56,49 +48,18 @@ export function validateServiceFormData(
   return errors;
 }
 
-function findPatternInputBudgetErrors(
-  fields: readonly ServiceFormField[],
-  data: Record<string, unknown>,
+function toFormDataRecord(
+  value: unknown,
   partial: boolean,
-): ReadonlySet<string> {
-  const measuredFieldIds: string[] = [];
-  const errors = new Set<string>();
-  let totalPatternInputBytes = 0;
-
-  for (const field of fields) {
-    if (
-      field.validation?.pattern === undefined ||
-      (partial && !Object.hasOwn(data, field.id)) ||
-      typeof data[field.id] !== 'string'
-    ) {
-      continue;
-    }
-    const byteLength = utf8ByteLengthWithinLimit(
-      data[field.id] as string,
-      serviceFormRegexSafetyConstants.maximumInputBytes,
-    );
-    if (byteLength === null) {
-      errors.add(field.id);
-      continue;
-    }
-    measuredFieldIds.push(field.id);
-    totalPatternInputBytes += byteLength;
-  }
-
-  if (totalPatternInputBytes > serviceFormRegexSafetyConstants.maximumRequestInputBytes) {
-    for (const fieldId of measuredFieldIds) errors.add(fieldId);
-  }
-  return errors;
-}
-
-function toFormDataRecord(value: unknown, partial: boolean): Record<string, unknown> | null {
+): Record<string, unknown> | null {
   if (value === undefined || value === null) {
     return partial && value === null ? null : {};
   }
   if (
     typeof value !== 'object' ||
     Array.isArray(value) ||
-    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+    Object.getPrototypeOf(value) !== Object.prototype &&
+      Object.getPrototypeOf(value) !== null
   ) {
     return null;
   }
@@ -108,7 +69,6 @@ function toFormDataRecord(value: unknown, partial: boolean): Record<string, unkn
 function validateField(
   field: ServiceFormField,
   value: unknown,
-  patternInputError: boolean,
 ): ServiceFormDataValidationError | null {
   if (field.type === 'boolean') {
     if (value === undefined || value === null) {
@@ -167,10 +127,6 @@ function validateField(
   if (typeof value !== 'string') {
     return invalid(field.id);
   }
-  const pattern = field.validation?.pattern;
-  if (pattern !== undefined && (patternInputError || !classifyServiceFormPattern(pattern).safe)) {
-    return invalid(field.id);
-  }
   const text = value.trim();
   if (field.required && text.length === 0) {
     return required(field.id);
@@ -189,12 +145,9 @@ function validateField(
   if (field.type === 'email' && !text.includes('@')) {
     return invalid(field.id);
   }
-  if (pattern !== undefined) {
-    try {
-      if (!new RegExp(pattern).test(text)) return invalid(field.id);
-    } catch {
-      return invalid(field.id);
-    }
+  const pattern = field.validation?.pattern;
+  if (pattern !== undefined && !new RegExp(pattern).test(text)) {
+    return invalid(field.id);
   }
   return null;
 }

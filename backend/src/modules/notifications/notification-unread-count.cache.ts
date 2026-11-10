@@ -36,29 +36,16 @@ export class NotificationUnreadCountCache {
   async readWithEpochs(
     userId: string,
     groupIds: readonly string[],
-    audienceFingerprint: string,
   ): Promise<{ readonly count: number | null; readonly epochs: GroupEpochs | null }> {
-    return readUnreadCountWithEpochs(
-      await this.client(),
-      userId,
-      groupIds,
-      audienceFingerprint,
-    );
+    return readUnreadCountWithEpochs(await this.client(), userId, groupIds);
   }
 
   async writeWithEpochs(
     userId: string,
     unreadCount: number,
     epochs: GroupEpochs | null,
-    audienceFingerprint: string,
   ): Promise<void> {
-    await writeUnreadCountWithEpochs(
-      await this.client(),
-      userId,
-      unreadCount,
-      epochs,
-      audienceFingerprint,
-    );
+    await writeUnreadCountWithEpochs(await this.client(), userId, unreadCount, epochs);
   }
 
   /** Option A: a new group notification — every member's cached badge becomes a miss. */

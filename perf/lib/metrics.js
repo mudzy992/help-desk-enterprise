@@ -12,12 +12,9 @@ export const performanceMetrics = {
   unreadCount: new Trend('unread_count_duration', true),
   search: new Trend('search_duration', true),
   dashboardSummary: new Trend('dashboard_summary_duration', true),
-  serviceCatalog: new Trend('service_catalog_duration', true),
 
   ticketListPayload: new Trend('ticket_list_payload_kb'),
   dashboardPayload: new Trend('dashboard_payload_kb'),
-  serviceCatalogPayload: new Trend('service_catalog_payload_kb'),
-  serviceCatalogContractFailures: new Counter('service_catalog_contract_failures'),
 
   unreadCountRequests: new Counter('unread_count_requests'),
   searchRequests: new Counter('search_requests'),
@@ -53,12 +50,6 @@ export function recordResponse(endpoint, response, config) {
     case 'reports.dashboardSummary':
       performanceMetrics.dashboardSummary.add(duration);
       performanceMetrics.dashboardPayload.add(
-        Number((response.body ? response.body.length : 0) / 1024),
-      );
-      break;
-    case 'services.catalog':
-      performanceMetrics.serviceCatalog.add(duration);
-      performanceMetrics.serviceCatalogPayload.add(
         Number((response.body ? response.body.length : 0) / 1024),
       );
       break;

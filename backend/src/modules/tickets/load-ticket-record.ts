@@ -3,22 +3,14 @@ import { isServiceOfferedToRequesters } from '../service-catalog/assert-service-
 import { RoutingError } from '../routing/routing.error';
 import { TicketsError } from './tickets.error';
 import type { TicketRecord } from './tickets.types';
-import { ticketResponseRelations } from './ticket-response-relations';
 
 export async function loadTicketRecord(
   prisma: PrismaService,
   ticketId: string,
-  options: { readonly withResponseRelations?: boolean } = {},
 ): Promise<TicketRecord> {
-  const record = options.withResponseRelations === true
-    ? await prisma.ticket.findUnique({
-        where: { id: ticketId },
-        include: ticketResponseRelations,
-        relationLoadStrategy: 'join',
-      })
-    : await prisma.ticket.findUnique({
-        where: { id: ticketId },
-      });
+  const record = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+  });
   if (record === null) {
     throw new TicketsError('NOT_FOUND');
   }

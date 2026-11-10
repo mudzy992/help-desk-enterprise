@@ -4,7 +4,7 @@ import { SessionAuthenticationGuard } from '../../authentication/session-authent
 import type { AuthenticatedHttpRequest } from '../../authentication/authenticated-request';
 import { RequireRoles } from '../../authorization/require-roles.decorator';
 import { RoleGuard } from '../../authorization/role.guard';
-import { DeletePlaybookDto, ManagePlaybooksQueryDto, SavePlaybookDto } from '../dto/templates.dto';
+import { DeleteWithReasonDto, ManagePlaybooksQueryDto, SavePlaybookDto } from '../dto/templates.dto';
 import { executeTemplatesOperation } from '../map-templates-error';
 import { readActor, staffRoleKeys, templatesValidationPipe } from '../templates-http';
 import { PlaybooksService } from './playbooks.service';
@@ -45,9 +45,9 @@ export class PlaybooksController {
   @Delete(':playbookId')
   remove(
     @Param('playbookId') playbookId: string,
-    @Body() body: DeletePlaybookDto,
+    @Body() body: DeleteWithReasonDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
-    return executeTemplatesOperation(() => this.playbooks.remove(playbookId, body, readActor(request)));
+    return executeTemplatesOperation(() => this.playbooks.remove(playbookId, body.reason, readActor(request)));
   }
 }

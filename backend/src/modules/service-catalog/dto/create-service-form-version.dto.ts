@@ -1,7 +1,6 @@
-import { IsObject } from "class-validator";
-import { CatalogMutationReasonDto } from "./catalog-mutation-reason.dto";
+import { IsObject } from 'class-validator';
 
-export class CreateServiceFormVersionDto extends CatalogMutationReasonDto {
+export class CreateServiceFormVersionDto {
   @IsObject()
   schema!: Record<string, unknown>;
 }

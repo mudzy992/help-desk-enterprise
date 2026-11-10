@@ -2,7 +2,7 @@ import { LicenseDetailSheet } from "./asset-license-detail-sheet";
 import { useCommercialSearch } from "./use-commercial-search";
 import { LicenseFormSheet } from "./asset-license-form-sheet";
 import { useMemo, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { KeyRound, Plus } from "lucide-react";
 import { AssetExpiryBadge } from "@/components/assets/asset-expiry-badge";
@@ -49,14 +49,12 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
     }),
     [search, kind, expiring, overAllocated],
   );
-  const listQuery = useInfiniteQuery({
+  const listQuery = useQuery({
     queryKey: assetContractQueryKeys.licenses(filters),
-    queryFn: ({ pageParam }) => listLicenses({ ...filters, cursor: pageParam }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryFn: () => listLicenses(filters),
     retry: false,
   });
-  const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = listQuery.data?.items ?? [];
 
   return (
     <div className="grid gap-3">
@@ -119,15 +117,15 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
         </p>
       ) : null}
 
-      {listQuery.isLoading ? <PanelSkeleton label={t("ui.loading")} /> : null}
-      {!listQuery.isLoading && items.length === 0 && !listQuery.hasNextPage ? (
+      {listQuery.isLoading ? (
+        <PanelSkeleton label={t("ui.loading")} />
+      ) : items.length === 0 ? (
         <EmptyState
           icon={<KeyRound size={18} />}
           title={t("assets.licenses.emptyTitle")}
           body={t("assets.licenses.emptyBody")}
         />
-      ) : null}
-      {items.length > 0 ? (
+      ) : (
         <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
@@ -196,18 +194,7 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
             </table>
           </div>
         </Card>
-      ) : null}
-      {listQuery.hasNextPage ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="justify-self-center"
-          disabled={listQuery.isFetchingNextPage}
-          onClick={() => void listQuery.fetchNextPage()}
-        >
-          {listQuery.isFetchingNextPage ? t("ui.loading") : t("assets.list.loadMore")}
-        </Button>
-      ) : null}
+      )}
 
       <LicenseFormSheet
         open={editing !== null}

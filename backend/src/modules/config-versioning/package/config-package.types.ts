@@ -88,32 +88,12 @@ export type PortableConfig = {
       readonly tags: readonly string[];
       readonly isActive: boolean;
       readonly deletedAt: string | null;
-      readonly scope?: {
-        readonly services: readonly string[];
-        readonly categories: readonly string[];
-        readonly groups: readonly string[];
-      };
     }[];
     readonly playbooks: readonly {
       readonly name: string;
       readonly description: string | null;
       readonly isActive: boolean;
       readonly deletedAt: string | null;
-      /** Source revision; resolution uses the target's current revision. */
-      readonly version?: number;
-      readonly scope?: {
-        readonly services: readonly string[];
-        readonly categories: readonly string[];
-      };
-      readonly steps?: readonly {
-        readonly stepKey: string;
-        readonly position: number;
-        readonly title: string;
-        readonly instructions: string | null;
-        readonly required: boolean;
-        readonly knowledgeArticle: string | null;
-        readonly responseTemplate: string | null;
-      }[];
     }[];
   } | null;
 };
@@ -147,7 +127,6 @@ export type ConfigReferenceIndex = {
   readonly slaProfiles: readonly { readonly id: string; readonly key: string }[];
   readonly responseTemplates: readonly { readonly id: string; readonly key: string }[];
   readonly playbooks: readonly { readonly id: string; readonly key: string }[];
-  readonly knowledgeArticles: readonly { readonly id: string; readonly key: string }[];
   /** Key is `<service slug>@<version>`. */
   readonly formVersions: readonly { readonly id: string; readonly key: string }[];
 };

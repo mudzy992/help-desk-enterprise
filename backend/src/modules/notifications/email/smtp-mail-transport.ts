@@ -1,16 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { createTransport, type SentMessageInfo, type Transporter } from 'nodemailer';
-import {
-  classifyMailSendError,
-  isMailProviderLimit,
-} from './classify-mail-send-error';
-import type {
-  MailTransport,
-  MailTransportResult,
-  MailTransportTarget,
-  OutboundMailMessage,
-} from './mail-transport';
+import { createTransport, type Transporter } from 'nodemailer';
+import type { MailTransport, MailTransportTarget, OutboundMailMessage } from './mail-transport';
 import {
   getMailProviderLimitBreaker,
   MailDeliverySuppressedError,
@@ -46,52 +37,16 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
   /** Jedna log linija po blokadi, ne po poruci (oluja ne smije gušiti log). */
   private lastBlockLogAt = 0;
 
-  async send(
-    message: OutboundMailMessage,
-    smtp: MailTransportTarget,
-  ): Promise<MailTransportResult> {
+  async send(message: OutboundMailMessage, smtp: MailTransportTarget): Promise<void> {
     await this.assertProviderAllowsSending();
     const transporter = this.transporterFor(smtp);
-    let info: SentMessageInfo;
     try {
-      info = await this.sendNow(transporter, message);
+      await this.sendNow(transporter, message);
     } catch (error) {
       await this.recordProviderRefusal(error);
       throw error;
     }
-    const accepted = info.accepted ?? [];
-    const rejected = info.rejected ?? [];
-    const responseCode = parseSmtpResponseCode(info.response);
-    const hasProviderRejection =
-      rejected.length > 0 ||
-      (accepted.length === 0 && responseCode !== null && responseCode >= 400);
-    const failure =
-      !hasProviderRejection
-        ? null
-        : classifyMailSendError({
-            code: 'EENVELOPE',
-            command: 'RCPT TO',
-            responseCode,
-            response: info.response,
-            message: info.response ?? 'SMTP rejected recipient',
-          });
-    if (failure !== null && isMailProviderLimit(failure.kind) && accepted.length === 0) {
-      await this.recordProviderRefusal({
-        code: 'EENVELOPE',
-        responseCode,
-        response: info.response,
-        message: info.response ?? 'SMTP rejected notification email',
-      });
-    } else {
-      await this.providerBreaker().recordSuccess().catch(() => undefined);
-    }
-    return {
-      acceptedRecipientCount: accepted.length,
-      rejectedRecipientCount: rejected.length,
-      messageId: readProviderMessageId(info.messageId),
-      responseCode,
-      failureKind: failure?.kind ?? null,
-    };
+    await this.providerBreaker().recordSuccess().catch(() => undefined);
   }
 
   /**
@@ -103,8 +58,8 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
     return getMailProviderLimitBreaker();
   }
 
-  private async sendNow(transporter: Transporter, message: OutboundMailMessage) {
-    return transporter.sendMail({
+  private async sendNow(transporter: Transporter, message: OutboundMailMessage): Promise<void> {
+    await transporter.sendMail({
       from: message.from,
       to: message.to,
       subject: message.subject,
@@ -234,20 +189,4 @@ export class SmtpMailTransport implements MailTransport, OnModuleDestroy {
 export function smtpTransportKey(target: MailTransportTarget): string {
   const secret = createHash('sha256').update(target.password).digest('hex');
   return `${target.host}:${target.port}:${target.tls ? 'tls' : 'plain'}:${target.username}:${secret}`;
-}
-
-function readProviderMessageId(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const messageId = value.trim();
-  return messageId.length > 0 && messageId.length <= 500 && !/[\r\n]/u.test(messageId)
-    ? messageId
-    : null;
-}
-
-function parseSmtpResponseCode(response: string | undefined): number | null {
-  if (response === undefined) return null;
-  const match = /^\s*(\d{3})(?:[-\s]|$)/u.exec(response);
-  if (match === null) return null;
-  const code = Number.parseInt(match[1] ?? '', 10);
-  return Number.isInteger(code) && code >= 200 && code <= 599 ? code : null;
 }

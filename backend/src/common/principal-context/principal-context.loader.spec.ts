@@ -10,8 +10,6 @@ import {
 import { mapPrincipalUser } from './load-principal-context';
 import { PrincipalContextLoader } from './principal-context.loader';
 import { PrincipalContextInvalidator } from './principal-context-invalidator.service';
-import { runWithRequestId } from '../request-context/request-context.storage';
-import { socketSessionInvalidationChannel } from '../security/socket-session-invalidation';
 
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -22,7 +20,6 @@ type StoredEntry = { readonly value: string; readonly ttlSeconds: number };
 function createFakeRedis() {
   const entries = new Map<string, StoredEntry>();
   const calls: string[] = [];
-  const publications: Array<{ channel: string; message: string }> = [];
   const client = {
     status: 'ready',
     connect: async () => undefined,
@@ -48,12 +45,8 @@ function createFakeRedis() {
       calls.push(`del ${key}`);
       return entries.delete(key) ? 1 : 0;
     },
-    publish: async (channel: string, message: string) => {
-      publications.push({ channel, message });
-      return 1;
-    },
   };
-  return { client, entries, calls, publications };
+  return { client, entries, calls };
 }
 
 /** The database row shape the loader reads, plus a query counter. */
@@ -123,162 +116,10 @@ function setup(seed: Record<string, unknown> = userRow()) {
     prisma as never,
     redis.client as never,
   );
-  return { loader, invalidator, state, queries, redis, prisma };
+  return { loader, invalidator, state, queries, redis };
 }
 
 describe('principal context loading (phase 2.2)', () => {
-  it('shares one durable authority read across guards and services per request', async () => {
-    const { loader, queries } = setup();
-    // Prime Redis so each call in the measured request would hit the durable
-    // authority fence if request-local memoization were not in place.
-    await runWithRequestId('principal-cache-prime', () => loader.load('user-agent'));
-    queries.length = 0;
-
-    await runWithRequestId('principal-request-1', async () => {
-      const [guard, roleGuard, service] = await Promise.all([
-        loader.load('user-agent'),
-        loader.load('user-agent'),
-        loader.load('user-agent'),
-      ]);
-      expect(guard).not.toBeNull();
-      expect(roleGuard).toEqual(guard);
-      expect(service).toEqual(guard);
-    });
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
-
-    await runWithRequestId('principal-request-2', async () => {
-      expect(await loader.load('user-agent')).not.toBeNull();
-    });
-    // A subsequent HTTP request still performs its own durable authority fence.
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
-  });
-
-  it('shares the guard-loaded principal across loader instances in one request', async () => {
-    const { loader, prisma, redis, queries } = setup();
-    // Warm the payload so the second loader would otherwise perform the
-    // independent user-authority query on a Redis hit.
-    await loader.load('user-agent');
-    queries.length = 0;
-    const serviceLoader = new PrincipalContextLoader(
-      prisma as never,
-      redis.client as never,
-    );
-    const authority = {
-      subjectId: 'user-agent',
-      authzVersion: 0,
-      isActive: true,
-      mustChangePassword: false,
-    } as const;
-
-    await runWithRequestId('principal-cross-loader-request', async () => {
-      const guarded = await loader.load('user-agent', authority);
-      const service = await serviceLoader.load('user-agent');
-      expect(service).toEqual(guarded);
-    });
-    expect(queries).toHaveLength(0);
-  });
-
-  it('reuses the durable session authority snapshot to fence a cache hit', async () => {
-    const { loader, state, queries } = setup();
-    await loader.load('user-agent');
-    const authority = {
-      subjectId: 'user-agent',
-      authzVersion: 0,
-      isActive: true,
-      mustChangePassword: false,
-    } as const;
-
-    const cached = await runWithRequestId('session-authority-hit', () =>
-      loader.load('user-agent', authority),
-    );
-    expect(cached?.roleKeys).toEqual(['AGENT']);
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
-
-    state.users.set(
-      'user-agent',
-      userRow({
-        authzVersion: 1,
-        userRoles: [
-          {
-            id: 'assignment-admin-ou-it',
-            role: {
-              key: 'ADMIN',
-              rolePermissions: [{ permission: { key: 'ticket.merge' } }],
-            },
-            organizationalUnit: { id: 'ou-it', ouPath: '/Korisnici/IT' },
-            service: null,
-          },
-        ],
-      }),
-    );
-    const refreshed = await runWithRequestId('session-authority-change', () =>
-      loader.load('user-agent', { ...authority, authzVersion: 1 }),
-    );
-    expect(refreshed?.roleKeys).toEqual(['ADMIN']);
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(2);
-  });
-
-  it('uses a version-matched local context when the Redis payload is absent', async () => {
-    const { loader, queries, redis } = setup();
-    const authority = {
-      subjectId: 'user-agent',
-      authzVersion: 0,
-      isActive: true,
-      mustChangePassword: false,
-    } as const;
-    const first = await runWithRequestId('principal-local-prime', () =>
-      loader.load('user-agent', authority),
-    );
-    expect(first?.roleKeys).toEqual(['AGENT']);
-
-    redis.entries.delete(principalContextCacheKey('user-agent', 0));
-    queries.length = 0;
-    const second = await runWithRequestId('principal-local-pointer-hit', () =>
-      loader.load('user-agent', authority),
-    );
-
-    expect(second).toEqual(first);
-    expect(queries).toHaveLength(0);
-  });
-
-  it('coalesces concurrent cache-miss loads with the same durable version', async () => {
-    const { loader, queries } = setup();
-    const authority = {
-      subjectId: 'user-agent',
-      authzVersion: 0,
-      isActive: true,
-      mustChangePassword: false,
-    } as const;
-
-    const [first, second] = await Promise.all([
-      runWithRequestId('principal-cold-request-1', () =>
-        loader.load('user-agent', authority),
-      ),
-      runWithRequestId('principal-cold-request-2', () =>
-        loader.load('user-agent', authority),
-      ),
-    ]);
-
-    expect(first?.roleKeys).toEqual(['AGENT']);
-    expect(second).toEqual(first);
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
-  });
-
-  it('does not serve a cached principal when the joined authority snapshot denies it', async () => {
-    const { loader, queries } = setup();
-    await loader.load('user-agent');
-
-    await expect(
-      loader.load('user-agent', {
-        subjectId: 'user-agent',
-        authzVersion: 0,
-        isActive: false,
-        mustChangePassword: false,
-      }),
-    ).resolves.toBeNull();
-    expect(queries.filter((query) => query.startsWith('findUnique'))).toHaveLength(1);
-  });
-
   it('serves two consecutive requests with a single database load', async () => {
     const { loader, queries } = setup();
     const first = await loader.load('user-agent');
@@ -393,42 +234,6 @@ describe('principal context loading (phase 2.2)', () => {
     // The guard turns "not active" into 401; the loader only has to stop
     // serving the stale, active copy.
     expect(after?.isActive).toBe(false);
-  });
-
-  it('publishes a committed authorization version without incrementing it again', async () => {
-    const { invalidator, redis, state, queries } = setup(
-      userRow({ authzVersion: 7 }),
-    );
-
-    await invalidator.notifyUserChanged('user-agent', 7);
-
-    expect(state.users.get('user-agent')?.authzVersion).toBe(7);
-    expect(queries).toEqual([]);
-    expect(redis.entries.get(principalContextVersionKey('user-agent'))).toEqual({
-      value: '7',
-      ttlSeconds: principalContextCacheTtlSeconds,
-    });
-    expect(redis.publications).toHaveLength(1);
-    expect(JSON.parse(redis.publications[0]!.message)).toEqual({
-      version: 1,
-      kind: 'users',
-      subjectIds: ['user-agent'],
-    });
-  });
-
-  it('publishes a user socket invalidation after the durable authz-version bump', async () => {
-    const { invalidator, redis } = setup();
-    await invalidator.invalidateUser('user-agent');
-
-    expect(redis.publications).toHaveLength(1);
-    expect(redis.publications[0]).toEqual({
-      channel: socketSessionInvalidationChannel,
-      message: JSON.stringify({
-        version: 1,
-        kind: 'users',
-        subjectIds: ['user-agent'],
-      }),
-    });
   });
 
   it('leaves a tombstone pointer on the new version instead of the old payload', async () => {
@@ -552,51 +357,6 @@ describe('principal context cache client contract', () => {
     expect(await readCachedPrincipalContext(null, 'user-1')).toBeNull();
     await expect(writeCachedPrincipalContext(null, context)).resolves.toBeUndefined();
     await expect(invalidateCachedPrincipalContext(null, 'user-1')).resolves.toBeUndefined();
-  });
-
-  it('reports cache miss categories to an optional observer', async () => {
-    const { client } = createFakeRedis();
-    const reasons: string[] = [];
-    const onMiss = (reason: string) => reasons.push(reason);
-
-    expect(
-      await readCachedPrincipalContext(null, 'user-1', { onMiss }),
-    ).toBeNull();
-    expect(
-      await readCachedPrincipalContext(client, 'user-1', { onMiss }),
-    ).toBeNull();
-    expect(reasons).toEqual(['no_client', 'no_pointer']);
-  });
-
-  it('uses a local payload only when the Redis pointer has the same version', async () => {
-    const { client, entries } = createFakeRedis();
-    const context = mapPrincipalUser(
-      userRow() as unknown as Parameters<typeof mapPrincipalUser>[0],
-    );
-    entries.set(principalContextVersionKey('user-agent'), {
-      value: '0',
-      ttlSeconds: principalContextCacheTtlSeconds,
-    });
-    const onLocalHit = jest.fn();
-    const onMiss = jest.fn();
-
-    await expect(
-      readCachedPrincipalContext(client, 'user-agent', {
-        localCandidate: context,
-        onLocalHit,
-        onMiss,
-      }),
-    ).resolves.toEqual(context);
-    expect(onLocalHit).toHaveBeenCalledTimes(1);
-    expect(onMiss).not.toHaveBeenCalled();
-
-    await expect(
-      readCachedPrincipalContext(client, 'user-agent', {
-        localCandidate: { ...context, authzVersion: 1 },
-        onMiss,
-      }),
-    ).resolves.toBeNull();
-    expect(onMiss).toHaveBeenCalledWith('no_payload');
   });
 
   it('keeps the pointer pointing at nothing after invalidation', async () => {

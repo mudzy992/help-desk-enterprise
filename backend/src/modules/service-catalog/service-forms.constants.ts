@@ -1,10 +1,10 @@
-import type { FormVersionStatus } from "../../generated/prisma/enums";
-import type { ServiceFormsConfiguration } from "./service-forms.types";
+import type { FormVersionStatus } from '../../generated/prisma/enums';
+import type { ServiceFormsConfiguration } from './service-forms.types';
 
 export const formVersionStatuses = [
-  "DRAFT",
-  "ACTIVE",
-  "RETIRED",
+  'DRAFT',
+  'ACTIVE',
+  'RETIRED',
 ] as const satisfies readonly FormVersionStatus[];
 
 export const defaultServiceFormsConfiguration: ServiceFormsConfiguration = {
@@ -15,15 +15,11 @@ export const defaultServiceFormsConfiguration: ServiceFormsConfiguration = {
   requireVersionOnTicket: true,
 };
 
-export const serviceFormsChangeLogEntityType = "service_form_version";
-export const serviceFormVersionsDefaultTake = 20;
-export const serviceFormVersionsMaximumTake = 50;
-export const serviceFormVersionsMaximumResponseBytes = 1_048_576;
+export const serviceFormsChangeLogEntityType = 'service_form_version';
 
-// Stable reasons for system/internal writes only; human API mutations pass a caller reason.
 export const serviceFormsChangeLogReasons = {
-  formCreate: "form_create",
-  formVersionCreate: "form_version_create",
-  formVersionUpdate: "form_version_update",
-  formVersionActivate: "form_version_activate",
+  formCreate: 'form_create',
+  formVersionCreate: 'form_version_create',
+  formVersionUpdate: 'form_version_update',
+  formVersionActivate: 'form_version_activate',
 } as const;

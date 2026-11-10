@@ -1,5 +1,4 @@
 import type { OnboardingServiceValues } from "@/lib/services/onboarding-service-values";
-import { getService } from "@/services/service-catalog-api";
 import {
   completeOnboardingStep,
   createServiceOnboarding,
@@ -17,27 +16,29 @@ export async function completeServiceOnboardingStep(
   options?: {
     readonly initialReason?: string;
     readonly onCreated?: (record: ServiceOnboardingResponse) => void;
-    readonly serviceRevision?: number;
   },
 ): Promise<ServiceOnboardingResponse> {
-  const input = {
-    name: values.name,
-    categoryId: values.categoryId,
-    requiresApproval: values.requiresApproval,
-  };
   if (record === null) {
     const created = await createServiceOnboarding({
-      ...input,
+      name: values.name,
       slug: values.slug,
+      categoryId: values.categoryId,
+      requiresApproval: values.requiresApproval,
       reason: options?.initialReason ?? "Service onboarding: initial service record",
     });
     options?.onCreated?.(created);
-    const service = await getService(created.serviceId);
-    await saveOnboardingServiceStep(created.serviceId, input, service.revision);
+    await saveOnboardingServiceStep(created.serviceId, {
+      name: values.name,
+      categoryId: values.categoryId,
+      requiresApproval: values.requiresApproval,
+    });
     return completeOnboardingStep(created.serviceId, "SERVICE");
   }
-  const serviceRevision = options?.serviceRevision ?? (await getService(record.serviceId)).revision;
-  await saveOnboardingServiceStep(record.serviceId, input, serviceRevision);
+  await saveOnboardingServiceStep(record.serviceId, {
+    name: values.name,
+    categoryId: values.categoryId,
+    requiresApproval: values.requiresApproval,
+  });
   return completeOnboardingStep(record.serviceId, "SERVICE");
 }
 

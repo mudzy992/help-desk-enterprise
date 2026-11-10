@@ -120,15 +120,7 @@ describe('WeeklyTicketReportService (M13)', () => {
         },
       },
     };
-    const transport = {
-      send: jest.fn(async () => ({
-        acceptedRecipientCount: 1,
-        rejectedRecipientCount: 0,
-        messageId: '<weekly-ticket-report@example.test>',
-        responseCode: 250,
-        failureKind: null,
-      })),
-    };
+    const transport = { send: jest.fn(async () => undefined) };
     (loadEmailChannelConfiguration as jest.Mock).mockResolvedValue({
       ...configuration,
       deliveryEnabled: options.deliveryEnabled ?? true,

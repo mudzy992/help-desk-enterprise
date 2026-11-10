@@ -25,7 +25,6 @@ import {
   getPlaybook,
   listManagedTemplates,
   updatePlaybook,
-  type Playbook,
 } from "@/services/templates-api";
 
 /**
@@ -47,8 +46,6 @@ export function PlaybookEditorPage() {
   const [steps, setSteps] = useState<readonly PlaybookStepDraft[]>([blankPlaybookStep()]);
   const [reason, setReason] = useState("");
   const [version, setVersion] = useState<number | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
-  const [conflictPlaybook, setConflictPlaybook] = useState<Playbook | null>(null);
   const [activeTickets, setActiveTickets] = useState(0);
   const [canEdit, setCanEdit] = useState(true);
   const [loaded, setLoaded] = useState(isNew);
@@ -63,7 +60,6 @@ export function PlaybookEditorPage() {
 
   const load = useCallback(async () => {
     if (playbookId === undefined) return;
-    setUpdatedAt(null);
     try {
       const playbook = await getPlaybook(playbookId);
       setName(playbook.name);
@@ -72,11 +68,19 @@ export function PlaybookEditorPage() {
       setServiceIds(playbook.serviceIds);
       setCategoryIds(playbook.categoryIds);
       setVersion(playbook.version);
-      setUpdatedAt(playbook.updatedAt);
       setActiveTickets(playbook.activeTicketCount);
       setCanEdit(playbook.canEdit);
-      setSteps(toPlaybookEditorSteps(playbook));
-      setConflictPlaybook(null);
+      setSteps(
+        playbook.steps.map((step) => ({
+          uid: step.stepKey,
+          stepKey: step.stepKey,
+          title: step.title,
+          instructions: step.instructions ?? "",
+          required: step.required,
+          knowledgeArticleId: step.knowledgeArticleId ?? "",
+          responseTemplateId: step.responseTemplateId ?? "",
+        })),
+      );
       setErrorKey(null);
     } catch (error) {
       setErrorKey(mapTemplatesError(error));
@@ -107,7 +111,7 @@ export function PlaybookEditorPage() {
       if (articleResult.status === "fulfilled")
         setArticles(articleResult.value.map((item) => ({ id: item.id, name: item.title })));
       if (templateResult.status === "fulfilled")
-        setTemplates(templateResult.value.items.map((item) => ({ id: item.id, name: item.name })));
+        setTemplates(templateResult.value.map((item) => ({ id: item.id, name: item.name })));
     });
     return () => {
       active = false;
@@ -139,29 +143,12 @@ export function PlaybookEditorPage() {
       })),
     };
     try {
-      if (isNew) {
-        await createPlaybook(input);
-      } else if (updatedAt === null) {
-        setErrorKey("templates.errors.PLAYBOOK_PRECONDITION_REQUIRED");
-        return;
-      } else {
-        await updatePlaybook(playbookId, { ...input, expectedUpdatedAt: updatedAt });
-      }
+      if (isNew) await createPlaybook(input);
+      else await updatePlaybook(playbookId, input);
       toast({ tone: "success", title: t("templates.playbook.saved") });
       navigate("/admin/templates?tab=playbooks");
     } catch (error) {
-      const mapped = mapTemplatesError(error);
-      setErrorKey(mapped);
-      if (mapped === "templates.errors.PLAYBOOK_VERSION_CONFLICT" && playbookId !== undefined) {
-        setUpdatedAt(null);
-        setConflictPlaybook(null);
-        try {
-          // Refresh the server copy without replacing the unsaved draft in the editor.
-          setConflictPlaybook(await getPlaybook(playbookId));
-        } catch {
-          // Keep the conflict message and draft if the latest row is no longer readable.
-        }
-      }
+      setErrorKey(mapTemplatesError(error));
     } finally {
       setSaving(false);
     }
@@ -172,7 +159,6 @@ export function PlaybookEditorPage() {
   const canSubmit =
     canEdit &&
     !saving &&
-    (isNew || updatedAt !== null) &&
     name.trim().length >= 2 &&
     steps.length > 0 &&
     steps.every((step) => step.title.trim().length > 0) &&
@@ -301,34 +287,9 @@ export function PlaybookEditorPage() {
                   )}
                 </Field>
                 {errorKey !== null ? (
-                  <div className="space-y-2">
-                    <p role="alert" className="text-[12.5px] text-danger">
-                      {t(errorKey)}
-                    </p>
-                    {conflictPlaybook !== null ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={saving}
-                        onClick={() => {
-                          setName(conflictPlaybook.name);
-                          setDescription(conflictPlaybook.description ?? "");
-                          setIsActive(conflictPlaybook.isActive);
-                          setServiceIds(conflictPlaybook.serviceIds);
-                          setCategoryIds(conflictPlaybook.categoryIds);
-                          setVersion(conflictPlaybook.version);
-                          setUpdatedAt(conflictPlaybook.updatedAt);
-                          setActiveTickets(conflictPlaybook.activeTicketCount);
-                          setCanEdit(conflictPlaybook.canEdit);
-                          setSteps(toPlaybookEditorSteps(conflictPlaybook));
-                          setConflictPlaybook(null);
-                          setErrorKey(null);
-                        }}
-                      >
-                        {t("templates.editor.loadLatest")}
-                      </Button>
-                    ) : null}
-                  </div>
+                  <p role="alert" className="text-[12.5px] text-danger">
+                    {t(errorKey)}
+                  </p>
                 ) : null}
                 <div className="flex justify-end gap-2">
                   <Button
@@ -398,15 +359,4 @@ export function PlaybookEditorPage() {
   );
 }
 
-/** Maps the loaded definition to editor state without changing stable step keys. */
-function toPlaybookEditorSteps(playbook: Playbook): readonly PlaybookStepDraft[] {
-  return playbook.steps.map((step) => ({
-    uid: step.stepKey,
-    stepKey: step.stepKey,
-    title: step.title,
-    instructions: step.instructions ?? "",
-    required: step.required,
-    knowledgeArticleId: step.knowledgeArticleId ?? "",
-    responseTemplateId: step.responseTemplateId ?? "",
-  }));
-}
+/** Keeps a selected id visible even if it is no longer in the loaded list. */

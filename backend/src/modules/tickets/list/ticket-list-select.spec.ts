@@ -43,22 +43,11 @@ describe('ticketListSelect', () => {
         'routedByUnroutedFallback',
         'createdAt',
         'updatedAt',
-        'requester',
-        'assignedUser',
-        'assignedGroup',
-        'formVersion',
-        'originUnit',
-        'service',
-        'parentTicket',
-        'mergedInto',
-        'closeCode',
-        'slaState',
-        'csat',
       ]),
     );
   });
 
-  it('selects only the explicit scalars and response relations', () => {
-    expect(columns.length).toBe(46);
+  it('selects exactly those columns, so a new one is a deliberate choice', () => {
+    expect(columns.length).toBe(35);
   });
 });

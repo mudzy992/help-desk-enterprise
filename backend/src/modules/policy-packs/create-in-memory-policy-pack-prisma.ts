@@ -1,5 +1,5 @@
-import { createInMemoryAuditLogDelegate } from "../audit-log/create-in-memory-audit-log-delegate";
-import { createInMemoryPolicyPackDelegates } from "./create-in-memory-policy-pack-delegates";
+import { createInMemoryAuditLogDelegate } from '../audit-log/create-in-memory-audit-log-delegate';
+import { createInMemoryPolicyPackDelegates } from './create-in-memory-policy-pack-delegates';
 import type {
   InMemoryPermissionRecord,
   InMemoryPolicyPackOrganizationalUnit,
@@ -10,8 +10,8 @@ import type {
   InMemoryRoleRecord,
   InMemoryUserRole,
   InMemorySlaProfileRecord,
-} from "./in-memory-policy-pack.types";
-import { mapInMemoryPolicyPackAssignments } from "./map-in-memory-policy-pack-assignments";
+} from './in-memory-policy-pack.types';
+import { mapInMemoryPolicyPackAssignments } from './map-in-memory-policy-pack-assignments';
 
 export function createInMemoryPolicyPackPrisma() {
   const stores: InMemoryPolicyPackStores = {
@@ -31,8 +31,8 @@ export function createInMemoryPolicyPackPrisma() {
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   const audit = createInMemoryAuditLogDelegate(
     auditLogs,
-    () => nextId("audit"),
-    () => new Date("2026-09-14T10:00:00.000Z"),
+    () => nextId('audit'),
+    () => new Date('2026-09-14T10:00:00.000Z'),
   );
   const prisma: ReturnType<typeof createInMemoryPolicyPackDelegates> &
     typeof audit & {
@@ -51,10 +51,7 @@ export function createInMemoryPolicyPackPrisma() {
     seedOrganizationalUnit: (unit: InMemoryPolicyPackOrganizationalUnit) =>
       stores.units.set(unit.id, unit),
     seedService: (service: InMemoryPolicyPackService) =>
-      stores.services.set(service.id, {
-        ...service,
-        revision: service.revision ?? 1,
-      }),
+      stores.services.set(service.id, service),
     seedRole: (role: InMemoryRoleRecord) => stores.roles.set(role.id, role),
     seedPermission: (permission: InMemoryPermissionRecord) =>
       stores.permissions.set(permission.id, permission),

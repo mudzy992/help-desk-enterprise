@@ -1,15 +1,23 @@
-import { ClipboardList, FileText, Plus, Search } from "lucide-react";
+import { ClipboardList, FileText, Pencil, Plus, Search, Trash2, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
-import { PlaybookTable, TemplateTable } from "@/components/templates/template-management-tables";
+import { TemplateScopeCell } from "@/components/templates/template-scope-cell";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
+import {
+  controlCompactClassName,
+  selectCompactClassName,
+  tableHeadClassName,
+  tableRowClassName,
+  tableWrapClassName,
+} from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Textarea } from "@/components/ui/field";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs, type UnderlineTabItem } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
@@ -27,8 +35,8 @@ import {
   type Playbook,
   type ResponseTemplate,
   type TemplateListState,
-  type CountedCursorPage,
 } from "@/services/templates-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 type TabKey = "shared" | "playbooks" | "mine";
 
@@ -67,76 +75,47 @@ export function TemplatesPage() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [state, setState] = useState<TemplateListState>("all");
-  const [templates, setTemplates] = useState<CountedCursorPage<ResponseTemplate> | null>(null);
-  const [playbooks, setPlaybooks] = useState<CountedCursorPage<Playbook> | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [templates, setTemplates] = useState<readonly ResponseTemplate[] | null>(null);
+  const [playbooks, setPlaybooks] = useState<readonly Playbook[] | null>(null);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [reason, setReason] = useState("");
   const [deleting, setDeleting] = useState(false);
   const containerRef = useRef<HTMLElement>(null);
-  const requestVersion = useRef(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(query.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  const load = useCallback(
-    async (cursor?: string) => {
-      if (tab === null) return;
-      const version = requestVersion.current;
-      try {
-        if (tab === "playbooks") {
-          const page = await listPlaybooks({ q: debounced, state, cursor });
-          if (version !== requestVersion.current) return;
-          setPlaybooks((current) =>
-            cursor !== undefined && current !== null
-              ? { ...page, items: [...current.items, ...page.items] }
-              : page,
-          );
-        } else {
-          const page = await listManagedTemplates({
+  const load = useCallback(async () => {
+    if (tab === null) return;
+    try {
+      if (tab === "playbooks") {
+        setPlaybooks(await listPlaybooks({ q: debounced, state }));
+      } else {
+        setTemplates(
+          await listManagedTemplates({
             ownership: tab === "mine" ? "mine" : "shared",
             q: debounced,
             state,
-            cursor,
-          });
-          if (version !== requestVersion.current) return;
-          setTemplates((current) =>
-            cursor !== undefined && current !== null
-              ? { ...page, items: [...current.items, ...page.items] }
-              : page,
-          );
-        }
-        if (version === requestVersion.current) setErrorKey(null);
-      } catch (error) {
-        if (version === requestVersion.current) setErrorKey(mapTemplatesError(error));
+          }),
+        );
       }
-    },
-    [debounced, state, tab],
-  );
+      setErrorKey(null);
+    } catch (error) {
+      setErrorKey(mapTemplatesError(error));
+    }
+  }, [debounced, state, tab]);
 
   useEffect(() => {
-    requestVersion.current += 1;
     setTemplates(null);
     setPlaybooks(null);
-  }, [tab, debounced, state]);
+  }, [tab]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  const loadMore = useCallback(async () => {
-    const cursor = tab === "playbooks" ? playbooks?.nextCursor : templates?.nextCursor;
-    if (cursor === null || cursor === undefined || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      await load(cursor);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [load, loadingMore, playbooks, tab, templates]);
 
   const live = useAdminConfigLiveRefresh({ domains: ["templates"], reload: load, containerRef });
 
@@ -145,32 +124,21 @@ export function TemplatesPage() {
     setDeleting(true);
     try {
       if (deleteTarget.type === "playbook") {
-        await deletePlaybook(deleteTarget.item.id, {
-          reason: reason.trim(),
-          expectedUpdatedAt: deleteTarget.item.updatedAt,
-        });
+        await deletePlaybook(deleteTarget.item.id, reason.trim());
         toast({ tone: "success", title: t("templates.playbook.deleted") });
       } else {
-        await deleteResponseTemplate(deleteTarget.item.ownership, deleteTarget.item.id, {
-          reason: reason.trim(),
-          expectedUpdatedAt: deleteTarget.item.updatedAt,
-        });
+        await deleteResponseTemplate(
+          deleteTarget.item.ownership,
+          deleteTarget.item.id,
+          reason.trim(),
+        );
         toast({ tone: "success", title: t("templates.editor.deleted") });
       }
       setDeleteTarget(null);
       setReason("");
       await load();
     } catch (error) {
-      const mapped = mapTemplatesError(error);
-      toast({ tone: "danger", title: t(mapped), error: error });
-      if (
-        mapped === "templates.errors.TEMPLATE_VERSION_CONFLICT" ||
-        mapped === "templates.errors.PLAYBOOK_VERSION_CONFLICT"
-      ) {
-        setDeleteTarget(null);
-        setReason("");
-        await load();
-      }
+      toast({ tone: "danger", title: t(mapTemplatesError(error)), error: error });
     } finally {
       setDeleting(false);
     }
@@ -201,8 +169,7 @@ export function TemplatesPage() {
       </Button>
     ) : null;
 
-  const page = tab === "playbooks" ? playbooks : templates;
-  const rows = page?.items ?? null;
+  const rows = tab === "playbooks" ? playbooks : templates;
 
   return (
     <section ref={containerRef}>
@@ -279,34 +246,16 @@ export function TemplatesPage() {
             />
           ) : tab === "playbooks" && playbooks !== null ? (
             <PlaybookTable
-              items={playbooks.items}
+              items={playbooks}
               locale={locale}
               onDelete={(item) => setDeleteTarget({ type: "playbook", item })}
             />
           ) : templates !== null ? (
             <TemplateTable
-              items={templates.items}
+              items={templates}
               locale={locale}
               onDelete={(item) => setDeleteTarget({ type: "template", item })}
             />
-          ) : null}
-          {page !== null && page.total > 0 ? (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px] text-muted-foreground">
-              <span>
-                {t("templates.list.showingCount", { shown: rows?.length ?? 0, total: page.total })}
-              </span>
-              {page.hasMore ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void loadMore()}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? t("templates.list.loadingMore") : t("templates.list.loadMore")}
-                </Button>
-              ) : null}
-            </div>
           ) : null}
         </>
       )}
@@ -352,5 +301,195 @@ export function TemplatesPage() {
         ) : null}
       </ConfirmDialog>
     </section>
+  );
+}
+
+function TemplateTable({
+  items,
+  locale,
+  onDelete,
+}: {
+  readonly items: readonly ResponseTemplate[];
+  readonly locale: string;
+  readonly onDelete: (item: ResponseTemplate) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ScrollRegion className={tableWrapClassName}>
+      <table className="w-full text-left text-[12.5px]" data-testid="templates-table">
+        <thead className={tableHeadClassName}>
+          <tr className="border-b border-border/70 [&>th]:px-3 [&>th]:py-2">
+            <th>{t("templates.list.name")}</th>
+            <th>{t("templates.list.kind")}</th>
+            <th>{t("templates.list.scope")}</th>
+            <th className="text-right">{t("templates.list.usage")}</th>
+            <th>{t("templates.list.updated")}</th>
+            <th>{t("templates.list.state")}</th>
+            <th className="sr-only">{t("templates.actions.edit")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id} className={cn(tableRowClassName, "[&>td]:px-3")}>
+              <td className="max-w-[320px]">
+                <Link
+                  to={`/admin/templates/${item.id}`}
+                  className="flex items-center gap-1.5 font-medium text-foreground hover:text-link"
+                >
+                  {item.ownership === "personal" ? <User size={12} /> : <FileText size={12} />}
+                  <span className="truncate">{item.name}</span>
+                </Link>
+                {item.tags.length > 0 ? (
+                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                    {item.tags.map((tag) => `#${tag}`).join(" ")}
+                  </p>
+                ) : null}
+              </td>
+              <td>{t(`templates.kind.${item.kind}`)}</td>
+              <td>
+                {item.ownership === "personal" ? (
+                  <Badge>{t("templates.picker.personal")}</Badge>
+                ) : (
+                  <TemplateScopeCell
+                    serviceIds={item.serviceIds}
+                    categoryIds={item.categoryIds}
+                    groupIds={item.groupIds}
+                  />
+                )}
+              </td>
+              <td className="tnum text-right">
+                {t("templates.list.usageCount", { count: item.usageCount })}
+              </td>
+              <td className="text-muted-foreground">
+                <RelativeTime value={item.updatedAt} locale={locale} />
+              </td>
+              <td>
+                <Badge tone={item.isActive ? "success" : "neutral"} dot>
+                  {item.isActive ? t("templates.state.active") : t("templates.state.inactive")}
+                </Badge>
+              </td>
+              <td className="whitespace-nowrap text-right">
+                <RowActions
+                  editTo={`/admin/templates/${item.id}`}
+                  canEdit={item.canEdit}
+                  onDelete={() => onDelete(item)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ScrollRegion>
+  );
+}
+
+function PlaybookTable({
+  items,
+  locale,
+  onDelete,
+}: {
+  readonly items: readonly Playbook[];
+  readonly locale: string;
+  readonly onDelete: (item: Playbook) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ScrollRegion className={tableWrapClassName}>
+      <table className="w-full text-left text-[12.5px]" data-testid="playbooks-table">
+        <thead className={tableHeadClassName}>
+          <tr className="border-b border-border/70 [&>th]:px-3 [&>th]:py-2">
+            <th>{t("templates.list.name")}</th>
+            <th>{t("templates.list.scope")}</th>
+            <th className="text-right">{t("templates.list.steps")}</th>
+            <th className="text-right">{t("templates.list.tickets")}</th>
+            <th className="text-right">{t("templates.list.version")}</th>
+            <th>{t("templates.list.updated")}</th>
+            <th>{t("templates.list.state")}</th>
+            <th className="sr-only">{t("templates.actions.edit")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id} className={cn(tableRowClassName, "[&>td]:px-3")}>
+              <td className="max-w-[320px]">
+                <Link
+                  to={`/admin/templates/playbooks/${item.id}`}
+                  className="flex items-center gap-1.5 font-medium text-foreground hover:text-link"
+                >
+                  <ClipboardList size={12} />
+                  <span className="truncate">{item.name}</span>
+                </Link>
+                {item.description ? (
+                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                    {item.description}
+                  </p>
+                ) : null}
+              </td>
+              <td>
+                <TemplateScopeCell serviceIds={item.serviceIds} categoryIds={item.categoryIds} />
+              </td>
+              <td className="tnum text-right">
+                {item.steps.length}
+                {item.steps.some((step) => step.required) ? (
+                  <span className="ml-1 text-[11px] text-muted-foreground">
+                    ({item.steps.filter((step) => step.required).length}{" "}
+                    {t("templates.checklist.requiredBadge").toLocaleLowerCase()})
+                  </span>
+                ) : null}
+              </td>
+              <td className="tnum text-right">{item.activeTicketCount}</td>
+              <td className="tnum text-right">v{item.version}</td>
+              <td className="text-muted-foreground">
+                <RelativeTime value={item.updatedAt} locale={locale} />
+              </td>
+              <td>
+                <Badge tone={item.isActive ? "success" : "neutral"} dot>
+                  {item.isActive ? t("templates.state.active") : t("templates.state.inactive")}
+                </Badge>
+              </td>
+              <td className="whitespace-nowrap text-right">
+                <RowActions
+                  editTo={`/admin/templates/playbooks/${item.id}`}
+                  canEdit={item.canEdit}
+                  onDelete={() => onDelete(item)}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ScrollRegion>
+  );
+}
+
+function RowActions({
+  editTo,
+  canEdit,
+  onDelete,
+}: {
+  readonly editTo: string;
+  readonly canEdit: boolean;
+  readonly onDelete: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="inline-flex items-center gap-1">
+      <Button asChild variant="ghost" size="xs">
+        <Link to={editTo}>
+          <Pencil size={12} /> {canEdit ? t("templates.actions.edit") : t("templates.actions.view")}
+        </Link>
+      </Button>
+      {canEdit ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          onClick={onDelete}
+          aria-label={t("templates.actions.delete")}
+        >
+          <Trash2 size={12} />
+        </Button>
+      ) : null}
+    </div>
   );
 }

@@ -13,12 +13,9 @@ export class PublishTicketRealtimeToRedisService {
     if (this.redisClient.status === 'wait') {
       await this.redisClient.connect();
     }
-    const subscribers = await this.redisClient.publish(
+    await this.redisClient.publish(
       ticketRealtimeBridgeChannel,
       JSON.stringify(payload),
     );
-    if (subscribers < 1) {
-      throw new Error('TICKET_REALTIME_NO_API_SUBSCRIBER');
-    }
   }
 }

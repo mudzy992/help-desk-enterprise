@@ -5,7 +5,7 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
 import { integrationJobBadgeTone } from "@/lib/queue/integration-job-badge-tone";
-import { mapIntegrationJobErrorCode } from "@/lib/queue/map-integration-job-error-code";
+import { truncateQueueError } from "@/lib/queue/truncate-queue-error";
 import type { IntegrationJob } from "@/services/integration-queue-types";
 import { ScrollRegion } from "@/components/ui/scroll-region";
 
@@ -47,20 +47,14 @@ export function IntegrationQueueTable({
                 </Badge>
               </td>
               <td className="tnum px-3">{job.attempts}</td>
-              <td
-                className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground"
-                title={t(mapIntegrationJobErrorCode(job.lastErrorCode))}
-              >
-                {t(mapIntegrationJobErrorCode(job.lastErrorCode))}
+              <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground">
+                {truncateQueueError(job.lastError) || t("integrationQueue.noError")}
               </td>
               <td className="px-3">
                 <RelativeTime value={job.updatedAt} locale={i18n.language} />
               </td>
               <td className="px-3">
-                {canRetry &&
-                canRetryIntegrationJob(job.status) &&
-                job.lastErrorCode !== "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN" &&
-                job.lastErrorCode !== "PROVIDER_DELIVERY_OUTCOME_UNKNOWN" ? (
+                {canRetry && canRetryIntegrationJob(job.status) ? (
                   <Button
                     type="button"
                     size="xs"

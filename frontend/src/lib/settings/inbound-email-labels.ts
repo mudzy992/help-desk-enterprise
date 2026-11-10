@@ -30,8 +30,6 @@ export const inboundProblemKeys = [
   "ENTRA_APP_MISSING",
   "IMAP_SERVER_MISSING",
   "IMAP_PASSWORD_MISSING",
-  "TRUSTED_AUTHSERV_ID_MISSING",
-  "TRUSTED_AUTHSERV_ID_INVALID",
   "DEFAULT_SERVICE_MISSING",
 ] as const;
 export type InboundProblemKey = (typeof inboundProblemKeys)[number];

@@ -11,7 +11,6 @@ model ServiceCategory {
   playbooks PlaybookCategory[]
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
-  revision  Int               @default(1) @db.Integer
 }
 
 model Service {
@@ -50,7 +49,6 @@ model Service {
   userRoles            UserRole[]
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
-  revision             Int                     @default(1) @db.Integer
   /// Paket 2.7: incidents on the status page.
   incidents            ServiceIncidentService[]
   /// Paket 2.9 (K2)

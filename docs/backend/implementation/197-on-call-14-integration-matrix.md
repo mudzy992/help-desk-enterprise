@@ -1,6 +1,6 @@
 # BA-on-call-14: service/concurrency/revocation integracijska matrica
 
-Status: **otvoreno**. Direktni service specovi (BA-on-call-01…13) pokrivaju scope, swap interval/accept revalidaciju, owner eligibility, iCal autorizaciju, scheduler/retention ponašanje i truncation kroz mockove, ali konkurencija nad stvarnom bazom (SERIALIZABLE dedupe race, schedule-save CAS race) i revokacija nad stvarnim redovima nisu imali integracijski dokaz, a E2E 44 je provjeravao samo pozitivan schedule tok.
+Status: **zatvoreno** (operativna potvrda korisnika: sve DA — regresija Dežurstava, swap tok i iCal opoziv rade kao i prije). Ovim je audit 21 (on-call) zatvoren u cijelosti: svih 15 nalaza. Direktni service specovi (BA-on-call-01…13) pokrivaju scope, swap interval/accept revalidaciju, owner eligibility, iCal autorizaciju, scheduler/retention ponašanje i truncation kroz mockove, ali konkurencija nad stvarnom bazom (SERIALIZABLE dedupe race, schedule-save CAS race) i revokacija nad stvarnim redovima nisu imali integracijski dokaz, a E2E 44 je provjeravao samo pozitivan schedule tok.
 
 ## Izmjena
 

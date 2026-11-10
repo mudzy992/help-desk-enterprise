@@ -1,24 +1,25 @@
-import type { Prisma } from "../../generated/prisma/client";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { assertServiceFormsEnabled } from "./assert-service-forms-enabled";
-import { isFormVersionUniqueConflict } from "./is-form-version-unique-conflict";
-import { loadService } from "./load-service";
-import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
-import { parseConfiguredFormSchema } from "./parse-configured-form-schema";
-import { recordServiceCatalogChange } from "./record-service-catalog-change";
+import type { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { loadService } from './load-service';
+import { parseConfiguredFormSchema } from './parse-configured-form-schema';
+import {
+  recordServiceCatalogChange,
+} from './record-service-catalog-change';
+import { assertServiceFormsEnabled } from './assert-service-forms-enabled';
 import {
   serviceFormsChangeLogEntityType,
   serviceFormsChangeLogReasons,
-} from "./service-forms.constants";
-import { ServiceFormsError } from "./service-forms.error";
-import type { CatalogMutationContext } from "./service-catalog.types";
+} from './service-forms.constants';
+import { ServiceFormsError } from './service-forms.error';
+import type {
+  CatalogMutationContext,
+} from './service-catalog.types';
 import type {
   CreateServiceFormInput,
   FormVersionResponse,
   ServiceFormsConfiguration,
-} from "./service-forms.types";
-import { toFormVersionResponse } from "./to-form-version-response";
-import { withServiceFormVersionMutationLock } from "./with-service-form-activation-lock";
+} from './service-forms.types';
+import { toFormVersionResponse } from './to-form-version-response';
 
 export async function createServiceForm(
   prisma: PrismaService,
@@ -29,67 +30,28 @@ export async function createServiceForm(
 ): Promise<FormVersionResponse> {
   assertServiceFormsEnabled(configuration);
   await loadService(prisma, serviceId);
-  const schema = parseConfiguredFormSchema(input.schema, configuration);
-  const reason = normalizeCatalogMutationReason({
-    reason: input.reason,
-    context,
-    systemFallback: serviceFormsChangeLogReasons.formCreate,
-  });
-  let created: Awaited<ReturnType<typeof createVersionOne>>;
-  try {
-    created = await prisma.$transaction(
-      (transaction) =>
-        withServiceFormVersionMutationLock(transaction, serviceId, async () => {
-          await loadService(transaction as PrismaService, serviceId);
-          const existing = await transaction.formVersion.count({
-            where: { serviceId },
-          });
-          if (existing > 0) {
-            throw new ServiceFormsError("FORM_ALREADY_EXISTS");
-          }
-          return createVersionOne(
-            transaction,
-            serviceId,
-            schema,
-            reason,
-            context,
-          );
-        }),
-      { isolationLevel: "ReadCommitted" },
-    );
-  } catch (error) {
-    if (isFormVersionUniqueConflict(error)) {
-      throw new ServiceFormsError("FORM_ALREADY_EXISTS");
-    }
-    throw error;
+  const existing = await prisma.formVersion.count({ where: { serviceId } });
+  if (existing > 0) {
+    throw new ServiceFormsError('FORM_ALREADY_EXISTS');
   }
+  const schema = parseConfiguredFormSchema(input.schema, configuration);
+  const created = await prisma.$transaction(async (transaction) => {
+    const version = await transaction.formVersion.create({
+      data: {
+        serviceId,
+        version: 1,
+        schema: schema as Prisma.InputJsonValue,
+        status: 'DRAFT',
+      },
+    });
+    await recordServiceCatalogChange(transaction as PrismaService, {
+      entityType: serviceFormsChangeLogEntityType,
+      entityId: version.id,
+      reason: serviceFormsChangeLogReasons.formCreate,
+      diff: { after: { serviceId, version: 1, formVersionRef: version.id } },
+      actorUserId: context.actorUserId,
+    });
+    return version;
+  });
   return toFormVersionResponse(created, 0);
-}
-
-async function createVersionOne(
-  transaction: Prisma.TransactionClient,
-  serviceId: string,
-  schema: CreateServiceFormInput["schema"],
-  reason: string,
-  context: CatalogMutationContext,
-) {
-  const version = await transaction.formVersion.create({
-    data: {
-      serviceId,
-      version: 1,
-      schema: schema as Prisma.InputJsonValue,
-      status: "DRAFT",
-    },
-  });
-  await recordServiceCatalogChange(transaction as PrismaService, {
-    entityType: serviceFormsChangeLogEntityType,
-    entityId: version.id,
-    reason,
-    diff: {
-      action: "service_form.create",
-      after: { serviceId, version: 1, formVersionRef: version.id },
-    },
-    actorUserId: context.actorUserId,
-  });
-  return version;
 }

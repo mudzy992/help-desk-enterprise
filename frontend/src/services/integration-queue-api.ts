@@ -8,7 +8,6 @@ import type {
 
 export type {
   IntegrationJob,
-  IntegrationJobAdminErrorCode,
   IntegrationJobAdminStatus,
   IntegrationJobListResult,
   IntegrationWorkerStatus,

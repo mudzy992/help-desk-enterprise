@@ -20,34 +20,6 @@ import { sendTemporaryPasswordEmail } from './send-temporary-password-email';
 import { recordUserChange } from './record-user-change';
 
 describe('issueTemporaryPasswordForUser', () => {
-  it('invalidates the principal only after the password transaction commits', async () => {
-    let committed = false;
-    const transaction = { user: { update: jest.fn().mockResolvedValue({}) } };
-    const prisma = {
-      $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => {
-        const result = await callback(transaction);
-        committed = true;
-        return result;
-      }),
-    };
-    const invalidatePrincipal = jest.fn(async () => {
-      expect(committed).toBe(true);
-    });
-
-    await issueTemporaryPasswordForUser({
-      prisma: prisma as never,
-      settingsService: {} as never,
-      mailTransport: { send: jest.fn() } as never,
-      userId: 'user-1',
-      email: 'user@corp.test',
-      displayName: 'Test User',
-      invalidatePrincipal,
-    });
-
-    expect(invalidatePrincipal).toHaveBeenCalledTimes(1);
-    expect(invalidatePrincipal).toHaveBeenCalledWith('user-1');
-  });
-
   it('always persists a non-null localPasswordHash and mustChangePassword', async () => {
     const update = jest.fn().mockResolvedValue({});
     const transaction = { user: { update } };

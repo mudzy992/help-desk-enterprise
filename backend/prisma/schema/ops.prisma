@@ -41,31 +41,18 @@ model NotificationReceipt {
 }
 
 model NotificationEmailDelivery {
-  id                      String    @id @default(cuid())
-  userId                  String
-  dedupeKey               String
-  toAddress               String
-  templateKey             String
-  /// PENDING | CLAIMED | SENT | FAILED | UNKNOWN | DEAD.
-  status                  String
-  /// Number of SMTP attempts initiated for this delivery.
-  attempts                Int       @default(0)
-  lastAttemptAt           DateTime?
-  nextRetryAt             DateTime?
-  /// Sanitized classifier key only; never persist raw provider text.
-  lastErrorCode           String?   @db.VarChar(32)
-  lastErrorResponseCode   Int?
-  /// SMTP-reported RFC Message-ID; it is a correlation ID, not proof of mailbox delivery.
-  providerMessageId       String?   @db.VarChar(500)
-  providerResponseCode    Int?
-  providerAcceptedAt      DateTime?
-  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  dedupeKey   String
+  toAddress   String
+  templateKey String
+  status      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([userId, dedupeKey])
   @@index([status])
-  @@index([status, nextRetryAt, createdAt])
   @@index([createdAt])
 }
 
@@ -177,23 +164,15 @@ model SecurityAuditWebhookState {
 }
 
 model IntegrationJob {
-  id                       String                @id @default(cuid())
-  type                     IntegrationJobType
-  status                   IntegrationJobStatus  @default(PENDING)
-  payload                  Json
-  lastError                String?
-  attempts                 Int                   @default(0)
-  /// Monotonic fencing version for processor claims and terminal transitions.
-  version                  Int                   @default(0)
-  /// Stable BullMQ logical attempt currently owning a PROCESSING claim.
-  processingAttemptId      String?
-  /// Random per-claim owner token; completion/failure must present this token.
-  processingOwnerToken     String?
-  /// Lease metadata only; reclaiming stale PROCESSING rows is BA-05 scope.
-  processingLeaseExpiresAt DateTime?
-  nextRetryAt              DateTime?
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime              @updatedAt
+  id          String                @id @default(cuid())
+  type        IntegrationJobType
+  status      IntegrationJobStatus  @default(PENDING)
+  payload     Json
+  lastError   String?
+  attempts    Int                   @default(0)
+  nextRetryAt DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 
   @@index([status, nextRetryAt])
   @@index([status, createdAt, id])
@@ -233,10 +212,6 @@ model AppSetting {
 /// Paket 2.3 (R12): one inbound e-mail seen in the support mailbox. The pair
 /// (mailboxKey, providerMessageId) is processed at most once. No body is kept
 /// here; the raw .eml lives in storage for `rawRetentionDays`.
-/// BA-inbound-email-07: a partial unique index on
-/// (mailboxKey, messageIdHeader) WHERE status='PROCESSED' exists only in
-/// migration 20271031210000 — Prisma cannot express partial indexes, so it is
-/// intentionally absent from this schema.
 model InboundEmail {
   id                String             @id @default(cuid())
   mailboxKey        String             @db.VarChar(200)
@@ -246,9 +221,6 @@ model InboundEmail {
   subject           String             @db.VarChar(200)
   receivedAt        DateTime?
   status            InboundEmailStatus @default(PROCESSING)
-  processingPhase   InboundEmailProcessingPhase?
-  processingOwnerToken String?         @db.Uuid
-  processingLeaseExpiresAt DateTime?
   reason            String?            @db.VarChar(64)
   ticketId          String?
   ticketMessageId   String?
@@ -260,7 +232,6 @@ model InboundEmail {
 
   @@unique([mailboxKey, providerMessageId])
   @@index([status, createdAt])
-  @@index([status, processingLeaseExpiresAt])
   @@index([createdAt])
   @@index([fromAddress, createdAt])
 }

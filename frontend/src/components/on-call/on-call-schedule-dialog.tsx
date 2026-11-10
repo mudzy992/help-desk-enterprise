@@ -113,7 +113,6 @@ export function OnCallScheduleDialog({
       setError(null);
       try {
         await saveOnCallSchedule(detail.group.id, {
-          expectedUpdatedAt: schedule?.updatedAt ?? null,
           timezone: timezone.trim(),
           handoffTime,
           rotationLength,

@@ -187,8 +187,6 @@ function setup(options: {
           .map((user) => ({ ...user, displayName: user.id, preferredLocale: 'bs' }));
       }),
     },
-    userNotificationPreference: { findMany: jest.fn(async () => []) },
-    userNotificationSchedule: { findMany: jest.fn(async () => []) },
     announcement: {
       findMany: jest.fn(async () =>
         options.teamsDue ? [{ ...announcement, severity: 'CRITICAL', service: null }] : [],

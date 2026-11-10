@@ -69,9 +69,9 @@ export function broadcastTicketUpdated(
 }
 
 /**
- * One light event for the whole group (instead of a full ticket/message payload).
- * The old event is sent only when an operator explicitly opts into temporary
- * compatibility; group membership alone is not per-ticket authorization.
+ * One light event for the whole group (instead of one full payload per member).
+ * While the transition switch is on, the room also gets the payload shape the
+ * previous client build understood, so a rolling deploy loses no event.
  */
 function broadcastGroupFeed(
   server: Server,

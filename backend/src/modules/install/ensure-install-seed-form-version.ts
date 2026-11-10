@@ -6,7 +6,6 @@ import {
   serviceFormsChangeLogEntityType,
   serviceFormsChangeLogReasons,
 } from '../service-catalog/service-forms.constants';
-import { withServiceFormActivationLock } from '../service-catalog/with-service-form-activation-lock';
 import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
 import {
   installSeedConstants,
@@ -29,76 +28,57 @@ export async function ensureInstallSeedFormVersion(
     readonly forms: ServiceFormsConfiguration;
   },
 ): Promise<EnsuredInstallSeedFormVersion> {
-  return prisma.$transaction(
-    async (transaction) =>
-      withServiceFormActivationLock(transaction, input.serviceId, async () => {
-        const active = await transaction.formVersion.findFirst({
-          where: { serviceId: input.serviceId, status: 'ACTIVE' },
-          orderBy: { version: 'desc' },
-          select: { id: true },
-        });
-        if (active !== null) {
-          return { formVersionRef: active.id, created: false };
-        }
-
-        const draft = await transaction.formVersion.findFirst({
-          where: { serviceId: input.serviceId, status: 'DRAFT' },
-          orderBy: { version: 'desc' },
-          select: { id: true },
-        });
-        if (draft !== null) {
-          return {
-            formVersionRef: await activateSeedFormVersion(
-              transaction as PrismaService,
-              draft.id,
-              input,
-            ),
-            created: false,
-          };
-        }
-
-        const schema = parseConfiguredFormSchema(
-          installSeedFormSchema,
-          input.forms,
-        );
-        const highest = await transaction.formVersion.findFirst({
-          where: { serviceId: input.serviceId },
-          orderBy: { version: 'desc' },
-          select: { version: true },
-        });
-        const created = await transaction.formVersion.create({
-          data: {
-            serviceId: input.serviceId,
-            version: (highest?.version ?? 0) + 1,
-            schema: schema as Prisma.InputJsonValue,
-            status: 'DRAFT',
-          },
-        });
-        await recordServiceCatalogChange(transaction as PrismaService, {
-          entityType: serviceFormsChangeLogEntityType,
-          entityId: created.id,
-          reason: serviceFormsChangeLogReasons.formCreate,
-          diff: {
-            after: {
-              serviceId: input.serviceId,
-              version: created.version,
-              formVersionRef: created.id,
-              source: installSeedConstants.changeLogReason,
-            },
-          },
-          actorUserId: input.actorUserId,
-        });
-        return {
-          formVersionRef: await activateSeedFormVersion(
-            transaction as PrismaService,
-            created.id,
-            input,
-          ),
-          created: true,
-        };
-      }),
-    { isolationLevel: 'ReadCommitted' },
-  );
+  const active = await prisma.formVersion.findFirst({
+    where: { serviceId: input.serviceId, status: 'ACTIVE' },
+    orderBy: { version: 'desc' },
+    select: { id: true },
+  });
+  if (active !== null) {
+    return { formVersionRef: active.id, created: false };
+  }
+  const draft = await prisma.formVersion.findFirst({
+    where: { serviceId: input.serviceId, status: 'DRAFT' },
+    orderBy: { version: 'desc' },
+    select: { id: true },
+  });
+  if (draft !== null) {
+    return {
+      formVersionRef: await activateSeedFormVersion(prisma, draft.id, input),
+      created: false,
+    };
+  }
+  const schema = parseConfiguredFormSchema(installSeedFormSchema, input.forms);
+  const highest = await prisma.formVersion.findFirst({
+    where: { serviceId: input.serviceId },
+    orderBy: { version: 'desc' },
+    select: { version: true },
+  });
+  const created = await prisma.formVersion.create({
+    data: {
+      serviceId: input.serviceId,
+      version: (highest?.version ?? 0) + 1,
+      schema: schema as Prisma.InputJsonValue,
+      status: 'DRAFT',
+    },
+  });
+  await recordServiceCatalogChange(prisma, {
+    entityType: serviceFormsChangeLogEntityType,
+    entityId: created.id,
+    reason: serviceFormsChangeLogReasons.formCreate,
+    diff: {
+      after: {
+        serviceId: input.serviceId,
+        version: created.version,
+        formVersionRef: created.id,
+        source: installSeedConstants.changeLogReason,
+      },
+    },
+    actorUserId: input.actorUserId,
+  });
+  return {
+    formVersionRef: await activateSeedFormVersion(prisma, created.id, input),
+    created: true,
+  };
 }
 
 async function activateSeedFormVersion(

@@ -64,7 +64,6 @@ export function createInMemoryInstallSeedPrisma() {
     role: users.prisma.role,
     permission: users.prisma.permission,
     rolePermission: users.prisma.rolePermission,
-    userRole: users.prisma.userRole,
     organizationalUnit: createInMemoryInstallSeedUnitDelegate(units, nextId, now),
     group: {
       ...baseGroupDelegate,
@@ -104,10 +103,6 @@ export function createInMemoryInstallSeedPrisma() {
         return created;
       },
     },
-    $queryRaw: async (
-      _query: TemplateStringsArray,
-      ..._values: unknown[]
-    ) => [],
     $executeRaw: async (_query: TemplateStringsArray, ..._values: unknown[]) => 0,
     $transaction: async <T>(
       callback: (client: unknown) => Promise<T>,

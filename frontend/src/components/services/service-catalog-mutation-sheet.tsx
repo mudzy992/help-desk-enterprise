@@ -93,7 +93,7 @@ export function ServiceCatalogMutationSheet({
           await createService(input);
         } else if (service !== null) {
           const { slug: _slug, ...input } = values;
-          await updateService(service.id, input satisfies UpdateServiceInput, service.revision);
+          await updateService(service.id, input satisfies UpdateServiceInput);
         }
         await onSaved();
         onOpenChange(false);

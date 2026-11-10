@@ -7,20 +7,10 @@ import type { AuthorizationContext } from '../../authorization/authorization.typ
 import { changeLogActions } from '../../change-log/change-log.constants';
 import { normalizeReason } from '../normalize-template-input';
 import { recordTemplatesChange } from '../record-templates-change';
-import { playbookSharedReadScopeWhere } from '../management-read-where';
 import { canManageSharedScope, hasPermission, type TemplateScope } from '../template-scope';
 import { templateChangeLogEntityTypes } from '../templates.constants';
 import { TemplatesConfigurationLoader } from '../templates-configuration.loader';
 import { TemplatesError } from '../templates.error';
-import {
-  afterTemplatesNameCursor,
-  decodeTemplatesNameCursor,
-  encodeTemplatesNameCursor,
-  templatesCursorKinds,
-  templatesFilterKey,
-  templatesPageLimit,
-  type TemplatesCountedCursorPage,
-} from '../templates-pagination';
 import {
   normalizePlaybookInput,
   stepsChanged,
@@ -34,9 +24,7 @@ export const playbookInclude = {
   categories: { select: { categoryId: true } },
 } as const;
 
-export type PlaybookRow = Prisma.PlaybookGetPayload<{
-  include: typeof playbookInclude;
-}>;
+export type PlaybookRow = Prisma.PlaybookGetPayload<{ include: typeof playbookInclude }>;
 
 export type PlaybookResponse = {
   readonly id: string;
@@ -71,73 +59,30 @@ export class PlaybooksService {
   ) {}
 
   async list(
-    query: {
-      q?: string;
-      serviceId?: string;
-      state?: 'active' | 'inactive' | 'all';
-      cursor?: string;
-      take?: number;
-    },
+    query: { q?: string; serviceId?: string; state?: 'active' | 'inactive' | 'all' },
     actor: Actor,
-  ): Promise<TemplatesCountedCursorPage<PlaybookResponse>> {
+  ): Promise<readonly PlaybookResponse[]> {
     const context = await this.requireManage(actor);
     const search = query.q?.trim() ?? '';
     const state = query.state ?? 'all';
-    const take = templatesPageLimit(query.take);
-    const filters: Prisma.PlaybookWhereInput[] = [];
-    const scopeWhere = playbookSharedReadScopeWhere(context);
-    if (scopeWhere !== null) filters.push(scopeWhere);
-    if (query.serviceId !== undefined) {
-      filters.push({ services: { some: { serviceId: query.serviceId } } });
-    }
-    const where: Prisma.PlaybookWhereInput = {
-      deletedAt: null,
-      ...(state === 'all' ? {} : { isActive: state === 'active' }),
-      ...(filters.length === 0 ? {} : { AND: filters }),
-      ...(search.length === 0 ? {} : { name: { contains: search, mode: 'insensitive' } }),
-    };
-    const filterKey = templatesFilterKey({
-      resource: 'managed-playbooks',
-      subjectId: context.subjectId,
-      isSuperAdmin: context.isSuperAdmin,
-      where,
+    const rows = await this.prisma.playbook.findMany({
+      where: {
+        deletedAt: null,
+        ...(state === 'all' ? {} : { isActive: state === 'active' }),
+        ...(query.serviceId === undefined ? {} : { services: { some: { serviceId: query.serviceId } } }),
+        ...(search.length === 0 ? {} : { name: { contains: search, mode: 'insensitive' } }),
+      },
+      include: playbookInclude,
+      orderBy: { name: 'asc' },
+      take: 1000,
     });
-    const cursor = decodeTemplatesNameCursor(query.cursor, templatesCursorKinds.managedPlaybooks, filterKey);
-    const pageWhere: Prisma.PlaybookWhereInput =
-      cursor === null ? where : { AND: [where, afterTemplatesNameCursor(cursor)] };
-    const [total, rows] = await Promise.all([
-      this.prisma.playbook.count({ where }),
-      this.prisma.playbook.findMany({
-        where: pageWhere,
-        include: playbookInclude,
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
-        take: take + 1,
-      }),
-    ]);
-    const hasMore = rows.length > take;
-    const pageRows = hasMore ? rows.slice(0, take) : rows;
-    const counts = await this.countActiveTickets(pageRows.map((row) => row.id));
-    const last = pageRows.at(-1);
-    return {
-      items: pageRows.map((row) => this.toResponse(row, context, counts.get(row.id) ?? 0)),
-      total,
-      take,
-      cursor: query.cursor ?? null,
-      nextCursor:
-        hasMore && last !== undefined
-          ? encodeTemplatesNameCursor(templatesCursorKinds.managedPlaybooks, {
-              name: last.name,
-              id: last.id,
-              filterKey,
-            })
-          : null,
-      hasMore,
-    };
+    const counts = await this.countActiveTickets(rows.map((row) => row.id));
+    return rows.map((row) => this.toResponse(row, context, counts.get(row.id) ?? 0));
   }
 
   async get(playbookId: string, actor: Actor): Promise<PlaybookResponse> {
     const context = await this.requireManage(actor);
-    const row = await this.loadVisibleForRead(playbookId, context);
+    const row = await this.load(playbookId);
     const counts = await this.countActiveTickets([row.id]);
     return this.toResponse(row, context, counts.get(row.id) ?? 0);
   }
@@ -158,14 +103,8 @@ export class PlaybooksService {
           isActive: normalized.isActive,
           createdById: context.subjectId,
           updatedById: context.subjectId,
-          services: {
-            create: normalized.serviceIds.map((serviceId) => ({ serviceId })),
-          },
-          categories: {
-            create: normalized.categoryIds.map((categoryId) => ({
-              categoryId,
-            })),
-          },
+          services: { create: normalized.serviceIds.map((serviceId) => ({ serviceId })) },
+          categories: { create: normalized.categoryIds.map((categoryId) => ({ categoryId })) },
           steps: { create: normalized.steps.map((step) => ({ ...step })) },
         },
         include: playbookInclude,
@@ -184,26 +123,11 @@ export class PlaybooksService {
     return this.toResponse(created, context, 0);
   }
 
-  async update(
-    playbookId: string,
-    body: PlaybookInput & { reason?: string; expectedUpdatedAt?: string },
-    actor: Actor,
-  ): Promise<PlaybookResponse> {
+  async update(playbookId: string, body: PlaybookInput & { reason?: string }, actor: Actor): Promise<PlaybookResponse> {
     const context = await this.requireManage(actor);
-    const expectedUpdatedAt = body.expectedUpdatedAt;
-    if (expectedUpdatedAt === undefined || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
-      throw new TemplatesError('PLAYBOOK_PRECONDITION_REQUIRED');
-    }
-
     const current = await this.load(playbookId);
-    if (Date.parse(expectedUpdatedAt) !== current.updatedAt.getTime()) {
-      throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
-    }
     const normalized = normalizePlaybookInput(body);
-    this.assertScope(context, {
-      serviceIds: toServiceIds(current),
-      categoryIds: toCategoryIds(current),
-    });
+    this.assertScope(context, { serviceIds: toServiceIds(current), categoryIds: toCategoryIds(current) });
     this.assertScope(context, normalized);
     const reason = normalizeReason(body.reason);
     await this.assertReferences(normalized);
@@ -212,33 +136,9 @@ export class PlaybooksService {
     const keys = normalized.steps.map((step) => step.stepKey);
     const updated = await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
-      const nextUpdatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
-      const claimed = await tx.playbook.updateMany({
-        where: {
-          id: playbookId,
-          deletedAt: null,
-          updatedAt: current.updatedAt,
-        },
-        data: {
-          name: normalized.name,
-          description: normalized.description,
-          isActive: normalized.isActive,
-          updatedById: context.subjectId,
-          updatedAt: nextUpdatedAt,
-          ...(bump ? { version: { increment: 1 } } : {}),
-        },
-      });
-      if (claimed.count !== 1) {
-        throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
-      }
-
-      // The parent compare-and-set is deliberately first. A stale writer must
-      // fail before it can touch any scope, step, or audit rows.
       await tx.playbookService.deleteMany({ where: { playbookId } });
       await tx.playbookCategory.deleteMany({ where: { playbookId } });
-      await tx.playbookStep.deleteMany({
-        where: { playbookId, stepKey: { notIn: keys } },
-      });
+      await tx.playbookStep.deleteMany({ where: { playbookId, stepKey: { notIn: keys } } });
       for (const step of normalized.steps) {
         await tx.playbookStep.upsert({
           where: { playbookId_stepKey: { playbookId, stepKey: step.stepKey } },
@@ -246,29 +146,19 @@ export class PlaybooksService {
           update: { ...step },
         });
       }
-      if (normalized.serviceIds.length > 0) {
-        await tx.playbookService.createMany({
-          data: normalized.serviceIds.map((serviceId) => ({
-            playbookId,
-            serviceId,
-          })),
-        });
-      }
-      if (normalized.categoryIds.length > 0) {
-        await tx.playbookCategory.createMany({
-          data: normalized.categoryIds.map((categoryId) => ({
-            playbookId,
-            categoryId,
-          })),
-        });
-      }
-      const row = await tx.playbook.findUnique({
+      const row = await tx.playbook.update({
         where: { id: playbookId },
+        data: {
+          name: normalized.name,
+          description: normalized.description,
+          isActive: normalized.isActive,
+          updatedById: context.subjectId,
+          ...(bump ? { version: { increment: 1 } } : {}),
+          services: { create: normalized.serviceIds.map((serviceId) => ({ serviceId })) },
+          categories: { create: normalized.categoryIds.map((categoryId) => ({ categoryId })) },
+        },
         include: playbookInclude,
       });
-      if (row === null) {
-        throw new TemplatesError('PLAYBOOK_NOT_FOUND');
-      }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.playbook,
         entityId: row.id,
@@ -285,44 +175,17 @@ export class PlaybooksService {
   }
 
   /** Soft delete: running checklists keep their copy of the steps (P2). */
-  async remove(
-    playbookId: string,
-    body: { reason?: string; expectedUpdatedAt?: string },
-    actor: Actor,
-  ): Promise<{ readonly id: string }> {
+  async remove(playbookId: string, reasonInput: string | undefined, actor: Actor): Promise<{ readonly id: string }> {
     const context = await this.requireManage(actor);
-    const expectedUpdatedAt = body.expectedUpdatedAt;
-    if (expectedUpdatedAt === undefined || !Number.isFinite(Date.parse(expectedUpdatedAt))) {
-      throw new TemplatesError('PLAYBOOK_PRECONDITION_REQUIRED');
-    }
     const current = await this.load(playbookId);
-    if (Date.parse(expectedUpdatedAt) !== current.updatedAt.getTime()) {
-      throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
-    }
-    this.assertScope(context, {
-      serviceIds: toServiceIds(current),
-      categoryIds: toCategoryIds(current),
-    });
-    const reason = normalizeReason(body.reason);
+    this.assertScope(context, { serviceIds: toServiceIds(current), categoryIds: toCategoryIds(current) });
+    const reason = normalizeReason(reasonInput);
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
-      const nextUpdatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
-      const claimed = await tx.playbook.updateMany({
-        where: {
-          id: playbookId,
-          deletedAt: null,
-          updatedAt: current.updatedAt,
-        },
-        data: {
-          deletedAt: nextUpdatedAt,
-          isActive: false,
-          updatedById: context.subjectId,
-          updatedAt: nextUpdatedAt,
-        },
+      await tx.playbook.update({
+        where: { id: playbookId },
+        data: { deletedAt: new Date(), isActive: false, updatedById: context.subjectId },
       });
-      if (claimed.count !== 1) {
-        throw new TemplatesError('PLAYBOOK_VERSION_CONFLICT');
-      }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.playbook,
         entityId: playbookId,
@@ -358,76 +221,30 @@ export class PlaybooksService {
     return row;
   }
 
-  private async loadVisibleForRead(playbookId: string, context: AuthorizationContext): Promise<PlaybookRow> {
-    const scopeWhere = playbookSharedReadScopeWhere(context);
-    const row = await this.prisma.playbook.findFirst({
-      where: { id: playbookId, deletedAt: null, ...(scopeWhere ?? {}) },
-      include: playbookInclude,
-    });
-    if (row === null || !this.canReadScope(context, row)) {
-      throw new TemplatesError('PLAYBOOK_NOT_FOUND');
-    }
-    return row;
-  }
-
-  private canReadScope(context: AuthorizationContext, row: PlaybookRow): boolean {
-    return canManageSharedScope(context, {
-      serviceIds: toServiceIds(row),
-      categoryIds: toCategoryIds(row),
-      groupIds: [],
-    });
-  }
-
   private assertScope(
     context: AuthorizationContext,
     scope: Pick<NormalizedPlaybook, 'serviceIds' | 'categoryIds'>,
   ): void {
-    const templateScope: TemplateScope = {
-      serviceIds: scope.serviceIds,
-      categoryIds: scope.categoryIds,
-      groupIds: [],
-    };
+    const templateScope: TemplateScope = { serviceIds: scope.serviceIds, categoryIds: scope.categoryIds, groupIds: [] };
     if (!canManageSharedScope(context, templateScope)) {
       throw new TemplatesError('TEMPLATE_SCOPE_FORBIDDEN');
     }
   }
 
   private async assertReferences(normalized: NormalizedPlaybook): Promise<void> {
-    const articleIds = [
-      ...new Set(
-        normalized.steps.flatMap((step) => (step.knowledgeArticleId === null ? [] : [step.knowledgeArticleId])),
-      ),
-    ];
-    const templateIds = [
-      ...new Set(
-        normalized.steps.flatMap((step) => (step.responseTemplateId === null ? [] : [step.responseTemplateId])),
-      ),
-    ];
+    const articleIds = [...new Set(normalized.steps.flatMap((step) => (step.knowledgeArticleId === null ? [] : [step.knowledgeArticleId])))];
+    const templateIds = [...new Set(normalized.steps.flatMap((step) => (step.responseTemplateId === null ? [] : [step.responseTemplateId])))];
     const [services, categories, articles, templates] = await Promise.all([
-      normalized.serviceIds.length === 0
-        ? 0
-        : this.prisma.service.count({
-            where: { id: { in: [...normalized.serviceIds] } },
-          }),
+      normalized.serviceIds.length === 0 ? 0 : this.prisma.service.count({ where: { id: { in: [...normalized.serviceIds] } } }),
       normalized.categoryIds.length === 0
         ? 0
-        : this.prisma.serviceCategory.count({
-            where: { id: { in: [...normalized.categoryIds] } },
-          }),
-      articleIds.length === 0
-        ? 0
-        : this.prisma.knowledgeArticle.count({
-            where: { id: { in: articleIds } },
-          }),
+        : this.prisma.serviceCategory.count({ where: { id: { in: [...normalized.categoryIds] } } }),
+      articleIds.length === 0 ? 0 : this.prisma.knowledgeArticle.count({ where: { id: { in: articleIds } } }),
       templateIds.length === 0
         ? 0
         : this.prisma.responseTemplate.count({
             // Only shared templates: a step is seen by every agent.
-            where: {
-              id: { in: templateIds },
-              ownerUserId: null,
-              deletedAt: null,
-            },
+            where: { id: { in: templateIds }, ownerUserId: null, deletedAt: null },
           }),
     ]);
     if (services !== normalized.serviceIds.length || categories !== normalized.categoryIds.length) {
@@ -483,11 +300,7 @@ export class PlaybooksService {
       })),
       activeTicketCount,
       updatedAt: row.updatedAt.toISOString(),
-      canEdit: canManageSharedScope(context, {
-        serviceIds,
-        categoryIds,
-        groupIds: [],
-      }),
+      canEdit: canManageSharedScope(context, { serviceIds, categoryIds, groupIds: [] }),
     };
   }
 }

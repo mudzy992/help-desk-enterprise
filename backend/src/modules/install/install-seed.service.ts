@@ -1,6 +1,5 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { findInstallSuperAdmin } from './find-install-super-admin';
 import { installSeedErrorCodes } from './install-seed.constants';
 import { resolveInstallSeedNames, type InstallSeedNameInput } from './install-seed.names';
@@ -20,8 +19,6 @@ export class InstallSeedService {
     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
     private readonly routingConfigurationLoader: RoutingConfigurationLoader,
     private readonly formsConfigurationLoader: ServiceFormsConfigurationLoader,
-    @Optional()
-    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
   ) {}
 
   async getStatus(): Promise<InstallSeedStatus> {
@@ -40,21 +37,12 @@ export class InstallSeedService {
       if (superAdmin === null) {
         throw new InstallSeedError(installSeedErrorCodes.superAdminRequired);
       }
-      const principalContextInvalidator = this.principalContextInvalidator;
       return seedInstallMinimum(this.prisma, {
         actorUserId: superAdmin.id,
         lifecycle: await this.lifecycleConfigurationLoader.load(),
         routing: await this.routingConfigurationLoader.load(),
         forms: await this.formsConfigurationLoader.load(),
         names: resolveInstallSeedNames(input),
-        ...(principalContextInvalidator === undefined
-          ? {}
-          : {
-              invalidatePrincipal: (userId: string) =>
-                principalContextInvalidator.invalidateUser(userId),
-              invalidatePrincipals: (userIds: readonly string[]) =>
-                principalContextInvalidator.invalidateUsers(userIds),
-            }),
       });
     });
   }

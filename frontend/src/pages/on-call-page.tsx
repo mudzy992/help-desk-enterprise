@@ -1,7 +1,6 @@
 import { OnCallOverviewLoading, OnCallPageHeader } from "@/components/on-call/on-call-page-state";
 import { OnCallPageDialogs } from "@/components/on-call/on-call-page-dialogs";
 import { OnCallOverviewCards } from "@/components/on-call/on-call-overview-cards";
-import { OnCallTruncationNote } from "@/components/on-call/on-call-truncation-note";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -62,7 +61,6 @@ export function OnCallPage() {
     overview,
     me,
     swaps,
-    swapsHasMore,
     overviewError,
     meError,
     swapsError,
@@ -217,7 +215,6 @@ export function OnCallPage() {
         me={me}
         meError={meError}
         swaps={swaps}
-        swapsHasMore={swapsHasMore}
         swapsError={swapsError}
         pending={pending}
         busy={busy}
@@ -312,6 +309,7 @@ export function OnCallPage() {
                         })
                       : t("onCall.detail.gap")}
                 </div>
+
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-[12.5px] font-medium text-foreground">{rangeLabel}</p>
                   <div className="flex gap-1.5">
@@ -367,6 +365,7 @@ export function OnCallPage() {
                   <OnCallCalendar days={days} timeZone={timeZone} currentUserId={currentUserId} />
                 </div>
                 <p className={hintClassName}>{t("onCall.calendar.legend", { zone: timeZone })}</p>
+
                 <section aria-labelledby="on-call-rotation" className="grid gap-1.5">
                   <h3 id="on-call-rotation" className="text-[12.5px] font-semibold text-foreground">
                     {t("onCall.schedule.members")}
@@ -393,6 +392,7 @@ export function OnCallPage() {
                     {schedule.autoAssignOutsideHours ? ` · ${t("onCall.detail.autoAssignOn")}` : ""}
                   </p>
                 </section>
+
                 <section aria-labelledby="on-call-overrides" className="grid gap-1.5">
                   <h3
                     id="on-call-overrides"
@@ -439,8 +439,8 @@ export function OnCallPage() {
                       ))}
                     </ul>
                   )}
-                  {detail.overridesHasMore ? <OnCallTruncationNote limit={200} /> : null}
                 </section>
+
                 {detail.swaps.length > 0 ? (
                   <section aria-labelledby="on-call-group-swaps" className="grid gap-1.5">
                     <h3
@@ -459,7 +459,6 @@ export function OnCallPage() {
                         </li>
                       ))}
                     </ul>
-                    {detail.swapsHasMore ? <OnCallTruncationNote limit={100} /> : null}
                   </section>
                 ) : null}
               </>
@@ -478,6 +477,7 @@ export function OnCallPage() {
           </div>
         </Card>
       ) : null}
+
       <OnCallPageDialogs
         detail={detail}
         scheduleOpen={scheduleOpen}

@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { PrincipalContextInvalidator } from '../../../common/principal-context/principal-context-invalidator.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import { authorizationRoleKeys } from '../../authorization/authorization.constants';
@@ -74,7 +73,6 @@ export type SubjectAssessment = {
 };
 
 const openStatuses: ErasureStatus[] = ['PENDING_APPROVAL', 'QUEUED', 'RUNNING'];
-const principalInvalidationTimeoutMs = 5_000;
 const erasureSelect = {
   id: true,
   userId: true,
@@ -124,12 +122,6 @@ export class AnonymizationService {
     @Inject(TICKET_ATTACHMENT_STORAGE) private readonly attachmentStorage: TicketAttachmentStorage,
     @Inject(INBOUND_RAW_STORE) inboundRawStore: InboundRawStore,
     @Optional() @Inject(PRIVACY_ERASURE_LEDGER) private readonly ledger?: ErasureLedger,
-    @Optional()
-    @Inject(PrincipalContextInvalidator)
-    private readonly principalContextInvalidator?: Pick<
-      PrincipalContextInvalidator,
-      'notifyUserChanged'
-    >,
   ) {
     this.executor = new AnonymizationExecutor(prisma, attachmentStorage, inboundRawStore);
   }
@@ -367,12 +359,6 @@ export class AnonymizationService {
         pausedScheduleIds,
         now,
       );
-      // Role/group rows and authzVersion commit together. Update the cache pointer
-      // and publish socket revocation only after that transaction commits.
-      await this.notifyPrincipalContextChanged(
-        erasure.userId,
-        assetTransferScrub.authzVersion,
-      );
       await this.appendLedger(erasure, tombstones, now);
       if (assetTransferScrub.signedFilesQueued > 0) {
         try {
@@ -405,7 +391,7 @@ export class AnonymizationService {
     scrubber: TextScrubber,
     pausedScheduleIds: readonly string[],
     now: Date,
-  ): Promise<AssetTransferAnonymizationResult & { readonly authzVersion: number }> {
+  ): Promise<AssetTransferAnonymizationResult> {
     const tag = erasure.pseudonym.slice(erasure.pseudonym.lastIndexOf('#') + 1);
     for (let attempt = 0; ; attempt += 1) {
       const pseudonym = createPseudonym(attempt);
@@ -415,15 +401,7 @@ export class AnonymizationService {
           if (await hasSuperAdminRole(transaction, erasure.userId)) {
             throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
           }
-          const deletedRoles = await transaction.userRole.deleteMany({
-            where: { userId: erasure.userId },
-          });
-          const deletedGroups = await transaction.groupMember.deleteMany({
-            where: { userId: erasure.userId },
-          });
-          if (deletedRoles.count > 0) report.roles = deletedRoles.count;
-          if (deletedGroups.count > 0) report.groups = deletedGroups.count;
-          const finalizedUser = await transaction.user.update({
+          await transaction.user.update({
             where: { id: erasure.userId },
             data: {
               email: pseudonym.email,
@@ -444,7 +422,6 @@ export class AnonymizationService {
               directorySyncedAt: null,
               authzVersion: { increment: 1 },
             },
-            select: { authzVersion: true },
           });
           // Nobody reports to an anonymized person any more.
           await transaction.user.updateMany({ where: { managerUserId: erasure.userId }, data: { managerUserId: null } });
@@ -484,49 +461,13 @@ export class AnonymizationService {
             metadata: { erasureId: erasure.id, pseudonymTag: tag, report },
             actorUserId: erasure.requestedByUserId,
           });
-          return {
-            ...assetTransfers,
-            textReplacements: transferTextReplacements,
-            authzVersion: finalizedUser.authzVersion,
-          };
+          return { ...assetTransfers, textReplacements: transferTextReplacements };
         });
         return assetTransferScrub;
       } catch (error) {
         // A random e-mail collision is practically impossible; retry twice anyway.
         if (attempt >= 2 || !isUniqueViolation(error)) throw error;
       }
-    }
-  }
-
-  private async notifyPrincipalContextChanged(
-    userId: string,
-    authzVersion: number,
-  ): Promise<void> {
-    const invalidator = this.principalContextInvalidator;
-    if (invalidator === undefined) return;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    let timedOut = false;
-    try {
-      await Promise.race([
-        invalidator.notifyUserChanged(userId, authzVersion),
-        new Promise<void>((resolve) => {
-          timeout = setTimeout(() => {
-            timedOut = true;
-            resolve();
-          }, principalInvalidationTimeoutMs);
-        }),
-      ]);
-      if (timedOut) {
-        this.logger.warn(
-          `privacy_authz_invalidation_timeout user=${userId} timeout_ms=${principalInvalidationTimeoutMs}`,
-        );
-      }
-    } catch (error) {
-      this.logger.warn(
-        `privacy_authz_invalidation_failed user=${userId} reason=${errorText(error)}`,
-      );
-    } finally {
-      if (timeout !== undefined) clearTimeout(timeout);
     }
   }
 

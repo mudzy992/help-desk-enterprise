@@ -5,7 +5,7 @@ import type {
   InMemoryRolePermissionRecord,
   InMemoryRoleRecord,
   InMemoryUserRole,
-} from "./in-memory-policy-pack.types";
+} from './in-memory-policy-pack.types';
 
 function sameNullable(left: string | null, right: string | null): boolean {
   return left === right;
@@ -95,7 +95,6 @@ export function createInMemoryPolicyPackDelegates(
           classification?: string;
           requiresApproval?: boolean;
           slaProfileId?: string | null;
-          revision?: number | { increment: number };
         };
       }) => {
         const service = stores.services.get(where.id);
@@ -113,12 +112,6 @@ export function createInMemoryPolicyPackDelegates(
         }
         if (data.slaProfileId !== undefined) {
           service.slaProfileId = data.slaProfileId;
-        }
-        if (data.revision !== undefined) {
-          service.revision =
-            typeof data.revision === "number"
-              ? data.revision
-              : (service.revision ?? 1) + data.revision.increment;
         }
         return service;
       },
@@ -149,7 +142,7 @@ export function createInMemoryPolicyPackDelegates(
         data: { key: string; name: string; isSystem: boolean };
       }) => {
         const created: InMemoryRoleRecord = {
-          id: nextId("role"),
+          id: nextId('role'),
           key: data.key,
         };
         stores.roles.set(created.id, created);
@@ -167,7 +160,7 @@ export function createInMemoryPolicyPackDelegates(
         data: { key: string; description: string };
       }) => {
         const created: InMemoryPermissionRecord = {
-          id: nextId("permission"),
+          id: nextId('permission'),
           key: data.key,
         };
         stores.permissions.set(created.id, created);
@@ -178,9 +171,7 @@ export function createInMemoryPolicyPackDelegates(
       findUnique: async ({
         where,
       }: {
-        where: {
-          roleId_permissionId: { roleId: string; permissionId: string };
-        };
+        where: { roleId_permissionId: { roleId: string; permissionId: string } };
       }) =>
         stores.rolePermissions.find(
           (item) =>
@@ -193,7 +184,7 @@ export function createInMemoryPolicyPackDelegates(
         data: { roleId: string; permissionId: string };
       }) => {
         const created: InMemoryRolePermissionRecord = {
-          id: nextId("role-permission"),
+          id: nextId('role-permission'),
           ...data,
         };
         stores.rolePermissions.push(created);
@@ -215,46 +206,15 @@ export function createInMemoryPolicyPackDelegates(
           (item) =>
             item.userId === where.userId &&
             item.roleId === where.roleId &&
-            sameNullable(
-              item.organizationalUnitId,
-              where.organizationalUnitId,
-            ) &&
+            sameNullable(item.organizationalUnitId, where.organizationalUnitId) &&
             sameNullable(item.serviceId, where.serviceId),
         ) ?? null,
-      create: async ({ data }: { data: Omit<InMemoryUserRole, "id"> }) => {
-        const created = { id: nextId("user-role"), ...data };
+      create: async ({ data }: { data: Omit<InMemoryUserRole, 'id'> }) => {
+        const created = { id: nextId('user-role'), ...data };
         stores.userRoles.push(created);
         return created;
       },
-      findMany: async (args?: {
-        where?: { roleId?: string | { in: readonly string[] }; userId?: string };
-        select?: { userId?: boolean };
-        distinct?: readonly string[];
-      }) => {
-        let records = [...stores.userRoles];
-        const roleId = args?.where?.roleId;
-        if (typeof roleId === 'string') {
-          records = records.filter((record) => record.roleId === roleId);
-        } else if (roleId !== undefined) {
-          const roleIds = new Set(roleId.in);
-          records = records.filter((record) => roleIds.has(record.roleId));
-        }
-        if (args?.where?.userId !== undefined) {
-          records = records.filter((record) => record.userId === args.where?.userId);
-        }
-        if (args?.distinct?.includes('userId')) {
-          const seen = new Set<string>();
-          records = records.filter((record) => {
-            if (seen.has(record.userId)) return false;
-            seen.add(record.userId);
-            return true;
-          });
-        }
-        if (args?.select?.userId === true) {
-          return records.map(({ userId }) => ({ userId }));
-        }
-        return records;
-      },
+      findMany: async () => [...stores.userRoles],
       deleteMany: async ({
         where,
       }: {
@@ -290,8 +250,8 @@ export function createInMemoryPolicyPackDelegates(
         update,
       }: {
         where: { key: string };
-        create: Omit<InMemoryPolicyPackRecord, "id">;
-        update: Omit<InMemoryPolicyPackRecord, "id" | "key">;
+        create: Omit<InMemoryPolicyPackRecord, 'id'>;
+        update: Omit<InMemoryPolicyPackRecord, 'id' | 'key'>;
       }) => {
         const existing = [...stores.policyPacks.values()].find(
           (item) => item.key === where.key,
@@ -300,7 +260,7 @@ export function createInMemoryPolicyPackDelegates(
           Object.assign(existing, update);
           return existing;
         }
-        const created = { id: nextId("policy-pack"), ...create };
+        const created = { id: nextId('policy-pack'), ...create };
         stores.policyPacks.set(created.id, created);
         return created;
       },

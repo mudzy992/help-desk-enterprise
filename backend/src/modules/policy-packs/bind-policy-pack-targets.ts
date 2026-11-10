@@ -17,7 +17,7 @@ export async function bindPolicyPackTargets(
   if (target.serviceId !== null) {
     await prisma.service.update({
       where: { id: target.serviceId },
-      data: { policyPackId, revision: { increment: 1 } },
+      data: { policyPackId },
     });
   }
 }

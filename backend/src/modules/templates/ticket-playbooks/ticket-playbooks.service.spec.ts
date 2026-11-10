@@ -1,35 +1,16 @@
 import { permissionKeys } from '../../authorization/authorization.constants';
-import type { AuthorizationAssignment, AuthorizationContext } from '../../authorization/authorization.types';
-import { templateLimits } from '../templates.constants';
+import type {
+  AuthorizationAssignment,
+  AuthorizationContext,
+} from '../../authorization/authorization.types';
 import { TemplatesError } from '../templates.error';
 import { TicketPlaybooksService, sanitize } from './ticket-playbooks.service';
 import type { PlaybookStepSnapshot } from './ticket-playbook-snapshot';
 
-jest.mock('../../../common/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
-jest.mock('../../authorization/authorization-context.loader', () => ({
-  AuthorizationContextLoader: class AuthorizationContextLoader {},
-}));
-jest.mock('../../tickets/ticket-access-policy-binder', () => ({
-  TicketAccessPolicyBinder: class TicketAccessPolicyBinder {},
-}));
-jest.mock('../templates-configuration.loader', () => ({
-  TemplatesConfigurationLoader: class TemplatesConfigurationLoader {},
-}));
-jest.mock('../playbooks/playbooks.service', () => ({ playbookInclude: {} }));
-jest.mock('../../tickets/load-accessible-ticket', () => ({
-  loadAccessibleTicket: jest.fn(),
-}));
+jest.mock('../../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
 jest.mock('./attach-playbook-to-ticket', () => ({
   attachPlaybookToTicket: jest.fn(),
-  loadPlaybookCandidates: jest.fn(async () => ({
-    items: [],
-    take: 50,
-    cursor: null,
-    nextCursor: null,
-    hasMore: false,
-  })),
+  loadPlaybookCandidates: jest.fn(async () => []),
 }));
 
 import { loadAccessibleTicket } from '../../tickets/load-accessible-ticket';
@@ -142,21 +123,14 @@ type HarnessPrisma = {
     readonly update: jest.Mock;
     readonly create: jest.Mock;
   };
-  readonly ticketPlaybookStep: {
-    readonly deleteMany: jest.Mock;
-    readonly upsert: jest.Mock;
-  };
+  readonly ticketPlaybookStep: { readonly deleteMany: jest.Mock; readonly upsert: jest.Mock };
   readonly playbook: { readonly findFirst: jest.Mock };
   readonly service: { readonly findUnique: jest.Mock };
   readonly user: { readonly findMany: jest.Mock };
   readonly knowledgeArticle: { readonly findMany: jest.Mock };
   readonly responseTemplate: { readonly findMany: jest.Mock };
-  readonly ticketMessage: {
-    readonly create: jest.Mock;
-    readonly upsert: jest.Mock;
-  };
+  readonly ticketMessage: { readonly create: jest.Mock };
   readonly changeLog: { readonly create: jest.Mock };
-  readonly $queryRaw: jest.Mock;
   readonly $transaction: jest.Mock;
 };
 
@@ -187,59 +161,24 @@ function createHarness(
     playbook: {
       findFirst: jest.fn(async (): Promise<unknown> => null),
     },
-    service: {
-      findUnique: jest.fn(async () => ({ categoryId: 'category-1' })),
-    },
-    user: {
-      findMany: jest.fn(async () => [{ id: 'actor-1', displayName: 'Agent Jedan' }]),
-    },
+    service: { findUnique: jest.fn(async () => ({ categoryId: 'category-1' })) },
+    user: { findMany: jest.fn(async () => [{ id: 'actor-1', displayName: 'Agent Jedan' }]) },
     knowledgeArticle: { findMany: jest.fn(async () => []) },
     responseTemplate: { findMany: jest.fn(async () => []) },
     ticketMessage: {
-      create: jest.fn(
-        async (args: {
-          data: {
-            ticketId: string;
-            type: string;
-            body: string;
-            authorUserId: string | null;
-          };
-        }) => {
-          messageCounter += 1;
-          const record = {
-            id: `message-${messageCounter}`,
-            ticketId: args.data.ticketId,
-            type: args.data.type,
-            body: args.data.body,
-            authorUserId: args.data.authorUserId,
-            createdAt: new Date('2026-03-04T05:06:07.000Z'),
-          };
-          messages.push(record);
-          return record;
-        },
-      ),
-      upsert: jest.fn(
-        async (args: {
-          create: {
-            ticketId: string;
-            type: string;
-            body: string;
-            authorUserId: string | null;
-          };
-        }) => {
-          messageCounter += 1;
-          const record = {
-            id: `message-${messageCounter}`,
-            ticketId: args.create.ticketId,
-            type: args.create.type,
-            body: args.create.body,
-            authorUserId: args.create.authorUserId,
-            createdAt: new Date('2026-03-04T05:06:07.000Z'),
-          };
-          messages.push(record);
-          return record;
-        },
-      ),
+      create: jest.fn(async (args: { data: { ticketId: string; type: string; body: string; authorUserId: string | null } }) => {
+        messageCounter += 1;
+        const record = {
+          id: `message-${messageCounter}`,
+          ticketId: args.data.ticketId,
+          type: args.data.type,
+          body: args.data.body,
+          authorUserId: args.data.authorUserId,
+          createdAt: new Date('2026-03-04T05:06:07.000Z'),
+        };
+        messages.push(record);
+        return record;
+      }),
     },
     changeLog: {
       create: jest.fn(async (args: { data: Record<string, unknown> }) => {
@@ -247,13 +186,10 @@ function createHarness(
         return args.data;
       }),
     },
-    $queryRaw: jest.fn(async () => [{ id: 'ticket-playbook-1' }]),
     $transaction: jest.fn(async (fn: (tx: HarnessPrisma) => Promise<unknown>) => fn(prisma)),
   };
 
-  const authorizationLoader = {
-    loadBySubjectId: jest.fn(async () => authorizationContext),
-  };
+  const authorizationLoader = { loadBySubjectId: jest.fn(async () => authorizationContext) };
   const accessPolicies = { bind: jest.fn(async () => ({})) };
   const realtimeHub = { publish: jest.fn(), publishTicketUpdated: jest.fn() };
   const configurationLoader = {
@@ -273,12 +209,9 @@ function createHarness(
     configurationLoader as never,
   );
 
-  loadTicketMock.mockImplementation(async () => ({
-    ticket,
-    access: { visibility: 'staff' },
-  }));
+  loadTicketMock.mockImplementation(async () => ({ ticket, access: { visibility: 'staff' } }));
 
-  return { service, prisma, changeLogs, messages, realtimeHub, accessPolicies, configurationLoader };
+  return { service, prisma, changeLogs, messages, realtimeHub, accessPolicies };
 }
 
 /**
@@ -309,47 +242,31 @@ describe('TicketPlaybooksService', () => {
     // `resetAllMocks` also drops the module-factory default, so the candidate
     // loader is re-armed after every reset.
     jest.resetAllMocks();
-    candidatesMock.mockImplementation(async () => ({
-      items: [],
-      take: 50,
-      cursor: null,
-      nextCursor: null,
-      hasMore: false,
-    }));
+    candidatesMock.mockImplementation(async () => [] as never);
   });
 
   describe('get', () => {
     it('answers "disabled" without loading the ticket when playbooks are off', async () => {
-      const { service } = createHarness({
-        playbooksEnabled: false,
-        mode: 'block',
-      });
+      const { service } = createHarness({ playbooksEnabled: false, mode: 'block' });
       await expect(service.get('ticket-1', { actorUserId: 'actor-1' })).resolves.toEqual({
         enabled: false,
         mode: 'block',
         readOnly: true,
         playbook: null,
         available: [],
-        availablePage: {
-          take: 50,
-          cursor: null,
-          nextCursor: null,
-          hasMore: false,
-        },
       });
       expect(loadTicketMock).not.toHaveBeenCalled();
     });
 
     it('requires staff visibility and ticket.templates.use', async () => {
       const { service } = createHarness();
-      loadTicketMock.mockResolvedValueOnce({
-        ticket,
-        access: { visibility: 'public' },
-      });
+      loadTicketMock.mockResolvedValueOnce({ ticket, access: { visibility: 'public' } });
       expect(await codeOf(service.get('ticket-1', { actorUserId: 'actor-1' }))).toBe('FORBIDDEN');
 
       const withoutUse = createHarness({ context: contextFor([]) });
-      expect(await codeOf(withoutUse.service.get('ticket-1', { actorUserId: 'actor-1' }))).toBe('FORBIDDEN');
+      expect(await codeOf(withoutUse.service.get('ticket-1', { actorUserId: 'actor-1' }))).toBe(
+        'FORBIDDEN',
+      );
     });
 
     it('marks a closed ticket read-only and offers no playbooks for it', async () => {
@@ -365,38 +282,19 @@ describe('TicketPlaybooksService', () => {
       expect(candidatesMock).not.toHaveBeenCalled();
     });
 
-    it('returns relevance-ordered candidates with an explicit next-page signal', async () => {
+    it('ranks available playbooks: service match, then category, then the rest by name', async () => {
       const { service } = createHarness();
-      candidatesMock.mockResolvedValueOnce({
-        items: [
-          { id: 'svc', name: 'Servisni', match: 'service' },
-          { id: 'cat', name: 'Kategorijski', match: 'category' },
-        ],
-        take: 2,
-        cursor: null,
-        nextCursor: 'next-page',
-        hasMore: true,
-      });
-      const view = await service.get('ticket-1', { actorUserId: 'actor-1' }, { take: 2 });
+      candidatesMock.mockResolvedValueOnce([
+        { id: 'cat', name: 'Kategorijski', serviceIds: [], categoryIds: ['category-1'] },
+        { id: 'other', name: 'A ostali', serviceIds: ['service-9'], categoryIds: [] },
+        { id: 'svc', name: 'Servisni', serviceIds: ['service-1'], categoryIds: [] },
+      ]);
+      const view = await service.get('ticket-1', { actorUserId: 'actor-1' });
       expect(view.available.map((item) => [item.id, item.match])).toEqual([
         ['svc', 'service'],
         ['cat', 'category'],
+        ['other', 'other'],
       ]);
-      expect(view.availablePage).toEqual({
-        take: 2,
-        cursor: null,
-        nextCursor: 'next-page',
-        hasMore: true,
-      });
-      expect(candidatesMock).toHaveBeenCalledWith(
-        expect.anything(),
-        {
-          ticketId: 'ticket-1',
-          serviceId: 'service-1',
-          categoryId: 'category-1',
-        },
-        { take: 2 },
-      );
       expect(view.playbook).toBeNull();
       expect(view.mode).toBe('warn');
     });
@@ -407,61 +305,27 @@ describe('TicketPlaybooksService', () => {
         attached({
           stepsSnapshot: [
             snapshot({ stepKey: 'korak-1', title: 'Prvi', required: true }),
-            snapshot({
-              stepKey: 'korak-2',
-              position: 1,
-              title: 'Drugi',
-              required: false,
-            }),
+            snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi', required: false }),
           ],
-          steps: [
-            {
-              stepKey: 'korak-1',
-              checkedById: 'actor-1',
-              checkedAt: new Date('2026-02-02T00:00:00.000Z'),
-            },
-          ],
+          steps: [{ stepKey: 'korak-1', checkedById: 'actor-1', checkedAt: new Date('2026-02-02T00:00:00.000Z') }],
         }),
       );
       prisma.knowledgeArticle.findMany.mockResolvedValue([{ id: 'article-1', title: 'Uputa', slug: 'uputa' }]);
       prisma.responseTemplate.findMany.mockResolvedValue([{ id: 'template-1', name: 'Šablon' }]);
-      loadTicketMock.mockResolvedValueOnce({
-        ticket,
-        access: { visibility: 'staff' },
-      });
+      loadTicketMock.mockResolvedValueOnce({ ticket, access: { visibility: 'staff' } });
       prisma.ticketPlaybook.findFirst.mockResolvedValueOnce(
         attached({
           stepsSnapshot: [
-            snapshot({
-              stepKey: 'korak-1',
-              title: 'Prvi',
-              required: true,
-              knowledgeArticleId: 'article-1',
-            }),
-            snapshot({
-              stepKey: 'korak-2',
-              position: 1,
-              title: 'Drugi',
-              required: false,
-              responseTemplateId: 'template-1',
-            }),
+            snapshot({ stepKey: 'korak-1', title: 'Prvi', required: true, knowledgeArticleId: 'article-1' }),
+            snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi', required: false, responseTemplateId: 'template-1' }),
           ],
-          steps: [
-            {
-              stepKey: 'korak-1',
-              checkedById: 'actor-1',
-              checkedAt: new Date('2026-02-02T00:00:00.000Z'),
-            },
-          ],
+          steps: [{ stepKey: 'korak-1', checkedById: 'actor-1', checkedAt: new Date('2026-02-02T00:00:00.000Z') }],
         }),
       );
       const view = await service.get('ticket-1', { actorUserId: 'actor-1' });
       expect(view.playbook?.name).toBe('Mrežni kvar');
       expect(view.playbook?.autoAttached).toBe(false);
-      expect(view.playbook?.attachedBy).toEqual({
-        id: 'actor-1',
-        displayName: 'Agent Jedan',
-      });
+      expect(view.playbook?.attachedBy).toEqual({ id: 'actor-1', displayName: 'Agent Jedan' });
       expect(view.playbook?.latestVersion).toBe(2);
       expect(
         view.playbook?.steps.map((item) => [
@@ -474,68 +338,7 @@ describe('TicketPlaybooksService', () => {
         ['korak-1', true, 'Uputa', null],
         ['korak-2', false, null, 'Šablon'],
       ]);
-      expect(view.playbook?.progress).toMatchObject({
-        total: 2,
-        done: 1,
-        requiredTotal: 1,
-        requiredDone: 1,
-      });
-    });
-  });
-
-  describe('bulkAttach', () => {
-    it('rejects oversized synchronous requests before database work or partial writes', async () => {
-      const { service, prisma, configurationLoader } = createHarness();
-      const ticketIds = Array.from(
-        { length: templateLimits.bulkAttachSyncMaxTickets + 1 },
-        (_, index) => `ticket-${index}`,
-      );
-
-      await expect(
-        service.bulkAttach('playbook-1', ticketIds, { actorUserId: 'actor-1' }),
-      ).rejects.toMatchObject({
-        code: 'TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED',
-        details: {
-          limit: templateLimits.bulkAttachSyncMaxTickets,
-          requested: templateLimits.bulkAttachSyncMaxTickets + 1,
-        },
-      });
-      expect(configurationLoader.load).not.toHaveBeenCalled();
-      expect(prisma.playbook.findFirst).not.toHaveBeenCalled();
-      expect(loadTicketMock).not.toHaveBeenCalled();
-      expect(attachMock).not.toHaveBeenCalled();
-    });
-
-    it('deduplicates IDs and returns independent attach/skip outcomes', async () => {
-      const { service, prisma } = createHarness();
-      prisma.playbook.findFirst.mockResolvedValue({ id: 'playbook-1' });
-      prisma.ticketPlaybook.findFirst.mockImplementation(async (args: { where: { ticketId: string } }) =>
-        args.where.ticketId === 'already' ? { id: 'active-checklist' } : null,
-      );
-      loadTicketMock.mockImplementation(async (_prisma, _authorization, ticketId: string) => ({
-        ticket: {
-          ...ticket,
-          id: ticketId,
-          status: ticketId === 'closed' ? 'CLOSED' : 'OPEN',
-        },
-        access: { visibility: ticketId === 'private' ? 'public' : 'staff' },
-      }));
-      attachMock.mockResolvedValue(undefined);
-
-      const result = await service.bulkAttach(
-        'playbook-1',
-        ['attach', 'attach', 'closed', 'already', 'private'],
-        { actorUserId: 'actor-1' },
-      );
-      expect(result.attached).toEqual(['attach']);
-      expect(result.skipped).toHaveLength(3);
-      expect(result.skipped).toEqual(expect.arrayContaining([
-        { ticketId: 'closed', reason: 'read_only' },
-        { ticketId: 'already', reason: 'already_attached' },
-        { ticketId: 'private', reason: 'forbidden' },
-      ]));
-      expect(loadTicketMock).toHaveBeenCalledTimes(4);
-      expect(attachMock).toHaveBeenCalledTimes(1);
+      expect(view.playbook?.progress).toMatchObject({ total: 2, done: 1, requiredTotal: 1, requiredDone: 1 });
     });
   });
 
@@ -543,9 +346,7 @@ describe('TicketPlaybooksService', () => {
     it('passes the ticket, playbook and actor to the attach helper and publishes the events', async () => {
       const { service, prisma, realtimeHub, messages } = createHarness();
       prisma.ticketPlaybook.findFirst.mockResolvedValue(null);
-      await service.attach('ticket-1', 'playbook-1', {
-        actorUserId: 'actor-1',
-      });
+      await service.attach('ticket-1', 'playbook-1', { actorUserId: 'actor-1' });
       const args = attachMock.mock.calls[0][0] as {
         playbookId: string;
         actorUserId: string;
@@ -566,12 +367,14 @@ describe('TicketPlaybooksService', () => {
 
     it('asks for a writable ticket and refuses a read-only one', async () => {
       const { service } = createHarness();
-      await service.attach('ticket-1', 'playbook-1', {
-        actorUserId: 'actor-1',
-      });
-      expect(loadTicketMock).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'ticket-1', expect.anything(), {
-        writable: true,
-      });
+      await service.attach('ticket-1', 'playbook-1', { actorUserId: 'actor-1' });
+      expect(loadTicketMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        'ticket-1',
+        expect.anything(),
+        { writable: true },
+      );
 
       loadTicketMock.mockResolvedValueOnce({
         ticket: { ...ticket, status: 'ARCHIVED' },
@@ -594,7 +397,9 @@ describe('TicketPlaybooksService', () => {
     it('requires a reason and a running checklist', async () => {
       const { service, prisma } = createHarness();
       queueActive(prisma);
-      expect(await codeOf(service.detach('ticket-1', 'x', { actorUserId: 'actor-1' }))).toBe('REASON_REQUIRED');
+      expect(await codeOf(service.detach('ticket-1', 'x', { actorUserId: 'actor-1' }))).toBe(
+        'REASON_REQUIRED',
+      );
       expect(await codeOf(service.detach('ticket-1', 'nema više', { actorUserId: 'actor-1' }))).toBe(
         'TICKET_PLAYBOOK_NOT_FOUND',
       );
@@ -603,9 +408,7 @@ describe('TicketPlaybooksService', () => {
     it('marks the row detached, audits it and tells the ticket chat', async () => {
       const { service, prisma, changeLogs, messages, realtimeHub } = createHarness();
       queueActive(prisma, attached(), null);
-      const view = await service.detach('ticket-1', '  playbook   ukinut ', {
-        actorUserId: 'actor-1',
-      });
+      const view = await service.detach('ticket-1', '  playbook   ukinut ', { actorUserId: 'actor-1' });
       const args = prisma.ticketPlaybook.updateMany.mock.calls[0][0] as {
         where: { id: string; detachedAt: null };
         data: { detachReason: string; detachedById: string; detachedAt: Date };
@@ -620,11 +423,7 @@ describe('TicketPlaybooksService', () => {
         actorUserId: 'actor-1',
       });
       expect(messages).toEqual([
-        expect.objectContaining({
-          ticketId: 'ticket-1',
-          type: 'SYSTEM_EVENT',
-          body: 'ticket_playbook_detached:playbook ukinut',
-        }),
+        expect.objectContaining({ ticketId: 'ticket-1', type: 'SYSTEM_EVENT', body: 'ticket_playbook_detached:playbook ukinut' }),
       ]);
       expect(realtimeHub.publish).toHaveBeenCalledTimes(1);
       expect(view.playbook).toBeNull();
@@ -634,13 +433,9 @@ describe('TicketPlaybooksService', () => {
       const { service, prisma, changeLogs } = createHarness();
       queueActive(prisma, attached());
       prisma.ticketPlaybook.updateMany.mockResolvedValueOnce({ count: 0 });
-      expect(
-        await codeOf(
-          service.detach('ticket-1', 'playbook ukinut', {
-            actorUserId: 'actor-1',
-          }),
-        ),
-      ).toBe('TICKET_PLAYBOOK_NOT_FOUND');
+      expect(await codeOf(service.detach('ticket-1', 'playbook ukinut', { actorUserId: 'actor-1' }))).toBe(
+        'TICKET_PLAYBOOK_NOT_FOUND',
+      );
       expect(changeLogs).toEqual([]);
     });
   });
@@ -649,13 +444,10 @@ describe('TicketPlaybooksService', () => {
     it('refuses when the ticket is already on the newest version', async () => {
       const { service, prisma } = createHarness();
       queueActive(prisma, attached({ playbookVersion: 2 }));
-      prisma.playbook.findFirst.mockResolvedValueOnce({
-        id: 'playbook-1',
-        name: 'Mrežni kvar',
-        version: 2,
-        steps: [],
-      });
-      expect(await codeOf(service.upgrade('ticket-1', { actorUserId: 'actor-1' }))).toBe('TICKET_PLAYBOOK_UP_TO_DATE');
+      prisma.playbook.findFirst.mockResolvedValueOnce({ id: 'playbook-1', name: 'Mrežni kvar', version: 2, steps: [] });
+      expect(await codeOf(service.upgrade('ticket-1', { actorUserId: 'actor-1' }))).toBe(
+        'TICKET_PLAYBOOK_UP_TO_DATE',
+      );
     });
 
     it('refuses when the playbook is gone or inactive', async () => {
@@ -672,17 +464,8 @@ describe('TicketPlaybooksService', () => {
       queueActive(
         prisma,
         attached({
-          stepsSnapshot: [
-            snapshot({ stepKey: 'korak-1' }),
-            snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' }),
-          ],
-          steps: [
-            {
-              stepKey: 'korak-2',
-              checkedById: 'actor-1',
-              checkedAt: new Date('2026-02-02T00:00:00.000Z'),
-            },
-          ],
+          stepsSnapshot: [snapshot({ stepKey: 'korak-1' }), snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' })],
+          steps: [{ stepKey: 'korak-2', checkedById: 'actor-1', checkedAt: new Date('2026-02-02T00:00:00.000Z') }],
         }),
       );
       prisma.playbook.findFirst.mockResolvedValueOnce({
@@ -697,17 +480,10 @@ describe('TicketPlaybooksService', () => {
       await service.upgrade('ticket-1', { actorUserId: 'actor-1' });
       // only korak-2 is still finished and still exists, so only it survives
       expect(prisma.ticketPlaybookStep.deleteMany).toHaveBeenCalledWith({
-        where: {
-          ticketPlaybookId: 'ticket-playbook-1',
-          stepKey: { notIn: ['korak-2'] },
-        },
+        where: { ticketPlaybookId: 'ticket-playbook-1', stepKey: { notIn: ['korak-2'] } },
       });
       const updateArgs = prisma.ticketPlaybook.update.mock.calls[0][0] as {
-        data: {
-          playbookVersion: number;
-          playbookName: string;
-          stepsSnapshot: StepSnapshotRow[];
-        };
+        data: { playbookVersion: number; playbookName: string; stepsSnapshot: StepSnapshotRow[] };
       };
       expect(updateArgs.data.playbookVersion).toBe(3);
       expect(updateArgs.data.playbookName).toBe('Mrežni kvar');
@@ -736,11 +512,7 @@ describe('TicketPlaybooksService', () => {
       const { service, prisma } = createHarness();
       queueActive(prisma, attached());
       expect(
-        await codeOf(
-          service.setStep('ticket-1', 'nepoznat', true, {
-            actorUserId: 'actor-1',
-          }),
-        ),
+        await codeOf(service.setStep('ticket-1', 'nepoznat', true, { actorUserId: 'actor-1' })),
       ).toBe('TICKET_PLAYBOOK_STEP_NOT_FOUND');
     });
 
@@ -750,9 +522,7 @@ describe('TicketPlaybooksService', () => {
         steps: [{ stepKey: 'korak-1', checkedById: 'actor-1', checkedAt: new Date() }],
       });
       queueActive(prisma, alreadyChecked, alreadyChecked);
-      const view = await service.setStep('ticket-1', 'korak-1', true, {
-        actorUserId: 'actor-1',
-      });
+      const view = await service.setStep('ticket-1', 'korak-1', true, { actorUserId: 'actor-1' });
       expect(prisma.ticketPlaybookStep.upsert).not.toHaveBeenCalled();
       expect(prisma.changeLog.create).not.toHaveBeenCalled();
       expect(messages).toEqual([]);
@@ -762,61 +532,36 @@ describe('TicketPlaybooksService', () => {
 
     it('checks a step, records it and reports the position in the event', async () => {
       const { service, prisma, messages, changeLogs } = createHarness();
-      queueActive(
-        prisma,
-        attached({
-          stepsSnapshot: [
-            snapshot({ stepKey: 'korak-1' }),
-            snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' }),
-          ],
-        }),
-        null,
-      );
-      await service.setStep('ticket-1', 'korak-1', true, {
-        actorUserId: 'actor-1',
-      });
+      queueActive(prisma, attached({
+        stepsSnapshot: [snapshot({ stepKey: 'korak-1' }), snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' })],
+      }), null);
+      await service.setStep('ticket-1', 'korak-1', true, { actorUserId: 'actor-1' });
       expect(prisma.ticketPlaybookStep.upsert).toHaveBeenCalledWith({
-        where: {
-          ticketPlaybookId_stepKey: {
-            ticketPlaybookId: 'ticket-playbook-1',
-            stepKey: 'korak-1',
-          },
-        },
-        create: expect.objectContaining({
-          stepKey: 'korak-1',
-          checkedById: 'actor-1',
-        }),
+        where: { ticketPlaybookId_stepKey: { ticketPlaybookId: 'ticket-playbook-1', stepKey: 'korak-1' } },
+        create: expect.objectContaining({ stepKey: 'korak-1', checkedById: 'actor-1' }),
         update: {},
       });
       expect(changeLogs[0]).toMatchObject({ reason: 'playbook_step_checked' });
-      expect(messages.map((message) => message.body)).toEqual(['ticket_playbook_step_checked:1:Provjeri kabl']);
+      expect(messages.map((message) => message.body)).toEqual([
+        'ticket_playbook_step_checked:1:Provjeri kabl',
+      ]);
     });
 
     it('unchecks a step and announces it', async () => {
       const { service, prisma, messages, changeLogs } = createHarness();
       queueActive(
         prisma,
-        attached({
-          steps: [
-            {
-              stepKey: 'korak-1',
-              checkedById: 'actor-1',
-              checkedAt: new Date(),
-            },
-          ],
-        }),
+        attached({ steps: [{ stepKey: 'korak-1', checkedById: 'actor-1', checkedAt: new Date() }] }),
         null,
       );
-      await service.setStep('ticket-1', 'korak-1', false, {
-        actorUserId: 'actor-1',
-      });
+      await service.setStep('ticket-1', 'korak-1', false, { actorUserId: 'actor-1' });
       expect(prisma.ticketPlaybookStep.deleteMany).toHaveBeenCalledWith({
         where: { ticketPlaybookId: 'ticket-playbook-1', stepKey: 'korak-1' },
       });
-      expect(changeLogs[0]).toMatchObject({
-        reason: 'playbook_step_unchecked',
-      });
-      expect(messages.map((message) => message.body)).toEqual(['ticket_playbook_step_unchecked:1:Provjeri kabl']);
+      expect(changeLogs[0]).toMatchObject({ reason: 'playbook_step_unchecked' });
+      expect(messages.map((message) => message.body)).toEqual([
+        'ticket_playbook_step_unchecked:1:Provjeri kabl',
+      ]);
     });
 
     it('announces completion once the last open step is ticked', async () => {
@@ -824,34 +569,16 @@ describe('TicketPlaybooksService', () => {
       queueActive(
         prisma,
         attached({
-          stepsSnapshot: [
-            snapshot({ stepKey: 'korak-1' }),
-            snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' }),
-          ],
-          steps: [
-            {
-              stepKey: 'korak-1',
-              checkedById: 'actor-1',
-              checkedAt: new Date(),
-            },
-          ],
+          stepsSnapshot: [snapshot({ stepKey: 'korak-1' }), snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' })],
+          steps: [{ stepKey: 'korak-1', checkedById: 'actor-1', checkedAt: new Date() }],
         }),
         null,
       );
-      await service.setStep('ticket-1', 'korak-2', true, {
-        actorUserId: 'actor-1',
-      });
+      await service.setStep('ticket-1', 'korak-2', true, { actorUserId: 'actor-1' });
       expect(messages.map((message) => message.body)).toEqual([
         'ticket_playbook_step_checked:2:Drugi',
         'ticket_playbook_completed:Mrežni kvar',
       ]);
-      const completion = prisma.ticketMessage.upsert.mock.calls[0]?.[0] as {
-        where: {
-          ticketId_idempotencyKey: { ticketId: string; idempotencyKey: string };
-        };
-      };
-      expect(completion.where.ticketId_idempotencyKey.ticketId).toBe('ticket-1');
-      expect(completion.where.ticketId_idempotencyKey.idempotencyKey).toMatch(/^playbook-completed:ticket-playbook-1:/);
     });
 
     it('does not complete while a step is still open', async () => {
@@ -859,17 +586,14 @@ describe('TicketPlaybooksService', () => {
       queueActive(
         prisma,
         attached({
-          stepsSnapshot: [
-            snapshot({ stepKey: 'korak-1' }),
-            snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' }),
-          ],
+          stepsSnapshot: [snapshot({ stepKey: 'korak-1' }), snapshot({ stepKey: 'korak-2', position: 1, title: 'Drugi' })],
         }),
         null,
       );
-      await service.setStep('ticket-1', 'korak-1', true, {
-        actorUserId: 'actor-1',
-      });
-      expect(messages.map((message) => message.body)).toEqual(['ticket_playbook_step_checked:1:Provjeri kabl']);
+      await service.setStep('ticket-1', 'korak-1', true, { actorUserId: 'actor-1' });
+      expect(messages.map((message) => message.body)).toEqual([
+        'ticket_playbook_step_checked:1:Provjeri kabl',
+      ]);
     });
   });
 

@@ -10,7 +10,7 @@ export type InMemoryTicketOrderBy =
   | { readonly [field: string]: unknown }
   | ReadonlyArray<{ readonly [field: string]: unknown }>;
 
-/** Relation rows by relation name (`participants`, `slaState`, `assignedGroup`, etc.). */
+/** Rows related to a ticket, by relation name (`participants`, `slaState`...). */
 export type InMemoryTicketRelations = Readonly<
   Record<string, (ticket: { readonly id: string }) => readonly object[]>
 >;

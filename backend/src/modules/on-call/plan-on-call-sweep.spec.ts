@@ -21,26 +21,15 @@ describe('planOnCallSweep (Paket 2.9 K3)', () => {
   it('reminds the next person the day before, inside the reminder hour only', () => {
     const at1500 = planOnCallSweep({ ...base, now: new Date('2026-09-29T13:01:00Z') });
     expect(at1500.filter((a) => a.kind === 'reminder').map((a) => a.userId)).toEqual(['bojan']);
-    const beforeWindow = planOnCallSweep({ ...base, now: new Date('2026-09-29T08:00:00Z') });
-    expect(beforeWindow.some((a) => a.kind === 'reminder')).toBe(false);
-  });
-
-  it('recovers a reminder missed because the reminder hour passed unsent (BA-on-call-08)', () => {
     const at1630 = planOnCallSweep({ ...base, now: new Date('2026-09-29T14:31:00Z') });
-    expect(at1630.filter((a) => a.kind === 'reminder').map((a) => a.userId)).toEqual(['bojan']);
+    expect(at1630.some((a) => a.kind === 'reminder')).toBe(false);
   });
 
   it('announces a shift start within the grace window, not the clipped first segment', () => {
     const actions = planOnCallSweep({ ...base, now: new Date('2026-09-30T06:16:00Z') });
     expect(actions.filter((a) => a.kind === 'shiftStarted').map((a) => a.userId)).toEqual(['bojan']);
     expect(planOnCallSweep({ ...base, now: new Date('2026-09-28T06:10:00Z') }).some((a) => a.kind === 'shiftStarted')).toBe(false);
-  });
-
-  it('recovers a shift-start missed within 24 h, but not older ones (BA-on-call-08)', () => {
-    const oneHourLate = planOnCallSweep({ ...base, now: new Date('2026-09-30T07:00:00Z') });
-    expect(oneHourLate.filter((a) => a.kind === 'shiftStarted').map((a) => a.userId)).toEqual(['bojan']);
-    const dayLate = planOnCallSweep({ ...base, now: new Date('2026-10-01T07:00:00Z') });
-    expect(dayLate.filter((a) => a.kind === 'shiftStarted').map((a) => a.userId)).toEqual([]);
+    expect(planOnCallSweep({ ...base, now: new Date('2026-09-30T07:00:00Z') }).some((a) => a.kind === 'shiftStarted')).toBe(false);
   });
 
   it('warns the owner about an uncovered shift in the next 24 h with a stable dedupe key', () => {

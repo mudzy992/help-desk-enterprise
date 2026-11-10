@@ -41,13 +41,6 @@ export function createInMemoryGroupMemberDelegate(
       where?: GroupMemberWhere;
       select?: Record<string, boolean>;
     } = {}) => pickMember(matching(where)[0], select),
-    deleteMany: async ({ where }: { where?: GroupMemberWhere } = {}) => {
-      const matched = matching(where);
-      for (const member of matched) {
-        members.delete(member.id);
-      }
-      return { count: matched.length };
-    },
   };
 }
 

@@ -63,7 +63,6 @@ export const assetErrorCodes = {
   transferScanUnavailable: 'ASSET_TRANSFER_SCAN_UNAVAILABLE',
   transferTemplateInvalid: 'ASSET_TRANSFER_TEMPLATE_INVALID',
   transferTemplateNotFound: 'ASSET_TRANSFER_TEMPLATE_NOT_FOUND',
-  transferTemplateVersionConflict: 'ASSET_TRANSFER_TEMPLATE_VERSION_CONFLICT',
   transferRenderFailed: 'ASSET_TRANSFER_RENDER_FAILED',
 } as const;
 
@@ -188,6 +187,8 @@ export const assetContractKinds = ['WARRANTY', 'SUPPORT', 'LEASE', 'MAINTENANCE'
 export type AssetContractKindValue = (typeof assetContractKinds)[number];
 
 export const assetContractLimits = {
+  listMax: 200,
   itemsPerContract: 500,
+  assignmentsPerLicense: 5000,
   keyMax: 500,
 } as const;

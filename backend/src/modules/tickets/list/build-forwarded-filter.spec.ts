@@ -16,17 +16,6 @@ describe('buildForwardedFilter (package 1.6)', () => {
     ]);
   });
 
-  it('uses a membership relation when actor group ids are not preloaded', () => {
-    expect(buildForwardedFilter({ forwarded: 'toMyGroups' }, agent, [], 'user-1')).toEqual([
-      {
-        forwardCount: { gt: 0 },
-        assignedGroup: {
-          is: { members: { some: { userId: 'user-1' } } },
-        },
-      },
-    ]);
-  });
-
   it('is ignored for requesters', () => {
     expect(
       buildForwardedFilter({ forwarded: 'any' }, { isSuperAdmin: false, roleKeys: ['END_USER'] }, []),

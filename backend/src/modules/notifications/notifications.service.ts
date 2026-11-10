@@ -6,10 +6,7 @@ import { countUnreadNotifications } from './count-unread-notifications';
 import { executeNotificationOperation } from './execute-notification-operation';
 import { NotificationUnreadCountCache } from './notification-unread-count.cache';
 import { listNotifications } from './list-notifications';
-import {
-  loadNotificationAudience,
-  notificationAudienceFingerprint,
-} from './notification-audience';
+import { loadNotificationAudience } from './notification-audience';
 import { markAllNotificationsRead } from './mark-all-notifications-read';
 import { markNotificationRead } from './mark-notification-read';
 import type {
@@ -44,26 +41,16 @@ export class NotificationsService {
    */
   unreadCount(userId: string): Promise<NotificationUnreadCountResponse> {
     return executeNotificationOperation(async () => {
-      // Option A: the badge depends on the user's current groups. Bind the cached value
-      // to the exact membership snapshot and group epochs, so a revoke cannot reuse it.
+      // Option A: the badge also depends on the user's groups, so the cached value is
+      // checked against their epochs (bumped by every group notification).
       const memberships = await loadNotificationAudience(this.prisma, userId);
       const groupIds = memberships.map((membership) => membership.groupId);
-      const audienceFingerprint = notificationAudienceFingerprint(memberships);
-      const cached = await this.unreadCountCache.readWithEpochs(
-        userId,
-        groupIds,
-        audienceFingerprint,
-      );
+      const cached = await this.unreadCountCache.readWithEpochs(userId, groupIds);
       if (cached.count !== null) {
         return { unreadCount: cached.count };
       }
-      const unreadCount = await countUnreadNotifications(this.prisma, userId, memberships);
-      await this.unreadCountCache.writeWithEpochs(
-        userId,
-        unreadCount,
-        cached.epochs,
-        audienceFingerprint,
-      );
+      const unreadCount = await countUnreadNotifications(this.prisma, userId);
+      await this.unreadCountCache.writeWithEpochs(userId, unreadCount, cached.epochs);
       return { unreadCount };
     });
   }

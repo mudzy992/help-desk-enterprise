@@ -1,13 +1,12 @@
-import { check, sleep } from 'k6';
+import { sleep } from 'k6';
 import http from 'k6/http';
 import { authorizedHeaders, expectOk, login, pickToken } from './http-helpers.js';
-import { performanceMetrics, recordResponse } from './metrics.js';
+import { recordResponse } from './metrics.js';
 import { openSocketSession } from './ws-client.js';
-import { ticketMessageIdempotencyKey } from './ticket-message-idempotency-key.js';
 
 /**
- * The four plan behaviours are shared by `smoke.js` and `full.js`. The smoke
- * additionally runs a BA-10 `/services` page against its 500-row fixture.
+ * The four behaviours from the plan (§5.1), shared by `smoke.js` and `full.js`
+ * so a smoke run exercises exactly the same code paths as the full run.
  */
 
 /** Last message timestamp per virtual user, to honour "1 message / 30 s". */
@@ -69,18 +68,14 @@ export function agentTicketFlow(config, data) {
   });
   expectOk(inbox, 'tickets.inbox');
 
-  // Assign a different seeded ticket to each VU when CI supplies the fixture IDs.
-  // Otherwise cycle through the visible page instead of sending every agent to
-  // its first row (which created an unrealistic hot-ticket write pile-up).
-  const seededIds =
-    config.behaviour.agentTicketIds?.length > 0
-      ? config.behaviour.agentTicketIds
-      : config.behaviour.ticketIds || [];
-  const ticketIds = seededIds.length > 0 ? seededIds : readTicketIds(inbox);
+  // Staging seed (2026-09-25): seeded tickets are already claimed, so the inbox is
+  // empty and detail/reply were never measured (p95 = 0). Fall back to TICKET_IDS.
+  const fallbackIds = config.behaviour.ticketIds || [];
   const ticketId =
-    ticketIds.length === 0
-      ? null
-      : ticketIds[(Number(__VU) - 1) % ticketIds.length];
+    readFirstTicketId(inbox) ??
+    (fallbackIds.length > 0
+      ? fallbackIds[Math.floor(Math.random() * fallbackIds.length)]
+      : null);
   if (ticketId === null) {
     sleep(thinkTime(config));
     return;
@@ -100,9 +95,10 @@ export function agentTicketFlow(config, data) {
     const message = http.post(
       `${config.baseUrl}${config.paths.tickets}/${ticketId}/messages`,
       JSON.stringify({
-        // The DTO requires a UUID v4 idempotency key as well as the message type
-        // and body; without it ValidationPipe returns 400 before the handler runs.
-        idempotencyKey: ticketMessageIdempotencyKey(__VU, __ITER, now),
+        // `CreateTicketMessageDto` is exactly `{ type, body }`, and the controller runs
+        // with `forbidNonWhitelisted: true`: the earlier `visibility` field would have
+        // been rejected with a 400 the moment this branch became reachable (the inbox
+        // used to be empty, so the endpoint was never actually called).
         type: 'AGENT_REPLY',
         body: `load test probe ${now}`,
       }),
@@ -148,44 +144,6 @@ export function searchHeavy(config, data) {
   sleep(config.behaviour.searchEverySeconds);
 }
 
-/** BA-10: exercise the bounded service-list envelope against a 500-row fixture. */
-export function serviceCatalog(config, data) {
-  const headers = authorizedHeaders(pickToken(data.tokens, __VU));
-  const response = http.get(
-    `${config.baseUrl}${config.paths.serviceCatalog}?take=100`,
-    { ...headers, tags: { endpoint: 'services.catalog' } },
-  );
-  expectOk(response, 'services.catalog');
-
-  let validEnvelope = false;
-  try {
-    const page = response.json();
-    validEnvelope =
-      response.status >= 200 &&
-      response.status < 300 &&
-      Array.isArray(page?.items) &&
-      page.items.length === 100 &&
-      page.items.length <= page.take &&
-      page.total >= 500 &&
-      page.take === 100 &&
-      page.hasMore === true &&
-      typeof page.nextCursor === 'string' &&
-      page.items.every(
-        (item) =>
-          typeof item?.activeForm?.fieldCount === 'number' &&
-          !Object.prototype.hasOwnProperty.call(item.activeForm, 'schema'),
-      );
-  } catch {
-    validEnvelope = false;
-  }
-  check(response, {
-    'services.catalog returns a bounded page and summary projection': () => validEnvelope,
-  });
-  performanceMetrics.serviceCatalogContractFailures.add(validEnvelope ? 0 : 1);
-  recordResponse('services.catalog', response, config);
-  sleep(config.behaviour.serviceCatalogIntervalSeconds);
-}
-
 /** 15%: hold a Socket.IO session and count inbound events. */
 export function websocketClients(config, data) {
   const token = pickToken(data.tokens, __VU);
@@ -219,17 +177,16 @@ export function thinkTime(config) {
   return min + Math.random() * (max - min);
 }
 
-function readTicketIds(response) {
+function readFirstTicketId(response) {
   try {
     const body = response.json();
     const items = Array.isArray(body) ? body : body?.items;
-    if (!Array.isArray(items)) {
-      return [];
+    if (!Array.isArray(items) || items.length === 0) {
+      return null;
     }
-    return items.flatMap((item) =>
-      typeof item?.id === 'string' && item.id.length > 0 ? [item.id] : [],
-    );
+    const first = items[0];
+    return typeof first?.id === 'string' ? first.id : null;
   } catch {
-    return [];
+    return null;
   }
 }

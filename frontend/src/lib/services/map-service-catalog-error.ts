@@ -11,7 +11,6 @@ export type ServiceCatalogErrorKey =
   | "services.errorHasDependencies"
   | "services.errorCategory"
   | "services.errorValidation"
-  | "services.errorStaleWrite"
   | "services.errorUnavailable"
   | "services.errorDowntimeOverlap"
   | "services.errorDowntimeRange"
@@ -42,9 +41,6 @@ const codeKeys: Partial<Record<string, ServiceCatalogErrorKey>> = {
   DOWNTIME_UNAVAILABLE: "services.errorUnavailable",
   DOWNTIME_NOT_FOUND: "services.errorDowntimeNotFound",
   REASON_REQUIRED: "services.errorValidation",
-  OPTIMISTIC_PRECONDITION_REQUIRED: "services.errorValidation",
-  OPTIMISTIC_IF_MATCH_INVALID: "services.errorValidation",
-  OPTIMISTIC_STALE_WRITE: "services.errorStaleWrite",
 };
 
 export function mapServiceCatalogError(error: unknown): ServiceCatalogErrorKey {
@@ -60,12 +56,6 @@ export function mapServiceCatalogError(error: unknown): ServiceCatalogErrorKey {
   }
   if (error.status === 403) {
     return "services.errorForbidden";
-  }
-  if (error.status === 412) {
-    return "services.errorStaleWrite";
-  }
-  if (error.status === 428) {
-    return "services.errorValidation";
   }
   if (error.status === 409) {
     return "services.errorDuplicateSlug";

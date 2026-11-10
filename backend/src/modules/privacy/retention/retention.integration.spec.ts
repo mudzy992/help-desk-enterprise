@@ -20,7 +20,6 @@ import type { PrivacyConfiguration } from '../privacy-configuration.loader';
 import { retentionRedactionMarker } from './retention-markers';
 import { RetentionService } from './retention.service';
 import { LegalHoldService } from '../legal-hold/legal-hold.service';
-import { emailDeliveryStatuses } from '../../notifications/email/email-template.constants';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -444,124 +443,6 @@ describeIfDatabase('retention (integration)', () => {
     });
     expect(run.itemCount).toBe(1);
     expect(await prisma.userSession.count({ where: { userId: ids.requester } })).toBe(2);
-  });
-
-  it('deletes expired email recipient and status data while retaining aggregate-only run evidence', async () => {
-    const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const staleSpecs = [
-      {
-        label: 'sent',
-        status: emailDeliveryStatuses.sent,
-        toAddress: `retention-sent-${stamp}@example.invalid`,
-      },
-      {
-        label: 'unknown',
-        status: emailDeliveryStatuses.unknown,
-        toAddress: `retention-unknown-${stamp}@example.invalid`,
-      },
-      {
-        label: 'claimed',
-        status: emailDeliveryStatuses.claimed,
-        toAddress: `retention-claimed-${stamp}@example.invalid`,
-      },
-    ] as const;
-    const staleAddresses = staleSpecs.map(({ toAddress }) => toAddress);
-    const staleDeliveries = await Promise.all(
-      staleSpecs.map(({ label, status, toAddress }) =>
-        prisma.notificationEmailDelivery.create({
-          data: {
-            userId: ids.requester,
-            dedupeKey: `retention-${label}-${stamp}`,
-            toAddress,
-            templateKey: 'ticket.created',
-            status,
-            createdAt: old,
-          },
-        }),
-      ),
-    );
-    const recentAddress = `retention-recent-${stamp}@example.invalid`;
-    const recentDelivery = await prisma.notificationEmailDelivery.create({
-      data: {
-        userId: ids.requester,
-        dedupeKey: `retention-recent-${stamp}`,
-        toAddress: recentAddress,
-        templateKey: 'ticket.created',
-        status: emailDeliveryStatuses.sent,
-        createdAt: new Date(now.getTime() - 10 * day),
-      },
-    });
-    const cutoff = new Date(now.getTime() - 180 * day);
-    const dueBefore = await prisma.notificationEmailDelivery.count({ where: { createdAt: { lt: cutoff } } });
-    const svc = service(configuration({ emailDeliveries: 180 }));
-    const dryRun = await svc.runCategory({
-      category: 'emailDeliveries',
-      mode: 'DRY_RUN',
-      triggeredByUserId: null,
-      deadline: deadline(),
-      now,
-    });
-    expect(dryRun.status).toBe('COMPLETED');
-    expect(dryRun.itemCount).toBe(dueBefore);
-
-    const executed = await svc.runCategory({
-      category: 'emailDeliveries',
-      mode: 'EXECUTE',
-      triggeredByUserId: null,
-      deadline: deadline(),
-      now,
-    });
-    expect(executed.status).toBe('COMPLETED');
-    expect(executed.configDays).toBe(180);
-    expect(executed.itemCount).toBe(dueBefore);
-    for (const delivery of staleDeliveries) {
-      await expect(prisma.notificationEmailDelivery.findUnique({ where: { id: delivery.id } })).resolves.toBeNull();
-    }
-    await expect(
-      prisma.notificationEmailDelivery.findUniqueOrThrow({ where: { id: recentDelivery.id } }),
-    ).resolves.toMatchObject({ toAddress: recentAddress, status: emailDeliveryStatuses.sent });
-
-    const runEvidence = await prisma.retentionRun.findUniqueOrThrow({
-      where: { id: executed.id },
-      select: {
-        category: true,
-        mode: true,
-        status: true,
-        configDays: true,
-        itemCount: true,
-        oldestAt: true,
-        newestAt: true,
-        refs: true,
-        refsTruncated: true,
-      },
-    });
-    expect(runEvidence).toMatchObject({
-      category: 'emailDeliveries',
-      mode: 'EXECUTE',
-      status: 'COMPLETED',
-      configDays: 180,
-      itemCount: dueBefore,
-      refs: [],
-      refsTruncated: false,
-    });
-    const auditEntry = await prisma.auditLog.findFirstOrThrow({
-      where: { action: auditLogActions.privacyRetentionRun, entityId: executed.id },
-      select: { metadata: true },
-    });
-    expect(auditEntry.metadata).toMatchObject({
-      category: 'emailDeliveries',
-      mode: 'EXECUTE',
-      status: 'COMPLETED',
-      configDays: 180,
-      items: dueBefore,
-    });
-    const aggregateEvidence = JSON.stringify({ dryRun, executed, runEvidence, auditMetadata: auditEntry.metadata });
-    for (const address of [...staleAddresses, recentAddress]) {
-      expect(aggregateEvidence).not.toContain(address);
-    }
-    for (const deliveryStatus of Object.values(emailDeliveryStatuses)) {
-      expect(aggregateEvidence).not.toContain(deliveryStatus);
-    }
   });
 
   it('purges old audit rows behind a checkpoint and the chain still verifies', async () => {

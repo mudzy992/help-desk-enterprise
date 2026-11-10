@@ -30,7 +30,6 @@ const codeKeys: Partial<Record<string, ApiErrorKey>> = {
   // a setting cannot be switched on while its parents are off —
   // saying "check the input" (the generic 400 text) would hide the real reason.
   SETTING_DEPENDENCY_UNMET: "errors.settingDependency",
-  INCIDENT_STATUS_UNAVAILABLE: "errors.server",
 };
 
 /// Shared mapper for modules without a domain-specific error map.

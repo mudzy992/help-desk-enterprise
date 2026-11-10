@@ -4,13 +4,7 @@ import { RedisService } from '../../common/redis/redis.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { emailDeliveryStatuses } from '../notifications/email/email-template.constants';
-import {
-  countDeadNotificationEmailDeliveries,
-  countFailedNotificationEmailDeliveries,
-  countPendingNotificationEmailRetries,
-  countStuckNotificationEmailDeliveries,
-  countUnknownNotificationEmailDeliveries,
-} from '../notifications/email/persist-notification-email-delivery';
+import { countStuckNotificationEmailDeliveries } from '../notifications/email/persist-notification-email-delivery';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { evaluateWorkerHeartbeat, readWorkerHeartbeatValue, withTimeout } from '../health/health-probes';
 import type { PrivacyActor } from '../privacy/privacy-actor';
@@ -24,13 +18,6 @@ import { OpsStateStore, type OpsSilence } from './ops-state.store';
 import { schedulerGraceMs } from './evaluate-ops-signals';
 import { SettingsService } from '../settings/settings.service';
 import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
-import { changeDowntimePendingWarningAgeMs, changeDowntimeSyncTopic } from '../changes/change-downtime-outbox';
-import { ticketSideEffectOutboxTopics, ticketSideEffectOutboxWarningAgeMs } from '../tickets/ticket-side-effect-outbox.constants';
-import { readTemplatesConfigurationHealth } from '../templates/templates-configuration-health';
-import {
-  notificationFanOutOutboxWarningAgeMs,
-  notificationTicketMessageFanOutTopic,
-} from '../notifications/fan-out/notification-fan-out-outbox.constants';
 
 export type OpsAlertView = {
   readonly id: string;
@@ -97,25 +84,7 @@ export class OpsHealthService {
   }
 
   async overview(now: Date = new Date()) {
-    const [
-      database,
-      redisState,
-      heartbeat,
-      snapshot,
-      silence,
-      configuration,
-      alerts,
-      emailLast,
-      stuckEmailClaims,
-      unknownEmailDeliveries,
-      pendingEmailRetries,
-      failedEmailDeliveries,
-      deadEmailDeliveries,
-      inbound,
-      changeDowntimeSync,
-      ticketSideEffectOutbox,
-      notificationFanOutOutbox,
-    ] = await Promise.all([
+    const [database, redisState, heartbeat, snapshot, silence, configuration, alerts, emailLast, stuckEmailClaims, inbound] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
       readWorkerHeartbeatValue(() =>
@@ -130,23 +99,13 @@ export class OpsHealthService {
         orderBy: [{ severity: 'asc' }, { firstSeenAt: 'asc' }],
       }),
       this.prisma.notificationEmailDelivery
-        .findFirst({
-          where: { status: emailDeliveryStatuses.sent },
-          orderBy: { updatedAt: 'desc' },
-          select: { updatedAt: true, providerAcceptedAt: true },
-        })
+        .findFirst({ where: { status: emailDeliveryStatuses.sent }, orderBy: { createdAt: 'desc' }, select: { updatedAt: true } })
         .catch(() => null),
-      // Stale CLAIMED rows remain visible until a retry can safely move them to
-      // UNKNOWN; uncertain outcomes are counted separately for reconciliation.
+      // Val 3 (M12/B1): rows stuck in CLAIMED (a process died between claim and
+      // send). They are reclaimed automatically after 10 minutes; this counter is
+      // what makes the state visible instead of silently "healthy".
       countStuckNotificationEmailDeliveries(this.prisma, now).catch(() => null),
-      countUnknownNotificationEmailDeliveries(this.prisma).catch(() => null),
-      countPendingNotificationEmailRetries(this.prisma).catch(() => null),
-      countFailedNotificationEmailDeliveries(this.prisma).catch(() => null),
-      countDeadNotificationEmailDeliveries(this.prisma).catch(() => null),
       this.currentInboundState(),
-      this.changeDowntimeSyncState(now).catch(() => null),
-      this.ticketSideEffectOutboxState(now).catch(() => null),
-      this.notificationFanOutOutboxState(now).catch(() => null),
     ]);
     const worker = evaluateWorkerHeartbeat({
       lastHeartbeatAt: heartbeat,
@@ -159,12 +118,10 @@ export class OpsHealthService {
     return {
       generatedAt: now.toISOString(),
       snapshot: snapshot === null ? null : { generatedAt: snapshot.generatedAt, ageSeconds: ageSeconds(snapshot.generatedAt, now) },
-      assetOperations: signals?.assetOperations ?? null,
       components: {
         api: 'ok' as const,
         database,
         redis: redisState,
-        templatesConfiguration: readTemplatesConfigurationHealth(),
         // The card speaks the integration-queue vocabulary (active/stale/unknown).
         worker: {
           status: worker.heartbeatAgeSeconds === null ? ('unknown' as const) : worker.status === 'ok' ? ('active' as const) : ('stale' as const),
@@ -175,17 +132,10 @@ export class OpsHealthService {
         eventLoopLagMs: signals?.eventLoopLagMs ?? null,
         ldapsCaExpiresAt: signals?.ldapsCaExpiresAtMs == null ? null : new Date(signals.ldapsCaExpiresAtMs).toISOString(),
         email: {
-          lastSentAt: emailLast?.providerAcceptedAt?.toISOString() ?? emailLast?.updatedAt.toISOString() ?? null,
+          lastSentAt: emailLast?.updatedAt.toISOString() ?? null,
           stuckClaims: stuckEmailClaims,
-          unknownDeliveries: unknownEmailDeliveries,
-          pendingRetries: pendingEmailRetries,
-          failedDeliveries: failedEmailDeliveries,
-          deadDeliveries: deadEmailDeliveries,
         },
         inbound,
-        changeDowntimeSync,
-        ticketSideEffectOutbox,
-        notificationFanOutOutbox,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({
         queue: scheduler.queue,
@@ -342,80 +292,6 @@ export class OpsHealthService {
   private async silenceView(silence: OpsSilence) {
     const users = await this.userNames([silence.byUserId]);
     return { until: silence.until, reason: silence.reason, by: users.get(silence.byUserId) ?? null };
-  }
-
-  private async changeDowntimeSyncState(now: Date) {
-    const where = { topic: changeDowntimeSyncTopic };
-    const [pending, processing, deadLetter, oldest] = await Promise.all([
-      this.prisma.outboxMessage.count({ where: { ...where, status: 'PENDING' } }),
-      this.prisma.outboxMessage.count({ where: { ...where, status: 'PROCESSING' } }),
-      this.prisma.outboxMessage.count({ where: { ...where, status: 'DEAD_LETTER' } }),
-      this.prisma.outboxMessage.findFirst({
-        where: { ...where, status: { in: ['PENDING', 'PROCESSING'] } },
-        orderBy: { createdAt: 'asc' },
-        select: { createdAt: true },
-      }),
-    ]);
-    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
-    return {
-      status: deadLetter > 0 || oldestPendingAgeMs >= changeDowntimePendingWarningAgeMs ? ('degraded' as const) : ('ok' as const),
-      pending,
-      processing,
-      deadLetter,
-      oldestPendingAgeMs,
-    };
-  }
-
-  private async notificationFanOutOutboxState(now: Date) {
-    const where = { topic: notificationTicketMessageFanOutTopic };
-    const activeStatuses: Array<'PENDING' | 'PROCESSING'> = ['PENDING', 'PROCESSING'];
-    const active = { ...where, status: { in: activeStatuses } };
-    const [pending, processing, deadLetter, oldest] = await Promise.all([
-      this.prisma.outboxMessage.count({ where: { ...where, status: 'PENDING' } }),
-      this.prisma.outboxMessage.count({ where: { ...where, status: 'PROCESSING' } }),
-      this.prisma.outboxMessage.count({ where: { ...where, status: 'DEAD_LETTER' } }),
-      this.prisma.outboxMessage.findFirst({
-        where: active,
-        orderBy: { createdAt: 'asc' },
-        select: { createdAt: true },
-      }),
-    ]);
-    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
-    return {
-      status: deadLetter > 0 || oldestPendingAgeMs >= notificationFanOutOutboxWarningAgeMs
-        ? ('degraded' as const)
-        : ('ok' as const),
-      pending,
-      processing,
-      deadLetter,
-      oldestPendingAgeMs,
-    };
-  }
-
-  private async ticketSideEffectOutboxState(now: Date) {
-    const topic = { in: [...ticketSideEffectOutboxTopics] };
-    const activeStatuses: Array<'PENDING' | 'PROCESSING'> = ['PENDING', 'PROCESSING'];
-    const active = { topic, status: { in: activeStatuses } };
-    const [pending, processing, deadLetter, oldest] = await Promise.all([
-      this.prisma.outboxMessage.count({ where: { topic, status: 'PENDING' } }),
-      this.prisma.outboxMessage.count({ where: { topic, status: 'PROCESSING' } }),
-      this.prisma.outboxMessage.count({ where: { topic, status: 'DEAD_LETTER' } }),
-      this.prisma.outboxMessage.findFirst({
-        where: active,
-        orderBy: { createdAt: 'asc' },
-        select: { createdAt: true },
-      }),
-    ]);
-    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
-    return {
-      status: deadLetter > 0 || oldestPendingAgeMs >= ticketSideEffectOutboxWarningAgeMs
-        ? ('degraded' as const)
-        : ('ok' as const),
-      pending,
-      processing,
-      deadLetter,
-      oldestPendingAgeMs,
-    };
   }
 
   /**

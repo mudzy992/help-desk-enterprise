@@ -24,12 +24,11 @@ Priprema (jednom): `git pull`, zatim `cd backend && npm ci` i `cd ../frontend &&
 Na Coolify serveru pročitaj log API-ja:
 
 ```bash
-docker logs <api-kontejner> 2>&1 | grep -E 'ws_adapter_redis_(ok|state|acl_denied|command_|error)'
+docker logs <api-kontejner> 2>&1 | grep -E 'ws_adapter_redis_(ok|acl_denied)'
 ```
 
-- `ws_adapter_redis_ok=1 ws_adapter_redis_state=healthy` → runtime probe potvrdila stvarni room-channel publish/subscription tok.
-- `ws_adapter_redis_state=starting/degraded` ili readiness `checks.websocketAdapter=fail` → adapter još nije dokazan ili je command/connection kvar; vidi `ops/runbook/redis-down.md`.
-- `ws_adapter_redis_acl_denied channel=...` / `fallback=in_memory` → boot ACL deny; cross-instance nije zdravo, popravi ACL pa rolling restartaj tu instancu.
+- `ws_adapter_redis_ok=1` → adapter radi.
+- `ws_adapter_redis_acl_denied channel=...` → ACL (vidi A4).
 
 ### A1. Varijanta 1 (preporuka) — pokreni na serveru, bez tunela
 **Potvrđeno 2026-09-24:** Coolify dodaje sufiks imenu kontejnera

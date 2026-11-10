@@ -13,9 +13,6 @@ export function resolveWorkerHeartbeatStatus(input: {
     return 'unknown';
   }
   const ageMilliseconds = input.nowMilliseconds - heartbeatMilliseconds;
-  // A future timestamp beyond the tolerance may be clock skew or bad data,
-  // not evidence of a live worker.
-  if (ageMilliseconds < -input.staleThresholdMilliseconds) return 'unknown';
   if (ageMilliseconds > input.staleThresholdMilliseconds) {
     return 'stale';
   }

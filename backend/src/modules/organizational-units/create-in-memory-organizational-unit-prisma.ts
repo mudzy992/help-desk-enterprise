@@ -54,12 +54,10 @@ export function createInMemoryOrganizationalUnitPrisma(): {
   };
   seedUnit: (unit: InMemoryOrganizationalUnit) => void;
   seedUser: (user: InMemoryOrganizationalUnitUser) => void;
-  seedUserRole: (role: { userId: string; organizationalUnitId: string | null }) => void;
   getUser: (userId: string) => InMemoryOrganizationalUnitUser | null;
 } {
   let units = new Map<string, InMemoryOrganizationalUnit>();
   let users = new Map<string, InMemoryOrganizationalUnitUser>();
-  const userRoles: { userId: string; organizationalUnitId: string | null }[] = [];
   let auditLogs: Array<Record<string, unknown>> = [];
   let nextIdentifier = 1;
   let nextAuditIdentifier = 1;
@@ -221,28 +219,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     slaRule: { count: async () => 0 },
     reportSchedule: { count: async () => 0 },
     ticket: { count: async () => 0 },
-    userRole: {
-      findFirst: async () => null,
-      findMany: async ({ where, distinct }: {
-        where?: { organizationalUnitId?: { in: readonly string[] } };
-        distinct?: readonly string[];
-      } = {}) => {
-        const unitIds = where?.organizationalUnitId?.in;
-        let holders = userRoles.filter((row) =>
-          unitIds === undefined ||
-          (row.organizationalUnitId !== null && unitIds.includes(row.organizationalUnitId)),
-        );
-        if (distinct?.includes('userId')) {
-          const seen = new Set<string>();
-          holders = holders.filter((row) => {
-            if (seen.has(row.userId)) return false;
-            seen.add(row.userId);
-            return true;
-          });
-        }
-        return holders.map(({ userId }) => ({ userId }));
-      },
-    },
+    userRole: { findFirst: async () => null, findMany: async () => [] },
     auditLog: {
       findFirst: async () => auditLogs[auditLogs.length - 1] ?? null,
       create: async ({ data }: { data: Record<string, unknown> }) => {
@@ -284,9 +261,6 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     },
     seedUser: (user) => {
       users.set(user.id, user);
-    },
-    seedUserRole: (role) => {
-      userRoles.push(role);
     },
     getUser: (userId) => users.get(userId) ?? null,
   };

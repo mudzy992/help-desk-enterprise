@@ -1,29 +1,24 @@
-import { Injectable, Optional } from "@nestjs/common";
-import {
-  OptimisticConcurrencyService,
-  parseIfMatch,
-} from "../../common/optimistic-concurrency/optimistic-concurrency.service";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { createServiceDowntimeWindow } from "./create-service-downtime-window";
-import { deleteServiceDowntimeWindow } from "./delete-service-downtime-window";
-import { evaluateServiceTicketCreationEligibility } from "./evaluate-service-ticket-creation-eligibility";
-import { listServiceDowntimeWindows } from "./list-service-downtime-windows";
-import { mapServiceCatalogError } from "./map-service-catalog-error";
-import { ServiceCatalogService } from "./service-catalog.service";
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { createServiceDowntimeWindow } from './create-service-downtime-window';
+import { deleteServiceDowntimeWindow } from './delete-service-downtime-window';
+import { evaluateServiceTicketCreationEligibility } from './evaluate-service-ticket-creation-eligibility';
+import { listServiceDowntimeWindows } from './list-service-downtime-windows';
+import { mapServiceCatalogError } from './map-service-catalog-error';
+import { ServiceCatalogService } from './service-catalog.service';
 import type {
   CreateServiceDowntimeWindowInput,
-  DowntimeWindowListInput,
-  DowntimeWindowListPage,
+  DowntimeWindowResponse,
   ServiceTicketCreationEligibility,
   UpdateServiceAvailabilityInput,
   UpdateServiceDowntimeWindowInput,
-} from "./service-availability.types";
+} from './service-availability.types';
 import type {
   CatalogMutationContext,
   ServiceResponse,
-} from "./service-catalog.types";
-import { updateServiceAvailability } from "./update-service-availability";
-import { updateServiceDowntimeWindow } from "./update-service-downtime-window";
+} from './service-catalog.types';
+import { updateServiceAvailability } from './update-service-availability';
+import { updateServiceDowntimeWindow } from './update-service-downtime-window';
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
 
@@ -32,41 +27,33 @@ export class ServiceAvailabilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly serviceCatalogService: ServiceCatalogService,
-    @Optional()
-    private readonly optimisticConcurrency: OptimisticConcurrencyService = new OptimisticConcurrencyService(),
   ) {}
 
   updateAvailability(
     serviceId: string,
     input: UpdateServiceAvailabilityInput,
-    ifMatch: string | string[] | undefined,
     context: CatalogMutationContext = emptyContext,
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
-    parseIfMatch(ifMatch);
     return this.execute(async () => {
-      const evaluation =
-        await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
       return updateServiceAvailability(
         this.prisma,
         serviceId,
         input,
-        ifMatch,
         evaluation,
         context,
         evaluation,
-        this.optimisticConcurrency,
       );
     });
   }
 
   listDowntimeWindows(
     serviceId: string,
-    input: DowntimeWindowListInput = {},
     evaluatedAt: Date = new Date(),
-  ): Promise<DowntimeWindowListPage> {
+  ): Promise<readonly DowntimeWindowResponse[]> {
     return this.execute(() =>
-      listServiceDowntimeWindows(this.prisma, serviceId, evaluatedAt, input),
+      listServiceDowntimeWindows(this.prisma, serviceId, evaluatedAt),
     );
   }
 
@@ -77,8 +64,7 @@ export class ServiceAvailabilityService {
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation =
-        await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
       return createServiceDowntimeWindow(
         this.prisma,
         serviceId,
@@ -98,8 +84,7 @@ export class ServiceAvailabilityService {
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation =
-        await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
       return updateServiceDowntimeWindow(
         this.prisma,
         serviceId,
@@ -120,8 +105,7 @@ export class ServiceAvailabilityService {
     reason?: string,
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
-      const evaluation =
-        await this.serviceCatalogService.evaluation(evaluatedAt);
+      const evaluation = await this.serviceCatalogService.evaluation(evaluatedAt);
       return deleteServiceDowntimeWindow(
         this.prisma,
         serviceId,

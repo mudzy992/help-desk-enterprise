@@ -36,23 +36,6 @@ export function hasPermission(context: AuthorizationContext, key: string): boole
 }
 
 /**
- * Returns the service IDs a shared-template manager may read, or `null` when
- * the actor has an unrestricted manage assignment. An empty array means the
- * actor has no manage assignment. Keeping this calculation shared with the
- * write check prevents read/write scope drift.
- */
-export function managedSharedServiceIds(context: AuthorizationContext): readonly string[] | null {
-  if (context.isSuperAdmin) return null;
-  const manage = context.assignments.filter((assignment) =>
-    assignment.permissionKeys.includes(permissionKeys.ticketTemplatesManage),
-  );
-  if (manage.some((assignment) => assignment.serviceId === null)) return null;
-  return [...new Set(manage.flatMap((assignment) =>
-    assignment.serviceId === null ? [] : [assignment.serviceId],
-  ))].sort();
-}
-
-/**
  * A2: who may create/edit a *shared* template or playbook with this scope.
  * - SUPER_ADMIN, or a `manage` assignment without a service restriction →
  *   any scope, global included;
@@ -61,16 +44,15 @@ export function managedSharedServiceIds(context: AuthorizationContext): readonly
  *   of services the admin does not own).
  */
 export function canManageSharedScope(context: AuthorizationContext, scope: TemplateScope): boolean {
-  const allowedServiceIds = managedSharedServiceIds(context);
-  if (allowedServiceIds === null) return true;
-  if (
-    allowedServiceIds.length === 0 ||
-    scope.serviceIds.length === 0 ||
-    scope.categoryIds.length > 0 ||
-    scope.groupIds.length > 0
-  ) {
+  if (context.isSuperAdmin) return true;
+  const manage = context.assignments.filter((assignment) =>
+    assignment.permissionKeys.includes(permissionKeys.ticketTemplatesManage),
+  );
+  if (manage.length === 0) return false;
+  if (manage.some((assignment) => assignment.serviceId === null)) return true;
+  if (scope.serviceIds.length === 0 || scope.categoryIds.length > 0 || scope.groupIds.length > 0) {
     return false;
   }
-  const allowed = new Set(allowedServiceIds);
+  const allowed = new Set(manage.map((assignment) => assignment.serviceId));
   return scope.serviceIds.every((serviceId) => allowed.has(serviceId));
 }

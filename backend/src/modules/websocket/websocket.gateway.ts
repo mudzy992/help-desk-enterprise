@@ -1,3 +1,4 @@
+import { adminRealtimeRoomName } from '../../common/admin-realtime/admin-config-realtime.types';
 import { Inject, Logger, Optional } from '@nestjs/common';
 import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
@@ -9,8 +10,6 @@ import {
 import { Server, Socket } from 'socket.io';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import type { RedisConfiguration } from '../../common/redis/redis.types';
-import { SESSION_COOKIE_NAME } from '../authentication/session-cookie';
-import { SessionTokenService } from '../authentication/session-token.service';
 import { startWebsocketClientCountReporter } from '../observability/metrics/websocket-client-count.reporter';
 import {
   attachSocketPrincipal,
@@ -22,33 +21,14 @@ import {
 } from './attach-socket-request-id';
 import { createSocketAuthenticationFailureError } from './create-socket-authentication-failure-error';
 import { isSocketPrincipal } from './is-socket-principal';
-import {
-  resolveSocketClientAddress,
-  startSocketConnectionLeaseRenewal,
-  WebsocketAbuseLimiter,
-} from './websocket-abuse-limiter';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
-import {
-  revalidateSocketRooms,
-  startSocketRoomRevalidation,
-} from './socket-room-revalidation';
-import { startSocketSessionInvalidationSubscriber } from './socket-session-invalidation-subscriber';
-import { startSocketSessionRevalidation } from './socket-session-revalidation';
-import { userRoomName } from './ticket-socket-rooms';
-import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
-import type {
-  WebsocketAdapterHealthReason,
-  WebsocketAdapterHealthState,
-} from './websocket-adapter-health.types';
+import { startSocketRoomRevalidation } from './socket-room-revalidation';
+import { groupRoomName, userRoomName } from './ticket-socket-rooms';
 import {
   startWebsocketEmitCountReporter,
 } from './websocket-emit-counter';
-import {
-  recordWebsocketRoomSetupFailure,
-  startWebsocketRoomSetupFailureReporter,
-} from './websocket-room-setup-counter';
 import {
   checkRealtimeAdapterSubscriptions,
   createWebsocketRedisAdapter,
@@ -76,12 +56,7 @@ export class WebsocketGateway
 
   private stopClientCountReporter: (() => void) | null = null;
   private stopEmitCountReporter: (() => void) | null = null;
-  private stopRoomSetupFailureReporter: (() => void) | null = null;
   private stopRoomRevalidation: (() => void) | null = null;
-  private stopSessionRevalidation: (() => void) | null = null;
-  private stopSessionInvalidationSubscriber: (() => void) | null = null;
-  private stopRealtimeAdapterHealthMonitor: (() => void) | null = null;
-  private stopConnectionLeaseRenewal: (() => void) | null = null;
   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
 
   /**
@@ -94,12 +69,9 @@ export class WebsocketGateway
   constructor(
     private readonly socketAuthenticationService: SocketAuthenticationService,
     private readonly socketGroupMembershipService: SocketGroupMembershipService,
-    private readonly sessionTokenService: SessionTokenService,
-    private readonly adapterHealth: WebsocketAdapterHealthService,
-    private readonly websocketAbuseLimiter: WebsocketAbuseLimiter,
-    // Optional on purpose: isolated gateway specs build without the global Redis
-    // module. A missing runtime configuration is still reported as degraded;
-    // in-memory mode is not an effective horizontal fallback.
+    // Optional on purpose: the unit specs build the gateway without the global
+    // Redis module. No configuration means no adapter — the in-memory one stays,
+    // which is exactly the degraded mode Phase 3.1 asks for.
     @Optional()
     @Inject(redisTokens.configuration)
     private readonly redisConfiguration?: RedisConfiguration,
@@ -111,9 +83,7 @@ export class WebsocketGateway
    * the adapter decision is already known when it is applied.
    */
   async onModuleInit(): Promise<void> {
-    this.setAdapterHealth('starting', 'startup');
     if (this.redisConfiguration === undefined) {
-      this.setAdapterHealth('degraded', 'redis_unconfigured');
       return;
     }
     this.adapterSubscriptionCheck = await checkRealtimeAdapterSubscriptions(
@@ -135,34 +105,11 @@ export class WebsocketGateway
     );
     // Phase 3.2 metric: emit-ova/s po vrsti sobe (staff/public/user/group).
     this.stopEmitCountReporter = startWebsocketEmitCountReporter(this.logger);
-    this.stopRoomSetupFailureReporter =
-      startWebsocketRoomSetupFailureReporter(this.logger);
-    // BA-websocket-03: membership and the admin role are read at handshake;
-    // this re-reads them every 30 seconds as a bounded reconciliation fallback.
+    // Val 3 (M11/B1): membership and the admin role are read at handshake; this
+    // re-reads them every 5 minutes so a revoked room is actually left.
     this.stopRoomRevalidation = startSocketRoomRevalidation(
       server,
       this.socketGroupMembershipService,
-      this.logger,
-    );
-    this.stopSessionRevalidation = startSocketSessionRevalidation(
-      server,
-      {
-        isCurrent: (principal) =>
-          this.sessionTokenService.isSocketSessionCurrent(principal),
-      },
-      this.logger,
-    );
-    if (this.redisConfiguration !== undefined) {
-      this.stopSessionInvalidationSubscriber =
-        startSocketSessionInvalidationSubscriber(
-          this.redisConfiguration,
-          server,
-          this.logger,
-        );
-    }
-    this.stopConnectionLeaseRenewal = startSocketConnectionLeaseRenewal(
-      server,
-      this.websocketAbuseLimiter,
       this.logger,
     );
   }
@@ -172,89 +119,44 @@ export class WebsocketGateway
     this.stopClientCountReporter = null;
     this.stopEmitCountReporter?.();
     this.stopEmitCountReporter = null;
-    this.stopRoomSetupFailureReporter?.();
-    this.stopRoomSetupFailureReporter = null;
     this.stopRoomRevalidation?.();
     this.stopRoomRevalidation = null;
-    this.stopSessionRevalidation?.();
-    this.stopSessionRevalidation = null;
-    this.stopSessionInvalidationSubscriber?.();
-    this.stopSessionInvalidationSubscriber = null;
-    this.stopRealtimeAdapterHealthMonitor?.();
-    this.stopRealtimeAdapterHealthMonitor = null;
-    this.stopConnectionLeaseRenewal?.();
-    this.stopConnectionLeaseRenewal = null;
     void this.realtimeAdapter?.close();
     this.realtimeAdapter = null;
   }
 
   /**
-   * Rooms must mean the same thing on every instance, so install the adapter
-   * before the first client joins. Runtime Redis loss keeps the Redis adapter
-   * installed for ioredis recovery; switching to local rooms would silently split
-   * the cluster. Readiness stays failed until a live Pub/Sub probe passes.
+   * Phase 3.1 (plan §3.1): rooms must mean the same thing on every instance, so
+   * the adapter is installed before the first client joins. Nothing here touches
+   * the handshake or the room rules — only how an emit travels between processes.
    */
   private applyRealtimeAdapter(server: Server): void {
+    // An ACL that denies the channel would kill the process on the adapter's
+    // first `PSUBSCRIBE` (the adapter does not await it), so a known denial is
+    // answered here instead: in-memory adapter, one explicit log line, API up.
     if (this.adapterSubscriptionCheck === 'denied') {
-      this.setAdapterHealth('degraded', 'acl_denied', false);
       this.logger.warn(
-        `${formatWebsocketAdapterStatus(false, 'degraded')} fallback=in_memory reason=acl_denied`,
+        `${formatWebsocketAdapterStatus(false)} fallback=in_memory reason=acl_denied`,
       );
       return;
     }
-    if (this.redisConfiguration === undefined) {
-      this.setAdapterHealth('degraded', 'redis_unconfigured', false);
-      this.logger.warn(
-        `${formatWebsocketAdapterStatus(false, 'degraded')} fallback=in_memory reason=redis_unconfigured`,
-      );
-      return;
-    }
-    const handle = createWebsocketRedisAdapter(
-      this.redisConfiguration,
-      this.logger,
-      (reason) => this.setAdapterHealth('degraded', reason),
-    );
+    const handle =
+      this.redisConfiguration === undefined
+        ? null
+        : createWebsocketRedisAdapter(this.redisConfiguration, this.logger);
     if (handle === null) {
-      this.setAdapterHealth('degraded', 'client_creation_failed', false);
       this.logger.warn(
-        `${formatWebsocketAdapterStatus(false, 'degraded')} fallback=in_memory reason=client_creation_failed`,
+        `${formatWebsocketAdapterStatus(false)} fallback=in_memory`,
       );
       return;
     }
-    try {
-      server.adapter(handle.adapter);
-      this.realtimeAdapter = handle;
-      this.stopRealtimeAdapterHealthMonitor = handle.startHealthMonitor(
-        (state, reason) => this.setAdapterHealth(state, reason),
-      );
-    } catch (error) {
-      this.setAdapterHealth('degraded', 'adapter_install_failed');
-      this.logger.warn(
-        `ws_adapter_redis_install_failed reason=${error instanceof Error ? error.message : String(error)}`,
-      );
-      void handle.close();
-    }
+    server.adapter(handle.adapter);
+    this.realtimeAdapter = handle;
+    this.logger.log(formatWebsocketAdapterStatus(true));
   }
 
-  private setAdapterHealth(
-    state: WebsocketAdapterHealthState,
-    reason: WebsocketAdapterHealthReason,
-    logTransition = true,
-  ): void {
-    const changed = this.adapterHealth.setState(state, reason);
-    if (!changed || !logTransition) {
-      return;
-    }
-    const message = `${formatWebsocketAdapterStatus(state === 'healthy', state)} reason=${reason}`;
-    if (state === 'healthy') {
-      this.logger.log(message);
-      return;
-    }
-    this.logger.warn(message);
-  }
-
-  async handleConnection(client: Socket): Promise<void> {
-    await runWithSocketRequestId(client, async () => {
+  handleConnection(client: Socket): void {
+    runWithSocketRequestId(client, () => {
       const principal = getSocketPrincipal(client);
       if (!isSocketPrincipal(principal)) {
         this.logger.warn(
@@ -263,79 +165,40 @@ export class WebsocketGateway
         client.disconnect(true);
         return;
       }
-      if (client.data.websocketConnectionLeaseMember !== client.id) {
-        this.logger.warn(
-          `socket_connection_rejected connectionId=${client.id} reason=admission_missing`,
-        );
-        client.disconnect(true);
-        return;
-      }
-
-      try {
-        await client.join(userRoomName(principal.subjectId));
-      } catch {
-        recordWebsocketRoomSetupFailure('user');
-        this.logger.warn(
-          `socket_room_setup_failed connectionId=${client.id} room=user fail_closed=1`,
-        );
-        client.disconnect(true);
-        return;
-      }
-      if (client.disconnected) return;
-
-      const groupRoomsReady = await this.joinHandlerGroupRooms(
-        client,
-        principal.subjectId,
-      );
-      if (client.disconnected) return;
-      this.logger.log(
-        `socket_connected connectionId=${client.id} group_rooms_ready=${groupRoomsReady ? 1 : 0}`,
-      );
+      void client.join(userRoomName(principal.subjectId));
+      void this.joinHandlerGroupRooms(client, principal.subjectId);
+      this.logger.log(`socket_connected connectionId=${client.id}`);
     });
   }
 
   handleDisconnect(client: Socket): void {
     runWithSocketRequestId(client, () => {
       this.logger.log(`socket_disconnected connectionId=${client.id}`);
-      const principal = getSocketPrincipal(client);
-      const member = client.data.websocketConnectionLeaseMember;
-      delete client.data.websocketConnectionLeaseMember;
-      if (isSocketPrincipal(principal) && member === client.id) {
-        void this.websocketAbuseLimiter
-          .releaseConnection(principal.subjectId, member)
-          .catch(() => {
-            this.logger.warn(
-              `ws_connection_lease_release_failed connectionId=${client.id}`,
-            );
-          });
-      }
     });
   }
 
   private async joinHandlerGroupRooms(
     client: Socket,
     userId: string,
-  ): Promise<boolean> {
-    return runWithSocketRequestId(client, async () => {
-      const principal = getSocketPrincipal(client);
-      if (!isSocketPrincipal(principal) || principal.subjectId !== userId) {
-        client.disconnect(true);
-        return false;
-      }
+  ): Promise<void> {
+    await runWithSocketRequestId(client, async () => {
       try {
-        await revalidateSocketRooms(
-          client,
-          this.socketGroupMembershipService,
+        const groupIds =
+          await this.socketGroupMembershipService.groupIdsForUser(userId);
+        await Promise.all(
+          groupIds.map((groupId) => client.join(groupRoomName(groupId))),
         );
-        return !client.disconnected;
+        // Package 1.7 (R1): admin configuration events. Optional-chained so
+        // the unit specs' membership double without `isAdmin` still works.
+        if (
+          (await this.socketGroupMembershipService.isAdmin?.(userId)) === true
+        ) {
+          await client.join(adminRealtimeRoomName);
+        }
       } catch {
-        // Failed room reconciliation has already removed managed rooms; a
-        // failed leave disconnects in the revalidation helper.
-        recordWebsocketRoomSetupFailure('group');
         this.logger.warn(
-          `socket_group_rooms_failed connectionId=${client.id} fail_closed=1`,
+          `socket_group_rooms_failed connectionId=${client.id}`,
         );
-        return false;
       }
     });
   }
@@ -346,118 +209,29 @@ export class WebsocketGateway
   ): Promise<void> {
     const requestId = attachSocketRequestId(socket);
     await runWithSocketRequestId(socket, async () => {
-      const clientAddress = resolveSocketClientAddress(socket);
-      if (clientAddress === null) {
-        this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=client_address_missing`,
-        );
-        next(createSocketAuthenticationFailureError());
-        return;
-      }
-
       try {
-        if (!(await this.websocketAbuseLimiter.consumeHandshakeIp(clientAddress))) {
+        const outcome = await this.socketAuthenticationService.authenticate(
+          socket.handshake.auth,
+          socket.handshake.headers,
+        );
+        if (outcome.status !== 'authenticated') {
           this.logger.warn(
-            `socket_authentication_rejected connectionId=${socket.id} reason=ip_rate_limited`,
+            `socket_authentication_rejected connectionId=${socket.id} reason=${outcome.reason}`,
           );
           next(createSocketAuthenticationFailureError());
           return;
         }
-      } catch {
-        this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=admission_control_unavailable fail_closed=1`,
-        );
-        next(createSocketAuthenticationFailureError());
-        return;
-      }
-
-      let outcome: Awaited<
-        ReturnType<SocketAuthenticationService['authenticate']>
-      >;
-      try {
-        outcome = await this.socketAuthenticationService.authenticate(
-          socket.handshake.auth,
-          socket.handshake.headers,
-        );
-      } catch {
-        this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=invalid_credentials`,
-        );
-        next(createSocketAuthenticationFailureError());
-        return;
-      }
-      if (outcome.status !== 'authenticated') {
-        this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=${outcome.reason}`,
-        );
-        next(createSocketAuthenticationFailureError());
-        return;
-      }
-
-      let admitted: boolean;
-      try {
-        admitted = await this.websocketAbuseLimiter.admitConnection(
-          outcome.principal.subjectId,
-          socket.id,
-        );
-      } catch {
-        this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=admission_control_unavailable fail_closed=1`,
-        );
-        next(createSocketAuthenticationFailureError());
-        return;
-      }
-      if (!admitted) {
-        this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=user_rate_or_connection_cap`,
-        );
-        next(createSocketAuthenticationFailureError());
-        return;
-      }
-
-      try {
         attachSocketPrincipal(socket, outcome.principal);
-        socket.data.websocketConnectionLeaseMember = socket.id;
-        clearHandshakeCredentials(socket);
         this.logger.log(
           `socket_authentication_accepted connectionId=${socket.id} requestId=${requestId}`,
         );
         next();
       } catch {
-        delete socket.data.websocketConnectionLeaseMember;
-        await this.websocketAbuseLimiter
-          .releaseConnection(outcome.principal.subjectId, socket.id)
-          .catch(() => undefined);
         this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=handshake_finalize_failed`,
+          `socket_authentication_rejected connectionId=${socket.id} reason=invalid_credentials`,
         );
         next(createSocketAuthenticationFailureError());
       }
     });
   }
-}
-
-function clearHandshakeCredentials(socket: Socket): void {
-  if (typeof socket.handshake.auth === 'object' && socket.handshake.auth !== null) {
-    delete socket.handshake.auth['token'];
-  }
-  const cookieHeader = socket.handshake.headers.cookie;
-  if (typeof cookieHeader === 'string') {
-    const remainingCookies = cookieHeader
-      .split(';')
-      .map((cookie) => cookie.trim())
-      .filter((cookie) => {
-        const separator = cookie.indexOf('=');
-        return (
-          separator < 0 ||
-          cookie.slice(0, separator).trim() !== SESSION_COOKIE_NAME
-        );
-      });
-    if (remainingCookies.length === 0) {
-      delete socket.handshake.headers.cookie;
-    } else {
-      socket.handshake.headers.cookie = remainingCookies.join('; ');
-    }
-  }
-  delete socket.handshake.headers.authorization;
 }
