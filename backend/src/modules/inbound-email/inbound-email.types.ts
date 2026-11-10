@@ -39,6 +39,7 @@ export type InboundRejectReason =
   | 'EMPTY_REPLY'
   | 'REDACTION_BLOCKED'
   | 'RATE_LIMITED'
+  | 'TOKEN_RECIPIENT_MISMATCH'
   | 'TOO_LARGE'
   | 'CREATE_FAILED'
   | 'PARSE_FAILED';

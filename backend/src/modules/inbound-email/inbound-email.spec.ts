@@ -185,6 +185,25 @@ describe('Paket 2.3 — reply text cleaning', () => {
 });
 
 describe('Paket 2.3 — processInboundMessage', () => {
+  it('accepts a signed reply token only from its issued recipient', async () => {
+    const id = createReplyTokenMessageId({ secret, ticketId: 'ticket0001', recipientId: 'user00001', dedupeKey: 'k', domain: 'example.com' });
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message({ inReplyTo: id }), p, options);
+    expect(outcome).toEqual({ status: 'PROCESSED', ticketId: 'ticket0001', ticketMessageId: 'msg1', notes: [] });
+    expect(calls.some((call) => call.kind === 'findTicketById')).toBe(true);
+    expect(calls.find((call) => call.kind === 'addReply')?.args).toEqual(['ticket0001', 'user00001', 'Printer radi, hvala.']);
+  });
+
+  it('rejects a signed reply token presented by a different sender without confirming the ticket', async () => {
+    const id = createReplyTokenMessageId({ secret, ticketId: 'ticket0001', recipientId: 'someoneelse', dedupeKey: 'k', domain: 'example.com' });
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message({ inReplyTo: id }), p, options);
+    expect(outcome).toEqual({ status: 'REJECTED', reason: 'TOKEN_RECIPIENT_MISMATCH' });
+    expect(calls.some((call) => call.kind === 'findTicketById')).toBe(false);
+    expect(calls.some((call) => call.kind === 'addReply')).toBe(false);
+    expect(calls.some((call) => call.kind === 'reopen')).toBe(false);
+  });
+
   it('adds the cleaned reply to the ticket from the subject number', async () => {
     const { ports: p, calls } = ports();
     const outcome = await processInboundMessage(message(), p, options);

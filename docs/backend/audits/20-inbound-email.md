@@ -107,7 +107,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | BA-inbound-email-01 | P1       | PROCESSING crash recovery odbacuje poruku bez sigurnog replaya/reconciliationa            | zatvoreno |
 | BA-inbound-email-02 | P1       | Sender auth vjeruje neprovjerenom prvom Authentication-Results/ARC headeru                | zatvoreno |
 | BA-inbound-email-03 | P1       | Scoped ADMIN čita globalne sender/subject/ticket/error metapodatke                         | zatvoreno |
-| BA-inbound-email-04 | P2       | Signed token recipientId se ne poredi sa stvarnim senderom                                | otvoreno |
+| BA-inbound-email-04 | P2       | Signed token recipientId se ne poredi sa stvarnim senderom (vezano uz primaoca, paket 180) | otvoreno |
 | BA-inbound-email-05 | P2       | Test-connection preuzima do deset punih raw poruka                                        | otvoreno |
 | BA-inbound-email-06 | P2       | Provider ID lookup/store truncation nije ista i može trajno preskočiti poruku              | otvoreno |
 | BA-inbound-email-07 | P2       | Message-ID dedupe je read-before-write bez DB unique zaštite                              | otvoreno |

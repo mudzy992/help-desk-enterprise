@@ -145,6 +145,14 @@ export async function processInboundMessage(
   const text = extractReplyText(message.text, options.maxBodyLength);
 
   const target = resolveInboundTarget(message, options.replyTokenSecret);
+  // A signed reply token is issued to one notification recipient. Anyone else
+  // holding the token (forwarded mail, shared mailbox harvest) must not steer
+  // a reply into that recipient's ticket: the token only routes, it does not
+  // authenticate the sender. The mismatch is rejected without the ticket id,
+  // so the response does not confirm the ticket exists.
+  if (target.kind === 'token' && target.recipientId !== sender.id) {
+    return reject('TOKEN_RECIPIENT_MISMATCH');
+  }
   if (target.kind === 'new') {
     if (!options.createTickets) return reject('NO_TICKET_MATCH');
     const title = (cleanSubject(message.subject) || text.split('\n')[0] || '').slice(0, titleMaxLength).trim();
