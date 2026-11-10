@@ -1,6 +1,6 @@
 # BA-on-call-09: sweep scheduler se obnavlja nakon gubitka Redisa
 
-Status: **otvoreno**. `OnCallSweepSchedulerService` je repeatable sweep scheduler registrovao samo u `onModuleInit`, pa bi Redis flush ili failover na praznu instancu trajno zaustavio on-call sweep (reminderi, shift-start i gap obavještenja) do sljedećeg restarta workera — isti obrazac koji je za inbound e-poštu riješen u BA-inbound-email-08.
+Status: **otvoreno**. Automatski CI `42873496502` za commit `7300f65` prošao je uspješno (generated Prisma + stvarni PostgreSQL/Redis). `OnCallSweepSchedulerService` je repeatable sweep scheduler registrovao samo u `onModuleInit`, pa bi Redis flush ili failover na praznu instancu trajno zaustavio on-call sweep (reminderi, shift-start i gap obavještenja) do sljedećeg restarta workera — isti obrazac koji je za inbound e-poštu riješen u BA-inbound-email-08.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Scheduler sada, po uzoru na inbound scheduler, svakih 60 sekundi (`unref` timer,
 
 ## Testovi i granice
 
-Novi spec pokriva: scheduler prisutan (no-op), scheduler izgubljen (obnova istim ID-jem), init registraciju i cleanup timera. Stvarni Redis-loss scenarij na ciljnoj infrastrukturi nije izveden; bez generated-Prisma/PostgreSQL CI dokaza (uključujući Redis integracijski posao) i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Novi spec pokriva: scheduler prisutan (no-op), scheduler izgubljen (obnova istim ID-jem), init registraciju i cleanup timera. Stvarni Redis-loss scenarij na ciljnoj infrastrukturi nije izveden; automatski CI `42873496502` za `7300f65` prošao je uspješno, ali bez operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
