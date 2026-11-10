@@ -193,9 +193,7 @@ export function OnCallOverviewCards({
                 </ul>
               </details>
             ) : null}
-            {swapsHasMore ? (
-              <p className={hintClassName}>{t("onCall.listTruncated", { limit: 50 })}</p>
-            ) : null}
+            {swapsHasMore ? <p className={hintClassName}>{t("onCall.listTruncated", { limit: 50 })}</p> : null}
           </div>
         </Card>
       </div>

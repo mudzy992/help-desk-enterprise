@@ -396,10 +396,7 @@ export function OnCallPage() {
                 </section>
 
                 <section aria-labelledby="on-call-overrides" className="grid gap-1.5">
-                  <h3
-                    id="on-call-overrides"
-                    className="text-[12.5px] font-semibold text-foreground"
-                  >
+                  <h3 id="on-call-overrides" className="text-[12.5px] font-semibold text-foreground">
                     {t("onCall.override.list")}
                   </h3>
                   {detail.overrides.length === 0 ? (
@@ -441,9 +438,7 @@ export function OnCallPage() {
                       ))}
                     </ul>
                   )}
-                  {detail.overridesHasMore ? (
-                    <p className={hintClassName}>{t("onCall.listTruncated", { limit: 200 })}</p>
-                  ) : null}
+                  {detail.overridesHasMore ? <p className={hintClassName}>{t("onCall.listTruncated", { limit: 200 })}</p> : null}
                 </section>
 
                 {detail.swaps.length > 0 ? (
@@ -464,9 +459,7 @@ export function OnCallPage() {
                         </li>
                       ))}
                     </ul>
-                    {detail.swapsHasMore ? (
-                      <p className={hintClassName}>{t("onCall.listTruncated", { limit: 100 })}</p>
-                    ) : null}
+                    {detail.swapsHasMore ? <p className={hintClassName}>{t("onCall.listTruncated", { limit: 100 })}</p> : null}
                   </section>
                 ) : null}
               </>
