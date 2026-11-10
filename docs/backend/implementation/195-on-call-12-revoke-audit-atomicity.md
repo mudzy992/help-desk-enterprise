@@ -8,4 +8,8 @@ Revoke sada slijedi isti obrazac kao rotacija tokena: `deleteMany` i `appendAudi
 
 ## Testovi i granice
 
-Novi `on-call.service.revoke.spec.ts` (3 testa) koristi pravi `appendAuditLog` (s validacijom metadate kroz `prepareAuditEntry`): brisanje i audit idu kroz transakcijskog klijenta, vanjski klijent se ne koristi za brisanje, greška audita propagira (transakcija se u produkciji rollbacka), a bez tokena nema audit zapisa. Lokalno on-call suite: 15 suiteova / 64 testa. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Novi `on-call.service.revoke.spec.ts` (3 testa) koristi pravi `appendAuditLog` (s validacijom metadate kroz `prepareAuditEntry`): brisanje i audit idu kroz transakcijskog klijenta, vanjski klijent se ne koristi za brisanje, greška audita propagira (transakcija se u produkciji rollbacka), a bez tokena nema audit zapisa. Lokalno on-call suite: 15 suiteova / 64 testa. Migracija nije rađena.
+
+## CI dokaz
+
+Implementacija je pushana u commitu `7d2e65d`; GitHub Actions CI run [`42895759919`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42895759919) završio je **success**: Detect changes, Docs guard, Frontend build + test, Backend build + test (generated Prisma), Backend container + supply chain i Backend PostgreSQL + Redis integration. Nalaz ostaje otvoren do operativne potvrde.
