@@ -15,6 +15,16 @@
 
 ## 2. Stanje implementacije
 
+### Nakon W6.48 — BA-integration-queue-08/11/12 (P2) djelimične mitigacije, nalazi otvoreni
+
+Tri P2 nalaza iz reda čekanja dobila su ograničene mitigacije bez migracije; nijedan nije zatvoren jer acceptance nije potpun:
+
+- `BA-integration-queue-08` (paket 176): terminal retention 30+90 dana uz globalnu legal-hold pauzu i advisory lock; kod `b208f87`, CI `42715684160` i Perf `42715683718` zeleni. Korisnik je prijavio produkcijski redeploy i uključivanje `INTEGRATION_TERMINAL_RETENTION_ENABLED=true`; aplikacija se ponaša uredno. **Zatvaranje čeka:** izričitu privacy potvrdu (30+90 i za historijske redove; svi holdovi uneseni u sistem) i log liniju prvog sweepa (`integration_terminal_retention redacted=… deleted=…` ili `paused reason=legal_hold`). Do tada nalaz ostaje otvoren.
+- `BA-integration-queue-11` (paket 177): admin retry audit (schema v2) čuva sigurni kod prethodne greške, `previousNextRetryAt` i broj ranijih admin retryja prije reseta reda; kod `7966e60`, CI `42773406842` i Perf `42773406655` zeleni. Zatvaranje čeka operativni pregled audit zapisa i odluku da je audit-log trag dovoljan umjesto namjenske historije pokušaja.
+- `BA-integration-queue-12` (paket 178): runtime disable je pauza prije claima — bez trošenja pokušaja, uz sačuvan `nextRetryAt` i automatski resume; kod `fef80a5` + test fixture `f44bbf6`, CI `42778755942` i Perf `42778755875` zeleni (prvi CI `42777903187` pao je samo na nepotpunom BA-03 edge fixtureu). Zatvaranje čeka operativnu potvrdu.
+
+Val 6 ostaje **52/109 zatvorenih, 57 otvorenih (0 P1 / 40 P2 / 17 P3)**; source/plan **509/183**, globalni registar **519/173**; deset statusnih divergencija netaknuto. Nema migracije, PR-a ni mergea; deployment je radio korisnik.
+
 ### W6.48 / `BA-websocket-05` (P2) — finding closeout
 
 `BA-websocket-05` je zatvoren na finding nivou kroz process-local effective Redis adapter health, runtime room-channel Pub/Sub probe preko dva stvarna adapter klijenta, degraded signal na kasnijim command/connection greškama i `/health/ready` 503. Runtime ne prebacuje sobe u lokalni in-memory fallback; boot ACL/config fallback ostaje crven i traži rolling restart poslije ACL popravke. Isključivo BA-05 je u scopeu.
