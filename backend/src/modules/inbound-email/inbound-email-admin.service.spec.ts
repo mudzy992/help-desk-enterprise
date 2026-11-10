@@ -154,11 +154,29 @@ describe('InboundEmailAdminService redaction', () => {
     expect(serialized).not.toContain('provider login failed');
   });
 
+  it('tests the connection with provider ids only, never raw content', async () => {
+    const session = {
+      listIds: jest.fn().mockResolvedValue(['id-1', 'id-2', 'id-3']),
+      list: jest.fn().mockRejectedValue(new Error('list must not be used')),
+      close: jest.fn().mockResolvedValue(undefined),
+    };
+    createInboundMailboxMock.mockReturnValue({
+      open: jest.fn().mockResolvedValue(session),
+    } as never);
+
+    const response = await makeService().testConnection();
+
+    expect(response).toEqual({ ok: true, inboxCount: 3, problems: [] });
+    expect(session.listIds).toHaveBeenCalledWith(10);
+    expect(session.list).not.toHaveBeenCalled();
+    expect(session.close).toHaveBeenCalledTimes(1);
+  });
+
   it('returns only a stable failure code for connector errors', async () => {
     const connectorError =
       'IMAP AUTH failed for private.sender@example.test with secret-token-456';
     const session = {
-      list: jest.fn().mockRejectedValue(new Error(connectorError)),
+      listIds: jest.fn().mockRejectedValue(new Error(connectorError)),
       close: jest.fn().mockResolvedValue(undefined),
     };
     createInboundMailboxMock.mockReturnValue({

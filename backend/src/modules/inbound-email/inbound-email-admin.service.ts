@@ -160,8 +160,10 @@ export class InboundEmailAdminService {
     let session: InboundMailboxSession | null = null;
     try {
       session = await createInboundMailbox(configuration).open();
-      const items = await session.list(10);
-      return { ok: true, inboxCount: items.length, problems };
+      // A connection test proves reachability and reports a count only; it
+      // must never download raw message content into the API process.
+      const ids = await session.listIds(10);
+      return { ok: true, inboxCount: ids.length, problems };
     } catch {
       return {
         ok: false,

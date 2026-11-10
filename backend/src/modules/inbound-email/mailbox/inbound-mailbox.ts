@@ -10,6 +10,8 @@ export type InboundMailboxDestination = 'processed' | 'rejected';
 export interface InboundMailboxSession {
   /** Oldest first, at most `limit` messages still in the inbox. */
   list(limit: number): Promise<readonly InboundMailboxItem[]>;
+  /** Provider ids only, oldest first — never downloads raw message content. */
+  listIds(limit: number): Promise<readonly string[]>;
   move(providerMessageId: string, destination: InboundMailboxDestination): Promise<void>;
   close(): Promise<void>;
 }
