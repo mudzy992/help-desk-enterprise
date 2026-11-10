@@ -46,7 +46,11 @@ describeIfReady(
       await publisher.ping();
 
       const settingsService = {
-        getSetting: jest.fn().mockResolvedValue(undefined),
+        getSetting: jest.fn(async (key: string) => {
+          if (key.endsWith('typesCsv')) return 'email,edge,teams';
+          if (key.endsWith('enabled') || key.endsWith('Enabled')) return true;
+          return undefined;
+        }),
       };
       const processEdgeEvent = new ProcessEdgeEventIntegrationJobService(
         new PublishEdgeEventToRedisService(publisher),
