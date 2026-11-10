@@ -1,6 +1,6 @@
 # BA-on-call-08: propuštene sweep notifikacije se nadoknađuju
 
-Status: **otvoreno**. Sweep notifikacije su best-effort: reminder se planirao samo unutar jednog sata dnevno, a shift-start samo 30 minuta nakon početka smjene. Ako je worker bio nedostupan ili je slanje padalo duže od tog prozora, notifikacija je zauvijek gubljena — bez ikakvog recoveryja.
+Status: **otvoreno**. Automatski CI `42866390060` za commit `73ad1e7` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Sweep notifikacije su best-effort: reminder se planirao samo unutar jednog sata dnevno, a shift-start samo 30 minuta nakon početka smjene. Ako je worker bio nedostupan ili je slanje padalo duže od tog prozora, notifikacija je zauvijek gubljena — bez ikakvog recoveryja.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Planner (`plan-on-call-sweep`) sada radi missed-action reconciliation oslonjenu 
 
 ## Testovi i granice
 
-Plan spec pokriva kasni reminder (nakon reminder sata), izostanak ranog remindera prije prozora, kasni shift-start unutar 24 h i odbijanje početka starijeg od 24 h. Recovery horizon je namjerno ograničen (24 h za shift-start, početak smjene za reminder): starije propuštene akcije se ne šalju jer zakasnela informacija gubi operativnu vrijednost. Ako slanje pada duže od horizona (npr. višednevni ispad workera), akcija se i dalje gubi — potpuno durable rješenje tražilo bi persistiranu queue/outbox tabelu (migracija), što je izvan ovog nalaza. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara.
+Plan spec pokriva kasni reminder (nakon reminder sata), izostanak ranog remindera prije prozora, kasni shift-start unutar 24 h i odbijanje početka starijeg od 24 h. Recovery horizon je namjerno ograničen (24 h za shift-start, početak smjene za reminder): starije propuštene akcije se ne šalju jer zakasnela informacija gubi operativnu vrijednost. Ako slanje pada duže od horizona (npr. višednevni ispad workera), akcija se i dalje gubi — potpuno durable rješenje tražilo bi persistiranu queue/outbox tabelu (migracija), što je izvan ovog nalaza. Automatski CI `42866390060` za `73ad1e7` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara.
