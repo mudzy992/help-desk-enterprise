@@ -189,7 +189,10 @@ export function requestOnCallSwap(
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/on-call/groups/${id(groupId)}/swaps`, json("POST", input));
 }
-export function listOnCallSwaps(): Promise<{ readonly swaps: readonly OnCallSwapView[]; readonly hasMore?: boolean }> {
+export function listOnCallSwaps(): Promise<{
+  readonly swaps: readonly OnCallSwapView[];
+  readonly hasMore?: boolean;
+}> {
   return apiRequest("/on-call/swaps");
 }
 export function decideOnCallSwap(

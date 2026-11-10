@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { OnCallTruncationNote } from "@/components/on-call/on-call-truncation-note";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -193,7 +194,7 @@ export function OnCallOverviewCards({
                 </ul>
               </details>
             ) : null}
-            {swapsHasMore ? <p className={hintClassName}>{t("onCall.listTruncated", { limit: 50 })}</p> : null}
+            {swapsHasMore ? <OnCallTruncationNote limit={50} /> : null}
           </div>
         </Card>
       </div>
