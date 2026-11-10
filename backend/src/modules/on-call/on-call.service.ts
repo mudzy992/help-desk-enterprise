@@ -4,8 +4,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { loadPrincipalContext } from '../../common/principal-context/load-principal-context';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { appendAuditLog } from '../audit-log/append-audit-log';
-import type { AuditLogTransactionalClient, AuditLogWriteClient } from '../audit-log/audit-log.types';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { JsonValue } from '../change-log/change-log.types';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
@@ -800,16 +799,20 @@ export class OnCallService {
 
   async revokeCalendarToken(viewer: OnCallViewer): Promise<void> {
     this.requireReader(viewer);
-    const deleted = await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: viewer.userId } });
-    if (deleted.count > 0) {
-      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-        action: auditLogActions.onCallCalendarTokenRevoked,
-        entityType: auditLogEntityTypes.user,
-        entityId: viewer.userId,
-        metadata: {},
-        actorUserId: viewer.userId,
-      });
-    }
+    // BA-on-call-12: delete and audit entry commit atomically (same pattern
+    // as rotateCalendarToken) — a failure must not leave a silent revoke.
+    await this.prisma.$transaction(async (transaction) => {
+      const deleted = await transaction.onCallCalendarToken.deleteMany({ where: { userId: viewer.userId } });
+      if (deleted.count > 0) {
+        await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
+          action: auditLogActions.onCallCalendarTokenRevoked,
+          entityType: auditLogEntityTypes.user,
+          entityId: viewer.userId,
+          metadata: {},
+          actorUserId: viewer.userId,
+        });
+      }
+    });
   }
 
   /** Public feed (token in the URL). Null → 404, without saying why. */
