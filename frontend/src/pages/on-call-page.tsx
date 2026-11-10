@@ -61,6 +61,7 @@ export function OnCallPage() {
     overview,
     me,
     swaps,
+    swapsHasMore,
     overviewError,
     meError,
     swapsError,
@@ -215,6 +216,7 @@ export function OnCallPage() {
         me={me}
         meError={meError}
         swaps={swaps}
+        swapsHasMore={swapsHasMore}
         swapsError={swapsError}
         pending={pending}
         busy={busy}
@@ -439,6 +441,9 @@ export function OnCallPage() {
                       ))}
                     </ul>
                   )}
+                  {detail.overridesHasMore ? (
+                    <p className={hintClassName}>{t("onCall.listTruncated", { limit: 200 })}</p>
+                  ) : null}
                 </section>
 
                 {detail.swaps.length > 0 ? (
@@ -459,6 +464,9 @@ export function OnCallPage() {
                         </li>
                       ))}
                     </ul>
+                    {detail.swapsHasMore ? (
+                      <p className={hintClassName}>{t("onCall.listTruncated", { limit: 100 })}</p>
+                    ) : null}
                   </section>
                 ) : null}
               </>

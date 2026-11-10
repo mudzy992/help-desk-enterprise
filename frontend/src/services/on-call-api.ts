@@ -79,7 +79,9 @@ export type OnCallGroupDetail = {
   readonly segments: readonly OnCallSegmentView[];
   readonly current: OnCallSegmentView | null;
   readonly overrides: readonly OnCallOverrideView[];
+  readonly overridesHasMore?: boolean;
   readonly swaps: readonly OnCallPendingSwapView[];
+  readonly swapsHasMore?: boolean;
   readonly candidates: ReadonlyArray<{ readonly userId: string; readonly displayName: string }>;
   readonly defaultTimezone: string;
   readonly canManage: boolean;
@@ -187,7 +189,7 @@ export function requestOnCallSwap(
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/on-call/groups/${id(groupId)}/swaps`, json("POST", input));
 }
-export function listOnCallSwaps(): Promise<{ readonly swaps: readonly OnCallSwapView[] }> {
+export function listOnCallSwaps(): Promise<{ readonly swaps: readonly OnCallSwapView[]; readonly hasMore?: boolean }> {
   return apiRequest("/on-call/swaps");
 }
 export function decideOnCallSwap(

@@ -13,6 +13,7 @@ export function OnCallOverviewCards({
   me,
   meError,
   swaps,
+  swapsHasMore,
   swapsError,
   pending,
   busy,
@@ -26,6 +27,7 @@ export function OnCallOverviewCards({
   readonly me: OnCallMe | null;
   readonly meError: OnCallQueryError | null;
   readonly swaps: readonly OnCallSwapView[];
+  readonly swapsHasMore?: boolean;
   readonly swapsError: OnCallQueryError | null;
   readonly pending: { readonly me: boolean; readonly swaps: boolean };
   readonly busy: string | null;
@@ -190,6 +192,9 @@ export function OnCallOverviewCards({
                   ))}
                 </ul>
               </details>
+            ) : null}
+            {swapsHasMore ? (
+              <p className={hintClassName}>{t("onCall.listTruncated", { limit: 50 })}</p>
             ) : null}
           </div>
         </Card>

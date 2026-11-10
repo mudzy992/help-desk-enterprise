@@ -226,7 +226,9 @@ export class OnCallService {
         segments: [],
         current: null,
         overrides: [],
+        overridesHasMore: false,
         swaps: [],
+        swapsHasMore: false,
         candidates,
         defaultTimezone: await readInstallationTimeZone(this.settings),
         canManage: groupCanManage,
@@ -242,13 +244,13 @@ export class OnCallService {
       this.prisma.onCallOverride.findMany({
         where: { scheduleId: schedule.id, endsAt: { gt: new Date(Math.min(from.getTime(), now.getTime())) } },
         orderBy: { startsAt: 'asc' },
-        take: 200,
+        take: 201,
         select: { id: true, userId: true, startsAt: true, endsAt: true, reason: true, swapRequestId: true, createdAt: true },
       }),
       this.prisma.onCallSwapRequest.findMany({
         where: { scheduleId: schedule.id, status: 'PENDING', endsAt: { gt: now } },
         orderBy: { startsAt: 'asc' },
-        take: 100,
+        take: 101,
         select: { id: true, requesterId: true, colleagueId: true, startsAt: true, endsAt: true, reason: true, createdAt: true },
       }),
     ]);
@@ -279,7 +281,9 @@ export class OnCallService {
       },
       segments: segments.map((segment) => this.toSegmentResponse(segment, person)),
       current: current === null ? null : this.toSegmentResponse(current, person),
-      overrides: overrides.map((item) => ({
+      overridesHasMore: overrides.length > 200,
+      swapsHasMore: swaps.length > 100,
+      overrides: overrides.slice(0, 200).map((item) => ({
         id: item.id,
         person: person(item.userId),
         startsAt: item.startsAt.toISOString(),
@@ -287,7 +291,7 @@ export class OnCallService {
         reason: item.reason,
         fromSwap: item.swapRequestId !== null,
       })),
-      swaps: swaps.map((item) => ({
+      swaps: swaps.slice(0, 100).map((item) => ({
         id: item.id,
         requester: person(item.requesterId),
         colleague: person(item.colleagueId),
@@ -347,13 +351,13 @@ export class OnCallService {
     this.requireReader(viewer);
     const groups = await this.listReadableGroups(viewer);
     const groupIds = groups.map((group) => group.id);
-    if (groupIds.length === 0) return [];
+    if (groupIds.length === 0) return { items: [], hasMore: false };
     const schedules = await this.prisma.onCallSchedule.findMany({
       where: { groupId: { in: groupIds } },
       select: { id: true },
     });
     const scheduleIds = schedules.map((schedule) => schedule.id);
-    if (scheduleIds.length === 0) return [];
+    if (scheduleIds.length === 0) return { items: [], hasMore: false };
     const rows = await this.prisma.onCallSwapRequest.findMany({
       where: {
         scheduleId: { in: scheduleIds },
@@ -361,7 +365,7 @@ export class OnCallService {
         endsAt: { gt: new Date(Date.now() - 30 * dayMs) },
       },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: 51,
       select: {
         id: true,
         status: true,
@@ -376,7 +380,8 @@ export class OnCallService {
       },
     });
     const names = await this.loadNames(rows.flatMap((row) => [row.requesterId, row.colleagueId]));
-    return rows.map((row) => ({
+    // BA-on-call-11: callers must be able to tell the list was truncated.
+    return { hasMore: rows.length > 50, items: rows.slice(0, 50).map((row) => ({
       id: row.id,
       status: row.status,
       direction: row.colleagueId === viewer.userId ? 'incoming' : 'outgoing',
@@ -390,7 +395,7 @@ export class OnCallService {
       reason: row.reason,
       decidedAt: row.decidedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
-    }));
+    })) };
   }
 
   // --------------------------------------------------------------- writes

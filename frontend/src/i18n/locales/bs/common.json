@@ -8259,7 +8259,8 @@
       "swapNotPending": "Zahtjev je već riješen.",
       "forbidden": "Za ovu radnju potrebno je ovlaštenje oncall.manage.",
       "order": "Kraj mora biti nakon početka."
-    }
+    },
+    "listTruncated": "Prikazuje se samo prvih {{limit}} zapisa; lista je duža od prikaza."
   },
   "announcements": {
     "title": "Najave",

@@ -8213,7 +8213,8 @@
       "swapNotPending": "The request has already been handled.",
       "forbidden": "This action needs the oncall.manage permission.",
       "order": "The end must be after the start."
-    }
+    },
+    "listTruncated": "Only the first {{limit}} entries are shown; the list is longer than the display."
   },
   "announcements": {
     "title": "Announcements",

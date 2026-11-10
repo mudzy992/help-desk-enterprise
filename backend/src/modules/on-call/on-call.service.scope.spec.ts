@@ -226,7 +226,7 @@ describe('OnCallService scoped group access (BA-on-call-01)', () => {
       schedules: [{ id: 'schedule-it' }],
     });
 
-    await expect(service.mySwaps(scopedViewer(permissionKeys.onCallRead))).resolves.toEqual([]);
+    await expect(service.mySwaps(scopedViewer(permissionKeys.onCallRead))).resolves.toEqual({ items: [], hasMore: false });
     expect(prisma.onCallSwapRequest.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ scheduleId: { in: ['schedule-it'] } }),
     }));

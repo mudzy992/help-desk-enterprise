@@ -120,7 +120,8 @@ export class OnCallController {
   @Header('Cache-Control', 'no-store')
   @RequirePermissions(permissionKeys.onCallRead)
   async swaps(@Req() request: AuthenticatedHttpRequest) {
-    return { swaps: await runOnCall(() => this.onCall.mySwaps(this.viewer(request))) };
+    const result = await runOnCall(() => this.onCall.mySwaps(this.viewer(request)));
+    return { swaps: result.items, hasMore: result.hasMore };
   }
 
   @Post('swaps/:id/accept')
