@@ -1,6 +1,6 @@
 # BA-on-call-09: sweep scheduler se obnavlja nakon gubitka Redisa
 
-Status: **otvoreno**. Automatski CI `42873496502` za commit `7300f65` prošao je uspješno (generated Prisma + stvarni PostgreSQL/Redis). `OnCallSweepSchedulerService` je repeatable sweep scheduler registrovao samo u `onModuleInit`, pa bi Redis flush ili failover na praznu instancu trajno zaustavio on-call sweep (reminderi, shift-start i gap obavještenja) do sljedećeg restarta workera — isti obrazac koji je za inbound e-poštu riješen u BA-inbound-email-08.
+Status: **zatvoreno** (operativna potvrda korisnika: nakon restarta Redisa `on_call_sweep_schedule_recovered` u worker logu unutar 60 s, sweep nastavio bez restarta workera). Automatski CI `42873496502` za commit `7300f65` prošao je uspješno (generated Prisma + stvarni PostgreSQL/Redis). `OnCallSweepSchedulerService` je repeatable sweep scheduler registrovao samo u `onModuleInit`, pa bi Redis flush ili failover na praznu instancu trajno zaustavio on-call sweep (reminderi, shift-start i gap obavještenja) do sljedećeg restarta workera — isti obrazac koji je za inbound e-poštu riješen u BA-inbound-email-08.
 
 ## Izmjena
 
