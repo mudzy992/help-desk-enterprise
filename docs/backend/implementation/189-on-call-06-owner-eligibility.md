@@ -1,6 +1,6 @@
 # BA-on-call-06: owner rasporeda mora pripadati grupi
 
-Status: **otvoreno**. Schedule owner prima gap obavještenja za grupu (koja smjena je nepokrivena i kada), a save je ownera validirao samo kao bilo kojeg aktivnog staff korisnika — strani staff bez ikakve veze s grupom mogao je postati owner i primati te informacije, uključujući i nakon što napusti organizaciju.
+Status: **otvoreno**. Automatski CI `42831878115` za commit `30c51e0` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Schedule owner prima gap obavještenja za grupu (koja smjena je nepokrivena i kada), a save je ownera validirao samo kao bilo kojeg aktivnog staff korisnika — strani staff bez ikakve veze s grupom mogao je postati owner i primati te informacije, uključujući i nakon što napusti organizaciju.
 
 ## Izmjena
 
@@ -9,4 +9,4 @@ Status: **otvoreno**. Schedule owner prima gap obavještenja za grupu (koja smje
 
 ## Granice
 
-Scoped (OU) manager koji nije član grupe može biti owner samo ako sam sprema raspored; dodjela takvog managera kao ownera od strane drugog managera traži da osoba bude član grupe. Detaljni prikaz i dalje pokazuje zapisanog ownera — mijenja se samo pravo na gap obavještenja i save validacija. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Scoped (OU) manager koji nije član grupe može biti owner samo ako sam sprema raspored; dodjela takvog managera kao ownera od strane drugog managera traži da osoba bude član grupe. Detaljni prikaz i dalje pokazuje zapisanog ownera — mijenja se samo pravo na gap obavještenja i save validacija. Automatski CI `42831878115` za `30c51e0` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
