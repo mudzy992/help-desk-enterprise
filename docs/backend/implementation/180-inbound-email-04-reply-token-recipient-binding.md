@@ -1,6 +1,6 @@
 # BA-inbound-email-04: potpisani reply token vezan za primaoca
 
-Status: **otvoreno**. Potpisani reply token nosi `recipientId` korisnika kojem je notifikacijski e-mail poslan, ali se pri dolaznoj obradi ta vrijednost nije poredila sa stvarnim pošiljaocem — token je služio samo za rutiranje na tiket.
+Status: **otvoreno**. Potpisani reply token nosi `recipientId` korisnika kojem je notifikacijski e-mail poslan, ali se pri dolaznoj obradi ta vrijednost nije poredila sa stvarnim pošiljaocem — token je služio samo za rutiranje na tiket. Automatski CI `42794957321` za commit `0c3c5d4` prošao je uspješno (generated Prisma + stvarni PostgreSQL).
 
 ## Prethodno ponašanje
 
@@ -14,4 +14,4 @@ Status: **otvoreno**. Potpisani reply token nosi `recipientId` korisnika kojem j
 
 ## Ograničenja
 
-Strogo poklapanje znači da primalac koji odgovara s druge adrese (alias koji se ne mapira na istog korisnika kroz `findSenderByEmail`) biva odbijen i mora odgovoriti s izdate adrese ili kroz aplikaciju. Thread/subject rute bez tokena nisu mijenjane i dalje se oslanjaju na pristup koji ticket servis provjerava pri upisu. Nema migracije; razlog odbijanja pohranjuje se kao string u postojeći zapis dolazne pošte. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Deployment nije rađen.
+Strogo poklapanje znači da primalac koji odgovara s druge adrese (alias koji se ne mapira na istog korisnika kroz `findSenderByEmail`) biva odbijen i mora odgovoriti s izdate adrese ili kroz aplikaciju. Thread/subject rute bez tokena nisu mijenjane i dalje se oslanjaju na pristup koji ticket servis provjerava pri upisu. Nema migracije; razlog odbijanja pohranjuje se kao string u postojeći zapis dolazne pošte. Automatski CI `42794957321` za `0c3c5d4` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Deployment nije rađen.
