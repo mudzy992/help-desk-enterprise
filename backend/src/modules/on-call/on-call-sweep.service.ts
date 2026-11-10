@@ -11,6 +11,12 @@ import { onCallSweepWindows, planOnCallSweep } from './plan-on-call-sweep';
 
 const terminalStatuses = ['RESOLVED', 'CLOSED', 'ARCHIVED'] as const;
 
+/** BA-on-call-10: retention deletes in bounded batches, never one huge deleteMany. */
+export const onCallRetentionLimits = {
+  batch: 500,
+  maxBatchesPerRun: 20,
+} as const;
+
 /** Paket 2.9 (K3, §4.5, §7): the quarter-hourly on-call sweep. Returns notifications sent. */
 @Injectable()
 export class OnCallSweepService {
@@ -94,11 +100,55 @@ export class OnCallSweepService {
     if (!Number.isFinite(days) || days <= 0) return;
     const cutoff = new Date(now.getTime() - days * 86_400_000);
     try {
-      await this.prisma.onCallOverride.deleteMany({ where: { endsAt: { lt: cutoff } } });
-      await this.prisma.onCallSwapRequest.deleteMany({ where: { endsAt: { lt: cutoff } } });
+      const overrides = await this.deleteRetentionBatch('override', cutoff);
+      const swaps = await this.deleteRetentionBatch('swap', cutoff);
+      if (overrides.deleted + swaps.deleted > 0) {
+        this.logger.log(`on_call_retention_deleted overrides=${overrides.deleted} swaps=${swaps.deleted}`);
+      }
+      if (overrides.backlog || swaps.backlog) {
+        this.logger.warn(
+          `on_call_retention_backlog overrides=${overrides.backlog} swaps=${swaps.backlog} cap=${onCallRetentionLimits.batch * onCallRetentionLimits.maxBatchesPerRun}`,
+        );
+      }
     } catch (error) {
-      this.logger.warn(`on-call retention failed: ${error instanceof Error ? error.name : 'unknown'}`);
+      // BA-on-call-10: a failing retention must be visible, not a silent
+      // success — propagate so the BullMQ job fails and retries (the
+      // notifications above are already persisted and deduped).
+      this.logger.warn(`on_call_retention_failed type=${error instanceof Error ? error.name : 'unknown'}`);
+      throw error;
     }
+  }
+
+  private async deleteRetentionBatch(
+    kind: 'override' | 'swap',
+    cutoff: Date,
+  ): Promise<{ deleted: number; backlog: boolean }> {
+    let deleted = 0;
+    for (let batch = 0; batch < onCallRetentionLimits.maxBatchesPerRun; batch += 1) {
+      const rows =
+        kind === 'override'
+          ? await this.prisma.onCallOverride.findMany({
+              where: { endsAt: { lt: cutoff } },
+              orderBy: { endsAt: 'asc' },
+              take: onCallRetentionLimits.batch,
+              select: { id: true },
+            })
+          : await this.prisma.onCallSwapRequest.findMany({
+              where: { endsAt: { lt: cutoff } },
+              orderBy: { endsAt: 'asc' },
+              take: onCallRetentionLimits.batch,
+              select: { id: true },
+            });
+      if (rows.length === 0) return { deleted, backlog: false };
+      const ids = rows.map((row) => row.id);
+      const result =
+        kind === 'override'
+          ? await this.prisma.onCallOverride.deleteMany({ where: { id: { in: ids } } })
+          : await this.prisma.onCallSwapRequest.deleteMany({ where: { id: { in: ids } } });
+      deleted += result.count;
+      if (rows.length < onCallRetentionLimits.batch) return { deleted, backlog: false };
+    }
+    return { deleted, backlog: true };
   }
 
   private async readSetting(key: string): Promise<unknown> {
