@@ -5,6 +5,7 @@ import {
   HttpException,
   NotFoundException,
   ServiceUnavailableException,
+  TooManyRequestsException,
 } from '@nestjs/common';
 import { OnCallError, onCallErrorCodes } from './on-call.constants';
 
