@@ -233,6 +233,10 @@ model AppSetting {
 /// Paket 2.3 (R12): one inbound e-mail seen in the support mailbox. The pair
 /// (mailboxKey, providerMessageId) is processed at most once. No body is kept
 /// here; the raw .eml lives in storage for `rawRetentionDays`.
+/// BA-inbound-email-07: a partial unique index on
+/// (mailboxKey, messageIdHeader) WHERE status='PROCESSED' exists only in
+/// migration 20271031210000 — Prisma cannot express partial indexes, so it is
+/// intentionally absent from this schema.
 model InboundEmail {
   id                String             @id @default(cuid())
   mailboxKey        String             @db.VarChar(200)

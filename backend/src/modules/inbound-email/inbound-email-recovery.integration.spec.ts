@@ -188,4 +188,26 @@ describeIfDatabase('inbound email crash-safe attempt and ticket idempotency', ()
       data: { ...attachment, storagePath: `tickets/${ticketId}/inbound-second.png` } as never,
     })).rejects.toMatchObject({ code: 'P2002' });
   });
+
+  it('allows at most one PROCESSED row per Message-ID (BA-inbound-email-07)', async () => {
+    const mailboxKey = `it:inbound-dedupe-${stamp}`;
+    const messageIdHeader = `<dedupe-${stamp}@example.test>`;
+    const first = await prisma.inboundEmail.create({
+      data: { mailboxKey, providerMessageId: `dedupe-a-${stamp}`, subject: '', messageIdHeader, status: 'PROCESSING' },
+    });
+    const second = await prisma.inboundEmail.create({
+      data: { mailboxKey, providerMessageId: `dedupe-b-${stamp}`, subject: '', messageIdHeader, status: 'PROCESSING' },
+    });
+    try {
+      await prisma.inboundEmail.update({ where: { id: first.id }, data: { status: 'PROCESSED' } });
+      await expect(
+        prisma.inboundEmail.update({ where: { id: second.id }, data: { status: 'PROCESSED' } }),
+      ).rejects.toMatchObject({ code: 'P2002' });
+      await expect(
+        prisma.inboundEmail.update({ where: { id: second.id }, data: { status: 'IGNORED', reason: 'DUPLICATE' } }),
+      ).resolves.toMatchObject({ status: 'IGNORED' });
+    } finally {
+      await prisma.inboundEmail.deleteMany({ where: { id: { in: [first.id, second.id] } } });
+    }
+  });
 });

@@ -491,24 +491,41 @@ export class InboundEmailService {
     outcome: InboundOutcome,
   ): Promise<string> {
     const now = new Date();
-    const updated = await this.prisma.inboundEmail.updateMany({
-      where: {
-        id,
-        status: 'PROCESSING',
-        processingOwnerToken: ownerToken,
-        processingLeaseExpiresAt: { gt: now },
-      },
-      data: {
-        status: outcome.status,
-        reason: outcome.status === 'PROCESSED' ? (outcome.notes?.length ? 'ATTACHMENTS_REJECTED' : null) : outcome.reason,
-        ticketId: 'ticketId' in outcome ? (outcome.ticketId ?? null) : null,
-        ticketMessageId: outcome.status === 'PROCESSED' ? (outcome.ticketMessageId ?? null) : null,
-        createdTicketId: outcome.status === 'PROCESSED' ? (outcome.createdTicketId ?? null) : null,
-        processingPhase: null,
-        processingOwnerToken: null,
-        processingLeaseExpiresAt: null,
-      },
-    });
+    let updated: { count: number };
+    try {
+      updated = await this.prisma.inboundEmail.updateMany({
+        where: {
+          id,
+          status: 'PROCESSING',
+          processingOwnerToken: ownerToken,
+          processingLeaseExpiresAt: { gt: now },
+        },
+        data: {
+          status: outcome.status,
+          reason: outcome.status === 'PROCESSED' ? (outcome.notes?.length ? 'ATTACHMENTS_REJECTED' : null) : outcome.reason,
+          ticketId: 'ticketId' in outcome ? (outcome.ticketId ?? null) : null,
+          ticketMessageId: outcome.status === 'PROCESSED' ? (outcome.ticketMessageId ?? null) : null,
+          createdTicketId: outcome.status === 'PROCESSED' ? (outcome.createdTicketId ?? null) : null,
+          processingPhase: null,
+          processingOwnerToken: null,
+          processingLeaseExpiresAt: null,
+        },
+      });
+    } catch (error) {
+      // BA-inbound-email-07: the partial unique index on
+      // (mailboxKey, messageIdHeader) WHERE status='PROCESSED' makes the
+      // losing concurrent delivery collide here. Convert it to the same
+      // DUPLICATE outcome the pre-check would have produced.
+      if (
+        outcome.status === 'PROCESSED' &&
+        typeof error === 'object' && error !== null && 'code' in error &&
+        (error as { code: unknown }).code === 'P2002'
+      ) {
+        this.logger.warn(`inbound_email_duplicate_at_finish id=${id} resolution=ignored_duplicate`);
+        return this.finish(session, item, id, ownerToken, { status: 'IGNORED', reason: 'DUPLICATE' });
+      }
+      throw error;
+    }
     if (updated.count !== 1) throw new LostInboundAttempt();
     await session.move(item.providerMessageId, outcome.status === 'PROCESSED' ? 'processed' : 'rejected');
     return outcome.status;
