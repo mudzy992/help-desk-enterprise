@@ -8,4 +8,8 @@ Backend sada dohvaća jedan red viška i vraća eksplicitne zastavice: detalj no
 
 ## Testovi i granice
 
-Novi backend spec pokriva `mySwaps` (51 red → 50 + `hasMore`) i detalj (201/101 red → 200/100 + obje zastavice); frontend build i lint prolaze. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Novi backend spec pokriva `mySwaps` (51 red → 50 + `hasMore`) i detalj (201/101 red → 200/100 + obje zastavice); frontend build i lint prolaze. Migracija nije rađena.
+
+## CI dokaz
+
+Implementacija je pushana u commitima `7a1f2ad` i `3aa1aaa`; prvi CI (`42881185902`) pao je na frontend poslu isključivo zbog Prettier formatiranja i limita veličine modula (`on-call-page.tsx` 507 > 500 linija) — ispravljeno izdvajanjem napomene u `OnCallTruncationNote` komponentu i formatiranjem (commit `5bcbd9c`). Završni GitHub Actions CI run [`42886623185`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42886623185) za commit `5bcbd9c` završio je **success**: Detect changes, Docs guard, Frontend build + test, Backend container + supply chain, Backend build + test (generated Prisma) i Backend PostgreSQL + Redis integration. Nalaz ostaje otvoren do operativne potvrde.
