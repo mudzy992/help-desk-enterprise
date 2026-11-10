@@ -109,6 +109,9 @@ function createHarness(shiftStart: Date, options: HarnessOptions = {}) {
       })),
     },
     onCallSchedule: { findUnique: jest.fn(async () => schedule) },
+    groupMember: {
+      findMany: jest.fn(async () => schedule.members.map((member) => ({ groupId: schedule.groupId, userId: member.userId }))),
+    },
     onCallOverride: { findMany: findOverrides },
     onCallSwapRequest: { create: createSwap },
     user: {

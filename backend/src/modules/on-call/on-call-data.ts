@@ -60,7 +60,11 @@ type ScheduleRow = {
   members: { userId: string; position: number; user: { isActive: boolean; anonymizedAt: Date | null } }[];
 };
 
-function toContext(row: ScheduleRow, overrides: readonly OnCallOverrideShape[]): OnCallScheduleContext {
+function toContext(
+  row: ScheduleRow,
+  overrides: readonly OnCallOverrideShape[],
+  currentMemberKeys: ReadonlySet<string>,
+): OnCallScheduleContext {
   return {
     id: row.id,
     groupId: row.groupId,
@@ -76,10 +80,33 @@ function toContext(row: ScheduleRow, overrides: readonly OnCallOverrideShape[]):
     members: row.members.map((member) => ({
       userId: member.userId,
       position: member.position,
-      isAvailable: member.user.isActive && member.user.anonymizedAt === null,
+      // BA-on-call-04: a rotation member who has left the group is uncovered,
+      // exactly like a deactivated user — never silently resolved/assigned.
+      isAvailable:
+        member.user.isActive &&
+        member.user.anonymizedAt === null &&
+        currentMemberKeys.has(`${row.groupId}:${member.userId}`),
     })),
     overrides,
   };
+}
+
+/** Current GroupMember pairs for the given schedules, as `groupId:userId` keys. */
+async function loadCurrentMemberKeys(
+  prisma: PrismaService,
+  rows: readonly ScheduleRow[],
+): Promise<ReadonlySet<string>> {
+  const keys = new Set<string>();
+  if (rows.length === 0) return keys;
+  const memberships = await prisma.groupMember.findMany({
+    where: {
+      groupId: { in: [...new Set(rows.map((row) => row.groupId))] },
+      userId: { in: [...new Set(rows.flatMap((row) => row.members.map((member) => member.userId)))] },
+    },
+    select: { groupId: true, userId: true },
+  });
+  for (const membership of memberships) keys.add(`${membership.groupId}:${membership.userId}`);
+  return keys;
 }
 
 async function loadOverrides(
@@ -114,7 +141,8 @@ export async function loadOnCallScheduleContext(
   })) as ScheduleRow | null;
   if (row === null) return null;
   const overrides = await loadOverrides(prisma, [row.id], window.from, window.to);
-  return toContext(row, overrides.get(row.id) ?? []);
+  const currentMemberKeys = await loadCurrentMemberKeys(prisma, [row]);
+  return toContext(row, overrides.get(row.id) ?? [], currentMemberKeys);
 }
 
 /** Every active schedule, optionally restricted to users and/or authorized groups. */
@@ -149,7 +177,8 @@ export async function loadActiveOnCallContexts(
     window.from,
     window.to,
   );
-  return rows.map((row) => toContext(row, overrides.get(row.id) ?? []));
+  const currentMemberKeys = await loadCurrentMemberKeys(prisma, rows);
+  return rows.map((row) => toContext(row, overrides.get(row.id) ?? [], currentMemberKeys));
 }
 
 export function resolveContextAt(context: OnCallScheduleContext, at: Date): OnCallSegment {
