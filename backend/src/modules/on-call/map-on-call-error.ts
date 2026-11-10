@@ -4,8 +4,8 @@ import {
   ForbiddenException,
   HttpException,
   NotFoundException,
+  HttpStatus,
   ServiceUnavailableException,
-  TooManyRequestsException,
 } from '@nestjs/common';
 import { OnCallError, onCallErrorCodes } from './on-call.constants';
 
@@ -26,7 +26,7 @@ export function mapOnCallError(error: unknown): unknown {
     case onCallErrorCodes.swapDuplicate:
       return new ConflictException(body);
     case onCallErrorCodes.swapLimitReached:
-      return new TooManyRequestsException(body);
+      return new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
     case onCallErrorCodes.forbidden:
     case onCallErrorCodes.swapNotAllowed:
       return new ForbiddenException(body);
