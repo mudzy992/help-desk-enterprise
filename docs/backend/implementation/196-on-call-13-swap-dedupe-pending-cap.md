@@ -1,6 +1,6 @@
 # BA-on-call-13: identični pending swap zahtjevi se odbijaju, broj otvorenih je ograničen
 
-Status: **otvoreno**. Zahtjev za zamjenu mogao se slati neograničeno puta s istim kolegom, rasporedom i intervalom; svaki je pravio novi pending red i novu notifikaciju kolegi (spam), a lista podnosioca mogla je rasti bez granice.
+Status: **zatvoreno** (operativna potvrda korisnika: sve DA — prvi zahtjev prolazi, identičan drugi odbijen porukom o duplikatu bez novog reda, kolega dobio jednu notifikaciju). Zahtjev za zamjenu mogao se slati neograničeno puta s istim kolegom, rasporedom i intervalom; svaki je pravio novi pending red i novu notifikaciju kolegi (spam), a lista podnosioca mogla je rasti bez granice.
 
 ## Izmjena
 
