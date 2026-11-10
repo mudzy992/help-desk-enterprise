@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { permissionKeys } from '../../authorization/authorization.constants';
@@ -14,15 +15,15 @@ import type { TicketRecord } from '../../tickets/tickets.types';
 import { normalizeReason } from '../normalize-template-input';
 import { recordTemplatesChange } from '../record-templates-change';
 import { hasPermission } from '../template-scope';
-import { templateChangeLogEntityTypes, type PlaybookRequiredStepsMode } from '../templates.constants';
+import { templateChangeLogEntityTypes, templateLimits, type PlaybookRequiredStepsMode } from '../templates.constants';
 import { TemplatesConfigurationLoader } from '../templates-configuration.loader';
 import { TemplatesError } from '../templates.error';
+import { templatesPageLimit } from '../templates-pagination';
 import { playbookInclude } from '../playbooks/playbooks.service';
 import {
   computePlaybookProgress,
   keysKeptOnUpgrade,
   parseStepSnapshots,
-  rankApplicablePlaybooks,
   toStepSnapshots,
   type PlaybookProgress,
   type PlaybookStepSnapshot,
@@ -56,7 +57,17 @@ export type TicketPlaybookView = {
     })[];
     readonly progress: PlaybookProgress;
   };
-  readonly available: readonly { readonly id: string; readonly name: string; readonly match: 'service' | 'category' | 'other' }[];
+  readonly available: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly match: 'service' | 'category' | 'other';
+  }[];
+  readonly availablePage: {
+    readonly take: number;
+    readonly cursor: string | null;
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  };
 };
 
 const readOnlyStatuses = new Set(['CLOSED', 'ARCHIVED']);
@@ -72,13 +83,24 @@ export class TicketPlaybooksService {
     private readonly configurationLoader: TemplatesConfigurationLoader,
   ) {}
 
-  async get(ticketId: string, actor: Actor): Promise<TicketPlaybookView> {
+  async get(
+    ticketId: string,
+    actor: Actor,
+    query: { readonly cursor?: string; readonly take?: number } = {},
+  ): Promise<TicketPlaybookView> {
     const configuration = await this.configurationLoader.load();
     if (!configuration.playbooksEnabled) {
-      return { enabled: false, mode: configuration.requiredStepsOnResolve, readOnly: true, playbook: null, available: [] };
+      return {
+        enabled: false,
+        mode: configuration.requiredStepsOnResolve,
+        readOnly: true,
+        playbook: null,
+        available: [],
+        availablePage: emptyAvailablePage(query),
+      };
     }
     const { ticket } = await this.loadTicket(ticketId, actor, false);
-    return this.buildView(ticket, configuration.requiredStepsOnResolve);
+    return this.buildView(ticket, configuration.requiredStepsOnResolve, query);
   }
 
   async attach(ticketId: string, playbookId: string, actor: Actor): Promise<TicketPlaybookView> {
@@ -98,10 +120,9 @@ export class TicketPlaybooksService {
   }
 
   /**
-   * Package 5.2.4 (M13 B4): attach a playbook to many tickets in one call.
-   * Tickets that are closed/merged, already have a playbook, or are forbidden
-   * are reported in `skipped` rather than aborting the batch; the happy path
-   * runs with bounded concurrency so long ticket lists don't spike the DB.
+   * Package 5.2.4 (M13 B4): bounded synchronous attach for a small ticket set.
+   * Closed/merged, already-attached, and forbidden tickets are reported in
+   * `skipped`; accepted requests still process tickets with bounded concurrency.
    */
   async bulkAttach(
     playbookId: string,
@@ -109,17 +130,28 @@ export class TicketPlaybooksService {
     actor: Actor,
   ): Promise<{
     readonly attached: readonly string[];
-    readonly skipped: readonly { readonly ticketId: string; readonly reason: string }[];
+    readonly skipped: readonly {
+      readonly ticketId: string;
+      readonly reason: string;
+    }[];
   }> {
+    if (ticketIds.length > templateLimits.bulkAttachSyncMaxTickets) {
+      throw new TemplatesError('TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED', {
+        limit: templateLimits.bulkAttachSyncMaxTickets,
+        requested: ticketIds.length,
+      });
+    }
     await this.requireEnabled();
-    const uniqueIds = [...new Set(ticketIds)].slice(0, 500);
+    const uniqueIds = [...new Set(ticketIds)];
     const playbook = await this.prisma.playbook.findFirst({
       where: { id: playbookId, deletedAt: null, isActive: true },
       select: { id: true },
     });
     if (playbook === null) throw new TemplatesError('PLAYBOOK_NOT_FOUND');
     const context = await this.authorizationContextLoader.loadBySubjectId(actor.actorUserId);
-    const gated = await this.accessPolicies.bind({ actorUserId: actor.actorUserId });
+    const gated = await this.accessPolicies.bind({
+      actorUserId: actor.actorUserId,
+    });
     const attached: string[] = [];
     const skipped: { ticketId: string; reason: string }[] = [];
     const BATCH = 5;
@@ -181,7 +213,11 @@ export class TicketPlaybooksService {
       const tx = transaction as PrismaService;
       const detached = await tx.ticketPlaybook.updateMany({
         where: { id: current.id, detachedAt: null },
-        data: { detachedAt: new Date(), detachedById: actor.actorUserId, detachReason: reason },
+        data: {
+          detachedAt: new Date(),
+          detachedById: actor.actorUserId,
+          detachReason: reason,
+        },
       });
       if (detached.count === 0) {
         throw new TemplatesError('TICKET_PLAYBOOK_NOT_FOUND');
@@ -191,7 +227,11 @@ export class TicketPlaybooksService {
         entityId: current.id,
         action: changeLogActions.delete,
         reason,
-        before: { ticketId: ticket.id, playbookId: current.playbookId, version: current.playbookVersion },
+        before: {
+          ticketId: ticket.id,
+          playbookId: current.playbookId,
+          version: current.playbookVersion,
+        },
         after: null,
         actorUserId: actor.actorUserId,
       });
@@ -211,25 +251,27 @@ export class TicketPlaybooksService {
   async upgrade(ticketId: string, actor: Actor): Promise<TicketPlaybookView> {
     const configuration = await this.requireEnabled();
     const { ticket } = await this.loadTicket(ticketId, actor, true);
-    const current = await this.loadActive(ticket.id);
-    const latest = await this.prisma.playbook.findFirst({
-      where: { id: current.playbookId, deletedAt: null, isActive: true },
-      include: playbookInclude,
-    });
-    if (latest === null) {
-      throw new TemplatesError('TICKET_PLAYBOOK_NOT_APPLICABLE');
-    }
-    if (latest.version <= current.playbookVersion) {
-      throw new TemplatesError('TICKET_PLAYBOOK_UP_TO_DATE');
-    }
-    const nextSteps = toStepSnapshots(latest.steps);
-    const kept = keysKeptOnUpgrade(
-      current.steps.map((step) => step.stepKey),
-      nextSteps,
-    );
     const messages: TicketPersistedMessageSink = [];
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
+      // Upgrade and step mutations share the parent row lock. Reload only
+      // after taking it so checked rows and the JSON snapshot are one state.
+      const current = await this.lockActiveForTicket(tx, ticket.id);
+      const latest = await tx.playbook.findFirst({
+        where: { id: current.playbookId, deletedAt: null, isActive: true },
+        include: playbookInclude,
+      });
+      if (latest === null) {
+        throw new TemplatesError('TICKET_PLAYBOOK_NOT_APPLICABLE');
+      }
+      if (latest.version <= current.playbookVersion) {
+        throw new TemplatesError('TICKET_PLAYBOOK_UP_TO_DATE');
+      }
+      const nextSteps = toStepSnapshots(latest.steps);
+      const kept = keysKeptOnUpgrade(
+        current.steps.map((step) => step.stepKey),
+        nextSteps,
+      );
       await tx.ticketPlaybookStep.deleteMany({
         where: { ticketPlaybookId: current.id, stepKey: { notIn: [...kept] } },
       });
@@ -246,7 +288,10 @@ export class TicketPlaybooksService {
         entityId: current.id,
         action: changeLogActions.update,
         reason: 'playbook_upgrade',
-        before: { version: current.playbookVersion, steps: parseStepSnapshots(current.stepsSnapshot) },
+        before: {
+          version: current.playbookVersion,
+          steps: parseStepSnapshots(current.stepsSnapshot),
+        },
         after: { version: latest.version, steps: nextSteps },
         actorUserId: actor.actorUserId,
       });
@@ -266,28 +311,46 @@ export class TicketPlaybooksService {
   async setStep(ticketId: string, stepKey: string, checked: boolean, actor: Actor): Promise<TicketPlaybookView> {
     const configuration = await this.requireEnabled();
     const { ticket } = await this.loadTicket(ticketId, actor, true);
-    const current = await this.loadActive(ticket.id);
-    const steps = parseStepSnapshots(current.stepsSnapshot);
-    const step = steps.find((candidate) => candidate.stepKey === stepKey);
-    if (step === undefined) {
-      throw new TemplatesError('TICKET_PLAYBOOK_STEP_NOT_FOUND');
-    }
-    const wasChecked = current.steps.some((row) => row.stepKey === stepKey);
-    if (wasChecked === checked) {
-      // Idempotent: a double click or a second agent doing the same.
-      return this.buildView(ticket, configuration.requiredStepsOnResolve);
-    }
     const messages: TicketPersistedMessageSink = [];
+    // Keep one event identity if the transaction callback is retried. The
+    // checklist row lock plus the incomplete→complete check suppresses later
+    // request retries after the state has already committed.
+    const completionEventId = randomUUID();
     await this.prisma.$transaction(async (transaction) => {
       const tx = transaction as PrismaService;
+      // The state check is inside the same lock/transaction as the mutation;
+      // otherwise two stale readers can emit duplicate logical completion events.
+      const current = await this.lockActiveForTicket(tx, ticket.id);
+      const steps = parseStepSnapshots(current.stepsSnapshot);
+      const step = steps.find((candidate) => candidate.stepKey === stepKey);
+      if (step === undefined) {
+        throw new TemplatesError('TICKET_PLAYBOOK_STEP_NOT_FOUND');
+      }
+      const checkedKeys = new Set(current.steps.map((row) => row.stepKey));
+      const wasChecked = checkedKeys.has(stepKey);
+      if (wasChecked === checked) {
+        return;
+      }
+      const wasComplete = computePlaybookProgress(steps, checkedKeys).complete;
       if (checked) {
         await tx.ticketPlaybookStep.upsert({
-          where: { ticketPlaybookId_stepKey: { ticketPlaybookId: current.id, stepKey } },
-          create: { ticketPlaybookId: current.id, stepKey, checkedById: actor.actorUserId, checkedAt: new Date() },
+          where: {
+            ticketPlaybookId_stepKey: { ticketPlaybookId: current.id, stepKey },
+          },
+          create: {
+            ticketPlaybookId: current.id,
+            stepKey,
+            checkedById: actor.actorUserId,
+            checkedAt: new Date(),
+          },
           update: {},
         });
+        checkedKeys.add(stepKey);
       } else {
-        await tx.ticketPlaybookStep.deleteMany({ where: { ticketPlaybookId: current.id, stepKey } });
+        await tx.ticketPlaybookStep.deleteMany({
+          where: { ticketPlaybookId: current.id, stepKey },
+        });
+        checkedKeys.delete(stepKey);
       }
       await recordTemplatesChange(tx, {
         entityType: templateChangeLogEntityTypes.ticketPlaybook,
@@ -302,23 +365,23 @@ export class TicketPlaybooksService {
       messages.push(
         await insertSystemTicketEvent(tx, {
           ticketId: ticket.id,
-          action: checked ? ticketSystemEventActions.playbookStepChecked : ticketSystemEventActions.playbookStepUnchecked,
+          action: checked
+            ? ticketSystemEventActions.playbookStepChecked
+            : ticketSystemEventActions.playbookStepUnchecked,
           actorUserId: actor.actorUserId,
           detail: `${position}:${sanitize(step.title)}`,
         }),
       );
-      if (checked) {
-        const checkedKeys = new Set([...current.steps.map((row) => row.stepKey), stepKey]);
-        if (computePlaybookProgress(steps, checkedKeys).complete) {
-          messages.push(
-            await insertSystemTicketEvent(tx, {
-              ticketId: ticket.id,
-              action: ticketSystemEventActions.playbookCompleted,
-              actorUserId: actor.actorUserId,
-              detail: sanitize(current.playbookName),
-            }),
-          );
-        }
+      if (!wasComplete && computePlaybookProgress(steps, checkedKeys).complete) {
+        messages.push(
+          await insertSystemTicketEvent(tx, {
+            ticketId: ticket.id,
+            action: ticketSystemEventActions.playbookCompleted,
+            actorUserId: actor.actorUserId,
+            detail: sanitize(current.playbookName),
+            idempotencyKey: `playbook-completed:${current.id}:${completionEventId}`,
+          }),
+        );
       }
     });
     publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
@@ -336,7 +399,9 @@ export class TicketPlaybooksService {
   }
 
   private async loadTicket(ticketId: string, actor: Actor, write: boolean): Promise<{ ticket: TicketRecord }> {
-    const gated = await this.accessPolicies.bind({ actorUserId: actor.actorUserId });
+    const gated = await this.accessPolicies.bind({
+      actorUserId: actor.actorUserId,
+    });
     const { ticket, access } = await loadAccessibleTicket(
       this.prisma,
       this.authorizationContextLoader,
@@ -370,32 +435,73 @@ export class TicketPlaybooksService {
     return current;
   }
 
-  private async buildView(ticket: TicketRecord, mode: PlaybookRequiredStepsMode): Promise<TicketPlaybookView> {
+  private async lockActiveForTicket(transaction: PrismaService, ticketId: string) {
+    const locked = await transaction.$queryRaw<Array<{ readonly id: string }>>`
+      SELECT "id" FROM "TicketPlaybook"
+      WHERE "ticketId" = ${ticketId} AND "detachedAt" IS NULL
+      FOR UPDATE
+    `;
+    const id = locked[0]?.id;
+    if (id === undefined) {
+      throw new TemplatesError('TICKET_PLAYBOOK_NOT_FOUND');
+    }
+    const current = await transaction.ticketPlaybook.findFirst({
+      where: { id, detachedAt: null },
+      include: { steps: true },
+    });
+    if (current === null) {
+      throw new TemplatesError('TICKET_PLAYBOOK_NOT_FOUND');
+    }
+    return current;
+  }
+
+  private async buildView(
+    ticket: TicketRecord,
+    mode: PlaybookRequiredStepsMode,
+    query: { readonly cursor?: string; readonly take?: number } = {},
+  ): Promise<TicketPlaybookView> {
     const readOnly = isReadOnly(ticket);
     const current = await this.prisma.ticketPlaybook.findFirst({
       where: { ticketId: ticket.id, detachedAt: null },
-      include: { steps: true, playbook: { select: { version: true, isActive: true, deletedAt: true } } },
+      include: {
+        steps: true,
+        playbook: {
+          select: { version: true, isActive: true, deletedAt: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     const service = await this.prisma.service.findUnique({
       where: { id: ticket.serviceId },
       select: { categoryId: true },
     });
-    const candidates = current === null && !readOnly ? await loadPlaybookCandidates(this.prisma) : [];
-    const ranked = rankApplicablePlaybooks(candidates, {
-      serviceId: ticket.serviceId,
-      categoryId: service?.categoryId ?? null,
-    });
-    const rankedIds = new Set(ranked.map((entry) => entry.id));
-    const available = [
-      ...ranked.map((entry) => ({ id: entry.id, name: entry.name, match: entry.match })),
-      ...candidates
-        .filter((entry) => !rankedIds.has(entry.id))
-        .sort((a, b) => a.name.localeCompare(b.name, 'bs'))
-        .map((entry) => ({ id: entry.id, name: entry.name, match: 'other' as const })),
-    ];
+    const candidatesPage =
+      current === null && !readOnly
+        ? await loadPlaybookCandidates(
+            this.prisma,
+            {
+              ticketId: ticket.id,
+              serviceId: ticket.serviceId,
+              categoryId: service?.categoryId ?? null,
+            },
+            query,
+          )
+        : { ...emptyAvailablePage(query), items: [] };
+    const availablePage = {
+      take: candidatesPage.take,
+      cursor: candidatesPage.cursor,
+      nextCursor: candidatesPage.nextCursor,
+      hasMore: candidatesPage.hasMore,
+    };
     if (current === null) {
-      return { enabled: true, mode, readOnly, playbook: null, available };
+      return {
+        enabled: true,
+        mode,
+        readOnly,
+        playbook: null,
+        available: candidatesPage.items,
+        availablePage,
+      };
     }
     const steps = parseStepSnapshots(current.stepsSnapshot);
     const checkedByKey = new Map(current.steps.map((row) => [row.stepKey, row]));
@@ -411,7 +517,10 @@ export class TicketPlaybooksService {
     const [users, articles, templates] = await Promise.all([
       userIds.length === 0
         ? []
-        : this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, displayName: true } }),
+        : this.prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, displayName: true },
+          }),
       articleIds.length === 0
         ? []
         : this.prisma.knowledgeArticle.findMany({
@@ -437,6 +546,7 @@ export class TicketPlaybooksService {
       mode,
       readOnly,
       available: [],
+      availablePage,
       playbook: {
         id: current.id,
         playbookId: current.playbookId,
@@ -465,6 +575,15 @@ export class TicketPlaybooksService {
       },
     };
   }
+}
+
+function emptyAvailablePage(query: { readonly cursor?: string; readonly take?: number }) {
+  return {
+    take: templatesPageLimit(query.take),
+    cursor: query.cursor ?? null,
+    nextCursor: null,
+    hasMore: false,
+  };
 }
 
 function isReadOnly(ticket: Pick<TicketRecord, 'status' | 'mergedIntoTicketId'>): boolean {

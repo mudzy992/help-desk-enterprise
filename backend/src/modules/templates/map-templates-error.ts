@@ -5,8 +5,8 @@ import {
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
 import { mapTicketError } from '../tickets/map-ticket-error';
+import { templateLimits } from './templates.constants';
 import { TemplatesError, type TemplatesErrorCode } from './templates.error';
 
 const messages: Record<TemplatesErrorCode, string> = {
@@ -23,18 +23,23 @@ const messages: Record<TemplatesErrorCode, string> = {
   TEMPLATE_INACTIVE: 'The template is deactivated',
   TEMPLATE_SCOPE_INVALID: 'A service, category or group in the scope does not exist',
   TEMPLATE_SCOPE_FORBIDDEN: 'The scope is outside the services you may manage',
+  TEMPLATE_PRECONDITION_REQUIRED: 'The current response template revision is required',
+  TEMPLATE_VERSION_CONFLICT: 'The response template changed since it was loaded',
   TEMPLATE_TAGS_INVALID: 'At most 10 tags of up to 40 characters are allowed',
   REASON_REQUIRED: 'A reason of 3 to 500 characters is required',
   PLAYBOOK_NAME_INVALID: 'The playbook name must have 2 to 120 characters',
   PLAYBOOK_NAME_TAKEN: 'A playbook with this name already exists',
   PLAYBOOK_STEPS_INVALID: 'A playbook needs 1 to 50 steps with a title',
   PLAYBOOK_REFERENCE_INVALID: 'A linked article or template does not exist',
+  PLAYBOOK_PRECONDITION_REQUIRED: 'The current playbook revision is required',
+  PLAYBOOK_VERSION_CONFLICT: 'The playbook changed since it was loaded',
   TICKET_PLAYBOOK_NOT_FOUND: 'The ticket has no playbook',
   TICKET_PLAYBOOK_ALREADY_ATTACHED: 'The ticket already has a playbook',
   TICKET_PLAYBOOK_NOT_APPLICABLE: 'The playbook is inactive or does not apply to this ticket',
   TICKET_PLAYBOOK_UP_TO_DATE: 'The ticket already uses the newest playbook version',
   TICKET_PLAYBOOK_STEP_NOT_FOUND: 'The step is not part of this checklist',
   TICKET_PLAYBOOK_READ_ONLY: 'The checklist of a closed, archived or merged ticket cannot change',
+  TICKET_PLAYBOOK_BULK_LIMIT_EXCEEDED: `A synchronous bulk attach is limited to ${templateLimits.bulkAttachSyncMaxTickets} tickets`,
 };
 
 const notFound: readonly TemplatesErrorCode[] = [
@@ -51,7 +56,9 @@ const forbidden: readonly TemplatesErrorCode[] = [
 ];
 const conflict: readonly TemplatesErrorCode[] = [
   'TEMPLATE_NAME_TAKEN',
+  'TEMPLATE_VERSION_CONFLICT',
   'PLAYBOOK_NAME_TAKEN',
+  'PLAYBOOK_VERSION_CONFLICT',
   'TICKET_PLAYBOOK_ALREADY_ATTACHED',
   'TICKET_PLAYBOOK_UP_TO_DATE',
   'TICKET_PLAYBOOK_READ_ONLY',
@@ -76,22 +83,62 @@ export async function executeTemplatesOperation<T>(operation: () => Promise<T>):
   try {
     return await operation();
   } catch (error) {
-    // Package 5.2.4 (M13 B3): partial UNIQUE indexes guard response template
-    // names at the DB level (see migration 20271007190000) so parallel
-    // creates/renames cannot race past the application-level `assertNameFree`.
-    // Map P2002 on those indexes onto the same TEMPLATE_NAME_TAKEN code the
-    // pre-check throws.
+    // Partial UNIQUE indexes guard response-template and playbook names at the
+    // DB boundary, so parallel creates/renames cannot race past assertNameFree.
+    // Translate only their named P2002 constraints into stable conflict codes.
     if (isTemplateNameTakenError(error)) {
-      throw new TemplatesError('TEMPLATE_NAME_TAKEN');
+      throw mapTemplatesError(new TemplatesError('TEMPLATE_NAME_TAKEN'));
+    }
+    if (isPlaybookNameTakenError(error)) {
+      throw mapTemplatesError(new TemplatesError('PLAYBOOK_NAME_TAKEN'));
     }
     throw mapTemplatesError(error);
   }
 }
 
-function isTemplateNameTakenError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
-    return false;
+function uniqueConstraintTarget(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null) return null;
+  const candidate = error as { readonly code?: unknown; readonly meta?: unknown };
+  if (candidate.code !== 'P2002' || !isRecord(candidate.meta)) return null;
+
+  const meta = candidate.meta;
+  const directTarget = normalizeTarget(meta.target);
+  if (directTarget !== null) return directTarget;
+
+  const directConstraint = constraintTarget(meta.constraint);
+  if (directConstraint !== null) return directConstraint;
+
+  // Prisma 7's driver adapters keep PostgreSQL's named index under
+  // meta.driverAdapterError.cause.constraint.index rather than meta.target.
+  const adapterError = isRecord(meta.driverAdapterError) ? meta.driverAdapterError : null;
+  const adapterCause = adapterError !== null && isRecord(adapterError.cause) ? adapterError.cause : null;
+  return adapterCause === null ? null : constraintTarget(adapterCause.constraint);
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeTarget(target: unknown): string | null {
+  if (typeof target === 'string') return target.toLowerCase();
+  if (Array.isArray(target) && target.every((value): value is string => typeof value === 'string')) {
+    return target.join(',').toLowerCase();
   }
-  const target = error.meta?.target;
-  return typeof target === 'string' && target.includes('response_template') && target.includes('name_lower_key');
+  return null;
+}
+
+function constraintTarget(constraint: unknown): string | null {
+  if (!isRecord(constraint)) return null;
+  if (typeof constraint.index === 'string') return constraint.index.toLowerCase();
+  return normalizeTarget(constraint.fields);
+}
+
+function isTemplateNameTakenError(error: unknown): boolean {
+  const target = uniqueConstraintTarget(error);
+  return target !== null && target.includes('response_template') && target.includes('name_lower_key');
+}
+
+function isPlaybookNameTakenError(error: unknown): boolean {
+  const target = uniqueConstraintTarget(error);
+  return target !== null && target.includes('playbook_live_name_lower_key');
 }

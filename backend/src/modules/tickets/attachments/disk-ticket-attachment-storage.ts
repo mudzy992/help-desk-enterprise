@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { TicketsError } from '../tickets.error';
@@ -16,39 +16,73 @@ export class DiskTicketAttachmentStorage implements TicketAttachmentStorage {
     readonly ticketId: string;
     readonly extension: string;
     readonly contents: Buffer;
+    readonly idempotencyKey?: string;
+    readonly payloadHash?: string;
   }): Promise<string> {
-    if (!safeSegment.test(input.ticketId) || !safeSegment.test(input.extension)) {
-      throw new TicketsError('ATTACHMENT_FILENAME_INVALID');
-    }
-    const storagePath = path.posix.join(
-      'tickets',
-      input.ticketId,
-      `${randomUUID()}.${input.extension}`,
-    );
+    const storagePath = this.storagePath(input);
     const absolutePath = resolveContainedStoragePath(this.uploadRoot, storagePath);
     await mkdir(path.dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, input.contents);
-    return storagePath;
+    if (input.idempotencyKey === undefined) {
+      await writeFile(absolutePath, input.contents);
+      return storagePath;
+    }
+    const stagingPath = `${absolutePath}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(stagingPath, input.contents, { flag: 'wx' });
+      await rename(stagingPath, absolutePath);
+      return storagePath;
+    } catch (error) {
+      await unlink(stagingPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   async writeFromPath(input: {
     readonly ticketId: string;
     readonly extension: string;
     readonly sourcePath: string;
+    readonly idempotencyKey?: string;
+    readonly payloadHash?: string;
   }): Promise<string> {
+    const storagePath = this.storagePath(input);
+    const absolutePath = resolveContainedStoragePath(this.uploadRoot, storagePath);
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    const stagingPath = input.idempotencyKey === undefined ? absolutePath : `${absolutePath}.${randomUUID()}.tmp`;
+    try {
+      await pipeline(
+        createReadStream(input.sourcePath),
+        createWriteStream(stagingPath, { flags: 'wx' }),
+      );
+      if (stagingPath !== absolutePath) await rename(stagingPath, absolutePath);
+      return storagePath;
+    } catch {
+      await unlink(stagingPath).catch(() => undefined);
+      throw new TicketsError('ATTACHMENTS_STORAGE_UNAVAILABLE');
+    }
+  }
+
+  private storagePath(input: {
+    readonly ticketId: string;
+    readonly extension: string;
+    readonly idempotencyKey?: string;
+    readonly payloadHash?: string;
+  }): string {
     if (!safeSegment.test(input.ticketId) || !safeSegment.test(input.extension)) {
       throw new TicketsError('ATTACHMENT_FILENAME_INVALID');
     }
-    const storagePath = path.posix.join('tickets', input.ticketId, `${randomUUID()}.${input.extension}`);
-    const absolutePath = resolveContainedStoragePath(this.uploadRoot, storagePath);
-    await mkdir(path.dirname(absolutePath), { recursive: true });
-    try {
-      await pipeline(createReadStream(input.sourcePath), createWriteStream(absolutePath, { flags: 'wx' }));
-      return storagePath;
-    } catch {
-      await unlink(absolutePath).catch(() => undefined);
-      throw new TicketsError('ATTACHMENTS_STORAGE_UNAVAILABLE');
+    if (input.idempotencyKey === undefined) {
+      return path.posix.join('tickets', input.ticketId, `${randomUUID()}.${input.extension}`);
     }
+    const payloadHash = input.payloadHash;
+    if (payloadHash === undefined || !/^[a-f0-9]{64}$/u.test(payloadHash)) {
+      throw new TicketsError('ATTACHMENT_FILENAME_INVALID');
+    }
+    const digest = createHash('sha256')
+      .update(input.idempotencyKey)
+      .update('\0')
+      .update(payloadHash)
+      .digest('hex');
+    return path.posix.join('tickets', input.ticketId, `inbound-${digest}.${input.extension}`);
   }
 
   async copy(input: { readonly sourcePath: string; readonly ticketId: string; readonly extension: string }): Promise<string> {

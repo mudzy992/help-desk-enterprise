@@ -40,6 +40,7 @@ function overview(
   return {
     generatedAt: "2026-11-20T10:00:00.000Z",
     snapshot: { generatedAt: "2026-11-20T09:59:30.000Z", ageSeconds: 30 },
+    assetOperations: null,
     components: {
       api: "ok",
       database: "ok",
@@ -106,6 +107,72 @@ describe("ops health view", () => {
     );
     expect(overallOpsState(overview({ alerts: [alert({ severity: "CRITICAL" })] }))).toBe("down");
     expect(overallOpsState(overview({}, { redis: "fail" }))).toBe("down");
+    expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            changeDowntimeSync: {
+              status: "degraded",
+              pending: 1,
+              processing: 0,
+              deadLetter: 0,
+              oldestPendingAgeMs: 300_000,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
+    expect(overallOpsState(overview({}, { changeDowntimeSync: null }))).toBe("degraded");
+    expect(overallOpsState(overview({}, { ticketSideEffectOutbox: null }))).toBe("degraded");
+    expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            ticketSideEffectOutbox: {
+              status: "degraded",
+              pending: 0,
+              processing: 0,
+              deadLetter: 1,
+              oldestPendingAgeMs: 0,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
+    expect(overallOpsState(overview({}, { notificationFanOutOutbox: null }))).toBe("degraded");
+    expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            notificationFanOutOutbox: {
+              status: "degraded",
+              pending: 0,
+              processing: 0,
+              deadLetter: 1,
+              oldestPendingAgeMs: 0,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
+    expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            templatesConfiguration: {
+              status: "degraded",
+              readFailuresTotal: 1,
+              lastFailureAt: "2026-11-20T09:59:00.000Z",
+              lastRecoveryAt: null,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
     expect(
       overallOpsState(overview({}, { worker: { status: "stale", heartbeatAgeSeconds: 500 } })),
     ).toBe("down");

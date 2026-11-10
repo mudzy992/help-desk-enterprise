@@ -1,5 +1,13 @@
 import { opsAlertKeys, type OpsAlertKey, type OpsAlertSeverity } from './ops-alert-catalog';
 import type { SlaObservabilitySignal } from '../sla/collect-sla-observability';
+import { assetReminderEmailClaimStaleAfterMs } from '../assets/reminders/asset-reminder-email-delivery';
+import {
+  assetAuditWriteFailureCriticalPerHour,
+  assetImportStuckLeaseGraceMs,
+  assetOperationsMetricWindowMinutes,
+  assetTransferFilePurgeStaleAfterMs,
+  type AssetOperationsSignal,
+} from '../assets/asset-operations.types';
 
 /**
  * Paket 2.7 (§4): turns one measurement round into one observation per alarm
@@ -104,6 +112,8 @@ export type OpsSignals = {
     readonly blockedUntilMs: number;
     readonly suppressedTotal: number;
   } | null;
+  /** Asset-specific DB and Redis metrics; null when their database probe failed. */
+  readonly assetOperations: AssetOperationsSignal | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -164,6 +174,10 @@ export function evaluateOpsSignals(
     }),
     observeAuditWebhook(signals),
     observeMailProviderBlock(signals),
+    observeAssetImportClaims(signals),
+    observeAssetReminderDelivery(signals),
+    observeAssetTransferFiles(signals),
+    observeAssetAuditWrites(signals),
   ];
 }
 
@@ -660,6 +674,88 @@ function observeMailProviderBlock(signals: OpsSignals): OpsObservation {
     details: {
       blockedMinutesLeft,
       suppressedTotal: block.suppressedTotal,
+    },
+  };
+}
+
+function observeAssetImportClaims(signals: OpsSignals): OpsObservation {
+  const assetOperations = signals.assetOperations ?? null;
+  if (assetOperations === null || assetOperations.importStuckClaims === 0) {
+    return inactive(opsAlertKeys.assetImportStuck);
+  }
+  return {
+    key: opsAlertKeys.assetImportStuck,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      importStuckClaims: assetOperations.importStuckClaims,
+      staleAfterMinutes: Math.ceil(assetImportStuckLeaseGraceMs / minute),
+    },
+  };
+}
+
+function observeAssetReminderDelivery(signals: OpsSignals): OpsObservation {
+  const assetOperations = signals.assetOperations ?? null;
+  if (
+    assetOperations === null ||
+    (assetOperations.failedReminderDeliveries === 0 && assetOperations.staleReminderClaims === 0)
+  ) {
+    return inactive(opsAlertKeys.assetReminderDeliveryBacklog);
+  }
+  return {
+    key: opsAlertKeys.assetReminderDeliveryBacklog,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      failedReminderDeliveries: assetOperations.failedReminderDeliveries,
+      staleReminderClaims: assetOperations.staleReminderClaims,
+      reminderBacklogTotal: assetOperations.failedReminderDeliveries + assetOperations.staleReminderClaims,
+      staleAfterMinutes: Math.ceil(assetReminderEmailClaimStaleAfterMs / minute),
+    },
+  };
+}
+
+function observeAssetTransferFiles(signals: OpsSignals): OpsObservation {
+  const assetOperations = signals.assetOperations ?? null;
+  if (assetOperations === null) return inactive(opsAlertKeys.assetTransferFileIntegrity);
+  const scanComplete = assetOperations.transferFileScanState === 'complete';
+  const orphaned = assetOperations.orphanedTransferFiles ?? 0;
+  const missing = assetOperations.missingTransferFiles ?? 0;
+  const stalePurge = assetOperations.staleTransferFilePurges > 0;
+  const integrityMismatch = scanComplete && (orphaned > 0 || missing > 0);
+  if (!stalePurge && !integrityMismatch) return inactive(opsAlertKeys.assetTransferFileIntegrity);
+  return {
+    key: opsAlertKeys.assetTransferFileIntegrity,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      pendingTransferFilePurges: assetOperations.pendingTransferFilePurges,
+      staleTransferFilePurges: assetOperations.staleTransferFilePurges,
+      oldestTransferFilePurgeAgeMinutes: assetOperations.oldestTransferFilePurgeAgeMinutes,
+      ...(scanComplete
+        ? {
+            orphanedTransferFiles: orphaned,
+            missingTransferFiles: missing,
+            scannedTransferFiles: assetOperations.scannedTransferFiles ?? 0,
+            referencedTransferFiles: assetOperations.referencedTransferFiles ?? 0,
+          }
+        : {}),
+      staleAfterMinutes: Math.ceil(assetTransferFilePurgeStaleAfterMs / minute),
+    },
+  };
+}
+
+function observeAssetAuditWrites(signals: OpsSignals): OpsObservation {
+  const failures = signals.assetOperations?.auditWriteFailuresLastHour ?? null;
+  if (failures === null || failures === 0) return inactive(opsAlertKeys.assetAuditWriteFailures);
+  return {
+    key: opsAlertKeys.assetAuditWriteFailures,
+    active: true,
+    severity: failures >= assetAuditWriteFailureCriticalPerHour ? 'CRITICAL' : 'WARNING',
+    details: {
+      auditWriteFailuresLastHour: failures,
+      windowMinutes: assetOperationsMetricWindowMinutes,
+      criticalThreshold: assetAuditWriteFailureCriticalPerHour,
     },
   };
 }

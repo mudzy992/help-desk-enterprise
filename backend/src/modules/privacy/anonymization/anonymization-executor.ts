@@ -1,6 +1,5 @@
 import { DbNull } from '@prisma/client/runtime/client';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { authorizationRoleKeys } from '../../authorization/authorization.constants';
 import type { InboundRawStore } from '../../inbound-email/inbound-raw-store';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
 import {
@@ -256,8 +255,8 @@ export class AnonymizationExecutor {
     add('mfa', (await this.prisma.userMfa.deleteMany({ where: { userId: u } })).count);
     add('recoveryCodes', (await this.prisma.userMfaRecoveryCode.deleteMany({ where: { userId: u } })).count);
     add('passwordHistory', (await this.prisma.userPasswordHistory.deleteMany({ where: { userId: u } })).count);
-    add('roles', await this.deleteUserRolesSafely(u));
-    add('groups', (await this.prisma.groupMember.deleteMany({ where: { userId: u } })).count);
+    // Role and group assignments are removed atomically with the final user
+    // authorization-version bump in AnonymizationService.finalizeUser.
     add('savedViews', (await this.prisma.savedView.deleteMany({ where: { userId: u } })).count);
     add('personalTemplates', (await this.prisma.responseTemplate.deleteMany({ where: { ownerUserId: u } })).count);
     add(
@@ -460,20 +459,6 @@ export class AnonymizationExecutor {
       if (await hasSuperAdminRole(transaction, userId)) {
         throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
       }
-    });
-  }
-
-  private async deleteUserRolesSafely(userId: string): Promise<number> {
-    return this.prisma.$transaction(async (transaction) => {
-      await lockActiveSuperAdminInvariant(transaction);
-      const superAdminRole = await transaction.userRole.findFirst({
-        where: { userId, role: { key: authorizationRoleKeys.superAdmin } },
-        select: { id: true },
-      });
-      if (superAdminRole !== null) {
-        throw new Error(`blocked:${anonymizationBlockReasons.superAdmin}`);
-      }
-      return (await transaction.userRole.deleteMany({ where: { userId } })).count;
     });
   }
 

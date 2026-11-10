@@ -60,6 +60,12 @@ export class GraphInboundMailbox implements InboundMailboxConnector {
       return id;
     };
     return {
+      listIds: async (limit: number): Promise<readonly string[]> => {
+        const page = (await (
+          await call(`/mailFolders/inbox/messages?$top=${Math.min(limit, 100)}&$orderby=receivedDateTime asc&$select=id`)
+        ).json()) as { value?: { id: string }[] };
+        return (page.value ?? []).map((entry) => entry.id);
+      },
       list: async (limit: number): Promise<readonly InboundMailboxItem[]> => {
         const page = (await (
           await call(`/mailFolders/inbox/messages?$top=${Math.min(limit, 100)}&$orderby=receivedDateTime asc&$select=id,size`)

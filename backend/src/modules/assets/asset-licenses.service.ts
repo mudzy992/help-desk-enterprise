@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { recordAssetAuditEntry, withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -8,6 +9,7 @@ import { AssetAccessService } from './asset-access.service';
 import { dateOnly, daysUntil, optionalDate, optionalMoney, optionalText, requiredText } from './asset-fields';
 import { decryptLicenseKey, encryptLicenseKey, readLicenseKeyCipherKey, readLicenseKeyDecryptionKeys } from './asset-license-cipher';
 import { isPathInScope, unitScopeWhere, type AssetScope, type AssetViewer } from './asset-viewer';
+import { assetPageLimit, type AssetPageQuery, toAssetCursorPage } from './asset-pagination';
 import {
   AssetError,
   assetContractLimits,
@@ -31,7 +33,7 @@ export type SaveLicenseInput = {
   readonly licenseKey?: string | null;
 };
 
-export type LicenseListQuery = {
+export type LicenseListQuery = AssetPageQuery & {
   readonly search?: string;
   readonly kind?: SoftwareLicenseKindValue;
   readonly expiringWithinDays?: number;
@@ -114,6 +116,7 @@ export class AssetLicensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   private toItem(row: LicenseRow, now: Date = new Date()) {
@@ -140,7 +143,7 @@ export class AssetLicensesService {
       entityId,
       metadata,
       actorUserId: viewer.userId,
-    });
+    }, this.assetOperationsMetrics);
   }
 
   private async loadInScope(id: string, scope: AssetScope): Promise<LicenseRow> {
@@ -154,6 +157,7 @@ export class AssetLicensesService {
     const unitWhere = unitScopeWhere(scope);
     const search = query.search?.trim();
     const now = new Date();
+    const limit = assetPageLimit(query.limit);
     const rows = (await this.prisma.softwareLicense.findMany({
       where: {
         ...(unitWhere === null ? {} : { organizationalUnit: unitWhere }),
@@ -170,58 +174,96 @@ export class AssetLicensesService {
           ? { validUntil: { not: null, lte: new Date(now.getTime() + query.expiringWithinDays * 86_400_000) } }
           : {}),
       },
-      orderBy: [{ productName: 'asc' }],
-      take: assetContractLimits.listMax,
+      orderBy: [{ productName: 'asc' }, { id: 'asc' }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       select: licenseSelect,
     })) as LicenseRow[];
-    const items = rows.map((row) => this.toItem(row, now));
-    return { items: query.overAllocated ? items.filter((item) => item.overAllocated) : items };
+    const page = toAssetCursorPage(rows, limit, (row) => row.id);
+    const items = page.items.map((row) => this.toItem(row, now));
+    return { ...page, items: query.overAllocated ? items.filter((item) => item.overAllocated) : items };
+  }
+
+  private assignmentVisibilityWhere(licenseId: string, licenseOuPath: string, scope: AssetScope): Prisma.LicenseAssignmentWhereInput {
+    const licenseOuWhere: Prisma.OrganizationalUnitWhereInput = {
+      OR: [{ ouPath: licenseOuPath }, { ouPath: { startsWith: `${licenseOuPath}/` } }],
+    };
+    const readWhere = unitScopeWhere(scope);
+    const userOuWhere: Prisma.OrganizationalUnitWhereInput =
+      readWhere === null ? licenseOuWhere : { AND: [licenseOuWhere, readWhere as Prisma.OrganizationalUnitWhereInput] };
+    return {
+      licenseId,
+      OR: [
+        { userId: null },
+        { user: { is: { organizationalUnit: { is: userOuWhere } } } },
+      ],
+    };
+  }
+
+  private async assignmentsPage(
+    licenseId: string,
+    licenseOuPath: string,
+    scope: AssetScope,
+    query: AssetPageQuery = {},
+  ) {
+    const limit = assetPageLimit(query.limit);
+    const where = this.assignmentVisibilityWhere(licenseId, licenseOuPath, scope);
+    const [rows, visibleCount] = await Promise.all([
+      this.prisma.licenseAssignment.findMany({
+        where,
+        orderBy: [{ assignedAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
+        ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
+        include: {
+          asset: { select: { id: true, assetTag: true, name: true } },
+          user: {
+            select: {
+              id: true,
+              displayName: true,
+              email: true,
+              isActive: true,
+              organizationalUnit: { select: { ouPath: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.licenseAssignment.count({ where }),
+    ]);
+    const page = toAssetCursorPage(rows, limit, (assignment) => assignment.id);
+    const items = page.items.map((assignment) => ({
+      id: assignment.id,
+      assignedAt: assignment.assignedAt.toISOString(),
+      asset: assignment.asset,
+      user:
+        assignment.user === null
+          ? null
+          : {
+              id: assignment.user.id,
+              displayName: assignment.user.displayName,
+              email: assignment.user.email,
+              isActive: assignment.user.isActive,
+            },
+    }));
+    return { ...page, items, visibleCount };
+  }
+
+  async listAssignments(id: string, query: AssetPageQuery, viewer: AssetViewer) {
+    const scope = await this.access.require(viewer, permissionKeys.assetRead);
+    const license = await this.loadInScope(id, scope);
+    const page = await this.assignmentsPage(id, license.organizationalUnit.ouPath, scope, query);
+    return { items: page.items, hasMore: page.hasMore, nextCursor: page.nextCursor };
   }
 
   async detail(id: string, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetRead);
     const row = await this.loadInScope(id, scope);
-    const assignments = await this.prisma.licenseAssignment.findMany({
-      where: { licenseId: id },
-      orderBy: { assignedAt: 'desc' },
-      take: assetContractLimits.assignmentsPerLicense,
-      include: {
-        asset: { select: { id: true, assetTag: true, name: true } },
-        user: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true,
-            isActive: true,
-            organizationalUnit: { select: { ouPath: true } },
-          },
-        },
-      },
-    });
-    const visibleAssignments = assignments.filter(
-      (assignment) =>
-        assignment.user === null ||
-        canViewLicenseUserAssignment(assignment.user.organizationalUnit?.ouPath ?? null, row.organizationalUnit.ouPath, scope),
-    );
+    const assignmentsPage = await this.assignmentsPage(id, row.organizationalUnit.ouPath, scope);
     return {
       ...this.toItem(row),
       assignmentTarget: licenseAssignmentTarget(row.kind),
-      assignments: visibleAssignments.map((assignment) => ({
-        id: assignment.id,
-        assignedAt: assignment.assignedAt.toISOString(),
-        asset: assignment.asset,
-        user:
-          assignment.user === null
-            ? null
-            : {
-                id: assignment.user.id,
-                displayName: assignment.user.displayName,
-                email: assignment.user.email,
-                isActive: assignment.user.isActive,
-              },
-      })),
-      // Includes both scope-hidden targets and rows omitted by the per-license cap.
-      hiddenAssignmentsCount: Math.max(0, row._count.assignments - visibleAssignments.length),
+      assignments: assignmentsPage.items,
+      assignmentsPage: { hasMore: assignmentsPage.hasMore, nextCursor: assignmentsPage.nextCursor },
+      hiddenAssignmentsCount: Math.max(0, row._count.assignments - assignmentsPage.visibleCount),
     };
   }
 
@@ -302,6 +344,7 @@ export class AssetLicensesService {
         metadata: { kind: input.kind, hasKey: Boolean(input.licenseKey?.trim()) },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(created.id, viewer);
   }
@@ -359,6 +402,7 @@ export class AssetLicensesService {
         metadata: { keyChanged: input.licenseKey !== undefined },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
@@ -376,6 +420,7 @@ export class AssetLicensesService {
         metadata: { productName: current.productName, assignments: current._count.assignments },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { deleted: true };
   }
@@ -460,6 +505,7 @@ export class AssetLicensesService {
         metadata: { target: assetId ? 'asset' : 'user', assetId: assetId ?? null, userId: userId ?? null },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
@@ -491,21 +537,29 @@ export class AssetLicensesService {
         metadata: { assignmentId },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return this.detail(id, viewer);
   }
 
   /** Asset card (§17): licences installed on the device or held by its user. */
-  async forAsset(assetId: string, assignedUserId: string | null) {
+  async forAsset(assetId: string, assignedUserId: string | null, query: AssetPageQuery = {}) {
+    const limit = assetPageLimit(query.limit);
     const rows = await this.prisma.licenseAssignment.findMany({
       where: { OR: [{ assetId }, ...(assignedUserId ? [{ userId: assignedUserId }] : [])] },
-      take: 100,
+      orderBy: [{ license: { productName: 'asc' } }, { licenseId: 'asc' }, { id: 'asc' }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       include: { license: { select: { id: true, productName: true, vendor: true, kind: true, validUntil: true } } },
     });
-    return rows.map((row) => ({
-      assignmentId: row.id,
-      via: row.assetId === assetId ? ('asset' as const) : ('user' as const),
-      license: { ...row.license, validUntil: dateOnly(row.license.validUntil) },
-    }));
+    const page = toAssetCursorPage(rows, limit, (row) => row.id);
+    return {
+      ...page,
+      items: page.items.map((row) => ({
+        assignmentId: row.id,
+        via: row.assetId === assetId ? ('asset' as const) : ('user' as const),
+        license: { ...row.license, validUntil: dateOnly(row.license.validUntil) },
+      })),
+    };
   }
 }

@@ -1,17 +1,20 @@
-import { createInMemoryFormVersionDelegate } from './create-in-memory-form-version-delegate';
-import { createInMemoryServiceCategoryDelegate } from './create-in-memory-service-category-delegate';
-import { createInMemoryServiceDelegate } from './create-in-memory-service-delegate';
-import { createInMemoryServiceDowntimeWindowDelegate } from './create-in-memory-service-downtime-window-delegate';
-import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
+import { createInMemoryFormVersionDelegate } from "./create-in-memory-form-version-delegate";
+import { createInMemoryServiceCategoryDelegate } from "./create-in-memory-service-category-delegate";
+import { createInMemoryServiceDelegate } from "./create-in-memory-service-delegate";
+import { createInMemoryServiceDowntimeWindowDelegate } from "./create-in-memory-service-downtime-window-delegate";
+import { createInMemoryTicketDelegate } from "./create-in-memory-ticket-delegate";
 import {
   emptyServiceDependents,
   type ServiceDependents,
-} from './in-memory-service-catalog-store';
-import type { DowntimeWindowRecord } from './service-availability.types';
-import type { ServiceCategoryRecord, ServiceRecord } from './service-catalog.types';
-import type { FormVersionRecord } from './service-forms.types';
-import type { TicketFormVersionRecord } from './create-in-memory-ticket-delegate';
-import type { ServiceOnboardingPersistence } from '../service-onboarding/to-onboarding-record';
+} from "./in-memory-service-catalog-store";
+import type { DowntimeWindowRecord } from "./service-availability.types";
+import type {
+  ServiceCategoryRecord,
+  ServiceRecord,
+} from "./service-catalog.types";
+import type { FormVersionRecord } from "./service-forms.types";
+import type { TicketFormVersionRecord } from "./create-in-memory-ticket-delegate";
+import type { ServiceOnboardingPersistence } from "../service-onboarding/to-onboarding-record";
 
 export type InMemoryServiceCategory = ServiceCategoryRecord;
 export type InMemoryService = ServiceRecord;
@@ -32,9 +35,14 @@ export function createInMemoryServiceCatalogPrisma(): {
     formVersion: Record<string, unknown>;
     ticket: Record<string, unknown>;
     serviceOnboarding: Record<string, unknown>;
+    serviceIncidentService: {
+      findMany: () => Promise<readonly { serviceId: string; incident: { impact: string } }[]>;
+    };
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
-    $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
+    $transaction: (
+      callback: (client: unknown) => Promise<unknown>,
+    ) => Promise<unknown>;
   };
   seedCategory: (category: InMemoryServiceCategory) => void;
   seedService: (service: InMemoryService) => void;
@@ -43,7 +51,10 @@ export function createInMemoryServiceCatalogPrisma(): {
   seedPolicyPack: (id: string) => void;
   seedOnboarding: (onboarding: ServiceOnboardingPersistence) => void;
   onboardingFindManyCalls: () => number;
-  seedServiceDependents: (serviceId: string, dependents: Partial<ServiceDependents>) => void;
+  seedServiceDependents: (
+    serviceId: string,
+    dependents: Partial<ServiceDependents>,
+  ) => void;
   changeLogs: InMemoryServiceCatalogChangeLog[];
 } {
   const categories = new Map<string, InMemoryServiceCategory>();
@@ -57,11 +68,15 @@ export function createInMemoryServiceCatalogPrisma(): {
   const dependents = new Map<string, ServiceDependents>();
   const changeLogs: InMemoryServiceCatalogChangeLog[] = [];
   let nextIdentifier = 1;
-  const now = () => new Date('2026-09-10T10:00:00.000Z');
+  const now = () => new Date("2026-09-10T10:00:00.000Z");
   const nextId = () => `record-${nextIdentifier++}`;
 
   const prisma = {
-    serviceCategory: createInMemoryServiceCategoryDelegate(categories, nextId, now),
+    serviceCategory: createInMemoryServiceCategoryDelegate(
+      categories,
+      nextId,
+      now,
+    ),
     service: createInMemoryServiceDelegate(
       services,
       dependents,
@@ -71,13 +86,30 @@ export function createInMemoryServiceCatalogPrisma(): {
       formVersions,
       tickets,
     ),
-    formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
+    formVersion: createInMemoryFormVersionDelegate(
+      formVersions,
+      nextId,
+      now,
+      (formVersionId) =>
+        [...tickets.values()].filter(
+          (ticket) => ticket.formVersionId === formVersionId,
+        ).length,
+    ),
     ticket: createInMemoryTicketDelegate(tickets, nextId),
+    serviceIncidentService: {
+      findMany: async () => [],
+    },
     serviceOnboarding: {
-      findMany: async ({ where }: { where: { serviceId: { in: string[] } } }) => {
+      findMany: async ({
+        where,
+      }: {
+        where: { serviceId: { in: string[] } };
+      }) => {
         onboardingFindManyCallCount += 1;
         const serviceIds = new Set(where.serviceId.in);
-        return [...onboardings.values()].filter((row) => serviceIds.has(row.serviceId));
+        return [...onboardings.values()].filter((row) =>
+          serviceIds.has(row.serviceId),
+        );
       },
     },
     serviceDowntimeWindow: createInMemoryServiceDowntimeWindowDelegate(
@@ -96,7 +128,7 @@ export function createInMemoryServiceCatalogPrisma(): {
       },
     },
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
-      callback(prisma),
+      callback({ ...prisma, $queryRaw: async () => [] }),
   };
 
   return {

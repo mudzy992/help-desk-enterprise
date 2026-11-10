@@ -9,6 +9,7 @@ import { cardActivity } from './teams-cards';
 import { TeamsConfigurationService, type TeamsConfiguration } from './teams-configuration.service';
 import { parseTeamsDeliveryJob, type TeamsDeliveryJob } from './teams-delivery.types';
 import { TeamsError } from './teams.error';
+import { TeamsDeliveryOutcomeUnknownError } from './teams-delivery-outcome-unknown.error';
 import { buildNotificationCard, type BuiltNotificationCard, type ChangeCardFacts, type TicketCardFacts } from './teams-notification-cards';
 import { TeamsRateLimiter } from './teams-rate-limiter';
 import { toTeamsLocale } from './teams-text';
@@ -78,27 +79,41 @@ export class TeamsDeliveryService {
         await this.prisma.teamsCardMessage.update({ where: { id: existing.id }, data: { stateHash: built.stateHash, ...(payload ? { payload } : {}) } });
         return 'updated';
       }
-      const sent = await transport.sendActivity(address, activity);
-      await this.prisma.teamsCardMessage.upsert({
-        where: {
-          teamsConversationId_entityType_entityId_cardKind: {
+      let sent: Awaited<ReturnType<typeof transport.sendActivity>>;
+      try {
+        sent = await transport.sendActivity(address, activity);
+      } catch (error) {
+        // Token acquisition, explicit throttling and known permanent rejections
+        // happen before acceptance. Transport failures may have sent the card.
+        if (error instanceof TeamsError && error.code !== 'TRANSPORT_FAILED') throw error;
+        throw new TeamsDeliveryOutcomeUnknownError();
+      }
+      try {
+        await this.prisma.teamsCardMessage.upsert({
+          where: {
+            teamsConversationId_entityType_entityId_cardKind: {
+              teamsConversationId: conversation.id,
+              entityType: built.entityType,
+              entityId: built.entityId,
+              cardKind: built.cardKind,
+            },
+          },
+          create: {
             teamsConversationId: conversation.id,
+            activityId: sent.activityId,
             entityType: built.entityType,
             entityId: built.entityId,
             cardKind: built.cardKind,
+            stateHash: built.stateHash,
+            ...(payload ? { payload } : {}),
           },
-        },
-        create: {
-          teamsConversationId: conversation.id,
-          activityId: sent.activityId,
-          entityType: built.entityType,
-          entityId: built.entityId,
-          cardKind: built.cardKind,
-          stateHash: built.stateHash,
-          ...(payload ? { payload } : {}),
-        },
-        update: { activityId: sent.activityId, stateHash: built.stateHash, ...(payload ? { payload } : {}) },
-      });
+          update: { activityId: sent.activityId, stateHash: built.stateHash, ...(payload ? { payload } : {}) },
+        });
+      } catch {
+        // A lost DB response can mean either commit or rollback after the card
+        // was accepted. Neither case permits an automatic second send.
+        throw new TeamsDeliveryOutcomeUnknownError();
+      }
       return 'sent';
     } catch (error) {
       if (error instanceof TeamsError && error.code === 'CONVERSATION_GONE') {

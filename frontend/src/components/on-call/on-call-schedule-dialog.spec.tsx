@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnCallScheduleDialog } from "./on-call-schedule-dialog";
+import { ApiError } from "@/services/api";
 import type { OnCallGroupDetail } from "@/services/on-call-api";
 
 const { saveOnCallSchedule, toast } = vi.hoisted(() => ({
@@ -29,6 +30,21 @@ const detail: OnCallGroupDetail = {
   defaultTimezone: "Europe/Sarajevo",
   canManage: true,
 };
+const existingDetail: OnCallGroupDetail = {
+  ...detail,
+  schedule: {
+    id: "schedule-1",
+    updatedAt: "2026-10-28T12:34:56.789Z",
+    timezone: "Europe/Sarajevo",
+    handoffTime: "08:00",
+    rotationLength: "WEEK",
+    rotationStartDate: "2026-10-26",
+    isActive: true,
+    autoAssignOutsideHours: false,
+    owner: null,
+    members: [],
+  },
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -40,11 +56,16 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function renderDialog() {
+function renderDialog(currentDetail: OnCallGroupDetail = detail) {
   const onOpenChange = vi.fn();
   const onSaved = vi.fn();
   render(
-    <OnCallScheduleDialog open onOpenChange={onOpenChange} detail={detail} onSaved={onSaved} />,
+    <OnCallScheduleDialog
+      open
+      onOpenChange={onOpenChange}
+      detail={currentDetail}
+      onSaved={onSaved}
+    />,
   );
   return { onOpenChange, onSaved };
 }
@@ -90,10 +111,42 @@ describe("OnCallScheduleDialog", () => {
     await waitFor(() => expect(saveOnCallSchedule).toHaveBeenCalledTimes(1));
     expect(saveOnCallSchedule).toHaveBeenCalledWith(
       "group-1",
-      expect.objectContaining({ timezone: "Europe/Sarajevo", reason: "planned rotation" }),
+      expect.objectContaining({
+        expectedUpdatedAt: null,
+        timezone: "Europe/Sarajevo",
+        reason: "planned rotation",
+      }),
     );
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the loaded revision when editing an existing schedule", async () => {
+    saveOnCallSchedule.mockResolvedValue({ id: "schedule-1" });
+    renderDialog(existingDetail);
+    fillReason("replace the rotation");
+    fireEvent.click(screen.getByRole("button", { name: "onCall.schedule.save" }));
+
+    await waitFor(() => expect(saveOnCallSchedule).toHaveBeenCalledTimes(1));
+    expect(saveOnCallSchedule).toHaveBeenCalledWith(
+      "group-1",
+      expect.objectContaining({ expectedUpdatedAt: existingDetail.schedule?.updatedAt }),
+    );
+  });
+
+  it("shows a refresh hint when another manager saved first", async () => {
+    saveOnCallSchedule.mockRejectedValue(
+      new ApiError(409, "ON_CALL_SCHEDULE_CONFLICT", "conflict"),
+    );
+    const { onOpenChange, onSaved } = renderDialog(existingDetail);
+    fillReason("replace the rotation");
+    fireEvent.click(screen.getByRole("button", { name: "onCall.schedule.save" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toBe("onCall.errors.scheduleConflict"),
+    );
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
   });
 
   it("guards a synchronous double submit and keeps the dialog open after an API failure", async () => {

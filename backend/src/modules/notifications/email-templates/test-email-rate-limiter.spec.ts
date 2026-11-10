@@ -1,5 +1,7 @@
 import {
   TestEmailRateLimiter,
+  TestEmailRateLimiterUnavailableError,
+  testEmailRateLimiterKey,
   testEmailSendLimit,
   testEmailSendWindowMs,
   type TestEmailRateLimiterRedis,
@@ -7,69 +9,91 @@ import {
 
 function createRedis(overrides: Partial<TestEmailRateLimiterRedis> = {}) {
   const counts = new Map<string, number>();
-  const redis: TestEmailRateLimiterRedis = {
-    incr: jest.fn(async (key: string) => {
+  const expirations = new Map<string, number>();
+  const evalMock = jest.fn(
+    async (
+      script: string,
+      numberOfKeys: number,
+      key: string,
+      windowMilliseconds: string,
+    ) => {
+      expect(numberOfKeys).toBe(1);
+      expect(script).toContain("redis.call('INCR', KEYS[1])");
+      expect(script).toContain("redis.call('SET', KEYS[1], '0', 'PX', ARGV[1])");
       const next = (counts.get(key) ?? 0) + 1;
       counts.set(key, next);
+      if (next === 1) expirations.set(key, Number(windowMilliseconds));
       return next;
-    }),
-    pexpire: jest.fn(async () => 1),
+    },
+  );
+  const redis: TestEmailRateLimiterRedis = {
+    eval: evalMock,
     ...overrides,
   };
-  return { redis, counts };
+  return { redis, counts, expirations, evalMock };
 }
 
-describe('TestEmailRateLimiter (Val 3, M12/B4)', () => {
+describe('TestEmailRateLimiter (BA-notifications-13)', () => {
   const now = Date.parse('2026-10-04T10:00:00.000Z');
 
-  it('counts in Redis with a TTL, so every instance shares the limit', async () => {
-    const { redis } = createRedis();
-    const limiter = new TestEmailRateLimiter(redis);
+  it('shares one atomic Redis window across independent limiter instances', async () => {
+    const { redis, counts, expirations, evalMock } = createRedis();
+    const firstInstance = new TestEmailRateLimiter(redis);
+    const secondInstance = new TestEmailRateLimiter(redis);
 
-    for (let i = 0; i < testEmailSendLimit; i += 1) {
-      await expect(limiter.consume('admin', now)).resolves.toBe(true);
-    }
-    await expect(limiter.consume('admin', now)).resolves.toBe(false);
-    expect(redis.pexpire).toHaveBeenCalledTimes(1);
-    expect(redis.pexpire).toHaveBeenCalledWith(
-      expect.stringContaining('test-email-rate:admin:'),
-      testEmailSendWindowMs,
+    const results = await Promise.all(
+      Array.from({ length: testEmailSendLimit + 2 }, (_, index) =>
+        (index % 2 === 0 ? firstInstance : secondInstance).consume('admin', now),
+      ),
     );
-    // Another admin has their own window, and the next window starts fresh.
-    await expect(limiter.consume('other-admin', now)).resolves.toBe(true);
+
+    expect(results.filter(Boolean)).toHaveLength(testEmailSendLimit);
+    expect(results.filter((allowed) => !allowed)).toHaveLength(2);
+    const firstWindowKey = testEmailRateLimiterKey('admin', now);
+    expect(counts.get(firstWindowKey)).toBe(testEmailSendLimit + 2);
+    expect(expirations.get(firstWindowKey)).toBe(testEmailSendWindowMs);
+    expect(evalMock).toHaveBeenCalledTimes(testEmailSendLimit + 2);
+    expect(evalMock).toHaveBeenCalledWith(
+      expect.stringContaining('PTTL'),
+      1,
+      firstWindowKey,
+      String(testEmailSendWindowMs),
+    );
+
+    await expect(firstInstance.consume('other-admin', now)).resolves.toBe(true);
     await expect(
-      limiter.consume('admin', now + testEmailSendWindowMs),
+      secondInstance.consume('admin', now + testEmailSendWindowMs),
     ).resolves.toBe(true);
+    expect(
+      testEmailRateLimiterKey('admin', now + testEmailSendWindowMs),
+    ).not.toBe(firstWindowKey);
   });
 
-  it('keeps enforcing locally when Redis rejects the command', async () => {
-    const { redis } = createRedis({
-      incr: jest.fn(async () => {
-        throw new Error('Connection is closed.');
-      }),
-    });
-    const limiter = new TestEmailRateLimiter(redis);
-
-    for (let i = 0; i < testEmailSendLimit; i += 1) {
-      await expect(limiter.consume('admin', now)).resolves.toBe(true);
-    }
-    await expect(limiter.consume('admin', now)).resolves.toBe(false);
-  });
-
-  it('keeps the sliding window in memory and sweeps stale admins', async () => {
+  it('fails closed when the shared Redis client is missing', async () => {
     const limiter = new TestEmailRateLimiter();
-    for (let i = 0; i < testEmailSendLimit; i += 1) {
-      await expect(limiter.consume('admin', now)).resolves.toBe(true);
-    }
-    await expect(limiter.consume('admin', now)).resolves.toBe(false);
-    await expect(
-      limiter.consume('admin', now + testEmailSendWindowMs + 1),
-    ).resolves.toBe(true);
 
-    const internals = limiter as unknown as { stamps: Map<string, number[]> };
-    await limiter.consume('fresh-admin', now + 3 * testEmailSendWindowMs);
-    expect(internals.stamps.size).toBe(1);
-    expect(internals.stamps.has('fresh-admin')).toBe(true);
-    expect(internals.stamps.has('admin')).toBe(false);
+    await expect(limiter.consume('admin', now)).rejects.toBeInstanceOf(
+      TestEmailRateLimiterUnavailableError,
+    );
+  });
+
+  it('fails closed when Redis errors or returns an invalid count', async () => {
+    const unavailable = new TestEmailRateLimiter(
+      createRedis({
+        eval: jest.fn(async () => {
+          throw new Error('connection string must not escape');
+        }),
+      }).redis,
+    );
+    await expect(unavailable.consume('admin', now)).rejects.toBeInstanceOf(
+      TestEmailRateLimiterUnavailableError,
+    );
+
+    const invalidReply = new TestEmailRateLimiter(
+      createRedis({ eval: jest.fn(async () => 'not-a-count') }).redis,
+    );
+    await expect(invalidReply.consume('admin', now)).rejects.toBeInstanceOf(
+      TestEmailRateLimiterUnavailableError,
+    );
   });
 });

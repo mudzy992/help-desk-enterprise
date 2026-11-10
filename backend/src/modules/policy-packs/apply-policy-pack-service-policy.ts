@@ -44,6 +44,7 @@ export async function applyPolicyPackServicePolicy(
       // Only overwrite the SLA binding when the pack's profile exists here;
       // otherwise the service keeps the profile an admin gave it.
       ...(slaProfileId === null ? {} : { slaProfileId }),
+      revision: { increment: 1 },
     },
   });
   return {

@@ -85,11 +85,13 @@ describe('linkUserDirectoryIdentity', () => {
       },
     ]);
     update.mockResolvedValue({});
+    const invalidatePrincipal = jest.fn().mockResolvedValue(null);
     const result = await linkUserDirectoryIdentity({
       prisma: prisma as never,
       directorySyncService: directorySyncService as never,
       userId: 'user-1',
       directoryExternalId: 'manual_only:user:dev-reader',
+      invalidatePrincipal,
     });
     expect(update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
@@ -113,6 +115,8 @@ describe('linkUserDirectoryIdentity', () => {
     }));
     expect(JSON.stringify(jest.mocked(recordUserChange).mock.calls)).not.toContain('manual_only:user:dev-reader');
     expect(result.isLocalOnly).toBe(false);
+    expect(invalidatePrincipal).toHaveBeenCalledTimes(1);
+    expect(invalidatePrincipal).toHaveBeenCalledWith('user-1');
   });
 
   it('rechecks SuperAdmin roles inside the serialized link transaction', async () => {

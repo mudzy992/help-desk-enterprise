@@ -80,8 +80,11 @@ describe('UsersService authorization cache invalidation', () => {
     expect(invalidateUser).toHaveBeenCalledWith('user-2');
   });
 
-  it('invalidates cached identity context after linking a directory account', async () => {
-    mockedLinkDirectoryIdentity.mockResolvedValue({ id: 'user-linked' } as never);
+  it('passes invalidation into the post-commit directory-link flow', async () => {
+    mockedLinkDirectoryIdentity.mockImplementation(async (input) => {
+      await input.invalidatePrincipal?.(input.userId);
+      return { id: input.userId } as never;
+    });
     await createService().linkDirectoryIdentity({
       userId: 'user-linked',
       directoryExternalId: 'entra-user-1',
@@ -89,6 +92,7 @@ describe('UsersService authorization cache invalidation', () => {
     expect(mockedLinkDirectoryIdentity).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'user-linked',
       directoryExternalId: 'entra-user-1',
+      invalidatePrincipal: expect.any(Function),
     }));
     expect(invalidateUser).toHaveBeenCalledWith('user-linked');
   });

@@ -1,5 +1,6 @@
 import type {
   ConfigVersionStatus,
+  ResponseTemplateKind,
   TicketPriority,
 } from '../../generated/prisma/enums';
 import type { JsonValue } from '../change-log/change-log.types';
@@ -102,21 +103,46 @@ export type ConfigPriorityMatrixSnapshot = {
   readonly priority: TicketPriority;
 };
 
-/** Package 1.4 — shared (non-personal) response template header + bodies. */
+/** Shared template scope. Missing only in legacy header-only snapshots. */
+export type ConfigTemplateScopeSnapshot = {
+  readonly serviceIds: readonly string[];
+  readonly categoryIds: readonly string[];
+  readonly groupIds: readonly string[];
+};
+
+export type ConfigPlaybookScopeSnapshot = {
+  readonly serviceIds: readonly string[];
+  readonly categoryIds: readonly string[];
+};
+
+export type ConfigPlaybookStepSnapshot = {
+  readonly stepKey: string;
+  readonly position: number;
+  readonly title: string;
+  readonly instructions: string | null;
+  readonly required: boolean;
+  readonly knowledgeArticleId: string | null;
+  readonly responseTemplateId: string | null;
+};
+
+/** Shared (non-personal) response template definition and complete scope. */
 export type ConfigResponseTemplateSnapshot = {
   readonly id: string;
   readonly name: string;
   readonly bodyBs: string;
   readonly bodyEn: string | null;
-  readonly kind: string;
+  readonly kind: ResponseTemplateKind;
   readonly tags: readonly string[];
   readonly isActive: boolean;
   readonly deletedAt: string | null;
+  /** Absent in legacy snapshots; new snapshots always include it. */
+  readonly scope?: ConfigTemplateScopeSnapshot;
 };
 
 /**
- * Package 1.4 — playbook header. Steps are versioned by the playbook itself
- * (tickets keep a snapshot), so a config rollback restores only the header.
+ * Playbook definition. `version` records the captured revision; applying a
+ * changed step definition increments the target's current version instead of
+ * restoring this number and moving the target revision backwards.
  */
 export type ConfigPlaybookSnapshot = {
   readonly id: string;
@@ -124,6 +150,11 @@ export type ConfigPlaybookSnapshot = {
   readonly description: string | null;
   readonly isActive: boolean;
   readonly deletedAt: string | null;
+  /** Absent in legacy snapshots. */
+  readonly version?: number;
+  /** Scope and steps are absent only in legacy header-only snapshots. */
+  readonly scope?: ConfigPlaybookScopeSnapshot;
+  readonly steps?: readonly ConfigPlaybookStepSnapshot[];
 };
 
 export type ConfigSnapshot = {
@@ -131,6 +162,8 @@ export type ConfigSnapshot = {
   readonly capturedAt: string;
   readonly scopes: readonly string[];
   readonly rollbackOfVersion: number | null;
+  /** SHA-256 precondition over the Service/FormVersion row set; absent on legacy snapshots. */
+  readonly catalogStateHash?: string;
   readonly settings: Readonly<Record<string, SettingValue>>;
   readonly routing: {
     readonly rules: readonly ConfigRoutingRuleSnapshot[];

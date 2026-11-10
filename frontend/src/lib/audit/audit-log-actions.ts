@@ -92,6 +92,7 @@ export const knownAuditActions = [
   "ops.alerts.unsilenced",
   "ops.alert.test_sent",
   "ops.dlq.baseline_acknowledged",
+  "integration.job.retried",
   "status.incident.created",
   "status.incident.edited",
   "status.incident.update_posted",

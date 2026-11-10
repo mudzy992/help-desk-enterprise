@@ -65,6 +65,7 @@ function createStore(input: {
       findMany: async (query: { readonly where: { readonly groupId: string } }) =>
         (input.members?.[query.where.groupId] ?? []).map((userId) => ({ userId })),
     },
+    userNotificationPreference: { findMany: async () => [] },
     notification: {
       create: async (query: { readonly data: { readonly userId: string; readonly dedupeKey: string } }) => {
         if (dedupeKeys.has(query.data.dedupeKey)) {
@@ -84,7 +85,8 @@ function createService(
   configuration: { reviewCycleEnabled: boolean; remindDaysBefore: number },
 ) {
   const loader = { load: async () => configuration } as unknown as KnowledgeBaseConfigurationLoader;
-  return new KnowledgeBaseReviewReminderService(prisma as never, loader);
+  const settings = { getSetting: async () => undefined };
+  return new KnowledgeBaseReviewReminderService(prisma as never, loader, settings as never);
 }
 
 const now = new Date('2026-09-24T09:00:00.000Z');

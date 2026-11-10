@@ -8,6 +8,14 @@ import type {
 import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
 
 const SYNTHETIC_TOKEN = 'synthetic-handshake-token-test-only';
+const LEASE_PRINCIPAL = {
+  subjectId: 'subject-user-1',
+  sessionId: 'session-user-1',
+  jti: 'token-id-1',
+  issuedAt: 1_800_000_000,
+  expiresAt: 1_800_003_600,
+  authzVersion: 7,
+} as const;
 
 describe('SocketAuthenticationService', () => {
   let moduleRef: TestingModule | undefined;
@@ -32,11 +40,11 @@ describe('SocketAuthenticationService', () => {
     }
   });
 
-  it('delegates valid credentials to the verifier and returns a minimal principal', async () => {
+  it('returns verified lease metadata without retaining the bearer token', async () => {
     const verify = jest.fn(
       async (): Promise<SocketAuthenticationResult> => ({
         status: 'authenticated',
-        principal: { subjectId: 'subject-user-1' },
+        principal: LEASE_PRINCIPAL,
       }),
     );
     const service = await createService(verify);
@@ -45,15 +53,28 @@ describe('SocketAuthenticationService', () => {
     expect(verify).toHaveBeenCalledWith({ token: SYNTHETIC_TOKEN });
     expect(result).toEqual({
       status: 'authenticated',
-      principal: { subjectId: 'subject-user-1' },
+      principal: LEASE_PRINCIPAL,
     });
     expect(JSON.stringify(result)).not.toContain(SYNTHETIC_TOKEN);
   });
 
-  it('strips extra principal fields so the token never enters socket identity', async () => {
+  it('rejects an authenticated result without a complete session lease', async () => {
+    const verify = jest.fn(async (): Promise<SocketAuthenticationResult> => ({
+      status: 'authenticated',
+      principal: { subjectId: 'subject-user-1' } as never,
+    }));
+    const service = await createService(verify);
+
+    await expect(service.authenticate({ token: SYNTHETIC_TOKEN })).resolves.toEqual({
+      status: 'unauthenticated',
+      reason: 'invalid_credentials',
+    });
+  });
+
+  it('copies only the verified lease fields and strips extra principal data', async () => {
     const verify = jest.fn(async (): Promise<SocketAuthenticationResult> => {
       const principalWithToken = {
-        subjectId: 'subject-user-1',
+        ...LEASE_PRINCIPAL,
         token: SYNTHETIC_TOKEN,
       };
       return {
@@ -65,7 +86,7 @@ describe('SocketAuthenticationService', () => {
     const result = await service.authenticate({ token: SYNTHETIC_TOKEN });
     expect(result).toEqual({
       status: 'authenticated',
-      principal: { subjectId: 'subject-user-1' },
+      principal: LEASE_PRINCIPAL,
     });
     expect(JSON.stringify(result)).not.toContain(SYNTHETIC_TOKEN);
   });

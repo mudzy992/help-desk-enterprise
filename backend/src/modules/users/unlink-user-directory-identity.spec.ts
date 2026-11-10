@@ -33,9 +33,11 @@ jest.mock('./issue-temporary-password-for-user', () => ({
 import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 
 describe('unlinkUserDirectoryIdentity', () => {
+  const invalidatePrincipal = jest.fn().mockResolvedValue(null);
   const dependencies = {
     settingsService: {} as never,
     mailTransport: { send: jest.fn() } as never,
+    invalidatePrincipal,
   };
 
   beforeEach(() => jest.mocked(issueTemporaryPasswordForUser).mockClear());
@@ -62,6 +64,7 @@ describe('unlinkUserDirectoryIdentity', () => {
     const issueInput = jest.mocked(issueTemporaryPasswordForUser).mock.calls[0]?.[0];
     expect(issueInput).toEqual(expect.objectContaining({
       userId: 'user-1',
+      invalidatePrincipal,
       audit: {
         action: auditLogActions.userDirectoryUnlinked,
         actorUserId: 'admin-1',

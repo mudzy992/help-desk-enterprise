@@ -1,15 +1,34 @@
-import { Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import {
+  authorizationRoleKeys,
+  permissionKeys,
+} from '../authorization/authorization.constants';
+import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
-import { InboundEmailAdminService, type InboundEmailStatusResponse } from './inbound-email-admin.service';
+import {
+  InboundEmailAdminService,
+  type InboundEmailStatusResponse,
+} from './inbound-email-admin.service';
 
-/** Paket 2.3 (R13): "Inbound e-mail" admin page. Never returns message bodies. */
+/**
+ * Paket 2.3 (R13): "Inbound e-mail" admin page. Mailbox-wide status and logs
+ * require an unscoped `settings.read` grant. Sender, subject and error details are
+ * redacted by default, and message bodies are never returned.
+ */
 @Controller('admin/inbound-email')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)
+@RequirePermissions(permissionKeys.settingsRead)
 export class InboundEmailAdminController {
   constructor(private readonly service: InboundEmailAdminService) {}
 

@@ -40,6 +40,25 @@ export async function applyDirectorySyncPlan(
     usersReactivated: 0, usersDeactivated: 0, rolesGranted: 0, rolesRevoked: 0,
   };
   const touched = new Set<string>();
+  const plannedUnitUpdateIds = [
+    ...new Set(plan.organizationalUnits.update.map((unit) => unit.id)),
+  ];
+  const unitHolderIds =
+    plannedUnitUpdateIds.length === 0
+      ? []
+      : [
+          ...new Set(
+            (
+              await prisma.userRole.findMany({
+                where: {
+                  organizationalUnitId: { in: plannedUnitUpdateIds },
+                },
+                select: { userId: true },
+                distinct: ['userId'],
+              })
+            ).map((holder) => holder.userId),
+          ),
+        ].sort();
 
   const unitIdByPath = async (path: string | null): Promise<string | null> => {
     if (path === null) return null;
@@ -82,6 +101,12 @@ export async function applyDirectorySyncPlan(
   if (counts.unitsCreated + counts.unitsUpdated > 0) {
     invalidateOrganizationalUnitScopeCache();
   }
+  // Invalidate all holders of planned unit updates even if a statement reports
+  // an error after committing; prefetching before writes preserves the affected
+  // user IDs for partial/autocommitted plans.
+  if (plannedUnitUpdateIds.length > 0 && unitHolderIds.length > 0) {
+    await hooks.invalidateUsers(unitHolderIds);
+  }
 
   const userRole = await ensureRole(prisma, 'USER', 'User');
   for (const user of plan.users.create) {
@@ -113,6 +138,9 @@ export async function applyDirectorySyncPlan(
     for (const user of list) {
       try {
         const organizationalUnitId = user.ouPath === null ? undefined : await unitIdByPath(user.ouPath);
+        // The SQL update may commit even when the client observes a transport
+        // error; conservatively queue the known principal before writing.
+        touched.add(user.userId);
         const result = await prisma.user.updateMany({
           where: { id: user.userId, isLocalOnly: false },
           data: {
@@ -130,7 +158,6 @@ export async function applyDirectorySyncPlan(
         if (result.count !== 1) throw new Error('not updated');
         if (reactivating) counts.usersReactivated += 1;
         else counts.usersUpdated += 1;
-        touched.add(user.userId);
       } catch {
         failures.push({ step: reactivating ? 'user.reactivate' : 'user.update', email: user.email, path: user.ouPath });
       }
@@ -139,14 +166,18 @@ export async function applyDirectorySyncPlan(
 
   const deactivated: string[] = [];
   for (const user of plan.users.deactivate) {
-    const result = await prisma.user.updateMany({
-      where: { id: user.userId, isLocalOnly: false, isActive: true },
-      data: { isActive: false, directoryDeactivatedAt: now, directorySyncedAt: now },
-    });
-    if (result.count === 1) {
-      counts.usersDeactivated += 1;
-      deactivated.push(user.userId);
+    try {
       touched.add(user.userId);
+      const result = await prisma.user.updateMany({
+        where: { id: user.userId, isLocalOnly: false, isActive: true },
+        data: { isActive: false, directoryDeactivatedAt: now, directorySyncedAt: now },
+      });
+      if (result.count === 1) {
+        counts.usersDeactivated += 1;
+        deactivated.push(user.userId);
+      }
+    } catch {
+      failures.push({ step: 'user.deactivate', email: user.email, path: null });
     }
   }
 
@@ -160,26 +191,50 @@ export async function applyDirectorySyncPlan(
         : await prisma.user.findUnique({ where: { email: grant.email }, select: { id: true } });
       const organizationalUnitId = await unitIdByPath(grant.ouPath);
       if (user === null || organizationalUnitId === null) throw new Error('missing target');
+      touched.add(user.id);
       await prisma.userRole.create({ data: { userId: user.id, roleId, organizationalUnitId } });
       counts.rolesGranted += 1;
-      touched.add(user.id);
     } catch {
       failures.push({ step: 'role.grant', email: grant.email, path: grant.ouPath });
     }
   }
   for (const revoke of plan.roles.revoke) {
-    // Never SUPER_ADMIN, whatever the plan says.
-    const result = await prisma.userRole.deleteMany({
-      where: { id: revoke.userRoleId, role: { key: { in: ['ADMIN', 'AGENT'] } } },
-    });
-    if (result.count === 1) {
-      counts.rolesRevoked += 1;
+    try {
+      // Never SUPER_ADMIN, whatever the plan says. The durable delete may
+      // succeed even if the response is lost, so queue invalidation first.
       touched.add(revoke.userId);
+      const result = await prisma.userRole.deleteMany({
+        where: { id: revoke.userRoleId, role: { key: { in: ['ADMIN', 'AGENT'] } } },
+      });
+      if (result.count === 1) {
+        counts.rolesRevoked += 1;
+      }
+    } catch {
+      failures.push({ step: 'role.revoke', email: revoke.email, path: null });
     }
   }
 
-  if (deactivated.length > 0) await hooks.revokeSessions(deactivated);
-  if (touched.size > 0) await hooks.invalidateUsers([...touched]);
+  let hookFailed = false;
+  let hookFailure: unknown;
+  if (deactivated.length > 0) {
+    try {
+      await hooks.revokeSessions(deactivated);
+    } catch (error) {
+      hookFailed = true;
+      hookFailure = error;
+    }
+  }
+  if (touched.size > 0) {
+    try {
+      await hooks.invalidateUsers([...touched].sort());
+    } catch (error) {
+      if (!hookFailed) {
+        hookFailed = true;
+        hookFailure = error;
+      }
+    }
+  }
+  if (hookFailed) throw hookFailure;
   return { ...counts, failures };
 }
 

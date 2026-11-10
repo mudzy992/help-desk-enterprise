@@ -6,12 +6,15 @@ import {
 import type { OrganizationalUnitScopeRow } from './build-manage-scope-where';
 
 /**
- * Everything the visibility predicate needs, in two queries for the whole
- * list (the per-ticket check used to look these up again for every ticket).
+ * Inputs used by page-wide visibility predicates, not per-ticket lookups.
+ * Ticket-level group membership can be expressed directly in the query, so the
+ * actor-group catalogue is optional. Only actor-global viewer-group policy
+ * checks need those ids explicitly.
  */
 export async function loadTicketVisibilityInputs(
   prisma: PrismaService,
   actorUserId: string,
+  options: { readonly includeActorGroupIds?: boolean } = {},
 ): Promise<{
   readonly units: readonly OrganizationalUnitScopeRow[];
   readonly actorGroupIds: readonly string[];
@@ -20,7 +23,9 @@ export async function loadTicketVisibilityInputs(
   // (`common/cache/scope-catalog-cache.ts`); outside a request they are read here.
   const [units, actorGroupIds] = await Promise.all([
     loadOrganizationalUnitScopeRows(prisma),
-    loadActorGroupIds(prisma, actorUserId),
+    options.includeActorGroupIds === false
+      ? Promise.resolve([] as readonly string[])
+      : loadActorGroupIds(prisma, actorUserId),
   ]);
   return { units, actorGroupIds };
 }

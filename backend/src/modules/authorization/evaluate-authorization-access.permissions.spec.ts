@@ -51,8 +51,8 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
     ).toBe(false);
   });
 
-  it('lets an OU-scoped agent read the shared on-call calendar (scope-agnostic permission)', () => {
-    const scopedAgent = createTestAuthorizationContext({
+  it('lets scoped on-call grants reach service-filtered routes but keeps unrelated permissions scoped', () => {
+    const scopedOnCallReader = createTestAuthorizationContext({
       assignments: [
         createTestAssignment({
           roleKey: authorizationRoleKeys.agent,
@@ -64,31 +64,32 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
     });
     expect(
       evaluateAuthorizationAccess(
-        createTestDecisionInput({ context: scopedAgent, requiredPermissions: [permissionKeys.onCallRead] }),
+        createTestDecisionInput({ context: scopedOnCallReader, requiredPermissions: [permissionKeys.onCallRead] }),
       ),
     ).toBe(true);
-    // Managing stays fail-closed for scoped assignments.
-    expect(
-      evaluateAuthorizationAccess(
-        createTestDecisionInput({
-          context: createTestAuthorizationContext({
-            assignments: [
-              createTestAssignment({
-                permissionKeys: [permissionKeys.onCallManage],
-                organizationalUnitId: 'ou-zenica',
-                organizationalUnitPath: '/Korisnici/Podružnica Zenica',
-              }),
-            ],
-          }),
-          requiredPermissions: [permissionKeys.onCallManage],
+
+    const scopedOnCallManager = createTestAuthorizationContext({
+      assignments: [
+        createTestAssignment({
+          roleKey: authorizationRoleKeys.admin,
+          permissionKeys: [permissionKeys.onCallManage],
+          organizationalUnitId: 'ou-zenica',
+          organizationalUnitPath: '/Korisnici/Podružnica Zenica',
         }),
+      ],
+    });
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({ context: scopedOnCallManager, requiredPermissions: [permissionKeys.onCallManage] }),
       ),
-    ).toBe(false);
-    // Explicit AND requirements do not become scope-agnostic through one permission.
+    ).toBe(true);
+
+    // The service's group-scope check is specific to on-call; other route
+    // permissions still cannot be satisfied by this scoped assignment.
     expect(
       evaluateAuthorizationAccess(
         createTestDecisionInput({
-          context: scopedAgent,
+          context: scopedOnCallReader,
           requiredPermissions: [permissionKeys.onCallRead, permissionKeys.routingWrite],
           permissionMatchMode: 'all',
         }),

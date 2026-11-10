@@ -69,10 +69,12 @@ administrativnih. Korisnik kreiran samo s `ACL SETUSER` nestaje pri restartu
 Redisa: **uvijek `ACL SAVE`** (fajl `aclfile`, npr. `/etc/redis/users.acl`) i
 provjera `ACL USERS` nakon restarta servera.
 
-**Prečac bez tunela:** aplikacija već sama sebi dokazuje adapter pri startu —
-u API logu svake instance tražiti `ws_adapter_redis_ok=1`. Ako je umjesto toga
-`ws_adapter_redis_acl_denied channel=...`, instanca radi s in-memory adapterom i
-sobe su samo lokalne (vidi `ops/ws-rolling-deploy.md`).
+**Prečac bez tunela:** nakon starta na svakoj instanci tražiti
+`ws_adapter_redis_ok=1 ws_adapter_redis_state=healthy` i `/health/ready` 200;
+status se daje tek nakon runtime `PSUBSCRIBE`/`SUBSCRIBE` i room-channel Pub/Sub
+round-trip probe. `ws_adapter_redis_state=degraded` znači da cross-instance emit
+nije dokazan; `ws_adapter_redis_acl_denied` uz `fallback=in_memory` znači boot
+fallback i traži rolling restart nakon ACL popravke (vidi `ops/ws-rolling-deploy.md`).
 
 **1b. Rolling deploy s dvije instance** (drain + reconnect, `ops/ws-rolling-deploy.md`):
 

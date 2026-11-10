@@ -87,7 +87,15 @@ export async function createInstallWizardHarness(input?: {
     teamService: new InstallTeamService(
       prisma,
       settingsService,
-      { send: async () => {} },
+      {
+        send: async () => ({
+          acceptedRecipientCount: 1,
+          rejectedRecipientCount: 0,
+          messageId: '<install-wizard-test@example.test>',
+          responseCode: 250,
+          failureKind: null,
+        }),
+      },
     ),
     /**
      * The real `POST /install/seed` service. The configuration loaders read the

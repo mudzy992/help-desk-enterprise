@@ -1,19 +1,18 @@
-import { compareDowntimeInstants } from './parse-downtime-instant';
-import {
-  unavailableStoredAvailabilityStatuses,
-} from './service-availability.constants';
+import { compareDowntimeInstants } from "./parse-downtime-instant";
+import { unavailableStoredAvailabilityStatuses } from "./service-availability.constants";
 import type {
   DowntimeWindowRecord,
   ServiceAvailabilityEvaluationContext,
   ServiceRuntimeAvailability,
   ServiceRuntimeAvailabilityState,
-} from './service-availability.types';
-import { toDowntimeWindowResponse } from './to-downtime-window-response';
-import type { ServiceAvailability } from '../../generated/prisma/enums';
+} from "./service-availability.types";
+import { toDowntimeWindowResponse } from "./to-downtime-window-response";
+import type { ServiceAvailability } from "../../generated/prisma/enums";
 
 export function evaluateServiceRuntimeAvailability(input: {
   readonly storedAvailability: ServiceAvailability;
   readonly downtimeWindows: readonly DowntimeWindowRecord[];
+  readonly upcomingDowntimeCount?: number;
   readonly evaluation: ServiceAvailabilityEvaluationContext;
 }): ServiceRuntimeAvailability {
   const { now, availability, downtime } = input.evaluation;
@@ -31,7 +30,7 @@ export function evaluateServiceRuntimeAvailability(input: {
     autoSetMaintenanceStatus: downtime.autoSetMaintenanceStatus,
     downtimeEnabled: downtime.enabled,
   });
-  const isCurrentlyAvailable = state === 'CURRENTLY_AVAILABLE';
+  const isCurrentlyAvailable = state === "CURRENTLY_AVAILABLE";
   return {
     state,
     storedAvailability: input.storedAvailability,
@@ -40,7 +39,9 @@ export function evaluateServiceRuntimeAvailability(input: {
     isCurrentlyUnavailable: !isCurrentlyAvailable,
     hasActiveDowntime: classified.active !== null,
     hasUpcomingDowntime: classified.upcoming !== null,
-    upcomingDowntimeCount: classified.upcomingCount,
+    upcomingDowntimeCount: downtime.enabled
+      ? (input.upcomingDowntimeCount ?? classified.upcomingCount)
+      : 0,
     activeDowntimeWindow:
       classified.active === null
         ? null
@@ -88,7 +89,7 @@ function resolveRuntimeState(input: {
   readonly availabilityEnabled: boolean;
 }): ServiceRuntimeAvailabilityState {
   if (input.hasActiveDowntime) {
-    return 'SCHEDULED_DOWNTIME';
+    return "SCHEDULED_DOWNTIME";
   }
   if (
     input.availabilityEnabled &&
@@ -96,9 +97,9 @@ function resolveRuntimeState(input: {
       input.storedAvailability,
     )
   ) {
-    return 'CURRENTLY_UNAVAILABLE';
+    return "CURRENTLY_UNAVAILABLE";
   }
-  return 'CURRENTLY_AVAILABLE';
+  return "CURRENTLY_AVAILABLE";
 }
 
 function resolveEffectiveAvailability(input: {
@@ -112,7 +113,7 @@ function resolveEffectiveAvailability(input: {
     input.hasActiveDowntime &&
     input.autoSetMaintenanceStatus
   ) {
-    return 'MAINTENANCE';
+    return "MAINTENANCE";
   }
   return input.storedAvailability;
 }

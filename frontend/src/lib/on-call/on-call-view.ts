@@ -31,6 +31,7 @@ export const onCallErrorKeys = {
   ON_CALL_DISABLED: "onCall.errors.disabled",
   ON_CALL_GROUP_NOT_FOUND: "onCall.errors.groupNotFound",
   ON_CALL_SCHEDULE_NOT_FOUND: "onCall.errors.scheduleNotFound",
+  ON_CALL_SCHEDULE_CONFLICT: "onCall.errors.scheduleConflict",
   ON_CALL_INVALID_SCHEDULE: "onCall.errors.invalidSchedule",
   ON_CALL_INVALID_MEMBER: "onCall.errors.invalidMember",
   ON_CALL_INVALID_RANGE: "onCall.errors.invalidRange",
@@ -39,6 +40,8 @@ export const onCallErrorKeys = {
   ON_CALL_SWAP_NOT_FOUND: "onCall.errors.swapNotFound",
   ON_CALL_SWAP_NOT_ALLOWED: "onCall.errors.swapNotAllowed",
   ON_CALL_SWAP_NOT_PENDING: "onCall.errors.swapNotPending",
+  ON_CALL_SWAP_DUPLICATE: "onCall.errors.swapDuplicate",
+  ON_CALL_SWAP_LIMIT_REACHED: "onCall.errors.swapLimitReached",
   ON_CALL_FORBIDDEN: "onCall.errors.forbidden",
 } as const;
 

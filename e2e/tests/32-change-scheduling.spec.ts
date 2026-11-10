@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { expectNoSeriousA11yViolations } from '../helpers/a11y';
+import type { ApiClient } from '../helpers/api-client';
 import { errorCode } from '../helpers/assets';
 import {
   act,
@@ -53,6 +54,40 @@ function calendarRange(window: { plannedStart: string; plannedEnd: string }) {
   return `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 }
 
+/** Give each shared-stack E2E run its own otherwise-uncontended downtime slot. */
+function uniqueFutureWindow(stamp: string): { plannedStart: string; plannedEnd: string } {
+  const seed = Number(stamp);
+  const today = new Date();
+  const dayOffset = 9 + (seed % 23);
+  const minuteOfDay = Math.floor(seed / 23) % (24 * 60);
+  const start = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + dayOffset)
+    + minuteOfDay * 60_000;
+  return {
+    plannedStart: new Date(start).toISOString(),
+    plannedEnd: new Date(start + 60 * 60_000).toISOString(),
+  };
+}
+
+async function waitForChangeDowntime(
+  admin: ApiClient,
+  window: { plannedStart: string; plannedEnd: string },
+  changeId: string,
+  expectedCount: number,
+): Promise<Calendar> {
+  let latest: Calendar | null = null;
+  await expect.poll(async () => {
+    const calendar = await admin.requestJson<Calendar>(`/changes/calendar?${calendarRange(window)}`);
+    latest = calendar;
+    return calendar.downtime.filter((item) => item.changeRequestId === changeId).length;
+  }, {
+    message: `durable downtime sync should converge to ${expectedCount} window(s) for ${changeId}`,
+    timeout: 20_000,
+    intervals: [250, 500, 1_000],
+  }).toBe(expectedCount);
+  if (latest === null) throw new Error('Calendar polling completed without a response');
+  return latest;
+}
+
 /**
  * 32 (paket 3.4): scheduling rules.
  *  - A change that causes downtime plans a downtime window (MAINTENANCE) per
@@ -77,7 +112,7 @@ test.describe('32 change scheduling', () => {
       async (fixture) => {
         const { admin } = fixture;
         const created: string[] = [];
-        const window = futureWindow(9, 22, 23);
+        const window = uniqueFutureWindow(fixture.stamp);
         const create = async (body: Record<string, unknown>) => {
           const change = await admin.requestJson<ChangeDetail>('/changes', { method: 'POST', body: JSON.stringify(body) });
           created.push(change.id);
@@ -88,7 +123,7 @@ test.describe('32 change scheduling', () => {
 
           await test.step('a scheduled change that causes downtime plans a downtime window', async () => {
             first = await schedule(fixture, await create(fullNormalChange(fixture, 'prekid', window, { causesDowntime: true })));
-            const calendar = await admin.requestJson<Calendar>(`/changes/calendar?${calendarRange(window)}`);
+            const calendar = await waitForChangeDowntime(admin, window, first!.id, 1);
             expect(calendar.changes.some((item) => item.id === first!.id)).toBe(true);
             const own = calendar.downtime.filter((item) => item.changeRequestId === first!.id);
             expect(own.length, 'downtime window of the change').toBe(1);
@@ -125,7 +160,7 @@ test.describe('32 change scheduling', () => {
             expect(await errorCode(await act(admin, current, 'cancel'))).toBe('CHANGE_REASON_REQUIRED');
             const cancel = await act(admin, current, 'cancel', { reason: 'Dobavljač odgodio zakrpu (E2E).' });
             expect(cancel.ok, await cancel.clone().text()).toBe(true);
-            const calendar = await admin.requestJson<Calendar>(`/changes/calendar?${calendarRange(window)}`);
+            const calendar = await waitForChangeDowntime(admin, window, first!.id, 0);
             expect(calendar.downtime.filter((item) => item.changeRequestId === first!.id)).toHaveLength(0);
           });
 

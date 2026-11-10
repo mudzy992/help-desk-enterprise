@@ -25,6 +25,16 @@ const schema = {
 describe('resolveTicketFormVersion', () => {
   const createHarness = () => {
     const memory = createInMemoryServiceCatalogPrisma();
+    Object.assign(memory.prisma, {
+      $queryRaw: async (
+        _query: TemplateStringsArray,
+        ..._values: unknown[]
+      ) => [],
+      $executeRaw: async (
+        _query: TemplateStringsArray,
+        ..._values: unknown[]
+      ) => 0,
+    });
     const catalog = new ServiceCatalogService(memory.prisma as never, {
       load: async () => defaultServiceLifecycleConfiguration,
     } as never);

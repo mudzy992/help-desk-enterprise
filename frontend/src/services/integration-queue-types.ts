@@ -2,6 +2,7 @@ export const integrationJobStatuses = {
   pending: "PENDING",
   processing: "PROCESSING",
   completed: "COMPLETED",
+  publishedBestEffort: "PUBLISHED_BEST_EFFORT",
   failed: "FAILED",
   dlq: "DLQ",
 } as const;
@@ -13,6 +14,7 @@ export const integrationJobAdminStatuses: readonly IntegrationJobAdminStatus[] =
   integrationJobStatuses.pending,
   integrationJobStatuses.processing,
   integrationJobStatuses.completed,
+  integrationJobStatuses.publishedBestEffort,
   integrationJobStatuses.failed,
   integrationJobStatuses.dlq,
 ];
@@ -26,12 +28,18 @@ export const integrationJobTypes = ["EMAIL", "EDGE_EVENT", "TEAMS"] as const;
 
 export type IntegrationJobType = (typeof integrationJobTypes)[number];
 
+export type IntegrationJobAdminErrorCode =
+  | "EDGE_EVENT_NO_SUBSCRIBERS"
+  | "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN"
+  | "PROVIDER_DELIVERY_OUTCOME_UNKNOWN"
+  | "INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED"
+  | "INTEGRATION_JOB_FAILED";
+
 export type IntegrationJob = {
   readonly id: string;
   readonly type: IntegrationJobType;
   readonly status: IntegrationJobAdminStatus;
-  readonly payload: unknown;
-  readonly lastError: string | null;
+  readonly lastErrorCode: IntegrationJobAdminErrorCode | null;
   readonly attempts: number;
   readonly nextRetryAt: string | null;
   readonly createdAt: string;
@@ -48,4 +56,8 @@ export type IntegrationWorkerStatus = "active" | "stale" | "unknown";
 export type IntegrationWorkerStatusResponse = {
   readonly status: IntegrationWorkerStatus;
   readonly lastHeartbeatAt: string | null;
+  readonly dispatchableBacklog: {
+    readonly status: "available" | "unknown";
+    readonly oldestCreatedAt: string | null;
+  };
 };

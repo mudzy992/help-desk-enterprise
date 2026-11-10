@@ -1,14 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Readable } from 'node:stream';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { appendAuditLog } from '../audit-log/append-audit-log';
 import type { AuditLogTransactionalClient, AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import type { JsonValue } from '../change-log/change-log.types';
+import { AuthorizationService } from '../authorization/authorization.service';
+import { permissionKeys } from '../authorization/authorization.constants';
+import { doesOrganizationalUnitScopeCover } from '../authorization/does-organizational-unit-scope-cover';
 import { loadEmailChannelConfiguration } from '../notifications/email/load-email-channel-configuration';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTitleKeys, notificationTypes, type NotificationType } from '../notifications/notifications.constants';
 import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
+import { resolveDeliveryDecisions } from '../notifications/preferences/resolve-delivery-decisions';
 import { announcementDefaults } from '../settings/definitions/announcement-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { resolveAnnouncementTeamsUrl } from './announcement-teams-url';
@@ -17,10 +23,13 @@ import {
   csvCell,
   effectiveAnnouncementStatus,
   expandAudienceUnits,
-  isAudienceWithinUnit,
   isInAnnouncementAudience,
+  organizationalUnitAncestorPaths,
   type AnnouncementAudience,
 } from './announcement-audience';
+import { decodeAnnouncementReportCursor, encodeAnnouncementReportCursor } from './announcement-report-cursor';
+import { authorizeAnnouncementAudiences, type AnnouncementAudienceAuthorizationCandidate } from './announcement-resource-authorization';
+import { announcementUnitPathCoveredByScope, hasAnnouncementPermissionScope } from './announcement-permission-scope';
 import type { AnnouncementViewer } from './announcement-viewer';
 import { AnnouncementError, announcementErrorCodes, announcementLimits } from './announcements.constants';
 
@@ -78,6 +87,14 @@ type AnnouncementRow = {
 
 type Unit = { readonly id: string; readonly name: string; readonly ouPath: string };
 
+type ReportCsvMember = {
+  readonly id: string;
+  readonly displayName: string;
+  readonly email: string;
+  readonly organizationalUnit: { readonly name: string } | null;
+  readonly announcementAcknowledgements: readonly { readonly acknowledgedAt: Date }[];
+};
+
 function audienceOf(row: Pick<AnnouncementRow, 'audienceRoles' | 'audienceOrganizationalUnitIds' | 'audienceGroupIds'>): AnnouncementAudience {
   return { roles: row.audienceRoles, organizationalUnitIds: row.audienceOrganizationalUnitIds, groupIds: row.audienceGroupIds };
 }
@@ -104,6 +121,7 @@ export class AnnouncementsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   private async readSetting<T>(key: string, fallback: T): Promise<T> {
@@ -133,14 +151,28 @@ export class AnnouncementsService {
     return unit?.ouPath ?? null;
   }
 
-  /** What the viewer may do in the management screen. */
+  private async agentManagementUnitPath(viewer: AnnouncementViewer): Promise<string | null> {
+    if (!viewer.isAgent || viewer.homeOrganizationalUnitId === null) return null;
+    const enabled = await this.readSetting<unknown>(
+      settingKeys.privateAnnouncementsAgentsMayPublish,
+      announcementDefaults.agentsMayPublish,
+    );
+    return enabled === true ? this.unitPathOf(viewer.homeOrganizationalUnitId) : null;
+  }
+
+  /** What the viewer may do in the management screen; resource access is checked again per audience. */
   async capabilities(viewer: AnnouncementViewer): Promise<{ canManage: boolean; scopedToUnit: boolean; canReadReports: boolean }> {
-    if (viewer.canManageAll) return { canManage: true, scopedToUnit: false, canReadReports: viewer.canReadReports };
-    const agentsMayPublish =
-      viewer.isAgent &&
-      viewer.homeOrganizationalUnitId !== null &&
-      (await this.readSetting<unknown>(settingKeys.privateAnnouncementsAgentsMayPublish, announcementDefaults.agentsMayPublish)) === true;
-    return { canManage: agentsMayPublish, scopedToUnit: agentsMayPublish, canReadReports: viewer.canReadReports || agentsMayPublish };
+    const agentPath = await this.agentManagementUnitPath(viewer);
+    const agentMayPublish = agentPath !== null;
+    const hasManageScope = hasAnnouncementPermissionScope(viewer.manageScope);
+    const hasReportScope = hasAnnouncementPermissionScope(viewer.reportScope);
+    return {
+      canManage: hasManageScope || agentMayPublish,
+      scopedToUnit:
+        !viewer.manageScope.global &&
+        (viewer.manageScope.organizationalUnits.length > 0 || agentMayPublish),
+      canReadReports: hasReportScope || agentMayPublish,
+    };
   }
 
   private async requireManage(viewer: AnnouncementViewer) {
@@ -150,18 +182,66 @@ export class AnnouncementsService {
     return capabilities;
   }
 
-  /** Loads an announcement the viewer may manage (agents: audience inside the own unit). */
-  private async loadManaged(id: string, viewer: AnnouncementViewer, scopedToUnit: boolean): Promise<AnnouncementRow> {
+  private async unitPathsForAudience(organizationalUnitIds: readonly string[]): Promise<Map<string, string>> {
+    const ids = unique(organizationalUnitIds);
+    if (ids.length === 0) return new Map();
+    const units = await this.prisma.organizationalUnit.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, ouPath: true },
+    });
+    return new Map(units.map((unit) => [unit.id, unit.ouPath]));
+  }
+
+  private async authorizedAudienceKeys(
+    viewer: AnnouncementViewer,
+    permissionKey: string,
+    candidates: readonly AnnouncementAudienceAuthorizationCandidate[],
+    allowAgentScope: boolean,
+  ): Promise<ReadonlySet<string>> {
+    const organizationalUnitIds = unique(candidates.flatMap((candidate) => [...candidate.organizationalUnitIds]));
+    const [unitPaths, agentPath] = await Promise.all([
+      this.unitPathsForAudience(organizationalUnitIds),
+      allowAgentScope ? this.agentManagementUnitPath(viewer) : Promise.resolve(null),
+    ] as const);
+    const permissionScope = permissionKey === permissionKeys.announcementManage ? viewer.manageScope : viewer.reportScope;
+    return authorizeAnnouncementAudiences({
+      authorization: this.authorization,
+      principal: viewer.authorizationPrincipal,
+      permissionKey,
+      permissionScope,
+      candidates,
+      unitPaths,
+      fallbackOrganizationalUnitPaths: agentPath === null ? [] : [agentPath],
+    });
+  }
+
+  private async assertManageAudience(viewer: AnnouncementViewer, organizationalUnitIds: readonly string[]): Promise<void> {
+    const key = 'announcement-input';
+    const allowed = await this.authorizedAudienceKeys(
+      viewer,
+      permissionKeys.announcementManage,
+      [{ key, organizationalUnitIds }],
+      true,
+    );
+    if (!allowed.has(key)) throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'scope');
+  }
+
+  /** Loads an announcement only when the permission covers every audience OU. */
+  private async loadManaged(
+    id: string,
+    viewer: AnnouncementViewer,
+    permissionKey: string,
+    allowAgentScope = false,
+  ): Promise<AnnouncementRow> {
     const row = (await this.prisma.announcement.findUnique({ where: { id } })) as AnnouncementRow | null;
     if (row === null) throw new AnnouncementError(announcementErrorCodes.notFound);
-    if (scopedToUnit) {
-      const units = await this.loadUnits();
-      const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      if (!isAudienceWithinUnit(row.audienceOrganizationalUnitIds, ownPath, paths)) {
-        throw new AnnouncementError(announcementErrorCodes.notFound);
-      }
-    }
+    const allowed = await this.authorizedAudienceKeys(
+      viewer,
+      permissionKey,
+      [{ key: id, organizationalUnitIds: row.audienceOrganizationalUnitIds }],
+      allowAgentScope,
+    );
+    if (!allowed.has(id)) throw new AnnouncementError(announcementErrorCodes.notFound);
     return row;
   }
 
@@ -185,9 +265,45 @@ export class AnnouncementsService {
     return rows.filter((row) => isInAnnouncementAudience(audienceOf(row), member, paths));
   }
 
+  /**
+   * Pushes the same AND audience semantics used by `isInAnnouncementAudience`
+   * into PostgreSQL, before the active/archive result cap is applied.
+   */
+  private async audienceWhereForViewer(viewer: AnnouncementViewer): Promise<Prisma.AnnouncementWhereInput> {
+    const unitPath = await this.viewerUnitPath(viewer);
+    const ancestorPaths = organizationalUnitAncestorPaths(unitPath);
+    const units = ancestorPaths.length === 0
+      ? []
+      : await this.prisma.organizationalUnit.findMany({
+          where: { ouPath: { in: ancestorPaths } },
+          select: { id: true },
+        });
+    const audienceUnitIds = units.map((unit) => unit.id);
+    const roleKeys = [...new Set(viewer.roleKeys)];
+    const groupIds = [...new Set(viewer.groupIds)];
+
+    const roleFilters: Prisma.AnnouncementWhereInput[] = [{ audienceRoles: { isEmpty: true } }];
+    if (roleKeys.length > 0) roleFilters.push({ audienceRoles: { hasSome: roleKeys } });
+    const organizationalUnitFilters: Prisma.AnnouncementWhereInput[] = [{ audienceOrganizationalUnitIds: { isEmpty: true } }];
+    if (audienceUnitIds.length > 0) {
+      organizationalUnitFilters.push({ audienceOrganizationalUnitIds: { hasSome: audienceUnitIds } });
+    }
+    const groupFilters: Prisma.AnnouncementWhereInput[] = [{ audienceGroupIds: { isEmpty: true } }];
+    if (groupIds.length > 0) groupFilters.push({ audienceGroupIds: { hasSome: groupIds } });
+
+    return {
+      AND: [
+        { OR: roleFilters },
+        { OR: organizationalUnitFilters },
+        { OR: groupFilters },
+      ],
+    };
+  }
+
   /** §3.2: active announcements for the viewer that still need attention. */
   async active(viewer: AnnouncementViewer, now: Date = new Date()) {
     if (!(await this.isEnabled())) return { enabled: false, announcements: [] };
+    const audienceWhere = await this.audienceWhereForViewer(viewer);
     const rows = (await this.prisma.announcement.findMany({
       where: {
         status: 'PUBLISHED',
@@ -195,17 +311,17 @@ export class AnnouncementsService {
         endsAt: { gt: now },
         acknowledgements: { none: { userId: viewer.userId } },
         dismissals: { none: { userId: viewer.userId } },
+        ...audienceWhere,
       },
-      orderBy: [{ startsAt: 'desc' }],
-      take: 50,
+      orderBy: [{ severity: 'desc' }, { startsAt: 'desc' }, { id: 'asc' }],
+      take: announcementLimits.activeMax,
     })) as AnnouncementRow[];
-    const visible = await this.filterForViewer(rows, viewer);
-    const serviceNames = await this.serviceNames(visible.map((row) => row.serviceId));
+    const serviceNames = await this.serviceNames(rows.map((row) => row.serviceId));
     const rank = { CRITICAL: 0, WARNING: 1, INFO: 2 } as const;
     return {
       enabled: true,
-      announcements: visible
-        .sort((a, b) => rank[a.severity] - rank[b.severity] || b.startsAt.getTime() - a.startsAt.getTime())
+      announcements: rows
+        .sort((a, b) => rank[a.severity] - rank[b.severity] || b.startsAt.getTime() - a.startsAt.getTime() || a.id.localeCompare(b.id))
         .map((row) => ({
           id: row.id,
           title: row.title,
@@ -224,12 +340,18 @@ export class AnnouncementsService {
   /** §3.2: the last 90 days of announcements the viewer was in the audience of. */
   async archive(viewer: AnnouncementViewer, now: Date = new Date()) {
     await this.requireEnabled();
+    const audienceWhere = await this.audienceWhereForViewer(viewer);
     const rows = (await this.prisma.announcement.findMany({
-      where: { status: 'PUBLISHED', startsAt: { lte: now }, endsAt: { gt: new Date(now.getTime() - announcementLimits.archiveDays * dayMs) } },
-      orderBy: [{ startsAt: 'desc' }],
+      where: {
+        status: 'PUBLISHED',
+        startsAt: { lte: now },
+        endsAt: { gt: new Date(now.getTime() - announcementLimits.archiveDays * dayMs) },
+        ...audienceWhere,
+      },
+      orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
       take: announcementLimits.archiveMax,
     })) as AnnouncementRow[];
-    const visible = await this.filterForViewer(rows, viewer);
+    const visible = rows;
     const acknowledgements = await this.prisma.announcementAcknowledgement.findMany({
       where: { userId: viewer.userId, announcementId: { in: visible.map((row) => row.id) } },
       select: { announcementId: true, acknowledgedAt: true },
@@ -299,8 +421,15 @@ export class AnnouncementsService {
     let visibleUnits = units;
     let visibleGroups = groups;
     if (capabilities.scopedToUnit) {
-      const own = units.find((unit) => unit.id === viewer.homeOrganizationalUnitId);
-      const inside = new Set(own === undefined ? [] : expandAudienceUnits([own.id], units));
+      const agentPath = await this.agentManagementUnitPath(viewer);
+      const inside = new Set(
+        units
+          .filter((unit) =>
+            announcementUnitPathCoveredByScope(unit.ouPath, viewer.manageScope) ||
+            (agentPath !== null && doesOrganizationalUnitScopeCover({ assignedPath: agentPath, requestedPath: unit.ouPath })),
+          )
+          .map((unit) => unit.id),
+      );
       visibleUnits = units.filter((unit) => inside.has(unit.id));
       visibleGroups = groups.filter((group) => inside.has(group.organizationalUnitId));
     }
@@ -340,12 +469,13 @@ export class AnnouncementsService {
       orderBy: [{ createdAt: 'desc' }],
       take: announcementLimits.manageListMax,
     })) as AnnouncementRow[];
-    if (capabilities.scopedToUnit) {
-      const units = await this.loadUnits();
-      const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      rows = rows.filter((row) => isAudienceWithinUnit(row.audienceOrganizationalUnitIds, ownPath, paths));
-    }
+    const allowed = await this.authorizedAudienceKeys(
+      viewer,
+      permissionKeys.announcementManage,
+      rows.map((row) => ({ key: row.id, organizationalUnitIds: row.audienceOrganizationalUnitIds })),
+      true,
+    );
+    rows = rows.filter((row) => allowed.has(row.id));
     const counts = await this.prisma.announcementAcknowledgement.groupBy({
       by: ['announcementId'],
       where: { announcementId: { in: rows.map((row) => row.id) } },
@@ -362,8 +492,8 @@ export class AnnouncementsService {
   }
 
   async detail(id: string, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     const revisions = await this.prisma.announcementRevision.findMany({
       where: { announcementId: id },
       orderBy: { version: 'desc' },
@@ -407,7 +537,7 @@ export class AnnouncementsService {
   }
 
   /** Validates the editor input; returns the normalised write data. */
-  private async validate(input: SaveAnnouncementInput, viewer: AnnouncementViewer, scopedToUnit: boolean, now: Date) {
+  private async validate(input: SaveAnnouncementInput, now: Date) {
     const title = input.title.trim();
     const body = input.body.trim();
     if (title.length < 3 || title.length > announcementLimits.titleMax) throw new AnnouncementError(announcementErrorCodes.invalid, 'title');
@@ -442,12 +572,6 @@ export class AnnouncementsService {
     if (input.serviceId !== undefined && input.serviceId !== null && input.serviceId.trim().length > 0 && service === null) {
       throw new AnnouncementError(announcementErrorCodes.invalid, 'serviceId');
     }
-    if (scopedToUnit) {
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      if (!isAudienceWithinUnit(organizationalUnitIds, ownPath, paths)) {
-        throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'ownUnit');
-      }
-    }
     // K2b: e-mail rides on the audience notification; Teams only when offered.
     const postToTeams = input.postToTeams === true && (await this.channelAvailability()).teamsAvailable;
     return {
@@ -469,8 +593,9 @@ export class AnnouncementsService {
   }
 
   async create(input: SaveAnnouncementInput, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const data = await this.validate(input, viewer, capabilities.scopedToUnit, now);
+    await this.requireManage(viewer);
+    const data = await this.validate(input, now);
+    await this.assertManageAudience(viewer, data.audienceOrganizationalUnitIds);
     const row = await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.announcement.create({ data: { ...data, createdById: viewer.userId } });
       await this.audit(transaction, auditLogActions.announcementCreated, created.id, viewer.userId, {
@@ -488,12 +613,13 @@ export class AnnouncementsService {
    * severity, display and end can change, and the previous text is kept.
    */
   async update(id: string, input: SaveAnnouncementInput, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status === 'WITHDRAWN' || effectiveAnnouncementStatus(row, now) === 'ENDED') {
       throw new AnnouncementError(announcementErrorCodes.invalidState, 'closed');
     }
-    const data = await this.validate(input, viewer, capabilities.scopedToUnit, now);
+    const data = await this.validate(input, now);
+    await this.assertManageAudience(viewer, data.audienceOrganizationalUnitIds);
     await this.prisma.$transaction(async (transaction) => {
       if (row.status === 'DRAFT') {
         await transaction.announcement.update({ where: { id }, data });
@@ -542,8 +668,8 @@ export class AnnouncementsService {
   }
 
   async publish(id: string, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
     if (row.endsAt.getTime() <= now.getTime()) throw new AnnouncementError(announcementErrorCodes.invalid, 'endsAt');
     const audienceSize = await this.countAudience(audienceOf(row));
@@ -569,8 +695,8 @@ export class AnnouncementsService {
   }
 
   async withdraw(id: string, reason: string, viewer: AnnouncementViewer, now: Date = new Date()) {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'PUBLISHED') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notPublished');
     await this.prisma.$transaction(async (transaction) => {
       await transaction.announcement.update({ where: { id }, data: { status: 'WITHDRAWN', withdrawnAt: now } });
@@ -580,8 +706,8 @@ export class AnnouncementsService {
   }
 
   async remove(id: string, viewer: AnnouncementViewer): Promise<void> {
-    const capabilities = await this.requireManage(viewer);
-    const row = await this.loadManaged(id, viewer, capabilities.scopedToUnit);
+    await this.requireManage(viewer);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
     await this.prisma.$transaction(async (transaction) => {
       await transaction.announcement.delete({ where: { id } });
@@ -591,20 +717,13 @@ export class AnnouncementsService {
 
   /** §3.3 "≈ 342 korisnika" before publication. */
   async previewAudience(audience: AnnouncementAudience, viewer: AnnouncementViewer): Promise<{ count: number }> {
-    const capabilities = await this.requireManage(viewer);
+    await this.requireManage(viewer);
     const normalized = {
       roles: unique(audience.roles),
       organizationalUnitIds: unique(audience.organizationalUnitIds),
       groupIds: unique(audience.groupIds),
     };
-    if (capabilities.scopedToUnit) {
-      const units = await this.loadUnits();
-      const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-      const ownPath = await this.unitPathOf(viewer.homeOrganizationalUnitId);
-      if (!isAudienceWithinUnit(normalized.organizationalUnitIds, ownPath, paths)) {
-        throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'ownUnit');
-      }
-    }
+    await this.assertManageAudience(viewer, normalized.organizationalUnitIds);
     return { count: await this.countAudience(normalized) };
   }
 
@@ -635,96 +754,253 @@ export class AnnouncementsService {
     await this.requireEnabled();
     const capabilities = await this.capabilities(viewer);
     if (!capabilities.canReadReports) throw new AnnouncementError(announcementErrorCodes.forbidden);
-    const row = await this.loadManaged(id, viewer, !viewer.canManageAll && !viewer.canReadReports);
+    const row = await this.loadManaged(id, viewer, permissionKeys.announcementReportRead, true);
     if (row.status === 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'draft');
     return row;
   }
 
-  /** Current audience members with their unit and acknowledgement (ordered by name). */
-  private async reportRows(row: AnnouncementRow) {
-    const [members, acknowledgements] = await Promise.all([
-      this.prisma.user.findMany({
-        where: await this.audienceWhere(audienceOf(row)),
-        select: { id: true, displayName: true, email: true, organizationalUnit: { select: { name: true } } },
-        orderBy: { displayName: 'asc' },
-      }),
-      this.prisma.announcementAcknowledgement.findMany({
-        where: { announcementId: row.id },
-        select: { userId: true, acknowledgedAt: true, user: { select: { organizationalUnit: { select: { name: true } } } } },
-      }),
-    ]);
-    return { members, acknowledgements };
+  private pendingReportWhere(
+    row: AnnouncementRow,
+    audienceWhere: Prisma.UserWhereInput,
+    afterUserId: string | null,
+  ): Prisma.UserWhereInput {
+    const terms: Prisma.UserWhereInput[] = [
+      audienceWhere,
+      { announcementAcknowledgements: { none: { announcementId: row.id } } },
+    ];
+    if (afterUserId !== null) terms.push({ id: { gt: afterUserId } });
+    return { AND: terms };
+  }
+
+  private async reportPendingRows(
+    row: AnnouncementRow,
+    audienceWhere: Prisma.UserWhereInput,
+    afterUserId: string | null,
+  ) {
+    const limit = announcementLimits.reportPendingListed;
+    const members = await this.prisma.user.findMany({
+      where: this.pendingReportWhere(row, audienceWhere, afterUserId),
+      select: { id: true, displayName: true, organizationalUnit: { select: { name: true } } },
+      orderBy: { id: 'asc' },
+      take: limit + 1,
+    });
+    const hasMore = members.length > limit;
+    const listed = members.slice(0, limit);
+    const lastListed = listed.at(-1);
+    return {
+      pending: listed.map((member) => ({
+        id: member.id,
+        displayName: member.displayName,
+        unit: member.organizationalUnit?.name ?? '',
+      })),
+      pendingNextCursor:
+        hasMore && lastListed !== undefined ? encodeAnnouncementReportCursor(row.id, lastListed.id) : null,
+    };
   }
 
   /**
-   * §3.3: "X of Y" (Y captured at publication), per unit, and who has not
-   * acknowledged yet (current audience minus acknowledgements).
+   * §3.3: DB aggregates keep the audience and acknowledgement summary bounded;
+   * pending identities are fetched separately in a fixed-size keyset page.
    */
   async report(id: string, viewer: AnnouncementViewer) {
     const row = await this.requireReport(id, viewer);
-    const { members, acknowledgements } = await this.reportRows(row);
-    const acknowledged = new Map(acknowledgements.map((ack) => [ack.userId, ack.acknowledgedAt]));
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    const acknowledgedAudienceWhere: Prisma.UserWhereInput = {
+      AND: [audienceWhere, { announcementAcknowledgements: { some: { announcementId: row.id } } }],
+    };
+    const pendingWhere = this.pendingReportWhere(row, audienceWhere, null);
+    const [audienceByUnit, acknowledgedByUnit, acknowledgementCount, pendingCount, pendingPage, emailRuns] = await Promise.all([
+      this.prisma.user.groupBy({
+        by: ['organizationalUnitId'],
+        where: audienceWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.user.groupBy({
+        by: ['organizationalUnitId'],
+        where: acknowledgedAudienceWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.announcementAcknowledgement.count({ where: { announcementId: row.id } }),
+      this.prisma.user.count({ where: pendingWhere }),
+      this.reportPendingRows(row, audienceWhere, null),
+      this.prisma.announcementEmailRun.findMany({
+        where: { announcementId: row.id },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { kind: true, sentCount: true, skippedCount: true, failedCount: true, endReason: true, createdAt: true, completedAt: true },
+      }),
+    ]);
+    const currentAudienceSize = audienceByUnit.reduce((total, group) => total + group._count._all, 0);
+    const unitIds = [
+      ...new Set(
+        [...audienceByUnit, ...acknowledgedByUnit]
+          .map((group) => group.organizationalUnitId)
+          .filter((unitId): unitId is string => unitId !== null),
+      ),
+    ];
+    const unitRows =
+      unitIds.length === 0
+        ? []
+        : await this.prisma.organizationalUnit.findMany({
+            where: { id: { in: unitIds } },
+            select: { id: true, name: true },
+          });
+    const unitNames = new Map(unitRows.map((unit) => [unit.id, unit.name]));
     const byUnit = new Map<string, { unit: string; audience: number; acknowledged: number }>();
-    for (const member of members) {
-      const unit = member.organizationalUnit?.name ?? '';
+    for (const group of audienceByUnit) {
+      const unit = group.organizationalUnitId === null ? '' : (unitNames.get(group.organizationalUnitId) ?? '');
       const entry = byUnit.get(unit) ?? { unit, audience: 0, acknowledged: 0 };
-      entry.audience += 1;
-      if (acknowledged.has(member.id)) entry.acknowledged += 1;
+      entry.audience += group._count._all;
       byUnit.set(unit, entry);
     }
-    const pending = members.filter((member) => !acknowledged.has(member.id));
+    for (const group of acknowledgedByUnit) {
+      const unit = group.organizationalUnitId === null ? '' : (unitNames.get(group.organizationalUnitId) ?? '');
+      const entry = byUnit.get(unit) ?? { unit, audience: 0, acknowledged: 0 };
+      entry.acknowledged += group._count._all;
+      byUnit.set(unit, entry);
+    }
     return {
       id: row.id,
       title: row.title,
       requiresAcknowledgement: row.requiresAcknowledgement,
-      audienceSizeAtPublish: row.audienceSizeAtPublish ?? members.length,
-      currentAudienceSize: members.length,
-      acknowledgedCount: acknowledgements.length + row.anonymizedAcknowledgements,
-      pendingCount: pending.length,
+      audienceSizeAtPublish: row.audienceSizeAtPublish ?? currentAudienceSize,
+      currentAudienceSize,
+      acknowledgedCount: acknowledgementCount + row.anonymizedAcknowledgements,
+      pendingCount,
       lastReminderAt: row.lastReminderAt?.toISOString() ?? null,
       canRemind: this.canRemind(row, new Date()),
       sendEmail: row.sendEmail,
       postToTeams: row.postToTeams,
       teamsPostedAt: row.teamsPostedAt?.toISOString() ?? null,
       teamsResult: row.teamsResult,
-      emailRuns: (
-        await this.prisma.announcementEmailRun.findMany({
-          where: { announcementId: row.id },
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-          select: { kind: true, sentCount: true, skippedCount: true, failedCount: true, endReason: true, createdAt: true, completedAt: true },
-        })
-      ).map((run) => ({ ...run, createdAt: run.createdAt.toISOString(), completedAt: run.completedAt?.toISOString() ?? null })),
-      byUnit: [...byUnit.values()].sort((a, b) => a.unit.localeCompare(b.unit)),
-      pending: pending.slice(0, announcementLimits.reportPendingListed).map((member) => ({
-        id: member.id,
-        displayName: member.displayName,
-        unit: member.organizationalUnit?.name ?? '',
+      emailRuns: emailRuns.map((run) => ({
+        ...run,
+        createdAt: run.createdAt.toISOString(),
+        completedAt: run.completedAt?.toISOString() ?? null,
       })),
+      byUnit: [...byUnit.values()].sort((a, b) => a.unit.localeCompare(b.unit)),
+      pending: pendingPage.pending,
+      pendingNextCursor: pendingPage.pendingNextCursor,
     };
   }
 
-  async reportCsv(id: string, viewer: AnnouncementViewer): Promise<{ filename: string; content: string }> {
+  async reportPending(id: string, cursor: string | null, viewer: AnnouncementViewer) {
     const row = await this.requireReport(id, viewer);
-    const { members, acknowledgements } = await this.reportRows(row);
-    const acknowledged = new Map(acknowledgements.map((ack) => [ack.userId, ack.acknowledgedAt]));
-    const lines = [
-      ['name', 'email', 'unit', 'acknowledgedAt'].map(csvCell).join(','),
-      ...members.map((member) =>
-        [member.displayName, member.email, member.organizationalUnit?.name ?? '', acknowledged.get(member.id)?.toISOString() ?? '']
-          .map(csvCell)
-          .join(','),
-      ),
-    ];
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action: auditLogActions.announcementReportExported,
-      entityType: auditLogEntityTypes.announcement,
-      entityId: id,
-      metadata: { rows: members.length },
-      actorUserId: viewer.userId,
+    const afterUserId = decodeAnnouncementReportCursor(cursor, row.id);
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    const pendingWhere = this.pendingReportWhere(row, audienceWhere, null);
+    const [pendingCount, page] = await Promise.all([
+      this.prisma.user.count({ where: pendingWhere }),
+      this.reportPendingRows(row, audienceWhere, afterUserId),
+    ]);
+    return { pendingCount, ...page };
+  }
+
+  private reportCsvPage(
+    audienceWhere: Prisma.UserWhereInput,
+    announcementId: string,
+    afterUserId: string | null,
+    take: number,
+  ): Promise<ReportCsvMember[]> {
+    return this.prisma.user.findMany({
+      where:
+        afterUserId === null
+          ? audienceWhere
+          : { AND: [audienceWhere, { id: { gt: afterUserId } }] },
+      select: {
+        id: true,
+        displayName: true,
+        email: true,
+        organizationalUnit: { select: { name: true } },
+        announcementAcknowledgements: {
+          where: { announcementId },
+          select: { acknowledgedAt: true },
+          take: 1,
+        },
+      },
+      orderBy: { id: 'asc' },
+      take,
     });
-    // BOM so spreadsheet programs read UTF-8 (č, ć, š, ž, đ).
-    return { filename: `announcement-${id}.csv`, content: `\uFEFF${lines.join('\r\n')}\r\n` };
+  }
+
+  private async *reportCsvChunks(input: {
+    readonly row: AnnouncementRow;
+    readonly viewer: AnnouncementViewer;
+    readonly audienceWhere: Prisma.UserWhereInput;
+    readonly firstPage: ReportCsvMember[];
+  }): AsyncGenerator<string> {
+    let page = input.firstPage;
+    let requestedTake: number = announcementLimits.reportCsvBatchSize;
+    let exportedRows = 0;
+    try {
+      // BOM so spreadsheet programs read UTF-8 (č, ć, š, ž, đ).
+      yield `\uFEFF${['name', 'email', 'unit', 'acknowledgedAt'].map(csvCell).join(',')}\r\n`;
+      while (true) {
+        const remainingBudget = announcementLimits.reportCsvMaxRows - exportedRows;
+        if (page.length > remainingBudget) {
+          throw new AnnouncementError(
+            announcementErrorCodes.reportExportTooLarge,
+            String(announcementLimits.reportCsvMaxRows),
+          );
+        }
+        if (page.length > 0) {
+          const chunk = `${page
+            .map((member) =>
+              [
+                member.displayName,
+                member.email,
+                member.organizationalUnit?.name ?? '',
+                member.announcementAcknowledgements[0]?.acknowledgedAt.toISOString() ?? '',
+              ]
+                .map(csvCell)
+                .join(','),
+            )
+            .join('\r\n')}\r\n`;
+          exportedRows += page.length;
+          yield chunk;
+        }
+        const last = page.at(-1);
+        if (last === undefined || page.length < requestedTake) break;
+        requestedTake = Math.min(
+          announcementLimits.reportCsvBatchSize,
+          announcementLimits.reportCsvMaxRows - exportedRows + 1,
+        );
+        page = await this.reportCsvPage(input.audienceWhere, input.row.id, last.id, requestedTake);
+      }
+    } finally {
+      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.announcementReportExported,
+        entityType: auditLogEntityTypes.announcement,
+        entityId: input.row.id,
+        metadata: { rows: exportedRows },
+        actorUserId: input.viewer.userId,
+      });
+    }
+  }
+
+  async reportCsv(
+    id: string,
+    viewer: AnnouncementViewer,
+  ): Promise<{ filename: string; stream: Readable }> {
+    const row = await this.requireReport(id, viewer);
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    const rowCount = await this.prisma.user.count({ where: audienceWhere });
+    if (rowCount > announcementLimits.reportCsvMaxRows) {
+      throw new AnnouncementError(
+        announcementErrorCodes.reportExportTooLarge,
+        String(announcementLimits.reportCsvMaxRows),
+      );
+    }
+    const firstPage = await this.reportCsvPage(
+      audienceWhere,
+      row.id,
+      null,
+      announcementLimits.reportCsvBatchSize,
+    );
+    return {
+      filename: `announcement-${id}.csv`,
+      stream: Readable.from(this.reportCsvChunks({ row, viewer, audienceWhere, firstPage })),
+    };
   }
 
   private canRemind(row: AnnouncementRow, now: Date): boolean {
@@ -735,29 +1011,63 @@ export class AnnouncementsService {
     );
   }
 
+  /**
+   * Walk every matching user in bounded keyset pages. The page size is a memory
+   * bound, not an audience limit; stable ID ordering prevents OFFSET drift.
+   */
+  private async fanOutAudienceInPages(input: {
+    readonly row: AnnouncementRow;
+    readonly audience: AnnouncementAudience;
+    readonly type: NotificationType;
+    readonly dedupePrefix: string;
+    readonly additionalWhere?: Prisma.UserWhereInput;
+  }): Promise<number> {
+    const baseWhere: Prisma.UserWhereInput = {
+      ...(await this.audienceWhere(input.audience)),
+      ...input.additionalWhere,
+    };
+    let cursor: string | null = null;
+    let sent = 0;
+    while (true) {
+      const members: { readonly id: string }[] = await this.prisma.user.findMany({
+        where: { ...baseWhere, ...(cursor === null ? {} : { id: { gt: cursor } }) },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: announcementLimits.notifyBatchSize,
+      });
+      if (members.length === 0) break;
+      sent += await this.fanOut(
+        members.map((member) => member.id),
+        input.type,
+        input.row,
+        input.dedupePrefix,
+      );
+      cursor = members[members.length - 1]!.id;
+      if (members.length < announcementLimits.notifyBatchSize) break;
+    }
+    return sent;
+  }
+
   /** §3.3: one notification to everyone who has not acknowledged, at most once in 24 h. */
   async remind(id: string, viewer: AnnouncementViewer, now: Date = new Date()): Promise<{ notified: number; emailQueued: boolean }> {
     const row = await this.requireReport(id, viewer);
     if (!row.requiresAcknowledgement || effectiveAnnouncementStatus(row, now) !== 'PUBLISHED') {
       throw new AnnouncementError(announcementErrorCodes.notActive);
     }
+    if (!this.canRemind(row, now)) throw new AnnouncementError(announcementErrorCodes.reminderTooSoon);
+    const notified = await this.fanOutAudienceInPages({
+      row,
+      audience: audienceOf(row),
+      type: notificationTypes.announcementReminder,
+      dedupePrefix: `announcement-reminder:${id}:${now.toISOString().slice(0, 10)}`,
+      additionalWhere: { announcementAcknowledgements: { none: { announcementId: id } } },
+    });
     const since = new Date(now.getTime() - announcementLimits.reminderIntervalMs);
     const claimed = await this.prisma.announcement.updateMany({
       where: { id, OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: since } }] },
       data: { lastReminderAt: now },
     });
     if (claimed.count !== 1) throw new AnnouncementError(announcementErrorCodes.reminderTooSoon);
-    const members = await this.prisma.user.findMany({
-      where: { ...(await this.audienceWhere(audienceOf(row))), announcementAcknowledgements: { none: { announcementId: id } } },
-      select: { id: true },
-      take: announcementLimits.notifyMaxRecipients,
-    });
-    const notified = await this.fanOut(
-      members.map((member) => member.id),
-      notificationTypes.announcementReminder,
-      row,
-      `announcement-reminder:${id}:${now.toISOString().slice(0, 10)}`,
-    );
     const emailQueued = row.sendEmail ? await this.queueEmailRun(id, 'REMINDER') : false;
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action: auditLogActions.announcementReminded,
@@ -771,27 +1081,39 @@ export class AnnouncementsService {
 
   // ------------------------------------------------------------ sweep
 
-  /** In-app notification to the audience once the announcement has started (idempotent). */
+  /** In-app notification to the complete audience once the announcement has started (idempotent). */
   async notifyStarted(id: string, now: Date = new Date()): Promise<number> {
-    const claimed = await this.prisma.announcement.updateMany({
-      where: { id, status: 'PUBLISHED', notifyAudience: true, audienceNotifiedAt: null, startsAt: { lte: now }, endsAt: { gt: now } },
+    const row = (await this.prisma.announcement.findFirst({
+      where: {
+        id,
+        status: 'PUBLISHED',
+        notifyAudience: true,
+        audienceNotifiedAt: null,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
+    })) as AnnouncementRow | null;
+    if (row === null) return 0;
+    const notified = await this.fanOutAudienceInPages({
+      row,
+      audience: audienceOf(row),
+      type: notificationTypes.announcementPublished,
+      dedupePrefix: `announcement-published:${id}`,
+    });
+    const completed = await this.prisma.announcement.updateMany({
+      where: {
+        id,
+        status: 'PUBLISHED',
+        notifyAudience: true,
+        audienceNotifiedAt: null,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
       data: { audienceNotifiedAt: now },
     });
-    if (claimed.count !== 1) return 0;
-    const row = (await this.prisma.announcement.findUnique({ where: { id } })) as AnnouncementRow | null;
-    if (row === null) return 0;
+    if (completed.count !== 1) return 0;
     if (row.sendEmail) await this.queueEmailRun(id, 'PUBLISHED');
-    const members = await this.prisma.user.findMany({
-      where: await this.audienceWhere(audienceOf(row)),
-      select: { id: true },
-      take: announcementLimits.notifyMaxRecipients,
-    });
-    return this.fanOut(
-      members.map((member) => member.id),
-      notificationTypes.announcementPublished,
-      row,
-      `announcement-published:${id}`,
-    );
+    return notified;
   }
 
   /** Worker: notifications for announcements that started, and receipt retention. */
@@ -846,8 +1168,11 @@ export class AnnouncementsService {
   private async fanOut(userIds: readonly string[], type: NotificationType, row: AnnouncementRow, dedupePrefix: string): Promise<number> {
     if (userIds.length === 0) return 0;
     const policy = await loadNotificationPreferencePolicy(this.settings);
+    const decisions = await resolveDeliveryDecisions(this.prisma, policy, { type, userIds });
     let sent = 0;
     for (const userId of userIds) {
+      const decision = decisions.get(userId);
+      if (decision?.inApp === false) continue;
       try {
         const created = await persistInAppNotification(
           this.prisma,
@@ -871,6 +1196,7 @@ export class AnnouncementsService {
             dedupeKey: `${dedupePrefix}:${userId}`,
           },
           policy,
+          decision,
         );
         if (created !== null) sent += 1;
       } catch (error) {

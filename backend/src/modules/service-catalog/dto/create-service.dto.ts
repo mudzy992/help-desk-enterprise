@@ -6,14 +6,15 @@ import {
   MaxLength,
   MinLength,
   ValidateIf,
-} from 'class-validator';
+} from "class-validator";
 import {
   AutoAssignStrategy,
   DataClassification,
-} from '../../../generated/prisma/enums';
-import { serviceCatalogConstants } from '../service-catalog.constants';
+} from "../../../generated/prisma/enums";
+import { serviceCatalogConstants } from "../service-catalog.constants";
+import { CatalogMutationReasonDto } from "./catalog-mutation-reason.dto";
 
-export class CreateServiceDto {
+export class CreateServiceDto extends CatalogMutationReasonDto {
   @IsString()
   @MinLength(1)
   @MaxLength(serviceCatalogConstants.maximumNameLength)
@@ -55,9 +56,4 @@ export class CreateServiceDto {
   @IsString()
   @MinLength(1)
   slaProfileId?: string | null;
-
-  @IsString()
-  @MinLength(1)
-  @MaxLength(serviceCatalogConstants.maximumChangeReasonLength)
-  reason!: string;
 }

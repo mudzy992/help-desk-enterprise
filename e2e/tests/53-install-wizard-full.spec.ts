@@ -109,7 +109,7 @@ test.describe('53 install wizard — Full package', () => {
     ).toBeVisible();
 
     await api.login(env.superAdminEmail, env.superAdminPassword);
-    const services = await api.requestJson<Array<{ readonly slug?: string }>>('/services');
+    const services = await api.requestAllPages<{ readonly slug?: string }>('/services', 100, 10);
     const slugs = services.map((service) => service.slug);
     expect(slugs).toContain('racunar-i-oprema');
     expect(slugs).toContain('greske-u-aplikacijama');

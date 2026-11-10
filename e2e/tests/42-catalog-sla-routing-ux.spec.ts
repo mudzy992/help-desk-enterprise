@@ -1,4 +1,4 @@
-import { expect, test, type Request } from '@playwright/test';
+import { expect, test, type Request, type Response } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import { firstServiceCategoryId } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
@@ -6,13 +6,63 @@ import { signIn } from '../helpers/sign-in';
 
 type UnitNode = {
   readonly id: string;
-  readonly children?: readonly UnitNode[];
+  readonly ouPath: string;
+  readonly children: readonly UnitNode[];
 };
 
 type NamedRecord = {
   readonly id: string;
   readonly name: string;
 };
+
+type SettingEntry = {
+  readonly key: string;
+  readonly value: unknown;
+};
+
+type UnitWithAncestors = {
+  readonly id: string;
+  readonly ouPath: string;
+  readonly ancestorIds: readonly string[];
+  readonly isLeaf: boolean;
+};
+
+type OnboardingResponse = {
+  readonly status: string;
+  readonly routingSuggestion: string | null;
+};
+
+const routingCoverageSettingKey = 'private.ticket.routing.requireCoverage';
+const onboardingRoutingReference = (serviceId: string) => `routing:${serviceId}`;
+
+function flattenUnitTree(tree: readonly UnitNode[]): readonly UnitWithAncestors[] {
+  const units: UnitWithAncestors[] = [];
+  const visit = (unit: UnitNode, ancestorIds: readonly string[]) => {
+    units.push({ id: unit.id, ouPath: unit.ouPath, ancestorIds, isLeaf: unit.children.length === 0 });
+    for (const child of unit.children) visit(child, [...ancestorIds, unit.id]);
+  };
+  for (const root of tree) visit(root, []);
+  return units.sort((left, right) =>
+    left.ouPath < right.ouPath ? -1 : left.ouPath > right.ouPath ? 1 :
+      left.id < right.id ? -1 : left.id > right.id ? 1 : 0,
+  );
+}
+
+async function readSetting(api: ApiClient, key: string): Promise<unknown> {
+  const entries = await api.requestJson<readonly SettingEntry[]>('/settings');
+  return entries.find((entry) => entry.key === key)?.value ?? null;
+}
+
+async function setRoutingCoverageSetting(api: ApiClient, value: boolean): Promise<void> {
+  await api.requestJson('/settings', {
+    method: 'PUT',
+    body: JSON.stringify({
+      key: routingCoverageSettingKey,
+      value,
+      reason: 'BA-routing-02 targeted E2E coverage validation',
+    }),
+  });
+}
 
 type ServiceRecord = NamedRecord & {
   readonly slug: string;
@@ -134,12 +184,32 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
             .filter({ hasText: /Round robin|Kružno/ }),
         ).toHaveCount(1);
         await dialog.getByLabel(/Change reason|Razlog izmjene/).fill('Create from catalogue UX E2E');
+        const serviceCreateResponsePromise = page.waitForResponse((response) => {
+          const url = new URL(response.url());
+          return (
+            response.request().method() === 'POST' &&
+            url.pathname.replace(/\/+$/, '').endsWith('/services')
+          );
+        });
         await dialog.locator('form button[type="submit"]').click();
+        const serviceCreateResponse = await serviceCreateResponsePromise;
+        const serviceCreatePayload = serviceCreateResponse.request().postDataJSON() as {
+          readonly reason?: unknown;
+        };
+        expect(
+          serviceCreatePayload.reason,
+          'service create request must include the caller-supplied audit reason',
+        ).toBe('Create from catalogue UX E2E');
+        const createResponseDetails = (await serviceCreateResponse.text()).slice(0, 512);
+        expect(
+          serviceCreateResponse.ok(),
+          `POST /services returned HTTP ${serviceCreateResponse.status()}: ${createResponseDetails}`,
+        ).toBe(true);
         await expect(dialog).toBeHidden();
       });
 
       await test.step('create the explicit-OU routing rule', async () => {
-        const services = await api.requestJson<readonly ServiceRecord[]>('/services');
+        const services = await api.requestAllPages<ServiceRecord>('/services', 100, 10);
         const created = services.find((service) => service.slug === slug);
         if (created === undefined) {
           throw new Error('[e2e] service created in the UI was not returned by GET /services.');
@@ -203,8 +273,8 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         ]);
         expect(servicesResponse.ok()).toBe(true);
         expect(await servicesResponse.headerValue('content-type')).toContain('application/json');
-        const browserCatalog = (await servicesResponse.json()) as readonly ServiceRecord[];
-        const browserService = browserCatalog.find((service) => service.id === targetServiceId);
+        const browserCatalog = (await servicesResponse.json()) as { readonly items: readonly ServiceRecord[] };
+        const browserService = browserCatalog.items.find((service) => service.id === targetServiceId);
         expect(browserService?.onboarding?.status).toBe('IN_PROGRESS');
 
         const serviceRow = page.getByTestId(`service-row-${targetServiceId}`);
@@ -249,7 +319,76 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         const editDialog = page.getByRole('dialog');
         await editDialog.getByRole('textbox', { name: /^(?:Name|Naziv)(?:\s+\([^)]*\))?$/i }).fill(editedName);
         await editDialog.getByLabel(/Change reason|Razlog izmjene/).fill('Edit from catalogue UX E2E');
-        await editDialog.locator('form button[type="submit"]').click();
+        const serviceMutationRequests: string[] = [];
+        const serviceMutationResponses: string[] = [];
+        const serviceRequestFailures: string[] = [];
+        const captureServiceRequest = (request: Request) => {
+          const url = new URL(request.url());
+          if (!url.pathname.includes('/services')) return;
+          const ifMatch = request.headers()['if-match'] ?? '<missing>';
+          serviceMutationRequests.push(`${request.method()} ${url.pathname}; If-Match=${ifMatch}`);
+        };
+        const captureServiceResponse = (response: Response) => {
+          const url = new URL(response.url());
+          if (!url.pathname.includes('/services')) return;
+          serviceMutationResponses.push(
+            `${response.request().method()} ${url.pathname} -> HTTP ${response.status()}`,
+          );
+        };
+        const captureServiceRequestFailure = (request: Request) => {
+          const url = new URL(request.url());
+          if (!url.pathname.includes('/services')) return;
+          serviceRequestFailures.push(
+            `${request.method()} ${url.pathname} -> ${request.failure()?.errorText ?? 'unknown'}`,
+          );
+        };
+        page.on('request', captureServiceRequest);
+        page.on('response', captureServiceResponse);
+        page.on('requestfailed', captureServiceRequestFailure);
+        let serviceUpdateResponse: Response;
+        try {
+          await editDialog.locator('form button[type="submit"]').click();
+          serviceUpdateResponse = await page.waitForResponse(
+            (response) => {
+              const url = new URL(response.url());
+              return (
+                response.request().method() === 'PATCH' &&
+                url.pathname.replace(/\/+$/, '').endsWith(`/services/${targetServiceId}`)
+              );
+            },
+            { timeout: 20_000 },
+          );
+        } catch (error) {
+          const dialogText = await editDialog.innerText().catch(() => '<edit dialog unavailable>');
+          const summarize = (items: readonly string[]) => (items.length > 0 ? items.join(' | ') : 'none');
+          throw new Error(
+            `[e2e] no matching PATCH response for service ${targetServiceId}. ` +
+              `Observed service requests: ${summarize(serviceMutationRequests)}. ` +
+              `Responses: ${summarize(serviceMutationResponses)}. ` +
+              `Network failures: ${summarize(serviceRequestFailures)}. ` +
+              `Edit dialog: ${dialogText.slice(0, 512)}. ` +
+              `Wait error: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        } finally {
+          page.off('request', captureServiceRequest);
+          page.off('response', captureServiceResponse);
+          page.off('requestfailed', captureServiceRequestFailure);
+        }
+        const serviceUpdateIfMatch = await serviceUpdateResponse.request().headerValue('if-match');
+        expect(
+          serviceUpdateIfMatch,
+          'service update request must include the loaded service revision as If-Match',
+        ).toMatch(/^"v[1-9][0-9]*"$/);
+        const serviceUpdatePayload = serviceUpdateResponse.request().postDataJSON() as {
+          readonly reason?: unknown;
+        };
+        expect(serviceUpdatePayload.reason).toBe('Edit from catalogue UX E2E');
+        const updateResponseDetails = (await serviceUpdateResponse.text()).slice(0, 512);
+        expect(
+          serviceUpdateResponse.ok(),
+          `PATCH /services/${targetServiceId} returned HTTP ${serviceUpdateResponse.status()}; ` +
+            `If-Match=${serviceUpdateIfMatch}: ${updateResponseDetails}`,
+        ).toBe(true);
         await expect(editDialog).toBeHidden();
         await expect(serviceRow.getByText(editedName)).toBeVisible();
 
@@ -262,7 +401,12 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         });
         await expect(manageLifecycle).toBeVisible();
         await expect(manageLifecycle).toBeEnabled();
-        await manageLifecycle.click();
+        // This selection changes the URL-backed workspace and unmounts the Radix
+        // menu; its accessible keyboard path avoids retrying a pointer click on
+        // the detached portal node.
+        await page.keyboard.press('End');
+        await expect(manageLifecycle).toBeFocused();
+        await page.keyboard.press('Enter');
         const lifecycleDialog = page.getByTestId('service-lifecycle-dialog');
         await expect(lifecycleDialog).toBeVisible();
         const activateButton = lifecycleDialog.getByRole('button', { name: /Activate|Aktiviraj/i });
@@ -275,7 +419,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     } finally {
       if (serviceId === null) {
         const services = await api
-          .requestJson<readonly ServiceRecord[]>('/services')
+          .requestAllPages<ServiceRecord>('/services', 100, 10)
           .catch(() => [] as readonly ServiceRecord[]);
         serviceId = services.find((service) => service.slug === slug)?.id ?? null;
       }
@@ -345,7 +489,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
         timeout: 20_000,
       });
 
-      const calendars = await api.requestJson<readonly CalendarRecord[]>('/sla/calendars');
+      const calendars = await api.requestAllPages<CalendarRecord>('/sla/calendars');
       const created = calendars.find((calendar) => calendar.key === key);
       if (created === undefined) {
         throw new Error('[e2e] calendar created in the UI was not returned by GET /sla/calendars.');
@@ -367,7 +511,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       await expect(confirm).toBeHidden();
       calendarId = null;
       expect(
-        (await api.requestJson<readonly CalendarRecord[]>('/sla/calendars')).some(
+        (await api.requestAllPages<CalendarRecord>('/sla/calendars')).some(
           (calendar) => calendar.key === key,
         ),
       ).toBe(false);
@@ -395,7 +539,7 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
     } finally {
       if (calendarId === null) {
         const calendars = await api
-          .requestJson<readonly CalendarRecord[]>('/sla/calendars')
+          .requestAllPages<CalendarRecord>('/sla/calendars')
           .catch(() => [] as readonly CalendarRecord[]);
         calendarId = calendars.find((calendar) => calendar.key === key)?.id ?? null;
       }
@@ -461,6 +605,81 @@ test.describe('42 catalog, SLA and routing UX (5.3.6)', () => {
       if (!response.ok && response.status !== 404) {
         console.warn(`[e2e] cleanup of service ${service.id} returned HTTP ${response.status}`);
       }
+    }
+  });
+
+  // Keep this targeted API E2E cleanup-safe: backend PostgreSQL integration covers validation persistence and finalization audit/warning.
+  test('persisted onboarding suggestion respects strict coverage and the explicit override', async () => {
+    test.setTimeout(90_000);
+    const env = readE2EEnvironment();
+    const api = new ApiClient();
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+    const previousCoverageSetting = await readSetting(api, routingCoverageSettingKey);
+    const restoreCoverageSetting = typeof previousCoverageSetting === 'boolean'
+      ? previousCoverageSetting
+      : true;
+    const tree = await api.requestJson<readonly UnitNode[]>('/organizational-units/tree');
+    const units = flattenUnitTree(tree);
+    const partialOrigin = units.find((unit) => unit.isLeaf && unit.ancestorIds.length > 0);
+    const groups = await api.requestJson<readonly NamedRecord[]>('/routing/groups');
+    const targetGroup = groups[0];
+    if (partialOrigin === undefined || targetGroup === undefined) {
+      throw new Error('[e2e] a non-root leaf organizational unit and routing group are required.');
+    }
+
+    let serviceId: string | null = null;
+    let ruleId: string | null = null;
+    try {
+      await setRoutingCoverageSetting(api, true);
+      const service = await createDraftService(api, 'routing-coverage-suggestion');
+      serviceId = service.id;
+      const rule = await api.requestJson<{ readonly id: string }>('/routing/rules', {
+        method: 'POST',
+        body: JSON.stringify({
+          originUnitId: partialOrigin.id,
+          serviceId,
+          groupId: targetGroup.id,
+          reason: 'BA-routing-02 incomplete persisted coverage setup',
+        }),
+      });
+      ruleId = rule.id;
+      const started = await api.requestJson<OnboardingResponse>(
+        `/services/${serviceId}/onboarding`,
+        { method: 'POST' },
+      );
+      expect(started.status).toBe('IN_PROGRESS');
+      expect(started.routingSuggestion).toBeNull();
+
+      const strictCoverage = await api.requestJson<OnboardingResponse>(
+        `/services/${serviceId}/onboarding`,
+      );
+      expect(strictCoverage.routingSuggestion).toBeNull();
+
+      await setRoutingCoverageSetting(api, false);
+      const overriddenCoverage = await api.requestJson<OnboardingResponse>(
+        `/services/${serviceId}/onboarding`,
+      );
+      expect(overriddenCoverage.routingSuggestion).toBe(onboardingRoutingReference(serviceId));
+    } finally {
+      if (serviceId !== null) {
+        try {
+          const onboardingResponse = await api.request(`/services/${serviceId}/onboarding`);
+          if (onboardingResponse.ok) {
+            const onboarding = await onboardingResponse.json() as OnboardingResponse;
+            if (onboarding.status === 'IN_PROGRESS') {
+              await api.request(`/services/${serviceId}/onboarding/abandon`, { method: 'POST' });
+            }
+          }
+          await deleteRoutingRule(api, ruleId, partialOrigin.id, serviceId);
+          const deleteResponse = await api.request(`/services/${serviceId}`, { method: 'DELETE' });
+          if (!deleteResponse.ok && deleteResponse.status !== 404) {
+            console.warn(`[e2e] cleanup of routing-coverage service ${serviceId} returned HTTP ${deleteResponse.status}`);
+          }
+        } catch (error) {
+          console.warn(`[e2e] cleanup of routing-coverage service ${serviceId} failed: ${String(error)}`);
+        }
+      }
+      await setRoutingCoverageSetting(api, restoreCoverageSetting);
     }
   });
 

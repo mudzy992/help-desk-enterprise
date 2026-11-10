@@ -15,7 +15,7 @@
 - zaseban `production-deps` stage instalira `--omit=dev --omit=optional --ignore-scripts` skup;
 - runtime kopira samo production dependencies i kompajlirani output;
 - Nest CLI, TypeScript, Prisma CLI/schema, source tree, npm, npx i corepack ne postoje u finalnom imageu;
-- runtime `zlib` je eksplicitno zaključan na sigurnosno korigovanu `1.3.2-r1` verziju;
+- runtime `zlib` je eksplicitno zaključan na sigurnosno korigovanu `1.4-r0` verziju;
 - direktne i tranzitivne dependency ranjivosti su sanirane nadogradnjama i zaključanim `overrides` pravilima;
 - `npm audit --omit=dev --audit-level=high` je obavezni CI gate i vraća nula ranjivosti;
 - Syft generiše CycloneDX JSON SBOM stvarnog runtime imagea;

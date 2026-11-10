@@ -5,13 +5,22 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
+import { AssetOperationsMetricStore } from '../assets/asset-operations-metrics';
+import {
+  assetTransferFileScanIntervalMs,
+  assetTransferFileScanMaxReferences,
+  type AssetOperationsSignal,
+  type AssetTransferFileIntegrity,
+} from '../assets/asset-operations.types';
+import { inspectAssetTransferFiles } from '../assets/transfers/asset-transfer-file-integrity';
+import { collectAssetOperationsSignal } from './collect-asset-operations-signal';
 import { createBullMqRootConfiguration } from '../../common/redis/create-bullmq-root-configuration';
 import { loadRedisConfiguration } from '../../common/redis/load-redis-configuration';
 import { RedisService } from '../../common/redis/redis.service';
 import { readCaCertificate } from '../directory-sync/ldaps/ldap-directory-client';
 import { withTimeout } from '../health/health-probes';
 import { readClamavConfiguration } from '../tickets/attachments/scan-attachment-with-clamav';
-import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
 import { websocketEmitRoomKinds } from '../websocket/websocket-emit-counter';
 import { securityAuditWebhookStateId } from '../security-audit-webhook/security-audit-webhook.constants';
 import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
@@ -34,6 +43,9 @@ import { slaScanQueueName, slaScanSchedulerId } from '../sla/sla-scan.constants'
 export class OpsSignalCollector implements OnModuleDestroy {
   private readonly logger = new Logger(OpsSignalCollector.name);
   private readonly store: OpsStateStore;
+  private readonly assetMetrics: AssetOperationsMetricStore;
+  private assetFileIntegrityCache: { readonly expiresAtMs: number; readonly result: AssetTransferFileIntegrity } | null = null;
+  private assetFileIntegrityInFlight: Promise<AssetTransferFileIntegrity> | null = null;
   /** BullMQ refuses ioredis clients with a key prefix, so inspection gets its own connection. */
   private connection: IORedis | null = null;
   private queues: Queue[] | null = null;
@@ -43,6 +55,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
     private readonly redis: RedisService,
   ) {
     this.store = new OpsStateStore(redis.getClient());
+    this.assetMetrics = new AssetOperationsMetricStore(redis.getClient());
   }
 
   async collect(now: Date = new Date()): Promise<OpsSignals> {
@@ -63,26 +76,32 @@ export class OpsSignalCollector implements OnModuleDestroy {
       redis === 'ok' ? this.websocket(nowMs) : Promise.resolve(null),
       redis === 'ok' ? this.login429(nowMs) : Promise.resolve(null),
     ]);
-    // Paket 5.4.2 (stavka 2): kept out of the tuple above, so each total keeps its own type.
-    const [captchaFailedLastHour, captchaSkippedLastHour] = await Promise.all([
+    // Keep separately typed metric probes out of the queue/disk tuple above.
+    const [
+      captchaFailedLastHour,
+      captchaSkippedLastHour,
+      auditWebhookPendingSinceMs,
+      mailProviderBlock,
+      sla,
+      assetOperations,
+    ] = await Promise.all([
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-failed') : Promise.resolve(null),
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-skipped') : Promise.resolve(null),
+      database === 'ok' ? this.auditWebhookPendingSince() : Promise.resolve(null),
+      redis === 'ok' ? this.mailProviderBlock() : Promise.resolve(null),
+      database === 'ok'
+        ? withTimeout(
+            () => collectSlaObservability(this.prisma, {
+              now,
+              schedulerRegistered: bull === null
+                ? null
+                : bull.schedulers.some((scheduler) => scheduler.queue === slaScanQueueName && scheduler.schedulerId === slaScanSchedulerId),
+            }),
+            opsProbeTimeouts.databaseMs,
+          ).catch(() => null)
+        : Promise.resolve(null),
+      database === 'ok' ? this.collectAssetOperations(now, redis === 'ok') : Promise.resolve(null),
     ]);
-    // Paket 5.4.2 (stavka 4): read apart from the tuples above, for the same reason.
-    const auditWebhookPendingSinceMs = database === 'ok' ? await this.auditWebhookPendingSince() : null;
-    // Incident 2026-10-16: outbound mail paused by the provider (daily quota).
-    const mailProviderBlock = redis === 'ok' ? await this.mailProviderBlock() : null;
-    const sla = database === 'ok'
-      ? await withTimeout(
-          () => collectSlaObservability(this.prisma, {
-            now,
-            schedulerRegistered: bull === null
-              ? null
-              : bull.schedulers.some((scheduler) => scheduler.queue === slaScanQueueName && scheduler.schedulerId === slaScanSchedulerId),
-          }),
-          opsProbeTimeouts.databaseMs,
-        ).catch(() => null)
-      : null;
     return {
       nowMs,
       database,
@@ -102,7 +121,66 @@ export class OpsSignalCollector implements OnModuleDestroy {
       auditWebhookPendingSinceMs,
       mailProviderBlock,
       sla,
+      assetOperations,
     };
+  }
+
+  private async collectAssetOperations(now: Date, redisAvailable: boolean): Promise<AssetOperationsSignal | null> {
+    try {
+      return await withTimeout(
+        () => collectAssetOperationsSignal(
+          this.prisma,
+          this.assetMetrics,
+          now,
+          this.transferFileIntegrity(now.getTime()),
+          redisAvailable,
+        ),
+        opsProbeTimeouts.assetOperationsMs,
+      );
+    } catch (error) {
+      this.logger.warn(`ops_asset_probe_failed reason=${errorText(error)}`);
+      return null;
+    }
+  }
+
+  /** Cached read-only filesystem comparison; DB purge counts remain fresh each round. */
+  private transferFileIntegrity(nowMs: number): Promise<AssetTransferFileIntegrity> {
+    if (this.assetFileIntegrityCache !== null && this.assetFileIntegrityCache.expiresAtMs > nowMs) {
+      return Promise.resolve(this.assetFileIntegrityCache.result);
+    }
+    if (this.assetFileIntegrityInFlight !== null) return this.assetFileIntegrityInFlight;
+
+    const task = withTimeout(
+      () => this.readAssetTransferFileIntegrity(),
+      opsProbeTimeouts.assetFileScanMs,
+    ).catch((error: unknown): AssetTransferFileIntegrity => {
+      this.logger.warn(`ops_asset_file_scan_failed reason=${errorText(error)}`);
+      return unavailableAssetTransferFileIntegrity();
+    });
+    this.assetFileIntegrityInFlight = task;
+    void task.then((result) => {
+      const ttl = result.scanState === 'unavailable' ? 60_000 : assetTransferFileScanIntervalMs;
+      this.assetFileIntegrityCache = { expiresAtMs: nowMs + ttl, result };
+    }).finally(() => {
+      if (this.assetFileIntegrityInFlight === task) this.assetFileIntegrityInFlight = null;
+    });
+    return task;
+  }
+
+  private async readAssetTransferFileIntegrity(): Promise<AssetTransferFileIntegrity> {
+    const rows = await withTimeout(
+      () => this.prisma.assetTransfer.findMany({
+        where: { signedStoragePath: { not: null } },
+        orderBy: { id: 'asc' },
+        take: assetTransferFileScanMaxReferences + 1,
+        select: { signedStoragePath: true },
+      }),
+      opsProbeTimeouts.assetDatabaseMs,
+    );
+    const references = rows.flatMap((row) => row.signedStoragePath === null ? [] : [row.signedStoragePath]);
+    return inspectAssetTransferFiles(resolveUploadRoot(), references, {
+      maxReferences: assetTransferFileScanMaxReferences,
+    });
   }
 
   /**
@@ -417,4 +495,14 @@ async function probe(work: () => Promise<unknown>, timeoutMs: number): Promise<'
 
 function errorText(error: unknown): string {
   return (error instanceof Error ? error.message : String(error)).slice(0, 200);
+}
+
+function unavailableAssetTransferFileIntegrity(): AssetTransferFileIntegrity {
+  return {
+    scanState: 'unavailable',
+    scannedFiles: null,
+    referencedFiles: null,
+    orphanedFiles: null,
+    missingFiles: null,
+  };
 }

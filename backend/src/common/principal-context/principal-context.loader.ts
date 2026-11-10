@@ -3,12 +3,114 @@ import type Redis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { redisTokens } from '../redis/redis.tokens';
 import {
+  principalContextCacheTtlSeconds,
   readCachedPrincipalContext,
   writeCachedPrincipalContext,
   type PrincipalContextCacheClient,
 } from './principal-context.cache';
 import { loadPrincipalContext } from './load-principal-context';
-import type { PrincipalContext } from './principal-context.types';
+import {
+  getRequestId,
+  memoizeRequestPromise,
+} from '../request-context/request-context.storage';
+import { recordDbQueryTraceLabel } from '../database/db-query-counter';
+import type {
+  PrincipalAuthoritySnapshot,
+  PrincipalContext,
+} from './principal-context.types';
+
+// All instances of this loader answer the same per-request question. A shared
+// namespace lets guards and services deduplicate even if Nest resolves the
+// loader from different module contexts.
+const requestMemoNamespace = Object.freeze({});
+const principalContextLoadsInFlight = new WeakMap<
+  PrismaService,
+  Map<string, Promise<PrincipalContext | null>>
+>();
+type LocalPrincipalContextEntry = {
+  readonly context: PrincipalContext;
+  readonly expiresAt: number;
+};
+const localPrincipalContexts = new WeakMap<
+  PrismaService,
+  Map<string, LocalPrincipalContextEntry>
+>();
+const maxLocalPrincipalContexts = 512;
+
+function findLocalPrincipalContext(
+  prisma: PrismaService,
+  userId: string,
+  authzVersion: number,
+): PrincipalContext | null {
+  const entries = localPrincipalContexts.get(prisma);
+  const entry = entries?.get(userId);
+  if (entries === undefined || entry === undefined) {
+    return null;
+  }
+  if (
+    entry.expiresAt <= Date.now() ||
+    entry.context.authzVersion !== authzVersion
+  ) {
+    entries.delete(userId);
+    return null;
+  }
+  entries.delete(userId);
+  entries.set(userId, entry);
+  return entry.context;
+}
+
+function rememberLocalPrincipalContext(
+  prisma: PrismaService,
+  context: PrincipalContext,
+): void {
+  let entries = localPrincipalContexts.get(prisma);
+  if (entries === undefined) {
+    entries = new Map();
+    localPrincipalContexts.set(prisma, entries);
+  }
+  entries.delete(context.subjectId);
+  entries.set(context.subjectId, {
+    context,
+    expiresAt: Date.now() + principalContextCacheTtlSeconds * 1_000,
+  });
+  while (entries.size > maxLocalPrincipalContexts) {
+    const oldestSubjectId = entries.keys().next().value;
+    if (oldestSubjectId === undefined) {
+      break;
+    }
+    entries.delete(oldestSubjectId);
+  }
+}
+
+function loadPrincipalContextSingleFlight(
+  prisma: PrismaService,
+  userId: string,
+  durableAuthority?: PrincipalAuthoritySnapshot,
+): Promise<PrincipalContext | null> {
+  let inFlightByAuthority = principalContextLoadsInFlight.get(prisma);
+  if (inFlightByAuthority === undefined) {
+    inFlightByAuthority = new Map();
+    principalContextLoadsInFlight.set(prisma, inFlightByAuthority);
+  }
+
+  const expectedVersion =
+    durableAuthority?.subjectId === userId
+      ? durableAuthority.authzVersion
+      : 'unfenced';
+  const key = `${userId}\u0000${expectedVersion}`;
+  const existing = inFlightByAuthority.get(key);
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const pending = loadPrincipalContext(prisma, userId).finally(() => {
+    if (inFlightByAuthority?.get(key) === pending) {
+      inFlightByAuthority.delete(key);
+    }
+  });
+  inFlightByAuthority.set(key, pending);
+  return pending;
+}
 
 /**
  * The one place that reads authorization data (plan §2.2).
@@ -27,33 +129,115 @@ export class PrincipalContextLoader {
     @Inject(redisTokens.client) private readonly redis: Redis,
   ) {}
 
-  async load(subjectId: string): Promise<PrincipalContext | null> {
+  load(
+    subjectId: string,
+    durableAuthority?: PrincipalAuthoritySnapshot,
+  ): Promise<PrincipalContext | null> {
     const id = subjectId.trim();
     if (id.length === 0) {
-      return null;
+      return Promise.resolve(null);
     }
+    if (
+      durableAuthority?.subjectId === id &&
+      (!durableAuthority.isActive || durableAuthority.mustChangePassword)
+    ) {
+      return Promise.resolve(null);
+    }
+    // SessionAuthenticationGuard may supply authority read in the same durable
+    // session query. Otherwise cache hits still perform the independent DB fence.
+    // RoleGuard and services share this request-bound result.
+    return memoizeRequestPromise(requestMemoNamespace, id, () =>
+      this.loadFromCache(id, durableAuthority),
+    );
+  }
+
+  /**
+   * Bypass every request/process/Redis cache for revocation-sensitive work such
+   * as rendering held digest content. The current roles and group memberships
+   * are read together in one database snapshot; callers must fail closed on an
+   * unavailable read.
+   */
+  loadAuthoritatively(subjectId: string): Promise<PrincipalContext | null> {
+    const id = subjectId.trim();
+    if (id.length === 0) {
+      return Promise.resolve(null);
+    }
+    return loadPrincipalContext(this.prisma, id);
+  }
+
+  private async loadFromCache(
+    id: string,
+    durableAuthority?: PrincipalAuthoritySnapshot,
+  ): Promise<PrincipalContext | null> {
     const client = await this.cacheClient();
-    const cached = await readCachedPrincipalContext(client, id);
-    if (cached !== null && (await this.matchesDurableAuthority(id, cached))) {
-      return cached;
+    const localCandidate =
+      durableAuthority?.subjectId === id
+        ? findLocalPrincipalContext(
+            this.prisma,
+            id,
+            durableAuthority.authzVersion,
+          )
+        : null;
+    const cached = await readCachedPrincipalContext(client, id, {
+      localCandidate,
+      onMiss: (reason) => tracePrincipalContextCache(`redis_miss_${reason}`),
+      onLocalHit: () => tracePrincipalContextCache('local_pointer_hit'),
+    });
+    if (cached !== null) {
+      const authorityMatches = await this.matchesDurableAuthority(
+        id,
+        cached,
+        durableAuthority,
+      );
+      tracePrincipalContextCache(
+        durableAuthority === undefined
+          ? authorityMatches
+            ? 'redis_hit_database_fence'
+            : 'redis_hit_stale_database_fence'
+          : authorityMatches
+            ? 'redis_hit_session_fence'
+            : 'redis_hit_stale_session_fence',
+      );
+      if (authorityMatches) {
+        rememberLocalPrincipalContext(this.prisma, cached);
+        return cached;
+      }
     }
-    const fresh = await loadPrincipalContext(this.prisma, id);
+    tracePrincipalContextCache('full_database_load');
+    const fresh = await loadPrincipalContextSingleFlight(
+      this.prisma,
+      id,
+      durableAuthority,
+    );
     if (fresh !== null) {
-      await writeCachedPrincipalContext(client, fresh);
+      rememberLocalPrincipalContext(this.prisma, fresh);
+      await writeCachedPrincipalContext(client, fresh, () =>
+        tracePrincipalContextCache('redis_write_error'),
+      );
     }
     return fresh;
   }
 
   /**
    * Redis is only a payload cache, never the revocation authority. Every cache
-   * hit is fenced by a small PostgreSQL read so another replica's committed
-   * deactivation/version bump is effective on the next request even when the
-   * Redis tombstone write failed. An unavailable authority fails closed.
+   * hit is fenced by fresh PostgreSQL user state. A session guard can provide
+   * the same state from its joined, durable session read; legacy/no-session
+   * callers perform the user read here. An unavailable authority fails closed.
    */
   private async matchesDurableAuthority(
     subjectId: string,
     cached: PrincipalContext,
+    durableAuthority?: PrincipalAuthoritySnapshot,
   ): Promise<boolean> {
+    if (durableAuthority?.subjectId === subjectId) {
+      return (
+        durableAuthority.isActive &&
+        !durableAuthority.mustChangePassword &&
+        durableAuthority.authzVersion === cached.authzVersion &&
+        cached.isActive &&
+        !cached.mustChangePassword
+      );
+    }
     try {
       const authority = await this.prisma.user.findUnique({
         where: { id: subjectId },
@@ -91,6 +275,15 @@ export class PrincipalContextLoader {
       );
       return null;
     }
+  }
+}
+
+function tracePrincipalContextCache(outcome: string): void {
+  if (process.env.DB_QUERY_TRACE === 'true') {
+    recordDbQueryTraceLabel(
+      getRequestId(),
+      `principal_context_cache=${outcome}`,
+    );
   }
 }
 

@@ -53,6 +53,9 @@ model TicketAttachment {
   sizeBytes        Int
   classification   DataClassification
   uploadedByUserId String
+  /// Paket W6.38: stable per-inbound-message attachment retry key and payload digest.
+  idempotencyKey   String?            @db.VarChar(128)
+  payloadHash      String?            @db.Char(64)
   ticket           Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   message          TicketMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
   uploadedBy       User               @relation("TicketAttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
@@ -62,6 +65,7 @@ model TicketAttachment {
   @@index([ticketId])
   @@index([messageId])
   @@index([uploadedByUserId])
+  @@unique([ticketId, idempotencyKey])
 }
 
 model TicketApproval {

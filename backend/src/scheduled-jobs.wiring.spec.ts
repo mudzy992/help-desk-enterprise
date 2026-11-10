@@ -5,6 +5,7 @@ import {
 import { KnowledgeBaseReviewReminderSchedulerService } from './modules/knowledge-base/knowledge-base-review-reminder.scheduler.service';
 import {
   integrationDlqRetentionSchedulerId,
+  integrationJobDispatchReconcileSchedulerId,
   integrationWorkerHeartbeatRepeatEveryMilliseconds,
   integrationWorkerHeartbeatSchedulerId,
 } from './modules/integration-queue/integration-worker-maintenance.job.constants';
@@ -102,11 +103,12 @@ describe('periodic job wiring', () => {
         privacySchedulerId,
         integrationWorkerHeartbeatSchedulerId,
         integrationDlqRetentionSchedulerId,
+        integrationJobDispatchReconcileSchedulerId,
       ].sort(),
     );
-    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(18);
-    // The eighteen registrations describe nine schedules, so no job can run twice.
-    expect(store.entries.size).toBe(9);
+    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(20);
+    // The twenty registrations describe ten schedules, so no job can run twice.
+    expect(store.entries.size).toBe(10);
   });
 
   it('staggers the six sweeps inside the fifteen-minute window', () => {

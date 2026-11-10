@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { checkLocationParent } from './asset-locations';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { isUniqueAssetAttributeValueConflict } from './asset-unique-attributes';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { withAssetAuditTransaction } from './asset-audit-transaction';
@@ -72,6 +73,7 @@ export class AssetCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   async catalog(includeArchived: boolean, viewer: AssetViewer) {
@@ -187,6 +189,7 @@ export class AssetCatalogService {
         metadata: { key, created: true },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id: created.id };
   }
@@ -208,6 +211,7 @@ export class AssetCatalogService {
         metadata: { key: existing.key, routingGroupId: input.routingGroupId ?? null },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id };
   }
@@ -228,6 +232,7 @@ export class AssetCatalogService {
         metadata: { key: existing.key, archived },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id };
   }
@@ -285,6 +290,7 @@ export class AssetCatalogService {
           metadata: { key: type.key, attribute: key, created: true },
           actorUserId: viewer.userId,
         }),
+        this.assetOperationsMetrics,
       );
     } catch (error) {
       if (isUniqueAssetAttributeValueConflict(error)) {
@@ -320,6 +326,7 @@ export class AssetCatalogService {
           metadata: { attribute: existing.key },
           actorUserId: viewer.userId,
         }),
+        this.assetOperationsMetrics,
       );
     } catch (error) {
       if (isUniqueAssetAttributeValueConflict(error)) {
@@ -347,6 +354,7 @@ export class AssetCatalogService {
           metadata: { attribute: existing.key, archived },
           actorUserId: viewer.userId,
         }),
+        this.assetOperationsMetrics,
       );
     } catch (error) {
       if (isUniqueAssetAttributeValueConflict(error)) {
@@ -393,6 +401,7 @@ export class AssetCatalogService {
         metadata: { created: true },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id: created.id };
   }
@@ -415,6 +424,7 @@ export class AssetCatalogService {
         metadata: {},
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id };
   }
@@ -439,6 +449,7 @@ export class AssetCatalogService {
         metadata: { archived },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
     return { id };
   }

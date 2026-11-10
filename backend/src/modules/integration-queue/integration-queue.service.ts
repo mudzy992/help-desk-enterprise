@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { IntegrationJobStatus } from '../../generated/prisma/enums';
 import { RedisService } from '../../common/redis/redis.service';
@@ -23,6 +23,8 @@ import { toIntegrationJobResponse } from './to-integration-job-response';
 
 @Injectable()
 export class IntegrationQueueService {
+  private readonly logger = new Logger(IntegrationQueueService.name);
+
   constructor(
     private readonly integrationJobRepository: IntegrationJobRepository,
     private readonly settingsService: SettingsService,
@@ -46,7 +48,10 @@ export class IntegrationQueueService {
     };
   }
 
-  async retryNow(jobId: string): Promise<IntegrationJobResponse> {
+  async retryNow(
+    jobId: string,
+    actorUserId: string,
+  ): Promise<IntegrationJobResponse> {
     await this.assertAdminUiEnabled();
     const existing = await this.integrationJobRepository.findById(jobId);
     if (existing === null) {
@@ -58,38 +63,58 @@ export class IntegrationQueueService {
     ) {
       throw new IntegrationQueueError('INVALID_STATUS');
     }
-    const pending = await this.integrationJobRepository.resetForAdminRetry(jobId);
-    await this.integrationQueue.add(
-      pending.type,
-      { integrationJobId: pending.id },
-      {
-        jobId: `${pending.id}:admin:${Date.now()}`,
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
+    const pending = await this.integrationJobRepository.resetForAdminRetry(
+      jobId,
+      actorUserId,
     );
+    if (pending === null) {
+      throw new IntegrationQueueError('INVALID_STATUS');
+    }
+    try {
+      await this.integrationQueue.add(
+        pending.type,
+        { integrationJobId: pending.id },
+        {
+          // The database transition and its audit record are committed first.
+          // A failed/ambiguous add is repaired by the periodic reconciler.
+          jobId: pending.id,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        `integration_job_retry_dispatch_deferred id=${pending.id} error=${error instanceof Error ? error.name : 'UnknownError'}`,
+      );
+    }
     return toIntegrationJobResponse(pending);
   }
 
   async getWorkerStatus(): Promise<IntegrationWorkerStatusResponse> {
     await this.assertAdminUiEnabled();
+    const now = new Date();
     let lastHeartbeatAt: string | null = null;
     try {
-      const value = await this.redisService
-        .getClient()
-        .get(workerHeartbeatRedisKey);
-      lastHeartbeatAt =
-        typeof value === 'string' && value.length > 0 ? value : null;
+      const value = await this.redisService.getClient().get(workerHeartbeatRedisKey);
+      lastHeartbeatAt = typeof value === 'string' && value.length > 0 ? value : null;
     } catch {
-      return { status: 'unknown', lastHeartbeatAt: null };
+      // Liveness and backlog are independent observations.
+    }
+    let dispatchableBacklog: IntegrationWorkerStatusResponse['dispatchableBacklog'];
+    try {
+      const oldest = await this.integrationJobRepository.findOldestDispatchable(now);
+      dispatchableBacklog = { status: 'available', oldestCreatedAt: oldest?.createdAt.toISOString() ?? null };
+    } catch {
+      dispatchableBacklog = { status: 'unknown', oldestCreatedAt: null };
     }
     return {
       status: resolveWorkerHeartbeatStatus({
         lastHeartbeatAt,
-        nowMilliseconds: Date.now(),
+        nowMilliseconds: now.getTime(),
         staleThresholdMilliseconds: workerHeartbeatStaleThresholdMilliseconds,
       }),
       lastHeartbeatAt,
+      dispatchableBacklog,
     };
   }
 

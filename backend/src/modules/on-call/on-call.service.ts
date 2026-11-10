@@ -1,13 +1,15 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { loadPrincipalContext } from '../../common/principal-context/load-principal-context';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { appendAuditLog } from '../audit-log/append-audit-log';
-import type { AuditLogTransactionalClient, AuditLogWriteClient } from '../audit-log/audit-log.types';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { JsonValue } from '../change-log/change-log.types';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
+import { findPreferenceCategoryForType } from '../notifications/preferences/notification-preference-catalog';
+import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
 import { notificationTitleKeys, notificationTypes, type NotificationType } from '../notifications/notifications.constants';
 import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
 import { settingKeys } from '../settings/setting-keys';
@@ -18,16 +20,18 @@ import {
   loadActiveOnCallContexts,
   loadOnCallScheduleContext,
   resolveContextAt,
+  type OnCallScheduleContext,
 } from './on-call-data';
 import { OnCallError, onCallErrorCodes, onCallLimits } from './on-call.constants';
 import { formatOnCallTime, onCallText, toOnCallLocale, type OnCallLocale } from './on-call-text';
-import type { OnCallViewer } from './on-call-viewer';
+import { canManageOnCallGroup, canReadOnCallGroup, onCallViewerFromContext, type OnCallViewer } from './on-call-viewer';
 import { overridesOverlap, parseCivilDate, type OnCallSegment } from './resolve-on-call';
 
 const dayMs = 86_400_000;
 const staffRoleKeys = [authorizationRoleKeys.agent, authorizationRoleKeys.admin, authorizationRoleKeys.superAdmin];
 
 export type SaveOnCallScheduleInput = {
+  readonly expectedUpdatedAt: string | null;
   readonly timezone: string;
   readonly handoffTime: string;
   readonly rotationLength: 'DAY' | 'WEEK';
@@ -84,6 +88,33 @@ function requireReason(value: string): string {
   return reason;
 }
 
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error &&
+    (error as { readonly code: unknown }).code === 'P2002';
+}
+
+/** Partial and full swaps are valid only when every instant is in the requester's base rotation segment. */
+function isEntireRangeInRequesterRotation(
+  context: OnCallScheduleContext,
+  startsAt: Date,
+  endsAt: Date,
+  requesterId: string,
+): boolean {
+  const segments = listContextSegments(context, startsAt, endsAt);
+  if (segments.length === 0) return false;
+
+  let coveredUntil = startsAt.getTime();
+  for (const segment of segments) {
+    if (
+      segment.startsAt.getTime() !== coveredUntil ||
+      segment.userId !== requesterId ||
+      segment.source !== 'rotation'
+    ) return false;
+    coveredUntil = segment.endsAt.getTime();
+  }
+  return coveredUntil === endsAt.getTime();
+}
+
 /**
  * Paket 2.9 (K3): on-call schedules. Reads are cheap (a schedule is a handful
  * of rows; shifts are computed), writes are audited, and every write keeps
@@ -115,19 +146,29 @@ export class OnCallService {
 
   async overview(viewer: OnCallViewer) {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const now = new Date();
-    const [schedules, groups] = await Promise.all([
-      this.prisma.onCallSchedule.findMany({ select: { groupId: true, isActive: true, timezone: true } }),
-      this.prisma.group.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    const groups = await this.listReadableGroups(viewer);
+    const groupIds = groups.map((group) => group.id);
+    const canManageAnyGroup = groups.some((group) =>
+      canManageOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null),
+    );
+    if (groupIds.length === 0) return { canManage: false, groups: [] };
+
+    const [schedules, contexts] = await Promise.all([
+      this.prisma.onCallSchedule.findMany({
+        where: { groupId: { in: groupIds } },
+        select: { groupId: true, isActive: true, timezone: true },
+      }),
+      loadActiveOnCallContexts(this.prisma, { from: now, to: new Date(now.getTime() + 1) }, { groupIds }),
     ]);
-    const contexts = await loadActiveOnCallContexts(this.prisma, { from: now, to: new Date(now.getTime() + 1) });
     const currentByGroup = new Map(contexts.map((context) => [context.groupId, resolveContextAt(context, now)]));
     const names = await this.loadNames([...currentByGroup.values()].map((segment) => segment.userId));
     const scheduleByGroup = new Map(schedules.map((schedule) => [schedule.groupId, schedule]));
     return {
-      canManage: viewer.canManage,
+      canManage: canManageAnyGroup,
       groups: groups
-        .filter((group) => viewer.canManage || scheduleByGroup.has(group.id))
+        .filter((group) => canManageOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null) || scheduleByGroup.has(group.id))
         .map((group) => {
           const schedule = scheduleByGroup.get(group.id);
           const current = currentByGroup.get(group.id);
@@ -153,8 +194,8 @@ export class OnCallService {
 
   async detail(groupId: string, range: { readonly from?: string; readonly to?: string }, viewer: OnCallViewer) {
     await this.requireEnabled();
-    const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { id: true, name: true } });
-    if (group === null) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    const group = await this.requireGroupAccess(groupId, viewer, 'read');
+    const groupCanManage = canManageOnCallGroup(viewer, group.organizationalUnitPath);
     const now = new Date();
     const from = range.from ? parseInstant(range.from, 'from') : new Date(now.getTime() - 7 * dayMs);
     const to = range.to ? parseInstant(range.to, 'to') : new Date(from.getTime() + 35 * dayMs);
@@ -165,6 +206,7 @@ export class OnCallService {
       where: { groupId },
       select: {
         id: true,
+        updatedAt: true,
         timezone: true,
         handoffMinute: true,
         rotationLength: true,
@@ -175,18 +217,20 @@ export class OnCallService {
         members: { select: { userId: true, position: true }, orderBy: { position: 'asc' } },
       },
     });
-    const candidates = viewer.canManage ? await this.listEligibleMembers(groupId) : [];
+    const candidates = groupCanManage ? await this.listEligibleMembers(groupId) : [];
     if (schedule === null) {
       return {
-        group,
+        group: { id: group.id, name: group.name },
         schedule: null,
         segments: [],
         current: null,
         overrides: [],
+        overridesHasMore: false,
         swaps: [],
+        swapsHasMore: false,
         candidates,
         defaultTimezone: await readInstallationTimeZone(this.settings),
-        canManage: viewer.canManage,
+        canManage: groupCanManage,
       };
     }
     const context = await loadOnCallScheduleContext(this.prisma, groupId, {
@@ -199,13 +243,13 @@ export class OnCallService {
       this.prisma.onCallOverride.findMany({
         where: { scheduleId: schedule.id, endsAt: { gt: new Date(Math.min(from.getTime(), now.getTime())) } },
         orderBy: { startsAt: 'asc' },
-        take: 200,
+        take: 201,
         select: { id: true, userId: true, startsAt: true, endsAt: true, reason: true, swapRequestId: true, createdAt: true },
       }),
       this.prisma.onCallSwapRequest.findMany({
         where: { scheduleId: schedule.id, status: 'PENDING', endsAt: { gt: now } },
         orderBy: { startsAt: 'asc' },
-        take: 100,
+        take: 101,
         select: { id: true, requesterId: true, colleagueId: true, startsAt: true, endsAt: true, reason: true, createdAt: true },
       }),
     ]);
@@ -221,9 +265,10 @@ export class OnCallService {
         ? null
         : { userId, displayName: names.get(userId)?.displayName ?? '', isAvailable: names.get(userId)?.isAvailable ?? false };
     return {
-      group,
+      group: { id: group.id, name: group.name },
       schedule: {
         id: schedule.id,
+        updatedAt: schedule.updatedAt.toISOString(),
         timezone: schedule.timezone,
         handoffTime: formatHandoffTime(schedule.handoffMinute),
         rotationLength: schedule.rotationLength,
@@ -235,7 +280,9 @@ export class OnCallService {
       },
       segments: segments.map((segment) => this.toSegmentResponse(segment, person)),
       current: current === null ? null : this.toSegmentResponse(current, person),
-      overrides: overrides.map((item) => ({
+      overridesHasMore: overrides.length > 200,
+      swapsHasMore: swaps.length > 100,
+      overrides: overrides.slice(0, 200).map((item) => ({
         id: item.id,
         person: person(item.userId),
         startsAt: item.startsAt.toISOString(),
@@ -243,7 +290,7 @@ export class OnCallService {
         reason: item.reason,
         fromSwap: item.swapRequestId !== null,
       })),
-      swaps: swaps.map((item) => ({
+      swaps: swaps.slice(0, 100).map((item) => ({
         id: item.id,
         requester: person(item.requesterId),
         colleague: person(item.colleagueId),
@@ -253,20 +300,24 @@ export class OnCallService {
       })),
       candidates,
       defaultTimezone: schedule.timezone,
-      canManage: viewer.canManage,
+      canManage: groupCanManage,
     };
   }
 
   /** Header indicator and "my shifts": current and next shift of the viewer (14 days ahead). */
   async me(viewer: OnCallViewer) {
     if (!(await this.isEnabled())) return { enabled: false, current: [], next: null };
+    this.requireReader(viewer);
     const now = new Date();
     const ahead = new Date(now.getTime() + 14 * dayMs);
-    const contexts = await loadActiveOnCallContexts(this.prisma, { from: now, to: ahead }, { userIds: [viewer.userId] });
-    const groups = await this.prisma.group.findMany({
-      where: { id: { in: contexts.map((context) => context.groupId) } },
-      select: { id: true, name: true },
-    });
+    const groups = await this.listReadableGroups(viewer);
+    const groupIds = groups.map((group) => group.id);
+    if (groupIds.length === 0) return { enabled: true, current: [], next: null };
+    const contexts = await loadActiveOnCallContexts(
+      this.prisma,
+      { from: now, to: ahead },
+      { userIds: [viewer.userId], groupIds },
+    );
     const groupName = new Map(groups.map((group) => [group.id, group.name]));
     const current: { groupId: string; groupName: string; timezone: string; endsAt: string }[] = [];
     let next: { groupId: string; groupName: string; timezone: string; startsAt: string; endsAt: string } | null = null;
@@ -296,13 +347,24 @@ export class OnCallService {
 
   async mySwaps(viewer: OnCallViewer) {
     await this.requireEnabled();
+    this.requireReader(viewer);
+    const groups = await this.listReadableGroups(viewer);
+    const groupIds = groups.map((group) => group.id);
+    if (groupIds.length === 0) return { items: [], hasMore: false };
+    const schedules = await this.prisma.onCallSchedule.findMany({
+      where: { groupId: { in: groupIds } },
+      select: { id: true },
+    });
+    const scheduleIds = schedules.map((schedule) => schedule.id);
+    if (scheduleIds.length === 0) return { items: [], hasMore: false };
     const rows = await this.prisma.onCallSwapRequest.findMany({
       where: {
+        scheduleId: { in: scheduleIds },
         OR: [{ requesterId: viewer.userId }, { colleagueId: viewer.userId }],
         endsAt: { gt: new Date(Date.now() - 30 * dayMs) },
       },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: 51,
       select: {
         id: true,
         status: true,
@@ -317,7 +379,8 @@ export class OnCallService {
       },
     });
     const names = await this.loadNames(rows.flatMap((row) => [row.requesterId, row.colleagueId]));
-    return rows.map((row) => ({
+    // BA-on-call-11: callers must be able to tell the list was truncated.
+    return { hasMore: rows.length > 50, items: rows.slice(0, 50).map((row) => ({
       id: row.id,
       status: row.status,
       direction: row.colleagueId === viewer.userId ? 'incoming' : 'outgoing',
@@ -331,16 +394,14 @@ export class OnCallService {
       reason: row.reason,
       decidedAt: row.decidedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
-    }));
+    })) };
   }
 
   // --------------------------------------------------------------- writes
 
   async save(groupId: string, input: SaveOnCallScheduleInput, viewer: OnCallViewer) {
     await this.requireEnabled();
-    this.requireManager(viewer);
-    const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { id: true, name: true } });
-    if (group === null) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    await this.requireGroupAccess(groupId, viewer, 'manage');
     const reason = requireReason(input.reason);
     const timezone = assertTimeZone(input.timezone);
     const handoffMinute = parseHandoffTime(input.handoffTime);
@@ -354,17 +415,34 @@ export class OnCallService {
     if (new Set(memberUserIds).size !== memberUserIds.length || memberUserIds.length > onCallLimits.maxMembers) {
       throw new OnCallError(onCallErrorCodes.invalidMember, 'members');
     }
-    const eligible = new Set((await this.listEligibleMembers(groupId)).map((candidate) => candidate.userId));
     const previous = await this.prisma.onCallSchedule.findUnique({
       where: { groupId },
-      select: { members: { select: { userId: true } } },
+      select: { updatedAt: true, members: { select: { userId: true } } },
     });
+    const expectedUpdatedAt = input.expectedUpdatedAt === null
+      ? null
+      : parseInstant(input.expectedUpdatedAt, 'expectedUpdatedAt');
+    if (
+      (previous === null && expectedUpdatedAt !== null) ||
+      (previous !== null &&
+        (expectedUpdatedAt === null || expectedUpdatedAt.getTime() !== previous.updatedAt.getTime()))
+    ) {
+      throw new OnCallError(onCallErrorCodes.scheduleConflict);
+    }
+
+    const eligible = new Set((await this.listEligibleMembers(groupId)).map((candidate) => candidate.userId));
     const previousMembers = new Set(previous?.members.map((member) => member.userId) ?? []);
     for (const userId of memberUserIds) {
       // A member who has since left the group may stay (their shifts show as uncovered) but not be added.
       if (!eligible.has(userId) && !previousMembers.has(userId)) {
         throw new OnCallError(onCallErrorCodes.invalidMember, userId);
       }
+    }
+    if (input.ownerUserId !== null && input.ownerUserId !== viewer.userId && !eligible.has(input.ownerUserId)) {
+      // BA-on-call-06: the owner receives gap alerts for this group, so a
+      // foreign staff user may not be owner. Eligible group members and the
+      // saving (scoped) manager themselves are the only valid owners.
+      throw new OnCallError(onCallErrorCodes.invalidMember, 'owner');
     }
     if (input.ownerUserId !== null) {
       const owner = await this.prisma.user.findFirst({
@@ -389,33 +467,61 @@ export class OnCallService {
       ownerUserId: input.ownerUserId ?? viewer.userId,
     };
     const saved = await this.prisma.$transaction(async (transaction) => {
-      const schedule = await transaction.onCallSchedule.upsert({
-        where: { groupId },
-        create: { groupId, ...data },
-        update: data,
-        select: { id: true },
-      });
-      await transaction.onCallRotationMember.deleteMany({ where: { scheduleId: schedule.id } });
+      let scheduleId: string;
+      if (previous === null) {
+        try {
+          const schedule = await transaction.onCallSchedule.create({
+            data: { groupId, ...data },
+            select: { id: true },
+          });
+          scheduleId = schedule.id;
+        } catch (error) {
+          // Two first-time saves can both observe no row; the groupId unique key
+          // chooses one winner, and the loser receives the same stale-write conflict.
+          if (isPrismaUniqueConstraintError(error)) {
+            throw new OnCallError(onCallErrorCodes.scheduleConflict);
+          }
+          throw error;
+        }
+      } else {
+        if (expectedUpdatedAt === null) throw new OnCallError(onCallErrorCodes.scheduleConflict);
+        const updatedAt = new Date(Math.max(Date.now(), expectedUpdatedAt.getTime() + 1));
+        const result = await transaction.onCallSchedule.updateMany({
+          where: { groupId, updatedAt: expectedUpdatedAt },
+          data: { ...data, updatedAt },
+        });
+        if (result.count !== 1) throw new OnCallError(onCallErrorCodes.scheduleConflict);
+        const schedule = await transaction.onCallSchedule.findUnique({
+          where: { groupId },
+          select: { id: true },
+        });
+        if (schedule === null) throw new OnCallError(onCallErrorCodes.scheduleConflict);
+        scheduleId = schedule.id;
+      }
+
+      // The revision CAS and child replacement share one transaction: a stale
+      // writer cannot delete or reorder the winner's rotation members.
+      await transaction.onCallRotationMember.deleteMany({ where: { scheduleId } });
       if (memberUserIds.length > 0) {
         await transaction.onCallRotationMember.createMany({
-          data: memberUserIds.map((userId, position) => ({ scheduleId: schedule.id, userId, position })),
+          data: memberUserIds.map((userId, position) => ({ scheduleId, userId, position })),
         });
       }
-      await this.audit(transaction, auditLogActions.onCallScheduleSaved, schedule.id, viewer.userId, {
+      await this.audit(transaction, auditLogActions.onCallScheduleSaved, scheduleId, viewer.userId, {
         groupId,
         reason,
         ...data,
         memberUserIds,
         created: previous === null,
       });
-      return schedule;
+      return { id: scheduleId };
     });
     return { id: saved.id };
   }
 
   async remove(groupId: string, reasonInput: string, viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
-    this.requireManager(viewer);
+    await this.requireGroupAccess(groupId, viewer, 'manage');
     const reason = requireReason(reasonInput);
     const schedule = await this.prisma.onCallSchedule.findUnique({ where: { groupId }, select: { id: true } });
     if (schedule === null) throw new OnCallError(onCallErrorCodes.scheduleNotFound);
@@ -431,7 +537,7 @@ export class OnCallService {
     viewer: OnCallViewer,
   ) {
     await this.requireEnabled();
-    this.requireManager(viewer);
+    await this.requireGroupAccess(groupId, viewer, 'manage');
     const schedule = await this.requireSchedule(groupId);
     const reason = requireReason(input.reason);
     const range = this.validateRange(input.startsAt, input.endsAt);
@@ -449,13 +555,22 @@ export class OnCallService {
 
   async deleteOverride(overrideId: string, reasonInput: string, viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
-    this.requireManager(viewer);
+    this.requireManagerPermission(viewer);
     const reason = requireReason(reasonInput);
     const override = await this.prisma.onCallOverride.findUnique({
       where: { id: overrideId },
-      select: { id: true, scheduleId: true, userId: true, startsAt: true, endsAt: true },
+      select: {
+        id: true,
+        scheduleId: true,
+        userId: true,
+        startsAt: true,
+        endsAt: true,
+        schedule: { select: { group: { select: { organizationalUnit: { select: { ouPath: true } } } } } },
+      },
     });
-    if (override === null) throw new OnCallError(onCallErrorCodes.overrideNotFound);
+    if (override === null || !canManageOnCallGroup(viewer, override.schedule.group.organizationalUnit?.ouPath ?? null)) {
+      throw new OnCallError(onCallErrorCodes.overrideNotFound);
+    }
     await this.prisma.$transaction(async (transaction) => {
       await transaction.onCallOverride.delete({ where: { id: override.id } });
       await this.audit(transaction, auditLogActions.onCallOverrideDeleted, override.scheduleId, viewer.userId, {
@@ -474,56 +589,71 @@ export class OnCallService {
     viewer: OnCallViewer,
   ) {
     await this.requireEnabled();
-    const schedule = await this.prisma.onCallSchedule.findUnique({
-      where: { groupId },
-      select: {
-        id: true,
-        timezone: true,
-        group: { select: { name: true } },
-        members: { select: { userId: true, user: { select: { isActive: true, anonymizedAt: true } } } },
-      },
-    });
-    if (schedule === null) throw new OnCallError(onCallErrorCodes.scheduleNotFound);
+    const group = await this.requireGroupAccess(groupId, viewer, 'read');
     const reason = requireReason(input.reason);
     const range = this.validateRange(input.startsAt, input.endsAt);
-    const members = new Map(schedule.members.map((member) => [member.userId, member.user]));
-    const colleague = members.get(input.colleagueId);
+    const context = await loadOnCallScheduleContext(this.prisma, groupId, { from: range.startsAt, to: range.endsAt });
+    if (context === null) throw new OnCallError(onCallErrorCodes.scheduleNotFound);
+    const members = new Map(context.members.map((member) => [member.userId, member.isAvailable]));
     if (
       !members.has(viewer.userId) ||
       input.colleagueId === viewer.userId ||
-      colleague === undefined ||
-      !colleague.isActive ||
-      colleague.anonymizedAt !== null
+      members.get(input.colleagueId) !== true ||
+      !isEntireRangeInRequesterRotation(context, range.startsAt, range.endsAt, viewer.userId)
     ) {
       throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     }
-    const created = await this.prisma.$transaction(async (transaction) => {
-      const row = await transaction.onCallSwapRequest.create({
-        data: {
-          scheduleId: schedule.id,
-          requesterId: viewer.userId,
+    const created = await this.prisma.$transaction(
+      async (transaction) => {
+        // BA-on-call-13: semantic dedupe + pending cap, checked inside a
+        // SERIALIZABLE transaction so concurrent identical requests cannot
+        // both slip through and spam the colleague with notifications.
+        const duplicate = await transaction.onCallSwapRequest.findFirst({
+          where: {
+            scheduleId: context.id,
+            requesterId: viewer.userId,
+            colleagueId: input.colleagueId,
+            startsAt: range.startsAt,
+            endsAt: range.endsAt,
+            status: 'PENDING',
+          },
+          select: { id: true },
+        });
+        if (duplicate !== null) throw new OnCallError(onCallErrorCodes.swapDuplicate);
+        const pendingCount = await transaction.onCallSwapRequest.count({
+          where: { requesterId: viewer.userId, status: 'PENDING' },
+        });
+        if (pendingCount >= onCallLimits.maxPendingSwapRequests) {
+          throw new OnCallError(onCallErrorCodes.swapLimitReached);
+        }
+        const row = await transaction.onCallSwapRequest.create({
+          data: {
+            scheduleId: context.id,
+            requesterId: viewer.userId,
+            colleagueId: input.colleagueId,
+            startsAt: range.startsAt,
+            endsAt: range.endsAt,
+            reason,
+          },
+          select: { id: true },
+        });
+        await this.audit(transaction, auditLogActions.onCallSwapRequested, context.id, viewer.userId, {
+          swapRequestId: row.id,
           colleagueId: input.colleagueId,
-          startsAt: range.startsAt,
-          endsAt: range.endsAt,
-          reason,
-        },
-        select: { id: true },
-      });
-      await this.audit(transaction, auditLogActions.onCallSwapRequested, schedule.id, viewer.userId, {
-        swapRequestId: row.id,
-        colleagueId: input.colleagueId,
-        startsAt: range.startsAt.toISOString(),
-        endsAt: range.endsAt.toISOString(),
-      });
-      return row;
-    });
+          startsAt: range.startsAt.toISOString(),
+          endsAt: range.endsAt.toISOString(),
+        });
+        return row;
+      },
+      { isolationLevel: 'Serializable' },
+    );
     const requesterName = (await this.loadNames([viewer.userId])).get(viewer.userId)?.displayName ?? '';
     await this.notify(input.colleagueId, notificationTypes.onCallSwap, `swap:${created.id}:requested`, (locale) =>
       onCallText(locale, 'swapRequested', {
-        group: schedule.group.name,
+        group: group.name,
         name: requesterName,
-        from: formatOnCallTime(range.startsAt, schedule.timezone, locale),
-        to: formatOnCallTime(range.endsAt, schedule.timezone, locale),
+        from: formatOnCallTime(range.startsAt, context.shape.timezone, locale),
+        to: formatOnCallTime(range.endsAt, context.shape.timezone, locale),
       }),
     );
     return { id: created.id };
@@ -531,6 +661,7 @@ export class OnCallService {
 
   async decideSwap(swapId: string, decision: 'accept' | 'decline', viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const swap = await this.prisma.onCallSwapRequest.findUnique({
       where: { id: swapId },
       select: {
@@ -542,10 +673,18 @@ export class OnCallService {
         endsAt: true,
         reason: true,
         status: true,
-        schedule: { select: { timezone: true, group: { select: { name: true } } } },
+        schedule: {
+          select: {
+            groupId: true,
+            timezone: true,
+            group: { select: { name: true, organizationalUnit: { select: { ouPath: true } } } },
+          },
+        },
       },
     });
-    if (swap === null) throw new OnCallError(onCallErrorCodes.swapNotFound);
+    if (swap === null || !canReadOnCallGroup(viewer, swap.schedule.group.organizationalUnit?.ouPath ?? null)) {
+      throw new OnCallError(onCallErrorCodes.swapNotFound);
+    }
     if (swap.colleagueId !== viewer.userId) throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     if (swap.status !== 'PENDING') throw new OnCallError(onCallErrorCodes.swapNotPending);
     const now = new Date();
@@ -570,6 +709,27 @@ export class OnCallService {
           await this.audit(transaction, auditLogActions.onCallSwapAccepted, swap.scheduleId, viewer.userId, {
             swapRequestId: swap.id,
           });
+        },
+        async (transaction) => {
+          // BA-on-call-05: the request-time snapshot is stale by accept time.
+          // Revalidate against the current schedule inside the same
+          // SERIALIZABLE transaction: the colleague must still be an
+          // available rotation member and the interval must still belong
+          // entirely to the requester's rotation (no schedule edit, member
+          // removal/deactivation or intervening override may have changed it).
+          const context = await loadOnCallScheduleContext(transaction, swap.schedule.groupId, {
+            from: swap.startsAt,
+            to: swap.endsAt,
+          });
+          const members = new Map((context?.members ?? []).map((member) => [member.userId, member.isAvailable]));
+          if (
+            context === null ||
+            context.id !== swap.scheduleId ||
+            members.get(swap.colleagueId) !== true ||
+            !isEntireRangeInRequesterRotation(context, swap.startsAt, swap.endsAt, swap.requesterId)
+          ) {
+            throw new OnCallError(onCallErrorCodes.swapNotAllowed);
+          }
         },
       );
     } else {
@@ -597,12 +757,24 @@ export class OnCallService {
 
   async cancelSwap(swapId: string, viewer: OnCallViewer): Promise<void> {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const swap = await this.prisma.onCallSwapRequest.findUnique({
       where: { id: swapId },
-      select: { id: true, scheduleId: true, requesterId: true, status: true },
+      select: {
+        id: true,
+        scheduleId: true,
+        requesterId: true,
+        status: true,
+        schedule: { select: { group: { select: { organizationalUnit: { select: { ouPath: true } } } } } },
+      },
     });
-    if (swap === null) throw new OnCallError(onCallErrorCodes.swapNotFound);
-    if (swap.requesterId !== viewer.userId && !viewer.canManage) throw new OnCallError(onCallErrorCodes.swapNotAllowed);
+    if (swap === null || !canReadOnCallGroup(viewer, swap.schedule.group.organizationalUnit?.ouPath ?? null)) {
+      throw new OnCallError(onCallErrorCodes.swapNotFound);
+    }
+    if (
+      swap.requesterId !== viewer.userId &&
+      !canManageOnCallGroup(viewer, swap.schedule.group.organizationalUnit?.ouPath ?? null)
+    ) throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     await this.prisma.$transaction(async (transaction) => {
       const updated = await transaction.onCallSwapRequest.updateMany({
         where: { id: swap.id, status: 'PENDING' },
@@ -618,6 +790,7 @@ export class OnCallService {
   // ----------------------------------------------------------------- iCal
 
   async calendarTokenStatus(viewer: OnCallViewer) {
+    this.requireReader(viewer);
     const row = await this.prisma.onCallCalendarToken.findUnique({
       where: { userId: viewer.userId },
       select: { createdAt: true },
@@ -628,6 +801,7 @@ export class OnCallService {
   /** Returns the token once; only its hash is stored. Rotating invalidates the previous URL. */
   async rotateCalendarToken(viewer: OnCallViewer): Promise<{ token: string }> {
     await this.requireEnabled();
+    this.requireReader(viewer);
     const token = randomBytes(32).toString('base64url');
     const tokenHash = hashCalendarToken(token);
     await this.prisma.$transaction(async (transaction) => {
@@ -648,16 +822,21 @@ export class OnCallService {
   }
 
   async revokeCalendarToken(viewer: OnCallViewer): Promise<void> {
-    const deleted = await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: viewer.userId } });
-    if (deleted.count > 0) {
-      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-        action: auditLogActions.onCallCalendarTokenRevoked,
-        entityType: auditLogEntityTypes.user,
-        entityId: viewer.userId,
-        metadata: {},
-        actorUserId: viewer.userId,
-      });
-    }
+    this.requireReader(viewer);
+    // BA-on-call-12: delete and audit entry commit atomically (same pattern
+    // as rotateCalendarToken) — a failure must not leave a silent revoke.
+    await this.prisma.$transaction(async (transaction) => {
+      const deleted = await transaction.onCallCalendarToken.deleteMany({ where: { userId: viewer.userId } });
+      if (deleted.count > 0) {
+        await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
+          action: auditLogActions.onCallCalendarTokenRevoked,
+          entityType: auditLogEntityTypes.user,
+          entityId: viewer.userId,
+          metadata: {},
+          actorUserId: viewer.userId,
+        });
+      }
+    });
   }
 
   /** Public feed (token in the URL). Null → 404, without saying why. */
@@ -680,6 +859,14 @@ export class OnCallService {
     if (row === null || !row.user.isActive || row.user.anonymizedAt !== null || row.user.userRoles.length === 0) {
       return null;
     }
+    // BA-on-call-07: the bearer token does not freeze authorization. The
+    // feed re-derives the viewer's current oncall.read permission and group
+    // scope on every fetch, so a permission/scope revoke takes effect on the
+    // next calendar refresh (revoked access -> uniform 404, foreign groups
+    // -> their events are dropped).
+    const principal = await loadPrincipalContext(this.prisma, row.userId);
+    const viewer = onCallViewerFromContext(principal, row.userId);
+    if (!viewer.canRead) return null;
     const locale = toOnCallLocale(row.user.preferredLocale, await this.defaultLocale());
     const now = new Date();
     const from = new Date(now.getTime() - onCallLimits.icalBehindDays * dayMs);
@@ -687,23 +874,30 @@ export class OnCallService {
     const contexts = await loadActiveOnCallContexts(this.prisma, { from, to }, { userIds: [row.userId] });
     const groups = await this.prisma.group.findMany({
       where: { id: { in: contexts.map((context) => context.groupId) } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, organizationalUnit: { select: { ouPath: true } } },
     });
     const groupName = new Map(groups.map((group) => [group.id, group.name]));
-    const events = contexts.flatMap((context) =>
-      listContextSegments(context, from, to)
-        .filter((segment) => segment.userId === row.userId)
-        .map((segment) => {
-          const group = groupName.get(context.groupId) ?? '';
-          return {
-            uid: `${context.id}-${segment.startsAt.getTime()}-${segment.overrideId ?? 'r'}@help-desk-enterprise`,
-            startsAt: segment.startsAt,
-            endsAt: segment.endsAt,
-            summary: onCallText(locale, 'icalSummary', { group }),
-            description: onCallText(locale, 'icalDescription', { group }),
-          };
-        }),
+    const readableGroupIds = new Set(
+      groups
+        .filter((group) => canReadOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null))
+        .map((group) => group.id),
     );
+    const events = contexts
+      .filter((context) => readableGroupIds.has(context.groupId))
+      .flatMap((context) =>
+        listContextSegments(context, from, to)
+          .filter((segment) => segment.userId === row.userId)
+          .map((segment) => {
+            const group = groupName.get(context.groupId) ?? '';
+            return {
+              uid: `${context.id}-${segment.startsAt.getTime()}-${segment.overrideId ?? 'r'}@help-desk-enterprise`,
+              startsAt: segment.startsAt,
+              endsAt: segment.endsAt,
+              summary: onCallText(locale, 'icalSummary', { group }),
+              description: onCallText(locale, 'icalDescription', { group }),
+            };
+          }),
+      );
     return buildOnCallIcal({
       calendarName: onCallText(locale, 'icalCalendar', { group: '' }),
       events,
@@ -713,8 +907,52 @@ export class OnCallService {
 
   // -------------------------------------------------------------- helpers
 
-  private requireManager(viewer: OnCallViewer): void {
+  private requireReader(viewer: OnCallViewer): void {
+    if (!viewer.canRead) throw new OnCallError(onCallErrorCodes.forbidden);
+  }
+
+  private requireManagerPermission(viewer: OnCallViewer): void {
     if (!viewer.canManage) throw new OnCallError(onCallErrorCodes.forbidden);
+  }
+
+  /** Resolve authorized IDs from OU paths before loading names or schedules. */
+  private async listReadableGroups(viewer: OnCallViewer) {
+    this.requireReader(viewer);
+    const candidates = await this.prisma.group.findMany({
+      select: { id: true, organizationalUnit: { select: { ouPath: true } } },
+    });
+    const readableIds = candidates
+      .filter((group) => canReadOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null))
+      .map((group) => group.id);
+    if (readableIds.length === 0) return [];
+    const groups = await this.prisma.group.findMany({
+      where: { id: { in: readableIds } },
+      select: { id: true, name: true, organizationalUnit: { select: { ouPath: true } } },
+      orderBy: { name: 'asc' },
+    });
+    // Recheck the current OU in case membership changed between the two reads.
+    return groups.filter((group) => canReadOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null));
+  }
+
+  /** Returns a group only when the requested read/manage capability covers its OU. */
+  private async requireGroupAccess(
+    groupId: string,
+    viewer: OnCallViewer,
+    access: 'read' | 'manage',
+  ): Promise<{ readonly id: string; readonly name: string; readonly organizationalUnitPath: string | null }> {
+    if (access === 'read') this.requireReader(viewer);
+    else this.requireManagerPermission(viewer);
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true, organizationalUnit: { select: { ouPath: true } } },
+    });
+    const organizationalUnitPath = group?.organizationalUnit?.ouPath ?? null;
+    if (group === null) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    const allowed = access === 'read'
+      ? canReadOnCallGroup(viewer, organizationalUnitPath)
+      : canManageOnCallGroup(viewer, organizationalUnitPath);
+    if (!allowed) throw new OnCallError(onCallErrorCodes.groupNotFound);
+    return { id: group.id, name: group.name, organizationalUnitPath };
   }
 
   private async requireSchedule(groupId: string): Promise<{ id: string }> {
@@ -753,10 +991,12 @@ export class OnCallService {
       readonly swapRequestId: string | null;
     },
     extra?: (transaction: PrismaService) => Promise<void>,
+    beforeCreate?: (transaction: PrismaService) => Promise<void>,
   ): Promise<string> {
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          if (beforeCreate !== undefined) await beforeCreate(transaction as unknown as PrismaService);
           const existing = await transaction.onCallOverride.findMany({
             where: { scheduleId, startsAt: { lt: input.endsAt }, endsAt: { gt: input.startsAt } },
             select: { startsAt: true, endsAt: true },
@@ -853,7 +1093,7 @@ export class OnCallService {
     }
   }
 
-  /** In-app notification in the recipient's language; never fails the caller. */
+  /** In-app notification in the recipient's language; voluntary types follow preferences, oncall.gap stays mandatory. */
   async notify(
     userId: string,
     type: NotificationType,
@@ -867,6 +1107,8 @@ export class OnCallService {
       });
       if (user === null || !user.isActive || user.anonymizedAt !== null) return false;
       const locale = toOnCallLocale(user.preferredLocale, await this.defaultLocale());
+      const category = findPreferenceCategoryForType(type);
+      const policy = category?.alwaysOn ? undefined : await loadNotificationPreferencePolicy(this.settings);
       const created = await persistInAppNotification(this.prisma, {
         userId,
         type,
@@ -882,7 +1124,7 @@ export class OnCallService {
           confidential: false,
         } as never,
         dedupeKey: `oncall:${dedupeKey}`,
-      });
+      }, policy);
       return created !== null;
     } catch (error) {
       this.logger.warn(`on-call notification failed (${type}): ${error instanceof Error ? error.name : 'unknown'}`);

@@ -31,6 +31,9 @@ describe("on-call view helpers ", () => {
     expect(mapOnCallError(new ApiError(409, "ON_CALL_OVERRIDE_OVERLAP", "x"))).toBe(
       "onCall.errors.overlap",
     );
+    expect(mapOnCallError(new ApiError(409, "ON_CALL_SCHEDULE_CONFLICT", "x"))).toBe(
+      "onCall.errors.scheduleConflict",
+    );
     expect(mapOnCallError(new ApiError(400, "OTHER", "x"))).toBeNull();
     expect(mapOnCallError(new Error("x"))).toBeNull();
   });

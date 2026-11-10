@@ -120,6 +120,7 @@ export class UsersService {
           settingsService: this.settingsService,
           mailTransport: this.mailTransport,
           hibpChecker: this.hibpPasswordChecker,
+          invalidatePrincipal: this.invalidatePrincipal(),
         },
         context,
       ),
@@ -137,8 +138,8 @@ export class UsersService {
         userId: input.userId,
         directoryExternalId: input.directoryExternalId,
         context,
+        invalidatePrincipal: this.invalidatePrincipal(),
       });
-      await this.invalidatePrincipal()(response.id);
       return response;
     });
   }
@@ -152,6 +153,7 @@ export class UsersService {
         settingsService: this.settingsService,
         mailTransport: this.mailTransport,
         hibpChecker: this.hibpPasswordChecker,
+        invalidatePrincipal: this.invalidatePrincipal(),
       }, context),
     );
   }

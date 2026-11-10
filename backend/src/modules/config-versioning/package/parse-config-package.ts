@@ -11,6 +11,8 @@ export class ConfigPackageFormatError extends Error {
 }
 
 const priorities = new Set(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
+const responseTemplateKinds = new Set(['REPLY', 'INTERNAL', 'ANY']);
+const playbookStepKeyPattern = /^[A-Za-z0-9_-]{1,64}$/u;
 
 type Obj = Record<string, unknown>;
 const isObject = (value: unknown): value is Obj =>
@@ -45,6 +47,84 @@ function priority(value: unknown, path: string): TicketPriority {
 }
 function list<T>(value: unknown, path: string, item: (entry: Obj, path: string) => T): T[] {
   return arr(value, path).map((entry, position) => item(obj(entry, `${path}[${position}]`), `${path}[${position}]`));
+}
+
+function parseNaturalKeyArray(value: unknown, path: string): string[] {
+  const values = arr(value, path).map((item, index) => str(item, `${path}[${index}]`));
+  if (new Set(values).size !== values.length) throw new ConfigPackageFormatError(path);
+  return values;
+}
+
+function parsePortableTemplateScope(value: unknown, path: string) {
+  const scope = obj(value, path);
+  return {
+    services: parseNaturalKeyArray(scope.services, `${path}.services`),
+    categories: parseNaturalKeyArray(scope.categories, `${path}.categories`),
+    groups: parseNaturalKeyArray(scope.groups, `${path}.groups`),
+  };
+}
+
+function parsePortablePlaybookScope(value: unknown, path: string) {
+  const scope = obj(value, path);
+  return {
+    services: parseNaturalKeyArray(scope.services, `${path}.services`),
+    categories: parseNaturalKeyArray(scope.categories, `${path}.categories`),
+  };
+}
+
+function parseTemplateTags(value: unknown, path: string): string[] {
+  const tags = arr(value, path).map((item, index) => str(item, `${path}[${index}]`));
+  if (
+    tags.length > 10 ||
+    tags.some((tag) => tag.length === 0 || tag.length > 40) ||
+    new Set(tags).size !== tags.length
+  ) {
+    throw new ConfigPackageFormatError(path);
+  }
+  return tags;
+}
+
+function parsePortablePlaybookSteps(value: unknown, path: string) {
+  const steps = arr(value, path);
+  if (steps.length === 0 || steps.length > 50) throw new ConfigPackageFormatError(path);
+  const keys = new Set<string>();
+  return steps.map((raw, index) => {
+    const stepPath = `${path}[${index}]`;
+    const step = obj(raw, stepPath);
+    const stepKey = str(step.stepKey, `${stepPath}.stepKey`);
+    const position = int(step.position, `${stepPath}.position`);
+    const knowledgeArticle = nullableReference(step.knowledgeArticle, `${stepPath}.knowledgeArticle`);
+    const responseTemplate = nullableReference(step.responseTemplate, `${stepPath}.responseTemplate`);
+    if (
+      !playbookStepKeyPattern.test(stepKey) ||
+      keys.has(stepKey) ||
+      position !== index
+    ) {
+      throw new ConfigPackageFormatError(stepPath);
+    }
+    keys.add(stepKey);
+    return {
+      stepKey,
+      position,
+      title: str(step.title, `${stepPath}.title`),
+      instructions: nstr(step.instructions, `${stepPath}.instructions`),
+      required: bool(step.required, `${stepPath}.required`),
+      knowledgeArticle,
+      responseTemplate,
+    };
+  });
+}
+
+function nullableReference(value: unknown, path: string): string | null {
+  const result = nstr(value, path);
+  if (result !== null && result.trim() === '') throw new ConfigPackageFormatError(path);
+  return result;
+}
+
+function parseNullableDate(value: unknown, path: string): string | null {
+  const result = nstr(value, path);
+  if (result !== null && !Number.isFinite(Date.parse(result))) throw new ConfigPackageFormatError(path);
+  return result;
 }
 
 function parseContent(value: unknown): PortableConfig {
@@ -136,21 +216,42 @@ function parseContent(value: unknown): PortableConfig {
       templates === null
         ? null
         : {
-            responseTemplates: list(templates.responseTemplates, 'content.templates.responseTemplates', (e, p) => ({
-              name: str(e.name, `${p}.name`),
-              bodyBs: str(e.bodyBs, `${p}.bodyBs`, true),
-              bodyEn: nstr(e.bodyEn, `${p}.bodyEn`),
-              kind: str(e.kind, `${p}.kind`),
-              tags: arr(e.tags, `${p}.tags`).map((tag, i) => str(tag, `${p}.tags[${i}]`)),
-              isActive: bool(e.isActive, `${p}.isActive`),
-              deletedAt: nstr(e.deletedAt, `${p}.deletedAt`),
-            })),
-            playbooks: list(templates.playbooks, 'content.templates.playbooks', (e, p) => ({
-              name: str(e.name, `${p}.name`),
-              description: nstr(e.description, `${p}.description`),
-              isActive: bool(e.isActive, `${p}.isActive`),
-              deletedAt: nstr(e.deletedAt, `${p}.deletedAt`),
-            })),
+            responseTemplates: list(templates.responseTemplates, 'content.templates.responseTemplates', (e, p) => {
+              const kind = str(e.kind, `${p}.kind`);
+              if (!responseTemplateKinds.has(kind)) throw new ConfigPackageFormatError(`${p}.kind`);
+              const tags = parseTemplateTags(e.tags, `${p}.tags`);
+              const deletedAt = parseNullableDate(e.deletedAt, `${p}.deletedAt`);
+              return {
+                name: str(e.name, `${p}.name`),
+                bodyBs: str(e.bodyBs, `${p}.bodyBs`, true),
+                bodyEn: nstr(e.bodyEn, `${p}.bodyEn`),
+                kind,
+                tags,
+                isActive: bool(e.isActive, `${p}.isActive`),
+                deletedAt,
+                ...(e.scope === undefined
+                  ? {}
+                  : { scope: parsePortableTemplateScope(e.scope, `${p}.scope`) }),
+              };
+            }),
+            playbooks: list(templates.playbooks, 'content.templates.playbooks', (e, p) => {
+              const version = e.version === undefined ? undefined : int(e.version, `${p}.version`);
+              if (version !== undefined && version < 1) throw new ConfigPackageFormatError(`${p}.version`);
+              const deletedAt = parseNullableDate(e.deletedAt, `${p}.deletedAt`);
+              return {
+                name: str(e.name, `${p}.name`),
+                description: nstr(e.description, `${p}.description`),
+                isActive: bool(e.isActive, `${p}.isActive`),
+                deletedAt,
+                ...(version === undefined ? {} : { version }),
+                ...(e.scope === undefined
+                  ? {}
+                  : { scope: parsePortablePlaybookScope(e.scope, `${p}.scope`) }),
+                ...(e.steps === undefined
+                  ? {}
+                  : { steps: parsePortablePlaybookSteps(e.steps, `${p}.steps`) }),
+              };
+            }),
           },
   };
 }

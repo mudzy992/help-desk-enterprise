@@ -31,6 +31,7 @@ import {
   broadcastSettingsUpdated,
 } from './broadcast-user-realtime';
 import { isSocketPrincipal } from './is-socket-principal';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
 import {
   allowJoinLeaveMessage,
   countJoinLeaveRejections,
@@ -42,6 +43,12 @@ import {
   ticketRoomName,
   ticketStaffRoomName,
 } from './ticket-socket-rooms';
+import {
+  runTicketSocketRevalidationBatch,
+  startTicketSocketRevalidation,
+  TicketSocketRevalidationLimiter,
+} from './ticket-socket-revalidation';
+import { TicketSocketSubscriptionRegistry } from './ticket-socket-subscriptions';
 
 @WebSocketGateway({
   cors: {
@@ -56,11 +63,16 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
 
   private readonly logger = new Logger(TicketChatGateway.name);
   private readonly unsubscribers: Array<() => void> = [];
+  private readonly ticketSubscriptions = new TicketSocketSubscriptionRegistry();
+  private readonly ticketRevalidationLimiter = new TicketSocketRevalidationLimiter();
+  private readonly pendingTicketRevalidations = new Map<string, Promise<void>>();
+  private stopTicketSocketRevalidation: (() => void) | null = null;
 
   constructor(
     private readonly ticketsCollaborationService: TicketsCollaborationService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
     private readonly settingsRealtimeHub: SettingsRealtimeHub,
+    private readonly websocketAbuseLimiter: WebsocketAbuseLimiter,
     @Optional()
     private readonly adminConfigRealtimeHub?: AdminConfigRealtimeHub,
     @Optional()
@@ -68,12 +80,28 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   ) {}
 
   afterInit(): void {
+    if (this.unsubscribers.length > 0) {
+      return;
+    }
     this.unsubscribers.push(
-      this.ticketRealtimeHub.subscribe((payload) => {
-        broadcastTicketMessage(this.server, payload);
+      this.ticketRealtimeHub.subscribeAwaited((payload) => {
+        if (!this.pendingTicketRevalidations.has(payload.ticketId)) {
+          broadcastTicketMessage(this.server, payload);
+          return;
+        }
+        return this.awaitTicketRevalidation(payload.ticketId).then(() => {
+          broadcastTicketMessage(this.server, payload);
+        });
       }),
-      this.ticketRealtimeHub.subscribeTicketUpdated((payload) => {
-        broadcastTicketUpdated(this.server, payload);
+      this.ticketRealtimeHub.subscribeTicketUpdatedAwaited((payload) => {
+        const pending = this.scheduleTicketAccessRevalidation(payload.ticketId);
+        if (!this.pendingTicketRevalidations.has(payload.ticketId)) {
+          broadcastTicketUpdated(this.server, payload);
+          return;
+        }
+        return pending.then(() => {
+          broadcastTicketUpdated(this.server, payload);
+        });
       }),
       this.ticketRealtimeHub.subscribeNotification((payload) => {
         broadcastNotificationRealtime(this.server, payload);
@@ -82,7 +110,20 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
         broadcastGroupNotificationRealtime(this.server, payload);
       }),
       this.ticketRealtimeHub.subscribeEdgeEvent((payload) => {
-        broadcastEdgeEventRealtime(this.server, payload);
+        const emit = () => broadcastEdgeEventRealtime(this.server, payload);
+        if (payload.ticketId === undefined) {
+          emit();
+          return;
+        }
+        if (!this.pendingTicketRevalidations.has(payload.ticketId)) {
+          emit();
+          return;
+        }
+        void this.awaitTicketRevalidation(payload.ticketId).then(emit).catch((error: unknown) => {
+          this.logger.warn(
+            `ticket_socket_edge_event_withheld ticketId=${payload.ticketId} reason=${errorText(error)}`,
+          );
+        });
       }),
       this.settingsRealtimeHub.subscribe((payload) => {
         broadcastSettingsUpdated(this.server, payload);
@@ -95,31 +136,74 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
         }),
       );
     }
+    this.stopTicketSocketRevalidation = startTicketSocketRevalidation(
+      () => this.revalidateActiveTicketSubscriptions(),
+      this.logger,
+    );
   }
 
   onModuleDestroy(): void {
+    this.stopTicketSocketRevalidation?.();
+    this.stopTicketSocketRevalidation = null;
     for (const unsubscribe of this.unsubscribers) {
       unsubscribe();
     }
+    this.unsubscribers.length = 0;
+    this.ticketSubscriptions.clear();
+    this.pendingTicketRevalidations.clear();
   }
 
   @SubscribeMessage(ticketRealtimeEventNames.join)
   async handleJoin(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
-  ): Promise<{ ok: boolean; visibility?: 'public' | 'staff' }> {
-    if (!this.allowJoinLeave(client, ticketRealtimeEventNames.join)) {
+  ): Promise<{ ok: boolean; visibility?: 'public' | 'staff'; code?: 'TICKET_ROOM_LIMIT' }> {
+    if (!(await this.allowJoinLeave(client, ticketRealtimeEventNames.join))) {
       return { ok: false };
     }
     const ticketId = requireTicketId(payload);
-    const access = await this.authorize(client, ticketId);
-    await client.join(ticketRoomName(ticketId));
-    await client.join(
-      access.visibility === 'staff'
-        ? ticketStaffRoomName(ticketId)
-        : ticketPublicRoomName(ticketId),
-    );
-    return { ok: true, visibility: access.visibility };
+    if (socketIsDisconnected(client)) return { ok: false };
+    if (!this.ticketSubscriptions.beginJoin(client, ticketId)) {
+      return { ok: false, code: 'TICKET_ROOM_LIMIT' };
+    }
+    let joinAttemptFinished = false;
+    try {
+      // Do not wait while holding the per-socket lock: the invalidation that owns
+      // this promise may itself be waiting to revalidate this joining socket.
+      await this.awaitTicketRevalidation(ticketId);
+      return await withTicketSocketLock(client, ticketId, async () => {
+        try {
+          await this.authorizeAndReplaceRooms(client, ticketId);
+          const subscription = this.ticketSubscriptions.subscriptionFor(
+            client,
+            ticketId,
+          );
+          if (subscription === undefined) {
+            throw new WsException({ code: 'FORBIDDEN' });
+          }
+          return { ok: true, visibility: subscription.visibility };
+        } catch (error) {
+          await this.revokeTicketSubscription(client, ticketId);
+          throw error;
+        } finally {
+          this.ticketSubscriptions.finishJoin(client, ticketId);
+          joinAttemptFinished = true;
+        }
+      });
+    } catch (error) {
+      if (!joinAttemptFinished) {
+        await withTicketSocketLock(client, ticketId, async () => {
+          await this.revokeTicketSubscription(client, ticketId);
+          this.ticketSubscriptions.finishJoin(client, ticketId);
+          joinAttemptFinished = true;
+        });
+      }
+      throw error;
+    } finally {
+      if (!joinAttemptFinished) {
+        this.ticketSubscriptions.finishJoin(client, ticketId);
+      }
+    }
   }
 
   @SubscribeMessage(ticketRealtimeEventNames.leave)
@@ -127,22 +211,20 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: unknown,
   ): Promise<{ ok: boolean }> {
-    if (!this.allowJoinLeave(client, ticketRealtimeEventNames.leave)) {
+    if (!(await this.allowJoinLeave(client, ticketRealtimeEventNames.leave))) {
       return { ok: false };
     }
     const ticketId = requireTicketId(payload);
-    await this.leavePresence(client, ticketId);
-    await client.leave(ticketRoomName(ticketId));
-    await client.leave(ticketPublicRoomName(ticketId));
-    await client.leave(ticketStaffRoomName(ticketId));
-    return { ok: true };
+    return withTicketSocketLock(client, ticketId, async () => {
+      await this.revokeTicketSubscription(client, ticketId);
+      return { ok: true };
+    });
   }
 
   /**
-   * Paket 2.4 (A): presence heartbeat / typing state. Only for a socket that
-   * already joined the ticket (authorisation happened at join). Staff payloads
-   * go to the :staff room only; the :public room gets the anonymous
-   * "agent is typing a reply" flag. Excess messages are silently ignored.
+   * Presence is accepted only for a current registered ticket subscription. It
+   * waits for a pending access epoch and shares the room-operation lock, so a
+   * visibility change cannot race a typing/presence update into the old room.
    */
   @SubscribeMessage(ticketRealtimeEventNames.presence)
   async handlePresence(
@@ -151,51 +233,322 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
   ): Promise<{ ok: boolean }> {
     const input = parsePresenceUpdate(payload);
     const principal = getSocketPrincipal(client);
+    const presenceService = this.presenceService;
     if (
-      this.presenceService === undefined ||
+      presenceService === undefined ||
       input === null ||
       !isSocketPrincipal(principal) ||
-      !client.rooms.has(ticketRoomName(input.ticketId)) ||
       !allowPresenceMessage(client.data)
     ) {
       return { ok: false };
     }
-    const role = client.rooms.has(ticketStaffRoomName(input.ticketId)) ? 'staff' : 'requester';
-    const payloads = await this.presenceService.update(input, {
-      userId: principal.subjectId,
-      role,
-    });
-    if (payloads === null) {
+    if (!(await this.allowSharedUserAction(client, 'presence', 'presence'))) {
       return { ok: false };
     }
-    const tracked = client.data.presenceTickets ?? new Set<string>();
-    if (input.state === 'leave') tracked.delete(input.ticketId);
-    else tracked.add(input.ticketId);
-    client.data.presenceTickets = tracked;
-    this.emitPresence(input.ticketId, payloads);
-    return { ok: true };
+    try {
+      await this.awaitTicketRevalidation(input.ticketId);
+    } catch {
+      return { ok: false };
+    }
+    return withTicketSocketLock(client, input.ticketId, async () => {
+      const subscription = this.ticketSubscriptions.subscriptionFor(
+        client,
+        input.ticketId,
+      );
+      if (
+        subscription === undefined ||
+        !this.ticketSubscriptions.hasCurrentSubscription(client, input.ticketId) ||
+        !client.rooms.has(ticketRoomName(input.ticketId))
+      ) {
+        return { ok: false };
+      }
+      const epoch = this.ticketSubscriptions.currentEpoch(input.ticketId);
+      const payloads = await presenceService.update(input, {
+        userId: principal.subjectId,
+        role: subscription.visibility === 'staff' ? 'staff' : 'requester',
+      });
+      if (payloads === null) {
+        return { ok: false };
+      }
+      const tracked = client.data.presenceTickets ?? new Set<string>();
+      if (input.state === 'leave') tracked.delete(input.ticketId);
+      else tracked.add(input.ticketId);
+      client.data.presenceTickets = tracked;
+      if (
+        epoch !== this.ticketSubscriptions.currentEpoch(input.ticketId) ||
+        !this.ticketSubscriptions.hasCurrentSubscription(client, input.ticketId)
+      ) {
+        if (input.state !== 'leave') {
+          await this.leaveTicketRooms(client, input.ticketId);
+          await this.leavePresence(client, input.ticketId);
+        }
+        return { ok: false };
+      }
+      this.emitPresence(input.ticketId, payloads);
+      return { ok: true };
+    });
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
+    this.ticketSubscriptions.removeSocket(client);
     for (const ticketId of client.data.presenceTickets ?? []) {
       await this.leavePresence(client, ticketId);
     }
   }
 
   /**
-   * Val 3 (M11/B2): `ticket:join` and `ticket:leave` each run a full authorization
-   * pass, so they share one per-socket window (30/min, the same as `presence`).
-   * Over the limit the answer is `{ ok: false }` and the log carries a real
-   * rejection counter instead of a bare denial.
+   * The original per-socket window protects one connection; the additional
+   * Redis-backed account bucket prevents extra sockets/instances multiplying
+   * that budget. Limiter errors fail closed before authorization queries.
    */
-  private allowJoinLeave(client: Socket, event: string): boolean {
-    if (allowJoinLeaveMessage(client.data)) {
+  private async allowJoinLeave(client: Socket, event: string): Promise<boolean> {
+    if (!allowJoinLeaveMessage(client.data)) {
+      this.logger.warn(
+        `ws_join_leave_rate_limited event=${event} connectionId=${client.id} rejections=${countJoinLeaveRejections(client.data)}`,
+      );
+      return false;
+    }
+    return this.allowSharedUserAction(client, event, 'join_leave');
+  }
+
+  private async allowSharedUserAction(
+    client: Socket,
+    event: string,
+    action: 'join_leave' | 'presence',
+  ): Promise<boolean> {
+    const principal = getSocketPrincipal(client);
+    if (
+      !isSocketPrincipal(principal) ||
+      client.data.websocketConnectionLeaseMember !== client.id
+    ) {
+      return false;
+    }
+    try {
+      if (
+        await this.websocketAbuseLimiter.consumeUserAction(
+          principal.subjectId,
+          action,
+        )
+      ) {
+        return true;
+      }
+      this.logSharedLimitRejection(client, event, 'rate_limited');
+    } catch {
+      this.logSharedLimitRejection(client, event, 'limiter_unavailable');
+    }
+    return false;
+  }
+
+  private logSharedLimitRejection(
+    client: Socket,
+    event: string,
+    reason: 'rate_limited' | 'limiter_unavailable',
+  ): void {
+    const now = Date.now();
+    if (now - (client.data.websocketRateLimitLogAt ?? 0) < 10_000) return;
+    client.data.websocketRateLimitLogAt = now;
+    this.logger.warn(
+      `ws_user_action_rejected event=${event} connectionId=${client.id} reason=${reason} fail_closed=${reason === 'limiter_unavailable' ? 1 : 0}`,
+    );
+  }
+
+  private async revalidateActiveTicketSubscriptions(): Promise<void> {
+    const ticketIds = this.ticketSubscriptions.activeTicketIds();
+    await runTicketSocketRevalidationBatch(
+      ticketIds,
+      async (ticketId) => {
+        await this.scheduleTicketAccessRevalidation(ticketId);
+      },
+      1,
+    );
+  }
+
+  /**
+   * A `ticket.updated` projection is the fast invalidation signal. The epoch is
+   * advanced synchronously before this method returns its promise, so message,
+   * presence and Edge fan-out can wait on the same local reauthorization pass.
+   */
+  private scheduleTicketAccessRevalidation(ticketId: string): Promise<void> {
+    const previous =
+      this.pendingTicketRevalidations.get(ticketId) ?? Promise.resolve();
+    if (this.ticketSubscriptions.advanceEpoch(ticketId) === null) {
+      return previous;
+    }
+    const current = previous
+      .catch(() => undefined)
+      .then(() => this.revalidateTicketSubscribers(ticketId));
+    this.pendingTicketRevalidations.set(ticketId, current);
+    const clear = () => {
+      if (this.pendingTicketRevalidations.get(ticketId) === current) {
+        this.pendingTicketRevalidations.delete(ticketId);
+      }
+    };
+    void current.then(clear, clear);
+    return current;
+  }
+
+  private async revalidateTicketSubscribers(ticketId: string): Promise<void> {
+    const clients = this.ticketSubscriptions.socketsForTicket(ticketId);
+    try {
+      await runTicketSocketRevalidationBatch(clients, async (client) => {
+        await this.ticketRevalidationLimiter.run(() =>
+          withTicketSocketLock(client, ticketId, async () => {
+            if (!this.ticketSubscriptions.hasInterest(client, ticketId)) {
+              return;
+            }
+            try {
+              await this.authorizeAndReplaceRooms(client, ticketId);
+            } catch (error) {
+              await this.revokeTicketSubscription(client, ticketId);
+              this.logger.warn(
+                `ticket_socket_access_revoked connectionId=${client.id} ticketId=${ticketId} reason=${errorText(error)}`,
+              );
+            }
+          }),
+        );
+      });
+    } catch (error) {
+      // A batch-level failure is fail-closed too; do not let a broken sweep leave
+      // the existing room set live while the update event is being forwarded.
+      this.logger.warn(
+        `ticket_socket_revalidation_batch_failed ticketId=${ticketId} reason=${errorText(error)}`,
+      );
+      await runTicketSocketRevalidationBatch(clients, async (client) => {
+        await withTicketSocketLock(client, ticketId, async () => {
+          await this.revokeTicketSubscription(client, ticketId);
+        });
+      });
+      throw error;
+    }
+  }
+
+  private async authorizeAndReplaceRooms(
+    client: Socket,
+    ticketId: string,
+  ): Promise<void> {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      if (socketIsDisconnected(client)) {
+        throw new WsException({ code: 'FORBIDDEN' });
+      }
+      const epoch = this.ticketSubscriptions.currentEpoch(ticketId);
+      let access: Awaited<ReturnType<TicketsCollaborationService['authorizeSocketJoin']>>;
+      try {
+        access = await this.authorize(client, ticketId);
+      } catch (error) {
+        if (this.ticketSubscriptions.currentEpoch(ticketId) !== epoch) {
+          continue;
+        }
+        throw error;
+      }
+      if (this.ticketSubscriptions.currentEpoch(ticketId) !== epoch) {
+        continue;
+      }
+      await this.replaceTicketRooms(client, ticketId, access.visibility);
+      if (socketIsDisconnected(client)) {
+        throw new WsException({ code: 'FORBIDDEN' });
+      }
+      if (
+        this.ticketSubscriptions.register(
+          client,
+          ticketId,
+          access.visibility,
+          epoch,
+        )
+      ) {
+        return;
+      }
+      if (!(await this.leaveTicketRooms(client, ticketId))) {
+        throw new WsException({ code: 'FORBIDDEN' });
+      }
+    }
+    throw new WsException({ code: 'FORBIDDEN' });
+  }
+
+  /** Leaves both audience rooms before joining exactly one of them. */
+  private async replaceTicketRooms(
+    client: Socket,
+    ticketId: string,
+    visibility: 'public' | 'staff',
+  ): Promise<void> {
+    const baseRoom = ticketRoomName(ticketId);
+    const desiredRoom =
+      visibility === 'staff'
+        ? ticketStaffRoomName(ticketId)
+        : ticketPublicRoomName(ticketId);
+    const otherRoom =
+      visibility === 'staff'
+        ? ticketPublicRoomName(ticketId)
+        : ticketStaffRoomName(ticketId);
+    if (
+      client.rooms.has(baseRoom) &&
+      client.rooms.has(desiredRoom) &&
+      !client.rooms.has(otherRoom)
+    ) {
+      return;
+    }
+    const leftPreviousRooms = await this.leaveTicketRooms(client, ticketId);
+    await this.leavePresence(client, ticketId);
+    if (!leftPreviousRooms) {
+      throw new WsException({ code: 'FORBIDDEN' });
+    }
+    await client.join(baseRoom);
+    await client.join(desiredRoom);
+  }
+
+  private async revokeTicketSubscription(
+    client: Socket,
+    ticketId: string,
+  ): Promise<void> {
+    // Keep the slot occupied until room removal is complete so a concurrent
+    // join cannot exceed the limit while an adapter leave is still in flight.
+    await this.leaveTicketRooms(client, ticketId);
+    this.ticketSubscriptions.remove(client, ticketId);
+    await this.leavePresence(client, ticketId);
+  }
+
+  /** Returns false and disconnects if a room could not be removed. */
+  private async leaveTicketRooms(
+    client: Socket,
+    ticketId: string,
+  ): Promise<boolean> {
+    let failed = false;
+    for (const room of [
+      ticketRoomName(ticketId),
+      ticketPublicRoomName(ticketId),
+      ticketStaffRoomName(ticketId),
+    ]) {
+      try {
+        await client.leave(room);
+      } catch {
+        failed = true;
+      }
+    }
+    if (!failed) {
       return true;
     }
     this.logger.warn(
-      `ws_join_leave_rate_limited event=${event} connectionId=${client.id} rejections=${countJoinLeaveRejections(client.data)}`,
+      `ticket_socket_room_leave_failed connectionId=${client.id} ticketId=${ticketId}`,
     );
+    try {
+      client.disconnect(true);
+    } catch {
+      // A failed local disconnect is logged; the socket server will also clear
+      // rooms when its transport closes.
+    }
     return false;
+  }
+
+  private async awaitTicketRevalidation(ticketId: string): Promise<void> {
+    while (true) {
+      const pending = this.pendingTicketRevalidations.get(ticketId);
+      if (pending === undefined) {
+        return;
+      }
+      await pending;
+      if (this.pendingTicketRevalidations.get(ticketId) === undefined) {
+        return;
+      }
+    }
   }
 
   private async leavePresence(client: Socket, ticketId: string): Promise<void> {
@@ -248,4 +601,42 @@ function requireTicketId(payload: unknown): string {
     throw new WsException({ code: 'NOT_FOUND' });
   }
   return parsed.ticketId;
+}
+
+function socketIsDisconnected(client: Socket): boolean {
+  return client.disconnected;
+}
+
+const ticketSocketLocks = new WeakMap<Socket, Map<string, Promise<void>>>();
+
+async function withTicketSocketLock<T>(
+  client: Socket,
+  ticketId: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const locks = ticketSocketLocks.get(client) ?? new Map<string, Promise<void>>();
+  ticketSocketLocks.set(client, locks);
+  const previous = locks.get(ticketId) ?? Promise.resolve();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const queued = previous.catch(() => undefined).then(() => gate);
+  locks.set(ticketId, queued);
+  await previous.catch(() => undefined);
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (locks.get(ticketId) === queued) {
+      locks.delete(ticketId);
+    }
+    if (locks.size === 0) {
+      ticketSocketLocks.delete(client);
+    }
+  }
+}
+
+function errorText(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error)).slice(0, 200);
 }

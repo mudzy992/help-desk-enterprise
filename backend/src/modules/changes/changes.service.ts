@@ -1,4 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -24,6 +25,7 @@ import {
   type ChangeFacts,
 } from './change-rules';
 import { hasWarnings } from './change-conflicts';
+import { enqueueChangeDowntimeSync } from './change-downtime-outbox';
 import { ChangeNotifier } from './change-notifier';
 import { ChangeScheduleService } from './change-schedule.service';
 import { changeVisibilityWhere } from './change-visibility';
@@ -203,6 +205,7 @@ export class ChangesService {
     private readonly prisma: PrismaService,
     private readonly access: ChangeAccessService,
     private readonly schedule: ChangeScheduleService,
+    private readonly outbox: TransactionalOutboxService,
     @Optional() private readonly notifier?: ChangeNotifier,
   ) {}
 
@@ -567,6 +570,11 @@ export class ChangesService {
     const addedAssets = assetIds?.filter((value) => !currentAssetIds.includes(value)) ?? [];
     const removedAssets = assetIds === undefined ? [] : currentAssetIds.filter((value) => !assetIds.includes(value));
     const linksChanged = addedServices.length + removedServices.length + addedAssets.length + removedAssets.length > 0;
+    const downtimeMayHaveChanged =
+      changes.causesDowntime !== undefined ||
+      changes.plannedStart !== undefined ||
+      changes.plannedEnd !== undefined ||
+      addedServices.length + removedServices.length > 0;
     if (Object.keys(changes).length === 0 && textChanged.length === 0 && !linksChanged) return this.toDetail(viewer, current, configuration);
 
     await this.prisma.$transaction(async (transaction) => {
@@ -604,13 +612,11 @@ export class ChangesService {
           },
         });
       }
+      if (downtimeMayHaveChanged && (current.status === 'SCHEDULED' || current.status === 'IMPLEMENTING')) {
+        await enqueueChangeDowntimeSync(this.outbox, transaction, { changeId: id, version: current.version + 1, actorUserId: viewer.userId });
+      }
     });
-    if (reauthorize) {
-      await this.schedule.release(id, viewer.userId, 'reschedule');
-      this.notify('approval', (notifier) => notifier.approvalRequested(id, current.approvalRound + 1, viewer.userId));
-    } else if (windowMoved && (changes.plannedStart || changes.plannedEnd)) {
-      await this.schedule.syncDowntime(id, viewer.userId);
-    }
+    if (reauthorize) this.notify('approval', (notifier) => notifier.approvalRequested(id, current.approvalRound + 1, viewer.userId));
     return this.get(viewer, id);
   }
 
@@ -699,18 +705,24 @@ export class ChangesService {
         actorUserId: viewer.userId,
         organizationalUnitId: current.organizationalUnitId,
       });
+      const affectsDowntime =
+        from === 'SCHEDULED' ||
+        from === 'IMPLEMENTING' ||
+        target === 'SCHEDULED' ||
+        target === 'IMPLEMENTING';
+      if (affectsDowntime) {
+        await enqueueChangeDowntimeSync(this.outbox, transaction, { changeId: id, version: current.version + 1, actorUserId: viewer.userId });
+      }
     });
     await this.afterAction(viewer, current, input, target);
     return this.get(viewer, id);
   }
 
-  /** Side effects after a committed action: downtime windows (§10) and notices (§12, §14). */
+  /** Notifications and other non-durable notices after the lifecycle transaction commits. */
   private async afterAction(viewer: ChangeViewer, current: ChangeDetailRow, input: ChangeActionDto, target: ChangeStatusValue): Promise<void> {
     if (target === 'AUTHORIZATION') {
       this.notify('approval', (notifier) => notifier.approvalRequested(current.id, current.approvalRound, viewer.userId));
     }
-    if (target === 'SCHEDULED') await this.schedule.syncDowntime(current.id, viewer.userId);
-    if (input.action === 'cancel' || input.action === 'finish') await this.schedule.release(current.id, viewer.userId, input.action);
     const failed = input.action === 'finish' && (input.outcome === 'FAILED' || input.outcome === 'ROLLED_BACK');
     if (failed && current.problemId !== null) {
       const problem = await this.prisma.problem.findUnique({ where: { id: current.problemId }, select: { ownerUserId: true } });

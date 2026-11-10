@@ -2,10 +2,11 @@
 
 **Status:** audit završen  
 **Datum:** 2026-10-22  
+**Ažurirano:** 2026-11-04<br>
 **Modul:** `backend/src/modules/audit-log`  
 **Baseline ocjena:** **6,38/10**  
 **Nalazi:** 3 P1, 6 P2, 2 P3, 10 pozitivnih zapažanja  
-**Implementacija:** nije započeta; korekcije čekaju završetak kompletnog backend audita
+**Implementacija:** završena za svih 11 nalaza; formalni closeouti su W3.2–W3.11
 
 ## 1. Executive summary
 
@@ -195,17 +196,17 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 | ID              | Severity | Naslov                                                                          | Status   | Veličina |
 | --------------- | -------- | ------------------------------------------------------------------------------- | -------- | -------- |
-| BA-audit-log-01 | P1       | User/OU `SetNull` mijenja hashirani payload i lomi chain pri normalnom deleteu  | završen (W3.2) | L        |
-| BA-audit-log-02 | P1       | Hash algoritam nije pohranjen po redu i writeri ignorišu globalnu konfiguraciju | završen (W3.2) | L        |
-| BA-audit-log-03 | P1       | Neključani chain i checkpoint u istoj bazi nemaju external tamper anchor        | završen (W3.4) | L        |
-| BA-audit-log-04 | P2       | Privacy redaction nije atomska, a redaction state nije hashiran/autentificiran  | završen (W3.5) | L        |
-| BA-audit-log-05 | P2       | Export i verify učitavaju kompletan scope/chain u memoriju bez limita           | završen (W3.6) | M        |
-| BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | završen (W3.7) | M        |
-| BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | završen (W3.8) | L        |
-| BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | završen (W3.3) | M        |
-| BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | završen (W3.9) | M        |
-| BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | završen (W3.10) | S        |
-| BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | završen (W3.11) | M        |
+| BA-audit-log-01 | P1       | User/OU `SetNull` mijenja hashirani payload i lomi chain pri normalnom deleteu  | zatvoreno | L        |
+| BA-audit-log-02 | P1       | Hash algoritam nije pohranjen po redu i writeri ignorišu globalnu konfiguraciju | zatvoreno | L        |
+| BA-audit-log-03 | P1       | Neključani chain i checkpoint u istoj bazi nemaju external tamper anchor        | zatvoreno | L        |
+| BA-audit-log-04 | P2       | Privacy redaction nije atomska, a redaction state nije hashiran/autentificiran  | zatvoreno | L        |
+| BA-audit-log-05 | P2       | Export i verify učitavaju kompletan scope/chain u memoriju bez limita           | zatvoreno | M        |
+| BA-audit-log-06 | P2       | Jedan globalni advisory lock serijalizuje sve auditirane write transakcije      | zatvoreno | M        |
+| BA-audit-log-07 | P2       | Metadata nema action-specific schema, sensitivity policy ni size budget         | zatvoreno | L        |
+| BA-audit-log-08 | P2       | Hash envelope ne veže row ID, vrijeme, algoritam ni redaction state             | zatvoreno | M        |
+| BA-audit-log-09 | P2       | OU visibility vjeruje denormalizovanom producer scopeu bez provenance provjere  | zatvoreno | M        |
+| BA-audit-log-10 | P3       | Cursor/ID/query stringovi nemaju format i dužinske granice                      | zatvoreno | S        |
+| BA-audit-log-11 | P3       | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona    | zatvoreno | M        |
 
 ## 11. Detaljni nalazi
 
@@ -252,7 +253,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 ### BA-audit-log-06 — Globalni chain lock je write bottleneck
 
-**Status: završen u W3.7.** V5 hash-bound particije koriste zasebne OU/global headove i advisory lockove; maintenance ostaje atomski preko shared/exclusive lock ugovora, retention checkpoint nosi mapu particijskih headova, a WORM anchor potpisuje aggregate svih headova. Realni PostgreSQL test u CI `40180285554` dokazuje da OU-B commitira dok je OU-A transakcija još otvorena, bez forkova. Detalji: [16-partitioned-audit-append-concurrency.md](../implementation/16-partitioned-audit-append-concurrency.md).
+**Status: zatvoreno (closeout W3.7).** V5 hash-bound particije koriste zasebne OU/global headove i advisory lockove; maintenance ostaje atomski preko shared/exclusive lock ugovora, retention checkpoint nosi mapu particijskih headova, a WORM anchor potpisuje aggregate svih headova. Realni PostgreSQL test u CI `40180285554` dokazuje da OU-B commitira dok je OU-A transakcija još otvorena, bez forkova. Detalji: [16-partitioned-audit-append-concurrency.md](../implementation/16-partitioned-audit-append-concurrency.md).
 
 - **Dokaz:** svaki append uzima isti `pg_advisory_xact_lock(871001)`, često unutar poslovne transakcije nakon drugih writeova.
 - **Uticaj:** svi auditirani moduli cluster-wide serijalizuju commit; spor/blocked transaction povećava tail latency i lock contention, a različit lock ordering s budućim tokovima povećava deadlock rizik.
@@ -262,7 +263,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 ### BA-audit-log-07 — Otvorena metadata površina
 
-**Status: završen u W3.8.** Svih 145 kanonskih akcija ima versionirani top-level allowlist i sensitivity klasu; centralni writer odbija unknown polja, sanitizuje secret/PII ključeve te nameće 16 KiB, depth 8 i 128-key granice. V6 canonical envelope hash-bound veže `actionSchemaVersion`; potpuni CI `40187527565` uključuje puni Jest i stvarne PostgreSQL privacy/retention suiteove. Detalji: [17-versioned-audit-action-schema-registry.md](../implementation/17-versioned-audit-action-schema-registry.md).
+**Status: zatvoreno (closeout W3.8).** Svih 145 kanonskih akcija ima versionirani top-level allowlist i sensitivity klasu; centralni writer odbija unknown polja, sanitizuje secret/PII ključeve te nameće 16 KiB, depth 8 i 128-key granice. V6 canonical envelope hash-bound veže `actionSchemaVersion`; potpuni CI `40187527565` uključuje puni Jest i stvarne PostgreSQL privacy/retention suiteove. Detalji: [17-versioned-audit-action-schema-registry.md](../implementation/17-versioned-audit-action-schema-registry.md).
 
 - **Dokaz:** input prihvata bilo koji `JsonValue`; nema action schema, secret/PII detectora, max bytes/depth ni centralnog allowlista. Producer direktno bira metadata.
 - **Uticaj:** credential/PII se može trajno zapisati i izvesti; ekstremna metadata povećava DB, hash, export i redaction trošak. Raniji `BA-users-09` dokazuje konkretan PII primjer.
@@ -280,7 +281,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 ### BA-audit-log-09 — Scope provenance nije potvrđen
 
-**Status: završen u W3.9.** Svih 145 akcija ima `global`/`producer`/`entity` scope policy. Kritične entity akcije prolaze PostgreSQL `BEFORE INSERT` provjeru protiv kanonskog Ticket/Group/OU/Problem/Change/Asset scopea; falsifikovani OU rollbackuje transakciju. Stvarni PostgreSQL dokaz i puni CI su `40188416889`. Detalji: [18-audit-ou-scope-provenance.md](../implementation/18-audit-ou-scope-provenance.md).
+**Status: zatvoreno (closeout W3.9).** Svih 145 akcija ima `global`/`producer`/`entity` scope policy. Kritične entity akcije prolaze PostgreSQL `BEFORE INSERT` provjeru protiv kanonskog Ticket/Group/OU/Problem/Change/Asset scopea; falsifikovani OU rollbackuje transakciju. Stvarni PostgreSQL dokaz i puni CI su `40188416889`. Detalji: [18-audit-ou-scope-provenance.md](../implementation/18-audit-ou-scope-provenance.md).
 
 - **Dokaz:** producer šalje nullable `organizationalUnitId`; append ne provjerava entity→OU odnos niti action scope pravilo. Read autorizacija vjeruje tom polju.
 - **Uticaj:** producer bug može sakriti zapis od scoped auditora ili izložiti metadata drugom OU scopeu. Brisanje OU-a dodatno mijenja scope na null.
@@ -290,7 +291,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 ### BA-audit-log-10 — Slabe granice query identifikatora
 
-**Status: završen u W3.10.** OU/user identifikatori imaju 128-char i opaque-ID format granicu, a cursor je canonical bounded base64url v1 envelope koji se dekodira prije repositoryja. Malformed/unsupported input vraća stabilan `AUDIT_INVALID_CURSOR`; puni CI dokaz je `40189888596`. Detalji: [19-bounded-audit-query-cursor-envelope.md](../implementation/19-bounded-audit-query-cursor-envelope.md).
+**Status: zatvoreno (closeout W3.10).** OU/user identifikatori imaju 128-char i opaque-ID format granicu, a cursor je canonical bounded base64url v1 envelope koji se dekodira prije repositoryja. Malformed/unsupported input vraća stabilan `AUDIT_INVALID_CURSOR`; puni CI dokaz je `40189888596`. Detalji: [19-bounded-audit-query-cursor-envelope.md](../implementation/19-bounded-audit-query-cursor-envelope.md).
 
 - **Dokaz:** OU ID i cursor imaju samo string/MinLength; nema MaxLength ni CUID/opaque-ID limita. Nepostojeći cursor može procuriti kao ORM greška zavisno od Prisma ponašanja.
 - **Uticaj:** nepotreban parser/DB rad i nestabilan 4xx/5xx ugovor za malformed/oversized input.
@@ -300,7 +301,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 ### BA-audit-log-11 — Otvoreni action/entity stringovi
 
-**Status: završen u W3.11.** Svih 145 core akcija ima typed/runtime action→entity→schema v1 compatibility zapis; poznata akcija sa pogrešnim entity tipom pada prije writea. Extension namespace zahtijeva statičku punu schema/scope/compatibility deklaraciju i trenutno je fail-closed prazan. CI dokaz je `40191639867`. Detalji: [20-closed-audit-action-entity-contract.md](../implementation/20-closed-audit-action-entity-contract.md).
+**Status: zatvoreno (closeout W3.11).** Svih 145 core akcija ima typed/runtime action→entity→schema v1 compatibility zapis; poznata akcija sa pogrešnim entity tipom pada prije writea. Extension namespace zahtijeva statičku punu schema/scope/compatibility deklaraciju i trenutno je fail-closed prazan. CI dokaz je `40191639867`. Detalji: [20-closed-audit-action-entity-contract.md](../implementation/20-closed-audit-action-entity-contract.md).
 
 - **Dokaz:** constants katalog postoji, ali write tip prihvata proizvoljan string i runtime ga ne potvrđuje; nema per-action schema/version veze.
 - **Uticaj:** typo pravi novi event class koji security journal/filter/retention/webhook možda ne prepoznaje; isti action može vremenom promijeniti metadata oblik bez verzije.

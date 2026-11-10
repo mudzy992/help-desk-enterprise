@@ -8,11 +8,11 @@ import type { EdgeEventRealtimePublish } from '../tickets/ticket-realtime.types'
 export class PublishEdgeEventToRedisService {
   constructor(@Inject(redisTokens.client) private readonly redisClient: Redis) {}
 
-  async publish(payload: EdgeEventRealtimePublish): Promise<void> {
+  async publish(payload: EdgeEventRealtimePublish): Promise<number> {
     if (this.redisClient.status === 'wait') {
       await this.redisClient.connect();
     }
-    await this.redisClient.publish(
+    return this.redisClient.publish(
       edgeEventRedisChannel,
       JSON.stringify(payload),
     );

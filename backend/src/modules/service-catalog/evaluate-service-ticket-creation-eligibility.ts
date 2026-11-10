@@ -1,12 +1,12 @@
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { evaluateServiceRuntimeAvailability } from './evaluate-service-runtime-availability';
-import { evaluateTicketCreationAgainstAvailability } from './evaluate-ticket-creation-against-availability';
-import { loadService } from './load-service';
-import { loadServiceDowntimeWindows } from './load-service-downtime-windows';
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { evaluateServiceRuntimeAvailability } from "./evaluate-service-runtime-availability";
+import { evaluateTicketCreationAgainstAvailability } from "./evaluate-ticket-creation-against-availability";
+import { loadService } from "./load-service";
+import { loadServiceDowntimeSummary } from "./load-service-downtime-summary";
 import type {
   ServiceAvailabilityEvaluationContext,
   ServiceTicketCreationEligibility,
-} from './service-availability.types';
+} from "./service-availability.types";
 
 export async function evaluateServiceTicketCreationEligibility(
   prisma: PrismaService,
@@ -14,12 +14,17 @@ export async function evaluateServiceTicketCreationEligibility(
   evaluation: ServiceAvailabilityEvaluationContext,
 ): Promise<ServiceTicketCreationEligibility> {
   const record = await loadService(prisma, serviceId);
-  const downtimeWindows = await loadServiceDowntimeWindows(prisma, record.id);
+  const downtimeSummary = await loadServiceDowntimeSummary(
+    prisma,
+    record.id,
+    evaluation.now,
+  );
   return evaluateTicketCreationAgainstAvailability({
     serviceId: record.id,
     runtimeAvailability: evaluateServiceRuntimeAvailability({
       storedAvailability: record.availability,
-      downtimeWindows,
+      downtimeWindows: downtimeSummary.windows,
+      upcomingDowntimeCount: downtimeSummary.upcomingCount,
       evaluation,
     }),
   });

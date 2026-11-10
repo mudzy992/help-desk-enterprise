@@ -12,6 +12,7 @@ export function toServiceCategoryResponse(
     slug: record.slug,
     sortOrder: record.sortOrder,
     parentId: record.parentId,
+    revision: record.revision,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

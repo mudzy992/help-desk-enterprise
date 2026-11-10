@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultServiceFormSchema } from "@/lib/services/default-service-form-schema";
 import { ApiError } from "@/services/api";
 import { ensureServiceForm } from "@/lib/services/ensure-service-form";
 import {
@@ -22,23 +21,27 @@ const emptyForm = (serviceId: string): ServiceFormResponse => ({
   formsEnabled: true,
   requireVersionOnTicket: true,
   activeFormVersionRef: null,
+  activeForm: null,
   versions: [],
+  total: 0,
+  take: 20,
+  cursor: null,
+  nextCursor: null,
+  hasMore: false,
 });
 
 const draftForm = (serviceId: string): ServiceFormResponse => ({
-  serviceId,
-  formsEnabled: true,
-  requireVersionOnTicket: true,
-  activeFormVersionRef: null,
+  ...emptyForm(serviceId),
   versions: [
     {
       formVersionRef: "fv-1",
       serviceId,
       version: 1,
       status: "DRAFT",
-      schema: defaultServiceFormSchema,
+      schema: { schemaVersion: 1, fields: [] },
     },
   ],
+  total: 1,
 });
 
 describe("ensureServiceForm", () => {
@@ -47,52 +50,28 @@ describe("ensureServiceForm", () => {
     vi.mocked(createServiceForm).mockReset();
   });
 
-  it("creates the first form when GET returns an empty version list", async () => {
-    const created = draftForm("svc-1");
-    vi.mocked(getServiceForm)
-      .mockResolvedValueOnce(emptyForm("svc-1"))
-      .mockResolvedValueOnce(created);
-    vi.mocked(createServiceForm).mockResolvedValue(created.versions[0]!);
+  it("returns an empty form without creating a mutation as a read side effect", async () => {
+    const empty = emptyForm("svc-1");
+    vi.mocked(getServiceForm).mockResolvedValue(empty);
 
-    const loaded = await ensureServiceForm("svc-1", true);
+    await expect(ensureServiceForm("svc-1")).resolves.toBe(empty);
 
-    expect(createServiceForm).toHaveBeenCalledWith("svc-1", defaultServiceFormSchema);
-    expect(loaded.versions).toHaveLength(1);
+    expect(getServiceForm).toHaveBeenCalledWith("svc-1");
+    expect(createServiceForm).not.toHaveBeenCalled();
   });
 
-  it("recovers a concurrent first-version create without creating a duplicate", async () => {
-    vi.mocked(getServiceForm)
-      .mockResolvedValueOnce(emptyForm("svc-1"))
-      .mockResolvedValueOnce(draftForm("svc-1"));
-    vi.mocked(createServiceForm).mockRejectedValue(
-      new ApiError(409, "FORM_ALREADY_EXISTS", "exists"),
-    );
+  it("returns the loaded form when versions already exist", async () => {
+    const loaded = draftForm("svc-1");
+    vi.mocked(getServiceForm).mockResolvedValue(loaded);
 
-    const loaded = await ensureServiceForm("svc-1", true);
-    expect(loaded.versions).toHaveLength(1);
-    expect(createServiceForm).toHaveBeenCalledTimes(1);
+    await expect(ensureServiceForm("svc-1")).resolves.toBe(loaded);
+    expect(createServiceForm).not.toHaveBeenCalled();
   });
 
-  it("does not turn an initial read outage into a create mutation", async () => {
+  it("propagates an initial read outage without attempting a create", async () => {
     vi.mocked(getServiceForm).mockRejectedValue(new ApiError(503, "UNAVAILABLE", "offline"));
-    await expect(ensureServiceForm("svc-1", true)).rejects.toMatchObject({ status: 503 });
+
+    await expect(ensureServiceForm("svc-1")).rejects.toMatchObject({ status: 503 });
     expect(createServiceForm).not.toHaveBeenCalled();
-  });
-
-  it("does not create when versions already exist", async () => {
-    vi.mocked(getServiceForm).mockResolvedValue(draftForm("svc-1"));
-
-    await ensureServiceForm("svc-1", true);
-
-    expect(createServiceForm).not.toHaveBeenCalled();
-  });
-
-  it("does not create an empty list without write permission", async () => {
-    vi.mocked(getServiceForm).mockResolvedValue(emptyForm("svc-1"));
-
-    const loaded = await ensureServiceForm("svc-1", false);
-
-    expect(createServiceForm).not.toHaveBeenCalled();
-    expect(loaded.versions).toHaveLength(0);
   });
 });

@@ -4,6 +4,7 @@ import { schemaCompatibilityQuery } from '../../common/database/database-runtime
 import { RedisService } from '../../common/redis/redis.service';
 import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { readAuditAnchorRuntimeStatus } from '../audit-log/audit-anchor-runtime.service';
+import { WebsocketAdapterHealthService } from '../websocket/websocket-adapter-health.service';
 import {
   CachedProbe,
   defaultWorkerHeartbeatStaleSeconds,
@@ -12,6 +13,7 @@ import {
   readinessCacheMs,
   readinessTimeouts,
   withTimeout,
+  withWebsocketAdapterHealth,
   type ReadinessResult,
   type WorkerProbeResult,
 } from './health-probes';
@@ -19,17 +21,21 @@ import {
 type StatusResponse = { status(code: number): unknown };
 
 /**
- * `/health` stays a pure liveness probe. Paket 2.7 adds `/health/ready`
- * (database + Redis, 503 on failure) for Coolify/Docker and external monitors,
- * and `/health/worker` (heartbeat age) so a monitor can watch the worker
- * without signing in. Both are cached for 5 s per instance.
+ * `/health` stays a pure liveness probe. `/health/ready` checks database,
+ * Redis, the audit anchor and effective WebSocket adapter state (503 on failure)
+ * for Coolify/Docker and external monitors. `/health/worker` exposes heartbeat
+ * age. Database/Redis checks are cached for 5 s; adapter state is read per request.
  */
 @Controller('health')
 export class HealthController {
   private readonly readiness: CachedProbe<ReadinessResult>;
   private readonly worker: CachedProbe<WorkerProbeResult>;
 
-  constructor(prisma: PrismaService, redis: RedisService) {
+  constructor(
+    prisma: PrismaService,
+    redis: RedisService,
+    private readonly websocketAdapterHealth: WebsocketAdapterHealthService,
+  ) {
     this.readiness = new CachedProbe(
       () =>
         probeReadiness({
@@ -69,7 +75,13 @@ export class HealthController {
 
   @Get('ready')
   async getReadiness(@Res({ passthrough: true }) response: StatusResponse): Promise<ReadinessResult> {
-    const result = await this.readiness.get();
+    const cachedDependencies = await this.readiness.get();
+    // Adapter health changes on Redis events/probe results, so do not let the
+    // five-second dependency cache delay either a degraded or recovered signal.
+    const result = withWebsocketAdapterHealth(
+      cachedDependencies,
+      this.websocketAdapterHealth.isReady(),
+    );
     if (result.status !== 'ok') response.status(503);
     return result;
   }

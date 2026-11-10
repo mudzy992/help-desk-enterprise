@@ -37,6 +37,9 @@ describe("mapServiceCatalogError", () => {
     expect(mapServiceCatalogError(new ApiError(400, "INVALID_DOWNTIME_RANGE", "x"))).toBe(
       "services.errorDowntimeRange",
     );
+    expect(mapServiceCatalogError(new ApiError(412, "OPTIMISTIC_STALE_WRITE", "x"))).toBe(
+      "services.errorStaleWrite",
+    );
   });
 
   it("maps auth, read-only, and unavailable statuses", () => {

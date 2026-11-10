@@ -31,6 +31,11 @@ export const opsAlertKeys = {
   // Incident 2026-10-16: the mail provider refused sending (daily quota) and
   // nothing in the product said so — mail simply stopped going out.
   emailProviderBlocked: 'email.providerBlocked',
+  // W7.18: durable asset workflow failures and file-integrity drift.
+  assetImportStuck: 'asset.import.stuck',
+  assetReminderDeliveryBacklog: 'asset.reminders.deliveryBacklog',
+  assetTransferFileIntegrity: 'asset.transferFiles.integrity',
+  assetAuditWriteFailures: 'asset.audit.writeFailures',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -80,6 +85,50 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
     // provider, and closes on the first accepted message.
     openAfter: 1,
     resolveAfter: 1,
+  },
+  [opsAlertKeys.assetImportStuck]: {
+    key: opsAlertKeys.assetImportStuck,
+    title: { bs: 'Uvoz imovine ima zaglavljene primjene', en: 'Asset imports have stuck apply claims' },
+    action: {
+      bs: 'Pregledajte APPLYING poslove čiji je lease istekao prije više od 10 minuta. Provjerite trajni cursor i greške; koristite Resume/Discard kroz aplikaciju, ne mijenjajte red direktno u bazi.',
+      en: 'Review APPLYING jobs whose lease expired more than 10 minutes ago. Check the durable cursor and row errors; use Resume/Discard in the application rather than editing the row directly in the database.',
+    },
+    runbook: runbook('asset-import-stuck'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.assetReminderDeliveryBacklog]: {
+    key: opsAlertKeys.assetReminderDeliveryBacklog,
+    title: { bs: 'Podsjetnici za imovinu imaju zastoj isporuke', en: 'Asset reminders have a delivery backlog' },
+    action: {
+      bs: 'Pregledajte neuspjele isporuke i CLAIMED zapise starije od 10 minuta. Provjerite SMTP/provajdera i dozvolite sljedeći zakazani pokušaj; evidencija ne sadrži adresu primaoca.',
+      en: 'Review failed deliveries and CLAIMED rows older than 10 minutes. Check SMTP/the provider and allow the next scheduled retry; the metric contains no recipient address.',
+    },
+    runbook: runbook('asset-reminder-delivery'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.assetTransferFileIntegrity]: {
+    key: opsAlertKeys.assetTransferFileIntegrity,
+    title: { bs: 'Datoteke prenosnica nisu usklađene', en: 'Transfer files are inconsistent' },
+    action: {
+      bs: 'Provjerite stare zahtjeve za brisanje, nepovezane datoteke i nedostajuće datoteke koje baza još referencira. Skeniranje je samo za čitanje; prvo uskladite evidenciju i sigurnosnu kopiju, bez automatskog brisanja.',
+      en: 'Review old purge requests, unreferenced files, and missing files still referenced by the database. The scan is read-only; reconcile the records and backup first—nothing is deleted automatically.',
+    },
+    runbook: runbook('asset-transfer-files'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.assetAuditWriteFailures]: {
+    key: opsAlertKeys.assetAuditWriteFailures,
+    title: { bs: 'Zapisi audita imovine nisu uspjeli', en: 'Asset audit writes are failing' },
+    action: {
+      bs: 'Provjerite backend logove, audit action-schema validaciju i dostupnost baze/Redis-a. Transakcijske izmjene ostaju fail-closed; nemojte isključivati audit da biste zaobišli grešku.',
+      en: 'Check backend logs, audit action-schema validation, and database/Redis availability. Transactional mutations remain fail-closed; do not disable auditing to bypass the error.',
+    },
+    runbook: runbook('asset-audit-failure'),
+    openAfter: 2,
+    resolveAfter: 2,
   },
   [opsAlertKeys.slaScanLate]: {
     key: opsAlertKeys.slaScanLate,

@@ -16,10 +16,19 @@ export class JwtSocketAuthenticationVerifier
     credentials: SocketHandshakeCredentials,
   ): Promise<SocketAuthenticationResult> {
     try {
-      const claims = await this.sessionTokenService.verify(credentials.token);
+      const claims = await this.sessionTokenService.verifyForSocket(
+        credentials.token,
+      );
       return {
         status: 'authenticated',
-        principal: { subjectId: claims.subjectId },
+        principal: {
+          subjectId: claims.subjectId,
+          sessionId: claims.sessionId,
+          jti: claims.jti,
+          issuedAt: claims.issuedAt,
+          expiresAt: claims.expiresAt,
+          authzVersion: claims.authzVersion,
+        },
       };
     } catch {
       return { status: 'unauthenticated', reason: 'invalid_credentials' };

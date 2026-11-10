@@ -215,6 +215,18 @@ describe('TeamsDeliveryService', () => {
     expect(prisma.teamsCardMessage.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ activityId: 'sim-activity:a1', cardKind: 'ticket.approval' }) }));
   });
 
+  it('reports unknown after an ambiguous send or failed persistence, without retrying', async () => {
+    const ambiguous = setup({ transportError: new TeamsError('TRANSPORT_FAILED') });
+    await expect(ambiguous.service.deliver(job)).rejects.toMatchObject({ name: 'TeamsDeliveryOutcomeUnknownError' });
+    expect(ambiguous.prisma.teamsCardMessage.upsert).not.toHaveBeenCalled();
+
+    const persisted = setup();
+    persisted.prisma.teamsCardMessage.upsert.mockRejectedValueOnce(new Error('lost database response'));
+    await expect(persisted.service.deliver(job)).rejects.toMatchObject({ name: 'TeamsDeliveryOutcomeUnknownError' });
+    expect(persisted.outbox.entries).toHaveLength(1);
+    expect(persisted.prisma.teamsCardMessage.upsert).toHaveBeenCalledTimes(1);
+  });
+
   it('updates an existing card and skips identical ones', async () => {
     const changed = setup({ existing: { id: 'm1', activityId: 'old', stateHash: 'different' } });
     expect(await changed.service.deliver(job)).toBe('updated');

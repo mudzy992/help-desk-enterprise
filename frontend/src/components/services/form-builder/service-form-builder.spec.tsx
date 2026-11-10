@@ -49,6 +49,12 @@ function form(serviceId: string, activeFormVersionRef: string | null, fieldId = 
     formsEnabled: true,
     requireVersionOnTicket: false,
     activeFormVersionRef,
+    activeForm: null,
+    total: 1,
+    take: 20,
+    cursor: null,
+    nextCursor: null,
+    hasMore: false,
     versions: [
       {
         formVersionRef: `${serviceId}-draft`,
@@ -87,10 +93,22 @@ describe("ServiceFormBuilder request lifecycle", () => {
     );
     expect(ensure).toHaveBeenCalledOnce();
 
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Update required intake fields" },
+    });
     fireEvent.click(screen.getByText("save"));
     await waitFor(() => expect(getForm).toHaveBeenCalledTimes(1));
+    expect(saveVersion).toHaveBeenCalledWith(
+      "service-1",
+      "service-1-draft",
+      expect.any(Object),
+      "Update required intake fields",
+    );
     expect(onActiveVersion).not.toHaveBeenCalled();
 
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Approve the form version" },
+    });
     fireEvent.click(screen.getByText("activate"));
     await waitFor(() => expect(getForm).toHaveBeenCalledTimes(2));
     expect(onActiveVersion).toHaveBeenCalledWith("service-1-draft");

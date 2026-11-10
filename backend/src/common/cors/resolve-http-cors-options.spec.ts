@@ -21,6 +21,7 @@ describe('resolveHttpCorsOptions', () => {
       'Accept',
       'Authorization',
       'Content-Type',
+      'If-Match',
       'X-Install-Token',
     ]);
     expect(options.exposedHeaders).toEqual(['Content-Disposition', 'X-Total-Count']);

@@ -38,6 +38,9 @@ export type PrincipalAssignment = {
  * the write itself (rule 2.2.5, fail-open).
  */
 export type PrincipalInvalidationHook = (userId: string) => Promise<unknown>;
+export type PrincipalBatchInvalidationHook = (
+  userIds: readonly string[],
+) => Promise<unknown>;
 
 export type PrincipalContext = {
   readonly subjectId: string;
@@ -55,3 +58,9 @@ export type PrincipalContext = {
   readonly assignments: readonly PrincipalAssignment[];
   readonly authzVersion: number;
 };
+
+/** Minimal durable user state returned with an active database session read. */
+export type PrincipalAuthoritySnapshot = Pick<
+  PrincipalContext,
+  'subjectId' | 'authzVersion' | 'isActive' | 'mustChangePassword'
+>;

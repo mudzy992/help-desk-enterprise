@@ -12,11 +12,22 @@ import type {
   MfaTokenStage,
   PasswordChangeTokenClaims,
   SessionAccessTokenClaims,
+  VerifiedSessionAccessToken,
 } from './authentication.types';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
 import { readPasswordChangeSubjectId } from './read-password-change-subject-id';
 import { readSessionSubjectId } from './read-session-subject-id';
 import { SessionRevocationStore, type SessionRevocationExceptions } from './session-revocation.store';
+
+export type SocketSessionLeaseClaims = Omit<SessionAccessTokenClaims, 'jti'> & {
+  readonly jti: string;
+  readonly authzVersion: number;
+};
+
+export type SocketSessionLeaseCheck = Pick<
+  SocketSessionLeaseClaims,
+  'subjectId' | 'sessionId' | 'jti' | 'issuedAt' | 'expiresAt' | 'authzVersion'
+>;
 
 @Injectable()
 export class SessionTokenService {
@@ -148,7 +159,7 @@ export class SessionTokenService {
     );
   }
 
-  async verify(accessToken: string): Promise<SessionAccessTokenClaims> {
+  async verify(accessToken: string): Promise<VerifiedSessionAccessToken> {
     if (accessToken.trim().length === 0) {
       throw createInvalidCredentialsError();
     }
@@ -178,15 +189,95 @@ export class SessionTokenService {
         expiresAt: typeof record.exp === 'number' ? record.exp : 0,
         rememberMe: record.rem === true,
       };
-      if (await this.revocation.isRevoked({ ...claims })) {
+      const verification = await this.revocation.check({ ...claims });
+      if (verification.revoked) {
         throw createInvalidCredentialsError();
       }
-      return claims;
+      return {
+        ...claims,
+        ...(verification.durableAuthority === undefined
+          ? {}
+          : { durableAuthority: verification.durableAuthority }),
+      };
     } catch (error) {
       if (error instanceof AuthenticationError) {
         throw error;
       }
       throw createInvalidCredentialsError();
+    }
+  }
+
+  /**
+   * Socket handshakes require the metadata used by the ongoing session lease.
+   * Older tokens without a jti or a durable authority snapshot remain usable by
+   * the HTTP compatibility path, but are not allowed to create long-lived
+   * authenticated sockets.
+   */
+  async verifyForSocket(accessToken: string): Promise<SocketSessionLeaseClaims> {
+    const claims = await this.verify(accessToken);
+    const authority = claims.durableAuthority;
+    const jti = claims.jti;
+    if (
+      jti === null ||
+      jti.trim().length === 0 ||
+      !Number.isSafeInteger(claims.issuedAt) ||
+      claims.issuedAt < 0 ||
+      !Number.isSafeInteger(claims.expiresAt) ||
+      claims.expiresAt <= claims.issuedAt ||
+      claims.expiresAt <= Math.floor(Date.now() / 1000) ||
+      authority === undefined ||
+      authority.subjectId !== claims.subjectId ||
+      !authority.isActive ||
+      authority.mustChangePassword ||
+      !Number.isSafeInteger(authority.authzVersion) ||
+      authority.authzVersion < 0
+    ) {
+      throw createInvalidCredentialsError();
+    }
+    return {
+      subjectId: claims.subjectId,
+      sessionId: claims.sessionId,
+      jti,
+      issuedAt: claims.issuedAt,
+      expiresAt: claims.expiresAt,
+      rememberMe: claims.rememberMe,
+      authzVersion: authority.authzVersion,
+    };
+  }
+
+  /**
+   * Periodic WebSocket safety-net check. Any unavailable durable/cache check,
+   * expiry, revocation, deactivation or authz-version drift invalidates the
+   * lease; callers must disconnect rather than preserve the old socket.
+   */
+  async isSocketSessionCurrent(
+    claims: SocketSessionLeaseCheck,
+  ): Promise<boolean> {
+    if (
+      claims.jti.trim().length === 0 ||
+      !Number.isSafeInteger(claims.issuedAt) ||
+      claims.issuedAt < 0 ||
+      !Number.isSafeInteger(claims.expiresAt) ||
+      claims.expiresAt <= claims.issuedAt ||
+      claims.expiresAt <= Math.floor(Date.now() / 1000) ||
+      !Number.isSafeInteger(claims.authzVersion) ||
+      claims.authzVersion < 0
+    ) {
+      return false;
+    }
+    try {
+      const check = await this.revocation.check({ ...claims });
+      const authority = check.durableAuthority;
+      return (
+        !check.revoked &&
+        authority !== undefined &&
+        authority.subjectId === claims.subjectId &&
+        authority.authzVersion === claims.authzVersion &&
+        authority.isActive &&
+        !authority.mustChangePassword
+      );
+    } catch {
+      return false;
     }
   }
 

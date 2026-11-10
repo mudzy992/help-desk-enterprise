@@ -3,10 +3,12 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field, Input } from "@/components/ui/field";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
 import { readApiRequestId } from "@/lib/map-api-error";
+import { requireCatalogChangeReason } from "@/lib/services/require-catalog-change-reason";
 import {
   mapServiceCategoryError,
   type ServiceCategoryErrorKey,
@@ -35,10 +37,14 @@ export function ServiceCategoriesPanel({
   const operationGuard = useOperationGuard();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const reasonReady = requireCatalogChangeReason(reason) !== null;
   const [errorKey, setErrorKey] = useState<ServiceCategoryErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
   const remove = async (categoryId: string) => {
+    const normalizedReason = requireCatalogChangeReason(reason);
+    if (normalizedReason === null) return;
     const operationKey = `delete-category:${categoryId}`;
     if (operationGuard.isPending(operationKey)) return;
     await operationGuard.run(operationKey, async () => {
@@ -46,8 +52,9 @@ export function ServiceCategoriesPanel({
       setErrorKey(null);
       setRequestId(null);
       try {
-        await deleteServiceCategory(categoryId);
+        await deleteServiceCategory(categoryId, normalizedReason);
         setConfirmId(null);
+        setReason("");
         await onChanged();
       } catch (error) {
         setErrorKey(mapServiceCategoryError(error));
@@ -106,7 +113,7 @@ export function ServiceCategoriesPanel({
                         type="button"
                         size="xs"
                         variant="danger"
-                        disabled={pendingId !== null}
+                        disabled={!reasonReady || pendingId !== null}
                         onClick={() => void remove(category.id)}
                       >
                         {pendingId === category.id
@@ -117,7 +124,10 @@ export function ServiceCategoriesPanel({
                         type="button"
                         size="xs"
                         variant="ghost"
-                        onClick={() => setConfirmId(null)}
+                        onClick={() => {
+                          setConfirmId(null);
+                          setReason("");
+                        }}
                       >
                         {t("services.cancel")}
                       </Button>
@@ -127,7 +137,10 @@ export function ServiceCategoriesPanel({
                       type="button"
                       size="xs"
                       variant="danger"
-                      onClick={() => setConfirmId(category.id)}
+                      onClick={() => {
+                        setConfirmId(category.id);
+                        setReason("");
+                      }}
                     >
                       {t("services.categories.delete")}
                     </Button>
@@ -135,6 +148,26 @@ export function ServiceCategoriesPanel({
                 </div>
               ) : null}
             </div>
+            {confirmId === category.id ? (
+              <div className="mt-3 max-w-xl">
+                <Field
+                  label={t("services.changeReason")}
+                  required
+                  hint={t("services.changeReasonHint")}
+                >
+                  {(control) => (
+                    <Input
+                      {...control}
+                      value={reason}
+                      maxLength={512}
+                      required
+                      disabled={pendingId !== null}
+                      onChange={(event) => setReason(event.target.value)}
+                    />
+                  )}
+                </Field>
+              </div>
+            ) : null}
           </Card>
         );
       })}

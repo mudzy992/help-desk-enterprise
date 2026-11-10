@@ -10,6 +10,7 @@ export const knownScheduledJobIds = [
   "inbound-email-poll",
   "inbound-email-retention",
   "integration-dlq-retention-interval",
+  "integration-job-dispatch-reconcile-interval",
   "integration-worker-heartbeat-every",
   "kb-review-reminder-quarter-hourly",
   "notification-digest-5min",

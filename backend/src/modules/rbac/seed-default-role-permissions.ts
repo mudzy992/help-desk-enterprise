@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { PrincipalBatchInvalidationHook } from '../../common/principal-context/principal-context.types';
 import {
   authorizationRoleNames,
   defaultRolePermissionKeys,
@@ -45,6 +46,8 @@ export type SeedDefaultRolePermissionsOptions = {
   readonly dryRun?: boolean;
   /** Restrict the seed to these role keys (default: all system roles). */
   readonly roleKeys?: readonly string[];
+  /** Invalidate all holders after the new role-permission links commit. */
+  readonly invalidatePrincipals?: PrincipalBatchInvalidationHook;
 };
 
 const systemRoleKeys = Object.keys(defaultRolePermissionKeys);
@@ -70,63 +73,93 @@ export async function seedDefaultRolePermissions(
   const idsByKey = await resolvePermissionIds(prisma, [...allKeys], dryRun);
 
   const roles: SeededRolePermissions[] = [];
+  const changedRoleIds = new Set<string>();
   let addedTotal = 0;
-  for (const roleKey of roleKeys) {
-    const roleName = authorizationRoleNames[roleKey] ?? roleKey;
-    const defaults = keysByRole.get(roleKey) ?? [];
-    const existingRole = await prisma.role.findUnique({
-      where: { key: roleKey },
-      select: { id: true },
-    });
-    const roleId =
-      existingRole?.id ??
-      (dryRun
-        ? null
-        : (
-            await prisma.role.create({
-              data: { key: roleKey, name: roleName, isSystem: true },
-              select: { id: true },
-            })
-          ).id);
-    const existingLinks =
-      roleId === null
-        ? []
-        : await prisma.rolePermission.findMany({
-            where: { roleId },
-            select: { permissionId: true },
-          });
-    const existingIds = new Set(
-      existingLinks.map((link) => link.permissionId),
-    );
-    const addedPermissionKeys: string[] = [];
-    for (const permissionKey of defaults) {
-      const permissionId = idsByKey.get(permissionKey);
-      // A permission row that does not exist yet (dry run on a fresh database)
-      // cannot have a link either, so it counts as "would add".
-      if (permissionId !== undefined && existingIds.has(permissionId)) {
-        continue;
-      }
-      if (!dryRun) {
-        if (permissionId === undefined || roleId === null) {
-          // `ensurePermissionRows` created every row and the role exists after
-          // the create above, so this is a broken mapping rather than bad input.
-          throw new RbacError('INVALID_PERMISSION_KEY');
+  try {
+    for (const roleKey of roleKeys) {
+      const roleName = authorizationRoleNames[roleKey] ?? roleKey;
+      const defaults = keysByRole.get(roleKey) ?? [];
+      const existingRole = await prisma.role.findUnique({
+        where: { key: roleKey },
+        select: { id: true },
+      });
+      const roleId =
+        existingRole?.id ??
+        (dryRun
+          ? null
+          : (
+              await prisma.role.create({
+                data: { key: roleKey, name: roleName, isSystem: true },
+                select: { id: true },
+              })
+            ).id);
+      const existingLinks =
+        roleId === null
+          ? []
+          : await prisma.rolePermission.findMany({
+              where: { roleId },
+              select: { permissionId: true },
+            });
+      const existingIds = new Set(
+        existingLinks.map((link) => link.permissionId),
+      );
+      const addedPermissionKeys: string[] = [];
+      for (const permissionKey of defaults) {
+        const permissionId = idsByKey.get(permissionKey);
+        // A permission row that does not exist yet (dry run on a fresh database)
+        // cannot have a link either, so it counts as "would add".
+        if (permissionId !== undefined && existingIds.has(permissionId)) {
+          continue;
         }
-        await prisma.rolePermission.create({
-          data: { roleId, permissionId },
-        });
+        if (!dryRun) {
+          if (permissionId === undefined || roleId === null) {
+            // `ensurePermissionRows` created every row and the role exists after
+            // the create above, so this is a broken mapping rather than bad input.
+            throw new RbacError('INVALID_PERMISSION_KEY');
+          }
+          // Queue the holders before the autocommitted insert: a transport
+          // failure can be reported after the permission link was committed.
+          changedRoleIds.add(roleId);
+          await prisma.rolePermission.create({
+            data: { roleId, permissionId },
+          });
+        }
+        addedPermissionKeys.push(permissionKey);
       }
-      addedPermissionKeys.push(permissionKey);
+      addedTotal += addedPermissionKeys.length;
+      roles.push({
+        roleKey,
+        roleName,
+        roleCreated: existingRole === null,
+        existing: existingLinks.length,
+        added: addedPermissionKeys.length,
+        addedPermissionKeys,
+      });
     }
-    addedTotal += addedPermissionKeys.length;
-    roles.push({
-      roleKey,
-      roleName,
-      roleCreated: existingRole === null,
-      existing: existingLinks.length,
-      added: addedPermissionKeys.length,
-      addedPermissionKeys,
-    });
+  } finally {
+    // The CLI may fail after one or more autocommitted link inserts. Invalidate
+    // their holders even on that partial run, otherwise cached permission sets
+    // could outlive the links that already committed.
+    if (
+      !dryRun &&
+      changedRoleIds.size > 0 &&
+      options.invalidatePrincipals !== undefined
+    ) {
+      try {
+        const holders = await prisma.userRole.findMany({
+          where: { roleId: { in: [...changedRoleIds].sort() } },
+          select: { userId: true },
+          distinct: ['userId'],
+        });
+        const userIds = [...new Set(holders.map((holder) => holder.userId))].sort();
+        if (userIds.length > 0) {
+          await options.invalidatePrincipals(userIds);
+        }
+      } catch {
+        // Role-permission writes are durable; the best-effort hook must not
+        // mask the seed error or turn cache unavailability into a write rollback.
+      }
+    }
   }
 
   return { roles, addedTotal };

@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { PrincipalInvalidationHook } from '../../common/principal-context/principal-context.types';
 import type { MailTransport } from '../notifications/email/mail-transport';
 import type { SettingsService } from '../settings/settings.service';
 import { appendAuditLog } from '../audit-log/append-audit-log';
@@ -55,6 +56,8 @@ export async function issueTemporaryPasswordForUser(input: {
   /** Paket 5.4.0-d (M5): rejects a compromised candidate before hashing it. */
   readonly hibpChecker?: HibpPasswordChecker;
   readonly beforePasswordUpdate?: (transaction: Prisma.TransactionClient) => Promise<void>;
+  /** Post-commit invalidation for changes to the principal's authentication state. */
+  readonly invalidatePrincipal?: PrincipalInvalidationHook;
   readonly audit?: {
     readonly action: UserChangeAction;
     readonly actorUserId: string | null;
@@ -109,6 +112,13 @@ export async function issueTemporaryPasswordForUser(input: {
       });
     }
   });
+  if (input.invalidatePrincipal !== undefined) {
+    try {
+      await input.invalidatePrincipal(input.userId);
+    } catch {
+      // Cache and socket invalidation is best effort after the committed write.
+    }
+  }
   const emailed = await trySendTemporaryPassword({
     settingsService: input.settingsService,
     mailTransport: input.mailTransport,

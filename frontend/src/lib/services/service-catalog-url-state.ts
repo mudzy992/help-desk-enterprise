@@ -106,7 +106,7 @@ export function canonicalizeServiceCatalogUrl(
   available: {
     readonly categoryIds: ReadonlySet<string>;
     readonly originUnitIds: ReadonlySet<string> | null;
-    readonly serviceIds: ReadonlySet<string>;
+    readonly serviceIds: ReadonlySet<string> | null;
   },
 ): Partial<ServiceCatalogUrlState> {
   const patch: { -readonly [Key in keyof ServiceCatalogUrlState]?: ServiceCatalogUrlState[Key] } =
@@ -121,7 +121,11 @@ export function canonicalizeServiceCatalogUrl(
   ) {
     patch.originUnitId = null;
   }
-  if (state.serviceId !== null && !available.serviceIds.has(state.serviceId)) {
+  if (
+    state.serviceId !== null &&
+    available.serviceIds !== null &&
+    !available.serviceIds.has(state.serviceId)
+  ) {
     patch.workspace = null;
     patch.serviceId = null;
   }

@@ -1,5 +1,13 @@
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { notificationListLimits } from '../notifications.constants';
 import type { NotificationListQuery } from '../notifications.types';
 
@@ -15,4 +23,9 @@ export class ListNotificationsQueryDto implements NotificationListQuery {
   @Min(1)
   @Max(notificationListLimits.maximum)
   limit?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1024)
+  cursor?: string;
 }

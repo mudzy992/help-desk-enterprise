@@ -24,7 +24,12 @@ export async function persistActivatedConfigVersion(
   if (input.candidate.status === 'ACTIVE') {
     throw new ConfigVersioningError(configVersioningErrorCodes.alreadyActive);
   }
-  await applyConfigSnapshot(transaction, input.snapshot, input.registry);
+  const appliedSnapshot = await applyConfigSnapshot(
+    transaction,
+    input.snapshot,
+    input.registry,
+    { reason: input.reason, actorUserId: input.actorUserId },
+  );
   if (input.previousActive !== null) {
     await transaction.configVersion.update({
       where: { id: input.previousActive.id },
@@ -33,7 +38,11 @@ export async function persistActivatedConfigVersion(
   }
   await transaction.configVersion.update({
     where: { id: input.candidate.id },
-    data: { status: 'ACTIVE', activatedAt: new Date() },
+    data: {
+      status: 'ACTIVE',
+      activatedAt: new Date(),
+      snapshot: appliedSnapshot as unknown as Prisma.InputJsonValue,
+    },
   });
   await recordConfigVersionChange(transaction, {
     entityId: input.candidate.id,
@@ -41,7 +50,7 @@ export async function persistActivatedConfigVersion(
     actorUserId: input.actorUserId,
     action: 'update',
     before: {},
-    after: input.snapshot,
+    after: appliedSnapshot,
   });
   await recordConfigVersionAudit(transaction, {
     action: input.auditAction,

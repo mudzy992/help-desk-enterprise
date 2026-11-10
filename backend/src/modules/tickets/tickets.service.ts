@@ -18,6 +18,7 @@ import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
 import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
 import { TicketSlaTimersService } from '../sla/ticket-sla-timers.service';
+import { applyTicketSlaTimers } from './apply-ticket-sla-timers';
 import { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
 import type { TicketPersistedMessageSink } from './collaboration.types';
@@ -143,6 +144,37 @@ export class TicketsService {
     );
   }
 
+  /** Replays only idempotent post-create effects for an already-committed inbound ticket. */
+  async resumeInboundCreatedTicket(
+    ticketId: string,
+    sourceInboundEmailId: string,
+    actorUserId?: string,
+  ): Promise<void> {
+    const persisted = await this.prisma.ticket.findFirst({
+      where: { id: ticketId, sourceInboundEmailId },
+    });
+    if (persisted === null) throw new Error('INBOUND_CREATED_TICKET_NOT_FOUND');
+    const ticket = persisted as TicketRecord;
+    const context: TicketMutationContext = {
+      actorUserId: actorUserId ?? ticket.requesterId,
+      messageSource: 'EMAIL',
+      sourceInboundEmailId,
+      slaTimers: this.slaTimers,
+    };
+    const messages: TicketPersistedMessageSink = [];
+    const assigned = await this.ticketAssignmentService.applyAfterCreate(ticket, context, messages);
+    if (ticket.reopenedFromTicketId === null) {
+      await applyTicketSlaTimers(context, { ticket: assigned, event: 'created', now: assigned.createdAt });
+      await this.autoAttachPlaybook(assigned, messages);
+    }
+    try {
+      publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Inbound ticket realtime recovery failed for ${ticketId}: ${reason}`);
+    }
+  }
+
   create(input: CreateTicketInput, context: TicketMutationContext) {
     return executeTicketOperation(async () =>
       runTicketsServiceCreate({
@@ -166,7 +198,7 @@ export class TicketsService {
     );
   }
 
-  /** Package 1.4 (P3): best effort — a playbook problem never fails creation. */
+  /** Package 1.4 (P3): fast path; the transactionally queued intent retries failures. */
   private async autoAttachPlaybook(
     ticket: TicketRecord,
     messages: TicketPersistedMessageSink,
@@ -320,7 +352,7 @@ export class TicketsService {
         this.authorizationContextLoader,
         ticketId,
         gated,
-        { auditView: true },
+        { auditView: true, withResponseRelations: true },
       );
       const response = await respondLoadedTicket(this.prisma, record, this.clientLoaders(gated.actorUserId));
       // Paket 2.6: principal context is cached, so this adds no query.

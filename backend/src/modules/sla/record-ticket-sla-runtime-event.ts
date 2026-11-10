@@ -1,8 +1,6 @@
 import type { JsonValue } from '../change-log/change-log.types';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { dispatchSlaRuntimeNotification } from '../notifications/fan-out/dispatch-sla-runtime-notification';
 import { insertSystemTicketEvent } from '../tickets/insert-system-ticket-event';
-import { toTicketRealtimePayload } from '../tickets/to-collaboration-response';
 import { changeLogActions, recordSlaChange } from './record-sla-change';
 import { slaChangeLogEntityTypes } from './sla.constants';
 import { toTicketSlaStateSnapshot } from './to-ticket-sla-state-snapshot';
@@ -33,20 +31,14 @@ export async function recordTicketSlaRuntimeEvent(
     } as JsonValue,
     actorUserId: null,
   });
-  const message = await insertSystemTicketEvent(prisma, {
+  // The TicketMessage database trigger creates a notification fan-out intent
+  // in this same transaction. Delivery is performed after commit by the
+  // notification outbox worker; never publish directly from this write path.
+  await insertSystemTicketEvent(prisma, {
     ticketId: input.ticketId,
     action: input.action,
     actorUserId: null,
     detail: input.escalationRuleId ?? null,
     idempotencyKey: input.idempotencyKey,
   });
-  const ticket = await prisma.ticket.findUnique({
-    where: { id: input.ticketId },
-  });
-  if (ticket !== null) {
-    await dispatchSlaRuntimeNotification(
-      prisma,
-      toTicketRealtimePayload(message, ticket),
-    );
-  }
 }

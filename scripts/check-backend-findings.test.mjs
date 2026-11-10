@@ -69,6 +69,62 @@ test("W7.11 BA-assets-11 closeout je zatvoren u izvornom registry planu", async 
   );
 });
 
+test("W6.38–W6.40 zatvaraju inbound-email-01/02/03, a inbound-email-04 ostaje P2 otvoren", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, severity, status }) => [id, { source, severity, status }]));
+  for (const id of ["BA-inbound-email-01", "BA-inbound-email-02", "BA-inbound-email-03"]) {
+    assert.deepEqual(byId.get(id), {
+      source: "20-inbound-email.md",
+      severity: "P1",
+      status: "zatvoreno",
+    });
+  }
+  assert.deepEqual(byId.get("BA-inbound-email-04"), {
+    source: "20-inbound-email.md",
+    severity: "P2",
+    status: "otvoreno",
+  });
+});
+
+test("W6.47 zatvara BA-announcements-04, a P2/P3 ostaju otvoreni", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, severity, status }) => [id, { source, severity, status }]));
+  for (const [id, closeout] of [
+    ["BA-announcements-01", "W6.44"],
+    ["BA-announcements-02", "W6.45"],
+    ["BA-announcements-03", "W6.46"],
+    ["BA-announcements-04", "W6.47"],
+  ]) {
+    assert.deepEqual(byId.get(id), {
+      source: "28-announcements.md",
+      severity: "P1",
+      status: `zatvoreno (${closeout})`,
+    });
+  }
+  assert.deepEqual(byId.get("BA-announcements-12"), {
+    source: "28-announcements.md",
+    severity: "P2",
+    status: "otvoreno",
+  });
+  assert.deepEqual(byId.get("BA-announcements-18"), {
+    source: "28-announcements.md",
+    severity: "P3",
+    status: "otvoreno",
+  });
+});
+
+test("BA-06/07/08/09/13/14/15 closeouti su evidentirani", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
+  assert.deepEqual(byId.get("BA-service-catalog-06"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-07"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-08"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-09"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-13"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-14"), { source: "15-service-catalog.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-service-catalog-15"), { source: "15-service-catalog.md", status: "zatvoreno" });
+});
+
 test("W7.13 closeout ostaje evidentiran za BA-assets-13", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
@@ -76,24 +132,36 @@ test("W7.13 closeout ostaje evidentiran za BA-assets-13", async () => {
   assert.deepEqual(byId.get("BA-assets-13"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
-test("W7.14 closeout ostaje ograničen na BA-assets-14, a BA-assets-16–19 ostaju otvoreni", async () => {
+test("W7.14 statusi ostaju tačni uz kasniji owner-directed BA-assets-16 closeout", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
-  for (let id = 12; id <= 14; id += 1) {
+  for (let id = 12; id <= 19; id += 1) {
     assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
-  }
-  for (let id = 16; id <= 19; id += 1) {
-    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "otvoreno" });
   }
 });
 
-test("W7.15 zatvara samo BA-assets-15, a BA-assets-16–19 ostaju otvoreni", async () => {
+test("W7.15 i naknadni asset closeouti čuvaju samo pojedinačne BA statuse", async () => {
   const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
   const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
-  assert.deepEqual(byId.get("BA-assets-15"), { source: "22-assets.md", status: "zatvoreno" });
-  for (let id = 16; id <= 19; id += 1) {
-    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "otvoreno" });
+  for (let id = 15; id <= 19; id += 1) {
+    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
   }
+});
+
+test("W7.16 owner closeout, W7.17, W7.18 i W7.19 imaju pojedinačne zatvorene statuse", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
+  for (let id = 16; id <= 19; id += 1) {
+    assert.deepEqual(byId.get(`BA-assets-${id}`), { source: "22-assets.md", status: "zatvoreno" });
+  }
+});
+
+test("owner-directed W7.16 closeout does not change W7.18/W7.19 status", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const byId = new Map(plan.findings.map(({ id, source, status }) => [id, { source, status }]));
+  assert.deepEqual(byId.get("BA-assets-16"), { source: "22-assets.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-assets-18"), { source: "22-assets.md", status: "zatvoreno" });
+  assert.deepEqual(byId.get("BA-assets-19"), { source: "22-assets.md", status: "zatvoreno" });
 });
 
 test("čita escaped pipe u naslovu i izvorni status", () => {
@@ -116,9 +184,9 @@ test("odbija dupliciran BA ID između audit jedinica", async () => {
 });
 
 test("production baseline validator zaključava broj i severity zbir", () => {
-  const findings = Array.from({ length: 692 }, (_, index) => ({
+  const findings = Array.from({ length: 693 }, (_, index) => ({
     id: `BA-test-${index}`,
-    severity: index < 174 ? "P1" : index < 542 ? "P2" : "P3",
+    severity: index < 174 ? "P1" : index < 543 ? "P2" : "P3",
     source: "fixture.md",
     owner: "WS-H",
     wave: 1,
@@ -128,7 +196,7 @@ test("production baseline validator zaključava broj i severity zbir", () => {
     validateFindingsPlan({
       units: 44,
       total: findings.length,
-      severity: { P1: 174, P2: 368, P3: 150 },
+      severity: { P1: 174, P2: 369, P3: 150 },
       findings,
     }),
     [],

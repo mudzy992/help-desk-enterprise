@@ -5,8 +5,8 @@ import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { redisTokens } from '../../../common/redis/redis.tokens';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
-import { recordAuditEntry } from '../../audit-log/record-audit-entry';
-import type { AuditLogTransactionalClient } from '../../audit-log/audit-log.types';
+import { recordAssetAuditEntry } from '../asset-audit-transaction';
+import { AssetOperationsMetrics } from '../asset-operations-metrics';
 import { DirectorySyncError } from '../../directory-sync/directory-sync.error';
 import { DirectoryBackoff } from '../../directory-sync/ldaps/directory-backoff';
 import type { LdapClientFactory } from '../../directory-sync/ldaps/ldap-directory-client';
@@ -87,6 +87,7 @@ export class AssetDirectorySyncService {
     private readonly backoff: DirectoryBackoff,
     @Inject(redisTokens.client) redis: Redis,
     @Optional() @Inject(LDAP_CLIENT_FACTORY) private readonly clientFactory?: LdapClientFactory,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {
     this.distributedLease = new AssetDirectorySyncLease(redis);
   }
@@ -141,7 +142,10 @@ export class AssetDirectorySyncService {
       const enabled = await this.access.readSetting<unknown>(settingKeys.privateAssetsDirectorySyncEnabled, false);
       if (enabled !== true) throw new AssetError(assetErrorCodes.directorySyncDisabled);
     }
-    if (this.running) throw new AssetError(assetErrorCodes.directoryUnavailable, 'busy');
+    if (this.running) {
+      await this.recordDirectorySyncOverlap();
+      throw new AssetError(assetErrorCodes.directoryUnavailable, 'busy');
+    }
     this.running = true;
     const runId = randomUUID();
     let lease: AssetDirectorySyncLeaseHandle | null = null;
@@ -152,7 +156,10 @@ export class AssetDirectorySyncService {
         if (error instanceof AssetDirectorySyncLeaseError) throw leaseFailure(error);
         throw error;
       }
-      if (lease === null) throw new AssetError(assetErrorCodes.directoryUnavailable, 'busy');
+      if (lease === null) {
+        await this.recordDirectorySyncOverlap();
+        throw new AssetError(assetErrorCodes.directoryUnavailable, 'busy');
+      }
       const assertLease = () => lease!.assertOwned();
       const assertLeaseHealthy = () => lease!.assertHealthy();
       const startedAt = Date.now();
@@ -212,6 +219,10 @@ export class AssetDirectorySyncService {
         this.running = false;
       }
     }
+  }
+
+  private async recordDirectorySyncOverlap(): Promise<void> {
+    await this.assetOperationsMetrics?.recordDirectorySyncOverlap().catch(() => undefined);
   }
 
   private async plan(computers: LdapsDirectoryComputerEntry[], overrides: readonly OrganizationalUnitMappingOverride[], maxMissingPercent: number): Promise<DirectoryPlan> {
@@ -422,7 +433,7 @@ export class AssetDirectorySyncService {
 
   private async audit(report: DirectorySyncReport, actorUserId: string | null, reason: string | undefined, runId: string) {
     try {
-      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
+      await recordAssetAuditEntry(this.prisma, {
         action: report.dryRun ? auditLogActions.assetDirectorySyncDryRun : auditLogActions.assetDirectorySyncApplied,
         entityType: auditLogEntityTypes.asset,
         entityId: assetDirectorySyncEntityId,
@@ -444,7 +455,7 @@ export class AssetDirectorySyncService {
             matchedBy: conflict.matchedBy,
           })),
         } as never,
-      });
+      }, this.assetOperationsMetrics);
     } catch (error) {
       this.logger.warn(`asset_directory_sync_audit_failed reason=${error instanceof Error ? error.message : 'unknown'}`);
     }

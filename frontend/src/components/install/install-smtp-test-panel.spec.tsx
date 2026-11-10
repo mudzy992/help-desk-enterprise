@@ -51,6 +51,17 @@ describe("InstallSmtpTestPanel", () => {
     expect(await screen.findByText("install.smtp.test.errorAuth")).toBeTruthy();
   });
 
+  it("explains that a shared rate limiter outage blocks test sends", async () => {
+    vi.mocked(sendInstallSmtpTest).mockRejectedValue(
+      new ApiError(503, "SMTP_TEST_RATE_LIMIT_UNAVAILABLE", "The shared limiter is unavailable"),
+    );
+
+    render(<InstallSmtpTestPanel isConfigured hasUnsavedChanges={false} />);
+    fireEvent.click(screen.getByText("install.smtp.test.send"));
+
+    expect(await screen.findByText("install.smtp.test.errorRateLimitUnavailable")).toBeTruthy();
+  });
+
   it("cannot be used before SMTP is saved", () => {
     render(<InstallSmtpTestPanel isConfigured={false} hasUnsavedChanges={false} />);
 

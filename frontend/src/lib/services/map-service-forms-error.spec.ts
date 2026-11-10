@@ -13,6 +13,9 @@ describe("mapServiceFormsError", () => {
     expect(mapServiceFormsError(new ApiError(400, "INVALID_FIELD_CONFIGURATION", "x"))).toBe(
       "services.forms.errorFieldConfig",
     );
+    expect(mapServiceFormsError(new ApiError(400, "UNSAFE_FORM_PATTERN", "x"))).toBe(
+      "services.forms.errorUnsafePattern",
+    );
     expect(mapServiceFormsError(new ApiError(400, "INVALID_FIELD_IDENTIFIER", "x"))).toBe(
       "services.forms.errorFieldId",
     );

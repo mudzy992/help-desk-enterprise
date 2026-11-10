@@ -3,6 +3,8 @@ import type {
   ServiceOnboardingStatus,
   ServiceOnboardingStep,
 } from '../../generated/prisma/enums';
+import type { ServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
+import type { RoutingErrorDetails } from '../routing/routing.error';
 import type { CatalogMutationContext } from '../service-catalog/service-catalog.types';
 import type { CreateServiceInput, UpdateServiceInput } from '../service-catalog/service-catalog.types';
 
@@ -31,6 +33,7 @@ export type ServiceOnboardingRecord = {
 export type ServiceOnboardingValidationIssue = {
   readonly code: string;
   readonly step?: ServiceOnboardingStep;
+  readonly details?: RoutingErrorDetails;
 };
 
 export type ConfigurationReferenceValidation = {
@@ -51,7 +54,7 @@ export type ServiceOnboardingRoutingProvider = {
   suggest(serviceId: string): Promise<string | null>;
   evaluateActivationCoverage(
     serviceId: string,
-  ): Promise<'ROUTING_COVERAGE_MISSING' | null>;
+  ): Promise<ServiceRoutingCoverageEvaluation | null>;
 };
 
 export type ServiceOnboardingSlaProvider = {

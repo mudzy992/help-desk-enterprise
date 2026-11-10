@@ -1,13 +1,19 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
   Query,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import {
+  readAuthenticatedPrincipal,
+  type AuthenticatedHttpRequest,
+} from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import {
   authorizationRoleKeys,
@@ -67,9 +73,17 @@ export class IntegrationQueueController {
   @Post(':jobId/retry')
   async retryNow(
     @Param('jobId') jobId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<IntegrationJobResponse> {
+    const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
+    if (actorUserId.length === 0) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Authorization failed',
+      });
+    }
     try {
-      return await this.integrationQueueService.retryNow(jobId);
+      return await this.integrationQueueService.retryNow(jobId, actorUserId);
     } catch (error) {
       throw mapIntegrationQueueError(error);
     }

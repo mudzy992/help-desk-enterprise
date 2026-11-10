@@ -215,6 +215,23 @@ export function createInMemoryInstallSuperAdminPrisma() {
         return pickInstallSelectedFields(created, select);
       },
     },
+    userRole: {
+      findMany: async ({ where, distinct }: {
+        where: { roleId: { in: readonly string[] } };
+        distinct?: readonly string[];
+      }) => {
+        let holders = userRoles.filter((row) => where.roleId.in.includes(row.roleId));
+        if (distinct?.includes('userId')) {
+          const seen = new Set<string>();
+          holders = holders.filter((row) => {
+            if (seen.has(row.userId)) return false;
+            seen.add(row.userId);
+            return true;
+          });
+        }
+        return holders.map(({ userId }) => ({ userId }));
+      },
+    },
     $transaction: async <T>(
       callback: (client: unknown) => Promise<T>,
     ): Promise<T> => callback(prisma),

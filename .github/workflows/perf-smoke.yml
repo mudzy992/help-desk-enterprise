@@ -2,13 +2,38 @@ name: Perf smoke
 
 # Phase 4.2 (plan §4.2, item 1): the performance gate the program was missing.
 #
-# It is a *smoke*, not the full run: 200 virtual users for 5 minutes against a
-# throwaway Postgres + Redis, with the CI thresholds from `perf/config.js`
+# It is a *smoke*, not the full run: a 30-second ramp, then the existing 200 VU
+# profile plus 10 additive BA-10 service-catalog VUs held for 5 minutes against
+# throwaway Postgres + Redis,
+# with the CI thresholds from `perf/config.js`
 # (`ciThresholds`) — every one of them carries a comment naming its source.
 # A failing threshold fails the job; the k6 summary and the API log are uploaded
 # as artefacts so a regression can be read without re-running the pipeline.
 
+# Performance smoke is an expensive segment-level signal. Keep the PR gate, and
+# run it on this active Arena branch only when BA-10 runtime/perf code changes;
+# documentation-only closeout updates do not spend another expensive smoke.
 on:
+  push:
+    branches:
+      - arena/864951a6-help-desk-enterprise
+    paths:
+      - ".github/workflows/perf-smoke.yml"
+      - "backend/src/modules/service-catalog/**"
+      # BA-notifications-10 delivery and retry lifecycle changes are runtime changes too.
+      - "backend/src/modules/notifications/email/**"
+      - "backend/src/modules/integration-queue/**"
+      - "backend/prisma/schema/ops.prisma"
+      - "backend/prisma/migrations/20271031170000_notifications_email_delivery_attempt_state/**"
+      - "backend/scripts/run-isolated-integration.*"
+      - "backend/scripts/seed-service-catalog-perf.mjs"
+      - "perf/config.js"
+      - "perf/lib/load-shape.js"
+      - "perf/lib/metrics.js"
+      - "perf/lib/scenarios.js"
+      - "perf/report.js"
+      - "perf/smoke.js"
+      - "perf/validate.js"
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -51,6 +76,8 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
+      # Uses local plaintext service containers, so exercise development defaults (not test-only cache settings).
+      NODE_ENV: development
       DATABASE_URL: postgresql://servicedesk:servicedesk@127.0.0.1:5432/servicedesk
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: "6379"
@@ -66,6 +93,8 @@ jobs:
       CORS_ORIGIN: http://127.0.0.1:5173
       # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
       DB_QUERY_METRICS: "true"
+      # Opt-in, value-free query labels for bounded per-route samples while diagnosing the budget.
+      DB_QUERY_TRACE: "true"
       # Measured in CI 2026-09-24 (run 36041855923, 65048 requests): 2.084 queries
       # per application request (local rig showed 1.705 — warm caches, and queries
       # inside interactive transactions are not counted), down from 18.4 -> 8.7 -> 5.0 -> 2.1 (settings snapshot,
@@ -211,7 +240,7 @@ jobs:
           # message endpoints would still report 0,00.
           set -euo pipefail
           read_json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
-          rm -f /tmp/seed-tickets.log
+          rm -f /tmp/seed-tickets.log /tmp/perf-ticket-ids.txt
           note() { echo "$*" | tee -a /tmp/seed-tickets.log; }
 
           # Reuse the already-enrolled SuperAdmin bearer token written by the wizard step.
@@ -259,7 +288,13 @@ jobs:
               -X POST "$BASE_URL/tickets" -H "$auth" -H 'content-type: application/json' \
               -d "{\"title\":\"Perf smoke ticket $index\",\"description\":\"Seeded by the perf-smoke workflow so the detail, message and dashboard endpoints are measurable. Ticket $index of $SEED_TICKETS; safe to delete.\",\"impact\":\"MEDIUM\",\"urgency\":\"MEDIUM\",\"serviceId\":\"$service_id\",\"originUnitId\":\"$organizational_unit_id\",\"acknowledgeDuplicate\":true}")
             case "$status" in
-              2*) created=$((created + 1)) ;;
+              2*)
+                created=$((created + 1))
+                ticket_id=$(read_json 'd.get("id", "")' < /tmp/ticket.json || true)
+                if [ -n "$ticket_id" ]; then
+                  printf '%s\n' "$ticket_id" >> /tmp/perf-ticket-ids.txt
+                fi
+                ;;
               *) failed=$((failed + 1)); [ "$failed" -le 3 ] && head -c 200 /tmp/ticket.json ;;
             esac
           done
@@ -269,6 +304,11 @@ jobs:
             echo "::error::no ticket could be created — the smoke would measure an empty app"
             exit 1
           fi
+          if [ ! -s /tmp/perf-ticket-ids.txt ]; then
+            echo "::error::created tickets returned no ids — agent VUs cannot be distributed across fixtures"
+            exit 1
+          fi
+          note "ticket ids captured for k6 VUs: $(wc -l < /tmp/perf-ticket-ids.txt | tr -d ' ')"
 
           inbox=$(curl -sS -H "$auth" "$BASE_URL/tickets/inbox?pageSize=5" \
             | read_json 'len(d.get("items", []) if isinstance(d, dict) else d)')
@@ -280,14 +320,21 @@ jobs:
             note "::warning::the group inbox is empty — \`GET /tickets/:id\` and the message endpoint will report 0,00"
           fi
 
+      - name: Seed the BA-10 500-service PostgreSQL fixture
+        working-directory: backend
+        env:
+          PERF_CATALOG_FIXTURE_ALLOW_SEED: "true"
+        run: node scripts/seed-service-catalog-perf.mjs
+
       - uses: grafana/setup-k6-action@v1
 
       - name: Run the k6 smoke with CI thresholds
-        # 200 VU / 5 min profile; the ceiling is here so a stalled run fails the job
-        # instead of sitting in the queue for hours (the first honest run did exactly that).
+        # Existing 200 VU / 5 min profile plus 10 additive BA-10 catalog VUs; the
+        # ceiling is here so a stalled run fails instead of sitting in the queue for hours.
         timeout-minutes: 20
         env:
           REPORT_LABEL: ci-smoke
+          RAMP_UP: 30s
           AGENT_EMAIL: perf-agent@example.test
           AGENT_PASSWORD: Kanal-Odgovor-042!
           REQUESTER_EMAIL: perf-requester@example.test
@@ -297,6 +344,11 @@ jobs:
           # so a broken threshold or an aborted run left the job green — which is why the
           # 200 VU "gate" could not block anything.
           set -o pipefail
+          # Give each agent VU a stable, distinct seeded ticket so concurrent replies
+          # exercise the message path without all writers contending on the first inbox row.
+          if [ -s /tmp/perf-ticket-ids.txt ]; then
+            export AGENT_TICKET_IDS="$(paste -sd, /tmp/perf-ticket-ids.txt)"
+          fi
           k6 run perf/smoke.js 2>&1 | tee perf-smoke.log
           echo "--- threshold verdict ---"
           grep -E '(✓|✗|•)' perf-smoke.log || true
@@ -367,6 +419,31 @@ jobs:
           echo "bootstrap (izuzeto):    ${BOOTSTRAP_N} zahtjeva (install/health/auth-login/mfa/change-password)"
           echo "najskuplje rute:"
           sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -5 | sed 's/^/  /' || true
+          route_summary=$(sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null \
+            | head -5 | awk '{ printf "%s=%s/%s ", $3, $1, $2 }')
+          route_volume_summary=$(awk '$2 >= 100' /tmp/query-budget-paths.txt 2>/dev/null \
+            | sort -k2,2nr | head -15 | awk '{ printf "%s=%s/%s ", $3, $1, $2 }')
+          echo "::notice::perf_query_budget avg=${APP_AVG} requests=${APP_N} p95=${P95} max=${MAX} gate=${BUDGET}; highest_route_avg=${route_summary}"
+          echo "::notice::perf_routes_by_volume avg/count=${route_volume_summary}"
+          trace_summary=$(grep -E 'db_query_trace method=GET path=/tickets(/inbox)? count=' api.log 2>/dev/null \
+            | sed -E 's/\x1B\[[0-9;]*m//g; s/^.*db_query_trace /db_query_trace /' \
+            | head -24 | tr '\n' ';' || true)
+          if [ -n "$trace_summary" ]; then
+            echo "::notice::db_query_trace_samples=${trace_summary}"
+          fi
+          # Recent runs show /services as the highest-average route. Expose a bounded,
+          # value-free sample here as well, so its query shape is visible in annotations.
+          service_trace_summary=$(grep -E 'db_query_trace method=GET path=[/]services count=' api.log 2>/dev/null \
+            | sed -E 's/\x1B\[[0-9;]*m//g; s/^.*db_query_trace /db_query_trace /' \
+            | head -12 | tr '\n' ';' || true)
+          if [ -n "$service_trace_summary" ]; then
+            echo "::notice::db_query_trace_services=${service_trace_summary}"
+          fi
+          if [ -s perf/results/ci-smoke.md ]; then
+            k6_evidence=$(grep -E 'GET /tickets|POST /tickets|GET /search|GET /services|http_req_failed|tickets_list_duration|ticket_detail_duration|ticket_message_duration|service_catalog|FAILED' perf/results/ci-smoke.md \
+              | head -15 | tr '\n' ';' || true)
+            echo "::notice::k6_latency_and_thresholds=${k6_evidence}"
+          fi
 
           {
             echo "| Metrika | Vrijednost |"
@@ -394,6 +471,38 @@ jobs:
             echo "::error::avg db_queries_per_request=${APP_AVG} (aplikacija) prelazi budžet od ${BUDGET}"
             exit 1
           fi
+
+      - name: Publish the smoke result in the Actions summary
+        if: always()
+        run: |
+          {
+            echo "## Performance smoke evidence"
+            echo ""
+            if [ -f /tmp/query-budget-report.md ]; then
+              cat /tmp/query-budget-report.md
+            else
+              echo "Query-budget report was not produced; inspect the step log."
+            fi
+            if [ -f perf/results/ci-smoke.md ]; then
+              echo ""
+              echo "## k6 result"
+              echo ""
+              sed -n '1,100p' perf/results/ci-smoke.md
+            fi
+            echo ""
+            echo "## Non-2xx API responses"
+            echo ""
+            echo '```'
+            if [ -f api.log ]; then
+              failures=$(sed -e 's/\x1b\[[0-9;]*[a-zA-Z]//g' api.log \
+                | grep -oE 'status=[0-9]+ method=[A-Z]+ path=[^ ]+' \
+                | grep -vE 'status=2[0-9][0-9]' | sort | uniq -c | sort -rn | head -10 || true)
+              if [ -n "$failures" ]; then printf '%s\n' "$failures"; else echo "(none)"; fi
+            else
+              echo "API log is not available."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the k6 summary and the API log
         if: always()

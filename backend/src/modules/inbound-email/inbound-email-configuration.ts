@@ -1,5 +1,6 @@
 import type { SettingsService } from '../settings/settings.service';
 import { settingKeys } from '../settings/setting-keys';
+import { normalizeAuthservId } from './normalize-authserv-id';
 import {
   inboundEmailSettingDefaults as d,
   inboundImapAuthMethods,
@@ -25,6 +26,7 @@ export type InboundEmailConfiguration = {
   readonly processedFolder: string;
   readonly rejectedFolder: string;
   readonly requireAuthPass: boolean;
+  readonly trustedAuthservId: string;
   readonly createTickets: boolean;
   readonly defaultServiceId: string;
   readonly rawRetentionDays: number;
@@ -47,6 +49,11 @@ export function inboundConfigurationProblems(configuration: InboundEmailConfigur
     if (configuration.imap.authMethod === 'password' && configuration.imap.password.length === 0) {
       problems.push('IMAP_PASSWORD_MISSING');
     }
+  }
+  if (configuration.requireAuthPass) {
+    const trustedAuthservId = typeof configuration.trustedAuthservId === 'string' ? configuration.trustedAuthservId : '';
+    if (trustedAuthservId.trim().length === 0) problems.push('TRUSTED_AUTHSERV_ID_MISSING');
+    else if (normalizeAuthservId(trustedAuthservId) === null) problems.push('TRUSTED_AUTHSERV_ID_INVALID');
   }
   if (configuration.createTickets && configuration.defaultServiceId.length === 0) problems.push('DEFAULT_SERVICE_MISSING');
   return problems;
@@ -84,6 +91,7 @@ export async function loadInboundEmailConfiguration(settings: SettingsService): 
       k.privateInboundProcessedFolder,
       k.privateInboundRejectedFolder,
       k.privateInboundRequireAuthPass,
+      k.privateInboundTrustedAuthservId,
       k.privateInboundCreateTickets,
       k.privateInboundDefaultServiceId,
       k.privateInboundRawRetentionDays,
@@ -109,6 +117,7 @@ export async function loadInboundEmailConfiguration(settings: SettingsService): 
     processedFolder,
     rejectedFolder,
     requireAuthPass,
+    trustedAuthservId,
     createTickets,
     defaultServiceId,
     rawRetentionDays,
@@ -133,6 +142,7 @@ export async function loadInboundEmailConfiguration(settings: SettingsService): 
     processedFolder: text(processedFolder) || d.processedFolder,
     rejectedFolder: text(rejectedFolder) || d.rejectedFolder,
     requireAuthPass: requireAuthPass !== false,
+    trustedAuthservId: text(trustedAuthservId),
     createTickets: createTickets === true,
     defaultServiceId: text(defaultServiceId),
     rawRetentionDays: integer(rawRetentionDays, d.rawRetentionDays),

@@ -12,7 +12,7 @@ Korisnik ili agent odgovori na obavijest o tiketu u svom mail klijentu. Odgovor 
    - Ako je prazna, izvodi se iz `MFA_ENCRYPTION_KEY` (HKDF).
    - Bez obje vrijednosti prepoznaje se samo `[T-000123]` u naslovu i stari thread `<ticket-…@…>` iz 1.5.
    - Promjena tajne poništava tokene u već poslanim mailovima. Ti odgovori se i dalje prepoznaju po broju u naslovu.
-3. **Migracija** `20261015090000_inbound_email`, zatim restart backenda i workera.
+3. **Migracije.** Osnovni ugovor je `20261015090000_inbound_email`. Crash-safe replay iz ovog paketa zahtijeva i `20271031200000_inbound_email_crash_safe_recovery`; release migrator primjenjuje sve preostale migracije redom po ID-u prije restarta backenda/workera. Ne pokretati ručno SQL niti migraciju nad ciljnom bazom.
 
 ## 2. Office 365 — Microsoft Graph (preporučeno)
 
@@ -83,7 +83,7 @@ Skripta pita samo adresu i app password. Postavlja provider `imap`, `imap.gmail.
 - Obrađeni mailovi idu u `HelpDesk/Obradjeno`, a odbijeni i ignorisani u `HelpDesk/Odbijeno`. Ništa se ne briše.
 - Original (`.eml.gz`) čuva se 30 dana u `<UPLOAD_ROOT>/inbound-raw/<yyyy-mm>/`. Dnevnik (bez tijela poruke) čuva se 180 dana.
 - Ista poruka se nikad ne obrađuje dvaput (`InboundEmail` unique po sandučiću i ID-u poruke).
-- Ako worker padne usred obrade, poruka se označava `INTERRUPTED` i ide u „Odbijeno”. Ne ponavlja se, da ne bi nastala dupla poruka na tiketu.
+- Ako worker padne usred obrade, mail ostaje u Inboxu dok se lease ne istekne. Novi worker ga sigurno ponavlja pomoću owner-token fencing-a i stabilnih idempotency ključeva; ne parkirati ga kao `INTERRUPTED` samo zato što je status `PROCESSING`.
 
 ## 5. Test bez tenanta — GreenMail na Coolify serveru
 
@@ -122,3 +122,39 @@ Kad je SMTP podešen na isti GreenMail (`greenmail.test:3025`, bez TLS-a), odgov
 - Kartica **Postavke → Dolazna pošta (odgovor e-mailom)** prikazuje stanje, zadnju uspješnu provjeru, brojeve za 24 h, zadnju grešku, upozorenja o konfiguraciji i dnevnik zadnjih 50 poruka.
 - Logovi workera: `inbound_email_processed=… rejected=… ignored=… failed=…`, `inbound_email_run_failed`, `inbound_email_message_failed`.
 - Kad konektor ne radi, pokušaji se prorjeđuju eksponencijalno (najviše 30 min između pokušaja). Prva uspješna provjera vraća normalan ritam.
+
+## 7. Crash-safe replay i legacy reconciliation (W6.38)
+
+Nova šema uvodi `processingPhase`, `processingOwnerToken` i `processingLeaseExpiresAt`. Worker claimuje poruku atomskim conditional update-om; heartbeat obnavlja lease, a checkpoint, failure i završni status prihvataju samo aktuelni token dok lease još važi. Poruka koja ima aktivan lease se preskače; nakon isteka je može preuzeti tačno jedan worker. Stari owner ne može finalizirati ni checkpoint-ati nakon preuzimanja.
+
+Side effect-i imaju stabilan dedupe dokaz: novi tiket nosi unique `sourceInboundEmailId`; reply/reopen događaji koriste ključeve po inbound redu; prilog koristi ključ po redu i indeks, SHA-256 payload hash i jedinstveni `(ticketId, idempotencyKey)`. Disk storage putanja priloga je deterministička po ključu i hash-u sadržaja, a write se promoviše iz staging fajla atomskim rename-om. Zato pad nakon blob write-a, a prije DB metadata zapisa, pri replay-u ponovo koristi isti blob umjesto da napravi drugi vidljivi fajl. Metadata/unique constraint je autoritativna veza blob-a i tiketa.
+
+Ako se pronađe već kreiran tiket prije završetka inbound reda, nastavak ne preskače post-create rad: za običan novi tiket ponovo se pozivaju auto-assignment, SLA sync i auto-attach playbook intent; za novi tiket nastao reopen-om ponavlja se assignment. Assignment je no-op nakon uspješnog zapisa, SLA sync je zaključan/idempotentan, a playbook intent ima dedupe ključ po tiketu i durable outbox. Obični reply i reopen na istom tiketu upisuju poruku i SLA/effect namjere transakcijski s idempotency ključem; reopen u novi tiket koristi unique source ID i stabilne ključeve za reopen/comment događaje. Realtime emit poslije DB commita ima best-effort fast path, ali PostgreSQL trigger u istoj transakciji upisuje `ticket.message.delivery` outbox za svaki novi `TicketMessage`. Reconciler čeka prihvat API/Redis bridge-a prije acknowledgement-a i ponavlja neuspjele dostave (do 10 pokušaja, zatim dead-letter).
+
+Delivery je at-least-once: pad poslije prihvaćenog publish-a, a prije outbox acknowledgement-a, može ponoviti isti message ID. UI upsert-uje timeline poruke po tom stabilnom ID-u, pa dupli websocket emit ne pravi dupli zapis; ovo nije exactly-once websocket garancija. Inbound replay ne pravi novi message/event zapis i ne zamjenjuje outbox retry.
+
+Retry politika ostaje: tehnička greška prije faze `TICKET_MUTATION` se pokušava najviše tri puta, a zatim se mail parkira u „Odbijeno”. Ako je mutation faza već započela, replay ostaje dozvoljen i nakon tog limita jer prethodni side effect može biti commit-ovan; idempotency ključevi/unique constrainti omogućavaju siguran nastavak. Odbijeni/nevalidni poslovni ishodi i dalje se finalizuju kao ranije.
+
+### Legacy redovi bez lease/phase
+
+Redovi koji su već bili `PROCESSING` ili `FAILED` prije ove migracije imaju `processingPhase IS NULL` i `processingLeaseExpiresAt IS NULL`. Kod ih namjerno ne claimuje i ne pomjera; u logu se pojavljuje `inbound_email_legacy_attempt_requires_reconciliation`. To stanje **ne dokazuje** da tiket write nije commit-ovan, jer stari protokol nije zapisivao idempotency ključ prije side effect-a.
+
+Kontrolisana procedura prije uključivanja novog worker-a:
+
+1. Pauzirati inbound poller, napraviti DB/storage snapshot i sačuvati worker logove. Ne pokretati masovni update koji prebacuje sve stare `PROCESSING` redove u `FAILED`.
+2. Read-only izdvojiti redove i povezane ID-eve:
+   ```sql
+   SELECT "id", "mailboxKey", "providerMessageId", "messageIdHeader", "fromAddress",
+          "subject", "status", "processingPhase", "processingLeaseExpiresAt", "createdAt",
+          "attempts", "ticketId", "ticketMessageId", "createdTicketId"
+   FROM "InboundEmail"
+   WHERE "status" IN ('PROCESSING', 'FAILED')
+     AND "processingPhase" IS NULL
+     AND "processingLeaseExpiresAt" IS NULL
+   ORDER BY "createdAt";
+   ```
+3. Za svaki red pojedinačno pregledati provider poruku i sačuvani `.eml.gz` ako postoji; provjeriti ticket poruke/evente, tikete kreirane u odgovarajućem vremenu i postojeće attachment metadata/blob-ove. `ticketId`/message kolone koje su NULL nisu dokaz da side effect nije izvršen.
+4. Ako je side effect potvrđeno završen, uz odobrenu, auditovanu DB proceduru ručno postaviti konačni `PROCESSED` ishod i poznate ticket/message ID-eve; po nastavku pollinga worker će samo premjestiti poruku. Ako je potvrđeno da side effect nije nastao, uz isto odobrenje postaviti `status='FAILED'`, `processingPhase='CLAIMED'` i `attempts=0`, kako bi novi idempotentni proces imao retry budžet. Neizvjesne slučajeve ostaviti na čekanju za ručnu odluku — automatski replay može duplicirati legacy reply/attachment.
+5. Nastaviti polling tek nakon što su svi legacy redovi razriješeni i zabilježeni u change/audit evidenciji.
+
+Ova procedura je samo runbook; migracija ni reconciliation SQL nisu pokrenuti ovim paketom. Novi `PROCESSING` redovi već imaju lease/phase i prolaze kroz automatski stale-claim recovery.

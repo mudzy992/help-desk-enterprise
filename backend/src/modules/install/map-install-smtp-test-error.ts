@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpException,
   HttpStatus,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { installSmtpTestErrorCodes } from './install-smtp-test.constants';
 import { InstallSmtpTestError } from './install-smtp-test.error';
@@ -15,6 +16,8 @@ const messages: Record<InstallSmtpTestErrorCode, string> = {
   SMTP_TEST_INVALID_RECIPIENT: 'The test address is not a valid e-mail address',
   SMTP_TEST_RATE_LIMITED:
     'Too many test e-mails, try again in a few minutes',
+  SMTP_TEST_RATE_LIMIT_UNAVAILABLE:
+    'The test e-mail limiter is unavailable; try again later',
   SMTP_TEST_AUTH_FAILED:
     'The server refused the credentials (check username and password)',
   SMTP_TEST_TLS_FAILED:
@@ -44,6 +47,9 @@ export function mapInstallSmtpTestError(error: unknown): HttpException {
   }
   if (error.code === installSmtpTestErrorCodes.rateLimited) {
     return new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
+  }
+  if (error.code === installSmtpTestErrorCodes.rateLimitUnavailable) {
+    return new ServiceUnavailableException(body);
   }
   return new BadRequestException(body);
 }

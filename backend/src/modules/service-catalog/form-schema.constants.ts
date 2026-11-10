@@ -21,3 +21,10 @@ export const serviceFormSchemaConstants = {
   maximumOptionCount: 64,
   maximumFieldCount: 64,
 } as const;
+
+export const serviceFormRegexSafetyConstants = {
+  maximumInputBytes: 4096,
+  maximumRequestInputBytes: 16_384,
+  maximumRepeatCount: 256,
+  maximumFixedRepetitionBudget: 1024,
+} as const;

@@ -14,7 +14,20 @@ export function buildGroupInboxWhere(
   input: TicketVisibilityInput,
 ): Prisma.TicketWhereInput[] | null {
   const { context, actorGroupIds } = input;
-  if (!context.isSuperAdmin && actorGroupIds.length === 0) {
+  let groupMembershipWhere: Prisma.TicketWhereInput;
+  if (context.isSuperAdmin) {
+    groupMembershipWhere = { assignedGroupId: { not: null } };
+  } else if (actorGroupIds.length > 0) {
+    groupMembershipWhere = { assignedGroupId: { in: [...actorGroupIds] } };
+  } else if (input.actorMembershipUserId !== undefined) {
+    groupMembershipWhere = {
+      assignedGroup: {
+        is: {
+          members: { some: { userId: input.actorMembershipUserId } },
+        },
+      },
+    };
+  } else {
     return null;
   }
   return [
@@ -27,11 +40,7 @@ export function buildGroupInboxWhere(
     // actionable and are always hidden, matching the staff `hideMerged`
     // default on the all/teams lists.
     { mergedIntoTicketId: null },
-    {
-      assignedGroupId: context.isSuperAdmin
-        ? { not: null }
-        : { in: [...actorGroupIds] },
-    },
+    groupMembershipWhere,
     ...buildTicketVisibilityWhere({ ...input, requesterSeesOwn: false }),
   ];
 }

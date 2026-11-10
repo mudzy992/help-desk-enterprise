@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { loadReturningAnonymizedCheck } from '../privacy/anonymization/returning-anonymized';
 import {
@@ -27,6 +28,12 @@ export class EntraIdentityBinder {
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
     private readonly authenticationUserLoader: AuthenticationUserLoader,
+    @Optional()
+    @Inject(PrincipalContextInvalidator)
+    private readonly principalContextInvalidator?: Pick<
+      PrincipalContextInvalidator,
+      'notifyUserChanged'
+    >,
   ) {}
 
   async resolve(identity: NormalizedEntraIdentity): Promise<AuthenticationUserRecord> {
@@ -72,17 +79,52 @@ export class EntraIdentityBinder {
     // Conditional update: a concurrent first login cannot bind twice.
     const updated = await this.prisma.user.updateMany({
       where: { id: user.id, entraObjectId: null, isLocalOnly: false },
-      data: { entraObjectId: identity.externalSubject },
+      data: {
+        entraObjectId: identity.externalSubject,
+        // The cached principal includes provider identity fields, which are not
+        // part of its durable read fence. Bump atomically so a crash before the
+        // post-write notification still expires pre-bind session leases.
+        authzVersion: { increment: 1 },
+      },
     });
     if (updated.count !== 1) {
       throw new AuthenticationError('ENTRA_ACCOUNT_CONFLICT');
     }
+    await this.notifyPrincipalContextChanged(user.id);
     await this.audit(auditLogActions.userEntraBound, user.id, {});
     const reloaded = await this.authenticationUserLoader.findById(user.id);
     if (reloaded === null) {
       throw new AuthenticationError('INVALID_CREDENTIALS');
     }
     return reloaded;
+  }
+
+  private async notifyPrincipalContextChanged(userId: string): Promise<void> {
+    const invalidator = this.principalContextInvalidator;
+    if (invalidator === undefined) return;
+
+    let authzVersion: number | null = null;
+    try {
+      const current = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { authzVersion: true },
+      });
+      authzVersion = current?.authzVersion ?? null;
+    } catch (error) {
+      // A committed authzVersion bump remains the durable lease fence even when
+      // this best-effort read fails; null deletes the cache pointer instead.
+      this.logger.warn(
+        `entra_binding_version_read_failed user=${userId} reason=${String((error as Error)?.name)}`,
+      );
+    }
+
+    try {
+      await invalidator.notifyUserChanged(userId, authzVersion);
+    } catch (error) {
+      this.logger.warn(
+        `entra_binding_invalidation_failed user=${userId} reason=${String((error as Error)?.name)}`,
+      );
+    }
   }
 
   private async provision(

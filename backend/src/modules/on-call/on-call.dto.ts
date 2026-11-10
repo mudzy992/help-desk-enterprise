@@ -8,6 +8,7 @@ export class SaveOnCallScheduleDto {
   @IsBoolean() isActive!: boolean;
   @IsBoolean() autoAssignOutsideHours!: boolean;
   @IsOptional() @IsString() @MaxLength(64) ownerUserId?: string | null;
+  @IsOptional() @IsISO8601() @MaxLength(40) expectedUpdatedAt?: string | null;
   @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) memberUserIds!: string[];
   @IsString() @Length(3, 500) reason!: string;
 }

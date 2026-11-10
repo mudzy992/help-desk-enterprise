@@ -22,6 +22,7 @@ const sourceIndex: ConfigReferenceIndex = {
   slaProfiles: [{ id: 'profile-1', key: 'INCIDENT' }],
   responseTemplates: [],
   playbooks: [],
+  knowledgeArticles: [],
   formVersions: [{ id: 'form-1', key: 'vpn@1' }],
 };
 
@@ -63,6 +64,7 @@ const productionIndex: ConfigReferenceIndex = {
   slaProfiles: [{ id: 'p-profile', key: 'INCIDENT' }],
   responseTemplates: [],
   playbooks: [],
+  knowledgeArticles: [],
   formVersions: [{ id: 'p-form', key: 'vpn@1' }],
 };
 
@@ -133,6 +135,17 @@ describe('config package (Paket 2.9 K4)', () => {
     expect(result.created).toEqual({ calendars: [], slaProfiles: [] });
   });
 
+  it('preserves the target catalog concurrency hash while overlaying portable values', () => {
+    const targetHash = 'c'.repeat(64);
+    const result = resolvePortableConfig(
+      resolveInput({
+        target: { ...productionSnapshot(), catalogStateHash: targetHash },
+      }),
+    );
+
+    expect(result.snapshot?.catalogStateHash).toBe(targetHash);
+  });
+
   it('applies env-bound settings only when confirmed', () => {
     const result = resolvePortableConfig(resolveInput({ applyEnvironmentBound: true }));
     expect(result.snapshot!.settings['private.smtp.host']).toBe('mail.staging.example.com');
@@ -167,6 +180,197 @@ describe('config package (Paket 2.9 K4)', () => {
     expect(result.skipped.formVersions).toEqual(['vpn@1']);
     // The routing rule still needs the service → blocking.
     expect(result.items).toContainEqual(expect.objectContaining({ kind: 'service', key: 'vpn', blocking: true }));
+  });
+
+  it('exports, parses and resolves complete template scopes and playbook steps by natural key', () => {
+    const sourceIndexWithTemplates: ConfigReferenceIndex = {
+      ...sourceIndex,
+      responseTemplates: [{ id: 'template-1', key: 'VPN reply' }],
+      playbooks: [{ id: 'playbook-1', key: 'VPN checklist' }],
+      knowledgeArticles: [{ id: 'article-1', key: 'vpn-setup' }],
+    };
+    const source = createConfigSnapshotFixture({
+      templates: {
+        responseTemplates: [{
+          id: 'template-1',
+          name: 'VPN reply',
+          bodyBs: 'Pozdrav {ticketNumber}',
+          bodyEn: null,
+          kind: 'REPLY',
+          tags: ['support'],
+          isActive: true,
+          deletedAt: null,
+          scope: { serviceIds: ['service-vpn'], categoryIds: ['cat-1'], groupIds: ['group-it'] },
+        }],
+        playbooks: [{
+          id: 'playbook-1',
+          name: 'VPN checklist',
+          description: 'VPN setup steps',
+          isActive: true,
+          version: 5,
+          deletedAt: null,
+          scope: { serviceIds: ['service-vpn'], categoryIds: ['cat-1'] },
+          steps: [{
+            stepKey: 'verify_access',
+            position: 0,
+            title: 'Verify access',
+            instructions: null,
+            required: true,
+            knowledgeArticleId: 'article-1',
+            responseTemplateId: 'template-1',
+          }],
+        }],
+      },
+    });
+    const content = buildPortableConfig(source, sourceIndexWithTemplates, {
+      includeEnvironmentBound: false,
+      isSecret,
+    });
+    expect(content.templates).toEqual({
+      responseTemplates: [{
+        name: 'VPN reply',
+        bodyBs: 'Pozdrav {ticketNumber}',
+        bodyEn: null,
+        kind: 'REPLY',
+        tags: ['support'],
+        isActive: true,
+        deletedAt: null,
+        scope: { services: ['vpn'], categories: ['network'], groups: ['IT'] },
+      }],
+      playbooks: [{
+        name: 'VPN checklist',
+        description: 'VPN setup steps',
+        isActive: true,
+        deletedAt: null,
+        version: 5,
+        scope: { services: ['vpn'], categories: ['network'] },
+        steps: [{
+          stepKey: 'verify_access',
+          position: 0,
+          title: 'Verify access',
+          instructions: null,
+          required: true,
+          knowledgeArticle: 'vpn-setup',
+          responseTemplate: 'VPN reply',
+        }],
+      }],
+    });
+
+    const header: ConfigPackageHeader = {
+      format: 'helpdesk-config-package',
+      formatVersion: 1,
+      appVersion: '',
+      sourceEnvironment: 'staging',
+      sourceVersion: 4,
+      exportedAt: '2026-10-01T00:00:00.000Z',
+      includesEnvironmentBound: false,
+    };
+    const checksum = computeConfigPackageChecksum(header, content);
+    const parsed = parseConfigPackage({ ...header, content, checksum, signature: null });
+    expect(parsed.content.templates).toEqual(content.templates);
+
+    const target = {
+      ...productionSnapshot(),
+      templates: {
+        responseTemplates: [{
+          id: 'p-template',
+          name: 'VPN reply',
+          bodyBs: 'Old reply',
+          bodyEn: null,
+          kind: 'ANY' as const,
+          tags: [],
+          isActive: true,
+          deletedAt: null,
+          scope: { serviceIds: ['p-vpn'], categoryIds: ['p-cat'], groupIds: ['p-it'] },
+        }],
+        playbooks: [{
+          id: 'p-playbook',
+          name: 'VPN checklist',
+          description: null,
+          isActive: true,
+          version: 7,
+          deletedAt: null,
+          scope: { serviceIds: ['p-vpn'], categoryIds: ['p-cat'] },
+          steps: [{
+            stepKey: 'old-step',
+            position: 0,
+            title: 'Old step',
+            instructions: null,
+            required: true,
+            knowledgeArticleId: null,
+            responseTemplateId: null,
+          }],
+        }],
+      },
+    };
+    const targetIndex: ConfigReferenceIndex = {
+      ...productionIndex,
+      services: [...productionIndex.services, { id: 'a-service', key: 'vpn-2' }],
+      responseTemplates: [{ id: 'p-template', key: 'VPN reply' }],
+      playbooks: [{ id: 'p-playbook', key: 'VPN checklist' }],
+      knowledgeArticles: [{ id: 'p-article', key: 'vpn-setup' }],
+    };
+    const portableTemplates = parsed.content.templates!;
+    const portableContent = {
+      ...parsed.content,
+      templates: {
+        ...portableTemplates,
+        responseTemplates: portableTemplates.responseTemplates.map((template) => ({
+          ...template,
+          scope: { ...template.scope!, services: ['vpn', 'vpn-2'] },
+        })),
+        playbooks: portableTemplates.playbooks.map((playbook) => ({
+          ...playbook,
+          scope: { ...playbook.scope!, services: ['vpn', 'vpn-2'] },
+        })),
+      },
+    };
+    const resolved = resolvePortableConfig({
+      content: portableContent,
+      target,
+      index: targetIndex,
+      mappings: {},
+      applyEnvironmentBound: false,
+      isKnownSetting: () => true,
+      isSecret,
+      newId: () => 'unused-new-id',
+      capturedAt: '2026-10-02T00:00:00.000Z',
+    });
+    expect(resolved.blockingCount).toBe(0);
+    expect(resolved.snapshot?.templates?.responseTemplates[0]).toMatchObject({
+      id: 'p-template',
+      scope: { serviceIds: ['a-service', 'p-vpn'], categoryIds: ['p-cat'], groupIds: ['p-it'] },
+    });
+    expect(resolved.snapshot?.templates?.playbooks[0]).toMatchObject({
+      id: 'p-playbook',
+      version: 7,
+      scope: { serviceIds: ['a-service', 'p-vpn'], categoryIds: ['p-cat'] },
+      steps: [{
+        stepKey: 'verify_access',
+        position: 0,
+        title: 'Verify access',
+        knowledgeArticleId: 'p-article',
+        responseTemplateId: 'p-template',
+      }],
+    });
+
+    const contentTemplates = content.templates!;
+    const malformedContent = {
+      ...content,
+      templates: {
+        ...contentTemplates,
+        playbooks: contentTemplates.playbooks.map((playbook) => ({
+          ...playbook,
+          steps: [...playbook.steps!, { ...playbook.steps![0]!, position: 1 }],
+        })),
+      },
+    };
+    expect(() => parseConfigPackage({
+      ...header,
+      content: malformedContent,
+      checksum: 'a'.repeat(64),
+      signature: null,
+    })).toThrow(ConfigPackageFormatError);
   });
 
   it('checksums canonically and verifies HMAC signatures', () => {

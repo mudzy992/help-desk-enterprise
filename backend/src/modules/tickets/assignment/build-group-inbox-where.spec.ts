@@ -103,6 +103,36 @@ describe('buildGroupInboxWhere matches the previous group inbox logic', () => {
     expect(multi.some((id) => id.startsWith('ou-hr:service-access:'))).toBe(true);
   });
 
+  it('uses a group-membership relation when group ids are intentionally not preloaded', () => {
+    const context = actors.groupMember;
+    const configuration = { ...configurations.default, enabled: false };
+    const visibility = {
+      context,
+      units: [],
+      actorGroupIds: [],
+      actorMembershipUserId: context.subjectId,
+      configuration,
+      now,
+    };
+    const inbox = buildGroupInboxWhere(visibility);
+
+    expect(inbox).not.toBeNull();
+    expect(inbox).toContainEqual({
+      assignedGroup: {
+        is: {
+          members: { some: { userId: context.subjectId } },
+        },
+      },
+    });
+    expect(JSON.stringify(buildTicketVisibilityWhere(visibility))).toContain(
+      JSON.stringify({
+        is: {
+          members: { some: { userId: context.subjectId } },
+        },
+      }),
+    );
+  });
+
   it('D1: a ticket of the caller\'s group from an OU outside their scope is in list and inbox', async () => {
     const context = actors.groupMember;
     const inputs = await loadTicketVisibilityInputs(world.prisma, context.subjectId);
