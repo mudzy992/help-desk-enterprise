@@ -8,4 +8,8 @@ Bez promjene produkcijskog koda. Novi `backend/src/modules/on-call/on-call.integ
 
 ## Testovi i granice
 
-Lokalno (bez baze) integracijski spec se preskače po `describeIfDatabase` obrascu kao i ostali; on-call unit suite 16/68 prolazi, runner testovi prolaze, E2E TypeScript provjera prolazi. Stvarni dokaz daje CI PostgreSQL + Redis integration posao; bez njega i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
+Lokalno (bez baze) integracijski spec se preskače po `describeIfDatabase` obrascu kao i ostali; on-call unit suite 16/68 prolazi, runner testovi prolaze, E2E TypeScript provjera prolazi. Migracija nije rađena.
+
+## CI dokaz
+
+Implementacija je pushana u commitima `5135b91` i `020370f` (prvi CI `42915498694` pao je samo na revokacijskom slučaju: brisanje same `oncall.read` dozvole nije potpuna revokacija jer i `oncall.manage` daje čitanje — test sada uklanja obje dozvole). Završni GitHub Actions CI run [`42916845757`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42916845757) za commit `020370f` završio je **success**: Detect changes, Docs guard, Frontend build + test, Backend build + test (generated Prisma), Backend container + supply chain i Backend PostgreSQL + Redis integration (uključuje novu on-call matricu, 5/5). E2E 44 proširenje se izvršava u E2E poslovima van ovog push CI-ja. Nalaz ostaje otvoren do operativne potvrde.
