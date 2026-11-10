@@ -1,6 +1,6 @@
 # BA-on-call-10: retention je ograničen i fail-visible
 
-Status: **otvoreno**. Automatski CI `42876155635` za commit `20d374d` prošao je uspješno (generated Prisma + stvarni PostgreSQL/Redis). On-call retention je brisala stare override/swap redove dvama neograničenim `deleteMany` pozivima, grešku hvatala i samo logovala ime tipa, a sweep je ipak završavao uspješno — veliki backlog je mogao zaključati tabelu, a trajni kvar retencije nije imao nikakav operativni signal.
+Status: **zatvoreno** (operativna potvrda korisnika: retencija je u produkciji odavno na 730 dana, sweep radi bez failed poslova i bez `on_call_retention_failed` u worker logu). Automatski CI `42876155635` za commit `20d374d` prošao je uspješno (generated Prisma + stvarni PostgreSQL/Redis). On-call retention je brisala stare override/swap redove dvama neograničenim `deleteMany` pozivima, grešku hvatala i samo logovala ime tipa, a sweep je ipak završavao uspješno — veliki backlog je mogao zaključati tabelu, a trajni kvar retencije nije imao nikakav operativni signal.
 
 ## Izmjena
 
