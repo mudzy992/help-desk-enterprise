@@ -220,8 +220,30 @@ export class InboundEmailService {
     // Month folders a full month past the window (files of deleted rows, crashes).
     await this.rawStore.pruneMonthsBefore(new Date(rawCutoff.getTime() - 31 * 86_400_000));
     const rowCutoff = new Date(now.getTime() - configuration.metadataRetentionDays * 86_400_000);
-    const deleted = await this.prisma.inboundEmail.deleteMany({ where: { createdAt: { lt: rowCutoff } } });
-    return { rawRemoved, rowsRemoved: deleted.count };
+    // Bounded metadata retention: at most one stable batch per run, never a
+    // single unbounded deleteMany. The cutoff is rechecked inside the delete
+    // so a row changed after selection is never removed, and a full batch
+    // signals a possible backlog instead of silently looping all night.
+    const candidates = await this.prisma.inboundEmail.findMany({
+      where: { createdAt: { lt: rowCutoff } },
+      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: inboundEmailLimits.retentionBatch,
+    });
+    let rowsRemoved = 0;
+    if (candidates.length > 0) {
+      const deleted = await this.prisma.inboundEmail.deleteMany({
+        where: {
+          id: { in: candidates.map((row) => row.id) },
+          createdAt: { lt: rowCutoff },
+        },
+      });
+      rowsRemoved = deleted.count;
+      if (candidates.length === inboundEmailLimits.retentionBatch) {
+        this.logger.warn('inbound_email_retention_batch_limit_reached possible_backlog=true');
+      }
+    }
+    return { rawRemoved, rowsRemoved };
   }
 
   private async handleItem(

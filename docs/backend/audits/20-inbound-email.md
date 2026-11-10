@@ -112,7 +112,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | BA-inbound-email-06 | P2       | Provider ID lookup/store truncation nije ista i može trajno preskočiti poruku              | otvoreno |
 | BA-inbound-email-07 | P2       | Message-ID dedupe je read-before-write bez DB unique zaštite                              | otvoreno |
 | BA-inbound-email-08 | P2       | Scheduler nema reconciliation nakon Redis gubitka                                         | otvoreno |
-| BA-inbound-email-09 | P2       | Metadata retention je jedan neograničen deleteMany                                        | otvoreno |
+| BA-inbound-email-09 | P2       | Metadata retention je jedan neograničen deleteMany (ograničeni batch uveden, paket 179)    | otvoreno |
 | BA-inbound-email-10 | P2       | Case-insensitive duplicate user email daje nedeterminističnog actora                       | otvoreno |
 | BA-inbound-email-11 | P3       | Raw remove greška se guta pa DB link nestaje prije potvrđenog brisanja                     | otvoreno |
 | BA-inbound-email-12 | P3       | Raw/provider greške nemaju stabilan redigovan error-code ugovor                            | otvoreno |
