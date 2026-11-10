@@ -10,6 +10,13 @@ import type { OnCallSegment } from './resolve-on-call';
  * - shiftStarted: shifts that began in the last `startGraceMs`;
  * - gap: uncovered time in the next 24 h, once per uncovered segment, to the
  *   schedule owner.
+ *
+ * BA-on-call-08 (missed-action reconciliation): a failed or skipped sweep
+ * must not silently lose a notification. The persisted notification dedupe
+ * key is the durable record of what was sent, so the planner also emits
+ * late actions — a shift start up to `startRecoveryMs` ago, and the next-day
+ * reminder after today's reminder hour has passed (but before the shift
+ * starts). Already-sent actions stay no-ops through their dedupe keys.
  */
 export type OnCallSweepAction =
   | { readonly kind: 'reminder'; readonly userId: string; readonly segment: OnCallSegment; readonly dedupeKey: string }
@@ -21,6 +28,7 @@ export const onCallSweepWindows = {
   lookAheadMs: 3 * 86_400_000,
   reminderWindowMinutes: 60,
   startGraceMs: 30 * 60_000,
+  startRecoveryMs: 24 * 3_600_000,
   gapHorizonMs: 86_400_000,
 } as const;
 
@@ -39,6 +47,10 @@ export function planOnCallSweep(input: {
   const inReminderWindow =
     local.minuteOfDay >= input.reminderMinute &&
     local.minuteOfDay < input.reminderMinute + onCallSweepWindows.reminderWindowMinutes;
+  // The reminder hour is over for today: a next-day shift that has not
+  // started yet still gets its (late) reminder on the next sweep.
+  const missedReminderWindow =
+    !inReminderWindow && local.minuteOfDay >= input.reminderMinute + onCallSweepWindows.reminderWindowMinutes;
   // Next local day, DST-safe: midnight of today + 1 and + 2 in the schedule zone.
   const tomorrowStart = zonedInstant(timezone, local.year, local.month, local.day + 1, 0);
   const dayAfterStart = zonedInstant(timezone, local.year, local.month, local.day + 2, 0);
@@ -51,10 +63,10 @@ export function planOnCallSweep(input: {
     const isStart = previous !== undefined && previous.endsAt.getTime() === startMs && previous.userId !== segment.userId;
     const key = `${scheduleId}:${startMs}`;
     if (segment.userId !== null) {
-      if (inReminderWindow && startMs >= tomorrowStart.getTime() && startMs < dayAfterStart.getTime() && (isStart || previous === undefined)) {
+      if ((inReminderWindow || missedReminderWindow) && startMs >= tomorrowStart.getTime() && startMs < dayAfterStart.getTime() && (isStart || previous === undefined)) {
         actions.push({ kind: 'reminder', userId: segment.userId, segment, dedupeKey: `reminder:${key}:${segment.userId}` });
       }
-      if (isStart && startMs <= nowMs && startMs > nowMs - onCallSweepWindows.startGraceMs) {
+      if (isStart && startMs <= nowMs && startMs > nowMs - onCallSweepWindows.startRecoveryMs) {
         actions.push({ kind: 'shiftStarted', userId: segment.userId, segment, dedupeKey: `start:${key}:${segment.userId}` });
       }
     } else if (

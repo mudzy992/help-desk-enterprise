@@ -132,7 +132,7 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 | BA-on-call-05 | P2       | Swap accept ne revalidira colleague membership/availability ni schedule verziju (accept-time revalidacija, paket 187) | zatvoreno |
 | BA-on-call-06 | P2       | Owner može biti foreign staff i primati gap informacije (owner eligibilnost pri saveu i sweepu, paket 189) | zatvoreno |
 | BA-on-call-07 | P2       | iCal feed ostaje aktivan nakon oncall.read/scope revokea (feed revalidira permisiju/scope, paket 190) | zatvoreno |
-| BA-on-call-08 | P2       | Best-effort sweep notification nema durable recovery nakon prozora                        | otvoreno |
+| BA-on-call-08 | P2       | Best-effort sweep notification nema durable recovery nakon prozora (missed-action reconciliation, paket 191) | otvoreno |
 | BA-on-call-09 | P2       | Scheduler nema reconciliation nakon Redis gubitka                                         | otvoreno |
 | BA-on-call-10 | P2       | Retention je unbounded, guta grešku i nema health signal                                  | otvoreno |
 | BA-on-call-11 | P2       | Override/swap liste su hard-truncated bez pagination/hasMore                              | otvoreno |
