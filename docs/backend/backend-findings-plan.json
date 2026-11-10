@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "generatedFrom": "docs/backend/audits/01-44",
   "units": 44,
-  "total": 692,
+  "total": 693,
   "severity": {
     "P1": 174,
-    "P2": 368,
+    "P2": 369,
     "P3": 150
   },
   "findings": [
@@ -2692,6 +2692,14 @@
     {
       "id": "BA-on-call-14",
       "severity": "P3",
+      "status": "otvoreno",
+      "source": "21-on-call.md",
+      "owner": "WS-D",
+      "wave": 6
+    },
+    {
+      "id": "BA-on-call-15",
+      "severity": "P2",
       "status": "otvoreno",
       "source": "21-on-call.md",
       "owner": "WS-D",

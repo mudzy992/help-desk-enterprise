@@ -10,7 +10,14 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 jest.mock('../settings/settings.service', () => ({
   SettingsService: class SettingsService {},
 }));
-jest.mock('../audit-log/append-audit-log', () => ({ appendAuditLog: jest.fn() }));
+jest.mock('../audit-log/append-audit-log', () => ({
+  // Validate metadata against the real audit policy, then no-op the write:
+  // a blind mock hid the onCallOverrideCreated allowlist break for years.
+  appendAuditLog: jest.fn(async (_client: unknown, input: unknown) => {
+    const { prepareAuditEntry } = jest.requireActual('../audit-log/audit-event-policy') as typeof import('../audit-log/audit-event-policy');
+    prepareAuditEntry(input as never);
+  }),
+}));
 
 type MemberRow = {
   readonly userId: string;

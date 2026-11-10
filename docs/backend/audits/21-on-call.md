@@ -130,7 +130,7 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 | BA-on-call-03 | P1       | Concurrent schedule save može korumpirati header/member kombinaciju                       | zatvoreno (W6.43) |
 | BA-on-call-04 | P2       | Bivši active član grupe ostaje resolver/auto-assignment/SLA/quiet-hours kandidat (loader provjerava članstvo, paket 186) | otvoreno |
 | BA-on-call-05 | P2       | Swap accept ne revalidira colleague membership/availability ni schedule verziju (accept-time revalidacija, paket 187) | otvoreno |
-| BA-on-call-06 | P2       | Owner može biti foreign staff i primati gap informacije                                   | otvoreno |
+| BA-on-call-06 | P2       | Owner može biti foreign staff i primati gap informacije (owner eligibilnost pri saveu i sweepu, paket 189) | otvoreno |
 | BA-on-call-07 | P2       | iCal feed ostaje aktivan nakon oncall.read/scope revokea                                  | otvoreno |
 | BA-on-call-08 | P2       | Best-effort sweep notification nema durable recovery nakon prozora                        | otvoreno |
 | BA-on-call-09 | P2       | Scheduler nema reconciliation nakon Redis gubitka                                         | otvoreno |
@@ -139,6 +139,7 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 | BA-on-call-12 | P3       | Token revoke audit nije atomaran sa deleteom                                               | otvoreno |
 | BA-on-call-13 | P3       | Pending identični swap zahtjevi nemaju semantic dedupe/rate limit                          | otvoreno |
 | BA-on-call-14 | P3       | Service/concurrency/revocation integracijska matrica nije pokrivena                        | otvoreno |
+| BA-on-call-15 | P2       | Audit allowlist za oncall.override.created odbija overrideId/swapRequestId pa override creation uvijek pada (paket 188) | otvoreno |
 
 ## 13. Baseline score
 

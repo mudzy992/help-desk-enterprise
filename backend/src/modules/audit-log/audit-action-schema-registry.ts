@@ -114,7 +114,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.statusIncidentTicketUnlinked]: schema(['ticketId']),
   [auditLogActions.onCallScheduleSaved]: schema(['autoAssignOutsideHours', 'created', 'groupId', 'handoffMinute', 'isActive', 'memberUserIds', 'ownerUserId', 'reason', 'rotationLength', 'rotationStartDate', 'timezone']),
   [auditLogActions.onCallScheduleDeleted]: schema(['groupId', 'reason']),
-  [auditLogActions.onCallOverrideCreated]: schema(['endsAt', 'reason', 'source', 'startsAt', 'userId']),
+  [auditLogActions.onCallOverrideCreated]: schema(['endsAt', 'overrideId', 'reason', 'source', 'startsAt', 'swapRequestId', 'userId']),
   [auditLogActions.onCallOverrideDeleted]: schema(['endsAt', 'overrideId', 'reason', 'startsAt', 'userId']),
   [auditLogActions.onCallSwapRequested]: schema(['colleagueId', 'endsAt', 'startsAt', 'swapRequestId']),
   [auditLogActions.onCallSwapAccepted]: schema(['swapRequestId']),
