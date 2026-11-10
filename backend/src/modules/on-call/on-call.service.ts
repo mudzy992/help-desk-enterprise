@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { loadPrincipalContext } from '../../common/principal-context/load-principal-context';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { appendAuditLog } from '../audit-log/append-audit-log';
 import type { AuditLogTransactionalClient, AuditLogWriteClient } from '../audit-log/audit-log.types';
@@ -24,7 +25,7 @@ import {
 } from './on-call-data';
 import { OnCallError, onCallErrorCodes, onCallLimits } from './on-call.constants';
 import { formatOnCallTime, onCallText, toOnCallLocale, type OnCallLocale } from './on-call-text';
-import { canManageOnCallGroup, canReadOnCallGroup, type OnCallViewer } from './on-call-viewer';
+import { canManageOnCallGroup, canReadOnCallGroup, onCallViewerFromContext, type OnCallViewer } from './on-call-viewer';
 import { overridesOverlap, parseCivilDate, type OnCallSegment } from './resolve-on-call';
 
 const dayMs = 86_400_000;
@@ -826,6 +827,14 @@ export class OnCallService {
     if (row === null || !row.user.isActive || row.user.anonymizedAt !== null || row.user.userRoles.length === 0) {
       return null;
     }
+    // BA-on-call-07: the bearer token does not freeze authorization. The
+    // feed re-derives the viewer's current oncall.read permission and group
+    // scope on every fetch, so a permission/scope revoke takes effect on the
+    // next calendar refresh (revoked access -> uniform 404, foreign groups
+    // -> their events are dropped).
+    const principal = await loadPrincipalContext(this.prisma, row.userId);
+    const viewer = onCallViewerFromContext(principal, row.userId);
+    if (!viewer.canRead) return null;
     const locale = toOnCallLocale(row.user.preferredLocale, await this.defaultLocale());
     const now = new Date();
     const from = new Date(now.getTime() - onCallLimits.icalBehindDays * dayMs);
@@ -833,23 +842,30 @@ export class OnCallService {
     const contexts = await loadActiveOnCallContexts(this.prisma, { from, to }, { userIds: [row.userId] });
     const groups = await this.prisma.group.findMany({
       where: { id: { in: contexts.map((context) => context.groupId) } },
-      select: { id: true, name: true },
+      select: { id: true, name: true, organizationalUnit: { select: { ouPath: true } } },
     });
     const groupName = new Map(groups.map((group) => [group.id, group.name]));
-    const events = contexts.flatMap((context) =>
-      listContextSegments(context, from, to)
-        .filter((segment) => segment.userId === row.userId)
-        .map((segment) => {
-          const group = groupName.get(context.groupId) ?? '';
-          return {
-            uid: `${context.id}-${segment.startsAt.getTime()}-${segment.overrideId ?? 'r'}@help-desk-enterprise`,
-            startsAt: segment.startsAt,
-            endsAt: segment.endsAt,
-            summary: onCallText(locale, 'icalSummary', { group }),
-            description: onCallText(locale, 'icalDescription', { group }),
-          };
-        }),
+    const readableGroupIds = new Set(
+      groups
+        .filter((group) => canReadOnCallGroup(viewer, group.organizationalUnit?.ouPath ?? null))
+        .map((group) => group.id),
     );
+    const events = contexts
+      .filter((context) => readableGroupIds.has(context.groupId))
+      .flatMap((context) =>
+        listContextSegments(context, from, to)
+          .filter((segment) => segment.userId === row.userId)
+          .map((segment) => {
+            const group = groupName.get(context.groupId) ?? '';
+            return {
+              uid: `${context.id}-${segment.startsAt.getTime()}-${segment.overrideId ?? 'r'}@help-desk-enterprise`,
+              startsAt: segment.startsAt,
+              endsAt: segment.endsAt,
+              summary: onCallText(locale, 'icalSummary', { group }),
+              description: onCallText(locale, 'icalDescription', { group }),
+            };
+          }),
+      );
     return buildOnCallIcal({
       calendarName: onCallText(locale, 'icalCalendar', { group: '' }),
       events,
