@@ -1,6 +1,6 @@
 # BA-inbound-email-06: ista normalizacija provider ID-a za lookup i store
 
-Status: **otvoreno**. Lookup postojećeg reda koristio je puni `providerMessageId`, a store ga je rezao na 500 znakova (granica `VarChar(500)` kolone).
+Status: **otvoreno**. Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Lookup postojećeg reda koristio je puni `providerMessageId`, a store ga je rezao na 500 znakova (granica `VarChar(500)` kolone).
 
 ## Prethodno ponašanje
 
@@ -14,4 +14,4 @@ Za provider ID duži od 500 znakova (npr. dugi Graph ID-jevi) lookup nikada ne p
 
 ## Ograničenja
 
-Dva različita provider ID-ja koja dijele prvih 500 znakova i dalje bi se sudarila u isti durable identitet; to je granica postojeće kolone bez migracije na duži tip. Graph/IMAP ID-jevi u praksi su znatno kraći ili se razlikuju prije 500 znakova, ali dokaz na stvarnim dugim ID-jevima nije prikupljen. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Deployment nije rađen.
+Dva različita provider ID-ja koja dijele prvih 500 znakova i dalje bi se sudarila u isti durable identitet; to je granica postojeće kolone bez migracije na duži tip. Graph/IMAP ID-jevi u praksi su znatno kraći ili se razlikuju prije 500 znakova, ali dokaz na stvarnim dugim ID-jevima nije prikupljen. Kumulativni CI `42805826360` za `806ccdd` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Deployment nije rađen.

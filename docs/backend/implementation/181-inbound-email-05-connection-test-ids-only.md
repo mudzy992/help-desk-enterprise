@@ -1,6 +1,6 @@
 # BA-inbound-email-05: test konekcije bez preuzimanja raw poruka
 
-Status: **otvoreno**. Admin test konekcije zvao je `session.list(10)`, što za Graph i IMAP znači preuzimanje do deset punih raw poruka (svaka do 35 MB) u API proces samo da bi se izbrojalo `items.length`.
+Status: **otvoreno**. Automatski CI `42805342087` za commit `817a825` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Admin test konekcije zvao je `session.list(10)`, što za Graph i IMAP znači preuzimanje do deset punih raw poruka (svaka do 35 MB) u API proces samo da bi se izbrojalo `items.length`.
 
 ## Mehanizam
 
@@ -10,4 +10,4 @@ Status: **otvoreno**. Admin test konekcije zvao je `session.list(10)`, što za G
 
 ## Ograničenja
 
-`inboxCount` je i dalje ograničen na uzorak od 10 (nije ukupan broj u pretincu), kao i prije. `listIds` za IMAP radi `SEARCH` nad cijelim pretincem prije rezanja na limit, pa trošak upita raste s veličinom pretinca iako se sadržaj ne preuzima. Nema migracije. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Deployment nije rađen.
+`inboxCount` je i dalje ograničen na uzorak od 10 (nije ukupan broj u pretincu), kao i prije. `listIds` za IMAP radi `SEARCH` nad cijelim pretincem prije rezanja na limit, pa trošak upita raste s veličinom pretinca iako se sadržaj ne preuzima. Nema migracije. Automatski CI `42805342087` za `817a825` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Deployment nije rađen.

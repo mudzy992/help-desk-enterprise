@@ -1,6 +1,6 @@
 # BA-inbound-email-10: deterministički pošiljalac uz case-insensitive duplikate
 
-Status: **otvoreno**. Jedinstvenost e-maila u PostgreSQL-u je case-sensitive, pa `Ana@x` i `ana@x` mogu biti dva različita korisnika; dolazna obrada ih je tražila neosjetljivim `findFirst` bez sortiranja, što daje nedeterminističnog actora.
+Status: **otvoreno**. Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Jedinstvenost e-maila u PostgreSQL-u je case-sensitive, pa `Ana@x` i `ana@x` mogu biti dva različita korisnika; dolazna obrada ih je tražila neosjetljivim `findFirst` bez sortiranja, što daje nedeterminističnog actora.
 
 ## Mehanizam
 
@@ -10,4 +10,4 @@ Status: **otvoreno**. Jedinstvenost e-maila u PostgreSQL-u je case-sensitive, pa
 
 ## Ograničenja
 
-Dvosmislena adresa se tretira kao nepoznat pošiljalac, pa legitimni korisnik s duplikatom ne može pisati e-mailom dok se duplikat administrativno ne ukloni; poruka ostaje odbijena s razlogom `UNKNOWN_SENDER`, bez zasebnog admin signala osim worker loga. Korijenski uzrok (case-insensitive jedinstvenost e-maila na nivou baze) traži migraciju i ovdje se ne rješava. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Deployment nije rađen.
+Dvosmislena adresa se tretira kao nepoznat pošiljalac, pa legitimni korisnik s duplikatom ne može pisati e-mailom dok se duplikat administrativno ne ukloni; poruka ostaje odbijena s razlogom `UNKNOWN_SENDER`, bez zasebnog admin signala osim worker loga. Korijenski uzrok (case-insensitive jedinstvenost e-maila na nivou baze) traži migraciju i ovdje se ne rješava. Kumulativni CI `42805826360` za `806ccdd` prošao je uspješno; bez operativne potvrde nalaz se ne zatvara. Deployment nije rađen.
