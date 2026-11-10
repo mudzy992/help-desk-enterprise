@@ -139,7 +139,7 @@ Dodani service-specovi sada pokrivaju scoped foreign read/write i interval-inval
 | BA-on-call-12 | P3       | Token revoke audit nije atomaran sa deleteom                                               | otvoreno |
 | BA-on-call-13 | P3       | Pending identični swap zahtjevi nemaju semantic dedupe/rate limit                          | otvoreno |
 | BA-on-call-14 | P3       | Service/concurrency/revocation integracijska matrica nije pokrivena                        | otvoreno |
-| BA-on-call-15 | P2       | Audit allowlist za oncall.override.created odbija overrideId/swapRequestId pa override creation uvijek pada (paket 188) | otvoreno |
+| BA-on-call-15 | P2       | Audit allowlist za oncall.override.created odbija overrideId/swapRequestId pa override creation uvijek pada (paket 188) | zatvoreno |
 
 ## 13. Baseline score
 
