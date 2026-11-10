@@ -8258,7 +8258,9 @@
       "swapNotAllowed": "Zamjenu možete tražiti samo za dio ili cijelu svoju rotacijsku smjenu i od kolege iz iste rotacije; odgovara samo kolega kojem je upućena.",
       "swapNotPending": "Zahtjev je već riješen.",
       "forbidden": "Za ovu radnju potrebno je ovlaštenje oncall.manage.",
-      "order": "Kraj mora biti nakon početka."
+      "order": "Kraj mora biti nakon početka.",
+      "swapDuplicate": "Isti zahtjev za zamjenu već čeka odgovor kolege.",
+      "swapLimitReached": "Imate previše otvorenih zahtjeva za zamjenu; pričekajte odluku ili otkažite neki od njih."
     },
     "listTruncated": "Prikazuje se samo prvih {{limit}} zapisa; lista je duža od prikaza."
   },

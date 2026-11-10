@@ -603,26 +603,50 @@ export class OnCallService {
     ) {
       throw new OnCallError(onCallErrorCodes.swapNotAllowed);
     }
-    const created = await this.prisma.$transaction(async (transaction) => {
-      const row = await transaction.onCallSwapRequest.create({
-        data: {
-          scheduleId: context.id,
-          requesterId: viewer.userId,
+    const created = await this.prisma.$transaction(
+      async (transaction) => {
+        // BA-on-call-13: semantic dedupe + pending cap, checked inside a
+        // SERIALIZABLE transaction so concurrent identical requests cannot
+        // both slip through and spam the colleague with notifications.
+        const duplicate = await transaction.onCallSwapRequest.findFirst({
+          where: {
+            scheduleId: context.id,
+            requesterId: viewer.userId,
+            colleagueId: input.colleagueId,
+            startsAt: range.startsAt,
+            endsAt: range.endsAt,
+            status: 'PENDING',
+          },
+          select: { id: true },
+        });
+        if (duplicate !== null) throw new OnCallError(onCallErrorCodes.swapDuplicate);
+        const pendingCount = await transaction.onCallSwapRequest.count({
+          where: { requesterId: viewer.userId, status: 'PENDING' },
+        });
+        if (pendingCount >= onCallLimits.maxPendingSwapRequests) {
+          throw new OnCallError(onCallErrorCodes.swapLimitReached);
+        }
+        const row = await transaction.onCallSwapRequest.create({
+          data: {
+            scheduleId: context.id,
+            requesterId: viewer.userId,
+            colleagueId: input.colleagueId,
+            startsAt: range.startsAt,
+            endsAt: range.endsAt,
+            reason,
+          },
+          select: { id: true },
+        });
+        await this.audit(transaction, auditLogActions.onCallSwapRequested, context.id, viewer.userId, {
+          swapRequestId: row.id,
           colleagueId: input.colleagueId,
-          startsAt: range.startsAt,
-          endsAt: range.endsAt,
-          reason,
-        },
-        select: { id: true },
-      });
-      await this.audit(transaction, auditLogActions.onCallSwapRequested, context.id, viewer.userId, {
-        swapRequestId: row.id,
-        colleagueId: input.colleagueId,
-        startsAt: range.startsAt.toISOString(),
-        endsAt: range.endsAt.toISOString(),
-      });
-      return row;
-    });
+          startsAt: range.startsAt.toISOString(),
+          endsAt: range.endsAt.toISOString(),
+        });
+        return row;
+      },
+      { isolationLevel: 'Serializable' },
+    );
     const requesterName = (await this.loadNames([viewer.userId])).get(viewer.userId)?.displayName ?? '';
     await this.notify(input.colleagueId, notificationTypes.onCallSwap, `swap:${created.id}:requested`, (locale) =>
       onCallText(locale, 'swapRequested', {

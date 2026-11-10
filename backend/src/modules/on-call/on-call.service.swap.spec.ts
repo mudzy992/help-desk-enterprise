@@ -96,7 +96,13 @@ function createHarness(shiftStart: Date, options: HarnessOptions = {}) {
     ),
   );
   const createSwap = jest.fn(async () => ({ id: 'swap-1' }));
-  const transaction = { onCallSwapRequest: { create: createSwap } };
+  const transaction = {
+    onCallSwapRequest: {
+      create: createSwap,
+      findFirst: jest.fn(async () => null),
+      count: jest.fn(async () => 0),
+    },
+  };
   const transactionRunner = jest.fn(
     async (operation: (client: unknown) => Promise<unknown>): Promise<unknown> => operation(transaction),
   );

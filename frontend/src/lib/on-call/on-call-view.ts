@@ -40,6 +40,8 @@ export const onCallErrorKeys = {
   ON_CALL_SWAP_NOT_FOUND: "onCall.errors.swapNotFound",
   ON_CALL_SWAP_NOT_ALLOWED: "onCall.errors.swapNotAllowed",
   ON_CALL_SWAP_NOT_PENDING: "onCall.errors.swapNotPending",
+  ON_CALL_SWAP_DUPLICATE: "onCall.errors.swapDuplicate",
+  ON_CALL_SWAP_LIMIT_REACHED: "onCall.errors.swapLimitReached",
   ON_CALL_FORBIDDEN: "onCall.errors.forbidden",
 } as const;
 

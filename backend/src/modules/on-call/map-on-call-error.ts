@@ -22,7 +22,10 @@ export function mapOnCallError(error: unknown): unknown {
     case onCallErrorCodes.overlap:
     case onCallErrorCodes.scheduleConflict:
     case onCallErrorCodes.swapNotPending:
+    case onCallErrorCodes.swapDuplicate:
       return new ConflictException(body);
+    case onCallErrorCodes.swapLimitReached:
+      return new TooManyRequestsException(body);
     case onCallErrorCodes.forbidden:
     case onCallErrorCodes.swapNotAllowed:
       return new ForbiddenException(body);

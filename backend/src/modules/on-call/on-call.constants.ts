@@ -23,6 +23,8 @@ export const onCallLimits = {
   maxAheadDays: 366,
   maxOverrideDays: 31,
   maxMembers: 50,
+  /** BA-on-call-13: bound on open swap requests per requester (anti-spam). */
+  maxPendingSwapRequests: 50,
   icalAheadDays: 90,
   icalBehindDays: 7,
 } as const;
