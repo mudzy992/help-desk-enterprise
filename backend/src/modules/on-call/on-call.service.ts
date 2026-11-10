@@ -640,6 +640,7 @@ export class OnCallService {
         status: true,
         schedule: {
           select: {
+            groupId: true,
             timezone: true,
             group: { select: { name: true, organizationalUnit: { select: { ouPath: true } } } },
           },
@@ -673,6 +674,27 @@ export class OnCallService {
           await this.audit(transaction, auditLogActions.onCallSwapAccepted, swap.scheduleId, viewer.userId, {
             swapRequestId: swap.id,
           });
+        },
+        async (transaction) => {
+          // BA-on-call-05: the request-time snapshot is stale by accept time.
+          // Revalidate against the current schedule inside the same
+          // SERIALIZABLE transaction: the colleague must still be an
+          // available rotation member and the interval must still belong
+          // entirely to the requester's rotation (no schedule edit, member
+          // removal/deactivation or intervening override may have changed it).
+          const context = await loadOnCallScheduleContext(transaction, swap.schedule.groupId, {
+            from: swap.startsAt,
+            to: swap.endsAt,
+          });
+          const members = new Map((context?.members ?? []).map((member) => [member.userId, member.isAvailable]));
+          if (
+            context === null ||
+            context.id !== swap.scheduleId ||
+            members.get(swap.colleagueId) !== true ||
+            !isEntireRangeInRequesterRotation(context, swap.startsAt, swap.endsAt, swap.requesterId)
+          ) {
+            throw new OnCallError(onCallErrorCodes.swapNotAllowed);
+          }
         },
       );
     } else {
@@ -915,10 +937,12 @@ export class OnCallService {
       readonly swapRequestId: string | null;
     },
     extra?: (transaction: PrismaService) => Promise<void>,
+    beforeCreate?: (transaction: PrismaService) => Promise<void>,
   ): Promise<string> {
     try {
       return await this.prisma.$transaction(
         async (transaction) => {
+          if (beforeCreate !== undefined) await beforeCreate(transaction as unknown as PrismaService);
           const existing = await transaction.onCallOverride.findMany({
             where: { scheduleId, startsAt: { lt: input.endsAt }, endsAt: { gt: input.startsAt } },
             select: { startsAt: true, endsAt: true },

@@ -1,0 +1,11 @@
+# BA-on-call-05: swap accept revalidira trenutno stanje rasporeda
+
+Status: **otvoreno**. `decideSwap` je prihvatao zamjenu prema snapshotu iz trenutka zahtjeva: kolega je u međuvremenu mogao biti uklonjen iz rotacije ili grupe, deaktiviran ili anonimizovan, a izmjena rasporeda mogla je interval pomjeriti izvan requesterove rotacije — accept bi ipak stvorio override za neeligibilnu osobu ili tuđi interval.
+
+## Izmjena
+
+Accept putanja sada unutar iste SERIALIZABLE transakcije koja stvara override i radi status CAS (`insertOverride` je dobio `beforeCreate` korak) ponovo učitava schedule kontekst kroz zajednički loader (uključujući BA-on-call-04 provjeru članstva u grupi) i zahtijeva: kolega je i dalje dostupan rotation član, a cijeli interval i dalje pripada isključivo requesterovoj rotaciji (segmenti iz loadera uključuju i intervenišuće override zapise, pa i novi manualni override u intervalu odbija accept). Neuspjeh baca `ON_CALL_SWAP_NOT_ALLOWED` i cijela transakcija — override, audit i status — se poništava, a zahtjev ostaje `PENDING`. Efektivna revalidacija stanja namjerno je odabrana umjesto strogog version tokena: izmjena rasporeda koja ne mijenja ni koleginu eligibilnost ni pokrivenost intervala ne odbija valjanu zamjenu.
+
+## Testovi i granice
+
+Novi `on-call.service.swap-accept.spec.ts` pokriva nepromijenjen accept, uklonjenog kolegu, deaktiviranog kolegu i izmjenu rotacije nakon zahtjeva; cijeli on-call skup je 10/10 suiteova i 46/46 testova lokalno. Tokom rada je zabilježeno (izvan ovog nalaza, bez izmjene): audit schema za `oncall.override.created` ne dozvoljava polja `overrideId`/`swapRequestId` koja `insertOverride` šalje writeru — postojeći service specovi mockuju audit writer pa to ne hvataju; preporuka je zasebno provjeriti i registrovati kao zaseban nalaz ako se potvrdi na generated-Prisma CI putanji. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara. Migracija nije rađena.
