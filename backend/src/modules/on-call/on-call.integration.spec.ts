@@ -51,6 +51,7 @@ describeIfDatabase('on-call PostgreSQL integration matrix (BA-on-call-14)', () =
   let service: OnCallService;
   let scheduleStart: Date;
   let rolePermissionReadId: string;
+  let rolePermissionManageId: string;
 
   const swapInput = (startsAfterHours: number, endsAfterHours: number) => ({
     colleagueId: ids.colleague,
@@ -90,11 +91,12 @@ describeIfDatabase('on-call PostgreSQL integration matrix (BA-on-call-14)', () =
       create: { roleId: ids.role, permissionId: ids.readPermission },
     });
     rolePermissionReadId = readLink.id;
-    await prisma.rolePermission.upsert({
+    const manageLink = await prisma.rolePermission.upsert({
       where: { roleId_permissionId: { roleId: ids.role, permissionId: ids.managePermission } },
       update: {},
       create: { roleId: ids.role, permissionId: ids.managePermission },
     });
+    rolePermissionManageId = manageLink.id;
 
     for (const [id, displayName] of [
       [ids.manager, 'OnCall Manager'],
@@ -235,11 +237,18 @@ describeIfDatabase('on-call PostgreSQL integration matrix (BA-on-call-14)', () =
     const viewer = viewerFor(ids.requester, false);
     const { token } = await service.rotateCalendarToken(viewer);
     await expect(service.icalFeed(token)).resolves.toContain('OnCall IT Group');
-    await prisma.rolePermission.delete({ where: { id: rolePermissionReadId } });
+    // Full revocation: oncall.manage also confers read access, so both
+    // grants must go before the feed may serve nothing (BA-on-call-07).
+    await prisma.rolePermission.deleteMany({ where: { id: { in: [rolePermissionReadId, rolePermissionManageId] } } });
     try {
       await expect(service.icalFeed(token)).resolves.toBeNull();
     } finally {
-      await prisma.rolePermission.create({ data: { id: rolePermissionReadId, roleId: ids.role, permissionId: ids.readPermission } });
+      await prisma.rolePermission.createMany({
+        data: [
+          { id: rolePermissionReadId, roleId: ids.role, permissionId: ids.readPermission },
+          { id: rolePermissionManageId, roleId: ids.role, permissionId: ids.managePermission },
+        ],
+      });
     }
   });
 });
