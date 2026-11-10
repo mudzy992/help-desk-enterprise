@@ -109,7 +109,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | BA-inbound-email-03 | P1       | Scoped ADMIN čita globalne sender/subject/ticket/error metapodatke                         | zatvoreno |
 | BA-inbound-email-04 | P2       | Signed token recipientId se ne poredi sa stvarnim senderom (vezano uz primaoca, paket 180) | otvoreno |
 | BA-inbound-email-05 | P2       | Test-connection preuzima do deset punih raw poruka (samo ID-jevi, paket 181)              | otvoreno |
-| BA-inbound-email-06 | P2       | Provider ID lookup/store truncation nije ista i može trajno preskočiti poruku              | otvoreno |
+| BA-inbound-email-06 | P2       | Provider ID lookup/store truncation nije ista i može trajno preskočiti poruku (ista normalizacija, paket 182) | otvoreno |
 | BA-inbound-email-07 | P2       | Message-ID dedupe je read-before-write bez DB unique zaštite                              | otvoreno |
 | BA-inbound-email-08 | P2       | Scheduler nema reconciliation nakon Redis gubitka                                         | otvoreno |
 | BA-inbound-email-09 | P2       | Metadata retention je jedan neograničen deleteMany (ograničeni batch uveden, paket 179)    | otvoreno |

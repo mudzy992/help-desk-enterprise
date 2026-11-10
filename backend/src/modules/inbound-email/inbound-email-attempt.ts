@@ -9,6 +9,16 @@ export type InboundEmailAttemptSnapshot = {
   readonly processingLeaseExpiresAt: Date | null;
 };
 
+/**
+ * The durable identity of a provider message is capped by the VarChar(500)
+ * column. Lookup and storage must normalize identically — otherwise a longer
+ * provider id never matches its stored row and the message is skipped
+ * forever. Mailbox operations (move) keep using the original full id.
+ */
+export function normalizeInboundProviderMessageId(providerMessageId: string): string {
+  return providerMessageId.slice(0, 500);
+}
+
 /** Atomically claims a new, retryable, or lease-expired inbound message. */
 export async function claimInboundEmailAttempt(
   prisma: PrismaService,
@@ -27,7 +37,7 @@ export async function claimInboundEmailAttempt(
       const row = await prisma.inboundEmail.create({
         data: {
           mailboxKey: input.mailboxKey,
-          providerMessageId: input.providerMessageId.slice(0, 500),
+          providerMessageId: normalizeInboundProviderMessageId(input.providerMessageId),
           subject: '',
           status: 'PROCESSING',
           processingPhase: 'CLAIMED',

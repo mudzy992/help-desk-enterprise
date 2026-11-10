@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
-import { claimInboundEmailAttempt } from './inbound-email-attempt';
+import { claimInboundEmailAttempt, normalizeInboundProviderMessageId } from './inbound-email-attempt';
 import type { InboundEmailAttemptSnapshot } from './inbound-email-attempt';
 import { inboundEmailIdempotencyKey } from './inbound-email-idempotency';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -255,7 +255,12 @@ export class InboundEmailService {
     now: Date,
   ): Promise<string> {
     const existing = await this.prisma.inboundEmail.findUnique({
-      where: { mailboxKey_providerMessageId: { mailboxKey, providerMessageId: item.providerMessageId } },
+      where: {
+        mailboxKey_providerMessageId: {
+          mailboxKey,
+          providerMessageId: normalizeInboundProviderMessageId(item.providerMessageId),
+        },
+      },
     });
     if (existing !== null && finalStatuses.has(existing.status)) {
       // A final DB outcome is durable; only the mailbox move may be missing.
