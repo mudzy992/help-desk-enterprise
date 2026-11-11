@@ -789,7 +789,8 @@ export class AnnouncementsService {
       if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
       let afterUserId: string | null = null;
       for (;;) {
-        const members = await transaction.user.findMany({
+        const members: Array<{ readonly id: string; readonly organizationalUnitId: string | null }> =
+          await transaction.user.findMany({
           where: afterUserId === null ? audienceWhere : { AND: [audienceWhere, { id: { gt: afterUserId } }] },
           select: { id: true, organizationalUnitId: true },
           orderBy: { id: 'asc' },
