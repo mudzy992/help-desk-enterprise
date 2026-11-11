@@ -1,6 +1,6 @@
 # BA-announcements-20: realtime prikaz najava već prijavljenim korisnicima
 
-Status: **otvoreno** (implementirano; čeka CI i operativnu potvrdu vlasnika R1–R3). Vlasnikov zahtjev: najava s uključenom trakom (BANNER) ili dijalogom (MODAL) mora se korisniku koji je već prijavljen prikazati čim nastupi, bez ručnog osvježavanja aplikacije; u suprotnom najava može završiti a da je korisnik nikad ne vidi (osim e-maila). Prije ove izmjene `AnnouncementsHost` je aktivnu listu osvježavao poliranjem svakih 60 s, a modal se odlučivao samo jednom pri mountu.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (R1/R2/R3 = DA; R3 nestanak preko poll fallbacka kako je dokumentovano) uz CI `43040740316` success; vidi audit 28 §29. Vlasnikov zahtjev: najava s uključenom trakom (BANNER) ili dijalogom (MODAL) mora se korisniku koji je već prijavljen prikazati čim nastupi, bez ručnog osvježavanja aplikacije; u suprotnom najava može završiti a da je korisnik nikad ne vidi (osim e-maila). Prije ove izmjene `AnnouncementsHost` je aktivnu listu osvježavao poliranjem svakih 60 s, a modal se odlučivao samo jednom pri mountu.
 
 ## Izmjena
 
@@ -25,4 +25,4 @@ Preduslov: redeploy svježeg builda (API + worker + frontend) i dva korisnika �
 | R2 | Isto, ali prikaz **Dijalog (MODAL)**. | Dijalog se sam otvori kod prijavljenog korisnika; nakon potvrde/zatvaranja se ne otvara ponovo. |
 | R3 | Objavi najavu pa je odmah povuci (Withdraw) dok je korisnik prijavljen. | Traka/dijalog nestaje bez osvježavanja (isti signal + refetch; ako povlačenje ne generiše inbox zapis, nestanak se vidi najkasnije na pollu od 60 s — izvijestiti koje se desilo). |
 
-Odgovor: `R1: DA/NE, R2: DA/NE, R3: DA/NE` + opis odstupanja ako ih ima. Bez CI dokaza i operativne potvrde nalaz se ne zatvara.
+Odgovor: `R1: DA/NE, R2: DA/NE, R3: DA/NE` + opis odstupanja ako ih ima. CI `43040740316` (success) dao je generated-Prisma/PostgreSQL dokaz, a vlasnik je operativno potvrdio R1/R2/R3 = DA (R3 nestanak nakon ~1 min preko poll fallbacka) — nalaz je zatvoren, vidi audit 28 §29.
