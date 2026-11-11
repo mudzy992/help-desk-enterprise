@@ -66,7 +66,7 @@ const audienceUsers = [
 
 function publishSetup() {
   const createdMembers: Array<{ announcementId: string; userId: string; organizationalUnitId: string | null }> = [];
-  const announcementState = { ...draftRow };
+  const announcementState: { audienceSizeAtPublish: number | null } & typeof draftRow = { ...draftRow };
   const client = {
     announcement: {
       findUnique: jest.fn(async () => announcementState),
