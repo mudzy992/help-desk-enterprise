@@ -12,10 +12,22 @@ const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),
   setQueryData: vi.fn(),
   toast: vi.fn(),
+  socketHandlers: new Map<string, (payload: unknown) => void>(),
   query: {
     data: undefined as ActiveAnnouncements | undefined,
     error: null as unknown,
     isFetching: false,
+  },
+}));
+
+vi.mock("@/services/helpdesk-socket", () => ({
+  acquireHelpdeskSocket: () => ({ id: "socket-1" }),
+  releaseHelpdeskSocket: vi.fn(),
+}));
+vi.mock("@/lib/realtime/subscribe-socket-event", () => ({
+  subscribeSocketEvent: (_socket: unknown, event: string, handler: (payload: unknown) => void) => {
+    mocks.socketHandlers.set(event, handler);
+    return () => mocks.socketHandlers.delete(event);
   },
 }));
 
@@ -86,6 +98,7 @@ describe("AnnouncementsHost lifecycle", () => {
     mocks.query.data = undefined;
     mocks.query.error = null;
     mocks.query.isFetching = false;
+    mocks.socketHandlers.clear();
     sessionStorage.clear();
   });
   afterEach(cleanup);
@@ -129,6 +142,35 @@ describe("AnnouncementsHost lifecycle", () => {
     ) => ActiveAnnouncements;
     expect(update(active).announcements).toEqual([]);
     expect(mocks.invalidateQueries).toHaveBeenCalledTimes(1);
+  });
+
+  it("refetches the active list on the realtime announcement-changed signal", () => {
+    mocks.query.data = active;
+    renderHost();
+    const handler = mocks.socketHandlers.get("announcement.changed");
+    expect(handler).toBeDefined();
+    mocks.invalidateQueries.mockClear();
+    handler!({ announcementId: "announcement-1", occurredAt: "2026-10-20T08:00:00Z" });
+    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["announcements", "active"],
+    });
+  });
+
+  it("shows a modal that arrives after the initial render without reopening a settled one", async () => {
+    mocks.query.data = { enabled: true, announcements: [] };
+    const view = renderHost();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    mocks.query.data = {
+      enabled: true,
+      announcements: [{ ...active.announcements[0]!, displayMode: "MODAL" }],
+    };
+    view.rerender(
+      <MemoryRouter>
+        <AnnouncementsHost />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
+    expect(screen.getAllByText("Planned maintenance").length).toBeGreaterThan(0);
   });
 
   it("keeps the item and schedules active-query recovery after a mutation failure", async () => {

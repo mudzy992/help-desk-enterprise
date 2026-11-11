@@ -56,6 +56,10 @@ export class TicketRealtimeBridgeSubscriber implements OnModuleInit, OnModuleDes
         this.logger.warn('Ignored invalid ticket realtime bridge payload');
         return;
       }
+      if (payload.kind === 'announcement-changed') {
+        this.hub.publishAnnouncementChanged(payload.payload);
+        return;
+      }
       if (payload.kind === 'message') {
         this.hub.publish(payload.payload);
         return;

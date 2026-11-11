@@ -137,6 +137,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | BA-announcements-17 | P3       | Retention je best-effort, guta grešku i zavisi od aktivnog sweepa                            | otvoreno |
 | BA-announcements-18 | P3       | Nema cursor/hasMore za archive/manage/pending niti stabilan tie-break order                  | otvoreno |
 | BA-announcements-19 | P3       | Delivery suite je compile-blocked; nema concurrency/Redis/SMTP/large-audience testa          | otvoreno |
+| BA-announcements-20 | P2       | Već prijavljeni korisnik vidi banner/dialog tek nakon osvježavanja; najava može završiti neviđena (realtime websocket signal, paket 205) | otvoreno |
 
 ## 13. Ključne korekcije
 
@@ -285,3 +286,7 @@ Perf nije pokrenut na W6.47 SHA-u. Posljednji raspoloživi Perf [`42530385320`](
 ## 27. Closeout — BA-announcements-11 (2026-10-29)
 
 `BA-announcements-11` (P2) zatvoren je operativnom potvrdom vlasnika nakon implementacije iz paketa [204](../implementation/204-announcements-11-scheduler-reconciliation.md). Sweep scheduler svakih 60 s provjerava i po potrebi obnavlja svoju BullMQ registraciju u Redisu (`announcement_sweep_schedule_recovered`), a propuštene najave se ne distribuiraju naknadno nego se alarmiraju u worker logu (`announcement_missed_distribution`, due-cap alarm). Kodni commit `6126863` prošao je CI [`43034654290`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43034654290) (**success**: generated-Prisma backend build/lint/full test, PostgreSQL+Redis integration, frontend, Docs guard, container/supply-chain, CI gate); novi scheduler (3) i sweep (2) testovi. Vlasnik je potvrdio: H1 (zakazana najava obavještava publiku kad počne) = DA, H2 (Redis-loss oporavak) = N/A, H3 (missed alarm u logu) = N/A — pokriveno jediničnim testovima reconciliationa i CI-jem, bez tvrdnje o live Redis-flush probi. Nema migracije, PR-a ni mergea; deployment je radio korisnik. Val 6 je **92/110 zatvorenih, 18 otvorenih (0 P1 / 4 P2 / 14 P3)**; source/plan **470/223**, globalni registar **480/213**.
+
+## 28. Implementacija — BA-announcements-20 (2026-10-29): realtime prikaz najava bez osvježavanja
+
+Po izričitom zahtjevu vlasnika, prije kompletnog zatvaranja announcements funkcionalnosti: najava s uključenom trakom ili dijalogom mora se već prijavljenom korisniku prikazati čim nastupi, bez ručnog osvježavanja aplikacije. Implementacija je u paketu [205](../implementation/205-announcements-20-realtime-display.md): sweep fan-out po svakom kreiranom inbox zapisu šalje content-free `announcement.changed` signal (`{announcementId, occurredAt}`, bez naslova/tijela) u korisnikovu socket sobu postojećim kanalom `TicketRealtimeHub` → Redis bridge (worker) → gateway, a `AnnouncementsHost` na signal refetchuje aktivnu listu vlastitom autorizacijom (`GET /announcements/active`) i za novopristiglu MODAL najavu otvara dijalog (jednom po id-u po mountu, unutar postojećeg session budžeta; riješen/zatvoren dijalog se ne otvara ponovo). Poll od 60 s ostaje fallback. Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (R1–R3 u planu 205).

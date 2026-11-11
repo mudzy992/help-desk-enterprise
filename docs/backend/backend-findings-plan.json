@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "generatedFrom": "docs/backend/audits/01-44",
   "units": 44,
-  "total": 693,
+  "total": 694,
   "severity": {
     "P1": 174,
-    "P2": 369,
+    "P2": 370,
     "P3": 150
   },
   "findings": [
@@ -156,6 +156,14 @@
     {
       "id": "BA-announcements-19",
       "severity": "P3",
+      "status": "otvoreno",
+      "source": "28-announcements.md",
+      "owner": "WS-D",
+      "wave": 6
+    },
+    {
+      "id": "BA-announcements-20",
+      "severity": "P2",
       "status": "otvoreno",
       "source": "28-announcements.md",
       "owner": "WS-D",

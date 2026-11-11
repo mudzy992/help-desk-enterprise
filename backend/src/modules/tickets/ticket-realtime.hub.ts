@@ -5,6 +5,7 @@ import type {
   NotificationRealtimePublish,
 } from '../notifications/notification-realtime.types';
 import type {
+  AnnouncementChangedRealtimePayload,
   EdgeEventRealtimePublish,
   TicketUpdatedRealtimePayload,
 } from './ticket-realtime.types';
@@ -14,6 +15,7 @@ type AwaitedTicketMessageListener = (payload: TicketRealtimeMessagePayload) => v
 type TicketUpdatedListener = (payload: TicketUpdatedRealtimePayload) => void;
 type AwaitedTicketUpdatedListener = (payload: TicketUpdatedRealtimePayload) => void | Promise<void>;
 type NotificationListener = (payload: NotificationRealtimePublish) => void;
+type AnnouncementChangedListener = (payload: AnnouncementChangedRealtimePayload) => void | Promise<void>;
 type EdgeEventListener = (payload: EdgeEventRealtimePublish) => void;
 type GroupNotificationListener = (payload: GroupNotificationRealtimePublish) => void;
 
@@ -26,6 +28,7 @@ export class TicketRealtimeHub {
   private readonly messageListeners = new Set<AwaitedTicketMessageListener>();
   private readonly ticketUpdatedListeners = new Set<AwaitedTicketUpdatedListener>();
   private readonly notificationListeners = new Set<NotificationListener>();
+  private readonly announcementChangedListeners = new Set<AnnouncementChangedListener>();
   private readonly edgeEventListeners = new Set<EdgeEventListener>();
   private readonly groupNotificationListeners = new Set<GroupNotificationListener>();
   private readonly pendingTicketUpdatePublications = new Map<string, Promise<void>>();
@@ -69,6 +72,13 @@ export class TicketRealtimeHub {
     this.ticketUpdatedListeners.add(listener);
     return () => {
       this.ticketUpdatedListeners.delete(listener);
+    };
+  }
+
+  subscribeAnnouncementChanged(listener: AnnouncementChangedListener): () => void {
+    this.announcementChangedListeners.add(listener);
+    return () => {
+      this.announcementChangedListeners.delete(listener);
     };
   }
 
@@ -144,6 +154,15 @@ export class TicketRealtimeHub {
         this.pendingTicketUpdatePublications.delete(key);
       }
     }
+  }
+
+  /** Best-effort in-process; the worker forwarder awaits the same listener before acking its bridge write. */
+  publishAnnouncementChanged(payload: AnnouncementChangedRealtimePayload): void {
+    this.publishBestEffort(this.announcementChangedListeners, payload, 'announcement-changed');
+  }
+
+  async publishAnnouncementChangedAwaited(payload: AnnouncementChangedRealtimePayload): Promise<void> {
+    await this.publishAwaitedToListeners(this.announcementChangedListeners, payload, 'announcement-changed');
   }
 
   publishNotification(payload: NotificationRealtimePublish): void {

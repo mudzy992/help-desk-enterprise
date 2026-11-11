@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -32,6 +32,7 @@ import { authorizeAnnouncementAudiences, type AnnouncementAudienceAuthorizationC
 import { announcementUnitPathCoveredByScope, hasAnnouncementPermissionScope } from './announcement-permission-scope';
 import type { AnnouncementViewer } from './announcement-viewer';
 import { AnnouncementError, announcementErrorCodes, announcementLimits } from './announcements.constants';
+import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
 
 const dayMs = 86_400_000;
 
@@ -122,6 +123,9 @@ export class AnnouncementsService {
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
     private readonly authorization: AuthorizationService,
+    // BA-announcements-20: optional so existing unit constructions keep working;
+    // both runtime modules provide the shared hub.
+    @Optional() private readonly realtimeHub?: TicketRealtimeHub,
   ) {}
 
   private async readSetting<T>(key: string, fallback: T): Promise<T> {
@@ -1358,7 +1362,16 @@ export class AnnouncementsService {
           policy,
           decision,
         );
-        if (created !== null) sent += 1;
+        if (created !== null) {
+          sent += 1;
+          // BA-announcements-20: the same fan-out that writes the inbox row pokes the
+          // signed-in client to refetch its active announcements (banner/modal).
+          this.realtimeHub?.publishAnnouncementChanged({
+            userId,
+            announcementId: row.id,
+            occurredAt: new Date().toISOString(),
+          });
+        }
       } catch (error) {
         this.logger.warn(`announcement_notify_user_failed id=${row.id} reason=${error instanceof Error ? error.message : String(error)}`);
       }

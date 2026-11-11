@@ -140,6 +140,7 @@ export const ticketRealtimeEventNames = {
   leave: 'ticket:leave',
   error: 'ticket:error',
   notificationCreated: 'notification.created',
+  announcementChanged: 'announcement.changed',
   notificationRead: 'notification.read',
   notificationUnreadCount: 'notification.unread-count',
   settingsUpdated: 'settings.updated',

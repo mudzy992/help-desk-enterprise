@@ -35,6 +35,13 @@ export type TicketUpdatedRealtimePayload = {
   readonly visibility: TicketMessageVisibility;
 };
 
+/** BA-announcements-20: content-free invalidation signal; clients refetch with their own authorization. */
+export type AnnouncementChangedRealtimePayload = {
+  readonly userId: string;
+  readonly announcementId: string;
+  readonly occurredAt: string;
+};
+
 export type EdgeEventRealtimePublish = {
   readonly userId: string;
   readonly ticketId?: string;

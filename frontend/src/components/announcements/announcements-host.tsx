@@ -33,6 +33,9 @@ import {
   severityTone,
 } from "@/lib/announcements/announcement-view";
 import { useOperationGuard } from "@/lib/async/use-operation-guard";
+import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
+import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
+import { ticketSocketEvents } from "@/services/ticket-socket";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
 import { cn } from "@/lib/utils";
 import {
@@ -89,6 +92,7 @@ export function AnnouncementsHost() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [modal, setModal] = useState<ActiveAnnouncement | null>(null);
   const modalDecided = useRef(false);
+  const decidedModals = useRef(new Set<string>());
 
   const current = announcements[Math.min(index, Math.max(0, announcements.length - 1))];
 
@@ -101,19 +105,42 @@ export function AnnouncementsHost() {
     setExpanded(false);
   }, [current?.id]);
 
-  // One modal per mount (= per navigation), within the session budget.
+  // BA-announcements-20: a modal is decided once per mount for the initial list,
+  // and again whenever a NEW modal announcement arrives (realtime refetch or
+  // poll) — each announcement id is decided at most once per mount, so a
+  // settled or dismissed modal never reopens.
   useEffect(() => {
-    if (modalDecided.current || data === undefined) return;
-    modalDecided.current = true;
+    if (data === undefined) return;
     const store = sessionStore();
     const candidate = announcements.find(
-      (item) => item.displayMode === "MODAL" && modalShowsLeft(store, item.id, item.version) > 0,
+      (item) =>
+        item.displayMode === "MODAL" &&
+        !decidedModals.current.has(item.id) &&
+        modalShowsLeft(store, item.id, item.version) > 0,
     );
+    if (!modalDecided.current) modalDecided.current = true;
+    for (const item of announcements) {
+      if (item.displayMode === "MODAL") decidedModals.current.add(item.id);
+    }
     if (candidate !== undefined) {
       recordModalShown(store, candidate.id, candidate.version);
       setModal(candidate);
     }
   }, [announcements, data]);
+
+  // BA-announcements-20: the worker pushes a content-free announcement.changed
+  // signal to every recipient's room; refetch the active list with our own
+  // authorization instead of waiting up to 60 s for the poll.
+  useEffect(() => {
+    const socket = acquireHelpdeskSocket();
+    const stop = subscribeSocketEvent(socket, ticketSocketEvents.announcementChanged, () => {
+      void queryClient.invalidateQueries({ queryKey: announcementQueryKeys.active });
+    });
+    return () => {
+      stop();
+      releaseHelpdeskSocket();
+    };
+  }, [queryClient]);
 
   const removeLocally = (id: string) => {
     queryClient.setQueryData<ActiveAnnouncements>(announcementQueryKeys.active, (previous) =>

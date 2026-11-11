@@ -16,7 +16,20 @@ export function parseTicketRealtimeBridgePayload(
   if (typeof candidate.payload !== 'object' || candidate.payload === null) {
     return null;
   }
-  const payload = candidate.payload as { readonly ticketId?: unknown };
+  const payload = candidate.payload as {
+    readonly ticketId?: unknown;
+    readonly userId?: unknown;
+    readonly announcementId?: unknown;
+  };
+  if (candidate.kind === 'announcement-changed') {
+    if (
+      typeof payload.userId !== 'string' || payload.userId.length === 0 ||
+      typeof payload.announcementId !== 'string' || payload.announcementId.length === 0
+    ) {
+      return null;
+    }
+    return { kind: 'announcement-changed', payload: candidate.payload as never };
+  }
   if (typeof payload.ticketId !== 'string' || payload.ticketId.length === 0) {
     return null;
   }

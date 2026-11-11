@@ -32,6 +32,10 @@ export class TicketRealtimeRedisForwarder implements OnModuleInit, OnModuleDestr
       this.hub.subscribeTicketUpdatedAwaited((payload) =>
         this.forward({ kind: 'updated', payload }),
       ),
+      // BA-announcements-20: announcement invalidation travels the same worker->API bridge.
+      this.hub.subscribeAnnouncementChanged((payload) =>
+        this.forward({ kind: 'announcement-changed', payload }),
+      ),
     );
   }
 

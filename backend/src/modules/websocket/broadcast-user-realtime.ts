@@ -18,6 +18,18 @@ import {
 import { groupRoomName, userRoomName } from './ticket-socket-rooms';
 import { recordWebsocketEmit } from './websocket-emit-counter';
 
+/** BA-announcements-20: content-free invalidation into the recipient's own room. */
+export function broadcastAnnouncementChanged(
+  server: Server,
+  event: { readonly userId: string; readonly announcementId: string; readonly occurredAt: string },
+): void {
+  server.to(userRoomName(event.userId)).emit(ticketRealtimeEventNames.announcementChanged, {
+    announcementId: event.announcementId,
+    occurredAt: event.occurredAt,
+  });
+  recordWebsocketEmit('user');
+}
+
 export function broadcastNotificationRealtime(
   server: Server,
   event: NotificationRealtimePublish,

@@ -8,6 +8,7 @@ export const ticketSocketEvents = {
   // Lightweight group-room event (< 200 B, without ticket content).
   groupFeedChanged: "group.feed-changed",
   notificationCreated: "notification.created",
+  announcementChanged: "announcement.changed",
   notificationRead: "notification.read",
   notificationUnreadCount: "notification.unread-count",
   settingsUpdated: "settings.updated",
