@@ -356,7 +356,10 @@ function ManageAnnouncements() {
                     <td className="tnum px-2 py-2.5 text-right">
                       {item.status === "DRAFT" || !item.requiresAcknowledgement
                         ? "—"
-                        : `${item.acknowledgedCount ?? 0} / ${item.audienceSizeAtPublish ?? 0}`}
+                        : // BA-announcements-12: all-time acknowledgements only; the
+                          // consistent acknowledged/current-audience ratio lives in
+                          // the report, never against the publish-time size.
+                          `${item.acknowledgedCount ?? 0}`}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex flex-wrap justify-end gap-1">

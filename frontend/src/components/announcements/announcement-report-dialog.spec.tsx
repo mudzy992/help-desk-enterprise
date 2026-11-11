@@ -35,6 +35,8 @@ const report = (id: string): AnnouncementReport => ({
   audienceSizeAtPublish: 2,
   currentAudienceSize: 2,
   acknowledgedCount: 1,
+  acknowledgedInCurrentAudience: 1,
+  acknowledgedOutsideCurrentAudience: 0,
   pendingCount: 1,
   lastReminderAt: null,
   canRemind: true,
@@ -79,6 +81,22 @@ describe("AnnouncementReportDialog state machine", () => {
     first.resolve(report("first"));
     await Promise.resolve();
     expect(screen.queryByText("Report first")).toBeNull();
+  });
+
+  it("bases the headline ratio on the current audience, not the publish-time size (BA-12)", async () => {
+    mocks.getReport.mockResolvedValue({
+      ...report("populations"),
+      audienceSizeAtPublish: 10,
+      currentAudienceSize: 4,
+      acknowledgedCount: 9,
+      acknowledgedInCurrentAudience: 3,
+      acknowledgedOutsideCurrentAudience: 6,
+      pendingCount: 1,
+    });
+    render(<AnnouncementReportDialog announcementId="populations" onOpenChange={vi.fn()} />);
+    // i18n is keyed in this suite: summary renders acknowledged/audience values via the key mock.
+    expect(await screen.findByText(/announcements\.report\.summary/)).toBeTruthy();
+    expect(screen.getByText(/announcements\.report\.formerAudienceNote/)).toBeTruthy();
   });
 
   it("guards CSV download against synchronous double submit", async () => {

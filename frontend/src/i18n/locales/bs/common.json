@@ -8407,7 +8407,8 @@
     "report": {
       "title": "Izvještaj o potvrdama",
       "summary": "Potvrdilo {{acknowledged}} od {{audience}} ({{percent}} %)",
-      "audienceNote": "Broj „od“ je publika u trenutku objave; sada publika ima {{current}} korisnika.",
+      "audienceNote": "Brojevi se računaju prema sadašnjoj publici ({{current}} korisnika); u trenutku objave publika je imala {{publish}} korisnika.",
+      "formerAudienceNote": "{{count}} potvrda je od korisnika koji više nisu u sadašnjoj publici.",
       "noAcknowledgement": "Ova najava ne traži potvrdu čitanja; prikazana je samo publika.",
       "byUnit": "Potvrde po organizacionoj jedinici",
       "unit": "Jedinica",

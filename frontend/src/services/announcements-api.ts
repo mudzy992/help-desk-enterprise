@@ -155,6 +155,8 @@ export type AnnouncementReport = {
   readonly audienceSizeAtPublish: number;
   readonly currentAudienceSize: number;
   readonly acknowledgedCount: number;
+  readonly acknowledgedInCurrentAudience: number;
+  readonly acknowledgedOutsideCurrentAudience: number;
   readonly pendingCount: number;
   readonly lastReminderAt: string | null;
   readonly canRemind: boolean;

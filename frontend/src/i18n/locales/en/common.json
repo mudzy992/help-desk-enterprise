@@ -8359,7 +8359,8 @@
     "report": {
       "title": "Acknowledgement report",
       "summary": "{{acknowledged}} of {{audience}} acknowledged ({{percent}}%)",
-      "audienceNote": "“Of” is the audience at publication; the audience now has {{current}} users.",
+      "audienceNote": "Figures are based on the current audience ({{current}} users); at publication the audience had {{publish}} users.",
+      "formerAudienceNote": "{{count}} acknowledgement(s) are from users who are no longer in the current audience.",
       "noAcknowledgement": "This announcement does not ask for acknowledgement; only the audience is shown.",
       "byUnit": "Acknowledgements per organizational unit",
       "unit": "Unit",

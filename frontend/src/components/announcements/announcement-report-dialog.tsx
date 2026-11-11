@@ -161,10 +161,12 @@ export function AnnouncementReportDialog({
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);
+  // BA-announcements-12: the headline ratio divides one population by itself —
+  // acknowledgements within the CURRENT audience over the current audience.
   const percent =
     report === null
       ? 0
-      : acknowledgementPercent(report.acknowledgedCount, report.audienceSizeAtPublish);
+      : acknowledgementPercent(report.acknowledgedInCurrentAudience, report.currentAudienceSize);
 
   return (
     <Modal open={announcementId !== null} onOpenChange={onOpenChange}>
@@ -184,15 +186,25 @@ export function AnnouncementReportDialog({
             <div className="grid gap-1.5">
               <p className="text-[13px] font-medium text-foreground">
                 {t("announcements.report.summary", {
-                  acknowledged: report.acknowledgedCount,
-                  audience: report.audienceSizeAtPublish,
+                  acknowledged: report.acknowledgedInCurrentAudience,
+                  audience: report.currentAudienceSize,
                   percent,
                 })}
               </p>
               <Progress value={percent} tone={percent >= 100 ? "success" : "primary"} />
               <p className={hintClassName}>
-                {t("announcements.report.audienceNote", { current: report.currentAudienceSize })}
+                {t("announcements.report.audienceNote", {
+                  current: report.currentAudienceSize,
+                  publish: report.audienceSizeAtPublish,
+                })}
               </p>
+              {report.acknowledgedOutsideCurrentAudience > 0 ? (
+                <p className={hintClassName}>
+                  {t("announcements.report.formerAudienceNote", {
+                    count: report.acknowledgedOutsideCurrentAudience,
+                  })}
+                </p>
+              ) : null}
             </div>
 
             {report.byUnit.length > 0 ? (

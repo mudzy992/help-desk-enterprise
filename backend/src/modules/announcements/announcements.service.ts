@@ -942,6 +942,16 @@ export class AnnouncementsService {
       }),
     ]);
     const currentAudienceSize = audienceByUnit.reduce((total, group) => total + group._count._all, 0);
+    // BA-announcements-12: acknowledgement figures are reported per population,
+    // never mixed. `acknowledgedInCurrentAudience` + `pendingCount` partition the
+    // CURRENT audience; `acknowledgedCount` stays the all-time total (including
+    // users who since left the audience and anonymized receipts), so no ratio in
+    // the UI ever divides one population by another population's size.
+    const acknowledgedInCurrentAudience = acknowledgedByUnit.reduce(
+      (total, group) => total + group._count._all, 0,
+    );
+    const acknowledgedTotal = acknowledgementCount + row.anonymizedAcknowledgements;
+    const acknowledgedOutsideCurrentAudience = acknowledgedTotal - acknowledgedInCurrentAudience;
     const unitIds = [
       ...new Set(
         [...audienceByUnit, ...acknowledgedByUnit]
@@ -976,7 +986,9 @@ export class AnnouncementsService {
       requiresAcknowledgement: row.requiresAcknowledgement,
       audienceSizeAtPublish: row.audienceSizeAtPublish ?? currentAudienceSize,
       currentAudienceSize,
-      acknowledgedCount: acknowledgementCount + row.anonymizedAcknowledgements,
+      acknowledgedCount: acknowledgedTotal,
+      acknowledgedInCurrentAudience,
+      acknowledgedOutsideCurrentAudience,
       pendingCount,
       lastReminderAt: row.lastReminderAt?.toISOString() ?? null,
       canRemind: this.canRemind(row, new Date()),
