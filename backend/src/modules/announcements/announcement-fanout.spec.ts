@@ -100,7 +100,7 @@ function setup(totalUsers: number, overrides: Partial<typeof row> = {}) {
     organizationalUnit: { findMany: jest.fn(async () => []) },
     announcementEmailRun: {
       create: jest.fn(async () => ({ id: 'email-run-1' })),
-      findFirst: jest.fn(async () => null),
+      findFirst: jest.fn(async (): Promise<{ readonly id: string } | null> => null),
     },
   };
   const transaction = jest.fn(async (operation: (client: unknown) => Promise<unknown>) => operation(prisma));
