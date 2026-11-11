@@ -1,6 +1,6 @@
 # BA-announcements-13: immutable membership snapshot pri publishu
 
-Status: **otvoreno** (implementirano; čeka CI i operativnu potvrdu vlasnika T1–T2). `audienceSizeAtPublish` bio je samo broj: report nije mogao dokazati ko je bio u publici u trenutku objave, pa je i nakon BA-12 (razdvojene populacije) ostao oslonjen na trenutnu publiku. Vlasnik je kroz `ask_user` izričito odobrio migraciju za ovaj paket.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (T1/T2 = DA) uz CI `43112710466` success; vidi audit 28 §33. `audienceSizeAtPublish` bio je samo broj: report nije mogao dokazati ko je bio u publici u trenutku objave, pa je i nakon BA-12 (razdvojene populacije) ostao oslonjen na trenutnu publiku. Vlasnik je kroz `ask_user` izričito odobrio migraciju za ovaj paket.
 
 ## Izmjena
 
@@ -23,4 +23,4 @@ Preduslov: redeploy svježeg builda (API + worker + frontend) — redeploy primj
 | T1 | Objavi (Publish) **novu** najavu koja traži potvrdu čitanja, s publikom od nekoliko korisnika; neka jedan potvrdi. Otvori **Najave → Izvještaj** za tu najavu. | Na vrhu omjer „Potvrdilo X od Y" s Y = publika pri objavi, a ispod napomena da se brojevi računaju prema trenutku objave uz broj sadašnje publike. |
 | T2 | Otvori izvještaj za neku **staru** najavu (objavljenu prije ovog redeploya). | Izvještaj radi kao i dosad (baza je sadašnja publika), bez greške. |
 
-Odgovor: `T1: DA/NE, T2: DA/NE` + opis odstupanja ako ih ima. Bez CI dokaza i operativne potvrde nalaz se ne zatvara.
+Odgovor vlasnika: T1/T2 = DA; CI `43112710466` (success) dao je generated-Prisma/PostgreSQL dokaz, a korisnik je migraciju primijenio kroz redeploy — nalaz je zatvoren, vidi audit 28 §33.
