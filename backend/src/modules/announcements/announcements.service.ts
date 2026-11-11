@@ -1242,9 +1242,13 @@ export class AnnouncementsService {
     if (!(await this.isEnabled())) return 0;
     const due = await this.prisma.announcement.findMany({
       where: { status: 'PUBLISHED', notifyAudience: true, audienceNotifiedAt: null, startsAt: { lte: now }, endsAt: { gt: now } },
-      select: { id: true },
+      select: { id: true, startsAt: true },
+      orderBy: { startsAt: 'asc' },
       take: 20,
     });
+    if (due.length >= 20 && due[0] !== undefined) {
+      this.logger.warn(`announcement_sweep_due_cap_reached oldestStartsAt=${due[0].startsAt.toISOString()}`);
+    }
     let sent = 0;
     for (const { id } of due) {
       try {
@@ -1253,8 +1257,34 @@ export class AnnouncementsService {
         this.logger.warn(`announcement_notify_failed id=${id} reason=${error instanceof Error ? error.message : String(error)}`);
       }
     }
+    await this.surfaceMissedAnnouncements(now);
     await this.applyRetention(now);
     return sent;
+  }
+
+  /**
+   * BA-announcements-11 missed-announcement policy: an announcement that
+   * started and ended while the sweep was down is NOT distributed late (its
+   * display window is over, so the notification, e-mail and Teams post would
+   * be stale). Instead every recently missed announcement is alarmed once
+   * per sweep within 24 h of its end, so the loss is operator-visible in the
+   * worker log rather than silent.
+   */
+  private async surfaceMissedAnnouncements(now: Date): Promise<void> {
+    const missed = await this.prisma.announcement.findMany({
+      where: {
+        status: 'PUBLISHED',
+        notifyAudience: true,
+        audienceNotifiedAt: null,
+        endsAt: { lte: now, gt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+      },
+      select: { id: true, endsAt: true },
+      orderBy: { endsAt: 'asc' },
+      take: 20,
+    });
+    for (const row of missed) {
+      this.logger.warn(`announcement_missed_distribution id=${row.id} endsAt=${row.endsAt.toISOString()}`);
+    }
   }
 
   /** §7: acknowledgements and dismissals go N days after the end (legal hold keeps them). */
