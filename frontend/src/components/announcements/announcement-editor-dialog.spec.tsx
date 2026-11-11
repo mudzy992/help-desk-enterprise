@@ -8,7 +8,9 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   preview: vi.fn(),
   update: vi.fn(),
+  toast: vi.fn(),
 }));
+vi.mock("@/components/ui/toast", () => ({ useToast: () => ({ toast: mocks.toast }) }));
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -77,6 +79,16 @@ describe("AnnouncementEditorDialog state machine", () => {
 
     expect(screen.getByRole("alert").textContent).toBe("announcements.errors.order");
     expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("also surfaces a failed save as a toast so it cannot hide outside the scroll area", async () => {
+    mocks.create.mockRejectedValue(new Error("conflict"));
+    renderEditor();
+    fireEvent.click(screen.getByRole("button", { name: "announcements.editor.saveDraft" }));
+
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledTimes(1));
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ tone: "danger" }));
+    expect(screen.getByRole("alert")).toBeTruthy();
   });
 
   it("guards synchronous double save and forwards normalized instants once", async () => {

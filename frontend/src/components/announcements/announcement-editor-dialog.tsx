@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import {
   announcementErrorDetail,
   announcementSeverityKeys,
@@ -59,6 +60,7 @@ export function AnnouncementEditorDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const operationGuard = useOperationGuard();
+  const { toast } = useToast();
   const timeZone = announcementTimeZone();
 
   const isPublished = announcement !== null && announcement.status === "PUBLISHED";
@@ -153,13 +155,14 @@ export function AnnouncementEditorDialog({
         onSaved(saved);
       } catch (caught) {
         const detail = announcementErrorDetail(caught);
-        if (detail !== null && detail.startsWith("duration:")) {
-          setError(
-            t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) }),
-          );
-        } else {
-          setError(t(mapAnnouncementError(caught) ?? mapApiError(caught)));
-        }
+        const message =
+          detail !== null && detail.startsWith("duration:")
+            ? t("announcements.errors.duration", { days: Number(detail.slice("duration:".length)) })
+            : t(mapAnnouncementError(caught) ?? mapApiError(caught));
+        setError(message);
+        // The form is long and its inline alert can sit outside the visible
+        // scroll area; the toast is always seen (e.g. a version conflict).
+        toast({ tone: "danger", title: message, error: caught });
       } finally {
         setSaving(false);
       }

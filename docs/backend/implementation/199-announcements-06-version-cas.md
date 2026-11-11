@@ -1,6 +1,6 @@
 # BA-announcements-06: version CAS (If-Match) za sve mutacije najave
 
-Status: **otvoreno**. Mutacije nisu imale optimistic concurrency: paralelni draft update je bio last-write-wins, withdraw je pisao bez status predikata nakon ranijeg čitanja, a objavljeni edit je verziju povećavao samo pri promjeni teksta, pa su se update/withdraw i lifecycle odluke mogle međusobno pregaziti nad zastarjelim snapshotom.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (C1/C2/C3 = DA) uz CI `43004333959` success; vidi audit 28 §22. Mutacije nisu imale optimistic concurrency: paralelni draft update je bio last-write-wins, withdraw je pisao bez status predikata nakon ranijeg čitanja, a objavljeni edit je verziju povećavao samo pri promjeni teksta, pa su se update/withdraw i lifecycle odluke mogle međusobno pregaziti nad zastarjelim snapshotom.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Bez migracije (kolona `version` postoji). Sve četiri mutacije sada zahtijevaju 
 
 ## Testovi i granice
 
-Novi `announcements.concurrency.spec.ts` (5 testova): draft update piše kroz version predikat i inkrementira, zastarjeli update/publish/withdraw/delete odbijeni kao version conflict. Lokalno: backend announcements suite 10 suiteova / 61 test, ciljani ESLint; frontend Vitest announcements 8 fajlova / 22 testa, `tsc --noEmit`, i18n parity, Prettier, ESLint. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara.
+Novi `announcements.concurrency.spec.ts` (5 testova): draft update piše kroz version predikat i inkrementira, zastarjeli update/publish/withdraw/delete odbijeni kao version conflict. Lokalno: backend announcements suite 10 suiteova / 61 test, ciljani ESLint; frontend Vitest announcements 8 fajlova / 22 testa, `tsc --noEmit`, i18n parity, Prettier, ESLint. CI `43004333959` (success) dao je generated-Prisma/PostgreSQL dokaz, a vlasnik je operativno potvrdio C1/C2/C3 = DA — nalaz je zatvoren, vidi audit 28 §22. Naknadna UX dopuna: greška spremanja u editoru prikazuje se i kao toast jer se inline alert u dugoj formi mogao previdjeti (test u `announcement-editor-dialog.spec.tsx`).
