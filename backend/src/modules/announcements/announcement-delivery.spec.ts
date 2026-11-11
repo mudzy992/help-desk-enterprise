@@ -337,6 +337,39 @@ describe('AnnouncementDeliveryService', () => {
     expect(announcementUpdates.at(-1)).toMatchObject({ data: { teamsResult: 'SENT' } });
   });
 
+  it('selects FAILED and crashed Teams claims for retry after the delay', async () => {
+    const { service, prisma } = setup({
+      users: [],
+      teams: { enabled: true, opsUrl: 'https://hooks.example.com/ops' },
+      teamsDue: true,
+    });
+    await service.run(now, 60_000);
+    expect(prisma.announcement.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { teamsPostedAt: null },
+            expect.objectContaining({ teamsResult: 'FAILED' }),
+            expect.objectContaining({ teamsResult: null }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('records a webhook failure as FAILED under a fresh claim so a later sweep retries it', async () => {
+    const { service, teams, announcementUpdates } = setup({
+      users: [],
+      teams: { enabled: true, opsUrl: 'https://hooks.example.com/ops' },
+      teamsDue: true,
+    });
+    teams.mockRejectedValueOnce(new Error('webhook 500'));
+    const result = await service.run(now, 60_000);
+    expect(result.teamsPosted).toBe(0);
+    expect(announcementUpdates[0]).toMatchObject({ data: { teamsResult: null } });
+    expect(announcementUpdates.at(-1)).toMatchObject({ data: { teamsResult: 'FAILED' } });
+  });
+
   it('marks a ticked Teams post as skipped when Teams is switched off', async () => {
     const { service, teams, announcementUpdates } = setup({ users: [], teams: { enabled: false }, teamsDue: true });
     await service.run(now, 60_000);

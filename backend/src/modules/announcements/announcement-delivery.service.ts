@@ -38,6 +38,8 @@ export const announcementEmailBatchSize = 100;
 const runsPerSweep = 10;
 /** Teams posts per sweep (webhooks are rate limited). */
 const teamsPerSweep = 10;
+/** BA-announcements-10: delay before a FAILED (or crashed, result-less) Teams claim is retried. */
+const teamsRetryDelayMs = 5 * 60 * 1000;
 
 export type AnnouncementEmailRecipient = {
   readonly id: string;
@@ -422,14 +424,25 @@ export class AnnouncementDeliveryService {
   }
 
   private async postTeams(now: Date): Promise<number> {
+    // BA-announcements-10: a claimed post is not terminal. A FAILED result is
+    // retried after the delay, and a claim whose result never landed (crash
+    // between the webhook and the result write) is reconciled the same way;
+    // Teams has no provider idempotency, so that crash window may duplicate
+    // a channel post instead of losing it.
+    const retryBefore = new Date(now.getTime() - teamsRetryDelayMs);
+    const dueWhere = {
+      status: 'PUBLISHED' as const,
+      postToTeams: true,
+      startsAt: { lte: now },
+      endsAt: { gt: now },
+      OR: [
+        { teamsPostedAt: null },
+        { teamsResult: 'FAILED' as const, teamsPostedAt: { lte: retryBefore } },
+        { teamsResult: null, teamsPostedAt: { lte: retryBefore } },
+      ],
+    };
     const due = await this.prisma.announcement.findMany({
-      where: {
-        status: 'PUBLISHED',
-        postToTeams: true,
-        teamsPostedAt: null,
-        startsAt: { lte: now },
-        endsAt: { gt: now },
-      },
+      where: dueWhere,
       orderBy: { startsAt: 'asc' },
       take: teamsPerSweep,
       select: {
@@ -459,8 +472,15 @@ export class AnnouncementDeliveryService {
     let posted = 0;
     for (const row of due) {
       const claimed = await this.prisma.announcement.updateMany({
-        where: { id: row.id, teamsPostedAt: null },
-        data: { teamsPostedAt: now },
+        where: {
+          id: row.id,
+          OR: [
+            { teamsPostedAt: null },
+            { teamsResult: 'FAILED', teamsPostedAt: { lte: retryBefore } },
+            { teamsResult: null, teamsPostedAt: { lte: retryBefore } },
+          ],
+        },
+        data: { teamsPostedAt: now, teamsResult: null },
       });
       if (claimed.count !== 1) continue;
       let result: 'SENT' | 'FAILED' = 'SENT';
