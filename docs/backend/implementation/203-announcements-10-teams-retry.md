@@ -1,6 +1,6 @@
 # BA-announcements-10: Teams objava se ponavlja nakon privremenog kvara
 
-Status: **otvoreno**. `postTeams` je claimovao najavu (`teamsPostedAt`) prije webhook poziva i zbog toga due upit (`teamsPostedAt IS NULL`) neuspjelu objavu više nikad nije birao: prolazni webhook kvar bio je terminalan, a crash između uspješnog webhooka i upisa rezultata ostavljao je claim bez rezultata i bez reconciliationa.
+Status: **zatvoreno** (2026-10-29) uz CI `43031682677` success; operativna potvrda N/A (instalacija nema Teams kanal) — vidi audit 28 §26. `postTeams` je claimovao najavu (`teamsPostedAt`) prije webhook poziva i zbog toga due upit (`teamsPostedAt IS NULL`) neuspjelu objavu više nikad nije birao: prolazni webhook kvar bio je terminalan, a crash između uspješnog webhooka i upisa rezultata ostavljao je claim bez rezultata i bez reconciliationa.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Bez migracije. Due upit i claim sada pored neobjavljenih biraju i `FAILED` claim
 
 ## Testovi i granice
 
-`announcement-delivery.spec.ts` dobio je 2 testa: due selekcija uključuje FAILED i result-less claimove, a webhook kvar se zapisuje kao FAILED pod svježim claimom. Lokalno: backend announcements suite 10 suiteova / 68 testova, ciljani ESLint. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara.
+`announcement-delivery.spec.ts` dobio je 2 testa: due selekcija uključuje FAILED i result-less claimove, a webhook kvar se zapisuje kao FAILED pod svježim claimom. Lokalno: backend announcements suite 10 suiteova / 68 testova, ciljani ESLint. CI `43031682677` (success) dao je generated-Prisma/PostgreSQL dokaz; operativna potvrda je N/A jer instalacija ne posjeduje Teams kanal — nalaz je zatvoren na osnovu testova i CI-ja, bez live Teams probe, vidi audit 28 §26.
