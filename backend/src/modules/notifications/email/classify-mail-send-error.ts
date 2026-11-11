@@ -48,32 +48,6 @@ export function isPermanentRecipientFailure(kind: MailSendFailureKind): boolean 
   return kind === 'recipient';
 }
 
-/**
- * No SMTP rejection or pre-DATA command means the server may have accepted the
- * message before the connection failed. Preserve that outcome as UNKNOWN rather
- * than allowing an automatic retry to duplicate a message.
- */
-export function isAmbiguousMailSendError(error: unknown): boolean {
-  const code = readStringField(error, 'code');
-  if (code === 'EPROVIDERBLOCKED' || code === 'EAUTH' || code === 'ENOAUTH' || code === 'EOAUTH2') {
-    return false;
-  }
-  const command = readStringField(error, 'command')?.trim().toUpperCase();
-  if (
-    command !== undefined &&
-    ['CONN', 'CONNECT', 'EHLO', 'STARTTLS', 'AUTH', 'MAIL FROM', 'RCPT TO'].some(
-      (phase) => command === phase || command.startsWith(`${phase} `),
-    )
-  ) {
-    return false;
-  }
-  const responseCode = readResponseCode(error);
-  if (responseCode !== null) {
-    return responseCode >= 200 && responseCode < 300;
-  }
-  return true;
-}
-
 export function isMailProviderLimit(kind: MailSendFailureKind): boolean {
   return mailProviderLimitKinds.includes(kind);
 }

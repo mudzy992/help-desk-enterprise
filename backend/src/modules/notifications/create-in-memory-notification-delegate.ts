@@ -1,32 +1,18 @@
 import { pickInMemoryFields } from '../routing/in-memory-routing-store';
 import type { NotificationRecord } from './notifications.types';
 
-type NotificationOrderBy = {
-  readonly createdAt?: 'asc' | 'desc';
-  readonly id?: 'asc' | 'desc';
-};
-
 export type NotificationWhere = {
-  readonly id?:
-    | string
-    | {
-        readonly in?: readonly string[];
-        readonly lt?: string;
-        readonly gt?: string;
-      };
+  readonly id?: string | { readonly in: readonly string[] };
   readonly userId?: string | null | { readonly in: readonly string[] };
   /** Option A: group rows, their audience and the caller's receipts. */
   readonly groupId?: string | null;
-  readonly AND?: readonly NotificationWhere[];
   readonly OR?: readonly NotificationWhere[];
   readonly NOT?: { readonly excludedUserIds?: { readonly has: string } };
   readonly receipts?: { readonly none: { readonly userId: string } };
   readonly dedupeKey?: string;
   readonly isRead?: boolean;
   /** Phase 2.3: the retention job deletes by age. */
-  readonly createdAt?:
-    | Date
-    | { readonly lt?: Date; readonly lte?: Date; readonly gte?: Date };
+  readonly createdAt?: { readonly lt?: Date; readonly gte?: Date };
 };
 
 /** Option A: `(notificationId, userId)` read marks of group notifications. */
@@ -105,48 +91,6 @@ export function createInMemoryNotificationDelegate(
                 receipt.userId === include.receipts.where.userId),
           ),
         }));
-  const insertMany = ({
-    data,
-    skipDuplicates,
-  }: {
-    data?: readonly NotificationCreateData[];
-    skipDuplicates?: boolean;
-  }): NotificationRecord[] => {
-    const inserted: NotificationRecord[] = [];
-    for (const item of data ?? []) {
-      const duplicate = [...records.values()].some((record) =>
-        item.userId === null || item.userId === undefined
-          ? (record.groupId ?? null) === (item.groupId ?? null) &&
-            record.userId === null &&
-            record.dedupeKey === item.dedupeKey
-          : record.userId === item.userId && record.dedupeKey === item.dedupeKey,
-      );
-      if (duplicate) {
-        if (skipDuplicates !== true) {
-          throw { code: 'P2002', meta: { target: ['userId', 'dedupeKey'] } };
-        }
-        continue;
-      }
-      const created: NotificationRecord = {
-        id: item.id ?? nextId(),
-        userId: item.userId ?? null,
-        groupId: item.groupId ?? null,
-        excludedUserIds: [...(item.excludedUserIds ?? [])],
-        type: item.type,
-        title: item.title,
-        body: item.body,
-        isRead: item.isRead ?? false,
-        readAt: item.readAt ?? null,
-        ticketId: item.ticketId,
-        payload: item.payload,
-        dedupeKey: item.dedupeKey,
-        createdAt: item.createdAt ?? now(),
-      };
-      records.set(created.id, created);
-      inserted.push(created);
-    }
-    return inserted;
-  };
 
   return {
     findMany: async ({
@@ -157,7 +101,7 @@ export function createInMemoryNotificationDelegate(
       include,
     }: {
       where?: NotificationWhere;
-      orderBy?: NotificationOrderBy | readonly NotificationOrderBy[];
+      orderBy?: { createdAt: 'asc' | 'desc' };
       take?: number;
       select?: Record<string, boolean>;
       include?: { receipts?: { where?: { userId?: string } } };
@@ -206,15 +150,48 @@ export function createInMemoryNotificationDelegate(
      * statement. Duplicates are skipped when asked to (the unique constraint is
      * `(userId, dedupeKey)`), like `skipDuplicates` on the real client.
      */
-    createMany: async (input: {
+    createMany: async ({
+      data,
+      skipDuplicates,
+    }: {
       data?: readonly NotificationCreateData[];
       skipDuplicates?: boolean;
-    }) => ({ count: insertMany(input).length }),
-    /** Mirrors Prisma `createManyAndReturn`: only successfully inserted rows. */
-    createManyAndReturn: async (input: {
-      data?: readonly NotificationCreateData[];
-      skipDuplicates?: boolean;
-    }) => insertMany(input),
+    }) => {
+      let count = 0;
+      for (const item of data ?? []) {
+        const duplicate = [...records.values()].some((record) =>
+          item.userId === null || item.userId === undefined
+            ? (record.groupId ?? null) === (item.groupId ?? null) &&
+              record.userId === null &&
+              record.dedupeKey === item.dedupeKey
+            : record.userId === item.userId && record.dedupeKey === item.dedupeKey,
+        );
+        if (duplicate) {
+          if (skipDuplicates !== true) {
+            throw { code: 'P2002', meta: { target: ['userId', 'dedupeKey'] } };
+          }
+          continue;
+        }
+        const created: NotificationRecord = {
+          id: item.id ?? nextId(),
+          userId: item.userId ?? null,
+          groupId: item.groupId ?? null,
+          excludedUserIds: [...(item.excludedUserIds ?? [])],
+          type: item.type,
+          title: item.title,
+          body: item.body,
+          isRead: item.isRead ?? false,
+          readAt: item.readAt ?? null,
+          ticketId: item.ticketId,
+          payload: item.payload,
+          dedupeKey: item.dedupeKey,
+          createdAt: item.createdAt ?? now(),
+        };
+        records.set(created.id, created);
+        count += 1;
+      }
+      return { count };
+    },
     groupBy: async ({
       by,
       where,
@@ -273,12 +250,6 @@ function matchesNotification(
     return true;
   }
   if (
-    where.AND !== undefined &&
-    !where.AND.every((branch) => matchesNotification(record, branch, receipts))
-  ) {
-    return false;
-  }
-  if (
     where.OR !== undefined &&
     !where.OR.some((branch) => matchesNotification(record, branch, receipts))
   ) {
@@ -289,16 +260,8 @@ function matchesNotification(
       if (record.id !== where.id) {
         return false;
       }
-    } else {
-      if (where.id.in !== undefined && !where.id.in.includes(record.id)) {
-        return false;
-      }
-      if (where.id.lt !== undefined && record.id >= where.id.lt) {
-        return false;
-      }
-      if (where.id.gt !== undefined && record.id <= where.id.gt) {
-        return false;
-      }
+    } else if (!where.id.in.includes(record.id)) {
+      return false;
     }
   }
   if (where.userId !== undefined) {
@@ -331,56 +294,30 @@ function matchesNotification(
   if (where.isRead !== undefined && record.isRead !== where.isRead) {
     return false;
   }
-  const createdAtFilter = where.createdAt;
-  if (createdAtFilter instanceof Date) {
-    if (record.createdAt.getTime() !== createdAtFilter.getTime()) return false;
-  } else {
-    if (
-      createdAtFilter?.lt !== undefined &&
-      record.createdAt.getTime() >= createdAtFilter.lt.getTime()
-    ) {
-      return false;
-    }
-    if (
-      createdAtFilter?.lte !== undefined &&
-      record.createdAt.getTime() > createdAtFilter.lte.getTime()
-    ) {
-      return false;
-    }
-    if (
-      createdAtFilter?.gte !== undefined &&
-      record.createdAt.getTime() < createdAtFilter.gte.getTime()
-    ) {
-      return false;
-    }
+  if (
+    where.createdAt?.lt !== undefined &&
+    record.createdAt.getTime() >= where.createdAt.lt.getTime()
+  ) {
+    return false;
+  }
+  if (
+    where.createdAt?.gte !== undefined &&
+    record.createdAt.getTime() < where.createdAt.gte.getTime()
+  ) {
+    return false;
   }
   return true;
 }
 
 function sortNotifications(
   items: NotificationRecord[],
-  orderBy?: NotificationOrderBy | readonly NotificationOrderBy[],
+  orderBy?: { createdAt: 'asc' | 'desc' },
 ): NotificationRecord[] {
-  const requestedOrdering: readonly NotificationOrderBy[] =
-    orderBy === undefined
-      ? [{ createdAt: 'desc' }, { id: 'desc' }]
-      : Array.isArray(orderBy)
-        ? orderBy
-        : [orderBy as NotificationOrderBy];
-  const ordering = requestedOrdering.some((field) => field.id !== undefined)
-    ? requestedOrdering
-    : [...requestedOrdering, { id: 'desc' as const }];
   return [...items].sort((left, right) => {
-    for (const field of ordering) {
-      if (field.createdAt !== undefined) {
-        const delta = left.createdAt.getTime() - right.createdAt.getTime();
-        if (delta !== 0) return field.createdAt === 'asc' ? delta : -delta;
-      }
-      if (field.id !== undefined) {
-        const comparison = left.id.localeCompare(right.id);
-        if (comparison !== 0) return field.id === 'asc' ? comparison : -comparison;
-      }
+    const delta = left.createdAt.getTime() - right.createdAt.getTime();
+    if (delta !== 0) {
+      return orderBy?.createdAt === 'asc' ? delta : -delta;
     }
-    return 0;
+    return right.id.localeCompare(left.id);
   });
 }

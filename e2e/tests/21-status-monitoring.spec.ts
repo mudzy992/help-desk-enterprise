@@ -19,17 +19,11 @@ async function notifications(api: ApiClient): Promise<readonly Notification[]> {
   return Array.isArray(body) ? body : body.items;
 }
 
-async function poll<T>(read: () => Promise<T>, done: (value: T) => boolean, timeoutMs = 90_000): Promise<T> {
+async function poll<T>(read: () => Promise<T>, done: (value: T) => boolean, timeoutMs = 30_000): Promise<T> {
   const until = Date.now() + timeoutMs;
   let value = await read();
   while (!done(value)) {
-    if (Date.now() > until) {
-      const serialized = JSON.stringify(value) ?? String(value);
-      const lastValue = serialized.length > 1_800
-        ? `${serialized.slice(0, 1_800)}… (${serialized.length} characters)`
-        : serialized;
-      throw new Error(`poll timed out, last value: ${lastValue}`);
-    }
+    if (Date.now() > until) throw new Error(`poll timed out, last value: ${JSON.stringify(value)}`);
     await new Promise((resolve) => setTimeout(resolve, 1_500));
     value = await read();
   }
@@ -72,8 +66,6 @@ test.describe('21 status page and monitoring', () => {
   });
 
   test('incident: start notice → /status → New ticket banner → resolve → requester notified', async ({ browser }) => {
-    // Notification delivery is queued; the worker sweeps on a one-minute schedule.
-    test.setTimeout(300_000);
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
@@ -148,20 +140,10 @@ test.describe('21 status page and monitoring', () => {
     const env = readE2EEnvironment();
     const user = new ApiClient();
     await user.login(env.userEmail, env.userPassword);
-    const status = await user.request('/status');
-    expect(status.status).toBe(200);
-    const overview = await status.json() as StatusOverview;
-    const serviceId = overview.categories.flatMap((category) => category.services).map((service) => service.id)[0];
-    expect(serviceId, 'the seeded status catalog has a service for the authorization check').toBeTruthy();
+    expect((await user.request('/status')).status).toBe(200);
     const refused = await user.request('/status/incidents', {
       method: 'POST',
-      body: JSON.stringify({
-        title: 'Ne smije',
-        impact: 'DOWN',
-        visibility: 'ALL_USERS',
-        serviceIds: [serviceId],
-        message: 'Ne smije proći',
-      }),
+      body: JSON.stringify({ title: 'Ne smije', impact: 'DOWN', serviceIds: ['x'], message: 'Ne smije proći' }),
     });
     expect(refused.status).toBe(403);
   });

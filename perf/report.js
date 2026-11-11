@@ -16,16 +16,13 @@ const endpointTrends = [
   ['unread_count_duration', 'GET /notifications/unread-count'],
   ['search_duration', 'GET /search'],
   ['dashboard_summary_duration', 'GET /reports/*/summary'],
-  ['service_catalog_duration', 'GET /services?take=100'],
   ['ticket_list_payload_kb', 'GET /tickets payload (KB)'],
   ['dashboard_payload_kb', 'dashboard payload (KB)'],
-  ['service_catalog_payload_kb', 'GET /services payload (KB)'],
 ];
 
 const counters = [
   ['unread_count_requests', 'unread-count requests'],
   ['search_requests', 'search requests'],
-  ['service_catalog_contract_failures', 'service catalog contract failures'],
   ['ws_events_received', 'WS events received'],
   ['ws_connect_errors', 'WS connect errors'],
   ['http_reqs', 'HTTP requests'],
@@ -100,7 +97,6 @@ export function renderMarkdown(data, config) {
   lines.push(`| Error rate | < ${config.budgets.errorRate * 100}% |`);
   lines.push(`| Ticket list payload | < ${config.budgets.ticketListPayloadKb} KB |`);
   lines.push(`| Dashboard payload | < ${config.budgets.dashboardPayloadKb} KB |`);
-  lines.push(`| Service catalog payload | ≤ ${config.budgets.serviceCatalogPayloadKb} KB |`);
   lines.push('');
   lines.push('Database side of the same run: attach `ops/sql/snapshot_db_stats.sql` output.');
   lines.push('');

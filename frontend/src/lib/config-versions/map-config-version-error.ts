@@ -60,11 +60,7 @@ export function mapConfigVersionError(error: unknown): ConfigVersionErrorKey {
   if (error.code === "NO_PREVIOUS_CONFIG_VERSION") {
     return "configVersions.errorNoPrevious";
   }
-  if (
-    error.code === "CONFIG_VALIDATION_FAILED" ||
-    error.code === "CONFIG_CATALOG_STATE_CONFLICT" ||
-    error.code === "CONFIG_CATALOG_INVARIANT_VIOLATION"
-  ) {
+  if (error.code === "CONFIG_VALIDATION_FAILED") {
     return "configVersions.errorValidation";
   }
   if (

@@ -1,25 +1,6 @@
 import { IntegrationJobType } from '../../generated/prisma/enums';
 import { handleIntegrationJobFailure } from './handle-integration-job-failure';
 import { MailDeliverySuppressedError } from '../notifications/email/mail-provider-limit-breaker';
-import { NotificationEmailOutcomeUnknownError } from '../notifications/email/notification-email-delivery-errors';
-import { TeamsDeliveryOutcomeUnknownError } from '../teams/teams-delivery-outcome-unknown.error';
-import type { IntegrationJobProcessingClaim } from './integration-queue.types';
-
-function processingClaim(
-  overrides: Partial<IntegrationJobProcessingClaim> = {},
-): IntegrationJobProcessingClaim {
-  return {
-    id: 'job-1',
-    type: IntegrationJobType.EMAIL,
-    payload: undefined,
-    attempts: 1,
-    version: 1,
-    processingAttemptId: 'job-1',
-    processingOwnerToken: 'owner-1',
-    processingLeaseExpiresAt: new Date('2026-10-08T12:05:00.000Z'),
-    ...overrides,
-  };
-}
 
 describe('handleIntegrationJobFailure', () => {
   const settings = {
@@ -36,33 +17,23 @@ describe('handleIntegrationJobFailure', () => {
 
   it('re-enqueues with backoff while attempts remain', async () => {
     const repository = {
-      markFailed: jest.fn().mockResolvedValue(true),
+      markFailed: jest.fn().mockResolvedValue(undefined),
       markDeadLetter: jest.fn(),
-      scheduleEmailDeliveryRetry: jest.fn().mockResolvedValue(1),
-      markEmailDeliveryDead: jest.fn().mockResolvedValue(1),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
     const log = jest.fn();
-    const payload = {
-      userId: 'user-1',
-      toAddress: 'user@example.com',
-      subject: 'Subject',
-      text: 'Body',
-      templateKey: 'ticket.message',
-      dedupeKey: 'ticket.message:1',
-    };
     await expect(
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ attempts: 1, payload }),
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1 },
         settings,
         error: new Error('SMTP unavailable'),
         log,
       }),
     ).resolves.toBe('FAILED');
     expect(repository.markFailed).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
+      'job-1',
       'SMTP unavailable',
       expect.any(Date),
     );
@@ -71,85 +42,27 @@ describe('handleIntegrationJobFailure', () => {
       { integrationJobId: 'job-1' },
       expect.objectContaining({ jobId: 'job-1:1', delay: 60_000 }),
     );
-    expect(repository.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
-      payload,
-      repository.markFailed.mock.calls[0]?.[2],
-    );
-    expect(repository.scheduleEmailDeliveryRetry.mock.invocationCallOrder[0]).toBeLessThan(
-      queue.add.mock.invocationCallOrder[0] ?? Number.MAX_SAFE_INTEGER,
-    );
-    expect(repository.markFailed.mock.calls[0]?.[2]).toBeInstanceOf(Date);
     expect(repository.markDeadLetter).not.toHaveBeenCalled();
   });
 
-  it('leaves a due FAILED row recoverable when the retry enqueue fails', async () => {
-    const repository = {
-      markFailed: jest.fn().mockResolvedValue(true),
-      markDeadLetter: jest.fn(),
-      scheduleEmailDeliveryRetry: jest.fn().mockResolvedValue(1),
-      markEmailDeliveryDead: jest.fn(),
-    };
-    const queue = { add: jest.fn().mockRejectedValue(new Error('Redis unavailable')) };
-    const payload = {
-      userId: 'user-1',
-      toAddress: 'user@example.com',
-      subject: 'Subject',
-      text: 'Body',
-      templateKey: 'ticket.message',
-      dedupeKey: 'ticket.message:1',
-    };
-
-    await expect(
-      handleIntegrationJobFailure({
-        repository: repository as never,
-        queue: queue as never,
-        job: processingClaim({ attempts: 1, payload }),
-        settings,
-        error: new Error('SMTP unavailable'),
-        log: jest.fn(),
-      }),
-    ).rejects.toThrow('Redis unavailable');
-
-    expect(repository.markFailed).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
-      'SMTP unavailable',
-      expect.any(Date),
-    );
-    expect(repository.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
-      payload,
-      repository.markFailed.mock.calls[0]?.[2],
-    );
-  });
-
-  it('moves the job and delivery ledger to DLQ once the attempt threshold is reached', async () => {
+  it('moves the job to DLQ once the attempt threshold is reached', async () => {
     const repository = {
       markFailed: jest.fn(),
-      markDeadLetter: jest.fn().mockResolvedValue(true),
-      scheduleEmailDeliveryRetry: jest.fn(),
-      markEmailDeliveryDead: jest.fn().mockResolvedValue(1),
+      markDeadLetter: jest.fn().mockResolvedValue(undefined),
     };
     const queue = { add: jest.fn() };
-    const payload = {
-      userId: 'user-1',
-      toAddress: 'user@example.com',
-      subject: 'Subject',
-      text: 'Body',
-      templateKey: 'ticket.message',
-      dedupeKey: 'ticket.message:1',
-    };
     await expect(
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ attempts: 3, payload }),
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 3 },
         settings,
         error: new Error('SMTP unavailable'),
         log: jest.fn(),
       }),
     ).resolves.toBe('DLQ');
-    expect(repository.markEmailDeliveryDead).toHaveBeenCalledWith(payload);
     expect(repository.markDeadLetter).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
+      'job-1',
       'SMTP unavailable',
     );
     expect(queue.add).not.toHaveBeenCalled();
@@ -158,7 +71,7 @@ describe('handleIntegrationJobFailure', () => {
   it('odbijenu adresu primaoca šalje odmah u DLQ (ponavljanje ne pomaže)', async () => {
     const repository = {
       markFailed: jest.fn(),
-      markDeadLetter: jest.fn().mockResolvedValue(true),
+      markDeadLetter: jest.fn().mockResolvedValue(undefined),
     };
     const queue = { add: jest.fn() };
     const error = Object.assign(
@@ -169,7 +82,7 @@ describe('handleIntegrationJobFailure', () => {
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ attempts: 1 }),
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1 },
         settings,
         error,
         log: jest.fn(),
@@ -180,7 +93,7 @@ describe('handleIntegrationJobFailure', () => {
 
   it('ograničenje provajdera (dnevni limit) ostaje na uobičajenom backoffu', async () => {
     const repository = {
-      markFailed: jest.fn().mockResolvedValue(true),
+      markFailed: jest.fn().mockResolvedValue(undefined),
       markDeadLetter: jest.fn(),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
@@ -192,7 +105,7 @@ describe('handleIntegrationJobFailure', () => {
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ attempts: 1 }),
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1 },
         settings,
         error,
         log: jest.fn(),
@@ -209,7 +122,7 @@ describe('handleIntegrationJobFailure', () => {
 
   it('odbijena adresa kod ne-mail posla ne preskače backoff', async () => {
     const repository = {
-      markFailed: jest.fn().mockResolvedValue(true),
+      markFailed: jest.fn().mockResolvedValue(undefined),
       markDeadLetter: jest.fn(),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
@@ -217,7 +130,7 @@ describe('handleIntegrationJobFailure', () => {
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ type: IntegrationJobType.EDGE_EVENT, attempts: 1 }),
+        job: { id: 'job-1', type: IntegrationJobType.EDGE_EVENT, attempts: 1 },
         settings,
         error: new Error('550 5.1.1 user unknown'),
         log: jest.fn(),
@@ -225,106 +138,9 @@ describe('handleIntegrationJobFailure', () => {
     ).resolves.toBe('FAILED');
   });
 
-  it('stops an ambiguous email job without resending and moves the queue item to DLQ', async () => {
-    const repository = {
-      markFailed: jest.fn(),
-      markDeadLetter: jest.fn().mockResolvedValue(true),
-      scheduleEmailDeliveryRetry: jest.fn(),
-      markEmailDeliveryDead: jest.fn().mockResolvedValue(0),
-    };
-    const queue = { add: jest.fn() };
-    const payload = {
-      userId: 'user-1',
-      toAddress: 'user@example.com',
-      subject: 'Subject',
-      text: 'Body',
-      templateKey: 'ticket.message',
-      dedupeKey: 'ticket.message:1',
-    };
-
-    await expect(
-      handleIntegrationJobFailure({
-        repository: repository as never,
-        queue: queue as never,
-        job: processingClaim({ attempts: 1, payload }),
-        settings,
-        error: new NotificationEmailOutcomeUnknownError(),
-        log: jest.fn(),
-      }),
-    ).resolves.toBe('DLQ');
-
-    expect(repository.markEmailDeliveryDead).toHaveBeenCalledWith(payload);
-    expect(repository.markDeadLetter).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
-      'PROVIDER_DELIVERY_OUTCOME_UNKNOWN',
-    );
-    expect(queue.add).not.toHaveBeenCalled();
-  });
-
-  it('quarantines uncertain Teams delivery without enqueuing another send', async () => {
-    const repository = { markDeadLetter: jest.fn().mockResolvedValue(true), markFailed: jest.fn(), markEmailDeliveryDead: jest.fn() };
-    const queue = { add: jest.fn() };
-    await expect(handleIntegrationJobFailure({ repository: repository as never, queue: queue as never, job: processingClaim({ type: IntegrationJobType.TEAMS }), settings, error: new TeamsDeliveryOutcomeUnknownError(), log: jest.fn() })).resolves.toBe('DLQ');
-    expect(repository.markDeadLetter).toHaveBeenCalledWith(expect.any(Object), 'PROVIDER_DELIVERY_OUTCOME_UNKNOWN');
-    expect(repository.markFailed).not.toHaveBeenCalled();
-    expect(queue.add).not.toHaveBeenCalled();
-  });
-
-  it('ne mijenja retry ledger niti re-enqueueuje kada failure CAS izgubi claim', async () => {
-    const repository = {
-      markFailed: jest.fn().mockResolvedValue(false),
-      markDeadLetter: jest.fn(),
-      scheduleEmailDeliveryRetry: jest.fn(),
-      markEmailDeliveryDead: jest.fn(),
-    };
-    const queue = { add: jest.fn() };
-
-    await expect(
-      handleIntegrationJobFailure({
-        repository: repository as never,
-        queue: queue as never,
-        job: processingClaim({ attempts: 1, payload: { userId: 'user-1' } }),
-        settings,
-        error: new Error('stale worker failure'),
-        log: jest.fn(),
-      }),
-    ).resolves.toBe('STALE');
-
-    expect(repository.scheduleEmailDeliveryRetry).not.toHaveBeenCalled();
-    expect(repository.markEmailDeliveryDead).not.toHaveBeenCalled();
-    expect(queue.add).not.toHaveBeenCalled();
-  });
-
-  it('ne mijenja email ledger kada DLQ CAS izgubi claim', async () => {
-    const repository = {
-      markFailed: jest.fn(),
-      markDeadLetter: jest.fn().mockResolvedValue(false),
-      scheduleEmailDeliveryRetry: jest.fn(),
-      markEmailDeliveryDead: jest.fn(),
-    };
-    const queue = { add: jest.fn() };
-
-    await expect(
-      handleIntegrationJobFailure({
-        repository: repository as never,
-        queue: queue as never,
-        job: processingClaim({
-          attempts: 1,
-          payload: { userId: 'user-1' },
-        }),
-        settings,
-        error: new NotificationEmailOutcomeUnknownError(),
-        log: jest.fn(),
-      }),
-    ).resolves.toBe('STALE');
-
-    expect(repository.markEmailDeliveryDead).not.toHaveBeenCalled();
-    expect(queue.add).not.toHaveBeenCalled();
-  });
-
   it('zaustavljeno slanje (prekidač) čeka kraj blokade umjesto da troši pokušaje', async () => {
     const repository = {
-      markFailed: jest.fn().mockResolvedValue(true),
+      markFailed: jest.fn().mockResolvedValue(undefined),
       markDeadLetter: jest.fn(),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
@@ -337,7 +153,7 @@ describe('handleIntegrationJobFailure', () => {
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ attempts: 1 }),
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1 },
         settings,
         error,
         log: jest.fn(),
@@ -354,7 +170,7 @@ describe('handleIntegrationJobFailure', () => {
 
   it('prepoznaje zaustavljeno slanje i po kodu greške (EPROVIDERBLOCKED)', async () => {
     const repository = {
-      markFailed: jest.fn().mockResolvedValue(true),
+      markFailed: jest.fn().mockResolvedValue(undefined),
       markDeadLetter: jest.fn(),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
@@ -362,7 +178,7 @@ describe('handleIntegrationJobFailure', () => {
       handleIntegrationJobFailure({
         repository: repository as never,
         queue: queue as never,
-        job: processingClaim({ attempts: 1 }),
+        job: { id: 'job-1', type: IntegrationJobType.EMAIL, attempts: 1 },
         settings,
         error: Object.assign(new Error('Outbound mail is paused'), {
           code: 'EPROVIDERBLOCKED',

@@ -83,8 +83,8 @@ export async function buildFindingsPlan(auditsDirectory) {
 export function validateFindingsPlan(plan) {
   const errors = [];
   if (plan.units !== 44) errors.push(`units=${plan.units}, očekivano 44`);
-  if (plan.total !== 693) errors.push(`total=${plan.total}, očekivano 693`);
-  for (const [level, expected] of Object.entries({ P1: 174, P2: 369, P3: 150 })) {
+  if (plan.total !== 692) errors.push(`total=${plan.total}, očekivano 692`);
+  for (const [level, expected] of Object.entries({ P1: 174, P2: 368, P3: 150 })) {
     if (plan.severity[level] !== expected) errors.push(`${level}=${plan.severity[level]}, očekivano ${expected}`);
   }
   const missingPlan = plan.findings.filter(

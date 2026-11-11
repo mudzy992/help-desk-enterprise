@@ -1,5 +1,4 @@
 import type { ServiceLifecycle } from '../../generated/prisma/enums';
-import type { PrincipalContext } from '../../common/principal-context/principal-context.types';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 
 /**
@@ -38,76 +37,6 @@ export function visibleServiceLifecycles(
     return ['ACTIVE', 'DEPRECATED'];
   }
   return ['ACTIVE'];
-}
-
-export type ServiceListVisibility = Readonly<{
-  /** Lifecycles visible across the public catalog (not restricted to one service). */
-  visibleLifecycles: readonly ServiceLifecycle[];
-  /** Additional services for which a scoped ADMIN may see every lifecycle. */
-  scopedServiceIds?: readonly string[];
-}>;
-
-/**
- * Resolve collection visibility without promoting a scoped ADMIN assignment to
- * catalog-wide draft access. A global ADMIN/SuperAdmin sees the full catalog;
- * a service-scoped ADMIN sees every lifecycle only for assigned services and
- * retains the public lifecycle visibility of any USER/AGENT role it also has.
- */
-export function serviceListVisibilityForPrincipal(
-  principal: Pick<PrincipalContext, 'isLocalOnly' | 'roleKeys' | 'assignments'> | null,
-): ServiceListVisibility {
-  if (principal === null) {
-    return { visibleLifecycles: ['ACTIVE'] };
-  }
-
-  const hasGlobalSuperAdmin =
-    principal.isLocalOnly &&
-    principal.assignments.some(
-      (assignment) =>
-        assignment.roleKey === authorizationRoleKeys.superAdmin &&
-        assignment.organizationalUnitId === null &&
-        assignment.organizationalUnitPath === null &&
-        assignment.serviceId === null,
-    );
-  if (hasGlobalSuperAdmin) {
-    return { visibleLifecycles: allServiceLifecycles };
-  }
-
-  const adminAssignments = principal.assignments.filter(
-    (assignment) => assignment.roleKey === authorizationRoleKeys.admin,
-  );
-  const hasGlobalAdmin = adminAssignments.some(
-    (assignment) =>
-      assignment.organizationalUnitId === null &&
-      assignment.organizationalUnitPath === null &&
-      assignment.serviceId === null,
-  );
-  if (hasGlobalAdmin) {
-    return { visibleLifecycles: allServiceLifecycles };
-  }
-
-  const scopedServiceIds = [
-    ...new Set(
-      adminAssignments.flatMap((assignment) => {
-        const serviceId = assignment.serviceId?.trim();
-        return assignment.organizationalUnitId === null &&
-          assignment.organizationalUnitPath === null &&
-          serviceId !== undefined &&
-          serviceId.length > 0
-          ? [serviceId]
-          : [];
-      }),
-    ),
-  ].sort();
-  const publicRoleKeys = principal.roleKeys.filter(
-    (roleKey) =>
-      roleKey !== authorizationRoleKeys.admin &&
-      roleKey !== authorizationRoleKeys.superAdmin,
-  );
-  return {
-    visibleLifecycles: visibleServiceLifecycles(publicRoleKeys),
-    ...(scopedServiceIds.length === 0 ? {} : { scopedServiceIds }),
-  };
 }
 
 export function isServiceLifecycleVisible(

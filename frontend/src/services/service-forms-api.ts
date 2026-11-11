@@ -12,21 +12,19 @@ export function updateServiceFormVersion(
   serviceId: string,
   formVersionRef: string,
   schema: ServiceFormSchema,
-  reason: string,
 ): Promise<FormVersionResponse> {
   return apiRequest(`/services/${serviceId}/form/versions/${formVersionRef}`, {
     method: "PATCH",
-    body: JSON.stringify({ schema, reason }),
+    body: JSON.stringify({ schema }),
   });
 }
 
 export function createServiceFormVersion(
   serviceId: string,
   schema: ServiceFormSchema,
-  reason: string,
 ): Promise<FormVersionResponse> {
   return apiRequest(`/services/${serviceId}/form/versions`, {
     method: "POST",
-    body: JSON.stringify({ schema, reason }),
+    body: JSON.stringify({ schema }),
   });
 }

@@ -35,8 +35,6 @@ export type TicketMessageRecord = {
   readonly body: string;
   readonly authorUserId: string | null;
   readonly createdAt: Date;
-  /** Used to deduplicate retryable system events; absent on legacy messages. */
-  readonly idempotencyKey?: string | null;
   /** Paket 2.3: absent on records selected without the column. */
   readonly source?: 'APP' | 'EMAIL' | 'TEAMS';
   /** Paket 2.6: set when anonymization replaced names in the body. */

@@ -56,8 +56,8 @@ describe('configureApplicationCors', () => {
       method: 'OPTIONS',
       headers: {
         Origin: allowedOrigin,
-        'Access-Control-Request-Method': 'PATCH',
-        'Access-Control-Request-Headers': 'authorization,content-type,if-match',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'authorization,content-type',
       },
     });
     expect(response.status).toBe(204);
@@ -70,12 +70,10 @@ describe('configureApplicationCors', () => {
     const allowedMethods =
       response.headers.get('access-control-allow-methods') ?? '';
     expect(allowedMethods.toUpperCase()).toContain('POST');
-    expect(allowedMethods.toUpperCase()).toContain('PATCH');
     const allowedHeaders =
       response.headers.get('access-control-allow-headers') ?? '';
     expect(allowedHeaders.toLowerCase()).toContain('authorization');
     expect(allowedHeaders.toLowerCase()).toContain('content-type');
-    expect(allowedHeaders.toLowerCase()).toContain('if-match');
   });
 
   it('does not reflect a request origin that is not CORS_ORIGIN', async () => {

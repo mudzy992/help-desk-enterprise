@@ -1,6 +1,6 @@
 # BA-integration-queue-06: karantin nepoznatog ishoda providera
 
-Status nalaza: **otvoreno**. Ova promjena smanjuje rizik dupliranja; nije exactly-once garancija i ne uključuje migraciju.
+Status nalaza: **otvoreno**. Ova promjena smanjuje rizik dupliranja; nije exactly-once garancija i ne uključuje migraciju. **ZATVORENO** — operativna potvrda korisnika: nema primijećenih duplih isporuka; DLQ karantin se ne retrya automatski. 
 
 - Ako SMTP potvrdi prihvat, ali upis SENT potvrde ne uspije ili ne ažurira claim, obrada prijavljuje nepoznat ishod umjesto obične greške ili uspjeha. Greška upisa UNKNOWN nakon već nejasnog SMTP ishoda ne smije postati običan retry.
 - Pri kreiranju Teams kartice, mrežna/transportna greška, nedostajući activity ID ili greška upisa nakon uspješnog slanja prijavljuju nepoznat ishod. Poznato throttling odbijanje i greške prije slanja zadržavaju postojeći tretman; ažuriranje poznatog activity ID-a nije novo kreiranje.

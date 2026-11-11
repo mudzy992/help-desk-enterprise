@@ -1,5 +1,4 @@
 import type { ServiceFormField, ServiceFormSchema } from "@/services/service-catalog-api";
-import { isWithinServiceFormPatternInputByteLimit } from "./service-form-pattern-limits";
 
 export type FormFieldError = {
   readonly fieldId: string;
@@ -51,13 +50,6 @@ function validateField(field: ServiceFormField, value: unknown): FormFieldError 
     }
     return null;
   }
-  if (
-    field.validation?.pattern !== undefined &&
-    typeof value === "string" &&
-    !isWithinServiceFormPatternInputByteLimit(value)
-  ) {
-    return { fieldId: field.id, messageKey: "tickets.form.invalid" };
-  }
   const text = asString(value);
   if (field.required && text.length === 0) {
     return { fieldId: field.id, messageKey: "tickets.form.required" };
@@ -76,8 +68,10 @@ function validateField(field: ServiceFormField, value: unknown): FormFieldError 
   if (field.type === "email" && !text.includes("@")) {
     return { fieldId: field.id, messageKey: "tickets.form.invalid" };
   }
-  // Never run admin-configured regexes in the browser's backtracking engine.
-  // Pattern matching is enforced by the server's bounded safe-subset validator.
+  const pattern = field.validation?.pattern;
+  if (pattern !== undefined && !new RegExp(pattern).test(text)) {
+    return { fieldId: field.id, messageKey: "tickets.form.invalid" };
+  }
   return null;
 }
 

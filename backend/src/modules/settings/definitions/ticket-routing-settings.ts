@@ -57,7 +57,7 @@ export const ticketRoutingSettings: readonly SettingDefinition[] = [
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description:
-      'Require exact/inherited routing coverage for every organizational unit before service activation. When disabled, incomplete coverage permits activation with a warning; changing this setting requires a reason and is recorded in the settings change log.',
+      'Block service activation when the service has no routing rules (exact or inherited)',
     isRequired: true,
     defaultValue: true,
   }),

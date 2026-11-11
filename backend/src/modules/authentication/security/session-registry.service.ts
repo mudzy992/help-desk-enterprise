@@ -44,10 +44,9 @@ const RETENTION_DAYS = 30;
 const NEW_DEVICE_LOOKBACK_DAYS = 90;
 
 /**
- * Paket 2.1 (M6): one row per sign-in. The id is the `sid` claim; Redis
- * `auth:revoked-sid:*` markers accelerate cross-instance revocation, while
- * SessionRevocationStore also checks this durable row and current user authority
- * so a stale Redis replica cannot resurrect an active socket/session.
+ * Paket 2.1 (M6): one row per sign-in. The id is the `sid` claim; revocation
+ * is enforced through Redis (`auth:revoked-sid:*`) so the guard needs no
+ * database read, the row is the durable record for the UI and the audit.
  */
 @Injectable()
 export class SessionRegistryService {

@@ -14,7 +14,6 @@ export type InstallSmtpTestErrorKey =
   | "install.smtp.test.errorUnreachable"
   | "install.smtp.test.errorSend"
   | "install.smtp.test.errorRateLimited"
-  | "install.smtp.test.errorRateLimitUnavailable"
   | "install.smtp.test.errorSuperAdmin"
   | "install.smtp.test.errorGeneric";
 
@@ -39,8 +38,6 @@ export function mapInstallSmtpTestError(error: unknown): InstallSmtpTestErrorKey
       return "install.smtp.test.errorSend";
     case "SMTP_TEST_RATE_LIMITED":
       return "install.smtp.test.errorRateLimited";
-    case "SMTP_TEST_RATE_LIMIT_UNAVAILABLE":
-      return "install.smtp.test.errorRateLimitUnavailable";
     case "SUPER_ADMIN_REQUIRED":
       return "install.smtp.test.errorSuperAdmin";
     default:

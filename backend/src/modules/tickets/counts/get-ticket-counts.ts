@@ -84,16 +84,11 @@ async function computeTicketCounts(input: GetTicketCountsInput): Promise<TicketC
     throw new TicketsError('FORBIDDEN');
   }
   const archive = input.archive ?? defaultTicketArchiveConfiguration;
-  const confidential =
-    input.context.confidential ?? defaultTicketConfidentialConfiguration;
   const visibility = {
     context: authContext,
-    ...(await loadTicketVisibilityInputs(input.prisma, authContext.subjectId, {
-      includeActorGroupIds:
-        confidential.enabled && confidential.allowedViewerGroupIds.length > 0,
-    })),
-    actorMembershipUserId: authContext.subjectId,
-    configuration: confidential,
+    ...(await loadTicketVisibilityInputs(input.prisma, authContext.subjectId)),
+    configuration:
+      input.context.confidential ?? defaultTicketConfidentialConfiguration,
     now: new Date(),
   };
   const scope: Prisma.TicketWhereInput[] = [

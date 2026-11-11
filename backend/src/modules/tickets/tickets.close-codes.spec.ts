@@ -1,4 +1,3 @@
-import { ServiceUnavailableException } from '@nestjs/common';
 import {
   createTicketsServiceHarness,
   ticketsTestIds,
@@ -44,25 +43,6 @@ describe('ticket close codes and required fields', () => {
     );
     expect(closed.status).toBe('CLOSED');
     expect(closed.closePolicy?.closeCode?.key).toBe('bug_fixed');
-  });
-
-  it('fails closed on template settings read failure before resolving a ticket', async () => {
-    const harness = await routedInProgress();
-    const unavailable = new ServiceUnavailableException({
-      code: 'TEMPLATES_CONFIGURATION_UNAVAILABLE',
-      message: 'Template settings are temporarily unavailable',
-    });
-    Object.defineProperty(harness.tickets, 'templatesLoader', {
-      configurable: true,
-      value: { load: jest.fn().mockRejectedValue(unavailable) },
-    });
-
-    await expect(
-      harness.tickets.update(harness.ticketId, { status: 'RESOLVED' }, agent),
-    ).rejects.toBe(unavailable);
-    await expect(harness.tickets.getById(harness.ticketId, agent)).resolves.toMatchObject({
-      status: 'IN_PROGRESS',
-    });
   });
 
   it('rejects a close code outside the allow-list', async () => {

@@ -1,4 +1,4 @@
-import type { IncidentImpact } from "../status-page/status-page.model";
+import type { IncidentImpact } from '../status-page/status-page.model';
 import type {
   AutoAssignStrategy,
   DataClassification,
@@ -6,8 +6,8 @@ import type {
   ServiceLifecycle,
   ServiceOnboardingStatus,
   ServiceOnboardingStep,
-} from "../../generated/prisma/enums";
-import type { ServiceRuntimeAvailability } from "./service-availability.types";
+} from '../../generated/prisma/enums';
+import type { ServiceRuntimeAvailability } from './service-availability.types';
 
 export type ServiceCategoryRecord = {
   readonly id: string;
@@ -15,7 +15,6 @@ export type ServiceCategoryRecord = {
   readonly slug: string;
   readonly sortOrder: number;
   readonly parentId: string | null;
-  readonly revision: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -33,7 +32,6 @@ export type ServiceRecord = {
   readonly autoAssignStrategy: AutoAssignStrategy;
   readonly slaProfileId: string | null;
   readonly policyPackId: string | null;
-  readonly revision: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -44,7 +42,6 @@ export type ServiceCategoryResponse = {
   readonly slug: string;
   readonly sortOrder: number;
   readonly parentId: string | null;
-  readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -69,7 +66,6 @@ export type ServiceOnboardingSummary = {
 
 export type ServiceResponse = {
   readonly id: string;
-  readonly revision: number;
   readonly name: string;
   readonly slug: string;
   readonly categoryId: string;
@@ -103,14 +99,12 @@ export type CreateServiceCategoryInput = {
   readonly slug: string;
   readonly sortOrder?: number;
   readonly parentId?: string | null;
-  readonly reason?: string;
 };
 
 export type UpdateServiceCategoryInput = {
   readonly name?: string;
   readonly sortOrder?: number;
   readonly parentId?: string | null;
-  readonly reason?: string;
 };
 
 export type CreateServiceInput = {
@@ -123,7 +117,8 @@ export type CreateServiceInput = {
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
   readonly slaProfileId?: string | null;
-  /** Human callers provide a reason; system/seed calls may use the stable fallback. */
+  /** Audit reason; required when invoked from HTTP endpoints (DTO validation),
+   *  optional for internal/seeding calls which record a generic 'create' reason. */
   readonly reason?: string;
 };
 
@@ -136,7 +131,9 @@ export type UpdateServiceInput = {
   readonly autoAssignStrategy?: AutoAssignStrategy;
   readonly policyPackId?: string | null;
   readonly slaProfileId?: string | null;
-  /** Human callers provide a reason; system calls may use the stable fallback. */
+  /** Audit reason; required when invoked from HTTP endpoints (DTO validation),
+   *  optional for internal/seeding calls which omit change-log entries when no
+   *  caller-supplied reason is present. */
   readonly reason?: string;
 };
 
@@ -144,42 +141,12 @@ export type ListServicesInput = {
   readonly lifecycle?: ServiceLifecycle;
   readonly categoryId?: string;
   readonly offeredOnly?: boolean;
-  readonly search?: string;
-  readonly originUnitId?: string;
-  readonly take?: number;
-  readonly cursor?: string;
-  /** Val 2 (M6/B2): public lifecycle visibility; `undefined` = internal unfiltered read. */
+  /** Val 2 (M6/B2): šta pozivalac smije vidjeti; `undefined` = bez filtera. */
   readonly visibleLifecycles?: readonly ServiceLifecycle[];
-  /** BA-12: extra service IDs whose non-public lifecycles are visible to scoped admins. */
-  readonly scopedServiceIds?: readonly string[];
-};
-
-export type ServiceListPage = {
-  readonly items: readonly ServiceResponse[];
-  readonly total: number;
-  readonly take: number;
-  readonly cursor: string | null;
-  readonly nextCursor: string | null;
-  readonly hasMore: boolean;
-};
-
-export type ServiceCategoryListPage = {
-  readonly items: readonly ServiceCategoryResponse[];
-  readonly total: number;
-  readonly take: number;
-  readonly cursor: string | null;
-  readonly nextCursor: string | null;
-  readonly hasMore: boolean;
-};
-
-export type ServiceCategoryListInput = {
-  readonly take?: number;
-  readonly cursor?: string;
 };
 
 export type TransitionServiceLifecycleInput = {
   readonly lifecycle: ServiceLifecycle;
-  readonly reason?: string;
 };
 
 export type CatalogMutationContext = {

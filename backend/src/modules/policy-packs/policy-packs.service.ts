@@ -60,9 +60,9 @@ export class PolicyPacksService {
         this.prisma,
         input,
         { actorUserId, requestId },
-        (userIds) =>
-          this.principalContextInvalidator?.invalidateUsers(userIds) ??
-          Promise.resolve(),
+        (userId) =>
+          this.principalContextInvalidator?.invalidateUser(userId) ??
+          Promise.resolve(null),
       );
     });
   }
@@ -77,9 +77,9 @@ export class PolicyPacksService {
         this.prisma,
         input,
         { actorUserId, requestId },
-        (userIds) =>
-          this.principalContextInvalidator?.invalidateUsers(userIds) ??
-          Promise.resolve(),
+        (userId) =>
+          this.principalContextInvalidator?.invalidateUser(userId) ??
+          Promise.resolve(null),
       ),
     );
   }

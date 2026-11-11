@@ -43,20 +43,16 @@ interface TemplatePickerProperties {
 }
 
 /**
- * Paket 1.4 (T5): popover picker. Loads bounded server-side pages for the
- * current search and appends additional results on demand. Previews the
+ * Paket 1.4 (T5): popover picker. Loads the list once per open (so another
+ * admin's change shows up next time — A5), filters locally, previews the
  * highlighted template filled for this ticket, and inserts on Enter.
  */
 export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePickerProperties) {
   const { t } = useTranslation();
   const listId = useId();
   const [items, setItems] = useState<readonly ResponseTemplatePickerItem[] | null>(null);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
   const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [locale, setLocale] = useState<LocaleChoice>("auto");
   const [highlight, setHighlight] = useState(0);
@@ -64,58 +60,24 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
   const [isInserting, setIsInserting] = useState(false);
   const searchReference = useRef<HTMLInputElement>(null);
   const panelReference = useRef<HTMLDivElement>(null);
-  const requestVersion = useRef(0);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
-    return () => window.clearTimeout(timer);
-  }, [query]);
-
-  useEffect(() => {
-    const version = ++requestVersion.current;
     let active = true;
     setItems(null);
-    setNextCursor(null);
-    setHasMore(false);
-    listPickerTemplates({ ticketId, kind, all: showAll, q: debouncedQuery })
+    listPickerTemplates({ ticketId, kind, all: showAll })
       .then((response) => {
-        if (active && requestVersion.current === version) {
-          setItems(response.items);
-          setNextCursor(response.nextCursor);
-          setHasMore(response.hasMore);
+        if (active) {
+          setItems(response);
           setErrorKey(null);
         }
       })
       .catch((error: unknown) => {
-        if (active && requestVersion.current === version) setErrorKey(mapTemplatesError(error));
+        if (active) setErrorKey(mapTemplatesError(error));
       });
     return () => {
       active = false;
     };
-  }, [debouncedQuery, kind, showAll, ticketId]);
-
-  const loadMore = async () => {
-    if (nextCursor === null || loadingMore) return;
-    const version = requestVersion.current;
-    setLoadingMore(true);
-    try {
-      const response = await listPickerTemplates({
-        ticketId,
-        kind,
-        all: showAll,
-        q: debouncedQuery,
-        cursor: nextCursor,
-      });
-      if (requestVersion.current !== version) return;
-      setItems((current) => [...(current ?? []), ...response.items]);
-      setNextCursor(response.nextCursor);
-      setHasMore(response.hasMore);
-    } catch (error) {
-      if (requestVersion.current === version) setErrorKey(mapTemplatesError(error));
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  }, [kind, showAll, ticketId]);
 
   useEffect(() => {
     searchReference.current?.focus();
@@ -131,8 +93,7 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
     closeOnEscape: false,
   });
 
-  const localQuery = debouncedQuery === query.trim() ? "" : query;
-  const groups = useMemo(() => groupPickerItems(items ?? [], localQuery), [items, localQuery]);
+  const groups = useMemo(() => groupPickerItems(items ?? [], query), [items, query]);
   const flat = useMemo(() => flattenPickerGroups(groups), [groups]);
   const current = flat[Math.min(highlight, Math.max(flat.length - 1, 0))] ?? null;
 
@@ -320,19 +281,6 @@ export function TemplatePicker({ ticketId, kind, onClose, onInsert }: TemplatePi
               </li>
             ))
           )}
-          {items !== null && hasMore ? (
-            <li className="px-3 py-2" role="presentation">
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                onClick={() => void loadMore()}
-                disabled={loadingMore}
-              >
-                {loadingMore ? t("templates.picker.loadingMore") : t("templates.picker.loadMore")}
-              </Button>
-            </li>
-          ) : null}
         </ul>
         <div className="hidden min-h-[160px] flex-col p-3 sm:flex" aria-live="polite">
           {current === null ? null : (

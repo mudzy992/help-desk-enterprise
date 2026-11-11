@@ -49,7 +49,7 @@ vi.mock("@/services/service-onboarding-api", () => ({
   saveOnboardingSlaStep: vi.fn(),
 }));
 vi.mock("@/services/service-catalog-api", () => ({
-  getService: vi.fn(async () => ({ id: "service-1", revision: 1 })),
+  getService: vi.fn(async () => ({ id: "service-1" })),
 }));
 vi.mock("@/services/sla-api", () => ({
   listSlaProfiles: vi.fn(async () => []),

@@ -7,7 +7,6 @@ const now = new Date('2026-01-01T00:00:00.000Z');
 function buildServiceRecord(overrides: Partial<ServiceRecord>): ServiceRecord {
   return {
     id: 'service-1',
-    revision: 1,
     name: 'VPN access',
     slug: 'vpn-access',
     categoryId: 'category-1',

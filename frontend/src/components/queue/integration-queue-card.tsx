@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { RelativeTime } from "@/components/ui/relative-time";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { errorTextClassName } from "@/components/ui/control";
 import { useIntegrationQueue } from "@/lib/queue/use-integration-queue";
@@ -27,7 +26,7 @@ const workerBadgeKey = {
 } as const;
 
 export function IntegrationQueueCard({ enabled }: { readonly enabled: boolean }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const queue = useIntegrationQueue(enabled);
   const worker = useIntegrationWorkerStatus(enabled);
 
@@ -56,21 +55,6 @@ export function IntegrationQueueCard({ enabled }: { readonly enabled: boolean })
         }
       />
       <div className="px-4 py-3.5">
-        <p className="mb-1 text-xs text-muted-foreground">
-          {t("integrationQueue.workerLivenessHint")}
-        </p>
-        <p className="mb-3 text-xs text-muted-foreground">
-          {worker.backlog.status === "unknown" ? (
-            t("integrationQueue.backlogUnknown")
-          ) : worker.backlog.oldestCreatedAt === null ? (
-            t("integrationQueue.backlogEmpty")
-          ) : (
-            <>
-              {t("integrationQueue.backlogOldest")}{" "}
-              <RelativeTime value={worker.backlog.oldestCreatedAt} locale={i18n.language} />
-            </>
-          )}
-        </p>
         <UnderlineTabs
           className="mb-4"
           active={queue.status}

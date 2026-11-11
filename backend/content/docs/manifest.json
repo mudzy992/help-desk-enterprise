@@ -2242,11 +2242,6 @@
         },
         {
           "level": 3,
-          "text": "Stanje izlaznog e-maila i neizvjestan ishod",
-          "id": "stanje-izlaznog-e-maila-i-neizvjestan-ishod"
-        },
-        {
-          "level": 3,
           "text": "Zašto poruka može biti odbijena",
           "id": "zasto-poruka-moze-biti-odbijena"
         },
@@ -2271,7 +2266,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1994,
+      "wordCount": 1841,
       "source": "docs/user-guide/posta.md",
       "englishTitle": null
     },

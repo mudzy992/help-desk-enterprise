@@ -4,11 +4,6 @@ export interface SocketHandshakeCredentials {
 
 export interface SocketPrincipal {
   readonly subjectId: string;
-  readonly sessionId: string | null;
-  readonly jti: string;
-  readonly issuedAt: number;
-  readonly expiresAt: number;
-  readonly authzVersion: number;
 }
 
 export type SocketAuthenticationFailureReason =

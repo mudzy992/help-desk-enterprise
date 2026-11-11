@@ -76,7 +76,6 @@ describe('InstallSeedService reuse', () => {
     const { service, memory } = await createInstallSeedHarness();
     memory.seedCategory({
       id: 'category-existing',
-      revision: 1,
       name: 'Access',
       slug: 'access',
       sortOrder: 0,
@@ -86,7 +85,6 @@ describe('InstallSeedService reuse', () => {
     });
     memory.seedService({
       id: 'service-existing',
-      revision: 1,
       name: 'VPN',
       slug: 'vpn',
       categoryId: 'category-existing',
@@ -138,7 +136,6 @@ describe('InstallSeedService reuse', () => {
     });
     memory.seedCategory({
       id: 'category-existing',
-      revision: 1,
       name: installSeedConstants.categoryName,
       slug: installSeedConstants.categorySlug,
       sortOrder: 0,
@@ -148,7 +145,6 @@ describe('InstallSeedService reuse', () => {
     });
     memory.seedService({
       id: 'service-existing',
-      revision: 1,
       name: installSeedConstants.serviceName,
       slug: installSeedConstants.serviceSlug,
       categoryId: 'category-existing',

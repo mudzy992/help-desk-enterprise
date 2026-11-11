@@ -5,7 +5,7 @@ import type { AuthorizationContext } from '../authorization/authorization.types'
 import { normalizeReason, normalizeResponseTemplateInput, normalizeTags } from './normalize-template-input';
 import { normalizePlaybookInput, stepsChanged } from './playbooks/normalize-playbook-input';
 import { extractPlaceholders, fillTemplate, findUnknownPlaceholders } from './template-placeholders';
-import { canManageSharedScope, managedSharedServiceIds, scoreTemplateScope } from './template-scope';
+import { canManageSharedScope, scoreTemplateScope } from './template-scope';
 import { parseTemplatesConfiguration } from './templates-configuration.loader';
 import { TemplatesError } from './templates.error';
 import {
@@ -146,10 +146,6 @@ describe('template scope', () => {
     expect(canManageSharedScope(scoped, { serviceIds: [], categoryIds: [], groupIds: [] })).toBe(false);
     expect(canManageSharedScope(context([null]), { serviceIds: [], categoryIds: [], groupIds: [] })).toBe(true);
     expect(canManageSharedScope(context([]), { serviceIds: ['s1'], categoryIds: [], groupIds: [] })).toBe(false);
-    expect(managedSharedServiceIds(scoped)).toEqual(['s1']);
-    expect(managedSharedServiceIds(context(['s2', 's1', 's2']))).toEqual(['s1', 's2']);
-    expect(managedSharedServiceIds(context([null]))).toBeNull();
-    expect(managedSharedServiceIds(context([]))).toEqual([]);
   });
 });
 

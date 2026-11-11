@@ -11,8 +11,6 @@ export type TicketVisibilityInput = {
   readonly context: AuthorizationContext;
   readonly units: readonly OrganizationalUnitScopeRow[];
   readonly actorGroupIds: readonly string[];
-  /** When set, membership can be checked by the ticket query without loading group ids. */
-  readonly actorMembershipUserId?: string;
   readonly configuration: TicketConfidentialConfiguration;
   readonly now: Date;
   /**
@@ -67,29 +65,16 @@ function withHandlerGroups(
   manageScope: Prisma.TicketWhereInput,
   input: TicketVisibilityInput,
 ): Prisma.TicketWhereInput {
-  if (input.context.isSuperAdmin || !hasTicketStaffRole(input.context)) {
+  if (
+    input.context.isSuperAdmin ||
+    input.actorGroupIds.length === 0 ||
+    !hasTicketStaffRole(input.context)
+  ) {
     return manageScope;
   }
-  if (input.actorGroupIds.length > 0) {
-    return {
-      OR: [manageScope, { assignedGroupId: { in: [...input.actorGroupIds] } }],
-    };
-  }
-  if (input.actorMembershipUserId !== undefined) {
-    return {
-      OR: [
-        manageScope,
-        {
-          assignedGroup: {
-            is: {
-              members: { some: { userId: input.actorMembershipUserId } },
-            },
-          },
-        },
-      ],
-    };
-  }
-  return manageScope;
+  return {
+    OR: [manageScope, { assignedGroupId: { in: [...input.actorGroupIds] } }],
+  };
 }
 
 function buildConfidentialWhere(
@@ -122,33 +107,10 @@ function buildConfidentialWhere(
       { assignedGroupId: { in: [...actorGroupIds] } },
       { confidentialGrants: { some: { groupId: { in: [...actorGroupIds] } } } },
     );
-  } else if (input.actorMembershipUserId !== undefined) {
-    alternatives.push(
-      {
-        assignedGroup: {
-          is: {
-            members: { some: { userId: input.actorMembershipUserId } },
-          },
-        },
-      },
-      {
-        confidentialGrants: {
-          some: {
-            group: {
-              is: {
-                members: { some: { userId: input.actorMembershipUserId } },
-              },
-            },
-          },
-        },
-      },
-    );
   }
   const viaViewerRole = context.assignments.some((assignment) =>
     configuration.allowedViewerRoles.includes(assignment.roleKey),
   );
-  // Viewer-group membership is actor-global rather than ticket-specific, so
-  // callers preload group ids only when this setting can affect visibility.
   const viaViewerGroup = actorGroupIds.some((groupId) =>
     configuration.allowedViewerGroupIds.includes(groupId),
   );

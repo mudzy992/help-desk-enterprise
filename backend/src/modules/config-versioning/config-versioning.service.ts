@@ -154,7 +154,6 @@ export class ConfigVersioningService {
       prisma: this.prisma,
       repository: this.repository,
       registry: this.registry,
-      settingsService: this.settingsService,
       configuration,
       id,
       reason,

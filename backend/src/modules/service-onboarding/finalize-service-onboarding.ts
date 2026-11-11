@@ -1,9 +1,4 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { routingCoverageMissingCode } from '../routing/routing.constants';
-import {
-  buildActivationRoutingCoverageAudit,
-  type ActivationRoutingCoverageAudit,
-} from '../service-catalog/build-activation-routing-coverage-audit';
 import { loadService } from '../service-catalog/load-service';
 import { assertServiceLifecycleTransition } from '../service-catalog/assert-service-lifecycle-transition';
 import {
@@ -31,7 +26,6 @@ import type {
 } from './service-onboarding.types';
 import {
   collectStepValidationIssues,
-  routingCoverageValidationError,
   type OnboardingDomainProviders,
 } from './validate-onboarding-steps';
 
@@ -66,22 +60,10 @@ export async function finalizeServiceOnboarding(
     await persistOnboardingRecord(prisma, record, {
       lastValidationErrors: issues,
     });
-    const routingCoverageError = routingCoverageValidationError(issues);
-    if (routingCoverageError !== null) {
-      throw routingCoverageError;
-    }
     throw new ServiceOnboardingError('FINAL_VALIDATION_FAILED');
   }
-  const coverageEvaluation =
-    await providers.routing.evaluateActivationCoverage(serviceId);
   const coverageWarning =
-    coverageEvaluation !== null && !coverageEvaluation.hasCoverage
-      ? routingCoverageMissingCode
-      : null;
-  const routingCoverageAudit =
-    coverageEvaluation === null
-      ? null
-      : buildActivationRoutingCoverageAudit(coverageEvaluation);
+    await providers.routing.evaluateActivationCoverage(serviceId);
   const sla = await providers.sla.validate({
     serviceId,
     reference: record.slaConfigurationRef ?? '',
@@ -103,7 +85,6 @@ export async function finalizeServiceOnboarding(
       slaProfileId: sla.resolvedEntityId ?? service.slaProfileId,
       requiresApproval: approvals.requiresApproval,
       actorUserId: context.actorUserId,
-      routingCoverageAudit,
     }),
   );
   return {
@@ -120,7 +101,6 @@ async function applyFinalization(
     readonly slaProfileId: string | null;
     readonly requiresApproval: boolean;
     readonly actorUserId: string | null;
-    readonly routingCoverageAudit: ActivationRoutingCoverageAudit | null;
   },
 ): Promise<ServiceOnboardingRecord> {
   await prisma.service.update({
@@ -129,7 +109,6 @@ async function applyFinalization(
       lifecycle: 'ACTIVE',
       slaProfileId: input.slaProfileId,
       requiresApproval: input.requiresApproval,
-      revision: { increment: 1 },
     },
   });
   await recordServiceCatalogChange(prisma, {
@@ -140,9 +119,6 @@ async function applyFinalization(
       before: { lifecycle: 'DRAFT' },
       after: { lifecycle: 'ACTIVE' },
       onboardingId: input.record.id,
-      ...(input.routingCoverageAudit === null
-        ? {}
-        : { routingCoverage: input.routingCoverageAudit }),
     },
     actorUserId: input.actorUserId,
   });

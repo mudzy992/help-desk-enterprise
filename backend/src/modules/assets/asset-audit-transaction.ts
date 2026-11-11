@@ -6,16 +6,7 @@ export type AssetAuditInput = Omit<RecordAuditEntryInput, 'metadata'> & {
   readonly metadata: Record<string, unknown>;
 };
 
-export type AssetAuditFailureMetrics = {
-  recordAuditWriteFailure(): Promise<void>;
-};
-
 type AssetAuditTransactionHost = Pick<PrismaClient, '$transaction'>;
-
-async function recordAuditFailure(metrics?: AssetAuditFailureMetrics): Promise<void> {
-  if (metrics === undefined) return;
-  await metrics.recordAuditWriteFailure().catch(() => undefined);
-}
 
 /**
  * Records an asset audit event against either the root Prisma client (which
@@ -25,17 +16,11 @@ async function recordAuditFailure(metrics?: AssetAuditFailureMetrics): Promise<v
 export async function recordAssetAuditEntry(
   client: PrismaClient | Prisma.TransactionClient,
   input: AssetAuditInput,
-  metrics?: AssetAuditFailureMetrics,
 ): Promise<void> {
-  try {
-    await recordAuditEntry(client as unknown as AuditLogTransactionalClient, {
-      ...input,
-      metadata: input.metadata as never,
-    });
-  } catch (error) {
-    await recordAuditFailure(metrics);
-    throw error;
-  }
+  await recordAuditEntry(client as unknown as AuditLogTransactionalClient, {
+    ...input,
+    metadata: input.metadata as never,
+  });
 }
 
 /**
@@ -47,12 +32,11 @@ export async function withAssetAuditTransaction<T>(
   prisma: AssetAuditTransactionHost,
   write: (transaction: Prisma.TransactionClient) => Promise<T>,
   audit: (result: T) => AssetAuditInput | null,
-  metrics?: AssetAuditFailureMetrics,
 ): Promise<T> {
   return prisma.$transaction(async (transaction) => {
     const result = await write(transaction);
     const entry = audit(result);
-    if (entry !== null) await recordAssetAuditEntry(transaction, entry, metrics);
+    if (entry !== null) await recordAssetAuditEntry(transaction, entry);
     return result;
   });
 }

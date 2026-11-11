@@ -4,7 +4,6 @@ import {
   expandAudienceUnits,
   isAudienceWithinUnit,
   isInAnnouncementAudience,
-  organizationalUnitAncestorPaths,
 } from './announcement-audience';
 
 const units = [
@@ -60,24 +59,6 @@ describe('effectiveAnnouncementStatus', () => {
     expect(effectiveAnnouncementStatus(row, new Date('2026-10-02T08:00:00Z'))).toBe('ENDED');
     expect(effectiveAnnouncementStatus({ ...row, status: 'WITHDRAWN' }, new Date('2026-10-01T09:00:00Z'))).toBe('WITHDRAWN');
     expect(effectiveAnnouncementStatus({ ...row, status: 'DRAFT' }, new Date('2026-10-01T09:00:00Z'))).toBe('DRAFT');
-  });
-});
-
-describe('organizationalUnitAncestorPaths', () => {
-  it('includes the home OU and its ancestors as exact canonical paths', () => {
-    expect(organizationalUnitAncestorPaths('/Korisnici/Direkcija/IKT')).toEqual([
-      '/Korisnici',
-      '/Korisnici/Direkcija',
-      '/Korisnici/Direkcija/IKT',
-    ]);
-  });
-
-  it('fails closed for missing or non-canonical paths', () => {
-    expect(organizationalUnitAncestorPaths(null)).toEqual([]);
-    expect(organizationalUnitAncestorPaths('')).toEqual([]);
-    expect(organizationalUnitAncestorPaths('Korisnici/IKT')).toEqual([]);
-    expect(organizationalUnitAncestorPaths('/Korisnici//IKT')).toEqual([]);
-    expect(organizationalUnitAncestorPaths('/Korisnici/')).toEqual([]);
   });
 });
 

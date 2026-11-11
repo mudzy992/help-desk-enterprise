@@ -41,7 +41,6 @@ export async function createTicketMessage(
   message: TicketMessageRecord;
   scan: RedactionScanResult;
   mentionUserIds: readonly string[];
-  firstResponseRecorded: boolean;
 }> {
   const { ticket, access } = await loadAccessibleTicket(
     prisma,
@@ -97,20 +96,18 @@ export async function createTicketMessage(
   // profile/rule/calendar — the "first response" metric stayed empty although
   // agents had replied. The first agent reply now records it here, regardless
   // of SLA; the SLA module keeps its own (idempotent) write.
-  const firstResponseRecorded =
-    normalized.type === 'AGENT_REPLY' && ticket.firstResponseAt === null;
-  const withFirstResponse = firstResponseRecorded
-    ? ((await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: { firstResponseAt: new Date() },
-      })) as TicketRecord)
-    : ticket;
+  const withFirstResponse =
+    normalized.type === 'AGENT_REPLY' && ticket.firstResponseAt === null
+      ? ((await prisma.ticket.update({
+          where: { id: ticket.id },
+          data: { firstResponseAt: new Date() },
+        })) as TicketRecord)
+      : ticket;
   return {
     ticket: withFirstResponse,
     message,
     scan,
     mentionUserIds: mentions.userIds,
-    firstResponseRecorded,
   };
 }
 

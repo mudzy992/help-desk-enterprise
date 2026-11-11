@@ -9,11 +9,6 @@ import {
 import { ticketSystemEventActions } from '../tickets/collaboration.constants';
 import { toTicketRealtimePayload } from '../tickets/to-collaboration-response';
 import { vpnCreateInput } from '../tickets/vpn-create-input';
-import {
-  defaultNotificationPreferencePolicy,
-  NotificationPreferencePolicyUnavailableError,
-  NotificationPreferenceReadUnavailableError,
-} from './preferences/notification-preference-policy';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -21,11 +16,6 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 
 /** 200 batch agents — the routing scenario also puts the standard IT agent in the group. */
 const groupMemberCount = 200;
-const noUserPreferencePolicy = {
-  ...defaultNotificationPreferencePolicy,
-  preferencesEnabled: false,
-  quietHoursEnabled: false,
-};
 
 /**
  * Option A (2026-09-24, group of 50+ assumed): a ticket-created event for a group
@@ -65,80 +55,6 @@ describe('notification fan-out with a large group (option A)', () => {
     expect(bump).toHaveBeenCalledWith(ticketsTestIds.groupIt);
     expect(publishGroupNotification).toHaveBeenCalledTimes(1);
     expect(publishNotification).not.toHaveBeenCalled();
-  });
-
-  it('fails closed when a voluntary event has no preference policy', async () => {
-    const harness = await createTicketsServiceHarnessWithLargeGroup();
-    await harness.tickets.create(vpnCreateInput(), {
-      actorUserId: ticketsTestIds.requester,
-    });
-    const create = jest.spyOn(harness.memory.prisma.notification, 'create');
-    const createMany = jest.spyOn(harness.memory.prisma.notification, 'createMany');
-
-    await expect(
-      fanOutInAppNotifications(harness.memory.prisma as never, ticketCreatedPayload(harness)),
-    ).rejects.toBeInstanceOf(NotificationPreferencePolicyUnavailableError);
-    expect(create).not.toHaveBeenCalled();
-    expect(createMany).not.toHaveBeenCalled();
-  });
-
-  it('stores a group member preference opt-out in the group exclusion list', async () => {
-    const harness = await createTicketsServiceHarnessWithLargeGroup();
-    await harness.tickets.create(vpnCreateInput(), {
-      actorUserId: ticketsTestIds.requester,
-    });
-    const prismaWithGroupOptOut = new Proxy(harness.memory.prisma as object, {
-      get(target, property, receiver) {
-        if (property === 'userNotificationPreference') {
-          return {
-            findMany: async (args: { where?: { user?: unknown } }) =>
-              args.where?.user === undefined ? [] : [{ userId: 'agent-batch-0' }],
-          };
-        }
-        if (property === 'userNotificationSchedule') return { findMany: async () => [] };
-        return Reflect.get(target, property, receiver);
-      },
-    });
-
-    const created = await fanOutInAppNotifications(
-      prismaWithGroupOptOut as never,
-      ticketCreatedPayload(harness),
-      defaultNotificationPreferencePolicy,
-    );
-    expect(created.group?.excludedUserIds).toContain('agent-batch-0');
-  });
-
-  it('does not persist a group row if the in-app exclusion read fails', async () => {
-    const harness = await createTicketsServiceHarnessWithLargeGroup();
-    await harness.tickets.create(vpnCreateInput(), {
-      actorUserId: ticketsTestIds.requester,
-    });
-    const create = jest.spyOn(harness.memory.prisma.notification, 'create');
-    const createMany = jest.spyOn(harness.memory.prisma.notification, 'createMany');
-    const failingPrisma = new Proxy(harness.memory.prisma as object, {
-      get(target, property, receiver) {
-        if (property === 'userNotificationPreference') {
-          return {
-            findMany: async (args: { where?: { user?: unknown } }) => {
-              if (args.where?.user !== undefined) throw new Error('sensitive group preference query detail');
-              return [];
-            },
-          };
-        }
-        if (property === 'userNotificationSchedule') return { findMany: async () => [] };
-        return Reflect.get(target, property, receiver);
-      },
-    });
-
-    await expect(
-      fanOutInAppNotifications(
-        failingPrisma as never,
-        ticketCreatedPayload(harness),
-        defaultNotificationPreferencePolicy,
-      ),
-    ).rejects.toBeInstanceOf(NotificationPreferenceReadUnavailableError);
-    expect(create).not.toHaveBeenCalled();
-    expect(createMany).not.toHaveBeenCalled();
   });
 
   it('shows the event in every member inbox and reads it per user', async () => {
@@ -216,14 +132,6 @@ async function createTicketsServiceHarnessWithLargeGroup() {
 async function ingestTicketCreatedEvent(
   harness: ReturnType<typeof createTicketsServiceHarness>,
 ) {
-  return fanOutInAppNotifications(
-    harness.memory.prisma as never,
-    ticketCreatedPayload(harness),
-    noUserPreferencePolicy,
-  );
-}
-
-function ticketCreatedPayload(harness: ReturnType<typeof createTicketsServiceHarness>) {
   const messages = [...harness.memory.messages.values()];
   const created = messages.find(
     (message) => message.body === ticketSystemEventActions.created,
@@ -236,5 +144,8 @@ function ticketCreatedPayload(harness: ReturnType<typeof createTicketsServiceHar
   if (ticket === undefined) {
     throw new Error('the harness did not record the ticket');
   }
-  return toTicketRealtimePayload(message, ticket);
+  return fanOutInAppNotifications(
+    harness.memory.prisma as never,
+    toTicketRealtimePayload(message, ticket),
+  );
 }

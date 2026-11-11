@@ -14,7 +14,6 @@ function row(
 ): ServiceCatalogRow {
   const service: ServiceResponse = {
     id: slug,
-    revision: 1,
     name,
     slug,
     categoryId: "cat-it",

@@ -27,27 +27,6 @@ type Notification = {
   readonly isRead: boolean;
 };
 
-const EMAIL_STATUS_PATTERN = new RegExp(
-  [
-    'Još nije poslan nijedan e-mail',
-    'No e-mail sent yet',
-    'Posljednji poslan',
-    'Last sent',
-    'Zaglavljeno u redu',
-    'Stuck in the queue',
-    'Zastarjeli zahtjevi',
-    'Stale claims',
-    'Neizvjestan ishod',
-    'Uncertain outcome',
-    'Zakazana ponavljanja',
-    'Scheduled retries',
-    'Neuspjele isporuke koje čekaju ponavljanje',
-    'Failed deliveries awaiting retry',
-    'Isporuke u mrtvom redu',
-    'Dead-letter deliveries',
-  ].join('|'),
-);
-
 async function notifications(api: ApiClient): Promise<readonly Notification[]> {
   const body = await api.requestJson<{ items: Notification[] } | Notification[]>('/notifications?limit=50');
   return Array.isArray(body) ? body : body.items;
@@ -126,11 +105,14 @@ test.describe('36 outbound e-mail and notification delivery', () => {
     const card = page.getByTestId('ops-health-card');
     await expect(card).toBeVisible({ timeout: 30_000 });
 
-    // The API state can legitimately be empty, recently sent, ambiguous/stale,
-    // queued for retry, failed, or dead-lettered. Keep the assertion aligned with
-    // every supported status, rather than only the original three states.
+    // M12 B1: the tile reads `components.email` and speaks its three states;
+    // their wording is unique to this tile, so the card-level match is exact.
     await expect(card.getByText(/Slanje e-maila|Outgoing e-mail/)).toBeVisible();
-    await expect(card.getByText(EMAIL_STATUS_PATTERN)).toBeVisible();
+    await expect(
+      card.getByText(
+        /Još nije poslan nijedan e-mail|No e-mail sent yet|Posljednji poslan|Last sent|Zaglavljeno u redu|Stuck in the queue/,
+      ),
+    ).toBeVisible();
 
     await card.getByRole('button', { name: /Pošalji testni alarm|Send test alarm/ }).click();
     // The toast lists every channel with its status; the e-mail line must be there.

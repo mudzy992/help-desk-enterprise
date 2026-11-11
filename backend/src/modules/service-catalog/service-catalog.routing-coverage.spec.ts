@@ -1,6 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
 import { RoutingError } from '../routing/routing.error';
-import type { ServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
 import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
 import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
 import { ServiceCatalogService } from './service-catalog.service';
@@ -9,23 +8,11 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-type LifecycleInput = Parameters<ServiceCatalogService['transitionLifecycle']>[1];
-type CatalogResponse = Awaited<ReturnType<ServiceCatalogService['getById']>>;
-
-async function transitionWithCurrentRevision(
-  catalog: ServiceCatalogService,
-  serviceId: string,
-  input: LifecycleInput,
-): Promise<CatalogResponse> {
-  const current = await catalog.getById(serviceId);
-  return catalog.transitionLifecycle(serviceId, input, `"v${current.revision}"`);
-}
-
 describe('ServiceCatalogService routing coverage on activation', () => {
   const createHarness = (routingStub: {
     evaluateActivationCoverage: (
       serviceId: string,
-    ) => Promise<ServiceRoutingCoverageEvaluation>;
+    ) => Promise<'ROUTING_COVERAGE_MISSING' | null>;
   }) => {
     const memory = createInMemoryServiceCatalogPrisma();
     const catalog = new ServiceCatalogService(
@@ -38,19 +25,9 @@ describe('ServiceCatalogService routing coverage on activation', () => {
   };
 
   it('blocks DRAFT→ACTIVE when coverage is required and missing', async () => {
-    const coverageEvaluation: ServiceRoutingCoverageEvaluation = {
-      hasCoverage: false,
-      requireCoverage: true,
-      requiredOriginUnitCount: 3,
-      missingOriginUnitIds: ['ou-child'],
-    };
     const { catalog } = createHarness({
       evaluateActivationCoverage: async () => {
-        throw new RoutingError(
-          'ROUTING_COVERAGE_MISSING',
-          'ROUTING_COVERAGE_MISSING',
-          { routingCoverage: coverageEvaluation },
-        );
+        throw new RoutingError('ROUTING_COVERAGE_MISSING');
       },
     });
     const category = await catalog.createCategory({ name: 'IT', slug: 'it' });
@@ -60,27 +37,18 @@ describe('ServiceCatalogService routing coverage on activation', () => {
       categoryId: category.id,
     });
     await expect(
-      transitionWithCurrentRevision(catalog, created.id, { lifecycle: 'ACTIVE' }),
+      catalog.transitionLifecycle(created.id, { lifecycle: 'ACTIVE' }),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
-      transitionWithCurrentRevision(catalog, created.id, { lifecycle: 'ACTIVE' }),
+      catalog.transitionLifecycle(created.id, { lifecycle: 'ACTIVE' }),
     ).rejects.toMatchObject({
-      response: {
-        code: 'ROUTING_COVERAGE_MISSING',
-        details: { routingCoverage: coverageEvaluation },
-      },
+      response: { code: 'ROUTING_COVERAGE_MISSING' },
     });
   });
 
   it('activates with warning when coverage is optional and missing', async () => {
-    const coverageEvaluation: ServiceRoutingCoverageEvaluation = {
-      hasCoverage: false,
-      requireCoverage: false,
-      requiredOriginUnitCount: 3,
-      missingOriginUnitIds: ['ou-child'],
-    };
     const { catalog, memory } = createHarness({
-      evaluateActivationCoverage: async () => coverageEvaluation,
+      evaluateActivationCoverage: async () => 'ROUTING_COVERAGE_MISSING',
     });
     const category = await catalog.createCategory({ name: 'IT', slug: 'it' });
     const created = await catalog.create({
@@ -98,23 +66,10 @@ describe('ServiceCatalogService routing coverage on activation', () => {
       createdAt: now,
       updatedAt: now,
     });
-    const activated = await transitionWithCurrentRevision(catalog, created.id, {
+    const activated = await catalog.transitionLifecycle(created.id, {
       lifecycle: 'ACTIVE',
     });
     expect(activated.lifecycle).toBe('ACTIVE');
     expect(activated.warnings).toEqual(['ROUTING_COVERAGE_MISSING']);
-    expect(memory.changeLogs[memory.changeLogs.length - 1]).toMatchObject({
-      reason: 'lifecycle_transition',
-      diff: {
-        routingCoverage: {
-          policySettingKey: 'private.ticket.routing.requireCoverage',
-          requireCoverage: false,
-          hasCoverage: false,
-          requiredOriginUnitCount: 3,
-          missingOriginUnitIds: ['ou-child'],
-          overrideApplied: true,
-        },
-      },
-    });
   });
 });

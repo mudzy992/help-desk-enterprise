@@ -26,31 +26,6 @@ export type OpsAlert = {
   readonly runbook: string | null;
 };
 
-export type ChangeDowntimeSyncHealth = {
-  readonly status: "ok" | "degraded";
-  readonly pending: number;
-  readonly processing: number;
-  readonly deadLetter: number;
-  readonly oldestPendingAgeMs: number;
-};
-
-export type TicketSideEffectOutboxHealth = {
-  readonly status: "ok" | "degraded";
-  readonly pending: number;
-  readonly processing: number;
-  readonly deadLetter: number;
-  readonly oldestPendingAgeMs: number;
-};
-
-export type NotificationFanOutOutboxHealth = TicketSideEffectOutboxHealth;
-
-export type TemplatesConfigurationHealth = {
-  readonly status: "ok" | "degraded";
-  readonly readFailuresTotal: number;
-  readonly lastFailureAt: string | null;
-  readonly lastRecoveryAt: string | null;
-};
-
 export type OpsClamavState =
   | { readonly configured: false }
   | { readonly configured: true; readonly ok: boolean; readonly failOpen: boolean };
@@ -79,24 +54,6 @@ export type OpsQueue = {
   readonly failed: number;
 };
 
-export type OpsAssetOperations = {
-  readonly directorySyncOverlapsLastHour: number | null;
-  readonly auditWriteFailuresLastHour: number | null;
-  readonly importStuckClaims: number;
-  readonly overAllocatedLicenseCount: number;
-  readonly overAllocatedSeatCount: number;
-  readonly failedReminderDeliveries: number;
-  readonly staleReminderClaims: number;
-  readonly pendingTransferFilePurges: number;
-  readonly staleTransferFilePurges: number;
-  readonly oldestTransferFilePurgeAgeMinutes: number | null;
-  readonly transferFileScanState: "complete" | "limited" | "unavailable";
-  readonly scannedTransferFiles: number | null;
-  readonly referencedTransferFiles: number | null;
-  readonly orphanedTransferFiles: number | null;
-  readonly missingTransferFiles: number | null;
-};
-
 export type OpsThresholds = {
   readonly diskWarnPercent: number;
   readonly diskCriticalPercent: number;
@@ -117,10 +74,6 @@ export type OpsOverview = {
   readonly generatedAt: string;
   /** Latest worker measurement; null until the first run after a deploy. */
   readonly snapshot: { readonly generatedAt: string; readonly ageSeconds: number | null } | null;
-  /** Asset workflow/retention metrics from the worker snapshot; null if unavailable.
-   * Optional during rolling deploys where an older API has not added this field yet.
-   */
-  readonly assetOperations?: OpsAssetOperations | null;
   readonly components: {
     readonly api: ProbeState;
     readonly database: ProbeState;
@@ -139,23 +92,9 @@ export type OpsOverview = {
     readonly ldapsCaExpiresAt: string | null;
     readonly email: {
       readonly lastSentAt: string | null;
-      /** Stale CLAIMED rows awaiting an attempted recovery check. */
+      /** Val 3 (M12/B1): rows stuck in CLAIMED; reclaimed after 10 minutes. */
       readonly stuckClaims?: number | null;
-      /** BA-notifications-07: ambiguous SMTP outcomes awaiting operator reconciliation. */
-      readonly unknownDeliveries?: number | null;
-      /** Delivery ledger retries coordinated with the integration queue. */
-      readonly pendingRetries?: number | null;
-      readonly failedDeliveries?: number | null;
-      readonly deadDeliveries?: number | null;
     };
-    /** Optional during rolling deploys where the API has not added this signal yet. */
-    readonly changeDowntimeSync?: ChangeDowntimeSyncHealth | null;
-    /** Optional during rolling deploys where the API has not added this signal yet. */
-    readonly ticketSideEffectOutbox?: TicketSideEffectOutboxHealth | null;
-    /** Optional during rolling deploys where the API has not added this signal yet. */
-    readonly notificationFanOutOutbox?: NotificationFanOutOutboxHealth | null;
-    /** Per-process fail-closed settings-read health; optional during rolling deploys. */
-    readonly templatesConfiguration?: TemplatesConfigurationHealth | null;
     readonly inbound: ReadonlyArray<{
       readonly mailboxKey: string;
       readonly lastRunAt: string | null;

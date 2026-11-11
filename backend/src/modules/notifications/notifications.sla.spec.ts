@@ -8,13 +8,6 @@ import {
 } from '../tickets/create-tickets-service-harness';
 import { toTicketRealtimePayload } from '../tickets/to-collaboration-response';
 import { vpnCreateInput } from '../tickets/vpn-create-input';
-import { defaultNotificationPreferencePolicy } from './preferences/notification-preference-policy';
-
-const noUserPreferencePolicy = {
-  ...defaultNotificationPreferencePolicy,
-  preferencesEnabled: false,
-  quietHoursEnabled: false,
-};
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -48,7 +41,6 @@ describe('SLA in-app notification ingest', () => {
     await fanOutInAppNotifications(
       harness.memory.prisma as never,
       toTicketRealtimePayload(message, ticket!),
-      noUserPreferencePolicy,
     );
     const inbox = await listNotifications(
       harness.memory.prisma as never,

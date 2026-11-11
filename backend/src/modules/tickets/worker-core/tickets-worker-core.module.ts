@@ -45,8 +45,7 @@ import { WaitingForUserConfigurationLoader } from '../waiting-for-user/waiting-f
  * controllers or gateways. The services are the exact ones the API uses, so
  * an e-mail reply runs the same access checks, redaction, waiting-for-user
  * logic and SLA timers as a reply typed in the UI; realtime events travel to
- * the API over Redis, while notification fan-out is delivered separately from
- * the transactionally-created TicketMessage outbox after commit.
+ * the API over the Redis bridge (and from there to notifications fan-out).
  * `TicketsModule` itself is never imported by the worker.
  */
 @Module({

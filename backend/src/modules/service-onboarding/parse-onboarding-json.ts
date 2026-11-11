@@ -1,8 +1,6 @@
 import type { ServiceOnboardingStep } from '../../generated/prisma/enums';
 import { isOnboardingStep } from './onboarding-step-order';
 import { ServiceOnboardingError } from './service-onboarding.error';
-import { isServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
-import type { RoutingErrorDetails } from '../routing/routing.error';
 import type { ServiceOnboardingValidationIssue } from './service-onboarding.types';
 
 export function parseCompletedSteps(
@@ -42,28 +40,12 @@ export function parseValidationIssues(
     }
     const code = (item as { code: string }).code;
     const step = (item as { step?: unknown }).step;
-    const detailsValue = (item as { details?: unknown }).details;
     if (step !== undefined && (typeof step !== 'string' || !isOnboardingStep(step))) {
       throw new ServiceOnboardingError('INCONSISTENT_ONBOARDING_STATE');
     }
-    const details =
-      detailsValue === undefined ? undefined : parseRoutingErrorDetails(detailsValue);
     return {
       code,
       ...(typeof step === 'string' ? { step } : {}),
-      ...(details === undefined ? {} : { details }),
     };
   });
-}
-
-function parseRoutingErrorDetails(value: unknown): RoutingErrorDetails {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    !('routingCoverage' in value) ||
-    !isServiceRoutingCoverageEvaluation(value.routingCoverage)
-  ) {
-    throw new ServiceOnboardingError('INCONSISTENT_ONBOARDING_STATE');
-  }
-  return { routingCoverage: value.routingCoverage };
 }

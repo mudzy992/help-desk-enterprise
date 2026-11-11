@@ -34,7 +34,6 @@ export function parseConfigSnapshot(value: unknown): ConfigSnapshot {
   if (rollbackOfVersion === undefined) {
     throw new ConfigVersioningError(configVersioningErrorCodes.invalidSnapshot);
   }
-  const catalogStateHash = parseCatalogStateHash(value.catalogStateHash);
   const settings = parseSettingsRecord(value.settings);
   const routing = parseRoutingAndReferences(value.routing, value.references);
   const sla = parseSlaSection(value.sla);
@@ -44,7 +43,6 @@ export function parseConfigSnapshot(value: unknown): ConfigSnapshot {
     capturedAt: value.capturedAt,
     scopes: value.scopes as string[],
     rollbackOfVersion,
-    ...(catalogStateHash === undefined ? {} : { catalogStateHash }),
     settings,
     routing: routing.routing,
     references: routing.references,
@@ -53,14 +51,4 @@ export function parseConfigSnapshot(value: unknown): ConfigSnapshot {
     forms: catalogAndForms.forms,
     ...(value.templates === undefined ? {} : { templates: parseTemplatesSection(value.templates) }),
   };
-}
-
-function parseCatalogStateHash(value: unknown): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (typeof value === 'string' && /^[a-f0-9]{64}$/iu.test(value)) {
-    return value.toLowerCase();
-  }
-  throw new ConfigVersioningError(configVersioningErrorCodes.invalidSnapshot);
 }

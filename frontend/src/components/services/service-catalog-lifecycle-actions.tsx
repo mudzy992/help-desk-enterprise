@@ -40,20 +40,14 @@ export function ServiceCatalogLifecycleActions({
   const targets = nextServiceLifecycleTargets(service.lifecycle);
   const canDelete = canDeleteCatalogService(service.lifecycle);
 
-  const run = async (action: string, work: (reason: string) => Promise<unknown>) => {
-    const normalizedReason = requireCatalogChangeReason(reason);
+  const run = async (action: string, work: () => Promise<unknown>) => {
     const operationKey = `${service.id}:${action}`;
-    if (
-      normalizedReason === null ||
-      pendingAction !== null ||
-      operationGuard.isPending(operationKey)
-    )
-      return;
+    if (!reasonReady || pendingAction !== null || operationGuard.isPending(operationKey)) return;
     await operationGuard.run(operationKey, async () => {
       setPendingAction(action);
       setErrorKey(null);
       try {
-        await work(normalizedReason);
+        await work();
         setReason("");
         await onChanged();
         onClose();
@@ -101,9 +95,7 @@ export function ServiceCatalogLifecycleActions({
             variant="outline"
             disabled={!reasonReady || pendingAction !== null}
             onClick={() => {
-              void run(target, (changeReason) =>
-                transitionServiceLifecycle(service.id, target, service.revision, changeReason),
-              );
+              void run(target, () => transitionServiceLifecycle(service.id, target));
             }}
           >
             {pendingAction === target
@@ -118,7 +110,7 @@ export function ServiceCatalogLifecycleActions({
             variant="danger"
             disabled={!reasonReady || pendingAction !== null}
             onClick={() => {
-              void run("delete", (changeReason) => deleteService(service.id, changeReason));
+              void run("delete", () => deleteService(service.id));
             }}
           >
             {pendingAction === "delete" ? t("services.deleting") : t("services.deleteDraft")}

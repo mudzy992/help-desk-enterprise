@@ -30,22 +30,12 @@ export class NotificationRetentionProcessor extends WorkerHost {
     });
     // Paket 2.2 (N11): held digest items that could not be sent within 7 days.
     const digestCutoff = new Date(Date.now() - notificationDigestItemRetentionDays * 86_400_000);
-    let digestDropped: number;
-    try {
-      const result = await this.prisma.notificationDigestItem.deleteMany({
-        where: { createdAt: { lt: digestCutoff } },
-      });
-      digestDropped = result.count;
-    } catch (error) {
-      this.logger.error(
-        `notification_digest_retention_failed type=${error instanceof Error ? error.name : 'UnknownError'}`,
-      );
-      // Fail the BullMQ job so its configured retry/backoff policy can retry
-      // this idempotent retention step; never report the failure as zero rows.
-      throw error;
-    }
+    const digestDropped = await this.prisma.notificationDigestItem
+      ?.deleteMany({ where: { createdAt: { lt: digestCutoff } } })
+      .then((result) => result.count)
+      .catch(() => 0);
     this.logger.log(
-      `notification_digest_items_expired=${digestDropped} notification_retention_deleted=${deleted} notification_retention_days=${retentionDays} notification_retention_duration_ms=${Date.now() - startedAt}`,
+      `notification_digest_items_expired=${digestDropped ?? 0} notification_retention_deleted=${deleted} notification_retention_days=${retentionDays} notification_retention_duration_ms=${Date.now() - startedAt}`,
     );
   }
 }

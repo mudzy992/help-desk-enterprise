@@ -16,7 +16,6 @@ export async function unlinkUserDirectoryIdentity(
     readonly mailTransport: MailTransport;
     /** Paket 5.4.0-d (M5): rejects a compromised temporary password. */
     readonly hibpChecker?: HibpPasswordChecker;
-    readonly invalidatePrincipal?: (userId: string) => Promise<unknown>;
   },
   context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<ResetUserPasswordResponse> {
@@ -57,7 +56,6 @@ export async function unlinkUserDirectoryIdentity(
     userId: existing.id,
     email: existing.email,
     displayName: existing.displayName,
-    invalidatePrincipal: dependencies.invalidatePrincipal,
     beforePasswordUpdate: async (transaction) => {
       await transaction.user.update({
         where: { id: existing.id },

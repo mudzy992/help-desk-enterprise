@@ -17,12 +17,10 @@ import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-
 import { mapTemplatesError, type TemplatesErrorKey } from "@/lib/templates/map-templates-error";
 import {
   emptyResponseTemplateForm,
-  toResponseTemplateForm,
-  toResponseTemplateSaveInput,
   type ResponseTemplateBodyField,
   type ResponseTemplateForm,
 } from "@/lib/templates/response-template-editor-model";
-import { unknownTemplateVariables } from "@/lib/templates/template-variables";
+import { parseTagsInput, unknownTemplateVariables } from "@/lib/templates/template-variables";
 import { cn } from "@/lib/utils";
 import { listGroups } from "@/services/groups-api";
 import { listServices } from "@/services/service-catalog-api";
@@ -33,7 +31,6 @@ import {
   previewResponseTemplate,
   updateResponseTemplate,
   type RenderedTemplate,
-  type ResponseTemplate,
   type ResponseTemplateKind,
   type ResponseTemplateOwnership,
   type TemplateLocale,
@@ -55,8 +52,6 @@ export function ResponseTemplateEditorPage() {
     searchParams.get("ownership") === "personal" ? "personal" : "shared",
   );
   const [form, setForm] = useState<ResponseTemplateForm>(emptyResponseTemplateForm);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
-  const [conflictTemplate, setConflictTemplate] = useState<ResponseTemplate | null>(null);
   const [canEdit, setCanEdit] = useState(true);
   const [loaded, setLoaded] = useState(isNew);
   const [errorKey, setErrorKey] = useState<TemplatesErrorKey | null>(null);
@@ -78,14 +73,22 @@ export function ResponseTemplateEditorPage() {
 
   const load = useCallback(async () => {
     if (templateId === undefined) return;
-    setUpdatedAt(null);
     try {
       const template = await getResponseTemplate(templateId);
       setOwnership(template.ownership);
       setCanEdit(template.canEdit);
-      setForm(toResponseTemplateForm(template));
-      setUpdatedAt(template.updatedAt);
-      setConflictTemplate(null);
+      setForm({
+        name: template.name,
+        kind: template.kind,
+        bodyBs: template.bodyBs,
+        bodyEn: template.bodyEn ?? "",
+        tags: template.tags.join(", "),
+        isActive: template.isActive,
+        serviceIds: template.serviceIds,
+        categoryIds: template.categoryIds,
+        groupIds: template.groupIds,
+        reason: "",
+      });
       setErrorKey(null);
     } catch (error) {
       setErrorKey(mapTemplatesError(error));
@@ -189,36 +192,32 @@ export function ResponseTemplateEditorPage() {
   };
 
   const save = async () => {
-    const revision = updatedAt;
-    if (!isNew && revision === null) {
-      setErrorKey("templates.errors.TEMPLATE_PRECONDITION_REQUIRED");
-      return;
-    }
     setSaving(true);
     setErrorKey(null);
-    const input = toResponseTemplateSaveInput(form, shared);
+    const input = {
+      name: form.name,
+      kind: form.kind,
+      bodyBs: form.bodyBs,
+      bodyEn: form.bodyEn.trim().length > 0 ? form.bodyEn : null,
+      tags: parseTagsInput(form.tags),
+      isActive: form.isActive,
+      ...(shared
+        ? {
+            serviceIds: form.serviceIds,
+            categoryIds: form.categoryIds,
+            groupIds: form.groupIds,
+            reason: form.reason.trim(),
+          }
+        : {}),
+    };
     try {
       const saved = isNew
         ? await createResponseTemplate(ownership, input)
-        : await updateResponseTemplate(ownership, templateId, {
-            ...input,
-            expectedUpdatedAt: revision!,
-          });
+        : await updateResponseTemplate(ownership, templateId, input);
       toast({ tone: "success", title: t("templates.editor.saved") });
       navigate(`/admin/templates?tab=${saved.ownership === "personal" ? "mine" : "shared"}`);
     } catch (error) {
-      const mapped = mapTemplatesError(error);
-      setErrorKey(mapped);
-      if (mapped === "templates.errors.TEMPLATE_VERSION_CONFLICT" && templateId !== undefined) {
-        setUpdatedAt(null);
-        setConflictTemplate(null);
-        try {
-          // Fetch the latest revision immediately without overwriting the unsaved draft.
-          setConflictTemplate(await getResponseTemplate(templateId));
-        } catch {
-          // Keep the conflict message and draft if the latest row is no longer readable.
-        }
-      }
+      setErrorKey(mapTemplatesError(error));
     } finally {
       setSaving(false);
     }
@@ -235,7 +234,6 @@ export function ResponseTemplateEditorPage() {
   const canSubmit =
     canEdit &&
     !saving &&
-    (isNew || updatedAt !== null) &&
     form.name.trim().length >= 2 &&
     form.bodyBs.trim().length > 0 &&
     unknown.length === 0 &&
@@ -410,28 +408,9 @@ export function ResponseTemplateEditorPage() {
               </div>
             ) : null}
             {errorKey !== null ? (
-              <div className="space-y-2">
-                <p role="alert" className="text-[12.5px] text-danger">
-                  {t(errorKey)}
-                </p>
-                {conflictTemplate !== null ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={saving}
-                    onClick={() => {
-                      setOwnership(conflictTemplate.ownership);
-                      setCanEdit(conflictTemplate.canEdit);
-                      setForm(toResponseTemplateForm(conflictTemplate));
-                      setUpdatedAt(conflictTemplate.updatedAt);
-                      setConflictTemplate(null);
-                      setErrorKey(null);
-                    }}
-                  >
-                    {t("templates.editor.loadLatest")}
-                  </Button>
-                ) : null}
-              </div>
+              <p role="alert" className="text-[12.5px] text-danger">
+                {t(errorKey)}
+              </p>
             ) : null}
             {canEdit ? (
               <div className="flex justify-end gap-2">

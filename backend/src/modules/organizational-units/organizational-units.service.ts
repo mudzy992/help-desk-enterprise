@@ -56,13 +56,7 @@ export class OrganizationalUnitsService {
     context: OrganizationalUnitAuditContext = emptyAuditContext,
   ): Promise<OrganizationalUnitDetailResponse> {
     return this.execute(() =>
-      updateOrganizationalUnit(
-        this.prisma,
-        organizationalUnitId,
-        input,
-        context,
-        (userIds) => this.invalidateUsers(userIds),
-      ),
+      updateOrganizationalUnit(this.prisma, organizationalUnitId, input, context),
     );
   }
 

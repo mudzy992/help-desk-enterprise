@@ -7,7 +7,6 @@ import {
   Header,
   HttpCode,
   Param,
-  Optional,
   Post,
   Put,
   Query,
@@ -20,9 +19,9 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import { recordAssetAuditEntry } from './asset-audit-transaction';
-import { AssetOperationsMetrics } from './asset-operations-metrics';
+import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AssetImportService } from './import/asset-import.service';
@@ -36,7 +35,6 @@ import { AssetCatalogService } from './asset-catalog.service';
 import { AssetTicketsService } from './asset-tickets.service';
 import { AssetContractsService } from './asset-contracts.service';
 import { AssetLicensesService } from './asset-licenses.service';
-import type { AssetPageQuery } from './asset-pagination';
 import { assetViewerOf, type AssetViewer } from './asset-viewer';
 import {
   AddAssetRelationDto,
@@ -123,14 +121,6 @@ function parseListQuery(raw: RawListQuery): AssetListQuery {
   };
 }
 
-function parsePageQuery(raw: RawListQuery): AssetPageQuery {
-  const limit = raw.limit === undefined ? undefined : Number(raw.limit);
-  return {
-    cursor: raw.cursor || undefined,
-    limit: limit !== undefined && Number.isInteger(limit) ? limit : undefined,
-  };
-}
-
 function parseDays(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
   const days = Number(raw);
@@ -157,7 +147,6 @@ export class AssetsController {
     private readonly prisma: PrismaService,
     private readonly directorySync: AssetDirectorySyncService,
     private readonly overviewService: AssetOverviewService,
-    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -308,13 +297,13 @@ export class AssetsController {
       const actor = await this.importer.actorFor(viewer, permissionKeys.assetRead);
       const format = raw.format === 'csv' ? 'csv' : 'xlsx';
       const exported = await this.importer.export(parseListQuery(raw), format, readLocale(raw.locale), actor);
-      await recordAssetAuditEntry(this.prisma, {
+      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
         action: auditLogActions.assetExported,
         entityType: auditLogEntityTypes.asset,
         entityId: 'export',
         metadata: { format, fileName: exported.fileName } as never,
         actorUserId: viewer.userId,
-      }, this.assetOperationsMetrics).catch(() => undefined);
+      }).catch(() => undefined);
       return fileResponse(exported, exported.contentType);
     });
   }
@@ -332,7 +321,6 @@ export class AssetsController {
           kind,
           expiringWithinDays: parseDays(raw.expiringWithinDays),
           overAllocated: raw.overAllocated === 'true',
-          ...parsePageQuery(raw),
         },
         this.viewer(request),
       ),
@@ -352,16 +340,6 @@ export class AssetsController {
     @Req() request: AuthenticatedHttpRequest,
   ) {
     return runAsset(() => this.licenses.searchUserCandidates(licenseId, search.slice(0, 120), this.viewer(request)));
-  }
-
-  @Get('licenses/:licenseId/assignments')
-  @Header('Cache-Control', 'no-store')
-  licenseAssignments(
-    @Param('licenseId') licenseId: string,
-    @Query() raw: RawListQuery,
-    @Req() request: AuthenticatedHttpRequest,
-  ) {
-    return runAsset(() => this.licenses.listAssignments(licenseId, parsePageQuery(raw), this.viewer(request)));
   }
 
   @Get('licenses/:licenseId')
@@ -415,7 +393,6 @@ export class AssetsController {
           kind,
           expiringWithinDays: parseDays(raw.expiringWithinDays),
           includeExpired: raw.includeExpired === 'true',
-          ...parsePageQuery(raw),
         },
         this.viewer(request),
       ),
@@ -425,16 +402,6 @@ export class AssetsController {
   @Post('contracts')
   createContract(@Body() body: SaveContractDto, @Req() request: AuthenticatedHttpRequest) {
     return runAsset(() => this.contracts.create(body, this.viewer(request)));
-  }
-
-  @Get('contracts/:contractId/items')
-  @Header('Cache-Control', 'no-store')
-  contractItems(
-    @Param('contractId') contractId: string,
-    @Query() raw: RawListQuery,
-    @Req() request: AuthenticatedHttpRequest,
-  ) {
-    return runAsset(() => this.contracts.listItems(contractId, parsePageQuery(raw), this.viewer(request)));
   }
 
   @Get('contracts/:contractId')
@@ -567,39 +534,7 @@ export class AssetsController {
         this.licenses.forAsset(asset.id, asset.assignedUser?.id ?? null),
         this.contracts.forAsset(asset.id),
       ]);
-      return {
-        ...asset,
-        licenses: licenses.items,
-        licensesPage: { hasMore: licenses.hasMore, nextCursor: licenses.nextCursor },
-        contracts: contracts.items,
-        contractsPage: { hasMore: contracts.hasMore, nextCursor: contracts.nextCursor },
-      };
-    });
-  }
-
-  @Get(':id/licenses')
-  @Header('Cache-Control', 'no-store')
-  assetLicenses(
-    @Req() request: AuthenticatedHttpRequest,
-    @Param('id') id: string,
-    @Query() raw: RawListQuery,
-  ) {
-    return runAsset(async () => {
-      const asset = await this.assets.detail(id, this.viewer(request));
-      return this.licenses.forAsset(asset.id, asset.assignedUser?.id ?? null, parsePageQuery(raw));
-    });
-  }
-
-  @Get(':id/contracts')
-  @Header('Cache-Control', 'no-store')
-  assetContracts(
-    @Req() request: AuthenticatedHttpRequest,
-    @Param('id') id: string,
-    @Query() raw: RawListQuery,
-  ) {
-    return runAsset(async () => {
-      const asset = await this.assets.detail(id, this.viewer(request));
-      return this.contracts.forAsset(asset.id, parsePageQuery(raw));
+      return { ...asset, licenses, contracts };
     });
   }
 

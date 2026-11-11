@@ -1,17 +1,14 @@
 import type { Prisma } from '../../../generated/prisma/client';
-import { ticketResponseRelations } from '../ticket-response-relations';
 
 /**
  * Projection of the ticket list (plan §1.1: "u `findMany` dodati `select` samo
  * kolona potrebnih za listni prikaz").
  *
- * It keeps every scalar the list DTO and its client mappers read, minus
+ * It keeps every column the list DTO and its client mappers read, minus
  * `formData`: a JSON blob per service request that is rendered only on the
- * ticket detail screen. The small response relations are selected here too;
- * `relationLoadStrategy: 'join'` lets Prisma fetch labels, parent summaries,
- * close code, SLA and CSAT with the page rather than issuing follow-up reads.
- * `description` stays because list search and the client-side filter still
- * read it; it can be dropped once list search is server-side everywhere.
+ * ticket detail screen, which still loads the full row. `description` stays
+ * because the list search and the client-side filter still read it; it can be
+ * dropped once the list search is server-side everywhere (phase 3.3).
  */
 export const ticketListSelect = {
   id: true,
@@ -49,5 +46,4 @@ export const ticketListSelect = {
   mergedAt: true,
   createdAt: true,
   updatedAt: true,
-  ...ticketResponseRelations,
 } satisfies Prisma.TicketSelect;

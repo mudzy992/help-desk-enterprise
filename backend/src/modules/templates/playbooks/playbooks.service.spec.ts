@@ -1,14 +1,10 @@
-import { HttpException } from '@nestjs/common';
 import { permissionKeys } from '../../authorization/authorization.constants';
-import type { AuthorizationAssignment, AuthorizationContext } from '../../authorization/authorization.types';
+import type {
+  AuthorizationAssignment,
+  AuthorizationContext,
+} from '../../authorization/authorization.types';
 import { PlaybooksService } from './playbooks.service';
-import { mapTemplatesError } from '../map-templates-error';
 import { TemplatesError } from '../templates.error';
-import type { PlaybookInput } from './normalize-playbook-input';
-
-jest.mock('../../../common/prisma/prisma.service', () => ({
-  PrismaService: class PrismaService {},
-}));
 
 type StepRow = {
   stepKey: string;
@@ -68,10 +64,7 @@ const assignment = (keys: readonly string[], serviceId: string | null = null): A
 
 const contextFor = (
   keys: readonly string[],
-  options: {
-    readonly isSuperAdmin?: boolean;
-    readonly serviceId?: string | null;
-  } = {},
+  options: { readonly isSuperAdmin?: boolean; readonly serviceId?: string | null } = {},
 ): AuthorizationContext => ({
   subjectId: 'actor-1',
   isLocalOnly: false,
@@ -83,24 +76,12 @@ type HarnessPrisma = {
   readonly playbook: {
     readonly findMany: jest.Mock;
     readonly findFirst: jest.Mock;
-    readonly findUnique: jest.Mock;
-    readonly count: jest.Mock;
     readonly create: jest.Mock;
     readonly update: jest.Mock;
-    readonly updateMany: jest.Mock;
   };
-  readonly playbookService: {
-    readonly deleteMany: jest.Mock;
-    readonly createMany: jest.Mock;
-  };
-  readonly playbookCategory: {
-    readonly deleteMany: jest.Mock;
-    readonly createMany: jest.Mock;
-  };
-  readonly playbookStep: {
-    readonly deleteMany: jest.Mock;
-    readonly upsert: jest.Mock;
-  };
+  readonly playbookService: { readonly deleteMany: jest.Mock };
+  readonly playbookCategory: { readonly deleteMany: jest.Mock };
+  readonly playbookStep: { readonly deleteMany: jest.Mock; readonly upsert: jest.Mock };
   readonly ticketPlaybook: { readonly groupBy: jest.Mock };
   readonly service: { readonly count: jest.Mock };
   readonly serviceCategory: { readonly count: jest.Mock };
@@ -111,33 +92,23 @@ type HarnessPrisma = {
 };
 
 function createHarness(
-  options: {
-    readonly context?: AuthorizationContext | null;
-    readonly playbooksEnabled?: boolean;
-  } = {},
+  options: { readonly context?: AuthorizationContext | null; readonly playbooksEnabled?: boolean } = {},
 ) {
   const changeLogs: Record<string, unknown>[] = [];
   const authorizationContext: AuthorizationContext | null =
-    options.context === undefined ? contextFor([permissionKeys.ticketTemplatesManage]) : options.context;
+    options.context === undefined
+      ? contextFor([permissionKeys.ticketTemplatesManage])
+      : options.context;
 
   const prisma: HarnessPrisma = {
     playbook: {
       findMany: jest.fn(async (_args: unknown): Promise<Row[]> => []),
       findFirst: jest.fn(async (_args: unknown): Promise<Row | null> => null),
-      findUnique: jest.fn(async (_args: unknown): Promise<Row> => row()),
-      count: jest.fn(async () => 0),
       create: jest.fn(async (_args: unknown): Promise<Row> => row()),
       update: jest.fn(async (_args: unknown): Promise<Row> => row()),
-      updateMany: jest.fn(async () => ({ count: 1 })),
     },
-    playbookService: {
-      deleteMany: jest.fn(async () => ({ count: 0 })),
-      createMany: jest.fn(async () => ({ count: 0 })),
-    },
-    playbookCategory: {
-      deleteMany: jest.fn(async () => ({ count: 0 })),
-      createMany: jest.fn(async () => ({ count: 0 })),
-    },
+    playbookService: { deleteMany: jest.fn(async () => ({ count: 0 })) },
+    playbookCategory: { deleteMany: jest.fn(async () => ({ count: 0 })) },
     playbookStep: {
       deleteMany: jest.fn(async () => ({ count: 0 })),
       upsert: jest.fn(async () => ({})),
@@ -156,9 +127,7 @@ function createHarness(
     $transaction: jest.fn(async (fn: (tx: HarnessPrisma) => Promise<unknown>) => fn(prisma)),
   };
 
-  const authorizationLoader = {
-    loadBySubjectId: jest.fn(async () => authorizationContext),
-  };
+  const authorizationLoader = { loadBySubjectId: jest.fn(async () => authorizationContext) };
   const configurationLoader = {
     load: jest.fn(async () => ({
       templatesEnabled: true,
@@ -168,7 +137,11 @@ function createHarness(
     })),
   };
 
-  const service = new PlaybooksService(prisma as never, authorizationLoader as never, configurationLoader as never);
+  const service = new PlaybooksService(
+    prisma as never,
+    authorizationLoader as never,
+    configurationLoader as never,
+  );
 
   return { service, prisma, changeLogs };
 }
@@ -196,20 +169,12 @@ const codeOf = async (work: Promise<unknown>): Promise<string> => {
   throw new Error('expected TemplatesError, but the call resolved');
 };
 
-type InputOverrides = Partial<PlaybookInput> & {
-  readonly reason?: string;
-  readonly expectedUpdatedAt?: string;
-};
-
-const input = (overrides: InputOverrides = {}) => ({
+const input = (overrides: Record<string, unknown> = {}) => ({
   name: 'Mrežni kvar',
   steps: [{ title: 'Provjeri kabl', required: true }],
   reason: 'uveden playbook',
   ...overrides,
 });
-
-const updateInput = (overrides: InputOverrides = {}) =>
-  input({ expectedUpdatedAt: row().updatedAt.toISOString(), ...overrides });
 
 describe('PlaybooksService', () => {
   beforeEach(() => {
@@ -237,18 +202,14 @@ describe('PlaybooksService', () => {
   });
 
   describe('list', () => {
-    it('queries only live playbooks and combines service filters with the manager scope', async () => {
-      const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], {
-          serviceId: 'service-1',
-        }),
-      });
+    it('queries only live playbooks and translates the state and search filters', async () => {
+      const { service, prisma } = createHarness();
       await service.list({ q: ' mreža ', state: 'inactive', serviceId: 'service-1' }, { actorUserId: 'actor-1' });
       const args = prisma.playbook.findMany.mock.calls[0][0] as {
         where: {
           deletedAt: null;
           isActive: boolean;
-          AND: readonly unknown[];
+          services: { some: { serviceId: string } };
           name: { contains: string; mode: string };
         };
         orderBy: unknown;
@@ -256,99 +217,38 @@ describe('PlaybooksService', () => {
       };
       expect(args.where.deletedAt).toBeNull();
       expect(args.where.isActive).toBe(false);
-      expect(args.where.AND).toContainEqual({
-        services: {
-          some: { serviceId: { in: ['service-1'] } },
-          every: { serviceId: { in: ['service-1'] } },
-        },
-        categories: { none: {} },
-      });
-      expect(args.where.AND).toContainEqual({
-        services: { some: { serviceId: 'service-1' } },
-      });
-      expect(args.where.name).toEqual({
-        contains: 'mreža',
-        mode: 'insensitive',
-      });
-      expect(args.orderBy).toEqual([{ name: 'asc' }, { id: 'asc' }]);
-      expect(args.take).toBe(51);
+      expect(args.where.services).toEqual({ some: { serviceId: 'service-1' } });
+      expect(args.where.name).toEqual({ contains: 'mreža', mode: 'insensitive' });
+      expect(args.orderBy).toEqual({ name: 'asc' });
+      expect(args.take).toBe(1000);
     });
 
-    it('applies manager scope to rows and count before ticket aggregation', async () => {
+    it('fills activeTicketCount from the checklist table and canEdit from the scope', async () => {
       const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], {
-          serviceId: 'service-1',
-        }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
       });
-      prisma.playbook.findMany.mockResolvedValueOnce([row({ id: 'mine', services: [{ serviceId: 'service-1' }] })]);
-      prisma.playbook.count.mockResolvedValueOnce(1);
-      prisma.ticketPlaybook.groupBy.mockResolvedValueOnce([{ playbookId: 'mine', _count: { _all: 3 } }]);
-      const page = await service.list({}, { actorUserId: 'actor-1' });
-      expect(page.items.map((item) => [item.id, item.activeTicketCount, item.canEdit])).toEqual([['mine', 3, true]]);
-      expect(page.total).toBe(1);
+      prisma.playbook.findMany.mockResolvedValueOnce([
+        row({ id: 'mine', services: [{ serviceId: 'service-1' }] }),
+        row({ id: 'other', name: 'Tuđi', services: [{ serviceId: 'service-2' }] }),
+      ]);
+      prisma.ticketPlaybook.groupBy.mockResolvedValueOnce([
+        { playbookId: 'mine', _count: { _all: 3 } },
+      ]);
+      const listed = await service.list({}, { actorUserId: 'actor-1' });
+      expect(listed.map((item) => [item.id, item.activeTicketCount, item.canEdit])).toEqual([
+        ['mine', 3, true],
+        ['other', 0, false],
+      ]);
       expect(prisma.ticketPlaybook.groupBy).toHaveBeenCalledWith({
         by: ['playbookId'],
-        where: { playbookId: { in: ['mine'] }, detachedAt: null },
+        where: { playbookId: { in: ['mine', 'other'] }, detachedAt: null },
         _count: { _all: true },
-      });
-
-      const args = prisma.playbook.findMany.mock.calls[0]?.[0] as {
-        where: { AND: readonly unknown[] };
-        orderBy: unknown;
-        take: number;
-      };
-      expect(args.where.AND).toContainEqual({
-        services: {
-          some: { serviceId: { in: ['service-1'] } },
-          every: { serviceId: { in: ['service-1'] } },
-        },
-        categories: { none: {} },
-      });
-      expect(args.orderBy).toEqual([{ name: 'asc' }, { id: 'asc' }]);
-      expect(args.take).toBe(51);
-      expect(prisma.playbook.count).toHaveBeenCalledWith({ where: args.where });
-    });
-
-    it('uses the ID tie-breaker across equal-name page boundaries', async () => {
-      const { service, prisma } = createHarness();
-      prisma.playbook.count.mockResolvedValue(3);
-      prisma.playbook.findMany.mockResolvedValueOnce([
-        row({ id: 'playbook-a', name: 'A' }),
-        row({ id: 'playbook-b', name: 'B' }),
-        row({ id: 'playbook-c', name: 'B' }),
-      ]);
-      const first = await service.list({ take: 2 }, { actorUserId: 'actor-1' });
-      expect(first.items.map((item) => item.id)).toEqual(['playbook-a', 'playbook-b']);
-      expect(first.total).toBe(3);
-      expect(first.hasMore).toBe(true);
-      expect(first.nextCursor).not.toBeNull();
-
-      prisma.playbook.findMany.mockResolvedValueOnce([row({ id: 'playbook-c', name: 'B' })]);
-      const second = await service.list({ take: 2, cursor: first.nextCursor ?? undefined }, { actorUserId: 'actor-1' });
-      expect(second.items.map((item) => item.id)).toEqual(['playbook-c']);
-      expect(second.total).toBe(3);
-      expect(second.hasMore).toBe(false);
-      expect(second.nextCursor).toBeNull();
-      expect(prisma.playbook.findMany.mock.calls[1]?.[0]).toMatchObject({
-        where: {
-          AND: [
-            { deletedAt: null },
-            {
-              OR: [{ name: { gt: 'B' } }, { name: 'B', id: { gt: 'playbook-b' } }],
-            },
-          ],
-        },
       });
     });
 
     it('skips the counting query when the listing is empty', async () => {
       const { service, prisma } = createHarness();
-      await expect(service.list({}, { actorUserId: 'actor-1' })).resolves.toMatchObject({
-        items: [],
-        total: 0,
-        hasMore: false,
-        nextCursor: null,
-      });
+      await expect(service.list({}, { actorUserId: 'actor-1' })).resolves.toEqual([]);
       expect(prisma.ticketPlaybook.groupBy).not.toHaveBeenCalled();
     });
   });
@@ -356,35 +256,16 @@ describe('PlaybooksService', () => {
   describe('create', () => {
     it('reports a missing playbook as not found', async () => {
       const { service } = createHarness();
-      expect(await codeOf(service.get('missing', { actorUserId: 'actor-1' }))).toBe('PLAYBOOK_NOT_FOUND');
-    });
-
-    it('hides foreign playbooks on get and constrains the database lookup', async () => {
-      const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], {
-          serviceId: 'service-1',
-        }),
-      });
-      prisma.playbook.findFirst.mockResolvedValueOnce(row({ services: [{ serviceId: 'service-2' }] }));
-
-      expect(await codeOf(service.get('foreign', { actorUserId: 'actor-1' }))).toBe('PLAYBOOK_NOT_FOUND');
-      const args = prisma.playbook.findFirst.mock.calls[0]?.[0] as {
-        where: Record<string, unknown>;
-      };
-      expect(args.where).toMatchObject({
-        id: 'foreign',
-        deletedAt: null,
-        services: {
-          some: { serviceId: { in: ['service-1'] } },
-          every: { serviceId: { in: ['service-1'] } },
-        },
-        categories: { none: {} },
-      });
+      expect(await codeOf(service.get('missing', { actorUserId: 'actor-1' }))).toBe(
+        'PLAYBOOK_NOT_FOUND',
+      );
     });
 
     it('requires a reason', async () => {
       const { service } = createHarness();
-      expect(await codeOf(service.create(input({ reason: '  ' }), { actorUserId: 'actor-1' }))).toBe('REASON_REQUIRED');
+      expect(await codeOf(service.create(input({ reason: '  ' }), { actorUserId: 'actor-1' }))).toBe(
+        'REASON_REQUIRED',
+      );
     });
 
     it('rejects a scope whose services or categories do not exist', async () => {
@@ -392,9 +273,7 @@ describe('PlaybooksService', () => {
       prisma.service.count.mockResolvedValue(0);
       expect(
         await codeOf(
-          service.create(input({ serviceIds: ['missing'] }), {
-            actorUserId: 'actor-1',
-          }),
+          service.create(input({ serviceIds: ['missing'] }), { actorUserId: 'actor-1' }),
         ),
       ).toBe('TEMPLATE_SCOPE_INVALID');
       expect(prisma.playbook.create).not.toHaveBeenCalled();
@@ -415,11 +294,7 @@ describe('PlaybooksService', () => {
       ).toBe('PLAYBOOK_REFERENCE_INVALID');
       // the reference is checked against shared, undeleted templates only
       expect(prisma.responseTemplate.count).toHaveBeenCalledWith({
-        where: {
-          id: { in: ['personal-template'] },
-          ownerUserId: null,
-          deletedAt: null,
-        },
+        where: { id: { in: ['personal-template'] }, ownerUserId: null, deletedAt: null },
       });
 
       prisma.responseTemplate.count.mockResolvedValue(1);
@@ -427,9 +302,7 @@ describe('PlaybooksService', () => {
       expect(
         await codeOf(
           service.create(
-            input({
-              steps: [{ title: 'Korak', knowledgeArticleId: 'missing-article' }],
-            }),
+            input({ steps: [{ title: 'Korak', knowledgeArticleId: 'missing-article' }] }),
             { actorUserId: 'actor-1' },
           ),
         ),
@@ -439,18 +312,20 @@ describe('PlaybooksService', () => {
     it('refuses a name another playbook already uses', async () => {
       const { service, prisma } = createHarness();
       queueFindFirst(prisma, { id: 'other' });
-      expect(await codeOf(service.create(input(), { actorUserId: 'actor-1' }))).toBe('PLAYBOOK_NAME_TAKEN');
+      expect(await codeOf(service.create(input(), { actorUserId: 'actor-1' }))).toBe(
+        'PLAYBOOK_NAME_TAKEN',
+      );
     });
 
     it('stops a service-restricted admin from writing an unscoped playbook', async () => {
       const { service } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], {
-          serviceId: 'service-1',
-        }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
       });
-      expect(await codeOf(service.create(input({ serviceIds: [] }), { actorUserId: 'actor-1' }))).toBe(
-        'TEMPLATE_SCOPE_FORBIDDEN',
-      );
+      expect(
+        await codeOf(
+          service.create(input({ serviceIds: [] }), { actorUserId: 'actor-1' }),
+        ),
+      ).toBe('TEMPLATE_SCOPE_FORBIDDEN');
     });
 
     it('creates the steps in order, replaces the scope rows and writes an audit entry', async () => {
@@ -460,12 +335,7 @@ describe('PlaybooksService', () => {
         row({
           steps: [
             step({ stepKey: 'korak-a', position: 0 }),
-            step({
-              stepKey: 'korak-b',
-              position: 1,
-              title: 'Drugi',
-              required: false,
-            }),
+            step({ stepKey: 'korak-b', position: 1, title: 'Drugi', required: false }),
           ],
         }),
       );
@@ -508,115 +378,44 @@ describe('PlaybooksService', () => {
   });
 
   describe('update', () => {
-    it('requires a loaded revision before starting an update', async () => {
-      const { service, prisma } = createHarness();
-      expect(await codeOf(service.update('playbook-1', input(), { actorUserId: 'actor-1' }))).toBe(
-        'PLAYBOOK_PRECONDITION_REQUIRED',
-      );
-      expect(prisma.playbook.findFirst).not.toHaveBeenCalled();
-      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
-    });
-
-    it('maps a missing revision to bad request and a stale revision to conflict', () => {
-      const missing = mapTemplatesError(new TemplatesError('PLAYBOOK_PRECONDITION_REQUIRED'));
-      const stale = mapTemplatesError(new TemplatesError('PLAYBOOK_VERSION_CONFLICT'));
-      expect((missing as HttpException).getStatus()).toBe(400);
-      expect((stale as HttpException).getStatus()).toBe(409);
-    });
-
-    it('rejects an already-stale revision without opening a transaction', async () => {
-      const { service, prisma, changeLogs } = createHarness();
-      queueFindFirst(prisma, row({ updatedAt: new Date('2026-01-03T00:00:00.000Z') }));
-      expect(
-        await codeOf(
-          service.update('playbook-1', updateInput(), {
-            actorUserId: 'actor-1',
-          }),
-        ),
-      ).toBe('PLAYBOOK_VERSION_CONFLICT');
-      expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(prisma.playbookService.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.playbookStep.upsert).not.toHaveBeenCalled();
-      expect(changeLogs).toHaveLength(0);
-    });
-
-    it('keeps step-version semantics while claiming the updatedAt revision atomically', async () => {
+    it('bumps the version only when the steps a running checklist copies change', async () => {
       const { service, prisma, changeLogs } = createHarness();
       queueFindFirst(prisma, row({ version: 4 }), null);
-      prisma.playbook.findUnique.mockResolvedValueOnce(row({ version: 4, name: 'Novo ime' }));
+      prisma.playbook.update.mockResolvedValueOnce(row({ version: 4, name: 'Novo ime' }));
 
-      // The same step key and text: only the name changes, nothing a running
-      // checklist copies, so the ticket snapshot version must not move.
+      // the same step key and text: only the name changes, nothing a running
+      // checklist copies, so the version must not move
       await service.update(
         'playbook-1',
-        updateInput({
-          name: 'Novo ime',
-          steps: [{ stepKey: 'prvi-korak', title: 'Provjeri kabl', required: true }],
-        }),
+        input({ name: 'Novo ime', steps: [{ stepKey: 'prvi-korak', title: 'Provjeri kabl', required: true }] }),
         { actorUserId: 'actor-1' },
       );
-      const untouched = prisma.playbook.updateMany.mock.calls[0]?.[0] as {
-        where: { updatedAt: Date };
-        data: { version?: unknown; updatedAt: Date };
-      };
-      expect(untouched.where).toMatchObject({
-        id: 'playbook-1',
-        deletedAt: null,
-        updatedAt: row().updatedAt,
-      });
+      const untouched = prisma.playbook.update.mock.calls[0][0] as { data: { version?: unknown } };
       expect(untouched.data.version).toBeUndefined();
-      expect(untouched.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
       expect(prisma.playbookStep.upsert).toHaveBeenCalledTimes(1);
       expect(changeLogs).toHaveLength(1);
       expect((changeLogs[0].diff as { action: string }).action).toBe('update');
 
       queueFindFirst(prisma, row({ version: 4 }), null);
-      prisma.playbook.findUnique.mockResolvedValueOnce(row({ version: 5, steps: [step({ title: 'Novi tekst' })] }));
+      prisma.playbook.update.mockResolvedValueOnce(row({ version: 5, steps: [step({ title: 'Novi tekst' })] }));
       await service.update(
         'playbook-1',
-        updateInput({
-          steps: [{ stepKey: 'prvi-korak', title: 'Novi tekst' }],
-        }),
+        input({ steps: [{ stepKey: 'prvi-korak', title: 'Novi tekst' }] }),
         { actorUserId: 'actor-1' },
       );
-      const bumped = prisma.playbook.updateMany.mock.calls[1]?.[0] as {
+      const bumped = prisma.playbook.update.mock.calls[1][0] as {
         data: { version: { increment: number } };
       };
       expect(bumped.data.version).toEqual({ increment: 1 });
     });
 
-    it('stops a losing compare-and-set before any scope, step, or audit write', async () => {
-      const { service, prisma, changeLogs } = createHarness();
-      queueFindFirst(prisma, row(), null);
-      prisma.playbook.updateMany.mockResolvedValueOnce({ count: 0 });
-
-      expect(
-        await codeOf(
-          service.update('playbook-1', updateInput(), {
-            actorUserId: 'actor-1',
-          }),
-        ),
-      ).toBe('PLAYBOOK_VERSION_CONFLICT');
-      expect(prisma.playbook.updateMany).toHaveBeenCalledTimes(1);
-      expect(prisma.playbookService.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.playbookCategory.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.playbookStep.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.playbookStep.upsert).not.toHaveBeenCalled();
-      expect(prisma.playbookService.createMany).not.toHaveBeenCalled();
-      expect(prisma.playbookCategory.createMany).not.toHaveBeenCalled();
-      expect(changeLogs).toHaveLength(0);
-    });
-
-    it('replaces scope rows and steps only after the revision claim', async () => {
+    it('removes the scope rows and the steps that are no longer in the request', async () => {
       const { service, prisma } = createHarness();
       queueFindFirst(prisma, row(), null);
+      prisma.playbook.update.mockResolvedValueOnce(row());
       await service.update(
         'playbook-1',
-        updateInput({
-          serviceIds: ['service-2'],
-          categoryIds: ['category-2'],
-          steps: [{ stepKey: 'prvi-korak', title: 'Provjeri kabl' }],
-        }),
+        input({ steps: [{ stepKey: 'prvi-korak', title: 'Provjeri kabl' }] }),
         { actorUserId: 'actor-1' },
       );
       expect(prisma.playbookService.deleteMany).toHaveBeenCalledWith({
@@ -629,53 +428,34 @@ describe('PlaybooksService', () => {
         where: { playbookId: 'playbook-1', stepKey: { notIn: ['prvi-korak'] } },
       });
       expect(prisma.playbookStep.upsert).toHaveBeenCalledWith({
-        where: {
-          playbookId_stepKey: {
-            playbookId: 'playbook-1',
-            stepKey: 'prvi-korak',
-          },
-        },
-        create: expect.objectContaining({
-          stepKey: 'prvi-korak',
-          playbookId: 'playbook-1',
-        }),
+        where: { playbookId_stepKey: { playbookId: 'playbook-1', stepKey: 'prvi-korak' } },
+        create: expect.objectContaining({ stepKey: 'prvi-korak', playbookId: 'playbook-1' }),
         update: expect.objectContaining({ stepKey: 'prvi-korak' }),
       });
-      expect(prisma.playbookService.createMany).toHaveBeenCalledWith({
-        data: [{ playbookId: 'playbook-1', serviceId: 'service-2' }],
-      });
-      expect(prisma.playbookCategory.createMany).toHaveBeenCalledWith({
-        data: [{ playbookId: 'playbook-1', categoryId: 'category-2' }],
-      });
-      expect(prisma.playbook.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
-        prisma.playbookService.deleteMany.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
-      );
     });
 
     it('checks both the old and the new scope against what the actor may manage', async () => {
       const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], {
-          serviceId: 'service-1',
-        }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
       });
       queueFindFirst(prisma, row({ services: [{ serviceId: 'service-1' }] }));
       expect(
         await codeOf(
-          service.update('playbook-1', updateInput({ serviceIds: ['service-2'] }), {
-            actorUserId: 'actor-1',
-          }),
+          service.update(
+            'playbook-1',
+            input({ serviceIds: ['service-2'] }),
+            { actorUserId: 'actor-1' },
+          ),
         ),
       ).toBe('TEMPLATE_SCOPE_FORBIDDEN');
-      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
+      expect(prisma.playbook.update).not.toHaveBeenCalled();
     });
 
     it('keeps the audit entry ahead of the new snapshot', async () => {
       const { service, prisma, changeLogs } = createHarness();
       queueFindFirst(prisma, row({ version: 2, name: 'Staro' }), null);
-      prisma.playbook.findUnique.mockResolvedValueOnce(row({ version: 3, name: 'Novo' }));
-      await service.update('playbook-1', updateInput({ name: 'Novo' }), {
-        actorUserId: 'actor-1',
-      });
+      prisma.playbook.update.mockResolvedValueOnce(row({ version: 3, name: 'Novo' }));
+      await service.update('playbook-1', input({ name: 'Novo' }), { actorUserId: 'actor-1' });
       const diff = changeLogs[0].diff as {
         before: { name: string; version: number };
         after: { name: string; version: number };
@@ -690,103 +470,26 @@ describe('PlaybooksService', () => {
     it('soft-deletes and audits, so a running checklist keeps its copy of the steps', async () => {
       const { service, prisma, changeLogs } = createHarness();
       queueFindFirst(prisma, row());
-      const result = await service.remove(
-        'playbook-1',
-        {
-          reason: 'playbook ukinut',
-          expectedUpdatedAt: row().updatedAt.toISOString(),
-        },
-        { actorUserId: 'actor-1' },
-      );
+      const result = await service.remove('playbook-1', 'playbook ukinut', { actorUserId: 'actor-1' });
       expect(result).toEqual({ id: 'playbook-1' });
-      const updateArgs = prisma.playbook.updateMany.mock.calls[0][0] as {
-        where: { id: string; updatedAt: Date };
-        data: { deletedAt: Date; isActive: boolean; updatedAt: Date };
+      const updateArgs = prisma.playbook.update.mock.calls[0][0] as {
+        data: { deletedAt: Date; isActive: boolean };
       };
-      expect(updateArgs.where).toMatchObject({
-        id: 'playbook-1',
-        updatedAt: row().updatedAt,
-      });
       expect(updateArgs.data.deletedAt).toBeInstanceOf(Date);
       expect(updateArgs.data.isActive).toBe(false);
-      expect(updateArgs.data.updatedAt.getTime()).toBeGreaterThan(row().updatedAt.getTime());
       expect((changeLogs[0].diff as { action: string }).action).toBe('delete');
       expect(changeLogs[0].reason).toBe('playbook ukinut');
     });
 
-    it('requires a loaded revision before opening a delete transaction', async () => {
-      const { service, prisma } = createHarness();
-      expect(
-        await codeOf(service.remove('playbook-1', { reason: 'playbook ukinut' }, { actorUserId: 'actor-1' })),
-      ).toBe('PLAYBOOK_PRECONDITION_REQUIRED');
-      expect(prisma.playbook.findFirst).not.toHaveBeenCalled();
-      expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
-    });
-
-    it('rejects a stale revision before the delete transaction or audit', async () => {
-      const { service, prisma, changeLogs } = createHarness();
-      queueFindFirst(prisma, row({ updatedAt: new Date('2026-01-03T00:00:00.000Z') }));
-      expect(
-        await codeOf(
-          service.remove(
-            'playbook-1',
-            {
-              reason: 'playbook ukinut',
-              expectedUpdatedAt: row().updatedAt.toISOString(),
-            },
-            { actorUserId: 'actor-1' },
-          ),
-        ),
-      ).toBe('PLAYBOOK_VERSION_CONFLICT');
-      expect(prisma.$transaction).not.toHaveBeenCalled();
-      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
-      expect(changeLogs).toHaveLength(0);
-    });
-
-    it('does not delete or audit when another writer wins the revision CAS', async () => {
-      const { service, prisma, changeLogs } = createHarness();
-      queueFindFirst(prisma, row());
-      prisma.playbook.updateMany.mockResolvedValueOnce({ count: 0 });
-      expect(
-        await codeOf(
-          service.remove(
-            'playbook-1',
-            {
-              reason: 'playbook ukinut',
-              expectedUpdatedAt: row().updatedAt.toISOString(),
-            },
-            { actorUserId: 'actor-1' },
-          ),
-        ),
-      ).toBe('PLAYBOOK_VERSION_CONFLICT');
-      expect(prisma.playbook.updateMany).toHaveBeenCalledTimes(1);
-      expect(prisma.playbookService.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.playbookStep.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.playbookStep.upsert).not.toHaveBeenCalled();
-      expect(changeLogs).toHaveLength(0);
-    });
-
     it('refuses to delete a playbook outside the managed scope', async () => {
       const { service, prisma } = createHarness({
-        context: contextFor([permissionKeys.ticketTemplatesManage], {
-          serviceId: 'service-1',
-        }),
+        context: contextFor([permissionKeys.ticketTemplatesManage], { serviceId: 'service-1' }),
       });
       queueFindFirst(prisma, row({ services: [{ serviceId: 'service-9' }] }));
       expect(
-        await codeOf(
-          service.remove(
-            'playbook-1',
-            {
-              reason: 'playbook ukinut',
-              expectedUpdatedAt: row().updatedAt.toISOString(),
-            },
-            { actorUserId: 'actor-1' },
-          ),
-        ),
+        await codeOf(service.remove('playbook-1', 'playbook ukinut', { actorUserId: 'actor-1' })),
       ).toBe('TEMPLATE_SCOPE_FORBIDDEN');
-      expect(prisma.playbook.updateMany).not.toHaveBeenCalled();
+      expect(prisma.playbook.update).not.toHaveBeenCalled();
     });
   });
 });

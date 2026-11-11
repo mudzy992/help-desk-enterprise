@@ -44,11 +44,7 @@ describe('asset optimistic version request contract', () => {
   });
 
   it('maps failed asset CAS and an active import apply lease to HTTP 409 Conflict', () => {
-    for (const code of [
-      assetErrorCodes.versionConflict,
-      assetErrorCodes.importApplying,
-      assetErrorCodes.transferTemplateVersionConflict,
-    ]) {
+    for (const code of [assetErrorCodes.versionConflict, assetErrorCodes.importApplying]) {
       const mapped = mapAssetError(new AssetError(code));
       expect(mapped).toBeInstanceOf(ConflictException);
       expect((mapped as ConflictException).getStatus()).toBe(409);

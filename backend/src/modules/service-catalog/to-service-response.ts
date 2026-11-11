@@ -1,23 +1,20 @@
-import { evaluateServiceRuntimeAvailability } from "./evaluate-service-runtime-availability";
-import { defaultServiceAvailabilityEvaluationContext } from "./parse-service-availability-configuration";
+import { evaluateServiceRuntimeAvailability } from './evaluate-service-runtime-availability';
+import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
 import type {
   DowntimeWindowRecord,
   ServiceAvailabilityEvaluationContext,
-} from "./service-availability.types";
-import { isServiceOfferedToRequesters } from "./assert-service-lifecycle-transition";
-import { defaultTicketApprovalsConfiguration } from "../tickets/approvals/approvals.constants";
-import { resolveTicketApprovalRequirement } from "../tickets/approvals/resolve-ticket-approval-requirement";
-import type { TicketApprovalsConfiguration } from "../tickets/approvals/approvals.types";
-import { emptyServiceActiveFormSummary } from "./empty-service-active-form-summary";
+} from './service-availability.types';
+import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transition';
+import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
+import { resolveTicketApprovalRequirement } from '../tickets/approvals/resolve-ticket-approval-requirement';
+import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
+import { emptyServiceActiveFormSummary } from './empty-service-active-form-summary';
 import type {
   ServiceActiveFormSummary,
   ServiceRecord,
   ServiceResponse,
-} from "./service-catalog.types";
-import {
-  worstAvailability,
-  type IncidentImpact,
-} from "../status-page/status-page.model";
+} from './service-catalog.types';
+import { worstAvailability, type IncidentImpact } from '../status-page/status-page.model';
 
 export function toServiceResponse(
   record: ServiceRecord,
@@ -31,17 +28,14 @@ export function toServiceResponse(
   // Paket 2.7: worst impact of open incidents; raises effectiveAvailability only.
   incidentImpact: IncidentImpact | null = null,
   activeForm: ServiceActiveFormSummary = emptyServiceActiveFormSummary,
-  upcomingDowntimeCount?: number,
 ): ServiceResponse {
   const runtimeAvailability = evaluateServiceRuntimeAvailability({
     storedAvailability: record.availability,
     downtimeWindows,
-    upcomingDowntimeCount,
     evaluation,
   });
   return {
     id: record.id,
-    revision: record.revision,
     name: record.name,
     slug: record.slug,
     categoryId: record.categoryId,
@@ -53,10 +47,7 @@ export function toServiceResponse(
         ? runtimeAvailability
         : {
             ...runtimeAvailability,
-            effectiveAvailability: worstAvailability([
-              runtimeAvailability.effectiveAvailability,
-              incidentImpact,
-            ]),
+            effectiveAvailability: worstAvailability([runtimeAvailability.effectiveAvailability, incidentImpact]),
           },
     incidentImpact,
     classification: record.classification,

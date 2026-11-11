@@ -1,39 +1,11 @@
-import { IntegrationJobStatus, IntegrationJobType } from '../../generated/prisma/enums';
-import { terminalJobPayloadRedactedMarker } from './integration-queue.constants';
-import {
-  integrationJobAdminErrorCodes,
-  type IntegrationJobResponse,
-} from './integration-queue.types';
-
-export function resolveIntegrationJobAdminErrorCode(
-  type: IntegrationJobResponse['type'],
-  lastError: string | null,
-): IntegrationJobResponse['lastErrorCode'] {
-  if (lastError === null) return null;
-  if (lastError === integrationJobAdminErrorCodes.processingOutcomeUnknown) {
-    return integrationJobAdminErrorCodes.processingOutcomeUnknown;
-  }
-  if (lastError === integrationJobAdminErrorCodes.providerOutcomeUnknown) {
-    return integrationJobAdminErrorCodes.providerOutcomeUnknown;
-  }
-  if (lastError === integrationJobAdminErrorCodes.payloadLimitExceeded) {
-    return integrationJobAdminErrorCodes.payloadLimitExceeded;
-  }
-  if (
-    type === IntegrationJobType.EDGE_EVENT &&
-    lastError === integrationJobAdminErrorCodes.edgeEventNoSubscribers
-  ) {
-    return integrationJobAdminErrorCodes.edgeEventNoSubscribers;
-  }
-  // Provider messages may contain recipient addresses, response bodies or other
-  // secrets. The admin API exposes only a stable generic code for other errors.
-  return integrationJobAdminErrorCodes.genericFailure;
-}
+import type { IntegrationJobStatus } from '../../generated/prisma/enums';
+import type { IntegrationJobResponse } from './integration-queue.types';
 
 export function toIntegrationJobResponse(job: {
   readonly id: string;
   readonly type: IntegrationJobResponse['type'];
   readonly status: IntegrationJobStatus;
+  readonly payload: unknown;
   readonly lastError: string | null;
   readonly attempts: number;
   readonly nextRetryAt: Date | null;
@@ -44,10 +16,8 @@ export function toIntegrationJobResponse(job: {
     id: job.id,
     type: job.type,
     status: job.status,
-    lastErrorCode:
-      (job.status === IntegrationJobStatus.COMPLETED || job.status === IntegrationJobStatus.PUBLISHED_BEST_EFFORT) && job.lastError === terminalJobPayloadRedactedMarker
-        ? null
-        : resolveIntegrationJobAdminErrorCode(job.type, job.lastError),
+    payload: job.payload,
+    lastError: job.lastError,
     attempts: job.attempts,
     nextRetryAt: job.nextRetryAt?.toISOString() ?? null,
     createdAt: job.createdAt.toISOString(),

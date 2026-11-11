@@ -12,8 +12,6 @@ export type TicketAttachmentRecord = {
   readonly sizeBytes: number;
   readonly classification: DataClassification;
   readonly uploadedByUserId: string;
-  readonly idempotencyKey?: string | null;
-  readonly payloadHash?: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -56,16 +54,12 @@ export type TicketAttachmentStorage = {
     readonly ticketId: string;
     readonly extension: string;
     readonly contents: Buffer;
-    readonly idempotencyKey?: string;
-    readonly payloadHash?: string;
   }): Promise<string>;
   read(storagePath: string): Promise<Buffer>;
   writeFromPath?(input: {
     readonly ticketId: string;
     readonly extension: string;
     readonly sourcePath: string;
-    readonly idempotencyKey?: string;
-    readonly payloadHash?: string;
   }): Promise<string>;
   openReadStream?(storagePath: string): Promise<Readable>;
   copy?(input: { readonly sourcePath: string; readonly ticketId: string; readonly extension: string }): Promise<string>;

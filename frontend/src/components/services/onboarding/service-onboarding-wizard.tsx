@@ -250,7 +250,6 @@ export function ServiceOnboardingWizard({
                         completeServiceOnboardingStep(record, values, {
                           initialReason: t("services.onboarding.initialRevisionReason"),
                           onCreated: (created) => setRecord(created),
-                          ...(service === null ? {} : { serviceRevision: service.revision }),
                         }),
                       )
                     }

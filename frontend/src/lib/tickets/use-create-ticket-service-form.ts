@@ -1,7 +1,11 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { getActiveServiceForm, type FormVersionResponse } from "@/services/service-catalog-api";
+import {
+  activeFormVersion,
+  getServiceForm,
+  type FormVersionResponse,
+} from "@/services/service-catalog-api";
 
 interface UseCreateTicketServiceFormProperties {
   readonly serviceId: string;
@@ -29,12 +33,12 @@ export function useCreateTicketServiceForm({
     setActiveForm(null);
     setFormsEnabled(true);
     setRequireVersionOnTicket(true);
-    void getActiveServiceForm(serviceId)
+    void getServiceForm(serviceId)
       .then((form) => {
         if (cancelled) return;
         setFormsEnabled(form.formsEnabled);
         setRequireVersionOnTicket(form.requireVersionOnTicket);
-        const active = form.formsEnabled ? form.activeForm : null;
+        const active = form.formsEnabled ? activeFormVersion(form) : null;
         setActiveForm(active);
         setDraft((current) => ({
           ...current,

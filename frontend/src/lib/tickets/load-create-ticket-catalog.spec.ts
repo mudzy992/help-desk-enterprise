@@ -32,7 +32,6 @@ const runtimeAvailability: ServiceRuntimeAvailability = {
 
 const vpnService: ServiceResponse = {
   id: "svc-vpn",
-  revision: 1,
   name: "VPN",
   slug: "vpn",
   categoryId: "cat-it",

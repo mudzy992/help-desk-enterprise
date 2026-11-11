@@ -39,25 +39,5 @@ describe("OnCallRangeDialog zone (O4)", () => {
     expect(from?.value).toBe("2026-10-13T08:00");
     expect(to?.value).toBe("2026-10-14T08:00");
     expect(document.body.textContent).toContain("onCall.zoneHint");
-    expect(document.body.textContent).not.toContain("onCall.swap.intervalHint");
-  });
-
-  it("explains that a requested swap must stay inside the requester's rotation shift", () => {
-    render(
-      <ToastProvider>
-        <OnCallRangeDialog
-          open
-          onOpenChange={vi.fn()}
-          mode="swap"
-          groupId="group-1"
-          groupName="Podrška"
-          timeZone="Europe/Sarajevo"
-          people={[]}
-          onSaved={vi.fn()}
-        />
-      </ToastProvider>,
-    );
-
-    expect(document.body.textContent).toContain("onCall.swap.intervalHint");
   });
 });

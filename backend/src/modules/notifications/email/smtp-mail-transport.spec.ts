@@ -18,12 +18,6 @@ class TestSmtpMailTransport extends SmtpMailTransport {
   nowMsValue = 0;
   /** Postavi prije slanja da transporter baci ovu grešku (SMTP odgovor servera). */
   failWith: Error | null = null;
-  sendMailResult = {
-    messageId: 'msg-1',
-    accepted: ['user@example.com'],
-    rejected: [] as string[],
-    response: '250 2.0.0 queued as smtp-123',
-  };
   /** Svaki test dobija svoj prekidač, pa jedan ne utiče na drugi. */
   breaker: MailProviderLimitBreaker = new MailProviderLimitBreaker(null, () => Date.now());
 
@@ -39,7 +33,7 @@ class TestSmtpMailTransport extends SmtpMailTransport {
     const transporter: FakeTransporter = {
       sendMail: jest.fn(async () => {
         if (this.failWith !== null) throw this.failWith;
-        return this.sendMailResult;
+        return { messageId: 'msg-1' };
       }),
       close: jest.fn(),
     };
@@ -74,56 +68,6 @@ describe('SmtpMailTransport pooling (Val 3, M12/B3)', () => {
 
     expect(transport.created).toHaveLength(1);
     expect(transport.created[0]?.sendMail).toHaveBeenCalledTimes(2);
-  });
-
-  it('returns a bounded SMTP acceptance receipt without recipient addresses', async () => {
-    const transport = new TestSmtpMailTransport();
-
-    await expect(transport.send(message, target())).resolves.toEqual({
-      acceptedRecipientCount: 1,
-      rejectedRecipientCount: 0,
-      messageId: 'msg-1',
-      responseCode: 250,
-      failureKind: null,
-    });
-  });
-
-  it('returns a safe rejection category without recipient addresses or raw SMTP text', async () => {
-    const transport = new TestSmtpMailTransport();
-    transport.sendMailResult = {
-      messageId: '',
-      accepted: [],
-      rejected: ['private-recipient@example.com'],
-      response: '550 5.1.1 recipient address rejected private-recipient@example.com',
-    };
-
-    const receipt = await transport.send(message, target());
-
-    expect(receipt).toMatchObject({
-      acceptedRecipientCount: 0,
-      rejectedRecipientCount: 1,
-      responseCode: 550,
-      failureKind: 'recipient',
-    });
-    expect(JSON.stringify(receipt)).not.toContain('private-recipient@example.com');
-    expect(JSON.stringify(receipt)).not.toContain('recipient address rejected');
-  });
-
-  it('classifies an SMTP refusal even when Nodemailer reports no rejected-address list', async () => {
-    const transport = new TestSmtpMailTransport();
-    transport.sendMailResult = {
-      messageId: '',
-      accepted: [],
-      rejected: [],
-      response: '550-5.4.5 Daily user sending limit exceeded',
-    };
-
-    await expect(transport.send(message, target())).resolves.toMatchObject({
-      acceptedRecipientCount: 0,
-      rejectedRecipientCount: 0,
-      responseCode: 550,
-      failureKind: 'dailyLimit',
-    });
   });
 
   it('builds a new transporter when settings change and closes the idle old one', async () => {

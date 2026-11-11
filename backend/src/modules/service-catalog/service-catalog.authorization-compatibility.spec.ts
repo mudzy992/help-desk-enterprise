@@ -16,7 +16,6 @@ import {
 import { createTestAuthorizationHarness } from '../authorization/create-test-authorization-harness';
 import { RoleGuard } from '../authorization/role.guard';
 import { ServiceAvailabilityController } from './service-availability.controller';
-import { ServiceCategoriesController } from './service-categories.controller';
 import { ServicesController } from './services.controller';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -76,118 +75,6 @@ describe('service catalog authorization compatibility', () => {
     await expect(
       guard.canActivate(createContext(request, ServicesController.prototype.create)),
     ).resolves.toBe(true);
-  });
-
-  it('blocks service-scoped ADMIN from global service/category creates', async () => {
-    const { harness, guard } = createGuard();
-    harness.loadBySubjectId
-      .mockResolvedValueOnce(
-        createAuthorizationContext({
-          id: 'entra-admin',
-          isActive: true,
-          isLocalOnly: false,
-          entraObjectId: 'entra-oid',
-          assignments: [
-            createTestAssignment({
-              roleKey: authorizationRoleKeys.admin,
-              permissionKeys: [permissionKeys.serviceCatalogWrite],
-              serviceId: 'service-hr',
-            }),
-          ],
-        }),
-      )
-      .mockResolvedValueOnce(
-        createAuthorizationContext({
-          id: 'entra-admin',
-          isActive: true,
-          isLocalOnly: false,
-          entraObjectId: 'entra-oid',
-          assignments: [
-            createTestAssignment({
-              roleKey: authorizationRoleKeys.admin,
-              permissionKeys: [permissionKeys.serviceCatalogWrite],
-              serviceId: 'service-hr',
-            }),
-          ],
-        }),
-      )
-      .mockResolvedValueOnce(
-        createAuthorizationContext({
-          id: 'local-admin',
-          isActive: true,
-          isLocalOnly: true,
-          entraObjectId: null,
-          assignments: [
-            createTestAssignment({
-              roleKey: authorizationRoleKeys.admin,
-              permissionKeys: [permissionKeys.serviceCatalogWrite],
-            }),
-          ],
-        }),
-      );
-
-    await expect(
-      guard.canActivate(
-        createContext(
-          { [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: createPrincipal('entra-admin') },
-          ServicesController.prototype.create,
-        ),
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(
-      guard.canActivate(
-        createContext(
-          { [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: createPrincipal('entra-admin') },
-          ServiceCategoriesController.prototype.create,
-          ServiceCategoriesController,
-        ),
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(
-      guard.canActivate(
-        createContext(
-          { [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: createPrincipal('local-admin') },
-          ServiceCategoriesController.prototype.create,
-          ServiceCategoriesController,
-        ),
-      ),
-    ).resolves.toBe(true);
-  });
-
-  it('blocks OU-scoped ADMIN from global service/category creates', async () => {
-    const { harness, guard } = createGuard();
-    harness.loadBySubjectId.mockResolvedValue(
-      createAuthorizationContext({
-        id: 'entra-admin',
-        isActive: true,
-        isLocalOnly: false,
-        entraObjectId: 'entra-oid',
-        assignments: [
-          createTestAssignment({
-            roleKey: authorizationRoleKeys.admin,
-            permissionKeys: [permissionKeys.serviceCatalogWrite],
-            organizationalUnitId: 'ou-hr',
-            organizationalUnitPath: 'root/hr',
-          }),
-        ],
-      }),
-    );
-    const request = {
-      [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: createPrincipal('entra-admin'),
-    };
-
-    await expect(
-      guard.canActivate(createContext(request, ServicesController.prototype.create)),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(
-      guard.canActivate(
-        createContext(
-          request,
-          ServiceCategoriesController.prototype.create,
-          ServiceCategoriesController,
-        ),
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('scopes lifecycle transitions to the requested service id', async () => {

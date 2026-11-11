@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { AccountSecurityPolicyLoader } from '../authentication/security/account-security-policy.loader';
 import { MAIL_TRANSPORT } from '../notifications/email/mail-transport';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
@@ -67,7 +66,6 @@ import { InstallWizardLockGuard } from './install-wizard-lock.guard';
     InstallLoginProviderService,
     InstallSmtpService,
     InstallSeedService,
-    PrincipalContextInvalidator,
     {
       provide: InstallAddonsService,
       useFactory: (

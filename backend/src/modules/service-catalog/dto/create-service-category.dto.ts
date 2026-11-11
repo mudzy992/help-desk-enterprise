@@ -6,11 +6,10 @@ import {
   Min,
   MinLength,
   ValidateIf,
-} from "class-validator";
-import { serviceCatalogConstants } from "../service-catalog.constants";
-import { CatalogMutationReasonDto } from "./catalog-mutation-reason.dto";
+} from 'class-validator';
+import { serviceCatalogConstants } from '../service-catalog.constants';
 
-export class CreateServiceCategoryDto extends CatalogMutationReasonDto {
+export class CreateServiceCategoryDto {
   @IsString()
   @MinLength(1)
   @MaxLength(serviceCatalogConstants.maximumNameLength)

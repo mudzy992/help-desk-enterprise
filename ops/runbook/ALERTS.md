@@ -46,10 +46,6 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `auth.captchaFailed.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [captcha-failed](#captcha-failed) |
 | `auth.captchaSkipped.high` | UPOZORENJE / KRITIČNO | 2 / 2 | [captcha-skipped](#captcha-skipped) |
 | `security.auditWebhook.stalled` | UPOZORENJE / KRITIČNO | 2 / 2 | [audit-webhook-stalled](#audit-webhook-stalled) |
-| `asset.import.stuck` | UPOZORENJE | 2 / 2 | [asset-import-stuck](#asset-import-stuck) |
-| `asset.reminders.deliveryBacklog` | UPOZORENJE | 2 / 2 | [asset-reminder-delivery](#asset-reminder-delivery) |
-| `asset.transferFiles.integrity` | UPOZORENJE | 2 / 2 | [asset-transfer-files](#asset-transfer-files) |
-| `asset.audit.writeFailures` | UPOZORENJE / KRITIČNO | 2 / 2 | [asset-audit-failure](#asset-audit-failure) |
 
 ---
 
@@ -363,50 +359,6 @@ briše i alarm se zatvara.
    su fiksni i ne postoje u postavkama.
 
 ---
-
-## asset-import-stuck
-
-**Uslov:** najmanje jedan `AssetImportJob` je i dalje u stanju `APPLYING`, a apply lease je istekao prije više od 10 minuta. Alarm otvara se nakon dvije uzastopne provjere i zatvara nakon dvije čiste provjere. Metrika ne uključuje naziv fajla, korisnika ni identifikatore poslova.
-
-**Postupak:**
-1. U Administracija → Imovina → Uvozi pregledaj posao i checkpoint/greške. Ne uređuj red ili cursor direktno u bazi.
-2. Provjeri logove backenda oko `asset_import_apply`; potvrdi da nema aktivnog workera koji još obrađuje isti run-token.
-3. Ako se posao može nastaviti, koristi **Nastavi**. Ako je nepopravljiv, koristi **Odbaci** prema proceduri aplikacije; čuvaj audit trag.
-4. Metrika za `APPLYING` ne zamjenjuje provjere zakazanih poslova iz `scheduler.late` i ne dokazuje da je import scheduler registrovan.
-
-## asset-reminder-delivery
-
-**Uslov:** najmanje jedan podsjetnik je `FAILED` ili je ostao `CLAIMED` duže od 10 minuta. Alarm otvara se nakon dvije uzastopne provjere, a zaustavljeni claim se broji kao zastario. Brojač ne sadrži adresu primaoca.
-
-**Postupak:**
-1. Provjeri status SMTP/provajdera i logove workera `asset_reminder`; ispravi konfiguraciju ili dostupnost provajdera.
-2. Potvrdi da worker i raspored podsjetnika rade. `scheduler.late` ostaje izvor istine za registraciju i zadnji uspjeh schedulera — ovaj alarm ne duplicira tu provjeru.
-3. Dozvoli ugrađenom retry/scheduler toku da obradi neuspjele zapise. Ne resetuj `updatedAt` ili status ručno radi uklanjanja alarma.
-
-## asset-transfer-files
-
-**Uslov:** zahtjev za purge čeka duže od 30 minuta, ili potpuni read-only scan nađe nepovezanu datoteku odnosno nedostajuću referenciranu datoteku. Alarm se otvara nakon dvije uzastopne provjere. Skeniranje je ograničeno na `assets/transfers`, najviše 20.000 referenci i 20.000 stavki, uz dubinu ograničenu u skeneru; radi svakih 15 minuta.
-
-Ako je scan `limited` ili `unavailable`, orphan/missing rezultat je **nepoznat**, ne nula. U tom slučaju se file-integrity alert ne otvara na osnovu nepotpunog poređenja; stale purge broj i dalje se može prikazati/alertovati. Kartica prikazuje ukupan broj zahtjeva, koliko ih je starije od praga i starost najstarijeg čekajućeg zahtjeva. Skeniranje ne prati symlinkove i nikad ništa ne briše.
-
-**Postupak:**
-1. Provjeri worker logove i `privacy-15min` raspored/retention retry; purge helper obrađuje najviše 100 zahtjeva po pokušaju.
-2. Za stare purge zahtjeve provjeri mount/volumen, dozvole i `resolveContainedStoragePath` greške. Ispravi uzrok i pusti bounded retry da nastavi.
-3. Za nepovezanu datoteku potvrdi da je putanja zaista u `assets/transfers`, napravi backup i uskladi je s poslovnim/audit zapisom prije ručne karantine ili uklanjanja kroz odobrenu proceduru. Za nedostajuću datoteku provjeri backup/restore prije zaključka da je trajno izgubljena.
-4. Ne briši datoteke automatski i ne širi ovaj scan na ticket attachments ili druge upload foldere.
-
-## asset-audit-failure
-
-**Uslov:** broj neuspjelih asset audit upisa u prethodnih 60 kompletnih minuta je veći od nule (UPOZORENJE), odnosno najmanje 5 (KRITIČNO). Dvije uzastopne provjere otvaraju alarm. Ako Redis nije dostupan, broj je nepoznat, ne nula; tada se koristi `redis.unavailable`.
-
-**Posljedica:** `withAssetAuditTransaction` vraća rollback za poslovnu izmjenu kada audit upis ne uspije. Neke best-effort audit putanje bilježe grešku i nastavljaju rezultat poslovne operacije; provjeri konkretan log prije procjene uticaja.
-
-**Postupak:**
-1. Pregledaj backend logove `asset_audit_write_failed`, `asset_import_audit_failed` i `asset_directory_sync_audit_failed`; provjeri dostupnost baze, validaciju akcije/audit payloada i redis konekciju.
-2. Utvrdi da li je poslovna transakcija odbijena ili je best-effort audit ostao bez zapisa. Uporedi kroz audit/business evidenciju, bez logovanja osjetljivog payload-a.
-3. Ispravi uzrok, zatim ponovi samo operaciju kroz podržani tok aplikacije. Ne isključuj audit i ne ponavljaj slijepo mutaciju.
-
-Kartica **Operativne metrike imovine** prikazuje i directory-sync overlap odbijanja te prealokaciju licenci/mjesta. To su informativne metrike, ne alarmi: busy lease može biti bezazlen konkurentni pokušaj, a prealokacija je dozvoljena poslovna situacija koju treba pregledati.
 
 ## ops-monitor-stale
 

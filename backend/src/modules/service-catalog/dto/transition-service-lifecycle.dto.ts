@@ -1,8 +1,7 @@
-import { IsEnum } from "class-validator";
-import { ServiceLifecycle } from "../../../generated/prisma/enums";
-import { CatalogMutationReasonDto } from "./catalog-mutation-reason.dto";
+import { IsEnum } from 'class-validator';
+import { ServiceLifecycle } from '../../../generated/prisma/enums';
 
-export class TransitionServiceLifecycleDto extends CatalogMutationReasonDto {
+export class TransitionServiceLifecycleDto {
   @IsEnum(ServiceLifecycle)
   lifecycle!: ServiceLifecycle;
 }

@@ -124,22 +124,6 @@ export function createInMemoryTicketsPrisma() {
     // like Prisma does for the one-to-one relation.
     csat: (ticket) =>
       [...csatSubmissions.values()].filter((row) => row.ticketId === ticket.id),
-    assignedGroup: (ticket) => {
-      const groupId = tickets.get(ticket.id)?.assignedGroupId;
-      if (groupId === undefined || groupId === null) {
-        return [];
-      }
-      return [groups.get(groupId) ?? { id: groupId }];
-    },
-    members: (group) =>
-      [...members.values()].filter((row) => row.groupId === group.id),
-    group: (grant) => {
-      const groupId = confidentialGrants.get(grant.id)?.groupId;
-      if (groupId === undefined || groupId === null) {
-        return [];
-      }
-      return [groups.get(groupId) ?? { id: groupId }];
-    },
   };
 
   const prisma = {
@@ -170,12 +154,7 @@ export function createInMemoryTicketsPrisma() {
         return created;
       },
     },
-    formVersion: createInMemoryFormVersionDelegate(
-      formVersions,
-      nextId,
-      now,
-      (formVersionId) => [...tickets.values()].filter((ticket) => ticket.formVersionId === formVersionId).length,
-    ),
+    formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
     priorityMatrixRule: {
       findUnique: async () => null,
     },
@@ -248,19 +227,8 @@ export function createInMemoryTicketsPrisma() {
       () => nextPrefixedId('audit'),
       now,
     ),
-    // Keep this tagged INSERT on the transaction client only. Response serializers
-    // detect root `$queryRaw` to select the real-Prisma joined-read path.
-    $transaction: async (callback: (client: unknown) => Promise<unknown>) => {
-      const transaction = {
-        ...prisma,
-        $queryRaw: async (strings: TemplateStringsArray, ...values: unknown[]) => {
-          const sql = strings.join('?');
-          if (!sql.includes('INSERT INTO "OutboxMessage"')) return [];
-          return typeof values[0] === 'string' ? [{ id: values[0] }] : [];
-        },
-      };
-      return callback(transaction);
-    },
+    $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
+      callback(prisma),
   };
 
   return {

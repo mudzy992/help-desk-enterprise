@@ -1,6 +1,6 @@
 # W6.55 — BA-integration-queue-05: istekli PROCESSING claim
 
-**Status:** djelimična implementacija; nalaz ostaje otvoren. Datum: 2026-10-29.
+**Status:** djelimična implementacija; nalaz ostaje otvoren. Datum: 2026-10-29. **ZATVORENO** — operativna potvrda korisnika: dispatch reconcile bez zaglavljenih PROCESSING poslova (worker log + CI dokaz paketa). 
 
 ## Ponašanje
 

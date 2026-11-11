@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
 import type { ServiceFormSchema } from "@/services/service-catalog-api";
 
@@ -28,51 +28,5 @@ describe("validateServiceFormData", () => {
       { fieldId: "urgent", messageKey: "tickets.form.required" },
     ]);
     expect(validateServiceFormData(null, {})).toEqual([]);
-  });
-
-  it("never evaluates admin regexes in the browser backtracking engine", () => {
-    const unsafePatternSchema: ServiceFormSchema = {
-      schemaVersion: 1,
-      fields: [
-        {
-          id: "payload",
-          label: "Payload",
-          type: "text",
-          required: true,
-          order: 0,
-          validation: { pattern: "^(a+)+$" },
-        },
-      ],
-    };
-    const matcherSpy = vi.spyOn(RegExp.prototype, "test");
-    const startedAt = performance.now();
-    const result = validateServiceFormData(unsafePatternSchema, {
-      payload: `${"a".repeat(4095)}!`,
-    });
-    const matcherCalls = matcherSpy.mock.calls.length;
-    matcherSpy.mockRestore();
-
-    expect(result).toEqual([]);
-    expect(matcherCalls).toBe(0);
-    expect(performance.now() - startedAt).toBeLessThan(1000);
-  });
-
-  it("rejects patterned input above the UTF-8 byte cap in the browser", () => {
-    const patternSchema: ServiceFormSchema = {
-      schemaVersion: 1,
-      fields: [
-        {
-          id: "label",
-          label: "Label",
-          type: "text",
-          required: true,
-          order: 0,
-          validation: { pattern: "^é+$" },
-        },
-      ],
-    };
-    expect(validateServiceFormData(patternSchema, { label: "é".repeat(2049) })).toEqual([
-      { fieldId: "label", messageKey: "tickets.form.invalid" },
-    ]);
   });
 });

@@ -1,6 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
-import { computeCatalogStateHash } from './catalog-state-hash';
 import {
   mergeSettingRecords,
   routingConfigurationFromSettings,
@@ -57,35 +56,11 @@ export async function collectConfigSnapshot(
         tags: true,
         isActive: true,
         deletedAt: true,
-        services: { select: { serviceId: true } },
-        categories: { select: { categoryId: true } },
-        groups: { select: { groupId: true } },
       },
       orderBy: { id: 'asc' },
     }),
     prisma.playbook.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        isActive: true,
-        version: true,
-        deletedAt: true,
-        services: { select: { serviceId: true } },
-        categories: { select: { categoryId: true } },
-        steps: {
-          select: {
-            stepKey: true,
-            position: true,
-            title: true,
-            instructions: true,
-            required: true,
-            knowledgeArticleId: true,
-            responseTemplateId: true,
-          },
-          orderBy: [{ position: 'asc' }, { stepKey: 'asc' }],
-        },
-      },
+      select: { id: true, name: true, description: true, isActive: true, deletedAt: true },
       orderBy: { id: 'asc' },
     }),
   ]);
@@ -94,7 +69,6 @@ export async function collectConfigSnapshot(
     capturedAt,
     scopes,
     rollbackOfVersion: null,
-    catalogStateHash: computeCatalogStateHash(services, forms),
     settings,
     routing: {
       rules: rules.map((rule) => ({
@@ -162,40 +136,12 @@ export async function collectConfigSnapshot(
     },
     templates: {
       responseTemplates: responseTemplates.map((template) => ({
-        id: template.id,
-        name: template.name,
-        bodyBs: template.bodyBs,
-        bodyEn: template.bodyEn,
-        kind: template.kind,
-        tags: template.tags,
-        isActive: template.isActive,
+        ...template,
         deletedAt: template.deletedAt?.toISOString() ?? null,
-        scope: {
-          serviceIds: template.services.map(({ serviceId }) => serviceId).sort(),
-          categoryIds: template.categories.map(({ categoryId }) => categoryId).sort(),
-          groupIds: template.groups.map(({ groupId }) => groupId).sort(),
-        },
       })),
       playbooks: playbooks.map((playbook) => ({
-        id: playbook.id,
-        name: playbook.name,
-        description: playbook.description,
-        isActive: playbook.isActive,
-        version: playbook.version,
+        ...playbook,
         deletedAt: playbook.deletedAt?.toISOString() ?? null,
-        scope: {
-          serviceIds: playbook.services.map(({ serviceId }) => serviceId).sort(),
-          categoryIds: playbook.categories.map(({ categoryId }) => categoryId).sort(),
-        },
-        steps: playbook.steps.map((step) => ({
-          stepKey: step.stepKey,
-          position: step.position,
-          title: step.title,
-          instructions: step.instructions,
-          required: step.required,
-          knowledgeArticleId: step.knowledgeArticleId,
-          responseTemplateId: step.responseTemplateId,
-        })),
       })),
     },
   };

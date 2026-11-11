@@ -1,6 +1,5 @@
 import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import type { PrincipalBatchInvalidationHook } from '../../common/principal-context/principal-context.types';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { JsonValue } from '../change-log/change-log.types';
@@ -31,7 +30,6 @@ export async function updateOrganizationalUnit(
   organizationalUnitId: string,
   input: UpdateOrganizationalUnitInput,
   context: OrganizationalUnitAuditContext = { actorUserId: null, requestId: null },
-  invalidatePrincipals: PrincipalBatchInvalidationHook = async () => undefined,
 ): Promise<OrganizationalUnitDetailResponse> {
   const current = await loadOrganizationalUnit(prisma, organizationalUnitId);
   const name = input.name === undefined ? current.name : normalizeOrganizationalUnitName(input.name);
@@ -104,10 +102,6 @@ export async function updateOrganizationalUnit(
     .filter((field) => nextUnit[field] !== beforeUnit[field]);
   const before = Object.fromEntries(changedFields.map((field) => [field, beforeUnit[field]])) as JsonValue;
   const after = Object.fromEntries(changedFields.map((field) => [field, nextUnit[field]])) as JsonValue;
-  const changedScopeUnitIds = nextUnit.ouPath === current.ouPath
-    ? []
-    : [organizationalUnitId, ...descendants.map((descendant) => descendant.id)];
-  let affectedUserIds: readonly string[] = [];
 
   try {
     await prisma.$transaction(async (transaction) => {
@@ -139,25 +133,10 @@ export async function updateOrganizationalUnit(
           },
         },
       );
-      if (changedScopeUnitIds.length > 0) {
-        const holders = await transaction.userRole.findMany({
-          where: { organizationalUnitId: { in: changedScopeUnitIds } },
-          select: { userId: true },
-          distinct: ['userId'],
-        });
-        affectedUserIds = [...new Set(holders.map((holder) => holder.userId))].sort();
-      }
     });
   } catch (error) {
     throwIfUniqueConstraintViolated(error);
     throw error;
-  }
-  if (affectedUserIds.length > 0) {
-    try {
-      await invalidatePrincipals(affectedUserIds);
-    } catch {
-      // The OU write is committed; cache invalidation remains best effort.
-    }
   }
   invalidateOrganizationalUnitScopeCache();
   return getOrganizationalUnit(prisma, organizationalUnitId);

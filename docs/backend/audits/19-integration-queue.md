@@ -136,14 +136,14 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 | BA-integration-queue-02 | P1    | Processor nema conditional lease claim pa dupli Bull poslovi paralelno dispatchuju        | zatvoreno |
 | BA-integration-queue-03 | P1    | EDGE_EVENT bez primaoca ne smije biti COMPLETED; ishod je best-effort ili durable delivery                 | zatvoreno |
 | BA-integration-queue-04 | P1    | Scoped ADMIN može čitati globalne sirove email/Edge/Teams payloadove                       | zatvoreno |
-| BA-integration-queue-05 | P2    | PROCESSING nema lease/stale recovery i može ostati zauvijek                               | otvoreno |
-| BA-integration-queue-06 | P2    | SMTP/Teams send-before-final-state crash može duplirati provider isporuku                  | otvoreno |
-| BA-integration-queue-07 | P2    | Payload parseri nemaju veličinske/dubinske resource granice                               | otvoreno |
+| BA-integration-queue-05 | P2    | PROCESSING nema lease/stale recovery i može ostati zauvijek                               | zatvoreno |
+| BA-integration-queue-06 | P2    | SMTP/Teams send-before-final-state crash može duplirati provider isporuku                  | zatvoreno |
+| BA-integration-queue-07 | P2    | Payload parseri nemaju veličinske/dubinske resource granice                               | zatvoreno |
 | BA-integration-queue-08 | P2    | COMPLETED i drugi nedovršeni statusi nemaju retention/redaction lifecycle                 | zatvoreno |
-| BA-integration-queue-09 | P2    | DLQ retention je neograničen `deleteMany` bez batcha                                      | otvoreno |
-| BA-integration-queue-10 | P2    | Heartbeat može biti active dok glavni processing/delivery put ne radi                     | otvoreno |
-| BA-integration-queue-11 | P2    | Admin retry nije auditiran i briše attempts/error forenzički trag                         | otvoreno |
-| BA-integration-queue-12 | P2    | Runtime queue/type disable nema paused/cancelled semantiku i troši pokušaje               | otvoreno |
+| BA-integration-queue-09 | P2    | DLQ retention je neograničen `deleteMany` bez batcha                                      | zatvoreno |
+| BA-integration-queue-10 | P2    | Heartbeat može biti active dok glavni processing/delivery put ne radi                     | zatvoreno |
+| BA-integration-queue-11 | P2    | Admin retry nije auditiran i briše attempts/error forenzički trag                         | zatvoreno |
+| BA-integration-queue-12 | P2    | Runtime queue/type disable nema paused/cancelled semantiku i troši pokušaje               | zatvoreno |
 | BA-integration-queue-13 | P3    | Raw error message nema stabilan code/redaction ugovor                                     | otvoreno |
 | BA-integration-queue-14 | P3    | Teams skipped/gone/nonretryable završava kao generički COMPLETED                          | otvoreno |
 | BA-integration-queue-15 | P3    | Kritični DB/processor/crash testovi su compile-blocked i E2E je statusno slab             | otvoreno |

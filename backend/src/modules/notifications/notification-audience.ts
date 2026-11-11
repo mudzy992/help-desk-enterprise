@@ -1,12 +1,9 @@
 import type { Prisma } from '../../generated/prisma/client';
 import {
-  loadActorGroupMembershipsAuthoritatively,
+  loadActorGroupMemberships,
   type ActorGroupMembership,
 } from '../../common/cache/scope-catalog-cache';
-
-type NotificationAudienceClient = {
-  readonly groupMember?: Prisma.TransactionClient['groupMember'];
-};
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
  * Option A (F2.3, 2026-09-24): who sees which notification.
@@ -17,40 +14,21 @@ type NotificationAudienceClient = {
  *     in `excludedUserIds` — read state is a `NotificationReceipt (notificationId, me)`.
  *
  * The join-time rule matters: without it a new agent would inherit the whole retained
- * history of the group as unread. Membership is read directly from the database for
- * every notification audience check: the 30-second process cache cannot be an
- * authorization source after revocation, especially across multiple app instances.
+ * history of the group as unread. The memberships come from the per-process catalogue
+ * cache (`scope-catalog-cache.ts`, 30 s), so the audience costs no extra query on a
+ * warm path.
  *
  * With no group memberships every `where` below collapses to the pre-Option-A shape
  * (`{ userId }`), so personal-only users run exactly the queries they ran before.
  */
 export async function loadNotificationAudience(
-  prisma: NotificationAudienceClient,
+  prisma: PrismaService,
   userId: string,
 ): Promise<readonly ActorGroupMembership[]> {
-  if (typeof prisma.groupMember?.findMany !== 'function') {
+  if (typeof (prisma as { groupMember?: { findMany?: unknown } }).groupMember?.findMany !== 'function') {
     return [];
   }
-  return loadActorGroupMembershipsAuthoritatively(
-    prisma as Pick<Prisma.TransactionClient, 'groupMember'>,
-    userId,
-  );
-}
-
-/** Stable cache identity for a user's exact group-membership snapshot. */
-export function notificationAudienceFingerprint(
-  memberships: readonly ActorGroupMembership[],
-): string {
-  const entries = memberships
-    .map((membership) => ({
-      groupId: membership.groupId,
-      membershipId: membership.membershipId,
-      joinedAt: membership.joinedAt.getTime(),
-    }))
-    .sort((left, right) =>
-      left.groupId < right.groupId ? -1 : left.groupId > right.groupId ? 1 : 0,
-    );
-  return JSON.stringify(entries);
+  return loadActorGroupMemberships(prisma, userId);
 }
 
 function groupConditions(

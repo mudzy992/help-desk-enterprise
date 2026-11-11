@@ -365,7 +365,6 @@ export const settingKeys = {
   privateInboundProcessedFolder: 'private.inbound.processedFolder',
   privateInboundRejectedFolder: 'private.inbound.rejectedFolder',
   privateInboundRequireAuthPass: 'private.inbound.requireAuthPass',
-  privateInboundTrustedAuthservId: 'private.inbound.trustedAuthservId',
   privateInboundCreateTickets: 'private.inbound.createTickets',
   privateInboundDefaultServiceId: 'private.inbound.defaultServiceId',
   privateInboundRawRetentionDays: 'private.inbound.rawRetentionDays',

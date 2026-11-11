@@ -60,24 +60,11 @@ describe('service onboarding workflow', () => {
 
   it('saves and completes the service step then advances to FORM', async () => {
     const { harness, created } = await startWizard();
-    const saved = await harness.steps.saveServiceStep(
-      created.serviceId,
-      { name: 'VPN Access' },
-      '"v1"',
-    );
+    const saved = await harness.steps.saveServiceStep(created.serviceId, {
+      name: 'VPN Access',
+    });
     expect(saved.serviceLifecycle).toBe('DRAFT');
-    const updatedService = await harness.catalog.getById(created.serviceId);
-    expect(updatedService.revision).toBe(2);
-    await expect(
-      harness.steps.saveServiceStep(
-        created.serviceId,
-        { name: 'Stale name' },
-        '"v1"',
-      ),
-    ).rejects.toMatchObject({ httpStatus: 412 });
-    const completed = await harness.steps.completeServiceStep(
-      created.serviceId,
-    );
+    const completed = await harness.steps.completeServiceStep(created.serviceId);
     expect(completed.completedSteps).toEqual(['SERVICE']);
     expect(completed.currentStep).toBe('FORM');
     expect(completed.serviceLifecycle).toBe('DRAFT');
@@ -86,11 +73,7 @@ describe('service onboarding workflow', () => {
   it('associates an exact formVersionRef and keeps DRAFT form incomplete', async () => {
     const { harness, created } = await startWizard();
     await harness.steps.completeServiceStep(created.serviceId);
-    const draft = await seedActiveForm(
-      harness.memory,
-      created.serviceId,
-      'DRAFT',
-    );
+    const draft = await seedActiveForm(harness.memory, created.serviceId, 'DRAFT');
     const saved = await harness.steps.saveFormStep(created.serviceId, {
       formVersionRef: draft.id,
     });

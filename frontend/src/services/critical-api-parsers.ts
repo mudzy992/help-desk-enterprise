@@ -1,7 +1,6 @@
 import {
   array,
   boolean,
-  invalidApiResponse,
   nonEmptyString,
   nullableString,
   number,
@@ -18,11 +17,7 @@ import type {
 import type { CurrentSessionResponse } from "@/services/session-api";
 import type { InstallSetupStatus } from "@/services/install-api";
 import type { RoutingCoverageItem, RoutingCoveragePage } from "@/services/routing-api";
-import type { ServiceListPage, ServiceResponse } from "@/services/service-catalog-api";
-import type {
-  ServiceCategoryListPage,
-  ServiceCategoryResponse,
-} from "@/services/service-categories-api";
+import type { ServiceResponse } from "@/services/service-catalog-api";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 import type { TicketPage, TicketResponse } from "@/services/tickets-api";
 import type { UserSummary } from "@/services/users-api";
@@ -93,10 +88,6 @@ function service(value: unknown, context: string): ServiceResponse {
   const item = record(value, context);
   for (const key of ["id", "name", "slug", "categoryId", "lifecycle", "availability"])
     nonEmptyString(item[key], `${context}.${key}`);
-  const revision = number(item.revision, `${context}.revision`);
-  if (!Number.isSafeInteger(revision) || revision < 1) {
-    invalidApiResponse(`${context}.revision must be a positive integer`);
-  }
   boolean(item.offeredToRequesters, `${context}.offeredToRequesters`);
   number(item.openTicketCount, `${context}.openTicketCount`);
   const runtime = record(item.runtimeAvailability, `${context}.runtimeAvailability`);
@@ -116,64 +107,8 @@ function service(value: unknown, context: string): ServiceResponse {
   return item as ServiceResponse;
 }
 
-export function parseServiceResponse(value: unknown): ServiceResponse {
-  return service(value, "service");
-}
-
 export function parseServiceCatalog(value: unknown): readonly ServiceResponse[] {
   return objectArray(value, "services", service);
-}
-
-function serviceCategory(value: unknown, context: string): ServiceCategoryResponse {
-  const item = record(value, context);
-  for (const key of ["id", "name", "slug", "createdAt", "updatedAt"]) {
-    nonEmptyString(item[key], `${context}.${key}`);
-  }
-  const revision = number(item.revision, `${context}.revision`);
-  if (!Number.isSafeInteger(revision) || revision < 1) {
-    invalidApiResponse(`${context}.revision must be a positive integer`);
-  }
-  number(item.sortOrder, `${context}.sortOrder`);
-  nullableString(item.parentId, `${context}.parentId`);
-  return item as ServiceCategoryResponse;
-}
-
-export function parseServiceCategoryResponse(value: unknown): ServiceCategoryResponse {
-  return serviceCategory(value, "service category");
-}
-
-export function parseServiceCategoryListPage(value: unknown): ServiceCategoryListPage {
-  const page = record(value, "service category page");
-  const items = objectArray(page.items, "service category page.items", serviceCategory);
-  const total = number(page.total, "service category page.total");
-  const take = number(page.take, "service category page.take");
-  const cursor = nullableString(page.cursor, "service category page.cursor");
-  const nextCursor = nullableString(page.nextCursor, "service category page.nextCursor");
-  const hasMore = boolean(page.hasMore, "service category page.hasMore");
-  if (total < 0 || take < 1 || take > 100 || items.length > take) {
-    invalidApiResponse("service category page metadata is outside its resource bounds");
-  }
-  if (hasMore !== (nextCursor !== null)) {
-    invalidApiResponse("service category page hasMore and nextCursor are inconsistent");
-  }
-  return { items, total, take, cursor, nextCursor, hasMore };
-}
-
-export function parseServiceCatalogPage(value: unknown): ServiceListPage {
-  const page = record(value, "service catalog page");
-  const items = objectArray(page.items, "service catalog page.items", service);
-  const total = number(page.total, "service catalog page.total");
-  const take = number(page.take, "service catalog page.take");
-  const cursor = nullableString(page.cursor, "service catalog page.cursor");
-  const nextCursor = nullableString(page.nextCursor, "service catalog page.nextCursor");
-  const hasMore = boolean(page.hasMore, "service catalog page.hasMore");
-  if (total < 0 || take < 1 || take > 100 || items.length > take) {
-    invalidApiResponse("service catalog page metadata is outside its resource bounds");
-  }
-  if (hasMore !== (nextCursor !== null)) {
-    invalidApiResponse("service catalog page hasMore and nextCursor are inconsistent");
-  }
-  return { items, total, take, cursor, nextCursor, hasMore };
 }
 
 function setting(value: unknown, context: string): SettingRegistryEntry {

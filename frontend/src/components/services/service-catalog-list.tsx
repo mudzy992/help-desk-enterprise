@@ -20,12 +20,6 @@ import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogListProperties {
   readonly rows: readonly ServiceCatalogRow[];
-  readonly totalCount: number;
-  readonly hasMore: boolean;
-  readonly isFetchingNextPage: boolean;
-  readonly reachedClientLimit: boolean;
-  readonly isFilterPending: boolean;
-  readonly onLoadMore: () => void;
   readonly categories: readonly ServiceCategoryResponse[];
   readonly onboardings: readonly VisibleServiceOnboarding[];
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
@@ -44,12 +38,6 @@ interface ServiceCatalogListProperties {
 
 export function ServiceCatalogList({
   rows,
-  totalCount,
-  hasMore,
-  isFetchingNextPage,
-  reachedClientLimit,
-  isFilterPending,
-  onLoadMore,
   categories,
   onboardings,
   coverageByServiceId,
@@ -104,8 +92,6 @@ export function ServiceCatalogList({
   );
   const hasActiveFilters =
     query.trim().length > 0 || categoryId !== null || lifecycle !== "ALL" || originUnitId !== null;
-  const showCategoryCounts =
-    !hasActiveFilters && !hasMore && !reachedClientLimit && rows.length === totalCount;
   const numberFormat = numberFormatter(i18n.language, { maximumFractionDigits: 0 });
 
   useEffect(() => {
@@ -137,8 +123,6 @@ export function ServiceCatalogList({
       <ServiceCatalogFilterBar
         categories={categories}
         rows={rows}
-        totalCount={totalCount}
-        showCategoryCounts={showCategoryCounts}
         activeCategoryId={categoryId}
         query={query}
         lifecycle={lifecycle}
@@ -150,7 +134,7 @@ export function ServiceCatalogList({
         hasActiveFilters={hasActiveFilters}
         resultCount={t("services.resultsCount", {
           visible: numberFormat.format(visibleRows.length),
-          total: numberFormat.format(totalCount),
+          total: numberFormat.format(rows.length),
         })}
         onCategoryChange={(value) => patchFilters({ categoryId: value })}
         onQueryChange={(value) => patchFilters({ query: value })}
@@ -191,27 +175,6 @@ export function ServiceCatalogList({
           onManageLifecycle={onManageLifecycle}
         />
       )}
-      {hasMore && !isFilterPending ? (
-        <div className="mt-4 flex justify-center">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onLoadMore}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? t("services.loadingMore") : t("services.loadMore")}
-          </Button>
-        </div>
-      ) : null}
-      {reachedClientLimit && !isFilterPending ? (
-        <p className="mt-3 text-center text-[11.5px] text-muted-foreground" role="status">
-          {t("services.catalogClientLimit", {
-            shown: numberFormat.format(rows.length),
-            total: numberFormat.format(totalCount),
-          })}
-        </p>
-      ) : null}
     </div>
   );
 }

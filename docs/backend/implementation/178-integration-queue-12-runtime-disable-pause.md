@@ -1,6 +1,6 @@
 # BA-integration-queue-12: runtime disable kao pauza bez trošenja pokušaja
 
-Status: **otvoreno**. Korisnik je odabrao semantiku pauze prije claima, bez migracije i bez novog statusa: dok je red ili tip runtime-isključen, zakazani posao se ne claimuje, ne troši pokušaj i zadržava svoj retry raspored, a nastavak je automatski kada se tip ponovo uključi. Automatski CI `42778755942` i Perf smoke `42778755875` za commit `f44bbf6` prošli su uspješno, uključujući generated Prisma Client i stvarne PostgreSQL integration suiteove (prvi CI pokušaj `42777903187` pao je samo jer je BA-03 edge fixture vraćao nepotpune postavke, što je test-only ispravka `f44bbf6` riješila).
+Status: **otvoreno**. Korisnik je odabrao semantiku pauze prije claima, bez migracije i bez novog statusa: dok je red ili tip runtime-isključen, zakazani posao se ne claimuje, ne troši pokušaj i zadržava svoj retry raspored, a nastavak je automatski kada se tip ponovo uključi. Automatski CI `42778755942` i Perf smoke `42778755875` za commit `f44bbf6` prošli su uspješno, uključujući generated Prisma Client i stvarne PostgreSQL integration suiteove (prvi CI pokušaj `42777903187` pao je samo jer je BA-03 edge fixture vraćao nepotpune postavke, što je test-only ispravka `f44bbf6` riješila). **ZATVORENO** — operativna potvrda korisnika: gašenje queue.enabled pauzira bez trošenja pokušaja (adminUi se po dizajnu gasi s njim), nastavak automatski po uključenju. 
 
 ## Prethodno ponašanje
 

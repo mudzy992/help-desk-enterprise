@@ -1,5 +1,4 @@
 import { perfConfig, fullThresholds, scenarioVus } from './config.js';
-import { buildScenarioLoadShape } from './lib/load-shape.js';
 import {
   setup as setupSession,
   browserDashboard as runBrowserDashboard,
@@ -27,13 +26,22 @@ const vus = scenarioVus(perfConfig);
  * real users logging in over minutes never do. Unset = old constant-vus shape.
  */
 function loadShape(exec, target, behaviour) {
-  return buildScenarioLoadShape({
+  const rampUp = __ENV.RAMP_UP;
+  const tags = { behaviour };
+  if (!rampUp) {
+    return { executor: 'constant-vus', exec, vus: target, duration: perfConfig.load.duration, tags };
+  }
+  return {
+    executor: 'ramping-vus',
     exec,
-    vus: target,
-    duration: perfConfig.load.duration,
-    behaviour,
-    rampUp: __ENV.RAMP_UP,
-  });
+    startVUs: 0,
+    stages: [
+      { duration: rampUp, target },
+      { duration: perfConfig.load.duration, target },
+    ],
+    gracefulRampDown: '30s',
+    tags,
+  };
 }
 
 export const options = {

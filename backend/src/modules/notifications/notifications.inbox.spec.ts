@@ -1,8 +1,5 @@
-import { runWithRequestId } from '../../common/request-context/request-context.storage';
-import { loadActorGroupMemberships } from '../../common/cache/scope-catalog-cache';
-import { countUnreadNotifications } from './count-unread-notifications';
 import { fanOutInAppNotifications } from './fan-out/fan-out-in-app-notifications';
-import { notificationMarkAllLimits, notificationTypes } from './notifications.constants';
+import { notificationTypes } from './notifications.constants';
 import { listNotifications } from './list-notifications';
 import { markAllNotificationsRead } from './mark-all-notifications-read';
 import { markNotificationRead } from './mark-notification-read';
@@ -12,13 +9,6 @@ import {
 } from '../tickets/create-tickets-service-harness';
 import { toTicketRealtimePayload } from '../tickets/to-collaboration-response';
 import { vpnCreateInput } from '../tickets/vpn-create-input';
-import { defaultNotificationPreferencePolicy } from './preferences/notification-preference-policy';
-
-const noUserPreferencePolicy = {
-  ...defaultNotificationPreferencePolicy,
-  preferencesEnabled: false,
-  quietHoursEnabled: false,
-};
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -156,222 +146,6 @@ describe('in-app notification isolation', () => {
     expect(after.items).toEqual([]);
     expect(after.unreadCount).toBe(0);
   });
-
-  it('leaves post-cutoff notifications unread and returns the fresh unread count', async () => {
-    const harness = await routedWithGroupMember();
-    const memberId = ticketsTestIds.agentIt;
-    const cutoff = new Date(Date.now() + 10_000);
-    const beforeCutoffId = 'notification-before-mark-all-cutoff';
-    const duringUpdateId = 'notification-created-before-personal-update';
-    const betweenStepsId = 'notification-created-between-mark-all-steps';
-    harness.memory.notifications.set(beforeCutoffId, {
-      id: beforeCutoffId,
-      userId: memberId,
-      groupId: null,
-      excludedUserIds: [],
-      type: 'TICKET_CREATED',
-      title: 'Old notification',
-      body: null,
-      isRead: false,
-      readAt: null,
-      ticketId: null,
-      payload: {},
-      dedupeKey: beforeCutoffId,
-      createdAt: new Date(cutoff.getTime() - 1_000),
-    } as never);
-
-    const insertPersonalNotification = (id: string, createdAt: Date) =>
-      harness.memory.notifications.set(id, {
-        id,
-        userId: memberId,
-        groupId: null,
-        excludedUserIds: [],
-        type: 'TICKET_CREATED',
-        title: id,
-        body: null,
-        isRead: false,
-        readAt: null,
-        ticketId: null,
-        payload: {},
-        dedupeKey: id,
-        createdAt,
-      } as never);
-    const groupMemberDelegate = harness.memory.prisma.groupMember as unknown as {
-      findMany: (input: unknown) => Promise<unknown[]>;
-    };
-    const originalFindMany = groupMemberDelegate.findMany;
-    let insertedBeforeUpdate = false;
-    groupMemberDelegate.findMany = async (input) => {
-      const memberships = await originalFindMany(input);
-      if (!insertedBeforeUpdate) {
-        insertedBeforeUpdate = true;
-        insertPersonalNotification(duringUpdateId, new Date(cutoff.getTime() + 1));
-      }
-      return memberships;
-    };
-
-    const notificationDelegate = harness.memory.prisma.notification as unknown as {
-      updateMany: (input: {
-        where: { createdAt?: { lte?: Date } };
-        data: { isRead: boolean; readAt: Date };
-      }) => Promise<{ count: number }>;
-    };
-    const originalUpdateMany = notificationDelegate.updateMany;
-    let observedCutoff: Date | undefined;
-    notificationDelegate.updateMany = async (input) => {
-      observedCutoff = input.where.createdAt?.lte;
-      const result = await originalUpdateMany(input as never);
-      insertPersonalNotification(betweenStepsId, new Date(cutoff.getTime() + 2));
-      return result;
-    };
-    const transaction = jest.spyOn(harness.memory.prisma, '$transaction');
-
-    try {
-      await expect(
-        markAllNotificationsRead(harness.memory.prisma as never, memberId, () => cutoff),
-      ).resolves.toEqual({ unreadCount: 2 });
-      expect(observedCutoff).toEqual(cutoff);
-      expect(harness.memory.notifications.get(beforeCutoffId)).toMatchObject({
-        isRead: true,
-        readAt: cutoff,
-      });
-      for (const id of [duringUpdateId, betweenStepsId]) {
-        expect(harness.memory.notifications.get(id)).toMatchObject({
-          isRead: false,
-          readAt: null,
-        });
-      }
-      expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
-        isolationLevel: 'RepeatableRead',
-      });
-    } finally {
-      groupMemberDelegate.findMany = originalFindMany;
-      notificationDelegate.updateMany = originalUpdateMany;
-      transaction.mockRestore();
-    }
-  });
-
-  it('writes group receipts in bounded keyset pages', async () => {
-    const harness = await routedWithGroupMember();
-    const memberId = ticketsTestIds.agentIt;
-    const batchSize = notificationMarkAllLimits.groupReceiptBatchSize;
-    const total = batchSize * 2 + 17;
-    const readAt = new Date(Date.now() + 10_000);
-    const createdAt = new Date();
-    await harness.memory.prisma.notification.createMany({
-      data: Array.from({ length: total }, (_, index) => {
-        const id = `mark-all-group-batch-${String(index).padStart(4, '0')}`;
-        return {
-          id,
-          userId: null,
-          groupId: ticketsTestIds.groupIt,
-          excludedUserIds: [],
-          type: notificationTypes.ticketCreated,
-          title: 'Group notification',
-          body: null,
-          isRead: false,
-          readAt: null,
-          ticketId: null,
-          payload: {},
-          dedupeKey: id,
-          createdAt,
-        };
-      }),
-      skipDuplicates: true,
-    });
-    const findMany = jest.spyOn(harness.memory.prisma.notification, 'findMany');
-    const createMany = jest.spyOn(harness.memory.prisma.notificationReceipt, 'createMany');
-
-    try {
-      await expect(
-        markAllNotificationsRead(harness.memory.prisma as never, memberId, () => readAt),
-      ).resolves.toEqual({ unreadCount: 0 });
-
-      expect(findMany.mock.calls.map(([query]) => query?.take)).toEqual([
-        batchSize,
-        batchSize,
-        batchSize,
-      ]);
-      const receiptBatches = createMany.mock.calls.map(([input]) => input.data ?? []);
-      expect(receiptBatches.map((batch) => batch.length)).toEqual([batchSize, batchSize, 17]);
-      const cursors = findMany.mock.calls.slice(1).map(([query]) => {
-        const cursorClause = query?.where?.AND?.find(
-          (clause) =>
-            typeof clause.id === 'object' &&
-            clause.id !== null &&
-            clause.id.gt !== undefined,
-        );
-        return typeof cursorClause?.id === 'object' && cursorClause.id !== null
-          ? cursorClause.id.gt
-          : undefined;
-      });
-      expect(cursors).toEqual(
-        receiptBatches.slice(0, -1).map((batch) => batch.at(-1)?.notificationId),
-      );
-      await expect(
-        harness.memory.prisma.notificationReceipt.findMany({ where: { userId: memberId } }),
-      ).resolves.toHaveLength(total);
-    } finally {
-      findMany.mockRestore();
-      createMany.mockRestore();
-    }
-  });
-
-  it('denies group reads immediately after revocation despite a warm process cache', async () => {
-    const harness = await routedWithGroupMember();
-    const created = await harness.tickets.create(vpnCreateInput(), {
-      actorUserId: ticketsTestIds.requester,
-    });
-    await ingestTicketMessages(harness);
-    const prisma = harness.memory.prisma as never;
-    const memberId = ticketsTestIds.agentIt;
-
-    const beforeRevocation = await runWithRequestId(
-      'notification-membership-before-revoke',
-      async () => {
-        await expect(
-          loadActorGroupMemberships(prisma, memberId),
-        ).resolves.toMatchObject([{ groupId: ticketsTestIds.groupIt }]);
-        return listNotifications(prisma, memberId);
-      },
-    );
-    expect(beforeRevocation.items).toHaveLength(1);
-    expect(beforeRevocation.items[0]).toMatchObject({
-      ticketId: created.id,
-      payload: expect.objectContaining({ ticketId: created.id }),
-    });
-    const notificationId = beforeRevocation.items[0]?.id;
-    expect(notificationId).toBeDefined();
-
-    // Simulate a committed membership removal on another app instance. This process'
-    // WeakMap is deliberately not invalidated, so its old entry remains warm.
-    await harness.memory.prisma.groupMember.deleteMany({
-      where: { groupId: ticketsTestIds.groupIt, userId: memberId },
-    });
-
-    await runWithRequestId('notification-membership-after-revoke', async () => {
-      await expect(
-        loadActorGroupMemberships(prisma, memberId),
-      ).resolves.toMatchObject([{ groupId: ticketsTestIds.groupIt }]);
-
-      const afterRevocation = await listNotifications(prisma, memberId);
-      expect(afterRevocation.items).toEqual([]);
-      expect(afterRevocation.unreadCount).toBe(0);
-      await expect(countUnreadNotifications(prisma, memberId)).resolves.toBe(0);
-      await expect(
-        markNotificationRead(prisma, memberId, notificationId!),
-      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-
-      const createReceipt = jest.spyOn(
-        harness.memory.prisma.notificationReceipt,
-        'createMany',
-      );
-      await expect(markAllNotificationsRead(prisma, memberId)).resolves.toEqual({
-        unreadCount: 0,
-      });
-      expect(createReceipt).not.toHaveBeenCalled();
-    });
-  });
 });
 
 async function routedWithGroupMember() {
@@ -400,7 +174,6 @@ async function ingestTicketMessages(
     await fanOutInAppNotifications(
       harness.memory.prisma as never,
       toTicketRealtimePayload(message, ticket),
-      noUserPreferencePolicy,
     );
   }
 }

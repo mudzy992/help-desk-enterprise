@@ -54,10 +54,6 @@ export function ComponentGrid({
   const disk = components.disk;
   const ldaps = ldapsCaState(components.ldapsCaExpiresAt, nowMs);
   const clamav = components.clamav;
-  const changeDowntimeSync = components.changeDowntimeSync ?? null;
-  const ticketSideEffectOutbox = components.ticketSideEffectOutbox ?? null;
-  const notificationFanOutOutbox = components.notificationFanOutOutbox ?? null;
-  const templatesConfiguration = components.templatesConfiguration ?? null;
   return (
     <section className="grid gap-2">
       <h4 className={sectionTitleClassName}>{t("admin.opsHealth.components.title")}</h4>
@@ -82,26 +78,6 @@ export function ComponentGrid({
           label={t("admin.opsHealth.components.database")}
           state={components.database === "ok" ? "ok" : "fail"}
         />
-        <ComponentTile
-          label={t("admin.opsHealth.components.templatesConfiguration")}
-          state={
-            templatesConfiguration === null
-              ? "unknown"
-              : templatesConfiguration.status === "degraded"
-                ? "warning"
-                : "ok"
-          }
-        >
-          {templatesConfiguration === null
-            ? t("admin.opsHealth.components.unknown")
-            : templatesConfiguration.status === "degraded"
-              ? t("admin.opsHealth.components.templatesConfigurationDegraded", {
-                  count: templatesConfiguration.readFailuresTotal,
-                })
-              : t("admin.opsHealth.components.templatesConfigurationAvailable", {
-                  count: templatesConfiguration.readFailuresTotal,
-                })}
-        </ComponentTile>
         <ComponentTile
           label={t("admin.opsHealth.components.redis")}
           state={components.redis === "ok" ? "ok" : "fail"}
@@ -139,36 +115,16 @@ export function ComponentGrid({
         <ComponentTile
           label={t("admin.opsHealth.components.email")}
           state={
-            (components.email.unknownDeliveries ?? 0) > 0 ||
-            (components.email.stuckClaims ?? 0) > 0 ||
-            (components.email.failedDeliveries ?? 0) > 0 ||
-            (components.email.deadDeliveries ?? 0) > 0 ||
-            (components.email.pendingRetries ?? 0) > 0
+            (components.email.stuckClaims ?? 0) > 0
               ? "warning"
               : components.email.lastSentAt === null
                 ? "unknown"
                 : "ok"
           }
         >
-          {(components.email.unknownDeliveries ?? 0) > 0 ? (
-            t("admin.opsHealth.components.unknownEmailDeliveries", {
-              count: components.email.unknownDeliveries ?? 0,
-            })
-          ) : (components.email.stuckClaims ?? 0) > 0 ? (
+          {(components.email.stuckClaims ?? 0) > 0 ? (
             t("admin.opsHealth.components.stuckEmailClaims", {
               count: components.email.stuckClaims ?? 0,
-            })
-          ) : (components.email.deadDeliveries ?? 0) > 0 ? (
-            t("admin.opsHealth.components.deadEmailDeliveries", {
-              count: components.email.deadDeliveries ?? 0,
-            })
-          ) : (components.email.failedDeliveries ?? 0) > 0 ? (
-            t("admin.opsHealth.components.failedEmailDeliveries", {
-              count: components.email.failedDeliveries ?? 0,
-            })
-          ) : (components.email.pendingRetries ?? 0) > 0 ? (
-            t("admin.opsHealth.components.pendingEmailRetries", {
-              count: components.email.pendingRetries ?? 0,
             })
           ) : components.email.lastSentAt === null ? (
             t("admin.opsHealth.components.noEmailYet")
@@ -183,63 +139,6 @@ export function ComponentGrid({
           {ldaps.daysLeft === null
             ? t("admin.opsHealth.components.notConfigured")
             : t("admin.opsHealth.components.daysLeft", { count: ldaps.daysLeft })}
-        </ComponentTile>
-        <ComponentTile
-          label={t("admin.opsHealth.components.changeDowntimeSync")}
-          state={
-            changeDowntimeSync === null
-              ? "unknown"
-              : changeDowntimeSync.status === "degraded"
-                ? "warning"
-                : "ok"
-          }
-        >
-          {changeDowntimeSync === null
-            ? t("admin.opsHealth.components.unknown")
-            : t("admin.opsHealth.components.changeDowntimeSyncValue", {
-                pending: changeDowntimeSync.pending,
-                processing: changeDowntimeSync.processing,
-                deadLetter: changeDowntimeSync.deadLetter,
-                age: formatOpsDuration(changeDowntimeSync.oldestPendingAgeMs),
-              })}
-        </ComponentTile>
-        <ComponentTile
-          label={t("admin.opsHealth.components.ticketSideEffectOutbox")}
-          state={
-            ticketSideEffectOutbox === null
-              ? "unknown"
-              : ticketSideEffectOutbox.status === "degraded"
-                ? "warning"
-                : "ok"
-          }
-        >
-          {ticketSideEffectOutbox === null
-            ? t("admin.opsHealth.components.unknown")
-            : t("admin.opsHealth.components.ticketSideEffectOutboxValue", {
-                pending: ticketSideEffectOutbox.pending,
-                processing: ticketSideEffectOutbox.processing,
-                deadLetter: ticketSideEffectOutbox.deadLetter,
-                age: formatOpsDuration(ticketSideEffectOutbox.oldestPendingAgeMs),
-              })}
-        </ComponentTile>
-        <ComponentTile
-          label={t("admin.opsHealth.components.notificationFanOutOutbox")}
-          state={
-            notificationFanOutOutbox === null
-              ? "unknown"
-              : notificationFanOutOutbox.status === "degraded"
-                ? "warning"
-                : "ok"
-          }
-        >
-          {notificationFanOutOutbox === null
-            ? t("admin.opsHealth.components.unknown")
-            : t("admin.opsHealth.components.notificationFanOutOutboxValue", {
-                pending: notificationFanOutOutbox.pending,
-                processing: notificationFanOutOutbox.processing,
-                deadLetter: notificationFanOutOutbox.deadLetter,
-                age: formatOpsDuration(notificationFanOutOutbox.oldestPendingAgeMs),
-              })}
         </ComponentTile>
         {components.inbound.map((mailbox) => (
           <ComponentTile

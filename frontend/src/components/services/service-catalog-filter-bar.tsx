@@ -11,8 +11,6 @@ import type { ServiceLifecycle } from "@/services/service-catalog-api";
 interface ServiceCatalogFilterBarProperties {
   readonly categories: readonly ServiceCategoryResponse[];
   readonly rows: readonly ServiceCatalogRow[];
-  readonly totalCount: number;
-  readonly showCategoryCounts: boolean;
   readonly activeCategoryId: string | null;
   readonly query: string;
   readonly lifecycle: ServiceLifecycle | "ALL";
@@ -34,8 +32,6 @@ interface ServiceCatalogFilterBarProperties {
 export function ServiceCatalogFilterBar({
   categories,
   rows,
-  totalCount,
-  showCategoryCounts,
   activeCategoryId,
   query,
   lifecycle,
@@ -63,8 +59,6 @@ export function ServiceCatalogFilterBar({
           categories={categories}
           rows={rows}
           activeCategoryId={activeCategoryId}
-          showCounts={showCategoryCounts}
-          totalCount={totalCount}
           canWrite={canWriteCatalog}
           onChange={onCategoryChange}
           onManage={onManageCategories}

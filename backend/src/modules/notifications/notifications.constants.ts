@@ -116,8 +116,3 @@ export const notificationListLimits = {
   default: 30,
   maximum: 50,
 } as const;
-
-/** Bounds each group-read receipt query and insert inside mark-all's transaction. */
-export const notificationMarkAllLimits = {
-  groupReceiptBatchSize: 250,
-} as const;

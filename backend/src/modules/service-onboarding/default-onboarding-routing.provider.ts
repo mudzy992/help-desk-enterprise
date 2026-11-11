@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import type { ServiceRoutingCoverageEvaluation } from '../routing/evaluate-service-routing-coverage';
 import { parseConfigurationReference } from './parse-configuration-reference';
 import type {
   ConfigurationReferenceValidation,
@@ -29,7 +28,7 @@ export class DefaultOnboardingRoutingProvider
 
   async evaluateActivationCoverage(
     _serviceId: string,
-  ): Promise<ServiceRoutingCoverageEvaluation | null> {
+  ): Promise<'ROUTING_COVERAGE_MISSING' | null> {
     return null;
   }
 }

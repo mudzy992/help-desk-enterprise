@@ -57,26 +57,6 @@ describe("service catalog URL state", () => {
     expect(next.toString()).toBe("tab=a&lifecycle=DRAFT&workspace=form&service=svc-2");
   });
 
-  it("keeps a deep-linked service workspace while the cursor page is incomplete", () => {
-    expect(
-      canonicalizeServiceCatalogUrl(
-        {
-          query: "",
-          categoryId: null,
-          lifecycle: "ALL",
-          originUnitId: null,
-          workspace: "edit",
-          serviceId: "service-on-later-page",
-        },
-        {
-          categoryIds: new Set(),
-          originUnitIds: new Set(),
-          serviceIds: null,
-        },
-      ),
-    ).toEqual({});
-  });
-
   it("canonicalizes unavailable post-load ids without touching valid scope", () => {
     expect(
       canonicalizeServiceCatalogUrl(

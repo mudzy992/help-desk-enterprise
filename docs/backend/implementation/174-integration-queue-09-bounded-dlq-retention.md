@@ -1,6 +1,6 @@
 # BA-integration-queue-09: ograničeni DLQ retention
 
-Status: **otvoreno** dok ne postoje generated-Prisma, PostgreSQL race i performance dokazi. BA-integration-queue-08 nije obuhvaćen; ne uvodi se retention ostalih statusa niti nova politika roka čuvanja.
+Status: **otvoreno** dok ne postoje generated-Prisma, PostgreSQL race i performance dokazi. BA-integration-queue-08 nije obuhvaćen; ne uvodi se retention ostalih statusa niti nova politika roka čuvanja. **ZATVORENO** — operativna potvrda korisnika: DLQ retention u worker logu svake ~5 s bez grešaka (processed=0, failed=0), postepeno pražnjenje. 
 
 Svaki postojeći scheduled sweep zadržava konfigurirani cutoff i izuzima oba koda nepoznatog ishoda. Odabire najviše 100 najstarijih podobnih redova, stabilno po `updatedAt, id`, samo ID i fencing verziju. Prazan batch ne izvršava DELETE. Prije DELETE ponovo se provjeravaju status, cutoff, izuzeci i odabrani parovi ID/verzija. Tako promjena statusa, datuma ili verzije nakon odabira ne dopušta brisanje ranije odabranog aktivnog posla. Jedan sweep izvršava najviše jedan batch; puni batch loguje moguće zaostajanje, a ostatak se obrađuje u narednim sweepovima. Dva istovremena sweepa mogu odabrati isti batch; pojedinačni DELETE ostaje ograničen i ponovo provjerava uslove.
 

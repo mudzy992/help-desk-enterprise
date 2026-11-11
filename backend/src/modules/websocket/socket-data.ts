@@ -10,9 +10,5 @@ declare module 'socket.io' {
     presenceTickets?: Set<string>;
     /** Val 3 (M11/B2): join/leave rate-limit window for this socket. */
     joinLeaveWindow?: JoinLeaveWindow;
-    /** BA-websocket-06: Redis-backed active user connection lease member. */
-    websocketConnectionLeaseMember?: string;
-    /** BA-websocket-06: sampled aggregate rate-limit log timestamp. */
-    websocketRateLimitLogAt?: number;
   }
 }

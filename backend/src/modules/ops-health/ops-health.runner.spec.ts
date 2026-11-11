@@ -64,7 +64,6 @@ function signals(overrides: Partial<OpsSignals> = {}): OpsSignals {
     captchaSkippedLastHour: 0,
     auditWebhookPendingSinceMs: null,
     mailProviderBlock: null,
-    assetOperations: null,
     ...overrides,
   };
 }

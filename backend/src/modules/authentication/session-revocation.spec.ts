@@ -1,6 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
 import { SessionTokenService } from './session-token.service';
-import { socketSessionInvalidationChannel } from '../../common/security/socket-session-invalidation';
 import {
   createMemorySessionRevocationBackend,
   createRedisSessionRevocationBackend,
@@ -31,42 +30,6 @@ describe('session revocation (review 2026-09-25, S1/S2)', () => {
     await service.revoke(await service.verify(a));
     await expect(service.verify(a)).rejects.toThrow();
     await expect(service.verify(b)).resolves.toMatchObject({ subjectId: 'u1' });
-  });
-
-  it('publishes token, session and user invalidations for connected sockets', async () => {
-    const redis = {
-      status: 'ready',
-      mget: jest.fn(async () => [null, null, null]),
-      set: jest.fn(async () => 'OK'),
-      publish: jest.fn(async (_channel: string, _payload: string) => 1),
-    };
-    const store = new SessionRevocationStore(redis as never);
-    const expiry = Math.floor(Date.now() / 1000) + 3_600;
-
-    await store.revokeToken('logout-jti', expiry);
-    await store.revokeSession('revoked-session', 3_600);
-    await store.revokeAllForUser('u1', 3_600, {
-      sessionId: 'keep-session',
-      jti: 'keep-legacy-jti',
-    });
-
-    expect(redis.publish.mock.calls.map(([channel, payload]) => [
-      channel,
-      JSON.parse(payload),
-    ])).toEqual([
-      [socketSessionInvalidationChannel, { version: 1, kind: 'token', jti: 'logout-jti' }],
-      [socketSessionInvalidationChannel, { version: 1, kind: 'session', sessionId: 'revoked-session' }],
-      [
-        socketSessionInvalidationChannel,
-        {
-          version: 1,
-          kind: 'user',
-          subjectId: 'u1',
-          exceptSessionId: 'keep-session',
-          exceptJti: 'keep-legacy-jti',
-        },
-      ],
-    ]);
   });
 
   it('password change revokes every earlier session of the user', async () => {
@@ -152,88 +115,6 @@ describe('durable session authority', () => {
     await expect(store.isRevoked(check)).resolves.toBe(true);
   });
 
-  it('returns the user authority snapshot from the joined durable session read', async () => {
-    const redis = { mget: jest.fn(async () => [null, null, null]) };
-    const findFirst = jest.fn(async () => ({
-      user: {
-        id: 'u1',
-        authzVersion: 7,
-        isActive: true,
-        mustChangePassword: false,
-      },
-    }));
-    const store = new SessionRevocationStore(
-      redis as never,
-      { userSession: { findFirst } } as never,
-    );
-
-    await expect(store.check(check)).resolves.toEqual({
-      revoked: false,
-      durableAuthority: {
-        subjectId: 'u1',
-        authzVersion: 7,
-        isActive: true,
-        mustChangePassword: false,
-      },
-    });
-    expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ relationLoadStrategy: 'join' }),
-    );
-  });
-
-  it('creates a socket lease from durable legacy-token authority and detects authz drift', async () => {
-    const authority = {
-      id: 'u1',
-      authzVersion: 4,
-      isActive: true,
-      mustChangePassword: false,
-    };
-    const redis = { mget: jest.fn(async () => [null, null, null]) };
-    const prisma = {
-      user: { findUnique: jest.fn(async () => authority) },
-    };
-    const store = new SessionRevocationStore(redis as never, prisma as never);
-    const service = new SessionTokenService(
-      new JwtService({}),
-      { load: async () => 'x'.repeat(40) } as never,
-      store,
-    );
-    const token = await service.issue({
-      subjectId: 'u1',
-      email: 'a@b.ba',
-      displayName: 'A',
-      isLocalOnly: true,
-    } as never);
-    const lease = await service.verifyForSocket(token);
-
-    expect(lease).toMatchObject({ subjectId: 'u1', sessionId: null, authzVersion: 4 });
-    await expect(service.isSocketSessionCurrent(lease)).resolves.toBe(true);
-    authority.authzVersion = 5;
-    await expect(service.isSocketSessionCurrent(lease)).resolves.toBe(false);
-  });
-
-  it('rejects a durable active session when its user is inactive or must change password', async () => {
-    const redis = { mget: jest.fn(async () => [null, null, null]) };
-    const store = new SessionRevocationStore(
-      redis as never,
-      {
-        userSession: {
-          findFirst: jest.fn(async () => ({
-            user: {
-              id: 'u1',
-              authzVersion: 7,
-              isActive: false,
-              mustChangePassword: false,
-            },
-          })),
-        },
-      } as never,
-    );
-
-    await expect(store.check(check)).resolves.toEqual({ revoked: true });
-    expect(redis.mget).not.toHaveBeenCalled();
-  });
-
   it('fails closed when PostgreSQL session authority is unavailable', async () => {
     const redis = { mget: jest.fn(async () => [null, null, null]) };
     const prisma = { userSession: { findFirst: jest.fn(async () => { throw new Error('postgres down'); }) } };
@@ -243,18 +124,7 @@ describe('durable session authority', () => {
 
   it('rejects an active durable session when the Redis revocation check is unavailable', async () => {
     const redis = { mget: jest.fn(async () => { throw new Error('redis down'); }) };
-    const prisma = {
-      userSession: {
-        findFirst: jest.fn(async () => ({
-          user: {
-            id: 'u1',
-            authzVersion: 0,
-            isActive: true,
-            mustChangePassword: false,
-          },
-        })),
-      },
-    };
+    const prisma = { userSession: { findFirst: jest.fn(async () => ({ id: 'sid-1' })) } };
     const store = new SessionRevocationStore(redis as never, prisma as never);
     await expect(store.isRevoked(check)).resolves.toBe(true);
   });

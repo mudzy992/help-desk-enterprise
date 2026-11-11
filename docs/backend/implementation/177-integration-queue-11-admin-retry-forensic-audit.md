@@ -1,6 +1,6 @@
 # BA-integration-queue-11: forenzički trag admin retryja
 
-Status: **otvoreno**. Admin retry je i ranije bio auditiran (actor, `fromStatus`, `previousAttempts`, `toStatus`), ali je reset reda (`attempts = 0`, `lastError = null`, `nextRetryAt = null`) brisao forenzički trag bez zapisa o tome koja je greška prethodila i koliko je puta posao već ručno vraćan. Ovaj paket taj trag trajno čuva u hash-vezanom audit zapisu, bez migracije i bez izlaganja sirove providerske poruke. Automatski CI `42773406842` i Perf smoke `42773406655` za commit `7966e60` prošli su uspješno, uključujući generated Prisma Client i stvarne PostgreSQL integration suiteove.
+Status: **otvoreno**. Admin retry je i ranije bio auditiran (actor, `fromStatus`, `previousAttempts`, `toStatus`), ali je reset reda (`attempts = 0`, `lastError = null`, `nextRetryAt = null`) brisao forenzički trag bez zapisa o tome koja je greška prethodila i koliko je puta posao već ručno vraćan. Ovaj paket taj trag trajno čuva u hash-vezanom audit zapisu, bez migracije i bez izlaganja sirove providerske poruke. Automatski CI `42773406842` i Perf smoke `42773406655` za commit `7966e60` prošli su uspješno, uključujući generated Prisma Client i stvarne PostgreSQL integration suiteove. **ZATVORENO** — operativna potvrda korisnika: admin retry radi, audit zapis čuva prethodne pokušaje i grešku. 
 
 ## Mehanizam
 

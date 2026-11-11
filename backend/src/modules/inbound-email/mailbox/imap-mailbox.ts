@@ -65,12 +65,6 @@ export class ImapInboundMailbox implements InboundMailboxConnector {
         ensured.add(path);
       };
       return {
-        listIds: async (limit: number): Promise<readonly string[]> => {
-          imapGuard.throwIfFailed();
-          const uids = ((await client.search({ all: true }, { uid: true })) || []).slice(0, limit);
-          imapGuard.throwIfFailed();
-          return uids.map((uid) => `${validity}:${uid}`);
-        },
         list: async (limit: number): Promise<readonly InboundMailboxItem[]> => {
           imapGuard.throwIfFailed();
           const uids = ((await client.search({ all: true }, { uid: true })) || []).slice(0, limit);

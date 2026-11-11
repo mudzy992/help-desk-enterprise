@@ -2,9 +2,12 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { isLegacyGroupFullEmitEnabled } from './group-feed-change';
 
 /**
- * Emit a startup warning when the temporary full-payload group compatibility
- * mode is explicitly enabled. Unset is the secure default; no automatic
- * timeout is used because legacy browser tabs may remain connected.
+ * Package 5.2.3 (M11 B4): while the legacy group-room full-payload emit is
+ * enabled, log a clear startup warning so operators know the compatibility
+ * flag is still on. The flag is explicitly set to `off` through
+ * `WS_GROUP_FEED_LEGACY_FULL_EMIT=off` by the operator once all clients are
+ * on the new light-event build; we never turn it off automatically based on
+ * uptime (would silently drop updates for stale browser tabs).
  */
 @Injectable()
 export class LegacyGroupEmitNotice implements OnModuleInit {
@@ -13,15 +16,18 @@ export class LegacyGroupEmitNotice implements OnModuleInit {
   onModuleInit(): void {
     if (isLegacyGroupFullEmitEnabled()) {
       this.logger.warn(
-        'WS_GROUP_FEED_LEGACY_FULL_EMIT is explicitly ON — group rooms receive '
-          + 'full public ticket/message payloads without per-ticket authorization. '
-          + 'Use only as temporary, reviewed compatibility for old clients, then '
-          + 'unset or set the flag to off and redeploy (see ops/ws-rolling-deploy.md).',
+        'WS_GROUP_FEED_LEGACY_FULL_EMIT is ON — group rooms receive the full '
+          + 'ticket.updated payload in addition to the light group.feed-changed '
+          + 'event. This is a rolling-deploy compatibility mode for pre-3.2 '
+          + 'clients and roughly doubles group-room socket traffic. Once every '
+          + 'connected client is on a build that consumes group.feed-changed, '
+          + 'set WS_GROUP_FEED_LEGACY_FULL_EMIT=off and redeploy (see '
+          + 'ops/ws-rolling-deploy.md).',
       );
     } else {
       this.logger.log(
-        'WS_GROUP_FEED_LEGACY_FULL_EMIT is OFF (default) — group rooms receive '
-          + 'only the light group.feed-changed event.',
+        'WS_GROUP_FEED_LEGACY_FULL_EMIT is OFF — group rooms receive only the '
+          + 'light group.feed-changed event.',
       );
     }
   }

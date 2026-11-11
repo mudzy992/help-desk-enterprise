@@ -1,7 +1,4 @@
-import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import type { Prisma } from '../../generated/prisma/client';
-import { enqueueTicketPlaybookAutoAttachIntent } from './enqueue-ticket-playbook-auto-attach-intent';
 import { runCreateTicketTransaction } from './run-create-ticket-transaction';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
@@ -177,7 +174,6 @@ export async function createTicket(
   });
   assertRedactionAllowed(scan);
   const guardrailNow = new Date();
-  const sideEffectOutbox = new TransactionalOutboxService(prisma);
   const created = await runExclusiveGuardrail(
     duplicateGuardrailSubjectKey(requester.id, serviceId),
     async () => {
@@ -204,13 +200,9 @@ export async function createTicket(
           () => readHighestTicketSequence(transaction),
           reserved,
         );
-        // This is the form-version bind point for normal, reopened, and split
-        // tickets. PostgreSQL's FK check holds KEY SHARE on FormVersion until
-        // this transaction commits; the form editor's FOR UPDATE lock conflicts.
         const record = (await transaction.ticket.create({
           data: {
             ticketNumber,
-            sourceInboundEmailId: context.sourceInboundEmailId ?? null,
             title,
             description,
             status,
@@ -263,11 +255,6 @@ export async function createTicket(
           scan,
           redaction,
           duplicateWarnings,
-        );
-        await enqueueTicketPlaybookAutoAttachIntent(
-          sideEffectOutbox,
-          transaction as unknown as Prisma.TransactionClient,
-          record.id,
         );
         return record;
         });

@@ -2,9 +2,6 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 import type { PrismaService } from '../common/prisma/prisma.service';
-import { PrincipalContextInvalidator } from '../common/principal-context/principal-context-invalidator.service';
-import { createRedisClient } from '../common/redis/create-redis-client';
-import { loadRedisConfiguration } from '../common/redis/load-redis-configuration';
 import { InboundRawStore } from '../modules/inbound-email/inbound-raw-store';
 import { AnonymizationService } from '../modules/privacy/anonymization/anonymization.service';
 import { ErasureLedger, type ErasureLedgerEntry } from '../modules/privacy/anonymization/erasure-ledger';
@@ -38,14 +35,7 @@ export function decideReplay(user: { anonymizedAt: Date | null } | null): Replay
 export async function runPrivacyReplay(
   prisma: PrismaClient,
   ledger: ErasureLedger,
-  options: {
-    readonly apply: boolean;
-    readonly exportLedger: boolean;
-    readonly principalContextInvalidator?: Pick<
-      PrincipalContextInvalidator,
-      'notifyUserChanged'
-    >;
-  },
+  options: { readonly apply: boolean; readonly exportLedger: boolean },
   log: (line: string) => void = console.log,
 ): Promise<number> {
   const { apply, exportLedger } = options;
@@ -110,8 +100,6 @@ export async function runPrivacyReplay(
       { load: async () => ({}) } as never,
       new DiskTicketAttachmentStorage(resolveUploadRoot()),
       new InboundRawStore(),
-      undefined,
-      options.principalContextInvalidator,
     );
     let failed = 0;
     for (const entry of todo) {
@@ -142,38 +130,13 @@ async function main(): Promise<number> {
     return 1;
   }
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
-  const apply = process.argv.includes('--apply');
-  let redis: ReturnType<typeof createRedisClient> | null = null;
-  let principalContextInvalidator:
-    | Pick<PrincipalContextInvalidator, 'notifyUserChanged'>
-    | undefined;
-  if (apply) {
-    try {
-      redis = createRedisClient(loadRedisConfiguration(process.env));
-      redis.on('error', (error: Error) => {
-        console.warn(`privacy_replay_redis_error type=${error.name}`);
-      });
-      principalContextInvalidator = new PrincipalContextInvalidator(
-        prisma as unknown as PrismaService,
-        redis,
-      );
-    } catch (error) {
-      console.warn(
-        `privacy_replay_redis_unavailable reason=${String(error)}; durable authzVersion and session checks remain active`,
-      );
-    }
-  }
   try {
     return await runPrivacyReplay(prisma, new ErasureLedger(), {
-      apply,
+      apply: process.argv.includes('--apply'),
       exportLedger: process.argv.includes('--export-ledger'),
-      ...(principalContextInvalidator === undefined
-        ? {}
-        : { principalContextInvalidator }),
     });
   } finally {
     await prisma.$disconnect();
-    redis?.disconnect();
   }
 }
 

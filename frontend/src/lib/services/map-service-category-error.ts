@@ -7,7 +7,6 @@ export type ServiceCategoryErrorKey =
   | "services.categories.errorNotFound"
   | "services.categories.errorDuplicateSlug"
   | "services.categories.errorValidation"
-  | "services.categories.errorStaleWrite"
   | "services.categories.errorInvalidParent"
   | "services.categories.errorSelfParent"
   | "services.categories.errorCircular"
@@ -29,9 +28,6 @@ const codeKeys: Partial<Record<string, ServiceCategoryErrorKey>> = {
   CIRCULAR_CATEGORY: "services.categories.errorCircular",
   CATEGORY_HAS_CHILDREN: "services.categories.errorHasChildren",
   CATEGORY_HAS_SERVICES: "services.categories.errorHasServices",
-  OPTIMISTIC_PRECONDITION_REQUIRED: "services.categories.errorValidation",
-  OPTIMISTIC_IF_MATCH_INVALID: "services.categories.errorValidation",
-  OPTIMISTIC_STALE_WRITE: "services.categories.errorStaleWrite",
 };
 
 export function mapServiceCategoryError(error: unknown): ServiceCategoryErrorKey {
@@ -43,8 +39,6 @@ export function mapServiceCategoryError(error: unknown): ServiceCategoryErrorKey
       403: "services.categories.errorForbidden",
       404: "services.categories.errorNotFound",
       409: "services.categories.errorDuplicateSlug",
-      412: "services.categories.errorStaleWrite",
-      428: "services.categories.errorValidation",
       400: "services.categories.errorValidation",
       422: "services.categories.errorValidation",
     },

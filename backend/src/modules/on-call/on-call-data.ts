@@ -1,5 +1,4 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import {
   listOnCallSegments,
   resolveOnCall,
@@ -61,26 +60,11 @@ type ScheduleRow = {
   members: { userId: string; position: number; user: { isActive: boolean; anonymizedAt: Date | null } }[];
 };
 
-const staffRoleKeys: readonly string[] = [
-  authorizationRoleKeys.agent,
-  authorizationRoleKeys.admin,
-  authorizationRoleKeys.superAdmin,
-];
-const globalManagerRoleKeys: readonly string[] = [authorizationRoleKeys.admin, authorizationRoleKeys.superAdmin];
-
-function toContext(
-  row: ScheduleRow,
-  overrides: readonly OnCallOverrideShape[],
-  currentMemberKeys: ReadonlySet<string>,
-  validOwnerKeys: ReadonlySet<string>,
-): OnCallScheduleContext {
+function toContext(row: ScheduleRow, overrides: readonly OnCallOverrideShape[]): OnCallScheduleContext {
   return {
     id: row.id,
     groupId: row.groupId,
-    // BA-on-call-06: gap alerts go only to an owner who is still tied to the
-    // group (current member or global manager) — never to foreign staff.
-    ownerUserId:
-      row.ownerUserId !== null && validOwnerKeys.has(`${row.groupId}:${row.ownerUserId}`) ? row.ownerUserId : null,
+    ownerUserId: row.ownerUserId,
     autoAssignOutsideHours: row.autoAssignOutsideHours,
     shape: {
       timezone: row.timezone,
@@ -92,73 +76,10 @@ function toContext(
     members: row.members.map((member) => ({
       userId: member.userId,
       position: member.position,
-      // BA-on-call-04: a rotation member who has left the group is uncovered,
-      // exactly like a deactivated user — never silently resolved/assigned.
-      isAvailable:
-        member.user.isActive &&
-        member.user.anonymizedAt === null &&
-        currentMemberKeys.has(`${row.groupId}:${member.userId}`),
+      isAvailable: member.user.isActive && member.user.anonymizedAt === null,
     })),
     overrides,
   };
-}
-
-/** Owners still entitled to gap alerts, as `groupId:userId` keys (BA-on-call-06). */
-async function loadValidOwnerKeys(
-  prisma: PrismaService,
-  rows: readonly ScheduleRow[],
-  currentMemberKeys: ReadonlySet<string>,
-): Promise<ReadonlySet<string>> {
-  const keys = new Set<string>();
-  const ownerIds = [...new Set(rows.map((row) => row.ownerUserId).filter((id): id is string => id !== null))];
-  if (ownerIds.length === 0) return keys;
-  const owners = await prisma.user.findMany({
-    where: { id: { in: ownerIds } },
-    select: {
-      id: true,
-      isActive: true,
-      anonymizedAt: true,
-      userRoles: { select: { role: { select: { key: true } } } },
-    },
-  });
-  const entitled = new Map<string, boolean>();
-  for (const owner of owners) {
-    const roleKeys = owner.userRoles.map((userRole) => userRole.role.key);
-    entitled.set(
-      owner.id,
-      owner.isActive &&
-        owner.anonymizedAt === null &&
-        roleKeys.some((key) => staffRoleKeys.includes(key)),
-    );
-    if (roleKeys.some((key) => globalManagerRoleKeys.includes(key))) {
-      for (const row of rows) if (row.ownerUserId === owner.id) keys.add(`${row.groupId}:${owner.id}`);
-    }
-  }
-  for (const row of rows) {
-    if (row.ownerUserId === null) continue;
-    if (entitled.get(row.ownerUserId) === true && currentMemberKeys.has(`${row.groupId}:${row.ownerUserId}`)) {
-      keys.add(`${row.groupId}:${row.ownerUserId}`);
-    }
-  }
-  return keys;
-}
-
-/** Current GroupMember pairs for the given schedules, as `groupId:userId` keys. */
-async function loadCurrentMemberKeys(
-  prisma: PrismaService,
-  rows: readonly ScheduleRow[],
-): Promise<ReadonlySet<string>> {
-  const keys = new Set<string>();
-  if (rows.length === 0) return keys;
-  const memberships = await prisma.groupMember.findMany({
-    where: {
-      groupId: { in: [...new Set(rows.map((row) => row.groupId))] },
-      userId: { in: [...new Set(rows.flatMap((row) => row.members.map((member) => member.userId)))] },
-    },
-    select: { groupId: true, userId: true },
-  });
-  for (const membership of memberships) keys.add(`${membership.groupId}:${membership.userId}`);
-  return keys;
 }
 
 async function loadOverrides(
@@ -193,23 +114,19 @@ export async function loadOnCallScheduleContext(
   })) as ScheduleRow | null;
   if (row === null) return null;
   const overrides = await loadOverrides(prisma, [row.id], window.from, window.to);
-  const currentMemberKeys = await loadCurrentMemberKeys(prisma, [row]);
-  const validOwnerKeys = await loadValidOwnerKeys(prisma, [row], currentMemberKeys);
-  return toContext(row, overrides.get(row.id) ?? [], currentMemberKeys, validOwnerKeys);
+  return toContext(row, overrides.get(row.id) ?? []);
 }
 
-/** Every active schedule, optionally restricted to users and/or authorized groups. */
+/** Every active schedule (optionally only those a set of users belong to). */
 export async function loadActiveOnCallContexts(
   prisma: PrismaService,
   window: { readonly from: Date; readonly to: Date },
-  filter?: { readonly userIds?: readonly string[]; readonly groupIds?: readonly string[] },
+  filter?: { readonly userIds: readonly string[] },
 ): Promise<OnCallScheduleContext[]> {
-  if (filter?.userIds?.length === 0 || filter?.groupIds?.length === 0) return [];
   const rows = (await prisma.onCallSchedule.findMany({
     where: {
       isActive: true,
-      ...(filter?.groupIds === undefined ? {} : { groupId: { in: [...filter.groupIds] } }),
-      ...(filter?.userIds === undefined
+      ...(filter === undefined
         ? {}
         : {
             OR: [
@@ -230,9 +147,7 @@ export async function loadActiveOnCallContexts(
     window.from,
     window.to,
   );
-  const currentMemberKeys = await loadCurrentMemberKeys(prisma, rows);
-  const validOwnerKeys = await loadValidOwnerKeys(prisma, rows, currentMemberKeys);
-  return rows.map((row) => toContext(row, overrides.get(row.id) ?? [], currentMemberKeys, validOwnerKeys));
+  return rows.map((row) => toContext(row, overrides.get(row.id) ?? []));
 }
 
 export function resolveContextAt(context: OnCallScheduleContext, at: Date): OnCallSegment {

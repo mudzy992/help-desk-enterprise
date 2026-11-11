@@ -78,10 +78,6 @@ function groupEmits(emitted: readonly EmittedEvent[]): readonly EmittedEvent[] {
 
 const originalLegacyEmit = process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
 
-beforeEach(() => {
-  delete process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
-});
-
 afterEach(() => {
   if (originalLegacyEmit === undefined) {
     delete process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
@@ -105,7 +101,7 @@ function groupFeedOf(emitted: readonly EmittedEvent[]): EmittedEvent | undefined
  * - interne bilješke i interne promjene → NIKAD javna ni group soba
  */
 describe('broadcastTicketRealtime — matrica emit-ova', () => {
-  it('po defaultu public ticket update u group sobu šalje samo laki event', () => {
+  it('public ticket update: puni payload u ticket/user sobe, laki event u group sobu', () => {
     const { server, emitted } = createServer();
     broadcastTicketUpdated(server, ticketUpdated());
 
@@ -130,27 +126,15 @@ describe('broadcastTicketRealtime — matrica emit-ova', () => {
       occurredAt: '2026-09-13T08:00:00.000Z',
     });
     expect(JSON.stringify(groupFeedOf(emitted)?.payload).length).toBeLessThan(200);
-    expect(groupEmits(emitted).map((item) => item.event)).toEqual([
-      groupFeedChangedEventName,
-    ]);
-    expect(JSON.stringify(groupEmits(emitted))).not.toContain('RESOLVED');
-    expect(JSON.stringify(groupEmits(emitted))).not.toContain('user-requester');
-  });
-
-  it('full ticket payload u group sobu traži eksplicitni compatibility opt-in', () => {
-    process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = 'on';
-    const { server, emitted } = createServer();
-    const payload = ticketUpdated();
-    broadcastTicketUpdated(server, payload);
-
+    // Tranzicija: dok flag stoji, group soba dobija i stari puni payload (isti
+    // oblik kao prije faze), pa rolling deploy ne gubi nijedan događaj.
     expect(groupEmits(emitted).map((item) => item.event)).toEqual([
       ticketRealtimeEventNames.ticketUpdated,
       groupFeedChangedEventName,
     ]);
-    expect(groupEmits(emitted)[0]?.payload).toEqual(payload);
   });
 
-  it('sa eksplicitnim OFF flagom: group soba dobija samo laki event', () => {
+  it('sa isključenim tranzicionim flagom: group soba dobija samo laki event', () => {
     process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = 'off';
     const { server, emitted } = createServer();
     broadcastTicketUpdated(server, ticketUpdated());
@@ -167,17 +151,6 @@ describe('broadcastTicketRealtime — matrica emit-ova', () => {
       kind: 'status',
       occurredAt: '2026-09-13T08:00:00.000Z',
     });
-  });
-
-  it('nepoznata vrijednost flag-a ostaje fail-closed', () => {
-    process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = 'enabled';
-    const { server, emitted } = createServer();
-    broadcastTicketUpdated(server, ticketUpdated());
-
-    expect(groupEmits(emitted).map((item) => item.event)).toEqual([
-      groupFeedChangedEventName,
-    ]);
-    expect(JSON.stringify(groupEmits(emitted))).not.toContain('RESOLVED');
   });
 
   it('staff-only ticket update: bez javne sobe i bez ijednog group eventa', () => {
@@ -207,7 +180,7 @@ describe('broadcastTicketRealtime — matrica emit-ova', () => {
     expect(emitted.some((item) => item.room.startsWith('group:'))).toBe(false);
   });
 
-  it('javna poruka: group soba po defaultu dobija samo laki message signal', () => {
+  it('javna poruka: puni payload u ticket/user sobe, laki event "message" u group sobu', () => {
     const { server, emitted } = createServer();
     broadcastTicketMessage(server, ticketMessage());
 
@@ -224,23 +197,9 @@ describe('broadcastTicketRealtime — matrica emit-ova', () => {
       occurredAt: '2026-09-13T08:00:00.000Z',
     });
     expect(groupEmits(emitted).map((item) => item.event)).toEqual([
-      groupFeedChangedEventName,
-    ]);
-    expect(JSON.stringify(groupEmits(emitted))).not.toContain('hello');
-    expect(JSON.stringify(groupEmits(emitted))).not.toContain('user-requester');
-  });
-
-  it('legacy message payload u group sobu traži eksplicitni compatibility opt-in', () => {
-    process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = 'on';
-    const { server, emitted } = createServer();
-    const payload = ticketMessage();
-    broadcastTicketMessage(server, payload);
-
-    expect(groupEmits(emitted).map((item) => item.event)).toEqual([
       ticketRealtimeEventNames.messageCreated,
       groupFeedChangedEventName,
     ]);
-    expect(groupEmits(emitted)[0]?.payload).toEqual(payload);
   });
 
   it('interna bilješka: samo staff soba — nikad javna, nikad group', () => {

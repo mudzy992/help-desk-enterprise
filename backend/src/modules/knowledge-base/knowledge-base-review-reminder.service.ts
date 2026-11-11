@@ -22,10 +22,10 @@ export class KnowledgeBaseReviewReminderService {
 
   async processDue(now = new Date()): Promise<number> {
     const configuration = await this.configurationLoader.load();
+    const policy = await loadNotificationPreferencePolicy(this.settingsService);
     if (!configuration.reviewCycleEnabled) {
       return 0;
     }
-    const policy = await loadNotificationPreferencePolicy(this.settingsService);
     const windowEnd = new Date(
       now.getTime() +
         configuration.remindDaysBefore * 24 * 60 * 60 * 1000,

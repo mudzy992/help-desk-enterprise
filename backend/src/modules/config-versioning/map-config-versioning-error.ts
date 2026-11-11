@@ -47,10 +47,7 @@ export function mapConfigVersioningError(error: unknown): HttpException {
   if (error.code === configVersioningErrorCodes.rollbackDisabled) {
     return new ForbiddenException(body);
   }
-  if (
-    error.code === configVersioningErrorCodes.alreadyActive ||
-    error.code === configVersioningErrorCodes.catalogStateConflict
-  ) {
+  if (error.code === configVersioningErrorCodes.alreadyActive) {
     return new ConflictException(body);
   }
   if (error.code === configVersioningErrorCodes.disabled) {

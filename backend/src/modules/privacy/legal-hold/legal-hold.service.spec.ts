@@ -11,7 +11,6 @@ const now = new Date('2026-09-28T10:00:00.000Z');
 
 function setup(ticket: Record<string, unknown> | null, user: Record<string, unknown> | null = null) {
   const transaction = {
-    $executeRaw: jest.fn().mockResolvedValue(0),
     ticket: { findFirst: jest.fn(async () => ticket), update: jest.fn(async () => ({})) },
     user: { findUnique: jest.fn(async () => user), update: jest.fn(async () => ({})) },
   };
@@ -28,8 +27,6 @@ describe('LegalHoldService', () => {
     const { service, transaction } = setup({ ...heldTicket, legalHoldAt: null });
     const view = await service.set('ticket', 'HD-2026-000123', 'Spor pred sudom, predmet 12/26', actor, now);
 
-    expect(transaction.$executeRaw).toHaveBeenCalledTimes(1);
-    expect(transaction.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(transaction.ticket.findFirst.mock.invocationCallOrder[0]!);
     expect(transaction.ticket.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { OR: [{ id: 'HD-2026-000123' }, { ticketNumber: 'HD-2026-000123' }] } }),
     );

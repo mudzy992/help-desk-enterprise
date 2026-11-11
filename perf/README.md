@@ -29,14 +29,13 @@ Provjera: `k6 version`.
 Bez k6 se ipak može provjeriti da paket nije pokvaren:
 
 ```bash
-node perf/validate.js     # offline provjere configa, k6 ugovora, Socket.IO i izvještaja
+node perf/validate.js     # 18 provjera: parametri, Socket.IO paketi, render izvještaja
 ```
 
 ## Pokretanje
 
 ```bash
-# 30 s ramp-up + 5 min na ciljnom profilu: 200 VU + 10 BA-10 service-catalog VU
-# (CI fixture mora biti seedan; RAMP_UP=constant vraća stari oblik bez ramp-upa)
+# 5 minuta, 200 VU — provjera da sve radi (koristi se i u CI-ju)
 k6 run perf/smoke.js
 
 # puni baseline: 2.800 VU / 30 min
@@ -44,15 +43,6 @@ k6 run perf/full.js
 
 # kraći lokalni baseline (npr. 800 VU / 10 min) — OBAVEZNO napomeni skaliranje
 k6 run -e VU=800 -e DURATION=10m -e REPORT_LABEL=baseline-800vu perf/full.js
-```
-
-CI Perf smoke prije k6 pokretanja seeduje **500 ACTIVE servisa** preko
-`backend/scripts/seed-service-catalog-perf.mjs`; novi `service_catalog` scenario
-koristi 10 dodatnih VU-a, bez smanjenja postojećeg profila od 200 VU. Za ručno
-pokretanje postavite `PERF_CATALOG_FIXTURE_ALLOW_SEED=true` samo za disposable/test bazu:
-
-```bash
-PERF_CATALOG_FIXTURE_ALLOW_SEED=true node backend/scripts/seed-service-catalog-perf.mjs
 ```
 
 Izlaz ide u `perf/results/`: `<REPORT_LABEL>.json` (sirovi k6 summary) i
@@ -64,16 +54,13 @@ Izlaz ide u `perf/results/`: `<REPORT_LABEL>.json` (sirovi k6 summary) i
 |---|---|---|
 | `BASE_URL` | `http://localhost:10001` | API; WebSocket URL se izvodi zamjenom `http` → `ws` |
 | `VU` | `2800` | broj registrovanih korisnika iz kojih se izvodi 70% aktivnih |
-| `DURATION` | `30m` | trajanje svakog full profila; smoke drži cilj 5 min nakon ramp-upa |
-| `RAMP_UP` | `30s` za smoke; unset za full | početno postepeno dodavanje VU-a; `constant` zadržava stari `constant-vus` oblik |
+| `DURATION` | `30m` | trajanje svakog scenarija |
 | `ACTIVE_RATIO` | `0.7` | udio istovremeno aktivnih |
 | `REPORT_LABEL` | `baseline` | ime izvještaja u `perf/results/` |
 | `AGENT_EMAIL` / `AGENT_PASSWORD` | `agent.it@example.test` / `change-me` | kredencijali za `setup()` |
 | `REQUESTER_EMAIL` / `REQUESTER_PASSWORD` | `requester@example.test` / `change-me` | drugi token u poolu |
 | `TICKET_IDS` | (prazno) | CSV id-eva koje WS scenario joinuje |
 | `SEARCH_TERM` | `vpn` | osnova za pretragu |
-| `SERVICE_CATALOG_VUS` | `10` | dodatni BA-10 VU-i; ne umanjuju postojeći 200-VU profil |
-| `SERVICE_CATALOG_INTERVAL_SECONDS` | `5` | pauza između `/services?take=100` zahtjeva po VU-u |
 
 Bez ispravnih kredencijala `setup()` pada s jasnom porukom — bolje nego da test
 mjeri 401 odgovore kao "saobraćaj".
@@ -86,23 +73,17 @@ mjeri 401 odgovore kao "saobraćaj".
 | `agent_ticket_flow` | 35% | `GET /tickets/inbox` → `GET /tickets/:id` → `POST /tickets/:id/messages` (1/30 s po VU) |
 | `search_heavy` | 10% | pretraga onako kako je klijent radi **danas** (lista + novi `/search` kad postoji) |
 | `websocket_clients` | 15% | Socket.IO konekcija s tokenom, join tiket soba, brojanje eventova |
-| `service_catalog` | dodatnih 10 VU-a samo u smoke | `GET /services?take=100` nad 500 servisa; provjerava bounded envelope, summary projekciju, p95 i payload |
 
-Četiri postojeća scenarija dijele isti kod u `lib/scenarios.js`; `smoke.js` dodatno
-izvršava BA-10 katalog scenario. Smoke postepeno podiže sve scenarije od 0 do ciljnog
-VU-a tokom 30 sekundi, zatim zadržava puni profil pet minuta. To izbjegava nerealan
-istovremeni cold-start udar; pragovi i broj ciljnih VU-a ostaju nepromijenjeni. Za
-poređenje starog oblika pokreni `k6 run -e RAMP_UP=constant perf/smoke.js`.
+Scenariji dijele isti kod u `lib/scenarios.js`, pa `smoke.js` i `full.js` mjere
+iste putanje.
 
 ## Metrike
 
 Custom metrike (`lib/metrics.js`) prate kapije iz plana:
 
 - `tickets_list_duration`, `ticket_detail_duration`, `ticket_message_duration`,
-  `unread_count_duration`, `search_duration`, `dashboard_summary_duration`,
-  `service_catalog_duration` — P50/P95/P99 po endpointu
-- `ticket_list_payload_kb`, `dashboard_payload_kb`, `service_catalog_payload_kb` — veličina odgovora; katalog kapija ≤1 MiB
-- `service_catalog_contract_failures` — mora biti 0 za bounded envelope i active-form summary projekciju
+  `unread_count_duration`, `search_duration`, `dashboard_summary_duration` — P50/P95/P99 po endpointu
+- `ticket_list_payload_kb`, `dashboard_payload_kb` — veličina odgovora (kapija < 100 KB)
 - `unread_count_requests` — dokaz za Fazu 1.3 (≈ 0 uz zdrav WebSocket)
 - `ws_events_received`, `ws_connect_errors`, `ws_clients` — realtime sloj
 - `http_req_failed` — error rate (kapija < 0,5%)

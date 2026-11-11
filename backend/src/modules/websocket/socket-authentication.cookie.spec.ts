@@ -10,14 +10,7 @@ describe('SocketAuthenticationService with the session cookie', () => {
   const originalCorsOrigin = process.env.CORS_ORIGIN;
   const verify = jest.fn(async (credentials: { token: string }) => ({
     status: 'authenticated' as const,
-    principal: {
-      subjectId: `subject-of-${credentials.token}`,
-      sessionId: 'session-cookie-test',
-      jti: `jti-of-${credentials.token}`,
-      issuedAt: 1,
-      expiresAt: 9_999_999_999,
-      authzVersion: 0,
-    },
+    principal: { subjectId: `subject-of-${credentials.token}` },
   }));
 
   async function createService() {

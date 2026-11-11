@@ -17,8 +17,6 @@ import {
   KeyRound,
   WifiOff,
   Webhook,
-  FileClock,
-  FolderSync,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -52,10 +50,6 @@ import { listOpsAlertHistory, type OpsAlert } from "@/services/ops-health-api";
 const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   worker_down: ServerCrash,
   email_providerBlocked: MailWarning,
-  asset_import_stuck: FileClock,
-  asset_reminders_deliveryBacklog: MailWarning,
-  asset_transferFiles_integrity: FolderSync,
-  asset_audit_writeFailures: ShieldAlert,
   sla_scan_late: Timer,
   scheduler_late: Clock,
   disk_usage: HardDrive,

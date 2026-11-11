@@ -13,8 +13,11 @@ export const policyPackTestIds = {
 
 export function createPolicyPackTestWorld(
   options: {
-    /** Observe the batched invalidation after pack grant or catalogue changes. */
-    readonly invalidateUsers?: (userIds: readonly string[]) => Promise<unknown>;
+    /**
+     * Phase 2.2: lets a test observe the authorization cache invalidations that
+     * a policy pack apply triggers for the users it granted roles to.
+     */
+    readonly invalidateUser?: (userId: string) => Promise<unknown>;
     /**
      * M5 B2 (val 5): the disabled-packs setting is read through
      * `SettingsService`; tests that exercise it pass a stub here.
@@ -60,9 +63,9 @@ export function createPolicyPackTestWorld(
     memory,
     service: new PolicyPacksService(
       memory.prisma as never,
-      options.invalidateUsers === undefined
+      options.invalidateUser === undefined
         ? undefined
-        : ({ invalidateUsers: options.invalidateUsers } as never),
+        : ({ invalidateUser: options.invalidateUser } as never),
       options.settingValues === undefined
         ? undefined
         : ({

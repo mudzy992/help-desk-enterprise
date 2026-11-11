@@ -18,7 +18,6 @@ import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   downloadAnnouncementReport,
-  getAnnouncementPendingReportPage,
   getAnnouncementReport,
   remindAnnouncement,
   type AnnouncementReport,
@@ -40,16 +39,12 @@ export function AnnouncementReportDialog({
   const [report, setReport] = useState<AnnouncementReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"csv" | "remind" | null>(null);
-  const [pendingBusy, setPendingBusy] = useState(false);
-  const [pendingPageCursors, setPendingPageCursors] = useState<Array<string | null>>([null]);
   const loadGuard = useRef(createLatestRequestGuard());
 
   const load = useCallback(
     async (id: string) => {
       const request = loadGuard.current.begin();
       setError(null);
-      setPendingBusy(false);
-      setPendingPageCursors([null]);
       try {
         const loaded = await getAnnouncementReport(id);
         if (loadGuard.current.isCurrent(request)) setReport(loaded);
@@ -65,55 +60,9 @@ export function AnnouncementReportDialog({
   useEffect(() => {
     const guard = loadGuard.current;
     setReport(null);
-    setPendingBusy(false);
-    setPendingPageCursors([null]);
     if (announcementId !== null) void load(announcementId);
     return () => guard.cancel();
   }, [announcementId, load]);
-
-  const navigatePendingPage = async (direction: "next" | "previous") => {
-    if (report === null) return;
-    const currentPageIndex = pendingPageCursors.length - 1;
-    if (direction === "previous" && currentPageIndex === 0) return;
-    const cursor =
-      direction === "next"
-        ? report.pendingNextCursor
-        : (pendingPageCursors[currentPageIndex - 1] ?? null);
-    if (direction === "next" && cursor === null) return;
-    const id = report.id;
-    await operationGuard.run(`pending:${id}:${direction}:${cursor ?? "first"}`, async () => {
-      const request = loadGuard.current.begin();
-      setPendingBusy(true);
-      try {
-        const page = await getAnnouncementPendingReportPage(id, cursor);
-        if (loadGuard.current.isCurrent(request)) {
-          setReport((current) =>
-            current === null || current.id !== id
-              ? current
-              : {
-                  ...current,
-                  pendingCount: page.pendingCount,
-                  pending: page.pending,
-                  pendingNextCursor: page.pendingNextCursor,
-                },
-          );
-          setPendingPageCursors((current) =>
-            direction === "next" ? [...current, cursor] : current.slice(0, -1),
-          );
-        }
-      } catch (caught) {
-        if (loadGuard.current.isCurrent(request)) {
-          toast({
-            tone: "danger",
-            title: t(mapAnnouncementError(caught) ?? mapApiError(caught)),
-            error: caught,
-          });
-        }
-      } finally {
-        if (loadGuard.current.isCurrent(request)) setPendingBusy(false);
-      }
-    });
-  };
 
   const download = async () => {
     if (announcementId === null) return;
@@ -231,11 +180,7 @@ export function AnnouncementReportDialog({
                   {t("announcements.report.pending", { count: report.pendingCount })}
                 </h3>
                 {report.pending.length === 0 ? (
-                  <p className={hintClassName}>
-                    {report.pendingCount === 0
-                      ? t("announcements.report.nonePending")
-                      : t("announcements.report.pendingPageEmpty")}
-                  </p>
+                  <p className={hintClassName}>{t("announcements.report.nonePending")}</p>
                 ) : (
                   <ul className="grid gap-1 text-[12.5px]">
                     {report.pending.map((person) => (
@@ -248,42 +193,13 @@ export function AnnouncementReportDialog({
                     ))}
                   </ul>
                 )}
-                {report.pendingCount > 0 ? (
+                {report.pendingCount > report.pending.length ? (
                   <p className={hintClassName}>
-                    {t("announcements.report.pendingPageSummary", {
-                      shown: report.pending.length,
-                      count: report.pendingCount,
+                    {t("announcements.report.pendingMore", {
+                      count: report.pendingCount - report.pending.length,
                     })}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
-                  {pendingPageCursors.length > 1 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void navigatePendingPage("previous")}
-                      disabled={pendingBusy || busy !== null}
-                    >
-                      {pendingBusy
-                        ? t("announcements.report.loadingPending")
-                        : t("announcements.report.showPreviousPending")}
-                    </Button>
-                  ) : null}
-                  {report.pendingNextCursor !== null ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void navigatePendingPage("next")}
-                      disabled={pendingBusy || busy !== null}
-                    >
-                      {pendingBusy
-                        ? t("announcements.report.loadingPending")
-                        : t("announcements.report.showMorePending")}
-                    </Button>
-                  ) : null}
-                </div>
                 {report.lastReminderAt ? (
                   <p className={hintClassName}>
                     {t("announcements.report.lastReminder", {

@@ -153,48 +153,6 @@ export class ApiClient {
     return JSON.parse(text) as T;
   }
 
-  /** Read a cursor endpoint to completion within an explicit page ceiling. */
-  async requestAllPages<T>(path: string, take = 100, maximumPages = 200): Promise<readonly T[]> {
-    if (!Number.isInteger(take) || take < 1 || take > 100) {
-      throw new RangeError('[e2e] paginated API take must be an integer between 1 and 100.');
-    }
-    if (!Number.isInteger(maximumPages) || maximumPages < 1 || maximumPages > 2_000) {
-      throw new RangeError('[e2e] paginated API maximumPages must be an integer between 1 and 2000.');
-    }
-
-    const endpoint = new URL(path, 'http://e2e.invalid');
-    endpoint.searchParams.set('take', String(take));
-    const seenCursors = new Set<string>();
-    const items: T[] = [];
-    let cursor: string | null = null;
-
-    for (let pageNumber = 0; pageNumber < maximumPages; pageNumber += 1) {
-      if (cursor === null) endpoint.searchParams.delete('cursor');
-      else endpoint.searchParams.set('cursor', cursor);
-      const page = await this.requestJson<{
-        readonly items: readonly T[];
-        readonly hasMore: boolean;
-        readonly nextCursor: string | null;
-      }>(`${endpoint.pathname}${endpoint.search}`);
-      if (!Array.isArray(page.items) || typeof page.hasMore !== 'boolean') {
-        throw new Error(`[e2e] ${path} did not return a cursor-paginated response.`);
-      }
-      items.push(...page.items);
-      if (!page.hasMore) return items;
-      if (typeof page.nextCursor !== 'string' || page.nextCursor.length === 0) {
-        throw new Error(`[e2e] ${path} reported another page without a next cursor.`);
-      }
-      if (seenCursors.has(page.nextCursor)) {
-        throw new Error(`[e2e] ${path} repeated cursor ${page.nextCursor}.`);
-      }
-      seenCursors.add(page.nextCursor);
-      cursor = page.nextCursor;
-    }
-    throw new Error(
-      `[e2e] ${path} exceeded its ${maximumPages}-page fetch ceiling; narrow the list query.`,
-    );
-  }
-
   async request(path: string, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers);
     // FormData (uploads) sets its own multipart boundary.

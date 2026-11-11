@@ -10,7 +10,6 @@ export type ServiceFormsErrorKey =
   | "services.forms.errorDuplicateField"
   | "services.forms.errorFieldId"
   | "services.forms.errorFieldConfig"
-  | "services.forms.errorUnsafePattern"
   | "services.forms.errorImmutable"
   | "services.forms.errorVersioningDisabled"
   | "services.forms.errorNotDraft"
@@ -28,7 +27,6 @@ const codeKeys: Partial<Record<string, ServiceFormsErrorKey>> = {
   DUPLICATE_FIELD_IDENTIFIER: "services.forms.errorDuplicateField",
   INVALID_FIELD_IDENTIFIER: "services.forms.errorFieldId",
   INVALID_FIELD_CONFIGURATION: "services.forms.errorFieldConfig",
-  UNSAFE_FORM_PATTERN: "services.forms.errorUnsafePattern",
   FORM_VERSION_IMMUTABLE: "services.forms.errorImmutable",
   FORM_VERSIONING_DISABLED: "services.forms.errorVersioningDisabled",
   FORM_VERSION_NOT_DRAFT: "services.forms.errorNotDraft",

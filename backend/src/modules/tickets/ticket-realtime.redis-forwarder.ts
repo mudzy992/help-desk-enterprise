@@ -10,9 +10,7 @@ import { TicketRealtimeHub } from './ticket-realtime.hub';
  * and emits it to the same rooms as before.
  *
  * The API process does **not** register this forwarder, so an event the API
- * itself published can never travel the bridge twice. Its listener returns the
- * Redis promise: the durable message outbox awaits it and retries failures, while
- * other best-effort publishers still isolate errors in TicketRealtimeHub.
+ * itself published can never travel the bridge twice.
  */
 @Injectable()
 export class TicketRealtimeRedisForwarder implements OnModuleInit, OnModuleDestroy {
@@ -26,12 +24,12 @@ export class TicketRealtimeRedisForwarder implements OnModuleInit, OnModuleDestr
 
   onModuleInit(): void {
     this.unsubscribers.push(
-      this.hub.subscribeAwaited((payload) =>
-        this.forward({ kind: 'message', payload }),
-      ),
-      this.hub.subscribeTicketUpdatedAwaited((payload) =>
-        this.forward({ kind: 'updated', payload }),
-      ),
+      this.hub.subscribe((payload) => {
+        void this.forward({ kind: 'message', payload });
+      }),
+      this.hub.subscribeTicketUpdated((payload) => {
+        void this.forward({ kind: 'updated', payload });
+      }),
     );
   }
 
@@ -42,15 +40,14 @@ export class TicketRealtimeRedisForwarder implements OnModuleInit, OnModuleDestr
     this.unsubscribers.length = 0;
   }
 
-  private async forward(payload: Parameters<PublishTicketRealtimeToRedisService['publish']>[0]): Promise<void> {
+  private async forward(payload: Parameters<PublishTicketRealtimeToRedisService['publish']>[0]) {
     try {
       await this.publisher.publish(payload);
     } catch (error) {
-      // Durable outbox callers retry; legacy best-effort callers log and isolate.
+      // A dropped bridge message costs one live update, never the sweep itself.
       this.logger.warn(
         `ticket_realtime_bridge_publish_failed reason=${error instanceof Error ? error.message : String(error)}`,
       );
-      throw error;
     }
   }
 }

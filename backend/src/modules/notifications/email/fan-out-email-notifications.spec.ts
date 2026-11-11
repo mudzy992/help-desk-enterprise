@@ -9,16 +9,7 @@ import {
 } from '../../tickets/create-tickets-service-harness';
 import { toTicketRealtimePayload } from '../../tickets/to-collaboration-response';
 import { vpnCreateInput } from '../../tickets/vpn-create-input';
-import {
-  defaultNotificationPreferencePolicy,
-  NotificationPreferenceReadUnavailableError,
-} from '../preferences/notification-preference-policy';
-
-const noUserPreferencePolicy = {
-  ...defaultNotificationPreferencePolicy,
-  preferencesEnabled: false,
-  quietHoursEnabled: false,
-};
+import { defaultNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -68,31 +59,23 @@ describe('email notification fan-out', () => {
     expect([...harness.memory.emailDeliveries.values()]).toEqual([]);
   });
 
-  it('records a known pre-acceptance failure and permits a later explicit retry', async () => {
+  it('releases the claim when SMTP send fails so a retry can send', async () => {
     const harness = await routedWithInternalAgent();
     await harness.tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
     });
     const failing: MailTransport = {
       send: async () => {
-        throw Object.assign(new Error('SMTP unavailable'), {
-          command: 'RCPT TO',
-          responseCode: 451,
-        });
+        throw new Error('SMTP unavailable');
       },
     };
     await expect(
       ingestEmail(harness, failing, enabledConfiguration()),
     ).rejects.toThrow(/SMTP unavailable/);
-    expect([...harness.memory.emailDeliveries.values()]).toMatchObject([
-      { status: 'FAILED', attempts: 1, lastErrorCode: 'transient', lastErrorResponseCode: 451 },
-    ]);
+    expect([...harness.memory.emailDeliveries.values()]).toEqual([]);
     const mail = createRecordingTransport();
     await ingestEmail(harness, mail, enabledConfiguration());
     expect(mail.messages).toHaveLength(1);
-    expect([...harness.memory.emailDeliveries.values()]).toMatchObject([
-      { status: 'SENT', attempts: 2, providerResponseCode: 250 },
-    ]);
   });
 
   it('can enqueue outbound mail instead of sending SMTP immediately', async () => {
@@ -117,7 +100,6 @@ describe('email notification fan-out', () => {
             enqueued.push(work);
           },
         },
-        noUserPreferencePolicy,
       );
     }
     expect(mail.messages).toEqual([]);
@@ -237,26 +219,6 @@ describe('email fan-out with personal preferences (paket 2.2)', () => {
     }
   }
 
-  it('stops email fan-out when a recipient preference read fails', async () => {
-    const harness = await routedWithInternalAgent();
-    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
-    const { proxy } = withPreferences(harness.memory.prisma, []);
-    const failing = new Proxy(proxy as object, {
-      get(target, property, receiver) {
-        if (property === 'userNotificationPreference') {
-          return { findMany: async () => { throw new Error('sensitive preference query detail'); } };
-        }
-        return Reflect.get(target, property, receiver);
-      },
-    });
-    const mail = createRecordingTransport();
-
-    await expect(ingestWith(harness, failing, mail)).rejects.toBeInstanceOf(
-      NotificationPreferenceReadUnavailableError,
-    );
-    expect(mail.messages).toEqual([]);
-  });
-
   it('holds the e-mail for the digest instead of sending it', async () => {
     const harness = await routedWithInternalAgent();
     await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
@@ -312,13 +274,6 @@ function createRecordingTransport(): MailTransport & {
     messages,
     send: async (message) => {
       messages.push(message);
-      return {
-        acceptedRecipientCount: 1,
-        rejectedRecipientCount: 0,
-        messageId: '<fan-out-test@example.test>',
-        responseCode: 250,
-        failureKind: null,
-      };
     },
   };
 }
@@ -358,8 +313,6 @@ async function ingestEmail(
       configuration,
       mailTransport,
       toTicketRealtimePayload(message, ticket),
-      undefined,
-      noUserPreferencePolicy,
     );
   }
 }
