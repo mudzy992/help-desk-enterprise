@@ -2,7 +2,7 @@
 
 **Audit nalaz:** `BA-websocket-07` (P2), [audit 18 §12 — registar](../audits/18-websocket.md#12-registar-nalaza), [§14 — nalaz 07](../audits/18-websocket.md#14-ostali-nalazi-i-korekcije) i [§25 — status](../audits/18-websocket.md#25-w6-50-implementation-status-ba-websocket-07-2026-10-29)
 **Scope:** samo privatnost realtime `settings.updated` signala i rutiranje privatnog ključa; bez zatvaranja susjednih nalaza.
-**Status:** implementacija je u radnoj grani; finding ostaje **otvoren** do CI i potvrde prihvata.
+**Status:** zatvoreno (2026-10-29) operativnom potvrdom vlasnika uz CI dokaz; vidi audit 18 §30.
 
 ## Implementacija
 

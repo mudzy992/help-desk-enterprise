@@ -2,7 +2,7 @@
 
 **Audit nalaz:** `BA-websocket-08` (P2), [audit 18 §12 — registar](../audits/18-websocket.md#12-registar-nalaza), [§14 — acceptance](../audits/18-websocket.md#14-ostali-nalazi-i-korekcije) i [§26 — status](../audits/18-websocket.md#26-w6-51-implementation-status-ba-websocket-08-2026-10-29)
 **Scope:** samo obavezni user/group room setup pri povezivanju i mjerljivost njegovih grešaka; bez replay/catch-up ugovora ili zatvaranja susjednih nalaza.
-**Status:** implementacija je na aktivnoj grani; nalaz ostaje **otvoren** do CI potvrde.
+**Status:** zatvoreno (2026-10-29) operativnom potvrdom vlasnika uz CI dokaz; vidi audit 18 §30.
 
 ## Implementacija
 

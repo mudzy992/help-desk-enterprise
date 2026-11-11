@@ -1,6 +1,6 @@
 # W6.54 — BA-websocket-11: ograničene ticket subscriptione
 
-**Status:** implementirano na radnoj grani; nalaz ostaje otvoren do CI/generated-Prisma i acceptance potvrde. Datum: 2026-10-29.
+**Status:** zatvoreno (2026-10-29) operativnom potvrdom vlasnika uz CI dokaz; vidi audit 18 §30.
 
 ## Promjena
 

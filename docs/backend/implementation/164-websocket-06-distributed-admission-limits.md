@@ -2,7 +2,7 @@
 
 **Audit nalaz:** `BA-websocket-06` (P2), [audit 18 §9 — rate limit](../audits/18-websocket.md#9-rate-limit-resource-bounds-i-observability), [§12 — registar](../audits/18-websocket.md#12-registar-nalaza) i [§24 — status](../audits/18-websocket.md#24-w6-49-implementation-status-ba-websocket-06-2026-10-29)
 **Scope:** samo zajedničko IP/user ograničenje handshakea, limit aktivnih konekcija po korisniku i zaštita od reconnect oluja; bez zatvaranja susjednih nalaza.
-**Status:** implementacija i ciljane lokalne provjere su završene u ovoj radnoj grani. Finding ostaje **otvoren** dok ne prođu CI/generated-Prisma provjere i stvarni dvoklijentski Redis acceptance; nijedan runbook/live deploy nije izvršen.
+**Status:** zatvoreno (2026-10-29) operativnom potvrdom vlasnika uz CI dokaz; vidi audit 18 §30.
 
 ## Implementacija
 

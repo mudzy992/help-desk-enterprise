@@ -1,6 +1,6 @@
 # BA-announcements-05: scoped aktori ne mogu referencirati tuđe grupe ni servise
 
-Status: **otvoreno**. Audience provjera je validirala samo OU-ove publike; group ID je morao samo postojati, service ID također, a editor je scoped aktoru nudio sve servise. Scoped manager/agent je tako mogao vezati najavu uz grupu iz tuđeg OU podstabla ili uz bilo koji servis i time proizvesti publiku/oznaku izvan svog scopea.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (A1/A2 = DA) uz CI `42990837191` success; vidi audit 28 §21.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Bez migracije. Nova `assertManageReferences` provjera (create i update, prije tr
 
 ## Testovi i granice
 
-Novi `announcements.references.spec.ts` (4 testa): tuđa grupa odbijena prije transakcije, bilo koji servis odbijen za scoped managera, vlastita grupa prolazi kroz pravi audit writer do kreiranja, options nudi samo vlastitu grupu i nijedan servis. Lokalno announcements suite: 9 suiteova / 56 testova (integracijski se preskače bez baze). Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara.
+Novi `announcements.references.spec.ts` (4 testa): tuđa grupa odbijena prije transakcije, bilo koji servis odbijen za scoped managera, vlastita grupa prolazi kroz pravi audit writer do kreiranja, options nudi samo vlastitu grupu i nijedan servis. Lokalno announcements suite: 9 suiteova / 56 testova (integracijski se preskače bez baze). CI `42990837191` (success, finalni SHA `498cd55`) dao je generated-Prisma/PostgreSQL dokaz, a vlasnik je operativno potvrdio A1/A2 = DA — nalaz je zatvoren, vidi audit 28 §21.

@@ -44,7 +44,7 @@
     {
       "id": "BA-announcements-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "28-announcements.md",
       "owner": "WS-D",
       "wave": 6
@@ -5228,7 +5228,7 @@
     {
       "id": "BA-websocket-06",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5236,7 +5236,7 @@
     {
       "id": "BA-websocket-07",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5244,7 +5244,7 @@
     {
       "id": "BA-websocket-08",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5252,7 +5252,7 @@
     {
       "id": "BA-websocket-09",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5260,7 +5260,7 @@
     {
       "id": "BA-websocket-10",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5268,7 +5268,7 @@
     {
       "id": "BA-websocket-11",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6

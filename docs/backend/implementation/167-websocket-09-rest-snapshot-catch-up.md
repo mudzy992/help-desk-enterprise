@@ -2,7 +2,7 @@
 
 **Audit nalaz:** `BA-websocket-09` (P2), [audit 18 §12 — registar](../audits/18-websocket.md#12-registar-nalaza), [§14 — nalaz 09](../audits/18-websocket.md#14-ostali-nalazi-i-korekcije) i [§27 — status](../audits/18-websocket.md#27-w6-52-implementation-status-ba-websocket-09-2026-10-29)
 **Scope:** reconnect catch-up za aktivne ticket i notification prikaze preko postojećih REST snapshot/cursor API-ja; bez durable socket replaya ili zatvaranja susjednih nalaza.
-**Status:** implementacija je na aktivnoj grani; finding ostaje **otvoren** do CI i acceptance potvrde.
+**Status:** zatvoreno (2026-10-29) operativnom potvrdom vlasnika uz CI dokaz; vidi audit 18 §30.
 
 ## Oporavak nakon reconnecta
 

@@ -1,6 +1,6 @@
 # W6.53 — BA-websocket-10: batch room revalidation
 
-**Status:** implementirano na radnoj grani; nalaz ostaje otvoren do CI/generated-Prisma i acceptance dokaza. Datum: 2026-10-29.
+**Status:** zatvoreno (2026-10-29) operativnom potvrdom vlasnika uz CI dokaz; vidi audit 18 §30.
 
 ## Promjena
 

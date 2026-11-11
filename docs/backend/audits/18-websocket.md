@@ -126,12 +126,12 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-03 | P1     | Group/admin revocation kasni 5 min i DB kvar ostavlja stare sobe fail-open                 | zatvoreno |
 | BA-websocket-04 | P1     | Default-on legacy group emit šalje puni payload bez per-ticket authorizationa              | zatvoreno |
 | BA-websocket-05 | P2     | Runtime Redis adapter kvar nema pouzdan fallback/effective-health i gubi cross-instance emit| zatvoreno (W6.48) |
-| BA-websocket-06 | P2     | Join/presence limiter je per-socket bez user/IP/connection limita                          | otvoreno |
-| BA-websocket-07 | P2     | Private setting key metadata emituje se svim autentifikovanim korisnicima                  | otvoreno |
-| BA-websocket-08 | P2     | User/group room join nije awaitan i početni događaj može biti propušten                    | otvoreno |
-| BA-websocket-09 | P2     | Reconnect nema sequence/cursor/replay niti formalni catch-up ugovor                        | otvoreno |
-| BA-websocket-10 | P2     | Room revalidation je N×sekvencijalna, bez overlap/resource guarda                          | otvoreno |
-| BA-websocket-11 | P2     | Socket može akumulirati neograničen broj ticket soba                                       | otvoreno |
+| BA-websocket-06 | P2     | Join/presence limiter je per-socket bez user/IP/connection limita                          | zatvoreno |
+| BA-websocket-07 | P2     | Private setting key metadata emituje se svim autentifikovanim korisnicima                  | zatvoreno |
+| BA-websocket-08 | P2     | User/group room join nije awaitan i početni događaj može biti propušten                    | zatvoreno |
+| BA-websocket-09 | P2     | Reconnect nema sequence/cursor/replay niti formalni catch-up ugovor                        | zatvoreno |
+| BA-websocket-10 | P2     | Room revalidation je N×sekvencijalna, bez overlap/resource guarda                          | zatvoreno |
+| BA-websocket-11 | P2     | Socket može akumulirati neograničen broj ticket soba                                       | zatvoreno |
 | BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | otvoreno |
 | BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | otvoreno |
 | BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | otvoreno |
@@ -410,3 +410,7 @@ Postojeći detail hook šalje leave pri promjeni/unmountu, ali ne obrađuje join
 ### CI follow-up za W6.53/W6.54
 
 CI `42680779580` i `42681847238` nisu prošli: generated-Prisma backend build anotacije prijavile su tri TS2540 u W6.53 sweep summary tipu. Follow-up koristi mutabilni interni summary uz readonly vanjski ugovor. CI `42687805115` na W6.55 sadržavao je iste greške i dodatni integration-queue TS2783; Perf `42687805136` nije stigao do k6 jer je API build pao. Detalji i lokalne granice provjere: [paket 171](../implementation/171-val6-ci-perf-build-regression-fix.md). BA-10/11 ostaju otvoreni; konačni novi CI/Perf nisu potvrđeni.
+
+## 30. Closeout — BA-websocket-06–11 (2026-10-29)
+
+`BA-websocket-06`–`11` (P2) zatvoreni su operativnom potvrdom vlasnika. Implementacije (paketi [164](../implementation/164-websocket-06-distributed-admission-limits.md)–[169](../implementation/169-websocket-11-bounded-ticket-subscriptions.md), uz CI/Perf regresijski paket [171](../implementation/171-val6-ci-perf-build-regression-fix.md)) bile su završene ranije i od tada nepromijenjene u punim CI prolazima, uključujući CI [`42990837191`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42990837191) (**success**: generated-Prisma backend build/lint/full test, PostgreSQL+Redis integration, frontend, Docs guard, container/supply-chain, CI gate). Vlasnik je nakon redeploya potvrdio: B1 (komentar iz drugog taba vidljiv bez osvježavanja) = DA, B2 (offline tab po ponovnom spajanju sam dohvaća propuštene izmjene, bez ručnog refresha) = DA, B3 (dvije instance/Redis limitiranje nije UI-vidljivo na jednoj instanci) = N/A — taj dio ostaje pokriven CI integracijskim testovima s Redisom i ciljanim jediničnim testovima limita/revalidacije, bez tvrdnje o live two-instance acceptance probi. Nema migracije, PR-a ni mergea; deployment je radio korisnik. Zajedno sa zatvaranjem BA-announcements-05 Val 6 je **86/110 zatvorenih, 24 otvorena (0 P1 / 10 P2 / 14 P3)**; source/plan **476/217**, globalni registar **486/207**. Otvoreni ostaju BA-websocket-12–14 (P3) i širi BA-15 acceptance.
