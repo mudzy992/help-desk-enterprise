@@ -101,10 +101,12 @@ test("W6.47 zatvara BA-announcements-04, a P2/P3 ostaju otvoreni", async () => {
       status: `zatvoreno (${closeout})`,
     });
   }
+  // BA-announcements-12 is closed by paket 206 (audit 28 §32); the W6.47
+  // assertion now pins BA-18 as the still-open P3 witness instead.
   assert.deepEqual(byId.get("BA-announcements-12"), {
     source: "28-announcements.md",
     severity: "P2",
-    status: "otvoreno",
+    status: "zatvoreno",
   });
   assert.deepEqual(byId.get("BA-announcements-18"), {
     source: "28-announcements.md",

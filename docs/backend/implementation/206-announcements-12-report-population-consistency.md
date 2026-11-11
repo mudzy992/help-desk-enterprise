@@ -1,6 +1,6 @@
 # BA-announcements-12: report ne miješa publish, trenutnu i historijsku populaciju
 
-Status: **otvoreno** (implementirano; čeka CI i operativnu potvrdu vlasnika S1–S2). Report je prikazivao „Potvrdilo X od Y (Z %)" gdje je X bio ukupan historijski broj potvrda (uključujući korisnike koji su u međuvremenu izašli iz publike i Anonimizovan potvrde), a Y veličina publike u trenutku objave — brojilac i nazivnik opisuju različite populacije, pa procenat nije bio vremenski konzistentan (mogao je preći 100 % stvarne pokrivenosti, a korisnik koji je izašao iz publike ostajao je u brojilu, ali nije bio ni u pending listi ni u unit breakdownu). Manage lista je prikazivala isti miješani omjer.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (S1/S2 = DA) uz CI `43112710466` success; vidi audit 28 §32. Report je prikazivao „Potvrdilo X od Y (Z %)" gdje je X bio ukupan historijski broj potvrda (uključujući korisnike koji su u međuvremenu izašli iz publike i Anonimizovan potvrde), a Y veličina publike u trenutku objave — brojilac i nazivnik opisuju različite populacije, pa procenat nije bio vremenski konzistentan (mogao je preći 100 % stvarne pokrivenosti, a korisnik koji je izašao iz publike ostajao je u brojilu, ali nije bio ni u pending listi ni u unit breakdownu). Manage lista je prikazivala isti miješani omjer.
 
 ## Izmjena
 
@@ -27,4 +27,4 @@ Preduslov: redeploy svježeg builda (API + frontend).
 | S1 | Otvori **Najave → Izvještaj** (dugme izvještaja na nekoj objavljenoj najavi koja traži potvrdu i ima potvrde). | Na vrhu piše „Potvrdilo X od Y (Z %)" gdje je Y **sadašnja** publika; ispod stoji napomena s brojem publike u trenutku objave. Z % nikad ne prelazi 100. |
 | S2 | Na istoj listi najava pogledaj kolonu **„Potvrdilo"**. | Prikazuje samo jedan broj (ukupne potvrde), bez „/ N" dijela. Ako najava ima potvrde od korisnika koji više nisu u publici, u izvještaju se vidi i napomena o tim potvrdama. |
 
-Odgovor: `S1: DA/NE, S2: DA/NE` + opis odstupanja ako ih ima. Bez CI dokaza i operativne potvrde nalaz se ne zatvara.
+Odgovor vlasnika: S1/S2 = DA; CI `43112710466` (success, stablo sadrži `8c11ad3`) dao je generated-Prisma/PostgreSQL dokaz — nalaz je zatvoren, vidi audit 28 §32.
