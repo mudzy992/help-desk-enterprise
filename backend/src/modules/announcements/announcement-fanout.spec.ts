@@ -102,8 +102,9 @@ function setup(totalUsers: number, overrides: Partial<typeof row> = {}) {
       create: jest.fn(async () => ({ id: 'email-run-1' })),
       findFirst: jest.fn(async () => null),
     },
-    $transaction: jest.fn(async (operation: (client: unknown) => Promise<unknown>) => operation(prisma)),
   };
+  const transaction = jest.fn(async (operation: (client: unknown) => Promise<unknown>) => operation(prisma));
+  (prisma as unknown as { $transaction: typeof transaction }).$transaction = transaction;
   const settings = { getSetting: jest.fn(async () => true) };
   const authorization = {
     authorizeResource: jest.fn(async () => ({ allowed: true, reason: 'GLOBAL_ASSIGNMENT_ALLOWED' as const })),
@@ -111,7 +112,7 @@ function setup(totalUsers: number, overrides: Partial<typeof row> = {}) {
   const service = new AnnouncementsService(prisma as unknown as PrismaService, settings as never, authorization);
   const fanOut = jest.spyOn(service as unknown as { fanOut: FanOutMethod }, 'fanOut');
   fanOut.mockImplementation(async (ids) => ids.length);
-  return { service, prisma, fanOut, queries, userIds };
+  return { service, prisma, transaction, fanOut, queries, userIds };
 }
 
 describe('AnnouncementsService audience fan-out pagination', () => {
@@ -143,11 +144,11 @@ describe('AnnouncementsService audience fan-out pagination', () => {
   });
 
   it('fails the publication claim when the e-mail run cannot be queued, so the sweep retries', async () => {
-    const { service, prisma } = setup(1, { sendEmail: true });
+    const { service, prisma, transaction } = setup(1, { sendEmail: true });
     prisma.announcementEmailRun.create.mockRejectedValueOnce(new Error('queue unavailable'));
 
     await expect(service.notifyStarted(announcementId, now)).rejects.toThrow('queue unavailable');
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transaction).toHaveBeenCalledTimes(1);
   });
 
   it('reuses an already-open e-mail run instead of queueing a duplicate', async () => {
