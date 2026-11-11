@@ -1,6 +1,6 @@
 # BA-announcements-07: kompletan immutable snapshot u reviziji objavljene najave
 
-Status: **otvoreno**. Revizija objavljene najave čuvala je samo prethodni naslov i tekst, i to samo kada se tekst mijenjao; promjene težine, načina prikaza, rasporeda, servisa i kanala nisu ostavljale nikakav historijski zapis.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (D1/D2 = DA, D3 = N/A) uz CI `43010898018` success; vidi audit 28 §23. Revizija objavljene najave čuvala je samo prethodni naslov i tekst, i to samo kada se tekst mijenjao; promjene težine, načina prikaza, rasporeda, servisa i kanala nisu ostavljale nikakav historijski zapis.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Status: **otvoreno**. Revizija objavljene najave čuvala je samo prethodni naslo
 
 ## Testovi i granice
 
-`announcements.concurrency.spec.ts` dobio je test da izmjena samo težine objavljene najave ostavlja snapshot prethodnog stanja. Lokalno: backend announcements suite 10 suiteova / 62 testa, database-runtime-contract 4/4, ciljani ESLint, migration policy provjera (112 migracija), frontend `tsc --noEmit`, Prettier, ESLint. Bez generated-Prisma/PostgreSQL CI dokaza (CI primjenjuje migraciju na disposable bazi) i operativne potvrde nalaz se ne zatvara.
+`announcements.concurrency.spec.ts` dobio je test da izmjena samo težine objavljene najave ostavlja snapshot prethodnog stanja. Lokalno: backend announcements suite 10 suiteova / 62 testa, database-runtime-contract 4/4, ciljani ESLint, migration policy provjera (112 migracija), frontend `tsc --noEmit`, Prettier, ESLint. CI `43010898018` (success) dao je generated-Prisma/PostgreSQL dokaz s primjenom migracije na disposable bazi, a vlasnik je operativno potvrdio D1/D2 = DA (D3 = N/A) — nalaz je zatvoren, vidi audit 28 §23.
