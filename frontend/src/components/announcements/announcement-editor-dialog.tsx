@@ -149,7 +149,7 @@ export function AnnouncementEditorDialog({
         const saved =
           announcement === null
             ? await createAnnouncement(input)
-            : await updateAnnouncement(announcement.id, input);
+            : await updateAnnouncement(announcement.id, input, announcement.version);
         onSaved(saved);
       } catch (caught) {
         const detail = announcementErrorDetail(caught);

@@ -14,6 +14,7 @@ export const announcementErrorKeys = {
   ANNOUNCEMENT_INVALID: "announcements.errors.invalid",
   ANNOUNCEMENT_INVALID_AUDIENCE: "announcements.errors.invalidAudience",
   ANNOUNCEMENT_INVALID_STATE: "announcements.errors.invalidState",
+  ANNOUNCEMENT_VERSION_CONFLICT: "announcements.errors.versionConflict",
   ANNOUNCEMENT_NOT_ACTIVE: "announcements.errors.notActive",
   ANNOUNCEMENT_REMINDER_TOO_SOON: "announcements.errors.reminderTooSoon",
   ANNOUNCEMENT_REPORT_EXPORT_TOO_LARGE: "announcements.errors.reportExportTooLarge",

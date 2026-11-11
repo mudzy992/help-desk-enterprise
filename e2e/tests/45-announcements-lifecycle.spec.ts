@@ -8,6 +8,7 @@ type ManagedDetail = {
   readonly id: string;
   readonly title: string;
   readonly status: string;
+  readonly version: number;
 };
 
 function localInputValue(date: Date): string {
@@ -170,7 +171,7 @@ test.describe("45 announcements lifecycle (5.3.7)", () => {
           if (created.status === "DRAFT") {
             const deleted = await api.request(
               `/announcements/manage/${encodeURIComponent(created.id)}`,
-              { method: "DELETE" },
+              { method: "DELETE", headers: { "If-Match": `"v${created.version}"` } },
             );
             if (!deleted.ok)
               console.warn(
@@ -185,6 +186,7 @@ test.describe("45 announcements lifecycle (5.3.7)", () => {
               `/announcements/manage/${encodeURIComponent(created.id)}/withdraw`,
               {
                 method: "POST",
+                headers: { "If-Match": `"v${created.version}"` },
                 body: JSON.stringify({ reason: "E2E 5.3.7 cleanup" }),
               },
             );

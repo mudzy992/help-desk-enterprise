@@ -220,13 +220,13 @@ function ManageAnnouncements() {
       setActionError(null);
       try {
         if (operation.kind === "publish") {
-          await publishAnnouncement(operation.item.id);
+          await publishAnnouncement(operation.item.id, operation.item.version);
           toast({ tone: "success", title: t("announcements.manage.published") });
         } else if (operation.kind === "withdraw") {
-          await withdrawAnnouncement(operation.item.id, reason.trim());
+          await withdrawAnnouncement(operation.item.id, reason.trim(), operation.item.version);
           toast({ tone: "success", title: t("announcements.manage.withdrawn") });
         } else {
-          await deleteAnnouncement(operation.item.id);
+          await deleteAnnouncement(operation.item.id, operation.item.version);
           toast({ tone: "success", title: t("announcements.manage.deleted") });
         }
         setPending(null);

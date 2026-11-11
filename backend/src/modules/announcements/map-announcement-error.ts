@@ -18,6 +18,7 @@ export function mapAnnouncementError(error: unknown): unknown {
     case announcementErrorCodes.notFound:
       return new NotFoundException(body);
     case announcementErrorCodes.invalidState:
+    case announcementErrorCodes.versionConflict:
     case announcementErrorCodes.notActive:
     case announcementErrorCodes.reminderTooSoon:
       return new ConflictException(body);

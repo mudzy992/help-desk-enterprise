@@ -15,6 +15,7 @@ type ManagedAnnouncement = {
   readonly id: string;
   readonly title: string;
   readonly status: string;
+  readonly version: number;
 };
 
 /**
@@ -42,6 +43,7 @@ export async function withdrawPublishedE2eAnnouncements(api: ApiClient): Promise
     if (!/^E2E\s/i.test(item.title)) continue;
     await api.requestJson(`/announcements/manage/${encodeURIComponent(item.id)}/withdraw`, {
       method: 'POST',
+      headers: { 'If-Match': `"v${item.version}"` },
       body: JSON.stringify({ reason: 'E2E global setup cleanup' }),
     });
   }

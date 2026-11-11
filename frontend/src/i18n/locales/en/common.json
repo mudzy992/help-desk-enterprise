@@ -8414,6 +8414,7 @@
       "reminderTooSoon": "A reminder is possible at most once in 24 hours.",
       "reportExportTooLarge": "This audience exceeds the CSV limit of 50,000 recipients. The report summary and paginated pending list remain available.",
       "forbidden": "You are not allowed to manage announcements.",
+      "versionConflict": "The announcement was changed in the meantime. Refresh the list and try again; copy any unsaved edits first.",
       "dates": "Enter a valid start and end.",
       "order": "The end must be after the start.",
       "duration": "An announcement can last at most {{days}} days."

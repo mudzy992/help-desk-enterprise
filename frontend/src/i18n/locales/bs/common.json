@@ -8464,6 +8464,7 @@
       "reminderTooSoon": "Podsjetnik je moguć najviše jednom u 24 sata.",
       "reportExportTooLarge": "Publika premašuje CSV ograničenje od 50.000 korisnika. Sažetak i straničena lista nepotvrđenih i dalje su dostupni.",
       "forbidden": "Nemate ovlaštenje za upravljanje najavama.",
+      "versionConflict": "Najava je u međuvremenu izmijenjena. Osvježite listu i pokušajte ponovo; nesačuvane izmjene prvo kopirajte.",
       "dates": "Unesite ispravan početak i kraj.",
       "order": "Kraj mora biti nakon početka.",
       "duration": "Najava može trajati najviše {{days}} dana."

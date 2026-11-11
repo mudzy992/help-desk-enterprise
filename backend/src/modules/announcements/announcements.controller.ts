@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Header,
+  Headers,
   HttpCode,
   Param,
   Post,
@@ -15,6 +16,7 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { parseIfMatch } from '../../common/optimistic-concurrency/optimistic-concurrency.service';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
@@ -109,26 +111,44 @@ export class AnnouncementsController {
   }
 
   @Put('manage/:id')
-  update(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: SaveAnnouncementDto) {
-    return runAnnouncement(() => this.announcements.update(id, body, this.viewer(request)));
+  update(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Body() body: SaveAnnouncementDto,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
+  ) {
+    return runAnnouncement(() => this.announcements.update(id, body, this.viewer(request), parseIfMatch(ifMatch)));
   }
 
   @Delete('manage/:id')
   @HttpCode(204)
-  async remove(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    await runAnnouncement(() => this.announcements.remove(id, this.viewer(request)));
+  async remove(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
+  ) {
+    await runAnnouncement(() => this.announcements.remove(id, this.viewer(request), parseIfMatch(ifMatch)));
   }
 
   @Post('manage/:id/publish')
   @HttpCode(200)
-  publish(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    return runAnnouncement(() => this.announcements.publish(id, this.viewer(request)));
+  publish(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
+  ) {
+    return runAnnouncement(() => this.announcements.publish(id, this.viewer(request), parseIfMatch(ifMatch)));
   }
 
   @Post('manage/:id/withdraw')
   @HttpCode(200)
-  withdraw(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: AnnouncementReasonDto) {
-    return runAnnouncement(() => this.announcements.withdraw(id, body.reason, this.viewer(request)));
+  withdraw(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Body() body: AnnouncementReasonDto,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
+  ) {
+    return runAnnouncement(() => this.announcements.withdraw(id, body.reason, this.viewer(request), parseIfMatch(ifMatch)));
   }
 
   @Get('manage/:id/report')

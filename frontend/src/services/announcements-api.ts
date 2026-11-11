@@ -235,36 +235,48 @@ export function createAnnouncement(
   });
 }
 
+const ifMatch = (version: number): RequestInit => ({ headers: { "If-Match": `"v${version}"` } });
+
 export function updateAnnouncement(
   id: string,
   input: AnnouncementWriteInput,
+  version: number,
 ): Promise<ManagedAnnouncementDetail> {
   return apiRequest<ManagedAnnouncementDetail>(`/announcements/manage/${encodeURIComponent(id)}`, {
     method: "PUT",
     ...json(input),
+    ...ifMatch(version),
   });
 }
 
-export function deleteAnnouncement(id: string): Promise<void> {
-  return apiRequest<void>(`/announcements/manage/${encodeURIComponent(id)}`, { method: "DELETE" });
+export function deleteAnnouncement(id: string, version: number): Promise<void> {
+  return apiRequest<void>(`/announcements/manage/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    ...ifMatch(version),
+  });
 }
 
-export function publishAnnouncement(id: string): Promise<ManagedAnnouncementDetail> {
+export function publishAnnouncement(
+  id: string,
+  version: number,
+): Promise<ManagedAnnouncementDetail> {
   return apiRequest<ManagedAnnouncementDetail>(
     `/announcements/manage/${encodeURIComponent(id)}/publish`,
-    { method: "POST" },
+    { method: "POST", ...ifMatch(version) },
   );
 }
 
 export function withdrawAnnouncement(
   id: string,
   reason: string,
+  version: number,
 ): Promise<ManagedAnnouncementDetail> {
   return apiRequest<ManagedAnnouncementDetail>(
     `/announcements/manage/${encodeURIComponent(id)}/withdraw`,
     {
       method: "POST",
       ...json({ reason }),
+      ...ifMatch(version),
     },
   );
 }

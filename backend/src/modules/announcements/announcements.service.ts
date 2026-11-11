@@ -649,7 +649,13 @@ export class AnnouncementsService {
    * (the report counts against the audience captured at publication); text,
    * severity, display and end can change, and the previous text is kept.
    */
-  async update(id: string, input: SaveAnnouncementInput, viewer: AnnouncementViewer, now: Date = new Date()) {
+  async update(
+    id: string,
+    input: SaveAnnouncementInput,
+    viewer: AnnouncementViewer,
+    expectedVersion: number,
+    now: Date = new Date(),
+  ) {
     await this.requireManage(viewer);
     const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status === 'WITHDRAWN' || effectiveAnnouncementStatus(row, now) === 'ENDED') {
@@ -660,7 +666,11 @@ export class AnnouncementsService {
     await this.assertManageReferences(viewer, data.audienceGroupIds, data.serviceId);
     await this.prisma.$transaction(async (transaction) => {
       if (row.status === 'DRAFT') {
-        await transaction.announcement.update({ where: { id }, data });
+        const updated = await transaction.announcement.updateMany({
+          where: { id, version: expectedVersion },
+          data: { ...data, version: expectedVersion + 1 },
+        });
+        if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
       } else {
         const audienceChanged =
           !sameSet(row.audienceRoles, data.audienceRoles) ||
@@ -679,8 +689,8 @@ export class AnnouncementsService {
             data: { announcementId: id, version: row.version, title: row.title, body: row.body, editedById: viewer.userId },
           });
         }
-        await transaction.announcement.update({
-          where: { id },
+        const updated = await transaction.announcement.updateMany({
+          where: { id, version: expectedVersion },
           data: {
             title: data.title,
             body: data.body,
@@ -693,9 +703,10 @@ export class AnnouncementsService {
             startsAt: data.startsAt,
             endsAt: data.endsAt,
             serviceId: data.serviceId,
-            ...(textChanged ? { version: row.version + 1 } : {}),
+            version: expectedVersion + 1,
           },
         });
+        if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
       }
       await this.audit(transaction, auditLogActions.announcementUpdated, id, viewer.userId, {
         status: row.status,
@@ -705,7 +716,7 @@ export class AnnouncementsService {
     return this.detail(id, viewer, now);
   }
 
-  async publish(id: string, viewer: AnnouncementViewer, now: Date = new Date()) {
+  async publish(id: string, viewer: AnnouncementViewer, expectedVersion: number, now: Date = new Date()) {
     await this.requireManage(viewer);
     const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
@@ -713,10 +724,16 @@ export class AnnouncementsService {
     const audienceSize = await this.countAudience(audienceOf(row));
     await this.prisma.$transaction(async (transaction) => {
       const updated = await transaction.announcement.updateMany({
-        where: { id, status: 'DRAFT' },
-        data: { status: 'PUBLISHED', publishedAt: now, publishedById: viewer.userId, audienceSizeAtPublish: audienceSize },
+        where: { id, status: 'DRAFT', version: expectedVersion },
+        data: {
+          status: 'PUBLISHED',
+          publishedAt: now,
+          publishedById: viewer.userId,
+          audienceSizeAtPublish: audienceSize,
+          version: expectedVersion + 1,
+        },
       });
-      if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
+      if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
       await this.audit(transaction, auditLogActions.announcementPublished, id, viewer.userId, {
         audienceSize,
         startsAt: row.startsAt.toISOString(),
@@ -732,23 +749,30 @@ export class AnnouncementsService {
     return this.detail(id, viewer, now);
   }
 
-  async withdraw(id: string, reason: string, viewer: AnnouncementViewer, now: Date = new Date()) {
+  async withdraw(id: string, reason: string, viewer: AnnouncementViewer, expectedVersion: number, now: Date = new Date()) {
     await this.requireManage(viewer);
     const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'PUBLISHED') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notPublished');
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.announcement.update({ where: { id }, data: { status: 'WITHDRAWN', withdrawnAt: now } });
+      const updated = await transaction.announcement.updateMany({
+        where: { id, status: 'PUBLISHED', version: expectedVersion },
+        data: { status: 'WITHDRAWN', withdrawnAt: now, version: expectedVersion + 1 },
+      });
+      if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
       await this.audit(transaction, auditLogActions.announcementWithdrawn, id, viewer.userId, { reason: reason.trim() });
     });
     return this.detail(id, viewer, now);
   }
 
-  async remove(id: string, viewer: AnnouncementViewer): Promise<void> {
+  async remove(id: string, viewer: AnnouncementViewer, expectedVersion: number): Promise<void> {
     await this.requireManage(viewer);
     const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.announcement.delete({ where: { id } });
+      const deleted = await transaction.announcement.deleteMany({
+        where: { id, status: 'DRAFT', version: expectedVersion },
+      });
+      if (deleted.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
       await this.audit(transaction, auditLogActions.announcementDeleted, id, viewer.userId, { title: row.title });
     });
   }

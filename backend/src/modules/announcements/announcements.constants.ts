@@ -4,6 +4,7 @@ export const announcementErrorCodes = {
   invalid: 'ANNOUNCEMENT_INVALID',
   invalidAudience: 'ANNOUNCEMENT_INVALID_AUDIENCE',
   invalidState: 'ANNOUNCEMENT_INVALID_STATE',
+  versionConflict: 'ANNOUNCEMENT_VERSION_CONFLICT',
   notActive: 'ANNOUNCEMENT_NOT_ACTIVE',
   reminderTooSoon: 'ANNOUNCEMENT_REMINDER_TOO_SOON',
   reportExportTooLarge: 'ANNOUNCEMENT_REPORT_EXPORT_TOO_LARGE',
