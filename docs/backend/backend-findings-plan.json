@@ -1804,7 +1804,7 @@
     {
       "id": "BA-inbound-email-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1812,7 +1812,7 @@
     {
       "id": "BA-inbound-email-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1820,7 +1820,7 @@
     {
       "id": "BA-inbound-email-06",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1828,7 +1828,7 @@
     {
       "id": "BA-inbound-email-07",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1836,7 +1836,7 @@
     {
       "id": "BA-inbound-email-08",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1844,7 +1844,7 @@
     {
       "id": "BA-inbound-email-09",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1852,7 +1852,7 @@
     {
       "id": "BA-inbound-email-10",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6

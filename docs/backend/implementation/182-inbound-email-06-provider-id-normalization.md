@@ -1,6 +1,6 @@
 # BA-inbound-email-06: ista normalizacija provider ID-a za lookup i store
 
-Status: **otvoreno**. Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Lookup postojećeg reda koristio je puni `providerMessageId`, a store ga je rezao na 500 znakova (granica `VarChar(500)` kolone).
+Status: **zatvoreno** (operativna potvrda korisnika: nema trajno preskočenih poruka, 24h brojevi normalni).  Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Lookup postojećeg reda koristio je puni `providerMessageId`, a store ga je rezao na 500 znakova (granica `VarChar(500)` kolone).
 
 ## Prethodno ponašanje
 

@@ -1,6 +1,6 @@
 # BA-inbound-email-09: ograničeni metadata retention batch
 
-Status: **otvoreno**. Metadata retention je bio jedan neograničen `deleteMany` nad svim redovima starijim od cutoffa; ovaj paket ga zamjenjuje jednim stabilno sortiranim batchom po noćnom pokretanju, po istom obrascu kao BA-integration-queue-09. Automatski CI `42791008690` za commit `23ccbe2` prošao je uspješno (generated Prisma + stvarni PostgreSQL); Perf smoke za ovaj push nije pokrenut (path filter).
+Status: **zatvoreno** (operativna potvrda korisnika: retention bez grešaka u logu workera).  Metadata retention je bio jedan neograničen `deleteMany` nad svim redovima starijim od cutoffa; ovaj paket ga zamjenjuje jednim stabilno sortiranim batchom po noćnom pokretanju, po istom obrascu kao BA-integration-queue-09. Automatski CI `42791008690` za commit `23ccbe2` prošao je uspješno (generated Prisma + stvarni PostgreSQL); Perf smoke za ovaj push nije pokrenut (path filter).
 
 ## Mehanizam
 

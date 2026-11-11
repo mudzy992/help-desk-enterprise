@@ -1,6 +1,6 @@
 # BA-inbound-email-10: deterministički pošiljalac uz case-insensitive duplikate
 
-Status: **otvoreno**. Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Jedinstvenost e-maila u PostgreSQL-u je case-sensitive, pa `Ana@x` i `ana@x` mogu biti dva različita korisnika; dolazna obrada ih je tražila neosjetljivim `findFirst` bez sortiranja, što daje nedeterminističnog actora.
+Status: **zatvoreno** (operativna potvrda korisnika: poruke se pripisuju pravim korisnicima).  Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Jedinstvenost e-maila u PostgreSQL-u je case-sensitive, pa `Ana@x` i `ana@x` mogu biti dva različita korisnika; dolazna obrada ih je tražila neosjetljivim `findFirst` bez sortiranja, što daje nedeterminističnog actora.
 
 ## Mehanizam
 

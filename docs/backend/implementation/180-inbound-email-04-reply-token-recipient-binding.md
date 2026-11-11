@@ -1,6 +1,6 @@
 # BA-inbound-email-04: potpisani reply token vezan za primaoca
 
-Status: **otvoreno**. Potpisani reply token nosi `recipientId` korisnika kojem je notifikacijski e-mail poslan, ali se pri dolaznoj obradi ta vrijednost nije poredila sa stvarnim pošiljaocem — token je služio samo za rutiranje na tiket. Automatski CI `42794957321` za commit `0c3c5d4` prošao je uspješno (generated Prisma + stvarni PostgreSQL).
+Status: **zatvoreno** (operativna potvrda korisnika: odgovor s tuđe adrese nije upisan na tiket; s prave adrese radi).  Potpisani reply token nosi `recipientId` korisnika kojem je notifikacijski e-mail poslan, ali se pri dolaznoj obradi ta vrijednost nije poredila sa stvarnim pošiljaocem — token je služio samo za rutiranje na tiket. Automatski CI `42794957321` za commit `0c3c5d4` prošao je uspješno (generated Prisma + stvarni PostgreSQL).
 
 ## Prethodno ponašanje
 

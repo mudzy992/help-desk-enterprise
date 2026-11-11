@@ -1,6 +1,6 @@
 # BA-inbound-email-08: reconciliation scheduler nakon gubitka Redisa
 
-Status: **otvoreno**. Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). `InboundEmailSchedulerService` je poll i retention rasporede registrovao samo u `onModuleInit`. Ako Redis nakon starta izgubi sve schedulere (flush, failover na praznu instancu), worker ih nikada ne bi obnovio do restarta — dolazna pošta bi tiho prestala da se obrađuje.
+Status: **zatvoreno** (operativna potvrda korisnika: nakon restarta Redisa poll se nastavlja bez restarta workera).  Kumulativni CI `42805826360` za commit `806ccdd` prošao je uspješno (generated Prisma + stvarni PostgreSQL). `InboundEmailSchedulerService` je poll i retention rasporede registrovao samo u `onModuleInit`. Ako Redis nakon starta izgubi sve schedulere (flush, failover na praznu instancu), worker ih nikada ne bi obnovio do restarta — dolazna pošta bi tiho prestala da se obrađuje.
 
 ## Mehanizam
 

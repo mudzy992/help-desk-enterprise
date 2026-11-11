@@ -1,6 +1,6 @@
 # BA-inbound-email-07: DB unique zaštita Message-ID deduplikacije
 
-Status: **otvoreno**. Message-ID deduplikacija bila je read-before-write: dvije istovremene isporuke iste poruke (npr. To+Cc) mogle su obje proći provjeru i obje završiti kao `PROCESSED`. Korisnik je izričito odobrio migraciju za ovaj nalaz. Automatski CI `42809664963` za commit `0a38879` prošao je uspješno, uključujući replay svih migracija (i nove) na disposable PostgreSQL bazi i integration scenarij jedinstvenog `PROCESSED` reda.
+Status: **zatvoreno** (operativna potvrda korisnika: nema duplih tiketa/poruka od istog e-maila; migracija ranije deployana).  Message-ID deduplikacija bila je read-before-write: dvije istovremene isporuke iste poruke (npr. To+Cc) mogle su obje proći provjeru i obje završiti kao `PROCESSED`. Korisnik je izričito odobrio migraciju za ovaj nalaz. Automatski CI `42809664963` za commit `0a38879` prošao je uspješno, uključujući replay svih migracija (i nove) na disposable PostgreSQL bazi i integration scenarij jedinstvenog `PROCESSED` reda.
 
 ## Mehanizam
 

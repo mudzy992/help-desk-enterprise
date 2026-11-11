@@ -1,6 +1,6 @@
 # BA-inbound-email-05: test konekcije bez preuzimanja raw poruka
 
-Status: **otvoreno**. Automatski CI `42805342087` za commit `817a825` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Admin test konekcije zvao je `session.list(10)`, što za Graph i IMAP znači preuzimanje do deset punih raw poruka (svaka do 35 MB) u API proces samo da bi se izbrojalo `items.length`.
+Status: **zatvoreno** (operativna potvrda korisnika: test konekcije prolazi i prikazuje broj poruka).  Automatski CI `42805342087` za commit `817a825` prošao je uspješno (generated Prisma + stvarni PostgreSQL). Admin test konekcije zvao je `session.list(10)`, što za Graph i IMAP znači preuzimanje do deset punih raw poruka (svaka do 35 MB) u API proces samo da bi se izbrojalo `items.length`.
 
 ## Mehanizam
 
