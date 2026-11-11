@@ -82,6 +82,13 @@ function setup() {
       // 7 live acknowledgement rows: 5 from the current audience, 2 from users
       // who have since left it. Plus 1 anonymized receipt on the row.
       count: jest.fn(async () => 7),
+      findMany: jest.fn(async () => []),
+    },
+    // No publish snapshot for this legacy announcement (BA-13 fallback basis).
+    announcementAudienceMember: {
+      count: jest.fn(async () => 0),
+      groupBy: jest.fn(async () => []),
+      findMany: jest.fn(async () => []),
     },
     announcementEmailRun: { findMany: jest.fn(async () => []) },
     organizationalUnit: {
@@ -115,5 +122,7 @@ describe('BA-announcements-12 report population consistency', () => {
       { unit: '', audience: 3, acknowledged: 1 },
       { unit: 'IT', audience: 5, acknowledged: 4 },
     ]);
+    expect(report.snapshotAvailable).toBe(false);
+    expect(report.acknowledgedInSnapshotAudience).toBeNull();
   });
 });

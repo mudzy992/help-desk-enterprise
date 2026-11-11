@@ -88,8 +88,12 @@ function setup(status: string, casCount: number) {
   const tx = {
     announcement: {
       updateMany: jest.fn(async () => ({ count: casCount })),
+      update: jest.fn(async () => ({})),
       deleteMany: jest.fn(async () => ({ count: casCount })),
     },
+    // BA-announcements-13: publish also captures the membership snapshot.
+    user: { findMany: jest.fn(async () => []) },
+    announcementAudienceMember: { createMany: jest.fn(async () => ({ count: 0 })) },
     announcementRevision: { create: jest.fn(async () => ({})) },
     auditLog: { create: jest.fn(async () => ({})), findFirst: jest.fn(async () => null) },
     $executeRaw: jest.fn(async () => 0),

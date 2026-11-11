@@ -37,6 +37,9 @@ const report = (id: string): AnnouncementReport => ({
   acknowledgedCount: 1,
   acknowledgedInCurrentAudience: 1,
   acknowledgedOutsideCurrentAudience: 0,
+  snapshotAvailable: false,
+  acknowledgedInSnapshotAudience: null,
+  acknowledgedOutsideSnapshotAudience: null,
   pendingCount: 1,
   lastReminderAt: null,
   canRemind: true,
@@ -97,6 +100,24 @@ describe("AnnouncementReportDialog state machine", () => {
     // i18n is keyed in this suite: summary renders acknowledged/audience values via the key mock.
     expect(await screen.findByText(/announcements\.report\.summary/)).toBeTruthy();
     expect(screen.getByText(/announcements\.report\.formerAudienceNote/)).toBeTruthy();
+  });
+
+  it("prefers the publish snapshot for the headline when available (BA-13)", async () => {
+    mocks.getReport.mockResolvedValue({
+      ...report("snapshot-basis"),
+      audienceSizeAtPublish: 10,
+      currentAudienceSize: 4,
+      acknowledgedCount: 9,
+      acknowledgedInCurrentAudience: 3,
+      acknowledgedOutsideCurrentAudience: 6,
+      snapshotAvailable: true,
+      acknowledgedInSnapshotAudience: 7,
+      acknowledgedOutsideSnapshotAudience: 2,
+      pendingCount: 3,
+    });
+    render(<AnnouncementReportDialog announcementId="snapshot-basis" onOpenChange={vi.fn()} />);
+    expect(await screen.findByText(/announcements\.report\.snapshotNote/)).toBeTruthy();
+    expect(screen.queryByText(/announcements\.report\.audienceNote/)).toBeNull();
   });
 
   it("guards CSV download against synchronous double submit", async () => {

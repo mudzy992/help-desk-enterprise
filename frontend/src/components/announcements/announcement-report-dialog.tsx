@@ -161,12 +161,22 @@ export function AnnouncementReportDialog({
   };
 
   const formatter = announcementDateTimeFormatter(i18n.language);
-  // BA-announcements-12: the headline ratio divides one population by itself —
-  // acknowledgements within the CURRENT audience over the current audience.
-  const percent =
+  // BA-announcements-12/13: the headline ratio divides one population by itself —
+  // the publish-time snapshot when it exists, otherwise the current audience.
+  const headlineAcknowledged =
     report === null
       ? 0
-      : acknowledgementPercent(report.acknowledgedInCurrentAudience, report.currentAudienceSize);
+      : report.snapshotAvailable
+        ? (report.acknowledgedInSnapshotAudience ?? 0)
+        : report.acknowledgedInCurrentAudience;
+  const headlineAudience =
+    report === null
+      ? 0
+      : report.snapshotAvailable
+        ? report.audienceSizeAtPublish
+        : report.currentAudienceSize;
+  const percent =
+    report === null ? 0 : acknowledgementPercent(headlineAcknowledged, headlineAudience);
 
   return (
     <Modal open={announcementId !== null} onOpenChange={onOpenChange}>
@@ -186,22 +196,35 @@ export function AnnouncementReportDialog({
             <div className="grid gap-1.5">
               <p className="text-[13px] font-medium text-foreground">
                 {t("announcements.report.summary", {
-                  acknowledged: report.acknowledgedInCurrentAudience,
-                  audience: report.currentAudienceSize,
+                  acknowledged: headlineAcknowledged,
+                  audience: headlineAudience,
                   percent,
                 })}
               </p>
               <Progress value={percent} tone={percent >= 100 ? "success" : "primary"} />
-              <p className={hintClassName}>
-                {t("announcements.report.audienceNote", {
-                  current: report.currentAudienceSize,
-                  publish: report.audienceSizeAtPublish,
-                })}
-              </p>
-              {report.acknowledgedOutsideCurrentAudience > 0 ? (
+              {report.snapshotAvailable ? (
+                <p className={hintClassName}>
+                  {t("announcements.report.snapshotNote", {
+                    publish: report.audienceSizeAtPublish,
+                    current: report.currentAudienceSize,
+                  })}
+                </p>
+              ) : (
+                <p className={hintClassName}>
+                  {t("announcements.report.audienceNote", {
+                    current: report.currentAudienceSize,
+                    publish: report.audienceSizeAtPublish,
+                  })}
+                </p>
+              )}
+              {(report.snapshotAvailable
+                ? (report.acknowledgedOutsideSnapshotAudience ?? 0)
+                : report.acknowledgedOutsideCurrentAudience) > 0 ? (
                 <p className={hintClassName}>
                   {t("announcements.report.formerAudienceNote", {
-                    count: report.acknowledgedOutsideCurrentAudience,
+                    count: report.snapshotAvailable
+                      ? (report.acknowledgedOutsideSnapshotAudience ?? 0)
+                      : report.acknowledgedOutsideCurrentAudience,
                   })}
                 </p>
               ) : null}

@@ -770,19 +770,48 @@ export class AnnouncementsService {
     const row = await this.loadManaged(id, viewer, permissionKeys.announcementManage, true);
     if (row.status !== 'DRAFT') throw new AnnouncementError(announcementErrorCodes.invalidState, 'notDraft');
     if (row.endsAt.getTime() <= now.getTime()) throw new AnnouncementError(announcementErrorCodes.invalid, 'endsAt');
-    const audienceSize = await this.countAudience(audienceOf(row));
+    const audienceWhere = await this.audienceWhere(audienceOf(row));
+    let audienceSize = 0;
     await this.prisma.$transaction(async (transaction) => {
+      // BA-announcements-13: the status flip, the audience size and the immutable
+      // membership snapshot are ONE transaction, so the report always counts
+      // against exactly the audience captured here. Members are written in
+      // user-id keyset pages to keep every statement bounded.
       const updated = await transaction.announcement.updateMany({
         where: { id, status: 'DRAFT', version: expectedVersion },
         data: {
           status: 'PUBLISHED',
           publishedAt: now,
           publishedById: viewer.userId,
-          audienceSizeAtPublish: audienceSize,
           version: expectedVersion + 1,
         },
       });
       if (updated.count !== 1) throw new AnnouncementError(announcementErrorCodes.versionConflict);
+      let afterUserId: string | null = null;
+      for (;;) {
+        const members = await transaction.user.findMany({
+          where: afterUserId === null ? audienceWhere : { AND: [audienceWhere, { id: { gt: afterUserId } }] },
+          select: { id: true, organizationalUnitId: true },
+          orderBy: { id: 'asc' },
+          take: announcementLimits.notifyBatchSize,
+        });
+        if (members.length === 0) break;
+        await transaction.announcementAudienceMember.createMany({
+          data: members.map((member) => ({
+            announcementId: id,
+            userId: member.id,
+            organizationalUnitId: member.organizationalUnitId,
+          })),
+          skipDuplicates: true,
+        });
+        audienceSize += members.length;
+        afterUserId = members.at(-1)?.id ?? null;
+        if (members.length < announcementLimits.notifyBatchSize) break;
+      }
+      await transaction.announcement.update({
+        where: { id },
+        data: { audienceSizeAtPublish: audienceSize },
+      });
       await this.audit(transaction, auditLogActions.announcementPublished, id, viewer.userId, {
         audienceSize,
         startsAt: row.startsAt.toISOString(),
@@ -920,6 +949,9 @@ export class AnnouncementsService {
       AND: [audienceWhere, { announcementAcknowledgements: { some: { announcementId: row.id } } }],
     };
     const pendingWhere = this.pendingReportWhere(row, audienceWhere, null);
+    // BA-announcements-13: resolve the publish snapshot first; when it exists the
+    // live pending page is never fetched (the snapshot page replaces it below).
+    const snapshot = await this.snapshotReport(row);
     const [audienceByUnit, acknowledgedByUnit, acknowledgementCount, pendingCount, pendingPage, emailRuns] = await Promise.all([
       this.prisma.user.groupBy({
         by: ['organizationalUnitId'],
@@ -933,7 +965,9 @@ export class AnnouncementsService {
       }),
       this.prisma.announcementAcknowledgement.count({ where: { announcementId: row.id } }),
       this.prisma.user.count({ where: pendingWhere }),
-      this.reportPendingRows(row, audienceWhere, null),
+      snapshot === null
+        ? this.reportPendingRows(row, audienceWhere, null)
+        : Promise.resolve({ pending: [], pendingNextCursor: null }),
       this.prisma.announcementEmailRun.findMany({
         where: { announcementId: row.id },
         orderBy: { createdAt: 'desc' },
@@ -980,6 +1014,25 @@ export class AnnouncementsService {
       entry.acknowledged += group._count._all;
       byUnit.set(unit, entry);
     }
+    // BA-announcements-13: the snapshot was resolved above, before the aggregates.
+    if (snapshot !== null) {
+      const missingUnitIds = snapshot.byUnit
+        .map((entry) => entry.organizationalUnitId)
+        .filter((unitId): unitId is string => unitId !== null && !unitNames.has(unitId));
+      if (missingUnitIds.length > 0) {
+        const extraUnits = await this.prisma.organizationalUnit.findMany({
+          where: { id: { in: missingUnitIds } },
+          select: { id: true, name: true },
+        });
+        for (const unit of extraUnits) unitNames.set(unit.id, unit.name);
+      }
+    }
+    const headlineByUnit = snapshot?.byUnit.map((entry) => ({
+      unit: entry.organizationalUnitId === null ? '' : (unitNames.get(entry.organizationalUnitId) ?? ''),
+      audience: entry.audience,
+      acknowledged: entry.acknowledged,
+    }));
+    const headlinePending = snapshot === null ? pendingPage : await this.snapshotPendingRows(row, snapshot.acknowledgedUserIds, null);
     return {
       id: row.id,
       title: row.title,
@@ -989,7 +1042,12 @@ export class AnnouncementsService {
       acknowledgedCount: acknowledgedTotal,
       acknowledgedInCurrentAudience,
       acknowledgedOutsideCurrentAudience,
-      pendingCount,
+      // BA-announcements-13: snapshot basis when captured at publication.
+      snapshotAvailable: snapshot !== null,
+      acknowledgedInSnapshotAudience: snapshot?.acknowledged ?? null,
+      acknowledgedOutsideSnapshotAudience:
+        snapshot === null ? null : acknowledgedTotal - snapshot.acknowledged,
+      pendingCount: snapshot?.pendingCount ?? pendingCount,
       lastReminderAt: row.lastReminderAt?.toISOString() ?? null,
       canRemind: this.canRemind(row, new Date()),
       sendEmail: row.sendEmail,
@@ -1001,15 +1059,126 @@ export class AnnouncementsService {
         createdAt: run.createdAt.toISOString(),
         completedAt: run.completedAt?.toISOString() ?? null,
       })),
-      byUnit: [...byUnit.values()].sort((a, b) => a.unit.localeCompare(b.unit)),
-      pending: pendingPage.pending,
-      pendingNextCursor: pendingPage.pendingNextCursor,
+      byUnit: (headlineByUnit ?? [...byUnit.values()]).sort((a, b) => a.unit.localeCompare(b.unit)),
+      pending: headlinePending.pending,
+      pendingNextCursor: headlinePending.pendingNextCursor,
+    };
+  }
+
+  /** Publish-snapshot side of the report; null when the announcement predates snapshots. */
+  private async snapshotReport(row: AnnouncementRow) {
+    // Cheap existence check first: announcements published before snapshots
+    // existed must not pay for member/acknowledgement scans (BA-04 budget).
+    const snapshotCount = await this.prisma.announcementAudienceMember.count({
+      where: { announcementId: row.id },
+    });
+    if (snapshotCount === 0) return null;
+    const [membersByUnit, acknowledgedRows, memberRows] = await Promise.all([
+      this.prisma.announcementAudienceMember.groupBy({
+        by: ['organizationalUnitId'],
+        where: { announcementId: row.id },
+        _count: { _all: true },
+      }),
+      this.prisma.announcementAcknowledgement.findMany({
+        where: { announcementId: row.id },
+        select: { userId: true },
+      }),
+      this.prisma.announcementAudienceMember.findMany({
+        where: { announcementId: row.id },
+        select: { userId: true },
+      }),
+    ]);
+    const memberIds = new Set(memberRows.map((member) => member.userId));
+    const acknowledgedUserIds = new Set(
+      acknowledgedRows.map((ack) => ack.userId).filter((userId) => memberIds.has(userId)),
+    );
+    const acknowledgedByUnit = await this.prisma.announcementAudienceMember.groupBy({
+      by: ['organizationalUnitId'],
+      where: { announcementId: row.id, userId: { in: [...acknowledgedUserIds] } },
+      _count: { _all: true },
+    });
+    const acknowledgedPerUnit = new Map(
+      acknowledgedByUnit.map((group) => [group.organizationalUnitId, group._count._all]),
+    );
+    return {
+      audienceSize: snapshotCount,
+      acknowledged: acknowledgedUserIds.size,
+      pendingCount: snapshotCount - acknowledgedUserIds.size,
+      acknowledgedUserIds,
+      byUnit: membersByUnit.map((group) => ({
+        organizationalUnitId: group.organizationalUnitId,
+        audience: group._count._all,
+        acknowledged: acknowledgedPerUnit.get(group.organizationalUnitId) ?? 0,
+      })),
+    };
+  }
+
+  /** One keyset page of snapshot members who have not acknowledged yet. */
+  private async snapshotPendingRows(
+    row: AnnouncementRow,
+    acknowledgedUserIds: ReadonlySet<string>,
+    afterUserId: string | null,
+  ) {
+    const limit = announcementLimits.reportPendingListed;
+    // Scan member pages until one pending page is full (acknowledged members
+    // are skipped, never returned), so a dense acknowledged prefix cannot
+    // truncate the listing.
+    const pendingMembers: Array<{ readonly userId: string; readonly organizationalUnitId: string | null }> = [];
+    let cursor = afterUserId;
+    let exhausted = false;
+    while (pendingMembers.length <= limit && !exhausted) {
+      const page = await this.prisma.announcementAudienceMember.findMany({
+        where: {
+          announcementId: row.id,
+          ...(cursor === null ? {} : { userId: { gt: cursor } }),
+        },
+        select: { userId: true, organizationalUnitId: true },
+        orderBy: { userId: 'asc' },
+        take: limit + 1,
+      });
+      if (page.length === 0) {
+        exhausted = true;
+        break;
+      }
+      cursor = page.at(-1)?.userId ?? cursor;
+      for (const member of page) {
+        if (!acknowledgedUserIds.has(member.userId)) pendingMembers.push(member);
+      }
+      if (page.length < limit + 1) exhausted = true;
+    }
+    const hasMore = pendingMembers.length > limit;
+    const listed = pendingMembers.slice(0, limit);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: listed.map((member) => member.userId) } },
+      select: { id: true, displayName: true },
+    });
+    const displayNames = new Map(users.map((user) => [user.id, user.displayName]));
+    const unitRows = await this.prisma.organizationalUnit.findMany({
+      where: { id: { in: listed.map((m) => m.organizationalUnitId).filter((id): id is string => id !== null) } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(unitRows.map((unit) => [unit.id, unit.name]));
+    const lastListed = listed.at(-1);
+    return {
+      pending: listed.map((member) => ({
+        id: member.userId,
+        displayName: displayNames.get(member.userId) ?? '',
+        unit: member.organizationalUnitId === null ? '' : (names.get(member.organizationalUnitId) ?? ''),
+      })),
+      pendingNextCursor:
+        hasMore && lastListed !== undefined ? encodeAnnouncementReportCursor(row.id, lastListed.userId) : null,
     };
   }
 
   async reportPending(id: string, cursor: string | null, viewer: AnnouncementViewer) {
     const row = await this.requireReport(id, viewer);
     const afterUserId = decodeAnnouncementReportCursor(cursor, row.id);
+    // BA-announcements-13: snapshot basis when captured at publication.
+    const snapshot = await this.snapshotReport(row);
+    if (snapshot !== null) {
+      const page = await this.snapshotPendingRows(row, snapshot.acknowledgedUserIds, afterUserId);
+      return { pendingCount: snapshot.pendingCount, ...page };
+    }
     const audienceWhere = await this.audienceWhere(audienceOf(row));
     const pendingWhere = this.pendingReportWhere(row, audienceWhere, null);
     const [pendingCount, page] = await Promise.all([

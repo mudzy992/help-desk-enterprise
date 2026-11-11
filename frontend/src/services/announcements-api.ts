@@ -157,6 +157,10 @@ export type AnnouncementReport = {
   readonly acknowledgedCount: number;
   readonly acknowledgedInCurrentAudience: number;
   readonly acknowledgedOutsideCurrentAudience: number;
+  /** BA-announcements-13: publish-time membership snapshot basis, when captured. */
+  readonly snapshotAvailable: boolean;
+  readonly acknowledgedInSnapshotAudience: number | null;
+  readonly acknowledgedOutsideSnapshotAudience: number | null;
   readonly pendingCount: number;
   readonly lastReminderAt: string | null;
   readonly canRemind: boolean;

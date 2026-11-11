@@ -63,6 +63,7 @@ model Announcement {
   dismissals                   AnnouncementDismissal[]
   revisions                    AnnouncementRevision[]
   emailRuns                    AnnouncementEmailRun[]
+  audienceMembers              AnnouncementAudienceMember[]
   createdAt                    DateTime                      @default(now())
   updatedAt                    DateTime                      @updatedAt
 
@@ -118,6 +119,26 @@ model AnnouncementRevision {
   announcement   Announcement            @relation(fields: [announcementId], references: [id], onDelete: Cascade)
 
   @@unique([announcementId, version])
+}
+
+/// BA-announcements-13: immutable membership snapshot written inside the publish
+/// transaction, so the report can count acknowledgements against exactly the
+/// audience that existed at publication. `organizationalUnitId` is the member's
+/// unit at capture time. Rows for announcements published before this snapshot
+/// existed are absent (the report falls back to the current audience).
+/// No User relation: membership changes and anonymization never rewrite the
+/// snapshot; lifecycle cleanup belongs to the retention matrix.
+model AnnouncementAudienceMember {
+  id                   String   @id @default(cuid())
+  announcementId       String
+  userId               String
+  organizationalUnitId String?
+  createdAt            DateTime @default(now())
+  announcement         Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([announcementId, organizationalUnitId])
+  @@index([userId])
 }
 
 enum AnnouncementEmailKind {

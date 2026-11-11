@@ -98,6 +98,11 @@ function setup(input: { readonly rows?: readonly ReturnType<typeof row>[] } = {}
       groupBy: jest.fn(async () => []),
       findMany: jest.fn(async () => []),
     },
+    announcementAudienceMember: {
+      count: jest.fn(async () => 0),
+      groupBy: jest.fn(async () => []),
+      findMany: jest.fn(async () => []),
+    },
     announcementRevision: { findMany: jest.fn(async () => []) },
     announcementEmailRun: { findMany: jest.fn(async () => []) },
     user: {
