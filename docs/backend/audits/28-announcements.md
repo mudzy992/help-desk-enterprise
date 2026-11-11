@@ -126,7 +126,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | BA-announcements-06 | P2       | Mutation nema version/CAS; draft/published/lifecycle race može pregaziti stanje (If-Match version CAS za update/publish/withdraw/delete, paket 199) | zatvoreno |
 | BA-announcements-07 | P2       | Published revision ne čuva severity/display/end/service/channel promjene (full snapshot + migracija 20271031220000, paket 200) | zatvoreno |
 | BA-announcements-08 | P2       | Notify/reminder claim i email-run queue nisu atomarni ni pouzdano obnovljivi (atomarna transakcija + dedupe otvorenog runa, paket 201) | zatvoreno |
-| BA-announcements-09 | P2       | SMTP accepted → DB mark crash može duplirati e-mail; failed recipient nema retry state      | otvoreno |
+| BA-announcements-09 | P2       | SMTP accepted → DB mark crash može duplirati e-mail; failed recipient nema retry state (retry/reconciliation prolaz nad delivery ledgerom, paket 202) | otvoreno |
 | BA-announcements-10 | P2       | Teams claim prije webhooka čini transient failure terminalnim                               | otvoreno |
 | BA-announcements-11 | P2       | Scheduler nema Redis-loss reconciliation; završena missed najava se trajno gubi             | otvoreno |
 | BA-announcements-12 | P2       | Report miješa publish count sa live membershipom i historijskim acknowledgementima          | otvoreno |

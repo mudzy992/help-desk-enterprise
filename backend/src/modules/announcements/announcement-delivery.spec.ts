@@ -144,6 +144,7 @@ function setup(options: {
   announcementOverrides?: Record<string, unknown>;
   teams?: { enabled: boolean; url?: string; opsUrl?: string };
   teamsDue?: boolean;
+  failedDeliveries?: { userId: string }[];
 }) {
   const runUpdates: Record<string, unknown>[] = [];
   const runsUpdateMany: Record<string, unknown>[] = [];
@@ -177,9 +178,18 @@ function setup(options: {
         return { count: 1 };
       }),
     },
+    notificationEmailDelivery: {
+      findMany: jest.fn(async () => options.failedDeliveries ?? []),
+    },
     user: {
-      findMany: jest.fn(async (args: { where: { id?: { gt: string } }; take: number }) => {
+      findMany: jest.fn(async (args: { where: { id?: { gt: string; in: string[] } }; take: number }) => {
         userQueries.push(args as never);
+        const inList = args.where.id?.in;
+        if (inList !== undefined) {
+          return options.users
+            .filter((user) => inList.includes(user.id))
+            .map((user) => ({ ...user, displayName: user.id, preferredLocale: 'bs' }));
+        }
         const after = args.where.id?.gt ?? '';
         return options.users
           .filter((user) => user.id > after)
@@ -241,9 +251,9 @@ describe('AnnouncementDeliveryService', () => {
     const { service, runUpdates } = setup({ users });
     const result = await service.run(now, 60_000);
     expect(result.emailed).toBe(users.length - 1);
-    expect(runUpdates).toHaveLength(2);
+    expect(runUpdates).toHaveLength(3);
     expect(runUpdates[0]).toMatchObject({ data: { cursor: users[announcementEmailBatchSize - 1]?.id, sentCount: { increment: announcementEmailBatchSize - 1 }, skippedCount: { increment: 1 } } });
-    expect((runUpdates[1] as { data: { completedAt?: Date } }).data.completedAt).toBeInstanceOf(Date);
+    expect((runUpdates[2] as { data: { completedAt?: Date } }).data.completedAt).toBeInstanceOf(Date);
     const first = jest.mocked(deliverNotificationEmail).mock.calls[0]?.[3];
     expect(first).toMatchObject({ dedupeKey: 'announcement-email:r1', templateKey: 'announcement.published' });
   });
@@ -279,6 +289,40 @@ describe('AnnouncementDeliveryService', () => {
     const result = await service.run(now, 60_000);
     expect(result.emailed).toBe(1);
     expect(runUpdates[0]).toMatchObject({ data: { failedCount: { increment: 1 }, sentCount: { increment: 1 } } });
+  });
+
+  it('revisits a previously failed recipient before completing the run', async () => {
+    const { service, runUpdates } = setup({
+      users: [
+        { id: 'u1', email: 'a@example.com' },
+        { id: 'u2', email: 'b@example.com' },
+      ],
+      failedDeliveries: [{ userId: 'u2' }],
+    });
+    const result = await service.run(now, 60_000);
+    expect(result.emailed).toBe(3);
+    expect(jest.mocked(deliverNotificationEmail).mock.calls.map((call) => call[3]?.userId)).toEqual(['u1', 'u2', 'u2']);
+    expect((runUpdates.at(-1) as { data: { completedAt?: Date } }).data.completedAt).toBeInstanceOf(Date);
+  });
+
+  it('keeps the run open while a failed recipient retry is not yet due', async () => {
+    const { NotificationEmailRetryNotDueError } = await import(
+      '../notifications/email/notification-email-delivery-errors'
+    );
+    jest
+      .mocked(deliverNotificationEmail)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new NotificationEmailRetryNotDueError());
+    const { service, runUpdates } = setup({
+      users: [
+        { id: 'u1', email: 'a@example.com' },
+        { id: 'u2', email: 'b@example.com' },
+      ],
+      failedDeliveries: [{ userId: 'u2' }],
+    });
+    await service.run(now, 60_000);
+    expect((runUpdates.at(-1) as { data: { completedAt?: Date } }).data.completedAt).toBeUndefined();
   });
 
   it('posts to Teams once when enabled, falling back to the alarm webhook', async () => {

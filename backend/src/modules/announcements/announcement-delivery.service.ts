@@ -2,6 +2,12 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { resolveEmailLocale } from '../notifications/email/compose-ticket-email';
 import { deliverNotificationEmail } from '../notifications/email/deliver-notification-email';
+import { emailDeliveryStatuses } from '../notifications/email/email-template.constants';
+import {
+  NotificationEmailDeliveryDeadError,
+  NotificationEmailOutcomeUnknownError,
+  NotificationEmailRetryNotDueError,
+} from '../notifications/email/notification-email-delivery-errors';
 import { isAllowedNotificationEmailAddress } from '../notifications/email/is-allowed-notification-email-address';
 import {
   loadEmailChannelConfiguration,
@@ -12,6 +18,7 @@ import { notificationTypes } from '../notifications/notifications.constants';
 import {
   loadNotificationPreferencePolicy,
   type DeliveryDecision,
+  type NotificationPreferencePolicy,
 } from '../notifications/preferences/notification-preference-policy';
 import { resolveDeliveryDecisions } from '../notifications/preferences/resolve-delivery-decisions';
 import { postTeamsWebhook, type TeamsPoster } from '../ops-health/teams-webhook';
@@ -265,13 +272,143 @@ export class AnnouncementDeliveryService {
           sentCount: { increment: sent },
           skippedCount: { increment: skipped },
           failedCount: { increment: failed },
-          ...(done ? { completedAt: new Date() } : {}),
         },
       });
       sentTotal += sent;
-      if (done) break;
+      if (done) {
+        // BA-announcements-09: the cursor pass alone does not finish the run.
+        // Failed recipients keep a retryable ledger state and are revisited
+        // (at-least-once, deterministic Message-ID, UNKNOWN never resent)
+        // before the run may complete.
+        const retry = await this.retryFailedRecipients({
+          run,
+          channel,
+          timeZone,
+          policy,
+          type,
+          dedupeKey,
+          deadline,
+        });
+        sentTotal += retry.sent;
+        await this.prisma.announcementEmailRun.update({
+          where: { id: run.id },
+          data: {
+            ...(retry.sent > 0 ? { sentCount: { increment: retry.sent } } : {}),
+            ...(retry.skipped > 0 ? { skippedCount: { increment: retry.skipped } } : {}),
+            ...(retry.remaining === 0 ? { completedAt: new Date() } : {}),
+          },
+        });
+        break;
+      }
     }
     return sentTotal;
+  }
+
+  /**
+   * BA-announcements-09: revisit this run's FAILED/PENDING ledger deliveries.
+   * A recipient resolves when the retry sends, when the ledger turns terminal
+   * (UNKNOWN/DEAD), or when audience/preference/address rules now exclude
+   * them; only still-failing or not-yet-due recipients keep the run open for
+   * the next sweep. The notifications claim machine owns backoff and the
+   * no-blind-resend rule for ambiguous SMTP outcomes.
+   */
+  private async retryFailedRecipients(input: {
+    readonly run: RunRow;
+    readonly channel: EmailChannelConfiguration;
+    readonly timeZone: string;
+    readonly policy: NotificationPreferencePolicy;
+    readonly type: string;
+    readonly dedupeKey: string;
+    readonly deadline: number;
+  }): Promise<{ readonly sent: number; readonly skipped: number; readonly remaining: number }> {
+    const { run, channel } = input;
+    const { announcement } = run;
+    const deliveries = await this.prisma.notificationEmailDelivery.findMany({
+      where: {
+        dedupeKey: input.dedupeKey,
+        status: { in: [emailDeliveryStatuses.pending, emailDeliveryStatuses.failed] },
+      },
+      orderBy: { nextRetryAt: 'asc' },
+      take: announcementEmailBatchSize,
+      select: { userId: true },
+    });
+    if (deliveries.length === 0) return { sent: 0, skipped: 0, remaining: 0 };
+    const audienceWhere = await this.announcements.audienceWhereFor({
+      roles: announcement.audienceRoles,
+      organizationalUnitIds: announcement.audienceOrganizationalUnitIds,
+      groupIds: announcement.audienceGroupIds,
+    });
+    const users: AnnouncementEmailRecipient[] = await this.prisma.user.findMany({
+      where: {
+        ...audienceWhere,
+        id: { in: deliveries.map((delivery) => delivery.userId) },
+        ...(run.kind === 'REMINDER' ? { announcementAcknowledgements: { none: { announcementId: announcement.id } } } : {}),
+      },
+      orderBy: { id: 'asc' },
+      select: { id: true, email: true, displayName: true, preferredLocale: true },
+    });
+    const decisions = await resolveDeliveryDecisions(this.prisma, input.policy, {
+      type: input.type,
+      userIds: users.map((user) => user.id),
+      now: new Date(),
+    });
+    let sent = 0;
+    let skipped = 0;
+    let remaining = deliveries.length >= announcementEmailBatchSize ? 1 : 0;
+    for (const user of users) {
+      if (Date.now() >= input.deadline) {
+        remaining += 1;
+        break;
+      }
+      const verdict = decideAnnouncementEmail(decisions.get(user.id), announcement.severity);
+      if (
+        verdict !== 'SEND' ||
+        !isAllowedNotificationEmailAddress(user.email, {
+          internalOnly: channel.internalOnly,
+          internalDomains: channel.internalDomains,
+          allowedExternalDomains: channel.allowedExternalDomains,
+          allowedExternalEmails: channel.allowedExternalEmails,
+        })
+      ) {
+        skipped += 1;
+        continue;
+      }
+      try {
+        const composed = composeAnnouncementEmail({
+          configuration: channel,
+          locale: resolveEmailLocale(user.preferredLocale, channel),
+          timeZone: input.timeZone,
+          kind: run.kind,
+          recipientKey: user.id,
+          recipientName: user.displayName,
+          announcement,
+          dedupeKey: input.dedupeKey,
+        });
+        await deliverNotificationEmail(this.prisma, this.mailTransport, channel, {
+          userId: user.id,
+          toAddress: user.email,
+          dedupeKey: input.dedupeKey,
+          templateKey: run.kind === 'PUBLISHED' ? 'announcement.published' : 'announcement.reminder',
+          subject: composed.subject,
+          text: composed.text,
+          html: composed.html,
+          messageId: composed.messageId,
+          headers: composed.headers,
+        });
+        sent += 1;
+      } catch (error) {
+        if (error instanceof NotificationEmailRetryNotDueError) {
+          remaining += 1;
+        } else if (error instanceof NotificationEmailOutcomeUnknownError || error instanceof NotificationEmailDeliveryDeadError) {
+          // Terminal ledger states: never resent, but they do not block the run.
+          this.logger.warn(`announcement_email_retry_terminal run=${run.id} reason=${error.name}`);
+        } else {
+          remaining += 1;
+          this.logger.warn(`announcement_email_retry_failed run=${run.id} reason=${errorText(error)}`);
+        }
+      }
+    }
+    return { sent, skipped, remaining };
   }
 
   // ------------------------------------------------------------ Teams
