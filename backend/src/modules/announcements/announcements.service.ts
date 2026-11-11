@@ -533,11 +533,29 @@ export class AnnouncementsService {
     const revisions = await this.prisma.announcementRevision.findMany({
       where: { announcementId: id },
       orderBy: { version: 'desc' },
-      select: { version: true, title: true, body: true, createdAt: true },
+      select: {
+        version: true,
+        title: true,
+        body: true,
+        severity: true,
+        displayMode: true,
+        startsAt: true,
+        endsAt: true,
+        serviceId: true,
+        notifyAudience: true,
+        sendEmail: true,
+        postToTeams: true,
+        createdAt: true,
+      },
     });
     return {
       ...this.toManaged(row, now),
-      revisions: revisions.map((revision) => ({ ...revision, createdAt: revision.createdAt.toISOString() })),
+      revisions: revisions.map((revision) => ({
+        ...revision,
+        startsAt: revision.startsAt?.toISOString() ?? null,
+        endsAt: revision.endsAt?.toISOString() ?? null,
+        createdAt: revision.createdAt.toISOString(),
+      })),
     };
   }
 
@@ -684,9 +702,36 @@ export class AnnouncementsService {
           throw new AnnouncementError(announcementErrorCodes.invalidState, 'publishedAcknowledgement');
         }
         const textChanged = row.title !== data.title || row.body !== data.body;
-        if (textChanged) {
+        // BA-announcements-07: any change to the published presentation leaves
+        // a full immutable snapshot of the state being replaced, not only a
+        // title/body copy for text edits.
+        const snapshotChanged =
+          textChanged ||
+          row.severity !== data.severity ||
+          row.displayMode !== data.displayMode ||
+          row.startsAt.getTime() !== data.startsAt.getTime() ||
+          row.endsAt.getTime() !== data.endsAt.getTime() ||
+          row.serviceId !== data.serviceId ||
+          row.notifyAudience !== data.notifyAudience ||
+          row.sendEmail !== data.sendEmail ||
+          row.postToTeams !== data.postToTeams;
+        if (snapshotChanged) {
           await transaction.announcementRevision.create({
-            data: { announcementId: id, version: row.version, title: row.title, body: row.body, editedById: viewer.userId },
+            data: {
+              announcementId: id,
+              version: row.version,
+              title: row.title,
+              body: row.body,
+              severity: row.severity,
+              displayMode: row.displayMode,
+              startsAt: row.startsAt,
+              endsAt: row.endsAt,
+              serviceId: row.serviceId,
+              notifyAudience: row.notifyAudience,
+              sendEmail: row.sendEmail,
+              postToTeams: row.postToTeams,
+              editedById: viewer.userId,
+            },
           });
         }
         const updated = await transaction.announcement.updateMany({

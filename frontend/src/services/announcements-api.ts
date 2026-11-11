@@ -116,6 +116,15 @@ export type ManagedAnnouncementDetail = ManagedAnnouncement & {
     readonly version: number;
     readonly title: string;
     readonly body: string;
+    /** Full published-state snapshot (BA-announcements-07); null on legacy revisions. */
+    readonly severity: AnnouncementSeverity | null;
+    readonly displayMode: AnnouncementDisplayMode | null;
+    readonly startsAt: string | null;
+    readonly endsAt: string | null;
+    readonly serviceId: string | null;
+    readonly notifyAudience: boolean | null;
+    readonly sendEmail: boolean | null;
+    readonly postToTeams: boolean | null;
     readonly createdAt: string;
   }>;
 };

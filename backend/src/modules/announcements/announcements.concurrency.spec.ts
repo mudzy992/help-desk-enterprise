@@ -147,6 +147,23 @@ describe('AnnouncementsService version CAS (BA-announcements-06)', () => {
     );
   });
 
+  it('a published severity-only edit leaves a full snapshot of the replaced state', async () => {
+    const { service, tx } = setup('PUBLISHED', 1);
+    await service.update('ann-1', { ...baseInput, severity: 'WARNING' }, viewer(), 3, now);
+    expect(tx.announcementRevision.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        announcementId: 'ann-1',
+        version: 3,
+        severity: 'INFO',
+        displayMode: 'BANNER',
+        serviceId: null,
+        notifyAudience: false,
+        sendEmail: false,
+        postToTeams: false,
+      }),
+    });
+  });
+
   it('stale withdraw is rejected as a version conflict instead of overwriting state', async () => {
     const { service } = setup('PUBLISHED', 0);
     await expect(service.withdraw('ann-1', 'reason', viewer(), 3, now)).rejects.toMatchObject({

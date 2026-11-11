@@ -98,14 +98,24 @@ model AnnouncementDismissal {
 
 /// Text of a published announcement before an edit (§3.3 "verzija se čuva").
 model AnnouncementRevision {
-  id             String       @id @default(cuid())
+  id             String                  @id @default(cuid())
   announcementId String
   version        Int
-  title          String       @db.VarChar(120)
-  body           String       @db.VarChar(4000)
+  title          String                  @db.VarChar(120)
+  body           String                  @db.VarChar(4000)
+  // BA-announcements-07: full snapshot of the published state being replaced.
+  // Nullable so revisions written before this snapshot existed stay readable.
+  severity       AnnouncementSeverity?
+  displayMode    AnnouncementDisplayMode?
+  startsAt       DateTime?
+  endsAt         DateTime?
+  serviceId      String?
+  notifyAudience Boolean?
+  sendEmail      Boolean?
+  postToTeams    Boolean?
   editedById     String?
-  createdAt      DateTime     @default(now())
-  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  createdAt      DateTime                @default(now())
+  announcement   Announcement            @relation(fields: [announcementId], references: [id], onDelete: Cascade)
 
   @@unique([announcementId, version])
 }
