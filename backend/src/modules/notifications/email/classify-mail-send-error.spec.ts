@@ -1,4 +1,9 @@
-import { classifyMailSendError, isMailProviderLimit, isPermanentRecipientFailure } from './classify-mail-send-error';
+import {
+  classifyMailSendError,
+  isAmbiguousMailSendError,
+  isMailProviderLimit,
+  isPermanentRecipientFailure,
+} from './classify-mail-send-error';
 
 /**
  * Stvarni odgovori provajdera (incident 2026-10-16: Gmail 550-5.4.5). Nodemailer
@@ -112,6 +117,23 @@ describe('classifyMailSendError', () => {
     );
     expect(failure.responseCode).toBe(550);
     expect(failure.kind).toBe('dailyLimit');
+  });
+
+  it('razlikuje poznato odbijanje od ishoda koji može biti neizvjestan', () => {
+    expect(isAmbiguousMailSendError(smtpError({ responseCode: 451, response: '451 4.3.0 retry later' }))).toBe(false);
+    expect(isAmbiguousMailSendError(Object.assign(new Error('provider blocked'), { code: 'EPROVIDERBLOCKED' }))).toBe(false);
+    expect(isAmbiguousMailSendError(Object.assign(new Error('recipient rejected'), { command: 'RCPT TO' }))).toBe(false);
+    expect(
+      isAmbiguousMailSendError(
+        Object.assign(new Error('failure during recipient negotiation'), {
+          command: 'RCPT TO',
+          responseCode: 250,
+        }),
+      ),
+    ).toBe(false);
+    expect(isAmbiguousMailSendError(smtpError({ responseCode: 250, response: '250 accepted' }))).toBe(true);
+    expect(isAmbiguousMailSendError(Object.assign(new Error('socket closed'), { command: 'DATA' }))).toBe(true);
+    expect(isAmbiguousMailSendError(new Error('connection dropped'))).toBe(true);
   });
 
   it('razlog nikad ne nosi cijeli odgovor ni lozinku', () => {

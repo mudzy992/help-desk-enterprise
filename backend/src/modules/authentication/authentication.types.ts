@@ -1,3 +1,5 @@
+import type { PrincipalAuthoritySnapshot } from '../../common/principal-context/principal-context.types';
+
 export type AuthenticationMode = 'local' | 'entra_ad';
 
 export type PasswordAuthenticationCredentials = {
@@ -112,6 +114,11 @@ export type SessionAccessTokenClaims = {
   readonly expiresAt: number;
   /** False for pre-5.4.0-c tokens that do not carry the `rem` claim. */
   readonly rememberMe: boolean;
+};
+
+/** Verified token plus the fresh PostgreSQL authority read, never JWT payload data. */
+export type VerifiedSessionAccessToken = SessionAccessTokenClaims & {
+  readonly durableAuthority?: PrincipalAuthoritySnapshot;
 };
 
 export type PasswordChangeTokenClaims = {

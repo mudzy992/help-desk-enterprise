@@ -18,6 +18,7 @@ export async function resetUserTemporaryPassword(
     readonly mailTransport: MailTransport;
     /** Paket 5.4.0-d (M5): a compromised candidate is redrawn, never stored. */
     readonly hibpChecker?: HibpPasswordChecker;
+    readonly invalidatePrincipal?: (userId: string) => Promise<unknown>;
   },
   context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<ResetUserPasswordResponse> {
@@ -66,6 +67,7 @@ export async function resetUserTemporaryPassword(
     userId: existing.id,
     email: existing.email,
     displayName: existing.displayName,
+    invalidatePrincipal: dependencies.invalidatePrincipal,
     audit: {
       action: auditLogActions.userPasswordReset,
       actorUserId: context.actorUserId,

@@ -96,7 +96,12 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           }}
         />
       ) : null}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div
+        role="region"
+        aria-label={t("tickets.detail.conversation")}
+        tabIndex={0}
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+      >
         {/*
           Opening request — Pulse primary tint (same family as merged banner /
           bulk bar) so the description reads as the conversation anchor without

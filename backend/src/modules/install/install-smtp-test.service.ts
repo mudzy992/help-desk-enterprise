@@ -1,8 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { redisTokens } from '../../common/redis/redis.tokens';
 import { MAIL_TRANSPORT } from '../notifications/email/mail-transport';
 import type { MailTransport } from '../notifications/email/mail-transport';
-import { TestEmailRateLimiter } from '../notifications/email-templates/test-email-rate-limiter';
+import {
+  TestEmailRateLimiter,
+  TestEmailRateLimiterUnavailableError,
+  type TestEmailRateLimiterRedis,
+} from '../notifications/email-templates/test-email-rate-limiter';
 import { SettingsService } from '../settings/settings.service';
 import { findInstallSuperAdmin } from './find-install-super-admin';
 import { installSmtpTestConstants, installSmtpTestErrorCodes } from './install-smtp-test.constants';
@@ -16,21 +21,25 @@ import { readInstallSmtpStatus, readStoredInstallSmtp } from './read-install-smt
 
 /**
  * F4.1: „Pošalji test“ in the SMTP step. The wizard sends through the same mail
- * transport and the same rate limiter class the e-mail templates screen uses
- * (`TestEmailRateLimiter`, 5 sends per 10 minutes) — deliberately the same, so the
- * wizard cannot become a way around that limit. The limiter is created without
- * the Redis client here: the install module must not import the notifications
- * module (module cycle, see `install.module.ts`), so the counter is per-instance.
+ * transport and the same shared-Redis rate limiter the e-mail templates screen
+ * uses (`TestEmailRateLimiter`, five sends per 10 minutes), so this route cannot
+ * bypass that limit. Redis is injected directly; the install module deliberately
+ * avoids importing NotificationsModule to prevent a module cycle.
  */
 @Injectable()
 export class InstallSmtpTestService {
-  private readonly rateLimiter = new TestEmailRateLimiter();
+  private readonly rateLimiter: TestEmailRateLimiter;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
-  ) {}
+    @Optional()
+    @Inject(redisTokens.client)
+    redis?: TestEmailRateLimiterRedis,
+  ) {
+    this.rateLimiter = new TestEmailRateLimiter(redis ?? null);
+  }
 
   async send(input: {
     readonly toAddress?: string;
@@ -63,7 +72,18 @@ export class InstallSmtpTestService {
     if (!installSmtpTestConstants.addressPattern.test(toAddress)) {
       throw new InstallSmtpTestError(installSmtpTestErrorCodes.invalidRecipient);
     }
-    if (!(await this.rateLimiter.consume(superAdmin.id))) {
+    let rateLimitAllowed: boolean;
+    try {
+      rateLimitAllowed = await this.rateLimiter.consume(superAdmin.id);
+    } catch (error) {
+      if (error instanceof TestEmailRateLimiterUnavailableError) {
+        throw new InstallSmtpTestError(
+          installSmtpTestErrorCodes.rateLimitUnavailable,
+        );
+      }
+      throw error;
+    }
+    if (!rateLimitAllowed) {
       throw new InstallSmtpTestError(installSmtpTestErrorCodes.rateLimited);
     }
     const stored = await readStoredInstallSmtp(this.settingsService);

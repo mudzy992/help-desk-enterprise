@@ -43,6 +43,8 @@ export type OnCallRotationLength = "DAY" | "WEEK";
 
 export type OnCallScheduleView = {
   readonly id: string;
+  /** Optimistic-concurrency token returned by schedule detail. */
+  readonly updatedAt: string;
   readonly timezone: string;
   readonly handoffTime: string;
   readonly rotationLength: OnCallRotationLength;
@@ -77,7 +79,9 @@ export type OnCallGroupDetail = {
   readonly segments: readonly OnCallSegmentView[];
   readonly current: OnCallSegmentView | null;
   readonly overrides: readonly OnCallOverrideView[];
+  readonly overridesHasMore?: boolean;
   readonly swaps: readonly OnCallPendingSwapView[];
+  readonly swapsHasMore?: boolean;
   readonly candidates: ReadonlyArray<{ readonly userId: string; readonly displayName: string }>;
   readonly defaultTimezone: string;
   readonly canManage: boolean;
@@ -119,6 +123,8 @@ export type OnCallSwapView = {
 };
 
 export type SaveOnCallScheduleInput = {
+  /** Current schedule revision; null only when creating a schedule. */
+  readonly expectedUpdatedAt: string | null;
   readonly timezone: string;
   readonly handoffTime: string;
   readonly rotationLength: OnCallRotationLength;
@@ -183,7 +189,10 @@ export function requestOnCallSwap(
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/on-call/groups/${id(groupId)}/swaps`, json("POST", input));
 }
-export function listOnCallSwaps(): Promise<{ readonly swaps: readonly OnCallSwapView[] }> {
+export function listOnCallSwaps(): Promise<{
+  readonly swaps: readonly OnCallSwapView[];
+  readonly hasMore?: boolean;
+}> {
   return apiRequest("/on-call/swaps");
 }
 export function decideOnCallSwap(

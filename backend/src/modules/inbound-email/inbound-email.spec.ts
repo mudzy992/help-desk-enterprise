@@ -48,6 +48,7 @@ function ports(overrides: Partial<InboundProcessingPorts> = {}) {
       return value;
     };
   const base: InboundProcessingPorts = {
+    beginMutation: record('beginMutation', undefined),
     findSenderByEmail: record('findSender', { id: 'user00001', email: 'ana@example.com', isActive: true }),
     findTicketById: record('findTicketById', ticket()),
     findTicketByNumber: record('findTicketByNumber', ticket()),
@@ -57,6 +58,7 @@ function ports(overrides: Partial<InboundProcessingPorts> = {}) {
     attach: record('attach', undefined),
     noteRejectedAttachment: record('note', undefined),
     createTicket: record('createTicket', { ticketId: 'newticket1' }),
+    resumeCreatedTicket: record('resumeCreatedTicket', undefined),
     sendNotice: record('notice', undefined),
   };
   return { ports: { ...base, ...overrides }, calls };
@@ -66,6 +68,7 @@ const options: InboundProcessingOptions = {
   ownAddresses: ['helpdesk@example.com'],
   replyTokenSecret: secret,
   requireAuthPass: true,
+  trustedAuthservId: 'mx.example.com',
   recipientPolicy: { internalOnly: true, internalDomains: ['example.com'], allowedExternalDomains: [], allowedExternalEmails: [] },
   maxPerSenderPerHour: 20,
   createTickets: false,
@@ -117,12 +120,50 @@ describe('Paket 2.3 — anti-loop and sender authentication', () => {
     expect(detectAutoReply(message(), ['helpdesk@example.com'])).toBeNull();
   });
 
-  it('reads DMARC / SPF+DKIM from the topmost Authentication-Results', () => {
-    expect(checkSenderAuthentication(message())).toBe('pass');
-    expect(checkSenderAuthentication(message({ headerList: [['authentication-results', ['x; spf=pass; dkim=pass']]] }))).toBe('pass');
-    expect(checkSenderAuthentication(message({ headerList: [['authentication-results', ['x; spf=fail; dmarc=fail']]] }))).toBe('fail');
-    expect(checkSenderAuthentication(message({ headerList: [] }))).toBe('none');
-    expect(checkSenderAuthentication(message({ headerList: [['x-ms-exchange-organization-authas', ['Internal']]] }))).toBe('pass');
+  it('requires the configured authserv-id on the first Authentication-Results header', () => {
+    expect(checkSenderAuthentication(message(), 'mx.example.com')).toBe('pass');
+    expect(checkSenderAuthentication(message(), '')).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['authentication-results', ['MX.EXAMPLE.COM. 1; spf=pass; dkim=pass']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('pass');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['authentication-results', ['mx.example.com; spf=fail; dmarc=fail']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('fail');
+    expect(checkSenderAuthentication(message({ headerList: [] }), 'mx.example.com')).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['authentication-results', ['mx.example.com.attacker.test; dmarc=pass']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({
+          headerList: [
+            ['authentication-results', ['attacker.example; dmarc=pass', 'mx.example.com; dmarc=pass']],
+          ],
+        }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['arc-authentication-results', ['mx.example.com; dmarc=pass']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
+    expect(
+      checkSenderAuthentication(
+        message({ headerList: [['x-ms-exchange-organization-authas', ['Internal']]] }),
+        'mx.example.com',
+      ),
+    ).toBe('none');
   });
 });
 
@@ -144,6 +185,25 @@ describe('Paket 2.3 — reply text cleaning', () => {
 });
 
 describe('Paket 2.3 — processInboundMessage', () => {
+  it('accepts a signed reply token only from its issued recipient', async () => {
+    const id = createReplyTokenMessageId({ secret, ticketId: 'ticket0001', recipientId: 'user00001', dedupeKey: 'k', domain: 'example.com' });
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message({ inReplyTo: id }), p, options);
+    expect(outcome).toEqual({ status: 'PROCESSED', ticketId: 'ticket0001', ticketMessageId: 'msg1', notes: [] });
+    expect(calls.some((call) => call.kind === 'findTicketById')).toBe(true);
+    expect(calls.find((call) => call.kind === 'addReply')?.args).toEqual(['ticket0001', 'user00001', 'Printer radi, hvala.']);
+  });
+
+  it('rejects a signed reply token presented by a different sender without confirming the ticket', async () => {
+    const id = createReplyTokenMessageId({ secret, ticketId: 'ticket0001', recipientId: 'someoneelse', dedupeKey: 'k', domain: 'example.com' });
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message({ inReplyTo: id }), p, options);
+    expect(outcome).toEqual({ status: 'REJECTED', reason: 'TOKEN_RECIPIENT_MISMATCH' });
+    expect(calls.some((call) => call.kind === 'findTicketById')).toBe(false);
+    expect(calls.some((call) => call.kind === 'addReply')).toBe(false);
+    expect(calls.some((call) => call.kind === 'reopen')).toBe(false);
+  });
+
   it('adds the cleaned reply to the ticket from the subject number', async () => {
     const { ports: p, calls } = ports();
     const outcome = await processInboundMessage(message(), p, options);
@@ -151,11 +211,66 @@ describe('Paket 2.3 — processInboundMessage', () => {
     expect(calls.find((call) => call.kind === 'addReply')?.args).toEqual(['ticket0001', 'user00001', 'Printer radi, hvala.']);
   });
 
+  it('uses the inbound row id as a stable ticket-message idempotency key', async () => {
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message(), p, { ...options, inboundEmailId: 'inbound-row-01' });
+    expect(outcome.status).toBe('PROCESSED');
+    expect(calls.find((call) => call.kind === 'addReply')?.args).toEqual([
+      'ticket0001',
+      'user00001',
+      'Printer radi, hvala.',
+      'inbound-email:inbound-row-01:reply',
+    ]);
+  });
+
+  it('resumes persisted ticket writes without repeating the reply and keys attachments by stable index', async () => {
+    const { ports: p, calls } = ports();
+    const attachment: InboundAttachment = {
+      filename: 'proof.png',
+      contentType: 'image/png',
+      size: 100,
+      content: Buffer.from('proof'),
+      inline: false,
+    };
+    const outcome = await processInboundMessage(message({ attachments: [attachment] }), p, {
+      ...options,
+      inboundEmailId: 'inbound-row-01',
+      existingResult: { ticketId: 'ticket0001', ticketMessageId: 'msg-existing' },
+    });
+    expect(outcome).toMatchObject({ status: 'PROCESSED', ticketId: 'ticket0001', ticketMessageId: 'msg-existing' });
+    expect(calls.some((call) => call.kind === 'addReply')).toBe(false);
+    expect(calls.find((call) => call.kind === 'attach')?.args).toEqual([
+      'ticket0001',
+      'user00001',
+      attachment,
+      'inbound-email:inbound-row-01:attachment:0',
+    ]);
+  });
+
+  it('replays post-create effects before completing a persisted new ticket', async () => {
+    const { ports: p, calls } = ports();
+    const outcome = await processInboundMessage(message(), p, {
+      ...options,
+      existingResult: { ticketId: 'newticket1', createdTicketId: 'newticket1' },
+    });
+
+    expect(outcome).toMatchObject({ status: 'PROCESSED', ticketId: 'newticket1', createdTicketId: 'newticket1' });
+    expect(calls.find((call) => call.kind === 'resumeCreatedTicket')?.args).toEqual(['newticket1', 'user00001']);
+    expect(calls.some((call) => call.kind === 'createTicket')).toBe(false);
+  });
+
   it.each<[string, Partial<InboundProcessingPorts>, Partial<InboundProcessingOptions>, Partial<InboundMessage> & { headerList?: [string, string[]][] }, string]>([
     ['unknown sender', { findSenderByEmail: async () => null }, {}, {}, 'UNKNOWN_SENDER'],
     ['inactive sender', { findSenderByEmail: async () => ({ id: 'u', email: 'ana@example.com', isActive: false }) }, {}, {}, 'SENDER_INACTIVE'],
     ['external domain', {}, {}, { fromAddress: 'eve@gmail.com' }, 'SENDER_DOMAIN_NOT_ALLOWED'],
-    ['DMARC fail', {}, {}, { headerList: [['authentication-results', ['x; dmarc=fail']]] }, 'AUTHENTICATION_FAILED'],
+    ['DMARC fail', {}, {}, { headerList: [['authentication-results', ['mx.example.com; dmarc=fail']]] }, 'AUTHENTICATION_FAILED'],
+    [
+      'forged Authentication-Results chain',
+      {},
+      {},
+      { headerList: [['authentication-results', ['attacker.example; dmarc=pass', 'mx.example.com; dmarc=pass']]] },
+      'AUTHENTICATION_FAILED',
+    ],
     ['rate limit', { countRecentFromSender: async () => 20 }, {}, {}, 'RATE_LIMITED'],
     ['no ticket match', {}, {}, { subject: 'Pitanje' }, 'NO_TICKET_MATCH'],
     ['ticket missing', { findTicketByNumber: async () => null }, {}, {}, 'TICKET_NOT_FOUND'],
@@ -186,6 +301,25 @@ describe('Paket 2.3 — processInboundMessage', () => {
     const outcome = await processInboundMessage(message(), p, options);
     expect(outcome).toMatchObject({ status: 'PROCESSED', ticketMessageId: 'msg2' });
     expect(calls.some((call) => call.kind === 'reopen')).toBe(true);
+  });
+
+  it('uses a stable inbound key and the new ticket id when reopening as a new ticket', async () => {
+    const { ports: p, calls } = ports({
+      findTicketByNumber: async () => ticket({ status: 'RESOLVED' }),
+    });
+    p.reopenWithReply = async (ticketId, senderId, body, idempotencyKey) => {
+      calls.push({ kind: 'reopen', args: [ticketId, senderId, body, idempotencyKey] });
+      return { messageId: 'reopen-comment', ticketId: 'reopened-ticket', createdTicketId: 'reopened-ticket' };
+    };
+    const outcome = await processInboundMessage(message(), p, { ...options, inboundEmailId: 'inbound-row-01' });
+
+    expect(outcome).toMatchObject({
+      status: 'PROCESSED',
+      ticketId: 'reopened-ticket',
+      ticketMessageId: 'reopen-comment',
+      createdTicketId: 'reopened-ticket',
+    });
+    expect(calls.find((call) => call.kind === 'reopen')?.args[3]).toBe('inbound-email:inbound-row-01:reopen');
   });
 
   it('redaction block notifies the sender without quoting', async () => {
@@ -270,10 +404,32 @@ describe('Paket 2.3 — parsing, configuration and notices', () => {
       address: '',
       graph: { tenantId: '', clientId: '', clientSecret: '' },
       imap: { host: '', port: 993, tls: true, username: '', password: '', authMethod: 'password' },
+      requireAuthPass: true,
+      trustedAuthservId: '',
       createTickets: true,
       defaultServiceId: '',
     } as unknown as InboundEmailConfiguration;
-    expect(inboundConfigurationProblems(configuration)).toEqual(['ADDRESS_MISSING', 'ENTRA_APP_MISSING', 'DEFAULT_SERVICE_MISSING']);
+    expect(inboundConfigurationProblems(configuration)).toEqual([
+      'ADDRESS_MISSING',
+      'ENTRA_APP_MISSING',
+      'TRUSTED_AUTHSERV_ID_MISSING',
+      'DEFAULT_SERVICE_MISSING',
+    ]);
+  });
+
+  it('flags an invalid trusted authserv-id instead of trusting it', () => {
+    const configuration = {
+      enabled: true,
+      provider: 'imap',
+      address: 'helpdesk@example.com',
+      graph: { tenantId: '', clientId: '', clientSecret: '' },
+      imap: { host: 'imap.example.com', port: 993, tls: true, username: 'helpdesk', password: 'secret', authMethod: 'password' },
+      requireAuthPass: true,
+      trustedAuthservId: '*.example.com',
+      createTickets: false,
+      defaultServiceId: '',
+    } as InboundEmailConfiguration;
+    expect(inboundConfigurationProblems(configuration)).toContain('TRUSTED_AUTHSERV_ID_INVALID');
   });
 
   it('notice carries RFC 3834 headers and never the original text', () => {

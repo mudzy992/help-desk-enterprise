@@ -3,7 +3,7 @@ import type { ConfigReferenceIndex } from './config-package.types';
 
 /** Natural keys of every entity a config snapshot can reference, for one environment. */
 export async function loadConfigReferenceIndex(prisma: PrismaService): Promise<ConfigReferenceIndex> {
-  const [units, groups, services, categories, packs, calendars, profiles, templates, playbooks, forms] =
+  const [units, groups, services, categories, packs, calendars, profiles, templates, playbooks, articles, forms] =
     await Promise.all([
       prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true } }),
       prisma.group.findMany({ select: { id: true, key: true } }),
@@ -14,6 +14,7 @@ export async function loadConfigReferenceIndex(prisma: PrismaService): Promise<C
       prisma.slaProfile.findMany({ select: { id: true, key: true } }),
       prisma.responseTemplate.findMany({ where: { ownerUserId: null }, select: { id: true, name: true } }),
       prisma.playbook.findMany({ select: { id: true, name: true } }),
+      prisma.knowledgeArticle.findMany({ select: { id: true, slug: true } }),
       prisma.formVersion.findMany({ select: { id: true, version: true, service: { select: { slug: true } } } }),
     ]);
   return {
@@ -26,6 +27,7 @@ export async function loadConfigReferenceIndex(prisma: PrismaService): Promise<C
     slaProfiles: profiles.map((profile) => ({ id: profile.id, key: profile.key })),
     responseTemplates: templates.map((template) => ({ id: template.id, key: template.name })),
     playbooks: playbooks.map((playbook) => ({ id: playbook.id, key: playbook.name })),
+    knowledgeArticles: articles.map((article) => ({ id: article.id, key: article.slug })),
     formVersions: forms.map((form) => ({ id: form.id, key: `${form.service.slug}@${form.version}` })),
   };
 }

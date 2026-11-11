@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards, UsePipes } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../../authentication/authenticated-request';
 import { RequireRoles } from '../../authorization/require-roles.decorator';
@@ -8,6 +8,7 @@ import {
   BulkAttachPlaybookDto,
   DeleteWithReasonDto,
   SetTicketPlaybookStepDto,
+  TicketPlaybookCandidatesQueryDto,
 } from '../dto/templates.dto';
 import { executeTemplatesOperation } from '../map-templates-error';
 import { readActor, staffRoleKeys, templatesValidationPipe } from '../templates-http';
@@ -22,8 +23,12 @@ export class TicketPlaybooksController {
   constructor(private readonly playbooks: TicketPlaybooksService) {}
 
   @Get(':ticketId/playbook')
-  get(@Param('ticketId') ticketId: string, @Req() request: AuthenticatedHttpRequest) {
-    return executeTemplatesOperation(() => this.playbooks.get(ticketId, readActor(request)));
+  get(
+    @Param('ticketId') ticketId: string,
+    @Query() query: TicketPlaybookCandidatesQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return executeTemplatesOperation(() => this.playbooks.get(ticketId, readActor(request), query));
   }
 
   @Post(':ticketId/playbook')
@@ -64,8 +69,6 @@ export class TicketPlaybooksController {
     @Body() body: SetTicketPlaybookStepDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
-    return executeTemplatesOperation(() =>
-      this.playbooks.setStep(ticketId, stepKey, body.checked, readActor(request)),
-    );
+    return executeTemplatesOperation(() => this.playbooks.setStep(ticketId, stepKey, body.checked, readActor(request)));
   }
 }

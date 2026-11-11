@@ -1,4 +1,5 @@
 import { Blocks, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -16,6 +17,7 @@ import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { PageHeader, brandCrumb } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { queryKeys } from "@/lib/query/query-keys";
 import { serviceCatalogLoadState } from "@/lib/services/service-catalog-load-state";
 import {
   canonicalizeServiceCatalogUrl,
@@ -39,11 +41,25 @@ import {
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { ApiError } from "@/services/api";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
+import { getService } from "@/services/service-catalog-api";
 
 export function ServicesPage() {
   const { t } = useTranslation();
-  const catalog = useServiceCatalog();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlState = useMemo(() => parseServiceCatalogUrl(searchParams), [searchParams]);
+  const [catalogSearch, setCatalogSearch] = useState(urlState.query);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setCatalogSearch(urlState.query), 250);
+    return () => window.clearTimeout(timeout);
+  }, [urlState.query]);
+  const catalog = useServiceCatalog({
+    query: catalogSearch,
+    categoryId: urlState.categoryId,
+    lifecycle: urlState.lifecycle,
+    originUnitId: urlState.originUnitId,
+  });
   const categoryState = useServiceCategories();
   const routingCoverage = useCatalogRoutingCoverage();
   const onboardings = useVisibleOnboardings(catalog.rows);
@@ -56,20 +72,48 @@ export function ServicesPage() {
     isModuleLocked: !catalogReadOnly.canWrite,
     canBypass: canBypassAdminReadOnly(session),
   });
-  const [searchParams, setSearchParams] = useSearchParams();
-  const urlState = useMemo(() => parseServiceCatalogUrl(searchParams), [searchParams]);
   const workspace = resolveServiceWorkspace(urlState);
   const workspaceServiceId = "serviceId" in workspace ? workspace.serviceId : null;
-  const selectedService =
+  const selectedServiceFromPage =
     workspaceServiceId === null
-      ? null
-      : (catalog.rows.find((row) => row.service.id === workspaceServiceId)?.service ?? null);
+      ? undefined
+      : catalog.rows.find((row) => row.service.id === workspaceServiceId)?.service;
+  const selectedServiceQuery = useQuery({
+    queryKey: queryKeys.service(workspaceServiceId ?? ""),
+    queryFn: () => getService(workspaceServiceId ?? ""),
+    enabled: workspaceServiceId !== null && selectedServiceFromPage === undefined,
+    retry: false,
+  });
+  const selectedService = selectedServiceFromPage ?? selectedServiceQuery.data ?? null;
+  const isFilterPending =
+    catalogSearch.trim() !== urlState.query.trim() || catalog.isPlaceholderData;
   const openWorkspace = (
     workspace: ServiceWorkspaceKind | null,
     serviceId: string | null = null,
   ) => {
     setSearchParams((current) => updateServiceCatalogUrl(current, { workspace, serviceId }));
   };
+  useEffect(() => {
+    if (
+      workspaceServiceId === null ||
+      selectedServiceFromPage !== undefined ||
+      !selectedServiceQuery.isError ||
+      !(selectedServiceQuery.error instanceof ApiError) ||
+      selectedServiceQuery.error.status !== 404
+    ) {
+      return;
+    }
+    setSearchParams(
+      (current) => updateServiceCatalogUrl(current, { workspace: null, serviceId: null }),
+      { replace: true },
+    );
+  }, [
+    selectedServiceFromPage,
+    selectedServiceQuery.error,
+    selectedServiceQuery.isError,
+    setSearchParams,
+    workspaceServiceId,
+  ]);
   const wizardServiceId = workspace.kind === "onboarding" ? workspace.serviceId : undefined;
   const editingService = workspace.kind === "edit" ? selectedService : null;
   const lifecycleService = workspace.kind === "lifecycle" ? selectedService : null;
@@ -121,7 +165,7 @@ export function ServicesPage() {
         routingCoverage.isLoading || !routingCoverage.isAvailable
           ? null
           : new Set(routingCoverage.originUnits.map((unit) => unit.id)),
-      serviceIds: new Set(catalog.rows.map((row) => row.service.id)),
+      serviceIds: null,
     });
     if (Object.keys(patch).length > 0) {
       setSearchParams((current) => updateServiceCatalogUrl(current, patch), { replace: true });
@@ -227,6 +271,12 @@ export function ServicesPage() {
           ) : null}
           <ServiceCatalogList
             rows={catalog.rows}
+            totalCount={catalog.totalCount}
+            hasMore={catalog.hasMore}
+            isFetchingNextPage={catalog.isFetchingNextPage}
+            reachedClientLimit={catalog.reachedClientLimit}
+            isFilterPending={isFilterPending}
+            onLoadMore={() => void catalog.loadNextPage()}
             categories={categoryState.categories}
             onboardings={onboardings}
             coverageByServiceId={routingCoverage.notesByServiceId}

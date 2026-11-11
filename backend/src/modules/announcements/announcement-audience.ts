@@ -48,6 +48,20 @@ export function expandAudienceUnits(
     .map((unit) => unit.id);
 }
 
+/**
+ * Paths of the member's home OU and every ancestor. Announcement OU filters
+ * include descendants, so any of these OU IDs can target this member.
+ * Invalid/non-canonical paths return no matches (fail closed).
+ */
+export function organizationalUnitAncestorPaths(unitPath: string | null): string[] {
+  if (unitPath === null || unitPath.trim().length === 0) return [];
+  const path = unitPath.trim();
+  if (!path.startsWith('/') || path.endsWith('/') || path.includes('//')) return [];
+  const segments = path.slice(1).split('/');
+  if (segments.some((segment) => segment.length === 0)) return [];
+  return segments.map((_, index) => `/${segments.slice(0, index + 1).join('/')}`);
+}
+
 /** SCHEDULED and ENDED are derived, so they can never be stale. */
 export function effectiveAnnouncementStatus(
   row: { readonly status: 'DRAFT' | 'PUBLISHED' | 'WITHDRAWN'; readonly startsAt: Date; readonly endsAt: Date },

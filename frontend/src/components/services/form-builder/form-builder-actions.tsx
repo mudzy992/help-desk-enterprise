@@ -8,6 +8,7 @@ interface FormBuilderActionsProperties {
   readonly selected: FormVersionResponse | null;
   readonly hasVersions: boolean;
   readonly hasFields: boolean;
+  readonly reasonReady: boolean;
   readonly pending: string | null;
   readonly onCreateFirst: () => void;
   readonly onSave: () => void;
@@ -21,6 +22,7 @@ export function FormBuilderActions({
   selected,
   hasVersions,
   hasFields,
+  reasonReady,
   pending,
   onCreateFirst,
   onSave,
@@ -31,12 +33,22 @@ export function FormBuilderActions({
   return (
     <div className="flex flex-wrap gap-2">
       {canWrite && !hasVersions ? (
-        <Button type="button" size="sm" disabled={pending !== null} onClick={onCreateFirst}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending !== null || !reasonReady}
+          onClick={onCreateFirst}
+        >
           {pending === "create" ? t("services.forms.creating") : t("services.forms.createFirst")}
         </Button>
       ) : null}
       {editable && selected ? (
-        <Button type="button" size="sm" disabled={pending !== null || !hasFields} onClick={onSave}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending !== null || !hasFields || !reasonReady}
+          onClick={onSave}
+        >
           {pending === "save" ? t("services.forms.saving") : t("services.forms.saveDraft")}
         </Button>
       ) : null}
@@ -45,7 +57,7 @@ export function FormBuilderActions({
           type="button"
           size="sm"
           variant="outline"
-          disabled={pending !== null}
+          disabled={pending !== null || !reasonReady}
           onClick={onActivate}
         >
           {pending === "activate" ? t("services.forms.activating") : t("services.forms.activate")}
@@ -56,7 +68,7 @@ export function FormBuilderActions({
           type="button"
           size="sm"
           variant="outline"
-          disabled={pending !== null}
+          disabled={pending !== null || !reasonReady}
           onClick={onCopy}
         >
           {pending === "copy" ? t("services.forms.creating") : t("services.forms.newVersion")}

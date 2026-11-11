@@ -57,6 +57,7 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.transferRequired:
     case assetErrorCodes.transferDisabled:
     case assetErrorCodes.transferNotIssued:
+    case assetErrorCodes.transferTemplateVersionConflict:
     case assetErrorCodes.transferRenderFailed:
       return new ConflictException(body);
     case assetErrorCodes.importFileTooLarge:

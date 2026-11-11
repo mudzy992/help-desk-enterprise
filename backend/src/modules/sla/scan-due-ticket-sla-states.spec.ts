@@ -61,11 +61,11 @@ describe('scanDueTicketSlaStates batching', () => {
     // per-state ticket lookup at all.
     expect(world.countQueries.counts.slaStateFindMany).toBe(1);
     expect(world.countQueries.counts.ticketFindMany).toBe(1);
-    // Whatever is read per state from here on belongs to the runtime events
-    // that were just recorded (each one loads the ticket for its realtime
-    // payload) — the batch loading itself is two queries.
+    // Runtime events now enqueue notification work in PostgreSQL; the outbox
+    // processor loads delivery records after commit, so the scan itself makes
+    // no per-ticket lookup beyond the bounded ticket batch above.
     const afterFirstScan = world.countQueries.counts.ticketFindUnique;
-    expect(afterFirstScan).toBeGreaterThan(0);
+    expect(afterFirstScan).toBe(0);
 
     // Second cycle, same instant: every state is up to date now, so nothing is
     // due — and the scan does not read a single ticket.

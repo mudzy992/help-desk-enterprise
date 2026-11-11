@@ -1,0 +1,15 @@
+# BA-on-call-12: revoke iCal tokena i audit zapis sada su atomarni
+
+Status: **zatvoreno** (operativna potvrda korisnika: sve DA — opoziv radi, audit zapis „Token kalendara dežurstava — opozvan" postoji, stara adresa vraća 404). `revokeCalendarToken` je token brisao izvan transakcije, a audit zapis (`oncall.calendar_token.revoked`) pisao naknadno zasebnim pozivom — pad procesa ili greška audita između dvije operacije ostavljali su opoziv bez audit traga.
+
+## Izmjena
+
+Revoke sada slijedi isti obrazac kao rotacija tokena: `deleteMany` i `appendAuditLog` izvršavaju se u jednoj Prisma transakciji, pa se ili obje operacije commitaju ili nijedna. Kad token ne postoji (count 0), audit se i dalje ne piše. Uklonjeni su tada nepotrebni `recordAuditEntry` uvoz i tip.
+
+## Testovi i granice
+
+Novi `on-call.service.revoke.spec.ts` (3 testa) koristi pravi `appendAuditLog` (s validacijom metadate kroz `prepareAuditEntry`): brisanje i audit idu kroz transakcijskog klijenta, vanjski klijent se ne koristi za brisanje, greška audita propagira (transakcija se u produkciji rollbacka), a bez tokena nema audit zapisa. Lokalno on-call suite: 15 suiteova / 64 testa. Migracija nije rađena.
+
+## CI dokaz
+
+Implementacija je pushana u commitu `7d2e65d`; GitHub Actions CI run [`42895759919`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42895759919) završio je **success**: Detect changes, Docs guard, Frontend build + test, Backend build + test (generated Prisma), Backend container + supply chain i Backend PostgreSQL + Redis integration. Nalaz ostaje otvoren do operativne potvrde.

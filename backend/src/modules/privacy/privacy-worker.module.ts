@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { SettingsModule } from '../settings/settings.module';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { privacyQueueName } from './privacy.constants';
 import { PrivacyProcessor } from './privacy.processor';
 import { privacyCoreProviders } from './privacy.providers';
@@ -13,6 +14,7 @@ import { PrivacyMailer } from './notices/privacy-mailer.service';
 @Module({
   imports: [SettingsModule, BullModule.registerQueue({ name: privacyQueueName })],
   providers: [
+    PrincipalContextInvalidator,
     ...privacyCoreProviders,
     PrivacyProcessor,
     PrivacySchedulerService,

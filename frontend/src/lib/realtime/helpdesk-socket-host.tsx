@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { subscribeToQueryInvalidation } from "@/lib/realtime/invalidate-on-event";
+import { subscribeToRealtimeReconnectCatchup } from "@/lib/realtime/reconnect-catchup";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { ticketSocketEvents } from "@/services/ticket-socket";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
@@ -58,11 +59,16 @@ export function HelpdeskSocketHost() {
       socket,
       queryClient,
     });
+    const stopReconnectCatchup = subscribeToRealtimeReconnectCatchup({
+      socket,
+      queryClient,
+    });
     return () => {
       stopInvalidated();
       stopSettings();
       stopAdminConfig();
       stopInvalidation();
+      stopReconnectCatchup();
       releaseHelpdeskSocket();
     };
   }, [queryClient, session, signOut]);

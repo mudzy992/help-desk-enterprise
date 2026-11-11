@@ -11,7 +11,7 @@ export function resolveHttpCorsOptions(): {
     origin: resolveCorsOrigin(),
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'X-Install-Token'],
+    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'If-Match', 'X-Install-Token'],
     // Cross-origin deployments need these response metadata headers exposed to
     // browser code (download names and paginated user totals).
     exposedHeaders: ['Content-Disposition', 'X-Total-Count'],

@@ -27,6 +27,7 @@ export function useOnCallOverviewData() {
   const [overview, setOverview] = useState<OnCallOverview | null>(null);
   const [me, setMe] = useState<OnCallMe | null>(null);
   const [swaps, setSwaps] = useState<readonly OnCallSwapView[]>([]);
+  const [swapsHasMore, setSwapsHasMore] = useState(false);
   const [overviewError, setOverviewError] = useState<OnCallQueryError | null>(null);
   const [meError, setMeError] = useState<OnCallQueryError | null>(null);
   const [swapsError, setSwapsError] = useState<OnCallQueryError | null>(null);
@@ -78,6 +79,7 @@ export function useOnCallOverviewData() {
       const loaded = await listOnCallSwaps();
       if (!guards.current.swaps.isCurrent(request)) return;
       setSwaps(loaded.swaps);
+      setSwapsHasMore(loaded.hasMore === true);
       setSwapsError(null);
     } catch (error) {
       if (guards.current.swaps.isCurrent(request)) setSwapsError(queryError(error));
@@ -108,6 +110,7 @@ export function useOnCallOverviewData() {
     overview,
     me,
     swaps,
+    swapsHasMore,
     overviewError,
     meError,
     swapsError,

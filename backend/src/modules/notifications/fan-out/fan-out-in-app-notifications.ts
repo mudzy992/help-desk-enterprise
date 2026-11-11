@@ -7,7 +7,10 @@ import { mapTicketEventToNotification } from './map-ticket-event-to-notification
 import { insertNotificationBatch } from './insert-notification-batch';
 import type { TicketApprovalsConfiguration } from '../../tickets/approvals/approvals.types';
 import { resolveNotificationAudience } from './resolve-notification-recipients';
-import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+import {
+  requireNotificationPreferencePolicyForType,
+  type NotificationPreferencePolicy,
+} from '../preferences/notification-preference-policy';
 import {
   findGroupMembersWithInAppOff,
   resolveDeliveryDecisions,
@@ -29,7 +32,7 @@ export const noFannedOutNotifications: FannedOutNotifications = {
 export async function fanOutInAppNotifications(
   prisma: PrismaService,
   payload: TicketRealtimeMessagePayload,
-  /** Paket 2.2: personal preferences; absent = everyone as before. */
+  /** Preference policy is required except for categories explicitly marked always-on. */
   policy?: NotificationPreferencePolicy,
   /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
   approvals?: TicketApprovalsConfiguration,
@@ -38,6 +41,7 @@ export async function fanOutInAppNotifications(
   if (mapped === null) {
     return noFannedOutNotifications;
   }
+  requireNotificationPreferencePolicyForType(mapped.type, policy);
   const ticket = await prisma.ticket.findUnique({
     where: { id: payload.ticketId },
   });

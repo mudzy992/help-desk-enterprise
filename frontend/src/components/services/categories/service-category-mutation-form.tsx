@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select } from "@/components/ui/field";
 import { availableCategoryParents } from "@/lib/services/category-parent-options";
+import { requireCatalogChangeReason } from "@/lib/services/require-catalog-change-reason";
 import type { ServiceCategoryErrorKey } from "@/lib/services/map-service-category-error";
 import type { ServiceCategoryResponse } from "@/services/service-categories-api";
 
@@ -12,6 +13,7 @@ export type ServiceCategoryMutationValues = {
   readonly slug: string;
   readonly sortOrder: number;
   readonly parentId: string | null;
+  readonly reason: string;
 };
 
 interface ServiceCategoryMutationFormProperties {
@@ -37,12 +39,15 @@ export function ServiceCategoryMutationForm({
   const [slug, setSlug] = useState(category?.slug ?? "");
   const [sortOrder, setSortOrder] = useState(String(category?.sortOrder ?? 0));
   const [parentId, setParentId] = useState(category?.parentId ?? "");
+  const [reason, setReason] = useState("");
+  const normalizedReason = requireCatalogChangeReason(reason);
   const parentOptions = availableCategoryParents(categories, category?.id ?? null);
-  const canSubmit = name.trim().length > 0 && (!isCreate || slug.trim().length > 0);
+  const canSubmit =
+    name.trim().length > 0 && (!isCreate || slug.trim().length > 0) && normalizedReason !== null;
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!canSubmit) {
+    if (!canSubmit || normalizedReason === null) {
       return;
     }
     onSubmit({
@@ -50,6 +55,7 @@ export function ServiceCategoryMutationForm({
       slug: slug.trim(),
       sortOrder: Number.parseInt(sortOrder, 10) || 0,
       parentId: parentId.length > 0 ? parentId : null,
+      reason: normalizedReason,
     });
   };
 
@@ -87,6 +93,17 @@ export function ServiceCategoryMutationForm({
             min={0}
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value)}
+          />
+        )}
+      </Field>
+      <Field label={t("services.changeReason")} required hint={t("services.changeReasonHint")}>
+        {(control) => (
+          <Input
+            {...control}
+            value={reason}
+            maxLength={512}
+            required
+            onChange={(event) => setReason(event.target.value)}
           />
         )}
       </Field>

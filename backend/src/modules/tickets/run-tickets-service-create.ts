@@ -49,19 +49,31 @@ export async function runTicketsServiceCreate(input: {
     input.redactionLoader.load(),
     input.guardrailsLoader.load(),
   ]);
-  const created = await createTicket(
-    input.prisma,
-    input.routingService,
-    input.authorizationContextLoader,
-    input.approvalsConfigurationLoader,
-    input.body,
-    input.context,
-    messages,
-    redaction,
-    guardrails,
-    duplicateWarnings,
-    input.formsConfiguration,
-  );
+  const sourceInboundEmailId = input.context.sourceInboundEmailId;
+  let created = sourceInboundEmailId === undefined
+    ? null
+    : await input.prisma.ticket.findUnique({ where: { sourceInboundEmailId } }) as TicketRecord | null;
+  if (created === null) {
+    try {
+      created = await createTicket(
+        input.prisma,
+        input.routingService,
+        input.authorizationContextLoader,
+        input.approvalsConfigurationLoader,
+        input.body,
+        input.context,
+        messages,
+        redaction,
+        guardrails,
+        duplicateWarnings,
+        input.formsConfiguration,
+      );
+    } catch (error) {
+      if (sourceInboundEmailId === undefined || !isUniqueConstraintError(error)) throw error;
+      created = await input.prisma.ticket.findUnique({ where: { sourceInboundEmailId } }) as TicketRecord | null;
+      if (created === null) throw error;
+    }
+  }
   const assigned = await input.assignmentService.applyAfterCreate(
     created,
     input.context,
@@ -87,4 +99,8 @@ export async function runTicketsServiceCreate(input: {
     }).matches,
     duplicateWarnings,
   );
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 'P2002';
 }

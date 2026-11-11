@@ -1,17 +1,20 @@
-import { perfConfig, fullThresholds, ciThresholds } from './config.js';
+import { perfConfig, smokeThresholds } from './config.js';
+import { buildScenarioLoadShape } from './lib/load-shape.js';
 import {
   setup as setupSession,
   browserDashboard as runBrowserDashboard,
   agentTicketFlow as runAgentTicketFlow,
   searchHeavy as runSearchHeavy,
+  serviceCatalog as runServiceCatalog,
   websocketClients as runWebsocketClients,
 } from './lib/scenarios.js';
-import { handleSummary } from './report.js';
+import { buildSummaryOutputs } from './report.js';
 
 /**
- * Smoke run: 200 virtual users, 5 minutes. Same behaviours as `full.js`, short
- * enough for CI and for a laptop. Phase 0 uses it to prove the package works
- * before the long baseline is started.
+ * Smoke run: the existing 200 virtual users held for five minutes after a
+ * 30-second ramp, plus 10 additive BA-10 service-catalog users. The ramp avoids
+ * releasing every cold VU against shared CI services at once. Existing behaviours
+ * are not reweighted; thresholds and the catalog read budget are unchanged.
  *
  *   k6 run perf/smoke.js
  *
@@ -26,42 +29,58 @@ const smokeVus = {
   agentTicketFlow: Math.round(smoke.virtualUsers * 0.35),
   searchHeavy: Math.round(smoke.virtualUsers * 0.1),
   websocketClients: Math.round(smoke.virtualUsers * 0.15),
+  serviceCatalog: smoke.serviceCatalogVirtualUsers,
 };
+const smokeReportConfig = {
+  ...perfConfig,
+  load: {
+    ...perfConfig.load,
+    virtualUsers: smoke.virtualUsers + smoke.serviceCatalogVirtualUsers,
+  },
+};
+
+const rampUp = __ENV.RAMP_UP || '30s';
 
 export const options = {
   discardResponseBodies: false,
   scenarios: {
-    browser_dashboard: {
-      executor: 'constant-vus',
+    browser_dashboard: buildScenarioLoadShape({
       exec: 'browserDashboard',
       vus: smokeVus.browserDashboard,
       duration: smoke.duration,
-      tags: { behaviour: 'browser_dashboard' },
-    },
-    agent_ticket_flow: {
-      executor: 'constant-vus',
+      behaviour: 'browser_dashboard',
+      rampUp,
+    }),
+    agent_ticket_flow: buildScenarioLoadShape({
       exec: 'agentTicketFlow',
       vus: smokeVus.agentTicketFlow,
       duration: smoke.duration,
-      tags: { behaviour: 'agent_ticket_flow' },
-    },
-    search_heavy: {
-      executor: 'constant-vus',
+      behaviour: 'agent_ticket_flow',
+      rampUp,
+    }),
+    search_heavy: buildScenarioLoadShape({
       exec: 'searchHeavy',
       vus: smokeVus.searchHeavy,
       duration: smoke.duration,
-      tags: { behaviour: 'search_heavy' },
-    },
-    websocket_clients: {
-      executor: 'constant-vus',
+      behaviour: 'search_heavy',
+      rampUp,
+    }),
+    websocket_clients: buildScenarioLoadShape({
       exec: 'websocketClients',
       vus: smokeVus.websocketClients,
       duration: smoke.duration,
-      tags: { behaviour: 'ws_clients' },
-    },
+      behaviour: 'ws_clients',
+      rampUp,
+    }),
+    service_catalog: buildScenarioLoadShape({
+      exec: 'serviceCatalog',
+      vus: smokeVus.serviceCatalog,
+      duration: smoke.duration,
+      behaviour: 'service_catalog',
+      rampUp,
+    }),
   },
-  thresholds:
-    perfConfig.profile === 'ci' ? ciThresholds(perfConfig) : fullThresholds(perfConfig),
+  thresholds: smokeThresholds(perfConfig),
 };
 
 export function setup() {
@@ -92,8 +111,14 @@ export function searchHeavy(data) {
   return runSearchHeavy(perfConfig, data);
 }
 
+export function serviceCatalog(data) {
+  return runServiceCatalog(perfConfig, data);
+}
+
 export function websocketClients(data) {
   return runWebsocketClients(perfConfig, data);
 }
 
-export { handleSummary };
+export function handleSummary(data) {
+  return buildSummaryOutputs(data, smokeReportConfig);
+}

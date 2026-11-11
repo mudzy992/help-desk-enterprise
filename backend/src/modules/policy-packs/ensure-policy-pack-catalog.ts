@@ -6,6 +6,8 @@ export type PolicyPackCatalogEnsureResult = {
   readonly policyPackId: string;
   readonly createdRolePermissionCount: number;
   readonly existingRolePermissionCount: number;
+  /** Roles whose permissions changed; existing holders must refresh after commit. */
+  readonly roleIdsWithAddedPermissions: readonly string[];
   readonly roleIdsByKey: ReadonlyMap<string, string>;
 };
 
@@ -67,6 +69,7 @@ export async function ensurePolicyPackCatalog(
     select: { id: true },
   });
   const roleIdsByKey = new Map<string, string>();
+  const roleIdsWithAddedPermissions = new Set<string>();
   let createdRolePermissionCount = 0;
   let existingRolePermissionCount = 0;
   const roleKeys = sortPolicyPackTokens(pack.grants.map((grant) => grant.roleKey));
@@ -94,12 +97,14 @@ export async function ensurePolicyPackCatalog(
         data: { roleId, permissionId },
       });
       createdRolePermissionCount += 1;
+      roleIdsWithAddedPermissions.add(roleId);
     }
   }
   return {
     policyPackId: persisted.id,
     createdRolePermissionCount,
     existingRolePermissionCount,
+    roleIdsWithAddedPermissions: [...roleIdsWithAddedPermissions].sort(),
     roleIdsByKey,
   };
 }

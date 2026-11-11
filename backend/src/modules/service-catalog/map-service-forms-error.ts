@@ -17,6 +17,7 @@ const notFoundCodes: readonly ServiceFormsErrorCode[] = [
 const conflictCodes: readonly ServiceFormsErrorCode[] = [
   'FORM_ALREADY_EXISTS',
   'FORM_VERSION_IMMUTABLE',
+  'FORM_VERSION_CREATE_CONFLICT',
 ];
 
 const messages: Record<ServiceFormsErrorCode, string> = {
@@ -29,10 +30,13 @@ const messages: Record<ServiceFormsErrorCode, string> = {
   DUPLICATE_FIELD_IDENTIFIER: 'Form field identifiers must be unique',
   INVALID_FIELD_IDENTIFIER: 'Form field identifier is invalid',
   INVALID_FIELD_CONFIGURATION: 'Form field configuration is invalid',
+  UNSAFE_FORM_PATTERN: 'Form pattern uses syntax that is not supported by the safe validator',
   FORM_VERSION_IMMUTABLE: 'This form version cannot be mutated',
   FORM_VERSIONING_DISABLED: 'Form versioning is disabled',
   NO_ACTIVE_FORM_VERSION: 'No active form version exists for this service',
   FORM_VERSION_NOT_DRAFT: 'Only draft form versions can be activated',
+  FORM_VERSION_CREATE_CONFLICT:
+    'A form version was created concurrently; retry the request',
   TICKET_NOT_FOUND: 'Ticket was not found',
   FORM_VERSION_SERVICE_MISMATCH: 'Form version does not belong to this service',
 };

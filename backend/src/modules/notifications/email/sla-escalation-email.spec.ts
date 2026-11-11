@@ -3,6 +3,13 @@ import { fanOutEmailNotifications } from './fan-out-email-notifications';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import { ticketSystemEventActions } from '../../tickets/collaboration.constants';
 import { notificationTypes } from '../notifications.constants';
+import { defaultNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+
+const noUserPreferencePolicy = {
+  ...defaultNotificationPreferencePolicy,
+  preferencesEnabled: false,
+  quietHoursEnabled: false,
+};
 
 jest.mock('../fan-out/resolve-notification-recipients', () => ({
   resolveNotificationRecipients: jest.fn(async () => ['user-1']),
@@ -34,7 +41,15 @@ describe('SLA escalation email gate', () => {
         },
       } as never,
       enabledConfiguration({ slaEscalationEmailEnabled: false }),
-      { send: async () => undefined },
+      {
+        send: async () => ({
+          acceptedRecipientCount: 1,
+          rejectedRecipientCount: 0,
+          messageId: '<sla-test@example.test>',
+          responseCode: 250,
+          failureKind: null,
+        }),
+      },
       {
         id: 'msg-1',
         ticketId: 't1',
@@ -43,6 +58,7 @@ describe('SLA escalation email gate', () => {
         authorUserId: null,
       } as never,
       { handle },
+      noUserPreferencePolicy,
     );
     expect(handle).not.toHaveBeenCalled();
   });
@@ -72,7 +88,15 @@ describe('SLA escalation email gate', () => {
         },
       } as never,
       enabledConfiguration({ slaEscalationEmailEnabled: true }),
-      { send: async () => undefined },
+      {
+        send: async () => ({
+          acceptedRecipientCount: 1,
+          rejectedRecipientCount: 0,
+          messageId: '<sla-test@example.test>',
+          responseCode: 250,
+          failureKind: null,
+        }),
+      },
       {
         id: 'msg-2',
         ticketId: 't1',
@@ -81,6 +105,7 @@ describe('SLA escalation email gate', () => {
         authorUserId: null,
       } as never,
       { handle },
+      noUserPreferencePolicy,
     );
     expect(handle).toHaveBeenCalled();
     expect(handle.mock.calls[0]?.[0].templateKey).toBe(notificationTypes.ticketSla);

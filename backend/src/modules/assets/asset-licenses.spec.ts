@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { decryptLicenseKey, encryptLicenseKey, readLicenseKeyCipherKey } from './asset-license-cipher';
+import type { AssetViewer } from './asset-viewer';
 import {
   canViewLicenseUserAssignment,
   isLicenseUserAssignmentCompatible,
   licenseAssignmentTarget,
   licenseCompliance,
+  AssetLicensesService,
 } from './asset-licenses.service';
 
 describe('licences (paket 3.2 §9)', () => {
@@ -50,5 +52,86 @@ describe('licences (paket 3.2 §9)', () => {
   it('has no key without MFA_ENCRYPTION_KEY', () => {
     expect(readLicenseKeyCipherKey({} as NodeJS.ProcessEnv)).toBeNull();
     expect(() => encryptLicenseKey('x', null)).toThrow();
+  });
+});
+
+describe('AssetLicensesService cursor pages', () => {
+  const viewer: AssetViewer = { userId: 'reader', isSuperAdmin: false, homeOrganizationalUnitId: null, grants: [] };
+  const row = (id: string) => ({
+    id,
+    productName: `Product ${id}`,
+    vendor: null,
+    kind: 'PER_DEVICE' as const,
+    seats: 5,
+    validUntil: null,
+    cost: null,
+    notes: null,
+    keyEncrypted: null,
+    organizationalUnit: { id: 'ou-1', name: 'Root', ouPath: '/root' },
+    _count: { assignments: 1 },
+    updatedAt: new Date('2026-10-31T00:00:00Z'),
+  });
+
+  it('uses the requested cursor page and returns hasMore without dropping the next row', async () => {
+    const prisma = { softwareLicense: { findMany: jest.fn().mockResolvedValue([row('license-1'), row('license-2')]) } };
+    const access = { require: jest.fn().mockResolvedValue({ all: true }) };
+    const service = new AssetLicensesService(prisma as never, access as never);
+
+    const result = await service.list({ limit: 1, cursor: 'license-0' }, viewer);
+
+    expect(result).toMatchObject({ items: [{ id: 'license-1' }], hasMore: true, nextCursor: 'license-1' });
+    expect(prisma.softwareLicense.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 2,
+        cursor: { id: 'license-0' },
+        skip: 1,
+        orderBy: [{ productName: 'asc' }, { id: 'asc' }],
+      }),
+    );
+  });
+
+  it('pages only assignments visible through the license OU and reports more rows separately from scope-hidden rows', async () => {
+    const assignmentRows = [
+      { id: 'assignment-1', assignedAt: new Date('2026-10-31T10:00:00Z'), asset: { id: 'asset-1', assetTag: 'A-1', name: 'Laptop' }, user: null },
+      { id: 'assignment-2', assignedAt: new Date('2026-10-30T10:00:00Z'), asset: null, user: { id: 'user-1', displayName: 'Amra', email: 'amra@example.com', isActive: true, organizationalUnit: { ouPath: '/root/team' } } },
+    ];
+    const prisma = {
+      softwareLicense: { findUnique: jest.fn().mockResolvedValue(row('license-1')) },
+      licenseAssignment: {
+        findMany: jest.fn().mockResolvedValue(assignmentRows),
+        count: jest.fn().mockResolvedValue(2),
+      },
+    };
+    const access = { require: jest.fn().mockResolvedValue({ all: true }) };
+    const service = new AssetLicensesService(prisma as never, access as never);
+
+    const result = await service.listAssignments('license-1', { cursor: 'assignment-0', limit: 1 }, viewer);
+
+    expect(result).toMatchObject({ items: [{ id: 'assignment-1' }], hasMore: true, nextCursor: 'assignment-1' });
+    expect(prisma.licenseAssignment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 2,
+        cursor: { id: 'assignment-0' },
+        skip: 1,
+        orderBy: [{ assignedAt: 'desc' }, { id: 'desc' }],
+        where: {
+          licenseId: 'license-1',
+          OR: [
+            { userId: null },
+            {
+              user: {
+                is: {
+                  organizationalUnit: {
+                    is: {
+                      OR: [{ ouPath: '/root' }, { ouPath: { startsWith: '/root/' } }],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      }),
+    );
   });
 });

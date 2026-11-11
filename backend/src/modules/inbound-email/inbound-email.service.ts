@@ -1,5 +1,9 @@
 import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
+import { claimInboundEmailAttempt, normalizeInboundProviderMessageId } from './inbound-email-attempt';
+import type { InboundEmailAttemptSnapshot } from './inbound-email-attempt';
+import { inboundEmailIdempotencyKey } from './inbound-email-idempotency';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import type { Prisma } from '../../generated/prisma/client';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { resolveEmailLocale } from '../notifications/email/compose-ticket-email';
 import { deliverNotificationEmail } from '../notifications/email/deliver-notification-email';
@@ -31,14 +35,17 @@ import { parseInboundMessage } from './parse-inbound-message';
 import {
   InboundTicketError,
   processInboundMessage,
+  type InboundPersistedResult,
   type InboundProcessingPorts,
   type InboundSender,
   type InboundTicket,
 } from './process-inbound-message';
 
 export const inboundEmailLimits = {
-  /** A message that keeps failing for technical reasons is parked after this many runs. */
+  /** Retry-only failures are parked after this many runs; mutation-phase attempts remain replayable. */
   maxAttempts: 3,
+  /** Per-message claim; refreshed while processing and reclaimed after a worker crash. */
+  processingLeaseMs: 5 * 60 * 1000,
   /** Consecutive connector failures before admins get one in-app alert. */
   alertAfterFailures: 3,
   /** Backoff ceiling for a failing connector. */
@@ -53,6 +60,38 @@ export type InboundRunResult =
   | { readonly kind: 'ran'; readonly processed: number; readonly rejected: number; readonly ignored: number; readonly failed: number };
 
 const finalStatuses = new Set(['PROCESSED', 'REJECTED', 'IGNORED']);
+type InboundEmailProcessingPhase =
+  | 'CLAIMED'
+  | 'RAW_STORED'
+  | 'PARSED'
+  | 'TICKET_MUTATION'
+  | 'TICKET_WRITTEN'
+  | 'ATTACHMENTS'
+  | 'READY_TO_FINALIZE';
+const mutationPhases = new Set<InboundEmailProcessingPhase>([
+  'TICKET_MUTATION',
+  'TICKET_WRITTEN',
+  'ATTACHMENTS',
+  'READY_TO_FINALIZE',
+]);
+
+function hasInboundMutationEvidence(row: {
+  readonly processingPhase: InboundEmailProcessingPhase | null;
+  readonly ticketId: string | null;
+  readonly ticketMessageId: string | null;
+  readonly createdTicketId: string | null;
+}): boolean {
+  return (row.processingPhase !== null && mutationPhases.has(row.processingPhase)) ||
+    row.ticketId !== null ||
+    row.ticketMessageId !== null ||
+    row.createdTicketId !== null;
+}
+
+class LostInboundAttempt extends Error {
+  constructor() {
+    super('Inbound email processing lease was lost');
+  }
+}
 
 /** Ticket module errors arrive either raw or mapped to an HTTP exception. */
 function ticketErrorCode(error: unknown): string | null {
@@ -181,8 +220,30 @@ export class InboundEmailService {
     // Month folders a full month past the window (files of deleted rows, crashes).
     await this.rawStore.pruneMonthsBefore(new Date(rawCutoff.getTime() - 31 * 86_400_000));
     const rowCutoff = new Date(now.getTime() - configuration.metadataRetentionDays * 86_400_000);
-    const deleted = await this.prisma.inboundEmail.deleteMany({ where: { createdAt: { lt: rowCutoff } } });
-    return { rawRemoved, rowsRemoved: deleted.count };
+    // Bounded metadata retention: at most one stable batch per run, never a
+    // single unbounded deleteMany. The cutoff is rechecked inside the delete
+    // so a row changed after selection is never removed, and a full batch
+    // signals a possible backlog instead of silently looping all night.
+    const candidates = await this.prisma.inboundEmail.findMany({
+      where: { createdAt: { lt: rowCutoff } },
+      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: inboundEmailLimits.retentionBatch,
+    });
+    let rowsRemoved = 0;
+    if (candidates.length > 0) {
+      const deleted = await this.prisma.inboundEmail.deleteMany({
+        where: {
+          id: { in: candidates.map((row) => row.id) },
+          createdAt: { lt: rowCutoff },
+        },
+      });
+      rowsRemoved = deleted.count;
+      if (candidates.length === inboundEmailLimits.retentionBatch) {
+        this.logger.warn('inbound_email_retention_batch_limit_reached possible_backlog=true');
+      }
+    }
+    return { rawRemoved, rowsRemoved };
   }
 
   private async handleItem(
@@ -194,114 +255,322 @@ export class InboundEmailService {
     now: Date,
   ): Promise<string> {
     const existing = await this.prisma.inboundEmail.findUnique({
-      where: { mailboxKey_providerMessageId: { mailboxKey, providerMessageId: item.providerMessageId } },
+      where: {
+        mailboxKey_providerMessageId: {
+          mailboxKey,
+          providerMessageId: normalizeInboundProviderMessageId(item.providerMessageId),
+        },
+      },
     });
     if (existing !== null && finalStatuses.has(existing.status)) {
-      // R12: decided before a crash, only the move is missing.
+      // A final DB outcome is durable; only the mailbox move may be missing.
       await session.move(item.providerMessageId, existing.status === 'PROCESSED' ? 'processed' : 'rejected');
       return 'SKIPPED';
     }
-    if (existing !== null && existing.status === 'PROCESSING') {
-      // A pass died mid-message; the reply may already be on the ticket, so it is never replayed.
-      await this.prisma.inboundEmail.update({ where: { id: existing.id }, data: { status: 'FAILED', reason: 'INTERRUPTED' } });
-      await session.move(item.providerMessageId, 'rejected');
-      return 'FAILED';
+    if (
+      existing !== null &&
+      (existing.status === 'PROCESSING' || existing.status === 'FAILED') &&
+      existing.processingPhase === null &&
+      existing.processingLeaseExpiresAt === null
+    ) {
+      // Pre-W6.38 attempts have no idempotency proof. Do not guess whether a
+      // legacy worker wrote to a ticket before it stopped; leave it in inbox.
+      this.logger.warn(`inbound_email_legacy_attempt_requires_reconciliation id=${existing.id} status=${existing.status}`);
+      return 'SKIPPED';
     }
-    if (existing !== null && existing.attempts >= inboundEmailLimits.maxAttempts) {
+    if (
+      existing !== null &&
+      existing.status === 'FAILED' &&
+      existing.attempts >= inboundEmailLimits.maxAttempts &&
+      !hasInboundMutationEvidence(existing)
+    ) {
+      this.logger.warn(`inbound_email_retry_limit_reached id=${existing.id} attempts=${existing.attempts}`);
       await session.move(item.providerMessageId, 'rejected');
       return 'SKIPPED';
     }
-    const row =
-      existing === null
-        ? await this.prisma.inboundEmail
-            .create({ data: { mailboxKey, providerMessageId: item.providerMessageId.slice(0, 500), subject: '', status: 'PROCESSING' } })
-            .catch(() => null)
-        : await this.prisma.inboundEmail.update({
-            where: { id: existing.id },
-            data: { status: 'PROCESSING', attempts: { increment: 1 }, reason: null },
-          });
-    if (row === null) return 'SKIPPED'; // another worker claimed it
+    const claim = await claimInboundEmailAttempt(this.prisma, {
+      mailboxKey,
+      providerMessageId: item.providerMessageId,
+      existing: existing as InboundEmailAttemptSnapshot | null,
+      now: new Date(),
+      leaseMs: inboundEmailLimits.processingLeaseMs,
+    });
+    if (claim === null) return 'SKIPPED';
+    const { row, ownerToken } = claim;
+    let mutationStarted = existing !== null && hasInboundMutationEvidence(existing);
+    const stopHeartbeat = this.startLeaseHeartbeat(row.id, ownerToken);
 
     try {
       if (item.raw.length === 0) {
-        return await this.finish(session, item, row.id, { status: 'REJECTED', reason: 'TOO_LARGE' });
+        return await this.finish(session, item, row.id, ownerToken, { status: 'REJECTED', reason: 'TOO_LARGE' });
       }
       const rawStorageKey = configuration.rawRetentionDays > 0 ? await this.rawStore.save(row.id, item.raw, now).catch(() => null) : null;
+      await this.updateAttemptProgress(row.id, ownerToken, 'RAW_STORED', { rawStorageKey }, mutationStarted);
       let message;
       try {
         message = await parseInboundMessage(item.raw);
       } catch {
-        await this.prisma.inboundEmail.update({ where: { id: row.id }, data: { rawStorageKey } });
-        return await this.finish(session, item, row.id, { status: 'REJECTED', reason: 'PARSE_FAILED' });
+        return await this.finish(session, item, row.id, ownerToken, { status: 'REJECTED', reason: 'PARSE_FAILED' });
       }
-      await this.prisma.inboundEmail.update({
-        where: { id: row.id },
-        data: {
-          rawStorageKey,
-          messageIdHeader: message.messageId?.slice(0, 500) ?? null,
-          fromAddress: message.fromAddress?.slice(0, 320) ?? null,
-          subject: message.subject.slice(0, 200),
-          receivedAt: message.receivedAt,
-        },
-      });
+      await this.updateAttemptProgress(row.id, ownerToken, 'PARSED', {
+        messageIdHeader: message.messageId?.slice(0, 500) ?? null,
+        fromAddress: message.fromAddress?.slice(0, 320) ?? null,
+        subject: message.subject.slice(0, 200),
+        receivedAt: message.receivedAt,
+      }, mutationStarted);
+      const priorResult = await this.readPersistedResult(row.id, row);
       // R12: the same e-mail delivered twice (To + Cc, re-sent by a rule).
-      if (message.messageId !== null) {
+      if (priorResult === undefined && message.messageId !== null) {
         const duplicate = await this.prisma.inboundEmail.findFirst({
           where: { mailboxKey, messageIdHeader: message.messageId.slice(0, 500), status: 'PROCESSED', id: { not: row.id } },
           select: { id: true },
         });
-        if (duplicate !== null) return await this.finish(session, item, row.id, { status: 'IGNORED', reason: 'DUPLICATE' });
+        if (duplicate !== null) return await this.finish(session, item, row.id, ownerToken, { status: 'IGNORED', reason: 'DUPLICATE' });
       }
       const ownAddresses = [configuration.address, email.smtp?.fromAddress ?? '', email.presentation.replyToAddress ?? '']
         .map((address) => address.trim().toLowerCase())
         .filter((address) => address.length > 0);
-      const outcome = await processInboundMessage(message, this.ports(configuration, email, row.id), {
+      const beginMutation = async () => {
+        await this.updateAttemptProgress(row.id, ownerToken, 'TICKET_MUTATION', {}, mutationStarted);
+        mutationStarted = true;
+      };
+      const outcome = await processInboundMessage(message, this.ports(configuration, email, row.id, ownerToken, beginMutation), {
         ownAddresses,
         replyTokenSecret: readReplyTokenVerificationSecrets(),
         requireAuthPass: configuration.requireAuthPass,
+        trustedAuthservId: configuration.trustedAuthservId,
         recipientPolicy: email,
         maxPerSenderPerHour: configuration.maxPerSenderPerHour,
         createTickets: configuration.createTickets,
         maxBodyLength: ticketConstants.maximumMessageBodyLength,
         now,
+        inboundEmailId: row.id,
+        ...(priorResult === undefined ? {} : { existingResult: priorResult }),
       });
-      return await this.finish(session, item, row.id, outcome);
+      await this.updateAttemptProgress(row.id, ownerToken, 'READY_TO_FINALIZE');
+      return await this.finish(session, item, row.id, ownerToken, outcome);
     } catch (error) {
+      if (error instanceof LostInboundAttempt) return 'SKIPPED';
       const reason = errorText(error);
       this.logger.warn(`inbound_email_message_failed id=${row.id} reason=${reason}`);
-      await this.prisma.inboundEmail
-        .update({ where: { id: row.id }, data: { status: 'FAILED', reason: reason.slice(0, 64) } })
-        .catch(() => undefined);
-      // Left in the inbox for the next pass, unless it has used up its attempts.
-      if (row.attempts >= inboundEmailLimits.maxAttempts) await session.move(item.providerMessageId, 'rejected').catch(() => undefined);
+      const markedFailed = await this.failAttempt(row.id, ownerToken, reason).catch(() => false);
+      if (!markedFailed) return 'SKIPPED';
+      // Technical failures stay in the inbox and remain retryable; a crash may
+      // have happened after an idempotent ticket write committed.
       return 'FAILED';
+    } finally {
+      stopHeartbeat();
     }
   }
 
-  private async finish(session: InboundMailboxSession, item: InboundMailboxItem, id: string, outcome: InboundOutcome): Promise<string> {
-    await this.prisma.inboundEmail.update({
-      where: { id },
+  private async readPersistedResult(
+    inboundId: string,
+    row: {
+      readonly processingPhase: InboundEmailProcessingPhase | null;
+      readonly ticketId: string | null;
+      readonly ticketMessageId: string | null;
+      readonly createdTicketId: string | null;
+    },
+  ): Promise<InboundPersistedResult | undefined> {
+    if (row.createdTicketId !== null) {
+      return { ticketId: row.createdTicketId, createdTicketId: row.createdTicketId, ticketMessageId: row.ticketMessageId };
+    }
+    if (row.ticketId !== null && row.ticketMessageId !== null) {
+      return { ticketId: row.ticketId, ticketMessageId: row.ticketMessageId };
+    }
+    if (row.processingPhase === 'TICKET_WRITTEN' && row.ticketId !== null) return { ticketId: row.ticketId };
+
+    const sourceTicket = await this.prisma.ticket.findUnique({
+      where: { sourceInboundEmailId: inboundId },
+      select: { id: true, reopenedFromTicketId: true },
+    });
+    if (sourceTicket !== null && sourceTicket.reopenedFromTicketId === null) {
+      return { ticketId: sourceTicket.id, createdTicketId: sourceTicket.id };
+    }
+    const replyKey = inboundEmailIdempotencyKey(inboundId, 'reply');
+    const reopenCommentKey = `${inboundEmailIdempotencyKey(inboundId, 'reopen')}:comment`;
+    const persistedMessage = await this.prisma.ticketMessage.findFirst({
+      where: { idempotencyKey: { in: [replyKey, reopenCommentKey] } },
+      select: { id: true, ticketId: true, idempotencyKey: true },
+    });
+    if (persistedMessage === null) return undefined;
+    const isReopenComment = persistedMessage.idempotencyKey === reopenCommentKey;
+    if (isReopenComment) {
+      await this.prisma.ticketMessage.update({ where: { id: persistedMessage.id }, data: { source: 'EMAIL' } });
+    }
+    const reopenedIntoNewTicket = sourceTicket !== null && isReopenComment;
+    return {
+      ticketId: reopenedIntoNewTicket ? sourceTicket.id : persistedMessage.ticketId,
+      ticketMessageId: persistedMessage.id,
+      ...(reopenedIntoNewTicket ? { createdTicketId: sourceTicket.id } : {}),
+    };
+  }
+
+  private async updateAttemptProgress(
+    id: string,
+    ownerToken: string,
+    phase: InboundEmailProcessingPhase,
+    data: Prisma.InboundEmailUpdateManyMutationInput = {},
+    preserveMutationPhase = false,
+  ): Promise<void> {
+    const now = new Date();
+    const result = await this.prisma.inboundEmail.updateMany({
+      where: {
+        id,
+        status: 'PROCESSING',
+        processingOwnerToken: ownerToken,
+        processingLeaseExpiresAt: { gt: now },
+      },
       data: {
-        status: outcome.status,
-        reason: outcome.status === 'PROCESSED' ? (outcome.notes?.length ? 'ATTACHMENTS_REJECTED' : null) : outcome.reason,
-        ticketId: 'ticketId' in outcome ? (outcome.ticketId ?? null) : null,
-        ticketMessageId: outcome.status === 'PROCESSED' ? (outcome.ticketMessageId ?? null) : null,
-        createdTicketId: outcome.status === 'PROCESSED' ? (outcome.createdTicketId ?? null) : null,
+        ...data,
+        ...(preserveMutationPhase ? {} : { processingPhase: phase }),
+        processingLeaseExpiresAt: new Date(now.getTime() + inboundEmailLimits.processingLeaseMs),
       },
     });
+    if (result.count !== 1) throw new LostInboundAttempt();
+  }
+
+  private async failAttempt(id: string, ownerToken: string, reason: string): Promise<boolean> {
+    const result = await this.prisma.inboundEmail.updateMany({
+      where: {
+        id,
+        status: 'PROCESSING',
+        processingOwnerToken: ownerToken,
+        processingLeaseExpiresAt: { gt: new Date() },
+      },
+      data: {
+        status: 'FAILED',
+        reason: reason.slice(0, 64),
+        processingOwnerToken: null,
+        processingLeaseExpiresAt: null,
+      },
+    });
+    return result.count === 1;
+  }
+
+  private startLeaseHeartbeat(id: string, ownerToken: string): () => void {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const interval = Math.max(1_000, Math.floor(inboundEmailLimits.processingLeaseMs / 3));
+    const schedule = () => {
+      if (stopped) return;
+      timer = setTimeout(() => {
+        const now = new Date();
+        void this.prisma.inboundEmail.updateMany({
+          where: {
+            id,
+            status: 'PROCESSING',
+            processingOwnerToken: ownerToken,
+            processingLeaseExpiresAt: { gt: now },
+          },
+          data: { processingLeaseExpiresAt: new Date(now.getTime() + inboundEmailLimits.processingLeaseMs) },
+        }).then((result) => {
+          if (result.count !== 1) {
+            stopped = true;
+            this.logger.warn(`inbound_email_processing_lease_lost id=${id}`);
+            return;
+          }
+        }).catch(() => {
+          this.logger.warn(`inbound_email_processing_lease_renew_failed id=${id}`);
+        }).finally(schedule);
+      }, interval);
+      timer.unref?.();
+    };
+    schedule();
+    return () => {
+      stopped = true;
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }
+
+  private async finish(
+    session: InboundMailboxSession,
+    item: InboundMailboxItem,
+    id: string,
+    ownerToken: string,
+    outcome: InboundOutcome,
+  ): Promise<string> {
+    const now = new Date();
+    let updated: { count: number };
+    try {
+      updated = await this.prisma.inboundEmail.updateMany({
+        where: {
+          id,
+          status: 'PROCESSING',
+          processingOwnerToken: ownerToken,
+          processingLeaseExpiresAt: { gt: now },
+        },
+        data: {
+          status: outcome.status,
+          reason: outcome.status === 'PROCESSED' ? (outcome.notes?.length ? 'ATTACHMENTS_REJECTED' : null) : outcome.reason,
+          ticketId: 'ticketId' in outcome ? (outcome.ticketId ?? null) : null,
+          ticketMessageId: outcome.status === 'PROCESSED' ? (outcome.ticketMessageId ?? null) : null,
+          createdTicketId: outcome.status === 'PROCESSED' ? (outcome.createdTicketId ?? null) : null,
+          processingPhase: null,
+          processingOwnerToken: null,
+          processingLeaseExpiresAt: null,
+        },
+      });
+    } catch (error) {
+      // BA-inbound-email-07: the partial unique index on
+      // (mailboxKey, messageIdHeader) WHERE status='PROCESSED' makes the
+      // losing concurrent delivery collide here. Convert it to the same
+      // DUPLICATE outcome the pre-check would have produced.
+      if (
+        outcome.status === 'PROCESSED' &&
+        typeof error === 'object' && error !== null && 'code' in error &&
+        (error as { code: unknown }).code === 'P2002'
+      ) {
+        this.logger.warn(`inbound_email_duplicate_at_finish id=${id} resolution=ignored_duplicate`);
+        return this.finish(session, item, id, ownerToken, { status: 'IGNORED', reason: 'DUPLICATE' });
+      }
+      throw error;
+    }
+    if (updated.count !== 1) throw new LostInboundAttempt();
     await session.move(item.providerMessageId, outcome.status === 'PROCESSED' ? 'processed' : 'rejected');
     return outcome.status;
   }
 
-  private ports(configuration: InboundEmailConfiguration, email: EmailChannelConfiguration, inboundId: string): InboundProcessingPorts {
-    const context = (actorUserId: string): TicketMutationContext => ({ actorUserId, messageSource: 'EMAIL' });
+  private ports(
+    configuration: InboundEmailConfiguration,
+    email: EmailChannelConfiguration,
+    inboundId: string,
+    ownerToken: string,
+    beginMutation: () => Promise<void>,
+  ): InboundProcessingPorts {
+    const context = (actorUserId: string): TicketMutationContext => ({
+      actorUserId,
+      messageSource: 'EMAIL',
+      sourceInboundEmailId: inboundId,
+    });
     const ticketSelect = { id: true, ticketNumber: true, status: true, mergedIntoTicketId: true } as const;
+    const recordTicketWrite = (ticketId: string, ticketMessageId: string | null, createdTicketId?: string) =>
+      this.updateAttemptProgress(inboundId, ownerToken, 'TICKET_WRITTEN', {
+        ticketId,
+        ticketMessageId,
+        ...(createdTicketId === undefined ? {} : { createdTicketId }),
+      });
     return {
-      findSenderByEmail: async (address) =>
-        this.prisma.user.findFirst({
+      beginMutation,
+      findSenderByEmail: async (address) => {
+        // E-mail uniqueness is case-sensitive in PostgreSQL, so 'Ana@x' and
+        // 'ana@x' can be different users. An unordered insensitive findFirst
+        // would pick a nondeterministic actor; resolve deterministically and
+        // refuse to guess when the address is ambiguous.
+        const matches = await this.prisma.user.findMany({
           where: { email: { equals: address, mode: 'insensitive' } },
           select: { id: true, email: true, isActive: true },
-        }),
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          take: 2,
+        });
+        if (matches.length > 1) {
+          this.logger.warn(
+            `inbound_email_sender_ambiguous matches=${matches.length} resolution=refused`,
+          );
+          return null;
+        }
+        return matches[0] ?? null;
+      },
       findTicketById: async (ticketId) => this.prisma.ticket.findUnique({ where: { id: ticketId }, select: ticketSelect }),
       findTicketByNumber: async (ticketNumber) =>
         this.prisma.ticket.findUnique({ where: { ticketNumber }, select: ticketSelect }),
@@ -309,31 +578,117 @@ export class InboundEmailService {
         this.prisma.inboundEmail.count({
           where: { fromAddress: address, createdAt: { gte: since }, id: { not: inboundId }, status: { not: 'IGNORED' } },
         }),
-      addReply: async (ticketId, senderId, body) =>
+      addReply: async (ticketId, senderId, body, idempotencyKey) =>
         asTicketError(async () => {
+          const recoverPersistedReply = async () => {
+            if (idempotencyKey === undefined) return null;
+            const existing = await this.prisma.ticketMessage.findUnique({
+              where: { ticketId_idempotencyKey: { ticketId, idempotencyKey } },
+              select: { id: true },
+            });
+            if (existing === null) return null;
+            await recordTicketWrite(ticketId, existing.id);
+            return { messageId: existing.id };
+          };
+          const existing = await recoverPersistedReply();
+          if (existing !== null) return existing;
+
           // R6: the requester writes a user reply, staff a public agent reply — never an internal note.
           try {
-            return { messageId: (await this.collaboration.createMessage(ticketId, { type: 'USER_REPLY', body }, context(senderId))).id };
+            const message = await this.collaboration.createMessage(
+              ticketId,
+              { type: 'USER_REPLY', body, ...(idempotencyKey === undefined ? {} : { idempotencyKey }) },
+              context(senderId),
+            );
+            await recordTicketWrite(ticketId, message.id);
+            return { messageId: message.id };
           } catch (error) {
+            const recovered = await recoverPersistedReply();
+            if (recovered !== null) return recovered;
             if (ticketErrorCode(error) !== 'MESSAGE_TYPE_NOT_ALLOWED') throw error;
-            return { messageId: (await this.collaboration.createMessage(ticketId, { type: 'AGENT_REPLY', body }, context(senderId))).id };
+            try {
+              const message = await this.collaboration.createMessage(
+                ticketId,
+                { type: 'AGENT_REPLY', body, ...(idempotencyKey === undefined ? {} : { idempotencyKey }) },
+                context(senderId),
+              );
+              await recordTicketWrite(ticketId, message.id);
+              return { messageId: message.id };
+            } catch (fallbackError) {
+              const recoveredFallback = await recoverPersistedReply();
+              if (recoveredFallback !== null) return recoveredFallback;
+              throw fallbackError;
+            }
           }
         }),
-      reopenWithReply: async (ticketId, senderId, body) =>
+      reopenWithReply: async (ticketId, senderId, body, idempotencyKey) =>
         asTicketError(async () => {
+          const commentKey = idempotencyKey === undefined ? undefined : `${idempotencyKey}:comment`;
+          const recoverPersistedComment = async () => {
+            if (commentKey === undefined) return null;
+            const existing = await this.prisma.ticketMessage.findFirst({
+              where: { idempotencyKey: commentKey },
+              select: { id: true, ticketId: true },
+            });
+            if (existing === null) return null;
+            await this.prisma.ticketMessage.update({ where: { id: existing.id }, data: { source: 'EMAIL' } });
+            const sourceTicket = await this.prisma.ticket.findUnique({
+              where: { sourceInboundEmailId: inboundId },
+              select: { id: true },
+            });
+            if (sourceTicket !== null) {
+              try {
+                await this.tickets.resumeInboundCreatedTicket(sourceTicket.id, inboundId, senderId);
+              } catch (error) {
+                throw new Error('inbound_reopen_create_recovery_failed', { cause: error });
+              }
+            }
+            const resultTicketId = sourceTicket?.id ?? existing.ticketId;
+            await recordTicketWrite(resultTicketId, existing.id, sourceTicket?.id);
+            return {
+              messageId: existing.id,
+              ticketId: resultTicketId,
+              ...(sourceTicket === null ? {} : { createdTicketId: sourceTicket.id }),
+            };
+          };
+          const existing = await recoverPersistedComment();
+          if (existing !== null) return existing;
+
           const startedAt = new Date();
-          await this.reopen.reopen(ticketId, { comment: body }, context(senderId));
-          // The reopen comment is the e-mail text: label it like any e-mail reply (R15).
-          const message = await this.prisma.ticketMessage.findFirst({
-            where: { ticketId, authorUserId: senderId, createdAt: { gte: startedAt }, type: { not: 'SYSTEM_EVENT' } },
-            orderBy: { createdAt: 'desc' },
+          try {
+            await this.reopen.reopen(ticketId, { comment: body }, context(senderId), new Date(), idempotencyKey);
+          } catch (error) {
+            const recovered = await recoverPersistedComment();
+            if (recovered !== null) return recovered;
+            throw error;
+          }
+          const sourceTicket = await this.prisma.ticket.findUnique({
+            where: { sourceInboundEmailId: inboundId },
             select: { id: true },
           });
-          if (message === null) return { messageId: null };
-          await this.prisma.ticketMessage.update({ where: { id: message.id }, data: { source: 'EMAIL' } });
-          return { messageId: message.id };
+          const resultTicketId = sourceTicket?.id ?? ticketId;
+          const message = commentKey === undefined
+            ? await this.prisma.ticketMessage.findFirst({
+                where: { ticketId: resultTicketId, authorUserId: senderId, createdAt: { gte: startedAt }, type: { not: 'SYSTEM_EVENT' } },
+                orderBy: { createdAt: 'desc' },
+                select: { id: true },
+              })
+            : await this.prisma.ticketMessage.findUnique({
+                where: { ticketId_idempotencyKey: { ticketId: resultTicketId, idempotencyKey: commentKey } },
+                select: { id: true },
+              });
+          if (message !== null) {
+            await this.prisma.ticketMessage.update({ where: { id: message.id }, data: { source: 'EMAIL' } });
+          }
+          await recordTicketWrite(resultTicketId, message?.id ?? null, sourceTicket?.id);
+          return {
+            messageId: message?.id ?? null,
+            ticketId: resultTicketId,
+            ...(sourceTicket === null ? {} : { createdTicketId: sourceTicket.id }),
+          };
         }),
-      attach: async (ticketId, senderId, attachment) => {
+      attach: async (ticketId, senderId, attachment, idempotencyKey) => {
+        await this.updateAttemptProgress(inboundId, ownerToken, 'ATTACHMENTS');
         await asTicketError(() =>
           this.attachments.upload(
             ticketId,
@@ -344,28 +699,63 @@ export class InboundEmailService {
               buffer: attachment.content,
             },
             context(senderId),
+            idempotencyKey,
           ),
         );
       },
-      noteRejectedAttachment: async (ticketId, filename, reason) => {
-        await this.prisma.ticketMessage.create({
-          data: {
-            ticketId,
-            type: 'SYSTEM_EVENT',
-            body: `inbound_attachment_rejected:${filename.replace(/[\r\n:]/g, ' ').slice(0, 200)}|${reason}`,
-            authorUserId: null,
-            source: 'EMAIL',
-          },
-        });
+      noteRejectedAttachment: async (ticketId, filename, reason, idempotencyKey) => {
+        await this.updateAttemptProgress(inboundId, ownerToken, 'ATTACHMENTS');
+        const data = {
+          ticketId,
+          type: 'SYSTEM_EVENT' as const,
+          body: `inbound_attachment_rejected:${filename.replace(/[\r\n:]/g, ' ').slice(0, 200)}|${reason}`,
+          authorUserId: null,
+          source: 'EMAIL' as const,
+          ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
+        };
+        if (idempotencyKey === undefined) {
+          await this.prisma.ticketMessage.create({ data });
+        } else {
+          await this.prisma.ticketMessage.upsert({
+            where: { ticketId_idempotencyKey: { ticketId, idempotencyKey } },
+            create: data,
+            update: {},
+          });
+        }
       },
-      createTicket: async (senderId, title, description) =>
-        asTicketError(async () => {
-          const created = await this.tickets.create(
-            { title, description, impact: 'MEDIUM', urgency: 'MEDIUM', serviceId: configuration.defaultServiceId },
-            context(senderId),
+      createTicket: async (senderId, title, description) => {
+        try {
+          const created = await asTicketError(() =>
+            this.tickets.create(
+              { title, description, impact: 'MEDIUM', urgency: 'MEDIUM', serviceId: configuration.defaultServiceId },
+              context(senderId),
+            ),
           );
-          return { ticketId: (created as { id: string }).id };
-        }),
+          const ticketId = (created as { id: string }).id;
+          await recordTicketWrite(ticketId, null, ticketId);
+          return { ticketId };
+        } catch (error) {
+          if (error instanceof LostInboundAttempt) throw error;
+          const persisted = await this.prisma.ticket.findUnique({
+            where: { sourceInboundEmailId: inboundId },
+            select: { id: true },
+          });
+          if (persisted === null) throw error;
+          try {
+            const recovered = await this.tickets.create(
+              { title, description, impact: 'MEDIUM', urgency: 'MEDIUM', serviceId: configuration.defaultServiceId },
+              context(senderId),
+            );
+            const ticketId = (recovered as { id: string }).id;
+            await recordTicketWrite(ticketId, null, ticketId);
+            return { ticketId };
+          } catch (recoveryError) {
+            throw new Error('inbound_ticket_create_recovery_failed', { cause: recoveryError });
+          }
+        }
+      },
+      resumeCreatedTicket: (ticketId, senderId) =>
+        this.tickets.resumeInboundCreatedTicket(ticketId, inboundId, senderId),
       sendNotice: async (kind, sender, ticket) => this.sendNotice(email, kind, sender, ticket),
     };
   }

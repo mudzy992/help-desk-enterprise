@@ -1,50 +1,107 @@
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { assertCategoryParentIsValid } from './assert-category-parent-is-valid';
-import { loadServiceCategory } from './load-service-category';
-import { normalizeServiceName } from './normalize-service-name';
+import type { OptimisticConcurrencyService } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { assertCategoryParentIsValid } from "./assert-category-parent-is-valid";
+import { loadServiceCategory } from "./load-service-category";
+import { normalizeCatalogMutationReason } from "./normalize-catalog-mutation-reason";
+import { normalizeServiceName } from "./normalize-service-name";
 import {
   recordServiceCatalogChange,
   serviceCategoryChangeLogEntityType,
-} from './record-service-catalog-change';
+} from "./record-service-catalog-change";
 import type {
   CatalogMutationContext,
   ServiceCategoryResponse,
   UpdateServiceCategoryInput,
-} from './service-catalog.types';
-import { toServiceCategoryResponse } from './to-service-category-response';
+} from "./service-catalog.types";
+import { toServiceCategoryResponse } from "./to-service-category-response";
+import { withServiceCategoryParentMutationLock } from "./with-service-category-parent-mutation-lock";
 
 export async function updateServiceCategory(
   prisma: PrismaService,
   serviceCategoryId: string,
   input: UpdateServiceCategoryInput,
+  ifMatch: string | string[] | undefined,
   context: CatalogMutationContext,
+  optimisticConcurrency: OptimisticConcurrencyService,
 ): Promise<ServiceCategoryResponse> {
-  const current = await loadServiceCategory(prisma, serviceCategoryId);
-  const name =
-    input.name === undefined ? current.name : normalizeServiceName(input.name);
-  const parentId =
-    input.parentId === undefined ? current.parentId : input.parentId;
-  const sortOrder = input.sortOrder ?? current.sortOrder;
-  await assertCategoryParentIsValid(prisma, {
-    categoryId: serviceCategoryId,
-    parentId,
+  const reason = normalizeCatalogMutationReason({
+    reason: input.reason,
+    context,
+    systemFallback: "update",
   });
-  const updated = await prisma.$transaction(async (transaction) => {
-    const category = await transaction.serviceCategory.update({
-      where: { id: serviceCategoryId },
-      data: { name, parentId, sortOrder },
-    });
-    await recordServiceCatalogChange(transaction as PrismaService, {
-      entityType: serviceCategoryChangeLogEntityType(),
-      entityId: category.id,
-      reason: 'update',
-      diff: {
-        before: { name: current.name, parentId: current.parentId, sortOrder: current.sortOrder },
-        after: { name, parentId, sortOrder },
-      },
-      actorUserId: context.actorUserId,
-    });
-    return category;
+  const result = await optimisticConcurrency.execute({
+    ifMatch,
+    mutate: (expectedRevision) =>
+      prisma.$transaction(
+        (transaction) =>
+          withServiceCategoryParentMutationLock(transaction, async () => {
+            const transactionPrisma = transaction as PrismaService;
+            // Read only after the hierarchy lock; the revision then anchors the
+            // parent validation, conditional write and before/after audit pair.
+            const current = await transaction.serviceCategory.findUnique({
+              where: { id: serviceCategoryId },
+            });
+            if (current === null || current.revision !== expectedRevision) {
+              return null;
+            }
+            const name =
+              input.name === undefined
+                ? current.name
+                : normalizeServiceName(input.name);
+            const parentId =
+              input.parentId === undefined ? current.parentId : input.parentId;
+            const sortOrder = input.sortOrder ?? current.sortOrder;
+
+            await assertCategoryParentIsValid(transactionPrisma, {
+              categoryId: serviceCategoryId,
+              parentId,
+            });
+            const write = await transaction.serviceCategory.updateMany({
+              where: { id: serviceCategoryId, revision: expectedRevision },
+              data: {
+                name,
+                parentId,
+                sortOrder,
+                revision: { increment: 1 },
+              },
+            });
+            if (write.count !== 1) {
+              return null;
+            }
+            const updated = await loadServiceCategory(
+              transactionPrisma,
+              serviceCategoryId,
+            );
+            await recordServiceCatalogChange(transactionPrisma, {
+              entityType: serviceCategoryChangeLogEntityType(),
+              entityId: updated.id,
+              reason,
+              diff: {
+                action: "service_category.update",
+                before: {
+                  name: current.name,
+                  parentId: current.parentId,
+                  sortOrder: current.sortOrder,
+                },
+                after: {
+                  name: updated.name,
+                  parentId: updated.parentId,
+                  sortOrder: updated.sortOrder,
+                },
+              },
+              actorUserId: context.actorUserId,
+            });
+            return { value: updated, version: updated.revision };
+          }),
+        { isolationLevel: "ReadCommitted" },
+      ),
+    readCurrentVersion: async () => {
+      const current = await prisma.serviceCategory.findUnique({
+        where: { id: serviceCategoryId },
+        select: { revision: true },
+      });
+      return current?.revision ?? null;
+    },
   });
-  return toServiceCategoryResponse(updated);
+  return toServiceCategoryResponse(result.value);
 }

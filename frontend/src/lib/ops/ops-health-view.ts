@@ -12,6 +12,10 @@ export const opsAlertSlugs = [
   // Incident 2026-10-16: the provider (Gmail) refused sending, so outbound mail
   // is paused by the breaker. Without the slug the card printed the raw key.
   "email_providerBlocked",
+  "asset_import_stuck",
+  "asset_reminders_deliveryBacklog",
+  "asset_transferFiles_integrity",
+  "asset_audit_writeFailures",
   "sla_scan_late",
   "scheduler_late",
   "disk_usage",
@@ -66,7 +70,18 @@ export function overallOpsState(overview: OpsOverview): OpsOverallState {
     overview.snapshot === null ||
     overview.snapshot.ageSeconds === null ||
     overview.snapshot.ageSeconds > opsSnapshotStaleSeconds;
-  if (overview.alerts.length > 0 || snapshotStale || components.worker.status === "unknown") {
+  if (
+    overview.alerts.length > 0 ||
+    snapshotStale ||
+    components.worker.status === "unknown" ||
+    components.changeDowntimeSync === null ||
+    components.changeDowntimeSync?.status === "degraded" ||
+    components.ticketSideEffectOutbox === null ||
+    components.ticketSideEffectOutbox?.status === "degraded" ||
+    components.notificationFanOutOutbox === null ||
+    components.notificationFanOutOutbox?.status === "degraded" ||
+    components.templatesConfiguration?.status === "degraded"
+  ) {
     return "degraded";
   }
   return "ok";

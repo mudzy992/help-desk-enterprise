@@ -26,7 +26,7 @@ const messages: Record<RoutingErrorCode, string> = {
     'Routing coverage exceeds the response budget; filter by organizational unit',
   REASON_REQUIRED: 'A reason is required for this routing change',
   ROUTING_COVERAGE_MISSING:
-    'Service cannot be activated without at least one routing rule',
+    'Routing coverage is missing for one or more required organizational units',
   UNAVAILABLE: 'Routing configuration is unavailable',
 };
 
@@ -34,7 +34,11 @@ export function mapRoutingError(error: unknown): HttpException {
   if (!(error instanceof RoutingError)) {
     throw error;
   }
-  const body = { code: error.code, message: messages[error.code] };
+  const body = {
+    code: error.code,
+    message: messages[error.code],
+    ...(error.details === undefined ? {} : { details: error.details }),
+  };
   if (notFoundCodes.includes(error.code)) {
     return new NotFoundException(body);
   }

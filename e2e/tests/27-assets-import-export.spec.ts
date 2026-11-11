@@ -100,7 +100,17 @@ test.describe('27 assets import, export and bulk', () => {
 
         // Partial import: the good rows go in, the bad one is reported.
         const loose = (await (await preview(admin, type.id, withError, 'CREATE_ONLY', false)).json()) as ImportPreview;
-        const applied = await admin.requestJson<ImportApplied>(`/assets/import/${loose.id}/apply`, { method: 'POST' });
+        const applyPath = `/assets/import/${loose.id}/apply`;
+        const competingApplies = await Promise.all([
+          admin.request(applyPath, { method: 'POST' }),
+          admin.request(applyPath, { method: 'POST' }),
+        ]);
+        const appliedResponses = competingApplies.filter((response) => response.ok);
+        const rejectedResponses = competingApplies.filter((response) => response.status === 409);
+        expect(appliedResponses, 'only one API request claims and applies the import').toHaveLength(1);
+        expect(rejectedResponses, 'the competing API request receives a conflict').toHaveLength(1);
+        expect(['ASSET_IMPORT_APPLYING', 'ASSET_IMPORT_NOT_PENDING']).toContain(await errorCode(rejectedResponses[0]!));
+        const applied = (await appliedResponses[0]!.json()) as ImportApplied;
         expect(applied).toMatchObject({ status: 'APPLIED', applied: { created: 2, updated: 0, failed: 0 } });
         const rows = await listByStamp(admin, stamp);
         created.push(...rows.map((row) => row.id));

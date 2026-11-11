@@ -211,6 +211,10 @@ export type TicketListResponse = {
 
 export type TicketMutationContext = {
   readonly actorUserId: string;
+  /** Durable authorization version from the session guard, for cache fencing. */
+  readonly principalAuthzVersion?: number;
+  /** Fresh principal group ids, used to salt visibility-derived count caches. */
+  readonly principalGroupIds?: readonly string[];
   readonly confidential?: TicketConfidentialConfiguration;
   readonly safeLogging?: TicketSafeLoggingConfiguration;
   readonly archive?: TicketArchiveConfiguration;
@@ -222,6 +226,8 @@ export type TicketMutationContext = {
   readonly slaTimers?: TicketSlaTimersPort;
   /** Paket 2.3: set only by the inbound e-mail worker, never from HTTP. */
   readonly messageSource?: "APP" | "EMAIL" | "TEAMS";
+  /** Paket W6.38: stable source row for exactly-once inbound ticket creation; never from HTTP. */
+  readonly sourceInboundEmailId?: string;
   /**
    * Paket 3.3: set only by the problem group resolution after it verified
    * `problem.close` on a problem the ticket is linked to; never from HTTP.

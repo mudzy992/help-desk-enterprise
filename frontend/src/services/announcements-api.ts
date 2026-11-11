@@ -164,7 +164,13 @@ export type AnnouncementReport = {
     readonly displayName: string;
     readonly unit: string;
   }>;
+  readonly pendingNextCursor: string | null;
 };
+
+export type AnnouncementPendingReportPage = Pick<
+  AnnouncementReport,
+  "pendingCount" | "pending" | "pendingNextCursor"
+>;
 
 export const announcementQueryKeys = {
   active: ["announcements", "active"] as const,
@@ -265,6 +271,16 @@ export function withdrawAnnouncement(
 
 export function getAnnouncementReport(id: string): Promise<AnnouncementReport> {
   return apiRequest<AnnouncementReport>(`/announcements/manage/${encodeURIComponent(id)}/report`);
+}
+
+export function getAnnouncementPendingReportPage(
+  id: string,
+  cursor: string | null,
+): Promise<AnnouncementPendingReportPage> {
+  const path = `/announcements/manage/${encodeURIComponent(id)}/report/pending`;
+  return apiRequest<AnnouncementPendingReportPage>(
+    cursor === null ? path : `${path}?cursor=${encodeURIComponent(cursor)}`,
+  );
 }
 
 export async function downloadAnnouncementReport(

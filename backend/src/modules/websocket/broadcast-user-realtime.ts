@@ -11,7 +11,10 @@ import type {
   NotificationRealtimePublish,
 } from '../notifications/notification-realtime.types';
 import { toNotificationRealtimeClientPayload } from '../notifications/to-notification-realtime-client-payload';
-import type { SettingsUpdatedRealtimePayload } from '../settings/settings-realtime.types';
+import {
+  settingsRealtimeEventNames,
+  type SettingsUpdatedRealtimePayload,
+} from '../settings/settings-realtime.types';
 import { groupRoomName, userRoomName } from './ticket-socket-rooms';
 import { recordWebsocketEmit } from './websocket-emit-counter';
 
@@ -66,7 +69,18 @@ export function broadcastSettingsUpdated(
   server: Server,
   payload: SettingsUpdatedRealtimePayload,
 ): void {
-  server.emit(ticketRealtimeEventNames.settingsUpdated, payload);
+  // Every authenticated client needs an invalidation signal, not the setting
+  // key. Private/secret registry metadata is routed only to the trusted admin
+  // room, whose membership is maintained by socket room revalidation.
+  server.emit(ticketRealtimeEventNames.settingsUpdated, {
+    occurredAt: payload.occurredAt,
+  });
+  if (payload.visibility !== 'public') {
+    server.to(adminRealtimeRoomName).emit(
+      settingsRealtimeEventNames.privateMetadataUpdated,
+      payload,
+    );
+  }
   if (payload.invalidatesSession) {
     server.emit(ticketRealtimeEventNames.sessionInvalidated, {
       occurredAt: payload.occurredAt,

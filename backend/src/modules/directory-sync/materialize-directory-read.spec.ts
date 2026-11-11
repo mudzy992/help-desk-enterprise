@@ -31,6 +31,23 @@ function readResult(users: readonly DirectoryUser[]): DirectoryReadResult {
   };
 }
 
+function organizationalUnitReadResult(
+  organizationalUnits: DirectoryReadResult['organizationalUnits'],
+): DirectoryReadResult {
+  return {
+    strategy: 'scheduled',
+    operation: 'organizational_units',
+    scope: {
+      distinguishedName: null,
+      organizationalUnitPath: null,
+      includeSubtree: true,
+    },
+    users: [],
+    groups: [],
+    organizationalUnits,
+  };
+}
+
 /**
  * Phase 2.2 (plan §2.2): a directory read updates display names and unit
  * membership of known users, so exactly those users lose their cached
@@ -67,6 +84,56 @@ describe('materializeDirectoryRead invalidation', () => {
     await materializeDirectoryRead(prisma as never, readResult([directoryUser()]), invalidateUsers);
 
     expect(invalidateUsers).toHaveBeenCalledTimes(1);
+    expect(invalidateUsers).toHaveBeenCalledWith(['user-agent']);
+  });
+
+  it('invalidates earlier user updates if a later materialization row fails', async () => {
+    const { prisma } = createPrisma(
+      new Map([
+        ['first@example.com', { id: 'user-first', isLocalOnly: false }],
+        ['second@example.com', { id: 'user-second', isLocalOnly: false }],
+      ]),
+    );
+    prisma.user.findUnique.mockImplementation(async (args: {
+      where: { email: string };
+    }) => {
+      if (args.where.email === 'second@example.com') {
+        throw new Error('directory read failed');
+      }
+      return { id: 'user-first', isLocalOnly: false };
+    });
+    const invalidateUsers = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      materializeDirectoryRead(
+        prisma as never,
+        readResult([
+          directoryUser({ email: 'first@example.com' }),
+          directoryUser({ email: 'second@example.com' }),
+        ]),
+        invalidateUsers,
+      ),
+    ).rejects.toThrow('directory read failed');
+
+    expect(invalidateUsers).toHaveBeenCalledWith(['user-first']);
+  });
+
+  it('invalidates an existing user when an upsert reports a post-commit error', async () => {
+    const { prisma, upsert } = createPrisma(
+      new Map([['agent@example.com', { id: 'user-agent', isLocalOnly: false }]]),
+    );
+    let committed = false;
+    upsert.mockImplementationOnce(async () => {
+      committed = true;
+      throw new Error('connection lost after commit');
+    });
+    const invalidateUsers = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      materializeDirectoryRead(prisma as never, readResult([directoryUser()]), invalidateUsers),
+    ).rejects.toThrow('connection lost after commit');
+
+    expect(committed).toBe(true);
     expect(invalidateUsers).toHaveBeenCalledWith(['user-agent']);
   });
 
@@ -108,6 +175,52 @@ describe('materializeDirectoryRead invalidation', () => {
     );
 
     expect(invalidateUsers).toHaveBeenCalledWith(['user-agent']);
+  });
+
+  it('invalidates holders of role assignments when directory materialization changes an OU path', async () => {
+    const parentLookups: string[] = [];
+    const userRoleFindMany = jest
+      .fn()
+      .mockResolvedValue([{ userId: 'user-a' }, { userId: 'user-b' }, { userId: 'user-a' }]);
+    const prisma = {
+      organizationalUnit: {
+        findUnique: jest.fn().mockImplementation(async (args: {
+          where: { distinguishedName?: string; ouPath?: string };
+        }) => {
+          if (args.where.distinguishedName !== undefined) {
+            return { id: 'ou-it', ouPath: '/Old/IT' };
+          }
+          parentLookups.push(args.where.ouPath ?? '');
+          return { id: 'ou-new-parent' };
+        }),
+        upsert: jest.fn().mockResolvedValue({ id: 'ou-it' }),
+      },
+      userRole: { findMany: userRoleFindMany },
+    };
+    const invalidateUsers = jest.fn().mockResolvedValue(undefined);
+
+    await materializeDirectoryRead(
+      prisma as never,
+      organizationalUnitReadResult([
+        {
+          externalId: 'ou-1',
+          displayName: 'IT',
+          distinguishedName: 'OU=IT,OU=New,DC=example,DC=com',
+          organizationalUnitPath: '/New/IT',
+          type: 'BRANCH',
+        },
+      ]),
+      invalidateUsers,
+    );
+
+    expect(parentLookups).toEqual(['/New']);
+    expect(userRoleFindMany).toHaveBeenCalledWith({
+      where: { organizationalUnitId: { in: ['ou-it'] } },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    expect(invalidateUsers).toHaveBeenCalledTimes(1);
+    expect(invalidateUsers).toHaveBeenCalledWith(['user-a', 'user-b']);
   });
 
   it('ignores entries without an email and other operations', async () => {

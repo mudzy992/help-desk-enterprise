@@ -51,7 +51,10 @@ export type PolicyPackApplyTarget = {
   readonly userIds: readonly string[];
 };
 
-export type { PrincipalInvalidationHook } from '../../common/principal-context/principal-context.types';
+export type {
+  PrincipalBatchInvalidationHook,
+  PrincipalInvalidationHook,
+} from '../../common/principal-context/principal-context.types';
 
 export type PolicyPackPlannedAssignment = {
   readonly userId: string;

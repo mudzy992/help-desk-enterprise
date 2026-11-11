@@ -30,6 +30,7 @@ export async function executeConfigRollback(input: {
   readonly prisma: PrismaService;
   readonly repository: ConfigVersioningRepository;
   readonly registry: SettingsRegistry;
+  readonly settingsService: SettingsService;
   readonly configuration: ConfigVersioningConfiguration;
   readonly id: string;
   readonly reason: string | undefined;
@@ -50,10 +51,16 @@ export async function executeConfigRollback(input: {
     current,
     input.targetVersionId,
   );
+  const currentSnapshot = await collectConfigSnapshot(
+    input.prisma,
+    input.settingsService,
+    input.configuration.scopes,
+  );
   const snapshot = buildRollbackSnapshot(
     parseConfigSnapshot(target.snapshot),
     target.version,
     new Date().toISOString(),
+    currentSnapshot,
   );
   assertConfigActivationAllowed(snapshot, input.registry, input.configuration);
   const created = await input.repository.create({

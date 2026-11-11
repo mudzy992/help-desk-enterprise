@@ -131,6 +131,7 @@ test.describe("44 on-call schedules (5.3.7)", () => {
             rotationStartDate: civilDate(0),
             isActive: true,
             autoAssignOutsideHours: false,
+            expectedUpdatedAt: null,
             ownerUserId: null,
             memberUserIds: [memberId],
             reason: "E2E 5.3.7 on-call setup",
@@ -263,6 +264,31 @@ test.describe("44 on-call schedules (5.3.7)", () => {
           );
         }
       }
+    }
+  });
+
+  test("a revoked calendar token stops serving the public feed (BA-on-call-14)", async () => {
+    test.setTimeout(60_000);
+    const env = readE2EEnvironment();
+    const api = new ApiClient();
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+    const { token } = await api.requestJson<{ readonly token: string }>(
+      "/on-call/calendar-token",
+      { method: "POST" },
+    );
+    const feedPath = `/public/on-call/calendar.ics?token=${encodeURIComponent(token)}`;
+    try {
+      const before = await api.request(feedPath);
+      expect(before.ok).toBe(true);
+      const revoked = await api.request("/on-call/calendar-token", {
+        method: "DELETE",
+      });
+      expect(revoked.ok).toBe(true);
+      const after = await api.request(feedPath);
+      expect(after.status).toBe(404);
+    } finally {
+      // Idempotent cleanup: the account is left without an active token.
+      await api.request("/on-call/calendar-token", { method: "DELETE" });
     }
   });
 

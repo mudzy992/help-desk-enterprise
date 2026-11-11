@@ -5,7 +5,7 @@ import type { AuthenticatedHttpRequest } from '../authentication/authenticated-r
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import {
-  DeleteWithReasonDto,
+  DeleteResponseTemplateDto,
   ListResponseTemplatesQueryDto,
   ManageResponseTemplatesQueryDto,
   PreviewResponseTemplateDto,
@@ -33,7 +33,14 @@ export class ResponseTemplatesController {
   picker(@Query() query: ListResponseTemplatesQueryDto, @Req() request: AuthenticatedHttpRequest) {
     return executeTemplatesOperation(() =>
       this.templates.listForPicker(
-        { ticketId: query.ticketId, kind: query.kind, q: query.q, all: query.all === 'true' },
+        {
+          ticketId: query.ticketId,
+          kind: query.kind,
+          q: query.q,
+          all: query.all === 'true',
+          cursor: query.cursor,
+          take: query.take,
+        },
         readActor(request),
       ),
     );
@@ -60,16 +67,16 @@ export class ResponseTemplatesController {
     @Body() body: SaveResponseTemplateDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
-    return executeTemplatesOperation(() =>
-      this.templates.update('personal', templateId, body, readActor(request)),
-    );
+    return executeTemplatesOperation(() => this.templates.update('personal', templateId, body, readActor(request)));
   }
 
   @Delete('mine/:templateId')
-  removePersonal(@Param('templateId') templateId: string, @Req() request: AuthenticatedHttpRequest) {
-    return executeTemplatesOperation(() =>
-      this.templates.remove('personal', templateId, undefined, readActor(request)),
-    );
+  removePersonal(
+    @Param('templateId') templateId: string,
+    @Body() body: DeleteResponseTemplateDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return executeTemplatesOperation(() => this.templates.remove('personal', templateId, body, readActor(request)));
   }
 
   @Get(':templateId')
@@ -90,21 +97,17 @@ export class ResponseTemplatesController {
     @Body() body: SaveResponseTemplateDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
-    return executeTemplatesOperation(() =>
-      this.templates.update('shared', templateId, body, readActor(request)),
-    );
+    return executeTemplatesOperation(() => this.templates.update('shared', templateId, body, readActor(request)));
   }
 
   @Delete(':templateId')
   @AdminConfigDomains('templates')
   removeShared(
     @Param('templateId') templateId: string,
-    @Body() body: DeleteWithReasonDto,
+    @Body() body: DeleteResponseTemplateDto,
     @Req() request: AuthenticatedHttpRequest,
   ) {
-    return executeTemplatesOperation(() =>
-      this.templates.remove('shared', templateId, body.reason, readActor(request)),
-    );
+    return executeTemplatesOperation(() => this.templates.remove('shared', templateId, body, readActor(request)));
   }
 }
 

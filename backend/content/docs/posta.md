@@ -114,6 +114,13 @@
 | **REJECTED** | Poruka nije prihvaćena; premještena je u „odbijeno“ uz razlog |
 | **IGNORED** | Poruka je prepoznata kao automat/bounce/duplikat i nije mijenjana |
 
+### Stanje izlaznog e-maila i neizvjestan ishod
+
+- Pločica **Operativno zdravlje → Slanje e-maila** prikazuje zastarjele claimove i broj isporuka čiji ishod nije moguće automatski utvrditi.
+- Ako proces stane nakon što SMTP server možda prihvati poruku, red prelazi u `UNKNOWN`. Sistem ga **ne šalje ponovo automatski**; `UNKNOWN` je dokaz za ručno usklađivanje, ne potvrda da poruka nije otišla.
+- Operater provjerava stabilni `Message-ID` i vrijeme/primaoca u dostupnim SMTP/MTA zapisima. Ako je prijem potvrđen, poruku ne treba ponovo slati. Ako rezultat ostane nejasan, ostaviti ga `UNKNOWN` i eskalirati umjesto slijepog resenda.
+- Trenutni generički SMTP transport ne daje provider idempotency key ni potvrdu isporuke. Stabilni `Message-ID` služi za korelaciju, ali sam po sebi ne sprečava duplikat; sistem ne obećava exactly-once isporuku.
+
 ### Zašto poruka može biti odbijena
 
 | Razlog | Šta znači |
@@ -168,9 +175,12 @@
   ista pravila kao za odgovor u tiketu. Ako se pogodak nađe, tekst se u poruci zamjenjuje oznakom `[REDACTED]`,
   a u tiket se upisuje sistemski događaj upozorenja (`ticket_redaction_warned`) — po tiketu, ne po primaocu.
 
-- **Zapis o isporuci se preuzima ponovo.** Ako proces padne tačno između preuzimanja i slanja, zapis koji je
-  tako zaglavljen duže od 10 minuta preuzima sljedeći pokušaj i e-mail se šalje; broj takvih zapisa prikazuje
-  pločica **Operativno zdravlje** (ključ `stuckClaims`). (Nalaz B1 iz §M12 — zatvoren u valu 3.)
+- **Neizvjestan ishod SMTP-a ne šalje se ponovo naslijepo.** Ako proces padne dok je ishod slanja nepoznat,
+  claim stariji od 10 minuta pri narednom pokušaju prelazi u `UNKNOWN`; taj pokušaj ne šalje e-mail. Pločica
+  **Operativno zdravlje → Slanje e-maila** broji `UNKNOWN` zapise i stale claimove. Operator treba uskladiti
+  vrijeme, primaoca i stabilni `Message-ID` sa SMTP/MTA zapisima; ako prihvatanje nije moguće potvrditi,
+  ostaviti stanje `UNKNOWN` i eskalirati. Message-ID pomaže korelaciji, ali ne garantuje deduplikaciju,
+  a sistem ne obećava exactly-once isporuku. (Nalaz `BA-notifications-07`.)
 - **Bulk obavijest (broadcast)** skenira se i rediguje prije slanja; pogodak se u tiketu bilježi kao sistemski
   događaj upozorenja. (Nalaz B2 iz §M12 — zatvoren u valu 2.)
 - **SMTP veza se dijeli.** Jedan pool se drži po konfiguraciji (host, port, TLS, korisnik i otisak lozinke),
@@ -197,4 +207,4 @@
 
 ---
 
-*Ažurirano: 2026-10-03 · Modul: Pošta (M12)*
+*Ažurirano: 2026-11-06 · Modul: Pošta (M12)*

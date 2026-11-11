@@ -101,6 +101,28 @@ test.describe('28 assets catalog, relations, licences and contracts', () => {
         });
         expect(await errorCode(clash)).toBe('ASSET_ATTRIBUTE_NOT_UNIQUE');
 
+        // Two API requests race to claim the same DB-backed unique value.
+        const raceValue = `R-${stamp}`;
+        const racingCreates = await Promise.all([
+          admin.request('/assets', {
+            method: 'POST',
+            body: JSON.stringify({ ...base, name: `E2E race A ${stamp}`, assetTag: `E2E-CR1-${stamp}`, attributes: { inventoryCode: raceValue } }),
+          }),
+          admin.request('/assets', {
+            method: 'POST',
+            body: JSON.stringify({ ...base, name: `E2E race B ${stamp}`, assetTag: `E2E-CR2-${stamp}`, attributes: { inventoryCode: raceValue } }),
+          }),
+        ]);
+        const raceWinners = racingCreates.filter((response) => response.ok);
+        const raceLosers = racingCreates.filter((response) => response.status === 409);
+        expect(raceWinners, 'the unique-value constraint admits exactly one concurrent create').toHaveLength(1);
+        expect(raceLosers, 'the competing unique-value create is a conflict').toHaveLength(1);
+        expect(await errorCode(raceLosers[0]!)).toBe('ASSET_ATTRIBUTE_NOT_UNIQUE');
+        const racedAsset = (await raceWinners[0]!.json()) as { id: string };
+        created.push(racedAsset.id);
+        const racedDetail = await admin.requestJson<AssetDetail>(`/assets/${racedAsset.id}`);
+        expect(JSON.stringify(racedDetail.attributes ?? racedDetail)).toContain(raceValue);
+
         // Changing the data type of an attribute that already holds values is refused.
         const catalog = await admin.requestJson<CatalogWithAttributes>('/assets/catalog?includeArchived=true');
         const code = catalog.types.find((entry) => entry.id === type.id)?.attributes?.find((entry) => entry.key === 'inventoryCode');
@@ -170,6 +192,22 @@ test.describe('28 assets catalog, relations, licences and contracts', () => {
         const after = await admin.requestJson<Impact>(`/assets/${server.id}/impact`);
         expect(after.dependents.items.map((node) => node.assetId)).not.toContain(app.id);
         expect(await historyActions(admin, server.id)).toContain('relation_removed');
+
+        // Duplicate dependency requests race through the real API and are arbitrated by the DB invariant.
+        const raceSource = await make('RS');
+        const raceTarget = await make('RT');
+        const raceResponses = await Promise.all([
+          relate(raceSource.id, raceTarget.id),
+          relate(raceSource.id, raceTarget.id),
+        ]);
+        const raceWinners = raceResponses.filter((response) => response.ok);
+        const raceConflicts = raceResponses.filter((response) => response.status === 409);
+        expect(raceWinners, 'one concurrent relation insert commits').toHaveLength(1);
+        expect(raceConflicts, 'the unique-edge loser receives a conflict').toHaveLength(1);
+        expect(await errorCode(raceConflicts[0]!)).toBe('ASSET_RELATION_EXISTS');
+        const raceImpact = await admin.requestJson<Impact>(`/assets/${raceSource.id}/impact`);
+        expect(raceImpact.dependencies.items.filter((node) => node.assetId === raceTarget.id)).toHaveLength(1);
+        expect((await historyActions(admin, raceSource.id)).filter((action) => action === 'relation_added')).toHaveLength(1);
       } finally {
         await retireAssets(admin, created, 'E2E 28 cleanup');
       }

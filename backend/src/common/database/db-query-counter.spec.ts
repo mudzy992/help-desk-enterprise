@@ -2,8 +2,10 @@ import {
   readTotalDbQueries,
   readTrackedRequestCount,
   recordDbQuery,
+  recordDbQueryTraceLabel,
   resetDbQueryCounters,
   takeDbQueryCount,
+  takeDbQueryTrace,
 } from './db-query-counter';
 
 describe('db query counter', () => {
@@ -20,6 +22,17 @@ describe('db query counter', () => {
     expect(takeDbQueryCount('request-1')).toBe(0);
     expect(takeDbQueryCount('request-2')).toBe(1);
     expect(takeDbQueryCount('unknown-request')).toBe(0);
+  });
+
+  it('records diagnostic labels without counting them as database statements', () => {
+    recordDbQuery('request-trace');
+    recordDbQueryTraceLabel('request-trace', 'ticket_list_total_cache=hit');
+
+    expect(takeDbQueryCount('request-trace')).toBe(1);
+    expect(takeDbQueryTrace('request-trace')).toEqual([
+      'ticket_list_total_cache=hit',
+    ]);
+    expect(readTotalDbQueries()).toBe(1);
   });
 
   it('keeps counting statements that have no request id', () => {

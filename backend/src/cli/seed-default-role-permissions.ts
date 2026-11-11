@@ -2,6 +2,9 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 import type { PrismaService } from '../common/prisma/prisma.service';
+import { PrincipalContextInvalidator } from '../common/principal-context/principal-context-invalidator.service';
+import { createRedisClient } from '../common/redis/create-redis-client';
+import { loadRedisConfiguration } from '../common/redis/load-redis-configuration';
 import {
   auditLogActions,
   auditLogEntityTypes,
@@ -31,12 +34,58 @@ async function main(): Promise<number> {
     return 2;
   }
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  let redis: ReturnType<typeof createRedisClient> | null = null;
+  const prismaService = prisma as unknown as PrismaService;
+  let invalidatePrincipals:
+    | ((userIds: readonly string[]) => Promise<unknown>)
+    | undefined;
+  if (!dryRun) {
+    try {
+      redis = createRedisClient(loadRedisConfiguration(process.env));
+      redis.on('error', (error: Error) => {
+        console.warn(`role_permission_seed_redis_error type=${error.name}`);
+      });
+      const invalidator = new PrincipalContextInvalidator(prismaService, redis);
+      invalidatePrincipals = async (userIds) => {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        let timedOut = false;
+        try {
+          await Promise.race([
+            invalidator.invalidateUsers(userIds),
+            new Promise<void>((resolve) => {
+              timeout = setTimeout(() => {
+                timedOut = true;
+                resolve();
+              }, 5_000);
+            }),
+          ]);
+          if (timedOut) {
+            console.warn(
+              `role_permission_seed_invalidation_timeout users=${userIds.length}; authzVersion bump was submitted and session revalidation remains active`,
+            );
+          }
+        } finally {
+          if (timeout !== undefined) clearTimeout(timeout);
+        }
+      };
+    } catch (error) {
+      console.warn(
+        `role_permission_seed_redis_unavailable reason=${String(error)}; using durable authzVersion bumps without shared cache publication`,
+      );
+      invalidatePrincipals = async (userIds) => {
+        await prismaService.user.updateMany({
+          where: { id: { in: [...userIds] } },
+          data: { authzVersion: { increment: 1 } },
+        });
+      };
+    }
+  }
   let addedTotal = 0;
   try {
-    const result = await seedDefaultRolePermissions(
-      prisma as unknown as PrismaService,
-      { dryRun },
-    );
+    const result = await seedDefaultRolePermissions(prismaService, {
+      dryRun,
+      ...(invalidatePrincipals === undefined ? {} : { invalidatePrincipals }),
+    });
     addedTotal = result.addedTotal;
     for (const role of result.roles) {
       const created = role.roleCreated ? ' (role created)' : '';
@@ -65,6 +114,7 @@ async function main(): Promise<number> {
     }
   } finally {
     await prisma.$disconnect();
+    redis?.disconnect();
   }
   console.log(
     `${dryRun ? 'dry run - nothing written; ' : ''}roles updated: ` +

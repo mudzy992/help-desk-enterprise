@@ -1,3 +1,5 @@
+import type { MailSendFailureKind } from './classify-mail-send-error';
+
 export type OutboundMailMessage = {
   readonly from: string;
   readonly to: string;
@@ -6,7 +8,7 @@ export type OutboundMailMessage = {
   /** HTML alternative; clients without HTML show `text`. */
   readonly html?: string;
   readonly replyTo?: string;
-  /** Stable Message-ID so a retry is recognised as the same message. */
+  /** Stable Message-ID for correlation across retries; SMTP servers need not deduplicate it. */
   readonly messageId?: string;
   /** Threading and automation headers (In-Reply-To, References, Auto-Submitted…). */
   readonly headers?: Readonly<Record<string, string>>;
@@ -33,8 +35,20 @@ export type MailTransportTarget = {
  * implementation today; API providers (Microsoft Graph sendMail, Gmail API)
  * plug in here as another implementation without touching callers.
  */
+export type MailTransportResult = {
+  /** Recipient counts only; never return the address list in the delivery receipt. */
+  readonly acceptedRecipientCount: number;
+  readonly rejectedRecipientCount: number;
+  /** SMTP-reported RFC Message-ID for correlation, not proof of mailbox delivery. */
+  readonly messageId: string | null;
+  /** Numeric SMTP reply code when the provider supplied one; raw reply text is not retained. */
+  readonly responseCode: number | null;
+  /** Safe category derived from the raw provider response inside the transport. */
+  readonly failureKind: MailSendFailureKind | null;
+};
+
 export type MailTransport = {
-  send(message: OutboundMailMessage, target: MailTransportTarget): Promise<void>;
+  send(message: OutboundMailMessage, target: MailTransportTarget): Promise<MailTransportResult>;
 };
 
 export const MAIL_TRANSPORT = Symbol('MAIL_TRANSPORT');

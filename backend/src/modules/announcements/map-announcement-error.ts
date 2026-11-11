@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpException,
   NotFoundException,
+  PayloadTooLargeException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { AnnouncementError, announcementErrorCodes } from './announcements.constants';
@@ -22,6 +23,8 @@ export function mapAnnouncementError(error: unknown): unknown {
       return new ConflictException(body);
     case announcementErrorCodes.forbidden:
       return new ForbiddenException(body);
+    case announcementErrorCodes.reportExportTooLarge:
+      return new PayloadTooLargeException(body);
     default:
       return new BadRequestException(body);
   }

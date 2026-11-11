@@ -91,6 +91,34 @@ describe('buildTicketVisibilityWhere matches the per-ticket visibility check', (
     }
   }
 
+  it('preserves confidential handler and group-grant visibility without loading group ids', async () => {
+    for (const actorName of ['groupMember', 'groupGranted']) {
+      const context = actors[actorName];
+      const inputs = await loadTicketVisibilityInputs(
+        world.prisma,
+        context.subjectId,
+        { includeActorGroupIds: false },
+      );
+      const expected = await visibleByPerTicketCheck(
+        world,
+        context,
+        configurations.default,
+      );
+      const found = await world.memory.prisma.ticket.findMany({
+        where: {
+          AND: buildTicketVisibilityWhere({
+            context,
+            ...inputs,
+            actorMembershipUserId: context.subjectId,
+            configuration: configurations.default,
+            now,
+          }),
+        },
+      });
+      expect(found.map((ticket: TicketRecord) => ticket.id).sort()).toEqual(expected);
+    }
+  });
+
   it('is not vacuous: scope and confidentiality both hide and reveal tickets', async () => {
     const all = world.tickets.length;
     const agentIt = await visibleByWhere(world, actors.agentIt, configurations.default);

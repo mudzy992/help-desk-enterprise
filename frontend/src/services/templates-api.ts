@@ -80,7 +80,33 @@ export type SaveResponseTemplateInput = {
   readonly reason?: string;
 };
 
+export type UpdateResponseTemplateInput = SaveResponseTemplateInput & {
+  readonly expectedUpdatedAt: string;
+};
+
+export type TemplateDefinitionDeleteInput = {
+  readonly reason?: string;
+  readonly expectedUpdatedAt: string;
+};
+
+export type PlaybookDeleteInput = {
+  readonly reason: string;
+  readonly expectedUpdatedAt: string;
+};
+
 export type TemplateListState = "active" | "inactive" | "all";
+
+export type CursorPage<T> = {
+  readonly items: readonly T[];
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type CountedCursorPage<T> = CursorPage<T> & {
+  readonly total: number;
+};
 
 function query(params: Record<string, string | undefined>): string {
   const search = new URLSearchParams();
@@ -96,13 +122,17 @@ export function listPickerTemplates(input: {
   readonly kind?: "REPLY" | "INTERNAL";
   readonly q?: string;
   readonly all?: boolean;
-}): Promise<readonly ResponseTemplatePickerItem[]> {
+  readonly cursor?: string;
+  readonly take?: number;
+}): Promise<CursorPage<ResponseTemplatePickerItem>> {
   return apiRequest(
     `/response-templates${query({
       ticketId: input.ticketId,
       kind: input.kind,
       q: input.q,
       all: input.all === true ? "true" : undefined,
+      cursor: input.cursor,
+      take: input.take?.toString(),
     })}`,
   );
 }
@@ -128,13 +158,17 @@ export function listManagedTemplates(input: {
   readonly q?: string;
   readonly serviceId?: string;
   readonly state?: TemplateListState;
-}): Promise<readonly ResponseTemplate[]> {
+  readonly cursor?: string;
+  readonly take?: number;
+}): Promise<CountedCursorPage<ResponseTemplate>> {
   return apiRequest(
     `/response-templates/manage${query({
       ownership: input.ownership,
       q: input.q,
       serviceId: input.serviceId,
       state: input.state,
+      cursor: input.cursor,
+      take: input.take?.toString(),
     })}`,
   );
 }
@@ -157,7 +191,7 @@ export function createResponseTemplate(
 export function updateResponseTemplate(
   ownership: ResponseTemplateOwnership,
   templateId: string,
-  input: SaveResponseTemplateInput,
+  input: UpdateResponseTemplateInput,
 ): Promise<ResponseTemplate> {
   return apiRequest(`${basePath(ownership)}/${templateId}`, {
     method: "PUT",
@@ -168,11 +202,14 @@ export function updateResponseTemplate(
 export function deleteResponseTemplate(
   ownership: ResponseTemplateOwnership,
   templateId: string,
-  reason?: string,
+  input: TemplateDefinitionDeleteInput,
 ): Promise<{ readonly id: string }> {
   return apiRequest(`${basePath(ownership)}/${templateId}`, {
     method: "DELETE",
-    ...(ownership === "shared" ? { body: JSON.stringify({ reason }) } : {}),
+    body: JSON.stringify({
+      expectedUpdatedAt: input.expectedUpdatedAt,
+      ...(ownership === "shared" ? { reason: input.reason } : {}),
+    }),
   });
 }
 
@@ -226,13 +263,25 @@ export type SavePlaybookInput = {
   readonly reason?: string;
 };
 
+export type UpdatePlaybookInput = SavePlaybookInput & {
+  readonly expectedUpdatedAt: string;
+};
+
 export function listPlaybooks(input: {
   readonly q?: string;
   readonly serviceId?: string;
   readonly state?: TemplateListState;
-}): Promise<readonly Playbook[]> {
+  readonly cursor?: string;
+  readonly take?: number;
+}): Promise<CountedCursorPage<Playbook>> {
   return apiRequest(
-    `/playbooks${query({ q: input.q, serviceId: input.serviceId, state: input.state })}`,
+    `/playbooks${query({
+      q: input.q,
+      serviceId: input.serviceId,
+      state: input.state,
+      cursor: input.cursor,
+      take: input.take?.toString(),
+    })}`,
   );
 }
 
@@ -244,17 +293,17 @@ export function createPlaybook(input: SavePlaybookInput): Promise<Playbook> {
   return apiRequest("/playbooks", { method: "POST", body: JSON.stringify(input) });
 }
 
-export function updatePlaybook(playbookId: string, input: SavePlaybookInput): Promise<Playbook> {
+export function updatePlaybook(playbookId: string, input: UpdatePlaybookInput): Promise<Playbook> {
   return apiRequest(`/playbooks/${playbookId}`, { method: "PUT", body: JSON.stringify(input) });
 }
 
 export function deletePlaybook(
   playbookId: string,
-  reason: string,
+  input: PlaybookDeleteInput,
 ): Promise<{ readonly id: string }> {
   return apiRequest(`/playbooks/${playbookId}`, {
     method: "DELETE",
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(input),
   });
 }
 
@@ -301,10 +350,21 @@ export type TicketPlaybookView = {
     readonly name: string;
     readonly match: "service" | "category" | "other";
   }[];
+  readonly availablePage: {
+    readonly take: number;
+    readonly cursor: string | null;
+    readonly nextCursor: string | null;
+    readonly hasMore: boolean;
+  };
 };
 
-export function getTicketPlaybook(ticketId: string): Promise<TicketPlaybookView> {
-  return apiRequest(`/tickets/${ticketId}/playbook`);
+export function getTicketPlaybook(
+  ticketId: string,
+  input: { readonly cursor?: string; readonly take?: number } = {},
+): Promise<TicketPlaybookView> {
+  return apiRequest(
+    `/tickets/${ticketId}/playbook${query({ cursor: input.cursor, take: input.take?.toString() })}`,
+  );
 }
 
 export function attachTicketPlaybook(

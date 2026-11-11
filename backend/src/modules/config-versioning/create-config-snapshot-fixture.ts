@@ -12,6 +12,11 @@ export function createConfigSnapshotFixture(
     rollbackOfVersion: null,
     settings: {
       'private.ticket.unroutedQueue.enabled': true,
+      'private.ticket.forms.enabled': true,
+      'private.ticket.forms.requireStructuredFields': true,
+      'private.ticket.forms.versioning.enabled': true,
+      'private.ticket.forms.versioning.allowMultipleActiveVersions': false,
+      'private.ticket.forms.versioning.requireVersionOnTicket': true,
     },
     routing: {
       configuration: {
@@ -103,7 +108,18 @@ export function createConfigSnapshotFixture(
           serviceId: 'service-vpn',
           version: 1,
           status: 'ACTIVE',
-          schema: { schemaVersion: 1, fields: [] },
+          schema: {
+            schemaVersion: 1,
+            fields: [
+              {
+                id: 'summary',
+                label: 'Summary',
+                type: 'text',
+                required: true,
+                order: 0,
+              },
+            ],
+          },
         },
       ],
     },

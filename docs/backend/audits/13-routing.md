@@ -33,7 +33,7 @@ Javne rute: create/update/delete rule; delete impact; per-rule/global changes; h
 
 Create/update/delete rade target existence provjere, razlog promjene, effective before/after resolution snapshot i change log. DB write i change log su u istoj Prisma transakciji. Update/delete dodatno upoređuju immutable rule scope sa body scopeom, pa `ruleId` ne može biti iskorišten uz lažni OU/service body.
 
-Coverage paginira po service name/id, a za svaki servis računa sve ili odabrani origin OU. Authorization se, međutim, primjenjuje tek nakon generisanja globalne stranice. Onboarding i service activation koriste samo `count(rule where serviceId)>0`, ne stvarnu matricu pokrivenosti.
+Coverage paginira po service name/id, a za svaki servis računa sve ili odabrani origin OU. Authorization se, međutim, primjenjuje tek nakon generisanja globalne stranice. Na audit baselineu (2026-10-23), onboarding i service activation koristili su samo `count(rule where serviceId)>0`, ne stvarnu matricu pokrivenosti; kasniji W5.21 i Val 5 BA-routing-02 follow-up status zabilježeni su u detaljnom nalazu ispod.
 
 ## 4. API/permission/scope matrica
 
@@ -112,9 +112,9 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 | ID            | Severity | Nalaz                                                           | Status   |
 | ------------- | -------- | --------------------------------------------------------------- | -------- |
 | BA-routing-01 | P1       | Scoped admin može rutirati ticket na grupu izvan svog OU scopea | zatvoreno |
-| BA-routing-02 | P1       | Service activation “coverage” prihvata bilo koje jedno pravilo  | otvoreno |
-| BA-routing-03 | P2       | Scoped coverage paginira prije authorization filtera            | otvoreno |
-| BA-routing-04 | P2       | Scoped coverage `total` računa samo ograničenu prvu stranicu    | otvoreno |
+| BA-routing-02 | P1       | Service activation “coverage” prihvata bilo koje jedno pravilo  | zatvoreno |
+| BA-routing-03 | P2       | Scoped coverage paginira prije authorization filtera            | zatvoreno |
+| BA-routing-04 | P2       | Scoped coverage `total` računa samo ograničenu prvu stranicu    | zatvoreno |
 | BA-routing-05 | P2       | Rule/change-log liste su neograničene i post-filterirane        | zatvoreno |
 | BA-routing-06 | P2       | Single-ticket resolve učitava kompletno OU stablo               | zatvoreno |
 | BA-routing-07 | P2       | Scoped historija obrisanog pravila postaje nedostupna           | zatvoreno |
@@ -138,26 +138,32 @@ E2E 02 potvrđuje ticket routing/fallback i globalnu coverage paginaciju/filtere
 
 ### BA-routing-02 — Activation coverage je “postoji jedno pravilo”
 
-**Dokaz:** `evaluateServiceRoutingCoverage` poziva `hasRoutingRulesForService`, odnosno `routingRule.count({serviceId}) > 0`.  
+**Dokaz (audit baseline, 2026-10-23):** prvobitna `evaluateServiceRoutingCoverage` putanja je pozivala `hasRoutingRulesForService`, odnosno `routingRule.count({serviceId}) > 0`. Kasniji W5.21 package je promijenio activation/finalization evaluaciju; residualni onboarding false-positive opisan je u status reconciliation bilješci ispod.
 **Uticaj:** uz `requireCoverage=true` servis se aktivira sa pravilom za samo jedan OU, dok svi drugi relevantni origin OU-ovi ostaju `UNROUTED`. Onboarding reference daje istu lažnu potvrdu potpunosti.  
 **Root cause:** “configuration exists” je zamijenjeno za stvarnu coverage matricu/politiku.  
 **Korekcija:** formalno definirati relevantne OU-ove i zahtijevani exact/ancestor fallback; validirati target eligibility i vratiti strukturirani missing set.  
 **Acceptance:** aktivacija pada kada ijedan obavezni OU nema validan resolution; warning/override je eksplicitan i auditiran.  
 **Owner/veličina:** routing + service-catalog/onboarding, L.
 
-**Closeout:** W5.21 (`da66f2c`), zeleni CI `40374063956`; aktivacija sada zahtijeva exact/ancestor resolution za svaki OU i vraća determinističan missing skup. Dokaz: [48-routing-service-activation-coverage.md](../implementation/48-routing-service-activation-coverage.md). Paket nema novu DB migraciju.
+**Historijski closeout zapis:** W5.21 (`da66f2c`), zeleni CI `40374063956`; taj paket je uveo exact/ancestor resolution i determinističan missing skup za activation/finalization. Detalji prvobitnog paketa ostaju u [48-routing-service-activation-coverage.md](../implementation/48-routing-service-activation-coverage.md); paket nije imao novu DB migraciju.
+
+**Val 5 status reconciliation (2026-11-04; pre-acceptance snapshot):** reinspection je potvrdio da W5.21 nije uklonio residualni `count(rule)>0` u persisted onboarding reference `suggest`/`validate` putanjama (`routing-onboarding-support.ts`); zbog toga jedno leaf pravilo još može dati lažnu onboarding potvrdu. Odobreni follow-up ponovo koristi istu exact/ancestor coverage evaluaciju, nosi missing OU skup u activation/onboarding greškama i čuva ga u onboarding validation recordu. CI [`41850862952`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41850862952) na SHA `c098ad4` prošao je generated-Prisma build/full Jest i real PostgreSQL+Redis integration, uključujući routing critical-matrix shard. E2E critical flows su u tom push CI-ju `skipped`; scheduled full run [`41790672838`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41790672838) pao je na starijem SHA `8aab8e46` i nije validacija trenutnog koda. Noviji CI/E2E [`41905212413`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905212413) na `e32a999` prošao je selected specove 02/15/42, ali spec 42 samo započinje onboarding i ne asertuje persisted `suggest`/`validate` missing-set ugovor; report download je završio EOF, pa per-spec counts nisu nezavisno pregledani. Paketni detalji i acceptance granice su u [123](../implementation/123-routing-02-activation-onboarding-coverage.md). U tom pre-acceptance snapshotu statusni red nije mijenjan i `BA-routing-02` je ostao **otvoren**; taj privremeni status je supersediran završnim closeoutom ispod. Nema target-DB pristupa niti migration runa.
+
+**BA-routing-02 — finalni closeout (2026-11-04; owner-directed):** korisnik je izričito zatražio zatvaranje ako run `41916949315` prođe; run je **success** sa 4 passed, 0 failed, 0 flaky i 0 skipped u E2E critical-flows jobu, ali na `master` SHA `a625446c3fa9074700ecb1dcd0f0e80c1f3c8cdc`, ne na closeout SHA `70f52e4b29d03de48331fe2f5711dbb4cb2c0f29`. Backend/frontend poslovi su bili skipped. Zato se ne tvrdi da je ovaj E2E run izvršio novododati peti spec-42 test; on je sadržavao četiri testa. Tačan closeout SHA `70f52e4b` ima uspješan push CI [`41915186268`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186268), uključujući registered disposable PostgreSQL+Redis integration suite `service-onboarding-routing-coverage.integration.spec.ts`. Suite direktno provjerava strict-mode null suggestion, strukturisani/persistirani `ROUTING_COVERAGE_MISSING` i `lastValidationErrors`, eksplicitni override te finalizacijski warning i `routingCoverage` audit sa missing OU skupom. Perf [`41915186314`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41915186314) na istom SHA-u je passed. Spec 42 je lokalno tipiziran i otkrivenih 5 testova je potvrđeno, ali novi peti test nije izvršen u E2E runu `41916949315`; pokušaj targeted dispatcha grane bio je odbijen HTTP 403. Owner-directed uslov za closeout je prihvaćen uz ovaj SHA/spec caveat; nema target-DB pristupa niti migration runa. Ova closeout aktivnost nije otvorila PR niti je izvršila merge/deploy; naknadna read-only GitHub provjera pokazala je da `master` ref sada stoji na SHA `70f52e4b29d03de48331fe2f5711dbb4cb2c0f29`, što nije deployment potvrda.
 
 ### BA-routing-03 — Scoped coverage paginira globalni skup
 
 `computeRoutingCoverage` prvo bira globalnu service stranicu/cursor, a `RoutingService.coverage` zatim filtrira items prema vieweru. Scoped stranica može biti prazna i preskočiti vidljive servise na kasnijim globalnim stranicama; `nextCursor` opisuje globalni skup. Scope predicate mora ući prije count/cursor/page, uz test međusobno isprepletenih dozvoljenih/zabranjenih servisa. **P2, M/L, routing/authorization.**
 
-**Closeout:** W5.22 (`93ead93`), zeleni CI `40375898079`; service scope sada ulazi u DB count/cursor/page, OU/service assignment parovi ostaju povezani, a interleaved pagination test dokazuje scoped cursor. Dokaz: [49-routing-scoped-coverage-pagination.md](../implementation/49-routing-scoped-coverage-pagination.md). Paket nema novu DB migraciju.
+**Closeout implementacije:** W5.22 (`93ead93`), zeleni CI `40375898079`; service scope sada ulazi u DB count/cursor/page, OU/service assignment parovi ostaju povezani, a interleaved pagination unit test dokazuje scoped cursor. Dokaz: [49-routing-scoped-coverage-pagination.md](../implementation/49-routing-scoped-coverage-pagination.md). Paket nema novu DB migraciju.
 
 ### BA-routing-04 — Scoped total je ograničena aproksimacija
 
 Scoped grana poziva coverage sa `take:10000`, ali funkcija clampuje na `routingCoverageMaximumTake`, zatim broji filtrirane service ID-eve samo te stranice. UI računa broj stranica iz netačnog totala. Potreban je DB scope-aware distinct count ili autorizovani service query. **P2, M, routing/data.**
 
-**Closeout:** W5.23 (`93ead93`, dokaz `568141a`), zeleni CI `40377931686`; DB count koristi isti scope-aware service predicate kao cursor stranica, a 75-allowed/75-hidden test prelazi raniji cap 50. Dokaz: [50-routing-exact-scoped-coverage-total.md](../implementation/50-routing-exact-scoped-coverage-total.md). Paket nema novu DB migraciju.
+**Closeout implementacije:** W5.23 (`93ead93`, dokaz `568141a`), zeleni CI `40377931686`; DB count koristi isti scope-aware service predicate kao cursor stranica, a 75-allowed/75-hidden unit test prelazi raniji cap 50. Dokaz: [50-routing-exact-scoped-coverage-total.md](../implementation/50-routing-exact-scoped-coverage-total.md). Paket nema novu DB migraciju.
+
+**Val 5 status reconciliation i acceptance (2026-11-04):** W5.50 je zatvorio `BA-routing-03` i `BA-routing-04` nakon što su svi traženi gateovi prošli. Generated-Prisma/PostgreSQL test za 75 dozvoljenih i 75 isprepletenih zabranjenih servisa, scoped cursor stranice i `total=75` prošao je u CI runu [`41901987106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41901987106) na `2e67f84`. Perf [`41905093216`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905093216) prošao je na SHA `e32a999117fdc44bb7ece178587bd0aeca7af039`: query-budget prosjek 1.925 kroz 50.454 zahtjeva, p95=2, max=34, prag 2.1; bez promjene pragova. CI/E2E [`41905212413`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41905212413) prošao je na istom SHA-u; critical-flow E2E job je passed za korisnikove odabrane specove 02/15/42. E2E install-wizard i read-only inventory bili su skipped, ne passed. Kanonski redovi ovog audita, globalni registar i generisani JSON sada prikazuju oba nalaza kao **zatvorena**. W5.22/W5.23 implementacija nije duplicirana, nema nove migracije niti target-DB pristupa. U tom W5.50 checkpointu `BA-routing-02` je ostao otvoren i izvan tog statusnog closeouta. Detalji su u [W5.50 dokazu](../implementation/126-routing-scoped-coverage-postgres-revalidation.md).
 
 ### BA-routing-05 — Rules i change logs nemaju paginaciju
 

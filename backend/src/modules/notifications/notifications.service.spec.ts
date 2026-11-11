@@ -13,10 +13,16 @@ jest.mock('./count-unread-notifications', () => ({
   countUnreadNotifications: jest.fn(async () => 7),
 }));
 jest.mock('./list-notifications', () => ({
-  listNotifications: jest.fn(async () => ({ items: [], nextCursor: null })),
+  listNotifications: jest.fn(async () => ({
+    items: [],
+    unreadCount: 0,
+    hasMore: false,
+    nextCursor: null,
+  })),
 }));
 jest.mock('./notification-audience', () => ({
   loadNotificationAudience: jest.fn(async () => [{ groupId: 'group-1' }]),
+  notificationAudienceFingerprint: jest.fn(() => 'audience-1'),
 }));
 jest.mock('./mark-notification-read', () => ({
   markNotificationRead: jest.fn(async () => ({ id: 'n-1', isRead: true })),
@@ -104,11 +110,12 @@ describe('NotificationsService (M13)', () => {
     ]);
   });
 
-  it('publishes a read-all event with the fresh count', async () => {
+  it('publishes a read-all event with the post-operation unread count', async () => {
     const { service, published, cacheCalls } = createService();
+    jest.mocked(markAllNotificationsRead).mockResolvedValueOnce({ unreadCount: 2 });
 
     await expect(service.markAllRead('user-1')).resolves.toEqual({
-      unreadCount: 0,
+      unreadCount: 2,
     });
     expect(markAllNotificationsRead).toHaveBeenCalled();
     expect(cacheCalls.invalidations).toBe(1);
@@ -116,15 +123,23 @@ describe('NotificationsService (M13)', () => {
       eventName: ticketRealtimeEventNames.notificationRead,
       notification: null,
       readAll: true,
-      unreadCount: 0,
+      unreadCount: 2,
+    });
+    expect(published[1]).toMatchObject({
+      eventName: ticketRealtimeEventNames.notificationUnreadCount,
+      notification: null,
+      unreadCount: 2,
     });
   });
 
   it('keeps the list path behind the same error mapping', async () => {
     const { service } = createService();
-    await expect(
-      service.list('user-1', { limit: 20 } as never),
-    ).resolves.toEqual({ items: [], nextCursor: null });
+    await expect(service.list('user-1', { limit: 20 })).resolves.toEqual({
+      items: [],
+      unreadCount: 0,
+      hasMore: false,
+      nextCursor: null,
+    });
     expect(listNotifications).toHaveBeenCalledWith(
       expect.anything(),
       'user-1',

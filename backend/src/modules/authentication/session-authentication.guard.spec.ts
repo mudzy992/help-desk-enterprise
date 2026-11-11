@@ -108,6 +108,22 @@ describe('SessionAuthenticationGuard', () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 
+  it('passes durable user authority from the verified session to the principal loader', async () => {
+    const durableAuthority = {
+      subjectId: 'user-1',
+      authzVersion: 4,
+      isActive: true,
+      mustChangePassword: false,
+    };
+    verify.mockResolvedValue({ subjectId: 'user-1', durableAuthority });
+    await expect(
+      guard.canActivate(
+        createContext({ headers: { authorization: 'Bearer session-token' } }),
+      ),
+    ).resolves.toBe(true);
+    expect(load).toHaveBeenCalledWith('user-1', durableAuthority);
+  });
+
   it('attaches the sid and jti for precise revocation exceptions', async () => {
     verify.mockResolvedValue({ subjectId: 'user-1', sessionId: 'sid-current', jti: 'jti-current' });
     const request: Record<string, unknown> = {

@@ -18,14 +18,11 @@ export async function materializeDirectoryRead(
   invalidateUsers: DirectoryUserInvalidationHook = async () => {},
 ): Promise<void> {
   if (result.operation === 'organizational_units') {
-    await materializeOrganizationalUnits(prisma, result);
+    await materializeOrganizationalUnits(prisma, result, invalidateUsers);
     return;
   }
   if (result.operation === 'users') {
-    const affectedUserIds = await materializeUsers(prisma, result);
-    if (affectedUserIds.length > 0) {
-      await invalidateUsers(affectedUserIds);
-    }
+    await materializeUsers(prisma, result, invalidateUsers);
     return;
   }
   if (result.operation === 'groups') {
@@ -36,101 +33,175 @@ export async function materializeDirectoryRead(
 async function materializeOrganizationalUnits(
   prisma: PrismaService,
   result: DirectoryReadResult,
+  invalidateUsers: DirectoryUserInvalidationHook,
 ): Promise<void> {
   const sorted = [...result.organizationalUnits].sort(
     (left, right) =>
       (left.organizationalUnitPath?.split('/').length ?? 0) -
       (right.organizationalUnitPath?.split('/').length ?? 0),
   );
-  for (const unit of sorted) {
-    if (!unit.distinguishedName || !unit.organizationalUnitPath) {
-      continue;
-    }
-    const parentPath = parentOrganizationalUnitPath(unit.organizationalUnitPath);
-    const parent =
-      parentPath === null
-        ? null
-        : await prisma.organizationalUnit.findUnique({
-            where: { ouPath: parentPath },
-            select: { id: true },
-          });
-    const type =
-      unit.type === 'DIRECTORATE' ||
-      unit.type === 'BRANCH' ||
-      unit.type === 'OFFICE' ||
-      unit.type === 'SECTOR' ||
-      unit.type === 'SERVICE'
-        ? unit.type
-        : parent === null
-          ? 'DIRECTORATE'
-          : 'BRANCH';
-    await prisma.organizationalUnit.upsert({
-      where: { distinguishedName: unit.distinguishedName },
-      create: {
-        name: unit.displayName,
-        type,
-        distinguishedName: unit.distinguishedName,
-        ouPath: unit.organizationalUnitPath,
-        parentId: parent?.id ?? null,
-      },
-      update: {
-        name: unit.displayName,
-        type,
-        ouPath: unit.organizationalUnitPath,
-        parentId: parent?.id ?? null,
-      },
+  const materializable = sorted.filter(
+    (unit) => unit.distinguishedName && unit.organizationalUnitPath,
+  );
+  const changedUnitIds = new Set<string>();
+  for (const unit of materializable) {
+    const existing = await prisma.organizationalUnit.findUnique({
+      where: { distinguishedName: unit.distinguishedName! },
+      select: { id: true, ouPath: true },
     });
-    invalidateOrganizationalUnitScopeCache();
+    if (
+      existing !== null &&
+      existing.ouPath !== unit.organizationalUnitPath
+    ) {
+      changedUnitIds.add(existing.id);
+    }
   }
+
+  // Read affected holders before any OU write. If this lookup fails, nothing in
+  // this operation has changed yet; if a later upsert fails partway through, the
+  // known holders are still invalidated below for every path already rewritten.
+  const changedUserIds =
+    changedUnitIds.size === 0
+      ? []
+      : [
+          ...new Set(
+            (
+              await prisma.userRole.findMany({
+                where: { organizationalUnitId: { in: [...changedUnitIds] } },
+                select: { userId: true },
+                distinct: ['userId'],
+              })
+            ).map((holder) => holder.userId),
+          ),
+        ].sort();
+
+  let writeFailed = false;
+  let writeFailure: unknown;
+  try {
+    for (const unit of materializable) {
+      const parentPath = parentOrganizationalUnitPath(
+        unit.organizationalUnitPath!,
+      );
+      const parent =
+        parentPath === null
+          ? null
+          : await prisma.organizationalUnit.findUnique({
+              where: { ouPath: parentPath },
+              select: { id: true },
+            });
+      const type =
+        unit.type === 'DIRECTORATE' ||
+        unit.type === 'BRANCH' ||
+        unit.type === 'OFFICE' ||
+        unit.type === 'SECTOR' ||
+        unit.type === 'SERVICE'
+          ? unit.type
+          : parent === null
+            ? 'DIRECTORATE'
+            : 'BRANCH';
+      await prisma.organizationalUnit.upsert({
+        where: { distinguishedName: unit.distinguishedName! },
+        create: {
+          name: unit.displayName,
+          type,
+          distinguishedName: unit.distinguishedName!,
+          ouPath: unit.organizationalUnitPath!,
+          parentId: parent?.id ?? null,
+        },
+        update: {
+          name: unit.displayName,
+          type,
+          ouPath: unit.organizationalUnitPath!,
+          parentId: parent?.id ?? null,
+        },
+      });
+      invalidateOrganizationalUnitScopeCache();
+    }
+  } catch (error) {
+    writeFailed = true;
+    writeFailure = error;
+  }
+
+  let invalidationFailed = false;
+  let invalidationFailure: unknown;
+  if (changedUserIds.length > 0) {
+    try {
+      await invalidateUsers(changedUserIds);
+    } catch (error) {
+      invalidationFailed = true;
+      invalidationFailure = error;
+    }
+  }
+  if (writeFailed) throw writeFailure;
+  if (invalidationFailed) throw invalidationFailure;
 }
 
 async function materializeUsers(
   prisma: PrismaService,
   result: DirectoryReadResult,
-): Promise<readonly string[]> {
+  invalidateUsers: DirectoryUserInvalidationHook,
+): Promise<void> {
   const updatedUserIds = new Set<string>();
-  for (const user of result.users) {
-    if (!user.email) {
-      continue;
+  let writeFailed = false;
+  let writeFailure: unknown;
+  try {
+    for (const user of result.users) {
+      if (!user.email) {
+        continue;
+      }
+      const organizationalUnit =
+        user.organizationalUnitPath === null
+          ? null
+          : await prisma.organizationalUnit.findUnique({
+              where: { ouPath: user.organizationalUnitPath },
+              select: { id: true },
+            });
+      const existing = await prisma.user.findUnique({
+        where: { email: user.email },
+        select: { id: true, isLocalOnly: true },
+      });
+      if (existing?.isLocalOnly === true) {
+        continue;
+      }
+      // Record the known identity before writing: a driver can report a
+      // transport error after PostgreSQL committed the upsert.
+      if (existing !== null) updatedUserIds.add(existing.id);
+      await prisma.user.upsert({
+        where: { email: user.email },
+        create: {
+          email: user.email,
+          displayName: user.displayName,
+          distinguishedName: user.distinguishedName,
+          organizationalUnitId: organizationalUnit?.id ?? null,
+          isLocalOnly: false,
+          isActive: true,
+        },
+        update: {
+          displayName: user.displayName,
+          distinguishedName: user.distinguishedName,
+          organizationalUnitId: organizationalUnit?.id ?? null,
+        },
+        select: { id: true },
+      });
     }
-    const organizationalUnit =
-      user.organizationalUnitPath === null
-        ? null
-        : await prisma.organizationalUnit.findUnique({
-            where: { ouPath: user.organizationalUnitPath },
-            select: { id: true },
-          });
-    const existing = await prisma.user.findUnique({
-      where: { email: user.email },
-      select: { id: true, isLocalOnly: true },
-    });
-    if (existing?.isLocalOnly === true) {
-      continue;
-    }
-    const materialized = await prisma.user.upsert({
-      where: { email: user.email },
-      create: {
-        email: user.email,
-        displayName: user.displayName,
-        distinguishedName: user.distinguishedName,
-        organizationalUnitId: organizationalUnit?.id ?? null,
-        isLocalOnly: false,
-        isActive: true,
-      },
-      update: {
-        displayName: user.displayName,
-        distinguishedName: user.distinguishedName,
-        organizationalUnitId: organizationalUnit?.id ?? null,
-      },
-      select: { id: true },
-    });
-    if (existing !== null) {
-      // Only the update branch can leave a stale cache behind: a freshly
-      // created user has never been loaded.
-      updatedUserIds.add(materialized.id);
+  } catch (error) {
+    writeFailed = true;
+    writeFailure = error;
+  }
+
+  let invalidationFailed = false;
+  let invalidationFailure: unknown;
+  const userIds = [...updatedUserIds].sort();
+  if (userIds.length > 0) {
+    try {
+      await invalidateUsers(userIds);
+    } catch (error) {
+      invalidationFailed = true;
+      invalidationFailure = error;
     }
   }
-  return [...updatedUserIds];
+  if (writeFailed) throw writeFailure;
+  if (invalidationFailed) throw invalidationFailure;
 }
 
 async function materializeGroups(

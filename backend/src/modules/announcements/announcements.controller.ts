@@ -8,19 +8,23 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
-  Res,
+  StreamableFile,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-/** Only what the CSV download needs from the platform response. */
-type HeaderResponse = { setHeader(name: string, value: string): void };
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { announcementViewerOf, type AnnouncementViewer } from './announcement-viewer';
-import { AnnouncementAudienceDto, AnnouncementReasonDto, SaveAnnouncementDto } from './announcements.dto';
+import {
+  AnnouncementAudienceDto,
+  AnnouncementReasonDto,
+  AnnouncementReportPendingQueryDto,
+  SaveAnnouncementDto,
+} from './announcements.dto';
 import { AnnouncementsService } from './announcements.service';
 import { runAnnouncement } from './map-announcement-error';
 
@@ -133,17 +137,30 @@ export class AnnouncementsController {
     return runAnnouncement(() => this.announcements.report(id, this.viewer(request)));
   }
 
+  /** One bounded pending-identity page; the opaque cursor is scoped to this announcement. */
+  @Get('manage/:id/report/pending')
+  @Header('Cache-Control', 'no-store')
+  pendingReport(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query() query: AnnouncementReportPendingQueryDto,
+  ) {
+    return runAnnouncement(() =>
+      this.announcements.reportPending(id, query.cursor ?? null, this.viewer(request)),
+    );
+  }
+
   @Get('manage/:id/report.csv')
+  @Header('Cache-Control', 'no-store')
   async reportCsv(
     @Req() request: AuthenticatedHttpRequest,
     @Param('id') id: string,
-    @Res({ passthrough: true }) response: HeaderResponse,
-  ): Promise<string> {
+  ): Promise<StreamableFile> {
     const file = await runAnnouncement(() => this.announcements.reportCsv(id, this.viewer(request)));
-    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    response.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
-    response.setHeader('Cache-Control', 'no-store');
-    return file.content;
+    return new StreamableFile(file.stream, {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${file.filename}"`,
+    });
   }
 
   @Post('manage/:id/remind')

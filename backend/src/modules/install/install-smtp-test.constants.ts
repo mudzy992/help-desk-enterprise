@@ -12,6 +12,7 @@ export const installSmtpTestErrorCodes = {
   notConfigured: 'SMTP_TEST_NOT_CONFIGURED',
   invalidRecipient: 'SMTP_TEST_INVALID_RECIPIENT',
   rateLimited: 'SMTP_TEST_RATE_LIMITED',
+  rateLimitUnavailable: 'SMTP_TEST_RATE_LIMIT_UNAVAILABLE',
   authFailed: 'SMTP_TEST_AUTH_FAILED',
   tlsFailed: 'SMTP_TEST_TLS_FAILED',
   unreachable: 'SMTP_TEST_UNREACHABLE',

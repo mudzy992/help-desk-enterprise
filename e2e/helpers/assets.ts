@@ -173,16 +173,19 @@ export async function move(api: ApiClient, body: Record<string, unknown>): Promi
   return api.requestJson<AssetMovement>('/assets/movements', { method: 'POST', body: JSON.stringify(body) });
 }
 
-/** Best-effort cleanup: back to stock without a record, then retired. */
+/** Best-effort cleanup that uses the current optimistic version. */
 export async function retireAssets(api: ApiClient, ids: readonly string[], reason: string): Promise<void> {
   for (const id of ids) {
+    const response = await api.request(`/assets/${id}`).catch(() => null);
+    if (response === null || response.status === 404 || !response.ok) continue;
+    const asset = (await response.json()) as { readonly status: string; readonly version: number };
+    if (asset.status === 'RETIRED' || asset.status === 'DISPOSED') continue;
     await api
-      .request('/assets/movements', {
+      .request(`/assets/${id}/status`, {
         method: 'POST',
-        body: JSON.stringify({ scenario: 'USER_TO_WAREHOUSE', assetIds: [id], returnStatus: 'IN_STOCK', issueDocument: false }),
+        body: JSON.stringify({ status: 'RETIRED', reason, version: asset.version }),
       })
       .catch(() => undefined);
-    await api.request(`/assets/${id}/status`, { method: 'POST', body: JSON.stringify({ status: 'RETIRED', reason }) }).catch(() => undefined);
   }
 }
 

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface ServiceCategoryChipProperties {
   readonly label: string;
-  readonly count: number;
+  readonly count?: number;
   readonly active: boolean;
   readonly onClick: () => void;
 }
@@ -25,7 +25,7 @@ export function ServiceCategoryChip({
       )}
     >
       {label}
-      <span className="tnum text-[10.5px] opacity-70">{count}</span>
+      {count === undefined ? null : <span className="tnum text-[10.5px] opacity-70">{count}</span>}
     </button>
   );
 }

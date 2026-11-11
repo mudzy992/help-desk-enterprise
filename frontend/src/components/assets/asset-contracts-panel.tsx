@@ -2,7 +2,7 @@ import { ContractDetailSheet } from "./asset-contract-detail-sheet";
 import { useCommercialSearch } from "./use-commercial-search";
 import { ContractFormSheet } from "./asset-contract-form-sheet";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { FileText, Plus } from "lucide-react";
 import { AssetExpiryBadge } from "@/components/assets/asset-expiry-badge";
@@ -48,12 +48,14 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
     }),
     [search, kind, expiring, includeExpired],
   );
-  const listQuery = useQuery({
+  const listQuery = useInfiniteQuery({
     queryKey: assetContractQueryKeys.contracts(filters),
-    queryFn: () => listContracts(filters),
+    queryFn: ({ pageParam }) => listContracts({ ...filters, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
     retry: false,
   });
-  const items = listQuery.data?.items ?? [];
+  const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div className="grid gap-3">
@@ -116,15 +118,15 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
         </p>
       ) : null}
 
-      {listQuery.isLoading ? (
-        <PanelSkeleton label={t("ui.loading")} />
-      ) : items.length === 0 ? (
+      {listQuery.isLoading ? <PanelSkeleton label={t("ui.loading")} /> : null}
+      {!listQuery.isLoading && items.length === 0 && !listQuery.hasNextPage ? (
         <EmptyState
           icon={<FileText size={18} />}
           title={t("assets.contracts.emptyTitle")}
           body={t("assets.contracts.emptyBody")}
         />
-      ) : (
+      ) : null}
+      {items.length > 0 ? (
         <Card className="overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
@@ -182,7 +184,18 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
             </table>
           </div>
         </Card>
-      )}
+      ) : null}
+      {listQuery.hasNextPage ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="justify-self-center"
+          disabled={listQuery.isFetchingNextPage}
+          onClick={() => void listQuery.fetchNextPage()}
+        >
+          {listQuery.isFetchingNextPage ? t("ui.loading") : t("assets.list.loadMore")}
+        </Button>
+      ) : null}
 
       <ContractFormSheet
         open={editing !== null}

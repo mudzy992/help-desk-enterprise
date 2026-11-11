@@ -1,5 +1,5 @@
-import type { FormVersionStatus } from '../../generated/prisma/enums';
-import type { ServiceFormSchema } from './form-schema.types';
+import type { FormVersionStatus } from "../../generated/prisma/enums";
+import type { ServiceFormSchema } from "./form-schema.types";
 
 export type ServiceFormsConfiguration = {
   readonly enabled: boolean;
@@ -30,12 +30,41 @@ export type FormVersionResponse = {
   readonly updatedAt: string;
 };
 
+export type ServiceFormListInput = {
+  readonly take?: number;
+  readonly cursor?: string;
+};
+
+export type ServiceFormListPage = {
+  readonly records: readonly (FormVersionRecord & {
+    readonly ticketCount: number;
+  })[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
 export type ServiceFormResponse = {
   readonly serviceId: string;
   readonly formsEnabled: boolean;
   readonly requireVersionOnTicket: boolean;
   readonly activeFormVersionRef: string | null;
+  readonly activeForm: FormVersionResponse | null;
   readonly versions: readonly FormVersionResponse[];
+  readonly total: number;
+  readonly take: number;
+  readonly cursor: string | null;
+  readonly nextCursor: string | null;
+  readonly hasMore: boolean;
+};
+
+export type ServiceActiveFormResponse = {
+  readonly serviceId: string;
+  readonly formsEnabled: boolean;
+  readonly requireVersionOnTicket: boolean;
+  readonly activeForm: FormVersionResponse | null;
 };
 
 export type TicketFormVersionBinding = {
@@ -48,12 +77,15 @@ export type TicketFormVersionBinding = {
 
 export type CreateServiceFormInput = {
   readonly schema: unknown;
+  readonly reason?: string;
 };
 
 export type CreateServiceFormVersionInput = {
   readonly schema: unknown;
+  readonly reason?: string;
 };
 
 export type UpdateServiceFormVersionInput = {
   readonly schema: unknown;
+  readonly reason?: string;
 };

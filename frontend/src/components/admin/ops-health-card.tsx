@@ -5,6 +5,7 @@ import { OpsSilenceDialog } from "@/components/admin/ops-silence-dialog";
 import { AlertHistory, AlertItem } from "@/components/admin/ops-health-alerts";
 import { ComponentGrid } from "@/components/admin/ops-health-components";
 import {
+  AssetOperationsSummary,
   ChannelSummary,
   HttpChart,
   QueueTable,
@@ -245,6 +246,8 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
         <HttpChart overview={overview} />
 
         <SchedulerTable overview={overview} />
+
+        <AssetOperationsSummary overview={overview} />
 
         <section className="grid gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">

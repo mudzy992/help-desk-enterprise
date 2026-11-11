@@ -17,10 +17,6 @@ import {
   type BroadcastEmailRequest,
 } from '../../tickets/bulk/broadcast-email-channel';
 import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
-import {
-  clearSlaRuntimeNotificationChannels,
-  registerSlaRuntimeNotificationChannels,
-} from './dispatch-sla-runtime-notification';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './publish-created-notifications';
 import { TicketApprovalsConfigurationLoader } from '../../tickets/approvals/ticket-approvals-configuration.loader';
@@ -31,6 +27,8 @@ import { NotificationUnreadCountCache } from '../notification-unread-count.cache
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
 import {
   loadNotificationPreferencePolicy,
+  NotificationPreferencePolicyUnavailableError,
+  NotificationPreferenceReadUnavailableError,
   type NotificationPreferencePolicy,
 } from '../preferences/notification-preference-policy';
 
@@ -39,7 +37,6 @@ export class NotificationsFanOutService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(NotificationsFanOutService.name);
-  private unsubscribe: (() => void) | undefined;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -52,28 +49,51 @@ export class NotificationsFanOutService
   ) {}
 
   onModuleInit(): void {
-    this.unsubscribe = this.ticketRealtimeHub.subscribe((payload) => {
-      void this.ingest(payload);
-    });
     registerBroadcastEmailSender((request) => this.deliverBroadcastEmail(request));
-    registerSlaRuntimeNotificationChannels({
-      publish: (payload) => {
-        void this.ingest(payload);
-      },
-    });
   }
 
   onModuleDestroy(): void {
-    this.unsubscribe?.();
-    clearSlaRuntimeNotificationChannels();
     clearBroadcastEmailSender();
+  }
+
+  /** Called only by the durable ticket-message outbox worker. */
+  async processDurableTicketMessage(
+    payload: TicketRealtimeMessagePayload,
+  ): Promise<void> {
+    await this.ingest(payload);
   }
 
   private async ingest(payload: TicketRealtimeMessagePayload): Promise<void> {
     // Paket 2.2: one policy read (settings snapshot) per event for both channels.
     const policy = await loadNotificationPreferencePolicy(this.settingsService);
-    await this.persistInApp(payload, policy);
-    await this.deliverEmail(payload, policy);
+    const failures: unknown[] = [];
+    try {
+      await this.persistInApp(payload, policy);
+    } catch (error) {
+      failures.push(error);
+      if (!isNotificationPreferenceFailure(error)) {
+        this.logger.error(
+          `Failed to persist in-app notification for ticket ${payload.ticketId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+    try {
+      await this.deliverEmail(payload, policy);
+    } catch (error) {
+      failures.push(error);
+      if (!isNotificationPreferenceFailure(error)) {
+        this.logger.error(
+          `Failed to send notification email for ticket ${payload.ticketId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+    if (failures.length > 0) {
+      throw new Error(
+        `NOTIFICATION_FAN_OUT_FAILED channels=${failures.length}`,
+      );
+    }
   }
 
   /**
@@ -106,57 +126,43 @@ export class NotificationsFanOutService
     payload: TicketRealtimeMessagePayload,
     policy: NotificationPreferencePolicy,
   ): Promise<void> {
-    try {
-      const created = await fanOutInAppNotifications(
-        this.prisma,
-        payload,
-        policy,
-        await this.loadApprovals(payload),
-      );
-      await publishCreatedNotifications(
-        this.prisma,
-        this.ticketRealtimeHub,
-        created,
-        (userId) => this.unreadCountCache.invalidate(userId),
-        (groupId) => this.unreadCountCache.bumpGroup(groupId),
-      );
-      await enqueueEdgeNotificationEvents({
-        prisma: this.prisma,
-        settingsService: this.settingsService,
-        enqueueIntegrationJobService: this.enqueueIntegrationJobService,
-        records: created,
-      });
-    } catch (error) {
-      this.logger.error(
-        `Failed to persist in-app notification for ticket ${payload.ticketId}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
+    const created = await fanOutInAppNotifications(
+      this.prisma,
+      payload,
+      policy,
+      await this.loadApprovals(payload),
+    );
+    await publishCreatedNotifications(
+      this.prisma,
+      this.ticketRealtimeHub,
+      created,
+      (userId) => this.unreadCountCache.invalidate(userId),
+      (groupId) => this.unreadCountCache.bumpGroup(groupId),
+    );
+    await enqueueEdgeNotificationEvents({
+      prisma: this.prisma,
+      settingsService: this.settingsService,
+      enqueueIntegrationJobService: this.enqueueIntegrationJobService,
+      records: created,
+    });
   }
 
   private async deliverEmail(
     payload: TicketRealtimeMessagePayload,
     policy: NotificationPreferencePolicy,
   ): Promise<void> {
-    try {
-      const configuration = await loadEmailChannelConfiguration(
-        this.settingsService,
-      );
-      await fanOutEmailNotifications(
-        this.prisma,
-        configuration,
-        this.mailTransport,
-        payload,
-        await this.emailWorkHandler(configuration),
-        policy,
-        await this.loadApprovals(payload),
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to send notification email for ticket ${payload.ticketId}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
+    const configuration = await loadEmailChannelConfiguration(
+      this.settingsService,
+    );
+    await fanOutEmailNotifications(
+      this.prisma,
+      configuration,
+      this.mailTransport,
+      payload,
+      await this.emailWorkHandler(configuration),
+      policy,
+      await this.loadApprovals(payload),
+    );
   }
 
   private async deliverBroadcastEmail(request: BroadcastEmailRequest): Promise<void> {
@@ -200,4 +206,11 @@ export class NotificationsFanOutService
         deliverNotificationEmail(this.prisma, this.mailTransport, configuration, work),
     };
   }
+}
+
+function isNotificationPreferenceFailure(error: unknown): boolean {
+  return (
+    error instanceof NotificationPreferencePolicyUnavailableError ||
+    error instanceof NotificationPreferenceReadUnavailableError
+  );
 }

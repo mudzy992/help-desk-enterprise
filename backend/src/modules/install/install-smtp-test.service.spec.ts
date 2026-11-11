@@ -6,13 +6,28 @@ import type {
 import { settingKeys } from '../settings/setting-keys';
 import { createInstallWizardHarness } from './create-install-wizard-harness';
 import { InstallSmtpTestService } from './install-smtp-test.service';
+import type { TestEmailRateLimiterRedis } from '../notifications/email-templates/test-email-rate-limiter';
 
 /**
  * F4.1: „Pošalji test“ must not become a way around the test-e-mail limit, and a
  * failure has to come back as something the operator can act on (auth, TLS, host,
  * timeout) rather than as a raw server message.
  */
-async function createService(failure?: unknown) {
+function createTestEmailRedis(): TestEmailRateLimiterRedis {
+  const counts = new Map<string, number>();
+  return {
+    eval: jest.fn(async (_script: string, _numberOfKeys: number, key: string) => {
+      const next = (counts.get(key) ?? 0) + 1;
+      counts.set(key, next);
+      return next;
+    }),
+  };
+}
+
+async function createService(
+  failure?: unknown,
+  redis: TestEmailRateLimiterRedis | null = createTestEmailRedis(),
+) {
   const harness = await createInstallWizardHarness();
   const sent: OutboundMailMessage[] = [];
   const transport: MailTransport = {
@@ -21,6 +36,13 @@ async function createService(failure?: unknown) {
         throw failure;
       }
       sent.push(message);
+      return {
+        acceptedRecipientCount: 1,
+        rejectedRecipientCount: 0,
+        messageId: '<smtp-test@example.test>',
+        responseCode: 250,
+        failureKind: null,
+      };
     },
   };
   const saveSmtp = async () => {
@@ -41,6 +63,7 @@ async function createService(failure?: unknown) {
       harness.prisma,
       harness.settingsService,
       transport,
+      redis as never,
     ),
   };
 }
@@ -109,6 +132,17 @@ describe('InstallSmtpTestService', () => {
     expect(errorCode(await capture(service.send({ toAddress: 'not-an-address' })))).toBe(
       'SMTP_TEST_INVALID_RECIPIENT',
     );
+  });
+
+  it('fails closed with 503 when the shared rate limiter is unavailable', async () => {
+    const { service, saveSmtp, sent } = await createService(undefined, null);
+    await saveSmtp();
+
+    const error = await capture(service.send({}));
+
+    expect(errorCode(error)).toBe('SMTP_TEST_RATE_LIMIT_UNAVAILABLE');
+    expect((error as HttpException).getStatus()).toBe(503);
+    expect(sent).toHaveLength(0);
   });
 
   it('maps the server answer to what the operator can do about it', async () => {

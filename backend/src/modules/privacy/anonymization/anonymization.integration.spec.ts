@@ -149,6 +149,7 @@ describeIfDatabase('anonymization (integration)', () => {
       data: { userId: agent.id, ticketId: main.id, type: 'TICKET_REPLY', title: 'Amra Hodžić je odgovorila', body: null, dedupeKey: `a${stamp}` },
     });
     const group = await prisma.group.create({ data: { name: `G${stamp}`, key: `g${stamp}`, organizationalUnitId: unit.id } });
+    ids.group = group.id;
     await prisma.notification.create({
       data: { groupId: group.id, ticketId: main.id, type: 'TICKET_REPLY', title: 'Grupa: Amra Hodžić', body: null, dedupeKey: `g${stamp}` },
     });
@@ -358,13 +359,49 @@ describeIfDatabase('anonymization (integration)', () => {
       data: { displayName: 'Amra Hodžić', email, anonymizedAt: null },
     });
     await prisma.ticket.update({ where: { id: ids.main }, data: { title: 'Restored Amra Hodžić' } });
+    const role = await prisma.role.create({
+      data: { key: `privacy-replay-${stamp}`, name: 'Privacy replay role' },
+    });
+    await prisma.userRole.create({
+      data: {
+        userId: ids.subject,
+        roleId: role.id,
+        organizationalUnitId: null,
+        serviceId: null,
+      },
+    });
+    await prisma.groupMember.create({ data: { userId: ids.subject, groupId: ids.group! } });
 
     const lines: string[] = [];
     expect(await runPrivacyReplay(prisma, ledger, { apply: false, exportLedger: false }, (l) => lines.push(l))).toBe(0);
     expect(lines).toContain(`replay erasure=${ids.erasure} user=${ids.subject}`);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: ids.subject } })).anonymizedAt).toBeNull();
 
-    expect(await runPrivacyReplay(prisma, ledger, { apply: true, exportLedger: false }, (l) => lines.push(l))).toBe(0);
+    const notifyUserChanged = jest.fn(async (userId: string, authzVersion: number | null) => {
+      const [userAtNotification, roleAssignments, groupAssignments, committedErasure] = await Promise.all([
+        prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+        prisma.userRole.count({ where: { userId } }),
+        prisma.groupMember.count({ where: { userId } }),
+        prisma.privacyErasure.findUniqueOrThrow({ where: { id: ids.erasure } }),
+      ]);
+      expect(userAtNotification.authzVersion).toBe(authzVersion);
+      expect(userAtNotification.anonymizedAt).not.toBeNull();
+      expect(roleAssignments).toBe(0);
+      expect(groupAssignments).toBe(0);
+      expect(committedErasure.status).toBe('COMPLETED');
+    });
+    expect(await runPrivacyReplay(
+      prisma,
+      ledger,
+      {
+        apply: true,
+        exportLedger: false,
+        principalContextInvalidator: { notifyUserChanged },
+      },
+      (l) => lines.push(l),
+    )).toBe(0);
+    expect(notifyUserChanged).toHaveBeenCalledTimes(1);
+    expect(notifyUserChanged).toHaveBeenCalledWith(ids.subject, expect.any(Number));
     const user = await prisma.user.findUniqueOrThrow({ where: { id: ids.subject } });
     expect([user.displayName, user.anonymizedAt !== null]).toEqual(['Bivši korisnik #AB12', true]);
     expect((await prisma.ticket.findUniqueOrThrow({ where: { id: ids.main } })).title).toBe('Restored Bivši korisnik #AB12');

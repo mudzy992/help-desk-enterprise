@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { buildLocationPaths, formatUnitPath, locationSubtreeIds } from './asset-locations';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -95,6 +96,7 @@ export class AssetsService {
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
     private readonly transfers: AssetTransfersService,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   // ------------------------------------------------------------ helpers
@@ -734,7 +736,7 @@ export class AssetsService {
       metadata: { assetTag: current.assetTag, reason: text, releasedLicenses },
       actorUserId: viewer.userId,
       organizationalUnitId: current.organizationalUnitId,
-    }) : null);
+    }) : null, this.assetOperationsMetrics);
     return { id, status, version: input.version + 1 };
   }
 
@@ -880,6 +882,7 @@ export class AssetsService {
         metadata: { assetTag: asset.assetTag },
         actorUserId: viewer.userId,
       }),
+      this.assetOperationsMetrics,
     );
   }
 

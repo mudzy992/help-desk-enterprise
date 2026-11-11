@@ -106,6 +106,8 @@ export function TicketPlaybookPanel({
             busy={busy}
             choice={choice}
             onChoice={setChoice}
+            loadingCandidates={controller.loadingCandidates}
+            onLoadMore={controller.loadMoreAvailable}
             onAttach={async () => {
               if (await controller.attach(choice)) setChoice("");
             }}
@@ -273,12 +275,16 @@ function NoPlaybook({
   busy,
   choice,
   onChoice,
+  loadingCandidates,
+  onLoadMore,
   onAttach,
 }: {
   readonly view: NonNullable<TicketPlaybookController["view"]>;
   readonly busy: boolean;
   readonly choice: string;
   readonly onChoice: (id: string) => void;
+  readonly loadingCandidates: boolean;
+  readonly onLoadMore: () => Promise<boolean>;
   readonly onAttach: () => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -317,6 +323,19 @@ function NoPlaybook({
       >
         {t("templates.checklist.attach")}
       </Button>
+      {view.availablePage.hasMore ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={loadingCandidates}
+          onClick={() => void onLoadMore()}
+        >
+          {loadingCandidates
+            ? t("templates.checklist.loadingCandidates")
+            : t("templates.checklist.loadMoreCandidates")}
+        </Button>
+      ) : null}
     </div>
   );
 }

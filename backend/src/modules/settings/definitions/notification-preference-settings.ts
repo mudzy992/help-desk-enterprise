@@ -7,6 +7,9 @@ import { settingCategoryIds } from '../setting-categories';
 
 /** Paket 2.2 (N7): defaults and ranges. */
 export const notificationPreferenceSettingDefaults = {
+  preferencesEnabled: true,
+  digestEnabled: true,
+  quietHoursEnabled: true,
   lockedInApp: 'ticket.approval,ticket.assigned',
   lockedEmail: 'ticket.approval,ticket.sla,report.weeklyTickets',
   digestTypes: '',
@@ -58,7 +61,7 @@ export const notificationPreferenceSettings: readonly SettingDefinition[] = [
     valueType: 'boolean',
     description: 'Users may change their personal notification preferences; off = everyone gets the defaults',
     isRequired: true,
-    defaultValue: true,
+    defaultValue: d.preferencesEnabled,
   }),
   definePrivateSetting({
     key: settingKeys.privateNotificationsLockedInAppTypesCsv,
@@ -93,7 +96,7 @@ export const notificationPreferenceSettings: readonly SettingDefinition[] = [
     valueType: 'boolean',
     description: 'Daily digest available; off = digest choices are delivered immediately',
     isRequired: true,
-    defaultValue: true,
+    defaultValue: d.digestEnabled,
   }),
   definePrivateSetting({
     key: settingKeys.privateNotificationsDigestDefaultTime,
@@ -132,7 +135,7 @@ export const notificationPreferenceSettings: readonly SettingDefinition[] = [
     valueType: 'boolean',
     description: 'Users may set quiet hours (e-mails are held and sent as one summary afterwards)',
     isRequired: true,
-    defaultValue: true,
+    defaultValue: d.quietHoursEnabled,
   }),
   definePrivateSetting({
     key: settingKeys.privateNotificationsQuietHoursBypassTypesCsv,

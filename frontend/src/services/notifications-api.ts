@@ -26,18 +26,32 @@ export type InAppNotification = {
   readonly createdAt: string;
 };
 
+export type NotificationListQuery = {
+  readonly unreadOnly?: boolean;
+  readonly limit?: number;
+  readonly cursor?: string;
+};
+
 export type NotificationListResponse = {
   readonly items: readonly InAppNotification[];
   readonly unreadCount: number;
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
 };
 
 export type NotificationUnreadCountResponse = {
   readonly unreadCount: number;
 };
 
-export function listNotifications(unreadOnly = false) {
-  const query = unreadOnly ? "?unreadOnly=true" : "";
-  return apiRequest<NotificationListResponse>(`/notifications${query}`);
+export function listNotifications(query: NotificationListQuery = {}) {
+  const parameters = new URLSearchParams();
+  if (query.unreadOnly === true) parameters.set("unreadOnly", "true");
+  if (query.limit !== undefined) parameters.set("limit", String(query.limit));
+  if (query.cursor !== undefined) parameters.set("cursor", query.cursor);
+  const search = parameters.toString();
+  return apiRequest<NotificationListResponse>(
+    `/notifications${search.length === 0 ? "" : `?${search}`}`,
+  );
 }
 
 export function getNotificationUnreadCount() {

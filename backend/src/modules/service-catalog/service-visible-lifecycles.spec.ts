@@ -1,7 +1,10 @@
+import type { PrincipalAssignment } from '../../common/principal-context/principal-context.types';
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import {
   allServiceLifecycles,
   isServiceLifecycleVisible,
   requestedServiceLifecycles,
+  serviceListVisibilityForPrincipal,
   visibleServiceLifecycles,
 } from './service-visible-lifecycles';
 
@@ -24,6 +27,82 @@ describe('service lifecycle visibility', () => {
     expect(visibleServiceLifecycles([])).toEqual(['ACTIVE']);
     // Interni poziv (worker, kreiranje tiketa, testovi) ostaje bez filtera.
     expect(visibleServiceLifecycles(undefined)).toEqual(allServiceLifecycles);
+  });
+
+  it('globalni ADMIN/SuperAdmin dobija globalne lifecycle statuse', () => {
+    expect(
+      serviceListVisibilityForPrincipal(
+        principal([authorizationRoleKeys.admin], [assignment(authorizationRoleKeys.admin)]),
+      ),
+    ).toEqual({ visibleLifecycles: allServiceLifecycles });
+    expect(
+      serviceListVisibilityForPrincipal(
+        principal(
+          [authorizationRoleKeys.superAdmin],
+          [assignment(authorizationRoleKeys.superAdmin)],
+          true,
+        ),
+      ),
+    ).toEqual({ visibleLifecycles: allServiceLifecycles });
+  });
+
+  it('ograničava nacrte service-scoped ADMIN-a na dodijeljene servise', () => {
+    expect(
+      serviceListVisibilityForPrincipal(
+        principal(
+          [authorizationRoleKeys.agent, authorizationRoleKeys.admin],
+          [
+            assignment(authorizationRoleKeys.agent),
+            assignment(authorizationRoleKeys.admin, { serviceId: 'service-2' }),
+            assignment(authorizationRoleKeys.admin, { serviceId: 'service-1' }),
+            assignment(authorizationRoleKeys.admin, { serviceId: 'service-1' }),
+          ],
+        ),
+      ),
+    ).toEqual({
+      visibleLifecycles: ['ACTIVE', 'DEPRECATED'],
+      scopedServiceIds: ['service-1', 'service-2'],
+    });
+  });
+
+  it('OU-only ADMIN ne dobija globalnu draft vidljivost bez service mapiranja', () => {
+    expect(
+      serviceListVisibilityForPrincipal(
+        principal(
+          [authorizationRoleKeys.user, authorizationRoleKeys.admin],
+          [
+            assignment(authorizationRoleKeys.user),
+            assignment(authorizationRoleKeys.admin, {
+              organizationalUnitId: 'ou-1',
+              organizationalUnitPath: 'root/department',
+            }),
+          ],
+        ),
+      ),
+    ).toEqual({ visibleLifecycles: ['ACTIVE'] });
+  });
+
+  it('ne širi service-scoped ADMIN na katalog kada postoji i globalni USER', () => {
+    expect(
+      serviceListVisibilityForPrincipal(
+        principal(
+          [authorizationRoleKeys.user, authorizationRoleKeys.admin],
+          [
+            assignment(authorizationRoleKeys.user),
+            assignment(authorizationRoleKeys.admin, { serviceId: 'service-1' }),
+          ],
+        ),
+      ),
+    ).toEqual({
+      visibleLifecycles: ['ACTIVE'],
+      scopedServiceIds: ['service-1'],
+    });
+  });
+
+  it('bez principal contexta fail-closed samo na ACTIVE', () => {
+    expect(serviceListVisibilityForPrincipal(null)).toEqual({
+      visibleLifecycles: ['ACTIVE'],
+    });
   });
 
   it('prepoznaje skriveno stanje po roli', () => {
@@ -59,3 +138,30 @@ describe('service lifecycle visibility', () => {
     ).toEqual(['ACTIVE']);
   });
 });
+
+function principal(
+  roleKeys: readonly string[],
+  assignments: readonly PrincipalAssignment[],
+  isLocalOnly = false,
+) {
+  return { roleKeys, assignments, isLocalOnly };
+}
+
+function assignment(
+  roleKey: string,
+  scope: Partial<
+    Pick<
+      PrincipalAssignment,
+      'organizationalUnitId' | 'organizationalUnitPath' | 'serviceId'
+    >
+  > = {},
+): PrincipalAssignment {
+  return {
+    roleKey,
+    permissionKeys: [],
+    organizationalUnitId: null,
+    organizationalUnitPath: null,
+    serviceId: null,
+    ...scope,
+  };
+}

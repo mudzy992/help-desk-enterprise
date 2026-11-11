@@ -61,8 +61,8 @@ Ako kapija ne padne — kapija je pokvarena i to je najvažnija stavka kvartala.
 - Periodični poslovi (F4.1): u logu `worker.log` svaki job mora imati
   `job=<ime> job_duration_ms=… job_processed=… job_failed=…`; nijedan `*_schedule_failed`.
 - **API ne smije imati nijednu job liniju** — `grep 'job=' api.log` mora biti prazan.
-- WS: `ws_adapter_redis_ok=1`, `ws_emits_*` unutar budžeta (plan §4.2), bez
-  `fallback=in_memory` linija.
+- WS: `ws_adapter_redis_ok=1 ws_adapter_redis_state=healthy`, `ws_emits_*` unutar budžeta (plan §4.2), bez
+  `fallback=in_memory` ili `state=degraded` linija.
 
 ## 6. Zapisnik (kopiraj u PR/issue)
 

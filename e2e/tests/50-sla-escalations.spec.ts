@@ -9,12 +9,12 @@ test.describe('50 SLA escalations', () => {
     const env = readE2EEnvironment();
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
-    const profiles = await api.requestJson<readonly { id: string }[]>('/sla/profiles');
+    const profiles = await api.requestAllPages<{ id: string }>('/sla/profiles');
     const profile = profiles[0];
     expect(profile, 'a seeded SLA profile').toBeDefined();
 
     // Earlier runs can fill the profile up to maxEscalationLevels; make room.
-    const existing = await api.requestJson<readonly EscalationRule[]>(
+    const existing = await api.requestAllPages<EscalationRule>(
       `/sla/escalation-rules?slaProfileId=${encodeURIComponent(profile!.id)}`,
     );
     for (const rule of existing) {

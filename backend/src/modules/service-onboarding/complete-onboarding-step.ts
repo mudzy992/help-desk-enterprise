@@ -18,6 +18,7 @@ import type {
 } from './service-onboarding.types';
 import {
   collectStepValidationIssues,
+  routingCoverageValidationError,
   type OnboardingDomainProviders,
 } from './validate-onboarding-steps';
 
@@ -46,6 +47,10 @@ export async function completeOnboardingStep(
     await persistOnboardingRecord(prisma, record, {
       lastValidationErrors: issues,
     });
+    const routingCoverageError = routingCoverageValidationError(issues);
+    if (routingCoverageError !== null) {
+      throw routingCoverageError;
+    }
     throw new ServiceOnboardingError('STEP_PREREQUISITES_NOT_MET');
   }
   const completedSteps = record.completedSteps.includes(step)

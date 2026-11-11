@@ -4,6 +4,7 @@ import {
   probeReadiness,
   readWorkerHeartbeatValue,
   withTimeout,
+  withWebsocketAdapterHealth,
 } from './health-probes';
 
 describe('health probes (2.7 §3)', () => {
@@ -12,12 +13,59 @@ describe('health probes (2.7 §3)', () => {
     const down = () => Promise.reject(new Error('ECONNREFUSED 10.0.0.1:5432'));
     await expect(probeReadiness({ pingDatabase: ok, pingRedis: ok })).resolves.toEqual({
       status: 'ok',
-      checks: { database: 'ok', redis: 'ok', auditAnchor: 'ok' },
+      checks: {
+        database: 'ok',
+        redis: 'ok',
+        auditAnchor: 'ok',
+        websocketAdapter: 'ok',
+      },
     });
-    const failed = await probeReadiness({ pingDatabase: down, pingRedis: ok });
-    expect(failed).toEqual({ status: 'fail', checks: { database: 'fail', redis: 'ok', auditAnchor: 'ok' } });
-    // Nothing from the error (hosts, messages) leaks into the public result.
-    expect(JSON.stringify(failed)).not.toContain('10.0.0.1');
+    const failed = await probeReadiness({
+      pingDatabase: ok,
+      pingRedis: ok,
+      websocketAdapterReady: () => false,
+    });
+    expect(failed).toEqual({
+      status: 'fail',
+      checks: {
+        database: 'ok',
+        redis: 'ok',
+        auditAnchor: 'ok',
+        websocketAdapter: 'fail',
+      },
+    });
+    // Nothing from dependency errors or adapter reasons leaks into the public result.
+    const databaseFailure = await probeReadiness({ pingDatabase: down, pingRedis: ok });
+    expect(databaseFailure).toMatchObject({
+      status: 'fail',
+      checks: { database: 'fail', websocketAdapter: 'ok' },
+    });
+    expect(JSON.stringify(databaseFailure)).not.toContain('10.0.0.1');
+  });
+
+  it('overlays current adapter health instead of serving a stale cached state', () => {
+    const cachedHealthy = {
+      status: 'ok' as const,
+      checks: {
+        database: 'ok' as const,
+        redis: 'ok' as const,
+        auditAnchor: 'ok' as const,
+        websocketAdapter: 'ok' as const,
+      },
+    };
+    const cachedWithAdapterFailure = {
+      ...cachedHealthy,
+      status: 'fail' as const,
+      checks: { ...cachedHealthy.checks, websocketAdapter: 'fail' as const },
+    };
+
+    expect(withWebsocketAdapterHealth(cachedHealthy, false)).toMatchObject({
+      status: 'fail',
+      checks: { websocketAdapter: 'fail' },
+    });
+    expect(
+      withWebsocketAdapterHealth(cachedWithAdapterFailure, true),
+    ).toMatchObject({ status: 'ok', checks: { websocketAdapter: 'ok' } });
   });
 
   it('a hanging dependency fails by timeout instead of hanging the probe', async () => {

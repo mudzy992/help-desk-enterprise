@@ -17,9 +17,9 @@ export function NotificationsBell() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { session } = useSession();
-  const inbox = useInboxNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  const inbox = useInboxNotifications({ isListVisible: isOpen });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -72,9 +72,17 @@ export function NotificationsBell() {
     <NotificationsPanel
       items={inbox.items}
       unreadCount={inbox.unreadCount}
+      unreadOnly={inbox.unreadOnly}
+      hasMore={inbox.hasMore}
+      isLoadingMore={inbox.isLoadingMore}
+      listErrorKey={inbox.listErrorKey}
+      listRequestId={inbox.listRequestId}
       onClose={() => setIsOpen(false)}
       onSelect={onSelect}
+      onUnreadOnlyChange={inbox.setUnreadOnly}
       onMarkAllRead={() => void inbox.markAllRead()}
+      onLoadMore={() => void inbox.loadMore()}
+      onRetry={() => void (inbox.hasMore ? inbox.loadMore() : inbox.refreshList())}
     />
   );
 

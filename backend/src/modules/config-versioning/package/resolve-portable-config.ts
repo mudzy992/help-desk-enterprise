@@ -65,6 +65,8 @@ class ReferenceResolver {
         return this.index.responseTemplates;
       case 'playbook':
         return this.index.playbooks;
+      case 'knowledgeArticle':
+        return this.index.knowledgeArticles;
       case 'slaProfile':
         return this.index.slaProfiles;
       case 'calendar':
@@ -123,6 +125,40 @@ class ReferenceResolver {
         left.kind === right.kind ? left.key.localeCompare(right.key) : left.kind.localeCompare(right.kind),
       );
   }
+}
+
+function resolveTemplateScope(
+  resolver: ReferenceResolver,
+  scope: { readonly services: readonly string[]; readonly categories: readonly string[]; readonly groups: readonly string[] },
+  path: string,
+): { readonly serviceIds: readonly string[]; readonly categoryIds: readonly string[]; readonly groupIds: readonly string[] } | null {
+  const serviceIds = resolveIds(resolver, 'service', scope.services, `${path}.services`);
+  const categoryIds = resolveIds(resolver, 'serviceCategory', scope.categories, `${path}.categories`);
+  const groupIds = resolveIds(resolver, 'group', scope.groups, `${path}.groups`);
+  return serviceIds === null || categoryIds === null || groupIds === null
+    ? null
+    : { serviceIds, categoryIds, groupIds };
+}
+
+function resolvePlaybookScope(
+  resolver: ReferenceResolver,
+  scope: { readonly services: readonly string[]; readonly categories: readonly string[] },
+  path: string,
+): { readonly serviceIds: readonly string[]; readonly categoryIds: readonly string[] } | null {
+  const serviceIds = resolveIds(resolver, 'service', scope.services, `${path}.services`);
+  const categoryIds = resolveIds(resolver, 'serviceCategory', scope.categories, `${path}.categories`);
+  return serviceIds === null || categoryIds === null ? null : { serviceIds, categoryIds };
+}
+
+function resolveIds(
+  resolver: ReferenceResolver,
+  kind: 'service' | 'serviceCategory' | 'group',
+  keys: readonly string[],
+  path: string,
+): string[] | null {
+  const ids = keys.map((key, index) => resolver.resolve(kind, key, `${path}[${index}]`, true));
+  if (ids.some((id) => id === null)) return null;
+  return ids.filter((id): id is string => id !== null).sort();
 }
 
 /**
@@ -347,25 +383,92 @@ export function resolvePortableConfig(input: {
   const skippedPlaybooks: string[] = [];
   let templates = target.templates;
   if (content.templates !== null && target.templates !== undefined) {
-    const responseTemplates = target.templates.responseTemplates.map((item) => ({ ...item }));
+    const responseTemplates = target.templates.responseTemplates.map((item) => ({
+      ...item,
+      ...(item.scope === undefined ? {} : { scope: { ...item.scope } }),
+    }));
     content.templates.responseTemplates.forEach((template, position) => {
-      const localId = resolver.resolve('responseTemplate', template.name, `templates.responseTemplates[${position}]`, false);
+      const path = `templates.responseTemplates[${position}]`;
+      const localId = resolver.resolve('responseTemplate', template.name, path, false);
       const current = responseTemplates.find((item) => item.id === localId);
       if (current === undefined) {
         skippedTemplates.push(template.name);
         return;
       }
-      Object.assign(current, { ...template, tags: [...template.tags] });
+      const scope = template.scope === undefined
+        ? undefined
+        : resolveTemplateScope(resolver, template.scope, `${path}.scope`);
+      if (scope === null) return;
+      Object.assign(current, {
+        name: template.name,
+        bodyBs: template.bodyBs,
+        bodyEn: template.bodyEn,
+        kind: template.kind,
+        tags: [...template.tags],
+        isActive: template.isActive,
+        deletedAt: template.deletedAt,
+        ...(scope === undefined ? {} : { scope }),
+      });
     });
-    const playbooks = target.templates.playbooks.map((item) => ({ ...item }));
+    const playbooks = target.templates.playbooks.map((item) => ({
+      ...item,
+      ...(item.scope === undefined ? {} : { scope: { ...item.scope } }),
+      ...(item.steps === undefined ? {} : { steps: item.steps.map((step) => ({ ...step })) }),
+    }));
     content.templates.playbooks.forEach((playbook, position) => {
-      const localId = resolver.resolve('playbook', playbook.name, `templates.playbooks[${position}]`, false);
+      const path = `templates.playbooks[${position}]`;
+      const localId = resolver.resolve('playbook', playbook.name, path, false);
       const current = playbooks.find((item) => item.id === localId);
       if (current === undefined) {
         skippedPlaybooks.push(playbook.name);
         return;
       }
-      Object.assign(current, playbook);
+      const scope = playbook.scope === undefined
+        ? undefined
+        : resolvePlaybookScope(resolver, playbook.scope, `${path}.scope`);
+      if (scope === null) return;
+      let steps: typeof current.steps;
+      if (playbook.steps !== undefined) {
+        const resolved: Array<NonNullable<typeof current.steps>[number]> = [];
+        for (const [stepIndex, step] of playbook.steps.entries()) {
+          const stepPath = `${path}.steps[${stepIndex}]`;
+          const knowledgeArticleId = step.knowledgeArticle === null
+            ? null
+            : resolver.resolve('knowledgeArticle', step.knowledgeArticle, `${stepPath}.knowledgeArticle`, true);
+          const responseTemplateId = step.responseTemplate === null
+            ? null
+            : resolver.resolve('responseTemplate', step.responseTemplate, `${stepPath}.responseTemplate`, true);
+          if (
+            (step.knowledgeArticle !== null && knowledgeArticleId === null) ||
+            (step.responseTemplate !== null && responseTemplateId === null)
+          ) {
+            return;
+          }
+          resolved.push({
+            stepKey: step.stepKey,
+            position: step.position,
+            title: step.title,
+            instructions: step.instructions,
+            required: step.required,
+            knowledgeArticleId,
+            responseTemplateId,
+          });
+        }
+        steps = resolved;
+      }
+      Object.assign(current, {
+        name: playbook.name,
+        description: playbook.description,
+        isActive: playbook.isActive,
+        deletedAt: playbook.deletedAt,
+        // Revisions belong to the target environment; applying a different
+        // source definition increments this local version in the apply phase.
+        ...(current.version === undefined && playbook.version !== undefined
+          ? { version: playbook.version }
+          : {}),
+        ...(scope === undefined ? {} : { scope }),
+        ...(steps === undefined ? {} : { steps }),
+      });
     });
     templates = { responseTemplates, playbooks };
   }
@@ -380,6 +483,9 @@ export function resolvePortableConfig(input: {
           capturedAt: input.capturedAt,
           scopes: target.scopes,
           rollbackOfVersion: null,
+          ...(target.catalogStateHash === undefined
+            ? {}
+            : { catalogStateHash: target.catalogStateHash }),
           settings,
           routing: { rules: routingRules, configuration: routingConfigurationFromSettings(settings) },
           sla: { calendars, profiles, rules: slaRules, escalations, priorityMatrix },

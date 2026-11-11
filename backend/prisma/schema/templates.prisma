@@ -124,8 +124,9 @@ model PlaybookCategory {
 }
 
 /// Package 1.4 (P2): a playbook attached to a ticket, with a copy of its
-/// steps. At most one row per ticket has `detachedAt = null` (checked in the
-/// attaching transaction; no partial index because of Prisma drift).
+/// steps. At most one row per ticket has `detachedAt = null`; the attaching
+/// transaction locks the Ticket row and a hand-written partial unique index
+/// enforces the invariant for every writer (Prisma cannot model the predicate).
 model TicketPlaybook {
   id              String               @id @default(cuid())
   ticketId        String

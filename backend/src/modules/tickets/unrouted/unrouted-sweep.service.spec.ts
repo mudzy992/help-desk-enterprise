@@ -24,6 +24,7 @@ function createPrisma(tickets: { id: string; warned: boolean }[]) {
         if (ticket) ticket.warned = true;
       }),
     },
+    userNotificationPreference: { findMany: jest.fn(async () => []) },
     notification: {
       create: jest.fn(async ({ data }: { data: { dedupeKey: string; userId: string; type: string } }) => {
         if (notifications.has(data.dedupeKey)) throw Object.assign(new Error('dup'), { code: 'P2002' });
@@ -38,13 +39,14 @@ function createPrisma(tickets: { id: string; warned: boolean }[]) {
 const loader = (overrides: Partial<typeof defaultUnroutedQueueConfiguration>) => ({
   load: async () => ({ ...defaultUnroutedQueueConfiguration, ...overrides }),
 });
+const settings = () => ({ getSetting: async () => undefined });
 
 describe('UnroutedSweepService (package 1.7 U2)', () => {
   const tuesday = new Date('2026-09-29T10:00:00Z');
 
   it('warns each overdue ticket once, owner role plus target group members, deduplicated', async () => {
     const { prisma, notifications, updates } = createPrisma([{ id: 't1', warned: false }]);
-    const service = new UnroutedSweepService(prisma as never, loader({ targetGroupId: 'g1' }) as never);
+    const service = new UnroutedSweepService(prisma as never, loader({ targetGroupId: 'g1' }) as never, settings() as never);
     const first = await service.processDue(tuesday);
     expect(first.warnedTickets).toBe(1);
     expect([...notifications.values()].map((n) => n.userId).sort()).toEqual(['member', 'owner']);
@@ -55,7 +57,7 @@ describe('UnroutedSweepService (package 1.7 U2)', () => {
 
   it('does nothing when cleanupSlaHours is 0', async () => {
     const { prisma, notifications } = createPrisma([{ id: 't1', warned: false }]);
-    const service = new UnroutedSweepService(prisma as never, loader({ cleanupSlaHours: 0 }) as never);
+    const service = new UnroutedSweepService(prisma as never, loader({ cleanupSlaHours: 0 }) as never, settings() as never);
     await service.processDue(new Date('2026-09-28T06:02:00Z'));
     expect(notifications.size).toBe(0);
     expect(prisma.ticket.findMany).not.toHaveBeenCalled();
@@ -63,19 +65,19 @@ describe('UnroutedSweepService (package 1.7 U2)', () => {
 
   it('a missing target group degrades to owner-only recipients and the UNROUTED branch', async () => {
     const { prisma, notifications } = createPrisma([{ id: 't1', warned: false }]);
-    const service = new UnroutedSweepService(prisma as never, loader({ targetGroupId: 'gone' }) as never);
+    const service = new UnroutedSweepService(prisma as never, loader({ targetGroupId: 'gone' }) as never, settings() as never);
     await service.processDue(tuesday);
     expect([...notifications.values()].map((n) => n.userId)).toEqual(['owner']);
   });
 
   it('sends the Monday 08:00 Sarajevo digest once, including already warned tickets', async () => {
     const { prisma, notifications } = createPrisma([{ id: 't1', warned: true }]);
-    const service = new UnroutedSweepService(prisma as never, loader({}) as never);
+    const service = new UnroutedSweepService(prisma as never, loader({}) as never, settings() as never);
     const monday = new Date('2026-09-28T06:02:00Z'); // 08:02 CEST
     expect((await service.processDue(monday)).digestNotifications).toBe(1);
     expect((await service.processDue(monday)).digestNotifications).toBe(0);
     expect([...notifications.values()][0].type).toBe('ticket.unroutedDigest');
-    const off = new UnroutedSweepService(prisma as never, loader({ weeklyDigest: false }) as never);
+    const off = new UnroutedSweepService(prisma as never, loader({ weeklyDigest: false }) as never, settings() as never);
     expect((await off.processDue(new Date('2026-10-05T06:02:00Z'))).digestNotifications).toBe(0);
   });
 

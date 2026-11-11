@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetOperationsMetrics } from './asset-operations-metrics';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import { withAssetAuditTransaction } from './asset-audit-transaction';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
@@ -58,6 +59,7 @@ export class AssetTicketsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
+    @Optional() private readonly assetOperationsMetrics?: AssetOperationsMetrics,
   ) {}
 
   /** Create form: the requester's own equipment (§8). */
@@ -223,7 +225,7 @@ export class AssetTicketsService {
       entityId: asset.id,
       metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber },
       actorUserId: viewer.userId,
-    }));
+    }), this.assetOperationsMetrics);
     this.afterWrite(ticket, messages);
     return this.list(ticket.id, viewer);
   }
@@ -275,7 +277,7 @@ export class AssetTicketsService {
       entityId: assetId,
       metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber },
       actorUserId: viewer.userId,
-    }));
+    }), this.assetOperationsMetrics);
     this.afterWrite(ticket, messages);
     return this.list(ticket.id, viewer);
   }

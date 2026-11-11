@@ -108,9 +108,9 @@ function readDictionary(locale: (typeof locales)[number]): Dictionary {
 describe("settings registry translations (5.3.4)", () => {
   it("finds the key catalogue it guards", () => {
     // Keep a fixed count so a registry-reader regression fails loudly instead
-    // of silently passing because it found nothing to check. W7.14 adds the
-    // DPO-configurable asset-transfer retention period.
-    expect(allKeys).toHaveLength(516);
+    // of silently passing because it found nothing to check. W6.39 adds the
+    // trusted inbound mail authserv-id.
+    expect(allKeys).toHaveLength(517);
     expect(allKeys).toContain("private.privacy.retention.assetTransfersDays");
     expect(allKeys).toContain("private.ticket.sla.enabled");
     expect(allKeys).toContain("private.addons.email");

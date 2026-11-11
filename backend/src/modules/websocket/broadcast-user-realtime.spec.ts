@@ -1,10 +1,21 @@
 import type { Server } from 'socket.io';
+import { adminRealtimeRoomName } from '../../common/admin-realtime/admin-config-realtime.types';
 import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
+import { settingsRealtimeEventNames } from '../settings/settings-realtime.types';
 import {
   broadcastNotificationRealtime,
   broadcastSettingsUpdated,
 } from './broadcast-user-realtime';
 import { userRoomName } from './ticket-socket-rooms';
+
+jest.mock('../tickets/collaboration.constants', () => ({
+  ticketRealtimeEventNames: {
+    notificationCreated: 'notification.created',
+    notificationUnreadCount: 'notification.unread-count',
+    settingsUpdated: 'settings.updated',
+    sessionInvalidated: 'session.invalidated',
+  },
+}));
 
 function createServer() {
   const emitted: { room: string | null; event: string; payload: unknown }[] = [];
@@ -71,19 +82,76 @@ describe('broadcastUserRealtime', () => {
     });
   });
 
-  it('emits settings updates without secrets and invalidates sessions', () => {
+  it('sends keyless settings signals globally and private metadata only to admins', () => {
     const { server, emitted } = createServer();
-    broadcastSettingsUpdated(server, {
+    const payload = {
       key: 'private.auth.jwtSigningSecret',
-      visibility: 'secret',
+      visibility: 'secret' as const,
       occurredAt: '2026-09-13T08:00:00.000Z',
       invalidatesSession: true,
-    });
-    expect(emitted.map((item) => item.event)).toEqual([
-      ticketRealtimeEventNames.settingsUpdated,
-      ticketRealtimeEventNames.sessionInvalidated,
+    };
+    broadcastSettingsUpdated(server, payload);
+
+    expect(emitted).toEqual([
+      {
+        room: null,
+        event: ticketRealtimeEventNames.settingsUpdated,
+        payload: { occurredAt: payload.occurredAt },
+      },
+      {
+        room: adminRealtimeRoomName,
+        event: settingsRealtimeEventNames.privateMetadataUpdated,
+        payload,
+      },
+      {
+        room: null,
+        event: ticketRealtimeEventNames.sessionInvalidated,
+        payload: { occurredAt: payload.occurredAt },
+      },
     ]);
-    expect(JSON.stringify(emitted)).not.toContain('password');
-    expect(JSON.stringify(emitted)).not.toMatch(/"token"/);
+    expect(JSON.stringify(emitted[0])).not.toContain(payload.key);
+    expect(JSON.stringify(emitted[2])).not.toContain(payload.key);
+  });
+
+  it('routes ordinary private setting metadata only to the admin room', () => {
+    const { server, emitted } = createServer();
+    const payload = {
+      key: 'private.inbound.createTickets',
+      visibility: 'private' as const,
+      occurredAt: '2026-09-13T08:00:00.000Z',
+      invalidatesSession: false,
+    };
+    broadcastSettingsUpdated(server, payload);
+
+    expect(emitted).toEqual([
+      {
+        room: null,
+        event: ticketRealtimeEventNames.settingsUpdated,
+        payload: { occurredAt: payload.occurredAt },
+      },
+      {
+        room: adminRealtimeRoomName,
+        event: settingsRealtimeEventNames.privateMetadataUpdated,
+        payload,
+      },
+    ]);
+  });
+
+  it('does not send private metadata for public setting changes', () => {
+    const { server, emitted } = createServer();
+    broadcastSettingsUpdated(server, {
+      key: 'public.maintenance.enabled',
+      visibility: 'public',
+      occurredAt: '2026-09-13T08:00:00.000Z',
+      invalidatesSession: false,
+    });
+
+    expect(emitted).toEqual([
+      {
+        room: null,
+        event: ticketRealtimeEventNames.settingsUpdated,
+        payload: { occurredAt: '2026-09-13T08:00:00.000Z' },
+      },
+    ]);
   });
 });

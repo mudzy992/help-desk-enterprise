@@ -7,6 +7,23 @@ import { redisTokens } from '../../common/redis/redis.tokens';
 import { SOCKET_AUTHENTICATION_FAILED_MESSAGE } from './socket-authentication-failed-message';
 import { WebsocketGateway } from './websocket.gateway';
 import { WebsocketModule } from './websocket.module';
+import { WebsocketAdapterHealthService } from './websocket-adapter-health.service';
+import { WebsocketAbuseLimiter } from './websocket-abuse-limiter';
+
+jest.mock('./ws-redis-adapter', () => {
+  const actual = jest.requireActual('./ws-redis-adapter') as typeof import('./ws-redis-adapter');
+  return {
+    ...actual,
+    createWebsocketRedisAdapter: jest.fn(() => ({
+      adapter: {},
+      startHealthMonitor: (listener: (state: 'healthy', reason: 'probe_ok') => void) => {
+        listener('healthy', 'probe_ok');
+        return jest.fn();
+      },
+      close: jest.fn(async () => undefined),
+    })),
+  };
+});
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -28,6 +45,13 @@ describe('WebsocketModule', () => {
     })
       .overrideProvider(redisTokens.client)
       .useValue(createFakeRedisClient())
+      .overrideProvider(WebsocketAbuseLimiter)
+      .useValue({
+        consumeHandshakeIp: jest.fn(async () => true),
+        admitConnection: jest.fn(async () => true),
+        renewConnection: jest.fn(async () => true),
+        releaseConnection: jest.fn(async () => undefined),
+      })
       .compile();
     const gateway = moduleRef.get(WebsocketGateway);
     expect(gateway).toBeDefined();
@@ -42,10 +66,15 @@ describe('WebsocketModule', () => {
     // Phase 3.1: the Redis adapter is installed at init, so two instances share
     // one set of rooms. The clients are lazy, so this spec opens no connection.
     expect(adapter).toHaveBeenCalledTimes(1);
+    expect(moduleRef.get(WebsocketAdapterHealthService).isReady()).toBe(true);
     expect(middleware).toBeDefined();
     const socket = {
       id: 'connection-module-1',
-      handshake: { auth: { token: 'synthetic-handshake-token-test-only' } },
+      handshake: {
+        auth: { token: 'synthetic-handshake-token-test-only' },
+        headers: {},
+        address: '203.0.113.21',
+      },
       data: {},
       join: jest.fn(),
     } as unknown as Socket;

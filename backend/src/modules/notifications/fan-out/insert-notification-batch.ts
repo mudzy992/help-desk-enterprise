@@ -6,19 +6,11 @@ import type { NotificationType } from '../notifications.constants';
 import type { NotificationPayload, NotificationRecord } from '../notifications.types';
 
 /**
- * Phase 2.3 (plan §2.3): one batch insert for the whole recipient list.
- *
- * Before: `recipientIds.map(persistInAppNotification)` ran one `INSERT` per
- * member — a message in a 200-agent group meant 200 statements, and at ten
- * events per second that is the 2 000 writes/s the plan calls out.
- *
- * Now: one `SELECT` of the recipients that already have the event (the unique
- * `(userId, dedupeKey)` is still what makes a re-ingest a no-op) followed by one
- * `createMany`. `createMany` cannot return rows, so the ids and the timestamp
- * are generated here — the returned records are exactly the rows that were
- * inserted, which is what the publish step has to emit.
- *
- * Two statements per event, independent of how many people are behind it.
+ * Persist a personal notification batch and return only the rows won by this
+ * INSERT. The pre-read avoids a write on ordinary replays, but cannot arbitrate
+ * concurrent workers: both can observe no row before either writes. PostgreSQL's
+ * `createManyAndReturn` with `skipDuplicates` returns only rows actually inserted
+ * by this statement, so a concurrent loser has nothing to emit.
  */
 export async function insertNotificationBatch(
   prisma: PrismaService,
@@ -40,6 +32,7 @@ export async function insertNotificationBatch(
   if (userIds.length === 0) {
     return [];
   }
+
   const alreadyNotified = (await prisma.notification.findMany({
     where: { dedupeKey: input.dedupeKey, userId: { in: userIds } },
     select: { userId: true },
@@ -49,9 +42,10 @@ export async function insertNotificationBatch(
   if (pending.length === 0) {
     return [];
   }
+
   const createdAt = input.now ?? new Date();
   const nextId = input.nextId ?? (() => randomUUID());
-  const records: readonly NotificationRecord[] = pending.map((userId) => ({
+  const candidates: readonly NotificationRecord[] = pending.map((userId) => ({
     id: nextId(),
     userId,
     type: input.type,
@@ -64,19 +58,17 @@ export async function insertNotificationBatch(
     dedupeKey: input.dedupeKey,
     createdAt,
   }));
-  const data: Prisma.NotificationCreateManyInput[] = records.map(
+  const data: Prisma.NotificationCreateManyInput[] = candidates.map(
     ({ excludedUserIds: _excluded, groupId: _group, ...record }) => ({
       ...record,
       payload: record.payload as Prisma.InputJsonValue,
     }),
   );
-  await prisma.notification.createMany({
+
+  const inserted = (await prisma.notification.createManyAndReturn({
     data,
-    // Two events of the same kind for the same ticket can race; the loser skips
-    // its rows instead of failing the whole batch (same rule the single insert
-    // had, `P2002` → skip).
     skipDuplicates: true,
-  });
-  emitNotificationsCreated(records);
-  return records;
+  })) as readonly NotificationRecord[];
+  emitNotificationsCreated(inserted);
+  return inserted;
 }

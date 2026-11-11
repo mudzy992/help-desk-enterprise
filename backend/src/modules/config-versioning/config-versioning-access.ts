@@ -8,7 +8,10 @@ import type {
   ConfigSnapshot,
   ConfigVersioningConfiguration,
 } from './config-versioning.types';
-import { validateConfigSnapshot } from './validate-config-snapshot';
+import {
+  validateConfigSnapshot,
+  validateMandatoryConfigSnapshot,
+} from './validate-config-snapshot';
 import type { ConfigVersionRecord } from './to-config-version-response';
 
 export async function requireConfigVersioningEnabled(
@@ -38,7 +41,12 @@ export function assertConfigActivationAllowed(
   configuration: ConfigVersioningConfiguration,
 ): void {
   const errors = validateConfigSnapshot(snapshot, registry, configuration);
-  if (errors.length > 0 && configuration.blockActivationOnError) {
+  const hasMandatoryDomainErrors =
+    validateMandatoryConfigSnapshot(snapshot).length > 0;
+  if (
+    hasMandatoryDomainErrors ||
+    (errors.length > 0 && configuration.blockActivationOnError)
+  ) {
     throw new ConfigVersioningError(
       configVersioningErrorCodes.validationFailed,
       errors,

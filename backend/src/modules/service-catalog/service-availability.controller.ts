@@ -1,43 +1,49 @@
-import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
+import { AdminConfigDomains } from "../../common/admin-realtime/admin-config-domain.decorator";
+import { formatVersionEtag } from "../../common/optimistic-concurrency/optimistic-concurrency.service";
 import {
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
-} from '@nestjs/common';
-import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+} from "@nestjs/common";
+import { SessionAuthenticationGuard } from "../authentication/session-authentication.guard";
+import type { AuthenticatedHttpRequest } from "../authentication/authenticated-request";
 import {
   authorizationRoleKeys,
   permissionKeys,
-} from '../authorization/authorization.constants';
-import { RequirePermissions } from '../authorization/require-permissions.decorator';
-import { RequireRoles } from '../authorization/require-roles.decorator';
-import { RequireServiceScope } from '../authorization/require-service-scope.decorator';
-import { RoleGuard } from '../authorization/role.guard';
-import { catalogTicketCreateReadRoles } from './catalog-ticket-create-read-roles';
-import { CreateServiceDowntimeWindowDto } from './dto/create-service-downtime-window.dto';
-import { DeleteServiceDowntimeWindowQueryDto } from './dto/delete-service-downtime-window-query.dto';
-import { UpdateServiceAvailabilityDto } from './dto/update-service-availability.dto';
-import { UpdateServiceDowntimeWindowDto } from './dto/update-service-downtime-window.dto';
-import { readCatalogMutationContext } from './read-catalog-mutation-context';
-import { ServiceAvailabilityService } from './service-availability.service';
+} from "../authorization/authorization.constants";
+import { RequirePermissions } from "../authorization/require-permissions.decorator";
+import { RequireRoles } from "../authorization/require-roles.decorator";
+import { RequireServiceScope } from "../authorization/require-service-scope.decorator";
+import { RoleGuard } from "../authorization/role.guard";
+import { catalogTicketCreateReadRoles } from "./catalog-ticket-create-read-roles";
+import { CreateServiceDowntimeWindowDto } from "./dto/create-service-downtime-window.dto";
+import { ListServiceDowntimeWindowsQueryDto } from "./dto/list-service-downtime-windows-query.dto";
+import { DeleteServiceDowntimeWindowQueryDto } from "./dto/delete-service-downtime-window-query.dto";
+import { UpdateServiceAvailabilityDto } from "./dto/update-service-availability.dto";
+import { UpdateServiceDowntimeWindowDto } from "./dto/update-service-downtime-window.dto";
+import { readCatalogMutationContext } from "./read-catalog-mutation-context";
+import { ServiceAvailabilityService } from "./service-availability.service";
 import type {
-  DowntimeWindowResponse,
+  DowntimeWindowListPage,
   ServiceTicketCreationEligibility,
-} from './service-availability.types';
-import type { ServiceResponse } from './service-catalog.types';
+} from "./service-availability.types";
+import type { ServiceResponse } from "./service-catalog.types";
 
-@AdminConfigDomains('catalog')
-@Controller('services')
+type HeaderResponse = { setHeader(name: string, value: string): void };
+
+@AdminConfigDomains("catalog")
+@Controller("services")
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
@@ -52,34 +58,43 @@ export class ServiceAvailabilityController {
     private readonly serviceAvailabilityService: ServiceAvailabilityService,
   ) {}
 
-  @Patch(':serviceId/availability')
+  @Patch(":serviceId/availability")
   @RequirePermissions(permissionKeys.serviceAvailabilityWrite)
-  @RequireServiceScope({ field: 'serviceId' })
-  updateAvailability(
-    @Param('serviceId') serviceId: string,
+  @RequireServiceScope({ field: "serviceId" })
+  async updateAvailability(
+    @Param("serviceId") serviceId: string,
     @Body() body: UpdateServiceAvailabilityDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Headers("if-match") ifMatch: string | string[] | undefined,
+    @Res({ passthrough: true }) response?: HeaderResponse,
   ): Promise<ServiceResponse> {
-    return this.serviceAvailabilityService.updateAvailability(
+    const service = await this.serviceAvailabilityService.updateAvailability(
       serviceId,
       body,
+      ifMatch,
       readCatalogMutationContext(request),
+    );
+    response?.setHeader("ETag", formatVersionEtag(service.revision));
+    return service;
+  }
+
+  @Get(":serviceId/downtime-windows")
+  @RequireServiceScope({ field: "serviceId" })
+  listDowntimeWindows(
+    @Param("serviceId") serviceId: string,
+    @Query() query: ListServiceDowntimeWindowsQueryDto,
+  ): Promise<DowntimeWindowListPage> {
+    return this.serviceAvailabilityService.listDowntimeWindows(
+      serviceId,
+      query,
     );
   }
 
-  @Get(':serviceId/downtime-windows')
-  @RequireServiceScope({ field: 'serviceId' })
-  listDowntimeWindows(
-    @Param('serviceId') serviceId: string,
-  ): Promise<readonly DowntimeWindowResponse[]> {
-    return this.serviceAvailabilityService.listDowntimeWindows(serviceId);
-  }
-
-  @Post(':serviceId/downtime-windows')
+  @Post(":serviceId/downtime-windows")
   @RequirePermissions(permissionKeys.serviceAvailabilityWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   createDowntimeWindow(
-    @Param('serviceId') serviceId: string,
+    @Param("serviceId") serviceId: string,
     @Body() body: CreateServiceDowntimeWindowDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceResponse> {
@@ -90,12 +105,12 @@ export class ServiceAvailabilityController {
     );
   }
 
-  @Patch(':serviceId/downtime-windows/:downtimeWindowId')
+  @Patch(":serviceId/downtime-windows/:downtimeWindowId")
   @RequirePermissions(permissionKeys.serviceAvailabilityWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   updateDowntimeWindow(
-    @Param('serviceId') serviceId: string,
-    @Param('downtimeWindowId') downtimeWindowId: string,
+    @Param("serviceId") serviceId: string,
+    @Param("downtimeWindowId") downtimeWindowId: string,
     @Body() body: UpdateServiceDowntimeWindowDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceResponse> {
@@ -107,12 +122,12 @@ export class ServiceAvailabilityController {
     );
   }
 
-  @Delete(':serviceId/downtime-windows/:downtimeWindowId')
+  @Delete(":serviceId/downtime-windows/:downtimeWindowId")
   @RequirePermissions(permissionKeys.serviceAvailabilityWrite)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   deleteDowntimeWindow(
-    @Param('serviceId') serviceId: string,
-    @Param('downtimeWindowId') downtimeWindowId: string,
+    @Param("serviceId") serviceId: string,
+    @Param("downtimeWindowId") downtimeWindowId: string,
     @Query() query: DeleteServiceDowntimeWindowQueryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ServiceResponse> {
@@ -125,11 +140,11 @@ export class ServiceAvailabilityController {
     );
   }
 
-  @Get(':serviceId/ticket-creation-eligibility')
+  @Get(":serviceId/ticket-creation-eligibility")
   @RequireRoles(...catalogTicketCreateReadRoles)
-  @RequireServiceScope({ field: 'serviceId' })
+  @RequireServiceScope({ field: "serviceId" })
   evaluateTicketCreationEligibility(
-    @Param('serviceId') serviceId: string,
+    @Param("serviceId") serviceId: string,
   ): Promise<ServiceTicketCreationEligibility> {
     return this.serviceAvailabilityService.evaluateTicketCreationEligibility(
       serviceId,
