@@ -8215,8 +8215,7 @@
       "order": "The end must be after the start.",
       "swapDuplicate": "An identical swap request is already awaiting your colleague’s reply.",
       "swapLimitReached": "You have too many open swap requests; wait for a decision or cancel one of them."
-    },
-    "listTruncated": "Only the first {{limit}} entries are shown; the list is longer than the display."
+    }
   },
   "announcements": {
     "title": "Announcements",
@@ -8354,7 +8353,8 @@
       "deleteTitle": "Delete the draft?",
       "deleteBody": "The draft is deleted permanently.",
       "reason": "Reason",
-      "reasonHint": "At least 3 characters; recorded in the audit log."
+      "reasonHint": "At least 3 characters; recorded in the audit log.",
+      "listTruncated": "Showing the newest {{limit}} announcements in your scope; older announcements are not listed."
     },
     "report": {
       "title": "Acknowledgement report",

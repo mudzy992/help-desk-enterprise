@@ -8261,8 +8261,7 @@
       "order": "Kraj mora biti nakon početka.",
       "swapDuplicate": "Isti zahtjev za zamjenu već čeka odgovor kolege.",
       "swapLimitReached": "Imate previše otvorenih zahtjeva za zamjenu; pričekajte odluku ili otkažite neki od njih."
-    },
-    "listTruncated": "Prikazuje se samo prvih {{limit}} zapisa; lista je duža od prikaza."
+    }
   },
   "announcements": {
     "title": "Najave",
@@ -8402,7 +8401,8 @@
       "deleteTitle": "Obrisati nacrt?",
       "deleteBody": "Nacrt se trajno briše.",
       "reason": "Razlog",
-      "reasonHint": "Najmanje 3 znaka; bilježi se u auditu."
+      "reasonHint": "Najmanje 3 znaka; bilježi se u auditu.",
+      "listTruncated": "Prikazano je najnovijih {{limit}} najava iz vašeg opsega; starije najave nisu u listi."
     },
     "report": {
       "title": "Izvještaj o potvrdama",

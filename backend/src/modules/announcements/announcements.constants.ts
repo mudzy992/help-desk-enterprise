@@ -37,6 +37,8 @@ export const announcementLimits = {
   /** A draft may be scheduled at most this far ahead. */
   maxStartAheadDays: 366,
   manageListMax: 200,
+  /** BA-announcements-14: hard bound on candidate rows scanned while paging the manage list to the caller's scope quota. */
+  manageListScanMax: 5_000,
 } as const;
 
 export const announcementRoleKeys = ['USER', 'AGENT', 'ADMIN', 'SUPER_ADMIN'] as const;

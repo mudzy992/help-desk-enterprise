@@ -296,6 +296,11 @@ function ManageAnnouncements() {
         </div>
       ) : (
         <div className="overflow-x-auto">
+          {list.truncated ? (
+            <p className="px-4 pt-3 text-[12px] leading-relaxed text-muted-foreground">
+              {t("announcements.manage.listTruncated", { limit: list.listLimit })}
+            </p>
+          ) : null}
           <table className="w-full min-w-[760px] text-left text-[12.5px]">
             <caption className="sr-only">{t("announcements.manage.title")}</caption>
             <thead className="text-[11.5px] text-muted-foreground">

@@ -505,17 +505,55 @@ export class AnnouncementsService {
 
   async list(viewer: AnnouncementViewer, now: Date = new Date()) {
     const capabilities = await this.requireManage(viewer);
-    let rows = (await this.prisma.announcement.findMany({
-      orderBy: [{ createdAt: 'desc' }],
-      take: announcementLimits.manageListMax,
-    })) as AnnouncementRow[];
-    const allowed = await this.authorizedAudienceKeys(
-      viewer,
-      permissionKeys.announcementManage,
-      rows.map((row) => ({ key: row.id, organizationalUnitIds: row.audienceOrganizationalUnitIds })),
-      true,
-    );
-    rows = rows.filter((row) => allowed.has(row.id));
+    // BA-announcements-14: page candidates (newest first, id tie-break) and apply
+    // the scope filter per page until the caller's own quota is full, instead of
+    // capping the GLOBAL list first — a scoped manager whose announcements sit
+    // behind more than `manageListMax` foreign ones previously never saw them.
+    // The scan is bounded by `manageListScanMax`; when it stops early the result
+    // is flagged `truncated` rather than silently incomplete.
+    const rows: AnnouncementRow[] = [];
+    let scanned = 0;
+    let truncated = false;
+    let cursor: { readonly createdAt: Date; readonly id: string } | null = null;
+    for (;;) {
+      const page = (await this.prisma.announcement.findMany({
+        ...(cursor === null
+          ? {}
+          : {
+              where: {
+                OR: [
+                  { createdAt: { lt: cursor.createdAt } },
+                  { AND: [{ createdAt: cursor.createdAt }, { id: { lt: cursor.id } }] },
+                ],
+              },
+            }),
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: announcementLimits.manageListMax,
+      })) as AnnouncementRow[];
+      if (page.length === 0) break;
+      scanned += page.length;
+      const allowed = await this.authorizedAudienceKeys(
+        viewer,
+        permissionKeys.announcementManage,
+        page.map((row) => ({ key: row.id, organizationalUnitIds: row.audienceOrganizationalUnitIds })),
+        true,
+      );
+      for (const row of page) {
+        if (allowed.has(row.id) && rows.length < announcementLimits.manageListMax) rows.push(row);
+      }
+      const last = page.at(-1);
+      if (last !== undefined) cursor = { createdAt: last.createdAt, id: last.id };
+      const quotaFull = rows.length >= announcementLimits.manageListMax;
+      const reachedEnd = page.length < announcementLimits.manageListMax;
+      if (reachedEnd) break;
+      if (quotaFull || scanned >= announcementLimits.manageListScanMax) {
+        // More candidates exist beyond the examined window (a full display
+        // quota, or the bounded scan gave up) — say so instead of silently
+        // returning an incomplete list.
+        truncated = true;
+        break;
+      }
+    }
     const counts = await this.prisma.announcementAcknowledgement.groupBy({
       by: ['announcementId'],
       where: { announcementId: { in: rows.map((row) => row.id) } },
@@ -524,6 +562,8 @@ export class AnnouncementsService {
     const acknowledged = new Map(counts.map((row) => [row.announcementId, row._count._all]));
     return {
       ...capabilities,
+      truncated,
+      listLimit: announcementLimits.manageListMax,
       announcements: rows.map((row) => ({
         ...this.toManaged(row, now),
         acknowledgedCount: (acknowledged.get(row.id) ?? 0) + row.anonymizedAcknowledgements,

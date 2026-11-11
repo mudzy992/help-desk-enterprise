@@ -130,6 +130,9 @@ export type ManagedAnnouncementDetail = ManagedAnnouncement & {
 };
 
 export type AnnouncementList = Omit<AnnouncementCapabilities, "enabled"> & {
+  /** BA-announcements-14: true when more in-scope announcements exist beyond the returned window. */
+  readonly truncated: boolean;
+  readonly listLimit: number;
   readonly announcements: readonly ManagedAnnouncement[];
 };
 
