@@ -122,7 +122,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | BA-announcements-02 | P1       | Active/archive cap se primjenjuje prije audience filtera i može sakriti kritičnu najavu     | zatvoreno (W6.45) |
 | BA-announcements-03 | P1       | In-app/reminder fan-out terminalno odsijeca publiku nakon 20.000 korisnika                  | zatvoreno (W6.46) |
 | BA-announcements-04 | P1       | Report/CSV neograničeno učitava current audience, e-mailove i acknowledgement redove        | zatvoreno (W6.47) |
-| BA-announcements-05 | P2       | Agent scope ne validira group/service reference prema vlastitom OU podstablu                | otvoreno |
+| BA-announcements-05 | P2       | Agent scope ne validira group/service reference prema vlastitom OU podstablu (validacija referenci + options bez servisa za scoped aktore, paket 198) | otvoreno |
 | BA-announcements-06 | P2       | Mutation nema version/CAS; draft/published/lifecycle race može pregaziti stanje             | otvoreno |
 | BA-announcements-07 | P2       | Published revision ne čuva severity/display/end/service/channel promjene                    | otvoreno |
 | BA-announcements-08 | P2       | Notify/reminder claim i email-run queue nisu atomarni ni pouzdano obnovljivi                | otvoreno |

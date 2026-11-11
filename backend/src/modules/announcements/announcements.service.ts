@@ -215,6 +215,40 @@ export class AnnouncementsService {
     });
   }
 
+  /**
+   * BA-announcements-05: audience OU checks alone do not bind group/service
+   * references. A scoped manager/agent may reference only groups whose OU
+   * sits inside their own subtree; a service has no OU anchor, so a scoped
+   * actor may not reference one at all (fail-closed, as in BA-01).
+   */
+  private async assertManageReferences(
+    viewer: AnnouncementViewer,
+    groupIds: readonly string[],
+    serviceId: string | null,
+  ): Promise<void> {
+    if (viewer.manageScope.global) return;
+    if (serviceId !== null) throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'service');
+    if (groupIds.length === 0) return;
+    const [groups, units, agentPath] = await Promise.all([
+      this.prisma.group.findMany({
+        where: { id: { in: [...groupIds] } },
+        select: { id: true, organizationalUnitId: true },
+      }),
+      this.loadUnits(),
+      this.agentManagementUnitPath(viewer),
+    ]);
+    const paths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
+    for (const group of groups) {
+      const path = paths.get(group.organizationalUnitId) ?? null;
+      const covered =
+        announcementUnitPathCoveredByScope(path, viewer.manageScope) ||
+        (agentPath !== null &&
+          path !== null &&
+          doesOrganizationalUnitScopeCover({ assignedPath: agentPath, requestedPath: path }));
+      if (!covered) throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'group');
+    }
+  }
+
   private async assertManageAudience(viewer: AnnouncementViewer, organizationalUnitIds: readonly string[]): Promise<void> {
     const key = 'announcement-input';
     const allowed = await this.authorizedAudienceKeys(
@@ -441,7 +475,9 @@ export class AnnouncementsService {
         .sort((a, b) => a.ouPath.localeCompare(b.ouPath))
         .map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
       groups: visibleGroups.map((group) => ({ id: group.id, name: group.name })),
-      services,
+      // BA-announcements-05: scoped actors cannot reference services at all,
+      // so the editor does not offer them any.
+      services: viewer.manageScope.global ? services : [],
     };
   }
 
@@ -596,6 +632,7 @@ export class AnnouncementsService {
     await this.requireManage(viewer);
     const data = await this.validate(input, now);
     await this.assertManageAudience(viewer, data.audienceOrganizationalUnitIds);
+    await this.assertManageReferences(viewer, data.audienceGroupIds, data.serviceId);
     const row = await this.prisma.$transaction(async (transaction) => {
       const created = await transaction.announcement.create({ data: { ...data, createdById: viewer.userId } });
       await this.audit(transaction, auditLogActions.announcementCreated, created.id, viewer.userId, {
@@ -620,6 +657,7 @@ export class AnnouncementsService {
     }
     const data = await this.validate(input, now);
     await this.assertManageAudience(viewer, data.audienceOrganizationalUnitIds);
+    await this.assertManageReferences(viewer, data.audienceGroupIds, data.serviceId);
     await this.prisma.$transaction(async (transaction) => {
       if (row.status === 'DRAFT') {
         await transaction.announcement.update({ where: { id }, data });
