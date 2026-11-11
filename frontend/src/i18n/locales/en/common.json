@@ -8215,7 +8215,8 @@
       "order": "The end must be after the start.",
       "swapDuplicate": "An identical swap request is already awaiting your colleague’s reply.",
       "swapLimitReached": "You have too many open swap requests; wait for a decision or cancel one of them."
-    }
+    },
+    "listTruncated": "Only the first {{limit}} entries are shown; the list is longer than the display."
   },
   "announcements": {
     "title": "Announcements",
