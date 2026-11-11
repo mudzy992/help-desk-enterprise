@@ -1,6 +1,6 @@
 # BA-announcements-09: retry neuspjelih primaoca i crash-sigurna isporuka e-maila najave
 
-Status: **otvoreno**. E-mail run najave pomjerao je cursor preko neuspjelih primaoca i završavao se, pa privremena SMTP greška trajno preskače korisnika; nije bilo ponovnog pokušaja unutar životnog vijeka runa.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (F1 = DA, F2 = N/A) uz CI `43026985847` success; vidi audit 28 §25. E-mail run najave pomjerao je cursor preko neuspjelih primaoca i završavao se, pa privremena SMTP greška trajno preskače korisnika; nije bilo ponovnog pokušaja unutar životnog vijeka runa.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Bez migracije. Pozadinski ledger `NotificationEmailDelivery` već ima retry stat
 
 ## Testovi i granice
 
-`announcement-delivery.spec.ts` dobio je 2 testa: prethodno neuspjeli primalac se ponovo posjećuje prije završetka runa, a retry koji još nije dospio drži run otvorenim (bez `completedAt`). Lokalno: backend announcements suite 10 suiteova / 66 testova, ciljani ESLint. Bez generated-Prisma/PostgreSQL CI dokaza i operativne potvrde nalaz se ne zatvara.
+`announcement-delivery.spec.ts` dobio je 2 testa: prethodno neuspjeli primalac se ponovo posjećuje prije završetka runa, a retry koji još nije dospio drži run otvorenim (bez `completedAt`). Lokalno: backend announcements suite 10 suiteova / 66 testova, ciljani ESLint. CI `43026985847` (success) dao je generated-Prisma/PostgreSQL dokaz, a vlasnik je operativno potvrdio F1 = DA (F2 = N/A) — nalaz je zatvoren, vidi audit 28 §25.
