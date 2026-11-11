@@ -77,14 +77,15 @@ type UserQuery = {
   readonly take: number;
 };
 
-function setup(totalUsers: number) {
+function setup(totalUsers: number, overrides: Partial<typeof row> = {}) {
+  const effectiveRow = { ...row, ...overrides };
   const userIds = Array.from({ length: totalUsers }, (_, index) => `user-${String(index).padStart(6, '0')}`);
   const queries: UserQuery[] = [];
   const prisma = {
     announcement: {
       updateMany: jest.fn(async () => ({ count: 1 })),
-      findFirst: jest.fn(async () => row),
-      findUnique: jest.fn(async () => row),
+      findFirst: jest.fn(async () => effectiveRow),
+      findUnique: jest.fn(async () => effectiveRow),
     },
     user: {
       findMany: jest.fn(async (query: UserQuery) => {
@@ -97,7 +98,11 @@ function setup(totalUsers: number) {
       }),
     },
     organizationalUnit: { findMany: jest.fn(async () => []) },
-    announcementEmailRun: { create: jest.fn(async () => ({ id: 'email-run-1' })) },
+    announcementEmailRun: {
+      create: jest.fn(async () => ({ id: 'email-run-1' })),
+      findFirst: jest.fn(async () => null),
+    },
+    $transaction: jest.fn(async (operation: (client: unknown) => Promise<unknown>) => operation(prisma)),
   };
   const settings = { getSetting: jest.fn(async () => true) };
   const authorization = {
@@ -135,6 +140,24 @@ describe('AnnouncementsService audience fan-out pagination', () => {
     expect(prisma.announcement.updateMany.mock.invocationCallOrder[0]).toBeGreaterThan(
       fanOut.mock.invocationCallOrder[fanOut.mock.invocationCallOrder.length - 1] ?? 0,
     );
+  });
+
+  it('fails the publication claim when the e-mail run cannot be queued, so the sweep retries', async () => {
+    const { service, prisma } = setup(1, { sendEmail: true });
+    prisma.announcementEmailRun.create.mockRejectedValueOnce(new Error('queue unavailable'));
+
+    await expect(service.notifyStarted(announcementId, now)).rejects.toThrow('queue unavailable');
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses an already-open e-mail run instead of queueing a duplicate', async () => {
+    const { service, prisma } = setup(1, { sendEmail: true });
+    prisma.announcementEmailRun.findFirst.mockResolvedValueOnce({ id: 'email-run-open' });
+
+    const notified = await service.notifyStarted(announcementId, now);
+
+    expect(notified).toBe(1);
+    expect(prisma.announcementEmailRun.create).not.toHaveBeenCalled();
   });
 
   it('does not set the completion marker when a publication page fails', async () => {

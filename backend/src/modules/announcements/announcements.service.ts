@@ -1170,12 +1170,19 @@ export class AnnouncementsService {
       additionalWhere: { announcementAcknowledgements: { none: { announcementId: id } } },
     });
     const since = new Date(now.getTime() - announcementLimits.reminderIntervalMs);
-    const claimed = await this.prisma.announcement.updateMany({
-      where: { id, OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: since } }] },
-      data: { lastReminderAt: now },
+    // BA-announcements-08: the interval claim and the e-mail run are one
+    // transaction. If the run cannot be queued, the claim rolls back and the
+    // reminder stays retryable instead of losing the e-mail for 24 h.
+    const emailQueued = await this.prisma.$transaction(async (transaction) => {
+      const claimed = await transaction.announcement.updateMany({
+        where: { id, OR: [{ lastReminderAt: null }, { lastReminderAt: { lte: since } }] },
+        data: { lastReminderAt: now },
+      });
+      if (claimed.count !== 1) throw new AnnouncementError(announcementErrorCodes.reminderTooSoon);
+      if (!row.sendEmail) return false;
+      await this.ensureEmailRun(transaction, id, 'REMINDER');
+      return true;
     });
-    if (claimed.count !== 1) throw new AnnouncementError(announcementErrorCodes.reminderTooSoon);
-    const emailQueued = row.sendEmail ? await this.queueEmailRun(id, 'REMINDER') : false;
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action: auditLogActions.announcementReminded,
       entityType: auditLogEntityTypes.announcement,
@@ -1207,19 +1214,26 @@ export class AnnouncementsService {
       type: notificationTypes.announcementPublished,
       dedupePrefix: `announcement-published:${id}`,
     });
-    const completed = await this.prisma.announcement.updateMany({
-      where: {
-        id,
-        status: 'PUBLISHED',
-        notifyAudience: true,
-        audienceNotifiedAt: null,
-        startsAt: { lte: now },
-        endsAt: { gt: now },
-      },
-      data: { audienceNotifiedAt: now },
+    // BA-announcements-08: claim the completion marker and queue the e-mail
+    // run atomically. A queue failure rolls the claim back, so the sweep
+    // retries instead of permanently losing the publication e-mail.
+    const completed = await this.prisma.$transaction(async (transaction) => {
+      const claimed = await transaction.announcement.updateMany({
+        where: {
+          id,
+          status: 'PUBLISHED',
+          notifyAudience: true,
+          audienceNotifiedAt: null,
+          startsAt: { lte: now },
+          endsAt: { gt: now },
+        },
+        data: { audienceNotifiedAt: now },
+      });
+      if (claimed.count !== 1) return false;
+      if (row.sendEmail) await this.ensureEmailRun(transaction, id, 'PUBLISHED');
+      return true;
     });
-    if (completed.count !== 1) return 0;
-    if (row.sendEmail) await this.queueEmailRun(id, 'PUBLISHED');
+    if (!completed) return 0;
     return notified;
   }
 
@@ -1261,14 +1275,23 @@ export class AnnouncementsService {
 
   // ------------------------------------------------------------ helpers
 
-  /** K2b: the worker mails the audience in batches (see AnnouncementDeliveryService). */
-  private async queueEmailRun(announcementId: string, kind: 'PUBLISHED' | 'REMINDER'): Promise<boolean> {
-    try {
-      await this.prisma.announcementEmailRun.create({ data: { announcementId, kind } });
-      return true;
-    } catch (error) {
-      this.logger.warn(`announcement_email_queue_failed id=${announcementId} reason=${error instanceof Error ? error.message : String(error)}`);
-      return false;
+  /**
+   * K2b + BA-announcements-08: queue the worker e-mail run inside the caller's
+   * claim transaction. An already-open run for the same announcement and kind
+   * is reused instead of duplicated (the delivery ledger dedupes per run, so
+   * a second open run would mail the audience twice).
+   */
+  private async ensureEmailRun(
+    transaction: Prisma.TransactionClient,
+    announcementId: string,
+    kind: 'PUBLISHED' | 'REMINDER',
+  ): Promise<void> {
+    const open = await transaction.announcementEmailRun.findFirst({
+      where: { announcementId, kind, completedAt: null },
+      select: { id: true },
+    });
+    if (open === null) {
+      await transaction.announcementEmailRun.create({ data: { announcementId, kind } });
     }
   }
 
