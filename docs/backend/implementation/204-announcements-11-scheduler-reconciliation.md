@@ -1,6 +1,6 @@
 # BA-announcements-11: scheduler reconciliation i politika propuštenih najava
 
-Status: **otvoreno**. Sweep scheduler registrovao se samo na module initu — Redis flush/failover nakon boota trajno ga je uklanjao bez self-heala, a najava koja je u tom periodu počela i završila više nikad nije bila due, pa se njena distribucija tiho i trajno gubila.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (H1 = DA, H2/H3 = N/A) uz CI `43034654290` success; vidi audit 28 §27. Sweep scheduler registrovao se samo na module initu — Redis flush/failover nakon boota trajno ga je uklanjao bez self-heala, a najava koja je u tom periodu počela i završila više nikad nije bila due, pa se njena distribucija tiho i trajno gubila.
 
 ## Izmjena
 
@@ -8,4 +8,4 @@ Bez migracije. `AnnouncementSweepSchedulerService` sada slijedi ustanovljeni rec
 
 ## Testovi i granice
 
-Novi `announcement-sweep.scheduler.spec.ts` (3 testa: registracija, oporavak uz log, no-op kad postoji) i `announcements.sweep.spec.ts` (2 testa: missed alarm bez kasne distribucije, due-cap alarm). Lokalno: backend announcements suite 12 suiteova / 73 testa, ciljani ESLint. Stvarni Redis-loss oporavak dokazuje se operativno (restart/flush) ili ostaje na jediničnim testovima; bez CI dokaza i operativne potvrde nalaz se ne zatvara.
+Novi `announcement-sweep.scheduler.spec.ts` (3 testa: registracija, oporavak uz log, no-op kad postoji) i `announcements.sweep.spec.ts` (2 testa: missed alarm bez kasne distribucije, due-cap alarm). Lokalno: backend announcements suite 12 suiteova / 73 testa, ciljani ESLint. CI `43034654290` (success) dao je generated-Prisma/PostgreSQL dokaz, a vlasnik je operativno potvrdio H1 = DA (H2/H3 = N/A) — nalaz je zatvoren, vidi audit 28 §27.
