@@ -33,3 +33,7 @@ Opt-in `59-notifications-realtime.spec.ts` kreira tiket na izolovanom stacku, dr
 ### Ciljani run 43306768799
 
 Test 59 je izvršen, ali je pao prije provjere događaja: selektor regiona istovremeno je obuhvatio panel i toast region istog pristupačnog naziva. Selektor je sužen na ID notification panela; potreban je novi browser run, dosadašnji rezultat nije dokaz realtime isporuke.
+
+### Ciljani run 43313627742
+
+Test 59 prošao je izbor otvorenog panela, ali je istekao na čekanju početnog `40` Socket.IO framea na WebSocket transportu. Klijent koristi podrazumijevani polling-first transport: taj paket može stići prije WebSocket upgradea, pa sama njegova odsutnost na WebSocketu ne dokazuje prekid. Test sada prihvata direktni `40` ili poslani Engine.IO upgrade paket `5`, odbacuje zatvorene konekcije i i dalje zahtijeva stvarni korelisani `notification.created` frame i novi red u otvorenom panelu. Ovo nije novi uspješan E2E dokaz; potreban je ponovni run.

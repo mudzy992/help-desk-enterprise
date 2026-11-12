@@ -22,3 +22,7 @@ Test kreira e-mail i tiket bez automatskog brisanja. Obavezni su izolovani potro
 ### Ciljani run 43306768799
 
 Test 58 je izvršen, ali je pao na prethodnoj provjeri konfiguracije prije spajanja ili slanja poruke: nedostaje ili je neispravna barem jedna od vrijednosti baze, SMTP hosta, porta ili ulazne adrese. Dijagnostika je dopunjena imenima nedostajućih postavki, bez ispisivanja vrijednosti. Nema dokaza mailbox→ticket isporuke.
+
+### Ciljani run 43313627742
+
+Test 58 prijavio je da u jobu nedostaju ili su neispravni `E2E_VAL6_SMTP_HOST`, `E2E_VAL6_SMTP_PORT` i `E2E_VAL6_INBOUND_ADDRESS`; baza nije bila među prijavljenim nedostacima. Test nije slao poruku i nije dokaz isporuke. Vrijednosti nisu ispisane niti potvrđene kao ispravan izolovani fixture.

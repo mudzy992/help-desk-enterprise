@@ -22,10 +22,21 @@ test('a ticket reply reaches the requester notification panel over the socket', 
   });
 
   const frames: string[] = [];
+  const readySockets = new Set<object>();
   page.on('websocket', (socket) => {
+    if (!socket.url().includes('/socket.io/')) return;
     socket.on('framereceived', (frame) => {
-      if (typeof frame.payload === 'string') frames.push(frame.payload);
+      if (typeof frame.payload !== 'string') return;
+      frames.push(frame.payload);
+      // Direct WebSocket transport receives the Socket.IO connect packet here.
+      if (frame.payload.startsWith('40')) readySockets.add(socket);
     });
+    socket.on('framesent', (frame) => {
+      // With the default polling-first transport the connect packet may have
+      // already arrived over HTTP; Engine.IO packet 5 completes the upgrade.
+      if (frame.payload === '5') readySockets.add(socket);
+    });
+    socket.on('close', () => readySockets.delete(socket));
   });
   await signIn(page, env.userEmail, env.userPassword);
   await page.goto(`/tickets/${ticket.id}`);
@@ -34,9 +45,12 @@ test('a ticket reply reaches the requester notification panel over the socket', 
   await bell.click();
   const panel = page.locator('#notifications-panel[role="region"]');
   await expect(panel).toBeVisible();
-  await expect.poll(() => frames.some((frame) => frame.startsWith('40')), { timeout: 15_000 }).toBe(true);
-  // The Socket.IO connect frame precedes async room joining. The same bounded
-  // join allowance is used by the existing routing-room E2E 15.
+  await expect.poll(() => readySockets.size, {
+    timeout: 15_000,
+    message: 'No active Socket.IO WebSocket connection or completed transport upgrade',
+  }).toBeGreaterThan(0);
+  // A transport handshake does not prove room readiness. Allow time for the
+  // asynchronous join, then require the correlated event itself below.
   await page.waitForTimeout(1_500);
   const matchingRows = panel.getByText(ticket.title, { exact: true });
   const initialCount = await matchingRows.count();
