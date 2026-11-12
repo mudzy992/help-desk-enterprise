@@ -481,3 +481,7 @@ node scripts/rotate-e2e-actor-passwords.mjs             # writes E2E_USER_PASSWO
 The **database is not touched by that script** — it only changes what the harness is told to use. The next E2E run
 re-sets the DB passwords itself through the admin path (the configured value cannot sign in yet, so
 `restoreTestActorPassword` completes reset + forced change), which is why a rotation needs no manual step.
+
+### Val 6 — korelisani integration queue test 57
+
+Test `57-integration-queue-correlation.spec.ts` je opt-in i inače je **skipped**. Za njega GitHub Actions varijabla `E2E_VAL6_QUEUE` mora biti `1`, a `E2E_BASE_URL`, `E2E_API_URL` i `E2E_DATABASE_URL` moraju pokazivati na **isti izolovani potrošni testni stack**, nikad na produkciju. Potrebni su testni korisnik i administrator, aktivni worker i integration queue s uključenim EMAIL ili EDGE kanalom, ispravno podešene notifikacije i testni primaoci; pri EMAIL scenariju SMTP mora prihvatati isporuku. Test stvara tiket i poruku, a nakon testiranja treba resetovati ili očistiti testni stack. Ne interpretirati skipped kao dokaz. Globalni E2E setup također mijenja testne račune/MFA i zato se cijeli suite ne smije usmjeriti na produkciju.

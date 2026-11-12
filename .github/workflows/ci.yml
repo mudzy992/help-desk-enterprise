@@ -886,6 +886,8 @@ jobs:
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
           E2E_RETRIES: ${{ inputs.retries || '1' }}
           E2E_SPECS: ${{ inputs.specs }}
+          # Explicit opt-in for a disposable stack with queue fixtures configured.
+          E2E_VAL6_QUEUE: ${{ vars.E2E_VAL6_QUEUE }}
           PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
         run: |
           # Triage (2026-10-05): a full run is 71 tests / ~35 min, so a red run can

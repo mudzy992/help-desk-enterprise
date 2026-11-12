@@ -331,3 +331,7 @@ Dodatna E2E provjera iz paketa 220 uklonjena je jer je mogla naći nepovezan pre
 ## Dopuna — razlikovanje Teams trajne greške
 
 Paket 219 dopunjen je posebnim sigurnim kodom `TEAMS_DELIVERY_PERMANENT_FAILURE` za nepovratnu provider grešku, odvojeno od `TEAMS_DELIVERY_SKIPPED` i `TEAMS_CONVERSATION_GONE`. Sva tri outcome-a su terminalni `SKIPPED` i obuhvaćeni retentionom. Nova migracija nije potrebna; nalaz ostaje otvoren do CI dokaza i potvrde.
+
+## Dopuna — korelisani E2E za BA-integration-queue-15
+
+Opt-in test `57-integration-queue-correlation.spec.ts` pripremljen je za izolovani E2E stack i traži uspješan ishod posla vezanog za konkretan testni odgovor. Nije izvršen; uobičajeni CI ga bez eksplicitne varijable preskače. Preduslovi i ograničenja nalaze se u [paketu 220](../implementation/220-integration-queue-15-test-evidence.md). Nalaz ostaje otvoren.

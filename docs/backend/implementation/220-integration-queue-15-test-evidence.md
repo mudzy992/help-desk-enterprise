@@ -18,3 +18,9 @@
 
 - Lokalno se E2E ne pokreće (nema stacka); dnevni schedule CI izvršava puni E2E. CI unit/integration jobovi su autoritativni za backend suiteove.
 - Bez promjene produkcijskog koda; bez migracije.
+
+## Korelisani E2E — pripremljen, nije izvršen
+
+`e2e/tests/57-integration-queue-correlation.spec.ts` stvara testni tiket i odgovor, te iz baze čita samo status poslova čiji se EMAIL `dedupeKey` veže za ID tog odgovora ili EDGE payload veže za isti tiket i ID poruke. Traži `COMPLETED` ili `PUBLISHED_BEST_EFFORT`; ne smatra `PENDING`, `FAILED` ili nepovezane stare poslove uspjehom. `PUBLISHED_BEST_EFFORT` nije dokaz krajnje isporuke klijentu, a `COMPLETED` nije neovisni dokaz da je primalac pročitao e-mail.
+
+Test je namjerno opt-in (`E2E_VAL6_QUEUE=1`), inače se **preskače**. Prije omogućavanja mora postojati izolovan, potrošni E2E stack i odgovarajuća baza; testni requester i admin; aktivni worker i queue za EMAIL ili EDGE; te odgovarajuća notification konfiguracija i primaoci koji generišu posao. Test kreira tiket i ne čisti ga automatski: potrebno je poslije očistiti/resetovati cijelo testno okruženje. Varijabla GitHub Actions `E2E_VAL6_QUEUE` proslijeđena je samo E2E koraku; nikad je ne uključivati dok E2E URL-ovi i baza mogu pokazivati na produkciju. Lokalno su provjereni TypeScript i Playwright listing, **ne** izvršavanje na stacku. Zatvaranje nalaza zahtijeva stvarno izvršen i uspješan test, ne skipped rezultat.
