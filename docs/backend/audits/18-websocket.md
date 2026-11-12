@@ -132,7 +132,7 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-09 | P2     | Reconnect nema sequence/cursor/replay niti formalni catch-up ugovor                        | zatvoreno |
 | BA-websocket-10 | P2     | Room revalidation je N×sekvencijalna, bez overlap/resource guarda                          | zatvoreno |
 | BA-websocket-11 | P2     | Socket može akumulirati neograničen broj ticket soba                                       | zatvoreno |
-| BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | otvoreno |
+| BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | € implementirano (paket 215); čeka se CI dokaz i operativna potvrda AB1 |
 | BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | otvoreno |
 | BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | otvoreno |
 
@@ -414,3 +414,7 @@ CI `42680779580` i `42681847238` nisu prošli: generated-Prisma backend build an
 ## 30. Closeout — BA-websocket-06–11 (2026-10-29)
 
 `BA-websocket-06`–`11` (P2) zatvoreni su operativnom potvrdom vlasnika. Implementacije (paketi [164](../implementation/164-websocket-06-distributed-admission-limits.md)–[169](../implementation/169-websocket-11-bounded-ticket-subscriptions.md), uz CI/Perf regresijski paket [171](../implementation/171-val6-ci-perf-build-regression-fix.md)) bile su završene ranije i od tada nepromijenjene u punim CI prolazima, uključujući CI [`42990837191`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42990837191) (**success**: generated-Prisma backend build/lint/full test, PostgreSQL+Redis integration, frontend, Docs guard, container/supply-chain, CI gate). Vlasnik je nakon redeploya potvrdio: B1 (komentar iz drugog taba vidljiv bez osvježavanja) = DA, B2 (offline tab po ponovnom spajanju sam dohvaća propuštene izmjene, bez ručnog refresha) = DA, B3 (dvije instance/Redis limitiranje nije UI-vidljivo na jednoj instanci) = N/A — taj dio ostaje pokriven CI integracijskim testovima s Redisom i ciljanim jediničnim testovima limita/revalidacije, bez tvrdnje o live two-instance acceptance probi. Nema migracije, PR-a ni mergea; deployment je radio korisnik. Zajedno sa zatvaranjem BA-announcements-05 Val 6 je **86/110 zatvorenih, 24 otvorena (0 P1 / 10 P2 / 14 P3)**; source/plan **476/217**, globalni registar **486/207**. Otvoreni ostaju BA-websocket-12–14 (P3) i širi BA-15 acceptance.
+
+## 31. Implementacija — BA-websocket-12 (2026-10-29)
+
+Implementacija je u paketu [215](../implementation/215-websocket-12-await-adapter-close.md): `WebsocketGateway.onModuleDestroy` je sada asinhron i awaita zatvaranje Redis adapter handlea (publish/subscribe klijenti se uredno gase kroz `closeRedisClient`), umjesto dosadašnjeg nečekanog `void` poziva; jedinični test dokazuje da se destroy ne završava prije adapter `close()` i da je drugi destroy no-op. Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (AB1 u paketu 215).

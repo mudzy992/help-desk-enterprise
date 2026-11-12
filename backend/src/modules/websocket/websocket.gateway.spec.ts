@@ -160,6 +160,34 @@ describe('WebsocketGateway', () => {
     }
   });
 
+  it('BA-websocket-12: module destroy awaits the Redis adapter close', async () => {
+    const gateway = await createGateway();
+    const deferred = createDeferred();
+    const close = jest.fn(async () => {
+      await deferred.promise;
+    });
+    (gateway as unknown as { realtimeAdapter: unknown }).realtimeAdapter = {
+      adapter: undefined,
+      publishClient: undefined,
+      subscribeClient: undefined,
+      startHealthMonitor: () => () => undefined,
+      close,
+    };
+    let destroyed = false;
+    const destroyPromise = gateway.onModuleDestroy().then(() => {
+      destroyed = true;
+    });
+    await Promise.resolve();
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(destroyed).toBe(false);
+    deferred.resolve();
+    await destroyPromise;
+    expect(destroyed).toBe(true);
+    // A second destroy is a no-op (the handle was detached first).
+    await gateway.onModuleDestroy();
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
   it('attaches a minimal principal on a valid authenticated handshake', async () => {
     verify.mockResolvedValue({
       status: 'authenticated',

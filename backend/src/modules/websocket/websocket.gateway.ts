@@ -167,7 +167,7 @@ export class WebsocketGateway
     );
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
     this.stopClientCountReporter?.();
     this.stopClientCountReporter = null;
     this.stopEmitCountReporter?.();
@@ -184,8 +184,12 @@ export class WebsocketGateway
     this.stopRealtimeAdapterHealthMonitor = null;
     this.stopConnectionLeaseRenewal?.();
     this.stopConnectionLeaseRenewal = null;
-    void this.realtimeAdapter?.close();
+    // BA-websocket-12: Nest awaits async destroy hooks, so the Redis adapter
+    // clients are actually closed (quit/disconnect) before the process exits
+    // instead of being fire-and-forget against a dying event loop.
+    const adapter = this.realtimeAdapter;
     this.realtimeAdapter = null;
+    await adapter?.close();
   }
 
   /**
