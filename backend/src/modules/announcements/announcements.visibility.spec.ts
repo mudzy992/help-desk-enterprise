@@ -102,8 +102,34 @@ describe('AnnouncementsService viewer visibility caps', () => {
         ]),
       }),
       orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
-      take: announcementLimits.archiveMax,
+      take: announcementLimits.archiveMax + 1,
     }));
+  });
+
+  it('BA-18: archive reports hasMore only when the cap is exceeded', async () => {
+    const { service, prisma } = setup();
+    const makeRow = (index: number) => ({
+      id: `ann-${index}`,
+      title: 'Najava',
+      body: 'Tekst',
+      severity: 'INFO',
+      requiresAcknowledgement: false,
+      startsAt: now,
+      endsAt: now,
+      serviceId: null,
+    });
+    prisma.announcement.findMany.mockResolvedValue(
+      Array.from({ length: announcementLimits.archiveMax + 1 }, (_, index) => makeRow(index)),
+    );
+    const capped = await service.archive(viewer(), now);
+    expect(capped.hasMore).toBe(true);
+    expect(capped.listLimit).toBe(announcementLimits.archiveMax);
+    expect(capped.announcements).toHaveLength(announcementLimits.archiveMax);
+
+    prisma.announcement.findMany.mockResolvedValue([makeRow(1)]);
+    const complete = await service.archive(viewer(), now);
+    expect(complete.hasMore).toBe(false);
+    expect(complete.announcements).toHaveLength(1);
   });
 
   it('fails closed for every non-empty filter when viewer scope data is absent', async () => {

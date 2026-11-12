@@ -202,11 +202,14 @@ export function getActiveAnnouncements(): Promise<ActiveAnnouncements> {
   return apiRequest<ActiveAnnouncements>("/announcements/active");
 }
 
-export async function getAnnouncementArchive(): Promise<readonly ArchivedAnnouncement[]> {
-  const response = await apiRequest<{ readonly announcements: readonly ArchivedAnnouncement[] }>(
-    "/announcements/archive",
-  );
-  return response.announcements;
+export type AnnouncementArchiveResponse = {
+  readonly announcements: readonly ArchivedAnnouncement[];
+  readonly hasMore: boolean;
+  readonly listLimit: number;
+};
+
+export function getAnnouncementArchive(): Promise<AnnouncementArchiveResponse> {
+  return apiRequest<AnnouncementArchiveResponse>("/announcements/archive");
 }
 
 export function acknowledgeAnnouncement(id: string): Promise<void> {

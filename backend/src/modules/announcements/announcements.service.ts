@@ -387,9 +387,13 @@ export class AnnouncementsService {
         ...audienceWhere,
       },
       orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
-      take: announcementLimits.archiveMax,
+      // BA-announcements-18: fetch one extra row so a capped archive is an
+      // explicit `hasMore` signal instead of a silently incomplete list
+      // (same disclosure pattern as the BA-14 manage list).
+      take: announcementLimits.archiveMax + 1,
     })) as AnnouncementRow[];
-    const visible = rows;
+    const hasMore = rows.length > announcementLimits.archiveMax;
+    const visible = hasMore ? rows.slice(0, announcementLimits.archiveMax) : rows;
     const acknowledgements = await this.prisma.announcementAcknowledgement.findMany({
       where: { userId: viewer.userId, announcementId: { in: visible.map((row) => row.id) } },
       select: { announcementId: true, acknowledgedAt: true },
@@ -397,6 +401,8 @@ export class AnnouncementsService {
     const acknowledgedAt = new Map(acknowledgements.map((row) => [row.announcementId, row.acknowledgedAt]));
     const serviceNames = await this.serviceNames(visible.map((row) => row.serviceId));
     return {
+      hasMore,
+      listLimit: announcementLimits.archiveMax,
       announcements: visible.map((row) => ({
         id: row.id,
         title: row.title,

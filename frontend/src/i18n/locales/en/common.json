@@ -8270,7 +8270,8 @@
       "emptyTitle": "No announcements",
       "emptyBody": "There were no announcements for you in the last 90 days.",
       "acknowledgedAt": "Acknowledged {{at}}",
-      "notAcknowledged": "Not acknowledged"
+      "notAcknowledged": "Not acknowledged",
+      "truncated": "Showing the newest {{limit}} announcements; older announcements are not listed."
     },
     "editor": {
       "createTitle": "New announcement",

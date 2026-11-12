@@ -8316,7 +8316,8 @@
       "emptyTitle": "Nema najava",
       "emptyBody": "U zadnjih 90 dana nije bilo najava za vas.",
       "acknowledgedAt": "Potvrđeno {{at}}",
-      "notAcknowledged": "Nije potvrđeno"
+      "notAcknowledged": "Nije potvrđeno",
+      "truncated": "Prikazano je najnovijih {{limit}} najava; starije najave nisu u listi."
     },
     "editor": {
       "createTitle": "Nova najava",

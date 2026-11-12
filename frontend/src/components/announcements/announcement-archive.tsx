@@ -45,7 +45,7 @@ export function AnnouncementArchive() {
       </p>
     );
   }
-  if (data === undefined || data.length === 0) {
+  if (data === undefined || data.announcements.length === 0) {
     return (
       <EmptyState
         icon={<Megaphone size={18} />}
@@ -55,49 +55,56 @@ export function AnnouncementArchive() {
     );
   }
   return (
-    <ul className="grid gap-3" aria-label={t("announcements.archive.label")}>
-      {data.map((item) => (
-        <li key={item.id}>
-          <Card>
-            <details className="group" id={`announcement-${item.id}`}>
-              <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
-                <Badge tone={severityTone(item.severity)}>
-                  {t(announcementSeverityKeys[item.severity])}
-                </Badge>
-                <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">
-                  {item.title}
-                </span>
-                {item.requiresAcknowledgement ? (
-                  item.acknowledgedAt ? (
-                    <Badge tone="success">
-                      {t("announcements.archive.acknowledgedAt", {
-                        at: formatter.format(new Date(item.acknowledgedAt)),
-                      })}
-                    </Badge>
-                  ) : (
-                    <Badge tone="warning">{t("announcements.archive.notAcknowledged")}</Badge>
-                  )
-                ) : null}
-                <span className="text-[11.5px] text-muted-foreground">
-                  {formatter.format(new Date(item.startsAt))} –{" "}
-                  {formatter.format(new Date(item.endsAt))}
-                </span>
-              </summary>
-              <div className="border-t border-border/70 px-4 py-3">
-                {item.serviceName ? (
-                  <p className={hintClassName}>
-                    {t("announcements.banner.service", { name: item.serviceName })}
-                  </p>
-                ) : null}
-                <MarkdownView
-                  source={item.body}
-                  className="grid gap-2 text-[12.5px] leading-5 text-foreground"
-                />
-              </div>
-            </details>
-          </Card>
-        </li>
-      ))}
-    </ul>
+    <div className="grid gap-3">
+      {data.hasMore ? (
+        <p className={hintClassName}>
+          {t("announcements.archive.truncated", { limit: data.listLimit })}
+        </p>
+      ) : null}
+      <ul className="grid gap-3" aria-label={t("announcements.archive.label")}>
+        {data.announcements.map((item) => (
+          <li key={item.id}>
+            <Card>
+              <details className="group" id={`announcement-${item.id}`}>
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
+                  <Badge tone={severityTone(item.severity)}>
+                    {t(announcementSeverityKeys[item.severity])}
+                  </Badge>
+                  <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">
+                    {item.title}
+                  </span>
+                  {item.requiresAcknowledgement ? (
+                    item.acknowledgedAt ? (
+                      <Badge tone="success">
+                        {t("announcements.archive.acknowledgedAt", {
+                          at: formatter.format(new Date(item.acknowledgedAt)),
+                        })}
+                      </Badge>
+                    ) : (
+                      <Badge tone="warning">{t("announcements.archive.notAcknowledged")}</Badge>
+                    )
+                  ) : null}
+                  <span className="text-[11.5px] text-muted-foreground">
+                    {formatter.format(new Date(item.startsAt))} –{" "}
+                    {formatter.format(new Date(item.endsAt))}
+                  </span>
+                </summary>
+                <div className="border-t border-border/70 px-4 py-3">
+                  {item.serviceName ? (
+                    <p className={hintClassName}>
+                      {t("announcements.banner.service", { name: item.serviceName })}
+                    </p>
+                  ) : null}
+                  <MarkdownView
+                    source={item.body}
+                    className="grid gap-2 text-[12.5px] leading-5 text-foreground"
+                  />
+                </div>
+              </details>
+            </Card>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
