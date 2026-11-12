@@ -131,7 +131,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | BA-announcements-11 | P2       | Scheduler nema Redis-loss reconciliation; završena missed najava se trajno gubi (60 s reconcile + missed alarm politika, paket 204) | zatvoreno |
 | BA-announcements-12 | P2       | Report miješa publish count sa live membershipom i historijskim acknowledgementima          | zatvoreno |
 | BA-announcements-13 | P2       | Audience size nije immutable membership snapshot niti transakcijski publish presjek         | zatvoreno |
-| BA-announcements-14 | P2       | Manage list cap prije agent scope filtera daje nepotpunu vlastitu listu                      | otvoreno |
+| BA-announcements-14 | P2       | Manage list cap prije agent scope filtera daje nepotpunu vlastitu listu                      | zatvoreno |
 | BA-announcements-15 | P2       | Retention/anonymization ne pokriva revisions, runs, delivery, Teams i audit replike          | otvoreno |
 | BA-announcements-16 | P3       | Preview audience za global manager ne validira unknown IDs i može dati zavodljiv count      | otvoreno |
 | BA-announcements-17 | P3       | Retention je best-effort, guta grešku i zavisi od aktivnog sweepa                            | otvoreno |
@@ -314,3 +314,7 @@ Implementacija je u paketu [207](../implementation/207-announcements-13-publish-
 ## 34. Implementacija — BA-announcements-14 (2026-10-29): manage lista straniči prije scope filtera
 
 Implementacija je u paketu [208](../implementation/208-announcements-14-manage-list-scope-paging.md): `list()` keyset-straniči kandidate (createdAt/id desc) i scope autorizaciju primjenjuje po stranici dok se ne napuni pozivačeva kvota od 200, uz scan granicu od 5.000 kandidata (`manageListScanMax`) i eksplicitnu `truncated` zastavicu + `listLimit` u odgovoru; frontend prikazuje napomenu o skraćenoj listi. Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (U1–U2 u paketu 208).
+
+## 35. Closeout — BA-announcements-14 (2026-10-29)
+
+`BA-announcements-14` (P2) zatvoren je operativnom potvrdom vlasnika nakon implementacije iz paketa [208](../implementation/208-announcements-14-manage-list-scope-paging.md). Manage lista sada keyset-straniči kandidate i scope autorizaciju primjenjuje po stranici dok se ne napuni pozivačeva kvota od 200 (`manageListScanMax` 5.000), uz `truncated`/`listLimit` oznaku i frontend napomenu, umjesto tihog globalnog cap-a prije filtera. Kodni commit `6624297` uz frontend i18n ispravku `4fdb3dd` prošao je CI [`43119874165`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43119874165) (**success**: generated-Prisma backend build/lint/full test, PostgreSQL+Redis integration, frontend, Docs guard, container/supply-chain, CI gate); novi `announcements.list.spec.ts`. Vlasnik je potvrdio: U1 (scoped menadžer vidi vlastite najave iza tuđih) = N/A (nema scoped menadžera za test; pokriveno jediničnim testovima paginacije), U2 (globalni admin, lista kao dosad) = DA. Bez migracije, PR-a ni mergea; deployment je radio korisnik. Val 6 je **96/111 zatvorenih, 15 otvorenih (0 P1 / 1 P2 / 14 P3)**; source/plan **467/227**, globalni registar **477/217**.
