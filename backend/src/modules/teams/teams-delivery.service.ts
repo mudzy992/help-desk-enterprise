@@ -15,7 +15,7 @@ import { TeamsRateLimiter } from './teams-rate-limiter';
 import { toTeamsLocale } from './teams-text';
 import { TeamsTransportFactory } from './teams-transport.factory';
 
-export type TeamsDeliveryOutcome = 'sent' | 'updated' | 'unchanged' | 'skipped' | 'gone';
+export type TeamsDeliveryOutcome = 'sent' | 'updated' | 'unchanged' | 'skipped' | 'gone' | 'permanent_failure';
 
 /**
  * Paket 3.1 (§8): sends or updates one card. The card is built from current
@@ -123,7 +123,7 @@ export class TeamsDeliveryService {
       }
       if (error instanceof TeamsError && !error.retryable) {
         this.logger.warn(`teams_delivery_failed_final code=${error.code} notification=${job.notificationId}`);
-        return 'skipped';
+        return 'permanent_failure';
       }
       throw error;
     }

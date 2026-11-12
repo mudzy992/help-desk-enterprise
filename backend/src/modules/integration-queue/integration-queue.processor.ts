@@ -168,6 +168,12 @@ export class IntegrationQueueProcessor extends WorkerHost {
           outcomeCode: 'TEAMS_CONVERSATION_GONE',
         };
       }
+      if (outcome === 'permanent_failure') {
+        return {
+          status: IntegrationJobStatus.SKIPPED,
+          outcomeCode: 'TEAMS_DELIVERY_PERMANENT_FAILURE',
+        };
+      }
       return null;
     }
     throw new Error(`Unsupported integration job type: ${type}`);

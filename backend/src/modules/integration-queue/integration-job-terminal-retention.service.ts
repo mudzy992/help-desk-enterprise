@@ -46,7 +46,7 @@ export class IntegrationJobTerminalRetentionService {
         status: { in: terminalStatuses },
         OR: [
           { lastError: null },
-          { status: IntegrationJobStatus.SKIPPED, lastError: { in: ['TEAMS_DELIVERY_SKIPPED', 'TEAMS_CONVERSATION_GONE'] } },
+          { status: IntegrationJobStatus.SKIPPED, lastError: { in: ['TEAMS_DELIVERY_SKIPPED', 'TEAMS_CONVERSATION_GONE', 'TEAMS_DELIVERY_PERMANENT_FAILURE'] } },
         ],
         updatedAt: { lt: redactBefore },
       };

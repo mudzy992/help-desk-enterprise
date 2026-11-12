@@ -5381,6 +5381,7 @@
       "INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED": "Podaci posla prelaze dozvoljene granice — potrebna je provjera",
       "EDGE_EVENT_NO_SUBSCRIBERS": "Nema aktivnih pretplatnika za događaj",
       "INTEGRATION_JOB_FAILED": "Integracioni posao nije uspio",
+      "TEAMS_DELIVERY_PERMANENT_FAILURE": "Trajna greška Teams isporuke (nije isporučeno)",
       "TEAMS_DELIVERY_SKIPPED": "Teams isporuka je preskočena (nije isporučeno)",
       "TEAMS_CONVERSATION_GONE": "Teams razgovor više ne postoji (nije isporučeno)"
     },

@@ -32,6 +32,7 @@ export type IntegrationJobType = (typeof integrationJobTypes)[number];
 
 export type IntegrationJobAdminErrorCode =
   | "TEAMS_DELIVERY_SKIPPED"
+  | "TEAMS_DELIVERY_PERMANENT_FAILURE"
   | "TEAMS_CONVERSATION_GONE"
   | "EDGE_EVENT_NO_SUBSCRIBERS"
   | "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN"

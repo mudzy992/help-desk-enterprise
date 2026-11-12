@@ -243,6 +243,7 @@ describe('TeamsDeliveryService', () => {
     expect(gone.prisma.teamsConversation.update).toHaveBeenCalled();
     expect(await setup().service.deliver({ ...job, userId: 'someone-else' })).toBe('skipped');
     expect(await setup({ conversationMode: 'LIVE' }).service.deliver(job)).toBe('skipped');
+    expect(await setup({ transportError: new TeamsError('UNAUTHORIZED_ACTIVITY') }).service.deliver(job)).toBe('permanent_failure');
     await expect(setup({ transportError: new TeamsError('THROTTLED', 'x', 3) }).service.deliver(job)).rejects.toMatchObject({ code: 'THROTTLED' });
   });
 });

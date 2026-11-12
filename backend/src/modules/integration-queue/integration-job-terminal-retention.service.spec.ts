@@ -29,7 +29,7 @@ describe('terminal integration job retention', () => {
       where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT, IntegrationJobStatus.SKIPPED] }, lastError: terminalJobPayloadRedactedMarker, updatedAt: { lt: new Date('2026-08-01T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
     }));
     expect(tx.integrationJob.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT, IntegrationJobStatus.SKIPPED] }, OR: [{ lastError: null }, { status: IntegrationJobStatus.SKIPPED, lastError: { in: ['TEAMS_DELIVERY_SKIPPED', 'TEAMS_CONVERSATION_GONE'] } }], updatedAt: { lt: new Date('2026-09-30T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
+      where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT, IntegrationJobStatus.SKIPPED] }, OR: [{ lastError: null }, { status: IntegrationJobStatus.SKIPPED, lastError: { in: ['TEAMS_DELIVERY_SKIPPED', 'TEAMS_CONVERSATION_GONE', 'TEAMS_DELIVERY_PERMANENT_FAILURE'] } }], updatedAt: { lt: new Date('2026-09-30T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
     }));
     expect(tx.integrationJob.deleteMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ AND: [{ OR: [{ id: 'delete', version: 2 }] }] }) }));
     expect(tx.integrationJob.updateMany).toHaveBeenCalledWith(expect.objectContaining({

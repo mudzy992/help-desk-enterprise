@@ -86,6 +86,12 @@ describe('toIntegrationJobResponse', () => {
     }).lastErrorCode).toBe('PROVIDER_DELIVERY_OUTCOME_UNKNOWN');
   });
 
+  it('exposes permanent Teams non-delivery without confusing other types', () => {
+    const job = { id: 'job-teams', type: IntegrationJobType.TEAMS, status: IntegrationJobStatus.SKIPPED, lastError: 'TEAMS_DELIVERY_PERMANENT_FAILURE', attempts: 1, ...timestamps };
+    expect(toIntegrationJobResponse(job).lastErrorCode).toBe('TEAMS_DELIVERY_PERMANENT_FAILURE');
+    expect(toIntegrationJobResponse({ ...job, type: IntegrationJobType.EMAIL }).lastErrorCode).toBe('INTEGRATION_JOB_FAILED');
+  });
+
   it('exposes the safe payload limit code', () => {
     const response = toIntegrationJobResponse({
       id: 'job-large', type: IntegrationJobType.EMAIL, status: IntegrationJobStatus.DLQ,

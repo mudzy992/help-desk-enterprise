@@ -1,6 +1,7 @@
 export type IntegrationJobErrorTranslationKey =
   | "integrationQueue.noError"
   | "integrationQueue.errorCodes.TEAMS_DELIVERY_SKIPPED"
+  | "integrationQueue.errorCodes.TEAMS_DELIVERY_PERMANENT_FAILURE"
   | "integrationQueue.errorCodes.TEAMS_CONVERSATION_GONE"
   | "integrationQueue.errorCodes.EDGE_EVENT_NO_SUBSCRIBERS"
   | "integrationQueue.errorCodes.PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN"
@@ -12,6 +13,8 @@ export function mapIntegrationJobErrorCode(code: string | null): IntegrationJobE
   switch (code) {
     case null:
       return "integrationQueue.noError";
+    case "TEAMS_DELIVERY_PERMANENT_FAILURE":
+      return "integrationQueue.errorCodes.TEAMS_DELIVERY_PERMANENT_FAILURE";
     case "TEAMS_DELIVERY_SKIPPED":
       return "integrationQueue.errorCodes.TEAMS_DELIVERY_SKIPPED";
     case "TEAMS_CONVERSATION_GONE":

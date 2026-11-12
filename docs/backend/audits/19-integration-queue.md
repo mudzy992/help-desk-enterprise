@@ -327,3 +327,7 @@ Dokazni paket [220](../implementation/220-integration-queue-15-test-evidence.md)
 ## Dopuna — ograničenje dokaza BA-integration-queue-15
 
 Dodatna E2E provjera iz paketa 220 uklonjena je jer je mogla naći nepovezan prethodni posao. Sam postojeći test 04 ne potvrđuje ishod posla kreiranog testnim ticketom; nalaz ostaje otvoren. SKIPPED terminalni retention proširen je tako da obrađuje i redove s poznatim Teams outcome kodom, ne samo `lastError = null`.
+
+## Dopuna — razlikovanje Teams trajne greške
+
+Paket 219 dopunjen je posebnim sigurnim kodom `TEAMS_DELIVERY_PERMANENT_FAILURE` za nepovratnu provider grešku, odvojeno od `TEAMS_DELIVERY_SKIPPED` i `TEAMS_CONVERSATION_GONE`. Sva tri outcome-a su terminalni `SKIPPED` i obuhvaćeni retentionom. Nova migracija nije potrebna; nalaz ostaje otvoren do CI dokaza i potvrde.

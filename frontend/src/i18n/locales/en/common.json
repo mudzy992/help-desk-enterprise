@@ -5361,6 +5361,7 @@
       "INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED": "Job data exceeds resource limits — investigation required",
       "EDGE_EVENT_NO_SUBSCRIBERS": "No active event subscribers",
       "INTEGRATION_JOB_FAILED": "Integration job failed",
+      "TEAMS_DELIVERY_PERMANENT_FAILURE": "Permanent Teams delivery failure (not delivered)",
       "TEAMS_DELIVERY_SKIPPED": "Teams delivery was skipped (not delivered)",
       "TEAMS_CONVERSATION_GONE": "The Teams conversation no longer exists (not delivered)"
     },

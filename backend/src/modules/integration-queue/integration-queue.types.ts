@@ -63,6 +63,7 @@ export type IntegrationQueueSettings = {
 
 export const integrationJobAdminErrorCodes = {
   teamsDeliverySkipped: 'TEAMS_DELIVERY_SKIPPED',
+  teamsDeliveryPermanentFailure: 'TEAMS_DELIVERY_PERMANENT_FAILURE',
   teamsConversationGone: 'TEAMS_CONVERSATION_GONE',
   edgeEventNoSubscribers: 'EDGE_EVENT_NO_SUBSCRIBERS',
   processingOutcomeUnknown: 'PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN',

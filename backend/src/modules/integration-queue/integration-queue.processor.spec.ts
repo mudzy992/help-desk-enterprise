@@ -221,6 +221,7 @@ describe('IntegrationQueueProcessor', () => {
   it.each([
     ['skipped', 'TEAMS_DELIVERY_SKIPPED'],
     ['gone', 'TEAMS_CONVERSATION_GONE'],
+    ['permanent_failure', 'TEAMS_DELIVERY_PERMANENT_FAILURE'],
   ] as const)(
     'BA-integration-queue-14: marks a Teams %s outcome SKIPPED, never COMPLETED',
     async (outcome, code) => {

@@ -19,10 +19,12 @@
 
 ## Semantika
 
-- `mode=off`, uklonjen/nedostajući razgovor, mismatch i nonretryable provider greška više ne izgledaju kao uspjeh: posao je terminalan (bez retrya), ali eksplicitno `SKIPPED` s grubim ishodom; obični `skipped` i trajna provider greška trenutno dijele isti kod, pa se međusobno ne razlikuju.
+- `mode=off`, uklonjen/nedostajući razgovor, mismatch i nonretryable provider greška više ne izgledaju kao uspjeh: posao je terminalan (bez retrya), ali eksplicitno `SKIPPED`. Dopuna razlikuje obični skip (`TEAMS_DELIVERY_SKIPPED`), nestali razgovor (`TEAMS_CONVERSATION_GONE`) i trajnu provider grešku (`TEAMS_DELIVERY_PERMANENT_FAILURE`); poznati kodovi ulaze u terminalni retention. Historijski redovi s ranijim generičkim kodom ostaju nepromijenjeni.
 - **Deployment zahtijeva migraciju** `20271130230000_integration_job_skipped_status` prije pokretanja novog API/worker builda, nakon backup-a i provjere uspješnosti migracije; bez nje worker puca na nepoznatoj enum vrijednosti pri čitanju SKIPPED redova (nema takvih redova prije migracije, ali novi kod ih upisuje).
 
 ## Dokaz
 
 - Lokalno (stub harness): processor, repository, response, retention, teams — sve zeleno; frontend i18n coverage + error-code spec **18/18**, `i18n:check`, prettier i tsc čisti; migration-policy + integration-runner guardovi **23/23**.
 - CI (generated Prisma + migration replay + integration) je autoritativan.
+
+Dopuna razlikovanja trajne greške: lokalni ciljani backend testovi 41/41 (stub Prisma), frontend testovi 18/18, ESLint/i18n/Prettier/TypeScript prolaze. Generated-Prisma CI i operativna potvrda tek predstoje; bez nove migracije.
