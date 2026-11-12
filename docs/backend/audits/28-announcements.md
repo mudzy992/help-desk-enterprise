@@ -132,7 +132,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | BA-announcements-12 | P2       | Report miješa publish count sa live membershipom i historijskim acknowledgementima          | zatvoreno |
 | BA-announcements-13 | P2       | Audience size nije immutable membership snapshot niti transakcijski publish presjek         | zatvoreno |
 | BA-announcements-14 | P2       | Manage list cap prije agent scope filtera daje nepotpunu vlastitu listu                      | zatvoreno |
-| BA-announcements-15 | P2       | Retention/anonymization ne pokriva revisions, runs, delivery, Teams i audit replike          | otvoreno |
+| BA-announcements-15 | P2       | Retention/anonymization ne pokriva revisions, runs, delivery, Teams i audit replike          | zatvoreno |
 | BA-announcements-16 | P3       | Preview audience za global manager ne validira unknown IDs i može dati zavodljiv count      | otvoreno |
 | BA-announcements-17 | P3       | Retention je best-effort, guta grešku i zavisi od aktivnog sweepa                            | otvoreno |
 | BA-announcements-18 | P3       | Nema cursor/hasMore za archive/manage/pending niti stabilan tie-break order                  | otvoreno |
@@ -326,3 +326,7 @@ Implementacija je u paketu [209](../implementation/209-announcements-15-retentio
 ## 37. Implementacija — BA-announcements-16 (2026-10-29): preview publike validira reference
 
 Implementacija je u paketu [210](../implementation/210-announcements-16-preview-reference-validation.md): `previewAudience` sada za svaku navedenu organizacionu jedinicu i grupu provjerava postojanje i nepoznatu referencu vraća kao `ANNOUNCEMENT_INVALID_AUDIENCE` (400) prije brojanja, za globalnog i scoped menadžera podjednako; editor prikazuje postojeću poruku o nemogućnosti izračuna umjesto zavaravajućeg broja. Bez migracije i bez frontend izmjene. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (W1 u paketu 210).
+
+## 38. Closeout — BA-announcements-15 (2026-10-29)
+
+`BA-announcements-15` (P2) zatvoren je operativnom potvrdom vlasnika nakon implementacije iz paketa [209](../implementation/209-announcements-15-retention-matrix.md). Po vlasnikovom odabiru pune matrice, sweep retention nakon istog prozora (default 365 dana od kraja) uz potvrde/odbacivanja briše i revision historiju, e-mail runove, BA-13 snapshot publike i in-app notifikacije najave te čisti Teams evidence polja, u transakciji po najavi (do 100 po sweepu); legal hold bilo kojeg snapshot člana ili nosioca potvrde blokira cijelu najavu, fail-closed; red najave i audit ostaju, a NotificationEmailDelivery ostaje u notifications privacy lifecycleu. Kodni commit `5edf4fc` uz tip ispravku `4e492ae` prošao je CI [`43174005190`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43174005190) (**success**: generated-Prisma backend build/lint/full test, PostgreSQL+Redis integration, frontend, Docs guard, container/supply-chain, CI gate); novi `announcements.retention.spec.ts` (4 testa). Vlasnik je potvrdio V1 (satelitski retention u logu, izvještaj dostupan) = DA i V2 (nedavne/aktivne najave netaknute) = DA. Bez migracije, PR-a ni mergea; deployment je radio korisnik. Time je P2 red announcements-a zatvoren u cijelosti. Val 6 je **97/111 zatvorenih, 14 otvorenih (0 P1 / 0 P2 / 14 P3)**; source/plan **466/228**, globalni registar **476/218**.

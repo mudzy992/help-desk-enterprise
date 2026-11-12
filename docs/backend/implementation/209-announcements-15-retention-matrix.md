@@ -1,6 +1,6 @@
 # BA-announcements-15: puna retention/anonymization matrica najava
 
-Status: **otvoreno** (implementirano; čeka CI i operativnu potvrdu vlasnika V1–V2). Retention je brisao samo potvrde/odbacivanja N dana nakon završetka najave; historija verzija teksta, e-mail run zapisi, snapshot publike i in-app notifikacije najave živjeli su trajno. Vlasnik je kroz `ask_user` odabrao **punu matricu u postojećem retentionu**.
+Status: **zatvoreno** (2026-10-29) operativnom potvrdom vlasnika (V1/V2 = DA) uz CI `43174005190` success; vidi audit 28 §38. Retention je brisao samo potvrde/odbacivanja N dana nakon završetka najave; historija verzija teksta, e-mail run zapisi, snapshot publike i in-app notifikacije najave živjeli su trajno. Vlasnik je kroz `ask_user` odabrao **punu matricu u postojećem retentionu**.
 
 ## Izmjena
 
@@ -25,4 +25,4 @@ Preduslov: redeploy svježeg builda (API + worker). Test V1 je najlakše izvesti
 | V1 | Na staroj, davno završenoj najavi (ili uz privremeno smanjen retention period pa vraćen): nakon sljedećeg sweepa (do ~5 min) provjeri worker/API log. | Vidi se `announcement_satellite_retention_applied` s brojanjem; izvještaj stare najave i dalje se otvara, a njene verzije/runovi/snapshot su uklonjeni. |
 | V2 | Otvori izvještaj i listu najava za nedavno završene i aktivne najave. | Ništa se nije promijenilo: potvrde, izvještaji i realtime prikaz rade kao dotad (retention dira samo najave kojima je prošao retention prozor). |
 
-Odgovor: `V1: DA/NE/N/A, V2: DA/NE` + opis odstupanja ako ih ima. Bez CI dokaza i operativne potvrde nalaz se ne zatvara.
+Odgovor: `V1: DA/NE/N/A, V2: DA/NE` + opis odstupanja ako ih ima. CI `43174005190` (success) dao je generated-Prisma/PostgreSQL dokaz, a vlasnik je operativno potvrdio V1/V2 = DA — nalaz je zatvoren, vidi audit 28 §38.
