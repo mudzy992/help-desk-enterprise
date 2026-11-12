@@ -25,3 +25,7 @@
 - Jedina promjena koda je novi integration test; produkcijski kod se ne mijenja, bez migracije.
 
 Napomena: sama isporuka kroz adapter ne dokazuje stvarni Redis outage/recovery ni kompletnu browser revocation matricu. Nalaz ostaje otvoren dok se ovi nedostaci ne pokriju.
+
+## Dopuna: mrežni prekid Redis veze
+
+`ws-redis-adapter-outage.integration.spec.ts` koristi dva stvarna Socket.IO servera i stvarni Redis. Izolovani TCP proxy prekida samo konekcije jedne instance: test provjerava isporuku prije prekida, `degraded` stanje tokom prekida, povratak u `healthy` nakon uspostave veze te novu cross-instance isporuku. Ne restartuje zajednički Redis niti dokazuje isporuku događaja emitovanih tokom prekida (sistem ne garantuje replay). Lokalno je test prošao sa zasebnim Redisom 7.2.7; registrovan je u CI integration runneru. Generated-Prisma CI i šira browser revocation matrica još čekaju, nalaz ostaje otvoren.

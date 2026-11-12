@@ -430,3 +430,7 @@ Dokazni paket [217](../implementation/217-websocket-14-revocation-cross-instance
 ## Dopuna — ograničenje dokaza BA-websocket-14
 
 Novi integration test iz paketa 217 namijenjen je provjeri isporuke kroz Redis adapter, ali ne dokazuje Redis outage/recovery ni potpunu revocation E2E matricu. Rezultat novog testa čeka CI; nalaz ostaje otvoren.
+
+## Dopuna — BA-websocket-14 izolovani mrežni prekid
+
+Integration test `ws-redis-adapter-outage.integration.spec.ts` provjerava stvarni Redis adapter kroz izolovani prekid i oporavak TCP veze, uz provjeru degradacije i ponovne isporuke između dvije instance. Test ne restartuje Redis proces niti tvrdi replay tokom prekida; detalji su u [paketu 217](../implementation/217-websocket-14-revocation-cross-instance-evidence.md). Nalaz ostaje otvoren do CI dokaza i preostale E2E matrice.
