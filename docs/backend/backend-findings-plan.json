@@ -2156,7 +2156,7 @@
     {
       "id": "BA-integration-queue-13",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "€ implementirano (paket 218); čeka se CI dokaz i operativna potvrda AC1",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6

@@ -144,7 +144,7 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 | BA-integration-queue-10 | P2    | Heartbeat može biti active dok glavni processing/delivery put ne radi                     | zatvoreno |
 | BA-integration-queue-11 | P2    | Admin retry nije auditiran i briše attempts/error forenzički trag                         | zatvoreno |
 | BA-integration-queue-12 | P2    | Runtime queue/type disable nema paused/cancelled semantiku i troši pokušaje               | zatvoreno |
-| BA-integration-queue-13 | P3    | Raw error message nema stabilan code/redaction ugovor                                     | otvoreno |
+| BA-integration-queue-13 | P3    | Raw error message nema stabilan code/redaction ugovor                                     | € implementirano (paket 218); čeka se CI dokaz i operativna potvrda AC1 |
 | BA-integration-queue-14 | P3    | Teams skipped/gone/nonretryable završava kao generički COMPLETED                          | otvoreno |
 | BA-integration-queue-15 | P3    | Kritični DB/processor/crash testovi su compile-blocked i E2E je statusno slab             | otvoreno |
 
@@ -311,3 +311,7 @@ Lokalno: ciljani Jest **4 suitea / 32 testa** sa Prisma stubovima i isključenom
 ### CI follow-up za W6.55
 
 CI `42687805115` nije prošao backend build: anotacija navodi TS2783 zbog ponovljenog `updatedAt` i tri ranije websocket TS2540 greške; frontend Prettier također je pao. Follow-up uklanja duplirano polje uz očuvan CAS i formatira frontend. Perf `42687805136` nije pokrenuo k6 jer je API build pao. Detalji i granice lokalne provjere: [paket 171](../implementation/171-val6-ci-perf-build-regression-fix.md). BA-05 ostaje otvoren; novi CI/Perf nisu potvrđeni.
+
+## Implementacija — BA-integration-queue-13 (2026-10-29)
+
+Implementacija je u paketu [218](../implementation/218-integration-queue-13-stable-error-codes.md): `handleIntegrationJobFailure` sada u `lastError` sprema stabilan kod (`resolveIntegrationJobFailureCode`: outcome-unknown i payload-limit kodovi, e-mail vrsta kvara iz `classifyMailSendError`, inače `INTEGRATION_JOB_FAILED`) umjesto sirove provider poruke, pa sirovi tekst s adresama/response tijelima više ne ulazi u queue red; admin API ugovor iz BA-04 se ne mijenja, a stari redovi se i dalje mapiraju na generički kod. Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (AC1 u paketu 218).

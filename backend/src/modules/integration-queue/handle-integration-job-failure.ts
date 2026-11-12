@@ -26,6 +26,41 @@ import type {
 /** Rezerva na granici isteka blokade, da buđenje ne padne unutar iste sekunde. */
 const providerBlockRetryMarginSeconds = 60;
 
+/**
+ * BA-integration-queue-13: the persisted `lastError` is a stable failure CODE,
+ * never the raw provider message (which may contain recipient addresses, hosts
+ * or response bodies). The admin API already maps codes to safe labels; this
+ * keeps the same contract at rest, so a database read cannot leak raw provider
+ * text either. The raw message stays available only in the delivery ledger's
+ * own classification fields, not in the job row.
+ */
+const mailFailureCodeByKind = {
+  dailyLimit: 'MAIL_SEND_FAILED_DAILY_LIMIT',
+  rateLimit: 'MAIL_SEND_FAILED_RATE_LIMIT',
+  auth: 'MAIL_SEND_FAILED_AUTH',
+  recipient: 'MAIL_SEND_FAILED_RECIPIENT',
+  transient: 'MAIL_SEND_FAILED_TRANSIENT',
+} as const;
+
+export function resolveIntegrationJobFailureCode(
+  error: unknown,
+  type: IntegrationJobType,
+): string {
+  if (
+    error instanceof NotificationEmailOutcomeUnknownError ||
+    error instanceof TeamsDeliveryOutcomeUnknownError
+  ) {
+    return integrationJobProviderOutcomeUnknown;
+  }
+  if (error instanceof IntegrationJobPayloadLimitError) {
+    return 'INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED';
+  }
+  if (type === IntegrationJobType.EMAIL) {
+    return mailFailureCodeByKind[classifyMailSendError(error).kind];
+  }
+  return 'INTEGRATION_JOB_FAILED';
+}
+
 export async function handleIntegrationJobFailure(input: {
   readonly repository: IntegrationJobRepository;
   readonly queue: Queue<IntegrationQueueJobData>;
@@ -34,8 +69,7 @@ export async function handleIntegrationJobFailure(input: {
   readonly error: unknown;
   readonly log: (message: string) => void;
 }): Promise<'FAILED' | 'DLQ' | 'STALE'> {
-  const lastError =
-    input.error instanceof Error ? input.error.message : String(input.error);
+  const lastError = resolveIntegrationJobFailureCode(input.error, input.job.type);
   const threshold = resolveDeadLetterAttemptThreshold(input.settings);
   // Odbijena adresa („550 no such user") se ponavljanjem ne popravlja: deset
   // pokušaja kroz sate samo troši red i odgađa DLQ alarm. Sve ostalo — uključujući

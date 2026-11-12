@@ -1,5 +1,9 @@
 import { IntegrationJobType } from '../../generated/prisma/enums';
-import { handleIntegrationJobFailure } from './handle-integration-job-failure';
+import {
+  handleIntegrationJobFailure,
+  resolveIntegrationJobFailureCode,
+} from './handle-integration-job-failure';
+import { IntegrationJobPayloadLimitError } from './integration-job-payload-limits';
 import { MailDeliverySuppressedError } from '../notifications/email/mail-provider-limit-breaker';
 import { NotificationEmailOutcomeUnknownError } from '../notifications/email/notification-email-delivery-errors';
 import { TeamsDeliveryOutcomeUnknownError } from '../teams/teams-delivery-outcome-unknown.error';
@@ -63,7 +67,8 @@ describe('handleIntegrationJobFailure', () => {
     ).resolves.toBe('FAILED');
     expect(repository.markFailed).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
-      'SMTP unavailable',
+      // BA-integration-queue-13: a stable code is persisted, never raw text.
+      'MAIL_SEND_FAILED_TRANSIENT',
       expect.any(Date),
     );
     expect(queue.add).toHaveBeenCalledWith(
@@ -112,7 +117,8 @@ describe('handleIntegrationJobFailure', () => {
 
     expect(repository.markFailed).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
-      'SMTP unavailable',
+      // BA-integration-queue-13: a stable code is persisted, never raw text.
+      'MAIL_SEND_FAILED_TRANSIENT',
       expect.any(Date),
     );
     expect(repository.scheduleEmailDeliveryRetry).toHaveBeenCalledWith(
@@ -150,7 +156,7 @@ describe('handleIntegrationJobFailure', () => {
     expect(repository.markEmailDeliveryDead).toHaveBeenCalledWith(payload);
     expect(repository.markDeadLetter).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'job-1', processingOwnerToken: 'owner-1' }),
-      'SMTP unavailable',
+      'MAIL_SEND_FAILED_TRANSIENT',
     );
     expect(queue.add).not.toHaveBeenCalled();
   });
@@ -376,5 +382,39 @@ describe('handleIntegrationJobFailure', () => {
       { integrationJobId: 'job-1' },
       expect.objectContaining({ delay: 180_000 }),
     );
+  });
+});
+
+describe('resolveIntegrationJobFailureCode (BA-integration-queue-13)', () => {
+  it('never persists raw provider text with addresses or response bodies', () => {
+    const code = resolveIntegrationJobFailureCode(
+      Object.assign(new Error('550 mailbox unavailable for user@example.com: full'), {
+        responseCode: 550,
+      }),
+      IntegrationJobType.EMAIL,
+    );
+    expect(code).toBe('MAIL_SEND_FAILED_RECIPIENT');
+    expect(code).not.toContain('@');
+  });
+
+  it('maps stable special cases and falls back to the generic code', () => {
+    expect(
+      resolveIntegrationJobFailureCode(
+        new IntegrationJobPayloadLimitError(),
+        IntegrationJobType.TEAMS,
+      ),
+    ).toBe('INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED');
+    expect(
+      resolveIntegrationJobFailureCode(
+        new TeamsDeliveryOutcomeUnknownError(),
+        IntegrationJobType.TEAMS,
+      ),
+    ).toBe('PROVIDER_DELIVERY_OUTCOME_UNKNOWN');
+    expect(
+      resolveIntegrationJobFailureCode(
+        new Error('socket hang up to hooks.example.com/secret'),
+        IntegrationJobType.TEAMS,
+      ),
+    ).toBe('INTEGRATION_JOB_FAILED');
   });
 });
