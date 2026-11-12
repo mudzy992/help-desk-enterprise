@@ -134,7 +134,7 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-11 | P2     | Socket može akumulirati neograničen broj ticket soba                                       | zatvoreno |
 | BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | € implementirano (paket 215); čeka se CI dokaz i operativna potvrda AB1 |
 | BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | € implementirano (paket 216); čeka se CI dokaz i operativna potvrda AB2 |
-| BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | otvoreno |
+| BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | € implementirano (paket 217); čeka se CI dokaz i operativna potvrda AB3 |
 
 ## 13. Detalji P1 nalaza
 
@@ -422,3 +422,7 @@ Implementacija je u paketu [215](../implementation/215-websocket-12-await-adapte
 ## 32. Implementacija — BA-websocket-13 (2026-10-29)
 
 Implementacija je u paketu [216](../implementation/216-websocket-13-global-admin-room.md): usvojen je eksplicitni **global admin-only** ugovor za sobu `role:admins` — članstvo sada traži ADMIN/SUPER_ADMIN dodjelu bez OU i bez service scopea u istom autoritativnom membership upitu, pa scoped admin više ne prima globalne config događaje ni privatnu settings metadatu; ugovor je zapisan i na definiciji sobe (scoped payloadi ovdje ne idu). Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (AB2 u paketu 216).
+
+## 33. Implementacija — BA-websocket-14 (2026-10-29)
+
+Dokazni paket [217](../implementation/217-websocket-14-revocation-cross-instance-evidence.md) mapira svaki scenario matrice na automatski test: logout/revoke/expiry i fail-closed revalidacija, ticket revoke sa stvarnim socketima, group/admin fail-closed revalidacija, cross-instance revokacija nad Redis invalidation integration suiteom, legacy group opt-in, reconnect catch-up i rate limiti. Jedina stvarna praznina — live isporuka kroz pravi Socket.IO Redis adapter — zatvorena je novim `ws-redis-adapter.integration.spec.ts` (dva servera, emit s jedne instance stiže klijentu na drugoj), registrovanim u isolated integration runneru. Produkcijski kod se ne mijenja, bez migracije. Nalaz ostaje **otvoren** do CI dokaza (uključujući integration job) i operativne potvrde vlasnika (AB3 u paketu 217).
