@@ -110,14 +110,28 @@ describe('BA-announcements-15 satellite retention matrix', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('sweep retention reaches the satellite pass for ended announcements', async () => {
+  it('BA-17: runRetention deletes receipts/satellites and reports the total', async () => {
     const { service, client } = setup();
-    const sweep = (service as unknown as { sweep: SweepMethod }).sweep;
-    // The sweep also needs due/missed queries; make them empty.
-    client.announcement.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
-    await sweep.call(service, now);
+    const runRetention = (service as unknown as { runRetention: SweepMethod }).runRetention;
+    const total = await runRetention.call(service, now);
+    expect(client.announcementAcknowledgement.deleteMany).toHaveBeenCalled();
     expect(client.announcementRevision.deleteMany).toHaveBeenCalled();
+    expect(total).toBe(10);
+  });
+
+  it('BA-17: runRetention propagates failures so the job can fail and retry', async () => {
+    const { service, client } = setup();
+    client.announcementRevision.count.mockRejectedValue(new Error('db unavailable'));
+    const runRetention = (service as unknown as { runRetention: SweepMethod }).runRetention;
+    await expect(runRetention.call(service, now)).rejects.toThrow('announcement_retention_incomplete');
+  });
+
+  it('BA-17: the sweep no longer performs retention', async () => {
+    const { service, client, prisma } = setup();
+    const sweep = (service as unknown as { sweep: SweepMethod }).sweep;
+    client.announcement.findMany.mockResolvedValue([]);
+    await sweep.call(service, now);
+    expect(client.announcementAcknowledgement.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

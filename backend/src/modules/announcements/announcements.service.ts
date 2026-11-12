@@ -1503,7 +1503,8 @@ export class AnnouncementsService {
       }
     }
     await this.surfaceMissedAnnouncements(now);
-    await this.applyRetention(now);
+    // BA-announcements-17: retention is no longer part of the sweep; it runs as
+    // its own hourly job (announcement-retention queue) with job-level retry.
     return sent;
   }
 
@@ -1543,43 +1544,55 @@ export class AnnouncementsService {
    * The NotificationEmailDelivery ledger is NOT touched here: it belongs to
    * the notifications privacy retention lifecycle (BA-notifications-09).
    */
-  private async applyRetention(now: Date): Promise<void> {
+  /**
+   * BA-announcements-17: executed by the dedicated retention job. Unlike the
+   * old in-sweep pass, failures PROPAGATE so the job fails and BullMQ retries
+   * it (announcement-retention queue, 3 attempts). Returns the total number of
+   * deleted rows for the job metric. A single announcement's satellite failure
+   * stays fail-closed for that announcement (legal-hold semantics), is
+   * collected, and fails the run at the end if any occurred.
+   */
+  async runRetention(now: Date): Promise<number> {
     const days = Number(
       await this.readSetting(settingKeys.privateAnnouncementsReceiptRetentionDays, announcementDefaults.receiptRetentionDays),
     );
-    if (!Number.isFinite(days) || days <= 0) return;
+    if (!Number.isFinite(days) || days <= 0) return 0;
     const cutoff = new Date(now.getTime() - days * dayMs);
     const where = { announcement: { endsAt: { lt: cutoff } }, user: { legalHoldAt: null } };
-    try {
-      await this.prisma.announcementAcknowledgement.deleteMany({ where });
-      await this.prisma.announcementDismissal.deleteMany({ where });
-    } catch (error) {
-      this.logger.warn(`announcement retention failed: ${error instanceof Error ? error.name : 'unknown'}`);
-    }
-    await this.applySatelliteRetention(cutoff);
+    const receipts = await this.prisma.announcementAcknowledgement.deleteMany({ where });
+    const dismissals = await this.prisma.announcementDismissal.deleteMany({ where });
+    const satellites = await this.applySatelliteRetention(cutoff);
+    return receipts.count + dismissals.count + satellites;
   }
 
-  private async applySatelliteRetention(cutoff: Date): Promise<void> {
-    try {
-      const eligible = await this.prisma.announcement.findMany({
-        where: { endsAt: { lt: cutoff }, status: { not: 'DRAFT' } },
-        select: { id: true },
-        orderBy: { endsAt: 'asc' },
-        take: 100,
-      });
-      for (const { id } of eligible) {
-        try {
-          await this.retainAnnouncementSatellites(id);
-        } catch (error) {
-          // Fail-closed per announcement: satellites stay, the sweep retries.
-          this.logger.warn(
-            `announcement_satellite_retention_failed id=${id} reason=${error instanceof Error ? error.name : 'unknown'}`,
-          );
+  private async applySatelliteRetention(cutoff: Date): Promise<number> {
+    const eligible = await this.prisma.announcement.findMany({
+      where: { endsAt: { lt: cutoff }, status: { not: 'DRAFT' } },
+      select: { id: true },
+      orderBy: { endsAt: 'asc' },
+      take: 100,
+    });
+    let deleted = 0;
+    const failedIds: string[] = [];
+    for (const { id } of eligible) {
+      try {
+        const result = await this.retainAnnouncementSatellites(id);
+        if (result !== null) {
+          deleted += result.revisions + result.emailRuns + result.audienceMembers + result.notifications;
         }
+      } catch (error) {
+        // Fail-closed per announcement: satellites stay; the run fails below
+        // so the job retry (or the next hourly run) tries again.
+        failedIds.push(id);
+        this.logger.error(
+          `announcement_satellite_retention_failed id=${id} reason=${error instanceof Error ? error.name : 'unknown'}`,
+        );
       }
-    } catch (error) {
-      this.logger.warn(`announcement retention failed: ${error instanceof Error ? error.name : 'unknown'}`);
     }
+    if (failedIds.length > 0) {
+      throw new Error(`announcement_retention_incomplete ids=${failedIds.join(',')}`);
+    }
+    return deleted;
   }
 
   private async retainAnnouncementSatellites(announcementId: string): Promise<Record<string, number> | null> {
