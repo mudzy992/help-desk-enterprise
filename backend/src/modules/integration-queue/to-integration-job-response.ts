@@ -10,6 +10,12 @@ export function resolveIntegrationJobAdminErrorCode(
   lastError: string | null,
 ): IntegrationJobResponse['lastErrorCode'] {
   if (lastError === null) return null;
+  if (lastError === integrationJobAdminErrorCodes.teamsDeliverySkipped) {
+    return integrationJobAdminErrorCodes.teamsDeliverySkipped;
+  }
+  if (lastError === integrationJobAdminErrorCodes.teamsConversationGone) {
+    return integrationJobAdminErrorCodes.teamsConversationGone;
+  }
   if (lastError === integrationJobAdminErrorCodes.processingOutcomeUnknown) {
     return integrationJobAdminErrorCodes.processingOutcomeUnknown;
   }

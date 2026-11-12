@@ -3,6 +3,7 @@ export const integrationJobStatuses = {
   processing: "PROCESSING",
   completed: "COMPLETED",
   publishedBestEffort: "PUBLISHED_BEST_EFFORT",
+  skipped: "SKIPPED",
   failed: "FAILED",
   dlq: "DLQ",
 } as const;
@@ -15,6 +16,7 @@ export const integrationJobAdminStatuses: readonly IntegrationJobAdminStatus[] =
   integrationJobStatuses.processing,
   integrationJobStatuses.completed,
   integrationJobStatuses.publishedBestEffort,
+  integrationJobStatuses.skipped,
   integrationJobStatuses.failed,
   integrationJobStatuses.dlq,
 ];
@@ -29,6 +31,8 @@ export const integrationJobTypes = ["EMAIL", "EDGE_EVENT", "TEAMS"] as const;
 export type IntegrationJobType = (typeof integrationJobTypes)[number];
 
 export type IntegrationJobAdminErrorCode =
+  | "TEAMS_DELIVERY_SKIPPED"
+  | "TEAMS_CONVERSATION_GONE"
   | "EDGE_EVENT_NO_SUBSCRIBERS"
   | "PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN"
   | "PROVIDER_DELIVERY_OUTCOME_UNKNOWN"

@@ -63,6 +63,7 @@ function createHarness(input: {
     claimForProcessing: jest.fn().mockResolvedValue(input.claim),
     markCompleted: jest.fn().mockResolvedValue(true),
     markPublishedBestEffort: jest.fn().mockResolvedValue(true),
+    markSkipped: jest.fn().mockResolvedValue(true),
     markFailed: jest.fn().mockResolvedValue(true),
     markDeadLetter: jest.fn().mockResolvedValue(true),
   };
@@ -216,6 +217,30 @@ describe('IntegrationQueueProcessor', () => {
     expect(harness.processEmail.process).not.toHaveBeenCalled();
     expect(harness.repository.markCompleted).toHaveBeenCalledWith(claim);
   });
+
+  it.each([
+    ['skipped', 'TEAMS_DELIVERY_SKIPPED'],
+    ['gone', 'TEAMS_CONVERSATION_GONE'],
+  ] as const)(
+    'BA-integration-queue-14: marks a Teams %s outcome SKIPPED, never COMPLETED',
+    async (outcome, code) => {
+      const claim = processingClaim({
+        id: 'job-teams-skipped',
+        type: IntegrationJobType.TEAMS,
+        payload: { target: 'personal', teamsConversationId: 'tc-1', notificationId: 'n-1' },
+      });
+      const harness = createHarness({ claim });
+      harness.processTeams.process.mockResolvedValue(outcome);
+
+      await harness.processor.process({
+        id: 'job-teams-skipped',
+        data: { integrationJobId: 'job-teams-skipped' },
+      } as never);
+
+      expect(harness.repository.markSkipped).toHaveBeenCalledWith(claim, code);
+      expect(harness.repository.markCompleted).not.toHaveBeenCalled();
+    },
+  );
 
   it('records a Redis publication as PUBLISHED_BEST_EFFORT, never COMPLETED', async () => {
     const claim = processingClaim({

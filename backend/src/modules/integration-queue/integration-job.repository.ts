@@ -264,6 +264,25 @@ export class IntegrationJobRepository {
     });
   }
 
+  /**
+   * BA-integration-queue-14: a job that was deliberately not delivered
+   * (Teams skipped / conversation gone) ends in its own terminal SKIPPED
+   * status with a stable outcome code, not as an indistinguishable COMPLETED.
+   */
+  markSkipped(
+    claim: IntegrationJobProcessingClaim,
+    outcomeCode: string,
+  ): Promise<boolean> {
+    if (claim.type !== IntegrationJobType.TEAMS) {
+      throw new Error('SKIPPED is only valid for TEAMS jobs');
+    }
+    return this.transitionClaim(claim, {
+      status: IntegrationJobStatus.SKIPPED,
+      lastError: outcomeCode,
+      nextRetryAt: null,
+    });
+  }
+
   markFailed(
     claim: IntegrationJobProcessingClaim,
     lastError: string,

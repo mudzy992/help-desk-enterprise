@@ -305,6 +305,39 @@ describe('IntegrationJobRepository admin cursor pages', () => {
     });
   });
 
+  it('BA-integration-queue-14: claim-fences the SKIPPED outcome with its code for TEAMS jobs', async () => {
+    const claim = {
+      id: 'job-teams-skipped',
+      type: IntegrationJobType.TEAMS,
+      payload: { target: 'personal' },
+      attempts: 1,
+      version: 3,
+      processingAttemptId: 'job-teams-skipped:1',
+      processingOwnerToken: 'owner-a',
+      processingLeaseExpiresAt: new Date('2026-10-08T12:05:00.000Z'),
+    };
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const repository = new IntegrationJobRepository({
+      integrationJob: { updateMany },
+    } as never);
+
+    await expect(
+      repository.markSkipped(claim, 'TEAMS_CONVERSATION_GONE'),
+    ).resolves.toBe(true);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: IntegrationJobStatus.SKIPPED,
+          lastError: 'TEAMS_CONVERSATION_GONE',
+          nextRetryAt: null,
+        }),
+      }),
+    );
+    expect(() =>
+      repository.markSkipped({ ...claim, type: IntegrationJobType.EMAIL }, 'X'),
+    ).toThrow('SKIPPED is only valid for TEAMS jobs');
+  });
+
   it('does not allow PUBLISHED_BEST_EFFORT for non-Edge jobs', () => {
     const updateMany = jest.fn();
     const repository = new IntegrationJobRepository({

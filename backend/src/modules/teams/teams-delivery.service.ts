@@ -37,10 +37,10 @@ export class TeamsDeliveryService {
   ) {}
 
   /** Integration queue entry point. */
-  async process(payload: unknown): Promise<void> {
+  async process(payload: unknown): Promise<TeamsDeliveryOutcome> {
     const job = parseTeamsDeliveryJob(payload);
     if (!job) throw new Error('Invalid TEAMS job payload');
-    await this.deliver(job);
+    return this.deliver(job);
   }
 
   async deliver(job: TeamsDeliveryJob): Promise<TeamsDeliveryOutcome> {

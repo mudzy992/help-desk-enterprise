@@ -8,7 +8,7 @@ export const terminalJobPayloadRetentionDays = 30;
 export const terminalJobMetadataRetentionDays = 90;
 export const terminalJobRetentionBatchSize = 100;
 const dayMs = 24 * 60 * 60 * 1000;
-const terminalStatuses = [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT];
+const terminalStatuses = [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT, IntegrationJobStatus.SKIPPED];
 
 type RetentionResult = { readonly held: boolean; readonly redacted: number; readonly deleted: number };
 

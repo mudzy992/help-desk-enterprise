@@ -9,6 +9,7 @@ const tones: Record<IntegrationJobAdminStatus, BadgeTone> = {
   [integrationJobStatuses.processing]: "primary",
   [integrationJobStatuses.completed]: "success",
   [integrationJobStatuses.publishedBestEffort]: "info",
+  [integrationJobStatuses.skipped]: "warning",
   [integrationJobStatuses.failed]: "danger",
   [integrationJobStatuses.dlq]: "danger",
 };

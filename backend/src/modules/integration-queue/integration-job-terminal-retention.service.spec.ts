@@ -26,10 +26,10 @@ describe('terminal integration job retention', () => {
     expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
     expect(tx.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(tx.ticket.findFirst.mock.invocationCallOrder[0]!);
     expect(tx.integrationJob.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT] }, lastError: terminalJobPayloadRedactedMarker, updatedAt: { lt: new Date('2026-08-01T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
+      where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT, IntegrationJobStatus.SKIPPED] }, lastError: terminalJobPayloadRedactedMarker, updatedAt: { lt: new Date('2026-08-01T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
     }));
     expect(tx.integrationJob.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT] }, lastError: null, updatedAt: { lt: new Date('2026-09-30T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
+      where: { status: { in: [IntegrationJobStatus.COMPLETED, IntegrationJobStatus.PUBLISHED_BEST_EFFORT, IntegrationJobStatus.SKIPPED] }, lastError: null, updatedAt: { lt: new Date('2026-09-30T12:00:00Z') } }, take: terminalJobRetentionBatchSize,
     }));
     expect(tx.integrationJob.deleteMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ AND: [{ OR: [{ id: 'delete', version: 2 }] }] }) }));
     expect(tx.integrationJob.updateMany).toHaveBeenCalledWith(expect.objectContaining({

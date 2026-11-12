@@ -48,6 +48,7 @@ export const integrationQueueAdminStatuses: readonly IntegrationJobStatus[] = [
   IntegrationJobStatus.PROCESSING,
   IntegrationJobStatus.COMPLETED,
   IntegrationJobStatus.PUBLISHED_BEST_EFFORT,
+  IntegrationJobStatus.SKIPPED,
   IntegrationJobStatus.FAILED,
   IntegrationJobStatus.DLQ,
 ];

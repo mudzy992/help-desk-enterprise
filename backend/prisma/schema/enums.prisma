@@ -160,6 +160,7 @@ enum IntegrationJobStatus {
   PROCESSING
   COMPLETED
   PUBLISHED_BEST_EFFORT
+  SKIPPED
   FAILED
   DLQ
 }

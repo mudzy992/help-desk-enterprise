@@ -42,10 +42,21 @@ const mailFailureCodeByKind = {
   transient: 'MAIL_SEND_FAILED_TRANSIENT',
 } as const;
 
+/** Internal errors already raised as a stable code keep that exact code. */
+const stableFailureCodeMessages: ReadonlySet<string> = new Set([
+  'EDGE_EVENT_NO_SUBSCRIBERS',
+  'INTEGRATION_JOB_FAILED',
+  'INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED',
+  integrationJobProviderOutcomeUnknown,
+]);
+
 export function resolveIntegrationJobFailureCode(
   error: unknown,
   type: IntegrationJobType,
 ): string {
+  if (error instanceof Error && stableFailureCodeMessages.has(error.message)) {
+    return error.message;
+  }
   if (
     error instanceof NotificationEmailOutcomeUnknownError ||
     error instanceof TeamsDeliveryOutcomeUnknownError

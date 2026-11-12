@@ -5360,7 +5360,9 @@
       "PROVIDER_DELIVERY_OUTCOME_UNKNOWN": "Delivery outcome unknown — check the provider; retry is blocked",
       "INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED": "Job data exceeds resource limits — investigation required",
       "EDGE_EVENT_NO_SUBSCRIBERS": "No active event subscribers",
-      "INTEGRATION_JOB_FAILED": "Integration job failed"
+      "INTEGRATION_JOB_FAILED": "Integration job failed",
+      "TEAMS_DELIVERY_SKIPPED": "Teams delivery was skipped (not delivered)",
+      "TEAMS_CONVERSATION_GONE": "The Teams conversation no longer exists (not delivered)"
     },
     "columnUpdated": "Updated",
     "columnActions": "Actions",
@@ -5369,6 +5371,7 @@
       "PROCESSING": "Processing",
       "COMPLETED": "Completed",
       "PUBLISHED_BEST_EFFORT": "Published (best-effort)",
+      "SKIPPED": "Skipped",
       "FAILED": "Failed",
       "DLQ": "Dead-letter queue (DLQ)"
     },

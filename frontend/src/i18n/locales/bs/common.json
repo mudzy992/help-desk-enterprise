@@ -5380,7 +5380,9 @@
       "PROVIDER_DELIVERY_OUTCOME_UNKNOWN": "Ishod isporuke nije poznat — provjerite providera; ponovno slanje je blokirano",
       "INTEGRATION_JOB_PAYLOAD_LIMIT_EXCEEDED": "Podaci posla prelaze dozvoljene granice — potrebna je provjera",
       "EDGE_EVENT_NO_SUBSCRIBERS": "Nema aktivnih pretplatnika za događaj",
-      "INTEGRATION_JOB_FAILED": "Integracioni posao nije uspio"
+      "INTEGRATION_JOB_FAILED": "Integracioni posao nije uspio",
+      "TEAMS_DELIVERY_SKIPPED": "Teams isporuka je preskočena (nije isporučeno)",
+      "TEAMS_CONVERSATION_GONE": "Teams razgovor više ne postoji (nije isporučeno)"
     },
     "columnUpdated": "Ažurirano",
     "columnActions": "Radnje",
@@ -5389,6 +5391,7 @@
       "PROCESSING": "U obradi",
       "COMPLETED": "Završeno",
       "PUBLISHED_BEST_EFFORT": "Objavljeno (best-effort)",
+      "SKIPPED": "Preskočeno",
       "FAILED": "Neuspjelo",
       "DLQ": "Mrtvi red (DLQ)"
     },

@@ -89,18 +89,22 @@ export class IntegrationQueueProcessor extends WorkerHost {
 
     try {
       assertIntegrationJobPayloadWithinLimits(processing.type, processing.payload);
-      const dispatchedStatus = await this.dispatch(
+      const dispatched = await this.dispatch(
         processing.type,
         processing.payload,
       );
-      const terminalStatus =
-        dispatchedStatus ?? IntegrationJobStatus.COMPLETED;
+      const terminalStatus = dispatched?.status ?? IntegrationJobStatus.COMPLETED;
       const transitioned =
-        dispatchedStatus === IntegrationJobStatus.PUBLISHED_BEST_EFFORT
+        dispatched?.status === IntegrationJobStatus.PUBLISHED_BEST_EFFORT
           ? await this.integrationJobRepository.markPublishedBestEffort(
               processing,
             )
-          : await this.integrationJobRepository.markCompleted(processing);
+          : dispatched?.status === IntegrationJobStatus.SKIPPED
+            ? await this.integrationJobRepository.markSkipped(
+                processing,
+                dispatched.outcomeCode,
+              )
+            : await this.integrationJobRepository.markCompleted(processing);
       if (!transitioned) {
         this.logger.warn(
           `integration_job terminal_transition_fenced id=${integrationJobId} attemptId=${attemptId} status=${terminalStatus}`,
@@ -108,7 +112,11 @@ export class IntegrationQueueProcessor extends WorkerHost {
         return;
       }
       this.logger.log(
-        `integration_job id=${integrationJobId} type=${processing.type} status=${terminalStatus}`,
+        `integration_job id=${integrationJobId} type=${processing.type} status=${terminalStatus}${
+          dispatched?.status === IntegrationJobStatus.SKIPPED
+            ? ` outcome=${dispatched.outcomeCode}`
+            : ''
+        }`,
       );
     } catch (error) {
       await handleIntegrationJobFailure({
@@ -125,7 +133,12 @@ export class IntegrationQueueProcessor extends WorkerHost {
   private async dispatch(
     type: IntegrationJobType,
     payload: unknown,
-  ): Promise<typeof IntegrationJobStatus.PUBLISHED_BEST_EFFORT | null> {
+  ): Promise<{
+    readonly status:
+      | typeof IntegrationJobStatus.PUBLISHED_BEST_EFFORT
+      | typeof IntegrationJobStatus.SKIPPED;
+    readonly outcomeCode: string;
+  } | null> {
     if (type === IntegrationJobType.EMAIL) {
       await this.processEmailIntegrationJobService.process(payload);
       return null;
@@ -137,10 +150,24 @@ export class IntegrationQueueProcessor extends WorkerHost {
       if (status !== IntegrationJobStatus.PUBLISHED_BEST_EFFORT) {
         throw new Error('EDGE_EVENT dispatch did not return PUBLISHED_BEST_EFFORT');
       }
-      return status;
+      return { status, outcomeCode: 'PUBLISHED_BEST_EFFORT' };
     }
     if (type === IntegrationJobType.TEAMS) {
-      await this.teamsDeliveryService.process(payload);
+      // BA-integration-queue-14: skipped/gone is a deliberate non-delivery,
+      // not a success — it ends in SKIPPED with a stable outcome code.
+      const outcome = await this.teamsDeliveryService.process(payload);
+      if (outcome === 'skipped') {
+        return {
+          status: IntegrationJobStatus.SKIPPED,
+          outcomeCode: 'TEAMS_DELIVERY_SKIPPED',
+        };
+      }
+      if (outcome === 'gone') {
+        return {
+          status: IntegrationJobStatus.SKIPPED,
+          outcomeCode: 'TEAMS_CONVERSATION_GONE',
+        };
+      }
       return null;
     }
     throw new Error(`Unsupported integration job type: ${type}`);
