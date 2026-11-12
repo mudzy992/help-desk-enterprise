@@ -1513,7 +1513,17 @@ export class AnnouncementsService {
     }
   }
 
-  /** §7: acknowledgements and dismissals go N days after the end (legal hold keeps them). */
+  /**
+   * §7 + BA-announcements-15 (full retention matrix, owner-approved): N days
+   * after the end, receipts go (legal hold keeps a user's own), and so do the
+   * satellites — revision text history, e-mail runs, the publish membership
+   * snapshot (BA-13) and the in-app notifications the announcement created —
+   * while the announcement row and the audit trail stay. A legal hold on ANY
+   * snapshot member or receipt holder blocks the satellite deletion for the
+   * whole announcement (fail-closed: an error while checking also blocks).
+   * The NotificationEmailDelivery ledger is NOT touched here: it belongs to
+   * the notifications privacy retention lifecycle (BA-notifications-09).
+   */
   private async applyRetention(now: Date): Promise<void> {
     const days = Number(
       await this.readSetting(settingKeys.privateAnnouncementsReceiptRetentionDays, announcementDefaults.receiptRetentionDays),
@@ -1527,6 +1537,90 @@ export class AnnouncementsService {
     } catch (error) {
       this.logger.warn(`announcement retention failed: ${error instanceof Error ? error.name : 'unknown'}`);
     }
+    await this.applySatelliteRetention(cutoff);
+  }
+
+  private async applySatelliteRetention(cutoff: Date): Promise<void> {
+    try {
+      const eligible = await this.prisma.announcement.findMany({
+        where: { endsAt: { lt: cutoff }, status: { not: 'DRAFT' } },
+        select: { id: true },
+        orderBy: { endsAt: 'asc' },
+        take: 100,
+      });
+      for (const { id } of eligible) {
+        try {
+          await this.retainAnnouncementSatellites(id);
+        } catch (error) {
+          // Fail-closed per announcement: satellites stay, the sweep retries.
+          this.logger.warn(
+            `announcement_satellite_retention_failed id=${id} reason=${error instanceof Error ? error.name : 'unknown'}`,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`announcement retention failed: ${error instanceof Error ? error.name : 'unknown'}`);
+    }
+  }
+
+  private async retainAnnouncementSatellites(announcementId: string): Promise<Record<string, number> | null> {
+    const [revisions, runs, members, notifications] = await Promise.all([
+      this.prisma.announcementRevision.count({ where: { announcementId } }),
+      this.prisma.announcementEmailRun.count({ where: { announcementId } }),
+      this.prisma.announcementAudienceMember.count({ where: { announcementId } }),
+      this.prisma.notification.count({
+        where: { payload: { path: ['announcementId'], equals: announcementId } },
+      }),
+    ]);
+    const announcement = await this.prisma.announcement.findUnique({
+      where: { id: announcementId },
+      select: { teamsPostedAt: true, teamsResult: true },
+    });
+    const hasSatellites =
+      revisions > 0 || runs > 0 || members > 0 || notifications > 0 ||
+      announcement?.teamsPostedAt !== null || announcement?.teamsResult !== null;
+    if (!hasSatellites) return null;
+    // Legal hold gate (fail-closed): any held member or receipt holder keeps
+    // every satellite of this announcement.
+    const [memberIds, ackHolders, dismissalHolders] = await Promise.all([
+      this.prisma.announcementAudienceMember.findMany({ where: { announcementId }, select: { userId: true } }),
+      this.prisma.announcementAcknowledgement.findMany({ where: { announcementId }, select: { userId: true } }),
+      this.prisma.announcementDismissal.findMany({ where: { announcementId }, select: { userId: true } }),
+    ]);
+    const involvedUserIds = [...new Set([
+      ...memberIds.map((row) => row.userId),
+      ...ackHolders.map((row) => row.userId),
+      ...dismissalHolders.map((row) => row.userId),
+    ])];
+    if (involvedUserIds.length > 0) {
+      const held = await this.prisma.user.count({
+        where: { id: { in: involvedUserIds }, legalHoldAt: { not: null } },
+      });
+      if (held > 0) return null;
+    }
+    const deleted = await this.prisma.$transaction(async (transaction) => {
+      const revisionResult = await transaction.announcementRevision.deleteMany({ where: { announcementId } });
+      const runResult = await transaction.announcementEmailRun.deleteMany({ where: { announcementId } });
+      const memberResult = await transaction.announcementAudienceMember.deleteMany({ where: { announcementId } });
+      const notificationResult = await transaction.notification.deleteMany({
+        where: { payload: { path: ['announcementId'], equals: announcementId } },
+      });
+      // Teams delivery evidence on the announcement row itself.
+      await transaction.announcement.update({
+        where: { id: announcementId },
+        data: { teamsPostedAt: null, teamsResult: null },
+      });
+      return {
+        revisions: revisionResult.count,
+        emailRuns: runResult.count,
+        audienceMembers: memberResult.count,
+        notifications: notificationResult.count,
+      };
+    });
+    this.logger.log(
+      `announcement_satellite_retention_applied id=${announcementId} revisions=${deleted.revisions} emailRuns=${deleted.emailRuns} audienceMembers=${deleted.audienceMembers} notifications=${deleted.notifications}`,
+    );
+    return deleted;
   }
 
   // ------------------------------------------------------------ helpers
