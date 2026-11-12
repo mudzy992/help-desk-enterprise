@@ -18,3 +18,7 @@ CI [`43220061716`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 `e2e/tests/58-inbound-mailbox-to-ticket.spec.ts` šalje jednu poruku sa jedinstvenim `Message-ID` preko eksplicitno konfigurisanog SMTP testnog izvora, čeka `PROCESSED` inbound red s istim ID-om i `createdTicketId`, pa API-jem provjerava naslov nastalog tiketa. Ovo je puni provider put samo kada je SMTP odredište zaista izolovani mailbox povezan s testnim workerom; ne dokazuje automatski sve crash/concurrency scenarije ni receiver sanitizaciju. Bez `E2E_VAL6_INBOUND=1` test je preskočen. TypeScript i Playwright listing su prošli; stvarni stack nije testiran, nalaz ostaje otvoren.
 
 Test kreira e-mail i tiket bez automatskog brisanja. Obavezni su izolovani potrošni stack, DB i mailbox, aktivan inbound worker i kreiranje tiketa iz pošte, aktivni testni korisnik kao pošiljalac, dozvoljene domene, pouzdan authserv-id i dostupan testni SMTP put. Po završetku treba očistiti/resetovati testni stack i mailbox. Detalji konfiguracije nalaze se u E2E README-u.
+
+### Ciljani run 43306768799
+
+Test 58 je izvršen, ali je pao na prethodnoj provjeri konfiguracije prije spajanja ili slanja poruke: nedostaje ili je neispravna barem jedna od vrijednosti baze, SMTP hosta, porta ili ulazne adrese. Dijagnostika je dopunjena imenima nedostajućih postavki, bez ispisivanja vrijednosti. Nema dokaza mailbox→ticket isporuke.

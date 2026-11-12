@@ -15,8 +15,13 @@ test('an inbound mailbox message creates a correlated ticket', async () => {
   const recipient = process.env.E2E_VAL6_INBOUND_ADDRESS?.trim();
   const username = process.env.E2E_VAL6_SMTP_USERNAME;
   const password = process.env.E2E_VAL6_SMTP_PASSWORD;
-  if (!env.databaseUrl || !host || !Number.isInteger(port) || port < 1 || port > 65535 || !recipient) {
-    throw new Error('Inbound fixture requires a disposable database, SMTP host/port and inbound address');
+  const missing: string[] = [];
+  if (!env.databaseUrl?.trim()) missing.push('E2E_DATABASE_URL (or DATABASE_URL secret)');
+  if (!host) missing.push('E2E_VAL6_SMTP_HOST variable');
+  if (!Number.isInteger(port) || port < 1 || port > 65535) missing.push('E2E_VAL6_SMTP_PORT variable (integer 1–65535)');
+  if (!recipient) missing.push('E2E_VAL6_INBOUND_ADDRESS variable');
+  if (missing.length > 0 || !env.databaseUrl || !host || !recipient) {
+    throw new Error(`Inbound fixture missing or invalid configuration: ${missing.join(', ')}`);
   }
   if (Boolean(username) !== Boolean(password)) throw new Error('Inbound SMTP authentication requires both username and password');
   const messageId = `<val6-${randomUUID()}@example.test>`;

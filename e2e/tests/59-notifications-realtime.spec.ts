@@ -32,7 +32,7 @@ test('a ticket reply reaches the requester notification panel over the socket', 
   const bell = page.getByRole('button', { name: /^(Obavještenja|Notifications)$/i });
   await expect(bell).toBeVisible();
   await bell.click();
-  const panel = page.getByRole('region', { name: /^(Obavještenja|Notifications)$/i });
+  const panel = page.locator('#notifications-panel[role="region"]');
   await expect(panel).toBeVisible();
   await expect.poll(() => frames.some((frame) => frame.startsWith('40')), { timeout: 15_000 }).toBe(true);
   // The Socket.IO connect frame precedes async room joining. The same bounded

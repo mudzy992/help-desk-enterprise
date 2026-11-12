@@ -24,3 +24,7 @@
 `e2e/tests/57-integration-queue-correlation.spec.ts` stvara testni tiket i odgovor, te iz baze čita samo status poslova čiji se EMAIL `dedupeKey` veže za ID tog odgovora ili EDGE payload veže za isti tiket i ID poruke. Traži `COMPLETED` ili `PUBLISHED_BEST_EFFORT`; ne smatra `PENDING`, `FAILED` ili nepovezane stare poslove uspjehom. `PUBLISHED_BEST_EFFORT` nije dokaz krajnje isporuke klijentu, a `COMPLETED` nije neovisni dokaz da je primalac pročitao e-mail.
 
 Test je namjerno opt-in (`E2E_VAL6_QUEUE=1`), inače se **preskače**. Prije omogućavanja mora postojati izolovan, potrošni E2E stack i odgovarajuća baza; testni requester i admin; aktivni worker i queue za EMAIL ili EDGE; te odgovarajuća notification konfiguracija i primaoci koji generišu posao. Test kreira tiket i ne čisti ga automatski: potrebno je poslije očistiti/resetovati cijelo testno okruženje. Varijabla GitHub Actions `E2E_VAL6_QUEUE` proslijeđena je samo E2E koraku; nikad je ne uključivati dok E2E URL-ovi i baza mogu pokazivati na produkciju. Lokalno su provjereni TypeScript i Playwright listing, **ne** izvršavanje na stacku. Zatvaranje nalaza zahtijeva stvarno izvršen i uspješan test, ne skipped rezultat.
+
+### Ciljani run 43306768799
+
+GitHub Actions run `43306768799` izvršio je test 57 i on je prošao. Test prepoznaje korelisani EMAIL ili EDGE_EVENT red sa uspješnim statusom; best-effort EDGE status ne potvrđuje krajnju isporuku. Preostala matrica i nalaz ne zatvaraju se samo ovim rezultatom.

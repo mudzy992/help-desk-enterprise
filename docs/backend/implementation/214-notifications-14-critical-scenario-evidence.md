@@ -29,3 +29,7 @@ Matrica ispod prikuplja raspoložive dokaze na različitim slojevima. Unit i int
 ## Pripremljeni browser realtime scenarij
 
 Opt-in `59-notifications-realtime.spec.ts` kreira tiket na izolovanom stacku, drži korisnički notification panel otvoren, kreira odgovor kroz admin API i traži Socket.IO `notification.created` frame koji sadrži konkretni ID tiketa i poruke te porast broja prikazanih redova u panelu bez ponovnog otvaranja. To testira pozitivnu browser isporuku, ne recovery, revocation ili race matricu. Izvršavanje je uslovljeno `E2E_VAL6_REALTIME=1`; bez toga je skipped. Lokalno su prošli samo TypeScript i Playwright listing, ne puni browser test. Nalaz ostaje otvoren dok se ne dobiju stvarni dokazi za preostale scenarije.
+
+### Ciljani run 43306768799
+
+Test 59 je izvršen, ali je pao prije provjere događaja: selektor regiona istovremeno je obuhvatio panel i toast region istog pristupačnog naziva. Selektor je sužen na ID notification panela; potreban je novi browser run, dosadašnji rezultat nije dokaz realtime isporuke.
