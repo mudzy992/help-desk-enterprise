@@ -242,3 +242,7 @@ Paket [222](../implementation/222-inbound-email-12-error-redaction.md) uklanja p
 ## Inventar dokaza — BA-inbound-email-13
 
 Paket [223](../implementation/223-inbound-email-13-evidence-inventory.md) navodi postojeće unit i integration dokaze i njihove granice. Stvarni korelisani mailbox→ticket E2E i infrastrukturna matrica nisu dokazani; nalaz ostaje otvoren. CI `43220061716` je uspješan za backend i integration, ali je E2E critical job preskočen.
+
+## Dopuna — pripremljen opt-in mailbox E2E
+
+Paket 223 dopunjen je testom `58-inbound-mailbox-to-ticket.spec.ts`: jedinstveni Message-ID korelira stvarno SMTP slanje, inbound `PROCESSED` red i kreirani tiket. Test zahtijeva posebno pripremljen izolovani mailbox i stack, nije lokalno izvršen i po defaultu se preskače. Ne predstavlja dokaz crash matrice niti zatvara nalaz bez uspješnog izvršavanja.

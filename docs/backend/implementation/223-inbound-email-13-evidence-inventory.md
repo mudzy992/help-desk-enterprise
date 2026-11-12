@@ -12,3 +12,9 @@
 | Mailbox→ticket E2E | Nije dostupan kao automatizovani realni provider E2E dokaz | Potrebno projektovati izolovan, korelisan test sa sigurnim mailboxom i cleanupom; ne koristiti produkcijske podatke. |
 
 CI [`43220061716`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43220061716) na `e592cdf` uspješan je za backend generated-Prisma build/test, PostgreSQL+Redis integration i frontend; E2E critical flows su preskočeni. Taj CI ne zatvara ovaj nalaz. Bez promjene produkcijskog koda ili migracije.
+
+## Opt-in mailbox→ticket test — pripremljen, nije izvršen
+
+`e2e/tests/58-inbound-mailbox-to-ticket.spec.ts` šalje jednu poruku sa jedinstvenim `Message-ID` preko eksplicitno konfigurisanog SMTP testnog izvora, čeka `PROCESSED` inbound red s istim ID-om i `createdTicketId`, pa API-jem provjerava naslov nastalog tiketa. Ovo je puni provider put samo kada je SMTP odredište zaista izolovani mailbox povezan s testnim workerom; ne dokazuje automatski sve crash/concurrency scenarije ni receiver sanitizaciju. Bez `E2E_VAL6_INBOUND=1` test je preskočen. TypeScript i Playwright listing su prošli; stvarni stack nije testiran, nalaz ostaje otvoren.
+
+Test kreira e-mail i tiket bez automatskog brisanja. Obavezni su izolovani potrošni stack, DB i mailbox, aktivan inbound worker i kreiranje tiketa iz pošte, aktivni testni korisnik kao pošiljalac, dozvoljene domene, pouzdan authserv-id i dostupan testni SMTP put. Po završetku treba očistiti/resetovati testni stack i mailbox. Detalji konfiguracije nalaze se u E2E README-u.

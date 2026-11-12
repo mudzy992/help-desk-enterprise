@@ -888,6 +888,13 @@ jobs:
           E2E_SPECS: ${{ inputs.specs }}
           # Explicit opt-in for a disposable stack with queue fixtures configured.
           E2E_VAL6_QUEUE: ${{ vars.E2E_VAL6_QUEUE }}
+          E2E_VAL6_INBOUND: ${{ vars.E2E_VAL6_INBOUND }}
+          E2E_VAL6_SMTP_HOST: ${{ vars.E2E_VAL6_SMTP_HOST }}
+          E2E_VAL6_SMTP_PORT: ${{ vars.E2E_VAL6_SMTP_PORT }}
+          E2E_VAL6_SMTP_SECURE: ${{ vars.E2E_VAL6_SMTP_SECURE }}
+          E2E_VAL6_INBOUND_ADDRESS: ${{ vars.E2E_VAL6_INBOUND_ADDRESS }}
+          E2E_VAL6_SMTP_USERNAME: ${{ secrets.E2E_VAL6_SMTP_USERNAME }}
+          E2E_VAL6_SMTP_PASSWORD: ${{ secrets.E2E_VAL6_SMTP_PASSWORD }}
           PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
         run: |
           # Triage (2026-10-05): a full run is 71 tests / ~35 min, so a red run can
