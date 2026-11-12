@@ -7,6 +7,15 @@ describe("mapIntegrationJobErrorCode", () => {
     expect(mapIntegrationJobErrorCode("EDGE_EVENT_NO_SUBSCRIBERS")).toBe(
       "integrationQueue.errorCodes.EDGE_EVENT_NO_SUBSCRIBERS",
     );
+    expect(mapIntegrationJobErrorCode("TEAMS_DELIVERY_PERMANENT_FAILURE")).toBe(
+      "integrationQueue.errorCodes.TEAMS_DELIVERY_PERMANENT_FAILURE",
+    );
+    expect(mapIntegrationJobErrorCode("TEAMS_DELIVERY_SKIPPED")).toBe(
+      "integrationQueue.errorCodes.TEAMS_DELIVERY_SKIPPED",
+    );
+    expect(mapIntegrationJobErrorCode("TEAMS_CONVERSATION_GONE")).toBe(
+      "integrationQueue.errorCodes.TEAMS_CONVERSATION_GONE",
+    );
     expect(mapIntegrationJobErrorCode("PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN")).toBe(
       "integrationQueue.errorCodes.PROCESSING_LEASE_EXPIRED_OUTCOME_UNKNOWN",
     );
