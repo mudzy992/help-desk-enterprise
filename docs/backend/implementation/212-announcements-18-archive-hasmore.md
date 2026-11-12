@@ -1,6 +1,6 @@
 # Paket 212 — BA-announcements-18: hasMore signal za arhivu
 
-**Status:** implementirano; CI i vlasnička potvrda Y1 u toku.
+**Status:** zatvoreno (CI 43193350545 success; vlasnik potvrdio Y1 = DA; audit 28 §44).
 **Nalaz:** audit 28 §3.18 (P3) — archive/manage/pending liste bez cursor/hasMore signala i stabilnog tie-breaka. Stanje prije ovog paketa: manage lista je BA-14 keyset skeniranjem i `truncated` signalom već pokrivena, a report pending ima keyset cursor (BA-04/BA-12); preostali tihi cap bila je arhiva (`take: 100` bez signala).
 
 ## Promjene

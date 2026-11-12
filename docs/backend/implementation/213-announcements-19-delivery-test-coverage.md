@@ -1,6 +1,6 @@
 # Paket 213 — BA-announcements-19: delivery test pokrivenost
 
-**Status:** implementirano; CI (uključujući Redis integration) i vlasnička potvrda Z1 u toku.
+**Status:** zatvoreno (CI 43193350545 success, uključujući Redis integration; vlasnik potvrdio Z1 = DA; audit 28 §45).
 **Nalaz:** audit 28 §3.19 (P3) — delivery suite je bio compile-blocked (zastarjeli generisani Prisma client bez announcements delegata), a nedostajali su concurrency/Redis/SMTP/large-audience testovi.
 
 ## Stanje pokrivenosti i nove promjene

@@ -148,7 +148,7 @@
     {
       "id": "BA-announcements-18",
       "severity": "P3",
-      "status": "€ implementirano (paket 212); čeka se CI dokaz i operativna potvrda Y1",
+      "status": "zatvoreno",
       "source": "28-announcements.md",
       "owner": "WS-D",
       "wave": 6
@@ -156,7 +156,7 @@
     {
       "id": "BA-announcements-19",
       "severity": "P3",
-      "status": "€ implementirano (paket 213); čeka se CI dokaz i operativna potvrda Z1",
+      "status": "zatvoreno",
       "source": "28-announcements.md",
       "owner": "WS-D",
       "wave": 6

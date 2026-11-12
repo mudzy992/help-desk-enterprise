@@ -101,9 +101,8 @@ test("W6.47 zatvara BA-announcements-04, a P2/P3 ostaju otvoreni", async () => {
       status: `zatvoreno (${closeout})`,
     });
   }
-  // BA-announcements-12 is closed by paket 206 (audit 28 §32); the W6.47
-  // assertion now pins BA-18, implemented by paket 212 but still open pending
-  // CI evidence and owner confirmation Y1, as the not-yet-closed P3 witness.
+  // BA-announcements-12 is closed by paket 206 (audit 28 §32); BA-18 was the
+  // last open announcements P3 and is closed by paket 212 (audit 28 §44).
   assert.deepEqual(byId.get("BA-announcements-12"), {
     source: "28-announcements.md",
     severity: "P2",
@@ -112,7 +111,7 @@ test("W6.47 zatvara BA-announcements-04, a P2/P3 ostaju otvoreni", async () => {
   assert.deepEqual(byId.get("BA-announcements-18"), {
     source: "28-announcements.md",
     severity: "P3",
-    status: "€ implementirano (paket 212); čeka se CI dokaz i operativna potvrda Y1",
+    status: "zatvoreno",
   });
 });
 
