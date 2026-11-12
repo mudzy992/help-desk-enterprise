@@ -376,4 +376,36 @@ describe('AnnouncementDeliveryService', () => {
     expect(teams).not.toHaveBeenCalled();
     expect(announcementUpdates[0]).toMatchObject({ data: { teamsResult: 'SKIPPED_DISABLED' } });
   });
+
+  it('BA-19 concurrency: does not post to Teams when another worker won the claim', async () => {
+    const { service, prisma, teams } = setup({
+      users: [],
+      teams: { enabled: true, opsUrl: 'https://hooks.example.com/ops' },
+      teamsDue: true,
+    });
+    // The CAS claim (BA-announcements-10) is the concurrency guard between two
+    // workers sweeping the same announcement: the loser sees count 0.
+    prisma.announcement.updateMany.mockResolvedValue({ count: 0 });
+    const result = await service.run(now, 60_000);
+    expect(result.teamsPosted).toBe(0);
+    expect(teams).not.toHaveBeenCalled();
+  });
+
+  it('BA-19 concurrency: two parallel sweeps hand the claim layer one stable dedupe identity per recipient', async () => {
+    const users = [
+      { id: 'u1', email: 'a@example.com' },
+      { id: 'u2', email: 'b@example.com' },
+    ];
+    const { service } = setup({ users });
+    // Both workers may walk the same open run; the notifications claim machine
+    // dedupes on (dedupeKey, userId), so the pair each worker presents must be
+    // identical — never a per-attempt random key.
+    await Promise.all([service.run(now, 60_000), service.run(now, 60_000)]);
+    const identities = jest
+      .mocked(deliverNotificationEmail)
+      .mock.calls.map((call) => `${call[3]?.dedupeKey}:${call[3]?.userId}`)
+      .sort();
+    expect(new Set(identities).size).toBe(users.length);
+    expect(identities).toHaveLength(users.length * 2);
+  });
 });

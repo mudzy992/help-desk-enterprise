@@ -136,7 +136,7 @@ E2E 45 pokriva create/publish, audience hint, acknowledgement/report, archive, e
 | BA-announcements-16 | P3       | Preview audience za global manager ne validira unknown IDs i može dati zavodljiv count      | otvoreno |
 | BA-announcements-17 | P3       | Retention je best-effort, guta grešku i zavisi od aktivnog sweepa                            | € implementirano (paket 211); čeka se CI dokaz i operativna potvrda X1 |
 | BA-announcements-18 | P3       | Nema cursor/hasMore za archive/manage/pending niti stabilan tie-break order                  | € implementirano (paket 212); čeka se CI dokaz i operativna potvrda Y1 |
-| BA-announcements-19 | P3       | Delivery suite je compile-blocked; nema concurrency/Redis/SMTP/large-audience testa          | otvoreno |
+| BA-announcements-19 | P3       | Delivery suite je compile-blocked; nema concurrency/Redis/SMTP/large-audience testa          | € implementirano (paket 213); čeka se CI dokaz i operativna potvrda Z1 |
 | BA-announcements-20 | P2       | Već prijavljeni korisnik vidi banner/dialog tek nakon osvježavanja; najava može završiti neviđena (realtime websocket signal, paket 205) | zatvoreno |
 
 ## 13. Ključne korekcije
@@ -338,3 +338,7 @@ Implementacija je u paketu [211](../implementation/211-announcements-17-retentio
 ## 40. Implementacija — BA-announcements-18 (2026-10-29)
 
 Implementacija je u paketu [212](../implementation/212-announcements-18-archive-hasmore.md): od tri liste iz nalaza manage je već pokriven BA-14 keyset skeniranjem i `truncated` signalom, a report pending ima keyset cursor (BA-04/12); jedini preostali tihi cap bila je arhiva. Arhiva sada dohvaća `archiveMax + 1` i vraća `hasMore`/`listLimit`, a UI prikazuje napomenu da postoje starije najave izvan prikaza; tie-break `startsAt desc, id asc` postoji od BA-02. Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (Y1 u paketu 212).
+
+## 41. Implementacija — BA-announcements-19 (2026-10-29)
+
+Implementacija je u paketu [213](../implementation/213-announcements-19-delivery-test-coverage.md): compile-block je ranije riješen regeneracijom Prisma clienta u CI-ju, a SMTP i large-audience pokriće već postoji (BA-09 retry testovi, BA-03 >20k keyset fan-out). Novo su dva concurrency testa u `announcement-delivery.spec.ts` (izgubljen Teams CAS claim → bez objave; dva paralelna sweepa predaju claim sloju stabilan `(dedupeKey, userId)` identitet po primaocu) i Redis acceptance `announcement-scheduler-reconciliation.integration.spec.ts` (sweep + retention scheduler registracija i self-heal nad pravim Redisom, registrovan u isolated integration runneru). Nalaz ostaje **otvoren** do CI dokaza (uključujući integration job) i operativne potvrde vlasnika (Z1 u paketu 213).
