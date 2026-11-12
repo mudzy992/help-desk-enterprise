@@ -13,7 +13,12 @@ function setup(options: { readonly heldUsers?: number; readonly satellites?: boo
   const client = {
     announcement: {
       findMany: jest.fn(async () => [{ id: 'ann-old' }]),
-      findUnique: jest.fn(async () => ({ teamsPostedAt: new Date(), teamsResult: 'SENT' })),
+      findUnique: jest.fn(
+        async (): Promise<{ teamsPostedAt: Date | null; teamsResult: string | null }> => ({
+          teamsPostedAt: new Date(),
+          teamsResult: 'SENT',
+        }),
+      ),
       update: jest.fn(async () => {
         deleted.push('teams-cleared');
         return {};
