@@ -5292,7 +5292,7 @@
     {
       "id": "BA-websocket-13",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "€ implementirano (paket 216); čeka se CI dokaz i operativna potvrda AB2",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6

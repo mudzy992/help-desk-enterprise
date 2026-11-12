@@ -8,6 +8,14 @@ export const adminRealtimeEventNames = {
   routingRulesUpdated: 'routing.rules.updated',
 } as const;
 
+/**
+ * BA-websocket-13 room contract: `role:admins` is a GLOBAL admin room. Its
+ * payloads (config domain changes, private settings metadata) describe global
+ * configuration, so membership requires an unscoped ADMIN/SUPER_ADMIN role
+ * assignment (no organizational-unit or service scope). Scoped assignments
+ * never join this room; do not add scope-bound payloads here — a future
+ * scoped feed needs its own room and contract.
+ */
 export const adminRealtimeRoomName = 'role:admins';
 
 /** No sensitive data: who, what domain, which HTTP action, when. */

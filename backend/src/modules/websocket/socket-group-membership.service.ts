@@ -24,7 +24,15 @@ export class SocketGroupMembershipService {
         isActive: true,
         groupMembers: { select: { groupId: true } },
         userRoles: {
-          where: { role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } } },
+          // BA-websocket-13: the admin realtime room carries GLOBAL config
+          // domains (routing/SLA/catalog/groups/templates) and private
+          // settings metadata, so only an unscoped (global) ADMIN/SUPER_ADMIN
+          // assignment grants it. An OU- or service-scoped assignment does not.
+          where: {
+            role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+            organizationalUnitId: null,
+            serviceId: null,
+          },
           select: { id: true },
           take: 1,
         },
@@ -61,7 +69,15 @@ export class SocketGroupMembershipService {
         isActive: true,
         groupMembers: { select: { groupId: true } },
         userRoles: {
-          where: { role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } } },
+          // BA-websocket-13: the admin realtime room carries GLOBAL config
+          // domains (routing/SLA/catalog/groups/templates) and private
+          // settings metadata, so only an unscoped (global) ADMIN/SUPER_ADMIN
+          // assignment grants it. An OU- or service-scoped assignment does not.
+          where: {
+            role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+            organizationalUnitId: null,
+            serviceId: null,
+          },
           select: { id: true },
           take: 1,
         },

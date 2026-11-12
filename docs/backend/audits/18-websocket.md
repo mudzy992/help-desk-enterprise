@@ -133,7 +133,7 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-10 | P2     | Room revalidation je N×sekvencijalna, bez overlap/resource guarda                          | zatvoreno |
 | BA-websocket-11 | P2     | Socket može akumulirati neograničen broj ticket soba                                       | zatvoreno |
 | BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | € implementirano (paket 215); čeka se CI dokaz i operativna potvrda AB1 |
-| BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | otvoreno |
+| BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | € implementirano (paket 216); čeka se CI dokaz i operativna potvrda AB2 |
 | BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | otvoreno |
 
 ## 13. Detalji P1 nalaza
@@ -418,3 +418,7 @@ CI `42680779580` i `42681847238` nisu prošli: generated-Prisma backend build an
 ## 31. Implementacija — BA-websocket-12 (2026-10-29)
 
 Implementacija je u paketu [215](../implementation/215-websocket-12-await-adapter-close.md): `WebsocketGateway.onModuleDestroy` je sada asinhron i awaita zatvaranje Redis adapter handlea (publish/subscribe klijenti se uredno gase kroz `closeRedisClient`), umjesto dosadašnjeg nečekanog `void` poziva; jedinični test dokazuje da se destroy ne završava prije adapter `close()` i da je drugi destroy no-op. Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (AB1 u paketu 215).
+
+## 32. Implementacija — BA-websocket-13 (2026-10-29)
+
+Implementacija je u paketu [216](../implementation/216-websocket-13-global-admin-room.md): usvojen je eksplicitni **global admin-only** ugovor za sobu `role:admins` — članstvo sada traži ADMIN/SUPER_ADMIN dodjelu bez OU i bez service scopea u istom autoritativnom membership upitu, pa scoped admin više ne prima globalne config događaje ni privatnu settings metadatu; ugovor je zapisan i na definiciji sobe (scoped payloadi ovdje ne idu). Bez migracije. Nalaz ostaje **otvoren** do CI dokaza i operativne potvrde vlasnika (AB2 u paketu 216).

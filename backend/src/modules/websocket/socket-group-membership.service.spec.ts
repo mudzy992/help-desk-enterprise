@@ -32,12 +32,39 @@ describe('SocketGroupMembershipService', () => {
         isActive: true,
         groupMembers: { select: { groupId: true } },
         userRoles: {
-          where: { role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } } },
+          where: {
+            role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+            organizationalUnitId: null,
+            serviceId: null,
+          },
           select: { id: true },
           take: 1,
         },
       },
       relationLoadStrategy: 'join',
+    });
+  });
+
+  it('BA-websocket-13: a scoped admin assignment does not grant the global admin room', async () => {
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          authzVersion: 3,
+          isActive: true,
+          groupMembers: [],
+          // The scoped assignment exists in the table, but the query only
+          // returns unscoped assignments, so the snapshot must deny the room.
+          userRoles: [],
+        }),
+      },
+    };
+    const service = new SocketGroupMembershipService(prisma as never);
+
+    await expect(service.roomAccessForUser('scoped-admin')).resolves.toEqual({
+      authzVersion: 3,
+      isActive: true,
+      groupIds: [],
+      isAdmin: false,
     });
   });
 
@@ -91,7 +118,11 @@ describe('SocketGroupMembershipService', () => {
         isActive: true,
         groupMembers: { select: { groupId: true } },
         userRoles: {
-          where: { role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } } },
+          where: {
+            role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+            organizationalUnitId: null,
+            serviceId: null,
+          },
           select: { id: true },
           take: 1,
         },
