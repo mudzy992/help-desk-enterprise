@@ -40,6 +40,8 @@ import { onCallSweepQueueName } from './modules/on-call/on-call-sweep.job.consta
 import { OnCallSweepProcessor } from './modules/on-call/on-call-sweep.processor';
 import { announcementSweepQueueName } from './modules/announcements/announcement-sweep.job.constants';
 import { AnnouncementSweepProcessor } from './modules/announcements/announcement-sweep.processor';
+import { announcementRetentionQueueName } from './modules/announcements/announcement-retention.job.constants';
+import { AnnouncementRetentionProcessor } from './modules/announcements/announcement-retention.processor';
 import { assetRemindersQueueName } from './modules/assets/reminders/asset-reminders.constants';
 import { AssetRemindersProcessor } from './modules/assets/reminders/asset-reminders.processor';
 import { assetDirectorySyncQueueName } from './modules/assets/directory/asset-directory-sync.constants';
@@ -73,6 +75,7 @@ const scheduledQueueNames = [
   privacyQueueName,
   onCallSweepQueueName,
   announcementSweepQueueName,
+  announcementRetentionQueueName,
   opsHealthQueueName,
   assetRemindersQueueName,
   assetDirectorySyncQueueName,
@@ -99,6 +102,7 @@ const processorTypes = [
   PrivacyProcessor,
   OnCallSweepProcessor,
   AnnouncementSweepProcessor,
+  AnnouncementRetentionProcessor,
   OpsHealthProcessor,
   AssetRemindersProcessor,
   AssetDirectorySyncProcessor,

@@ -990,6 +990,7 @@
         },
         "names": {
           "announcement_sweep_quarter_hourly": "Obrada i podsjećanje na najave",
+          "announcement_retention_hourly": "Čišćenje isteka priznanja",
           "asset_directory_sync_hourly": "Sinhronizacija direktorija imovine",
           "asset_reminders_hourly": "Podsjetnici za imovinu",
           "change_sweep_quarter_hourly": "Provjera i obrada promjena",

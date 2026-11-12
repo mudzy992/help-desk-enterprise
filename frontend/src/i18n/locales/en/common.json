@@ -983,6 +983,7 @@
         },
         "names": {
           "announcement_sweep_quarter_hourly": "Announcement delivery and reminders",
+          "announcement_retention_hourly": "Acknowledgement expiry cleanup",
           "asset_directory_sync_hourly": "Asset directory synchronization",
           "asset_reminders_hourly": "Asset reminders",
           "change_sweep_quarter_hourly": "Change review and processing",

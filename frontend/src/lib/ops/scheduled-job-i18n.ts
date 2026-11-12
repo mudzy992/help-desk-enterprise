@@ -3,6 +3,7 @@ import type { TranslationKey } from "@/i18n/translation-key";
 /** Human-readable, locale-aware names for known BullMQ schedulers. */
 export const knownScheduledJobIds = [
   "announcement-sweep-quarter-hourly",
+  "announcement-retention-hourly",
   "asset-directory-sync-hourly",
   "asset-reminders-hourly",
   "change-sweep-quarter-hourly",
