@@ -2156,7 +2156,7 @@
     {
       "id": "BA-integration-queue-13",
       "severity": "P3",
-      "status": "€ implementirano (paket 218); čeka se CI dokaz i operativna potvrda AC1",
+      "status": "€ implementirano (paket 218 + ispravka stabilnih internih kodova u paketu 219); čeka se CI dokaz i operativna potvrda AC1",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
@@ -2164,7 +2164,7 @@
     {
       "id": "BA-integration-queue-14",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "€ implementirano (paket 219, odobrena migracija); čeka se CI dokaz i operativna potvrda AC2",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
@@ -2172,7 +2172,7 @@
     {
       "id": "BA-integration-queue-15",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "€ implementirano (paket 220); čeka se CI dokaz i operativna potvrda AC3",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
