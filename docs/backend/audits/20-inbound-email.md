@@ -238,3 +238,7 @@ Paket [221](../implementation/221-inbound-email-11-raw-delete.md) propagira gre�
 ## Implementacija — BA-inbound-email-12
 
 Paket [222](../implementation/222-inbound-email-12-error-redaction.md) uklanja provider tekst iz operativnih grešaka workera i koristi stabilne kodove. Historijski podaci nisu mijenjani. CI dokaz se čeka; nalaz ostaje otvoren.
+
+## Inventar dokaza — BA-inbound-email-13
+
+Paket [223](../implementation/223-inbound-email-13-evidence-inventory.md) navodi postojeće unit i integration dokaze i njihove granice. Stvarni korelisani mailbox→ticket E2E i infrastrukturna matrica nisu dokazani; nalaz ostaje otvoren. CI `43220061716` je uspješan za backend i integration, ali je E2E critical job preskočen.
