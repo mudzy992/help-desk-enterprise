@@ -2436,7 +2436,7 @@
     {
       "id": "BA-notifications-14",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "€ implementirano (paket 214); čeka se CI dokaz i operativna potvrda AA1",
       "source": "17-notifications.md",
       "owner": "WS-D",
       "wave": 6

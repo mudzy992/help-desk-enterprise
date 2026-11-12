@@ -149,7 +149,7 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 | BA-notifications-11 | P2       | Group mark-all učitava i insertuje neograničen skup ID-eva u jednom HTTP zahtjevu           | zatvoreno |
 | BA-notifications-12 | P3       | Digest retention grešku guta i izvještava kao nula                                          | zatvoreno |
 | BA-notifications-13 | P3       | Redis fallback test-email limit je per-instance i mapa nema cleanup                         | zatvoreno |
-| BA-notifications-14 | P3       | Kritični recovery/scope/concurrency scenariji nemaju E2E dokaz                              | otvoreno |
+| BA-notifications-14 | P3       | Kritični recovery/scope/concurrency scenariji nemaju E2E dokaz                              | € implementirano (paket 214); čeka se CI dokaz i operativna potvrda AA1 |
 | BA-notifications-15 | P3       | Većina DB direktnih suiteova lokalno je compile-blocked generated Prisma klijentom           | zatvoreno |
 
 ## 13. Detalji P1 nalaza
@@ -413,3 +413,7 @@ Nema PR-a, mergea ili deploymenta. BA-12 nema migraciju, ali raniji Coolify rede
 Posljednji Perf [`42289613508`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42289613508) ostaje **failed** na nepromijenjenom globalnom query budgetu: prosjek `2.128` prema `2.1` kroz `50,597` zahtjeva (p95 `3`, max `34`). Nema dokaza da se neuspjeh može pripisati ovim notification nalazima; prag nije mijenjan i Perf se ne označava zelenim.
 
 Nema schema izmjene, migracije, target-DB upotrebe, PR-a, mergea ni deploymenta. Zatvorena su tri nalaza: notifications je **14/15**; Val 6 je **33/109** zatvorenih i **76 otvorenih** (18 P1 / 41 P2 / 17 P3); status-page 29 ostaje 19/19. Source audit/generisani plan su **528 otvoren / 164 zatvoren**, a redovi globalnog registra **538/154**. Deset poznatih source/global statusnih razlika ostaje netaknuto; baseline **5,05/10** nije rescoraan. Val 6 nije završen.
+
+## 31. Implementacija — BA-notifications-14 (2026-10-29)
+
+Dokazni paket [214](../implementation/214-notifications-14-critical-scenario-evidence.md) mapira svaki scenario iz nalaza na automatski test koji se već izvršava u CI-ju: restart recovery i concurrent dedupe nad fan-out outbox integration suiteom, e-mail recovery/provider ishod, mark-all race i pagination historija nad PostgreSQL integration suiteovima, membership/digest revocation i preference fail-closed nad unit suiteovima, a browser nivo pokriva E2E 36 u dnevnom schedule CI-ju ([`43178874566`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43178874566), u cijelosti zelen uključujući E2E critical flows). Bez promjene koda i bez migracije. Nalaz ostaje **otvoren** do CI dokaza na ovom commitu i operativne potvrde vlasnika (AA1 u paketu 214).
