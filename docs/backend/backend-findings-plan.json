@@ -1868,7 +1868,7 @@
     {
       "id": "BA-inbound-email-11",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "€ implementirano (paket 221); čeka CI dokaz",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -2172,7 +2172,7 @@
     {
       "id": "BA-integration-queue-15",
       "severity": "P3",
-      "status": "€ implementirano (paket 220); čeka se CI dokaz i operativna potvrda AC3",
+      "status": "otvoreno",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6

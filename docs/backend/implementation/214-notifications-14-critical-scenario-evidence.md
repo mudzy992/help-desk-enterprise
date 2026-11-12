@@ -5,7 +5,7 @@
 
 ## Matrica dokaza
 
-Svaki scenario iz nalaza pokriven je automatskim testom koji se izvršava u CI-ju; recovery/scope/concurrency scenariji dokazani su nad pravim PostgreSQL/Redis integration slojem (jači dokaz od browser klika za te putanje), a browser nivo pokriva E2E 36.
+Matrica ispod prikuplja raspoložive dokaze na različitim slojevima. Unit i integration testovi ne predstavljaju E2E dokaz svih navedenih scenarija; browser E2E 36 pokriva samo zaseban dio toka. Nalaz ostaje otvoren do traženog dokaza.
 
 | Scenario | Test | Sloj |
 | --- | --- | --- |

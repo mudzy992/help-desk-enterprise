@@ -24,9 +24,16 @@ export class InboundRawStore {
     return key;
   }
 
+  /** Only an absent or successfully deleted file may lose its database link. */
   async remove(key: string): Promise<void> {
-    if (!/^\d{4}-\d{2}\/[a-z0-9]+\.eml\.gz$/i.test(key)) return;
-    await unlink(path.join(this.root, key)).catch(() => undefined);
+    if (!/^\d{4}-\d{2}\/[a-z0-9]+\.eml\.gz$/i.test(key)) {
+      throw new Error('Invalid inbound raw storage key');
+    }
+    try {
+      await unlink(path.join(this.root, key));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') throw error;
+    }
   }
 
   /** Drops whole month folders older than the retention window. */

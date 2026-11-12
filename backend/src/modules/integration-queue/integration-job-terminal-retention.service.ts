@@ -43,7 +43,12 @@ export class IntegrationJobTerminalRetentionService {
       })).count;
 
       const redactable = {
-        status: { in: terminalStatuses }, lastError: null, updatedAt: { lt: redactBefore },
+        status: { in: terminalStatuses },
+        OR: [
+          { lastError: null },
+          { status: IntegrationJobStatus.SKIPPED, lastError: { in: ['TEAMS_DELIVERY_SKIPPED', 'TEAMS_CONVERSATION_GONE'] } },
+        ],
+        updatedAt: { lt: redactBefore },
       };
       const toRedact = await tx.integrationJob.findMany({
         where: redactable, orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],

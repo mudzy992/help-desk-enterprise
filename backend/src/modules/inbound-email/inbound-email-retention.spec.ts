@@ -65,8 +65,42 @@ describe('InboundEmailService.applyRetention metadata batch', () => {
       where: {
         id: { in: rows.map((row) => row.id) },
         createdAt: { lt: expect.any(Date) },
+        rawStorageKey: null,
       },
     });
+  });
+
+  it('clears only the same eligible key after confirmed removal', async () => {
+    const { service, findMany } = createService([]);
+    findMany.mockReset()
+      .mockResolvedValueOnce([{ id: 'row-1', rawStorageKey: '2025-01/abc.eml.gz' }])
+      .mockResolvedValueOnce([]);
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    (service as unknown as { prisma: { inboundEmail: { updateMany: typeof updateMany } } }).prisma.inboundEmail.updateMany = updateMany;
+    const rawStore = (service as unknown as { rawStore: { remove: (key: string) => Promise<void>; pruneMonthsBefore: () => Promise<number> } }).rawStore;
+    jest.spyOn(rawStore, 'remove').mockResolvedValue();
+    jest.spyOn(rawStore, 'pruneMonthsBefore').mockResolvedValue(0);
+
+    await expect(service.applyRetention(now)).resolves.toMatchObject({ rawRemoved: 1 });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'row-1', rawStorageKey: '2025-01/abc.eml.gz', createdAt: { lt: expect.any(Date) } },
+      data: { rawStorageKey: null },
+    });
+  });
+
+  it('preserves the raw link and stops before metadata deletion if unlink fails', async () => {
+    const { service, findMany, deleteMany } = createService([]);
+    findMany.mockReset().mockResolvedValueOnce([{ id: 'row-1', rawStorageKey: '2025-01/abc.eml.gz' }]);
+    const updateMany = jest.fn();
+    (service as unknown as { prisma: { inboundEmail: { updateMany: typeof updateMany } } }).prisma.inboundEmail.updateMany = updateMany;
+    const rawStore = (service as unknown as { rawStore: { remove: (key: string) => Promise<void>; pruneMonthsBefore: () => Promise<number> } }).rawStore;
+    jest.spyOn(rawStore, 'remove').mockRejectedValue(new Error('unlink failed'));
+    const prune = jest.spyOn(rawStore, 'pruneMonthsBefore');
+
+    await expect(service.applyRetention(now)).rejects.toThrow('unlink failed');
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(prune).not.toHaveBeenCalled();
+    expect(deleteMany).not.toHaveBeenCalled();
   });
 
   it('deletes nothing when no metadata row is past the cutoff', async () => {

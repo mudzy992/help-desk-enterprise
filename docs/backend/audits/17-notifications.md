@@ -417,3 +417,7 @@ Nema schema izmjene, migracije, target-DB upotrebe, PR-a, mergea ni deploymenta.
 ## 31. Implementacija — BA-notifications-14 (2026-10-29)
 
 Dokazni paket [214](../implementation/214-notifications-14-critical-scenario-evidence.md) mapira svaki scenario iz nalaza na automatski test koji se već izvršava u CI-ju: restart recovery i concurrent dedupe nad fan-out outbox integration suiteom, e-mail recovery/provider ishod, mark-all race i pagination historija nad PostgreSQL integration suiteovima, membership/digest revocation i preference fail-closed nad unit suiteovima, a browser nivo pokriva E2E 36 u dnevnom schedule CI-ju ([`43178874566`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43178874566), u cijelosti zelen uključujući E2E critical flows). Bez promjene koda i bez migracije. Nalaz ostaje **otvoren** do CI dokaza na ovom commitu i operativne potvrde vlasnika (AA1 u paketu 214).
+
+## Dopuna — ograničenje dokaza BA-notifications-14
+
+Paket 214 prikuplja postojeće unit i integration dokaze, ali E2E 36 ne dokazuje cijelu recovery/scope/concurrency browser matricu. Nalaz ostaje otvoren; ranije navedena implementacija dokazne matrice ne znači da je tražena E2E pokrivenost potpuna.

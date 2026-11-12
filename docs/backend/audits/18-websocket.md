@@ -426,3 +426,7 @@ Implementacija je u paketu [216](../implementation/216-websocket-13-global-admin
 ## 33. Implementacija — BA-websocket-14 (2026-10-29)
 
 Dokazni paket [217](../implementation/217-websocket-14-revocation-cross-instance-evidence.md) mapira svaki scenario matrice na automatski test: logout/revoke/expiry i fail-closed revalidacija, ticket revoke sa stvarnim socketima, group/admin fail-closed revalidacija, cross-instance revokacija nad Redis invalidation integration suiteom, legacy group opt-in, reconnect catch-up i rate limiti. Jedina stvarna praznina — live isporuka kroz pravi Socket.IO Redis adapter — zatvorena je novim `ws-redis-adapter.integration.spec.ts` (dva servera, emit s jedne instance stiže klijentu na drugoj), registrovanim u isolated integration runneru. Produkcijski kod se ne mijenja, bez migracije. Nalaz ostaje **otvoren** do CI dokaza (uključujući integration job) i operativne potvrde vlasnika (AB3 u paketu 217).
+
+## Dopuna — ograničenje dokaza BA-websocket-14
+
+Novi integration test iz paketa 217 namijenjen je provjeri isporuke kroz Redis adapter, ali ne dokazuje Redis outage/recovery ni potpunu revocation E2E matricu. Rezultat novog testa čeka CI; nalaz ostaje otvoren.

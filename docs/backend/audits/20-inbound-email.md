@@ -114,7 +114,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | BA-inbound-email-08 | P2       | Scheduler nema reconciliation nakon Redis gubitka (periodična reconciliation, paket 183) | zatvoreno |
 | BA-inbound-email-09 | P2       | Metadata retention je jedan neograničen deleteMany (ograničeni batch uveden, paket 179)    | zatvoreno |
 | BA-inbound-email-10 | P2       | Case-insensitive duplicate user email daje nedeterminističnog actora (odbijanje dvosmislenog, paket 184) | zatvoreno |
-| BA-inbound-email-11 | P3       | Raw remove greška se guta pa DB link nestaje prije potvrđenog brisanja                     | otvoreno |
+| BA-inbound-email-11 | P3       | Raw remove greška se guta pa DB link nestaje prije potvrđenog brisanja                     | € implementirano (paket 221); čeka CI dokaz |
 | BA-inbound-email-12 | P3       | Raw/provider greške nemaju stabilan redigovan error-code ugovor                            | otvoreno |
 | BA-inbound-email-13 | P3       | Nema mailbox→ticket E2E ni crash/concurrency/infrastrukturne matrice                       | otvoreno |
 
@@ -230,3 +230,7 @@ Defaultna redakcija je server-side. Recent status query više ne bira `fromAddre
 Finalni SHA [`8c0ba54`](https://github.com/mudzy992/help-desk-enterprise/commit/8c0ba54a1718c5217db1694a366af8f05adbed31) prošao je CI [`42509394030`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42509394030) (**success**): backend build/full tests, PostgreSQL+Redis integration, frontend build/test, Docs guard, container/supply-chain i CI gate su passed. Read-only inventory, E2E install wizard i E2E critical flows bili su `skipped`, ne passed; conditional zero-high/critical image-enforcement step je također `skipped`. Nije korištena target baza/mailbox, pokretana migracija, PR, merge ili deployment.
 
 Ovim je `BA-inbound-email-03` zatvoren za scope prekoračaj i defaultni sender/subject/error redaction. Redakcija ne skriva globalne mailbox counters ni ticket reference; to je namjerna administratorska funkcionalnost. Kriterij 3 iz §15 ima kodni/guard i response-test dokaz, ali ponašanje nije provjereno na target deploymentu. `BA-inbound-email-01` legacy attempts i `BA-inbound-email-02` receiver/authserv-id trust i dalje nisu operativno potvrđeni; puna §15/module acceptance ostaje pending. Paketni zapis: [W6.40 / paket 155](../implementation/155-inbound-email-03-global-admin-status-access.md).
+
+## Implementacija — BA-inbound-email-11
+
+Paket [221](../implementation/221-inbound-email-11-raw-delete.md) propagira greške raw brisanja, čuva link pri neuspjehu i uslovljava brisanje metadata odsustvom raw linka. Lokalni ciljani testovi prolaze; CI dokaz se čeka. Nalaz ostaje otvoren.

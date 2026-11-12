@@ -19,8 +19,8 @@
 
 ## Semantika
 
-- `mode=off`, uklonjen/nedostajući razgovor, mismatch i nonretryable provider greška više ne izgledaju kao uspjeh: posao je terminalan (bez retrya), ali eksplicitno `SKIPPED` s razlogom.
-- **Deployment zahtijeva migraciju** `20271130230000_integration_job_skipped_status` prije/nakon redeploya po uobičajenom redoslijedu; bez nje worker puca na nepoznatoj enum vrijednosti pri čitanju SKIPPED redova (nema takvih redova prije migracije, ali novi kod ih upisuje).
+- `mode=off`, uklonjen/nedostajući razgovor, mismatch i nonretryable provider greška više ne izgledaju kao uspjeh: posao je terminalan (bez retrya), ali eksplicitno `SKIPPED` s grubim ishodom; obični `skipped` i trajna provider greška trenutno dijele isti kod, pa se međusobno ne razlikuju.
+- **Deployment zahtijeva migraciju** `20271130230000_integration_job_skipped_status` prije pokretanja novog API/worker builda, nakon backup-a i provjere uspješnosti migracije; bez nje worker puca na nepoznatoj enum vrijednosti pri čitanju SKIPPED redova (nema takvih redova prije migracije, ali novi kod ih upisuje).
 
 ## Dokaz
 

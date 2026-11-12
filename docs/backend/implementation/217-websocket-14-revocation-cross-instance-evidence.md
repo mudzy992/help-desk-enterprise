@@ -13,7 +13,7 @@
 | Group/admin immediate revoke | `socket-room-revalidation.spec.ts`: revoked sobe iz jednog snapshota, DB greška → fail-closed uklanjanje soba, timeout → fail-closed | unit |
 | Cross-instance revocation | `socket-session-invalidation.integration.spec.ts`: dva servera, revokacija disconnecta klijente na obje instance i blokira kasnije događaje; group/admin revoke preko instanci | Redis integration |
 | Legacy foreign-group disclosure | `broadcast-ticket-realtime.spec.ts`: legacy payload u group sobu samo uz eksplicitni compatibility opt-in (BA-websocket-04, default off) | unit |
-| **Live cross-instance Redis delivery (novo)** | `ws-redis-adapter.integration.spec.ts`: dva Socket.IO servera dijele sobu samo kroz pravi `@socket.io/redis-adapter`; emit s instance B stiže klijentu na instanci A. Registrovan u isolated integration runneru; bez `REDIS_HOST` se preskače. | Redis integration |
+| **Live cross-instance Redis delivery (novo; čeka CI dokaz)** | `ws-redis-adapter.integration.spec.ts`: dva Socket.IO servera dijele sobu samo kroz pravi `@socket.io/redis-adapter`; emit s instance B stiže klijentu na instanci A. Registrovan u isolated integration runneru; bez `REDIS_HOST` se preskače. | Redis integration |
 | Reconnect catch-up | BA-websocket-09 REST snapshot catch-up + frontend `reconnect-catchup.spec.ts` | unit |
 | Multi-socket / join-leave rate | `join-leave-rate-limiter.spec.ts` (per-socket prozori), `websocket-abuse-limiter` unit + Redis integration (BA-websocket-06 distribuirani limiti) | unit + Redis integration |
 | Browser nivo | E2E 04/15 (realtime notifikacije, routing admin frame) u dnevnom schedule CI-ju | Playwright |
@@ -23,3 +23,5 @@
 - Lokalno (stub harness): adapter unit suite **16/16**; novi integration suite se bez Redisa preskače po dizajnu. Runner harness **20/20**.
 - Dnevni schedule CI [`43178874566`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43178874566) u cijelosti zelen (E2E + integration). CI integration job je autoritativan za novi adapter dokaz.
 - Jedina promjena koda je novi integration test; produkcijski kod se ne mijenja, bez migracije.
+
+Napomena: sama isporuka kroz adapter ne dokazuje stvarni Redis outage/recovery ni kompletnu browser revocation matricu. Nalaz ostaje otvoren dok se ovi nedostaci ne pokriju.

@@ -98,7 +98,8 @@ describeIfRedis('websocket Redis adapter cross-instance delivery (integration)',
     clientA = createSocketClient(instanceA.address, { transports: ['websocket'] });
     await waitForClientEvent(clientA, 'ready');
 
+    const received = waitForClientEvent(clientA, 'cross-instance-event');
     instanceB.server.to(room).emit('cross-instance-event', 'from-b');
-    await expect(waitForClientEvent(clientA, 'cross-instance-event')).resolves.toBe('from-b');
+    await expect(received).resolves.toBe('from-b');
   });
 });

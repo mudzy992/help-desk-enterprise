@@ -212,10 +212,21 @@ export class InboundEmailService {
         take: inboundEmailLimits.retentionBatch,
       });
       if (rows.length === 0) break;
-      for (const row of rows) if (row.rawStorageKey !== null) await this.rawStore.remove(row.rawStorageKey);
-      await this.prisma.inboundEmail.updateMany({ where: { id: { in: rows.map((row) => row.id) } }, data: { rawStorageKey: null } });
-      rawRemoved += rows.length;
-      if (rows.length < inboundEmailLimits.retentionBatch) break;
+      let cleared = 0;
+      for (const row of rows) {
+        if (row.rawStorageKey === null) continue;
+        // Failure aborts the run before orphan pruning or metadata deletion.
+        // ENOENT is safe: the file is already gone. Fence the update against
+        // a concurrent replacement of the raw key or retention eligibility.
+        await this.rawStore.remove(row.rawStorageKey);
+        const updated = await this.prisma.inboundEmail.updateMany({
+          where: { id: row.id, rawStorageKey: row.rawStorageKey, createdAt: { lt: rawCutoff } },
+          data: { rawStorageKey: null },
+        });
+        cleared += updated.count;
+      }
+      rawRemoved += cleared;
+      if (rows.length < inboundEmailLimits.retentionBatch || cleared === 0) break;
     }
     // Month folders a full month past the window (files of deleted rows, crashes).
     await this.rawStore.pruneMonthsBefore(new Date(rawCutoff.getTime() - 31 * 86_400_000));
@@ -225,7 +236,7 @@ export class InboundEmailService {
     // so a row changed after selection is never removed, and a full batch
     // signals a possible backlog instead of silently looping all night.
     const candidates = await this.prisma.inboundEmail.findMany({
-      where: { createdAt: { lt: rowCutoff } },
+      where: { createdAt: { lt: rowCutoff }, rawStorageKey: null },
       select: { id: true },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: inboundEmailLimits.retentionBatch,
@@ -236,6 +247,7 @@ export class InboundEmailService {
         where: {
           id: { in: candidates.map((row) => row.id) },
           createdAt: { lt: rowCutoff },
+          rawStorageKey: null,
         },
       });
       rowsRemoved = deleted.count;

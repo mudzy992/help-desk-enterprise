@@ -51,7 +51,7 @@ export function toIntegrationJobResponse(job: {
     type: job.type,
     status: job.status,
     lastErrorCode:
-      (job.status === IntegrationJobStatus.COMPLETED || job.status === IntegrationJobStatus.PUBLISHED_BEST_EFFORT) && job.lastError === terminalJobPayloadRedactedMarker
+      (job.status === IntegrationJobStatus.COMPLETED || job.status === IntegrationJobStatus.PUBLISHED_BEST_EFFORT || job.status === IntegrationJobStatus.SKIPPED) && job.lastError === terminalJobPayloadRedactedMarker
         ? null
         : resolveIntegrationJobAdminErrorCode(job.type, job.lastError),
     attempts: job.attempts,
