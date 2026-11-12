@@ -1,6 +1,6 @@
 # Paket 211 — BA-announcements-17: retention kao zaseban job s retryjem
 
-**Status:** implementirano; CI i vlasnička potvrda X1 u toku.
+**Status:** zatvoreno (CI 43193350545 success; vlasnik potvrdio X1 = DA; audit 28 §43).
 **Nalaz:** audit 28 §3.17 (P3) — retention je radio unutar 5-minutnog sweepa (kandidati skenirani svaki sweep), a neuspjeh se gutao kao upozorenje, pa neuspjeli retention nije bio vidljiv niti retryan; ritam je bio vezan za sweep, ne za retention-semantiku.
 
 ## Promjene

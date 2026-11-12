@@ -1,6 +1,6 @@
 # BA-announcements-16: preview publike validira reference i za globalnog menadžera
 
-Status: **otvoreno** (implementirano; čeka CI i operativnu potvrdu vlasnika W1). `previewAudience` je nepoznate OU/group ID-eve tiho odbacivao pri ekspanziji publike, pa je i globalni menadžer za pogrešan ID dobivao uvjerljiv (često nula) broj korisnika umjesto grešku — broj na osnovu kojeg se odlučuje o objavi bio je zavodljiv.
+Status: **zatvoreno** (CI 43176697408 success; vlasnik potvrdio W1 = DA; audit 28 §42). `previewAudience` je nepoznate OU/group ID-eve tiho odbacivao pri ekspanziji publike, pa je i globalni menadžer za pogrešan ID dobivao uvjerljiv (često nula) broj korisnika umjesto grešku — broj na osnovu kojeg se odlučuje o objavi bio je zavodljiv.
 
 ## Izmjena
 
