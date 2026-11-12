@@ -119,14 +119,14 @@ describe('AnnouncementsService viewer visibility caps', () => {
       serviceId: null,
     });
     prisma.announcement.findMany.mockResolvedValue(
-      Array.from({ length: announcementLimits.archiveMax + 1 }, (_, index) => makeRow(index)),
+      Array.from({ length: announcementLimits.archiveMax + 1 }, (_, index) => makeRow(index)) as never,
     );
     const capped = await service.archive(viewer(), now);
     expect(capped.hasMore).toBe(true);
     expect(capped.listLimit).toBe(announcementLimits.archiveMax);
     expect(capped.announcements).toHaveLength(announcementLimits.archiveMax);
 
-    prisma.announcement.findMany.mockResolvedValue([makeRow(1)]);
+    prisma.announcement.findMany.mockResolvedValue([makeRow(1)] as never);
     const complete = await service.archive(viewer(), now);
     expect(complete.hasMore).toBe(false);
     expect(complete.announcements).toHaveLength(1);
