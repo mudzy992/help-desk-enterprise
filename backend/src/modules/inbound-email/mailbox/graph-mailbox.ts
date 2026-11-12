@@ -35,8 +35,8 @@ export class GraphInboundMailbox implements InboundMailboxConnector {
         signal: AbortSignal.timeout(30_000),
       });
       if (!response.ok) {
-        const detail = await response.text().catch(() => '');
-        throw new Error(`GRAPH_${response.status} ${path.split('?')[0]} ${detail.slice(0, 200)}`);
+        // Never embed provider response bodies, mailbox paths, or identifiers.
+        throw new Error(`GRAPH_HTTP_${response.status}`);
       }
       return response;
     };

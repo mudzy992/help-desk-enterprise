@@ -115,7 +115,7 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | BA-inbound-email-09 | P2       | Metadata retention je jedan neograničen deleteMany (ograničeni batch uveden, paket 179)    | zatvoreno |
 | BA-inbound-email-10 | P2       | Case-insensitive duplicate user email daje nedeterminističnog actora (odbijanje dvosmislenog, paket 184) | zatvoreno |
 | BA-inbound-email-11 | P3       | Raw remove greška se guta pa DB link nestaje prije potvrđenog brisanja                     | € implementirano (paket 221); čeka CI dokaz |
-| BA-inbound-email-12 | P3       | Raw/provider greške nemaju stabilan redigovan error-code ugovor                            | otvoreno |
+| BA-inbound-email-12 | P3       | Raw/provider greške nemaju stabilan redigovan error-code ugovor                            | € implementirano (paket 222); čeka CI dokaz |
 | BA-inbound-email-13 | P3       | Nema mailbox→ticket E2E ni crash/concurrency/infrastrukturne matrice                       | otvoreno |
 
 ## 12. Ključne korekcije
@@ -234,3 +234,7 @@ Ovim je `BA-inbound-email-03` zatvoren za scope prekoračaj i defaultni sender/s
 ## Implementacija — BA-inbound-email-11
 
 Paket [221](../implementation/221-inbound-email-11-raw-delete.md) propagira greške raw brisanja, čuva link pri neuspjehu i uslovljava brisanje metadata odsustvom raw linka. Lokalni ciljani testovi prolaze; CI dokaz se čeka. Nalaz ostaje otvoren.
+
+## Implementacija — BA-inbound-email-12
+
+Paket [222](../implementation/222-inbound-email-12-error-redaction.md) uklanja provider tekst iz operativnih grešaka workera i koristi stabilne kodove. Historijski podaci nisu mijenjani. CI dokaz se čeka; nalaz ostaje otvoren.

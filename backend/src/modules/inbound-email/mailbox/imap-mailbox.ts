@@ -95,7 +95,7 @@ export class ImapInboundMailbox implements InboundMailboxConnector {
           await ensureFolder(path);
           const moved = await client.messageMove(uid, path.split('/').map((part) => part.trim()), { uid: true });
           imapGuard.throwIfFailed();
-          if (moved === false) throw new Error(`IMAP_MOVE_FAILED ${path}`);
+          if (moved === false) throw new Error('IMAP_MOVE_FAILED');
         },
         close: async () => {
           imapGuard.detach();

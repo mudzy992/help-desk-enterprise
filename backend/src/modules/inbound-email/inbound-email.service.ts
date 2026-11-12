@@ -29,6 +29,7 @@ import {
 } from './inbound-email-configuration';
 import type { InboundOutcome } from './inbound-email.types';
 import { InboundRawStore } from './inbound-raw-store';
+import { inboundErrorCodes } from './inbound-error-code';
 import { createInboundMailbox } from './mailbox/create-inbound-mailbox';
 import type { InboundMailboxConnector, InboundMailboxItem, InboundMailboxSession } from './mailbox/inbound-mailbox';
 import { parseInboundMessage } from './parse-inbound-message';
@@ -115,10 +116,6 @@ async function asTicketError<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
-function errorText(error: unknown): string {
-  return (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').slice(0, 500);
-}
-
 /**
  * Paket 2.3 (§7): reads the support mailbox and turns replies into ticket
  * messages. Runs only in the worker; one pass at a time (BullMQ concurrency 1).
@@ -158,7 +155,7 @@ export class InboundEmailService {
     }
     const problems = inboundConfigurationProblems(configuration);
     if (problems.length > 0) {
-      await this.recordFailure(mailboxKey, `MISCONFIGURED ${problems.join(',')}`, now);
+      await this.recordFailure(mailboxKey, inboundErrorCodes.misconfigured, now);
       return { kind: 'misconfigured', problems };
     }
     return this.runOnce(configuration, now);
@@ -179,9 +176,9 @@ export class InboundEmailService {
         else if (status === 'IGNORED') counts.ignored += 1;
         else if (status === 'FAILED') counts.failed += 1;
       }
-    } catch (error) {
-      const message = errorText(error);
-      this.logger.warn(`inbound_email_run_failed mailbox=${mailboxKey} reason=${message}`);
+    } catch {
+      const message = inboundErrorCodes.mailboxFailure;
+      this.logger.warn(`inbound_email_run_failed reason=${message}`);
       await this.recordFailure(mailboxKey, message, now);
       return { kind: 'failed', error: message };
     } finally {
@@ -363,7 +360,7 @@ export class InboundEmailService {
       return await this.finish(session, item, row.id, ownerToken, outcome);
     } catch (error) {
       if (error instanceof LostInboundAttempt) return 'SKIPPED';
-      const reason = errorText(error);
+      const reason = inboundErrorCodes.messageFailure;
       this.logger.warn(`inbound_email_message_failed id=${row.id} reason=${reason}`);
       const markedFailed = await this.failAttempt(row.id, ownerToken, reason).catch(() => false);
       if (!markedFailed) return 'SKIPPED';
@@ -794,7 +791,7 @@ export class InboundEmailService {
       headers: composed.headers,
       templateKey: `inbound.${kind}`,
       dedupeKey: `inbound:${kind}:${ticket.id}:${day}`,
-    }).catch((error: unknown) => this.logger.warn(`inbound_email_notice_failed reason=${errorText(error)}`));
+    }).catch(() => this.logger.warn(`inbound_email_notice_failed reason=${inboundErrorCodes.noticeFailure}`));
   }
 
   private async recordFailure(mailboxKey: string, error: string, now: Date): Promise<void> {

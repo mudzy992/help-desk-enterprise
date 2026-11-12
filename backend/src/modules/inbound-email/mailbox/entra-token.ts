@@ -28,7 +28,7 @@ export async function fetchEntraAccessToken(
   );
   const body = (await response.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string };
   if (!response.ok || typeof body.access_token !== 'string') {
-    throw new Error(`ENTRA_TOKEN_FAILED ${response.status} ${body.error ?? ''}`.trim());
+    throw new Error(`ENTRA_TOKEN_FAILED ${response.status}`);
   }
   cache.set(cacheKey, { token: body.access_token, expiresAt: Date.now() + (body.expires_in ?? 3600) * 1000 });
   return body.access_token;
