@@ -905,6 +905,25 @@ export class AnnouncementsService {
       groupIds: unique(audience.groupIds),
     };
     await this.assertManageAudience(viewer, normalized.organizationalUnitIds);
+    // BA-announcements-16: unknown OU/group ids used to be dropped silently, so
+    // a typo produced a plausible-looking (often zero) count for every manager,
+    // global ones included. Reject unknown references like create-time
+    // reference validation does (BA-announcements-05).
+    if (normalized.organizationalUnitIds.length > 0) {
+      const units = await this.loadUnits();
+      const knownUnitIds = new Set(units.map((unit) => unit.id));
+      if (normalized.organizationalUnitIds.some((unitId) => !knownUnitIds.has(unitId))) {
+        throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'organizationalUnit');
+      }
+    }
+    if (normalized.groupIds.length > 0) {
+      const knownGroups = await this.prisma.group.count({
+        where: { id: { in: normalized.groupIds } },
+      });
+      if (knownGroups !== normalized.groupIds.length) {
+        throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'group');
+      }
+    }
     return { count: await this.countAudience(normalized) };
   }
 
