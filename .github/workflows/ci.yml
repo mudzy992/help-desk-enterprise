@@ -888,6 +888,7 @@ jobs:
           E2E_SPECS: ${{ inputs.specs }}
           # Explicit opt-in for a disposable stack with queue fixtures configured.
           E2E_VAL6_QUEUE: ${{ vars.E2E_VAL6_QUEUE }}
+          E2E_VAL6_REALTIME: ${{ vars.E2E_VAL6_REALTIME }}
           E2E_VAL6_INBOUND: ${{ vars.E2E_VAL6_INBOUND }}
           E2E_VAL6_SMTP_HOST: ${{ vars.E2E_VAL6_SMTP_HOST }}
           E2E_VAL6_SMTP_PORT: ${{ vars.E2E_VAL6_SMTP_PORT }}

@@ -421,3 +421,7 @@ Dokazni paket [214](../implementation/214-notifications-14-critical-scenario-evi
 ## Dopuna — ograničenje dokaza BA-notifications-14
 
 Paket 214 prikuplja postojeće unit i integration dokaze, ali E2E 36 ne dokazuje cijelu recovery/scope/concurrency browser matricu. Nalaz ostaje otvoren; ranije navedena implementacija dokazne matrice ne znači da je tražena E2E pokrivenost potpuna.
+
+## Dopuna — pripremljeni browser realtime test
+
+Opt-in `59-notifications-realtime.spec.ts` povezuje konkretni odgovor s browser Socket.IO događajem i prikazom u otvorenom panelu. Test nije izvršen na stacku, preskače se bez eksplicitnog uključivanja i ne pokriva cjelokupnu recovery/scope/concurrency matricu; detalji su u [paketu 214](../implementation/214-notifications-14-critical-scenario-evidence.md). Nalaz ostaje otvoren.

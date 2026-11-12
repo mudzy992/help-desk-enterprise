@@ -25,3 +25,7 @@ Matrica ispod prikuplja raspoložive dokaze na različitim slojevima. Unit i int
 - Dnevni schedule CI [`43178874566`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43178874566) prošao je u cijelosti (uključujući E2E critical flows i PostgreSQL+Redis integration).
 - Integration suiteovi su registrovani u `backend/scripts/run-isolated-integration.mjs` i izvršavaju se u svakom CI integration jobu.
 - Bez promjene koda, bez migracije.
+
+## Pripremljeni browser realtime scenarij
+
+Opt-in `59-notifications-realtime.spec.ts` kreira tiket na izolovanom stacku, drži korisnički notification panel otvoren, kreira odgovor kroz admin API i traži Socket.IO `notification.created` frame koji sadrži konkretni ID tiketa i poruke te porast broja prikazanih redova u panelu bez ponovnog otvaranja. To testira pozitivnu browser isporuku, ne recovery, revocation ili race matricu. Izvršavanje je uslovljeno `E2E_VAL6_REALTIME=1`; bez toga je skipped. Lokalno su prošli samo TypeScript i Playwright listing, ne puni browser test. Nalaz ostaje otvoren dok se ne dobiju stvarni dokazi za preostale scenarije.
