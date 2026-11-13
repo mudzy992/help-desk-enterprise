@@ -318,6 +318,7 @@ export class ProblemsService {
         action: auditLogActions.problemCreated,
         entityType: auditLogEntityTypes.problem,
         entityId: created.id,
+        organizationalUnitId: unitId,
         metadata: { sequence, organizationalUnitId: unitId, priority } as never,
         actorUserId: viewer.userId,
       });
@@ -529,6 +530,7 @@ export class ProblemsService {
         action,
         entityType: auditLogEntityTypes.problem,
         entityId: id,
+        organizationalUnitId: current.organizationalUnitId,
         metadata: { from, to, reason } as never,
         actorUserId: viewer.userId,
       });

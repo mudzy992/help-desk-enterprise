@@ -202,6 +202,7 @@ export class ProblemResolutionService {
         action: auditLogActions.problemKnowledgeArticleCreated,
         entityType: auditLogEntityTypes.problem,
         entityId: problem.id,
+        organizationalUnitId: problem.organizationalUnitId,
         metadata: { articleId: article.id } as never,
         actorUserId: viewer.userId,
       });
@@ -261,7 +262,7 @@ export class ProblemResolutionService {
     const visible = problemVisibilityWhere(scope, viewer.userId);
     const problem = await this.prisma.problem.findFirst({
       where: { id: problemId, ...(visible === null ? {} : visible) },
-      select: { id: true, sequence: true, status: true, resolution: true, title: true, groupId: true },
+      select: { id: true, sequence: true, status: true, resolution: true, title: true, groupId: true, organizationalUnitId: true },
     });
     if (problem === null) throw new ProblemError(problemErrorCodes.notFound);
     await this.access.requireGroupAuthority(viewer, permissionKeys.problemClose, problem.groupId);
@@ -352,6 +353,7 @@ export class ProblemResolutionService {
         action: auditLogActions.problemTicketsResolved,
         entityType: auditLogEntityTypes.problem,
         entityId: problemId,
+        organizationalUnitId: problem.organizationalUnitId,
         metadata: detail as never,
         actorUserId: viewer.userId,
       });

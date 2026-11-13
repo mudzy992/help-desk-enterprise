@@ -4,6 +4,9 @@ import { ProblemResolutionService, ticketFailureCode } from './problem-resolutio
 import { ProblemError, problemErrorCodes } from './problems.constants';
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { createKnowledgeArticle } from '../knowledge-base/create-knowledge-article';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { prepareAuditEntry } from '../audit-log/audit-event-policy';
+import { auditLogActions } from '../audit-log/audit-log.constants';
 
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
 jest.mock('../knowledge-base/create-knowledge-article', () => ({ createKnowledgeArticle: jest.fn() }));
@@ -11,6 +14,12 @@ jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn(
 
 const loadTicket = loadAccessibleTicket as jest.MockedFunction<typeof loadAccessibleTicket>;
 const createArticle = createKnowledgeArticle as jest.MockedFunction<typeof createKnowledgeArticle>;
+const audit = recordAuditEntry as jest.MockedFunction<typeof recordAuditEntry>;
+
+beforeEach(() => {
+  audit.mockReset();
+  audit.mockImplementation(async (_transaction, input) => { prepareAuditEntry(input); });
+});
 
 type Ticket = { id: string; status: string; mergedIntoTicketId?: string | null; visibility?: 'staff' | 'public' };
 
@@ -123,6 +132,7 @@ describe('ProblemResolutionService article', () => {
     const result = await service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer);
     expect(result).toEqual({ id: 'a1', title: 'T', status: 'DRAFT' });
     expect(events.map((event) => event.action)).toEqual(['knowledge_article']);
+    expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemKnowledgeArticleCreated, organizationalUnitId: 'ou1' }));
   });
 });
 
@@ -174,6 +184,7 @@ describe('ProblemResolutionService group resolution', () => {
     expect(collaboration.createMessage).toHaveBeenCalledTimes(3);
     expect(collaboration.createMessage).toHaveBeenCalledWith('a', { type: 'AGENT_REPLY', body: 'Uzrok je otklonjen.' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
     expect(events).toEqual([{ problemId: 'p1', action: 'tickets_resolved', actorUserId: 'u1', detail: { resolved: 3, skipped: 3, failed: 1 } }]);
+    expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemTicketsResolved, organizationalUnitId: 'ou1' }));
   });
 
   it('refuses to resolve tickets of a problem that is not resolved', async () => {

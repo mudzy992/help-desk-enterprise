@@ -48,7 +48,7 @@ export class ProblemSweepService {
     const before = new Date(now.getTime() - days * dayMs);
     const due = await this.prisma.problem.findMany({
       where: { status: 'RESOLVED', resolvedAt: { lte: before } },
-      select: { id: true, version: true },
+      select: { id: true, version: true, organizationalUnitId: true },
       orderBy: { resolvedAt: 'asc' },
       take: problemSweepBatch,
     });
@@ -66,6 +66,7 @@ export class ProblemSweepService {
           action: auditLogActions.problemClosed,
           entityType: auditLogEntityTypes.problem,
           entityId: problem.id,
+          organizationalUnitId: problem.organizationalUnitId,
           metadata: detail as never,
           actorUserId: null,
         });

@@ -790,7 +790,8 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$E2E_SSH_PRIVATE_KEY" > ~/.ssh/e2e-db
           chmod 600 ~/.ssh/e2e-db
-          ssh -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes -f -N \
+          ssh -o StrictHostKeyChecking=accept-new -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=6 -o TCPKeepAlive=yes -f -N \
             -i ~/.ssh/e2e-db -p "${E2E_SSH_PORT:-22}" \
             -L "15432:127.0.0.1:${E2E_SSH_DB_PORT:-5432}" \
             "${E2E_SSH_USER:-root}@${E2E_SSH_HOST}"

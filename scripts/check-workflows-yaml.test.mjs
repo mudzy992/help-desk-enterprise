@@ -334,3 +334,14 @@ test("Val 6 inbound E2E reads SMTP fixture secrets first with variable fallback"
     assert.ok(job.includes(`${name}: \${{ secrets.${name} }}`), name);
   }
 });
+
+test("E2E SSH database tunnel uses keepalives during long browser runs", () => {
+  const job = readJob(readFileSync(workflowPath, "utf8"), "e2e");
+  const start = job.indexOf('- name: Open an SSH tunnel to the database (optional)');
+  const end = job.indexOf('- name: Ensure the E2E actors', start);
+  assert.ok(start >= 0 && end > start);
+  const step = job.slice(start, end);
+  assert.ok(step.includes('-o ExitOnForwardFailure=yes'));
+  assert.ok(step.includes('-o ServerAliveInterval=30'));
+  assert.ok(step.includes('-o ServerAliveCountMax=6'));
+});
