@@ -1,9 +1,9 @@
-# Ticket realtime — parțial: opoziv la REST refresh
+# Ticket realtime — djelimična zaštita nakon opoziva pristupa
 
-**Status:** implementare parțială, nu închide ticket revoke/join din [planul 228](228-websocket-follow-up-plan.md).
+**Status:** djelimično implementirano; ne zatvara ticket revoke/join iz [plana 228](228-websocket-follow-up-plan.md).
 
-Testele noi au reprodus înainte de corecție că un refresh silent cu 403/404 lăsa biletul și mesajele afișate, iar o eroare 500 nu arăta eroare. `loadTicketDetail` șterge acum biletul, mesajele, participanții și panourile la 403/404 și expune eroarea; la erori tranzitorii păstrează datele și expune eroarea de acțiune. Schimbarea nu dovedește că un refresh se declanșează imediat la orice revoke: backend-ul continuă să fie responsabil de autorizare și eliminarea din camere.
+Novi testovi su prije ispravke reproducirali da je tihi refresh s 403/404 ostavljao tiket i poruke na ekranu, dok greška 500 nije prikazivala grešku. `loadTicketDetail` sada na 403/404 čisti tiket, poruke, učesnike i panele te prikazuje grešku; kod prolazne greške čuva prethodne podatke i prikazuje grešku akcije. Ova promjena ne dokazuje da se refresh pokreće odmah nakon svakog opoziva: backend je i dalje odgovoran za autorizaciju i uklanjanje iz soba.
 
-Guard-ul de generație împiedică răspunsuri ale unui load mai vechi să rescrie rezultatul unui load mai nou, inclusiv după schimbarea ticket ID sau unmount. Un panel întârziat nu reapare după un 403/404 primit la citirea conversației. Testele acoperă 403/404, 500, răspuns mai vechi după revoke și panel întârziat. Testele sunt unitare, cu API mock; nu reprezintă browser/Redis acceptance. Pot exista alte acțiuni asincrone și componente stateful care necesită verificare separată.
+Guard generacije sprečava da odgovor starijeg učitavanja prepiše novije, uključujući nakon promjene tiketa ili unmounta. Zakašnjeli panel ne vraća podatke nakon 403/404 pri čitanju prepiske. Testovi pokrivaju 403/404, 500, stariji odgovor nakon opoziva i zakašnjeli panel. To su unit testovi s mock API-jem, ne browser/Redis acceptance. Ostale asinhrone akcije i stateful komponente zahtijevaju zasebnu provjeru.
 
-**Încă neimplementat:** confirmarea socket join (ack + timeout/refuz), read-after-join, reconcilierea eventelor în timpul snapshotului și dovezile browser/cross-instance. Nu se afirmă replay sau eliminarea completă a tuturor curselor. Fără migrație, deploy sau rulare manuală full E2E.
+**Još nije implementirano:** potvrda socket joina (ack + timeout/odbijanje), čitanje snapshota nakon joina, usklađivanje događaja tokom snapshota i browser/cross-instance dokaz. Ne tvrdi se replay niti uklanjanje svih utrka. Bez migracije, deploymenta i ručnog full E2E.
