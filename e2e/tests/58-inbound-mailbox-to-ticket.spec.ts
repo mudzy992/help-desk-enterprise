@@ -17,9 +17,9 @@ test('an inbound mailbox message creates a correlated ticket', async () => {
   const password = process.env.E2E_VAL6_SMTP_PASSWORD;
   const missing: string[] = [];
   if (!env.databaseUrl?.trim()) missing.push('E2E_DATABASE_URL (or DATABASE_URL secret)');
-  if (!host) missing.push('E2E_VAL6_SMTP_HOST variable');
-  if (!Number.isInteger(port) || port < 1 || port > 65535) missing.push('E2E_VAL6_SMTP_PORT variable (integer 1–65535)');
-  if (!recipient) missing.push('E2E_VAL6_INBOUND_ADDRESS variable');
+  if (!host) missing.push('E2E_VAL6_SMTP_HOST secret or variable');
+  if (!Number.isInteger(port) || port < 1 || port > 65535) missing.push('E2E_VAL6_SMTP_PORT secret or variable (integer 1–65535)');
+  if (!recipient) missing.push('E2E_VAL6_INBOUND_ADDRESS secret or variable');
   if (missing.length > 0 || !env.databaseUrl || !host || !recipient) {
     throw new Error(`Inbound fixture missing or invalid configuration: ${missing.join(', ')}`);
   }

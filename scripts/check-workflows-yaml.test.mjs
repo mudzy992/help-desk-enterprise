@@ -324,3 +324,13 @@ test("hvata ponovljeni ključ u istom bloku, a ne u susjednim koracima", () => {
   ].join("\n");
   assert.deepEqual(findWorkflowProblems(separate, "ci.yml"), []);
 });
+
+test("Val 6 inbound E2E reads SMTP fixture secrets first with variable fallback", () => {
+  const job = readJob(readFileSync(workflowPath, "utf8"), "e2e");
+  for (const name of ["E2E_VAL6_SMTP_HOST", "E2E_VAL6_SMTP_PORT", "E2E_VAL6_SMTP_SECURE", "E2E_VAL6_INBOUND_ADDRESS"]) {
+    assert.ok(job.includes(`${name}: \${{ secrets.${name} || vars.${name} }}`), name);
+  }
+  for (const name of ["E2E_VAL6_SMTP_USERNAME", "E2E_VAL6_SMTP_PASSWORD"]) {
+    assert.ok(job.includes(`${name}: \${{ secrets.${name} }}`), name);
+  }
+});
