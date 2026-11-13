@@ -149,7 +149,7 @@ Prošli pure/helper testovi potvrđuju dio template renderinga, email classifica
 | BA-notifications-11 | P2       | Group mark-all učitava i insertuje neograničen skup ID-eva u jednom HTTP zahtjevu           | zatvoreno |
 | BA-notifications-12 | P3       | Digest retention grešku guta i izvještava kao nula                                          | zatvoreno |
 | BA-notifications-13 | P3       | Redis fallback test-email limit je per-instance i mapa nema cleanup                         | zatvoreno |
-| BA-notifications-14 | P3       | Kritični recovery/scope/concurrency scenariji nemaju E2E dokaz                              | € implementirano (paket 214); čeka se CI dokaz i operativna potvrda AA1 |
+| BA-notifications-14 | P3       | Kritični recovery/scope/concurrency scenariji nemaju E2E dokaz                              | zatvoreno (owner-directed) |
 | BA-notifications-15 | P3       | Većina DB direktnih suiteova lokalno je compile-blocked generated Prisma klijentom           | zatvoreno |
 
 ## 13. Detalji P1 nalaza
@@ -425,3 +425,7 @@ Paket 214 prikuplja postojeće unit i integration dokaze, ali E2E 36 ne dokazuje
 ## Dopuna — pripremljeni browser realtime test
 
 Opt-in `59-notifications-realtime.spec.ts` povezuje konkretni odgovor s browser Socket.IO događajem i prikazom u otvorenom panelu. Test nije izvršen na stacku, preskače se bez eksplicitnog uključivanja i ne pokriva cjelokupnu recovery/scope/concurrency matricu; detalji su u [paketu 214](../implementation/214-notifications-14-critical-scenario-evidence.md). Nalaz ostaje otvoren.
+
+## Val 6 završni owner-directed closeout
+
+Nalazi `BA-notifications-14` zatvoreni su odlukom vlasnika uz prihvatanje preostalih nedokazanih scenarija, a ne kao tvrdnja da su svi testirani. Detalji stvarnog CI rezultata, dokaza i preostalog rizika nalaze se u [paketu 226](../implementation/226-val6-owner-directed-closeout.md). Raniji tekst je historija, ne aktuelni status.

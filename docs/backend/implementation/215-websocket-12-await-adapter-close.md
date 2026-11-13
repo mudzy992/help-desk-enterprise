@@ -1,6 +1,6 @@
 # Paket 215 — BA-websocket-12: shutdown čeka zatvaranje Redis adaptera
 
-**Status:** implementirano; CI i vlasnička potvrda AB1 u toku.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 18 §3.12 (P3) — `WebsocketGateway.onModuleDestroy` je bio sinhron i zatvaranje Redis adapter konekcija bacao kao nečekani `void promise`, pa proces može izaći prije nego Pub/Sub klijenti uredno zatvore (quit) konekcije.
 
 ## Promjene

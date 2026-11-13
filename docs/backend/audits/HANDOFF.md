@@ -15,6 +15,10 @@
 
 ## 2. Stanje implementacije
 
+### Aktuelni presjek — Val 6 owner-directed završen
+
+Svih 111 nalaza zatvoreno, posljednjih 10 uz izričito prihvatanje preostalih rizika i nedokazanih scenarija od strane vlasnika. Source/plan 452 otvorena / 242 zatvorena; globalni registar 462 / 232 (ranijih 10 divergencija ostaju). Stvarni full CI `43430133509` je failure; detalji i razlika između CI rezultata i odluke vlasnika su u [paketu 226](../implementation/226-val6-owner-directed-closeout.md). Zaseban audit WebSocket audita i mjesta gdje je live osvježavanje zaista potrebno ostaje otvoren posao. Odjeljci ispod su historijski, osim gdje navode zasebne buduće zadatke.
+
 ### Nakon W6.48 — BA-integration-queue-08/11/12 (P2) djelimične mitigacije, nalazi otvoreni
 
 Tri P2 nalaza iz reda čekanja dobila su ograničene mitigacije bez migracije; BA-08 je naknadno zatvoren nakon korisničke potvrde, BA-11/12 ostaju otvoreni:

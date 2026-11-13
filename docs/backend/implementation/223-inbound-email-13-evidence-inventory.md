@@ -1,6 +1,6 @@
 # Paket 223 — BA-inbound-email-13: inventar dokaza i preostale praznine
 
-**Status:** otvoreno. Ovaj inventar ne predstavlja mailbox→ticket E2E dokaz.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 
 | Oblast | Postojeći dokaz | Ograničenje |
 | --- | --- | --- |

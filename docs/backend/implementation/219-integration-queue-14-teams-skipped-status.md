@@ -1,6 +1,6 @@
 # Paket 219 — BA-integration-queue-14: Teams non-delivery završava kao SKIPPED
 
-**Status:** implementirano; CI i vlasnička potvrda AC2 u toku. **Migracija odobrena od vlasnika** (opcija „novi status SKIPPED").
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 19 §3.14 (P3) — Teams ishodi `skipped`/`gone`/nonretryable završavali su kao generički `COMPLETED`, pa admin prikaz nije razlikovao stvarnu isporuku od trajnog odustajanja.
 
 ## Promjene

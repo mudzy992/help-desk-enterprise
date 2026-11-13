@@ -144,9 +144,9 @@ E2E 04 samo polluje da postoji EMAIL ili EDGE_EVENT job u PENDING/PROCESSING/COM
 | BA-integration-queue-10 | P2    | Heartbeat može biti active dok glavni processing/delivery put ne radi                     | zatvoreno |
 | BA-integration-queue-11 | P2    | Admin retry nije auditiran i briše attempts/error forenzički trag                         | zatvoreno |
 | BA-integration-queue-12 | P2    | Runtime queue/type disable nema paused/cancelled semantiku i troši pokušaje               | zatvoreno |
-| BA-integration-queue-13 | P3    | Raw error message nema stabilan code/redaction ugovor                                     | € implementirano (paket 218 + ispravka stabilnih internih kodova u paketu 219); čeka se CI dokaz i operativna potvrda AC1 |
-| BA-integration-queue-14 | P3    | Teams skipped/gone/nonretryable završava kao generički COMPLETED                          | € implementirano (paket 219, odobrena migracija); čeka se CI dokaz i operativna potvrda AC2 |
-| BA-integration-queue-15 | P3    | Kritični DB/processor/crash testovi su compile-blocked i E2E je statusno slab             | otvoreno |
+| BA-integration-queue-13 | P3    | Raw error message nema stabilan code/redaction ugovor                                     | zatvoreno (owner-directed) |
+| BA-integration-queue-14 | P3    | Teams skipped/gone/nonretryable završava kao generički COMPLETED                          | zatvoreno (owner-directed) |
+| BA-integration-queue-15 | P3    | Kritični DB/processor/crash testovi su compile-blocked i E2E je statusno slab             | zatvoreno (owner-directed) |
 
 Djelimična mitigacija BA-integration-queue-06 i njena ograničenja dokumentovani su u [paketu 172](../implementation/172-integration-queue-06-provider-outcome-quarantine.md); nalaz ostaje otvoren. Djelimična worker zaštita BA-integration-queue-07 opisana je u [paketu 173](../implementation/173-integration-queue-07-worker-payload-budget.md). Ograničeni DLQ batch BA-integration-queue-09 opisan je u [paketu 174](../implementation/174-integration-queue-09-bounded-dlq-retention.md). Dijagnostički backlog indikator BA-integration-queue-10 opisan je u [paketu 175](../implementation/175-integration-queue-10-liveness-vs-backlog.md), a potvrđena terminal retention politika BA-integration-queue-08 u [paketu 176](../implementation/176-integration-queue-08-terminal-retention.md) — BA-08 je zatvoren nakon korisničke rollout/privacy potvrde i prijave da nema eligibilnih redova za prvi sweep. Forenzički audit trag admin retryja BA-integration-queue-11 opisan je u [paketu 177](../implementation/177-integration-queue-11-admin-retry-forensic-audit.md), a runtime-disable pauza bez trošenja pokušaja BA-integration-queue-12 u [paketu 178](../implementation/178-integration-queue-12-runtime-disable-pause.md). Ostali navedeni nalazi ostaju otvoreni.
 
@@ -335,3 +335,7 @@ Paket 219 dopunjen je posebnim sigurnim kodom `TEAMS_DELIVERY_PERMANENT_FAILURE`
 ## Dopuna — korelisani E2E za BA-integration-queue-15
 
 Opt-in test `57-integration-queue-correlation.spec.ts` pripremljen je za izolovani E2E stack i traži uspješan ishod posla vezanog za konkretan testni odgovor. Nije izvršen; uobičajeni CI ga bez eksplicitne varijable preskače. Preduslovi i ograničenja nalaze se u [paketu 220](../implementation/220-integration-queue-15-test-evidence.md). Nalaz ostaje otvoren.
+
+## Val 6 završni owner-directed closeout
+
+Nalazi `BA-integration-queue-13`, `BA-integration-queue-14`, `BA-integration-queue-15` zatvoreni su odlukom vlasnika uz prihvatanje preostalih nedokazanih scenarija, a ne kao tvrdnja da su svi testirani. Detalji stvarnog CI rezultata, dokaza i preostalog rizika nalaze se u [paketu 226](../implementation/226-val6-owner-directed-closeout.md). Raniji tekst je historija, ne aktuelni status.

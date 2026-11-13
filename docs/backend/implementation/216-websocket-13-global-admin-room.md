@@ -1,6 +1,6 @@
 # Paket 216 — BA-websocket-13: admin soba je eksplicitno globalna
 
-**Status:** implementirano; CI i vlasnička potvrda AB2 u toku.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 18 §3.13 (P3) — admin-room semantika nije bila eksplicitna: bilo koji ADMIN/SUPER_ADMIN, uključujući OU/service-scoped dodjelu, dobijao je globalne config događaje i privatnu settings metadatu, bez definisanog ugovora za buduća proširenja payloadova.
 
 ## Odluka i promjene

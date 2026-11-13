@@ -1,6 +1,6 @@
 # Paket 214 — BA-notifications-14: dokazna matrica kritičnih scenarija
 
-**Status:** implementirano (dokazni paket, bez promjene koda); čeka se CI dokaz i operativna potvrda AA1.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 17 §3.14 (P3) — kritični recovery/scope/concurrency scenariji nemaju E2E dokaz: ticket event → durable inbox/email nakon restarta, group membership revocation, digest access revocation, preference DB failure, concurrent dedupe, mark-all race, quiet/on-call kombinacija i pagination historija.
 
 ## Matrica dokaza

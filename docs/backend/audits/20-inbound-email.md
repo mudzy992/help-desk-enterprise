@@ -114,9 +114,9 @@ Baseline matrica nije pokrivala PROCESSING crash prozore, forged/untrusted Authe
 | BA-inbound-email-08 | P2       | Scheduler nema reconciliation nakon Redis gubitka (periodična reconciliation, paket 183) | zatvoreno |
 | BA-inbound-email-09 | P2       | Metadata retention je jedan neograničen deleteMany (ograničeni batch uveden, paket 179)    | zatvoreno |
 | BA-inbound-email-10 | P2       | Case-insensitive duplicate user email daje nedeterminističnog actora (odbijanje dvosmislenog, paket 184) | zatvoreno |
-| BA-inbound-email-11 | P3       | Raw remove greška se guta pa DB link nestaje prije potvrđenog brisanja                     | € implementirano (paket 221); čeka CI dokaz |
-| BA-inbound-email-12 | P3       | Raw/provider greške nemaju stabilan redigovan error-code ugovor                            | € implementirano (paket 222); čeka CI dokaz |
-| BA-inbound-email-13 | P3       | Nema mailbox→ticket E2E ni crash/concurrency/infrastrukturne matrice                       | otvoreno |
+| BA-inbound-email-11 | P3       | Raw remove greška se guta pa DB link nestaje prije potvrđenog brisanja                     | zatvoreno (owner-directed) |
+| BA-inbound-email-12 | P3       | Raw/provider greške nemaju stabilan redigovan error-code ugovor                            | zatvoreno (owner-directed) |
+| BA-inbound-email-13 | P3       | Nema mailbox→ticket E2E ni crash/concurrency/infrastrukturne matrice                       | zatvoreno (owner-directed) |
 
 ## 12. Ključne korekcije
 
@@ -246,3 +246,7 @@ Paket [223](../implementation/223-inbound-email-13-evidence-inventory.md) navodi
 ## Dopuna — pripremljen opt-in mailbox E2E
 
 Paket 223 dopunjen je testom `58-inbound-mailbox-to-ticket.spec.ts`: jedinstveni Message-ID korelira stvarno SMTP slanje, inbound `PROCESSED` red i kreirani tiket. Test zahtijeva posebno pripremljen izolovani mailbox i stack, nije lokalno izvršen i po defaultu se preskače. Ne predstavlja dokaz crash matrice niti zatvara nalaz bez uspješnog izvršavanja.
+
+## Val 6 završni owner-directed closeout
+
+Nalazi `BA-inbound-email-11`, `BA-inbound-email-12`, `BA-inbound-email-13` zatvoreni su odlukom vlasnika uz prihvatanje preostalih nedokazanih scenarija, a ne kao tvrdnja da su svi testirani. Detalji stvarnog CI rezultata, dokaza i preostalog rizika nalaze se u [paketu 226](../implementation/226-val6-owner-directed-closeout.md). Raniji tekst je historija, ne aktuelni status.

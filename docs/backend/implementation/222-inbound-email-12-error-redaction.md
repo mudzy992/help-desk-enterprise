@@ -1,6 +1,6 @@
 # Paket 222 — BA-inbound-email-12: redigovane operativne greške
 
-**Status:** implementirano; čeka se CI dokaz. Nalaz ostaje otvoren.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 
 Worker više ne upisuje sirove exception poruke u mailbox state, stanje pokušaja, notifikacije, rezultat `runOnce` niti relevantne logove. Greške se označavaju stabilnim kodovima `INBOUND_MAILBOX_FAILED`, `INBOUND_MESSAGE_PROCESSING_FAILED`, `INBOUND_NOTICE_FAILED` i `INBOUND_MAILBOX_MISCONFIGURED`. Kvar mailboxa namjerno ima generički kod: provider tekst i kredencijali ne otkrivaju se radi detaljnije dijagnostike. Kod konfiguracije UI i dalje dobija zasebnu listu validacijskih problema. Postojeći historijski zapisi se ovom promjenom ne brišu niti migriraju; admin API ih i dalje rediguje.
 

@@ -1,6 +1,6 @@
 # Paket 220 — BA-integration-queue-15: compile-block uklonjen, crash/claim dokazna matrica
 
-**Status:** otvoreno; dokazna matrica je djelimična, E2E dokaz za konkretni posao nedostaje.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 19 §3.15 (P3) — kritični DB/processor/crash testovi bili su compile-blocked (nedostajući generated Prisma enumi/delegati), a E2E 04 je samo pollavao postojanje joba bez ikakvog ishoda.
 
 ## Stanje i promjene

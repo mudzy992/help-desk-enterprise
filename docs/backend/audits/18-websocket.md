@@ -132,9 +132,9 @@ E2E 15 posmatra routing admin frame, ali ne pravi negativnog primaoca niti revoc
 | BA-websocket-09 | P2     | Reconnect nema sequence/cursor/replay niti formalni catch-up ugovor                        | zatvoreno |
 | BA-websocket-10 | P2     | Room revalidation je N×sekvencijalna, bez overlap/resource guarda                          | zatvoreno |
 | BA-websocket-11 | P2     | Socket može akumulirati neograničen broj ticket soba                                       | zatvoreno |
-| BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | € implementirano (paket 215); čeka se CI dokaz i operativna potvrda AB1 |
-| BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | € implementirano (paket 216); čeka se CI dokaz i operativna potvrda AB2 |
-| BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | € implementirano (paket 217); čeka se CI dokaz i operativna potvrda AB3 |
+| BA-websocket-12 | P3     | Shutdown ne awaita zatvaranje Redis adapter konekcija                                      | zatvoreno (owner-directed) |
+| BA-websocket-13 | P3     | Admin-room global/scoped semantika nije eksplicitna i sigurna za proširenje payloadova      | zatvoreno (owner-directed) |
+| BA-websocket-14 | P3     | Kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz                       | zatvoreno (owner-directed) |
 
 ## 13. Detalji P1 nalaza
 
@@ -434,3 +434,7 @@ Novi integration test iz paketa 217 namijenjen je provjeri isporuke kroz Redis a
 ## Dopuna — BA-websocket-14 izolovani mrežni prekid
 
 Integration test `ws-redis-adapter-outage.integration.spec.ts` provjerava stvarni Redis adapter kroz izolovani prekid i oporavak TCP veze, uz provjeru degradacije i ponovne isporuke između dvije instance. Test ne restartuje Redis proces niti tvrdi replay tokom prekida; detalji su u [paketu 217](../implementation/217-websocket-14-revocation-cross-instance-evidence.md). Nalaz ostaje otvoren do CI dokaza i preostale E2E matrice.
+
+## Val 6 završni owner-directed closeout
+
+Nalazi `BA-websocket-12`, `BA-websocket-13`, `BA-websocket-14` zatvoreni su odlukom vlasnika uz prihvatanje preostalih nedokazanih scenarija, a ne kao tvrdnja da su svi testirani. Detalji stvarnog CI rezultata, dokaza i preostalog rizika nalaze se u [paketu 226](../implementation/226-val6-owner-directed-closeout.md). Raniji tekst je historija, ne aktuelni status.

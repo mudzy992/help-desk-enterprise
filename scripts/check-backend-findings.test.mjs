@@ -204,3 +204,14 @@ test("production baseline validator zaključava broj i severity zbir", () => {
     [],
   );
 });
+
+test("Val 6 posljednjih deset nalaza zatvoreno je odlukom vlasnika", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const ids = ["BA-notifications-14", "BA-websocket-12", "BA-websocket-13", "BA-websocket-14", "BA-integration-queue-13", "BA-integration-queue-14", "BA-integration-queue-15", "BA-inbound-email-11", "BA-inbound-email-12", "BA-inbound-email-13"];
+  for (const id of ids) {
+    assert.equal(plan.findings.find((finding) => finding.id === id)?.status, "zatvoreno (owner-directed)", id);
+  }
+  const wave = plan.findings.filter((finding) => finding.wave === 6);
+  assert.equal(wave.length, 111);
+  assert.equal(wave.filter((finding) => !finding.status.startsWith("zatvoreno")).length, 0);
+});

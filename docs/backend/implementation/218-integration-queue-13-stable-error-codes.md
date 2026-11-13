@@ -1,6 +1,6 @@
 # Paket 218 — BA-integration-queue-13: stabilan code u `lastError`, bez raw provider teksta
 
-**Status:** implementirano; CI i vlasnička potvrda AC1 u toku.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 19 §3.13 (P3) — `lastError` je čuvao sirovi `error.message` bez stabilnog codea i redakcijskog ugovora; provider poruka može sadržavati adresu primaoca, host ili response tekst. Admin API redakcija je ranije riješena (paket 152, BA-04), ali je sirovi tekst i dalje stajao u bazi do terminalnog retentiona.
 
 ## Promjene

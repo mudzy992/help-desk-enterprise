@@ -1,6 +1,6 @@
 # Paket 217 — BA-websocket-14: revocation/cross-instance dokazna matrica
 
-**Status:** implementirano; CI (uključujući novi Redis adapter integration) i vlasnička potvrda AB3 u toku.
+**Status:** zatvoreno owner-directed; raniji tekst je historija, a preostale granice i dokaz u [paketu 226](226-val6-owner-directed-closeout.md).
 **Nalaz:** audit 18 §3.14 (P3) — kritična revocation/cross-instance matrica nema lokalni ni E2E dokaz: handshake logout/revoke/expiry, ticket access revoke s otvorenom sobom, group/admin immediate revoke, legacy foreign-group disclosure, live cross-instance Redis delivery/failure, reconnect replay, multi-socket rate.
 
 ## Matrica dokaza

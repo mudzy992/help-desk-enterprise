@@ -1868,7 +1868,7 @@
     {
       "id": "BA-inbound-email-11",
       "severity": "P3",
-      "status": "€ implementirano (paket 221); čeka CI dokaz",
+      "status": "zatvoreno (owner-directed)",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1876,7 +1876,7 @@
     {
       "id": "BA-inbound-email-12",
       "severity": "P3",
-      "status": "€ implementirano (paket 222); čeka CI dokaz",
+      "status": "zatvoreno (owner-directed)",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -1884,7 +1884,7 @@
     {
       "id": "BA-inbound-email-13",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno (owner-directed)",
       "source": "20-inbound-email.md",
       "owner": "WS-D",
       "wave": 6
@@ -2156,7 +2156,7 @@
     {
       "id": "BA-integration-queue-13",
       "severity": "P3",
-      "status": "€ implementirano (paket 218 + ispravka stabilnih internih kodova u paketu 219); čeka se CI dokaz i operativna potvrda AC1",
+      "status": "zatvoreno (owner-directed)",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
@@ -2164,7 +2164,7 @@
     {
       "id": "BA-integration-queue-14",
       "severity": "P3",
-      "status": "€ implementirano (paket 219, odobrena migracija); čeka se CI dokaz i operativna potvrda AC2",
+      "status": "zatvoreno (owner-directed)",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
@@ -2172,7 +2172,7 @@
     {
       "id": "BA-integration-queue-15",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno (owner-directed)",
       "source": "19-integration-queue.md",
       "owner": "WS-D",
       "wave": 6
@@ -2436,7 +2436,7 @@
     {
       "id": "BA-notifications-14",
       "severity": "P3",
-      "status": "€ implementirano (paket 214); čeka se CI dokaz i operativna potvrda AA1",
+      "status": "zatvoreno (owner-directed)",
       "source": "17-notifications.md",
       "owner": "WS-D",
       "wave": 6
@@ -5284,7 +5284,7 @@
     {
       "id": "BA-websocket-12",
       "severity": "P3",
-      "status": "€ implementirano (paket 215); čeka se CI dokaz i operativna potvrda AB1",
+      "status": "zatvoreno (owner-directed)",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5292,7 +5292,7 @@
     {
       "id": "BA-websocket-13",
       "severity": "P3",
-      "status": "€ implementirano (paket 216); čeka se CI dokaz i operativna potvrda AB2",
+      "status": "zatvoreno (owner-directed)",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
@@ -5300,7 +5300,7 @@
     {
       "id": "BA-websocket-14",
       "severity": "P3",
-      "status": "€ implementirano (paket 217); čeka se CI dokaz i operativna potvrda AB3",
+      "status": "zatvoreno (owner-directed)",
       "source": "18-websocket.md",
       "owner": "WS-D",
       "wave": 6
