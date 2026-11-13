@@ -1,12 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { joinTicketRoom, leaveTicketRoom, ticketSocketEvents } from "@/services/ticket-socket";
 import {
   applyTicketUpdatedPayload,
-  shouldReloadTicketFromUpdated,
   type TicketUpdatedRealtimePayload,
 } from "@/lib/realtime/apply-ticket-updated";
-import { nextJoinedTicketRoom } from "@/lib/realtime/next-joined-ticket-room";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
 import { isStaleTicketEvent, upsertTicketMessage } from "@/lib/realtime/upsert-ticket-message";
 import { useSession } from "@/lib/session/use-session";
@@ -19,6 +17,10 @@ type UseTicketRealtimeInput = {
   readonly applyTicket: Dispatch<SetStateAction<TicketResponse | null>>;
   readonly setMessages: Dispatch<SetStateAction<readonly TicketMessageResponse[]>>;
   readonly reload: () => Promise<void>;
+  readonly invalidateSnapshot: () => void;
+  readonly onJoinFailure: () => void;
+  readonly canApplyRealtime: () => boolean;
+  readonly onAccessInvalidated: () => void;
 };
 
 export function useTicketRealtime({
@@ -26,39 +28,79 @@ export function useTicketRealtime({
   applyTicket,
   setMessages,
   reload,
-}: UseTicketRealtimeInput): void {
+  invalidateSnapshot,
+  onJoinFailure,
+  canApplyRealtime,
+  onAccessInvalidated,
+}: UseTicketRealtimeInput): boolean {
   const { session } = useSession();
-  const joinedRef = useRef<string | null>(null);
+  const [joinedTicket, setJoinedTicket] = useState<{
+    ticketId: string;
+    session: typeof session;
+  } | null>(null);
 
   useEffect(() => {
-    if (session === null) {
-      return;
-    }
+    if (session === null || ticketId === undefined) return;
     const socket = acquireHelpdeskSocket();
-    const next = nextJoinedTicketRoom(joinedRef.current, ticketId);
-    if (next.leave !== null) {
-      leaveTicketRoom(socket, next.leave);
-    }
-    if (next.join !== null) {
-      joinTicketRoom(socket, next.join);
-      joinedRef.current = next.join;
-    }
-    if (ticketId === undefined) {
-      joinedRef.current = null;
-    }
-    const stopConnect = subscribeSocketEvent(socket, "connect", () => {
-      if (joinedRef.current !== null) {
-        joinTicketRoom(socket, joinedRef.current);
-      }
-      void reload();
+    let active = true;
+    let joinGeneration = 0;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleRefresh = () => {
+      // Prevent an older REST result from overwriting an event that arrived in flight.
+      invalidateSnapshot();
+      if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        void reload();
+      }, 200);
+    };
+    const join = () => {
+      if (!active || !socket.connected) return;
+      if (retry !== undefined) clearTimeout(retry);
+      const generation = ++joinGeneration;
+      joinTicketRoom(socket, ticketId, (error, result) => {
+        if (!active || generation !== joinGeneration || !socket.connected) return;
+        if (error !== null || result?.ok !== true) {
+          setJoinedTicket(null);
+          // A failed/timeout ack is not proof of access revocation: re-check REST.
+          void reload().then(() => {
+            if (active && generation === joinGeneration) onJoinFailure();
+          });
+          retry = setTimeout(join, 10_000);
+          return;
+        }
+        // Fetch after room membership is confirmed; invalidates older snapshots.
+        setJoinedTicket({ ticketId, session });
+        void reload();
+      });
+    };
+    const stopConnect = subscribeSocketEvent(socket, "connect", join);
+    const stopDisconnect = subscribeSocketEvent(socket, "disconnect", () => {
+      setJoinedTicket(null);
+      joinGeneration += 1;
+      if (retry !== undefined) clearTimeout(retry);
     });
+    const stopAccess = subscribeSocketEvent<{ ticketId: string }>(
+      socket,
+      ticketSocketEvents.ticketAccessInvalidated,
+      (payload) => {
+        if (payload?.ticketId !== ticketId) return;
+        joinGeneration += 1;
+        setJoinedTicket(null);
+        invalidateSnapshot();
+        onAccessInvalidated();
+        void reload();
+        join();
+      },
+    );
     const stopMessage = subscribeSocketEvent<TicketMessageResponse>(
       socket,
       ticketSocketEvents.messageCreated,
       (payload) => {
-        if (isStaleTicketEvent(ticketId, payload.ticketId)) {
-          return;
-        }
+        if (!canApplyRealtime() || isStaleTicketEvent(ticketId, payload.ticketId)) return;
+        scheduleRefresh();
         setMessages((current) => upsertTicketMessage(current, payload));
       },
     );
@@ -66,26 +108,40 @@ export function useTicketRealtime({
       socket,
       ticketSocketEvents.ticketUpdated,
       (payload) => {
-        if (isStaleTicketEvent(ticketId, payload.ticketId)) {
-          return;
-        }
+        if (!canApplyRealtime() || isStaleTicketEvent(ticketId, payload.ticketId)) return;
+        scheduleRefresh();
         applyTicket((current) => applyTicketUpdatedPayload(current, payload));
-        if (shouldReloadTicketFromUpdated(payload)) {
-          // SLA state lives only on the server snapshot; re-read it so the
-          // panel and the badge cannot drift from the stored timers.
-          void reload();
-        }
       },
     );
+    join();
     return () => {
+      active = false;
+      joinGeneration += 1;
+      if (retry !== undefined) clearTimeout(retry);
+      if (refreshTimer !== undefined) clearTimeout(refreshTimer);
       stopConnect();
+      stopDisconnect();
+      stopAccess();
       stopMessage();
       stopUpdated();
-      if (joinedRef.current !== null) {
-        leaveTicketRoom(socket, joinedRef.current);
-        joinedRef.current = null;
-      }
+      if (socket.connected) leaveTicketRoom(socket, ticketId);
       releaseHelpdeskSocket();
     };
-  }, [applyTicket, reload, session, setMessages, ticketId]);
+  }, [
+    applyTicket,
+    canApplyRealtime,
+    invalidateSnapshot,
+    onAccessInvalidated,
+    onJoinFailure,
+    reload,
+    session,
+    setMessages,
+    ticketId,
+  ]);
+  return (
+    session !== null &&
+    ticketId !== undefined &&
+    joinedTicket?.ticketId === ticketId &&
+    joinedTicket.session === session
+  );
 }

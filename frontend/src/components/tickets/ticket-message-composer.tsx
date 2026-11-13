@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TicketMessageComposerMode } from "@/components/tickets/ticket-message-composer-mode";
 import { useTranslation } from "react-i18next";
 import { SaveAsTemplateDialog } from "@/components/templates/save-as-template-dialog";
@@ -38,6 +38,15 @@ export function TicketMessageComposer({
 }: TicketMessageComposerProperties) {
   const { t } = useTranslation();
   const draft = useTicketComposerDraft(ticketId, access);
+  const mounted = useRef(false);
+  const currentDraftKey = useRef(draft.draftStorageKey);
+  currentDraftKey.current = draft.draftStorageKey;
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const textareaReference = useRef<HTMLTextAreaElement>(null);
   const fileInputReference = useRef<HTMLInputElement>(null);
   const scheduleFocus = useTicketComposerFocus();
@@ -72,14 +81,22 @@ export function TicketMessageComposer({
   useShortcut("leaveEditor", null);
 
   const send = async () => {
+    const submittedBody = draft.body;
+    const submittedKey = draft.draftStorageKey;
     await onSend(
       draft.type,
-      draft.body.trim(),
+      submittedBody.trim(),
       templateState.usedTemplate === null
         ? undefined
         : { responseTemplateId: templateState.usedTemplate.id },
     );
-    clearDraft();
+    if (
+      mounted.current &&
+      currentDraftKey.current === submittedKey &&
+      draft.bodyReference.current === submittedBody
+    ) {
+      clearDraft();
+    }
   };
   const clearDraft = () => {
     if (draft.draftStorageKey !== null) clearSessionValue(draft.draftStorageKey);

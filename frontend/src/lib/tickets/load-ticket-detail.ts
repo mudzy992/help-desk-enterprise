@@ -20,6 +20,8 @@ type LoadTicketDetailTarget = {
   readonly ticketId: string;
   readonly silent: boolean;
   readonly isCurrent?: () => boolean;
+  readonly onAccessDenied?: () => void;
+  readonly onAccessGranted?: () => void;
   readonly setTicket: Dispatch<SetStateAction<TicketResponse | null>>;
   readonly setMessages: Dispatch<SetStateAction<readonly TicketMessageResponse[]>>;
   readonly setParticipants: Dispatch<SetStateAction<readonly TicketParticipantResponse[]>>;
@@ -75,6 +77,7 @@ export async function loadTicketDetail(target: LoadTicketDetailTarget): Promise<
   try {
     const loaded = await getTicket(target.ticketId);
     if (!isCurrent()) return;
+    target.onAccessGranted?.();
     target.setTicket(loaded);
     target.setErrorKey(null);
     // Poruke i učesnici određuju hoće li se stranica otvoriti; njihova greška
@@ -111,6 +114,7 @@ export async function loadTicketDetail(target: LoadTicketDetailTarget): Promise<
     if (!isCurrent()) return;
     if (isMissingAccess(error)) {
       accessRevoked = true;
+      target.onAccessDenied?.();
       target.setTicket(null);
       target.setMessages([]);
       target.setParticipants([]);
@@ -124,6 +128,7 @@ export async function loadTicketDetail(target: LoadTicketDetailTarget): Promise<
       target.setTicket(null);
       target.setErrorKey(mapTicketError(error));
     } else {
+      target.setErrorKey(mapTicketError(error));
       target.setActionError(mapTicketError(error));
     }
   } finally {

@@ -63,22 +63,20 @@ export function useTicketPresence(input: {
         if (next !== null) setView(next);
       },
     );
-    // The join is handled first on the server; give it a moment before the first beat.
+    // Presence is enabled only after the ticket join has been acknowledged.
     const first = window.setTimeout(emit, firstBeatDelayMs);
     const beat = window.setInterval(() => {
       if (document.visibilityState === "visible") emit();
     }, heartbeatMs);
-    const stopConnect = subscribeSocketEvent(socket, "connect", () => {
-      window.setTimeout(emit, firstBeatDelayMs);
-    });
     return () => {
       window.clearTimeout(first);
       window.clearInterval(beat);
       if (pendingRef.current !== null) window.clearTimeout(pendingRef.current);
       if (idleRef.current !== null) window.clearTimeout(idleRef.current);
       stopUpdate();
-      stopConnect();
-      socket.emit(ticketSocketEvents.presence, { ticketId, state: "leave", channel: "public" });
+      if (socket.connected) {
+        socket.emit(ticketSocketEvents.presence, { ticketId, state: "leave", channel: "public" });
+      }
       emitRef.current = null;
       stateRef.current = { state: "viewing", channel: "public" };
       releaseHelpdeskSocket();

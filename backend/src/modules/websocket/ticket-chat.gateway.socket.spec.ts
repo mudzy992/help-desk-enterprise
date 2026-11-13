@@ -108,7 +108,9 @@ describe('TicketChatGateway live socket room revalidation', () => {
     server.to(ticketStaffRoomName('ticket-live')).emit('protected:ticket', 'before');
     await expect(beforeDowngrade).resolves.toBe('before');
 
+    const downgrade = waitForClientEvent(liveClient, ticketRealtimeEventNames.ticketAccessInvalidated);
     await realtimeHub.publishTicketUpdatedAwaited(ticketUpdatedPayload('ticket-live'));
+    await expect(downgrade).resolves.toEqual({ ticketId: 'ticket-live' });
     expect(liveSocket.rooms.has(ticketStaffRoomName('ticket-live'))).toBe(false);
     expect(liveSocket.rooms.has(ticketPublicRoomName('ticket-live'))).toBe(true);
 
@@ -151,7 +153,9 @@ describe('TicketChatGateway live socket room revalidation', () => {
       .emit(ticketRealtimeEventNames.presenceUpdate, { ticketId: 'ticket-live' });
     await presenceDelivery;
 
+    const invalidation = waitForClientEvent(liveClient, ticketRealtimeEventNames.ticketAccessInvalidated);
     await realtimeHub.publishTicketUpdatedAwaited(ticketUpdatedPayload('ticket-live'));
+    await expect(invalidation).resolves.toEqual({ ticketId: 'ticket-live' });
     expect(liveSocket.rooms.has(ticketRoomName('ticket-live'))).toBe(false);
     expect(liveSocket.rooms.has(ticketPublicRoomName('ticket-live'))).toBe(false);
     expect(liveSocket.rooms.has(ticketStaffRoomName('ticket-live'))).toBe(false);

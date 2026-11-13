@@ -142,6 +142,35 @@ describe("TicketMessageComposer session draft", () => {
     });
   });
 
+  it("does not erase a new ticket draft when an earlier send completes", async () => {
+    let finish!: () => void;
+    const send = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const view = renderComposer("ticket-old", send);
+    fireEvent.change(screen.getByTestId("ticket-composer-body"), { target: { value: "old text" } });
+    fireEvent.click(screen.getByRole("button", { name: "tickets.detail.send" }));
+    view.rerender(
+      <TicketMessageComposer
+        ticketId="ticket-new"
+        access="staff"
+        isSending={false}
+        onSend={send}
+      />,
+    );
+    fireEvent.change(screen.getByTestId("ticket-composer-body"), { target: { value: "new text" } });
+    await act(async () => {
+      finish();
+    });
+    expect(screen.getByTestId("ticket-composer-body")).toHaveProperty("value", "new text");
+    expect(
+      window.sessionStorage.getItem(ticketComposerDraftStorageKey("user-a", "ticket-new")),
+    ).toContain("new text");
+  });
+
   it("keeps the saved draft when sending fails", async () => {
     const onSend = vi.fn().mockRejectedValue(new Error("offline"));
     renderComposer("ticket-failed-send", onSend);

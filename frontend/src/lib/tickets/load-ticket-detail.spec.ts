@@ -231,6 +231,30 @@ describe("loadTicketDetail ", () => {
     expect(vi.mocked(listTicketMessages)).not.toHaveBeenCalled();
   });
 
+  it("does not let an older conversation snapshot overwrite a later realtime event", async () => {
+    let release!: (rows: TicketMessageResponse[]) => void;
+    vi.mocked(listTicketMessages).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const state = createState();
+    let generation = 1;
+    const older = loadTicketDetail({
+      ...targetFor(state),
+      silent: true,
+      isCurrent: () => generation === 1,
+    });
+    await Promise.resolve();
+    const realtimeMessage = { ...message, id: "socket-new" };
+    generation += 1;
+    state.messages.value = [realtimeMessage];
+    release([message]);
+    await older;
+    expect(state.messages.value).toEqual([realtimeMessage]);
+  });
+
   it("does not restore a delayed panel after access loss during the conversation read", async () => {
     let release: ((rows: TicketTimeLogResponse[]) => void) | undefined;
     vi.mocked(listTicketTimeLogs).mockImplementationOnce(

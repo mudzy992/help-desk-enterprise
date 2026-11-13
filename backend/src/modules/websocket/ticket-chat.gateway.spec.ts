@@ -492,6 +492,7 @@ function createClient(subjectId: string): TestSocket {
     },
     rooms,
     operationLog,
+    emit: jest.fn(),
     join: jest.fn(async (room: string) => {
       operationLog.push(`join:${room}`);
       rooms.add(room);

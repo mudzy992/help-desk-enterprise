@@ -128,7 +128,7 @@ export function useTicketDetailPageModel() {
   const presence = useTicketPresence({
     ticketId,
     currentUserId,
-    enabled: collaborationConfig.presenceEnabled && detail.ticket !== null,
+    enabled: collaborationConfig.presenceEnabled && detail.ticket !== null && detail.realtimeReady,
   });
   const lastForeignPublicId = useMemo(() => {
     for (let index = detail.messages.length - 1; index >= 0; index -= 1) {

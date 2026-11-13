@@ -400,10 +400,18 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
             if (!this.ticketSubscriptions.hasInterest(client, ticketId)) {
               return;
             }
+            const previousVisibility = this.ticketSubscriptions.subscriptionFor(client, ticketId)?.visibility;
             try {
               await this.authorizeAndReplaceRooms(client, ticketId);
+              const nextVisibility = this.ticketSubscriptions.subscriptionFor(client, ticketId)?.visibility;
+              if (previousVisibility !== undefined && previousVisibility !== nextVisibility) {
+                client.emit(ticketRealtimeEventNames.ticketAccessInvalidated, { ticketId });
+              }
             } catch (error) {
               await this.revokeTicketSubscription(client, ticketId);
+              if (previousVisibility !== undefined) {
+                client.emit(ticketRealtimeEventNames.ticketAccessInvalidated, { ticketId });
+              }
               this.logger.warn(
                 `ticket_socket_access_revoked connectionId=${client.id} ticketId=${ticketId} reason=${errorText(error)}`,
               );
@@ -419,7 +427,9 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
       );
       await runTicketSocketRevalidationBatch(clients, async (client) => {
         await withTicketSocketLock(client, ticketId, async () => {
+          const wasSubscribed = this.ticketSubscriptions.subscriptionFor(client, ticketId) !== undefined;
           await this.revokeTicketSubscription(client, ticketId);
+          if (wasSubscribed) client.emit(ticketRealtimeEventNames.ticketAccessInvalidated, { ticketId });
         });
       });
       throw error;
