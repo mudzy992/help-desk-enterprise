@@ -19,6 +19,7 @@ import type { Dispatch, SetStateAction } from "react";
 type LoadTicketDetailTarget = {
   readonly ticketId: string;
   readonly silent: boolean;
+  readonly isCurrent?: () => boolean;
   readonly setTicket: Dispatch<SetStateAction<TicketResponse | null>>;
   readonly setMessages: Dispatch<SetStateAction<readonly TicketMessageResponse[]>>;
   readonly setParticipants: Dispatch<SetStateAction<readonly TicketParticipantResponse[]>>;
@@ -46,11 +47,13 @@ async function readPanel(
   read: () => Promise<void>,
   setVisible: (visible: boolean) => void,
   setError: (error: TicketErrorKey) => void,
+  isCurrent: () => boolean,
 ): Promise<void> {
   try {
     await read();
-    setVisible(true);
+    if (isCurrent()) setVisible(true);
   } catch (error) {
+    if (!isCurrent()) return;
     setVisible(false);
     if (!isMissingAccess(error)) {
       setError(mapTicketError(error));
@@ -60,6 +63,10 @@ async function readPanel(
 }
 
 export async function loadTicketDetail(target: LoadTicketDetailTarget): Promise<void> {
+  const isCurrent = target.isCurrent ?? (() => true);
+  let accessRevoked = false;
+  const canApplyPanels = () => isCurrent() && !accessRevoked;
+  if (!isCurrent()) return;
   target.setActionError(null);
   if (!target.silent) {
     target.setIsLoading(true);
@@ -67,7 +74,9 @@ export async function loadTicketDetail(target: LoadTicketDetailTarget): Promise<
   }
   try {
     const loaded = await getTicket(target.ticketId);
+    if (!isCurrent()) return;
     target.setTicket(loaded);
+    target.setErrorKey(null);
     // Poruke i učesnici određuju hoće li se stranica otvoriti; njihova greška
     // jeste greška stranice, dok dodatni paneli nisu uslov. Sva četiri čitanja
     // pokreću se istovremeno, pa detalj čeka samo najsporije od njih.
@@ -77,30 +86,47 @@ export async function loadTicketDetail(target: LoadTicketDetailTarget): Promise<
       readPanel(
         "ticket_time_logs_failed",
         async () => {
-          target.setTimeLogs(await listTicketTimeLogs(target.ticketId));
+          const rows = await listTicketTimeLogs(target.ticketId);
+          if (canApplyPanels()) target.setTimeLogs(rows);
         },
         target.setTimeVisible,
         target.setActionError,
+        canApplyPanels,
       ),
       readPanel(
         "ticket_attachments_failed",
         async () => {
-          target.setAttachments(await listTicketAttachments(target.ticketId));
+          const rows = await listTicketAttachments(target.ticketId);
+          if (canApplyPanels()) target.setAttachments(rows);
         },
         target.setAttachmentsVisible,
         target.setActionError,
+        canApplyPanels,
       ),
     ]);
+    if (!isCurrent()) return;
     target.setMessages(messageRows);
     target.setParticipants(participantRows);
   } catch (error) {
-    if (!target.silent) {
+    if (!isCurrent()) return;
+    if (isMissingAccess(error)) {
+      accessRevoked = true;
+      target.setTicket(null);
+      target.setMessages([]);
+      target.setParticipants([]);
+      target.setTimeLogs([]);
+      target.setAttachments([]);
+      target.setTimeVisible(false);
+      target.setAttachmentsVisible(false);
+      target.setErrorKey(mapTicketError(error));
+      target.setIsLoading(false);
+    } else if (!target.silent) {
       target.setTicket(null);
       target.setErrorKey(mapTicketError(error));
+    } else {
+      target.setActionError(mapTicketError(error));
     }
   } finally {
-    if (!target.silent) {
-      target.setIsLoading(false);
-    }
+    if (isCurrent()) target.setIsLoading(false);
   }
 }

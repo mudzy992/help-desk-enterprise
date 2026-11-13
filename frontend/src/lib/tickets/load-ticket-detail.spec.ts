@@ -170,6 +170,86 @@ describe("loadTicketDetail ", () => {
     expect(state.isLoading.value).toBe(false);
   });
 
+  it.each([403, 404])(
+    "clears a previously loaded ticket on silent access loss %i",
+    async (status) => {
+      const state = createState();
+      await loadTicketDetail(targetFor(state));
+      expect(state.messages.value).toHaveLength(1);
+      vi.mocked(getTicket).mockRejectedValue(
+        new ApiError(status, status === 403 ? "FORBIDDEN" : "NOT_FOUND", ""),
+      );
+      await loadTicketDetail({ ...targetFor(state), silent: true });
+      expect(state.ticket.value).toBeNull();
+      expect(state.messages.value).toEqual([]);
+      expect(state.participants.value).toEqual([]);
+      expect(state.timeLogs.value).toEqual([]);
+      expect(state.attachments.value).toEqual([]);
+      expect(state.timeVisible.value).toBe(false);
+      expect(state.attachmentsVisible.value).toBe(false);
+      expect(state.errorKey.value).toBe(
+        status === 403 ? "tickets.errorForbidden" : "tickets.errorNotFound",
+      );
+    },
+  );
+
+  it("retains a ticket and surfaces a silent transient refresh error", async () => {
+    const state = createState();
+    await loadTicketDetail(targetFor(state));
+    vi.mocked(getTicket).mockRejectedValue(new ApiError(500, "INTERNAL", ""));
+    await loadTicketDetail({ ...targetFor(state), silent: true });
+    expect(state.ticket.value).toEqual(ticket);
+    expect(state.actionError.value).toBe("tickets.errorGeneric");
+  });
+
+  it("ignores an old pending response after a newer request revoked access", async () => {
+    let release: ((row: TicketResponse) => void) | undefined;
+    vi.mocked(getTicket).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const state = createState();
+    let generation = 1;
+    const older = loadTicketDetail({
+      ...targetFor(state),
+      silent: true,
+      isCurrent: () => generation === 1,
+    });
+    generation = 2;
+    vi.mocked(getTicket).mockRejectedValueOnce(new ApiError(403, "FORBIDDEN", ""));
+    await loadTicketDetail({
+      ...targetFor(state),
+      silent: true,
+      isCurrent: () => generation === 2,
+    });
+    release?.(ticket);
+    await older;
+    expect(state.ticket.value).toBeNull();
+    expect(state.errorKey.value).toBe("tickets.errorForbidden");
+    expect(vi.mocked(listTicketMessages)).not.toHaveBeenCalled();
+  });
+
+  it("does not restore a delayed panel after access loss during the conversation read", async () => {
+    let release: ((rows: TicketTimeLogResponse[]) => void) | undefined;
+    vi.mocked(listTicketTimeLogs).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    vi.mocked(listTicketMessages).mockRejectedValueOnce(new ApiError(403, "FORBIDDEN", ""));
+    const state = createState();
+    await loadTicketDetail({ ...targetFor(state), silent: true });
+    release?.([timeLog]);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(state.ticket.value).toBeNull();
+    expect(state.timeLogs.value).toEqual([]);
+    expect(state.timeVisible.value).toBe(false);
+  });
+
   it("hides a panel the caller may not see without reporting a fault", async () => {
     vi.mocked(listTicketTimeLogs).mockRejectedValue(new ApiError(403, "FORBIDDEN", ""));
     const loggedErrors = vi.spyOn(console, "error").mockImplementation(() => undefined);

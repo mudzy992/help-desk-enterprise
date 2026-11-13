@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { loadTicketDetail } from "@/lib/tickets/load-ticket-detail";
 import { sendTicketMessageOptimistic } from "@/lib/tickets/send-ticket-message-optimistic";
@@ -41,6 +42,7 @@ export function useTicketDetail(ticketId: string | undefined) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [actionError, setActionError] = useState<TicketErrorKey | null>(null);
+  const requestGuard = useRef(createLatestRequestGuard());
 
   const detailTarget = useMemo(
     () => ({
@@ -73,14 +75,26 @@ export function useTicketDetail(ticketId: string | undefined) {
     if (ticketId === undefined) {
       return;
     }
-    await loadTicketDetail({ ...detailTarget, ticketId, silent: false });
+    const request = requestGuard.current.begin();
+    await loadTicketDetail({
+      ...detailTarget,
+      ticketId,
+      silent: false,
+      isCurrent: () => requestGuard.current.isCurrent(request),
+    });
   }, [detailTarget, ticketId]);
 
   const refresh = useCallback(async () => {
     if (ticketId === undefined) {
       return;
     }
-    await loadTicketDetail({ ...detailTarget, ticketId, silent: true });
+    const request = requestGuard.current.begin();
+    await loadTicketDetail({
+      ...detailTarget,
+      ticketId,
+      silent: true,
+      isCurrent: () => requestGuard.current.isCurrent(request),
+    });
   }, [detailTarget, ticketId]);
 
   useEffect(() => {
@@ -95,6 +109,8 @@ export function useTicketDetail(ticketId: string | undefined) {
     setCanChangeStatus(true);
     setActionError(null);
     void load();
+    const guard = requestGuard.current;
+    return () => guard.cancel();
   }, [load]);
 
   useTicketRealtime({
