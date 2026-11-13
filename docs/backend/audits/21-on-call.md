@@ -1,5 +1,7 @@
 # Backend audit 21 — `on-call`
 
+> **Aktuelni status:** svi izvorni BA nalazi ove jedinice su zatvoreni. Historijski tekst i baseline ocjene ispod nisu aktuelni presjek; posljednjih 10 nalaza Vala 6 zatvoreno je uz prihvatanje preostalog rizika ([paket 226](../implementation/226-val6-owner-directed-closeout.md)). Za novi WebSocket follow-up vidi [reaudit](../implementation/227-websocket-reaudit-live-refresh.md).
+
 **Status:** audit završen; `BA-on-call-01` (W6.41), `BA-on-call-02` (W6.42) i `BA-on-call-03` (W6.43) zatvoreni<br>
 **Datum:** 2026-10-23  
 **Rizik modula:** visok  

@@ -15,3 +15,5 @@ Vlasnik je nakon pregleda razlike između dopunjavanja dokaza i zatvaranja uz pr
 - Vlasnik je ranije potvrdio redeploy odobrene `SKIPPED` migracije; to nije zasebna potvrda svih Teams ishoda. Nema nove migracije, deploymenta, PR-a niti mergea u ovom closeoutu.
 
 **Knjigovodstvo:** Val 6 111/111 zatvoreno, 0 otvorenih; izvorni audit/plan 452 otvorena / 242 zatvorena od 694; globalni registar 462 / 232. Deset prethodnih divergencija između izvora i registra ne mijenja se ovim closeoutom.
+
+**Ispravka evidencije:** prije naknadnog usklađivanja 18 ranije propuštenih Val 6 redova globalni registar je stvarno sadržavao 480 otvorenih / 214 zatvorenih, a ne 462 / 232. Nakon usklađivanja tih redova stanje je 462 / 232; deset starijih divergencija ostaje.

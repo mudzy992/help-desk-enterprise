@@ -9,3 +9,5 @@ Korisnik je potvrdio da je ovo bio puni run bez filtriranja i da su testovi 57 i
 - 59 provjerava korelisani websocket frame i novi red u otvorenom panelu; ne dokazuje cijelu revocation/recovery matricu.
 
 Ovaj dokument ne zatvara nalaze niti sam po sebi mijenja acceptance kriterije. BA-notifications-14 i BA-websocket-14 i dalje imaju dokumentovane šire E2E/revocation/recovery granice; BA-inbound-email-13 širu crash/concurrency/infrastrukturnu matricu. Odvojeni audit WebSocket audita i mjesta za live osvježavanje nije ovim dokumentom završen. Nije izvođena migracija, deployment ni ručni CI.
+
+**Ispravka evidencije:** prije naknadnog usklađivanja 18 ranije propuštenih Val 6 redova globalni registar je stvarno sadržavao 480 otvorenih / 214 zatvorenih, a ne 462 / 232. Nakon usklađivanja tih redova stanje je 462 / 232; deset starijih divergencija ostaje.

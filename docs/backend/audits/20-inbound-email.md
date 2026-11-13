@@ -1,5 +1,7 @@
 # Backend audit 20 — `inbound-email`
 
+> **Aktuelni status:** svi izvorni BA nalazi ove jedinice su zatvoreni. Historijski tekst i baseline ocjene ispod nisu aktuelni presjek; posljednjih 10 nalaza Vala 6 zatvoreno je uz prihvatanje preostalog rizika ([paket 226](../implementation/226-val6-owner-directed-closeout.md)). Za novi WebSocket follow-up vidi [reaudit](../implementation/227-websocket-reaudit-live-refresh.md).
+
 **Status:** audit završen  
 **Datum:** 2026-10-23  
 **Rizik modula:** kritičan  

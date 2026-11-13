@@ -1,5 +1,7 @@
 # Backend audit 28 — `announcements`
 
+> **Aktuelni status:** svi izvorni BA nalazi ove jedinice su zatvoreni. Historijski tekst i baseline ocjene ispod nisu aktuelni presjek; posljednjih 10 nalaza Vala 6 zatvoreno je uz prihvatanje preostalog rizika ([paket 226](../implementation/226-val6-owner-directed-closeout.md)). Za novi WebSocket follow-up vidi [reaudit](../implementation/227-websocket-reaudit-live-refresh.md).
+
 **Status:** audit završen; `BA-announcements-01` zatvoren u W6.44, `BA-announcements-02` zatvoren u W6.45, `BA-announcements-03` zatvoren u W6.46, `BA-announcements-04` zatvoren u W6.47<br>
 **Datum:** 2026-10-23  
 **Rizik modula:** srednji  
