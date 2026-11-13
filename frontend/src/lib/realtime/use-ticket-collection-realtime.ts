@@ -22,9 +22,31 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
       return;
     }
     const socket = acquireHelpdeskSocket();
+    let pending = false;
+    const isVisible = () =>
+      typeof document === "undefined" || document.visibilityState === "visible";
     const debounced = scheduleDebouncedCallback(() => {
+      if (!isVisible()) {
+        pending = true;
+        return;
+      }
+      pending = false;
       void reload();
     }, collectionReloadDebounceMs);
+    const scheduleRefresh = () => {
+      if (!isVisible()) {
+        pending = true;
+        return;
+      }
+      debounced.trigger();
+    };
+    const stopConnect = subscribeSocketEvent(socket, "connect", scheduleRefresh);
+    const onVisibilityChange = () => {
+      if (pending && isVisible()) scheduleRefresh();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibilityChange);
+    }
     const stopUpdated = subscribeSocketEvent<TicketUpdatedRealtimePayload>(
       socket,
       ticketSocketEvents.ticketUpdated,
@@ -32,7 +54,7 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
         if (!shouldInvalidateTicketCollectionFromUpdated(payload)) {
           return;
         }
-        debounced.trigger();
+        scheduleRefresh();
       },
     );
     const stopCreated = subscribeSocketEvent<NotificationRealtimePayload>(
@@ -42,23 +64,23 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
         if (!shouldInvalidateTicketCollectionFromNotification(payload)) {
           return;
         }
-        debounced.trigger();
+        scheduleRefresh();
       },
     );
-    // group rooms only carry the light event, and a screen that is not
-    // on screen pulls nothing at all (plan §3.2).
+    // Hidden tabs remember invalidation and refresh once when visible again.
     const stopGroupFeed = subscribeSocketEvent<GroupFeedChangedPayload>(
       socket,
       ticketSocketEvents.groupFeedChanged,
       () => {
-        if (typeof document !== "undefined" && document.visibilityState !== "visible") {
-          return;
-        }
-        debounced.trigger();
+        scheduleRefresh();
       },
     );
     return () => {
       debounced.cancel();
+      stopConnect();
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
       stopUpdated();
       stopCreated();
       stopGroupFeed();
