@@ -4,6 +4,7 @@ import { Client } from 'pg';
 import nodemailer from 'nodemailer';
 import { ApiClient } from '../helpers/api-client';
 import { readE2EEnvironment } from '../helpers/environment';
+import { formatInboundDiagnostics, type InboundDiagnosticRow } from '../helpers/inbound-diagnostics';
 
 /** Sends one unique message to a disposable mailbox and verifies its ticket. */
 test('an inbound mailbox message creates a correlated ticket', async () => {
@@ -44,14 +45,33 @@ test('an inbound mailbox message creates a correlated ticket', async () => {
       throw new Error('Inbound E2E SMTP submission failed; check the disposable test fixture');
     }
     let ticketId: string | null = null;
-    await expect.poll(async () => {
-      const result = await db.query<{ status: string; createdTicketId: string | null }>(
-        'SELECT status::text AS status, "createdTicketId" FROM "InboundEmail" WHERE "messageIdHeader" = $1 AND status = \'PROCESSED\' ORDER BY "createdAt" DESC LIMIT 1',
-        [messageId],
-      );
-      ticketId = result.rows[0]?.createdTicketId ?? null;
-      return ticketId !== null;
-    }, { timeout: 180_000, message: 'No processed inbound message with a created ticket; verify the isolated mailbox worker fixture' }).toBe(true);
+    try {
+      await expect.poll(async () => {
+        const result = await db.query<{ status: string; createdTicketId: string | null }>(
+          'SELECT status::text AS status, "createdTicketId" FROM "InboundEmail" WHERE "messageIdHeader" = $1 AND status = \'PROCESSED\' ORDER BY "createdAt" DESC LIMIT 1',
+          [messageId],
+        );
+        ticketId = result.rows[0]?.createdTicketId ?? null;
+        return ticketId !== null;
+      }, { timeout: 180_000, message: 'No processed inbound message with a created ticket; verify the isolated mailbox worker fixture' }).toBe(true);
+    } catch {
+      let diagnosis = 'Inbound diagnostic query failed; inspect the database connection.';
+      try {
+        const result = await db.query<InboundDiagnosticRow>(
+          `SELECT status::text AS status, reason,
+                  ("messageIdHeader" = $1) AS message_id_matches,
+                  (subject = $2) AS subject_matches,
+                  ("createdTicketId" IS NOT NULL) AS has_created_ticket
+           FROM "InboundEmail" WHERE "messageIdHeader" = $1 OR subject = $2
+           ORDER BY "createdAt" DESC LIMIT 10`,
+          [messageId, subject],
+        );
+        diagnosis = formatInboundDiagnostics(result.rows);
+      } catch {
+        // No raw DB error: it could contain addresses or credentials.
+      }
+      throw new Error(`Inbound correlation did not complete. ${diagnosis}`);
+    }
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
     const ticket = await admin.requestJson<{ id: string; title: string }>(`/tickets/${ticketId}`);

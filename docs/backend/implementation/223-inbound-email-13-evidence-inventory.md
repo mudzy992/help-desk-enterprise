@@ -26,3 +26,7 @@ Test 58 je izvršen, ali je pao na prethodnoj provjeri konfiguracije prije spaja
 ### Ciljani run 43313627742
 
 Test 58 prijavio je da u jobu nedostaju ili su neispravni `E2E_VAL6_SMTP_HOST`, `E2E_VAL6_SMTP_PORT` i `E2E_VAL6_INBOUND_ADDRESS`; baza nije bila među prijavljenim nedostacima. Test nije slao poruku i nije dokaz isporuke. Vrijednosti nisu ispisane niti potvrđene kao ispravan izolovani fixture.
+
+### Ciljani run 43420715389 i sigurna dijagnostika
+
+Test 58 je spojio bazu i SMTP slanje nije prijavilo grešku, ali u roku od 180 sekundi nije pronađen PROCESSED red s kreiranim tiketom za testni Message-ID. To ne dokazuje dostavu u inbox ni razlog obrade. Na neuspjeh korelacije test sada traži samo vlastiti jedinstveni Message-ID ili naslov i prikazuje ograničen broj statusa, poznatih kodova razloga i boolean podudaranja, bez adrese, naslova, ID-a, sadržaja ili vrijednosti secreta. Ako nema reda, to samo znači da nijedan red u ispitanoj bazi ne odgovara ta dva identifikatora. Za prihvatanje i dalje vrijedi originalni strogi Message-ID + PROCESSED + kreirani tiket; dijagnostička pretraga po naslovu ne pretvara test u prolaz.
