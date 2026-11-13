@@ -1,9 +1,26 @@
-import { expect, test } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
+import { snapshotFormsSetting, restoreFormsSetting } from '../helpers/forms-setting-recovery';
 import { ApiClient } from '../helpers/api-client';
 import { withSettings } from '../helpers/assets';
 import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
+
+// A separate teardown budget survives a timed-out test body. The journal keeps
+// the original value if Playwright discards this worker and retries the test.
+const test = base.extend<{ formsRecovery: void }>({
+  formsRecovery: [async ({}, use) => {
+    const env = readE2EEnvironment();
+    const api = new ApiClient();
+    await api.login(env.superAdminEmail, env.superAdminPassword);
+    await snapshotFormsSetting(api);
+    try {
+      await use();
+    } finally {
+      await restoreFormsSetting(api);
+    }
+  }, { timeout: 240_000 }],
+});
 
 type UnitNode = { readonly id: string; readonly name: string };
 type GroupListItem = { readonly id: string; readonly name: string; readonly organizationalUnitId: string };
@@ -194,7 +211,8 @@ test.describe('15 workflow, unrouted target group, admin realtime', () => {
     });
   });
 
-  test('forms.enabled controls the UI and leaves created tickets unbound to a form', async ({ page }) => {
+  test('forms.enabled controls the UI and leaves created tickets unbound to a form', async ({ page, formsRecovery }) => {
+    void formsRecovery;
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);

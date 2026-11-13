@@ -1,3 +1,5 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { ApiClient } from './helpers/api-client';
@@ -17,6 +19,7 @@ import { waitForStack } from './helpers/wait-for-stack';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default async function globalSetup(): Promise<void> {
+  process.env.E2E_FORMS_RECOVERY_JOURNAL = path.join(mkdtempSync(path.join(tmpdir(), 'e2e-forms-')), 'snapshot.json');
   await waitForStack();
   await assertCaptchaOff();
   const api = new ApiClient();

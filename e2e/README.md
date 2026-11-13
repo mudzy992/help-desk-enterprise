@@ -493,3 +493,9 @@ Test `58-inbound-mailbox-to-ticket.spec.ts` je opt-in i inače je **skipped**. P
 ### Val 6 — realtime notifikacija test 59
 
 `59-notifications-realtime.spec.ts` je opt-in (`E2E_VAL6_REALTIME=1` kao GitHub Actions Variable). Potrebni su izolovan potrošni stack s dva testna računa (requester i admin), omogućene in-app notifikacije za odgovor na tiket i ispravan WebSocket. Test stvara tiket i odgovor; poslije resetovati testno okruženje. Test bez varijable je skipped, ne dokaz. Pozitivni browser scenarij ne zamjenjuje provjeru revokacije i recoveryja.
+
+### Oporavak prekidača formi u testu 15
+
+Test 15 privremeno isključuje `private.ticket.forms.enabled`. Prije promjene fixture bilježi stvarnu početnu boolean vrijednost u privremeni lokalni journal pojedinačnog runa; zaseban Playwright teardown s dodatnim vremenom pokušava vratiti i provjeriti vrijednost. Ako čišćenje ne uspije, journal ostaje za retry ili global teardown istog runa; retry ne prihvata privremeni `false` kao novu početnu vrijednost. Test radi samo sa jednim workerom i izolovanim stackom bez konkurentnih promjena postavki. Potpuni prekid runnera, nedostupan API ili izgubljen journal mogu onemogućiti vraćanje: provjeriti postavku i vratiti je ručno na prethodnu vrijednost. Ne smatrajte fallback zamjenom za izolaciju ni garancijom oporavka.
+
+Offline provjera oporavka (ne spaja se na stack): `npx playwright test -c unit/playwright.config.ts` iz direktorija `e2e`.
