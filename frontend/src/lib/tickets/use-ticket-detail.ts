@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
+import { scopedTicketSetter } from "@/lib/tickets/scoped-ticket-setter";
 import { createLatestRequestGuard } from "@/lib/async/latest-request-guard";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { loadTicketDetail } from "@/lib/tickets/load-ticket-detail";
@@ -64,15 +64,6 @@ export function useTicketDetail(ticketId: string | undefined) {
     setErrorKey(null);
     setActionError(null);
   }
-  const scopedSetter =
-    <T>(setter: Dispatch<SetStateAction<T>>, epoch: number): Dispatch<SetStateAction<T>> =>
-    (value) => {
-      if (actionEpoch.current !== epoch || accessDenied.current) return;
-      setter((current) => {
-        if (actionEpoch.current !== epoch || accessDenied.current) return current;
-        return typeof value === "function" ? (value as (previous: T) => T)(current) : value;
-      });
-    };
   const onAccessDenied = useCallback(() => {
     accessDenied.current = true;
     actionEpoch.current += 1;
@@ -255,6 +246,7 @@ export function useTicketDetail(ticketId: string | undefined) {
         const epoch = actionEpoch.current;
         if (accessDenied.current)
           return Promise.reject(new Error("Ticket access is being revalidated"));
+        const isCurrent = () => actionEpoch.current === epoch && !accessDenied.current;
         return sendTicketMessageOptimistic({
           ticketId: id,
           type,
@@ -262,9 +254,9 @@ export function useTicketDetail(ticketId: string | undefined) {
           alsoToMerged: options?.alsoToMerged,
           responseTemplateId: options?.responseTemplateId,
           authorUserId: currentUserId,
-          setMessages: scopedSetter(setMessages, epoch),
-          setTicket: scopedSetter(setTicket, epoch),
-          setActionError: scopedSetter(setActionError, epoch),
+          setMessages: scopedTicketSetter(setMessages, isCurrent),
+          setTicket: scopedTicketSetter(setTicket, isCurrent),
+          setActionError: scopedTicketSetter(setActionError, isCurrent),
         });
       }),
     reopen: async () => {
