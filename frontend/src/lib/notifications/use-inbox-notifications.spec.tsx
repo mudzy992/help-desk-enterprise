@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   markAllNotificationsRead: vi.fn(),
   markNotificationRead: vi.fn(),
 }));
+const socketListeners = vi.hoisted(() => new Map<string, (payload: unknown) => void>());
 const sessionState = vi.hoisted(() => ({
   session: { principal: { subjectId: "user-1" } },
 }));
@@ -29,7 +30,10 @@ vi.mock("@/services/helpdesk-socket", () => ({
   releaseHelpdeskSocket: vi.fn(),
 }));
 vi.mock("@/lib/realtime/subscribe-socket-event", () => ({
-  subscribeSocketEvent: () => vi.fn(),
+  subscribeSocketEvent: (_socket: unknown, name: string, callback: (payload: unknown) => void) => {
+    socketListeners.set(name, callback);
+    return () => socketListeners.delete(name);
+  },
 }));
 vi.mock("@/services/notifications-api", () => apiMocks);
 
@@ -37,8 +41,11 @@ afterEach(cleanup);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  socketListeners.clear();
   apiMocks.listNotifications.mockReset();
+  apiMocks.getNotificationUnreadCount.mockReset();
   socketHealthState.value = "disconnected";
+  sessionState.session.principal.subjectId = "user-1";
   Object.defineProperty(document, "visibilityState", {
     configurable: true,
     value: "visible",
@@ -46,6 +53,228 @@ beforeEach(() => {
 });
 
 describe("useInboxNotifications pagination", () => {
+  it("does not overwrite a create event with an older first-page snapshot", async () => {
+    const old = deferred<NotificationListResponse>();
+    apiMocks.listNotifications.mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useInboxNotifications({ isListVisible: true }));
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.refreshList();
+    });
+    act(() =>
+      socketListeners.get("notification.created")?.({
+        notification: notification("new"),
+        unreadCount: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.123Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve(page([], false, null, 0));
+      await pending;
+    });
+    expect(result.current.items.map((item) => item.id)).toContain("new");
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("does not overwrite a read event with an older next-page response", async () => {
+    const old = deferred<NotificationListResponse>();
+    apiMocks.listNotifications
+      .mockResolvedValueOnce(page([notification("first")], true, "cursor-1", 2))
+      .mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useInboxNotifications({ isListVisible: true }));
+    await act(async () => result.current.refreshList());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.loadMore();
+    });
+    act(() =>
+      socketListeners.get("notification.read")?.({
+        notification: notification("first", true),
+        unreadCount: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.123Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve(page([notification("next")], false, null, 2));
+      await pending;
+    });
+    expect(result.current.items.find((item) => item.id === "first")?.isRead).toBe(true);
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("does not overwrite a newer socket badge with a delayed unread request", async () => {
+    const old = deferred<{ unreadCount: number }>();
+    apiMocks.getNotificationUnreadCount.mockReturnValueOnce(old.promise);
+    socketHealthState.value = "disconnected";
+    const { rerender, result } = renderHook(() => useInboxNotifications());
+    await act(async () => {
+      socketHealthState.value = "connected";
+      rerender();
+    });
+    act(() =>
+      socketListeners.get("notification.unread-count")?.({
+        notification: null,
+        unreadCount: 5,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.123Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve({ unreadCount: 1 });
+    });
+    expect(result.current.unreadCount).toBe(5);
+  });
+
+  it("does not expose an old user's pending page after switching account", async () => {
+    const old = deferred<NotificationListResponse>();
+    apiMocks.listNotifications.mockReturnValueOnce(old.promise);
+    const { result, rerender } = renderHook(() => useInboxNotifications());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.refreshList();
+    });
+    act(() => {
+      sessionState.session.principal.subjectId = "user-2";
+      rerender();
+    });
+    await act(async () => {
+      old.resolve(page([notification("private-old")], false, null));
+      await pending;
+    });
+    expect(result.current.items).toEqual([]);
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it("keeps a new notification created while mark-all is in flight", async () => {
+    const old = deferred<{ unreadCount: number }>();
+    apiMocks.listNotifications.mockResolvedValueOnce(page([notification("first")], false, null, 1));
+    apiMocks.markAllNotificationsRead.mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useInboxNotifications());
+    await act(async () => result.current.refreshList());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.markAllRead();
+    });
+    act(() =>
+      socketListeners.get("notification.created")?.({
+        notification: notification("new"),
+        unreadCount: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.123Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve({ unreadCount: 0 });
+      await pending;
+    });
+    expect(result.current.items.find((item) => item.id === "new")?.isRead).toBe(false);
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("ignores an old user's pending mark-all response after account switch", async () => {
+    const pending = deferred<{ unreadCount: number }>();
+    apiMocks.listNotifications.mockResolvedValue(page([notification("old")], false, null, 1));
+    apiMocks.markAllNotificationsRead.mockReturnValueOnce(pending.promise);
+    const { result, rerender } = renderHook(() => useInboxNotifications());
+    await act(async () => result.current.refreshList());
+    let marking!: Promise<void>;
+    act(() => {
+      marking = result.current.markAllRead();
+    });
+    act(() => {
+      sessionState.session.principal.subjectId = "user-2";
+      rerender();
+    });
+    act(() =>
+      socketListeners.get("notification.created")?.({
+        notification: notification("old"),
+        unreadCount: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.123Z",
+      }),
+    );
+    await act(async () => {
+      pending.resolve({ unreadCount: 0 });
+      await marking;
+    });
+    expect(result.current.items.map((item) => [item.id, item.isRead])).toEqual([["old", false]]);
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("reconciles mark-all during an in-flight first page and keeps the unread filter", async () => {
+    const old = deferred<NotificationListResponse>();
+    apiMocks.listNotifications.mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useInboxNotifications());
+    act(() => result.current.setUnreadOnly(true));
+    act(() =>
+      socketListeners.get("notification.read")?.({
+        notification: null,
+        unreadCount: 0,
+        readAll: true,
+        occurredAt: "2026-11-06T10:20:31.123Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve(page([notification("already-read")], false, null, 1));
+      await old.promise;
+    });
+    expect(result.current.items).toEqual([]);
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it("ignores excluded group notifications even during a snapshot", async () => {
+    const old = deferred<NotificationListResponse>();
+    apiMocks.listNotifications.mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useInboxNotifications());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.refreshList();
+    });
+    act(() =>
+      socketListeners.get("notification.created")?.({
+        notification: notification("excluded"),
+        unreadDelta: 1,
+        excludedUserIds: ["user-1"],
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:31.123Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve(page([], false, null, 0));
+      await pending;
+    });
+    expect(result.current.items).toEqual([]);
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it("fails visibly rather than committing an incomplete snapshot when the event buffer overflows", async () => {
+    const old = deferred<NotificationListResponse>();
+    apiMocks.listNotifications.mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useInboxNotifications());
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.refreshList();
+    });
+    act(() => {
+      for (let i = 0; i < 501; i += 1)
+        socketListeners.get("notification.created")?.({
+          notification: notification(`event-${i}`),
+          unreadCount: i + 1,
+          readAll: false,
+          occurredAt: "2026-11-06T10:20:31.123Z",
+        });
+    });
+    await act(async () => {
+      old.resolve(page([], false, null, 0));
+      await pending;
+    });
+    expect(result.current.items).toHaveLength(501);
+    expect(result.current.unreadCount).toBe(501);
+    expect(result.current.listErrorKey).not.toBeNull();
+  });
+
   it("appends unique rows from the next cursor page", async () => {
     apiMocks.listNotifications
       .mockResolvedValueOnce(page([notification("n5"), notification("n4")], true, "cursor-1"))

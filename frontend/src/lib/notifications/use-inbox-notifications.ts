@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useInboxReconnect } from "@/lib/notifications/use-inbox-reconnect";
+import { useInboxVisibilityRefresh } from "@/lib/notifications/use-inbox-visibility-refresh";
+import {
+  appendUniqueNotifications,
+  markKnownRead,
+  checkNotificationJournal,
+  recordNotificationEvent,
+  reconcileListEvents,
+} from "@/lib/notifications/notification-snapshot-reconcile";
 import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
-import { reportClientError } from "@/lib/app/client-logger";
 import type { Socket } from "socket.io-client";
 import { useSession } from "@/lib/session/use-session";
 import {
@@ -24,13 +32,6 @@ import {
   type InAppNotification,
 } from "@/services/notifications-api";
 
-/**
- * Inbox notifications.
- *
- * The badge is push-driven through the helpdesk socket, so the 30-second poll
- * only runs as a fallback while the socket is not connected. Inbox pages use a
- * stable server cursor; the in-memory list contains only pages the user opened.
- */
 export type UseInboxNotificationsOptions = {
   readonly isListVisible?: boolean;
 };
@@ -50,16 +51,34 @@ export function useInboxNotifications({
   const isLoadingMoreRef = useRef(false);
   const isLoadingFirstPageRef = useRef(false);
   const requestSequence = useRef(0);
-  // A failing read must not look like "no activity" — keep prior items and
-  // expose the error/request ID so the UI can offer a retry.
+  const unreadRevision = useRef(0);
+  const identityEpoch = useRef(0);
+  const listEvents = useRef<
+    Array<{ kind: "created" | "read"; payload: NotificationRealtimePayload }>
+  >([]);
   const [listErrorKey, setListErrorKey] = useState<ApiErrorKey | null>(null);
   const [listRequestId, setListRequestId] = useState<string | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const socketHealth = useSocketHealth(socket);
-
+  const subjectId = session?.principal.subjectId;
+  useEffect(() => {
+    setItems([]);
+    setUnreadCount(0);
+    setHasMore(false);
+    setNextCursor(null);
+    return () => {
+      requestSequence.current += 1;
+      unreadRevision.current += 1;
+      identityEpoch.current += 1;
+      isLoadingFirstPageRef.current = false;
+      isLoadingMoreRef.current = false;
+    };
+  }, [subjectId]);
   const loadFirstPage = useCallback(
     async (filterUnreadOnly: boolean) => {
       const requestId = ++requestSequence.current;
+      const unreadAtStart = ++unreadRevision.current;
+      listEvents.current = [];
       isLoadingFirstPageRef.current = true;
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
@@ -76,8 +95,13 @@ export function useInboxNotifications({
       try {
         const response = await listNotifications({ unreadOnly: filterUnreadOnly });
         if (requestId !== requestSequence.current) return;
-        setItems(response.items);
-        setUnreadCount(response.unreadCount);
+        if (!checkNotificationJournal(listEvents.current, () => setListErrorKey("errors.server")))
+          return;
+        setItems(reconcileListEvents(response.items, listEvents.current, filterUnreadOnly));
+        if (unreadAtStart === unreadRevision.current) {
+          unreadRevision.current += 1;
+          setUnreadCount(response.unreadCount);
+        }
         setHasMore(response.hasMore);
         setNextCursor(response.nextCursor);
       } catch (error) {
@@ -87,6 +111,7 @@ export function useInboxNotifications({
       } finally {
         if (requestId === requestSequence.current) {
           isLoadingFirstPageRef.current = false;
+          listEvents.current = [];
         }
       }
     },
@@ -103,7 +128,6 @@ export function useInboxNotifications({
     setIsLoadingMore(false);
     return true;
   }, []);
-
   const setUnreadOnly = useCallback(
     (next: boolean) => {
       if (next === unreadOnlyRef.current) return;
@@ -129,6 +153,8 @@ export function useInboxNotifications({
       return;
     }
     const requestId = ++requestSequence.current;
+    const unreadAtStart = ++unreadRevision.current;
+    listEvents.current = [];
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     setListErrorKey(null);
@@ -136,8 +162,16 @@ export function useInboxNotifications({
     try {
       const response = await listNotifications({ unreadOnly, cursor });
       if (requestId !== requestSequence.current) return;
-      setItems((current) => appendUniqueNotifications(current, response.items));
-      setUnreadCount(response.unreadCount);
+      if (!checkNotificationJournal(listEvents.current, () => setListErrorKey("errors.server")))
+        return;
+      const events = [...listEvents.current];
+      setItems((current) =>
+        reconcileListEvents(appendUniqueNotifications(current, response.items), events, unreadOnly),
+      );
+      if (unreadAtStart === unreadRevision.current) {
+        unreadRevision.current += 1;
+        setUnreadCount(response.unreadCount);
+      }
       setHasMore(response.hasMore);
       setNextCursor(response.nextCursor);
     } catch (error) {
@@ -147,22 +181,30 @@ export function useInboxNotifications({
     } finally {
       if (requestId === requestSequence.current) {
         isLoadingMoreRef.current = false;
+        listEvents.current = [];
         setIsLoadingMore(false);
       }
     }
   }, [hasMore, nextCursor, session, unreadOnly]);
-
   const refreshUnread = useCallback(async () => {
     if (session === null) {
       setUnreadCount(0);
       return;
     }
+    const unreadAtStart = ++unreadRevision.current;
     const response = await getNotificationUnreadCount();
-    setUnreadCount(response.unreadCount);
+    if (unreadAtStart === unreadRevision.current) {
+      unreadRevision.current += 1;
+      setUnreadCount(response.unreadCount);
+    }
   }, [session]);
-
-  const previousSocketHealth = useRef(socketHealth);
-  const hasConnectedBefore = useRef(socketHealth === "connected");
+  const hasConnectedBefore = useInboxReconnect(
+    socketHealth,
+    session !== null,
+    isListVisible,
+    refreshList,
+    refreshUnread,
+  );
   useVisibilityAwarePolling({
     poll: refreshUnread,
     intervalMs: unreadCountFallbackIntervalMs,
@@ -170,48 +212,16 @@ export function useInboxNotifications({
     telemetryKey: "notifications.unread_poll_failed",
   });
 
-  useEffect(() => {
-    const reconnected =
-      previousSocketHealth.current !== "connected" && socketHealth === "connected";
-    previousSocketHealth.current = socketHealth;
-    if (!reconnected || session === null) return;
-    const hadConnectedBefore = hasConnectedBefore.current;
-    hasConnectedBefore.current = true;
-    void refreshUnread().catch((error) =>
-      reportClientError("notifications.unread_reconnect_failed", error, readApiRequestId(error)),
-    );
-    if (hadConnectedBefore && isListVisible && isDocumentVisible()) {
-      void refreshList();
-    }
-  }, [isListVisible, refreshList, refreshUnread, session, socketHealth]);
-
-  useEffect(() => {
-    if (!isListVisible || typeof document === "undefined") return;
-    const refreshVisibleInboxOnFocus = () => {
-      if (
-        document.visibilityState === "visible" &&
-        socketHealth === "connected" &&
-        hasConnectedBefore.current
-      ) {
-        void refreshList();
-      }
-    };
-    document.addEventListener("visibilitychange", refreshVisibleInboxOnFocus);
-    return () => {
-      document.removeEventListener("visibilitychange", refreshVisibleInboxOnFocus);
-    };
-  }, [isListVisible, refreshList, socketHealth]);
-
+  useInboxVisibilityRefresh(isListVisible, socketHealth, hasConnectedBefore, refreshList);
   useEffect(() => {
     if (session === null) {
       return;
     }
     const socket = acquireHelpdeskSocket();
-    // The socket health hook uses this reference to decide whether the fallback
-    // badge poll has to run.
     setSocket(socket);
     const currentUserId = session.principal.subjectId;
     const applyCount = (payload: NotificationRealtimePayload) => {
+      unreadRevision.current += 1;
       setUnreadCount((current) => nextUnreadCount(current, payload));
     };
     const stopCreated = subscribeSocketEvent<NotificationRealtimePayload>(
@@ -221,6 +231,8 @@ export function useInboxNotifications({
         if (isExcludedGroupEvent(payload, currentUserId)) {
           return;
         }
+        if (isLoadingFirstPageRef.current || isLoadingMoreRef.current)
+          recordNotificationEvent(listEvents.current, "created", payload);
         setItems((current) => {
           const updated = applyNotificationCreated(current, payload);
           return unreadOnlyRef.current ? updated.filter((item) => !item.isRead) : updated;
@@ -232,6 +244,8 @@ export function useInboxNotifications({
       socket,
       ticketSocketEvents.notificationRead,
       (payload) => {
+        if (isLoadingFirstPageRef.current || isLoadingMoreRef.current)
+          recordNotificationEvent(listEvents.current, "read", payload);
         setItems((current) => {
           const updated = applyNotificationRead(current, payload);
           return unreadOnlyRef.current ? updated.filter((item) => !item.isRead) : updated;
@@ -251,11 +265,12 @@ export function useInboxNotifications({
       setSocket(null);
       releaseHelpdeskSocket();
     };
-  }, [refreshUnread, session]);
-
+  }, [refreshUnread, session, subjectId]);
   const markOneRead = useCallback(
     async (notificationId: string) => {
+      const epoch = identityEpoch.current;
       const updated = await markNotificationRead(notificationId);
+      if (epoch !== identityEpoch.current) return;
       const hadPendingListRequest = cancelPendingListRequests();
       setItems((current) =>
         unreadOnlyRef.current
@@ -263,24 +278,29 @@ export function useInboxNotifications({
           : current.map((item) => (item.id === updated.id ? updated : item)),
       );
       await refreshUnread();
-      if (hadPendingListRequest) await refreshList();
+      if (epoch === identityEpoch.current && hadPendingListRequest) await refreshList();
     },
     [cancelPendingListRequests, refreshList, refreshUnread],
   );
 
   const markAllRead = useCallback(async () => {
+    const epoch = identityEpoch.current;
+    const unreadAtStart = ++unreadRevision.current;
+    const idsAtStart = new Set(items.map((item) => item.id));
     const result = await markAllNotificationsRead();
+    if (epoch !== identityEpoch.current) return;
     const hadPendingListRequest = cancelPendingListRequests();
-    setItems((current) =>
-      unreadOnlyRef.current ? [] : current.map((item) => ({ ...item, isRead: true })),
-    );
-    setUnreadCount(result.unreadCount);
+    setItems((current) => markKnownRead(current, idsAtStart, unreadOnlyRef.current));
+    if (unreadAtStart === unreadRevision.current) {
+      unreadRevision.current += 1;
+      setUnreadCount(result.unreadCount);
+    }
     if (unreadOnlyRef.current) {
       setHasMore(false);
       setNextCursor(null);
     }
     if (hadPendingListRequest) await refreshList();
-  }, [cancelPendingListRequests, refreshList]);
+  }, [cancelPendingListRequests, items, refreshList]);
 
   return {
     items,
@@ -296,23 +316,4 @@ export function useInboxNotifications({
     markOneRead,
     markAllRead,
   };
-}
-
-function isDocumentVisible(): boolean {
-  return typeof document === "undefined" || document.visibilityState === "visible";
-}
-
-function appendUniqueNotifications(
-  current: readonly InAppNotification[],
-  incoming: readonly InAppNotification[],
-): InAppNotification[] {
-  const seen = new Set(current.map((item) => item.id));
-  return [
-    ...current,
-    ...incoming.filter((item) => {
-      if (seen.has(item.id)) return false;
-      seen.add(item.id);
-      return true;
-    }),
-  ];
 }
