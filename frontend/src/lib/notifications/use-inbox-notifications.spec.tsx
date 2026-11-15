@@ -127,6 +127,77 @@ describe("useInboxNotifications pagination", () => {
     expect(result.current.unreadCount).toBe(5);
   });
 
+  it("repairs a badge after an older absolute socket count arrives last", async () => {
+    apiMocks.getNotificationUnreadCount.mockResolvedValue({ unreadCount: 1 });
+    const { result } = renderHook(() => useInboxNotifications());
+    act(() => {
+      socketListeners.get("notification.unread-count")?.({
+        notification: null,
+        unreadCount: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:31.000Z",
+      });
+      socketListeners.get("notification.unread-count")?.({
+        notification: null,
+        unreadCount: 4,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.000Z",
+      });
+    });
+    await waitFor(() => expect(apiMocks.getNotificationUnreadCount).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.unreadCount).toBe(1));
+  });
+
+  it("corrects repeated group deltas from the server count", async () => {
+    apiMocks.getNotificationUnreadCount.mockResolvedValue({ unreadCount: 1 });
+    const { result } = renderHook(() => useInboxNotifications());
+    act(() => {
+      const payload = {
+        notification: notification("group"),
+        unreadDelta: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.000Z",
+      };
+      socketListeners.get("notification.created")?.(payload);
+      socketListeners.get("notification.created")?.(payload);
+    });
+    expect(result.current.unreadCount).toBe(2);
+    await waitFor(() => expect(result.current.unreadCount).toBe(1));
+    expect(result.current.items.filter((item) => item.id === "group")).toHaveLength(1);
+  });
+
+  it("ignores an older count read when another socket event arrives during it", async () => {
+    const old = deferred<{ unreadCount: number }>();
+    apiMocks.getNotificationUnreadCount
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValueOnce({ unreadCount: 2 });
+    const { result } = renderHook(() => useInboxNotifications());
+    act(() =>
+      socketListeners.get("notification.unread-count")?.({
+        notification: null,
+        unreadCount: 1,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:30.000Z",
+      }),
+    );
+    await waitFor(() => expect(apiMocks.getNotificationUnreadCount).toHaveBeenCalledTimes(1));
+    act(() =>
+      socketListeners.get("notification.unread-count")?.({
+        notification: null,
+        unreadCount: 2,
+        readAll: false,
+        occurredAt: "2026-11-06T10:20:31.000Z",
+      }),
+    );
+    await act(async () => {
+      old.resolve({ unreadCount: 1 });
+      await old.promise;
+    });
+    expect(result.current.unreadCount).toBe(2);
+    await waitFor(() => expect(apiMocks.getNotificationUnreadCount).toHaveBeenCalledTimes(2));
+    expect(result.current.unreadCount).toBe(2);
+  });
+
   it("does not expose an old user's pending page after switching account", async () => {
     const old = deferred<NotificationListResponse>();
     apiMocks.listNotifications.mockReturnValueOnce(old.promise);

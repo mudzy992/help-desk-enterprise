@@ -7,6 +7,7 @@ import {
   recordNotificationEvent,
   reconcileListEvents,
 } from "@/lib/notifications/notification-snapshot-reconcile";
+import { createNotificationCountCatchup } from "@/lib/notifications/notification-count-catchup";
 import { useVisibilityAwarePolling } from "@/lib/async/use-visibility-aware-polling";
 import type { Socket } from "socket.io-client";
 import { useSession } from "@/lib/session/use-session";
@@ -15,7 +16,6 @@ import {
   applyNotificationRead,
   type NotificationRealtimePayload,
   isExcludedGroupEvent,
-  nextUnreadCount,
 } from "@/lib/realtime/apply-notification-realtime";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
 import { useSocketHealth } from "@/lib/realtime/use-socket-health";
@@ -219,10 +219,12 @@ export function useInboxNotifications({
     const socket = acquireHelpdeskSocket();
     setSocket(socket);
     const currentUserId = session.principal.subjectId;
-    const applyCount = (payload: NotificationRealtimePayload) => {
-      unreadRevision.current += 1;
-      setUnreadCount((current) => nextUnreadCount(current, payload));
-    };
+    const countCatchup = createNotificationCountCatchup(
+      refreshUnread,
+      unreadRevision,
+      setUnreadCount,
+    );
+    const applyCount = countCatchup.apply;
     const stopCreated = subscribeSocketEvent<NotificationRealtimePayload>(
       socket,
       ticketSocketEvents.notificationCreated,
@@ -263,6 +265,7 @@ export function useInboxNotifications({
       applyCount,
     );
     return () => {
+      countCatchup.cancel();
       stopCreated();
       stopRead();
       stopCount();
