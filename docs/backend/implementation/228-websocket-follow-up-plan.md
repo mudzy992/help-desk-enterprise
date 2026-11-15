@@ -37,7 +37,7 @@ Regresijski testovi pokrivaju identitet, skriveni tab, reconnect signal i ekspli
 
 ## Korisnički potvrđen segment i otvoreni nastavak
 
-Korisnik je potvrdio ispravljeni N1, N2, N3, A1 i A2 i odobrio zatvaranje provjerenog notifikacijskog/admin segmenta; N4, R1 i R2 N/A. To nije dokaz stvarnog Redis outage/cross-instance, svih oblika paginationa ili durable replaya. Ticket revoke/join već je ranije owner-directed zatvoren uz prihvaćeni rizik. WR-01 je korisnik nakon L1–L7 DA odobrio zatvoriti, uz dokumentovani nedokazani cross-instance/outage i adapter rizik. Scoped admin live osvježavanje dok veza ostaje aktivna nema autorizovani zasebni feed; razmotriti potrebnu svježinu i siguran pristup. Generički ne-notification EDGE payload-i zadržavaju ticket-room semantiku i trebaju zasebnu procjenu prije tvrdnji o njihovoj izolaciji. Paket 228 nije kompletno zatvoren.
+Korisnik je potvrdio ispravljeni N1, N2, N3, A1 i A2 i odobrio zatvaranje provjerenog notifikacijskog/admin segmenta; N4, R1 i R2 N/A. To nije dokaz stvarnog Redis outage/cross-instance, svih oblika paginationa ili durable replaya. Ticket revoke/join već je ranije owner-directed zatvoren uz prihvaćeni rizik. WR-01 je korisnik nakon L1–L7 DA odobrio zatvoriti, uz dokumentovani nedokazani cross-instance/outage i adapter rizik. Scoped admin live osvježavanje dok veza ostaje aktivna nema autorizovani zasebni feed; razmotriti potrebnu svježinu i siguran pristup. Generički EDGE payload-i sada se šalju samo adresiranom korisniku; promjena ranije ticket-room semantike i kompatibilnosni rizik dokumentovani su u [235](235-edge-recipient-scope.md). Paket 228 nije kompletno zatvoren.
 
 ## WR-01 — dodatni room-ready catch-up
 
