@@ -21,3 +21,17 @@ it("does not reuse a pending pre-event query for the catch-up read", async () =>
   expect(queryFn).toHaveBeenCalledTimes(2);
   client.clear();
 });
+
+it("invalidates every dashboard source, including inbox counts", async () => {
+  const invalidateQueries = vi.fn().mockResolvedValue(undefined);
+  const cancelQueries = vi.fn().mockResolvedValue(undefined);
+  await invalidateDashboardQueries({ invalidateQueries, cancelQueries } as unknown as QueryClient);
+  const keys = [
+    queryKeys.dashboardSummaryPrefix,
+    queryKeys.ticketLists,
+    queryKeys.ticketCountsPrefix,
+    queryKeys.groupInbox,
+  ];
+  expect(cancelQueries.mock.calls.map(([filters]) => filters.queryKey)).toEqual(keys);
+  expect(invalidateQueries.mock.calls.map(([filters]) => filters.queryKey)).toEqual(keys);
+});
