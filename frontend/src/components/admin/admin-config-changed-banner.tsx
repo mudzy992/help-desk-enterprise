@@ -25,9 +25,12 @@ export function AdminConfigChangedBanner({
     >
       <RefreshCw size={14} className="shrink-0 text-warning" />
       <span className="flex-1">
-        {pending.actorName
-          ? t("adminRealtime.changedBy", { domain, name: pending.actorName })
-          : t("adminRealtime.changed", { domain })}
+        {pending.reason === "reconnect"
+          ? t("adminRealtime.reconnected")
+          : pending.actorName
+            ? t("adminRealtime.changedBy", { domain, name: pending.actorName })
+            : t("adminRealtime.changed", { domain })}{" "}
+        {t("adminRealtime.refreshWarning")}
       </span>
       <Button type="button" size="xs" variant="outline" onClick={onRefresh}>
         {t("adminRealtime.refresh")}

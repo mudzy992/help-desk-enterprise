@@ -14,6 +14,7 @@ export type AdminConfigDomain = (typeof adminConfigDomains)[number];
 
 export type AdminConfigUpdatedEvent = {
   readonly domain: AdminConfigDomain;
+  readonly reason?: "reconnect";
   readonly action: "create" | "update" | "delete";
   readonly actorUserId: string | null;
   readonly actorName: string | null;
@@ -76,6 +77,19 @@ export function subscribeAdminConfigEvents(listener: Listener): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+  };
+}
+
+const reconnectListeners = new Set<() => void>();
+
+export function publishAdminConfigReconnect(): void {
+  for (const listener of reconnectListeners) listener();
+}
+
+export function subscribeAdminConfigReconnect(listener: () => void): () => void {
+  reconnectListeners.add(listener);
+  return () => {
+    reconnectListeners.delete(listener);
   };
 }
 

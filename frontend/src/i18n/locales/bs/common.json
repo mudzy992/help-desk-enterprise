@@ -6731,6 +6731,8 @@
     },
     "changedBy": "{{name}} je upravo izmijenio/la {{domain}}. Ekran nije osvježen da ne izgubite unos.",
     "changed": "Neko je upravo izmijenio {{domain}}. Ekran nije osvježen da ne izgubite unos.",
+    "reconnected": "Veza je ponovo uspostavljena; moguće su promjene tokom prekida. Ekran nije automatski osvježen.",
+    "refreshWarning": "Osvježavanje može odbaciti nespremljene izmjene.",
     "refresh": "Osvježi",
     "dismiss": "Zatvori obavještenje"
   },

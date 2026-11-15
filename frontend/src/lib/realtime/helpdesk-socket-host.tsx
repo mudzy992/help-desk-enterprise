@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { subscribeToAdminConfigReconnect } from "@/lib/realtime/admin-config-reconnect";
 import { subscribeToQueryInvalidation } from "@/lib/realtime/invalidate-on-event";
 import { subscribeToRealtimeReconnectCatchup } from "@/lib/realtime/reconnect-catchup";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
@@ -55,6 +56,7 @@ export function HelpdeskSocketHost() {
         publishAdminConfigEvent(event);
       },
     );
+    const stopAdminReconnect = subscribeToAdminConfigReconnect(socket);
     const stopInvalidation = subscribeToQueryInvalidation({
       socket,
       queryClient,
@@ -67,6 +69,7 @@ export function HelpdeskSocketHost() {
       stopInvalidated();
       stopSettings();
       stopAdminConfig();
+      stopAdminReconnect();
       stopInvalidation();
       stopReconnectCatchup();
       releaseHelpdeskSocket();

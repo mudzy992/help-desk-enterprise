@@ -6701,6 +6701,8 @@
     },
     "changedBy": "{{name}} just changed {{domain}}. The screen was not refreshed so you keep your input.",
     "changed": "Someone just changed {{domain}}. The screen was not refreshed so you keep your input.",
+    "reconnected": "The connection was restored; changes may have occurred while disconnected. The screen was not refreshed automatically.",
+    "refreshWarning": "Refreshing may discard unsaved changes.",
     "refresh": "Refresh",
     "dismiss": "Dismiss notice"
   },
