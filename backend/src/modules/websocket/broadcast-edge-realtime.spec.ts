@@ -5,6 +5,7 @@ describe("broadcastEdgeEventRealtime", () => {
     "notification.created",
     "notification.read",
     "notification.unread-count",
+    "time.timer.changed",
   ])("delivers %s only to the intended user room", (eventName) => {
     const emit = jest.fn();
     const to = jest.fn().mockReturnValue({ emit });
@@ -19,7 +20,7 @@ describe("broadcastEdgeEventRealtime", () => {
     expect(emit).toHaveBeenCalledWith(eventName, { unreadCount: 1 });
   });
 
-  it("preserves existing ticket-room delivery for a non-notification edge event", () => {
+  it("limits unknown recipient-specific edge events to the intended user room", () => {
     const emit = jest.fn();
     const to = jest.fn().mockReturnValue({ emit });
     broadcastEdgeEventRealtime({ to } as never, {
@@ -28,6 +29,6 @@ describe("broadcastEdgeEventRealtime", () => {
       eventName: "edge.ticket.activity",
       data: {},
     });
-    expect(to.mock.calls).toEqual([["user:user-1"], ["ticket:ticket-1"]]);
+    expect(to.mock.calls).toEqual([["user:user-1"]]);
   });
 });

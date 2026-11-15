@@ -14,6 +14,7 @@ import {
   ticketPublicRoomName,
   ticketRoomName,
   ticketStaffRoomName,
+  userRoomName,
 } from './ticket-socket-rooms';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -78,8 +79,8 @@ describe('TicketChatGateway live socket room revalidation', () => {
       socket.on('disconnect', () => {
         void socketGateway.handleDisconnect(socket);
       });
-      void socketGateway
-        .handleJoin(socket, { ticketId: 'ticket-live' })
+      void Promise.resolve(socket.join(userRoomName('live-agent')))
+        .then(() => socketGateway.handleJoin(socket, { ticketId: 'ticket-live' }))
         .then(() => socket.emit('test:joined'));
     });
 

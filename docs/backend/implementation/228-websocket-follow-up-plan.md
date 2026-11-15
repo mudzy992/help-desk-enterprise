@@ -42,3 +42,7 @@ Korisnik je potvrdio ispravljeni N1, N2, N3, A1 i A2 i odobrio zatvaranje provje
 ## WR-01 — dodatni room-ready catch-up
 
 Dodat signal i ciljani regresijski testovi: detalji, ograničenja i browser plan u [234](234-collection-room-ready-catchup.md). Korisnik je nakon implementacije potvrdio L1–L7 i odobrio zatvaranje; ne izvlačiti zaključak o zdravlju Redis adaptera iz socket connecta ili room-ready signala.
+
+## Generički EDGE — sigurna podrazumijevana publika
+
+Utvrđen je dodatni mogući cross-recipient broadcast generičkog EDGE payload-a; regresija i izričita promjena ranijeg ticket-room ugovora dokumentovane su u [235](235-edge-recipient-scope.md). Stvarni repo producenti su notification i user timer; vanjski potrošači/legacy payloadovi nisu dokazivo isključeni. Scoped admin osvježavanje ostaje sljedeća nezavisna odluka; ne širiti globalnu sobu.

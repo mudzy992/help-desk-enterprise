@@ -5,7 +5,7 @@ import { io, type Socket as ClientSocket } from "socket.io-client";
 import { broadcastEdgeEventRealtime } from "./broadcast-edge-realtime";
 
 describe("personal Edge notifications in shared ticket rooms", () => {
-  it("delivers each recipient only their own row, even while both view the same ticket", async () => {
+  it.each(["notification.created", "edge.ticket.activity"])("delivers %s only to its recipient even while both view the same ticket", async (eventName) => {
     const http = createServer();
     const server = new Server(http, { transports: ["websocket"] });
     const clients: ClientSocket[] = [];
@@ -40,10 +40,10 @@ describe("personal Edge notifications in shared ticket rooms", () => {
       const second = await connect("user-b");
       const seenA: string[] = [];
       const seenB: string[] = [];
-      first.on("notification.created", (data: { id: string }) =>
+      first.on(eventName, (data: { id: string }) =>
         seenA.push(data.id),
       );
-      second.on("notification.created", (data: { id: string }) =>
+      second.on(eventName, (data: { id: string }) =>
         seenB.push(data.id),
       );
       const firstBarrier = new Promise<void>((resolve) =>
@@ -56,7 +56,7 @@ describe("personal Edge notifications in shared ticket rooms", () => {
         broadcastEdgeEventRealtime(server, {
           userId: user,
           ticketId: "ticket-1",
-          eventName: "notification.created",
+          eventName,
           data: { id: user },
         });
       }

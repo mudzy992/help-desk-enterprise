@@ -231,7 +231,9 @@ describe('TicketChatGateway', () => {
     expect(
       emitted.some((item) => item.event === ticketRealtimeEventNames.messageCreated),
     ).toBe(true);
-    expect(emitted.some((item) => item.event === 'edge.ticket.activity')).toBe(true);
+    expect(emitted.filter((item) => item.event === 'edge.ticket.activity')).toEqual([
+      { room: userRoomName('user-agent-it'), event: 'edge.ticket.activity', payload: { ticketId: 'ticket-1' } },
+    ]);
   });
 
   it('rejects presence from a ticket subscription revoked by revalidation', async () => {
