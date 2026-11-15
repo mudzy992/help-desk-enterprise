@@ -14,3 +14,7 @@
 | R2 | Redis prekid i oporavak | Samo zasebno izolovano testno okruženje i odobren kontrolisani postupak. U produkciji ne isključivati Redis; nakon povratka potvrditi REST stanje, ne obećavati isporuku događaja tokom prekida. | Nije izvedeno / N/A |
 
 **Šta dokazi ne znače:** Socket.IO/Redis adapter je best-effort, ne durable replay. Test 59 i Redis integration pokrivaju pojedinačne putanje, ne kompletnu matricu. Puni kritični flow je korisnikov odvojeni korak, a ne ručno pokretanje od asistenta. Treba zabilježiti commit deploya, preglednik, DA/NE/N/A po ID-u, vrijeme oporavka, rezultat čišćenja i sigurno redigovan opis greške bez tokena i ličnih podataka.
+
+## Korisnička provjera — prijavljeni rezultati
+
+Korisnik je prijavio: N1 nova notifikacija stiže, ali dok je račun A u detalju tiketa otvoreni panel privremeno pokaže dva reda; nakon zatvaranja i ponovnog otvaranja ostane jedno nepročitano i brojač je uredan. Van detalja tiketa prikazuje se jedan red. N2 uredno; za N3 korisnik je naveo da je po vraćanju **računa B** online obavještenje stiglo — ne pretpostavljati da je time izvršen tačno planirani offline test računa A. N4 N/A; A1 i A2 uredno; R1/R2 N/A. Korisnik nije naveo SHA stvarnog deploya ni posebno potvrdio čišćenje; ne izmišljati ih. N1 ostaje otvoren do ponovne provjere. Odvojeno je reproducirana moguća EDGE putanja u [233](233-edge-notification-recipient-isolation.md); identitet te putanje kao uzroka korisnikovog opažanja zahtijeva ponovnu live provjeru.
