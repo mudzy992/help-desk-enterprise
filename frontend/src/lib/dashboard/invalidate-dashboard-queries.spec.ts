@@ -1,19 +1,23 @@
-import { describe, expect, it, vi } from "vitest";
-import type { QueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query/query-keys";
+import { QueryClient } from "@tanstack/react-query";
+import { expect, it, vi } from "vitest";
 import { invalidateDashboardQueries } from "@/lib/dashboard/invalidate-dashboard-queries";
+import { queryKeys } from "@/lib/query/query-keys";
 
-describe("invalidateDashboardQueries", () => {
-  it("invalidates every dashboard source, including the inbox snapshot counts", async () => {
-    const invalidateQueries = vi.fn().mockResolvedValue(undefined);
-
-    await invalidateDashboardQueries({ invalidateQueries } as unknown as QueryClient);
-
-    expect(invalidateQueries.mock.calls.map(([filters]) => filters.queryKey)).toEqual([
-      queryKeys.dashboardSummaryPrefix,
-      queryKeys.ticketLists,
-      queryKeys.ticketCountsPrefix,
-      queryKeys.groupInbox,
-    ]);
+it("does not reuse a pending pre-event query for the catch-up read", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  let resolveOld!: (value: string) => void;
+  const old = new Promise<string>((resolve) => {
+    resolveOld = resolve;
   });
+  const queryKey = queryKeys.dashboardSummary("2026-01-01");
+  const queryFn = vi.fn().mockReturnValueOnce(old).mockResolvedValueOnce("fresh");
+  const first = client.fetchQuery({ queryKey, queryFn }).catch(() => null);
+
+  await invalidateDashboardQueries(client);
+  expect(await client.fetchQuery({ queryKey, queryFn })).toBe("fresh");
+  resolveOld("stale");
+  await first;
+  expect(client.getQueryData(queryKey)).toBe("fresh");
+  expect(queryFn).toHaveBeenCalledTimes(2);
+  client.clear();
 });

@@ -88,6 +88,7 @@ export function useTicketListData({
           silent,
         });
         if (!requestGate.isLatest(requestToken)) return;
+        if (silent) setIsLoading(false);
         setRefreshErrorKey(null);
         setServices(snapshot.services);
         setCatalogErrorKey(snapshot.catalogErrorKey);
@@ -136,6 +137,7 @@ export function useTicketListData({
           return;
         }
         if (silent) {
+          setIsLoading(false);
           setRefreshErrorKey(mapped);
           reportClientError("ticket_list_refresh_failed", error);
           return;
@@ -170,7 +172,10 @@ export function useTicketListData({
     if (enabled) void load();
   }, [enabled, load]);
   const reloadSilent = useCallback(() => load(true), [load]);
-  useTicketCollectionRealtime(reloadSilent);
+  const invalidateSnapshot = useCallback(() => {
+    requestGate.begin();
+  }, [requestGate]);
+  useTicketCollectionRealtime(reloadSilent, invalidateSnapshot);
 
   return {
     pageItems,

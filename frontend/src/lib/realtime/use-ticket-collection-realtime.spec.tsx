@@ -42,6 +42,17 @@ const visibility = (value: "visible" | "hidden") => {
 };
 
 describe("ticket collection recovery", () => {
+  it("invalidates an in-flight snapshot immediately, before the debounced reload", () => {
+    const reload = vi.fn().mockResolvedValue(undefined);
+    const invalidate = vi.fn();
+    renderHook(() => useTicketCollectionRealtime(reload, invalidate));
+    act(() => fake.emit("group.feed-changed", {}));
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(300));
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
   it("reloads once after hidden group events when the tab becomes visible", () => {
     const reload = vi.fn().mockResolvedValue(undefined);
     renderHook(() => useTicketCollectionRealtime(reload));

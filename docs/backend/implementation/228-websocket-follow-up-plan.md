@@ -24,3 +24,7 @@ Prije popravke dva nova hook testa pala su na očekivanom nedostajućem `reload`
 2. Ojačati WR-01 prema realnim room-readiness i failure scenarijima te notification snapshot/event race.
 3. Admin: cross-tab/reconnect/hidden sa zaštitom dirty nacrta i konzervativnom global/scoped autorizacijom.
 4. Cross-instance/Redis i browser acceptance, dokumentovanje testiranih i netestiranih stanja; nikakvi ručni full CI/E2E, migracija ili deployment bez zasebnog korisnikovog koraka.
+
+## Dodatni WR-01 korak — spori snapshot
+
+Relevantan event ili connect odmah invalidira generacije aktivnih lokalnih snapshotova, prije debounce čekanja; catch-up zatim poništava odgovarajuće pending React Query upite prije invalidacije i novog dohvata, da ne preuzme isti stari pending odgovor. Ista zaštita generacije vrijedi za listu i dashboard; pri skrivenom tabu catch-up čeka povratak. Dva regresijska hook testa su prije ispravke pala (nedostajuća neposredna invalidacija i primjena starog dashboard odgovora); nakon izmjene ciljanih 20/20 testova, TypeScript i ESLint prolaze. Zaseban test sa stvarnim QueryClientom provjerava poništavanje pending dashboard upita i kasno razrješenje starog odgovora. To ne dokazuje sve međusobne konkurentne list/dashboard scenarije, browser ili Redis delivery: WR-01 ostaje otvoren. Read-all cutoff/ordering WR-06 i dalje nije riješen ovom izmjenom; nema promjene ugovora ni tvrdnje o durable replayu.

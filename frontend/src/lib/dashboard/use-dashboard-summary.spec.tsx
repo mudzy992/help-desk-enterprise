@@ -9,7 +9,10 @@ import { reportClientError } from "@/lib/app/client-logger";
 import { loadDashboardPrimary } from "@/lib/dashboard/load-dashboard-primary";
 import { listGroupInboxPage } from "@/services/tickets-api";
 
-const realtime = vi.hoisted(() => ({ reload: null as null | (() => Promise<void>) }));
+const realtime = vi.hoisted(() => ({
+  reload: null as null | (() => Promise<void>),
+  invalidate: null as null | (() => void),
+}));
 const session = vi.hoisted(() => ({ currentUserId: "user-1" as string | null }));
 
 vi.mock("@/lib/session/use-session", () => ({
@@ -22,8 +25,9 @@ vi.mock("@/lib/session/use-session-capabilities", () => ({
   useSessionCapabilities: () => null,
 }));
 vi.mock("@/lib/realtime/use-ticket-collection-realtime", () => ({
-  useTicketCollectionRealtime: (reload: () => Promise<void>) => {
+  useTicketCollectionRealtime: (reload: () => Promise<void>, invalidate: () => void) => {
     realtime.reload = reload;
+    realtime.invalidate = invalidate;
   },
 }));
 vi.mock("@/lib/dashboard/invalidate-dashboard-queries", () => ({
@@ -65,6 +69,7 @@ describe("useDashboardSummary", () => {
   beforeEach(() => {
     client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 0 } } });
     realtime.reload = null;
+    realtime.invalidate = null;
     session.currentUserId = "user-1";
     vi.mocked(loadDashboardPrimary)
       .mockReset()
@@ -118,6 +123,21 @@ describe("useDashboardSummary", () => {
     expect(result.current.inboxCount).toBe(73);
     expect(result.current.inboxTickets).toEqual([]);
     expect(result.current.inboxErrorKey).toBeNull();
+  });
+
+  it("does not paint an old dashboard response after a live invalidation", async () => {
+    const old = deferred<never>();
+    vi.mocked(loadDashboardPrimary).mockReturnValueOnce(old.promise);
+    const { result } = renderHook(() => useDashboardSummary(false), {
+      wrapper: wrapperFor(client),
+    });
+    await waitFor(() => expect(loadDashboardPrimary).toHaveBeenCalledTimes(1));
+    act(() => realtime.invalidate?.());
+    await act(async () => old.resolve({ marker: "stale" } as never));
+    expect(result.current.summary).toBeNull();
+    await act(async () => realtime.reload?.());
+    expect(result.current.summary).toEqual({ marker: "summary" });
+    expect(result.current.isLoading).toBe(false);
   });
 
   it("keeps an inbox transport failure distinct from an empty inbox", async () => {

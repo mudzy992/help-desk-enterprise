@@ -71,6 +71,9 @@ async function invalidateBeforeSilentReload(
   queryKeysToInvalidate: readonly (readonly unknown[])[],
 ): Promise<void> {
   await Promise.all(
+    queryKeysToInvalidate.map((queryKey) => queryClient.cancelQueries({ queryKey })),
+  );
+  await Promise.all(
     queryKeysToInvalidate.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
   );
 }

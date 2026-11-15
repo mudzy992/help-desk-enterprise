@@ -14,7 +14,10 @@ import { ticketSocketEvents } from "@/services/ticket-socket";
 
 const collectionReloadDebounceMs = 300;
 
-export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
+export function useTicketCollectionRealtime(
+  reload: () => Promise<void>,
+  invalidateSnapshot?: () => void,
+): void {
   const { session } = useSession();
 
   useEffect(() => {
@@ -34,6 +37,7 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
       void reload();
     }, collectionReloadDebounceMs);
     const scheduleRefresh = () => {
+      invalidateSnapshot?.();
       if (!isVisible()) {
         pending = true;
         return;
@@ -86,5 +90,5 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
       stopGroupFeed();
       releaseHelpdeskSocket();
     };
-  }, [reload, session]);
+  }, [invalidateSnapshot, reload, session]);
 }

@@ -195,7 +195,7 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
         setErrorKey(mapTicketError(error));
         setRequestId(readApiRequestId(error));
       } finally {
-        if (!silent && isCurrent()) setIsLoading(false);
+        if (isCurrent()) setIsLoading(false);
       }
     },
     [currentUserId, dayKey, isStaff, queryClient, reloadInbox],
@@ -208,7 +208,12 @@ export function useDashboardSummary(isStaff: boolean): DashboardSummaryState {
   const reloadSilent = useCallback(async () => {
     await reload(true);
   }, [reload]);
-  useTicketCollectionRealtime(reloadSilent);
+  const invalidateSnapshot = useCallback(() => {
+    primaryGeneration.current += 1;
+    inboxGeneration.current += 1;
+    setIsInboxLoading(false);
+  }, []);
+  useTicketCollectionRealtime(reloadSilent, invalidateSnapshot);
 
   return {
     isStaff,

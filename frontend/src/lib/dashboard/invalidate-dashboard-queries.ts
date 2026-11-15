@@ -7,6 +7,12 @@ import { queryKeys } from "@/lib/query/query-keys";
  */
 export async function invalidateDashboardQueries(queryClient: QueryClient): Promise<void> {
   await Promise.all([
+    queryClient.cancelQueries({ queryKey: queryKeys.dashboardSummaryPrefix }),
+    queryClient.cancelQueries({ queryKey: queryKeys.ticketLists }),
+    queryClient.cancelQueries({ queryKey: queryKeys.ticketCountsPrefix }),
+    queryClient.cancelQueries({ queryKey: queryKeys.groupInbox }),
+  ]);
+  await Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummaryPrefix }),
     queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists }),
     queryClient.invalidateQueries({ queryKey: queryKeys.ticketCountsPrefix }),
