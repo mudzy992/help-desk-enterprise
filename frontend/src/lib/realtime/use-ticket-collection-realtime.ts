@@ -45,6 +45,11 @@ export function useTicketCollectionRealtime(
       debounced.trigger();
     };
     const stopConnect = subscribeSocketEvent(socket, "connect", scheduleRefresh);
+    const stopRoomsReady = subscribeSocketEvent(
+      socket,
+      ticketSocketEvents.roomsReady,
+      scheduleRefresh,
+    );
     const onVisibilityChange = () => {
       if (pending && isVisible()) scheduleRefresh();
     };
@@ -82,6 +87,7 @@ export function useTicketCollectionRealtime(
     return () => {
       debounced.cancel();
       stopConnect();
+      stopRoomsReady();
       if (typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", onVisibilityChange);
       }

@@ -86,6 +86,52 @@ describe("ticket collection recovery", () => {
     expect(reload).not.toHaveBeenCalled();
     expect(fake.listeners.size).toBe(0);
   });
+  it("coalesces prompt connect and room-ready signals into one reload", () => {
+    const reload = vi.fn().mockResolvedValue(undefined);
+    const { unmount } = renderHook(() => useTicketCollectionRealtime(reload));
+    act(() => {
+      fake.emit("connect");
+      fake.emit("socket.rooms.ready");
+      vi.advanceTimersByTime(300);
+    });
+    expect(reload).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(fake.listeners.size).toBe(0);
+  });
+
+  it("performs a second catch-up when room setup completes after the connect refresh", () => {
+    const reload = vi.fn().mockResolvedValue(undefined);
+    const invalidate = vi.fn();
+    renderHook(() => useTicketCollectionRealtime(reload, invalidate));
+    act(() => {
+      fake.emit("connect");
+      vi.advanceTimersByTime(300);
+    });
+    expect(reload).toHaveBeenCalledTimes(1);
+    act(() => {
+      fake.emit("socket.rooms.ready");
+      vi.advanceTimersByTime(300);
+    });
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    expect(reload).toHaveBeenCalledTimes(2);
+  });
+
+  it("defers room-ready catch-up while hidden", () => {
+    const reload = vi.fn().mockResolvedValue(undefined);
+    renderHook(() => useTicketCollectionRealtime(reload));
+    act(() => {
+      visibility("hidden");
+      fake.emit("socket.rooms.ready");
+      vi.advanceTimersByTime(500);
+    });
+    expect(reload).not.toHaveBeenCalled();
+    act(() => {
+      visibility("visible");
+      vi.advanceTimersByTime(300);
+    });
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
   it("reloads after reconnect even without another event", () => {
     const reload = vi.fn().mockResolvedValue(undefined);
     renderHook(() => useTicketCollectionRealtime(reload));

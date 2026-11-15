@@ -8,6 +8,7 @@ export const ticketSocketEvents = {
   ticketAccessInvalidated: "ticket.access.invalidated",
   // Lightweight group-room event (< 200 B, without ticket content).
   groupFeedChanged: "group.feed-changed",
+  roomsReady: "socket.rooms.ready",
   notificationCreated: "notification.created",
   announcementChanged: "announcement.changed",
   notificationRead: "notification.read",

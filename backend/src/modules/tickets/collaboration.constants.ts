@@ -137,6 +137,7 @@ export const ticketRealtimeEventNames = {
   ticketUpdated: 'ticket.updated',
   ticketAccessInvalidated: 'ticket.access.invalidated',
   groupFeedChanged: 'group.feed-changed',
+  roomsReady: 'socket.rooms.ready',
   join: 'ticket:join',
   leave: 'ticket:leave',
   error: 'ticket:error',

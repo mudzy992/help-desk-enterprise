@@ -11,6 +11,7 @@ import { redisTokens } from '../../common/redis/redis.tokens';
 import type { RedisConfiguration } from '../../common/redis/redis.types';
 import { SESSION_COOKIE_NAME } from '../authentication/session-cookie';
 import { SessionTokenService } from '../authentication/session-token.service';
+import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
 import { startWebsocketClientCountReporter } from '../observability/metrics/websocket-client-count.reporter';
 import {
   attachSocketPrincipal,
@@ -292,6 +293,7 @@ export class WebsocketGateway
         principal.subjectId,
       );
       if (client.disconnected) return;
+      if (groupRoomsReady) client.emit(ticketRealtimeEventNames.roomsReady);
       this.logger.log(
         `socket_connected connectionId=${client.id} group_rooms_ready=${groupRoomsReady ? 1 : 0}`,
       );

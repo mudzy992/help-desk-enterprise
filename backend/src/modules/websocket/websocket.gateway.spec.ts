@@ -41,6 +41,7 @@ function createSocket(auth: unknown): Socket {
     rooms,
     disconnected: false,
     disconnect: jest.fn(() => rooms.clear()),
+    emit: jest.fn(),
     join: jest.fn(async (room: string) => rooms.add(room)),
     leave: jest.fn(async (room: string) => rooms.delete(room)),
   } as unknown as Socket;
@@ -400,6 +401,7 @@ describe('WebsocketGateway', () => {
     const pending = gateway.handleConnection(socket);
     await groupJoinStarted.promise;
     expect(joinedLogOutput(logSpy, warnSpy)).not.toContain('socket_connected');
+    expect(socket.emit).not.toHaveBeenCalledWith('socket.rooms.ready');
 
     groupJoinGate.resolve();
     await pending;
@@ -407,6 +409,7 @@ describe('WebsocketGateway', () => {
     expect(joinedLogOutput(logSpy, warnSpy)).toContain(
       'socket_connected connectionId=connection-test-1 group_rooms_ready=1',
     );
+    expect(socket.emit).toHaveBeenCalledWith('socket.rooms.ready');
   });
 
   it('joins the groups in one current room-authorization snapshot', async () => {
@@ -464,6 +467,7 @@ describe('WebsocketGateway', () => {
     await gateway.handleConnection(socket);
 
     expect(socket.disconnect).not.toHaveBeenCalled();
+    expect(socket.emit).not.toHaveBeenCalledWith('socket.rooms.ready');
     expect(consumeWebsocketRoomSetupFailures()).toEqual({ user: 0, group: 1 });
     expect(joinedLogOutput(logSpy, warnSpy)).toContain(
       'socket_group_rooms_failed connectionId=connection-test-1 fail_closed=1',
