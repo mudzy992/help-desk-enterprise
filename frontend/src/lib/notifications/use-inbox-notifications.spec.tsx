@@ -173,6 +173,18 @@ describe("useInboxNotifications pagination", () => {
     expect(result.current.unreadCount).toBe(1);
   });
 
+  it("uses an authoritative list after local mark-all rather than assuming visible rows were affected", async () => {
+    apiMocks.listNotifications
+      .mockResolvedValueOnce(page([notification("concurrent")], false, null, 1))
+      .mockResolvedValueOnce(page([notification("concurrent")], false, null, 1));
+    apiMocks.markAllNotificationsRead.mockResolvedValueOnce({ unreadCount: 1 });
+    const { result } = renderHook(() => useInboxNotifications());
+    await act(async () => result.current.refreshList());
+    await act(async () => result.current.markAllRead());
+    expect(apiMocks.listNotifications).toHaveBeenCalledTimes(2);
+    expect(result.current.items[0]?.isRead).toBe(false);
+  });
+
   it("ignores an old user's pending mark-all response after account switch", async () => {
     const pending = deferred<{ unreadCount: number }>();
     apiMocks.listNotifications.mockResolvedValue(page([notification("old")], false, null, 1));
@@ -203,9 +215,29 @@ describe("useInboxNotifications pagination", () => {
     expect(result.current.unreadCount).toBe(1);
   });
 
-  it("reconciles mark-all during an in-flight first page and keeps the unread filter", async () => {
+  it("reloads instead of marking a concurrent unread notification read on a delayed read-all event", async () => {
+    apiMocks.listNotifications
+      .mockResolvedValueOnce(page([notification("new")], false, null, 1))
+      .mockResolvedValueOnce(page([notification("new")], false, null, 1));
+    const { result } = renderHook(() => useInboxNotifications({ isListVisible: true }));
+    await act(async () => result.current.refreshList());
+    await act(async () => {
+      socketListeners.get("notification.read")?.({
+        notification: null,
+        unreadCount: 1,
+        readAll: true,
+        occurredAt: "2026-11-06T10:20:31.123Z",
+      });
+    });
+    await waitFor(() => expect(apiMocks.listNotifications).toHaveBeenCalledTimes(2));
+    expect(result.current.items[0]?.isRead).toBe(false);
+  });
+
+  it("refreshes after mark-all during an in-flight first page and keeps the unread filter", async () => {
     const old = deferred<NotificationListResponse>();
-    apiMocks.listNotifications.mockReturnValueOnce(old.promise);
+    apiMocks.listNotifications
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValueOnce(page([notification("still-unread")], false, null, 1));
     const { result } = renderHook(() => useInboxNotifications());
     act(() => result.current.setUnreadOnly(true));
     act(() =>
@@ -220,8 +252,8 @@ describe("useInboxNotifications pagination", () => {
       old.resolve(page([notification("already-read")], false, null, 1));
       await old.promise;
     });
-    expect(result.current.items).toEqual([]);
-    expect(result.current.unreadCount).toBe(0);
+    expect(result.current.items.map((item) => item.id)).toEqual(["still-unread"]);
+    expect(result.current.unreadCount).toBe(1);
   });
 
   it("ignores excluded group notifications even during a snapshot", async () => {

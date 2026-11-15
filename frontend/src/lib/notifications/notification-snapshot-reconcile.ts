@@ -24,16 +24,6 @@ export function checkNotificationJournal(
   return false;
 }
 
-export function markKnownRead(
-  items: readonly InAppNotification[],
-  ids: ReadonlySet<string>,
-  unreadOnly: boolean,
-): InAppNotification[] {
-  return unreadOnly
-    ? items.filter((item) => !ids.has(item.id))
-    : items.map((item) => (ids.has(item.id) ? { ...item, isRead: true } : item));
-}
-
 export function isDocumentVisible(): boolean {
   return typeof document === "undefined" || document.visibilityState === "visible";
 }

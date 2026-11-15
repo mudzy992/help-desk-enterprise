@@ -3,7 +3,6 @@ import { useInboxReconnect } from "@/lib/notifications/use-inbox-reconnect";
 import { useInboxVisibilityRefresh } from "@/lib/notifications/use-inbox-visibility-refresh";
 import {
   appendUniqueNotifications,
-  markKnownRead,
   checkNotificationJournal,
   recordNotificationEvent,
   reconcileListEvents,
@@ -244,6 +243,11 @@ export function useInboxNotifications({
       socket,
       ticketSocketEvents.notificationRead,
       (payload) => {
+        if (payload.readAll) {
+          applyCount(payload);
+          void loadFirstPage(unreadOnlyRef.current);
+          return;
+        }
         if (isLoadingFirstPageRef.current || isLoadingMoreRef.current)
           recordNotificationEvent(listEvents.current, "read", payload);
         setItems((current) => {
@@ -265,7 +269,7 @@ export function useInboxNotifications({
       setSocket(null);
       releaseHelpdeskSocket();
     };
-  }, [refreshUnread, session, subjectId]);
+  }, [loadFirstPage, refreshUnread, session, subjectId]);
   const markOneRead = useCallback(
     async (notificationId: string) => {
       const epoch = identityEpoch.current;
@@ -286,21 +290,14 @@ export function useInboxNotifications({
   const markAllRead = useCallback(async () => {
     const epoch = identityEpoch.current;
     const unreadAtStart = ++unreadRevision.current;
-    const idsAtStart = new Set(items.map((item) => item.id));
     const result = await markAllNotificationsRead();
     if (epoch !== identityEpoch.current) return;
-    const hadPendingListRequest = cancelPendingListRequests();
-    setItems((current) => markKnownRead(current, idsAtStart, unreadOnlyRef.current));
     if (unreadAtStart === unreadRevision.current) {
       unreadRevision.current += 1;
       setUnreadCount(result.unreadCount);
     }
-    if (unreadOnlyRef.current) {
-      setHasMore(false);
-      setNextCursor(null);
-    }
-    if (hadPendingListRequest) await refreshList();
-  }, [cancelPendingListRequests, items, refreshList]);
+    await loadFirstPage(unreadOnlyRef.current);
+  }, [loadFirstPage]);
 
   return {
     items,
