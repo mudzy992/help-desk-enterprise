@@ -1,6 +1,6 @@
 # EDGE notifikacije — izolacija primaoca i otvoreni tiket
 
-**Status:** lokalna ispravka i regresijski dokaz; korisnička live provjera čeka. Paket [228](228-websocket-follow-up-plan.md), browser matrica [232](232-websocket-browser-redis-acceptance.md).
+**Status:** lokalna ispravka, regresijski dokaz i korisnička potvrda ponovljenog N1; širi scenariji nisu potvrđeni. Paket [228](228-websocket-follow-up-plan.md), browser matrica [232](232-websocket-browser-redis-acceptance.md).
 
 Korisnik prijavio privremeno dvostruki prikaz kada je otvoren detalj tiketa, uz tačan count i jedan nepročitani red nakon ponovnog otvaranja panela; van detalja tiketa nema istog simptoma. Bez deploy SHA i runtime dokaza ne tvrdimo da je konkretni uzrok definitivno potvrđen.
 
@@ -9,3 +9,5 @@ Statički je utvrđena opasna putanja: `enqueueEdgeNotificationEvents` kreira ED
 Regresija sa dva stvarna lokalna Socket.IO klijenta u istoj ticket sobi prije ispravke pokazala je da korisnik A dobije vlastiti payload dvaput i payload korisnika B; nakon ispravke A i B dobijaju samo svoj EDGE notification payload. Unit test provjerava `notification.created`, `notification.read`, `notification.unread-count` i zadržanu raniju ticket-room putanju za drugi edge event. `notification.*` sada ide samo u sobu adresiranog korisnika. Nema promjene pohrane, Redis protokola, schema, migracije, admin sobe niti tvrdnje o durable replayu. Ovo ne dokazuje sve ostale tipove EDGE payload-a ni browser/Redis cross-instance; generički ne-notification događaji zadržavaju staru semantiku i zahtijevaju zasebnu procjenu sigurnosti ako se prenose povjerljivi korisnički podaci.
 
 Lokalno 5/5 ciljanih testova i ESLint prolaze. Pokušaj dodatnog gateway socket testa blokiran je nedostajućim generated Prisma: `prisma generate` nije mogao dohvatiti engine zbog TLS/mrežnog ograničenja. CI mora ponovo provjeriti generisani Prisma i postojeće gateway testove; ne predstavljati lokalni pokušaj kao uspješan. Klijentov ID-dedupe je i dalje potreban jer standardni i EDGE kanal mogu dostaviti isti ID; odvojene stvarne poruke ne smiju se spajati po naslovu ili tekstu. Prije zatvaranja N1 korisnik treba ponoviti test nakon mergea/deploya ovog fixa i potvrditi broj redova i count.
+
+Korisnik je nakon ponovnog testa potvrdio jedan prikaz notifikacije i odobrio zatvaranje N1. Ta potvrda ne identifikuje nezavisno runtime uzrok niti dokazuje ostale EDGE evente/cross-instance.
