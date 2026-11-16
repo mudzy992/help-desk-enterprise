@@ -1,6 +1,6 @@
 # WebSocket follow-up — provjera i plan
 
-**Status:** implementacija u toku, nije closeout. Ovaj paket ne mijenja historijski owner-directed status Vala 6. Baseline je [reaudit 227](227-websocket-reaudit-live-refresh.md).
+**Status:** otvoreno, pripremljena [završna evidencija za odluku vlasnika](238-websocket-closeout-decision.md); nije closeout niti potvrda svih scenarija. Ovaj paket ne mijenja historijski owner-directed status Vala 6. Baseline je [reaudit 227](227-websocket-reaudit-live-refresh.md).
 
 ## Provjera postojećih mehanizama
 

@@ -1,0 +1,26 @@
+# Paket 228 — završna evidencija za odluku vlasnika
+
+**Status: otvoreno, čeka odluku vlasnika.** Ovaj dokument nije odobrenje zatvaranja, mergea, deploymenta, migracije ni ručnog CI/E2E. Ne mijenja historijske statuse drugih audit nalaza.
+
+## Šta je isporučeno i kakav je dokaz
+
+| Dio | Stanje | Dokaz i granice |
+| --- | --- | --- |
+| WR-02/03 ticket join, snapshot i opoziv | Ranije owner-directed zatvoreno | Korisnik je prijavio live/reconnect, očuvan draft, opoziv i staff→public; različite instance/Redis N/A. [230](230-ticket-revoke-join.md). Oko 55 s nije dokaz okidača niti garantovani rok. |
+| WR-01 liste i dashboard | Korisnik odobrio zatvaranje | L1–L7 DA, uključujući D1–D3 i spori dohvat; preglednik, deploy SHA i čišćenje nisu posebno navedeni. Cross-instance/outage nije dokaz. [234](234-collection-room-ready-catchup.md). |
+| Notifikacije i globalni admin | Korisnik odobrio zatvaranje provjerenog segmenta | N1/N2/N3/A1/A2 DA, N4/R1/R2 N/A. N3 je operativni izvještaj bez pretpostavki o tačnom offline tabu; preglednik, SHA i čišćenje nisu posebno potvrđeni. [232](232-websocket-browser-redis-acceptance.md), [231](231-notification-snapshot-race.md). |
+| EDGE recipient-only | Implementirano; nije potvrđeno post-deploy za sve tipove ni vanjske potrošače | Sintetički event demonstrirao pogrešnu i dupliranu isporuku prije ispravke; lokalni Socket.IO testovi poslije i automatski CI za `5a37633` success. [235](235-edge-recipient-scope.md). Ispravka se primjenjuje na sve generičke EDGE događaje, ne samo notifikacije; stariji opis u [233](233-edge-notification-recipient-isolation.md) historijski je za prethodnu fazu. |
+| Scoped invalidacija grupa | Implementirano i CI zelen; browser acceptance još nije izveden za ovaj commit | `225cdfc`: lokalni autorizacijski testovi, dva Socket.IO klijenta i frontend hook; CI [43819414234](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43819414234) success za generated-Prisma backend, PostgreSQL/Redis integracijski posao, frontend, container i docs. Registrirani Redis test je uključen i `REDIS_HOST` je postavljen; pojedinačni log nije nezavisno pročitan zbog EOF pri preuzimanju. E2E poslovi skipped. [237](237-scoped-group-config-signal.md). |
+
+## Eksplicitna ograničenja za odluku
+
+1. **Scoped routing, SLA, katalog i templates/playbookovi nisu dobili zaseban scoped live feed u ovom paketu.** Routing scoped HTTP proširenje je po korisnikovoj odluci odloženo; za SLA je u statičkom pregledu uočena moguća razlika između pojedinačnog i punog guard lanca, bez tvrdnje da je taj lanac ovdje reprodukovan. Prije budućeg feeda treba provjeriti stvarnu poslovnu potrebu, postojeće read/write ugovore, scope, rollback i testove za svaki domen. Globalni feed ostaje postojeći; ne proširuje se globalna soba ni autorizacija.
+2. **EDGE ugovor je promijenjen:** svi generički EDGE payloadi idu samo adresiranom korisniku. Nepoznati vanjski ili legacy ticket-room potrošači mogu prestati primati događaje, a stari queue payloadi i vanjske integracije nisu inventarisani. Poznati repo producenti nisu dokaz da vanjskih nema. Vlasnik treba provjeriti vlastite integracije prije merge/deploy odluke.
+3. **Redis/adapter je best-effort, bez durable replaya.** Korisnički R1/R2 cross-instance i outage scenariji N/A; izolovani Redis testovi ne dokazuju kompletnu browser/revocation/outage matricu. Povezan socket ne dokazuje zdrav adapter. Naknadni REST catch-up i banner ne otkrivaju nužno svaki tihi gubitak.
+4. **Scoped grupa ima preostale utrke i ograničenja:** autoritativna sesija/pravo i emit nisu atomski; može doći do promjene prava ili OU hijerarhije između provjere i minimalnog signala. Bounded red može odbaciti signal uz upozorenje, spor read može zadržati red, a crash nakon commita ili kvar adaptera mogu izgubiti signal. Nema garancije replaya. Browser scoped provjera nije izvedena; ako OU dodjele nisu dostupne u korisnikovom okruženju, ta provjera je N/A, ne pass.
+5. **Prethodne potvrde nisu potvrda cijelog paketa na najnovijem deployu.** Korisnik još nije potvrdio deploy `225cdfc`, scoped group live scenarij, vanjske EDGE integracije ni full critical-flow test za ovu konačnu promjenu. Naknadna live provjera i korisnikov full CI/E2E su odvojeni koraci; ne proglašavati skipped, flaky ili N/A prolazom.
+6. **Ranije zatvoreni audit paketi nisu ponovo otvarani ni automatski prošireni.** Posebno grupa audit Val 2 ima otvorene nalaze koji nisu zatvoreni ovom websocket izmjenom. Routing izvorni audit i globalni registar imaju ranije poznatu razliku za BA-routing-05/06/07; ne usklađivati je bez zasebnog postupka.
+
+## Odluka i nastavak
+
+Vlasnik može prihvatiti gore navedene preostale rizike i odlaganja i odobriti owner-directed zatvaranje paketa 228, uz izričito ostavljene nedokazane/odložene stavke; ili zadržati paket otvoren dok se dodatni dokazi ili implementacije ne obave. Odluka se mora zasebno zabilježiti, bez izmišljanja browser rezultata. Ako vlasnik prihvati, nakon commita/pusha dokumentovanog closeouta i potvrde relevantnog automatskog CI-ja korisniku dati precizne korake za njegov merge/redeploy i live/full critical-flow provjeru. Asistent ne izvršava merge, deployment, migraciju ni ručni full CI/E2E.
