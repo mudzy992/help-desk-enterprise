@@ -380,7 +380,7 @@ export class TicketsService {
    * Paket 3.3: problem group resolution takes over an unstarted linked ticket
    * (server only; the caller verified `problem.close`).
    */
-  takeOverForProblem(ticketId: string, input: { readonly actorUserId: string; readonly problemDetail: string }) {
+  takeOverForProblem(ticketId: string, input: { readonly actorUserId: string }) {
     return executeTicketOperation(async () => {
       const messages: TicketPersistedMessageSink = [];
       const updated = await takeOverTicketForProblem(this.prisma, { ticketId, ...input }, messages);

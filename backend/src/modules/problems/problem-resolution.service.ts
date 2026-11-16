@@ -322,14 +322,13 @@ export class ProblemResolutionService {
     const message = options.message.trim();
     const closeCode = options.closeCode?.trim() || undefined;
     const context = { actorUserId: viewer.userId, problemDelegation: { problemId } };
-    const problemDetail = `${problemId}|${number} ${problem.title}`;
     const resolved: { ticketId: string; ticketNumber: string; messageSent: boolean }[] = [];
     const failed: { ticketId: string; ticketNumber: string; code: string }[] = [];
     for (const item of items.filter((candidate) => candidate.resolvable)) {
       try {
         // Not started yet (PENDING/UNROUTED/ASSIGNED): take over, then resolve.
         if ((problemTakeoverStatuses as readonly string[]).includes(item.status)) {
-          await this.tickets.takeOverForProblem(item.id, { actorUserId: viewer.userId, problemDetail });
+          await this.tickets.takeOverForProblem(item.id, { actorUserId: viewer.userId });
         }
         await this.tickets.update(item.id, { status: 'RESOLVED', closeCode, resolutionNote: number }, context);
       } catch (error) {

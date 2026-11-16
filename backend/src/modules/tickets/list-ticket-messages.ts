@@ -3,6 +3,7 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { staffOnlyMessageTypes } from './collaboration.constants';
 import type { TicketMessageResponse } from './collaboration.types';
 import { loadAccessibleTicket } from './load-accessible-ticket';
+import { redactProblemEventBodies } from './redact-problem-event-bodies';
 import { canViewTicketMessage } from './ticket-message-visibility';
 import { toTicketMessageResponse } from './to-collaboration-response';
 import type { TicketMutationContext } from './tickets.types';
@@ -52,7 +53,7 @@ export async function listTicketMessages(
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take,
   });
-  const records = [...newestFirst].reverse();
+  const records = await redactProblemEventBodies(prisma, context.actorUserId, [...newestFirst].reverse());
   return records
     .filter((record) => canViewTicketMessage(access.visibility, record.type))
     .map((record) => toTicketMessageResponse(record));

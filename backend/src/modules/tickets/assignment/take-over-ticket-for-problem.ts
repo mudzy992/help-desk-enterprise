@@ -27,7 +27,6 @@ export async function takeOverTicketForProblem(
   input: {
     readonly ticketId: string;
     readonly actorUserId: string;
-    readonly problemDetail: string;
   },
   messages: TicketPersistedMessageSink = [],
 ): Promise<TicketRecord> {
@@ -56,7 +55,6 @@ export async function takeOverTicketForProblem(
         ticketId: updated.id,
         action: ticketSystemEventActions.problemTakeover,
         actorUserId: input.actorUserId,
-        detail: input.problemDetail,
       }),
     );
     return updated;

@@ -202,7 +202,6 @@ export class ProblemTicketsService {
     if (!problemLinkableStatuses.includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
     const unique = [...new Set(ticketIds.map((id) => id.trim()).filter((id) => id.length > 0))].slice(0, problemLimits.linkBatchMax);
     if (unique.length === 0) throw new ProblemError(problemErrorCodes.validation, 'ticketIds');
-    const number = formatProblemNumber((await this.access.configuration()).numberPrefix, problem.sequence);
     const linked: { ticketId: string; ticketNumber: string }[] = [];
     const skipped: { ticketId: string; ticketNumber: string | null; reason: ProblemTicketSkipReason }[] = [];
 
@@ -243,7 +242,6 @@ export class ProblemTicketsService {
               ticketId: ticket.id,
               action: ticketSystemEventActions.problemLinked,
               actorUserId: viewer.userId,
-              detail: `${problem.id}|${number} ${problem.title}`,
             }),
           );
         });
@@ -274,14 +272,12 @@ export class ProblemTicketsService {
   async unlink(problemId: string, ticketId: string, viewer: ProblemViewer): Promise<void> {
     const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport);
     if (!(problemOpenStatuses as readonly string[]).includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
-    const prefix = (await this.access.configuration()).numberPrefix;
     const messages: TicketPersistedMessageSink = [];
     await this.prisma.$transaction(async (transaction) => {
       // Re-read status and visibility after locking the problem, then lock the target ticket.
       await transaction.$queryRaw`SELECT "id" FROM "Problem" WHERE "id" = ${problemId} FOR UPDATE`;
       const lockedProblem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport, transaction as PrismaService);
       if (!(problemOpenStatuses as readonly string[]).includes(lockedProblem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
-      const number = formatProblemNumber(prefix, lockedProblem.sequence);
       await transaction.$queryRaw`SELECT "id" FROM "Ticket" WHERE "id" = ${ticketId} FOR UPDATE`;
       const ticket = await this.staffTicket(ticketId, viewer, true, transaction as PrismaService);
       if (ticket === null) throw new ProblemError(problemErrorCodes.ticketNotFound);
@@ -302,7 +298,6 @@ export class ProblemTicketsService {
           ticketId,
           action: ticketSystemEventActions.problemUnlinked,
           actorUserId: viewer.userId,
-          detail: `${lockedProblem.id}|${number} ${lockedProblem.title}`,
         }),
       );
     });
