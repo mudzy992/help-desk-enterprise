@@ -141,6 +141,17 @@ describe('ProblemTicketsService.unlink', () => {
     expect(events).toHaveLength(0);
   });
 
+  it('rechecks the problem status after acquiring the lock', async () => {
+    const { service, links, events, prisma } = setup({ tickets: [ticket('a')], links: { a: 'p1' } });
+    const findProblem = (prisma.problem as { findFirst: jest.Mock }).findFirst;
+    findProblem.mockResolvedValueOnce({ id: 'p1', sequence: 12, title: 'Problem', status: 'INVESTIGATING' });
+    findProblem.mockResolvedValueOnce({ id: 'p1', sequence: 12, title: 'Problem', status: 'CLOSED' });
+    await expect(service.unlink('p1', 'a', viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.problemNotOpen));
+    expect(loadTicket).not.toHaveBeenCalled();
+    expect(links.get('a')).toBe('p1');
+    expect(events).toHaveLength(0);
+  });
+
   it('does not remove a link belonging to another problem', async () => {
     const { service, links, events } = setup({ tickets: [ticket('a')], links: { a: 'other' } });
     await expect(service.unlink('p1', 'a', viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.ticketNotLinked));

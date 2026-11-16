@@ -95,6 +95,26 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
     expect(await prisma.ticketMessage.count({ where: { ticketId, type: 'SYSTEM_EVENT' } })).toBe(1);
   });
 
+  it.each(['ticket', 'problem'] as const)('rechecks a concurrently changed %s after the row lock', async (target) => {
+    let release!: () => void;
+    let ready!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const locked = new Promise<void>((resolve) => { ready = resolve; });
+    const update = prisma.$transaction(async (tx) => {
+      if (target === 'ticket') await tx.ticket.update({ where: { id: ticketId }, data: { status: 'ARCHIVED' } });
+      else await tx.problem.update({ where: { id: problemId }, data: { status: 'CLOSED' } });
+      ready();
+      await held;
+    });
+    await locked;
+    const unlink = service.unlink(problemId, ticketId, viewer(staffId));
+    const result = unlink.then(() => null, (error: unknown) => error);
+    release();
+    await update;
+    expect(await result).toMatchObject({ code: target === 'ticket' ? problemErrorCodes.ticketNotFound : problemErrorCodes.problemNotOpen });
+    await unchanged();
+  });
+
   it('maps inaccessible targets to the existing not-found HTTP contract', () => {
     const error = mapProblemError(new ProblemError(problemErrorCodes.ticketNotFound)) as { getStatus(): number; getResponse(): unknown };
     expect(error.getStatus()).toBe(404);
