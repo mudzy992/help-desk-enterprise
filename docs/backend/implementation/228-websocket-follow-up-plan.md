@@ -46,3 +46,9 @@ Dodat signal i ciljani regresijski testovi: detalji, ograničenja i browser plan
 ## Generički EDGE — sigurna podrazumijevana publika
 
 Utvrđen je dodatni mogući cross-recipient broadcast generičkog EDGE payload-a; regresija i izričita promjena ranijeg ticket-room ugovora dokumentovane su u [235](235-edge-recipient-scope.md). Stvarni repo producenti su notification i user timer; vanjski potrošači/legacy payloadovi nisu dokazivo isključeni. Korisnik je izabrao zaseban autorizovani scoped feed; analiza je u [236](236-scoped-admin-feed-investigation.md), a prvi signal ograničen na grupe i njegove granice su u [237](237-scoped-group-config-signal.md). Ostali domeni nisu obuhvaćeni; ne širiti globalnu sobu.
+
+## Routing i SLA — očuvanje postojećeg ugovora
+
+Korisnik je prihvatio da se scoped routing proširenje odloži, bez promjene postojećeg HTTP pristupa. Kontrolisani guard test za scoped `ADMIN` s `routing.read` na OU/service assignmentu i GET listu pravila vratio je 403; servisno filtriranje samo po sebi ne znači da je HTTP put dozvoljen. Test je bio privremen i nije zamjena za browser ili cjelovitu HTTP integraciju. Prethodni routing closeout time nije automatski izmijenjen.
+
+SLA je obrađen u Valu 5: kanonski audit i registar prikazuju BA-sla-01–16 zatvorenim. BA-sla-03 je uveo globalni `sla.write` za administrativne mutacije, a kasniji BA-sla-13 opisuje scope-aware čitanja. Statički pregled pokazuje da `SlaGlobalAdministrationGuard` dopušta scoped GET, ali kontroleri također koriste `RoleGuard` s `@RequirePermissions(slaRead)` bez scope lokatora; canonical odluka za takav zahtjev odbija assignment koji je samo OU/service-scoped. Izolovani test prvog guarda nije dokaz da čitav HTTP lanac dopušta scoped GET. To treba zasebno reproducirati kroz oba guarda prije bilo kakvog proširenja pristupa ili scoped signala; globalne SLA mutacije, zatvorene nalaze i druge domene ne mijenjati zbog pretpostavke o ponašanju. Paket 228 ostaje otvoren.
