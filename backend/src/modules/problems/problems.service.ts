@@ -9,6 +9,7 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import { problemTicketVisibility } from './problem-ticket-visibility';
+import { assetWhereOf, problemAssetAccess } from './problem-asset-access';
 import { resolveTicketPriority } from '../tickets/resolve-ticket-priority';
 import { TicketPriorityMatrixConfigurationLoader } from '../tickets/priority/ticket-priority-matrix-configuration.loader';
 import { ProblemAccessService, type ProblemConfiguration, type ProblemScope, type ProblemViewer } from './problem-access.service';
@@ -214,9 +215,14 @@ export class ProblemsService {
     const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
     const events: Array<{ id: string; action: string; actorUserId: string | null; detail: Prisma.JsonValue; createdAt: Date }> = [];
     const ticketActions: readonly string[] = [problemEventActions.ticketLinked, problemEventActions.ticketUnlinked];
+    // BA-problems-03: asset history follows the CMDB boundary as well, so a
+    // problem.read holder without `asset.read` in that asset's OU does not see
+    // the tag/name through the timeline either.
+    const assetActions: readonly string[] = [problemEventActions.assetLinked, problemEventActions.assetUnlinked];
+    const assetAccess = await problemAssetAccess(this.prisma, viewer.userId);
     const safeActions: readonly string[] = [
       problemEventActions.created, problemEventActions.updated, problemEventActions.status, problemEventActions.owner,
-      problemEventActions.knowledgeArticle, problemEventActions.assetLinked, problemEventActions.assetUnlinked,
+      problemEventActions.knowledgeArticle,
       problemEventActions.serviceLinked, problemEventActions.serviceUnlinked, problemEventActions.incidentLinked, problemEventActions.incidentUnlinked,
     ];
     let cursor: string | undefined;
@@ -229,18 +235,29 @@ export class ProblemsService {
         ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
         select: { id: true, action: true, actorUserId: true, detail: true, createdAt: true },
       });
-      const ticketId = (detail: Prisma.JsonValue): string | null => {
+      const detailId = (detail: Prisma.JsonValue, key: string): string | null => {
         if (detail === null || Array.isArray(detail) || typeof detail !== 'object') return null;
-        return typeof detail.ticketId === 'string' && detail.ticketId.length > 0 ? detail.ticketId : null;
+        const value = (detail as Record<string, unknown>)[key];
+        return typeof value === 'string' && value.length > 0 ? value : null;
       };
-      const ids = [...new Set(batch.filter((event) => ticketActions.includes(event.action)).map((event) => ticketId(event.detail)).filter((value): value is string => value !== null))];
+      const ids = [...new Set(batch.filter((event) => ticketActions.includes(event.action)).map((event) => detailId(event.detail, 'ticketId')).filter((value): value is string => value !== null))];
       const readable = ids.length === 0 ? [] : await this.prisma.ticket.findMany({
         where: { AND: [visibility, { id: { in: ids } }] }, select: { id: true },
       });
       const allowed = new Set(readable.map((ticket) => ticket.id));
+      const assetIds = [...new Set(batch.filter((event) => assetActions.includes(event.action)).map((event) => detailId(event.detail, 'assetId')).filter((value): value is string => value !== null))];
+      const readableAssets = !assetAccess.allowed || assetIds.length === 0 ? [] : await this.prisma.asset.findMany({
+        where: { AND: [assetWhereOf(assetAccess), { id: { in: assetIds } }] }, select: { id: true },
+      });
+      const allowedAssets = new Set(readableAssets.map((asset) => asset.id));
       for (const event of batch) {
-        const referenced = ticketId(event.detail);
-        if (safeActions.includes(event.action) || (ticketActions.includes(event.action) && referenced !== null && allowed.has(referenced))) events.push(event);
+        const referencedTicket = detailId(event.detail, 'ticketId');
+        const referencedAsset = detailId(event.detail, 'assetId');
+        if (
+          safeActions.includes(event.action) ||
+          (ticketActions.includes(event.action) && referencedTicket !== null && allowed.has(referencedTicket)) ||
+          (assetActions.includes(event.action) && referencedAsset !== null && allowedAssets.has(referencedAsset))
+        ) events.push(event);
         if (events.length === 200) break;
       }
       if (batch.length < 200) break;

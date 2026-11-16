@@ -4,6 +4,7 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import { problemTicketVisibility } from './problem-ticket-visibility';
+import { assetWhereOf, problemAssetAccess } from './problem-asset-access';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { formatProblemNumber } from './problem-rules';
 import { problemVisibilityWhere } from './problem-visibility';
@@ -119,8 +120,14 @@ export class ProblemLinksService {
       orderBy: { service: { name: 'asc' } },
       take: listLimit,
     });
+    const assetAccess = cmdbEnabled ? await problemAssetAccess(this.prisma, viewer.userId) : null;
     const assets = cmdbEnabled
-      ? await this.prisma.problemAsset.findMany({ where: { problemId }, orderBy: { linkedAt: 'desc' }, take: listLimit, select: { linkedAt: true, asset: { select: assetSelect } } })
+      ? await this.prisma.problemAsset.findMany({
+          where: { problemId, asset: { is: assetWhereOf(assetAccess!) } },
+          orderBy: { linkedAt: 'desc' },
+          take: listLimit,
+          select: { linkedAt: true, asset: { select: assetSelect } },
+        })
       : [];
     const incidents = statusEnabled
       ? await this.prisma.problemIncident.findMany({ where: { problemId }, orderBy: { linkedAt: 'desc' }, take: listLimit, select: { incident: { select: incidentSelect } } })
@@ -130,14 +137,14 @@ export class ProblemLinksService {
       statusEnabled,
       canEdit,
       assets: assets.map((link) => ({ ...toAsset(link.asset), linkedAt: link.linkedAt.toISOString() })),
-      suggestedAssets: cmdbEnabled ? await this.suggestAssets(problemId, viewer) : [],
+      suggestedAssets: cmdbEnabled ? await this.suggestAssets(problemId, viewer, assetAccess!) : [],
       services: services.map((link) => link.service),
       incidents: incidents.map((link) => toIncident(link.incident)),
     };
   }
 
   /** Items attached to the problem's tickets, most frequent first, not yet linked. */
-  private async suggestAssets(problemId: string, viewer: ProblemViewer) {
+  private async suggestAssets(problemId: string, viewer: ProblemViewer, assetAccess: Awaited<ReturnType<typeof problemAssetAccess>>) {
     const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
     const counts = await this.prisma.ticketAsset.groupBy({
       by: ['assetId'],
@@ -147,7 +154,10 @@ export class ProblemLinksService {
       take: suggestionLimit,
     });
     if (counts.length === 0) return [];
-    const rows = await this.prisma.asset.findMany({ where: { id: { in: counts.map((row) => row.assetId) } }, select: assetSelect });
+    const rows = await this.prisma.asset.findMany({
+      where: { AND: [assetWhereOf(assetAccess), { id: { in: counts.map((row) => row.assetId) } }] },
+      select: assetSelect,
+    });
     const byId = new Map(rows.map((row) => [row.id, row]));
     return counts.flatMap((count) => {
       const row = byId.get(count.assetId);
@@ -158,10 +168,13 @@ export class ProblemLinksService {
   async searchAssets(problemId: string, viewer: ProblemViewer, search: string) {
     await this.requireEditable(problemId, viewer);
     if (!(await this.access.cmdbEnabled())) return { items: [] };
+    const assetAccess = await problemAssetAccess(this.prisma, viewer.userId);
+    if (!assetAccess.allowed) return { items: [] };
     const term = search.trim().slice(0, problemLimits.searchMax);
     if (term.length < 2) return { items: [] };
     const rows = await this.prisma.asset.findMany({
       where: {
+        AND: [assetWhereOf(assetAccess)],
         problems: { none: { problemId } },
         OR: [
           { assetTag: { contains: term, mode: 'insensitive' } },
@@ -179,8 +192,13 @@ export class ProblemLinksService {
   async linkAssets(problemId: string, viewer: ProblemViewer, assetIds: readonly string[]) {
     await this.requireEditable(problemId, viewer);
     if (!(await this.access.cmdbEnabled())) throw new ProblemError(problemErrorCodes.assetNotFound);
+    const assetAccess = await problemAssetAccess(this.prisma, viewer.userId);
+    if (!assetAccess.allowed) throw new ProblemError(problemErrorCodes.assetNotFound);
     const unique = [...new Set(assetIds)].slice(0, problemLimits.linkBatchMax);
-    const assets = await this.prisma.asset.findMany({ where: { id: { in: unique } }, select: { id: true, assetTag: true, name: true } });
+    const assets = await this.prisma.asset.findMany({
+      where: { AND: [assetWhereOf(assetAccess), { id: { in: unique } }] },
+      select: { id: true, assetTag: true, name: true },
+    });
     if (assets.length !== unique.length) throw new ProblemError(problemErrorCodes.assetNotFound);
     let linked = 0;
     for (const asset of assets) {
@@ -202,7 +220,10 @@ export class ProblemLinksService {
 
   async unlinkAsset(problemId: string, viewer: ProblemViewer, assetId: string) {
     await this.requireEditable(problemId, viewer);
-    const asset = await this.prisma.asset.findUnique({ where: { id: assetId }, select: { assetTag: true, name: true } });
+    const assetAccess = await problemAssetAccess(this.prisma, viewer.userId);
+    if (!assetAccess.allowed) throw new ProblemError(problemErrorCodes.assetNotFound);
+    const asset = await this.prisma.asset.findFirst({ where: { AND: [assetWhereOf(assetAccess), { id: assetId }] }, select: { assetTag: true, name: true } });
+    if (asset === null) throw new ProblemError(problemErrorCodes.assetNotFound);
     const removed = await this.prisma.problemAsset.deleteMany({ where: { problemId, assetId } });
     if (removed.count === 0) throw new ProblemError(problemErrorCodes.assetNotFound);
     await this.event(problemId, viewer, problemEventActions.assetUnlinked, { assetId, assetTag: asset?.assetTag ?? null, name: asset?.name ?? null });
@@ -279,6 +300,10 @@ export class ProblemLinksService {
    * so those screens never fail because of this module.
    */
   async forAsset(assetId: string, viewer: ProblemViewer) {
+    const assetAccess = await problemAssetAccess(this.prisma, viewer.userId);
+    if (!assetAccess.allowed) return { items: [] };
+    const readable = await this.prisma.asset.count({ where: { AND: [assetWhereOf(assetAccess), { id: assetId }] } });
+    if (readable === 0) return { items: [] };
     return this.reverse(viewer, { assets: { some: { assetId } } });
   }
 
