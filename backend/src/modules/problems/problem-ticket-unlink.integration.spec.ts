@@ -20,6 +20,7 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
   let staffId: string;
   let foreignId: string;
   let problemId: string;
+  let otherProblemId: string;
   let ticketId: string;
   const stamp = `${Date.now()}-${process.pid}`;
   const hub = { publish: jest.fn(), publishTicketUpdated: jest.fn() };
@@ -36,7 +37,9 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
     requesterId = (await prisma.user.create({ data: { email: `unlink-requester-${stamp}@example.test`, displayName: 'Requester' } })).id;
     staffId = (await prisma.user.create({ data: { email: `unlink-staff-${stamp}@example.test`, displayName: 'Staff' } })).id;
     foreignId = (await prisma.user.create({ data: { email: `unlink-foreign-${stamp}@example.test`, displayName: 'Foreign' } })).id;
-    problemId = (await prisma.problem.create({ data: { sequence: Date.now() % 2_000_000_000, title: 'Problem', description: 'Integration', organizationalUnitId: unitId } })).id;
+    const sequence = Date.now() % 1_999_999_999;
+    problemId = (await prisma.problem.create({ data: { sequence, title: 'Problem', description: 'Integration', organizationalUnitId: unitId } })).id;
+    otherProblemId = (await prisma.problem.create({ data: { sequence: sequence + 1, title: 'Other problem', description: 'Integration', organizationalUnitId: unitId } })).id;
     ticketId = (await prisma.ticket.create({ data: { ticketNumber: `UNLINK-${stamp}`, title: 'Ticket', description: 'Integration', formData: {}, priority: 'LOW', impact: 'LOW', urgency: 'LOW', status: 'IN_PROGRESS', serviceId, formVersionId: formId, requesterId, originUnitId: unitId } as never })).id;
     const access = { require: jest.fn(async () => ({ all: true, paths: [] })), configuration: jest.fn(async () => ({ numberPrefix: 'P-' })) };
     const loader = { loadBySubjectId: async (subjectId: string) => ({ subjectId, isLocalOnly: false, isSuperAdmin: subjectId === staffId, assignments: [] }) };
@@ -113,6 +116,27 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
     await update;
     expect(await result).toMatchObject({ code: target === 'ticket' ? problemErrorCodes.ticketNotFound : problemErrorCodes.problemNotOpen });
     await unchanged();
+  });
+
+  it('does not delete a link concurrently moved to another problem', async () => {
+    let release!: () => void;
+    let ready!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const locked = new Promise<void>((resolve) => { ready = resolve; });
+    const move = prisma.$transaction(async (tx) => {
+      await tx.problemTicket.update({ where: { ticketId }, data: { problemId: otherProblemId } });
+      ready();
+      await held;
+    });
+    await locked;
+    const result = service.unlink(problemId, ticketId, viewer(staffId)).then(() => null, (error: unknown) => error);
+    release();
+    await move;
+    expect(await result).toMatchObject({ code: problemErrorCodes.ticketNotLinked });
+    expect(await prisma.problemTicket.findUnique({ where: { ticketId } })).toMatchObject({ problemId: otherProblemId });
+    expect(await prisma.problemEvent.count({ where: { problemId } })).toBe(0);
+    expect(await prisma.ticketMessage.count({ where: { ticketId } })).toBe(0);
+    expect(hub.publish).not.toHaveBeenCalled();
   });
 
   it('maps inaccessible targets to the existing not-found HTTP contract', () => {
