@@ -153,7 +153,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | -------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-problems-01 | P1       | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope                   | zatvoreno |
 | BA-problems-02 | P1       | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa           | zatvoreno (W7.21) |
-| BA-problems-03 | P1       | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope                                  | otvoreno |
+| BA-problems-03 | P1       | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope                                  | zatvoreno (W7.22) |
 | BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | zatvoreno (W7.20 owner-directed) |
 | BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | otvoreno |
 | BA-problems-06 | P1       | Problem se commit-a RESOLVED prije bulk ticketa bez durable retry/resume putanje               | otvoreno |
@@ -175,7 +175,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 
 - **01:** zatvoreno u W7.1 — assignment-derived OU scope, bez role-name global bypassa; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 - **02:** minimal linked-ticket problem projection i per-ticket access/redaction prije liste.
-- **03:** reuse `AssetAccessService`/`asset.read` scope za search, suggestions, link i shape.
+- **03:** zatvoreno u W7.22 — `asset.read` + asset OU scope za search, suggestions, link, linked shape, reverse karticu i asset dio historije (vidi §23).
 - **04–05:** aktuelni ticket policy na svaki unlink/resolve; eksplicitna audited delegation samo unutar dozvoljenog scopea.
 - **06:** persisted bulk-resolution run/item state, idempotency, resume endpoint i completion policy.
 - **07, 13:** outbox/delivery state i stabilni business event occurrence ključevi.
@@ -256,3 +256,11 @@ Uklanjanje veze sada prije upisa provjerava target ticket staff/writable policy 
 Puni problem, analiza i historija sada su dostupni samo unutar `problem.read` OU opsega; linked-ticket i reporter bypass su uklonjeni. Ticket-predikat se primjenjuje prije limita i agregiranja (lista povezanih tiketa, brojači liste/detalja, resolution preview/izvršenje, CMDB prijedlozi, report packovi i zakazani prilozi po primaocu). Ticket radnik izvan opsega dobija minimalnu karticu s workaroundom, bez linka na problem i bez odvezivanja. Historija problema skriva nedostupne događaje, `tickets_resolved` agregate i nepoznate akcije; ticket historija više ne nosi identitet problema, a stari zapisi se rediguju pri čitanju. Notifikacije se isporučuju samo primaocima s trenutnim `problem.read` opsegom, bez brojeva tiketa u recurrence sadržaju. Privacy izvoz i change veze slijede isti opseg prema odluci vlasnika.
 
 Korisnik je potvrdio vizuelne provjere P1/P2/P3/P4 svim **DA** i odobrio zatvaranje. CI [`43872624265`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43872624265) na SHA `fb41c66` je **success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju, frontend build/test, docs, container/supply-chain i CI gate; E2E critical/install, inventory i uslovni image enforcement bili su `skipped`. Nema migracije. Historijski već isporučene notifikacije/e-mailovi i ranije izgrađeni privacy ZIP-ovi nisu retroaktivno redigovani; potpuna HTTP role matrica i TOCTOU između previewa i izvršenja nisu posebno testirani. Detalji, svi commitovi i lokalna ograničenja su u [241](../implementation/241-w721-problems-02-closeout.md); ostali nalazi ostaju otvoreni.
+
+## 23. W7.22 — BA-problems-03 closeout
+
+CMDB veze problema sada prolaze kroz drugu autorizacionu granicu: `problemAssetAccess` traži aktuelni `asset.read` grant i računa opseg preko `Asset.organizationalUnit.ouPath` (put + podputevi), sa fail-closed ponašanjem za neaktivnog/nepostojećeg principala i nemogućim predikatom za prazan opseg. Globalni `problem.*` grant se ne pretvara u globalni CMDB grant. Filtriranje se primjenjuje prije limita i agregiranja na svim forward površinama: `searchAssets`, `suggestAssets` (ticket-derived prijedlozi), `linkAssets`, `get` linked assets i `unlinkAsset`; reverse `forAsset` kartica sada traži i čitljivost samog asseta, a historija problema prikazuje `asset_linked`/`asset_unlinked` samo za čitljive assete. Strani asset daje `PROBLEM_ASSET_NOT_FOUND` pri vezanju/odvezivanju, bez promjene stanja i bez događaja.
+
+Service i status-page incident pickeri iz §8 nisu mijenjani; oni pripadaju `BA-problems-11` (service/incident scope policy i transakcioni link obrazac). Nema migracije i nema promjene API shape-a.
+
+CI [`43883895790`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43883895790) na SHA `d8175a6` je **success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju (sa novom `problem-asset-scope.integration.spec.ts`), frontend, docs, container/supply-chain i CI gate; E2E critical/install, inventory i uslovni image enforcement bili su `skipped`. Zatvaranje nalaza čeka korisničku vizuelnu provjeru. Detalji, rizici i lokalna ograničenja su u [242](../implementation/242-w722-problem-asset-scope.md) i [243](../implementation/243-w722-problems-03-closeout.md).

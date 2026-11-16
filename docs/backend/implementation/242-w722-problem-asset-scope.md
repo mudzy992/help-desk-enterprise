@@ -50,7 +50,11 @@ Nema promjene API shape-a, DTO-a, ruta ni frontend ugovora. Kad je pristup odbij
 
 ## Commitovi i CI
 
-_(popunjava se nakon pusha)_
+- `de03c5d` — `asset.read` + asset OU scope gate (`problem-asset-access.ts`), filtriranje svih forward površina, asset dio historije, mock testovi, PostgreSQL integraciona suite i implementation dokument.
+- `cc95d87` — ispravke iz prvog CI pokušaja: eksplicitni tipovi mockova u `problem-links.service.spec.ts` (TS2322/TS2345 pod punim `tsc`) i `isPrimary` na ticket-asset vezama u integracionoj suite (DB constraint `TicketAsset_primary_required`).
+- `d8175a6` — `requireGroupAuthority` stub u integracionoj suite (`this.access.requireGroupAuthority is not a function`).
+
+Automatski CI: [`43883895790`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43883895790) na SHA `d8175a6` — **success** (generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integracija sa novom suite, frontend, docs, container/supply-chain, CI gate). Neuspjeli pokušaji: [`43881287791`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43881287791) na `de03c5d` (vlastite test-greške: TS tipovi mockova i primarni ticket-asset link) i [`43882818767`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43882818767) na `cc95d87` (nedostajući stub `requireGroupAuthority`); oba su popravljena u narednom commitu. Perf smoke [`43881288118`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43881288118) prošao je na `de03c5d`; na finalnom SHA-u `d8175a6` Perf nije pokrenut (mijenjao je samo test fajl).
 
 ## Korisnička vizuelna provjera (prije zatvaranja)
 
