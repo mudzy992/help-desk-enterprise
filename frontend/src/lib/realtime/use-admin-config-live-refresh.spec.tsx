@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   publishAdminConfigEvent,
   publishAdminConfigReconnect,
+  parseAdminConfigEvent,
   type AdminConfigUpdatedEvent,
 } from "./admin-config-events";
 import { useAdminConfigLiveRefresh } from "./use-admin-config-live-refresh";
@@ -47,6 +48,21 @@ describe("admin config live refresh", () => {
     expect(reload).not.toHaveBeenCalled();
     expect(result.current.pending?.domain).toBe("templates");
   });
+  it("preserves a group draft on the minimal scoped invalidation", () => {
+    const reload = vi.fn();
+    const containerRef = { current: document.createElement("section") };
+    const { result } = renderHook(() =>
+      useAdminConfigLiveRefresh({ domains: ["groups"], reload, containerRef }),
+    );
+    const event = parseAdminConfigEvent({ domain: "groups" });
+    expect(event).not.toBeNull();
+    act(() => publishAdminConfigEvent(event!));
+    expect(result.current.pending).toMatchObject({ domain: "groups", actorName: null });
+    expect(reload).not.toHaveBeenCalled();
+    act(() => result.current.refreshNow());
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
   it("shows a reconnect notice and only reloads upon explicit refresh", () => {
     const reload = vi.fn();
     const containerRef = { current: document.createElement("section") };

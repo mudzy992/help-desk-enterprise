@@ -3,6 +3,11 @@ import { TicketPresenceService } from '../tickets/collaboration-extras/presence/
 import { allowPresenceMessage } from '../tickets/collaboration-extras/presence/presence-rate-limiter';
 import { parsePresenceUpdate } from '../tickets/collaboration-extras/presence/ticket-presence.types';
 import { AdminConfigRealtimeHub } from '../../common/admin-realtime/admin-config-realtime.hub';
+import { GroupScopeRealtimeHub } from '../../common/admin-realtime/group-scope-realtime.hub';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { SessionTokenService } from '../authentication/session-token.service';
+import { startScopedGroupConfigDispatcher } from './scoped-group-config-dispatcher';
 import {
   ConnectedSocket,
   MessageBody,
@@ -78,6 +83,14 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
     private readonly adminConfigRealtimeHub?: AdminConfigRealtimeHub,
     @Optional()
     private readonly presenceService?: TicketPresenceService,
+    @Optional()
+    private readonly groupScopeRealtimeHub?: GroupScopeRealtimeHub,
+    @Optional()
+    private readonly authorizationContextLoader?: AuthorizationContextLoader,
+    @Optional()
+    private readonly sessionTokenService?: SessionTokenService,
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {}
 
   afterInit(): void {
@@ -139,6 +152,17 @@ export class TicketChatGateway implements OnGatewayInit, OnGatewayDisconnect, On
           broadcastAdminConfigUpdated(this.server, payload);
         }),
       );
+    }
+    const hub = this.groupScopeRealtimeHub;
+    const loader = this.authorizationContextLoader;
+    const sessions = this.sessionTokenService;
+    const prisma = this.prisma;
+    if (hub && loader && sessions && prisma) {
+      this.unsubscribers.push(startScopedGroupConfigDispatcher(this.server, hub, {
+        loadUnit: (id) => prisma.organizationalUnit.findUnique({ where: { id }, select: { id: true, ouPath: true } }),
+        isSessionCurrent: (principal) => sessions.isSocketSessionCurrent(principal),
+        loadContext: async (id) => (await loader.loadAuthoritativeSnapshotBySubjectId(id)).context,
+      }, (message) => this.logger.warn(message)));
     }
     this.stopTicketSocketRevalidation = startTicketSocketRevalidation(
       () => this.revalidateActiveTicketSubscriptions(),

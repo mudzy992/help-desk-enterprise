@@ -3,6 +3,10 @@ import { createServer as createHttpServer } from 'node:http';
 import { Server, type Socket } from 'socket.io';
 import { io as createSocketClient, type Socket as ClientSocket } from 'socket.io-client';
 import { loadRedisConfiguration } from '../../common/redis/load-redis-configuration';
+import { GroupScopeRealtimeHub } from '../../common/admin-realtime/group-scope-realtime.hub';
+import { createTestAssignment, createTestAuthorizationContext } from '../authorization/create-test-authorization-context';
+import { permissionKeys } from '../authorization/authorization.constants';
+import { startScopedGroupConfigDispatcher } from './scoped-group-config-dispatcher';
 import {
   createWebsocketRedisAdapter,
   type WebsocketRedisAdapterHandle,
@@ -28,6 +32,10 @@ async function createSocketInstance(room: string): Promise<SocketInstance> {
   server.adapter(handle.adapter);
   server.on('connection', (socket: Socket) => {
     void (async () => {
+      const user = socket.handshake.auth.user;
+      if (typeof user === 'string') {
+        socket.data.principal = { subjectId: user, sessionId: null, jti: user, issuedAt: 1, expiresAt: 9999999999, authzVersion: 1 };
+      }
       await socket.join(room);
       socket.emit('ready');
     })();
@@ -88,6 +96,36 @@ describeIfRedis('websocket Redis adapter cross-instance delivery (integration)',
     instanceA = undefined;
     instanceB = undefined;
     clientA = undefined;
+  });
+
+  it('authorizes scoped group invalidation on the receiving Redis instance', async () => {
+    instanceA = await createSocketInstance(`scope-${randomUUID()}`);
+    instanceB = await createSocketInstance(`scope-${randomUUID()}`);
+    const hubA = new GroupScopeRealtimeHub(); const hubB = new GroupScopeRealtimeHub();
+    const deps = {
+      loadUnit: async () => ({ id: 'unit', ouPath: '/A/Team' }),
+      isSessionCurrent: async () => true,
+      loadContext: async (id: string) => createTestAuthorizationContext({ subjectId: id, assignments: [createTestAssignment({ roleKey: 'ADMIN', permissionKeys: [permissionKeys.groupManage], organizationalUnitId: id, organizationalUnitPath: id === 'a' ? '/A' : '/B' })] }),
+    };
+    const stopA = startScopedGroupConfigDispatcher(instanceA.server, hubA, deps, logger.warn);
+    const stopB = startScopedGroupConfigDispatcher(instanceB.server, hubB, deps, logger.warn);
+    let denied: ClientSocket | undefined;
+    try {
+      clientA = createSocketClient(instanceA.address, { transports: ['websocket'], auth: { user: 'a' } });
+      denied = createSocketClient(instanceA.address, { transports: ['websocket'], auth: { user: 'b' } });
+      await Promise.all([waitForClientEvent(clientA, 'ready'), waitForClientEvent(denied, 'ready')]);
+      const seenDenied: unknown[] = [];
+      denied.on('admin.config.updated', (payload: unknown) => seenDenied.push(payload));
+      const delivered = waitForClientEvent(clientA, 'admin.config.updated');
+      hubB.publish({ organizationalUnitId: 'unit' });
+      await expect(delivered).resolves.toEqual({ domain: 'groups' });
+      const barrier = waitForClientEvent(denied, 'barrier');
+      instanceA.server.emit('barrier');
+      await barrier;
+      expect(seenDenied).toEqual([]);
+    } finally {
+      denied?.disconnect(); stopA(); stopB();
+    }
   });
 
   it('delivers a room emit from instance B to a client joined on instance A', async () => {

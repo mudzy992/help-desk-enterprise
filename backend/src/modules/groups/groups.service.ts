@@ -1,4 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
+import { GroupScopeRealtimeHub } from '../../common/admin-realtime/group-scope-realtime.hub';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
@@ -38,6 +39,8 @@ export class GroupsService {
     private readonly configurationLoader: TicketAssignmentConfigurationLoader,
     @Optional()
     private readonly principalContextInvalidator?: PrincipalContextInvalidator,
+    @Optional()
+    private readonly groupScopeRealtimeHub?: GroupScopeRealtimeHub,
   ) {}
 
   private invalidatePrincipal(): (userId: string) => Promise<unknown> {
@@ -90,19 +93,23 @@ export class GroupsService {
     return this.execute(() => getGroup(this.prisma, groupId));
   }
 
-  create(
+  async create(
     input: CreateGroupInput,
     context: GroupAuditContext = emptyAuditContext,
   ): Promise<GroupResponse> {
-    return this.execute(() => createGroup(this.prisma, input, context));
+    const result = await this.execute(() => createGroup(this.prisma, input, context));
+    this.publishScope(result.organizationalUnitId);
+    return result;
   }
 
-  update(
+  async update(
     groupId: string,
     input: UpdateGroupInput,
     context: GroupAuditContext = emptyAuditContext,
   ): Promise<GroupResponse> {
-    return this.execute(() => updateGroup(this.prisma, groupId, input, context));
+    const result = await this.execute(() => updateGroup(this.prisma, groupId, input, context));
+    this.publishScope(result.organizationalUnitId);
+    return result;
   }
 
   async delete(
@@ -111,26 +118,35 @@ export class GroupsService {
   ): Promise<void> {
     const outcome = await this.execute(() => deleteGroup(this.prisma, groupId, context));
     await this.invalidateUsers(outcome.affectedUserIds);
+    this.publishScope(outcome.organizationalUnitId);
   }
 
-  addMember(
+  async addMember(
     groupId: string,
     userId: string,
     context: GroupAuditContext = emptyAuditContext,
   ): Promise<GroupResponse> {
-    return this.execute(() =>
+    const result = await this.execute(() =>
       addGroupMember(this.prisma, groupId, userId, this.invalidatePrincipal(), context),
     );
+    this.publishScope(result.organizationalUnitId);
+    return result;
   }
 
-  removeMember(
+  async removeMember(
     groupId: string,
     userId: string,
     context: GroupAuditContext = emptyAuditContext,
   ): Promise<GroupResponse> {
-    return this.execute(() =>
+    const result = await this.execute(() =>
       removeGroupMember(this.prisma, groupId, userId, this.invalidatePrincipal(), context),
     );
+    this.publishScope(result.organizationalUnitId);
+    return result;
+  }
+
+  private publishScope(organizationalUnitId: string): void {
+    this.groupScopeRealtimeHub?.publish({ organizationalUnitId });
   }
 
   private async invalidateUsers(userIds: readonly string[]): Promise<void> {

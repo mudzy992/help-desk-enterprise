@@ -1,6 +1,6 @@
 # Scoped admin feed — istraživanje i granice
 
-**Status: otvoreno; nema implementiranog scoped feeda.** Korisnik je izabrao zaseban autorizovani scoped signal, a ne periodični podsjetnik ili odlaganje. Ovo ne zatvara paket [228](228-websocket-follow-up-plan.md).
+**Status: istraživanje; prvi scoped signal za grupe implementiran je naknadno u [237](237-scoped-group-config-signal.md).** Korisnik je izabrao zaseban autorizovani scoped signal, a ne periodični podsjetnik ili odlaganje. Ovo ne zatvara paket [228](228-websocket-follow-up-plan.md). Opisi postojećeg stanja ispod odnose se na vrijeme istraživanja.
 
 ## Reprodukcija postojećeg ograničenja
 

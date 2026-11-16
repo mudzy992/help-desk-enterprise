@@ -7,14 +7,18 @@ import { assertGroupDeletable } from './assert-group-deletable';
 import { loadGroupRecord } from './load-group-record';
 import type { GroupAuditContext } from './groups.types';
 
-export type GroupDeleteOutcome = { readonly affectedUserIds: readonly string[] };
+export type GroupDeleteOutcome = {
+  readonly affectedUserIds: readonly string[];
+  /** Captured from the deleted record inside the committing transaction. */
+  readonly organizationalUnitId: string;
+};
 
 export async function deleteGroup(
   prisma: PrismaService,
   groupId: string,
   context: GroupAuditContext = { actorUserId: null, requestId: null },
 ): Promise<GroupDeleteOutcome> {
-  const affectedUserIds = await prisma.$transaction(async (transaction) => {
+  const outcome = await prisma.$transaction(async (transaction) => {
     const client = transaction as unknown as PrismaService;
     const group = await loadGroupRecord(client, groupId);
     await assertGroupDeletable(client, group);
@@ -39,8 +43,8 @@ export async function deleteGroup(
       },
     });
     await transaction.group.delete({ where: { id: groupId } });
-    return memberUserIds;
+    return { affectedUserIds: memberUserIds, organizationalUnitId: group.organizationalUnitId };
   });
   invalidateActorGroupsCache();
-  return { affectedUserIds };
+  return outcome;
 }

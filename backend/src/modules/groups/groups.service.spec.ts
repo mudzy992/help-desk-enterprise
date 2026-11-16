@@ -44,6 +44,7 @@ describe('GroupsService', () => {
   const createService = (
     invalidateUser = jest.fn().mockResolvedValue(1),
     invalidateUsers = jest.fn().mockResolvedValue(undefined),
+    publishScope = jest.fn(),
   ) => {
     const prisma: {
       organizationalUnit: { findUnique: jest.Mock };
@@ -118,16 +119,18 @@ describe('GroupsService', () => {
         authorizationContextLoader as never,
         { load: async () => { throw new Error('not used'); } } as never,
         { invalidateUser, invalidateUsers } as never,
+        { publish: publishScope } as never,
       ),
       prisma,
       authorizationContextLoader,
       invalidateUser,
       invalidateUsers,
+      publishScope,
     };
   };
 
   it('creates a group in an existing organizational unit', async () => {
-    const { service, prisma } = createService();
+    const { service, prisma, publishScope } = createService();
     const created = await service.create({
       name: 'IT Support',
       organizationalUnitId: unit.id,
@@ -144,6 +147,7 @@ describe('GroupsService', () => {
     );
     expect(created.id).toBe(groupRecord.id);
     expect(created.organizationalUnitPath).toBe(unit.ouPath);
+    expect(publishScope).toHaveBeenCalledWith({ organizationalUnitId: unit.id });
     expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
       action: auditLogActions.groupCreated,
       entityId: groupRecord.id,
@@ -199,7 +203,7 @@ describe('GroupsService', () => {
   });
 
   it('audits only changed fields when a group is updated', async () => {
-    const { service, prisma } = createService();
+    const { service, prisma, publishScope } = createService();
     prisma.group.findUnique.mockResolvedValue(groupRecord);
     prisma.group.update.mockResolvedValue({ ...groupRecord, name: 'Updated Support' });
     await service.update(
@@ -207,6 +211,7 @@ describe('GroupsService', () => {
       { name: 'Updated Support' },
       { actorUserId: 'admin-1', requestId: 'req-update' },
     );
+    expect(publishScope).toHaveBeenCalledWith({ organizationalUnitId: unit.id });
     expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
       action: auditLogActions.groupUpdated,
       entityId: groupRecord.id,
@@ -240,6 +245,23 @@ describe('GroupsService', () => {
 
     await expect(service.addMember(groupRecord.id, user.id)).rejects.toBe(auditFailure);
     expect(persistedMembership).toBe(false);
+  });
+
+  it('publishes the committed deleted group OU, not a request-supplied scope', async () => {
+    const publish = jest.fn();
+    const { service, prisma } = createService(jest.fn(), jest.fn(), publish);
+    prisma.group.count.mockResolvedValue(2);
+    await service.delete(groupRecord.id);
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith({ organizationalUnitId: unit.id });
+  });
+
+  it('never publishes scoped invalidation when group deletion fails', async () => {
+    const publish = jest.fn();
+    const { service, prisma } = createService(jest.fn(), jest.fn(), publish);
+    prisma.group.count.mockResolvedValue(1);
+    await expect(service.delete(groupRecord.id)).rejects.toBeInstanceOf(ConflictException);
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('blocks deleting the only fallback group for an organizational unit', async () => {
@@ -284,7 +306,7 @@ describe('GroupsService', () => {
   });
 
   it('adds and removes a group member', async () => {
-    const { service, prisma } = createService();
+    const { service, prisma, publishScope } = createService();
     prisma.groupMember.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'member-1' });
@@ -318,6 +340,9 @@ describe('GroupsService', () => {
     }));
     const removed = await service.removeMember(groupRecord.id, user.id, context);
     expect(removed.members).toHaveLength(0);
+    expect(publishScope).toHaveBeenCalledTimes(2);
+    expect(publishScope).toHaveBeenNthCalledWith(1, { organizationalUnitId: unit.id });
+    expect(publishScope).toHaveBeenNthCalledWith(2, { organizationalUnitId: unit.id });
     expect(recordGroupChange).toHaveBeenCalledWith(prisma, expect.objectContaining({
       action: auditLogActions.groupMemberRemoved,
       entityId: groupRecord.id,
