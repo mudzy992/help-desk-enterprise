@@ -1,5 +1,12 @@
 import { ProblemLinksService } from './problem-links.service';
 import { ProblemError, problemErrorCodes } from './problems.constants';
+import { problemTicketVisibility } from './problem-ticket-visibility';
+
+jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../authorization/authorization-context.loader', () => ({ AuthorizationContextLoader: class AuthorizationContextLoader {} }));
+jest.mock('../tickets/ticket-access-policy-binder', () => ({ TicketAccessPolicyBinder: class TicketAccessPolicyBinder {} }));
+jest.mock('./problem-access.service', () => ({ ProblemAccessService: class ProblemAccessService {} }));
+jest.mock('./problem-ticket-visibility', () => ({ problemTicketVisibility: jest.fn(async () => ({ id: { in: ['visible'] } })) }));
 
 const viewer = { userId: 'u1', isSuperAdmin: false, grants: [], homeOrganizationalUnitId: null } as never;
 
@@ -10,7 +17,7 @@ function setup(options: { status?: string; authority?: boolean; cmdb?: boolean; 
     problemService: { findMany: jest.fn(async () => []), create: jest.fn(async () => ({})) },
     problemAsset: { findMany: jest.fn(async () => []) },
     problemIncident: { findMany: jest.fn(async () => []) },
-    ticketAsset: { groupBy: jest.fn(async () => []) },
+    ticketAsset: { groupBy: jest.fn(async (_args: unknown) => []) },
     asset: { findMany: jest.fn(async () => []) },
     service: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => ({ id: where.id, name: 'Mail' })) },
     problemEvent: { create: jest.fn(async () => ({})) },
@@ -25,10 +32,25 @@ function setup(options: { status?: string; authority?: boolean; cmdb?: boolean; 
     }),
     capabilities: jest.fn(async () => ({ enabled: true, canRead: options.canRead ?? true, configuration: { numberPrefix: 'P-' } })),
   };
-  return { service: new ProblemLinksService(prisma as never, access as never), prisma, access };
+  return { service: new ProblemLinksService(prisma as never, access as never, {} as never, {} as never), prisma, access };
 }
 
 describe('ProblemLinksService (P5b)', () => {
+  it('filters ticket-derived suggestions before grouping and limiting', async () => {
+    const { service, prisma } = setup();
+    await service.get('p1', viewer);
+    expect(prisma.ticketAsset.groupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ ticket: { is: { AND: [{ id: { in: ['visible'] } }, { problemLink: { is: { problemId: 'p1' } } }] } } }),
+      take: 20,
+    }));
+  });
+
+  it('fails closed if ticket visibility cannot be established', async () => {
+    const { service, prisma } = setup();
+    (problemTicketVisibility as jest.Mock).mockRejectedValueOnce(new Error('unavailable'));
+    await expect(service.get('p1', viewer)).rejects.toThrow('unavailable');
+    expect(prisma.ticketAsset.groupBy).not.toHaveBeenCalled();
+  });
   it('leaves CMDB items and incidents out while their modules are off', async () => {
     const { service, prisma } = setup({ cmdb: false, statusPage: false });
     const links = await service.get('p1', viewer);

@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { permissionKeys } from '../authorization/authorization.constants';
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
+import { problemTicketVisibility } from './problem-ticket-visibility';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { formatProblemNumber } from './problem-rules';
 import { problemVisibilityWhere } from './problem-visibility';
@@ -72,6 +75,8 @@ export class ProblemLinksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProblemAccessService,
+    private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
   ) {}
 
   private async loadProblem(problemId: string, viewer: ProblemViewer) {
@@ -125,17 +130,18 @@ export class ProblemLinksService {
       statusEnabled,
       canEdit,
       assets: assets.map((link) => ({ ...toAsset(link.asset), linkedAt: link.linkedAt.toISOString() })),
-      suggestedAssets: cmdbEnabled ? await this.suggestAssets(problemId) : [],
+      suggestedAssets: cmdbEnabled ? await this.suggestAssets(problemId, viewer) : [],
       services: services.map((link) => link.service),
       incidents: incidents.map((link) => toIncident(link.incident)),
     };
   }
 
   /** Items attached to the problem's tickets, most frequent first, not yet linked. */
-  private async suggestAssets(problemId: string) {
+  private async suggestAssets(problemId: string, viewer: ProblemViewer) {
+    const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
     const counts = await this.prisma.ticketAsset.groupBy({
       by: ['assetId'],
-      where: { ticket: { problemLink: { is: { problemId } } }, asset: { problems: { none: { problemId } } } },
+      where: { ticket: { is: { AND: [visibility, { problemLink: { is: { problemId } } }] } }, asset: { problems: { none: { problemId } } } },
       _count: { _all: true },
       orderBy: { _count: { assetId: 'desc' } },
       take: suggestionLimit,
