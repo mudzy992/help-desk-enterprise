@@ -45,4 +45,4 @@ Dodat signal i ciljani regresijski testovi: detalji, ograničenja i browser plan
 
 ## Generički EDGE — sigurna podrazumijevana publika
 
-Utvrđen je dodatni mogući cross-recipient broadcast generičkog EDGE payload-a; regresija i izričita promjena ranijeg ticket-room ugovora dokumentovane su u [235](235-edge-recipient-scope.md). Stvarni repo producenti su notification i user timer; vanjski potrošači/legacy payloadovi nisu dokazivo isključeni. Scoped admin osvježavanje ostaje sljedeća nezavisna odluka; ne širiti globalnu sobu.
+Utvrđen je dodatni mogući cross-recipient broadcast generičkog EDGE payload-a; regresija i izričita promjena ranijeg ticket-room ugovora dokumentovane su u [235](235-edge-recipient-scope.md). Stvarni repo producenti su notification i user timer; vanjski potrošači/legacy payloadovi nisu dokazivo isključeni. Korisnik je izabrao zaseban autorizovani scoped feed; reprodukcija postojećeg ograničenja i redoslijed po domenama su u [236](236-scoped-admin-feed-investigation.md). Feed još nije implementiran; ne širiti globalnu sobu.
