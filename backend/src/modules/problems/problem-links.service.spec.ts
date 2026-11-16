@@ -26,10 +26,10 @@ function setup(options: { status?: string; authority?: boolean; cmdb?: boolean; 
       deleteMany: jest.fn(async () => ({ count: 1 })),
     },
     problemIncident: { findMany: jest.fn(async () => []) },
-    ticketAsset: { groupBy: jest.fn(async (_args: unknown) => []) },
+    ticketAsset: { groupBy: jest.fn(async (_args: unknown): Promise<unknown[]> => []) },
     asset: {
-      findMany: jest.fn(async () => []),
-      findFirst: jest.fn(async () => ({ assetTag: 'PC-0042', name: 'Laptop' })),
+      findMany: jest.fn(async (): Promise<unknown[]> => []),
+      findFirst: jest.fn(async (): Promise<unknown> => ({ assetTag: 'PC-0042', name: 'Laptop' })),
       count: jest.fn(async () => 1),
     },
     $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => callback({

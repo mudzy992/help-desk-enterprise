@@ -66,7 +66,12 @@ describeIfDatabase('problem CMDB link scope (BA-problems-03, integration)', () =
       } as never,
     })).id;
     await prisma.problemTicket.create({ data: { problemId, ticketId } });
-    await prisma.ticketAsset.createMany({ data: [{ ticketId, assetId: secondInsideAssetId }, { ticketId, assetId: foreignAssetId }] });
+    await prisma.ticketAsset.createMany({
+      data: [
+        { ticketId, assetId: secondInsideAssetId, isPrimary: true },
+        { ticketId, assetId: foreignAssetId, isPrimary: false },
+      ],
+    });
 
     const access = {
       require: jest.fn(async () => ({ all: true, paths: [] })),
