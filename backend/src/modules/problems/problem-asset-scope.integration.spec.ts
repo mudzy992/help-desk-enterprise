@@ -79,6 +79,7 @@ describeIfDatabase('problem CMDB link scope (BA-problems-03, integration)', () =
       cmdbEnabled: jest.fn(async () => true),
       statusPageEnabled: jest.fn(async () => false),
       hasGroupAuthority: jest.fn(async () => true),
+      requireGroupAuthority: jest.fn(async () => undefined),
       capabilities: jest.fn(async () => ({ enabled: true, canRead: true, configuration: { numberPrefix: 'P-' } })),
     };
     links = new ProblemLinksService(prisma as never, access as never, {} as never, {} as never);
