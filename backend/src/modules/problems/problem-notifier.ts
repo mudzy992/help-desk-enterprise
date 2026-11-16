@@ -1,6 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { loadPrincipalContext } from '../../common/principal-context/load-principal-context';
+import { assetViewerFromContext, isPathInScope } from '../assets/asset-viewer';
 import { resolveEmailLocale } from '../notifications/email/compose-ticket-email';
 import { deliverNotificationEmail } from '../notifications/email/deliver-notification-email';
 import { isAllowedNotificationEmailAddress } from '../notifications/email/is-allowed-notification-email-address';
@@ -30,6 +33,7 @@ type Facts = {
   readonly groupId: string | null;
   readonly ownerName: string | null;
   readonly targetAt: Date | null;
+  readonly unitPath: string;
 };
 
 type Notice = {
@@ -136,8 +140,8 @@ export class ProblemNotifier {
       type: notificationTypes.problemRecurrence,
       emailKey: null,
       recipientIds,
-      occurrence: ticketNumbers.join(','),
-      suffix: ticketNumbers.slice(0, 5).join(', '),
+      // Do not put ticket identifiers in either notification body or dedupe payload.
+      occurrence: randomUUID(),
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
@@ -185,6 +189,7 @@ export class ProblemNotifier {
         ownerUserId: true,
         groupId: true,
         targetAt: true,
+        organizationalUnit: { select: { ouPath: true } },
         owner: { select: { displayName: true } },
       },
     });
@@ -200,6 +205,7 @@ export class ProblemNotifier {
       groupId: row.groupId,
       ownerName: row.owner?.displayName ?? null,
       targetAt: row.targetAt,
+      unitPath: row.organizationalUnit.ouPath,
     };
   }
 
@@ -211,15 +217,31 @@ export class ProblemNotifier {
       select: { id: true, email: true, displayName: true, preferredLocale: true },
     });
     if (users.length === 0) return 0;
+    // A problem-group membership or a linked ticket is not a grant to the full record.
+    // Load each recipient's current principal; failures deny delivery rather than widening it.
+    const authorized = [] as typeof users;
+    for (const user of users) {
+      try {
+        const principal = await loadPrincipalContext(this.prisma, user.id);
+        if (principal === null || !principal.isActive) continue;
+        const viewer = assetViewerFromContext(principal, user.id, 'problem.');
+        if (!this.access.hasPermission(viewer, permissionKeys.problemRead)) continue;
+        const scope = await this.access.scopeOf(viewer, permissionKeys.problemRead);
+        if (isPathInScope(scope, facts.unitPath)) authorized.push(user);
+      } catch (error) {
+        this.logger.warn(`problem_notice_authorization_failed user=${user.id} reason=${errorText(error)}`);
+      }
+    }
+    if (authorized.length === 0) return 0;
     const now = new Date();
     const policy = await loadNotificationPreferencePolicy(this.settings);
-    const decisions = await resolveDeliveryDecisions(this.prisma, policy, { type: notice.type, userIds: users.map((user) => user.id), now });
+    const decisions = await resolveDeliveryDecisions(this.prisma, policy, { type: notice.type, userIds: authorized.map((user) => user.id), now });
     const channel = notice.emailKey === null ? null : await loadEmailChannelConfiguration(this.settings).catch(() => null);
     const timeZone = await readInstallationTimeZone(this.settings);
     const dedupeKey = `problem:${notice.type}:${facts.id}:${notice.occurrence}`;
     const body = `${facts.number} · ${facts.title}${notice.suffix ? ` — ${notice.suffix}` : ''}`.slice(0, 500);
     let delivered = 0;
-    for (const user of users) {
+    for (const user of authorized) {
       const decision = decisions.get(user.id);
       if (decision?.inApp !== false) {
         const created = await persistInAppNotification(this.prisma, {

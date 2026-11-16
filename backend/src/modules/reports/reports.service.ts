@@ -4,7 +4,7 @@ import {
   ReportDashboardCache,
   reportDashboardCacheKey,
 } from './dashboard/report-dashboard.cache';
-import { Injectable, Optional } from '@nestjs/common';
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { aggregateBottleneckDashboard } from './bottleneck/aggregate-bottleneck-dashboard';
 import { loadBottleneckDashboardFromSql } from './bottleneck/sql-bottleneck-dashboard-store';
@@ -14,6 +14,9 @@ import {
   type ReportsDashboard,
 } from './dashboard/build-reports-dashboard';
 import { loadReportPackBuildInput } from './load-report-pack-build-input';
+import { isProblemReportPack } from './reports.constants';
+import { problemReportVisibility } from './problem-report-visibility';
+import { SettingsService } from '../settings/settings.service';
 import {
   loadOrganizationalUnitNames,
   loadServiceNames,
@@ -49,6 +52,7 @@ export class ReportsService {
     private readonly prisma: PrismaService,
     private readonly configurationLoader: ReportsConfigurationLoader,
     @Optional() private readonly dashboardCache?: ReportDashboardCache,
+    @Optional() private readonly settings?: SettingsService,
   ) {}
 
   /** Package 1.6: the packs this installation offers, in display order. */
@@ -78,9 +82,10 @@ export class ReportsService {
   async previewPack(
     query: ReportScopeQuery & { readonly pack: ReportPackKey },
     now: Date = new Date(),
+    actorUserId?: string,
   ): Promise<ReportPackPreview> {
     const configuration = await this.requireReports(query.pack);
-    const { window, built } = await this.buildPack(query, configuration, now);
+    const { window, built } = await this.buildPack(query, configuration, now, actorUserId);
     return {
       pack: query.pack,
       columns: built.columns,
@@ -98,7 +103,7 @@ export class ReportsService {
     now: Date = new Date(),
   ): Promise<ReportExportResult> {
     const configuration = await this.requireReports(query.pack, query.format);
-    const { window, built } = await this.buildPack(query, configuration, now);
+    const { window, built } = await this.buildPack(query, configuration, now, actorUserId);
     if (built.rows.length > reportPackLimits.exportRows) {
       throw new ReportsError(reportErrorCodes.tooLarge);
     }
@@ -130,6 +135,7 @@ export class ReportsService {
     query: ReportScopeQuery & { readonly pack: ReportPackKey },
     configuration: ReportsConfiguration,
     now: Date,
+    actorUserId?: string,
   ) {
     const window = resolveReportWindow({
       from: query.from,
@@ -143,6 +149,11 @@ export class ReportsService {
       this.prisma,
       query.organizationalUnitId,
     );
+    if (isProblemReportPack(query.pack) && (actorUserId === undefined || this.settings === undefined)) throw new Error('PROBLEM_REPORT_VISIBILITY_REQUIRED');
+    const visibility = isProblemReportPack(query.pack)
+      ? await problemReportVisibility(this.prisma, this.settings!, actorUserId!)
+      : undefined;
+    if (visibility === null) throw new ForbiddenException('PROBLEM_REPORT_FORBIDDEN');
     const built = buildReportPackRows(
       query.pack,
       await loadReportPackBuildInput(
@@ -151,6 +162,7 @@ export class ReportsService {
         window,
         query.pack,
         configuration.pingPongThreshold,
+        visibility,
       ),
     );
     return { window, built };

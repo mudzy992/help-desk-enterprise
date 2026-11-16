@@ -7,6 +7,16 @@ import { createKnowledgeArticle } from '../knowledge-base/create-knowledge-artic
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { prepareAuditEntry } from '../audit-log/audit-event-policy';
 import { auditLogActions } from '../audit-log/audit-log.constants';
+import { problemTicketVisibility } from './problem-ticket-visibility';
+
+jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../authorization/authorization-context.loader', () => ({ AuthorizationContextLoader: class AuthorizationContextLoader {} }));
+jest.mock('../tickets/ticket-access-policy-binder', () => ({ TicketAccessPolicyBinder: class TicketAccessPolicyBinder {} }));
+jest.mock('../tickets/tickets.service', () => ({ TicketsService: class TicketsService {} }));
+jest.mock('../tickets/tickets-collaboration.service', () => ({ TicketsCollaborationService: class TicketsCollaborationService {} }));
+jest.mock('../tickets/close-codes/ticket-close-codes-configuration.loader', () => ({ TicketCloseCodesConfigurationLoader: class TicketCloseCodesConfigurationLoader {} }));
+jest.mock('./problem-access.service', () => ({ ProblemAccessService: class ProblemAccessService {} }));
+jest.mock('./problem-ticket-visibility', () => ({ problemTicketVisibility: jest.fn(async () => ({ id: { not: 'x' } })) }));
 
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
 jest.mock('../knowledge-base/create-knowledge-article', () => ({ createKnowledgeArticle: jest.fn() }));
@@ -52,7 +62,7 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
       findMany: jest.fn(async (args: { select: { ticket: { select: Record<string, unknown> } } }) =>
         'requesterId' in args.select.ticket.select
           ? [{ ticket: { requesterId: 'requester' } }]
-          : tickets.map((ticket) => ({
+          : tickets.filter((ticket) => ticket.id !== 'x').map((ticket) => ({
               ticket: { id: ticket.id, ticketNumber: `T-${ticket.id}`, title: ticket.id, status: ticket.status, isConfidential: false, mergedIntoTicketId: ticket.mergedIntoTicketId ?? null },
             })),
       ),
@@ -142,25 +152,34 @@ describe('ProblemResolutionService group resolution', () => {
     { id: 'w', status: 'WAITING_FOR_USER' },
     { id: 'p', status: 'PENDING_APPROVAL' },
     { id: 'm', status: 'ASSIGNED', mergedIntoTicketId: 'a' },
-    // Outside the resolver's own ticket access (another unit): resolved via problem.close.
+    // Outside the resolver's ticket read scope: not a candidate even with problem.close.
     { id: 'x', status: 'PENDING', visibility: 'public' },
     { id: 'fail', status: 'ASSIGNED' },
     { id: 'b', status: 'ASSIGNED' },
   ];
 
   it('previews resolvable tickets with skip reasons and the limit', async () => {
-    const { service } = setup({ tickets, max: 2 });
+    const { service, prisma } = setup({ tickets, max: 2 });
     const preview = await service.resolvePreview('p1', viewer);
     expect(preview.items.map((item) => [item.id, item.reason])).toEqual([
       ['a', null],
       ['w', 'waiting_for_user'],
       ['p', 'pending_approval'],
       ['m', 'merged'],
-      ['x', null],
-      ['fail', 'limit'],
+      ['fail', null],
       ['b', 'limit'],
     ]);
     expect(preview.resolvable).toBe(2);
+    expect((prisma.problemTicket as { findMany: jest.Mock }).findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ ticket: { is: { AND: [{ id: { not: 'x' } }, expect.anything()] } } }), take: 2000,
+    }));
+  });
+
+  it('fails closed before loading candidates when ticket policy is unavailable', async () => {
+    const { service, prisma } = setup({ tickets });
+    (problemTicketVisibility as jest.Mock).mockRejectedValueOnce(new Error('visibility unavailable'));
+    await expect(service.resolvePreview('p1', viewer)).rejects.toThrow('visibility unavailable');
+    expect((prisma.problemTicket as { findMany: jest.Mock }).findMany).not.toHaveBeenCalled();
   });
 
   it('needs problem.close, a message and a required close code', async () => {
@@ -175,15 +194,15 @@ describe('ProblemResolutionService group resolution', () => {
   it('takes over unstarted tickets, resolves status first, then replies; failures do not stop the rest', async () => {
     const { service, ticketsService, collaboration, events } = setup({ tickets, problem: { status: 'RESOLVED' } });
     const result = await service.resolveTickets('p1', viewer, { message: ' Uzrok je otklonjen. ' });
-    expect(result.resolved.map((item) => item.ticketId)).toEqual(['a', 'x', 'b']);
-    expect(ticketsService.takeOverForProblem.mock.calls.map((call) => call[0])).toEqual(['x', 'fail', 'b']);
-    expect(ticketsService.takeOverForProblem).toHaveBeenCalledWith('x', { actorUserId: 'u1', problemDetail: 'p1|P-000012 ' + baseProblem.title });
+    expect(result.resolved.map((item) => item.ticketId)).toEqual(['a', 'b']);
+    expect(ticketsService.takeOverForProblem.mock.calls.map((call) => call[0])).toEqual(['fail', 'b']);
+    expect(ticketsService.takeOverForProblem).not.toHaveBeenCalledWith('x', expect.anything());
     expect(result.failed).toEqual([{ ticketId: 'fail', ticketNumber: 'T-fail', code: 'INVALID_STATUS_TRANSITION' }]);
     expect(result.skipped).toHaveLength(3);
     expect(ticketsService.update).toHaveBeenCalledWith('a', { status: 'RESOLVED', closeCode: undefined, resolutionNote: 'P-000012' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
-    expect(collaboration.createMessage).toHaveBeenCalledTimes(3);
+    expect(collaboration.createMessage).toHaveBeenCalledTimes(2);
     expect(collaboration.createMessage).toHaveBeenCalledWith('a', { type: 'AGENT_REPLY', body: 'Uzrok je otklonjen.' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
-    expect(events).toEqual([{ problemId: 'p1', action: 'tickets_resolved', actorUserId: 'u1', detail: { resolved: 3, skipped: 3, failed: 1 } }]);
+    expect(events).toEqual([{ problemId: 'p1', action: 'tickets_resolved', actorUserId: 'u1', detail: { resolved: 2, skipped: 3, failed: 1 } }]);
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemTicketsResolved, organizationalUnitId: 'ou1' }));
   });
 

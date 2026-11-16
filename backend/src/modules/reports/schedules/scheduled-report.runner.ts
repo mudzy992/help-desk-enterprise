@@ -13,7 +13,8 @@ import { MAIL_TRANSPORT, type MailTransport, type OutboundMailAttachment } from 
 import { SettingsService } from '../../settings/settings.service';
 import { buildReportPackRows } from '../build-report-pack-rows';
 import { loadReportPackBuildInput } from '../load-report-pack-build-input';
-import { reportPackKeyList, type ReportPackKey } from '../reports.constants';
+import { isProblemReportPack, reportPackKeyList, type ReportPackKey } from '../reports.constants';
+import { problemReportVisibility } from '../problem-report-visibility';
 import { ReportsConfigurationLoader } from '../reports-configuration.loader';
 import { resolveReportOrganizationalUnitScope } from '../resolve-report-organizational-unit-scope';
 import { reportFileBaseName } from '../serialize-report-pack-export';
@@ -138,7 +139,7 @@ export class ScheduledReportRunner {
     }
     const period = previousReportPeriod(schedule.frequency, configuration.timeZone, now);
     const content = await this.buildContent(schedule, period, now);
-    const files = await this.buildAttachments(schedule, period, configuration);
+    const files = await this.buildAttachments(schedule, period, configuration, actor.id);
     const composed = composeScheduledReportEmail({
       configuration: channel,
       locale: resolveEmailLocale(actor.preferredLocale, channel),
@@ -297,10 +298,11 @@ export class ScheduledReportRunner {
           errorCode = reportRunErrorCodes.noRecipients;
         } else {
           const content = await this.buildContent(schedule, period, now);
-          const files = await this.buildAttachments(schedule, period, configuration);
-          omitted = files.omitted;
           for (const user of eligible) {
             try {
+              // Problem packs are built separately under each recipient's current policy.
+              const files = await this.buildAttachments(schedule, period, configuration, user.id);
+              omitted = [...omitted, ...files.omitted];
               await this.deliver(schedule, user, content, files, channel, configuration, context.dedupeKey);
               sentCount += 1;
             } catch (error) {
@@ -487,6 +489,7 @@ export class ScheduledReportRunner {
     schedule: ReportScheduleRecord,
     period: ReportPeriod,
     configuration: ReportSchedulesConfiguration,
+    recipientUserId: string,
   ): Promise<ScheduledReportAttachments> {
     const attachments: OutboundMailAttachment[] = [];
     const omitted: { pack: string; reason: ReportAttachmentOmitReason }[] = [];
@@ -503,9 +506,14 @@ export class ScheduledReportRunner {
         continue;
       }
       try {
+        const visibility = isProblemReportPack(pack) ? await problemReportVisibility(this.prisma, this.settingsService, recipientUserId) : undefined;
+        if (visibility === null) {
+          omitted.push({ pack: key, reason: reportAttachmentOmitReasons.failed });
+          continue;
+        }
         const built = buildReportPackRows(
           pack,
-          await loadReportPackBuildInput(this.prisma, unitIds, window, pack, reports.pingPongThreshold),
+          await loadReportPackBuildInput(this.prisma, unitIds, window, pack, reports.pingPongThreshold, visibility),
         );
         if (built.rows.length > configuration.attachmentMaxRows) {
           omitted.push({ pack: key, reason: reportAttachmentOmitReasons.tooManyRows });

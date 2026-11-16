@@ -22,7 +22,10 @@ export type ChangeViewer = AssetViewer;
 export type ChangeScope = AssetScope;
 
 export function changeViewerOf(request: AuthenticatedHttpRequest, userId: string): ChangeViewer {
-  return assetViewerFromContext(readPrincipalContext(request), userId, 'change.');
+  const context = readPrincipalContext(request);
+  const change = assetViewerFromContext(context, userId, 'change.');
+  const problem = assetViewerFromContext(context, userId, 'problem.');
+  return { ...change, grants: [...change.grants, ...problem.grants] };
 }
 
 export type ChangeConfiguration = {

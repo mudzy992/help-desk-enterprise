@@ -3,6 +3,7 @@ import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { formatChangeNumber } from '../../changes/change-rules';
 import { changeDefaults } from '../../settings/definitions/change-settings';
 import { formatProblemNumber } from '../../problems/problem-rules';
+import { problemPrincipalScope } from '../../problems/problem-principal-scope';
 import { problemDefaults } from '../../settings/definitions/problem-settings';
 import { settingKeys } from '../../settings/setting-keys';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
@@ -11,6 +12,7 @@ const batch = 1000;
 
 export type ExportBuildOptions = {
   readonly subjectUserId: string;
+  readonly requestedByUserId: string | null;
   readonly includeAttachments: boolean;
   readonly includeInternalNotes: boolean;
   readonly maxAttachmentBytes: number;
@@ -346,10 +348,17 @@ export class ExportBuilder {
     );
 
     // Paket 3.3 P6: problems the person reported or owns, and their own problem actions.
+    // The archive may be downloaded by the privacy administrator and handed to the subject.
+    // Both must be in problem.read scope; absent requester fails closed.
+    const [subjectScope, requesterScope] = await Promise.all([
+      problemPrincipalScope(this.prisma, u),
+      options.requestedByUserId === null ? Promise.resolve({ id: { in: [] as string[] } }) : problemPrincipalScope(this.prisma, options.requestedByUserId),
+    ]);
+    const scopes = [subjectScope, requesterScope].filter((scope) => scope !== null);
     const [problemPrefixRow, problems, problemActions] = await Promise.all([
       this.prisma.appSetting.findUnique({ where: { key: settingKeys.privateProblemsNumberPrefix }, select: { value: true } }),
       this.prisma.problem.findMany({
-        where: { OR: [{ createdByUserId: u }, { ownerUserId: u }] },
+        where: { OR: [{ createdByUserId: u }, { ownerUserId: u }], AND: scopes },
         orderBy: { sequence: 'asc' },
         select: {
           sequence: true,
@@ -368,7 +377,7 @@ export class ExportBuilder {
         },
       }),
       this.prisma.problemEvent.findMany({
-        where: { actorUserId: u },
+        where: { actorUserId: u, problem: { is: { AND: scopes } } },
         orderBy: { createdAt: 'asc' },
         select: { action: true, createdAt: true, problem: { select: { sequence: true } } },
       }),

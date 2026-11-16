@@ -243,6 +243,7 @@ export class PrivacyExportService {
       const configuration = await this.configurationLoader.load();
       const { zip, summary } = await this.builder.build({
         subjectUserId: row.subjectUserId,
+        requestedByUserId: row.requestedByUserId,
         includeAttachments: row.includeAttachments,
         includeInternalNotes: row.includeInternalNotes,
         maxAttachmentBytes: configuration.exportMaxAttachmentBytes,

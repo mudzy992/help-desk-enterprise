@@ -142,6 +142,15 @@ const trackedValueFields = [
 const trackedTextFields = ['description', 'reason', 'implementationPlan', 'backoutPlan', 'testPlan', 'communicationPlan'] as const;
 const windowFields = new Set<string>(['plannedStart', 'plannedEnd', 'ownerUserId']);
 
+/** Change history may be read without problem.read; never expose problem identifiers through it. */
+function redactProblemHistory(detail: Prisma.JsonValue): Prisma.JsonValue {
+  if (detail === null || Array.isArray(detail) || typeof detail !== 'object') return detail;
+  const changes = detail.changes;
+  if (changes === null || Array.isArray(changes) || typeof changes !== 'object') return detail;
+  const { problemId: _problemId, ...safeChanges } = changes;
+  return { ...detail, changes: safeChanges };
+}
+
 function optionalText(value: string | null | undefined): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null) return null;
@@ -229,7 +238,10 @@ export class ChangesService {
     if (query.organizationalUnitId) and.push({ organizationalUnitId: query.organizationalUnitId });
     if (query.serviceId) and.push({ services: { some: { serviceId: query.serviceId } } });
     if (query.mine) and.push({ requesterUserId: viewer.userId });
-    if (query.problemId) and.push({ problemId: query.problemId });
+    if (query.problemId) {
+      if (!(await this.canReadProblem(viewer, query.problemId))) return { items: [], total: 0, nextCursor: null };
+      and.push({ problemId: query.problemId });
+    }
     if (query.assetId) and.push({ assets: { some: { assetId: query.assetId } } });
     if (query.awaitingMyVote) {
       and.push({
@@ -298,7 +310,7 @@ export class ChangesService {
         id: event.id,
         action: event.action,
         actor: event.actorUserId === null ? null : (byId.get(event.actorUserId) ?? null),
-        detail: event.detail,
+        detail: redactProblemHistory(event.detail),
         createdAt: event.createdAt.toISOString(),
       })),
     };
@@ -368,7 +380,7 @@ export class ChangesService {
     let cabGroupId = optionalId(input.cabGroupId) ?? null;
     if (input.type !== 'STANDARD') cabGroupId ??= await this.defaultCabGroupId();
     else cabGroupId = null;
-    await this.assertReferences({ serviceIds, assetIds, problemId, ownerUserId, cabGroupId });
+    await this.assertReferences(viewer, { serviceIds, assetIds, problemId, ownerUserId, cabGroupId });
     const risk = computeChangeRisk(impact, likelihood);
 
     const id = await this.prisma.$transaction(async (transaction) => {
@@ -537,7 +549,7 @@ export class ChangesService {
     if (problemId !== undefined && problemId !== current.problemId) data.problemId = problemId;
     const serviceIds = uniqueIds(input.serviceIds);
     const assetIds = uniqueIds(input.assetIds);
-    await this.assertReferences({
+    await this.assertReferences(viewer, {
       serviceIds: serviceIds?.filter((serviceId) => !current.services.some((link) => link.service.id === serviceId)),
       assetIds: assetIds?.filter((assetId) => !current.assets.some((link) => link.asset.id === assetId)),
       problemId: data.problemId as string | null | undefined,
@@ -917,7 +929,7 @@ export class ChangesService {
     return group?.id ?? null;
   }
 
-  private async assertReferences(input: {
+  private async assertReferences(viewer: ChangeViewer, input: {
     serviceIds?: readonly string[];
     assetIds?: readonly string[];
     problemId?: string | null;
@@ -936,7 +948,7 @@ export class ChangesService {
     }
     if (input.problemId) {
       if (!(await this.access.problemsEnabled())) throw new ChangeError(changeErrorCodes.problemNotFound, 'problems_disabled');
-      if ((await this.prisma.problem.count({ where: { id: input.problemId } })) === 0) throw new ChangeError(changeErrorCodes.problemNotFound);
+      if (!(await this.canReadProblem(viewer, input.problemId))) throw new ChangeError(changeErrorCodes.problemNotFound);
     }
     if (input.ownerUserId) {
       if ((await this.prisma.user.count({ where: { id: input.ownerUserId, ...this.managerWhere() } })) === 0) {
@@ -973,10 +985,18 @@ export class ChangesService {
     };
   }
 
+  private async canReadProblem(viewer: ChangeViewer, problemId: string): Promise<boolean> {
+    if (!this.access.hasPermission(viewer, permissionKeys.problemRead) || !(await this.access.problemsEnabled())) return false;
+    const scope = await this.access.scopeOf(viewer, permissionKeys.problemRead);
+    const visible = problemVisibilityWhere(scope, viewer.userId);
+    return (await this.prisma.problem.count({ where: { id: problemId, ...(visible === null ? {} : visible) } })) > 0;
+  }
+
   private async toDetail(viewer: ChangeViewer, row: ChangeDetailRow, configuration: ChangeConfiguration) {
     const canManage = await this.canManage(viewer, row);
     const editScope = await this.editScopeFor(viewer, row);
-    const problemPrefix = row.problem === null ? null : await this.access.problemNumberPrefix();
+    const visibleProblem = row.problem !== null && await this.canReadProblem(viewer, row.problem.id) ? row.problem : null;
+    const problemPrefix = visibleProblem === null ? null : await this.access.problemNumberPrefix();
     return {
       ...this.toListItem(row, configuration),
       description: row.description,
@@ -993,9 +1013,9 @@ export class ChangesService {
       reviewNotes: row.reviewNotes,
       template: row.template,
       problem:
-        row.problem === null
+        visibleProblem === null
           ? null
-          : { id: row.problem.id, number: formatProblemNumber(problemPrefix ?? '', row.problem.sequence), title: row.problem.title, status: row.problem.status },
+          : { id: visibleProblem.id, number: formatProblemNumber(problemPrefix ?? '', visibleProblem.sequence), title: visibleProblem.title, status: visibleProblem.status },
       assets: row.assets.map((link) => link.asset),
       approvalRound: row.approvalRound,
       conflictsAcknowledgedAt: row.conflictsAcknowledgedAt?.toISOString() ?? null,

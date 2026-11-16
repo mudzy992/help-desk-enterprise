@@ -3,6 +3,7 @@ import { formatProblemNumber } from '../../problems/problem-rules';
 import { problemDefaults } from '../../settings/definitions/problem-settings';
 import { settingKeys } from '../../settings/setting-keys';
 import type { ReportWindow } from '../reports.types';
+import type { ProblemReportVisibility } from '../problem-report-visibility';
 import { emptyProblemReportData, type ProblemReportData } from './build-problem-reports';
 
 export type ProblemReportPart = 'top' | 'knownError' | 'resolution' | 'backlog' | 'recurrence';
@@ -18,17 +19,18 @@ async function readNumberPrefix(prisma: PrismaService): Promise<string> {
 /** Loads only the part the requested pack needs; problems are scoped by their unit. */
 export async function loadProblemReportData(
   prisma: PrismaService,
-  input: { readonly unitIds: readonly string[]; readonly part: ProblemReportPart; readonly window: ReportWindow; readonly now: Date },
+  input: { readonly unitIds: readonly string[]; readonly part: ProblemReportPart; readonly window: ReportWindow; readonly now: Date; readonly visibility: ProblemReportVisibility },
 ): Promise<ProblemReportData> {
   const data: ProblemReportData = { ...emptyProblemReportData, now: input.now };
   if (input.unitIds.length === 0) return data;
-  const inUnits = { organizationalUnitId: { in: [...input.unitIds] } };
+  const inUnits = { AND: [{ organizationalUnitId: { in: [...input.unitIds] } }, input.visibility.problem] };
+  const readableTicket = input.visibility.ticket;
   const inWindow = { gte: input.window.from, lt: input.window.to };
 
   if (input.part === 'top') {
     const counts = await prisma.problemTicket.groupBy({
       by: ['problemId'],
-      where: { linkedAt: inWindow, problem: inUnits },
+      where: { linkedAt: inWindow, problem: inUnits, ticket: { is: readableTicket } },
       _count: { _all: true },
     });
     if (counts.length === 0) return data;
@@ -46,12 +48,12 @@ export async function loadProblemReportData(
           rootCauseCategory: true,
           service: { select: { name: true } },
           group: { select: { name: true } },
-          _count: { select: { tickets: true } },
+          _count: { select: { tickets: { where: { ticket: { is: readableTicket } } } } },
         },
       }),
       prisma.problemTicket.groupBy({
         by: ['problemId'],
-        where: { problemId: { in: ids }, ticket: { status: { notIn: [...closedTicketStatuses] } } },
+        where: { problemId: { in: ids }, ticket: { is: { AND: [readableTicket, { status: { notIn: [...closedTicketStatuses] } }] } } },
         _count: { _all: true },
       }),
     ]);
@@ -98,13 +100,23 @@ export async function loadProblemReportData(
   // recurrence: a ticket linked to a RESOLVED problem is flagged on the event (P5).
   const events = await prisma.problemEvent.findMany({
     where: { action: 'ticket_linked', createdAt: inWindow, detail: { path: ['recurrence'], equals: true }, problem: inUnits },
-    select: { createdAt: true, problem: { select: { sequence: true, title: true, status: true, resolvedAt: true } } },
+    select: { createdAt: true, detail: true, problem: { select: { sequence: true, title: true, status: true, resolvedAt: true } } },
   });
-  if (events.length === 0) return data;
+  const ticketId = (detail: unknown): string | null => {
+    if (detail === null || Array.isArray(detail) || typeof detail !== 'object') return null;
+    const value = (detail as { ticketId?: unknown }).ticketId;
+    return typeof value === 'string' ? value : null;
+  };
+  const ids = [...new Set(events.map((event) => ticketId(event.detail)).filter((id): id is string => id !== null))];
+  if (ids.length === 0) return data;
+  const readable = await prisma.ticket.findMany({ where: { AND: [readableTicket, { id: { in: ids } }] }, select: { id: true } });
+  const allowed = new Set(readable.map((ticket) => ticket.id));
+  const visibleEvents = events.filter((event) => { const id = ticketId(event.detail); return id !== null && allowed.has(id); });
+  if (visibleEvents.length === 0) return data;
   const prefix = await readNumberPrefix(prisma);
   return {
     ...data,
-    recurrence: events.map((event) => ({
+    recurrence: visibleEvents.map((event) => ({
       number: formatProblemNumber(prefix, event.problem.sequence),
       title: event.problem.title,
       status: event.problem.status,

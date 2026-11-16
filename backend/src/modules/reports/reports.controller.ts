@@ -80,12 +80,15 @@ export class ReportsController {
   async previewPack(
     @Param('packSlug') packSlug: string,
     @Query() query: ReportScopeQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
   ) {
+    const actorUserId = readSettingsActorUserId(request);
+    if (actorUserId === null) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Authorization failed' });
     try {
       return await this.reportsService.previewPack({
         ...query,
         pack: parseReportPackSlug(packSlug),
-      });
+      }, undefined, actorUserId);
     } catch (error) {
       throw mapReportsError(error);
     }

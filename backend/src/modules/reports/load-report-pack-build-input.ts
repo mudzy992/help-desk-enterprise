@@ -8,6 +8,7 @@ import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { assetReportHorizonDays } from './packs/build-asset-reports';
 import { loadAssetReportData, type AssetReportPart } from './packs/load-asset-report-data';
 import { loadProblemReportData, type ProblemReportPart } from './packs/load-problem-report-data';
+import type { ProblemReportVisibility } from './problem-report-visibility';
 import { loadChangeReportData } from './packs/load-change-report-data';
 import { isAssetReportPack, isChangeReportPack, isProblemReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
 import { settingKeys } from '../settings/setting-keys';
@@ -50,9 +51,11 @@ export async function loadReportPackBuildInput(
   window: ReportWindow,
   pack: ReportPackKey,
   pingPongThreshold: number,
+  problemVisibility?: ProblemReportVisibility,
 ): Promise<ReportPackBuildInput> {
   if (isProblemReportPack(pack)) {
-    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date() });
+    if (problemVisibility === undefined) throw new Error('PROBLEM_REPORT_VISIBILITY_REQUIRED');
+    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date(), visibility: problemVisibility });
     return { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], problems };
   }
   if (isChangeReportPack(pack)) {

@@ -6,6 +6,9 @@ import { mapProblemError } from './map-problem-error';
 import { ProblemError, problemErrorCodes } from './problems.constants';
 import { defaultTicketConfidentialConfiguration } from '../tickets/confidential/confidential.constants';
 import { ProblemsService } from './problems.service';
+import { ProblemResolutionService } from './problem-resolution.service';
+import { problemTicketVisibility } from './problem-ticket-visibility';
+import { loadProblemReportData } from '../reports/packs/load-problem-report-data';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -170,6 +173,28 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
         const page = await problems.list(viewer(actor), { search: 'Problem', limit: 100 });
         expect(page.items.find((item) => item.id === problemId)).toMatchObject({ ticketCount: expected, openTicketCount: expected });
       }
+      await prisma.problemEvent.createMany({ data: [
+        { problemId, action: 'ticket_linked', detail: { ticketId, ticketNumber: 'PUBLIC', recurrence: true } },
+        { problemId, action: 'ticket_linked', detail: { ticketId: hidden.id, ticketNumber: 'SECRET', recurrence: true } },
+        { problemId, action: 'tickets_resolved', detail: { resolved: 2 } },
+        { problemId, action: 'created', detail: {} },
+      ] });
+      const staffEvents = await problems.events(viewer(staffId), problemId);
+      expect(staffEvents.items.map((item) => item.action).sort()).toEqual(['created', 'ticket_linked']);
+      const requesterEvents = await problems.events(viewer(requesterId), problemId);
+      expect(requesterEvents.items.map((item) => item.action).sort()).toEqual(['created', 'ticket_linked', 'ticket_linked']);
+      const foreignEvents = await problems.events(viewer(foreignId), problemId);
+      expect(foreignEvents.items.map((item) => item.action)).toEqual(['created']);
+      const resolverAccess = { ...problemAccess, hasPermission: () => true, requireGroupAuthority: async () => undefined, configuration: async () => ({ numberPrefix: 'P-', bulkResolveMax: 200 }) };
+      const resolver = new ProblemResolutionService(prisma as never, resolverAccess as never, loader as never, policies as never, {} as never, {} as never, { load: async () => ({ enabled: false }) } as never);
+      const preview = await resolver.resolvePreview(problemId, viewer(staffId));
+      expect(preview.items.map((item) => item.id)).toEqual([ticketId]);
+      const visibility = { problem: {}, ticket: await problemTicketVisibility(prisma as never, loader as never, policies as never, staffId) };
+      const window = { from: new Date(Date.now() - 60_000), to: new Date(Date.now() + 60_000) };
+      const top = await loadProblemReportData(prisma as never, { unitIds: [unitId], part: 'top', window, now: new Date(), visibility });
+      expect(top.top.find((item) => item.title === 'Problem')).toMatchObject({ ticketsTotal: 1, ticketsInPeriod: 1, openTickets: 1 });
+      const recurrence = await loadProblemReportData(prisma as never, { unitIds: [unitId], part: 'recurrence', window, now: new Date(), visibility });
+      expect(recurrence.recurrence.filter((item) => item.title === 'Problem')).toHaveLength(1);
     } finally {
       await prisma.problemTicket.deleteMany({ where: { ticketId: hidden.id } });
       await prisma.ticket.delete({ where: { id: hidden.id } });

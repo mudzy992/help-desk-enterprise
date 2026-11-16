@@ -92,9 +92,10 @@ export class ProblemTicketsService {
   /** The problem must be visible to the viewer in the given permission's scope. */
   private async loadProblem(problemId: string, viewer: ProblemViewer, permission: string, prisma: PrismaService = this.prisma) {
     const scope = await this.access.require(viewer, permission);
-    const visible = problemVisibilityWhere(scope, viewer.userId);
+    const readScope = permission === permissionKeys.problemRead ? scope : await this.access.require(viewer, permissionKeys.problemRead);
+    const filters = [problemVisibilityWhere(scope, viewer.userId), problemVisibilityWhere(readScope, viewer.userId)].filter((filter) => filter !== null);
     const problem = await prisma.problem.findFirst({
-      where: { id: problemId, ...(visible === null ? {} : visible) },
+      where: { id: problemId, AND: filters },
       select: { id: true, sequence: true, title: true, status: true },
     });
     if (problem === null) throw new ProblemError(problemErrorCodes.notFound);
@@ -163,13 +164,14 @@ export class ProblemTicketsService {
     });
     if (link === null) return { enabled: true, visible: true, canLink: canWrite, canUnlink: false, problem: null };
     const configuration = await this.access.configuration();
-    // Working on the ticket makes the problem readable (§12).
+    // The card is deliberately minimal when the full problem is outside read scope.
     const problem = link.problem;
+    const canOpen = await this.canOpen(problem.id, viewer);
     return {
       enabled: true,
       visible: true,
       canLink: false,
-      canUnlink: canWrite && (problemOpenStatuses as readonly string[]).includes(problem.status) && await this.canOpen(problem.id, viewer, permissionKeys.problemReport),
+      canUnlink: canOpen && canWrite && (problemOpenStatuses as readonly string[]).includes(problem.status) && await this.canOpen(problem.id, viewer, permissionKeys.problemReport),
       problem: {
         id: problem.id,
         number: formatProblemNumber(configuration.numberPrefix, problem.sequence),
@@ -178,7 +180,7 @@ export class ProblemTicketsService {
         priority: problem.priority,
         workaround: problem.workaround,
         workaroundAt: problem.workaroundAt?.toISOString() ?? null,
-        canOpen: await this.canOpen(problem.id, viewer),
+        canOpen,
       },
     };
   }

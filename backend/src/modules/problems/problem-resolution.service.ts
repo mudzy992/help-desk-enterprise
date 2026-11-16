@@ -19,6 +19,7 @@ import { ProblemAccessService, type ProblemViewer } from './problem-access.servi
 import { buildKnownErrorArticle, type ProblemArticleLocale } from './problem-article';
 import { formatProblemNumber } from './problem-rules';
 import { problemVisibilityWhere } from './problem-visibility';
+import { problemTicketVisibility } from './problem-ticket-visibility';
 import { problemErrorCodes, problemEventActions, problemLimits, problemOpenTicketStatuses, ProblemError } from './problems.constants';
 
 export type ProblemTicketResolveSkip = 'waiting_for_user' | 'pending_approval' | 'merged' | 'no_access' | 'limit';
@@ -76,9 +77,10 @@ export class ProblemResolutionService {
 
   private async loadForArticle(problemId: string, viewer: ProblemViewer) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
-    const visible = problemVisibilityWhere(scope, viewer.userId);
+    const readScope = await this.access.require(viewer, permissionKeys.problemRead);
+    const filters = [problemVisibilityWhere(scope, viewer.userId), problemVisibilityWhere(readScope, viewer.userId)].filter((filter) => filter !== null);
     const problem = await this.prisma.problem.findFirst({
-      where: { id: problemId, ...(visible === null ? {} : visible) },
+      where: { id: problemId, AND: filters },
       select: {
         id: true,
         sequence: true,
@@ -213,16 +215,16 @@ export class ProblemResolutionService {
   // ------------------------------------------------- group resolution (§8.4)
 
   private async candidates(problemId: string, viewer: ProblemViewer, max: number): Promise<Candidate[]> {
+    const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
     const links = await this.prisma.problemTicket.findMany({
-      where: { problemId, ticket: { status: { in: [...problemOpenTicketStatuses] } } },
+      where: { problemId, ticket: { is: { AND: [visibility, { status: { in: [...problemOpenTicketStatuses] } }] } } },
       orderBy: { linkedAt: 'asc' },
       take: 2000,
       select: {
         ticket: { select: { id: true, ticketNumber: true, title: true, status: true, isConfidential: true, mergedIntoTicketId: true } },
       },
     });
-    // Decision 2026-10-01: whoever holds problem.close (PROBLEM_MANAGER, ADMIN)
-    // resolves every linked ticket, whatever unit it came from.
+    // Delegation applies only after the ticket read predicate has narrowed the candidates.
     const delegated = this.access.hasPermission(viewer, permissionKeys.problemClose);
     const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
     const result: Candidate[] = [];
@@ -259,9 +261,10 @@ export class ProblemResolutionService {
     if (!this.access.hasPermission(viewer, permissionKeys.problemClose)) {
       throw new ProblemError(problemErrorCodes.forbidden, 'problem.close');
     }
-    const visible = problemVisibilityWhere(scope, viewer.userId);
+    const readScope = await this.access.require(viewer, permissionKeys.problemRead);
+    const filters = [problemVisibilityWhere(scope, viewer.userId), problemVisibilityWhere(readScope, viewer.userId)].filter((filter) => filter !== null);
     const problem = await this.prisma.problem.findFirst({
-      where: { id: problemId, ...(visible === null ? {} : visible) },
+      where: { id: problemId, AND: filters },
       select: { id: true, sequence: true, status: true, resolution: true, title: true, groupId: true, organizationalUnitId: true },
     });
     if (problem === null) throw new ProblemError(problemErrorCodes.notFound);

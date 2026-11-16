@@ -211,12 +211,41 @@ export class ProblemsService {
   async events(viewer: ProblemViewer, id: string) {
     const scope = await this.access.require(viewer, permissionKeys.problemRead);
     await this.loadInScope(id, scope, viewer);
-    const events = await this.prisma.problemEvent.findMany({
-      where: { problemId: id },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 200,
-      select: { id: true, action: true, actorUserId: true, detail: true, createdAt: true },
-    });
+    const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
+    const events: Array<{ id: string; action: string; actorUserId: string | null; detail: Prisma.JsonValue; createdAt: Date }> = [];
+    const ticketActions: readonly string[] = [problemEventActions.ticketLinked, problemEventActions.ticketUnlinked];
+    const safeActions: readonly string[] = [
+      problemEventActions.created, problemEventActions.updated, problemEventActions.status, problemEventActions.owner,
+      problemEventActions.knowledgeArticle, problemEventActions.assetLinked, problemEventActions.assetUnlinked,
+      problemEventActions.serviceLinked, problemEventActions.serviceUnlinked, problemEventActions.incidentLinked, problemEventActions.incidentUnlinked,
+    ];
+    let cursor: string | undefined;
+    // Scan in bounded pages so inaccessible events cannot occupy the visible 200-event cap.
+    while (events.length < 200) {
+      const batch = await this.prisma.problemEvent.findMany({
+        where: { problemId: id },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 200,
+        ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
+        select: { id: true, action: true, actorUserId: true, detail: true, createdAt: true },
+      });
+      const ticketId = (detail: Prisma.JsonValue): string | null => {
+        if (detail === null || Array.isArray(detail) || typeof detail !== 'object') return null;
+        return typeof detail.ticketId === 'string' && detail.ticketId.length > 0 ? detail.ticketId : null;
+      };
+      const ids = [...new Set(batch.filter((event) => ticketActions.includes(event.action)).map((event) => ticketId(event.detail)).filter((value): value is string => value !== null))];
+      const readable = ids.length === 0 ? [] : await this.prisma.ticket.findMany({
+        where: { AND: [visibility, { id: { in: ids } }] }, select: { id: true },
+      });
+      const allowed = new Set(readable.map((ticket) => ticket.id));
+      for (const event of batch) {
+        const referenced = ticketId(event.detail);
+        if (safeActions.includes(event.action) || (ticketActions.includes(event.action) && referenced !== null && allowed.has(referenced))) events.push(event);
+        if (events.length === 200) break;
+      }
+      if (batch.length < 200) break;
+      cursor = batch[batch.length - 1]!.id;
+    }
     const actorIds = [...new Set(events.map((event) => event.actorUserId).filter((value): value is string => value !== null))];
     const actors = actorIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: userSelect });
     const byId = new Map(actors.map((actor) => [actor.id, actor]));
@@ -242,7 +271,8 @@ export class ProblemsService {
     const candidates: string[] = [];
     if (viewer.homeOrganizationalUnitId) candidates.push(viewer.homeOrganizationalUnitId);
     if (ticketIds.length > 0) {
-      const tickets = await this.prisma.ticket.findMany({ where: { id: { in: [...ticketIds].slice(0, 50) } }, select: { id: true, originUnitId: true } });
+      const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
+      const tickets = await this.prisma.ticket.findMany({ where: { AND: [visibility, { id: { in: [...ticketIds].slice(0, 50) } }] }, select: { id: true, originUnitId: true } });
       const byId = new Map(tickets.map((ticket) => [ticket.id, ticket.originUnitId]));
       for (const id of ticketIds) {
         const unit = byId.get(id);
@@ -261,9 +291,11 @@ export class ProblemsService {
 
   async create(viewer: ProblemViewer, input: CreateProblemDto) {
     const scope = await this.access.require(viewer, permissionKeys.problemReport);
+    const readScope = await this.access.require(viewer, permissionKeys.problemRead);
     const configuration = await this.access.configuration();
     const unitId = await this.defaultUnit(viewer, scope, optionalId(input.organizationalUnitId) ?? null, input.ticketIds ?? []);
     await this.access.requireUnitInScope(scope, unitId);
+    await this.access.requireUnitInScope(readScope, unitId);
     // Decision 2026-10-01: every problem belongs to a problem group; an owner
     // is optional and only a problem manager of that group can be one.
     const groupId = optionalId(input.groupId) ?? null;
@@ -380,6 +412,7 @@ export class ProblemsService {
     const unitId = optionalId(input.organizationalUnitId);
     if (unitId !== undefined && unitId !== null && unitId !== current.organizationalUnitId) {
       await this.access.requireUnitInScope(scope, unitId);
+      await this.access.requireUnitInScope(await this.access.require(viewer, permissionKeys.problemRead), unitId);
       data.organizationalUnitId = unitId;
     }
     let ownerUserId = optionalId(input.ownerUserId);
@@ -600,9 +633,10 @@ export class ProblemsService {
    * Loads a problem in the given permission's unit scope; anything else reads as not found.
    */
   private async loadInScope(id: string, scope: ProblemScope, viewer: ProblemViewer): Promise<DetailRow> {
-    const visible = problemVisibilityWhere(scope, viewer.userId);
+    const readScope = await this.access.require(viewer, permissionKeys.problemRead);
+    const filters = [problemVisibilityWhere(scope, viewer.userId), problemVisibilityWhere(readScope, viewer.userId)].filter((filter) => filter !== null);
     const row = await this.prisma.problem.findFirst({
-      where: { id, ...(visible === null ? {} : visible) },
+      where: { id, AND: filters },
       select: detailSelect,
     });
     if (row === null) throw new ProblemError(problemErrorCodes.notFound);

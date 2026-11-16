@@ -2,6 +2,8 @@
 
 Ovaj predložak je obavezan za ponovljive W7 package-closeout odgovore. Zadržati isti redoslijed i ne izostavljati CI `skipped` poslove, neuspjele pokušaje, lokalna ograničenja, migracije ili otvorene susjedne nalaze.
 
+**Pravilo kontinuiteta:** započeti paket implementirati i testirati u kontinuitetu do završnog izvještaja; ne prekidati rad radi izvještavanja o parcijalnim prolazima. Pauzirati samo kada je potrebna odluka korisnika ili postoji stvarna blokada, uključujući potrebne sigurnosne ili pristupne saglasnosti.
+
 **Pravilo gatea:** paket se ne označava zatvorenim i naredni paket se ne započinje dok CI za paket nije zelen. Ako CI padne zbog koda, popraviti i ponoviti gate; ne klasifikovati vlastitu grešku kao preegzistentnu. Preegzistentne/env greške dokumentovati sa jasnim dokazom i odvojiti ih od novih regresija.
 
 ## Obavezna struktura
