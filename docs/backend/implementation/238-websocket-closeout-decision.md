@@ -1,6 +1,6 @@
 # Paket 228 — završna evidencija za odluku vlasnika
 
-**Status: otvoreno, čeka odluku vlasnika.** Ovaj dokument nije odobrenje zatvaranja, mergea, deploymenta, migracije ni ručnog CI/E2E. Ne mijenja historijske statuse drugih audit nalaza.
+**Status: owner-directed zatvoren uz prihvaćene preostale rizike i odlaganja.** Korisnik je izričito odabrao „Prihvatam i odobravam zatvaranje“ nakon pregleda sažetka preostalih rizika, uz naknadnu vlastitu live/full CI provjeru nakon mergea i redeploya. Ovo nije dokaz prethodno nedokazanih scenarija ni odobrenje da asistent izvrši merge, deployment, migraciju ili ručni CI/E2E. Ne mijenja historijske statuse drugih audit nalaza.
 
 ## Šta je isporučeno i kakav je dokaz
 
@@ -23,4 +23,13 @@
 
 ## Odluka i nastavak
 
-Vlasnik može prihvatiti gore navedene preostale rizike i odlaganja i odobriti owner-directed zatvaranje paketa 228, uz izričito ostavljene nedokazane/odložene stavke; ili zadržati paket otvoren dok se dodatni dokazi ili implementacije ne obave. Odluka se mora zasebno zabilježiti, bez izmišljanja browser rezultata. Ako vlasnik prihvati, nakon commita/pusha dokumentovanog closeouta i potvrde relevantnog automatskog CI-ja korisniku dati precizne korake za njegov merge/redeploy i live/full critical-flow provjeru. Asistent ne izvršava merge, deployment, migraciju ni ručni full CI/E2E.
+Korisnik je nakon prezentirane evidencije izričito prihvatio preostale rizike i odlaganja te odobrio owner-directed zatvaranje. N/A i nedokazani scenariji ostaju takvi, bez izmišljanja browser rezultata. Nakon commita/pusha dokumentovanog closeouta i potvrde relevantnog automatskog CI-ja slijede korisnikov merge/redeploy i live/full critical-flow provjera. Asistent ne izvršava merge, deployment, migraciju ni ručni full CI/E2E.
+
+## Plan naknadne korisničke provjere (nije još izvedena)
+
+- Potvrditi merge ove grane i deploy backend/frontend SHA-a koji sadrži `225cdfc`; vlasnik prije mergea provjerava vanjske EDGE potrošače i prihvaćenu promjenu ugovora. Korisnik sam pokreće full critical-flow CI/E2E prema postojećem postupku; čuvati stvarni run ID, failed/flaky/skipped, ne prepisivati ih kao pass.
+- Na izolovanom testnom računu/grupi, s globalnim adminom i dva taba: u oba otvoriti **Administracija → Grupe**. U tabu A kliknuti **Nova grupa** i unijeti nespremljeni testni naziv. U tabu B stvoriti drugu, jasno označenu testnu grupu u dozvoljenoj OJ: **Nova grupa → Naziv grupe → Organizaciona jedinica → Kreiraj grupu**. Ne označavati **Fallback grupa za ovu OJ**, **Problem-grupa** ni **CAB grupa**, ne dodavati članove ni routing pravila. U A očekivati obavijest o izmijenjenim grupama i očuvan nacrt; prije klika na **Osvježi** odustati od nacrta jer osvježavanje može odbaciti unos. Nakon osvježavanja očekivati novu grupu. Ovaj globalni test ne dokazuje novi scoped feed.
+- U B obrisati samo upravo kreiranu testnu grupu bez članova, pravila ili tiketa: **Obriši** i potvrditi **Obriši**; ne dirati stvarne/fallback grupe. Ako izolovana OJ/grupa nije dostupna, upisati N/A bez izmjene produkcijskih podataka. U A očekivati novu obavijest i nakon **Osvježi** nestanak testne grupe. Audit zapis o testnoj operaciji ostaje; ne brisati audit.
+- Scoped group browser test: samo ako postoji odvojeno testno okruženje s odgovarajućim OU assignmentom i autorizovanim nalogom, ponoviti scenarij s relevantnim i drugim OU-om bez promjene prava na produkciji; inače N/A. Dvije potvrđene instance/Redis outage također N/A bez izolovanog okruženja; ne prekidati produkcijski Redis.
+- Nakon deploya provjeriti postojeće ticket/list/dashboard i notifikacijske scenarije prema [230](230-ticket-revoke-join.md), [232](232-websocket-browser-redis-acceptance.md) i [234](234-collection-room-ready-catchup.md), uz testne podatke i čišćenje. Browser scenarij nije dokaz da je dostava došla putem EDGE ili Redis adaptera; vanjske EDGE integracije vlasnik provjerava prema vlastitom inventaru.
+- Izvještaj: deploy SHA, browser, CI run URL i stvarni rezultat; G1 kreiranje/banner/draft, G2 brisanje/cleanup, G3 scoped, T ticket, L lista/dashboard, N notifikacije, E vanjski EDGE i R dvije instance/outage kao DA/NE/N/A. Bez tokena i ličnih podataka; greške redigovati. DA za globalne grupe ne prikazivati kao DA za scoped ili cross-instance.
