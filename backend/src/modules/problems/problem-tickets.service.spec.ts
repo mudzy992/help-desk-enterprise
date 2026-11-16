@@ -2,6 +2,7 @@ import { ProblemTicketsService } from './problem-tickets.service';
 import { ProblemError, problemErrorCodes } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
+import { problemTicketVisibility } from './problem-ticket-visibility';
 
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../tickets/ticket-access-policy-binder', () => ({ TicketAccessPolicyBinder: class TicketAccessPolicyBinder {} }));
@@ -9,6 +10,7 @@ jest.mock('../tickets/ticket-realtime.hub', () => ({ TicketRealtimeHub: class Ti
 jest.mock('./problem-access.service', () => ({ ProblemAccessService: class ProblemAccessService {} }));
 jest.mock('./problem-notifier', () => ({ ProblemNotifier: class ProblemNotifier {} }));
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
+jest.mock('./problem-ticket-visibility', () => ({ problemTicketVisibility: jest.fn() }));
 jest.mock('../tickets/publish-persisted-ticket-messages', () => ({ publishPersistedTicketMessages: jest.fn() }));
 jest.mock('../tickets/insert-system-ticket-event', () => ({
   insertSystemTicketEvent: jest.fn(async (_client: unknown, input: { action: string; detail: string }) => ({ body: `${input.action}:${input.detail}` })),
@@ -167,6 +169,32 @@ describe('ProblemTicketsService.unlink', () => {
     expect(loadTicket.mock.invocationCallOrder[0]).toBeLessThan((prisma.problemTicket as { deleteMany: jest.Mock }).deleteMany.mock.invocationCallOrder[0]);
     expect(links.has('a')).toBe(false);
     expect(events).toHaveLength(1);
+  });
+});
+
+describe('ProblemTicketsService.listForProblem', () => {
+  it('applies the canonical ticket predicate in the database before limiting and counting', async () => {
+    const { service, prisma } = setup({ tickets: [] });
+    const visible = { id: { in: ['visible'] } };
+    (problemTicketVisibility as jest.Mock).mockResolvedValue(visible);
+    const date = new Date('2026-01-01T00:00:00Z');
+    const findMany = jest.fn(async () => [{ linkedAt: date, ticket: {
+      id: 'visible', ticketNumber: 'T-1', title: 'Visible', status: 'IN_PROGRESS', priority: 'LOW',
+      isConfidential: false, createdAt: date, requester: null, originUnit: null, assignedUser: null,
+    } }]);
+    Object.assign(prisma.problemTicket as object, { findMany });
+    const result = await service.listForProblem('p1', viewer);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { problemId: 'p1', ticket: { is: visible } }, take: 500 }));
+    expect(result).toMatchObject({ total: 1, open: 1, items: [{ id: 'visible' }] });
+  });
+
+  it('fails closed if visibility cannot be established', async () => {
+    const { service, prisma } = setup({ tickets: [] });
+    const findMany = jest.fn();
+    Object.assign(prisma.problemTicket as object, { findMany });
+    (problemTicketVisibility as jest.Mock).mockRejectedValue(new Error('unavailable'));
+    await expect(service.listForProblem('p1', viewer)).rejects.toThrow('unavailable');
+    expect(findMany).not.toHaveBeenCalled();
   });
 });
 

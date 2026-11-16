@@ -4,6 +4,7 @@ import * as ticketEvents from '../tickets/insert-system-ticket-event';
 import { ProblemTicketsService } from './problem-tickets.service';
 import { mapProblemError } from './map-problem-error';
 import { ProblemError, problemErrorCodes } from './problems.constants';
+import { defaultTicketConfidentialConfiguration } from '../tickets/confidential/confidential.constants';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -137,6 +138,29 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
     expect(await prisma.problemEvent.count({ where: { problemId } })).toBe(0);
     expect(await prisma.ticketMessage.count({ where: { ticketId } })).toBe(0);
     expect(hub.publish).not.toHaveBeenCalled();
+  });
+
+  it('lists and counts only tickets visible under the canonical confidentiality policy', async () => {
+    const hidden = await prisma.ticket.create({ data: { ticketNumber: `SECRET-${stamp}`, title: 'Secret', description: 'Integration', formData: {}, priority: 'LOW', impact: 'LOW', urgency: 'LOW', status: 'IN_PROGRESS', serviceId, formVersionId: formId, requesterId, originUnitId: unitId, isConfidential: true } as never });
+    try {
+      await prisma.problemTicket.create({ data: { problemId, ticketId: hidden.id } });
+      const access = { require: async () => ({ all: true, paths: [] }) };
+      const loader = { loadBySubjectId: async (subjectId: string) => ({ subjectId, isLocalOnly: false, isSuperAdmin: subjectId === staffId, assignments: [] }) };
+      const policies = { bind: async () => ({ confidential: defaultTicketConfidentialConfiguration }) };
+      const listing = new ProblemTicketsService(prisma as never, access as never, loader as never, policies as never, hub as never);
+      const staff = await listing.listForProblem(problemId, viewer(staffId));
+      expect(staff.total).toBe(1);
+      expect(staff.open).toBe(1);
+      expect(staff.items.map((item) => item.id)).toEqual([ticketId]);
+      const requester = await listing.listForProblem(problemId, viewer(requesterId));
+      expect(requester.total).toBe(2);
+      expect(requester.items.map((item) => item.id)).toEqual(expect.arrayContaining([ticketId, hidden.id]));
+      const foreign = await listing.listForProblem(problemId, viewer(foreignId));
+      expect(foreign).toEqual({ total: 0, open: 0, items: [] });
+    } finally {
+      await prisma.problemTicket.deleteMany({ where: { ticketId: hidden.id } });
+      await prisma.ticket.delete({ where: { id: hidden.id } });
+    }
   });
 
   it('maps inaccessible targets to the existing not-found HTTP contract', () => {

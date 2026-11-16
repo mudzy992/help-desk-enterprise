@@ -14,6 +14,7 @@ import { ProblemAccessService, type ProblemViewer } from './problem-access.servi
 import { formatProblemNumber } from './problem-rules';
 import { problemErrorCodes, problemEventActions, problemLimits, problemOpenStatuses, problemOpenTicketStatuses, ProblemError } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
+import { problemTicketVisibility } from './problem-ticket-visibility';
 import { ProblemNotifier } from './problem-notifier';
 
 /** P5 (§11): tickets may still join a RESOLVED problem; the owner gets a recurrence signal. */
@@ -102,8 +103,9 @@ export class ProblemTicketsService {
 
   async listForProblem(problemId: string, viewer: ProblemViewer) {
     await this.loadProblem(problemId, viewer, permissionKeys.problemRead);
+    const ticketVisibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
     const links = await this.prisma.problemTicket.findMany({
-      where: { problemId },
+      where: { problemId, ticket: { is: ticketVisibility } },
       orderBy: { linkedAt: 'desc' },
       take: 500,
       select: {

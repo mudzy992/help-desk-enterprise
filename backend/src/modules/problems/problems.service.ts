@@ -28,7 +28,7 @@ import {
   type ProblemSeverityValue,
   type ProblemStatusValue,
 } from './problems.constants';
-import { linkedTicketWorkWhere, problemVisibilityWhere } from './problem-visibility';
+import { problemVisibilityWhere } from './problem-visibility';
 import { ProblemNotifier } from './problem-notifier';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
 
@@ -676,13 +676,9 @@ export class ProblemsService {
   }
 
   private async toDetail(viewer: ProblemViewer, row: DetailRow, configuration: ProblemConfiguration) {
-    let worksOnLinked: boolean | null = null;
-    const inScope = async (permission: string) => {
-      if (!this.access.hasPermission(viewer, permission)) return false;
-      if (isPathInScope(await this.access.scopeOf(viewer, permission), row.organizationalUnit.ouPath)) return true;
-      worksOnLinked ??= (await this.prisma.problemTicket.count({ where: { problemId: row.id, ticket: linkedTicketWorkWhere(viewer.userId) } })) > 0;
-      return worksOnLinked;
-    };
+    const inScope = async (permission: string) =>
+      this.access.hasPermission(viewer, permission) &&
+      isPathInScope(await this.access.scopeOf(viewer, permission), row.organizationalUnit.ouPath);
     // Decision 2026-10-01: the problem group runs the problem (admins always).
     const canManage = (await inScope(permissionKeys.problemManage)) && (await this.access.hasGroupAuthority(viewer, permissionKeys.problemManage, row.groupId));
     const canClose = canManage && (await inScope(permissionKeys.problemClose));
