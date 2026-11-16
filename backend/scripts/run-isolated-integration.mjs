@@ -26,6 +26,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/notifications/notifications-list-pagination.integration.spec.ts",
   "src/modules/notifications/notification-mark-all-read.integration.spec.ts",
   "src/modules/changes/change-downtime-outbox.integration.spec.ts",
+  "src/modules/problems/problem-ticket-unlink.integration.spec.ts",
   "src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts",
   "src/common/database-lock/database-lock.integration.spec.ts",
   "src/common/bulk-command/bulk-command.integration.spec.ts",
