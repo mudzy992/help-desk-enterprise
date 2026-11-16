@@ -1,35 +1,57 @@
 # W7.21 — BA-problems-02: problem i povezani tiketi
 
-**Status: implementacija u toku, nije closeout i nije spremno za merge/deploy.** Vlasnik je izabrao: puni zapis, analiza i historija samo unutar `problem.read` OU opsega; rad na povezanom tiketu izvan tog opsega daje samo minimalnu ticket karticu/workaround, a reporter izvan opsega nema izuzetak za puni zapis. Povezani tiketi bez pristupa ne pojavljuju se ni kroz ukupan broj. Nema odobrenja za proširenje prava.
+**Status: implementacija kompletna i zelena na automatskom CI-ju; zatvaranje nalaza čeka korisničku vizuelnu provjeru nakon redeploya.** Politika koju je vlasnik izabrao: puni zapis, analiza i historija problema dostupni su samo unutar `problem.read` OU opsega; radnik na tiketu izvan tog opsega dobija minimalnu ticket karticu i workaround, a prijavitelj nema trajni izuzetak. Povezani tiketi bez pristupa ne pojavljuju se ni kroz broj. Nema proširenja prava i nema migracije.
 
-## Triage i cilj
+## Triage
 
-BA-problems-02 (P1), WS-F. Potrebno je obuhvatiti listu, detail, events, links i reverse putanje, ticket-panel i sve povezane ticket podatke uključujući brojače, event detail, preview i izvedene podatke. Ne mijenjati historijski BA-problems-04 niti automatski zatvarati BA-problems-03/05. Ticket read i confidential policy mora biti izvor autoriteta; filtriranje se mora primijeniti prije cap/paginacije i agregiranja. Provjeriti mutation response i poslovne granice create/link kako se UI ne bi ponašao kao da je ovlast data kad nije. Nema migracije niti pristupa ciljnoj bazi.
+BA-problems-02 (P1), WS-F. Trebalo je obuhvatiti listu, detalj, historiju, povezane tikete, brojače, izvedene podatke, izvještaje, zakazane izvještaje, change veze, privacy izvoz i notifikacije. Ticket read i confidential policy ostaje izvor autoriteta; filtriranje se primjenjuje u SQL-u prije limita, paginacije i agregiranja. Historijski BA-problems-04 i susjedni BA-problems-03/05 nisu mijenjani.
 
-## Prvi korak — nije potpuna ispravka
+## Implementacija po površini
 
-`problemVisibilityWhere` sada daje puni zapis samo prema OU scopeu relevantne permisije, bez linked-ticket i reporter bypassa. Prazan scope je nemoguć ID skup umjesto postojećeg NUL sentinela. To utiče i na write putanje koje koriste istu funkciju; kompatibilnost i UI treba provjeriti. Minimalna ticket kartica zadržana je, a `canUnlink` za povezani problem sada dodatno provjerava `problem.report` scope; potrebni su posebni testovi tih kontrola i ponašanja kreiranja/povezivanja.
+- **Puni zapis problema** (`problem-visibility.ts`): `problemVisibilityWhere` daje pristup samo preko OU opsega relevantne permisije; uklonjeni su linked-ticket i reporter bypass. Prazan opseg je nemoguć ID skup, bez NUL sentinela.
+- **Lista i detalj** (`problems.service.ts`): uklonjen je nefiltrirani `_count.tickets`; ukupni i otvoreni brojevi računaju se nakon centralnog ticket-predikata. Detalj i no-op update prolaze `problem.read` provjeru. Kreiranje i premještanje problema traže jedinicu u opsegu i `problem.report` i `problem.read`; odabir jedinice iz tiketa filtrira tikete po vidljivosti.
+- **Povezani tiketi** (`problem-tickets.service.ts`): lista koristi centralni ticket-list predikat prije limita i brojeva; neuspjeh učitavanja vidljivosti odbija odgovor. Kartica na tiketu ostaje minimalna (`canOpen`, workaround), a `canUnlink` traži i problem read i report opseg. `unlink` zadržava provjere iz BA-04.
+- **Historija problema** (`problems.service.ts`): `ticket_linked`/`ticket_unlinked` prikazuju se samo ako je referencirani tiket sada čitljiv; `tickets_resolved` agregati i nepoznate akcije se izostavljaju fail-closed. Straničenje ide dok se ne prikupi 200 vidljivih događaja.
+- **Ticket historija** (`redact-problem-event-bodies.ts`): novi zapisi više ne sadrže identitet problema; stari zapisi oblika `action:<problemId>|<number> <title>` rediguju se pri čitanju za gledaoce izvan `problem.read`. Time se uklanja i realtime curenje kroz poruke.
+- **Resolution** (`problem-resolution.service.ts`): preview i izvršenje obrađuju samo tikete iz centralnog ticket-predikata i traže `problem.read` uz `problem.manage`/`problem.close`; delegacija više ne otvara sve povezane tikete.
+- **Izvedeni CMDB prijedlozi** (`problem-links.service.ts`): grupisanje i limit od 20 primjenjuju se nakon ticket-predikata.
+- **Report packovi i zakazani izvještaji**: problem packovi traže `problem.read` i ticket visibility; `problem_top` brojači i `problem_recurrence` filtriraju se prije agregacije; zakazani prilozi grade se **zasebno za svakog primaoca** (odluka vlasnika), a bez opsega se pack izostavlja.
+- **Privacy izvoz** (odluka vlasnika): problem dio ZIP-a ograničen je presjekom `problem.read` opsega subjekta i administratora koji je izvoz zatražio; bez opsega nema problem zapisa. Dokumentovan je uticaj na potpunost izvoza.
+- **Change veze** (`changes.service.ts`, `change-access.service.ts`): detalj prikazuje problem samo uz `problem.read`; povezivanje traži čitljiv problem; historija ne prikazuje `problemId` iz `changes` detalja. Reverse lista po `problemId` vraća prazno bez pristupa.
+- **Notifikacije** (`problem-notifier.ts`): primaoci se provjeravaju po trenutnom principalu i OU opsegu `problem.read`; bez opsega nema in-app ni e-mail isporuke. Recurrence notifikacije više ne sadrže brojeve tiketa, a dedupe ključ ne nosi identifikatore.
 
-## Drugi međukorak
+## Testni dokaz
 
-Lista povezanih tiketa sada koristi centralni ticket-list predikat (OU/service, članstvo i povjerljivost) u SQL upitu prije limita i računanja brojeva liste; greška pri učitavanju konteksta ne otvara pristup. Brojevi te liste su i dalje ograničeni na najviše 500 vidljivih redova. Kontrole detalja više ne dodjeljuju write ovlasti zbog rada na povezanom tiketu. Dodan je PostgreSQL scenarij s običnim i povjerljivim tiketom, ali lokalno nije izveden; problem permission i identity su fixture, ne puni HTTP lanac. Još nije pokriveno skrivanje historijskih i drugih agregata, zato ovaj korak nije deployable.
+- `problem-ticket-visibility.spec.ts`, `problem-tickets.service.spec.ts`, `problem-counts.spec.ts`, `problem-events-visibility.spec.ts`, `problem-links.service.spec.ts`, `problem-resolution.service.spec.ts`, `problem-notifier-visibility.spec.ts`, `problem-principal-scope.spec.ts`, `redact-problem-event-bodies.spec.ts`, `load-problem-report-visibility.spec.ts` — 47 ciljanih mock testova s `ts-jest diagnostics:false`.
+- `problem-ticket-unlink.integration.spec.ts` (PostgreSQL): običan i povjerljivi tiket, staff/requester/strani gledalac, vidljivi brojači liste i detalja, filtrirana historija, resolution preview i report agregati. Suite je registrovana u `scripts/run-isolated-integration.mjs` i prošla je u CI-ju.
 
-## Dodatne izvedene površine — odluka potrebna
+## Commitovi i CI
 
-Pregled je pronašao problem report packove čiji OU filter slijedi reports ovlasti, a ne `problem.read` i ticket visibility; scheduled runner gradi jedan prilog za više primalaca. Pronađen je i ZIP izvoza podataka subjekta: po `createdByUserId`/`ownerUserId` izvozi opis, analizu, workaround i resolution, kao i događaje po akteru; ZIP naručuje i preuzima privacy administrator. Vlasnik je odlučio personalizovati scheduled prilog po primaocu i ograničiti privacy izvoz prema `problem.read`, uz mogući uticaj na potpunost privacy izvoza. Lokalna implementacija koristi presjek scopea administratora i subjekta; generated Prisma, CI i integracija za to nisu još dokazani. Postojeći izgrađeni ZIP-ovi, opoziv prava između izgradnje i preuzimanja, već pohranjene notifikacije i ranije isporučeni e-mailovi nisu retroaktivno redigovani ili revalidirani i ostaju stvarni rizici. Change detail i historija zahtijevaju dodatne testove. Ne zatvarati BA-02 dok sve površine i dokaz nisu riješeni.
+- `143faf9` — uklanjanje bypassa, scope i `canOpen`.
+- `ccfea65` — SQL filter liste povezanih tiketa i write dozvole detalja.
+- `0bb34b2` — vidljivi brojači liste i detalja.
+- `5735e28` — filtriranje ticket-derived CMDB prijedloga.
+- `3d97728` — historija, resolution, notifikacije, report packovi, zakazani prilozi, privacy izvoz i change veze.
+- `5dca770` — uklanjanje identiteta problema iz ticket historije i redakcija starih zapisa.
 
-Implementirana je dodatna provjera notifikacijskih primalaca i uklanjanje brojeva tiketa iz recurrence notifikacija, te filtriranje preview/mutation kandidata prije limita. Uz to su scoped change veze i report agregati, te personalizovani zakazani prilozi; ovi zahvati su još u toku. Lokalni ciljani mock skup 46/46 uz diagnostics:false, ESLint pass; lokalni pokušaj dvije dodatne suite nije pokrenut zbog nedostajućeg generated Prisma klijenta. Generisanje Prisma i PostgreSQL nisu lokalno izvedeni. Grupno rješavanje sada bi obrađivalo samo vidljive tikete; to je promjena prethodne delegacije koja je obuhvatala sve povezane tikete. Otvorena je provjera time-of-check/time-of-use i potpuna role/HTTP matrica.
+Automatski CI: [`43855516535`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43855516535), [`43857849016`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43857849016), [`43860274112`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43860274112), [`43861927777`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43861927777), [`43869006635`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43869006635) i [`43870890089`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43870890089) — svi zeleni, uključujući PostgreSQL/Redis integraciju i generisani Prisma. E2E critical/install, inventory i „Enforce zero high/critical image vulnerabilities” su preskočeni po konfiguraciji workflowa; full E2E critical ostaje za kraj vala ili scheduled run.
 
-## Historija — lokalni rad, CI još nije izvršen
+## Lokalna ograničenja
 
-Ticket link/unlink događaji se u odgovoru prikazuju samo ako je trenutno moguće pročitati referencirani tiket; neispravni ili obrisani referencirani tiketi se skrivaju. Historijski `tickets_resolved` agregati se zasad skrivaju svima jer stari zapisi ne sadrže populaciju potrebnu za sigurno ponovno računanje; nepoznate akcije se također izostavljaju fail-closed. Obrada ide u stranicama dok se ne prikupi 200 vidljivih događaja ili iscrpi historija, pa nedostupni događaji ne zauzimaju limit; velika historija može zahtijevati više upita i taj trošak ostaje za procjenu. Dodani su mock testovi i PostgreSQL fixture scenariji; lokalno 6/6 mock testova uz diagnostics:false i ESLint pass. Nije izvršen CI niti puni HTTP/Prisma dokaz. Preostali resolution preview/rezultati i write UX i dalje sprečavaju merge/deploy.
+Lokalno nisu izvedeni `prisma generate` (TLS prekid prema binaries.prisma.sh) ni PostgreSQL integracija; oboje je dokazano u CI-ju. Zbog toga lokalni `tsc` prijavljuje nedostajući generisani klijent, a dvije šire suite (`reports.service.spec.ts`, `change-access.service.spec.ts`) nisu lokalno pokrenute — prošle su u CI-ju.
 
-## Četvrti međukorak — ticket-derived CMDB prijedlozi
+## Preostali rizici (dokumentovani, nisu blokada zatvaranja)
 
-Prijedlozi resursa iz tiketa primjenjuju centralni ticket-predikat prije grupisanja, broja i limita od 20. Greška pri dobavljanju vidljivosti prekida odgovor. Lokalno 30/30 ciljanih mock testova s diagnostics:false i ESLint pass; nema posebnog PostgreSQL/HTTP testa ovog izvoda. Već direktno povezani resursi nisu ticket-derived i nisu obuhvaćeni ovim korakom. Historija i resolution ostaju otvoreni; nije deployable.
+- Već isporučene notifikacije, e-mailovi i ranije izgrađeni privacy ZIP-ovi nisu retroaktivno redigovani; prava se provjeravaju pri isporuci i izgradnji, ne pri svakom kasnijem čitanju.
+- Historija problema s velikim brojem nedostupnih događaja može zahtijevati više upita (stranice od 200) prije nego prikupi 200 vidljivih.
+- Grupno rješavanje sada preskače tikete koje gledalac ne vidi; to je namjerna promjena ponašanja. Potpuna HTTP role matrica i TOCTOU između previewa i izvršenja nisu posebno testirani.
+- Treperenje kartice „Povezano i tok” pri link/unlink je zaseban UX follow-up iz [239](239-w720-problem-ticket-unlink.md).
 
-## Treći međukorak — brojači u listi i detalju
+## Korisnička vizuelna provjera (prije zatvaranja)
 
-Uklonjen je nefiltrirani `_count.tickets`: ukupni i otvoreni brojevi u listi te ukupni broj u detalju agregiraju se nakon centralnog ticket-predikata, bez limita od 500. Prazna stranica ne traži ticket kontekst; neuspjeh učitavanja vidljivosti odbija odgovor. I no-op update sada vraća detalj kroz provjeru `problem.read`, umjesto direktnog mapiranja zapisa učitanog po `problem.manage`. Dodani mock i PostgreSQL scenariji za brojače; identitet i problem permisije u PostgreSQL fixtureu nisu HTTP guard lanac. Lokalno 23/23 mock testova uz diagnostics:false, ESLint prolazi; generisani Prisma/PostgreSQL zahtijevaju CI. Tada su ostali historijski event brojevi i ID-jevi, derived assets, resolution preview/rezultati, kao i provjere write UX i transakcijskih granica; vidi naredni međukorak iznad. Paket nije deployable.
+1. Kao PROBLEM_MANAGER u OU opsegu: problem detalj prikazuje pun zapis, povezane tikete, historiju i brojače.
+2. Kao agent na povezanom tiketu **izvan** problem OU opsega: kartica problema prikazuje samo broj, naslov, status i workaround, bez linka na problem, bez dugmeta za odvezivanje; broj povezanih tiketa u listi problema se ne vidi.
+3. Kao prijavitelj tiketa bez `problem.read`: nema pune problem kartice.
+4. Provjeriti da link/unlink i dalje rade za ovlaštene, te da historija tiketa ne prikazuje identitet problema onome bez pristupa.
 
-Dvije lokalne regresije su prije promjene očekivano pale; poslije 16/16 u `problem-tickets.service.spec.ts` s `ts-jest diagnostics:false`, uključujući mock test minimalne kartice i kontrole; ESLint za izmijenjene fajlove pass. Drugi međukorak: 20/20 mock testova (diagnostics:false), ESLint pass; pokušaj `problems-audit-scope.spec.ts` nije pokrenut zbog nedostajućeg generated Prisma klijenta. Lokalni `db:generate` prvo je prijavio nedostajući DATABASE_URL, a s testnim URL-om TLS prekid prema binaries.prisma.sh. Generated Prisma i PostgreSQL dokaz prepušteni su automatskom CI-ju. **Preostaje:** per-ticket visibility i ispravni vidljivi brojači, historija/eventi, derived asset suggestions i resolve preview, concurrency/HTTP/frontend i PostgreSQL acceptance, CI i korisnička vizuelna provjera. Trenutno neke od tih putanja još mogu otkrivati nedostupne tikete; ne interpretirati prvi korak kao sigurnu kompletnu isporuku niti zatvarati BA-02. Prijavljeno treperenje ticket kartice je zaseban UX follow-up iz [239](239-w720-problem-ticket-unlink.md).
+Zatvaranje nalaza i ažuriranje registra slijedi nakon ovih potvrda, prema `PACKAGE-CLOSEOUT-TEMPLATE.md`.

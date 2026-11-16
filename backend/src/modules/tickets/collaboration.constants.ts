@@ -100,7 +100,9 @@ export const ticketSystemEventActions = {
   // Paket 3.2 (§8): `action:<assetId>|<tag name>` (staff only).
   assetLinked: 'ticket_asset_linked',
   assetUnlinked: 'ticket_asset_unlinked',
-  // Paket 3.3 (§8): `action:<problemId>|<number> <title>` (staff only).
+  // Paket 3.3 (§8): the problem stays out of the ticket history; the panel is the
+  // only place that names it. Legacy `action:<problemId>|<number> <title>` rows are
+  // redacted on read for viewers outside problem.read.
   problemLinked: 'ticket_problem_linked',
   problemUnlinked: 'ticket_problem_unlinked',
   /** Paket 3.3: unclaimed ticket taken over by the problem group resolution. */
