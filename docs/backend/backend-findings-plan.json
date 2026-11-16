@@ -3260,7 +3260,7 @@
     {
       "id": "BA-problems-04",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W7.20 owner-directed)",
       "source": "23-problems.md",
       "owner": "WS-F",
       "wave": 7

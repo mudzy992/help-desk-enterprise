@@ -100,8 +100,8 @@ Ako se filtriraju izvorne audit-tabele, kompletno je **14/44** scopeova. Globaln
 
 ### Preostala neusklađenost između statusnih prikaza
 
-- Izvorne tabele / generisani plan: **452 otvorena / 242 zatvorena**.
-- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **462 otvorena / 232 zatvorena** (694 reda ukupno); zaglavlje i kontrolni zbir tog registra odražavaju brojanje njegovih redova.
+- Izvorne tabele / generisani plan: **451 otvoren / 243 zatvorena**.
+- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **461 otvoren / 233 zatvorena** (694 reda ukupno); zaglavlje i kontrolni zbir tog registra odražavaju brojanje njegovih redova.
 - Deset ranijih statusnih razlika ostaje netaknuto; njihovi ID-evi su navedeni u napomeni globalnog registra. W6.48 `BA-websocket-05` je zatvoren u izvornom auditu i globalnom registru, kao i zatvoreni P1 `BA-websocket-01/02/03/04`, BA-on-call i announcements nalazi.
 
 Za BA-15 nema preostalih implementacijskih nalaza, ali puni critical-flow acceptance nije potvrđen. CI [`42032046504`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42032046504) na `1fb7c9f` passed za backend/full Jest, disposable PostgreSQL/Redis integration, frontend, docs i container/supply-chain; E2E poslovi su tada bili `skipped`. Noviji CI [`42036534042`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42036534042) na `master` SHA [`f3cbadf`](https://github.com/mudzy992/help-desk-enterprise/commit/f3cbadfddf4ed08a9b0deb8ca5b8a86691d25b2f) prošao je full code CI i izvršio odabrane E2E specs 16/25/32: **6 passed / 0 failed / 0 flaky / 0 skipped**. To zatvara templates E2E 16 i potvrđuje testove 25/32, ali nije puni critical-flow suite i ne uključuje servisni spec 42; BA-15 gate zato ostaje pending. E2E install wizard i read-only inventory su `skipped`. Raniji targeted spec42 `41916949315` bio je na starijem SHA-u i ne nadomješta full suite. Ne dispatchati dodatni full E2E ručno bez nove upute; detalji su u [auditu 15, sekcija 35](15-service-catalog.md#35-ba-15-targeted-e2e-follow-up-2026-11-05) i [paketu 132](../implementation/132-templates-11-13-closeout-e2e-25-32-triage.md).

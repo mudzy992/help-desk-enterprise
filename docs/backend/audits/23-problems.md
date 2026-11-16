@@ -154,7 +154,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-01 | P1       | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope                   | zatvoreno |
 | BA-problems-02 | P1       | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa           | otvoreno |
 | BA-problems-03 | P1       | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope                                  | otvoreno |
-| BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | otvoreno |
+| BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | zatvoreno (W7.20 owner-directed) |
 | BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | otvoreno |
 | BA-problems-06 | P1       | Problem se commit-a RESOLVED prije bulk ticketa bez durable retry/resume putanje               | otvoreno |
 | BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | otvoreno |
@@ -246,3 +246,7 @@ Modul ima dobru lifecycle i optimistic-concurrency jezgru, ali njegove cross-dom
 ## 20. Implementacijski closeout — W7.1 (`BA-problems-01`)
 
 Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `ProblemAccessService.require()` vraća assignment OU za scoped `ADMIN` i `PROBLEM_MANAGER`; cross-unit manager scope ostaje podržan samo za installation-wide assignment. Problem-group authority pravilo nije promijenjeno. Nema nove migracije; baseline ostaje audit snapshot, a preostali P1 nalazi su otvoreni. Zajednički testni i CI dokaz: [87-domain-assignment-scope.md](../implementation/87-domain-assignment-scope.md).
+
+## 21. W7.20 — BA-problems-04 owner-directed closeout
+
+Uklanjanje veze sada prije upisa provjerava target ticket staff/writable policy unutar transakcije nakon zaključavanja reda; status problema se ponovo čita pod zaključavanjem, a delete i oba događaja su transakcijski. Korisnik je potvrdio vizuelne P1/P2/P3 DA i odobrio zatvaranje. CI [43848770196](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43848770196) na `e131879` je success uz skipped E2E/inventory; pojedinačni DB log nije dostupan zbog EOF. Šira HTTP/role/scope matrica i atomska revokacija nisu dokazani, korisničko treperenje u UI-ju ostaje zaseban follow-up. Detalji i ograničenja su u [239](../implementation/239-w720-problem-ticket-unlink.md); ostali nalazi ostaju otvoreni.
