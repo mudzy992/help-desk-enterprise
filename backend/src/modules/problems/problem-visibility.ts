@@ -7,19 +7,10 @@ export function linkedTicketWorkWhere(userId: string): Prisma.TicketWhereInput {
   return { OR: [{ assignedUserId: userId }, { assignedGroup: { members: { some: { userId } } } }] };
 }
 
-/**
- * §12: a problem is visible inside the unit scope of the permission or when
- * the user works on one of its linked tickets. null = no restriction.
- */
-export function problemVisibilityWhere(scope: ProblemScope, userId: string): Prisma.ProblemWhereInput | null {
-  const unitWhere = unitScopeWhere(scope);
-  if (unitWhere === null) return null;
-  return {
-    OR: [
-      { organizationalUnit: unitWhere },
-      { tickets: { some: { ticket: linkedTicketWorkWhere(userId) } } },
-      // Paket 3.3: the reporter keeps sight of the problem they reported.
-      { createdByUserId: userId },
-    ],
-  };
+/** Full problem access is only granted by the relevant permission's OU scope. */
+export function problemVisibilityWhere(scope: ProblemScope, _userId: string): Prisma.ProblemWhereInput | null {
+  if (scope.all) return null;
+  // Do not pass the shared empty-scope sentinel containing NUL to PostgreSQL.
+  if (scope.paths.length === 0) return { id: { in: [] } };
+  return { organizationalUnit: unitScopeWhere(scope)! };
 }

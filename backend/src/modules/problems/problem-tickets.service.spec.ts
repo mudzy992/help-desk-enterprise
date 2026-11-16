@@ -59,7 +59,7 @@ function setup(options: { problemStatus?: string; tickets: Ticket[]; links?: Rec
     { bind: jest.fn(async (context: unknown) => context) } as never,
     {} as never,
   );
-  return { service, links, events, prisma };
+  return { service, links, events, prisma, access };
 }
 
 const viewer = { userId: 'u1' } as never;
@@ -170,14 +170,37 @@ describe('ProblemTicketsService.unlink', () => {
   });
 });
 
+describe('ProblemTicketsService.panel', () => {
+  it('keeps the minimal ticket panel but does not offer full access or unlink outside the problem scope', async () => {
+    const { service, prisma, access } = setup({ tickets: [ticket('a')] });
+    Object.assign(access, {
+      isEnabled: jest.fn(async () => true),
+      hasPermission: jest.fn(() => true),
+      scopeOf: jest.fn(async () => ({ all: false, paths: ['/other'] })),
+    });
+    Object.assign(prisma.problem as object, { count: jest.fn(async () => 0) });
+    (prisma.problemTicket as { findUnique: jest.Mock }).findUnique.mockResolvedValue({
+      problem: { id: 'p1', sequence: 12, title: 'Problem', status: 'NEW', priority: 'LOW', workaround: 'workaround', workaroundAt: null },
+    });
+    const result = await service.panel('a', viewer);
+    expect(result).toMatchObject({ visible: true, canUnlink: false, problem: { title: 'Problem', workaround: 'workaround', canOpen: false } });
+  });
+});
+
 describe('problemVisibilityWhere', () => {
   it('is unrestricted for an unscoped viewer', () => {
     expect(problemVisibilityWhere({ all: true, paths: [] } as never, 'u1')).toBeNull();
   });
 
-  it('adds problems with a linked ticket the viewer works on', () => {
+  it('does not grant full problem visibility through linked tickets or reporter identity', () => {
     const where = problemVisibilityWhere({ all: false, paths: ['/root/it'] } as never, 'u1');
-    expect(JSON.stringify(where)).toContain('"assignedUserId":"u1"');
+    expect(JSON.stringify(where)).not.toContain('assignedUserId');
+    expect(JSON.stringify(where)).not.toContain('createdByUserId');
     expect(JSON.stringify(where)).toContain('/root/it/');
+  });
+
+  it('denies empty scopes without embedding a PostgreSQL-invalid null character', () => {
+    const where = problemVisibilityWhere({ all: false, paths: [] }, 'u1');
+    expect(where).toEqual({ id: { in: [] } });
   });
 });

@@ -167,7 +167,7 @@ export class ProblemTicketsService {
       enabled: true,
       visible: true,
       canLink: false,
-      canUnlink: canWrite && (problemOpenStatuses as readonly string[]).includes(problem.status),
+      canUnlink: canWrite && (problemOpenStatuses as readonly string[]).includes(problem.status) && await this.canOpen(problem.id, viewer, permissionKeys.problemReport),
       problem: {
         id: problem.id,
         number: formatProblemNumber(configuration.numberPrefix, problem.sequence),
@@ -181,8 +181,8 @@ export class ProblemTicketsService {
     };
   }
 
-  private async canOpen(problemId: string, viewer: ProblemViewer): Promise<boolean> {
-    const scope = await this.access.scopeOf(viewer, permissionKeys.problemRead);
+  private async canOpen(problemId: string, viewer: ProblemViewer, permission: string = permissionKeys.problemRead): Promise<boolean> {
+    const scope = await this.access.scopeOf(viewer, permission);
     const visible = problemVisibilityWhere(scope, viewer.userId);
     if (visible === null) return true;
     return (await this.prisma.problem.count({ where: { id: problemId, ...visible } })) > 0;
