@@ -3244,7 +3244,7 @@
     {
       "id": "BA-problems-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W7.21)",
       "source": "23-problems.md",
       "owner": "WS-F",
       "wave": 7

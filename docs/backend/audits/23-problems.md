@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 9 P2, 3 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`; ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -152,7 +152,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | ID             | Severity | Nalaz                                                                                         | Status   |
 | -------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-problems-01 | P1       | PROBLEM_MANAGER i scoped ADMIN role-name bypass daju globalni OU read scope                   | zatvoreno |
-| BA-problems-02 | P1       | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa           | otvoreno |
+| BA-problems-02 | P1       | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa           | zatvoreno (W7.21) |
 | BA-problems-03 | P1       | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope                                  | otvoreno |
 | BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | zatvoreno (W7.20 owner-directed) |
 | BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | otvoreno |
@@ -250,3 +250,9 @@ Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `
 ## 21. W7.20 — BA-problems-04 owner-directed closeout
 
 Uklanjanje veze sada prije upisa provjerava target ticket staff/writable policy unutar transakcije nakon zaključavanja reda; status problema se ponovo čita pod zaključavanjem, a delete i oba događaja su transakcijski. Korisnik je potvrdio vizuelne P1/P2/P3 DA i odobrio zatvaranje. CI [43848770196](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43848770196) na `e131879` je success uz skipped E2E/inventory; pojedinačni DB log nije dostupan zbog EOF. Šira HTTP/role/scope matrica i atomska revokacija nisu dokazani, korisničko treperenje u UI-ju ostaje zaseban follow-up. Detalji i ograničenja su u [239](../implementation/239-w720-problem-ticket-unlink.md); ostali nalazi ostaju otvoreni.
+
+## 22. W7.21 — BA-problems-02 closeout
+
+Puni problem, analiza i historija sada su dostupni samo unutar `problem.read` OU opsega; linked-ticket i reporter bypass su uklonjeni. Ticket-predikat se primjenjuje prije limita i agregiranja (lista povezanih tiketa, brojači liste/detalja, resolution preview/izvršenje, CMDB prijedlozi, report packovi i zakazani prilozi po primaocu). Ticket radnik izvan opsega dobija minimalnu karticu s workaroundom, bez linka na problem i bez odvezivanja. Historija problema skriva nedostupne događaje, `tickets_resolved` agregate i nepoznate akcije; ticket historija više ne nosi identitet problema, a stari zapisi se rediguju pri čitanju. Notifikacije se isporučuju samo primaocima s trenutnim `problem.read` opsegom, bez brojeva tiketa u recurrence sadržaju. Privacy izvoz i change veze slijede isti opseg prema odluci vlasnika.
+
+Korisnik je potvrdio vizuelne provjere P1/P2/P3/P4 svim **DA** i odobrio zatvaranje. CI [`43872624265`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43872624265) na SHA `fb41c66` je **success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju, frontend build/test, docs, container/supply-chain i CI gate; E2E critical/install, inventory i uslovni image enforcement bili su `skipped`. Nema migracije. Historijski već isporučene notifikacije/e-mailovi i ranije izgrađeni privacy ZIP-ovi nisu retroaktivno redigovani; potpuna HTTP role matrica i TOCTOU između previewa i izvršenja nisu posebno testirani. Detalji, svi commitovi i lokalna ograničenja su u [241](../implementation/241-w721-problems-02-closeout.md); ostali nalazi ostaju otvoreni.
