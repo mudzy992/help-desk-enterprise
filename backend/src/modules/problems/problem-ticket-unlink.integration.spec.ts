@@ -5,6 +5,7 @@ import { ProblemTicketsService } from './problem-tickets.service';
 import { mapProblemError } from './map-problem-error';
 import { ProblemError, problemErrorCodes } from './problems.constants';
 import { defaultTicketConfidentialConfiguration } from '../tickets/confidential/confidential.constants';
+import { ProblemsService } from './problems.service';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -157,6 +158,18 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
       expect(requester.items.map((item) => item.id)).toEqual(expect.arrayContaining([ticketId, hidden.id]));
       const foreign = await listing.listForProblem(problemId, viewer(foreignId));
       expect(foreign).toEqual({ total: 0, open: 0, items: [] });
+      const problemAccess = {
+        ...access,
+        configuration: async () => ({ numberPrefix: 'P-' }),
+        hasPermission: () => false,
+      };
+      const problems = new ProblemsService(prisma as never, problemAccess as never, loader as never, policies as never);
+      for (const [actor, expected] of [[staffId, 1], [requesterId, 2], [foreignId, 0]] as const) {
+        const detail = await problems.get(viewer(actor), problemId);
+        expect(detail.ticketCount).toBe(expected);
+        const page = await problems.list(viewer(actor), { search: 'Problem', limit: 100 });
+        expect(page.items.find((item) => item.id === problemId)).toMatchObject({ ticketCount: expected, openTicketCount: expected });
+      }
     } finally {
       await prisma.problemTicket.deleteMany({ where: { ticketId: hidden.id } });
       await prisma.ticket.delete({ where: { id: hidden.id } });

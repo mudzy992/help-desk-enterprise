@@ -6,6 +6,9 @@ import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
+import { problemTicketVisibility } from './problem-ticket-visibility';
 import { resolveTicketPriority } from '../tickets/resolve-ticket-priority';
 import { TicketPriorityMatrixConfigurationLoader } from '../tickets/priority/ticket-priority-matrix-configuration.loader';
 import { ProblemAccessService, type ProblemConfiguration, type ProblemScope, type ProblemViewer } from './problem-access.service';
@@ -69,7 +72,6 @@ const listSelect = {
   group: { select: { id: true, name: true } },
   organizationalUnit: { select: { id: true, name: true, ouPath: true } },
   service: { select: { id: true, name: true } },
-  _count: { select: { tickets: true } },
 } satisfies Prisma.ProblemSelect;
 
 const detailSelect = {
@@ -133,6 +135,8 @@ export class ProblemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProblemAccessService,
+    private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     @Optional() private readonly notifier?: ProblemNotifier,
     @Optional()
     private readonly priorityMatrixLoader?: TicketPriorityMatrixConfigurationLoader,
@@ -190,9 +194,9 @@ export class ProblemsService {
       this.prisma.problem.count({ where }),
     ]);
     const page = rows.slice(0, limit);
-    const openCounts = await this.openTicketCounts(page.map((row) => row.id));
+    const counts = await this.visibleTicketCounts(page.map((row) => row.id), viewer);
     return {
-      items: page.map((row) => ({ ...this.toListItem(row, configuration), openTicketCount: openCounts.get(row.id) ?? 0 })),
+      items: page.map((row) => ({ ...this.toListItem(row, configuration, counts.total.get(row.id) ?? 0), openTicketCount: counts.open.get(row.id) ?? 0 })),
       total,
       nextCursor: rows.length > limit ? (page[page.length - 1]?.id ?? null) : null,
     };
@@ -460,7 +464,7 @@ export class ProblemsService {
       if (data[field] === undefined) return false;
       return JSON.stringify(data[field] ?? null) !== JSON.stringify(current[field] ?? null);
     });
-    if (Object.keys(changes).length === 0 && textChanged.length === 0) return this.toDetail(viewer, current, configuration);
+    if (Object.keys(changes).length === 0 && textChanged.length === 0) return this.get(viewer, id);
 
     await this.prisma.$transaction(async (transaction) => {
       const result = await transaction.problem.updateMany({
@@ -593,8 +597,7 @@ export class ProblemsService {
   }
 
   /**
-   * Loads a problem visible to the viewer (unit scope or a linked ticket the
-   * viewer works on, §12); anything else reads as not found.
+   * Loads a problem in the given permission's unit scope; anything else reads as not found.
    */
   private async loadInScope(id: string, scope: ProblemScope, viewer: ProblemViewer): Promise<DetailRow> {
     const visible = problemVisibilityWhere(scope, viewer.userId);
@@ -644,18 +647,24 @@ export class ProblemsService {
     if (input.serviceId && service === null) throw new ProblemError(problemErrorCodes.serviceNotFound);
   }
 
-  /** Linked tickets still being worked on (not resolved, closed or archived), one query per page. */
-  private async openTicketCounts(problemIds: readonly string[]): Promise<Map<string, number>> {
-    if (problemIds.length === 0) return new Map();
-    const groups = await this.prisma.problemTicket.groupBy({
-      by: ['problemId'],
-      where: { problemId: { in: [...problemIds] }, ticket: { status: { notIn: ['RESOLVED', 'CLOSED', 'ARCHIVED'] } } },
-      _count: { _all: true },
-    });
-    return new Map(groups.map((group) => [group.problemId, group._count._all]));
+  /** Aggregate only tickets readable by this viewer, before counting. */
+  private async visibleTicketCounts(problemIds: readonly string[], viewer: ProblemViewer) {
+    if (problemIds.length === 0) return { total: new Map<string, number>(), open: new Map<string, number>() };
+    const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
+    const base = { problemId: { in: [...problemIds] }, ticket: { is: visibility } } satisfies Prisma.ProblemTicketWhereInput;
+    const [total, open] = await Promise.all([
+      this.prisma.problemTicket.groupBy({ by: ['problemId'], where: base, _count: { _all: true } }),
+      this.prisma.problemTicket.groupBy({
+        by: ['problemId'],
+        where: { AND: [base, { ticket: { is: { status: { notIn: ['RESOLVED', 'CLOSED', 'ARCHIVED'] } } } }] },
+        _count: { _all: true },
+      }),
+    ]);
+    const asMap = (groups: typeof total) => new Map(groups.map((group) => [group.problemId, group._count._all]));
+    return { total: asMap(total), open: asMap(open) };
   }
 
-  private toListItem(row: ListRow, configuration: ProblemConfiguration) {
+  private toListItem(row: ListRow, configuration: ProblemConfiguration, ticketCount: number) {
     return {
       id: row.id,
       number: formatProblemNumber(configuration.numberPrefix, row.sequence),
@@ -667,7 +676,7 @@ export class ProblemsService {
       group: row.group,
       organizationalUnit: row.organizationalUnit,
       service: row.service,
-      ticketCount: row._count.tickets,
+      ticketCount,
       targetAt: row.targetAt?.toISOString() ?? null,
       targetOverdue: isTargetOverdue(row, new Date()),
       createdAt: row.createdAt.toISOString(),
@@ -687,8 +696,9 @@ export class ProblemsService {
     const transitions = canManage
       ? allowedProblemTransitions(row.status).filter((to) => canClose || !transitionNeedsClosePermission(row.status, to))
       : [];
+    const counts = await this.visibleTicketCounts([row.id], viewer);
     return {
-      ...this.toListItem(row, configuration),
+      ...this.toListItem(row, configuration, counts.total.get(row.id) ?? 0),
       description: row.description,
       impact: row.impact,
       urgency: row.urgency,
