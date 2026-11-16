@@ -1,0 +1,17 @@
+# W7.20 — P1 pregled i prvi ograničeni paket
+
+## Triage i granice
+
+Val 7 je prema master planu 21/109 zatvorenih, 88 otvorenih (19 P1 / 49 P2 / 20 P3). Prvi kandidat je **samo BA-problems-04**: unlink target tiketa bez aktuelne staff ticket autorizacije. Primarni owner je WS-F / problems; ticket policy i authorization su zavisnosti, ne novi findingi za automatsko zatvaranje. Nema širenja delegacije niti promjene generalne autorizacije.
+
+Drugi P1 su zasebni: problems-02 zahtijeva projekciju problema i filtriranje povezanih tiketa; problems-03 i changes-02 dijele CMDB autorizaciju i zaslužuju zajednički triage; problems-05 zahtijeva per-ticket bulk policy i povezan je s recovery nalazom problems-06. Changes-03 zahtijeva problem visibility na direct linku; changes-04 konflikt preview i changes-05 calendar zahtijevaju zasebne viewer/scope ugovore. Nijedan od tih ID-eva nije obuhvaćen ovom izmjenom. Prethodni Val 2 ima otvorene authorization/session nalaze: njihove eventualne garancije ne treba pretpostaviti riješenim ovim paketom.
+
+## Implementacija BA-problems-04 — u toku, nije closeout
+
+Problem report pristup i open status se provjeravaju i prije transakcije i nakon zaključavanja problem reda. Unutar iste transakcije se zaključava target ticket, učitava preko postojeće ticket policy s writable zahtjevom i zahtijeva staff visibility prije provjere i uslovnog brisanja veze; unlink event i ticket system event su u transakciji. Nepristupačan target vraća postojeći ticket-not-found ugovor bez podataka o vezi. Bez novih migracija ili novih permisija.
+
+Acceptance prije zatvaranja: negativni testovi public/foreign/confidential/archived pristupa bez brisanja ili eventa; pozitivan stvarni staff pristup; concurrency promjene ticketa/problem statusa/linka i rollback na grešku kroz stvarni PostgreSQL; HTTP/status contract; generated-Prisma build i CI; korisnička live provjera prema stvarnom UI-ju. Testovi s mockovima ne dokazuju punu authorization politiku, PostgreSQL locking ili revocation race. Kontekst autorizacije koristi postojeći loader/cache i druge relacije poput članstva/assignmenta nisu zaključane ovom izmjenom; atomsku revokaciju ne tvrditi. Ticket unlink ne rješava problems-02/03/05–19 niti druge valove.
+
+Lokalno je reprodukovan propust: testovi public/missing targeta očekivano su pali prije ispravke. Generated Prisma nije dostupan lokalno: `prisma generate` s dummy DATABASE_URL ne može doseći binaries.prisma.sh (TLS prekid). Lokalni Jest s isključenom TypeScript dijagnostikom i mockovima nije zamjena za CI build/DB acceptance. Status izvornog BA-problems-04 ostaje otvoren dok acceptance nije završen.
+
+Rollout: bez migracije; korisnik sam odlučuje o mergeu/redeployu i full CI. Rollback koda vraća prethodnu nesigurnu unlink putanju, stoga je sigurnije ograničiti pristup operaciji nego je nepromišljeno vratiti. Ručni CI, migracija i deploy nisu izvršeni.

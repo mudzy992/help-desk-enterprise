@@ -3,6 +3,11 @@ import { ProblemError, problemErrorCodes } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 
+jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../tickets/ticket-access-policy-binder', () => ({ TicketAccessPolicyBinder: class TicketAccessPolicyBinder {} }));
+jest.mock('../tickets/ticket-realtime.hub', () => ({ TicketRealtimeHub: class TicketRealtimeHub {} }));
+jest.mock('./problem-access.service', () => ({ ProblemAccessService: class ProblemAccessService {} }));
+jest.mock('./problem-notifier', () => ({ ProblemNotifier: class ProblemNotifier {} }));
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
 jest.mock('../tickets/publish-persisted-ticket-messages', () => ({ publishPersistedTicketMessages: jest.fn() }));
 jest.mock('../tickets/insert-system-ticket-event', () => ({
@@ -27,8 +32,15 @@ function setup(options: { problemStatus?: string; tickets: Ticket[]; links?: Rec
       create: jest.fn(async ({ data }: { data: { problemId: string; ticketId: string } }) => {
         links.set(data.ticketId, data.problemId);
       }),
+      deleteMany: jest.fn(async ({ where }: { where: { problemId: string; ticketId: string } }) => {
+        if (links.get(where.ticketId) !== where.problemId) return { count: 0 };
+        links.delete(where.ticketId);
+        return { count: 1 };
+      }),
     },
     problemEvent: { create: jest.fn(async (args: unknown) => events.push(args)) },
+    ticket: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => options.tickets.find((item) => item.id === where.id) ?? null) },
+    $queryRaw: jest.fn(async () => []),
     $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>): Promise<unknown> => run(prisma)),
   };
   loadTicket.mockImplementation(async (_prisma, _loader, ticketId) => {
@@ -47,7 +59,7 @@ function setup(options: { problemStatus?: string; tickets: Ticket[]; links?: Rec
     { bind: jest.fn(async (context: unknown) => context) } as never,
     {} as never,
   );
-  return { service, links, events };
+  return { service, links, events, prisma };
 }
 
 const viewer = { userId: 'u1' } as never;
@@ -105,6 +117,45 @@ describe('ProblemTicketsService.link', () => {
     const { service } = setup({ tickets: [ticket('a', { status: 'ARCHIVED' }), ticket('b')] });
     const result = await service.link('p1', ['a', 'b'], viewer);
     expect(result.skipped).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', reason: 'read_only' }]);
+  });
+});
+
+describe('ProblemTicketsService.unlink', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it.each(['public', 'missing'] as const)('refuses %s target without deleting or recording events', async (visibility) => {
+    const { service, links, events } = setup({
+      tickets: visibility === 'missing' ? [] : [ticket('a', { visibility })],
+      links: { a: 'p1' },
+    });
+    await expect(service.unlink('p1', 'a', viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.ticketNotFound));
+    expect(links.get('a')).toBe('p1');
+    expect(events).toHaveLength(0);
+  });
+
+  it('does not unlink when the ticket policy rejects the write', async () => {
+    const { service, links, events } = setup({ tickets: [ticket('a')], links: { a: 'p1' } });
+    loadTicket.mockRejectedValueOnce(new Error('FORBIDDEN'));
+    await expect(service.unlink('p1', 'a', viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.ticketNotFound));
+    expect(links.get('a')).toBe('p1');
+    expect(events).toHaveLength(0);
+  });
+
+  it('does not remove a link belonging to another problem', async () => {
+    const { service, links, events } = setup({ tickets: [ticket('a')], links: { a: 'other' } });
+    await expect(service.unlink('p1', 'a', viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.ticketNotLinked));
+    expect(links.get('a')).toBe('other');
+    expect(events).toHaveLength(0);
+  });
+
+  it('checks writable staff access within the transaction before unlinking', async () => {
+    const { service, links, events, prisma } = setup({ tickets: [ticket('a')], links: { a: 'p1' } });
+    await service.unlink('p1', 'a', viewer);
+    expect(loadTicket).toHaveBeenCalledWith(prisma, expect.anything(), 'a', expect.anything(), { writable: true });
+    expect((prisma.$queryRaw as jest.Mock)).toHaveBeenCalledTimes(2);
+    expect(loadTicket.mock.invocationCallOrder[0]).toBeLessThan((prisma.problemTicket as { deleteMany: jest.Mock }).deleteMany.mock.invocationCallOrder[0]);
+    expect(links.has('a')).toBe(false);
+    expect(events).toHaveLength(1);
   });
 });
 

@@ -78,10 +78,10 @@ export class ProblemTicketsService {
   ) {}
 
   /** Staff access to a ticket, or null (not found, requester-only, archived when writing). */
-  private async staffTicket(ticketId: string, viewer: ProblemViewer, writable: boolean): Promise<TicketRecord | null> {
+  private async staffTicket(ticketId: string, viewer: ProblemViewer, writable: boolean, prisma: PrismaService = this.prisma): Promise<TicketRecord | null> {
     try {
       const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
-      const { ticket, access } = await loadAccessibleTicket(this.prisma, this.authorizationContextLoader, ticketId, gated, { writable });
+      const { ticket, access } = await loadAccessibleTicket(prisma, this.authorizationContextLoader, ticketId, gated, { writable });
       return access.visibility === 'staff' ? ticket : null;
     } catch {
       return null;
@@ -89,10 +89,10 @@ export class ProblemTicketsService {
   }
 
   /** The problem must be visible to the viewer in the given permission's scope. */
-  private async loadProblem(problemId: string, viewer: ProblemViewer, permission: string) {
+  private async loadProblem(problemId: string, viewer: ProblemViewer, permission: string, prisma: PrismaService = this.prisma) {
     const scope = await this.access.require(viewer, permission);
     const visible = problemVisibilityWhere(scope, viewer.userId);
-    const problem = await this.prisma.problem.findFirst({
+    const problem = await prisma.problem.findFirst({
       where: { id: problemId, ...(visible === null ? {} : visible) },
       select: { id: true, sequence: true, title: true, status: true },
     });
@@ -270,12 +270,19 @@ export class ProblemTicketsService {
   async unlink(problemId: string, ticketId: string, viewer: ProblemViewer): Promise<void> {
     const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport);
     if (!(problemOpenStatuses as readonly string[]).includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
-    const link = await this.prisma.problemTicket.findUnique({ where: { ticketId }, select: { problemId: true } });
-    if (link === null || link.problemId !== problem.id) throw new ProblemError(problemErrorCodes.ticketNotLinked);
-    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { ticketNumber: true } });
-    const number = formatProblemNumber((await this.access.configuration()).numberPrefix, problem.sequence);
+    const prefix = (await this.access.configuration()).numberPrefix;
     const messages: TicketPersistedMessageSink = [];
     await this.prisma.$transaction(async (transaction) => {
+      // Re-read status and visibility after locking the problem, then lock the target ticket.
+      await transaction.$queryRaw`SELECT "id" FROM "Problem" WHERE "id" = ${problemId} FOR UPDATE`;
+      const lockedProblem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport, transaction as PrismaService);
+      if (!(problemOpenStatuses as readonly string[]).includes(lockedProblem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
+      const number = formatProblemNumber(prefix, lockedProblem.sequence);
+      await transaction.$queryRaw`SELECT "id" FROM "Ticket" WHERE "id" = ${ticketId} FOR UPDATE`;
+      const ticket = await this.staffTicket(ticketId, viewer, true, transaction as PrismaService);
+      if (ticket === null) throw new ProblemError(problemErrorCodes.ticketNotFound);
+      const link = await transaction.problemTicket.findUnique({ where: { ticketId }, select: { problemId: true } });
+      if (link === null || link.problemId !== problem.id) throw new ProblemError(problemErrorCodes.ticketNotLinked);
       const removed = await transaction.problemTicket.deleteMany({ where: { problemId: problem.id, ticketId } });
       if (removed.count === 0) throw new ProblemError(problemErrorCodes.ticketNotLinked);
       await transaction.problemEvent.create({
@@ -291,7 +298,7 @@ export class ProblemTicketsService {
           ticketId,
           action: ticketSystemEventActions.problemUnlinked,
           actorUserId: viewer.userId,
-          detail: `${problem.id}|${number} ${problem.title}`,
+          detail: `${lockedProblem.id}|${number} ${lockedProblem.title}`,
         }),
       );
     });

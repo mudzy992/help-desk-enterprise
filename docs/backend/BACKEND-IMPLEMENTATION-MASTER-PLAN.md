@@ -650,6 +650,8 @@ W7.1–W7.19 zatvorili su 21 pojedinačni nalaz (19 assets + `BA-problems-01` + 
 
 ### Nastavak Vala 7
 
+W7.20 je započet ograničenim paketom `BA-problems-04`; triage, acceptance i ograničenja su u [239](implementation/239-w720-problem-ticket-unlink.md). Nalaz ostaje otvoren do potrebnih dokaza.
+
 1. Prije implementacije definisati W7.20 kao ograničen paket sa tačnim BA ID-evima, ownerom, testnim i DB/migration acceptanceom. Prioritet je 19 preostalih P1 nalaza: `BA-problems-02`–`07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01`–`02` i `BA-search-01`.
 2. Prvi kandidat za triage je faza P1 authorization/visibility u auditima 23–24 (posebno `BA-problems-02`–`05` i `BA-changes-02`–`05`). Provjeriti shared policy/dependency; ne spajati ih u jedan prevelik paket automatski. Zatim planirati preostale P1 workflow-recovery/delivery nalaze, pa P2/P3 prema faznim planovima iz pojedinačnih audita.
 3. Svaki paket zatvara samo navedene ID-eve uz vlastiti acceptance. Ne mijenjati susjedne findings ili severity/threshold. Nakon svakog closeouta ažurirati izvorni red, register/plan po standardnom postupku i ovaj wave snapshot.
