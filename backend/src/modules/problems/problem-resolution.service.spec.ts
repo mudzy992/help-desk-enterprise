@@ -246,7 +246,7 @@ describe('ProblemResolutionService group resolution', () => {
     const { service, ticketsService } = setup({ tickets, problem: { status: 'RESOLVED' } });
     ticketsService.update.mockImplementationOnce(async (id: string) => {
       if (id === 'a') throw new ForbiddenException({ code: 'FORBIDDEN' });
-      return {};
+      return undefined;
     });
     const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
     expect(result.failed).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', code: 'FORBIDDEN' }]);
