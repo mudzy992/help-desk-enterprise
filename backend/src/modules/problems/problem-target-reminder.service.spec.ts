@@ -100,7 +100,11 @@ function setup(options: { problem?: Partial<ProblemRow>; reminders?: Partial<Rem
 
   const prisma = {
     problemTargetReminder: {
-      findUnique: jest.fn(async ({ where }: { where: { problemId_targetAt_stage?: { problemId: string; targetAt: Date; stage: string } } }) => {
+      findUnique: jest.fn(async ({ where }: { where: { id?: string; problemId_targetAt_stage?: { problemId: string; targetAt: Date; stage: string } } }) => {
+        if (typeof where.id === 'string') {
+          for (const row of reminders.values()) if (row.id === where.id) return copy(row);
+          return null;
+        }
         const key = where.problemId_targetAt_stage;
         if (key === undefined) return null;
         for (const row of reminders.values()) {

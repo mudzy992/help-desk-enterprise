@@ -152,8 +152,14 @@ describe("ProblemTargetReminderPanel", () => {
 
     fireEvent.click(await screen.findByTestId("problem-target-reminder-retry-r1"));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert.textContent).toContain("errors.conflict");
+    // Both feedbacks are required: an inline alert inside the panel and a danger
+    // toast (the toast also carries role="alert", so scope the inline one).
+    const panel = screen.getByTestId("problem-target-reminder-panel");
+    await waitFor(() => {
+      expect(panel.textContent).toContain("errors.conflict");
+    });
+    const toasts = await screen.findAllByTestId("toast");
+    expect(toasts.some((toast) => toast.getAttribute("data-tone") === "danger")).toBe(true);
     expect(onRetried).not.toHaveBeenCalled();
   });
 

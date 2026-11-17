@@ -13,7 +13,7 @@ describe('ProblemsController.create', () => {
       get: jest.fn(async () => ({ id: 'p1', ticketCount: 1 })),
     };
     const tickets = { link: jest.fn(async () => ({ linked: ['t1'], skipped: [] })) };
-    const controller = new ProblemsController({} as never, problems as never, tickets as never, {} as never, {} as never, {} as never);
+    const controller = new ProblemsController({} as never, problems as never, tickets as never, {} as never, {} as never, {} as never, {} as never);
     const body = { title: 'Mreža', description: 'x', groupId: 'g1', ticketIds: ['t1'] };
     const result = await controller.create({} as never, body as never);
     expect(problems.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }), expect.objectContaining({ ticketIds: ['t1'] }));
