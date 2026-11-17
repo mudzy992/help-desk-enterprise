@@ -29,6 +29,7 @@ const audit = recordAuditEntry as jest.MockedFunction<typeof recordAuditEntry>;
 beforeEach(() => {
   audit.mockReset();
   audit.mockImplementation(async (_transaction, input) => { prepareAuditEntry(input); });
+  createArticle.mockReset();
 });
 
 type Ticket = {
@@ -55,16 +56,53 @@ const baseProblem = {
   ownerUserId: 'owner',
   createdByUserId: 'creator',
   knowledgeArticleId: null as string | null,
+  knowledgeArticle: null as { id: string; title: string; status: string } | null,
 };
 
-function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticket[]; canClose?: boolean; max?: number; closeCodes?: { enabled: boolean; requireOnResolve: boolean; allowedCodes: string[] } }) {
+function setup(options: {
+  problem?: Partial<typeof baseProblem>;
+  tickets?: Ticket[];
+  canClose?: boolean;
+  max?: number;
+  closeCodes?: { enabled: boolean; requireOnResolve: boolean; allowedCodes: string[] };
+  /** W7.27: the conditional link fails at the database. */
+  linkFails?: boolean;
+  /** W7.27: another agent links an article first, so the fence returns 0. */
+  loseRace?: boolean;
+  /** W7.27: a concurrent writer links the problem right after the first read. */
+  linkedAfterRead?: boolean;
+  /** W7.27: a concurrent writer closes the problem right after the first read. */
+  statusAfterRead?: string;
+}) {
   const problem = { ...baseProblem, ...options.problem };
   const events: { action: string; detail: unknown }[] = [];
   const tickets = options.tickets ?? [];
+  let reads = 0;
+  /** W7.27: the winner's write belongs to another committed transaction and is not rolled back. */
+  let winnerCommitted = false;
+  const linkWinner = () => {
+    winnerCommitted = true;
+    problem.knowledgeArticleId = 'a-winner';
+    problem.knowledgeArticle = { id: 'a-winner', title: 'Winner', status: 'DRAFT' };
+  };
   const prisma: Record<string, unknown> = {
     problem: {
-      findFirst: jest.fn(async () => problem),
-      updateMany: jest.fn(async () => ({ count: problem.knowledgeArticleId === null ? 1 : 0 })),
+      findFirst: jest.fn(async () => {
+        reads += 1;
+        if (reads > 1 && options.linkedAfterRead === true) linkWinner();
+        if (reads > 1 && options.statusAfterRead !== undefined) problem.status = options.statusAfterRead;
+        return problem;
+      }),
+      updateMany: jest.fn(async () => {
+        if (options.linkFails === true) throw new Error('link failed');
+        if (options.loseRace === true) {
+          linkWinner();
+          return { count: 0 };
+        }
+        if (problem.knowledgeArticleId !== null) return { count: 0 };
+        problem.knowledgeArticleId = 'a-linked';
+        return { count: 1 };
+      }),
     },
     problemTicket: {
       findMany: jest.fn(async (args: { select: { ticket: { select: Record<string, unknown> } } }) =>
@@ -80,7 +118,20 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
       findUnique: jest.fn(async () => ({ preferredLocale: 'bs' })),
     },
     problemEvent: { create: jest.fn(async ({ data }: { data: { action: string; detail: unknown } }) => events.push(data)) },
-    $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>): Promise<unknown> => run(prisma)),
+    $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>): Promise<unknown> => {
+      const snapshot = { knowledgeArticleId: problem.knowledgeArticleId, knowledgeArticle: problem.knowledgeArticle, events: events.length };
+      try {
+        return await run(prisma);
+      } catch (error) {
+        // A real transaction discards its own writes: emulated for the article tests.
+        if (!winnerCommitted) {
+          problem.knowledgeArticleId = snapshot.knowledgeArticleId;
+          problem.knowledgeArticle = snapshot.knowledgeArticle;
+        }
+        events.length = snapshot.events;
+        throw error;
+      }
+    }),
   };
   loadTicket.mockImplementation(async (_prisma, _loader, ticketId) => {
     const ticket = tickets.find((candidate) => candidate.id === ticketId);
@@ -108,7 +159,7 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
     closeCodes as never,
     runs as never,
   );
-  return { service, events, ticketsService, collaboration, prisma, runs };
+  return { service, events, ticketsService, collaboration, prisma, runs, problem };
 }
 
 const viewer = { userId: 'u1' } as never;
@@ -154,6 +205,56 @@ describe('ProblemResolutionService article', () => {
     expect(result).toEqual({ id: 'a1', title: 'T', status: 'DRAFT' });
     expect(events.map((event) => event.action)).toEqual(['knowledge_article']);
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemKnowledgeArticleCreated, organizationalUnitId: 'ou1' }));
+  });
+
+  it('creates the draft inside the caller transaction instead of before it', async () => {
+    createArticle.mockResolvedValueOnce({ id: 'a1', title: 'T', status: 'DRAFT' } as never);
+    const { service, prisma } = setup({});
+    await service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(createArticle).toHaveBeenCalledTimes(1);
+    const [, , , , options] = createArticle.mock.calls[0];
+    expect(options).toEqual({ transaction: prisma });
+    expect((createArticle.mock.calls[0][0] as unknown)).toBe(prisma);
+    const transactionOrder = (prisma.$transaction as jest.Mock).mock.invocationCallOrder[0];
+    const articleOrder = createArticle.mock.invocationCallOrder[0];
+    expect(articleOrder).toBeGreaterThan(transactionOrder);
+  });
+
+  it('rolls the draft back when the link fails, leaving no orphan article', async () => {
+    createArticle.mockResolvedValueOnce({ id: 'a1', title: 'T', status: 'DRAFT' } as never);
+    const { service, prisma, events, problem } = setup({ linkFails: true });
+    await expect(service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer)).rejects.toThrow('link failed');
+    expect(createArticle).toHaveBeenCalledTimes(1);
+    expect(problem.knowledgeArticleId).toBeNull();
+    expect(events).toEqual([]);
+    expect(audit).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('replays the linked article instead of failing a retried or duplicate submit', async () => {
+    const article = { id: 'a9', title: 'Existing', status: 'DRAFT' };
+    const { service, prisma, events } = setup({ problem: { knowledgeArticleId: 'a9', knowledgeArticle: article } });
+    await expect(service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer)).resolves.toEqual(article);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(createArticle).not.toHaveBeenCalled();
+    expect(events).toEqual([]);
+  });
+
+  it('replays the winner when a concurrent create takes the link first', async () => {
+    createArticle.mockResolvedValueOnce({ id: 'a1', title: 'T', status: 'DRAFT' } as never);
+    const { service, events } = setup({ loseRace: true });
+    await expect(service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer)).resolves.toEqual({ id: 'a-winner', title: 'Winner', status: 'DRAFT' });
+    expect(createArticle).toHaveBeenCalledTimes(1);
+    // The loser's draft and event are discarded with its transaction.
+    expect(events).toEqual([]);
+  });
+
+  it('does not draft at all when the transaction re-read finds the link or a status change', async () => {
+    await expect(setup({ linkedAfterRead: true }).service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer)).resolves.toEqual({ id: 'a-winner', title: 'Winner', status: 'DRAFT' });
+    expect(createArticle).not.toHaveBeenCalled();
+    await expect(setup({ statusAfterRead: 'CLOSED' }).service.createArticle('p1', { title: 'T', body: 'B', serviceId: 's1', organizationalUnitId: 'ou1' }, viewer)).rejects.toMatchObject({ code: problemErrorCodes.statusTransition });
+    expect(createArticle).not.toHaveBeenCalled();
   });
 });
 

@@ -327,7 +327,12 @@ export class ProblemsController {
     return runProblem(() => this.resolution.articleDraft(id, this.viewer(request)));
   }
 
+  /**
+   * W7.27: the draft and its link are one transaction and a duplicate submit is
+   * a replay, so both outcomes answer 200 with the same article body.
+   */
   @Post(':id/knowledge-article')
+  @HttpCode(200)
   createArticle(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: CreateProblemArticleDto) {
     return runProblem(() => this.resolution.createArticle(id, body, this.viewer(request)));
   }

@@ -7,6 +7,7 @@ import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError } from "@/lib/problems/problem-view";
 import {
@@ -38,6 +39,7 @@ export function ProblemArticleSheet({
   onCreated,
 }: ProblemArticleSheetProperties) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const draft = useQuery({
     queryKey: problemQueryKeys.articleDraft(problemId),
     queryFn: () => getProblemArticleDraft(problemId),
@@ -92,7 +94,10 @@ export function ProblemArticleSheet({
       onOpenChange(false);
       onCreated(created);
     } catch (caught) {
-      setError(t(mapProblemError(caught) ?? mapApiError(caught)));
+      const message = t(mapProblemError(caught) ?? mapApiError(caught));
+      // A long form keeps the inline error and repeats it as a toast.
+      setError(message);
+      toast({ tone: "danger", title: message });
     } finally {
       setPending(false);
     }

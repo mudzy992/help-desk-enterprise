@@ -53,7 +53,7 @@ export class ProblemResolutionService {
 
   // ------------------------------------------------------------ article (§7)
 
-  private async loadForArticle(problemId: string, viewer: ProblemViewer) {
+  private async loadForArticle(problemId: string, viewer: ProblemViewer, options: { readonly allowExisting?: boolean } = {}) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
     const readScope = await this.access.require(viewer, permissionKeys.problemRead);
     const filters = [problemVisibilityWhere(scope, viewer.userId), problemVisibilityWhere(readScope, viewer.userId)].filter((filter) => filter !== null);
@@ -73,6 +73,7 @@ export class ProblemResolutionService {
         ownerUserId: true,
         createdByUserId: true,
         knowledgeArticleId: true,
+        knowledgeArticle: { select: { id: true, title: true, status: true } },
         groupId: true,
       },
     });
@@ -81,10 +82,20 @@ export class ProblemResolutionService {
     if (problem.status !== 'KNOWN_ERROR' && problem.status !== 'RESOLVED') {
       throw new ProblemError(problemErrorCodes.statusTransition, 'knowledgeArticle.status');
     }
-    if (problem.knowledgeArticleId !== null) {
+    if (problem.knowledgeArticleId !== null && options.allowExisting !== true) {
       throw new ProblemError(problemErrorCodes.articleExists);
     }
     return problem;
+  }
+
+  /**
+   * W7.27: the article this problem already links, or null when nothing is
+   * linked (then the original conflict stands). A retried or concurrent create
+   * replays the winner instead of reporting a failure for a committed command.
+   */
+  private async existingArticle(problemId: string, viewer: ProblemViewer): Promise<{ id: string; title: string; status: string } | null> {
+    const problem = await this.loadForArticle(problemId, viewer, { allowExisting: true });
+    return problem.knowledgeArticle ?? null;
   }
 
   private async scrubPeople(problem: { id: string; ownerUserId: string | null; createdByUserId: string | null }) {
@@ -136,58 +147,85 @@ export class ProblemResolutionService {
     input: { title: string; body: string; serviceId: string; organizationalUnitId: string },
     viewer: ProblemViewer,
   ) {
-    const problem = await this.loadForArticle(problemId, viewer);
-    const configuration = await this.access.configuration();
-    const number = formatProblemNumber(configuration.numberPrefix, problem.sequence);
-    let article: { id: string; title: string; status: string };
+    let problem: Awaited<ReturnType<ProblemResolutionService['loadForArticle']>>;
     try {
-      article = await createKnowledgeArticle(
-        this.prisma,
-        this.authorizationContextLoader,
-        {
-          title: input.title,
-          body: input.body,
-          serviceId: input.serviceId,
-          organizationalUnitId: input.organizationalUnitId,
-          ownerUserId: viewer.userId,
-          reason: `${number}: known error`,
-        },
-        { actorUserId: viewer.userId },
-      );
+      problem = await this.loadForArticle(problemId, viewer);
     } catch (error) {
-      if (error instanceof KnowledgeBaseError) {
-        throw new ProblemError(
-          error.code === 'FORBIDDEN' ? problemErrorCodes.forbidden : problemErrorCodes.articleInvalid,
-          error.code,
-        );
-      }
+      const replay = error instanceof ProblemError && error.code === problemErrorCodes.articleExists ? await this.existingArticle(problemId, viewer) : null;
+      if (replay !== null) return replay;
       throw error;
     }
-    await this.prisma.$transaction(async (transaction) => {
-      // Two agents creating at once: the second loses and its draft stays unlinked.
-      const result = await transaction.problem.updateMany({
-        where: { id: problem.id, knowledgeArticleId: null },
-        data: { knowledgeArticleId: article.id, version: { increment: 1 } },
-      });
-      if (result.count === 0) throw new ProblemError(problemErrorCodes.articleExists);
-      await transaction.problemEvent.create({
-        data: {
-          problemId: problem.id,
-          action: problemEventActions.knowledgeArticle,
+    const configuration = await this.access.configuration();
+    const number = formatProblemNumber(configuration.numberPrefix, problem.sequence);
+    try {
+      return await this.prisma.$transaction(async (transaction) => {
+        // Re-read the two invariants a concurrent writer can change between the
+        // optimistic check above and this write: the status and the link fence.
+        const current = await transaction.problem.findFirst({
+          where: { id: problem.id },
+          select: { status: true, knowledgeArticleId: true },
+        });
+        if (current === null) throw new ProblemError(problemErrorCodes.notFound);
+        if (current.status !== 'KNOWN_ERROR' && current.status !== 'RESOLVED') {
+          throw new ProblemError(problemErrorCodes.statusTransition, 'knowledgeArticle.status');
+        }
+        if (current.knowledgeArticleId !== null) throw new ProblemError(problemErrorCodes.articleExists);
+        let article: { id: string; title: string; status: string };
+        try {
+          article = await createKnowledgeArticle(
+            transaction as unknown as PrismaService,
+            this.authorizationContextLoader,
+            {
+              title: input.title,
+              body: input.body,
+              serviceId: input.serviceId,
+              organizationalUnitId: input.organizationalUnitId,
+              ownerUserId: viewer.userId,
+              reason: `${number}: known error`,
+            },
+            { actorUserId: viewer.userId },
+            { transaction },
+          );
+        } catch (error) {
+          if (error instanceof KnowledgeBaseError) {
+            throw new ProblemError(
+              error.code === 'FORBIDDEN' ? problemErrorCodes.forbidden : problemErrorCodes.articleInvalid,
+              error.code,
+            );
+          }
+          throw error;
+        }
+        // The fence: only one article can ever be linked to this problem.
+        const result = await transaction.problem.updateMany({
+          where: { id: problem.id, knowledgeArticleId: null },
+          data: { knowledgeArticleId: article.id, version: { increment: 1 } },
+        });
+        if (result.count === 0) throw new ProblemError(problemErrorCodes.articleExists);
+        await transaction.problemEvent.create({
+          data: {
+            problemId: problem.id,
+            action: problemEventActions.knowledgeArticle,
+            actorUserId: viewer.userId,
+            detail: { articleId: article.id, title: article.title },
+          },
+        });
+        await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
+          action: auditLogActions.problemKnowledgeArticleCreated,
+          entityType: auditLogEntityTypes.problem,
+          entityId: problem.id,
+          organizationalUnitId: problem.organizationalUnitId,
+          metadata: { articleId: article.id } as never,
           actorUserId: viewer.userId,
-          detail: { articleId: article.id, title: article.title },
-        },
+        });
+        return { id: article.id, title: article.title, status: article.status };
       });
-      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
-        action: auditLogActions.problemKnowledgeArticleCreated,
-        entityType: auditLogEntityTypes.problem,
-        entityId: problem.id,
-        organizationalUnitId: problem.organizationalUnitId,
-        metadata: { articleId: article.id } as never,
-        actorUserId: viewer.userId,
-      });
-    });
-    return { id: article.id, title: article.title, status: article.status };
+    } catch (error) {
+      // Either the fence lost a race or the status changed: the draft is rolled
+      // back with the transaction, so a linked article means someone else won.
+      const replay = error instanceof ProblemError && error.code === problemErrorCodes.articleExists ? await this.existingArticle(problemId, viewer) : null;
+      if (replay !== null) return replay;
+      throw error;
+    }
   }
 
   // ------------------------------------------------- group resolution (§8.4)

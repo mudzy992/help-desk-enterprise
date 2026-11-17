@@ -1,4 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import type { Prisma } from '../../generated/prisma/client';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { assertCanCreateKnowledgeArticle } from './assert-knowledge-article-mutation';
 import { assertKnowledgeArticleOwnership } from './assert-knowledge-article-ownership';
@@ -27,16 +28,23 @@ import type {
   KnowledgeArticleRecord,
 } from './knowledge-base.types';
 
+/**
+ * W7.27: an optional transaction lets a caller (the problem article flow) create
+ * the article inside its own transaction; the writes then join that transaction
+ * instead of opening a nested one, so a failed caller rolls the draft back.
+ */
 export async function createKnowledgeArticle(
   prisma: PrismaService,
   loader: AuthorizationContextLoader,
   input: CreateKnowledgeArticleInput,
   context: KnowledgeArticleMutationContext,
+  options: { readonly transaction?: Prisma.TransactionClient } = {},
 ): Promise<KnowledgeArticleRecord> {
+  const client = (options.transaction ?? prisma) as unknown as PrismaService;
   const actor = await loadKnowledgeActorContext(loader, context);
-  const serviceId = await assertKnowledgeServiceExists(prisma, input.serviceId);
+  const serviceId = await assertKnowledgeServiceExists(client, input.serviceId);
   const organizationalUnitId = await assertKnowledgeOrganizationalUnitExists(
-    prisma,
+    client,
     input.organizationalUnitId,
   );
   const ownership = assertKnowledgeArticleOwnership({
@@ -44,39 +52,39 @@ export async function createKnowledgeArticle(
     ownerGroupId: input.ownerGroupId ?? null,
   });
   const ownerUserId = await assertKnowledgeUserExists(
-    prisma,
+    client,
     ownership.ownerUserId,
     'OWNER_USER_NOT_FOUND',
   );
   const ownerGroupId = await assertKnowledgeGroupExists(
-    prisma,
+    client,
     ownership.ownerGroupId,
   );
   const reviewerUserId = await assertKnowledgeUserExists(
-    prisma,
+    client,
     input.reviewerUserId?.trim() || null,
     'REVIEWER_NOT_FOUND',
   );
   const categoryId = await assertKnowledgeCategoryAssignable(
-    prisma,
+    client,
     input.categoryId,
   );
   const title = normalizeKnowledgeArticleTitle(input.title);
   const body = normalizeKnowledgeArticleBody(input.body);
-  const scope = await loadKnowledgeArticleScope(prisma, {
+  const scope = await loadKnowledgeArticleScope(client, {
     organizationalUnitId,
     serviceId,
   });
   assertCanCreateKnowledgeArticle({ context: actor, scope });
   const slug = await allocateKnowledgeArticleSlug(
     async (candidate) =>
-      (await prisma.knowledgeArticle.findUnique({
+      (await client.knowledgeArticle.findUnique({
         where: { slug: candidate },
         select: { id: true },
       })) !== null,
     title,
   );
-  const created = await prisma.$transaction(async (transaction) => {
+  const write = async (transaction: PrismaService) => {
     const article = await transaction.knowledgeArticle.create({
       data: {
         slug,
@@ -96,7 +104,7 @@ export async function createKnowledgeArticle(
       },
     });
     const record = toArticleRecord(article);
-    await recordKnowledgeArticleChange(transaction as PrismaService, {
+    await recordKnowledgeArticleChange(transaction, {
       action: changeLogActions.create,
       reason: input.reason,
       before: null,
@@ -104,6 +112,8 @@ export async function createKnowledgeArticle(
       actorUserId: context.actorUserId,
     });
     return record;
-  });
-  return created;
+  };
+  // A caller-provided transaction must not be nested: its writes join the caller.
+  if (options.transaction !== undefined) return write(client);
+  return prisma.$transaction((transaction) => write(transaction as unknown as PrismaService));
 }
