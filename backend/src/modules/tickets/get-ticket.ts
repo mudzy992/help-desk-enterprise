@@ -9,6 +9,7 @@ import {
 import { recordConfidentialAccessAudit } from './confidential/record-confidential-access-audit';
 import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
 import { loadTicketRecord } from './load-ticket-record';
+import { assertProblemDelegation } from './problem-delegation';
 import { TicketsError } from './tickets.error';
 import type { TicketMutationContext, TicketRecord } from './tickets.types';
 import type { TicketResponseJoinedRecord } from './ticket-response-relations';
@@ -44,8 +45,15 @@ export async function getTicket(
   }
   const configuration =
     context.confidential ?? defaultTicketConfidentialConfiguration;
-  // Paket 3.3: delegated by the problem group resolution (server only).
-  if (context.problemDelegation !== undefined) {
+  // Paket 3.3 / BA-problems-05: delegated by the problem group resolution
+  // (server only). The delegation is revalidated for this ticket and problem,
+  // and never covers confidential tickets — those take the regular path below.
+  if (context.problemDelegation !== undefined && !ticket.isConfidential) {
+    await assertProblemDelegation(prisma, {
+      problemId: context.problemDelegation.problemId,
+      ticketId: ticket.id,
+      actorUserId: context.actorUserId,
+    });
     return ticket;
   }
   try {

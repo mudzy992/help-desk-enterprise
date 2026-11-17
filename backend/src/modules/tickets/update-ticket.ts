@@ -84,7 +84,10 @@ export async function updateTicket(
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
-  if (context.problemDelegation === undefined) await assertTicketVisible(prisma, {
+  // BA-problems-05: the delegation covers only non-confidential tickets and was
+  // already revalidated by getTicket; everything else needs the regular check.
+  const delegated = context.problemDelegation !== undefined && !current.isConfidential;
+  if (!delegated) await assertTicketVisible(prisma, {
     context: authContext,
     requesterId: current.requesterId,
     originUnitId: current.originUnitId,
@@ -101,7 +104,7 @@ export async function updateTicket(
       context: authContext,
       from: current.status,
       to: input.status,
-      delegated: context.problemDelegation !== undefined,
+      delegated,
     });
     await assertPlaybookStepsComplete({
       prisma,
@@ -203,7 +206,7 @@ export async function updateTicket(
     })) as TicketRecord;
     await recordTicketChange(transaction as PrismaService, {
       action: changeLogActions.update,
-      reason: ticketChangeLogReasons.update,
+      reason: delegated ? ticketChangeLogReasons.problemResolution : ticketChangeLogReasons.update,
       before: current,
       after: record,
       actorUserId: context.actorUserId,

@@ -7,6 +7,7 @@ import { loadTicketRecord } from './load-ticket-record';
 import { TicketsError } from './tickets.error';
 import type { TicketMutationContext, TicketRecord } from './tickets.types';
 import { assertTicketWritable } from './archive/assert-ticket-writable';
+import { assertProblemDelegation } from './problem-delegation';
 
 export async function loadAccessibleTicket(
   prisma: PrismaService,
@@ -29,8 +30,19 @@ export async function loadAccessibleTicket(
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
-  // Paket 3.3: the problem group resolution acts as staff on linked tickets.
-  const access: TicketActorAccess = context.problemDelegation !== undefined ? { visibility: 'staff' } : await resolveTicketActorAccess(prisma, {
+  // Paket 3.3 / BA-problems-05: the problem resolution acts as staff only on
+  // the non-confidential tickets still linked to that RESOLVED problem, and
+  // only while the actor keeps the problem authority. Confidential tickets
+  // fall back to their own access rules.
+  const delegated = context.problemDelegation !== undefined && !ticket.isConfidential;
+  if (delegated) {
+    await assertProblemDelegation(prisma, {
+      problemId: context.problemDelegation!.problemId,
+      ticketId: ticket.id,
+      actorUserId: context.actorUserId,
+    });
+  }
+  const access: TicketActorAccess = delegated ? { visibility: 'staff' } : await resolveTicketActorAccess(prisma, {
     context: authContext,
     ticket,
     originUnitPath,

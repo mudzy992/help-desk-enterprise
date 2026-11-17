@@ -28,6 +28,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/changes/change-downtime-outbox.integration.spec.ts",
   "src/modules/problems/problem-ticket-unlink.integration.spec.ts",
   "src/modules/problems/problem-asset-scope.integration.spec.ts",
+  "src/modules/tickets/problem-delegation.integration.spec.ts",
   "src/common/optimistic-concurrency/optimistic-concurrency.integration.spec.ts",
   "src/common/database-lock/database-lock.integration.spec.ts",
   "src/common/bulk-command/bulk-command.integration.spec.ts",

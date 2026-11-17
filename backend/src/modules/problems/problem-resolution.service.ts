@@ -13,6 +13,7 @@ import { TicketCloseCodesConfigurationLoader } from '../tickets/close-codes/tick
 import { listConfiguredCloseCodes } from '../tickets/close-codes/resolve-close-code-record';
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
+import { assertProblemDelegation } from '../tickets/problem-delegation';
 import { TicketsCollaborationService } from '../tickets/tickets-collaboration.service';
 import { TicketsService } from '../tickets/tickets.service';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
@@ -35,6 +36,7 @@ type Candidate = {
   readonly ticketNumber: string;
   readonly title: string | null;
   readonly status: string;
+  readonly isConfidential: boolean;
   readonly resolvable: boolean;
   readonly reason: ProblemTicketResolveSkip | null;
 };
@@ -224,7 +226,10 @@ export class ProblemResolutionService {
         ticket: { select: { id: true, ticketNumber: true, title: true, status: true, isConfidential: true, mergedIntoTicketId: true } },
       },
     });
-    // Delegation applies only after the ticket read predicate has narrowed the candidates.
+    // Delegation applies only after the ticket read predicate has narrowed the
+    // candidates, and (BA-problems-05) never to confidential tickets: those
+    // need the actor's own ticket/confidential access, exactly like the write
+    // path revalidates per ticket.
     const delegated = this.access.hasPermission(viewer, permissionKeys.problemClose);
     const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
     const result: Candidate[] = [];
@@ -234,7 +239,7 @@ export class ProblemResolutionService {
       if (ticket.status === 'WAITING_FOR_USER') reason = 'waiting_for_user';
       else if (ticket.status === 'PENDING_APPROVAL') reason = 'pending_approval';
       else if (ticket.mergedIntoTicketId !== null) reason = 'merged';
-      else if (!delegated) {
+      else if (!delegated || ticket.isConfidential) {
         try {
           const { access } = await loadAccessibleTicket(this.prisma, this.authorizationContextLoader, ticket.id, gated, { writable: true });
           if (access.visibility !== 'staff') reason = 'no_access';
@@ -249,6 +254,7 @@ export class ProblemResolutionService {
         ticketNumber: ticket.ticketNumber,
         title: ticket.isConfidential ? null : ticket.title,
         status: ticket.status,
+        isConfidential: ticket.isConfidential,
         resolvable: reason === null,
         reason,
       });
@@ -322,12 +328,21 @@ export class ProblemResolutionService {
     const message = options.message.trim();
     const closeCode = options.closeCode?.trim() || undefined;
     const context = { actorUserId: viewer.userId, problemDelegation: { problemId } };
+    const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
     const resolved: { ticketId: string; ticketNumber: string; messageSent: boolean }[] = [];
     const failed: { ticketId: string; ticketNumber: string; code: string }[] = [];
     for (const item of items.filter((candidate) => candidate.resolvable)) {
       try {
         // Not started yet (PENDING/UNROUTED/ASSIGNED): take over, then resolve.
+        // The takeover is a real write, so the authorization is re-proven here:
+        // the delegation never covers confidential tickets, and they need the
+        // actor's own writable access.
         if ((problemTakeoverStatuses as readonly string[]).includes(item.status)) {
+          if (item.isConfidential) {
+            await loadAccessibleTicket(this.prisma, this.authorizationContextLoader, item.id, gated, { writable: true });
+          } else {
+            await assertProblemDelegation(this.prisma, { problemId, ticketId: item.id, actorUserId: viewer.userId });
+          }
           await this.tickets.takeOverForProblem(item.id, { actorUserId: viewer.userId });
         }
         await this.tickets.update(item.id, { status: 'RESOLVED', closeCode, resolutionNote: number }, context);

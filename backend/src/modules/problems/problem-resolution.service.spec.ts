@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { buildKnownErrorArticle } from './problem-article';
 import { ProblemResolutionService, ticketFailureCode } from './problem-resolution.service';
 import { ProblemError, problemErrorCodes } from './problems.constants';
@@ -8,6 +8,7 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { prepareAuditEntry } from '../audit-log/audit-event-policy';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { problemTicketVisibility } from './problem-ticket-visibility';
+import { assertProblemDelegation } from '../tickets/problem-delegation';
 
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../authorization/authorization-context.loader', () => ({ AuthorizationContextLoader: class AuthorizationContextLoader {} }));
@@ -19,6 +20,7 @@ jest.mock('./problem-access.service', () => ({ ProblemAccessService: class Probl
 jest.mock('./problem-ticket-visibility', () => ({ problemTicketVisibility: jest.fn(async () => ({ id: { not: 'x' } })) }));
 
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
+jest.mock('../tickets/problem-delegation', () => ({ assertProblemDelegation: jest.fn(async () => undefined) }));
 jest.mock('../knowledge-base/create-knowledge-article', () => ({ createKnowledgeArticle: jest.fn() }));
 jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn() }));
 
@@ -31,7 +33,15 @@ beforeEach(() => {
   audit.mockImplementation(async (_transaction, input) => { prepareAuditEntry(input); });
 });
 
-type Ticket = { id: string; status: string; mergedIntoTicketId?: string | null; visibility?: 'staff' | 'public' };
+type Ticket = {
+  id: string;
+  status: string;
+  mergedIntoTicketId?: string | null;
+  visibility?: 'staff' | 'public';
+  isConfidential?: boolean;
+  /** The actor has no own ticket access (confidential tickets are never delegated). */
+  noOwnAccess?: boolean;
+};
 
 const baseProblem = {
   id: 'p1',
@@ -63,7 +73,7 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
         'requesterId' in args.select.ticket.select
           ? [{ ticket: { requesterId: 'requester' } }]
           : tickets.filter((ticket) => ticket.id !== 'x').map((ticket) => ({
-              ticket: { id: ticket.id, ticketNumber: `T-${ticket.id}`, title: ticket.id, status: ticket.status, isConfidential: false, mergedIntoTicketId: ticket.mergedIntoTicketId ?? null },
+              ticket: { id: ticket.id, ticketNumber: `T-${ticket.id}`, title: ticket.id, status: ticket.status, isConfidential: ticket.isConfidential ?? false, mergedIntoTicketId: ticket.mergedIntoTicketId ?? null },
             })),
       ),
     },
@@ -76,7 +86,7 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
   };
   loadTicket.mockImplementation(async (_prisma, _loader, ticketId) => {
     const ticket = tickets.find((candidate) => candidate.id === ticketId);
-    if (ticket === undefined) throw new Error('NOT_FOUND');
+    if (ticket === undefined || ticket.noOwnAccess === true) throw new Error('FORBIDDEN');
     return { ticket: ticket as never, access: { visibility: ticket.visibility ?? 'staff' } } as never;
   });
   const access = {
@@ -208,5 +218,52 @@ describe('ProblemResolutionService group resolution', () => {
 
   it('refuses to resolve tickets of a problem that is not resolved', async () => {
     await expect(setup({ tickets }).service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' })).rejects.toMatchObject({ code: problemErrorCodes.statusTransition });
+  });
+
+  it('never delegates confidential tickets, but resolves them with the actor own access', async () => {
+    const confidential: Ticket[] = [
+      { id: 'c1', status: 'ASSIGNED', isConfidential: true },
+      { id: 'c2', status: 'ASSIGNED', isConfidential: true, noOwnAccess: true },
+    ];
+    const { service, ticketsService } = setup({ tickets: confidential, problem: { status: 'RESOLVED' } });
+    const preview = await service.resolvePreview('p1', viewer);
+    expect(preview.items.map((item) => [item.id, item.reason, item.title])).toEqual([
+      ['c1', null, null],
+      ['c2', 'no_access', null],
+    ]);
+    const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
+    expect(result.resolved.map((item) => item.ticketId)).toEqual(['c1']);
+    expect(result.skipped).toEqual([{ ticketId: 'c2', ticketNumber: 'T-c2', reason: 'no_access' }]);
+    expect(ticketsService.update).toHaveBeenCalledTimes(1);
+    expect(ticketsService.update).toHaveBeenCalledWith('c1', expect.objectContaining({ status: 'RESOLVED' }), expect.anything());
+    // Both confidential tickets were evaluated with the actor's own access only.
+    expect(loadTicket.mock.calls.map((call) => call[2])).toContain('c2');
+    expect(ticketsService.update).not.toHaveBeenCalledWith('c2', expect.anything(), expect.anything());
+  });
+
+  it('revalidates the delegation on every write, so a mid-flight revocation fails the ticket', async () => {
+    const tickets: Ticket[] = [{ id: 'a', status: 'IN_PROGRESS' }, { id: 'b', status: 'IN_PROGRESS' }];
+    const { service, ticketsService } = setup({ tickets, problem: { status: 'RESOLVED' } });
+    ticketsService.update.mockImplementationOnce(async (id: string) => {
+      if (id === 'a') throw new ForbiddenException({ code: 'FORBIDDEN' });
+      return {};
+    });
+    const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
+    expect(result.failed).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', code: 'FORBIDDEN' }]);
+    expect(result.resolved.map((item) => item.ticketId)).toEqual(['b']);
+    expect(ticketsService.update).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-proves the delegation before a takeover write and fails closed without it', async () => {
+    const tickets: Ticket[] = [{ id: 'a', status: 'PENDING' }, { id: 'b', status: 'PENDING' }];
+    const { service, ticketsService } = setup({ tickets, problem: { status: 'RESOLVED' } });
+    (assertProblemDelegation as jest.Mock).mockImplementation(async (_prisma: unknown, input: { ticketId: string }) => {
+      if (input.ticketId === 'a') throw new Error('FORBIDDEN');
+    });
+    const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
+    expect(result.failed).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', code: 'TICKET_OPERATION_FAILED' }]);
+    expect(ticketsService.takeOverForProblem).not.toHaveBeenCalledWith('a', expect.anything());
+    expect(ticketsService.takeOverForProblem).toHaveBeenCalledWith('b', expect.anything());
+    expect(result.resolved.map((item) => item.ticketId)).toEqual(['b']);
   });
 });

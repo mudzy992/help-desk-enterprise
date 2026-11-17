@@ -63,6 +63,8 @@ export const ticketConstants = {
 export const ticketChangeLogReasons = {
   create: 'ticket_create',
   update: 'ticket_update',
+  /** BA-problems-05: the change came through the problem group resolution. */
+  problemResolution: 'ticket_problem_resolution',
   participantAdd: 'ticket_participant_add',
   participantRemove: 'ticket_participant_remove',
   linkAdd: 'ticket_link_add',
