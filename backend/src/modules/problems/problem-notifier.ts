@@ -229,6 +229,36 @@ export class ProblemNotifier {
   }
 
   /** Problem managers of a problem group (members holding problem.manage through a role). */
+  /**
+   * W7.28: a transfer into another group waits for that group's decision, so its
+   * managers learn about the request before anything moves.
+   */
+  async handoffRequested(problemId: string, handoffId: string, targetGroupId: string, actorUserId: string | null): Promise<number> {
+    const facts = await this.facts(problemId);
+    if (facts === null) return 0;
+    return this.send(facts, actorUserId, {
+      type: notificationTypes.problemHandoffRequested,
+      emailKey: null,
+      recipientIds: await this.groupManagers(targetGroupId),
+      occurrence: handoffId,
+      detail: (locale) => problemStatusLabel(locale, facts.status),
+    });
+  }
+
+  /** W7.28: the decision goes back to the manager who asked for the transfer. */
+  async handoffDecided(problemId: string, handoffId: string, requesterUserId: string | null, actorUserId: string | null): Promise<number> {
+    if (requesterUserId === null) return 0;
+    const facts = await this.facts(problemId);
+    if (facts === null) return 0;
+    return this.send(facts, actorUserId, {
+      type: notificationTypes.problemHandoffDecided,
+      emailKey: null,
+      recipientIds: [requesterUserId],
+      occurrence: handoffId,
+      detail: (locale) => problemStatusLabel(locale, facts.status),
+    });
+  }
+
   private async groupManagers(groupId: string): Promise<string[]> {
     const users = await this.prisma.user.findMany({
       where: {

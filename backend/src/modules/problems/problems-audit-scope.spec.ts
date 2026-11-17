@@ -20,6 +20,7 @@ function harness() {
       updateMany: jest.fn(async () => ({ count: 1 })),
     },
     problemEvent: { create: jest.fn(async () => ({})) },
+    problemHandoff: { updateMany: jest.fn(async () => ({ count: 0 })) },
     auditLog: { findFirst: jest.fn(async () => null), create: jest.fn(async () => ({})) },
     group: { findUnique: jest.fn(async () => ({ isProblemGroup: true })) },
     priorityMatrixRule: { findUnique: jest.fn(async () => null) },

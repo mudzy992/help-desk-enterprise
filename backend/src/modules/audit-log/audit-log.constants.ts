@@ -201,6 +201,11 @@ export const auditLogActions = {
   problemCancelled: 'problem.cancelled',
   problemReopened: 'problem.reopened',
   problemKnowledgeArticleCreated: 'problem.knowledge_article_created',
+  /** W7.28: the handover trail of a problem group change. */
+  problemHandoffRequested: 'problem.handoff_requested',
+  problemHandoffAccepted: 'problem.handoff_accepted',
+  problemHandoffRejected: 'problem.handoff_rejected',
+  problemHandoffCancelled: 'problem.handoff_cancelled',
   problemTicketsResolved: 'problem.tickets_resolved',
   // Paket 3.4: change management.
   changeCreated: 'change.created',

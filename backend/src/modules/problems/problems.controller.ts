@@ -8,6 +8,8 @@ import { ProblemAccessService, problemViewerOf, type ProblemViewer } from './pro
 import {
   CreateProblemArticleDto,
   CreateProblemDto,
+  ProblemHandoffDecisionDto,
+  ProblemHandoffDto,
   LinkProblemAssetsDto,
   LinkProblemIncidentDto,
   LinkProblemServiceDto,
@@ -17,6 +19,7 @@ import {
   UpdateProblemDto,
 } from './problems.dto';
 import { ProblemNotifier } from './problem-notifier';
+import { ProblemHandoffService } from './problem-handoff.service';
 import { ProblemTargetReminderService } from './problem-target-reminder.service';
 import { ProblemResolutionService } from './problem-resolution.service';
 import { ProblemLinksService } from './problem-links.service';
@@ -74,6 +77,7 @@ export class ProblemsController {
     private readonly notifier: ProblemNotifier,
     private readonly links: ProblemLinksService,
     private readonly reminders: ProblemTargetReminderService,
+    private readonly handoffs: ProblemHandoffService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
@@ -335,6 +339,53 @@ export class ProblemsController {
   @HttpCode(200)
   createArticle(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: CreateProblemArticleDto) {
     return runProblem(() => this.resolution.createArticle(id, body, this.viewer(request)));
+  }
+
+  /** W7.28: the transfer history of one problem (newest first). */
+  @Get(':id/handoffs')
+  @Header('Cache-Control', 'no-store')
+  handoffsOfProblem(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.handoffs.list(this.viewer(request), id));
+  }
+
+  /**
+   * W7.28 (BA-problems-10): a group change is a command, not a field update.
+   * Running the target group makes it immediate; otherwise it waits as PENDING
+   * until the receiving group decides. Both answer 200 with the handoff row, so
+   * the client reads `handoff.status` instead of guessing from the status code.
+   */
+  @Post(':id/handoffs')
+  @HttpCode(200)
+  requestHandoff(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: ProblemHandoffDto) {
+    return runProblem(() => this.handoffs.request(this.viewer(request), id, body));
+  }
+
+  @Post(':id/handoffs/:handoffId/accept')
+  @HttpCode(200)
+  acceptHandoff(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('handoffId') handoffId: string) {
+    return runProblem(() => this.handoffs.accept(this.viewer(request), id, handoffId));
+  }
+
+  @Post(':id/handoffs/:handoffId/reject')
+  @HttpCode(200)
+  rejectHandoff(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Param('handoffId') handoffId: string,
+    @Body() body: ProblemHandoffDecisionDto,
+  ) {
+    return runProblem(() => this.handoffs.reject(this.viewer(request), id, handoffId, body));
+  }
+
+  @Post(':id/handoffs/:handoffId/cancel')
+  @HttpCode(200)
+  cancelHandoff(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Param('handoffId') handoffId: string,
+    @Body() body: ProblemHandoffDecisionDto,
+  ) {
+    return runProblem(() => this.handoffs.cancel(this.viewer(request), id, handoffId, body));
   }
 
   @Get(':id/events')

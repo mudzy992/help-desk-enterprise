@@ -15,7 +15,7 @@ describe('ProblemsController.create', () => {
       get: jest.fn(),
     };
     const tickets = { link: jest.fn() };
-    const controller = new ProblemsController({} as never, problems as never, tickets as never, {} as never, {} as never, {} as never, {} as never);
+    const controller = new ProblemsController({} as never, problems as never, tickets as never, {} as never, {} as never, {} as never, {} as never, {} as never);
     const body = { title: 'Mreža', description: 'x', groupId: 'g1', ticketIds: ['t1'] };
     const result = await controller.create({} as never, body as never);
     expect(problems.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1' }), expect.objectContaining({ ticketIds: ['t1'] }));
@@ -29,7 +29,7 @@ describe('ProblemsController.create', () => {
   it('returns the create result unchanged when no ticket was selected', async () => {
     const problems = { create: jest.fn(async () => ({ id: 'p2', ticketLinks: null })), get: jest.fn() };
     const tickets = { link: jest.fn() };
-    const controller = new ProblemsController({} as never, problems as never, tickets as never, {} as never, {} as never, {} as never, {} as never);
+    const controller = new ProblemsController({} as never, problems as never, tickets as never, {} as never, {} as never, {} as never, {} as never, {} as never);
     const result = await controller.create({} as never, { title: 'Mreža', description: 'x', groupId: 'g1' } as never);
     expect(result).toEqual({ id: 'p2', ticketLinks: null });
     expect(tickets.link).not.toHaveBeenCalled();

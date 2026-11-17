@@ -14,7 +14,7 @@ const date = new Date('2026-01-01T00:00:00Z');
 function setup() {
   const row = { id: 'p1', sequence: 1, title: 'Problem', status: 'NEW', priority: 'LOW', rootCauseCategory: null,
     owner: null, group: null, organizationalUnit: { ouPath: '/unit' }, service: null, targetAt: null,
-    createdAt: date, updatedAt: date, ownerUserId: null, groupId: null };
+    createdAt: date, updatedAt: date, ownerUserId: null, groupId: null, handoffs: [] };
   const groupBy = jest.fn().mockResolvedValueOnce([{ problemId: 'p1', _count: { _all: 2 } }])
     .mockResolvedValueOnce([{ problemId: 'p1', _count: { _all: 1 } }]);
   const prisma = { problem: { findMany: jest.fn(async (_args: unknown) => [row]), count: jest.fn(async () => 1), findFirst: jest.fn(async () => row) }, problemTicket: { groupBy } };

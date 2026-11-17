@@ -6,6 +6,8 @@ model User {
   problemsOwned Problem[] @relation("ProblemOwner")
   problemResolutionRuns ProblemResolutionRun[] @relation("ProblemResolutionRunActor")
   problemsCreated Problem[] @relation("ProblemCreatedBy")
+  problemHandoffsRequested ProblemHandoff[] @relation("ProblemHandoffRequestedBy")
+  problemHandoffsDecided ProblemHandoff[] @relation("ProblemHandoffDecidedBy")
   assetsAssigned Asset[] @relation("AssetAssignedUser")
   assetSignatories AssetSignatory[] @relation("AssetSignatoryUser")
   assetTransfersFrom AssetTransfer[] @relation("AssetTransferFrom")
@@ -166,6 +168,8 @@ model Group {
   teamsChannel TeamsGroupChannel? @relation("TeamsGroupChannel")
   cabChanges ChangeRequest[] @relation("ChangeCabGroup")
   problems Problem[]
+  problemHandoffsFrom ProblemHandoff[] @relation("ProblemHandoffFromGroup")
+  problemHandoffsTo ProblemHandoff[] @relation("ProblemHandoffToGroup")
   id                   String                 @id @default(cuid())
   reportSchedules ReportSchedule[]
   name                 String

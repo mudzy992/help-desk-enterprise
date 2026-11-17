@@ -18,6 +18,7 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.incidentNotFound:
     case problemErrorCodes.resolutionRunNotFound:
     case problemErrorCodes.targetReminderNotFound:
+    case problemErrorCodes.handoffNotFound:
       return new NotFoundException(body);
     case problemErrorCodes.forbidden:
     case problemErrorCodes.outOfScope:
@@ -34,6 +35,9 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.resolutionRunClosed:
     case problemErrorCodes.targetReminderFinal:
     case problemErrorCodes.targetReminderInProgress:
+    case problemErrorCodes.handoffRequired:
+    case problemErrorCodes.handoffPending:
+    case problemErrorCodes.handoffConflict:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

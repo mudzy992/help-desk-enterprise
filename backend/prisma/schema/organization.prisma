@@ -1,6 +1,8 @@
 model OrganizationalUnit {
   changes ChangeRequest[]
   problems Problem[]
+  problemHandoffsFrom ProblemHandoff[] @relation("ProblemHandoffFromUnit")
+  problemHandoffsTo ProblemHandoff[] @relation("ProblemHandoffToUnit")
   assets Asset[]
   assetSignatory AssetSignatory?
   assetContracts AssetContract[]

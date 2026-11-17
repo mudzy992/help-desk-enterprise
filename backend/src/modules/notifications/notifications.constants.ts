@@ -48,6 +48,9 @@ export const notificationTypes = {
   problemResolved: 'problem.resolved',
   problemTargetDue: 'problem.targetDue',
   problemRecurrence: 'problem.recurrence',
+  // W7.28 (§7): a problem waits for the target group's decision, and the requester learns it.
+  problemHandoffRequested: 'problem.handoffRequested',
+  problemHandoffDecided: 'problem.handoffDecided',
   // Paket 3.4 (§14): CAB vote requested, decision, start reminder, overrun, failed change on a problem.
   changeApprovalRequested: 'change.approvalRequested',
   changeDecided: 'change.decided',
@@ -105,6 +108,8 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.problemResolved]: 'notifications.items.problemResolved',
     [notificationTypes.problemTargetDue]: 'notifications.items.problemTargetDue',
     [notificationTypes.problemRecurrence]: 'notifications.items.problemRecurrence',
+    [notificationTypes.problemHandoffRequested]: 'notifications.items.problemHandoffRequested',
+    [notificationTypes.problemHandoffDecided]: 'notifications.items.problemHandoffDecided',
     [notificationTypes.changeApprovalRequested]: 'notifications.items.changeApprovalRequested',
     [notificationTypes.changeDecided]: 'notifications.items.changeDecided',
     [notificationTypes.changeStartingSoon]: 'notifications.items.changeStartingSoon',

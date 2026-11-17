@@ -24,6 +24,8 @@ export const problemLimits = {
   searchMax: 120,
   /** Tickets linked in one request (list bulk action, §8.1). */
   linkBatchMax: 50,
+  /** W7.28: handoffs listed per problem (newest first). */
+  handoffHistoryMax: 50,
   /** Knowledge article body (KB maximum). */
   articleBodyMax: 20000,
   messageMax: 8000,
@@ -39,6 +41,11 @@ export const problemEventActions = {
   knowledgeArticle: 'knowledge_article',
   ticketsResolved: 'tickets_resolved',
   /** P5b (§9): affected CMDB items, extra services, status-page incidents. */
+  /** W7.28: a handed-over problem changes group only through a recorded decision. */
+  handoffRequested: 'handoff_requested',
+  handoffAccepted: 'handoff_accepted',
+  handoffRejected: 'handoff_rejected',
+  handoffCancelled: 'handoff_cancelled',
   assetLinked: 'asset_linked',
   assetUnlinked: 'asset_unlinked',
   serviceLinked: 'service_linked',
@@ -87,6 +94,15 @@ export const problemErrorCodes = {
   targetReminderInProgress: 'PROBLEM_TARGET_REMINDER_IN_PROGRESS',
   articleExists: 'PROBLEM_ARTICLE_EXISTS',
   articleInvalid: 'PROBLEM_ARTICLE_INVALID',
+  /** W7.28: the group (or the OU) changes only through a handoff command. */
+  handoffRequired: 'PROBLEM_HANDOFF_REQUIRED',
+  /** W7.28: this problem already has a transfer waiting for a decision. */
+  handoffPending: 'PROBLEM_HANDOFF_PENDING',
+  /** W7.28: the handoff does not exist, belongs to another problem, or is not pending any more. */
+  handoffNotFound: 'PROBLEM_HANDOFF_NOT_FOUND',
+  handoffConflict: 'PROBLEM_HANDOFF_CONFLICT',
+  /** W7.28: the target group is the group the problem is already in. */
+  handoffSameGroup: 'PROBLEM_HANDOFF_SAME_GROUP',
 } as const;
 
 export type ProblemErrorCode = (typeof problemErrorCodes)[keyof typeof problemErrorCodes];

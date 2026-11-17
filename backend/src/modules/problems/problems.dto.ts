@@ -84,6 +84,19 @@ export class ProblemResolutionRunDto {
   @IsOptional() @IsString() @MaxLength(64) closeCode?: string;
 }
 
+/**
+ * W7.28: a problem changes group only through this command. `reason` is
+ * mandatory — the receiving side and the audit trail must know why.
+ */
+export class ProblemHandoffDto {
+  @IsString() @MaxLength(64) toGroupId!: string;
+  @IsString() @MinLength(problemLimits.reasonMin) @MaxLength(problemLimits.reasonMax) reason!: string;
+}
+
+export class ProblemHandoffDecisionDto {
+  @IsOptional() @IsString() @MaxLength(problemLimits.reasonMax) reason?: string;
+}
+
 export class CreateProblemArticleDto {
   @IsString() @MinLength(3) @MaxLength(problemLimits.titleMax) title!: string;
   @IsString() @MinLength(1) @MaxLength(problemLimits.articleBodyMax) body!: string;

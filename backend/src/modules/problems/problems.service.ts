@@ -33,6 +33,7 @@ import {
   type ProblemStatusValue,
 } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
+import { assertUnitFollowsGroup } from './problem-handoff-rules';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
@@ -95,6 +96,23 @@ const detailSelect = {
   version: true,
   createdBy: { select: userSelect },
   knowledgeArticle: { select: { id: true, title: true, status: true } },
+  // W7.28: at most one transfer waits for a decision at a time.
+  handoffs: {
+    where: { status: 'PENDING' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: 1,
+    select: {
+      id: true,
+      status: true,
+      reason: true,
+      createdAt: true,
+      requestedByUserId: true,
+      toGroupId: true,
+      toGroup: { select: { id: true, name: true } },
+      toOrganizationalUnit: { select: { id: true, name: true, ouPath: true } },
+      requestedBy: { select: userSelect },
+    },
+  },
 } satisfies Prisma.ProblemSelect;
 
 type ListRow = Prisma.ProblemGetPayload<{ select: typeof listSelect }>;
@@ -231,6 +249,8 @@ export class ProblemsService {
     const safeActions: readonly string[] = [
       problemEventActions.created, problemEventActions.updated, problemEventActions.status, problemEventActions.owner,
       problemEventActions.knowledgeArticle,
+      problemEventActions.handoffRequested, problemEventActions.handoffAccepted,
+      problemEventActions.handoffRejected, problemEventActions.handoffCancelled,
       problemEventActions.serviceLinked, problemEventActions.serviceUnlinked, problemEventActions.incidentLinked, problemEventActions.incidentUnlinked,
     ];
     let cursor: string | undefined;
@@ -483,13 +503,19 @@ export class ProblemsService {
     if (unitId !== undefined && unitId !== null && unitId !== current.organizationalUnitId) {
       await this.access.requireUnitInScope(scope, unitId);
       await this.access.requireUnitInScope(await this.access.require(viewer, permissionKeys.problemRead), unitId);
+      // W7.28: a problem lives in the unit tree of its group; leaving that tree is a handoff.
+      await assertUnitFollowsGroup(this.prisma, current.groupId, unitId);
       data.organizationalUnitId = unitId;
     }
     let ownerUserId = optionalId(input.ownerUserId);
     const groupId = optionalId(input.groupId);
     const serviceId = optionalId(input.serviceId);
     if (groupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
-    if (groupId !== undefined && groupId !== current.groupId) await this.assertProblemGroup(groupId);
+    // W7.28 / BA-problems-10: the group changes only through the handoff command,
+    // which checks the target group's authority and, when needed, its acceptance.
+    if (groupId !== undefined && groupId !== current.groupId) {
+      throw new ProblemError(problemErrorCodes.handoffRequired, 'groupId');
+    }
     const targetGroupId = groupId ?? current.groupId;
     if (ownerUserId !== undefined && ownerUserId !== null && ownerUserId !== current.ownerUserId) {
       if (targetGroupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
@@ -633,6 +659,29 @@ export class ProblemsService {
       await transaction.problemEvent.create({
         data: { problemId: id, action: problemEventActions.status, actorUserId: viewer.userId, detail: { from, to, reason } },
       });
+      // W7.28: a closed or cancelled problem cannot change hands any more, so a
+      // request that was still waiting is settled here instead of dangling.
+      if ((problemFinalStatuses as readonly string[]).includes(to)) {
+        const cancelled = await transaction.problemHandoff.updateMany({
+          where: { problemId: id, status: 'PENDING' },
+          data: {
+            status: 'CANCELLED',
+            decidedByUserId: viewer.userId,
+            decidedAt: now,
+            decisionReason: 'problem_final_status',
+          },
+        });
+        if (cancelled.count > 0) {
+          await transaction.problemEvent.create({
+            data: {
+              problemId: id,
+              action: problemEventActions.handoffCancelled,
+              actorUserId: viewer.userId,
+              detail: { reason: 'problem_final_status', status: to } as never,
+            },
+          });
+        }
+      }
       await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
         action,
         entityType: auditLogEntityTypes.problem,
@@ -792,6 +841,9 @@ export class ProblemsService {
     const inScope = async (permission: string) =>
       this.access.hasPermission(viewer, permission) &&
       isPathInScope(await this.access.scopeOf(viewer, permission), row.organizationalUnit.ouPath);
+    const manageScope = this.access.hasPermission(viewer, permissionKeys.problemManage)
+      ? await this.access.scopeOf(viewer, permissionKeys.problemManage)
+      : null;
     // Decision 2026-10-01: the problem group runs the problem (admins always).
     const canManage = (await inScope(permissionKeys.problemManage)) && (await this.access.hasGroupAuthority(viewer, permissionKeys.problemManage, row.groupId));
     const canClose = canManage && (await inScope(permissionKeys.problemClose));
@@ -800,6 +852,26 @@ export class ProblemsService {
     const transitions = canManage
       ? allowedProblemTransitions(row.status).filter((to) => canClose || !transitionNeedsClosePermission(row.status, to))
       : [];
+    // W7.28: the pending transfer, who may decide it, and who may call it off.
+    const pending = row.handoffs[0] ?? null;
+    const canDecideHandoff =
+      pending !== null &&
+      canManage &&
+      (await this.access.hasGroupAuthority(viewer, permissionKeys.problemManage, pending.toGroupId)) &&
+      manageScope !== null &&
+      isPathInScope(manageScope, pending.toOrganizationalUnit.ouPath);
+    const handoff =
+      pending === null
+        ? null
+        : {
+            id: pending.id,
+            status: pending.status,
+            reason: pending.reason,
+            createdAt: pending.createdAt.toISOString(),
+            requestedBy: pending.requestedBy,
+            toGroup: pending.toGroup,
+            toOrganizationalUnit: { id: pending.toOrganizationalUnit.id, name: pending.toOrganizationalUnit.name },
+          };
     const counts = await this.visibleTicketCounts([row.id], viewer);
     return {
       ...this.toListItem(row, configuration, counts.total.get(row.id) ?? 0),
@@ -819,8 +891,17 @@ export class ProblemsService {
       cancelReason: row.cancelReason,
       createdBy: row.createdBy,
       version: row.version,
+      handoff,
       allowedTransitions: transitions,
-      permissions: { canManage, canClose, canClaim, canLink },
+      permissions: {
+        canManage,
+        canClose,
+        canClaim,
+        canLink,
+        canHandoff: canManage && !(problemFinalStatuses as readonly string[]).includes(row.status),
+        canDecideHandoff,
+        canCancelHandoff: pending !== null && (pending.requestedByUserId === viewer.userId || canManage),
+      },
     };
   }
 }

@@ -55,6 +55,7 @@ model Problem {
   tickets              ProblemTicket[]
   resolutionRuns       ProblemResolutionRun[]
   targetReminders      ProblemTargetReminder[]
+  handoffs             ProblemHandoff[]
   assets               ProblemAsset[]
   services             ProblemService[]
   incidents            ProblemIncident[]
@@ -253,4 +254,49 @@ model ProblemTargetReminder {
   @@unique([problemId, targetAt, stage])
   @@index([status, nextAttemptAt])
   @@index([problemId, createdAt])
+}
+
+/// W7.28 (BA-problems-10): a problem never jumps to another group silently.
+/// The old group (or a manager of both) requests the transfer, the target side
+/// decides, and only an accepted handoff moves the problem — including its
+/// organizational unit, which always follows the target group.
+enum ProblemHandoffStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+model ProblemHandoff {
+  id                       String                @id @default(cuid())
+  problemId                String
+  status                   ProblemHandoffStatus  @default(PENDING)
+  /// Kept for the record even when the group is later renamed or removed.
+  fromGroupId              String?
+  toGroupId                String
+  fromOrganizationalUnitId String
+  toOrganizationalUnitId   String
+  reason                   String                @db.VarChar(1000)
+  requestedByUserId        String?
+  decidedByUserId          String?
+  decidedAt                DateTime?
+  /// Rejection or cancellation reason.
+  decisionReason           String?               @db.VarChar(1000)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  problem                  Problem               @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  fromGroup                Group?                @relation("ProblemHandoffFromGroup", fields: [fromGroupId], references: [id], onDelete: SetNull)
+  toGroup                  Group                 @relation("ProblemHandoffToGroup", fields: [toGroupId], references: [id], onDelete: Restrict)
+  fromOrganizationalUnit   OrganizationalUnit    @relation("ProblemHandoffFromUnit", fields: [fromOrganizationalUnitId], references: [id], onDelete: Restrict)
+  toOrganizationalUnit     OrganizationalUnit    @relation("ProblemHandoffToUnit", fields: [toOrganizationalUnitId], references: [id], onDelete: Restrict)
+  requestedBy              User?                 @relation("ProblemHandoffRequestedBy", fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  decidedBy                User?                 @relation("ProblemHandoffDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  /// At most one PENDING handoff per problem; the partial unique index lives in
+  /// the migration because Prisma cannot express a filtered index.
+  @@index([problemId, status])
+  @@index([problemId, createdAt])
+  @@index([status, createdAt])
+  @@index([toGroupId, status])
+  @@index([toOrganizationalUnitId, status])
 }

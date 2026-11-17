@@ -4,6 +4,7 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SettingsModule } from '../settings/settings.module';
 import { TicketsModule } from '../tickets/tickets.module';
+import { ProblemHandoffService } from './problem-handoff.service';
 import { ProblemLinksService } from './problem-links.service';
 import { ProblemTicketsService } from './problem-tickets.service';
 import { ProblemNotifier } from './problem-notifier';
@@ -27,6 +28,7 @@ import { ProblemsService } from './problems.service';
     ProblemNotifier,
     ProblemTargetReminderService,
     ProblemLinksService,
+    ProblemHandoffService,
   ],
   exports: [ProblemAccessService, ProblemsService, ProblemTicketsService],
 })
