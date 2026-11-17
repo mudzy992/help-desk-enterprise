@@ -24,7 +24,15 @@ export function GateStatusError({ title, body, retryLabel, onRetry }: GateStatus
         <BrandLockup subtitle={t("shell.brandTagline")} />
       </header>
       <main className="flex-1">
-        <div className="mx-auto max-w-[1000px] px-4 py-8 lg:px-8" role="alert">
+        {/* `data-testid` is the E2E hook: while the stack is unreachable this
+            screen replaces the login form, and a spec must be able to tell
+            "cannot verify the install status" from "the credentials form is
+            broken" (nightly 44049572740, spec 43). */}
+        <div
+          className="mx-auto max-w-[1000px] px-4 py-8 lg:px-8"
+          role="alert"
+          data-testid="gate-status-error"
+        >
           <EmptyState
             icon={<AlertTriangle size={18} strokeWidth={1.8} />}
             title={title}

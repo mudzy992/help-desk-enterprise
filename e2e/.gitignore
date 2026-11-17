@@ -2,6 +2,11 @@ node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
+# Generated reports: uploaded as CI artifacts, never committed (a 2026-10-15 run
+# report reached the repository by accident and was removed on 2026-11-17).
+/results.json
+# Written by scripts/run-e2e.mjs: the health-probe timeline of one run.
+/stack-watch.json
 # F6: the install-wizard project writes its traces and report next to its config.
 /install-wizard/test-results/
 /install-wizard/playwright-report/

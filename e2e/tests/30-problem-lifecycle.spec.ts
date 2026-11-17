@@ -5,6 +5,7 @@ import { errorCode, firstUnit, uniqueStamp } from '../helpers/assets';
 import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
+import { openDetailSection } from '../helpers/ticket-detail-sections';
 
 type Capabilities = { readonly enabled: boolean; readonly canRead: boolean; readonly canReport: boolean; readonly canManage: boolean; readonly canClose: boolean };
 type Options = { readonly groups: ReadonlyArray<{ id: string; name: string }>; readonly rootCauseCategories: readonly string[] };
@@ -182,7 +183,14 @@ test.describe('30 problem lifecycle', () => {
         }
 
         await page.goto(`/tickets/${first.id}`);
-        await expect(page.getByText(problem!.number).first()).toBeVisible({ timeout: 15_000 });
+        // The problem panel is a rail section that starts collapsed — its body is
+        // `hidden`, so the number links resolves but is not visible until opened.
+        const problemPanel = page.getByTestId('ticket-problem-panel');
+        await expect(problemPanel).toBeVisible({ timeout: 15_000 });
+        await openDetailSection(problemPanel);
+        await expect(
+          problemPanel.getByRole('link', { name: new RegExp(problem!.number) }),
+        ).toBeVisible();
         await expectNoSeriousA11yViolations(page, 'ticket-with-problem', testInfo);
       });
 

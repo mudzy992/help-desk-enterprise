@@ -54,8 +54,11 @@ A pull request that touches only documentation (`docs/**`, `.cursor/**`, `*.md`,
 fast `Docs guard` job instead (~1 min) — the product jobs are reported as *skipped* in the `CI gate` summary.
 
 The job first typechecks this project (`npx tsc --noEmit -p tsconfig.json`), then runs a **Preflight** step
-(prints `set`/`empty` per name — never a value — resolves the API and database hosts and calls
-`$E2E_API_URL/health`), then `npx playwright test`.
+(prints `set`/`empty` per name — never a value, resolves the API and database hosts, calls
+`$E2E_API_URL/health` until it answers `200` **and** `{"status":"ok"}` for up to 120 s, and probes
+`$E2E_BASE_URL/` so a dead SPA fails there instead of inside the first sign-in), then
+`node scripts/run-e2e.mjs`, which spawns Playwright and watches the stack (see
+[When the stack disappears mid-run](#when-the-stack-disappears-mid-run)).
 
 > **A green E2E job now means the specs ran.** When the repository variable `E2E_API_URL` is empty the
 > Preflight step fails with `::error title=E2E did not run`, instead of silently passing (the earlier `exit 0`
@@ -150,6 +153,12 @@ SKIPPED 1 test(s) — a skip is not a pass:
   when the connection never opened (`UND_ERR_CONNECT_TIMEOUT`, `ECONNREFUSED`, `ENOTFOUND`, `EAI_AGAIN`, …) — a
   request that never reached the API cannot have written anything. A reset after sending is never repeated for a
   write. Specs 23 and 24 were lost to a 10 s connect timeout on `POST /auth/login` in the 2026-10-05 run.
+- **Gateway answers are retried too** (`ApiClient.send`): a `502`/`503`/`504` whose body is not our JSON (an HTML
+  page, plain text, an empty body) came from the reverse proxy, so the application never saw the request and
+  *any* method is safe to repeat. Three retries 2 s / 10 s / 20 s apart bridge a rolling restart; after ~32 s the
+  client raises `STACK_UNAVAILABLE: …` instead of `HTTP_503: <!DOCTYPE html>`. Covered offline by
+  `unit/api-client-gateway-retry.spec.ts` (the e2e job runs `npx playwright test -c unit/playwright.config.ts`
+  before Preflight); `E2E_GATEWAY_RETRY_DELAYS_MS=10,10` shortens the budget in a unit test.
 - A network-level failure is never a bare `TypeError: fetch failed` any more: `ApiClient` (`send`) raises
   `NETWORK <METHOD> <path> failed: … (cause: ECONNREFUSED …) — the API at <url> was not reachable from the
   runner.` An **idempotent `GET` is retried once** (2 s apart), because the e2e job runs against a live stack
@@ -182,6 +191,43 @@ SKIPPED 1 test(s) — a skip is not a pass:
   conditional, let it fail loudly and fix the request instead.
 - Numbers in the file names (`20-privacy.spec.ts`) are the spec numbers; the `list` reporter prints them the same
   way, so a list like `10, 11, 12` maps straight onto files.
+
+### When the stack disappears mid-run
+
+Nightly run [44049572740](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44049572740)
+(2026-11-17) is the reference case: Preflight saw a healthy API at 08:46 UTC and the earlier spec files passed,
+and then — from spec 42 on — the reverse proxy answered its own HTML page (`<title>Site not available</title>`,
+HTTP 503) for **both** `E2E_API_URL` and `E2E_BASE_URL`. Thirteen specs died on `ApiRequestError: HTTP_503: <!DOCTYPE html>`, spec 43
+got the install-status gate error instead of the login form, two more timed out, and the job ended 47 minutes
+later with "18 failed" — which reads like 18 regressions. The stack did not come back before the run ended.
+
+Three mechanisms now keep that from being reported as product failures:
+
+| Mechanism | Where | Effect |
+|---|---|---|
+| **Watchdog** | `scripts/run-e2e.mjs` | probes `$E2E_API_URL/health` every 15 s; 4 consecutive failures (~45 s) stop Playwright with one `::error title=E2E stack unavailable (infrastructure, not a code regression)` annotation and write `stack-watch.json` |
+| **Classification** | `scripts/summarize-playwright-json.mjs` | a failure whose message carries a proxy/an HTML body/an unreachable-API signature is tagged `[stack]`; a timeout that ran inside the recorded outage window is tagged `[stack-suspect]`; the *triage* line only lists product failures |
+| **Probe timeline** | `stack-watch.json` + the `Report the stack probe timeline` step | the exact `firstAt`–`lastAt` interval, whether it recovered, and every probe — match it against the stack's deploy/restart history |
+
+`stack-watch.json` is uploaded with the report on every run. `E2E_STACK_WATCHDOG=off` disables the watchdog
+(a local run against a machine that is still booting); `E2E_STACK_WAIT_MS` (default `120000`) sets the global-setup
+wait; `E2E_STACK_FAILURES_TO_ABORT` (default `4`) and `E2E_STACK_PROBE_INTERVAL_MS` (default `15000`) tune the trip.
+
+Reading a red run with an outage in it:
+
+```
+STACK OUTAGE — infrastructure, not a code regression.
+  GET https://api.example/health failed from 2026-11-17T09:14:02.118Z to 2026-11-17T09:38:41.004Z (25 min); recovered before the job ended: no.
+  Playwright was stopped by the stack watchdog (scripts/run-e2e.mjs) — the rest of the suite did not run.
+  13 failure(s) carry the hosting layer's error page or an unreachable API.
+  2 further failure(s) timed out inside that window and are probably the same outage: 42-catalog-sla-routing-ux.spec.ts:686, 49-docs-smoke.spec.ts:6.
+  No code change is implied: wait until $E2E_API_URL/health answers 200 with {"status":"ok"}, check the stack's deploy/restart history for that interval, then re-run the same specs.
+```
+
+A failure that is **not** tagged is the one to fix. In that same run exactly one existed: spec 30 asserted the
+problem number on the ticket page without opening the rail section that holds it — `DetailSection` starts
+`problems`, `links` and `formData` collapsed (`frontend/src/lib/tickets/detail-sections.ts`), so the link resolved
+to a `<a>` that was `hidden`. Use `openDetailSection(panel)` from `helpers/ticket-detail-sections.ts`.
 
 ## The install wizard (F6) — a project of its own
 

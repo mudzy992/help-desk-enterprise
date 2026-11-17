@@ -1,12 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import {
+  classifyFailure,
   collectFailures,
   collectFlaky,
   collectSkipped,
   errorDetail,
   firstErrorLine,
   formatSummary,
+  isFreshWatch,
+  readStackWatch,
+  stackOutageWindow,
   triageSpecNumbers,
 } from './summarize-playwright-json.mjs';
 
@@ -222,4 +229,128 @@ test('formatSummary prints the ready-to-copy triage dispatch line', () => {
     reportWith({ specs: [failedSpec('a', 1, 'boom'), failedSpec('b', 2, 'boom'), failedSpec('c', 3, 'boom')] }),
   );
   assert.match(text, /NEXT TRIAGE RUN: specs=20 /);
+});
+
+// ── Nightly run 44049572740 (2026-11-17): the proxy page must not read as a
+//    product regression, and the triage line must not point at it. ─────────────
+
+const proxyPageMessage =
+  'ApiRequestError: HTTP_503: <!DOCTYPE html>\n<html lang="en">\n<head>\n<title>Site not available</title>';
+
+const outageWindow = {
+  firstAt: '2026-11-17T09:14:00.000Z',
+  lastAt: '2026-11-17T09:38:00.000Z',
+  recovered: false,
+  aborted: true,
+  apiUrl: 'https://api.example.test',
+};
+
+test('classifyFailure tags the hosting layer page as a stack failure', () => {
+  assert.equal(classifyFailure({ error: proxyPageMessage, detail: [] }), 'stack');
+  assert.equal(
+    classifyFailure({ error: 'Error: NETWORK GET /problems failed: fetch failed — the API at https://api.example.test was not reachable from the runner.', detail: [] }),
+    'stack',
+  );
+  assert.equal(
+    classifyFailure({ error: 'ApiRequestError: STACK_UNAVAILABLE: GET /auth/security was answered by the reverse proxy', detail: [] }),
+    'stack',
+  );
+  assert.equal(
+    classifyFailure({ error: "Error: expect(locator).toBeVisible() failed\n  Expected: visible\n  Received: hidden", detail: [] }),
+    'product',
+  );
+});
+
+test('classifyFailure only calls a timeout a suspect when the stack was down', () => {
+  const timeout = { status: 'timedOut', error: 'Test timeout of 90000ms exceeded.', detail: [] };
+  assert.equal(classifyFailure(timeout), 'product');
+  assert.equal(classifyFailure(timeout, { stackOutage: true }), 'stack-suspect');
+});
+
+test('formatSummary names the outage window instead of 18 regressions', () => {
+  const text = formatSummary(
+    reportWith({
+      specs: [
+        failedSpec('catalog, SLA and routing', 130, proxyPageMessage),
+        failedSpec('docs smoke', 6, 'Test timeout of 90000ms exceeded.'),
+        failedSpec('problem lifecycle', 45, 'Error: expect(locator).toBeVisible() failed'),
+      ],
+    }),
+    'results.json',
+    { stackOutage: outageWindow },
+  );
+  assert.match(text, /STACK OUTAGE — infrastructure, not a code regression\./);
+  assert.match(text, /https:\/\/api\.example\.test\/health failed from 2026-11-17T09:14:00\.000Z/);
+  assert.match(text, /recovered before the job ended: no/);
+  assert.match(text, /stopped by the stack watchdog/);
+  assert.match(text, /1 failure\(s\) carry the hosting layer's error page/);
+  assert.match(text, /probably the same outage: 20-privacy\.spec\.ts:6/);
+  assert.match(text, /FAIL 20-privacy\.spec\.ts:130 .*\[stack\]/);
+  assert.match(text, /FAIL 20-privacy\.spec\.ts:6 .*\[stack-suspect\]/);
+  // The one real regression still gets the triage line; the two stack failures do not.
+  assert.match(text, /NEXT TRIAGE RUN: specs=20 /);
+  const triageLine = text.split('\n').find((line) => line.startsWith('NEXT TRIAGE RUN'));
+  assert.ok(triageLine !== undefined);
+});
+
+test('formatSummary keeps the product triage line off stack-only failures', () => {
+  const text = formatSummary(reportWith({ specs: [failedSpec('catalog', 130, proxyPageMessage)] }), 'results.json', {
+    stackOutage: outageWindow,
+  });
+  assert.doesNotMatch(text, /NEXT TRIAGE RUN/);
+  assert.match(text, /No code change is implied/);
+});
+
+test('formatSummary prints the outage even when not one test failed', () => {
+  const text = formatSummary(reportWith({ specs: [passedSpec('fine')] }), 'results.json', {
+    stackOutage: { ...outageWindow, aborted: false, recovered: true },
+  });
+  assert.match(text, /No test failed in that window/);
+  assert.doesNotMatch(text, /No code change is implied/);
+});
+
+test('formatSummary still labels a proxy page when no watchdog report exists', () => {
+  const text = formatSummary(reportWith({ specs: [failedSpec('catalog', 130, proxyPageMessage)] }));
+  assert.match(text, /STACK OUTAGE — infrastructure, not a code regression\./);
+  assert.match(text, /No stack-watch\.json for this run/);
+  assert.match(text, /\[stack\]/);
+  assert.doesNotMatch(text, /\[stack-suspect\]/, 'without a window a timeout is never called a suspect');
+  assert.doesNotMatch(text, /NEXT TRIAGE RUN/);
+});
+
+test('isFreshWatch rejects a stack-watch.json left over from an earlier run', () => {
+  const report = { stats: { startTime: '2026-11-17T08:50:56.000Z' } };
+  assert.equal(isFreshWatch({ startedAt: '2026-11-17T08:50:40.000Z' }, report), true);
+  assert.equal(isFreshWatch({ startedAt: '2026-11-10T08:50:40.000Z' }, report), false);
+  assert.equal(isFreshWatch({}, report), true, 'an older report has no startedAt — trust the file');
+  assert.equal(isFreshWatch({ startedAt: '2026-11-17T08:50:40.000Z' }, {}), true);
+});
+
+test('stackOutageWindow maps the watchdog report and tolerates what is not there', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'e2e-watch-'));
+  const good = path.join(dir, 'stack-watch.json');
+  writeFileSync(
+    good,
+    JSON.stringify({
+      aborted: true,
+      apiUrl: 'https://api.example.test',
+      outage: { firstAt: '2026-11-17T09:14:00.000Z', lastAt: '2026-11-17T09:38:00.000Z', durationMs: 1_440_000, recovered: false },
+      probes: [],
+    }),
+    'utf8',
+  );
+  assert.deepEqual(stackOutageWindow(readStackWatch(good)), {
+    firstAt: '2026-11-17T09:14:00.000Z',
+    lastAt: '2026-11-17T09:38:00.000Z',
+    recovered: false,
+    aborted: true,
+    apiUrl: 'https://api.example.test',
+  });
+
+  const broken = path.join(dir, 'broken.json');
+  writeFileSync(broken, '{ not json', 'utf8');
+  assert.equal(readStackWatch(broken), null);
+  assert.equal(stackOutageWindow(null), null);
+  assert.equal(stackOutageWindow({ outage: null }), null);
+  assert.equal(stackOutageWindow({}), null);
 });

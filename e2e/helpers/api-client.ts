@@ -15,6 +15,56 @@ const connectFailures = new Set([
   'ENETUNREACH',
 ]);
 
+/**
+ * Gateway statuses, and the delays between the retries of one request.
+ *
+ * Nightly run 44049572740 (2026-11-17): mid-run the reverse proxy answered HTTP
+ * 503 with its own HTML page ("Site not available") while the app container was
+ * restarting; 13 specs died on `ApiRequestError: HTTP_503: <!DOCTYPE html>`.
+ * A body that is HTML (never our contract — every API error is JSON) proves the
+ * request stopped at the proxy and **never reached the application**, so it is
+ * safe to repeat for any method, exactly like a connect failure. The budget is
+ * ~32 s, which bridges a rolling restart; a longer outage is the watchdog's job
+ * (`scripts/run-e2e.mjs` stops the run and names it) — retrying forever would
+ * just turn a failed job into a hung one.
+ */
+const gatewayStatuses = new Set([502, 503, 504]);
+const defaultGatewayRetryDelaysMs = [2_000, 10_000, 20_000];
+
+/**
+ * `E2E_GATEWAY_RETRY_DELAYS_MS=10,10` shortens the budget — the offline unit
+ * test (`unit/api-client-gateway-retry.spec.ts`) cannot wait 32 s per case.
+ */
+function gatewayRetryDelays(): readonly number[] {
+  const raw = process.env.E2E_GATEWAY_RETRY_DELAYS_MS?.trim();
+  if (raw === undefined || raw === '') return defaultGatewayRetryDelaysMs;
+  const parsed = raw
+    .split(',')
+    .map((part) => Number(part.trim()))
+    .filter((value) => Number.isFinite(value) && value >= 0);
+  return parsed.length > 0 ? parsed : defaultGatewayRetryDelaysMs;
+}
+
+/**
+ * Our API always answers an error as JSON with a `code`; anything else on a
+ * gateway status (an HTML page, plain text, an empty body) came from the proxy
+ * in front of the application.
+ */
+async function isProxyAnswer(response: Response): Promise<boolean> {
+  try {
+    const text = (await response.clone().text()).trim();
+    if (text.length === 0) return true;
+    try {
+      const parsed = JSON.parse(text) as { readonly code?: unknown };
+      return typeof parsed.code !== 'string';
+    } catch {
+      return true;
+    }
+  } catch {
+    return true;
+  }
+}
+
 export type ApiErrorBody = {
   readonly code?: string;
   readonly message?: string;
@@ -250,6 +300,7 @@ export class ApiClient {
     init: RequestInit,
     headers: Headers,
     attempt: number,
+    gatewayAttempt = 0,
   ): Promise<Response> {
     const method = (init.method ?? 'GET').toUpperCase();
     try {
@@ -259,8 +310,29 @@ export class ApiClient {
         signal: init.signal ?? AbortSignal.timeout(30_000),
       });
       this.captureSessionCookie(response);
+      if (gatewayStatuses.has(response.status) && (await isProxyAnswer(response))) {
+        const delays = gatewayRetryDelays();
+        const delay = delays[gatewayAttempt];
+        if (delay !== undefined) {
+          console.warn(
+            `[e2e] ${method} ${path} -> HTTP ${response.status} from the reverse proxy (the app did not answer). ` +
+              `Retrying in ${delay} ms (${gatewayAttempt + 1}/${delays.length}).`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return this.send(path, init, headers, attempt, gatewayAttempt + 1);
+        }
+        throw new ApiRequestError(
+          `STACK_UNAVAILABLE: ${method} ${path} was answered by the reverse proxy with HTTP ${response.status} ` +
+            `after ${gatewayAttempt + 1} attempts — the application behind ${this.apiUrl} is down or restarting. ` +
+            'The request never reached the app, so nothing was written. Check the stack, then re-run.',
+          response.status,
+          'STACK_UNAVAILABLE',
+          null,
+        );
+      }
       return response;
     } catch (error) {
+      if (error instanceof ApiRequestError) throw error;
       const cause = (error as { readonly cause?: unknown }).cause;
       const causeCode =
         typeof cause === 'object' && cause !== null && 'code' in cause

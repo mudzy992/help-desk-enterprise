@@ -11,6 +11,73 @@
 
 import { readFileSync } from 'node:fs';
 
+/*
+  Nightly run 44049572740 (2026-11-17): 18 red tests, of which 13 were nothing
+  but the reverse proxy answering its own HTML page ("Site not available",
+  HTTP 503) because the stack behind it was restarting. Read as plain FAIL lines
+  they look like 18 product regressions. The classifier below separates the two:
+  a failure whose message carries a gateway/an HTML body/network unreachable
+  signature is an *outage*, and a timeout that ran while `stack-watch.json`
+  (written by `scripts/run-e2e.mjs`) recorded failed health probes is an outage
+  *suspect*. Everything else stays a product failure. The classification never
+  turns a job green — it only tells the reader which half of the run to fix.
+*/
+export const STACK_FAILURE_SIGNATURES = [
+  /\bHTTP_50[234]\b/,
+  /\bSTACK_UNAVAILABLE\b/,
+  /Site not available/i,
+  /Unexpected token '<'/,
+  /was not reachable from the runner/,
+  /\b(ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|ENETUNREACH)\b/,
+  /\bUND_ERR_[A-Z_]+\b/,
+  /net::ERR_(CONNECTION|NAME_NOT_RESOLVED|TIMED_OUT|EMPTY_RESPONSE|HTTP_RESPONSE_CODE_FAILURE)/,
+];
+
+/** `'stack'` | `'stack-suspect'` | `'product'` — see STACK_FAILURE_SIGNATURES. */
+export function classifyFailure(failure, { stackOutage = false } = {}) {
+  const text = [failure?.error ?? '', ...(failure?.detail ?? [])].join('\n');
+  if (STACK_FAILURE_SIGNATURES.some((pattern) => pattern.test(text))) return 'stack';
+  if (stackOutage && (failure?.status === 'timedOut' || /timeout of \d+ms exceeded/i.test(text))) {
+    return 'stack-suspect';
+  }
+  return 'product';
+}
+
+/** Tolerant read of the watchdog report; a missing or broken file is `null`. */
+export function readStackWatch(path) {
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf8'));
+    return parsed !== null && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A `stack-watch.json` left over from an earlier run must not colour this one:
+ * the file is generated per run, so its own `startedAt` has to sit close to the
+ * report's `stats.startTime`. Missing timestamps are trusted (an older report).
+ */
+export function isFreshWatch(watch, report) {
+  const watchStart = Date.parse(watch?.startedAt ?? '');
+  const reportStart = Date.parse(report?.stats?.startTime ?? '');
+  if (!Number.isFinite(watchStart) || !Number.isFinite(reportStart)) return true;
+  return Math.abs(watchStart - reportStart) < 6 * 60 * 60 * 1_000;
+}
+
+/** The outage window in the watchdog report, or `null` when the stack stayed up. */
+export function stackOutageWindow(watch) {
+  const outage = watch?.outage;
+  if (outage === null || outage === undefined || typeof outage.firstAt !== 'string') return null;
+  return {
+    firstAt: outage.firstAt,
+    lastAt: typeof outage.lastAt === 'string' ? outage.lastAt : outage.firstAt,
+    recovered: outage.recovered === true,
+    aborted: watch?.aborted === true,
+    apiUrl: typeof watch?.apiUrl === 'string' && watch.apiUrl.length > 0 ? watch.apiUrl : null,
+  };
+}
+
 /** First line of the first failure of one test, without ANSI codes and paths noise. */
 export function firstErrorLine(error) {
   if (error === undefined || error === null) return '(no error message)';
@@ -145,9 +212,61 @@ export function collectFlaky(report) {
   return flaky;
 }
 
+/**
+ * The block that keeps an outage from reading as 18 product regressions: the
+ * health-probe window, how many failures it explains, and what to do instead of
+ * touching the code.
+ */
+export function stackOutageLines(stackOutage, failures) {
+  const stack = failures.filter((failure) => failure.kind === 'stack');
+  const suspect = failures.filter((failure) => failure.kind === 'stack-suspect');
+  const lines = ['STACK OUTAGE — infrastructure, not a code regression.'];
+  if (stackOutage === null) {
+    lines.push(
+      '  No stack-watch.json for this run (Playwright was not started through scripts/run-e2e.mjs), ' +
+        "so the outage window is unknown — the messages below are the hosting layer's own answer.",
+    );
+  } else {
+    const duration = Math.max(0, Date.parse(stackOutage.lastAt) - Date.parse(stackOutage.firstAt));
+    const minutes = Math.round(duration / 60_000);
+    lines.push(
+      `  GET ${stackOutage.apiUrl ?? '$E2E_API_URL'}/health failed from ${stackOutage.firstAt} to ` +
+        `${stackOutage.lastAt} (${minutes >= 1 ? `${minutes} min` : `${duration} ms`}); ` +
+        `recovered before the job ended: ${stackOutage.recovered ? 'yes' : 'no'}.`,
+    );
+  }
+  if (stackOutage?.aborted === true) {
+    lines.push('  Playwright was stopped by the stack watchdog (scripts/run-e2e.mjs) — the rest of the suite did not run.');
+  }
+  if (stack.length > 0) {
+    lines.push(`  ${stack.length} failure(s) carry the hosting layer's error page or an unreachable API.`);
+  }
+  if (suspect.length > 0) {
+    const where = suspect.map((failure) => `${failure.file}:${failure.line}`).join(', ');
+    lines.push(`  ${suspect.length} further failure(s) timed out inside that window and are probably the same outage: ${where}.`);
+  }
+  if (stack.length === 0 && suspect.length === 0) {
+    lines.push(
+      stackOutage === null
+        ? '  No test failed for an infrastructure reason.'
+        : '  No test failed in that window, but flaky results inside it are explained by it.',
+    );
+  } else {
+    lines.push(
+      '  No code change is implied: wait until $E2E_API_URL/health answers 200 with {"status":"ok"}, ' +
+        'check the stack\'s deploy/restart history for that interval, then re-run the same specs.',
+    );
+  }
+  return lines;
+}
+
 /** Grouped, human-readable summary; also usable as a plain string. */
-export function formatSummary(report, fileName = 'results.json') {
-  const failures = collectFailures(report);
+export function formatSummary(report, fileName = 'results.json', options = {}) {
+  const stackOutage = options.stackOutage ?? null;
+  const failures = collectFailures(report).map((failure) => ({
+    ...failure,
+    kind: classifyFailure(failure, { stackOutage: stackOutage !== null }),
+  }));
   const flakyTests = collectFlaky(report);
   const skippedTitles = collectSkipped(report);
   const stats = report.stats ?? {};
@@ -157,6 +276,11 @@ export function formatSummary(report, fileName = 'results.json') {
   const flaky = stats.flaky ?? 0;
   const skipped = stats.skipped ?? 0;
   lines.push(`Playwright (${fileName}): ${total} passed, ${unexpected} failed, ${flaky} flaky, ${skipped} skipped.`);
+  const hasInfrastructureFailures = failures.some((failure) => failure.kind !== 'product');
+  if (stackOutage !== null || hasInfrastructureFailures) {
+    lines.push('');
+    lines.push(...stackOutageLines(stackOutage, failures));
+  }
   if (failures.length === 0) {
     lines.push(
       flakyTests.length === 0
@@ -169,7 +293,9 @@ export function formatSummary(report, fileName = 'results.json') {
     // error line can contain a whole API response, so cap it and print details later.
     for (const failure of failures) {
       const retryNote = failure.retries > 0 ? ` (after ${failure.retries} retry/retries)` : '';
-      lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}`);
+      const kindTag =
+        failure.kind === 'stack' ? '  [stack]' : failure.kind === 'stack-suspect' ? '  [stack-suspect]' : '';
+      lines.push(`FAIL ${failure.file}:${failure.line} — ${failure.title}${retryNote}${kindTag}`);
       const firstLine = failure.error.length > 500 ? `${failure.error.slice(0, 499)}…` : failure.error;
       lines.push(`     ${firstLine}`);
     }
@@ -182,7 +308,9 @@ export function formatSummary(report, fileName = 'results.json') {
         for (const line of failure.detail ?? []) lines.push(line);
       }
     }
-    const triage = triageSpecNumbers(failures);
+    // A stack failure needs a healthy stack, not a triage run — never point the
+    // operator at a spec file that only saw the proxy's error page.
+    const triage = triageSpecNumbers(failures.filter((failure) => failure.kind === 'product'));
     if (triage.length > 0 && triage.length < 36) {
       lines.push('');
       lines.push(
@@ -208,16 +336,33 @@ export function formatSummary(report, fileName = 'results.json') {
 
 function main() {
   const path = process.argv[2] ?? 'results.json';
+  // The watchdog report (`scripts/run-e2e.mjs`) turns timeouts inside an outage
+  // window from "product failure" into "probably the same outage".
+  const watchPath =
+    process.argv[3] ?? process.env.E2E_STACK_WATCH_FILE ?? 'stack-watch.json';
+  const watch = readStackWatch(watchPath);
   let report;
   try {
     report = JSON.parse(readFileSync(path, 'utf8'));
   } catch (error) {
+    const stackOutage = stackOutageWindow(watch);
     console.log(`[e2e-triage] could not read ${path}: ${error instanceof Error ? error.message : String(error)}`);
+    if (stackOutage !== null) {
+      // A watchdog-aborted run may leave no results.json at all; the outage is
+      // then the whole story and must still reach the log.
+      console.log('');
+      console.log(stackOutageLines(stackOutage, []).join('\n'));
+    }
     return 0;
   }
-  console.log(formatSummary(report, path));
+  console.log(
+    formatSummary(report, path, {
+      stackOutage: stackOutageWindow(isFreshWatch(watch, report) ? watch : null),
+    }),
+  );
   return 0;
 }
+
 
 if (process.argv[1] !== undefined && process.argv[1].endsWith('summarize-playwright-json.mjs')) {
   process.exit(main());

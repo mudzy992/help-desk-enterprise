@@ -20,10 +20,57 @@ export { dismissAnnouncementModal, gotoAndDismissAnnouncements } from './dismiss
 const EMAIL_SELECTOR = '#session-email, #login-email';
 const PASSWORD_SELECTOR = '#session-password, #login-password';
 
+/**
+ * Every route is gated on `GET /install/status`; when that request fails the app
+ * renders `GateStatusError` ("Status instalacije nije moguće provjeriti") instead
+ * of the credentials form — on purpose, it never guesses where the user belongs.
+ *
+ * Nightly run 44049572740 (2026-11-17): during the outage spec 43 spent 20 s on
+ * `locator.fill` and reported a timeout, which reads like a broken login form.
+ * A gate error while signing in is an availability problem, never a credentials
+ * problem, so it is waited out (the screen has its own "Pokušaj ponovo") and then
+ * named explicitly.
+ */
+const GATE_STATUS_ERROR_SELECTOR = '[data-testid="gate-status-error"]';
+
 function appNavigation(page: Page) {
   return page.getByRole('navigation', {
     name: /Glavna navigacija|Main navigation/i,
   });
+}
+
+/**
+ * Click through the gate error while the stack is coming back. Returns once the
+ * screen is gone; throws `STACK_UNAVAILABLE` when the budget runs out, so the
+ * failure summary can classify it instead of blaming the login form.
+ */
+async function waitThroughGateStatusError(page: Page, budgetMs = 30_000): Promise<void> {
+  const gate = page.locator(GATE_STATUS_ERROR_SELECTOR);
+  const started = Date.now();
+  let attempts = 0;
+  while (Date.now() - started < budgetMs) {
+    await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+    if (!(await gate.first().isVisible().catch(() => false))) {
+      return;
+    }
+    attempts += 1;
+    const retry = gate.getByRole('button').first();
+    if (await retry.isVisible().catch(() => false)) {
+      await retry.click().catch(() => undefined);
+    } else {
+      await page.reload().catch(() => undefined);
+    }
+    await page.waitForTimeout(2_000);
+  }
+  const alertText = (await page.getByRole('alert').allTextContents())
+    .map((text) => text.trim())
+    .filter((text) => text.length > 0)
+    .join(' / ');
+  throw new Error(
+    `STACK_UNAVAILABLE: GET /install/status never answered (${attempts} retries in ${budgetMs / 1_000}s) — ` +
+      'the app shows its install-status gate error instead of the sign-in form, so this is the stack, not the account' +
+      (alertText.length > 0 ? `: ${alertText}` : '.'),
+  );
 }
 
 async function attemptSignIn(
@@ -38,6 +85,18 @@ async function attemptSignIn(
   const form = page
     .locator('form')
     .filter({ has: page.locator(EMAIL_SELECTOR) });
+  const surface = await Promise.race([
+    form.first().waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'form' as const),
+    page
+      .locator(GATE_STATUS_ERROR_SELECTOR)
+      .first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .then(() => 'gate-status-error' as const),
+  ]).catch(() => 'none' as const);
+  if (surface === 'gate-status-error') {
+    await waitThroughGateStatusError(page);
+    await page.goto('/');
+  }
   await form.locator(EMAIL_SELECTOR).fill(email);
   await form.locator(PASSWORD_SELECTOR).fill(password);
   await form.locator('button[type="submit"]').click();

@@ -735,6 +735,11 @@ jobs:
       - run: npm ci
       - name: Typecheck E2E specs and helpers
         run: npx tsc --noEmit -p tsconfig.json
+      # Contracts that need neither the stack nor a browser: the API client's
+      # retry policy (incl. the proxy 503 added after 2026-11-17) and the recovery
+      # journals. ~10 s, so it runs before the stack is touched at all.
+      - name: Test the E2E helpers offline
+        run: npx playwright test -c unit/playwright.config.ts
       # Fails before Playwright starts, with a readable reason. Never prints a
       # value: only "set" / "empty" per name, resolved hosts and the health code.
       - name: Preflight — variables, secrets and stack reachability
@@ -773,11 +778,46 @@ jobs:
             echo "Database host: $db_host -> $(getent hosts "$db_host" | head -1 || echo 'NOT RESOLVABLE from this runner (internal Coolify/Docker names do not work here)')"
           fi
 
-          health_code=$(curl -sS -o /tmp/e2e-health.json -w '%{http_code}' -m 20 "$E2E_API_URL/health" || echo 000)
+          # 2026-11-17 (run 44049572740): this check passed and the stack was gone
+          # ten minutes later. It must therefore absorb a restart, not just see a
+          # healthy second: retry for 120 s (a redeploy/rolling restart), then fail
+          # with what the proxy actually answered. The run itself is guarded by
+          # `e2e/scripts/run-e2e.mjs` when the stack disappears mid-suite.
+          health_ok() {
+            node -e 'const fs=require("node:fs");try{process.exit(JSON.parse(fs.readFileSync("/tmp/e2e-health.json","utf8")).status==="ok"?0:1)}catch{process.exit(1)}'
+          }
+          health_start=$SECONDS
+          deadline=$((SECONDS + 120))
+          health_code=000
+          while :; do
+            health_code=$(curl -sS -o /tmp/e2e-health.json -w '%{http_code}' -m 20 "$E2E_API_URL/health" || echo 000)
+            if [ "$health_code" = "200" ] && health_ok; then
+              break
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              break
+            fi
+            echo "GET $E2E_API_URL/health -> $health_code; retrying in 10 s."
+            sleep 10
+          done
           echo "GET $E2E_API_URL/health -> $health_code $(head -c 200 /tmp/e2e-health.json 2>/dev/null)"
-          if [ "$health_code" != "200" ]; then
-            echo "::error title=E2E stack unreachable::The API did not answer /health with 200 from a GitHub runner. Check the public DNS, the reverse proxy and any IP allow-listing between the runner and $E2E_API_URL."
+          if [ "$health_code" != "200" ] || ! health_ok; then
+            proxy_title=$(sed -n 's:.*<title>\([^<]*\)</title>.*:\1:p' /tmp/e2e-health.json 2>/dev/null | head -1)
+            echo "::error title=E2E stack unreachable::The API did not answer /health with HTTP 200 and {\"status\":\"ok\"} after $((SECONDS - health_start)) s, from a GitHub runner${proxy_title:+ — the reverse proxy answered with its own page \"$proxy_title\" instead of the application}. Check the hosting layer (is the app container running?), the public DNS, the reverse proxy and any IP allow-listing between the runner and $E2E_API_URL."
             exit 1
+          fi
+          # The browser specs need the SPA too, and the proxy's error page hits
+          # both hosts at the same moment — checking only the API hides half of it.
+          if [ -n "${E2E_BASE_URL:-}" ]; then
+            base_code=$(curl -sS -o /tmp/e2e-base.html -w '%{http_code}' -m 20 "$E2E_BASE_URL/" || echo 000)
+            base_title=$(sed -n 's:.*<title>\([^<]*\)</title>.*:\1:p' /tmp/e2e-base.html 2>/dev/null | head -1)
+            echo "GET $E2E_BASE_URL/ -> $base_code${base_title:+ (title: $base_title)}"
+            if [ "$base_code" -lt 200 ] || [ "$base_code" -ge 400 ]; then
+              echo "::error title=E2E app unreachable::GET $E2E_BASE_URL/ answered HTTP $base_code${base_title:+ \"$base_title\"}. The UI specs cannot sign in without the SPA — check the frontend container and the proxy route."
+              exit 1
+            fi
+          else
+            echo "E2E_BASE_URL: empty — the SPA is not probed before the run (Playwright falls back to http://localhost:5173)."
           fi
       # Optional, only when E2E_SSH_* secrets exist: no public Postgres port is
       # then needed. Point E2E_DATABASE_URL at 127.0.0.1:15432.
@@ -964,11 +1004,34 @@ jobs:
             echo "Triage mode: stopping after $max_failures failed test(s), retries=$retries."
             args+=(--max-failures="$max_failures")
           fi
-          npx playwright test "${args[@]}" "${files[@]}"
+          # `run-e2e.mjs` spawns Playwright and probes `$E2E_API_URL/health` every
+          # 15 s. A stack that vanishes mid-run (2026-11-17) stops the suite after
+          # ~45 s with one annotation and `stack-watch.json`, instead of 47 minutes
+          # and 18 red tests that describe the outage. `E2E_STACK_WATCHDOG=off`
+          # disables it.
+          node scripts/run-e2e.mjs "${args[@]}" "${files[@]}"
       # Always, so a red run leaves a readable trace in the log and as an artifact.
+      # The second argument is the watchdog report: it turns the timeouts that ran
+      # inside an outage window into `[stack-suspect]` instead of blaming the code.
       - name: Summarize failures (JSON report)
         if: ${{ always() }}
-        run: node scripts/summarize-playwright-json.mjs results.json
+        run: node scripts/summarize-playwright-json.mjs results.json stack-watch.json
+      - name: Report the stack probe timeline (infrastructure vs code)
+        if: ${{ always() }}
+        run: |
+          set -u
+          if [ ! -e stack-watch.json ]; then
+            echo "No stack-watch.json — this run did not go through scripts/run-e2e.mjs (or E2E_API_URL is empty), so no probe timeline exists."
+            exit 0
+          fi
+          echo "stack-watch.json: $(jq -c '{aborted, threshold, intervalMs, probes: (.probes | length), outage}' stack-watch.json)"
+          if jq -e '.outage != null' stack-watch.json > /dev/null; then
+            first=$(jq -r '.outage.firstAt' stack-watch.json)
+            last=$(jq -r '.outage.lastAt' stack-watch.json)
+            recovered=$(jq -r '.outage.recovered' stack-watch.json)
+            aborted=$(jq -r '.aborted' stack-watch.json)
+            echo "::error title=E2E stack outage (infrastructure, not a code regression)::GET $E2E_API_URL/health failed from $first to $last (recovered: $recovered, run stopped by the watchdog: $aborted). Failures marked [stack] or [stack-suspect] in the summary describe that window, not the product. Match the interval against the stack's deploy/restart history, then re-run: Actions -> CI -> Run workflow."
+          fi
       # TEMPORARY (active Arena session): the sandbox cannot read job logs or
       # artifacts (blob storage is unreachable), so publish a compact failure
       # summary as a check-run; this job grants checks:write for that purpose.
@@ -1016,11 +1079,12 @@ jobs:
             e2e/playwright-report
             e2e/test-results
             e2e/results.json
+            e2e/stack-watch.json
           if-no-files-found: ignore
           retention-days: 14
-      - name: Test the JSON summarizer itself
+      - name: Test the JSON summarizer and the stack watchdog
         if: ${{ always() }}
-        run: node --test scripts/summarize-playwright-json.test.mjs
+        run: node --test scripts/summarize-playwright-json.test.mjs scripts/run-e2e.test.mjs
 
   # F6 — the install wizard, through its own UI. Deliberately its own job: the
   # specs need an installation that is **not** finished, so they run only when a

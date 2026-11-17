@@ -155,3 +155,43 @@ ako je dodano prije prvog runa, GitHub traži da se check pojavi barem jednom pr
   `workflow_dispatch` / `main`") je ovim dokumentom zamijenjen.
 - `REVIEW_ANALIZA.md` — e2e kapija iz vala 5 (E-1) ostaje na snazi; ovaj dokument je ne mijenja, samo je
   pomjera na PR i dodaje noćni puni prolaz.
+
+## 8. Kad stack nestane tokom noćnog runa (2026-11-17)
+
+Noćni run [`44049572740`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44049572740)
+(`schedule`, `master` @ `2c7b12c`) pao je sa **18 crvenih testova**. Zeleni su bili build/unit, PostgreSQL+Redis
+integracija, container i supply chain, frontend i Docs guard; pali su `E2E critical flows` i `CI gate`.
+Playwright: 109 prošlo, 18 palo, 0 flaky, 1 preskočen, 47 minuta.
+
+**Uzrok nije kod.** Preflight je u 08:46 UTC dobio `200` na `/health`, a onda je u toku runa reverse proxy
+počeo da vraća **svoju HTML stranicu** (`<title>Site not available</title>`, HTTP 503, `meta robots noindex`,
+`--accent #6b16ed`) i za API i za aplikaciju. Dokazi iz sačuvanog Playwright izvještaja:
+
+- 13 padova = `ApiRequestError: HTTP_503: <!DOCTYPE html>` (specovi 42 ×4, 43, 44 ×3, 45, 46 ×2, 47 ×2) — svaki
+  je ponovljen jedanput (`retries=1`) i opet dobio proxy stranicu;
+- `43-privacy-notice-editor:129` — aplikacija je umjesto forme za prijavu prikazala ekran
+  „Status instalacije nije moguće provjeriti / Server nije odgovorio…“ (gate na `GET /install/status`), a helper je
+  to vidio kao 20 s timeout na `locator.fill`;
+- `48-captcha-turnstile:66` — `SyntaxError: Unexpected token '<'` (JSON parse nad proxy stranicom);
+- `49-docs-smoke:6` i `42:686` — timeout u istom prozoru.
+
+Proxy se do kraja runa nije vratio. Zašto je aplikacija stajala (restart, OOM, deploy) iz runnera se **ne može**
+utvrditi — to je zapis hosting sloja (Coolify) za taj interval. Zato je implementacija okrenuta ka tome da takav
+događaj bude **prepoznat, kratko prekinut i tačno imenovan**, a ne da se čita kao 18 regresija:
+
+| Mehanizam | Gdje | Efekat |
+|---|---|---|
+| Preflight čeka do 120 s | `.github/workflows/ci.yml` | restart/rolling redeploy prije runa ne obara job; provjerava `200` **i** `{"status":"ok"}`, pa i `$E2E_BASE_URL/` |
+| Gateway retry u klijentu | `e2e/helpers/api-client.ts` | `502/503/504` sa tijelom koje nije naš JSON = proxy, pa se ponavlja (2 s / 10 s / 20 s) i za write; na kraju `STACK_UNAVAILABLE` |
+| Watchdog | `e2e/scripts/run-e2e.mjs` | `/health` svakih 15 s; 4 uzastopna neuspjeha (~45 s) prekidaju Playwright uz jednu `::error` anotaciju i `stack-watch.json` |
+| Klasifikacija | `e2e/scripts/summarize-playwright-json.mjs` | `[stack]` / `[stack-suspect]` oznake; trijažni red (`specs=…`) samo za prave padove |
+| Vremenska linija | `stack-watch.json` (+ artifact) | tačan prozor `firstAt`–`lastAt` i da li se stack vratio — uporedivo sa Coolify historijom |
+
+Jedini pravi (ne-infrastrukturni) pad u tom runu bio je **spec 30**: tvrdnja da je broj problema vidljiv na
+stranici tiketa, bez otvaranja sekcije koja ga drži. `DetailSection` drži `problems`, `links` i `formData`
+**sklopljene** (`frontend/src/lib/tickets/detail-sections.ts`), pa se link razriješio kao `<a>` koji je `hidden`.
+Popravka: helper `openDetailSection(panel)` (`e2e/helpers/ticket-detail-sections.ts`) + provjera unutar panela.
+
+Operativno: crven e2e job sa `STACK OUTAGE` blokom **ne** znači popravku koda. Provjeri da
+`$E2E_API_URL/health` vraća `200` + `{"status":"ok"}`, pogledaj Coolify historiju za navedeni prozor, pa pusti
+`specs=<brojevi iz sažetka>` (bez `[stack]` oznake).
