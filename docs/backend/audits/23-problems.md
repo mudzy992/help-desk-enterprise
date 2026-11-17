@@ -4,8 +4,8 @@
 **Datum:** 2026-10-23<br>
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
-**Nalazi:** 7 P1, 10 P2, 3 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.30 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11` i `12`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije); ostali nalazi su otvoreni.
+**Nalazi:** 7 P1, 10 P2, 4 P3<br>
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.31 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12` i `13`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -103,6 +103,8 @@ Sweep marker je upisan **prije** `targetDue`. Komentar eksplicitno bira gubitak 
 
 Owner/group/status notifikacije koriste `Date.now()` u occurrence ključu. Retry istog poslovnog događaja dobija novi dedupe key i može duplirati poruke; event/version ID treba biti stabilni occurrence. Fire-and-forget greška se samo loguje i nema durable recoveryja.
 
+**W7.31:** occurrence se više ne čita sa sata. Vlasnik/grupa/status nose verziju koju je write proizveo (`v<n>`), create nosi `created`, handoff svoj `handoffId`, runda rješavanja `run:<id>:<status>`, podsjetnik `stage`+`targetAt`, a rekurencija SHA-256 digest referenci tiketa (bez identifikatora u payloadu). Isti događaj zato uvijek daje isti ključ, pa retry pronalazi postojeći in-app red i ledger red umjesto nove poruke; dedupe je po primaocu, pa resume runde obavještava samo novo riješene agente. Fire-and-forget dio nalaza nije mijenjan — sada je evidentiran kao `BA-problems-21` (P3), sa stabilnim occurrence-om kao ispunjenim preduslovom.
+
 Scheduler registruje hourly job samo na module init. Stable scheduler ID pomaže kod normalnog restarta, ali Redis flush/restart poslije boota se ne reconciliuje do redeploya. Registracijska greška se guta. Nema health provjere scheduler presence, last sweep/auto-close age, overdue backlog ni notification delivery drift.
 
 ## 11. Privacy, retention i data exposure
@@ -169,7 +171,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | zatvoreno |
 | BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | zatvoreno |
 | BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.30) |
-| BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | otvoreno |
+| BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | zatvoreno (W7.31) |
 | BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | otvoreno |
 | BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | otvoreno |
 | BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | otvoreno |
@@ -177,6 +179,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
 | BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | otvoreno |
+| BA-problems-21 | P3       | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja                | otvoreno |
 
 ## 16. Ključne korekcije
 
@@ -448,3 +451,38 @@ gate); E2E critical/install i read-only inventory bili su `skipped`, bez neuspje
 su u [253](../implementation/253-w730-problem-canonical-audit.md); završni docs/guard commit `59a43de` prošao je
 vlastiti CI [`44187381910`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44187381910)
 (`success`). `BA-problems-13` je sljedeći P2 u ovom auditu.
+
+## 32. W7.31 — BA-problems-13 closeout
+
+Occurrence ključ problem notifikacija više ne dolazi sa sata. Novi `problem-notice-occurrence.ts`
+izvodi ga isključivo iz identiteta promjene: `v<n>` (verzija koju je write proizveo) za vlasnika, grupu
+i status, `created` za novi problem, `handoff:<id>` za korake predaje, `run:<id>:<status>` za rundu
+rješavanja, `target:<stage>:<ISO>` za podsjetnik i `recurrence:<sha256>` za link batch koji vraća
+problem nakon rješenja. Nijedan derivator ne čita sat niti koristi slučajnost, svi su fail-closed, a
+tip je objekat (`{ key }`) da se occurrence ne može zamijeniti sa actorom u pozivu.
+
+`ProblemNotifier` zato prima occurrence kao obavezan argument za `ownerAssigned`, `groupAssigned` i
+`statusChanged`, dok `recurrence` i `targetDueDetailed` ključ izvode sami iz podataka koje već imaju.
+`sendDetailed` odbija prazan ključ, pa budući poziv bez occurrence-a ne može tiho slati poruku na
+svaki retry. Dedupe je po primaocu (`…:<userId>`), što znači da replay iste runde ne ponavlja poruku
+onima koji su je dobili, ali stiže agentima tiketa riješenih tek resume-om.
+
+Dokazi: `problem-notice-occurrence.spec.ts` (stabilnost kroz pomjereni sat, razlikovanje događaja,
+digest bez identifikatora, fail-closed ulazi) i `problem-notifier-dedupe.spec.ts` (dva poziva istog
+događaja ⇒ jedna in-app poruka i jedan ledger red; nova verzija ⇒ nova poruka; replay runde ⇒ samo novi
+primalac; prazan ključ ⇒ nijedan upis), uz ažuriran handoff spec. Nema migracije ni schema promjene;
+`Notification.dedupeKey` i `NotificationEmailDelivery.dedupeKey` su i dalje unique bez dužinskog
+ograničenja.
+
+Fire-and-forget dio nalaza (greška se samo loguje) nije zatvoren ovim paketom: problem notifikacije
+nemaju outbox/replay intenciju. To je sada `BA-problems-21` (P3), a stabilni occurrence je preduslov
+koji je ovim paketom ispunjen.
+
+Lokalno: 1.357 testova u `problems`/`audit-log`/`notifications`/`tickets` (1.292 prošlo, 65 skipped DB
+suiteova), `eslint` čist na svim izmijenjenim fajlovima. CI
+[`44194131526`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44194131526) na
+`6a3d66a` je **success** (generisani Prisma, backend build/lint/safety-net/wiring/SLA/pun Jest,
+PostgreSQL/Redis integracija, frontend lint/format/testovi/build/budget, docs, container/supply-chain,
+gate); E2E critical/install i read-only inventory bili su `skipped`, bez neuspjelih pokušaja. Detalji
+su u [254](../implementation/254-w731-problem-notice-occurrence.md). `BA-problems-14` je sljedeći P2 u
+ovom auditu.
