@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 9 P2, 3 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.28 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09` i `10`; ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.29 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10` i `11`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -165,7 +165,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | zatvoreno (W7.26) |
 | BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | zatvoreno (W7.27) |
 | BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | zatvoreno |
-| BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | otvoreno |
+| BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | zatvoreno |
 | BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
 | BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | otvoreno |
 | BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | otvoreno |
@@ -376,11 +376,35 @@ imaju vlastitu kategoriju preferencija. Frontend prikazuje predaju na detalju, d
 šalje promjenu grupe kroz edit sheet — prvo čuva ostale podatke, pa traži predaju sa obaveznim razlogom, uz
 eksplicitnu poruku kada je samo prvi korak uspio.
 
-Migracija `20271201010000_problem_handoffs` (add-only) i schema su pripremljene, ali **nisu primijenjene**: čekaju
-izričitu dozvolu vlasnika. CI [`44139365349`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44139365349)
+Migracija `20271201010000_problem_handoffs` (add-only) i schema su pripremljene; vlasnik je 2026-11-17 dao izričitu
+dozvolu i migracija je uspješno primijenjena na njegovu instalaciju (potvrđeno u razgovoru, bez nezavisne provjere
+iz ovog okruženja). CI [`44139365349`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44139365349)
 na `6a41a29` je **success** (generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integracija, frontend
 lint/format/testovi/build/budget, docs, container/supply-chain, gate); E2E critical/install i read-only inventory bili
 su `skipped`. Dva ranija pokušaja pala su na vlastitim greškama — `44132873063` na `module-size` budžetu
 (`services/problems-api.ts` i `lib/problems/problem-view.ts`) i `44136465539` na audit katalogu bez četiri nove akcije
 — oba popravljena prije zelenog runa. Detalji su u [251](../implementation/251-w728-problem-handoff.md).
 `BA-problems-11` je sljedeći P2 u ovom auditu.
+
+## 30. W7.29 — BA-problems-11 closeout
+
+Problem više ne može nositi referencu koju matični domen ne pokazuje korisniku. **Servisi:** katalogova vidljivost
+(`DRAFT` samo za admine, servisno-scoped ADMIN samo za svoje servise) pretvorena je u Prisma filter
+(`service-catalog/service-read-where.ts`) i primijenjena na `options().services`, na `serviceId` u create/update
+(`assertReferences`) te na listu, link i unlink dodatnih servisa. **Incidenti:** `status-page/status-viewer.ts` dobija
+`statusViewerFromAuthorizationContext`, koji gradi isti scope kao HTTP viewer, a `withIncidentVisibility` sada filtrira
+i problemski picker, link i reverse karticu — nestaff vidi samo `ALL_USERS`, a servisno-scoped staff samo `STAFF_ONLY`
+incidente čiji su svi servisi u njegovom opsegu. Skriveni servis ili incident vraća isti `not found` kod kao
+nepostojeći zapis, pa se postojanje ne odaje. **Atomarnost:** `linkService`, `unlinkService`, `linkIncident`,
+`unlinkIncident` i `unlinkAsset` sada pišu promjenu i `ProblemEvent` u istoj transakciji; ponovljeni link ostaje
+`{ linked: 0 }` bez druge historije. Frontend edit sheet zadržava servis koji problem već nosi kada ga katalog više ne
+nudi, da čuvanje ostalih polja ne ukloni servis tiho. Hard `take: 200` bez `hasMore` ostaje `BA-problems-17` (P3) i
+nije dio ovog paketa. Nema migracije ni schema promjene.
+
+CI [`44150530683`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44150530683) na `bf671ac` je
+**success** (generisani Prisma, backend build/lint/safety-net/wiring/SLA matrica/pun Jest, PostgreSQL/Redis
+integracija, frontend lint/format/testovi/build/budget, docs, container/supply-chain, gate); E2E critical/install i
+read-only inventory bili su `skipped`. Prvi pokušaj `44148379072` na `fea57cd` pao je na vlastitim greškama u novim
+test dublovima (self-referencing prisma double, neannotiran `jest.Mock` poziv) i na integration suiteu koji je pravio
+`ProblemLinksService` bez authorization loadera; popravljeno u `bf671ac` prije zelenog runa. Detalji su u
+[252](../implementation/252-w729-problem-link-scope.md). `BA-problems-12` je sljedeći P2 u ovom auditu.

@@ -5,7 +5,7 @@
 **Kodni commit:** `6a41a29` (paket: `01ca975`, `6622566`, `f892c6d`, `22bc42d`, `6a41a29`)<br>
 **Finalni testani SHA:** `6a41a29`<br>
 **CI:** [`44139365349`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44139365349) — zelen<br>
-**DB migracije:** `20271201010000_problem_handoffs` — **nije primijenjena**; čeka izričitu dozvolu vlasnika
+**DB migracije:** `20271201010000_problem_handoffs` — primijenjena nakon izričite dozvole vlasnika (2026-11-17)
 
 ## Nalaz i acceptance
 
@@ -112,8 +112,9 @@ blokiran bez `DATABASE_URL`. Sandbox je više puta vraćan na stariji commit, pa
 
 Migracija `20271201010000_problem_handoffs` je **add-only** (nova tabela, dva nova FK-a, djelimični unique i jedan
 indeks; bez `DROP`/`TRUNCATE`), sentinel u `database-runtime-contract.ts`/`.spec.ts` je podignut, a
-`check-migration-policy.mjs` prijavljuje 118 migracija. **Nije primijenjena** i ne smije se primijeniti bez izričite
-dozvole vlasnika; redoslijed primjene: dozvola → `prisma migrate deploy` na ciljnoj bazi → deploy koda. Bez
+`check-migration-policy.mjs` prijavljuje 118 migracija. Vlasnik je 2026-11-17 dao izričitu dozvolu i migracija je
+uspješno primijenjena na njegovoj instalaciji (potvrđeno u razgovoru; primjena nije nezavisno provjerena iz ovog
+okruženja). Redoslijed je bio: dozvola → `prisma migrate deploy` na ciljnoj bazi → deploy koda. Bez
 migracije novi kod ne radi (tabela ne postoji), pa stari kod mora ostati aktivan do primjene. Rollback: prvo vratiti
 kod na prethodni release (stari kod ne poznaje tabelu), pa `DROP TABLE "ProblemHandoff"` — nema drugih zavisnosti i
 nema backfill-a jer predaje nastaju tek poslije deploya. API je aditivan: `PATCH` sa `groupId` sada vraća 409, što je
