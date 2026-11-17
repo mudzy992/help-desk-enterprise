@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { ApiError } from "@/services/api";
-import { requestProblemHandoff, updateProblem } from "@/services/problems-api";
+import { requestProblemHandoff } from "@/services/problem-handoffs-api";
+import { updateProblem } from "@/services/problems-api";
 import type { ProblemDetail, ProblemOptions } from "@/services/problems-api";
 
 vi.mock("react-i18next", () => ({
@@ -18,9 +19,13 @@ vi.mock("@/services/problems-api", async (importOriginal) => {
     ...actual,
     createProblemFull: vi.fn(),
     updateProblem: vi.fn(),
-    requestProblemHandoff: vi.fn(),
     searchProblemOwners: vi.fn(async () => ({ items: [] })),
   };
+});
+
+vi.mock("@/services/problem-handoffs-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/services/problem-handoffs-api")>();
+  return { ...actual, requestProblemHandoff: vi.fn() };
 });
 
 const update = vi.mocked(updateProblem);

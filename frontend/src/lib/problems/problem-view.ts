@@ -84,7 +84,6 @@ const problemErrorKeys = {
   PROBLEM_OWNER_NOT_IN_GROUP: "problems.errors.ownerNotInGroup",
   PROBLEM_ASSET_NOT_FOUND: "problems.errors.assetNotFound",
   PROBLEM_INCIDENT_NOT_FOUND: "problems.errors.incidentNotFound",
-  // W7.28: a group transfer is its own command, with its own conflicts.
   PROBLEM_HANDOFF_REQUIRED: "problems.errors.handoffRequired",
   PROBLEM_HANDOFF_PENDING: "problems.errors.handoffPending",
   PROBLEM_HANDOFF_NOT_FOUND: "problems.errors.handoffNotFound",
@@ -284,7 +283,6 @@ export function problemHistoryText(
     }
     case "knowledge_article":
       return t("problems.history.knowledgeArticle", { title: value("title") ?? "—" });
-    // W7.28: the handover trail of a problem group change.
     case "handoff_requested":
       return t("problems.history.handoffRequested", { group: value("toGroup") ?? "—" });
     case "handoff_accepted":

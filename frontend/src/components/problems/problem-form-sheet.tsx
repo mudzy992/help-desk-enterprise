@@ -14,13 +14,13 @@ import { translateText } from "@/lib/i18n/translate-text";
 import {
   createProblemFull,
   problemQueryKeys,
-  requestProblemHandoff,
   searchProblemOwners,
   updateProblem,
   type ProblemDetail,
   type ProblemOptions,
   type ProblemSeverity,
 } from "@/services/problems-api";
+import { requestProblemHandoff } from "@/services/problem-handoffs-api";
 
 type Owner = { readonly id: string; readonly displayName: string; readonly email?: string };
 

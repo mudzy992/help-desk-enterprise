@@ -11,15 +11,13 @@ import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError } from "@/lib/problems/problem-view";
+import { problemQueryKeys, type ProblemDetail, type ProblemOptions } from "@/services/problems-api";
 import {
   acceptProblemHandoff,
   cancelProblemHandoff,
-  problemQueryKeys,
   rejectProblemHandoff,
   requestProblemHandoff,
-  type ProblemDetail,
-  type ProblemOptions,
-} from "@/services/problems-api";
+} from "@/services/problem-handoffs-api";
 
 /**
  * W7.28 (BA-problems-10): a problem changes group only through this recorded

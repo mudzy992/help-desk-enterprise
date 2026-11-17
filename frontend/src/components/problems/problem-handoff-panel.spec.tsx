@@ -10,15 +10,15 @@ import {
   cancelProblemHandoff,
   rejectProblemHandoff,
   requestProblemHandoff,
-} from "@/services/problems-api";
+} from "@/services/problem-handoffs-api";
 import type { ProblemDetail, ProblemOptions } from "@/services/problems-api";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: "bs" } }),
 }));
 
-vi.mock("@/services/problems-api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/services/problems-api")>();
+vi.mock("@/services/problem-handoffs-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/services/problem-handoffs-api")>();
   return {
     ...actual,
     acceptProblemHandoff: vi.fn(),
