@@ -85,6 +85,8 @@ CI run [`44139365349`](https://github.com/mudzy992/help-desk-enterprise/actions/
 - **Docs guard, container + supply chain, Detect changes, CI gate:** success.
 - **Skipped:** `E2E critical flows`, `E2E install wizard`, `Read-only service-form pattern inventory` — push workflow
   ih ne pokreće.
+- **Docs-only commit:** `ee5492d` (ovaj closeout) nije pokrenuo CI jer push workflow ima `paths-ignore`
+  `docs/**`/`**/*.md`; zato je jedini mjerodavni zeleni run onaj na `6a41a29`.
 - **Neuspjeli pokušaji:** `44132873063` na `f892c6d` — frontend je pao na `module-size.spec.ts` jer je
   `services/problems-api.ts` prešao 578 linija (vlastita greška; handoff API preseljen u
   `services/problem-handoffs-api.ts`) i na `lib/problems/problem-view.ts` (321 > 320 linija; suvišni komentari
