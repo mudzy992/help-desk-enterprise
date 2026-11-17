@@ -290,6 +290,7 @@ export const problemQueryKeys = {
   events: (id: string) => ["problems", "detail", id, "events"] as const,
   owners: (search: string, groupId: string) => ["problems", "owners", groupId, search] as const,
   resolvePreview: (id: string) => ["problems", "detail", id, "resolve-preview"] as const,
+  resolutionRunLatest: (id: string) => ["problems", "detail", id, "resolution-run", "latest"] as const,
   articleDraft: (id: string) => ["problems", "detail", id, "article-draft"] as const,
 };
 
@@ -366,6 +367,43 @@ export type ProblemTicketResolveOutcome = {
     readonly ticketNumber: string;
     readonly code: string;
   }[];
+  /** W7.24: the durable run behind this outcome; absent for legacy responses. */
+  readonly runId?: string;
+  readonly status?: ProblemResolutionRunStatus;
+  /** True while a run still has tickets or replies to retry. */
+  readonly canResume?: boolean;
+  readonly messagePending?: number;
+};
+
+export type ProblemResolutionRunStatus = "PROCESSING" | "SUCCEEDED" | "PARTIAL" | "FAILED";
+
+export type ProblemResolutionRunItem = {
+  readonly id: string;
+  readonly ticketId: string;
+  readonly ticketNumber: string;
+  readonly ordinal: number;
+  readonly status: "PENDING" | "RUNNING" | "RESOLVED" | "MESSAGE_PENDING" | "SKIPPED" | "FAILED";
+  readonly reason: ProblemTicketResolveSkip | null;
+  readonly errorCode: string | null;
+  readonly retryable: boolean | null;
+  readonly messageSent: boolean;
+  readonly attempts: number;
+};
+
+export type ProblemResolutionRun = {
+  readonly id: string;
+  readonly status: ProblemResolutionRunStatus;
+  readonly total: number;
+  readonly resolved: number;
+  readonly messagePending: number;
+  readonly failed: number;
+  readonly skipped: number;
+  readonly canResume: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly completedAt: string | null;
+  readonly lastError: string | null;
+  readonly items: readonly ProblemResolutionRunItem[];
 };
 
 export type ProblemResolvePreview = {
@@ -407,6 +445,8 @@ export type ProblemStatusInput = {
   readonly resolveTickets?: boolean;
   readonly message?: string;
   readonly closeCode?: string;
+  /** W7.24: reuse the same key when the same resolve is retried, so nothing is written twice. */
+  readonly resolutionRunId?: string;
 };
 
 export function getProblemResolvePreview(id: string): Promise<ProblemResolvePreview> {
@@ -437,6 +477,32 @@ export function changeProblemStatus(
   input: ProblemStatusInput,
 ): Promise<ProblemDetail & { readonly ticketResolution: ProblemTicketResolveOutcome | null }> {
   return apiRequest(`/problems/${encodeURIComponent(id)}/status`, {
+    method: "POST",
+    ...json(input),
+  });
+}
+
+export function getLatestProblemResolutionRun(
+  id: string,
+): Promise<{ readonly run: ProblemResolutionRun | null }> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/resolution-runs/latest`);
+}
+
+export function resumeProblemResolutionRun(
+  id: string,
+  runId: string,
+): Promise<ProblemDetail & { readonly ticketResolution: ProblemTicketResolveOutcome | null }> {
+  return apiRequest(
+    `/problems/${encodeURIComponent(id)}/resolution-runs/${encodeURIComponent(runId)}/resume`,
+    { method: "POST" },
+  );
+}
+
+export function startProblemResolutionRun(
+  id: string,
+  input: { readonly runId: string; readonly message: string; readonly closeCode?: string },
+): Promise<ProblemDetail & { readonly ticketResolution: ProblemTicketResolveOutcome | null }> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/resolution-runs`, {
     method: "POST",
     ...json(input),
   });

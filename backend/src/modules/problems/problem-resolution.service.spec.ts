@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { buildKnownErrorArticle } from './problem-article';
 import { ProblemResolutionService, ticketFailureCode } from './problem-resolution.service';
 import { ProblemError, problemErrorCodes } from './problems.constants';
@@ -8,7 +8,6 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { prepareAuditEntry } from '../audit-log/audit-event-policy';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { problemTicketVisibility } from './problem-ticket-visibility';
-import { assertProblemDelegation } from '../tickets/problem-delegation';
 
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../authorization/authorization-context.loader', () => ({ AuthorizationContextLoader: class AuthorizationContextLoader {} }));
@@ -20,7 +19,6 @@ jest.mock('./problem-access.service', () => ({ ProblemAccessService: class Probl
 jest.mock('./problem-ticket-visibility', () => ({ problemTicketVisibility: jest.fn(async () => ({ id: { not: 'x' } })) }));
 
 jest.mock('../tickets/load-accessible-ticket', () => ({ loadAccessibleTicket: jest.fn() }));
-jest.mock('../tickets/problem-delegation', () => ({ assertProblemDelegation: jest.fn(async () => undefined) }));
 jest.mock('../knowledge-base/create-knowledge-article', () => ({ createKnowledgeArticle: jest.fn() }));
 jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn() }));
 
@@ -98,16 +96,19 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
   const ticketsService = { takeOverForProblem: jest.fn(async (_id: string, _input: unknown) => ({})), update: jest.fn(async (id: string) => { if (id === 'fail') throw new ConflictException({ code: 'INVALID_STATUS_TRANSITION' }); }) };
   const collaboration = { createMessage: jest.fn(async () => ({})) };
   const closeCodes = { load: jest.fn(async () => options.closeCodes ?? { enabled: false, requireOnResolve: false, allowedCodes: [] }) };
+  const runs = {
+    assertResolveOptions: jest.fn(async () => undefined),
+    resolveTickets: jest.fn(async () => ({ resolved: [], skipped: [], failed: [], runId: 'r1', status: 'SUCCEEDED' })),
+  };
   const service = new ProblemResolutionService(
     prisma as never,
     access as never,
     {} as never,
     { bind: jest.fn(async (context: unknown) => context) } as never,
-    ticketsService as never,
-    collaboration as never,
     closeCodes as never,
+    runs as never,
   );
-  return { service, events, ticketsService, collaboration, prisma };
+  return { service, events, ticketsService, collaboration, prisma, runs };
 }
 
 const viewer = { userId: 'u1' } as never;
@@ -192,78 +193,17 @@ describe('ProblemResolutionService group resolution', () => {
     expect((prisma.problemTicket as { findMany: jest.Mock }).findMany).not.toHaveBeenCalled();
   });
 
-  it('needs problem.close, a message and a required close code', async () => {
+  it('needs problem.close even before looking at the tickets', async () => {
     await expect(setup({ canClose: false }).service.resolvePreview('p1', viewer)).rejects.toBeInstanceOf(ProblemError);
-    await expect(setup({}).service.assertResolveOptions('p1', viewer, { message: 'ok' })).rejects.toMatchObject({ detail: 'message' });
-    const required = setup({ closeCodes: { enabled: true, requireOnResolve: true, allowedCodes: ['fixed'] } }).service;
-    await expect(required.assertResolveOptions('p1', viewer, { message: 'Riješeno je.' })).rejects.toMatchObject({ detail: 'closeCode' });
-    await expect(required.assertResolveOptions('p1', viewer, { message: 'Riješeno je.', closeCode: 'other' })).rejects.toMatchObject({ detail: 'closeCode' });
-    await expect(required.assertResolveOptions('p1', viewer, { message: 'Riješeno je.', closeCode: 'fixed' })).resolves.toBeUndefined();
   });
 
-  it('takes over unstarted tickets, resolves status first, then replies; failures do not stop the rest', async () => {
-    const { service, ticketsService, collaboration, events } = setup({ tickets, problem: { status: 'RESOLVED' } });
-    const result = await service.resolveTickets('p1', viewer, { message: ' Uzrok je otklonjen. ' });
-    expect(result.resolved.map((item) => item.ticketId)).toEqual(['a', 'b']);
-    expect(ticketsService.takeOverForProblem.mock.calls.map((call) => call[0])).toEqual(['fail', 'b']);
-    expect(ticketsService.takeOverForProblem).not.toHaveBeenCalledWith('x', expect.anything());
-    expect(result.failed).toEqual([{ ticketId: 'fail', ticketNumber: 'T-fail', code: 'INVALID_STATUS_TRANSITION' }]);
-    expect(result.skipped).toHaveLength(3);
-    expect(ticketsService.update).toHaveBeenCalledWith('a', { status: 'RESOLVED', closeCode: undefined, resolutionNote: 'P-000012' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
-    expect(collaboration.createMessage).toHaveBeenCalledTimes(2);
-    expect(collaboration.createMessage).toHaveBeenCalledWith('a', { type: 'AGENT_REPLY', body: 'Uzrok je otklonjen.' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
-    expect(events).toEqual([{ problemId: 'p1', action: 'tickets_resolved', actorUserId: 'u1', detail: { resolved: 2, skipped: 3, failed: 1 } }]);
-    expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemTicketsResolved, organizationalUnitId: 'ou1' }));
-  });
-
-  it('refuses to resolve tickets of a problem that is not resolved', async () => {
-    await expect(setup({ tickets }).service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' })).rejects.toMatchObject({ code: problemErrorCodes.statusTransition });
-  });
-
-  it('never delegates confidential tickets, but resolves them with the actor own access', async () => {
-    const confidential: Ticket[] = [
-      { id: 'c1', status: 'ASSIGNED', isConfidential: true },
-      { id: 'c2', status: 'ASSIGNED', isConfidential: true, noOwnAccess: true },
-    ];
-    const { service, ticketsService } = setup({ tickets: confidential, problem: { status: 'RESOLVED' } });
-    const preview = await service.resolvePreview('p1', viewer);
-    expect(preview.items.map((item) => [item.id, item.reason, item.title])).toEqual([
-      ['c1', null, null],
-      ['c2', 'no_access', null],
-    ]);
-    const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
-    expect(result.resolved.map((item) => item.ticketId)).toEqual(['c1']);
-    expect(result.skipped).toEqual([{ ticketId: 'c2', ticketNumber: 'T-c2', reason: 'no_access' }]);
-    expect(ticketsService.update).toHaveBeenCalledTimes(1);
-    expect(ticketsService.update).toHaveBeenCalledWith('c1', expect.objectContaining({ status: 'RESOLVED' }), expect.anything());
-    // Both confidential tickets were evaluated with the actor's own access only.
-    expect(loadTicket.mock.calls.map((call) => call[2])).toContain('c2');
-    expect(ticketsService.update).not.toHaveBeenCalledWith('c2', expect.anything(), expect.anything());
-  });
-
-  it('revalidates the delegation on every write, so a mid-flight revocation fails the ticket', async () => {
-    const tickets: Ticket[] = [{ id: 'a', status: 'IN_PROGRESS' }, { id: 'b', status: 'IN_PROGRESS' }];
-    const { service, ticketsService } = setup({ tickets, problem: { status: 'RESOLVED' } });
-    ticketsService.update.mockImplementationOnce(async (id: string) => {
-      if (id === 'a') throw new ForbiddenException({ code: 'FORBIDDEN' });
-      return undefined;
-    });
-    const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
-    expect(result.failed).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', code: 'FORBIDDEN' }]);
-    expect(result.resolved.map((item) => item.ticketId)).toEqual(['b']);
-    expect(ticketsService.update).toHaveBeenCalledTimes(2);
-  });
-
-  it('re-proves the delegation before a takeover write and fails closed without it', async () => {
-    const tickets: Ticket[] = [{ id: 'a', status: 'PENDING' }, { id: 'b', status: 'PENDING' }];
-    const { service, ticketsService } = setup({ tickets, problem: { status: 'RESOLVED' } });
-    (assertProblemDelegation as jest.Mock).mockImplementation(async (_prisma: unknown, input: { ticketId: string }) => {
-      if (input.ticketId === 'a') throw new Error('FORBIDDEN');
-    });
-    const result = await service.resolveTickets('p1', viewer, { message: 'Uzrok je otklonjen.' });
-    expect(result.failed).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', code: 'TICKET_OPERATION_FAILED' }]);
-    expect(ticketsService.takeOverForProblem).not.toHaveBeenCalledWith('a', expect.anything());
-    expect(ticketsService.takeOverForProblem).toHaveBeenCalledWith('b', expect.anything());
-    expect(result.resolved.map((item) => item.ticketId)).toEqual(['b']);
+  it('delegates the options and the durable run to the run service', async () => {
+    const { service, runs } = setup({});
+    await service.assertResolveOptions('p1', viewer, { message: 'Riješeno je.' });
+    expect(runs.assertResolveOptions).toHaveBeenCalledWith('p1', viewer, { message: 'Riješeno je.' });
+    const outcome = await service.resolveTickets('p1', viewer, { message: 'Riješeno je.', runId: 'r1' });
+    expect(runs.resolveTickets).toHaveBeenCalledWith('p1', viewer, { message: 'Riješeno je.', runId: 'r1' });
+    expect(outcome.runId).toBe('r1');
+    expect(outcome.status).toBe('SUCCEEDED');
   });
 });

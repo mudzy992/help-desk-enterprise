@@ -4,6 +4,7 @@ model User {
   changesRequested ChangeRequest[] @relation("ChangeRequester")
   changeApprovals ChangeApproval[] @relation("ChangeApprover")
   problemsOwned Problem[] @relation("ProblemOwner")
+  problemResolutionRuns ProblemResolutionRun[] @relation("ProblemResolutionRunActor")
   problemsCreated Problem[] @relation("ProblemCreatedBy")
   assetsAssigned Asset[] @relation("AssetAssignedUser")
   assetSignatories AssetSignatory[] @relation("AssetSignatoryUser")

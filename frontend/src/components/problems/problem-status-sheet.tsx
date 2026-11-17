@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/toast";
 import { translateText } from "@/lib/i18n/translate-text";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -24,6 +25,7 @@ import {
   changeProblemStatus,
   getProblemResolvePreview,
   problemQueryKeys,
+  resumeProblemResolutionRun,
   type ProblemDetail,
   type ProblemStatus,
   type ProblemTicketResolveOutcome,
@@ -62,6 +64,8 @@ export function ProblemStatusSheet({
     closeCode: "",
   });
   const [outcome, setOutcome] = useState<ProblemTicketResolveOutcome | null>(null);
+  // W7.24: one run id per identical resolve, so a retried submit replays instead of resolving twice.
+  const runIntent = useRef<{ readonly fingerprint: string; readonly id: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +97,14 @@ export function ProblemStatusSheet({
     if (status === "" || !canSubmit) return;
     setPending(true);
     setError(null);
+    const message = resolveTickets.message.trim();
+    const closeCode = resolveTickets.closeCode || undefined;
+    if (groupResolve) {
+      const fingerprint = JSON.stringify({ status, message, closeCode });
+      if (runIntent.current?.fingerprint !== fingerprint) {
+        runIntent.current = { fingerprint, id: crypto.randomUUID() };
+      }
+    }
     try {
       const result = await changeProblemStatus(problem.id, {
         version: problem.version,
@@ -101,8 +113,9 @@ export function ProblemStatusSheet({
         ...(groupResolve
           ? {
               resolveTickets: true,
-              message: resolveTickets.message.trim(),
-              closeCode: resolveTickets.closeCode || undefined,
+              message,
+              closeCode,
+              resolutionRunId: runIntent.current?.id,
             }
           : {}),
       });
@@ -132,7 +145,12 @@ export function ProblemStatusSheet({
           {t("problems.statusSheet.current", { status: t(problemStatusKeys[problem.status]) })}
         </SheetDescription>
         {outcome !== null ? (
-          <ResolveOutcome outcome={outcome} onClose={() => onOpenChange(false)} />
+          <ResolveOutcome
+            problemId={problem.id}
+            outcome={outcome}
+            onClose={() => onOpenChange(false)}
+            onResumed={onDone}
+          />
         ) : targets.length === 0 ? (
           <p className={`mt-4 ${hintClassName}`}>{t("problems.statusSheet.final")}</p>
         ) : (
@@ -213,14 +231,50 @@ export function ProblemStatusSheet({
 }
 
 function ResolveOutcome({
+  problemId,
   outcome,
   onClose,
+  onResumed,
 }: {
+  readonly problemId: string;
   readonly outcome: ProblemTicketResolveOutcome;
   readonly onClose: () => void;
+  readonly onResumed: () => void;
 }) {
   const { t } = useTranslation();
-  const withoutMessage = outcome.resolved.filter((item) => !item.messageSent);
+  const { toast } = useToast();
+  const [current, setCurrent] = useState(outcome);
+  const [resuming, setResuming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const withoutMessage = current.resolved.filter((item) => !item.messageSent);
+  const unfinished = current.canResume === true && current.runId !== undefined;
+  const total = current.resolved.length + current.skipped.length + current.failed.length;
+
+  const resume = async () => {
+    if (current.runId === undefined) return;
+    setResuming(true);
+    setError(null);
+    try {
+      const result = await resumeProblemResolutionRun(problemId, current.runId);
+      if (result.ticketResolution !== null) setCurrent(result.ticketResolution);
+      onResumed();
+      if (result.ticketResolution === null || result.ticketResolution.canResume !== true) {
+        toast({ tone: "success", title: t("problems.resolveTickets.run.resumed") });
+      }
+    } catch (caught) {
+      const message = t(mapApiError(caught));
+      setError(message);
+      toast({
+        tone: "danger",
+        title: t("problems.resolveTickets.run.resumeFailed"),
+        description: message,
+        error: caught,
+      });
+    } finally {
+      setResuming(false);
+    }
+  };
+
   return (
     <div className="mt-4 grid gap-3" data-testid="problem-resolve-outcome">
       <div
@@ -230,12 +284,45 @@ function ResolveOutcome({
         <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-success" aria-hidden="true" />
         <span>
           {t("problems.resolveTickets.outcome", {
-            resolved: outcome.resolved.length,
-            skipped: outcome.skipped.length,
-            failed: outcome.failed.length,
+            resolved: current.resolved.length,
+            skipped: current.skipped.length,
+            failed: current.failed.length,
           })}
         </span>
       </div>
+      {unfinished ? (
+        <div
+          role="status"
+          className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground"
+          data-testid="problem-resolve-outcome-unfinished"
+        >
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+          <div className="grid gap-2">
+            <span>{t("problems.resolveTickets.run.incomplete")}</span>
+            <span className="text-muted-foreground">
+              {t("problems.resolveTickets.run.summary", {
+                resolved: current.resolved.length,
+                total,
+                pending: total - current.resolved.length,
+              })}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void resume()}
+              disabled={resuming}
+              data-testid="problem-resolve-outcome-resume"
+            >
+              {resuming ? t("problems.resolveTickets.run.resuming") : t("problems.resolveTickets.run.resume")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      {error !== null ? (
+        <p role="alert" className={errorTextClassName}>
+          {error}
+        </p>
+      ) : null}
       {withoutMessage.length > 0 ? (
         <p className={hintClassName}>
           {t("problems.resolveTickets.withoutMessage", {
@@ -243,13 +330,13 @@ function ResolveOutcome({
           })}
         </p>
       ) : null}
-      {outcome.failed.length > 0 ? (
+      {current.failed.length > 0 ? (
         <div className="grid gap-1">
           <p className="text-[12.5px] font-medium text-foreground">
             {t("problems.resolveTickets.failedTitle")}
           </p>
           <ul className="grid gap-0.5 text-[12px] text-muted-foreground">
-            {outcome.failed.map((item) => (
+            {current.failed.map((item) => (
               <li key={item.ticketId}>
                 <span className="tnum font-medium text-foreground">{item.ticketNumber}</span> ·{" "}
                 {item.code}

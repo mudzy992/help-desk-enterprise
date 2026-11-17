@@ -1,15 +1,27 @@
+import { randomUUID } from 'node:crypto';
 import { Body, Controller, Delete, Get, HttpCode, Header, Param, Patch, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { runProblem } from './map-problem-error';
 import { ProblemAccessService, problemViewerOf, type ProblemViewer } from './problem-access.service';
-import { CreateProblemArticleDto, CreateProblemDto, LinkProblemAssetsDto, LinkProblemIncidentDto, LinkProblemServiceDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import {
+  CreateProblemArticleDto,
+  CreateProblemDto,
+  LinkProblemAssetsDto,
+  LinkProblemIncidentDto,
+  LinkProblemServiceDto,
+  LinkProblemTicketsDto,
+  ProblemResolutionRunDto,
+  ProblemStatusDto,
+  UpdateProblemDto,
+} from './problems.dto';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemResolutionService } from './problem-resolution.service';
 import { ProblemLinksService } from './problem-links.service';
 import { ProblemTicketsService } from './problem-tickets.service';
-import { problemSeverities, problemStatuses, type ProblemSeverityValue, type ProblemStatusValue } from './problems.constants';
+import { problemErrorCodes, problemSeverities, problemStatuses, ProblemError, type ProblemSeverityValue, type ProblemStatusValue } from './problems.constants';
+import { ticketFailureCode } from './problem-resolution-support';
 import { ProblemsService, type ProblemListQuery } from './problems.service';
 
 type RawListQuery = Record<string, string | undefined>;
@@ -201,18 +213,77 @@ export class ProblemsController {
   changeStatus(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: ProblemStatusDto) {
     return runProblem(async () => {
       const viewer = this.viewer(request);
-      const { resolveTickets, message, closeCode, ...status } = body;
+      const { resolveTickets, message, closeCode, resolutionRunId, ...status } = body;
       const groupResolve = resolveTickets === true && status.status === 'RESOLVED';
-      if (groupResolve) await this.resolution.assertResolveOptions(id, viewer, { message, closeCode });
-      const problem = await this.problems.changeStatus(viewer, id, status);
       // P5 (§11): after the group resolution, so only agents of tickets that stayed open hear about it.
       const notify = () => this.notifier.run('status', () => this.notifier.statusChanged(id, status.status, viewer.userId));
       if (!groupResolve) {
+        const problem = await this.problems.changeStatus(viewer, id, status);
         notify();
         return { ...problem, ticketResolution: null };
       }
-      const ticketResolution = await this.resolution.resolveTickets(id, viewer, { message: message ?? '', closeCode });
+      await this.resolution.assertResolveOptions(id, viewer, { message, closeCode });
+      // W7.24: the run is written before the status changes, so a crash between
+      // the two leaves a resumable record instead of losing the resolution.
+      const runId = resolutionRunId ?? randomUUID();
+      const prepared = await this.resolution.prepareRun(id, viewer, { runId, message, closeCode });
+      if (prepared.replay !== null) {
+        notify();
+        return { ...(await this.problems.get(viewer, id)), ticketResolution: prepared.replay };
+      }
+      if (prepared.status === 'FAILED') throw new ProblemError(problemErrorCodes.resolutionRunClosed);
+      try {
+        await this.problems.changeStatus(viewer, id, status);
+      } catch (error) {
+        // Nothing was written on a ticket; the run is kept as evidence but is not resumable.
+        await this.resolution.abortRun(runId, ticketFailureCode(error));
+        throw error;
+      }
+      const ticketResolution = await this.resolution.executeRun(id, viewer, runId);
       notify();
+      return { ...(await this.problems.get(viewer, id)), ticketResolution };
+    });
+  }
+
+  /** W7.24: durable group resolution with a caller-chosen run id (its idempotency key). */
+  @Post(':id/resolution-runs')
+  startResolutionRun(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: ProblemResolutionRunDto) {
+    return runProblem(async () => {
+      const viewer = this.viewer(request);
+      const prepared = await this.resolution.prepareRun(id, viewer, {
+        runId: body.runId,
+        message: body.message,
+        closeCode: body.closeCode,
+      });
+      if (prepared.status === 'FAILED' && prepared.replay === null) {
+        throw new ProblemError(problemErrorCodes.resolutionRunClosed);
+      }
+      const ticketResolution = prepared.replay ?? (await this.resolution.executeRun(id, viewer, body.runId));
+      this.notifier.run('status', () => this.notifier.statusChanged(id, 'RESOLVED', viewer.userId));
+      return { ...(await this.problems.get(viewer, id)), ticketResolution };
+    });
+  }
+
+  /** W7.24: the newest run, so the UI can offer Resume after a reload. */
+  @Get(':id/resolution-runs/latest')
+  @Header('Cache-Control', 'no-store')
+  latestResolutionRun(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.resolution.latestRun(id, this.viewer(request)));
+  }
+
+  @Get(':id/resolution-runs/:runId')
+  @Header('Cache-Control', 'no-store')
+  resolutionRun(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('runId') runId: string) {
+    return runProblem(() => this.resolution.runById(id, this.viewer(request), runId));
+  }
+
+  /** W7.24: retries exactly the unfinished tickets and replies of a run. */
+  @Post(':id/resolution-runs/:runId/resume')
+  resumeResolutionRun(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('runId') runId: string) {
+    return runProblem(async () => {
+      const viewer = this.viewer(request);
+      const ticketResolution = await this.resolution.resumeRun(id, viewer, runId);
+      this.notifier.run('status', () => this.notifier.statusChanged(id, 'RESOLVED', viewer.userId));
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }

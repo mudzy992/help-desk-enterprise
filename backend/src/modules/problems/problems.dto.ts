@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { problemLimits, problemSeverities, problemStatuses } from './problems.constants';
 
 export class ProblemWhyDto {
@@ -66,6 +66,16 @@ export class ProblemStatusDto {
   /** §8.4: with status RESOLVED, also resolve the open linked tickets (explicit, previewed). */
   @IsOptional() @IsBoolean() resolveTickets?: boolean;
   @IsOptional() @IsString() @MaxLength(problemLimits.messageMax) message?: string;
+  @IsOptional() @IsString() @MaxLength(64) closeCode?: string;
+  /** W7.24: caller-chosen run key, so a retried resolve replays instead of resolving twice. */
+  @IsOptional() @IsUUID() resolutionRunId?: string;
+}
+
+/** W7.24: durable group resolution with an explicit idempotency key. */
+export class ProblemResolutionRunDto {
+  /** The run id doubles as the idempotency key: reuse it to replay or resume. */
+  @IsUUID() runId!: string;
+  @IsString() @MaxLength(problemLimits.messageMax) message!: string;
   @IsOptional() @IsString() @MaxLength(64) closeCode?: string;
 }
 

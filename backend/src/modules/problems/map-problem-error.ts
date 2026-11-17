@@ -16,6 +16,7 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.ticketNotLinked:
     case problemErrorCodes.assetNotFound:
     case problemErrorCodes.incidentNotFound:
+    case problemErrorCodes.resolutionRunNotFound:
       return new NotFoundException(body);
     case problemErrorCodes.forbidden:
     case problemErrorCodes.outOfScope:
@@ -27,6 +28,8 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.ticketInOtherProblem:
     case problemErrorCodes.problemNotOpen:
     case problemErrorCodes.articleExists:
+    case problemErrorCodes.resolutionRunConflict:
+    case problemErrorCodes.resolutionRunClosed:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

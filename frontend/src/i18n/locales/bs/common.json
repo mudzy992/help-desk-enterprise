@@ -9717,6 +9717,27 @@
         "merged": "Spojen",
         "no_access": "Bez pristupa",
         "limit": "Preko limita"
+      },
+      "run": {
+        "incomplete": "Rješavanje povezanih tiketa nije dovršeno.",
+        "summary": "Riješeno {{resolved}} od {{total}}; nedovršeno {{pending}}.",
+        "pendingTitle": "Nedovršeni tiketi",
+        "resume": "Nastavi rješavanje",
+        "resuming": "Nastavljam…",
+        "resumed": "Rješavanje tiketa je dovršeno.",
+        "resumeFailed": "Nastavljanje rješavanja nije uspjelo.",
+        "more_one": "i još {{count}} tiket",
+        "more_few": "i još {{count}} tiketa",
+        "more_other": "i još {{count}} tiketa",
+        "failedHint": "Ove tikete riješite pojedinačno; razlog je kod greške pored broja.",
+        "itemStatus": {
+          "PENDING": "Čeka",
+          "RUNNING": "U toku",
+          "RESOLVED": "Riješen",
+          "MESSAGE_PENDING": "Poruka nije poslana",
+          "SKIPPED": "Preskočen",
+          "FAILED": "Nije riješen"
+        }
       }
     },
     "setupTitle": "Modul problema čeka podešavanje",

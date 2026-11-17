@@ -75,6 +75,10 @@ export const problemErrorCodes = {
   ticketInOtherProblem: 'PROBLEM_TICKET_IN_OTHER_PROBLEM',
   ticketNotLinked: 'PROBLEM_TICKET_NOT_LINKED',
   problemNotOpen: 'PROBLEM_NOT_OPEN',
+  /** W7.24: the durable group-resolution run is missing, finished differently, or already aborted. */
+  resolutionRunNotFound: 'PROBLEM_RESOLUTION_RUN_NOT_FOUND',
+  resolutionRunConflict: 'PROBLEM_RESOLUTION_RUN_CONFLICT',
+  resolutionRunClosed: 'PROBLEM_RESOLUTION_RUN_CLOSED',
   articleExists: 'PROBLEM_ARTICLE_EXISTS',
   articleInvalid: 'PROBLEM_ARTICLE_INVALID',
 } as const;

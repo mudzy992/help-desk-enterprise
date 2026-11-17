@@ -2,15 +2,15 @@
   "schemaVersion": 2,
   "generatedFrom": "backend/src/**/*.controller.ts + explicit guards + backend/route-policy-overrides.json + app.module.ts + worker.module.ts",
   "controllerFiles": 99,
-  "routeCount": 620,
+  "routeCount": 624,
   "classificationCounts": {
     "worker": 1,
-    "authenticated": 600,
+    "authenticated": 604,
     "public": 19,
     "webhook": 1
   },
   "guardBoundaryCounts": {
-    "explicit": 600,
+    "explicit": 604,
     "inherited-or-public": 20
   },
   "routes": [
@@ -5536,6 +5536,66 @@
       "handler": "searchIncidents",
       "method": "GET",
       "path": "/problems/:id/links/incident-search",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "problems",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/problems/problems.controller.ts",
+      "controller": "ProblemsController",
+      "handler": "startResolutionRun",
+      "method": "POST",
+      "path": "/problems/:id/resolution-runs",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "problems",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/problems/problems.controller.ts",
+      "controller": "ProblemsController",
+      "handler": "resolutionRun",
+      "method": "GET",
+      "path": "/problems/:id/resolution-runs/:runId",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "problems",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/problems/problems.controller.ts",
+      "controller": "ProblemsController",
+      "handler": "resumeResolutionRun",
+      "method": "POST",
+      "path": "/problems/:id/resolution-runs/:runId/resume",
+      "classGuards": [
+        "SessionAuthenticationGuard"
+      ],
+      "methodGuards": [],
+      "guardBoundary": "explicit",
+      "classification": "authenticated",
+      "policyOwner": "problems",
+      "policyProof": "SessionAuthenticationGuard"
+    },
+    {
+      "source": "backend/src/modules/problems/problems.controller.ts",
+      "controller": "ProblemsController",
+      "handler": "latestResolutionRun",
+      "method": "GET",
+      "path": "/problems/:id/resolution-runs/latest",
       "classGuards": [
         "SessionAuthenticationGuard"
       ],

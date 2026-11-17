@@ -51,6 +51,7 @@ model Problem {
   service              Service?           @relation("ProblemMainService", fields: [serviceId], references: [id], onDelete: SetNull)
   knowledgeArticle     KnowledgeArticle?  @relation(fields: [knowledgeArticleId], references: [id], onDelete: SetNull)
   tickets              ProblemTicket[]
+  resolutionRuns       ProblemResolutionRun[]
   assets               ProblemAsset[]
   services             ProblemService[]
   incidents            ProblemIncident[]
@@ -129,4 +130,75 @@ model ProblemEvent {
 model ProblemSequence {
   id         Int @id
   lastNumber Int @default(0)
+}
+
+/// W7.24 (BA-problems-06): durable group resolution. The row is written before
+/// the problem status changes, so neither a crash nor a failed ticket write can
+/// lose the intent. `requestHash` binds an idempotency key to one payload.
+enum ProblemResolutionRunStatus {
+  PROCESSING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+
+/// One ticket inside a run. RUNNING is claimed atomically, so a crashed
+/// attempt is visible and can be resumed instead of duplicated.
+enum ProblemResolutionRunItemStatus {
+  PENDING
+  RUNNING
+  RESOLVED
+  MESSAGE_PENDING
+  SKIPPED
+  FAILED
+}
+
+model ProblemResolutionRun {
+  id            String                      @id @db.Uuid
+  problemId     String
+  actorUserId   String
+  requestHash   String                      @db.Char(64)
+  status        ProblemResolutionRunStatus  @default(PROCESSING)
+  /// Problem number at the time of the run, used as the ticket resolution note.
+  number        String?                     @db.VarChar(32)
+  message       String                      @db.VarChar(8000)
+  closeCode     String?                     @db.VarChar(64)
+  total         Int
+  resolved      Int                         @default(0)
+  messageFailed Int                         @default(0)
+  failed        Int                         @default(0)
+  skipped       Int                         @default(0)
+  responseBody  Json?
+  lastError     String?                     @db.VarChar(200)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  completedAt   DateTime?
+  problem       Problem                     @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  actor         User                        @relation("ProblemResolutionRunActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  items         ProblemResolutionRunItem[]
+
+  @@index([problemId, createdAt])
+  @@index([status, updatedAt])
+}
+
+model ProblemResolutionRunItem {
+  id           String                         @id @default(cuid())
+  runId        String                         @db.Uuid
+  ticketId     String
+  ticketNumber String                         @db.VarChar(32)
+  ordinal      Int
+  status       ProblemResolutionRunItemStatus @default(PENDING)
+  /// Skip reason from the preview (waiting_for_user, pending_approval, merged, no_access, limit).
+  reason       String?                        @db.VarChar(32)
+  errorCode    String?                        @db.VarChar(64)
+  retryable    Boolean?
+  messageSent  Boolean                        @default(false)
+  attempts     Int                            @default(0)
+  completedAt  DateTime?
+  updatedAt    DateTime                       @updatedAt
+  run          ProblemResolutionRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, ticketId])
+  @@unique([runId, ordinal])
+  @@index([runId, status])
 }

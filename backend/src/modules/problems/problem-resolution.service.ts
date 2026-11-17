@@ -1,5 +1,4 @@
-import { problemTakeoverStatuses } from '../tickets/assignment/take-over-ticket-for-problem';
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
@@ -11,50 +10,24 @@ import { KnowledgeBaseError } from '../knowledge-base/knowledge-base.error';
 import { replyScrubLabels, scrubReplyPersonalData } from '../knowledge-base/portal/scrub-reply-personal-data';
 import { TicketCloseCodesConfigurationLoader } from '../tickets/close-codes/ticket-close-codes-configuration.loader';
 import { listConfiguredCloseCodes } from '../tickets/close-codes/resolve-close-code-record';
-import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
-import { assertProblemDelegation } from '../tickets/problem-delegation';
-import { TicketsCollaborationService } from '../tickets/tickets-collaboration.service';
-import { TicketsService } from '../tickets/tickets.service';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { buildKnownErrorArticle, type ProblemArticleLocale } from './problem-article';
 import { formatProblemNumber } from './problem-rules';
 import { problemVisibilityWhere } from './problem-visibility';
-import { problemTicketVisibility } from './problem-ticket-visibility';
-import { problemErrorCodes, problemEventActions, problemLimits, problemOpenTicketStatuses, ProblemError } from './problems.constants';
+import { ProblemResolutionRunService } from './problem-resolution-run.service';
+import {
+  loadProblemForResolution,
+  resolutionCandidates,
+  type ProblemResolutionRunStatusValue,
+  type ProblemTicketResolveOutcome,
+  type ResolutionSupport,
+} from './problem-resolution-support';
+import { problemErrorCodes, problemEventActions, problemLimits, ProblemError } from './problems.constants';
 
-export type ProblemTicketResolveSkip = 'waiting_for_user' | 'pending_approval' | 'merged' | 'no_access' | 'limit';
-
-export type ProblemTicketResolveOutcome = {
-  readonly resolved: readonly { ticketId: string; ticketNumber: string; messageSent: boolean }[];
-  readonly skipped: readonly { ticketId: string; ticketNumber: string; reason: ProblemTicketResolveSkip }[];
-  readonly failed: readonly { ticketId: string; ticketNumber: string; code: string }[];
-};
-
-type Candidate = {
-  readonly id: string;
-  readonly ticketNumber: string;
-  readonly title: string | null;
-  readonly status: string;
-  readonly isConfidential: boolean;
-  readonly resolvable: boolean;
-  readonly reason: ProblemTicketResolveSkip | null;
-};
-
-/** Error code of a failed ticket operation (HTTP body code, domain code, or a generic one). */
-export function ticketFailureCode(error: unknown): string {
-  if (error instanceof HttpException) {
-    const body = error.getResponse();
-    if (typeof body === 'object' && body !== null && typeof (body as { code?: unknown }).code === 'string') {
-      return (body as { code: string }).code;
-    }
-    return `HTTP_${error.getStatus()}`;
-  }
-  if (typeof error === 'object' && error !== null && typeof (error as { code?: unknown }).code === 'string') {
-    return (error as { code: string }).code;
-  }
-  return 'TICKET_OPERATION_FAILED';
-}
+export { ticketFailureCode } from './problem-resolution-support';
+export type { ProblemTicketResolveSkip } from './problem-resolution-support';
+export type { ProblemResolutionRunStatusValue, ProblemTicketResolveOutcome };
 
 /**
  * Paket 3.3 (P4, §7, §8.4): the known error becomes a knowledge article draft,
@@ -65,15 +38,18 @@ export function ticketFailureCode(error: unknown): string {
  */
 @Injectable()
 export class ProblemResolutionService {
+  private readonly support: ResolutionSupport;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProblemAccessService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
-    private readonly tickets: TicketsService,
-    private readonly collaboration: TicketsCollaborationService,
     private readonly closeCodes: TicketCloseCodesConfigurationLoader,
-  ) {}
+    private readonly runs: ProblemResolutionRunService,
+  ) {
+    this.support = { prisma, access, authorizationContextLoader, accessPolicies };
+  }
 
   // ------------------------------------------------------------ article (§7)
 
@@ -216,73 +192,11 @@ export class ProblemResolutionService {
 
   // ------------------------------------------------- group resolution (§8.4)
 
-  private async candidates(problemId: string, viewer: ProblemViewer, max: number): Promise<Candidate[]> {
-    const visibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
-    const links = await this.prisma.problemTicket.findMany({
-      where: { problemId, ticket: { is: { AND: [visibility, { status: { in: [...problemOpenTicketStatuses] } }] } } },
-      orderBy: { linkedAt: 'asc' },
-      take: 2000,
-      select: {
-        ticket: { select: { id: true, ticketNumber: true, title: true, status: true, isConfidential: true, mergedIntoTicketId: true } },
-      },
-    });
-    // Delegation applies only after the ticket read predicate has narrowed the
-    // candidates, and (BA-problems-05) never to confidential tickets: those
-    // need the actor's own ticket/confidential access, exactly like the write
-    // path revalidates per ticket.
-    const delegated = this.access.hasPermission(viewer, permissionKeys.problemClose);
-    const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
-    const result: Candidate[] = [];
-    let resolvable = 0;
-    for (const { ticket } of links) {
-      let reason: ProblemTicketResolveSkip | null = null;
-      if (ticket.status === 'WAITING_FOR_USER') reason = 'waiting_for_user';
-      else if (ticket.status === 'PENDING_APPROVAL') reason = 'pending_approval';
-      else if (ticket.mergedIntoTicketId !== null) reason = 'merged';
-      else if (!delegated || ticket.isConfidential) {
-        try {
-          const { access } = await loadAccessibleTicket(this.prisma, this.authorizationContextLoader, ticket.id, gated, { writable: true });
-          if (access.visibility !== 'staff') reason = 'no_access';
-        } catch {
-          reason = 'no_access';
-        }
-      }
-      if (reason === null && resolvable >= max) reason = 'limit';
-      if (reason === null) resolvable += 1;
-      result.push({
-        id: ticket.id,
-        ticketNumber: ticket.ticketNumber,
-        title: ticket.isConfidential ? null : ticket.title,
-        status: ticket.status,
-        isConfidential: ticket.isConfidential,
-        resolvable: reason === null,
-        reason,
-      });
-    }
-    return result;
-  }
-
-  private async loadForResolution(problemId: string, viewer: ProblemViewer) {
-    const scope = await this.access.require(viewer, permissionKeys.problemManage);
-    if (!this.access.hasPermission(viewer, permissionKeys.problemClose)) {
-      throw new ProblemError(problemErrorCodes.forbidden, 'problem.close');
-    }
-    const readScope = await this.access.require(viewer, permissionKeys.problemRead);
-    const filters = [problemVisibilityWhere(scope, viewer.userId), problemVisibilityWhere(readScope, viewer.userId)].filter((filter) => filter !== null);
-    const problem = await this.prisma.problem.findFirst({
-      where: { id: problemId, AND: filters },
-      select: { id: true, sequence: true, status: true, resolution: true, title: true, groupId: true, organizationalUnitId: true },
-    });
-    if (problem === null) throw new ProblemError(problemErrorCodes.notFound);
-    await this.access.requireGroupAuthority(viewer, permissionKeys.problemClose, problem.groupId);
-    return problem;
-  }
-
   /** §8.4: which open tickets a group resolution would touch, and why the rest is skipped. */
   async resolvePreview(problemId: string, viewer: ProblemViewer) {
-    await this.loadForResolution(problemId, viewer);
+    await loadProblemForResolution(this.support, problemId, viewer);
     const [configuration, closeCodes] = await Promise.all([this.access.configuration(), this.closeCodes.load()]);
-    const items = await this.candidates(problemId, viewer, configuration.bulkResolveMax);
+    const items = await resolutionCandidates(this.support, problemId, viewer, configuration.bulkResolveMax);
     return {
       max: configuration.bulkResolveMax,
       resolvable: items.filter((item) => item.resolvable).length,
@@ -296,85 +210,40 @@ export class ProblemResolutionService {
   }
 
   /** Validated before the problem changes status, so a bad request changes nothing. */
-  async assertResolveOptions(problemId: string, viewer: ProblemViewer, options: { message?: string; closeCode?: string }) {
-    await this.loadForResolution(problemId, viewer);
-    const message = options.message?.trim() ?? '';
-    if (message.length < problemLimits.reasonMin) throw new ProblemError(problemErrorCodes.validation, 'message');
-    const closeCodes = await this.closeCodes.load();
-    const code = options.closeCode?.trim() ?? '';
-    if (closeCodes.enabled && closeCodes.requireOnResolve && code.length === 0) {
-      throw new ProblemError(problemErrorCodes.validation, 'closeCode');
-    }
-    if (code.length > 0 && closeCodes.enabled && !closeCodes.allowedCodes.includes(code)) {
-      throw new ProblemError(problemErrorCodes.validation, 'closeCode');
-    }
+  assertResolveOptions(problemId: string, viewer: ProblemViewer, options: { message?: string; closeCode?: string }) {
+    return this.runs.assertResolveOptions(problemId, viewer, options);
   }
 
   /**
-   * Resolves the resolvable tickets one by one: status first (with the close
-   * code), then the public reply, so a requester never reads "resolved" on a
-   * ticket that stayed open. One failing ticket does not stop the others.
+   * W7.24: the group resolution is a durable run. `resolveTickets` keeps the
+   * legacy shape for the status endpoint; the run endpoints expose the run id so
+   * the client can replay or resume it.
    */
-  async resolveTickets(
-    problemId: string,
-    viewer: ProblemViewer,
-    options: { message: string; closeCode?: string },
-  ): Promise<ProblemTicketResolveOutcome> {
-    const problem = await this.loadForResolution(problemId, viewer);
-    if (problem.status !== 'RESOLVED') throw new ProblemError(problemErrorCodes.statusTransition, 'resolveTickets');
-    const configuration = await this.access.configuration();
-    const number = formatProblemNumber(configuration.numberPrefix, problem.sequence);
-    const items = await this.candidates(problemId, viewer, configuration.bulkResolveMax);
-    const message = options.message.trim();
-    const closeCode = options.closeCode?.trim() || undefined;
-    const context = { actorUserId: viewer.userId, problemDelegation: { problemId } };
-    const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
-    const resolved: { ticketId: string; ticketNumber: string; messageSent: boolean }[] = [];
-    const failed: { ticketId: string; ticketNumber: string; code: string }[] = [];
-    for (const item of items.filter((candidate) => candidate.resolvable)) {
-      try {
-        // Not started yet (PENDING/UNROUTED/ASSIGNED): take over, then resolve.
-        // The takeover is a real write, so the authorization is re-proven here:
-        // the delegation never covers confidential tickets, and they need the
-        // actor's own writable access.
-        if ((problemTakeoverStatuses as readonly string[]).includes(item.status)) {
-          if (item.isConfidential) {
-            await loadAccessibleTicket(this.prisma, this.authorizationContextLoader, item.id, gated, { writable: true });
-          } else {
-            await assertProblemDelegation(this.prisma, { problemId, ticketId: item.id, actorUserId: viewer.userId });
-          }
-          await this.tickets.takeOverForProblem(item.id, { actorUserId: viewer.userId });
-        }
-        await this.tickets.update(item.id, { status: 'RESOLVED', closeCode, resolutionNote: number }, context);
-      } catch (error) {
-        failed.push({ ticketId: item.id, ticketNumber: item.ticketNumber, code: ticketFailureCode(error) });
-        continue;
-      }
-      let messageSent = true;
-      try {
-        await this.collaboration.createMessage(item.id, { type: 'AGENT_REPLY', body: message }, context);
-      } catch {
-        messageSent = false;
-      }
-      resolved.push({ ticketId: item.id, ticketNumber: item.ticketNumber, messageSent });
-    }
-    const skipped = items
-      .filter((candidate) => !candidate.resolvable)
-      .map((candidate) => ({ ticketId: candidate.id, ticketNumber: candidate.ticketNumber, reason: candidate.reason as ProblemTicketResolveSkip }));
-    const detail = { resolved: resolved.length, skipped: skipped.length, failed: failed.length };
-    await this.prisma.$transaction(async (transaction) => {
-      await transaction.problemEvent.create({
-        data: { problemId, action: problemEventActions.ticketsResolved, actorUserId: viewer.userId, detail },
-      });
-      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
-        action: auditLogActions.problemTicketsResolved,
-        entityType: auditLogEntityTypes.problem,
-        entityId: problemId,
-        organizationalUnitId: problem.organizationalUnitId,
-        metadata: detail as never,
-        actorUserId: viewer.userId,
-      });
-    });
-    return { resolved, skipped, failed };
+  resolveTickets(problemId: string, viewer: ProblemViewer, options: { message: string; closeCode?: string; runId?: string }) {
+    return this.runs.resolveTickets(problemId, viewer, options);
+  }
+
+  prepareRun(problemId: string, viewer: ProblemViewer, input: { runId: string; message?: string; closeCode?: string }) {
+    return this.runs.prepare(problemId, viewer, input);
+  }
+
+  executeRun(problemId: string, viewer: ProblemViewer, runId: string) {
+    return this.runs.execute(problemId, viewer, runId);
+  }
+
+  resumeRun(problemId: string, viewer: ProblemViewer, runId: string) {
+    return this.runs.resume(problemId, viewer, runId);
+  }
+
+  latestRun(problemId: string, viewer: ProblemViewer) {
+    return this.runs.latest(problemId, viewer);
+  }
+
+  runById(problemId: string, viewer: ProblemViewer, runId: string) {
+    return this.runs.view(problemId, viewer, runId);
+  }
+
+  abortRun(runId: string, code: string) {
+    return this.runs.abort(runId, code);
   }
 }

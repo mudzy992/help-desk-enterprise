@@ -9646,6 +9646,26 @@
         "merged": "Merged",
         "no_access": "No access",
         "limit": "Over the limit"
+      },
+      "run": {
+        "incomplete": "Resolving the linked tickets is not finished.",
+        "summary": "{{resolved}} of {{total}} resolved; {{pending}} unfinished.",
+        "pendingTitle": "Unfinished tickets",
+        "resume": "Resume resolving",
+        "resuming": "Resuming…",
+        "resumed": "Ticket resolution is finished.",
+        "resumeFailed": "Resuming the ticket resolution failed.",
+        "more_one": "and {{count}} more ticket",
+        "more_other": "and {{count}} more tickets",
+        "failedHint": "Resolve these tickets one by one; the error code is next to the number.",
+        "itemStatus": {
+          "PENDING": "Waiting",
+          "RUNNING": "Running",
+          "RESOLVED": "Resolved",
+          "MESSAGE_PENDING": "Message not sent",
+          "SKIPPED": "Skipped",
+          "FAILED": "Not resolved"
+        }
       }
     },
     "setupTitle": "The problem module needs setting up",
