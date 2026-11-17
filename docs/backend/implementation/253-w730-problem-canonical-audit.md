@@ -103,6 +103,12 @@ CI run [`44184591069`](https://github.com/mudzy992/help-desk-enterprise/actions/
   wizard` — workflow ih preskače za ovaj tip izmjene.
 - **Neuspjeli pokušaji:** nema; prvi run je bio zelen.
 
+Završni docs/guard commit `59a43de` ima vlastiti run
+[`44187381910`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44187381910) — takođe
+**success** (Detect changes, Backend build + test, PostgreSQL/Redis integration, Frontend build + test,
+Docs guard, container/supply-chain, CI gate; E2E i inventory `skipped`). Taj run je dokaz i za podignut
+`check-backend-findings` baseline (695 nalaza / 371 P2) i za novi `problems` red u registru.
+
 Lokalno: `npx jest` ciljano (problems + audit-log, 19 suiteova / 256 testova), `npx vitest run`
 cijeli frontend (455 fajlova / 1789 testova), `npx tsc -b`, `npx eslint` (backend i frontend
 izmijenjeni fajlovi), `npx prettier --check` na izmijenjenim fajlovima, `check-backend-wiring.mjs`

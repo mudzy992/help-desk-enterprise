@@ -445,5 +445,6 @@ CI [`44184591069`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 `c3230db` je **success** (generisani Prisma, backend build/lint/safety-net/wiring/SLA/pun Jest,
 PostgreSQL/Redis integracija, frontend lint/format/testovi/build/budget, docs, container/supply-chain,
 gate); E2E critical/install i read-only inventory bili su `skipped`, bez neuspjelih pokušaja. Detalji
-su u [253](../implementation/253-w730-problem-canonical-audit.md). `BA-problems-13` je sljedeći P2 u
-ovom auditu.
+su u [253](../implementation/253-w730-problem-canonical-audit.md); završni docs/guard commit `59a43de` prošao je
+vlastiti CI [`44187381910`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44187381910)
+(`success`). `BA-problems-13` je sljedeći P2 u ovom auditu.
