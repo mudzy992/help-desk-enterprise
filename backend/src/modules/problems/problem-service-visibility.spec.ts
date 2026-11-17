@@ -60,7 +60,7 @@ function setup(options: { authorization?: AuthorizationContext | null; serviceVi
     updatedAt: date,
     targetRemindersSent: [],
   };
-  const prisma = {
+  const delegates = {
     problem: {
       findFirst: jest.fn(async () => current),
       updateMany: jest.fn(async () => ({ count: 1 })),
@@ -79,7 +79,10 @@ function setup(options: { authorization?: AuthorizationContext | null; serviceVi
       findUnique: jest.fn(async () => ({ ouPath: '/root/ou1/child' })),
       findMany: jest.fn(async () => [{ id: 'ou1', name: 'Jedinica A', ouPath: '/root/ou1' }]),
     },
-    $transaction: jest.fn(async (run: (client: unknown) => Promise<unknown>) => run(prisma)),
+  };
+  const prisma = {
+    ...delegates,
+    $transaction: jest.fn(async (run: (client: unknown) => Promise<unknown>) => run(delegates)),
   };
   const access = {
     require: jest.fn(async () => ({ all: true, paths: [] })),

@@ -1,8 +1,7 @@
 import { ProblemLinksService } from './problem-links.service';
-import { ProblemError, problemErrorCodes } from './problems.constants';
+import { problemErrorCodes } from './problems.constants';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { AuthorizationContext } from '../authorization/authorization.types';
-import { problemAssetAccess } from './problem-asset-access';
 
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../authorization/authorization-context.loader', () => ({ AuthorizationContextLoader: class AuthorizationContextLoader {} }));
@@ -15,7 +14,6 @@ jest.mock('./problem-asset-access', () => ({
 }));
 
 const viewer = { userId: 'u1', isSuperAdmin: false, grants: [], homeOrganizationalUnitId: null } as never;
-const agent = { userId: 'u1', isStaff: true, canManage: false, staffScope: undefined };
 
 function context(overrides: Partial<AuthorizationContext> = {}): AuthorizationContext {
   return {
@@ -105,7 +103,7 @@ describe('ProblemLinksService cross-domain policy', () => {
   it('filters the linked incidents by the status-page visibility of the caller', async () => {
     const { service, prisma } = setup();
     await service.get('p1', viewer);
-    const where = prisma.problemIncident.findMany.mock.calls[0][0].where;
+    const where = (prisma.problemIncident.findMany as jest.Mock).mock.calls[0][0].where;
     expect(where).toEqual({
       AND: [
         { problemId: 'p1' },

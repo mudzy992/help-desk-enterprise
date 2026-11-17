@@ -82,7 +82,11 @@ describeIfDatabase('problem CMDB link scope (BA-problems-03, integration)', () =
       requireGroupAuthority: jest.fn(async () => undefined),
       capabilities: jest.fn(async () => ({ enabled: true, canRead: true, configuration: { numberPrefix: 'P-' } })),
     };
-    links = new ProblemLinksService(prisma as never, access as never, {} as never, {} as never);
+    // W7.29: the link card also asks the service catalog and the status page
+    // what this user may read; the most restrictive context keeps the focus of
+    // this suite on the CMDB scope.
+    const loader = { loadBySubjectId: jest.fn(async () => null) };
+    links = new ProblemLinksService(prisma as never, access as never, loader as never, {} as never);
   });
 
   beforeEach(async () => {

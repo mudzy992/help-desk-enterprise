@@ -7,7 +7,7 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { ProblemNotifier } from './problem-notifier';
-import { ProblemsService, type ProblemDetail } from './problems.service';
+import { ProblemsService } from './problems.service';
 import {
   ProblemError,
   problemErrorCodes,
@@ -263,7 +263,8 @@ export class ProblemHandoffService {
 
   async accept(viewer: ProblemViewer, problemId: string, handoffId: string) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
-    const problem = await this.problems.get(viewer, problemId);
+    // Reading the problem first keeps the same not-found answer as the detail.
+    await this.problems.get(viewer, problemId);
     const handoff = await this.loadPending(problemId, handoffId);
     // Only the receiving side decides.
     await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, handoff.toGroupId);
