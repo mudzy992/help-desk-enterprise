@@ -103,6 +103,16 @@ export function ProblemFormSheet({
     retry: false,
   });
 
+  // W7.29: the catalog decides which services this user may read, so the
+  // service a problem already carries may be missing from the picker. Keeping
+  // it selectable prevents a silent removal when the other fields are saved.
+  const services =
+    problem !== undefined &&
+    problem.service !== null &&
+    !options.services.some((service) => service.id === problem.service?.id)
+      ? [problem.service, ...options.services]
+      : options.services;
+
   // A unit outside the list (another scope) stays selectable while editing.
   const units =
     problem !== undefined &&
@@ -410,11 +420,12 @@ export function ProblemFormSheet({
               {(control) => (
                 <Select
                   {...control}
+                  data-testid="problem-form-service"
                   value={serviceId}
                   onChange={(event) => setServiceId(event.target.value)}
                 >
                   <option value="">{t("problems.form.none")}</option>
-                  {options.services.map((service) => (
+                  {services.map((service) => (
                     <option key={service.id} value={service.id}>
                       {service.name}
                     </option>

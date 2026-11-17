@@ -70,6 +70,10 @@ const problem = {
 } as unknown as ProblemDetail;
 
 function renderSheet(onSaved = vi.fn()) {
+  return renderSheetFor(problem, onSaved);
+}
+
+function renderSheetFor(target: ProblemDetail, onSaved = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -78,7 +82,7 @@ function renderSheet(onSaved = vi.fn()) {
           open
           onOpenChange={() => undefined}
           options={options}
-          problem={problem}
+          problem={target}
           onSaved={onSaved}
           canAssignOwner
         />
@@ -152,6 +156,21 @@ describe("ProblemFormSheet group change", () => {
     await waitFor(() => expect(handoff).toHaveBeenCalled());
     // The page still reloads so the user sees the pending transfer and its state.
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith("p1"));
+  });
+
+  it("keeps a service the catalog no longer offers instead of dropping it", async () => {
+    update.mockResolvedValue(problem);
+    const archived = {
+      ...problem,
+      service: { id: "svc-old", name: "Arhivirani servis" },
+    } as unknown as ProblemDetail;
+    renderSheetFor(archived);
+
+    const service = screen.getByTestId("problem-form-service") as HTMLSelectElement;
+    expect(service.value).toBe("svc-old");
+    fireEvent.click(screen.getByTestId("problem-form-submit"));
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update.mock.calls[0][1]).toMatchObject({ serviceId: "svc-old" });
   });
 
   it("updates the group field directly only when nothing changed", async () => {
