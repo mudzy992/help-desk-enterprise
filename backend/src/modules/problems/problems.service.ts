@@ -36,6 +36,7 @@ import { problemVisibilityWhere } from './problem-visibility';
 import { assertUnitFollowsGroup } from './problem-handoff-rules';
 import { problemCrossDomainVisibility } from './problem-cross-domain-visibility';
 import { problemClaimAuditMetadata, problemUpdateAuditMetadata } from './problem-audit';
+import { problemCreatedOccurrence, problemVersionOccurrence } from './problem-notice-occurrence';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
@@ -432,8 +433,8 @@ export class ProblemsService {
     }
     // Realtime ticket events and notifications stay outside the transaction.
     if (outcome.notices.length > 0) this.ticketLinks.publish(outcome.notices);
-    if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(outcome.id, viewer.userId));
-    else this.notify('group', (notifier) => notifier.groupAssigned(outcome.id, viewer.userId));
+    if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(outcome.id, viewer.userId, problemCreatedOccurrence));
+    else this.notify('group', (notifier) => notifier.groupAssigned(outcome.id, viewer.userId, problemCreatedOccurrence));
     return { ...(await this.get(viewer, outcome.id)), ticketLinks: outcome.ticketLinks };
   }
 
@@ -636,8 +637,11 @@ export class ProblemsService {
         actorUserId: viewer.userId,
       });
     });
-    if (changes.ownerUserId && data.ownerUserId) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));
-    else if (changes.groupId) this.notify('group', (notifier) => notifier.groupAssigned(id, viewer.userId));
+    // W7.31: the notice belongs to the version this write produced, so a retry
+    // of the same command cannot produce a second message.
+    const occurrence = problemVersionOccurrence(current.version + 1);
+    if (changes.ownerUserId && data.ownerUserId) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId, occurrence));
+    else if (changes.groupId) this.notify('group', (notifier) => notifier.groupAssigned(id, viewer.userId, occurrence));
     return this.get(viewer, id);
   }
 

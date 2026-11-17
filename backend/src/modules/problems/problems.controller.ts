@@ -18,6 +18,11 @@ import {
   ProblemStatusDto,
   UpdateProblemDto,
 } from './problems.dto';
+import {
+  problemResolutionRunOccurrence,
+  problemVersionOccurrence,
+  type ProblemNoticeOccurrence,
+} from './problem-notice-occurrence';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemHandoffService } from './problem-handoff.service';
 import { ProblemTargetReminderService } from './problem-target-reminder.service';
@@ -217,10 +222,14 @@ export class ProblemsController {
       const { resolveTickets, message, closeCode, resolutionRunId, ...status } = body;
       const groupResolve = resolveTickets === true && status.status === 'RESOLVED';
       // P5 (§11): after the group resolution, so only agents of tickets that stayed open hear about it.
-      const notify = () => this.notifier.run('status', () => this.notifier.statusChanged(id, status.status, viewer.userId));
+      // W7.31: the notice is deduplicated per user by a stable occurrence — the
+      // problem version for a plain status write, the resolution run id when a
+      // run is involved (a resumed run still reaches newly resolved agents).
+      const notify = (occurrence: ProblemNoticeOccurrence) =>
+        this.notifier.run('status', () => this.notifier.statusChanged(id, status.status, viewer.userId, occurrence));
       if (!groupResolve) {
         const problem = await this.problems.changeStatus(viewer, id, status);
-        notify();
+        notify(problemVersionOccurrence(problem.version));
         return { ...problem, ticketResolution: null };
       }
       await this.resolution.assertResolveOptions(id, viewer, { message, closeCode });
@@ -228,8 +237,9 @@ export class ProblemsController {
       // the two leaves a resumable record instead of losing the resolution.
       const runId = resolutionRunId ?? randomUUID();
       const prepared = await this.resolution.prepareRun(id, viewer, { runId, message, closeCode });
+      const runOccurrence = problemResolutionRunOccurrence(runId, status.status);
       if (prepared.replay !== null) {
-        notify();
+        notify(runOccurrence);
         return { ...(await this.problems.get(viewer, id)), ticketResolution: prepared.replay };
       }
       if (prepared.status === 'FAILED') throw new ProblemError(problemErrorCodes.resolutionRunClosed);
@@ -241,7 +251,7 @@ export class ProblemsController {
         throw error;
       }
       const ticketResolution = await this.resolution.executeRun(id, viewer, runId);
-      notify();
+      notify(runOccurrence);
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }
@@ -260,7 +270,9 @@ export class ProblemsController {
         throw new ProblemError(problemErrorCodes.resolutionRunClosed);
       }
       const ticketResolution = prepared.replay ?? (await this.resolution.executeRun(id, viewer, body.runId));
-      this.notifier.run('status', () => this.notifier.statusChanged(id, 'RESOLVED', viewer.userId));
+      this.notifier.run('status', () =>
+        this.notifier.statusChanged(id, 'RESOLVED', viewer.userId, problemResolutionRunOccurrence(body.runId, 'RESOLVED')),
+      );
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }
@@ -284,7 +296,11 @@ export class ProblemsController {
     return runProblem(async () => {
       const viewer = this.viewer(request);
       const ticketResolution = await this.resolution.resumeRun(id, viewer, runId);
-      this.notifier.run('status', () => this.notifier.statusChanged(id, 'RESOLVED', viewer.userId));
+      // The same occurrence: agents who already heard about this run are not
+      // notified twice, while tickets resolved for the first time are.
+      this.notifier.run('status', () =>
+        this.notifier.statusChanged(id, 'RESOLVED', viewer.userId, problemResolutionRunOccurrence(runId, 'RESOLVED')),
+      );
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }

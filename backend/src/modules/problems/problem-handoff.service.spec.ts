@@ -1,4 +1,5 @@
 import { ProblemHandoffService, toProblemHandoffView } from './problem-handoff.service';
+import { problemHandoffOccurrence } from './problem-notice-occurrence';
 import { ProblemError, problemErrorCodes } from './problems.constants';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { prepareAuditEntry } from '../audit-log/audit-event-policy';
@@ -172,7 +173,7 @@ describe('ProblemHandoffService request', () => {
       expect.objectContaining({ action: auditLogActions.problemHandoffAccepted, metadata: expect.objectContaining({ autoAccepted: true }) }),
     );
     // The new group learns about its problem; nothing waits for a decision.
-    expect(notifier.groupAssigned).toHaveBeenCalledWith('p1', 'u1');
+    expect(notifier.groupAssigned).toHaveBeenCalledWith('p1', 'u1', problemHandoffOccurrence('h1'));
     expect(notifier.handoffRequested).not.toHaveBeenCalled();
     expect(result.handoff.status).toBe('ACCEPTED');
   });
@@ -221,7 +222,7 @@ describe('ProblemHandoffService decisions', () => {
     );
     expect(events.map((event) => event.action)).toEqual(['handoff_accepted']);
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemHandoffAccepted }));
-    expect(notifier.groupAssigned).toHaveBeenCalledWith('p1', 'u1');
+    expect(notifier.groupAssigned).toHaveBeenCalledWith('p1', 'u1', problemHandoffOccurrence('h1'));
     expect(notifier.handoffDecided).toHaveBeenCalledWith('p1', 'h1', 'u1', 'u1');
   });
 

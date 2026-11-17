@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -23,6 +22,12 @@ import { SettingsService } from '../settings/settings.service';
 import { composeProblemEmail, problemStatusLabel, type ProblemEmailKey } from './compose-problem-email';
 import { ProblemAccessService } from './problem-access.service';
 import { formatProblemNumber } from './problem-rules';
+import {
+  problemHandoffOccurrence,
+  problemRecurrenceOccurrence,
+  problemTargetDueOccurrence,
+  type ProblemNoticeOccurrence,
+} from './problem-notice-occurrence';
 import { problemOpenTicketStatuses } from './problems.constants';
 
 /** At most this many agents get one linked-ticket notice (more = misconfigured grouping). */
@@ -136,33 +141,38 @@ export class ProblemNotifier {
     void operation().catch((error: unknown) => this.logger.warn(`problem_notice_failed kind=${label} reason=${errorText(error)}`));
   }
 
-  async ownerAssigned(problemId: string, actorUserId: string | null): Promise<number> {
+  async ownerAssigned(problemId: string, actorUserId: string | null, occurrence: ProblemNoticeOccurrence): Promise<number> {
     const facts = await this.facts(problemId);
     if (facts === null || facts.ownerUserId === null) return 0;
     return this.send(facts, actorUserId, {
       type: notificationTypes.problemAssigned,
       emailKey: 'problem.assigned',
       recipientIds: [facts.ownerUserId],
-      occurrence: `${facts.ownerUserId}:${Date.now()}`,
+      occurrence: occurrence.key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
 
   /** Decision 2026-10-01: a new (or handed-over) problem without an owner, to the problem managers of its group. */
-  async groupAssigned(problemId: string, actorUserId: string | null): Promise<number> {
+  async groupAssigned(problemId: string, actorUserId: string | null, occurrence: ProblemNoticeOccurrence): Promise<number> {
     const facts = await this.facts(problemId);
     if (facts === null || facts.groupId === null) return 0;
     return this.send(facts, actorUserId, {
       type: notificationTypes.problemGroupAssigned,
       emailKey: null,
       recipientIds: await this.groupManagers(facts.groupId),
-      occurrence: `${facts.groupId}:${Date.now()}`,
+      occurrence: occurrence.key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
 
   /** §11: KNOWN_ERROR (workaround available) or RESOLVED, to agents of the still-open linked tickets. */
-  async statusChanged(problemId: string, status: string, actorUserId: string | null): Promise<number> {
+  async statusChanged(
+    problemId: string,
+    status: string,
+    actorUserId: string | null,
+    occurrence: ProblemNoticeOccurrence,
+  ): Promise<number> {
     if (status !== 'KNOWN_ERROR' && status !== 'RESOLVED') return 0;
     const facts = await this.facts(problemId);
     if (facts === null) return 0;
@@ -177,7 +187,7 @@ export class ProblemNotifier {
       type: resolved ? notificationTypes.problemResolved : notificationTypes.problemKnownError,
       emailKey: resolved ? 'problem.resolved' : null,
       recipientIds: recipientIds.slice(0, problemNoticeMaxRecipients),
-      occurrence: `${status}:${Date.now()}`,
+      occurrence: occurrence.key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
@@ -193,8 +203,9 @@ export class ProblemNotifier {
       type: notificationTypes.problemRecurrence,
       emailKey: null,
       recipientIds,
-      // Do not put ticket identifiers in either notification body or dedupe payload.
-      occurrence: randomUUID(),
+      // W7.31: the occurrence is a digest of the ticket references, so the same
+      // link command replays to the same key and no identifier reachable from it.
+      occurrence: problemRecurrenceOccurrence(ticketNumbers).key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
@@ -223,7 +234,7 @@ export class ProblemNotifier {
       type: notificationTypes.problemTargetDue,
       emailKey: 'problem.target_due',
       recipientIds,
-      occurrence: `${stage}:${targetAt.toISOString()}`,
+      occurrence: problemTargetDueOccurrence(stage, targetAt).key,
       detail: (_locale, format) => format(targetAt),
     });
   }
@@ -240,7 +251,7 @@ export class ProblemNotifier {
       type: notificationTypes.problemHandoffRequested,
       emailKey: null,
       recipientIds: await this.groupManagers(targetGroupId),
-      occurrence: handoffId,
+      occurrence: problemHandoffOccurrence(handoffId).key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
@@ -254,7 +265,7 @@ export class ProblemNotifier {
       type: notificationTypes.problemHandoffDecided,
       emailKey: null,
       recipientIds: [requesterUserId],
-      occurrence: handoffId,
+      occurrence: problemHandoffOccurrence(handoffId).key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }
@@ -315,6 +326,8 @@ export class ProblemNotifier {
    * behaviour while the target-reminder row can act on the reason.
    */
   private async sendDetailed(facts: Facts, actorUserId: string | null, notice: Notice): Promise<ProblemNoticeOutcome> {
+    // W7.31: a notice without a stable occurrence would dedupe on an empty key.
+    if (notice.occurrence.trim().length === 0) throw new Error('PROBLEM_NOTICE_OCCURRENCE_MISSING');
     const ids = [...new Set(notice.recipientIds)].filter((id) => id !== actorUserId);
     if (ids.length === 0) return problemNoticeNothingSent;
     const users = await this.prisma.user.findMany({

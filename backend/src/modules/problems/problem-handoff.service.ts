@@ -6,6 +6,7 @@ import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
+import { problemHandoffOccurrence } from './problem-notice-occurrence';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemsService } from './problems.service';
 import {
@@ -254,7 +255,7 @@ export class ProblemHandoffService {
       throw error;
     }
     if (autoAccept) {
-      this.notify('handoff-accepted', (notifier) => notifier.groupAssigned(problemId, viewer.userId));
+      this.notify('handoff-accepted', (notifier) => notifier.groupAssigned(problemId, viewer.userId, problemHandoffOccurrence(handoffId)));
     } else {
       this.notify('handoff-requested', (notifier) => notifier.handoffRequested(problemId, handoffId, target.id, viewer.userId));
     }
@@ -313,7 +314,7 @@ export class ProblemHandoffService {
         actorUserId: viewer.userId,
       });
     });
-    this.notify('handoff-accepted', (notifier) => notifier.groupAssigned(problemId, viewer.userId));
+    this.notify('handoff-accepted', (notifier) => notifier.groupAssigned(problemId, viewer.userId, problemHandoffOccurrence(handoffId)));
     this.notify('handoff-decided', (notifier) => notifier.handoffDecided(problemId, handoffId, handoff.requestedByUserId, viewer.userId));
     return this.result(viewer, problemId, handoffId);
   }
