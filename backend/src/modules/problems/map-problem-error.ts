@@ -17,6 +17,7 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.assetNotFound:
     case problemErrorCodes.incidentNotFound:
     case problemErrorCodes.resolutionRunNotFound:
+    case problemErrorCodes.targetReminderNotFound:
       return new NotFoundException(body);
     case problemErrorCodes.forbidden:
     case problemErrorCodes.outOfScope:
@@ -30,6 +31,8 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.articleExists:
     case problemErrorCodes.resolutionRunConflict:
     case problemErrorCodes.resolutionRunClosed:
+    case problemErrorCodes.targetReminderFinal:
+    case problemErrorCodes.targetReminderInProgress:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

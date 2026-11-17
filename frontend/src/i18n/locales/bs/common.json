@@ -9689,6 +9689,36 @@
       "submit": "Sačuvaj nacrt",
       "created": "Nacrt članka je kreiran i povezan s problemom."
     },
+    "targetReminders": {
+      "title": "Podsjetnici na rok",
+      "hint": "Podsjetnik se prvo zapisuje, pa tek onda šalje. Zeleno znači potvrđenu isporuku, sivo da prema politici nije bilo kome poslati, crveno da isporuka nije uspjela; takav podsjetnik satni sweep ponavlja i može se ponoviti ručno.",
+      "stage": {
+        "before": "Dan prije roka",
+        "due": "Na dan roka",
+        "overdue": "Rok prekoračen"
+      },
+      "status": {
+        "PENDING": "Na čekanju",
+        "CLAIMED": "U toku",
+        "SENT": "Poslano",
+        "NO_RECIPIENT": "Nema primaoca",
+        "FAILED": "Nije poslano",
+        "DEAD": "Odustalo",
+        "CANCELLED": "Otkazano"
+      },
+      "recipients": "Primilo {{delivered}} od {{total}}",
+      "attempts": "Pokušaji: {{count}}",
+      "errorCode": "Razlog: {{code}}",
+      "failedUnknown": "Razlog nije zabilježen",
+      "nextAttempt": "Sljedeći pokušaj {{when}}",
+      "noRetry": "nema više automatskih pokušaja",
+      "sentAt": "Potvrđeno {{when}}",
+      "noRecipientHint": "Politika nije našla primaoca (vlasnik, grupa, dozvole ili preference). Marker je zapisan kao konačan ishod i podsjetnik se ne ponavlja.",
+      "retry": "Pokušaj ponovo",
+      "retrying": "Ponovni pokušaj…",
+      "retryDone": "Podsjetnik je ponovno poslan",
+      "retryFailed": "Ponovni pokušaj nije uspio"
+    },
     "resolveTickets": {
       "loading": "Učitavanje povezanih tiketa…",
       "none": "Problem nema otvorenih povezanih tiketa.",

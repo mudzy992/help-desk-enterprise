@@ -8,6 +8,7 @@ import { ProblemLinksService } from './problem-links.service';
 import { ProblemTicketsService } from './problem-tickets.service';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemResolutionRunService } from './problem-resolution-run.service';
+import { ProblemTargetReminderService } from './problem-target-reminder.service';
 import { ProblemResolutionService } from './problem-resolution.service';
 import { ProblemAccessService } from './problem-access.service';
 import { ProblemsController } from './problems.controller';
@@ -24,6 +25,7 @@ import { ProblemsService } from './problems.service';
     ProblemResolutionRunService,
     ProblemResolutionService,
     ProblemNotifier,
+    ProblemTargetReminderService,
     ProblemLinksService,
   ],
   exports: [ProblemAccessService, ProblemsService, ProblemTicketsService],

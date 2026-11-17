@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271130240000_problem_resolution_runs';
+  '20271130250000_problem_target_reminders';
 
 export function assertDatabaseTransport(
   connectionString: string,

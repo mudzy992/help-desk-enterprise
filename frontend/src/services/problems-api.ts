@@ -292,6 +292,7 @@ export const problemQueryKeys = {
   resolvePreview: (id: string) => ["problems", "detail", id, "resolve-preview"] as const,
   resolutionRunLatest: (id: string) =>
     ["problems", "detail", id, "resolution-run", "latest"] as const,
+  targetReminders: (id: string) => ["problems", "detail", id, "target-reminders"] as const,
   articleDraft: (id: string) => ["problems", "detail", id, "article-draft"] as const,
 };
 
@@ -407,6 +408,34 @@ export type ProblemResolutionRun = {
   readonly items: readonly ProblemResolutionRunItem[];
 };
 
+/**
+ * W7.25 (BA-problems-07): one durable target reminder. `SENT` (someone got a
+ * channel) and `NO_RECIPIENT` (policy left nobody to notify) are final; a
+ * `FAILED`/`DEAD` row can be retried by a problem manager.
+ */
+export type ProblemTargetReminderStatus =
+  "PENDING" | "CLAIMED" | "SENT" | "NO_RECIPIENT" | "FAILED" | "DEAD" | "CANCELLED";
+
+export type ProblemTargetReminder = {
+  readonly id: string;
+  readonly stage: string;
+  readonly status: ProblemTargetReminderStatus;
+  readonly targetAt: string;
+  readonly attempts: number;
+  readonly deliveredCount: number;
+  readonly recipientCount: number;
+  readonly errorCode: string | null;
+  readonly nextAttemptAt: string | null;
+  readonly lastAttemptAt: string | null;
+  readonly completedAt: string | null;
+  readonly canRetry: boolean;
+};
+
+export type ProblemTargetReminders = {
+  readonly items: readonly ProblemTargetReminder[];
+  readonly canRetry: boolean;
+};
+
 export type ProblemResolvePreview = {
   readonly max: number;
   readonly resolvable: number;
@@ -507,6 +536,20 @@ export function startProblemResolutionRun(
     method: "POST",
     ...json(input),
   });
+}
+
+export function getProblemTargetReminders(id: string): Promise<ProblemTargetReminders> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/target-reminders`);
+}
+
+export function retryProblemTargetReminder(
+  id: string,
+  reminderId: string,
+): Promise<ProblemDetail & { readonly targetReminders: ProblemTargetReminders }> {
+  return apiRequest(
+    `/problems/${encodeURIComponent(id)}/target-reminders/${encodeURIComponent(reminderId)}/retry`,
+    { method: "POST" },
+  );
 }
 
 export function getProblemEvents(id: string): Promise<{ readonly items: readonly ProblemEvent[] }> {

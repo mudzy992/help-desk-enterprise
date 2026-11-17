@@ -18,6 +18,7 @@ import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { ProblemLinksPanel } from "@/components/problems/problem-links-panel";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemResolutionRunPanel } from "@/components/problems/problem-resolution-run-panel";
+import { ProblemTargetReminderPanel } from "@/components/problems/problem-target-reminder-panel";
 import { ProblemStatusSheet } from "@/components/problems/problem-status-sheet";
 import { ProblemTicketsPanel } from "@/components/problems/problem-tickets-panel";
 import {
@@ -280,6 +281,7 @@ export function ProblemDetailPage() {
             <span>{t("problems.detail.needsOwner")}</span>
           </div>
         ) : null}
+        <ProblemTargetReminderPanel problem={problem} onRetried={refresh} />
         <ProblemResolutionRunPanel problem={problem} onResumed={refresh} />
         <UnderlineTabs
           items={[

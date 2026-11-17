@@ -52,6 +52,7 @@ model Problem {
   knowledgeArticle     KnowledgeArticle?  @relation(fields: [knowledgeArticleId], references: [id], onDelete: SetNull)
   tickets              ProblemTicket[]
   resolutionRuns       ProblemResolutionRun[]
+  targetReminders      ProblemTargetReminder[]
   assets               ProblemAsset[]
   services             ProblemService[]
   incidents            ProblemIncident[]
@@ -201,4 +202,52 @@ model ProblemResolutionRunItem {
   @@unique([runId, ticketId])
   @@unique([runId, ordinal])
   @@index([runId, status])
+}
+
+/// W7.25 (BA-problems-07): one reminder of one target stage. The row is written
+/// before anything is sent and becomes terminal (SENT / NO_RECIPIENT) only after
+/// the attempt finished, so `Problem.targetRemindersSent` can no longer claim a
+/// reminder that a crash, a missing recipient or a failed delivery never sent.
+enum ProblemTargetReminderStatus {
+  /// Written, not attempted yet.
+  PENDING
+  /// Claimed by one sweep or operator; a stale claim is retried (sends are idempotent).
+  CLAIMED
+  /// At least one recipient got the in-app notification or the e-mail.
+  SENT
+  /// Authorisation and preferences left nobody to notify: a final policy outcome.
+  NO_RECIPIENT
+  /// Every attempt failed; retried with backoff until DEAD.
+  FAILED
+  /// The attempt budget is spent; only an operator retry moves it again.
+  DEAD
+  /// The target was re-armed (priority change, reopen) or the problem left the open
+  /// statuses before delivery finished, so this reminder no longer belongs to it.
+  CANCELLED
+}
+
+model ProblemTargetReminder {
+  id             String                        @id @default(cuid())
+  problemId      String
+  /// The target this reminder belongs to; a re-armed target starts new rows.
+  targetAt       DateTime
+  /// `before` | `due` | `overdue` (see plan-problem-reminders.ts).
+  stage          String                        @db.VarChar(16)
+  status         ProblemTargetReminderStatus   @default(PENDING)
+  attempts       Int                           @default(0)
+  /// Recipients that got at least one channel, out of `recipientCount`.
+  deliveredCount Int                           @default(0)
+  recipientCount Int                           @default(0)
+  lastErrorCode  String?                       @db.VarChar(32)
+  claimedAt      DateTime?
+  lastAttemptAt  DateTime?
+  nextAttemptAt  DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+  problem        Problem                       @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, targetAt, stage])
+  @@index([status, nextAttemptAt])
+  @@index([problemId, createdAt])
 }

@@ -5,6 +5,7 @@ import { SmtpMailTransport } from '../../notifications/email/smtp-mail-transport
 import { SettingsModule } from '../../settings/settings.module';
 import { ProblemAccessService } from '../problem-access.service';
 import { ProblemNotifier } from '../problem-notifier';
+import { ProblemTargetReminderService } from '../problem-target-reminder.service';
 import { problemSweepQueueName } from './problem-sweep.constants';
 import { ProblemSweepProcessor } from './problem-sweep.processor';
 import { ProblemSweepSchedulerService } from './problem-sweep.scheduler.service';
@@ -18,6 +19,7 @@ import { ProblemSweepService } from './problem-sweep.service';
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
     ProblemAccessService,
     ProblemNotifier,
+    ProblemTargetReminderService,
     ProblemSweepService,
     ProblemSweepProcessor,
     ProblemSweepSchedulerService,

@@ -17,6 +17,7 @@ import {
   UpdateProblemDto,
 } from './problems.dto';
 import { ProblemNotifier } from './problem-notifier';
+import { ProblemTargetReminderService } from './problem-target-reminder.service';
 import { ProblemResolutionService } from './problem-resolution.service';
 import { ProblemLinksService } from './problem-links.service';
 import { ProblemTicketsService } from './problem-tickets.service';
@@ -72,6 +73,7 @@ export class ProblemsController {
     private readonly resolution: ProblemResolutionService,
     private readonly notifier: ProblemNotifier,
     private readonly links: ProblemLinksService,
+    private readonly reminders: ProblemTargetReminderService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
@@ -285,6 +287,36 @@ export class ProblemsController {
       const ticketResolution = await this.resolution.resumeRun(id, viewer, runId);
       this.notifier.run('status', () => this.notifier.statusChanged(id, 'RESOLVED', viewer.userId));
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
+    });
+  }
+
+  /**
+   * W7.25 (BA-problems-07): the durable target-reminder rows of this problem.
+   * `problem.read` in the OU scope decides visibility; `canRetry` says whether
+   * the viewer may retry a failed reminder (problem.manage of the group).
+   */
+  @Get(':id/target-reminders')
+  @Header('Cache-Control', 'no-store')
+  targetReminders(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.reminders.list(id, this.viewer(request)));
+  }
+
+  /**
+   * W7.25: one operator-triggered attempt. A manual retry restarts the attempt
+   * budget and is only allowed for PENDING/FAILED/DEAD rows; the response is the
+   * problem with the refreshed reminder list, exactly like the resolution runs.
+   */
+  @Post(':id/target-reminders/:reminderId/retry')
+  @HttpCode(200)
+  retryTargetReminder(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Param('reminderId') reminderId: string,
+  ) {
+    return runProblem(async () => {
+      const viewer = this.viewer(request);
+      const targetReminders = await this.reminders.retry(id, reminderId, viewer);
+      return { ...(await this.problems.get(viewer, id)), targetReminders };
     });
   }
 

@@ -79,6 +79,10 @@ export const problemErrorCodes = {
   resolutionRunNotFound: 'PROBLEM_RESOLUTION_RUN_NOT_FOUND',
   resolutionRunConflict: 'PROBLEM_RESOLUTION_RUN_CONFLICT',
   resolutionRunClosed: 'PROBLEM_RESOLUTION_RUN_CLOSED',
+  /** W7.25: unknown reminder id of this problem, a row that is already final, or a live claim. */
+  targetReminderNotFound: 'PROBLEM_TARGET_REMINDER_NOT_FOUND',
+  targetReminderFinal: 'PROBLEM_TARGET_REMINDER_FINAL',
+  targetReminderInProgress: 'PROBLEM_TARGET_REMINDER_IN_PROGRESS',
   articleExists: 'PROBLEM_ARTICLE_EXISTS',
   articleInvalid: 'PROBLEM_ARTICLE_INVALID',
 } as const;

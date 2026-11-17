@@ -9620,6 +9620,36 @@
       "submit": "Save draft",
       "created": "The article draft was created and linked to the problem."
     },
+    "targetReminders": {
+      "title": "Target reminders",
+      "hint": "A reminder is recorded first and sent afterwards. Green means a confirmed delivery, grey that policy left nobody to notify, red that the delivery failed; those are retried by the hourly sweep and can be retried by hand.",
+      "stage": {
+        "before": "The day before the target",
+        "due": "On the target day",
+        "overdue": "Past the target"
+      },
+      "status": {
+        "PENDING": "Queued",
+        "CLAIMED": "In progress",
+        "SENT": "Sent",
+        "NO_RECIPIENT": "No recipient",
+        "FAILED": "Not sent",
+        "DEAD": "Gave up",
+        "CANCELLED": "Cancelled"
+      },
+      "recipients": "Received by {{delivered}} of {{total}}",
+      "attempts": "Attempts: {{count}}",
+      "errorCode": "Reason: {{code}}",
+      "failedUnknown": "No reason recorded",
+      "nextAttempt": "Next attempt {{when}}",
+      "noRetry": "no automatic attempts left",
+      "sentAt": "Confirmed {{when}}",
+      "noRecipientHint": "Policy found nobody to notify (owner, group, permissions or preferences). The marker records the final outcome and the reminder is not repeated.",
+      "retry": "Try again",
+      "retrying": "Retrying…",
+      "retryDone": "The reminder was sent again",
+      "retryFailed": "The retry failed"
+    },
     "resolveTickets": {
       "loading": "Loading linked tickets…",
       "none": "The problem has no open linked tickets.",
