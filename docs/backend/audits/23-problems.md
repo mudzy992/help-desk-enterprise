@@ -95,6 +95,8 @@ Target koristi aktivan business-hours kalendar, timezone/civil days, holidaye i 
 
 Sweep marker je upisan **prije** `targetDue`. Komentar eksplicitno bira gubitak umjesto duplikata. Crash, nula recipienta, deaktiviran owner, sve preference OFF, notification DB failure ili email-only failure ostavljaju stage trajno označenim. Marker mora značiti persisted/delivered policy outcome, a ne započet pokušaj. Potreban je outbox/delivery state po problem+target+stage+recipient i retry/dead-letter reconciliation.
 
+**W7.25 (zatvoreno, vidi §26):** podsjetnik je sada durable red `ProblemTargetReminder` po problemu, targetu i stageu. Red se piše prije pokušaja i claim-uje atomski, a `Problem.targetRemindersSent` se dodaje tek nakon terminalnog ishoda: `SENT` (barem jedan primalac je dobio in-app ili e-mail) ili `NO_RECIPIENT` (politika nije ostavila primaoca — konačan ishod, bez retryja). Pad isporuke je `FAILED` sa backoffom 2/10/60/240 min i `DEAD` poslije pet pokušaja, uz ručni retry za `problem.manage`. Ponovno slanje je bezbjedno zbog stabilnih dedupe ključeva u notifikacijama i e-mail ledgeru.
+
 Owner/group/status notifikacije koriste `Date.now()` u occurrence ključu. Retry istog poslovnog događaja dobija novi dedupe key i može duplirati poruke; event/version ID treba biti stabilni occurrence. Fire-and-forget greška se samo loguje i nema durable recoveryja.
 
 Scheduler registruje hourly job samo na module init. Stable scheduler ID pomaže kod normalnog restarta, ali Redis flush/restart poslije boota se ne reconciliuje do redeploya. Registracijska greška se guta. Nema health provjere scheduler presence, last sweep/auto-close age, overdue backlog ni notification delivery drift.
@@ -157,7 +159,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | zatvoreno (W7.20 owner-directed) |
 | BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | zatvoreno (W7.23) |
 | BA-problems-06 | P1       | Problem se commit-a RESOLVED prije bulk ticketa bez durable retry/resume putanje               | zatvoreno (W7.24) |
-| BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | otvoreno |
+| BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | zatvoreno (W7.25) |
 | BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | otvoreno |
 | BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | otvoreno |
 | BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | otvoreno |
@@ -178,6 +180,10 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 - **03:** zatvoreno u W7.22 — `asset.read` + asset OU scope za search, suggestions, link, linked shape, reverse karticu i asset dio historije (vidi §23).
 - **04–05:** aktuelni ticket policy na svaki unlink/resolve; W7.23 je delegaciju sveo na povezane ne-povjerljive tikete uz `RESOLVED` problem, problem permisije/OU i group authority, provjereno po tiketu pri upisu (vidi §24).
 - **06:** persisted bulk-resolution run/item state, idempotency, resume endpoint i completion policy.
+- **07:** zatvoreno u W7.25 — durable `ProblemTargetReminder` red (novi tabela + add-only migracija
+  `20271130250000_problem_target_reminders`), claim fence, marker samo po terminalnom ishodu (`SENT`/`NO_RECIPIENT`),
+  `NO_RECIPIENT` kao konačan politički ishod, automatski retry/dead-letter u satnom sweepu i ručni
+  `POST /problems/:id/target-reminders/:reminderId/retry` (vidi §26).
 - **07, 13:** outbox/delivery state i stabilni business event occurrence ključevi.
 - **08:** jedinstvena create+link command transakcija ili dokumentovan partial/compensation ugovor.
 - **09:** KB idempotency/unique problem draft i orphan reconciliation.
@@ -276,3 +282,31 @@ CI [`44043856970`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 Group rješavanje je sada durable run, ne jedan best-effort prolaz. `ProblemResolutionRun` i `ProblemResolutionRunItem` (nova add-only migracija `20271130240000_problem_resolution_runs`) zapisuju se **prije** promjene statusa problema i prije prvog ticket upisa; svaki item ima vlastiti status, `attempts`, `retryable` i `messageSent`, a `runId` je klijentski idempotency ključ (isti ključ + payload replay-a, drugi payload daje `PROBLEM_RESOLUTION_RUN_CONFLICT`, tuđi problem `PROBLEM_RESOLUTION_RUN_NOT_FOUND`). Poruka podnosiocu ide kroz `createMessage` s ključem `${runId}:${ticketId}`, pa ni ponovni poziv ni Resume ne prave duplu poruku ni duplu promjenu statusa. Item se claim-uje atomski, stale `RUNNING` iz crasha se dovršava (samo poruka ako je tiket već `RESOLVED`), a `PROCESSING` run iz crasha Resume sam dovršava uključujući `RESOLVED` problema. Problem se i dalje postavlja `RESOLVED` odmah, ali run smije ostati `PARTIAL`: status sheet i nova kartica na detalju problema prikazuju „Rješavanje povezanih tiketa nije dovršeno“ i nude **Nastavi rješavanje** dok svi itemi nisu terminalni. Nema schedulera/sweepera (odluka `manual`). W7.23 delegacija ostaje na snazi po tiketu.
 
 CI [`44050719920`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44050719920) na SHA `0eaf4a1` je **success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju, frontend (lint/format/test/build/budget), docs, container/supply-chain i CI gate; E2E critical/install, read-only inventory i uslovni image enforcement bili su `skipped`. Zatvaranje nalaza čeka korisničku vizuelnu provjeru. Detalji, neuspjeli pokušaji i lokalna ograničenja su u [246](../implementation/246-w724-problem-resolution-runs.md) i [247](../implementation/247-w724-problems-06-closeout.md). `BA-problems-07` ostaje sljedeći P1 u ovom auditu.
+
+## 26. W7.25 — BA-problems-07 closeout
+
+Podsjetnik na rok više nije marker koji prethodi isporuci. `ProblemTargetReminder` (nova add-only migracija
+`20271130250000_problem_target_reminders`) čuva red po `problemId+targetAt+stage` sa statusom, `attempts`,
+`nextAttemptAt`, `lastErrorCode` i brojačima `deliveredCount`/`recipientCount`. Red se kreira **prije** pokušaja,
+claim-uje se atomski (`updateMany`, stale claim stariji od 30 min se preuzima) i finalizuje samo dok je `CLAIMED`.
+`Problem.targetRemindersSent` se dodaje **nakon** terminalnog reda i to samo za ishod `SENT` (barem jedan primalac je
+dobio in-app notifikaciju ili e-mail) ili `NO_RECIPIENT` — odluka vlasnika je da je nula primalaca konačan ishod
+politike: marker se upisuje, retryja nema, a `attempts` i razlog ostaju zapisani. Pad isporuke je `FAILED` sa
+backoffom 2/10/60/240 min, peti neuspjeh je `DEAD`, a satni sweep i `POST /problems/:id/target-reminders/:reminderId/retry`
+(vraća budžet na jedan pokušaj, traži `problem.manage` u OU opsegu i group authority) ga mogu ponoviti. Ponovno
+slanje ne duplira notifikacije: in-app ključ `problem:problem.targetDue:<problemId>:<stage>:<targetAt>` i e-mail
+`NotificationEmailDelivery[userId, dedupeKey]` ostaju stabilni. `ProblemNotifier.targetDueDetailed` sada vraća
+ishod (`delivered`/`recipients`/`failures`/`errorCode` sa kodovima iz e-mail ledgera) umjesto golog broja, pa sweep
+loguje `reminders_sent/no_recipient/failed/dead/cancelled`. Detalj problema prikazuje redove tekućeg targeta
+(bs/en) i nudi ručni retry sa inline alertom i danger toastom na neuspjeh. Ako proces padne između terminalnog reda i
+markera, sljedeći sweep popravi marker iz reda bez ponovnog slanja. W7.23 delegacija i W7.24 group rješavanje nisu
+mijenjani.
+
+CI [`44069568731`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44069568731) na `61a1491` je
+**success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju (nova migracija
+kroz release migrator), frontend (lint/format/testovi/build/budget), docs, container/supply-chain i CI gate; E2E
+critical/install i read-only inventory bili su `skipped` (push workflow ih ne pokreće). Prvi pokušaj
+[`44066907484`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44066907484) na `1516498` pao je zbog
+vlastitih grešaka u testovima (konstruktor kontrolera sa šest argumenata, fake `findUnique` samo po composite ključu,
+`role="alert"` dvaput u frontend testu). Detalji su u [248](../implementation/248-w725-problem-target-reminders.md).
+`BA-problems-08` je sljedeći P2 u ovom auditu.
