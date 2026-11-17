@@ -8,7 +8,8 @@ function harness() {
   const row = {
     id: 'problem-1', organizationalUnitId: 'ou-1', version: 1, status: 'NEW',
     ownerUserId: 'actor', groupId: 'group-1', rootCause: 'cause', rootCauseCategory: 'other',
-    workaround: 'workaround', resolution: 'resolved', priority: 'MEDIUM',
+    workaround: 'workaround', resolution: 'resolved', priority: 'MEDIUM', impact: 'MEDIUM', urgency: 'MEDIUM',
+    serviceId: null, title: 'Printer issue', description: 'description text',
   };
   const tx = {
     $queryRaw: jest.fn(async () => [{ lastNumber: 1 }]),
@@ -22,7 +23,9 @@ function harness() {
     problemEvent: { create: jest.fn(async () => ({})) },
     problemHandoff: { updateMany: jest.fn(async () => ({ count: 0 })) },
     auditLog: { findFirst: jest.fn(async () => null), create: jest.fn(async () => ({})) },
-    group: { findUnique: jest.fn(async () => ({ isProblemGroup: true })) },
+    group: { findUnique: jest.fn(async () => ({ isProblemGroup: true, organizationalUnit: { ouPath: 'root' } })) },
+    organizationalUnit: { findUnique: jest.fn(async () => ({ ouPath: 'root' })) },
+    user: { findUnique: jest.fn(async () => ({ id: 'owner', groupMemberships: [{ groupId: 'group-1' }] })) },
     priorityMatrixRule: { findUnique: jest.fn(async () => null) },
   };
   const prisma = { ...tx, $transaction: jest.fn(async (fn: (arg: typeof tx) => Promise<unknown>) => fn(tx)) };
@@ -66,5 +69,61 @@ describe('problem entity audit scope', () => {
     await expect(sweep.autoClose(new Date(), 2)).resolves.toBe(1);
     expect(tx.problem.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: expect.objectContaining({ organizationalUnitId: true }) }));
     expect(tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: auditLogActions.problemClosed, organizationalUnitId: 'ou-1', actorUserId: null }) }));
+  });
+
+  it('audits a general update as field names, not as content', async () => {
+    const { service, tx, row } = harness();
+    await service.update(viewer, row.id, { version: 1, urgency: 'HIGH', description: 'the secret detail' } as never);
+    const call = (tx.auditLog.create as jest.Mock).mock.calls[0][0];
+    expect(call.data).toEqual(expect.objectContaining({
+      action: auditLogActions.problemUpdated,
+      entityType: 'problem',
+      entityId: 'problem-1',
+      organizationalUnitId: 'ou-1',
+      chainPartition: 'ou:ou-1',
+      actorUserId: 'actor',
+    }));
+    const metadata = call.data.metadata;
+    expect(metadata.changedFields).toEqual(expect.arrayContaining(['urgency', 'priority', 'description']));
+    expect(metadata.textChanged).toEqual(['description']);
+    expect(metadata.urgency).toBe('HIGH');
+    expect(metadata.previousUrgency).toBe('MEDIUM');
+    // Forensic metadata names the sensitive field; it never copies its content.
+    const serialized = JSON.stringify(metadata);
+    expect(serialized).not.toContain('the secret detail');
+    expect(serialized).not.toContain('description text');
+  });
+
+  it('audits a unit move in the destination unit partition', async () => {
+    const { service, tx } = harness();
+    await service.update(viewer, 'problem-1', { version: 1, organizationalUnitId: 'ou-2' } as never);
+    expect(tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      action: auditLogActions.problemUpdated,
+      organizationalUnitId: 'ou-2',
+      chainPartition: 'ou:ou-2',
+      metadata: expect.objectContaining({ organizationalUnitId: 'ou-2', previousOrganizationalUnitId: 'ou-1' }),
+    }) }));
+  });
+
+  it('writes no audit entry when the update changes nothing', async () => {
+    const { service, tx } = harness();
+    await service.update(viewer, 'problem-1', { version: 1 } as never);
+    expect(tx.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('audits a claim as an ownership change in the same transaction', async () => {
+    const { service, tx, row } = harness();
+    (row as Record<string, unknown>).ownerUserId = 'previous-owner';
+    await service.claim(viewer, 'problem-1');
+    expect(tx.problem.updateMany).toHaveBeenCalled();
+    expect(tx.auditLog.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      action: auditLogActions.problemClaimed,
+      entityType: 'problem',
+      entityId: 'problem-1',
+      organizationalUnitId: 'ou-1',
+      chainPartition: 'ou:ou-1',
+      actorUserId: 'actor',
+      metadata: { ownerUserId: 'actor', previousOwnerUserId: 'previous-owner' },
+    }) }));
   });
 });

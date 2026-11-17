@@ -59,6 +59,9 @@ describe('canonical audit event policy', () => {
     [auditLogActions.statusIncidentEdited, auditLogEntityTypes.statusIncident, { changed: ['services'], services: { added: ['service-1'], removed: [] } }, undefined],
     [auditLogActions.assetRetired, auditLogEntityTypes.asset, { assetTag: 'A-1', reason: 'obsolete', releasedLicenses: 1 }, 'ou-1'],
     [auditLogActions.changeCreated, auditLogEntityTypes.change, { sequence: 1, type: 'NORMAL', risk: 'LOW', organizationalUnitId: 'ou-1' }, 'ou-1'],
+    [auditLogActions.problemUpdated, auditLogEntityTypes.problem, { changedFields: ['description', 'ownerUserId'], textChanged: ['description'], ownerUserId: 'user-1', previousOwnerUserId: 'user-2' }, 'ou-1'],
+    [auditLogActions.problemUpdated, auditLogEntityTypes.problem, { changedFields: ['organizationalUnitId'], organizationalUnitId: 'ou-2', previousOrganizationalUnitId: 'ou-1' }, 'ou-2'],
+    [auditLogActions.problemClaimed, auditLogEntityTypes.problem, { ownerUserId: 'user-1', previousOwnerUserId: null }, 'ou-1'],
   ] as const)('accepts production metadata for %s', (action, entityType, metadata, organizationalUnitId) => {
     expect(() => prepareAuditEntry({
       action,
@@ -68,6 +71,20 @@ describe('canonical audit event policy', () => {
       metadata,
       organizationalUnitId,
     })).not.toThrow();
+  });
+
+  it('keeps problem free text names out of the canonical metadata', () => {
+    const base = {
+      action: auditLogActions.problemUpdated,
+      entityType: auditLogEntityTypes.problem,
+      entityId: 'problem-1',
+      actorUserId: 'actor-1',
+      organizationalUnitId: 'ou-1',
+    } as const;
+    expect(() => prepareAuditEntry({ ...base, metadata: { changedFields: ['description'], textChanged: ['description'] } })).not.toThrow();
+    for (const field of ['description', 'rootCause', 'resolution', 'workaround', 'rcaWhys', 'title'] as const) {
+      expect(() => prepareAuditEntry({ ...base, metadata: { [field]: 'sensitive content' } })).toThrow('AUDIT_METADATA_FIELD_NOT_ALLOWED');
+    }
   });
 
   it('records asset-location metadata under schema version 2', () => {

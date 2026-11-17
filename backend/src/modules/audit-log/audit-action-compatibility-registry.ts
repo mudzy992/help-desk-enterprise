@@ -155,6 +155,8 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.configVersionExported]: compatibility([auditLogEntityTypes.configVersion]),
   [auditLogActions.configVersionImported]: compatibility([auditLogEntityTypes.configVersion]),
   [auditLogActions.problemCreated]: compatibility([auditLogEntityTypes.problem]),
+  [auditLogActions.problemUpdated]: compatibility([auditLogEntityTypes.problem]),
+  [auditLogActions.problemClaimed]: compatibility([auditLogEntityTypes.problem]),
   [auditLogActions.problemStatusChanged]: compatibility([auditLogEntityTypes.problem]),
   [auditLogActions.problemClosed]: compatibility([auditLogEntityTypes.problem]),
   [auditLogActions.problemCancelled]: compatibility([auditLogEntityTypes.problem]),

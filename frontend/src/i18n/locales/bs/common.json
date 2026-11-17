@@ -414,6 +414,8 @@
             "problem_reopened": "Problem — ponovo otvoren",
             "problem_knowledge_article_created": "Problem — članak baze znanja kreiran",
             "problem_tickets_resolved": "Problem — povezani tiketi riješeni",
+            "problem_updated": "Problem — izmijenjen",
+            "problem_claimed": "Problem — preuzet u obradu",
             "change_created": "Promjena — kreiran",
             "change_status_changed": "Promjena — status promijenjen",
             "change_approval_recorded": "Promjena — odluka o odobrenju zabilježena",
@@ -647,7 +649,25 @@
             "ipWindowSeconds": "Prozor po IP adresi (s)",
             "otherMaxFailures": "Maks. neuspjeha (ostali tokovi)",
             "reencrypted": "Ponovo šifrovano",
-            "unreadable": "Nečitljivo (ručna intervencija)"
+            "unreadable": "Nečitljivo (ručna intervencija)",
+            "changedFields": "Promijenjena polja",
+            "textChanged": "Promijenjen sadržaj (bilježi se samo naziv polja)",
+            "ownerUserId": "Vlasnik",
+            "urgency": "Hitnost",
+            "rootCauseCategory": "Kategorija uzroka",
+            "previousImpact": "Prethodni uticaj",
+            "previousOrganizationalUnitId": "Prethodna organizaciona jedinica",
+            "previousOwnerUserId": "Prethodni vlasnik",
+            "previousPriority": "Prethodni prioritet",
+            "previousRootCauseCategory": "Prethodna kategorija uzroka",
+            "previousServiceId": "Prethodna usluga",
+            "previousUrgency": "Prethodna hitnost",
+            "title": "Naslov",
+            "description": "Opis",
+            "rootCause": "Uzrok",
+            "rcaWhys": "5 zašto (koraci)",
+            "workaround": "Zaobilazno rješenje",
+            "resolution": "Rješenje"
           }
         },
         "actorUnknown": "Nepoznat korisnik",
@@ -718,6 +738,24 @@
             "PAPER": "Papir",
             "PORTAL": "Portal",
             "IN_PERSON": "Lično"
+          },
+          "priority": {
+            "LOW": "Nizak",
+            "MEDIUM": "Srednji",
+            "HIGH": "Visok",
+            "CRITICAL": "Kritičan"
+          },
+          "urgency": {
+            "LOW": "Niska",
+            "MEDIUM": "Srednja",
+            "HIGH": "Visoka",
+            "CRITICAL": "Kritična"
+          },
+          "impact": {
+            "LOW": "Nizak",
+            "MEDIUM": "Srednji",
+            "HIGH": "Visok",
+            "CRITICAL": "Kritičan"
           }
         }
       },

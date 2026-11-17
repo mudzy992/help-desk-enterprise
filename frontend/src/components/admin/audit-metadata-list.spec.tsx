@@ -72,4 +72,16 @@ describe("AuditMetadataList", () => {
     // A key that is itself dotted is not a path — it stays an unknown field.
     expect(render({ "failedByQueue.email": 2 }, 6)).toContain("unknown");
   });
+
+  it("translates a changed-field list, but never a sentence with a comma", () => {
+    const html = render(
+      { changedFields: ["description", "ownerUserId"], textChanged: ["description"] },
+      6,
+    );
+    expect(html).toContain("field:changedFields: field:description, field:ownerUserId");
+    expect(html).toContain("field:textChanged: field:description");
+    // A free-text value that contains a comma keeps its own words.
+    const freeText = render({ reason: "Printer, pa mreža, pa server" }, 6);
+    expect(freeText).toContain("Printer, pa mreža, pa server");
+  });
 });

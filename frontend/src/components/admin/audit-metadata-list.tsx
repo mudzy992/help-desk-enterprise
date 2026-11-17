@@ -42,10 +42,26 @@ export function AuditMetadataList({ metadata, visibleCount = 3 }: AuditMetadataL
       })
       .join(" · ");
 
+  /*
+    W7.30: `changedFields` and `textChanged` arrive as "description, ownerUserId"
+    — a list of metadata field names, not a sentence. A value is treated as such
+    a list only when **every** comma-separated item is a field this client
+    knows, so free text keeps its own words.
+  */
+  const translateFieldList = (value: string) => {
+    const items = value.split(", ");
+    const keys = items.map((item) => auditMetadataFieldTranslationKey(item));
+    if (keys.some((key) => key === null)) return null;
+    return items
+      .map((_item, index) => t(keys[index] as NonNullable<(typeof keys)[number]>))
+      .join(", ");
+  };
+
   const valueFor = (entry: AuditMetadataEntry) => {
     const field = entry.path.at(-1) ?? "";
     const key = auditMetadataValueTranslationKey(field, entry.value);
-    return key === null ? entry.value : t(key);
+    if (key !== null) return t(key);
+    return translateFieldList(entry.value) ?? entry.value;
   };
 
   const summary = entries.map((entry) => `${labelFor(entry.path)}: ${valueFor(entry)}`).join("; ");

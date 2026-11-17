@@ -412,6 +412,8 @@
             "problem_reopened": "Problem — reopened",
             "problem_knowledge_article_created": "Problem — knowledge article created",
             "problem_tickets_resolved": "Problem — linked tickets resolved",
+            "problem_updated": "Problem — updated",
+            "problem_claimed": "Problem — claimed",
             "change_created": "Change — created",
             "change_status_changed": "Change — status changed",
             "change_approval_recorded": "Change — approval decision recorded",
@@ -645,7 +647,25 @@
             "ipWindowSeconds": "Per-IP window (s)",
             "otherMaxFailures": "Max failures (other flows)",
             "reencrypted": "Re-encrypted",
-            "unreadable": "Unreadable (manual action)"
+            "unreadable": "Unreadable (manual action)",
+            "changedFields": "Changed fields",
+            "textChanged": "Changed content (field name recorded only)",
+            "ownerUserId": "Owner",
+            "urgency": "Urgency",
+            "rootCauseCategory": "Root cause category",
+            "previousImpact": "Previous impact",
+            "previousOrganizationalUnitId": "Previous organizational unit",
+            "previousOwnerUserId": "Previous owner",
+            "previousPriority": "Previous priority",
+            "previousRootCauseCategory": "Previous root cause category",
+            "previousServiceId": "Previous service",
+            "previousUrgency": "Previous urgency",
+            "title": "Title",
+            "description": "Description",
+            "rootCause": "Root cause",
+            "rcaWhys": "5 Whys (steps)",
+            "workaround": "Workaround",
+            "resolution": "Resolution"
           }
         },
         "actorUnknown": "Unknown user",
@@ -716,6 +736,24 @@
             "PAPER": "Paper",
             "PORTAL": "Portal",
             "IN_PERSON": "In person"
+          },
+          "priority": {
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical"
+          },
+          "urgency": {
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical"
+          },
+          "impact": {
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical"
           }
         }
       },

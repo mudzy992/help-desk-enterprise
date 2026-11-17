@@ -35,6 +35,7 @@ import {
 import { problemVisibilityWhere } from './problem-visibility';
 import { assertUnitFollowsGroup } from './problem-handoff-rules';
 import { problemCrossDomainVisibility } from './problem-cross-domain-visibility';
+import { problemClaimAuditMetadata, problemUpdateAuditMetadata } from './problem-audit';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
@@ -477,6 +478,16 @@ export class ProblemsService {
           detail: { changes: { ownerUserId: { from: current.ownerUserId, to: viewer.userId } }, claimed: true } as never,
         },
       });
+      // W7.30: taking a problem over is an ownership change, so it belongs in
+      // the canonical audit log as well, not only in the problem history.
+      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.problemClaimed,
+        entityType: auditLogEntityTypes.problem,
+        entityId: id,
+        organizationalUnitId: current.organizationalUnitId,
+        metadata: problemClaimAuditMetadata(current.ownerUserId, viewer.userId) as never,
+        actorUserId: viewer.userId,
+      });
     });
     return this.get(viewer, id);
   }
@@ -612,6 +623,17 @@ export class ProblemsService {
           actorUserId: viewer.userId,
           detail: { changes, textChanged } as never,
         },
+      });
+      // W7.30: an edit that moves the owner, the unit, the service or the
+      // classification must be readable in the canonical audit log. The entry
+      // names the changed fields; free text is not copied into it.
+      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.problemUpdated,
+        entityType: auditLogEntityTypes.problem,
+        entityId: id,
+        organizationalUnitId: (data.organizationalUnitId as string | undefined) ?? current.organizationalUnitId,
+        metadata: problemUpdateAuditMetadata(changes, textChanged) as never,
+        actorUserId: viewer.userId,
       });
     });
     if (changes.ownerUserId && data.ownerUserId) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));

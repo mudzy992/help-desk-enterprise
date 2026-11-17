@@ -15,4 +15,8 @@ export const knownAuditMetadataValues: Readonly<Record<string, readonly string[]
   source: ["manual_directory_catalog"],
   via: ["admin", "server", "rekey-asset-licenses", "seed-default-role-permissions"],
   format: ["csv", "json", "xlsx"],
+  // W7.30: problem metadata carries the matrix codes; they are a closed vocabulary.
+  priority: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  urgency: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+  impact: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
 };

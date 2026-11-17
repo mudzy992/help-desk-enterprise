@@ -196,6 +196,9 @@ export const auditLogActions = {
   configVersionImported: 'config_version.import',
   // Paket 3.3: problem management.
   problemCreated: 'problem.created',
+  /** W7.30: the general edit and the claim are canonical audit events too. */
+  problemUpdated: 'problem.updated',
+  problemClaimed: 'problem.claimed',
   problemStatusChanged: 'problem.status_changed',
   problemClosed: 'problem.closed',
   problemCancelled: 'problem.cancelled',

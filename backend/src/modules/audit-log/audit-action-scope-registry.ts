@@ -24,6 +24,8 @@ export const auditActionScopeRegistry: Readonly<Record<string, AuditScopePolicy>
   [auditLogActions.organizationalUnitCreated]: 'entity',
   [auditLogActions.organizationalUnitUpdated]: 'entity',
   [auditLogActions.problemCreated]: 'entity',
+  [auditLogActions.problemUpdated]: 'entity',
+  [auditLogActions.problemClaimed]: 'entity',
   [auditLogActions.problemStatusChanged]: 'entity',
   [auditLogActions.problemClosed]: 'entity',
   [auditLogActions.problemCancelled]: 'entity',

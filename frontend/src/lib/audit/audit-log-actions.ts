@@ -158,6 +158,9 @@ export const knownAuditActions = [
   "problem.reopened",
   "problem.knowledge_article_created",
   "problem.tickets_resolved",
+  // W7.30: the general edit and the claim are canonical audit events too.
+  "problem.updated",
+  "problem.claimed",
   // W7.28: the recorded steps of a problem group transfer.
   "problem.handoff_requested",
   "problem.handoff_accepted",
