@@ -112,18 +112,13 @@ export class ProblemsController {
     return runProblem(() => this.problemTickets.panel(ticketId, this.viewer(request)));
   }
 
-  /** §8.1: optional `ticketIds` are linked right after creation. */
+  /**
+   * §8.1: optional `ticketIds` are linked in the same transaction as creation
+   * (W7.26); a command whose tickets all fail to link creates nothing.
+   */
   @Post()
   create(@Req() request: AuthenticatedHttpRequest, @Body() body: CreateProblemDto) {
-    return runProblem(async () => {
-      const viewer = this.viewer(request);
-      const { ticketIds } = body;
-      // ticketIds stay in the input: without a home unit the problem takes the unit of the first ticket.
-      const created = await this.problems.create(viewer, body);
-      if (!ticketIds || ticketIds.length === 0) return { ...created, ticketLinks: null };
-      const ticketLinks = await this.problemTickets.link(created.id, ticketIds, viewer, { singleAsError: false });
-      return { ...(await this.problems.get(viewer, created.id)), ticketLinks };
-    });
+    return runProblem(() => this.problems.create(this.viewer(request), body));
   }
 
   /** P5b reverse side (asset card, incident card); static paths before ":id". */

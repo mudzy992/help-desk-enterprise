@@ -30,6 +30,23 @@ export type ProblemTicketLinkResult = {
   readonly skipped: readonly { ticketId: string; ticketNumber: string | null; reason: ProblemTicketSkipReason }[];
 };
 
+/** A staff-only system event on the ticket, published only after the commit. */
+export type ProblemTicketNotice = {
+  readonly ticket: TicketRecord;
+  readonly messages: TicketPersistedMessageSink;
+};
+
+/** One ticket inside a link batch: linked (with its pending notice) or skipped. */
+type ProblemTicketLinkItemOutcome =
+  | { readonly kind: 'linked'; readonly notice: ProblemTicketNotice }
+  | { readonly kind: 'skipped'; readonly reason: ProblemTicketSkipReason };
+
+/** W7.26: the links of one batch, still unpublished (the caller commits first). */
+export type ProblemTicketLinkOutcome = {
+  readonly result: ProblemTicketLinkResult;
+  readonly notices: readonly ProblemTicketNotice[];
+};
+
 export type TicketProblemPanel = {
   readonly enabled: boolean;
   /** Staff with `problem.read` see the panel; requesters never do (§8.3). */
@@ -192,6 +209,119 @@ export class ProblemTicketsService {
     return (await this.prisma.problem.count({ where: { id: problemId, ...visible } })) > 0;
   }
 
+  /** W7.26: trim, dedupe and cap one link batch. */
+  private normalizeTicketIds(ticketIds: readonly string[]): string[] {
+    return [...new Set(ticketIds.map((id) => id.trim()).filter((id) => id.length > 0))].slice(0, problemLimits.linkBatchMax);
+  }
+
+  /**
+   * Take the ticket row locks in a stable order before the "is it already
+   * linked" read, so two concurrent commands (create-from-tickets vs the
+   * ticket panel) cannot both pass the check and collide on the unique
+   * `ticketId`. Without this the loser would abort the surrounding transaction
+   * instead of reporting `other_problem`.
+   */
+  private async lockTickets(client: PrismaService, ticketIds: readonly string[]): Promise<void> {
+    const ordered = [...new Set(ticketIds)].sort();
+    if (ordered.length === 0) return;
+    await client.$queryRaw`
+      SELECT "id" FROM "Ticket"
+      WHERE "id" = ANY(${ordered}::text[])
+      ORDER BY "id"
+      FOR UPDATE`;
+  }
+
+  /**
+   * One ticket inside an already-open transaction: the checks, the link row,
+   * the problem history row and the staff-only ticket event. Never opens a
+   * transaction of its own, so the caller decides what is atomic.
+   */
+  private async linkTicket(
+    client: PrismaService,
+    problem: { readonly id: string; readonly status: string },
+    ticket: TicketRecord,
+    viewer: ProblemViewer,
+  ): Promise<ProblemTicketLinkItemOutcome> {
+    if ((ticket as { mergedIntoTicketId?: string | null }).mergedIntoTicketId != null) return { kind: 'skipped', reason: 'merged' };
+    if (readOnlyTicketStatuses.has(ticket.status)) return { kind: 'skipped', reason: 'read_only' };
+    const existing = await client.problemTicket.findUnique({ where: { ticketId: ticket.id }, select: { problemId: true } });
+    if (existing !== null) return { kind: 'skipped', reason: existing.problemId === problem.id ? 'already_linked' : 'other_problem' };
+    const messages: TicketPersistedMessageSink = [];
+    await client.problemTicket.create({ data: { problemId: problem.id, ticketId: ticket.id, linkedByUserId: viewer.userId } });
+    await client.problemEvent.create({
+      data: {
+        problemId: problem.id,
+        action: problemEventActions.ticketLinked,
+        actorUserId: viewer.userId,
+        // P5/P6: a ticket joining a RESOLVED problem is a recurrence.
+        detail: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber, ...(problem.status === 'RESOLVED' ? { recurrence: true } : {}) },
+      },
+    });
+    messages.push(
+      await insertSystemTicketEvent(client, {
+        ticketId: ticket.id,
+        action: ticketSystemEventActions.problemLinked,
+        actorUserId: viewer.userId,
+      }),
+    );
+    return { kind: 'linked', notice: { ticket, messages } };
+  }
+
+  /** Realtime publishing stays outside the transaction (W7.26). */
+  publish(notices: readonly ProblemTicketNotice[]): void {
+    for (const notice of notices) publishPersistedTicketMessages(this.realtimeHub, notice.ticket, notice.messages);
+  }
+
+  /**
+   * W7.26 / BA-problems-08: link a batch inside the caller's transaction.
+   * Tickets that cannot be linked are reported as `skipped` and leave the rest
+   * of the batch intact; the caller decides what "none of them could be
+   * linked" means (creation rolls the whole command back).
+   */
+  async linkInTransaction(
+    client: PrismaService,
+    problem: { readonly id: string; readonly status: string },
+    ticketIds: readonly string[],
+    viewer: ProblemViewer,
+  ): Promise<ProblemTicketLinkOutcome> {
+    if (!problemLinkableStatuses.includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
+    const unique = this.normalizeTicketIds(ticketIds);
+    if (unique.length === 0) return { result: { linked: [], skipped: [] }, notices: [] };
+    await this.lockTickets(client, unique);
+    const linked: { ticketId: string; ticketNumber: string }[] = [];
+    const skipped: { ticketId: string; ticketNumber: string | null; reason: ProblemTicketSkipReason }[] = [];
+    const notices: ProblemTicketNotice[] = [];
+    for (const ticketId of unique) {
+      const ticket = await this.staffTicket(ticketId, viewer, true, client);
+      if (ticket === null) {
+        skipped.push({ ticketId, ticketNumber: null, reason: 'not_found' });
+        continue;
+      }
+      const outcome = await this.linkTicket(client, problem, ticket, viewer);
+      if (outcome.kind === 'skipped') {
+        skipped.push({ ticketId, ticketNumber: ticket.ticketNumber, reason: outcome.reason });
+        continue;
+      }
+      notices.push(outcome.notice);
+      linked.push({ ticketId: ticket.id, ticketNumber: ticket.ticketNumber });
+    }
+    return { result: { linked, skipped }, notices };
+  }
+
+  /**
+   * W7.26: the links a replayed create reports back (no new command ran). The
+   * caller has already loaded the problem in its read scope.
+   */
+  async linkedTickets(problemId: string): Promise<ProblemTicketLinkResult> {
+    const links = await this.prisma.problemTicket.findMany({
+      where: { problemId },
+      orderBy: { linkedAt: 'asc' },
+      take: problemLimits.linkBatchMax,
+      select: { ticketId: true, ticket: { select: { ticketNumber: true } } },
+    });
+    return { linked: links.map((link) => ({ ticketId: link.ticketId, ticketNumber: link.ticket.ticketNumber })), skipped: [] };
+  }
+
   async link(
     problemId: string,
     ticketIds: readonly string[],
@@ -200,7 +330,7 @@ export class ProblemTicketsService {
   ): Promise<ProblemTicketLinkResult> {
     const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport);
     if (!problemLinkableStatuses.includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
-    const unique = [...new Set(ticketIds.map((id) => id.trim()).filter((id) => id.length > 0))].slice(0, problemLimits.linkBatchMax);
+    const unique = this.normalizeTicketIds(ticketIds);
     if (unique.length === 0) throw new ProblemError(problemErrorCodes.validation, 'ticketIds');
     const linked: { ticketId: string; ticketNumber: string }[] = [];
     const skipped: { ticketId: string; ticketNumber: string | null; reason: ProblemTicketSkipReason }[] = [];
@@ -211,40 +341,10 @@ export class ProblemTicketsService {
         skipped.push({ ticketId, ticketNumber: null, reason: 'not_found' });
         continue;
       }
-      if ((ticket as { mergedIntoTicketId?: string | null }).mergedIntoTicketId != null) {
-        skipped.push({ ticketId, ticketNumber: ticket.ticketNumber, reason: 'merged' });
-        continue;
-      }
-      if (readOnlyTicketStatuses.has(ticket.status)) {
-        skipped.push({ ticketId, ticketNumber: ticket.ticketNumber, reason: 'read_only' });
-        continue;
-      }
-      const existing = await this.prisma.problemTicket.findUnique({ where: { ticketId: ticket.id }, select: { problemId: true } });
-      if (existing !== null) {
-        skipped.push({ ticketId, ticketNumber: ticket.ticketNumber, reason: existing.problemId === problem.id ? 'already_linked' : 'other_problem' });
-        continue;
-      }
-      const messages: TicketPersistedMessageSink = [];
+      let outcome: ProblemTicketLinkItemOutcome;
       try {
-        await this.prisma.$transaction(async (transaction) => {
-          await transaction.problemTicket.create({ data: { problemId: problem.id, ticketId: ticket.id, linkedByUserId: viewer.userId } });
-          await transaction.problemEvent.create({
-            data: {
-              problemId: problem.id,
-              action: problemEventActions.ticketLinked,
-              actorUserId: viewer.userId,
-              // P5/P6: a ticket joining a RESOLVED problem is a recurrence.
-              detail: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber, ...(problem.status === 'RESOLVED' ? { recurrence: true } : {}) },
-            },
-          });
-          messages.push(
-            await insertSystemTicketEvent(transaction as PrismaService, {
-              ticketId: ticket.id,
-              action: ticketSystemEventActions.problemLinked,
-              actorUserId: viewer.userId,
-            }),
-          );
-        });
+        // One ticket per transaction: the rest of the batch survives a failure.
+        outcome = await this.prisma.$transaction((transaction) => this.linkTicket(transaction as PrismaService, problem, ticket, viewer));
       } catch (error) {
         // A concurrent request linked the ticket first (one problem per ticket).
         if (isUniqueViolation(error)) {
@@ -253,7 +353,11 @@ export class ProblemTicketsService {
         }
         throw error;
       }
-      publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
+      if (outcome.kind === 'skipped') {
+        skipped.push({ ticketId, ticketNumber: ticket.ticketNumber, reason: outcome.reason });
+        continue;
+      }
+      this.publish([outcome.notice]);
       linked.push({ ticketId: ticket.id, ticketNumber: ticket.ticketNumber });
     }
 

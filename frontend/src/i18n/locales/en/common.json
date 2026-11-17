@@ -9398,6 +9398,7 @@
       "ticketNotFound": "The ticket is not available.",
       "ticketInOtherProblem": "The ticket is already linked to another problem. Remove the existing link first.",
       "ticketNotLinked": "The ticket is not linked to this problem.",
+      "ticketsNotLinked": "The problem was not created because none of the selected tickets could be linked. Close the dialog and try again.",
       "problemNotOpen": "Tickets can only be linked to an open problem.",
       "unitNotFound": "Organizational unit not found.",
       "userNotFound": "The selected user is not active.",

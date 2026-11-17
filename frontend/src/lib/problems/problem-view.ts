@@ -67,6 +67,7 @@ const problemErrorKeys = {
   PROBLEM_TICKET_NOT_FOUND: "problems.errors.ticketNotFound",
   PROBLEM_TICKET_IN_OTHER_PROBLEM: "problems.errors.ticketInOtherProblem",
   PROBLEM_TICKET_NOT_LINKED: "problems.errors.ticketNotLinked",
+  PROBLEM_TICKETS_NOT_LINKED: "problems.errors.ticketsNotLinked",
   PROBLEM_NOT_OPEN: "problems.errors.problemNotOpen",
   PROBLEM_UNIT_NOT_FOUND: "problems.errors.unitNotFound",
   PROBLEM_USER_NOT_FOUND: "problems.errors.userNotFound",

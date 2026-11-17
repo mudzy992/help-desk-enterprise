@@ -29,7 +29,7 @@ function setup(batches: unknown[][]) {
     user: { findMany: jest.fn(async () => []) },
   };
   const access = { require: jest.fn(async () => ({ all: true, paths: [] })) };
-  return { service: new ProblemsService(prisma as never, access as never, {} as never, {} as never), findMany, tickets, assets };
+  return { service: new ProblemsService(prisma as never, access as never, {} as never, {} as never, {} as never), findMany, tickets, assets };
 }
 
 describe('problem event ticket visibility', () => {

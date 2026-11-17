@@ -3,6 +3,7 @@ import { ProblemError, problemErrorCodes } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
 import { loadAccessibleTicket } from '../tickets/load-accessible-ticket';
 import { problemTicketVisibility } from './problem-ticket-visibility';
+import { publishPersistedTicketMessages } from '../tickets/publish-persisted-ticket-messages';
 
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../tickets/ticket-access-policy-binder', () => ({ TicketAccessPolicyBinder: class TicketAccessPolicyBinder {} }));
@@ -119,6 +120,54 @@ describe('ProblemTicketsService.link', () => {
     const { service } = setup({ tickets: [ticket('a', { status: 'ARCHIVED' }), ticket('b')] });
     const result = await service.link('p1', ['a', 'b'], viewer);
     expect(result.skipped).toEqual([{ ticketId: 'a', ticketNumber: 'T-a', reason: 'read_only' }]);
+  });
+});
+
+describe('ProblemTicketsService.linkInTransaction (W7.26)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('links inside the caller transaction, locks the tickets and leaves publishing to the caller', async () => {
+    const { service, links, events, prisma } = setup({
+      tickets: [ticket('a'), ticket('b', { mergedIntoTicketId: 'a' }), ticket('c')],
+      links: { c: 'other' },
+    });
+    const outcome = await service.linkInTransaction(prisma as never, { id: 'p1', status: 'NEW' }, ['c', 'a', 'b', 'a'], viewer);
+    expect(outcome.result.linked).toEqual([{ ticketId: 'a', ticketNumber: 'T-a' }]);
+    expect(outcome.result.skipped.map((item) => [item.ticketId, item.reason])).toEqual([
+      ['c', 'other_problem'],
+      ['b', 'merged'],
+    ]);
+    expect(outcome.notices).toHaveLength(1);
+    expect(links.get('a')).toBe('p1');
+    expect(events).toHaveLength(1);
+    // The batch runs in the caller's transaction: no nested one, and no realtime
+    // event before the caller commits.
+    expect(prisma.$transaction as jest.Mock).not.toHaveBeenCalled();
+    expect(publishPersistedTicketMessages).not.toHaveBeenCalled();
+    const lock = (prisma.$queryRaw as jest.Mock).mock.calls[0];
+    expect(lock[0].join(' ')).toContain('FOR UPDATE');
+    expect(lock[1]).toEqual(['a', 'b', 'c']);
+  });
+
+  it('publishes the pending notices only when the caller asks', async () => {
+    const { service, prisma } = setup({ tickets: [ticket('a')] });
+    const outcome = await service.linkInTransaction(prisma as never, { id: 'p1', status: 'NEW' }, ['a'], viewer);
+    service.publish(outcome.notices);
+    expect(publishPersistedTicketMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not open a lock or a link for an empty batch', async () => {
+    const { service, prisma } = setup({ tickets: [] });
+    const outcome = await service.linkInTransaction(prisma as never, { id: 'p1', status: 'NEW' }, ['  ', ''], viewer);
+    expect(outcome).toEqual({ result: { linked: [], skipped: [] }, notices: [] });
+    expect(prisma.$queryRaw as jest.Mock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a batch on a final problem', async () => {
+    const { service, prisma } = setup({ tickets: [ticket('a')] });
+    await expect(service.linkInTransaction(prisma as never, { id: 'p1', status: 'CLOSED' }, ['a'], viewer)).rejects.toEqual(
+      new ProblemError(problemErrorCodes.problemNotOpen),
+    );
   });
 });
 

@@ -19,7 +19,7 @@ function setup() {
     .mockResolvedValueOnce([{ problemId: 'p1', _count: { _all: 1 } }]);
   const prisma = { problem: { findMany: jest.fn(async (_args: unknown) => [row]), count: jest.fn(async () => 1), findFirst: jest.fn(async () => row) }, problemTicket: { groupBy } };
   const access = { require: jest.fn(async () => ({ all: true, paths: [] })), configuration: jest.fn(async () => ({ numberPrefix: 'P-' })), hasPermission: jest.fn(() => false) };
-  const service = new ProblemsService(prisma as never, access as never, {} as never, {} as never);
+  const service = new ProblemsService(prisma as never, access as never, {} as never, {} as never, {} as never);
   return { service, prisma, groupBy };
 }
 

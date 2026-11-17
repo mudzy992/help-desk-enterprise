@@ -74,6 +74,8 @@ export const problemErrorCodes = {
   ticketNotFound: 'PROBLEM_TICKET_NOT_FOUND',
   ticketInOtherProblem: 'PROBLEM_TICKET_IN_OTHER_PROBLEM',
   ticketNotLinked: 'PROBLEM_TICKET_NOT_LINKED',
+  /** W7.26: creation is all-or-nothing; no selected ticket could be linked, so nothing was created. */
+  ticketsNotLinked: 'PROBLEM_TICKETS_NOT_LINKED',
   problemNotOpen: 'PROBLEM_NOT_OPEN',
   /** W7.24: the durable group-resolution run is missing, finished differently, or already aborted. */
   resolutionRunNotFound: 'PROBLEM_RESOLUTION_RUN_NOT_FOUND',

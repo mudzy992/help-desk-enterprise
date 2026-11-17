@@ -41,6 +41,8 @@ model Problem {
   cancelledAt          DateTime?
   cancelReason         String?            @db.VarChar(1000)
   createdByUserId      String?
+  /// W7.26: caller-chosen create key, so a retried POST replays the problem.
+  clientRequestId      String?
   version              Int                @default(1)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -66,6 +68,7 @@ model Problem {
   @@index([serviceId])
   @@index([createdAt])
   @@index([targetAt])
+  @@unique([createdByUserId, clientRequestId])
 }
 
 /// A ticket belongs to at most one problem (unique ticketId).

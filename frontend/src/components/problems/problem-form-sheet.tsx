@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/toast";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError } from "@/lib/problems/problem-view";
 import { ticketPriorityValues, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
@@ -47,7 +48,13 @@ export function ProblemFormSheet({
   canAssignOwner,
 }: ProblemFormSheetProperties) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const editing = problem !== undefined;
+  // W7.26: one create key per opened sheet; a retried create replays the problem.
+  const createRequestId = useRef<string>(crypto.randomUUID());
+  useEffect(() => {
+    if (open && !editing) createRequestId.current = crypto.randomUUID();
+  }, [open, editing]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [impact, setImpact] = useState<ProblemSeverity>("MEDIUM");
@@ -139,11 +146,14 @@ export function ProblemFormSheet({
       };
       const saved = editing
         ? await updateProblem(problem.id, { version: problem.version, ...base })
-        : await createProblemFull(base);
+        : await createProblemFull({ ...base, clientRequestId: createRequestId.current });
       onOpenChange(false);
       onSaved(saved.id);
     } catch (caught) {
-      setError(t(mapProblemError(caught) ?? mapApiError(caught)));
+      const message = t(mapProblemError(caught) ?? mapApiError(caught));
+      // A long form keeps the inline error and repeats it as a toast.
+      setError(message);
+      toast({ tone: "danger", title: message });
     } finally {
       setSaving(false);
     }

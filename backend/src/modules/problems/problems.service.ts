@@ -34,6 +34,7 @@ import {
 } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
 import { ProblemNotifier } from './problem-notifier';
+import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
 
 export type ProblemListQuery = {
@@ -126,6 +127,11 @@ function optionalId(value: string | null | undefined): string | null | undefined
   return value.trim();
 }
 
+/** W7.26: a lost race on a unique key (Prisma P2002). */
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002';
+}
+
 /**
  * Paket 3.3 (§4, §5, §12, §16): problems CRUD, status lifecycle and history.
  * Reads are limited to the unit scope of `problem.read`, writes to the scope
@@ -138,6 +144,8 @@ export class ProblemsService {
     private readonly access: ProblemAccessService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
+    /** W7.26: creation and the first ticket links share one transaction. */
+    private readonly ticketLinks: ProblemTicketsService,
     @Optional() private readonly notifier?: ProblemNotifier,
     @Optional()
     private readonly priorityMatrixLoader?: TicketPriorityMatrixConfigurationLoader,
@@ -306,9 +314,15 @@ export class ProblemsService {
     return candidates[0]!;
   }
 
-  async create(viewer: ProblemViewer, input: CreateProblemDto) {
+  async create(viewer: ProblemViewer, input: CreateProblemDto): Promise<CreatedProblemResult> {
     const scope = await this.access.require(viewer, permissionKeys.problemReport);
     const readScope = await this.access.require(viewer, permissionKeys.problemRead);
+    const clientRequestId = optionalId(input.clientRequestId) ?? null;
+    const ticketIds = input.ticketIds ?? [];
+    // W7.26: a retried POST (lost response, double click) replays the stored
+    // problem instead of consuming another sequence number.
+    const replay = await this.replayCreate(viewer, clientRequestId, ticketIds);
+    if (replay !== null) return replay;
     const configuration = await this.access.configuration();
     const unitId = await this.defaultUnit(viewer, scope, optionalId(input.organizationalUnitId) ?? null, input.ticketIds ?? []);
     await this.access.requireUnitInScope(scope, unitId);
@@ -336,50 +350,89 @@ export class ProblemsService {
     if (title.length < 3) throw new ProblemError(problemErrorCodes.validation, 'title');
     if (description.length === 0) throw new ProblemError(problemErrorCodes.validation, 'description');
 
-    const id = await this.prisma.$transaction(async (transaction) => {
-      const rows = await transaction.$queryRaw<{ lastNumber: number }[]>`
-        INSERT INTO "ProblemSequence" ("id", "lastNumber") VALUES (1, 1)
-        ON CONFLICT ("id") DO UPDATE SET "lastNumber" = "ProblemSequence"."lastNumber" + 1
-        RETURNING "lastNumber"`;
-      const sequence = Number(rows[0]?.lastNumber ?? 1);
-      const created = await transaction.problem.create({
-        data: {
-          sequence,
-          title,
-          description,
-          impact,
-          urgency,
-          priority,
+    let outcome: CreateOutcome;
+    try {
+      outcome = await this.prisma.$transaction(async (transaction) => {
+        const rows = await transaction.$queryRaw<{ lastNumber: number }[]>`
+          INSERT INTO "ProblemSequence" ("id", "lastNumber") VALUES (1, 1)
+          ON CONFLICT ("id") DO UPDATE SET "lastNumber" = "ProblemSequence"."lastNumber" + 1
+          RETURNING "lastNumber"`;
+        const sequence = Number(rows[0]?.lastNumber ?? 1);
+        const created = await transaction.problem.create({
+          data: {
+            sequence,
+            title,
+            description,
+            impact,
+            urgency,
+            priority,
+            organizationalUnitId: unitId,
+            ownerUserId,
+            groupId,
+            serviceId,
+            targetAt,
+            createdByUserId: viewer.userId,
+            clientRequestId,
+          },
+          select: { id: true },
+        });
+        await transaction.problemEvent.create({
+          data: {
+            problemId: created.id,
+            action: problemEventActions.created,
+            actorUserId: viewer.userId,
+            detail: { number: formatProblemNumber(configuration.numberPrefix, sequence), status: 'NEW', priority },
+          },
+        });
+        await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
+          action: auditLogActions.problemCreated,
+          entityType: auditLogEntityTypes.problem,
+          entityId: created.id,
           organizationalUnitId: unitId,
-          ownerUserId,
-          groupId,
-          serviceId,
-          targetAt,
-          createdByUserId: viewer.userId,
-        },
-        select: { id: true },
-      });
-      await transaction.problemEvent.create({
-        data: {
-          problemId: created.id,
-          action: problemEventActions.created,
+          metadata: { sequence, organizationalUnitId: unitId, priority } as never,
           actorUserId: viewer.userId,
-          detail: { number: formatProblemNumber(configuration.numberPrefix, sequence), status: 'NEW', priority },
-        },
+        });
+        // W7.26 / BA-problems-08: the first links belong to this transaction. If
+        // no selected ticket can be linked the command fails as a whole, and the
+        // sequence update above rolls back with it.
+        const links =
+          ticketIds.length === 0
+            ? null
+            : await this.ticketLinks.linkInTransaction(transaction as PrismaService, { id: created.id, status: 'NEW' }, ticketIds, viewer);
+        if (links !== null && links.result.linked.length === 0) throw new ProblemError(problemErrorCodes.ticketsNotLinked, 'ticketIds');
+        return { id: created.id, ticketLinks: links?.result ?? null, notices: links?.notices ?? [] };
       });
-      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
-        action: auditLogActions.problemCreated,
-        entityType: auditLogEntityTypes.problem,
-        entityId: created.id,
-        organizationalUnitId: unitId,
-        metadata: { sequence, organizationalUnitId: unitId, priority } as never,
-        actorUserId: viewer.userId,
-      });
-      return created.id;
+    } catch (error) {
+      // Two concurrent creates with the same key: the loser replays the winner.
+      const concurrent = isUniqueViolation(error) ? await this.replayCreate(viewer, clientRequestId, ticketIds) : null;
+      if (concurrent !== null) return concurrent;
+      throw error;
+    }
+    // Realtime ticket events and notifications stay outside the transaction.
+    if (outcome.notices.length > 0) this.ticketLinks.publish(outcome.notices);
+    if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(outcome.id, viewer.userId));
+    else this.notify('group', (notifier) => notifier.groupAssigned(outcome.id, viewer.userId));
+    return { ...(await this.get(viewer, outcome.id)), ticketLinks: outcome.ticketLinks };
+  }
+
+  /** W7.26: the problem already stored for this (author, clientRequestId). */
+  private async replayCreate(
+    viewer: ProblemViewer,
+    clientRequestId: string | null,
+    ticketIds: readonly string[],
+  ): Promise<CreatedProblemResult | null> {
+    if (clientRequestId === null) return null;
+    const existing = await this.prisma.problem.findUnique({
+      where: { createdByUserId_clientRequestId: { createdByUserId: viewer.userId, clientRequestId } },
+      select: { id: true },
     });
-    if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));
-    else this.notify('group', (notifier) => notifier.groupAssigned(id, viewer.userId));
-    return this.get(viewer, id);
+    if (existing === null) return null;
+    const detail = await this.get(viewer, existing.id);
+    // The links as they stand now: the replay itself skipped nothing.
+    return {
+      ...detail,
+      ticketLinks: ticketIds.length === 0 ? null : await this.ticketLinks.linkedTickets(existing.id),
+    };
   }
 
   /** Decision 2026-10-01: a problem manager of the problem group takes the problem over. */
@@ -771,3 +824,16 @@ export class ProblemsService {
     };
   }
 }
+
+export type ProblemDetail = Awaited<ReturnType<ProblemsService['get']>>;
+
+/** W7.26: the created (or replayed) problem with the links of the same command. */
+export type CreatedProblemResult = ProblemDetail & {
+  readonly ticketLinks: ProblemTicketLinkResult | null;
+};
+
+type CreateOutcome = {
+  readonly id: string;
+  readonly ticketLinks: ProblemTicketLinkResult | null;
+  readonly notices: readonly ProblemTicketNotice[];
+};

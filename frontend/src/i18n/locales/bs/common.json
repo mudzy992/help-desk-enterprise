@@ -9465,6 +9465,7 @@
       "ticketNotFound": "Tiket nije dostupan.",
       "ticketInOtherProblem": "Tiket je već povezan s drugim problemom. Prvo uklonite postojeću vezu.",
       "ticketNotLinked": "Tiket nije povezan s ovim problemom.",
+      "ticketsNotLinked": "Problem nije kreiran jer nijedan odabrani tiket nije mogao biti povezan. Zatvorite dijalog i pokušajte ponovo.",
       "problemNotOpen": "Tikete je moguće povezivati samo s otvorenim problemom.",
       "unitNotFound": "Organizaciona jedinica nije pronađena.",
       "userNotFound": "Odabrani korisnik nije aktivan.",

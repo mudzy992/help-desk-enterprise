@@ -166,7 +166,7 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
         configuration: async () => ({ numberPrefix: 'P-' }),
         hasPermission: () => false,
       };
-      const problems = new ProblemsService(prisma as never, problemAccess as never, loader as never, policies as never);
+      const problems = new ProblemsService(prisma as never, problemAccess as never, loader as never, policies as never, {} as never);
       for (const [actor, expected] of [[staffId, 1], [requesterId, 2], [foreignId, 0]] as const) {
         const detail = await problems.get(viewer(actor), problemId);
         expect(detail.ticketCount).toBe(expected);

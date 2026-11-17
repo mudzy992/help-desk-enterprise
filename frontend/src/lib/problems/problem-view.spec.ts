@@ -36,6 +36,9 @@ describe("problem-view", () => {
     expect(mapProblemError(new ApiError(409, "PROBLEM_TICKET_IN_OTHER_PROBLEM", "x"))).toBe(
       "problems.errors.ticketInOtherProblem",
     );
+    expect(mapProblemError(new ApiError(409, "PROBLEM_TICKETS_NOT_LINKED", "ticketIds"))).toBe(
+      "problems.errors.ticketsNotLinked",
+    );
     expect(mapProblemError(new ApiError(500, "SOMETHING", "x"))).toBeNull();
     expect(mapProblemError(new Error("x"))).toBeNull();
   });

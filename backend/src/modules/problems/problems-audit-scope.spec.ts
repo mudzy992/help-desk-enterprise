@@ -32,7 +32,7 @@ function harness() {
     hasPermission: jest.fn(() => true),
     configuration: jest.fn(async () => ({ numberPrefix: 'P-', targetEnabled: false, requireWorkaroundForKnownError: false })),
   };
-  const service = new ProblemsService(prisma as never, access as never, {} as never, {} as never);
+  const service = new ProblemsService(prisma as never, access as never, {} as never, {} as never, {} as never);
   jest.spyOn(service, 'get').mockResolvedValue({} as never);
   return { prisma, tx, service, access, row };
 }

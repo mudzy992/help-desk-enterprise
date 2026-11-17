@@ -122,6 +122,11 @@ export type CreateProblemInput = {
   readonly ticketIds?: readonly string[];
   /** Decision 2026-10-01: every problem belongs to a problem group. */
   readonly groupId: string;
+  /**
+   * W7.26: create idempotency key. The same key from the same author replays
+   * the stored problem instead of creating a second one.
+   */
+  readonly clientRequestId?: string;
 };
 
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });

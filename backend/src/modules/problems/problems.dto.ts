@@ -17,9 +17,14 @@ export class CreateProblemDto {
   @IsOptional() @IsString() @MaxLength(64) ownerUserId?: string | null;
   @IsOptional() @IsString() @MaxLength(64) groupId?: string | null;
   @IsOptional() @IsString() @MaxLength(64) serviceId?: string | null;
-  /** §8.1 "Create problem" from selected tickets: linked right after creation. */
+  /** §8.1 "Create problem" from selected tickets: linked in the same transaction. */
   @IsOptional() @IsArray() @ArrayMaxSize(problemLimits.linkBatchMax) @IsString({ each: true }) @MaxLength(64, { each: true })
   ticketIds?: string[];
+  /**
+   * W7.26: caller-chosen idempotency key. A retry with the same key and the
+   * same author replays the stored problem instead of creating a second one.
+   */
+  @IsOptional() @IsUUID() clientRequestId?: string;
 }
 
 export class LinkProblemTicketsDto {

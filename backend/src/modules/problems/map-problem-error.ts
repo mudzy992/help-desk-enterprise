@@ -27,6 +27,7 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.finalStatus:
     case problemErrorCodes.versionConflict:
     case problemErrorCodes.ticketInOtherProblem:
+    case problemErrorCodes.ticketsNotLinked:
     case problemErrorCodes.problemNotOpen:
     case problemErrorCodes.articleExists:
     case problemErrorCodes.resolutionRunConflict:

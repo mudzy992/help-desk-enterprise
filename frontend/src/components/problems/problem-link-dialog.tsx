@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
 import { Segmented } from "@/components/ui/segmented";
+import { useToast } from "@/components/ui/toast";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   highestSeverity,
@@ -67,7 +68,14 @@ export function ProblemLinkDialog({
   onDone,
 }: ProblemLinkDialogProperties) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [mode, setMode] = useState<Mode>(initialMode);
+  // W7.26: one create key per opened dialog, so a retried submit (lost
+  // response, double click) replays the problem instead of creating another.
+  const createRequestId = useRef<string>(crypto.randomUUID());
+  useEffect(() => {
+    if (open) createRequestId.current = crypto.randomUUID();
+  }, [open, mode]);
   const draft = useMemo(
     () => suggestProblemDraft(tickets, t("problems.link.descriptionIntro")),
     [tickets, t],
@@ -141,6 +149,7 @@ export function ProblemLinkDialog({
           urgency: severity,
           ticketIds,
           groupId,
+          clientRequestId: createRequestId.current,
         });
         finish(created.id, created.number, created.ticketLinks);
       } else if (selectedProblemId !== null) {
@@ -149,7 +158,10 @@ export function ProblemLinkDialog({
         finish(selectedProblemId, chosen?.number ?? "", result);
       }
     } catch (caught) {
-      setError(t(mapProblemError(caught) ?? mapApiError(caught)));
+      const message = t(mapProblemError(caught) ?? mapApiError(caught));
+      // A long form keeps the inline error and repeats it as a toast.
+      setError(message);
+      toast({ tone: "danger", title: message });
     } finally {
       setSaving(false);
     }
