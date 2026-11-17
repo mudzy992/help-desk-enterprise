@@ -155,7 +155,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-02 | P1       | Pristup jednom linked ticketu otkriva puni problem i metapodatke svih drugih ticketa           | zatvoreno (W7.21) |
 | BA-problems-03 | P1       | Asset search/link/get zaobilaze `asset.read` i CMDB OU scope                                  | zatvoreno (W7.22) |
 | BA-problems-04 | P1       | Ticket unlink ne provjerava aktuelni staff access nad ticketom koji uklanja                    | zatvoreno (W7.20 owner-directed) |
-| BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | otvoreno |
+| BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | zatvoreno (W7.23) |
 | BA-problems-06 | P1       | Problem se commit-a RESOLVED prije bulk ticketa bez durable retry/resume putanje               | otvoreno |
 | BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | otvoreno |
 | BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | otvoreno |
@@ -176,7 +176,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 - **01:** zatvoreno u W7.1 — assignment-derived OU scope, bez role-name global bypassa; detalj u [implementacijskom dokazu](../implementation/87-domain-assignment-scope.md).
 - **02:** minimal linked-ticket problem projection i per-ticket access/redaction prije liste.
 - **03:** zatvoreno u W7.22 — `asset.read` + asset OU scope za search, suggestions, link, linked shape, reverse karticu i asset dio historije (vidi §23).
-- **04–05:** aktuelni ticket policy na svaki unlink/resolve; eksplicitna audited delegation samo unutar dozvoljenog scopea.
+- **04–05:** aktuelni ticket policy na svaki unlink/resolve; W7.23 je delegaciju sveo na povezane ne-povjerljive tikete uz `RESOLVED` problem, problem permisije/OU i group authority, provjereno po tiketu pri upisu (vidi §24).
 - **06:** persisted bulk-resolution run/item state, idempotency, resume endpoint i completion policy.
 - **07, 13:** outbox/delivery state i stabilni business event occurrence ključevi.
 - **08:** jedinstvena create+link command transakcija ili dokumentovan partial/compensation ugovor.
@@ -264,3 +264,9 @@ CMDB veze problema sada prolaze kroz drugu autorizacionu granicu: `problemAssetA
 Service i status-page incident pickeri iz §8 nisu mijenjani; oni pripadaju `BA-problems-11` (service/incident scope policy i transakcioni link obrazac). Nema migracije i nema promjene API shape-a.
 
 CI [`43883895790`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/43883895790) na SHA `d8175a6` je **success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju (sa novom `problem-asset-scope.integration.spec.ts`), frontend, docs, container/supply-chain i CI gate; E2E critical/install, inventory i uslovni image enforcement bili su `skipped`. Zatvaranje nalaza čeka korisničku vizuelnu provjeru. Detalji, rizici i lokalna ograničenja su u [242](../implementation/242-w722-problem-asset-scope.md) i [243](../implementation/243-w722-problems-03-closeout.md).
+
+## 24. W7.23 — BA-problems-05 closeout
+
+Group rješavanje problema više ne tretira `problem.close` kao ticket-wide bypass. Nova provjera `assertProblemDelegation` (tickets modul) izvršava se u svakoj write putanji (`loadAccessibleTicket`, `getTicket`, `updateTicket`) i prije takeover upisa: tiket mora biti stvarno povezan s tim problemom, problem mora biti `RESOLVED`, korisnik aktivan, mora imati `problem.read`/`problem.manage`/`problem.close` u OU problema i autoritet u problem grupi (installation-wide ADMIN/SUPERADMIN preskaču članstvo, ne permisije). Povjerljivi tiketi nikad nisu pokriveni delegacijom — traže vlastiti ticket/confidential pristup, u previewu se prikazuju kao `no_access`, a delegirani upis se u historiji tiketa bilježi razlogom `ticket_problem_resolution`. Cross-OU rješavanje povezanih tiketa ostaje moguće prema odluci vlasnika.
+
+CI [`44043856970`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44043856970) na SHA `e77e1e6` je **success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju (nova `problem-delegation.integration.spec.ts`), frontend, docs, container/supply-chain i CI gate; E2E critical/install, inventory i uslovni image enforcement bili su `skipped`. Nema migracije. Zatvaranje nalaza čeka korisničku vizuelnu provjeru. Durable retry/resume bulk rješavanja ostaje `BA-problems-06`. Detalji su u [244](../implementation/244-w723-problem-delegation.md) i [245](../implementation/245-w723-problems-05-closeout.md).

@@ -2,7 +2,7 @@
 
 **Status:** aktivan — paketni closeout nije isto što i zatvaranje cijelog vala. Presjek po izvornim audit-nalazima i trenutno stanje nalaze se ispod.<br>
 **Datum ažuriranja:** 2026-10-29<br>
-**Ulaz:** 44 audit-izvora, 694 jedinstvena nalaza; izvorne audit-tabele/generisani plan: 449 otvoren / 245 zatvorena. Redovi globalnog registra trenutno su 459 otvoren / 235 zatvorena; deset statusnih razlika ostaje evidentirano i ne mijenja se implicitno.<br>
+**Ulaz:** 44 audit-izvora, 694 jedinstvena nalaza; izvorne audit-tabele/generisani plan: 448 otvoren / 246 zatvorena. Redovi globalnog registra trenutno su 458 otvoren / 236 zatvorena; deset statusnih razlika ostaje evidentirano i ne mijenja se implicitno.<br>
 **Cilj:** sigurno, dokazivo i fazno zatvaranje 174 P1, 370 P2 i 150 P3 nalaza
 
 ## Trenutni status, tumačenje završetka i handoff (Val 6 closeout)
@@ -22,7 +22,7 @@ Ovaj master plan je kanonski za **redoslijed, sadržaj valova/paketa, zbirni sta
 | 4 | zajednički idempotency/outbox/concurrency/storage/cache primitives; nema direktnog BA wave assignmenta | W4.1–W4.7 završeni | — | — | Platformska osnova završena; sama po sebi ne zatvara domenske BA ID-eve. |
 | 5 | 12–16 (tickets, routing, SLA, service catalog, templates) | W5.1–W5.50 i BA-templates closeouti 01–13 | 74 / 74 | 0 (0/0/0) | Svi BA nalazi i targeted E2E 16/25/32 su zatvoreni/zeleni; BA-15 full critical-flow acceptance ostaje zasebno pending. |
 | 6 | 17–21, 28–29 (notifications, websocket, integration queue, inbound email, on-call, announcements, status-page) | W6 paketi i [owner-directed closeout](implementation/226-val6-owner-directed-closeout.md) | 111 / 111 | 0 (0/0/0) | Svi izvorni nalazi zatvoreni; posljednjih 10 uz vlasničko prihvatanje nedokazanih scenarija. Puni CI `43430133509` ostaje failure; zasebni [WebSocket reaudit](implementation/227-websocket-reaudit-live-refresh.md) je follow-up, ne dokaz zatvaranja svih njegovih nalaza. |
-| 7 | 22–27 (assets, problems, changes, knowledge-base, reports, search) | W7.1–W7.22 zapisi o paketima; 24 pojedinačna izvorna reda su zatvorena | 24 / 109 | 85 (16/49/20) | Val 7 je u toku; backlog i nastavak su u §11. |
+| 7 | 22–27 (assets, problems, changes, knowledge-base, reports, search) | W7.1–W7.23 zapisi o paketima; 25 pojedinačnih izvornih redova je zatvoreno | 25 / 109 | 84 (15/49/20) | Val 7 je u toku; backlog i nastavak su u §11. |
 | 8 | 31–38 (install, setup, policy packs, onboarding, directory sync, Teams, extension, branding) | Nema još W8.x paketa | 0 / 148 | 148 (41/76/31) | Planiran, nije započet; detalji u §12. |
 | 9 | 39–42 (health, observability, ops-health, docs) | Nema još W9.x paketa | 1 / 71 | 70 (13/39/18) | `BA-docs-01` zatvoren je ranijim paketom; preostalih 70 nalaza je otvoreno. |
 | 10 | CLI, data-repair i migration closure; završni cross-cutting workstream bez novog BA ID bucket-a | Nema W10.x paketa | — | — | Planiran nakon zatvaranja W1–W9 scopeova; ciljna baza/migracije ostaju van ovog handoffa. |
@@ -639,21 +639,21 @@ Ne dodjeljivati buduće W5 brojeve bez preciznog BA ID scopea i zasebne dozvole.
 | Izvor | Zatvoreno / ukupno | Otvoreno P1/P2/P3 | Napomena |
 | --- | ---: | ---: | --- |
 | [`22 — assets`](audits/22-assets.md) | 19/19 | 0 | Svi source nalazi zatvoreni; full assets E2E/Perf segment sign-off i dalje nije ostvaren. |
-| [`23 — problems`](audits/23-problems.md) | 4/19 | 3/9/3 (15) | Zatvoreni su `BA-problems-01`, owner-directed `BA-problems-04`, `BA-problems-02` i `BA-problems-03`; ostali ostaju otvoreni. |
+| [`23 — problems`](audits/23-problems.md) | 5/19 | 2/9/3 (14) | Zatvoreni su `BA-problems-01`, owner-directed `BA-problems-04`, `BA-problems-02`, `BA-problems-03` i `BA-problems-05`; ostali ostaju otvoreni. |
 | [`24 — changes`](audits/24-changes.md) | 1/20 | 6/10/3 (19) | Zatvoren je samo `BA-changes-01`; `BA-changes-02`–`20` otvoreni. |
 | [`25 — knowledge-base`](audits/25-knowledge-base.md) | 0/19 | 4/11/4 (19) | Svi otvoreni. |
 | [`26 — reports`](audits/26-reports.md) | 0/19 | 2/12/5 (19) | Svi otvoreni. |
 | [`27 — search`](audits/27-search.md) | 0/13 | 1/7/5 (13) | Svi otvoreni. |
-| **Val 7 ukupno** | **24/109** | **16/49/20 (85)** | **Nezavršen val.** |
+| **Val 7 ukupno** | **25/109** | **15/49/20 (84)** | **Nezavršen val.** |
 
-W7.1–W7.19 zatvorili su 21 pojedinačni nalaz (19 assets + `BA-problems-01` + `BA-changes-01`); W7.20 je dodatno zatvorio `BA-problems-04` owner-directed, W7.21 `BA-problems-02`, a W7.22 `BA-problems-03` nakon zelenog CI-ja; 85 nalaza ostaje otvoreno. Asset redovi su formalno zatvoreni, uključujući izričitu owner acceptance iznimku za `BA-assets-16`; ta odluka nije green-CI tvrdnja niti full-segment waiver. Targeted W7.19 E2E [`41314175993`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41314175993) bio je 8/8, ali full scheduled E2E [`41283381903`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41283381903) nije bio zelen, a Perf smoke nije pokrenut. Zato full assets segment sign-off ostaje otvoren; detalji su u [W7.19 closeoutu](implementation/105-assets-concurrency-failure-matrix.md) i [audit 22](audits/22-assets.md).
+W7.1–W7.19 zatvorili su 21 pojedinačni nalaz (19 assets + `BA-problems-01` + `BA-changes-01`); W7.20 je dodatno zatvorio `BA-problems-04` owner-directed, W7.21 `BA-problems-02`, W7.22 `BA-problems-03`, a W7.23 `BA-problems-05` nakon zelenog CI-ja; 84 nalaza ostaje otvoreno. Asset redovi su formalno zatvoreni, uključujući izričitu owner acceptance iznimku za `BA-assets-16`; ta odluka nije green-CI tvrdnja niti full-segment waiver. Targeted W7.19 E2E [`41314175993`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41314175993) bio je 8/8, ali full scheduled E2E [`41283381903`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/41283381903) nije bio zelen, a Perf smoke nije pokrenut. Zato full assets segment sign-off ostaje otvoren; detalji su u [W7.19 closeoutu](implementation/105-assets-concurrency-failure-matrix.md) i [audit 22](audits/22-assets.md).
 
 ### Nastavak Vala 7
 
-W7.20 `BA-problems-04` je owner-directed zatvoren; dokazi i ograničenja su u [239](implementation/239-w720-problem-ticket-unlink.md). W7.21 `BA-problems-02` je zatvoren 2026-10-29 nakon korisničkih DA potvrda; dokazi i preostali rizici su u [241](implementation/241-w721-problems-02-closeout.md). W7.22 `BA-problems-03` je implementiran i zelen na CI-ju; dokazi i preostali rizici su u [243](implementation/243-w722-problems-03-closeout.md). Zatvaranje čeka korisničku vizuelnu provjeru; sljedeći kandidat nije započet.
+W7.20 `BA-problems-04` je owner-directed zatvoren; dokazi i ograničenja su u [239](implementation/239-w720-problem-ticket-unlink.md). W7.21 `BA-problems-02` je zatvoren 2026-10-29 nakon korisničkih DA potvrda; dokazi i preostali rizici su u [241](implementation/241-w721-problems-02-closeout.md). W7.22 `BA-problems-03` je potvrđen vizuelno i ostaje zatvoren; dokazi su u [243](implementation/243-w722-problems-03-closeout.md). W7.23 `BA-problems-05` je implementiran i zelen na CI-ju; dokazi i preostali rizici su u [245](implementation/245-w723-problems-05-closeout.md). Zatvaranje W7.23 čeka korisničku vizuelnu provjeru; sljedeći kandidat nije započet.
 
-1. Prije implementacije definisati svaki naredni ograničeni paket sa tačnim BA ID-evima, ownerom, testnim i DB/migration acceptanceom. Prioritet je 16 preostalih P1 nalaza: `BA-problems-05/06/07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01`–`02` i `BA-search-01`.
-2. Prvi kandidat za triage je faza P1 authorization/visibility u auditima 23–24 (posebno `BA-problems-05` i `BA-changes-02`–`05`). Provjeriti shared policy/dependency; ne spajati ih u jedan prevelik paket automatski. Zatim planirati preostale P1 workflow-recovery/delivery nalaze, pa P2/P3 prema faznim planovima iz pojedinačnih audita.
+1. Prije implementacije definisati svaki naredni ograničeni paket sa tačnim BA ID-evima, ownerom, testnim i DB/migration acceptanceom. Prioritet je 15 preostalih P1 nalaza: `BA-problems-06/07`, `BA-changes-02`–`07`, `BA-knowledge-base-01`–`04`, `BA-reports-01`–`02` i `BA-search-01`.
+2. Prvi kandidat za triage je faza P1 authorization/visibility u auditima 23–24 (posebno `BA-changes-02`–`05`) i zatim workflow-recovery `BA-problems-06/07`. Provjeriti shared policy/dependency; ne spajati ih u jedan prevelik paket automatski. Zatim planirati preostale P1 workflow-recovery/delivery nalaze, pa P2/P3 prema faznim planovima iz pojedinačnih audita.
 3. Svaki paket zatvara samo navedene ID-eve uz vlastiti acceptance. Ne mijenjati susjedne findings ili severity/threshold. Nakon svakog closeouta ažurirati izvorni red, register/plan po standardnom postupku i ovaj wave snapshot.
 4. Val 7 može biti označen završen tek kada svih 109 dodijeljenih BA ID-eva ima zatvoren status i dokaz, a full assets E2E/Perf segment gate ima zabilježen prihvaćen rezultat. `BA-assets-16` owner acceptance i targeted W7.19 E2E ne zamjenjuju taj gate.
 

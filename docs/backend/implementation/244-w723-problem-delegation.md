@@ -55,7 +55,10 @@ Dio §6 o tome da se problem commit-a `RESOLVED` prije bulk ticketa (durable ret
 
 ## Commitovi i CI
 
-_(popunjava se nakon pusha)_
+- `040add6` — `assertProblemDelegation` i njegova integracija u `loadAccessibleTicket`, `getTicket`, `updateTicket`, preview/takeover group resolution, novi change-log razlog `ticket_problem_resolution`, mock i PostgreSQL suite, implementation dokument.
+- `e77e1e6` — ispravka tipa mocka u `problem-resolution.service.spec.ts` (`Promise<{}>` → `Promise<void>`, TS2345 iz prvog CI pokušaja).
+
+Automatski CI: [`44043856970`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44043856970) na SHA `e77e1e6` — **success** (generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integracija sa novom suite, frontend, docs, container/supply-chain, CI gate). Neuspjeli pokušaj: [`44041796410`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44041796410) na `040add6` — vlastita TypeScript greška u specu (build+test), dok je PostgreSQL/Redis integracija već bila zelena; popravljena u `e77e1e6`. Perf smoke nije pokrenut na finalnom SHA (test-only promjena).
 
 ## Korisnička vizuelna provjera (prije zatvaranja)
 
