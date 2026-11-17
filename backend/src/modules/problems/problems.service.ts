@@ -34,6 +34,7 @@ import {
 } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
 import { assertUnitFollowsGroup } from './problem-handoff-rules';
+import { problemCrossDomainVisibility } from './problem-cross-domain-visibility';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
@@ -358,7 +359,7 @@ export class ProblemsService {
       await this.assertOwnerInGroup(ownerUserId, groupId);
     }
     const serviceId = optionalId(input.serviceId) ?? null;
-    await this.assertReferences({ serviceId });
+    await this.assertReferences({ serviceId }, viewer);
     const impact = input.impact ?? 'MEDIUM';
     const urgency = input.urgency ?? 'MEDIUM';
     const priority = await resolveTicketPriority(this.prisma, impact, urgency, {
@@ -525,9 +526,12 @@ export class ProblemsService {
     if (groupId !== undefined && groupId !== current.groupId && ownerUserId === undefined && current.ownerUserId !== null) {
       if (!(await this.isOwnerInGroup(current.ownerUserId, groupId))) ownerUserId = null;
     }
-    await this.assertReferences({
-      serviceId: serviceId !== current.serviceId ? serviceId : undefined,
-    });
+    await this.assertReferences(
+      {
+        serviceId: serviceId !== current.serviceId ? serviceId : undefined,
+      },
+      viewer,
+    );
     if (ownerUserId !== undefined) {
       if (ownerUserId === null && current.status !== 'NEW') throw new ProblemError(problemErrorCodes.requirementMissing, 'owner');
       data.ownerUserId = ownerUserId;
@@ -709,8 +713,10 @@ export class ProblemsService {
         orderBy: { ouPath: 'asc' },
         take: 2000,
       }),
+      // W7.29 (BA-problems-11): the picker offers what the service catalog itself
+      // shows this user — drafts stay admin-only, a scoped admin sees its own.
       this.prisma.service.findMany({
-        where: { lifecycle: { not: 'DEPRECATED' } },
+        where: (await this.serviceReadWhere(viewer)) as never,
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
         take: 2000,
@@ -785,15 +791,28 @@ export class ProblemsService {
     if (!group.isProblemGroup) throw new ProblemError(problemErrorCodes.notProblemGroup);
   }
 
-  private async assertReferences(input: {
-    ownerUserId?: string | null;
-    groupId?: string | null;
-    serviceId?: string | null;
-  }): Promise<void> {
+  /** The catalog's own read policy, as a service filter (W7.29). */
+  private async serviceReadWhere(viewer: ProblemViewer): Promise<Record<string, unknown>> {
+    return (await problemCrossDomainVisibility(this.authorizationContextLoader, viewer.userId)).serviceWhere;
+  }
+
+  private async assertReferences(
+    input: {
+      ownerUserId?: string | null;
+      groupId?: string | null;
+      serviceId?: string | null;
+    },
+    viewer: ProblemViewer,
+  ): Promise<void> {
     const [owner, group, service] = await Promise.all([
       input.ownerUserId ? this.prisma.user.findUnique({ where: { id: input.ownerUserId }, select: { id: true, isActive: true } }) : null,
       input.groupId ? this.prisma.group.findUnique({ where: { id: input.groupId }, select: { id: true } }) : null,
-      input.serviceId ? this.prisma.service.findUnique({ where: { id: input.serviceId }, select: { id: true } }) : null,
+      input.serviceId
+        ? this.prisma.service.findFirst({
+            where: { AND: [{ id: input.serviceId }, await this.serviceReadWhere(viewer)] },
+            select: { id: true },
+          })
+        : null,
     ]);
     if (input.ownerUserId && (owner === null || !owner.isActive)) throw new ProblemError(problemErrorCodes.userNotFound);
     if (input.groupId && group === null) throw new ProblemError(problemErrorCodes.groupNotFound);

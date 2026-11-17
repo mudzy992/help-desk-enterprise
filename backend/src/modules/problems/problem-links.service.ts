@@ -4,6 +4,8 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { TicketAccessPolicyBinder } from '../tickets/ticket-access-policy-binder';
 import { problemTicketVisibility } from './problem-ticket-visibility';
+import { problemCrossDomainVisibility } from './problem-cross-domain-visibility';
+import { withIncidentVisibility } from '../status-page/status-page.service';
 import { assetWhereOf, problemAssetAccess } from './problem-asset-access';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { formatProblemNumber } from './problem-rules';
@@ -103,19 +105,18 @@ export class ProblemLinksService {
     return problem;
   }
 
-  private async event(problemId: string, viewer: ProblemViewer, action: string, detail: Record<string, unknown>) {
-    await this.prisma.problemEvent.create({ data: { problemId, action, actorUserId: viewer.userId, detail: detail as never } });
-  }
-
   async get(problemId: string, viewer: ProblemViewer) {
     const problem = await this.loadProblem(problemId, viewer);
-    const [cmdbEnabled, statusEnabled, canEdit] = await Promise.all([
+    const [cmdbEnabled, statusEnabled, canEdit, crossDomain] = await Promise.all([
       this.access.cmdbEnabled(),
       this.access.statusPageEnabled(),
       this.canEdit(viewer, problem),
+      problemCrossDomainVisibility(this.authorizationContextLoader, viewer.userId),
     ]);
+    // A service or incident the caller may not read in its own module does not
+    // become readable because a problem links to it.
     const services = await this.prisma.problemService.findMany({
-      where: { problemId },
+      where: { problemId, service: { is: crossDomain.serviceWhere } },
       select: { service: { select: { id: true, name: true } } },
       orderBy: { service: { name: 'asc' } },
       take: listLimit,
@@ -130,7 +131,12 @@ export class ProblemLinksService {
         })
       : [];
     const incidents = statusEnabled
-      ? await this.prisma.problemIncident.findMany({ where: { problemId }, orderBy: { linkedAt: 'desc' }, take: listLimit, select: { incident: { select: incidentSelect } } })
+      ? await this.prisma.problemIncident.findMany({
+          where: withIncidentVisibility({ problemId }, crossDomain.incidents),
+          orderBy: { linkedAt: 'desc' },
+          take: listLimit,
+          select: { incident: { select: incidentSelect } },
+        })
       : [];
     return {
       cmdbEnabled,
@@ -224,46 +230,82 @@ export class ProblemLinksService {
     if (!assetAccess.allowed) throw new ProblemError(problemErrorCodes.assetNotFound);
     const asset = await this.prisma.asset.findFirst({ where: { AND: [assetWhereOf(assetAccess), { id: assetId }] }, select: { assetTag: true, name: true } });
     if (asset === null) throw new ProblemError(problemErrorCodes.assetNotFound);
-    const removed = await this.prisma.problemAsset.deleteMany({ where: { problemId, assetId } });
-    if (removed.count === 0) throw new ProblemError(problemErrorCodes.assetNotFound);
-    await this.event(problemId, viewer, problemEventActions.assetUnlinked, { assetId, assetTag: asset?.assetTag ?? null, name: asset?.name ?? null });
+    // W7.29: the removal and its history line are one write, so a failed event
+    // cannot leave a silent unlink (and a failed unlink cannot leave an event).
+    await this.prisma.$transaction(async (transaction) => {
+      const removed = await transaction.problemAsset.deleteMany({ where: { problemId, assetId } });
+      if (removed.count === 0) throw new ProblemError(problemErrorCodes.assetNotFound);
+      await transaction.problemEvent.create({
+        data: {
+          problemId,
+          action: problemEventActions.assetUnlinked,
+          actorUserId: viewer.userId,
+          detail: { assetId, assetTag: asset.assetTag, name: asset.name } as never,
+        },
+      });
+    });
+  }
+
+  /** The service must be one the catalog itself shows to this caller. */
+  private async readableService(viewer: ProblemViewer, serviceId: string) {
+    const crossDomain = await problemCrossDomainVisibility(this.authorizationContextLoader, viewer.userId);
+    return this.prisma.service.findFirst({
+      where: { AND: [{ id: serviceId }, crossDomain.serviceWhere] },
+      select: { id: true, name: true },
+    });
   }
 
   async linkService(problemId: string, viewer: ProblemViewer, serviceId: string) {
     const problem = await this.requireEditable(problemId, viewer);
-    const service = await this.prisma.service.findUnique({ where: { id: serviceId }, select: { id: true, name: true } });
+    const service = await this.readableService(viewer, serviceId);
     if (service === null) throw new ProblemError(problemErrorCodes.serviceNotFound);
     // The main service is already on the problem itself.
     if (problem.serviceId === serviceId) return { linked: 0 };
     try {
-      await this.prisma.problemService.create({ data: { problemId, serviceId } });
+      await this.prisma.$transaction(async (transaction) => {
+        await transaction.problemService.create({ data: { problemId, serviceId } });
+        await transaction.problemEvent.create({
+          data: { problemId, action: problemEventActions.serviceLinked, actorUserId: viewer.userId, detail: { serviceId, name: service.name } as never },
+        });
+      });
     } catch (error) {
+      // Already linked (a parallel request or a stale picker): nothing to write.
       if (isUniqueViolation(error)) return { linked: 0 };
       throw error;
     }
-    await this.event(problemId, viewer, problemEventActions.serviceLinked, { serviceId, name: service.name });
     return { linked: 1 };
   }
 
   async unlinkService(problemId: string, viewer: ProblemViewer, serviceId: string) {
     await this.requireEditable(problemId, viewer);
-    const service = await this.prisma.service.findUnique({ where: { id: serviceId }, select: { name: true } });
-    const removed = await this.prisma.problemService.deleteMany({ where: { problemId, serviceId } });
-    if (removed.count === 0) throw new ProblemError(problemErrorCodes.serviceNotFound);
-    await this.event(problemId, viewer, problemEventActions.serviceUnlinked, { serviceId, name: service?.name ?? null });
+    const service = await this.readableService(viewer, serviceId);
+    if (service === null) throw new ProblemError(problemErrorCodes.serviceNotFound);
+    await this.prisma.$transaction(async (transaction) => {
+      const removed = await transaction.problemService.deleteMany({ where: { problemId, serviceId } });
+      if (removed.count === 0) throw new ProblemError(problemErrorCodes.serviceNotFound);
+      await transaction.problemEvent.create({
+        data: { problemId, action: problemEventActions.serviceUnlinked, actorUserId: viewer.userId, detail: { serviceId, name: service.name } as never },
+      });
+    });
   }
 
   async searchIncidents(problemId: string, viewer: ProblemViewer, search: string) {
     await this.requireEditable(problemId, viewer);
     if (!(await this.access.statusPageEnabled())) return { items: [] };
+    const crossDomain = await problemCrossDomainVisibility(this.authorizationContextLoader, viewer.userId);
     const term = search.trim().slice(0, problemLimits.searchMax);
     const since = new Date(Date.now() - incidentSearchWindowDays * 86_400_000);
     const rows = await this.prisma.serviceIncident.findMany({
-      where: {
-        problems: { none: { problemId } },
-        OR: [{ resolvedAt: null }, { resolvedAt: { gte: since } }],
-        ...(term.length > 0 ? { title: { contains: term, mode: 'insensitive' as const } } : {}),
-      },
+      // The status page owns incident visibility; a problem manager sees what
+      // it would show them, not every STAFF_ONLY incident in the installation.
+      where: withIncidentVisibility(
+        {
+          problems: { none: { problemId } },
+          OR: [{ resolvedAt: null }, { resolvedAt: { gte: since } }],
+          ...(term.length > 0 ? { title: { contains: term, mode: 'insensitive' as const } } : {}),
+        },
+        crossDomain.incidents,
+      ),
       orderBy: { startedAt: 'desc' },
       take: searchLimit,
       select: incidentSelect,
@@ -271,27 +313,45 @@ export class ProblemLinksService {
     return { items: rows.map(toIncident) };
   }
 
+  /** The incident must be one the status page itself shows to this caller. */
+  private async readableIncident(viewer: ProblemViewer, incidentId: string) {
+    const crossDomain = await problemCrossDomainVisibility(this.authorizationContextLoader, viewer.userId);
+    return this.prisma.serviceIncident.findFirst({
+      where: withIncidentVisibility({ id: incidentId }, crossDomain.incidents),
+      select: { id: true, title: true },
+    });
+  }
+
   async linkIncident(problemId: string, viewer: ProblemViewer, incidentId: string) {
     await this.requireEditable(problemId, viewer);
     if (!(await this.access.statusPageEnabled())) throw new ProblemError(problemErrorCodes.incidentNotFound);
-    const incident = await this.prisma.serviceIncident.findUnique({ where: { id: incidentId }, select: { id: true, title: true } });
+    const incident = await this.readableIncident(viewer, incidentId);
     if (incident === null) throw new ProblemError(problemErrorCodes.incidentNotFound);
     try {
-      await this.prisma.problemIncident.create({ data: { problemId, incidentId } });
+      await this.prisma.$transaction(async (transaction) => {
+        await transaction.problemIncident.create({ data: { problemId, incidentId } });
+        await transaction.problemEvent.create({
+          data: { problemId, action: problemEventActions.incidentLinked, actorUserId: viewer.userId, detail: { incidentId, title: incident.title } as never },
+        });
+      });
     } catch (error) {
       if (isUniqueViolation(error)) return { linked: 0 };
       throw error;
     }
-    await this.event(problemId, viewer, problemEventActions.incidentLinked, { incidentId, title: incident.title });
     return { linked: 1 };
   }
 
   async unlinkIncident(problemId: string, viewer: ProblemViewer, incidentId: string) {
     await this.requireEditable(problemId, viewer);
-    const incident = await this.prisma.serviceIncident.findUnique({ where: { id: incidentId }, select: { title: true } });
-    const removed = await this.prisma.problemIncident.deleteMany({ where: { problemId, incidentId } });
-    if (removed.count === 0) throw new ProblemError(problemErrorCodes.incidentNotFound);
-    await this.event(problemId, viewer, problemEventActions.incidentUnlinked, { incidentId, title: incident?.title ?? null });
+    const incident = await this.readableIncident(viewer, incidentId);
+    if (incident === null) throw new ProblemError(problemErrorCodes.incidentNotFound);
+    await this.prisma.$transaction(async (transaction) => {
+      const removed = await transaction.problemIncident.deleteMany({ where: { problemId, incidentId } });
+      if (removed.count === 0) throw new ProblemError(problemErrorCodes.incidentNotFound);
+      await transaction.problemEvent.create({
+        data: { problemId, action: problemEventActions.incidentUnlinked, actorUserId: viewer.userId, detail: { incidentId, title: incident.title } as never },
+      });
+    });
   }
 
   /**
@@ -308,6 +368,11 @@ export class ProblemLinksService {
   }
 
   async forIncident(incidentId: string, viewer: ProblemViewer) {
+    const crossDomain = await problemCrossDomainVisibility(this.authorizationContextLoader, viewer.userId);
+    const visible = await this.prisma.serviceIncident.count({
+      where: withIncidentVisibility({ id: incidentId }, crossDomain.incidents),
+    });
+    if (visible === 0) return { items: [] };
     return this.reverse(viewer, { incidents: { some: { incidentId } } });
   }
 

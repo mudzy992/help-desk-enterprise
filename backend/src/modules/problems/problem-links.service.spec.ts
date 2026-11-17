@@ -33,10 +33,16 @@ function setup(options: { status?: string; authority?: boolean; cmdb?: boolean; 
       count: jest.fn(async () => 1),
     },
     $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => callback({
-      problemAsset: { create: jest.fn(async () => ({})) },
+      problemAsset: { create: jest.fn(async () => ({})), deleteMany: jest.fn(async () => ({ count: 1 })) },
+      problemService: { create: jest.fn(async () => ({})), deleteMany: jest.fn(async () => ({ count: 1 })) },
+      problemIncident: { create: jest.fn(async () => ({})), deleteMany: jest.fn(async () => ({ count: 1 })) },
       problemEvent: { create: jest.fn(async () => ({})) },
     })),
-    service: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => ({ id: where.id, name: 'Mail' })) },
+    service: {
+      findUnique: jest.fn(async ({ where }: { where: { id: string } }) => ({ id: where.id, name: 'Mail' })),
+      findFirst: jest.fn(async () => ({ id: 's2', name: 'Mail' })),
+    },
+    serviceIncident: { findFirst: jest.fn(async () => ({ id: 'i1', title: 'VPN prekid' })), count: jest.fn(async () => 1) },
     problemEvent: { create: jest.fn(async () => ({})) },
   };
   const access = {
@@ -49,7 +55,8 @@ function setup(options: { status?: string; authority?: boolean; cmdb?: boolean; 
     }),
     capabilities: jest.fn(async () => ({ enabled: true, canRead: options.canRead ?? true, configuration: { numberPrefix: 'P-' } })),
   };
-  return { service: new ProblemLinksService(prisma as never, access as never, {} as never, {} as never), prisma, access };
+  const loader = { loadBySubjectId: jest.fn(async () => null) };
+  return { service: new ProblemLinksService(prisma as never, access as never, loader as never, {} as never), prisma, access, loader };
 }
 
 const scopedWhere = { organizationalUnit: { OR: [{ ouPath: '/inside' }, { ouPath: { startsWith: '/inside/' } }] } };
@@ -98,7 +105,9 @@ describe('ProblemLinksService (P5b)', () => {
     expect(main.prisma.problemService.create).not.toHaveBeenCalled();
     const extra = setup();
     expect(await extra.service.linkService('p1', viewer, 's2')).toEqual({ linked: 1 });
-    expect(extra.prisma.problemEvent.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: 'service_linked' }) }));
+    // The link and its history line are one transaction (W7.29).
+    expect(extra.prisma.$transaction).toHaveBeenCalled();
+    expect(extra.prisma.problemEvent.create).not.toHaveBeenCalled();
   });
 
   it('refuses CMDB links while the CMDB module is off', async () => {
