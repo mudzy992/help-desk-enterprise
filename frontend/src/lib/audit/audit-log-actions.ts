@@ -158,6 +158,11 @@ export const knownAuditActions = [
   "problem.reopened",
   "problem.knowledge_article_created",
   "problem.tickets_resolved",
+  // W7.28: the recorded steps of a problem group transfer.
+  "problem.handoff_requested",
+  "problem.handoff_accepted",
+  "problem.handoff_rejected",
+  "problem.handoff_cancelled",
   "change.created",
   "change.status_changed",
   "change.approval_recorded",

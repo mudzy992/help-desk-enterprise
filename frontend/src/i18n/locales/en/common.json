@@ -424,7 +424,11 @@
             "knowledge_article_reply_redacted": "Knowledge article — personal data redacted from reply",
             "auth_login_failed": "Account security — failed sign-in",
             "auth_password_reset_must_change": "Account security — password change required after a reset",
-            "auth_admin_bulk_password_reset": "Account security — bulk password reset"
+            "auth_admin_bulk_password_reset": "Account security — bulk password reset",
+            "problem_handoff_requested": "Problem — handoff to another group requested",
+            "problem_handoff_accepted": "Problem — handoff to another group accepted",
+            "problem_handoff_rejected": "Problem — handoff to another group rejected",
+            "problem_handoff_cancelled": "Problem — handoff to another group cancelled"
           },
           "entities": {
             "policy_pack": "Policy pack",
