@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 9 P2, 3 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.27 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08` i `09`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -87,6 +87,8 @@ Draft builder scrubuje poznate osobe iz problema/ticketa i kreiranje prolazi kro
 
 Sam KB article se ipak kreira prije problem transakcije. Dva concurrent zahtjeva mogu oba kreirati draft; samo jedan pobjeđuje conditional link, dok drugi ostaje orphan draft u knowledge-baseu. I običan DB/audit failure nakon article createa ostavlja isti orphan. Potreban je idempotency key/unique problem draft relation ili compensation delete sa reconciliationom.
 
+**W7.27:** članak, njegov change-log red, conditional link, problem event i audit sada su jedna transakcija (`createKnowledgeArticle` prima pozivaočev `Prisma.TransactionClient` i ne otvara ugniježđenu transakciju), pa pad linka/eventa/audita ili gubitak trke poništava i draft. Ponovljeni submit i gubitnik trke replayaju povezani članak sa 200 (`existingArticle`), a `PROBLEM_ARTICLE_EXISTS` ostaje za `GET …/draft`. Legacy orphan draftovi se, po odluci vlasnika, ne čiste.
+
 Problem može promijeniti service/OU nakon kreiranja članka, bez politike synca; to može ostaviti članak u drugačijem scopeu od izvornog problema. Article link je one-way i nema unlink/replacement lifecycle.
 
 ## 10. Target, reminders, notifications i scheduler
@@ -161,7 +163,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-06 | P1       | Problem se commit-a RESOLVED prije bulk ticketa bez durable retry/resume putanje               | zatvoreno (W7.24) |
 | BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | zatvoreno (W7.25) |
 | BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | zatvoreno (W7.26) |
-| BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | otvoreno |
+| BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | zatvoreno (W7.27) |
 | BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | otvoreno |
 | BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | otvoreno |
 | BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
@@ -336,3 +338,23 @@ kroz release migrator), frontend (lint/format/testovi/build/budget), docs, conta
 critical/install i read-only inventory bili su `skipped` (push workflow ih ne pokreće). Nije bilo neuspjelih CI
 pokušaja za ovaj paket. Detalji su u [249](../implementation/249-w726-problem-create-atomicity.md).
 `BA-problems-09` je sljedeći P2 u ovom auditu.
+
+## 28. W7.27 — BA-problems-09 closeout
+
+KB article draft više nije zasebna komanda prije linka. `createKnowledgeArticle` prima opcioni transakcijski klijent i
+tada svoje upise (article `DRAFT` + `recordKnowledgeArticleChange`) izvršava **unutar** pozivaočeve transakcije, bez
+ugniježđenog `$transaction`; sve autorizacijske i reference provjere ostaju prije `create`. `ProblemResolutionService.createArticle`
+zato u jednoj transakciji radi draft, conditional `problem.updateMany where knowledgeArticleId: null`, `ProblemEvent`
+`knowledgeArticle` i audit red, uz ponovno čitanje statusa i link fence-a unutar transakcije. Gubitnik trke, pad linka
+ili pad eventa/audita poništava i članak, pa orphan draft ne nastaje. Ponovljeni submit i gubitnik trke replayaju
+povezani članak sa **200** (`existingArticle` kroz `loadForArticle` sa `allowExisting`); `PROBLEM_ARTICLE_EXISTS`
+(409) ostaje za `GET …/knowledge-article/draft`. Posebna kolona/relacija (`KnowledgeArticle.sourceProblemId`) i nova
+migracija nisu uvedene, a legacy orphan draftovi se po odluci vlasnika ne čiste (nema sweepa ni reporta). Frontend
+sheet prikazuje pad inline i kao danger toast, a replay tretira kao uspjeh.
+
+CI [`44103735795`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44103735795) na `e6dc139` je
+**success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju (bez nove
+migracije), frontend (lint/format/testovi/build/budget), docs, container/supply-chain i CI gate; E2E critical/install
+i read-only inventory bili su `skipped` (push workflow ih ne pokreće). Nije bilo neuspjelih CI pokušaja za ovaj paket.
+Detalji su u [250](../implementation/250-w727-problem-article-atomicity.md).
+`BA-problems-10` je sljedeći P2 u ovom auditu.
