@@ -44,7 +44,8 @@ export function ProblemResolutionRunPanel({
   const queryClient = useQueryClient();
   const [resuming, setResuming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const enabled = problem.permissions.canClose && (problem.status === "RESOLVED" || problem.status === "CLOSED");
+  const enabled =
+    problem.permissions.canClose && (problem.status === "RESOLVED" || problem.status === "CLOSED");
   const latest = useQuery({
     queryKey: problemQueryKeys.resolutionRunLatest(problem.id),
     queryFn: () => getLatestProblemResolutionRun(problem.id),
@@ -64,7 +65,9 @@ export function ProblemResolutionRunPanel({
     setError(null);
     try {
       await resumeProblemResolutionRun(problem.id, run.id);
-      await queryClient.invalidateQueries({ queryKey: problemQueryKeys.resolutionRunLatest(problem.id) });
+      await queryClient.invalidateQueries({
+        queryKey: problemQueryKeys.resolutionRunLatest(problem.id),
+      });
       toast({ tone: "success", title: t("problems.resolveTickets.run.resumed") });
       onResumed();
     } catch (caught) {
@@ -98,7 +101,9 @@ export function ProblemResolutionRunPanel({
           })}
         </span>
         <div className="grid gap-0.5">
-          <span className="text-[12px] font-medium">{t("problems.resolveTickets.run.pendingTitle")}</span>
+          <span className="text-[12px] font-medium">
+            {t("problems.resolveTickets.run.pendingTitle")}
+          </span>
           <ul className="grid gap-0.5 text-[12px] text-muted-foreground">
             {shown.map((item) => (
               <li key={item.id}>
@@ -108,7 +113,9 @@ export function ProblemResolutionRunPanel({
               </li>
             ))}
             {unfinished.length > shown.length ? (
-              <li>{t("problems.resolveTickets.run.more", { count: unfinished.length - shown.length })}</li>
+              <li>
+                {t("problems.resolveTickets.run.more", { count: unfinished.length - shown.length })}
+              </li>
             ) : null}
           </ul>
         </div>
@@ -125,10 +132,14 @@ export function ProblemResolutionRunPanel({
             disabled={resuming}
             data-testid="problem-resolution-run-resume"
           >
-            {resuming ? t("problems.resolveTickets.run.resuming") : t("problems.resolveTickets.run.resume")}
+            {resuming
+              ? t("problems.resolveTickets.run.resuming")
+              : t("problems.resolveTickets.run.resume")}
           </Button>
         </div>
-        {run.failed > 0 ? <p className={hintClassName}>{t("problems.resolveTickets.run.failedHint")}</p> : null}
+        {run.failed > 0 ? (
+          <p className={hintClassName}>{t("problems.resolveTickets.run.failedHint")}</p>
+        ) : null}
       </div>
     </div>
   );

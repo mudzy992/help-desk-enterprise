@@ -313,7 +313,9 @@ function ResolveOutcome({
               disabled={resuming}
               data-testid="problem-resolve-outcome-resume"
             >
-              {resuming ? t("problems.resolveTickets.run.resuming") : t("problems.resolveTickets.run.resume")}
+              {resuming
+                ? t("problems.resolveTickets.run.resuming")
+                : t("problems.resolveTickets.run.resume")}
             </Button>
           </div>
         </div>

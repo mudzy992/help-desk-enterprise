@@ -290,7 +290,8 @@ export const problemQueryKeys = {
   events: (id: string) => ["problems", "detail", id, "events"] as const,
   owners: (search: string, groupId: string) => ["problems", "owners", groupId, search] as const,
   resolvePreview: (id: string) => ["problems", "detail", id, "resolve-preview"] as const,
-  resolutionRunLatest: (id: string) => ["problems", "detail", id, "resolution-run", "latest"] as const,
+  resolutionRunLatest: (id: string) =>
+    ["problems", "detail", id, "resolution-run", "latest"] as const,
   articleDraft: (id: string) => ["problems", "detail", id, "article-draft"] as const,
 };
 
