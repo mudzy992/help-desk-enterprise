@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 9 P2, 3 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.27 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08` i `09`; ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.28 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09` i `10`; ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -164,7 +164,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | zatvoreno (W7.25) |
 | BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | zatvoreno (W7.26) |
 | BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | zatvoreno (W7.27) |
-| BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | otvoreno |
+| BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | zatvoreno |
 | BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | otvoreno |
 | BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
 | BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | otvoreno |
@@ -357,4 +357,30 @@ CI [`44103735795`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 migracije), frontend (lint/format/testovi/build/budget), docs, container/supply-chain i CI gate; E2E critical/install
 i read-only inventory bili su `skipped` (push workflow ih ne pokreće). Nije bilo neuspjelih CI pokušaja za ovaj paket.
 Detalji su u [250](../implementation/250-w727-problem-article-atomicity.md).
-`BA-problems-10` je sljedeći P2 u ovom auditu.
+
+## 29. W7.28 — BA-problems-10 closeout
+
+Promjena grupe više nije polje. `PATCH /problems/:id` sa drugim `groupId` vraća `409 PROBLEM_HANDOFF_REQUIRED`, a isti
+kod sa `detail: 'organizationalUnitId'` dobija i premještanje u OJ izvan drveta grupe; OJ unutar drveta ostaje običan
+update. Predaja je vlastita komanda: `ProblemHandoff` pamti izvornu i ciljnu grupu/OJ, podnosioca, razlog, status i
+odluku, a djelimični unique indeks dozvoljava najviše jednu predaju koja čeka po problemu (`P2002` →
+`PROBLEM_HANDOFF_PENDING`). `ProblemHandoffService.request` provjerava da je cilj problem-grupa i da je ciljna OJ u
+opsegu podnosioca i u drvetu ciljne grupe; ako podnosilac ima `problem.manage` autoritet nad ciljnom grupom, predaja
+se prihvata odmah, inače ostaje `PENDING` i problem **ostaje** u staroj grupi. Prihvat ide kroz `updateMany` sa
+`version` CAS-om i provjerom izvorne grupe (`PROBLEM_HANDOFF_CONFLICT`), pomjera grupu i OJ, rješava vlasnika
+(zadržava postojećeg ako pripada ciljnoj grupi, inače ga preuzima upravitelj koji prihvati) i upisuje `ProblemEvent` i
+audit; odbijanje i otkazivanje ne diraju problem, a prelazak u konačni status otkazuje predaju koja čeka u istoj
+transakciji. Detalj nosi `handoff` i `canHandoff|canDecideHandoff|canCancelHandoff`, historija prihvata četiri
+`handoff_*` akcije, a notifikacije (`problem.handoffRequested` ciljnoj grupi, `problem.handoffDecided` podnosiocu)
+imaju vlastitu kategoriju preferencija. Frontend prikazuje predaju na detalju, daje samo dozvoljene akcije i više ne
+šalje promjenu grupe kroz edit sheet — prvo čuva ostale podatke, pa traži predaju sa obaveznim razlogom, uz
+eksplicitnu poruku kada je samo prvi korak uspio.
+
+Migracija `20271201010000_problem_handoffs` (add-only) i schema su pripremljene, ali **nisu primijenjene**: čekaju
+izričitu dozvolu vlasnika. CI [`44139365349`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44139365349)
+na `6a41a29` je **success** (generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integracija, frontend
+lint/format/testovi/build/budget, docs, container/supply-chain, gate); E2E critical/install i read-only inventory bili
+su `skipped`. Dva ranija pokušaja pala su na vlastitim greškama — `44132873063` na `module-size` budžetu
+(`services/problems-api.ts` i `lib/problems/problem-view.ts`) i `44136465539` na audit katalogu bez četiri nove akcije
+— oba popravljena prije zelenog runa. Detalji su u [251](../implementation/251-w728-problem-handoff.md).
+`BA-problems-11` je sljedeći P2 u ovom auditu.
