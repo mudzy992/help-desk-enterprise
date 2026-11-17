@@ -95,6 +95,12 @@ CI run [`44194131526`](https://github.com/mudzy992/help-desk-enterprise/actions/
 - **Skipped:** `Read-only service-form pattern inventory`, `E2E critical flows`, `E2E install wizard`.
 - **Neuspjeli pokušaji:** nema; prvi run je bio zelen.
 
+Završni docs/guard commit `c1bffeb` ima vlastiti run
+[`44196502251`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44196502251) — takođe
+**success** (Backend build + test, PostgreSQL/Redis integration, Frontend build + test, Docs guard,
+container/supply-chain, CI gate; E2E i inventory `skipped`). Taj run je dokaz i za podignut
+`check-backend-findings` baseline (696 nalaza / 151 P3) i za novi `problems` red u registru.
+
 Lokalne provjere: `npx jest` ciljano (problems/audit-log/notifications/tickets), `npx eslint` na svim
 izmijenjenim fajlovima. Backend `tsc` i `nest build` lokalno nisu izvršivi bez generisanog Prisma
 klijenta (sandbox blokira `binaries.prisma.sh`); tu provjeru nosi CI build job.

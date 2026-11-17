@@ -484,5 +484,6 @@ suiteova), `eslint` čist na svim izmijenjenim fajlovima. CI
 `6a3d66a` je **success** (generisani Prisma, backend build/lint/safety-net/wiring/SLA/pun Jest,
 PostgreSQL/Redis integracija, frontend lint/format/testovi/build/budget, docs, container/supply-chain,
 gate); E2E critical/install i read-only inventory bili su `skipped`, bez neuspjelih pokušaja. Detalji
-su u [254](../implementation/254-w731-problem-notice-occurrence.md). `BA-problems-14` je sljedeći P2 u
-ovom auditu.
+su u [254](../implementation/254-w731-problem-notice-occurrence.md); završni docs/guard commit `c1bffeb`
+prošao je vlastiti CI [`44196502251`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44196502251)
+(`success`). `BA-problems-14` je sljedeći P2 u ovom auditu.
