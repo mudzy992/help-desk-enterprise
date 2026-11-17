@@ -98,5 +98,36 @@ describe("problem-view", () => {
     expect(problemHistoryText(t, "tickets_resolved", { resolved: 3, skipped: 1, failed: 0 })).toBe(
       'problems.history.ticketsResolved:{"resolved":3,"skipped":1,"failed":0}',
     );
+    // W7.28: every step of a group transfer is named in the history.
+    expect(problemHistoryText(t, "handoff_requested", { toGroup: "Grupa B" })).toBe(
+      'problems.history.handoffRequested:{"group":"Grupa B"}',
+    );
+    expect(problemHistoryText(t, "handoff_accepted", { toGroup: "Grupa B" })).toBe(
+      'problems.history.handoffAccepted:{"group":"Grupa B"}',
+    );
+    expect(problemHistoryText(t, "handoff_rejected", { toGroup: "Grupa B" })).toBe(
+      'problems.history.handoffRejected:{"group":"Grupa B"}',
+    );
+    expect(problemHistoryText(t, "handoff_cancelled", { toGroup: "Grupa B" })).toBe(
+      'problems.history.handoffCancelled:{"group":"Grupa B"}',
+    );
+  });
+
+  it("maps the handoff error codes to their own messages", () => {
+    expect(mapProblemError(new ApiError(409, "PROBLEM_HANDOFF_REQUIRED", "groupId"))).toBe(
+      "problems.errors.handoffRequired",
+    );
+    expect(mapProblemError(new ApiError(409, "PROBLEM_HANDOFF_PENDING", "x"))).toBe(
+      "problems.errors.handoffPending",
+    );
+    expect(mapProblemError(new ApiError(404, "PROBLEM_HANDOFF_NOT_FOUND", "x"))).toBe(
+      "problems.errors.handoffNotFound",
+    );
+    expect(mapProblemError(new ApiError(409, "PROBLEM_HANDOFF_CONFLICT", "x"))).toBe(
+      "problems.errors.handoffConflict",
+    );
+    expect(mapProblemError(new ApiError(409, "PROBLEM_HANDOFF_SAME_GROUP", "x"))).toBe(
+      "problems.errors.handoffSameGroup",
+    );
   });
 });

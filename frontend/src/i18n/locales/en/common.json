@@ -199,7 +199,9 @@
       "changeDecided": "The CAB decided on a change",
       "changeStartingSoon": "A change starts soon",
       "changeOverdue": "A change has passed its planned end",
-      "changeFailed": "A change linked to your problem failed"
+      "changeFailed": "A change linked to your problem failed",
+      "problemHandoffRequested": "A problem waits for your handoff decision",
+      "problemHandoffDecided": "Problem handoff decision"
     }
   },
   "placeholders": {
@@ -9422,7 +9424,12 @@
       "notProblemGroup": "The chosen group is not a problem group.",
       "ownerNotInGroup": "The owner must be a problem manager and a member of the chosen group.",
       "assetNotFound": "The asset was not found or the asset register is off.",
-      "incidentNotFound": "The incident was not found or the status page is off."
+      "incidentNotFound": "The incident was not found or the status page is off.",
+      "handoffRequired": "A problem changes group only through a handoff. Open the handoff and give a reason.",
+      "handoffPending": "This problem already has a handoff waiting for the target group.",
+      "handoffNotFound": "The handoff was not found or has already been decided.",
+      "handoffConflict": "The problem changed in the meantime. Refresh the page and try again.",
+      "handoffSameGroup": "The problem is already in that group."
     },
     "title": "Problems",
     "subtitle": "Causes behind recurring incidents: analysis, workarounds and known errors.",
@@ -9581,7 +9588,11 @@
       "serviceLinked": "Service {{service}} added",
       "serviceUnlinked": "Service {{service}} removed",
       "incidentLinked": "Incident “{{incident}}” linked",
-      "incidentUnlinked": "Incident “{{incident}}” unlinked"
+      "incidentUnlinked": "Incident “{{incident}}” unlinked",
+      "handoffRequested": "Handoff to {{group}} requested",
+      "handoffAccepted": "Handoff to {{group}} accepted",
+      "handoffRejected": "Handoff to {{group}} rejected",
+      "handoffCancelled": "Handoff to {{group}} cancelled"
     },
     "detail": {
       "back": "All problems",
@@ -9734,6 +9745,30 @@
       "assetProblemsSubtitle": "Problems that list this item as affected equipment.",
       "incidentCausedBy_one": "This outage is caused by problem:",
       "incidentCausedBy_other": "This outage is caused by problems:"
+    },
+    "handoff": {
+      "title": "Problem handoff",
+      "pendingTitle": "Handoff waiting for a decision",
+      "pendingHint": "The problem stays with its current group until the target group decides.",
+      "targetGroup": "Target group",
+      "targetUnit": "Receiving organizational unit",
+      "requestedBy": "Requested by",
+      "requestedAt": "Requested at",
+      "reason": "Handoff reason",
+      "reasonHint": "At least 5 characters — the receiving side and the history need to know why.",
+      "decisionReason": "Decision reason",
+      "accept": "Accept",
+      "reject": "Reject",
+      "rejectHint": "Rejection reason (at least 5 characters).",
+      "cancel": "Cancel handoff",
+      "acceptedToast": "The problem was handed over to {{group}}.",
+      "pendingToast": "The handoff to {{group}} was requested and waits for acceptance.",
+      "decidedToast": "The handoff decision was recorded.",
+      "emptyPending": "No handoff is waiting for a decision.",
+      "request": "Request handoff",
+      "requestHint": "The problem stays with its current group until the target group accepts.",
+      "ownerHint": "The owner is settled on acceptance: it stays if it already belongs to the target group, otherwise the manager who accepts takes it.",
+      "savePartial": "The problem was saved, but the handoff was not requested: {{reason}}"
     }
   },
   "changes": {

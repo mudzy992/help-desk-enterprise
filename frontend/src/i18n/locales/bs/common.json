@@ -201,7 +201,9 @@
       "changeDecided": "CAB je odlučio o promjeni",
       "changeStartingSoon": "Promjena uskoro počinje",
       "changeOverdue": "Promjena je prekoračila planirani kraj",
-      "changeFailed": "Promjena vezana za vaš problem nije uspjela"
+      "changeFailed": "Promjena vezana za vaš problem nije uspjela",
+      "problemHandoffRequested": "Problem čeka vašu odluku o predaji",
+      "problemHandoffDecided": "Odluka o predaji problema"
     }
   },
   "placeholders": {
@@ -9489,7 +9491,12 @@
       "notProblemGroup": "Izabrana grupa nije problem-grupa.",
       "ownerNotInGroup": "Vlasnik mora biti upravitelj problema i član izabrane grupe.",
       "assetNotFound": "Stavka imovine nije pronađena ili je evidencija imovine isključena.",
-      "incidentNotFound": "Incident nije pronađen ili je status stranica isključena."
+      "incidentNotFound": "Incident nije pronađen ili je status stranica isključena.",
+      "handoffRequired": "Problem mijenja grupu samo kroz predaju. Otvorite predaju i navedite razlog.",
+      "handoffPending": "Problem već ima predaju koja čeka odluku ciljne grupe.",
+      "handoffNotFound": "Predaja nije pronađena ili je već odlučena.",
+      "handoffConflict": "Problem se u međuvremenu promijenio. Osvježite stranicu i pokušajte ponovo.",
+      "handoffSameGroup": "Problem je već u toj grupi."
     },
     "title": "Problemi",
     "subtitle": "Uzroci iza ponovljenih incidenata: analiza, zaobilazna rješenja i poznate greške.",
@@ -9650,7 +9657,11 @@
       "serviceLinked": "Dodan servis {{service}}",
       "serviceUnlinked": "Uklonjen servis {{service}}",
       "incidentLinked": "Povezan incident „{{incident}}”",
-      "incidentUnlinked": "Uklonjena veza s incidentom „{{incident}}”"
+      "incidentUnlinked": "Uklonjena veza s incidentom „{{incident}}”",
+      "handoffRequested": "Zatražena predaja grupi {{group}}",
+      "handoffAccepted": "Predaja grupi {{group}} prihvaćena",
+      "handoffRejected": "Predaja grupi {{group}} odbijena",
+      "handoffCancelled": "Predaja grupi {{group}} otkazana"
     },
     "detail": {
       "back": "Svi problemi",
@@ -9809,6 +9820,30 @@
       "incidentCausedBy_one": "Ovaj prekid je posljedica problema:",
       "incidentCausedBy_few": "Ovaj prekid je posljedica problema:",
       "incidentCausedBy_other": "Ovaj prekid je posljedica problema:"
+    },
+    "handoff": {
+      "title": "Predaja problema",
+      "pendingTitle": "Predaja čeka odluku",
+      "pendingHint": "Problem ostaje u trenutnoj grupi dok ciljna grupa ne odluči.",
+      "targetGroup": "Ciljna grupa",
+      "targetUnit": "Organizaciona jedinica primaoca",
+      "requestedBy": "Zatražio",
+      "requestedAt": "Zatraženo",
+      "reason": "Razlog predaje",
+      "reasonHint": "Najmanje 5 znakova — primaoc i historija moraju znati zašto.",
+      "decisionReason": "Razlog odluke",
+      "accept": "Prihvati",
+      "reject": "Odbij",
+      "rejectHint": "Razlog odbijanja (najmanje 5 znakova).",
+      "cancel": "Otkaži predaju",
+      "acceptedToast": "Problem je predat grupi {{group}}.",
+      "pendingToast": "Predaja grupi {{group}} je zatražena i čeka prihvat.",
+      "decidedToast": "Odluka o predaji je zabilježena.",
+      "emptyPending": "Nema predaja koje čekaju odluku.",
+      "request": "Zatraži predaju",
+      "requestHint": "Problem ostaje u trenutnoj grupi dok ciljna grupa ne prihvati.",
+      "ownerHint": "Vlasnik se rješava pri prihvatu: zadržava se ako već pripada ciljnoj grupi, inače ga preuzima upravitelj koji prihvati predaju.",
+      "savePartial": "Podaci problema su sačuvani, ali predaja nije zatražena: {{reason}}"
     }
   },
   "changes": {

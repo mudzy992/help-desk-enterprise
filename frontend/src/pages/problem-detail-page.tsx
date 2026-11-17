@@ -15,6 +15,7 @@ import { queryKeys } from "@/lib/query/query-keys";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
 import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
+import { ProblemHandoffPanel } from "@/components/problems/problem-handoff-panel";
 import { ProblemLinksPanel } from "@/components/problems/problem-links-panel";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemResolutionRunPanel } from "@/components/problems/problem-resolution-run-panel";
@@ -281,6 +282,7 @@ export function ProblemDetailPage() {
             <span>{t("problems.detail.needsOwner")}</span>
           </div>
         ) : null}
+        <ProblemHandoffPanel problem={problem} options={optionsQuery.data} onChanged={refresh} />
         <ProblemTargetReminderPanel problem={problem} onRetried={refresh} />
         <ProblemResolutionRunPanel problem={problem} onResumed={refresh} />
         <UnderlineTabs

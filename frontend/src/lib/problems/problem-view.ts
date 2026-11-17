@@ -84,6 +84,12 @@ const problemErrorKeys = {
   PROBLEM_OWNER_NOT_IN_GROUP: "problems.errors.ownerNotInGroup",
   PROBLEM_ASSET_NOT_FOUND: "problems.errors.assetNotFound",
   PROBLEM_INCIDENT_NOT_FOUND: "problems.errors.incidentNotFound",
+  // W7.28: a group transfer is its own command, with its own conflicts.
+  PROBLEM_HANDOFF_REQUIRED: "problems.errors.handoffRequired",
+  PROBLEM_HANDOFF_PENDING: "problems.errors.handoffPending",
+  PROBLEM_HANDOFF_NOT_FOUND: "problems.errors.handoffNotFound",
+  PROBLEM_HANDOFF_CONFLICT: "problems.errors.handoffConflict",
+  PROBLEM_HANDOFF_SAME_GROUP: "problems.errors.handoffSameGroup",
 } as const;
 
 /** Whole days since the problem was opened (never negative). */
@@ -278,6 +284,15 @@ export function problemHistoryText(
     }
     case "knowledge_article":
       return t("problems.history.knowledgeArticle", { title: value("title") ?? "—" });
+    // W7.28: the handover trail of a problem group change.
+    case "handoff_requested":
+      return t("problems.history.handoffRequested", { group: value("toGroup") ?? "—" });
+    case "handoff_accepted":
+      return t("problems.history.handoffAccepted", { group: value("toGroup") ?? "—" });
+    case "handoff_rejected":
+      return t("problems.history.handoffRejected", { group: value("toGroup") ?? "—" });
+    case "handoff_cancelled":
+      return t("problems.history.handoffCancelled", { group: value("toGroup") ?? "—" });
     case "tickets_resolved": {
       const count = (key: string) =>
         detail !== null && typeof detail[key] === "number" ? (detail[key] as number) : 0;

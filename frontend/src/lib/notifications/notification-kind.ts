@@ -133,6 +133,8 @@ export function notificationTitleKey(
   | "notifications.items.problemTargetDue"
   | "notifications.items.problemRecurrence"
   | "notifications.items.problemGroupAssigned"
+  | "notifications.items.problemHandoffRequested"
+  | "notifications.items.problemHandoffDecided"
   | "notifications.items.changeApprovalRequested"
   | "notifications.items.changeDecided"
   | "notifications.items.changeStartingSoon"
@@ -213,6 +215,11 @@ export function notificationTitleKey(
       return "notifications.items.problemRecurrence";
     case "problem.groupAssigned":
       return "notifications.items.problemGroupAssigned";
+    // W7.28: the transfer waits for the target group, then its outcome.
+    case "problem.handoffRequested":
+      return "notifications.items.problemHandoffRequested";
+    case "problem.handoffDecided":
+      return "notifications.items.problemHandoffDecided";
     case "change.approvalRequested":
       return "notifications.items.changeApprovalRequested";
     case "change.decided":

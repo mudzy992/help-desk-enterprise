@@ -224,12 +224,44 @@ export type ProblemDetail = ProblemListItem & {
   readonly createdBy: UserRef | null;
   readonly version: number;
   readonly allowedTransitions: readonly ProblemStatus[];
+  /** W7.28: the transfer waiting for a decision, if any. */
+  readonly handoff: ProblemHandoffSummary | null;
   readonly permissions: {
     readonly canManage: boolean;
     readonly canClose: boolean;
     readonly canClaim: boolean;
     readonly canLink: boolean;
+    readonly canHandoff: boolean;
+    readonly canDecideHandoff: boolean;
+    readonly canCancelHandoff: boolean;
   };
+};
+
+/** W7.28: a group transfer, from the request to the decision. */
+export type ProblemHandoffStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED";
+
+export type ProblemHandoffSummary = {
+  readonly id: string;
+  readonly status: ProblemHandoffStatus;
+  readonly reason: string;
+  readonly createdAt: string;
+  readonly requestedBy: UserRef | null;
+  readonly toGroup: { readonly id: string; readonly name: string };
+  readonly toOrganizationalUnit: { readonly id: string; readonly name: string };
+};
+
+export type ProblemHandoff = ProblemHandoffSummary & {
+  readonly problemId: string;
+  readonly decisionReason: string | null;
+  readonly fromGroup: { readonly id: string; readonly name: string } | null;
+  readonly fromOrganizationalUnit: { readonly id: string; readonly name: string };
+  readonly decidedBy: UserRef | null;
+  readonly decidedAt: string | null;
+};
+
+export type ProblemHandoffResult = {
+  readonly handoff: ProblemHandoff;
+  readonly problem: ProblemDetail;
 };
 
 export type ProblemOptions = {
@@ -486,6 +518,60 @@ export type ProblemStatusInput = {
 
 export function getProblemResolvePreview(id: string): Promise<ProblemResolvePreview> {
   return apiRequest(`/problems/${encodeURIComponent(id)}/resolve-preview`);
+}
+
+export function getProblemHandoffs(
+  id: string,
+): Promise<{ readonly items: readonly ProblemHandoff[] }> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/handoffs`);
+}
+
+/**
+ * W7.28 (BA-problems-10): a group change is this command, never a field update.
+ * Running the target group makes it immediate; otherwise it waits as PENDING.
+ */
+export function requestProblemHandoff(
+  id: string,
+  input: { readonly toGroupId: string; readonly reason: string },
+): Promise<ProblemHandoffResult> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/handoffs`, {
+    method: "POST",
+    ...json(input),
+  });
+}
+
+export function acceptProblemHandoff(id: string, handoffId: string): Promise<ProblemHandoffResult> {
+  return apiRequest(
+    `/problems/${encodeURIComponent(id)}/handoffs/${encodeURIComponent(handoffId)}/accept`,
+    {
+      method: "POST",
+      ...json({}),
+    },
+  );
+}
+
+export function rejectProblemHandoff(
+  id: string,
+  handoffId: string,
+  input: { readonly reason: string },
+): Promise<ProblemHandoffResult> {
+  return apiRequest(
+    `/problems/${encodeURIComponent(id)}/handoffs/${encodeURIComponent(handoffId)}/reject`,
+    {
+      method: "POST",
+      ...json(input),
+    },
+  );
+}
+
+export function cancelProblemHandoff(id: string, handoffId: string): Promise<ProblemHandoffResult> {
+  return apiRequest(
+    `/problems/${encodeURIComponent(id)}/handoffs/${encodeURIComponent(handoffId)}/cancel`,
+    {
+      method: "POST",
+      ...json({}),
+    },
+  );
 }
 
 export function getProblemArticleDraft(id: string): Promise<ProblemArticleDraft> {

@@ -14,6 +14,7 @@ import { translateText } from "@/lib/i18n/translate-text";
 import {
   createProblemFull,
   problemQueryKeys,
+  requestProblemHandoff,
   searchProblemOwners,
   updateProblem,
   type ProblemDetail,
@@ -65,6 +66,7 @@ export function ProblemFormSheet({
   const [owner, setOwner] = useState<Owner | null>(null);
   const [ownerSearch, setOwnerSearch] = useState("");
   const [ownerDebounced, setOwnerDebounced] = useState("");
+  const [handoffReason, setHandoffReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,6 +86,7 @@ export function ProblemFormSheet({
     setServiceId(problem?.service?.id ?? "");
     setOwner(problem?.owner ?? null);
     setOwnerSearch("");
+    setHandoffReason("");
     setError(null);
   }, [open, problem, options]);
 
@@ -114,12 +117,17 @@ export function ProblemFormSheet({
         ]
       : options.units;
 
+  // W7.28: an existing problem changes group only through a recorded handoff.
+  const groupChanged = editing && groupId !== (problem.group?.id ?? "");
+  const handoffReasonReady = handoffReason.trim().length >= 5;
+
   const canSubmit =
     !saving &&
     title.trim().length >= 3 &&
     description.trim().length > 0 &&
     unitId !== "" &&
-    groupId !== "";
+    groupId !== "" &&
+    (!groupChanged || handoffReasonReady);
 
   const changeGroup = (next: string) => {
     setGroupId(next);
@@ -133,17 +141,60 @@ export function ProblemFormSheet({
     if (!canSubmit) return;
     setSaving(true);
     setError(null);
+    const base = {
+      title: title.trim(),
+      description: description.trim(),
+      impact,
+      urgency,
+      organizationalUnitId: unitId,
+      serviceId: serviceId || null,
+      groupId,
+      ...(canAssignOwner ? { ownerUserId: owner?.id ?? null } : {}),
+    };
+
+    // The group is not a field: save the rest first, then ask for the handoff.
+    // The owner is resolved when the target group accepts, so it is not sent.
+    if (groupChanged) {
+      const { groupId: _targetGroupId, ownerUserId: _owner, ...basics } = base;
+      try {
+        await updateProblem(problem.id, { version: problem.version, ...basics });
+      } catch (caught) {
+        const message = t(mapProblemError(caught) ?? mapApiError(caught));
+        setError(message);
+        toast({ tone: "danger", title: message });
+        setSaving(false);
+        return;
+      }
+      try {
+        const result = await requestProblemHandoff(problem.id, {
+          toGroupId: groupId,
+          reason: handoffReason.trim(),
+        });
+        onOpenChange(false);
+        toast({
+          tone: "success",
+          title:
+            result.handoff.status === "ACCEPTED"
+              ? t("problems.handoff.acceptedToast", { group: result.handoff.toGroup.name })
+              : t("problems.handoff.pendingToast", { group: result.handoff.toGroup.name }),
+        });
+        onSaved(result.problem.id);
+      } catch (caught) {
+        // The basics are saved; the transfer is not. Say so and let the user
+        // request it again from the handoff panel on the problem.
+        const message = t("problems.handoff.savePartial", {
+          reason: t(mapProblemError(caught) ?? mapApiError(caught)),
+        });
+        onOpenChange(false);
+        toast({ tone: "danger", title: message });
+        onSaved(problem.id);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     try {
-      const base = {
-        title: title.trim(),
-        description: description.trim(),
-        impact,
-        urgency,
-        organizationalUnitId: unitId,
-        serviceId: serviceId || null,
-        groupId,
-        ...(canAssignOwner ? { ownerUserId: owner?.id ?? null } : {}),
-      };
       const saved = editing
         ? await updateProblem(problem.id, { version: problem.version, ...base })
         : await createProblemFull({ ...base, clientRequestId: createRequestId.current });
@@ -230,6 +281,7 @@ export function ProblemFormSheet({
             {(control) => (
               <Select
                 {...control}
+                data-testid="problem-form-unit"
                 value={unitId}
                 onChange={(event) => setUnitId(event.target.value)}
               >
@@ -245,6 +297,7 @@ export function ProblemFormSheet({
             {(control) => (
               <Select
                 {...control}
+                data-testid="problem-form-group"
                 value={groupId}
                 onChange={(event) => changeGroup(event.target.value)}
               >
@@ -261,7 +314,26 @@ export function ProblemFormSheet({
               </Select>
             )}
           </Field>
-          {canAssignOwner ? (
+          {groupChanged ? (
+            <Field
+              label={t("problems.handoff.reason")}
+              hint={t("problems.handoff.reasonHint")}
+              required
+            >
+              {(control) => (
+                <Textarea
+                  {...control}
+                  data-testid="problem-form-handoff-reason"
+                  rows={3}
+                  maxLength={2000}
+                  value={handoffReason}
+                  onChange={(event) => setHandoffReason(event.target.value)}
+                />
+              )}
+            </Field>
+          ) : null}
+          {groupChanged ? <p className={hintClassName}>{t("problems.handoff.ownerHint")}</p> : null}
+          {canAssignOwner && !groupChanged ? (
             <div className="grid gap-1.5">
               <span className="text-[12.5px] font-medium text-foreground">
                 {t("problems.fields.owner")}
