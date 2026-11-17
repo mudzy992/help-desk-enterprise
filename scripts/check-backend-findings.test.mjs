@@ -186,9 +186,9 @@ test("odbija dupliciran BA ID između audit jedinica", async () => {
 });
 
 test("production baseline validator zaključava broj i severity zbir", () => {
-  const findings = Array.from({ length: 694 }, (_, index) => ({
+  const findings = Array.from({ length: 695 }, (_, index) => ({
     id: `BA-test-${index}`,
-    severity: index < 174 ? "P1" : index < 544 ? "P2" : "P3",
+    severity: index < 174 ? "P1" : index < 545 ? "P2" : "P3",
     source: "fixture.md",
     owner: "WS-H",
     wave: 1,
@@ -198,7 +198,7 @@ test("production baseline validator zaključava broj i severity zbir", () => {
     validateFindingsPlan({
       units: 44,
       total: findings.length,
-      severity: { P1: 174, P2: 370, P3: 150 },
+      severity: { P1: 174, P2: 371, P3: 150 },
       findings,
     }),
     [],

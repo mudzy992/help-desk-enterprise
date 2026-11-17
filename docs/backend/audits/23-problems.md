@@ -4,8 +4,8 @@
 **Datum:** 2026-10-23<br>
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
-**Nalazi:** 7 P1, 9 P2, 3 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.29 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10` i `11`; ostali nalazi su otvoreni.
+**Nalazi:** 7 P1, 10 P2, 3 P3<br>
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.30 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11` i `12`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije); ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -66,6 +66,8 @@ Unutar loopa ticket status se mijenja prije requester poruke. Message failure os
 Problem sequence koristi atomic SQL upsert/increment. Create event i global audit su u transakciji. Update/status koriste version predicate; status zahtijeva owner/RCA/category/workaround/resolution prema transitionu. Auto-close koristi status+version CAS i transactional audit.
 
 General update emitira `ProblemEvent`, ali ne globalni audit. Claim također nema globalni audit. Owner/group/OU/service/RCA promjene zato nisu u kanonskom audit logu iako status jeste. Long text event bilježi samo naziv promijenjenog polja, što je dobro za minimizaciju, ali audit policy mora razlikovati forensic metadata i osjetljivi sadržaj.
+
+**W7.30:** update i claim sada pišu `problem.updated`/`problem.claimed` u istoj transakciji, sa top-level OJ scopeom i actorom kao `create`/`changeStatus`. Metadata nosi `changedFields`, `textChanged` i `previous*`/trenutne vrijednosti samo za reference i klasifikacije; sadržaj descriptiona/RCA/workarouna/resolutiona se ne kopira. DB provenance trigger i dalje ne poznaje dvije nove akcije — to je `BA-problems-20` (P2), jer whitelist živi u već primijenjenoj migraciji.
 
 Group authority se provjerava nad pre-update grupom. Manager stare grupe može premjestiti problem u bilo koju drugu problem grupu, jer se target group membership/authority ne provjerava. Nakon toga može odabrati ownera iz nove grupe. To je cross-group handoff bez prihvata ili target-group authorityja.
 
@@ -166,7 +168,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | zatvoreno (W7.27) |
 | BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | zatvoreno |
 | BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | zatvoreno |
-| BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
+| BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.30) |
 | BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | otvoreno |
 | BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | otvoreno |
 | BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | otvoreno |
@@ -174,6 +176,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | otvoreno |
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
+| BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | otvoreno |
 
 ## 16. Ključne korekcije
 
@@ -408,3 +411,39 @@ read-only inventory bili su `skipped`. Prvi pokušaj `44148379072` na `fea57cd` 
 test dublovima (self-referencing prisma double, neannotiran `jest.Mock` poziv) i na integration suiteu koji je pravio
 `ProblemLinksService` bez authorization loadera; popravljeno u `bf671ac` prije zelenog runa. Detalji su u
 [252](../implementation/252-w729-problem-link-scope.md). `BA-problems-12` je sljedeći P2 u ovom auditu.
+
+## 31. W7.30 — BA-problems-12 closeout
+
+General update i claim više nisu „drugi razred“ audit zapisa. `ProblemsService.update` i
+`ProblemsService.claim` sada, unutar postojeće transakcije i poslije version predicate-a, pozivaju
+`recordAuditEntry` sa dvije nove akcije: `problem.updated` i `problem.claimed`. Oba reda nose
+`entityType = problem`, top-level `organizationalUnitId` (odredišna OJ kod premještaja, inače trenutna)
+i `actorUserId`, pa se particioniraju u `ou:<stvarna OJ problema>` kao `problem.created` i
+`problem.status_changed`. Pad audita poništava i promjenu i `ProblemEvent`.
+
+Metadata je namjerno podijeljena na forenzički i osjetljivi dio. `changedFields` nosi nazive svih
+promijenjenih polja, a `previous*`/trenutne vrijednosti se upisuju samo za `ownerUserId`,
+`organizationalUnitId`, `serviceId`, `impact`, `urgency`, `priority` i `rootCauseCategory`.
+Slobodan tekst (`description`, `rootCause`, `rcaWhys`, `workaround`, `resolution`) pojavljuje se
+isključivo **nazivom** u `textChanged`; centralna audit politika odbija te ključeve kao metadata, pa
+sadržaj problema ne može procuriti kroz audit log. Claim bilježi samo `ownerUserId` i
+`previousOwnerUserId`, a rani izlaz (actor je već vlasnik) ne piše ni event ni audit.
+
+Frontend katalog akcija, polja i zatvorenih vokabulara (`priority`/`urgency`/`impact`) dopunjen je u
+bs/en, a `AuditMetadataList` prevodi liste naziva polja samo kada je svaki dio liste poznato polje, da
+rečenica sa zarezom ostane netaknuta. Nema migracije ni schema promjene.
+
+Jedno ograničenje ostaje otvoreno i zapisano: DB trigger `enforce_audit_scope_provenance` iz
+migracije `20271025140000_audit_scope_provenance` drži whitelist problem akcija i ne poznaje dvije
+nove, pa je za njih scope kanonski po konstrukciji (iz istog reda u istoj transakciji) ali bez DB
+provjere. To je novi nalaz `BA-problems-20` (P2) i traži izričito odobrenu migraciju; ovaj paket ga
+ne rješava.
+
+Lokalno: ciljano `jest` (19 suiteova / 256 testova), cijeli frontend suite (455 fajlova / 1789
+testova), `tsc -b`, `eslint`, `prettier --check`, wiring (99/631) i migration policy (118 migracija).
+CI [`44184591069`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44184591069) na
+`c3230db` je **success** (generisani Prisma, backend build/lint/safety-net/wiring/SLA/pun Jest,
+PostgreSQL/Redis integracija, frontend lint/format/testovi/build/budget, docs, container/supply-chain,
+gate); E2E critical/install i read-only inventory bili su `skipped`, bez neuspjelih pokušaja. Detalji
+su u [253](../implementation/253-w730-problem-canonical-audit.md). `BA-problems-13` je sljedeći P2 u
+ovom auditu.

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "generatedFrom": "docs/backend/audits/01-44",
   "units": 44,
-  "total": 694,
+  "total": 695,
   "severity": {
     "P1": 174,
-    "P2": 370,
+    "P2": 371,
     "P3": 150
   },
   "findings": [
@@ -3324,7 +3324,7 @@
     {
       "id": "BA-problems-12",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W7.30)",
       "source": "23-problems.md",
       "owner": "WS-F",
       "wave": 7
@@ -3380,6 +3380,14 @@
     {
       "id": "BA-problems-19",
       "severity": "P3",
+      "status": "otvoreno",
+      "source": "23-problems.md",
+      "owner": "WS-F",
+      "wave": 7
+    },
+    {
+      "id": "BA-problems-20",
+      "severity": "P2",
       "status": "otvoreno",
       "source": "23-problems.md",
       "owner": "WS-F",
