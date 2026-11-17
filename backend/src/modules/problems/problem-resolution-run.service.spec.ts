@@ -199,13 +199,24 @@ function setup(
         Object.assign(row, data, { updatedAt: now() });
         return row;
       }),
-      updateMany: jest.fn(async ({ where, data }: { where: { id: string; status?: { in: string[] } }; data: Record<string, unknown> }) => {
-        const row = runs.get(where.id);
-        if (row === undefined) return { count: 0 };
-        if (where.status !== undefined && !where.status.in.includes(row.status)) return { count: 0 };
-        Object.assign(row, data, { updatedAt: now() });
-        return { count: 1 };
-      }),
+      updateMany: jest.fn(
+        async ({
+          where,
+          data,
+        }: {
+          where: { id: string; status?: string | { in: string[] } };
+          data: Record<string, unknown>;
+        }) => {
+          const row = runs.get(where.id);
+          if (row === undefined) return { count: 0 };
+          if (typeof where.status === 'string' && where.status !== row.status) return { count: 0 };
+          if (typeof where.status === 'object' && where.status !== null && !where.status.in.includes(row.status)) {
+            return { count: 0 };
+          }
+          Object.assign(row, data, { updatedAt: now() });
+          return { count: 1 };
+        },
+      ),
     },
     problemResolutionRunItem: {
       updateMany: jest.fn(async ({ where, data }: { where: { id: string; status: string }; data: Record<string, unknown> }) => {

@@ -523,6 +523,8 @@ export class ProblemResolutionRunService {
   ) {
     const problem = await this.prisma.problem.findUnique({ where: { id: problemId }, select: { organizationalUnitId: true } });
     if (problem === null) return;
+    // The event carries the run reference; the audit schema for
+    // `problem.tickets_resolved` only allows the three counters.
     const detail = {
       resolved: counts.resolved,
       skipped: counts.skipped,
@@ -531,6 +533,7 @@ export class ProblemResolutionRunService {
       runId,
       ...(resumed ? { resumed: true } : {}),
     };
+    const metadata = { resolved: counts.resolved, skipped: counts.skipped, failed: counts.failed };
     await this.prisma.$transaction(async (transaction) => {
       await transaction.problemEvent.create({
         data: { problemId, action: problemEventActions.ticketsResolved, actorUserId: viewer.userId, detail },
@@ -540,7 +543,7 @@ export class ProblemResolutionRunService {
         entityType: auditLogEntityTypes.problem,
         entityId: problemId,
         organizationalUnitId: problem.organizationalUnitId,
-        metadata: detail as never,
+        metadata: metadata as never,
         actorUserId: viewer.userId,
       });
     });

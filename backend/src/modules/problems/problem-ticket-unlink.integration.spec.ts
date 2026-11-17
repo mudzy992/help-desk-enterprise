@@ -186,7 +186,7 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
       const foreignEvents = await problems.events(viewer(foreignId), problemId);
       expect(foreignEvents.items.map((item) => item.action)).toEqual(['created']);
       const resolverAccess = { ...problemAccess, hasPermission: () => true, requireGroupAuthority: async () => undefined, configuration: async () => ({ numberPrefix: 'P-', bulkResolveMax: 200 }) };
-      const resolver = new ProblemResolutionService(prisma as never, resolverAccess as never, loader as never, policies as never, {} as never, {} as never, { load: async () => ({ enabled: false }) } as never);
+      const resolver = new ProblemResolutionService(prisma as never, resolverAccess as never, loader as never, policies as never, { load: async () => ({ enabled: false }) } as never, {} as never);
       const preview = await resolver.resolvePreview(problemId, viewer(staffId));
       expect(preview.items.map((item) => item.id)).toEqual([ticketId]);
       const visibility = { problem: {}, ticket: await problemTicketVisibility(prisma as never, loader as never, policies as never, staffId) };
