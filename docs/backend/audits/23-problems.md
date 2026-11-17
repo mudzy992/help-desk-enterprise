@@ -160,7 +160,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-05 | P1       | `problem.close` bulk resolve preskače per-ticket authorization za sve linked tickete           | zatvoreno (W7.23) |
 | BA-problems-06 | P1       | Problem se commit-a RESOLVED prije bulk ticketa bez durable retry/resume putanje               | zatvoreno (W7.24) |
 | BA-problems-07 | P1       | Target reminder marker se upisuje prije primaoca i potvrđene/persistirane isporuke             | zatvoreno (W7.25) |
-| BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | otvoreno |
+| BA-problems-08 | P2       | Create problem + početni ticket link nije atomski i može ostaviti orphan problem               | zatvoreno (W7.26) |
 | BA-problems-09 | P2       | KB article nastaje prije conditional linka i concurrent/failure put ostavlja orphan draft      | otvoreno |
 | BA-problems-10 | P2       | Stara grupa može predati problem novoj grupi bez target-group authority/acceptance              | otvoreno |
 | BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | otvoreno |
@@ -185,7 +185,10 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
   `NO_RECIPIENT` kao konačan politički ishod, automatski retry/dead-letter u satnom sweepu i ručni
   `POST /problems/:id/target-reminders/:reminderId/retry` (vidi §26).
 - **07, 13:** outbox/delivery state i stabilni business event occurrence ključevi.
-- **08:** jedinstvena create+link command transakcija ili dokumentovan partial/compensation ugovor.
+- **08:** zatvoreno u W7.26 — create problem i početni ticket linkovi su jedna transakcija; djelimičan batch
+  ostaje `ticketLinks.skipped`, a kad nijedan tiket ne može biti linkovan cijela komanda se poništava
+  (409 `PROBLEM_TICKETS_NOT_LINKED`, bez problema i bez potrošenog sequence broja). Create prima opcioni
+  `clientRequestId` sa unique `(createdByUserId, clientRequestId)` i replaya isti problem (vidi §27).
 - **09:** KB idempotency/unique problem draft i orphan reconciliation.
 - **10–12:** target-group acceptance/authority, transactional link event i potpuni global audit.
 - **14–16:** scheduler reconcile/health, eligibility reconciler te formalni privacy/retention lifecycle.
@@ -310,3 +313,26 @@ critical/install i read-only inventory bili su `skipped` (push workflow ih ne po
 vlastitih grešaka u testovima (konstruktor kontrolera sa šest argumenata, fake `findUnique` samo po composite ključu,
 `role="alert"` dvaput u frontend testu). Detalji su u [248](../implementation/248-w725-problem-target-reminders.md).
 `BA-problems-08` je sljedeći P2 u ovom auditu.
+
+## 27. W7.26 — BA-problems-08 closeout
+
+`POST /problems` više nije dvije komande. `ProblemsService.create` u **istoj** transakciji upisuje sequence broj,
+problem, `ProblemEvent` `created`, audit red i prve ticket linkove (`ProblemTicketsService.linkInTransaction`), pa
+pad linka, pad procesa između koraka ili ponovljeni zahtjev ne mogu ostaviti orphan problem. Nedostupni tiketi
+zadržavaju iste razloge i idu u `ticketLinks.skipped` (dijalog ih prikazuje i ostaje otvoren); ako **nijedan** tiket
+nije linkovan, komanda se poništava u cjelini — `PROBLEM_TICKETS_NOT_LINKED` (409), bez problema, bez eventova i bez
+potrošenog sequence broja. Red-lockovi nad `Ticket` redovima u stabilnom poretku prije „je li već linkovan“ čitanja
+čine da konkurentna komanda prijavi `other_problem` umjesto da obori transakciju na unique indeksu. Create prima
+opcioni UUID `clientRequestId`; unique `(createdByUserId, clientRequestId)` (add-only migracija
+`20271201000000_problem_create_idempotency`) znači da ponovljeni zahtjev sa istim ključem i istim autorom vraća
+postojeći problem sa trenutnim linkovima, bez novog sequence broja, a izgubljeni unique race replaya pobjednika.
+Realtime ticket eventovi i owner/group notifikacije ostaju poslije commita. Frontend šalje jedan create ključ po
+otvorenom formularu i prikazuje novu grešku inline i kao danger toast (bs/en). Ako proces padne poslije commita,
+problem i linkovi su već konzistentni; nema kompenzacione putanje jer je sve u jednoj transakciji.
+
+CI [`44094239725`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44094239725) na `81d737b` je
+**success** uključujući generisani Prisma, backend build/lint/full Jest, PostgreSQL/Redis integraciju (nova migracija
+kroz release migrator), frontend (lint/format/testovi/build/budget), docs, container/supply-chain i CI gate; E2E
+critical/install i read-only inventory bili su `skipped` (push workflow ih ne pokreće). Nije bilo neuspjelih CI
+pokušaja za ovaj paket. Detalji su u [249](../implementation/249-w726-problem-create-atomicity.md).
+`BA-problems-09` je sljedeći P2 u ovom auditu.
