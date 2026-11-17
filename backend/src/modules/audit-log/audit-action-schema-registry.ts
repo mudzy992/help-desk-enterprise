@@ -171,7 +171,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.problemReopened]: schema(['from', 'reason', 'to']),
   [auditLogActions.problemKnowledgeArticleCreated]: schema(['articleId']),
   [auditLogActions.problemHandoffRequested]: schema(['fromGroupId', 'handoffId', 'reason', 'toGroupId']),
-  [auditLogActions.problemHandoffAccepted]: schema(['fromGroupId', 'handoffId', 'toGroupId']),
+  [auditLogActions.problemHandoffAccepted]: schema(['autoAccepted', 'fromGroupId', 'handoffId', 'toGroupId']),
   [auditLogActions.problemHandoffRejected]: schema(['fromGroupId', 'handoffId', 'toGroupId']),
   [auditLogActions.problemHandoffCancelled]: schema(['fromGroupId', 'handoffId', 'toGroupId']),
   [auditLogActions.problemTicketsResolved]: schema(['failed', 'resolved', 'skipped']),

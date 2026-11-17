@@ -88,6 +88,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   // Paket 3.3 (P5, §11): problem owner (assignment, target, recurrence) and the
   // agents of open linked tickets (known error / workaround, resolved).
   category('problem.owner', [notificationTypes.problemAssigned, notificationTypes.problemGroupAssigned, notificationTypes.problemTargetDue, notificationTypes.problemRecurrence], 1, both),
+  // W7.28 (§7): a transfer waiting for this group's decision, and its outcome.
+  category('problem.handoff', [notificationTypes.problemHandoffRequested, notificationTypes.problemHandoffDecided], 1, both),
   category('problem.linked', [notificationTypes.problemKnownError, notificationTypes.problemResolved], 1, both),
   // Paket 3.4 (§14): CAB members (vote requested) and the change owner / requester.
   category('change.approval', [notificationTypes.changeApprovalRequested], 1, both),
