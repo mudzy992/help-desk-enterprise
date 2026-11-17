@@ -242,9 +242,9 @@ export class ProblemResolutionRunService {
       select: { id: true, problemId: true, requestHash: true, status: true, responseBody: true },
     });
     if (stored === null) return null;
-    if (stored.problemId !== problemId || stored.requestHash !== requestHash) {
-      throw new ProblemError(problemErrorCodes.resolutionRunConflict);
-    }
+    // A run of another problem is reported as missing, exactly like `loadRun`.
+    if (stored.problemId !== problemId) throw new ProblemError(problemErrorCodes.resolutionRunNotFound);
+    if (stored.requestHash !== requestHash) throw new ProblemError(problemErrorCodes.resolutionRunConflict);
     if (stored.status === 'SUCCEEDED' && stored.responseBody !== null) {
       return {
         runId: stored.id,
@@ -303,8 +303,10 @@ export class ProblemResolutionRunService {
     status: ProblemResolutionRunStatusValue,
     canResume: boolean,
   ): ProblemTicketResolveOutcome {
+    // A ticket whose status write landed but whose reply is still pending counts
+    // as resolved with `messageSent: false`, exactly like the pre-run outcome.
     const resolved = items
-      .filter((item) => item.status === 'RESOLVED')
+      .filter((item) => item.status === 'RESOLVED' || item.status === 'MESSAGE_PENDING')
       .map((item) => ({ ticketId: item.ticketId, ticketNumber: item.ticketNumber, messageSent: item.messageSent }));
     const skipped = items
       .filter((item) => item.status === 'SKIPPED')

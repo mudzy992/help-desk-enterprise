@@ -75,6 +75,10 @@ const permanentTicketFailureCodes: readonly string[] = [
   problemErrorCodes.ticketNotLinked,
   problemErrorCodes.statusTransition,
   problemErrorCodes.outOfScope,
+  // Ticket-domain equivalents: a resume cannot grant access or recreate a ticket.
+  'FORBIDDEN',
+  'STATUS_CHANGE_FORBIDDEN',
+  'NOT_FOUND',
 ];
 
 export function isRetryableTicketFailure(code: string): boolean {

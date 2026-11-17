@@ -315,7 +315,7 @@ describe('ProblemResolutionRunService prepare', () => {
   });
 
   it('replays the same key and payload, rejects another payload, and hides a foreign problem', async () => {
-    const { service, items } = setup({ tickets: [{ id: 'a', status: 'IN_PROGRESS' }], problem: { status: 'RESOLVED' } });
+    const { service, items } = setup({ tickets: [{ id: 'a', status: 'IN_PROGRESS' }] });
     await service.prepare('p1', viewer, { runId, message: 'Uzrok je otklonjen.' });
     const again = await service.prepare('p1', viewer, { runId, message: 'Uzrok je otklonjen.' });
     expect(again).toMatchObject({ runId, replay: null, canResume: true });
@@ -324,7 +324,7 @@ describe('ProblemResolutionRunService prepare', () => {
       code: problemErrorCodes.resolutionRunConflict,
     });
     await expect(service.prepare('p2', viewer, { runId, message: 'Uzrok je otklonjen.' })).rejects.toMatchObject({
-      code: problemErrorCodes.notFound,
+      code: problemErrorCodes.resolutionRunNotFound,
     });
   });
 
