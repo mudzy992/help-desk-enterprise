@@ -5,8 +5,8 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 10 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, W7.39 `BA-problems-17`, W7.40 `BA-problems-18`, a W7.41
-`BA-problems-19`; otvoren je ostao posljednji P3 nalaz ovog audita.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, W7.39 `BA-problems-17`, W7.40 `BA-problems-18`, W7.41
+`BA-problems-19`, a W7.42 `BA-problems-21` — **svih 21 nalaza ovog audita je zatvoreno**.
 
 ## 1. Executive summary
 
@@ -216,7 +216,7 @@ Scenariji bez pokrivenosti na dan audita: scoped problem manager/global read, li
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | zatvoreno (W7.40) |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | zatvoreno (W7.41) |
 | BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | zatvoreno (W7.38) |
-| BA-problems-21 | P3       | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja                | otvoreno |
+| BA-problems-21 | P3       | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja                | zatvoreno (W7.42) |
 
 ## 16. Ključne korekcije
 
@@ -796,3 +796,47 @@ pa nema migracije ni rizika u runtimeu. CI
 [`44353568657`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44353568657) na `5d658b2` je
 **success**; E2E critical/install i inventory su `skipped`. Detalji su u
 [262](../implementation/262-w741-problems-19-test-matrix.md).
+
+## 40. W7.42 — BA-problems-21 closeout
+
+Problem notifikacija je bila fire-and-forget: `ProblemNotifier.run()` je pokrenuo dostavu i zaboravio je, pa
+je pad SMTP-a, greška pri upisu in-app reda ili smrt procesa značila izgubljenu poruku bez ikakvog traga
+osim `warn` loga. Namjera je sada **zapis prije slanja**: novi topic `problem.notice.dispatch` u postojećoj
+`OutboxMessage` tabeli (bez migracije), `maxAttempts = 8`, a dostavu radi worker-only
+`ProblemNoticeOutboxProcessor` (drain 2 s, do 25 redova po prolazu, lease i backoff iz dijeljene outbox
+infrastrukture, automatski replay dead-lettera jednom u 15 min kroz istu `replayDeadLetter` operaciju koju
+bi koristio operator).
+
+Ključna invarijanta je **transakcija**: `create`, `update`, `changeStatus` i handoff koraci upisuju namjeru
+u istoj transakciji sa promjenom, pa između „problem je promijenjen“ i „notifikacija je dužna“ nema praznine;
+komande koje se sastoje od više transakcija (recurrence nakon linkanja tiketa, resolution run) upisuju je
+odmah nakon commita, prije ijednog pokušaja dostave. Neuspješna dostava nikad ne obara korisničku akciju —
+retry i dead-letter su posao outboxa — dok neuspješan upis namjere unutar transakcije ruši pisanje, jer to
+znači da baza ne radi, a API ne smije odgovoriti „urađeno“ i izgubiti notifikaciju u istom trenutku.
+
+Dedupe ostaje W7.31: occurrence se ne izvodi iz sata (`created`, `v<n>`, `handoff:<id>`, `run:<id>:<status>`,
+`recurrence:<digest>`), a outbox ključ dodaje kind, problem i **digest aktera**. Actor je u ključu zato što
+notifier izuzima aktera iz primatelja i zato što `resume` istog runa izvodi drugi manager sa istim
+occurrence-om — ta komanda mora moći zakazati notifikaciju za agente koje prva nije stigla, dok per-user
+dedupe notifiera (`problem:<type>:<id>:<occurrence>:<userId>`) garantuje da nijedan primalac ne dobije
+dvije poruke. `status-changed` se upisuje samo za `KNOWN_ERROR` i `RESOLVED` preko predikata koji dijele
+notifier i outbox, a resolution run prolazi sa `statusNotice: 'none'` i sam upisuje run-scoped occurrence —
+bez toga bi jedan `RESOLVED` kroz rundu proizveo dvije notifikacije.
+
+Target podsjetnici **nisu** prebačeni u outbox: `ProblemTargetReminder` je već durable red sa `attempts`,
+`nextAttemptAt`, `DEAD` i ručnim retryjem, pa bi outbox bio drugi mehanizam za isti posao. Zato je
+`ProblemNotifier.run()` uklonjen — u produkcijskom kodu nema više nijednog fire-and-forget poziva. Vidljivost
+je na kartici „Zdravlje sistema“ (`noticeOutbox`: pending/processing/deadLetter/starost najstarijeg, crveno
+ako red stoji duže od 5 min) uz logove `problem_notice_delivery_failed` i `problem_notice_dead_letter_replayed`;
+mrtav red ne otvara novi alarm, isto načelo kao W7.40 za zaostatak.
+
+Ovim je `problems` audit **21/21 zatvoren**. Prebrojano iz `backend-findings-plan.json` i redova registra:
+source/plan **434/262/696**, registar **444/252**, Val 7 **41/111** (70 otvoreno: 13 P1 / 40 P2 / 17 P3).
+Nema migracije, nema promjene API ugovora (kartica dobija
+opciona polja), a rollback je siguran: stara verzija ne čita topic, a redovi istječu za 7 dana. CI
+[`44388576210`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44388576210) na `8ecc8d3` je
+**success** (dva prethodna pokušaja `44382706589` na `71d0e82` i `44384009505` na `96489fd` pala su na
+vlastitim, ne infrastrukturnim, greškama — neregistrovan worker modul u wiring manifestu, tipovi novih
+specova, Prettier i module-size budžet — popravljenim u `96489fd`/`8ecc8d3`); E2E critical/install i
+inventory su `skipped`. Detalji su u
+[263](../implementation/263-w742-problems-21-notice-outbox.md).
