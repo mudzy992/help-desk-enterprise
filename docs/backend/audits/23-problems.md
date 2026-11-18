@@ -5,7 +5,8 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 10 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, a W7.39 `BA-problems-17`; otvoreni su ostali P3 nalazi ovog audita.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, W7.39 `BA-problems-17`, a W7.40 `BA-problems-18`; otvoreni su ostali
+P3 nalazi ovog audita.
 
 ## 1. Executive summary
 
@@ -153,6 +154,8 @@ notifier kandidati (interni skup primalaca, ne lista koju korisnik čita).
 
 Bulk resolution radi sekvencijalne ticket access/update/message pozive do konfigurisanog limita; konfiguracija se samo provjerava kao integer, bez lokalnog min/max clampa u loaderu. Pogrešna setting vrijednost može povećati latency/resource pritisak. Sweep batch 500 obrađuje svaki red sekvencijalno i nema oldest-overdue/starvation metriku.
 
+**W7.40:** granice su zatvorene (§38) — jedan izvor granica (`problemSettingBounds`) koristi i validacija pri pisanju i klamp pri čitanju, pa red van granica ne odlučuje o resursima zahtjeva; sweep ima vremenski budžet po ticku, dokaz punog batcha (`batch + 1`) i `deferred`/`budgetReached` u ishodu; health signal nosi starost najstarijeg prekoračenog roka i auto-close zaostatka, a ne samo brojeve. Starvation metrika je starost, ne zbir.
+
 ## 13. Testovi i E2E
 
 Pokrenuto:
@@ -208,7 +211,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | zatvoreno (W7.33) |
 | BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | zatvoreno (W7.34) |
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | zatvoreno (W7.39) |
-| BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
+| BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | zatvoreno (W7.40) |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
 | BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | zatvoreno (W7.38) |
 | BA-problems-21 | P3       | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja                | otvoreno |
@@ -740,3 +743,27 @@ ne može srušiti tab. CI [`44315048317`](https://github.com/mudzy992/help-desk-
 na `202153c` je **success** (prvi run `44310320654` na `6033b9c` pao je na vlastitoj `TS2345` grešci u
 testnom dublu, popravljenoj u `5b3d3d2`); E2E critical/install i read-only inventory su `skipped`. Detalji
 su u [260](../implementation/260-w739-problems-17-list-windows.md).
+
+## 38. W7.40 — BA-problems-18 closeout
+
+Dvije tihe neograničenosti su zatvorene. **Postavke:** loader je prihvatio bilo koji cijeli broj, pa je red
+iz baze (nastao prije validacije, iz backupa ili ručno promijenjen) mogao odlučiti koliko tiketa jedan zahtjev
+rješava. Granice su sada na jednom mjestu i koristi ih i `assertValue` i `clampIntegerSetting` pri čitanju:
+`100000` se ponaša kao `1000`, negativan auto-close kao `0`, a ne-broj se vraća na default. **Sweep:** obje
+faze traže `batch + 1` red, pa je pun batch dokazan (`problem_sweep_batch_cap_reached`), deadline se
+provjerava između redova (`problem_sweep_budget_reached`, `deferred`, `budgetReached`), a redoslijed ostaje
+najstariji-prvi — cap odgađa najnovije, nikoga ne izgladnjuje. Omotači `autoClose()`/`remindDetailed()` čuvaju
+stari ugovor.
+
+**Mjerenje:** `ProblemOperationsSignal` dobija `oldestOverdueTargetMinutes`, `autoCloseDue`,
+`oldestAutoCloseDueMinutes` i `effectiveAutoCloseDays`; „due“ definiše jedna funkcija koju dijele sweep i
+sonda. Nečitljiva postavka je `null` („nepoznato“), nikad tiha nula, a `0 dana` znači „nikad“ i ne broji
+ništa. Brojevi su na kartici Zdravlje sistema (nova sekcija uz metrike imovine) i u detaljima
+`problemReminderStuck` alarma; sam zaostatak ne otvara alarm — to je rad, ne kvar.
+
+Bulk rješavanje po zahtjevu ostaje sekvencijalno i sada tvrdo ograničeno klampom; prekid rada pokriva
+W7.24 durable run sa `PARTIAL` i resume. Nema migracije. CI
+[`44325092985`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44325092985) na `e81d0cf` je
+**success** (prvi run `44322679559` na `2ec2b18` pao je na vlastitoj `TS2352` grešci u novom specu,
+popravljenoj u `e81d0cf`); E2E critical/install i read-only inventory su `skipped`. Detalji su u
+[261](../implementation/261-w740-problems-18-sweep-bounds.md).
