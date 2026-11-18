@@ -9,6 +9,7 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { ChangeAccessService, type ChangeViewer } from './change-access.service';
 import { enqueueChangeDowntimeSync } from './change-downtime-outbox';
 import { computeChangeQuorum, evaluateChangeVotes } from './change-cab';
+import { changeVoterSnapshotOf, countSnapshotVotes, type ChangeVoterSnapshot } from './change-voter-snapshot';
 import { ChangeNotifier } from './change-notifier';
 import type { ChangeVoteDto } from './changes.dto';
 import { ChangeError, changeErrorCodes, changeEventActions, changeLimits } from './changes.constants';
@@ -38,28 +39,60 @@ export class ChangeApprovalsService {
     return (await loadCabVoterIds(this.prisma, cabGroupId)).filter((id) => id !== requesterUserId);
   }
 
+  /**
+   * BA-changes-06 (W7.47): the voter set and quorum the round was opened with.
+   * Read from the `status` event that entered AUTHORIZATION; a round opened
+   * before this release (or an event written by an older replica) falls back to
+   * the live membership rule, so an in-flight round is never blocked.
+   */
+  async voterSnapshot(
+    change: { readonly id: string; readonly approvalRound: number; readonly cabGroupId: string | null; readonly requesterUserId: string | null; readonly type: Parameters<typeof computeChangeQuorum>[0] },
+    configuration: Parameters<typeof computeChangeQuorum>[1],
+  ): Promise<{ readonly snapshot: ChangeVoterSnapshot; readonly frozen: boolean }> {
+    const events = await this.prisma.changeEvent.findMany({
+      where: { changeId: change.id, action: changeEventActions.status },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: changeLimits.voterSnapshotEvents,
+      select: { detail: true },
+    });
+    for (const event of events) {
+      const snapshot = changeVoterSnapshotOf(event.detail);
+      if (snapshot !== null && snapshot.round === change.approvalRound) return { snapshot, frozen: true };
+    }
+    const voters = await this.eligibleVoters(change.cabGroupId, change.requesterUserId);
+    return {
+      snapshot: { round: change.approvalRound, voters, quorum: computeChangeQuorum(change.type, configuration, voters.length) },
+      frozen: false,
+    };
+  }
+
   async overview(viewer: ChangeViewer, id: string) {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
     const change = await this.changes.loadInScope(id, scope, viewer);
     const configuration = await this.access.configuration();
-    const [eligible, votes] = await Promise.all([
-      this.eligibleVoters(change.cabGroupId, change.requesterUserId),
-      this.prisma.changeApproval.findMany({
-        where: { changeId: id },
-        select: { id: true, round: true, decision: true, comment: true, decidedAt: true, approverUserId: true, approver: { select: userSelect } },
-        orderBy: [{ round: 'desc' }, { decidedAt: 'asc' }],
-        take: 500,
-      }),
-    ]);
+    // BA-changes-06: the panel shows the round's frozen set, not today's CAB,
+    // and a frozen round does not pay for the live roster query at all.
+    const { snapshot, frozen } = await this.voterSnapshot(change, configuration);
+    const votes = await this.prisma.changeApproval.findMany({
+      where: { changeId: id },
+      select: { id: true, round: true, decision: true, comment: true, decidedAt: true, approverUserId: true, approver: { select: userSelect } },
+      orderBy: [{ round: 'desc' }, { decidedAt: 'asc' }],
+      take: 500,
+    });
+    const eligible = frozen ? snapshot.voters : await this.eligibleVoters(change.cabGroupId, change.requesterUserId);
+    const quorum = frozen ? snapshot.quorum : computeChangeQuorum(change.type, configuration, eligible.length);
+    const eligibleIds = eligible;
     const current = votes.filter((vote) => vote.round === change.approvalRound);
-    const quorum = computeChangeQuorum(change.type, configuration, eligible.length);
-    const voters = eligible.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: eligible } }, select: userSelect, orderBy: { displayName: 'asc' } });
+    const counted = frozen ? countSnapshotVotes(current, snapshot) : current;
+    const voters = eligibleIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: [...eligibleIds] } }, select: userSelect, orderBy: { displayName: 'asc' } });
     const votedIds = new Set(current.map((vote) => vote.approverUserId));
     const isMember = await this.access.isCabMember(viewer, change.cabGroupId);
     return {
       round: change.approvalRound,
       quorum,
-      approvals: current.filter((vote) => vote.decision === 'APPROVED').length,
+      /** True when the round runs on the frozen W7.47 voter set. */
+      frozen,
+      approvals: counted.filter((vote) => vote.decision === 'APPROVED').length,
       cabGroup: change.cabGroup,
       voters: voters.map((voter) => ({ ...voter, voted: votedIds.has(voter.id) })),
       votes: votes.map((vote) => ({
@@ -70,7 +103,12 @@ export class ChangeApprovalsService {
         decidedAt: vote.decidedAt.toISOString(),
         approver: vote.approver,
       })),
-      canVote: change.status === 'AUTHORIZATION' && isMember && change.requesterUserId !== viewer.userId && !votedIds.has(viewer.userId),
+      canVote:
+        change.status === 'AUTHORIZATION' &&
+        isMember &&
+        eligibleIds.includes(viewer.userId) &&
+        change.requesterUserId !== viewer.userId &&
+        !votedIds.has(viewer.userId),
       isRequester: change.requesterUserId === viewer.userId,
     };
   }
@@ -87,8 +125,11 @@ export class ChangeApprovalsService {
     if (input.decision === 'REJECTED' && (comment === null || comment.length < changeLimits.reasonMin)) {
       throw new ChangeError(changeErrorCodes.reasonRequired);
     }
-    const eligible = await this.eligibleVoters(change.cabGroupId, change.requesterUserId);
-    const quorum = computeChangeQuorum(change.type, configuration, eligible.length);
+    // BA-changes-06: only the round's frozen voter set may vote, and the
+    // quorum is the one the round was opened with.
+    const { snapshot } = await this.voterSnapshot(change, configuration);
+    if (!snapshot.voters.includes(viewer.userId)) throw new ChangeError(changeErrorCodes.notApprover);
+    const quorum = snapshot.quorum;
     const round = change.approvalRound;
     const now = new Date();
 
@@ -101,10 +142,12 @@ export class ChangeApprovalsService {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new ChangeError(changeErrorCodes.alreadyVoted);
         throw error;
       }
-      const votes = await transaction.changeApproval.findMany({
+      const recorded = await transaction.changeApproval.findMany({
         where: { changeId: id, round },
         select: { approverUserId: true, decision: true },
       });
+      // A vote from outside the frozen set never decides this round.
+      const votes = countSnapshotVotes(recorded, snapshot);
       const result = evaluateChangeVotes(votes, quorum);
       const target = result === 'APPROVED' ? 'SCHEDULED' : result === 'REJECTED' ? 'REJECTED' : null;
       const updated = await transaction.changeRequest.updateMany({

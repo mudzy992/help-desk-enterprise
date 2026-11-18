@@ -31,7 +31,9 @@ import {
   parseChangeNumberSearch,
   type ChangeFacts,
 } from './change-rules';
+import { computeChangeQuorum } from './change-cab';
 import { hasWarnings } from './change-conflicts';
+import type { ChangeVoterSnapshot } from './change-voter-snapshot';
 import { enqueueChangeDowntimeSync } from './change-downtime-outbox';
 import { ChangeNotifier } from './change-notifier';
 import { ChangeScheduleService } from './change-schedule.service';
@@ -720,10 +722,19 @@ export class ChangesService {
     await this.assertActionAllowed(viewer, current, input.action);
     const now = new Date();
     const target = assertChangeAction(changeFactsOf(current), input.action, input, configuration, now);
+    // BA-changes-06: the round opens with one provable voter set and quorum.
+    let voterSnapshot: ChangeVoterSnapshot | null = null;
     if (target === 'AUTHORIZATION') {
       // §8: someone other than the requester must be able to vote.
-      const voters = current.cabGroupId === null ? [] : await loadCabVoterIds(this.prisma, current.cabGroupId);
-      if (voters.filter((voterId) => voterId !== current.requesterUserId).length === 0) throw new ChangeError(changeErrorCodes.noApprovers);
+      const voters = current.cabGroupId === null
+        ? []
+        : (await loadCabVoterIds(this.prisma, current.cabGroupId)).filter((voterId) => voterId !== current.requesterUserId);
+      if (voters.length === 0) throw new ChangeError(changeErrorCodes.noApprovers);
+      voterSnapshot = {
+        round: current.approvalRound,
+        voters,
+        quorum: computeChangeQuorum(current.type, configuration, voters.length),
+      };
     }
     let acknowledge = false;
     if (target === 'AUTHORIZATION' || input.action === 'schedule') {
@@ -785,7 +796,14 @@ export class ChangesService {
           changeId: id,
           action: changeEventActions.status,
           actorUserId: viewer.userId,
-          detail: { from, to: target, action: input.action, reason, outcome: input.outcome ?? null } as never,
+          detail: {
+            from,
+            to: target,
+            action: input.action,
+            reason,
+            outcome: input.outcome ?? null,
+            ...(voterSnapshot === null ? {} : { round: voterSnapshot.round, voterSnapshot }),
+          } as never,
         },
       });
       await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {

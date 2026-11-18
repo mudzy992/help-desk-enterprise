@@ -52,6 +52,8 @@ export const changeLimits = {
   calendarMaxItems: 500,
   templateNameMax: 200,
   templateDescriptionMax: 4000,
+  /** W7.47: status events scanned when resolving a round's voter snapshot. */
+  voterSnapshotEvents: 12,
 } as const;
 
 export const changeEventActions = {

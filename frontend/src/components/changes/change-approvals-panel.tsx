@@ -125,6 +125,11 @@ export function ChangeApprovalsPanel({ change, onVoted }: ChangeApprovalsPanelPr
               ? t("changes.approvals.cab", { name: data.cabGroup.name })
               : t("changes.approvals.noCab")}
           </p>
+          {data.frozen ? (
+            <p className={hintClassName} data-testid="change-approvals-frozen">
+              {t("changes.approvals.frozen")}
+            </p>
+          ) : null}
           {data.voters.length === 0 ? (
             <p className={hintClassName}>{t("changes.approvals.noVoters")}</p>
           ) : (

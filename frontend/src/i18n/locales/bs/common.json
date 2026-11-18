@@ -10213,6 +10213,7 @@
       "cab": "CAB: {{name}}",
       "noCab": "CAB grupa nije izabrana.",
       "noVoters": "U CAB grupi nema članova s pravom glasa.",
+      "frozen": "Sastav glasača i kvorum zamrznuti su za ovu rundu; kasnije promjene članstva ne mijenjaju odluku.",
       "votersLabel": "Članovi CAB-a s pravom glasa",
       "voted": "glasao/la",
       "waiting": "čeka",

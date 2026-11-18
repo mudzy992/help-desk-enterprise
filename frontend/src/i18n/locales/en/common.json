@@ -10132,6 +10132,7 @@
       "cab": "CAB: {{name}}",
       "noCab": "No CAB group selected.",
       "noVoters": "The CAB group has no members who may vote.",
+      "frozen": "The voter set and quorum are frozen for this round; later membership changes do not alter the decision.",
       "votersLabel": "CAB members who may vote",
       "voted": "voted",
       "waiting": "waiting",

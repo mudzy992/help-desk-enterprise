@@ -220,6 +220,11 @@ export type ChangeVoteDecision = "APPROVED" | "REJECTED";
 export type ChangeApprovals = {
   readonly round: number;
   readonly quorum: number;
+  /**
+   * The voter set of this round is frozen (BA-changes-06). False only for a
+   * round opened before W7.47 or by an older replica.
+   */
+  readonly frozen?: boolean;
   readonly approvals: number;
   readonly cabGroup: NamedRef | null;
   readonly voters: readonly (UserRef & { readonly voted: boolean })[];
