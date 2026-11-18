@@ -167,7 +167,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | zatvoreno |
 | BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | zatvoreno |
 | BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | zatvoreno |
-| BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | otvoreno |
+| BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | zatvoreno |
 | BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | otvoreno |
 | BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | otvoreno |
 | BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | otvoreno |
@@ -197,7 +197,10 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **05:** zatvoreno u W7.46 — downtime prozori changea filtriraju se SQL-om po istoj visibility politici,
   a skriveni se broje (`restrictedDowntime`). Dokaz:
   [W7.46 implementation](../implementation/267-w746-changes-05-calendar-downtime.md).
-- **06, 14:** persisted round voter/quorum snapshot ili strogo filtrirana dynamic politika; reject oversized CAB.
+- **06:** zatvoreno u W7.47 — runda se otvara sa zamrznutim `voterSnapshot { round, voters, quorum }` u
+  `status` eventu; glasovi van tog skupa se ne broje, a membership drift ne mijenja kvorum. Dokaz:
+  [W7.47 implementation](../implementation/268-w747-changes-06-cab-round-snapshot.md).
+- **14:** otvoreno — CAB eligibility hard-limit 100 još tiho odsijeca članove (P2).
 - **07:** outbox/delivery state; marker tek nakon policy-dovoljnog persisted outcomea.
 - **08, 13:** desired downtime state + reconciliation worker, retry/dead-letter i scheduler/health self-heal.
 - **09–10:** role-specific minimal projection i owner OU-grant eligibility/reconciliation.
@@ -304,3 +307,13 @@ predikatom kao lista changeova (pa skriveni redovi ne mogu istisnuti vidljive kr
 se vraćaju kao `restrictedDowntime` i UI to kaže, umjesto da tiho nestanu. Nema migracije; `06` (CAB voter
 snapshot) je sljedeći P1. Dokaz:
 [267-w746-changes-05-calendar-downtime.md](../implementation/267-w746-changes-05-calendar-downtime.md).
+
+## 25. Implementacijski closeout — W7.47 (`BA-changes-06`)
+
+Na `8e1e8e3`, uz zeleni CI `44410001059`, CAB runda ima dokaziv i zamrznut skup glasača: `act()` pri ulasku u
+`AUTHORIZATION` upisuje `voterSnapshot { round, voters, quorum }` u isti `status` event (bez nove tabele i bez
+migracije), glasovi se broje **samo** iz tog skupa, a kvorum je onaj s kojim je runda otvorena. Član koji je
+ušao u CAB poslije otvaranja ne glasa u toj rundi; član koji je izašao zadržava već dat glas (drift ne mijenja
+odluku retroaktivno). Runda otvorena prije izdanja radi po starom pravilu (`frozen: false`) dok se ne završi.
+`BA-changes-14` (hard-limit 100) ostaje otvoren kao P2. Dokaz:
+[268-w747-changes-06-cab-round-snapshot.md](../implementation/268-w747-changes-06-cab-round-snapshot.md).
