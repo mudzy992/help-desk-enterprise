@@ -41,6 +41,19 @@ export function ProblemHandoffRequestCard({
   if (!problem.permissions.canHandoff || problem.handoff !== null) return null;
 
   const targets = groups.filter((group) => group.id !== problem.group?.id);
+  // A handoff goes to a *different* problem group. When the installation has only
+  // one, the select would hold nothing but its placeholder, so the card says why
+  // instead of offering a form that cannot be completed (W7.37).
+  if (targets.length === 0) {
+    return (
+      <Card className="p-0" data-testid="problem-handoff-request">
+        <CardHeader title={t("problems.handoff.requestCardTitle")} />
+        <p className={`px-4 pb-4 ${hintClassName}`} data-testid="problem-handoff-no-target">
+          {t("problems.handoff.requestCardNoOtherGroup")}
+        </p>
+      </Card>
+    );
+  }
   const ready = toGroupId !== "" && reason.trim().length >= 5;
 
   const submit = async () => {

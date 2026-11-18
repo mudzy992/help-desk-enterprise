@@ -9850,6 +9850,7 @@
       "requestHint": "The problem stays with its current group until the target group accepts.",
       "requestCardTitle": "Hand off to another group",
       "requestCardCollapsed": "If the problem belongs to another group, open the form and request the handoff. The problem stays with the current group until the target group decides.",
+      "requestCardNoOtherGroup": "A handoff moves the problem to a different problem group, and there is no other group yet. Add one under “Users → Problem groups” and it will appear in this list.",
       "submit": "Send request",
       "ownerHint": "The owner is settled on acceptance: it stays if it already belongs to the target group, otherwise the manager who accepts takes it.",
       "savePartial": "The problem was saved, but the handoff was not requested: {{reason}}"

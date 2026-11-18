@@ -9925,6 +9925,7 @@
       "requestHint": "Problem ostaje u trenutnoj grupi dok ciljna grupa ne prihvati.",
       "requestCardTitle": "Predaja u drugu grupu",
       "requestCardCollapsed": "Ako problem pripada drugoj grupi, otvori obrazac i zatraži predaju. Problem ostaje u trenutnoj grupi dok ciljna grupa ne odluči.",
+      "requestCardNoOtherGroup": "Predaja vodi problem u drugu problem-grupu, a u sistemu trenutno nema druge grupe. Dodajte je u „Korisnici → Problem grupe“ i odmah će se pojaviti u ovoj listi.",
       "submit": "Pošalji zahtjev",
       "ownerHint": "Vlasnik se rješava pri prihvatu: zadržava se ako već pripada ciljnoj grupi, inače ga preuzima upravitelj koji prihvati predaju.",
       "savePartial": "Podaci problema su sačuvani, ali predaja nije zatražena: {{reason}}"

@@ -88,6 +88,27 @@ describe("ProblemHandoffRequestCard", () => {
     expect(container.textContent).toBe("");
   });
 
+  it("explains that a handoff needs a second problem group", () => {
+    // A handoff goes to a *different* problem group; with one group on the
+    // installation the select would hold only its placeholder (W7.37).
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ToastProvider>
+          <ProblemHandoffRequestCard
+            problem={problemWith({})}
+            groups={[{ id: "g1", name: "Grupa A" }]}
+            onChanged={vi.fn()}
+          />
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByTestId("problem-handoff-no-target").textContent).toBe(
+      "problems.handoff.requestCardNoOtherGroup",
+    );
+    expect(screen.queryByTestId("problem-handoff-request-toggle")).toBeNull();
+    expect(container.querySelector("select")).toBeNull();
+  });
+
   it("starts collapsed and opens the form on demand", () => {
     renderCard(problemWith({}));
 
