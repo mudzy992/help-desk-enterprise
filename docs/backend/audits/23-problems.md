@@ -186,7 +186,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.30) |
 | BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | zatvoreno (W7.31) |
 | BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | zatvoreno (W7.32) |
-| BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | otvoreno |
+| BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | zatvoreno (W7.33) |
 | BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | otvoreno |
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | otvoreno |
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
@@ -548,3 +548,60 @@ docs commit `b2df1cc` mijenja samo `docs/**`, pa ga `paths-ignore` namjerno ne p
 guard (`696/696`, `P1=174 P2=371 P3=151`, 16/16 testova) i docs guard (OK, 32 stranice) prošli su
 lokalno. Detalji su u [255](../implementation/255-w732-problem-sweep-reconciliation.md). Sljedeći P2 u ovom auditu je
 `BA-problems-15`.
+
+## 34. W7.33 — BA-problems-15 closeout
+
+Pravilo vlasnika bilo je „aktivan, nije anonimiziran, član grupe i ima `problem.manage` **negdje**“. Menadžer
+čije ovlasti pokrivaju drugu jedinicu mogao je, dakle, postati vlasnik problema koji ne može voditi — i
+dobijati podsjetnike o njemu — a oduzimanje granta nije bilo nigdje primijećeno: problem je zadržao
+vlasnika bez ovlasti, a niko to nije rekao ni prikazao.
+
+Pravilo je sada jedno, izraženo u dva oblika u `problem-owner-eligibility.ts`:
+
+- `evaluateProblemOwnerEligibility` — tačna provjera preko kanonskog `resolveAssetScope`/`isPathInScope`
+  (isti resolver koji koriste svi read/write putevi, pa zapisani vlasnik ne može proći ovdje a pasti tamo);
+  razlozi su `inactive`, `not_manager`, `not_member`, `out_of_scope`.
+- `eligibleProblemOwnerWhere` — isti uslov kao jedan Prisma filter za ograničene upite (birač vlasnika,
+  voditelji grupe, ciljna grupa predaje). Cross-unit prolaz traži **bezjediničnu** dodjelu role
+  `ADMIN`/`SUPER_ADMIN`/`PROBLEM_MANAGER`; dodjela bez jedinice pada na matičnu jedinicu korisnika; putanja
+  jedinice `null` **nikad** ne širi opseg. Deset testova u `problem-owner-eligibility.spec.ts` drži oba oblika
+  na istom pravilu (preci, tačna/parent dodjela, sestra i dijete odbijeni, matična jedinica, drift razlozi,
+  oblik filtera).
+
+Servis sada bira vlasnika i provjerava ga s istim pitanjem i istom jedinicom: create koristi `ouPath`
+vraćene jedinice, update `ouPath` jedinice problema, birač vlasnika filtrira po jedinici grupe (tekstualni
+filter je odvojen `OR`, pa ga scope filter ne može pregaziti). Mrtva grana „pri promjeni grupe ispusti
+vlasnika“ je uklonjena — promjena grupe je predaja (`handoff`), koja vlasnika ponovo rješava za ciljnu
+jedinicu; `ProblemHandoffService.resolveOwner` zato čita jedinicu ciljne grupe u transakciji.
+
+**Revoke drift** se rješava čitanjem, bez prepisivanja zapisa i bez migracije:
+
+1. Detalj problema vraća `ownerEligibility: { eligible, reason }` (ili `null` kad vlasnika nema), a UI ispod
+   imena vlasnika ispisuje razlog i uputu na `Uredi` (bs/en).
+2. `ProblemNotifier` više ne šalje obavještenja vlasniku koji je izgubio ovlast — loguje
+   `problem_notice_owner_ineligible problem=… reason=…` i pušta voditelje grupe da preuzmu; i sami voditelji
+   se traže po jedinici grupe, pa obavještenje ne ide menadžeru iz drugog dijela stabla.
+3. `sweep/problem-owner-drift.ts` broji drift među otvorenim problemima: jedan ograničen pregled (500),
+   pa po jedan upit za vlasnike i grupe — nikad upit po problemu. Novi alarm
+   `problems.owner.ineligible` (UPOZORENJE 2/2) nosi broj pogođenih, broj pregledanih, razloge i `capped`
+   (dostignut limit ⇒ broj je minimum), bez ID-a problema i bez identiteta korisnika. Runbook:
+   `ALERTS.md#problem-owner-eligibility`.
+
+Dokazi: `problem-owner-eligibility.spec.ts` (10), `problem-owner-scope.spec.ts` (8 — veza na jedinicu
+problema, odbijanje po svakom razlogu, tekstualni filter uz scope, detalj sa driftom), 
+`problem-notifier-owner-drift.spec.ts` (4 — vlasnik prima dok ima grant, otkazani vlasnik prepušta
+voditeljima, `NO_RECIPIENT` kad nema nikoga, voditelji po jedinici grupe), `problem-owner-drift.spec.ts`
+(7 — razlozi, matična jedinica, `capped`, jedan upit po kolekciji) i `evaluate-ops-signals.spec.ts`
+(alarm, samo prisutni razlozi, `null` probe). Nema migracije ni schema promjene; nema novog API polja osim
+`ownerEligibility` u detalju.
+
+Lokalno: 400 testova u `problems`/`ops-health` (25 skipped DB suiteova), pun frontend `vitest` 1.792
+testa, `eslint` čist, frontend `tsc --noEmit` i build čisti. CI
+[`44267814464`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44267814464) na `ea16a1e`
+je **success** (generisani Prisma, backend build/lint/wiring/SLA matrica/pun Jest, PostgreSQL/Redis
+integracija, frontend lint/format/testovi/build/budget, docs, container/supply-chain, gate); E2E
+critical/install i inventory bili su `skipped`. Tri ranija pokušaja (`44262744211`, `44263246219`,
+`44266623028`) pala su na vlastitim greškama — Prettier na novom tipu, frontend module-size guard na
+porastu detalj stranice/`problems-api.ts` i `TS2345` u novom test dublu — i popravljena su prije zelenog
+runa. Detalji su u [256](../implementation/256-w733-owner-eligibility.md).
+Sljedeći P2 u ovom auditu je `BA-problems-16` (privacy/retention).
