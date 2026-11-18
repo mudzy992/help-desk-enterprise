@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -10,14 +10,15 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { queryKeys } from "@/lib/query/query-keys";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
 import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { ProblemHandoffPanel } from "@/components/problems/problem-handoff-panel";
+import { ProblemHandoffRequestCard } from "@/components/problems/problem-handoff-request-card";
+import { ProblemOverview } from "@/components/problems/problem-overview";
 import { ProblemLinksPanel } from "@/components/problems/problem-links-panel";
-import { ProblemOwnerIneligibleHint } from "@/components/problems/problem-owner-ineligible-hint";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemResolutionRunPanel } from "@/components/problems/problem-resolution-run-panel";
 import { ProblemTargetReminderPanel } from "@/components/problems/problem-target-reminder-panel";
@@ -29,14 +30,13 @@ import {
 } from "@/components/changes/related-changes-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EntityDetailQueryError } from "@/components/entity-list/entity-detail-query-error";
 import { PageHeader } from "@/components/layout/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
-import { formatAssetDateTime } from "@/lib/assets/asset-view";
+import { ticketPriorityLabelKey } from "@/lib/tickets/ticket-constants";
 import { entityMutationQueryKeys } from "@/lib/entity-list/entity-mutation-query-keys";
 import { useEntityMutation } from "@/lib/entity-list/use-entity-mutation";
 import { mapApiError, readApiRequestId } from "@/lib/map-api-error";
@@ -45,10 +45,8 @@ import {
   mapProblemError,
   problemStatusKeys,
   problemStatusTone,
-  rootCauseLabel,
   transitionLabelKey,
 } from "@/lib/problems/problem-view";
-import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
 import { translateText } from "@/lib/i18n/translate-text";
 import {
   claimProblem,
@@ -283,7 +281,7 @@ export function ProblemDetailPage() {
             <span>{t("problems.detail.needsOwner")}</span>
           </div>
         ) : null}
-        <ProblemHandoffPanel problem={problem} options={optionsQuery.data} onChanged={refresh} />
+        <ProblemHandoffPanel problem={problem} onChanged={refresh} />
         <ProblemTargetReminderPanel problem={problem} onRetried={refresh} />
         <ProblemResolutionRunPanel problem={problem} onResumed={refresh} />
         <UnderlineTabs
@@ -302,7 +300,16 @@ export function ProblemDetailPage() {
           active={tab}
           onChange={(key) => setTab(key as Tab)}
         />
-        {tab === "overview" ? <ProblemOverview problem={problem} /> : null}
+        {tab === "overview" ? (
+          <>
+            <ProblemOverview problem={problem} />
+            <ProblemHandoffRequestCard
+              problem={problem}
+              groups={optionsQuery.data?.groups ?? []}
+              onChanged={refresh}
+            />
+          </>
+        ) : null}
         {tab === "analysis" ? (
           <ProblemAnalysisPanel
             problem={problem}
@@ -375,126 +382,5 @@ export function ProblemDetailPage() {
         }}
       />
     </section>
-  );
-}
-
-function DefinitionRow({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <div className="grid grid-cols-[minmax(120px,40%)_1fr] gap-2 py-1.5 text-[12.5px]">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words text-foreground">{children}</dd>
-    </div>
-  );
-}
-
-function ProblemOverview({ problem }: { readonly problem: ProblemDetail }) {
-  const { t, i18n } = useTranslation();
-  const date = (value: string | null) =>
-    value === null ? "—" : formatAssetDateTime(value, i18n.language);
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="p-0 lg:col-span-2">
-        <CardHeader title={t("problems.fields.description")} />
-        <p className="whitespace-pre-wrap px-4 py-3 text-[12.5px] text-foreground">
-          {problem.description}
-        </p>
-      </Card>
-      <Card className="p-0">
-        <CardHeader title={t("problems.detail.responsibility")} />
-        <dl className="divide-y divide-border/60 px-4 py-2">
-          <DefinitionRow label={t("problems.fields.owner")}>
-            {problem.owner?.displayName ?? t("problems.list.noOwner")}
-            <ProblemOwnerIneligibleHint eligibility={problem.ownerEligibility} />
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.fields.group")}>
-            {problem.group?.name ?? "—"}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.fields.organizationalUnit")}>
-            {problem.organizationalUnit.name}
-            <span className="block text-[11.5px] text-muted-foreground">
-              {problem.organizationalUnit.ouPath}
-            </span>
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.fields.service")}>
-            {problem.service?.name ?? "—"}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.detail.createdBy")}>
-            {problem.createdBy?.displayName ?? "—"}
-          </DefinitionRow>
-        </dl>
-      </Card>
-      <Card className="p-0">
-        <CardHeader title={t("problems.detail.classification")} />
-        <dl className="divide-y divide-border/60 px-4 py-2">
-          <DefinitionRow label={t("problems.fields.impact")}>
-            {translateText(t, ticketSeverityLabelKey[problem.impact])}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.fields.urgency")}>
-            {translateText(t, ticketSeverityLabelKey[problem.urgency])}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.fields.priority")}>
-            {translateText(t, ticketPriorityLabelKey[problem.priority])}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.fields.rootCauseCategory")}>
-            {rootCauseLabel((key) => translateText(t, key), problem.rootCauseCategory)}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.detail.knowledgeArticle")}>
-            {problem.knowledgeArticle ? (
-              <Link
-                to={`/knowledge-base/${problem.knowledgeArticle.id}`}
-                className="text-link hover:underline"
-              >
-                {problem.knowledgeArticle.title}
-              </Link>
-            ) : (
-              "—"
-            )}
-          </DefinitionRow>
-        </dl>
-      </Card>
-      <Card className="p-0 lg:col-span-2">
-        <CardHeader title={t("problems.detail.timeline")} />
-        <dl className="grid divide-y divide-border/60 px-4 py-2 sm:grid-cols-2 sm:divide-y-0">
-          <DefinitionRow label={t("problems.detail.createdAt")}>
-            {date(problem.createdAt)}
-          </DefinitionRow>
-          {problem.targetAt ? (
-            <DefinitionRow label={t("problems.detail.targetAt")}>
-              <span className="inline-flex items-center gap-1.5">
-                {date(problem.targetAt)}
-                {problem.targetOverdue ? (
-                  <Badge tone="danger">{t("problems.list.overdue")}</Badge>
-                ) : null}
-              </span>
-            </DefinitionRow>
-          ) : null}
-          <DefinitionRow label={t("problems.detail.identifiedAt")}>
-            {date(problem.identifiedAt)}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.detail.resolvedAt")}>
-            {date(problem.resolvedAt)}
-          </DefinitionRow>
-          <DefinitionRow label={t("problems.detail.closedAt")}>
-            {date(problem.closedAt)}
-          </DefinitionRow>
-          {problem.cancelledAt ? (
-            <DefinitionRow label={t("problems.detail.cancelledAt")}>
-              {date(problem.cancelledAt)}
-            </DefinitionRow>
-          ) : null}
-          {problem.cancelReason ? (
-            <DefinitionRow label={t("problems.detail.cancelReason")}>
-              {problem.cancelReason}
-            </DefinitionRow>
-          ) : null}
-        </dl>
-      </Card>
-    </div>
   );
 }

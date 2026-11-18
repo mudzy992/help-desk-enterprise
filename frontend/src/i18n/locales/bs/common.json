@@ -9642,6 +9642,7 @@
       "ownerSearch": "Pretraga vlasnika",
       "ownerResults": "Mogući vlasnici",
       "ownerNone": "Nema agenata za ovu pretragu.",
+      "ownerNoneWithUnit": "Nema kandidata u jedinici {{unit}}. Članovi grupe moraju imati dozvolu „Upravljanje problemima“ koja pokriva tu jedinicu.",
       "ownerHint": "Upišite najmanje 2 slova imena ili e-maila. Vlasnik je obavezan za početak analize.",
       "none": "— nije odabrano —",
       "save": "Spremi",
@@ -9922,6 +9923,9 @@
       "emptyPending": "Nema predaja koje čekaju odluku.",
       "request": "Zatraži predaju",
       "requestHint": "Problem ostaje u trenutnoj grupi dok ciljna grupa ne prihvati.",
+      "requestCardTitle": "Predaja u drugu grupu",
+      "requestCardCollapsed": "Ako problem pripada drugoj grupi, otvori obrazac i zatraži predaju. Problem ostaje u trenutnoj grupi dok ciljna grupa ne odluči.",
+      "submit": "Pošalji zahtjev",
       "ownerHint": "Vlasnik se rješava pri prihvatu: zadržava se ako već pripada ciljnoj grupi, inače ga preuzima upravitelj koji prihvati predaju.",
       "savePartial": "Podaci problema su sačuvani, ali predaja nije zatražena: {{reason}}"
     }

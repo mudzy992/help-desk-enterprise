@@ -9573,6 +9573,7 @@
       "ownerSearch": "Search owner",
       "ownerResults": "Possible owners",
       "ownerNone": "No agents match this search.",
+      "ownerNoneWithUnit": "No candidate in the {{unit}} unit. Group members need the „Manage problems“ permission covering that unit.",
       "ownerHint": "Type at least 2 letters of a name or e-mail. An owner is required to start the analysis.",
       "none": "— none —",
       "save": "Save",
@@ -9847,6 +9848,9 @@
       "emptyPending": "No handoff is waiting for a decision.",
       "request": "Request handoff",
       "requestHint": "The problem stays with its current group until the target group accepts.",
+      "requestCardTitle": "Hand off to another group",
+      "requestCardCollapsed": "If the problem belongs to another group, open the form and request the handoff. The problem stays with the current group until the target group decides.",
+      "submit": "Send request",
       "ownerHint": "The owner is settled on acceptance: it stays if it already belongs to the target group, otherwise the manager who accepts takes it.",
       "savePartial": "The problem was saved, but the handoff was not requested: {{reason}}"
     }

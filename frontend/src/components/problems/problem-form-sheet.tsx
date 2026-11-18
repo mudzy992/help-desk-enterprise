@@ -384,7 +384,11 @@ export function ProblemFormSheet({
                     >
                       {(owners.data?.items ?? []).length === 0 ? (
                         <li className={`px-2 py-1 ${hintClassName}`}>
-                          {owners.isFetching ? t("ui.loading") : t("problems.form.ownerNone")}
+                          {owners.isFetching
+                            ? t("ui.loading")
+                            : t("problems.form.ownerNoneWithUnit", {
+                                unit: owners.data?.unitPath ?? "—",
+                              })}
                         </li>
                       ) : (
                         (owners.data?.items ?? []).map((item) => (

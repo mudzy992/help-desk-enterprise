@@ -197,7 +197,7 @@ describe('ProblemsService owner eligibility', () => {
 
   it('answers an owner search without a group with an empty list', async () => {
     const { service, prisma } = setup();
-    await expect(service.searchOwners(viewer, 'ana', null)).resolves.toEqual({ items: [] });
+    await expect(service.searchOwners(viewer, 'ana', null)).resolves.toEqual({ items: [], unitPath: null });
     expect(prisma.user.findMany).not.toHaveBeenCalled();
   });
 });

@@ -766,7 +766,7 @@ export class ProblemsService {
    */
   async searchOwners(viewer: ProblemViewer, search: string, groupId: string | null) {
     await this.access.require(viewer, permissionKeys.problemManage);
-    if (groupId === null) return { items: [] };
+    if (groupId === null) return { items: [], unitPath: null };
     const text = search.trim().slice(0, problemLimits.searchMax);
     const unitPath = await this.groupUnitPath(groupId);
     const items = await this.prisma.user.findMany({
@@ -783,7 +783,9 @@ export class ProblemsService {
       orderBy: { displayName: 'asc' },
       take: 20,
     });
-    return { items };
+    // The unit travels with the answer so an empty list can say *where* it looked
+    // (W7.35: an empty picker used to be indistinguishable from a broken filter).
+    return { items, unitPath };
   }
 
   /**

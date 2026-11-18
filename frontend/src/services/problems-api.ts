@@ -321,7 +321,7 @@ export function getProblemOptions(): Promise<ProblemOptions> {
 export function searchProblemOwners(
   search: string,
   groupId: string,
-): Promise<{ readonly items: readonly UserRef[] }> {
+): Promise<{ readonly items: readonly UserRef[]; readonly unitPath: string | null }> {
   const params = new URLSearchParams({ search, groupId });
   return apiRequest(`/problems/owners?${params.toString()}`);
 }

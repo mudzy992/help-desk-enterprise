@@ -6,33 +6,34 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
-import { Field, Select, Textarea } from "@/components/ui/field";
+import { Field, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError } from "@/lib/problems/problem-view";
-import { problemQueryKeys, type ProblemDetail, type ProblemOptions } from "@/services/problems-api";
+import { problemQueryKeys, type ProblemDetail } from "@/services/problems-api";
 import {
   acceptProblemHandoff,
   cancelProblemHandoff,
   rejectProblemHandoff,
-  requestProblemHandoff,
 } from "@/services/problem-handoffs-api";
 
 /**
- * W7.28 (BA-problems-10): a problem changes group only through this recorded
+ * W7.28 (BA-problems-10) / W7.36: a problem changes group only through a recorded
  * handoff. While it waits, the problem stays where it is: the target group
  * accepts or rejects it, the requesting side may call it off, and nothing moves
- * behind the scenes. A problem manager can also start the handoff here, without
- * touching the rest of the problem.
+ * behind the scenes.
+ *
+ * This card renders **only** while a decision is pending — that is state somebody
+ * has to act on, so it belongs at the top of the record. Starting a handoff is an
+ * action, and its form lives inside the "Pregled" tab
+ * (`ProblemHandoffRequestCard`).
  */
 export function ProblemHandoffPanel({
   problem,
-  options,
   onChanged,
 }: {
   readonly problem: ProblemDetail;
-  readonly options?: ProblemOptions;
   readonly onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -42,8 +43,7 @@ export function ProblemHandoffPanel({
   const [error, setError] = useState<string | null>(null);
 
   const handoff = problem.handoff;
-  const canRequest = handoff === null && problem.permissions.canHandoff && options !== undefined;
-  if (handoff === null && !canRequest) return null;
+  if (handoff === null) return null;
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: problemQueryKeys.detail(problem.id) });
@@ -76,43 +76,20 @@ export function ProblemHandoffPanel({
     <Card className="p-0" data-testid="problem-handoff-panel">
       <CardHeader
         title={t("problems.handoff.title")}
-        actions={
-          handoff === null ? undefined : (
-            <Badge tone="warning">{t("problems.handoff.pendingTitle")}</Badge>
+        actions={<Badge tone="warning">{t("problems.handoff.pendingTitle")}</Badge>}
+      />
+      <PendingHandoff
+        problem={problem}
+        busy={busy}
+        error={error}
+        onDecision={(action, operation) =>
+          run(action, operation, () =>
+            action === "accept"
+              ? t("problems.handoff.acceptedToast", { group: handoff.toGroup.name })
+              : t("problems.handoff.decidedToast"),
           )
         }
       />
-      {handoff === null ? (
-        <RequestHandoff
-          problem={problem}
-          groups={options?.groups ?? []}
-          busy={busy}
-          error={error}
-          onRequest={(toGroupId, reason) =>
-            run(
-              "request",
-              () => requestProblemHandoff(problem.id, { toGroupId, reason }),
-              (result) =>
-                result.handoff.status === "ACCEPTED"
-                  ? t("problems.handoff.acceptedToast", { group: result.handoff.toGroup.name })
-                  : t("problems.handoff.pendingToast", { group: result.handoff.toGroup.name }),
-            )
-          }
-        />
-      ) : (
-        <PendingHandoff
-          problem={problem}
-          busy={busy}
-          error={error}
-          onDecision={(action, operation) =>
-            run(action, operation, () =>
-              action === "accept"
-                ? t("problems.handoff.acceptedToast", { group: handoff.toGroup.name })
-                : t("problems.handoff.decidedToast"),
-            )
-          }
-        />
-      )}
     </Card>
   );
 }
@@ -246,90 +223,6 @@ function PendingHandoff({
             {t("problems.handoff.cancel")}
           </Button>
         ) : null}
-      </div>
-    </div>
-  );
-}
-
-function RequestHandoff({
-  problem,
-  groups,
-  busy,
-  error,
-  onRequest,
-}: {
-  readonly problem: ProblemDetail;
-  readonly groups: readonly { readonly id: string; readonly name: string }[];
-  readonly busy: string | null;
-  readonly error: string | null;
-  readonly onRequest: (toGroupId: string, reason: string) => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const [toGroupId, setToGroupId] = useState("");
-  const [reason, setReason] = useState("");
-  const [invalid, setInvalid] = useState(false);
-  const targets = groups.filter((group) => group.id !== problem.group?.id);
-  const ready = toGroupId !== "" && reason.trim().length >= 5;
-
-  const submit = async () => {
-    setInvalid(false);
-    if (!ready) {
-      setInvalid(true);
-      return;
-    }
-    try {
-      await onRequest(toGroupId, reason.trim());
-    } catch {
-      // The parent already reported the failure inline and as a toast.
-    }
-  };
-
-  return (
-    <div className="grid gap-3 px-4 pb-4">
-      <p className={hintClassName}>{t("problems.handoff.requestHint")}</p>
-      <Field label={t("problems.handoff.targetGroup")} required>
-        {(control) => (
-          <Select
-            {...control}
-            value={toGroupId}
-            onChange={(event) => setToGroupId(event.target.value)}
-          >
-            <option value="">{t("problems.form.groupPlaceholder")}</option>
-            {targets.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </Select>
-        )}
-      </Field>
-      <Field label={t("problems.handoff.reason")} hint={t("problems.handoff.reasonHint")} required>
-        {(control) => (
-          <Textarea
-            {...control}
-            rows={3}
-            maxLength={2000}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-        )}
-      </Field>
-      {invalid ? <p className={errorTextClassName}>{t("problems.errors.validation")}</p> : null}
-      {error !== null ? (
-        <p role="alert" data-testid="problem-handoff-error" className={errorTextClassName}>
-          {error}
-        </p>
-      ) : null}
-      <div>
-        <Button
-          type="button"
-          size="sm"
-          disabled={busy !== null}
-          data-testid="problem-handoff-request"
-          onClick={() => void submit()}
-        >
-          {t("problems.handoff.request")}
-        </Button>
       </div>
     </div>
   );

@@ -9,9 +9,8 @@ import {
   acceptProblemHandoff,
   cancelProblemHandoff,
   rejectProblemHandoff,
-  requestProblemHandoff,
 } from "@/services/problem-handoffs-api";
-import type { ProblemDetail, ProblemOptions } from "@/services/problems-api";
+import type { ProblemDetail } from "@/services/problems-api";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: "bs" } }),
@@ -24,25 +23,12 @@ vi.mock("@/services/problem-handoffs-api", async (importOriginal) => {
     acceptProblemHandoff: vi.fn(),
     cancelProblemHandoff: vi.fn(),
     rejectProblemHandoff: vi.fn(),
-    requestProblemHandoff: vi.fn(),
   };
 });
 
 const accept = vi.mocked(acceptProblemHandoff);
 const cancel = vi.mocked(cancelProblemHandoff);
 const reject = vi.mocked(rejectProblemHandoff);
-const request = vi.mocked(requestProblemHandoff);
-
-const options: ProblemOptions = {
-  units: [{ id: "ou1", name: "Jedinica A", path: "/root/ou1" }],
-  services: [],
-  groups: [
-    { id: "g1", name: "Grupa A" },
-    { id: "g2", name: "Grupa B" },
-  ],
-  rootCauseCategories: ["SW"],
-  homeOrganizationalUnitId: "ou1",
-};
 
 const pendingHandoff = {
   id: "h1",
@@ -84,7 +70,7 @@ function renderPanel(problem: ProblemDetail, onChanged = vi.fn()) {
   render(
     <QueryClientProvider client={client}>
       <ToastProvider>
-        <ProblemHandoffPanel problem={problem} options={options} onChanged={onChanged} />
+        <ProblemHandoffPanel problem={problem} onChanged={onChanged} />
       </ToastProvider>
     </QueryClientProvider>,
   );
@@ -96,7 +82,6 @@ afterEach(() => {
   accept.mockReset();
   cancel.mockReset();
   reject.mockReset();
-  request.mockReset();
 });
 
 describe("ProblemHandoffPanel", () => {
@@ -162,35 +147,12 @@ describe("ProblemHandoffPanel", () => {
     );
   });
 
-  it("requests a handoff from the problem itself", async () => {
-    request.mockResolvedValue({
-      handoff: { ...pendingHandoff, status: "PENDING" },
-      problem: problemWith({}),
-    } as never);
-    const { onChanged } = renderPanel(problemWith({}, null));
-
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "g2" } });
-    fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: "Problem pripada drugoj grupi" },
-    });
-    fireEvent.click(screen.getByTestId("problem-handoff-request"));
-
-    await waitFor(() =>
-      expect(request).toHaveBeenCalledWith("p1", {
-        toGroupId: "g2",
-        reason: "Problem pripada drugoj grupi",
-      }),
-    );
-    await waitFor(() => expect(onChanged).toHaveBeenCalled());
-  });
-
   it("stays out of the way when there is nothing to hand off", () => {
     const { container } = render(
       <QueryClientProvider client={new QueryClient()}>
         <ToastProvider>
           <ProblemHandoffPanel
             problem={problemWith({ canHandoff: false }, null)}
-            options={options}
             onChanged={vi.fn()}
           />
         </ToastProvider>
