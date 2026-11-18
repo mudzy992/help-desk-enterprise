@@ -828,7 +828,15 @@ export class ChangesService {
     const current = await this.loadInScope(id, scope, viewer);
     const configuration = await this.access.configuration();
     if (current.plannedStart === null || current.plannedEnd === null || current.plannedStart >= current.plannedEnd) {
-      return { changes: [], downtime: [], freeze: null, freezeBlocks: false, hasWarnings: false, acknowledgedAt: null };
+      return {
+        changes: [],
+        downtime: [],
+        restricted: { changes: 0, downtime: 0 },
+        freeze: null,
+        freezeBlocks: false,
+        hasWarnings: false,
+        acknowledgedAt: null,
+      };
     }
     const conflicts = await this.schedule.conflictsFor(
       {
@@ -840,7 +848,10 @@ export class ChangesService {
       },
       configuration,
     );
-    return { ...(await this.schedule.describe(conflicts, configuration)), acknowledgedAt: current.conflictsAcknowledgedAt?.toISOString() ?? null };
+    return {
+      ...(await this.schedule.describe(conflicts, configuration, { scope, userId: viewer.userId })),
+      acknowledgedAt: current.conflictsAcknowledgedAt?.toISOString() ?? null,
+    };
   }
 
   /**

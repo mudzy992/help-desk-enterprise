@@ -10177,7 +10177,13 @@
       "freezeWarns": "Termin pada u period zamrzavanja „{{label}}“ ({{from}} – {{to}}); hitna promjena je dozvoljena uz upozorenje.",
       "freezeUnnamed": "bez naziva",
       "acknowledge": "Upoznat/a sam s konfliktima i nastavljam",
-      "acknowledgedAt": "Konflikti potvrđeni {{at}}."
+      "acknowledgedAt": "Konflikti potvrđeni {{at}}.",
+      "restrictedChanges_one": "Još {{count}} preklapajuća promjena je izvan vašeg opsega — detalji su skriveni.",
+      "restrictedChanges_few": "Još {{count}} preklapajuće promjene su izvan vašeg opsega — detalji su skriveni.",
+      "restrictedChanges_other": "Još {{count}} preklapajućih promjena je izvan vašeg opsega — detalji su skriveni.",
+      "restrictedDowntime_one": "Još {{count}} prozor prekida na zahvaćenim servisima je izvan vašeg opsega.",
+      "restrictedDowntime_few": "Još {{count}} prozora prekida na zahvaćenim servisima su izvan vašeg opsega.",
+      "restrictedDowntime_other": "Još {{count}} prozora prekida na zahvaćenim servisima je izvan vašeg opsega."
     },
     "actionSheet": {
       "current": "Trenutni status: {{status}}",

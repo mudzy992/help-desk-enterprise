@@ -10098,7 +10098,11 @@
       "freezeWarns": "The window falls in the freeze period \"{{label}}\" ({{from}} – {{to}}); an emergency change is allowed with a warning.",
       "freezeUnnamed": "unnamed",
       "acknowledge": "I am aware of the conflicts and want to continue",
-      "acknowledgedAt": "Conflicts acknowledged {{at}}."
+      "acknowledgedAt": "Conflicts acknowledged {{at}}.",
+      "restrictedChanges_one": "{{count}} more overlapping change is outside your scope — details are hidden.",
+      "restrictedChanges_other": "{{count}} more overlapping changes are outside your scope — details are hidden.",
+      "restrictedDowntime_one": "{{count}} more downtime window on the affected services is outside your scope.",
+      "restrictedDowntime_other": "{{count}} more downtime windows on the affected services are outside your scope."
     },
     "actionSheet": {
       "current": "Current status: {{status}}",

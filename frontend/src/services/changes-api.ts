@@ -205,6 +205,11 @@ export type ChangeConflicts = {
   readonly freeze: ChangeFreezePeriod | null;
   /** The freeze blocks this type (STANDARD, NORMAL); EMERGENCY only warns. */
   readonly freezeBlocks: boolean;
+  /**
+   * Overlaps outside the reader's scope (BA-changes-04): counted, never named.
+   * Absent in responses from servers that predate W7.45.
+   */
+  readonly restricted?: { readonly changes: number; readonly downtime: number };
   readonly hasWarnings: boolean;
   /** Only on a saved change. */
   readonly acknowledgedAt?: string | null;

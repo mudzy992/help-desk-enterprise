@@ -12,6 +12,8 @@ import type { ChangeConflicts } from "@/services/changes-api";
 export function ChangeConflictsList({ conflicts }: { readonly conflicts: ChangeConflicts }) {
   const { t, i18n } = useTranslation();
   const freeze = conflicts.freeze;
+  // BA-changes-04: the API counts the overlaps it must not name.
+  const restricted = conflicts.restricted ?? { changes: 0, downtime: 0 };
   return (
     <div className="grid gap-2 text-[12.5px]" data-testid="change-conflicts">
       {freeze !== null ? (
@@ -92,7 +94,20 @@ export function ChangeConflictsList({ conflicts }: { readonly conflicts: ChangeC
           </ul>
         </div>
       ) : null}
-      {freeze === null && conflicts.changes.length === 0 && conflicts.downtime.length === 0 ? (
+      {restricted.changes > 0 ? (
+        <p className="text-muted-foreground" data-testid="change-conflicts-restricted-changes">
+          {t("changes.conflicts.restrictedChanges", { count: restricted.changes })}
+        </p>
+      ) : null}
+      {restricted.downtime > 0 ? (
+        <p className="text-muted-foreground" data-testid="change-conflicts-restricted-downtime">
+          {t("changes.conflicts.restrictedDowntime", { count: restricted.downtime })}
+        </p>
+      ) : null}
+      {freeze === null &&
+      conflicts.changes.length === 0 &&
+      conflicts.downtime.length === 0 &&
+      restricted.changes + restricted.downtime === 0 ? (
         <p className="text-muted-foreground">{t("changes.conflicts.none")}</p>
       ) : null}
     </div>

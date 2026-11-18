@@ -1,12 +1,13 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
+import { assetLinkAccess, assetLinkWhere } from '../assets/asset-link-access';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { recordServiceCatalogChange, serviceDowntimeWindowChangeLogEntityType } from '../service-catalog/record-service-catalog-change';
 import { serviceAvailabilityChangeLogReasons, serviceAvailabilityConstants } from '../service-catalog/service-availability.constants';
 import { ServiceAvailabilityConfigurationLoader } from '../service-catalog/service-availability-configuration.loader';
 import { withServiceDowntimeWindowMutationLocks } from '../service-catalog/with-service-downtime-window-mutation-lock';
-import { ChangeAccessService, type ChangeConfiguration, type ChangeViewer } from './change-access.service';
+import { ChangeAccessService, type ChangeConfiguration, type ChangeScope, type ChangeViewer } from './change-access.service';
 import {
   detectChangeConflicts,
   planChangeDowntime,
@@ -122,13 +123,37 @@ export class ChangeScheduleService {
     });
   }
 
-  /** API shape of the conflicts (numbers, service names) for the detail and the form. */
-  async describe(conflicts: ChangeConflicts, configuration: ChangeConfiguration) {
-    const serviceIds = [...new Set([...conflicts.downtime.map((item) => item.serviceId), ...conflicts.changes.flatMap((item) => item.sharedServiceIds)])];
+  /**
+   * API shape of the conflicts (numbers, service names) for the detail and the
+   * form. BA-changes-04 (W7.45): with an audience, only the changes the viewer
+   * may read are described in full; the rest are reduced to a count, so a
+   * scoped reader cannot enumerate a foreign operational schedule.
+   */
+  async describe(
+    conflicts: ChangeConflicts,
+    configuration: ChangeConfiguration,
+    audience?: { readonly scope: ChangeScope; readonly userId: string },
+  ) {
+    const readable = audience === undefined
+      ? null
+      : await this.readableChangeIds(audience, [
+          ...new Set([
+            ...conflicts.changes.map((item) => item.id),
+            ...conflicts.downtime.map((item) => item.changeRequestId).filter((id): id is string => id !== null),
+          ]),
+        ]);
+    const canRead = (id: string | null): boolean => id === null || readable === null || readable.has(id);
+    const visibleChanges = conflicts.changes.filter((item) => canRead(item.id));
+    const visibleDowntime = conflicts.downtime.filter((item) => canRead(item.changeRequestId));
+    const restricted = {
+      changes: conflicts.changes.length - visibleChanges.length,
+      downtime: conflicts.downtime.length - visibleDowntime.length,
+    };
+    const serviceIds = [...new Set([...visibleDowntime.map((item) => item.serviceId), ...visibleChanges.flatMap((item) => item.sharedServiceIds)])];
     const services = serviceIds.length === 0 ? [] : await this.prisma.service.findMany({ where: { id: { in: serviceIds } }, select: { id: true, name: true } });
     const serviceName = new Map(services.map((service) => [service.id, service.name]));
     return {
-      changes: conflicts.changes.map((item) => ({
+      changes: visibleChanges.map((item) => ({
         id: item.id,
         number: formatChangeNumber(configuration.numberPrefix, item.sequence),
         title: item.title,
@@ -138,7 +163,7 @@ export class ChangeScheduleService {
         sharedServices: item.sharedServiceIds.map((id) => ({ id, name: serviceName.get(id) ?? id })),
         sharedAssetCount: item.sharedAssetIds.length,
       })),
-      downtime: conflicts.downtime.map((item) => ({
+      downtime: visibleDowntime.map((item) => ({
         id: item.id,
         service: { id: item.serviceId, name: serviceName.get(item.serviceId) ?? item.serviceId },
         startsAt: item.startsAt.toISOString(),
@@ -146,10 +171,55 @@ export class ChangeScheduleService {
         message: item.message,
         changeRequestId: item.changeRequestId,
       })),
+      /** BA-changes-04: overlaps the viewer may not read, as a count only. */
+      restricted,
       freeze: conflicts.freeze,
       freezeBlocks: conflicts.freezeBlocks,
-      hasWarnings: conflicts.changes.length > 0 || conflicts.downtime.length > 0 || (conflicts.freeze !== null && !conflicts.freezeBlocks),
+      // A hidden overlap is still a conflict: the acknowledgement must not pass.
+      hasWarnings:
+        visibleChanges.length + visibleDowntime.length + restricted.changes + restricted.downtime > 0 ||
+        (conflicts.freeze !== null && !conflicts.freezeBlocks),
     };
+  }
+
+  /** Ids of the given changes the viewer may read; `null` = every unit. */
+  private async readableChangeIds(
+    audience: { scope: ChangeScope; userId: string },
+    ids: readonly string[],
+  ): Promise<Set<string> | null> {
+    const visible = changeVisibilityWhere(audience.scope, audience.userId);
+    if (visible === null) return null;
+    if (ids.length === 0) return new Set();
+    const rows = await this.prisma.changeRequest.findMany({
+      where: { AND: [visible, { id: { in: [...ids] } }] },
+      select: { id: true },
+    });
+    return new Set(rows.map((row) => row.id));
+  }
+
+  /**
+   * BA-changes-04: the requested references are capped by the viewer's own
+   * access. A foreign asset id is dropped before it can act as a probe, and a
+   * change id is only honoured for exclusion when the viewer may read it.
+   */
+  private async readableAssetIds(viewer: ChangeViewer, assetIds: readonly string[]): Promise<string[]> {
+    const unique = [...new Set(assetIds.map((id) => id.trim()).filter((id) => id.length > 0))].slice(0, changeLimits.linksMax);
+    if (unique.length === 0) return [];
+    const access = await assetLinkAccess(this.prisma, viewer.userId);
+    const rows = await this.prisma.asset.findMany({
+      where: { AND: [assetLinkWhere(access), { id: { in: unique } }] },
+      select: { id: true },
+    });
+    const allowed = new Set(rows.map((row) => row.id));
+    return unique.filter((id) => allowed.has(id));
+  }
+
+  private async canReadChange(scope: ChangeScope, viewer: ChangeViewer, changeId: string): Promise<boolean> {
+    const visible = changeVisibilityWhere(scope, viewer.userId);
+    const found = await this.prisma.changeRequest.count({
+      where: { AND: [{ id: changeId }, ...(visible === null ? [] : [visible])] },
+    });
+    return found > 0;
   }
 
   /** §17 form: conflicts of an unsaved window. */
@@ -157,23 +227,28 @@ export class ChangeScheduleService {
     viewer: ChangeViewer,
     input: { type: ChangeTypeValue; plannedStart: string; plannedEnd: string; serviceIds?: string[]; assetIds?: string[]; changeId?: string },
   ) {
-    await this.access.require(viewer, permissionKeys.changeRead);
+    const scope = await this.access.require(viewer, permissionKeys.changeRead);
     const configuration = await this.access.configuration();
     const start = new Date(input.plannedStart);
     const end = new Date(input.plannedEnd);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) throw new ChangeError(changeErrorCodes.validation, 'date');
     assertChangeWindow(start, end);
+    // BA-changes-04: scope the references before the engine sees them.
+    const changeId = input.changeId !== undefined && (await this.canReadChange(scope, viewer, input.changeId))
+      ? input.changeId
+      : null;
+    const assetIds = await this.readableAssetIds(viewer, input.assetIds ?? []);
     const conflicts = await this.conflictsFor(
       {
-        changeId: input.changeId ?? null,
+        changeId,
         type: input.type,
         window: { start, end },
         serviceIds: [...new Set(input.serviceIds ?? [])].slice(0, changeLimits.linksMax),
-        assetIds: [...new Set(input.assetIds ?? [])].slice(0, changeLimits.linksMax),
+        assetIds,
       },
       configuration,
     );
-    return this.describe(conflicts, configuration);
+    return this.describe(conflicts, configuration, { scope, userId: viewer.userId });
   }
 
   /** §17: changes, downtime windows and freezes in a period (at most 62 days). */
