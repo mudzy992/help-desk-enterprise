@@ -128,6 +128,22 @@ Coverage je ipak heuristic: tekst može imenovati osobu koja nije creator/owner/
 
 Nema problem retention/tombstone politike. DB cascade briše events i veze samo ako se problem fizički izbriše, ali API delete ne postoji. Closed/cancelled zapisi, event JSON i link metadata ostaju neograničeno. Potrebna je eksplicitna ITSM/legal retention politika i provjera pseudonymized owner/creator prikaza.
 
+**W7.34 (zatvoreno, vidi §35):** sve četiri tačke su zatvorene bez migracije. Anonimizacija sada bira
+problem i po **imenovanju u tekstu**: `problem-mentions.ts` gradi filter iz istih identiteta i pragova
+koje scrubber zamjenjuje (adresa, lokalni dio ≥ 5, DN, login ≥ 4, puno ime u oba redoslijeda), eventi se
+traže jednim ograničenim `ILIKE` upitom nad `detail::text`, a `scrub-problem-mentions.ts` scrubuje i
+in-app kopije problema (`payload.problemId`) i članak baze znanja koji je problem napravio. Replike više
+ne izlaze iz granice: obavještenje nosi samo `broj · naslov` (≤ 500) i pokazivač na problem, e-mail se
+ne pohranjuje (ledger čuva primaoca i status, ne tijelo), a nacrt članka se redaktuje zajedno s
+problemom — objavljeni članak ima svoj životni ciklus i dira ga samo anonimizacija, i to tako što mijenja
+identitete. Nova retention kategorija `problemContent` (default 0, minimum 180 dana, obavezan probni
+prolaz, poslije `ticketContent` u noćnom redu) redaktuje naslov, opis, uzrok, 5-zašto, zaobilazno
+rješenje, rješenje i razlog otkazivanja, razloge predaje, poruke resolution runa, event `detail`, kopije
+u obavještenjima i nacrt članka, a **kostur** (broj, status, datumi, grupa, jedinica, usluga, veze)
+ostaje za reporte i pretragu. Pravna blokada vlasnika, kreatora ili povezanog tiketa preskače problem.
+Pseudonimizirani prikaz je provjeren čitanjem: ime vlasnika i kreatora se nigdje ne denormalizuje, nego
+se čita kroz `userSelect`, pa pseudonim odmah zamijeni ime na svim mjestima.
+
 ## 12. Pagination, resource i operativnost
 
 Glavni register ima bounded cursor i total. Events uzima 200, linked tickets 500, links 200, reverse links 50, notifier candidates 2.000 i options 2.000 bez `hasMore` ili paginationa. `listForProblem.total` je zapravo dužina trunciranog rezultata, pa može lažno tvrditi ukupno 500.
@@ -187,7 +203,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | zatvoreno (W7.31) |
 | BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | zatvoreno (W7.32) |
 | BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | zatvoreno (W7.33) |
-| BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | otvoreno |
+| BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | zatvoreno (W7.34) |
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | otvoreno |
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
@@ -605,3 +621,57 @@ critical/install i inventory bili su `skipped`. Tri ranija pokušaja (`442627442
 porastu detalj stranice/`problems-api.ts` i `TS2345` u novom test dublu — i popravljena su prije zelenog
 runa. Detalji su u [256](../implementation/256-w733-owner-eligibility.md).
 Sljedeći P2 u ovom auditu je `BA-problems-16` (privacy/retention).
+
+## 35. W7.34 — BA-problems-16 closeout
+
+Problem nije imao nijednu od tri stvari koje privacy traži: anonimizacija ga je nalazila samo po vezi
+(kreator/vlasnik/tiket), kopije sadržaja (in-app obavještenje, nacrt članka baze znanja) nisu bile vezane
+za granicu zadržavanja, a retention kategorija za probleme nije postojala — API `delete` ne postoji, pa
+su zatvoreni i otkazani zapisi sa event JSON-om i link metadata ostajali trajno. Pseudonimizirani prikaz
+vlasnika i kreatora trebalo je provjeriti, ne pretpostaviti.
+
+**Imenovanja.** `problem-mentions.ts` izvodi filter iz istih identiteta i pragova koje scrubber
+zamjenjuje: puna adresa, lokalni dio ≥ 5 znakova, DN, login ≥ 4 znaka i puno ime u oba redoslijeda. Filter
+je superset (podstring u bazi može pogoditi token unutar duže riječi), pa je višak redova bezopasan —
+scrub je idempotentan, a problem bez ijedne zamjene se preskače. Eventi se ne filtriraju po problemu, nego
+jednim ograničenim upitom nad `"detail"::text ILIKE`, jer Prisma ne filtrira tekst unutar `Json` kolone.
+`scrub-problem-mentions.ts` je jedan ulaz za izvršenje i preview: problem (veza **ili** imenovanje),
+event detalji (vlasnik eventa, odabrani problemi, imenovanje), in-app kopije pronađene preko
+`payload.problemId` i članak koji je problem napravio.
+
+**Replike.** Obavještenje nosi `broj · naslov` (≤ 500 znakova) i `payload.problemId`; guard u
+`problem-notifier-dedupe.spec.ts` drži da naslov ostane headline i da pokazivač uvijek postoji, jer bez
+njega retention kopiju ne bi našao. E-mail se sastavlja pri slanju i ne pohranjuje — `NotificationEmailDelivery`
+čuva primaoca, ključ, status i pokušaje, ne tijelo. Nacrt članka baze znanja se redaktuje s problemom;
+objavljeni članak se ne dira (verzije, povlačenje i vlasnik su njegov životni ciklus), a identitete u njemu
+uklanja anonimizacija, koja mijenja samo identitete.
+
+**Closed-record lifecycle.** Nova kategorija `problemContent` (default 0 = isključeno, minimum 180 dana,
+obavezan probni prolaz, u noćnom redu poslije `ticketContent`) redaktuje nosivi sadržaj u jednoj
+transakciji po batchu od 50: naslov i opis → marker, uzrok/zaobilazno rješenje/rješenje/razlog otkazivanja
+→ `null`, `rcaWhys` i event `detail` → `DbNull`, razlozi predaje i poruke resolution runa → marker, kopije
+u obavještenjima i nacrt članka → marker. **Kostur ostaje** (broj, status, prioritet, grupa, jedinica,
+usluga, vlasnik, datumi, veze, metrika), pa reporti i pretraga ostaju tačni. Pravna blokada vlasnika,
+kreatora ili bilo kojeg povezanog tiketa preskače problem. Idempotencija koristi postojeći marker u
+naslovu kao „već redigovano“ stanje, pa **migracije nema**; `refs` runa su `#<sequence>`.
+
+**Prikaz.** Problem ne denormalizuje ime: `listSelect`/`detailSelect` uzimaju `owner`/`createdBy` kroz
+`userSelect`, event prikazuje aktera kroz isti join, a notifier čita `owner.displayName` iz `User` reda.
+Anonimizacija mijenja `User.displayName` u pseudonim, pa se pseudonim pojavljuje na svim mjestima bez
+dodatnog koda.
+
+Uz to je popravljena tiha rupa u frontendu: lista kategorija u `services/privacy-api.ts` nije sadržavala
+`statusIncidents`, iako su API, oba prevoda i executor postojali — runovi te kategorije nisu bili vidljivi
+ni filtrabilni. Novi `privacy-retention-categories.spec.ts` poredi listu sa backend
+`privacy.constants.ts` i traži `name`/`hint` u oba prevoda.
+
+Dokazi: `problem-mentions.spec.ts` (6), `scrub-problem-mentions.spec.ts` (7),
+`problem-content-retention.executor.spec.ts` (5), `problem-notifier-dedupe.spec.ts` (+1),
+`privacy-retention-categories.spec.ts` (3), uz ažurirane contract guardove
+(`attachments.constants.spec.ts`, `retention.integration.spec.ts`) i settings-registry coverage (518
+ključeva, naslov ≤ 220). Prvi CI run `44277429190` na `111f3e6` pao je upravo na tim guardovima (lista
+executora, redoslijed noći, 517 ključeva i predug naslov), ne na logici; popravljeno u `fcee1e8`, gdje je
+CI [`44279046507`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44279046507) **zelen**.
+Detalji su u [257](../implementation/257-w734-problems-16-privacy-retention.md). Nema migracije, nema nove
+tabele i nema promjene API oblika; default postavke je 0, pa deploy sam ne mijenja nijedan zapis.
+Sljedeći P2 u ovom auditu je `BA-problems-20` (provenance trigger whitelist).

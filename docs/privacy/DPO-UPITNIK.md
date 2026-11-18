@@ -85,7 +85,7 @@ Svaki odgovor se upisuje kao postavka, prvo s `--dry-run`. Ključevi:
 | 1.1–1.4 | `private.privacy.controller.name`, `.address`, `.dpoName`, `.dpoEmail` | tekst |
 | 1.5, 1.6 | `private.privacy.controller.purpose`, `.legalBasis` | tekst |
 | 2 | `private.privacy.notice.bs`, `private.privacy.notice.en` | Markdown; prazno = automatski nacrt |
-| 3.1–3.6 | `private.privacy.retention.attachmentsDays`, `ticketContentDays`, `auditDays`, `sessionDays`, `emailDeliveryDays`, `requestRegisterDays` | broj dana; `0` = ne brisati |
+| 3.1–3.8 | `private.privacy.retention.attachmentsDays`, `ticketContentDays`, `problemContentDays`, `auditDays`, `sessionDays`, `emailDeliveryDays`, `requestRegisterDays`, `statusIncidentsDays`, `assetTransfersDays` | broj dana; `0` = ne brisati (problem i tiket sadržaj min. 180, prilozi 90, revizija 365) |
 | 4.1 | `private.privacy.anonymization.candidateAfterDays` | broj |
 | 4.2 | `private.privacy.anonymization.requireSecondApprover` | da/ne |
 | 4.3 | `private.privacy.anonymization.deleteOwnAttachmentsDefault` | da/ne |
