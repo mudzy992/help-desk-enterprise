@@ -141,6 +141,7 @@ describe('ProblemNotifier owner revoke drift', () => {
     const unitBranch = where.userRoles.some.OR[1]?.AND[1] as {
       organizationalUnit: { ouPath: { in: string[] } };
     };
-    expect(unitBranch.organizationalUnit.ouPath.in).toEqual(['inside']);
+    // The stored format, slash included (W7.35: the filter used to strip it).
+    expect(unitBranch.organizationalUnit.ouPath.in).toEqual(['/inside']);
   });
 });

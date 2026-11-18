@@ -56,6 +56,33 @@ async function createSocketInstance(room: string): Promise<SocketInstance> {
   return { server, address: `http://127.0.0.1:${address.port}`, handle };
 }
 
+/**
+ * The adapter issues its Redis subscriptions from its constructor, but the
+ * Socket.IO `ready` event does not wait for that round trip. A publish that
+ * reaches Redis before the receiving instance's `PSUBSCRIBE` is silently lost,
+ * which made the cross-instance assertions flaky under CI load. The adapter
+ * psubscribes the room channel *before* it subscribes the request channel on the
+ * same connection, so waiting until every instance sees every instance on the
+ * request channel proves the room channel is live as well.
+ */
+async function waitForAdapterSubscriptions(instances: readonly SocketInstance[]): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const counts = await Promise.all(
+      instances.map((instance) =>
+        (instance.server.of('/').adapter as unknown as { serverCount: () => Promise<number> }).serverCount(),
+      ),
+    );
+    if (counts.every((count) => count >= instances.length)) {
+      return;
+    }
+    if (Date.now() > deadline) {
+      throw new Error(`Redis adapters did not subscribe in time: ${counts.join(' / ')}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+}
+
 function waitForClientEvent(
   socket: ClientSocket,
   event: string,
@@ -101,6 +128,7 @@ describeIfRedis('websocket Redis adapter cross-instance delivery (integration)',
   it('authorizes scoped group invalidation on the receiving Redis instance', async () => {
     instanceA = await createSocketInstance(`scope-${randomUUID()}`);
     instanceB = await createSocketInstance(`scope-${randomUUID()}`);
+    await waitForAdapterSubscriptions([instanceA, instanceB]);
     const hubA = new GroupScopeRealtimeHub(); const hubB = new GroupScopeRealtimeHub();
     const deps = {
       loadUnit: async () => ({ id: 'unit', ouPath: '/A/Team' }),
@@ -132,6 +160,7 @@ describeIfRedis('websocket Redis adapter cross-instance delivery (integration)',
     const room = `adapter-it-${randomUUID()}`;
     instanceA = await createSocketInstance(room);
     instanceB = await createSocketInstance(room);
+    await waitForAdapterSubscriptions([instanceA, instanceB]);
 
     clientA = createSocketClient(instanceA.address, { transports: ['websocket'] });
     await waitForClientEvent(clientA, 'ready');
