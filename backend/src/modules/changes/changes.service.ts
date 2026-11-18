@@ -5,6 +5,12 @@ import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import {
+  assetLinkAccess,
+  assetLinkVisible,
+  assetLinkWhere,
+  type AssetLinkAccess,
+} from '../assets/asset-link-access';
 import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { formatProblemNumber, parseProblemNumberSearch } from '../problems/problem-rules';
@@ -118,7 +124,18 @@ const detailSelect = {
   template: { select: { id: true, name: true } },
   problem: { select: { id: true, sequence: true, title: true, status: true } },
   services: { select: { service: { select: { id: true, name: true } } } },
-  assets: { select: { asset: { select: { id: true, assetTag: true, name: true } } } },
+  assets: {
+    select: {
+      asset: {
+        select: {
+          id: true,
+          assetTag: true,
+          name: true,
+          organizationalUnit: { select: { ouPath: true } },
+        },
+      },
+    },
+  },
 } satisfies Prisma.ChangeRequestSelect;
 
 type ListRow = Prisma.ChangeRequestGetPayload<{ select: typeof listSelect }>;
@@ -204,6 +221,46 @@ export function changeFactsOf(row: ChangeDetailRow): ChangeFacts {
 }
 
 /**
+ * BA-changes-02: only the linked CMDB items the viewer may read reach the
+ * response shape. Rows keep the raw `organizationalUnit.ouPath` for the check;
+ * the projection below never returns it.
+ */
+function visibleAssets(
+  access: AssetLinkAccess,
+  row: ChangeDetailRow,
+): { id: string; assetTag: string; name: string }[] {
+  return row.assets
+    .map((link) => link.asset)
+    .filter((asset) => assetLinkVisible(access, asset.organizationalUnit.ouPath))
+    .map((asset) => ({ id: asset.id, assetTag: asset.assetTag, name: asset.name }));
+}
+
+/**
+ * BA-changes-02: the list count must agree with the detail, so a scoped viewer
+ * gets one grouped count instead of the stored `_count`. Returns `null` when
+ * the viewer sees every unit (the stored count already matches) and an empty
+ * map when nothing is visible.
+ */
+async function visibleAssetCounts(
+  prisma: PrismaService,
+  rows: readonly ListRow[],
+  access: AssetLinkAccess,
+): Promise<Map<string, number> | null> {
+  if (access.where === null) return null;
+  // Every row gets an entry: a change without a visible link must read as 0,
+  // never fall back to the unscoped stored count.
+  const counts = new Map<string, number>(rows.map((row) => [row.id, 0]));
+  if (!access.allowed || rows.length === 0) return counts;
+  const groups = await prisma.changeRequestAsset.groupBy({
+    by: ['changeId'],
+    where: { changeId: { in: rows.map((row) => row.id) }, asset: assetLinkWhere(access) },
+    _count: { _all: true },
+  });
+  for (const group of groups) counts.set(group.changeId, group._count._all);
+  return counts;
+}
+
+/**
  * Paket 3.4 (§4-§7, §11, §19): change CRUD, lifecycle actions and history.
  * Reads are limited to the unit scope of `change.read` (plus own and CAB
  * changes); out-of-scope changes read as not found.
@@ -227,6 +284,11 @@ export class ChangesService {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
     const configuration = await this.access.configuration();
     const limit = Math.min(Math.max(query.limit ?? changeLimits.listDefault, 1), changeLimits.listMax);
+    // BA-changes-02: linked CMDB items are behind `asset.read`; the list must
+    // report the same count as the detail. Loaded on demand, once per call.
+    let assetAccess: AssetLinkAccess | null = null;
+    const assetsOf = async (): Promise<AssetLinkAccess> =>
+      assetAccess ?? (assetAccess = await assetLinkAccess(this.prisma, viewer.userId));
     const and: Prisma.ChangeRequestWhereInput[] = [];
     const visible = changeVisibilityWhere(scope, viewer.userId);
     if (visible !== null) and.push(visible);
@@ -242,7 +304,12 @@ export class ChangesService {
       if (!(await this.canReadProblem(viewer, query.problemId))) return { items: [], total: 0, nextCursor: null };
       and.push({ problemId: query.problemId });
     }
-    if (query.assetId) and.push({ assets: { some: { assetId: query.assetId } } });
+    if (query.assetId) {
+      // A foreign asset id must not become an existence oracle: it filters
+      // within the assets the viewer can read, whenever that is a real subset.
+      const access = await assetsOf();
+      and.push({ assets: { some: { assetId: query.assetId, asset: assetLinkWhere(access) } } });
+    }
     if (query.awaitingMyVote) {
       and.push({
         status: 'AUTHORIZATION',
@@ -269,10 +336,13 @@ export class ChangesService {
       this.prisma.changeRequest.count({ where }),
     ]);
     const page = rows.slice(0, limit);
+    const assetCounts = page.length === 0 ? null : await visibleAssetCounts(this.prisma, page, await assetsOf());
     // awaitingMyVote: drop changes the viewer already voted on in the current round.
     const voted = query.awaitingMyVote ? await this.votedChangeIds(viewer.userId, page) : new Set<string>();
     return {
-      items: page.filter((row) => !voted.has(row.id)).map((row) => this.toListItem(row, configuration)),
+      items: page
+        .filter((row) => !voted.has(row.id))
+        .map((row) => this.toListItem(row, configuration, assetCounts?.get(row.id))),
       total,
       nextCursor: rows.length > limit ? (page[page.length - 1]?.id ?? null) : null,
     };
@@ -549,6 +619,12 @@ export class ChangesService {
     if (problemId !== undefined && problemId !== current.problemId) data.problemId = problemId;
     const serviceIds = uniqueIds(input.serviceIds);
     const assetIds = uniqueIds(input.assetIds);
+    // BA-changes-02: an editor without `asset.read` in a linked asset's unit
+    // never sees that link, so a save must not silently delete it. The update
+    // replaces only the links the viewer can actually read.
+    const visibleCurrentAssetIds = assetIds === undefined
+      ? new Set<string>()
+      : new Set(visibleAssets(await assetLinkAccess(this.prisma, viewer.userId), current).map((asset) => asset.id));
     await this.assertReferences(viewer, {
       serviceIds: serviceIds?.filter((serviceId) => !current.services.some((link) => link.service.id === serviceId)),
       assetIds: assetIds?.filter((assetId) => !current.assets.some((link) => link.asset.id === assetId)),
@@ -580,7 +656,9 @@ export class ChangesService {
     const addedServices = serviceIds?.filter((value) => !currentServiceIds.includes(value)) ?? [];
     const removedServices = serviceIds === undefined ? [] : currentServiceIds.filter((value) => !serviceIds.includes(value));
     const addedAssets = assetIds?.filter((value) => !currentAssetIds.includes(value)) ?? [];
-    const removedAssets = assetIds === undefined ? [] : currentAssetIds.filter((value) => !assetIds.includes(value));
+    const removedAssets = assetIds === undefined
+      ? []
+      : currentAssetIds.filter((value) => visibleCurrentAssetIds.has(value) && !assetIds.includes(value));
     const linksChanged = addedServices.length + removedServices.length + addedAssets.length + removedAssets.length > 0;
     const downtimeMayHaveChanged =
       changes.causesDowntime !== undefined ||
@@ -833,12 +911,22 @@ export class ChangesService {
     if (!(await this.access.cmdbEnabled())) return { items: [] };
     const term = search.trim().slice(0, changeLimits.searchMax);
     if (term.length < 2) return { items: [] };
+    // BA-changes-02: `change.request` does not widen the CMDB. The picker is a
+    // CMDB read, so it needs `asset.read` in the asset's unit; otherwise the
+    // viewer cannot even learn that a tag exists.
+    const access = await assetLinkAccess(this.prisma, viewer.userId);
+    if (!access.allowed) return { items: [] };
     const items = await this.prisma.asset.findMany({
       where: {
-        OR: [
-          { assetTag: { contains: term, mode: 'insensitive' } },
-          { name: { contains: term, mode: 'insensitive' } },
-          { serialNumber: { contains: term, mode: 'insensitive' } },
+        AND: [
+          assetLinkWhere(access),
+          {
+            OR: [
+              { assetTag: { contains: term, mode: 'insensitive' } },
+              { name: { contains: term, mode: 'insensitive' } },
+              { serialNumber: { contains: term, mode: 'insensitive' } },
+            ],
+          },
         ],
       },
       select: { id: true, assetTag: true, name: true },
@@ -943,7 +1031,13 @@ export class ChangesService {
     if (input.assetIds && input.assetIds.length > 0) {
       // §11: affected CMDB items only while the CMDB module is on.
       if (!(await this.access.cmdbEnabled())) throw new ChangeError(changeErrorCodes.assetNotFound, 'cmdb_disabled');
-      const found = await this.prisma.asset.count({ where: { id: { in: [...input.assetIds] } } });
+      // BA-changes-02: a write link needs `asset.read` in the asset's unit. A
+      // foreign or out-of-scope id fails exactly like a missing one, so the
+      // error never confirms that the asset exists.
+      const access = await assetLinkAccess(this.prisma, viewer.userId);
+      const found = await this.prisma.asset.count({
+        where: { AND: [assetLinkWhere(access), { id: { in: [...input.assetIds] } }] },
+      });
       if (found !== input.assetIds.length) throw new ChangeError(changeErrorCodes.assetNotFound);
     }
     if (input.problemId) {
@@ -962,7 +1056,7 @@ export class ChangesService {
     }
   }
 
-  toListItem(row: ListRow, configuration: ChangeConfiguration) {
+  toListItem(row: ListRow, configuration: ChangeConfiguration, assetCount?: number) {
     return {
       id: row.id,
       number: formatChangeNumber(configuration.numberPrefix, row.sequence),
@@ -979,7 +1073,9 @@ export class ChangesService {
       organizationalUnit: row.organizationalUnit,
       services: row.services.map((link) => link.service),
       serviceCount: row._count.services,
-      assetCount: row._count.assets,
+      // BA-changes-02: the stored count also feeds the lifecycle rules, so the
+      // response uses the scoped count instead of the raw one.
+      assetCount: assetCount ?? row._count.assets,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -993,12 +1089,14 @@ export class ChangesService {
   }
 
   private async toDetail(viewer: ChangeViewer, row: ChangeDetailRow, configuration: ChangeConfiguration) {
+    const assetAccess = await assetLinkAccess(this.prisma, viewer.userId);
+    const assets = visibleAssets(assetAccess, row);
     const canManage = await this.canManage(viewer, row);
     const editScope = await this.editScopeFor(viewer, row);
     const visibleProblem = row.problem !== null && await this.canReadProblem(viewer, row.problem.id) ? row.problem : null;
     const problemPrefix = visibleProblem === null ? null : await this.access.problemNumberPrefix();
     return {
-      ...this.toListItem(row, configuration),
+      ...this.toListItem(row, configuration, assets.length),
       description: row.description,
       reason: row.reason,
       impact: row.impact,
@@ -1016,7 +1114,7 @@ export class ChangesService {
         visibleProblem === null
           ? null
           : { id: visibleProblem.id, number: formatProblemNumber(problemPrefix ?? '', visibleProblem.sequence), title: visibleProblem.title, status: visibleProblem.status },
-      assets: row.assets.map((link) => link.asset),
+      assets,
       approvalRound: row.approvalRound,
       conflictsAcknowledgedAt: row.conflictsAcknowledgedAt?.toISOString() ?? null,
       submittedAt: row.submittedAt?.toISOString() ?? null,
