@@ -622,6 +622,16 @@ porastu detalj stranice/`problems-api.ts` i `TS2345` u novom test dublu — i po
 runa. Detalji su u [256](../implementation/256-w733-owner-eligibility.md).
 Sljedeći P2 u ovom auditu je `BA-problems-16` (privacy/retention).
 
+**W7.35 — regresija ovog paketa (popravljena).** Filter vlasnika iz W7.33 gradio je pretke jedinice bez
+vodećeg `/`, pa je `ouPath: { in: ['Korisnici'] }` tražio nešto što baza ne čuva (`/Korisnici`). Tačna
+provjera je i dalje prolazila, pa je neslaganje bilo tiho: birač vlasnika je bio prazan za svaku
+jedinicom vezanu dodjelu (korisnička prijava), lista upravitelja ciljne grupe kod predaje bila je prazna,
+a obavještenja grupnih upravitelja mogla su ispasti kao `NO_RECIPIENT`. Uzrok je bio u testovima koji su
+očekivali pogrešan format (`['root', 'root/ou1']` za `/root/ou1`). Popravka čuva format putanje, birač
+sada vraća i jedinicu koju je pretražio (prazna lista više nije nijema), a novi guard izvršava filter u
+memoriji i poredi ga sa tačnom provjerom nad matricom stvarnih putanja. Detalji:
+[258](../implementation/258-w735-owner-unit-path-regression.md).
+
 ## 35. W7.34 — BA-problems-16 closeout
 
 Problem nije imao nijednu od tri stvari koje privacy traži: anonimizacija ga je nalazila samo po vezi
