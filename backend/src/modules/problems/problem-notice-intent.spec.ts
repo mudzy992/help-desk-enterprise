@@ -89,7 +89,7 @@ function harness(options: { readonly enqueueFails?: boolean } = {}) {
     }),
     enqueueAfterCommit: jest.fn(async () => undefined),
   };
-  const service = new ProblemsService(prisma as never, access as never, {} as never, {}, {} as never, notices as never);
+  const service = new ProblemsService(prisma as never, access as never, {} as never, {} as never, {} as never, notices as never);
   jest.spyOn(service, 'get').mockResolvedValue({} as never);
   return { prisma, tx, service, access, row, notices };
 }

@@ -112,9 +112,7 @@ describe("ProblemOperationsSummary (BA-problems-18)", () => {
     expect(
       screen.getByText(/admin\.opsHealth\.problemOperations\.noticesQueuedValue 4 2/),
     ).not.toBeNull();
-    expect(
-      screen.getByText(/admin\.opsHealth\.problemOperations\.minutesValue 12/),
-    ).not.toBeNull();
+    expect(screen.getByText(/admin\.opsHealth\.problemOperations\.minutesValue 12/)).not.toBeNull();
   });
 
   it("hides the notice tiles when an older API does not report them", () => {

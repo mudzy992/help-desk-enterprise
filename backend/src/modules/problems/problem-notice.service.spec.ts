@@ -2,8 +2,17 @@ import { ProblemNoticeService } from './problem-notice.service';
 import { problemNoticeMaxAttempts, problemNoticeTopic } from './problem-notice-outbox';
 import { problemVersionOccurrence } from './problem-notice-occurrence';
 
+type EnqueueInput = {
+  readonly topic: string;
+  readonly dedupeKey: string;
+  readonly maxAttempts: number;
+  readonly payload: unknown;
+};
+
 function harness() {
-  const outbox = { enqueue: jest.fn(async () => ({ id: 'o1', created: true })) };
+  const outbox = {
+    enqueue: jest.fn(async (_transaction: unknown, _input: EnqueueInput) => ({ id: 'o1', created: true })),
+  };
   const prisma = { $queryRaw: jest.fn() };
   const service = new ProblemNoticeService(prisma as never, outbox as never);
   return { service, outbox, prisma };

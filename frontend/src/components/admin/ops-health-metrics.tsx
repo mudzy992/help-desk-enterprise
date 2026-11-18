@@ -244,7 +244,8 @@ export function ProblemOperationsSummary({ overview }: { readonly overview: OpsO
                 <MetricTile
                   label={t("admin.opsHealth.problemOperations.oldestQueuedNotice")}
                   state={
-                    noticeOutbox.oldestPendingMinutes !== null && noticeOutbox.oldestPendingMinutes > 5
+                    noticeOutbox.oldestPendingMinutes !== null &&
+                    noticeOutbox.oldestPendingMinutes > 5
                       ? "warning"
                       : "ok"
                   }

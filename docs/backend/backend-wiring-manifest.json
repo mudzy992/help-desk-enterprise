@@ -9941,6 +9941,7 @@
         "AssetRemindersWorkerModule",
         "AssetDirectorySyncWorkerModule",
         "ProblemSweepWorkerModule",
+        "ProblemNoticeWorkerModule",
         "ChangeSweepWorkerModule",
         "StatusPageWorkerModule"
       ],
