@@ -18,7 +18,8 @@ function setup(input: {
   readonly dueRows?: readonly Row[];
   readonly reminderRows?: readonly Row[];
 }) {
-  const problemFindMany = jest.fn(async (args: { where: { status?: unknown } }): Promise<readonly Row[]> =>
+  type FindManyArgs = { readonly where: { readonly status?: unknown }; readonly orderBy?: unknown; readonly take?: number };
+  const problemFindMany = jest.fn(async (args: FindManyArgs): Promise<readonly Row[]> =>
     args.where.status === 'RESOLVED' ? (input.dueRows ?? []) : (input.reminderRows ?? []),
   );
   const updateMany = jest.fn(async (): Promise<{ count: number }> => ({ count: 1 }));
@@ -123,8 +124,8 @@ describe('ProblemSweepService budget and batch boundary (BA-problems-18)', () =>
     const { sweep, problemFindMany } = setup({ dueRows: rows(1), targetEnabled: true, reminderRows: rows(1) });
     await sweep.run(now, { ignoreHour: true });
 
-    const autoCloseArgs = problemFindMany.mock.calls[0]?.[0] as { orderBy: unknown; take: number };
-    const reminderArgs = problemFindMany.mock.calls[1]?.[0] as { orderBy: unknown; take: number };
+    const autoCloseArgs = problemFindMany.mock.calls[0]?.[0];
+    const reminderArgs = problemFindMany.mock.calls[1]?.[0];
     expect(autoCloseArgs?.orderBy).toEqual({ resolvedAt: 'asc' });
     expect(autoCloseArgs?.take).toBe(problemSweepBatch + 1);
     expect(reminderArgs?.orderBy).toEqual({ targetAt: 'asc' });
