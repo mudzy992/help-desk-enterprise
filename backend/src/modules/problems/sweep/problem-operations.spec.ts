@@ -15,7 +15,7 @@ function arms(where: Where): readonly Where[] {
 
 describe('stuckProblemReminderWhere (BA-problems-14)', () => {
   it('catches exhausted attempts, overdue retries and claims of a dead sweep', () => {
-    const where = stuckProblemReminderWhere(now) as Where;
+    const where = stuckProblemReminderWhere(now) as unknown as Where;
     expect(arms(where)).toEqual([
       { status: 'DEAD' },
       { status: 'FAILED', nextAttemptAt: { lte: now } },
@@ -28,7 +28,7 @@ describe('stuckProblemReminderWhere (BA-problems-14)', () => {
   });
 
   it('never counts a pending row or a row waiting for its backoff', () => {
-    const statuses = arms(stuckProblemReminderWhere(now) as Where).map((arm) => arm.status);
+    const statuses = arms(stuckProblemReminderWhere(now) as unknown as Where).map((arm) => arm.status);
     expect(statuses).not.toContain('PENDING');
     expect(statuses).not.toContain('SENT');
     expect(statuses).not.toContain('NO_RECIPIENT');
@@ -38,7 +38,7 @@ describe('stuckProblemReminderWhere (BA-problems-14)', () => {
 
 describe('breachedProblemTargetWhere (BA-problems-14)', () => {
   it('counts only targets that passed on problems still being worked on', () => {
-    const where = breachedProblemTargetWhere(now) as Where;
+    const where = breachedProblemTargetWhere(now) as unknown as Where;
     expect(where).toEqual({
       status: { in: [...problemOpenTargetStatuses] },
       targetAt: { lt: now },
