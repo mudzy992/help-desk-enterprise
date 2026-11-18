@@ -543,6 +543,8 @@ suiteova), frontend `lib/ops`/`components/admin`/`i18n` 128 testova, `eslint` č
 [`44254722210`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44254722210) na
 `dbad790` je **success**; prvi pokušaj
 [`44253172895`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44253172895) na
-`c991bee` pao je samo na tipovima u novom test dublu i popravljen je prije zelenog runa. Detalji su u
-[255](../implementation/255-w732-problem-sweep-reconciliation.md). Sljedeći P2 u ovom auditu je
+`c991bee` pao je samo na tipovima u novom test dublu i popravljen je prije zelenog runa. Završni
+docs commit `b2df1cc` mijenja samo `docs/**`, pa ga `paths-ignore` namjerno ne pušta u CI; findings
+guard (`696/696`, `P1=174 P2=371 P3=151`, 16/16 testova) i docs guard (OK, 32 stranice) prošli su
+lokalno. Detalji su u [255](../implementation/255-w732-problem-sweep-reconciliation.md). Sljedeći P2 u ovom auditu je
 `BA-problems-15`.

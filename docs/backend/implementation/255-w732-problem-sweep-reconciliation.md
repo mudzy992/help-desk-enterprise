@@ -136,6 +136,17 @@ Dodatne lokalne provjere: `problems`+`ops-health`+`notifications`+`audit-log` = 
 `tsc --noEmit` čist. Backend `tsc`/`nest build` lokalno nije moguć (sandbox ne može generisati Prisma
 klijent), pa je taj dokaz pokriven CI build poslom.
 
+## CI trail dokumentacije
+
+Završni docs/guard commit `b2df1cc` mijenja samo `docs/**` (closeout, audit, registar i
+`backend-findings-plan.json`), pa workflow **namjerno ne kreira run** — `push` trigger ima
+`paths-ignore: docs/**, **/*.md`. Zato lokalno: `node ../scripts/check-backend-findings.mjs --write`
+→ `696 nalaza`, provjera → `696/696, P1=174 P2=371 P3=151`, `node --test
+../scripts/check-backend-findings.test.mjs` → 16/16, `node scripts/check-docs-content.mjs` → OK
+(32 stranice, 8 prevoda, 10 provjera). Kod i njegov testni dokaz testirao je run
+[`44254722210`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44254722210) na
+`dbad790`.
+
 ## Registar nalaza
 
 - Zatvoreni: `BA-problems-14` (uz gornji acceptance dokaz i zeleni CI).
