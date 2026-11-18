@@ -17,6 +17,7 @@ import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { ProblemHandoffPanel } from "@/components/problems/problem-handoff-panel";
 import { ProblemLinksPanel } from "@/components/problems/problem-links-panel";
+import { ProblemOwnerIneligibleHint } from "@/components/problems/problem-owner-ineligible-hint";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemResolutionRunPanel } from "@/components/problems/problem-resolution-run-panel";
 import { ProblemTargetReminderPanel } from "@/components/problems/problem-target-reminder-panel";
@@ -48,7 +49,6 @@ import {
   transitionLabelKey,
 } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
-import { problemOwnerIneligibleKey } from "@/lib/problems/problem-view";
 import { translateText } from "@/lib/i18n/translate-text";
 import {
   claimProblem,
@@ -410,20 +410,7 @@ function ProblemOverview({ problem }: { readonly problem: ProblemDetail }) {
         <dl className="divide-y divide-border/60 px-4 py-2">
           <DefinitionRow label={t("problems.fields.owner")}>
             {problem.owner?.displayName ?? t("problems.list.noOwner")}
-            {problem.ownerEligibility !== null && !problem.ownerEligibility.eligible ? (
-              <span
-                role="status"
-                data-testid="problem-owner-ineligible"
-                className="mt-1 flex items-start gap-1.5 text-[11.5px] text-warning"
-              >
-                <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-                <span>
-                  <span className="font-medium">{t("problems.detail.ownerIneligibleTitle")}</span>{" "}
-                  {translateText(t, problemOwnerIneligibleKey(problem.ownerEligibility.reason))}{" "}
-                  {t("problems.detail.ownerIneligibleAction")}
-                </span>
-              </span>
-            ) : null}
+            <ProblemOwnerIneligibleHint eligibility={problem.ownerEligibility} />
           </DefinitionRow>
           <DefinitionRow label={t("problems.fields.group")}>
             {problem.group?.name ?? "—"}

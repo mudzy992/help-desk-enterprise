@@ -3,7 +3,6 @@ import type { BadgeTone } from "@/lib/ui/presentation-types";
 import type { CommonTranslationKey } from "@/lib/i18n/translate-text";
 import { ApiError } from "@/services/api";
 import type {
-  ProblemOwnerEligibilityReason,
   ProblemSeverity,
   ProblemStatus,
   ProblemTicketResolveSkip,
@@ -36,24 +35,6 @@ export function problemStatusTone(status: ProblemStatus): BadgeTone {
     default:
       return "neutral";
   }
-}
-
-/** W7.33: the hint a problem detail shows when its owner lost the authority. */
-export const problemOwnerIneligibleKeys: Readonly<
-  Record<ProblemOwnerEligibilityReason, TranslationKey>
-> = {
-  inactive: "problems.detail.ownerIneligibleReasons.inactive",
-  not_manager: "problems.detail.ownerIneligibleReasons.not_manager",
-  not_member: "problems.detail.ownerIneligibleReasons.not_member",
-  out_of_scope: "problems.detail.ownerIneligibleReasons.out_of_scope",
-};
-
-export function problemOwnerIneligibleKey(
-  reason: ProblemOwnerEligibilityReason | null | undefined,
-): TranslationKey {
-  return reason === null || reason === undefined
-    ? "problems.detail.ownerIneligibleUnknown"
-    : problemOwnerIneligibleKeys[reason];
 }
 
 export const problemSkipReasonKeys: Readonly<
