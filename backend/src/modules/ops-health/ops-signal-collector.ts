@@ -31,6 +31,7 @@ import {
   opsProbeTimeouts,
 } from './ops-health.constants';
 import { collectProblemOperationsSignal } from './collect-problem-operations-signal';
+import { scanProblemOwnerDrift } from '../problems/sweep/problem-owner-drift';
 import { OpsStateStore } from './ops-state.store';
 import { collectSlaObservability } from '../sla/collect-sla-observability';
 import { slaScanQueueName, slaScanSchedulerId } from '../sla/sla-scan.constants';
@@ -86,6 +87,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       sla,
       assetOperations,
       problemOperations,
+      problemOwnerDrift,
     ] = await Promise.all([
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-failed') : Promise.resolve(null),
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-skipped') : Promise.resolve(null),
@@ -104,6 +106,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
         : Promise.resolve(null),
       database === 'ok' ? this.collectAssetOperations(now, redis === 'ok') : Promise.resolve(null),
       database === 'ok' ? this.collectProblemOperations(now) : Promise.resolve(null),
+      database === 'ok' ? this.collectProblemOwnerDrift() : Promise.resolve(null),
     ]);
     return {
       nowMs,
@@ -126,6 +129,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       sla,
       assetOperations,
       problemOperations,
+      problemOwnerDrift,
     };
   }
 
@@ -137,6 +141,23 @@ export class OpsSignalCollector implements OnModuleDestroy {
       );
     } catch (error) {
       this.logger.warn(`ops_problem_probe_failed reason=${errorText(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * W7.33 (BA-problems-15): authorization drift is not an outage — the problems
+   * keep working, their notices go to the group managers — so a failed scan is
+   * `null` (alarm inactive) and never opens an alarm by itself.
+   */
+  private async collectProblemOwnerDrift(): Promise<OpsSignals['problemOwnerDrift']> {
+    try {
+      return await withTimeout(
+        () => scanProblemOwnerDrift(this.prisma),
+        opsProbeTimeouts.problemOwnerDriftMs,
+      );
+    } catch (error) {
+      this.logger.warn(`ops_problem_owner_drift_probe_failed reason=${errorText(error)}`);
       return null;
     }
   }

@@ -9,6 +9,10 @@ import {
   type AssetOperationsSignal,
 } from '../assets/asset-operations.types';
 import type { ProblemOperationsSignal } from '../problems/sweep/problem-operations';
+import {
+  problemOwnerDriftReasonCounts,
+  type ProblemOwnerDriftSignal,
+} from '../problems/sweep/problem-owner-drift';
 
 /**
  * Paket 2.7 (§4): turns one measurement round into one observation per alarm
@@ -121,6 +125,12 @@ export type OpsSignals = {
    * so an unknown state never opens the alarm.
    */
   readonly problemOperations?: ProblemOperationsSignal | null;
+  /**
+   * W7.33 (BA-problems-15): open problems whose recorded owner no longer holds
+   * `problem.manage` for the problem's unit or left its group. Null when the
+   * database probe failed, so an unknown state never opens the alarm.
+   */
+  readonly problemOwnerDrift?: ProblemOwnerDriftSignal | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -186,6 +196,7 @@ export function evaluateOpsSignals(
     observeAssetTransferFiles(signals),
     observeAssetAuditWrites(signals),
     observeProblemReminderStuck(signals),
+    observeProblemOwnerDrift(signals),
   ];
 }
 
@@ -723,6 +734,33 @@ function observeProblemReminderStuck(signals: OpsSignals): OpsObservation {
       deadReminderDeliveries: operations.deadReminderDeliveries,
       oldestStuckReminderMinutes: operations.oldestStuckReminderMinutes,
       breachedOpenTargets: operations.breachedOpenTargets,
+    },
+  };
+}
+
+/**
+ * W7.33 (BA-problems-15): the owner rule is evaluated on every read, so the
+ * problems themselves keep working — their owner-directed notices already fall
+ * back to the group managers and the detail names the reason. What an operator
+ * cannot see without this alarm is the *scale*: how many open problems are now
+ * run by nobody with the authority to run them. It is a data-integrity backlog,
+ * not an outage, so it is a WARNING with the same 2/2 hysteresis as the sweep.
+ */
+function observeProblemOwnerDrift(signals: OpsSignals): OpsObservation {
+  const drift = signals.problemOwnerDrift ?? null;
+  if (drift === null || drift.ineligibleOwners === 0) {
+    return inactive(opsAlertKeys.problemOwnerIneligible);
+  }
+  return {
+    key: opsAlertKeys.problemOwnerIneligible,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      ineligibleOwners: drift.ineligibleOwners,
+      scannedProblems: drift.scannedProblems,
+      // The scan hit its page bound, so the count is a floor and not a total.
+      capped: drift.capped,
+      reasons: problemOwnerDriftReasonCounts(drift.reasons),
     },
   };
 }

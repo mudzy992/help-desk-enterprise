@@ -99,6 +99,10 @@ function setup(options: Options = {}) {
     problemEvent: {
       create: jest.fn(async ({ data }: { data: { action: string; detail: unknown } }) => events.push(data)),
     },
+    // W7.33: the receiving group's unit decides eligibility, so the resolver reads it.
+    group: {
+      findUnique: jest.fn(async () => ({ organizationalUnit: { ouPath: '/root/ou2' } })),
+    },
     user: {
       count: jest.fn(async ({ where }: { where: { id: string } }) =>
         options.ownerEligible === false && where.id === problem.owner.id ? 0 : 1,

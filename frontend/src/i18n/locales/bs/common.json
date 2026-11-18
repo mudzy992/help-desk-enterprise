@@ -1195,6 +1195,10 @@
         "problems_reminders_stuck": {
           "title": "Podsjetnici na rok problema ne izlaze",
           "action": "Satna provjera problema radi, ali podsjetnici na ciljni rok ostaju neisporučeni: iscrpljeni pokušaji, istekao backoff ili preuzimanje koje je ostavio srušen ciklus. U detalju problema otvorite panel „Podsjetnici na rok“ i pritisnite „Ponovi“ na neisporučenom redu. Broj prekoračenih rokova u detalju pokazuje koliko je problema pogođeno."
+        },
+        "problems_owner_ineligible": {
+          "title": "Problemi imaju vlasnika bez ovlasti",
+          "action": "Otvoreni problemi imaju vlasnika koji više nema problem.manage za organizacijsku jedinicu problema ili nije član grupe problema. Problemi rade dalje, a obavještenja o ciljnom roku idu voditeljima grupe. Kartica prikazuje broj, razloge i da li je dostignut limit pregleda. U detalju problema kartica „Odgovornost“ navodi razlog — dodijelite novog vlasnika kroz „Uredi“."
         }
       },
       "alertDetailLabels": {
@@ -1249,7 +1253,11 @@
         "stuckReminderDeliveries": "Podsjetnici koji čekaju isporuku",
         "deadReminderDeliveries": "Crkli podsjetnici (samo ručni ponovni pokušaj)",
         "oldestStuckReminderMinutes": "Starost najstarijeg zaglavljenog podsjetnika (min)",
-        "breachedOpenTargets": "Otvoreni problemi s prekoračenim rokom"
+        "breachedOpenTargets": "Otvoreni problemi s prekoračenim rokom",
+        "ineligibleOwners": "Problemi čiji vlasnik više nema ovlasti",
+        "scannedProblems": "Pregledano otvorenih problema",
+        "capped": "Dostignut limit pregleda (broj je minimum)",
+        "reasons": "Razlozi"
       }
     }
   },
@@ -9539,7 +9547,7 @@
       "articleInvalid": "Članak nije moguće kreirati. Provjerite naslov, tekst, servis i organizacionu jedinicu.",
       "validationUnit": "Problem nema organizacionu jedinicu: vaš nalog nema matičnu OJ, a OJ tiketa nije u vašem opsegu. Obratite se administratoru.",
       "notProblemGroup": "Izabrana grupa nije problem-grupa.",
-      "ownerNotInGroup": "Vlasnik mora biti upravitelj problema i član izabrane grupe.",
+      "ownerNotInGroup": "Vlasnik mora biti upravitelj problema s ovlastima za organizacijsku jedinicu problema i član izabrane grupe.",
       "assetNotFound": "Stavka imovine nije pronađena ili je evidencija imovine isključena.",
       "incidentNotFound": "Incident nije pronađen ili je status stranica isključena.",
       "handoffRequired": "Problem mijenja grupu samo kroz predaju. Otvorite predaju i navedite razlog.",
@@ -9739,7 +9747,16 @@
       "cancelReason": "Razlog otkazivanja",
       "targetAt": "Ciljni rok",
       "claim": "Preuzmi",
-      "claimed": "Problem je preuzet"
+      "claimed": "Problem je preuzet",
+      "ownerIneligibleTitle": "Vlasnik više nema ovlasti za ovaj problem",
+      "ownerIneligibleAction": "Dodijelite novog vlasnika kroz Uredi — problem i dalje vodi trenutna grupa.",
+      "ownerIneligibleUnknown": "Razlog nije poznat (provjerite role i članstvo).",
+      "ownerIneligibleReasons": {
+        "inactive": "Korisnik je deaktiviran ili anonimiziran.",
+        "not_manager": "Korisnik više nema problem.manage kroz svoju rolu.",
+        "not_member": "Korisnik više nije član grupe problema.",
+        "out_of_scope": "Ovlasti korisnika ne pokrivaju organizacijsku jedinicu problema."
+      }
     },
     "article": {
       "action": "Napravi članak",

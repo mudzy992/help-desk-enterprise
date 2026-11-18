@@ -51,6 +51,7 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `asset.transferFiles.integrity` | UPOZORENJE | 2 / 2 | [asset-transfer-files](#asset-transfer-files) |
 | `asset.audit.writeFailures` | UPOZORENJE / KRITIČNO | 2 / 2 | [asset-audit-failure](#asset-audit-failure) |
 | `problems.reminders.stuck` | UPOZORENJE | 2 / 2 | [problem-reminders](#problem-reminders) |
+| `problems.owner.ineligible` | UPOZORENJE | 2 / 2 | [problem-owner-eligibility](#problem-owner-eligibility) |
 
 ---
 
@@ -430,6 +431,40 @@ broj otvorenih problema s prekoračenim rokom; nijedna vrijednost ne sadrži pri
 4. Prekoračeni rokovi sami nisu alarm: to je radni zalih iz reporta `problem_backlog` (kolona
    `overdue`). Ako broj raste uz zdrav scheduler i prazne redove za isporuku, uzrok je planiranje
    rokova, ne sweep.
+
+## problem-owner-eligibility
+
+**Uslov:** među otvorenim problemima (`NEW`, `INVESTIGATING`, `KNOWN_ERROR`) najmanje jedan ima
+evidentiranog vlasnika koji **više ne ispunjava pravilo vlasništva**: nema aktivan račun, nema
+`problem.manage` kroz rolu čiji opseg pokriva organizacijsku jedinicu problema, ili nije član grupe
+problema. Uzrok je promjena nakon dodjele (promjena role, premještaj u drugu jedinicu, izlazak iz
+grupe, deaktivacija) — problem se **ne prepisuje** sam, jer zapis o tome ko je radio ostaje tačan.
+Alarm se otvara nakon dvije uzastopne provjere, a zatvara nakon dvije čiste.
+
+**Posljedica:** problemi rade dalje, ali vlasnik više ne dobija obavještenja o ciljnom roku — njih
+preuzimaju **voditelji grupe problema**. U detalju problema kartica **Odgovornost** ispod imena
+vlasnika ispisuje razlog (`neaktivan`, `nema problem.manage`, `nije član grupe`, `izvan opsega
+jedinice`), pa se drift vidi i bez alarma.
+
+**Detalji alarma:** `ineligibleOwners` = broj pogođenih problema, `scannedProblems` = koliko je
+otvorenih problema pregledano, `reasons` = broj po razlogu (`inactive`, `not_manager`, `not_member`,
+`out_of_scope`), `capped: true` = dostignut limit pregleda (500), pa je broj **minimum**, ne ukupan.
+Nijedna vrijednost ne sadrži ID problema ni identitet korisnika.
+
+**Postupak:**
+1. Otvori Administracija → Sistem → Zdravlje i pročitaj karticu; `reasons` kaže da li je uzrok
+   deaktivacija (`inactive` — provjeri da li je osoba otišla), promjena role (`not_manager`),
+   izlazak iz grupe (`not_member`) ili premještaj (`out_of_scope`).
+2. Za svaki pogođeni problem: Administracija → Problemi → (problem) → **Uredi**, pa dodijeli novog
+   vlasnika. Birač vlasnika nudi samo korisnike koji ispunjavaju pravilo za **tu** jedinicu i **tu**
+   grupu, pa nedostupna osoba nije ni ponuđena.
+3. Ako je osoba trebala ostati vlasnik, vrati joj pristup kroz Administracija → Role (dodjela s
+   opsegom jedinice problema) ili članstvo u grupi; alarm se zatvara sam nakon dvije čiste provjere.
+4. `not_manager` na mnogo problema odjednom obično znači da je jedna rola izgubila
+   `problem.manage` — to je promjena konfiguracije, ne kvar; provjeri audit log role prije
+   pojedinačnih dodjela.
+5. Grupa bez ijednog podobnog voditelja ne može dobiti novog vlasnika dok se ne doda rola — u tom
+   slučaju prvo popravi role, pa dodijeli vlasnika.
 
 ## ops-monitor-stale
 

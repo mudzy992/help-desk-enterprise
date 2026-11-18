@@ -4,6 +4,7 @@ import {
   highestSeverity,
   mapProblemError,
   problemHistoryText,
+  problemOwnerIneligibleKey,
   problemStatusTone,
   rootCauseLabel,
   suggestProblemDraft,
@@ -111,6 +112,24 @@ describe("problem-view", () => {
     expect(problemHistoryText(t, "handoff_cancelled", { toGroup: "Grupa B" })).toBe(
       'problems.history.handoffCancelled:{"group":"Grupa B"}',
     );
+  });
+
+  it("names every owner-drift reason and falls back to a generic hint", () => {
+    // W7.33: a recorded owner can lose the authority after the fact.
+    expect(problemOwnerIneligibleKey("inactive")).toBe(
+      "problems.detail.ownerIneligibleReasons.inactive",
+    );
+    expect(problemOwnerIneligibleKey("not_manager")).toBe(
+      "problems.detail.ownerIneligibleReasons.not_manager",
+    );
+    expect(problemOwnerIneligibleKey("not_member")).toBe(
+      "problems.detail.ownerIneligibleReasons.not_member",
+    );
+    expect(problemOwnerIneligibleKey("out_of_scope")).toBe(
+      "problems.detail.ownerIneligibleReasons.out_of_scope",
+    );
+    expect(problemOwnerIneligibleKey(null)).toBe("problems.detail.ownerIneligibleUnknown");
+    expect(problemOwnerIneligibleKey(undefined)).toBe("problems.detail.ownerIneligibleUnknown");
   });
 
   it("maps the handoff error codes to their own messages", () => {

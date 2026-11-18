@@ -203,6 +203,18 @@ export type ProblemCapabilities = {
 
 export type ProblemWhy = { readonly question: string; readonly answer: string };
 
+/** W7.33: why a recorded owner may no longer run the problem. */
+export type ProblemOwnerEligibilityReason =
+  | "inactive"
+  | "not_manager"
+  | "not_member"
+  | "out_of_scope";
+
+export type ProblemOwnerEligibility = {
+  readonly eligible: boolean;
+  readonly reason: ProblemOwnerEligibilityReason | null;
+};
+
 export type ProblemDetail = ProblemListItem & {
   readonly description: string;
   readonly impact: ProblemSeverity;
@@ -224,6 +236,8 @@ export type ProblemDetail = ProblemListItem & {
   readonly cancelReason: string | null;
   readonly createdBy: UserRef | null;
   readonly version: number;
+  /** W7.33: computed for the recorded owner; null when the problem has none. */
+  readonly ownerEligibility: ProblemOwnerEligibility | null;
   readonly allowedTransitions: readonly ProblemStatus[];
   /** W7.28: the transfer waiting for a decision, if any. */
   readonly handoff: ProblemHandoffSummary | null;

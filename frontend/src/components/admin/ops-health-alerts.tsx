@@ -3,23 +3,24 @@ import {
   BellRing,
   ChevronDown,
   ChevronRight,
+  Clock,
+  Database,
+  FileClock,
+  FolderSync,
+  HardDrive,
+  KeyRound,
+  Layers,
+  MailWarning,
   RefreshCw,
   Send,
   ServerCrash,
-  MailWarning,
-  Timer,
-  Clock,
-  HardDrive,
   ShieldAlert,
-  Layers,
-  Wifi,
-  Database,
-  KeyRound,
-  WifiOff,
-  Webhook,
-  FileClock,
-  FolderSync,
+  Timer,
   type LucideIcon,
+  UserX,
+  Webhook,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,8 @@ const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   auth_captchaSkipped_high: ShieldAlert,
   security_auditWebhook_stalled: Webhook,
   problems_reminders_stuck: BellRing,
+  // W7.33: an open problem whose recorded owner lost the authority.
+  problems_owner_ineligible: UserX,
 };
 
 function AlertTitle({ alertKey }: { readonly alertKey: string }) {

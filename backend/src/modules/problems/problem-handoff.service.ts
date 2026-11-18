@@ -5,6 +5,7 @@ import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.con
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
+import { eligibleProblemOwnerWhere } from './problem-owner-eligibility';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { problemHandoffOccurrence } from './problem-notice-occurrence';
 import { ProblemNotifier } from './problem-notifier';
@@ -419,16 +420,16 @@ export class ProblemHandoffService {
     acceptingUserId: string,
     status: string,
   ): Promise<string | null> {
+    // W7.33 (BA-problems-15): the receiving unit decides who may own the problem —
+    // a manager whose grant stops at another unit tree is not eligible here.
+    const target = await client.group.findUnique({
+      where: { id: groupId },
+      select: { organizationalUnit: { select: { ouPath: true } } },
+    });
+    if (target === null) throw new ProblemError(problemErrorCodes.groupNotFound);
+    const ownerWhere = eligibleProblemOwnerWhere({ groupId, unitPath: target.organizationalUnit.ouPath });
     const eligible = async (userId: string): Promise<boolean> =>
-      (await client.user.count({
-        where: {
-          id: userId,
-          isActive: true,
-          anonymizedAt: null,
-          groupMembers: { some: { groupId } },
-          userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
-        },
-      })) > 0;
+      (await client.user.count({ where: { id: userId, ...ownerWhere } })) > 0;
     if (currentOwnerUserId !== null && (await eligible(currentOwnerUserId))) return currentOwnerUserId;
     if (await eligible(acceptingUserId)) return acceptingUserId;
     if (status === 'NEW') return null;

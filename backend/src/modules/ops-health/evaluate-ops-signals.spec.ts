@@ -81,6 +81,13 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
       oldestStuckReminderMinutes: null,
       breachedOpenTargets: 0,
     },
+    // W7.33: every recorded owner still holds the authority for their problem.
+    problemOwnerDrift: {
+      scannedProblems: 0,
+      ineligibleOwners: 0,
+      capped: false,
+      reasons: { inactive: 0, not_manager: 0, not_member: 0, out_of_scope: 0 },
+    },
     ...overrides,
   };
 }
@@ -206,6 +213,36 @@ describe('evaluateOpsSignals', () => {
     // An unread database probe is unknown, not a quiet sweep.
     expect(
       byKey(healthy({ problemOperations: null })).get(opsAlertKeys.problemReminderStuck),
+    ).toMatchObject({ active: false });
+  });
+
+  it('alerts when open problems keep an owner without authority (W7.33)', () => {
+    expect(byKey(healthy({})).get(opsAlertKeys.problemOwnerIneligible)).toMatchObject({
+      active: false,
+    });
+
+    const drift = byKey(
+      healthy({
+        problemOwnerDrift: {
+          scannedProblems: 120,
+          ineligibleOwners: 4,
+          capped: true,
+          reasons: { inactive: 0, not_manager: 3, not_member: 0, out_of_scope: 1 },
+        },
+      }),
+    ).get(opsAlertKeys.problemOwnerIneligible)!;
+    expect(drift).toMatchObject({ active: true, severity: 'WARNING' });
+    expect(drift.details).toMatchObject({
+      ineligibleOwners: 4,
+      scannedProblems: 120,
+      capped: true,
+      // Only the reasons that occurred travel: a card full of zeroes is noise.
+      reasons: { not_manager: 3, out_of_scope: 1 },
+    });
+
+    // A scan that did not run is unknown, not a healthy zero.
+    expect(
+      byKey(healthy({ problemOwnerDrift: null })).get(opsAlertKeys.problemOwnerIneligible),
     ).toMatchObject({ active: false });
   });
 

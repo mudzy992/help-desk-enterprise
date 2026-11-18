@@ -30,6 +30,11 @@ export const alertDetailFieldSlugs = [
   "deadReminderDeliveries",
   "oldestStuckReminderMinutes",
   "breachedOpenTargets",
+  // the owner-authority drift of open problems (W7.33).
+  "ineligibleOwners",
+  "scannedProblems",
+  "capped",
+  "reasons",
   "orphanedTransferFiles",
   "missingTransferFiles",
   "scannedTransferFiles",

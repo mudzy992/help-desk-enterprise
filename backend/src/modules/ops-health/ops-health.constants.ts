@@ -76,6 +76,8 @@ export const opsProbeTimeouts = {
   assetFileScanMs: 3_000,
   assetOperationsMs: 6_000,
   problemOperationsMs: 3_000,
+  /** W7.33: one bounded page of owned problems, then two bulk reads. */
+  problemOwnerDriftMs: 3_000,
   uptimePushMs: 5_000,
 } as const;
 

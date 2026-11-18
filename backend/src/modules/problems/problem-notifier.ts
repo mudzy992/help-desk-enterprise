@@ -1,4 +1,5 @@
 import { permissionKeys } from '../authorization/authorization.constants';
+import { eligibleProblemOwnerWhere, problemOwnerEligibility } from './problem-owner-eligibility';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { loadPrincipalContext } from '../../common/principal-context/load-principal-context';
@@ -198,7 +199,8 @@ export class ProblemNotifier {
     const facts = await this.facts(problemId);
     if (facts === null || (facts.status !== 'RESOLVED' && facts.status !== 'CLOSED')) return 0;
     // Decision 2026-10-01: the owner and the problem managers of the group.
-    const recipientIds = [...(facts.ownerUserId === null ? [] : [facts.ownerUserId]), ...(facts.groupId === null ? [] : await this.groupManagers(facts.groupId))];
+    const owner = await this.effectiveOwner(facts);
+    const recipientIds = [...(owner === null ? [] : [owner]), ...(facts.groupId === null ? [] : await this.groupManagers(facts.groupId))];
     return this.send(facts, actorUserId, {
       type: notificationTypes.problemRecurrence,
       emailKey: null,
@@ -227,7 +229,9 @@ export class ProblemNotifier {
     if (facts === null || facts.targetAt === null) {
       return { delivered: 0, recipients: 0, failures: 1, errorCode: 'REMINDER_TARGET_MISSING' };
     }
-    let recipientIds: string[] = facts.ownerUserId === null ? [] : [facts.ownerUserId];
+    // W7.33: an owner without the grant is not reminded; the managers are.
+    const owner = await this.effectiveOwner(facts);
+    let recipientIds: string[] = owner === null ? [] : [owner];
     if (recipientIds.length === 0 && facts.groupId !== null) recipientIds = await this.groupManagers(facts.groupId);
     const targetAt = facts.targetAt;
     return this.sendDetailed(facts, null, {
@@ -270,18 +274,44 @@ export class ProblemNotifier {
     });
   }
 
+  /**
+   * W7.33 (BA-problems-15): managers of a group are only those whose
+   * `problem.manage` grant covers the group's own unit — the same rule as the
+   * owner picker, so a notice never reaches a manager from another unit tree.
+   */
   private async groupManagers(groupId: string): Promise<string[]> {
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: { organizationalUnit: { select: { ouPath: true } } },
+    });
+    if (group === null) return [];
     const users = await this.prisma.user.findMany({
-      where: {
-        isActive: true,
-        anonymizedAt: null,
-        groupMembers: { some: { groupId } },
-        userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
-      },
+      where: eligibleProblemOwnerWhere({ groupId, unitPath: group.organizationalUnit.ouPath }),
       select: { id: true },
       take: problemNoticeMaxRecipients,
     });
     return users.map((user) => user.id);
+  }
+
+  /**
+   * W7.33: revoke drift. The recorded owner stays in the record (history is not
+   * rewritten), but an owner who lost the grant, the group or the account no
+   * longer receives owner-directed notices — the group managers take over.
+   */
+  private async effectiveOwner(facts: Facts): Promise<string | null> {
+    if (facts.ownerUserId === null) return null;
+    const eligibility = await problemOwnerEligibility(this.prisma, {
+      userId: facts.ownerUserId,
+      groupId: facts.groupId,
+      unitPath: facts.unitPath,
+    });
+    if (!eligibility.eligible) {
+      this.logger.warn(
+        `problem_notice_owner_ineligible problem=${facts.id} reason=${eligibility.reason ?? 'unknown'}`,
+      );
+      return null;
+    }
+    return facts.ownerUserId;
   }
 
   private async facts(problemId: string): Promise<Facts | null> {

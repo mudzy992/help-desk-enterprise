@@ -1186,6 +1186,10 @@
         "problems_reminders_stuck": {
           "title": "Problem target reminders are not being delivered",
           "action": "The hourly problem sweep runs, but target reminders stay undelivered: exhausted attempts, an elapsed backoff or a claim left by a crashed run. In the problem detail open the \"Target reminders\" panel and press \"Retry\" on the undelivered row. The breached-target count in the detail shows how many problems are affected."
+        },
+        "problems_owner_ineligible": {
+          "title": "Problems have owners without authority",
+          "action": "Open problems record an owner who no longer holds problem.manage for the problem's organizational unit or who left the problem group. The problems keep working and target notices go to the group managers. The card shows the count, the reasons and whether the scan hit its page limit. The problem detail's \"Responsibility\" card names the reason — assign a new owner through \"Edit\"."
         }
       },
       "alertDetailLabels": {
@@ -1240,7 +1244,11 @@
         "stuckReminderDeliveries": "Reminders waiting for delivery",
         "deadReminderDeliveries": "Dead reminders (manual retry only)",
         "oldestStuckReminderMinutes": "Age of the oldest stuck reminder (min)",
-        "breachedOpenTargets": "Open problems past their target"
+        "breachedOpenTargets": "Open problems past their target",
+        "ineligibleOwners": "Problems whose owner lost the authority",
+        "scannedProblems": "Open problems scanned",
+        "capped": "Scan limit reached (the count is a floor)",
+        "reasons": "Reasons"
       }
     }
   },
@@ -9472,7 +9480,7 @@
       "articleInvalid": "The article could not be created. Check the title, text, service and organizational unit.",
       "validationUnit": "The problem has no organizational unit: your account has no home unit and the ticket's unit is outside your scope. Contact an administrator.",
       "notProblemGroup": "The chosen group is not a problem group.",
-      "ownerNotInGroup": "The owner must be a problem manager and a member of the chosen group.",
+      "ownerNotInGroup": "The owner must be a problem manager whose grant covers the problem's organizational unit, and a member of the chosen group.",
       "assetNotFound": "The asset was not found or the asset register is off.",
       "incidentNotFound": "The incident was not found or the status page is off.",
       "handoffRequired": "A problem changes group only through a handoff. Open the handoff and give a reason.",
@@ -9670,7 +9678,16 @@
       "cancelReason": "Cancellation reason",
       "targetAt": "Target date",
       "claim": "Take over",
-      "claimed": "Problem taken over"
+      "claimed": "Problem taken over",
+      "ownerIneligibleTitle": "The owner no longer has authority over this problem",
+      "ownerIneligibleAction": "Assign a new owner through Edit — the problem stays with the current group.",
+      "ownerIneligibleUnknown": "The reason is unknown (check roles and membership).",
+      "ownerIneligibleReasons": {
+        "inactive": "The user is deactivated or anonymised.",
+        "not_manager": "The user no longer holds problem.manage through a role.",
+        "not_member": "The user is no longer a member of the problem group.",
+        "out_of_scope": "The user's grant does not cover the problem's organizational unit."
+      }
     },
     "article": {
       "action": "Create article",

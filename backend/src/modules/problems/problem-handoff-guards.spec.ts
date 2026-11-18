@@ -104,7 +104,33 @@ function setup(options: {
     ...tx,
     problem: { ...tx.problem, findFirst: jest.fn(async () => current) },
     problemTicket: { groupBy: jest.fn(async () => [{ problemId: 'p1', _count: { _all: 0 } }]) },
-    user: { findMany: jest.fn(async () => []) },
+    user: {
+      findMany: jest.fn(async () => []),
+      // W7.33: the detail resolves the recorded owner through the principal loader.
+      findUnique: jest.fn(async () => ({
+        id: 'u-owner',
+        email: 'owner@example.com',
+        displayName: 'Vlasnik',
+        isActive: true,
+        isLocalOnly: false,
+        mustChangePassword: false,
+        entraObjectId: null,
+        directoryObjectGuid: null,
+        authzVersion: 1,
+        organizationalUnitId: 'ou1',
+        anonymizedAt: null,
+        organizationalUnit: { ouPath: '/root/ou1' },
+        userRoles: [
+          {
+            id: 'assignment-1',
+            role: { key: 'PROBLEM_MANAGER', rolePermissions: [{ permission: { key: 'problem.manage' } }] },
+            organizationalUnit: { id: 'ou1', ouPath: '/root/ou1' },
+            service: null,
+          },
+        ],
+        groupMembers: [{ groupId: 'g1' }],
+      })),
+    },
     group: {
       findUnique: jest.fn(async () => ({ isProblemGroup: true, organizationalUnit: { ouPath: '/root/ou1' } })),
     },

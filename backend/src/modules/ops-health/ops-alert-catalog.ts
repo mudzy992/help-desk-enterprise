@@ -39,6 +39,9 @@ export const opsAlertKeys = {
   // W7.32: the hourly problem sweep runs but its target reminders do not leave
   // (DEAD rows, overdue retries, claims of a crashed run).
   problemReminderStuck: 'problems.reminders.stuck',
+  // W7.33: open problems whose recorded owner lost `problem.manage` for the
+  // problem's unit (or left its group) and nobody has reassigned them yet.
+  problemOwnerIneligible: 'problems.owner.ineligible',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -100,6 +103,22 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
       en: 'The hourly problem sweep runs, but target reminders stay undelivered (dead row, elapsed backoff or a claim left by a crashed run). Check the card for the count and age, then retry the reminder from the problem detail (`Retry`). The breached-target count in the detail shows how many problems are affected.',
     },
     runbook: runbook('problem-reminders'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.problemOwnerIneligible]: {
+    key: opsAlertKeys.problemOwnerIneligible,
+    title: {
+      bs: 'Problemi imaju vlasnika bez ovlasti',
+      en: 'Problems have owners without authority',
+    },
+    action: {
+      bs: 'Otvoreni problemi imaju evidentiranog vlasnika koji više nema `problem.manage` za organizacijsku jedinicu problema ili nije član grupe problema (promjena role, premještaj, deaktivacija). Problemi rade dalje i obavještenja o roku idu voditeljima grupe, ali vlasnik ih više ne dobija. Kartica prikazuje broj, razloge i da li je dostignut limit pregleda. U detalju problema kartica `Odgovornost` pokazuje razlog; dodijelite novog vlasnika kroz `Uredi`.',
+      en: "Open problems still record an owner who no longer holds `problem.manage` for the problem's organizational unit, or who left the problem group (role change, transfer, deactivation). The problems keep working and target notices go to the group managers, but that owner no longer receives them. The card shows the count, the reasons and whether the scan hit its page limit. The problem detail's `Responsibility` card names the reason; assign a new owner through `Edit`.",
+    },
+    runbook: runbook('problem-owner-eligibility'),
+    // Same hysteresis as the sweep alarm: one lonely problem after a role change
+    // is expected; a streak means the reconciliation is being ignored.
     openAfter: 2,
     resolveAfter: 2,
   },

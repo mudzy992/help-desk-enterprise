@@ -41,6 +41,8 @@ export const opsAlertSlugs = [
   // W7.32 (BA-problems-14): the hourly problem sweep runs but its target
   // reminders stay undelivered.
   "problems_reminders_stuck",
+  // W7.33 (BA-problems-15): open problems whose recorded owner lost the grant.
+  "problems_owner_ineligible",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
 

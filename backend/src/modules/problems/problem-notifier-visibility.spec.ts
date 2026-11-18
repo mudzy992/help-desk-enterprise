@@ -21,10 +21,16 @@ describe('problem notification visibility', () => {
   it('does not deliver problem details to out-of-scope recipients or leak ticket identifiers in recurrence', async () => {
     const prisma = {
       problem: { findUnique: jest.fn(async () => ({ id: 'p1', sequence: 1, title: 'Problem', status: 'RESOLVED', priority: 'LOW', ownerUserId: 'inside', groupId: 'g1', targetAt: null, owner: null, organizationalUnit: { ouPath: '/inside' } })) },
-      user: { findMany: jest.fn(async (args: { select: { email?: boolean } }) => args.select.email ? [
+      // W7.33: the recorded owner is checked against a fresh principal (revoke drift)
+      // and the group managers are matched to the group's own unit.
+      group: { findUnique: jest.fn(async () => ({ organizationalUnit: { ouPath: '/inside' } })) },
+      user: {
+        findUnique: jest.fn(async () => ({ isActive: true, anonymizedAt: null, organizationalUnit: { ouPath: '/inside' } })),
+        findMany: jest.fn(async (args: { select: { email?: boolean } }) => args.select.email ? [
         { id: 'inside', email: 'in@example.test', displayName: 'In', preferredLocale: 'bs' },
         { id: 'outside', email: 'out@example.test', displayName: 'Out', preferredLocale: 'bs' },
-      ] : [{ id: 'inside' }, { id: 'outside' }]) },
+      ] : [{ id: 'inside' }, { id: 'outside' }]),
+      },
     };
     (loadPrincipalContext as jest.Mock).mockImplementation(async (_prisma, id: string) => principal(id, id === 'inside' ? '/inside' : '/outside'));
     const access = { configuration: async () => ({ numberPrefix: 'P-' }), hasPermission: () => true, scopeOf: async (viewer: { grants: { unitPath: string }[] }) => ({ all: false, paths: [viewer.grants[0].unitPath] }) };

@@ -37,6 +37,7 @@ import { assertUnitFollowsGroup } from './problem-handoff-rules';
 import { problemCrossDomainVisibility } from './problem-cross-domain-visibility';
 import { problemClaimAuditMetadata, problemUpdateAuditMetadata } from './problem-audit';
 import { problemCreatedOccurrence, problemVersionOccurrence } from './problem-notice-occurrence';
+import { eligibleProblemOwnerWhere, problemOwnerEligibility } from './problem-owner-eligibility';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
@@ -348,7 +349,7 @@ export class ProblemsService {
     if (replay !== null) return replay;
     const configuration = await this.access.configuration();
     const unitId = await this.defaultUnit(viewer, scope, optionalId(input.organizationalUnitId) ?? null, input.ticketIds ?? []);
-    await this.access.requireUnitInScope(scope, unitId);
+    const unit = await this.access.requireUnitInScope(scope, unitId);
     await this.access.requireUnitInScope(readScope, unitId);
     // Decision 2026-10-01: every problem belongs to a problem group; an owner
     // is optional and only a problem manager of that group can be one.
@@ -358,7 +359,8 @@ export class ProblemsService {
     const ownerUserId = optionalId(input.ownerUserId) ?? null;
     if (ownerUserId !== null) {
       await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, groupId);
-      await this.assertOwnerInGroup(ownerUserId, groupId);
+      // W7.33: the owner's manage grant must reach the problem's unit, not just any unit.
+      await this.assertOwnerEligible(ownerUserId, groupId, unit.ouPath);
     }
     const serviceId = optionalId(input.serviceId) ?? null;
     await this.assertReferences({ serviceId }, viewer);
@@ -520,7 +522,7 @@ export class ProblemsService {
       await assertUnitFollowsGroup(this.prisma, current.groupId, unitId);
       data.organizationalUnitId = unitId;
     }
-    let ownerUserId = optionalId(input.ownerUserId);
+    const ownerUserId = optionalId(input.ownerUserId);
     const groupId = optionalId(input.groupId);
     const serviceId = optionalId(input.serviceId);
     if (groupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
@@ -532,11 +534,9 @@ export class ProblemsService {
     const targetGroupId = groupId ?? current.groupId;
     if (ownerUserId !== undefined && ownerUserId !== null && ownerUserId !== current.ownerUserId) {
       if (targetGroupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
-      await this.assertOwnerInGroup(ownerUserId, targetGroupId);
-    }
-    // A group change hands the problem over: the old owner stays only if they belong to the new group.
-    if (groupId !== undefined && groupId !== current.groupId && ownerUserId === undefined && current.ownerUserId !== null) {
-      if (!(await this.isOwnerInGroup(current.ownerUserId, groupId))) ownerUserId = null;
+      // W7.33: the grant must cover the unit the problem already lives in (a group
+      // change is a handoff, which re-resolves the owner for the target unit).
+      await this.assertOwnerEligible(ownerUserId, targetGroupId, current.organizationalUnit.ouPath);
     }
     await this.assertReferences(
       {
@@ -768,10 +768,16 @@ export class ProblemsService {
     await this.access.require(viewer, permissionKeys.problemManage);
     if (groupId === null) return { items: [] };
     const text = search.trim().slice(0, problemLimits.searchMax);
+    const unitPath = await this.groupUnitPath(groupId);
     const items = await this.prisma.user.findMany({
       where: {
-        ...this.ownerWhere(groupId),
-        ...(text.length > 0 ? { OR: [{ displayName: { contains: text, mode: 'insensitive' as const } }, { email: { contains: text, mode: 'insensitive' as const } }] } : {}),
+        // The text filter is its own `OR`, so the scope filter must stay an `AND`.
+        AND: [
+          this.ownerWhere(groupId, unitPath),
+          ...(text.length > 0
+            ? [{ OR: [{ displayName: { contains: text, mode: 'insensitive' as const } }, { email: { contains: text, mode: 'insensitive' as const } }] }]
+            : []),
+        ],
       },
       select: userSelect,
       orderBy: { displayName: 'asc' },
@@ -794,21 +800,27 @@ export class ProblemsService {
     return row;
   }
 
-  private ownerWhere(groupId: string): Prisma.UserWhereInput {
-    return {
-      isActive: true,
-      anonymizedAt: null,
-      groupMembers: { some: { groupId } },
-      userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
-    };
+  /**
+   * W7.33 (BA-problems-15): the picker asks the same question the write path
+   * does — active, member of the group, and a `problem.manage` grant that covers
+   * the problem group's unit.
+   */
+  private ownerWhere(groupId: string, unitPath: string | null): Prisma.UserWhereInput {
+    return eligibleProblemOwnerWhere({ groupId, unitPath });
   }
 
-  private async isOwnerInGroup(userId: string, groupId: string): Promise<boolean> {
-    return (await this.prisma.user.count({ where: { id: userId, ...this.ownerWhere(groupId) } })) > 0;
+  private async groupUnitPath(groupId: string): Promise<string | null> {
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: { organizationalUnit: { select: { ouPath: true } } },
+    });
+    return group?.organizationalUnit.ouPath ?? null;
   }
 
-  private async assertOwnerInGroup(userId: string, groupId: string): Promise<void> {
-    if (!(await this.isOwnerInGroup(userId, groupId))) throw new ProblemError(problemErrorCodes.ownerNotInGroup);
+  /** Exact check of the recorded owner: reason-carrying, fresh principal. */
+  private async assertOwnerEligible(userId: string, groupId: string, unitPath: string | null): Promise<void> {
+    const eligibility = await problemOwnerEligibility(this.prisma, { userId, groupId, unitPath });
+    if (!eligibility.eligible) throw new ProblemError(problemErrorCodes.ownerNotInGroup);
   }
 
   private async assertProblemGroup(groupId: string): Promise<void> {
@@ -918,6 +930,17 @@ export class ProblemsService {
             toOrganizationalUnit: { id: pending.toOrganizationalUnit.id, name: pending.toOrganizationalUnit.name },
           };
     const counts = await this.visibleTicketCounts([row.id], viewer);
+    // W7.33 (BA-problems-15): a recorded owner who lost the grant keeps the record
+    // but the detail says so, and owner-directed notices already fall back to the
+    // group managers (`ProblemNotifier`).
+    const ownerEligibility =
+      row.ownerUserId === null
+        ? null
+        : await problemOwnerEligibility(this.prisma, {
+            userId: row.ownerUserId,
+            groupId: row.groupId,
+            unitPath: row.organizationalUnit.ouPath,
+          });
     return {
       ...this.toListItem(row, configuration, counts.total.get(row.id) ?? 0),
       description: row.description,
@@ -937,6 +960,7 @@ export class ProblemsService {
       createdBy: row.createdBy,
       version: row.version,
       handoff,
+      ownerEligibility,
       allowedTransitions: transitions,
       permissions: {
         canManage,
