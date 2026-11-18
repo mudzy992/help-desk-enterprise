@@ -4,7 +4,7 @@
 **Nalaz:** regresija paketa W7.33 (`BA-problems-15`); nema novog BA ID-a, pa se kontrolni zbir ne mijenja<br>
 **Kodni commit:** `ad4dab1` (popravka + guard), `ddf6dd5` (predaja u tab + uputa za prazan birač), `d412821` (dva test-only nalaza iz CI-a)<br>
 **Finalni testani SHA:** `d412821`<br>
-**CI:** [`44286554422`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44286554422) — zelen (Backend build + test, Frontend build + test, PostgreSQL + Redis integracija, Docs guard, container + supply chain)<br>
+**CI:** [`44286554422`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44286554422) — zelen; [`44295296759`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44295296759) na `a58e5a3` (W7.37) — zelen (Backend build + test, Frontend build + test, PostgreSQL + Redis integracija, Docs guard, container + supply chain)<br>
 **DB migracije:** nema
 
 ## Šta je korisnik prijavio
@@ -109,6 +109,22 @@ pao je na dva **test-only** mjesta, oba popravljena u `d412821`:
    request kanalu adaptera — a pošto adapter prvo psubscribuje room kanal na istoj vezi, to dokazuje da je
    i room kanal živ. Nije mijenjan produkcioni kod ni timeout.
 
+## W7.37 — prazna lista ciljnih grupa (nizak nalaz iz iste prijave)
+
+Poslije popravke vlasnika korisnik je otvorio „Predaju u drugu grupu“ i u biraču vidio samo
+placeholder. Uzrok nije filter: `GET /problems/options` vraća **sve** problem-grupe, a predaja
+isključuje **trenutnu** grupu — na instalaciji sa jednom problem-grupom lista je po definiciji prazna,
+a komanda bi istu grupu odbila sa `handoffSameGroup`. Bilo je to tiho stanje, ne greška podataka.
+
+Popravka (`a58e5a3`): kada nema druge problem-grupe, kartica u „Pregledu“ zadrži naslov i napiše zašto
+nema cilja i gdje se dodaje nova grupa („Korisnici → Problem grupe“); nema praznog selecta ni dugmeta
+koje može samo pasti. Test: instalacija sa jednom grupom renderuje objašnjenje, bez preklopnika i bez
+selecta.
+
+**Poznato ograničenje (kandidat za nalaz, ne dira ovaj paket):** lista ciljnih grupa nije filtrirana na
+opseg onoga koji predaje — `problem-handoff.service.ts` traži da jedinica ciljne grupe bude u njegovom
+`problem.manage` i `problem.read` opsegu, pa ograničeni administrator može izabrati grupu koju će
+backend odbiti. SuperAdmin to ne vidi (globalni opseg).
 ## Operativna provjera
 
 1. `Problemi → Novi problem` → izaberi grupu `Problem grupa` (jedinica `/Korisnici`) → **očekivano:**
