@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 10 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, pa su otvoreni ostali P3 nalazi ovog audita.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, a W7.39 `BA-problems-17`; otvoreni su ostali P3 nalazi ovog audita.
 
 ## 1. Executive summary
 
@@ -147,6 +147,9 @@ se čita kroz `userSelect`, pa pseudonim odmah zamijeni ime na svim mjestima.
 ## 12. Pagination, resource i operativnost
 
 Glavni register ima bounded cursor i total. Events uzima 200, linked tickets 500, links 200, reverse links 50, notifier candidates 2.000 i options 2.000 bez `hasMore` ili paginationa. `listForProblem.total` je zapravo dužina trunciranog rezultata, pa može lažno tvrditi ukupno 500.
+**W7.39:** tihe granice su zatvorene (§37) — svaka lista se čita sa `limit + 1` i vraća `hasMore`, a
+`listForProblem.total`/`open` se broje. Namjerno ograničeni ostaju `searchIncidents` (`take: 200`, W7.29) i
+notifier kandidati (interni skup primalaca, ne lista koju korisnik čita).
 
 Bulk resolution radi sekvencijalne ticket access/update/message pozive do konfigurisanog limita; konfiguracija se samo provjerava kao integer, bez lokalnog min/max clampa u loaderu. Pogrešna setting vrijednost može povećati latency/resource pritisak. Sweep batch 500 obrađuje svaki red sekvencijalno i nema oldest-overdue/starvation metriku.
 
@@ -204,7 +207,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | zatvoreno (W7.32) |
 | BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | zatvoreno (W7.33) |
 | BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | zatvoreno (W7.34) |
-| BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | otvoreno |
+| BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | zatvoreno (W7.39) |
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
 | BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | zatvoreno (W7.38) |
@@ -433,7 +436,7 @@ incidente čiji su svi servisi u njegovom opsegu. Skriveni servis ili incident v
 nepostojeći zapis, pa se postojanje ne odaje. **Atomarnost:** `linkService`, `unlinkService`, `linkIncident`,
 `unlinkIncident` i `unlinkAsset` sada pišu promjenu i `ProblemEvent` u istoj transakciji; ponovljeni link ostaje
 `{ linked: 0 }` bez druge historije. Frontend edit sheet zadržava servis koji problem već nosi kada ga katalog više ne
-nudi, da čuvanje ostalih polja ne ukloni servis tiho. Hard `take: 200` bez `hasMore` ostaje `BA-problems-17` (P3) i
+nudi, da čuvanje ostalih polja ne ukloni servis tiho. Namjerni hard `take: 200` u pretrazi incidenata (bez `hasMore`) ostaje kako je W7.29 odlučio i
 nije dio ovog paketa. Nema migracije ni schema promjene.
 
 CI [`44150530683`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44150530683) na `bf671ac` je
@@ -714,3 +717,26 @@ container/supply-chain, gate); E2E critical/install i read-only inventory su `sk
 pokušaja. Source/plan **438/258**, ovaj registar **448/248**; Val 7 **37/111** (74 otvorena: 13/40/21),
 `problems` **17/21**. (Zatečeni zbir registra bio je 449/247, ne 450/246 kako su ranije poruke navodile;
 brojevi su ovdje prebrojani iz redova.) Detalji su u [259](../implementation/259-w738-problems-20-provenance-whitelist.md).
+
+## 37. W7.39 — BA-problems-17 closeout
+
+Pet prozora u problem zapisu više nisu tiha. Događaji (200), povezani ticketi (500), linkovi (200 po
+sekciji), reverse kartica asseta/incidenta (50) i birači (2.000) sada se čitaju sa `limit + 1` redom i
+vraćaju `hasMore`, pa je skraćivanje **dokazano** iz podataka, a ne izvedeno iz dužine niza. Najvažnija
+posljedica je `listForProblem`: `total` i `open` se broje (`count` sa istim visibility predikatom), pa
+`total` više nije dužina prozora i ne može lažno tvrditi 500.
+
+Vremenska linija skenira dalje od prozora dok ne nađe jedan vidljivi događaj više ili ne potroši redove
+(nevidljivi ne smiju trošiti prozor), uz `eventScanMax` kao granicu rada; ako se skeniranje zaustavi na
+granici, flag ostaje konzervativan. Linkovi i birači vraćaju flag **po kolekciji**
+(`assets/services/incidents`, `units/services/groups`), jer čitaocu treba koja je lista skraćena.
+
+UI to kaže svuda gdje se lista čita: zajednički `ListTruncationNote` pod vremenskom linijom, tabelom
+tiketa (sa stvarnim ukupnim brojem), svakom skraćenom sekcijom taba „Veze“, karticom asseta i incidenta, i
+u create/edit formi kada je birač skraćen; copy je u bs/en. `services/problems-api.ts` je rastom ugovora
+prešao module-size baseline, pa su događaji i target podsjetnici izdvojeni u vlastite module — limit nije
+podizan. Nema migracije; promjena je aditivna, a novi klijent čita flagove defanzivno da staggered deploy
+ne može srušiti tab. CI [`44315048317`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44315048317)
+na `202153c` je **success** (prvi run `44310320654` na `6033b9c` pao je na vlastitoj `TS2345` grešci u
+testnom dublu, popravljenoj u `5b3d3d2`); E2E critical/install i read-only inventory su `skipped`. Detalji
+su u [260](../implementation/260-w739-problems-17-list-windows.md).
