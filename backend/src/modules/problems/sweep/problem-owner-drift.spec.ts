@@ -176,16 +176,10 @@ describe('scanProblemOwnerDrift', () => {
       owners: [owner({ id: 'u1', permission: 'problem.read' })],
       groupPaths: { g1: '/root/ou1' },
     });
-    const args: { take: number } = { take: 0 };
-    prisma.problem.findMany.mockImplementation((input: { take: number }) => {
-      args.take = input.take;
-      return Promise.resolve(problems);
-    });
-
     const scan = await scanProblemOwnerDrift(prisma as never, { limit: 3 });
     expect(scan.capped).toBe(true);
     expect(scan.ineligibleOwners).toBe(3);
-    expect(args.take).toBe(3);
+    expect((prisma.problem.findMany as jest.Mock).mock.calls[0][0]).toMatchObject({ take: 3 });
   });
 
   it('reads only open owned problems, newest first, one page at a time', async () => {
