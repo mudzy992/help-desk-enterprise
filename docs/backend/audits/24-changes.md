@@ -166,7 +166,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-02 | P1       | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope                               | zatvoreno |
 | BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | zatvoreno |
 | BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | zatvoreno |
-| BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | otvoreno |
+| BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | zatvoreno |
 | BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | otvoreno |
 | BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | otvoreno |
 | BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | otvoreno |
@@ -194,7 +194,9 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   [W7.44 implementation](../implementation/265-w744-changes-03-problem-link.md).
 - **04:** zatvoreno u W7.45 — preview scope-uje reference i broji, ali ne imenuje, nedostupne konflikte.
   Dokaz: [W7.45 implementation](../implementation/266-w745-changes-04-conflict-preview.md).
-- **05:** otvoreno — calendar downtime query još nema viewer filter (sljedeći P1).
+- **05:** zatvoreno u W7.46 — downtime prozori changea filtriraju se SQL-om po istoj visibility politici,
+  a skriveni se broje (`restrictedDowntime`). Dokaz:
+  [W7.46 implementation](../implementation/267-w746-changes-05-calendar-downtime.md).
 - **06, 14:** persisted round voter/quorum snapshot ili strogo filtrirana dynamic politika; reject oversized CAB.
 - **07:** outbox/delivery state; marker tek nakon policy-dovoljnog persisted outcomea.
 - **08, 13:** desired downtime state + reconciliation worker, retry/dead-letter i scheduler/health self-heal.
@@ -293,3 +295,12 @@ svode na `restricted: { changes, downtime }` i **i dalje postavljaju `hasWarning
 može proći tiho. Frontend prikazuje brojeve bez imena. Nema migracije; `04` zatvoren, `05` (calendar downtime)
 ostaje sljedeći P1. Dokaz:
 [266-w745-changes-04-conflict-preview.md](../implementation/266-w745-changes-04-conflict-preview.md).
+
+## 24. Implementacijski closeout — W7.46 (`BA-changes-05`)
+
+Na `eea32fa`, uz zeleni CI `44406819251`, kalendar više ne objavljuje tuđe downtime prozore: prozor bez
+vlasnika ostaje javan, a prozor koji pripada changeu filtriran je **u SQL-u** istim `changeVisibilityWhere`
+predikatom kao lista changeova (pa skriveni redovi ne mogu istisnuti vidljive kroz `take`). Skriveni prozori
+se vraćaju kao `restrictedDowntime` i UI to kaže, umjesto da tiho nestanu. Nema migracije; `06` (CAB voter
+snapshot) je sljedeći P1. Dokaz:
+[267-w746-changes-05-calendar-downtime.md](../implementation/267-w746-changes-05-calendar-downtime.md).
