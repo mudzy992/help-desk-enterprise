@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 10 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, pa su otvoreni ostali P3 nalazi ovog audita.
 
 ## 1. Executive summary
 
@@ -207,7 +207,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | otvoreno |
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | otvoreno |
 | BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
-| BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | otvoreno |
+| BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | zatvoreno (W7.38) |
 | BA-problems-21 | P3       | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja                | otvoreno |
 
 ## 16. Ključne korekcije
@@ -684,4 +684,33 @@ executora, redoslijed noći, 517 ključeva i predug naslov), ne na logici; popra
 CI [`44279046507`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44279046507) **zelen**.
 Detalji su u [257](../implementation/257-w734-problems-16-privacy-retention.md). Nema migracije, nema nove
 tabele i nema promjene API oblika; default postavke je 0, pa deploy sam ne mijenja nijedan zapis.
-Sljedeći P2 u ovom auditu je `BA-problems-20` (provenance trigger whitelist).
+`BA-problems-20` (provenance trigger whitelist) zatvoren je u W7.38 — vidi §36.
+
+## 36. W7.38 — BA-problems-20 closeout
+
+DB trigger `enforce_audit_scope_provenance` drži vlastitu listu akcija čija jedinica mora biti jednaka
+jedinici entiteta. W7.30 je uveo `problem.updated` i `problem.claimed` kao `entity` akcije, ali lista je
+ostala nepromijenjena — pa je za te dvije akcije scope bio ispravan samo po konstrukciji (isti red, ista
+transakcija), a baza bi prihvatila i tuđu jedinicu. Migracija
+`20271201120000_audit_scope_provenance_problem_actions` zamjenjuje **tijelo funkcije**
+(`CREATE OR REPLACE`), pa trigger ostaje vezan i nijedan red nije bez zaštite tokom zamjene; problem grana
+sada poznaje obje akcije, a ostatak je bajt-za-bajt prethodna definicija.
+
+Novi guard `audit-scope-provenance-whitelist.spec.ts` čita stvarne migracije, uzima posljednju definiciju
+funkcije i poredi je sa `auditActionScopeRegistry`: svaka `entity` akcija mora biti provjerena protiv tačno
+one tabele i kolone koju njen prefiks posjeduje, bez stale unosa i bez dvostrukih provjera, uz provjeru da
+trigger nije odvezan. Guard je odmah našao **drugi, stariji drift iste klase**: `ticket.message_created` je
+u registru `entity`, `tickets-collaboration.service.ts` ga piše sa `ticket.originUnitId` (dakle kanonski),
+ali ga trigger nikad nije provjeravao — i ta akcija je dodata u istu migraciju. DB integracija
+(`audit-scope-provenance.integration.spec.ts`, +1) dokazuje na realnoj bazi da tuđa jedinica pada sa
+`AUDIT_SCOPE_PROVENANCE_MISMATCH` bez upisanog reda, a kanonska prolazi, za obje problem akcije.
+
+Sentinel `expectedSchemaMigration` pomjeren je na novu migraciju, pa readiness odbija bazu koja zaostaje za
+kodom. Nema promjene aplikativnog koda, API oblika ni podataka. CI
+[`44303067683`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44303067683) na `f34290e` je
+**success** (generisani Prisma, backend build/lint/safety-net/wiring/SLA/pun Jest, PostgreSQL/Redis
+integracija sa primijenjenom migracijom, frontend lint/format/testovi/build/budget, docs,
+container/supply-chain, gate); E2E critical/install i read-only inventory su `skipped`, bez neuspjelih
+pokušaja. Source/plan **438/258**, ovaj registar **448/248**; Val 7 **37/111** (74 otvorena: 13/40/21),
+`problems` **17/21**. (Zatečeni zbir registra bio je 449/247, ne 450/246 kako su ranije poruke navodile;
+brojevi su ovdje prebrojani iz redova.) Detalji su u [259](../implementation/259-w738-problems-20-provenance-whitelist.md).
