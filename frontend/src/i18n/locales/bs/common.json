@@ -960,6 +960,23 @@
         "auditFailures": "Neuspjeli zapisi audita imovine (prethodnih 60 min)",
         "none": "nema"
       },
+      "problemOperations": {
+        "title": "Operativne metrike problema",
+        "hint": "Zaostaci satnog sweep-a: podsjetnici koji čekaju dostavu, prekoračeni rokovi i riješeni problemi koji čekaju auto-zatvaranje. Samo brojevi i starosti.",
+        "unavailable": "Metrike problema nisu dostupne (čeka se mjerenje workera ili odgovor baze).",
+        "unknown": "Nepoznato",
+        "countValue": "{{count}}",
+        "none": "nema",
+        "minutesValue": "{{minutes}} min",
+        "stuckReminders": "Podsjetnici koji čekaju dostavu",
+        "stuckRemindersValue": "UKUPNO: {{count}} · mrtvih (samo ručni retry): {{dead}}",
+        "oldestStuckReminder": "Starost najstarijeg zaglavljenog podsjetnika",
+        "overdueTargets": "Otvoreni problemi s prekoračenim rokom",
+        "oldestOverdueTarget": "Najstariji prekoračeni rok",
+        "autoCloseDue": "Riješeni problemi čekaju auto-zatvaranje",
+        "oldestAutoCloseDue": "Najduže čekanje na auto-zatvaranje",
+        "autoCloseWindow": "Prag auto-zatvaranja: {{days}} dana (0 = isključeno)."
+      },
       "alerts": {
         "title": "Aktivni alarmi",
         "emptyTitle": "Nema aktivnih alarma",
@@ -1257,7 +1274,11 @@
         "ineligibleOwners": "Problemi čiji vlasnik više nema ovlasti",
         "scannedProblems": "Pregledano otvorenih problema",
         "capped": "Dostignut limit pregleda (broj je minimum)",
-        "reasons": "Razlozi"
+        "reasons": "Razlozi",
+        "oldestOverdueTargetMinutes": "Starost najstarijeg prekoračenog roka (min)",
+        "autoCloseDue": "Riješeni problemi koji čekaju auto-zatvaranje",
+        "oldestAutoCloseDueMinutes": "Najduže čekanje na auto-zatvaranje (min)",
+        "autoCloseDays": "Prag auto-zatvaranja (dana)"
       }
     }
   },
@@ -7826,7 +7847,6 @@
       "knowledgeArticles": "Članci baze znanja",
       "problemsNamed": "Problemi u kojima se osoba spominje",
       "problemEventDetailsNamed": "Detalji događaja koji spominju osobu",
-
       "activities": "Aktivnosti",
       "approvals": "Odobrenja",
       "attachmentNames": "Imena priloga",

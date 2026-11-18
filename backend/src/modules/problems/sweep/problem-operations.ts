@@ -25,7 +25,40 @@ export type ProblemOperationsSignal = {
    * threshold would only train people to ignore it.
    */
   readonly breachedOpenTargets: number;
+  /**
+   * W7.40 (BA-problems-18): the **starvation** measurement the count alone cannot
+   * give. The sweep takes 500 problems per tick, oldest target first; as long as
+   * it keeps up, the oldest breach is younger than the tick cadence. A number
+   * that keeps growing says the tick no longer reaches the tail of its batch —
+   * the backlog is not just big, it is being processed too slowly.
+   */
+  readonly oldestOverdueTargetMinutes: number | null;
+  /**
+   * W7.40: `RESOLVED` problems already past `autoCloseDays` and still open. Zero
+   * is the healthy value; a number that grows hour after hour means the
+   * auto-close phase is not finishing its batch. Null when the setting could not
+   * be read — an unknown deadline must not read as "nothing is due".
+   */
+  readonly autoCloseDue: number | null;
+  /** W7.40: minutes since the oldest due problem passed its auto-close deadline. */
+  readonly oldestAutoCloseDueMinutes: number | null;
+  /**
+   * W7.40: the effective (clamped) `autoCloseDays`, so the two numbers above can
+   * be read without opening the settings page, and a clamped out-of-band value is
+   * visible instead of silently applied. Null when the setting could not be read.
+   */
+  readonly effectiveAutoCloseDays: number | null;
 };
+
+/**
+ * W7.40 (BA-problems-18): the auto-close backlog definition, shared by the sweep
+ * (which closes these rows) and the health probe (which counts them), so the two
+ * can never disagree. `days = 0` means auto-close is off: nothing is due.
+ */
+export function autoCloseDueWhere(now: Date, days: number): Prisma.ProblemWhereInput | null {
+  if (days <= 0) return null;
+  return { status: 'RESOLVED', resolvedAt: { lte: new Date(now.getTime() - days * 86_400_000) } };
+}
 
 /** Statuses that are still worked on; RESOLVED/CLOSED/CANCELLED are done. */
 export const problemOpenTargetStatuses = ['NEW', 'INVESTIGATING', 'KNOWN_ERROR'] as const;

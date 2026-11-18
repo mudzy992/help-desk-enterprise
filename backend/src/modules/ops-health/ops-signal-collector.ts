@@ -5,6 +5,13 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
+import { settingKeys } from '../settings/setting-keys';
+import {
+  clampIntegerSetting,
+  problemDefaults,
+  problemSettingBounds,
+} from '../settings/definitions/problem-settings';
 import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
 import { AssetOperationsMetricStore } from '../assets/asset-operations-metrics';
 import {
@@ -55,6 +62,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly settings: SettingsService,
   ) {
     this.store = new OpsStateStore(redis.getClient());
     this.assetMetrics = new AssetOperationsMetricStore(redis.getClient());
@@ -135,12 +143,26 @@ export class OpsSignalCollector implements OnModuleDestroy {
 
   private async collectProblemOperations(now: Date): Promise<OpsSignals['problemOperations']> {
     try {
+      // W7.40 (BA-problems-18): the auto-close backlog is measured against the
+      // same clamped value the sweep uses. A failed settings read is `null`, so
+      // the card says "unknown" instead of inventing a deadline.
+      const autoCloseDays = await this.problemAutoCloseDays();
       return await withTimeout(
-        () => collectProblemOperationsSignal(this.prisma, now),
+        () => collectProblemOperationsSignal(this.prisma, now, { autoCloseDays }),
         opsProbeTimeouts.problemOperationsMs,
       );
     } catch (error) {
       this.logger.warn(`ops_problem_probe_failed reason=${errorText(error)}`);
+      return null;
+    }
+  }
+
+  private async problemAutoCloseDays(): Promise<number | null> {
+    try {
+      const value = await this.settings.getSetting(settingKeys.privateProblemsAutoCloseDays);
+      return clampIntegerSetting(value, problemDefaults.autoCloseDays, problemSettingBounds.autoCloseDays);
+    } catch (error) {
+      this.logger.warn(`ops_problem_auto_close_setting_unreadable reason=${errorText(error)}`);
       return null;
     }
   }

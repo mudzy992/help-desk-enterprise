@@ -30,6 +30,7 @@ vi.mock("@/components/admin/ops-health-metrics", () => ({
   QueueTable: () => null,
   ChannelSummary: () => null,
   AssetOperationsSummary: () => null,
+  ProblemOperationsSummary: () => null,
 }));
 vi.mock("@/components/admin/ops-health-alerts", () => ({
   AlertHistory: () => null,

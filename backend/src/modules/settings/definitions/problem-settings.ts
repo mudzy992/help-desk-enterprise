@@ -22,6 +22,34 @@ export const problemDefaults = {
   targetLowWorkingDays: 20,
 } as const;
 
+/**
+ * W7.40 (BA-problems-18): the bounds are declared once, so the writer and the
+ * reader cannot drift apart. `assertValue` refuses a value outside them, and
+ * `clampIntegerSetting` keeps an out-of-band row (written before validation
+ * existed, restored from an old backup, or edited straight in the database)
+ * from turning into an unbounded loop in a request or an hourly sweep.
+ */
+export const problemSettingBounds = {
+  /** One bulk action resolves at most this many tickets, sequentially. */
+  bulkResolveMax: { min: 1, max: 1000 },
+  /** 0 = never close automatically. */
+  autoCloseDays: { min: 0, max: 365 },
+  targetWorkingDays: { min: 1, max: 365 },
+} as const;
+
+export type ProblemSettingBound = { readonly min: number; readonly max: number };
+
+/**
+ * The value when it is an integer inside the bounds, the nearest bound when it
+ * is an integer outside them, and the fallback when it is not a number at all.
+ * Clamping is deliberate: a stored `100000` must not fail the request, it must
+ * behave like `1000` and be visible as such in the health card.
+ */
+export function clampIntegerSetting(value: unknown, fallback: number, bounds: ProblemSettingBound): number {
+  if (typeof value !== 'number' || !Number.isInteger(value)) return fallback;
+  return Math.min(bounds.max, Math.max(bounds.min, value));
+}
+
 const rootCauseKeyPattern = /^[a-z][a-z0-9-]{1,31}$/;
 
 /** "a,b,c" -> unique keys in order; invalid input -> null. */
@@ -36,9 +64,9 @@ export function parseRootCauseCategories(value: unknown): string[] | null {
   return [...new Set(parts)];
 }
 
-function integerIn(min: number, max: number, message: string) {
+function integerIn(bounds: ProblemSettingBound, message: string) {
   return (value: unknown) => {
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < bounds.min || value > bounds.max) {
       throw new SettingsError(message);
     }
   };
@@ -54,7 +82,7 @@ function target(key: string, defaultValue: number, label: string): SettingDefini
     description: `Target resolution time in working days for ${label} problems (used only when targets are on)`,
     isRequired: true,
     defaultValue,
-    assertValue: integerIn(1, 365, 'Target must be an integer between 1 and 365 working days'),
+    assertValue: integerIn(problemSettingBounds.targetWorkingDays, 'Target must be an integer between 1 and 365 working days'),
   });
 }
 
@@ -100,7 +128,7 @@ export const problemSettings: readonly SettingDefinition[] = [
     description: 'Maximum number of linked tickets resolved by one bulk action',
     isRequired: true,
     defaultValue: problemDefaults.bulkResolveMax,
-    assertValue: integerIn(1, 1000, 'Bulk resolve maximum must be an integer between 1 and 1000'),
+    assertValue: integerIn(problemSettingBounds.bulkResolveMax, 'Bulk resolve maximum must be an integer between 1 and 1000'),
   }),
   definePrivateSetting({
     key: settingKeys.privateProblemsAutoCloseDays,
@@ -109,7 +137,7 @@ export const problemSettings: readonly SettingDefinition[] = [
     description: 'Days after which a resolved problem is closed automatically (0 = never)',
     isRequired: true,
     defaultValue: problemDefaults.autoCloseDays,
-    assertValue: integerIn(0, 365, 'Auto-close must be an integer between 0 and 365 days'),
+    assertValue: integerIn(problemSettingBounds.autoCloseDays, 'Auto-close must be an integer between 0 and 365 days'),
   }),
   definePrivateSetting({
     key: settingKeys.privateProblemsTargetEnabled,

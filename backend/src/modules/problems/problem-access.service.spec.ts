@@ -1,12 +1,26 @@
 import { assetViewerFromContext, resolveAssetScope } from '../assets/asset-viewer';
+import { problemDefaults } from '../settings/definitions/problem-settings';
+import { settingKeys } from '../settings/setting-keys';
 import { ProblemAccessService } from './problem-access.service';
 
-function setup(options: { addon?: boolean; groups?: number; member?: boolean } = {}) {
+function setup(
+  options: {
+    addon?: boolean;
+    groups?: number;
+    member?: boolean;
+    /** Raw stored values, exactly as they come out of the settings table. */
+    values?: Readonly<Record<string, unknown>>;
+  } = {},
+) {
   const prisma = {
     group: { count: jest.fn(async () => options.groups ?? 1) },
     groupMember: { count: jest.fn(async () => (options.member ? 1 : 0)) },
   };
-  const settings = { getSetting: jest.fn(async () => options.addon ?? true) };
+  const settings = {
+    getSetting: jest.fn(async (key: string) =>
+      options.values !== undefined && key in options.values ? options.values[key] : (options.addon ?? true),
+    ),
+  };
   return new ProblemAccessService(prisma as never, settings as never);
 }
 
@@ -66,5 +80,39 @@ describe('ProblemAccessService (problem groups, decision 2026-10-01)', () => {
     const manager = viewer('PROBLEM_MANAGER', ['problem.read']);
     expect(manager.grants.every((grant) => grant.global)).toBe(true);
     expect(resolveAssetScope(manager, 'problem.read', null)).toEqual({ all: true });
+  });
+});
+
+describe('ProblemAccessService configuration bounds (BA-problems-18)', () => {
+  it('clamps a stored value that is outside the declared bounds', async () => {
+    const access = setup({
+      values: {
+        [settingKeys.privateProblemsBulkResolveMax]: 100_000,
+        [settingKeys.privateProblemsAutoCloseDays]: -3,
+        [settingKeys.privateProblemsTargetCriticalWorkingDays]: 0,
+      },
+    });
+
+    const configuration = await access.configuration();
+
+    // A bulk action resolves at most 1000 tickets, auto-close never runs with a
+    // negative window, and a target is at least one working day away.
+    expect(configuration.bulkResolveMax).toBe(1000);
+    expect(configuration.autoCloseDays).toBe(0);
+    expect(configuration.targetDays.CRITICAL).toBe(1);
+  });
+
+  it('keeps an in-band value and falls back for a value that is not an integer', async () => {
+    const access = setup({
+      values: {
+        [settingKeys.privateProblemsBulkResolveMax]: 250,
+        [settingKeys.privateProblemsAutoCloseDays]: '14',
+      },
+    });
+
+    const configuration = await access.configuration();
+
+    expect(configuration.bulkResolveMax).toBe(250);
+    expect(configuration.autoCloseDays).toBe(problemDefaults.autoCloseDays);
   });
 });

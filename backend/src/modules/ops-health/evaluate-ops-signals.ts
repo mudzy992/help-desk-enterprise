@@ -734,6 +734,12 @@ function observeProblemReminderStuck(signals: OpsSignals): OpsObservation {
       deadReminderDeliveries: operations.deadReminderDeliveries,
       oldestStuckReminderMinutes: operations.oldestStuckReminderMinutes,
       breachedOpenTargets: operations.breachedOpenTargets,
+      // W7.40 (BA-problems-18): the alert carries the backlog ages too, so the
+      // reader can tell "a big backlog" from "a backlog that stopped moving".
+      oldestOverdueTargetMinutes: operations.oldestOverdueTargetMinutes,
+      autoCloseDue: operations.autoCloseDue,
+      oldestAutoCloseDueMinutes: operations.oldestAutoCloseDueMinutes,
+      autoCloseDays: operations.effectiveAutoCloseDays,
     },
   };
 }

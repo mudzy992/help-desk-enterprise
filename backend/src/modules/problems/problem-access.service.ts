@@ -10,7 +10,12 @@ import {
   type AssetScope,
   type AssetViewer,
 } from '../assets/asset-viewer';
-import { problemDefaults, parseRootCauseCategories } from '../settings/definitions/problem-settings';
+import {
+  clampIntegerSetting,
+  problemDefaults,
+  problemSettingBounds,
+  parseRootCauseCategories,
+} from '../settings/definitions/problem-settings';
 import { opsDefaults } from '../settings/definitions/ops-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { SettingsService } from '../settings/settings.service';
@@ -123,20 +128,24 @@ export class ProblemAccessService {
       this.readSetting<unknown>(settingKeys.privateProblemsTargetMediumWorkingDays, problemDefaults.targetMediumWorkingDays),
       this.readSetting<unknown>(settingKeys.privateProblemsTargetLowWorkingDays, problemDefaults.targetLowWorkingDays),
     ]);
-    const integer = (value: unknown, fallback: number) => (typeof value === 'number' && Number.isInteger(value) ? value : fallback);
+    // W7.40 (BA-problems-18): every numeric setting is clamped on read, not only
+    // accepted when it is an integer. A row outside the declared bounds (written
+    // before validation existed, restored from a backup, or edited in the
+    // database) must not decide how many tickets a request resolves.
+    const integer = clampIntegerSetting;
     return {
       numberPrefix: typeof prefix === 'string' ? prefix : problemDefaults.numberPrefix,
       rootCauseCategories: parseRootCauseCategories(categories) ?? parseRootCauseCategories(problemDefaults.rootCauseCategories) ?? [],
       requireWorkaroundForKnownError: requireWorkaround === true,
-      autoCloseDays: integer(autoClose, problemDefaults.autoCloseDays),
-      bulkResolveMax: integer(bulkMax, problemDefaults.bulkResolveMax),
+      autoCloseDays: integer(autoClose, problemDefaults.autoCloseDays, problemSettingBounds.autoCloseDays),
+      bulkResolveMax: integer(bulkMax, problemDefaults.bulkResolveMax, problemSettingBounds.bulkResolveMax),
       targetEnabled: target === true,
       targetCalendarId: typeof calendarId === 'string' ? calendarId : '',
       targetDays: {
-        CRITICAL: integer(critical, problemDefaults.targetCriticalWorkingDays),
-        HIGH: integer(high, problemDefaults.targetHighWorkingDays),
-        MEDIUM: integer(medium, problemDefaults.targetMediumWorkingDays),
-        LOW: integer(low, problemDefaults.targetLowWorkingDays),
+        CRITICAL: integer(critical, problemDefaults.targetCriticalWorkingDays, problemSettingBounds.targetWorkingDays),
+        HIGH: integer(high, problemDefaults.targetHighWorkingDays, problemSettingBounds.targetWorkingDays),
+        MEDIUM: integer(medium, problemDefaults.targetMediumWorkingDays, problemSettingBounds.targetWorkingDays),
+        LOW: integer(low, problemDefaults.targetLowWorkingDays, problemSettingBounds.targetWorkingDays),
       },
     };
   }

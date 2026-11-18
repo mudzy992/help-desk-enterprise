@@ -160,6 +160,9 @@ export class OpsHealthService {
       generatedAt: now.toISOString(),
       snapshot: snapshot === null ? null : { generatedAt: snapshot.generatedAt, ageSeconds: ageSeconds(snapshot.generatedAt, now) },
       assetOperations: signals?.assetOperations ?? null,
+      // W7.40 (BA-problems-18): the problem sweep's backlog ages belong on the
+      // always-visible card, not only inside an alarm that has to fire first.
+      problemOperations: signals?.problemOperations ?? null,
       components: {
         api: 'ok' as const,
         database,

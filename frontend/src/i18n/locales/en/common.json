@@ -956,6 +956,23 @@
         "auditFailures": "Asset audit write failures (previous 60 min)",
         "none": "none"
       },
+      "problemOperations": {
+        "title": "Problem operations metrics",
+        "hint": "Hourly sweep backlog: reminders waiting for delivery, breached targets and resolved problems waiting for auto-close. Numbers and ages only.",
+        "unavailable": "Problem metrics are unavailable (waiting for a worker measurement or a database response).",
+        "unknown": "Unknown",
+        "countValue": "{{count}}",
+        "none": "none",
+        "minutesValue": "{{minutes}} min",
+        "stuckReminders": "Reminders waiting for delivery",
+        "stuckRemindersValue": "TOTAL: {{count}} · dead (manual retry only): {{dead}}",
+        "oldestStuckReminder": "Age of the oldest stuck reminder",
+        "overdueTargets": "Open problems past their target",
+        "oldestOverdueTarget": "Oldest breached target",
+        "autoCloseDue": "Resolved problems waiting for auto-close",
+        "oldestAutoCloseDue": "Longest wait for auto-close",
+        "autoCloseWindow": "Auto-close threshold: {{days}} days (0 = off)."
+      },
       "alerts": {
         "title": "Active alarms",
         "emptyTitle": "No active alarms",
@@ -1248,7 +1265,11 @@
         "ineligibleOwners": "Problems whose owner lost the authority",
         "scannedProblems": "Open problems scanned",
         "capped": "Scan limit reached (the count is a floor)",
-        "reasons": "Reasons"
+        "reasons": "Reasons",
+        "oldestOverdueTargetMinutes": "Age of the oldest breached target (min)",
+        "autoCloseDue": "Resolved problems waiting for auto-close",
+        "oldestAutoCloseDueMinutes": "Longest wait for auto-close (min)",
+        "autoCloseDays": "Auto-close threshold (days)"
       }
     }
   },
@@ -7783,7 +7804,6 @@
       "knowledgeArticles": "Knowledge articles",
       "problemsNamed": "Problems naming the person",
       "problemEventDetailsNamed": "Event details naming the person",
-
       "activities": "Activities",
       "approvals": "Approvals",
       "attachmentNames": "Attachment names",

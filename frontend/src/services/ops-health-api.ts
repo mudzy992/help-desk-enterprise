@@ -113,6 +113,22 @@ export type OpsSilence = {
   readonly by: string | null;
 };
 
+/**
+ * W7.40 (BA-problems-18): the problem sweep's backlog ages. Counts say how much
+ * is waiting; the two ages say how far behind the hourly tick is. Nulls are
+ * unknown, never zero — an unreadable setting must not look like a clean queue.
+ */
+export type OpsProblemOperations = {
+  readonly stuckReminderDeliveries: number;
+  readonly deadReminderDeliveries: number;
+  readonly oldestStuckReminderMinutes: number | null;
+  readonly breachedOpenTargets: number;
+  readonly oldestOverdueTargetMinutes: number | null;
+  readonly autoCloseDue: number | null;
+  readonly oldestAutoCloseDueMinutes: number | null;
+  readonly effectiveAutoCloseDays: number | null;
+};
+
 export type OpsOverview = {
   readonly generatedAt: string;
   /** Latest worker measurement; null until the first run after a deploy. */
@@ -121,6 +137,8 @@ export type OpsOverview = {
    * Optional during rolling deploys where an older API has not added this field yet.
    */
   readonly assetOperations?: OpsAssetOperations | null;
+  /** Problem-sweep backlog metrics from the same snapshot; optional during rolling deploys. */
+  readonly problemOperations?: OpsProblemOperations | null;
   readonly components: {
     readonly api: ProbeState;
     readonly database: ProbeState;

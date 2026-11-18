@@ -34,7 +34,7 @@ export function AssetOperationsSummary({ overview }: { readonly overview: OpsOve
         <p className={hintClassName}>{t("admin.opsHealth.assetOperations.unavailable")}</p>
       ) : (
         <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          <AssetMetric
+          <MetricTile
             label={t("admin.opsHealth.assetOperations.directorySyncOverlaps")}
             value={
               metrics.directorySyncOverlapsLastHour === null
@@ -44,21 +44,21 @@ export function AssetOperationsSummary({ overview }: { readonly overview: OpsOve
                   })
             }
           />
-          <AssetMetric
+          <MetricTile
             label={t("admin.opsHealth.assetOperations.importStuckClaims")}
             state={metrics.importStuckClaims > 0 ? "warning" : "ok"}
             value={t("admin.opsHealth.assetOperations.countValue", {
               count: metrics.importStuckClaims,
             })}
           />
-          <AssetMetric
+          <MetricTile
             label={t("admin.opsHealth.assetOperations.overAllocatedLicenses")}
             value={t("admin.opsHealth.assetOperations.licenseOverAllocationValue", {
               licenses: metrics.overAllocatedLicenseCount,
               seats: metrics.overAllocatedSeatCount,
             })}
           />
-          <AssetMetric
+          <MetricTile
             label={t("admin.opsHealth.assetOperations.reminderDelivery")}
             state={
               metrics.failedReminderDeliveries + metrics.staleReminderClaims > 0 ? "warning" : "ok"
@@ -68,7 +68,7 @@ export function AssetOperationsSummary({ overview }: { readonly overview: OpsOve
               stale: metrics.staleReminderClaims,
             })}
           />
-          <AssetMetric
+          <MetricTile
             label={t("admin.opsHealth.assetOperations.transferFiles")}
             state={
               metrics.staleTransferFilePurges > 0 ||
@@ -97,8 +97,8 @@ export function AssetOperationsSummary({ overview }: { readonly overview: OpsOve
                   missing: metrics.missingTransferFiles ?? 0,
                 })
               : t(`admin.opsHealth.assetOperations.transferScan.${metrics.transferFileScanState}`)}
-          </AssetMetric>
-          <AssetMetric
+          </MetricTile>
+          <MetricTile
             label={t("admin.opsHealth.assetOperations.auditFailures")}
             state={
               metrics.auditWriteFailuresLastHour === null
@@ -123,7 +123,7 @@ export function AssetOperationsSummary({ overview }: { readonly overview: OpsOve
   );
 }
 
-function AssetMetric({
+function MetricTile({
   label,
   value,
   state,
@@ -148,6 +148,97 @@ function AssetMetric({
       <dd className={`${hintClassName} tnum`}>{value}</dd>
       {children ? <dd className={`${hintClassName} tnum`}>{children}</dd> : null}
     </div>
+  );
+}
+
+export function ProblemOperationsSummary({ overview }: { readonly overview: OpsOverview }) {
+  const { t } = useTranslation();
+  const metrics = overview.problemOperations ?? null;
+  const minutes = (value: number | null) =>
+    value === null
+      ? t("admin.opsHealth.problemOperations.unknown")
+      : t("admin.opsHealth.problemOperations.minutesValue", { minutes: value });
+  return (
+    <section className="grid gap-2" data-testid="ops-health-problems">
+      <div>
+        <h4 className={sectionTitleClassName}>{t("admin.opsHealth.problemOperations.title")}</h4>
+        <p className={hintClassName}>{t("admin.opsHealth.problemOperations.hint")}</p>
+      </div>
+      {metrics === null ? (
+        <p className={hintClassName}>{t("admin.opsHealth.problemOperations.unavailable")}</p>
+      ) : (
+        <>
+          <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <MetricTile
+              label={t("admin.opsHealth.problemOperations.stuckReminders")}
+              state={metrics.stuckReminderDeliveries > 0 ? "warning" : "ok"}
+              value={t("admin.opsHealth.problemOperations.stuckRemindersValue", {
+                count: metrics.stuckReminderDeliveries,
+                dead: metrics.deadReminderDeliveries,
+              })}
+            />
+            <MetricTile
+              label={t("admin.opsHealth.problemOperations.oldestStuckReminder")}
+              state={metrics.stuckReminderDeliveries === 0 ? "ok" : "warning"}
+              value={minutes(metrics.oldestStuckReminderMinutes)}
+            />
+            <MetricTile
+              label={t("admin.opsHealth.problemOperations.overdueTargets")}
+              state={metrics.breachedOpenTargets > 0 ? "warning" : "ok"}
+              value={t("admin.opsHealth.problemOperations.countValue", {
+                count: metrics.breachedOpenTargets,
+              })}
+            />
+            <MetricTile
+              label={t("admin.opsHealth.problemOperations.oldestOverdueTarget")}
+              state={
+                metrics.oldestOverdueTargetMinutes === null
+                  ? "unknown"
+                  : metrics.oldestOverdueTargetMinutes > 0
+                    ? "warning"
+                    : "ok"
+              }
+              value={minutes(metrics.oldestOverdueTargetMinutes)}
+            />
+            <MetricTile
+              label={t("admin.opsHealth.problemOperations.autoCloseDue")}
+              state={
+                metrics.autoCloseDue === null
+                  ? "unknown"
+                  : metrics.autoCloseDue > 0
+                    ? "warning"
+                    : "ok"
+              }
+              value={
+                metrics.autoCloseDue === null
+                  ? t("admin.opsHealth.problemOperations.unknown")
+                  : t("admin.opsHealth.problemOperations.countValue", {
+                      count: metrics.autoCloseDue,
+                    })
+              }
+            />
+            <MetricTile
+              label={t("admin.opsHealth.problemOperations.oldestAutoCloseDue")}
+              state={
+                metrics.oldestAutoCloseDueMinutes === null
+                  ? "unknown"
+                  : metrics.oldestAutoCloseDueMinutes > 0
+                    ? "warning"
+                    : "ok"
+              }
+              value={minutes(metrics.oldestAutoCloseDueMinutes)}
+            />
+          </dl>
+          {metrics.effectiveAutoCloseDays === null ? null : (
+            <p className={hintClassName}>
+              {t("admin.opsHealth.problemOperations.autoCloseWindow", {
+                days: metrics.effectiveAutoCloseDays,
+              })}
+            </p>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 

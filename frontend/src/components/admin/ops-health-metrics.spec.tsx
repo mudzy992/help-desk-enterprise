@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssetOperationsSummary } from "@/components/admin/ops-health-metrics";
+import {
+  AssetOperationsSummary,
+  ProblemOperationsSummary,
+} from "@/components/admin/ops-health-metrics";
 import type { OpsOverview } from "@/services/ops-health-api";
 
 vi.mock("react-i18next", () => ({
@@ -70,5 +73,83 @@ describe("AssetOperationsSummary", () => {
   it("treats the omitted field from an older API as unavailable during a rolling deploy", () => {
     render(<AssetOperationsSummary overview={{} as OpsOverview} />);
     expect(screen.getByText("admin.opsHealth.assetOperations.unavailable")).not.toBeNull();
+  });
+});
+
+const problemOperations = {
+  stuckReminderDeliveries: 2,
+  deadReminderDeliveries: 1,
+  oldestStuckReminderMinutes: 45,
+  breachedOpenTargets: 3,
+  oldestOverdueTargetMinutes: 300,
+  autoCloseDue: 4,
+  oldestAutoCloseDueMinutes: 720,
+  effectiveAutoCloseDays: 14,
+};
+
+describe("ProblemOperationsSummary (BA-problems-18)", () => {
+  afterEach(cleanup);
+
+  it("shows the backlog and how far behind it is", () => {
+    render(<ProblemOperationsSummary overview={{ problemOperations } as OpsOverview} />);
+
+    expect(
+      screen.getByText(/admin\.opsHealth\.problemOperations\.stuckRemindersValue 2 1/),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/admin\.opsHealth\.problemOperations\.minutesValue 300/),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/admin\.opsHealth\.problemOperations\.autoCloseWindow 14/),
+    ).not.toBeNull();
+  });
+
+  it("keeps an unreadable setting unknown instead of announcing a zero backlog", () => {
+    render(
+      <ProblemOperationsSummary
+        overview={
+          {
+            problemOperations: {
+              ...problemOperations,
+              autoCloseDue: null,
+              oldestAutoCloseDueMinutes: null,
+              effectiveAutoCloseDays: null,
+            },
+          } as OpsOverview
+        }
+      />,
+    );
+
+    // Two unknown values: the auto-close count and its wait; the window line disappears.
+    expect(screen.getAllByText("admin.opsHealth.problemOperations.unknown")).toHaveLength(2);
+    expect(screen.queryByText(/autoCloseWindow/)).toBeNull();
+  });
+
+  it("explains when the snapshot is unavailable, including an older API during a rolling deploy", () => {
+    render(<ProblemOperationsSummary overview={{ problemOperations: null } as OpsOverview} />);
+    expect(screen.getByText("admin.opsHealth.problemOperations.unavailable")).not.toBeNull();
+
+    cleanup();
+    render(<ProblemOperationsSummary overview={{} as OpsOverview} />);
+    expect(screen.getByText("admin.opsHealth.problemOperations.unavailable")).not.toBeNull();
+  });
+
+  it("keeps every metric in a valid description-list group", () => {
+    const { container } = render(
+      <ProblemOperationsSummary overview={{ problemOperations } as OpsOverview} />,
+    );
+    const list = container.querySelector("dl");
+    expect(list).not.toBeNull();
+
+    const groups = Array.from(list!.children);
+    expect(groups).toHaveLength(6);
+    for (const group of groups) {
+      expect(group.querySelectorAll("dt")).toHaveLength(1);
+      expect(
+        Array.from(group.children)
+          .slice(1)
+          .every((child) => child.tagName === "DD"),
+      ).toBe(true);
+    }
   });
 });

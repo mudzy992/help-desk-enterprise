@@ -14,6 +14,15 @@ export const problemSweepReminderStartHour = 7;
 export const problemSweepJobAttempts = 2;
 export const problemSweepJobBackoffMilliseconds = 60_000;
 export const problemSweepBatch = 500;
+/**
+ * W7.40 (BA-problems-18): one tick may spend this long before it leaves the rest
+ * of its batch to the next one. The cadence is hourly, so a five-minute budget
+ * keeps a slow tick from overlapping the next run (and from holding the worker's
+ * job slot for an hour) while leaving room for a full batch of 500 rows plus
+ * reminder delivery. Nothing is lost by stopping: both phases read oldest-first,
+ * so a deferred row is the first row of the next tick.
+ */
+export const problemSweepTickBudgetMilliseconds = 5 * 60_000;
 
 /**
  * W7.32 (BA-problems-14): one hour of completed history stays inspectable, the

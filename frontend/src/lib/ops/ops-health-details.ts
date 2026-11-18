@@ -30,6 +30,11 @@ export const alertDetailFieldSlugs = [
   "deadReminderDeliveries",
   "oldestStuckReminderMinutes",
   "breachedOpenTargets",
+  // W7.40: how far behind the problem sweep is, not only how big the backlog is.
+  "oldestOverdueTargetMinutes",
+  "autoCloseDue",
+  "oldestAutoCloseDueMinutes",
+  "autoCloseDays",
   // the owner-authority drift of open problems (W7.33).
   "ineligibleOwners",
   "scannedProblems",

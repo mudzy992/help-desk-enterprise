@@ -1,4 +1,5 @@
 import {
+  autoCloseDueWhere,
   breachedProblemTargetWhere,
   problemOpenTargetStatuses,
   stuckProblemReminderWhere,
@@ -46,5 +47,27 @@ describe('breachedProblemTargetWhere (BA-problems-14)', () => {
     expect(problemOpenTargetStatuses).not.toContain('RESOLVED');
     expect(problemOpenTargetStatuses).not.toContain('CLOSED');
     expect(problemOpenTargetStatuses).not.toContain('CANCELLED');
+  });
+});
+
+describe('autoCloseDueWhere (BA-problems-18)', () => {
+  it('marks exactly the problems whose auto-close deadline passed', () => {
+    expect(autoCloseDueWhere(now, 14)).toEqual({
+      status: 'RESOLVED',
+      resolvedAt: { lte: new Date(now.getTime() - 14 * 86_400_000) },
+    });
+  });
+
+  it('treats 0 days as "never" so no resolved problem is counted as due', () => {
+    expect(autoCloseDueWhere(now, 0)).toBeNull();
+    expect(autoCloseDueWhere(now, -1)).toBeNull();
+  });
+
+  it('uses the same definition as the sweep, so the count and the work agree', () => {
+    // Both read RESOLVED rows older than the deadline; the sweep closes them and
+    // the health probe counts what it did not reach.
+    const where = autoCloseDueWhere(now, 1) as unknown as Where;
+    expect(where.status).toBe('RESOLVED');
+    expect((where.resolvedAt as { lte: Date }).lte).toEqual(new Date(now.getTime() - 86_400_000));
   });
 });

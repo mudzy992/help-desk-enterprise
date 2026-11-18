@@ -80,6 +80,10 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
       deadReminderDeliveries: 0,
       oldestStuckReminderMinutes: null,
       breachedOpenTargets: 0,
+      oldestOverdueTargetMinutes: null,
+      autoCloseDue: 0,
+      oldestAutoCloseDueMinutes: null,
+      effectiveAutoCloseDays: 14,
     },
     // W7.33: every recorded owner still holds the authority for their problem.
     problemOwnerDrift: {
@@ -183,6 +187,10 @@ describe('evaluateOpsSignals', () => {
           deadReminderDeliveries: 0,
           oldestStuckReminderMinutes: null,
           breachedOpenTargets: 12,
+          oldestOverdueTargetMinutes: 240,
+          autoCloseDue: 0,
+          oldestAutoCloseDueMinutes: null,
+          effectiveAutoCloseDays: 14,
         },
       }),
     );
@@ -196,6 +204,10 @@ describe('evaluateOpsSignals', () => {
           deadReminderDeliveries: 1,
           oldestStuckReminderMinutes: 90,
           breachedOpenTargets: 12,
+          oldestOverdueTargetMinutes: 240,
+          autoCloseDue: 5,
+          oldestAutoCloseDueMinutes: 1_200,
+          effectiveAutoCloseDays: 14,
         },
       }),
     ).get(opsAlertKeys.problemReminderStuck)!;
@@ -207,6 +219,11 @@ describe('evaluateOpsSignals', () => {
         deadReminderDeliveries: 1,
         oldestStuckReminderMinutes: 90,
         breachedOpenTargets: 12,
+        // W7.40: the alert says how far behind the backlog is, not only how big.
+        oldestOverdueTargetMinutes: 240,
+        autoCloseDue: 5,
+        oldestAutoCloseDueMinutes: 1_200,
+        autoCloseDays: 14,
       },
     });
 
