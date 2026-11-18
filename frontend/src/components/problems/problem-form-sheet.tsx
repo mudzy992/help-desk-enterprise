@@ -240,7 +240,10 @@ export function ProblemFormSheet({
           {editing ? t("problems.form.editDescription") : t("problems.form.createDescription")}
         </SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          {options.hasMore.units || options.hasMore.services || options.hasMore.groups ? (
+          {/* Optional access on purpose: a stale cache can run one release behind. */}
+          {options.hasMore?.units === true ||
+          options.hasMore?.services === true ||
+          options.hasMore?.groups === true ? (
             // BA-problems-17: a capped picker would otherwise hide options silently.
             <p className={hintClassName} data-testid="problem-form-pickers-capped">
               {t("problems.lists.pickerCapped")}

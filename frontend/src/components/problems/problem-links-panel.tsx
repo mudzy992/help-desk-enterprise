@@ -194,7 +194,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
               ))}
             </ul>
           )}
-          {links.hasMore.services ? (
+          {links.hasMore?.services === true ? (
             <ListTruncationNote count={links.services.length} testId="problem-services-capped" />
           ) : null}
           {canEdit && freeServices.length > 0 ? (
@@ -257,7 +257,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
                 ))}
               </ul>
             )}
-            {links.hasMore.assets ? (
+            {links.hasMore?.assets === true ? (
               <ListTruncationNote count={links.assets.length} testId="problem-assets-capped" />
             ) : null}
             {canEdit && links.suggestedAssets.length > 0 ? (
@@ -387,7 +387,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
                 ))}
               </ul>
             )}
-            {links.hasMore.incidents ? (
+            {links.hasMore?.incidents === true ? (
               <ListTruncationNote
                 count={links.incidents.length}
                 testId="problem-incidents-capped"
