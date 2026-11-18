@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271201010000_problem_handoffs';
+  '20271201120000_audit_scope_provenance_problem_actions';
 
 export function assertDatabaseTransport(
   connectionString: string,

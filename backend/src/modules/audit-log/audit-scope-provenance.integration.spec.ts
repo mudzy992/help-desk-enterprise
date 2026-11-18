@@ -11,9 +11,11 @@ describeIfDatabase('audit OU scope provenance (integration)', () => {
   let prisma: PrismaClient;
   const marker = `audit-scope-${Date.now()}`;
 
+  const problemId = `${marker}-problem`;
   beforeAll(() => { prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) }); });
   afterAll(async () => {
-    await prisma.auditLog.deleteMany({ where: { entityId: marker } });
+    await prisma.auditLog.deleteMany({ where: { entityId: { in: [marker, problemId] } } });
+    await prisma.problem.deleteMany({ where: { id: problemId } });
     await prisma.organizationalUnit.deleteMany({ where: { id: marker } });
     await prisma.$disconnect();
   });
@@ -41,6 +43,41 @@ describeIfDatabase('audit OU scope provenance (integration)', () => {
       organizationalUnitId: marker,
     }));
     expect(await prisma.auditLog.findFirst({ where: { entityId: marker }, select: { organizationalUnitId: true } })).toEqual({ organizationalUnitId: marker });
+  });
+
+  /**
+   * BA-problems-20: W7.30 added `problem.updated` and `problem.claimed` with the
+   * problem's own unit, but the trigger did not know them, so a producer could
+   * have written any unit for those two actions without the database noticing.
+   */
+  it('pins the two W7.30 problem actions to the problem unit', async () => {
+    await prisma.problem.create({
+      data: { id: problemId, sequence: (Date.now() % 1_000_000_000) + 1, title: marker, description: marker, organizationalUnitId: marker },
+    });
+    for (const action of [auditLogActions.problemUpdated, auditLogActions.problemClaimed]) {
+      await expect(prisma.$transaction((transaction) => appendAuditLog(transaction as never, {
+        action,
+        entityType: auditLogEntityTypes.problem,
+        entityId: problemId,
+        metadata: action === auditLogActions.problemUpdated ? { changedFields: ['title'] } : { ownerUserId: null },
+        actorUserId: null,
+        organizationalUnitId: `${marker}-forged`,
+      }))).rejects.toThrow(/AUDIT_SCOPE_PROVENANCE_MISMATCH/u);
+      expect(await prisma.auditLog.count({ where: { entityId: problemId, action } })).toBe(0);
+
+      await prisma.$transaction((transaction) => appendAuditLog(transaction as never, {
+        action,
+        entityType: auditLogEntityTypes.problem,
+        entityId: problemId,
+        metadata: action === auditLogActions.problemUpdated ? { changedFields: ['title'] } : { ownerUserId: null },
+        actorUserId: null,
+        organizationalUnitId: marker,
+      }));
+      expect(await prisma.auditLog.findFirst({
+        where: { entityId: problemId, action },
+        select: { organizationalUnitId: true },
+      })).toEqual({ organizationalUnitId: marker });
+    }
   });
 
   it('requires explicitly global actions to remain scope-less', async () => {
