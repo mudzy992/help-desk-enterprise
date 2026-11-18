@@ -5,8 +5,8 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 10 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, W7.39 `BA-problems-17`, a W7.40 `BA-problems-18`; otvoreni su ostali
-P3 nalazi ovog audita.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); W7.38 je zatvorio `BA-problems-20`, W7.39 `BA-problems-17`, W7.40 `BA-problems-18`, a W7.41
+`BA-problems-19`; otvoren je ostao posljednji P3 nalaz ovog audita.
 
 ## 1. Executive summary
 
@@ -165,11 +165,13 @@ cd backend
 npm test -- --runInBand --runTestsByPath $(find src/modules/problems -name '*.spec.ts' -print | sort)
 ```
 
-Rezultat: **0/8 suiteova izvršeno; 8/8 compile-blocked; 0 testova izvršeno**. Primarna blokada je `Cannot find module '../../generated/prisma/client'`, zatim nedostajući `problem`, `problemTicket`, `problemAsset`, `serviceIncident`, `businessHoursCalendar`, `user`, `ticket` i `$transaction` delegati. Nije bilo prilike za assertion rezultat.
+Rezultat (2026-10-23): **0/8 suiteova izvršeno; 8/8 compile-blocked; 0 testova izvršeno**. **W7.41:** danas
+se izvršava **33 suitea / 272 testa** unit sloja plus 2 integracijska suitea, a tri problems suitea su u
+`safety-net:compile` gateu — vidi §39. Primarna blokada je `Cannot find module '../../generated/prisma/client'`, zatim nedostajući `problem`, `problemTicket`, `problemAsset`, `serviceIncident`, `businessHoursCalendar`, `user`, `ticket` i `$transaction` delegati. Nije bilo prilike za assertion rezultat.
 
 Specovi nominalno pokrivaju access, links, resolution, rules, target, tickets, controller query i reminder plan. E2E 29 provjerava report packove i a11y; E2E 30 prolazi happy lifecycle kao SUPER_ADMIN, agent deny, optimistic stale update, requirements, bulk resolve, recurrence i a11y.
 
-Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticket exposure, foreign asset search/link, unauthorized unlink, delegated foreign/confidential ticket resolve, crash između problem/ticket resolution, all-failed retry, reminder delivery failure, concurrent article orphan, target-group handoff, Redis loss ni hard truncation.
+Scenariji bez pokrivenosti na dan audita: scoped problem manager/global read, linked-one-ticket cross-ticket exposure, foreign asset search/link, unauthorized unlink, delegated foreign/confidential ticket resolve, crash između problem/ticket resolution, all-failed retry, reminder delivery failure, concurrent article orphan, target-group handoff, Redis loss i hard truncation. **W7.41:** svaki od njih sada ima dokaz (unit ili integracija), osim concurrency sloja koji se dokazuje u integracijskim testovima s pravom bazom, ne kroz browser — matrica je u §39 i u [262](../implementation/262-w741-problems-19-test-matrix.md).
 
 ## 14. Pozitivni nalazi
 
@@ -212,7 +214,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | zatvoreno (W7.34) |
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | zatvoreno (W7.39) |
 | BA-problems-18 | P3       | Bulk/sweep setting i sekvencijalni rad nemaju potpune resource/health granice                   | zatvoreno (W7.40) |
-| BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | otvoreno |
+| BA-problems-19 | P3       | Svih osam direktnih suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica      | zatvoreno (W7.41) |
 | BA-problems-20 | P2       | DB provenance trigger whitelist ne pokriva `problem.updated`/`problem.claimed`                  | zatvoreno (W7.38) |
 | BA-problems-21 | P3       | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja                | otvoreno |
 
@@ -767,3 +769,30 @@ W7.24 durable run sa `PARTIAL` i resume. Nema migracije. CI
 **success** (prvi run `44322679559` na `2ec2b18` pao je na vlastitoj `TS2352` grešci u novom specu,
 popravljenoj u `e81d0cf`); E2E critical/install i read-only inventory su `skipped`. Detalji su u
 [261](../implementation/261-w740-problems-18-sweep-bounds.md).
+
+## 39. W7.41 — BA-problems-19 closeout
+
+Audit je problem suiteove pokretao u okruženju bez generisanog Prisma klijenta i dobio 8/8
+compile-blocked, pa nijedan assertion nije izvršen. Danas se modul izvršava u tri sloja: **33 unit suitea /
+272 testa** lokalno i u CI `npm test`, **2 integracijska suitea** u PostgreSQL/Redis jobu i **3 suitea u
+`safety-net:compile` gateu** — koraku koji u CI-ju postoji upravo za suiteove koji su bili blokirani
+nedostajućim klijentom. Dodavanje problems suiteova u taj gate je bitno: nestašica klijenta sada ruši build,
+umjesto da testove tiho preskoči.
+
+Od dvanaest scenarija bez pokrivenosti svaki ima dokaz u matrici (§39 u [262](../implementation/262-w741-problems-19-test-matrix.md)):
+scoped manager/global read i handoff u `problem-access`/`problem-handoff` specovima, cross-ticket
+ekspozicija i neovlašteni unlink u `problem-tickets` (pre-check **i** unique-key trka) plus integracijskim
+`problem-ticket-unlink`, strani asset u `problem-asset-access`/`problem-links` plus `problem-asset-scope`,
+delegirano rješavanje i pad između problem/ticket koraka u `problem-resolution-run`, dostava podsjetnika u
+`problem-target-reminder`, orphan članka u `problem-resolution`, gubitak Redisa u `problem-sweep.scheduler`, a
+hard truncation u W7.39 specovima. **Dva nova testa** zatvaraju stvarne praznine: ishod u kojem svi tiketi
+padnu (`FAILED`, bez `canResume`, `resume` odbijen) i izgubljena unique-key trka pri linkanju (`other_problem`
+bez upisanog linka i bez history reda).
+
+Concurrency se **ne** dodaje u browser: Playwright ne može deterministički reproducirati dvije transakcije
+koje se trkaju, a dokaz je tamo gdje ima pravu bazu. E2E ostaje na korisničkom toku
+(`30-problem-lifecycle`, `29-problem-reports`) i nije pokretan u ovom paketu. Produkcijski kod nije mijenjan,
+pa nema migracije ni rizika u runtimeu. CI
+[`44353568657`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44353568657) na `5d658b2` je
+**success**; E2E critical/install i inventory su `skipped`. Detalji su u
+[262](../implementation/262-w741-problems-19-test-matrix.md).
