@@ -26,10 +26,11 @@ import { securityAuditWebhookStateId } from '../security-audit-webhook/security-
 import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
 import type { LoginSecurityMetricEvent } from '../authentication/security/login-security-metrics.service';
 import {
-  expectedAssetSchedulers,
+  expectedSchedulers,
   opsMonitoredQueueNames,
   opsProbeTimeouts,
 } from './ops-health.constants';
+import { collectProblemOperationsSignal } from './collect-problem-operations-signal';
 import { OpsStateStore } from './ops-state.store';
 import { collectSlaObservability } from '../sla/collect-sla-observability';
 import { slaScanQueueName, slaScanSchedulerId } from '../sla/sla-scan.constants';
@@ -84,6 +85,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       mailProviderBlock,
       sla,
       assetOperations,
+      problemOperations,
     ] = await Promise.all([
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-failed') : Promise.resolve(null),
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-skipped') : Promise.resolve(null),
@@ -101,6 +103,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
           ).catch(() => null)
         : Promise.resolve(null),
       database === 'ok' ? this.collectAssetOperations(now, redis === 'ok') : Promise.resolve(null),
+      database === 'ok' ? this.collectProblemOperations(now) : Promise.resolve(null),
     ]);
     return {
       nowMs,
@@ -122,7 +125,20 @@ export class OpsSignalCollector implements OnModuleDestroy {
       mailProviderBlock,
       sla,
       assetOperations,
+      problemOperations,
     };
+  }
+
+  private async collectProblemOperations(now: Date): Promise<OpsSignals['problemOperations']> {
+    try {
+      return await withTimeout(
+        () => collectProblemOperationsSignal(this.prisma, now),
+        opsProbeTimeouts.problemOperationsMs,
+      );
+    } catch (error) {
+      this.logger.warn(`ops_problem_probe_failed reason=${errorText(error)}`);
+      return null;
+    }
   }
 
   private async collectAssetOperations(now: Date, redisAvailable: boolean): Promise<AssetOperationsSignal | null> {
@@ -326,7 +342,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
         });
       }
       return {
-        schedulers: includeExpectedAssetSchedulers(schedulers, outcomes),
+        schedulers: includeExpectedSchedulers(schedulers, outcomes),
         queues: counts,
       };
     } catch (error) {
@@ -352,16 +368,17 @@ type QueueLastOutcome = {
 };
 
 /**
- * Add expected assets scheduler rows even when Redis no longer contains their
- * registrations. The same row carries the queue's last successful execution,
- * so the health card and alarm gate do not silently lose that evidence.
+ * Add expected scheduler rows even when Redis no longer contains their
+ * registrations (asset schedules, W7.32 the hourly problem sweep). The same row
+ * carries the queue's last successful execution, so the health card and the alarm
+ * gate do not silently lose that evidence.
  */
-export function includeExpectedAssetSchedulers(
+export function includeExpectedSchedulers(
   schedulers: readonly SchedulerSignal[],
   outcomes: readonly QueueLastOutcome[],
 ): SchedulerSignal[] {
   const result = schedulers.map((scheduler): SchedulerSignal => {
-    const expected = expectedAssetSchedulers.find(
+    const expected = expectedSchedulers.find(
       (candidate) =>
         candidate.queue === scheduler.queue &&
         schedulerIdMatches(scheduler.schedulerId, candidate.schedulerId),
@@ -375,7 +392,7 @@ export function includeExpectedAssetSchedulers(
         };
   });
 
-  for (const expected of expectedAssetSchedulers) {
+  for (const expected of expectedSchedulers) {
     const alreadyPresent = result.some(
       (scheduler) =>
         scheduler.queue === expected.queue &&

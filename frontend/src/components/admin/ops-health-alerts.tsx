@@ -73,6 +73,7 @@ const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   auth_captchaFailed_high: ShieldAlert,
   auth_captchaSkipped_high: ShieldAlert,
   security_auditWebhook_stalled: Webhook,
+  problems_reminders_stuck: BellRing,
 };
 
 function AlertTitle({ alertKey }: { readonly alertKey: string }) {

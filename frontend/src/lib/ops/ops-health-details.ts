@@ -25,6 +25,11 @@ export const alertDetailFieldSlugs = [
   "pendingTransferFilePurges",
   "staleTransferFilePurges",
   "oldestTransferFilePurgeAgeMinutes",
+  // the stuck target reminders of the problem sweep (W7.32).
+  "stuckReminderDeliveries",
+  "deadReminderDeliveries",
+  "oldestStuckReminderMinutes",
+  "breachedOpenTargets",
   "orphanedTransferFiles",
   "missingTransferFiles",
   "scannedTransferFiles",

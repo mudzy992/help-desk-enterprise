@@ -16,6 +16,23 @@ export const problemSweepJobBackoffMilliseconds = 60_000;
 export const problemSweepBatch = 500;
 
 /**
+ * W7.32 (BA-problems-14): one hour of completed history stays inspectable, the
+ * failed jobs keep the DLQ evidence longer (the same keep-counts as before the
+ * registration moved into `registerRepeatableJob`).
+ */
+export const problemSweepCompletedJobsToKeep = 5;
+export const problemSweepFailedJobsToKeep = 20;
+/** Log prefix of the schedule: `<label>_schedule_failed`, `<label>_schedule_recovered`. */
+export const problemSweepJobLabel = 'problem_sweep';
+/**
+ * W7.32 (BA-problems-14): how often each worker verifies that the mandatory
+ * hourly schedule still exists in Redis. `upsertJobScheduler` is idempotent by
+ * scheduler id, so several workers may reconcile the same schedule concurrently;
+ * one probe per minute is the cost of not staying blind until the next deploy.
+ */
+export const problemSweepReconcileMilliseconds = 60_000;
+
+/**
  * W7.25 (BA-problems-07): a target reminder is a durable row, so a failed attempt
  * is retried instead of being lost. The hourly sweep moves a FAILED row again
  * after 2/10/60/240 minutes; the fifth failed attempt leaves it DEAD until an

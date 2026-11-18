@@ -1191,6 +1191,10 @@
         "asset_audit_writeFailures": {
           "title": "Zapisi audita imovine nisu uspjeli",
           "action": "Provjerite backend logove, audit action-schema validaciju i dostupnost baze/Redis-a. Transakcijske izmjene ostaju fail-closed; nemojte isključivati audit da biste zaobišli grešku."
+        },
+        "problems_reminders_stuck": {
+          "title": "Podsjetnici na rok problema ne izlaze",
+          "action": "Satna provjera problema radi, ali podsjetnici na ciljni rok ostaju neisporučeni: iscrpljeni pokušaji, istekao backoff ili preuzimanje koje je ostavio srušen ciklus. U detalju problema otvorite panel „Podsjetnici na rok“ i pritisnite „Ponovi“ na neisporučenom redu. Broj prekoračenih rokova u detalju pokazuje koliko je problema pogođeno."
         }
       },
       "alertDetailLabels": {
@@ -1241,7 +1245,11 @@
         "scannedTransferFiles": "Skenirane datoteke",
         "referencedTransferFiles": "Reference datoteka u bazi",
         "staleAfterMinutes": "Zastarjelo nakon (min)",
-        "oldestTransferFilePurgeAgeMinutes": "Starost najstarijeg zahtjeva za purge (min)"
+        "oldestTransferFilePurgeAgeMinutes": "Starost najstarijeg zahtjeva za purge (min)",
+        "stuckReminderDeliveries": "Podsjetnici koji čekaju isporuku",
+        "deadReminderDeliveries": "Crkli podsjetnici (samo ručni ponovni pokušaj)",
+        "oldestStuckReminderMinutes": "Starost najstarijeg zaglavljenog podsjetnika (min)",
+        "breachedOpenTargets": "Otvoreni problemi s prekoračenim rokom"
       }
     }
   },

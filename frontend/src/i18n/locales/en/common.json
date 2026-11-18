@@ -1182,6 +1182,10 @@
         "asset_audit_writeFailures": {
           "title": "Asset audit writes are failing",
           "action": "Check backend logs, audit action-schema validation, and database/Redis availability. Transactional mutations remain fail-closed; do not disable auditing to bypass the error."
+        },
+        "problems_reminders_stuck": {
+          "title": "Problem target reminders are not being delivered",
+          "action": "The hourly problem sweep runs, but target reminders stay undelivered: exhausted attempts, an elapsed backoff or a claim left by a crashed run. In the problem detail open the \"Target reminders\" panel and press \"Retry\" on the undelivered row. The breached-target count in the detail shows how many problems are affected."
         }
       },
       "alertDetailLabels": {
@@ -1232,7 +1236,11 @@
         "scannedTransferFiles": "Files scanned",
         "referencedTransferFiles": "Database file references",
         "staleAfterMinutes": "Stale after (min)",
-        "oldestTransferFilePurgeAgeMinutes": "Age of oldest purge request (min)"
+        "oldestTransferFilePurgeAgeMinutes": "Age of oldest purge request (min)",
+        "stuckReminderDeliveries": "Reminders waiting for delivery",
+        "deadReminderDeliveries": "Dead reminders (manual retry only)",
+        "oldestStuckReminderMinutes": "Age of the oldest stuck reminder (min)",
+        "breachedOpenTargets": "Open problems past their target"
       }
     }
   },

@@ -8,6 +8,7 @@ import {
   assetTransferFilePurgeStaleAfterMs,
   type AssetOperationsSignal,
 } from '../assets/asset-operations.types';
+import type { ProblemOperationsSignal } from '../problems/sweep/problem-operations';
 
 /**
  * Paket 2.7 (§4): turns one measurement round into one observation per alarm
@@ -114,6 +115,12 @@ export type OpsSignals = {
   } | null;
   /** Asset-specific DB and Redis metrics; null when their database probe failed. */
   readonly assetOperations: AssetOperationsSignal | null;
+  /**
+   * W7.32 (BA-problems-14): problem-sweep outcomes — stuck target reminders and
+   * the overdue (target-breached) backlog. Null when the database probe failed,
+   * so an unknown state never opens the alarm.
+   */
+  readonly problemOperations?: ProblemOperationsSignal | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -178,6 +185,7 @@ export function evaluateOpsSignals(
     observeAssetReminderDelivery(signals),
     observeAssetTransferFiles(signals),
     observeAssetAuditWrites(signals),
+    observeProblemReminderStuck(signals),
   ];
 }
 
@@ -690,6 +698,31 @@ function observeAssetImportClaims(signals: OpsSignals): OpsObservation {
     details: {
       importStuckClaims: assetOperations.importStuckClaims,
       staleAfterMinutes: Math.ceil(assetImportStuckLeaseGraceMs / minute),
+    },
+  };
+}
+
+/**
+ * W7.32 (BA-problems-14): the hourly sweep runs (its scheduler row and last
+ * success are gated by `scheduler.late`) but what it produced did not leave:
+ * DEAD reminders, retries whose backoff elapsed and claims left by a crashed
+ * run. The overdue backlog rides along as detail — it is workload, not a fault,
+ * and it is the number an operator needs to judge the damage.
+ */
+function observeProblemReminderStuck(signals: OpsSignals): OpsObservation {
+  const operations = signals.problemOperations ?? null;
+  if (operations === null || operations.stuckReminderDeliveries === 0) {
+    return inactive(opsAlertKeys.problemReminderStuck);
+  }
+  return {
+    key: opsAlertKeys.problemReminderStuck,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      stuckReminderDeliveries: operations.stuckReminderDeliveries,
+      deadReminderDeliveries: operations.deadReminderDeliveries,
+      oldestStuckReminderMinutes: operations.oldestStuckReminderMinutes,
+      breachedOpenTargets: operations.breachedOpenTargets,
     },
   };
 }

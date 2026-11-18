@@ -38,6 +38,9 @@ export const opsAlertSlugs = [
   "auth_captchaSkipped_high",
   // the audit webhook export has not delivered for a streak.
   "security_auditWebhook_stalled",
+  // W7.32 (BA-problems-14): the hourly problem sweep runs but its target
+  // reminders stay undelivered.
+  "problems_reminders_stuck",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
 

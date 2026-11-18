@@ -4,7 +4,11 @@ import {
   assetRemindersQueueName,
   assetRemindersSchedulerId,
 } from '../assets/reminders/asset-reminders.constants';
-import { problemSweepQueueName } from '../problems/sweep/problem-sweep.constants';
+import {
+  problemSweepCronPattern,
+  problemSweepQueueName,
+  problemSweepSchedulerId,
+} from '../problems/sweep/problem-sweep.constants';
 import { changeSweepQueueName } from '../changes/sweep/change-sweep.constants';
 import {
   assetDirectorySyncCronPattern,
@@ -71,6 +75,7 @@ export const opsProbeTimeouts = {
   assetDatabaseMs: 3_000,
   assetFileScanMs: 3_000,
   assetOperationsMs: 6_000,
+  problemOperationsMs: 3_000,
   uptimePushMs: 5_000,
 } as const;
 
@@ -92,4 +97,30 @@ export const expectedAssetSchedulers = [
     pattern: assetRemindersCronPattern,
     lastSuccessMaxAgeMs: assetSchedulerLastSuccessMaxAgeMs,
   },
+] as const;
+
+/**
+ * W7.32 (BA-problems-14): the hourly problem sweep is just as mandatory as the
+ * asset schedules, and it runs every hour at minute 23. The same one-window-plus-
+ * grace budget applies before "the last sweep is late" counts, because the sweep
+ * is also the only auto-close driver.
+ */
+export const problemSchedulerLastSuccessMaxAgeMs = 75 * 60_000;
+export const expectedProblemSchedulers = [
+  {
+    queue: problemSweepQueueName,
+    schedulerId: problemSweepSchedulerId,
+    pattern: problemSweepCronPattern,
+    lastSuccessMaxAgeMs: problemSchedulerLastSuccessMaxAgeMs,
+  },
+] as const;
+
+/**
+ * Schedules whose absence must be visible even when Redis is empty: the health
+ * collector synthesises their rows (with `registered: false`) instead of leaving
+ * the card and the alarm blind.
+ */
+export const expectedSchedulers = [
+  ...expectedAssetSchedulers,
+  ...expectedProblemSchedulers,
 ] as const;

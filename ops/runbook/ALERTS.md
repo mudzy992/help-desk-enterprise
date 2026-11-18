@@ -50,6 +50,7 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `asset.reminders.deliveryBacklog` | UPOZORENJE | 2 / 2 | [asset-reminder-delivery](#asset-reminder-delivery) |
 | `asset.transferFiles.integrity` | UPOZORENJE | 2 / 2 | [asset-transfer-files](#asset-transfer-files) |
 | `asset.audit.writeFailures` | UPOZORENJE / KRITIČNO | 2 / 2 | [asset-audit-failure](#asset-audit-failure) |
+| `problems.reminders.stuck` | UPOZORENJE | 2 / 2 | [problem-reminders](#problem-reminders) |
 
 ---
 
@@ -407,6 +408,28 @@ Ako je scan `limited` ili `unavailable`, orphan/missing rezultat je **nepoznat**
 3. Ispravi uzrok, zatim ponovi samo operaciju kroz podržani tok aplikacije. Ne isključuj audit i ne ponavljaj slijepo mutaciju.
 
 Kartica **Operativne metrike imovine** prikazuje i directory-sync overlap odbijanja te prealokaciju licenci/mjesta. To su informativne metrike, ne alarmi: busy lease može biti bezazlen konkurentni pokušaj, a prealokacija je dozvoljena poslovna situacija koju treba pregledati.
+
+## problem-reminders
+
+**Uslov:** najmanje jedan `ProblemTargetReminder` je `DEAD` (iscrpljeni pokušaji), njegov backoff je
+istekao (`FAILED` sa `nextAttemptAt` u prošlosti ili bez njega), ili je `CLAIMED` duže od 30 minuta
+(preuzimanje koje je ostavio srušen ciklus). Alarm se otvara nakon dvije uzastopne provjere, a zatvara
+nakon dvije čiste. Kartica prikazuje broj zaglavljenih, broj crklih, starost najstarijeg zaglavljenog i
+broj otvorenih problema s prekoračenim rokom; nijedna vrijednost ne sadrži primaoca ni ID problema.
+
+**Postupak:**
+1. Provjeri `scheduler.late` i red `problem-sweep` (zadnji uspjeh, sljedeći cron `23 * * * *`). Ako je
+   raspored nestao iz Redisa, worker ga vraća sam u roku od jedne minute
+   (`problem_sweep_schedule_recovered`); ako se recovery ponavlja, traži uzrok u Redisu (flush,
+   failover, `maxmemory` eviction), ne u problems modulu.
+2. U Administracija → Problemi → (problem) otvori panel **Podsjetnici na rok**, pogledaj `Razlog` i
+   pritisni **Ponovi** na neisporučenom redu. Ponovni pokušaj je idempotentan: dedupe ključ je vezan na
+   fazu i ciljni rok, pa dupli klik ne šalje duplu notifikaciju.
+3. Provjeri SMTP/provajdera i notifikacijske politike primalaca. `NO_RECIPIENT` je konačan ishod
+   politike (nema kome poslati), ne greška isporuke — takav red ne otvara ovaj alarm.
+4. Prekoračeni rokovi sami nisu alarm: to je radni zalih iz reporta `problem_backlog` (kolona
+   `overdue`). Ako broj raste uz zdrav scheduler i prazne redove za isporuku, uzrok je planiranje
+   rokova, ne sweep.
 
 ## ops-monitor-stale
 

@@ -74,6 +74,13 @@ function healthy(overrides: Partial<OpsSignals> = {}): OpsSignals {
       orphanedTransferFiles: 0,
       missingTransferFiles: 0,
     },
+    // W7.32: the sweep keeps up and nothing is stuck.
+    problemOperations: {
+      stuckReminderDeliveries: 0,
+      deadReminderDeliveries: 0,
+      oldestStuckReminderMinutes: null,
+      breachedOpenTargets: 0,
+    },
     ...overrides,
   };
 }
@@ -159,6 +166,93 @@ describe('evaluateOpsSignals', () => {
     })).get(opsAlertKeys.assetTransferFileIntegrity)!;
     expect(stalePurge).toMatchObject({ active: true, details: { staleTransferFilePurges: 1 } });
     expect(stalePurge.details).not.toHaveProperty('orphanedTransferFiles');
+  });
+
+  it('alerts on stuck problem reminders and carries the overdue backlog as detail (W7.32)', () => {
+    const quietWithBacklog = byKey(
+      healthy({
+        problemOperations: {
+          stuckReminderDeliveries: 0,
+          deadReminderDeliveries: 0,
+          oldestStuckReminderMinutes: null,
+          breachedOpenTargets: 12,
+        },
+      }),
+    );
+    // A breach is workload, not a fault: the backlog alone never opens an alarm.
+    expect(quietWithBacklog.get(opsAlertKeys.problemReminderStuck)).toMatchObject({ active: false });
+
+    const stuck = byKey(
+      healthy({
+        problemOperations: {
+          stuckReminderDeliveries: 3,
+          deadReminderDeliveries: 1,
+          oldestStuckReminderMinutes: 90,
+          breachedOpenTargets: 12,
+        },
+      }),
+    ).get(opsAlertKeys.problemReminderStuck)!;
+    expect(stuck).toMatchObject({
+      active: true,
+      severity: 'WARNING',
+      details: {
+        stuckReminderDeliveries: 3,
+        deadReminderDeliveries: 1,
+        oldestStuckReminderMinutes: 90,
+        breachedOpenTargets: 12,
+      },
+    });
+
+    // An unread database probe is unknown, not a quiet sweep.
+    expect(
+      byKey(healthy({ problemOperations: null })).get(opsAlertKeys.problemReminderStuck),
+    ).toMatchObject({ active: false });
+  });
+
+  it('treats the hourly problem sweep as an expected schedule (W7.32)', () => {
+    // Redis lost the registration: the synthesized row is enough to go late.
+    const missing = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: 'problem-sweep',
+            schedulerId: 'problem-sweep-hourly',
+            everyMs: null,
+            pattern: '23 * * * *',
+            nextMs: null,
+            lastSuccessMs: now - 2 * 60 * minute,
+            lastFailureMs: null,
+            registered: false,
+            lastSuccessMaxAgeMs: 75 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(missing.active).toBe(true);
+    expect(missing.details).toMatchObject({
+      jobs: [{ schedulerId: 'problem-sweep-hourly', reason: 'not_registered' }],
+    });
+
+    // Registered, but the last successful sweep is older than one window + grace.
+    const stale = findLateSchedulers({
+      nowMs: now,
+      schedulers: [
+        {
+          queue: 'problem-sweep',
+          schedulerId: 'problem-sweep-hourly',
+          everyMs: null,
+          pattern: '23 * * * *',
+          nextMs: now + 10 * minute,
+          lastSuccessMs: now - 80 * minute,
+          lastFailureMs: null,
+          registered: true,
+          lastSuccessMaxAgeMs: 75 * minute,
+        },
+      ],
+    });
+    expect(stale).toEqual([
+      expect.objectContaining({ queue: 'problem-sweep', reason: 'no_recent_success', minutesLate: 80 }),
+    ]);
   });
 
   it('keeps directory-sync overlap and license preallocation visible without alerting on them alone', () => {

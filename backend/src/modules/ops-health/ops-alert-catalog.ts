@@ -36,6 +36,9 @@ export const opsAlertKeys = {
   assetReminderDeliveryBacklog: 'asset.reminders.deliveryBacklog',
   assetTransferFileIntegrity: 'asset.transferFiles.integrity',
   assetAuditWriteFailures: 'asset.audit.writeFailures',
+  // W7.32: the hourly problem sweep runs but its target reminders do not leave
+  // (DEAD rows, overdue retries, claims of a crashed run).
+  problemReminderStuck: 'problems.reminders.stuck',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -85,6 +88,20 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
     // provider, and closes on the first accepted message.
     openAfter: 1,
     resolveAfter: 1,
+  },
+  [opsAlertKeys.problemReminderStuck]: {
+    key: opsAlertKeys.problemReminderStuck,
+    title: {
+      bs: 'Podsjetnici na rok problema ne izlaze',
+      en: 'Problem target reminders are not being delivered',
+    },
+    action: {
+      bs: 'Satna provjera problema radi, ali podsjetnici na ciljni rok ostaju neisporučeni (crkli red, istekao backoff ili preuzimanje od srušenog ciklusa). Provjerite karticu za broj i starost, pa u detalju problema pokrenite ponovni pokušaj (`Ponovi` na podsjetniku). Broj prekoračenih rokova u detalju pokazuje koliko je problema pogođeno.',
+      en: 'The hourly problem sweep runs, but target reminders stay undelivered (dead row, elapsed backoff or a claim left by a crashed run). Check the card for the count and age, then retry the reminder from the problem detail (`Retry`). The breached-target count in the detail shows how many problems are affected.',
+    },
+    runbook: runbook('problem-reminders'),
+    openAfter: 2,
+    resolveAfter: 2,
   },
   [opsAlertKeys.assetImportStuck]: {
     key: opsAlertKeys.assetImportStuck,
