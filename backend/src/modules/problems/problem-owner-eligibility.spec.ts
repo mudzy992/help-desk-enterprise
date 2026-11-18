@@ -73,6 +73,10 @@ describe('problemUnitAncestors (BA-problems-15)', () => {
   it('lists the unit and every parent, which is exactly what a grant can cover', () => {
     expect(problemUnitAncestors('sales/emea/sarajevo')).toEqual(['sales', 'sales/emea', 'sales/emea/sarajevo']);
     expect(problemUnitAncestors(' sales / emea ')).toEqual(['sales', 'sales/emea']);
+    // `ouPath` is stored with its leading slash; the ancestors must keep it.
+    expect(problemUnitAncestors('/Korisnici')).toEqual(['/Korisnici']);
+    expect(problemUnitAncestors('/root/ou1/child')).toEqual(['/root', '/root/ou1', '/root/ou1/child']);
+    expect(problemUnitAncestors('/')).toEqual([]);
     expect(problemUnitAncestors(null)).toEqual([]);
     expect(problemUnitAncestors('')).toEqual([]);
   });
@@ -225,5 +229,220 @@ describe('eligibleProblemOwnerWhere (BA-problems-15)', () => {
 
   it('drops the unit branches for a problem without a unit, so only cross-unit grants pass', () => {
     expect(branches(eligibleProblemOwnerWhere({ groupId: 'group-1', unitPath: null }) as Where)).toHaveLength(1);
+  });
+});
+
+/*
+  W7.35: the two shapes of the rule must agree on **real data**. W7.33 proved
+  each shape on its own but fed both slash-less paths, while `ouPath` rows keep
+  their leading slash — so the picker, the handoff managers and the notices
+  matched nobody while the write path kept accepting the same person. This block
+  evaluates the Prisma filter in memory against the exact check with the stored
+  format.
+*/
+describe('both shapes of the owner rule agree on stored paths (W7.35)', () => {
+  type Candidate = {
+    readonly isActive: boolean;
+    readonly anonymizedAt: Date | null;
+    readonly homeUnitPath: string | null;
+    readonly groupIds: readonly string[];
+    readonly assignments: readonly {
+      readonly roleKey: string;
+      readonly permissions: readonly string[];
+      readonly unitPath: string | null;
+      readonly serviceId: string | null;
+    }[];
+  };
+
+  type Where = Record<string, Record<string, unknown>>;
+
+  const permissionKeysOf = permissionKeys.problemManage;
+
+  /** Evaluates exactly the operators `eligibleProblemOwnerWhere` emits. */
+  function matchesFilter(where: unknown, candidate: Candidate, unitPath: string | null, groupId: string): boolean {
+    const filter = where as {
+      isActive: boolean;
+      anonymizedAt: unknown;
+      groupMembers: { some: { groupId: string } };
+      userRoles: {
+        some: {
+          role: { rolePermissions: { some: { permission: { key: string } } } };
+          OR: readonly { AND: readonly Record<string, unknown>[] }[];
+        };
+      };
+    };
+    if (candidate.isActive !== filter.isActive) return false;
+    if (filter.anonymizedAt !== null || candidate.anonymizedAt !== null) return false;
+    if (!candidate.groupIds.includes(filter.groupMembers.some.groupId)) return false;
+    const roleFilter = filter.userRoles.some.role.rolePermissions.some.permission.key;
+    const assignmentMatches = (assignment: Candidate['assignments'][number]): boolean =>
+      assignment.permissions.includes(roleFilter) &&
+      filter.userRoles.some.OR.some((branch) =>
+        branch.AND.every((condition) => {
+          if ('organizationalUnitId' in condition) {
+            if ((condition.organizationalUnitId as string | null) !== (assignment.unitPath === null ? null : 'set')) return false;
+          }
+          if ('serviceId' in condition) {
+            if ((condition.serviceId as string | null) !== assignment.serviceId) return false;
+          }
+          if ('organizationalUnit' in condition) {
+            const inList = (condition.organizationalUnit as { ouPath: { in: readonly string[] } }).ouPath.in;
+            if (assignment.unitPath === null || !inList.includes(assignment.unitPath)) return false;
+          }
+          if ('user' in condition) {
+            const inList = ((condition.user as { organizationalUnit: { ouPath: { in: readonly string[] } } }).organizationalUnit).ouPath.in;
+            if (candidate.homeUnitPath === null || !inList.includes(candidate.homeUnitPath)) return false;
+          }
+          if ('role' in condition) {
+            const keys = (condition.role as { key: { in: readonly string[] } }).key.in;
+            if (!keys.includes(assignment.roleKey)) return false;
+          }
+          return true;
+        }),
+      );
+    return candidate.assignments.some(assignmentMatches);
+  }
+
+  const unitPath = '/Korisnici';
+  const groupId = 'group-1';
+  const manager = (path: string | null, roleKey = 'PROBLEM_MANAGER') => ({
+    roleKey,
+    permissions: [permissionKeysOf],
+    unitPath: path,
+    serviceId: null,
+  });
+
+  const cases: readonly { readonly name: string; readonly candidate: Candidate }[] = [
+    {
+      name: 'group manager scoped to the group unit',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: unitPath,
+        groupIds: [groupId],
+        assignments: [manager(unitPath)],
+      },
+    },
+    {
+      name: 'group manager scoped to a parent unit',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: '/root',
+        groupIds: [groupId],
+        assignments: [manager('/root')],
+      },
+    },
+    {
+      name: 'group manager scoped to the unit and a sub-unit',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: `${unitPath}/it`,
+        groupIds: [groupId],
+        assignments: [manager(`${unitPath}/it`)],
+      },
+    },
+    {
+      name: 'group manager scoped to a sibling unit',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: '/Ostalo',
+        groupIds: [groupId],
+        assignments: [manager('/Ostalo')],
+      },
+    },
+    {
+      name: 'global problem manager',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: null,
+        groupIds: [groupId],
+        assignments: [manager(null)],
+      },
+    },
+    {
+      name: 'agent whose assignment carries no unit, home unit is the group unit',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: unitPath,
+        groupIds: [groupId],
+        assignments: [manager(null, 'AGENT')],
+      },
+    },
+    {
+      name: 'member without problem.manage',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: unitPath,
+        groupIds: [groupId],
+        assignments: [{ ...manager(unitPath), permissions: [permissionKeys.problemRead] }],
+      },
+    },
+    {
+      name: 'manager of another group',
+      candidate: {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: unitPath,
+        groupIds: ['group-2'],
+        assignments: [manager(unitPath)],
+      },
+    },
+    {
+      name: 'deactivated manager',
+      candidate: {
+        isActive: false,
+        anonymizedAt: null,
+        homeUnitPath: unitPath,
+        groupIds: [groupId],
+        assignments: [manager(unitPath)],
+      },
+    },
+  ];
+
+  it.each(cases)('agrees for: $name', ({ candidate }) => {
+    const where = eligibleProblemOwnerWhere({ groupId, unitPath });
+    const filter = matchesFilter(where, candidate, unitPath, groupId);
+    const exact = evaluateProblemOwnerEligibility({
+      userId: 'owner-1',
+      groupId,
+      unitPath,
+      isActive: candidate.isActive,
+      anonymizedAt: candidate.anonymizedAt,
+      principal: principalOf({
+        groupIds: [...candidate.groupIds],
+        homeUnitId: candidate.homeUnitPath === null ? null : 'home',
+        assignments: candidate.assignments.map((assignment) => ({
+          roleKey: assignment.roleKey,
+          permissions: [...assignment.permissions],
+          ou: assignment.unitPath === null ? null : { id: 'ou', path: assignment.unitPath },
+          serviceId: assignment.serviceId,
+        })),
+      }),
+      homeUnitPath: candidate.homeUnitPath,
+    });
+    expect(filter).toBe(exact.eligible);
+  });
+
+  it('lists a /Korisnici manager, which is the reported regression', () => {
+    const where = eligibleProblemOwnerWhere({ groupId, unitPath });
+    const scoped = matchesFilter(
+      where,
+      {
+        isActive: true,
+        anonymizedAt: null,
+        homeUnitPath: unitPath,
+        groupIds: [groupId],
+        assignments: [manager('/Korisnici')],
+      },
+      unitPath,
+      groupId,
+    );
+    expect(scoped).toBe(true);
   });
 });

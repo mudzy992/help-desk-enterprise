@@ -189,7 +189,8 @@ describe('ProblemsService owner eligibility', () => {
     };
     expect(scope.groupMembers).toEqual({ some: { groupId: 'g1' } });
     const unitBranch = scope.userRoles.some.OR[1]?.AND[1] as { organizationalUnit: { ouPath: { in: string[] } } };
-    expect(unitBranch.organizationalUnit.ouPath.in).toEqual(['root', 'root/ou1']);
+    // The same strings the database stores, not a normalised copy of them.
+    expect(unitBranch.organizationalUnit.ouPath.in).toEqual(['/root', '/root/ou1']);
     // The text search stays its own OR: a scope filter and a search must both hold.
     expect(args.where.AND[1]).toHaveProperty('OR');
   });

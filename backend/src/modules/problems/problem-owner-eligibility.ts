@@ -49,11 +49,22 @@ export type ProblemOwnerScope = {
   readonly groupUnitPath?: string | null;
 };
 
-/** The unit and all of its parents (`a/b/c` -> `a`, `a/b`, `a/b/c`). */
+/**
+ * The unit and all of its parents in the **stored** format: `ouPath` rows keep
+ * their leading slash (`/korisnici`, `/korisnici/it`), so the ancestors must
+ * keep it too — `/a/b/c` -> `/a`, `/a/b`, `/a/b/c`.
+ *
+ * W7.33 shipped this without the prefix and every unit-scoped `problem.manage`
+ * grant fell out of the picker, the handoff managers and the notices while the
+ * in-memory rule kept accepting the same person (W7.35 fix).
+ */
 export function problemUnitAncestors(unitPath: string | null): readonly string[] {
   if (unitPath === null) return [];
-  const parts = unitPath.split('/').map((part) => part.trim()).filter((part) => part.length > 0);
-  return parts.map((_, index) => parts.slice(0, index + 1).join('/'));
+  const trimmed = unitPath.trim();
+  if (trimmed.length === 0 || trimmed === '/') return [];
+  const rooted = trimmed.startsWith('/');
+  const parts = trimmed.split('/').map((part) => part.trim()).filter((part) => part.length > 0);
+  return parts.map((_, index) => `${rooted ? '/' : ''}${parts.slice(0, index + 1).join('/')}`);
 }
 
 /**
