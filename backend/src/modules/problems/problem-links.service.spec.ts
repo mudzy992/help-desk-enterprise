@@ -21,7 +21,9 @@ function setup(options: { status?: string; authority?: boolean; cmdb?: boolean; 
     problem: { findFirst: jest.fn(async () => problem), findMany: jest.fn(async () => [{ id: 'p1', sequence: 7, title: 'VPN', status: 'NEW', priority: 'HIGH' }]) },
     problemService: { findMany: jest.fn(async () => []), create: jest.fn(async () => ({})) },
     problemAsset: {
-      findMany: jest.fn(async () => []),
+      // BA-problems-17: the reuse in the hasMore test assigns asset rows, so the
+      // double stays wide instead of inferring an empty tuple type.
+      findMany: jest.fn(async (): Promise<unknown[]> => []),
       create: jest.fn(async () => ({})),
       deleteMany: jest.fn(async () => ({ count: 1 })),
     },
