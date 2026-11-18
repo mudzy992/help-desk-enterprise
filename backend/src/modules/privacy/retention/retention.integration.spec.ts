@@ -674,6 +674,7 @@ describeIfDatabase('retention (integration)', () => {
       'requestRegister',
       'attachments',
       'ticketContent',
+      'problemContent',
       'audit',
     ]);
     expect(await svc.sweepNightly(new Date('2026-12-01T02:00:00Z'))).toEqual([]);

@@ -57,6 +57,7 @@ describe('attachment retention has a single source (val 2, M8/B1)', () => {
       'attachments',
       'audit',
       'emailDeliveries',
+      'problemContent',
       'requestRegister',
       'sessions',
       'statusIncidents',
