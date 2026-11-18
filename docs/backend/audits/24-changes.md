@@ -165,7 +165,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-01 | P1       | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope              | zatvoreno |
 | BA-changes-02 | P1       | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope                               | zatvoreno |
 | BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | zatvoreno |
-| BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | otvoreno |
+| BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | zatvoreno |
 | BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | otvoreno |
 | BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | otvoreno |
 | BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | otvoreno |
@@ -192,7 +192,9 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **03:** zatvoreno u W7.44 — direct problem link ponavlja `problem.read` visibility i dozvoljeni status
   (`CHANGE_PROBLEM_CLOSED` za zatvoren/otkazan problem). Dokaz:
   [W7.44 implementation](../implementation/265-w744-changes-03-problem-link.md).
-- **04–05:** scope-filter conflict/calendar reference i redact inaccessible konflikt/downtime detalje.
+- **04:** zatvoreno u W7.45 — preview scope-uje reference i broji, ali ne imenuje, nedostupne konflikte.
+  Dokaz: [W7.45 implementation](../implementation/266-w745-changes-04-conflict-preview.md).
+- **05:** otvoreno — calendar downtime query još nema viewer filter (sljedeći P1).
 - **06, 14:** persisted round voter/quorum snapshot ili strogo filtrirana dynamic politika; reject oversized CAB.
 - **07:** outbox/delivery state; marker tek nakon policy-dovoljnog persisted outcomea.
 - **08, 13:** desired downtime state + reconciliation worker, retry/dead-letter i scheduler/health self-heal.
@@ -281,3 +283,13 @@ Tuđi ili nečitljiv problem i dalje daje `CHANGE_PROBLEM_NOT_FOUND` (bez potvrd
 zatvoren/otkazan problem daje novi `CHANGE_PROBLEM_CLOSED` (409) sa statusom u detalju; update koji ne dira
 problem ne revalidira postojeći link. Nema migracije. Zajednički dokaz:
 [265-w744-changes-03-problem-link.md](../implementation/265-w744-changes-03-problem-link.md).
+
+## 23. Implementacijski closeout — W7.45 (`BA-changes-04`)
+
+Na `6d3b701`, uz zeleni CI `44404252202`, conflict preview ne može više poslužiti kao enumerator tuđeg
+rasporeda: traženi `assetIds` prolaze kroz `asset.read` scope (W7.43 helper), `changeId` se poštuje samo ako
+ga viewer smije čitati, a `describe()` dobija publiku — dostupni konflikti zadržavaju puni oblik, nedostupni se
+svode na `restricted: { changes, downtime }` i **i dalje postavljaju `hasWarnings`**, pa acknowledgement ne
+može proći tiho. Frontend prikazuje brojeve bez imena. Nema migracije; `04` zatvoren, `05` (calendar downtime)
+ostaje sljedeći P1. Dokaz:
+[266-w745-changes-04-conflict-preview.md](../implementation/266-w745-changes-04-conflict-preview.md).
