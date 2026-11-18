@@ -10231,6 +10231,8 @@
       "next": "Next month",
       "today": "Today",
       "truncated": "The period has more than 500 items; the view is incomplete. Narrow the period or use the register.",
+      "restrictedDowntime_one": "{{count}} downtime window from a change outside your scope is not shown.",
+      "restrictedDowntime_other": "{{count}} downtime windows from changes outside your scope are not shown.",
       "legend": "Shows scheduled and active changes, service downtime not created by a change and freeze periods (snowflake icon).",
       "caption": "Change calendar for {{month}}",
       "cellChanges_one": "{{count}} change",

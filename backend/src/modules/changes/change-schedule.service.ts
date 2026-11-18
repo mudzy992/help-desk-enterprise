@@ -268,7 +268,25 @@ export class ChangeScheduleService {
       plannedEnd: { gt: from },
       ...(visible === null ? {} : { AND: [visible] }),
     };
-    const [changes, downtime] = await Promise.all([
+    // BA-changes-05: a downtime window is a schedule fact of the change that
+    // owns it. Hand-entered windows stay public to every reader; a change-owned
+    // window is visible only while the reader may read that change. The filter
+    // runs in SQL, so a page full of hidden windows cannot crowd out the
+    // visible ones, and the hidden ones are reported as a count.
+    const downtimeWhere: Prisma.ServiceDowntimeWindowWhereInput = {
+      startsAt: { lt: to },
+      endsAt: { gt: from },
+      ...(visible === null ? {} : { OR: [{ changeRequestId: null }, { changeRequest: visible }] }),
+    };
+    const hiddenDowntimeWhere: Prisma.ServiceDowntimeWindowWhereInput | null = visible === null
+      ? null
+      : {
+          startsAt: { lt: to },
+          endsAt: { gt: from },
+          changeRequestId: { not: null },
+          NOT: { changeRequest: visible },
+        };
+    const [changes, downtime, restrictedDowntime] = await Promise.all([
       this.prisma.changeRequest.findMany({
         where,
         select: {
@@ -287,11 +305,12 @@ export class ChangeScheduleService {
         take: changeLimits.calendarMaxItems,
       }),
       this.prisma.serviceDowntimeWindow.findMany({
-        where: { startsAt: { lt: to }, endsAt: { gt: from } },
+        where: downtimeWhere,
         select: { id: true, startsAt: true, endsAt: true, message: true, changeRequestId: true, service: { select: { id: true, name: true } } },
         orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
         take: changeLimits.calendarMaxItems,
       }),
+      hiddenDowntimeWhere === null ? 0 : this.prisma.serviceDowntimeWindow.count({ where: hiddenDowntimeWhere }),
     ]);
     return {
       from: from.toISOString(),
@@ -317,6 +336,8 @@ export class ChangeScheduleService {
         message: row.message,
         changeRequestId: row.changeRequestId,
       })),
+      /** BA-changes-05: downtime windows the reader may not read, as a count. */
+      restrictedDowntime,
       freezePeriods: configuration.freezePeriods,
       truncated: changes.length >= changeLimits.calendarMaxItems || downtime.length >= changeLimits.calendarMaxItems,
     };

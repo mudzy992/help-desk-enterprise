@@ -173,6 +173,11 @@ export function ChangeCalendar() {
       {query.data.truncated ? (
         <p className={hintClassName}>{t("changes.calendar.truncated")}</p>
       ) : null}
+      {(query.data.restrictedDowntime ?? 0) > 0 ? (
+        <p className={hintClassName} data-testid="change-calendar-restricted-downtime">
+          {t("changes.calendar.restrictedDowntime", { count: query.data.restrictedDowntime })}
+        </p>
+      ) : null}
       <p className={hintClassName}>{t("changes.calendar.legend")}</p>
 
       <Card className="hidden overflow-hidden p-0 md:block">

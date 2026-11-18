@@ -35,6 +35,11 @@ export type ChangeCalendar = {
     readonly message: string | null;
     readonly changeRequestId: string | null;
   }[];
+  /**
+   * Change-owned downtime windows outside the reader's scope (BA-changes-05):
+   * counted, never named. Absent in responses from servers before W7.46.
+   */
+  readonly restrictedDowntime?: number;
   readonly freezePeriods: readonly ChangeFreezePeriod[];
   /** More than 500 items in the period: the view is incomplete. */
   readonly truncated: boolean;
