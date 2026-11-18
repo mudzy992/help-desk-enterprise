@@ -13,6 +13,7 @@ import {
 } from '../assets/asset-link-access';
 import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
+import { problemFinalStatuses, type ProblemStatusValue } from '../problems/problems.constants';
 import { formatProblemNumber, parseProblemNumberSearch } from '../problems/problem-rules';
 import { problemVisibilityWhere } from '../problems/problem-visibility';
 import { ChangeAccessService, type ChangeConfiguration, type ChangeScope, type ChangeViewer } from './change-access.service';
@@ -1042,7 +1043,12 @@ export class ChangesService {
     }
     if (input.problemId) {
       if (!(await this.access.problemsEnabled())) throw new ChangeError(changeErrorCodes.problemNotFound, 'problems_disabled');
-      if (!(await this.canReadProblem(viewer, input.problemId))) throw new ChangeError(changeErrorCodes.problemNotFound);
+      // BA-changes-03: a direct problem id repeats the whole link policy of the
+      // picker — `problem.read` visibility *and* an open status. A foreign id
+      // still reads as not found, so the error never confirms it exists.
+      const status = await this.problemLinkStatus(viewer, input.problemId);
+      if (status === null) throw new ChangeError(changeErrorCodes.problemNotFound);
+      if (problemFinalStatuses.includes(status)) throw new ChangeError(changeErrorCodes.problemClosed, status);
     }
     if (input.ownerUserId) {
       if ((await this.prisma.user.count({ where: { id: input.ownerUserId, ...this.managerWhere() } })) === 0) {
@@ -1079,6 +1085,22 @@ export class ChangesService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * BA-changes-03: the write-side twin of the problem picker. Returns the
+   * problem status when the viewer may read the problem, `null` otherwise
+   * (missing `problem.read`, module off, out of scope or a foreign id).
+   */
+  private async problemLinkStatus(viewer: ChangeViewer, problemId: string): Promise<ProblemStatusValue | null> {
+    if (!this.access.hasPermission(viewer, permissionKeys.problemRead) || !(await this.access.problemsEnabled())) return null;
+    const scope = await this.access.scopeOf(viewer, permissionKeys.problemRead);
+    const visible = problemVisibilityWhere(scope, viewer.userId);
+    const row = await this.prisma.problem.findFirst({
+      where: { AND: [{ id: problemId }, ...(visible === null ? [] : [visible])] },
+      select: { status: true },
+    });
+    return row?.status ?? null;
   }
 
   private async canReadProblem(viewer: ChangeViewer, problemId: string): Promise<boolean> {

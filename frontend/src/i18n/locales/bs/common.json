@@ -10260,6 +10260,7 @@
       "serviceNotFound": "Servis ne postoji.",
       "assetNotFound": "Stavka opreme ne postoji.",
       "problemNotFound": "Problem ne postoji.",
+      "problemClosed": "Problem je zatvoren ili otkazan i ne može se povezati s promjenom.",
       "templateNotFound": "Šablon ne postoji.",
       "templateInactive": "Šablon nije aktivan.",
       "templateRisk": "Šablon standardne promjene mora biti niskog ili srednjeg rizika.",

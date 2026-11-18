@@ -58,6 +58,10 @@ describe("mapChangeError", () => {
     expect(mapChangeError(new ApiError(409, "CHANGE_FREEZE", "Kraj godine"))).toBe(
       "changes.errors.freeze",
     );
+    // W7.44 (BA-changes-03): a closed problem is a distinct, actionable answer.
+    expect(mapChangeError(new ApiError(409, "CHANGE_PROBLEM_CLOSED", "CLOSED"))).toBe(
+      "changes.errors.problemClosed",
+    );
     expect(mapChangeError(new Error("x"))).toBeNull();
   });
 });

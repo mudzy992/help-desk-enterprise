@@ -10181,6 +10181,7 @@
       "serviceNotFound": "The service does not exist.",
       "assetNotFound": "The equipment item does not exist.",
       "problemNotFound": "The problem does not exist.",
+      "problemClosed": "The problem is closed or cancelled and cannot be linked to a change.",
       "templateNotFound": "The template does not exist.",
       "templateInactive": "The template is inactive.",
       "templateRisk": "A standard change template must be low or medium risk.",

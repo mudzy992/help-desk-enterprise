@@ -31,6 +31,7 @@ export function mapChangeError(error: unknown): unknown {
     case changeErrorCodes.noApprovers:
     case changeErrorCodes.alreadyVoted:
     case changeErrorCodes.notInAuthorization:
+    case changeErrorCodes.problemClosed:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

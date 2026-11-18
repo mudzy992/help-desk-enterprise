@@ -82,6 +82,8 @@ export const changeErrorCodes = {
   serviceNotFound: 'CHANGE_SERVICE_NOT_FOUND',
   assetNotFound: 'CHANGE_ASSET_NOT_FOUND',
   problemNotFound: 'CHANGE_PROBLEM_NOT_FOUND',
+  /** §4: a closed or cancelled problem cannot receive a new change link. */
+  problemClosed: 'CHANGE_PROBLEM_CLOSED',
   templateNotFound: 'CHANGE_TEMPLATE_NOT_FOUND',
   templateInactive: 'CHANGE_TEMPLATE_INACTIVE',
   /** §13: standard templates must be low or medium risk. */

@@ -117,6 +117,7 @@ const changeErrorKeys = {
   CHANGE_SERVICE_NOT_FOUND: "changes.errors.serviceNotFound",
   CHANGE_ASSET_NOT_FOUND: "changes.errors.assetNotFound",
   CHANGE_PROBLEM_NOT_FOUND: "changes.errors.problemNotFound",
+  CHANGE_PROBLEM_CLOSED: "changes.errors.problemClosed",
   CHANGE_TEMPLATE_NOT_FOUND: "changes.errors.templateNotFound",
   CHANGE_TEMPLATE_INACTIVE: "changes.errors.templateInactive",
   CHANGE_TEMPLATE_RISK: "changes.errors.templateRisk",
