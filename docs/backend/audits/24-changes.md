@@ -164,7 +164,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | ------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-changes-01 | P1       | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope              | zatvoreno |
 | BA-changes-02 | P1       | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope                               | zatvoreno |
-| BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | otvoreno |
+| BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | zatvoreno |
 | BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | otvoreno |
 | BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | otvoreno |
 | BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | otvoreno |
@@ -189,8 +189,9 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **02:** zatvoreno u W7.43 — picker, write link i response projekcija koriste `asset.read` i asset OU
   scope preko zajedničkog helpera `assets/asset-link-access.ts`. Dokaz:
   [W7.43 implementation](../implementation/264-w743-changes-02-asset-scope.md).
-- **03:** otvoreno — direct problem link mora ponoviti `problem.read` visibility i dozvoljeni status
-  (reuse problem access policy na write).
+- **03:** zatvoreno u W7.44 — direct problem link ponavlja `problem.read` visibility i dozvoljeni status
+  (`CHANGE_PROBLEM_CLOSED` za zatvoren/otkazan problem). Dokaz:
+  [W7.44 implementation](../implementation/265-w744-changes-03-problem-link.md).
 - **04–05:** scope-filter conflict/calendar reference i redact inaccessible konflikt/downtime detalje.
 - **06, 14:** persisted round voter/quorum snapshot ili strogo filtrirana dynamic politika; reject oversized CAB.
 - **07:** outbox/delivery state; marker tek nakon policy-dovoljnog persisted outcomea.
@@ -271,3 +272,12 @@ prefiksa, tuđi ID se vraća kao `CHANGE_ASSET_NOT_FOUND`, a `assetCount` prati 
 namjerno ne briše linkove koje editor ne vidi. Nema nove migracije; `service.*` scope ostaje otvorena
 observacija iz §4 (nema vlastiti ID u registru), a `BA-changes-03` je sljedeći P1. Zajednički dokaz:
 [264-w743-changes-02-asset-scope.md](../implementation/264-w743-changes-02-asset-scope.md).
+
+## 22. Implementacijski closeout — W7.44 (`BA-changes-03`)
+
+Na `056d4db`, uz zeleni CI `44400859473`, direct `problemId` na create/update prolazi punu link politiku
+pickera: `problem.read` vidljivost (koja je u kodu već bila preko `canReadProblem`) **i** dozvoljeni status.
+Tuđi ili nečitljiv problem i dalje daje `CHANGE_PROBLEM_NOT_FOUND` (bez potvrde postojanja), a čitljiv ali
+zatvoren/otkazan problem daje novi `CHANGE_PROBLEM_CLOSED` (409) sa statusom u detalju; update koji ne dira
+problem ne revalidira postojeći link. Nema migracije. Zajednički dokaz:
+[265-w744-changes-03-problem-link.md](../implementation/265-w744-changes-03-problem-link.md).

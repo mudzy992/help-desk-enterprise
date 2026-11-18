@@ -364,7 +364,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 23 | `problems` | `BA-problems-21` | P3 | Problem notifikacije su fire-and-forget: nema outbox/replay intencije ni retryja | zatvoreno (W7.42) | [23-problems.md](audits/23-problems.md) |
 | 24 | `changes` | `BA-changes-01` | P1 | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope | zatvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-02` | P1 | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope | zatvoreno (W7.43) | [24-changes.md](audits/24-changes.md) |
-| 24 | `changes` | `BA-changes-03` | P1 | Direct problem link write provjerava samo existence, ne `problem.read` visibility | otvoreno | [24-changes.md](audits/24-changes.md) |
+| 24 | `changes` | `BA-changes-03` | P1 | Direct problem link write provjerava samo existence, ne `problem.read` visibility | zatvoreno (W7.44) | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-04` | P1 | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-05` | P1 | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-06` | P1 | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round | otvoreno | [24-changes.md](audits/24-changes.md) |
