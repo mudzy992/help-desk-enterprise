@@ -9827,6 +9827,11 @@
       "incidentCausedBy_one": "This outage is caused by problem:",
       "incidentCausedBy_other": "This outage is caused by problems:"
     },
+    "lists": {
+      "capped": "Showing the first {{count}} records — the list is capped and there may be more.",
+      "cappedOfTotal": "Showing {{count}} of {{total}} records — use the export or a narrower search for the rest.",
+      "pickerCapped": "The picker list is capped; if the item you need is missing, ask an administrator."
+    },
     "handoff": {
       "title": "Problem handoff",
       "pendingTitle": "Handoff waiting for a decision",

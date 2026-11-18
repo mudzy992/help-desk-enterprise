@@ -99,7 +99,8 @@ export function AssetDetailPage() {
     enabled: assetId !== "",
   });
   const changeAccess = useChangeModuleAccess();
-  const problemItems = useAssetProblems(assetId).data?.items ?? [];
+  const assetProblems = useAssetProblems(assetId);
+  const problemItems = assetProblems.data?.items ?? [];
   const canManage = assetQuery.data?.canManage === true;
   const catalogQuery = useQuery({
     queryKey: assetQueryKeys.catalog(false),
@@ -363,7 +364,7 @@ export function AssetDetailPage() {
           <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} />
         ) : null}
         {tab === "problems" && problemItems.length > 0 ? (
-          <AssetProblemsPanel items={problemItems} />
+          <AssetProblemsPanel items={problemItems} hasMore={assetProblems.data?.hasMore === true} />
         ) : null}
         {tab === "changes" && changeAccess.visible ? (
           <RelatedChangesPanel

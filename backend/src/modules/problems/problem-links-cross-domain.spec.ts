@@ -250,7 +250,7 @@ describe('ProblemLinksService cross-domain policy', () => {
   it('answers an invisible incident with no problems at all', async () => {
     const { service, prisma } = setup();
     prisma.serviceIncident.count.mockResolvedValueOnce(0);
-    expect(await service.forIncident('i-staff', viewer)).toEqual({ items: [] });
+    expect(await service.forIncident('i-staff', viewer)).toEqual({ items: [], hasMore: false });
     expect(prisma.problem.findMany).not.toHaveBeenCalled();
   });
 });

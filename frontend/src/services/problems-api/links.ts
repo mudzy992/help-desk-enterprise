@@ -32,6 +32,12 @@ export type ProblemLinks = {
   readonly suggestedAssets: readonly (ProblemLinkedAsset & { readonly ticketCount: number })[];
   readonly services: readonly NamedRef[];
   readonly incidents: readonly ProblemLinkedIncident[];
+  /** Which section of the tab hit its window (BA-problems-17). */
+  readonly hasMore: {
+    readonly assets: boolean;
+    readonly services: boolean;
+    readonly incidents: boolean;
+  };
 };
 
 export type ProblemReference = {
@@ -123,12 +129,12 @@ export function unlinkProblemIncident(problemId: string, incidentId: string): Pr
 
 export function getProblemsForAsset(
   assetId: string,
-): Promise<{ readonly items: readonly ProblemReference[] }> {
+): Promise<{ readonly items: readonly ProblemReference[]; readonly hasMore: boolean }> {
   return apiRequest(`/problems/by-asset/${encodeURIComponent(assetId)}`);
 }
 
 export function getProblemsForIncident(
   incidentId: string,
-): Promise<{ readonly items: readonly ProblemReference[] }> {
+): Promise<{ readonly items: readonly ProblemReference[]; readonly hasMore: boolean }> {
   return apiRequest(`/problems/by-incident/${encodeURIComponent(incidentId)}`);
 }

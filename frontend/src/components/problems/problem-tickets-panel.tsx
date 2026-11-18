@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ListTruncationNote } from "@/components/problems/list-truncation-note";
 import {
   errorTextClassName,
   tableHeadClassName,
@@ -92,6 +93,16 @@ export function ProblemTicketsPanel({
         <p role="alert" className={`px-4 pb-2 ${errorTextClassName}`}>
           {error}
         </p>
+      ) : null}
+      {data.hasMore ? (
+        <div className="px-4 pb-2">
+          {/* BA-problems-17: total is counted server-side; say when the table is a window. */}
+          <ListTruncationNote
+            count={data.items.length}
+            total={data.total}
+            testId="problem-tickets-capped"
+          />
+        </div>
       ) : null}
       <div className="overflow-x-auto">
         <table className="w-full text-[12.5px]">

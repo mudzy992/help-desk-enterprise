@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ListTruncationNote } from "@/components/problems/list-truncation-note";
 import { problemStatusKeys, problemStatusTone } from "@/lib/problems/problem-view";
 import {
   getProblemsForAsset,
@@ -53,7 +54,14 @@ function ProblemRows({
 }
 
 /** P5b: the asset card's "Problems" tab. */
-export function AssetProblemsPanel({ items }: { readonly items: readonly ProblemReference[] }) {
+export function AssetProblemsPanel({
+  items,
+  hasMore = false,
+}: {
+  readonly items: readonly ProblemReference[];
+  /** BA-problems-17: the reverse list is a window (50); say so instead of hiding it. */
+  readonly hasMore?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <Card data-testid="asset-problems-panel">
@@ -62,6 +70,11 @@ export function AssetProblemsPanel({ items }: { readonly items: readonly Problem
         subtitle={t("problems.links.assetProblemsSubtitle")}
       />
       <ProblemRows items={items} />
+      {hasMore ? (
+        <div className="px-2 pb-3">
+          <ListTruncationNote count={items.length} testId="asset-problems-capped" />
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -89,6 +102,11 @@ export function IncidentProblemLinks({ incidentId }: { readonly incidentId: stri
         {t("problems.links.incidentCausedBy", { count: items.length })}
       </p>
       <ProblemRows items={items} compact />
+      {query.data?.hasMore === true ? (
+        <div className="px-2 pb-1">
+          <ListTruncationNote count={items.length} testId="incident-problems-capped" />
+        </div>
+      ) : null}
     </div>
   );
 }

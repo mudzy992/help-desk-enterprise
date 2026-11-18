@@ -1,5 +1,5 @@
 import { ProblemsService } from './problems.service';
-import { problemErrorCodes } from './problems.constants';
+import { problemErrorCodes, problemLimits } from './problems.constants';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { AuthorizationContext } from '../authorization/authorization.types';
 
@@ -122,6 +122,17 @@ describe('ProblemsService service visibility', () => {
     expect(prisma.service.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { lifecycle: { in: ['DRAFT', 'ACTIVE', 'DEPRECATED'] } } }),
     );
+  });
+
+  // BA-problems-17: a capped picker announces itself instead of losing options.
+  it('announces a capped unit picker', async () => {
+    const { service, prisma } = setup();
+    prisma.organizationalUnit.findMany.mockResolvedValueOnce(
+      Array.from({ length: problemLimits.optionsMax + 1 }, (_, i) => ({ id: `ou${i}`, name: `U${i}`, ouPath: `/u${i}` })),
+    );
+    const result = await service.options(viewer);
+    expect(result.units).toHaveLength(problemLimits.optionsMax);
+    expect(result.hasMore).toEqual({ units: true, services: false, groups: false });
   });
 
   it('refuses to attach a service the caller cannot read', async () => {

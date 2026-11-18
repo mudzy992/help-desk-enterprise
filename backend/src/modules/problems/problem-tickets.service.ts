@@ -122,33 +122,46 @@ export class ProblemTicketsService {
   async listForProblem(problemId: string, viewer: ProblemViewer) {
     await this.loadProblem(problemId, viewer, permissionKeys.problemRead);
     const ticketVisibility = await problemTicketVisibility(this.prisma, this.authorizationContextLoader, this.accessPolicies, viewer.userId);
-    const links = await this.prisma.problemTicket.findMany({
-      where: { problemId, ticket: { is: ticketVisibility } },
-      orderBy: { linkedAt: 'desc' },
-      take: 500,
-      select: {
-        linkedAt: true,
-        ticket: {
-          select: {
-            id: true,
-            ticketNumber: true,
-            title: true,
-            status: true,
-            priority: true,
-            isConfidential: true,
-            createdAt: true,
-            requester: { select: { id: true, displayName: true } },
-            originUnit: { select: { id: true, name: true } },
-            assignedUser: { select: { id: true, displayName: true } },
+    const where = { problemId, ticket: { is: ticketVisibility } } as const;
+    // BA-problems-17: the window is fetched with one extra row and both numbers
+    // are counted, so `total` is the real number of links the viewer may see and
+    // `hasMore` is proved instead of inferred from the truncated array.
+    const [links, total, open] = await Promise.all([
+      this.prisma.problemTicket.findMany({
+        where,
+        orderBy: { linkedAt: 'desc' },
+        take: problemLimits.linkedTicketListMax + 1,
+        select: {
+          linkedAt: true,
+          ticket: {
+            select: {
+              id: true,
+              ticketNumber: true,
+              title: true,
+              status: true,
+              priority: true,
+              isConfidential: true,
+              createdAt: true,
+              requester: { select: { id: true, displayName: true } },
+              originUnit: { select: { id: true, name: true } },
+              assignedUser: { select: { id: true, displayName: true } },
+            },
           },
         },
-      },
-    });
-    const open = new Set<string>(problemOpenTicketStatuses);
+      }),
+      this.prisma.problemTicket.count({ where }),
+      this.prisma.problemTicket.count({
+        where: {
+          problemId,
+          ticket: { is: { AND: [ticketVisibility, { status: { in: [...problemOpenTicketStatuses] } }] } },
+        },
+      }),
+    ]);
     return {
-      total: links.length,
-      open: links.filter((link) => open.has(link.ticket.status)).length,
-      items: links.map(({ ticket, linkedAt }) => ({
+      total,
+      open,
+      hasMore: total > problemLimits.linkedTicketListMax,
+      items: links.slice(0, problemLimits.linkedTicketListMax).map(({ ticket, linkedAt }) => ({
         id: ticket.id,
         ticketNumber: ticket.ticketNumber,
         // Confidential tickets: the title and requester stay on the ticket itself.

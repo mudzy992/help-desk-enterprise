@@ -231,10 +231,36 @@ describe('ProblemTicketsService.listForProblem', () => {
       id: 'visible', ticketNumber: 'T-1', title: 'Visible', status: 'IN_PROGRESS', priority: 'LOW',
       isConfidential: false, createdAt: date, requester: null, originUnit: null, assignedUser: null,
     } }]);
-    Object.assign(prisma.problemTicket as object, { findMany });
+    Object.assign(prisma.problemTicket as object, {
+      findMany,
+      // BA-problems-17: total and open are counted, not read off the window.
+      count: jest.fn(async () => 1),
+    });
     const result = await service.listForProblem('p1', viewer);
-    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { problemId: 'p1', ticket: { is: visible } }, take: 500 }));
-    expect(result).toMatchObject({ total: 1, open: 1, items: [{ id: 'visible' }] });
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { problemId: 'p1', ticket: { is: visible } }, take: 501 }));
+    expect(result).toMatchObject({ total: 1, open: 1, hasMore: false, items: [{ id: 'visible' }] });
+  });
+
+  // BA-problems-17: the window is 500 links, but `total` and `open` are counted.
+  it('reports the real total and hasMore beyond the ticket window', async () => {
+    const { service, prisma } = setup({ tickets: [] });
+    const visible = { id: { in: ['visible'] } };
+    (problemTicketVisibility as jest.Mock).mockResolvedValue(visible);
+    const date = new Date('2026-01-01T00:00:00Z');
+    const findMany = jest.fn(async () => Array.from({ length: 501 }, (_, i) => ({
+      linkedAt: date,
+      ticket: {
+        id: `t${i}`, ticketNumber: `T-${i}`, title: 'T', status: 'NEW', priority: 'LOW',
+        isConfidential: false, createdAt: date, requester: null, originUnit: { id: 'ou1', name: 'Unit' }, assignedUser: null,
+      },
+    })));
+    const count = jest.fn(async () => 620);
+    Object.assign(prisma.problemTicket as object, { findMany, count });
+    const result = await service.listForProblem('p1', viewer);
+    expect(result.items).toHaveLength(500);
+    expect(result.total).toBe(620);
+    expect(result.open).toBe(620);
+    expect(result.hasMore).toBe(true);
   });
 
   it('fails closed if visibility cannot be established', async () => {

@@ -113,6 +113,11 @@ export type ProblemTicketItem = {
 export type ProblemTicketsResponse = {
   readonly total: number;
   readonly open: number;
+  /**
+   * BA-problems-17: the list is a window (500 links). `hasMore` is proved by the
+   * server, so the panel can say the table is not the whole set.
+   */
+  readonly hasMore: boolean;
   readonly items: readonly ProblemTicketItem[];
 };
 
@@ -245,6 +250,12 @@ export type ProblemOptions = {
   readonly units: readonly { readonly id: string; readonly name: string; readonly path: string }[];
   readonly services: readonly NamedRef[];
   readonly groups: readonly NamedRef[];
+  /** Which picker hit its window (BA-problems-17) — the form says so. */
+  readonly hasMore: {
+    readonly units: boolean;
+    readonly services: boolean;
+    readonly groups: boolean;
+  };
   readonly rootCauseCategories: readonly string[];
   readonly homeOrganizationalUnitId: string | null;
 };
@@ -427,29 +438,6 @@ export type ProblemResolutionRun = {
  * channel) and `NO_RECIPIENT` (policy left nobody to notify) are final; a
  * `FAILED`/`DEAD` row can be retried by a problem manager.
  */
-export type ProblemTargetReminderStatus =
-  "PENDING" | "CLAIMED" | "SENT" | "NO_RECIPIENT" | "FAILED" | "DEAD" | "CANCELLED";
-
-export type ProblemTargetReminder = {
-  readonly id: string;
-  readonly stage: string;
-  readonly status: ProblemTargetReminderStatus;
-  readonly targetAt: string;
-  readonly attempts: number;
-  readonly deliveredCount: number;
-  readonly recipientCount: number;
-  readonly errorCode: string | null;
-  readonly nextAttemptAt: string | null;
-  readonly lastAttemptAt: string | null;
-  readonly completedAt: string | null;
-  readonly canRetry: boolean;
-};
-
-export type ProblemTargetReminders = {
-  readonly items: readonly ProblemTargetReminder[];
-  readonly canRetry: boolean;
-};
-
 export type ProblemResolvePreview = {
   readonly max: number;
   readonly resolvable: number;
@@ -552,24 +540,8 @@ export function startProblemResolutionRun(
   });
 }
 
-export function getProblemTargetReminders(id: string): Promise<ProblemTargetReminders> {
-  return apiRequest(`/problems/${encodeURIComponent(id)}/target-reminders`);
-}
-
-export function retryProblemTargetReminder(
-  id: string,
-  reminderId: string,
-): Promise<ProblemDetail & { readonly targetReminders: ProblemTargetReminders }> {
-  return apiRequest(
-    `/problems/${encodeURIComponent(id)}/target-reminders/${encodeURIComponent(reminderId)}/retry`,
-    { method: "POST" },
-  );
-}
-
-export function getProblemEvents(id: string): Promise<{ readonly items: readonly ProblemEvent[] }> {
-  return apiRequest(`/problems/${encodeURIComponent(id)}/events`);
-}
-
 // ------------------------------------------------------------ P5b: CMDB items, services, incidents
 
 export * from "./problems-api/links";
+export * from "./problems-api/events";
+export * from "./problems-api/reminders";

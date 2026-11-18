@@ -258,9 +258,16 @@ export class ProblemsService {
       problemEventActions.serviceLinked, problemEventActions.serviceUnlinked, problemEventActions.incidentLinked, problemEventActions.incidentUnlinked,
     ];
     let cursor: string | undefined;
-    // Scan in bounded pages so inaccessible events cannot occupy the visible 200-event cap.
-    while (events.length < 200) {
-      const batch = await this.prisma.problemEvent.findMany({
+    const eventWindow = problemLimits.eventListMax;
+    // BA-problems-17: the window is no longer silent. The scan continues past it
+    // until it either finds one more visible event (`hasMore`) or proves the row
+    // set is exhausted. Invisible events must not consume the window, and the
+    // total work stays bounded by `eventScanMax` scanned rows; if that bound is
+    // reached we prefer saying "there may be more" over hiding records.
+    let hasMore = false;
+    let scanned = 0;
+    while (events.length <= eventWindow && scanned < problemLimits.eventScanMax) {
+      const batch: Array<{ id: string; action: string; actorUserId: string | null; detail: Prisma.JsonValue; createdAt: Date }> = await this.prisma.problemEvent.findMany({
         where: { problemId: id },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: 200,
@@ -282,6 +289,7 @@ export class ProblemsService {
         where: { AND: [assetWhereOf(assetAccess), { id: { in: assetIds } }] }, select: { id: true },
       });
       const allowedAssets = new Set(readableAssets.map((asset) => asset.id));
+      scanned += batch.length;
       for (const event of batch) {
         const referencedTicket = detailId(event.detail, 'ticketId');
         const referencedAsset = detailId(event.detail, 'assetId');
@@ -290,10 +298,21 @@ export class ProblemsService {
           (ticketActions.includes(event.action) && referencedTicket !== null && allowed.has(referencedTicket)) ||
           (assetActions.includes(event.action) && referencedAsset !== null && allowedAssets.has(referencedAsset))
         ) events.push(event);
-        if (events.length === 200) break;
+        if (events.length > eventWindow) {
+          hasMore = true;
+          break;
+        }
       }
+      if (hasMore) break;
       if (batch.length < 200) break;
       cursor = batch[batch.length - 1]!.id;
+    }
+    // Hitting the scan bound without exhausting the rows means the answer is a
+    // window we could not finish checking; the flag stays conservative.
+    if (!hasMore && scanned >= problemLimits.eventScanMax && events.length >= eventWindow) hasMore = true;
+    if (events.length > eventWindow) {
+      events.length = eventWindow;
+      hasMore = true;
     }
     const actorIds = [...new Set(events.map((event) => event.actorUserId).filter((value): value is string => value !== null))];
     const actors = actorIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: userSelect });
@@ -306,6 +325,7 @@ export class ProblemsService {
         detail: event.detail,
         createdAt: event.createdAt.toISOString(),
       })),
+      hasMore,
     };
   }
 
@@ -732,12 +752,15 @@ export class ProblemsService {
     await this.access.require(viewer, permissionKeys.problemRead);
     const permission = this.access.hasPermission(viewer, permissionKeys.problemManage) ? permissionKeys.problemManage : permissionKeys.problemRead;
     const unitWhere = unitScopeWhere(await this.access.scopeOf(viewer, permission));
+    // BA-problems-17: pickers say when their list was cut, instead of dropping
+    // options silently. One extra row per collection proves it.
+    const optionsMax = problemLimits.optionsMax;
     const [units, services, groups, configuration] = await Promise.all([
       this.prisma.organizationalUnit.findMany({
         where: (unitWhere ?? {}) as Prisma.OrganizationalUnitWhereInput,
         select: { id: true, name: true, ouPath: true },
         orderBy: { ouPath: 'asc' },
-        take: 2000,
+        take: optionsMax + 1,
       }),
       // W7.29 (BA-problems-11): the picker offers what the service catalog itself
       // shows this user — drafts stay admin-only, a scoped admin sees its own.
@@ -745,16 +768,21 @@ export class ProblemsService {
         where: (await this.serviceReadWhere(viewer)) as never,
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
-        take: 2000,
+        take: optionsMax + 1,
       }),
       // Only problem groups can own a problem (decision 2026-10-01).
-      this.prisma.group.findMany({ where: { isProblemGroup: true }, select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 2000 }),
+      this.prisma.group.findMany({ where: { isProblemGroup: true }, select: { id: true, name: true }, orderBy: { name: 'asc' }, take: optionsMax + 1 }),
       this.access.configuration(),
     ]);
     return {
-      units: units.map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
-      services,
-      groups,
+      units: units.slice(0, optionsMax).map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
+      services: services.slice(0, optionsMax),
+      groups: groups.slice(0, optionsMax),
+      hasMore: {
+        units: units.length > optionsMax,
+        services: services.length > optionsMax,
+        groups: groups.length > optionsMax,
+      },
       rootCauseCategories: configuration.rootCauseCategories,
       homeOrganizationalUnitId: viewer.homeOrganizationalUnitId,
     };

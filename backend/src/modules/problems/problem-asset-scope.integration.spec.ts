@@ -135,6 +135,6 @@ describeIfDatabase('problem CMDB link scope (BA-problems-03, integration)', () =
     await prisma.problemAsset.create({ data: { problemId, assetId: insideAssetId } });
     const inside = await links.forAsset(insideAssetId, viewer);
     expect(inside.items.map((item) => item.id)).toEqual([problemId]);
-    expect(await links.forAsset(foreignAssetId, viewer)).toEqual({ items: [] });
+    expect(await links.forAsset(foreignAssetId, viewer)).toEqual({ items: [], hasMore: false });
   });
 });

@@ -28,6 +28,17 @@ export const problemLimits = {
   handoffHistoryMax: 50,
   /** Knowledge article body (KB maximum). */
   articleBodyMax: 20000,
+  /**
+   * BA-problems-17: every window below is announced, never silent. The list is
+   * fetched with one extra row, so `hasMore` is proved and not guessed.
+   */
+  eventListMax: 200,
+  /** Rows the timeline may scan to find one visible event beyond the window. */
+  eventScanMax: 5_000,
+  linkedTicketListMax: 500,
+  linkListMax: 200,
+  reverseListMax: 50,
+  optionsMax: 2_000,
   messageMax: 8000,
 } as const;
 

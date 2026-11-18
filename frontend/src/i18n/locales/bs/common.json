@@ -9902,6 +9902,11 @@
       "incidentCausedBy_few": "Ovaj prekid je posljedica problema:",
       "incidentCausedBy_other": "Ovaj prekid je posljedica problema:"
     },
+    "lists": {
+      "capped": "Prikazano je prvih {{count}} zapisa — lista je ograničena i može ih biti više.",
+      "cappedOfTotal": "Prikazano je {{count}} od {{total}} zapisa — ostatak otvorite kroz izvoz ili suženu pretragu.",
+      "pickerCapped": "Lista u izborniku je ograničena; ako tražena stavka nije u njoj, javite administratoru."
+    },
     "handoff": {
       "title": "Predaja problema",
       "pendingTitle": "Predaja čeka odluku",

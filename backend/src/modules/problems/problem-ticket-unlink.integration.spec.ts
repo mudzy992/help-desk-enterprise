@@ -160,7 +160,7 @@ describeIfDatabase('problem ticket unlink authorization and transaction (BA-prob
       expect(requester.total).toBe(2);
       expect(requester.items.map((item) => item.id)).toEqual(expect.arrayContaining([ticketId, hidden.id]));
       const foreign = await listing.listForProblem(problemId, viewer(foreignId));
-      expect(foreign).toEqual({ total: 0, open: 0, items: [] });
+      expect(foreign).toEqual({ total: 0, open: 0, hasMore: false, items: [] });
       const problemAccess = {
         ...access,
         configuration: async () => ({ numberPrefix: 'P-' }),

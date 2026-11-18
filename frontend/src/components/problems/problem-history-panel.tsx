@@ -10,6 +10,7 @@ import { formatAssetDateTime } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, problemHistoryText } from "@/lib/problems/problem-view";
 import { getProblemEvents, problemQueryKeys } from "@/services/problems-api";
+import { ListTruncationNote } from "@/components/problems/list-truncation-note";
 
 /** Delivery invariant (requirement): newest first, the last 200 entries. */
 export function ProblemHistoryPanel({
@@ -64,6 +65,12 @@ export function ProblemHistoryPanel({
           </li>
         ))}
       </ol>
+      {query.data.hasMore ? (
+        <div className="px-4 pb-3">
+          {/* BA-problems-17: the timeline is a window, not the whole history. */}
+          <ListTruncationNote count={query.data.items.length} testId="problem-events-capped" />
+        </div>
+      ) : null}
     </Card>
   );
 }

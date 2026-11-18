@@ -114,9 +114,39 @@ describe('ProblemLinksService (P5b)', () => {
     await expect(setup({ cmdb: false }).service.linkAssets('p1', viewer, ['a1'])).rejects.toMatchObject({ code: problemErrorCodes.assetNotFound });
   });
 
+  // BA-problems-17: a section of the links tab is a window and says so.
+  it('announces each capped section of the links tab and returns one window', async () => {
+    const { service, prisma } = setup();
+    const assets = Array.from({ length: 201 }, (_, i) => ({ linkedAt: new Date('2026-01-01T00:00:00Z'), asset: { ...assetRow, id: `a${i}` } }));
+    prisma.problemAsset.findMany.mockResolvedValueOnce(assets);
+    const result = await service.get('p1', viewer);
+    expect(result.assets).toHaveLength(200);
+    expect(prisma.problemAsset.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 201 }));
+    expect(result.hasMore).toEqual({ assets: true, services: false, incidents: false });
+  });
+
+  it('says nothing is missing when every section fits in the window', async () => {
+    const { service, prisma } = setup();
+    prisma.problemAsset.findMany.mockResolvedValueOnce([{ linkedAt: new Date('2026-01-01T00:00:00Z'), asset: assetRow }]);
+    const result = await service.get('p1', viewer);
+    expect(result.assets).toHaveLength(1);
+    expect(result.hasMore).toEqual({ assets: false, services: false, incidents: false });
+  });
+
+  it('announces a capped reverse list on the asset card', async () => {
+    const { service, prisma } = setup();
+    prisma.problem.findMany.mockResolvedValueOnce(
+      Array.from({ length: 51 }, (_, i) => ({ id: `p${i}`, sequence: i, title: `T${i}`, status: 'NEW', priority: 'HIGH' })),
+    );
+    const result = await service.forAsset('a1', viewer);
+    expect(result.items).toHaveLength(50);
+    expect(prisma.problem.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 51 }));
+    expect(result.hasMore).toBe(true);
+  });
+
   it('answers the asset card with numbered problems, or nothing without problem.read', async () => {
-    expect(await setup().service.forAsset('a1', viewer)).toEqual({ items: [{ id: 'p1', number: 'P-000007', title: 'VPN', status: 'NEW', priority: 'HIGH' }] });
-    expect(await setup({ canRead: false }).service.forAsset('a1', viewer)).toEqual({ items: [] });
+    expect(await setup().service.forAsset('a1', viewer)).toEqual({ items: [{ id: 'p1', number: 'P-000007', title: 'VPN', status: 'NEW', priority: 'HIGH' }], hasMore: false });
+    expect(await setup({ canRead: false }).service.forAsset('a1', viewer)).toEqual({ items: [], hasMore: false });
   });
 
   it('filters linked assets and suggestions by the CMDB scope of the viewer', async () => {
@@ -200,7 +230,7 @@ describe('ProblemLinksService (P5b)', () => {
     const foreign = setup();
     (problemAssetAccess as jest.Mock).mockResolvedValue({ allowed: true, where: scopedWhere });
     foreign.prisma.asset.count.mockResolvedValueOnce(0);
-    expect(await foreign.service.forAsset('a1', viewer)).toEqual({ items: [] });
+    expect(await foreign.service.forAsset('a1', viewer)).toEqual({ items: [], hasMore: false });
     expect(foreign.prisma.problem.findMany).not.toHaveBeenCalled();
 
     const readable = setup();

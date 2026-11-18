@@ -15,7 +15,8 @@ import { problemErrorCodes, problemEventActions, problemFinalStatuses, problemLi
 /** Suggestions and pickers stay short; the record lists are bounded too. */
 const suggestionLimit = 20;
 const searchLimit = 10;
-const listLimit = 200;
+const listLimit = problemLimits.linkListMax;
+const reverseListLimit = problemLimits.reverseListMax;
 /** Incident picker: unresolved ones plus those resolved in this window. */
 const incidentSearchWindowDays = 180;
 
@@ -115,18 +116,19 @@ export class ProblemLinksService {
     ]);
     // A service or incident the caller may not read in its own module does not
     // become readable because a problem links to it.
+    // BA-problems-17: each section of the links tab is a window, and it says so.
     const services = await this.prisma.problemService.findMany({
       where: { problemId, service: { is: crossDomain.serviceWhere } },
       select: { service: { select: { id: true, name: true } } },
       orderBy: { service: { name: 'asc' } },
-      take: listLimit,
+      take: listLimit + 1,
     });
     const assetAccess = cmdbEnabled ? await problemAssetAccess(this.prisma, viewer.userId) : null;
     const assets = cmdbEnabled
       ? await this.prisma.problemAsset.findMany({
           where: { problemId, asset: { is: assetWhereOf(assetAccess!) } },
           orderBy: { linkedAt: 'desc' },
-          take: listLimit,
+          take: listLimit + 1,
           select: { linkedAt: true, asset: { select: assetSelect } },
         })
       : [];
@@ -134,7 +136,7 @@ export class ProblemLinksService {
       ? await this.prisma.problemIncident.findMany({
           where: withIncidentVisibility({ problemId }, crossDomain.incidents),
           orderBy: { linkedAt: 'desc' },
-          take: listLimit,
+          take: listLimit + 1,
           select: { incident: { select: incidentSelect } },
         })
       : [];
@@ -142,10 +144,15 @@ export class ProblemLinksService {
       cmdbEnabled,
       statusEnabled,
       canEdit,
-      assets: assets.map((link) => ({ ...toAsset(link.asset), linkedAt: link.linkedAt.toISOString() })),
+      assets: assets.slice(0, listLimit).map((link) => ({ ...toAsset(link.asset), linkedAt: link.linkedAt.toISOString() })),
       suggestedAssets: cmdbEnabled ? await this.suggestAssets(problemId, viewer, assetAccess!) : [],
-      services: services.map((link) => link.service),
-      incidents: incidents.map((link) => toIncident(link.incident)),
+      services: services.slice(0, listLimit).map((link) => link.service),
+      incidents: incidents.slice(0, listLimit).map((link) => toIncident(link.incident)),
+      hasMore: {
+        assets: assets.length > listLimit,
+        services: services.length > listLimit,
+        incidents: incidents.length > listLimit,
+      },
     };
   }
 
@@ -361,9 +368,9 @@ export class ProblemLinksService {
    */
   async forAsset(assetId: string, viewer: ProblemViewer) {
     const assetAccess = await problemAssetAccess(this.prisma, viewer.userId);
-    if (!assetAccess.allowed) return { items: [] };
+    if (!assetAccess.allowed) return { items: [], hasMore: false };
     const readable = await this.prisma.asset.count({ where: { AND: [assetWhereOf(assetAccess), { id: assetId }] } });
-    if (readable === 0) return { items: [] };
+    if (readable === 0) return { items: [], hasMore: false };
     return this.reverse(viewer, { assets: { some: { assetId } } });
   }
 
@@ -372,24 +379,25 @@ export class ProblemLinksService {
     const visible = await this.prisma.serviceIncident.count({
       where: withIncidentVisibility({ id: incidentId }, crossDomain.incidents),
     });
-    if (visible === 0) return { items: [] };
+    if (visible === 0) return { items: [], hasMore: false };
     return this.reverse(viewer, { incidents: { some: { incidentId } } });
   }
 
   private async reverse(viewer: ProblemViewer, where: Record<string, unknown>) {
     const capabilities = await this.access.capabilities(viewer);
-    if (!capabilities.enabled || !capabilities.canRead || capabilities.configuration === null) return { items: [] };
+    if (!capabilities.enabled || !capabilities.canRead || capabilities.configuration === null) return { items: [], hasMore: false };
     const scope = await this.access.require(viewer, permissionKeys.problemRead);
     const visible = problemVisibilityWhere(scope, viewer.userId);
     const rows = await this.prisma.problem.findMany({
       where: { AND: [where, ...(visible === null ? [] : [visible])] },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: reverseListLimit + 1,
       select: { id: true, sequence: true, title: true, status: true, priority: true },
     });
     const prefix = capabilities.configuration.numberPrefix;
     return {
-      items: rows.map((row) => ({ id: row.id, number: formatProblemNumber(prefix, row.sequence), title: row.title, status: row.status, priority: row.priority })),
+      items: rows.slice(0, reverseListLimit).map((row) => ({ id: row.id, number: formatProblemNumber(prefix, row.sequence), title: row.title, status: row.status, priority: row.priority })),
+      hasMore: rows.length > reverseListLimit,
     };
   }
 }

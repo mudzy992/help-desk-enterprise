@@ -41,6 +41,7 @@ const options: ProblemOptions = {
     { id: "g1", name: "Grupa A" },
     { id: "g2", name: "Grupa B" },
   ],
+  hasMore: { units: false, services: false, groups: false },
   rootCauseCategories: ["SW"],
   homeOrganizationalUnitId: "ou1",
 };
@@ -73,7 +74,11 @@ function renderSheet(onSaved = vi.fn()) {
   return renderSheetFor(problem, onSaved);
 }
 
-function renderSheetFor(target: ProblemDetail, onSaved = vi.fn()) {
+function renderSheetFor(
+  target: ProblemDetail,
+  onSaved = vi.fn(),
+  pickers: ProblemOptions = options,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -81,7 +86,7 @@ function renderSheetFor(target: ProblemDetail, onSaved = vi.fn()) {
         <ProblemFormSheet
           open
           onOpenChange={() => undefined}
-          options={options}
+          options={pickers}
           problem={target}
           onSaved={onSaved}
           canAssignOwner
@@ -180,5 +185,21 @@ describe("ProblemFormSheet group change", () => {
     await waitFor(() => expect(update).toHaveBeenCalled());
     expect(update.mock.calls[0][1]).toMatchObject({ groupId: "g1" });
     expect(handoff).not.toHaveBeenCalled();
+  });
+
+  // BA-problems-17: a capped picker is announced, not silently short.
+  it("announces capped pickers instead of dropping options silently", () => {
+    renderSheetFor(problem, vi.fn(), {
+      ...options,
+      hasMore: { units: false, services: false, groups: true },
+    });
+    expect(screen.getByTestId("problem-form-pickers-capped").textContent).toBe(
+      "problems.lists.pickerCapped",
+    );
+  });
+
+  it("stays quiet when every picker fits", () => {
+    renderSheetFor(problem);
+    expect(screen.queryByTestId("problem-form-pickers-capped")).toBeNull();
   });
 });

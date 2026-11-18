@@ -53,6 +53,23 @@ describe('problem event ticket visibility', () => {
     expect(result.items.map((item) => item.id)).toEqual(['visible-event']);
     expect(findMany.mock.calls[1][0]).toMatchObject({ cursor: { id: 'h199' }, skip: 1, take: 200 });
   });
+  // BA-problems-17: the 200-event window is announced, not silent.
+  it('reports hasMore when a visible event exists beyond the window', async () => {
+    const visible = Array.from({ length: 200 }, (_, i) => event(`v${i}`, 'created'));
+    const { service } = setup([visible, [event('older', 'created')]]);
+    const result = await service.events(viewer, 'p1');
+    expect(result.items).toHaveLength(200);
+    expect(result.items.map((item) => item.id)).not.toContain('older');
+    expect(result.hasMore).toBe(true);
+  });
+
+  it('reports no more records when the rows run out inside the window', async () => {
+    const { service } = setup([[event('1', 'created'), event('2', 'created')], []]);
+    const result = await service.events(viewer, 'p1');
+    expect(result.items.map((item) => item.id)).toEqual(['1', '2']);
+    expect(result.hasMore).toBe(false);
+  });
+
   it('fails closed when ticket visibility is unavailable', async () => {
     const { service, findMany } = setup([]);
     (problemTicketVisibility as jest.Mock).mockRejectedValue(new Error('unavailable'));

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { ListTruncationNote } from "@/components/problems/list-truncation-note";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Input, Select } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -193,6 +194,9 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
               ))}
             </ul>
           )}
+          {links.hasMore.services ? (
+            <ListTruncationNote count={links.services.length} testId="problem-services-capped" />
+          ) : null}
           {canEdit && freeServices.length > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
               <Select
@@ -253,6 +257,9 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
                 ))}
               </ul>
             )}
+            {links.hasMore.assets ? (
+              <ListTruncationNote count={links.assets.length} testId="problem-assets-capped" />
+            ) : null}
             {canEdit && links.suggestedAssets.length > 0 ? (
               <div className="grid gap-1 rounded-md border border-dashed border-border p-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -380,6 +387,12 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
                 ))}
               </ul>
             )}
+            {links.hasMore.incidents ? (
+              <ListTruncationNote
+                count={links.incidents.length}
+                testId="problem-incidents-capped"
+              />
+            ) : null}
             {canEdit ? (
               <div className="grid gap-1">
                 <Input
