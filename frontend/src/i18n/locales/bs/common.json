@@ -975,7 +975,11 @@
         "oldestOverdueTarget": "Najstariji prekoračeni rok",
         "autoCloseDue": "Riješeni problemi čekaju auto-zatvaranje",
         "oldestAutoCloseDue": "Najduže čekanje na auto-zatvaranje",
-        "autoCloseWindow": "Prag auto-zatvaranja: {{days}} dana (0 = isključeno)."
+        "autoCloseWindow": "Prag auto-zatvaranja: {{days}} dana (0 = isključeno).",
+        "noticesQueued": "Obavijesti u redu čekanja",
+        "noticesQueuedValue": "U REDU: {{queued}} · mrtvih (samo ručni replay): {{dead}}",
+        "oldestQueuedNotice": "Starost najstarije obavijesti u redu",
+        "noticesHint": "Obavijesti o problemima se zapisuju uz samu radnju i dostavlja ih worker. Red koji se ne prazni znači da worker ne radi."
       },
       "alerts": {
         "title": "Aktivni alarmi",

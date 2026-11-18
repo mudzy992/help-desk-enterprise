@@ -18,12 +18,8 @@ import {
   ProblemStatusDto,
   UpdateProblemDto,
 } from './problems.dto';
-import {
-  problemResolutionRunOccurrence,
-  problemVersionOccurrence,
-  type ProblemNoticeOccurrence,
-} from './problem-notice-occurrence';
-import { ProblemNotifier } from './problem-notifier';
+import { problemResolutionRunOccurrence } from './problem-notice-occurrence';
+import { ProblemNoticeService } from './problem-notice.service';
 import { ProblemHandoffService } from './problem-handoff.service';
 import { ProblemTargetReminderService } from './problem-target-reminder.service';
 import { ProblemResolutionService } from './problem-resolution.service';
@@ -79,11 +75,34 @@ export class ProblemsController {
     private readonly problems: ProblemsService,
     private readonly problemTickets: ProblemTicketsService,
     private readonly resolution: ProblemResolutionService,
-    private readonly notifier: ProblemNotifier,
+    /** W7.42 (BA-problems-21): the status notice is queued, not fired here. */
+    private readonly notices: ProblemNoticeService,
     private readonly links: ProblemLinksService,
     private readonly reminders: ProblemTargetReminderService,
     private readonly handoffs: ProblemHandoffService,
   ) {}
+
+  /**
+   * W7.42 (BA-problems-21): the run-scoped status notice. A resolution run spans
+   * several transactions, so the intent is queued as soon as the run step that
+   * owns it has committed — the delivery itself is the worker's job.
+   */
+  private async enqueueRunStatusNotice(
+    problemId: string,
+    actorUserId: string,
+    runId: string,
+    status: string,
+  ): Promise<void> {
+    await this.notices.enqueueAfterCommit([
+      {
+        kind: 'status-changed',
+        problemId,
+        status,
+        actorUserId,
+        occurrence: problemResolutionRunOccurrence(runId, status),
+      },
+    ]);
+  }
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
     return problemViewerOf(request, privacyActorOf(request).principal.subjectId);
@@ -222,14 +241,12 @@ export class ProblemsController {
       const { resolveTickets, message, closeCode, resolutionRunId, ...status } = body;
       const groupResolve = resolveTickets === true && status.status === 'RESOLVED';
       // P5 (§11): after the group resolution, so only agents of tickets that stayed open hear about it.
-      // W7.31: the notice is deduplicated per user by a stable occurrence — the
-      // problem version for a plain status write, the resolution run id when a
-      // run is involved (a resumed run still reaches newly resolved agents).
-      const notify = (occurrence: ProblemNoticeOccurrence) =>
-        this.notifier.run('status', () => this.notifier.statusChanged(id, status.status, viewer.userId, occurrence));
+      // W7.31/W7.42: the notice is deduplicated per user by a stable occurrence —
+      // the problem version for a plain status write (queued inside
+      // `changeStatus`), the resolution run id when a run is involved (a resumed
+      // run still reaches newly resolved agents).
       if (!groupResolve) {
         const problem = await this.problems.changeStatus(viewer, id, status);
-        notify(problemVersionOccurrence(problem.version));
         return { ...problem, ticketResolution: null };
       }
       await this.resolution.assertResolveOptions(id, viewer, { message, closeCode });
@@ -237,21 +254,20 @@ export class ProblemsController {
       // the two leaves a resumable record instead of losing the resolution.
       const runId = resolutionRunId ?? randomUUID();
       const prepared = await this.resolution.prepareRun(id, viewer, { runId, message, closeCode });
-      const runOccurrence = problemResolutionRunOccurrence(runId, status.status);
       if (prepared.replay !== null) {
-        notify(runOccurrence);
+        await this.enqueueRunStatusNotice(id, viewer.userId, runId, status.status);
         return { ...(await this.problems.get(viewer, id)), ticketResolution: prepared.replay };
       }
       if (prepared.status === 'FAILED') throw new ProblemError(problemErrorCodes.resolutionRunClosed);
       try {
-        await this.problems.changeStatus(viewer, id, status);
+        await this.problems.changeStatus(viewer, id, status, { statusNotice: 'none' });
       } catch (error) {
         // Nothing was written on a ticket; the run is kept as evidence but is not resumable.
         await this.resolution.abortRun(runId, ticketFailureCode(error));
         throw error;
       }
       const ticketResolution = await this.resolution.executeRun(id, viewer, runId);
-      notify(runOccurrence);
+      await this.enqueueRunStatusNotice(id, viewer.userId, runId, status.status);
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }
@@ -270,9 +286,7 @@ export class ProblemsController {
         throw new ProblemError(problemErrorCodes.resolutionRunClosed);
       }
       const ticketResolution = prepared.replay ?? (await this.resolution.executeRun(id, viewer, body.runId));
-      this.notifier.run('status', () =>
-        this.notifier.statusChanged(id, 'RESOLVED', viewer.userId, problemResolutionRunOccurrence(body.runId, 'RESOLVED')),
-      );
+      await this.enqueueRunStatusNotice(id, viewer.userId, body.runId, 'RESOLVED');
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }
@@ -298,9 +312,7 @@ export class ProblemsController {
       const ticketResolution = await this.resolution.resumeRun(id, viewer, runId);
       // The same occurrence: agents who already heard about this run are not
       // notified twice, while tickets resolved for the first time are.
-      this.notifier.run('status', () =>
-        this.notifier.statusChanged(id, 'RESOLVED', viewer.userId, problemResolutionRunOccurrence(runId, 'RESOLVED')),
-      );
+      await this.enqueueRunStatusNotice(id, viewer.userId, runId, 'RESOLVED');
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }

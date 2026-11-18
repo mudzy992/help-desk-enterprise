@@ -3,6 +3,16 @@
 export const problemStatuses = ['NEW', 'INVESTIGATING', 'KNOWN_ERROR', 'RESOLVED', 'CLOSED', 'CANCELLED'] as const;
 export type ProblemStatusValue = (typeof problemStatuses)[number];
 
+/**
+ * W7.42 (BA-problems-21): the statuses that owe the agents of the still-open
+ * tickets a notice. The notifier and the outbox use the same predicate, so the
+ * queue holds intents that are actually deliverable instead of one row per
+ * status change.
+ */
+export function problemStatusNoticeWanted(status: string): boolean {
+  return status === 'KNOWN_ERROR' || status === 'RESOLVED';
+}
+
 export const problemSeverities = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 export type ProblemSeverityValue = (typeof problemSeverities)[number];
 

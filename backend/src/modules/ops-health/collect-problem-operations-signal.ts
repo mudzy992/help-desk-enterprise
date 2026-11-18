@@ -5,8 +5,9 @@ import {
   stuckProblemReminderWhere,
   type ProblemOperationsSignal,
 } from '../problems/sweep/problem-operations';
+import { problemNoticeTopic } from '../problems/problem-notice-outbox';
 
-export type ProblemOperationsPrisma = Pick<PrismaService, 'problemTargetReminder' | 'problem'>;
+export type ProblemOperationsPrisma = Pick<PrismaService, 'problemTargetReminder' | 'problem' | 'outboxMessage'>;
 
 export type ProblemOperationsOptions = {
   /**
@@ -37,7 +38,8 @@ export async function collectProblemOperationsSignal(
   const breachedWhere = breachedProblemTargetWhere(now);
   const autoCloseDays = options.autoCloseDays;
   const autoCloseWhere = autoCloseDays === null ? null : autoCloseDueWhere(now, autoCloseDays);
-  const [stuck, dead, oldestStuck, breached, oldestBreached, autoCloseDue, oldestDue] = await Promise.all([
+  const noticeWhere = { topic: problemNoticeTopic };
+  const [stuck, dead, oldestStuck, breached, oldestBreached, autoCloseDue, oldestDue, noticesPending, noticesProcessing, noticesDead, oldestNotice] = await Promise.all([
     prisma.problemTargetReminder.count({ where: stuckWhere }),
     prisma.problemTargetReminder.count({ where: { status: 'DEAD' } }),
     prisma.problemTargetReminder.findFirst({
@@ -59,6 +61,16 @@ export async function collectProblemOperationsSignal(
           orderBy: { resolvedAt: 'asc' },
           select: { resolvedAt: true },
         }),
+    // W7.42: the notice outbox of the problem module, same numbers the
+    // processor logs when it drains.
+    prisma.outboxMessage.count({ where: { ...noticeWhere, status: 'PENDING' } }),
+    prisma.outboxMessage.count({ where: { ...noticeWhere, status: 'PROCESSING' } }),
+    prisma.outboxMessage.count({ where: { ...noticeWhere, status: 'DEAD_LETTER' } }),
+    prisma.outboxMessage.findFirst({
+      where: { ...noticeWhere, status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    }),
   ]);
   const autoCloseDeadlineMs =
     autoCloseDays === null ? null : autoCloseDays * 86_400_000;
@@ -80,5 +92,14 @@ export async function collectProblemOperationsSignal(
         ? null
         : Math.max(0, Math.floor((now.getTime() - (oldestDue.resolvedAt.getTime() + autoCloseDeadlineMs)) / 60_000)),
     effectiveAutoCloseDays: autoCloseDays,
+    noticeOutbox: {
+      pending: noticesPending,
+      processing: noticesProcessing,
+      deadLetter: noticesDead,
+      oldestPendingMinutes:
+        oldestNotice?.createdAt == null
+          ? null
+          : Math.max(0, Math.floor((now.getTime() - oldestNotice.createdAt.getTime()) / 60_000)),
+    },
   };
 }

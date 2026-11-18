@@ -971,7 +971,11 @@
         "oldestOverdueTarget": "Oldest breached target",
         "autoCloseDue": "Resolved problems waiting for auto-close",
         "oldestAutoCloseDue": "Longest wait for auto-close",
-        "autoCloseWindow": "Auto-close threshold: {{days}} days (0 = off)."
+        "autoCloseWindow": "Auto-close threshold: {{days}} days (0 = off).",
+        "noticesQueued": "Notifications waiting in the queue",
+        "noticesQueuedValue": "QUEUED: {{queued}} · dead (manual replay only): {{dead}}",
+        "oldestQueuedNotice": "Age of the oldest queued notification",
+        "noticesHint": "Problem notifications are recorded with the action itself and delivered by the worker. A queue that does not drain means the worker is not running."
       },
       "alerts": {
         "title": "Active alarms",

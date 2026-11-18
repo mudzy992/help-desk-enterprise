@@ -25,11 +25,10 @@ import { ProblemAccessService } from './problem-access.service';
 import { formatProblemNumber } from './problem-rules';
 import {
   problemHandoffOccurrence,
-  problemRecurrenceOccurrence,
   problemTargetDueOccurrence,
   type ProblemNoticeOccurrence,
 } from './problem-notice-occurrence';
-import { problemOpenTicketStatuses } from './problems.constants';
+import { problemOpenTicketStatuses, problemStatusNoticeWanted } from './problems.constants';
 
 /** At most this many agents get one linked-ticket notice (more = misconfigured grouping). */
 export const problemNoticeMaxRecipients = 100;
@@ -125,6 +124,12 @@ function errorText(error: unknown): string {
  * preferences), e-mail for assignment, resolution and the target. Never the
  * actor; only active users. Failures are logged and never break the action
  * that triggered the notice.
+ *
+ * W7.42 (BA-problems-21): this class is now only the *delivery* of a notice.
+ * The intent is recorded in the outbox first and delivered by
+ * `ProblemNoticeOutboxProcessor`, which retries a failed delivery — except for
+ * the target reminder, whose own durable row already carries the attempt and
+ * its outcome.
  */
 @Injectable()
 export class ProblemNotifier {
@@ -136,11 +141,6 @@ export class ProblemNotifier {
     private readonly access: ProblemAccessService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
   ) {}
-
-  /** Runs a notice without ever throwing (API callers fire and forget). */
-  run(label: string, operation: () => Promise<unknown>): void {
-    void operation().catch((error: unknown) => this.logger.warn(`problem_notice_failed kind=${label} reason=${errorText(error)}`));
-  }
 
   async ownerAssigned(problemId: string, actorUserId: string | null, occurrence: ProblemNoticeOccurrence): Promise<number> {
     const facts = await this.facts(problemId);
@@ -174,7 +174,7 @@ export class ProblemNotifier {
     actorUserId: string | null,
     occurrence: ProblemNoticeOccurrence,
   ): Promise<number> {
-    if (status !== 'KNOWN_ERROR' && status !== 'RESOLVED') return 0;
+    if (!problemStatusNoticeWanted(status)) return 0;
     const facts = await this.facts(problemId);
     if (facts === null) return 0;
     const links = await this.prisma.problemTicket.findMany({
@@ -194,8 +194,11 @@ export class ProblemNotifier {
   }
 
   /** §11: a new ticket joined a problem that was already resolved (the cause may be back). */
-  async recurrence(problemId: string, ticketNumbers: readonly string[], actorUserId: string | null): Promise<number> {
-    if (ticketNumbers.length === 0) return 0;
+  async recurrence(
+    problemId: string,
+    occurrence: ProblemNoticeOccurrence,
+    actorUserId: string | null,
+  ): Promise<number> {
     const facts = await this.facts(problemId);
     if (facts === null || (facts.status !== 'RESOLVED' && facts.status !== 'CLOSED')) return 0;
     // Decision 2026-10-01: the owner and the problem managers of the group.
@@ -205,9 +208,10 @@ export class ProblemNotifier {
       type: notificationTypes.problemRecurrence,
       emailKey: null,
       recipientIds,
-      // W7.31: the occurrence is a digest of the ticket references, so the same
-      // link command replays to the same key and no identifier reachable from it.
-      occurrence: problemRecurrenceOccurrence(ticketNumbers).key,
+      // W7.31/W7.42: the caller passes the digest of the ticket references, so
+      // the same link command replays to the same key and the outbox payload
+      // carries no identifier that could be recovered from it.
+      occurrence: occurrence.key,
       detail: (locale) => problemStatusLabel(locale, facts.status),
     });
   }

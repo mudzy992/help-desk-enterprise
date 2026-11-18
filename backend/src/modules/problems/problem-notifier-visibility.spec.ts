@@ -2,6 +2,7 @@ import { ProblemNotifier } from './problem-notifier';
 import { loadPrincipalContext } from '../../common/principal-context/load-principal-context';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { resolveDeliveryDecisions } from '../notifications/preferences/resolve-delivery-decisions';
+import { problemRecurrenceOccurrence } from './problem-notice-occurrence';
 
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../../common/principal-context/load-principal-context', () => ({ loadPrincipalContext: jest.fn() }));
@@ -35,7 +36,9 @@ describe('problem notification visibility', () => {
     (loadPrincipalContext as jest.Mock).mockImplementation(async (_prisma, id: string) => principal(id, id === 'inside' ? '/inside' : '/outside'));
     const access = { configuration: async () => ({ numberPrefix: 'P-' }), hasPermission: () => true, scopeOf: async (viewer: { grants: { unitPath: string }[] }) => ({ all: false, paths: [viewer.grants[0].unitPath] }) };
     const notifier = new ProblemNotifier(prisma as never, {} as never, access as never, {} as never);
-    expect(await notifier.recurrence('p1', ['SECRET-TICKET'], 'actor')).toBe(1);
+    // W7.42: the caller derives the occurrence from the references, so the
+    // payload still carries no ticket identifier.
+    expect(await notifier.recurrence('p1', problemRecurrenceOccurrence(['SECRET-TICKET']), 'actor')).toBe(1);
     expect(resolveDeliveryDecisions).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.objectContaining({ userIds: ['inside'] }));
     expect(persistInAppNotification).toHaveBeenCalledTimes(1);
     const args = (persistInAppNotification as jest.Mock).mock.calls[0][1];

@@ -15,7 +15,8 @@ import { formatProblemNumber } from './problem-rules';
 import { problemErrorCodes, problemEventActions, problemLimits, problemOpenStatuses, problemOpenTicketStatuses, ProblemError } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
 import { problemTicketVisibility } from './problem-ticket-visibility';
-import { ProblemNotifier } from './problem-notifier';
+import { ProblemNoticeService } from './problem-notice.service';
+import { problemRecurrenceOccurrence } from './problem-notice-occurrence';
 
 /** P5 (§11): tickets may still join a RESOLVED problem; the owner gets a recurrence signal. */
 const problemLinkableStatuses: readonly string[] = [...problemOpenStatuses, 'RESOLVED'];
@@ -92,7 +93,8 @@ export class ProblemTicketsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
-    @Optional() private readonly notifier?: ProblemNotifier,
+    /** W7.42 (BA-problems-21): the recurrence notice is an outbox intent too. */
+    @Optional() private readonly notices?: ProblemNoticeService,
   ) {}
 
   /** Staff access to a ticket, or null (not found, requester-only, archived when writing). */
@@ -374,9 +376,17 @@ export class ProblemTicketsService {
       linked.push({ ticketId: ticket.id, ticketNumber: ticket.ticketNumber });
     }
 
-    if (problem.status === 'RESOLVED' && linked.length > 0 && this.notifier !== undefined) {
-      const notifier = this.notifier;
-      notifier.run('recurrence', () => notifier.recurrence(problem.id, linked.map((item) => item.ticketNumber), viewer.userId));
+    // W7.42: one intent per link command, identified by the digest of the
+    // references it brought back (W7.31). A retried command finds the queued row.
+    if (problem.status === 'RESOLVED' && linked.length > 0) {
+      await this.notices?.enqueueAfterCommit([
+        {
+          kind: 'recurrence',
+          problemId: problem.id,
+          actorUserId: viewer.userId,
+          occurrence: problemRecurrenceOccurrence(linked.map((item) => item.ticketNumber)),
+        },
+      ]);
     }
 
     // A single ticket (ticket panel) reports the reason as an error.

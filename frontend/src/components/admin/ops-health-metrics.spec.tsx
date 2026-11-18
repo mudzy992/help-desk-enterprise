@@ -85,6 +85,8 @@ const problemOperations = {
   autoCloseDue: 4,
   oldestAutoCloseDueMinutes: 720,
   effectiveAutoCloseDays: 14,
+  // W7.42: queued problem notices and the rows the worker gave up on.
+  noticeOutbox: { pending: 3, processing: 1, deadLetter: 2, oldestPendingMinutes: 12 },
 };
 
 describe("ProblemOperationsSummary (BA-problems-18)", () => {
@@ -102,6 +104,26 @@ describe("ProblemOperationsSummary (BA-problems-18)", () => {
     expect(
       screen.getByText(/admin\.opsHealth\.problemOperations\.autoCloseWindow 14/),
     ).not.toBeNull();
+  });
+
+  it("shows the queued problem notices and the dead letters separately", () => {
+    render(<ProblemOperationsSummary overview={{ problemOperations } as OpsOverview} />);
+
+    expect(
+      screen.getByText(/admin\.opsHealth\.problemOperations\.noticesQueuedValue 4 2/),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/admin\.opsHealth\.problemOperations\.minutesValue 12/),
+    ).not.toBeNull();
+  });
+
+  it("hides the notice tiles when an older API does not report them", () => {
+    const { noticeOutbox: _omitted, ...withoutNotices } = problemOperations;
+    render(
+      <ProblemOperationsSummary overview={{ problemOperations: withoutNotices } as OpsOverview} />,
+    );
+
+    expect(screen.queryByText(/admin\.opsHealth\.problemOperations\.noticesQueued/)).toBeNull();
   });
 
   it("keeps an unreadable setting unknown instead of announcing a zero backlog", () => {
@@ -142,7 +164,7 @@ describe("ProblemOperationsSummary (BA-problems-18)", () => {
     expect(list).not.toBeNull();
 
     const groups = Array.from(list!.children);
-    expect(groups).toHaveLength(6);
+    expect(groups).toHaveLength(8);
     for (const group of groups) {
       expect(group.querySelectorAll("dt")).toHaveLength(1);
       expect(

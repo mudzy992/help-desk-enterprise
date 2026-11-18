@@ -127,6 +127,16 @@ export type OpsProblemOperations = {
   readonly autoCloseDue: number | null;
   readonly oldestAutoCloseDueMinutes: number | null;
   readonly effectiveAutoCloseDays: number | null;
+  /** W7.42: the problem notice outbox; optional during rolling deploys. */
+  readonly noticeOutbox?: OpsProblemNoticeOutbox | null;
+};
+
+/** W7.42 (BA-problems-21): queued and abandoned problem notices. */
+export type OpsProblemNoticeOutbox = {
+  readonly pending: number;
+  readonly processing: number;
+  readonly deadLetter: number;
+  readonly oldestPendingMinutes: number | null;
 };
 
 export type OpsOverview = {

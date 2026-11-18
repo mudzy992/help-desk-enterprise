@@ -13,6 +13,11 @@ function setup(input: {
   readonly oldestTargetAt?: Date | null;
   readonly autoCloseDue?: number;
   readonly oldestResolvedAt?: Date | null;
+  /** W7.42: the notice outbox of the problem module. */
+  readonly noticesPending?: number;
+  readonly noticesProcessing?: number;
+  readonly noticesDead?: number;
+  readonly oldestNoticeAt?: Date | null;
 }) {
   const count = jest.fn(async (_args: CountArgs): Promise<number> => 0);
   count.mockResolvedValueOnce(input.stuck ?? 0).mockResolvedValueOnce(input.dead ?? 0);
@@ -28,11 +33,22 @@ function setup(input: {
     .mockResolvedValueOnce(input.oldestResolvedAt == null ? null : { resolvedAt: input.oldestResolvedAt });
   // The auto-close count and the oldest-due row are the third/fourth problem reads.
   problemCount.mockResolvedValueOnce(input.autoCloseDue ?? 0);
+  // W7.42: the problem notice outbox (pending, processing, dead letter, oldest).
+  const outboxCount = jest
+    .fn(async (_args: CountArgs): Promise<number> => 0)
+    .mockResolvedValueOnce(input.noticesPending ?? 0)
+    .mockResolvedValueOnce(input.noticesProcessing ?? 0)
+    .mockResolvedValueOnce(input.noticesDead ?? 0);
+  const outboxFindFirst = jest.fn(
+    async (_args: FindFirstArgs): Promise<{ createdAt: Date } | null> =>
+      input.oldestNoticeAt == null ? null : { createdAt: input.oldestNoticeAt },
+  );
   const prisma = {
     problemTargetReminder: { count, findFirst },
     problem: { count: problemCount, findFirst: problemFindFirst },
+    outboxMessage: { count: outboxCount, findFirst: outboxFindFirst },
   } as never;
-  return { prisma, count, problemCount, problemFindFirst };
+  return { prisma, count, problemCount, problemFindFirst, outboxCount, outboxFindFirst };
 }
 
 const now = new Date('2026-10-29T09:00:00.000Z');
@@ -50,6 +66,7 @@ describe('collectProblemOperationsSignal (BA-problems-14, W7.40)', () => {
       autoCloseDue: 0,
       oldestAutoCloseDueMinutes: null,
       effectiveAutoCloseDays: autoCloseDays,
+      noticeOutbox: { pending: 0, processing: 0, deadLetter: 0, oldestPendingMinutes: null },
     });
   });
 
@@ -70,6 +87,7 @@ describe('collectProblemOperationsSignal (BA-problems-14, W7.40)', () => {
       autoCloseDue: 0,
       oldestAutoCloseDueMinutes: null,
       effectiveAutoCloseDays: autoCloseDays,
+      noticeOutbox: { pending: 0, processing: 0, deadLetter: 0, oldestPendingMinutes: null },
     });
     // Both counts read the same definition of "stuck" as the sweep's pick-up.
     const arms = (count.mock.calls[0]?.[0].where.OR as readonly Where[] | undefined) ?? [];
@@ -121,6 +139,24 @@ describe('collectProblemOperationsSignal (BA-problems-14, W7.40)', () => {
     expect(signal.effectiveAutoCloseDays).toBe(0);
     // Only the breached-target row is read; no auto-close query runs.
     expect(problemFindFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it('separates a queue that does not drain from rows the worker gave up on', async () => {
+    const { prisma, outboxCount } = setup({
+      noticesPending: 4,
+      noticesProcessing: 1,
+      noticesDead: 2,
+      oldestNoticeAt: new Date(now.getTime() - 12 * 60_000),
+    });
+    const signal = await collectProblemOperationsSignal(prisma, now, { autoCloseDays });
+    expect(signal.noticeOutbox).toEqual({ pending: 4, processing: 1, deadLetter: 2, oldestPendingMinutes: 12 });
+    // The three questions are asked separately, and only PENDING rows are aged:
+    // a leased row is being worked on, not waiting.
+    expect(outboxCount.mock.calls.map((call) => call[0].where)).toEqual([
+      expect.objectContaining({ topic: 'problem.notice.dispatch', status: 'PENDING' }),
+      expect.objectContaining({ topic: 'problem.notice.dispatch', status: 'PROCESSING' }),
+      expect.objectContaining({ topic: 'problem.notice.dispatch', status: 'DEAD_LETTER' }),
+    ]);
   });
 
   it('reports an unreadable setting as unknown rather than as a zero backlog', async () => {

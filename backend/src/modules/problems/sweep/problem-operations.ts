@@ -48,6 +48,25 @@ export type ProblemOperationsSignal = {
    * visible instead of silently applied. Null when the setting could not be read.
    */
   readonly effectiveAutoCloseDays: number | null;
+  /**
+   * W7.42 (BA-problems-21): the problem notice outbox. A problem write no longer
+   * depends on a delivery, so this is where an operator sees whether the notices
+   * actually left: a queue that does not drain (the worker is down) and rows the
+   * worker gave up on (dead letters, replayed only by an operator) are two
+   * different facts and are reported separately.
+   */
+  readonly noticeOutbox: ProblemNoticeOutboxBacklog;
+};
+
+export type ProblemNoticeOutboxBacklog = {
+  /** Rows the worker has not claimed yet. */
+  readonly pending: number;
+  /** Rows a worker holds right now (a lease, not necessarily a stuck row). */
+  readonly processing: number;
+  /** Rows that burned every attempt; only an operator replay can move them. */
+  readonly deadLetter: number;
+  /** Age of the oldest unclaimed row; null when the queue is empty. */
+  readonly oldestPendingMinutes: number | null;
 };
 
 /**

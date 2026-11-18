@@ -28,6 +28,7 @@ import {
   problemEventActions,
   problemFinalStatuses,
   problemLimits,
+  problemStatusNoticeWanted,
   ProblemError,
   type ProblemSeverityValue,
   type ProblemStatusValue,
@@ -38,7 +39,8 @@ import { problemCrossDomainVisibility } from './problem-cross-domain-visibility'
 import { problemClaimAuditMetadata, problemUpdateAuditMetadata } from './problem-audit';
 import { problemCreatedOccurrence, problemVersionOccurrence } from './problem-notice-occurrence';
 import { eligibleProblemOwnerWhere, problemOwnerEligibility } from './problem-owner-eligibility';
-import { ProblemNotifier } from './problem-notifier';
+import { ProblemNoticeService } from './problem-notice.service';
+import type { ProblemNoticeIntentInput } from './problem-notice-outbox';
 import { ProblemTicketsService, type ProblemTicketLinkResult, type ProblemTicketNotice } from './problem-tickets.service';
 import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
 
@@ -168,7 +170,8 @@ export class ProblemsService {
     private readonly accessPolicies: TicketAccessPolicyBinder,
     /** W7.26: creation and the first ticket links share one transaction. */
     private readonly ticketLinks: ProblemTicketsService,
-    @Optional() private readonly notifier?: ProblemNotifier,
+    /** W7.42 (BA-problems-21): notices are intents in the outbox, not calls. */
+    @Optional() private readonly notices?: ProblemNoticeService,
     @Optional()
     private readonly priorityMatrixLoader?: TicketPriorityMatrixConfigurationLoader,
   ) {}
@@ -179,9 +182,13 @@ export class ProblemsService {
     return configuration?.enabled ?? true;
   }
 
-  private notify(label: string, operation: (notifier: ProblemNotifier) => Promise<unknown>): void {
-    const notifier = this.notifier;
-    if (notifier !== undefined) notifier.run(label, () => operation(notifier));
+  /** W7.42: the intent shares the transaction of the write it announces. */
+  private async enqueueNotices(
+    transaction: Prisma.TransactionClient,
+    intents: readonly ProblemNoticeIntentInput[],
+  ): Promise<void> {
+    if (this.notices === undefined || intents.length === 0) return;
+    await this.notices.enqueue(transaction, intents);
   }
 
   async list(viewer: ProblemViewer, query: ProblemListQuery) {
@@ -445,6 +452,13 @@ export class ProblemsService {
             ? null
             : await this.ticketLinks.linkInTransaction(transaction as PrismaService, { id: created.id, status: 'NEW' }, ticketIds, viewer);
         if (links !== null && links.result.linked.length === 0) throw new ProblemError(problemErrorCodes.ticketsNotLinked, 'ticketIds');
+        // W7.42: the announcement of a new problem is queued with it, so a
+        // failed delivery can be retried instead of being lost.
+        await this.enqueueNotices(transaction, [
+          ownerUserId !== null
+            ? { kind: 'owner-assigned', problemId: created.id, actorUserId: viewer.userId, occurrence: problemCreatedOccurrence }
+            : { kind: 'group-assigned', problemId: created.id, actorUserId: viewer.userId, occurrence: problemCreatedOccurrence },
+        ]);
         return { id: created.id, ticketLinks: links?.result ?? null, notices: links?.notices ?? [] };
       });
     } catch (error) {
@@ -453,10 +467,9 @@ export class ProblemsService {
       if (concurrent !== null) return concurrent;
       throw error;
     }
-    // Realtime ticket events and notifications stay outside the transaction.
+    // Realtime ticket events stay outside the transaction; the notices are
+    // already queued inside it (W7.42).
     if (outcome.notices.length > 0) this.ticketLinks.publish(outcome.notices);
-    if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(outcome.id, viewer.userId, problemCreatedOccurrence));
-    else this.notify('group', (notifier) => notifier.groupAssigned(outcome.id, viewer.userId, problemCreatedOccurrence));
     return { ...(await this.get(viewer, outcome.id)), ticketLinks: outcome.ticketLinks };
   }
 
@@ -656,16 +669,25 @@ export class ProblemsService {
         metadata: problemUpdateAuditMetadata(changes, textChanged) as never,
         actorUserId: viewer.userId,
       });
+      // W7.31 + W7.42: the notice belongs to the version this write produced, so
+      // a retry of the same command cannot produce a second message — and it is
+      // queued in the same transaction, so it cannot be forgotten either.
+      const occurrence = problemVersionOccurrence(current.version + 1);
+      if (changes.ownerUserId && data.ownerUserId) {
+        await this.enqueueNotices(transaction, [{ kind: 'owner-assigned', problemId: id, actorUserId: viewer.userId, occurrence }]);
+      } else if (changes.groupId) {
+        await this.enqueueNotices(transaction, [{ kind: 'group-assigned', problemId: id, actorUserId: viewer.userId, occurrence }]);
+      }
     });
-    // W7.31: the notice belongs to the version this write produced, so a retry
-    // of the same command cannot produce a second message.
-    const occurrence = problemVersionOccurrence(current.version + 1);
-    if (changes.ownerUserId && data.ownerUserId) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId, occurrence));
-    else if (changes.groupId) this.notify('group', (notifier) => notifier.groupAssigned(id, viewer.userId, occurrence));
     return this.get(viewer, id);
   }
 
-  async changeStatus(viewer: ProblemViewer, id: string, input: ProblemStatusDto) {
+  async changeStatus(
+    viewer: ProblemViewer,
+    id: string,
+    input: ProblemStatusDto,
+    options: { readonly statusNotice?: 'version' | 'none' } = {},
+  ) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
     const configuration = await this.access.configuration();
     const current = await this.loadInScope(id, scope, viewer);
@@ -740,6 +762,20 @@ export class ProblemsService {
         metadata: { from, to, reason } as never,
         actorUserId: viewer.userId,
       });
+      // W7.42: the agents of the open tickets learn about KNOWN_ERROR and
+      // RESOLVED. The intent is queued with the status write; a resolution run
+      // owns a run-scoped occurrence instead and passes `statusNotice: 'none'`.
+      if (options.statusNotice !== 'none' && problemStatusNoticeWanted(to)) {
+        await this.enqueueNotices(transaction, [
+          {
+            kind: 'status-changed',
+            problemId: id,
+            status: to,
+            actorUserId: viewer.userId,
+            occurrence: problemVersionOccurrence(current.version + 1),
+          },
+        ]);
+      }
     });
     return this.get(viewer, id);
   }

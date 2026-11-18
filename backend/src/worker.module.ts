@@ -12,6 +12,7 @@ import { NotificationRetentionWorkerModule } from './modules/notifications/notif
 import { NotificationDigestWorkerModule } from './modules/notifications/preferences/notification-digest-worker.module';
 import { OnCallWorkerModule } from './modules/on-call/on-call-worker.module';
 import { AssetRemindersWorkerModule } from './modules/assets/reminders/asset-reminders-worker.module';
+import { ProblemNoticeWorkerModule } from './modules/problems/problem-notice-worker.module';
 import { ProblemSweepWorkerModule } from './modules/problems/sweep/problem-sweep-worker.module';
 import { ChangeSweepWorkerModule } from './modules/changes/sweep/change-sweep-worker.module';
 import { AssetDirectorySyncWorkerModule } from './modules/assets/directory/asset-directory-sync-worker.module';
@@ -66,6 +67,8 @@ import { StatusPageWorkerModule } from './modules/status-page/status-page-worker
     AssetRemindersWorkerModule,
     AssetDirectorySyncWorkerModule,
     ProblemSweepWorkerModule,
+    // W7.42 (BA-problems-21): delivers the problem notices the API committed.
+    ProblemNoticeWorkerModule,
     ChangeSweepWorkerModule,
     StatusPageWorkerModule,
   ],

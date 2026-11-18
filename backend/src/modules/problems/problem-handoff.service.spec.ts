@@ -145,21 +145,22 @@ function setup(options: Options = {}) {
     hasGroupAuthority: jest.fn(async () => options.targetAuthority === true),
   };
   const problems = { get: jest.fn(async () => ({ ...problem, status: state.status, version: state.version })) };
-  const notifier = {
-    run: jest.fn((_label: string, operation: () => Promise<unknown>) => void operation()),
-    groupAssigned: jest.fn(async () => 1),
-    handoffRequested: jest.fn(async () => 1),
-    handoffDecided: jest.fn(async () => 1),
-  };
-  const service = new ProblemHandoffService(prisma as never, access as never, problems as never, notifier as never);
-  return { service, prisma, access, notifier, events, created, handoffUpdates, state, problems };
+  // W7.42: the notices are outbox intents, queued inside the handoff transaction.
+  const notices = { enqueue: jest.fn(async (_transaction: unknown, _intents: readonly unknown[]) => undefined) };
+  const service = new ProblemHandoffService(prisma as never, access as never, problems as never, notices as never);
+  return { service, prisma, access, notices, events, created, handoffUpdates, state, problems };
+}
+
+/** Every intent queued through the outbox in this test, in order. */
+function queued(notices: { enqueue: jest.Mock }): Record<string, unknown>[] {
+  return notices.enqueue.mock.calls.flatMap((call) => call[1] as Record<string, unknown>[]);
 }
 
 const input = { toGroupId: 'g2', reason: 'Problem pripada drugoj grupi' };
 
 describe('ProblemHandoffService request', () => {
   it('accepts the transfer at once when the requester also runs the target group', async () => {
-    const { service, prisma, notifier, events, created } = setup({ targetAuthority: true });
+    const { service, prisma, notices, events, created } = setup({ targetAuthority: true });
     const result = await service.request(viewer, 'p1', input);
 
     expect(created).toHaveLength(1);
@@ -177,13 +178,19 @@ describe('ProblemHandoffService request', () => {
       expect.objectContaining({ action: auditLogActions.problemHandoffAccepted, metadata: expect.objectContaining({ autoAccepted: true }) }),
     );
     // The new group learns about its problem; nothing waits for a decision.
-    expect(notifier.groupAssigned).toHaveBeenCalledWith('p1', 'u1', problemHandoffOccurrence('h1'));
-    expect(notifier.handoffRequested).not.toHaveBeenCalled();
+    expect(queued(notices)).toEqual([
+      expect.objectContaining({
+        kind: 'group-assigned',
+        problemId: 'p1',
+        actorUserId: 'u1',
+        occurrence: problemHandoffOccurrence('h1'),
+      }),
+    ]);
     expect(result.handoff.status).toBe('ACCEPTED');
   });
 
   it('waits for the target group when the requester does not run it', async () => {
-    const { service, prisma, notifier, events, created } = setup({ targetAuthority: false });
+    const { service, prisma, notices, events, created } = setup({ targetAuthority: false });
     await service.request(viewer, 'p1', input);
 
     expect(created[0]).toMatchObject({ status: 'PENDING', toGroupId: 'g2', requestedByUserId: 'u1' });
@@ -191,8 +198,9 @@ describe('ProblemHandoffService request', () => {
     // Nothing about the problem changed, so it keeps its group and its scope.
     expect(events.map((event) => event.action)).toEqual(['handoff_requested']);
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemHandoffRequested }));
-    expect(notifier.handoffRequested).toHaveBeenCalledWith('p1', 'h1', 'g2', 'u1');
-    expect(notifier.groupAssigned).not.toHaveBeenCalled();
+    expect(queued(notices)).toEqual([
+      expect.objectContaining({ kind: 'handoff-requested', problemId: 'p1', handoffId: 'h1', targetGroupId: 'g2', actorUserId: 'u1' }),
+    ]);
   });
 
   it('refuses a final problem, the same group, or a second request', async () => {
@@ -217,7 +225,7 @@ describe('ProblemHandoffService request', () => {
 
 describe('ProblemHandoffService decisions', () => {
   it('accept moves the problem, records the decision and tells both sides', async () => {
-    const { service, prisma, notifier, events, handoffUpdates } = setup({ ownerEligible: false });
+    const { service, prisma, notices, events, handoffUpdates } = setup({ ownerEligible: false });
     await service.accept(viewer, 'p1', 'h1');
 
     expect(handoffUpdates[0]).toMatchObject({ status: 'ACCEPTED', decidedByUserId: 'u1' });
@@ -226,8 +234,11 @@ describe('ProblemHandoffService decisions', () => {
     );
     expect(events.map((event) => event.action)).toEqual(['handoff_accepted']);
     expect(audit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: auditLogActions.problemHandoffAccepted }));
-    expect(notifier.groupAssigned).toHaveBeenCalledWith('p1', 'u1', problemHandoffOccurrence('h1'));
-    expect(notifier.handoffDecided).toHaveBeenCalledWith('p1', 'h1', 'u1', 'u1');
+    // Both sides, queued inside the same transaction as the move.
+    expect(queued(notices)).toEqual([
+      expect.objectContaining({ kind: 'group-assigned', problemId: 'p1', occurrence: problemHandoffOccurrence('h1') }),
+      expect.objectContaining({ kind: 'handoff-decided', problemId: 'p1', handoffId: 'h1', requesterUserId: 'u1', actorUserId: 'u1' }),
+    ]);
   });
 
   it('keeps an owner who already belongs to the target group', async () => {
@@ -249,13 +260,15 @@ describe('ProblemHandoffService decisions', () => {
   });
 
   it('reject keeps the problem and returns the reason to the requester', async () => {
-    const { service, prisma, notifier, handoffUpdates, events } = setup({});
+    const { service, prisma, notices, handoffUpdates, events } = setup({});
     await service.reject(viewer, 'p1', 'h1', { reason: 'Nije naša domena' });
 
     expect(handoffUpdates[0]).toMatchObject({ status: 'REJECTED', decisionReason: 'Nije naša domena' });
     expect(prisma.problem.updateMany).not.toHaveBeenCalled();
     expect(events.map((event) => event.action)).toEqual(['handoff_rejected']);
-    expect(notifier.handoffDecided).toHaveBeenCalledWith('p1', 'h1', 'u1', 'u1');
+    expect(queued(notices)).toEqual([
+      expect.objectContaining({ kind: 'handoff-decided', problemId: 'p1', handoffId: 'h1', requesterUserId: 'u1', actorUserId: 'u1' }),
+    ]);
   });
 
   it('lets the requester cancel, and everyone else needs the source group', async () => {

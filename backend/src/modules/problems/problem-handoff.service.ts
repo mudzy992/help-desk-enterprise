@@ -8,7 +8,8 @@ import { permissionKeys } from '../authorization/authorization.constants';
 import { eligibleProblemOwnerWhere } from './problem-owner-eligibility';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { problemHandoffOccurrence } from './problem-notice-occurrence';
-import { ProblemNotifier } from './problem-notifier';
+import { ProblemNoticeService } from './problem-notice.service';
+import type { ProblemNoticeIntentInput } from './problem-notice-outbox';
 import { ProblemsService } from './problems.service';
 import {
   ProblemError,
@@ -108,12 +109,17 @@ export class ProblemHandoffService {
     private readonly prisma: PrismaService,
     private readonly access: ProblemAccessService,
     private readonly problems: ProblemsService,
-    @Optional() private readonly notifier?: ProblemNotifier,
+    /** W7.42 (BA-problems-21): handoff notices are outbox intents as well. */
+    @Optional() private readonly notices?: ProblemNoticeService,
   ) {}
 
-  private notify(label: string, operation: (notifier: ProblemNotifier) => Promise<unknown>): void {
-    const notifier = this.notifier;
-    if (notifier !== undefined) notifier.run(label, () => operation(notifier));
+  /** W7.42: the intent shares the transaction of the handoff step it announces. */
+  private async enqueueNotices(
+    transaction: Prisma.TransactionClient,
+    intents: readonly ProblemNoticeIntentInput[],
+  ): Promise<void> {
+    if (this.notices === undefined || intents.length === 0) return;
+    await this.notices.enqueue(transaction, intents);
   }
 
   /** Recent handoffs of one problem; the pending one is also on the problem detail. */
@@ -195,6 +201,17 @@ export class ProblemHandoffService {
             metadata: { handoffId: created.id, fromGroupId: current.groupId, toGroupId: target.id, reason } as never,
             actorUserId: viewer.userId,
           });
+          // W7.42: the receiving group's managers are asked to decide — queued
+          // with the request, so a failed delivery is retried instead of lost.
+          await this.enqueueNotices(transaction, [
+            {
+              kind: 'handoff-requested',
+              problemId,
+              handoffId: created.id,
+              targetGroupId: target.id,
+              actorUserId: viewer.userId,
+            },
+          ]);
           return created.id;
         }
         // The requester runs both groups: record the request and its acceptance together.
@@ -246,6 +263,11 @@ export class ProblemHandoffService {
           metadata: { handoffId: created.id, fromGroupId: current.groupId, toGroupId: target.id, autoAccepted: true } as never,
           actorUserId: viewer.userId,
         });
+        // W7.42: an auto-accepted handoff is an ownership change, so the new
+        // group's managers learn about their problem.
+        await this.enqueueNotices(transaction, [
+          { kind: 'group-assigned', problemId, actorUserId: viewer.userId, occurrence: problemHandoffOccurrence(created.id) },
+        ]);
         return created.id;
       });
     } catch (error) {
@@ -254,11 +276,6 @@ export class ProblemHandoffService {
         throw new ProblemError(problemErrorCodes.handoffPending);
       }
       throw error;
-    }
-    if (autoAccept) {
-      this.notify('handoff-accepted', (notifier) => notifier.groupAssigned(problemId, viewer.userId, problemHandoffOccurrence(handoffId)));
-    } else {
-      this.notify('handoff-requested', (notifier) => notifier.handoffRequested(problemId, handoffId, target.id, viewer.userId));
     }
     return this.result(viewer, problemId, handoffId);
   }
@@ -314,9 +331,19 @@ export class ProblemHandoffService {
         metadata: { handoffId, fromGroupId: handoff.fromGroupId, toGroupId: handoff.toGroupId } as never,
         actorUserId: viewer.userId,
       });
+      // W7.42: the receiving group's managers hear about the new problem, the
+      // requester hears the decision — both queued with the move itself.
+      await this.enqueueNotices(transaction, [
+        { kind: 'group-assigned', problemId, actorUserId: viewer.userId, occurrence: problemHandoffOccurrence(handoffId) },
+        {
+          kind: 'handoff-decided',
+          problemId,
+          handoffId,
+          requesterUserId: handoff.requestedByUserId,
+          actorUserId: viewer.userId,
+        },
+      ]);
     });
-    this.notify('handoff-accepted', (notifier) => notifier.groupAssigned(problemId, viewer.userId, problemHandoffOccurrence(handoffId)));
-    this.notify('handoff-decided', (notifier) => notifier.handoffDecided(problemId, handoffId, handoff.requestedByUserId, viewer.userId));
     return this.result(viewer, problemId, handoffId);
   }
 
@@ -328,7 +355,6 @@ export class ProblemHandoffService {
     await this.access.requireUnitInScope(scope, handoff.toOrganizationalUnitId);
     const reason = (input.reason ?? '').trim();
     await this.decide(viewer, problemId, handoff, 'REJECTED', reason, auditLogActions.problemHandoffRejected, problemEventActions.handoffRejected);
-    this.notify('handoff-decided', (notifier) => notifier.handoffDecided(problemId, handoffId, handoff.requestedByUserId, viewer.userId));
     return this.result(viewer, problemId, handoffId);
   }
 
@@ -349,7 +375,13 @@ export class ProblemHandoffService {
   private async decide(
     viewer: ProblemViewer,
     problemId: string,
-    handoff: { id: string; fromGroupId: string | null; toGroupId: string; fromOrganizationalUnitId: string },
+    handoff: {
+      id: string;
+      fromGroupId: string | null;
+      toGroupId: string;
+      fromOrganizationalUnitId: string;
+      requestedByUserId: string | null;
+    },
     status: 'REJECTED' | 'CANCELLED',
     reason: string,
     auditAction: (typeof auditLogActions)[keyof typeof auditLogActions],
@@ -378,6 +410,16 @@ export class ProblemHandoffService {
         metadata: { handoffId: handoff.id, fromGroupId: handoff.fromGroupId, toGroupId: handoff.toGroupId } as never,
         actorUserId: viewer.userId,
       });
+      // W7.42: the decision is queued with the decision row.
+      await this.enqueueNotices(transaction, [
+        {
+          kind: 'handoff-decided',
+          problemId,
+          handoffId: handoff.id,
+          requesterUserId: handoff.requestedByUserId,
+          actorUserId: viewer.userId,
+        },
+      ]);
     });
   }
 

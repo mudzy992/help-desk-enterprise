@@ -154,6 +154,9 @@ function MetricTile({
 export function ProblemOperationsSummary({ overview }: { readonly overview: OpsOverview }) {
   const { t } = useTranslation();
   const metrics = overview.problemOperations ?? null;
+  // W7.42 (BA-problems-21): the notice outbox is optional, so an older API
+  // simply renders the section without those three tiles.
+  const noticeOutbox = metrics?.noticeOutbox ?? null;
   const minutes = (value: number | null) =>
     value === null
       ? t("admin.opsHealth.problemOperations.unknown")
@@ -228,7 +231,31 @@ export function ProblemOperationsSummary({ overview }: { readonly overview: OpsO
               }
               value={minutes(metrics.oldestAutoCloseDueMinutes)}
             />
+            {noticeOutbox === null ? null : (
+              <>
+                <MetricTile
+                  label={t("admin.opsHealth.problemOperations.noticesQueued")}
+                  state={noticeOutbox.deadLetter > 0 ? "warning" : "ok"}
+                  value={t("admin.opsHealth.problemOperations.noticesQueuedValue", {
+                    queued: noticeOutbox.pending + noticeOutbox.processing,
+                    dead: noticeOutbox.deadLetter,
+                  })}
+                />
+                <MetricTile
+                  label={t("admin.opsHealth.problemOperations.oldestQueuedNotice")}
+                  state={
+                    noticeOutbox.oldestPendingMinutes !== null && noticeOutbox.oldestPendingMinutes > 5
+                      ? "warning"
+                      : "ok"
+                  }
+                  value={minutes(noticeOutbox.oldestPendingMinutes)}
+                />
+              </>
+            )}
           </dl>
+          {noticeOutbox === null ? null : (
+            <p className={hintClassName}>{t("admin.opsHealth.problemOperations.noticesHint")}</p>
+          )}
           {metrics.effectiveAutoCloseDays === null ? null : (
             <p className={hintClassName}>
               {t("admin.opsHealth.problemOperations.autoCloseWindow", {
