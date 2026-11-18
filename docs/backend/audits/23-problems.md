@@ -5,7 +5,7 @@
 **Rizik modula:** visok<br>
 **Baseline ocjena:** **4,21/10**<br>
 **Nalazi:** 7 P1, 10 P2, 4 P3<br>
-**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.31 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12` i `13`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); ostali nalazi su otvoreni.
+**Implementacija:** W7.1 je djelimično zatvorio `BA-problems-01`, W7.20 owner-directed `BA-problems-04`, a W7.21 `BA-problems-02`; W7.22–W7.32 zatvorili su `BA-problems-03`, `05`, `06`, `07`, `08`, `09`, `10`, `11`, `12`, `13` i `14`; W7.30 je otvorio `BA-problems-20` (DB provenance whitelist za dvije nove audit akcije), a W7.31 `BA-problems-21` (nedurabilan dispatch problem notifikacija); ostali nalazi su otvoreni.
 
 ## 1. Executive summary
 
@@ -107,6 +107,19 @@ Owner/group/status notifikacije koriste `Date.now()` u occurrence ključu. Retry
 
 Scheduler registruje hourly job samo na module init. Stable scheduler ID pomaže kod normalnog restarta, ali Redis flush/restart poslije boota se ne reconciliuje do redeploya. Registracijska greška se guta. Nema health provjere scheduler presence, last sweep/auto-close age, overdue backlog ni notification delivery drift.
 
+**W7.32 (zatvoreno, vidi §33):** scheduler se više ne registruje samo na bootu. Svaki worker
+svake minute provjerava postoji li `problem-sweep-hourly` u Redisu i vraća ga ako ga nema
+(`upsertJobScheduler` je idempotentan po ID-u), pa Redis flush/failover više ne zaustavlja
+podsjetnike i auto-close do redeploya. Registracijska greška nije bila „progutana“ u kodu koji je
+audit opisao — `onModuleInit` je bacao i boot je padao — ali nije bilo nikakvog oporavka poslije
+boota; sada se neuspjeli reconcile loguje i ponavlja svake minute, a boot i dalje pada ako
+obavezni raspored ne nastane. Health: sweep je u `ops-health` očekivani scheduler, pa
+`scheduler.late` pokriva `not_registered`, `not_picked_up`, `failing` i `no_recent_success` sa
+granicom od 75 minuta (zadnji sweep i, s njim, zadnji auto-close). Delivery drift ima vlastiti
+alarm `problems.reminders.stuck` (DEAD redovi, istekao backoff, preuzimanje srušenog ciklusa, uz
+starost najstarijeg), a prekoračeni rokovi putuju kao detalj alarma i ostaju metrika reporta
+`problem_backlog` — prag za njihov vlastiti alarm nije izmišljen.
+
 ## 11. Privacy, retention i data exposure
 
 Privacy anonymization pronalazi probleme gdje je osoba creator/owner ili je njen ticket u scrub scopeu, scrubuje glavne tekstove, 5-whys i event detail. Export uključuje probleme gdje je osoba reporter/owner i njene actions. To je vrijedna integracija.
@@ -172,7 +185,7 @@ Nisu pokriveni scoped problem manager/global read, linked-one-ticket cross-ticke
 | BA-problems-11 | P2       | Service/incident linkovi nemaju njihov scope policy; više link writeova nije atomsko s eventom  | zatvoreno |
 | BA-problems-12 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.30) |
 | BA-problems-13 | P2       | Owner/group/status notice occurrence koristi vrijeme i nije stabilno idempotentan               | zatvoreno (W7.31) |
-| BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | otvoreno |
+| BA-problems-14 | P2       | Scheduler nema reconciliation/health nakon Redis gubitka ili registration failurea             | zatvoreno (W7.32) |
 | BA-problems-15 | P2       | Owner eligibility ne veže manage grant za problem OU i ne reconciliuje revoke drift            | otvoreno |
 | BA-problems-16 | P2       | Privacy/retention ne pokrivaju sva imenovanja, notifier/KB replike i closed-record lifecycle    | otvoreno |
 | BA-problems-17 | P3       | Events/tickets/links/reverse/options liste se tiho hard-trunciraju; total može biti netačan     | otvoreno |
@@ -487,3 +500,49 @@ gate); E2E critical/install i read-only inventory bili su `skipped`, bez neuspje
 su u [254](../implementation/254-w731-problem-notice-occurrence.md); završni docs/guard commit `c1bffeb`
 prošao je vlastiti CI [`44196502251`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44196502251)
 (`success`). `BA-problems-14` je sljedeći P2 u ovom auditu.
+
+## 33. W7.32 — BA-problems-14 closeout
+
+Satni problem sweep više ne ovisi o tome da ga je boot jednom uspješno registrirao. Servis sada
+registruje raspored kroz zajednički `registerRepeatableJob` (`problem-sweep-hourly`, `23 * * * *`,
+`attempts: 2`, exponential backoff 60 s, keep 5/20 — isto ponašanje kao prije) i, kao i announcements,
+assets, on-call i inbound-email, **svake minute** provjerava da raspored još postoji u Redisu. Kad ga
+nema (flush, failover na praznu instancu), vraća ga i loguje `problem_sweep_schedule_recovered`;
+`upsertJobScheduler` je idempotentan po ID-u, pa više workera konvergira na tačno jedan raspored.
+Neuspjeli reconcile se loguje kao `problem_sweep_schedule_reconcile_failed` i ponavlja sljedeće
+minute; boot i dalje pada kad obavezna registracija ne prođe. Auditova rečenica „registracijska
+greška se guta“ nije odgovarala kodu — `onModuleInit` je bacao i boot je padao — ali nije postojao
+nikakav oporavak **poslije** boota, i to je ono što je ovim paketom zatvoreno.
+
+Health strana koristi postojeću mašineriju umjesto nove: `problem-sweep-hourly` je sada očekivani
+scheduler u `ops-health`, pa `includeExpectedSchedulers` sintetiše red sa `registered: false` i zadnjim
+poznatim uspjehom kad registracija nestane, a granica zadnjeg uspjeha od 75 minuta (jedan satni prozor
+plus grace) daje `no_recent_success`/`failing` kroz `scheduler.late` — dakle prisustvo, preuzimanje,
+neuspjesi i starost zadnjeg sweepa, a s njim i zadnjeg auto-closea. Kartica **Zdravlje sistema →
+Zakazani poslovi** prikazuje taj red bez nove UI komponente.
+
+Drift isporuke podsjetnika dobio je vlastiti alarm `problems.reminders.stuck` i read-only signal
+`collect-problem-operations-signal.ts`: `DEAD` redovi, `FAILED` sa isteklim ili odsutnim
+`nextAttemptAt`, i `CLAIMED` stariji od 30 minuta — iste grane koje sweep koristi za pick-up — uz
+starost najstarijeg zaglavljenog reda. Prekoračeni rokovi (`NEW`/`INVESTIGATING`/`KNOWN_ERROR` sa
+`targetAt < now`) putuju kao detalj alarma, a ne kao zaseban alarm: to je radni zalih, već izložen u
+reportu `problem_backlog` (kolona `overdue`), i prag za takav alarm traži odluku vlasnika, ne nagađanje
+paketa.
+
+Dokazi: `problem-sweep.scheduler.spec.ts` (registracija, restore, no-op kad raspored postoji,
+neuspjeli pa uspjeli reconcile, boot fail, destroy zaustavlja timer), `problem-operations.spec.ts`
+(oblik pick-up filtera, isključeni terminalni statusi i breached scope), `collect-problem-operations-signal.spec.ts`
+(brojevi, starost, zaštita od negativne starosti), `ops-signal-collector.spec.ts` (sintetizovani
+problemski red), `evaluate-ops-signals.spec.ts` (alarm sa detaljem, tihi backlog, `null` probe,
+`not_registered` i `no_recent_success`), uz katalog i bs/en i18n coverage guard. Nema migracije ni
+schema promjene; nema nove tabele, kolone ni API polja.
+
+Lokalno: 766 testova u `problems`/`ops-health`/`notifications`/`audit-log` (727 prošlo, 39 skipped DB
+suiteova), frontend `lib/ops`/`components/admin`/`i18n` 128 testova, `eslint` čist, frontend
+`tsc --noEmit` čist. CI
+[`44254722210`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44254722210) na
+`dbad790` je **success**; prvi pokušaj
+[`44253172895`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44253172895) na
+`c991bee` pao je samo na tipovima u novom test dublu i popravljen je prije zelenog runa. Detalji su u
+[255](../implementation/255-w732-problem-sweep-reconciliation.md). Sljedeći P2 u ovom auditu je
+`BA-problems-15`.
