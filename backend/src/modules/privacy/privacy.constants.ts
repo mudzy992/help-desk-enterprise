@@ -42,6 +42,8 @@ export type ExportStatus = (typeof exportStatuses)[number];
 export const retentionCategories = [
   'attachments',
   'ticketContent',
+  // W7.34 (BA-problems-16): closed/cancelled problems and their replicas.
+  'problemContent',
   'audit',
   'sessions',
   'emailDeliveries',
@@ -55,6 +57,7 @@ export type RetentionCategory = (typeof retentionCategories)[number];
 export const retentionCategoriesRequiringDryRun: readonly RetentionCategory[] = [
   'attachments',
   'ticketContent',
+  'problemContent',
   'audit',
   'statusIncidents',
   'assetTransfers',

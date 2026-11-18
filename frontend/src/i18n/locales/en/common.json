@@ -2204,6 +2204,7 @@
         "private.privacy.enabled": "Show the privacy module (requests, exports, anonymization, retention).",
         "private.privacy.retention.attachmentsDays": "Days after a ticket is closed before its attachments are deleted (0 = off, minimum 90).",
         "private.privacy.retention.ticketContentDays": "Days after closing before ticket and message text is removed; metrics stay (0 = off, minimum 180).",
+        "private.privacy.retention.problemContentDays": "Days after closing or cancelling before the problem content (description, root cause, 5 whys, resolution) is removed; the number, status, dates and links stay, and the copies in notifications and the knowledge draft are redacted (0 = off, minimum 180).",
         "private.privacy.retention.auditDays": "Days before audit records are redacted with a chain checkpoint (0 = off, minimum 365).",
         "private.privacy.retention.sessionDays": "Days to keep expired and revoked sessions (0 = off, minimum 30).",
         "private.privacy.retention.emailDeliveryDays": "Days to keep the e-mail delivery log (0 = off, minimum 30).",
@@ -2723,6 +2724,7 @@
         "private.privacy.enabled": "When off, the privacy module is hidden: data subject requests, exports, anonymization and retention. The data and configured deadlines are untouched until the module is enabled again.",
         "private.privacy.retention.attachmentsDays": "Days after closing before ticket attachments are permanently deleted; 0 disables the deletion. It affects future deletions only, already deleted attachments do not come back.",
         "private.privacy.retention.ticketContentDays": "Days after closing before ticket content is redacted (personal data removed); 0 disables redaction. The ticket remains, without the sensitive text.",
+        "private.privacy.retention.problemContentDays": "Days after closing or cancelling before problem content is redacted; 0 disables redaction. The problem remains with its number, status, dates, service and links, without the description, root cause, 5 whys, workaround or resolution. The same redaction reaches the copies: notifications that point at the problem and the draft knowledge article. A published article has its own lifecycle and is left alone; records under a legal hold (owner, creator or a linked ticket) are skipped.",
         "private.privacy.retention.auditDays": "How many days audit entries are kept; older ones are purged with a chain checkpoint. 0 keeps the audit forever, which is safer but more expensive.",
         "private.privacy.retention.sessionDays": "How many days ended sessions (IP address, browser data) are kept; 0 disables the purge. A shorter period leaves less personal data in the system.",
         "private.privacy.retention.emailDeliveryDays": "How many days email delivery records, including the recipient address, are kept; 0 disables the purge. Those records are what proves a notification was sent.",
@@ -7635,6 +7637,10 @@
           "name": "Ticket content",
           "hint": "Description and message text of closed tickets; numbers, statuses and times remain."
         },
+        "problemContent": {
+          "name": "Problem content",
+          "hint": "Description, root cause and resolution of closed or cancelled problems; numbers, statuses, dates and links stay. Notifications and the draft knowledge article are redacted with the problem, and legal holds are respected."
+        },
         "audit": {
           "name": "Audit entries",
           "hint": "Old audit entries are sealed by a checkpoint, then removed."
@@ -7771,6 +7777,13 @@
       "deactivateFirst": "Anonymization is possible only after the account is deactivated."
     },
     "counts": {
+      "problems": "Problems",
+      "problemEvents": "Problem events",
+      "problemNotifications": "Problem notifications",
+      "knowledgeArticles": "Knowledge articles",
+      "problemsNamed": "Problems naming the person",
+      "problemEventDetailsNamed": "Event details naming the person",
+
       "activities": "Activities",
       "approvals": "Approvals",
       "attachmentNames": "Attachment names",

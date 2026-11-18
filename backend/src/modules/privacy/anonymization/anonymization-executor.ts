@@ -7,6 +7,8 @@ import {
   lockActiveSuperAdminInvariant,
 } from '../../users/super-admin-invariant';
 import { anonymizationBlockReasons, privacyLimits } from '../privacy.constants';
+import { scrubProblemMentions } from './scrub-problem-mentions';
+import { problemEventMentionSql, problemMentionTokens, problemMentionWhere, problemScrubbableColumns } from './problem-mentions';
 import { replacementExample, type TextScrubber } from './text-scrubber';
 
 export type AnonymizationSubject = {
@@ -98,6 +100,25 @@ export class AnonymizationExecutor {
         for (const message of messages) note(message.body);
       });
     });
+    // W7.34: a problem the person is only named in is visible in the preview too.
+    const problemTexts = await this.prisma.problem.findMany({
+      where: {
+        OR: [
+          { createdByUserId: subject.userId },
+          { ownerUserId: subject.userId },
+          ...(scope.scrub.length > 0 ? [{ tickets: { some: { ticketId: { in: [...scope.scrub] } } } }] : []),
+          problemMentionWhere(problemMentionTokens(subject.scrubber.identifiers)),
+        ],
+      },
+      select: { id: true, title: true, description: true, rootCause: true, rcaWhys: true, workaround: true, resolution: true, cancelReason: true },
+    });
+    for (const problem of problemTexts) {
+      for (const column of problemScrubbableColumns) note(problem[column]);
+      replacements += subject.scrubber.scrubJson(problem.rcaWhys).count;
+    }
+    const problemEventIds = await this.prisma.$queryRaw<{ id: string }[]>(
+      problemEventMentionSql(problemMentionTokens(subject.scrubber.identifiers)),
+    );
     const u = subject.userId;
     const [notificationsOwn, sessions, deliveries, roles, groups, savedViews, templates, followers, recipients, attachments, auditRows] =
       await Promise.all([
@@ -130,6 +151,8 @@ export class AnonymizationExecutor {
         reportRecipients: recipients,
         attachmentsUploaded: attachments,
         auditRowsLinked: auditRows,
+        problemsNamed: problemTexts.length,
+        problemEventDetailsNamed: problemEventIds.length,
       },
     };
   }
@@ -348,43 +371,19 @@ export class AnonymizationExecutor {
       add('inboundEmails', 1);
     }
 
-    // Paket 3.3 P6: problem texts may name the person (as reporter, owner or in
-    // a linked ticket quoted into the analysis). The pseudonymised user row
-    // keeps the ownership; free text and event details are scrubbed.
-    const problems = await this.prisma.problem.findMany({
-      where: {
-        OR: [
-          { createdByUserId: u },
-          { ownerUserId: u },
-          ...(scope.scrub.length > 0 ? [{ tickets: { some: { ticketId: { in: scope.scrub } } } }] : []),
-        ],
-      },
-      select: { id: true, title: true, description: true, rootCause: true, rcaWhys: true, workaround: true, resolution: true, cancelReason: true },
+    // W7.34 (BA-problems-16): problem texts, events, in-app copies and the
+    // knowledge article a problem produced. The selection now also covers a
+    // person who is only *named* in a problem they neither created nor own.
+    const problemCounts = await scrubProblemMentions({
+      prisma: this.prisma,
+      userId: u,
+      scrubber,
+      linkedTicketIds: scope.scrub,
     });
-    for (const problem of problems) {
-      const data: Record<string, unknown> = {};
-      for (const column of ['title', 'description', 'rootCause', 'workaround', 'resolution', 'cancelReason'] as const) {
-        const value = problem[column];
-        if (value === null) continue;
-        const result = scrubber.scrub(value);
-        if (result.count > 0) data[column] = result.text;
-      }
-      const whys = scrubber.scrubJson(problem.rcaWhys);
-      if (whys.count > 0) data.rcaWhys = whys.value;
-      if (Object.keys(data).length === 0) continue;
-      await this.prisma.problem.update({ where: { id: problem.id }, data: data as never });
-      add('problems', 1);
-    }
-    const problemEvents = await this.prisma.problemEvent.findMany({
-      where: { OR: [{ actorUserId: u }, ...(problems.length > 0 ? [{ problemId: { in: problems.map((row) => row.id) } }] : [])] },
-      select: { id: true, detail: true },
-    });
-    for (const event of problemEvents) {
-      const detail = scrubber.scrubJson(event.detail);
-      if (detail.count === 0) continue;
-      await this.prisma.problemEvent.update({ where: { id: event.id }, data: { detail: detail.value as never } });
-      add('problemEvents', 1);
-    }
+    add('problems', problemCounts.problems);
+    add('problemEvents', problemCounts.problemEvents);
+    add('problemNotifications', problemCounts.problemNotifications);
+    add('knowledgeArticles', problemCounts.knowledgeArticles);
 
     // Paket 3.4 (§19): texts of changes the person requested or owns, and the
     // comments of their own CAB votes; event details are scrubbed as well.

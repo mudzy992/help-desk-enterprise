@@ -38,6 +38,7 @@ export type PrivacyConfiguration = {
 const retentionKeys: Readonly<Record<RetentionCategory, string>> = {
   attachments: settingKeys.privatePrivacyRetentionAttachmentsDays,
   ticketContent: settingKeys.privatePrivacyRetentionTicketContentDays,
+  problemContent: settingKeys.privatePrivacyRetentionProblemContentDays,
   audit: settingKeys.privatePrivacyRetentionAuditDays,
   sessions: settingKeys.privatePrivacyRetentionSessionDays,
   emailDeliveries: settingKeys.privatePrivacyRetentionEmailDeliveryDays,
@@ -49,6 +50,7 @@ const retentionKeys: Readonly<Record<RetentionCategory, string>> = {
 const retentionDefaults: Readonly<Record<RetentionCategory, number>> = {
   attachments: 0,
   ticketContent: 0,
+  problemContent: 0,
   audit: 0,
   sessions: privacyDefaults.sessionDays,
   emailDeliveries: privacyDefaults.emailDeliveryDays,
@@ -60,6 +62,7 @@ const retentionDefaults: Readonly<Record<RetentionCategory, number>> = {
 const retentionMinimums: Readonly<Record<RetentionCategory, number>> = {
   attachments: privacyRetentionMinimumDays.attachments,
   ticketContent: privacyRetentionMinimumDays.ticketContent,
+  problemContent: privacyRetentionMinimumDays.problemContent,
   audit: privacyRetentionMinimumDays.audit,
   sessions: privacyRetentionMinimumDays.sessions,
   emailDeliveries: privacyRetentionMinimumDays.emailDeliveries,

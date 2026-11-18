@@ -12,6 +12,7 @@ import type { SettingDefinition, SettingValue } from '../settings.types';
 export const privacyRetentionMinimumDays = {
   attachments: 90,
   ticketContent: 180,
+  problemContent: 180,
   audit: 365,
   sessions: 30,
   emailDeliveries: 30,
@@ -59,6 +60,12 @@ export const privacySettings: readonly SettingDefinition[] = [
     'Days after closing before ticket content is redacted (0 = disabled)',
     0,
     privacyRetentionMinimumDays.ticketContent,
+  ),
+  retentionSetting(
+    settingKeys.privatePrivacyRetentionProblemContentDays,
+    'Days after closing or cancelling before problem content is redacted (0 = disabled; the controller/DPO sets the period)',
+    0,
+    privacyRetentionMinimumDays.problemContent,
   ),
   retentionSetting(
     settingKeys.privatePrivacyRetentionAuditDays,

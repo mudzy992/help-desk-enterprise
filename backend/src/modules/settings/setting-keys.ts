@@ -605,6 +605,7 @@ export const settingKeys = {
   privatePrivacyEnabled: 'private.privacy.enabled',
   privatePrivacyRetentionAttachmentsDays: 'private.privacy.retention.attachmentsDays',
   privatePrivacyRetentionTicketContentDays: 'private.privacy.retention.ticketContentDays',
+  privatePrivacyRetentionProblemContentDays: 'private.privacy.retention.problemContentDays',
   privatePrivacyRetentionAuditDays: 'private.privacy.retention.auditDays',
   privatePrivacyRetentionSessionDays: 'private.privacy.retention.sessionDays',
   privatePrivacyRetentionEmailDeliveryDays: 'private.privacy.retention.emailDeliveryDays',

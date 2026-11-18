@@ -12,6 +12,8 @@ export type ScrubIdentifiers = {
 };
 
 export type TextScrubber = {
+  /** The identifiers this scrubber replaces (W7.34: the database filter mirrors them). */
+  readonly identifiers: Readonly<ScrubIdentifiers>;
   /** Returns the replaced text and the number of replacements. */
   scrub(text: string): { readonly text: string; readonly count: number };
   /** Walks JSON values and scrubs every string (keys stay). */
@@ -105,7 +107,7 @@ export function createTextScrubber(identifiers: ScrubIdentifiers, replacement: s
     return { value: count === 0 ? value : walked, count };
   };
 
-  return { scrub, scrubJson };
+  return { identifiers, scrub, scrubJson };
 }
 
 /** Up to ~60 characters around the first replacement — contains only the pseudonym. */

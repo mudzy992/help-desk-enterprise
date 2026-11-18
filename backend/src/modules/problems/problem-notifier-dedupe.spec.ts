@@ -13,13 +13,20 @@ import { problemResolutionRunOccurrence, problemVersionOccurrence } from './prob
 */
 const inAppKeys: string[] = [];
 const emailKeys: string[] = [];
+const inAppInputs: { readonly body: string; readonly payload: Record<string, unknown> }[] = [];
 
 jest.mock('../notifications/fan-out/persist-in-app-notification', () => ({
-  persistInAppNotification: jest.fn(async (_prisma: unknown, input: { readonly dedupeKey: string }) => {
-    if (inAppKeys.includes(input.dedupeKey)) return null;
-    inAppKeys.push(input.dedupeKey);
-    return { id: `notification-${inAppKeys.length}` };
-  }),
+  persistInAppNotification: jest.fn(
+    async (
+      _prisma: unknown,
+      input: { readonly dedupeKey: string; readonly body: string; readonly payload: Record<string, unknown> },
+    ) => {
+      if (inAppKeys.includes(input.dedupeKey)) return null;
+      inAppKeys.push(input.dedupeKey);
+      inAppInputs.push({ body: input.body, payload: input.payload });
+      return { id: `notification-${inAppKeys.length}` };
+    },
+  ),
 }));
 
 jest.mock('../notifications/email/deliver-notification-email', () => ({
@@ -123,6 +130,7 @@ function notifier(): ProblemNotifier {
 beforeEach(() => {
   inAppKeys.length = 0;
   emailKeys.length = 0;
+  inAppInputs.length = 0;
   jest.clearAllMocks();
 });
 
@@ -172,6 +180,24 @@ describe('problem notifier dedupe', () => {
       'problem:problem.resolved:problem-1:run:run-1:RESOLVED:owner-1',
       'problem:problem.resolved:problem-1:run:run-1:RESOLVED:agent-2',
     ]);
+  });
+
+  /*
+    W7.34 (BA-problems-16): the in-app message is a copy of the problem title, so
+    it must (1) stay a bounded headline — never the description, never the RCA —
+    and (2) keep the `problemId` pointer, which is exactly what the
+    `problemContent` retention run follows to redact the copy at the same time
+    as the problem itself.
+  */
+  it('copies only the headline and keeps the pointer retention follows', async () => {
+    await notifier().ownerAssigned('problem-1', 'actor-1', problemVersionOccurrence(4));
+
+    const [input] = inAppInputs;
+    expect(input.body.startsWith('P-000007 · Printer')).toBe(true);
+    expect(input.body.length).toBeLessThanOrEqual(500);
+    expect(input.body).not.toContain('\n');
+    expect(input.payload.problemId).toBe('problem-1');
+    expect(input.payload.problemNumber).toBe('P-000007');
   });
 
   it('refuses a notice without a stable occurrence', async () => {

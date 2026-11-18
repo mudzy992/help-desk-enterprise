@@ -24,6 +24,7 @@ export const privacyEmailLabels = {
     categories: {
       attachments: 'Prilozi',
       ticketContent: 'Sadržaj tiketa',
+      problemContent: 'Sadržaj problema',
       audit: 'Dnevnik revizije',
       sessions: 'Sesije',
       emailDeliveries: 'Isporuke e-pošte',
@@ -44,6 +45,7 @@ export const privacyEmailLabels = {
     categories: {
       attachments: 'Attachments',
       ticketContent: 'Ticket content',
+      problemContent: 'Problem content',
       audit: 'Audit log',
       sessions: 'Sessions',
       emailDeliveries: 'E-mail deliveries',

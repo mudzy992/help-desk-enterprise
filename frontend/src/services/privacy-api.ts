@@ -74,10 +74,12 @@ export type CloseDataSubjectRequestInput = {
 export const retentionCategories = [
   "attachments",
   "ticketContent",
+  "problemContent",
   "audit",
   "sessions",
   "emailDeliveries",
   "requestRegister",
+  "statusIncidents",
   "assetTransfers",
 ] as const;
 export type RetentionCategory = (typeof retentionCategories)[number];
