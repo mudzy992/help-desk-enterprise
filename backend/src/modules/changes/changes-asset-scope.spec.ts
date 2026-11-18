@@ -114,22 +114,31 @@ function asset(id: string, ouPath: string) {
   };
 }
 
+/** Query arguments of the stubbed calls; every assertion reads them from here. */
+type QueryArgs = Record<string, unknown>;
+
 function buildService() {
   const prisma = {
     asset: {
-      findMany: jest.fn(async () => []),
-      count: jest.fn(async () => 0),
+      findMany: jest.fn(async (_args: QueryArgs): Promise<unknown[]> => []),
+      count: jest.fn(async (_args: QueryArgs): Promise<number> => 0),
     },
-    organizationalUnit: { findUnique: jest.fn(async () => ({ ouPath: insidePath })) },
+    organizationalUnit: { findUnique: jest.fn(async (_args: QueryArgs): Promise<unknown> => ({ ouPath: insidePath })) },
     changeRequest: {
-      findMany: jest.fn(async () => []),
-      findFirst: jest.fn(async () => null),
-      count: jest.fn(async () => 0),
+      findMany: jest.fn(async (_args: QueryArgs): Promise<unknown[]> => []),
+      findFirst: jest.fn(async (_args: QueryArgs): Promise<unknown> => null),
+      count: jest.fn(async (_args: QueryArgs): Promise<number> => 0),
     },
-    changeRequestAsset: { groupBy: jest.fn(async () => []) },
-    group: { findFirst: jest.fn(async () => null), findUnique: jest.fn(async () => null) },
-    user: { count: jest.fn(async () => 0), findMany: jest.fn(async () => []) },
-    $transaction: jest.fn(async () => {
+    changeRequestAsset: { groupBy: jest.fn(async (_args: QueryArgs): Promise<unknown[]> => []) },
+    group: {
+      findFirst: jest.fn(async (_args: QueryArgs): Promise<unknown> => null),
+      findUnique: jest.fn(async (_args: QueryArgs): Promise<unknown> => null),
+    },
+    user: {
+      count: jest.fn(async (_args: QueryArgs): Promise<number> => 0),
+      findMany: jest.fn(async (_args: QueryArgs): Promise<unknown[]> => []),
+    },
+    $transaction: jest.fn(async (_work: (tx: unknown) => unknown): Promise<unknown> => {
       throw new Error('transaction-reached');
     }),
   };
@@ -190,6 +199,7 @@ describe('change asset linking (BA-changes-02)', () => {
 
   describe('write link', () => {
     const input = {
+      type: 'NORMAL' as const,
       title: 'Zamjena switcha',
       description: 'Planirana zamjena',
       organizationalUnitId: 'ou-inside',
