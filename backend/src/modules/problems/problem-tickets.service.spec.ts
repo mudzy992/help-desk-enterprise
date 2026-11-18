@@ -94,6 +94,26 @@ describe('ProblemTicketsService.link', () => {
     expect(events).toHaveLength(1);
   });
 
+  it('turns a lost unique-key race into "the ticket belongs to another problem" (BA-problems-19)', async () => {
+    // The pre-check sees no link, and another request inserts it before this one
+    // commits: the unique ticketId is what decides, not the read before it.
+    const { service, links, events, prisma } = setup({ tickets: [ticket('a'), ticket('b')] });
+    const problemTicket = (prisma as { problemTicket: { create: jest.Mock } }).problemTicket;
+    const originalCreate = problemTicket.create.getMockImplementation() as (args: { data: { ticketId: string; problemId: string } }) => Promise<void>;
+    problemTicket.create.mockImplementation(async (args: { data: { ticketId: string; problemId: string } }) => {
+      if (args.data.ticketId === 'b') throw Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
+      return originalCreate(args);
+    });
+
+    const result = await service.link('p1', ['a', 'b'], viewer);
+
+    expect(result.linked).toEqual([{ ticketId: 'a', ticketNumber: 'T-a' }]);
+    expect(result.skipped).toEqual([{ ticketId: 'b', ticketNumber: 'T-b', reason: 'other_problem' }]);
+    // The losing request wrote nothing for that ticket: no history row, no link.
+    expect(events).toHaveLength(1);
+    expect(links.has('b')).toBe(false);
+  });
+
   it('reports a single failed ticket as an error (ticket panel)', async () => {
     const { service } = setup({ tickets: [ticket('a')], links: { a: 'other' } });
     await expect(service.link('p1', ['a'], viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.ticketInOtherProblem, 'other_problem'));

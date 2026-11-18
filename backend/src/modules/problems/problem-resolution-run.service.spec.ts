@@ -468,6 +468,32 @@ describe('ProblemResolutionRunService execute', () => {
     expect(prepared.canResume).toBe(false);
   });
 
+  it('reports an every-ticket failure as a failed run that a resume cannot reopen (BA-problems-19)', async () => {
+    const { service, runs, items } = setup({
+      tickets: [
+        { id: 'a', status: 'IN_PROGRESS' },
+        { id: 'b', status: 'IN_PROGRESS' },
+      ],
+      failUpdate: {
+        a: new ForbiddenException({ code: 'FORBIDDEN' }),
+        b: new ForbiddenException({ code: 'FORBIDDEN' }),
+      },
+    });
+    await service.prepare('p1', viewer, { runId, message: 'Uzrok je otklonjen.' });
+
+    const outcome = await service.execute('p1', viewer, runId);
+
+    // Nothing was resolved and nothing waits for a retry: that is a failure,
+    // not a partial success the operator could keep resuming.
+    expect(outcome).toMatchObject({ status: 'FAILED', canResume: false, resolved: [], messagePending: 0 });
+    expect(outcome.failed.map((item) => item.ticketId)).toEqual(['a', 'b']);
+    expect(runs.get(runId)).toMatchObject({ status: 'FAILED', resolved: 0, failed: 2, messageFailed: 0 });
+    expect(items.get('item-1')).toMatchObject({ status: 'FAILED', retryable: false });
+    await expect(service.resume('p1', viewer, runId)).rejects.toMatchObject({
+      code: problemErrorCodes.resolutionRunClosed,
+    });
+  });
+
   it('never delegates confidential tickets and re-proves the delegation on a takeover', async () => {
     const { service, ticketsService, collaboration } = setup({
       tickets: [
