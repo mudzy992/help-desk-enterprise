@@ -652,7 +652,7 @@
     {
       "id": "BA-changes-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "24-changes.md",
       "owner": "WS-F",
       "wave": 7

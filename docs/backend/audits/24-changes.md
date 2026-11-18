@@ -163,7 +163,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | ID            | Severity | Nalaz                                                                                         | Status   |
 | ------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-changes-01 | P1       | CHANGE_MANAGER i scoped ADMIN role-name bypass daju globalni OU read/write scope              | zatvoreno |
-| BA-changes-02 | P1       | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope                               | otvoreno |
+| BA-changes-02 | P1       | Asset search/link/detail zaobilaze `asset.read` i CMDB OU scope                               | zatvoreno |
 | BA-changes-03 | P1       | Direct problem link write provjerava samo existence, ne `problem.read` visibility             | otvoreno |
 | BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | otvoreno |
 | BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | otvoreno |
@@ -186,7 +186,11 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 ## 16. Ključne korekcije
 
 - **01:** zatvoreno u W7.1 — assignment-derived scope; global manager pravo samo uz eksplicitni installation grant. Dokaz: [W7.1 implementation](../implementation/87-domain-assignment-scope.md).
-- **02–03:** reuse asset/problem access policy na search, direct write i response projection.
+- **02:** zatvoreno u W7.43 — picker, write link i response projekcija koriste `asset.read` i asset OU
+  scope preko zajedničkog helpera `assets/asset-link-access.ts`. Dokaz:
+  [W7.43 implementation](../implementation/264-w743-changes-02-asset-scope.md).
+- **03:** otvoreno — direct problem link mora ponoviti `problem.read` visibility i dozvoljeni status
+  (reuse problem access policy na write).
 - **04–05:** scope-filter conflict/calendar reference i redact inaccessible konflikt/downtime detalje.
 - **06, 14:** persisted round voter/quorum snapshot ili strogo filtrirana dynamic politika; reject oversized CAB.
 - **07:** outbox/delivery state; marker tek nakon policy-dovoljnog persisted outcomea.
@@ -257,3 +261,13 @@ Change modul ima dobru state-machine i optimistic jezgru, ali global role bypass
 ## 20. Implementacijski closeout — W7.1 (`BA-changes-01`)
 
 Na SHA `49c6559949606ebd87c867f37fe2ce9f0363d1c0`, uz zeleni CI `40911525016`, `ChangeAccessService.require()` zadržava scoped `CHANGE_MANAGER` i `ADMIN` u assignment OU-u; cross-unit `CHANGE_MANAGER` traži installation-wide assignment. CAB membership je i dalje obavezna zasebna provjera. Nema nove migracije; baseline ostaje audit snapshot, a preostali nalazi su otvoreni. Zajednički testni i CI dokaz: [87-domain-assignment-scope.md](../implementation/87-domain-assignment-scope.md).
+
+## 21. Implementacijski closeout — W7.43 (`BA-changes-02`)
+
+Na `9c05f29`, uz zeleni CI `44397715817`, CMDB veze na changeu više ne zaobilaze CMDB granicu:
+`searchAssets`, `assertReferences` i projekcija detaila/liste koriste isti helper
+(`assets/asset-link-access.ts`) koji problems modul koristi od W7.22 — odluka se izvodi iz `asset.`
+prefiksa, tuđi ID se vraća kao `CHANGE_ASSET_NOT_FOUND`, a `assetCount` prati vidljive linkove. Update
+namjerno ne briše linkove koje editor ne vidi. Nema nove migracije; `service.*` scope ostaje otvorena
+observacija iz §4 (nema vlastiti ID u registru), a `BA-changes-03` je sljedeći P1. Zajednički dokaz:
+[264-w743-changes-02-asset-scope.md](../implementation/264-w743-changes-02-asset-scope.md).
