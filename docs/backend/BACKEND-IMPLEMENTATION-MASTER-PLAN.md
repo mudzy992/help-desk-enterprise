@@ -657,6 +657,8 @@ W7.20 `BA-problems-04` je owner-directed zatvoren; dokazi i ograničenja su u [2
 3. Svaki paket zatvara samo navedene ID-eve uz vlastiti acceptance. Ne mijenjati susjedne findings ili severity/threshold. Nakon svakog closeouta ažurirati izvorni red, register/plan po standardnom postupku i ovaj wave snapshot.
 4. Val 7 može biti označen završen tek kada svih 109 dodijeljenih BA ID-eva ima zatvoren status i dokaz, a full assets E2E/Perf segment gate ima zabilježen prihvaćen rezultat. `BA-assets-16` owner acceptance i targeted W7.19 E2E ne zamjenjuju taj gate.
 
+**Wave checkpoint nakon W7.53 (2026-11-19):** zatvoreno je **53 od 59** Val 7 nalaza koji su bili u fokusu zadnjeg niza paketa W7.24–W7.53; otvoreno je **58** (P1 **2**: `BA-reports-02`, `BA-search-01`; P2 39; P3 17). Gornja tabela je historijski snapshot na W7.21 i ne odražava trenutno stanje; aktuelni zbirovi i statusi su u [registru](BACKEND-FINDINGS-REGISTER.md) (source/plan `422/274/696`, registar `274/422`). Detalji zadnjeg paketa: [274](implementation/274-w753-reports-01-bounded-pack-reads.md).
+
 
 ### W7.1 — očuvanje assignment scopea kroz domain viewere — završeno
 

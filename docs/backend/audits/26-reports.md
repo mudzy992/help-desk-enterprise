@@ -119,7 +119,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 
 | ID            | Severity | Nalaz                                                                                         | Status   |
 | ------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
-| BA-reports-01 | P1       | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita          | otvoreno |
+| BA-reports-01 | P1       | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita          | zatvoreno |
 | BA-reports-02 | P1       | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke     | otvoreno |
 | BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | otvoreno |
 | BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | otvoreno |
@@ -207,3 +207,21 @@ Regenerisan Prisma client; svih 27 suiteova; Postgres concurrency/perf, Redis re
 10. Svih 27 suiteova i concurrency/perf/fault E2E prolaze.
 
 Modul ima kvalitetan SQL aggregation i authorization temelj, ali post-build limiti, scheduled attachment scope mismatch i nedovršena concurrency/recovery/retention pravila sprečavaju enterprise ocjenu. Iskren ponderisani baseline je **4,70/10**.
+
+## 17. Implementacijski closeout — W7.53 (`BA-reports-01`)
+
+Na `2edc56e`, uz zeleni CI `44518772985`, nijedan report pack više ne gradi neograničen scoped korpus prije
+limita. Svaki pozivalac prosljeđuje **jedan budžet** loaderu: preview `reportPackPreviewRowLimits[pack]`
+(200 redova za red-list packove, 20.000 za agregatne), export `exportRows` (50.000), scheduled attachment
+`configuration.attachmentMaxRows`. Loader uvijek čita `rowLimit + 1`, probe red odbacuje i vraća
+`{ input, truncatedInput }`, pa je prekoračenje dokazivo bez čitanja cijelog prozora. Preview zato ne gradi
+rezultat radi `totalRows`: `totalRows` je broj pročitanih redova (najviše budžet), a `truncatedInput` i UI
+napomena „Najmanje N redova“ kažu da su brojevi donja granica. Export baca `REPORT_TOO_LARGE` **prije**
+serijalizacije i audita, a scheduled attachment izostavlja pack kao `too_many_rows` umjesto da pošalje
+prepolovičan CSV uz poruku koja tvrdi potpun presjek. KB pack čita usku projekciju članaka (`ReportArticleRow`,
+bez `body` i bez nekorištenih kolona), a voteovi su vezani na učitane članke **i** na prozor izvještaja.
+Agregatni packovi namjerno imaju veći (ali ograničen) budžet umjesto SQL prepisa KPI logike — granica od 200
+redova bi njihove brojeve učinila pogrešnim, ne samo malim; DB agregacija ostaje preostali rizik. Asset packovi
+zadržavaju fiksne interne capove (`truncatedInput: false`), a `BA-reports-11` ostaje otvoren za ticket snapshot
+kolone. Nema migracije. Dokaz:
+[274-w753-reports-01-bounded-pack-reads.md](../implementation/274-w753-reports-01-bounded-pack-reads.md).
