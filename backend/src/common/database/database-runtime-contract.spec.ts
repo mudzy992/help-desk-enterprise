@@ -53,7 +53,7 @@ describe('database runtime contract', () => {
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
     expect(expectedSchemaMigration).toBe(
-      '20271201120000_audit_scope_provenance_problem_actions',
+      '20271201130000_user_search_trigram_indexes',
     );
   });
 });

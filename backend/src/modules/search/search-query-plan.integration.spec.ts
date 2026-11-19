@@ -21,11 +21,14 @@ const describeIfDatabase = url ? describe : describe.skip;
  *    rows the node returned: a selective filter on a whole-table scan returns
  *    one row after looking at every row, and it is the second number that is the
  *    cost.
- * 3. The knowledge-base indexability is proven **both** ways: the index is read
+ * 3. Indexability is proven **both** ways for both scans: the indexes are read
  *    from `pg_indexes`, and the same statement is planned once with the default
  *    cost model and once with `enable_seqscan = off`. That separates "the index
  *    can serve this predicate" (a schema property) from "the planner prefers the
  *    scan at this corpus size" (a cost decision that changes with table size).
+ *    Since W7.63 the directory has trigram indexes too (`User_displayName_*`,
+ *    `User_email_*`), so this suite measures the schema the deployment has — it
+ *    no longer documents a missing index, it guards the ones that exist.
  *
  * The plans run on one dedicated `pg` client, not through the Prisma pool: a
  * session-level `SET enable_seqscan = off` must land on the same backend as the
@@ -224,12 +227,16 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     await prisma.$disconnect();
   });
 
-  it('measures the directory scan: a leading wildcard reads the whole table', async () => {
-    const document = await explain(usersSql, [`%${userNeedle}%`, 15]);
-    const rows = rowsReadFrom(document, 'User');
-    const trigramIndexes = (await indexDefinitions('User')).filter((definition) =>
-      definition.includes('gin_trgm_ops'),
-    );
+  it('serves the directory predicate with the trigram indexes it now has', async () => {
+    // W7.63: the indexes proposed by W7.61 are applied, so the directory scan
+    // is measured against the schema the deployment actually has.
+    const definitions = await indexDefinitions('User');
+    expect(
+      definitions.some((definition) => definition.includes('"User_displayName_trgm_idx"')),
+    ).toBe(true);
+    expect(
+      definitions.some((definition) => definition.includes('"User_email_trgm_idx"')),
+    ).toBe(true);
 
     // The explained statement is the module's own query, not a look-alike.
     const throughPrisma = await prisma.user.findMany({
@@ -252,30 +259,40 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
       throughPrisma.map((row: { readonly id: string }) => row.id),
     );
 
+    // 1. Default cost model: record what actually runs at this corpus size.
+    const planned = await explain(usersSql, [`%${userNeedle}%`, 15]);
     console.log(
-      `search query plan (users): examined=${rows}/${corpus} ` +
-        `trigram_index=${trigramIndexes.length > 0 ? 'present' : 'absent'} ` +
-        `execution_ms=${document['Execution Time'].toFixed(1)} ` +
-        `nodes=${nodesOn(document, 'User')
+      `search query plan (users, default): ` +
+        `examined=${rowsReadFrom(planned, 'User')}/${corpus} ` +
+        `execution_ms=${planned['Execution Time'].toFixed(1)} ` +
+        `nodes=${nodesOn(planned, 'User')
           .map((node) => node['Node Type'])
           .join('/')}`,
     );
+    expect(rowsReadFrom(planned, 'User')).toBeLessThanOrEqual(corpus);
+    expect(planned['Execution Time']).toBeLessThan(5_000);
 
-    if (trigramIndexes.length === 0) {
-      // No index can answer `ILIKE '%needle%'`: the predicate is a filter, so a
-      // single hit still costs a pass over the whole directory. This is the
-      // finding, measured.
-      expect(rows).toBeGreaterThanOrEqual(corpus * 0.9);
-      expect(
-        nodesOn(document, 'User').some((node) =>
-          (node.Filter ?? '').includes('~~*'),
-        ),
-      ).toBe(true);
-    } else {
-      // Once the migration is approved this branch documents the improvement.
-      expect(rows).toBeLessThan(corpus * 0.5);
+    // 2. Same statement with the scan penalised: the trigram index must take
+    //    over, and the read must be hit-proportional instead of table-sized.
+    await client.query('SET enable_seqscan = off');
+    try {
+      const indexed = await explain(usersSql, [`%${userNeedle}%`, 15]);
+      const indexNodes = flatten(indexed.Plan).filter((node) =>
+        (node['Index Name'] ?? '').startsWith('User_'),
+      );
+      console.log(
+        `search query plan (users, index-only): ` +
+          `examined=${rowsReadFrom(indexed, 'User')}/${corpus} ` +
+          `execution_ms=${indexed['Execution Time'].toFixed(1)} ` +
+          `indexes=${indexNodes
+            .map((node) => node['Index Name'])
+            .join(',')}`,
+      );
+      expect(indexNodes.length).toBeGreaterThan(0);
+      expect(rowsReadFrom(indexed, 'User')).toBeLessThan(corpus * 0.2);
+    } finally {
+      await client.query('SET enable_seqscan = on');
     }
-    expect(document['Execution Time']).toBeLessThan(5_000);
   });
 
   it('proves the knowledge-base title can be served by its trigram index', async () => {
