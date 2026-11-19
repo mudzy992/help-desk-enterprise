@@ -104,7 +104,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | zatvoreno |
 | BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | zatvoreno |
 | BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | zatvoreno |
-| BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | otvoreno |
+| BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | zatvoreno |
 | BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | otvoreno |
 | BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | otvoreno |
 | BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | otvoreno |
@@ -127,7 +127,8 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 - **06:** riješeno u W7.60 (jedna odluka vidljivosti: `isKnowledgeArticleVisibleTo` je batch loader nad jednim
   redom, a detalj i feedback glasovanje koriste isti put; delegacijski rubovi audita 25 dokazani su parity
   matricom i testovima na granici `/search`).
-- **08:** typed group outcome; auth greške fail-closed, odobreni availability kvar može biti partial.
+- **08:** riješeno u W7.62 (typed group outcome: `authorization`/`client` uvijek fail-closed, samo
+  `availability` degradira uz obavezno `failedGroups`; `503 SEARCH_UNAVAILABLE` kad nijedna grupa nije odgovorila).
 - **09,11:** stabilan order i privacy-safe metrički sloj bez raw queryja.
 - **12–13:** regenerisan Prisma client, unit/integration/E2E matrica i scope-revoke/perf dokaz.
 
@@ -403,3 +404,32 @@ Interim: W7.59 budžet ograničava broj skenova, W7.55 OU-predikat sužava skup 
 (zakon rasta dokazan oblikom plana, ne mjerenjem na 100k+); planer nije obavezan koristiti indeks ni kad
 postoji, pa bi buduća migracija morala doći s vlastitim plan-dokazom; `Ticket`/`Asset` trigram planovi nisu dio
 ovog paketa.
+
+## 22. Implementacijski closeout — W7.62 (`BA-search-08`)
+
+**Status nalaza:** `BA-search-08` (P2) **zatvoren**; paket W7.62, kod `aa57540`, **bez migracije**.
+Detalji: [283](../implementation/283-w762-search-08-partial-fail-closed.md).
+
+**Šta je bilo:** `Promise.all` je značio da kvar jedne tražene grupe ruši cijeli odgovor, a audit je tražio
+eksplicitnu odluku: fail-closed za autorizaciju, kontrolisani partial za dostupnost — bez prikrivanja security
+failurea. Odluka je donesena i implementirana, ne prepuštena tumačenju.
+
+**Šta je sada:** svaka grupa vraća `skipped` / `ok` / `failed`, a klasifikacija je na jednom mjestu
+(`search-group-failure.ts`): `authorization` (`401`/`403` ili domenski `FORBIDDEN`/`UNAUTHORIZED`) i `client`
+(svaki drugi `4xx` i svaka druga domenska greška) **ruše cijeli zahtjev**; samo `availability` (`5xx`, mreža,
+vrijeme, nepoznato) degradira — i tada odgovor nosi `failedGroups` sa imenima grupa, uvijek prisutno. Ako
+nijedna tražena grupa nije odgovorila, endpoint vraća `503 SEARCH_UNAVAILABLE` sa istim spiskom umjesto tri
+prazne liste. `articlesIncomplete` ostaje zastavica skeniranja grupe koja je odgovorila; pala grupa se nikad ne
+prijavljuje kao nepotpuna. Paleta razlikuje `429` (budžet), `503` (nedostupno) i imenovanu palu grupu, i ne
+prikazuje „nema rezultata” u ta dva slučaja.
+
+**Acceptance:** §14.6 je ispunjen — security greška nikad nije partial uspjeh, a dostupnosni kvar je kontrolisan,
+imenovan i vidljiv i u API-ju i u UI-ju. Dokaz: `search-group-failure.spec.ts` (4), `search.service.spec.ts` (+4),
+frontend (+4 testa u tri fajla).
+
+**Šta ostaje u ovom modulu:** P1 nema, **P2 nema**. P3: `09` (stable order), `10` (`ArrayUnique`), `11`
+(telemetrija), `12` (confidential/arhiva test), `13` (compile-blocked suite/E2E).
+
+**Preostali rizik:** klasifikacija zavisi od tipova grešaka, pa novi `4xx` izvor treba svjesno klasificirati;
+nema per-group timeouta (dostupnost pokriva greške, ne visenje); `failedGroups` nema telemetriju (P3 `11`);
+partial je `200` i štiti ga samo polje `failedGroups`.
