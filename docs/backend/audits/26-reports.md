@@ -120,7 +120,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | ID            | Severity | Nalaz                                                                                         | Status   |
 | ------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-reports-01 | P1       | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita          | zatvoreno |
-| BA-reports-02 | P1       | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke     | otvoreno |
+| BA-reports-02 | P1       | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke     | zatvoreno |
 | BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | otvoreno |
 | BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | otvoreno |
 | BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | otvoreno |
@@ -225,3 +225,18 @@ redova bi njihove brojeve učinila pogrešnim, ne samo malim; DB agregacija osta
 zadržavaju fiksne interne capove (`truncatedInput: false`), a `BA-reports-11` ostaje otvoren za ticket snapshot
 kolone. Nema migracije. Dokaz:
 [274-w753-reports-01-bounded-pack-reads.md](../implementation/274-w753-reports-01-bounded-pack-reads.md).
+
+## 18. Implementacijski closeout — W7.54 (`BA-reports-02`)
+
+Na `db9b398`, uz zeleni CI `44528116159`, scheduled CSV prilozi više ne prelaze presjek koji e-mail prijavljuje.
+Novi `ReportPackFilters` (`serviceId`, `groupId`, `priority`) ulazi u `loadReportPackBuildInput` i **gura se u upit**
+prije nego se potroši W7.53 row budžet: ticket packovi filtriraju `serviceId`/`assignedGroupId`/`priority`, time
+tracking kroz `ticket`, forward ping-pong filtriranjem tiketa (forwardi se i dalje broje po tiketu), KB pack po
+`knowledgeArticle.serviceId`, a problemski packovi po **vlastitom** problem zapisu (servis/grupa/prioritet), ne po
+povezanim tiketima. `reportPackScheduleFilterSupport` deklariše dimenzije po packu; pack koji presjek ne može
+primijeniti (CMDB i change) se **izostavlja** sa novim reasonom `filter_unsupported` umjesto da pošalje OU-wide
+fajl, pa e-mail nikad ne tvrdi uži presjek od sadržaja. Napomena uz priloge i hint u formi rasporeda sada kažu da
+prilozi koriste isti period i presjek, a „Historija izvršenja“ mapira novi reason (bs/en). Validacija pri čuvanju
+rasporeda nije dio paketa — fail-closed slanje je sigurnije za postojeće rasporede, a relacijska validacija
+reference je `BA-reports-03`. Nema migracije. Dokaz:
+[275-w754-reports-02-scheduled-attachment-scope.md](../implementation/275-w754-reports-02-scheduled-attachment-scope.md).

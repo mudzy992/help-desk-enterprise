@@ -3476,7 +3476,7 @@
     {
       "id": "BA-reports-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "26-reports.md",
       "owner": "WS-F",
       "wave": 7
