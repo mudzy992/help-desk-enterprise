@@ -142,7 +142,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | ID                   | Severity | Nalaz                                                                                     | Status   |
 | -------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
 | BA-knowledge-base-01 | P1       | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea    | zatvoreno |
-| BA-knowledge-base-02 | P1       | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | otvoreno |
+| BA-knowledge-base-02 | P1       | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno |
 | BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | otvoreno |
 | BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | otvoreno |
 | BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | otvoreno |
@@ -246,3 +246,16 @@ owner grupu više ne dobija korpus grupe. Revoke je auditabilan tamo gdje se de�
 nema nove tabele delegacije. Reviewer delegacija ostaje `BA-knowledge-base-02` (sljedeći P1); grant snapshot/expiry
 na nivou članka traži novu tabelu i ostaje predmet odluke. Dokaz:
 [270-w749-knowledge-base-01-owner-delegation-scope.md](../implementation/270-w749-knowledge-base-01-owner-delegation-scope.md).
+
+## 20. Implementacijski closeout — W7.50 (`BA-knowledge-base-02`)
+
+Na `fcfce5b`, uz zeleni CI `44485659347`, reviewer delegacija ima isti životni vijek kao vlasništvo:
+`isKnowledgeArticleReviewer()` prvo provjerava OU/service scope članka (`isKnowledgeDelegationInScope`) i tek
+onda ID jednakost, pa premještaj u drugi OU, promjena service assignmenta ili `reviewerUserId = null` prekidaju
+read/review na sljedećem zahtjevu. Read, `GET /search`, lista i approve/reject dijele tu provjeru; scoped
+`knowledge.article.review` i dalje radi za menadžera koji nije dodijeljeni reviewer. Nema migracije.
+Isti gate je pritom morao biti popravljen u supply-chain sloju: pinovani `node:22-alpine` digest je zamijenjen
+novijim (rješava node CVE-2026-123864/123865/123866/123872), a `libssl3`/`libcrypto3` su u runtime stageu
+podignuti na zakrpljeni Alpine build (CVE-2026-95691/95692/107496/88823) — bez toga nijedan naredni paket ne bi
+mogao proći gate. Dokaz:
+[271-w750-knowledge-base-02-reviewer-delegation.md](../implementation/271-w750-knowledge-base-02-reviewer-delegation.md).

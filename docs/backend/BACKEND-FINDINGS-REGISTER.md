@@ -383,7 +383,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 24 | `changes` | `BA-changes-19` | P3 | Servis ne clampuje quorum/lead/reminder configuration integer granice | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-20` | P3 | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-01` | P1 | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea | zatvoreno (W7.49) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
-| 25 | `knowledge-base` | `BA-knowledge-base-02` | P1 | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
+| 25 | `knowledge-base` | `BA-knowledge-base-02` | P1 | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno (W7.50) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-03` | P1 | Article edit/lifecycle nema version/CAS ni review vezan za content revision | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-04` | P1 | Article list i portal učitavaju neograničen matching/published korpus | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-05` | P2 | INTERNAL default je company-wide read bez OU/service granice | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
