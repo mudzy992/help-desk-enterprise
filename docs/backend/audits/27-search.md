@@ -100,7 +100,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-01 | P1       | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | zatvoreno |
 | BA-search-02 | P2       | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | zatvoreno |
 | BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | zatvoreno |
-| BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | otvoreno |
+| BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | zatvoreno |
 | BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | otvoreno |
 | BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | otvoreno |
 | BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | otvoreno |
@@ -115,8 +115,9 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 
 - **01:** riješeno u W7.55 (`user.directory.read` + OU subtree + e-mail samo za globalni doseg); detalji u §15.
 - **02:** riješeno u W7.56 (normalizacija prije validacije, brojanje karaktera, granik poslije NFKC); `10` ostaje otvoren.
-- **03:** riješeno u W7.57 (bounded keyset scan + batch vidljivost + `articlesIncomplete`); SQL scope pushdown
-  odbijen jer bi bio druga kopija autorizacije; `04` (minimalna projekcija) ostaje otvoren.
+- **03–04:** riješeno u W7.57 (bounded keyset scan + batch vidljivost + `articlesIncomplete`) i W7.58
+  (minimalna projekcija: `body` se ne čita prije autorizacijske odluke); SQL scope pushdown odbijen jer bi
+  bio druga kopija autorizacije.
 - **05,07:** Redis actor/IP token bucket, timeout/query budget i EXPLAIN/index dokaz.
 - **06:** primijeniti korekcije delegacije iz audita 25 prije oslanjanja na centralni KB predicate.
 - **08:** typed group outcome; auth greške fail-closed, odobreni availability kvar može biti partial.
@@ -273,3 +274,35 @@ P3: `09` (stable order), `10` (`ArrayUnique`), `11` (telemetrija), `12` (confide
 tolerantno ponašanje, ne ugovor); `incomplete` ne govori *koliko* je propušteno; 200-redni scan po zahtjevu bez
 rate limita ostaje ponovljiv teret (`05`); `contains` nad naslovom još nema index (`07`), a red se i dalje čita
 cijel, uključujući `body` (`04`).
+
+## 18. Implementacijski closeout — W7.58 (`BA-search-04`)
+
+**Status nalaza:** `BA-search-04` (P2) **zatvoren**; paket W7.58, kod `156bb1b`, **bez migracije**.
+Detalji: [279](../implementation/279-w758-search-04-minimal-kb-projection.md).
+
+**Šta je bilo:** title upit nije imao `select`, pa je svaki kandidat stizao kao cijeli red — `body` (do 20.000
+znakova), kategorija, FAQ i counteri — a vidljivost se odlučivala tek poslije. Tekst članka koji actor ne smije
+vidjeti bio je materijalizovan u procesu i u svakom debug/log dumpu, iako nikad nije otišao u odgovor.
+
+**Šta je sada:** novo `search-knowledge-article-projection.ts` definiše `knowledgeArticleTitleSearchSelect` —
+tačno izlazne kolone (`id`, `slug`, `title`), kolone predikata (`status`, `classification`,
+`organizationalUnitId`, `serviceId`, `ownerUserId`, `ownerGroupId`, `reviewerUserId`) i keyset poziciju
+(`updatedAt`) — i tip reda koji upit vraća. Upit nosi `select`, pa `body` nikad ne ulazi u čitanje. Novi
+`KnowledgeArticleVisibilityRecord` (`Pick` tih kolona) je ulaz `canReadKnowledgeArticle`,
+`isKnowledgeArticleOwner/Reviewer` i `loadKnowledgeArticleVisibilities`: pun `KnowledgeArticleRecord` ostaje
+kompatibilan, pa lista/intercept/mutacije rade nepromijenjeno, a funkcija koja bi tražila tekst ne bi se
+kompajlirala. Testni double poštuje `select` kao Prisma.
+
+**Acceptance:** §14.4 je ispunjen (hidden `body` se ne učitava prije autorizacijske odluke), a §14.3 i §14.7 iz
+W7.57 ostaju netaknuti (isti keyset, isti `incomplete`, ista vidljivost — dokazano paritetom odluka).
+Dokaz: `search-knowledge-article-projection.spec.ts` (4 testa: minimalan `select`, paritet odluka 7 aktera × 7
+članaka, paritet batch vidljivosti, canary `body` van projekcije) i `search-knowledge-article-titles.spec.ts`
+(11 testova, +1 canary test; batching test provjerava `select`).
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-05` (rate limit/anti-enumeration), `06` (KB
+owner/reviewer scope), `07` (query plan), `08` (partial/fail-closed ugovor). P3: `09` (stable order), `10`
+(`ArrayUnique`), `11` (telemetrija), `12` (confidential/arhiva), `13` (E2E za `/search`).
+
+**Preostali rizik:** lista i intercept i dalje čitaju `body` prije odluke jer ga vraćaju za vidljive redove —
+dvofazni read (vidljivost → tijela dozvoljenih ID-eva) je zaseban KB paket; projekcija ne mijenja query plan
+(`07`), ne uvodi rate limit (`05`) i ne dira delegaciju iz audita 25 (`06`).
