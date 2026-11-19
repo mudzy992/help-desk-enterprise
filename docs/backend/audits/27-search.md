@@ -102,7 +102,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | zatvoreno |
 | BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | zatvoreno |
 | BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | zatvoreno |
-| BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | otvoreno |
+| BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | zatvoreno |
 | BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | otvoreno |
 | BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | otvoreno |
 | BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | otvoreno |
@@ -120,7 +120,9 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
   bio druga kopija autorizacije.
 - **05:** riješeno u W7.59 (dva distribuirana fiksna prozora — actor i adresa — sa Redis Lua INCR+EXPIRE,
   per-instance degradacijom i fail-closed `503` kad verdikta nema); `07` (EXPLAIN/index dokaz) ostaje otvoren.
-- **06:** primijeniti korekcije delegacije iz audita 25 prije oslanjanja na centralni KB predicate.
+- **06:** riješeno u W7.60 (jedna odluka vidljivosti: `isKnowledgeArticleVisibleTo` je batch loader nad jednim
+  redom, a detalj i feedback glasovanje koriste isti put; delegacijski rubovi audita 25 dokazani su parity
+  matricom i testovima na granici `/search`).
 - **08:** typed group outcome; auth greške fail-closed, odobreni availability kvar može biti partial.
 - **09,11:** stabilan order i privacy-safe metrički sloj bez raw queryja.
 - **12–13:** regenerisan Prisma client, unit/integration/E2E matrica i scope-revoke/perf dokaz.
@@ -338,3 +340,33 @@ Dokaz: `search-rate-limit.configuration.spec.ts` (4), `search-rate-limit.spec.ts
 **Preostali rizik:** legitimna automatizacija iznad 30 pretraga u minuti dobija `429` (limit je zato po
 deploymentu); bez Redisa budžet je `replike × limit`; fiksni prozor dopušta do 2× na granici; `contains` bez
 indeksa (`07`) i telemetrija (`11`) nisu dio paketa; klijent nema automatski backoff na `429`.
+
+## 20. Implementacijski closeout — W7.60 (`BA-search-06`)
+
+**Status nalaza:** `BA-search-06` (P2) **zatvoren**; paket W7.60, kod `61a2ccb`, **bez migracije**.
+Detalji: [281](../implementation/281-w760-search-06-visibility-parity.md).
+
+**Šta je bilo:** audit 25 §3 opisao je dvije delegacijske zaobilaznice (owner/owner-group bez scope provjere,
+reviewer po jednakosti ID-a). Obje su popravljene u centralnom predikatu — W7.49 (`isKnowledgeDelegationInScope`,
+globalni `USER` assignment ne pokriva nijednu OU) i W7.50 (reviewer prolazi isti scope test) — ali `/search` je
+odluku donosio **batch** loaderom, dok su detalj i feedback glasovanje sklapali iste činjenice kroz **drugi** put.
+Nalaz je zato bio otvoren s pravom: nije bila riječ o pogrešnom pravilu, nego o dvije implementacije istog
+pravila, a upravo tako modul ponovo naslijedi zaobilaznicu.
+
+**Šta je sada:** `isKnowledgeArticleVisibleTo` **je** `loadKnowledgeArticleVisibilities` nad jednim redom;
+`get-knowledge-article.ts` i `submit-knowledge-feedback.ts` koriste taj isti loader, a lokalno sklapanje predikata
+je uklonjeno. Invarijanta je po konstrukciji: članak je vidljiv u `/search` ako i samo ako je vidljiv po ID-u.
+Revoke (premještaj OU, drugi servis, `reviewerUserId = null`, uklanjanje iz grupe) važi na sljedećem zahtjevu —
+nema keša koji bi ga odgodio.
+
+**Acceptance:** §5 (search ne nasljeđuje delegacijske zaobilaznice) je ispunjen i dokazan na granici `/search`,
+ne samo na detalju. Dokaz: parity spec (56 poređenja batch-vs-single + delegacijski rubovi + klasifikacija) i
+četiri nova testa u title-search specu.
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-07` (query plan), `08` (partial/fail-closed ugovor). P3:
+`09` (stable order), `10` (`ArrayUnique`), `11` (telemetrija), `12` (confidential/arhiva), `13` (E2E za `/search`).
+
+**Preostali rizik:** budući read put koji ponovo sklapa činjenice ručno oborio bi invarijantu (parity spec ga ne
+može spriječiti, samo uhvatiti ako koristi loader); široka vidljivost objavljenog `INTERNAL` ostaje proizvodna
+odluka iz `BA-knowledge-base-05`; grant snapshot/expiry po članku traži novu tabelu i odobrenje; query plan,
+partial ugovor i telemetrija nisu dio paketa.
