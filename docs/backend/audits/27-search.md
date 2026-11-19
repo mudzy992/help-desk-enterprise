@@ -99,7 +99,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | ------------ | -------- | --------------------------------------------------------------------------------------- | -------- |
 | BA-search-01 | P1       | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | zatvoreno |
 | BA-search-02 | P2       | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | zatvoreno |
-| BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | otvoreno |
+| BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | zatvoreno |
 | BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | otvoreno |
 | BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | otvoreno |
 | BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | otvoreno |
@@ -115,7 +115,8 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 
 - **01:** riješeno u W7.55 (`user.directory.read` + OU subtree + e-mail samo za globalni doseg); detalji u §15.
 - **02:** riješeno u W7.56 (normalizacija prije validacije, brojanje karaktera, granik poslije NFKC); `10` ostaje otvoren.
-- **03–04:** DB scope pushdown ili bounded cursor scan, incomplete contract i minimalna article projekcija.
+- **03:** riješeno u W7.57 (bounded keyset scan + batch vidljivost + `articlesIncomplete`); SQL scope pushdown
+  odbijen jer bi bio druga kopija autorizacije; `04` (minimalna projekcija) ostaje otvoren.
 - **05,07:** Redis actor/IP token bucket, timeout/query budget i EXPLAIN/index dokaz.
 - **06:** primijeniti korekcije delegacije iz audita 25 prije oslanjanja na centralni KB predicate.
 - **08:** typed group outcome; auth greške fail-closed, odobreni availability kvar može biti partial.
@@ -235,3 +236,40 @@ ugovor). P3: `09` (stable order), `10` (`ArrayUnique`), `11` (telemetrija), `12`
 
 **Preostali rizik:** upit bez dva znaka sadržaja sada vraća `400` (stariji klijenti sa jednoslovnim upitom
 dobijaju grešku umjesto širokog rezultata); klijentsko i serversko pravilo su dvije implementacije iste norme.
+
+## 17. Implementacijski closeout — W7.57 (`BA-search-03`)
+
+**Status nalaza:** `BA-search-03` (P2) **zatvoren**; paket W7.57, kod `6d46e07`, **bez migracije**.
+Detalji: [278](../implementation/278-w757-search-03-bounded-kb-candidates.md).
+
+**Šta je bilo:** article grana je čitala najviše `limit × 3` naslova sortiranih globalno po `updatedAt desc` i
+tek onda filtrirala vidljivost, red po red (`isKnowledgeArticleVisibleTo` = tri upita). Ako je taj prozor
+pripadao drugim OU/servisima ili klasifikaciji iznad dosega, actor je dobijao praznu ili kratku grupu iako su
+stariji vidljivi pogoci postojali; a odsječen odgovor nije nosio nikakav signal da je odsječen.
+
+**Šta je sada:** `searchKnowledgeArticleTitles` je **bounded keyset šetnja** — `listScanBatchSize` (50) redova
+po batchu sa `take: 51`, najviše `maximumListScanBatches` (4) batcha (≤ 200 kandidata), redoslijed
+`(updatedAt desc, id asc)`, nastavak preko `OR: [{ updatedAt: { lt } }, { updatedAt: jednako, id: { gt } }]`.
+Vidljivost se rješava **po batchu** postojećom `loadKnowledgeArticleVisibilities` (bez N+1), a petlja nastavlja
+i poslije nevidljivih redova dok ne napuni `limit` ili ne potroši budget. Rezultat je `{ items, incomplete }`;
+`incomplete: true` znači „skeniranje je stalo, ima još pogodaka”, `false` znači iscrpnu grupu. `/search` ga
+izlaže kao `articlesIncomplete`, a komandna paleta prikazuje napomenu ispod grupe članaka. `candidateMultiplier`
+je uklonjen. SQL scope pushdown je odbijen svjesno (vidljivost zavisi od klasifikacije, statusa, OU putanje,
+servisnog dosega, tri permission ključa, identiteta i članstva u grupi — SQL ogledalo bi bilo druga kopija
+autorizacije); pushdown koji je ekvivalentan JS provjeri (`status != ARCHIVED`, `title contains`) ostaje u upitu.
+
+**Acceptance:** §14.3 (vidljivi pogodak ne nestaje zbog novijih hidden kandidata) i §14.7 (stabilan redoslijed
+i eksplicitna incomplete semantika za article grupu) su ispunjeni; §14.1, §14.2 iz ranijih paketa ostaju
+netaknuti. Dokaz: `search-knowledge-article-titles.spec.ts` (10 testova), `search.service.spec.ts` (+1 i
+ažuriran stub), `header-search-match.spec.ts` (+1), `use-command-palette-search.spec.tsx` (+1),
+`command-palette.spec.tsx` (+1).
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-04` (minimalna projekcija reda), `05` (rate
+limit/anti-enumeration), `06` (KB owner/reviewer scope), `07` (query plan), `08` (partial/fail-closed ugovor).
+P3: `09` (stable order), `10` (`ArrayUnique`), `11` (telemetrija), `12` (confidential/arhiva), `13` (E2E za
+`/search`).
+
+**Preostali rizik:** novi flag je aditivan ali ga svaki potrošač mora poznavati (odsustvo = `false` je
+tolerantno ponašanje, ne ugovor); `incomplete` ne govori *koliko* je propušteno; 200-redni scan po zahtjevu bez
+rate limita ostaje ponovljiv teret (`05`); `contains` nad naslovom još nema index (`07`), a red se i dalje čita
+cijel, uključujući `body` (`04`).
