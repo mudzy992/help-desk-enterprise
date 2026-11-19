@@ -78,7 +78,11 @@ function renderEditor() {
 describe("PlaybookEditorPage revision handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(listKnowledgeArticles).mockResolvedValue([]);
+    vi.mocked(listKnowledgeArticles).mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
     vi.mocked(listServices).mockResolvedValue([]);
     vi.mocked(listServiceCategories).mockResolvedValue([]);
     vi.mocked(listManagedTemplates).mockResolvedValue({

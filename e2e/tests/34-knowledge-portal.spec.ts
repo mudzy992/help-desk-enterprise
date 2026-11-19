@@ -60,9 +60,13 @@ async function publishArticle(
 }
 
 async function categoryArticles(user: ApiClient, categoryId: string): Promise<readonly PortalArticle[]> {
-  return await user.requestJson<readonly PortalArticle[]>(
-    `/knowledge-base/portal/categories/${categoryId}/articles`,
-  );
+  // W7.52: the portal category is a bounded page.
+  const page = await user.requestJson<{
+    items: readonly PortalArticle[];
+    hasMore: boolean;
+    nextCursor: string | null;
+  }>(`/knowledge-base/portal/categories/${categoryId}/articles`);
+  return page.items;
 }
 
 async function poll<T>(read: () => Promise<T>, done: (value: T) => boolean, timeoutMs = 20_000): Promise<T> {

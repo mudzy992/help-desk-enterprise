@@ -92,7 +92,7 @@ describe('KnowledgeBaseService authorization', () => {
       {},
       { actorUserId: knowledgeBaseTestIds.agentHr },
     );
-    expect(listedForHr.map((item) => item.id)).not.toContain('restricted-vpn');
+    expect(listedForHr.items.map((item) => item.id)).not.toContain('restricted-vpn');
     const visible = await articles.getById('restricted-vpn', {
       actorUserId: knowledgeBaseTestIds.adminIt,
     });

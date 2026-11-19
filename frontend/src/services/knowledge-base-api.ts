@@ -72,16 +72,25 @@ export type UpdateKnowledgeArticleInput = {
 export type KnowledgeLifecycleAction =
   "submit-review" | "approve-review" | "reject-review" | "publish" | "archive";
 
+/** W7.52: the console list is a bounded page, never the whole corpus. */
+export type KnowledgeArticlePage = {
+  readonly items: readonly KnowledgeArticleResponse[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
 export type ListKnowledgeArticlesParams = {
   readonly q?: string;
   readonly status?: KnowledgeArticleStatus;
   readonly serviceId?: string;
   readonly staleOnly?: boolean;
+  readonly limit?: number;
+  readonly cursor?: string;
 };
 
 export function listKnowledgeArticles(
   params: ListKnowledgeArticlesParams | string = {},
-): Promise<readonly KnowledgeArticleResponse[]> {
+): Promise<KnowledgeArticlePage> {
   const normalized =
     typeof params === "string" ? { serviceId: params.length > 0 ? params : undefined } : params;
   const search = new URLSearchParams();
@@ -96,6 +105,12 @@ export function listKnowledgeArticles(
   }
   if (normalized.staleOnly === true) {
     search.set("staleOnly", "true");
+  }
+  if (normalized.limit !== undefined) {
+    search.set("limit", String(normalized.limit));
+  }
+  if (normalized.cursor !== undefined && normalized.cursor.length > 0) {
+    search.set("cursor", normalized.cursor);
   }
   const suffix = search.size === 0 ? "" : `?${search.toString()}`;
   return apiRequest(`/knowledge-base/articles${suffix}`);

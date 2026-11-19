@@ -152,4 +152,19 @@ export type ListKnowledgeArticlesQuery = {
   readonly organizationalUnitId?: string;
   readonly q?: string;
   readonly staleOnly?: boolean;
+  /** W7.52: bounded page size (1..maximumListPageSize). */
+  readonly limit?: number;
+  /** W7.52: opaque cursor from the previous page. */
+  readonly cursor?: string;
+};
+
+/**
+ * W7.52 (BA-knowledge-base-04): the list is a page, not the whole corpus.
+ * `total` is deliberately absent — an exact total over an authorization-filtered
+ * set would require the unbounded scan this package removes.
+ */
+export type KnowledgeArticlePageResponse = {
+  readonly items: readonly KnowledgeArticleResponse[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
 };

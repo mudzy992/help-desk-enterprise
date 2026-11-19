@@ -36,6 +36,7 @@ import {
 } from '../load-knowledge-article-scope';
 import { changeLogActions, recordKnowledgeArticleChange } from '../record-knowledge-article-change';
 import { toKnowledgeArticleResponse } from '../to-knowledge-article-response';
+import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { withKnowledgeArticleFreshness } from '../with-knowledge-article-freshness';
 import { recordKnowledgeArticleView } from './knowledge-article-views';
 import {
@@ -80,8 +81,21 @@ export type KnowledgePortalHome = {
   readonly categories: readonly KnowledgePortalCategory[];
   readonly faq: readonly (KnowledgePortalArticle & { readonly body: string })[];
   readonly uncategorizedCount: number;
+  /**
+   * W7.52 (BA-knowledge-base-04): category counts come from a bounded scan of
+   * published articles; `false` means the corpus is larger than the cap and the
+   * counts are a lower bound of what the reader can see.
+   */
+  readonly articleCountsComplete: boolean;
   readonly capabilities: KnowledgePortalCapabilities;
   readonly feedbackEnabled: boolean;
+};
+
+/** W7.52: a portal category page instead of the whole published corpus. */
+export type KnowledgePortalArticlePage = {
+  readonly items: readonly KnowledgePortalArticle[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
 };
 
 export type KnowledgePlacementInput = {
@@ -174,11 +188,12 @@ export class KnowledgePortalService {
     return executeKnowledgeBaseOperation(async () => {
       const actor = await loadKnowledgeActorContext(this.loader, context);
       const configuration = await this.configurationLoader.load();
-      const [articles, categories, faqMaxItems] = await Promise.all([
-        this.visiblePublished(context),
+      const [published, categories, faqMaxItems] = await Promise.all([
+        this.publishedScan(context, knowledgeBaseConstants.portalHomeScanCap),
         listKnowledgeCategories(this.prisma, { includeArchived: false }),
         this.faqMaxItems(),
       ]);
+      const articles = published.items;
       const activeIds = new Set(categories.map((category) => category.id));
       const direct = new Map<string, number>();
       let uncategorizedCount = 0;
@@ -208,20 +223,28 @@ export class KnowledgePortalService {
         categories: withCounts,
         faq,
         uncategorizedCount,
+        articleCountsComplete: !published.hasMore,
         capabilities: this.capabilitiesOf(actor),
         feedbackEnabled: configuration.feedbackEnabled,
       };
     });
   }
 
-  /** `categoryId` = a category id or `uncategorized`. A root includes its children. */
+  /**
+   * `categoryId` = a category id or `uncategorized`. A root includes its children.
+   *
+   * W7.52: a page (`limit`/`cursor`) instead of the whole published corpus. The
+   * order is the database order of the shared list (`updatedAt desc, id asc`) so
+   * that keyset pagination stays stable; the previous in-memory title sort could
+   * not be paged without loading every row.
+   */
   categoryArticles(
     categoryId: string,
     context: KnowledgeArticleMutationContext,
-  ): Promise<readonly KnowledgePortalArticle[]> {
+    page: { readonly limit?: number; readonly cursor?: string } = {},
+  ): Promise<KnowledgePortalArticlePage> {
     return executeKnowledgeBaseOperation(async () => {
       const categories = await listKnowledgeCategories(this.prisma, { includeArchived: false });
-      const articles = await this.visiblePublished(context);
       const activeIds = new Set(categories.map((category) => category.id));
       let matches: (article: KnowledgeArticleRecord) => boolean;
       if (categoryId === 'uncategorized') {
@@ -237,10 +260,27 @@ export class KnowledgePortalService {
         ]);
         matches = (article) => article.categoryId !== null && ids.has(article.categoryId);
       }
-      return articles
-        .filter(matches)
-        .sort((left, right) => left.title.localeCompare(right.title, 'bs'))
-        .map(toPortalArticle);
+      const configuration = await this.configurationLoader.load();
+      const now = new Date();
+      const paged = await listKnowledgeArticles(
+        this.prisma,
+        this.loader,
+        { status: 'PUBLISHED' },
+        context,
+        {
+          limit: page.limit,
+          cursor: page.cursor,
+          defaultPageSize: knowledgeBaseConstants.defaultPortalPageSize,
+          accept: matches,
+        },
+      );
+      return {
+        items: paged.items
+          .map((article) => withKnowledgeArticleFreshness(article, configuration, now))
+          .map(toPortalArticle),
+        hasMore: paged.hasMore,
+        nextCursor: paged.nextCursor,
+      };
     });
   }
 
@@ -386,7 +426,11 @@ export class KnowledgePortalService {
         throw new KnowledgeBaseError('FORBIDDEN');
       }
       const now = Date.now();
-      const articles = await this.visiblePublished(context);
+      // W7.52: insights rank over a bounded scan of the published corpus, not
+      // over every published row.
+      const articles = (
+        await this.publishedScan(context, knowledgeBaseConstants.portalHomeScanCap)
+      ).items;
       const ids = articles.map((article) => article.id);
       const since = new Date(now - 30 * 86_400_000);
       since.setUTCHours(0, 0, 0, 0);
@@ -661,11 +705,29 @@ export class KnowledgePortalService {
     };
   }
 
-  private async visiblePublished(context: KnowledgeArticleMutationContext): Promise<KnowledgeArticleRecord[]> {
+  /**
+   * W7.52: at most `limit` published rows, visibility-filtered inside the scan.
+   * `hasMore` tells the caller that the corpus is larger than the cap.
+   */
+  private async publishedScan(
+    context: KnowledgeArticleMutationContext,
+    limit: number,
+  ): Promise<{ items: KnowledgeArticleRecord[]; hasMore: boolean }> {
     const configuration = await this.configurationLoader.load();
     const now = new Date();
-    const records = await listKnowledgeArticles(this.prisma, this.loader, { status: 'PUBLISHED' }, context);
-    return records.map((record) => withKnowledgeArticleFreshness(record, configuration, now));
+    const page = await listKnowledgeArticles(
+      this.prisma,
+      this.loader,
+      { status: 'PUBLISHED' },
+      context,
+      { limit, maximumPageSize: limit },
+    );
+    return {
+      items: page.items.map((record) =>
+        withKnowledgeArticleFreshness(record, configuration, now),
+      ),
+      hasMore: page.hasMore,
+    };
   }
 
   private async canWrite(actor: AuthorizationContext, article: KnowledgeArticleRecord): Promise<boolean> {

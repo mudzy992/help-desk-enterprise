@@ -91,7 +91,7 @@ describe('KnowledgeBase delegation (BA-knowledge-base-01)', () => {
       ),
     ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
     expect(
-      await articles.list({}, { actorUserId: knowledgeBaseTestIds.agentHr }),
+      (await articles.list({}, { actorUserId: knowledgeBaseTestIds.agentHr })).items,
     ).not.toContainEqual(expect.objectContaining({ id: 'owned-by-hr' }));
   });
 

@@ -1,10 +1,13 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 import { KnowledgeArticleStatus } from '../../../generated/prisma/enums';
@@ -35,4 +38,16 @@ export class ListKnowledgeArticlesQueryDto {
   @Transform(({ value }) => value === true || value === 'true' || value === '1')
   @IsBoolean()
   staleOnly?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(knowledgeBaseConstants.maximumListPageSize)
+  limit?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  cursor?: string;
 }

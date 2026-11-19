@@ -36,6 +36,7 @@ const messages: Record<KnowledgeBaseErrorCode, string> = {
   INVALID_TITLE: 'Title is invalid',
   INVALID_BODY: 'Body is invalid',
   INVALID_SLUG: 'Slug is invalid',
+  INVALID_CURSOR: 'Pagination cursor is invalid or belongs to another query',
   SERVICE_NOT_FOUND: 'Service was not found',
   SERVICE_REQUIRED: 'Service is required',
   ORGANIZATIONAL_UNIT_NOT_FOUND: 'Organizational unit was not found',

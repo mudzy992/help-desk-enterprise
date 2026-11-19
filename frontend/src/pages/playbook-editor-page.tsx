@@ -96,7 +96,7 @@ export function PlaybookEditorPage() {
     void Promise.allSettled([
       listServices(),
       listServiceCategories(),
-      listKnowledgeArticles({ status: "PUBLISHED" }),
+      listKnowledgeArticles({ status: "PUBLISHED", limit: 100 }),
       listManagedTemplates({ ownership: "shared", state: "active" }),
     ]).then(([serviceResult, categoryResult, articleResult, templateResult]) => {
       if (!active) return;
@@ -105,7 +105,8 @@ export function PlaybookEditorPage() {
       if (categoryResult.status === "fulfilled")
         setCategories(categoryResult.value.map((item) => ({ id: item.id, name: item.name })));
       if (articleResult.status === "fulfilled")
-        setArticles(articleResult.value.map((item) => ({ id: item.id, name: item.title })));
+        // W7.52: the published list is paged; the picker shows the first page.
+        setArticles(articleResult.value.items.map((item) => ({ id: item.id, name: item.title })));
       if (templateResult.status === "fulfilled")
         setTemplates(templateResult.value.items.map((item) => ({ id: item.id, name: item.name })));
     });

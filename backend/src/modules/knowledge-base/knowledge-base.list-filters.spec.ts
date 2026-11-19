@@ -33,8 +33,8 @@ describe('KnowledgeBaseService list filters', () => {
       { organizationalUnitId: knowledgeBaseTestIds.ouIt },
       actor,
     );
-    expect(byOu.map((row) => row.id)).toEqual(['kb-vpn']);
+    expect(byOu.items.map((row) => row.id)).toEqual(['kb-vpn']);
     const byQuery = await articles.list({ q: 'vpn' }, actor);
-    expect(byQuery.map((row) => row.id)).toEqual(['kb-vpn']);
+    expect(byQuery.items.map((row) => row.id)).toEqual(['kb-vpn']);
   });
 });

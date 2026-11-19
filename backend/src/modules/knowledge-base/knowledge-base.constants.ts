@@ -41,6 +41,25 @@ export const knowledgeBaseConstants = {
   interceptLimit: 8,
   /** Val 3 (M14/B5): the ranked list is capped, so the scan is too. */
   interceptCandidateLimit: 500,
+  // W7.52 (BA-knowledge-base-04): no read may load an unbounded corpus.
+  /** Page size when the caller sends no `limit`. */
+  defaultListPageSize: 25,
+  /** Hard upper bound for a single page (`limit` above this is rejected). */
+  maximumListPageSize: 100,
+  /** Rows read from the database per batch inside one page request. */
+  listScanBatchSize: 50,
+  /** Batches per request: the request never scans more than 200 rows. */
+  maximumListScanBatches: 4,
+  /** Portal category pages are smaller than the console list. */
+  defaultPortalPageSize: 20,
+  /**
+   * Published rows the portal home may read for category counts and the FAQ.
+   * When the corpus is larger the response says `articleCountsComplete: false`
+   * instead of scanning further.
+   */
+  portalHomeScanCap: 200,
+  /** Full-text search is offset-paged; deeper pages than this are refused. */
+  maximumSearchOffset: 1000,
 } as const;
 
 

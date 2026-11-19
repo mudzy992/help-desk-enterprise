@@ -4,6 +4,7 @@ export type KnowledgeBaseErrorCode =
   | 'INVALID_TITLE'
   | 'INVALID_BODY'
   | 'INVALID_SLUG'
+  | 'INVALID_CURSOR'
   | 'SERVICE_NOT_FOUND'
   | 'SERVICE_REQUIRED'
   | 'ORGANIZATIONAL_UNIT_NOT_FOUND'

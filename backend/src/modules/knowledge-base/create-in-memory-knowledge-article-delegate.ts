@@ -4,8 +4,9 @@ import type { KnowledgeArticleRecord } from './knowledge-base.types';
 export type InMemoryKnowledgeArticle = KnowledgeArticleRecord;
 
 type ArticleWhere = {
-  readonly id?: string;
-  readonly updatedAt?: Date;
+  readonly id?: string | { readonly gt: string };
+  readonly updatedAt?: Date | { readonly lt?: Date; readonly gt?: Date };
+  readonly OR?: readonly ArticleWhere[];
   readonly slug?: string;
   readonly serviceId?: string;
   readonly categoryId?: string | null;
@@ -37,10 +38,16 @@ export function createInMemoryKnowledgeArticleDelegate(
     findMany: async ({
       where,
       orderBy,
+      take,
     }: {
       where?: ArticleWhere;
       orderBy?: readonly Record<string, 'asc' | 'desc'>[];
-    } = {}) => sortArticles(matching(where), orderBy),
+      take?: number;
+    } = {}) => {
+      const sorted = sortArticles(matching(where), orderBy);
+      // W7.52: bounded reads (`take: limit + 1`) must behave like Prisma's.
+      return take === undefined ? sorted : sorted.slice(0, Math.max(take, 0));
+    },
     create: async ({ data }: { data: Partial<InMemoryKnowledgeArticle> }) => {
       const created = createArticleRecord(data, nextId(), now());
       articles.set(created.id, created);
@@ -144,13 +151,19 @@ function matchesArticle(
   if (where === undefined) {
     return true;
   }
-  if (where.id !== undefined && article.id !== where.id) {
+  if (where.OR !== undefined && !where.OR.some((clause) => matchesArticle(article, clause))) {
+    return false;
+  }
+  if (where.id !== undefined && !matchesId(article.id, where.id)) {
     return false;
   }
   if (where.slug !== undefined && article.slug !== where.slug) {
     return false;
   }
-  if (where.updatedAt !== undefined && article.updatedAt.getTime() !== where.updatedAt.getTime()) {
+  if (
+    where.updatedAt !== undefined &&
+    !matchesUpdatedAt(article.updatedAt, where.updatedAt)
+  ) {
     return false;
   }
   if (where.serviceId !== undefined && article.serviceId !== where.serviceId) {
@@ -168,6 +181,23 @@ function matchesArticle(
     return false;
   }
   return where.status === undefined || article.status === where.status;
+}
+
+function matchesId(id: string, expected: string | { readonly gt: string }): boolean {
+  return typeof expected === 'string' ? id === expected : id > expected.gt;
+}
+
+function matchesUpdatedAt(
+  value: Date,
+  expected: Date | { readonly lt?: Date; readonly gt?: Date },
+): boolean {
+  if (expected instanceof Date) {
+    return value.getTime() === expected.getTime();
+  }
+  if (expected.lt !== undefined && value.getTime() >= expected.lt.getTime()) {
+    return false;
+  }
+  return expected.gt === undefined || value.getTime() > expected.gt.getTime();
 }
 
 function matchesOrganizationalUnit(
@@ -196,20 +226,28 @@ function sortArticles(
       if (field === undefined || direction === undefined) {
         continue;
       }
-      const leftValue = String(
-        (left as Record<string, unknown>)[field] ?? '',
+      const compared = compareFieldValues(
+        (left as Record<string, unknown>)[field],
+        (right as Record<string, unknown>)[field],
       );
-      const rightValue = String(
-        (right as Record<string, unknown>)[field] ?? '',
-      );
-      if (leftValue === rightValue) {
+      if (compared === 0) {
         continue;
       }
-      const compared = leftValue.localeCompare(rightValue);
       return direction === 'desc' ? -compared : compared;
     }
     return 0;
   });
+}
+
+/** Dates compare by time, numbers numerically, everything else as strings. */
+function compareFieldValues(left: unknown, right: unknown): number {
+  if (left instanceof Date && right instanceof Date) {
+    return left.getTime() - right.getTime();
+  }
+  if (typeof left === 'number' && typeof right === 'number') {
+    return left - right;
+  }
+  return String(left ?? '').localeCompare(String(right ?? ''));
 }
 
 function createArticleRecord(

@@ -5697,6 +5697,8 @@
     "owner": "Vlasnik",
     "reviewDue": "rok pregleda",
     "updatedAt": "ažuriran",
+    "loadMore": "Učitaj još",
+    "loadingMore": "Učitavanje…",
     "interceptRankingHint": "Feedback ranking utiče na redoslijed u KB interceptu tokom kreiranja tiketa. Vlasnik članka je odgovoran za redovni pregled — probijeni rokovi se eskaliraju menadžeru usluga.",
     "stale": "Zastarjelo",
     "helpful": "Pomoglo",
@@ -5719,6 +5721,7 @@
     "errorSourceMessage": "Izvorni odgovor nije pronađen ili nije javni odgovor agenta.",
     "errorRating": "Ocjena mora biti od 1 do 5; komentar je moguć samo uz ocjenu 1 ili 2.",
     "portal": {
+      "countsPartial": "Brojevi su donja granica — baza znanja je veća od skeniranog korpusa.",
       "title": "Portal znanja",
       "tabPortal": "Portal",
       "tabArticles": "Svi članci",

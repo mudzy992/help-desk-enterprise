@@ -38,6 +38,9 @@ export function KnowledgePortalHome() {
   const [articles, setArticles] = useState<readonly KnowledgePortalArticle[] | null>(null);
   const [articlesErrorKey, setArticlesErrorKey] = useState<ApiErrorKey | null>(null);
   const [articlesReload, setArticlesReload] = useState(0);
+  // W7.52: a category is a page, so the portal loads more on demand.
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -62,9 +65,12 @@ export function KnowledgePortalHome() {
     let cancelled = false;
     setArticles(null);
     setArticlesErrorKey(null);
+    setNextCursor(null);
     listKnowledgeCategoryArticles(selected)
-      .then((loaded) => {
-        if (!cancelled) setArticles(loaded);
+      .then((page) => {
+        if (cancelled) return;
+        setArticles(page.items);
+        setNextCursor(page.nextCursor);
       })
       .catch((error: unknown) => {
         if (!cancelled) setArticlesErrorKey(mapApiError(error));
@@ -73,6 +79,22 @@ export function KnowledgePortalHome() {
       cancelled = true;
     };
   }, [selected, articlesReload]);
+
+  const loadMoreArticles = useCallback(async () => {
+    if (selected === null || nextCursor === null || isLoadingMore) {
+      return;
+    }
+    setIsLoadingMore(true);
+    try {
+      const page = await listKnowledgeCategoryArticles(selected, { cursor: nextCursor });
+      setArticles((current) => [...(current ?? []), ...page.items]);
+      setNextCursor(page.nextCursor);
+    } catch (error) {
+      setArticlesErrorKey(mapApiError(error));
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, nextCursor, selected]);
 
   const tree = useMemo(() => buildKnowledgeCategoryTree(home?.categories ?? []), [home]);
 
@@ -133,11 +155,26 @@ export function KnowledgePortalHome() {
               title={t("knowledgeBase.portal.categoryEmpty")}
             />
           ) : (
-            <ul className="mt-3 grid gap-2">
-              {articles.map((article) => (
-                <PortalArticleRow key={article.id} article={article} />
-              ))}
-            </ul>
+            <>
+              <ul className="mt-3 grid gap-2">
+                {articles.map((article) => (
+                  <PortalArticleRow key={article.id} article={article} />
+                ))}
+              </ul>
+              {nextCursor !== null ? (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isLoadingMore}
+                    onClick={() => void loadMoreArticles()}
+                  >
+                    {isLoadingMore ? t("knowledgeBase.loadingMore") : t("knowledgeBase.loadMore")}
+                  </Button>
+                </div>
+              ) : null}
+            </>
           )}
         </Card>
       ) : (
@@ -184,6 +221,11 @@ export function KnowledgePortalHome() {
             >
               {t("knowledgeBase.portal.categoriesTitle")}
             </h2>
+            {home.articleCountsComplete === false ? (
+              <p role="status" className="mb-2 text-[11.5px] text-muted-foreground">
+                {t("knowledgeBase.portal.countsPartial")}
+              </p>
+            ) : null}
             {tree.length === 0 && home.uncategorizedCount === 0 ? (
               <EmptyState icon={<FolderOpen size={18} />} title={t("knowledgeBase.portal.empty")} />
             ) : (

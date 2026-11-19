@@ -57,37 +57,47 @@ export class KnowledgeBaseService {
   list(
     query: ListKnowledgeArticlesQuery,
     context: KnowledgeArticleMutationContext,
-  ): Promise<readonly KnowledgeArticleResponse[]> {
+  ): Promise<KnowledgeArticlePageResponse> {
     return executeKnowledgeBaseOperation(async () => {
       const configuration = await this.configurationLoader.load();
       const now = new Date();
-      const records = await listKnowledgeArticles(
+      // W7.52: freshness is needed inside the scan so that `staleOnly` keeps a
+      // page full instead of filtering rows out after the page was cut.
+      const page = await listKnowledgeArticles(
         this.prisma,
         this.authorizationContextLoader,
         query,
         context,
+        {
+          limit: query.limit,
+          cursor: query.cursor,
+          accept: (record) =>
+            query.staleOnly !== true ||
+            withKnowledgeArticleFreshness(record, configuration, now).isStale ===
+              true,
+        },
       );
-      const fresh = records
-        .map((record) =>
-          withKnowledgeArticleFreshness(record, configuration, now),
-        )
-        .filter(
-          (record) => query.staleOnly !== true || record.isStale === true,
-        );
+      const fresh = page.items.map((record) =>
+        withKnowledgeArticleFreshness(record, configuration, now),
+      );
       const votes = await loadViewerKnowledgeVotes(
         this.prisma,
         context.actorUserId,
         fresh.map((record) => record.id),
       );
       const labels = await loadKnowledgeArticleLabels(this.prisma, fresh);
-      return fresh.map((record) => ({
-        ...toKnowledgeArticleResponse(
-          record,
-          votes.get(record.id)?.isHelpful ?? null,
-        ),
-        viewerRating: votes.get(record.id)?.rating ?? null,
-        ...labels.get(record.id),
-      }));
+      return {
+        items: fresh.map((record) => ({
+          ...toKnowledgeArticleResponse(
+            record,
+            votes.get(record.id)?.isHelpful ?? null,
+          ),
+          viewerRating: votes.get(record.id)?.rating ?? null,
+          ...labels.get(record.id),
+        })),
+        hasMore: page.hasMore,
+        nextCursor: page.nextCursor,
+      };
     });
   }
 

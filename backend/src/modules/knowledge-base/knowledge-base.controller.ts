@@ -33,6 +33,7 @@ import { UpdateKnowledgeArticleDto } from './dto/update-knowledge-article.dto';
 import { KnowledgeBaseDiscoveryService } from './knowledge-base-discovery.service';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import type {
+  KnowledgeArticlePageResponse,
   KnowledgeArticleResponse,
   KnowledgeInterceptResponse,
 } from './knowledge-base.types';
@@ -79,7 +80,7 @@ export class KnowledgeBaseController {
   list(
     @Query() query: ListKnowledgeArticlesQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly KnowledgeArticleResponse[]> {
+  ): Promise<KnowledgeArticlePageResponse> {
     return this.knowledgeBaseService.list(
       query,
       readKnowledgeMutationContext(request),

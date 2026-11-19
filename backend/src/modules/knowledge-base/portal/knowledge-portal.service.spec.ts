@@ -1,4 +1,5 @@
 import { createKnowledgeBaseServiceHarness, knowledgeBaseTestIds } from '../create-knowledge-base-service-harness';
+import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { publishedArticleSeed } from '../published-article-seed';
 import { knowledgeRatingBonus } from '../rank-knowledge-articles';
 import { flushKnowledgeArticleViews, knowledgeViewKeys } from './knowledge-article-views';
@@ -217,9 +218,76 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     expect(home.faq.map((item) => item.id)).toEqual(['a2', 'a1']);
     expect(home.capabilities).toEqual({ canManageCategories: false, canCurate: false, canDraftFromReply: false });
     const inRoot = await service.categoryArticles('root', asUser(knowledgeBaseTestIds.requester));
-    expect(inRoot.map((item) => item.id)).toEqual(['a1', 'a2']);
+    // W7.52: the category page keeps the shared list order (updatedAt desc, id asc).
+    expect(inRoot.items.map((item) => item.id)).toEqual(['a1', 'a2']);
+    expect(inRoot.hasMore).toBe(false);
     const loose = await service.categoryArticles('uncategorized', asUser(knowledgeBaseTestIds.requester));
-    expect(loose.map((item) => item.id)).toEqual(['a3']);
+    expect(loose.items.map((item) => item.id)).toEqual(['a3']);
+  });
+
+  it('pages a category instead of loading the whole published corpus', async () => {
+    const { service, memory, categories } = createPortalHarness();
+    categories.set('root', {
+      id: 'root',
+      key: 'mreza',
+      nameBs: 'Mreža',
+      nameEn: 'Network',
+      icon: 'wifi',
+      sortOrder: 0,
+      parentId: null,
+      isArchived: false,
+    });
+    for (let index = 0; index < 3; index += 1) {
+      const id = `p${index}`;
+      memory.seedArticle(
+        publishedArticleSeed({
+          id,
+          slug: id,
+          title: `Uputa ${index}`,
+          categoryId: 'root',
+          updatedAt: new Date(Date.parse('2026-09-11T12:00:00.000Z') + index * 1000),
+        }),
+      );
+    }
+
+    const first = await service.categoryArticles('root', asUser(knowledgeBaseTestIds.requester), {
+      limit: 2,
+    });
+    expect(first.items).toHaveLength(2);
+    expect(first.hasMore).toBe(true);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await service.categoryArticles(
+      'root',
+      asUser(knowledgeBaseTestIds.requester),
+      { limit: 2, cursor: first.nextCursor ?? undefined },
+    );
+    expect(second.items).toHaveLength(1);
+    expect(second.hasMore).toBe(false);
+    const seen = new Set([...first.items, ...second.items].map((item) => item.id));
+    expect(seen.size).toBe(3);
+  });
+
+  it('flags the home counts as incomplete when the corpus exceeds the cap', async () => {
+    const { service, memory } = createPortalHarness();
+    const timestamp = Date.parse('2026-09-11T12:00:00.000Z');
+    for (let index = 0; index < knowledgeBaseConstants.portalHomeScanCap + 1; index += 1) {
+      const id = `cap-${index}`;
+      memory.seedArticle(
+        publishedArticleSeed({
+          id,
+          slug: id,
+          title: `Uputa ${index}`,
+          updatedAt: new Date(timestamp + index * 1000),
+        }),
+      );
+    }
+
+    const home = await service.home(asUser(knowledgeBaseTestIds.requester));
+    expect(home.articleCountsComplete).toBe(false);
+    expect(home.uncategorizedCount).toBeLessThanOrEqual(
+      knowledgeBaseConstants.portalHomeScanCap,
+    );
   });
 
   it('places articles for writers only and records the change', async () => {

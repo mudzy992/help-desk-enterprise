@@ -51,6 +51,9 @@ export function KnowledgeBasePage() {
     setSearchParams(params, { replace: true });
   };
   const [items, setItems] = useState<readonly KnowledgeArticleResponse[]>([]);
+  // W7.52: the list is paged; the cursor is only for "load more" of the same query.
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
@@ -92,8 +95,10 @@ export function KnowledgeBasePage() {
       listServices(),
     ]);
     if (!loadGuard.current.isCurrent(request)) return;
-    if (articlesResult.status === "fulfilled") setItems(articlesResult.value);
-    else {
+    if (articlesResult.status === "fulfilled") {
+      setItems(articlesResult.value.items);
+      setNextCursor(articlesResult.value.nextCursor);
+    } else {
       setErrorKey(mapApiError(articlesResult.reason));
       setRequestId(readApiRequestId(articlesResult.reason));
     }
@@ -109,6 +114,32 @@ export function KnowledgeBasePage() {
     void loadArticles();
     return () => guard.cancel();
   }, [loadArticles]);
+
+  const loadMore = useCallback(async () => {
+    if (nextCursor === null || isLoadingMore) {
+      return;
+    }
+    const request = loadGuard.current.begin();
+    setIsLoadingMore(true);
+    try {
+      const page = await listKnowledgeArticles({
+        q: debouncedSearch.trim() || undefined,
+        status: status === "" ? undefined : status,
+        serviceId: serviceId || undefined,
+        staleOnly: staleOnly || undefined,
+        cursor: nextCursor,
+      });
+      if (!loadGuard.current.isCurrent(request)) return;
+      setItems((current) => [...current, ...page.items]);
+      setNextCursor(page.nextCursor);
+    } catch (error) {
+      if (!loadGuard.current.isCurrent(request)) return;
+      setErrorKey(mapApiError(error));
+      setRequestId(readApiRequestId(error));
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [debouncedSearch, isLoadingMore, nextCursor, serviceId, staleOnly, status]);
 
   const setListParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -141,8 +172,13 @@ export function KnowledgeBasePage() {
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
   );
-  const reviewDueCount = items.filter((item) => item.status === "IN_REVIEW").length;
-  const staleCount = items.filter((item) => item.isStale).length;
+  // W7.52: the counters describe the loaded page, so they are only shown when
+  // the whole (filtered) list has been loaded — otherwise they would understate.
+  const isListComplete = nextCursor === null;
+  const reviewDueCount = isListComplete
+    ? items.filter((item) => item.status === "IN_REVIEW").length
+    : 0;
+  const staleCount = isListComplete ? items.filter((item) => item.isStale).length : 0;
   const subtitle =
     reviewDueCount > 0 || staleCount > 0
       ? t("knowledgeBase.introWithCounts", {
@@ -246,6 +282,19 @@ export function KnowledgeBasePage() {
                 onClearFilters={clearListFilters}
                 onFeedback={loadArticles}
               />
+              {nextCursor !== null ? (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoadingMore}
+                    onClick={() => void loadMore()}
+                  >
+                    {isLoadingMore ? t("knowledgeBase.loadingMore") : t("knowledgeBase.loadMore")}
+                  </Button>
+                </div>
+              ) : null}
               <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground">
                 {t("knowledgeBase.interceptRankingHint")}
               </p>

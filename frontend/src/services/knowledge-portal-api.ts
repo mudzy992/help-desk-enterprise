@@ -34,6 +34,8 @@ export type KnowledgePortalHome = {
   readonly categories: readonly KnowledgePortalCategory[];
   readonly faq: readonly (KnowledgePortalArticle & { readonly body: string })[];
   readonly uncategorizedCount: number;
+  /** W7.52: false when the portal counts come from a capped scan. */
+  readonly articleCountsComplete: boolean;
   readonly capabilities: {
     readonly canManageCategories: boolean;
     readonly canCurate: boolean;
@@ -90,10 +92,25 @@ export function getKnowledgePortalHome(): Promise<KnowledgePortalHome> {
   return apiRequest(base);
 }
 
+export type KnowledgePortalArticlePage = {
+  readonly items: readonly KnowledgePortalArticle[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
 export function listKnowledgeCategoryArticles(
   categoryId: string,
-): Promise<readonly KnowledgePortalArticle[]> {
-  return apiRequest(`${base}/categories/${encodeURIComponent(categoryId)}/articles`);
+  params: { readonly limit?: number; readonly cursor?: string } = {},
+): Promise<KnowledgePortalArticlePage> {
+  const search = new URLSearchParams();
+  if (params.limit !== undefined) {
+    search.set("limit", String(params.limit));
+  }
+  if (params.cursor !== undefined && params.cursor.length > 0) {
+    search.set("cursor", params.cursor);
+  }
+  const suffix = search.size === 0 ? "" : `?${search.toString()}`;
+  return apiRequest(`${base}/categories/${encodeURIComponent(categoryId)}/articles${suffix}`);
 }
 
 export function listKnowledgeCategories(

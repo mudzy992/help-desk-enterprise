@@ -5677,6 +5677,8 @@
     "owner": "Owner",
     "reviewDue": "review due",
     "updatedAt": "updated",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
     "interceptRankingHint": "Feedback ranking affects the order of KB intercept suggestions during ticket creation. The article owner is responsible for regular review — missed due dates escalate to the service manager.",
     "stale": "Stale",
     "helpful": "Helpful",
@@ -5699,6 +5701,7 @@
     "errorSourceMessage": "The source reply was not found or is not a public agent reply.",
     "errorRating": "The rating must be 1 to 5; a comment is allowed only with a rating of 1 or 2.",
     "portal": {
+      "countsPartial": "Counts are a lower bound — the knowledge base is larger than the scanned corpus.",
       "title": "Knowledge portal",
       "tabPortal": "Portal",
       "tabArticles": "All articles",

@@ -49,8 +49,16 @@ export class KnowledgePortalController {
 
   @Get('categories/:id/articles')
   @Header('Cache-Control', 'no-store')
-  categoryArticles(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    return this.portal.categoryArticles(id, readKnowledgeMutationContext(request));
+  categoryArticles(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.portal.categoryArticles(id, readKnowledgeMutationContext(request), {
+      limit: limit === undefined ? undefined : Number(limit),
+      cursor,
+    });
   }
 
   @Post('categories')

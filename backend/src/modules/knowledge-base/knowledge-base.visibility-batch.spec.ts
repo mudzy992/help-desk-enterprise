@@ -39,7 +39,7 @@ describe('Knowledge base — batched visibility and bounded intercept (Val 3, M1
 
     const rows = await articles.list({}, { actorUserId: knowledgeBaseTestIds.requester });
 
-    expect(rows.map((row) => row.id).sort()).toEqual(['kb-1', 'kb-2', 'kb-3']);
+    expect(rows.items.map((row) => row.id).sort()).toEqual(['kb-1', 'kb-2', 'kb-3']);
     // Three articles, but the visibility check costs one batched service query
     // (the second `service.findMany` loads the label names for the page) and one
     // batched group-member query — not three per article.
