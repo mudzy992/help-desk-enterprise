@@ -433,3 +433,34 @@ frontend (+4 testa u tri fajla).
 **Preostali rizik:** klasifikacija zavisi od tipova grešaka, pa novi `4xx` izvor treba svjesno klasificirati;
 nema per-group timeouta (dostupnost pokriva greške, ne visenje); `failedGroups` nema telemetriju (P3 `11`);
 partial je `200` i štiti ga samo polje `failedGroups`.
+
+## 23. Implementacijski closeout — W7.63 (migracija iz `BA-search-07`)
+
+**Status:** paket migracije nad **već zatvorenim** nalazom `BA-search-07` (P2); paket W7.63, kod `92293c8`, CI
+[`44619519044`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44619519044) **success**.
+Detalji: [284](../implementation/284-w763-user-trigram-index-migration.md).
+
+**Šta je bilo:** §21 je izmjerio da imenik nema indeks koji može poslužiti `ILIKE '%needle%'` i zato predložio
+trigram indekse — ali ih nije primijenio, jer je to schema promjena i traži odobrenje. Nalaz je zato zatvoren kao
+„dokaz + predlog”, a direktorijski sken je do sada bio O(N) u produkciji.
+
+**Šta je sada:** odobrenje je dato i migracija `20271201130000_user_search_trigram_indexes` isporučuje
+`CREATE EXTENSION IF NOT EXISTS pg_trgm` i dva GIN indeksa sa `gin_trgm_ops` (`User_displayName_trgm_idx`,
+`User_email_trgm_idx`), građena `CONCURRENTLY` da pisanje u `User` ostane dostupno. Šema ih ogleda kroz
+`@@index(..., type: Gin, map: ...)`, pa `prisma migrate diff` ne vidi drift. Sentinel `expectedSchemaMigration`
+je pomjeren, tako da readiness odbija bazu koja zaostaje za kodom.
+
+**Acceptance:** §21 je tražio da preporuka ne ostane „hipotetička indeksna grana”. Plan-suite sada **tvrdi** da
+oba indeksa postoje u `pg_indexes`, mjeri default plan (koji na 12k redova i dalje smije biti `Seq Scan` — to je
+cjenovna odluka, ne nedostatak indeksa) i dokazuje upotrebljivost prisilnim planom: sa `enable_seqscan = off`
+indeks preuzima i broj pregledanih redova pada ispod 20 % korpusa. Test se izvršava u CI-ju nad stvarnom bazom,
+pa indeksna grana više nije pretpostavka.
+
+**Šta ostaje u ovom modulu:** P1 nema, P2 nema. P3: `09` (stable order), `10` (`ArrayUnique`), `11`
+(telemetrija), `12` (confidential/arhiva), `13` (E2E za `/search`). Zbirke se **ne mijenjaju** — nalaz je bio
+zatvoren i prije ovog paketa.
+
+**Preostali rizik:** dva dodatna GIN indeksa povećavaju trošak upisa u `User` (rijetko se mijenja, ali directory
+sync radi batch update); `email` zadržava i `@unique` B-tree jer trigram indeks ne garantuje jedinstvenost;
+trigram rješava **pokrivenost**, ne **relevantnost** — `contains` ostaje substring match; planer na malom imeniku
+i dalje može izabrati sekvencijalni sken, pa je stvarni dobitak mjerljiv tek na većem korpusu.
