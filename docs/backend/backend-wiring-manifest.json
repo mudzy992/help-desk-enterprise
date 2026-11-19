@@ -6665,13 +6665,14 @@
       "path": "/search",
       "classGuards": [
         "SessionAuthenticationGuard",
-        "RoleGuard"
+        "RoleGuard",
+        "SearchRateLimitGuard"
       ],
       "methodGuards": [],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "search",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, SearchRateLimitGuard"
     },
     {
       "source": "backend/src/modules/security/security-audit-log.controller.ts",
