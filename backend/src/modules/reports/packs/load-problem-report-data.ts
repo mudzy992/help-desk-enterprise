@@ -34,7 +34,8 @@ export async function loadProblemReportData(
   const inUnits = { AND: [{ organizationalUnitId: { in: [...input.unitIds] } }, input.visibility.problem] };
   const readableTicket = input.visibility.ticket;
   const inWindow = { gte: input.window.from, lt: input.window.to };
-  const take = input.rowLimit === undefined ? {} : { take: input.rowLimit + 1 };
+  // A probe row (`rowLimit + 1`) tells the caller the part overflowed its budget.
+  const take = input.rowLimit === undefined ? undefined : input.rowLimit + 1;
 
   if (input.part === 'top') {
     const counts = await prisma.problemTicket.groupBy({
@@ -59,7 +60,7 @@ export async function loadProblemReportData(
           group: { select: { name: true } },
           _count: { select: { tickets: { where: { ticket: { is: readableTicket } } } } },
         },
-        ...take,
+        take,
       }),
       prisma.problemTicket.groupBy({
         by: ['problemId'],
@@ -91,7 +92,7 @@ export async function loadProblemReportData(
     const rows = await prisma.problem.findMany({
       where: { ...inUnits, [field]: inWindow },
       select: { priority: true, createdAt: true, identifiedAt: true, resolvedAt: true, group: { select: { name: true } } },
-      ...take,
+      take,
     });
     const records = rows.flatMap((row) => {
       const reachedAt = input.part === 'knownError' ? row.identifiedAt : row.resolvedAt;
@@ -104,7 +105,7 @@ export async function loadProblemReportData(
     const rows = await prisma.problem.findMany({
       where: { ...inUnits, status: { in: [...openProblemStatuses] } },
       select: { status: true, createdAt: true, targetAt: true },
-      ...take,
+      take,
     });
     return { ...data, backlog: rows };
   }
@@ -113,7 +114,7 @@ export async function loadProblemReportData(
   const events = await prisma.problemEvent.findMany({
     where: { action: 'ticket_linked', createdAt: inWindow, detail: { path: ['recurrence'], equals: true }, problem: inUnits },
     select: { createdAt: true, detail: true, problem: { select: { sequence: true, title: true, status: true, resolvedAt: true } } },
-    ...take,
+    take,
   });
   const ticketId = (detail: unknown): string | null => {
     if (detail === null || Array.isArray(detail) || typeof detail !== 'object') return null;

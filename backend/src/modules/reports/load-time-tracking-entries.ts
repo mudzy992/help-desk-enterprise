@@ -38,7 +38,7 @@ export async function loadTimeTrackingEntries(
       user: { select: { displayName: true } },
       ticket: { select: { serviceId: true } },
     },
-    ...(input.take === undefined ? {} : { take: input.take }),
+    take: input.take,
   });
   const serviceIds = [...new Set(entries.map((entry) => entry.ticket.serviceId))];
   const services =

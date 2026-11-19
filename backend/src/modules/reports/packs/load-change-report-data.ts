@@ -26,18 +26,18 @@ export async function loadChangeReportData(
 ): Promise<ChangeReportData> {
   if (input.unitIds.length === 0) return emptyChangeReportData;
   const inUnits = { organizationalUnitId: { in: [...input.unitIds] } };
-  const take = {
-    take: Math.min(
-      reportPackLimits.exportRows,
-      (input.rowLimit ?? reportPackLimits.exportRows) + 1,
-    ),
-  };
+  // A probe row (`rowLimit + 1`, never above the export ceiling) tells the
+  // caller that the part overflowed its budget.
+  const take = Math.min(
+    reportPackLimits.exportRows,
+    (input.rowLimit ?? reportPackLimits.exportRows) + 1,
+  );
 
   if (input.part === 'outcomes') {
     const outcomes = await prisma.changeRequest.findMany({
       where: { ...inUnits, status: 'CLOSED', closedAt: { gte: input.window.from, lt: input.window.to } },
       select: { type: true, outcome: true },
-      ...take,
+      take,
     });
     return { ...emptyChangeReportData, outcomes };
   }
@@ -47,7 +47,7 @@ export async function loadChangeReportData(
     prisma.changeRequest.findMany({
       where: { ...inUnits, plannedStart: { lt: input.window.to }, plannedEnd: { gt: input.window.from } },
       orderBy: [{ plannedStart: 'asc' }, { sequence: 'asc' }],
-      take: take.take,
+      take,
       select: {
         sequence: true,
         title: true,

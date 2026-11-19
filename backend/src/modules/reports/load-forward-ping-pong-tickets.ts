@@ -40,7 +40,7 @@ export async function loadForwardPingPongTickets(
       createdAt: true,
     },
     orderBy: [{ ticketId: 'asc' }, { createdAt: 'asc' }],
-    ...(input.take === undefined ? {} : { take: input.take }),
+    take: input.take,
   });
   const byTicket = new Map<string, (typeof events)[number][]>();
   for (const event of events) {

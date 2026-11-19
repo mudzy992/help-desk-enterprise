@@ -226,7 +226,7 @@ async function loadScopedArticles(
       organizationalUnitId: true,
       viewCount: true,
     },
-    ...(take === undefined ? {} : { take }),
+    take,
   })) as Array<{
     readonly id: string;
     readonly title: string;

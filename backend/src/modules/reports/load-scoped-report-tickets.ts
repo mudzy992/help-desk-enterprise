@@ -36,7 +36,7 @@ export async function loadScopedReportTickets(
     orderBy: { createdAt: 'asc' },
     // W7.53: a pack request never reads more than its row budget plus the
     // probe row that tells the caller the corpus is larger.
-    ...(options.take === undefined ? {} : { take: options.take }),
+    take: options.take,
   })) as TicketRecord[];
   const overdueByTicketId = await loadTicketOverdueFlags(
     prisma,
