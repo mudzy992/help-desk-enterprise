@@ -38,7 +38,10 @@ COPY --chown=node:node --from=builder /usr/app/package*.json ./
 # Generisano ogledalo dokumentacije za /docs rute.
 COPY --chown=node:node --from=builder /usr/app/content ./content
 # npm/corepack are build/package-manager tooling, not runtime requirements.
-RUN apk add --no-cache zlib=1.4-r0 && \
+# libssl3/libcrypto3 are raised to the patched Alpine build because the pinned
+# base still ships 3.5.9-r0 (CVE-2026-95691/95692/107496/88823). The lower bound
+# keeps the build working when Alpine publishes a newer patch.
+RUN apk add --no-cache zlib=1.4-r0 'libssl3>=3.5.9-r1' 'libcrypto3>=3.5.9-r1' && \
     rm -rf /usr/local/lib/node_modules/npm \
     /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack && \
     mkdir -p /usr/app/uploads && chown node:node /usr/app/uploads
