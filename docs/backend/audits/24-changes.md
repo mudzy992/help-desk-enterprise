@@ -169,7 +169,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | zatvoreno |
 | BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | zatvoreno |
 | BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | zatvoreno |
-| BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | otvoreno |
+| BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | zatvoreno (W7.64) |
 | BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | otvoreno |
 | BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | otvoreno |
 | BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
@@ -202,7 +202,10 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   [W7.47 implementation](../implementation/268-w747-changes-06-cab-round-snapshot.md).
 - **14:** otvoreno — CAB eligibility hard-limit 100 još tiho odsijeca članove (P2).
 - **07:** outbox/delivery state; marker tek nakon policy-dovoljnog persisted outcomea.
-- **08, 13:** desired downtime state + reconciliation worker, retry/dead-letter i scheduler/health self-heal.
+- **08:** zatvoreno u W7.64 — durable outbox/reconciler je već postojao (`BA-service-catalog-11`), a paket je
+  zatvorio jedinu stvarno otvorenu granu: tekst downtime prozora (naslov changea) nije se konvergirao ni u
+  sync-u ni u drift provjeri. Dokaz: [W7.64 implementation](../implementation/285-w764-changes-08-downtime-window-text.md).
+- **13:** desired downtime state + reconciliation worker, retry/dead-letter i scheduler/health self-heal.
 - **09–10:** role-specific minimal projection i owner OU-grant eligibility/reconciliation.
 - **11–12:** potpuni transactional audit i conflict snapshot/hash vezan za action.
 - **15–17:** template version, eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
@@ -329,3 +332,36 @@ sweep ne mogu poslati isti podsjetnik dvaput. `ops-health` prikazuje `changeRemi
 (pending/processing/dead-letter/najstarije) da zaglavljeni podsjetnik bude vidljiv. Nema migracije — koristi se
 postojeća `OutboxMessage` tabela. U `24-changes.md` ostaje 13 otvorenih nalaza (P1: nijedan). Dokaz:
 [269-w748-changes-07-reminder-outbox.md](../implementation/269-w748-changes-07-reminder-outbox.md).
+
+## 27. Implementacijski closeout — W7.64 (`BA-changes-08`)
+
+**Status nalaza:** zatvoren; paket W7.64, kod `06b3bee`, CI
+[`44623850740`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44623850740) **success**, **bez
+migracije**. Detalji: [285](../implementation/285-w764-changes-08-downtime-window-text.md).
+
+**Šta je bilo:** §8 je opisao dva koraka koja nisu jedan workflow — lifecycle commit pa best-effort downtime sync
+koji guta greške — sa pet mogućih posljedica (SCHEDULED bez prozora, stari prozor poslije reschedulea, aktivan
+budući downtime poslije cancel/finish, uspjeh approvala bez usklađene dostupnosti, nema reconciliationa).
+
+**Šta je sada:** durable polovina je već bila isporučena kroz `BA-service-catalog-11` i to je **provjereno u
+kodu**, ne u dokumentaciji: lifecycle transakcije (`create`, `update`, `act`, `approvals`) enqueueaju
+`change.downtime.sync` unutar sebe, `syncDowntime` ne guta greške, outbox ima retry/dead-letter, a
+`ChangeDowntimeOutboxReconciler` traži drift i `ops-health` prikazuje backlog. Provjera je našla jednu granu
+koja je zaista bila otvorena: tekst prozora (`CHG000012: <naslov>`) je izvedeno stanje koje ni update ni drift
+nisu gledali, pa je preimenovan zakazani change trajno ostavljao stari naslov u servisnom kalendaru. Sada
+`changeUpdateAffectsDowntime` tretira naslov kao drift, `downtimeMessage` gradi tekst na jednom mjestu,
+`syncDowntime` osvježava zastarjele tekstove prozora koji prežive plan (uz service-catalog change log i
+`messageUpdated` u eventu), a `hasDowntimeDrift` prijavljuje i message-only odstupanje. Redelivery iste naredbe
+ostaje no-op kroz `outboxDedupeKey`.
+
+**Acceptance:** §19 traži da status i dostupnost ne mogu trajno odstupati bez traga i da svaki kvar bude
+retryable. To sada vrijedi i za izvedeni tekst prozora: odstupanje je ili odmah konvergirano (sync u istoj
+transakciji) ili ga reconciler nađe i ispravi; u oba slučaja ostaje zapis u change historyju i service-catalog
+change logu.
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `09`, `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`. P3: `18`, `19`,
+`20`.
+
+**Preostali rizik:** message-only ispravka čeka sljedeći scan (30 s); skipped service zbog stranog preklapanja
+još nije operativni warning (dio `13`); reconciler je keyset batch od 100, pa puni ciklus pri velikom broju
+changeova traje više tickova; naslov se skraćuje samo u tekstu prozora.
