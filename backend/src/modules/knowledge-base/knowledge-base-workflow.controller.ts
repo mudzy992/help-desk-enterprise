@@ -114,7 +114,12 @@ export class KnowledgeBaseWorkflowController {
   submitFeedback(
     @Param('articleId') articleId: string,
     @Body() body: KnowledgeFeedbackDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<KnowledgeFeedbackResponse> {
-    return this.discoveryService.submitFeedback(articleId, body);
+    return this.discoveryService.submitFeedback(
+      articleId,
+      body,
+      readKnowledgeMutationContext(request),
+    );
   }
 }
