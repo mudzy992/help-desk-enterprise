@@ -1,13 +1,9 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { permissionKeys } from '../authorization/authorization.constants';
-import { assertCanReadKnowledgeArticle } from './can-read-knowledge-article';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import { loadKnowledgeArticleRecord } from './load-knowledge-article';
-import {
-  loadKnowledgeArticleScope,
-  loadOwnerGroupMemberUserIds,
-} from './load-knowledge-article-scope';
+import { isKnowledgeArticleVisibleTo } from './load-knowledge-article-scope';
+import { KnowledgeBaseError } from './knowledge-base.error';
 import type {
   KnowledgeArticleMutationContext,
   KnowledgeArticleRecord,
@@ -21,19 +17,12 @@ export async function getKnowledgeArticle(
 ): Promise<KnowledgeArticleRecord> {
   const actor = await loadKnowledgeActorContext(loader, context);
   const article = await loadKnowledgeArticleRecord(prisma, articleId);
-  const scope = await loadKnowledgeArticleScope(prisma, article);
-  const ownerGroupMemberUserIds = await loadOwnerGroupMemberUserIds(
-    prisma,
-    article.ownerGroupId,
-  );
-  assertCanReadKnowledgeArticle({
-    context: actor,
-    article,
-    scope,
-    ownerGroupMemberUserIds,
-    writePermissionKey: permissionKeys.knowledgeArticleWrite,
-    reviewPermissionKey: permissionKeys.knowledgeArticleReview,
-    publishPermissionKey: permissionKeys.knowledgeArticlePublish,
-  });
+  // W7.60 (BA-search-06): the by-id read decides with the same loader the
+  // search, list and portal surfaces use, so an article a caller cannot see in
+  // `/search` cannot be fetched by guessing its id either — both answers come
+  // from one call of `canReadKnowledgeArticle`.
+  if (!(await isKnowledgeArticleVisibleTo(prisma, actor, article))) {
+    throw new KnowledgeBaseError('FORBIDDEN');
+  }
   return article;
 }

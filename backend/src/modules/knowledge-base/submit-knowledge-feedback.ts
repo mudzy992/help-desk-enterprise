@@ -1,7 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { permissionKeys } from '../authorization/authorization.constants';
-import { assertCanReadKnowledgeArticle } from './can-read-knowledge-article';
 import { KnowledgeBaseError } from './knowledge-base.error';
 import { updateKnowledgeArticleCounters } from './portal/update-article-counters';
 import type {
@@ -11,10 +9,7 @@ import type {
 } from './knowledge-base.types';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import { loadKnowledgeArticleRecord } from './load-knowledge-article';
-import {
-  loadKnowledgeArticleScope,
-  loadOwnerGroupMemberUserIds,
-} from './load-knowledge-article-scope';
+import { isKnowledgeArticleVisibleTo } from './load-knowledge-article-scope';
 
 export type KnowledgeFeedbackResponse = {
   readonly articleId: string;
@@ -37,20 +32,12 @@ export async function submitKnowledgeFeedback(
   }
   const actor = await loadKnowledgeActorContext(loader, context);
   const article = await loadKnowledgeArticleRecord(prisma, articleId);
-  const scope = await loadKnowledgeArticleScope(prisma, article);
-  const ownerGroupMemberUserIds = await loadOwnerGroupMemberUserIds(
-    prisma,
-    article.ownerGroupId,
-  );
-  assertCanReadKnowledgeArticle({
-    context: actor,
-    article,
-    scope,
-    ownerGroupMemberUserIds,
-    writePermissionKey: permissionKeys.knowledgeArticleWrite,
-    reviewPermissionKey: permissionKeys.knowledgeArticleReview,
-    publishPermissionKey: permissionKeys.knowledgeArticlePublish,
-  });
+  // W7.60 (BA-search-06): voting on an article is a read of it — the feedback
+  // endpoint therefore uses the same visibility loader as `/search`, the list
+  // and the detail read instead of assembling the predicate facts again.
+  if (!(await isKnowledgeArticleVisibleTo(prisma, actor, article))) {
+    throw new KnowledgeBaseError('FORBIDDEN');
+  }
   const vote = normalizeKnowledgeFeedbackVote(input);
   const persisted = configuration.oneVotePerUserPerArticle
     ? await prisma.knowledgeFeedback.upsert({

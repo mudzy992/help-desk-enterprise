@@ -1,3 +1,8 @@
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import {
+  createTestAssignment,
+  createTestAuthorizationContext,
+} from '../authorization/create-test-authorization-context';
 import {
   createKnowledgeBaseServiceHarness,
   knowledgeBaseTestIds,
@@ -409,6 +414,176 @@ describe('Knowledge base — bounded title search for GET /search (W7.57)', () =
     expect(found.items[0]).toMatchObject({
       slug: 'visible-internal',
       title: 'VPN pristup',
+    });
+  });
+
+  /**
+   * W7.60 (BA-search-06): audit 25's owner/reviewer bypass is fixed in the
+   * central predicate itself (W7.49/W7.50), but `/search` is its own surface:
+   * the palette is the fastest way to enumerate titles, so the delegation edges
+   * have to hold *here*, not only on the detail read. These cases pin that the
+   * search group is the central decision, and that a delegation ends on the
+   * next request without any search-specific cache to invalidate.
+   */
+  describe('inherits the delegation model, not a bypass (W7.60)', () => {
+    const draft = (
+      id: string,
+      overrides: Parameters<typeof publishedArticleSeed>[0] = {},
+    ) =>
+      publishedArticleSeed({
+        id,
+        slug: id,
+        title: 'VPN nacrt',
+        status: 'DRAFT',
+        publishedAt: null,
+        lastReviewedAt: null,
+        ...overrides,
+      });
+
+    it('shows an in-scope owner and reviewer their own draft', async () => {
+      const { articles, memory } = createKnowledgeBaseServiceHarness();
+      memory.seedArticle(
+        draft('vpn-owner-draft', {
+          ownerUserId: knowledgeBaseTestIds.ownerUser,
+          reviewerUserId: null,
+        }),
+      );
+      memory.seedArticle(
+        draft('vpn-reviewer-draft', {
+          ownerUserId: knowledgeBaseTestIds.agentIt,
+          reviewerUserId: knowledgeBaseTestIds.reviewerUser,
+        }),
+      );
+
+      // Neither actor holds a knowledge permission: the delegation is the grant.
+      await expect(
+        articles.searchTitles(
+          { q: 'vpn nacrt', limit: 10 },
+          { actorUserId: knowledgeBaseTestIds.ownerUser },
+        ),
+      ).resolves.toMatchObject({
+        items: [expect.objectContaining({ id: 'vpn-owner-draft' })],
+      });
+      await expect(
+        articles.searchTitles(
+          { q: 'vpn nacrt', limit: 10 },
+          { actorUserId: knowledgeBaseTestIds.reviewerUser },
+        ),
+      ).resolves.toMatchObject({
+        items: [expect.objectContaining({ id: 'vpn-reviewer-draft' })],
+      });
+    });
+
+    it('drops the group when the owner is re-scoped to another unit', async () => {
+      const { articles, memory, contexts } = createKnowledgeBaseServiceHarness();
+      memory.seedArticle(
+        draft('vpn-owner-draft', {
+          ownerUserId: knowledgeBaseTestIds.ownerUser,
+          reviewerUserId: null,
+        }),
+      );
+      const search = () =>
+        articles.searchTitles(
+          { q: 'vpn nacrt', limit: 10 },
+          { actorUserId: knowledgeBaseTestIds.ownerUser },
+        );
+
+      await expect(search()).resolves.toMatchObject({
+        items: [expect.objectContaining({ id: 'vpn-owner-draft' })],
+        incomplete: false,
+      });
+
+      // The same subject, now assigned to HR: the IT article is out of scope.
+      contexts.set(
+        knowledgeBaseTestIds.ownerUser,
+        createTestAuthorizationContext({
+          subjectId: knowledgeBaseTestIds.ownerUser,
+          assignments: [
+            createTestAssignment({
+              roleKey: authorizationRoleKeys.user,
+              permissionKeys: [],
+              organizationalUnitId: knowledgeBaseTestIds.ouHr,
+              organizationalUnitPath: '/Korisnici/HR',
+            }),
+          ],
+        }),
+      );
+
+      await expect(search()).resolves.toMatchObject({
+        items: [],
+        incomplete: false,
+      });
+    });
+
+    it('drops the group when the reviewer assignment is cleared', async () => {
+      const { articles, memory } = createKnowledgeBaseServiceHarness();
+      memory.seedArticle(
+        draft('vpn-reviewer-draft', {
+          ownerUserId: knowledgeBaseTestIds.agentIt,
+          reviewerUserId: knowledgeBaseTestIds.reviewerUser,
+        }),
+      );
+      const search = () =>
+        articles.searchTitles(
+          { q: 'vpn nacrt', limit: 10 },
+          { actorUserId: knowledgeBaseTestIds.reviewerUser },
+        );
+
+      await expect(search()).resolves.toMatchObject({
+        items: [expect.objectContaining({ id: 'vpn-reviewer-draft' })],
+      });
+
+      memory.seedArticle(
+        draft('vpn-reviewer-draft', {
+          ownerUserId: knowledgeBaseTestIds.agentIt,
+          reviewerUserId: null,
+        }),
+      );
+
+      await expect(search()).resolves.toMatchObject({ items: [] });
+      // ...and the by-id read agrees with the palette.
+      await expect(
+        articles.getById('vpn-reviewer-draft', {
+          actorUserId: knowledgeBaseTestIds.reviewerUser,
+        }),
+      ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+    });
+
+    it('does not hand a group-owned draft to a global USER membership', async () => {
+      const { articles, memory } = createKnowledgeBaseServiceHarness();
+      memory.seedArticle(
+        draft('vpn-group-draft', {
+          ownerUserId: null,
+          ownerGroupId: knowledgeBaseTestIds.groupIt,
+          reviewerUserId: null,
+        }),
+      );
+      memory.seedGroupMember({
+        groupId: knowledgeBaseTestIds.groupIt,
+        userId: knowledgeBaseTestIds.requester,
+      });
+      memory.seedGroupMember({
+        groupId: knowledgeBaseTestIds.groupIt,
+        userId: knowledgeBaseTestIds.ownerUser,
+      });
+
+      // A global USER assignment covers no organizational unit, so membership
+      // in the owner group is not a grant (audit 25, W7.49).
+      await expect(
+        articles.searchTitles(
+          { q: 'vpn nacrt', limit: 10 },
+          { actorUserId: knowledgeBaseTestIds.requester },
+        ),
+      ).resolves.toMatchObject({ items: [] });
+      // The scoped IT member of the same group still sees it.
+      await expect(
+        articles.searchTitles(
+          { q: 'vpn nacrt', limit: 10 },
+          { actorUserId: knowledgeBaseTestIds.ownerUser },
+        ),
+      ).resolves.toMatchObject({
+        items: [expect.objectContaining({ id: 'vpn-group-draft' })],
+      });
     });
   });
 });

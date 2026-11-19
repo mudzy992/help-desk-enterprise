@@ -144,23 +144,27 @@ async function loadOwnerGroupMembersByGroup(
 
 const emptyUserIdSet: ReadonlySet<string> = new Set();
 
+/**
+ * W7.60 (BA-search-06): the single-article check **is** the batched check over
+ * one row.
+ *
+ * The search and list surfaces decide visibility with
+ * `loadKnowledgeArticleVisibilities`; the detail and portal reads used this
+ * function, which loaded the same three facts through a second code path. Two
+ * paths that must agree are a mirror that can drift: the audit's complaint —
+ * that `search` inherited the owner/reviewer bypass — is at bottom the risk
+ * that a caller decides with a copy of the rule instead of the rule. There is
+ * now one fact loader and one call site of `canReadKnowledgeArticle`, so an
+ * article is visible through `/search` exactly when it is visible by id, on
+ * every surface, by construction rather than by review.
+ */
 export async function isKnowledgeArticleVisibleTo(
   prisma: PrismaService,
   context: AuthorizationContext,
   article: KnowledgeArticleRecord,
 ): Promise<boolean> {
-  const scope = await loadKnowledgeArticleScope(prisma, article);
-  const ownerGroupMemberUserIds = await loadOwnerGroupMemberUserIds(
-    prisma,
-    article.ownerGroupId,
-  );
-  return canReadKnowledgeArticle({
-    context,
+  const visible = await loadKnowledgeArticleVisibilities(prisma, context, [
     article,
-    scope,
-    ownerGroupMemberUserIds,
-    writePermissionKey: permissionKeys.knowledgeArticleWrite,
-    reviewPermissionKey: permissionKeys.knowledgeArticleReview,
-    publishPermissionKey: permissionKeys.knowledgeArticlePublish,
-  });
+  ]);
+  return visible.has(article.id);
 }
