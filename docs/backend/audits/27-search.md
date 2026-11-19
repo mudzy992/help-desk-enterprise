@@ -97,7 +97,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 
 | ID           | Severity | Nalaz                                                                                   | Status   |
 | ------------ | -------- | --------------------------------------------------------------------------------------- | -------- |
-| BA-search-01 | P1       | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | otvoreno |
+| BA-search-01 | P1       | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | zatvoreno |
 | BA-search-02 | P2       | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | otvoreno |
 | BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | otvoreno |
 | BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | otvoreno |
@@ -113,7 +113,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 
 ## 11. Ključne korekcije
 
-- **01:** permission + OU subtree directory policy; globalni directory samo eksplicitno ovlaštenim actorima; minimizirati email.
+- **01:** riješeno u W7.55 (`user.directory.read` + OU subtree + e-mail samo za globalni doseg); detalji u §15.
 - **02,10:** normalize-before-validate, Unicode/grapheme pravilo i unique types.
 - **03–04:** DB scope pushdown ili bounded cursor scan, incomplete contract i minimalna article projekcija.
 - **05,07:** Redis actor/IP token bucket, timeout/query budget i EXPLAIN/index dokaz.
@@ -174,3 +174,36 @@ Regenerisan Prisma client; oba suitea; Postgres index/EXPLAIN sa realnim volumen
 9. Oba direktna suitea i realni scope/revoke/perf E2E prolaze.
 
 Modul je arhitektonski uredan i dobro ponovo koristi ticket/KB granice, ali globalna directory pretraga za bilo koji ADMIN assignment, validation bypass i nepotpuna KB candidate semantika sprečavaju enterprise ocjenu. Iskren ponderisani baseline je **5,62/10**.
+
+## 15. Implementacijski closeout — W7.55 (`BA-search-01`)
+
+**Status nalaza:** `BA-search-01` (P1) **zatvoren**; paket W7.55, kod `091505c`, **bez migracije**.
+Detalji: [276](../implementation/276-w755-search-01-directory-scope.md).
+
+**Šta je bilo:** `search-users.ts` je propuštao grupu svakom actoru sa `ADMIN` roleKey-om i radio globalni
+`user.findMany` bez predikata nad jedinicom; response je nosio `id`, `displayName` i `email` svih aktivnih
+korisnika. Scoped administrator je mogao enumerisati cijeli imenik.
+
+**Šta je sada:** politika živi u novom `search-directory-scope.ts`, u dva čista koraka — grant
+(`resolveDirectorySearchGrant`) i razrješenje u ID-jeve podstabla (`resolveDirectorySearchScope`, preko postojeće
+`selectOrganizationalUnitIdsInScope`). Grant je **permisija** `user.directory.read` (katalog + bs/en naslov +
+default dodjela roli `ADMIN`), uz dokumentovanu legacy ekvivalenciju za `ADMIN` roleKey koja **nikad** ne daje
+globalni doseg ni e-mail. Globalni doseg ima `SUPER_ADMIN` i izričito unscoped dodjela permisije; servisno
+ograničena dodjela nije globalna. Scoped čitanje ima `organizationalUnitId: { in: [...] }` i `select` bez
+e-maila (PII se ne čita), globalni doseg vraća e-mail (`UserSearchMatch.email: string | null`), a paleta red bez
+e-maila prikazuje samo ime. Svaki nerazrješiv slučaj (nema grante, putanja bez jedinice, blank putanja,
+nepoznata jedinica) je prazna grupa — ticket i article grupe ostaju netaknute.
+
+**Acceptance:** §6 i §14.1 su ispunjeni (podstablo, eksplicitna permisija, globalno samo za SUPER_ADMIN odnosno
+izričitu unscoped dodjelu, minimalan response, fail-closed). Referentni dokaz:
+`search-directory-scope.spec.ts` (11 testova) i `search.service.spec.ts` (cross-unit scenario provjerava da
+`where` nosi `organizationalUnitId.in` i da `select` nema e-mail).
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-02` (normalizacija prije validacije), `03`/`04` (KB
+kandidati i minimalna projekcija), `05` (rate limit/anti-enumeration), `06` (KB owner/reviewer scope), `07`
+(query plan), `08` (partial/fail-closed ugovor). P3: `09` (stable order — tie-breaker nije dio W7.55), `10`,
+`11`, `12`, `13` (suite se izvršava, E2E za `/search` i dalje nema).
+
+**Preostali rizik:** postojeće ADMIN role nemaju `user.directory.read` red (nema migracije), pa legacy grana
+ostaje dok se ne izvede kontrolisani backfill; unscoped `ADMIN` bez permisije i dalje čita cijeli imenik, ali bez
+e-maila. Vodič `uloge-i-dozvole` navodi 63 permisije (stvarni katalog 69) — drift stariji od ovog paketa.
