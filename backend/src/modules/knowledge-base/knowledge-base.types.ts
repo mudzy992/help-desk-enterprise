@@ -44,6 +44,26 @@ export type KnowledgeArticleRecord = {
   readonly sourceMessageId: string | null;
 };
 
+/**
+ * W7.58 (BA-search-04): the columns the authorization decision reads.
+ *
+ * A read that only decides *visibility* (the `/search` title query) must project
+ * exactly these columns and never load `body` — the type states that contract,
+ * while `KnowledgeArticleRecord` remains assignable to it, so every existing
+ * caller keeps its full record and its behaviour.
+ */
+export type KnowledgeArticleVisibilityRecord = Pick<
+  KnowledgeArticleRecord,
+  | 'id'
+  | 'status'
+  | 'classification'
+  | 'organizationalUnitId'
+  | 'serviceId'
+  | 'ownerUserId'
+  | 'ownerGroupId'
+  | 'reviewerUserId'
+>;
+
 export type KnowledgeArticleResponse = {
   readonly id: string;
   readonly slug: string;

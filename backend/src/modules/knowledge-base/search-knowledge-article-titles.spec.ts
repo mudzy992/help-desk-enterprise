@@ -4,6 +4,7 @@ import {
 } from './create-knowledge-base-service-harness';
 import { knowledgeBaseConstants } from './knowledge-base.constants';
 import { publishedArticleSeed } from './published-article-seed';
+import { knowledgeArticleTitleSearchSelect } from './search-knowledge-article-projection';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -100,10 +101,14 @@ describe('Knowledge base — bounded title search for GET /search (W7.57)', () =
     expect(found.incomplete).toBe(false);
     expect(articleFindMany).toHaveBeenCalledTimes(3);
     for (const call of articleFindMany.mock.calls) {
-      expect(call[0]).toMatchObject({
+      const args = call[0] as { select?: Record<string, boolean> };
+      expect(args).toMatchObject({
         orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
         take: knowledgeBaseConstants.listScanBatchSize + 1,
       });
+      // W7.58 (BA-search-04): every batch reads the projection, never the row.
+      expect(args.select).toEqual(knowledgeArticleTitleSearchSelect);
+      expect(args.select).not.toHaveProperty('body');
     }
     // Keyset, not offset: the second read resumes strictly after the last row.
     expect(articleFindMany.mock.calls[0]?.[0]).toMatchObject({
@@ -126,6 +131,53 @@ describe('Knowledge base — bounded title search for GET /search (W7.57)', () =
     // One service read per batch (50 rows) instead of one per row: the old
     // per-row `isKnowledgeArticleVisibleTo` would have cost 360 queries here.
     expect(serviceFindMany).toHaveBeenCalledTimes(3);
+  });
+
+  it('never reads the article text of a candidate it may not show', async () => {
+    const { articles, memory } = createKnowledgeBaseServiceHarness();
+    // A canary in the body of an article the IT agent may not read: if the query
+    // had no projection, the text would be materialized (and could leak into a
+    // debug dump) before the visibility decision excluded it.
+    memory.seedArticle(
+      publishedArticleSeed({
+        id: 'hr-secret',
+        slug: 'hr-secret',
+        title: 'VPN upitnik za upravu',
+        body: 'CANARY-BODY-7b1d',
+        classification: 'CONFIDENTIAL',
+        organizationalUnitId: ouHr,
+        updatedAt: at(1),
+      }),
+    );
+    memory.seedArticle(
+      publishedArticleSeed({
+        id: 'it-visible',
+        slug: 'it-visible',
+        title: 'VPN pristup',
+        body: 'CANARY-BODY-visible',
+        updatedAt: at(2),
+      }),
+    );
+    const prisma = memory.prisma as unknown as { knowledgeArticle: FakeDelegate };
+    const articleFindMany = jest.spyOn(prisma.knowledgeArticle, 'findMany');
+
+    const found = await articles.searchTitles(
+      { q: 'VPN', limit: 8 },
+      { actorUserId: agentIt },
+    );
+
+    // Only the visible article is answered, and the group is complete.
+    expect(found.items.map((item) => item.id)).toEqual(['it-visible']);
+    expect(found.incomplete).toBe(false);
+    // The query asked for the projection — `body` is not among the columns.
+    for (const call of articleFindMany.mock.calls) {
+      const args = call[0] as { select?: Record<string, boolean> };
+      expect(args.select).toEqual(knowledgeArticleTitleSearchSelect);
+      expect(args.select).not.toHaveProperty('body');
+    }
+    // The answer is a title match: three columns, no text.
+    expect(Object.keys(found.items[0] ?? {}).sort()).toEqual(['id', 'slug', 'title']);
+    expect(JSON.stringify(found)).not.toContain('CANARY-BODY');
   });
 
   it('says the group is incomplete when the scan budget runs out', async () => {

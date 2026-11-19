@@ -5,7 +5,10 @@ import type { AuthorizationContext } from '../authorization/authorization.types'
 import type { KnowledgeArticleAccessScope } from './can-read-knowledge-article';
 import { canReadKnowledgeArticle } from './can-read-knowledge-article';
 import { KnowledgeBaseError } from './knowledge-base.error';
-import type { KnowledgeArticleRecord } from './knowledge-base.types';
+import type {
+  KnowledgeArticleRecord,
+  KnowledgeArticleVisibilityRecord,
+} from './knowledge-base.types';
 
 export async function loadKnowledgeArticleScope(
   prisma: PrismaService,
@@ -57,7 +60,7 @@ export async function loadOwnerGroupMemberUserIds(
 export async function loadKnowledgeArticleVisibilities(
   prisma: PrismaService,
   context: AuthorizationContext,
-  articles: readonly KnowledgeArticleRecord[],
+  articles: readonly KnowledgeArticleVisibilityRecord[],
 ): Promise<ReadonlySet<string>> {
   if (articles.length === 0) {
     return new Set();

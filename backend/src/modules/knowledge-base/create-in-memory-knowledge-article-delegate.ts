@@ -47,14 +47,23 @@ export function createInMemoryKnowledgeArticleDelegate(
       where,
       orderBy,
       take,
+      select,
     }: {
       where?: ArticleWhere;
       orderBy?: readonly Record<string, 'asc' | 'desc'>[];
       take?: number;
+      select?: Record<string, boolean>;
     } = {}) => {
       const sorted = sortArticles(matching(where), orderBy);
       // W7.52: bounded reads (`take: limit + 1`) must behave like Prisma's.
-      return take === undefined ? sorted : sorted.slice(0, Math.max(take, 0));
+      const window =
+        take === undefined ? sorted : sorted.slice(0, Math.max(take, 0));
+      // W7.58 (BA-search-04): `select` must be honoured like Prisma's, otherwise
+      // the double would hand back `body` the query never asked for and the
+      // "hidden text is never read" spec would prove nothing.
+      return select === undefined
+        ? window
+        : window.map((article) => pickInMemoryFields(article, select));
     },
     create: async ({ data }: { data: Partial<InMemoryKnowledgeArticle> }) => {
       const created = createArticleRecord(data, nextId(), now());

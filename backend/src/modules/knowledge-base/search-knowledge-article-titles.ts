@@ -3,11 +3,12 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { knowledgeBaseConstants } from './knowledge-base.constants';
 import { loadKnowledgeArticleVisibilities } from './load-knowledge-article-scope';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
-import { toArticleRecord } from './load-knowledge-article';
-import type {
-  KnowledgeArticleMutationContext,
-  KnowledgeArticleRecord,
-} from './knowledge-base.types';
+import {
+  knowledgeArticleTitleSearchSelect,
+  type KnowledgeArticleTitleSearchCandidate,
+  type KnowledgeArticleTitleSearchRow,
+} from './search-knowledge-article-projection';
+import type { KnowledgeArticleMutationContext } from './knowledge-base.types';
 
 export type KnowledgeArticleTitleMatch = {
   readonly id: string;
@@ -26,15 +27,13 @@ export type KnowledgeArticleTitleSearchResult = {
   readonly incomplete: boolean;
 };
 
-type ArticleRow = Parameters<typeof toArticleRecord>[0];
-
 type KeysetPosition = {
   readonly updatedAt: Date;
   readonly id: string;
 };
 
 type TitleCandidateWindow = {
-  readonly records: readonly KnowledgeArticleRecord[];
+  readonly records: readonly KnowledgeArticleTitleSearchCandidate[];
   /** The database reported candidate rows beyond this window. */
   readonly hasMore: boolean;
   /** Position right after the last row of the window; `null` when empty. */
@@ -67,6 +66,13 @@ type TitleCandidateWindow = {
  * three permission keys, owner/reviewer identity and owner-group membership, so
  * a SQL mirror would be a second, divergent copy of the authorization rule. The
  * bounded walk keeps one policy.
+ *
+ * W7.58 (BA-search-04): the walk reads a **projection**, not the whole row. The
+ * output columns (`id`, `slug`, `title`), the columns the predicate reads and
+ * the keyset position are all this endpoint needs; `body` and the rest of the
+ * article text are never selected, so an invisible candidate is never
+ * materialized with its content. Before this change the query had no `select`
+ * and every candidate arrived with its full text before the visibility check.
  */
 export async function searchKnowledgeArticleTitles(input: {
   readonly prisma: PrismaService;
@@ -156,13 +162,15 @@ async function loadTitleCandidateWindow(
             ],
           }),
     },
+    // W7.58 (BA-search-04): the single guard against reading hidden text — no
+    // `body`, no counters, no category/FAQ metadata. See
+    // `search-knowledge-article-projection.ts`.
+    select: knowledgeArticleTitleSearchSelect,
     orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
     take: input.batchSize + 1,
-  })) as ArticleRow[];
+  })) as KnowledgeArticleTitleSearchRow[];
   const hasMore = rows.length > input.batchSize;
-  const records = (hasMore ? rows.slice(0, input.batchSize) : rows).map(
-    toArticleRecord,
-  );
+  const records = hasMore ? rows.slice(0, input.batchSize) : rows;
   const last = records.at(-1);
   return {
     records,

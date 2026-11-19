@@ -1,6 +1,6 @@
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import type { AuthorizationContext } from '../authorization/authorization.types';
-import type { KnowledgeArticleRecord } from './knowledge-base.types';
+import type { KnowledgeArticleVisibilityRecord } from './knowledge-base.types';
 import {
   canHandleKnowledgeScope,
   canUseKnowledgePermission,
@@ -14,7 +14,11 @@ export type KnowledgeArticleAccessScope = KnowledgeArticleScope;
 
 export function canReadKnowledgeArticle(input: {
   readonly context: AuthorizationContext;
-  readonly article: KnowledgeArticleRecord;
+  /**
+   * W7.58 (BA-search-04): only the visibility columns are required. A caller
+   * that must not read the article text (search) can pass its projection.
+   */
+  readonly article: KnowledgeArticleVisibilityRecord;
   readonly scope: KnowledgeArticleAccessScope;
   readonly ownerGroupMemberUserIds: ReadonlySet<string>;
   readonly writePermissionKey: string;

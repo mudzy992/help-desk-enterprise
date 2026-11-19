@@ -1,7 +1,7 @@
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { decideAuthorizationAccess } from '../authorization/evaluate-authorization-access';
 import type { AuthorizationContext } from '../authorization/authorization.types';
-import type { KnowledgeArticleRecord } from './knowledge-base.types';
+import type { KnowledgeArticleVisibilityRecord } from './knowledge-base.types';
 
 export function canUseKnowledgePermission(input: {
   readonly context: AuthorizationContext;
@@ -75,7 +75,7 @@ export function isKnowledgeDelegationInScope(input: {
 }
 
 export function isKnowledgeArticleOwner(input: {
-  readonly article: KnowledgeArticleRecord;
+  readonly article: KnowledgeArticleVisibilityRecord;
   readonly context: AuthorizationContext;
   readonly ownerGroupMemberUserIds: ReadonlySet<string>;
   readonly scope: KnowledgeArticleScope;
@@ -99,7 +99,7 @@ export function isKnowledgeArticleOwner(input: {
  * OU move or a `reviewerUserId` reset ends it on the next request.
  */
 export function isKnowledgeArticleReviewer(input: {
-  readonly article: KnowledgeArticleRecord;
+  readonly article: KnowledgeArticleVisibilityRecord;
   readonly context: AuthorizationContext;
   readonly scope: KnowledgeArticleScope;
 }): boolean {
