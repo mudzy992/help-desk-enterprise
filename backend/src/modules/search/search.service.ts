@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
@@ -14,8 +18,13 @@ import {
   resolveDirectorySearchGrant,
   resolveDirectorySearchScope,
 } from './search-directory-scope';
+import { isFatalSearchGroupFailure } from './search-group-failure';
 import { searchDirectoryUsers } from './search-users';
-import type { SearchQuery, SearchResponse } from './search.types';
+import type {
+  SearchGroupName,
+  SearchQuery,
+  SearchResponse,
+} from './search.types';
 
 /**
  * `GET /search` (plan §1.2): one request, three parallel groups, each narrowed
@@ -41,31 +50,68 @@ export class SearchService {
     // an empty needle (an empty `contains` matches the newest rows of a group).
     const usable = this.requireUsableQuery(query);
     const types = new Set(query.types);
-    const [tickets, articleResult, users] = await Promise.all([
-      types.has('ticket')
-        ? this.ticketsService.searchTickets(
-            { q: usable.q, limit: usable.limit },
-            context,
-          )
-        : Promise.resolve([]),
+    // W7.62 (BA-search-08): the groups settle independently so one unavailable
+    // dependency cannot take the other answers down with it — but every outcome
+    // is classified before anything is returned (see `search-group-failure.ts`):
+    // an authorization failure still fails the whole request.
+    const [ticketOutcome, articleOutcome, userOutcome] = await Promise.all([
+      readSearchGroup(types.has('ticket'), () =>
+        this.ticketsService.searchTickets(
+          { q: usable.q, limit: usable.limit },
+          context,
+        ),
+      ),
       // W7.57 (BA-search-03): the article group is a bounded keyset scan, so it
       // also reports whether it had to stop early. A group that was not
       // requested is not "incomplete" — it is simply absent.
-      types.has('article')
-        ? this.knowledgeBaseService.searchTitles(
-            { q: usable.q, limit: usable.limit },
-            context,
-          )
-        : Promise.resolve({ items: [], incomplete: false }),
-      types.has('user')
-        ? this.searchUsers(usable, context)
-        : Promise.resolve([]),
+      readSearchGroup(types.has('article'), () =>
+        this.knowledgeBaseService.searchTitles(
+          { q: usable.q, limit: usable.limit },
+          context,
+        ),
+      ),
+      readSearchGroup(types.has('user'), () => this.searchUsers(usable, context)),
     ]);
+
+    const outcomes: readonly { group: SearchGroupName; outcome: SearchGroupOutcome<unknown> }[] = [
+      { group: 'ticket', outcome: ticketOutcome },
+      { group: 'article', outcome: articleOutcome },
+      { group: 'user', outcome: userOutcome },
+    ];
+    const fatal = outcomes.find(
+      (entry) => entry.outcome.kind === 'failed' && isFatalSearchGroupFailure(entry.outcome.error),
+    );
+    if (fatal !== undefined && fatal.outcome.kind === 'failed') {
+      // Fail-closed: 401/403 and other client errors are decisions about this
+      // request, never a group that "happened to be empty".
+      throw fatal.outcome.error;
+    }
+    const failedGroups = outcomes
+      .filter((entry) => entry.outcome.kind === 'failed')
+      .map((entry) => entry.group);
+    if (failedGroups.length > 0 && failedGroups.length === outcomes.length) {
+      // Nothing could be read: there is no partial answer to give, so the
+      // endpoint says so instead of returning three empty groups.
+      throw new ServiceUnavailableException({
+        code: 'SEARCH_UNAVAILABLE',
+        message: 'The search groups are temporarily unavailable',
+        details: { failedGroups },
+      });
+    }
+    const articles =
+      articleOutcome.kind === 'ok'
+        ? articleOutcome.value
+        : { items: [], incomplete: false };
     return {
-      tickets,
-      articles: articleResult.items,
-      users,
-      articlesIncomplete: articleResult.incomplete,
+      tickets: ticketOutcome.kind === 'ok' ? ticketOutcome.value : [],
+      articles: articles.items,
+      users: userOutcome.kind === 'ok' ? userOutcome.value : [],
+      // The scan-completeness flag belongs to a group that actually answered;
+      // a failed group is reported in `failedGroups` instead.
+      articlesIncomplete: articles.incomplete,
+      failedGroups: failedGroups.filter(
+        (group) => types.has(group),
+      ),
     };
   }
 
@@ -109,5 +155,29 @@ export class SearchService {
       limit: query.limit,
       scope,
     });
+  }
+}
+
+/**
+ * Outcome of one requested group. `skipped` is a group the caller did not ask
+ * for: it is neither answered nor failed, and it must never appear in
+ * `failedGroups`.
+ */
+type SearchGroupOutcome<T> =
+  | { readonly kind: 'skipped' }
+  | { readonly kind: 'ok'; readonly value: T }
+  | { readonly kind: 'failed'; readonly error: unknown };
+
+async function readSearchGroup<T>(
+  requested: boolean,
+  read: () => Promise<T>,
+): Promise<SearchGroupOutcome<T>> {
+  if (!requested) {
+    return { kind: 'skipped' };
+  }
+  try {
+    return { kind: 'ok', value: await read() };
+  } catch (error) {
+    return { kind: 'failed', error };
   }
 }

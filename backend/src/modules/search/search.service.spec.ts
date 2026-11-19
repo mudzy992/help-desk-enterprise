@@ -1,4 +1,8 @@
 import {
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import {
   authorizationRoleKeys,
   permissionKeys,
 } from '../authorization/authorization.constants';
@@ -22,7 +26,17 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 const { agentIt, agentHr, requester, adminIt, superAdmin } = ticketsTestIds;
 const day = (n: number) => new Date(`2026-02-0${n}T00:00:00.000Z`);
 
-function setup() {
+/**
+ * W7.62 (BA-search-08): each group can be made to fail with a chosen error, so
+ * the spec can prove both sides of the partial/fail-closed contract.
+ */
+type GroupFailures = {
+  readonly ticket?: unknown;
+  readonly article?: unknown;
+  readonly user?: unknown;
+};
+
+function setup(failures: GroupFailures = {}) {
   const harness = createTicketsServiceHarness();
   const { memory, contexts, authorizationContextLoader } = harness;
   const seed = (
@@ -51,6 +65,9 @@ function setup() {
   const articleState = { incomplete: false };
   const knowledgeBase = {
     searchTitles: async (query: { q: string; limit: number }) => {
+      if (failures.article !== undefined) {
+        throw failures.article;
+      }
       articleCalls.push({ q: query.q, limit: query.limit });
       return {
         items: [{ id: 'article-1', slug: 'reset-lozinke', title: `Reset ${query.q}` }],
@@ -101,6 +118,9 @@ function setup() {
         select?: { email?: boolean };
         take?: number;
       }) => {
+        if (failures.user !== undefined) {
+          throw failures.user;
+        }
         userQueries.push(args);
         const scope = args.where?.organizationalUnitId?.in;
         const select = args.select ?? {};
@@ -136,10 +156,18 @@ function setup() {
       },
     },
   };
+  const ticketReader =
+    failures.ticket === undefined
+      ? harness.tickets
+      : ({
+          searchTickets: async () => {
+            throw failures.ticket;
+          },
+        } as never);
   const service = new SearchService(
     prisma as never,
     authorizationContextLoader as never,
-    harness.tickets,
+    ticketReader as never,
     knowledgeBase as never,
   );
   const context = (actorUserId: string): TicketMutationContext => ({
@@ -423,5 +451,83 @@ describe('GET /search', () => {
         context('user-unknown'),
       ),
     ).rejects.toMatchObject({ status: 403 });
+  });
+
+  /**
+   * W7.62 (BA-search-08): one dependency failing used to take the whole answer
+   * down. The contract is now explicit in both directions: an availability
+   * failure degrades to a named partial group, an authorization failure still
+   * fails the request, and a request where nothing could be read says so instead
+   * of pretending that nothing matched.
+   */
+  describe('partial and fail-closed contract (W7.62)', () => {
+    it('answers the healthy groups and names the unavailable one', async () => {
+      const { service, context } = setup({
+        article: new Error('knowledge base connection refused'),
+      });
+      const found = await service.search(
+        { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      // The ticket group still answered...
+      expect(found.tickets.map((ticket) => ticket.id)).toEqual(['t1', 't2']);
+      // ...the failed group is empty but named, so the empty array cannot be
+      // read as "no articles match".
+      expect(found.articles).toEqual([]);
+      expect(found.failedGroups).toEqual(['article']);
+      // The scan-completeness flag belongs to a group that answered.
+      expect(found.articlesIncomplete).toBe(false);
+    });
+
+    it('fails the whole request when a group is denied', async () => {
+      const { service, context } = setup({ article: new ForbiddenException() });
+      await expect(
+        service.search(
+          { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+          context(agentIt),
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('answers 503 when every requested group is unavailable', async () => {
+      const unavailable = new Error('database is down');
+      const { service, context } = setup({
+        ticket: unavailable,
+        article: unavailable,
+        user: unavailable,
+      });
+      const error = await service
+        .search(
+          { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+          context(adminIt),
+        )
+        .catch((thrown: unknown) => thrown);
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect(
+        (error as ServiceUnavailableException).getResponse(),
+      ).toMatchObject({
+        code: 'SEARCH_UNAVAILABLE',
+        details: { failedGroups: ['ticket', 'article', 'user'] },
+      });
+    });
+
+    it('never lists a group that was not requested and reports success explicitly', async () => {
+      // The article reader is broken, but the caller asked for tickets only:
+      // the failure is never reached, so it cannot be reported.
+      const { service, context } = setup({ article: new Error('boom') });
+      const ticketsOnly = await service.search(
+        { q: 'vpn', types: ['ticket'], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      expect(ticketsOnly.failedGroups).toEqual([]);
+      expect(ticketsOnly.tickets.length).toBeGreaterThan(0);
+
+      // A fully successful answer carries the field, as an empty list.
+      const healthy = await setup().service.search(
+        { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      expect(healthy.failedGroups).toEqual([]);
+    });
   });
 });

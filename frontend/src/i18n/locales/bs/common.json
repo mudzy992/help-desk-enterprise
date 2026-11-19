@@ -6819,7 +6819,14 @@
     "closeHint": "zatvori",
     "searching": "Pretraga u toku…",
     "articlesIncomplete": "Prikazani su najnoviji članci; još pogodaka postoji — otvori bazu znanja za punu pretragu.",
-    "rateLimited": "Previše pretraga u kratkom vremenu. Sačekaj trenutak pa pokušaj ponovo."
+    "rateLimited": "Previše pretraga u kratkom vremenu. Sačekaj trenutak pa pokušaj ponovo.",
+    "partialFailure": "Nisu dostupne sve grupe rezultata ({{groups}}). Ostali rezultati su prikazani.",
+    "unavailable": "Pretraga trenutno nije dostupna. Pokušaj ponovo za koji trenutak.",
+    "group": {
+      "ticket": "tiketi",
+      "article": "članci",
+      "user": "korisnici"
+    }
   },
   "adminRealtime": {
     "domains": {

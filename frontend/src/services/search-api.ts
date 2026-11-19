@@ -31,6 +31,14 @@ export type GlobalSearchResponse = {
    * prije nego što su svi pogoci pročitani — grupa je tada samo prefiks.
    */
   readonly articlesIncomplete: boolean;
+  /**
+   * W7.62 (BA-search-08): tražene grupe koje nisu odgovorile zbog dostupnosti.
+   * Njihovi nizovi su prazni, a ovo polje je ono što prazan niz razlikuje od
+   * „nema pogodaka”. Autorizacijska greška nikad ne stiže ovdje — ona ruši
+   * cijeli zahtjev (`401`/`403`), a ako nijedna grupa nije odgovorila, server
+   * vraća `503 SEARCH_UNAVAILABLE`.
+   */
+  readonly failedGroups?: readonly string[];
 };
 
 export type GlobalSearchOptions = {

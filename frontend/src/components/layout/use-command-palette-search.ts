@@ -44,10 +44,16 @@ export function useCommandPaletteSearch(
    * that nothing matched.
    */
   readonly isRateLimited: boolean;
+  /**
+   * W7.62 (BA-search-08): `503 SEARCH_UNAVAILABLE` means no requested group
+   * could be read. That is an outage, not an empty result.
+   */
+  readonly isUnavailable: boolean;
 } {
   const [groups, setGroups] = useState<HeaderSearchGroups>(emptyHeaderSearchGroups);
   const [isSearching, setIsSearching] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isUnavailable, setIsUnavailable] = useState(false);
   const normalizedQuery = normalizeCommandPaletteQuery(query);
 
   useEffect(() => {
@@ -58,11 +64,13 @@ export function useCommandPaletteSearch(
       setGroups(emptyHeaderSearchGroups);
       setIsSearching(false);
       setIsRateLimited(false);
+      setIsUnavailable(false);
       return;
     }
     const controller = new AbortController();
     setIsSearching(true);
     setIsRateLimited(false);
+    setIsUnavailable(false);
     const handle = window.setTimeout(() => {
       void searchHeaderSources(normalizedQuery, controller.signal).then(
         (nextGroups) => {
@@ -70,16 +78,19 @@ export function useCommandPaletteSearch(
           setGroups(nextGroups);
           setIsSearching(false);
           setIsRateLimited(false);
+          setIsUnavailable(false);
         },
         (error: unknown) => {
           if (controller.signal.aborted) return;
           if (error instanceof DOMException && error.name === "AbortError") return;
           setGroups(emptyHeaderSearchGroups);
           setIsSearching(false);
-          // Only the budget answer is distinguishable for the person; every
-          // other failure keeps the previous (silent empty) behaviour until
-          // BA-search-08 defines the partial/fail-closed contract.
+          // W7.62 (BA-search-08): the two contract answers are named —
+          // `429` is the budget, `503 SEARCH_UNAVAILABLE` is an outage. Every
+          // other failure keeps the silent empty state (a token/permission
+          // problem is not something the palette can explain or retry).
           setIsRateLimited(error instanceof ApiError && error.status === 429);
+          setIsUnavailable(error instanceof ApiError && error.status === 503);
         },
       );
     }, commandPaletteSearchDelayMs);
@@ -89,5 +100,5 @@ export function useCommandPaletteSearch(
     };
   }, [open, normalizedQuery]);
 
-  return { groups, isSearching, isRateLimited };
+  return { groups, isSearching, isRateLimited, isUnavailable };
 }

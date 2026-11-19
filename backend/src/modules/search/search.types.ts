@@ -20,6 +20,8 @@ export type UserSearchMatch = {
   readonly email: string | null;
 };
 
+export type SearchGroupName = (typeof searchTypes)[number];
+
 /**
  * Answer of `GET /search` (plan §1.2): one request, three groups, each already
  * narrowed by the same visibility rules as the matching list. An empty group is
@@ -38,6 +40,16 @@ export type SearchResponse = {
    * else matches" when the answer was cut.
    */
   readonly articlesIncomplete: boolean;
+  /**
+   * W7.62 (BA-search-08): requested groups whose read failed for an availability
+   * reason. Their arrays are empty, and this list is what keeps that empty array
+   * from being read as "nothing matched". Always present (empty when every
+   * requested group answered); a group that was not requested never appears
+   * here. Authorization and other client errors do not degrade — they fail the
+   * whole request (401/403 or the original 4xx), and a request in which *no*
+   * requested group answered is a `503 SEARCH_UNAVAILABLE`, not an empty answer.
+   */
+  readonly failedGroups: readonly SearchGroupName[];
 };
 
 export type SearchQuery = {

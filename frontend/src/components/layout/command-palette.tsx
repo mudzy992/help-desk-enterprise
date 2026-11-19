@@ -53,7 +53,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
   );
 
   const trimmedQuery = query.trim();
-  const { groups, isSearching, isRateLimited } = useCommandPaletteSearch(open, query);
+  const { groups, isSearching, isRateLimited, isUnavailable } = useCommandPaletteSearch(
+    open,
+    query,
+  );
 
   useEffect(() => {
     if (!open) {
@@ -243,6 +246,33 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
               </div>
             ))}
 
+            {/* W7.62 (BA-search-08): a requested group that did not answer is
+                named, so a short palette cannot be mistaken for "nothing else
+                matches". Shown below the hits it could still return. */}
+            {groups.failedGroups.length > 0 && !isSearching ? (
+              <p
+                role="status"
+                className="px-3 py-2 text-center text-[11.5px] leading-snug text-muted-foreground"
+              >
+                {t("palette.partialFailure", {
+                  groups: groups.failedGroups
+                    .map((group) => t(`palette.group.${group}`))
+                    .join(", "),
+                })}
+              </p>
+            ) : null}
+
+            {/* W7.62 (BA-search-08): no requested group could be read at all
+                (503 SEARCH_UNAVAILABLE) — an outage, not an empty result. */}
+            {isUnavailable && !isSearching ? (
+              <p
+                role="status"
+                className="px-3 py-2 text-center text-[11.5px] leading-snug text-muted-foreground"
+              >
+                {t("palette.unavailable")}
+              </p>
+            ) : null}
+
             {/* W7.59 (BA-search-05): the server budget is spent — say that
                 instead of implying the query matched nothing. */}
             {isRateLimited && !isSearching ? (
@@ -254,7 +284,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
               </p>
             ) : null}
 
-            {rows.length === 0 ? (
+            {rows.length === 0 && groups.failedGroups.length === 0 && !isUnavailable ? (
               <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">
                 {isSearching
                   ? t("palette.searching")

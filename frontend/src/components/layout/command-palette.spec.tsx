@@ -7,16 +7,19 @@ import { CommandPalette } from "./command-palette";
 const searchState = vi.hoisted(() => ({
   isSearching: false,
   isRateLimited: false,
+  isUnavailable: false,
   groups: {
     tickets: [],
     articles: [],
     users: [],
     articlesIncomplete: false,
+    failedGroups: [],
   } as {
     tickets: unknown[];
     articles: unknown[];
     users: unknown[];
     articlesIncomplete: boolean;
+    failedGroups: string[];
   },
 }));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
@@ -25,6 +28,7 @@ vi.mock("@/components/layout/use-command-palette-search", () => ({
     groups: searchState.groups,
     isSearching: searchState.isSearching,
     isRateLimited: searchState.isRateLimited,
+    isUnavailable: searchState.isUnavailable,
   }),
 }));
 vi.mock("@/lib/session/use-session-capabilities", () => ({
@@ -50,11 +54,13 @@ describe("CommandPalette", () => {
   beforeEach(() => {
     searchState.isSearching = false;
     searchState.isRateLimited = false;
+    searchState.isUnavailable = false;
     searchState.groups = {
       tickets: [],
       articles: [],
       users: [],
       articlesIncomplete: false,
+      failedGroups: [],
     };
   });
   afterEach(cleanup);
@@ -142,6 +148,7 @@ describe("CommandPalette", () => {
       tickets: [],
       users: [],
       articlesIncomplete: true,
+      failedGroups: [],
       articles: [
         {
           id: "article-1",
@@ -167,5 +174,64 @@ describe("CommandPalette", () => {
       </MemoryRouter>,
     );
     expect(screen.queryByText("palette.articlesIncomplete")).toBeNull();
+  });
+
+  it("names the group that did not answer instead of implying no matches", () => {
+    // W7.62 (BA-search-08): one group failed, the ticket group still answered.
+    // The empty article area must not read as "nothing matches".
+    searchState.groups = {
+      tickets: [
+        {
+          id: "t1",
+          kind: "ticket",
+          title: "T-1",
+          subtitle: "VPN pristup",
+          href: "/tickets/t1",
+        },
+      ],
+      articles: [],
+      users: [],
+      articlesIncomplete: false,
+      failedGroups: ["article"],
+    };
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "vpn" } });
+    expect(screen.getByText("palette.partialFailure")).toBeTruthy();
+    // The healthy hit is still there.
+    expect(screen.getByText("T-1")).toBeTruthy();
+
+    searchState.groups = { ...searchState.groups, failedGroups: [] };
+    rerender(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("palette.partialFailure")).toBeNull();
+  });
+
+  it("says search is unavailable when no group could be read", () => {
+    // W7.62 (BA-search-08): 503 SEARCH_UNAVAILABLE is an outage, and it must
+    // not be rendered as "no results for your query".
+    searchState.isUnavailable = true;
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "vpn" } });
+    expect(screen.getByText("palette.unavailable")).toBeTruthy();
+    expect(screen.queryByText("palette.noResults")).toBeNull();
+
+    searchState.isUnavailable = false;
+    rerender(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("palette.unavailable")).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ const groups = (id: string, articlesIncomplete = false): HeaderSearchGroups => (
   articles: [],
   users: [],
   articlesIncomplete,
+  failedGroups: [],
 });
 
 describe("useCommandPaletteSearch", () => {
@@ -108,7 +109,28 @@ describe("useCommandPaletteSearch", () => {
     });
     await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
     expect(result.current.isRateLimited).toBe(false);
+    expect(result.current.isUnavailable).toBe(false);
     expect(result.current.groups.tickets).toEqual([]);
+  });
+
+  it("distinguishes an outage (503) from an empty result and from a spent budget", async () => {
+    // W7.62 (BA-search-08): when no requested group could be read the server
+    // answers 503 SEARCH_UNAVAILABLE; the palette calls that an outage.
+    search.mockRejectedValueOnce(
+      new ApiError(503, "SEARCH_UNAVAILABLE", "The search groups are temporarily unavailable"),
+    );
+    const { result, rerender } = renderHook(({ query }) => useCommandPaletteSearch(true, query), {
+      initialProps: { query: "vpn" },
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(result.current.isUnavailable).toBe(true);
+    expect(result.current.isRateLimited).toBe(false);
+
+    search.mockResolvedValueOnce(groups("result"));
+    rerender({ query: "vpn pristup" });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(result.current.isUnavailable).toBe(false);
+    expect(result.current.groups.tickets[0]?.id).toBe("result");
   });
 
   it("keeps the incomplete article flag the server sent", async () => {

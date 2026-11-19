@@ -6789,7 +6789,14 @@
     "closeHint": "to close",
     "searching": "Searching…",
     "articlesIncomplete": "Showing the newest articles only; more matches exist — open the knowledge base for the full search.",
-    "rateLimited": "Too many searches in a short time. Wait a moment and try again."
+    "rateLimited": "Too many searches in a short time. Wait a moment and try again.",
+    "partialFailure": "Not every result group is available ({{groups}}). The other results are shown.",
+    "unavailable": "Search is temporarily unavailable. Try again in a moment.",
+    "group": {
+      "ticket": "tickets",
+      "article": "articles",
+      "user": "users"
+    }
   },
   "adminRealtime": {
     "domains": {

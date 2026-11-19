@@ -86,6 +86,23 @@ describe("header search projection", () => {
     expect(toHeaderSearchGroups("vpn", response).articlesIncomplete).toBe(false);
   });
 
+  it("names the requested groups the server could not read", () => {
+    // W7.62 (BA-search-08): the server lists the availability failures, and the
+    // palette must be able to tell "this group failed" from "this group is empty".
+    expect(
+      toHeaderSearchGroups("vpn", { ...response, failedGroups: ["article"] }).failedGroups,
+    ).toEqual(["article"]);
+    // Canonical order and unknown names dropped, whatever the server sends.
+    expect(
+      toHeaderSearchGroups("vpn", {
+        ...response,
+        failedGroups: ["user", "bogus", "ticket", "ticket"],
+      }).failedGroups,
+    ).toEqual(["ticket", "user"]);
+    // An older server without the field keeps the previous behaviour.
+    expect(toHeaderSearchGroups("vpn", response).failedGroups).toEqual([]);
+  });
+
   it("answers with empty groups for any response shape without hits", () => {
     expect(toHeaderSearchGroups("vpn", { tickets: [], articles: [], users: [] })).toEqual(
       emptyHeaderSearchGroups,

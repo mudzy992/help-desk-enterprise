@@ -11,6 +11,10 @@ export type HeaderSearchHit = {
   readonly href: string;
 };
 
+export type HeaderSearchGroupName = "ticket" | "article" | "user";
+
+const headerSearchGroupOrder: readonly HeaderSearchGroupName[] = ["ticket", "article", "user"];
+
 export type HeaderSearchGroups = {
   readonly tickets: readonly HeaderSearchHit[];
   readonly articles: readonly HeaderSearchHit[];
@@ -21,6 +25,12 @@ export type HeaderSearchGroups = {
    * reći umjesto da izgleda kao da drugih rezultata nema.
    */
   readonly articlesIncomplete: boolean;
+  /**
+   * W7.62 (BA-search-08): grupe koje su tražene ali nisu odgovorile zbog
+   * dostupnosti. Prazan niz uz praznu grupu je „nema pogodaka”; ovdje navedena
+   * grupa je „nije odgovorila” i paleta to mora reći.
+   */
+  readonly failedGroups: readonly HeaderSearchGroupName[];
 };
 
 export const emptyHeaderSearchGroups: HeaderSearchGroups = {
@@ -28,6 +38,7 @@ export const emptyHeaderSearchGroups: HeaderSearchGroups = {
   articles: [],
   users: [],
   articlesIncomplete: false,
+  failedGroups: [],
 };
 
 export function flattenHeaderSearchHits(groups: HeaderSearchGroups): readonly HeaderSearchHit[] {
@@ -49,6 +60,8 @@ export function toHeaderSearchGroups(
     readonly users: readonly { id: string; displayName: string; email: string | null }[];
     /** W7.57: `GET /search` kaže da je grupa članaka skraćena. */
     readonly articlesIncomplete?: boolean;
+    /** W7.62: grupe koje nisu odgovorile zbog dostupnosti. */
+    readonly failedGroups?: readonly string[];
   },
 ): HeaderSearchGroups {
   const trimmed = query.trim();
@@ -79,6 +92,11 @@ export function toHeaderSearchGroups(
     // W7.57: only an explicit `true` from the server means "cut short"; an
     // older server without the field keeps the previous, silent behaviour.
     articlesIncomplete: response.articlesIncomplete === true,
+    // W7.62: unknown names are dropped (an older/newer server cannot make the
+    // palette render a group that does not exist), and the order is canonical.
+    failedGroups: headerSearchGroupOrder.filter((group) =>
+      (response.failedGroups ?? []).includes(group),
+    ),
   };
 }
 
