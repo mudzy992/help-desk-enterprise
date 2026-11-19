@@ -58,6 +58,17 @@ export type CloseCodeLookup = {
 };
 
 /**
+ * W7.54 (BA-reports-02): the service/group/priority slice a scheduled report
+ * describes. The same slice must be applied to every CSV attachment, otherwise
+ * the recipient gets OU-wide rows under a narrower scope label.
+ */
+export type ReportPackFilters = {
+  readonly serviceId?: string;
+  readonly groupId?: string;
+  readonly priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+};
+
+/**
  * W7.53 (BA-reports-01): the KB pack reads only these article columns. `body`
  * and the rest of the article row never leave the database for a report.
  */

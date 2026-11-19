@@ -1,5 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
-import type { ReportWindow, TimeTrackingReportEntry } from './reports.types';
+import type { ReportPackFilters, ReportWindow, TimeTrackingReportEntry } from './reports.types';
 
 /**
  * Package 1.3 (T9): finished, not deleted time entries that started inside the
@@ -16,6 +16,8 @@ export async function loadTimeTrackingEntries(
      * probe row). Without it the pack would read every entry of the window.
      */
     readonly take?: number;
+    /** W7.54 (BA-reports-02): service/group/priority slice, pushed into SQL. */
+    readonly filters?: ReportPackFilters;
   },
 ): Promise<readonly TimeTrackingReportEntry[]> {
   if (input.organizationalUnitIds.length === 0) {
@@ -26,7 +28,18 @@ export async function loadTimeTrackingEntries(
       deletedAt: null,
       endedAt: { not: null },
       startedAt: { gte: input.window.from, lte: input.window.to },
-      ticket: { originUnitId: { in: [...input.organizationalUnitIds] } },
+      ticket: {
+        originUnitId: { in: [...input.organizationalUnitIds] },
+        ...(input.filters?.serviceId === undefined
+          ? {}
+          : { serviceId: input.filters.serviceId }),
+        ...(input.filters?.groupId === undefined
+          ? {}
+          : { assignedGroupId: input.filters.groupId }),
+        ...(input.filters?.priority === undefined
+          ? {}
+          : { priority: input.filters.priority }),
+      },
     },
     select: {
       ticketId: true,

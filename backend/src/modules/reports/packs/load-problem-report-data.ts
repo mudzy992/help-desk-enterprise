@@ -2,7 +2,7 @@ import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { formatProblemNumber } from '../../problems/problem-rules';
 import { problemDefaults } from '../../settings/definitions/problem-settings';
 import { settingKeys } from '../../settings/setting-keys';
-import type { ReportWindow } from '../reports.types';
+import type { ReportPackFilters, ReportWindow } from '../reports.types';
 import type { ProblemReportVisibility } from '../problem-report-visibility';
 import { emptyProblemReportData, type ProblemReportData } from './build-problem-reports';
 
@@ -27,11 +27,30 @@ export async function loadProblemReportData(
     readonly visibility: ProblemReportVisibility;
     /** W7.53: row budget (+1 probe row) for this pack request. */
     readonly rowLimit?: number;
+    /**
+     * W7.54 (BA-reports-02): the schedule slice, applied to the problem record
+     * (its own service, group and priority) — never to the linked tickets.
+     */
+    readonly filters?: ReportPackFilters;
   },
 ): Promise<ProblemReportData> {
   const data: ProblemReportData = { ...emptyProblemReportData, now: input.now };
   if (input.unitIds.length === 0) return data;
-  const inUnits = { AND: [{ organizationalUnitId: { in: [...input.unitIds] } }, input.visibility.problem] };
+  const inUnits = {
+    AND: [
+      { organizationalUnitId: { in: [...input.unitIds] } },
+      input.visibility.problem,
+      ...(input.filters?.serviceId === undefined
+        ? []
+        : [{ serviceId: input.filters.serviceId }]),
+      ...(input.filters?.groupId === undefined
+        ? []
+        : [{ groupId: input.filters.groupId }]),
+      ...(input.filters?.priority === undefined
+        ? []
+        : [{ priority: input.filters.priority }]),
+    ],
+  };
   const readableTicket = input.visibility.ticket;
   const inWindow = { gte: input.window.from, lt: input.window.to };
   // A probe row (`rowLimit + 1`) tells the caller the part overflowed its budget.

@@ -3783,7 +3783,8 @@
         "too_many_rows": "previše redova za prilog",
         "too_large": "prilozi premašuju 10 MB",
         "pack_disabled": "paket je isključen",
-        "failed": "greška pri izradi"
+        "failed": "greška pri izradi",
+        "filter_unsupported": "paket ne podržava filtere rasporeda (servis, grupa, prioritet)"
       },
       "runError": {
         "missed": "termin propušten (worker nije radio)",

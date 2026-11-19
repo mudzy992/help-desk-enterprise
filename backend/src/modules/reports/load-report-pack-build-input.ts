@@ -44,6 +44,7 @@ import type {
   KnowledgeFeedbackVote,
   ReportArticleRow,
   ReportPackBuildInput,
+  ReportPackFilters,
   ReportWindow,
 } from './reports.types';
 
@@ -69,9 +70,18 @@ export async function loadReportPackBuildInput(
   pack: ReportPackKey,
   pingPongThreshold: number,
   problemVisibility?: ProblemReportVisibility,
-  options: { readonly rowLimit?: number } = {},
+  options: {
+    readonly rowLimit?: number;
+    /**
+     * W7.54 (BA-reports-02): the scheduled report's service/group/priority
+     * slice. Callers refuse a slice the pack cannot apply
+     * (`reportPackScheduleFilterSupport`); this function only applies it.
+     */
+    readonly filters?: ReportPackFilters;
+  } = {},
 ): Promise<ReportPackLoadResult> {
   const rowLimit = options.rowLimit;
+  const filters = options.filters;
   // One probe row tells us the corpus is larger without reading all of it.
   const fetchLimit = rowLimit === undefined ? undefined : rowLimit + 1;
   const overflowed = (rows: readonly unknown[]): boolean =>
@@ -81,7 +91,7 @@ export async function loadReportPackBuildInput(
 
   if (isProblemReportPack(pack)) {
     if (problemVisibility === undefined) throw new Error('PROBLEM_REPORT_VISIBILITY_REQUIRED');
-    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date(), visibility: problemVisibility, rowLimit });
+    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date(), visibility: problemVisibility, rowLimit, filters });
     const truncatedInput = problemReportRowCount(problems) > (rowLimit ?? Number.POSITIVE_INFINITY);
     return { input: { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], problems }, truncatedInput };
   }
@@ -123,11 +133,12 @@ export async function loadReportPackBuildInput(
   const tickets = needsTickets
     ? await loadScopedReportTickets(prisma, organizationalUnitIds, true, window, {
         take: fetchLimit,
+        filters,
       })
     : [];
   const articles =
     pack === reportPackKeys.kbHelpfulness
-      ? await loadScopedArticles(prisma, organizationalUnitIds, fetchLimit)
+      ? await loadScopedArticles(prisma, organizationalUnitIds, fetchLimit, filters?.serviceId)
       : [];
   const forwardTickets =
     pack === reportPackKeys.forwardPingPong
@@ -135,6 +146,7 @@ export async function loadReportPackBuildInput(
           organizationalUnitIds,
           window,
           threshold: pingPongThreshold,
+          filters,
           take:
             fetchLimit === undefined
               ? undefined
@@ -146,6 +158,7 @@ export async function loadReportPackBuildInput(
       ? await loadTimeTrackingEntries(prisma, {
           organizationalUnitIds,
           window,
+          filters,
           take: fetchLimit,
         })
       : [];
@@ -210,6 +223,7 @@ async function loadScopedArticles(
   prisma: PrismaService,
   organizationalUnitIds: readonly string[],
   take?: number,
+  serviceId?: string,
 ): Promise<readonly ReportArticleRow[]> {
   if (organizationalUnitIds.length === 0) {
     return [];
@@ -217,7 +231,11 @@ async function loadScopedArticles(
   // W7.53 (BA-reports-01): a narrow projection — the report never reads
   // `body` or the ~20 other article columns, so neither is fetched.
   const records = (await prisma.knowledgeArticle.findMany({
-    where: { organizationalUnitId: { in: [...organizationalUnitIds] } },
+    where: {
+      organizationalUnitId: { in: [...organizationalUnitIds] },
+      // W7.54 (BA-reports-02): a service-scoped schedule sees only that service.
+      ...(serviceId === undefined ? {} : { serviceId }),
+    },
     orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
     select: {
       id: true,

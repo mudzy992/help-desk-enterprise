@@ -244,7 +244,11 @@ function schedule(overrides: Partial<ReportScheduleRecord> = {}): ReportSchedule
   };
 }
 
-function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: boolean }) {
+function createRunner(options: {
+  due: ReportScheduleRecord[];
+  claimConflict?: boolean;
+  enabledPacks?: readonly string[];
+}) {
   const runs: Record<string, unknown>[] = [];
   const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
   let deliveryId = 0;
@@ -253,6 +257,11 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
   const prisma = {
     $executeRaw: async () => 0,
     auditLog: { findFirst: async () => null, create: async () => ({}) },
+    organizationalUnit: {
+      findMany: async () => [{ id: 'ou-it', ouPath: '/Korisnici/IT' }],
+    },
+    appSetting: { findUnique: async () => null },
+    ticket: { findMany: jest.fn(async () => []) },
     reportSchedule: {
       findMany: async () => options.due,
       updateMany: async (args: unknown) => {
@@ -329,7 +338,7 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
       load: async () => ({
         reportsEnabled: true,
         addonEnabled: true,
-        enabledPacks: [],
+        enabledPacks: options.enabledPacks ?? [],
         allowedFormats: ['csv'],
         bottlenecksEnabled: true,
         defaultWindowDays: 30,
@@ -428,6 +437,116 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
     expect(sent).toHaveLength(0);
     expect(prisma.reportScheduleRun.update).not.toHaveBeenCalled();
     expect(scheduleUpdates).toHaveLength(1);
+  });
+
+  it('builds CSV attachments from the schedule slice, not the whole unit', async () => {
+    const { runner, prisma } = createRunner({
+      due: [],
+      enabledPacks: ['monthly_kpi'],
+    });
+    const target = schedule({
+      serviceId: 'svc-vpn',
+      groupId: 'grp-1',
+      priority: 'HIGH',
+      packKeys: ['monthly_kpi'],
+    });
+    const period = previousReportPeriod('WEEKLY', zone, new Date('2026-04-13T05:00:00Z'));
+    const files = await runner.buildAttachments(
+      target,
+      period,
+      {
+        enabled: true,
+        maxSchedules: 50,
+        maxRecipients: 25,
+        attachmentMaxRows: 10_000,
+        defaultSendTime: '07:00',
+        timeZone: zone,
+      },
+      'u-ok',
+    );
+    expect(files.omitted).toEqual([]);
+    expect(files.attachments).toHaveLength(1);
+    const where = (prisma.ticket.findMany.mock.calls[0][0] as { where: Record<string, unknown> })
+      .where;
+    expect(where).toMatchObject({
+      originUnitId: { in: ['ou-it'] },
+      serviceId: 'svc-vpn',
+      assignedGroupId: 'grp-1',
+      priority: 'HIGH',
+    });
+  });
+
+  it('omits a pack that cannot apply the schedule slice instead of widening it', async () => {
+    const { runner, prisma } = createRunner({
+      due: [],
+      enabledPacks: ['asset_inventory', 'monthly_kpi'],
+    });
+    const target = schedule({
+      serviceId: 'svc-vpn',
+      packKeys: ['asset_inventory', 'monthly_kpi'],
+    });
+    const period = previousReportPeriod('WEEKLY', zone, new Date('2026-04-13T05:00:00Z'));
+    const files = await runner.buildAttachments(
+      target,
+      period,
+      {
+        enabled: true,
+        maxSchedules: 50,
+        maxRecipients: 25,
+        attachmentMaxRows: 10_000,
+        defaultSendTime: '07:00',
+        timeZone: zone,
+      },
+      'u-ok',
+    );
+    expect(files.omitted).toEqual([
+      { pack: 'asset_inventory', reason: 'filter_unsupported' },
+    ]);
+    expect(files.attachments).toHaveLength(1);
+    expect(prisma.ticket.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('labels the omitted pack and the attachment scope in the e-mail', () => {
+    const composed = composeScheduledReportEmail({
+      configuration: channel,
+      locale: 'bs',
+      recipientId: 'u1',
+      recipientName: 'Amra',
+      scheduleName: 'Sedmični',
+      ownerName: null,
+      content: {
+        frequency: 'WEEKLY',
+        sections: ['kpi'],
+        period: {
+          start: new Date('2026-03-22T23:00:00Z'),
+          end: new Date('2026-03-29T22:00:00Z'),
+          firstDay: { year: 2026, month: 3, day: 23 },
+          lastDay: { year: 2026, month: 3, day: 29 },
+        },
+        scope: {
+          organizationalUnitId: 'ou-it',
+          unitName: 'IT',
+          serviceId: 'svc',
+          serviceName: 'VPN',
+          groupId: null,
+          groupName: null,
+          priority: null,
+        },
+        trendPoints: [],
+        topServices: null,
+        overdue: null,
+        settings: { slaTargetPercent: 90, csatMinSample: 5 },
+        trendFirstDay: { year: 2026, month: 1, day: 5 },
+      },
+      attachmentNames: ['kpi.csv'],
+      omitted: [{ pack: 'asset_inventory', reason: 'filter_unsupported' }],
+      attachmentMaxRows: 10_000,
+      dedupeKey: 'k',
+    });
+    expect(composed.text).toContain(
+      'poštuju isti period i isti presjek kao i izvještaj',
+    );
+    expect(composed.text).toContain('paket ne podržava filtere ovog rasporeda');
   });
 
   it('builds a stable slot key per period', () => {

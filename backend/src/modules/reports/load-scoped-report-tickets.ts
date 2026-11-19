@@ -2,7 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { loadTicketOverdueFlags } from '../tickets/load-ticket-overdue-flags';
 import type { TicketRecord } from '../tickets/tickets.types';
-import type { ReportTicketSnapshot, ReportWindow } from './reports.types';
+import type { ReportPackFilters, ReportTicketSnapshot, ReportWindow } from './reports.types';
 
 /**
  * Package 1.6 (plan §3 D5): with a window, only tickets that were alive inside
@@ -15,7 +15,15 @@ export async function loadScopedReportTickets(
   organizationalUnitIds: readonly string[],
   includeArchived: boolean,
   window?: ReportWindow,
-  options: { readonly take?: number } = {},
+  options: {
+    readonly take?: number;
+    /**
+     * W7.54 (BA-reports-02): the schedule's service/group/priority slice. It is
+     * pushed into the query, so a filtered report never materializes rows it
+     * would drop afterwards.
+     */
+    readonly filters?: ReportPackFilters;
+  } = {},
 ): Promise<readonly ReportTicketSnapshot[]> {
   if (organizationalUnitIds.length === 0) {
     return [];
@@ -29,6 +37,15 @@ export async function loadScopedReportTickets(
           createdAt: { lte: window.to },
           OR: [{ closedAt: null }, { closedAt: { gte: window.from } }],
         }),
+    ...(options.filters?.serviceId === undefined
+      ? {}
+      : { serviceId: options.filters.serviceId }),
+    ...(options.filters?.groupId === undefined
+      ? {}
+      : { assignedGroupId: options.filters.groupId }),
+    ...(options.filters?.priority === undefined
+      ? {}
+      : { priority: options.filters.priority }),
   };
   const records = (await prisma.ticket.findMany({
     where,

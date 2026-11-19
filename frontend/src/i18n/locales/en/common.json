@@ -3766,7 +3766,8 @@
         "too_many_rows": "too many rows for an attachment",
         "too_large": "attachments exceed 10 MB",
         "pack_disabled": "the pack is disabled",
-        "failed": "build error"
+        "failed": "build error",
+        "filter_unsupported": "the pack cannot apply the schedule filters (service, group, priority)"
       },
       "runError": {
         "missed": "slot missed (the worker was not running)",
@@ -3787,7 +3788,7 @@
         "nextUnknown": "Enter a valid time (HH:mm).",
         "sections": "E-mail sections",
         "attachments": "Attachments (CSV)",
-        "attachmentsHint": "A pack with more than {{rows}} rows is not attached; the e-mail says so.",
+        "attachmentsHint": "Attachments use the same filters as the report (service, group, priority). A pack with more than {{rows}} rows, or one that cannot apply those filters, is not attached; the e-mail says so.",
         "recipients": "Recipients",
         "recipientsHint": "Only internal users with access to reports and to the unit scope, at most {{max}}.",
         "searchRecipients": "Search by name or e-mail",

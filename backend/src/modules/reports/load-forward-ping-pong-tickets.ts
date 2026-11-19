@@ -1,5 +1,5 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
-import type { ForwardPingPongTicket, ReportWindow } from './reports.types';
+import type { ForwardPingPongTicket, ReportPackFilters, ReportWindow } from './reports.types';
 
 /**
  * Package 1.6 (plan §3 D10): tickets forwarded group-to-group at least
@@ -18,6 +18,11 @@ export async function loadForwardPingPongTickets(
      * reading the whole window.
      */
     readonly take?: number;
+    /**
+     * W7.54 (BA-reports-02): the schedule slice. Only tickets inside it are
+     * returned, so the CSV never shows a ticket outside the reported scope.
+     */
+    readonly filters?: ReportPackFilters;
   },
 ): Promise<readonly ForwardPingPongTicket[]> {
   if (input.organizationalUnitIds.length === 0) {
@@ -59,7 +64,18 @@ export async function loadForwardPingPongTickets(
     return [];
   }
   const tickets = await prisma.ticket.findMany({
-    where: { id: { in: ticketIds } },
+    where: {
+      id: { in: ticketIds },
+      ...(input.filters?.serviceId === undefined
+        ? {}
+        : { serviceId: input.filters.serviceId }),
+      ...(input.filters?.groupId === undefined
+        ? {}
+        : { assignedGroupId: input.filters.groupId }),
+      ...(input.filters?.priority === undefined
+        ? {}
+        : { priority: input.filters.priority }),
+    },
     select: {
       id: true,
       ticketNumber: true,

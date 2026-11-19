@@ -96,12 +96,14 @@ export const reportEmailLabels: Readonly<Record<EmailLocale, ReportEmailLabels>>
     lowSampleNote: 'Sivo: premalo CSAT ocjena za pouzdan prosjek (manje od {min}).',
     slaNote: 'Crveno: SLA ispod cilja od {target} %.',
     overdueNote: 'Stanje u trenutku slanja: otvoreni tiketi s prekoračenim SLA odzivom ili rješavanjem.',
-    attachmentsNote: 'Prilozi (CSV) pokrivaju cijelu organizacionu jedinicu rasporeda za isti period.',
+    attachmentsNote: 'Prilozi (CSV) poštuju isti period i isti presjek kao i izvještaj (organizaciona jedinica, servis, grupa, prioritet).',
     attachmentOmitted: {
       too_many_rows: 'Prilog „{pack}” je izostavljen: ima više od {max} redova. Izvezite ga u aplikaciji.',
       too_large: 'Prilog „{pack}” je izostavljen: prilozi bi premašili 10 MB. Izvezite ga u aplikaciji.',
       pack_disabled: 'Prilog „{pack}” je izostavljen: paket izvještaja je isključen.',
       failed: 'Prilog „{pack}” nije mogao biti pripremljen.',
+      filter_unsupported:
+        'Prilog „{pack}” je izostavljen: paket ne podržava filtere ovog rasporeda (servis, grupa, prioritet), pa bi sadržaj bio širi od prikazanog presjeka.',
     },
     footerReason: 'Izvještaj šalje raspored „{name}” koji je postavio/la {owner}.',
     footerReasonNoOwner: 'Izvještaj šalje raspored „{name}”.',
@@ -160,12 +162,15 @@ export const reportEmailLabels: Readonly<Record<EmailLocale, ReportEmailLabels>>
     lowSampleNote: 'Grey: too few CSAT ratings for a reliable average (fewer than {min}).',
     slaNote: 'Red: SLA below the {target} % target.',
     overdueNote: 'State at send time: open tickets past their SLA response or resolution deadline.',
-    attachmentsNote: "CSV attachments cover the schedule's whole organizational unit for the same period.",
+    attachmentsNote:
+      "CSV attachments use the same period and the same scope as the report (organizational unit, service, group, priority).",
     attachmentOmitted: {
       too_many_rows: 'Attachment "{pack}" was left out: it has more than {max} rows. Export it in the application.',
       too_large: 'Attachment "{pack}" was left out: attachments would exceed 10 MB. Export it in the application.',
       pack_disabled: 'Attachment "{pack}" was left out: the report pack is disabled.',
       failed: 'Attachment "{pack}" could not be prepared.',
+      filter_unsupported:
+        "Attachment \"{pack}\" was left out: the pack cannot apply this schedule's filters (service, group, priority), so its content would be wider than the reported scope.",
     },
     footerReason: 'This report is sent by the schedule "{name}" set up by {owner}.',
     footerReasonNoOwner: 'This report is sent by the schedule "{name}".',

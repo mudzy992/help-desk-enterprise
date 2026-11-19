@@ -130,6 +130,41 @@ export const reportPackLimits = {
   previewAggregateRows: 20_000,
 } as const;
 
+/** W7.54 (BA-reports-02): filter dimensions a scheduled report can carry. */
+export const reportPackScheduleFilterKeys = ['serviceId', 'groupId', 'priority'] as const;
+export type ReportPackScheduleFilterKey = (typeof reportPackScheduleFilterKeys)[number];
+
+/**
+ * W7.54 (BA-reports-02): which filter a pack can actually apply to its own rows.
+ * A schedule filter outside this list is not silently ignored — the attachment
+ * is omitted, because sending OU-wide rows under a narrower scope label is a
+ * data and contract error. Ticket packs filter tickets, problem packs filter
+ * problems, the KB pack filters articles by service; change and CMDB packs have
+ * no service/group/priority dimension at all.
+ */
+export const reportPackScheduleFilterSupport: Readonly<
+  Record<ReportPackKey, readonly ReportPackScheduleFilterKey[]>
+> = {
+  monthly_kpi: reportPackScheduleFilterKeys,
+  overdue_by_service: reportPackScheduleFilterKeys,
+  top_close_codes: reportPackScheduleFilterKeys,
+  kb_helpfulness: ['serviceId'],
+  forward_ping_pong: reportPackScheduleFilterKeys,
+  time_tracking: reportPackScheduleFilterKeys,
+  asset_inventory: [],
+  asset_expiring: [],
+  asset_license_compliance: [],
+  asset_top_tickets: [],
+  asset_inactive_holders: [],
+  problem_top: reportPackScheduleFilterKeys,
+  problem_time_to_known_error: reportPackScheduleFilterKeys,
+  problem_time_to_resolution: reportPackScheduleFilterKeys,
+  problem_backlog: reportPackScheduleFilterKeys,
+  problem_recurrence: reportPackScheduleFilterKeys,
+  change_outcomes: [],
+  change_schedule: [],
+};
+
 /**
  * W7.53 (BA-reports-01): the preview read budget per pack shape. A row list only
  * needs one page (plus the probe row); an aggregate needs the period, so it is

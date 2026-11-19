@@ -36,6 +36,7 @@ const omitReasonKeys = {
   too_large: "reports.schedules.omit.too_large",
   pack_disabled: "reports.schedules.omit.pack_disabled",
   failed: "reports.schedules.omit.failed",
+  filter_unsupported: "reports.schedules.omit.filter_unsupported",
 } as const;
 
 const runErrorKeys = {

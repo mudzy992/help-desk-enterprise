@@ -23,6 +23,7 @@ import { civilDayKey } from '../trends/civil-calendar';
 import { ReportTrendsService } from '../trends/report-trends.service';
 import { composeScheduledReportEmail } from './compose-scheduled-report-email';
 import { ReportAccessChecker, type ReportRecipientUser } from './report-access.checker';
+import { schedulePackFilters, unsupportedScheduleFilterKeys } from './schedule-pack-filters';
 import { nextReportRunAt, previousReportPeriod, trendFirstDay, type ReportPeriod } from './report-schedule-calendar';
 import {
   reportAttachmentOmitReasons,
@@ -498,11 +499,19 @@ export class ScheduledReportRunner {
     const unitIds = await resolveReportOrganizationalUnitScope(this.prisma, schedule.organizationalUnitId);
     // Pack windows are inclusive: the last millisecond of the period.
     const window = { from: period.start, to: new Date(period.end.getTime() - 1) };
+    // W7.54 (BA-reports-02): every attachment carries the schedule's own slice.
+    const filters = schedulePackFilters(schedule);
     let totalBytes = 0;
     for (const key of schedule.packKeys) {
       const pack = key as ReportPackKey;
       if (!reportPackKeyList.includes(pack) || !reports.enabledPacks.includes(pack)) {
         omitted.push({ pack: key, reason: reportAttachmentOmitReasons.packDisabled });
+        continue;
+      }
+      // W7.54: a pack that cannot apply the schedule's slice would ship rows
+      // outside the reported scope, so it is omitted instead of sent wider.
+      if (unsupportedScheduleFilterKeys(pack, filters).length > 0) {
+        omitted.push({ pack: key, reason: reportAttachmentOmitReasons.filterUnsupported });
         continue;
       }
       try {
@@ -519,7 +528,7 @@ export class ScheduledReportRunner {
           pack,
           reports.pingPongThreshold,
           visibility,
-          { rowLimit: configuration.attachmentMaxRows },
+          { rowLimit: configuration.attachmentMaxRows, filters },
         );
         const built = buildReportPackRows(pack, loaded.input);
         if (loaded.truncatedInput || built.rows.length > configuration.attachmentMaxRows) {

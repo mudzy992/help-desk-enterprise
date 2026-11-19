@@ -50,6 +50,11 @@ export const reportAttachmentOmitReasons = {
   tooLarge: 'too_large',
   packDisabled: 'pack_disabled',
   failed: 'failed',
+  /**
+   * W7.54 (BA-reports-02): the schedule filters a dimension the pack cannot
+   * apply, so the CSV would be broader than the reported scope.
+   */
+  filterUnsupported: 'filter_unsupported',
 } as const;
 export type ReportAttachmentOmitReason =
   (typeof reportAttachmentOmitReasons)[keyof typeof reportAttachmentOmitReasons];
