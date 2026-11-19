@@ -9,8 +9,7 @@ import type { AuthenticatedHttpRequest } from '../authentication/authenticated-r
 export function readKnowledgeIfMatch(
   request: AuthenticatedHttpRequest,
 ): string | undefined {
-  const header = request.headers['if-match'];
-  const value = Array.isArray(header) ? header[0] : header;
+  const value = request.headers?.['if-match'];
   return typeof value === 'string' && value.trim().length > 0
     ? value
     : undefined;

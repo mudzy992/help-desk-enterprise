@@ -15,6 +15,8 @@ export type AuthenticatedHttpRequest = {
     authorization?: string;
     cookie?: string;
     origin?: string;
+    /** W7.51: optimistic-concurrency token for knowledge article writes. */
+    'if-match'?: string;
   };
   params?: Record<string, unknown>;
   body?: unknown;
