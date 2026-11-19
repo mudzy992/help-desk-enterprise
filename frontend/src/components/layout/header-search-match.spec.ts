@@ -40,6 +40,20 @@ describe("header search projection", () => {
     });
   });
 
+  it("shows a user row without a subtitle when the server withholds the e-mail", () => {
+    const groups = toHeaderSearchGroups("ana", {
+      tickets: [],
+      articles: [],
+      users: [{ id: "user-2", displayName: "Ana Hodžić", email: null }],
+    });
+    // W7.55: a unit-scoped administrator gets the name only.
+    expect(groups.users[0]).toMatchObject({
+      kind: "user",
+      title: "Ana Hodžić",
+      subtitle: "",
+    });
+  });
+
   it("keeps the same hrefs the client built before the server search", () => {
     const groups = toHeaderSearchGroups("  vpn  ", response);
     expect(groups.articles[0]?.href).toBe("/knowledge-base?q=vpn");

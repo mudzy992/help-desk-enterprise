@@ -1,4 +1,12 @@
 import {
+  authorizationRoleKeys,
+  permissionKeys,
+} from '../authorization/authorization.constants';
+import {
+  createTestAssignment,
+  createTestAuthorizationContext,
+} from '../authorization/create-test-authorization-context';
+import {
   createTicketsServiceHarness,
   ticketsTestIds,
 } from '../tickets/create-tickets-service-harness';
@@ -45,21 +53,61 @@ function setup() {
     },
   };
   // The people group reads `user.findMany`; the harness has no user delegate,
-  // so the read is provided here and records what it was asked for.
-  const userQueries: unknown[] = [];
+  // so the read is provided here and records what it was asked for. The rows
+  // carry their unit, because W7.55 scopes the group by organizational unit.
+  const userQueries: {
+    where?: { organizationalUnitId?: { in?: readonly string[] } };
+    select?: { email?: boolean };
+    take?: number;
+  }[] = [];
+  const unitQueries: unknown[] = [];
+  const ouItSupport = 'ou-it-support';
   const users = [
-    { id: 'user-1', displayName: 'Ana Hodžić', email: 'ana@example.com' },
-    { id: 'user-2', displayName: 'Marko Marković', email: 'marko@example.com' },
+    {
+      id: 'user-1',
+      displayName: 'Ana Hodžić',
+      email: 'ana@example.com',
+      organizationalUnitId: ticketsTestIds.ouIt,
+    },
+    {
+      id: 'user-2',
+      displayName: 'Marko Marković',
+      email: 'marko@example.com',
+      organizationalUnitId: ticketsTestIds.ouHr,
+    },
+    {
+      id: 'user-3',
+      displayName: 'Ana Support',
+      email: 'ana.support@example.com',
+      organizationalUnitId: ouItSupport,
+    },
+  ];
+  const organizationalUnits = [
+    { id: ticketsTestIds.ouRoot, ouPath: '/Korisnici' },
+    { id: ticketsTestIds.ouIt, ouPath: '/Korisnici/IT' },
+    { id: ouItSupport, ouPath: '/Korisnici/IT/Support' },
+    { id: ticketsTestIds.ouHr, ouPath: '/Korisnici/HR' },
   ];
   const prisma = {
     user: {
-      findMany: async (args: { where?: unknown; take?: number }) => {
+      findMany: async (args: {
+        where?: { organizationalUnitId?: { in?: readonly string[] } };
+        select?: { email?: boolean };
+        take?: number;
+      }) => {
         userQueries.push(args);
+        const scope = args.where?.organizationalUnitId?.in;
+        const select = args.select ?? {};
         const needle = /contains":"([^"]*)"/.exec(
           JSON.stringify(args.where ?? {}),
         )?.[1];
         const take = args.take ?? 15;
         return users
+          .filter((user) =>
+            scope === undefined
+              ? true
+              : scope.includes(user.organizationalUnitId),
+          )
           .filter((user) =>
             needle === undefined
               ? true
@@ -67,7 +115,18 @@ function setup() {
                   .toLowerCase()
                   .includes(needle.toLowerCase()),
           )
-          .slice(0, take);
+          .slice(0, take)
+          .map((user) =>
+            select.email === true
+              ? user
+              : { id: user.id, displayName: user.displayName },
+          );
+      },
+    },
+    organizationalUnit: {
+      findMany: async (args: unknown) => {
+        unitQueries.push(args);
+        return organizationalUnits;
       },
     },
   };
@@ -89,6 +148,7 @@ function setup() {
     tickets: harness.tickets,
     articleCalls,
     userQueries,
+    unitQueries,
     context,
   };
 }
@@ -196,13 +256,19 @@ describe('GET /search', () => {
       context(agentIt),
     );
     expect(asAgent.users).toEqual([]);
+    // Not allowed means not read: no query at all.
     expect(userQueries).toEqual([]);
 
     const asAdmin = await service.search(
       { q: 'ana', types: ['user'], limit: 15 },
       context(adminIt),
     );
-    expect(asAdmin.users.map((user) => user.displayName)).toEqual(['Ana Hodžić']);
+    // The IT admin finds the IT user and the IT/Support child, never HR.
+    expect(asAdmin.users.map((user) => user.displayName)).toEqual([
+      'Ana Hodžić',
+      'Ana Support',
+    ]);
+    expect(asAdmin.users.map((user) => user.email)).toEqual([null, null]);
 
     const asSuperAdmin = await service.search(
       { q: 'marko', types: ['user'], limit: 15 },
@@ -210,6 +276,82 @@ describe('GET /search', () => {
     );
     expect(asSuperAdmin.users.map((user) => user.displayName)).toEqual([
       'Marko Marković',
+    ]);
+    // A global reach carries the e-mail column.
+    expect(asSuperAdmin.users.map((user) => user.email)).toEqual([
+      'marko@example.com',
+    ]);
+  });
+
+  it('never lets a scoped administrator discover a user of another unit', async () => {
+    const { service, userQueries, context } = setup();
+    const asAdmin = await service.search(
+      { q: 'marko', types: ['user'], limit: 15 },
+      context(adminIt),
+    );
+    // The name matches, the scope does not: the row is filtered in the query.
+    expect(asAdmin.users).toEqual([]);
+    expect(userQueries).toHaveLength(1);
+    expect(
+      (userQueries[0].where as { organizationalUnitId?: { in?: string[] } })
+        .organizationalUnitId?.in,
+    ).toEqual(['ou-it', 'ou-it-support']);
+    // The e-mail column is not even read when the reach is a unit subtree.
+    expect(userQueries[0].select).toEqual({ id: true, displayName: true });
+
+    const asHrAdmin = await service.search(
+      { q: 'ana', types: ['user'], limit: 15 },
+      context(adminIt),
+    );
+    expect(asHrAdmin.users.map((user) => user.displayName)).toEqual([
+      'Ana Hodžić',
+      'Ana Support',
+    ]);
+  });
+
+  it('reads the unit table only when the grant is unit-scoped', async () => {
+    const { service, unitQueries, context } = setup();
+    await service.search(
+      { q: 'marko', types: ['user'], limit: 15 },
+      context(superAdmin),
+    );
+    expect(unitQueries).toEqual([]);
+
+    await service.search(
+      { q: 'ana', types: ['user'], limit: 15 },
+      context(adminIt),
+    );
+    expect(unitQueries).toHaveLength(1);
+  });
+
+  it('lets the explicit permission decide instead of the role name', async () => {
+    const { service, contexts, context } = setup();
+    const subjectId = 'user-agent-directory-it';
+    contexts.set(
+      subjectId,
+      createTestAuthorizationContext({
+        subjectId,
+        assignments: [
+          createTestAssignment({
+            roleKey: authorizationRoleKeys.agent,
+            organizationalUnitId: ticketsTestIds.ouIt,
+            organizationalUnitPath: '/Korisnici/IT',
+            permissionKeys: [permissionKeys.userDirectoryRead],
+          }),
+        ],
+      }),
+    );
+    const asGrantedAgent = await service.search(
+      { q: 'ana', types: ['user'], limit: 15 },
+      context(subjectId),
+    );
+    expect(asGrantedAgent.users.map((user) => user.displayName)).toEqual([
+      'Ana Hodžić',
+      'Ana Support',
+    ]);
+    expect(asGrantedAgent.users.map((user) => user.email)).toEqual([
+      null,
+      null,
     ]);
   });
 

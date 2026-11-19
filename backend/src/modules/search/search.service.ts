@@ -5,7 +5,11 @@ import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
 import { TicketsService } from '../tickets/tickets.service';
 import type { TicketMutationContext } from '../tickets/tickets.types';
 import { searchConstants } from './search.constants';
-import { maySearchDirectoryUsers, searchDirectoryUsers } from './search-users';
+import {
+  resolveDirectorySearchGrant,
+  resolveDirectorySearchScope,
+} from './search-directory-scope';
+import { searchDirectoryUsers } from './search-users';
 import type { SearchQuery, SearchResponse } from './search.types';
 
 /**
@@ -60,16 +64,23 @@ export class SearchService {
     if (authorization === null) {
       return [];
     }
+    // W7.55: the grant is a permission and the reach is an organizational-unit
+    // subtree; the unit table is read only when a scoped grant needs it.
+    const grant = resolveDirectorySearchGrant(authorization);
+    const scope = resolveDirectorySearchScope({
+      grant,
+      organizationalUnits:
+        grant.kind === 'organizationalUnits'
+          ? await this.prisma.organizationalUnit.findMany({
+              select: { id: true, ouPath: true },
+            })
+          : [],
+    });
     return searchDirectoryUsers({
       prisma: this.prisma,
       query: query.q,
       limit: query.limit,
-      maySearchUsers: maySearchDirectoryUsers({
-        isSuperAdmin: authorization.isSuperAdmin,
-        roleKeys: authorization.assignments.map(
-          (assignment) => assignment.roleKey,
-        ),
-      }),
+      scope,
     });
   }
 }

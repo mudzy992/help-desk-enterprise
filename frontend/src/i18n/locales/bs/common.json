@@ -1530,7 +1530,8 @@
         "knowledge": "Baza znanja",
         "edge": "Edge ekstenzija",
         "privacy": "Zaštita ličnih podataka",
-        "assets": "Imovina (CMDB)"
+        "assets": "Imovina (CMDB)",
+        "directory": "Imenik korisnika"
       },
       "keys": {
         "ticket.forward.cross_ou": "Proslijedi tiket u drugu organizacionu jedinicu (s OU opsegom i auditom).",
@@ -1551,6 +1552,7 @@
         "group.manage": "Kreiraj, uređuj i briši grupe te upravljaj članovima.",
         "settings.read": "Pregledaj globalni privatni registar postavki i konfiguracijske projekcije.",
         "settings.write": "Mijenjaj sistemske postavke, policy packove i verzije konfiguracije.",
+        "user.directory.read": "Traži korisnike u imeniku unutar organizacionih jedinica dodijeljenih ulozi.",
         "config.version.read": "Pregledaj globalne verzije konfiguracije, snapshotove i razlike.",
         "docs.agent.read": "Čitaj internu dokumentaciju namijenjenu agentima.",
         "integrations.queue.manage": "Pregledaj i upravljaj redom integracionih poslova (retry, uvid).",

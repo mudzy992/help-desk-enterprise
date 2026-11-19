@@ -23,8 +23,10 @@ import type { SearchResponse } from './search.types';
  * Before this the palette pulled every ticket, every article and the users of
  * every organizational unit in the tree — one HTTP request per unit, each with
  * the full auth chain — and filtered in the browser. `q` matches numbers and
- * titles of tickets, article titles and (for admins) people; every group is
- * narrowed by the visibility of its own list and capped at 15 hits.
+ * titles of tickets, article titles and people; every group is narrowed by the
+ * visibility of its own list and capped at 15 hits. The people group follows
+ * the directory policy of `search-directory-scope.ts` (permission
+ * `user.directory.read` over organizational-unit subtrees, W7.55).
  */
 @Controller('search')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)

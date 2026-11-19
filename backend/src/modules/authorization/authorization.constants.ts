@@ -53,6 +53,12 @@ export const permissionKeys = {
   groupManage: 'group.manage',
   settingsRead: 'settings.read',
   settingsWrite: 'settings.write',
+  /**
+   * W7.55 (BA-search-01): reading the user directory through `GET /search`.
+   * The permission is granted per organizational unit; an unscoped grant is
+   * the only way (besides SUPER_ADMIN) to search the whole directory.
+   */
+  userDirectoryRead: 'user.directory.read',
   configVersionRead: 'config.version.read',
   docsAgentRead: 'docs.agent.read',
   integrationsQueueManage: 'integrations.queue.manage',
@@ -206,6 +212,9 @@ const adminPermissionKeys = [
   permissionKeys.slaWrite,
   permissionKeys.settingsRead,
   permissionKeys.settingsWrite,
+  // W7.55: ADMIN keeps the directory search it had through the role name, now
+  // as an explicit, revocable permission granted per organizational unit.
+  permissionKeys.userDirectoryRead,
   permissionKeys.configVersionRead,
   permissionKeys.integrationsQueueManage,
   permissionKeys.auditExport,

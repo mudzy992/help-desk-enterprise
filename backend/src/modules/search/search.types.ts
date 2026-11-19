@@ -12,7 +12,12 @@ export type ArticleSearchMatch = {
 export type UserSearchMatch = {
   readonly id: string;
   readonly displayName: string;
-  readonly email: string;
+  /**
+   * W7.55 (BA-search-01): `null` when the caller's directory reach is an
+   * organizational-unit subtree — the discovery surface shows the name, the
+   * unit list remains the screen that shows the record in full.
+   */
+  readonly email: string | null;
 };
 
 /**

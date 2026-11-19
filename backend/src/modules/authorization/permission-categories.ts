@@ -13,7 +13,8 @@ export type PermissionCategoryId =
   | 'knowledge'
   | 'edge'
   | 'privacy'
-  | 'assets';
+  | 'assets'
+  | 'directory';
 
 export const permissionCategoryIds = {
   ticket: 'ticket',
@@ -31,4 +32,5 @@ export const permissionCategoryIds = {
   edge: 'edge',
   privacy: 'privacy',
   assets: 'assets',
+  directory: 'directory',
 } as const satisfies Record<string, PermissionCategoryId>;

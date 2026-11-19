@@ -15,7 +15,11 @@ export type ArticleSearchHit = {
 export type UserSearchHit = {
   readonly id: string;
   readonly displayName: string;
-  readonly email: string;
+  /**
+   * W7.55 (BA-search-01): `null` when the caller searches an organizational-unit
+   * subtree — the palette then shows the name only.
+   */
+  readonly email: string | null;
 };
 
 export type GlobalSearchResponse = {

@@ -1521,7 +1521,8 @@
         "knowledge": "Knowledge base",
         "edge": "Edge extension",
         "privacy": "Privacy",
-        "assets": "Assets (CMDB)"
+        "assets": "Assets (CMDB)",
+        "directory": "User directory"
       },
       "keys": {
         "ticket.forward.cross_ou": "Forward a ticket to another organizational unit (OU-scoped and audited).",
@@ -1542,6 +1543,7 @@
         "group.manage": "Create, edit, and delete groups and manage group members.",
         "settings.read": "View the global private settings registry and configuration projections.",
         "settings.write": "Change system settings, policy packs, and config versions.",
+        "user.directory.read": "Search users in the directory inside the organizational units assigned to the role.",
         "config.version.read": "View global configuration versions, snapshots, and diffs.",
         "docs.agent.read": "Read internal documentation intended for support agents.",
         "integrations.queue.manage": "View and manage the integration job queue (retry, inspect).",

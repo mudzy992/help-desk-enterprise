@@ -39,7 +39,7 @@ export function toHeaderSearchGroups(
   response: {
     readonly tickets: readonly { id: string; ticketNumber: string; title: string }[];
     readonly articles: readonly { id: string; slug: string; title: string }[];
-    readonly users: readonly { id: string; displayName: string; email: string }[];
+    readonly users: readonly { id: string; displayName: string; email: string | null }[];
   },
 ): HeaderSearchGroups {
   const trimmed = query.trim();
@@ -62,7 +62,9 @@ export function toHeaderSearchGroups(
       id: user.id,
       kind: "user" as const,
       title: user.displayName,
-      subtitle: user.email,
+      // The server withholds the e-mail when the caller's reach is a unit
+      // subtree (W7.55); the row then shows the name only.
+      subtitle: user.email ?? "",
       href: `/users?q=${encodeURIComponent(user.displayName)}`,
     })),
   };

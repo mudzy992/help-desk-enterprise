@@ -370,4 +370,10 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     categoryId: permissionCategoryIds.integrations,
     description: 'Configure the Microsoft Teams connector, check readiness, link channels and use the simulator (package 3.1).',
   },
+  {
+    key: permissionKeys.userDirectoryRead,
+    categoryId: permissionCategoryIds.directory,
+    description:
+      'Search users of the directory inside the organizational units the role is assigned to (W7.55).',
+  },
 ];
