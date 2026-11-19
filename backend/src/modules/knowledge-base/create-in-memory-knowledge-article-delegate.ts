@@ -3,7 +3,7 @@ import type { KnowledgeArticleRecord } from './knowledge-base.types';
 
 export type InMemoryKnowledgeArticle = KnowledgeArticleRecord;
 
-type ArticleWhere = {
+export type ArticleWhere = {
   readonly id?: string | { readonly gt: string };
   readonly updatedAt?: Date | { readonly lt?: Date; readonly gt?: Date };
   readonly OR?: readonly ArticleWhere[];
