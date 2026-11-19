@@ -4,6 +4,12 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { SearchController } from './search.controller';
+import {
+  SearchRateLimiter,
+  searchRateLimitTokens,
+} from './search-rate-limit';
+import { loadSearchRateLimitConfiguration } from './search-rate-limit.configuration';
+import { SearchRateLimitGuard } from './search-rate-limit.guard';
 import { SearchService } from './search.service';
 
 /**
@@ -21,7 +27,18 @@ import { SearchService } from './search.service';
     KnowledgeBaseModule,
   ],
   controllers: [SearchController],
-  providers: [SearchService],
+  providers: [
+    SearchService,
+    // W7.59 (BA-search-05): the request budget. The configuration is read once at
+    // startup (it is a deployment setting), the limiter itself is stateless apart
+    // from its counter stores.
+    SearchRateLimiter,
+    SearchRateLimitGuard,
+    {
+      provide: searchRateLimitTokens.configuration,
+      useFactory: () => loadSearchRateLimitConfiguration(),
+    },
+  ],
   exports: [SearchService],
 })
 export class SearchModule {}

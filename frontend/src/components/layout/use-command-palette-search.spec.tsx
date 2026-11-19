@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { searchHeaderSources, type HeaderSearchGroups } from "./header-search-match";
+import { ApiError } from "@/services/api";
 import {
   commandPaletteSearchDelayMs,
   countCommandPaletteQueryCharacters,
@@ -77,6 +78,37 @@ describe("useCommandPaletteSearch", () => {
     expect(normalizeCommandPaletteQuery(" \uff36\uff30\uff2e ")).toBe("VPN");
     expect(countCommandPaletteQueryCharacters("\ud83d\udc4d")).toBe(1);
     expect(countCommandPaletteQueryCharacters("\ud83d\udc4d\ud83d\udc4d")).toBe(2);
+  });
+
+  it("distinguishes a spent request budget from an empty result", async () => {
+    // W7.59 (BA-search-05): a 429 is the server's budget answer, not "nothing
+    // matched"; the palette must be able to say so.
+    search.mockRejectedValueOnce(
+      new ApiError(429, "TOO_MANY_SEARCH_REQUESTS", "Too many search requests"),
+    );
+    const first = renderHook(({ query }) => useCommandPaletteSearch(true, query), {
+      initialProps: { query: "vpn" },
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(first.result.current.isRateLimited).toBe(true);
+    expect(first.result.current.groups.tickets).toEqual([]);
+
+    // The next successful answer clears it again.
+    search.mockResolvedValueOnce(groups("result"));
+    first.rerender({ query: "vpn pristup" });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(first.result.current.isRateLimited).toBe(false);
+    expect(first.result.current.groups.tickets[0]?.id).toBe("result");
+  });
+
+  it("does not call every other failure a rate limit", async () => {
+    search.mockRejectedValueOnce(new Error("network down"));
+    const { result } = renderHook(({ query }) => useCommandPaletteSearch(true, query), {
+      initialProps: { query: "vpn" },
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(result.current.isRateLimited).toBe(false);
+    expect(result.current.groups.tickets).toEqual([]);
   });
 
   it("keeps the incomplete article flag the server sent", async () => {

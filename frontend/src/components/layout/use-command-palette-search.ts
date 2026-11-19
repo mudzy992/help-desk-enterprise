@@ -4,6 +4,7 @@ import {
   searchHeaderSources,
   type HeaderSearchGroups,
 } from "@/components/layout/header-search-match";
+import { ApiError } from "@/services/api";
 
 export const commandPaletteSearchDelayMs = 250;
 export const commandPaletteMinimumRemoteQueryLength = 2;
@@ -37,9 +38,16 @@ export function useCommandPaletteSearch(
 ): {
   readonly groups: HeaderSearchGroups;
   readonly isSearching: boolean;
+  /**
+   * W7.59 (BA-search-05): the server answers `429` when the request budget of
+   * the signed-in actor is spent. The palette says so instead of pretending
+   * that nothing matched.
+   */
+  readonly isRateLimited: boolean;
 } {
   const [groups, setGroups] = useState<HeaderSearchGroups>(emptyHeaderSearchGroups);
   const [isSearching, setIsSearching] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const normalizedQuery = normalizeCommandPaletteQuery(query);
 
   useEffect(() => {
@@ -49,22 +57,29 @@ export function useCommandPaletteSearch(
     ) {
       setGroups(emptyHeaderSearchGroups);
       setIsSearching(false);
+      setIsRateLimited(false);
       return;
     }
     const controller = new AbortController();
     setIsSearching(true);
+    setIsRateLimited(false);
     const handle = window.setTimeout(() => {
       void searchHeaderSources(normalizedQuery, controller.signal).then(
         (nextGroups) => {
           if (controller.signal.aborted) return;
           setGroups(nextGroups);
           setIsSearching(false);
+          setIsRateLimited(false);
         },
         (error: unknown) => {
           if (controller.signal.aborted) return;
           if (error instanceof DOMException && error.name === "AbortError") return;
           setGroups(emptyHeaderSearchGroups);
           setIsSearching(false);
+          // Only the budget answer is distinguishable for the person; every
+          // other failure keeps the previous (silent empty) behaviour until
+          // BA-search-08 defines the partial/fail-closed contract.
+          setIsRateLimited(error instanceof ApiError && error.status === 429);
         },
       );
     }, commandPaletteSearchDelayMs);
@@ -74,5 +89,5 @@ export function useCommandPaletteSearch(
     };
   }, [open, normalizedQuery]);
 
-  return { groups, isSearching };
+  return { groups, isSearching, isRateLimited };
 }

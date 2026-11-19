@@ -6788,7 +6788,8 @@
     "selectHint": "to open",
     "closeHint": "to close",
     "searching": "Searching…",
-    "articlesIncomplete": "Showing the newest articles only; more matches exist — open the knowledge base for the full search."
+    "articlesIncomplete": "Showing the newest articles only; more matches exist — open the knowledge base for the full search.",
+    "rateLimited": "Too many searches in a short time. Wait a moment and try again."
   },
   "adminRealtime": {
     "domains": {

@@ -38,6 +38,7 @@ pada procesa.
 | Unread count keš (F2.3) | `count(*)` po zahtjevu | tačno, skuplje |
 | BullMQ rasporedi (F2.1, F2.3, F4.1) | registracija padne uz `*_schedule_failed` | **poslovi se ne pokreću dok se Redis ne vrati** |
 | Worker heartbeat | ne piše se, a ne može se ni pročitati | kartica prikazuje workera kao **„unknown"** (ne „stale"); ukupno stanje je „down" zbog Redis komponente. Alarm `worker.down` se **ne** otvara: watchdog kanarincem ne može potvrditi da Redis vraća upisano, pa izostanak ključa nije dokaz ([ALERTS.md#worker-down](ALERTS.md#worker-down)) |
+| Budžet pretrage (`GET /search`, W7.59) | brojači padaju na **per-instance** in-memory store | budžet se **i dalje primjenjuje** (nije fail-open), ali važi po replici: efektivni limit je broj replika × `SEARCH_RATE_LIMIT_ACTOR_PER_WINDOW`. Ako i lokalni brojač padne, endpoint vraća `503 SEARCH_RATE_LIMIT_UNAVAILABLE` (fail-closed), nikad neograničen pristup. Break-glass: `SEARCH_RATE_LIMIT_ENABLED=false` + restart |
 
 ## Dijagnostika
 

@@ -6,6 +6,7 @@ import { CommandPalette } from "./command-palette";
 
 const searchState = vi.hoisted(() => ({
   isSearching: false,
+  isRateLimited: false,
   groups: {
     tickets: [],
     articles: [],
@@ -23,6 +24,7 @@ vi.mock("@/components/layout/use-command-palette-search", () => ({
   useCommandPaletteSearch: () => ({
     groups: searchState.groups,
     isSearching: searchState.isSearching,
+    isRateLimited: searchState.isRateLimited,
   }),
 }));
 vi.mock("@/lib/session/use-session-capabilities", () => ({
@@ -47,6 +49,7 @@ function LocationProbe() {
 describe("CommandPalette", () => {
   beforeEach(() => {
     searchState.isSearching = false;
+    searchState.isRateLimited = false;
     searchState.groups = {
       tickets: [],
       articles: [],
@@ -111,6 +114,26 @@ describe("CommandPalette", () => {
     searchState.isSearching = false;
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "still-missing" } });
     expect(screen.getByText("palette.noResults")).toBeTruthy();
+  });
+
+  it("says the request budget is spent instead of claiming no results", () => {
+    // W7.59 (BA-search-05): a 429 is an answer of its own.
+    searchState.isRateLimited = true;
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "vpn" } });
+    expect(screen.getByText("palette.rateLimited")).toBeTruthy();
+
+    searchState.isRateLimited = false;
+    rerender(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("palette.rateLimited")).toBeNull();
   });
 
   it("says the article group is only a prefix when the server was cut short", () => {

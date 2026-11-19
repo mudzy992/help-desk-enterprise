@@ -53,7 +53,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
   );
 
   const trimmedQuery = query.trim();
-  const { groups, isSearching } = useCommandPaletteSearch(open, query);
+  const { groups, isSearching, isRateLimited } = useCommandPaletteSearch(open, query);
 
   useEffect(() => {
     if (!open) {
@@ -242,6 +242,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
                 ) : null}
               </div>
             ))}
+
+            {/* W7.59 (BA-search-05): the server budget is spent — say that
+                instead of implying the query matched nothing. */}
+            {isRateLimited && !isSearching ? (
+              <p
+                role="status"
+                className="px-3 py-2 text-center text-[11.5px] leading-snug text-muted-foreground"
+              >
+                {t("palette.rateLimited")}
+              </p>
+            ) : null}
 
             {rows.length === 0 ? (
               <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">
