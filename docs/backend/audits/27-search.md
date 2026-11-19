@@ -103,7 +103,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | zatvoreno |
 | BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | zatvoreno |
 | BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | zatvoreno |
-| BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | otvoreno |
+| BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | zatvoreno |
 | BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | otvoreno |
 | BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | otvoreno |
 | BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | otvoreno |
@@ -119,7 +119,11 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
   (minimalna projekcija: `body` se ne čita prije autorizacijske odluke); SQL scope pushdown odbijen jer bi
   bio druga kopija autorizacije.
 - **05:** riješeno u W7.59 (dva distribuirana fiksna prozora — actor i adresa — sa Redis Lua INCR+EXPIRE,
-  per-instance degradacijom i fail-closed `503` kad verdikta nema); `07` (EXPLAIN/index dokaz) ostaje otvoren.
+  per-instance degradacijom i fail-closed `503` kad verdikta nema).
+- **07:** riješeno u W7.61 (EXPLAIN na 12k korpusu: direktorij je `Seq Scan` preko cijele tabele jer nema
+  trigram indeksa; KB naslov ima `KnowledgeArticle_title_trgm_idx` i dokazano ga koristi uz
+  `enable_seqscan = off`. Trigram indeks nad `User` je predložen, ali nije primijenjen — traži odobrenje
+  za migraciju.)
 - **06:** riješeno u W7.60 (jedna odluka vidljivosti: `isKnowledgeArticleVisibleTo` je batch loader nad jednim
   redom, a detalj i feedback glasovanje koriste isti put; delegacijski rubovi audita 25 dokazani su parity
   matricom i testovima na granici `/search`).
@@ -370,3 +374,32 @@ ne samo na detalju. Dokaz: parity spec (56 poređenja batch-vs-single + delegaci
 može spriječiti, samo uhvatiti ako koristi loader); široka vidljivost objavljenog `INTERNAL` ostaje proizvodna
 odluka iz `BA-knowledge-base-05`; grant snapshot/expiry po članku traži novu tabelu i odobrenje; query plan,
 partial ugovor i telemetrija nisu dio paketa.
+
+## 21. Implementacijski closeout — W7.61 (`BA-search-07`)
+
+**Status nalaza:** `BA-search-07` (P2) **zatvoren**; paket W7.61, kod `c255f60`, **bez migracije**.
+Detalji: [282](../implementation/282-w761-search-07-query-plan-evidence.md).
+
+**Šta je bilo:** §7 je tvrdio da su `contains` skenovi imenika i KB naslova skupi „bez dokazanog trigram/index
+plana”. Dokaza nije bilo nikakvog — ni plana, ni broja pregledanih redova ni mjerenja; postojala je samo namjera
+izražena u šemi (trigram indeksi za `Ticket`/`KnowledgeArticle`) i pretpostavka da rade.
+
+**Šta je sada:** real-PostgreSQL suite (`search-query-plan.integration.spec.ts`, u `integrationSpecs`) puni 12k
+korisnika i 12k članaka, radi `ANALYZE`, pa mjeri `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` nad SQL-om koji
+Prisma izdaje za modul — uz paritet Prisma-vs-raw redova, da plan ne opisuje drugi upit. Rezultat: **imenik se
+čita cijeli** (nema `gin_trgm_ops` indeksa nad `User`; B-tree na `email` ne može vodeći wildcard), a **KB naslov
+je indeksabilan**: `KnowledgeArticle_title_trgm_idx` postoji i preuzima upit uz `enable_seqscan = off`, sa
+čitanjem proporcionalnim pogodcima. Na 12k redova planer legitimno bira sken (~7–15 ms); cijena je linearna u
+veličini tabele, što je i bio predmet nalaza.
+
+**Odluka:** trigram indeks nad `User.displayName`/`User.email` je **schema promjena** ⇒ migracija ⇒ traži
+izričito odobrenje. Bez odobrenja paket ne mijenja šemu; predlog DDL-a i očekivani efekat su u dokumentu 282.
+Interim: W7.59 budžet ograničava broj skenova, W7.55 OU-predikat sužava skup nad kojim se sken izvodi.
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-08` (partial/fail-closed ugovor). P3: `09` (stable order),
+`10` (`ArrayUnique`), `11` (telemetrija), `12` (confidential/arhiva), `13` (E2E za `/search`).
+
+**Preostali rizik:** direktorijski sken ostaje O(N) dok migracija nije odobrena; mjerenje je na 12k redova
+(zakon rasta dokazan oblikom plana, ne mjerenjem na 100k+); planer nije obavezan koristiti indeks ni kad
+postoji, pa bi buduća migracija morala doći s vlastitim plan-dokazom; `Ticket`/`Asset` trigram planovi nisu dio
+ovog paketa.
