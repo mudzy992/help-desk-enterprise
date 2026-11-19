@@ -6,14 +6,11 @@ import {
   canUseKnowledgePermission,
   isKnowledgeArticleOwner,
   isKnowledgeArticleReviewer,
+  type KnowledgeArticleScope,
 } from './authorize-knowledge-article';
 import { KnowledgeBaseError } from './knowledge-base.error';
 
-export type KnowledgeArticleAccessScope = {
-  readonly organizationalUnitId: string;
-  readonly organizationalUnitPath: string;
-  readonly serviceId: string;
-};
+export type KnowledgeArticleAccessScope = KnowledgeArticleScope;
 
 export function canReadKnowledgeArticle(input: {
   readonly context: AuthorizationContext;
@@ -28,11 +25,12 @@ export function canReadKnowledgeArticle(input: {
     return true;
   }
   if (
-    isKnowledgeArticleOwner(
-      input.article,
-      input.context.subjectId,
-      input.ownerGroupMemberUserIds,
-    ) ||
+    isKnowledgeArticleOwner({
+      article: input.article,
+      context: input.context,
+      ownerGroupMemberUserIds: input.ownerGroupMemberUserIds,
+      scope: input.scope,
+    }) ||
     isKnowledgeArticleReviewer(input.article, input.context.subjectId)
   ) {
     return true;

@@ -16,9 +16,18 @@ export function seedKnowledgeBaseHarnessActors(
     knowledgeBaseTestIds.requester,
     createRoleContext(knowledgeBaseTestIds.requester, authorizationRoleKeys.user),
   );
+  // W7.49 (BA-knowledge-base-01): the owner is an ordinary USER whose
+  // assignment covers the IT OU but grants no knowledge permission — the
+  // delegation, not a permission, is what lets this actor write.
   contexts.set(
     knowledgeBaseTestIds.ownerUser,
-    createRoleContext(knowledgeBaseTestIds.ownerUser, authorizationRoleKeys.user),
+    createScopedContext(
+      knowledgeBaseTestIds.ownerUser,
+      authorizationRoleKeys.user,
+      knowledgeBaseTestIds.ouIt,
+      '/Korisnici/IT',
+      [],
+    ),
   );
   contexts.set(
     knowledgeBaseTestIds.reviewerUser,
@@ -92,6 +101,7 @@ function createScopedContext(
   roleKey: string,
   organizationalUnitId: string,
   organizationalUnitPath: string,
+  permissionKeys?: readonly string[],
 ): AuthorizationContext {
   return createTestAuthorizationContext({
     subjectId,
@@ -100,7 +110,9 @@ function createScopedContext(
         roleKey,
         organizationalUnitId,
         organizationalUnitPath,
-        permissionKeys: [...(defaultRolePermissionKeys[roleKey] ?? [])],
+        permissionKeys: [
+          ...(permissionKeys ?? defaultRolePermissionKeys[roleKey] ?? []),
+        ],
       }),
     ],
   });

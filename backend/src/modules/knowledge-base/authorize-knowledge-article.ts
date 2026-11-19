@@ -44,16 +44,51 @@ export function canHandleKnowledgeScope(input: {
   }).allowed;
 }
 
-export function isKnowledgeArticleOwner(
-  article: KnowledgeArticleRecord,
-  actorUserId: string,
-  ownerGroupMemberUserIds: ReadonlySet<string>,
-): boolean {
-  if (article.ownerUserId === actorUserId) {
+export type KnowledgeArticleScope = {
+  readonly organizationalUnitId: string;
+  readonly organizationalUnitPath: string;
+  readonly serviceId: string;
+};
+
+/**
+ * W7.49 (BA-knowledge-base-01): ownership is a delegation, and a delegation
+ * holds only while the delegate still has an assignment that covers the
+ * article's own OU and service. A global `USER` assignment covers no OU (that
+ * is deliberate in `doesOrganizationalUnitScopeCover`), so adding somebody to
+ * an owner group no longer hands over every article of that group, and moving
+ * or re-scoping a delegate ends the delegation on the next request.
+ */
+export function isKnowledgeDelegationInScope(input: {
+  readonly context: AuthorizationContext;
+  readonly scope: KnowledgeArticleScope;
+}): boolean {
+  return decideAuthorizationAccess({
+    context: input.context,
+    requiredRoles: [],
+    requiredPermissions: [],
+    organizationalUnitId: input.scope.organizationalUnitId,
+    organizationalUnitPath: input.scope.organizationalUnitPath,
+    serviceId: input.scope.serviceId,
+    requireOrganizationalUnitScope: true,
+    requireServiceScope: true,
+  }).allowed;
+}
+
+export function isKnowledgeArticleOwner(input: {
+  readonly article: KnowledgeArticleRecord;
+  readonly context: AuthorizationContext;
+  readonly ownerGroupMemberUserIds: ReadonlySet<string>;
+  readonly scope: KnowledgeArticleScope;
+}): boolean {
+  if (!isKnowledgeDelegationInScope(input)) {
+    return false;
+  }
+  if (input.article.ownerUserId === input.context.subjectId) {
     return true;
   }
   return (
-    article.ownerGroupId !== null && ownerGroupMemberUserIds.has(actorUserId)
+    input.article.ownerGroupId !== null &&
+    input.ownerGroupMemberUserIds.has(input.context.subjectId)
   );
 }
 

@@ -31,11 +31,12 @@ export function assertCanWriteKnowledgeArticle(input: {
     return;
   }
   if (
-    isKnowledgeArticleOwner(
-      input.article,
-      input.context.subjectId,
-      input.ownerGroupMemberUserIds,
-    )
+    isKnowledgeArticleOwner({
+      article: input.article,
+      context: input.context,
+      ownerGroupMemberUserIds: input.ownerGroupMemberUserIds,
+      scope: input.scope,
+    })
   ) {
     return;
   }
