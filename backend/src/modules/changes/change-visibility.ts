@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client';
 import { unitScopeWhere } from '../assets/asset-viewer';
+import type { JsonValue } from '../change-log/change-log.types';
 import type { ChangeScope } from './change-access.service';
 
 /**
@@ -73,15 +74,18 @@ const participantEventDetailKeys = [
 ] as const;
 
 export function projectChangeEventDetail(
-  detail: unknown,
+  detail: Prisma.JsonValue,
   level: ChangeDetailLevel,
-): Record<string, unknown> {
-  if (typeof detail !== 'object' || detail === null || Array.isArray(detail)) return {};
-  const source = detail as Record<string, unknown>;
+): JsonValue {
+  if (typeof detail !== 'object' || detail === null || Array.isArray(detail)) {
+    return {};
+  }
+  const source = detail as { readonly [key: string]: JsonValue };
   if (level === 'full') return source;
-  const projected: Record<string, unknown> = {};
+  const projected: { [key: string]: JsonValue } = {};
   for (const key of participantEventDetailKeys) {
-    if (source[key] !== undefined && source[key] !== null) projected[key] = source[key];
+    const value = source[key];
+    if (value !== undefined && value !== null) projected[key] = value;
   }
   return projected;
 }
