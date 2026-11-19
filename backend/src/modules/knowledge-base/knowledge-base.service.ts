@@ -9,6 +9,7 @@ import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration
 import type {
   CreateKnowledgeArticleInput,
   KnowledgeArticleMutationContext,
+  KnowledgeArticlePageResponse,
   KnowledgeArticleResponse,
   KnowledgeLifecycleInput,
   ListKnowledgeArticlesQuery,

@@ -153,15 +153,20 @@ export class TeamsQueriesService implements TeamsQueryHandler, OnModuleInit {
 
   private async search(query: string, card: QueryCardContext, userId: string): Promise<Card> {
     try {
-      const articles = await this.knowledge.list({ q: query.slice(0, 120), status: 'PUBLISHED' }, { actorUserId: userId });
-      const rows = articles.slice(0, teamsListLimits.personal).map((article) => ({
+      // W7.52: the knowledge list is a bounded page; the card shows that page.
+      const page = await this.knowledge.list(
+        { q: query.slice(0, 120), status: 'PUBLISHED', limit: teamsListLimits.personal },
+        { actorUserId: userId },
+      );
+      const rows = page.items.slice(0, teamsListLimits.personal).map((article) => ({
         id: article.id,
         slug: article.slug,
         title: article.title,
         preview: preview(article.body),
         serviceName: article.serviceName ?? null,
       }));
-      return articlesCard(card, query, rows, articles.length);
+      // The page boundary hides the exact match count, so the card says "more".
+      return articlesCard(card, query, rows, page.hasMore ? null : page.items.length);
     } catch (error) {
       this.logger.warn(`teams_kb_search_failed user=${userId} reason=${error instanceof Error ? error.message : String(error)}`);
       return adaptiveCard([paragraph(teamsText(card.locale, 'searchUnavailable'))]);

@@ -115,7 +115,18 @@ function querySetup(options: { role?: Staff; ticket?: 'visible' | 'hidden' | 'mi
     listInbox: jest.fn(async () => (options.inboxDisabled ? Promise.reject(new TicketsError('GROUP_INBOX_DISABLED' as never)) : { items: [ticketResponse('q1', { isOverdue: true })], total: 4 })),
   };
   const knowledge = {
-    list: jest.fn(async () => Array.from({ length: 7 }, (_, index) => ({ id: `k${index}`, slug: `k-${index}`, title: `Članak ${index}`, body: '## Koraci\n1. **Restart**', serviceName: 'Mreža' }))),
+    // W7.52: a bounded page — 5 rows plus the "more results" flag.
+    list: jest.fn(async () => ({
+      items: Array.from({ length: 5 }, (_, index) => ({
+        id: `k${index}`,
+        slug: `k-${index}`,
+        title: `Članak ${index}`,
+        body: '## Koraci\n1. **Restart**',
+        serviceName: 'Mreža',
+      })),
+      hasMore: true,
+      nextCursor: 'cursor-1',
+    })),
   };
   const statusPage = {
     page: jest.fn(async () => ({
@@ -165,13 +176,16 @@ describe('TeamsQueriesService', () => {
     expect(await querySetup({ ticket: 'missing' }).ask('HD-1')).toBeNull();
   });
 
-  it('searches published articles, 5 shown with „Prikazano 5 od 7“', async () => {
+  it('searches published articles, 5 shown with a „more results“ note', async () => {
     const { ask, knowledge } = querySetup({ role: 'USER' });
     const out = json(await ask('traži vpn'));
-    expect(knowledge.list).toHaveBeenCalledWith({ q: 'vpn', status: 'PUBLISHED' }, { actorUserId: 'me' });
+    expect(knowledge.list).toHaveBeenCalledWith(
+      { q: 'vpn', status: 'PUBLISHED', limit: 5 },
+      { actorUserId: 'me' },
+    );
     expect(out).toContain('Članak 4');
     expect(out).not.toContain('Članak 5');
-    expect(out).toContain('Prikazano 5 od 7.');
+    expect(out).toContain('Prikazano 5; ima još rezultata.');
     expect(out).toContain('knowledge-base?q=vpn');
     expect(out).not.toContain('##');
   });

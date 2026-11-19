@@ -43,8 +43,19 @@ function url(context: QueryCardContext, path: string): string | null {
 }
 
 /** „Prikazano X od Y“ + „Otvori sve u aplikaciji“ (only with a public URL). */
-function footer(context: QueryCardContext, shown: number, total: number, path: string): { body: CardElement[]; actions: CardElement[] } {
-  const body = total > shown ? [paragraph(tx(context, 'shownOf', { shown, total }), { isSubtle: true, size: 'Small' })] : [];
+function footer(
+  context: QueryCardContext,
+  shown: number,
+  total: number | null,
+  path: string,
+): { body: CardElement[]; actions: CardElement[] } {
+  // `null` = the source is a bounded page, so the exact total is unknown.
+  const body =
+    total === null
+      ? [paragraph(tx(context, 'shownOfMore', { shown }), { isSubtle: true, size: 'Small' })]
+      : total > shown
+        ? [paragraph(tx(context, 'shownOf', { shown, total }), { isSubtle: true, size: 'Small' })]
+        : [];
   const target = url(context, path);
   return { body, actions: target ? [openUrl(tx(context, 'openAll'), target)] : [] };
 }
@@ -136,7 +147,7 @@ function articleItems(context: QueryCardContext, article: ArticleRow): CardEleme
   return { type: 'Container', separator: true, items };
 }
 
-export function articlesCard(context: QueryCardContext, query: string, rows: readonly ArticleRow[], total: number): Record<string, unknown> {
+export function articlesCard(context: QueryCardContext, query: string, rows: readonly ArticleRow[], total: number | null): Record<string, unknown> {
   const body: CardElement[] = [heading(tx(context, 'searchTitle', { query: escapeCardText(query) }))];
   if (rows.length === 0) body.push(paragraph(tx(context, 'searchEmpty')));
   body.push(...rows.map((row) => articleItems(context, row)));
