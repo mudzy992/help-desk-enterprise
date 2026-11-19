@@ -144,7 +144,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-01 | P1       | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea    | zatvoreno |
 | BA-knowledge-base-02 | P1       | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno |
 | BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | zatvoreno |
-| BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | otvoreno |
+| BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | zatvoreno |
 | BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | otvoreno |
 | BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | otvoreno |
 | BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | otvoreno |
@@ -275,3 +275,17 @@ pozivaočevom transakcijom prevodi `P2002` u `SLUG_TAKEN`. Nema migracije — `u
 preostali milisekundni prozor i eventualna `version` kolona navedeni su u closeoutu kao otvoren rizik koji
 traži odobrenje. Dokaz:
 [272-w751-knowledge-base-03-cas-and-review-binding.md](../implementation/272-w751-knowledge-base-03-cas-and-review-binding.md).
+
+## 22. Implementacijski closeout — W7.52 (`BA-knowledge-base-04`)
+
+Na `1703639`, uz zeleni CI `44509139382`, nijedan read baze znanja više ne učitava neograničen korpus.
+`GET /articles` je keyset stranica `(updatedAt desc, id asc)` sa `limit` 1..100, neprozirnim cursorom i
+`{ items, hasMore, nextCursor }` ugovorom; `total` namjerno nema jer bi egzaktan total nad autorizacijski
+filtriranim skupom tražio uklonjeni neograničeni skan. Zahtjev čita najviše 200 redova (4 batcha × 50) i nad tim
+prozorom radi batch vidljivost, a `staleOnly` je predikat **unutar** skana (ranije je filter poslije rezanja
+stranice mogao vratiti praznu stranicu uz `hasMore: true`). Full-text put je offset-straničen i tvrdo ograničen
+na 1000. Portal kategorija je stranica (default 20), a home/insights rade nad capom od 200 uz eksplicitni
+`articleCountsComplete` flag i UI napomenu da su brojevi donja granica; Teams kartica pretrage prikazuje
+„Prikazano N; ima još rezultata.“ umjesto nepoznatog totala. Vidljivost je namjerno ostala jedna odluka
+(`canReadKnowledgeArticle`) umjesto duplirana u SQL-u — granica je rad po zahtjevu, ne upit. Nema migracije.
+Dokaz: [273-w752-knowledge-base-04-bounded-paged-reads.md](../implementation/273-w752-knowledge-base-04-bounded-paged-reads.md).

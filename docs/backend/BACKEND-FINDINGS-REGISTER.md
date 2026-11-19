@@ -385,7 +385,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 25 | `knowledge-base` | `BA-knowledge-base-01` | P1 | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea | zatvoreno (W7.49) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-02` | P1 | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno (W7.50) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-03` | P1 | Article edit/lifecycle nema version/CAS ni review vezan za content revision | zatvoreno (W7.51) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
-| 25 | `knowledge-base` | `BA-knowledge-base-04` | P1 | Article list i portal učitavaju neograničen matching/published korpus | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
+| 25 | `knowledge-base` | `BA-knowledge-base-04` | P1 | Article list i portal učitavaju neograničen matching/published korpus | zatvoreno (W7.52) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-05` | P2 | INTERNAL default je company-wide read bez OU/service granice | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-06` | P2 | Intercept resolution prihvata foreign scope i hidden/unpublished article ID | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-07` | P2 | Feedback write + aggregate refresh nije atomski i counter može zastarjeti | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
