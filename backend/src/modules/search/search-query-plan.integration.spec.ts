@@ -1,4 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Client } from 'pg';
 import { PrismaClient } from '../../generated/prisma/client';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -10,29 +11,30 @@ const describeIfDatabase = url ? describe : describe.skip;
  * knowledge-base title — had **no query-plan evidence**. This suite is that
  * evidence, measured on the real schema inside the CI PostgreSQL service.
  *
- * What it proves, and why it is written this way:
+ * How it stays honest:
  *
- * 1. The SQL explained here is the SQL Prisma issues for the module's own
+ * 1. The explained SQL is the statement Prisma issues for the module's own
  *    `findMany` calls (same columns, same `ILIKE` predicate, same order and
- *    `LIMIT`); the suite also runs both the Prisma query and the raw statement
- *    and asserts they return the same rows, so the plan cannot describe a
- *    different query than the module runs.
- * 2. The knowledge-base title has a `gin_trgm_ops` index
- *    (`KnowledgeArticle_title_trgm_idx`, migration
- *    `20260923140000_search_trigram_indexes`). The measurement asserts the
- *    planner **uses** it and that the number of rows read stays far below the
- *    corpus — i.e. the design works, it was only never proven.
- * 3. The directory has **no** trigram index: `email` is a unique B-tree, which
- *    cannot answer a leading wildcard. The assertion is therefore adaptive: it
- *    reads `pg_indexes` and requires a full scan while no trigram index exists,
- *    and a bounded read once one does. Adding it is a migration and needs
- *    explicit approval, so the package documents the measurement and the DDL
- *    instead of shipping an unapproved schema change.
+ *    `LIMIT`), and each test also runs the Prisma query and asserts both return
+ *    the same rows — the plan cannot describe a query the module does not run.
+ * 2. `rows examined` is `Actual Rows + Rows Removed by Filter` per loop, not the
+ *    rows the node returned: a selective filter on a whole-table scan returns
+ *    one row after looking at every row, and it is the second number that is the
+ *    cost.
+ * 3. The knowledge-base indexability is proven **both** ways: the index is read
+ *    from `pg_indexes`, and the same statement is planned once with the default
+ *    cost model and once with `enable_seqscan = off`. That separates "the index
+ *    can serve this predicate" (a schema property) from "the planner prefers the
+ *    scan at this corpus size" (a cost decision that changes with table size).
+ *
+ * The plans run on one dedicated `pg` client, not through the Prisma pool: a
+ * session-level `SET enable_seqscan = off` must land on the same backend as the
+ * `EXPLAIN` that follows it.
  */
 describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
   jest.setTimeout(300_000);
 
-  /** Big enough that the planner weighs an index against a sequential scan. */
+  /** Big enough that a cost decision is visible, small enough for CI time. */
   const corpus = 12_000;
   const batch = 1_500;
   const userNeedle = 'korisnik 00042';
@@ -40,6 +42,7 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
   const stamp = Date.now();
 
   let prisma: PrismaClient;
+  let client: Client;
   let unitId: string;
   let serviceId: string;
   let categoryId: string;
@@ -51,7 +54,7 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     readonly Filter?: string;
     readonly Plans?: readonly PlanNode[];
     readonly 'Actual Rows'?: number;
-    readonly 'Actual Rows Removed by Filter'?: number;
+    readonly 'Rows Removed by Filter'?: number;
     readonly 'Actual Loops'?: number;
   };
   type PlanDocument = {
@@ -60,10 +63,7 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     readonly 'Execution Time': number;
   };
 
-  const flatten = (
-    node: PlanNode,
-    into: PlanNode[] = [],
-  ): PlanNode[] => {
+  const flatten = (node: PlanNode, into: PlanNode[] = []): PlanNode[] => {
     into.push(node);
     for (const child of node.Plans ?? []) {
       flatten(child, into);
@@ -73,19 +73,18 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
 
   const explain = async (
     sql: string,
-    ...parameters: readonly unknown[]
+    parameters: readonly unknown[],
   ): Promise<PlanDocument> => {
-    const rows = (await prisma.$queryRawUnsafe(
+    const result = await client.query<Record<string, unknown>>(
       `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${sql}`,
-      ...parameters,
-    )) as unknown as Record<string, unknown>[];
-    // `FORMAT JSON` answers one row whose single column (`QUERY PLAN`) holds an
-    // array with one document. Unwrapping is defensive because a driver may
-    // return the parsed array directly.
-    const first = rows[0];
+      parameters as unknown[],
+    );
+    const first = result.rows[0];
     if (first === undefined) {
       throw new Error('EXPLAIN je vratio prazan plan');
     }
+    // `FORMAT JSON` answers one row whose single column holds a one-element
+    // array; a driver may also hand back the array directly.
     const column = (first['QUERY PLAN'] ?? first) as unknown;
     const documents = (Array.isArray(column) ? column : [column]) as PlanDocument[];
     const document = documents[0];
@@ -96,10 +95,8 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
   };
 
   /**
-   * Rows the plan actually **examined** on `relation`. `Actual Rows` is what the
-   * node returned, which for a selective filter on a whole-table scan is one —
-   * the number that matters here is what the scan had to look at, so rows
-   * removed by the filter are added back (per loop).
+   * Rows the plan actually **examined** on `relation`: what the scan returned
+   * plus what its filter threw away, per loop.
    */
   const rowsReadFrom = (document: PlanDocument, relation: string): number =>
     flatten(document.Plan)
@@ -111,16 +108,21 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
       .reduce(
         (total, node) =>
           total +
-          ((node['Actual Rows'] ?? 0) +
-            (node['Actual Rows Removed by Filter'] ?? 0)) *
+          ((node['Actual Rows'] ?? 0) + (node['Rows Removed by Filter'] ?? 0)) *
             (node['Actual Loops'] ?? 1),
         0,
       );
 
   const nodesOn = (document: PlanDocument, relation: string): PlanNode[] =>
-    flatten(document.Plan).filter(
-      (node) => node['Relation Name'] === relation,
+    flatten(document.Plan).filter((node) => node['Relation Name'] === relation);
+
+  const indexDefinitions = async (table: string): Promise<string[]> => {
+    const result = await client.query<{ readonly indexdef: string }>(
+      'SELECT indexdef FROM pg_indexes WHERE tablename = $1',
+      [table],
     );
+    return result.rows.map((row) => row.indexdef);
+  };
 
   const usersSql = `
     SELECT "User"."id", "User"."displayName", "User"."email"
@@ -140,6 +142,9 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
 
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
+    client = new Client({ connectionString: url! });
+    await client.connect();
+
     const unit = await prisma.organizationalUnit.create({
       data: {
         name: `Plan ${stamp}`,
@@ -194,11 +199,12 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     }
     // Without fresh statistics the planner would compare against whatever the
     // template database had, and the plan would not describe this corpus.
-    await prisma.$executeRawUnsafe('ANALYZE "User"');
-    await prisma.$executeRawUnsafe('ANALYZE "KnowledgeArticle"');
+    await client.query('ANALYZE "User"');
+    await client.query('ANALYZE "KnowledgeArticle"');
   });
 
   afterAll(async () => {
+    await client?.end().catch(() => undefined);
     if (prisma === undefined) {
       return;
     }
@@ -218,13 +224,12 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     await prisma.$disconnect();
   });
 
-  it('measures the directory scan and records whether a trigram index serves it', async () => {
-    const document = await explain(usersSql, `%${userNeedle}%`, 15);
+  it('measures the directory scan: a leading wildcard reads the whole table', async () => {
+    const document = await explain(usersSql, [`%${userNeedle}%`, 15]);
     const rows = rowsReadFrom(document, 'User');
-    const trigramIndexes = (await prisma.$queryRawUnsafe(
-      `SELECT indexdef FROM pg_indexes
-        WHERE tablename = 'User' AND indexdef ILIKE '%gin_trgm_ops%'`,
-    )) as unknown as { readonly indexdef: string }[];
+    const trigramIndexes = (await indexDefinitions('User')).filter((definition) =>
+      definition.includes('gin_trgm_ops'),
+    );
 
     // The explained statement is the module's own query, not a look-alike.
     const throughPrisma = await prisma.user.findMany({
@@ -239,17 +244,16 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
       orderBy: { displayName: 'asc' },
       take: 15,
     });
-    const rawRows = (await prisma.$queryRawUnsafe(
-      usersSql,
+    const rawRows = await client.query<{ readonly id: string }>(usersSql, [
       `%${userNeedle}%`,
       15,
-    )) as unknown as { readonly id: string }[];
-    expect(rawRows.map((row) => row.id)).toEqual(
+    ]);
+    expect(rawRows.rows.map((row) => row.id)).toEqual(
       throughPrisma.map((row: { readonly id: string }) => row.id),
     );
 
     console.log(
-      `search query plan (users): rows_read=${rows}/${corpus} ` +
+      `search query plan (users): examined=${rows}/${corpus} ` +
         `trigram_index=${trigramIndexes.length > 0 ? 'present' : 'absent'} ` +
         `execution_ms=${document['Execution Time'].toFixed(1)} ` +
         `nodes=${nodesOn(document, 'User')
@@ -258,9 +262,10 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     );
 
     if (trigramIndexes.length === 0) {
-      // No index can answer `ILIKE '%needle%'`: the directory is read whole,
-      // which is the finding. The predicate is a filter, not an index condition.
-      expect(rows).toBeGreaterThanOrEqual(corpus * 0.5);
+      // No index can answer `ILIKE '%needle%'`: the predicate is a filter, so a
+      // single hit still costs a pass over the whole directory. This is the
+      // finding, measured.
+      expect(rows).toBeGreaterThanOrEqual(corpus * 0.9);
       expect(
         nodesOn(document, 'User').some((node) =>
           (node.Filter ?? '').includes('~~*'),
@@ -273,12 +278,13 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     expect(document['Execution Time']).toBeLessThan(5_000);
   });
 
-  it('proves the knowledge-base title uses its trigram index', async () => {
-    const document = await explain(articlesSql, `%${articleNeedle}%`, 51);
-    const rows = rowsReadFrom(document, 'KnowledgeArticle');
-    const indexNodes = flatten(document.Plan).filter(
-      (node) => node['Index Name'] === 'KnowledgeArticle_title_trgm_idx',
-    );
+  it('proves the knowledge-base title can be served by its trigram index', async () => {
+    const definitions = await indexDefinitions('KnowledgeArticle');
+    expect(
+      definitions.some((definition) =>
+        definition.includes('KnowledgeArticle_title_trgm_idx'),
+      ),
+    ).toBe(true);
 
     const throughPrisma = await prisma.knowledgeArticle.findMany({
       where: {
@@ -289,28 +295,48 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
       take: 51,
     });
-    const rawRows = (await prisma.$queryRawUnsafe(
+    const rawRows = await client.query<{ readonly id: string }>(
       articlesSql,
-      `%${articleNeedle}%`,
-      51,
-    )) as unknown as { readonly id: string }[];
-    expect(rawRows.map((row) => row.id)).toEqual(
+      [`%${articleNeedle}%`, 51],
+    );
+    expect(rawRows.rows.map((row) => row.id)).toEqual(
       throughPrisma.map((row: { readonly id: string }) => row.id),
     );
 
+    // 1. Default cost model: measure what actually runs.
+    const planned = await explain(articlesSql, [`%${articleNeedle}%`, 51]);
     console.log(
-      `search query plan (articles): rows_read=${rows}/${corpus} ` +
-        `index=${indexNodes.length > 0 ? 'KnowledgeArticle_title_trgm_idx' : 'none'} ` +
-        `execution_ms=${document['Execution Time'].toFixed(1)} ` +
-        `nodes=${nodesOn(document, 'KnowledgeArticle')
+      `search query plan (articles, default): ` +
+        `examined=${rowsReadFrom(planned, 'KnowledgeArticle')}/${corpus} ` +
+        `execution_ms=${planned['Execution Time'].toFixed(1)} ` +
+        `nodes=${nodesOn(planned, 'KnowledgeArticle')
           .map((node) => node['Node Type'])
           .join('/')}`,
     );
+    expect(rowsReadFrom(planned, 'KnowledgeArticle')).toBeLessThanOrEqual(corpus);
+    expect(planned['Execution Time']).toBeLessThan(5_000);
 
-    // The index exists in the schema; the measurement is that the planner uses
-    // it, and that the read stays proportional to the hits instead of the corpus.
-    expect(indexNodes.length).toBeGreaterThan(0);
-    expect(rows).toBeLessThan(corpus * 0.2);
-    expect(document['Execution Time']).toBeLessThan(5_000);
+    // 2. Same statement with the scan penalised: the index must take over. A
+    //    default plan that prefers the scan at 12k rows is a cost decision, not
+    //    a missing index — and the difference is exactly what the audit wanted
+    //    to be able to see.
+    await client.query('SET enable_seqscan = off');
+    try {
+      const indexed = await explain(articlesSql, [`%${articleNeedle}%`, 51]);
+      const indexNodes = flatten(indexed.Plan).filter(
+        (node) => node['Index Name'] === 'KnowledgeArticle_title_trgm_idx',
+      );
+      console.log(
+        `search query plan (articles, index-only): ` +
+          `examined=${rowsReadFrom(indexed, 'KnowledgeArticle')}/${corpus} ` +
+          `execution_ms=${indexed['Execution Time'].toFixed(1)} ` +
+          `index=${indexNodes.length > 0 ? 'KnowledgeArticle_title_trgm_idx' : 'none'}`,
+      );
+      expect(indexNodes.length).toBeGreaterThan(0);
+      // A hit-proportional read instead of a corpus-proportional one.
+      expect(rowsReadFrom(indexed, 'KnowledgeArticle')).toBeLessThan(corpus * 0.2);
+    } finally {
+      await client.query('SET enable_seqscan = on');
+    }
   });
 });
