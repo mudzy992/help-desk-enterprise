@@ -29,11 +29,16 @@ export function seedKnowledgeBaseHarnessActors(
       [],
     ),
   );
+  // W7.50: same for the reviewer — a scoped USER with no knowledge permission,
+  // so the review delegation is what the tests prove.
   contexts.set(
     knowledgeBaseTestIds.reviewerUser,
-    createRoleContext(
+    createScopedContext(
       knowledgeBaseTestIds.reviewerUser,
       authorizationRoleKeys.user,
+      knowledgeBaseTestIds.ouIt,
+      '/Korisnici/IT',
+      [],
     ),
   );
   contexts.set(

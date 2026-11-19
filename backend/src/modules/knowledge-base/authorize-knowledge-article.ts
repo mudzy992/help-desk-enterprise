@@ -92,9 +92,19 @@ export function isKnowledgeArticleOwner(input: {
   );
 }
 
-export function isKnowledgeArticleReviewer(
-  article: KnowledgeArticleRecord,
-  actorUserId: string,
-): boolean {
-  return article.reviewerUserId === actorUserId;
+/**
+ * W7.50 (BA-knowledge-base-02): the reviewer assignment is a delegation with
+ * the same lifetime rule as ownership — it holds only while the reviewer still
+ * has an assignment covering the article's OU and service, so a re-scope, an
+ * OU move or a `reviewerUserId` reset ends it on the next request.
+ */
+export function isKnowledgeArticleReviewer(input: {
+  readonly article: KnowledgeArticleRecord;
+  readonly context: AuthorizationContext;
+  readonly scope: KnowledgeArticleScope;
+}): boolean {
+  if (input.article.reviewerUserId !== input.context.subjectId) {
+    return false;
+  }
+  return isKnowledgeDelegationInScope(input);
 }

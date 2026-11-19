@@ -31,7 +31,11 @@ export function canReadKnowledgeArticle(input: {
       ownerGroupMemberUserIds: input.ownerGroupMemberUserIds,
       scope: input.scope,
     }) ||
-    isKnowledgeArticleReviewer(input.article, input.context.subjectId)
+    isKnowledgeArticleReviewer({
+      article: input.article,
+      context: input.context,
+      scope: input.scope,
+    })
   ) {
     return true;
   }

@@ -51,7 +51,13 @@ export function assertCanReviewKnowledgeArticle(input: {
   if (input.context.isSuperAdmin) {
     return;
   }
-  if (isKnowledgeArticleReviewer(input.article, input.context.subjectId)) {
+  if (
+    isKnowledgeArticleReviewer({
+      article: input.article,
+      context: input.context,
+      scope: input.scope,
+    })
+  ) {
     return;
   }
   if (
