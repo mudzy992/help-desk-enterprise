@@ -141,7 +141,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 
 | ID                   | Severity | Nalaz                                                                                     | Status   |
 | -------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
-| BA-knowledge-base-01 | P1       | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea    | otvoreno |
+| BA-knowledge-base-01 | P1       | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea    | zatvoreno |
 | BA-knowledge-base-02 | P1       | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | otvoreno |
 | BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | otvoreno |
 | BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | otvoreno |
@@ -232,3 +232,17 @@ Regenerisan Prisma client; svih 12 suiteova; Postgres concurrency, Redis restart
 10. Svih 12 direktnih suiteova i failure/concurrency E2E prolaze.
 
 Modul ima zrelu funkcionalnu osnovu i posebno dobar reply-scrub/visibility temelj, ali delegation bypass, nepostojanje revision concurrencyja i neograničeni read putevi sprečavaju enterprise ocjenu. Iskren ponderisani baseline je **4,51/10**.
+
+## 19. Implementacijski closeout — W7.49 (`BA-knowledge-base-01`)
+
+Na `c017aa1`, uz zeleni CI `44476675905`, vlasništvo je ponovo delegacija, a ne zaobilaznica: novi
+`isKnowledgeDelegationInScope()` provjerava da delegate **još ima** assignment koji pokriva OU putanju i servis
+samog članka (`decideAuthorizationAccess`, bez role/permission zahtjeva), a `isKnowledgeArticleOwner()` vraća
+`false` van tog scopea. Write, read, lista, portal i search idu kroz istu funkciju, pa premještaj, promjena
+service scopea ili uklanjanje iz owner grupe prekidaju delegaciju na **sljedećem** zahtjevu. Globalni `USER`
+assignment ne pokriva nijednu OU (namjerno u `doesOrganizationalUnitScopeCover`), pa običan korisnik dodat u
+owner grupu više ne dobija korpus grupe. Revoke je auditabilan tamo gdje se dešava: `groups` bilježi
+`groupMemberAdded`/`groupMemberRemoved`, a promjena vlasnika ostaje u change-log diffu članka. Nema migracije —
+nema nove tabele delegacije. Reviewer delegacija ostaje `BA-knowledge-base-02` (sljedeći P1); grant snapshot/expiry
+na nivou članka traži novu tabelu i ostaje predmet odluke. Dokaz:
+[270-w749-knowledge-base-01-owner-delegation-scope.md](../implementation/270-w749-knowledge-base-01-owner-delegation-scope.md).
