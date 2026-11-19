@@ -261,7 +261,11 @@ function createRunner(options: {
       findMany: async () => [{ id: 'ou-it', ouPath: '/Korisnici/IT' }],
     },
     appSetting: { findUnique: async () => null },
-    ticket: { findMany: jest.fn(async () => []) },
+    ticket: {
+      findMany: jest.fn(
+        async (_args: { readonly where?: Record<string, unknown> } = {}) => [],
+      ),
+    },
     reportSchedule: {
       findMany: async () => options.due,
       updateMany: async (args: unknown) => {
@@ -466,8 +470,7 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
     );
     expect(files.omitted).toEqual([]);
     expect(files.attachments).toHaveLength(1);
-    const where = (prisma.ticket.findMany.mock.calls[0][0] as { where: Record<string, unknown> })
-      .where;
+    const where = prisma.ticket.findMany.mock.calls[0]?.[0]?.where ?? {};
     expect(where).toMatchObject({
       originUnitId: { in: ['ou-it'] },
       serviceId: 'svc-vpn',
