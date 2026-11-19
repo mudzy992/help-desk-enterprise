@@ -129,6 +129,18 @@ export class ChangeAccessService {
     };
   }
 
+  /**
+   * W7.64: downtime reconciliation compares the derived window text, which needs
+   * only the number prefix — not the eight settings reads of `configuration()`.
+   */
+  async changeNumberPrefix(): Promise<string> {
+    const prefix = await this.readSetting<unknown>(
+      settingKeys.privateChangesNumberPrefix,
+      changeDefaults.numberPrefix,
+    );
+    return typeof prefix === 'string' ? prefix : changeDefaults.numberPrefix;
+  }
+
   async homeUnitPath(viewer: ChangeViewer): Promise<string | null> {
     if (viewer.homeOrganizationalUnitId === null) return null;
     const unit = await this.prisma.organizationalUnit.findUnique({

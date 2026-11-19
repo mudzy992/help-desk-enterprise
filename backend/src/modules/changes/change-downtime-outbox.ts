@@ -18,6 +18,32 @@ export function changeDowntimeVersionDedupeKey(
   return `change:${changeId}:v${version}`;
 }
 
+/**
+ * W7.64 (`BA-changes-08`): an edit only queues a downtime sync when it can move
+ * the desired state. The window message is built from the change number and
+ * title, so renaming a scheduled change is drift as well — otherwise the
+ * service calendar keeps advertising the old title.
+ */
+export const changeDowntimeAffectingFields = [
+  "title",
+  "causesDowntime",
+  "plannedStart",
+  "plannedEnd",
+] as const;
+
+export function changeUpdateAffectsDowntime(input: {
+  readonly changedFields: readonly string[];
+  readonly addedServices: number;
+  readonly removedServices: number;
+}): boolean {
+  return (
+    input.addedServices + input.removedServices > 0 ||
+    changeDowntimeAffectingFields.some((field) =>
+      input.changedFields.includes(field),
+    )
+  );
+}
+
 export function changeDowntimeReconciliationDedupeKey(
   changeId: string,
   bucket: number,

@@ -15,6 +15,7 @@ import {
   type ChangeConflicts,
   type ConflictWindow,
   type DowntimePlan,
+  type OwnDowntimeWindow,
 } from './change-conflicts';
 import { assertChangeWindow, formatChangeNumber } from './change-rules';
 import { changeVisibilityWhere } from './change-visibility';
@@ -356,12 +357,14 @@ export class ChangeScheduleService {
     const change = await this.prisma.changeRequest.findUnique({
       where: { id: changeId },
       select: {
+        sequence: true,
+        title: true,
         status: true,
         causesDowntime: true,
         plannedStart: true,
         plannedEnd: true,
         services: { select: { serviceId: true } },
-        downtimeWindows: { select: { id: true, serviceId: true, startsAt: true, endsAt: true } },
+        downtimeWindows: { select: { id: true, serviceId: true, startsAt: true, endsAt: true, message: true } },
       },
     });
     if (change === null) return false;
@@ -386,7 +389,30 @@ export class ChangeScheduleService {
       own,
       foreign,
     });
-    return plan.create.length + plan.update.length + plan.delete.length > 0;
+    if (plan.create.length + plan.update.length + plan.delete.length > 0) {
+      return true;
+    }
+    // W7.64: the window text is derived from the change number and title, so a
+    // rename that never reached the calendar is drift the reconciler can heal.
+    const message = this.downtimeMessage(
+      await this.access.changeNumberPrefix(),
+      change,
+    );
+    const deleted = new Set(plan.delete);
+    return own.some(
+      (window) => !deleted.has(window.id) && (window.message ?? '') !== message,
+    );
+  }
+
+  /** One place for the window text, so sync and drift cannot disagree. */
+  private downtimeMessage(
+    numberPrefix: string,
+    change: { readonly sequence: number; readonly title: string },
+  ): string {
+    return `${formatChangeNumber(numberPrefix, change.sequence)}: ${change.title}`.slice(
+      0,
+      serviceAvailabilityConstants.maximumMessageLength,
+    );
   }
 
   /**
@@ -412,7 +438,7 @@ export class ChangeScheduleService {
           plannedStart: true,
           plannedEnd: true,
           services: { select: { serviceId: true } },
-          downtimeWindows: { select: { id: true, serviceId: true, startsAt: true, endsAt: true } },
+          downtimeWindows: { select: { id: true, serviceId: true, startsAt: true, endsAt: true, message: true } },
         },
       });
       if (change === null) return;
@@ -499,7 +525,7 @@ export class ChangeScheduleService {
                   },
                   select: { serviceId: true, startsAt: true, endsAt: true },
                 });
-          const message = `${formatChangeNumber(configuration!.numberPrefix, change.sequence)}: ${change.title}`.slice(0, serviceAvailabilityConstants.maximumMessageLength);
+          const message = this.downtimeMessage(configuration!.numberPrefix, change);
           await this.apply(
             transaction,
             changeId,
@@ -509,6 +535,7 @@ export class ChangeScheduleService {
             'scheduled',
             window,
             commandKey,
+            own,
           );
         },
       );
@@ -533,11 +560,29 @@ export class ChangeScheduleService {
     reason = 'scheduled',
     window: ConflictWindow | null = null,
     commandKey?: string,
+    own: readonly OwnDowntimeWindow[] = [],
   ): Promise<void> {
-    const hasOperations = plan.create.length + plan.update.length + plan.delete.length > 0;
+    const deleted = new Set(plan.delete);
+    const retimed = new Set(plan.update.map((item) => item.id));
+    // W7.64: the message is derived state. A renamed change, or a command that
+    // was delivered before the rename committed, must still converge the text
+    // instead of leaving the calendar advertising the old title.
+    const staleMessages =
+      message.length === 0
+        ? []
+        : own.filter(
+            (item) =>
+              !deleted.has(item.id) &&
+              !retimed.has(item.id) &&
+              (item.message ?? '') !== message,
+          );
+    const windowOperations = plan.create.length + plan.update.length + plan.delete.length > 0;
+    const hasOperations = windowOperations || staleMessages.length > 0;
     if (!hasOperations && plan.skipped.length === 0) return;
+    // Redelivery of the same command must stay a no-op, including the message-
+    // only and skip-only cases where the plan itself is empty.
     if (
-      !hasOperations &&
+      !windowOperations &&
       commandKey !== undefined &&
       (await this.hasDowntimeCommandEvent(transaction, changeId, commandKey))
     ) {
@@ -573,6 +618,23 @@ export class ChangeScheduleService {
         actorUserId,
       });
     }
+    for (const item of staleMessages) {
+      await transaction.serviceDowntimeWindow.update({
+        where: { id: item.id },
+        data: { message },
+      });
+      await recordServiceCatalogChange(client, {
+        entityType,
+        entityId: item.id,
+        reason: serviceAvailabilityChangeLogReasons.downtimeWindowUpdate,
+        diff: {
+          action: serviceAvailabilityChangeLogReasons.downtimeWindowUpdate,
+          changeRequestId: changeId,
+          after: { message },
+        },
+        actorUserId,
+      });
+    }
     if (plan.delete.length > 0) {
       await transaction.serviceDowntimeWindow.deleteMany({ where: { id: { in: [...plan.delete] }, changeRequestId: changeId } });
       for (const id of plan.delete) {
@@ -595,6 +657,7 @@ export class ChangeScheduleService {
           created: window === null ? 0 : plan.create.length,
           updated: plan.update.length,
           deleted: plan.delete.length,
+          messageUpdated: staleMessages.length,
           skippedServiceIds: [...plan.skipped],
           ...(commandKey === undefined ? {} : { outboxDedupeKey: commandKey }),
         } as never,

@@ -124,4 +124,81 @@ describe('ChangesService durable downtime command', () => {
     );
     expect(recordAuditEntry).toHaveBeenCalled();
   });
+  it('queues a downtime sync when a scheduled change is only renamed (W7.64)', async () => {
+    // The window message is "CHG000012: <title>", so a rename must reach the
+    // calendar through the durable command, not wait for the next unrelated edit.
+    let inTransaction = false;
+    const transaction = {
+      changeRequest: {
+        updateMany: jest.fn(async () => {
+          expect(inTransaction).toBe(true);
+          return { count: 1 };
+        }),
+      },
+      changeEvent: { create: jest.fn(async () => undefined) },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (work: (tx: unknown) => unknown) => {
+        inTransaction = true;
+        try {
+          return await work(transaction);
+        } finally {
+          inTransaction = false;
+        }
+      }),
+    };
+    const access = {
+      require: jest.fn(async () => ({ unitIds: ['unit-1'] })),
+      configuration: jest.fn(async () => ({
+        numberPrefix: 'CHG',
+        normalQuorum: 1,
+        emergencyQuorum: 1,
+        minLeadTimeHours: 0,
+        requireTestPlan: false,
+        freezePeriods: [],
+        reminderHoursBeforeStart: 24,
+        timeZone: 'UTC',
+      })),
+    };
+    const outbox = {
+      enqueue: jest.fn(async () => {
+        expect(inTransaction).toBe(true);
+        return { id: 'outbox-1', created: true };
+      }),
+    };
+    const service = new ChangesService(
+      prisma as never,
+      access as never,
+      { conflictsFor: jest.fn() } as never,
+      outbox as unknown as TransactionalOutboxService,
+    );
+    const current = { ...scheduledDraft(), status: 'SCHEDULED' };
+    const internals = service as unknown as {
+      loadInScope: (...args: unknown[]) => Promise<unknown>;
+      assertReferences: (...args: unknown[]) => Promise<void>;
+      editScopeFor: (...args: unknown[]) => Promise<string>;
+      canManage: (...args: unknown[]) => Promise<boolean>;
+      toDetail: (...args: unknown[]) => unknown;
+    };
+    jest.spyOn(internals, 'loadInScope').mockResolvedValue(current);
+    jest.spyOn(internals, 'assertReferences').mockResolvedValue(undefined);
+    jest.spyOn(internals, 'editScopeFor').mockResolvedValue('full');
+    jest.spyOn(internals, 'canManage').mockResolvedValue(true);
+    jest.spyOn(internals, 'toDetail').mockReturnValue({ id: 'change-1' });
+    jest.spyOn(service, 'get').mockResolvedValue({ id: 'change-1' } as never);
+
+    await service.update(
+      { userId: 'manager-1' } as never,
+      'change-1',
+      { version: current.version, title: 'Renamed maintenance' } as never,
+    );
+
+    expect(outbox.enqueue).toHaveBeenCalledWith(
+      transaction,
+      expect.objectContaining({
+        topic: changeDowntimeSyncTopic,
+        dedupeKey: 'change:change-1:v5',
+      }),
+    );
+  });
 });

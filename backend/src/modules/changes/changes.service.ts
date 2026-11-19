@@ -34,7 +34,7 @@ import {
 import { computeChangeQuorum } from './change-cab';
 import { hasWarnings } from './change-conflicts';
 import type { ChangeVoterSnapshot } from './change-voter-snapshot';
-import { enqueueChangeDowntimeSync } from './change-downtime-outbox';
+import { changeUpdateAffectsDowntime, enqueueChangeDowntimeSync } from './change-downtime-outbox';
 import { ChangeNotifier } from './change-notifier';
 import { ChangeScheduleService } from './change-schedule.service';
 import { changeVisibilityWhere } from './change-visibility';
@@ -663,11 +663,12 @@ export class ChangesService {
       ? []
       : currentAssetIds.filter((value) => visibleCurrentAssetIds.has(value) && !assetIds.includes(value));
     const linksChanged = addedServices.length + removedServices.length + addedAssets.length + removedAssets.length > 0;
-    const downtimeMayHaveChanged =
-      changes.causesDowntime !== undefined ||
-      changes.plannedStart !== undefined ||
-      changes.plannedEnd !== undefined ||
-      addedServices.length + removedServices.length > 0;
+    // W7.64: the window message is derived from the title, so a rename is drift.
+    const downtimeMayHaveChanged = changeUpdateAffectsDowntime({
+      changedFields: Object.keys(changes),
+      addedServices: addedServices.length,
+      removedServices: removedServices.length,
+    });
     if (Object.keys(changes).length === 0 && textChanged.length === 0 && !linksChanged) return this.toDetail(viewer, current, configuration);
 
     await this.prisma.$transaction(async (transaction) => {

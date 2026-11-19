@@ -77,7 +77,14 @@ export function hasWarnings(conflicts: ChangeConflicts): boolean {
   return conflicts.changes.length > 0 || conflicts.downtime.length > 0 || (conflicts.freeze !== null && !conflicts.freezeBlocks);
 }
 
-export type OwnDowntimeWindow = { readonly id: string; readonly serviceId: string; readonly startsAt: Date; readonly endsAt: Date };
+export type OwnDowntimeWindow = {
+  readonly id: string;
+  readonly serviceId: string;
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+  /** W7.64: the derived window text, compared by reconciliation drift checks. */
+  readonly message?: string | null;
+};
 
 export type DowntimePlan = {
   readonly create: readonly string[];

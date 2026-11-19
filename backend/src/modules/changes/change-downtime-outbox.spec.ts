@@ -5,6 +5,7 @@ import {
   changeDowntimeSyncMaxAttempts,
   changeDowntimeSyncTopic,
   changeDowntimeVersionDedupeKey,
+  changeUpdateAffectsDowntime,
   enqueueChangeDowntimeSync,
   readChangeDowntimeSyncPayload,
 } from "./change-downtime-outbox";
@@ -71,5 +72,37 @@ describe("change downtime outbox command", () => {
     expect(() =>
       readChangeDowntimeSyncPayload({ changeId: "change-123" }),
     ).toThrow("INVALID_CHANGE_DOWNTIME_PAYLOAD");
+  });
+
+  it("treats a rename as downtime drift because the window text carries the title", () => {
+    // W7.64: without this, a scheduled change could be renamed while the service
+    // calendar kept advertising the old title and no reconciler would notice.
+    expect(
+      changeUpdateAffectsDowntime({
+        changedFields: ["title"],
+        addedServices: 0,
+        removedServices: 0,
+      }),
+    ).toBe(true);
+  });
+
+  it("ignores edits that cannot move the desired downtime state", () => {
+    expect(
+      changeUpdateAffectsDowntime({
+        changedFields: ["description", "reason", "testPlan"],
+        addedServices: 0,
+        removedServices: 0,
+      }),
+    ).toBe(false);
+  });
+
+  it("queues a sync when a service link changes even without a downtime field", () => {
+    expect(
+      changeUpdateAffectsDowntime({
+        changedFields: ["description"],
+        addedServices: 1,
+        removedServices: 0,
+      }),
+    ).toBe(true);
   });
 });

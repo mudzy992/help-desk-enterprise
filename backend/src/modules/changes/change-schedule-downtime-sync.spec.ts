@@ -51,6 +51,7 @@ function setup(change = activeChange(), foreign: unknown[] = []) {
   };
   const access = {
     configuration: jest.fn(async () => ({ numberPrefix: "CHG" })),
+    changeNumberPrefix: jest.fn(async () => "CHG"),
   };
   const availability = {
     load: jest.fn(async () => ({ downtime: { enabled: true } })),
@@ -154,6 +155,111 @@ describe("ChangeScheduleService downtime sync", () => {
         }),
       }),
     );
+  });
+
+  it("reports message-only drift when a scheduled change was renamed", async () => {
+    // W7.64: same window, same services — only the derived text is stale.
+    const { service } = setup(
+      activeChange({
+        downtimeWindows: [
+          {
+            id: "downtime-old",
+            serviceId: "service-1",
+            startsAt: start,
+            endsAt: end,
+            message: "CHG000012: Old title",
+          },
+        ],
+      }),
+    );
+
+    await expect(service.hasDowntimeDrift("change-1")).resolves.toBe(true);
+  });
+
+  it("stays settled when the window text already matches the change", async () => {
+    const { service } = setup(
+      activeChange({
+        downtimeWindows: [
+          {
+            id: "downtime-old",
+            serviceId: "service-1",
+            startsAt: start,
+            endsAt: end,
+            message: "CHG000012: Planned network maintenance",
+          },
+        ],
+      }),
+    );
+
+    await expect(service.hasDowntimeDrift("change-1")).resolves.toBe(false);
+  });
+
+  it("refreshes a stale window message without rewriting unaffected windows", async () => {
+    const stale = {
+      id: "downtime-old",
+      serviceId: "service-1",
+      startsAt: start,
+      endsAt: end,
+      message: "CHG000012: Old title",
+    };
+    const current = {
+      id: "downtime-keep",
+      serviceId: "service-2",
+      startsAt: start,
+      endsAt: end,
+      message: "CHG000012: Planned network maintenance",
+    };
+    const { transaction, service } = setup(
+      activeChange({
+        services: [
+          { serviceId: "service-1" },
+          { serviceId: "service-2" },
+        ],
+        downtimeWindows: [stale, current],
+      }),
+    );
+
+    await service.syncDowntime("change-1", "actor-1");
+
+    expect(transaction.serviceDowntimeWindow.update).toHaveBeenCalledTimes(1);
+    expect(transaction.serviceDowntimeWindow.update).toHaveBeenCalledWith({
+      where: { id: "downtime-old" },
+      data: { message: "CHG000012: Planned network maintenance" },
+    });
+    expect(recordServiceCatalogChange).toHaveBeenCalledWith(
+      transaction,
+      expect.objectContaining({ entityId: "downtime-old" }),
+    );
+    expect(transaction.changeEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          detail: expect.objectContaining({ messageUpdated: 1 }),
+        }),
+      }),
+    );
+    expect(transaction.serviceDowntimeWindow.create).not.toHaveBeenCalled();
+  });
+
+  it("does not rewrite an already delivered message-only command", async () => {
+    const { transaction, service } = setup(
+      activeChange({
+        downtimeWindows: [
+          {
+            id: "downtime-old",
+            serviceId: "service-1",
+            startsAt: start,
+            endsAt: end,
+            message: "CHG000012: Old title",
+          },
+        ],
+      }),
+    );
+    transaction.changeEvent.findFirst.mockResolvedValueOnce({ id: "event-1" });
+
+    await service.syncDowntime("change-1", "actor-1", "change:change-1:v7");
+
+    expect(transaction.serviceDowntimeWindow.update).not.toHaveBeenCalled();
+    expect(transaction.changeEvent.create).not.toHaveBeenCalled();
   });
 
   it("treats a blocking foreign downtime window as an acknowledged outcome, not reconciliation drift", async () => {
