@@ -101,7 +101,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-02 | P2       | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | zatvoreno |
 | BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | zatvoreno |
 | BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | zatvoreno |
-| BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | otvoreno |
+| BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | zatvoreno |
 | BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | otvoreno |
 | BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | otvoreno |
 | BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | otvoreno |
@@ -118,7 +118,8 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 - **03–04:** riješeno u W7.57 (bounded keyset scan + batch vidljivost + `articlesIncomplete`) i W7.58
   (minimalna projekcija: `body` se ne čita prije autorizacijske odluke); SQL scope pushdown odbijen jer bi
   bio druga kopija autorizacije.
-- **05,07:** Redis actor/IP token bucket, timeout/query budget i EXPLAIN/index dokaz.
+- **05:** riješeno u W7.59 (dva distribuirana fiksna prozora — actor i adresa — sa Redis Lua INCR+EXPIRE,
+  per-instance degradacijom i fail-closed `503` kad verdikta nema); `07` (EXPLAIN/index dokaz) ostaje otvoren.
 - **06:** primijeniti korekcije delegacije iz audita 25 prije oslanjanja na centralni KB predicate.
 - **08:** typed group outcome; auth greške fail-closed, odobreni availability kvar može biti partial.
 - **09,11:** stabilan order i privacy-safe metrički sloj bez raw queryja.
@@ -306,3 +307,34 @@ owner/reviewer scope), `07` (query plan), `08` (partial/fail-closed ugovor). P3:
 **Preostali rizik:** lista i intercept i dalje čitaju `body` prije odluke jer ga vraćaju za vidljive redove —
 dvofazni read (vidljivost → tijela dozvoljenih ID-eva) je zaseban KB paket; projekcija ne mijenja query plan
 (`07`), ne uvodi rate limit (`05`) i ne dira delegaciju iz audita 25 (`06`).
+
+## 19. Implementacijski closeout — W7.59 (`BA-search-05`)
+
+**Status nalaza:** `BA-search-05` (P2) **zatvoren**; paket W7.59, kod `4b15dfa`, **bez migracije**.
+Detalji: [280](../implementation/280-w759-search-05-rate-limit.md).
+
+**Šta je bilo:** endpoint nije imao server-side budžet. Debounce u browseru nije kontrola; direktni klijent je
+mogao slati neograničen broj zahtjeva, a svaki pokreće tri grupe (auth/authorization, do 200 KB kandidata,
+ticket/directory upiti). `contains` nad imenom/e-mailom i naslovom bez limita daje brzu enumeraciju.
+
+**Šta je sada:** dva **distribuirana fiksna prozora** po zahtjevu — `actor` (subject sesije) i `adresa`
+(`request.ip`, pseudonimni SHA-256 ključevi) — provjerena u `SearchRateLimitGuard`-u **prije** DTO validacije i
+prije ijedne grupne pretrage. Redis drži brojače atomično (Lua `INCR` + `EXPIRE`), pa su zajednički svim
+replikama; bez Redisa isti brojevi važe **per instanca** (bounded degradacija, nikad fail-open), a ako se budžet
+ne može izračunati uopšte, endpoint vraća `503 SEARCH_RATE_LIMIT_UNAVAILABLE` (fail-closed). Prekoračenje je
+`429 TOO_MANY_SEARCH_REQUESTS` + `Retry-After`. Default 30/min po actoru i 60/min po adresi, konfigurabilno kroz
+`SEARCH_RATE_LIMIT_*` (neispravna vrijednost pada na default, nikad na slabiji limit; `false` je break-glass).
+Paleta prikazuje `palette.rateLimited` umjesto „nema rezultata”.
+
+**Acceptance:** §14.5 (distribuiran bounded budget) je ispunjen za `search` modul; §14.6 (security greška nikad
+nije partial success) ostaje predmet `BA-search-08` za greške grupa, ali budžet više ne može tiho oslabiti.
+Dokaz: `search-rate-limit.configuration.spec.ts` (4), `search-rate-limit.spec.ts` (9), `search-rate-limit.guard.spec.ts`
+(3), hook (+2) i paleta (+1) test.
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-06` (KB owner/reviewer scope), `07` (query plan), `08`
+(partial/fail-closed ugovor). P3: `09` (stable order), `10` (`ArrayUnique`), `11` (telemetrija), `12`
+(confidential/arhiva), `13` (E2E za `/search`).
+
+**Preostali rizik:** legitimna automatizacija iznad 30 pretraga u minuti dobija `429` (limit je zato po
+deploymentu); bez Redisa budžet je `replike × limit`; fiksni prozor dopušta do 2× na granici; `contains` bez
+indeksa (`07`) i telemetrija (`11`) nisu dio paketa; klijent nema automatski backoff na `429`.
