@@ -145,6 +145,12 @@ export class SearchRateLimiter {
   private readonly memoryStore = createMemorySearchRateLimitStore();
   private readonly redisStore: SearchRateLimitStore | null;
   private readonly configuration: SearchRateLimitConfiguration;
+  /**
+   * A Redis outage outlives thousands of requests; one warning line per window
+   * keeps the log readable (and the rule "log what an operator can act on") while
+   * the degradation itself stays continuous.
+   */
+  private lastStoreWarningAt = 0;
 
   constructor(
     @Optional() @Inject(redisTokens.client) redis?: Redis,
@@ -188,11 +194,7 @@ export class SearchRateLimiter {
       try {
         return await this.redisStore.hit(key, configuration.windowSeconds);
       } catch (error) {
-        // Name only, never the key (it is pseudonymous, but the rule is the same
-        // as everywhere else in this module: do not log what you do not need).
-        this.logger.warn(
-          `search_rate_limit_store=degraded bucket=${key.split(':')[2] ?? 'unknown'} error=${errorName(error)}`,
-        );
+        this.warnOncePerWindow(key, error, configuration.windowSeconds);
       }
     }
     try {
@@ -200,6 +202,23 @@ export class SearchRateLimiter {
     } catch {
       throw createSearchRateLimitUnavailableException();
     }
+  }
+
+  private warnOncePerWindow(
+    key: string,
+    error: unknown,
+    windowSeconds: number,
+  ): void {
+    const now = Date.now();
+    if (now - this.lastStoreWarningAt < windowSeconds * 1_000) {
+      return;
+    }
+    this.lastStoreWarningAt = now;
+    // Name only, never the key (it is pseudonymous, but the rule is the same as
+    // everywhere else in this module: do not log what you do not need).
+    this.logger.warn(
+      `search_rate_limit_store=degraded bucket=${key.split(':')[2] ?? 'unknown'} error=${errorName(error)}`,
+    );
   }
 }
 

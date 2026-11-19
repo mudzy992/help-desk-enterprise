@@ -1,4 +1,4 @@
-import type { HttpException } from '@nestjs/common';
+import { Logger, type HttpException } from '@nestjs/common';
 import type Redis from 'ioredis';
 import {
   createMemorySearchRateLimitStore,
@@ -154,6 +154,31 @@ describe('SearchRateLimiter (W7.59, BA-search-05)', () => {
     await expect(
       degraded.enforce({ actorUserId: 'user-5', ip: '192.0.2.3' }),
     ).rejects.toMatchObject({ status: 429 });
+  });
+
+  it('logs a Redis outage once per window instead of once per request', async () => {
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    try {
+      const limiter = new SearchRateLimiter(
+        createFakeRedis({ fail: true }).redis,
+        configuration(),
+      );
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        // The budget itself is not the subject here: requests beyond it are
+        // refused with 429, and every one of them still tried Redis first.
+        await limiter
+          .enforce({ actorUserId: 'user-8', ip: '192.0.2.6' })
+          .catch(() => undefined);
+      }
+      const degradedLines = warn.mock.calls
+        .map((call) => String(call[0]))
+        .filter((line) => line.includes('search_rate_limit_store=degraded'));
+      // An outage outlives thousands of requests; the log must stay readable.
+      expect(degradedLines).toHaveLength(1);
+      expect(degradedLines[0]).not.toContain('192.0.2.6');
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('refuses with 503 when the budget cannot be evaluated at all', async () => {
