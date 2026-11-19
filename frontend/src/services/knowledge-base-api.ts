@@ -117,10 +117,13 @@ export function getKnowledgeArticle(articleId: string): Promise<KnowledgeArticle
 export function updateKnowledgeArticle(
   articleId: string,
   input: UpdateKnowledgeArticleInput,
+  /** W7.51: `If-Match` revision the editor loaded; a stale token is a 409. */
+  expectedRevision?: string,
 ): Promise<KnowledgeArticleResponse> {
   return apiRequest(`/knowledge-base/articles/${articleId}`, {
     method: "PATCH",
     body: JSON.stringify(input),
+    ...ifMatchHeaders(expectedRevision),
   });
 }
 
@@ -135,11 +138,20 @@ export function runKnowledgeLifecycleAction(
   articleId: string,
   action: KnowledgeLifecycleAction,
   reason: string,
+  expectedRevision?: string,
 ): Promise<KnowledgeArticleResponse> {
   return apiRequest(`/knowledge-base/articles/${articleId}/${action}`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+    ...ifMatchHeaders(expectedRevision),
   });
+}
+
+/** Only send the header when the caller actually knows the revision. */
+function ifMatchHeaders(expectedRevision?: string): { headers?: Record<string, string> } {
+  return expectedRevision === undefined || expectedRevision.length === 0
+    ? {}
+    : { headers: { "If-Match": expectedRevision } };
 }
 
 export function interceptKnowledgeArticles(input: {

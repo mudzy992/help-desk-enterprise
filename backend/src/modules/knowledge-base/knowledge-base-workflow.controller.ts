@@ -21,6 +21,7 @@ import { KnowledgeBaseDiscoveryService } from './knowledge-base-discovery.servic
 import { KnowledgeBaseWorkflowService } from './knowledge-base-workflow.service';
 import type { KnowledgeArticleResponse } from './knowledge-base.types';
 import type { KnowledgeFeedbackResponse } from './submit-knowledge-feedback';
+import { readKnowledgeIfMatch } from './read-knowledge-if-match';
 import { readKnowledgeMutationContext } from './read-knowledge-mutation-context';
 
 @Controller('knowledge-base/articles')
@@ -52,7 +53,7 @@ export class KnowledgeBaseWorkflowController {
   ): Promise<KnowledgeArticleResponse> {
     return this.workflowService.submitReview(
       articleId,
-      body,
+      { ...body, expectedRevision: readKnowledgeIfMatch(request) },
       readKnowledgeMutationContext(request),
     );
   }
@@ -65,7 +66,7 @@ export class KnowledgeBaseWorkflowController {
   ): Promise<KnowledgeArticleResponse> {
     return this.workflowService.approveReview(
       articleId,
-      body,
+      { ...body, expectedRevision: readKnowledgeIfMatch(request) },
       readKnowledgeMutationContext(request),
     );
   }
@@ -78,7 +79,7 @@ export class KnowledgeBaseWorkflowController {
   ): Promise<KnowledgeArticleResponse> {
     return this.workflowService.rejectReview(
       articleId,
-      body,
+      { ...body, expectedRevision: readKnowledgeIfMatch(request) },
       readKnowledgeMutationContext(request),
     );
   }
@@ -91,7 +92,7 @@ export class KnowledgeBaseWorkflowController {
   ): Promise<KnowledgeArticleResponse> {
     return this.workflowService.publish(
       articleId,
-      body,
+      { ...body, expectedRevision: readKnowledgeIfMatch(request) },
       readKnowledgeMutationContext(request),
     );
   }
@@ -104,7 +105,7 @@ export class KnowledgeBaseWorkflowController {
   ): Promise<KnowledgeArticleResponse> {
     return this.workflowService.archive(
       articleId,
-      body,
+      { ...body, expectedRevision: readKnowledgeIfMatch(request) },
       readKnowledgeMutationContext(request),
     );
   }
@@ -113,12 +114,7 @@ export class KnowledgeBaseWorkflowController {
   submitFeedback(
     @Param('articleId') articleId: string,
     @Body() body: KnowledgeFeedbackDto,
-    @Req() request: AuthenticatedHttpRequest,
   ): Promise<KnowledgeFeedbackResponse> {
-    return this.discoveryService.submitFeedback(
-      articleId,
-      body,
-      readKnowledgeMutationContext(request),
-    );
+    return this.discoveryService.submitFeedback(articleId, body);
   }
 }

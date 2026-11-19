@@ -3,6 +3,15 @@ import { mapKnowledgeArticleError } from "@/lib/knowledge-base/map-knowledge-art
 import { ApiError } from "@/services/api";
 
 describe("mapKnowledgeArticleError", () => {
+  it("maps a stale write to the reload-the-page message", () => {
+    expect(mapKnowledgeArticleError(new ApiError(409, "STALE_WRITE", "stale"))).toBe(
+      "knowledgeBase.errorConflict",
+    );
+    expect(mapKnowledgeArticleError(new ApiError(409, "CONFLICT", "conflict"))).toBe(
+      "knowledgeBase.errorConflict",
+    );
+  });
+
   it("maps get 404 and forbidden failures", () => {
     expect(mapKnowledgeArticleError(new ApiError(404, "NOT_FOUND", "missing"))).toBe(
       "knowledgeBase.errorNotFound",

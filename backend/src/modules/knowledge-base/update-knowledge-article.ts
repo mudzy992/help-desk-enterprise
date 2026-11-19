@@ -3,10 +3,12 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { assertCanWriteKnowledgeArticle } from './assert-knowledge-article-mutation';
 import { assertKnowledgeArticleOwnership } from './assert-knowledge-article-ownership';
 import { assertKnowledgeLifecycleTransition } from './assert-knowledge-lifecycle-transition';
+import { assertKnowledgeArticleRevision } from './knowledge-article-revision';
 import {
   assertKnowledgeGroupExists,
   assertKnowledgeUserExists,
 } from './assert-knowledge-references';
+import { KnowledgeBaseError } from './knowledge-base.error';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import {
   loadKnowledgeArticleRecord,
@@ -39,6 +41,7 @@ export async function updateKnowledgeArticle(
 ): Promise<KnowledgeArticleRecord> {
   const actor = await loadKnowledgeActorContext(loader, context);
   const current = await loadKnowledgeArticleRecord(prisma, articleId);
+  assertKnowledgeArticleRevision(current, input.expectedRevision);
   const scope = await loadKnowledgeArticleScope(prisma, current);
   const ownerGroupMemberUserIds = await loadOwnerGroupMemberUserIds(
     prisma,
@@ -82,8 +85,13 @@ export async function updateKnowledgeArticle(
     assertKnowledgeLifecycleTransition(current.status, nextStatus);
   }
   return prisma.$transaction(async (transaction) => {
-    const updated = await transaction.knowledgeArticle.update({
-      where: { id: current.id },
+    // The write only lands if the row is still exactly what this request read.
+    const changed = await transaction.knowledgeArticle.updateMany({
+      where: {
+        id: current.id,
+        status: current.status,
+        updatedAt: current.updatedAt,
+      },
       data: {
         title: nextTitle,
         body: nextBody,
@@ -92,11 +100,16 @@ export async function updateKnowledgeArticle(
         reviewerUserId,
         classification: input.classification ?? current.classification,
         status: nextStatus,
-        lastReviewedAt:
-          contentChanged && current.status === 'PUBLISHED'
-            ? null
-            : current.lastReviewedAt,
+        // Any content change voids the review: publishing must not accept text
+        // that nobody approved (BA-knowledge-base-03).
+        lastReviewedAt: contentChanged ? null : current.lastReviewedAt,
       },
+    });
+    if (changed.count !== 1) {
+      throw new KnowledgeBaseError('STALE_WRITE');
+    }
+    const updated = await transaction.knowledgeArticle.findUniqueOrThrow({
+      where: { id: current.id },
     });
     const record = toArticleRecord(updated);
     await recordKnowledgeArticleChange(transaction as PrismaService, {

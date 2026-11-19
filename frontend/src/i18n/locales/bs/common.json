@@ -5715,6 +5715,7 @@
     "errorValidation": "Unos nije ispravan. Provjerite naslov, sadržaj i razlog izmjene.",
     "errorGeneric": "Baza znanja trenutno nije dostupna.",
     "errorCategory": "Kategorija nije ispravna, već postoji ili nije prazna. Osvježite i pokušajte ponovo.",
+    "errorConflict": "Članak je u međuvremenu izmijenjen. Osvježite stranicu i pokušajte ponovo.",
     "errorSourceMessage": "Izvorni odgovor nije pronađen ili nije javni odgovor agenta.",
     "errorRating": "Ocjena mora biti od 1 do 5; komentar je moguć samo uz ocjenu 1 ili 2.",
     "portal": {

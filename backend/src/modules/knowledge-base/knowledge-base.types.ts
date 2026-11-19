@@ -108,10 +108,14 @@ export type UpdateKnowledgeArticleInput = {
   readonly reviewerUserId?: string | null;
   readonly classification?: DataClassification;
   readonly reason: string;
+  /** `If-Match` token from the read that produced this edit. */
+  readonly expectedRevision?: string;
 };
 
 export type KnowledgeLifecycleInput = {
   readonly reason: string;
+  /** `If-Match` token from the read that produced this action. */
+  readonly expectedRevision?: string;
 };
 
 export type KnowledgeFeedbackInput = {

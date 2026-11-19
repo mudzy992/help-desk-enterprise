@@ -107,19 +107,23 @@ export function KnowledgeArticleEditForm({
     setErrorKey(null);
     setRequestId(null);
     try {
-      await updateKnowledgeArticle(article.id, {
-        title: title.trim(),
-        body: body.trim(),
-        reason: reason.trim(),
-        ...(isSuperAdmin
-          ? {
-              ownerUserId: ownerMode === "user" ? ownerUserId : null,
-              ownerGroupId: ownerMode === "group" ? ownerGroupId : null,
-              reviewerUserId: reviewerUserId.length > 0 ? reviewerUserId : null,
-              classification,
-            }
-          : {}),
-      });
+      await updateKnowledgeArticle(
+        article.id,
+        {
+          title: title.trim(),
+          body: body.trim(),
+          reason: reason.trim(),
+          ...(isSuperAdmin
+            ? {
+                ownerUserId: ownerMode === "user" ? ownerUserId : null,
+                ownerGroupId: ownerMode === "group" ? ownerGroupId : null,
+                reviewerUserId: reviewerUserId.length > 0 ? reviewerUserId : null,
+                classification,
+              }
+            : {}),
+        },
+        article.updatedAt,
+      );
       setReason("");
       await onSaved();
     } catch (error) {

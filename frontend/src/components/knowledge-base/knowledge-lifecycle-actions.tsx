@@ -13,6 +13,8 @@ import { runKnowledgeLifecycleAction } from "@/services/knowledge-base-api";
 
 interface KnowledgeLifecycleActionsProperties {
   readonly articleId: string;
+  /** `If-Match` token of the row the buttons were rendered for. */
+  readonly revision?: string;
   readonly status: KnowledgeArticleStatus;
   readonly canManage: boolean;
   readonly onChanged: () => Promise<void>;
@@ -20,6 +22,7 @@ interface KnowledgeLifecycleActionsProperties {
 
 export function KnowledgeLifecycleActions({
   articleId,
+  revision,
   status,
   canManage,
   onChanged,
@@ -40,7 +43,7 @@ export function KnowledgeLifecycleActions({
     setErrorKey(null);
     setRequestId(null);
     try {
-      await runKnowledgeLifecycleAction(articleId, action, reason.trim());
+      await runKnowledgeLifecycleAction(articleId, action, reason.trim(), revision);
       setReason("");
       await onChanged();
     } catch (error) {

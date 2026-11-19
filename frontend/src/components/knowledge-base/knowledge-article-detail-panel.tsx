@@ -147,6 +147,7 @@ export function KnowledgeArticleDetailPanel({
       <div className="px-4 pb-3">
         <KnowledgeLifecycleActions
           articleId={article.id}
+          revision={article.updatedAt}
           status={article.status}
           canManage={canManageLifecycle}
           onChanged={onChanged}

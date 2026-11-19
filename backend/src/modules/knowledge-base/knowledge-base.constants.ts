@@ -35,6 +35,8 @@ export const knowledgeBaseConstants = {
   maximumTitleLength: 200,
   maximumBodyLength: 20000,
   maximumSlugLength: 80,
+  /** W7.51: retries after a concurrent create took the slug first. */
+  slugAllocationAttempts: 3,
   maximumQueryLength: 500,
   interceptLimit: 8,
   /** Val 3 (M14/B5): the ranked list is capped, so the scan is too. */

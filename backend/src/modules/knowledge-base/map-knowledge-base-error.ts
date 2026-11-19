@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   NotFoundException,
@@ -51,6 +52,7 @@ const messages: Record<KnowledgeBaseErrorCode, string> = {
   INTERCEPT_SERVICE_REQUIRED: 'Service is required for knowledge intercept',
   REASON_REQUIRED: 'A change reason is required',
   SLUG_TAKEN: 'Knowledge article slug is already used',
+  STALE_WRITE: 'Knowledge article was changed by another request; reload before saving',
   INVALID_RATING: 'Rating must be an integer 1-5; a comment needs a rating of 2 or less',
   CATEGORY_NOT_FOUND: 'Knowledge category was not found',
   CATEGORY_KEY_TAKEN: 'Knowledge category key is already used',
@@ -80,6 +82,9 @@ export function mapKnowledgeBaseError(error: unknown): HttpException {
   }
   if (forbiddenCodes.includes(error.code)) {
     return new ForbiddenException(body);
+  }
+  if (error.code === 'STALE_WRITE') {
+    return new ConflictException(body);
   }
   return new BadRequestException(body);
 }

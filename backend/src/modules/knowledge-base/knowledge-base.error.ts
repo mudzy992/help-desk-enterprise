@@ -20,6 +20,7 @@ export type KnowledgeBaseErrorCode =
   | 'INTERCEPT_SERVICE_REQUIRED'
   | 'REASON_REQUIRED'
   | 'SLUG_TAKEN'
+  | 'STALE_WRITE'
   // Paket 2.9 (K1).
   | 'INVALID_RATING'
   | 'CATEGORY_NOT_FOUND'

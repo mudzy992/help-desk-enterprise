@@ -190,6 +190,7 @@ export function KnowledgeArticleList({
               <div className="px-4 pb-3">
                 <KnowledgeLifecycleActions
                   articleId={item.id}
+                  revision={item.updatedAt}
                   status={item.status}
                   canManage={canManageLifecycle}
                   onChanged={onFeedback}

@@ -5,6 +5,7 @@ export type InMemoryKnowledgeArticle = KnowledgeArticleRecord;
 
 type ArticleWhere = {
   readonly id?: string;
+  readonly updatedAt?: Date;
   readonly slug?: string;
   readonly serviceId?: string;
   readonly categoryId?: string | null;
@@ -64,6 +65,42 @@ export function createInMemoryKnowledgeArticleDelegate(
       articles.set(updated.id, updated);
       return updated;
     },
+    /**
+     * W7.51 (BA-knowledge-base-03): the production code writes with a
+     * compare-and-set (`id` + `status` + `updatedAt`), so the in-memory double
+     * must honour the same predicates and advance the row timestamp on a hit.
+     */
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where: { id?: string; status?: InMemoryKnowledgeArticle['status']; updatedAt?: Date };
+      data: Record<string, unknown>;
+    }) => {
+      const matched = matching(where);
+      for (const article of matched) {
+        const updated: InMemoryKnowledgeArticle = {
+          ...article,
+          ...applyIncrements(article, data),
+          updatedAt: new Date(article.updatedAt.getTime() + 1),
+        };
+        articles.set(updated.id, updated);
+      }
+      return { count: matched.length };
+    },
+    findUniqueOrThrow: async ({
+      where,
+      select,
+    }: {
+      where: { id?: string; slug?: string };
+      select?: Record<string, boolean>;
+    }) => {
+      const found = matching({ id: where.id, slug: where.slug })[0];
+      if (found === undefined) {
+        throw new Error('NOT_FOUND');
+      }
+      return pickInMemoryFields(found, select);
+    },
     delete: async ({ where }: { where: { id: string } }) => {
       const current = articles.get(where.id);
       if (current === undefined) {
@@ -111,6 +148,9 @@ function matchesArticle(
     return false;
   }
   if (where.slug !== undefined && article.slug !== where.slug) {
+    return false;
+  }
+  if (where.updatedAt !== undefined && article.updatedAt.getTime() !== where.updatedAt.getTime()) {
     return false;
   }
   if (where.serviceId !== undefined && article.serviceId !== where.serviceId) {

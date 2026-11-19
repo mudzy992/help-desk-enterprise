@@ -2,6 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { assertCanWriteKnowledgeArticle } from './assert-knowledge-article-mutation';
 import { assertKnowledgeLifecycleTransition } from './assert-knowledge-lifecycle-transition';
+import { assertKnowledgeArticleRevision } from './knowledge-article-revision';
 import { KnowledgeBaseError } from './knowledge-base.error';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import {
@@ -57,9 +58,16 @@ export async function persistStatusChange(
   context: KnowledgeArticleMutationContext,
   extra: Partial<KnowledgeArticleRecord> = {},
 ): Promise<KnowledgeArticleRecord> {
+  assertKnowledgeArticleRevision(current, input.expectedRevision);
   return prisma.$transaction(async (transaction) => {
-    const updated = await transaction.knowledgeArticle.update({
-      where: { id: current.id },
+    // Compare-and-set: a lifecycle decision only applies to the exact row the
+    // authorization and transition checks were made against.
+    const changed = await transaction.knowledgeArticle.updateMany({
+      where: {
+        id: current.id,
+        status: current.status,
+        updatedAt: current.updatedAt,
+      },
       data: {
         status,
         isStale: extra.isStale ?? current.isStale,
@@ -68,6 +76,12 @@ export async function persistStatusChange(
         lastReviewedAt: extra.lastReviewedAt ?? current.lastReviewedAt,
         archivedAt: extra.archivedAt ?? current.archivedAt,
       },
+    });
+    if (changed.count !== 1) {
+      throw new KnowledgeBaseError('STALE_WRITE');
+    }
+    const updated = await transaction.knowledgeArticle.findUniqueOrThrow({
+      where: { id: current.id },
     });
     const record = toArticleRecord(updated);
     await recordKnowledgeArticleChange(transaction as PrismaService, {

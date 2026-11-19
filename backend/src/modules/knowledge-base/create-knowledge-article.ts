@@ -9,6 +9,8 @@ import {
   assertKnowledgeServiceExists,
   assertKnowledgeUserExists,
 } from './assert-knowledge-references';
+import { KnowledgeBaseError } from './knowledge-base.error';
+import { knowledgeBaseConstants } from './knowledge-base.constants';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import { loadKnowledgeArticleScope } from './load-knowledge-article-scope';
 import { toArticleRecord } from './load-knowledge-article';
@@ -76,18 +78,18 @@ export async function createKnowledgeArticle(
     serviceId,
   });
   assertCanCreateKnowledgeArticle({ context: actor, scope });
-  const slug = await allocateKnowledgeArticleSlug(
-    async (candidate) =>
-      (await client.knowledgeArticle.findUnique({
-        where: { slug: candidate },
-        select: { id: true },
-      })) !== null,
-    title,
-  );
-  const write = async (transaction: PrismaService) => {
+  const isSlugTaken = async (candidate: string): Promise<boolean> =>
+    (await client.knowledgeArticle.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    })) !== null;
+  // One allocation up front so an unusable title fails before any write; a
+  // concurrent create that wins the race is handled by the retry below.
+  const slug = await allocateKnowledgeArticleSlug(isSlugTaken, title);
+  const write = async (transaction: PrismaService, slugForWrite: string) => {
     const article = await transaction.knowledgeArticle.create({
       data: {
-        slug,
+        slug: slugForWrite,
         title,
         body,
         status: 'DRAFT',
@@ -113,7 +115,45 @@ export async function createKnowledgeArticle(
     });
     return record;
   };
-  // A caller-provided transaction must not be nested: its writes join the caller.
-  if (options.transaction !== undefined) return write(client);
-  return prisma.$transaction((transaction) => write(transaction as unknown as PrismaService));
+  // A caller-provided transaction must not be nested: its writes join the caller
+  // and own the retry (a lost slug race surfaces as SLUG_TAKEN there).
+  if (options.transaction !== undefined) {
+    try {
+      return await write(client, slug);
+    } catch (error) {
+      throw isSlugUniqueViolation(error) ? new KnowledgeBaseError('SLUG_TAKEN') : error;
+    }
+  }
+  let attemptSlug = slug;
+  for (
+    let attempt = 1;
+    attempt <= knowledgeBaseConstants.slugAllocationAttempts;
+    attempt += 1
+  ) {
+    try {
+      // Retrying the whole transaction: in Postgres a failed statement aborts
+      // the transaction, so the insert and the change-log entry must restart.
+      return await prisma.$transaction((transaction) =>
+        write(transaction as unknown as PrismaService, attemptSlug),
+      );
+    } catch (error) {
+      if (!isSlugUniqueViolation(error)) {
+        throw error;
+      }
+      attemptSlug = await allocateKnowledgeArticleSlug(isSlugTaken, title);
+    }
+  }
+  throw new KnowledgeBaseError('SLUG_TAKEN');
+}
+
+/**
+ * W7.51 (BA-knowledge-base-03): a concurrent create can take the slug between
+ * the availability read and the insert; Prisma reports that as P2002.
+ */
+function isSlugUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
 }

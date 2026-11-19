@@ -5695,6 +5695,7 @@
     "errorValidation": "The input is not valid. Check the title, body, and change reason.",
     "errorGeneric": "The knowledge base is currently unavailable.",
     "errorCategory": "The category is invalid, already exists or is not empty. Refresh and try again.",
+    "errorConflict": "The article was changed in the meantime. Reload the page and try again.",
     "errorSourceMessage": "The source reply was not found or is not a public agent reply.",
     "errorRating": "The rating must be 1 to 5; a comment is allowed only with a rating of 1 or 2.",
     "portal": {

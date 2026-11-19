@@ -37,6 +37,7 @@ import type {
   KnowledgeInterceptResponse,
 } from './knowledge-base.types';
 import type { KnowledgeInterceptResolveResponse } from './resolve-knowledge-intercept';
+import { readKnowledgeIfMatch } from './read-knowledge-if-match';
 import { readKnowledgeMutationContext } from './read-knowledge-mutation-context';
 
 @Controller('knowledge-base')
@@ -126,7 +127,7 @@ export class KnowledgeBaseController {
   ): Promise<KnowledgeArticleResponse> {
     return this.knowledgeBaseService.update(
       articleId,
-      body,
+      { ...body, expectedRevision: readKnowledgeIfMatch(request) },
       readKnowledgeMutationContext(request),
     );
   }

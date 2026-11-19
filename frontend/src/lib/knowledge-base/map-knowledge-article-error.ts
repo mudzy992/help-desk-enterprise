@@ -9,7 +9,8 @@ export type KnowledgeArticleErrorKey =
   // .
   | "knowledgeBase.errorCategory"
   | "knowledgeBase.errorSourceMessage"
-  | "knowledgeBase.errorRating";
+  | "knowledgeBase.errorRating"
+  | "knowledgeBase.errorConflict";
 
 const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   INVALID_CREDENTIALS: "knowledgeBase.errorUnauthorized",
@@ -34,6 +35,7 @@ const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   SOURCE_MESSAGE_NOT_FOUND: "knowledgeBase.errorNotFound",
   SOURCE_MESSAGE_NOT_PUBLIC: "knowledgeBase.errorSourceMessage",
   INVALID_RATING: "knowledgeBase.errorRating",
+  STALE_WRITE: "knowledgeBase.errorConflict",
 };
 
 export function mapKnowledgeArticleError(error: unknown): KnowledgeArticleErrorKey {
@@ -46,6 +48,7 @@ export function mapKnowledgeArticleError(error: unknown): KnowledgeArticleErrorK
       404: "knowledgeBase.errorNotFound",
       400: "knowledgeBase.errorValidation",
       422: "knowledgeBase.errorValidation",
+      409: "knowledgeBase.errorConflict",
     },
   });
 }
