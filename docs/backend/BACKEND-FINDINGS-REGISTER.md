@@ -368,7 +368,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 24 | `changes` | `BA-changes-04` | P1 | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet | zatvoreno (W7.45) | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-05` | P1 | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea | zatvoreno (W7.46) | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-06` | P1 | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round | zatvoreno (W7.47) | [24-changes.md](audits/24-changes.md) |
-| 24 | `changes` | `BA-changes-07` | P1 | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke | otvoreno | [24-changes.md](audits/24-changes.md) |
+| 24 | `changes` | `BA-changes-07` | P1 | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke | zatvoreno (W7.48) | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-08` | P2 | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-09` | P2 | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 24 | `changes` | `BA-changes-10` | P2 | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea | otvoreno | [24-changes.md](audits/24-changes.md) |

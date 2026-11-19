@@ -168,7 +168,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-04 | P1       | Conflict preview sa arbitrary referencama otkriva foreign change schedule i identitet         | zatvoreno |
 | BA-changes-05 | P1       | Calendar vraća globalne downtime poruke/service/change ID bez viewer scopea                    | zatvoreno |
 | BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | zatvoreno |
-| BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | otvoreno |
+| BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | zatvoreno |
 | BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | otvoreno |
 | BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | otvoreno |
 | BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | otvoreno |
@@ -317,3 +317,15 @@ ušao u CAB poslije otvaranja ne glasa u toj rundi; član koji je izašao zadrž
 odluku retroaktivno). Runda otvorena prije izdanja radi po starom pravilu (`frozen: false`) dok se ne završi.
 `BA-changes-14` (hard-limit 100) ostaje otvoren kao P2. Dokaz:
 [268-w747-changes-06-cab-round-snapshot.md](../implementation/268-w747-changes-06-cab-round-snapshot.md).
+
+## 26. Implementacijski closeout — W7.48 (`BA-changes-07`)
+
+Na `e61ffee`, uz zeleni CI `44473902632`, sweep više ne tvrdi da je podsjetnik poslan: claim markice
+(`reminderSentAt`/`overdueNotifiedAt`), `ChangeEvent` i **outbox intent** (`change.reminder.dispatch`) pišu se u
+istoj transakciji, pa markica znači „persistirana, retryable namjera“, a ne „vjerovatno poslano“. Novi
+`ChangeReminderOutboxDispatcher` drenira topic svake 2 s i pušta pad isporuke u outbox retry/dead-letter put;
+dedupe ključ je vezan za prozor (`change-reminder:<kind>:<change>:<window>`), pa concurrent workers i ponovni
+sweep ne mogu poslati isti podsjetnik dvaput. `ops-health` prikazuje `changeReminderOutbox`
+(pending/processing/dead-letter/najstarije) da zaglavljeni podsjetnik bude vidljiv. Nema migracije — koristi se
+postojeća `OutboxMessage` tabela. U `24-changes.md` ostaje 13 otvorenih nalaza (P1: nijedan). Dokaz:
+[269-w748-changes-07-reminder-outbox.md](../implementation/269-w748-changes-07-reminder-outbox.md).
