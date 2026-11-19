@@ -57,6 +57,7 @@ export function ComponentGrid({
   const changeDowntimeSync = components.changeDowntimeSync ?? null;
   const ticketSideEffectOutbox = components.ticketSideEffectOutbox ?? null;
   const notificationFanOutOutbox = components.notificationFanOutOutbox ?? null;
+  const changeReminderOutbox = components.changeReminderOutbox ?? null;
   const templatesConfiguration = components.templatesConfiguration ?? null;
   return (
     <section className="grid gap-2">
@@ -239,6 +240,25 @@ export function ComponentGrid({
                 processing: notificationFanOutOutbox.processing,
                 deadLetter: notificationFanOutOutbox.deadLetter,
                 age: formatOpsDuration(notificationFanOutOutbox.oldestPendingAgeMs),
+              })}
+        </ComponentTile>
+        <ComponentTile
+          label={t("admin.opsHealth.components.changeReminderOutbox")}
+          state={
+            changeReminderOutbox === null
+              ? "unknown"
+              : changeReminderOutbox.status === "degraded"
+                ? "warning"
+                : "ok"
+          }
+        >
+          {changeReminderOutbox === null
+            ? t("admin.opsHealth.components.unknown")
+            : t("admin.opsHealth.components.changeReminderOutboxValue", {
+                pending: changeReminderOutbox.pending,
+                processing: changeReminderOutbox.processing,
+                deadLetter: changeReminderOutbox.deadLetter,
+                age: formatOpsDuration(changeReminderOutbox.oldestPendingAgeMs),
               })}
         </ComponentTile>
         {components.inbound.map((mailbox) => (

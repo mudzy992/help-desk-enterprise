@@ -85,6 +85,7 @@ export function overallOpsState(overview: OpsOverview): OpsOverallState {
     components.ticketSideEffectOutbox?.status === "degraded" ||
     components.notificationFanOutOutbox === null ||
     components.notificationFanOutOutbox?.status === "degraded" ||
+    components.changeReminderOutbox?.status === "degraded" ||
     components.templatesConfiguration?.status === "degraded"
   ) {
     return "degraded";

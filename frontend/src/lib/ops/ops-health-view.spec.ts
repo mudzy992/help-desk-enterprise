@@ -141,6 +141,24 @@ describe("ops health view", () => {
         ),
       ),
     ).toBe("degraded");
+    // W7.48: a reminder stuck in the dispatcher must not look healthy.
+    expect(
+      overallOpsState(
+        overview(
+          {},
+          {
+            changeReminderOutbox: {
+              status: "degraded",
+              pending: 3,
+              processing: 0,
+              deadLetter: 1,
+              oldestPendingAgeMs: 900_000,
+            },
+          },
+        ),
+      ),
+    ).toBe("degraded");
+    expect(overallOpsState(overview({}, { changeReminderOutbox: null }))).toBe("ok");
     expect(overallOpsState(overview({}, { notificationFanOutOutbox: null }))).toBe("degraded");
     expect(
       overallOpsState(

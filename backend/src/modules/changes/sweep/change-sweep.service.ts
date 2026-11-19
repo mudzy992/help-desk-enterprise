@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { TransactionalOutboxService } from '../../../common/outbox/transactional-outbox.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ChangeAccessService } from '../change-access.service';
-import { ChangeNotifier } from '../change-notifier';
 import { changeEventActions } from '../changes.constants';
+import { enqueueChangeReminder, changeReminderOccurrence } from './change-reminder-outbox';
 import { planChangeReminder } from './plan-change-reminders';
 import { changeSweepBatch } from './change-sweep.constants';
 
@@ -12,6 +13,11 @@ export type ChangeSweepResult = { readonly skipped: string | null; readonly remi
  * Paket 3.4 (§14): start reminders and overrun warnings. The module switch is
  * checked first; the marks (`reminderSentAt`, `overdueNotifiedAt`) are set
  * with a conditional update, so concurrent workers send each notice once.
+ *
+ * W7.48 (BA-changes-07): the mark and the delivery intent are written in one
+ * transaction. The mark therefore means "persisted, retryable intent", not
+ * "probably sent": a failed delivery is retried by the outbox instead of
+ * disappearing while the mark blocks the next sweep.
  */
 @Injectable()
 export class ChangeSweepService {
@@ -20,7 +26,7 @@ export class ChangeSweepService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ChangeAccessService,
-    private readonly notifier: ChangeNotifier,
+    private readonly outbox: TransactionalOutboxService,
   ) {}
 
   async run(now: Date = new Date()): Promise<ChangeSweepResult> {
@@ -46,22 +52,30 @@ export class ChangeSweepService {
       const kind = planChangeReminder(change, now, hours);
       if (kind === null) continue;
       const mark = kind === 'starting_soon' ? { reminderSentAt: now } : { overdueNotifiedAt: now };
-      const claimed = await this.prisma.changeRequest.updateMany({
-        where: { id: change.id, status: change.status, ...(kind === 'starting_soon' ? { reminderSentAt: null } : { overdueNotifiedAt: null }) },
-        data: mark,
-      });
-      if (claimed.count === 0) continue;
-      await this.prisma.changeEvent.create({ data: { changeId: change.id, action: changeEventActions.reminder, actorUserId: null, detail: { kind } } });
+      const occurrence = changeReminderOccurrence(kind, change);
+      let claimed = false;
       try {
-        if (kind === 'starting_soon') {
-          await this.notifier.startingSoon(change.id);
-          reminders += 1;
-        } else {
-          await this.notifier.overdue(change.id);
-          overdue += 1;
-        }
+        claimed = await this.prisma.$transaction(async (transaction) => {
+          const updated = await transaction.changeRequest.updateMany({
+            where: { id: change.id, status: change.status, ...(kind === 'starting_soon' ? { reminderSentAt: null } : { overdueNotifiedAt: null }) },
+            data: mark,
+          });
+          if (updated.count === 0) return false;
+          await transaction.changeEvent.create({ data: { changeId: change.id, action: changeEventActions.reminder, actorUserId: null, detail: { kind } } });
+          await enqueueChangeReminder(this.outbox, transaction, { changeId: change.id, kind, occurrence });
+          return true;
+        });
       } catch (error) {
-        this.logger.warn(`change_sweep_notice_failed change=${change.id} reason=${error instanceof Error ? error.message : String(error)}`);
+        // The transaction rolled back, so the mark is still empty and the next
+        // sweep retries; one bad change must not block the rest of the batch.
+        this.logger.warn(`change_sweep_enqueue_failed change=${change.id} reason=${error instanceof Error ? error.message : String(error)}`);
+        continue;
+      }
+      if (!claimed) continue;
+      if (kind === 'starting_soon') {
+        reminders += 1;
+      } else {
+        overdue += 1;
       }
     }
     if (reminders > 0 || overdue > 0) this.logger.log(`change_sweep reminders=${reminders} overdue=${overdue}`);

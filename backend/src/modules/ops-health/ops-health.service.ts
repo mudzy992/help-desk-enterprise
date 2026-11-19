@@ -25,6 +25,10 @@ import { schedulerGraceMs } from './evaluate-ops-signals';
 import { SettingsService } from '../settings/settings.service';
 import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
 import { changeDowntimePendingWarningAgeMs, changeDowntimeSyncTopic } from '../changes/change-downtime-outbox';
+import {
+  changeReminderDispatchTopic,
+  changeReminderPendingWarningAgeMs,
+} from '../changes/sweep/change-reminder-outbox';
 import { ticketSideEffectOutboxTopics, ticketSideEffectOutboxWarningAgeMs } from '../tickets/ticket-side-effect-outbox.constants';
 import { readTemplatesConfigurationHealth } from '../templates/templates-configuration-health';
 import {
@@ -115,6 +119,7 @@ export class OpsHealthService {
       changeDowntimeSync,
       ticketSideEffectOutbox,
       notificationFanOutOutbox,
+      changeReminderOutbox,
     ] = await Promise.all([
       probe(() => this.prisma.$queryRaw`SELECT 1`, 2_000),
       probe(() => this.redis.getClient().ping(), 1_000),
@@ -147,6 +152,9 @@ export class OpsHealthService {
       this.changeDowntimeSyncState(now).catch(() => null),
       this.ticketSideEffectOutboxState(now).catch(() => null),
       this.notificationFanOutOutboxState(now).catch(() => null),
+      // W7.48: a reminder whose delivery keeps failing must be visible here,
+      // otherwise the change only shows the persisted intent.
+      this.changeReminderOutboxState(now).catch(() => null),
     ]);
     const worker = evaluateWorkerHeartbeat({
       lastHeartbeatAt: heartbeat,
@@ -189,6 +197,7 @@ export class OpsHealthService {
         changeDowntimeSync,
         ticketSideEffectOutbox,
         notificationFanOutOutbox,
+        changeReminderOutbox,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({
         queue: scheduler.queue,
@@ -362,6 +371,31 @@ export class OpsHealthService {
     const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
     return {
       status: deadLetter > 0 || oldestPendingAgeMs >= changeDowntimePendingWarningAgeMs ? ('degraded' as const) : ('ok' as const),
+      pending,
+      processing,
+      deadLetter,
+      oldestPendingAgeMs,
+    };
+  }
+
+  private async changeReminderOutboxState(now: Date) {
+    const where = { topic: changeReminderDispatchTopic };
+    const activeStatuses: Array<'PENDING' | 'PROCESSING'> = ['PENDING', 'PROCESSING'];
+    const [pending, processing, deadLetter, oldest] = await Promise.all([
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'PENDING' } }),
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'PROCESSING' } }),
+      this.prisma.outboxMessage.count({ where: { ...where, status: 'DEAD_LETTER' } }),
+      this.prisma.outboxMessage.findFirst({
+        where: { ...where, status: { in: activeStatuses } },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+    ]);
+    const oldestPendingAgeMs = oldest === null ? 0 : Math.max(0, now.getTime() - oldest.createdAt.getTime());
+    return {
+      status: deadLetter > 0 || oldestPendingAgeMs >= changeReminderPendingWarningAgeMs
+        ? ('degraded' as const)
+        : ('ok' as const),
       pending,
       processing,
       deadLetter,

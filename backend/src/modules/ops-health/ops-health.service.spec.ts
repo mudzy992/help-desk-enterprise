@@ -19,6 +19,7 @@ import {
   recordTemplatesConfigurationReadRecovery,
 } from '../templates/templates-configuration-health';
 import { notificationTicketMessageFanOutTopic } from '../notifications/fan-out/notification-fan-out-outbox.constants';
+import { changeReminderDispatchTopic } from '../changes/sweep/change-reminder-outbox';
 
 const now = new Date('2026-11-20T10:00:00.000Z');
 const actor = { principal: { subjectId: 'admin-1', email: 'a@x.ba', displayName: 'Admin', isLocalOnly: false }, requestId: 'r1', sessionId: 's1' };
@@ -233,6 +234,38 @@ describe('OpsHealthService', () => {
 
     deadLetter = 1;
     expect((await service.overview(now)).components.notificationFanOutOutbox).toMatchObject({
+      status: 'degraded',
+      deadLetter: 1,
+    });
+  });
+
+  it('reports reminder dispatch backlog so a failed notice stays visible', async () => {
+    const { service, prisma } = setup();
+    let deadLetter = 0;
+    prisma.outboxMessage.count.mockImplementation(async (args: unknown) => {
+      const where = (args as { where: { topic: string | { in?: string[] }; status: string } }).where;
+      if (where.topic !== changeReminderDispatchTopic) return 0;
+      if (where.status === 'PENDING') return 3;
+      if (where.status === 'PROCESSING') return 0;
+      return deadLetter;
+    });
+    prisma.outboxMessage.findFirst.mockImplementation(async (args: unknown) => {
+      const where = (args as { where: { topic: string | { in?: string[] } } }).where;
+      return where.topic === changeReminderDispatchTopic
+        ? { createdAt: new Date(now.getTime() - 60_000) }
+        : null;
+    });
+
+    expect((await service.overview(now)).components.changeReminderOutbox).toEqual({
+      status: 'ok',
+      pending: 3,
+      processing: 0,
+      deadLetter: 0,
+      oldestPendingAgeMs: 60_000,
+    });
+
+    deadLetter = 1;
+    expect((await service.overview(now)).components.changeReminderOutbox).toMatchObject({
       status: 'degraded',
       deadLetter: 1,
     });

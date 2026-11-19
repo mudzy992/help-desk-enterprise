@@ -932,7 +932,9 @@
         "lastRead": "Last read",
         "fails_one": "{{count}} failure in a row",
         "fails_other": "{{count}} failures in a row",
-        "lastError": "Error: {{error}}"
+        "lastError": "Error: {{error}}",
+        "changeReminderOutbox": "Change reminder outbox",
+        "changeReminderOutboxValue": "Pending: {{pending}} · processing: {{processing}} · dead-letter: {{deadLetter}} · oldest: {{age}}"
       },
       "assetOperations": {
         "title": "Asset operational metrics",

@@ -936,7 +936,9 @@
         "fails_one": "{{count}} neuspjeh zaredom",
         "fails_few": "{{count}} neuspjeha zaredom",
         "fails_other": "{{count}} neuspjeha zaredom",
-        "lastError": "Greška: {{error}}"
+        "lastError": "Greška: {{error}}",
+        "changeReminderOutbox": "Red podsjetnika na promjene",
+        "changeReminderOutboxValue": "Na čekanju: {{pending}} · u obradi: {{processing}} · u mrtvom redu: {{deadLetter}} · najstarije: {{age}}"
       },
       "assetOperations": {
         "title": "Operativne metrike imovine",
