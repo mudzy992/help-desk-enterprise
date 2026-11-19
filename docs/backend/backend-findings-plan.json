@@ -2196,7 +2196,7 @@
     {
       "id": "BA-knowledge-base-03",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "25-knowledge-base.md",
       "owner": "WS-F",
       "wave": 7
@@ -2260,7 +2260,7 @@
     {
       "id": "BA-knowledge-base-11",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "25-knowledge-base.md",
       "owner": "WS-F",
       "wave": 7

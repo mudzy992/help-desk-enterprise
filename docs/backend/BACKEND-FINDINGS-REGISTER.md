@@ -384,7 +384,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 24 | `changes` | `BA-changes-20` | P3 | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice | otvoreno | [24-changes.md](audits/24-changes.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-01` | P1 | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea | zatvoreno (W7.49) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-02` | P1 | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno (W7.50) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
-| 25 | `knowledge-base` | `BA-knowledge-base-03` | P1 | Article edit/lifecycle nema version/CAS ni review vezan za content revision | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
+| 25 | `knowledge-base` | `BA-knowledge-base-03` | P1 | Article edit/lifecycle nema version/CAS ni review vezan za content revision | zatvoreno (W7.51) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-04` | P1 | Article list i portal učitavaju neograničen matching/published korpus | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-05` | P2 | INTERNAL default je company-wide read bez OU/service granice | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-06` | P2 | Intercept resolution prihvata foreign scope i hidden/unpublished article ID | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
@@ -392,7 +392,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 25 | `knowledge-base` | `BA-knowledge-base-08` | P2 | From-reply article/event/audit nije idempotentan ni atomaran | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-09` | P2 | Placement/category mutation nije atomska sa auditom/change-logom | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-10` | P2 | Category archive guard je TOCTOU prema paralelnom article placementu | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
-| 25 | `knowledge-base` | `BA-knowledge-base-11` | P2 | Slug alokacija je read-before-create bez conflict retry ugovora | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
+| 25 | `knowledge-base` | `BA-knowledge-base-11` | P2 | Slug alokacija je read-before-create bez conflict retry ugovora | zatvoreno (W7.51) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-12` | P2 | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-13` | P2 | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-14` | P2 | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |

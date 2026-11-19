@@ -143,7 +143,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | -------------------- | -------- | ----------------------------------------------------------------------------------------- | -------- |
 | BA-knowledge-base-01 | P1       | Owner i owner-group član pišu bez knowledge permissiona i aktuelnog OU/service scopea    | zatvoreno |
 | BA-knowledge-base-02 | P1       | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno |
-| BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | otvoreno |
+| BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | zatvoreno |
 | BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | otvoreno |
 | BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | otvoreno |
 | BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | otvoreno |
@@ -151,7 +151,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | otvoreno |
 | BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | otvoreno |
 | BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | otvoreno |
-| BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | otvoreno |
+| BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
 | BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | otvoreno |
 | BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | otvoreno |
 | BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | otvoreno |
@@ -259,3 +259,19 @@ novijim (rješava node CVE-2026-123864/123865/123866/123872), a `libssl3`/`libcr
 podignuti na zakrpljeni Alpine build (CVE-2026-95691/95692/107496/88823) — bez toga nijedan naredni paket ne bi
 mogao proći gate. Dokaz:
 [271-w750-knowledge-base-02-reviewer-delegation.md](../implementation/271-w750-knowledge-base-02-reviewer-delegation.md).
+
+## 21. Implementacijski closeout — W7.51 (`BA-knowledge-base-03`, `BA-knowledge-base-11`)
+
+Na `be3a5fb`, uz zeleni CI `44490811652`, edit i sve lifecycle akcije imaju revision token i transakcijski
+compare-and-set: `updateMany({ id, status, updatedAt })` sa provjerom `count === 1` i `findUniqueOrThrow` u
+istoj transakciji, a opcioni `If-Match` header (`updatedAt`) daje ranu 409 `STALE_WRITE` prije ijedne
+autorizacijske provjere. Predikat nosi i `status`, pa odluka donesena nad zastarjelim statusom pada kao
+konflikt umjesto tihe promjene, a change-log `before` više ne može opisati stanje koje je u međuvremenu
+izmijenjeno. Review je vezan za tačan sadržaj: svaka promjena sadržaja čisti `lastReviewedAt` (i u `IN_REVIEW`),
+pa approve → izmjena teksta → publish završava na `PUBLISH_REVIEW_REQUIRED` dok se novi tekst ne odobri;
+izmjena samo metapodataka review ne gasi. Slug alokacija više ne vraća sirov unique konflikt: `P2002` pokreće
+retry cijele transakcije sa sljedećim slobodnim suffixom (do tri pokušaja, pa `SLUG_TAKEN`), a putanja sa
+pozivaočevom transakcijom prevodi `P2002` u `SLUG_TAKEN`. Nema migracije — `updatedAt` je postojeći token;
+preostali milisekundni prozor i eventualna `version` kolona navedeni su u closeoutu kao otvoren rizik koji
+traži odobrenje. Dokaz:
+[272-w751-knowledge-base-03-cas-and-review-binding.md](../implementation/272-w751-knowledge-base-03-cas-and-review-binding.md).
