@@ -24,6 +24,52 @@ describe('GET /search query contract', () => {
     expect((await validateQuery({ q: tooLong })).errors).not.toHaveLength(0);
   });
 
+  it('normalizes before it validates, so padding cannot buy length', async () => {
+    // W7.56 (BA-search-02): these used to pass `MinLength(2)` and then trim to
+    // an empty or one-character needle.
+    for (const q of [
+      '  ',
+      '\u00a0\u00a0',
+      '\u3000\u3000',
+      '\n\t',
+      ' a ',
+      '\u200b\u200ba',
+      '\u200b\u200bv',
+      '\u200b\u200b',
+      '\u0000\u0000',
+    ]) {
+      expect([q, (await validateQuery({ q })).errors]).toEqual([
+        q,
+        expect.arrayContaining([expect.objectContaining({ property: 'q' })]),
+      ]);
+    }
+    expect((await validateQuery({ q: '  vp  ' })).errors).toHaveLength(0);
+  });
+
+  it('counts characters, so a single emoji is not a two-character query', async () => {
+    expect((await validateQuery({ q: '\ud83d\udc4d' })).errors).not.toHaveLength(0);
+    expect(
+      (await validateQuery({ q: '\ud83d\udc4d\ud83d\udc4d' })).errors,
+    ).toHaveLength(0);
+  });
+
+  it('hands the normalized needle to the query mapping', async () => {
+    const { dto, errors } = await validateQuery({ q: '  \uff36\uff30\uff2e\u00a0' });
+    expect(errors).toHaveLength(0);
+    // NFKC folds the fullwidth letters and the whitespace is trimmed.
+    expect(dto.q).toBe('VPN');
+    expect(toSearchQuery(dto)).toMatchObject({ q: 'VPN' });
+  });
+
+  it('bounds the ceiling after normalization', async () => {
+    const expanding = '\ufb01'.repeat(
+      searchConstants.maximumQueryLength / 2 + 1,
+    );
+    // 101 characters on the wire, 202 after NFKC.
+    expect(expanding).toHaveLength(101);
+    expect((await validateQuery({ q: expanding })).errors).not.toHaveLength(0);
+  });
+
   it('accepts a limit inside 1–25 and refuses anything outside', async () => {
     expect((await validateQuery({ q: 'vpn', limit: 25 })).errors).toHaveLength(0);
     expect((await validateQuery({ q: 'vpn', limit: 1 })).errors).toHaveLength(0);
@@ -53,5 +99,13 @@ describe('GET /search query contract', () => {
     expect(
       toSearchQuery(plainToInstance(SearchQueryDto, { q: 'vpn', limit: 25 })),
     ).toMatchObject({ limit: 25 });
+  });
+
+  it('normalizes even when the DTO is built without validation', () => {
+    // The mapping repeats the normalization, so a hand-built DTO cannot smuggle
+    // a padded needle into the service.
+    expect(
+      toSearchQuery(plainToInstance(SearchQueryDto, { q: '  vpn\u00a0 pristup ' })),
+    ).toMatchObject({ q: 'vpn pristup' });
   });
 });

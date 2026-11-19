@@ -1,9 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
 import { TicketsService } from '../tickets/tickets.service';
 import type { TicketMutationContext } from '../tickets/tickets.types';
+import {
+  countSearchQueryCharacters,
+  isUsableSearchQuery,
+  normalizeSearchQuery,
+} from './normalize-search-query';
 import { searchConstants } from './search.constants';
 import {
   resolveDirectorySearchGrant,
@@ -31,27 +36,45 @@ export class SearchService {
     query: SearchQuery,
     context: TicketMutationContext,
   ): Promise<SearchResponse> {
+    // W7.56: the HTTP path normalizes and validates `q` in the DTO; the service
+    // repeats both so a caller that builds `SearchQuery` by hand can never send
+    // an empty needle (an empty `contains` matches the newest rows of a group).
+    const usable = this.requireUsableQuery(query);
     const types = new Set(query.types);
     const [tickets, articles, users] = await Promise.all([
       types.has('ticket')
         ? this.ticketsService.searchTickets(
-            { q: query.q, limit: query.limit },
+            { q: usable.q, limit: usable.limit },
             context,
           )
         : Promise.resolve([]),
       types.has('article')
         ? this.knowledgeBaseService.searchTitles(
             {
-              q: query.q,
-              limit: query.limit,
+              q: usable.q,
+              limit: usable.limit,
               candidateMultiplier: searchConstants.candidateMultiplier,
             },
             context,
           )
         : Promise.resolve([]),
-      types.has('user') ? this.searchUsers(query, context) : Promise.resolve([]),
+      types.has('user')
+        ? this.searchUsers(usable, context)
+        : Promise.resolve([]),
     ]);
     return { tickets, articles, users };
+  }
+
+  private requireUsableQuery(query: SearchQuery): SearchQuery {
+    const q = normalizeSearchQuery(query.q);
+    if (!isUsableSearchQuery(q)) {
+      throw new BadRequestException(
+        `q must contain between ${searchConstants.minimumQueryLength} and ` +
+          `${searchConstants.maximumQueryLength} characters after normalization ` +
+          `(got ${countSearchQueryCharacters(q)})`,
+      );
+    }
+    return { ...query, q };
   }
 
   private async searchUsers(

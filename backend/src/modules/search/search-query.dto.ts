@@ -7,24 +7,34 @@ import {
   IsOptional,
   IsString,
   Max,
-  MaxLength,
   Min,
-  MinLength,
+  Validate,
 } from 'class-validator';
 import { toQueryList } from '../tickets/list/list-query-transforms';
+import { normalizeSearchQuery } from './normalize-search-query';
 import { searchConstants, searchTypes } from './search.constants';
+import { SearchQueryLengthConstraint } from './search-query.constraints';
 import type { SearchType } from './search.types';
 
 /**
  * `GET /search?q=&types=ticket,article,user&limit=15` (plan §1.2).
  *
- * `q` needs at least two characters, `limit` is clamped by validation to
- * `[1, 25]`, and `types` defaults to all three groups.
+ * `q` is **normalized before it is validated** (W7.56, `normalize-search-query.ts`):
+ * NFKC, zero-width/format characters removed, whitespace collapsed and trimmed.
+ * The length rule therefore applies to the effective needle and needs at least
+ * two characters of content — two spaces, a space plus one letter, one emoji or
+ * two zero-width characters are refused instead of becoming an empty `contains`
+ * that would return the newest visible rows of every group.
+ *
+ * `limit` is clamped by validation to `[1, 25]`, and `types` defaults to all
+ * three groups.
  */
 export class SearchQueryDto {
+  @Transform(({ value }) =>
+    typeof value === 'string' ? normalizeSearchQuery(value) : value,
+  )
   @IsString()
-  @MinLength(searchConstants.minimumQueryLength)
-  @MaxLength(searchConstants.maximumQueryLength)
+  @Validate(SearchQueryLengthConstraint)
   q!: string;
 
   @IsOptional()
@@ -49,7 +59,9 @@ export function toSearchQuery(dto: SearchQueryDto): {
   readonly limit: number;
 } {
   return {
-    q: dto.q.trim(),
+    // Normalization is idempotent, so the mapping repeats it: a caller that
+    // builds the DTO by hand gets the same needle the HTTP path produces.
+    q: normalizeSearchQuery(dto.q),
     types: dto.types === undefined ? searchTypes : dto.types,
     limit: Math.min(
       Math.max(dto.limit ?? searchConstants.defaultLimit, 1),

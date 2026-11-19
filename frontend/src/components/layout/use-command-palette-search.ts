@@ -8,6 +8,29 @@ import {
 export const commandPaletteSearchDelayMs = 250;
 export const commandPaletteMinimumRemoteQueryLength = 2;
 
+/**
+ * W7.56 (BA-search-02): the server normalizes `q` before it validates it and
+ * counts characters, not UTF-16 units. The palette applies the same rule
+ * locally (kept in sync with `backend/src/modules/search/normalize-search-query.ts`),
+ * so a query the API would refuse — padding, zero-width padding, a single
+ * emoji — never costs a request.
+ */
+const commandPaletteFormatCharacters = /[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/gu;
+const commandPaletteControlCharacters = /\p{Cc}/gu;
+
+export function normalizeCommandPaletteQuery(query: string): string {
+  return query
+    .normalize("NFKC")
+    .replace(commandPaletteFormatCharacters, "")
+    .replace(commandPaletteControlCharacters, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+export function countCommandPaletteQueryCharacters(query: string): number {
+  return [...query].length;
+}
+
 export function useCommandPaletteSearch(
   open: boolean,
   query: string,
@@ -17,10 +40,13 @@ export function useCommandPaletteSearch(
 } {
   const [groups, setGroups] = useState<HeaderSearchGroups>(emptyHeaderSearchGroups);
   const [isSearching, setIsSearching] = useState(false);
-  const trimmedQuery = query.trim();
+  const normalizedQuery = normalizeCommandPaletteQuery(query);
 
   useEffect(() => {
-    if (!open || trimmedQuery.length < commandPaletteMinimumRemoteQueryLength) {
+    if (
+      !open ||
+      countCommandPaletteQueryCharacters(normalizedQuery) < commandPaletteMinimumRemoteQueryLength
+    ) {
       setGroups(emptyHeaderSearchGroups);
       setIsSearching(false);
       return;
@@ -28,7 +54,7 @@ export function useCommandPaletteSearch(
     const controller = new AbortController();
     setIsSearching(true);
     const handle = window.setTimeout(() => {
-      void searchHeaderSources(trimmedQuery, controller.signal).then(
+      void searchHeaderSources(normalizedQuery, controller.signal).then(
         (nextGroups) => {
           if (controller.signal.aborted) return;
           setGroups(nextGroups);
@@ -46,7 +72,7 @@ export function useCommandPaletteSearch(
       window.clearTimeout(handle);
       controller.abort();
     };
-  }, [open, trimmedQuery]);
+  }, [open, normalizedQuery]);
 
   return { groups, isSearching };
 }

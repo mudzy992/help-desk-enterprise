@@ -2,7 +2,12 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { searchHeaderSources, type HeaderSearchGroups } from "./header-search-match";
-import { commandPaletteSearchDelayMs, useCommandPaletteSearch } from "./use-command-palette-search";
+import {
+  commandPaletteSearchDelayMs,
+  countCommandPaletteQueryCharacters,
+  normalizeCommandPaletteQuery,
+  useCommandPaletteSearch,
+} from "./use-command-palette-search";
 
 vi.mock("./header-search-match", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./header-search-match")>();
@@ -40,6 +45,37 @@ describe("useCommandPaletteSearch", () => {
     await act(async () => vi.advanceTimersByTimeAsync(1));
     expect(search).toHaveBeenCalledTimes(1);
     expect(result.current.groups.tickets[0]?.id).toBe("result");
+  });
+
+  it("does not spend a request on a query the API would refuse", async () => {
+    search.mockResolvedValue(groups("result"));
+    // W7.56: padding, zero-width characters and a single emoji all count as
+    // fewer than two characters after normalization.
+    const { rerender } = renderHook(({ query }) => useCommandPaletteSearch(true, query), {
+      initialProps: { query: "  " },
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(search).not.toHaveBeenCalled();
+
+    rerender({ query: "\u200b\u200ba" });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(search).not.toHaveBeenCalled();
+
+    rerender({ query: "\ud83d\udc4d" });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(search).not.toHaveBeenCalled();
+  });
+
+  it("sends the NFKC-normalized needle", async () => {
+    search.mockResolvedValue(groups("result"));
+    renderHook(({ query }) => useCommandPaletteSearch(true, query), {
+      initialProps: { query: "  \uff36\uff30\uff2e\u00a0" },
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(search).toHaveBeenCalledWith("VPN", expect.anything());
+    expect(normalizeCommandPaletteQuery(" \uff36\uff30\uff2e ")).toBe("VPN");
+    expect(countCommandPaletteQueryCharacters("\ud83d\udc4d")).toBe(1);
+    expect(countCommandPaletteQueryCharacters("\ud83d\udc4d\ud83d\udc4d")).toBe(2);
   });
 
   it("aborts the previous request and never applies its stale response", async () => {

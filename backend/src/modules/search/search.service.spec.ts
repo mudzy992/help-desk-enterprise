@@ -355,6 +355,33 @@ describe('GET /search', () => {
     ]);
   });
 
+  it('refuses a query that has no two characters of content', async () => {
+    const { service, userQueries, articleCalls, context } = setup();
+    // W7.56: the HTTP DTO already refuses these; the service repeats the rule so
+    // a hand-built query can never reach an empty `contains`.
+    for (const q of ['', '   ', ' a', '\u200b\u200b']) {
+      await expect(
+        service.search(
+          { q, types: [...allTypes], limit: searchConstants.defaultLimit },
+          context(superAdmin),
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    }
+    // Rejected means "not read": no group ran.
+    expect(userQueries).toEqual([]);
+    expect(articleCalls).toEqual([]);
+  });
+
+  it('normalizes the needle it sends to the groups', async () => {
+    const { service, articleCalls, context } = setup();
+    const found = await service.search(
+      { q: '  \uff36\uff30\uff2e\u00a0pristup ', types: ['article'], limit: 15 },
+      context(agentIt),
+    );
+    expect(found.articles).toHaveLength(1);
+    expect(articleCalls).toEqual([{ q: 'VPN pristup', limit: 15 }]);
+  });
+
   it('fails closed for an actor that authorization does not know', async () => {
     const { service, tickets, context } = setup();
     // Same outcome as the list: FORBIDDEN, not an empty answer that could be
