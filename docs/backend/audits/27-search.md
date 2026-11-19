@@ -98,7 +98,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | ID           | Severity | Nalaz                                                                                   | Status   |
 | ------------ | -------- | --------------------------------------------------------------------------------------- | -------- |
 | BA-search-01 | P1       | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | zatvoreno |
-| BA-search-02 | P2       | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | otvoreno |
+| BA-search-02 | P2       | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | zatvoreno |
 | BA-search-03 | P2       | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | otvoreno |
 | BA-search-04 | P2       | KB query učitava cijeli red i hidden body prije visibility odluke                       | otvoreno |
 | BA-search-05 | P2       | Endpoint nema server-side rate limit ni anti-enumeration zaštitu                        | otvoreno |
@@ -114,7 +114,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 ## 11. Ključne korekcije
 
 - **01:** riješeno u W7.55 (`user.directory.read` + OU subtree + e-mail samo za globalni doseg); detalji u §15.
-- **02,10:** normalize-before-validate, Unicode/grapheme pravilo i unique types.
+- **02:** riješeno u W7.56 (normalizacija prije validacije, brojanje karaktera, granik poslije NFKC); `10` ostaje otvoren.
 - **03–04:** DB scope pushdown ili bounded cursor scan, incomplete contract i minimalna article projekcija.
 - **05,07:** Redis actor/IP token bucket, timeout/query budget i EXPLAIN/index dokaz.
 - **06:** primijeniti korekcije delegacije iz audita 25 prije oslanjanja na centralni KB predicate.
@@ -207,3 +207,31 @@ kandidati i minimalna projekcija), `05` (rate limit/anti-enumeration), `06` (KB 
 **Preostali rizik:** postojeće ADMIN role nemaju `user.directory.read` red (nema migracije), pa legacy grana
 ostaje dok se ne izvede kontrolisani backfill; unscoped `ADMIN` bez permisije i dalje čita cijeli imenik, ali bez
 e-maila. Vodič `uloge-i-dozvole` navodi 63 permisije (stvarni katalog 69) — drift stariji od ovog paketa.
+
+## 16. Implementacijski closeout — W7.56 (`BA-search-02`)
+
+**Status nalaza:** `BA-search-02` (P2) **zatvoren**; paket W7.56, kod `989ad15`, **bez migracije**.
+Detalji: [277](../implementation/277-w756-search-02-query-normalization.md).
+
+**Šta je bilo:** `@MinLength(2)`/`@MaxLength(200)` su se provjeravali na sirovom stringu, a `toSearchQuery` je
+trimovao poslije. `?q=%20%20` je tako postao prazan needle (`contains ''` → najnoviji vidljivi redovi svake
+grupe), `?q=%20a` jednoslovni, a dva zero-width karaktera ili jedan emoji prolazili su kao „dva znaka”.
+
+**Šta je sada:** jedno pravilo u `normalize-search-query.ts` (NFKC → uklanjanje format/zero-width karaktera →
+kontrolni u razmak → kolaps whitespacea → trim, idempotentno) izvršava se **prije validacije** (`@Transform`), a
+`SearchQueryLengthConstraint` broji karaktere normalizovane vrijednosti. `toSearchQuery` normalizuje i ručno
+konstruisan DTO, a `SearchService.search` normalizuje i odbija neupotrebljiv upit sa `400` prije nego pokrene
+ijednu grupu. Gornji granik od 200 karaktera važi poslije NFKC preslikavanja (koje može proširiti unos).
+Paleta primjenjuje isto pravilo lokalno i šalje normalizovan needle.
+
+**Acceptance:** §14.2 je ispunjen (effective normalizovan upit kraći od dva znaka uvijek se odbija, i na DTO i
+na servisnom putu). Dokaz: `normalize-search-query.spec.ts` (9), `search-query.dto.spec.ts` (+5),
+`search.service.spec.ts` (+2), `use-command-palette-search.spec.tsx` (+2).
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `BA-search-03`/`04` (KB kandidati i minimalna projekcija), `05`
+(rate limit/anti-enumeration), `06` (KB owner/reviewer scope), `07` (query plan), `08` (partial/fail-closed
+ugovor). P3: `09` (stable order), `10` (`ArrayUnique`), `11` (telemetrija), `12` (confidential/arhiva), `13`
+(E2E za `/search`).
+
+**Preostali rizik:** upit bez dva znaka sadržaja sada vraća `400` (stariji klijenti sa jednoslovnim upitom
+dobijaju grešku umjesto širokog rezultata); klijentsko i serversko pravilo su dvije implementacije iste norme.
