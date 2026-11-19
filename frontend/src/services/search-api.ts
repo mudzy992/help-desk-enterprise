@@ -26,6 +26,11 @@ export type GlobalSearchResponse = {
   readonly tickets: readonly TicketSearchHit[];
   readonly articles: readonly ArticleSearchHit[];
   readonly users: readonly UserSearchHit[];
+  /**
+   * W7.57 (BA-search-03): `true` kada je server stao sa skeniranjem članaka
+   * prije nego što su svi pogoci pročitani — grupa je tada samo prefiks.
+   */
+  readonly articlesIncomplete: boolean;
 };
 
 export type GlobalSearchOptions = {

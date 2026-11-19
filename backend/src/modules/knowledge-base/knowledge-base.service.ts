@@ -18,7 +18,7 @@ import type {
 import { listKnowledgeArticles } from './list-knowledge-articles';
 import {
   searchKnowledgeArticleTitles,
-  type KnowledgeArticleTitleMatch,
+  type KnowledgeArticleTitleSearchResult,
 } from './search-knowledge-article-titles';
 import { loadViewerKnowledgeVotes } from './load-viewer-knowledge-feedback-votes';
 import { loadKnowledgeArticleLabels } from './load-knowledge-article-labels';
@@ -104,16 +104,17 @@ export class KnowledgeBaseService {
 
   /**
    * Article hits of `GET /search` (plan §1.2). Same visibility as `list`: the
-   * candidates are bounded, then filtered by `isKnowledgeArticleVisibleTo`.
+   * candidates are read as a bounded keyset scan and every batch is filtered by
+   * the shared batch visibility check. `incomplete` says whether the scan
+   * stopped before exhausting the matching rows (W7.57, BA-search-03).
    */
   searchTitles(
     query: {
       readonly q: string;
       readonly limit: number;
-      readonly candidateMultiplier: number;
     },
     context: KnowledgeArticleMutationContext,
-  ): Promise<readonly KnowledgeArticleTitleMatch[]> {
+  ): Promise<KnowledgeArticleTitleSearchResult> {
     return executeKnowledgeBaseOperation(() =>
       searchKnowledgeArticleTitles({
         prisma: this.prisma,
@@ -121,7 +122,6 @@ export class KnowledgeBaseService {
         context,
         query: query.q,
         limit: query.limit,
-        candidateMultiplier: query.candidateMultiplier,
       }),
     );
   }

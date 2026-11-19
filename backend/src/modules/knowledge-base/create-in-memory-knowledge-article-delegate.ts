@@ -11,7 +11,15 @@ export type ArticleWhere = {
   readonly serviceId?: string;
   readonly categoryId?: string | null;
   readonly archivedAt?: null;
-  readonly status?: KnowledgeArticleRecord['status'];
+  /** W7.57 (BA-search-03): the title search pushes `status: { not }` down. */
+  readonly status?:
+    | KnowledgeArticleRecord['status']
+    | { readonly not: KnowledgeArticleRecord['status'] };
+  /** W7.57 (BA-search-03): the title search pushes `title contains` down. */
+  readonly title?: {
+    readonly contains: string;
+    readonly mode?: 'insensitive' | 'default';
+  };
   readonly organizationalUnitId?: string | { in: readonly string[] };
 };
 
@@ -180,7 +188,34 @@ function matchesArticle(
   ) {
     return false;
   }
-  return where.status === undefined || article.status === where.status;
+  if (where.title !== undefined && !matchesTitle(article.title, where.title)) {
+    return false;
+  }
+  return matchesStatus(article.status, where.status);
+}
+
+function matchesTitle(
+  title: string,
+  expected: { readonly contains: string; readonly mode?: 'insensitive' | 'default' },
+): boolean {
+  const needle = expected.contains;
+  return expected.mode === 'insensitive'
+    ? title.toLowerCase().includes(needle.toLowerCase())
+    : title.includes(needle);
+}
+
+function matchesStatus(
+  status: InMemoryKnowledgeArticle['status'],
+  expected?:
+    | InMemoryKnowledgeArticle['status']
+    | { readonly not: InMemoryKnowledgeArticle['status'] },
+): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  return typeof expected === 'string'
+    ? status === expected
+    : status !== expected.not;
 }
 
 function matchesId(id: string, expected: string | { readonly gt: string }): boolean {

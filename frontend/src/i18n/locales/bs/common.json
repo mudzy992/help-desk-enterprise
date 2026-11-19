@@ -6817,7 +6817,8 @@
     "navigateHint": "pomjeri se",
     "selectHint": "otvori",
     "closeHint": "zatvori",
-    "searching": "Pretraga u toku…"
+    "searching": "Pretraga u toku…",
+    "articlesIncomplete": "Prikazani su najnoviji članci; još pogodaka postoji — otvori bazu znanja za punu pretragu."
   },
   "adminRealtime": {
     "domains": {

@@ -41,28 +41,32 @@ export class SearchService {
     // an empty needle (an empty `contains` matches the newest rows of a group).
     const usable = this.requireUsableQuery(query);
     const types = new Set(query.types);
-    const [tickets, articles, users] = await Promise.all([
+    const [tickets, articleResult, users] = await Promise.all([
       types.has('ticket')
         ? this.ticketsService.searchTickets(
             { q: usable.q, limit: usable.limit },
             context,
           )
         : Promise.resolve([]),
+      // W7.57 (BA-search-03): the article group is a bounded keyset scan, so it
+      // also reports whether it had to stop early. A group that was not
+      // requested is not "incomplete" — it is simply absent.
       types.has('article')
         ? this.knowledgeBaseService.searchTitles(
-            {
-              q: usable.q,
-              limit: usable.limit,
-              candidateMultiplier: searchConstants.candidateMultiplier,
-            },
+            { q: usable.q, limit: usable.limit },
             context,
           )
-        : Promise.resolve([]),
+        : Promise.resolve({ items: [], incomplete: false }),
       types.has('user')
         ? this.searchUsers(usable, context)
         : Promise.resolve([]),
     ]);
-    return { tickets, articles, users };
+    return {
+      tickets,
+      articles: articleResult.items,
+      users,
+      articlesIncomplete: articleResult.incomplete,
+    };
   }
 
   private requireUsableQuery(query: SearchQuery): SearchQuery {

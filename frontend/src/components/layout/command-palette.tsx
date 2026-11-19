@@ -230,6 +230,16 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
                     );
                   })}
                 </ul>
+                {/* W7.57 (BA-search-03): the article group is a server-side
+                    prefix; say so instead of implying the list is complete. */}
+                {section.key === "articles" && groups.articlesIncomplete ? (
+                  <p
+                    role="note"
+                    className="px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground"
+                  >
+                    {t("palette.articlesIncomplete")}
+                  </p>
+                ) : null}
               </div>
             ))}
 

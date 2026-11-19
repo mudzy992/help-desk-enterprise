@@ -29,6 +29,15 @@ export type SearchResponse = {
   readonly tickets: readonly TicketSearchMatch[];
   readonly articles: readonly ArticleSearchMatch[];
   readonly users: readonly UserSearchMatch[];
+  /**
+   * W7.57 (BA-search-03): `true` when the article group stopped scanning before
+   * the matching rows were exhausted (the scan budget ran out, or more hits
+   * existed than `limit` allows). `false` means the group is exhaustive. Ticket
+   * and user groups keep their existing contract; this flag is the article
+   * group's "incomplete" signal, so a short or empty list never claims "nothing
+   * else matches" when the answer was cut.
+   */
+  readonly articlesIncomplete: boolean;
 };
 
 export type SearchQuery = {

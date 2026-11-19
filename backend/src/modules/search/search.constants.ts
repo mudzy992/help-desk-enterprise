@@ -9,9 +9,11 @@ export const searchConstants = {
   minimumQueryLength: 2,
   maximumQueryLength: 200,
   /**
-   * Candidate rows read per group before the visibility filter runs: a candidate
-   * may be dropped (confidential ticket, article of another scope), so a few
-   * extra rows are read to still fill the group.
+   * W7.57 (BA-search-03): the former `candidateMultiplier` (3) read
+   * `limit × 3` article candidates and filtered them afterwards, which could
+   * hide visible hits. Knowledge articles now walk the table in bounded
+   * batches (`knowledgeBaseConstants.listScanBatchSize` /
+   * `maximumListScanBatches`) and report `articlesIncomplete`, so a plain
+   * multiplier no longer exists.
    */
-  candidateMultiplier: 3,
 } as const;

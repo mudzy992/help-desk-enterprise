@@ -15,12 +15,19 @@ export type HeaderSearchGroups = {
   readonly tickets: readonly HeaderSearchHit[];
   readonly articles: readonly HeaderSearchHit[];
   readonly users: readonly HeaderSearchHit[];
+  /**
+   * W7.57 (BA-search-03): server je stao sa skeniranjem članaka prije nego što
+   * su svi pogoci pročitani, pa je grupa članaka samo prefiks. Paleta to mora
+   * reći umjesto da izgleda kao da drugih rezultata nema.
+   */
+  readonly articlesIncomplete: boolean;
 };
 
 export const emptyHeaderSearchGroups: HeaderSearchGroups = {
   tickets: [],
   articles: [],
   users: [],
+  articlesIncomplete: false,
 };
 
 export function flattenHeaderSearchHits(groups: HeaderSearchGroups): readonly HeaderSearchHit[] {
@@ -40,6 +47,8 @@ export function toHeaderSearchGroups(
     readonly tickets: readonly { id: string; ticketNumber: string; title: string }[];
     readonly articles: readonly { id: string; slug: string; title: string }[];
     readonly users: readonly { id: string; displayName: string; email: string | null }[];
+    /** W7.57: `GET /search` kaže da je grupa članaka skraćena. */
+    readonly articlesIncomplete?: boolean;
   },
 ): HeaderSearchGroups {
   const trimmed = query.trim();
@@ -67,6 +76,9 @@ export function toHeaderSearchGroups(
       subtitle: user.email ?? "",
       href: `/users?q=${encodeURIComponent(user.displayName)}`,
     })),
+    // W7.57: only an explicit `true` from the server means "cut short"; an
+    // older server without the field keeps the previous, silent behaviour.
+    articlesIncomplete: response.articlesIncomplete === true,
   };
 }
 

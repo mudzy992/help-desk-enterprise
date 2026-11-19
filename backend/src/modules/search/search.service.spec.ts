@@ -46,10 +46,16 @@ function setup() {
   // The article group is stubbed: this spec is about the wiring and about the
   // ticket scope, while the visibility of articles has its own tests.
   const articleCalls: { q: string; limit: number }[] = [];
+  // W7.57 (BA-search-03): the reader answers `{ items, incomplete }` — the
+  // bounded scan decides completeness, the search service only surfaces it.
+  const articleState = { incomplete: false };
   const knowledgeBase = {
     searchTitles: async (query: { q: string; limit: number }) => {
       articleCalls.push({ q: query.q, limit: query.limit });
-      return [{ id: 'article-1', slug: 'reset-lozinke', title: `Reset ${query.q}` }];
+      return {
+        items: [{ id: 'article-1', slug: 'reset-lozinke', title: `Reset ${query.q}` }],
+        incomplete: articleState.incomplete,
+      };
     },
   };
   // The people group reads `user.findMany`; the harness has no user delegate,
@@ -147,6 +153,7 @@ function setup() {
     // search answers with what `GET /tickets` answers.
     tickets: harness.tickets,
     articleCalls,
+    articleState,
     userQueries,
     unitQueries,
     context,
@@ -244,9 +251,30 @@ describe('GET /search', () => {
     );
     expect(articlesOnly.articles).toHaveLength(1);
     expect(articlesOnly.tickets).toEqual([]);
-    // The knowledge-base reader receives the multiplier that bounds its
-    // candidate read before the visibility filter.
+    // The knowledge-base reader receives the needle and the limit only: the
+    // candidate window is the reader's own bounded scan (W7.57), not a
+    // multiplier handed down by the search service.
     expect(articleCalls).toEqual([{ q: 'vpn', limit: 15 }]);
+    expect(articlesOnly.articlesIncomplete).toBe(false);
+  });
+
+  it('surfaces an incomplete article group instead of claiming completeness', async () => {
+    const { service, articleState, context } = setup();
+    articleState.incomplete = true;
+    const found = await service.search(
+      { q: 'vpn', types: ['article'], limit: 15 },
+      context(agentIt),
+    );
+    // The group is still answered; the flag says the scan stopped early.
+    expect(found.articles).toHaveLength(1);
+    expect(found.articlesIncomplete).toBe(true);
+
+    // A group that was not requested is absent, not incomplete.
+    const ticketsOnly = await service.search(
+      { q: 'vpn', types: ['ticket'], limit: 15 },
+      context(agentIt),
+    );
+    expect(ticketsOnly.articlesIncomplete).toBe(false);
   });
 
   it('answers the people group only to the roles that may read the directory', async () => {

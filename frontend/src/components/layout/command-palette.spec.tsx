@@ -4,11 +4,24 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./command-palette";
 
-const searchState = vi.hoisted(() => ({ isSearching: false }));
+const searchState = vi.hoisted(() => ({
+  isSearching: false,
+  groups: {
+    tickets: [],
+    articles: [],
+    users: [],
+    articlesIncomplete: false,
+  } as {
+    tickets: unknown[];
+    articles: unknown[];
+    users: unknown[];
+    articlesIncomplete: boolean;
+  },
+}));
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 vi.mock("@/components/layout/use-command-palette-search", () => ({
   useCommandPaletteSearch: () => ({
-    groups: { tickets: [], articles: [], users: [] },
+    groups: searchState.groups,
     isSearching: searchState.isSearching,
   }),
 }));
@@ -34,6 +47,12 @@ function LocationProbe() {
 describe("CommandPalette", () => {
   beforeEach(() => {
     searchState.isSearching = false;
+    searchState.groups = {
+      tickets: [],
+      articles: [],
+      users: [],
+      articlesIncomplete: false,
+    };
   });
   afterEach(cleanup);
 
@@ -92,5 +111,38 @@ describe("CommandPalette", () => {
     searchState.isSearching = false;
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "still-missing" } });
     expect(screen.getByText("palette.noResults")).toBeTruthy();
+  });
+
+  it("says the article group is only a prefix when the server was cut short", () => {
+    // W7.57 (BA-search-03): an incomplete article group must not look complete.
+    searchState.groups = {
+      tickets: [],
+      users: [],
+      articlesIncomplete: true,
+      articles: [
+        {
+          id: "article-1",
+          kind: "article",
+          title: "Reset lozinke",
+          subtitle: "reset-lozinke",
+          href: "/knowledge-base?q=vpn",
+        },
+      ],
+    };
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "vpn" } });
+    expect(screen.getByText("palette.articlesIncomplete")).toBeTruthy();
+
+    searchState.groups = { ...searchState.groups, articlesIncomplete: false };
+    rerender(
+      <MemoryRouter initialEntries={["/start"]}>
+        <CommandPalette open onOpenChange={vi.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText("palette.articlesIncomplete")).toBeNull();
   });
 });

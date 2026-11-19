@@ -15,10 +15,11 @@ vi.mock("./header-search-match", async (importOriginal) => {
 });
 
 const search = vi.mocked(searchHeaderSources);
-const groups = (id: string): HeaderSearchGroups => ({
+const groups = (id: string, articlesIncomplete = false): HeaderSearchGroups => ({
   tickets: [{ id, kind: "ticket", title: id, subtitle: "", href: `/tickets/${id}` }],
   articles: [],
   users: [],
+  articlesIncomplete,
 });
 
 describe("useCommandPaletteSearch", () => {
@@ -76,6 +77,17 @@ describe("useCommandPaletteSearch", () => {
     expect(normalizeCommandPaletteQuery(" \uff36\uff30\uff2e ")).toBe("VPN");
     expect(countCommandPaletteQueryCharacters("\ud83d\udc4d")).toBe(1);
     expect(countCommandPaletteQueryCharacters("\ud83d\udc4d\ud83d\udc4d")).toBe(2);
+  });
+
+  it("keeps the incomplete article flag the server sent", async () => {
+    // W7.57 (BA-search-03): the hook applies the groups verbatim, so the flag
+    // that tells the palette "this is only a prefix" survives the debounce.
+    search.mockResolvedValue(groups("result", true));
+    const { result } = renderHook(({ query }) => useCommandPaletteSearch(true, query), {
+      initialProps: { query: "vpn" },
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(commandPaletteSearchDelayMs));
+    expect(result.current.groups.articlesIncomplete).toBe(true);
   });
 
   it("aborts the previous request and never applies its stale response", async () => {

@@ -77,6 +77,15 @@ describe("header search projection", () => {
     expect(flat.at(-1)?.kind).toBe("user");
   });
 
+  it("carries the server's incomplete flag for the article group", () => {
+    // W7.57 (BA-search-03): a cut article group must stay visible as such.
+    expect(
+      toHeaderSearchGroups("vpn", { ...response, articlesIncomplete: true }).articlesIncomplete,
+    ).toBe(true);
+    // An older server without the field keeps the previous behaviour.
+    expect(toHeaderSearchGroups("vpn", response).articlesIncomplete).toBe(false);
+  });
+
   it("answers with empty groups for any response shape without hits", () => {
     expect(toHeaderSearchGroups("vpn", { tickets: [], articles: [], users: [] })).toEqual(
       emptyHeaderSearchGroups,
