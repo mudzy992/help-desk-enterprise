@@ -96,6 +96,9 @@ export const integrationSpecs = Object.freeze([
   "src/modules/assets/asset-scheduler-reconciliation.integration.spec.ts",
   "src/modules/assets/reminders/asset-reminder-email-delivery.integration.spec.ts",
   "src/modules/ops-health/ops-alert.engine.integration.spec.ts",
+  // W7.61 (BA-search-07): EXPLAIN evidence for the two `contains` scans of
+  // `GET /search` (directory and knowledge-base title).
+  "src/modules/search/search-query-plan.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

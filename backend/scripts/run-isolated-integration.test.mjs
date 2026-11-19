@@ -270,6 +270,13 @@ test("svaki service-catalog PostgreSQL integration spec je registrovan za CI", (
   );
 });
 
+test("BA-search-07 query-plan PostgreSQL integration spec je registrovan za CI", () => {
+  assert.ok(
+    integrationSpecs.includes("src/modules/search/search-query-plan.integration.spec.ts"),
+    "nedostaje BA-search-07 EXPLAIN shard za `contains` nad imenikom i KB naslovom",
+  );
+});
+
 test("mijenja samo database pathname u URL-u", () => {
   const result = new URL(withDatabaseName(
     "postgresql://user:pass@127.0.0.1:5432/template?schema=public",
