@@ -10173,6 +10173,7 @@
       "cancelledAt": "Otkazana",
       "cancelReason": "Razlog otkazivanja",
       "notSet": "Nije uneseno.",
+      "redactedForRole": "Skriveno — tvoja rola nema pristup ovom dijelu zapisa.",
       "yes": "Da",
       "no": "Ne"
     },

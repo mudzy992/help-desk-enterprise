@@ -181,6 +181,17 @@ export class ChangeAccessService {
    */
   async isCabMember(viewer: ChangeViewer, cabGroupId: string | null): Promise<boolean> {
     if (cabGroupId === null || !viewerHasPermission(viewer, permissionKeys.changeApprove)) return false;
+    return this.isCabGroupMember(viewer, cabGroupId);
+  }
+
+  /**
+   * W7.65: raw membership, without the `change.approve` requirement. The
+   * visibility exception in `changeVisibilityWhere` is membership-based, so a
+   * CAB member who may read but not vote must still be recognised — and then
+   * served the narrowest projection instead of the full document.
+   */
+  async isCabGroupMember(viewer: ChangeViewer, cabGroupId: string | null): Promise<boolean> {
+    if (cabGroupId === null) return false;
     return (await this.prisma.groupMember.count({ where: { groupId: cabGroupId, userId: viewer.userId } })) > 0;
   }
 

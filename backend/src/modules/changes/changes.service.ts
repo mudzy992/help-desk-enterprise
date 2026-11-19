@@ -37,7 +37,12 @@ import type { ChangeVoterSnapshot } from './change-voter-snapshot';
 import { changeUpdateAffectsDowntime, enqueueChangeDowntimeSync } from './change-downtime-outbox';
 import { ChangeNotifier } from './change-notifier';
 import { ChangeScheduleService } from './change-schedule.service';
-import { changeVisibilityWhere } from './change-visibility';
+import {
+  changeDetailLevel,
+  changeVisibilityWhere,
+  projectChangeEventDetail,
+  type ChangeDetailLevel,
+} from './change-visibility';
 import { loadCabVoterIds } from './load-cab-voters';
 import type { ChangeActionDto, CreateChangeDto, UpdateChangeDto } from './changes.dto';
 import {
@@ -363,12 +368,16 @@ export class ChangesService {
   async get(viewer: ChangeViewer, id: string) {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
     const row = await this.loadInScope(id, scope, viewer);
-    return this.toDetail(viewer, row, await this.access.configuration());
+    // W7.65: the visibility exception decides *that* the row is readable; this
+    // decides how much of it the role actually needs.
+    const level = await this.detailLevelFor(viewer, row, scope);
+    return this.toDetail(viewer, row, await this.access.configuration(), level);
   }
 
   async events(viewer: ChangeViewer, id: string) {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
-    await this.loadInScope(id, scope, viewer);
+    const row = await this.loadInScope(id, scope, viewer);
+    const level = await this.detailLevelFor(viewer, row, scope);
     const events = await this.prisma.changeEvent.findMany({
       where: { changeId: id },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -383,7 +392,9 @@ export class ChangesService {
         id: event.id,
         action: event.action,
         actor: event.actorUserId === null ? null : (byId.get(event.actorUserId) ?? null),
-        detail: redactProblemHistory(event.detail),
+        // W7.65: field-level diffs, vote comments and voter snapshots stay with
+        // the readers who are inside the change's scope.
+        detail: redactProblemHistory(projectChangeEventDetail(event.detail, level)),
         createdAt: event.createdAt.toISOString(),
       })),
     };
@@ -669,7 +680,9 @@ export class ChangesService {
       addedServices: addedServices.length,
       removedServices: removedServices.length,
     });
-    if (Object.keys(changes).length === 0 && textChanged.length === 0 && !linksChanged) return this.toDetail(viewer, current, configuration);
+    if (Object.keys(changes).length === 0 && textChanged.length === 0 && !linksChanged) {
+      return this.toDetail(viewer, current, configuration, await this.detailLevelFor(viewer, current, scope));
+    }
 
     await this.prisma.$transaction(async (transaction) => {
       const result = await transaction.changeRequest.updateMany({
@@ -1140,28 +1153,82 @@ export class ChangesService {
     return (await this.prisma.problem.count({ where: { id: problemId, ...(visible === null ? {} : visible) } })) > 0;
   }
 
-  private async toDetail(viewer: ChangeViewer, row: ChangeDetailRow, configuration: ChangeConfiguration) {
-    const assetAccess = await assetLinkAccess(this.prisma, viewer.userId);
-    const assets = visibleAssets(assetAccess, row);
+  /**
+   * W7.65 (`BA-changes-09`): which projection this viewer gets. The visibility
+   * exception (requester, owner, CAB member) is a *participation* right, not a
+   * licence to read the whole planning document of a change from another unit.
+   */
+  async detailLevelFor(viewer: ChangeViewer, row: ChangeDetailRow, scope: ChangeScope): Promise<ChangeDetailLevel> {
+    const isRequester = row.requesterUserId === viewer.userId;
+    const isOwner = row.ownerUserId === viewer.userId;
+    const canApprove = this.access.hasPermission(viewer, permissionKeys.changeApprove);
+    if (isPathInScope(scope, row.organizationalUnit.ouPath)) {
+      return changeDetailLevel({ inScope: true, isRequester, isOwner, isCabMember: false, canApprove });
+    }
+    if (isRequester || isOwner) {
+      return changeDetailLevel({ inScope: false, isRequester, isOwner, isCabMember: false, canApprove });
+    }
+    // Only pay for the membership query when the row is reachable at all.
+    const isCabMember = await this.access.isCabGroupMember(viewer, row.cabGroupId);
+    return changeDetailLevel({ inScope: false, isRequester, isOwner, isCabMember, canApprove });
+  }
+
+  /**
+   * W7.65: role-specific projection. `full` readers (inside the unit scope of
+   * `change.read`) still get everything; participants get the plan they are
+   * accountable for, CAB voters get the plans they must evaluate, and everyone
+   * else gets the lifecycle record. Hidden fields are named in `redactedFields`
+   * so a client can say "hidden" instead of rendering an empty plan.
+   */
+  private async toDetail(
+    viewer: ChangeViewer,
+    row: ChangeDetailRow,
+    configuration: ChangeConfiguration,
+    level: ChangeDetailLevel,
+  ) {
+    const showPlan = level === 'full' || level === 'participant' || level === 'voter';
+    const showOutcome = level === 'full' || level === 'participant';
+    const showLinks = level === 'full';
+    const assets = showLinks ? visibleAssets(await assetLinkAccess(this.prisma, viewer.userId), row) : [];
     const canManage = await this.canManage(viewer, row);
     const editScope = await this.editScopeFor(viewer, row);
-    const visibleProblem = row.problem !== null && await this.canReadProblem(viewer, row.problem.id) ? row.problem : null;
+    const visibleProblem =
+      showLinks && row.problem !== null && (await this.canReadProblem(viewer, row.problem.id)) ? row.problem : null;
     const problemPrefix = visibleProblem === null ? null : await this.access.problemNumberPrefix();
+    const planFields = [
+      'description',
+      'reason',
+      'impact',
+      'likelihood',
+      'implementationPlan',
+      'backoutPlan',
+      'testPlan',
+      'communicationPlan',
+    ];
+    const outcomeFields = ['actualStart', 'actualEnd', 'outcome', 'reviewNotes', 'cancelReason'];
+    const redactedFields = [
+      ...(showPlan ? [] : planFields),
+      ...(showOutcome ? [] : outcomeFields),
+      ...(showLinks ? [] : ['assets', 'problem']),
+      ...(showOutcome ? [] : ['template']),
+    ];
     return {
-      ...this.toListItem(row, configuration, assets.length),
-      description: row.description,
-      reason: row.reason,
-      impact: row.impact,
-      likelihood: row.likelihood,
-      implementationPlan: row.implementationPlan,
-      backoutPlan: row.backoutPlan,
-      testPlan: row.testPlan,
-      communicationPlan: row.communicationPlan,
-      actualStart: row.actualStart?.toISOString() ?? null,
-      actualEnd: row.actualEnd?.toISOString() ?? null,
-      outcome: row.outcome,
-      reviewNotes: row.reviewNotes,
-      template: row.template,
+      ...this.toListItem(row, configuration, showLinks ? assets.length : undefined),
+      detailLevel: level,
+      redactedFields,
+      description: showPlan ? row.description : null,
+      reason: showPlan ? row.reason : null,
+      impact: showPlan ? row.impact : null,
+      likelihood: showPlan ? row.likelihood : null,
+      implementationPlan: showPlan ? row.implementationPlan : null,
+      backoutPlan: showPlan ? row.backoutPlan : null,
+      testPlan: showPlan ? row.testPlan : null,
+      communicationPlan: showPlan ? row.communicationPlan : null,
+      actualStart: showOutcome ? (row.actualStart?.toISOString() ?? null) : null,
+      actualEnd: showOutcome ? (row.actualEnd?.toISOString() ?? null) : null,
+      outcome: showOutcome ? row.outcome : null,
+      reviewNotes: showOutcome ? row.reviewNotes : null,
+      template: showOutcome ? row.template : null,
       problem:
         visibleProblem === null
           ? null
@@ -1173,7 +1240,7 @@ export class ChangesService {
       authorizedAt: row.authorizedAt?.toISOString() ?? null,
       closedAt: row.closedAt?.toISOString() ?? null,
       cancelledAt: row.cancelledAt?.toISOString() ?? null,
-      cancelReason: row.cancelReason,
+      cancelReason: showOutcome ? row.cancelReason : null,
       version: row.version,
       allowedActions: await this.allowedActions(viewer, row, canManage),
       permissions: {

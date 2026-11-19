@@ -42,22 +42,32 @@ export function TextBlock({
   title,
   value,
   emptyKey,
+  redacted,
 }: {
   readonly title: string;
   readonly value: string | null;
   readonly emptyKey?: TranslationKey;
+  /** W7.65: the field exists but this role may not read it. */
+  readonly redacted?: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <Card className="p-0">
       <CardHeader title={title} />
-      {value !== null && value.trim() !== "" ? (
+      {redacted ? (
+        <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.detail.redactedForRole")}</p>
+      ) : value !== null && value.trim() !== "" ? (
         <p className="whitespace-pre-wrap px-4 py-3 text-[12.5px] text-foreground">{value}</p>
       ) : (
         <p className={`px-4 py-3 ${hintClassName}`}>{t(emptyKey ?? "changes.detail.notSet")}</p>
       )}
     </Card>
   );
+}
+
+/** W7.65: names the withheld fields once so every section asks the same question. */
+export function isRedacted(change: ChangeDetail, field: string): boolean {
+  return change.redactedFields.includes(field);
 }
 
 export function ChangeConflictsCard({ change }: { readonly change: ChangeDetail }) {
@@ -107,9 +117,13 @@ export function ChangeOverview({ change }: { readonly change: ChangeDetail }) {
     <div className="grid gap-4 lg:grid-cols-2">
       <Card className="p-0 lg:col-span-2">
         <CardHeader title={t("changes.fields.description")} />
-        <p className="whitespace-pre-wrap px-4 py-3 text-[12.5px] text-foreground">
-          {change.description}
-        </p>
+        {isRedacted(change, "description") ? (
+          <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.detail.redactedForRole")}</p>
+        ) : (
+          <p className="whitespace-pre-wrap px-4 py-3 text-[12.5px] text-foreground">
+            {change.description}
+          </p>
+        )}
         {change.reason ? (
           <>
             <p className="px-4 pt-1 text-[12px] font-medium text-muted-foreground">
@@ -219,10 +233,26 @@ export function ChangePlan({ change }: { readonly change: ChangeDetail }) {
   const { t } = useTranslation();
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <TextBlock title={t("changes.fields.implementationPlan")} value={change.implementationPlan} />
-      <TextBlock title={t("changes.fields.backoutPlan")} value={change.backoutPlan} />
-      <TextBlock title={t("changes.fields.testPlan")} value={change.testPlan} />
-      <TextBlock title={t("changes.fields.communicationPlan")} value={change.communicationPlan} />
+      <TextBlock
+        title={t("changes.fields.implementationPlan")}
+        value={change.implementationPlan}
+        redacted={isRedacted(change, "implementationPlan")}
+      />
+      <TextBlock
+        title={t("changes.fields.backoutPlan")}
+        value={change.backoutPlan}
+        redacted={isRedacted(change, "backoutPlan")}
+      />
+      <TextBlock
+        title={t("changes.fields.testPlan")}
+        value={change.testPlan}
+        redacted={isRedacted(change, "testPlan")}
+      />
+      <TextBlock
+        title={t("changes.fields.communicationPlan")}
+        value={change.communicationPlan}
+        redacted={isRedacted(change, "communicationPlan")}
+      />
     </div>
   );
 }
@@ -247,7 +277,9 @@ export function ChangeLinks({ change }: { readonly change: ChangeDetail }) {
       </Card>
       <Card className="p-0">
         <CardHeader title={t("changes.fields.assets")} />
-        {change.assets.length === 0 ? (
+        {isRedacted(change, "assets") ? (
+          <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.detail.redactedForRole")}</p>
+        ) : change.assets.length === 0 ? (
           <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.links.noAssets")}</p>
         ) : (
           <ul className="divide-y divide-border/60">
@@ -267,7 +299,9 @@ export function ChangeLinks({ change }: { readonly change: ChangeDetail }) {
       </Card>
       <Card className="p-0 lg:col-span-2">
         <CardHeader title={t("changes.fields.problem")} />
-        {change.problem ? (
+        {isRedacted(change, "problem") ? (
+          <p className={`px-4 py-3 ${hintClassName}`}>{t("changes.detail.redactedForRole")}</p>
+        ) : change.problem ? (
           <p className="px-4 py-3 text-[12.5px]">
             <Link
               to={`/problems/${change.problem.id}`}

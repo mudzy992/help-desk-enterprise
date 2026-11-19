@@ -19,3 +19,69 @@ export function changeVisibilityWhere(scope: ChangeScope, userId: string): Prism
     ],
   };
 }
+
+/**
+ * W7.65 (`BA-changes-09`): visibility is not a boolean. A change outside the
+ * reader's unit scope stays visible to its requester, its owner and the members
+ * of its CAB group — but those roles need different slices of the record, not
+ * the whole planning document with foreign assets, problem links, event diffs
+ * and vote comments.
+ *
+ * - `full`        the change is inside the unit scope of `change.read`
+ * - `participant` requester or owner outside the scope: they own the plan
+ * - `voter`       CAB member outside the scope **with** `change.approve`
+ * - `observer`    CAB member outside the scope without `change.approve`
+ *
+ * `observer` is also the fail-closed fallback: if the row is readable through
+ * none of the clauses above, the least privileged projection is the safe one.
+ */
+export type ChangeDetailLevel = 'full' | 'participant' | 'voter' | 'observer';
+
+export function changeDetailLevel(input: {
+  readonly inScope: boolean;
+  readonly isRequester: boolean;
+  readonly isOwner: boolean;
+  readonly isCabMember: boolean;
+  readonly canApprove: boolean;
+}): ChangeDetailLevel {
+  if (input.inScope) return 'full';
+  if (input.isRequester || input.isOwner) return 'participant';
+  if (input.isCabMember) return input.canApprove ? 'voter' : 'observer';
+  return 'observer';
+}
+
+/**
+ * W7.65: events are readable by every participant, but the raw `detail` is a
+ * field-level diff of the planning record (`changes`, `textChanged`, service and
+ * asset link lists), approval comments and the frozen voter snapshot. Outside
+ * the change's scope only the lifecycle facts survive.
+ */
+const participantEventDetailKeys = [
+  'from',
+  'to',
+  'action',
+  'outcome',
+  'reason',
+  'round',
+  'decision',
+  'quorum',
+  'approvals',
+  'created',
+  'updated',
+  'deleted',
+  'frozen',
+] as const;
+
+export function projectChangeEventDetail(
+  detail: unknown,
+  level: ChangeDetailLevel,
+): Record<string, unknown> {
+  if (typeof detail !== 'object' || detail === null || Array.isArray(detail)) return {};
+  const source = detail as Record<string, unknown>;
+  if (level === 'full') return source;
+  const projected: Record<string, unknown> = {};
+  for (const key of participantEventDetailKeys) {
+    if (source[key] !== undefined && source[key] !== null) projected[key] = source[key];
+  }
+  return projected;
+}

@@ -114,9 +114,18 @@ export type ChangeListResponse = {
 
 export type ChangeEditScope = "all" | "window" | "none";
 
+/**
+ * W7.65 (`BA-changes-09`): the backend serves each role the slice it needs.
+ * `redactedFields` names what was withheld so the UI can say "hidden for your
+ * role" instead of rendering an empty plan.
+ */
+export type ChangeDetailLevel = "full" | "participant" | "voter" | "observer";
+
 export type ChangeDetail = ChangeListItem & {
-  readonly description: string;
-  readonly reason: string;
+  readonly detailLevel: ChangeDetailLevel;
+  readonly redactedFields: readonly string[];
+  readonly description: string | null;
+  readonly reason: string | null;
   readonly impact: ChangeLevel;
   readonly likelihood: ChangeLevel;
   readonly implementationPlan: string | null;

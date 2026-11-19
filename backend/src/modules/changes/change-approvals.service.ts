@@ -87,6 +87,12 @@ export class ChangeApprovalsService {
     const voters = eligibleIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: [...eligibleIds] } }, select: userSelect, orderBy: { displayName: 'asc' } });
     const votedIds = new Set(current.map((vote) => vote.approverUserId));
     const isMember = await this.access.isCabMember(viewer, change.cabGroupId);
+    // W7.65: vote comments are deliberation inside the CAB, not part of the
+    // lifecycle record a requester, owner or non-voting member needs. Full
+    // readers, voters and the author of a comment keep seeing it.
+    const level = await this.changes.detailLevelFor(viewer, change, scope);
+    const canReadComments = level === 'full' || level === 'voter';
+    const commentsRedacted = !canReadComments && votes.some((vote) => vote.comment !== null);
     return {
       round: change.approvalRound,
       quorum,
@@ -95,11 +101,13 @@ export class ChangeApprovalsService {
       approvals: counted.filter((vote) => vote.decision === 'APPROVED').length,
       cabGroup: change.cabGroup,
       voters: voters.map((voter) => ({ ...voter, voted: votedIds.has(voter.id) })),
+      commentsRedacted,
       votes: votes.map((vote) => ({
         id: vote.id,
         round: vote.round,
         decision: vote.decision,
-        comment: vote.comment,
+        comment:
+          canReadComments || vote.approverUserId === viewer.userId ? vote.comment : null,
         decidedAt: vote.decidedAt.toISOString(),
         approver: vote.approver,
       })),

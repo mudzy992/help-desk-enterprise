@@ -10097,6 +10097,7 @@
       "cancelledAt": "Cancelled",
       "cancelReason": "Cancellation reason",
       "notSet": "Not entered.",
+      "redactedForRole": "Hidden — your role does not include this part of the record.",
       "yes": "Yes",
       "no": "No"
     },

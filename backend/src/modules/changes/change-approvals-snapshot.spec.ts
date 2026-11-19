@@ -54,6 +54,7 @@ function buildService() {
   const changes = {
     loadInScope: jest.fn(async () => changeRow()),
     get: jest.fn(async () => ({ id: 'change-1' })),
+    detailLevelFor: jest.fn(async () => 'full'),
   };
   const outbox = { enqueue: jest.fn(async () => undefined) };
   const service = new ChangeApprovalsService(prisma as never, access as never, changes as never, outbox as never);
