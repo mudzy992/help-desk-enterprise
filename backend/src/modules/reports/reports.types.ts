@@ -57,12 +57,21 @@ export type CloseCodeLookup = {
   readonly name: string;
 };
 
+/**
+ * W7.53 (BA-reports-01): the KB pack reads only these article columns. `body`
+ * and the rest of the article row never leave the database for a report.
+ */
+export type ReportArticleRow = Pick<
+  KnowledgeArticleRecord,
+  'id' | 'title' | 'serviceId' | 'organizationalUnitId' | 'viewCount'
+>;
+
 export type ReportPackBuildInput = {
   readonly window: ReportWindow;
   readonly tickets: readonly ReportTicketSnapshot[];
   readonly csatByTicketId: ReadonlyMap<string, TicketCsatRecord>;
   readonly closeCodesById: ReadonlyMap<string, CloseCodeLookup>;
-  readonly articles: readonly KnowledgeArticleRecord[];
+  readonly articles: readonly ReportArticleRow[];
   readonly feedback: readonly KnowledgeFeedbackVote[];
   /** Package 1.6 */
   readonly serviceNamesById?: ReadonlyMap<string, string>;
@@ -123,6 +132,11 @@ export type ReportPackPreview = {
   readonly rows: readonly ReportExportRow[];
   readonly totalRows: number;
   readonly truncated: boolean;
+  /**
+   * W7.53: the scoped corpus was larger than the read budget, so `totalRows`
+   * and any aggregate in the preview are a floor, not a complete answer.
+   */
+  readonly truncatedInput: boolean;
   readonly window: { readonly from: string; readonly to: string };
 };
 

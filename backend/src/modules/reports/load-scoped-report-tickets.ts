@@ -15,6 +15,7 @@ export async function loadScopedReportTickets(
   organizationalUnitIds: readonly string[],
   includeArchived: boolean,
   window?: ReportWindow,
+  options: { readonly take?: number } = {},
 ): Promise<readonly ReportTicketSnapshot[]> {
   if (organizationalUnitIds.length === 0) {
     return [];
@@ -33,6 +34,9 @@ export async function loadScopedReportTickets(
     where,
     ...(window === undefined ? {} : { select: reportTicketSelect }),
     orderBy: { createdAt: 'asc' },
+    // W7.53: a pack request never reads more than its row budget plus the
+    // probe row that tells the caller the corpus is larger.
+    ...(options.take === undefined ? {} : { take: options.take }),
   })) as TicketRecord[];
   const overdueByTicketId = await loadTicketOverdueFlags(
     prisma,

@@ -115,7 +115,46 @@ export const reportPackLimits = {
   previewRows: 200,
   exportRows: 50_000,
   maxWindowDays: 366,
+  /**
+   * W7.53 (BA-reports-01): forward events read for the ping-pong pack. The pack
+   * counts forwards per ticket, so the event stream is bounded as well.
+   */
+  forwardEventRows: 50_000,
+  /**
+   * W7.53 (BA-reports-01): budget for packs whose preview rows are aggregates
+   * over the whole period (KPI, overdue/service, close codes, CMDB, problem,
+   * change outcomes). 200 rows would make their numbers wrong instead of small,
+   * so those packs get a bounded corpus budget and are labelled as a floor when
+   * even that is exceeded.
+   */
+  previewAggregateRows: 20_000,
 } as const;
+
+/**
+ * W7.53 (BA-reports-01): the preview read budget per pack shape. A row list only
+ * needs one page (plus the probe row); an aggregate needs the period, so it is
+ * bounded by `previewAggregateRows` and marked as a lower bound beyond that.
+ */
+export const reportPackPreviewRowLimits: Readonly<Record<ReportPackKey, number>> = {
+  monthly_kpi: reportPackLimits.previewAggregateRows,
+  overdue_by_service: reportPackLimits.previewAggregateRows,
+  top_close_codes: reportPackLimits.previewAggregateRows,
+  kb_helpfulness: reportPackLimits.previewRows,
+  forward_ping_pong: reportPackLimits.previewRows,
+  time_tracking: reportPackLimits.previewRows,
+  asset_inventory: reportPackLimits.previewAggregateRows,
+  asset_expiring: reportPackLimits.previewAggregateRows,
+  asset_license_compliance: reportPackLimits.previewAggregateRows,
+  asset_top_tickets: reportPackLimits.previewAggregateRows,
+  asset_inactive_holders: reportPackLimits.previewAggregateRows,
+  problem_top: reportPackLimits.previewAggregateRows,
+  problem_time_to_known_error: reportPackLimits.previewAggregateRows,
+  problem_time_to_resolution: reportPackLimits.previewAggregateRows,
+  problem_backlog: reportPackLimits.previewAggregateRows,
+  problem_recurrence: reportPackLimits.previewAggregateRows,
+  change_outcomes: reportPackLimits.previewAggregateRows,
+  change_schedule: reportPackLimits.previewRows,
+};
 
 /** URL slugs, in display order. */
 export const reportPackSlugs: Readonly<Record<ReportPackKey, string>> = {

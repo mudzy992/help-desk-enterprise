@@ -2,7 +2,8 @@ import { publishedArticleSeed } from '../knowledge-base/published-article-seed';
 import { ticketsTestIds } from '../tickets/tickets-test-ids';
 import { createReportsServiceHarness } from './create-reports-service-harness';
 import { overdueSlaState, reportTicketSeed } from './report-ticket-seed';
-import { reportPackKeys } from './reports.constants';
+import { reportPackKeys, reportPackLimits } from './reports.constants';
+import { reportErrorCodes } from './reports.constants';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -156,6 +157,97 @@ describe('ReportsService OU scoping', () => {
     );
     const rows = JSON.parse(exported.content) as Array<{ articleId: string }>;
     expect(rows.map((row) => row.articleId)).toEqual(['kb-it']);
+  });
+});
+
+describe('ReportsService row budget (W7.53 / BA-reports-01)', () => {
+  const now = new Date('2026-09-14T12:00:00.000Z');
+  const scope = {
+    organizationalUnitId: ticketsTestIds.ouIt,
+    from: '2026-09-01T00:00:00.000Z',
+    to: '2026-09-30T23:59:59.000Z',
+  };
+
+  function seedArticles(
+    harness: ReturnType<typeof createReportsServiceHarness>,
+    count: number,
+  ): void {
+    for (let index = 0; index < count; index += 1) {
+      const id = `kb-${index.toString().padStart(4, '0')}`;
+      harness.articles.set(
+        id,
+        publishedArticleSeed({ id, organizationalUnitId: ticketsTestIds.ouIt }),
+      );
+    }
+  }
+
+  it('previews at most one page and labels the count as a lower bound', async () => {
+    const harness = createReportsServiceHarness();
+    seedArticles(harness, reportPackLimits.previewRows + 1);
+    const spy = jest.spyOn(harness.prisma.knowledgeArticle, 'findMany');
+
+    const preview = await harness.reports.previewPack(
+      { ...scope, pack: reportPackKeys.kbHelpfulness },
+      now,
+    );
+
+    expect(preview.rows).toHaveLength(reportPackLimits.previewRows);
+    expect(preview.totalRows).toBe(reportPackLimits.previewRows);
+    expect(preview.truncated).toBe(true);
+    expect(preview.truncatedInput).toBe(true);
+    expect((spy.mock.calls[0][0] as { take?: number }).take).toBe(
+      reportPackLimits.previewRows + 1,
+    );
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives an aggregate pack the whole period inside a bounded budget', async () => {
+    const harness = createReportsServiceHarness();
+    for (let index = 0; index < 250; index += 1) {
+      const id = `t-${index.toString().padStart(4, '0')}`;
+      harness.memory.tickets.set(
+        id,
+        reportTicketSeed({ id, originUnitId: ticketsTestIds.ouIt, status: 'UNROUTED' }),
+      );
+    }
+    const spy = jest.spyOn(harness.prisma.ticket, 'findMany');
+
+    const preview = await harness.reports.previewPack(
+      { ...scope, pack: reportPackKeys.monthlyKpi },
+      now,
+    );
+
+    // 250 tickets is above the 200-row page but far below the aggregate budget,
+    // so the KPI numbers stay exact instead of becoming a 201-row sample.
+    expect(preview.truncatedInput).toBe(false);
+    expect(preview.rows).toHaveLength(1);
+    expect(preview.rows[0].createdCount).toBe(250);
+    expect((spy.mock.calls[0][0] as { take?: number }).take).toBe(
+      reportPackLimits.previewAggregateRows + 1,
+    );
+  });
+
+  it('exports through the export budget and refuses a capped input before serializing', async () => {
+    const harness = createReportsServiceHarness();
+    seedArticles(harness, 3);
+    const original = reportPackLimits.exportRows;
+    (reportPackLimits as { exportRows: number }).exportRows = 2;
+    try {
+      const spy = jest.spyOn(harness.prisma.knowledgeArticle, 'findMany');
+      const attempt = harness.reports.exportPack(
+        { ...scope, pack: reportPackKeys.kbHelpfulness, format: 'json' },
+        ticketsTestIds.adminIt,
+        null,
+        now,
+      );
+      await expect(attempt).rejects.toMatchObject({
+        code: reportErrorCodes.tooLarge,
+      });
+      expect((spy.mock.calls[0][0] as { take?: number }).take).toBe(3);
+      expect(await harness.prisma.auditLog.findMany()).toHaveLength(0);
+    } finally {
+      (reportPackLimits as { exportRows: number }).exportRows = original;
+    }
   });
 });
 

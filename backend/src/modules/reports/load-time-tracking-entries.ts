@@ -11,6 +11,11 @@ export async function loadTimeTrackingEntries(
   input: {
     readonly organizationalUnitIds: readonly string[];
     readonly window: ReportWindow;
+    /**
+     * W7.53 (BA-reports-01): row budget from the caller (`rowLimit + 1` for the
+     * probe row). Without it the pack would read every entry of the window.
+     */
+    readonly take?: number;
   },
 ): Promise<readonly TimeTrackingReportEntry[]> {
   if (input.organizationalUnitIds.length === 0) {
@@ -33,6 +38,7 @@ export async function loadTimeTrackingEntries(
       user: { select: { displayName: true } },
       ticket: { select: { serviceId: true } },
     },
+    ...(input.take === undefined ? {} : { take: input.take }),
   });
   const serviceIds = [...new Set(entries.map((entry) => entry.ticket.serviceId))];
   const services =

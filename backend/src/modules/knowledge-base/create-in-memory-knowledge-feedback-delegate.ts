@@ -21,6 +21,8 @@ type FeedbackData = {
 type FeedbackWhere = {
   readonly articleId?: string | { in: readonly string[] };
   readonly userId?: string;
+  /** W7.53 (BA-reports-01): report packs pin votes to the window. */
+  readonly createdAt?: { readonly gte?: Date; readonly lte?: Date };
 };
 
 export function createInMemoryKnowledgeFeedbackDelegate(
@@ -126,6 +128,15 @@ function matchesFeedback(
   }
   if (where.userId !== undefined && item.userId !== where.userId) {
     return false;
+  }
+  if (where.createdAt !== undefined) {
+    const { gte, lte } = where.createdAt;
+    if (gte !== undefined && item.createdAt.getTime() < gte.getTime()) {
+      return false;
+    }
+    if (lte !== undefined && item.createdAt.getTime() > lte.getTime()) {
+      return false;
+    }
   }
   if (where.articleId === undefined) {
     return true;

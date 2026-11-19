@@ -12,6 +12,12 @@ export async function loadForwardPingPongTickets(
     readonly organizationalUnitIds: readonly string[];
     readonly window: ReportWindow;
     readonly threshold: number;
+    /**
+     * W7.53 (BA-reports-01): how many forward events may leave the database.
+     * The caller passes `rowLimit + 1`, so an overflow is detectable without
+     * reading the whole window.
+     */
+    readonly take?: number;
   },
 ): Promise<readonly ForwardPingPongTicket[]> {
   if (input.organizationalUnitIds.length === 0) {
@@ -34,6 +40,7 @@ export async function loadForwardPingPongTickets(
       createdAt: true,
     },
     orderBy: [{ ticketId: 'asc' }, { createdAt: 'asc' }],
+    ...(input.take === undefined ? {} : { take: input.take }),
   });
   const byTicket = new Map<string, (typeof events)[number][]>();
   for (const event of events) {

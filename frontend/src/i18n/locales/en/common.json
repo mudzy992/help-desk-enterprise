@@ -3448,6 +3448,8 @@
       "rows_one": "{{count}} row",
       "rows_other": "{{count}} rows",
       "truncated": "Showing the first {{shown}}; the download contains every row.",
+      "rowsAtLeast": "At least {{count}} rows",
+      "partialInput": "The source set is larger than the read window — the numbers are a lower bound. Narrow the period or the organizational unit.",
       "scopeHint": "Period {{from}} – {{to}} · at most {{max}} days · every download is audited",
       "confidential": "[confidential]",
       "names": {

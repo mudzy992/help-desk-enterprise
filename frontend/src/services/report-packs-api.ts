@@ -50,6 +50,8 @@ export type ReportPackPreview = {
   readonly rows: readonly Record<string, ReportCell>[];
   readonly totalRows: number;
   readonly truncated: boolean;
+  /** W7.53: the scoped corpus is larger than the read budget (counts are a floor). */
+  readonly truncatedInput: boolean;
   readonly window: { readonly from: string; readonly to: string };
 };
 

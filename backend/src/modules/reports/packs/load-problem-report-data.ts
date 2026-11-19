@@ -19,13 +19,22 @@ async function readNumberPrefix(prisma: PrismaService): Promise<string> {
 /** Loads only the part the requested pack needs; problems are scoped by their unit. */
 export async function loadProblemReportData(
   prisma: PrismaService,
-  input: { readonly unitIds: readonly string[]; readonly part: ProblemReportPart; readonly window: ReportWindow; readonly now: Date; readonly visibility: ProblemReportVisibility },
+  input: {
+    readonly unitIds: readonly string[];
+    readonly part: ProblemReportPart;
+    readonly window: ReportWindow;
+    readonly now: Date;
+    readonly visibility: ProblemReportVisibility;
+    /** W7.53: row budget (+1 probe row) for this pack request. */
+    readonly rowLimit?: number;
+  },
 ): Promise<ProblemReportData> {
   const data: ProblemReportData = { ...emptyProblemReportData, now: input.now };
   if (input.unitIds.length === 0) return data;
   const inUnits = { AND: [{ organizationalUnitId: { in: [...input.unitIds] } }, input.visibility.problem] };
   const readableTicket = input.visibility.ticket;
   const inWindow = { gte: input.window.from, lt: input.window.to };
+  const take = input.rowLimit === undefined ? {} : { take: input.rowLimit + 1 };
 
   if (input.part === 'top') {
     const counts = await prisma.problemTicket.groupBy({
@@ -50,6 +59,7 @@ export async function loadProblemReportData(
           group: { select: { name: true } },
           _count: { select: { tickets: { where: { ticket: { is: readableTicket } } } } },
         },
+        ...take,
       }),
       prisma.problemTicket.groupBy({
         by: ['problemId'],
@@ -81,6 +91,7 @@ export async function loadProblemReportData(
     const rows = await prisma.problem.findMany({
       where: { ...inUnits, [field]: inWindow },
       select: { priority: true, createdAt: true, identifiedAt: true, resolvedAt: true, group: { select: { name: true } } },
+      ...take,
     });
     const records = rows.flatMap((row) => {
       const reachedAt = input.part === 'knownError' ? row.identifiedAt : row.resolvedAt;
@@ -93,6 +104,7 @@ export async function loadProblemReportData(
     const rows = await prisma.problem.findMany({
       where: { ...inUnits, status: { in: [...openProblemStatuses] } },
       select: { status: true, createdAt: true, targetAt: true },
+      ...take,
     });
     return { ...data, backlog: rows };
   }
@@ -101,6 +113,7 @@ export async function loadProblemReportData(
   const events = await prisma.problemEvent.findMany({
     where: { action: 'ticket_linked', createdAt: inWindow, detail: { path: ['recurrence'], equals: true }, problem: inUnits },
     select: { createdAt: true, detail: true, problem: { select: { sequence: true, title: true, status: true, resolvedAt: true } } },
+    ...take,
   });
   const ticketId = (detail: unknown): string | null => {
     if (detail === null || Array.isArray(detail) || typeof detail !== 'object') return null;

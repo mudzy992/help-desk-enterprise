@@ -5,6 +5,14 @@ import { ReportPacksPanel } from "@/components/reports/report-packs-panel";
 import { ApiError } from "@/services/api";
 import { listReportPacks, previewReportPack } from "@/services/report-packs-api";
 
+// The table sits in a ScrollRegion; jsdom has no ResizeObserver to observe it.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, values?: { requestId?: string }) => values?.requestId ?? key,
@@ -63,12 +71,34 @@ describe("ReportPacksPanel", () => {
     vi.mocked(listReportPacks).mockResolvedValue(list);
     vi.mocked(previewReportPack)
       .mockRejectedValueOnce(new ApiError(503, "UNAVAILABLE", "failed", "req-preview"))
-      .mockResolvedValueOnce({ columns: [], rows: [], totalRows: 0, truncated: false } as never);
+      .mockResolvedValueOnce({
+        columns: [],
+        rows: [],
+        totalRows: 0,
+        truncated: false,
+        truncatedInput: false,
+      } as never);
     render(<ReportPacksPanel organizationalUnitId="ou-1" from="from" to="to" />);
     const show = await screen.findByTestId("report-pack-preview");
     fireEvent.click(show);
     expect(await screen.findByText("req-preview")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /ui.retry/ }));
     await waitFor(() => expect(previewReportPack).toHaveBeenCalledTimes(2));
+  });
+
+  it("labels a budget-capped preview as a lower bound", async () => {
+    vi.mocked(listReportPacks).mockResolvedValue(list);
+    vi.mocked(previewReportPack).mockResolvedValue({
+      columns: ["title"],
+      rows: [{ title: "VPN" }],
+      totalRows: 1,
+      truncated: false,
+      truncatedInput: true,
+    } as never);
+    render(<ReportPacksPanel organizationalUnitId="ou-1" from="from" to="to" />);
+    fireEvent.click(await screen.findByTestId("report-pack-preview"));
+    const total = await screen.findByTestId("report-pack-total");
+    expect(total.textContent).toContain("reports.packs.rowsAtLeast");
+    expect(screen.getByText("reports.packs.partialInput")).toBeTruthy();
   });
 });

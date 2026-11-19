@@ -16,15 +16,28 @@ async function readNumberPrefix(prisma: PrismaService): Promise<string> {
 /** Loads only the part the requested pack needs; changes are scoped by their unit. */
 export async function loadChangeReportData(
   prisma: PrismaService,
-  input: { readonly unitIds: readonly string[]; readonly part: ChangeReportPart; readonly window: ReportWindow },
+  input: {
+    readonly unitIds: readonly string[];
+    readonly part: ChangeReportPart;
+    readonly window: ReportWindow;
+    /** W7.53: row budget (+1 probe row) for this pack request. */
+    readonly rowLimit?: number;
+  },
 ): Promise<ChangeReportData> {
   if (input.unitIds.length === 0) return emptyChangeReportData;
   const inUnits = { organizationalUnitId: { in: [...input.unitIds] } };
+  const take = {
+    take: Math.min(
+      reportPackLimits.exportRows,
+      (input.rowLimit ?? reportPackLimits.exportRows) + 1,
+    ),
+  };
 
   if (input.part === 'outcomes') {
     const outcomes = await prisma.changeRequest.findMany({
       where: { ...inUnits, status: 'CLOSED', closedAt: { gte: input.window.from, lt: input.window.to } },
       select: { type: true, outcome: true },
+      ...take,
     });
     return { ...emptyChangeReportData, outcomes };
   }
@@ -34,7 +47,7 @@ export async function loadChangeReportData(
     prisma.changeRequest.findMany({
       where: { ...inUnits, plannedStart: { lt: input.window.to }, plannedEnd: { gt: input.window.from } },
       orderBy: [{ plannedStart: 'asc' }, { sequence: 'asc' }],
-      take: reportPackLimits.exportRows,
+      take: take.take,
       select: {
         sequence: true,
         title: true,

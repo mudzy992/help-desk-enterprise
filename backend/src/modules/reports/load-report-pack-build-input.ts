@@ -1,16 +1,22 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { loadTicketCsatSubmissions } from '../tickets/csat/load-ticket-csat-submissions';
-import { toArticleRecord } from '../knowledge-base/load-knowledge-article';
-import type { KnowledgeArticleRecord } from '../knowledge-base/knowledge-base.types';
 import { loadForwardPingPongTickets } from './load-forward-ping-pong-tickets';
 import { loadTimeTrackingEntries } from './load-time-tracking-entries';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { assetReportHorizonDays } from './packs/build-asset-reports';
 import { loadAssetReportData, type AssetReportPart } from './packs/load-asset-report-data';
 import { loadProblemReportData, type ProblemReportPart } from './packs/load-problem-report-data';
+import type { ProblemReportData } from './packs/build-problem-reports';
 import type { ProblemReportVisibility } from './problem-report-visibility';
 import { loadChangeReportData } from './packs/load-change-report-data';
-import { isAssetReportPack, isChangeReportPack, isProblemReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
+import {
+  isAssetReportPack,
+  isChangeReportPack,
+  isProblemReportPack,
+  reportPackKeys,
+  reportPackLimits,
+  type ReportPackKey,
+} from './reports.constants';
 import { settingKeys } from '../settings/setting-keys';
 
 const assetPackParts: Readonly<Record<string, AssetReportPart>> = {
@@ -36,6 +42,7 @@ async function readReportLocale(prisma: PrismaService): Promise<'bs' | 'en'> {
 import type {
   CloseCodeLookup,
   KnowledgeFeedbackVote,
+  ReportArticleRow,
   ReportPackBuildInput,
   ReportWindow,
 } from './reports.types';
@@ -45,6 +52,16 @@ import type {
  * never read articles, the KB pack never reads tickets, only ping-pong reads
  * the forward events.
  */
+export type ReportPackLoadResult = {
+  readonly input: ReportPackBuildInput;
+  /**
+   * W7.53 (BA-reports-01): true when the scoped corpus is larger than the row
+   * budget. The probe row is dropped from `input`, so callers must treat the
+   * build as partial: export/attachment refuse it, preview labels it.
+   */
+  readonly truncatedInput: boolean;
+};
+
 export async function loadReportPackBuildInput(
   prisma: PrismaService,
   organizationalUnitIds: readonly string[],
@@ -52,16 +69,29 @@ export async function loadReportPackBuildInput(
   pack: ReportPackKey,
   pingPongThreshold: number,
   problemVisibility?: ProblemReportVisibility,
-): Promise<ReportPackBuildInput> {
+  options: { readonly rowLimit?: number } = {},
+): Promise<ReportPackLoadResult> {
+  const rowLimit = options.rowLimit;
+  // One probe row tells us the corpus is larger without reading all of it.
+  const fetchLimit = rowLimit === undefined ? undefined : rowLimit + 1;
+  const overflowed = (rows: readonly unknown[]): boolean =>
+    rowLimit !== undefined && rows.length > rowLimit;
+  const cut = <T>(rows: readonly T[]): readonly T[] =>
+    rowLimit === undefined ? rows : rows.slice(0, rowLimit);
+
   if (isProblemReportPack(pack)) {
     if (problemVisibility === undefined) throw new Error('PROBLEM_REPORT_VISIBILITY_REQUIRED');
-    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date(), visibility: problemVisibility });
-    return { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], problems };
+    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date(), visibility: problemVisibility, rowLimit });
+    const truncatedInput = problemReportRowCount(problems) > (rowLimit ?? Number.POSITIVE_INFINITY);
+    return { input: { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], problems }, truncatedInput };
   }
   if (isChangeReportPack(pack)) {
     const part = pack === reportPackKeys.changeOutcomes ? 'outcomes' : 'schedule';
-    const changes = await loadChangeReportData(prisma, { unitIds: organizationalUnitIds, part, window });
-    return { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], changes };
+    const changes = await loadChangeReportData(prisma, { unitIds: organizationalUnitIds, part, window, rowLimit });
+    const truncatedInput =
+      changes.outcomes.length > (rowLimit ?? Number.POSITIVE_INFINITY) ||
+      changes.schedule.length > (rowLimit ?? Number.POSITIVE_INFINITY);
+    return { input: { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], changes }, truncatedInput };
   }
   if (isAssetReportPack(pack)) {
     const assets = await loadAssetReportData(prisma, {
@@ -73,13 +103,17 @@ export async function loadReportPackBuildInput(
       horizonDays: assetReportHorizonDays,
     });
     return {
-      window,
-      tickets: [],
-      csatByTicketId: new Map(),
-      closeCodesById: new Map(),
-      articles: [],
-      feedback: [],
-      assets,
+      input: {
+        window,
+        tickets: [],
+        csatByTicketId: new Map(),
+        closeCodesById: new Map(),
+        articles: [],
+        feedback: [],
+        assets,
+      },
+      // The asset loaders carry their own fixed caps; they are bounded already.
+      truncatedInput: false,
     };
   }
   const needsTickets =
@@ -87,11 +121,13 @@ export async function loadReportPackBuildInput(
     pack !== reportPackKeys.forwardPingPong &&
     pack !== reportPackKeys.timeTracking;
   const tickets = needsTickets
-    ? await loadScopedReportTickets(prisma, organizationalUnitIds, true, window)
+    ? await loadScopedReportTickets(prisma, organizationalUnitIds, true, window, {
+        take: fetchLimit,
+      })
     : [];
   const articles =
     pack === reportPackKeys.kbHelpfulness
-      ? await loadScopedArticles(prisma, organizationalUnitIds)
+      ? await loadScopedArticles(prisma, organizationalUnitIds, fetchLimit)
       : [];
   const forwardTickets =
     pack === reportPackKeys.forwardPingPong
@@ -99,11 +135,19 @@ export async function loadReportPackBuildInput(
           organizationalUnitIds,
           window,
           threshold: pingPongThreshold,
+          take:
+            fetchLimit === undefined
+              ? undefined
+              : Math.min(fetchLimit, reportPackLimits.forwardEventRows),
         })
       : [];
   const timeEntries =
     pack === reportPackKeys.timeTracking
-      ? await loadTimeTrackingEntries(prisma, { organizationalUnitIds, window })
+      ? await loadTimeTrackingEntries(prisma, {
+          organizationalUnitIds,
+          window,
+          take: fetchLimit,
+        })
       : [];
   const [csatByTicketId, closeCodesById, feedback, serviceNamesById] = await Promise.all([
     pack === reportPackKeys.monthlyKpi
@@ -118,7 +162,11 @@ export async function loadReportPackBuildInput(
           tickets.map((ticket) => ticket.closeCodeId ?? ''),
         )
       : Promise.resolve(new Map<string, CloseCodeLookup>()),
-    loadFeedback(prisma, articles.map((article) => article.id)),
+    loadFeedback(
+      prisma,
+      articles.map((article) => article.id),
+      window,
+    ),
     pack === reportPackKeys.overdueByService
       ? loadServiceNames(
           prisma,
@@ -127,31 +175,72 @@ export async function loadReportPackBuildInput(
       : Promise.resolve(new Map<string, string>()),
   ]);
   return {
-    window,
-    tickets,
-    serviceNamesById,
-    forwardTickets,
-    pingPongThreshold,
-    timeEntries,
-    csatByTicketId,
-    closeCodesById,
-    articles,
-    feedback,
+    input: {
+      window,
+      tickets: cut(tickets),
+      serviceNamesById,
+      forwardTickets: cut(forwardTickets),
+      pingPongThreshold,
+      timeEntries: cut(timeEntries),
+      csatByTicketId,
+      closeCodesById,
+      articles: cut(articles),
+      feedback,
+    },
+    truncatedInput:
+      overflowed(tickets) ||
+      overflowed(articles) ||
+      overflowed(forwardTickets) ||
+      overflowed(timeEntries),
   };
+}
+
+/** Rows a problem part produced; the probe row is included on purpose. */
+function problemReportRowCount(problems: ProblemReportData): number {
+  return (
+    problems.top.length +
+    problems.knownError.length +
+    problems.resolution.length +
+    problems.backlog.length +
+    problems.recurrence.length
+  );
 }
 
 async function loadScopedArticles(
   prisma: PrismaService,
   organizationalUnitIds: readonly string[],
-): Promise<readonly KnowledgeArticleRecord[]> {
+  take?: number,
+): Promise<readonly ReportArticleRow[]> {
   if (organizationalUnitIds.length === 0) {
     return [];
   }
-  const records = await prisma.knowledgeArticle.findMany({
+  // W7.53 (BA-reports-01): a narrow projection — the report never reads
+  // `body` or the ~20 other article columns, so neither is fetched.
+  const records = (await prisma.knowledgeArticle.findMany({
     where: { organizationalUnitId: { in: [...organizationalUnitIds] } },
     orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
-  });
-  return records.map((record) => toArticleRecord(record));
+    select: {
+      id: true,
+      title: true,
+      serviceId: true,
+      organizationalUnitId: true,
+      viewCount: true,
+    },
+    ...(take === undefined ? {} : { take }),
+  })) as Array<{
+    readonly id: string;
+    readonly title: string;
+    readonly serviceId: string;
+    readonly organizationalUnitId: string;
+    readonly viewCount?: number | null;
+  }>;
+  return records.map((record) => ({
+    id: record.id,
+    title: record.title,
+    serviceId: record.serviceId,
+    organizationalUnitId: record.organizationalUnitId,
+    viewCount: record.viewCount ?? 0,
+  }));
 }
 
 async function loadCloseCodes(
@@ -171,12 +260,19 @@ async function loadCloseCodes(
 async function loadFeedback(
   prisma: PrismaService,
   articleIds: readonly string[],
+  window: ReportWindow,
 ): Promise<readonly KnowledgeFeedbackVote[]> {
   if (articleIds.length === 0) {
     return [];
   }
+  // W7.53 (BA-reports-01): votes are never read unscoped — the query is pinned
+  // to the (already capped) articles and to the report window, so a lifetime
+  // vote history cannot enter the pack.
   const votes = await prisma.knowledgeFeedback.findMany({
-    where: { articleId: { in: [...articleIds] } },
+    where: {
+      articleId: { in: [...articleIds] },
+      createdAt: { gte: window.from, lte: window.to },
+    },
     select: { articleId: true, isHelpful: true, rating: true, createdAt: true },
   });
   return votes.map((vote) => ({

@@ -27,6 +27,7 @@ import {
   reportErrorCodes,
   reportPackKeyList,
   reportPackLimits,
+  reportPackPreviewRowLimits,
   reportPackSlugs,
   type ReportExportFormat,
   type ReportPackKey,
@@ -85,13 +86,22 @@ export class ReportsService {
     actorUserId?: string,
   ): Promise<ReportPackPreview> {
     const configuration = await this.requireReports(query.pack);
-    const { window, built } = await this.buildPack(query, configuration, now, actorUserId);
+    // W7.53: the preview reads at most its pack budget plus the probe row
+    // instead of building the whole scoped corpus only to slice it.
+    const { window, built, truncatedInput } = await this.buildPack(
+      query,
+      configuration,
+      now,
+      actorUserId,
+      reportPackPreviewRowLimits[query.pack],
+    );
     return {
       pack: query.pack,
       columns: built.columns,
       rows: built.rows.slice(0, reportPackLimits.previewRows),
       totalRows: built.rows.length,
-      truncated: built.rows.length > reportPackLimits.previewRows,
+      truncated: truncatedInput || built.rows.length > reportPackLimits.previewRows,
+      truncatedInput,
       window: { from: window.from.toISOString(), to: window.to.toISOString() },
     };
   }
@@ -103,8 +113,16 @@ export class ReportsService {
     now: Date = new Date(),
   ): Promise<ReportExportResult> {
     const configuration = await this.requireReports(query.pack, query.format);
-    const { window, built } = await this.buildPack(query, configuration, now, actorUserId);
-    if (built.rows.length > reportPackLimits.exportRows) {
+    const { window, built, truncatedInput } = await this.buildPack(
+      query,
+      configuration,
+      now,
+      actorUserId,
+      reportPackLimits.exportRows,
+    );
+    // A capped input means the export would be incomplete or its aggregates
+    // wrong, so the request fails instead of producing a partial file.
+    if (truncatedInput || built.rows.length > reportPackLimits.exportRows) {
       throw new ReportsError(reportErrorCodes.tooLarge);
     }
     const unit = await this.prisma.organizationalUnit.findUnique({
@@ -135,7 +153,8 @@ export class ReportsService {
     query: ReportScopeQuery & { readonly pack: ReportPackKey },
     configuration: ReportsConfiguration,
     now: Date,
-    actorUserId?: string,
+    actorUserId: string | undefined,
+    rowLimit: number,
   ) {
     const window = resolveReportWindow({
       from: query.from,
@@ -154,18 +173,17 @@ export class ReportsService {
       ? await problemReportVisibility(this.prisma, this.settings!, actorUserId!)
       : undefined;
     if (visibility === null) throw new ForbiddenException('PROBLEM_REPORT_FORBIDDEN');
-    const built = buildReportPackRows(
+    const loaded = await loadReportPackBuildInput(
+      this.prisma,
+      scopedIds,
+      window,
       query.pack,
-      await loadReportPackBuildInput(
-        this.prisma,
-        scopedIds,
-        window,
-        query.pack,
-        configuration.pingPongThreshold,
-        visibility,
-      ),
+      configuration.pingPongThreshold,
+      visibility,
+      { rowLimit },
     );
-    return { window, built };
+    const built = buildReportPackRows(query.pack, loaded.input);
+    return { window, built, truncatedInput: loaded.truncatedInput };
   }
 
   async bottleneck(

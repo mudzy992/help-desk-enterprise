@@ -266,11 +266,14 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
             <>
               <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                 <Badge data-testid="report-pack-total">
-                  {t("reports.packs.rows", { count: preview.totalRows })}
+                  {preview.truncatedInput
+                    ? t("reports.packs.rowsAtLeast", { count: preview.totalRows })
+                    : t("reports.packs.rows", { count: preview.totalRows })}
                 </Badge>
                 {preview.truncated ? (
                   <span>{t("reports.packs.truncated", { shown: preview.rows.length })}</span>
                 ) : null}
+                {preview.truncatedInput ? <span>{t("reports.packs.partialInput")}</span> : null}
               </div>
               <ScrollRegion className={tableWrapClassName}>
                 <table className="w-full text-[12.5px]" data-testid="report-pack-table">

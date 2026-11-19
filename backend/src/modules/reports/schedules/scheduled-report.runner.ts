@@ -511,11 +511,18 @@ export class ScheduledReportRunner {
           omitted.push({ pack: key, reason: reportAttachmentOmitReasons.failed });
           continue;
         }
-        const built = buildReportPackRows(
+        // W7.53: the attachment reads at most its own row cap plus a probe row.
+        const loaded = await loadReportPackBuildInput(
+          this.prisma,
+          unitIds,
+          window,
           pack,
-          await loadReportPackBuildInput(this.prisma, unitIds, window, pack, reports.pingPongThreshold, visibility),
+          reports.pingPongThreshold,
+          visibility,
+          { rowLimit: configuration.attachmentMaxRows },
         );
-        if (built.rows.length > configuration.attachmentMaxRows) {
+        const built = buildReportPackRows(pack, loaded.input);
+        if (loaded.truncatedInput || built.rows.length > configuration.attachmentMaxRows) {
           omitted.push({ pack: key, reason: reportAttachmentOmitReasons.tooManyRows });
           continue;
         }
