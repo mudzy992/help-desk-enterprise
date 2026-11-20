@@ -178,7 +178,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | zatvoreno (W7.70) |
 | BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | zatvoreno (W7.71) |
 | BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | zatvoreno (W7.73) |
-| BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | otvoreno |
+| BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | zatvoreno (W7.74) |
 | BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | otvoreno |
 | BA-changes-19 | P3       | Servis ne clampuje quorum/lead/reminder configuration integer granice                          | otvoreno |
 | BA-changes-20 | P3       | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice                    | otvoreno |
@@ -230,7 +230,15 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   predbira `cabGroups[0]`; predizbor postoji samo kad je routing nedvosmislen. `change.created` (schema v2)
   nosi `cabGroupId` i `cabRouting`, pa je routing dokaziv iz audit loga. Dokaz:
   [W7.73 implementation](../implementation/294-w773-changes-16-cab-routing.md).
-- **17:** formalni privacy/retention replika lifecycle.
+- **17:** zatvoreno u W7.74 — anonimizacija sada traži osobu **u sadržaju** (devet tekstualnih kolona) umjesto
+  samo po vezi, pa se scrubuje i promjena u kojoj je osoba samo imenovana; pokriveni su i komentari CAB
+  glasanja (sopstveni i na sopstvenim promjenama, jer ih CAB pregled prikazuje), event JSON, obavještenja po
+  `payload.changeId`, downtime prozor i `ChangeLog` istog prozora (`number · title` replika). Nova kategorija
+  `changeContent` (minimum 180 dana, default 0, obavezan probni prolaz) čuva skelet i vremensku liniju, a
+  redaktuje tekst, planove, napomene, komentare odobrenja, event `detail`, obavještenja i kalendar; pravna
+  blokada tražioca ili vlasnika čuva promjenu. Uz to je nedostajući period u konfiguraciji sada **isključen**
+  (`undefined <= 0` je bilo `false`). Dokaz:
+  [W7.74 implementation](../implementation/295-w774-changes-17-privacy-replication-coverage.md).
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
 
 ## 17. Baseline score
@@ -644,3 +652,44 @@ nalaz ne pominje, a uvođenje bez podataka bilo bi novo pogađanje. Grupa izvan 
 je izričito odabrana (centralni CAB je legitimna organizacija), pa se OU poklapanje ne provjerava. Instalacije
 s više CAB grupa na istom nivou sada traže izbor gdje su prije dobijale tihu odluku — to je namjerna promjena
 ponašanja (409), dokumentovana u [294](../implementation/294-w773-changes-16-cab-routing.md).
+
+## 36. Implementacijski closeout — W7.74 (`BA-changes-17`)
+
+**Status nalaza:** zatvoren; paket W7.74, kod `9a82f03`, CI
+[44800485011](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44800485011), **bez migracije**.
+Detalji: [295](../implementation/295-w774-changes-17-privacy-replication-coverage.md).
+
+**Šta je bilo:** anonimizacija je birala promjene samo po vezi (`requesterUserId`, `ownerUserId`), pa je osoba
+imenovana u tuđem planu ostajala u bazi; CAB komentari glasanja su se čuvali neograničeno; downtime prozor i
+`ChangeLog` zapis istog prozora repliciraju `number · title` u service-catalog; in-app obavještenja nose
+`payload.changeId` uz kopiju teksta. Sadržaj promjene nije imao rok — ni red, ni planove, ni komentare
+odobrenja, ni event JSON, jer API delete ne postoji.
+
+**Šta je sada:** jedan izvor identiteta (`mentionTokens`) dijeli problemski i changeski filter, pa se
+„imenovan u tuđem zapisu” selektuje isto u oba modula. `collectChangeMentions` je jedina selekcija i za preview
+i za izvršenje: devet tekstualnih kolona promjene, sopstveni glasovi **i komentari na sopstvenim promjenama**,
+eventi (sopstveni, svojih promjena i oni čiji JSON imenuje osobu — jedan bounded `ILIKE`), obavještenja po
+`payload.changeId`, prozori po vezi **i po imenu**, te `ChangeLog` zapisi tih prozora. Nova retention kategorija
+`changeContent` (minimum 180 dana, default 0, obavezan probni prolaz) čuva skelet — broj, tip, status,
+uticaj/rizik, datume, OU, veze, CAB grupu, tražioca/vlasnika, odobrenja i vremensku liniju — a redaktuje tekst,
+planove, napomene, razlog otkazivanja, komentare glasanja, event `detail`, obavještenja i kalendar uz pripadajući
+`ChangeLog`. Dospijeće: `closedAt` / `cancelledAt` / `updatedAt` za `REJECTED` (odbijanje nema vlastiti
+timestamp, ali se finalna promjena ne može uređivati). Pravna blokada tražioca ili vlasnika čuva promjenu.
+Uz to je popravljen fail-safe: nedostajući period u konfiguraciji je **isključen**, ne „uključen” — ranije je
+`undefined <= 0` bilo `false`.
+
+**Acceptance:** §11 („coverage je heuristic … CAB overview čuva vote komentare neograničeno … downtime message
+replicira change number/title … nema formalnog retentiona za closed/rejected/cancelled change, approval
+komentare i event JSON … parity za downtime/change-log/notifier replike”) je zatvoren s obje strane: selekcija
+je sada sadržaj, a ne veza, i svaka replika ima svoj tretman u oba puta. Dokaz: `change-mentions.spec` (7),
+`scrub-change-mentions.spec` (7), `change-content-retention.executor.spec` (5), `attachments.constants.spec`,
+retention integracija (fail-safe na djelimičnoj konfiguraciji), frontend čuvari kategorija i registra postavki
+(4 fajla/19 testova); puni ne-integracioni backend **877 suite/4.999 testova**; CI uključujući
+PostgreSQL/Redis integraciju.
+
+**Šta ostaje u ovom modulu:** P3: `18`, `19`, `20`.
+
+**Preostali rizik:** politika je minimum, ne zakonski rok — default 0 znači da instalacija bez odluke
+rukovaoca/DPO ne briše ništa; scrubber ne mijenja samostalno prvo ime (dokumentovano od Paketa 2.6), pa
+„Amra” bez prezimena nije kandidat; ostali brojači anonimizacije (`timeLogs`, `approvals`, …) i dalje padaju na
+tehnički naziv u e-mailu — postojeće stanje izvan ovog nalaza.
