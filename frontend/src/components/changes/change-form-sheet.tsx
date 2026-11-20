@@ -8,6 +8,7 @@ import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { buildChangeConflictPreview } from "@/lib/changes/change-conflict-preview";
+import { useChangeOwnerSearch } from "@/lib/changes/use-change-owner-search";
 import {
   changeLevelKeys,
   changeRiskKeys,
@@ -21,11 +22,9 @@ import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/on-call/on-c
 import {
   changeExtraKeys,
   changeLevels,
-  changeQueryKeys,
   changeTypes,
   createChange,
   previewChangeConflicts,
-  searchChangeOwners,
   updateChange,
   type ChangeAssetOption,
   type ChangeCapabilities,
@@ -92,10 +91,15 @@ export function ChangeFormSheet({
   const [assets, setAssets] = useState<ChangeAssetOption[]>([]);
   const [problem, setProblem] = useState<ChangeProblemOption | null>(null);
   const [owner, setOwner] = useState<Owner | null>(null);
-  const [ownerSearch, setOwnerSearch] = useState("");
-  const [ownerDebounced, setOwnerDebounced] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const ownerSearch = useChangeOwnerSearch({
+    open,
+    canAssignOwner,
+    organizationalUnitId: unitId,
+    hasOwner: owner !== null,
+  });
+  const resetOwnerSearch = ownerSearch.reset;
 
   useEffect(() => {
     if (!open) return;
@@ -126,30 +130,16 @@ export function ChangeFormSheet({
     setAssets(change ? [...change.assets] : [...(prefill?.assets ?? [])]);
     setProblem(change ? change.problem : (prefill?.problem ?? null));
     setOwner(change?.owner ?? null);
-    setOwnerSearch("");
+    resetOwnerSearch();
     setError(null);
-  }, [open, change, prefill, options]);
+  }, [open, change, prefill, options, resetOwnerSearch]);
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => setOwnerDebounced(ownerSearch.trim()), 250);
-    return () => window.clearTimeout(handle);
-  }, [ownerSearch]);
-
-  const owners = useQuery({
-    queryKey: changeQueryKeys.owners(ownerDebounced, unitId),
-    queryFn: () => searchChangeOwners(ownerDebounced, unitId),
-    enabled: open && canAssignOwner && owner === null && unitId !== "",
-    retry: false,
-  });
-
-  // W7.66: a manager of the previous unit is not necessarily a manager of the
-  // new one, so moving the change drops the picked owner instead of letting the
-  // save fail on a stale choice.
+  // W7.66: moving the unit drops the picked owner — it may not manage the new one.
   const changeUnit = (nextUnitId: string) => {
     if (nextUnitId === unitId) return;
     setUnitId(nextUnitId);
     setOwner(null);
-    setOwnerSearch("");
+    resetOwnerSearch();
   };
 
   const standard = type === "STANDARD";
@@ -466,10 +456,10 @@ export function ChangeFormSheet({
             canAssignOwner={canAssignOwner}
             owner={owner}
             setOwner={setOwner}
-            ownerSearch={ownerSearch}
-            setOwnerSearch={setOwnerSearch}
-            owners={owners.data?.items ?? []}
-            ownersLoading={owners.isFetching}
+            ownerSearch={ownerSearch.search}
+            setOwnerSearch={ownerSearch.setSearch}
+            owners={ownerSearch.items}
+            ownersLoading={ownerSearch.loading}
             implementationPlan={implementationPlan}
             setImplementationPlan={setImplementationPlan}
             backoutPlan={backoutPlan}

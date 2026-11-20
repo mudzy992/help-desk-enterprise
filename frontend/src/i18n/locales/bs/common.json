@@ -10174,6 +10174,7 @@
       "cancelReason": "Razlog otkazivanja",
       "notSet": "Nije uneseno.",
       "redactedForRole": "Skriveno — tvoja rola nema pristup ovom dijelu zapisa.",
+      "ownerNotEligible": "Vlasnik više nema pravo upravljanja ovom promjenom. Dodijelite novog vlasnika.",
       "yes": "Da",
       "no": "Ne"
     },
@@ -10309,7 +10310,6 @@
       "alreadyVoted": "Već ste glasali u ovoj rundi.",
       "notInAuthorization": "Promjena nije na odobravanju.",
       "ownerNotManager": "Vlasnik mora biti upravitelj promjena koji pokriva odabranu organizacijsku jedinicu.",
-      "ownerNotEligible": "Vlasnik više nema pravo upravljanja ovom promjenom. Dodijelite novog vlasnika.",
       "requirement": {
         "title": "Nedostaje naslov.",
         "description": "Nedostaje opis.",

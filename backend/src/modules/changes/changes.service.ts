@@ -653,21 +653,14 @@ export class ChangesService {
     // W7.66: the owner has to be a manager of the unit the change ends up in.
     // The pair is validated only when one of them actually moves, so a change
     // whose owner lost the assignment later can still be edited.
-    const effectiveUnitId =
-      (data.organizationalUnitId as string | undefined) ?? current.organizationalUnitId;
-    const ownerMoved =
-      data.ownerUserId !== undefined && data.ownerUserId !== current.ownerUserId;
-    const unitMoved =
-      data.organizationalUnitId !== undefined &&
-      data.organizationalUnitId !== current.organizationalUnitId;
+    const ownerMoved = ownerUserId !== undefined && ownerUserId !== current.ownerUserId;
+    const unitMoved = unitId !== undefined && unitId !== null && unitId !== current.organizationalUnitId;
+    const effectiveUnitId = unitId ?? current.organizationalUnitId;
     await this.assertReferences(viewer, {
       serviceIds: serviceIds?.filter((serviceId) => !current.services.some((link) => link.service.id === serviceId)),
       assetIds: assetIds?.filter((assetId) => !current.assets.some((link) => link.asset.id === assetId)),
       problemId: data.problemId as string | null | undefined,
-      ownerUserId:
-        ownerMoved || unitMoved
-          ? ((data.ownerUserId === undefined ? current.ownerUserId : data.ownerUserId) ?? undefined)
-          : undefined,
+      ownerUserId: ownerMoved || unitMoved ? ownerUserId : undefined,
       cabGroupId: data.cabGroupId as string | null | undefined,
       organizationalUnitId: ownerMoved || unitMoved ? effectiveUnitId : undefined,
     });

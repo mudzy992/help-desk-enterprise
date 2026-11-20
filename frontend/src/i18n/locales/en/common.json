@@ -10098,6 +10098,7 @@
       "cancelReason": "Cancellation reason",
       "notSet": "Not entered.",
       "redactedForRole": "Hidden — your role does not include this part of the record.",
+      "ownerNotEligible": "The owner can no longer manage this change. Assign a new owner.",
       "yes": "Yes",
       "no": "No"
     },
@@ -10228,7 +10229,6 @@
       "alreadyVoted": "You have already voted in this round.",
       "notInAuthorization": "The change is not in authorization.",
       "ownerNotManager": "The owner must be a change manager scoped to the selected organizational unit.",
-      "ownerNotEligible": "The owner can no longer manage this change. Assign a new owner.",
       "requirement": {
         "title": "The title is missing.",
         "description": "The description is missing.",
