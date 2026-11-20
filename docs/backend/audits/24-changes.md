@@ -171,7 +171,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | zatvoreno |
 | BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | zatvoreno (W7.64) |
 | BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | zatvoreno (W7.65) |
-| BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | otvoreno |
+| BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | zatvoreno (W7.66) |
 | BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
 | BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | otvoreno |
 | BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | otvoreno |
@@ -209,7 +209,9 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **09:** zatvoreno u W7.65 — vidljivost je postala projekcija (`full`/`participant`/`voter`/`observer`), event
   diffovi, asset/problem linkovi i vote komentari više ne idu izuzetim čitaocima. Dokaz:
   [W7.65 implementation](../implementation/286-w765-changes-09-role-projection.md).
-- **10:** owner OU-grant eligibility/reconciliation.
+- **10:** zatvoreno u W7.66 — eligibility koristi isti scope resolver kao `canManage` (picker, save i
+  reconciler se ne mogu razići), a revokacija/deaktivacija se bilježi kao `owner_ineligible` event. Dokaz:
+  [W7.66 implementation](../implementation/287-w766-changes-10-owner-eligibility.md).
 - **11–12:** potpuni transactional audit i conflict snapshot/hash vezan za action.
 - **15–17:** template version, eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
@@ -396,3 +398,38 @@ komentare, 4 frontend testa za UI poruku.
 **Preostali rizik:** participant namjerno zadržava plan; imena servisa i OU ostaju vidljivi svim nivoima (to je
 `BA-changes-10`/service scope tema); event redakcija uklanja `changes` diff i za ownera izvan scopea; CAB roster
 je vidljiv članovima svoje grupe; autor uvijek vidi vlastiti komentar.
+
+## 29. Implementacijski closeout — W7.66 (`BA-changes-10`)
+
+**Status nalaza:** zatvoren; paket W7.66, kod `ce6f2f1` (+`7562031` tip, `eba1f66` format), CI
+[`44696149887`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44696149887) **success**, **bez
+migracije**. Detalji: [287](../implementation/287-w766-changes-10-owner-eligibility.md).
+
+**Šta je bilo:** owner je bio prihvaćan ako **bilo gdje** ima `change.manage`. Picker je zato nudio scoped
+managere iz tuđih OU-a, save ih je prihvatao, a change je dobijao vlasnika koji ga po `canManage` pravilu ne može
+mijenjati. Kad owneru kasnije bude revokovan assignment, deaktiviran ili anonimiziran nalog, ništa se nije
+rekonsolidovalo — change je tiho ostajao bez efektivnog vlasnika, bez zapisa zašto.
+
+**Šta je sada:** `change-owner-eligibility.ts` izvodi scope iz **istog** lanca koji koristi `canManage`
+(`assetViewerFromContext` → `resolveAssetScope(change.manage, homeUnitPath)` → `isPathInScope`), pa picker, write
+validacija i reconciler dijele jedno pravilo. Ishod je jedan od pet: `eligible`, `missing`, `inactive`,
+`anonymized`, `out_of_scope` (fail-closed i za nepoznat unit path). `create` validira ownera prema svom unitu
+uvijek; `update` validira efektivni par `(owner, unit)` **samo** kad se owner ili unit mijenjaju, pa change čiji
+je owner kasnije izgubio assignment ostaje urediv. `GET /changes/owners` prima `organizationalUnitId` (fallback
+`homeOrganizationalUnitId`, bez unta prazna lista), over-fetchuje 60 i filtrira scope sa jednim batch principal
+upitom. Worker-only `ChangeOwnerReconciler` (5 min, keyset, batch 100) za žive change-ove bilježi **jedan** `owner`
+event (`reason: owner_ineligible`, `eligibility`, `ownerUserId`) i ne ponavlja ga; owner se ne briše, jer change
+bez vlasnika krši lifecycle i može ga preuzeti manager tog OU-a. Detalj vraća `ownerEligible` (`null` bez ownera),
+UI prikazuje `changes.detail.ownerNotEligible`, a forma odbacuje odabranog ownera kad se unit promijeni.
+
+**Acceptance:** §10 („owner mora biti manager OU-a changea”) je ispunjen i mjerljiv: write validacija, picker,
+detalj i reconciler imaju svoje testove (6 + 9 backend, 3 frontend), a nepodoban owner više ne može biti spremljen
+niti ponuđen. Nijedna postojeća putanja nije oslabljena: unscoped grant pada na home unit isto kao `canManage`, a
+unscoped manager sa `change.manager`/globalnom rolom i dalje pokriva sve.
+
+**Šta ostaje u ovom modulu:** P2: `11`, `12`, `13`, `14`, `15`, `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** reconciler samo bilježi drift (odluka o novom vlasniku je ljudska); owner mora imati
+`change.manage`, ne `change.read`; service-scoped grant pokriva home unit (postojeća semantika); anonimizirani
+bivši owner ostaje `null` actor u historiji; batch od 100 po ticku znači da se veliki drift vidi kroz nekoliko
+intervala.
