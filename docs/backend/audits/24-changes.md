@@ -174,7 +174,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | zatvoreno (W7.66) |
 | BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.67) |
 | BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | zatvoreno (W7.68) |
-| BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | otvoreno |
+| BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | zatvoreno (W7.69) |
 | BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | otvoreno |
 | BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | otvoreno |
 | BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | otvoreno |
@@ -495,3 +495,37 @@ provjeru u transakciji i zapis hasha u historiju i audit.
 
 **Preostali rizik:** konflikti su i dalje warning, ne DB invarijanta; ponovni upit u transakciji ne zaključava
 kandidat-redove (uski prozor do commita ostaje, svjesno, bez `SERIALIZABLE`); digest ne pokriva slobodan tekst.
+
+## 32. Implementacijski closeout — W7.69 (`BA-changes-13`)
+
+**Status nalaza:** zatvoren; paket W7.69, kod `6254166`, CI
+[44722424829](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44722424829), **bez migracije**.
+Detalji: [290](../implementation/290-w769-changes-13-scheduler-drift-health.md).
+
+**Šta je bilo:** kvartalni change sweep se registrovao **samo pri bootu**. Redis flush ili failover na praznu
+instancu briše schedule i ništa ga ne vraća do redeploya — najave početka i upozorenja na prekoračenje tiho
+prestanu. Kartica „System health” nije imala nijednu metriku sweepa (presence, last-run, upcoming-undelivered,
+overdue backlog), a `ChangeDowntimeOutboxReconciler` je drift trovao i samo logovao.
+
+**Šta je sada:** sweep se sam vraća — `reconcileSchedule()` jednom u minuti provjeri `getJobSchedulers` i
+ponovo registruje isti scheduler id (`change_sweep_schedule_recovered`), registracija ide kroz zajednički
+`registerRepeatableJob`, a boot ostaje fail-fast. Sweep je ušao u `expectedSchedulers`, pa `scheduler.late`
+pokriva `not_registered`, `not_picked_up`, `failing` i `no_recent_success` (30 min = jedan prozor + grace).
+`ChangeDowntimeDriftMetricStore` piše završen prolaz u Redis `changes:ops:downtime-drift` (TTL 24 h,
+fail-closed `read()`), a reconciler zapisuje **samo** kad kursor obiđe cijeli skup — djelimičan prolaz ne
+objavljuje brojeve. Novi signal `changeOperations` (reminders/delivery/downtime, `null` = nepoznato, nikad
+nula) hrani karticu i dva alarma: `changes.reminders.stuck` (dead-letter > 0 ili najstariji pending ≥ 15 min)
+i `changes.downtime.drift` (završen prolaz sa driftom), oba WARNING 2/2 sa runbook sekcijama
+`## change-reminders` i `## change-downtime-drift`. Preskočeni servisi zbog tuđeg preklapanja ulaze u
+`skippedServices24h` preko `$queryRaw` (Prisma `where` ne poznaje `jsonb_array_length`).
+
+**Acceptance:** §9 („scheduler-presence, last-run, upcoming-undelivered, overdue backlog i downtime-drift
+health metrike”, „Redis flush/restart poslije boota i registracijska greška se reconciliuju”) je ispunjen i
+mjerljiv: 5 + 3 + 11 + 6 testova na backendu, 88 testova evaluacije/kataloga i 4 frontend testa dokazuju
+self-heal, fail-closed čitanje, zapis samo završenog prolaza i ponašanje oba alarma bez signala.
+
+**Šta ostaje u ovom modulu:** P2: `14`, `15`, `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** reconcile je „eventually” (do 60 s prozora); `no_recent_success` mjeri sweep, ne isporuku
+(isporuku pokriva `changes.reminders.stuck`); drift brojevi opisuju zadnji završen prolaz, pa prolaz duži od
+10 min prikazuje „Nepoznato” dok se ne završi.
