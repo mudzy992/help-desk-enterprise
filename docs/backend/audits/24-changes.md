@@ -703,7 +703,7 @@ tehnički naziv u e-mailu — postojeće stanje izvan ovog nalaza.
 
 ## 37. Implementacijski closeout — W7.76 (`BA-changes-18`)
 
-**Status nalaza:** zatvoren; paket W7.76, **bez migracije**. Detalji:
+**Status nalaza:** zatvoren; paket W7.76, CI [`44828863763`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44828863763) **success** (uključujući PostgreSQL/Redis integraciju; E2E poslovi `skipped`)., **bez migracije**. Detalji:
 [297](../implementation/297-w776-changes-18-cursor-contract.md).
 
 **Šta je bilo:** register je imao `limit`/`cursor`/`total`, a sve ostalo je stajalo na tihoj granici: timeline

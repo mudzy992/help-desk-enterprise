@@ -109,7 +109,9 @@ Frontend (`vitest`, `tsc --noEmit`, `eslint`, `i18n:check`):
   **6** (+2: upozorenje, i „nema konflikata” samo kad skan nije odsječen); `change-form-cab-routing.spec.tsx` —
   **5** (+2 za hint);
 - `components/changes` + `lib/changes` + `i18n` — **23 fajla / 113 testova**;
-- `npm run i18n:check` — 9.274 ključa, bs/en paritet, 4.724 statička ključa razriješena.
+- `npm run i18n:check` — 9.274 ključa, bs/en paritet, 4.724 statička ključa razriješena;
+- `module-size`, `hooks-order`, `a11y-static`, `format:check` i `docs-content` čuvari zeleni;
+- CI [`44828863763`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44828863763) **success** (uključujući PostgreSQL/Redis integraciju; E2E poslovi `skipped`).
 
 ## Usput: forma je ostala ispod granice od 500 linija
 
