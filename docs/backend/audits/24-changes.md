@@ -177,7 +177,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | zatvoreno (W7.69) |
 | BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | zatvoreno (W7.70) |
 | BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | zatvoreno (W7.71) |
-| BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | otvoreno |
+| BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | zatvoreno (W7.73) |
 | BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | otvoreno |
 | BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | otvoreno |
 | BA-changes-19 | P3       | Servis ne clampuje quorum/lead/reminder configuration integer granice                          | otvoreno |
@@ -223,7 +223,14 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   CAS se provjerava **unutar** transakcije prije zamjene veza servisa. `change.template_saved` (schema v2) imenuje
   obje revizije i sva promijenjena polja, skalari nose prije/poslije, planovi se samo imenuju, a veze se broje.
   Dokaz: [W7.71 implementation](../implementation/292-w771-changes-15-template-revision.md).
-- **16–17:** eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
+- **16:** zatvoreno u W7.73 — CAB tijelo se više ne bira po abecedi. Eksplicitan izbor pobjeđuje; inače
+  odlučuje najbliži nivo lanca jedinice (jedinica i njeni preci) koji ima **tačno jednu** CAB grupu, a tek ako
+  lanac nema nijednu, jedina CAB grupa instalacije. Nivo sa više grupa (ili više grupa u instalaciji bez
+  pokrivenog nivoa) daje **409 `CHANGE_CAB_GROUP_REQUIRED`** — tražilac mora odabrati. Forma više ne
+  predbira `cabGroups[0]`; predizbor postoji samo kad je routing nedvosmislen. `change.created` (schema v2)
+  nosi `cabGroupId` i `cabRouting`, pa je routing dokaziv iz audit loga. Dokaz:
+  [W7.73 implementation](../implementation/294-w773-changes-16-cab-routing.md).
+- **17:** formalni privacy/retention replika lifecycle.
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
 
 ## 17. Baseline score
@@ -600,3 +607,40 @@ podignutih verzija + regresijski test metadata koju editor stvarno šalje). E2E 
 ugovor i kolonu); `PUT` bez `If-Match` sada vraća 428, što je namjerno fail-closed ali je breaking za klijente
 treće strane; `change.template_saved` v2 znači da stariji zapisi imaju uži metadata (mješovit historijat je
 očekivan, `operation` je i dalje tu).
+
+## 35. Implementacijski closeout — W7.73 (`BA-changes-16`)
+
+**Status nalaza:** zatvoren; paket W7.73, kod `d5379ac`, CI
+[44756240551](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44756240551), **bez migracije**.
+Detalji: [294](../implementation/294-w773-changes-16-cab-routing.md).
+
+**Šta je bilo:** promjena bez eksplicitnog CAB izbora rutala se sa
+`findFirst({ isCabGroup: true }, orderBy: { name: 'asc' })` — prva po abecedi. Forma je imala istu grešku jedan
+sloj iznad: `setCabGroupId(change?.cabGroup?.id ?? options.cabGroups[0]?.id ?? "")`, pa je prva po abecedi
+slata kao **eksplicitan** izbor tražioca, a `<select>` bez prazne opcije je i prazno stanje prikazivao kao
+odabranu prvu grupu. U multi-CAB instalaciji to je tiho slanje promjene pogrešnom tijelu koje odobrava.
+
+**Šta je sada:** eksplicitan `cabGroupId` pobjeđuje i ne dira se (može biti i izvan jedinice, npr. centralni
+CAB). Bez njega odlučuje **najbliži nivo lanca jedinice** (jedinica promjene i njeni preci) koji ima tačno
+jednu CAB grupu; nivo sa više grupa, ili lanac bez ijedne uz više grupa u instalaciji, daje
+**409 `CHANGE_CAB_GROUP_REQUIRED`** i tražilac mora odabrati; tek jedina CAB grupa instalacije je
+nedvosmislen fallback. `PATCH` odbija brisanje CAB grupe non-STANDARD promjene. `change.created` je schema
+**v2** (i compatibility v2) i nosi `cabGroupId` i `cabRouting` (`explicit` | `single-covering` |
+`single-installation`). `GET /changes/options` nosi jedinicu svake CAB grupe, pa forma nudi tačno prihvatljive
+grupe, predbira samo kad je routing nedvosmislen, a inače traži izbor (prazna opcija, `*`, hint, blokirano
+snimanje, danger toast na pad).
+
+**Acceptance:** §10 („Default CAB bira alfabetički prvi CAB group … Treba eksplicitna konfiguracija po OU …
+ili obavezan izbor”) je zatvoren s obje strane: server odlučuje po OU lancu iz postojeće veze
+`Group.organizationalUnitId` (bez migracije) i odbija neodređenost, a forma više ne može poslati tuđu odluku
+kao da ju je tražilac donio. Dokaz: `change-cab-routing.spec` (8), `changes-cab-routing.spec` (7 kroz stvarni
+`create`), frontend `cab-group-candidates.spec` (7), `change-form-cab-routing.spec` (3),
+`change-form-body.spec` (5), ciljani backend **84 suite/422 testa**, frontend **469/1868**.
+
+**Šta ostaje u ovom modulu:** P2: `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** routing po **servisu** nije uveden — tražio bi nov ugovor (i vjerovatno migraciju) koji
+nalaz ne pominje, a uvođenje bez podataka bilo bi novo pogađanje. Grupa izvan jedinice ostaje dozvoljena kad
+je izričito odabrana (centralni CAB je legitimna organizacija), pa se OU poklapanje ne provjerava. Instalacije
+s više CAB grupa na istom nivou sada traže izbor gdje su prije dobijale tihu odluku — to je namjerna promjena
+ponašanja (409), dokumentovana u [294](../implementation/294-w773-changes-16-cab-routing.md).
