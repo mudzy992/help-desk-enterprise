@@ -35,6 +35,8 @@ export const auditActionScopeRegistry: Readonly<Record<string, AuditScopePolicy>
   [auditLogActions.changeCreated]: 'entity',
   [auditLogActions.changeStatusChanged]: 'entity',
   [auditLogActions.changeApprovalRecorded]: 'entity',
+  [auditLogActions.changeUpdated]: 'entity',
+  [auditLogActions.changeClaimed]: 'entity',
   [auditLogActions.assetRetired]: 'entity',
   [auditLogActions.assetDisposed]: 'entity',
 });

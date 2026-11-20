@@ -430,7 +430,9 @@
             "problem_handoff_requested": "Problem — handoff to another group requested",
             "problem_handoff_accepted": "Problem — handoff to another group accepted",
             "problem_handoff_rejected": "Problem — handoff to another group rejected",
-            "problem_handoff_cancelled": "Problem — handoff to another group cancelled"
+            "problem_handoff_cancelled": "Problem — handoff to another group cancelled",
+            "change_claimed": "Change — claimed",
+            "change_updated": "Change — updated"
           },
           "entities": {
             "policy_pack": "Policy pack",
@@ -665,7 +667,31 @@
             "rootCause": "Root cause",
             "rcaWhys": "5 Whys (steps)",
             "workaround": "Workaround",
-            "resolution": "Resolution"
+            "resolution": "Resolution",
+            "assets": "Assets",
+            "assetsAdded": "Assets added",
+            "assetsRemoved": "Assets removed",
+            "backoutPlan": "Backout plan",
+            "cabGroupId": "CAB group",
+            "causesDowntime": "Causes downtime",
+            "communicationPlan": "Communication plan",
+            "implementationPlan": "Implementation plan",
+            "likelihood": "Likelihood",
+            "plannedEnd": "Planned end",
+            "plannedStart": "Planned start",
+            "previousCabGroupId": "Previous CAB group",
+            "previousLikelihood": "Previous likelihood",
+            "previousPlannedEnd": "Previous planned end",
+            "previousPlannedStart": "Previous planned start",
+            "previousProblemId": "Previous linked problem",
+            "previousRisk": "Previous risk",
+            "problemId": "Linked problem",
+            "reauthorized": "Returned to authorization",
+            "risk": "Risk",
+            "services": "Services",
+            "servicesAdded": "Services added",
+            "servicesRemoved": "Services removed",
+            "testPlan": "Test plan"
           }
         },
         "actorUnknown": "Unknown user",

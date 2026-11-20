@@ -432,7 +432,9 @@
             "problem_handoff_requested": "Problem — zatražena predaja drugoj grupi",
             "problem_handoff_accepted": "Problem — predaja drugoj grupi prihvaćena",
             "problem_handoff_rejected": "Problem — predaja drugoj grupi odbijena",
-            "problem_handoff_cancelled": "Problem — predaja drugoj grupi otkazana"
+            "problem_handoff_cancelled": "Problem — predaja drugoj grupi otkazana",
+            "change_claimed": "Promjena — preuzeta u obradu",
+            "change_updated": "Promjena — izmijenjena"
           },
           "entities": {
             "policy_pack": "Paket pravila",
@@ -667,7 +669,31 @@
             "rootCause": "Uzrok",
             "rcaWhys": "5 zašto (koraci)",
             "workaround": "Zaobilazno rješenje",
-            "resolution": "Rješenje"
+            "resolution": "Rješenje",
+            "assets": "Oprema",
+            "assetsAdded": "Dodana oprema",
+            "assetsRemoved": "Uklonjena oprema",
+            "backoutPlan": "Plan povrata",
+            "cabGroupId": "CAB grupa",
+            "causesDowntime": "Uzrokuje prekid servisa",
+            "communicationPlan": "Plan komunikacije",
+            "implementationPlan": "Plan implementacije",
+            "likelihood": "Vjerovatnoća",
+            "plannedEnd": "Planirani kraj",
+            "plannedStart": "Planirani početak",
+            "previousCabGroupId": "Prethodna CAB grupa",
+            "previousLikelihood": "Prethodna vjerovatnoća",
+            "previousPlannedEnd": "Prethodni planirani kraj",
+            "previousPlannedStart": "Prethodni planirani početak",
+            "previousProblemId": "Prethodni povezani problem",
+            "previousRisk": "Prethodni rizik",
+            "problemId": "Povezani problem",
+            "reauthorized": "Vraćena na odobrenje",
+            "risk": "Rizik",
+            "services": "Servisi",
+            "servicesAdded": "Dodani servisi",
+            "servicesRemoved": "Uklonjeni servisi",
+            "testPlan": "Plan testiranja"
           }
         },
         "actorUnknown": "Nepoznat korisnik",

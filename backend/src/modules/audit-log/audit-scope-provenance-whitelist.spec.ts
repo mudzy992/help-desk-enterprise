@@ -117,6 +117,16 @@ describe('audit scope provenance whitelist (BA-problems-20)', () => {
     expect(sql).not.toContain('DROP TRIGGER "AuditLog_scope_provenance"');
   });
 
+  it('covers the two actions W7.67 added for change edit and claim', () => {
+    const whitelist = parsedWhitelist();
+    expect(whitelist.get(auditLogActions.changeUpdated)).toEqual([
+      { table: 'ChangeRequest', column: 'organizationalUnitId' },
+    ]);
+    expect(whitelist.get(auditLogActions.changeClaimed)).toEqual([
+      { table: 'ChangeRequest', column: 'organizationalUnitId' },
+    ]);
+  });
+
   it('covers the two actions W7.30 added and W7.38 wired up', () => {
     const whitelist = parsedWhitelist();
     expect(whitelist.get(auditLogActions.problemUpdated)).toEqual([

@@ -170,6 +170,9 @@ export const knownAuditActions = [
   "change.status_changed",
   "change.approval_recorded",
   "change.template_saved",
+  // W7.67: the general edit and the claim are canonical audit events too.
+  "change.updated",
+  "change.claimed",
   "knowledge.category.created",
   "knowledge.category.updated",
   "knowledge.category.archived",

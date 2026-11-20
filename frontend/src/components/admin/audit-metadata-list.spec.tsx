@@ -73,6 +73,28 @@ describe("AuditMetadataList", () => {
     expect(render({ "failedByQueue.email": 2 }, 6)).toContain("unknown");
   });
 
+  it("renders a change edit without exposing free text (W7.67)", () => {
+    const html = render(
+      {
+        changedFields: ["title", "ownerUserId", "services", "assets"],
+        textChanged: ["description", "backoutPlan"],
+        ownerUserId: "user-2",
+        previousOwnerUserId: null,
+        servicesAdded: 2,
+        assetsRemoved: 1,
+      },
+      8,
+    );
+    expect(html).toContain("field:changedFields: field:title, field:ownerUserId, field:services, field:assets");
+    expect(html).toContain("field:textChanged: field:description, field:backoutPlan");
+    expect(html).toContain("field:servicesAdded: 2");
+    expect(html).toContain("field:assetsRemoved: 1");
+    // The owner is a reference, so the value travels; the free text does not.
+    expect(html).toContain("field:ownerUserId: user-2");
+    expect(html).not.toContain("Plan povrata");
+    expect(html).not.toContain("Opis");
+  });
+
   it("translates a changed-field list, but never a sentence with a comma", () => {
     const html = render(
       { changedFields: ["description", "ownerUserId"], textChanged: ["description"] },

@@ -215,6 +215,9 @@ export const auditLogActions = {
   changeStatusChanged: 'change.status_changed',
   changeApprovalRecorded: 'change.approval_recorded',
   changeTemplateSaved: 'change.template_saved',
+  /** W7.67: a general edit and a claim are canonical audit events too. */
+  changeUpdated: 'change.updated',
+  changeClaimed: 'change.claimed',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',

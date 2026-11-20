@@ -5,6 +5,7 @@ import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { changeClaimAuditMetadata, changeUpdateAuditMetadata } from './change-audit';
 import {
   assetLinkAccess,
   assetLinkVisible,
@@ -553,6 +554,16 @@ export class ChangesService {
           detail: { changes: { ownerUserId: { from: current.ownerUserId, to: viewer.userId } }, claimed: true } as never,
         },
       });
+      // W7.67: taking a change over is an ownership change, so it belongs in the
+      // canonical audit log as well, not only in the change history.
+      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.changeClaimed,
+        entityType: auditLogEntityTypes.change,
+        entityId: id,
+        organizationalUnitId: current.organizationalUnitId,
+        metadata: changeClaimAuditMetadata(current.ownerUserId, viewer.userId) as never,
+        actorUserId: viewer.userId,
+      });
     });
     return this.get(viewer, id);
   }
@@ -737,6 +748,22 @@ export class ChangesService {
           },
         });
       }
+      // W7.67: an edit that moves the owner, the unit, the CAB group, the problem
+      // link, the window or the classification must be readable in the canonical
+      // audit log. The entry names the changed fields; free text is not copied.
+      await recordAuditEntry(transaction as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.changeUpdated,
+        entityType: auditLogEntityTypes.change,
+        entityId: id,
+        organizationalUnitId: effectiveUnitId,
+        metadata: changeUpdateAuditMetadata(
+          changes,
+          textChanged,
+          { addedServices, removedServices, addedAssets, removedAssets },
+          reauthorize,
+        ) as never,
+        actorUserId: viewer.userId,
+      });
       if (downtimeMayHaveChanged && (current.status === 'SCHEDULED' || current.status === 'IMPLEMENTING')) {
         await enqueueChangeDowntimeSync(this.outbox, transaction, { changeId: id, version: current.version + 1, actorUserId: viewer.userId });
       }

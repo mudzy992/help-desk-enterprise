@@ -170,6 +170,8 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.changeCreated]: compatibility([auditLogEntityTypes.change]),
   [auditLogActions.changeStatusChanged]: compatibility([auditLogEntityTypes.change]),
   [auditLogActions.changeApprovalRecorded]: compatibility([auditLogEntityTypes.change]),
+  [auditLogActions.changeUpdated]: compatibility([auditLogEntityTypes.change]),
+  [auditLogActions.changeClaimed]: compatibility([auditLogEntityTypes.change]),
   [auditLogActions.changeTemplateSaved]: compatibility([auditLogEntityTypes.changeTemplate]),
   [auditLogActions.knowledgeCategoryCreated]: compatibility([auditLogEntityTypes.knowledgeCategory]),
   [auditLogActions.knowledgeCategoryUpdated]: compatibility([auditLogEntityTypes.knowledgeCategory]),
