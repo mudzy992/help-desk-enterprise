@@ -85,7 +85,9 @@ describe("AuditMetadataList", () => {
       },
       8,
     );
-    expect(html).toContain("field:changedFields: field:title, field:ownerUserId, field:services, field:assets");
+    expect(html).toContain(
+      "field:changedFields: field:title, field:ownerUserId, field:services, field:assets",
+    );
     expect(html).toContain("field:textChanged: field:description, field:backoutPlan");
     expect(html).toContain("field:servicesAdded: 2");
     expect(html).toContain("field:assetsRemoved: 1");
