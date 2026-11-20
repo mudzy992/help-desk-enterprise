@@ -15,6 +15,7 @@ import type { ChangeVoteDto } from './changes.dto';
 import { ChangeError, changeErrorCodes, changeEventActions, changeLimits } from './changes.constants';
 import { ChangesService } from './changes.service';
 import { loadCabVoterIds } from './load-cab-voters';
+import { changeListLimits, changeListLimit, changeOverFetch, changePage } from './change-pagination';
 
 const userSelect = { id: true, displayName: true, email: true } as const;
 
@@ -66,34 +67,66 @@ export class ChangeApprovalsService {
     };
   }
 
-  async overview(viewer: ChangeViewer, id: string) {
+  /**
+   * BA-changes-18 (W7.76): the round on the screen and the record behind it.
+   *
+   * The current round is never paged — it holds at most one vote per voter and
+   * the voter set is capped by `cabVotersMax` — because quorum, "who still has
+   * to vote" and the redaction notice all describe *this* round. Earlier rounds
+   * are, and they used to be cut at 500 across all rounds: a change that ran
+   * through a few rejections lost its oldest votes without any hint. They are
+   * now a cursor page (`history`), and the current round no longer competes with
+   * them for the same 500 rows.
+   */
+  async overview(
+    viewer: ChangeViewer,
+    id: string,
+    page: { readonly limit?: number; readonly cursor?: string } = {},
+  ) {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
     const change = await this.changes.loadInScope(id, scope, viewer);
     const configuration = await this.access.configuration();
     // BA-changes-06: the panel shows the round's frozen set, not today's CAB,
     // and a frozen round does not pay for the live roster query at all.
     const { snapshot, frozen } = await this.voterSnapshot(change, configuration);
-    const votes = await this.prisma.changeApproval.findMany({
-      where: { changeId: id },
-      select: { id: true, round: true, decision: true, comment: true, decidedAt: true, approverUserId: true, approver: { select: userSelect } },
-      orderBy: [{ round: 'desc' }, { decidedAt: 'asc' }],
-      take: 500,
-    });
+    const limit = changeListLimit(page.limit, changeListLimits.approvals);
+    const voteSelect = { id: true, round: true, decision: true, comment: true, decidedAt: true, approverUserId: true, approver: { select: userSelect } } as const;
+    const [current, historyRows, commentCount] = await Promise.all([
+      this.prisma.changeApproval.findMany({
+        where: { changeId: id, round: change.approvalRound },
+        select: voteSelect,
+        orderBy: [{ decidedAt: 'asc' }, { id: 'asc' }],
+        // One row past the cap: a round wider than the voter ceiling is a
+        // configuration problem and has to show up as one.
+        take: changeLimits.cabVotersMax + 1,
+      }),
+      this.prisma.changeApproval.findMany({
+        where: { changeId: id, round: { not: change.approvalRound } },
+        select: voteSelect,
+        orderBy: [{ round: 'desc' }, { decidedAt: 'asc' }, { id: 'asc' }],
+        take: changeOverFetch(limit),
+        ...(page.cursor === undefined ? {} : { cursor: { id: page.cursor }, skip: 1 }),
+      }),
+      this.prisma.changeApproval.count({ where: { changeId: id, comment: { not: null } } }),
+    ]);
     const eligible = frozen ? snapshot.voters : await this.eligibleVoters(change.cabGroupId, change.requesterUserId);
     const quorum = frozen ? snapshot.quorum : computeChangeQuorum(change.type, configuration, eligible.length);
     const eligibleIds = eligible;
-    const current = votes.filter((vote) => vote.round === change.approvalRound);
-    const counted = frozen ? countSnapshotVotes(current, snapshot) : current;
+    const currentPage = current.slice(0, changeLimits.cabVotersMax);
+    const counted = frozen ? countSnapshotVotes(currentPage, snapshot) : currentPage;
+    const history = changePage(historyRows, limit);
     // W7.70: the projection reads at most the same number of voters the round may hold.
     const voters = eligibleIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: [...eligibleIds] } }, select: userSelect, orderBy: { displayName: 'asc' }, take: changeLimits.cabVotersMax });
-    const votedIds = new Set(current.map((vote) => vote.approverUserId));
+    const votedIds = new Set(currentPage.map((vote) => vote.approverUserId));
     const isMember = await this.access.isCabMember(viewer, change.cabGroupId);
     // W7.65: vote comments are deliberation inside the CAB, not part of the
     // lifecycle record a requester, owner or non-voting member needs. Full
     // readers, voters and the author of a comment keep seeing it.
     const level = await this.changes.detailLevelFor(viewer, change, scope);
     const canReadComments = level === 'full' || level === 'voter';
-    const commentsRedacted = !canReadComments && votes.some((vote) => vote.comment !== null);
+    // Counted in SQL: with paging, "some comment exists" can no longer be read
+    // off the page the viewer happens to be on.
+    const commentsRedacted = !canReadComments && commentCount > 0;
     return {
       round: change.approvalRound,
       quorum,
@@ -103,15 +136,16 @@ export class ChangeApprovalsService {
       cabGroup: change.cabGroup,
       voters: voters.map((voter) => ({ ...voter, voted: votedIds.has(voter.id) })),
       commentsRedacted,
-      votes: votes.map((vote) => ({
-        id: vote.id,
-        round: vote.round,
-        decision: vote.decision,
-        comment:
-          canReadComments || vote.approverUserId === viewer.userId ? vote.comment : null,
-        decidedAt: vote.decidedAt.toISOString(),
-        approver: vote.approver,
-      })),
+      /** Votes of the round above, complete unless the CAB exceeds the voter cap. */
+      votes: currentPage.map((vote) => this.toVote(vote, canReadComments, viewer.userId)),
+      /** True only for a CAB group wider than `cabVotersMax`: a config error. */
+      votesTruncated: current.length > currentPage.length,
+      /** Votes of earlier rounds, newest round first; `hasMore` says if any are cut. */
+      history: {
+        items: history.items.map((vote) => this.toVote(vote, canReadComments, viewer.userId)),
+        hasMore: history.hasMore,
+        nextCursor: history.nextCursor,
+      },
       canVote:
         change.status === 'AUTHORIZATION' &&
         isMember &&
@@ -119,6 +153,22 @@ export class ChangeApprovalsService {
         change.requesterUserId !== viewer.userId &&
         !votedIds.has(viewer.userId),
       isRequester: change.requesterUserId === viewer.userId,
+    };
+  }
+
+  /** W7.65: a vote comment is CAB deliberation, not lifecycle record. */
+  private toVote(
+    vote: { readonly id: string; readonly round: number; readonly decision: string; readonly comment: string | null; readonly decidedAt: Date; readonly approverUserId: string | null; readonly approver: unknown },
+    canReadComments: boolean,
+    viewerId: string,
+  ) {
+    return {
+      id: vote.id,
+      round: vote.round,
+      decision: vote.decision,
+      comment: canReadComments || vote.approverUserId === viewerId ? vote.comment : null,
+      decidedAt: vote.decidedAt.toISOString(),
+      approver: vote.approver,
     };
   }
 

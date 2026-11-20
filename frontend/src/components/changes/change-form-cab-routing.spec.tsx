@@ -147,6 +147,23 @@ describe("change form CAB routing (BA-changes-16)", () => {
     expect(submit.disabled).toBe(false);
   });
 
+  it("says so when the server had to cut one of its pickers (W7.76)", () => {
+    renderSheet({
+      ...optionsWith([]),
+      truncated: { units: true, services: false, cabGroups: false, templates: false },
+    });
+
+    expect(screen.getByTestId("change-form-options-truncated").textContent).toBe(
+      "changes.form.optionsTruncated",
+    );
+  });
+
+  it("stays silent when every picker fitted", () => {
+    renderSheet(optionsWith([]));
+
+    expect(screen.queryByTestId("change-form-options-truncated")).toBeNull();
+  });
+
   it("offers every group when the unit chain owns none", async () => {
     renderSheet(
       optionsWith([

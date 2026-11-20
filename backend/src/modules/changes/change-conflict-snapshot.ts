@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { ChangeConflicts, ConflictWindow } from './change-conflicts';
+import { changeConflictsTruncated, type ChangeConflicts, type ChangeConflictTruncation, type ConflictWindow } from './change-conflicts';
 
 /**
  * W7.68 (`BA-changes-12`): an acknowledgement is only meaningful for the exact
@@ -20,6 +20,12 @@ export type ChangeConflictSnapshot = {
   readonly freeze: string | null;
   readonly freezeBlocks: boolean;
   readonly hasWarnings: boolean;
+  /**
+   * W7.76 (`BA-changes-18`): whether the scan behind this digest was cut. It is
+   * part of the digest, so a preview taken while the scan was capped cannot be
+   * acknowledged after the cap is lifted (or the other way round).
+   */
+  readonly truncated: ChangeConflictTruncation;
 };
 
 type CanonicalFacts = {
@@ -27,6 +33,7 @@ type CanonicalFacts = {
   readonly c: readonly (readonly [string, string, string])[];
   readonly d: readonly (readonly [string, string, string, string, string])[];
   readonly f: readonly [string, string, string, boolean] | null;
+  readonly t: readonly [boolean, boolean];
 };
 
 function iso(value: Date): string {
@@ -59,7 +66,14 @@ function canonicalFacts(conflicts: ChangeConflicts, window: ConflictWindow): Can
     conflicts.freeze === null
       ? null
       : ([conflicts.freeze.label, conflicts.freeze.from, conflicts.freeze.to, conflicts.freezeBlocks] as const);
-  return { w: [iso(window.start), iso(window.end)], c: changes, d: downtime, f: freeze };
+  const truncated = conflicts.truncated ?? { changes: false, downtime: false };
+  return {
+    w: [iso(window.start), iso(window.end)],
+    c: changes,
+    d: downtime,
+    f: freeze,
+    t: [truncated.changes, truncated.downtime] as const,
+  };
 }
 
 export function changeConflictSnapshot(
@@ -78,7 +92,9 @@ export function changeConflictSnapshot(
     hasWarnings:
       conflicts.changes.length > 0 ||
       conflicts.downtime.length > 0 ||
+      changeConflictsTruncated(conflicts) ||
       (conflicts.freeze !== null && !conflicts.freezeBlocks),
+    truncated: conflicts.truncated ?? { changes: false, downtime: false },
   };
 }
 

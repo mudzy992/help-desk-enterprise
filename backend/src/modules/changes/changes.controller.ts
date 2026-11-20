@@ -8,6 +8,7 @@ import { ChangeScheduleService } from './change-schedule.service';
 import { ChangeTemplatesService } from './change-templates.service';
 import { ChangeActionDto, ChangeConflictPreviewDto, ChangeTemplateDto, ChangeVoteDto, CreateChangeDto, UpdateChangeDto } from './changes.dto';
 import { changeRisks, changeStatuses, changeTypes, type ChangeRiskValue, type ChangeStatusValue, type ChangeTypeValue } from './changes.constants';
+import { changeListLimits, changePageQuery } from './change-pagination';
 import { ChangesService, type ChangeListQuery } from './changes.service';
 import { runChange } from './map-change-error';
 import { readChangeIfMatch } from './read-change-if-match';
@@ -124,8 +125,19 @@ export class ChangesController {
 
   @Get('templates')
   @Header('Cache-Control', 'no-store')
-  listTemplates(@Req() request: AuthenticatedHttpRequest, @Query('includeInactive') includeInactive: string | undefined) {
-    return runChange(() => this.templates.list(this.viewer(request), includeInactive === 'true'));
+  listTemplates(
+    @Req() request: AuthenticatedHttpRequest,
+    @Query('includeInactive') includeInactive: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Query('cursor') cursor: string | undefined,
+  ) {
+    return runChange(() =>
+      this.templates.list(
+        this.viewer(request),
+        includeInactive === 'true',
+        changePageQuery({ limit, cursor }, changeListLimits.templates),
+      ),
+    );
   }
 
   @Post('templates')
@@ -162,10 +174,18 @@ export class ChangesController {
     return runChange(() => this.changes.get(this.viewer(request), id));
   }
 
+  /** W7.76 (`BA-changes-18`): `?limit=&cursor=` — the timeline is paged. */
   @Get(':id/events')
   @Header('Cache-Control', 'no-store')
-  events(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    return runChange(() => this.changes.events(this.viewer(request), id));
+  events(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query('limit') limit: string | undefined,
+    @Query('cursor') cursor: string | undefined,
+  ) {
+    return runChange(() =>
+      this.changes.events(this.viewer(request), id, changePageQuery({ limit, cursor }, changeListLimits.events)),
+    );
   }
 
   @Patch(':id')
@@ -179,10 +199,22 @@ export class ChangesController {
     return runChange(() => this.changes.conflicts(this.viewer(request), id));
   }
 
+  /** W7.76 (`BA-changes-18`): `?limit=&cursor=` page the votes of earlier rounds. */
   @Get(':id/approvals')
   @Header('Cache-Control', 'no-store')
-  approvalOverview(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    return runChange(() => this.approvals.overview(this.viewer(request), id));
+  approvalOverview(
+    @Req() request: AuthenticatedHttpRequest,
+    @Param('id') id: string,
+    @Query('limit') limit: string | undefined,
+    @Query('cursor') cursor: string | undefined,
+  ) {
+    return runChange(() =>
+      this.approvals.overview(
+        this.viewer(request),
+        id,
+        changePageQuery({ limit, cursor }, changeListLimits.approvals),
+      ),
+    );
   }
 
   @Post(':id/approvals')

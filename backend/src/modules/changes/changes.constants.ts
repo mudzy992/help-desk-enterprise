@@ -68,6 +68,22 @@ export const changeLimits = {
    * number exists so the quorum math stays bounded and the complaint is loud.
    */
   cabVotersMax: 500,
+  /**
+   * W7.76 (`BA-changes-18`): the conflict scan reads one row past these caps, so
+   * a truncated conflict set can be reported instead of looking complete. A cap
+   * that is hit is a warning on the acknowledgement, never a silent cut.
+   */
+  conflictCandidatesMax: 200,
+  conflictDowntimeMax: 200,
+  /**
+   * Form pickers (§17). These are not paged — a form cannot make the user page
+   * through organisational units — so the response names the pickers that were
+   * cut instead, and the UI says so.
+   */
+  optionsUnitsMax: 2000,
+  optionsServicesMax: 2000,
+  optionsCabGroupsMax: 200,
+  optionsTemplatesMax: 500,
 } as const;
 
 export const changeEventActions = {

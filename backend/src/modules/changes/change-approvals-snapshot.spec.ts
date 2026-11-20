@@ -44,6 +44,8 @@ function buildService() {
     user: { findMany: jest.fn(async (_args: QueryArgs): Promise<unknown[]> => []) },
     changeApproval: {
       findMany: jest.fn(async (_args: QueryArgs): Promise<unknown[]> => []),
+      // W7.76: `commentsRedacted` is a SQL count, not a scan of one page.
+      count: jest.fn(async (): Promise<number> => 0),
     },
     $transaction: jest.fn(async (_work: (tx: unknown) => unknown): Promise<unknown> => undefined),
   };

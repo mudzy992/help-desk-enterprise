@@ -14,6 +14,7 @@ import {
 import { computeChangeRisk } from './change-rules';
 import type { ChangeTemplateDto } from './changes.dto';
 import { ChangeError, changeErrorCodes } from './changes.constants';
+import { changeListLimit, changeListLimits, changeOverFetch, changePage } from './change-pagination';
 
 const templateSelect = {
   id: true,
@@ -86,16 +87,30 @@ export class ChangeTemplatesService {
     private readonly access: ChangeAccessService,
   ) {}
 
-  async list(viewer: ChangeViewer, includeInactive: boolean) {
+  /**
+   * Catalogue (§13). W7.76 (`BA-changes-18`): 500 rows used to be the end of the
+   * list with no way to see the rest; the list is now a cursor page and says
+   * whether more templates exist.
+   */
+  async list(
+    viewer: ChangeViewer,
+    includeInactive: boolean,
+    page: { readonly limit?: number; readonly cursor?: string } = {},
+  ) {
     await this.access.require(viewer, permissionKeys.changeRead);
     const showInactive = includeInactive && this.access.hasPermission(viewer, permissionKeys.changeManage);
+    const limit = changeListLimit(page.limit, changeListLimits.templates);
     const rows = await this.prisma.changeTemplate.findMany({
       where: showInactive ? {} : { isActive: true },
       select: templateSelect,
-      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
-      take: 500,
+      // `id` closes the ordering so a page boundary cannot repeat or skip a row
+      // that shares a name with its neighbour.
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }, { id: 'asc' }],
+      take: changeOverFetch(limit),
+      ...(page.cursor === undefined ? {} : { cursor: { id: page.cursor }, skip: 1 }),
     });
-    return { items: rows.map((row) => this.toResponse(row)) };
+    const { items, hasMore, nextCursor } = changePage(rows, limit);
+    return { items: items.map((row) => this.toResponse(row)), hasMore, nextCursor };
   }
 
   async get(viewer: ChangeViewer, id: string) {

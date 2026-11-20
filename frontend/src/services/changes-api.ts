@@ -112,6 +112,17 @@ export type ChangeListResponse = {
   readonly nextCursor: string | null;
 };
 
+/**
+ * W7.76 (`BA-changes-18`): one cursor page, the same shape everywhere the
+ * backend pages a change collection. `hasMore` is the server's answer, so the
+ * UI never has to guess from a full page whether something was left out.
+ */
+export type ChangePage<T> = {
+  readonly items: readonly T[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
 export type ChangeEditScope = "all" | "window" | "none";
 
 /**
@@ -197,6 +208,17 @@ export type ChangeOptions = {
   readonly freezePeriods: readonly ChangeFreezePeriod[];
   readonly requireTestPlan: boolean;
   readonly minLeadTimeHours: number;
+  /**
+   * W7.76: a form cannot page, so the server names the pickers it had to cut.
+   * The form has to say so instead of showing a short list as the whole truth.
+   * Absent on servers before W7.76.
+   */
+  readonly truncated?: {
+    readonly units: boolean;
+    readonly services: boolean;
+    readonly cabGroups: boolean;
+    readonly templates: boolean;
+  };
 };
 
 export type ChangeEvent = {
@@ -243,9 +265,23 @@ export type ChangeConflicts = {
    * conflicts moved in between. Absent on servers before W7.68.
    */
   readonly snapshotHash?: string | null;
+  /**
+   * W7.76: the conflict scan hit its cap, so this list may be incomplete. The
+   * flag is part of the digest, so the acknowledgement covers the same scan.
+   */
+  readonly truncated?: { readonly changes: boolean; readonly downtime: boolean };
 };
 
 export type ChangeVoteDecision = "APPROVED" | "REJECTED";
+
+export type ChangeVote = {
+  readonly id: string;
+  readonly round: number;
+  readonly decision: ChangeVoteDecision;
+  readonly comment: string | null;
+  readonly decidedAt: string;
+  readonly approver: UserRef | null;
+};
 
 export type ChangeApprovals = {
   readonly round: number;
@@ -258,14 +294,16 @@ export type ChangeApprovals = {
   readonly approvals: number;
   readonly cabGroup: NamedRef | null;
   readonly voters: readonly (UserRef & { readonly voted: boolean })[];
-  readonly votes: readonly {
-    readonly id: string;
-    readonly round: number;
-    readonly decision: ChangeVoteDecision;
-    readonly comment: string | null;
-    readonly decidedAt: string;
-    readonly approver: UserRef | null;
-  }[];
+  /** The round above, whole (bounded by the CAB voter ceiling). */
+  readonly votes: readonly ChangeVote[];
+  /** True only for a CAB wider than the ceiling: a configuration error. */
+  readonly votesTruncated?: boolean;
+  /**
+   * W7.76: votes of earlier rounds, newest round first. They used to share one
+   * hard 500-row limit with the current round. Absent on older servers, where
+   * `votes` still holds every round.
+   */
+  readonly history?: ChangePage<ChangeVote>;
   readonly canVote: boolean;
   readonly isRequester: boolean;
 };
@@ -422,8 +460,19 @@ export function claimChange(id: string): Promise<ChangeDetail> {
   return apiRequest(`${path(id)}/claim`, { method: "POST" });
 }
 
-export function getChangeEvents(id: string): Promise<{ readonly items: readonly ChangeEvent[] }> {
-  return apiRequest(`${path(id)}/events`);
+/**
+ * W7.76 (`BA-changes-18`): the timeline is paged. Without a cursor the server
+ * answers with the newest page and says whether older events exist.
+ */
+export function getChangeEvents(
+  id: string,
+  options: { readonly limit?: number; readonly cursor?: string } = {},
+): Promise<ChangePage<ChangeEvent>> {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.cursor !== undefined) params.set("cursor", options.cursor);
+  const query = params.toString();
+  return apiRequest(`${path(id)}/events${query === "" ? "" : `?${query}`}`);
 }
 
 export function getChangeConflicts(id: string): Promise<ChangeConflicts> {
@@ -436,8 +485,15 @@ export function previewChangeConflicts(
   return apiRequest("/changes/conflicts/preview", { method: "POST", ...json(input) });
 }
 
-export function getChangeApprovals(id: string): Promise<ChangeApprovals> {
-  return apiRequest(`${path(id)}/approvals`);
+export function getChangeApprovals(
+  id: string,
+  options: { readonly limit?: number; readonly cursor?: string } = {},
+): Promise<ChangeApprovals> {
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.cursor !== undefined) params.set("cursor", options.cursor);
+  const query = params.toString();
+  return apiRequest(`${path(id)}/approvals${query === "" ? "" : `?${query}`}`);
 }
 
 export function voteOnChange(

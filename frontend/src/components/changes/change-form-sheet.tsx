@@ -1,15 +1,20 @@
 import { ChangeFormSecondaryFields } from "./change-form-secondary-fields";
 import { useEffect, useState, type FormEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
+import { ChangeFormOptionsHint } from "@/components/changes/change-form-options-hint";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { buildChangeConflictPreview } from "@/lib/changes/change-conflict-preview";
-import { changeFormBody, changeFormUnits, changeWindowState } from "@/lib/changes/change-form-body";
+import {
+  canSubmitChangeForm,
+  changeFormBody,
+  changeFormUnits,
+  changeWindowState,
+} from "@/lib/changes/change-form-body";
 import { useChangeCabGroup } from "@/lib/changes/use-change-cab-group";
 import { useChangeOwnerSearch } from "@/lib/changes/use-change-owner-search";
 import {
@@ -21,17 +26,19 @@ import {
   mapChangeError,
 } from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
+import {
+  changeFormDescriptionKey,
+  changeFormSubmitLabelKey,
+} from "@/lib/changes/change-form-labels";
+import { useChangeConflictsPreview } from "@/lib/changes/use-change-conflicts-preview";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/on-call/on-call-view";
 import {
-  changeExtraKeys,
   changeLevels,
   changeTypes,
   createChange,
-  previewChangeConflicts,
   updateChange,
   type ChangeAssetOption,
   type ChangeCapabilities,
-  type ChangeConflictPreviewInput,
   type ChangeDetail,
   type ChangeLevel,
   type ChangeOptions,
@@ -179,39 +186,23 @@ export function ChangeFormSheet({
     assetIds: assets.map((asset) => asset.id),
     changeId: change?.id,
   });
-  const [debouncedPreview, setDebouncedPreview] = useState<ChangeConflictPreviewInput | null>(null);
-  const previewKey = previewInput === null ? "" : JSON.stringify(previewInput);
-  useEffect(() => {
-    const handle = window.setTimeout(
-      () =>
-        setDebouncedPreview(
-          previewKey === "" ? null : (JSON.parse(previewKey) as ChangeConflictPreviewInput),
-        ),
-      400,
-    );
-    return () => window.clearTimeout(handle);
-  }, [previewKey]);
-  const conflictsPreview = useQuery({
-    queryKey: changeExtraKeys.preview(
-      debouncedPreview ?? { type, plannedStart: "", plannedEnd: "" },
-    ),
-    queryFn: () => previewChangeConflicts(debouncedPreview as ChangeConflictPreviewInput),
-    enabled: debouncedPreview !== null,
-    retry: false,
-  });
+  const { query: conflictsPreview, hasPreview } = useChangeConflictsPreview(previewInput);
 
   const units = changeFormUnits(options, change);
 
-  const canSubmit =
-    !saving &&
-    !windowInvalid &&
-    !windowHalf &&
-    (windowOnly ||
-      (title.trim().length >= 3 &&
-        unitId !== "" &&
-        (standard
-          ? editing || templateId !== ""
-          : description.trim().length > 0 && cabGroup.value !== "")));
+  const canSubmit = canSubmitChangeForm({
+    saving,
+    windowInvalid,
+    windowHalf,
+    windowOnly,
+    title,
+    unitId,
+    standard,
+    editing: change !== undefined && editing,
+    templateId,
+    description,
+    cabGroupId: cabGroup.value,
+  });
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -271,7 +262,6 @@ export function ChangeFormSheet({
       {t(changeLevelKeys[value])}
     </option>
   ));
-  const locked = windowOnly;
 
   return (
     <Sheet open={open} onOpenChange={(next) => (saving ? undefined : onOpenChange(next))}>
@@ -284,12 +274,9 @@ export function ChangeFormSheet({
           {editing ? t("changes.form.editTitle") : t("changes.form.createTitle")}
         </SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-          {windowOnly
-            ? t("changes.form.windowOnlyDescription")
-            : editing
-              ? t("changes.form.editDescription")
-              : t("changes.form.createDescription")}
+          {t(changeFormDescriptionKey({ windowOnly, editing }))}
         </SheetDescription>
+        <ChangeFormOptionsHint options={options} />
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
           {!editing ? (
             <Field
@@ -346,7 +333,7 @@ export function ChangeFormSheet({
                 {...control}
                 value={title}
                 maxLength={200}
-                disabled={locked}
+                disabled={windowOnly}
                 onChange={(event) => setTitle(event.target.value)}
                 autoFocus={!editing}
               />
@@ -363,7 +350,7 @@ export function ChangeFormSheet({
                 rows={4}
                 value={description}
                 maxLength={textMax}
-                disabled={locked}
+                disabled={windowOnly}
                 onChange={(event) => setDescription(event.target.value)}
               />
             )}
@@ -375,7 +362,7 @@ export function ChangeFormSheet({
                 rows={2}
                 value={reason}
                 maxLength={4000}
-                disabled={locked}
+                disabled={windowOnly}
                 onChange={(event) => setReason(event.target.value)}
               />
             )}
@@ -387,7 +374,7 @@ export function ChangeFormSheet({
                   <Select
                     {...control}
                     value={impact}
-                    disabled={locked}
+                    disabled={windowOnly}
                     onChange={(event) => setImpact(event.target.value as ChangeLevel)}
                   >
                     {levelOptions}
@@ -399,7 +386,7 @@ export function ChangeFormSheet({
                   <Select
                     {...control}
                     value={likelihood}
-                    disabled={locked}
+                    disabled={windowOnly}
                     onChange={(event) => setLikelihood(event.target.value as ChangeLevel)}
                   >
                     {levelOptions}
@@ -417,7 +404,7 @@ export function ChangeFormSheet({
               <Select
                 {...control}
                 value={unitId}
-                disabled={locked}
+                disabled={windowOnly}
                 onChange={(event) => changeUnit(event.target.value)}
               >
                 {units.map((unit) => (
@@ -434,7 +421,7 @@ export function ChangeFormSheet({
             change={change}
             type={type}
             standard={standard}
-            locked={locked}
+            locked={windowOnly}
             serviceIds={serviceIds}
             setServiceIds={setServiceIds}
             assets={assets}
@@ -451,7 +438,7 @@ export function ChangeFormSheet({
             setEnd={setEnd}
             windowInvalid={windowInvalid}
             windowHalf={windowHalf}
-            hasPreview={debouncedPreview !== null}
+            hasPreview={hasPreview}
             conflicts={conflictsPreview.data}
             causesDowntime={causesDowntime}
             setCausesDowntime={setCausesDowntime}
@@ -486,11 +473,7 @@ export function ChangeFormSheet({
               {t("ui.cancel")}
             </Button>
             <Button type="submit" disabled={!canSubmit} data-testid="change-form-submit">
-              {saving
-                ? t("changes.form.saving")
-                : editing
-                  ? t("changes.form.save")
-                  : t("changes.form.create")}
+              {t(changeFormSubmitLabelKey({ saving, editing }))}
             </Button>
           </div>
         </form>

@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TranslationKey } from "@/i18n/translation-key";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,7 +12,13 @@ import { changeHistoryText, mapChangeError } from "@/lib/changes/change-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { changeQueryKeys, getChangeEvents } from "@/services/changes-api";
 
-/** Delivery invariant (requirement): newest first, the last 200 entries. */
+/**
+ * Delivery invariant (requirement): newest first.
+ *
+ * W7.76 (`BA-changes-18`): the timeline used to end at 200 events with nothing
+ * saying so. It is a cursor page now: the panel offers "older" while the server
+ * reports more, and an exhausted list simply has no button.
+ */
 export function ChangeHistoryPanel({
   changeId,
   versionKey,
@@ -20,9 +27,12 @@ export function ChangeHistoryPanel({
   readonly versionKey: number;
 }) {
   const { t, i18n } = useTranslation();
-  const query = useQuery({
+  const query = useInfiniteQuery({
     queryKey: [...changeQueryKeys.events(changeId), versionKey],
-    queryFn: () => getChangeEvents(changeId),
+    queryFn: ({ pageParam }) =>
+      getChangeEvents(changeId, pageParam === null ? {} : { cursor: pageParam }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
     retry: false,
   });
   if (query.isLoading) return <PanelSkeleton label={t("ui.loading")} />;
@@ -33,7 +43,8 @@ export function ChangeHistoryPanel({
       </p>
     );
   }
-  if (query.data.items.length === 0) {
+  const events = query.data?.pages.flatMap((page) => page.items) ?? [];
+  if (events.length === 0) {
     return (
       <EmptyState
         icon={<History size={18} />}
@@ -47,7 +58,7 @@ export function ChangeHistoryPanel({
     <Card className="p-0">
       <CardHeader title={t("changes.history.title")} />
       <ol className="divide-y divide-border/60">
-        {query.data.items.map((event) => (
+        {events.map((event) => (
           <li key={event.id} className="grid gap-0.5 px-4 py-2 text-[12.5px]">
             <span className="text-foreground">
               {changeHistoryText(translate, event.action, event.detail)}
@@ -69,6 +80,19 @@ export function ChangeHistoryPanel({
           </li>
         ))}
       </ol>
+      {query.hasNextPage ? (
+        <div className="border-t border-border/60 px-4 py-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={query.isFetchingNextPage}
+            onClick={() => void query.fetchNextPage()}
+            data-testid="change-history-more"
+          >
+            {query.isFetchingNextPage ? t("ui.loading") : t("changes.history.loadMore")}
+          </Button>
+        </div>
+      ) : null}
     </Card>
   );
 }

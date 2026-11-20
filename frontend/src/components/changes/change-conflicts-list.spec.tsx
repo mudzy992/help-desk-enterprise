@@ -76,6 +76,26 @@ describe("ChangeConflictsList", () => {
     expect(screen.queryByText("changes.conflicts.none")).toBeNull();
   });
 
+  it("warns when the conflict scan was cut (W7.76)", () => {
+    renderList({
+      ...emptyConflicts,
+      hasWarnings: true,
+      changes: [],
+      truncated: { changes: true, downtime: false },
+    });
+    expect(screen.getByTestId("change-conflicts-truncated").textContent).toBe(
+      "changes.conflicts.truncated",
+    );
+    // A cut list is not "nothing overlaps".
+    expect(screen.queryByText("changes.conflicts.none")).toBeNull();
+  });
+
+  it("does not warn when the scan saw everything", () => {
+    renderList({ ...emptyConflicts, truncated: { changes: false, downtime: false } });
+    expect(screen.queryByTestId("change-conflicts-truncated")).toBeNull();
+    expect(screen.getByText("changes.conflicts.none")).toBeTruthy();
+  });
+
   it("ignores a server response without the restricted counts", () => {
     renderList({ ...emptyConflicts, hasWarnings: true });
     expect(screen.queryByTestId("change-conflicts-restricted-changes")).toBeNull();

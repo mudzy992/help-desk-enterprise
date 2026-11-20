@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { FileStack, Pencil, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ChangeServicePicker } from "@/components/changes/change-service-picker";
@@ -52,11 +52,17 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
   const { toast } = useToast();
   const [includeInactive, setIncludeInactive] = useState(false);
   const [editing, setEditing] = useState<ChangeTemplate | "new" | null>(null);
-  const query = useQuery({
+  // W7.76 (`BA-changes-18`): the catalogue is paged; a full page is no longer
+  // the end of the list.
+  const query = useInfiniteQuery({
     queryKey: changeExtraKeys.templates(includeInactive),
-    queryFn: () => listChangeTemplates(includeInactive),
+    queryFn: ({ pageParam }) =>
+      listChangeTemplates(includeInactive, pageParam === null ? {} : { cursor: pageParam }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
     retry: false,
   });
+  const templates = query.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <div className="grid gap-3" data-testid="change-templates">
@@ -83,7 +89,7 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
         <p role="alert" className={errorTextClassName}>
           {t(mapChangeError(query.error) ?? mapApiError(query.error))}
         </p>
-      ) : query.data.items.length === 0 ? (
+      ) : templates.length === 0 ? (
         <EmptyState
           icon={<FileStack size={18} />}
           title={t("changes.templates.emptyTitle")}
@@ -117,7 +123,7 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
                 </tr>
               </thead>
               <tbody>
-                {query.data.items.map((item) => (
+                {templates.map((item) => (
                   <tr key={item.id} className={tableRowClassName}>
                     <td className="max-w-[22rem] px-3 py-2">
                       <span className="block truncate font-medium text-foreground">
@@ -161,6 +167,18 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
           </div>
         </Card>
       )}
+      {query.hasNextPage ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="justify-self-center"
+          disabled={query.isFetchingNextPage}
+          onClick={() => void query.fetchNextPage()}
+          data-testid="change-templates-more"
+        >
+          {query.isFetchingNextPage ? t("ui.loading") : t("changes.templates.loadMore")}
+        </Button>
+      ) : null}
       {options ? (
         <ChangeTemplateSheet
           template={editing === "new" ? undefined : (editing ?? undefined)}

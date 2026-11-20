@@ -118,3 +118,31 @@ export function changeWindowState(
     half: (startIso === null) !== (endIso === null),
   };
 }
+
+/**
+ * Whether the form may be submitted. Lifted out of the sheet (which sits on the
+ * 500-line ceiling) and kept pure, so the rule can be read on its own: a window
+ * only edit needs a valid window, everything else needs a title, a unit and -
+ * for a standard change - a template, or a description and a CAB group.
+ */
+export interface ChangeFormSubmitInput {
+  readonly saving: boolean;
+  readonly windowInvalid: boolean;
+  readonly windowHalf: boolean;
+  readonly windowOnly: boolean;
+  readonly title: string;
+  readonly unitId: string;
+  readonly standard: boolean;
+  readonly editing: boolean;
+  readonly templateId: string;
+  readonly description: string;
+  readonly cabGroupId: string;
+}
+
+export function canSubmitChangeForm(input: ChangeFormSubmitInput): boolean {
+  if (input.saving || input.windowInvalid || input.windowHalf) return false;
+  if (input.windowOnly) return true;
+  if (input.title.trim().length < 3 || input.unitId === "") return false;
+  if (input.standard) return input.editing || input.templateId !== "";
+  return input.description.trim().length > 0 && input.cabGroupId !== "";
+}

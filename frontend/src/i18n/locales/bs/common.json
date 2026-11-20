@@ -10220,7 +10220,8 @@
       "problemNone": "Nema pronađenih otvorenih problema.",
       "problemHint": "Promjena može rješavati najviše jedan problem.",
       "cabGroupPlaceholder": "Odaberite CAB grupu",
-      "cabGroupRequiredHint": "Instalacija ima više CAB grupa — odaberite koja odobrava ovu promjenu."
+      "cabGroupRequiredHint": "Instalacija ima više CAB grupa — odaberite koja odobrava ovu promjenu.",
+      "optionsTruncated": "Neke liste u formi su skraćene (jedinice, servisi, CAB grupe ili šabloni). Ako stavku ne vidite, koristite pretragu ili zatražite provjeru konfiguracije."
     },
     "detail": {
       "back": "Promjene",
@@ -10282,7 +10283,8 @@
       "restrictedChanges_other": "Još {{count}} preklapajućih promjena je izvan vašeg opsega — detalji su skriveni.",
       "restrictedDowntime_one": "Još {{count}} prozor prekida na zahvaćenim servisima je izvan vašeg opsega.",
       "restrictedDowntime_few": "Još {{count}} prozora prekida na zahvaćenim servisima su izvan vašeg opsega.",
-      "restrictedDowntime_other": "Još {{count}} prozora prekida na zahvaćenim servisima je izvan vašeg opsega."
+      "restrictedDowntime_other": "Još {{count}} prozora prekida na zahvaćenim servisima je izvan vašeg opsega.",
+      "truncated": "Lista konflikata je odsječena: u ovom terminu ima više preklapanja nego što jedan pregled vraća. Provjerite kalendar prije potvrde."
     },
     "actionSheet": {
       "current": "Trenutni status: {{status}}",
@@ -10330,7 +10332,9 @@
       "noVotes": "Još nema glasova.",
       "earlierTitle": "Ranije runde (ne broje se)",
       "approved": "Odobreno",
-      "rejected": "Odbijeno"
+      "rejected": "Odbijeno",
+      "loadEarlier": "Učitaj starije glasove",
+      "votesTruncated": "CAB grupa ima više glasača nego što ovaj pregled prikazuje (najviše 500 glasova u rundi). Prikazani su prvi glasovi; kvorum se računa iz zamrznutog sastava."
     },
     "history": {
       "title": "Historija",
@@ -10352,7 +10356,8 @@
       "conflictsAcknowledged": "Konflikti termina su potvrđeni",
       "downtime": "Prozori prekida: kreirano {{created}}, pomjereno {{updated}}, obrisano {{deleted}}, preskočeno {{skipped}}",
       "reminderStartingSoon": "Poslan podsjetnik o skorom početku",
-      "reminderOverdue": "Poslana obavijest o prekoračenju planiranog kraja"
+      "reminderOverdue": "Poslana obavijest o prekoračenju planiranog kraja",
+      "loadMore": "Učitaj starije zapise"
     },
     "errors": {
       "disabled": "Modul promjena nije uključen.",
@@ -10490,7 +10495,8 @@
       "staleBody": "Otvorite najnoviju verziju prije nego što ponovo sačuvate; vaš unos do tada ostaje u formi.",
       "reloadLatest": "Učitaj najnoviju verziju",
       "revisionRequiredTitle": "Nedostaje revizija šablona",
-      "revisionRequiredBody": "Osvježite listu šablona i otvorite šablon ponovo prije čuvanja."
+      "revisionRequiredBody": "Osvježite listu šablona i otvorite šablon ponovo prije čuvanja.",
+      "loadMore": "Učitaj još šablona"
     },
     "related": {
       "tab": "Promjene",

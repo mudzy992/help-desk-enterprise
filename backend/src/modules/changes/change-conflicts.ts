@@ -22,12 +22,25 @@ export type ConflictDowntime = {
   readonly changeRequestId: string | null;
 };
 
+/**
+ * W7.76 (`BA-changes-18`): a conflict scan reads at most one page of candidates
+ * and one page of downtime windows. When a page is full the set below is
+ * possibly incomplete, and the caller has to say so — a silently cut conflict
+ * list reads exactly like "no other conflict".
+ */
+export type ChangeConflictTruncation = {
+  readonly changes: boolean;
+  readonly downtime: boolean;
+};
+
 export type ChangeConflicts = {
   readonly changes: readonly (ConflictCandidate & { readonly sharedServiceIds: string[]; readonly sharedAssetIds: string[] })[];
   readonly downtime: readonly ConflictDowntime[];
   readonly freeze: ChangeFreezePeriod | null;
   /** The freeze blocks every type but emergency (§9). */
   readonly freezeBlocks: boolean;
+  /** Absent means "the scan saw everything" (an in-memory set). */
+  readonly truncated?: ChangeConflictTruncation;
 };
 
 export function windowsOverlap(left: ConflictWindow, right: ConflictWindow): boolean {
@@ -49,6 +62,7 @@ export function detectChangeConflicts(input: {
   readonly downtime: readonly ConflictDowntime[];
   readonly freezePeriods: readonly ChangeFreezePeriod[];
   readonly timeZone: string;
+  readonly truncated?: ChangeConflictTruncation;
 }): ChangeConflicts {
   const services = new Set(input.serviceIds);
   const assets = new Set(input.assetIds);
@@ -70,11 +84,27 @@ export function detectChangeConflicts(input: {
     )
     .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime());
   const freeze = findFreezeOverlap(input.window.start, input.window.end, input.freezePeriods, input.timeZone);
-  return { changes, downtime, freeze, freezeBlocks: freeze !== null && input.type !== 'EMERGENCY' };
+  return {
+    changes,
+    downtime,
+    freeze,
+    freezeBlocks: freeze !== null && input.type !== 'EMERGENCY',
+    truncated: input.truncated ?? { changes: false, downtime: false },
+  };
+}
+
+/** A cut scan is itself a warning: the reviewer is not looking at everything. */
+export function changeConflictsTruncated(conflicts: ChangeConflicts): boolean {
+  return conflicts.truncated !== undefined && (conflicts.truncated.changes || conflicts.truncated.downtime);
 }
 
 export function hasWarnings(conflicts: ChangeConflicts): boolean {
-  return conflicts.changes.length > 0 || conflicts.downtime.length > 0 || (conflicts.freeze !== null && !conflicts.freezeBlocks);
+  return (
+    conflicts.changes.length > 0 ||
+    conflicts.downtime.length > 0 ||
+    changeConflictsTruncated(conflicts) ||
+    (conflicts.freeze !== null && !conflicts.freezeBlocks)
+  );
 }
 
 export type OwnDowntimeWindow = {

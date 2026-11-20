@@ -3,6 +3,7 @@ import type {
   ChangeConflictPreviewInput,
   ChangeFreezePeriod,
   ChangeLevel,
+  ChangePage,
   ChangeRisk,
   ChangeStatus,
   ChangeType,
@@ -106,10 +107,20 @@ export function getChangeCalendar(from: string, to: string): Promise<ChangeCalen
   return apiRequest(`/changes/calendar?${new URLSearchParams({ from, to }).toString()}`);
 }
 
+/**
+ * W7.76 (`BA-changes-18`): the catalogue is a cursor page. It used to stop at
+ * 500 rows with no way to reach the rest and no hint that anything was cut.
+ */
 export function listChangeTemplates(
   includeInactive: boolean,
-): Promise<{ readonly items: readonly ChangeTemplate[] }> {
-  return apiRequest(`/changes/templates${includeInactive ? "?includeInactive=true" : ""}`);
+  options: { readonly limit?: number; readonly cursor?: string } = {},
+): Promise<ChangePage<ChangeTemplate>> {
+  const params = new URLSearchParams();
+  if (includeInactive) params.set("includeInactive", "true");
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.cursor !== undefined) params.set("cursor", options.cursor);
+  const query = params.toString();
+  return apiRequest(`/changes/templates${query === "" ? "" : `?${query}`}`);
 }
 
 export function createChangeTemplate(input: ChangeTemplateInput): Promise<ChangeTemplate> {

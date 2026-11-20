@@ -51,6 +51,7 @@ import {
   type ChangeDetailLevel,
 } from './change-visibility';
 import { loadCabVoterIds } from './load-cab-voters';
+import { changeListLimits, changeListLimit, changeOverFetch, changePage } from './change-pagination';
 import type { ChangeActionDto, CreateChangeDto, UpdateChangeDto } from './changes.dto';
 import {
   ChangeError,
@@ -381,21 +382,33 @@ export class ChangesService {
     return this.toDetail(viewer, row, await this.access.configuration(), level);
   }
 
-  async events(viewer: ChangeViewer, id: string) {
+  /**
+   * Timeline (§14). W7.76 (`BA-changes-18`): the reader pages instead of
+   * stopping at a hard 200 — an old change keeps its whole history reachable,
+   * and the response says whether more events exist.
+   */
+  async events(
+    viewer: ChangeViewer,
+    id: string,
+    page: { readonly limit?: number; readonly cursor?: string } = {},
+  ) {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
     const row = await this.loadInScope(id, scope, viewer);
     const level = await this.detailLevelFor(viewer, row, scope);
+    const limit = changeListLimit(page.limit, changeListLimits.events);
     const events = await this.prisma.changeEvent.findMany({
       where: { changeId: id },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 200,
+      take: changeOverFetch(limit),
+      ...(page.cursor === undefined ? {} : { cursor: { id: page.cursor }, skip: 1 }),
       select: { id: true, action: true, actorUserId: true, detail: true, createdAt: true },
     });
-    const actorIds = [...new Set(events.map((event) => event.actorUserId).filter((value): value is string => value !== null))];
+    const { items: rows, hasMore, nextCursor } = changePage(events, limit);
+    const actorIds = [...new Set(rows.map((event) => event.actorUserId).filter((value): value is string => value !== null))];
     const actors = actorIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: userSelect });
     const byId = new Map(actors.map((actor) => [actor.id, actor]));
     return {
-      items: events.map((event) => ({
+      items: rows.map((event) => ({
         id: event.id,
         action: event.action,
         actor: event.actorUserId === null ? null : (byId.get(event.actorUserId) ?? null),
@@ -404,6 +417,8 @@ export class ChangesService {
         detail: redactProblemHistory(projectChangeEventDetail(event.detail, level)),
         createdAt: event.createdAt.toISOString(),
       })),
+      hasMore,
+      nextCursor,
     };
   }
 
@@ -972,6 +987,8 @@ export class ChangesService {
         changes: [],
         downtime: [],
         restricted: { changes: 0, downtime: 0 },
+        // W7.76: there is nothing to scan, so nothing was cut.
+        truncated: { changes: false, downtime: false },
         freeze: null,
         freezeBlocks: false,
         hasWarnings: false,
@@ -1008,18 +1025,20 @@ export class ChangesService {
     await this.access.require(viewer, permissionKeys.changeRead);
     const permission = this.access.hasPermission(viewer, permissionKeys.changeRequest) ? permissionKeys.changeRequest : permissionKeys.changeRead;
     const unitWhere = unitScopeWhere(await this.access.scopeOf(viewer, permission));
+    // W7.76 (`BA-changes-18`): each picker reads one row past its cap, so the
+    // response can name the lists it had to cut instead of looking complete.
     const [units, services, cabGroups, templates, configuration] = await Promise.all([
       this.prisma.organizationalUnit.findMany({
         where: (unitWhere ?? {}) as Prisma.OrganizationalUnitWhereInput,
         select: { id: true, name: true, ouPath: true },
         orderBy: { ouPath: 'asc' },
-        take: 2000,
+        take: changeLimits.optionsUnitsMax + 1,
       }),
       this.prisma.service.findMany({
         where: { lifecycle: { not: 'DEPRECATED' } },
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
-        take: 2000,
+        take: changeLimits.optionsServicesMax + 1,
       }),
       // BA-changes-16: the form needs the unit of every CAB group, so it can
       // offer exactly the candidates the server would accept instead of
@@ -1028,26 +1047,40 @@ export class ChangesService {
         where: { isCabGroup: true },
         select: { id: true, name: true, organizationalUnit: { select: { id: true, ouPath: true } } },
         orderBy: { name: 'asc' },
-        take: 200,
+        take: changeLimits.optionsCabGroupsMax + 1,
       }),
       this.prisma.changeTemplate.findMany({
         where: { isActive: true },
         select: { id: true, name: true, impact: true, likelihood: true, causesDowntime: true },
         orderBy: { name: 'asc' },
-        take: 500,
+        take: changeLimits.optionsTemplatesMax + 1,
       }),
       this.access.configuration(),
     ]);
+    const pageUnits = units.slice(0, changeLimits.optionsUnitsMax);
+    const pageServices = services.slice(0, changeLimits.optionsServicesMax);
+    const pageGroups = cabGroups.slice(0, changeLimits.optionsCabGroupsMax);
+    const pageTemplates = templates.slice(0, changeLimits.optionsTemplatesMax);
     return {
-      units: units.map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
-      services,
-      cabGroups: cabGroups.map((group) => ({
+      units: pageUnits.map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
+      services: pageServices,
+      /**
+       * W7.76: a form cannot page, so a cut picker is named here and the UI has
+       * to say so. `false` on every picker means the form saw everything.
+       */
+      truncated: {
+        units: units.length > pageUnits.length,
+        services: services.length > pageServices.length,
+        cabGroups: cabGroups.length > pageGroups.length,
+        templates: templates.length > pageTemplates.length,
+      },
+      cabGroups: pageGroups.map((group) => ({
         id: group.id,
         name: group.name,
         organizationalUnitId: group.organizationalUnit.id,
         organizationalUnitPath: group.organizationalUnit.ouPath,
       })),
-      templates: templates.map((template) => ({ ...template, risk: computeChangeRisk(template.impact, template.likelihood) })),
+      templates: pageTemplates.map((template) => ({ ...template, risk: computeChangeRisk(template.impact, template.likelihood) })),
       homeOrganizationalUnitId: viewer.homeOrganizationalUnitId,
       freezePeriods: configuration.freezePeriods,
       requireTestPlan: configuration.requireTestPlan,

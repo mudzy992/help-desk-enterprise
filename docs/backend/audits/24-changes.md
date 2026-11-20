@@ -179,7 +179,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | zatvoreno (W7.71) |
 | BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | zatvoreno (W7.73) |
 | BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | zatvoreno (W7.74) |
-| BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | otvoreno |
+| BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | zatvoreno (W7.76) |
 | BA-changes-19 | P3       | Servis ne clampuje quorum/lead/reminder configuration integer granice                          | otvoreno |
 | BA-changes-20 | P3       | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice                    | otvoreno |
 
@@ -239,7 +239,14 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   blokada tražioca ili vlasnika čuva promjenu. Uz to je nedostajući period u konfiguraciji sada **isključen**
   (`undefined <= 0` je bilo `false`). Dokaz:
   [W7.74 implementation](../implementation/295-w774-changes-17-privacy-replication-coverage.md).
-- **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
+- **18:** zatvoreno u W7.76 — sve liste u modulu govore isti cursor ugovor. Događaji (`take: 200`), katalog
+  šablona (500) i glasovi ranijih rundi (prije 500 glasova svih rundi) vraćaju `{ items, hasMore, nextCursor }`;
+  `limit` se clampuje na 1..max, `hasMore` se čita iz jednog reda više, a trenutna runda odobravanja se ne
+  straniči jer kvorum, `canVote` i `approvals` opisuju nju (`commentsRedacted` je SQL `count`). Forma imenuje
+  skraćeni picker (`truncated`), konflikti vraćaju `truncated {changes, downtime}` koji ulazi u `hasWarnings` i u
+  W7.68 digest, a kalendarov `truncated` je tačan (`+1` proba umjesto `length >= max`). Dokaz:
+  [W7.76 implementation](../implementation/297-w776-changes-18-cursor-contract.md).
+- **19–20:** config clamp i Postgres/Redis/concurrency/fault testovi.
 
 ## 17. Baseline score
 
@@ -693,3 +700,39 @@ PostgreSQL/Redis integraciju.
 rukovaoca/DPO ne briše ništa; scrubber ne mijenja samostalno prvo ime (dokumentovano od Paketa 2.6), pa
 „Amra” bez prezimena nije kandidat; ostali brojači anonimizacije (`timeLogs`, `approvals`, …) i dalje padaju na
 tehnički naziv u e-mailu — postojeće stanje izvan ovog nalaza.
+
+## 37. Implementacijski closeout — W7.76 (`BA-changes-18`)
+
+**Status nalaza:** zatvoren; paket W7.76, **bez migracije**. Detalji:
+[297](../implementation/297-w776-changes-18-cursor-contract.md).
+
+**Šta je bilo:** register je imao `limit`/`cursor`/`total`, a sve ostalo je stajalo na tihoj granici: timeline
+`take: 200`, katalog šablona 500, pregled odobrenja 500 glasova **svih** rundi u jednom nizu (trenutna runda se
+takmičila sa historijom), forma skraćene pickere bez oznake, a skan konflikata dva puta po 200 — odsječena lista
+konflikata je izgledala kao čist prozor, `hasWarnings` je ostajao `false`, a W7.68 digest je pokrivao nepotpun set
+kao potpun. Kalendar je imao `truncated`, ali izveden iz `length >= max`, pa je period sa tačno 500 stavki lažno
+prijavljivao skraćenje.
+
+**Šta je sada:** `change-pagination.ts` je jedan ugovor (`{ items, hasMore, nextCursor }`, clampovan `limit`,
+`limit + 1` red da `hasMore` bude činjenica, `nextCursor === null` tačno kad nema više). Događaji, šabloni i
+glasovi ranijih rundi su stranice; trenutna runda je uvijek potpuna, `approvals` se broji iz cijele runde,
+`commentsRedacted` je SQL `count`, a `votesTruncated` postoji samo za CAB širi od 500 glasova. Forma dobija
+`truncated` po pickeru, konflikti `truncated {changes, downtime}` koji ulazi u `hasWarnings` **i** u digest (pa
+potvrda snimka sa odsječenim skanom ne prolazi kao da je pregledan cijeli set), a kalendarov `truncated` je tačan.
+Frontend koristi ugovor: „učitaj starije” u historiji i katalogu, stranica ranijih rundi u panelu odobrenja (uz
+fallback na stariji server), upozorenje na odsječene konflikte, hint u formi; bs/en tekstovi.
+
+**Acceptance:** §12 („Events, approvals, templates, options, conflicts i calendar koriste hard limite 200–2.000 …
+Approval overview uzima 500 svih roundova bez paginationa; templates 500; events 200. Dio endpointa nema
+`hasMore`, a conflict truncation nije signalisirana”) je zatvoren po svakoj stavci: tri liste su stranice, dvije
+nepaginirane kolekcije (opcije, konflikti) su **imenovano** skraćene, kalendar je tačan, a `hasMore` postoji
+svuda gdje postoji i sledeća strana. Dokaz: 6 novih backend specova (28 testova) + 2 ažurirana,
+`modules/changes` **38 suite/232 testa**; 4 nova i 2 proširena frontend speca,
+`components/changes`+`lib/changes`+`i18n` **23 fajla/113 testova**; `tsc`, `eslint`, `i18n:check` zeleni.
+
+**Šta ostaje u ovom modulu:** P3: `19`, `20`.
+
+**Preostali rizik:** granice nisu podignute (poenta je cursor, ne veći `take`); potvrda konflikata sada traži
+potvrdu i kad je skan odsječen — namjerna promjena ponašanja, jer potvrda ne smije pokrivati set koji niko nije
+vidio; `owners`/`link-search/*` ostaju kratke pretrage sa dokumentovanim „najviše N” (straničenje bi picker
+učinilo gorim).

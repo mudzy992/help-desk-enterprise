@@ -14,6 +14,8 @@ export function ChangeConflictsList({ conflicts }: { readonly conflicts: ChangeC
   const freeze = conflicts.freeze;
   // BA-changes-04: the API counts the overlaps it must not name.
   const restricted = conflicts.restricted ?? { changes: 0, downtime: 0 };
+  // W7.76 (`BA-changes-18`): a cut scan must not read as a clean window.
+  const truncated = conflicts.truncated ?? { changes: false, downtime: false };
   return (
     <div className="grid gap-2 text-[12.5px]" data-testid="change-conflicts">
       {freeze !== null ? (
@@ -94,6 +96,15 @@ export function ChangeConflictsList({ conflicts }: { readonly conflicts: ChangeC
           </ul>
         </div>
       ) : null}
+      {truncated.changes || truncated.downtime ? (
+        <p
+          role="status"
+          className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-foreground"
+          data-testid="change-conflicts-truncated"
+        >
+          {t("changes.conflicts.truncated")}
+        </p>
+      ) : null}
       {restricted.changes > 0 ? (
         <p className="text-muted-foreground" data-testid="change-conflicts-restricted-changes">
           {t("changes.conflicts.restrictedChanges", { count: restricted.changes })}
@@ -107,7 +118,10 @@ export function ChangeConflictsList({ conflicts }: { readonly conflicts: ChangeC
       {freeze === null &&
       conflicts.changes.length === 0 &&
       conflicts.downtime.length === 0 &&
-      restricted.changes + restricted.downtime === 0 ? (
+      restricted.changes + restricted.downtime === 0 &&
+      // W7.76: a cut scan cannot certify "nothing overlaps".
+      !truncated.changes &&
+      !truncated.downtime ? (
         <p className="text-muted-foreground">{t("changes.conflicts.none")}</p>
       ) : null}
     </div>

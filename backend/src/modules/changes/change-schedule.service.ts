@@ -10,6 +10,7 @@ import { ServiceAvailabilityConfigurationLoader } from '../service-catalog/servi
 import { withServiceDowntimeWindowMutationLocks } from '../service-catalog/with-service-downtime-window-mutation-lock';
 import { ChangeAccessService, type ChangeConfiguration, type ChangeScope, type ChangeViewer } from './change-access.service';
 import {
+  changeConflictsTruncated,
   detectChangeConflicts,
   planChangeDowntime,
   planDowntimeRelease,
@@ -108,23 +109,27 @@ export class ChangeScheduleService {
               services: { select: { serviceId: true } },
               assets: { select: { assetId: true } },
             },
-            take: 200,
+            // W7.76 (`BA-changes-18`): one row past the cap, so a full page is
+            // reported as a cut scan instead of passing for the whole picture.
+            take: changeLimits.conflictCandidatesMax + 1,
           }),
       subject.serviceIds.length === 0
         ? []
         : client.serviceDowntimeWindow.findMany({
             where: { serviceId: { in: [...subject.serviceIds] }, startsAt: { lt: window.end }, endsAt: { gt: window.start } },
             select: { id: true, serviceId: true, startsAt: true, endsAt: true, message: true, changeRequestId: true },
-            take: 200,
+            take: changeLimits.conflictDowntimeMax + 1,
           }),
     ]);
+    const candidatePage = candidates.slice(0, changeLimits.conflictCandidatesMax);
+    const downtimePage = downtime.slice(0, changeLimits.conflictDowntimeMax);
     return detectChangeConflicts({
       changeId: subject.changeId,
       type: subject.type,
       window,
       serviceIds: subject.serviceIds,
       assetIds: subject.assetIds,
-      candidates: candidates.map((row) => ({
+      candidates: candidatePage.map((row) => ({
         id: row.id,
         sequence: row.sequence,
         title: row.title,
@@ -134,9 +139,13 @@ export class ChangeScheduleService {
         serviceIds: row.services.map((link) => link.serviceId),
         assetIds: row.assets.map((link) => link.assetId),
       })),
-      downtime,
+      downtime: downtimePage,
       freezePeriods: configuration.freezePeriods,
       timeZone: configuration.timeZone,
+      truncated: {
+        changes: candidates.length > candidatePage.length,
+        downtime: downtime.length > downtimePage.length,
+      },
     });
   }
 
@@ -190,11 +199,17 @@ export class ChangeScheduleService {
       })),
       /** BA-changes-04: overlaps the viewer may not read, as a count only. */
       restricted,
+      /**
+       * W7.76 (`BA-changes-18`): true when the scan behind this list hit its
+       * cap. The UI has to warn; a cut list must not read as a clean window.
+       */
+      truncated: conflicts.truncated ?? { changes: false, downtime: false },
       freeze: conflicts.freeze,
       freezeBlocks: conflicts.freezeBlocks,
       // A hidden overlap is still a conflict: the acknowledgement must not pass.
       hasWarnings:
         visibleChanges.length + visibleDowntime.length + restricted.changes + restricted.downtime > 0 ||
+        changeConflictsTruncated(conflicts) ||
         (conflicts.freeze !== null && !conflicts.freezeBlocks),
     };
   }
@@ -319,21 +334,25 @@ export class ChangeScheduleService {
           services: { select: { service: { select: { id: true, name: true } } }, take: 5 },
         },
         orderBy: [{ plannedStart: 'asc' }, { id: 'asc' }],
-        take: changeLimits.calendarMaxItems,
+        // W7.76: one row past the cap, so `truncated` is exact rather than
+        // "the page happens to be full".
+        take: changeLimits.calendarMaxItems + 1,
       }),
       this.prisma.serviceDowntimeWindow.findMany({
         where: downtimeWhere,
         select: { id: true, startsAt: true, endsAt: true, message: true, changeRequestId: true, service: { select: { id: true, name: true } } },
         orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
-        take: changeLimits.calendarMaxItems,
+        take: changeLimits.calendarMaxItems + 1,
       }),
       hiddenDowntimeWhere === null ? 0 : this.prisma.serviceDowntimeWindow.count({ where: hiddenDowntimeWhere }),
     ]);
+    const changePage = changes.slice(0, changeLimits.calendarMaxItems);
+    const downtimePage = downtime.slice(0, changeLimits.calendarMaxItems);
     return {
       from: from.toISOString(),
       to: to.toISOString(),
       timeZone: configuration.timeZone,
-      changes: changes.map((row) => ({
+      changes: changePage.map((row) => ({
         id: row.id,
         number: formatChangeNumber(configuration.numberPrefix, row.sequence),
         title: row.title,
@@ -345,7 +364,7 @@ export class ChangeScheduleService {
         causesDowntime: row.causesDowntime,
         services: row.services.map((link) => link.service),
       })),
-      downtime: downtime.map((row) => ({
+      downtime: downtimePage.map((row) => ({
         id: row.id,
         service: row.service,
         startsAt: row.startsAt.toISOString(),
@@ -356,7 +375,8 @@ export class ChangeScheduleService {
       /** BA-changes-05: downtime windows the reader may not read, as a count. */
       restrictedDowntime,
       freezePeriods: configuration.freezePeriods,
-      truncated: changes.length >= changeLimits.calendarMaxItems || downtime.length >= changeLimits.calendarMaxItems,
+      truncated:
+        changes.length > changePage.length || downtime.length > downtimePage.length,
     };
   }
 

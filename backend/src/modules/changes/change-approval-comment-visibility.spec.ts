@@ -39,7 +39,12 @@ function buildService(level: 'full' | 'participant' | 'voter' | 'observer') {
   };
   const prisma = {
     changeEvent: { findMany: jest.fn(async (): Promise<unknown[]> => []) },
-    changeApproval: { findMany: jest.fn(async (): Promise<unknown[]> => [vote]) },
+    changeApproval: {
+      // W7.76: the round and the earlier rounds are read separately, and the
+      // "is any comment redacted" question is answered by a count.
+      findMany: jest.fn(async (): Promise<unknown[]> => [vote]),
+      count: jest.fn(async (): Promise<number> => 1),
+    },
     user: { findMany: jest.fn(async (): Promise<unknown[]> => []) },
   };
   const access = {
