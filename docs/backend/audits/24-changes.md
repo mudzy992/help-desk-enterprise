@@ -173,7 +173,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | zatvoreno (W7.65) |
 | BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | zatvoreno (W7.66) |
 | BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.67) |
-| BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | otvoreno |
+| BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | zatvoreno (W7.68) |
 | BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | otvoreno |
 | BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | otvoreno |
 | BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | otvoreno |
@@ -215,7 +215,9 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **11:** zatvoreno u W7.67 — edit i claim pišu `change.updated`/`change.claimed` u istoj transakciji, sa
   referencama i klasifikacijama u metadata, a slobodan tekst samo po imenu; DB trigger sada provjerava i te dvije
   akcije. Dokaz: [W7.67 implementation](../implementation/288-w767-changes-11-canonical-audit.md).
-- **12:** conflict snapshot/hash vezan za action (ostaje otvoreno).
+- **12:** zatvoreno u W7.68 — acknowledgement je vezan za `sha256` digest previewa; action ga mora ponijeti, a
+  server ga ponovo izračuna unutar transakcije i odbija zastarjeli snapshot. Dokaz:
+  [W7.68 implementation](../implementation/289-w768-changes-12-conflict-snapshot.md).
 - **15–17:** template version, eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
 
@@ -466,3 +468,30 @@ sadrži ni stari ni novi sadržaj.
 **Preostali rizik:** linkovi se bilježe brojem, ne ID-em; worker/downtime replay ima vlastiti put; red se
 particionira u OJ **odredišta** kad se change prenosi; claim ne zamjenjuje owner event (dva sloja: UI diff i
 forenzički trag).
+
+## 31. Implementacijski closeout — W7.68 (`BA-changes-12`)
+
+**Status nalaza:** zatvoren; paket W7.68, kod `26e6b1c`, CI
+[44717095800](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44717095800) **success**, **bez migracije**. Detalji:
+[289](../implementation/289-w768-changes-12-conflict-snapshot.md).
+
+**Šta je bilo:** provjera konflikata i odluka o acknowledgementu izvršavale su se prije `$transaction`. Paralelni
+change je mogao ući u `AUTHORIZATION`/`SCHEDULED` u tom prozoru, a audit je bilježio samo `action` — pa se nije
+moglo dokazati koji je skup konflikata korisnik vidio i odobrio.
+
+**Šta je sada:** preview vraća `sha256` digest konflikata (`change-conflict-snapshot.ts`: prozor, ID-evi i
+vremena konfliktnih changeova, downtime prozori i freeze; bez naslova i teksta, sortirano da poredak ne mijenja
+hash). `act()` prihvata acknowledgement samo uz taj digest (`CHANGE_CONFLICTS_STALE` za nedostajući ili tuđi),
+ponovo ga izračuna **unutar** transakcije transakcijskim klijentom i odbija akciju prije `updateMany` ako se
+skup promijenio. `conflicts_acknowledged` event nosi čitljiv snapshot, a `change.status_changed` u kanonskom
+auditu nosi `conflictsAcknowledged: <hash>`. Frontend šalje digest previewa koji je renderovan, a na stale
+odgovor skida kvačicu, prikaže danger toast i ponovo učita konflikte.
+
+**Acceptance:** §6 („audit mora sačuvati konkretan conflict snapshot/hash”) je ispunjen i mjerljiv: 6 + 9
+backend testa i 3 frontend testa dokazuju determinizam digesta, odbijanje tuđeg/nedostajućeg snapshota, ponovnu
+provjeru u transakciji i zapis hasha u historiju i audit.
+
+**Šta ostaje u ovom modulu:** P2: `13`, `14`, `15`, `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** konflikti su i dalje warning, ne DB invarijanta; ponovni upit u transakciji ne zaključava
+kandidat-redove (uski prozor do commita ostaje, svjesno, bez `SERIALIZABLE`); digest ne pokriva slobodan tekst.
