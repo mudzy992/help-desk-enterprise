@@ -61,6 +61,12 @@ export type ChangeTemplate = {
   readonly usageCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
+  /**
+   * W7.71 (BA-changes-15): the token the editor sends back in `If-Match`.
+   * Without it the server refuses the save (428) instead of letting two
+   * managers overwrite each other.
+   */
+  readonly revision: string;
 };
 
 export type ChangeTemplateInput = {
@@ -113,9 +119,11 @@ export function createChangeTemplate(input: ChangeTemplateInput): Promise<Change
 export function updateChangeTemplate(
   id: string,
   input: ChangeTemplateInput,
+  revision: string,
 ): Promise<ChangeTemplate> {
   return apiRequest(`/changes/templates/${encodeURIComponent(id)}`, {
     method: "PUT",
+    headers: { "If-Match": revision },
     ...json(input),
   });
 }

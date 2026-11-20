@@ -67,6 +67,14 @@ describe("mapChangeError", () => {
     expect(mapChangeError(new ApiError(409, "CHANGE_CAB_GROUP_TOO_LARGE", "cab-1"))).toBe(
       "changes.errors.cabGroupTooLarge",
     );
+    // W7.71 (BA-changes-15): a template save is a conditional write - a missing
+    // token and a token somebody else moved past are two different answers.
+    expect(
+      mapChangeError(new ApiError(412, "CHANGE_TEMPLATE_STALE", "2027-01-01T10:00:00.000Z")),
+    ).toBe("changes.errors.templateStale");
+    expect(
+      mapChangeError(new ApiError(428, "CHANGE_TEMPLATE_REVISION_REQUIRED", "If-Match")),
+    ).toBe("changes.errors.templateRevisionRequired");
     expect(mapChangeError(new Error("x"))).toBeNull();
   });
 });

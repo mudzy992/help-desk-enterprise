@@ -10310,7 +10310,9 @@
         "cabGroupId": "No CAB group selected.",
         "outcome": "Choose the implementation outcome.",
         "reviewNotes": "Enter review notes (at least 20 characters for failed or rolled-back changes)."
-      }
+      },
+      "templateStale": "The template changed after you opened it. Load the newest version and try again.",
+      "templateRevisionRequired": "A template update must carry the revision you loaded."
     },
     "tabs": {
       "register": "Register",
@@ -10385,7 +10387,13 @@
       "editTitle": "Edit template",
       "createTitle": "New standard change template",
       "sheetDescription": "A standard change skips the CAB, so a template may only be low or medium risk.",
-      "activeHint": "An inactive template is not offered when creating; existing changes stay linked to it."
+      "activeHint": "An inactive template is not offered when creating; existing changes stay linked to it.",
+      "staleToast": "Someone else edited this template while you were editing it. Your change was not saved.",
+      "staleTitle": "The template changed in the meantime",
+      "staleBody": "Load the newest version before saving again; your input stays in the form until then.",
+      "reloadLatest": "Load newest version",
+      "revisionRequiredTitle": "The template revision is missing",
+      "revisionRequiredBody": "Refresh the template list and open the template again before saving."
     },
     "related": {
       "tab": "Changes",

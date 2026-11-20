@@ -30,6 +30,7 @@ import {
   invalidateEntityQueries,
 } from "@/lib/entity-list/entity-mutation-query-keys";
 import { mapApiError } from "@/lib/map-api-error";
+import { ApiError } from "@/services/api";
 import {
   changeExtraKeys,
   changeLevels,
@@ -170,6 +171,16 @@ export function ChangeTemplatesPanel({ options }: { readonly options: ChangeOpti
             toast({ tone: "success", title: t("changes.templates.saved") });
             void invalidateEntityQueries(queryClient, entityMutationQueryKeys.changes.templates);
           }}
+          onReloadLatest={async (id) => {
+            // W7.71: hand the sheet the row that is on the server now, so the
+            // manager can see what changed before saving over it.
+            const fresh = await queryClient.fetchQuery({
+              queryKey: changeExtraKeys.templates(includeInactive),
+              queryFn: () => listChangeTemplates(includeInactive),
+            });
+            const next = fresh.items.find((item) => item.id === id);
+            if (next !== undefined) setEditing(next);
+          }}
         />
       ) : null}
     </div>
@@ -182,6 +193,8 @@ interface ChangeTemplateSheetProperties {
   readonly template?: ChangeTemplate;
   readonly options: ChangeOptions;
   readonly onSaved: () => void;
+  /** W7.71: re-open the sheet with the revision that is current on the server. */
+  readonly onReloadLatest: (id: string) => Promise<void>;
 }
 
 function ChangeTemplateSheet({
@@ -190,6 +203,7 @@ function ChangeTemplateSheet({
   template,
   options,
   onSaved,
+  onReloadLatest,
 }: ChangeTemplateSheetProperties) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -204,6 +218,8 @@ function ChangeTemplateSheet({
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** W7.71: the save lost against an edit somebody else committed. */
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -218,6 +234,7 @@ function ChangeTemplateSheet({
     setIsActive(template?.isActive ?? true);
     setServiceIds(template ? template.services.map((service) => service.id) : []);
     setError(null);
+    setStale(false);
   }, [open, template]);
 
   const risk = computeChangeRisk(impact, likelihood);
@@ -234,6 +251,7 @@ function ChangeTemplateSheet({
     if (!canSubmit) return;
     setSaving(true);
     setError(null);
+    setStale(false);
     const body = {
       name: name.trim(),
       description: description.trim(),
@@ -247,12 +265,20 @@ function ChangeTemplateSheet({
       serviceIds,
     };
     try {
-      if (template) await updateChangeTemplate(template.id, body);
+      if (template) await updateChangeTemplate(template.id, body, template.revision);
       else await createChangeTemplate(body);
       onOpenChange(false);
       onSaved();
     } catch (caught) {
-      setError(t(mapChangeError(caught) ?? mapApiError(caught)));
+      const message = t(mapChangeError(caught) ?? mapApiError(caught));
+      setError(message);
+      // A conditional write fails closed: nothing was saved, and the form keeps
+      // the text the manager typed. A long form needs the toast, not only the
+      // inline line, or the failure scrolls out of view (W7.71).
+      if (caught instanceof ApiError && caught.code === "CHANGE_TEMPLATE_STALE") {
+        setStale(true);
+        toast({ tone: "danger", title: t("changes.templates.staleToast") });
+      }
     } finally {
       setSaving(false);
     }
@@ -387,6 +413,31 @@ function ChangeTemplateSheet({
             <p role="alert" className={errorTextClassName}>
               {error}
             </p>
+          ) : null}
+          {stale && template ? (
+            <div
+              role="alert"
+              className="grid gap-2 rounded-md border border-danger/40 bg-danger/5 px-3 py-2"
+              data-testid="change-template-stale"
+            >
+              <p className="text-[12.5px] font-medium text-foreground">
+                {t("changes.templates.staleTitle")}
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                {t("changes.templates.staleBody")}
+              </p>
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => void onReloadLatest(template.id)}
+                >
+                  {t("changes.templates.reloadLatest")}
+                </Button>
+              </div>
+            </div>
           ) : null}
           <div className="flex justify-end gap-2">
             <Button

@@ -5,6 +5,12 @@ import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { ChangeAccessService, type ChangeViewer } from './change-access.service';
+import {
+  assertChangeTemplateRevision,
+  changeTemplateRevisionOf,
+  changeTemplateUpdateAuditMetadata,
+  type ChangeTemplateSnapshot,
+} from './change-template-audit';
 import { computeChangeRisk } from './change-rules';
 import type { ChangeTemplateDto } from './changes.dto';
 import { ChangeError, changeErrorCodes } from './changes.constants';
@@ -25,6 +31,48 @@ const templateSelect = {
   services: { select: { service: { select: { id: true, name: true } } } },
   _count: { select: { changes: true } },
 } as const;
+
+/** W7.71: the row the edit is compared against, read inside the transaction. */
+const templateSnapshotSelect = {
+  name: true,
+  description: true,
+  implementationPlan: true,
+  backoutPlan: true,
+  testPlan: true,
+  impact: true,
+  likelihood: true,
+  causesDowntime: true,
+  isActive: true,
+  updatedAt: true,
+  services: { select: { serviceId: true } },
+} as const;
+
+
+function snapshotOf(row: {
+  name: string;
+  description: string;
+  implementationPlan: string;
+  backoutPlan: string;
+  testPlan: string | null;
+  impact: string;
+  likelihood: string;
+  causesDowntime: boolean;
+  isActive: boolean;
+  services: readonly { serviceId: string }[];
+}): ChangeTemplateSnapshot {
+  return {
+    name: row.name,
+    description: row.description,
+    implementationPlan: row.implementationPlan,
+    backoutPlan: row.backoutPlan,
+    testPlan: row.testPlan,
+    impact: row.impact,
+    likelihood: row.likelihood,
+    causesDowntime: row.causesDowntime,
+    isActive: row.isActive,
+    serviceIds: row.services.map((link) => link.serviceId),
+  };
+}
 
 /**
  * Paket 3.4 (§13): standard change templates. Reading is open to every change
@@ -66,23 +114,68 @@ export class ChangeTemplatesService {
         data: { ...data.fields, services: { create: data.serviceIds.map((serviceId) => ({ serviceId })) } },
         select: { id: true },
       });
-      await this.audit(transaction as unknown as AuditLogTransactionalClient, created.id, viewer.userId, 'created');
+      await this.audit(transaction as unknown as AuditLogTransactionalClient, created.id, viewer.userId, {
+        operation: 'created',
+      });
       return created.id;
     });
     return this.get(viewer, id);
   }
 
-  async update(viewer: ChangeViewer, id: string, input: ChangeTemplateDto) {
+  /**
+   * W7.71 (`BA-changes-15`): a template edit is a conditional write. The
+   * revision the editor loaded travels in `If-Match`; the row is compared
+   * inside the transaction that writes it, so two managers can no longer
+   * replace each other's fields and service links while both get an "updated"
+   * audit row. The previous and the new revision are named in that row, and a
+   * save that changes nothing writes neither the row nor the audit entry.
+   */
+  async update(viewer: ChangeViewer, id: string, input: ChangeTemplateDto, ifMatch: string | undefined) {
     await this.access.require(viewer, permissionKeys.changeManage);
-    if ((await this.prisma.changeTemplate.count({ where: { id } })) === 0) throw new ChangeError(changeErrorCodes.templateNotFound);
     const data = await this.normalize(input);
     await this.prisma.$transaction(async (transaction) => {
-      await transaction.changeTemplate.update({ where: { id }, data: data.fields });
+      const current = await transaction.changeTemplate.findUnique({
+        where: { id },
+        select: templateSnapshotSelect,
+      });
+      if (current === null) throw new ChangeError(changeErrorCodes.templateNotFound);
+      const previousRevision = assertChangeTemplateRevision(current, ifMatch);
+      const before = snapshotOf(current);
+      const after: ChangeTemplateSnapshot = { ...data.fields, serviceIds: data.serviceIds };
+      const initial = changeTemplateUpdateAuditMetadata({ before, after, previousRevision });
+      if (initial.changedFields.length === 0) return;
+
+      const written = await transaction.changeTemplate.updateMany({
+        where: { id, updatedAt: current.updatedAt },
+        // The revision is set explicitly: the compare above reads `updatedAt`,
+        // so the write has to move it even if a previous save happened inside
+        // the same millisecond.
+        data: { ...data.fields, updatedAt: new Date() },
+      });
+      // The row moved between the read and the write: another editor won.
+      if (written.count !== 1) throw new ChangeError(changeErrorCodes.templateStale);
       await transaction.changeTemplateService.deleteMany({ where: { templateId: id } });
       if (data.serviceIds.length > 0) {
-        await transaction.changeTemplateService.createMany({ data: data.serviceIds.map((serviceId) => ({ templateId: id, serviceId })) });
+        await transaction.changeTemplateService.createMany({
+          data: data.serviceIds.map((serviceId) => ({ templateId: id, serviceId })),
+        });
       }
-      await this.audit(transaction as unknown as AuditLogTransactionalClient, id, viewer.userId, 'updated');
+      const updated = await transaction.changeTemplate.findUniqueOrThrow({
+        where: { id },
+        select: { updatedAt: true },
+      });
+      const diff = changeTemplateUpdateAuditMetadata({
+        before,
+        after,
+        previousRevision,
+        revision: changeTemplateRevisionOf(updated),
+      });
+      await this.audit(
+        transaction as unknown as AuditLogTransactionalClient,
+        id,
+        viewer.userId,
+        diff.metadata as Record<string, unknown>,
+      );
     });
     return this.get(viewer, id);
   }
@@ -117,12 +210,17 @@ export class ChangeTemplatesService {
     };
   }
 
-  private async audit(client: AuditLogTransactionalClient, id: string, actorUserId: string, operation: 'created' | 'updated') {
+  private async audit(
+    client: AuditLogTransactionalClient,
+    id: string,
+    actorUserId: string,
+    metadata: Record<string, unknown>,
+  ) {
     await recordAuditEntry(client, {
       action: auditLogActions.changeTemplateSaved,
       entityType: auditLogEntityTypes.changeTemplate,
       entityId: id,
-      metadata: { operation } as never,
+      metadata: metadata as never,
       actorUserId,
     });
   }
@@ -159,6 +257,8 @@ export class ChangeTemplatesService {
       usageCount: row._count.changes,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+      /** W7.71: the token the editor must send back in `If-Match` when saving. */
+      revision: changeTemplateRevisionOf(row),
     };
   }
 }

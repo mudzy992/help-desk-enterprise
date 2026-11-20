@@ -10,6 +10,7 @@ import { ChangeActionDto, ChangeConflictPreviewDto, ChangeTemplateDto, ChangeVot
 import { changeRisks, changeStatuses, changeTypes, type ChangeRiskValue, type ChangeStatusValue, type ChangeTypeValue } from './changes.constants';
 import { ChangesService, type ChangeListQuery } from './changes.service';
 import { runChange } from './map-change-error';
+import { readChangeIfMatch } from './read-change-if-match';
 
 type RawListQuery = Record<string, string | undefined>;
 
@@ -140,7 +141,8 @@ export class ChangesController {
 
   @Put('templates/:templateId')
   updateTemplate(@Req() request: AuthenticatedHttpRequest, @Param('templateId') templateId: string, @Body() body: ChangeTemplateDto) {
-    return runChange(() => this.templates.update(this.viewer(request), templateId, body));
+    // W7.71: the revision the editor loaded; a stale or missing token fails closed.
+    return runChange(() => this.templates.update(this.viewer(request), templateId, body, readChangeIfMatch(request)));
   }
 
   @Get()

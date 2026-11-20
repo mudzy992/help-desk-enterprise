@@ -121,6 +121,9 @@ const changeErrorKeys = {
   CHANGE_TEMPLATE_NOT_FOUND: "changes.errors.templateNotFound",
   CHANGE_TEMPLATE_INACTIVE: "changes.errors.templateInactive",
   CHANGE_TEMPLATE_RISK: "changes.errors.templateRisk",
+  // W7.71: the template edit is conditional - missing revision, or somebody saved first.
+  CHANGE_TEMPLATE_REVISION_REQUIRED: "changes.errors.templateRevisionRequired",
+  CHANGE_TEMPLATE_STALE: "changes.errors.templateStale",
   CHANGE_TRANSITION: "changes.errors.transition",
   CHANGE_REQUIREMENT_MISSING: "changes.errors.requirementMissing",
   CHANGE_REASON_REQUIRED: "changes.errors.reasonRequired",

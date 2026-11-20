@@ -2,17 +2,19 @@ import { auditActionCompatibilityRegistry, getAuditActionCompatibility } from '.
 import { auditLogActions, auditLogEntityTypes } from './audit-log.constants';
 import { prepareAuditEntry } from './audit-event-policy';
 
+/** Versioned contracts bumped after the registry was closed; see the schema spec. */
+const bumpedSchemaVersions = new Map<string, number>([
+  [auditLogActions.assetLocationSaved, 2],
+  [auditLogActions.integrationJobRetried, 2],
+  [auditLogActions.changeTemplateSaved, 2],
+]);
+
 describe('closed audit action/entity/schema compatibility registry', () => {
   it('covers every core action with its explicit schema version and registered entity types', () => {
     expect(Object.keys(auditActionCompatibilityRegistry).sort()).toEqual(Object.values(auditLogActions).sort());
     const knownEntities = new Set<string>(Object.values(auditLogEntityTypes));
     for (const [action, contract] of Object.entries(auditActionCompatibilityRegistry)) {
-      expect(contract.schemaVersion).toBe(
-        action === auditLogActions.assetLocationSaved ||
-          action === auditLogActions.integrationJobRetried
-          ? 2
-          : 1,
-      );
+      expect(contract.schemaVersion).toBe(bumpedSchemaVersions.get(action) ?? 1);
       expect(contract.extension).toBe(false);
       expect(contract.entityTypes.size).toBeGreaterThan(0);
       for (const entityType of contract.entityTypes) expect(knownEntities.has(entityType)).toBe(true);

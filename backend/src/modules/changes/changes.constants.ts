@@ -104,6 +104,10 @@ export const changeErrorCodes = {
   templateInactive: 'CHANGE_TEMPLATE_INACTIVE',
   /** §13: standard templates must be low or medium risk. */
   templateRisk: 'CHANGE_TEMPLATE_RISK',
+  /** W7.71: a template edit must name the revision the editor loaded. */
+  templateRevisionRequired: 'CHANGE_TEMPLATE_REVISION_REQUIRED',
+  /** W7.71: somebody saved the template after this editor loaded it. */
+  templateStale: 'CHANGE_TEMPLATE_STALE',
   transition: 'CHANGE_TRANSITION',
   requirementMissing: 'CHANGE_REQUIREMENT_MISSING',
   reasonRequired: 'CHANGE_REASON_REQUIRED',

@@ -28,7 +28,13 @@ type Calendar = {
   readonly downtime: ReadonlyArray<{ id: string; changeRequestId: string | null; service: { id: string } }>;
   readonly freezePeriods: ReadonlyArray<{ from: string; to: string; label: string }>;
 };
-type Template = { readonly id: string; readonly risk: string; readonly isActive: boolean };
+type Template = {
+  readonly id: string;
+  readonly risk: string;
+  readonly isActive: boolean;
+  /** W7.71 (BA-changes-15): the token a conditional template edit must send back. */
+  readonly revision: string;
+};
 
 // A freeze far in the future so it never touches real work on the environment.
 const freezeDay = '2031-01-15';
@@ -222,9 +228,27 @@ test.describe('32 change scheduling', () => {
 
             const deactivate = await admin.request(`/changes/templates/${template.id}`, {
               method: 'PUT',
+              headers: { 'If-Match': template.revision },
               body: JSON.stringify({ ...base, impact: 'LOW', likelihood: 'MEDIUM', isActive: false }),
             });
             expect(deactivate.ok, await deactivate.clone().text()).toBe(true);
+
+            // W7.71 (BA-changes-15): the edit is conditional, so a second manager
+            // holding the replaced revision cannot reactivate it, and a request
+            // without a revision is refused instead of overwriting it.
+            const stale = await admin.request(`/changes/templates/${template.id}`, {
+              method: 'PUT',
+              headers: { 'If-Match': template.revision },
+              body: JSON.stringify({ ...base, impact: 'LOW', likelihood: 'MEDIUM', isActive: true }),
+            });
+            expect(stale.status).toBe(412);
+            expect(await errorCode(stale)).toBe('CHANGE_TEMPLATE_STALE');
+            const unconditional = await admin.request(`/changes/templates/${template.id}`, {
+              method: 'PUT',
+              body: JSON.stringify({ ...base, impact: 'LOW', likelihood: 'MEDIUM', isActive: true }),
+            });
+            expect(unconditional.status).toBe(428);
+            expect(await errorCode(unconditional)).toBe('CHANGE_TEMPLATE_REVISION_REQUIRED');
             const inactive = await admin.request('/changes', {
               method: 'POST',
               body: JSON.stringify({ type: 'STANDARD', templateId: template.id, title: `E2E neaktivni ${fixture.stamp}`, organizationalUnitId: fixture.unitId }),

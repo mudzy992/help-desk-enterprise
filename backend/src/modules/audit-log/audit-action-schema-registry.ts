@@ -241,7 +241,32 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
     'pseudonymous',
   ),
   [auditLogActions.changeClaimed]: schema(['ownerUserId', 'previousOwnerUserId'], 'pseudonymous'),
-  [auditLogActions.changeTemplateSaved]: schema(['operation']),
+  // W7.71 (BA-changes-15): an edit names both revisions and every changed
+  // field; scalars carry before/after, the four plans are only named, and the
+  // service links are counted - the same rule the change edit follows.
+  [auditLogActions.changeTemplateSaved]: schema(
+    [
+      'causesDowntime',
+      'changedFields',
+      'impact',
+      'isActive',
+      'likelihood',
+      'name',
+      'operation',
+      'previousCausesDowntime',
+      'previousImpact',
+      'previousIsActive',
+      'previousLikelihood',
+      'previousName',
+      'previousRevision',
+      'revision',
+      'servicesAdded',
+      'servicesRemoved',
+      'textChanged',
+    ],
+    'operational',
+    2,
+  ),
   [auditLogActions.knowledgeCategoryCreated]: schema(['key', 'nameBs', 'parentId']),
   [auditLogActions.knowledgeCategoryUpdated]: schema([]),
   [auditLogActions.knowledgeCategoryArchived]: schema(['key']),

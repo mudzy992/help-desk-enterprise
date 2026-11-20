@@ -10391,7 +10391,9 @@
         "cabGroupId": "Nije izabrana CAB grupa.",
         "outcome": "Izaberite ishod realizacije.",
         "reviewNotes": "Upišite bilješke pregleda (za neuspješne ili vraćene promjene najmanje 20 znakova)."
-      }
+      },
+      "templateStale": "Šablon je izmijenjen nakon što ste ga otvorili. Učitajte najnoviju verziju i pokušajte ponovo.",
+      "templateRevisionRequired": "Zahtjev za izmjenu šablona mora sadržavati reviziju koju ste učitali."
     },
     "tabs": {
       "register": "Registar",
@@ -10470,7 +10472,13 @@
       "editTitle": "Uredi šablon",
       "createTitle": "Novi šablon standardne promjene",
       "sheetDescription": "Standardna promjena prolazi bez CAB-a, pa šablon smije biti samo niskog ili srednjeg rizika.",
-      "activeHint": "Neaktivan šablon se ne nudi pri kreiranju; postojeće promjene ostaju vezane za njega."
+      "activeHint": "Neaktivan šablon se ne nudi pri kreiranju; postojeće promjene ostaju vezane za njega.",
+      "staleToast": "Neko je izmijenio ovaj šablon dok ste ga uređivali. Vaša izmjena nije sačuvana.",
+      "staleTitle": "Šablon je u međuvremenu izmijenjen",
+      "staleBody": "Otvorite najnoviju verziju prije nego što ponovo sačuvate; vaš unos do tada ostaje u formi.",
+      "reloadLatest": "Učitaj najnoviju verziju",
+      "revisionRequiredTitle": "Nedostaje revizija šablona",
+      "revisionRequiredBody": "Osvježite listu šablona i otvorite šablon ponovo prije čuvanja."
     },
     "related": {
       "tab": "Promjene",
