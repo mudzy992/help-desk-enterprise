@@ -31,6 +31,8 @@ vi.mock("@/components/admin/ops-health-metrics", () => ({
   ChannelSummary: () => null,
   AssetOperationsSummary: () => null,
   ProblemOperationsSummary: () => null,
+  // W7.69: the change section is rendered (and asserted) in its own spec.
+  ChangeOperationsSummary: () => null,
 }));
 vi.mock("@/components/admin/ops-health-alerts", () => ({
   AlertHistory: () => null,

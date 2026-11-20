@@ -42,6 +42,10 @@ export const opsAlertKeys = {
   // W7.33: open problems whose recorded owner lost `problem.manage` for the
   // problem's unit (or left its group) and nobody has reassigned them yet.
   problemOwnerIneligible: 'problems.owner.ineligible',
+  // W7.69: the change sweep produced a reminder, but the outbox abandoned it.
+  changeReminderBacklog: 'changes.reminders.stuck',
+  // W7.69: the service calendar no longer matches the planned downtime.
+  changeDowntimeDrift: 'changes.downtime.drift',
 } as const;
 
 export type OpsAlertKey = (typeof opsAlertKeys)[keyof typeof opsAlertKeys];
@@ -119,6 +123,34 @@ export const opsAlertCatalog: Readonly<Record<OpsAlertKey, OpsAlertDefinition>> 
     runbook: runbook('problem-owner-eligibility'),
     // Same hysteresis as the sweep alarm: one lonely problem after a role change
     // is expected; a streak means the reconciliation is being ignored.
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.changeReminderBacklog]: {
+    key: opsAlertKeys.changeReminderBacklog,
+    title: {
+      bs: 'Podsjetnici na promjene ne izlaze',
+      en: 'Change reminders are not being delivered',
+    },
+    action: {
+      bs: 'Kvartalna provjera promjena radi, ali isporuka podsjetnika je stala: red je u dead-letteru ili čeka duže od 15 minuta. Provjerite karticu za broj i starost, pa u detalju promjene provjerite historiju (`reminder`) i notifikacijske politike primaoca. Promjena je označena kao podsjećena iako obavještenje nije otišlo — ponovni pokušaj ide kroz outbox, ne ručnim mijenjanjem reda.',
+      en: 'The quarter-hourly change sweep runs, but reminder delivery stopped: the row is dead-lettered or waiting longer than 15 minutes. Check the card for the count and age, then the change history (`reminder`) and the recipient notification policies. The change is marked as reminded although the notice never left — retries go through the outbox, never by editing the row by hand.',
+    },
+    runbook: runbook('change-reminders'),
+    openAfter: 2,
+    resolveAfter: 2,
+  },
+  [opsAlertKeys.changeDowntimeDrift]: {
+    key: opsAlertKeys.changeDowntimeDrift,
+    title: {
+      bs: 'Kalendar dostupnosti ne prati planirane prekide',
+      en: 'The availability calendar does not match planned downtime',
+    },
+    action: {
+      bs: 'Završeni prolaz reconcilera našao je promjene čiji downtime prozori ne odgovaraju planu (nedostaju, pomjereni ili nose stari naslov). Reconciler sam ponovo upućuje `change.downtime.sync`, pa ponavljanje alarma znači da se sync ne izvršava: provjerite karticu `Downtime sync` (dead-letter, starost), worker i dostupnost baze. Servisi preskočeni zbog tuđeg preklapanja se broje odvojeno — to je ishod plana, ne drift.',
+      en: 'A completed reconciler pass found changes whose downtime windows do not match the plan (missing, moved, or carrying an old title). The reconciler re-enqueues `change.downtime.sync` itself, so a repeating alarm means the sync is not running: check the `Downtime sync` card (dead letter, age), the worker and the database. Services skipped because of a foreign overlap are counted separately — that is a plan outcome, not drift.',
+    },
+    runbook: runbook('change-downtime-drift'),
     openAfter: 2,
     resolveAfter: 2,
   },

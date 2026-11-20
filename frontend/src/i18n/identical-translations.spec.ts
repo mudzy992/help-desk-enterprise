@@ -27,6 +27,9 @@ const intentionallyIdentical = new Set([
   "admin.ops.auditLog.values.format.xlsx",
   "admin.ops.auditLog.values.provider.entra",
   "admin.opsHealth.assetOperations.countValue",
+  // W7.69 (BA-changes-13): pure number/minutes formats, no words to translate.
+  "admin.opsHealth.changeOperations.countValue",
+  "admin.opsHealth.changeOperations.minutesValue",
   "admin.opsHealth.problemOperations.countValue",
   "admin.opsHealth.problemOperations.minutesValue",
   "admin.opsHealth.channels.email",
@@ -212,6 +215,6 @@ describe("identical Bosnian and English translations", () => {
     const en = flatten(english);
     const identical = [...bs].filter(([key, value]) => en.get(key) === value).map(([key]) => key);
     expect(identical.sort()).toEqual([...intentionallyIdentical].sort());
-    expect(identical).toHaveLength(189);
+    expect(identical).toHaveLength(191); // W7.69 added two number formats
   });
 });

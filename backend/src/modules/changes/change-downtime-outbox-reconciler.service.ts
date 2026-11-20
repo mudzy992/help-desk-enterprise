@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  Optional,
   OnApplicationShutdown,
   OnModuleInit,
 } from "@nestjs/common";
@@ -17,6 +18,7 @@ import {
   readChangeDowntimeSyncPayload,
 } from "./change-downtime-outbox";
 import { ChangeScheduleService } from "./change-schedule.service";
+import { ChangeDowntimeDriftMetricStore } from "./change-downtime-drift-metrics";
 
 const drainIntervalMs = 2_000;
 const reconcileIntervalMs = 30_000;
@@ -44,11 +46,20 @@ export class ChangeDowntimeOutboxReconciler
   private lastReconcileAt = 0;
   private reconciliationCursor: string | null = null;
   private draining = false;
+  /**
+   * W7.69 (BA-changes-13): one pass over the keyset. `driftedIds` is a set so a
+   * change that shows up in two pages (it moved while the pass was running)
+   * counts once, and the summary is written when the cursor wraps — otherwise
+   * the numbers would only describe the last 100 rows.
+   */
+  private pass = { scanned: 0, driftedIds: new Set<string>() };
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly outbox: TransactionalOutboxService,
     private readonly schedule: ChangeScheduleService,
+    @Optional()
+    private readonly driftMetrics: ChangeDowntimeDriftMetricStore | null = null,
   ) {}
 
   onModuleInit(): void {
@@ -112,15 +123,18 @@ export class ChangeDowntimeOutboxReconciler
     });
     if (candidates.length === 0) {
       this.reconciliationCursor = null;
+      await this.recordPass();
       return 0;
     }
     this.reconciliationCursor = candidates[candidates.length - 1]!.id;
     let drifted = 0;
     for (const candidate of candidates) {
+      this.pass.scanned += 1;
       try {
         if (!(await this.schedule.hasDowntimeDrift(candidate.id))) continue;
         await this.ensureReconciliationIntent(candidate.id, now);
         drifted += 1;
+        this.pass.driftedIds.add(candidate.id);
       } catch (error) {
         this.logger.warn(
           `change_downtime_reconcile_failed change=${candidate.id} reason=${errorText(error)}`,
@@ -137,6 +151,25 @@ export class ChangeDowntimeOutboxReconciler
     }
     if (drifted > 0) this.logger.warn(`change_downtime_drift detected=${drifted}`);
     return drifted;
+  }
+
+  /**
+   * A pass is "complete" only when the keyset wrapped (or the table was empty).
+   * The counters then describe the whole drift set as it was seen, which is what
+   * the health card and the `changes.downtime.drift` alarm read.
+   */
+  private async recordPass(): Promise<void> {
+    const scanned = this.pass.scanned;
+    const drifted = this.pass.driftedIds.size;
+    this.pass = { scanned: 0, driftedIds: new Set<string>() };
+    if (this.driftMetrics === null) return;
+    try {
+      // The store stamps completion itself, so a reader can tell a fresh pass
+      // from a record left behind by a worker that has since stopped.
+      await this.driftMetrics.record({ scanned, drifted });
+    } catch (error) {
+      this.logger.warn(`change_downtime_drift_metrics_failed reason=${errorText(error)}`);
+    }
   }
 
   async health(now: Date = new Date()): Promise<ChangeDowntimeOutboxHealth> {

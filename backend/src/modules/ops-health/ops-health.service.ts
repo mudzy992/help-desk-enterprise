@@ -171,6 +171,9 @@ export class OpsHealthService {
       // W7.40 (BA-problems-18): the problem sweep's backlog ages belong on the
       // always-visible card, not only inside an alarm that has to fire first.
       problemOperations: signals?.problemOperations ?? null,
+      // W7.69 (BA-changes-13): reminder/overrun backlog, reminder delivery and
+      // downtime drift of the change module.
+      changeOperations: signals?.changeOperations ?? null,
       components: {
         api: 'ok' as const,
         database,

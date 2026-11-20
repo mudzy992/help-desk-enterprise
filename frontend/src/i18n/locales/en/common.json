@@ -1006,6 +1006,26 @@
         "oldestQueuedNotice": "Age of the oldest queued notification",
         "noticesHint": "Problem notifications are recorded with the action itself and delivered by the worker. A queue that does not drain means the worker is not running."
       },
+      "changeOperations": {
+        "title": "Change operations metrics",
+        "hint": "Outcomes of the quarter-hourly change sweep and the downtime sync: reminders that are due but not marked, overruns nobody warned about, queued deliveries and windows that do not follow the plan. Counts and ages only.",
+        "unavailable": "Change metrics are unavailable (waiting for the worker measurement or the database).",
+        "unknown": "Unknown",
+        "countValue": "{{count}}",
+        "minutesValue": "{{minutes}} min",
+        "dueReminders": "Reminders due now",
+        "upcoming24h": "Changes starting within 24 h without a reminder",
+        "overdueOpen": "Overruns without a warning",
+        "oldestOverdue": "Oldest overrun",
+        "delivery": "Reminder delivery",
+        "deliveryValue": "QUEUED: {{queued}} · dead (outbox retry only): {{dead}}",
+        "oldestPending": "Oldest queued delivery",
+        "drift": "Downtime windows off plan",
+        "driftValue": "OFF PLAN: {{drifted}} · scanned: {{scanned}}",
+        "skippedServices": "Services skipped for a foreign overlap (24 h)",
+        "reminderWindow": "The reminder goes out {{hours}} h before the start (0 = off).",
+        "skippedHint": "A skipped service is not a fault: a change does not advertise downtime over somebody else's window. If the number grows, the schedule is the problem."
+      },
       "alerts": {
         "title": "Active alarms",
         "emptyTitle": "No active alarms",
@@ -1240,6 +1260,14 @@
         "problems_owner_ineligible": {
           "title": "Problems have owners without authority",
           "action": "Open problems record an owner who no longer holds problem.manage for the problem's organizational unit or who left the problem group. The problems keep working and target notices go to the group managers. The card shows the count, the reasons and whether the scan hit its page limit. The problem detail's \"Responsibility\" card names the reason — assign a new owner through \"Edit\"."
+        },
+        "changes_reminders_stuck": {
+          "title": "Change reminders are not being delivered",
+          "action": "The quarter-hourly sweep runs, but reminder delivery stopped. Check the Change operations card and the outbox queue."
+        },
+        "changes_downtime_drift": {
+          "title": "The availability calendar does not match planned downtime",
+          "action": "The reconciler re-enqueues the sync; if the alarm repeats, check the Downtime sync card and the worker."
         }
       },
       "alertDetailLabels": {
@@ -1302,7 +1330,18 @@
         "oldestOverdueTargetMinutes": "Age of the oldest breached target (min)",
         "autoCloseDue": "Resolved problems waiting for auto-close",
         "oldestAutoCloseDueMinutes": "Longest wait for auto-close (min)",
-        "autoCloseDays": "Auto-close threshold (days)"
+        "autoCloseDays": "Auto-close threshold (days)",
+        "pendingReminderDeliveries": "Reminders waiting for delivery",
+        "oldestPendingReminderMinutes": "Age of the oldest queued reminder (min)",
+        "dueReminders": "Reminders due now",
+        "upcoming24h": "Changes starting within 24 h without a reminder",
+        "overdueOpen": "Overruns without a warning",
+        "oldestOverdueMinutes": "Age of the oldest overrun (min)",
+        "reminderHoursBeforeStart": "Reminder lead time (h)",
+        "driftedChanges": "Changes with downtime off plan",
+        "scannedChanges": "Changes scanned",
+        "passCompletedAt": "Pass completed at",
+        "skippedServices24h": "Services skipped for an overlap (24 h)"
       }
     }
   },

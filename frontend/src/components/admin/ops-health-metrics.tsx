@@ -125,6 +125,8 @@ export function AssetOperationsSummary({ overview }: { readonly overview: OpsOve
 // The section moved to its own module (component size budget, W7.42); the
 // export stays here so existing imports keep working.
 export { ProblemOperationsSummary } from "@/components/admin/ops-health-problem-operations";
+// W7.69 (BA-changes-13): the change module's reminder/downtime outcomes.
+export { ChangeOperationsSummary } from "@/components/admin/ops-health-change-operations";
 
 export function HttpChart({ overview }: { readonly overview: OpsOverview }) {
   const { t, i18n } = useTranslation();

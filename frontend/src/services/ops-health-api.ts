@@ -134,6 +134,34 @@ export type OpsProblemOperations = {
   readonly noticeOutbox?: OpsProblemNoticeOutbox | null;
 };
 
+/**
+ * W7.69 (BA-changes-13): reminder/overrun backlog, reminder delivery and downtime
+ * drift of the change module. Only counts and ages, never an id or a title.
+ */
+export type OpsChangeOperations = {
+  readonly reminders: {
+    readonly upcoming24h: number;
+    readonly dueReminders: number | null;
+    readonly overdueOpen: number;
+    readonly oldestOverdueMinutes: number | null;
+    readonly reminderHoursBeforeStart: number | null;
+  };
+  readonly delivery: {
+    readonly pending: number;
+    readonly processing: number;
+    readonly deadLetter: number;
+    readonly oldestPendingMinutes: number | null;
+  };
+  readonly downtime: {
+    readonly skippedServices24h: number;
+    readonly lastPass: {
+      readonly completedAtMs: number;
+      readonly scanned: number;
+      readonly drifted: number;
+    } | null;
+  };
+};
+
 /** W7.42 (BA-problems-21): queued and abandoned problem notices. */
 export type OpsProblemNoticeOutbox = {
   readonly pending: number;
@@ -187,6 +215,8 @@ export type OpsOverview = {
     readonly notificationFanOutOutbox?: NotificationFanOutOutboxHealth | null;
     /** Optional during rolling deploys where the API has not added this signal yet. */
     readonly changeReminderOutbox?: ChangeReminderOutboxHealth | null;
+    /** W7.69: the change module's reminder/downtime outcomes; optional during rolling deploys. */
+    readonly changeOperations?: OpsChangeOperations | null;
     /** Per-process fail-closed settings-read health; optional during rolling deploys. */
     readonly templatesConfiguration?: TemplatesConfigurationHealth | null;
     readonly inbound: ReadonlyArray<{

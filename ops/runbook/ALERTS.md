@@ -52,6 +52,8 @@ docker logs --since 15m "$WORKER" 2>&1 | grep -E 'ops_|ERROR' | tail -50
 | `asset.audit.writeFailures` | UPOZORENJE / KRITIČNO | 2 / 2 | [asset-audit-failure](#asset-audit-failure) |
 | `problems.reminders.stuck` | UPOZORENJE | 2 / 2 | [problem-reminders](#problem-reminders) |
 | `problems.owner.ineligible` | UPOZORENJE | 2 / 2 | [problem-owner-eligibility](#problem-owner-eligibility) |
+| `changes.reminders.stuck` | UPOZORENJE | 2 / 2 | [change-reminders](#change-reminders) |
+| `changes.downtime.drift` | UPOZORENJE | 2 / 2 | [change-downtime-drift](#change-downtime-drift) |
 
 ---
 
@@ -465,6 +467,50 @@ Nijedna vrijednost ne sadrži ID problema ni identitet korisnika.
    pojedinačnih dodjela.
 5. Grupa bez ijednog podobnog voditelja ne može dobiti novog vlasnika dok se ne doda rola — u tom
    slučaju prvo popravi role, pa dodijeli vlasnika.
+
+## change-reminders
+
+**Uslov:** najmanje jedan podsjetnik na promjenu je u `DEAD_LETTER` stanju outbox reda
+(`change.reminder.dispatch`), ili najstariji `PENDING`/`PROCESSING` red čeka duže od 15 minuta. Alarm se
+otvara nakon dvije uzastopne provjere, a zatvara nakon dvije čiste. Kartica prikazuje broj crklih, broj
+redova u redu, starost najstarijeg, broj podsjetnika koji su **sada** dospjeli (`dueReminders`), broj
+promjena koje počinju u naredna 24 h bez podsjetnika i broj prekoračenja bez upozorenja.
+
+**Posljedica:** promjena je označena kao podsjećena (`reminderSentAt`) iako obavještenje nije otišlo —
+markica znači „persistirana, retryable namjera“, ne „isporučeno“.
+
+**Postupak:**
+1. Provjeri `scheduler.late` i red `change-sweep` (zadnji uspjeh, cron `*/15 * * * *`). Ako je raspored
+   nestao iz Redisa, worker ga vraća sam u roku od jedne minute (`change_sweep_schedule_recovered`); ako
+   se recovery ponavlja, traži uzrok u Redisu (flush, failover, `maxmemory` eviction), ne u changes modulu.
+2. Provjeri SMTP/provajdera i notifikacijske politike primaoca. Red se ne mijenja ručno: outbox ga
+   ponovo pokušava do `maxAttempts` (8), a `DEAD_LETTER` ostaje vidljiv dok se ne riješi uzrok.
+3. `dueReminders` i `upcoming24h` su radni zalih, ne kvar: ako rastu uz zdrav scheduler i prazan red za
+   isporuku, uzrok je planiranje prozora (`reminderHoursBeforeStart`), ne sweep.
+
+## change-downtime-drift
+
+**Uslov:** posljednji **završeni** prolaz reconcilera (`ChangeDowntimeOutboxReconciler`) našao je
+promjene čiji downtime prozori ne odgovaraju planu: nedostaju za aktivan change koji uzrokuje prekid,
+pomjereni su, ili nose stari naslov (`CHG…: <naslov>`). Prolaz se broji kao završen kad keyset prođe
+cijeli skup; tada reconciler upisuje `scanned`/`drifted` u Redis (`changes:ops:downtime-drift`, TTL 24 h)
+i health kartica ih čita. Prolaz stariji od 10 minuta se prijavljuje kao **nepoznat**, ne kao „nema
+drift-a“; alarm se otvara nakon dvije uzastopne provjere i zatvara nakon dvije čiste.
+
+**Posljedica:** servisni kalendar dostupnosti tvrdi drugu sliku od plana — npr. oglašava dostupnost u
+terminu u kojem će promjena stvarno obustaviti servis.
+
+**Postupak:**
+1. Reconciler sam upućuje `change.downtime.sync` za svaki drifted change (dedupe ključ
+   `change-downtime-reconcile:<change>:<bucket>`), pa ponavljanje alarma znači da sync ne prolazi:
+   pogledaj karticu **Downtime sync** (dead-letter, starost najstarijeg) i worker.
+2. Provjeri da je modul uključen i da je dostupnost servisa aktivna; isključen modul namjerno
+   uklanja prozore (`downtime_disabled`), ali to nije drift.
+3. Servisi preskočeni zbog **tuđeg preklapanja** se broje odvojeno (`skippedServices24h`) i nisu drift:
+   to je ishod plana (change ne smije objaviti prekid preko tuđeg). Ako ih je mnogo, problem je
+   planiranje termina, ne sinhronizacija.
+4. Ako je `driftedChanges` veliki uz prazan outbox, uzrok je vjerovatno prekid rada workera između
+   commita lifecyclea i sync-a — provjeri `worker.down` i pokreni ponovni prolaz restartom workera.
 
 ## ops-monitor-stale
 

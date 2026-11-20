@@ -10,7 +10,7 @@ import {
 import { ChangeDowntimeOutboxReconciler } from "./change-downtime-outbox-reconciler.service";
 import type { ChangeScheduleService } from "./change-schedule.service";
 
-function setup() {
+function setup(metrics: { record: (pass: { scanned: number; drifted: number }) => Promise<void> } | null = null) {
   const transaction = {};
   const prisma = {
     $transaction: jest.fn(async (work: (tx: unknown) => unknown) =>
@@ -35,9 +35,53 @@ function setup() {
     prisma as never,
     outbox as unknown as TransactionalOutboxService,
     schedule as unknown as ChangeScheduleService,
+    metrics as never,
   );
   return { transaction, prisma, outbox, schedule, reconciler };
 }
+
+/**
+ * W7.69 (BA-changes-13): the drift numbers used to live only in a log line.
+ * A pass is complete when the keyset wraps; only then do the counters describe
+ * the whole set, so only then is the summary published.
+ */
+describe("ChangeDowntimeOutboxReconciler drift pass summary", () => {
+  it("publishes the completed pass once the keyset wraps", async () => {
+    const record = jest.fn(async () => undefined);
+    const { prisma, schedule, reconciler } = setup({ record });
+    prisma.changeRequest.findMany
+      .mockResolvedValueOnce([{ id: "c1" }, { id: "c2" }])
+      .mockResolvedValueOnce([{ id: "c3" }])
+      .mockResolvedValueOnce([]);
+    schedule.hasDowntimeDrift.mockImplementation(async (id: string) => id !== "c2");
+
+    await reconciler.reconcileBatch(new Date("2030-05-01T10:00:00.000Z"));
+    // Two pages, no wrap yet: nothing is claimed about the whole set.
+    expect(record).not.toHaveBeenCalled();
+    await reconciler.reconcileBatch(new Date("2030-05-01T10:00:30.000Z"));
+    expect(record).not.toHaveBeenCalled();
+    await reconciler.reconcileBatch(new Date("2030-05-01T10:01:00.000Z"));
+    expect(record).toHaveBeenCalledWith({ scanned: 3, drifted: 2 });
+  });
+
+  it("publishes an empty pass when there is nothing to scan", async () => {
+    const record = jest.fn(async () => undefined);
+    const { reconciler } = setup({ record });
+    await reconciler.reconcileBatch(new Date("2030-05-01T10:00:00.000Z"));
+    expect(record).toHaveBeenCalledWith({ scanned: 0, drifted: 0 });
+  });
+
+  it("keeps reconciling when the metric store is unavailable", async () => {
+    const record = jest.fn(async () => {
+      throw new Error("redis down");
+    });
+    const { prisma, reconciler } = setup({ record });
+    prisma.changeRequest.findMany.mockResolvedValueOnce([]);
+    await expect(
+      reconciler.reconcileBatch(new Date("2030-05-01T10:00:00.000Z")),
+    ).resolves.toBe(0);
+  });
+});
 
 describe("ChangeDowntimeOutboxReconciler", () => {
   it("dispatches durable change commands to the desired-state synchronizer", async () => {

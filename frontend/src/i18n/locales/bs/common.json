@@ -1010,6 +1010,26 @@
         "oldestQueuedNotice": "Starost najstarije obavijesti u redu",
         "noticesHint": "Obavijesti o problemima se zapisuju uz samu radnju i dostavlja ih worker. Red koji se ne prazni znači da worker ne radi."
       },
+      "changeOperations": {
+        "title": "Operativne metrike promjena",
+        "hint": "Ishodi kvartalne provjere promjena i downtime sinhronizacije: podsjetnici koji su dospjeli a nisu označeni, prekoračenja bez upozorenja, isporuke u redu i prozori koji ne prate plan. Samo brojevi i starosti.",
+        "unavailable": "Metrike promjena nisu dostupne (čeka se mjerenje workera ili odgovor baze).",
+        "unknown": "Nepoznato",
+        "countValue": "{{count}}",
+        "minutesValue": "{{minutes}} min",
+        "dueReminders": "Podsjetnici dospjeli sada",
+        "upcoming24h": "Promjene koje počinju u 24 h bez podsjetnika",
+        "overdueOpen": "Prekoračenja bez upozorenja",
+        "oldestOverdue": "Najstarije prekoračenje",
+        "delivery": "Isporuka podsjetnika",
+        "deliveryValue": "U REDU: {{queued}} · mrtvih (samo retry kroz outbox): {{dead}}",
+        "oldestPending": "Starost najstarije isporuke u redu",
+        "drift": "Downtime prozori van plana",
+        "driftValue": "VAN PLANA: {{drifted}} · pregledano: {{scanned}}",
+        "skippedServices": "Servisi preskočeni zbog tuđeg preklapanja (24 h)",
+        "reminderWindow": "Podsjetnik se šalje {{hours}} h prije početka (0 = isključeno).",
+        "skippedHint": "Preskočen servis nije greška: change ne objavljuje prekid preko tuđeg prozora. Ako broj raste, problem je planiranje termina."
+      },
       "alerts": {
         "title": "Aktivni alarmi",
         "emptyTitle": "Nema aktivnih alarma",
@@ -1249,6 +1269,14 @@
         "problems_owner_ineligible": {
           "title": "Problemi imaju vlasnika bez ovlasti",
           "action": "Otvoreni problemi imaju vlasnika koji više nema problem.manage za organizacijsku jedinicu problema ili nije član grupe problema. Problemi rade dalje, a obavještenja o ciljnom roku idu voditeljima grupe. Kartica prikazuje broj, razloge i da li je dostignut limit pregleda. U detalju problema kartica „Odgovornost“ navodi razlog — dodijelite novog vlasnika kroz „Uredi“."
+        },
+        "changes_reminders_stuck": {
+          "title": "Podsjetnici na promjene ne izlaze",
+          "action": "Kvartalna provjera radi, ali isporuka podsjetnika je stala. Pogledajte karticu Operativne metrike promjena i outbox red."
+        },
+        "changes_downtime_drift": {
+          "title": "Kalendar dostupnosti ne prati planirane prekide",
+          "action": "Reconciler ponovo upućuje sync; ako se alarm ponavlja, provjerite karticu Downtime sync i worker."
         }
       },
       "alertDetailLabels": {
@@ -1311,7 +1339,18 @@
         "oldestOverdueTargetMinutes": "Starost najstarijeg prekoračenog roka (min)",
         "autoCloseDue": "Riješeni problemi koji čekaju auto-zatvaranje",
         "oldestAutoCloseDueMinutes": "Najduže čekanje na auto-zatvaranje (min)",
-        "autoCloseDays": "Prag auto-zatvaranja (dana)"
+        "autoCloseDays": "Prag auto-zatvaranja (dana)",
+        "pendingReminderDeliveries": "Podsjetnici koji čekaju isporuku",
+        "oldestPendingReminderMinutes": "Starost najstarijeg podsjetnika u redu (min)",
+        "dueReminders": "Podsjetnici dospjeli sada",
+        "upcoming24h": "Promjene koje počinju u 24 h bez podsjetnika",
+        "overdueOpen": "Prekoračenja bez upozorenja",
+        "oldestOverdueMinutes": "Starost najstarijeg prekoračenja (min)",
+        "reminderHoursBeforeStart": "Podsjetnik prije početka (h)",
+        "driftedChanges": "Promjene sa downtimeom van plana",
+        "scannedChanges": "Pregledane promjene",
+        "passCompletedAt": "Završetak prolaza",
+        "skippedServices24h": "Servisi preskočeni zbog preklapanja (24 h)"
       }
     }
   },

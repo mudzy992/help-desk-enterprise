@@ -33,11 +33,15 @@ import { securityAuditWebhookStateId } from '../security-audit-webhook/security-
 import { login429WindowMinutes, type OpsSignals, type QueueSignal, type SchedulerSignal } from './evaluate-ops-signals';
 import type { LoginSecurityMetricEvent } from '../authentication/security/login-security-metrics.service';
 import {
+  changeDriftPassMaxAgeMs,
   expectedSchedulers,
   opsMonitoredQueueNames,
   opsProbeTimeouts,
 } from './ops-health.constants';
 import { collectProblemOperationsSignal } from './collect-problem-operations-signal';
+import { collectChangeOperationsSignal } from './collect-change-operations-signal';
+import { ChangeDowntimeDriftMetricStore } from '../changes/change-downtime-drift-metrics';
+import { changeDefaults } from '../settings/definitions/change-settings';
 import { scanProblemOwnerDrift } from '../problems/sweep/problem-owner-drift';
 import { OpsStateStore } from './ops-state.store';
 import { collectSlaObservability } from '../sla/collect-sla-observability';
@@ -53,6 +57,8 @@ export class OpsSignalCollector implements OnModuleDestroy {
   private readonly logger = new Logger(OpsSignalCollector.name);
   private readonly store: OpsStateStore;
   private readonly assetMetrics: AssetOperationsMetricStore;
+  /** W7.69: the downtime reconciler's last completed pass lives in Redis. */
+  private readonly changeDriftMetrics: ChangeDowntimeDriftMetricStore;
   private assetFileIntegrityCache: { readonly expiresAtMs: number; readonly result: AssetTransferFileIntegrity } | null = null;
   private assetFileIntegrityInFlight: Promise<AssetTransferFileIntegrity> | null = null;
   /** BullMQ refuses ioredis clients with a key prefix, so inspection gets its own connection. */
@@ -66,6 +72,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
   ) {
     this.store = new OpsStateStore(redis.getClient());
     this.assetMetrics = new AssetOperationsMetricStore(redis.getClient());
+    this.changeDriftMetrics = new ChangeDowntimeDriftMetricStore(redis.getClient());
   }
 
   async collect(now: Date = new Date()): Promise<OpsSignals> {
@@ -96,6 +103,7 @@ export class OpsSignalCollector implements OnModuleDestroy {
       assetOperations,
       problemOperations,
       problemOwnerDrift,
+      changeOperations,
     ] = await Promise.all([
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-failed') : Promise.resolve(null),
       redis === 'ok' ? this.securityMetric(nowMs, 'captcha-skipped') : Promise.resolve(null),
@@ -115,6 +123,9 @@ export class OpsSignalCollector implements OnModuleDestroy {
       database === 'ok' ? this.collectAssetOperations(now, redis === 'ok') : Promise.resolve(null),
       database === 'ok' ? this.collectProblemOperations(now) : Promise.resolve(null),
       database === 'ok' ? this.collectProblemOwnerDrift() : Promise.resolve(null),
+      // W7.69 (BA-changes-13): reminder/downtime outcomes of the change module.
+      // Redis only carries the drift pass, so the database is the gate.
+      database === 'ok' ? this.collectChangeOperations(now, redis === 'ok') : Promise.resolve(null),
     ]);
     return {
       nowMs,
@@ -138,7 +149,49 @@ export class OpsSignalCollector implements OnModuleDestroy {
       assetOperations,
       problemOperations,
       problemOwnerDrift,
+      changeOperations,
     };
+  }
+
+  private async collectChangeOperations(
+    now: Date,
+    redisAvailable: boolean,
+  ): Promise<OpsSignals['changeOperations']> {
+    try {
+      // The counts are built with the same clamped setting the sweep uses; an
+      // unreadable setting is `null`, so the card says "unknown" instead of
+      // inventing a window.
+      const reminderHoursBeforeStart = await this.changeReminderHoursBeforeStart();
+      return await withTimeout(
+        () =>
+          collectChangeOperationsSignal(
+            this.prisma,
+            redisAvailable ? this.changeDriftMetrics : null,
+            now,
+            {
+              reminderHoursBeforeStart,
+              driftPassMaxAgeMs: changeDriftPassMaxAgeMs,
+            },
+          ),
+        opsProbeTimeouts.changeOperationsMs,
+      );
+    } catch (error) {
+      this.logger.warn(`ops_change_probe_failed reason=${errorText(error)}`);
+      return null;
+    }
+  }
+
+  private async changeReminderHoursBeforeStart(): Promise<number | null> {
+    try {
+      const value = await this.settings.getSetting(settingKeys.privateChangesReminderHoursBeforeStart);
+      if (typeof value !== 'number' || !Number.isInteger(value)) {
+        return changeDefaults.reminderHoursBeforeStart;
+      }
+      return Math.min(168, Math.max(0, value));
+    } catch (error) {
+      this.logger.warn(`ops_change_reminder_setting_unreadable reason=${errorText(error)}`);
+      return null;
+    }
   }
 
   private async collectProblemOperations(now: Date): Promise<OpsSignals['problemOperations']> {

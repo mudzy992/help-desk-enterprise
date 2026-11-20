@@ -13,6 +13,8 @@ import {
   problemOwnerDriftReasonCounts,
   type ProblemOwnerDriftSignal,
 } from '../problems/sweep/problem-owner-drift';
+import type { ChangeOperationsSignal } from '../changes/change-operations';
+import { changeReminderPendingWarningAgeMs } from '../changes/sweep/change-reminder-outbox';
 
 /**
  * Paket 2.7 (§4): turns one measurement round into one observation per alarm
@@ -131,6 +133,12 @@ export type OpsSignals = {
    * database probe failed, so an unknown state never opens the alarm.
    */
   readonly problemOwnerDrift?: ProblemOwnerDriftSignal | null;
+  /**
+   * W7.69 (BA-changes-13): change reminder/overrun backlog, reminder delivery
+   * backlog and downtime drift. Null when the database probe failed, so an
+   * unknown state never opens an alarm.
+   */
+  readonly changeOperations?: ChangeOperationsSignal | null;
 };
 
 /** Acknowledged DLQ state (§4.2): an alarm fires on growth above it only. */
@@ -197,6 +205,8 @@ export function evaluateOpsSignals(
     observeAssetAuditWrites(signals),
     observeProblemReminderStuck(signals),
     observeProblemOwnerDrift(signals),
+    observeChangeReminderBacklog(signals),
+    observeChangeDowntimeDrift(signals),
   ];
 }
 
@@ -767,6 +777,64 @@ function observeProblemOwnerDrift(signals: OpsSignals): OpsObservation {
       // The scan hit its page bound, so the count is a floor and not a total.
       capped: drift.capped,
       reasons: problemOwnerDriftReasonCounts(drift.reasons),
+    },
+  };
+}
+
+/**
+ * W7.69 (BA-changes-13): the quarter-hourly change sweep runs (its scheduler row
+ * and last success are gated by `scheduler.late`), but a reminder it produced was
+ * abandoned by the outbox — a dead-lettered dispatch, or a pending one older than
+ * the warning age. The consequence is silent: the change is marked as reminded
+ * while nobody was told. The overrun backlog rides along as detail: it is
+ * workload, not a fault.
+ */
+function observeChangeReminderBacklog(signals: OpsSignals): OpsObservation {
+  const operations = signals.changeOperations ?? null;
+  const delivery = operations?.delivery ?? null;
+  if (delivery === null) return inactive(opsAlertKeys.changeReminderBacklog);
+  const oldestPendingMs = (delivery.oldestPendingMinutes ?? 0) * minute;
+  if (delivery.deadLetter === 0 && oldestPendingMs < changeReminderPendingWarningAgeMs) {
+    return inactive(opsAlertKeys.changeReminderBacklog);
+  }
+  return {
+    key: opsAlertKeys.changeReminderBacklog,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      deadReminderDeliveries: delivery.deadLetter,
+      pendingReminderDeliveries: delivery.pending + delivery.processing,
+      oldestPendingReminderMinutes: delivery.oldestPendingMinutes,
+      dueReminders: operations?.reminders.dueReminders ?? null,
+      upcoming24h: operations?.reminders.upcoming24h ?? null,
+      overdueOpen: operations?.reminders.overdueOpen ?? null,
+      oldestOverdueMinutes: operations?.reminders.oldestOverdueMinutes ?? null,
+      reminderHoursBeforeStart: operations?.reminders.reminderHoursBeforeStart ?? null,
+    },
+  };
+}
+
+/**
+ * W7.69 (BA-changes-13): the service calendar stopped matching the plan. The
+ * reconciler re-enqueues a sync for every drifted change, so a single detection
+ * is normal; the alarm exists for the case where drift keeps coming back — an
+ * availability calendar that quietly advertises capacity the change will consume.
+ * A missing or stale pass is "unknown", never an alarm.
+ */
+function observeChangeDowntimeDrift(signals: OpsSignals): OpsObservation {
+  const pass = signals.changeOperations?.downtime.lastPass ?? null;
+  if (pass === null || pass.drifted === 0) {
+    return inactive(opsAlertKeys.changeDowntimeDrift);
+  }
+  return {
+    key: opsAlertKeys.changeDowntimeDrift,
+    active: true,
+    severity: 'WARNING',
+    details: {
+      driftedChanges: pass.drifted,
+      scannedChanges: pass.scanned,
+      passCompletedAt: new Date(pass.completedAtMs).toISOString(),
+      skippedServices24h: signals.changeOperations?.downtime.skippedServices24h ?? 0,
     },
   };
 }

@@ -43,6 +43,10 @@ export const opsAlertSlugs = [
   "problems_reminders_stuck",
   // W7.33 (BA-problems-15): open problems whose recorded owner lost the grant.
   "problems_owner_ineligible",
+  // W7.69 (BA-changes-13): change reminders abandoned by the outbox, and an
+  // availability calendar that stopped following the plan.
+  "changes_reminders_stuck",
+  "changes_downtime_drift",
 ] as const;
 export type OpsAlertSlug = (typeof opsAlertSlugs)[number];
 

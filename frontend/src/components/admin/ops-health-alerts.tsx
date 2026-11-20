@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   BellRing,
+  CalendarSync,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -77,6 +78,10 @@ const alertIcons: Record<OpsAlertSlug, LucideIcon> = {
   problems_reminders_stuck: BellRing,
   // W7.33: an open problem whose recorded owner lost the authority.
   problems_owner_ineligible: UserX,
+  // W7.69: change reminders abandoned by the outbox, and a service calendar
+  // that stopped following the plan.
+  changes_reminders_stuck: BellRing,
+  changes_downtime_drift: CalendarSync,
 };
 
 function AlertTitle({ alertKey }: { readonly alertKey: string }) {

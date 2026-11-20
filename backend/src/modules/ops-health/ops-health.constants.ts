@@ -9,7 +9,12 @@ import {
   problemSweepQueueName,
   problemSweepSchedulerId,
 } from '../problems/sweep/problem-sweep.constants';
-import { changeSweepQueueName } from '../changes/sweep/change-sweep.constants';
+import {
+  changeSweepCronPattern,
+  changeSweepLastSuccessMaxAgeMs,
+  changeSweepQueueName,
+  changeSweepSchedulerId,
+} from '../changes/sweep/change-sweep.constants';
 import {
   assetDirectorySyncCronPattern,
   assetDirectorySyncQueueName,
@@ -78,6 +83,8 @@ export const opsProbeTimeouts = {
   problemOperationsMs: 3_000,
   /** W7.33: one bounded page of owned problems, then two bulk reads. */
   problemOwnerDriftMs: 3_000,
+  /** W7.69: change reminder/downtime counters plus one Redis read. */
+  changeOperationsMs: 3_000,
   uptimePushMs: 5_000,
 } as const;
 
@@ -118,6 +125,23 @@ export const expectedProblemSchedulers = [
 ] as const;
 
 /**
+ * W7.69 (BA-changes-13): the quarter-hourly change sweep produces the start
+ * reminders and the overrun warnings. Its absence used to be invisible — the
+ * schedule was registered once at boot and a Redis flush deleted it silently —
+ * so it is now an expected scheduler like the asset and problem sweeps: missing
+ * registration, a job nobody picked up, a failing job and a last success older
+ * than one window plus grace all reach `scheduler.late`.
+ */
+export const expectedChangeSchedulers = [
+  {
+    queue: changeSweepQueueName,
+    schedulerId: changeSweepSchedulerId,
+    pattern: changeSweepCronPattern,
+    lastSuccessMaxAgeMs: changeSweepLastSuccessMaxAgeMs,
+  },
+] as const;
+
+/**
  * Schedules whose absence must be visible even when Redis is empty: the health
  * collector synthesises their rows (with `registered: false`) instead of leaving
  * the card and the alarm blind.
@@ -125,4 +149,13 @@ export const expectedProblemSchedulers = [
 export const expectedSchedulers = [
   ...expectedAssetSchedulers,
   ...expectedProblemSchedulers,
+  ...expectedChangeSchedulers,
 ] as const;
+
+/**
+ * W7.69 (BA-changes-13): a downtime-drift pass older than two reconciler
+ * intervals (30 s each) plus margin means the scanner stopped — the number it
+ * left behind no longer describes "now", so the card reports unknown instead of
+ * a stale "no drift".
+ */
+export const changeDriftPassMaxAgeMs = 10 * 60_000;

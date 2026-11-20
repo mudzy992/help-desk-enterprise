@@ -1075,4 +1075,120 @@ describe("captcha metric alarms (5.4.2 stavka 2)", () => {
       details: { auditWebhookPendingMinutes: 60 },
     });
   });
+
+  it("alerts when a change reminder was produced but not delivered (W7.69)", () => {
+    const changeOperations = {
+      reminders: {
+        upcoming24h: 0,
+        dueReminders: 0,
+        overdueOpen: 0,
+        oldestOverdueMinutes: null,
+        reminderHoursBeforeStart: 24,
+      },
+      delivery: { pending: 0, processing: 0, deadLetter: 0, oldestPendingMinutes: null },
+      downtime: { skippedServices24h: 0, lastPass: null },
+    };
+    // Nothing queued and nothing abandoned is quiet.
+    expect(
+      byKey(healthy({ changeOperations })).get(opsAlertKeys.changeReminderBacklog),
+    ).toMatchObject({ active: false });
+
+    const dead = byKey(
+      healthy({
+        changeOperations: {
+          ...changeOperations,
+          reminders: {
+            upcoming24h: 4,
+            dueReminders: 2,
+            overdueOpen: 1,
+            oldestOverdueMinutes: 90,
+            reminderHoursBeforeStart: 24,
+          },
+          delivery: { pending: 1, processing: 1, deadLetter: 2, oldestPendingMinutes: 30 },
+        },
+      }),
+    ).get(opsAlertKeys.changeReminderBacklog)!;
+    expect(dead).toMatchObject({
+      active: true,
+      severity: "WARNING",
+      details: {
+        deadReminderDeliveries: 2,
+        pendingReminderDeliveries: 2,
+        oldestPendingReminderMinutes: 30,
+        dueReminders: 2,
+        overdueOpen: 1,
+        reminderHoursBeforeStart: 24,
+      },
+    });
+
+    // A pending row inside the warning age is normal queue latency.
+    expect(
+      byKey(
+        healthy({
+          changeOperations: {
+            ...changeOperations,
+            delivery: { pending: 1, processing: 0, deadLetter: 0, oldestPendingMinutes: 3 },
+          },
+        }),
+      ).get(opsAlertKeys.changeReminderBacklog),
+    ).toMatchObject({ active: false });
+
+    // An unread signal is unknown, not quiet.
+    expect(
+      byKey(healthy({ changeOperations: null })).get(opsAlertKeys.changeReminderBacklog),
+    ).toMatchObject({ active: false });
+  });
+
+  it("alerts when the availability calendar drifts from the plan (W7.69)", () => {
+    const base = {
+      reminders: {
+        upcoming24h: 0,
+        dueReminders: 0,
+        overdueOpen: 0,
+        oldestOverdueMinutes: null,
+        reminderHoursBeforeStart: 24,
+      },
+      delivery: { pending: 0, processing: 0, deadLetter: 0, oldestPendingMinutes: null },
+      downtime: { skippedServices24h: 0, lastPass: null },
+    };
+    // A missing pass means "unknown", never "no drift but also fine to alarm".
+    expect(
+      byKey(healthy({ changeOperations: base })).get(opsAlertKeys.changeDowntimeDrift),
+    ).toMatchObject({ active: false });
+    expect(
+      byKey(
+        healthy({
+          changeOperations: {
+            ...base,
+            downtime: {
+              skippedServices24h: 3,
+              lastPass: { completedAtMs: now - minute, scanned: 40, drifted: 0 },
+            },
+          },
+        }),
+      ).get(opsAlertKeys.changeDowntimeDrift),
+    ).toMatchObject({ active: false });
+
+    const drifted = byKey(
+      healthy({
+        changeOperations: {
+          ...base,
+          downtime: {
+            skippedServices24h: 3,
+            lastPass: { completedAtMs: now - minute, scanned: 40, drifted: 2 },
+          },
+        },
+      }),
+    ).get(opsAlertKeys.changeDowntimeDrift)!;
+    expect(drifted).toMatchObject({
+      active: true,
+      severity: "WARNING",
+      details: {
+        driftedChanges: 2,
+        scannedChanges: 40,
+        skippedServices24h: 3,
+      },
+    });
+    expect(drifted.details.passCompletedAt).toBe(new Date(now - minute).toISOString());
+  });
 });

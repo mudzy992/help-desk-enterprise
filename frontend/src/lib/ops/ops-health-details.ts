@@ -75,6 +75,18 @@ export const alertDetailFieldSlugs = [
   "warnThreshold",
   "criticalThreshold",
   "expiresAt",
+  // W7.69 (BA-changes-13): change reminder delivery and downtime drift.
+  "pendingReminderDeliveries",
+  "oldestPendingReminderMinutes",
+  "dueReminders",
+  "upcoming24h",
+  "overdueOpen",
+  "oldestOverdueMinutes",
+  "reminderHoursBeforeStart",
+  "driftedChanges",
+  "scannedChanges",
+  "passCompletedAt",
+  "skippedServices24h",
 ] as const;
 
 export type AlertDetailFieldSlug = (typeof alertDetailFieldSlugs)[number];

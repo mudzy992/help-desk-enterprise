@@ -7,6 +7,7 @@ import { ComponentGrid } from "@/components/admin/ops-health-components";
 import {
   AssetOperationsSummary,
   ProblemOperationsSummary,
+  ChangeOperationsSummary,
   ChannelSummary,
   HttpChart,
   QueueTable,
@@ -251,6 +252,8 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
         <AssetOperationsSummary overview={overview} />
 
         <ProblemOperationsSummary overview={overview} />
+
+        <ChangeOperationsSummary overview={overview} />
 
         <section className="grid gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">

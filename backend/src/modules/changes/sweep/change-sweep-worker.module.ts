@@ -1,4 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
+import { RedisService } from '../../../common/redis/redis.service';
+import { ChangeDowntimeDriftMetricStore } from '../change-downtime-drift-metrics';
 import { OutboxModule } from '../../../common/outbox/outbox.module';
 import { Module } from '@nestjs/common';
 import { MAIL_TRANSPORT } from '../../notifications/email/mail-transport';
@@ -32,6 +34,14 @@ import { ChangeSweepService } from './change-sweep.service';
     ChangeReminderOutboxDispatcher,
     ChangeSweepProcessor,
     ChangeSweepSchedulerService,
+    // W7.69 (BA-changes-13): the reconciler publishes its last completed drift
+    // pass here; the worker's ops collector reads the same record.
+    {
+      provide: ChangeDowntimeDriftMetricStore,
+      useFactory: (redis: RedisService) =>
+        new ChangeDowntimeDriftMetricStore(redis.getClient()),
+      inject: [RedisService],
+    },
   ],
 })
 export class ChangeSweepWorkerModule {}
