@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -155,6 +156,81 @@ describe('authorizeHttpExecution SuperAdmin bypass audit (5.2.1 M4 B5)', () => {
   it('fails closed when the audit sink is unavailable', async () => {
     const authorizationService = createAuthorizationService();
     authorizationService.recordSuperAdminBypass.mockRejectedValueOnce(new Error('audit database unavailable'));
+
+    await expect(
+      authorizeHttpExecution({
+        context: executionContext(requestForGroup()),
+        reflector: new Reflector(),
+        authorizationService: authorizationService as never,
+        requireOrganizationalUnitScope: false,
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(authorizationService.recordSuperAdminBypass).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the cause in the server log while the 503 body stays opaque (W7.72)', async () => {
+    const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const authorizationService = createAuthorizationService();
+    // A deterministic failure (schema drift), so the assertion is about the log,
+    // not about the transient-error retry covered by the next test.
+    authorizationService.recordSuperAdminBypass.mockRejectedValueOnce(
+      Object.assign(new Error('The column `chainPartition` does not exist in the current database.'), {
+        name: 'PrismaClientKnownRequestError',
+        code: 'P2022',
+        meta: { code: 'P2022' },
+      }),
+    );
+
+    const failure = authorizeHttpExecution({
+      context: executionContext(requestForGroup()),
+      reflector: new Reflector(),
+      authorizationService: authorizationService as never,
+      requireOrganizationalUnitScope: false,
+    });
+
+    // The operation is still refused: an unwritten bypass is never allowed.
+    await expect(failure).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(failure).rejects.toMatchObject({
+      response: { code: 'AUTHORIZATION_AUDIT_UNAVAILABLE' },
+    });
+
+    const logged = errorSpy.mock.calls.map((call) => String(call[0])).join('\n');
+    expect(logged).toContain('authorization_audit_unavailable');
+    expect(logged).toContain('method=GET');
+    expect(logged).toContain('route=/groups/:groupId');
+    expect(logged).toContain('requestId=req-superadmin-1');
+    expect(logged).toContain('PrismaClientKnownRequestError/P2022 dbCode=P2022');
+    errorSpy.mockRestore();
+  });
+
+  it('retries one transient audit failure instead of failing the request (W7.72)', async () => {
+    const warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const authorizationService = createAuthorizationService();
+    authorizationService.recordSuperAdminBypass
+      .mockRejectedValueOnce(Object.assign(new Error('could not obtain a connection'), { code: 'P2024' }))
+      .mockResolvedValueOnce(undefined);
+
+    await expect(
+      authorizeHttpExecution({
+        context: executionContext(requestForGroup()),
+        reflector: new Reflector(),
+        authorizationService: authorizationService as never,
+        requireOrganizationalUnitScope: false,
+      }),
+    ).resolves.toBe(true);
+
+    expect(authorizationService.recordSuperAdminBypass).toHaveBeenCalledTimes(2);
+    expect(warnSpy.mock.calls.map((call) => String(call[0])).join('\n')).toContain(
+      'authorization_audit_retry',
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('does not retry a deterministic audit failure (W7.72)', async () => {
+    const authorizationService = createAuthorizationService();
+    authorizationService.recordSuperAdminBypass.mockRejectedValue(
+      Object.assign(new Error('column "chainPartition" does not exist'), { code: 'P2022' }),
+    );
 
     await expect(
       authorizeHttpExecution({

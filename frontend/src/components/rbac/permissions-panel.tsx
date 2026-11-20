@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlCompactClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { groupPermissionsByCategory } from "@/lib/rbac/group-permissions-by-category";
 import { mapRbacError, type RbacErrorKey } from "@/lib/rbac/map-rbac-error";
 import { readApiRequestId } from "@/lib/map-api-error";
@@ -23,6 +24,7 @@ import {
 
 export function PermissionsPanel() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [roles, setRoles] = useState<readonly RoleSummaryResponse[]>([]);
   const [catalog, setCatalog] = useState<readonly PermissionCatalogEntry[]>([]);
   const [selectedRoleKey, setSelectedRoleKey] = useState("");
@@ -32,6 +34,11 @@ export function PermissionsPanel() {
   const [pending, setPending] = useState(false);
   const [errorKey, setErrorKey] = useState<RbacErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  /**
+   * W7.72: the save is committed, but the refresh that follows it failed. Before
+   * this flag the panel reported that refresh failure as a failed save.
+   */
+  const [savedNotRefreshed, setSavedNotRefreshed] = useState(false);
   const groups = useMemo(() => groupPermissionsByCategory(catalog), [catalog]);
 
   const loadRolePermissions = useCallback(async (roleKey: string) => {
@@ -39,11 +46,12 @@ export function PermissionsPanel() {
   }, []);
 
   const reload = useCallback(
-    async (roleKey?: string) => {
+    async (roleKey?: string): Promise<boolean> => {
       setIsLoading(true);
       setErrorKey(null);
       setRequestId(null);
       setPreview(null);
+      setSavedNotRefreshed(false);
       try {
         const [loadedRoles, loadedCatalog] = await Promise.all([
           listRoles(),
@@ -56,9 +64,11 @@ export function PermissionsPanel() {
         if (nextRole.length > 0) {
           await loadRolePermissions(nextRole);
         }
+        return true;
       } catch (error) {
         setErrorKey(mapRbacError(error));
         setRequestId(readApiRequestId(error));
+        return false;
       } finally {
         setIsLoading(false);
       }
@@ -114,17 +124,32 @@ export function PermissionsPanel() {
     }
     setPending(true);
     setErrorKey(null);
+    setRequestId(null);
+    setSavedNotRefreshed(false);
     try {
       // Paket 5.1 (M4 B2): the token proves the preview ran for this set.
       await replaceRolePermissions(selectedRoleKey, enabledKeys, preview.previewToken, reason);
-      setPreview(null);
-      await reload(selectedRoleKey);
     } catch (error) {
+      // The write itself was refused: no permission changed.
       setErrorKey(mapRbacError(error));
       setRequestId(readApiRequestId(error));
-    } finally {
       setPending(false);
+      return;
     }
+    setPreview(null);
+    toast({ tone: "success", title: t("permissions.saved") });
+    // W7.72: the permissions are committed at this point. Loading the confirmed
+    // state is a second, guarded request; if it fails, the operator must not be
+    // told the save failed (that message cost a whole triage cycle).
+    const refreshed = await reload(selectedRoleKey);
+    if (!refreshed) {
+      // `reload` already recorded the failing request id; only its message was
+      // wrong, because the write did commit.
+      setErrorKey(null);
+      setSavedNotRefreshed(true);
+      toast({ tone: "warning", title: t("permissions.savedRefreshFailed") });
+    }
+    setPending(false);
   };
 
   if (isLoading) {
@@ -154,6 +179,30 @@ export function PermissionsPanel() {
       {errorKey ? (
         <div className="px-4 pb-3">
           <ApiErrorText messageKey={errorKey} requestId={requestId} />
+        </div>
+      ) : null}
+      {savedNotRefreshed ? (
+        <div className="px-4 pb-3">
+          <div
+            role="status"
+            className="grid gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2"
+            data-testid="permissions-saved-not-refreshed"
+          >
+            <p className="text-[12.5px] font-medium text-foreground">
+              {t("permissions.savedRefreshFailed")}
+            </p>
+            <div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => void reload(selectedRoleKey)}
+              >
+                {t("permissions.refreshAction")}
+              </Button>
+            </div>
+          </div>
         </div>
       ) : null}
       <PermissionsCatalogList groups={groups} enabledKeys={enabledKeys} onToggle={handleToggle} />

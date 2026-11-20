@@ -1661,7 +1661,10 @@
         "ticket.templates.manage": "Manage shared response templates and playbooks (within the service scope, reason required, versioned).",
         "routing.read": "View ticket routing rules, coverage, and change logs."
       }
-    }
+    },
+    "saved": "Permissions saved.",
+    "savedRefreshFailed": "The permissions were saved, but the view was not refreshed. Refresh to see the confirmed state.",
+    "refreshAction": "Refresh view"
   },
   "users": {
     "actions": "Actions",

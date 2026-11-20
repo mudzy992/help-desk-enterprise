@@ -1670,7 +1670,10 @@
         "ticket.templates.manage": "Upravljaj dijeljenim šablonima odgovora i playbookovima (u opsegu servisa, obavezan razlog, verzionisano).",
         "routing.read": "Pregledaj pravila usmjeravanja tiketa, pokrivenost i dnevnik izmjena."
       }
-    }
+    },
+    "saved": "Permisije su sačuvane.",
+    "savedRefreshFailed": "Permisije su sačuvane, ali prikaz nije osvježen. Osvježite da vidite potvrđeno stanje.",
+    "refreshAction": "Osvježi prikaz"
   },
   "users": {
     "actions": "Akcije",
