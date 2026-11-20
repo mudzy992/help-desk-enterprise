@@ -112,8 +112,9 @@ describe('CAB round snapshot (BA-changes-06)', () => {
 
     expect(result.frozen).toBe(false);
     expect(result.snapshot.voters).toEqual(roster);
-    // Quorum follows the whole eligible set now: min(150, 150).
-    expect(result.snapshot.quorum).toBe(150);
+    // The whole roster is frozen (that is what W7.70 fixed), while the setting itself is clamped to its documented
+    // maximum (W7.77): 150 is not a value the settings layer can hold.
+    expect(result.snapshot.quorum).toBe(20);
   });
 
   it('stops a round whose CAB group is above the voter ceiling (W7.70)', async () => {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { readPrincipalContext, type AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -16,6 +16,7 @@ import { readInstallationTimeZone } from '../settings/read-installation-time-zon
 import { settingKeys } from '../settings/setting-keys';
 import { SettingsService } from '../settings/settings.service';
 import { ChangeError, changeErrorCodes } from './changes.constants';
+import { clampChangeInteger, changeConfigurationBounds, type ChangeIntegerBounds } from './change-configuration-bounds';
 
 /** Same grant/scope model as the CMDB, restricted to `change.*` permissions. */
 export type ChangeViewer = AssetViewer;
@@ -60,6 +61,8 @@ export type ChangeCapabilities = {
  */
 @Injectable()
 export class ChangeAccessService {
+  private readonly logger = new Logger(ChangeAccessService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
@@ -116,17 +119,49 @@ export class ChangeAccessService {
       this.readSetting<unknown>(settingKeys.privateChangesReminderHoursBeforeStart, changeDefaults.reminderHoursBeforeStart),
       readInstallationTimeZone(this.settings),
     ]);
-    const integer = (value: unknown, fallback: number) => (typeof value === 'number' && Number.isInteger(value) ? value : fallback);
+    const bounds = changeConfigurationBounds;
     return {
       numberPrefix: typeof prefix === 'string' ? prefix : changeDefaults.numberPrefix,
-      normalQuorum: integer(normal, changeDefaults.normalQuorum),
-      emergencyQuorum: integer(emergency, changeDefaults.emergencyQuorum),
-      minLeadTimeHours: integer(lead, changeDefaults.minLeadTimeHours),
+      normalQuorum: this.settingInteger('normalQuorum', normal, changeDefaults.normalQuorum, bounds.normalQuorum),
+      emergencyQuorum: this.settingInteger(
+        'emergencyQuorum',
+        emergency,
+        changeDefaults.emergencyQuorum,
+        bounds.emergencyQuorum,
+      ),
+      minLeadTimeHours: this.settingInteger(
+        'minLeadTimeHours',
+        lead,
+        changeDefaults.minLeadTimeHours,
+        bounds.minLeadTimeHours,
+      ),
       requireTestPlan: testPlan === true,
       freezePeriods: parseFreezePeriods(freeze) ?? [],
-      reminderHoursBeforeStart: integer(reminder, changeDefaults.reminderHoursBeforeStart),
+      // W7.77 (`BA-changes-19`): the sweep and the ops-health card must read the
+      // same window; both use `clampChangeInteger` with these bounds.
+      reminderHoursBeforeStart: this.settingInteger(
+        'reminderHoursBeforeStart',
+        reminder,
+        changeDefaults.reminderHoursBeforeStart,
+        bounds.reminderHoursBeforeStart,
+      ),
       timeZone,
     };
+  }
+
+  /**
+   * W7.77 (`BA-changes-19`): the settings layer validates the normal UI path, but
+   * a value can arrive from a restore, a bootstrap script or an older release. The
+   * module therefore clamps its own integers instead of trusting the row: it stays
+   * usable (no new error), and the mismatch is named in the log so an operator can
+   * see why the module behaves differently from the settings screen.
+   */
+  private settingInteger(key: keyof typeof changeConfigurationBounds, value: unknown, fallback: number, bounds: ChangeIntegerBounds): number {
+    const applied = clampChangeInteger(value, bounds, fallback);
+    if (applied !== value) {
+      this.logger.warn(`change_setting_clamped key=${key} stored=${String(value)} applied=${applied}`);
+    }
+    return applied;
   }
 
   /**

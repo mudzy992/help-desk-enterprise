@@ -180,7 +180,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | zatvoreno (W7.73) |
 | BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | zatvoreno (W7.74) |
 | BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | zatvoreno (W7.76) |
-| BA-changes-19 | P3       | Servis ne clampuje quorum/lead/reminder configuration integer granice                          | otvoreno |
+| BA-changes-19 | P3       | Servis ne clampuje quorum/lead/reminder configuration integer granice                          | zatvoreno (W7.77) |
 | BA-changes-20 | P3       | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice                    | otvoreno |
 
 ## 16. Ključne korekcije
@@ -246,7 +246,11 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   skraćeni picker (`truncated`), konflikti vraćaju `truncated {changes, downtime}` koji ulazi u `hasWarnings` i u
   W7.68 digest, a kalendarov `truncated` je tačan (`+1` proba umjesto `length >= max`). Dokaz:
   [W7.76 implementation](../implementation/297-w776-changes-18-cursor-contract.md).
-- **19–20:** config clamp i Postgres/Redis/concurrency/fault testovi.
+- **19:** zatvoreno u W7.77 — servis klampuje vlastite granice pri čitanju (`changeConfigurationBounds` je
+  identičan `change-settings.ts`, test to tvrdi), `computeChangeQuorum` ne pravi kvorum iz nevalidnog broja, a
+  ops-health kartica i sweep koriste isti clamp (ranije je kartica imala svoj `0..168`). Dokaz:
+  [W7.77 implementation](../implementation/298-w777-changes-19-configuration-clamp.md).
+- **20:** Postgres/Redis/concurrency/fault testovi.
 
 ## 17. Baseline score
 
@@ -736,3 +740,36 @@ svuda gdje postoji i sledeća strana. Dokaz: 6 novih backend specova (28 testova
 potvrdu i kad je skan odsječen — namjerna promjena ponašanja, jer potvrda ne smije pokrivati set koji niko nije
 vidio; `owners`/`link-search/*` ostaju kratke pretrage sa dokumentovanim „najviše N” (straničenje bi picker
 učinilo gorim).
+
+## 38. Implementacijski closeout — W7.77 (`BA-changes-19`)
+
+**Status nalaza:** zatvoren; paket W7.77, **bez migracije**. Detalji:
+[298](../implementation/298-w777-changes-19-configuration-clamp.md).
+
+**Šta je bilo:** sloj postavki validira standardni UI put (quorum `1..20`, lead time `0..720`, reminder `0..168`), a
+servis je prihvatao **svaki** cijeli broj iz baze. Posljedice: lead time `99.999` je tražio 11 godina između CAB-a
+i početka promjene (svaka NORMAL promjena pada), negativan lead time je **isključivao** provjeru koju je
+administrator mislio da je uključio, `NaN`/`Infinity` reminder je pravio nevažeći datumski raspon u sweep upitu, a
+`NaN` quorum je zaključavao rundu zauvijek (`quorum > 0` je `false`, pa `evaluateChangeVotes` nikad ne odobri).
+Isti reminder su čitale dvije strane: sweep sirovu vrijednost, ops-health kartica svoj `Math.min(168, …)` — kartica
+je mogla opisivati drugi prozor od onoga po kojem podsjetnici idu.
+
+**Šta je sada:** `change-configuration-bounds.ts` je jedan izvor granica (identičan postavkama, i test to tvrdi);
+`ChangeAccessService.configuration()` klampuje sva četiri broja i svako odstupanje loguje kao
+`change_setting_clamped key=… stored=… applied=…`; `computeChangeQuorum` klampuje i samo podešavanje, a nevalidan
+broj zamjenjuje dokumentovanim defaultom (`2`/`1`) umjesto da vrti `NaN`; ops-health koristi isti `clampChangeInteger`
+i iste granice, pa kartica i sweep gledaju isti prozor. Klampovanje (ne odbijanje) je namjerno: modul ostaje
+upotrebljiv, a operator u logu vidi razlog nesklada.
+
+**Acceptance:** §12 („Configuration integeri nisu lokalno clampovani … servis mora fail-safe clampovati vlastite
+granice”) je zatvoren: quorum, lead time i reminder imaju jedne granice, primijenjene na mjestu čitanja **i** na
+mjestu odluke. Dokaz: 2 nova speca (`change-configuration-bounds.spec.ts` 5 testova, `change-quorum-bounds.spec.ts`
+6 testova), `change-access.service.spec.ts` +2, `change-approvals-snapshot.spec.ts` ažuriran (W7.70 roster od 150
+glasača se i dalje zamrzava u cjelini; kvorum je `20`, ne `150`); `modules/changes` + `modules/ops-health`
+**55 suite/422 testa**, `eslint` zelen.
+
+**Šta ostaje u ovom modulu:** P3: `20`.
+
+**Preostali rizik:** instalacija sa ručno upisanim quorumom > 20 sada dobija kvorum 20 (lakše odobravanje) — to je
+dokumentovana granica i vidi se u logu; lead time iznad 720 h se svodi na 720 h iz istog razloga. Lista
+zamrzavanja je već ograničena (`parseFreezePeriods` odbija > 50 zapisa), pa nije dirana.

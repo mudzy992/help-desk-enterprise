@@ -41,6 +41,7 @@ import {
 import { collectProblemOperationsSignal } from './collect-problem-operations-signal';
 import { collectChangeOperationsSignal } from './collect-change-operations-signal';
 import { ChangeDowntimeDriftMetricStore } from '../changes/change-downtime-drift-metrics';
+import { clampChangeInteger, changeConfigurationBounds } from '../changes/change-configuration-bounds';
 import { changeDefaults } from '../settings/definitions/change-settings';
 import { scanProblemOwnerDrift } from '../problems/sweep/problem-owner-drift';
 import { OpsStateStore } from './ops-state.store';
@@ -184,10 +185,9 @@ export class OpsSignalCollector implements OnModuleDestroy {
   private async changeReminderHoursBeforeStart(): Promise<number | null> {
     try {
       const value = await this.settings.getSetting(settingKeys.privateChangesReminderHoursBeforeStart);
-      if (typeof value !== 'number' || !Number.isInteger(value)) {
-        return changeDefaults.reminderHoursBeforeStart;
-      }
-      return Math.min(168, Math.max(0, value));
+      // W7.77 (`BA-changes-19`): one clamp, shared with the module and the sweep — the card can no longer
+      // describe a different window than the one the sweep uses.
+      return clampChangeInteger(value, changeConfigurationBounds.reminderHoursBeforeStart, changeDefaults.reminderHoursBeforeStart);
     } catch (error) {
       this.logger.warn(`ops_change_reminder_setting_unreadable reason=${errorText(error)}`);
       return null;
