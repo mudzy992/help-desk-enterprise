@@ -170,7 +170,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-06 | P1       | CAB voter/quorum nije zamrznut, a glasovi neeligible bivših članova i dalje odlučuju round     | zatvoreno |
 | BA-changes-07 | P1       | Reminder/overdue marker se postavlja prije primaoca i potvrđene/persistirane isporuke          | zatvoreno |
 | BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | zatvoreno (W7.64) |
-| BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | otvoreno |
+| BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | zatvoreno (W7.65) |
 | BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | otvoreno |
 | BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
 | BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | otvoreno |
@@ -206,7 +206,10 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   zatvorio jedinu stvarno otvorenu granu: tekst downtime prozora (naslov changea) nije se konvergirao ni u
   sync-u ni u drift provjeri. Dokaz: [W7.64 implementation](../implementation/285-w764-changes-08-downtime-window-text.md).
 - **13:** desired downtime state + reconciliation worker, retry/dead-letter i scheduler/health self-heal.
-- **09–10:** role-specific minimal projection i owner OU-grant eligibility/reconciliation.
+- **09:** zatvoreno u W7.65 — vidljivost je postala projekcija (`full`/`participant`/`voter`/`observer`), event
+  diffovi, asset/problem linkovi i vote komentari više ne idu izuzetim čitaocima. Dokaz:
+  [W7.65 implementation](../implementation/286-w765-changes-09-role-projection.md).
+- **10:** owner OU-grant eligibility/reconciliation.
 - **11–12:** potpuni transactional audit i conflict snapshot/hash vezan za action.
 - **15–17:** template version, eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
@@ -365,3 +368,31 @@ change logu.
 **Preostali rizik:** message-only ispravka čeka sljedeći scan (30 s); skipped service zbog stranog preklapanja
 još nije operativni warning (dio `13`); reconciler je keyset batch od 100, pa puni ciklus pri velikom broju
 changeova traje više tickova; naslov se skraćuje samo u tekstu prozora.
+
+## 28. Implementacijski closeout — W7.65 (`BA-changes-09`)
+
+**Status nalaza:** zatvoren; paket W7.65, kod `dfaf726` (+`bd66d0e`, `b61813f`, `405407a`), CI
+[`44689289402`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44689289402) **success**, **bez
+migracije**. Detalji: [286](../implementation/286-w765-changes-09-role-projection.md).
+
+**Šta je bilo:** §3 je opisao visibility izuzetak kao binarni — requester, owner i CAB član dobijali su **cijeli**
+detalj izvan svog OU scopea, uključujući planove, tuđe CMDB redove, linked problem, field-level event diffove i
+sve CAB komentare; CAB član bez `change.approve` dobijao je isto ako ima `change.read`.
+
+**Šta je sada:** `changeDetailLevel` dijeli čitaoce na `full` (u scopeu), `participant` (requester/owner),
+`voter` (CAB + `change.approve`) i `observer` (CAB bez prava glasanja), a `observer` je i fail-closed fallback.
+Participant zadržava plan za koji odgovara, voter onaj koji mora ocijeniti, observer samo lifecycle zapis.
+Skriveni asset/problem linkovi se ne učitavaju, event `detail` je sveden na lifecycle činjenice, a CAB komentari
+ostaju samo za `full`/`voter` i autora (`commentsRedacted`). Odgovor imenuje skrivena polja (`detailLevel`,
+`redactedFields`), pa UI kaže „skriveno” umjesto da prikaže prazan plan. Članstvo u CAB-u se provjerava odvojeno
+od prava glasanja (`isCabGroupMember`), jer se izuzetak veže na članstvo.
+
+**Acceptance:** §14.7 („Requester/owner/CAB vide samo polja potrebna ulozi”) je ispunjen i mjerljiv: svaki nivo
+ima svoj test, a `full` čitaocima se izlaz nije promijenio. Dokaz: 10 backend testova za projekciju, 5 za
+komentare, 4 frontend testa za UI poruku.
+
+**Šta ostaje u ovom modulu:** P1 nema. P2: `10`, `11`, `12`, `13`, `14`, `15`, `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** participant namjerno zadržava plan; imena servisa i OU ostaju vidljivi svim nivoima (to je
+`BA-changes-10`/service scope tema); event redakcija uklanja `changes` diff i za ownera izvan scopea; CAB roster
+je vidljiv članovima svoje grupe; autor uvijek vidi vlastiti komentar.
