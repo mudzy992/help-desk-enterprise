@@ -172,7 +172,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-08 | P2       | Lifecycle commit i downtime sync/release nisu durable; status i availability mogu odstupati    | zatvoreno (W7.64) |
 | BA-changes-09 | P2       | Requester/owner/CAB visibility izuzeci vraćaju puni plan, linkove, events i vote komentare     | zatvoreno (W7.65) |
 | BA-changes-10 | P2       | Owner eligibility ne veže `change.manage` assignment za OU konkretnog changea                 | zatvoreno (W7.66) |
-| BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | otvoreno |
+| BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.67) |
 | BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | otvoreno |
 | BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | otvoreno |
 | BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | otvoreno |
@@ -212,7 +212,10 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **10:** zatvoreno u W7.66 — eligibility koristi isti scope resolver kao `canManage` (picker, save i
   reconciler se ne mogu razići), a revokacija/deaktivacija se bilježi kao `owner_ineligible` event. Dokaz:
   [W7.66 implementation](../implementation/287-w766-changes-10-owner-eligibility.md).
-- **11–12:** potpuni transactional audit i conflict snapshot/hash vezan za action.
+- **11:** zatvoreno u W7.67 — edit i claim pišu `change.updated`/`change.claimed` u istoj transakciji, sa
+  referencama i klasifikacijama u metadata, a slobodan tekst samo po imenu; DB trigger sada provjerava i te dvije
+  akcije. Dokaz: [W7.67 implementation](../implementation/288-w767-changes-11-canonical-audit.md).
+- **12:** conflict snapshot/hash vezan za action (ostaje otvoreno).
 - **15–17:** template version, eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
 
@@ -433,3 +436,33 @@ unscoped manager sa `change.manager`/globalnom rolom i dalje pokriva sve.
 `change.manage`, ne `change.read`; service-scoped grant pokriva home unit (postojeća semantika); anonimizirani
 bivši owner ostaje `null` actor u historiji; batch od 100 po ticku znači da se veliki drift vidi kroz nekoliko
 intervala.
+
+## 30. Implementacijski closeout — W7.67 (`BA-changes-11`)
+
+**Status nalaza:** zatvoren; paket W7.67, kod `ecc543e` (+`0540868`), CI
+[`44709539049`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44709539049) **success**, **uz jednu
+odobrenu migraciju**. Detalji: [288](../implementation/288-w767-changes-11-canonical-audit.md).
+
+**Šta je bilo:** general update i claim pisali su samo `ChangeEvent`. Vlasnik, OJ, CAB grupa, linked problem,
+planirani prozor, klasifikacija i service/asset linkovi zato nisu ulazili u centralni `AuditLog`, iako su status,
+vote i template ulazili — jedini globalni, OU-particionirani i tamper-evident trag nije pokrivao najčešće write
+putanje.
+
+**Šta je sada:** `change.updated` i `change.claimed` su registrovane u schema/scope/compatibility registrima i
+pišu se **unutar** iste transakcije kao version-checked write (pad audita poništava i promjenu i event). Metadata
+imenuje sva promijenjena polja, nosi prije/poslije za reference, klasifikacije i prozor, broji pomjerene
+service/asset linkove i označava `reauthorized`; slobodan tekst (naslov, opis, razlog, planovi) se **ne kopira**.
+Claim nosi samo dva vlasnika. Odobrena migracija `20271201140000_audit_scope_provenance_change_actions` zamjenjuje
+`enforce_audit_scope_provenance` tako da trigger provjerava `ChangeRequest.organizationalUnitId` i za nove akcije;
+readiness sentinel je pomjeren, a CI je migraciju stvarno primijenio u integracionom jobu. Frontend katalog i
+bs/en labele su dopunjeni, a `AuditMetadataList` prevodi i listu imena polja.
+
+**Acceptance:** §10 („claim/general update moraju ostaviti kanonski audit red”) je ispunjen i mjerljiv: 6 + 7
+backend testa, 1 whitelist test, 1 frontend render test; minimizacija teksta je dokazana tvrdnjom da metadata ne
+sadrži ni stari ni novi sadržaj.
+
+**Šta ostaje u ovom modulu:** P2: `12`, `13`, `14`, `15`, `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** linkovi se bilježe brojem, ne ID-em; worker/downtime replay ima vlastiti put; red se
+particionira u OJ **odredišta** kad se change prenosi; claim ne zamjenjuje owner event (dva sloja: UI diff i
+forenzički trag).
