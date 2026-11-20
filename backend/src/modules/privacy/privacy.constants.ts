@@ -50,6 +50,8 @@ export const retentionCategories = [
   'requestRegister',
   'statusIncidents',
   'assetTransfers',
+  // BA-changes-17: closed/rejected/cancelled changes and their replicas.
+  'changeContent',
 ] as const;
 export type RetentionCategory = (typeof retentionCategories)[number];
 
@@ -61,6 +63,7 @@ export const retentionCategoriesRequiringDryRun: readonly RetentionCategory[] = 
   'audit',
   'statusIncidents',
   'assetTransfers',
+  'changeContent',
 ];
 
 export const privacyLimits = {

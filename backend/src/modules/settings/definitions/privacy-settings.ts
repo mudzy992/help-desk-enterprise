@@ -19,6 +19,7 @@ export const privacyRetentionMinimumDays = {
   requestRegister: 365,
   statusIncidents: 180,
   assetTransfers: 1,
+  changeContent: 180,
 } as const;
 
 export const privacyRetentionMaximumDays = 36_500;
@@ -66,6 +67,12 @@ export const privacySettings: readonly SettingDefinition[] = [
     'Days after closing or cancelling before problem content is redacted (0 = disabled; the controller/DPO sets the period)',
     0,
     privacyRetentionMinimumDays.problemContent,
+  ),
+  retentionSetting(
+    settingKeys.privatePrivacyRetentionChangeContentDays,
+    'Days after closing, rejecting or cancelling before change content is redacted (0 = disabled; the controller/DPO sets the period)',
+    0,
+    privacyRetentionMinimumDays.changeContent,
   ),
   retentionSetting(
     settingKeys.privatePrivacyRetentionAuditDays,

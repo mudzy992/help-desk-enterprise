@@ -2303,6 +2303,7 @@
         "private.privacy.retention.attachmentsDays": "Days after a ticket is closed before its attachments are deleted (0 = off, minimum 90).",
         "private.privacy.retention.ticketContentDays": "Days after closing before ticket and message text is removed; metrics stay (0 = off, minimum 180).",
         "private.privacy.retention.problemContentDays": "Days after closing or cancelling before problem content is removed; number, status, dates and links stay, and notification copies plus the knowledge draft are redacted (0 = off, minimum 180).",
+        "private.privacy.retention.changeContentDays": "Days after closing, rejecting or cancelling before change content is removed; number, status, dates, links and the CAB vote stay, while the service calendar is redacted (0 = off, minimum 180).",
         "private.privacy.retention.auditDays": "Days before audit records are redacted with a chain checkpoint (0 = off, minimum 365).",
         "private.privacy.retention.sessionDays": "Days to keep expired and revoked sessions (0 = off, minimum 30).",
         "private.privacy.retention.emailDeliveryDays": "Days to keep the e-mail delivery log (0 = off, minimum 30).",
@@ -2823,6 +2824,7 @@
         "private.privacy.retention.attachmentsDays": "Days after closing before ticket attachments are permanently deleted; 0 disables the deletion. It affects future deletions only, already deleted attachments do not come back.",
         "private.privacy.retention.ticketContentDays": "Days after closing before ticket content is redacted (personal data removed); 0 disables redaction. The ticket remains, without the sensitive text.",
         "private.privacy.retention.problemContentDays": "Days after closing or cancelling before problem content is redacted; 0 disables it. The problem keeps its number, status, dates and links, without description, root cause or resolution. Notifications and a draft knowledge article are redacted too; a published article is untouched and legal holds are skipped.",
+        "private.privacy.retention.changeContentDays": "Days after closing, rejecting or cancelling before change content is redacted; 0 disables it. The change keeps its number, status, dates, links and the CAB vote, while the title, description, reasons, plans, review notes and event details go; the service calendar and notifications are redacted with it, and legal holds are skipped.",
         "private.privacy.retention.auditDays": "How many days audit entries are kept; older ones are purged with a chain checkpoint. 0 keeps the audit forever, which is safer but more expensive.",
         "private.privacy.retention.sessionDays": "How many days ended sessions (IP address, browser data) are kept; 0 disables the purge. A shorter period leaves less personal data in the system.",
         "private.privacy.retention.emailDeliveryDays": "How many days email delivery records, including the recipient address, are kept; 0 disables the purge. Those records are what proves a notification was sent.",
@@ -7754,6 +7756,10 @@
         "problemContent": {
           "name": "Problem content",
           "hint": "Description, root cause and resolution of closed or cancelled problems; numbers, statuses, dates and links stay. Notifications and the draft knowledge article are redacted with the problem, and legal holds are respected."
+        },
+        "changeContent": {
+          "name": "Change content",
+          "hint": "Title, description, reasons and plans of closed, rejected and cancelled changes; the number, status, dates, links and the CAB vote stay. The service calendar and notifications are redacted with the change, and legal holds are respected."
         },
         "audit": {
           "name": "Audit entries",

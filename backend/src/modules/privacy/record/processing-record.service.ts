@@ -83,9 +83,10 @@ const texts = {
       requestRegister: 'Registar zahtjeva nosilaca podataka',
       statusIncidents: 'Statusni incidenti i njihove stavke',
       assetTransfers: 'Prenosnice inventara (snimak i potpisane kopije)',
+      changeContent: 'Sadržaj zatvorenih, odbijenih i otkazanih promjena (planovi, komentari odobrenja)',
     } satisfies Record<RetentionCategory, string>,
     retentionNote:
-      'Kostur tiketa i problema (broj, datumi, status, usluga, organizaciona jedinica) ostaje radi statistike. Minimalni zapis prenosnice ostaje nakon redakcije; potpisana kopija se briše. Rok za prenosnice određuje rukovalac/DPO, a 0 isključuje brisanje. Bivši zaposleni se anonimizuju ručno, nakon deaktivacije.',
+      'Kostur tiketa, problema i promjena (broj, datumi, status, usluga, organizaciona jedinica) ostaje radi statistike. Minimalni zapis prenosnice ostaje nakon redakcije; potpisana kopija se briše. Rok za prenosnice određuje rukovalac/DPO, a 0 isključuje brisanje. Bivši zaposleni se anonimizuju ručno, nakon deaktivacije.',
     exportLink: 'Paket izvoza podataka (šifrovan)',
     measures: 'Tehničke i organizacione mjere',
     measureRows: (facts: SystemFacts) =>
@@ -152,9 +153,10 @@ const texts = {
       requestRegister: 'Register of data subject requests',
       statusIncidents: 'Status incidents and their items',
       assetTransfers: 'Asset transfers (snapshot and signed copies)',
+      changeContent: 'Content of closed, rejected and cancelled changes (plans, approval comments)',
     } satisfies Record<RetentionCategory, string>,
     retentionNote:
-      'The ticket and problem skeleton (number, dates, status, service, organizational unit) is kept for statistics. The minimal transfer record remains after redaction and the signed copy is deleted. The controller/DPO sets transfer retention; 0 disables deletion. Former employees are anonymized manually after deactivation.',
+      'The ticket, problem and change skeleton (number, dates, status, service, organizational unit) is kept for statistics. The minimal transfer record remains after redaction and the signed copy is deleted. The controller/DPO sets transfer retention; 0 disables deletion. Former employees are anonymized manually after deactivation.',
     exportLink: 'Data export package (encrypted)',
     measures: 'Technical and organizational measures',
     measureRows: (facts: SystemFacts) =>

@@ -31,6 +31,7 @@ export const privacyEmailLabels = {
       requestRegister: 'Registar zahtjeva',
       statusIncidents: 'Statusni incidenti',
       assetTransfers: 'Prenosnice inventara',
+      changeContent: 'Sadržaj promjena',
     } satisfies Record<RetentionCategory, string>,
     partial: 'Neka pokretanja nisu završila u noćnom prozoru i nastavljaju se sljedeće noći.',
     erasureTitle: 'Izmijenjeno po tabelama',
@@ -52,6 +53,7 @@ export const privacyEmailLabels = {
       requestRegister: 'Request register',
       statusIncidents: 'Status incidents',
       assetTransfers: 'Asset transfers',
+      changeContent: 'Change content',
     } satisfies Record<RetentionCategory, string>,
     partial: 'Some runs did not finish within the nightly window and continue the next night.',
     erasureTitle: 'Changed per table',
@@ -199,6 +201,12 @@ const erasureItemLabels: Readonly<Record<EmailLocale, Readonly<Record<string, st
     assetTransfers: 'Anonimizovane prenosnice',
     assetTransferTextReplacements: 'Zamjene u tekstu prenosnica',
     assetTransferFilesQueued: 'Potpisane kopije na čekanju za brisanje',
+    // BA-changes-17: the change counters the anonymisation now writes.
+    changes: 'Promjene (tekst)',
+    changeVotes: 'Komentari glasanja CAB-a',
+    changeEvents: 'Događaji promjena',
+    changeNotifications: 'Obavještenja o promjenama',
+    downtimeWindows: 'Kalendar usluga (prozori nedostupnosti)',
   },
   en: {
     tickets: 'Tickets (text)',
@@ -218,6 +226,12 @@ const erasureItemLabels: Readonly<Record<EmailLocale, Readonly<Record<string, st
     assetTransfers: 'Anonymized asset transfers',
     assetTransferTextReplacements: 'Text replacements in transfers',
     assetTransferFilesQueued: 'Signed copies queued for deletion',
+    // BA-changes-17: the change counters the anonymisation now writes.
+    changes: 'Changes (text)',
+    changeVotes: 'CAB vote comments',
+    changeEvents: 'Change events',
+    changeNotifications: 'Change notifications',
+    downtimeWindows: 'Service calendar (downtime windows)',
   },
 };
 

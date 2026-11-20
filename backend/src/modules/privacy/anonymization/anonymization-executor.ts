@@ -7,6 +7,8 @@ import {
   lockActiveSuperAdminInvariant,
 } from '../../users/super-admin-invariant';
 import { anonymizationBlockReasons, privacyLimits } from '../privacy.constants';
+import { changeMentionTokens, changeScrubbableColumns } from './change-mentions';
+import { collectChangeMentions, scrubChangeMentions } from './scrub-change-mentions';
 import { scrubProblemMentions } from './scrub-problem-mentions';
 import { problemEventMentionSql, problemMentionTokens, problemMentionWhere, problemScrubbableColumns } from './problem-mentions';
 import { replacementExample, type TextScrubber } from './text-scrubber';
@@ -119,6 +121,31 @@ export class AnonymizationExecutor {
     const problemEventIds = await this.prisma.$queryRaw<{ id: string }[]>(
       problemEventMentionSql(problemMentionTokens(subject.scrubber.identifiers)),
     );
+    // BA-changes-17: a change the person is only named in is visible in the
+    // preview too - the same selection the execution writes, so the operator's
+    // number is the real number. Examples come from the change's own text; the
+    // replicas (vote comments, events, notifications, calendar windows) are
+    // counted only, because their text belongs to other people's records.
+    const changeScope = await collectChangeMentions({
+      prisma: this.prisma,
+      userId: subject.userId,
+      tokens: changeMentionTokens(subject.scrubber.identifiers),
+    });
+    for (const row of changeScope.changes) {
+      for (const column of changeScrubbableColumns) note(row[column]);
+    }
+    const countReplicas = (texts: readonly (string | null | undefined)[]) => {
+      for (const text of texts) if (text) replacements += subject.scrubber.scrub(text).count;
+    };
+    countReplicas(changeScope.changeVotes.map((vote) => vote.comment));
+    countReplicas(changeScope.downtimeWindows.map((window) => window.message));
+    for (const event of changeScope.changeEvents) {
+      replacements += subject.scrubber.scrubJson(event.detail).count;
+    }
+    for (const notification of changeScope.changeNotifications) {
+      countReplicas([notification.title, notification.body]);
+      replacements += subject.scrubber.scrubJson(notification.payload).count;
+    }
     const u = subject.userId;
     const [notificationsOwn, sessions, deliveries, roles, groups, savedViews, templates, followers, recipients, attachments, auditRows] =
       await Promise.all([
@@ -385,54 +412,16 @@ export class AnonymizationExecutor {
     add('problemNotifications', problemCounts.problemNotifications);
     add('knowledgeArticles', problemCounts.knowledgeArticles);
 
-    // Paket 3.4 (§19): texts of changes the person requested or owns, and the
-    // comments of their own CAB votes; event details are scrubbed as well.
-    const changes = await this.prisma.changeRequest.findMany({
-      where: { OR: [{ requesterUserId: u }, { ownerUserId: u }] },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        reason: true,
-        implementationPlan: true,
-        backoutPlan: true,
-        testPlan: true,
-        communicationPlan: true,
-        reviewNotes: true,
-        cancelReason: true,
-      },
-    });
-    const changeTextColumns = ['title', 'description', 'reason', 'implementationPlan', 'backoutPlan', 'testPlan', 'communicationPlan', 'reviewNotes', 'cancelReason'] as const;
-    for (const change of changes) {
-      const data: Record<string, unknown> = {};
-      for (const column of changeTextColumns) {
-        const value = change[column];
-        if (value === null) continue;
-        const result = scrubber.scrub(value);
-        if (result.count > 0) data[column] = result.text;
-      }
-      if (Object.keys(data).length === 0) continue;
-      await this.prisma.changeRequest.update({ where: { id: change.id }, data: data as never });
-      add('changes', 1);
-    }
-    const changeVotes = await this.prisma.changeApproval.findMany({ where: { approverUserId: u, comment: { not: null } }, select: { id: true, comment: true } });
-    for (const vote of changeVotes) {
-      if (vote.comment === null) continue;
-      const result = scrubber.scrub(vote.comment);
-      if (result.count === 0) continue;
-      await this.prisma.changeApproval.update({ where: { id: vote.id }, data: { comment: result.text } });
-      add('changeVotes', 1);
-    }
-    const changeEvents = await this.prisma.changeEvent.findMany({
-      where: { OR: [{ actorUserId: u }, ...(changes.length > 0 ? [{ changeId: { in: changes.map((row) => row.id) } }] : [])] },
-      select: { id: true, detail: true },
-    });
-    for (const event of changeEvents) {
-      const detail = scrubber.scrubJson(event.detail);
-      if (detail.count === 0) continue;
-      await this.prisma.changeEvent.update({ where: { id: event.id }, data: { detail: detail.value as never } });
-      add('changeEvents', 1);
-    }
+    // BA-changes-17: the change part moved into `scrub-change-mentions.ts` - the
+    // selection now also finds changes that merely name the person, the vote
+    // comments on their changes, the change notifications and the calendar
+    // window the change wrote into service-catalog.
+    const changeCounts = await scrubChangeMentions({ prisma: this.prisma, userId: u, scrubber });
+    add('changes', changeCounts.changes);
+    add('changeVotes', changeCounts.changeVotes);
+    add('changeEvents', changeCounts.changeEvents);
+    add('changeNotifications', changeCounts.changeNotifications);
+    add('downtimeWindows', changeCounts.downtimeWindows);
 
     // Change log entries about or by the person.
     const changeLogs = await this.prisma.changeLog.findMany({

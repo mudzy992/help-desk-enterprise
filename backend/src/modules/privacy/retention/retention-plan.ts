@@ -86,6 +86,7 @@ export const retentionExecutionOrder: readonly RetentionCategory[] = [
   'ticketContent',
   // After the tickets it quotes: the problem keeps the pointers, loses the text.
   'problemContent',
+  'changeContent',
   'audit',
 ];
 

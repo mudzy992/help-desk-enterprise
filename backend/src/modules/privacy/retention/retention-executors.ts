@@ -7,6 +7,7 @@ import type { TicketAttachmentStorage } from '../../tickets/attachments/attachme
 import { privacyLimits, type RetentionCategory } from '../privacy.constants';
 import { createStatusIncidentRetentionExecutor } from './status-incident-retention.executor';
 import { createAssetTransferRetentionExecutor } from './asset-transfer-retention.executor';
+import { createChangeContentRetentionExecutor } from './change-content-retention.executor';
 import { createProblemContentRetentionExecutor } from './problem-content-retention.executor';
 import { retentionRedactionMarker } from './retention-markers';
 
@@ -71,6 +72,7 @@ export function createRetentionExecutors(
     statusIncidents: createStatusIncidentRetentionExecutor(prisma),
     assetTransfers: createAssetTransferRetentionExecutor(prisma, storage),
     problemContent: createProblemContentRetentionExecutor(prisma),
+    changeContent: createChangeContentRetentionExecutor(prisma),
 
     sessions: {
       category: 'sessions',

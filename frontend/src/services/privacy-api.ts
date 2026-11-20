@@ -75,6 +75,7 @@ export const retentionCategories = [
   "attachments",
   "ticketContent",
   "problemContent",
+  "changeContent",
   "audit",
   "sessions",
   "emailDeliveries",

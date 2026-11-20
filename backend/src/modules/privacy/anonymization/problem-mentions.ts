@@ -1,5 +1,6 @@
 import { Prisma } from '../../../generated/prisma/client';
-import { nameVariants, type ScrubIdentifiers } from './text-scrubber';
+import { mentionTokens } from './mention-tokens';
+import type { ScrubIdentifiers } from './text-scrubber';
 
 /**
  * W7.34 (BA-problems-16): *which* problems can contain a person's data.
@@ -29,23 +30,11 @@ export const problemScrubbableColumns = [
 /**
  * The strings worth searching for: the same identifiers the scrubber knows, with
  * the same length thresholds, so no replacement can happen outside this set.
+ * BA-changes-17: the rule lives in `mention-tokens.ts` so the change selection
+ * cannot drift away from the problem one.
  */
 export function problemMentionTokens(identifiers: ScrubIdentifiers): readonly string[] {
-  const tokens = new Set<string>();
-  const email = identifiers.email?.trim();
-  if (email !== undefined && email.includes('@')) {
-    tokens.add(email);
-    const local = email.slice(0, email.indexOf('@'));
-    if (local.length >= 5) tokens.add(local);
-  }
-  const dn = identifiers.distinguishedName?.trim();
-  if (dn !== undefined && dn.length > 0) tokens.add(dn);
-  for (const login of identifiers.logins ?? []) {
-    const value = login?.trim();
-    if (value !== undefined && value.length >= 4) tokens.add(value);
-  }
-  for (const variant of nameVariants(identifiers.displayName ?? '')) tokens.add(variant);
-  return [...tokens];
+  return mentionTokens(identifiers);
 }
 
 /** Any scrubbable column mentioning any token (case-insensitive). */
