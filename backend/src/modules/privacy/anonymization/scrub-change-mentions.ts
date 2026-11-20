@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { serviceDowntimeWindowChangeLogEntityType } from '../../service-catalog/record-service-catalog-change';
 import {
   changeEventMentionSql,
   changeMentionTokens,
@@ -14,6 +15,7 @@ export type ChangeMentionCounts = {
   readonly changeVotes: number;
   readonly changeNotifications: number;
   readonly downtimeWindows: number;
+  readonly changeLogs: number;
 };
 
 type ChangeTextRow = { readonly id: string } & Record<(typeof changeScrubbableColumns)[number], string | null>;
@@ -21,6 +23,7 @@ type VoteRow = { readonly id: string; readonly comment: string | null };
 type EventRow = { readonly id: string; readonly detail: unknown };
 type NotificationRow = { readonly id: string; readonly title: string; readonly body: string | null; readonly payload: unknown };
 type WindowRow = { readonly id: string; readonly message: string };
+type ChangeLogRow = { readonly id: string; readonly reason: string; readonly diff: unknown };
 
 /**
  * Everything the anonymisation has to read for one person's change footprint.
@@ -33,6 +36,7 @@ export type ChangeMentionScope = {
   readonly changeEvents: readonly EventRow[];
   readonly changeNotifications: readonly NotificationRow[];
   readonly downtimeWindows: readonly WindowRow[];
+  readonly changeLogs: readonly ChangeLogRow[];
 };
 
 const empty: ChangeMentionCounts = {
@@ -41,6 +45,7 @@ const empty: ChangeMentionCounts = {
   changeVotes: 0,
   changeNotifications: 0,
   downtimeWindows: 0,
+  changeLogs: 0,
 };
 
 /**
@@ -55,7 +60,9 @@ const empty: ChangeMentionCounts = {
  *   whose JSON detail names them;
  * - the in-app notifications that copied the change (`payload.changeId`);
  * - the calendar window the change wrote into service-catalog, whose message is
- *   `number · title` - the replica the audit called out explicitly.
+ *   `number · title` - the replica the audit called out explicitly;
+ * - the `ChangeLog` entries of those windows, whose `diff.after.message` is the
+ *   same string a second time (a third-party reader of the service history).
  *
  * Already-sent e-mail has no persisted body (`NotificationEmailDelivery` keeps
  * the address, the template key and the dedupe key only), so there is nothing to
@@ -145,7 +152,20 @@ export async function collectChangeMentions(input: {
     select: { id: true, message: true },
   });
 
-  return { changes, changeVotes, changeEvents, changeNotifications, downtimeWindows };
+  // The service-catalogue change log of those windows: `diff.after.message` is
+  // the same `number · title` replica, kept in the service history.
+  const changeLogs =
+    downtimeWindows.length === 0
+      ? []
+      : await prisma.changeLog.findMany({
+          where: {
+            entityType: serviceDowntimeWindowChangeLogEntityType(),
+            entityId: { in: downtimeWindows.map((window) => window.id) },
+          },
+          select: { id: true, reason: true, diff: true },
+        });
+
+  return { changes, changeVotes, changeEvents, changeNotifications, downtimeWindows, changeLogs };
 }
 
 /** The change part of an anonymisation: select, then rewrite every reader. */
@@ -221,7 +241,22 @@ export async function scrubChangeMentions(input: {
     changedWindows += 1;
   }
 
-  if (changedChanges + changedVotes + changedEvents + changedNotifications + changedWindows === 0) {
+  let changedLogs = 0;
+  for (const entry of scope.changeLogs) {
+    const reason = scrubber.scrub(entry.reason);
+    const diff = scrubber.scrubJson(entry.diff);
+    if (reason.count + diff.count === 0) continue;
+    await prisma.changeLog.update({
+      where: { id: entry.id },
+      data: { reason: reason.text, ...(diff.count > 0 ? { diff: diff.value as never } : {}) },
+    });
+    changedLogs += 1;
+  }
+
+  if (
+    changedChanges + changedVotes + changedEvents + changedNotifications + changedWindows + changedLogs ===
+    0
+  ) {
     return empty;
   }
   return {
@@ -230,5 +265,6 @@ export async function scrubChangeMentions(input: {
     changeVotes: changedVotes,
     changeNotifications: changedNotifications,
     downtimeWindows: changedWindows,
+    changeLogs: changedLogs,
   };
 }

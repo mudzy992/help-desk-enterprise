@@ -1,5 +1,6 @@
 import { DbNull } from '@prisma/client/runtime/client';
 import type { PrismaClient } from '../../../generated/prisma/client';
+import { serviceDowntimeWindowChangeLogEntityType } from '../../service-catalog/record-service-catalog-change';
 import { retentionRedactionMarker } from './retention-markers';
 import type { RetentionBatch, RetentionExecutor, RetentionPreview } from './retention-executors';
 
@@ -23,8 +24,9 @@ const changeBatch = 50;
  *   the event details are dropped (action, actor and time stay);
  * - the **replicas** go with it: the calendar window the change wrote into
  *   service-catalog (`ServiceDowntimeWindow.message` carries `number · title`)
- *   is redacted, and the in-app notifications that copied the change lose their
- *   body. Their `title` is a translation key and their payload holds ids only,
+ *   is redacted, the `ChangeLog` entry of that window loses its reason and its
+ *   `diff.after.message` (the same string once more, in the service history),
+ *   and the in-app notifications that copied the change lose their body. Their `title` is a translation key and their payload holds ids only,
  *   so the deep link keeps working without keeping the text.
  *
  * Idempotency needs no column: a change counts as done once its title is the
@@ -102,6 +104,10 @@ export function createChangeContentRetentionExecutor(prisma: PrismaClient): Rete
       where: { OR: ids.map((id) => ({ payload: { path: ['changeId'], equals: id } })) },
       select: { id: true },
     });
+    const windows = await prisma.serviceDowntimeWindow.findMany({
+      where: { changeRequestId: { in: ids } },
+      select: { id: true },
+    });
 
     await prisma.$transaction(async (transaction) => {
       await transaction.changeRequest.updateMany({
@@ -130,6 +136,16 @@ export function createChangeContentRetentionExecutor(prisma: PrismaClient): Rete
         where: { changeRequestId: { in: ids } },
         data: { message: retentionRedactionMarker },
       });
+      if (windows.length > 0) {
+        // The service history kept `number · title` in `diff.after.message`.
+        await transaction.changeLog.updateMany({
+          where: {
+            entityType: serviceDowntimeWindowChangeLogEntityType(),
+            entityId: { in: windows.map((window) => window.id) },
+          },
+          data: { reason: retentionRedactionMarker, diff: { redacted: retentionRedactionMarker } },
+        });
+      }
       if (notifications.length > 0) {
         await transaction.notification.updateMany({
           where: { id: { in: notifications.map((row) => row.id) } },

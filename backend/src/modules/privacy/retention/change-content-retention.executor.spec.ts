@@ -38,8 +38,12 @@ describe('changeContent retention executor', () => {
         updateMany: jest.fn().mockResolvedValue({ count: changes.length }),
       },
       changeApproval: { updateMany: jest.fn().mockResolvedValue({ count: 2 }) },
+      changeLog: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       changeEvent: { updateMany: jest.fn().mockResolvedValue({ count: 4 }) },
-      serviceDowntimeWindow: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      serviceDowntimeWindow: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'w1' }]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       notification: {
         findMany: jest.fn().mockResolvedValue([{ id: 'n1' }]),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -115,6 +119,11 @@ describe('changeContent retention executor', () => {
       where: { changeRequestId: { in: ['c1', 'c2', 'c3'] } },
       data: { message: retentionRedactionMarker },
     });
+    // The service history kept the same `number · title` in its change log.
+    expect(prisma.changeLog.updateMany).toHaveBeenCalledWith({
+      where: { entityType: 'service_downtime_window', entityId: { in: ['w1'] } },
+      data: { reason: retentionRedactionMarker, diff: { redacted: retentionRedactionMarker } },
+    });
     // The notification keeps its translation key and its payload (ids only).
     expect(prisma.notification.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ['n1'] } },
@@ -139,5 +148,7 @@ describe('changeContent retention executor', () => {
     expect(batch).toMatchObject({ items: 0, done: true, refs: [] });
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.notification.findMany).not.toHaveBeenCalled();
+    expect(prisma.serviceDowntimeWindow.findMany).not.toHaveBeenCalled();
+    expect(prisma.changeLog.updateMany).not.toHaveBeenCalled();
   });
 });

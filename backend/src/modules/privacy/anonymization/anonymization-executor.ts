@@ -146,6 +146,10 @@ export class AnonymizationExecutor {
       countReplicas([notification.title, notification.body]);
       replacements += subject.scrubber.scrubJson(notification.payload).count;
     }
+    for (const entry of changeScope.changeLogs) {
+      countReplicas([entry.reason]);
+      replacements += subject.scrubber.scrubJson(entry.diff).count;
+    }
     const u = subject.userId;
     const [notificationsOwn, sessions, deliveries, roles, groups, savedViews, templates, followers, recipients, attachments, auditRows] =
       await Promise.all([
@@ -422,6 +426,7 @@ export class AnonymizationExecutor {
     add('changeEvents', changeCounts.changeEvents);
     add('changeNotifications', changeCounts.changeNotifications);
     add('downtimeWindows', changeCounts.downtimeWindows);
+    add('changeLogs', changeCounts.changeLogs);
 
     // Change log entries about or by the person.
     const changeLogs = await this.prisma.changeLog.findMany({

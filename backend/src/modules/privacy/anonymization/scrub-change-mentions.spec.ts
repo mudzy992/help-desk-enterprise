@@ -51,6 +51,13 @@ describe('scrubChangeMentions', () => {
         { id: 'n1', title: 'changes.notification.created', body: 'Amra Hodžić', payload: { changeId: 'c1' } },
       ],
       windows: [{ id: 'w1', message: 'CHG-1 · CRM restart za Amra Hodžić' }],
+      changeLogs: [
+        {
+          id: 'l1',
+          reason: 'downtime_window_create',
+          diff: { action: 'downtime_window_create', after: { message: 'CHG-1 · CRM restart za Amra Hodžić' } },
+        },
+      ],
       ...overrides,
     };
 
@@ -81,6 +88,10 @@ describe('scrubChangeMentions', () => {
       },
       serviceDowntimeWindow: {
         findMany: jest.fn().mockResolvedValue(state.windows),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      changeLog: {
+        findMany: jest.fn().mockResolvedValue(state.changeLogs),
         update: jest.fn().mockResolvedValue({}),
       },
       $queryRaw: jest.fn().mockResolvedValue(state.mentionedEvents),
@@ -182,6 +193,23 @@ describe('scrubChangeMentions', () => {
     expect(counts.downtimeWindows).toBe(1);
   });
 
+  it('scrubs the service-catalogue change log of the same window', async () => {
+    const prisma = fakePrisma();
+    const counts = await run(prisma);
+
+    // The change log of a downtime window keeps the same `number · title` in
+    // `diff.after.message` - a third reader of the replica.
+    const [call] = prisma.changeLog.findMany.mock.calls[0] as [{ where: Record<string, unknown> }];
+    expect(call.where).toEqual({ entityType: 'service_downtime_window', entityId: { in: ['w1'] } });
+    const [update] = prisma.changeLog.update.mock.calls[0] as [{ where: { id: string }; data: Record<string, unknown> }];
+    expect(update.where).toEqual({ id: 'l1' });
+    expect(update.data).toEqual({
+      reason: 'downtime_window_create',
+      diff: { action: 'downtime_window_create', after: { message: `CHG-1 · CRM restart za ${replacement}` } },
+    });
+    expect(counts.changeLogs).toBe(1);
+  });
+
   it('reports zeros and writes nothing when no text matches', async () => {
     const prisma = fakePrisma({ changes: [], votes: [], notifications: [], windows: [], mentionedEvents: [] });
     const counts = await run(prisma, { displayName: '', email: '', logins: [] });
@@ -193,11 +221,13 @@ describe('scrubChangeMentions', () => {
       changeVotes: 0,
       changeNotifications: 0,
       downtimeWindows: 0,
+      changeLogs: 0,
     });
     const [call] = prisma.changeRequest.findMany.mock.calls[0] as [{ where: Record<string, unknown> }];
     expect((call.where.OR as unknown[])[2]).toEqual({ id: { in: [] } });
     expect(prisma.changeRequest.update).not.toHaveBeenCalled();
     expect(prisma.notification.update).not.toHaveBeenCalled();
     expect(prisma.serviceDowntimeWindow.update).not.toHaveBeenCalled();
+    expect(prisma.changeLog.update).not.toHaveBeenCalled();
   });
 });

@@ -207,6 +207,7 @@ const erasureItemLabels: Readonly<Record<EmailLocale, Readonly<Record<string, st
     changeEvents: 'Događaji promjena',
     changeNotifications: 'Obavještenja o promjenama',
     downtimeWindows: 'Kalendar usluga (prozori nedostupnosti)',
+    changeLogs: 'Historija usluga (zapisi promjena)',
   },
   en: {
     tickets: 'Tickets (text)',
@@ -232,6 +233,7 @@ const erasureItemLabels: Readonly<Record<EmailLocale, Readonly<Record<string, st
     changeEvents: 'Change events',
     changeNotifications: 'Change notifications',
     downtimeWindows: 'Service calendar (downtime windows)',
+    changeLogs: 'Service history (change log entries)',
   },
 };
 
