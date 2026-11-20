@@ -84,7 +84,8 @@ export class ChangeApprovalsService {
     const eligibleIds = eligible;
     const current = votes.filter((vote) => vote.round === change.approvalRound);
     const counted = frozen ? countSnapshotVotes(current, snapshot) : current;
-    const voters = eligibleIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: [...eligibleIds] } }, select: userSelect, orderBy: { displayName: 'asc' } });
+    // W7.70: the projection reads at most the same number of voters the round may hold.
+    const voters = eligibleIds.length === 0 ? [] : await this.prisma.user.findMany({ where: { id: { in: [...eligibleIds] } }, select: userSelect, orderBy: { displayName: 'asc' }, take: changeLimits.cabVotersMax });
     const votedIds = new Set(current.map((vote) => vote.approverUserId));
     const isMember = await this.access.isCabMember(viewer, change.cabGroupId);
     // W7.65: vote comments are deliberation inside the CAB, not part of the

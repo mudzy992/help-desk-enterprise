@@ -10372,6 +10372,7 @@
       "conflictsNotAcknowledged": "Termin ima konflikte; potvrdite da ste upoznati s njima.",
       "conflictsStale": "Konflikti su se promijenili od pregleda; provjerite ih ponovo i potvrdite.",
       "noApprovers": "U CAB grupi nema nikoga osim podnosioca ko može glasati.",
+      "cabGroupTooLarge": "CAB grupa ima više članova s pravom glasanja nego što jedan krug može obuhvatiti, pa kvorum nije moguće dokazati. Smanjite grupu i pokušajte ponovo.",
       "notApprover": "Niste član CAB-a ove promjene s pravom glasa.",
       "requesterVote": "Podnosilac ne glasa o svojoj promjeni.",
       "alreadyVoted": "Već ste glasali u ovoj rundi.",

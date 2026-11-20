@@ -10291,6 +10291,7 @@
       "conflictsNotAcknowledged": "The window has conflicts; confirm you are aware of them.",
       "conflictsStale": "The conflicts changed since the preview; review them again and confirm.",
       "noApprovers": "Nobody in the CAB group other than the requester can vote.",
+      "cabGroupTooLarge": "The CAB group has more members who may vote than one round can hold, so the quorum cannot be proven. Reduce the group and try again.",
       "notApprover": "You are not a voting member of this change's CAB.",
       "requesterVote": "The requester does not vote on their own change.",
       "alreadyVoted": "You have already voted in this round.",

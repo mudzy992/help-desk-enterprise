@@ -135,6 +135,8 @@ const changeErrorKeys = {
   // W7.68: the preview the user ticked is no longer the one on record.
   CHANGE_CONFLICTS_STALE: "changes.errors.conflictsStale",
   CHANGE_NO_APPROVERS: "changes.errors.noApprovers",
+  // W7.70: the CAB group is bigger than one round may hold, so the quorum cannot be proven.
+  CHANGE_CAB_GROUP_TOO_LARGE: "changes.errors.cabGroupTooLarge",
   CHANGE_NOT_APPROVER: "changes.errors.notApprover",
   CHANGE_ALREADY_VOTED: "changes.errors.alreadyVoted",
   CHANGE_NOT_IN_AUTHORIZATION: "changes.errors.notInAuthorization",

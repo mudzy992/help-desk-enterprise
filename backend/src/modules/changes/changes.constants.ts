@@ -54,6 +54,20 @@ export const changeLimits = {
   templateDescriptionMax: 4000,
   /** W7.47: status events scanned when resolving a round's voter snapshot. */
   voterSnapshotEvents: 12,
+  /**
+   * W7.70 (`BA-changes-14`): eligible CAB voters are read one page at a time.
+   * The old reader asked for `take: 100` and kept whatever came back, so a group
+   * with 101 eligible members voted with a quorum computed from a hundred of
+   * them — silently, and in the direction that makes approval easier.
+   */
+  cabVoterPageSize: 100,
+  /**
+   * The ceiling above which a CAB group is a configuration error rather than a
+   * quorum: `CHANGE_CAB_GROUP_TOO_LARGE` stops the round instead of guessing.
+   * A governance body that needs more than 500 approvers is not a CAB; the
+   * number exists so the quorum math stays bounded and the complaint is loud.
+   */
+  cabVotersMax: 500,
 } as const;
 
 export const changeEventActions = {
@@ -104,6 +118,8 @@ export const changeErrorCodes = {
   /** W7.68: the acknowledgement no longer matches the conflicts on record. */
   conflictsStale: 'CHANGE_CONFLICTS_STALE',
   noApprovers: 'CHANGE_NO_APPROVERS',
+  /** W7.70: the CAB group has more eligible voters than one round may hold. */
+  cabGroupTooLarge: 'CHANGE_CAB_GROUP_TOO_LARGE',
   notApprover: 'CHANGE_NOT_APPROVER',
   alreadyVoted: 'CHANGE_ALREADY_VOTED',
   notInAuthorization: 'CHANGE_NOT_IN_AUTHORIZATION',

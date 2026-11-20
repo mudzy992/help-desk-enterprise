@@ -2,7 +2,8 @@ jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn(
 jest.mock('./change-downtime-outbox', () => ({ enqueueChangeDowntimeSync: jest.fn(async () => undefined) }));
 
 import { ChangeApprovalsService } from './change-approvals.service';
-import { changeErrorCodes } from './changes.constants';
+import { changeErrorCodes, changeLimits } from './changes.constants';
+import { cabVotersMax } from './load-cab-voters';
 
 type QueryArgs = Record<string, unknown>;
 
@@ -89,6 +90,43 @@ describe('CAB round snapshot (BA-changes-06)', () => {
 
     // Live list minus the requester; quorum = min(setting 2, eligible 2).
     expect(result).toEqual({ snapshot: { round: 2, voters: ['u1', 'u2'], quorum: 2 }, frozen: false });
+  });
+
+  it('freezes every eligible voter past the old hundred cap (W7.70)', async () => {
+    const { prisma, service } = buildService();
+    // A CAB with 150 approvers: the round used to freeze the first 100, so its
+    // quorum was min(setting, 100) and 50 members could never vote.
+    const roster = Array.from({ length: 150 }, (_, index) => `u${String(index + 1).padStart(3, '0')}`);
+    prisma.user.findMany.mockImplementation(async (args: QueryArgs): Promise<unknown[]> => {
+      const after = (args.where as { id?: { gt?: string } }).id?.gt;
+      const remaining = after === undefined ? roster : roster.filter((id) => id > after);
+      return remaining.slice(0, args.take as number).map((id) => ({ id }));
+    });
+
+    const result = await service.voterSnapshot(changeRow() as never, {
+      ...configuration(),
+      normalQuorum: 150,
+    });
+
+    expect(result.frozen).toBe(false);
+    expect(result.snapshot.voters).toEqual(roster);
+    // Quorum follows the whole eligible set now: min(150, 150).
+    expect(result.snapshot.quorum).toBe(150);
+  });
+
+  it('stops a round whose CAB group is above the voter ceiling (W7.70)', async () => {
+    const { prisma, service } = buildService();
+    const roster = Array.from({ length: cabVotersMax + 1 }, (_, index) => `u${String(index + 1).padStart(4, '0')}`);
+    prisma.user.findMany.mockImplementation(async (args: QueryArgs): Promise<unknown[]> => {
+      const after = (args.where as { id?: { gt?: string } }).id?.gt;
+      const remaining = after === undefined ? roster : roster.filter((id) => id > after);
+      return remaining.slice(0, args.take as number).map((id) => ({ id }));
+    });
+
+    await expect(service.voterSnapshot(changeRow() as never, configuration())).rejects.toMatchObject({
+      code: changeErrorCodes.cabGroupTooLarge,
+    });
+    expect(changeLimits.cabVotersMax).toBe(cabVotersMax);
   });
 
   it('refuses a vote from someone who is not in the frozen round', async () => {

@@ -62,6 +62,11 @@ describe("mapChangeError", () => {
     expect(mapChangeError(new ApiError(409, "CHANGE_PROBLEM_CLOSED", "CLOSED"))).toBe(
       "changes.errors.problemClosed",
     );
+    // W7.70 (BA-changes-14): an oversized CAB group stops the round instead of
+    // silently computing a quorum from a truncated voter list.
+    expect(mapChangeError(new ApiError(409, "CHANGE_CAB_GROUP_TOO_LARGE", "cab-1"))).toBe(
+      "changes.errors.cabGroupTooLarge",
+    );
     expect(mapChangeError(new Error("x"))).toBeNull();
   });
 });

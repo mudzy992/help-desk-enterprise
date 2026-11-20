@@ -1,3 +1,5 @@
+import { changeLimits } from './changes.constants';
+
 /**
  * BA-changes-06 (W7.47): a CAB round has one provable voter set and quorum.
  * The snapshot is written into the `status` event that opens the round (no new
@@ -12,7 +14,13 @@ export type ChangeVoterSnapshot = {
   readonly quorum: number;
 };
 
-const maxVoters = 100;
+/**
+ * W7.70 (`BA-changes-14`): the reader and the writer share one ceiling. When the
+ * reader's bound was 100 and the loader could only return 100, the two agreed by
+ * accident; a round frozen with more voters than the reader accepts would read as
+ * `null` and fall back to live membership, i.e. the quorum would move again.
+ */
+const maxVoters = changeLimits.cabVotersMax;
 
 /**
  * Fail-closed reader of the persisted snapshot. Anything malformed reads as
