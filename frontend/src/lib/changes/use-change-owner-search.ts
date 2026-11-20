@@ -29,10 +29,7 @@ export function useChangeOwnerSearch(input: {
     queryKey: changeQueryKeys.owners(debounced, input.organizationalUnitId),
     queryFn: () => searchChangeOwners(debounced, input.organizationalUnitId),
     enabled:
-      input.open &&
-      input.canAssignOwner &&
-      !input.hasOwner &&
-      input.organizationalUnitId !== "",
+      input.open && input.canAssignOwner && !input.hasOwner && input.organizationalUnitId !== "",
     retry: false,
   });
 

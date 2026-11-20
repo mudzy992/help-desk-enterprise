@@ -141,7 +141,7 @@ export function ChangeOverview({ change }: { readonly change: ChangeDetail }) {
           <DefinitionRow label={t("changes.fields.owner")}>
             {change.owner?.displayName ?? t("changes.list.noOwner")}
             {change.ownerEligible === false ? (
-              <span className="mt-1 block text-[11.5px] text-amber-600 dark:text-amber-400">
+              <span className="mt-1 block text-[11.5px] text-warning">
                 {t("changes.detail.ownerNotEligible")}
               </span>
             ) : null}
