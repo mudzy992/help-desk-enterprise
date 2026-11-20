@@ -53,6 +53,9 @@ describeIfDatabase('retention (integration)', () => {
       retentionDays: {
         attachments: 90,
         ticketContent: 180,
+        // Explicit, like the loader always is: a missing period is off (the
+        // service no longer treats `undefined` as enabled).
+        problemContent: 180,
         audit: 365,
         sessions: 90,
         emailDeliveries: 180,
