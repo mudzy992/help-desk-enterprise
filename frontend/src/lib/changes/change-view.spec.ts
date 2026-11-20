@@ -72,9 +72,9 @@ describe("mapChangeError", () => {
     expect(
       mapChangeError(new ApiError(412, "CHANGE_TEMPLATE_STALE", "2027-01-01T10:00:00.000Z")),
     ).toBe("changes.errors.templateStale");
-    expect(
-      mapChangeError(new ApiError(428, "CHANGE_TEMPLATE_REVISION_REQUIRED", "If-Match")),
-    ).toBe("changes.errors.templateRevisionRequired");
+    expect(mapChangeError(new ApiError(428, "CHANGE_TEMPLATE_REVISION_REQUIRED", "If-Match"))).toBe(
+      "changes.errors.templateRevisionRequired",
+    );
     expect(mapChangeError(new Error("x"))).toBeNull();
   });
 });
