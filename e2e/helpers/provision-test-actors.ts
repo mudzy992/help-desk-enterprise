@@ -42,8 +42,53 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
     roleKey: 'AGENT',
     organizationalUnitId,
   });
+  // Roles are part of the actor, not only of the account (see alignActorRoles).
+  await alignActorRoles(api, { userId, email: env.userEmail, roleKey: 'USER' });
+  await alignActorRoles(api, { userId: agentId, email: env.agentEmail, roleKey: 'AGENT' });
   await restoreTestActorPassword(api, { userId: agentId, email: env.agentEmail, password: env.agentPassword });
   await restoreTestActorPassword(api, { userId, email: env.userEmail, password: env.userPassword });
+}
+
+type UserRole = { readonly id: string; readonly roleKey: string };
+
+/**
+ * Daily E2E run 44699058066 (2026-11-20): `30-problem-lifecycle` asserted that
+ * the AGENT actor cannot manage problems and got `canManage: true`. The product
+ * is right — AGENT keeps `problem.read`/`problem.report` and only
+ * PROBLEM_MANAGER/ADMIN carry `problem.manage` (`authorization.constants.ts`,
+ * migration `20270216090000_problem_groups`) — but the **account** on the
+ * shared stack had picked up an extra role (a hand-granted PROBLEM_MANAGER, or
+ * a grant another run never cleaned up). Capabilities are computed from the
+ * account's roles, so that stray role quietly turned the agent into a problem
+ * manager and the spec failed for an environment reason.
+ *
+ * Provisioning therefore converges on exactly the expected role: every other
+ * assignment is removed, and the run says out loud what it removed instead of
+ * failing a product assertion later with a misleading message. The removal goes
+ * through the admin API (`DELETE /users/:id/roles/:userRoleId`), which also
+ * invalidates the cached principal decision.
+ */
+async function alignActorRoles(
+  api: ApiClient,
+  actor: { readonly userId: string; readonly email: string; readonly roleKey: string },
+): Promise<void> {
+  const roles = await api.requestJson<readonly UserRole[]>(`/users/${actor.userId}/roles`);
+  const extra = roles.filter((role) => role.roleKey !== actor.roleKey);
+  for (const role of extra) {
+    await api.requestJson(`/users/${actor.userId}/roles/${role.id}`, { method: 'DELETE' });
+  }
+  if (!roles.some((role) => role.roleKey === actor.roleKey)) {
+    await api.requestJson(`/users/${actor.userId}/roles`, {
+      method: 'POST',
+      body: JSON.stringify({ roleKey: actor.roleKey }),
+    });
+  }
+  if (extra.length > 0) {
+    console.warn(
+      `[e2e] ${actor.email}: removed ${extra.map((role) => role.roleKey).join(', ')} so the actor is exactly ${actor.roleKey}. ` +
+        'Capabilities are computed from roles, so a stray grant silently widens what a spec thinks the actor may do.',
+    );
+  }
 }
 
 /** A refusal of the candidate password itself — never a transport or server failure. */

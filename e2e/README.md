@@ -468,6 +468,17 @@ password change — and aligns an existing one (password, unit, role, `mustChang
 the same primitives the API uses, including the SuperAdmin local-only invariant and the authorization-cache
 invalidation. One line per actor plus a summary; exit `0`, or `3` when an actor was refused.
 
+`provisionTestActors` (the API path every run uses) also converges the **roles** of the USER and AGENT actors
+on exactly `USER` / `AGENT`: an extra assignment left behind by another suite, or granted by hand on the test
+stack, is removed through `DELETE /users/:id/roles/:id` and the run warns with the role keys it removed. This
+matters because capabilities are computed from the account's roles — daily run 44699058066 (2026-11-20) failed
+`30-problem-lifecycle` with `canManage: true` for the AGENT actor although the product is correct (`AGENT` keeps
+`problem.read`/`problem.report`; `problem.manage` belongs to `PROBLEM_MANAGER` and `ADMIN`, migration
+`20270216090000_problem_groups`). If spec 30 now reports that `problem.manage` comes from the **AGENT role
+itself**, the role matrix of that stack drifted: re-seed it (`node dist/src/cli/seed-default-role-permissions.js`
+in the backend container) or reset the role in *Administracija → Role*. Removing an account's extra role cannot
+repair a role that carries the wrong permissions.
+
 Refused, on purpose: an address that is not disposable (`e2e.*` / `E2E_ALLOW_REAL_ACCOUNTS`), a
 directory-managed account (`entraObjectId` / `directoryObjectGuid` — its password belongs to Entra/AD), an
 anonymized account, and a password the offline policy rejects (`--allow-policy-violation` overrides, and the

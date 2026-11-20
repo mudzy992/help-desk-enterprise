@@ -32,7 +32,7 @@ type Ticket = { readonly id: string; readonly status: string };
 /**
  * 30 (paket 3.3): the full problem lifecycle across roles.
  *  - USER has no access to the module (403 on the API, hidden problem panel).
- *  - AGENT can read and report but cannot edit the analysis.
+ *  - AGENT can read and report; the analysis needs problem.manage (PROBLEM_MANAGER/ADMIN), so the agent cannot edit it.
  *  - SUPER_ADMIN creates a problem from tickets, claims it, goes through
  *    INVESTIGATING → KNOWN_ERROR → RESOLVED with group resolution of the linked
  *    tickets, sees the recurrence when a new ticket is linked after resolution,
@@ -117,17 +117,25 @@ test.describe('30 problem lifecycle', () => {
         });
       });
 
-      await test.step('AGENT reads but cannot edit the analysis', async () => {
+      await test.step('AGENT reads and reports but cannot edit the analysis', async () => {
         const agent = new ApiClient();
         await agent.login(env.agentEmail, env.agentPassword);
         const agentCapabilities = await agent.requestJson<Capabilities>('/problems/capabilities');
-        expect(agentCapabilities.canManage).toBe(false);
-        expect(agentCapabilities.canClose).toBe(false);
+        // Decision 2026-10-01 and migration 20270216090000_problem_groups: AGENT keeps
+        // problem.read + problem.report and gives up problem.manage/problem.close; the
+        // analysis belongs to PROBLEM_MANAGER and ADMIN. Capabilities are computed from
+        // the account's roles, so a shared stack can drift — the message names the roles
+        // instead of leaving a bare `expected true to be false` (run 44699058066).
+        expect(
+          agentCapabilities,
+          `AGENT capabilities of ${env.agentEmail} — ${await describeProblemAuthority(admin, env.agentEmail, agentCapabilities)}`,
+        ).toMatchObject({ canRead: true, canReport: true, canManage: false, canClose: false });
         const edit = await agent.request(`/problems/${problem!.id}`, {
           method: 'PATCH',
           body: JSON.stringify({ version: problem!.version, rootCause: 'Agent ne smije ovo upisati.' }),
         });
         expect(edit.ok).toBe(false);
+        expect(await errorCode(edit)).toBe('PROBLEM_FORBIDDEN');
         expect((await reload()).rootCause).toBeNull();
       });
 
@@ -261,3 +269,36 @@ test.describe('30 problem lifecycle', () => {
     }
   });
 });
+
+/**
+ * Why an AGENT account reports `canManage`: which roles the account holds, and
+ * whether the AGENT role itself carries `problem.manage`. The capability is a
+ * projection of the account's roles, so this turns a drifted test stack into a
+ * named cause instead of a bare boolean mismatch.
+ */
+async function describeProblemAuthority(
+  admin: ApiClient,
+  email: string,
+  capabilities: Capabilities,
+): Promise<string> {
+  try {
+    const users = await admin.requestJson<ReadonlyArray<{ readonly id: string; readonly email: string }>>(
+      `/users?take=10&q=${encodeURIComponent(email)}`,
+    );
+    const user = users.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
+    if (user === undefined) return `capabilities=${JSON.stringify(capabilities)}; the account was not found through the users API`;
+    const roles = await admin.requestJson<ReadonlyArray<{ readonly roleKey: string }>>(`/users/${user.id}/roles`);
+    const roleKeys = roles.map((role) => role.roleKey);
+    const carried: string[] = [];
+    for (const roleKey of roleKeys) {
+      const permissions = await admin.requestJson<readonly string[]>(`/roles/${roleKey}/permissions`);
+      if (permissions.includes('problem.manage')) carried.push(roleKey);
+    }
+    return (
+      `capabilities=${JSON.stringify(capabilities)}; roles=[${roleKeys.join(', ')}]; ` +
+      `problem.manage comes from ${carried.length > 0 ? carried.join(', ') : 'no role (the cache is stale)'}`
+    );
+  } catch (error) {
+    return `capabilities=${JSON.stringify(capabilities)}; the role lookup failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
