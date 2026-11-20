@@ -206,6 +206,9 @@ function ChangeTemplateSheet({
   onReloadLatest,
 }: ChangeTemplateSheetProperties) {
   const { t } = useTranslation();
+  // W7.71: the conditional save reports its two refusals as a toast as well,
+  // because a long form scrolls the inline line out of view.
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [implementationPlan, setImplementationPlan] = useState("");
