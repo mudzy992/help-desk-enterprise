@@ -743,7 +743,7 @@ učinilo gorim).
 
 ## 38. Implementacijski closeout — W7.77 (`BA-changes-19`)
 
-**Status nalaza:** zatvoren; paket W7.77, **bez migracije**. Detalji:
+**Status nalaza:** zatvoren; paket W7.77, CI [`44835370943`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44835370943) **success** (uključujući PostgreSQL/Redis integraciju; E2E poslovi `skipped`), **bez migracije**. Detalji:
 [298](../implementation/298-w777-changes-19-configuration-clamp.md).
 
 **Šta je bilo:** sloj postavki validira standardni UI put (quorum `1..20`, lead time `0..720`, reminder `0..168`), a

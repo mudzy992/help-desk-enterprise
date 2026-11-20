@@ -3,7 +3,8 @@
 **Paket:** Val 7, `changes`, **P3**<br>
 **Nalaz:** „Servis ne clampuje quorum/lead/reminder configuration integer granice”<br>
 **Kod:** `backend/src/modules/changes/{change-configuration-bounds.ts (novo), change-access.service.ts, change-cab.ts}` + `backend/src/modules/ops-health/ops-signal-collector.ts`<br>
-**DB migracija:** nema (nijedno polje, nijedna postavka se ne mijenja — samo čitanje)
+**DB migracija:** nema (nijedno polje, nijedna postavka se ne mijenja — samo čitanje)<br>
+**CI:** [`44835370943`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44835370943) **success** (uključujući PostgreSQL/Redis integraciju; E2E poslovi `skipped`)
 
 ## Nalaz
 
