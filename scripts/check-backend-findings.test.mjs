@@ -4,7 +4,21 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { buildFindingsPlan, parseFindingRows, unitPlans, validateFindingsPlan } from "./check-backend-findings.mjs";
+import { readFile } from "node:fs/promises";
+import {
+  applyTotalsBlock,
+  applyWaveCounts,
+  buildFindingsPlan,
+  parseFindingRows,
+  parseRegisterRows,
+  renderTotalsBlock,
+  summarizeFindings,
+  totalsEndMarker,
+  totalsStartMarker,
+  unitPlans,
+  validateFindingsPlan,
+  validateRegisterRows,
+} from "./check-backend-findings.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -214,4 +228,143 @@ test("Val 6 posljednjih deset nalaza zatvoreno je odlukom vlasnika", async () =>
   const wave = plan.findings.filter((finding) => finding.wave === 6);
   assert.equal(wave.length, 111);
   assert.equal(wave.filter((finding) => !finding.status.startsWith("zatvoreno")).length, 0);
+});
+
+const planFixture = (statuses) => ({
+  units: 44,
+  total: statuses.length,
+  severity: { P1: statuses.filter((s) => s.startsWith("P1")).length, P2: 0, P3: 0 },
+  findings: statuses.map((entry, index) => {
+    const [, status] = entry.split(":");
+    return {
+      id: `BA-test-${String(index).padStart(2, "0")}`,
+      severity: "P2",
+      source: "01-unit.md",
+      owner: "WS-A",
+      wave: 2,
+      status,
+    };
+  }),
+});
+
+test("registar: čita red tabele sa escaped pipe i bez backtickova", () => {
+  const rows = parseRegisterRows(
+    "| 24 | `changes` | `BA-changes-17` | P2 | Privatnost | zatvoreno (W7.74) | [24](audits/24-changes.md) |\n" +
+      "| 44 | `xcut` | `BA-xcut-04` | P1 | `npm ci \\|\\| npm` | otvoreno | [44](audits/44.md) |\n",
+  );
+  assert.deepEqual(rows, [
+    { unit: 24, module: "changes", id: "BA-changes-17", severity: "P2", status: "zatvoreno (W7.74)" },
+    { unit: 44, module: "xcut", id: "BA-xcut-04", severity: "P1", status: "otvoreno" },
+  ]);
+});
+
+test("registar: dupliciran ID, nepoznat ID i razlika klase statusa padaju", () => {
+  const plan = planFixture(["P2:zatvoreno", "P2:otvoreno"]);
+  const rows = parseRegisterRows(
+    "| 1 | `a` | `BA-test-00` | P2 | x | zatvoreno | [x](x.md) |\n" +
+      "| 1 | `a` | `BA-test-00` | P2 | x | otvoreno | [x](x.md) |\n" +
+      "| 1 | `a` | `BA-test-01` | P2 | x | zatvoreno | [x](x.md) |\n" +
+      "| 1 | `a` | `BA-unknown-01` | P2 | x | otvoreno | [x](x.md) |\n",
+  );
+  const errors = validateRegisterRows(rows, plan);
+  assert.ok(errors.some((error) => error.includes("dupliciran ID: BA-test-00")), errors.join("; "));
+  assert.ok(errors.some((error) => error.includes("ID koji nije u planu: BA-unknown-01")), errors.join("; "));
+  assert.ok(errors.some((error) => error.includes('BA-test-01: registar "zatvoreno"')), errors.join("; "));
+});
+
+test("registar: skraćen status (bez kvalifikatora) je ista klasa", () => {
+  const plan = planFixture(["P2:zatvoreno (W7.74)"]);
+  const rows = parseRegisterRows("| 1 | `a` | `BA-test-00` | P2 | x | zatvoreno | [x](x.md) |");
+  assert.deepEqual(validateRegisterRows(rows, plan), []);
+});
+
+test("registar: nedostajući red i razlika u broju redova padaju", () => {
+  const plan = planFixture(["P2:otvoreno", "P2:otvoreno"]);
+  const rows = parseRegisterRows("| 1 | `a` | `BA-test-00` | P2 | x | otvoreno | [x](x.md) |");
+  const errors = validateRegisterRows(rows, plan);
+  assert.ok(errors.some((error) => error.includes("ne sadrži 1 nalaza")), errors.join("; "));
+  assert.ok(errors.some((error) => error.includes("registar ima 1 redova, plan 2")), errors.join("; "));
+});
+
+test("zbir: broji zatvoreno, otvoreno po prioritetu i val 7", () => {
+  const plan = {
+    units: 44,
+    total: 3,
+    severity: { P1: 1, P2: 2, P3: 0 },
+    findings: [
+      { id: "BA-a", severity: "P1", source: "01-a.md", owner: "WS-A", wave: 2, status: "zatvoreno" },
+      { id: "BA-b", severity: "P2", source: "24-b.md", owner: "WS-F", wave: 7, status: "zatvoreno (W7.74)" },
+      { id: "BA-c", severity: "P2", source: "24-b.md", owner: "WS-F", wave: 7, status: "otvoreno" },
+    ],
+  };
+  const summary = summarizeFindings(plan);
+  assert.equal(summary.closed, 2);
+  assert.equal(summary.open, 1);
+  assert.deepEqual(summary.openSeverity, { P1: 0, P2: 1, P3: 0 });
+  assert.deepEqual(summary.waves, [
+    { wave: 2, total: 1, closed: 1, open: 0, openSeverity: { P1: 0, P2: 0, P3: 0 } },
+    { wave: 7, total: 2, closed: 1, open: 1, openSeverity: { P1: 0, P2: 1, P3: 0 } },
+  ]);
+  const block = renderTotalsBlock(plan);
+  assert.match(block, new RegExp(`^${totalsStartMarker}`, "u"));
+  assert.match(block, new RegExp(`${totalsEndMarker}$`, "u"));
+  assert.match(block, /- Zatvoreno: \*\*2\*\*/u);
+  assert.match(block, /Val 7: \*\*1 \/ 2\*\*/u);
+});
+
+test("zbir: blok se zamjenjuje između markera, okolni tekst ostaje", () => {
+  const markdown = `prije\n${totalsStartMarker}\nstaro\n${totalsEndMarker}\nposlije`;
+  const updated = applyTotalsBlock(markdown, `${totalsStartMarker}\nnovo\n${totalsEndMarker}`);
+  assert.equal(updated, `prije\n${totalsStartMarker}\nnovo\n${totalsEndMarker}\nposlije`);
+  assert.throws(() => applyTotalsBlock("bez markera", "x"), /markeri/u);
+});
+
+test("wave tabela: mijenjaju se samo dvije numeričke kolone", () => {
+  const plan = {
+    units: 44,
+    total: 2,
+    severity: { P1: 0, P2: 2, P3: 0 },
+    findings: [
+      { id: "BA-a", severity: "P2", source: "24-a.md", owner: "WS-F", wave: 7, status: "zatvoreno" },
+      { id: "BA-b", severity: "P2", source: "24-a.md", owner: "WS-F", wave: 7, status: "otvoreno" },
+    ],
+  };
+  const table = [
+    "| Val | Obuhvat | Dnevnik | Zatvoreno / ukupno | Otvoreno (P1/P2/P3) | Zaključak |",
+    "| --- | --- | --- | ---: | ---: | --- |",
+    "| 7 | moduli | dnevnik bez broja | 26 / 109 | 83 (14/49/20) | tekst |",
+  ].join("\n");
+  const updated = applyWaveCounts(table, plan).split("\n");
+  assert.equal(updated[2], "| 7 | moduli | dnevnik bez broja | 1 / 2 | 1 (0/1/0) | tekst |");
+  assert.equal(
+    updated[0],
+    "| Val | Obuhvat | Dnevnik | Zatvoreno / ukupno | Otvoreno (P1/P2/P3) | Zaključak |",
+  );
+  assert.equal(updated[1], "| --- | --- | --- | ---: | ---: | --- |");
+});
+
+test("realni repozitorij: registar, plan i zbirovi su usklađeni", async () => {
+  const plan = await buildFindingsPlan(path.join(repositoryRoot, "docs/backend/audits"));
+  const register = await readFile(path.join(repositoryRoot, "docs/backend/BACKEND-FINDINGS-REGISTER.md"), "utf8");
+  const rows = parseRegisterRows(register);
+  assert.deepEqual(validateRegisterRows(rows, plan), []);
+  assert.equal(rows.length, plan.total);
+  for (const document of [
+    "docs/backend/BACKEND-FINDINGS-REGISTER.md",
+    "docs/backend/BACKEND-IMPLEMENTATION-MASTER-PLAN.md",
+    "docs/backend/audits/README.md",
+  ]) {
+    const markdown = await readFile(path.join(repositoryRoot, document), "utf8");
+    assert.ok(markdown.includes(totalsStartMarker), `${document} nema generisani blok`);
+    assert.equal(
+      applyTotalsBlock(markdown, renderTotalsBlock(plan)),
+      markdown,
+      `${document}: zbirovi nisu sinhronizovani`,
+    );
+  }
+  const masterPlan = await readFile(
+    path.join(repositoryRoot, "docs/backend/BACKEND-IMPLEMENTATION-MASTER-PLAN.md"),
+    "utf8",
+  );
+  assert.equal(applyWaveCounts(masterPlan, plan), masterPlan, "wave tabela nije sinhronizovana");
 });

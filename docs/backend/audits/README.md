@@ -65,19 +65,27 @@ Pojedinačni auditi slijede [jedinstveni standard](../BACKEND-AUDIT-STANDARD.md)
 
 ## Trenutni status nalaza i kompletni scopeovi
 
-**Aktuelni presjek nakon Val 6 closeouta:** 44 izvorna audita, 694 BA nalaza. Generisani plan potvrđuje 694/694; checker sam ne poredi globalni registar. Deset ranijih razlika ostaje evidentirano.
+**Aktuelni presjek:** 44 izvorna audita, **696** BA nalaza. Zbirove ispod piše checker iz izvornih tabela; od
+W7.75 nema razlike između izvornih tabela, generisanog plana, globalnog registra i ovog dokumenta, a
+`npm run audit:traceability` (CI: backend job i Docs guard) pada na svako odstupanje. Detalji:
+[paket 296](../implementation/296-w775-findings-counting.md).
 
-| Status u izvornim audit-tabelama | Broj | Tumačenje |
-| --- | ---: | --- |
-| otvoreno | 452 | Nisu zatvoreni u izvornom auditu. |
-| zatvoreno | 242 | Uključuje owner-directed izuzetke s dokumentovanim granicama. |
-| **Ukupno** | **694** | 174 P1 / 370 P2 / 150 P3. |
+<!-- findings-totals:start -->
+Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
+
+- Ukupno: **696** (P1 174 · P2 371 · P3 151)
+- Zatvoreno: **293**
+- Otvoreno: **403** (P1 88 / P2 217 / P3 98)
+- Val 7: **72 / 111** zatvoreno, otvoreno **39** (P1 0 / P2 22 / P3 17)
+<!-- findings-totals:end -->
 
 Statusne ćelije za svih 11 nalaza koji su ranije nosili `završen (W3.x)` sada su normalizovane na `zatvoreno` u izvornoj tabeli, globalnom registru i generisanom planu. W3.x ostaje samo kao historijski kontekst implementacijskih paketa, ne kao status nalaza.
 
 ### Scopeovi sa svim nalazima zatvorenim u izvornim tabelama
 
-Po kriteriju „svaki nalaz u scopeu ima status `zatvoreno`“, **14/44 scopeova** su kompletna na nivou pojedinačnih nalaza; zajedno sadrže **215 nalaza**. To ne znači automatski da je svaki nezavisni E2E/operativni acceptance gate prošao.
+Po kriteriju „svaki nalaz u scopeu ima status `zatvoreno`“ kompletno je **14/44 scopeova**. Lista je presjek
+nakon Vala 6 i ne regeneriše se; aktuelne zbirove daje blok iznad, a stanje po modulu [plan](../backend-findings-plan.json).
+To ne znači automatski da je svaki nezavisni E2E/operativni acceptance gate prošao.
 
 | Scope | Nalazi | Status / napomena |
 | --- | ---: | --- |
@@ -96,13 +104,17 @@ Po kriteriju „svaki nalaz u scopeu ima status `zatvoreno`“, **14/44 scopeova
 | `22 — assets` | 19/19 | Svi `zatvoreno` u izvornom auditu. |
 | `29 — status-page` | 19/19 | Svi `zatvoreno` u izvornom auditu, ali tri reda su još `otvoreno` u globalnoj tabeli — vidi neusklađenost ispod. |
 
-Ako se filtriraju izvorne audit-tabele, kompletno je **14/44** scopeova. Globalni registar prikazuje **12/44** scopeova bez otvorenih redova; routing i status-page zadržavaju prethodne razlike.
+Globalni registar prikazuje isti presjek: njegova tabela ima isti broj redova kao plan i svaki red nosi istu klasu
+statusa (W7.75).
 
-### Preostala neusklađenost između statusnih prikaza
+### Statusni prikazi su od W7.75 usklađeni
 
-- Izvorne tabele / generisani plan: **451 otvoren / 243 zatvorena**.
-- Redovi tabele u `BACKEND-FINDINGS-REGISTER.md`: **461 otvoren / 233 zatvorena** (694 reda ukupno); zaglavlje i kontrolni zbir tog registra odražavaju brojanje njegovih redova.
-- Deset ranijih statusnih razlika ostaje netaknuto; njihovi ID-evi su navedeni u napomeni globalnog registra. W6.48 `BA-websocket-05` je zatvoren u izvornom auditu i globalnom registru, kao i zatvoreni P1 `BA-websocket-01/02/03/04`, BA-on-call i announcements nalazi.
+- Izvorne tabele, generisani plan, tabela globalnog registra i zbirovi u ovom dokumentu daju **iste brojeve**;
+  checker ih poredi u svakom CI prolazu.
+- Razlike koje su stajale u ovoj sekciji (10 statusa i 6 dvostrukih redova) su popravljene; historija je u
+  [paketu 296](../implementation/296-w775-findings-counting.md).
+- W6.48 `BA-websocket-05` je zatvoren u izvornom auditu i globalnom registru, kao i zatvoreni P1
+  `BA-websocket-01/02/03/04`, BA-on-call i announcements nalazi.
 
 Za BA-15 nema preostalih implementacijskih nalaza, ali puni critical-flow acceptance nije potvrđen. CI [`42032046504`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42032046504) na `1fb7c9f` passed za backend/full Jest, disposable PostgreSQL/Redis integration, frontend, docs i container/supply-chain; E2E poslovi su tada bili `skipped`. Noviji CI [`42036534042`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/42036534042) na `master` SHA [`f3cbadf`](https://github.com/mudzy992/help-desk-enterprise/commit/f3cbadfddf4ed08a9b0deb8ca5b8a86691d25b2f) prošao je full code CI i izvršio odabrane E2E specs 16/25/32: **6 passed / 0 failed / 0 flaky / 0 skipped**. To zatvara templates E2E 16 i potvrđuje testove 25/32, ali nije puni critical-flow suite i ne uključuje servisni spec 42; BA-15 gate zato ostaje pending. E2E install wizard i read-only inventory su `skipped`. Raniji targeted spec42 `41916949315` bio je na starijem SHA-u i ne nadomješta full suite. Ne dispatchati dodatni full E2E ručno bez nove upute; detalji su u [auditu 15, sekcija 35](15-service-catalog.md#35-ba-15-targeted-e2e-follow-up-2026-11-05) i [paketu 132](../implementation/132-templates-11-13-closeout-e2e-25-32-triage.md).
 
@@ -153,4 +165,4 @@ Za BA-15 nema preostalih implementacijskih nalaza, ali puni critical-flow accept
 | 42 — docs                                               | audit završen | [Detaljni audit](42-docs.md)                                                 | 2 P1, 8 P2, 5 P3 | **5,50/10**      |
 | 43 — change-log                                         | audit završen | [Detaljni audit](43-change-log.md)                                           | 5 P1, 10 P2, 5 P3 | **3,57/10**     |
 | 44 — cross-cutting backend infrastruktura               | audit završen | [Detaljni audit](44-cross-cutting-infrastructure.md)                          | 8 P1, 17 P2, 7 P3 | **3,20/10**     |
-| 45 — konsolidovani audit i implementacijski master plan | audit završen | [Detaljni audit](45-consolidated-backend-audit.md)                            | 694 ukupno       | **5,12/10**     |
+| 45 — konsolidovani audit i implementacijski master plan | audit završen | [Detaljni audit](45-consolidated-backend-audit.md)                            | 696 ukupno       | **5,12/10**     |

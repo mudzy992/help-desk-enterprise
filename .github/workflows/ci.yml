@@ -555,6 +555,12 @@ jobs:
         run: node scripts/check-docs-content.mjs
       - name: Test the docs guard itself
         run: node --test scripts/check-docs-content.test.mjs
+      # W7.75: the register table and the generated totals must equal the plan;
+      # this job runs on docs-only pushes, where the backend job never starts.
+      - name: Check the findings register, plan and generated totals agree
+        run: node scripts/check-backend-findings.mjs
+      - name: Test the findings guard itself
+        run: node --test scripts/check-backend-findings.test.mjs
 
   service-form-audit:
     name: Read-only service-form pattern inventory

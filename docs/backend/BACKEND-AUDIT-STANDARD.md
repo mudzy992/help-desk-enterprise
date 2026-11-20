@@ -166,6 +166,23 @@ npm run build
 
 Ako audit baza nije dostupna, generator/build se bilježe kao **environment-blocked**, nikad kao pass. Nije dozvoljeno unositi stvarne tajne ili produkcijske konekcije u dokumentaciju.
 
+## 7a. Brojanje nalaza (W7.75)
+
+Postoje četiri prikaza istog skupa: 44 izvorne audit tabele, generisani
+[`backend-findings-plan.json`](backend-findings-plan.json), tabela
+[`BACKEND-FINDINGS-REGISTER.md`](BACKEND-FINDINGS-REGISTER.md) i zbirovi u ovom standardu/planu. Do W7.75 su se
+razilazili jer su se brojevi prenosili ručno; sada važi jedno pravilo:
+
+- **izvor je audit tabela**, plan je njena čista funkcija (`scripts/check-backend-findings.mjs --write`);
+- **zbirovi se ne pišu rukom**: žive u bloku između `<!-- findings-totals:start -->` i
+  `<!-- findings-totals:end -->` u registru, master planu i `audits/README.md`, a dvije numeričke kolone wave
+  tabele u master planu piše isti alat;
+- **checker pada** ako se registar razlikuje od plana po ID-u, prioritetu, klasi statusa (`otvoreno` /
+  `zatvoreno`, kvalifikator je dozvoljen), jedinstvenosti reda ili broju redova, ili ako generisani blok nije
+  osvježen. Pokreće se u backend jobu (`audit:traceability`) i u Docs guardu;
+- **istorija se ne prepisuje**: stariji checkpointi zadržavaju brojeve svog datuma, a novi tekst se poziva na
+  generisani blok umjesto da ponavlja zbir.
+
 ## 8. Faze popravki
 
 Fazni plan modula koristi ovaj redoslijed, preskačući prazne faze:
