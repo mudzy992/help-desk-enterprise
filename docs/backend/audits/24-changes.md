@@ -176,7 +176,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | zatvoreno (W7.68) |
 | BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | zatvoreno (W7.69) |
 | BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | zatvoreno (W7.70) |
-| BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | otvoreno |
+| BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | zatvoreno (W7.71) |
 | BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | otvoreno |
 | BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | otvoreno |
 | BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | otvoreno |
@@ -218,7 +218,12 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 - **12:** zatvoreno u W7.68 — acknowledgement je vezan za `sha256` digest previewa; action ga mora ponijeti, a
   server ga ponovo izračuna unutar transakcije i odbija zastarjeli snapshot. Dokaz:
   [W7.68 implementation](../implementation/289-w768-changes-12-conflict-snapshot.md).
-- **15–17:** template version, eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
+- **15:** zatvoreno u W7.71 — izmjena šablona je uslovni upis: revizija je `updatedAt` reda (bez migracije,
+  kao kod članka baze znanja), `If-Match` je obavezan (428 bez njega, 412 za zastarjeli ili pretjerani upis), a
+  CAS se provjerava **unutar** transakcije prije zamjene veza servisa. `change.template_saved` (schema v2) imenuje
+  obje revizije i sva promijenjena polja, skalari nose prije/poslije, planovi se samo imenuju, a veze se broje.
+  Dokaz: [W7.71 implementation](../implementation/292-w771-changes-15-template-revision.md).
+- **16–17:** eksplicitni CAB routing i formalni privacy/retention replika lifecycle.
 - **18–20:** cursor/hasMore, config clamp i Postgres/Redis/concurrency/fault testovi.
 
 ## 17. Baseline score
@@ -560,3 +565,38 @@ nije izolacijski snapshot (član koji uđe između dvije stranice može biti pro
 kruga prihvatljivo jer se skup odmah zamrzne); legacy krugovi bez snapshota vraćaju 409 za preveliku grupu
 umjesto tiho pogrešnog kvoruma; notifikacije za preveliku grupu padaju na istu grešku i ostaju u logu, bez
 posebnog ops alarma.
+
+## 34. Implementacijski closeout — W7.71 (`BA-changes-15`)
+
+**Status nalaza:** zatvoren; paket W7.71, kod `7eb6594`, CI
+[44742892785](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44742892785), **bez migracije**.
+Detalji: [292](../implementation/292-w771-changes-15-template-revision.md).
+
+**Šta je bilo:** `ChangeTemplatesService.update` je radio `count()` izvan transakcije, pa `update` po `id`, pa
+zamjenu veza servisa — bez revizije. Dva manager-a su mogla pregaziti isti šablon bez ijednog signala, a
+`change.template_saved` je uvijek pisao metadata `{ operation: 'updated' }`: bez revizije, bez polja koja su se
+promijenila i bez prije/poslije.
+
+**Šta je sada:** revizija je `updatedAt` reda (bez nove kolone; isti obrazac kao `KnowledgeArticle` od W7.51),
+objavljena kao `revision` i normalizovana i kao gola instanta i kao entity tag (`"…"`, `W/"…"`), uz poređenje
+trenutaka. `If-Match` je **obavezan**: nedostaje ⇒ `428 CHANGE_TEMPLATE_REVISION_REQUIRED`, zastario ili
+pretrčan ⇒ `412 CHANGE_TEMPLATE_STALE`, a transakcija se poništava prije ijedne zamjene veza. Unutar nje se
+red čita, revizija provjeri, diff izračuna, pa `updateMany({ where: { id, updatedAt }, data } )` — `count !== 1`
+znači da je neko pisao između čitanja i upisa i daje 412. `change.template_saved` je schema **v2**: imenuje
+`previousRevision`/`revision` i `changedFields`, skalari (`name`, `impact`, `likelihood`, `causesDowntime`,
+`isActive`) nose prije/poslije, četiri plana se **samo imenuju** (16 KiB budžet metadata; audit nije drugi
+primjerak zapisa), a veze servisa se broje. Spas koji ništa ne mijenja ne piše ni red ni audit zapis. Editor
+šalje reviziju, na 412 **zadržava** unijeti tekst, prikazuje blok „Šablon je u međuvremenu izmijenjen” sa
+dugmetom za učitavanje najnovije verzije i podiže danger toast; oba koda su prevedena (bs/en).
+
+**Acceptance:** §10 („dva managera mogu last-write-wins zamijeniti fields/services i oba dobiti audit „updated“
+bez before/after”) je zatvoren s dvije strane: uslovni upis (11 testova revizije/diffa i 8 testova servisa,
+uključujući CAS gubitak bez ijednog upisa) i audit trag (schema/compatibility spec drže eksplicitnu mapu
+podignutih verzija + regresijski test metadata koju editor stvarno šalje). E2E 32 dokazuje oba odbijanja.
+
+**Šta ostaje u ovom modulu:** P2: `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** revizija je vremenska oznaka, ne kriptografska veza sa sadržajem (hash ETag bi tražio novi
+ugovor i kolonu); `PUT` bez `If-Match` sada vraća 428, što je namjerno fail-closed ali je breaking za klijente
+treće strane; `change.template_saved` v2 znači da stariji zapisi imaju uži metadata (mješovit historijat je
+očekivan, `operation` je i dalje tu).
