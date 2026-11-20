@@ -143,7 +143,9 @@ export class RetentionService {
     const deadline = new Date(now.getTime() + configuration.maxMinutesPerNight * 60_000);
     const results: RetentionRunView[] = [];
     for (const category of retentionExecutionOrder) {
-      if (configuration.retentionDays[category] <= 0) continue;
+      // A missing or non-numeric period is off, never "run with no limit".
+      const days = configuration.retentionDays[category] ?? 0;
+      if (!Number.isFinite(days) || days <= 0) continue;
       if (Date.now() >= deadline.getTime()) break;
       try {
         results.push(
@@ -176,8 +178,12 @@ export class RetentionService {
   }): Promise<RetentionRunView> {
     const configuration = input.configuration ?? (await this.configurationLoader.load());
     const now = input.now ?? new Date();
-    const days = configuration.retentionDays[input.category];
-    if (days <= 0) throw new PrivacyError(privacyErrorCodes.retentionDisabled, { category: input.category });
+    // A partial configuration (an older installation, a hand-written object)
+    // must never authorise deletion: a missing or non-numeric period is off.
+    const days = configuration.retentionDays[input.category] ?? 0;
+    if (!Number.isFinite(days) || days <= 0) {
+      throw new PrivacyError(privacyErrorCodes.retentionDisabled, { category: input.category });
+    }
     // One run per category at a time (nightly vs. manual, several workers).
     const lockKey = `${lockKeyPrefix}${input.category}`;
     const locked = await this.redis.set(lockKey, '1', 'PX', privacyLimits.staleJobMs, 'NX');
@@ -286,7 +292,7 @@ export class RetentionService {
     const configuration = await this.configurationLoader.load();
     const categories = await Promise.all(
       retentionCategories.map(async (category): Promise<RetentionCategoryView> => {
-        const days = configuration.retentionDays[category];
+        const days = configuration.retentionDays[category] ?? 0;
         const [lastDryRun, lastExecution, history] = await Promise.all([
           this.prisma.retentionRun.findFirst({
             where: { category, mode: 'DRY_RUN' },

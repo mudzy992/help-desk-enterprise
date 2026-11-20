@@ -59,6 +59,7 @@ describeIfDatabase('retention (integration)', () => {
         requestRegister: 365,
         statusIncidents: 0,
         assetTransfers: 0,
+        changeContent: 0,
         ...overrides,
       },
     }) as unknown as PrivacyConfiguration;
@@ -199,6 +200,21 @@ describeIfDatabase('retention (integration)', () => {
     expect(run.status).toBe('SKIPPED');
     expect(run.error).toBe('dry_run_required');
     expect((await prisma.ticket.findUniqueOrThrow({ where: { id: ids.due } })).contentRedactedAt).toBeNull();
+  });
+
+  it('treats a category missing from a partial configuration as disabled', async () => {
+    // BA-changes-17: a configuration written before a category existed must
+    // never authorise its execution - `undefined <= 0` is false in JavaScript.
+    const { changeContent: omitted, ...retentionDays } = configuration().retentionDays;
+    expect(omitted).toBe(0);
+    await expect(
+      service({ ...configuration(), retentionDays } as PrivacyConfiguration).runCategory({
+        category: 'changeContent',
+        mode: 'EXECUTE',
+        triggeredByUserId: null,
+        deadline: deadline(),
+      }),
+    ).rejects.toMatchObject({ code: 'RETENTION_DISABLED' });
   });
 
   it('dry run count equals the executed count, only for due, unheld, closed tickets', async () => {
