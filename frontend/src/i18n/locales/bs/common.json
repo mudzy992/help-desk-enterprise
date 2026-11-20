@@ -10308,7 +10308,8 @@
       "requesterVote": "Podnosilac ne glasa o svojoj promjeni.",
       "alreadyVoted": "Već ste glasali u ovoj rundi.",
       "notInAuthorization": "Promjena nije na odobravanju.",
-      "ownerNotManager": "Vlasnik mora biti upravitelj promjena.",
+      "ownerNotManager": "Vlasnik mora biti upravitelj promjena koji pokriva odabranu organizacijsku jedinicu.",
+      "ownerNotEligible": "Vlasnik više nema pravo upravljanja ovom promjenom. Dodijelite novog vlasnika.",
       "requirement": {
         "title": "Nedostaje naslov.",
         "description": "Nedostaje opis.",

@@ -10227,7 +10227,8 @@
       "requesterVote": "The requester does not vote on their own change.",
       "alreadyVoted": "You have already voted in this round.",
       "notInAuthorization": "The change is not in authorization.",
-      "ownerNotManager": "The owner must be a change manager.",
+      "ownerNotManager": "The owner must be a change manager scoped to the selected organizational unit.",
+      "ownerNotEligible": "The owner can no longer manage this change. Assign a new owner.",
       "requirement": {
         "title": "The title is missing.",
         "description": "The description is missing.",

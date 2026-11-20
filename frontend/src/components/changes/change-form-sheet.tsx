@@ -136,11 +136,21 @@ export function ChangeFormSheet({
   }, [ownerSearch]);
 
   const owners = useQuery({
-    queryKey: changeQueryKeys.owners(ownerDebounced),
-    queryFn: () => searchChangeOwners(ownerDebounced),
-    enabled: open && canAssignOwner && owner === null,
+    queryKey: changeQueryKeys.owners(ownerDebounced, unitId),
+    queryFn: () => searchChangeOwners(ownerDebounced, unitId),
+    enabled: open && canAssignOwner && owner === null && unitId !== "",
     retry: false,
   });
+
+  // W7.66: a manager of the previous unit is not necessarily a manager of the
+  // new one, so moving the change drops the picked owner instead of letting the
+  // save fail on a stale choice.
+  const changeUnit = (nextUnitId: string) => {
+    if (nextUnitId === unitId) return;
+    setUnitId(nextUnitId);
+    setOwner(null);
+    setOwnerSearch("");
+  };
 
   const standard = type === "STANDARD";
   const template = options.templates.find((item) => item.id === templateId);
@@ -418,7 +428,7 @@ export function ChangeFormSheet({
                 {...control}
                 value={unitId}
                 disabled={locked}
-                onChange={(event) => setUnitId(event.target.value)}
+                onChange={(event) => changeUnit(event.target.value)}
               >
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>

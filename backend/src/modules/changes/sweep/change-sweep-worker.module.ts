@@ -13,6 +13,7 @@ import { changeSweepQueueName } from './change-sweep.constants';
 import { ChangeSweepProcessor } from './change-sweep.processor';
 import { ChangeSweepSchedulerService } from './change-sweep.scheduler.service';
 import { ChangeReminderOutboxDispatcher } from './change-reminder-outbox.dispatcher';
+import { ChangeOwnerReconciler } from './change-owner-reconciler.service';
 import { ChangeSweepService } from './change-sweep.service';
 
 /** Paket 3.4 (§14): change reminders, worker-only. */
@@ -25,6 +26,7 @@ import { ChangeSweepService } from './change-sweep.service';
     ServiceAvailabilityConfigurationLoader,
     ChangeScheduleService,
     ChangeDowntimeOutboxReconciler,
+    ChangeOwnerReconciler,
     ChangeNotifier,
     ChangeSweepService,
     ChangeReminderOutboxDispatcher,

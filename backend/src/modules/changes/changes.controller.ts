@@ -80,8 +80,18 @@ export class ChangesController {
 
   @Get('owners')
   @Header('Cache-Control', 'no-store')
-  owners(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined) {
-    return runChange(() => this.changes.searchOwners(this.viewer(request), search ?? ''));
+  owners(
+    @Req() request: AuthenticatedHttpRequest,
+    @Query('search') search: string | undefined,
+    @Query('organizationalUnitId') organizationalUnitId: string | undefined,
+  ) {
+    return runChange(() =>
+      this.changes.searchOwners(
+        this.viewer(request),
+        search ?? '',
+        idOf(organizationalUnitId),
+      ),
+    );
   }
 
   /** §11: equipment for the link picker (CMDB on). */

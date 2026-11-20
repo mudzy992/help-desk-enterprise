@@ -35,6 +35,10 @@ import { computeChangeQuorum } from './change-cab';
 import { hasWarnings } from './change-conflicts';
 import type { ChangeVoterSnapshot } from './change-voter-snapshot';
 import { changeUpdateAffectsDowntime, enqueueChangeDowntimeSync } from './change-downtime-outbox';
+import {
+  changeOwnerEligibility,
+  eligibleChangeOwnerIds,
+} from './change-owner-eligibility';
 import { ChangeNotifier } from './change-notifier';
 import { ChangeScheduleService } from './change-schedule.service';
 import {
@@ -464,7 +468,14 @@ export class ChangesService {
     let cabGroupId = optionalId(input.cabGroupId) ?? null;
     if (input.type !== 'STANDARD') cabGroupId ??= await this.defaultCabGroupId();
     else cabGroupId = null;
-    await this.assertReferences(viewer, { serviceIds, assetIds, problemId, ownerUserId, cabGroupId });
+    await this.assertReferences(viewer, {
+      serviceIds,
+      assetIds,
+      problemId,
+      ownerUserId,
+      cabGroupId,
+      organizationalUnitId: unitId,
+    });
     const risk = computeChangeRisk(impact, likelihood);
 
     const id = await this.prisma.$transaction(async (transaction) => {
@@ -639,12 +650,26 @@ export class ChangesService {
     const visibleCurrentAssetIds = assetIds === undefined
       ? new Set<string>()
       : new Set(visibleAssets(await assetLinkAccess(this.prisma, viewer.userId), current).map((asset) => asset.id));
+    // W7.66: the owner has to be a manager of the unit the change ends up in.
+    // The pair is validated only when one of them actually moves, so a change
+    // whose owner lost the assignment later can still be edited.
+    const effectiveUnitId =
+      (data.organizationalUnitId as string | undefined) ?? current.organizationalUnitId;
+    const ownerMoved =
+      data.ownerUserId !== undefined && data.ownerUserId !== current.ownerUserId;
+    const unitMoved =
+      data.organizationalUnitId !== undefined &&
+      data.organizationalUnitId !== current.organizationalUnitId;
     await this.assertReferences(viewer, {
       serviceIds: serviceIds?.filter((serviceId) => !current.services.some((link) => link.service.id === serviceId)),
       assetIds: assetIds?.filter((assetId) => !current.assets.some((link) => link.asset.id === assetId)),
       problemId: data.problemId as string | null | undefined,
-      ownerUserId: data.ownerUserId as string | null | undefined,
+      ownerUserId:
+        ownerMoved || unitMoved
+          ? ((data.ownerUserId === undefined ? current.ownerUserId : data.ownerUserId) ?? undefined)
+          : undefined,
       cabGroupId: data.cabGroupId as string | null | undefined,
+      organizationalUnitId: ownerMoved || unitMoved ? effectiveUnitId : undefined,
     });
 
     // §6: a scheduled change moved outside its approved window goes back to the CAB.
@@ -928,11 +953,22 @@ export class ChangesService {
     };
   }
 
-  /** Owner picker: active users holding change.manage through a role. */
-  async searchOwners(viewer: ChangeViewer, search: string) {
+  /**
+   * Owner picker: active users holding `change.manage` **for the unit of the
+   * change** (W7.66, BA-changes-10). Without a unit the viewer's home unit is
+   * used, so the picker never offers a foreign scoped manager.
+   */
+  async searchOwners(viewer: ChangeViewer, search: string, organizationalUnitId?: string) {
     await this.access.require(viewer, permissionKeys.changeManage);
     const text = search.trim().slice(0, changeLimits.searchMax);
-    const items = await this.prisma.user.findMany({
+    const unitId = organizationalUnitId ?? viewer.homeOrganizationalUnitId ?? null;
+    if (unitId === null) return { items: [] };
+    const unit = await this.prisma.organizationalUnit.findUnique({
+      where: { id: unitId },
+      select: { ouPath: true },
+    });
+    if (unit === null) return { items: [] };
+    const candidates = await this.prisma.user.findMany({
       where: {
         ...this.managerWhere(),
         ...(text.length > 0
@@ -941,9 +977,15 @@ export class ChangesService {
       },
       select: userSelect,
       orderBy: { displayName: 'asc' },
-      take: 20,
+      // Over-fetch so the in-memory scope filter still fills a full page.
+      take: 60,
     });
-    return { items };
+    const eligible = await eligibleChangeOwnerIds(
+      this.prisma,
+      candidates.map((candidate) => candidate.id),
+      unit.ouPath,
+    );
+    return { items: candidates.filter((candidate) => eligible.has(candidate.id)).slice(0, 20) };
   }
 
   /**
@@ -1067,6 +1109,8 @@ export class ChangesService {
     problemId?: string | null;
     ownerUserId?: string | null;
     cabGroupId?: string | null;
+    /** W7.66: the unit the change belongs to (or moves to). */
+    organizationalUnitId?: string;
   }): Promise<void> {
     if (input.serviceIds && input.serviceIds.length > 0) {
       const found = await this.prisma.service.count({ where: { id: { in: [...input.serviceIds] } } });
@@ -1094,14 +1138,35 @@ export class ChangesService {
       if (problemFinalStatuses.includes(status)) throw new ChangeError(changeErrorCodes.problemClosed, status);
     }
     if (input.ownerUserId) {
-      if ((await this.prisma.user.count({ where: { id: input.ownerUserId, ...this.managerWhere() } })) === 0) {
-        throw new ChangeError(changeErrorCodes.ownerNotManager);
-      }
+      await this.assertOwnerEligible(input.ownerUserId, input.organizationalUnitId);
     }
     if (input.cabGroupId) {
       const group = await this.prisma.group.findUnique({ where: { id: input.cabGroupId }, select: { isCabGroup: true } });
       if (group === null) throw new ChangeError(changeErrorCodes.groupNotFound);
       if (!group.isCabGroup) throw new ChangeError(changeErrorCodes.notCabGroup);
+    }
+  }
+
+  /**
+   * W7.66 (`BA-changes-10`): holding `change.manage` somewhere is not enough —
+   * the assignment must cover the unit the change belongs to (or moves to). The
+   * scope comes from the same resolver `canManage` uses, so the picker, the
+   * write validation and the drift reconciler cannot disagree with access.
+   */
+  async assertOwnerEligible(ownerUserId: string, organizationalUnitId?: string): Promise<void> {
+    const unitPath =
+      organizationalUnitId === undefined
+        ? null
+        : (
+            await this.prisma.organizationalUnit.findUnique({
+              where: { id: organizationalUnitId },
+              select: { ouPath: true },
+            })
+          )?.ouPath ?? null;
+    if (unitPath === null) throw new ChangeError(changeErrorCodes.unitNotFound);
+    const eligibility = await changeOwnerEligibility(this.prisma, ownerUserId, unitPath);
+    if (!eligibility.eligible) {
+      throw new ChangeError(changeErrorCodes.ownerNotManager, eligibility.reason);
     }
   }
 
@@ -1194,6 +1259,13 @@ export class ChangesService {
     const editScope = await this.editScopeFor(viewer, row);
     const visibleProblem =
       showLinks && row.problem !== null && (await this.canReadProblem(viewer, row.problem.id)) ? row.problem : null;
+    // W7.66: a revocation or a deactivation after the assignment must not leave
+    // a silently trusted owner — the client can show "no longer eligible".
+    const ownerEligible =
+      row.ownerUserId === null
+        ? null
+        : (await changeOwnerEligibility(this.prisma, row.ownerUserId, row.organizationalUnit.ouPath))
+            .eligible;
     const problemPrefix = visibleProblem === null ? null : await this.access.problemNumberPrefix();
     const planFields = [
       'description',
@@ -1242,6 +1314,7 @@ export class ChangesService {
       cancelledAt: row.cancelledAt?.toISOString() ?? null,
       cancelReason: showOutcome ? row.cancelReason : null,
       version: row.version,
+      ownerEligible,
       allowedActions: await this.allowedActions(viewer, row, canManage),
       permissions: {
         canManage,

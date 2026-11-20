@@ -140,6 +140,11 @@ export function ChangeOverview({ change }: { readonly change: ChangeDetail }) {
         <dl className="divide-y divide-border/60 px-4 py-2">
           <DefinitionRow label={t("changes.fields.owner")}>
             {change.owner?.displayName ?? t("changes.list.noOwner")}
+            {change.ownerEligible === false ? (
+              <span className="mt-1 block text-[11.5px] text-amber-600 dark:text-amber-400">
+                {t("changes.detail.ownerNotEligible")}
+              </span>
+            ) : null}
           </DefinitionRow>
           <DefinitionRow label={t("changes.fields.requester")}>
             {change.requester?.displayName ?? "—"}

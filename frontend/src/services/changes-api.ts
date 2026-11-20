@@ -156,6 +156,11 @@ export type ChangeDetail = ChangeListItem & {
   readonly cancelledAt: string | null;
   readonly cancelReason: string | null;
   readonly version: number;
+  /**
+   * W7.66: `false` when the stored owner has since lost `change.manage` for this
+   * unit (revoked, deactivated, moved). The owner stays assigned; the UI warns.
+   */
+  readonly ownerEligible: boolean | null;
   readonly allowedActions: readonly ChangeAction[];
   readonly permissions: {
     readonly canManage: boolean;
@@ -326,7 +331,8 @@ export const changeQueryKeys = {
   events: (id: string) => ["changes", "detail", id, "events"] as const,
   conflicts: (id: string) => ["changes", "detail", id, "conflicts"] as const,
   approvals: (id: string) => ["changes", "detail", id, "approvals"] as const,
-  owners: (search: string) => ["changes", "owners", search] as const,
+  owners: (search: string, organizationalUnitId?: string) =>
+    ["changes", "owners", organizationalUnitId ?? null, search] as const,
 };
 
 export function getChangeCapabilities(): Promise<ChangeCapabilities> {
@@ -337,10 +343,19 @@ export function getChangeOptions(): Promise<ChangeOptions> {
   return apiRequest("/changes/options");
 }
 
+/**
+ * W7.66: candidates are scoped to the unit the change belongs to (or moves to),
+ * so the picker cannot offer a manager who is rejected on save.
+ */
 export function searchChangeOwners(
   search: string,
+  organizationalUnitId?: string,
 ): Promise<{ readonly items: readonly UserRef[] }> {
-  return apiRequest(`/changes/owners?${new URLSearchParams({ search }).toString()}`);
+  const query = new URLSearchParams({ search });
+  if (organizationalUnitId !== undefined && organizationalUnitId !== "") {
+    query.set("organizationalUnitId", organizationalUnitId);
+  }
+  return apiRequest(`/changes/owners?${query.toString()}`);
 }
 
 export function listChangesPage(
