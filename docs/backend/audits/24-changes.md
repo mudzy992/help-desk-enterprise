@@ -175,7 +175,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-11 | P2       | Claim/general update nemaju kanonski globalni audit                                            | zatvoreno (W7.67) |
 | BA-changes-12 | P2       | Conflict acknowledgement nema snapshot/hash i može zastarjeti prije action commita             | zatvoreno (W7.68) |
 | BA-changes-13 | P2       | Scheduler nema Redis-loss reconciliation ni delivery/downtime drift health                     | zatvoreno (W7.69) |
-| BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | otvoreno |
+| BA-changes-14 | P2       | CAB eligibility hard-limit 100 tiho izostavlja članove i mijenja quorum                        | zatvoreno (W7.70) |
 | BA-changes-15 | P2       | Template update nema optimistic concurrency/before-after audit                                 | otvoreno |
 | BA-changes-16 | P2       | Default CAB je alfabetički prvi group, bez OU/service routing politike                         | otvoreno |
 | BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | otvoreno |
@@ -529,3 +529,34 @@ self-heal, fail-closed čitanje, zapis samo završenog prolaza i ponašanje oba 
 **Preostali rizik:** reconcile je „eventually” (do 60 s prozora); `no_recent_success` mjeri sweep, ne isporuku
 (isporuku pokriva `changes.reminders.stuck`); drift brojevi opisuju zadnji završen prolaz, pa prolaz duži od
 10 min prikazuje „Nepoznato” dok se ne završi.
+
+## 33. Implementacijski closeout — W7.70 (`BA-changes-14`)
+
+**Status nalaza:** zatvoren; paket W7.70, kod `9f2a6d5`, CI
+[44730522227](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44730522227), **bez migracije**.
+Detalji: [291](../implementation/291-w770-changes-14-cab-voter-ceiling.md).
+
+**Šta je bilo:** `loadCabVoterIds` je uzimao prvih 100 članova CAB grupe sa `change.approve`. Grupa sa 101+
+podobnih članova davala je skup od 100 glasača i kvorum `min(postavka, 100)` — tiho, i u smjeru koji
+odobravanje čini lakšim. W7.47 je zamrznuo skup i kvorum, ali **iz tog istog odsječenog upita**; uz to je
+čitač snapshota imao nezavisni limit od 100 i vratio bi `null` za veći skup, pa bi krug pao na živo članstvo.
+
+**Šta je sada:** loader čita cijeli podoban skup keysetom (`id asc`, `take: cabVoterPageSize + 1`, predikat
+podobnosti ostaje u bazi). `changeLimits.cabVotersMax = 500` je guard, ne komentar: prelazak baca
+`CHANGE_CAB_GROUP_TOO_LARGE` sa ID-em grupe (409, uz `CHANGE_NO_APPROVERS`) i krug se zaustavlja. Pisac i
+čitač snapshota dijele istu granicu, pa ne postoji više kombinacija „upisano, ali nečitljivo → povratak na živo
+članstvo”. Panel glasanja čita najviše toliko glasača koliko krug može imati, a frontend prevodi novi kod
+(`changes.errors.cabGroupTooLarge`, bs/en).
+
+**Acceptance:** §7 („`loadCabVoterIds` uzima prvih 100 bez `hasMore`… komentar nije runtime guard”) je
+ispunjen i mjerljiv: 5 testova loadera (150 glasača stiže svih 150; granica + 1 ⇒ 409), 1 test čitača
+(150-člani snapshot se čita), 2 testa approvals (kvorum 150 od 150; prevelika grupa zaustavlja krug) i 1
+frontend test mapiranja.
+
+**Šta ostaje u ovom modulu:** P2: `15`, `16`, `17`. P3: `18`, `19`, `20`.
+
+**Preostali rizik:** granica je broj (500), ne politika — instalacija sa većim CAB-om mora ga sažeti; keyset
+nije izolacijski snapshot (član koji uđe između dvije stranice može biti pročitan ili ne, što je za otvaranje
+kruga prihvatljivo jer se skup odmah zamrzne); legacy krugovi bez snapshota vraćaju 409 za preveliku grupu
+umjesto tiho pogrešnog kvoruma; notifikacije za preveliku grupu padaju na istu grešku i ostaju u logu, bez
+posebnog ops alarma.
