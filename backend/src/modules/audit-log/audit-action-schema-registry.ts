@@ -197,7 +197,16 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.problemHandoffCancelled]: schema(['fromGroupId', 'handoffId', 'toGroupId']),
   [auditLogActions.problemTicketsResolved]: schema(['failed', 'resolved', 'skipped']),
   [auditLogActions.changeCreated]: schema(['organizationalUnitId', 'risk', 'sequence', 'type']),
-  [auditLogActions.changeStatusChanged]: schema(['action', 'from', 'reason', 'to']),
+  // W7.68 (BA-changes-12): a transition that accepted a conflict preview keeps
+  // the digest of the snapshot the approver saw, so the acknowledgement is
+  // provable afterwards; the conflicts themselves stay in the change history.
+  [auditLogActions.changeStatusChanged]: schema([
+    'action',
+    'conflictsAcknowledged',
+    'from',
+    'reason',
+    'to',
+  ]),
   [auditLogActions.changeApprovalRecorded]: schema(['decision', 'result', 'round']),
   // W7.67 (BA-changes-11): the edit names every changed field; references and
   // classifications carry before/after; free text is only named, never copied.

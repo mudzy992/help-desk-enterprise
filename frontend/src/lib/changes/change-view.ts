@@ -132,6 +132,8 @@ const changeErrorKeys = {
   CHANGE_LEAD_TIME: "changes.errors.leadTime",
   CHANGE_FREEZE: "changes.errors.freeze",
   CHANGE_CONFLICTS_NOT_ACKNOWLEDGED: "changes.errors.conflictsNotAcknowledged",
+  // W7.68: the preview the user ticked is no longer the one on record.
+  CHANGE_CONFLICTS_STALE: "changes.errors.conflictsStale",
   CHANGE_NO_APPROVERS: "changes.errors.noApprovers",
   CHANGE_NOT_APPROVER: "changes.errors.notApprover",
   CHANGE_ALREADY_VOTED: "changes.errors.alreadyVoted",

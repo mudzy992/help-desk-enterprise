@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsISO8601, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsISO8601, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from 'class-validator';
 import { changeActions, changeLevels, changeLimits, changeOutcomes, changeTypes } from './changes.constants';
 
 const idList = () => [IsOptional(), IsArray(), ArrayMaxSize(changeLimits.linksMax), IsString({ each: true }), MaxLength(64, { each: true })];
@@ -64,6 +64,11 @@ export class ChangeActionDto {
   @IsOptional() @IsString() @MaxLength(changeLimits.textMax) reviewNotes?: string;
   /** §9: required when the window has conflicts. */
   @IsOptional() @IsBoolean() acknowledgeConflicts?: boolean;
+  /**
+   * W7.68 (`BA-changes-12`): the digest the preview returned. The action is
+   * refused when the conflicts changed between the preview and the write.
+   */
+  @IsOptional() @Matches(/^[a-f0-9]{64}$/) conflictSnapshotHash?: string;
 }
 
 export class ChangeVoteDto {

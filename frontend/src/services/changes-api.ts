@@ -227,6 +227,12 @@ export type ChangeConflicts = {
   readonly hasWarnings: boolean;
   /** Only on a saved change. */
   readonly acknowledgedAt?: string | null;
+  /**
+   * W7.68 (`BA-changes-12`): digest of exactly these conflicts. It has to be
+   * echoed back on acknowledgement, and the server refuses the action when the
+   * conflicts moved in between. Absent on servers before W7.68.
+   */
+  readonly snapshotHash?: string | null;
 };
 
 export type ChangeVoteDecision = "APPROVED" | "REJECTED";
@@ -308,6 +314,12 @@ export type ChangeActionInput = {
   readonly outcome?: ChangeOutcome;
   readonly reviewNotes?: string;
   readonly acknowledgeConflicts?: boolean;
+  /**
+   * W7.68: the `snapshotHash` of the preview the user was looking at. Without
+   * it the acknowledgement covers an unknown set of conflicts and the server
+   * answers 409 CHANGE_CONFLICTS_STALE.
+   */
+  readonly conflictSnapshotHash?: string;
 };
 
 export type ChangeConflictPreviewInput = {

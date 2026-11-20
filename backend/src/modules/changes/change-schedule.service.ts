@@ -1,4 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
+import type { PrismaClient } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { assetLinkAccess, assetLinkWhere } from '../assets/asset-link-access';
@@ -45,6 +46,13 @@ function downtimeReleaseReason(status: ChangeStatusValue): string {
   }
 }
 
+/**
+ * The two reads a conflict check needs. Both the request-scoped client and a
+ * transaction client satisfy it, which is what lets the write path re-run the
+ * check inside its own transaction (W7.68).
+ */
+export type ConflictReadClient = Pick<PrismaClient, 'changeRequest' | 'serviceDowntimeWindow'>;
+
 export type ConflictSubject = {
   readonly changeId: string | null;
   readonly type: ChangeTypeValue;
@@ -67,12 +75,20 @@ export class ChangeScheduleService {
     @Optional() private readonly availability?: ServiceAvailabilityConfigurationLoader,
   ) {}
 
-  async conflictsFor(subject: ConflictSubject, configuration: ChangeConfiguration): Promise<ChangeConflicts> {
+  async conflictsFor(
+    subject: ConflictSubject,
+    configuration: ChangeConfiguration,
+    /**
+     * W7.68: the write path recomputes the conflicts inside its transaction, so
+     * the acknowledgement covers the set that is on record at commit time.
+     */
+    client: ConflictReadClient = this.prisma,
+  ): Promise<ChangeConflicts> {
     const { window } = subject;
     const [candidates, downtime] = await Promise.all([
       subject.serviceIds.length + subject.assetIds.length === 0
         ? []
-        : this.prisma.changeRequest.findMany({
+        : client.changeRequest.findMany({
             where: {
               status: { in: [...changeActiveWindowStatuses] },
               plannedStart: { lt: window.end },
@@ -96,7 +112,7 @@ export class ChangeScheduleService {
           }),
       subject.serviceIds.length === 0
         ? []
-        : this.prisma.serviceDowntimeWindow.findMany({
+        : client.serviceDowntimeWindow.findMany({
             where: { serviceId: { in: [...subject.serviceIds] }, startsAt: { lt: window.end }, endsAt: { gt: window.start } },
             select: { id: true, serviceId: true, startsAt: true, endsAt: true, message: true, changeRequestId: true },
             take: 200,

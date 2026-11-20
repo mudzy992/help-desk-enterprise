@@ -35,6 +35,8 @@ export const knownAuditMetadataFields = [
   "configDays",
   "concurrentSkip",
   "conflicts",
+  // W7.68: the digest of the conflict snapshot a transition acknowledged.
+  "conflictsAcknowledged",
   "conversationType",
   "createdRolePermissionCount",
   "createdUserRoleCount",

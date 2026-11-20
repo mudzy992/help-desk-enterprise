@@ -146,6 +146,13 @@ test.describe('32 change scheduling', () => {
             const conflicts = await admin.requestJson<Conflicts>(`/changes/${second.id}/conflicts`);
             expect(conflicts.changes.some((item) => item.id === first!.id)).toBe(true);
             second = await loadChange(admin, second.id);
+            // W7.68: a digest of some other snapshot proves nothing.
+            const stale = await act(admin, second, 'authorize', {
+              acknowledgeConflicts: true,
+              conflictSnapshotHash: 'f'.repeat(64),
+            });
+            expect(await errorCode(stale)).toBe('CHANGE_CONFLICTS_STALE');
+            second = await loadChange(admin, second.id);
             const acknowledged = await act(admin, second, 'authorize', { acknowledgeConflicts: true });
             expect(acknowledged.ok, await acknowledged.clone().text()).toBe(true);
             second = await loadChange(admin, second.id);

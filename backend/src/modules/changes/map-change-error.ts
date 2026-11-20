@@ -28,6 +28,7 @@ export function mapChangeError(error: unknown): unknown {
     case changeErrorCodes.leadTime:
     case changeErrorCodes.freeze:
     case changeErrorCodes.conflictsNotAcknowledged:
+    case changeErrorCodes.conflictsStale:
     case changeErrorCodes.noApprovers:
     case changeErrorCodes.alreadyVoted:
     case changeErrorCodes.notInAuthorization:

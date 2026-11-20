@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import {
   actionChecksConflicts,
@@ -19,6 +20,7 @@ import {
   mapChangeError,
   reviewNotesMin,
 } from "@/lib/changes/change-view";
+import { ApiError } from "@/services/api";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   actOnChange,
@@ -41,6 +43,12 @@ interface ChangeActionSheetProperties {
  * Delivery invariant (requirement, requirement, requirement): one lifecycle step with every field it needs:
  * a reason (return, withdraw, cancel), the outcome (finish), review notes
  * (close) and the conflict acknowledgement where the window is committed.
+ *
+ * W7.68 (`BA-changes-12`): the acknowledgement is bound to the digest of the
+ * preview rendered here, not to the window in general. When another change took
+ * the slot in between, the server answers `CHANGE_CONFLICTS_STALE`; the sheet
+ * then reloads the conflicts, drops the tick and says why, so nobody approves a
+ * list they no longer see.
  */
 export function ChangeActionSheet({
   action,
@@ -49,6 +57,7 @@ export function ChangeActionSheet({
   onDone,
 }: ChangeActionSheetProperties) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const open = action !== null;
   const [reason, setReason] = useState("");
   const [outcome, setOutcome] = useState<ChangeOutcome | "">("");
@@ -108,12 +117,25 @@ export function ChangeActionSheet({
         ...(action === "close" || (action === "finish" && reviewNotes.trim() !== "")
           ? { reviewNotes: reviewNotes.trim() }
           : {}),
-        ...(needsAcknowledge ? { acknowledgeConflicts: true } : {}),
+        // The flag says "I ticked the box"; the digest says *which* box. A
+        // server before W7.68 has no digest to offer and only reads the flag.
+        ...(needsAcknowledge
+          ? {
+              acknowledgeConflicts: true,
+              ...(conflicts?.snapshotHash ? { conflictSnapshotHash: conflicts.snapshotHash } : {}),
+            }
+          : {}),
       });
       onDone(next);
       onClose();
     } catch (caught) {
-      setError(t(mapChangeError(caught) ?? mapApiError(caught)));
+      const message = t(mapChangeError(caught) ?? mapApiError(caught));
+      setError(message);
+      if (caught instanceof ApiError && caught.code === "CHANGE_CONFLICTS_STALE") {
+        setAcknowledged(false);
+        toast({ tone: "danger", title: message });
+        void conflictsQuery.refetch();
+      }
     } finally {
       setPending(false);
     }

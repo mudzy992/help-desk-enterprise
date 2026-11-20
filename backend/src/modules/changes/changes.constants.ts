@@ -101,6 +101,8 @@ export const changeErrorCodes = {
   leadTime: 'CHANGE_LEAD_TIME',
   freeze: 'CHANGE_FREEZE',
   conflictsNotAcknowledged: 'CHANGE_CONFLICTS_NOT_ACKNOWLEDGED',
+  /** W7.68: the acknowledgement no longer matches the conflicts on record. */
+  conflictsStale: 'CHANGE_CONFLICTS_STALE',
   noApprovers: 'CHANGE_NO_APPROVERS',
   notApprover: 'CHANGE_NOT_APPROVER',
   alreadyVoted: 'CHANGE_ALREADY_VOTED',

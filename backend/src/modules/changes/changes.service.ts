@@ -6,6 +6,7 @@ import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.con
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { changeClaimAuditMetadata, changeUpdateAuditMetadata } from './change-audit';
+import { changeConflictSnapshot, type ChangeConflictSnapshot } from './change-conflict-snapshot';
 import {
   assetLinkAccess,
   assetLinkVisible,
@@ -41,7 +42,7 @@ import {
   eligibleChangeOwnerIds,
 } from './change-owner-eligibility';
 import { ChangeNotifier } from './change-notifier';
-import { ChangeScheduleService } from './change-schedule.service';
+import { ChangeScheduleService, type ConflictReadClient } from './change-schedule.service';
 import {
   changeDetailLevel,
   changeVisibilityWhere,
@@ -796,20 +797,29 @@ export class ChangesService {
       };
     }
     let acknowledge = false;
+    let acknowledged: ChangeConflictSnapshot | null = null;
+    const conflictSubject = {
+      changeId: current.id,
+      type: current.type,
+      window: { start: current.plannedStart as Date, end: current.plannedEnd as Date },
+      serviceIds: current.services.map((link) => link.service.id),
+      assetIds: current.assets.map((link) => link.asset.id),
+    };
     if (target === 'AUTHORIZATION' || input.action === 'schedule') {
       // §9: conflicts are warnings that must be acknowledged once per window.
-      const conflicts = await this.schedule.conflictsFor(
-        {
-          changeId: current.id,
-          type: current.type,
-          window: { start: current.plannedStart as Date, end: current.plannedEnd as Date },
-          serviceIds: current.services.map((link) => link.service.id),
-          assetIds: current.assets.map((link) => link.asset.id),
-        },
-        configuration,
-      );
+      const conflicts = await this.schedule.conflictsFor(conflictSubject, configuration);
       if (hasWarnings(conflicts) && current.conflictsAcknowledgedAt === null) {
         if (input.acknowledgeConflicts !== true) throw new ChangeError(changeErrorCodes.conflictsNotAcknowledged);
+        // W7.68 (BA-changes-12): the flag alone acknowledges *nothing*. The
+        // client must echo the digest of the preview it actually showed.
+        const preview = changeConflictSnapshot(conflicts, conflictSubject.window);
+        if (input.conflictSnapshotHash === undefined) {
+          throw new ChangeError(changeErrorCodes.conflictsStale, 'snapshot_missing');
+        }
+        if (input.conflictSnapshotHash !== preview.hash) {
+          throw new ChangeError(changeErrorCodes.conflictsStale, 'snapshot_changed');
+        }
+        acknowledged = preview;
         acknowledge = true;
       }
     }
@@ -818,6 +828,22 @@ export class ChangesService {
     const from = current.status;
 
     await this.prisma.$transaction(async (transaction) => {
+      if (acknowledged !== null) {
+        // W7.68: recompute inside the write transaction. A conflict that moved
+        // in between changes the digest, so the stale acknowledgement aborts the
+        // action instead of blessing a snapshot nobody reviewed.
+        const fresh = changeConflictSnapshot(
+          await this.schedule.conflictsFor(
+            conflictSubject,
+            configuration,
+            transaction as unknown as ConflictReadClient,
+          ),
+          conflictSubject.window,
+        );
+        if (fresh.hash !== acknowledged.hash) {
+          throw new ChangeError(changeErrorCodes.conflictsStale, 'snapshot_changed');
+        }
+      }
       const result = await transaction.changeRequest.updateMany({
         where: { id, version: current.version, status: from },
         data: {
@@ -833,9 +859,16 @@ export class ChangesService {
         },
       });
       if (result.count === 0) throw new ChangeError(changeErrorCodes.versionConflict);
-      if (acknowledge) {
+      if (acknowledge && acknowledged !== null) {
         await transaction.changeEvent.create({
-          data: { changeId: id, action: changeEventActions.conflictsAcknowledged, actorUserId: viewer.userId, detail: { action: input.action } },
+          data: {
+            changeId: id,
+            action: changeEventActions.conflictsAcknowledged,
+            actorUserId: viewer.userId,
+            // W7.68: the digest proves which snapshot was accepted; counts and
+            // window stay readable, titles and downtime text do not appear.
+            detail: { action: input.action, snapshot: acknowledged } as never,
+          },
         });
       }
       const failed = input.action === 'finish' && (input.outcome === 'FAILED' || input.outcome === 'ROLLED_BACK');
@@ -869,7 +902,13 @@ export class ChangesService {
         action: auditLogActions.changeStatusChanged,
         entityType: auditLogEntityTypes.change,
         entityId: id,
-        metadata: { from, to: target, action: input.action, reason } as never,
+        metadata: {
+          from,
+          to: target,
+          action: input.action,
+          reason,
+          ...(acknowledged === null ? {} : { conflictsAcknowledged: acknowledged.hash }),
+        } as never,
         actorUserId: viewer.userId,
         organizationalUnitId: current.organizationalUnitId,
       });
@@ -913,6 +952,7 @@ export class ChangesService {
         freezeBlocks: false,
         hasWarnings: false,
         acknowledgedAt: null,
+        snapshotHash: null,
       };
     }
     const conflicts = await this.schedule.conflictsFor(
@@ -928,6 +968,11 @@ export class ChangesService {
     return {
       ...(await this.schedule.describe(conflicts, configuration, { scope, userId: viewer.userId })),
       acknowledgedAt: current.conflictsAcknowledgedAt?.toISOString() ?? null,
+      // W7.68: what the client must echo when it acknowledges this preview.
+      snapshotHash: changeConflictSnapshot(conflicts, {
+        start: current.plannedStart,
+        end: current.plannedEnd,
+      }).hash,
     };
   }
 

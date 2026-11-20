@@ -111,8 +111,26 @@ export function futureWindow(daysAhead: number, startHour = 10, endHour = 12): {
   return { plannedStart: new Date(day + startHour * 3_600_000).toISOString(), plannedEnd: new Date(day + endHour * 3_600_000).toISOString() };
 }
 
+/**
+ * W7.68 (`BA-changes-12`): an acknowledgement is bound to one conflict preview,
+ * so the test reads the same preview the UI reads and echoes its digest. Without
+ * it the server refuses the action with `CHANGE_CONFLICTS_STALE` instead of
+ * accepting a blanket "I am aware".
+ */
+async function conflictSnapshotHash(api: ApiClient, changeId: string): Promise<string | null> {
+  const preview = await api
+    .requestJson<{ snapshotHash?: string | null }>(`/changes/${changeId}/conflicts`)
+    .catch(() => null);
+  return preview?.snapshotHash ?? null;
+}
+
 export async function act(api: ApiClient, change: ChangeDetail, action: string, extra: Record<string, unknown> = {}): Promise<Response> {
-  return api.request(`/changes/${change.id}/actions`, { method: 'POST', body: JSON.stringify({ version: change.version, action, ...extra }) });
+  const body: Record<string, unknown> = { version: change.version, action, ...extra };
+  if (extra.acknowledgeConflicts === true && extra.conflictSnapshotHash === undefined) {
+    const snapshotHash = await conflictSnapshotHash(api, change.id);
+    if (snapshotHash !== null) body.conflictSnapshotHash = snapshotHash;
+  }
+  return api.request(`/changes/${change.id}/actions`, { method: 'POST', body: JSON.stringify(body) });
 }
 
 export async function loadChange(api: ApiClient, id: string): Promise<ChangeDetail> {
