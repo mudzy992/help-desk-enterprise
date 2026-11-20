@@ -10136,7 +10136,9 @@
       "problemSearch": "Search problems by number or title",
       "problemResults": "Problem search results",
       "problemNone": "No open problems found.",
-      "problemHint": "A change may fix at most one problem."
+      "problemHint": "A change may fix at most one problem.",
+      "cabGroupPlaceholder": "Select a CAB group",
+      "cabGroupRequiredHint": "This installation has several CAB groups — choose the one that approves this change."
     },
     "detail": {
       "back": "Changes",
@@ -10315,7 +10317,8 @@
         "reviewNotes": "Enter review notes (at least 20 characters for failed or rolled-back changes)."
       },
       "templateStale": "The template changed after you opened it. Load the newest version and try again.",
-      "templateRevisionRequired": "A template update must carry the revision you loaded."
+      "templateRevisionRequired": "A template update must carry the revision you loaded.",
+      "cabGroupRequired": "Choose the CAB group that approves this change."
     },
     "tabs": {
       "register": "Register",

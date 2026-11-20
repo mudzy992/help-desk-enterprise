@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/toast";
 import { buildChangeConflictPreview } from "@/lib/changes/change-conflict-preview";
+import { changeFormBody, changeFormUnits, changeWindowState } from "@/lib/changes/change-form-body";
+import { useChangeCabGroup } from "@/lib/changes/use-change-cab-group";
 import { useChangeOwnerSearch } from "@/lib/changes/use-change-owner-search";
 import {
   changeLevelKeys,
@@ -79,7 +82,8 @@ export function ChangeFormSheet({
   const [impact, setImpact] = useState<ChangeLevel>("MEDIUM");
   const [likelihood, setLikelihood] = useState<ChangeLevel>("MEDIUM");
   const [unitId, setUnitId] = useState("");
-  const [cabGroupId, setCabGroupId] = useState("");
+  const cabGroup = useChangeCabGroup({ options, change, unitId });
+  const prefillCabGroup = cabGroup.prefill;
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
@@ -93,6 +97,7 @@ export function ChangeFormSheet({
   const [owner, setOwner] = useState<Owner | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const ownerSearch = useChangeOwnerSearch({
     open,
     canAssignOwner,
@@ -110,13 +115,13 @@ export function ChangeFormSheet({
     setReason(change?.reason ?? "");
     setImpact(change?.impact ?? "MEDIUM");
     setLikelihood(change?.likelihood ?? "MEDIUM");
-    setUnitId(
+    const nextUnitId =
       change?.organizationalUnit.id ??
-        options.homeOrganizationalUnitId ??
-        options.units[0]?.id ??
-        "",
-    );
-    setCabGroupId(change?.cabGroup?.id ?? options.cabGroups[0]?.id ?? "");
+      options.homeOrganizationalUnitId ??
+      options.units[0]?.id ??
+      "";
+    setUnitId(nextUnitId);
+    prefillCabGroup(nextUnitId);
     setServiceIds(
       change ? change.services.map((service) => service.id) : [...(prefill?.serviceIds ?? [])],
     );
@@ -132,7 +137,7 @@ export function ChangeFormSheet({
     setOwner(change?.owner ?? null);
     resetOwnerSearch();
     setError(null);
-  }, [open, change, prefill, options, resetOwnerSearch]);
+  }, [open, change, prefill, options, resetOwnerSearch, prefillCabGroup]);
 
   // W7.66: moving the unit drops the picked owner — it may not manage the new one.
   const changeUnit = (nextUnitId: string) => {
@@ -140,6 +145,7 @@ export function ChangeFormSheet({
     setUnitId(nextUnitId);
     setOwner(null);
     resetOwnerSearch();
+    cabGroup.applyUnitMove(nextUnitId);
   };
 
   const standard = type === "STANDARD";
@@ -157,11 +163,12 @@ export function ChangeFormSheet({
   const risk = standard && template ? template.risk : computeChangeRisk(impact, likelihood);
   const startIso = start === "" ? null : fromDateTimeLocalValue(start);
   const endIso = end === "" ? null : fromDateTimeLocalValue(end);
-  const windowInvalid =
-    (start !== "" && startIso === null) ||
-    (end !== "" && endIso === null) ||
-    (startIso !== null && endIso !== null && startIso >= endIso);
-  const windowHalf = (startIso === null) !== (endIso === null);
+  const { invalid: windowInvalid, half: windowHalf } = changeWindowState(
+    start,
+    end,
+    startIso,
+    endIso,
+  );
 
   const previewInput = buildChangeConflictPreview({
     open,
@@ -193,17 +200,7 @@ export function ChangeFormSheet({
     retry: false,
   });
 
-  const units =
-    change !== undefined && !options.units.some((unit) => unit.id === change.organizationalUnit.id)
-      ? [
-          {
-            id: change.organizationalUnit.id,
-            name: change.organizationalUnit.name,
-            path: change.organizationalUnit.ouPath,
-          },
-          ...options.units,
-        ]
-      : options.units;
+  const units = changeFormUnits(options, change);
 
   const canSubmit =
     !saving &&
@@ -212,7 +209,9 @@ export function ChangeFormSheet({
     (windowOnly ||
       (title.trim().length >= 3 &&
         unitId !== "" &&
-        (standard ? editing || templateId !== "" : description.trim().length > 0)));
+        (standard
+          ? editing || templateId !== ""
+          : description.trim().length > 0 && cabGroup.value !== "")));
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -230,29 +229,27 @@ export function ChangeFormSheet({
           ...ownerPart,
         });
       } else {
-        const body = {
-          title: title.trim(),
-          description: description.trim(),
-          reason: reason.trim(),
+        const body = changeFormBody({
+          title,
+          description,
+          reason,
           organizationalUnitId: unitId,
           serviceIds,
           ...(capabilities.cmdbEnabled ? { assetIds: assets.map((asset) => asset.id) } : {}),
           ...(capabilities.problemsEnabled ? { problemId: problem?.id ?? null } : {}),
           causesDowntime,
-          ...windowPart,
+          plannedStart: startIso,
+          plannedEnd: endIso,
           ...ownerPart,
-          ...(standard
-            ? {}
-            : {
-                impact,
-                likelihood,
-                cabGroupId: cabGroupId || null,
-                implementationPlan: implementationPlan.trim() || null,
-                backoutPlan: backoutPlan.trim() || null,
-                testPlan: testPlan.trim() || null,
-              }),
-          communicationPlan: communicationPlan.trim() || null,
-        };
+          standard,
+          impact,
+          likelihood,
+          cabGroupId: cabGroup.value,
+          implementationPlan,
+          backoutPlan,
+          testPlan,
+          communicationPlan,
+        });
         saved = editing
           ? await updateChange(change.id, { version: change.version, ...body })
           : await createChange({ type, ...body, ...(standard ? { templateId } : {}) });
@@ -260,7 +257,10 @@ export function ChangeFormSheet({
       onOpenChange(false);
       onSaved(saved.id);
     } catch (caught) {
-      setError(t(mapChangeError(caught) ?? mapApiError(caught)));
+      const message = t(mapChangeError(caught) ?? mapApiError(caught));
+      setError(message);
+      // The sheet scrolls, so the failure is announced, not only printed inline.
+      toast({ tone: "danger", title: message });
     } finally {
       setSaving(false);
     }
@@ -441,8 +441,10 @@ export function ChangeFormSheet({
             setAssets={setAssets}
             problem={problem}
             setProblem={setProblem}
-            cabGroupId={cabGroupId}
-            setCabGroupId={setCabGroupId}
+            cabGroupId={cabGroup.value}
+            setCabGroupId={cabGroup.setValue}
+            cabGroupOptions={cabGroup.candidates}
+            cabGroupRequired={cabGroup.required}
             start={start}
             setStart={setStart}
             end={end}

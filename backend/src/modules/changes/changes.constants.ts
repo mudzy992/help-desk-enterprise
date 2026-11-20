@@ -124,6 +124,8 @@ export const changeErrorCodes = {
   noApprovers: 'CHANGE_NO_APPROVERS',
   /** W7.70: the CAB group has more eligible voters than one round may hold. */
   cabGroupTooLarge: 'CHANGE_CAB_GROUP_TOO_LARGE',
+  /** BA-changes-16: the CAB group cannot be derived without guessing. */
+  cabGroupRequired: 'CHANGE_CAB_GROUP_REQUIRED',
   notApprover: 'CHANGE_NOT_APPROVER',
   alreadyVoted: 'CHANGE_ALREADY_VOTED',
   notInAuthorization: 'CHANGE_NOT_IN_AUTHORIZATION',

@@ -33,6 +33,7 @@ import {
   parseChangeNumberSearch,
   type ChangeFacts,
 } from './change-rules';
+import { ancestorOuPaths, decideCabGroup, type CabRoutingDecision } from './change-cab-routing';
 import { computeChangeQuorum } from './change-cab';
 import { hasWarnings } from './change-conflicts';
 import type { ChangeVoterSnapshot } from './change-voter-snapshot';
@@ -467,9 +468,17 @@ export class ChangesService {
     const problemId = optionalId(input.problemId) ?? null;
     const ownerUserId = optionalId(input.ownerUserId) ?? null;
     if (ownerUserId !== null && !isManager) throw new ChangeError(changeErrorCodes.forbidden, 'owner');
+    // BA-changes-16: the CAB body is never guessed. A NORMAL/EMERGENCY change
+    // is routed by its unit (the nearest level with exactly one CAB group), and
+    // every ambiguous case fails closed with CHANGE_CAB_GROUP_REQUIRED.
     let cabGroupId = optionalId(input.cabGroupId) ?? null;
-    if (input.type !== 'STANDARD') cabGroupId ??= await this.defaultCabGroupId();
-    else cabGroupId = null;
+    let cabRouting: CabRoutingDecision['cabRouting'] | null = null;
+    if (input.type === 'STANDARD') cabGroupId = null;
+    else {
+      const routing = await this.resolveCabGroup(unitId, cabGroupId);
+      cabGroupId = routing.cabGroupId;
+      cabRouting = routing.cabRouting;
+    }
     await this.assertReferences(viewer, {
       serviceIds,
       assetIds,
@@ -526,7 +535,16 @@ export class ChangesService {
         action: auditLogActions.changeCreated,
         entityType: auditLogEntityTypes.change,
         entityId: created.id,
-        metadata: { sequence, type: input.type, risk, organizationalUnitId: unitId } as never,
+        // BA-changes-16 (schema v2): the routing is part of the creation record,
+        // so "why this CAB body" is provable without reading the code.
+        metadata: {
+          sequence,
+          type: input.type,
+          risk,
+          organizationalUnitId: unitId,
+          cabGroupId,
+          cabRouting,
+        } as never,
         actorUserId: viewer.userId,
         organizationalUnitId: unitId,
       });
@@ -650,6 +668,12 @@ export class ChangesService {
     const cabGroupId = optionalId(input.cabGroupId);
     if (cabGroupId !== undefined && cabGroupId !== current.cabGroupId) {
       if (current.type === 'STANDARD' && cabGroupId !== null) throw new ChangeError(changeErrorCodes.locked, 'cabGroupId');
+      // BA-changes-16: a standard change keeps no CAB group, and a standard
+      // change is the only one that may be left without an approval body -
+      // otherwise the next authorization could never open a round (no voters).
+      if (current.type !== 'STANDARD' && cabGroupId === null) {
+        throw new ChangeError(changeErrorCodes.cabGroupRequired, 'cabGroupId');
+      }
       data.cabGroupId = cabGroupId;
     }
     const problemId = optionalId(input.problemId);
@@ -997,7 +1021,15 @@ export class ChangesService {
         orderBy: { name: 'asc' },
         take: 2000,
       }),
-      this.prisma.group.findMany({ where: { isCabGroup: true }, select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 200 }),
+      // BA-changes-16: the form needs the unit of every CAB group, so it can
+      // offer exactly the candidates the server would accept instead of
+      // preselecting whichever group sorts first.
+      this.prisma.group.findMany({
+        where: { isCabGroup: true },
+        select: { id: true, name: true, organizationalUnit: { select: { id: true, ouPath: true } } },
+        orderBy: { name: 'asc' },
+        take: 200,
+      }),
       this.prisma.changeTemplate.findMany({
         where: { isActive: true },
         select: { id: true, name: true, impact: true, likelihood: true, causesDowntime: true },
@@ -1009,7 +1041,12 @@ export class ChangesService {
     return {
       units: units.map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
       services,
-      cabGroups,
+      cabGroups: cabGroups.map((group) => ({
+        id: group.id,
+        name: group.name,
+        organizationalUnitId: group.organizationalUnit.id,
+        organizationalUnitPath: group.organizationalUnit.ouPath,
+      })),
       templates: templates.map((template) => ({ ...template, risk: computeChangeRisk(template.impact, template.likelihood) })),
       homeOrganizationalUnitId: viewer.homeOrganizationalUnitId,
       freezePeriods: configuration.freezePeriods,
@@ -1163,9 +1200,51 @@ export class ChangesService {
     };
   }
 
-  private async defaultCabGroupId(): Promise<string | null> {
-    const group = await this.prisma.group.findFirst({ where: { isCabGroup: true }, select: { id: true }, orderBy: { name: 'asc' } });
-    return group?.id ?? null;
+  /**
+   * BA-changes-16: resolves the approval body of a NORMAL/EMERGENCY change.
+   *
+   * The unit chain (nearest first) decides: a level with exactly one CAB group
+   * routes the change there, a level with several forces an explicit choice, and
+   * only when the chain has none does the installation-wide single CAB group
+   * apply. Nothing here orders by name - the old `findFirst(orderBy: name)` sent
+   * multi-CAB installations to whichever body happened to be first.
+   */
+  private async resolveCabGroup(
+    organizationalUnitId: string,
+    requestedCabGroupId: string | null,
+  ): Promise<CabRoutingDecision> {
+    if (requestedCabGroupId !== null) {
+      return { cabGroupId: requestedCabGroupId, cabRouting: 'explicit' };
+    }
+    const unit = await this.prisma.organizationalUnit.findUnique({
+      where: { id: organizationalUnitId },
+      select: { ouPath: true },
+    });
+    if (unit === null) throw new ChangeError(changeErrorCodes.unitNotFound);
+    const cabGroupIdsByLevel: string[][] = [];
+    for (const ouPath of ancestorOuPaths(unit.ouPath)) {
+      const groups = await this.prisma.group.findMany({
+        where: { isCabGroup: true, organizationalUnit: { ouPath } },
+        select: { id: true },
+        orderBy: { name: 'asc' },
+        take: 2,
+      });
+      cabGroupIdsByLevel.push(groups.map((group) => group.id));
+      // `decideCabGroup` only needs "none / one / several", so the nearest
+      // deciding level is also the last one that has to be read.
+      if (groups.length > 0) break;
+    }
+    const otherCabGroupIds = cabGroupIdsByLevel.some((level) => level.length > 0)
+      ? []
+      : (
+          await this.prisma.group.findMany({
+            where: { isCabGroup: true },
+            select: { id: true },
+            orderBy: { name: 'asc' },
+            take: 2,
+          })
+        ).map((group) => group.id);
+    return decideCabGroup({ requestedCabGroupId, cabGroupIdsByLevel, otherCabGroupIds });
   }
 
   private async assertReferences(viewer: ChangeViewer, input: {

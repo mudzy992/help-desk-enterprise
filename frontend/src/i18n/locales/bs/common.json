@@ -10212,7 +10212,9 @@
       "problemSearch": "Traži problem po broju ili naslovu",
       "problemResults": "Rezultati pretrage problema",
       "problemNone": "Nema pronađenih otvorenih problema.",
-      "problemHint": "Promjena može rješavati najviše jedan problem."
+      "problemHint": "Promjena može rješavati najviše jedan problem.",
+      "cabGroupPlaceholder": "Odaberite CAB grupu",
+      "cabGroupRequiredHint": "Instalacija ima više CAB grupa — odaberite koja odobrava ovu promjenu."
     },
     "detail": {
       "back": "Promjene",
@@ -10396,7 +10398,8 @@
         "reviewNotes": "Upišite bilješke pregleda (za neuspješne ili vraćene promjene najmanje 20 znakova)."
       },
       "templateStale": "Šablon je izmijenjen nakon što ste ga otvorili. Učitajte najnoviju verziju i pokušajte ponovo.",
-      "templateRevisionRequired": "Zahtjev za izmjenu šablona mora sadržavati reviziju koju ste učitali."
+      "templateRevisionRequired": "Zahtjev za izmjenu šablona mora sadržavati reviziju koju ste učitali.",
+      "cabGroupRequired": "Odaberite CAB grupu koja odobrava ovu promjenu."
     },
     "tabs": {
       "register": "Registar",

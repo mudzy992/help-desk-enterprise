@@ -37,6 +37,7 @@ export function mapChangeError(error: unknown): unknown {
     case changeErrorCodes.conflictsNotAcknowledged:
     case changeErrorCodes.conflictsStale:
     case changeErrorCodes.noApprovers:
+    case changeErrorCodes.cabGroupRequired:
     case changeErrorCodes.cabGroupTooLarge:
     case changeErrorCodes.alreadyVoted:
     case changeErrorCodes.notInAuthorization:

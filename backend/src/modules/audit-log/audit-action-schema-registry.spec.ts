@@ -12,6 +12,8 @@ const bumpedSchemaVersions = new Map<string, number>([
   [auditLogActions.integrationJobRetried, 2],
   // W7.71 (BA-changes-15): the template save now carries revisions and a diff.
   [auditLogActions.changeTemplateSaved, 2],
+  // BA-changes-16: change creation records the CAB routing and its origin.
+  [auditLogActions.changeCreated, 2],
 ]);
 
 describe('audit action schema registry', () => {

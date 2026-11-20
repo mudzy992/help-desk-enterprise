@@ -9,6 +9,7 @@ import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import type {
   ChangeAssetOption,
+  ChangeCabGroupOption,
   ChangeCapabilities,
   ChangeConflicts,
   ChangeDetail,
@@ -35,6 +36,10 @@ export function ChangeFormSecondaryFields(props: {
   readonly setProblem: (value: ChangeProblemOption | null) => void;
   readonly cabGroupId: string;
   readonly setCabGroupId: (value: string) => void;
+  /** BA-changes-16: the groups this unit may route to (or every group). */
+  readonly cabGroupOptions: readonly ChangeCabGroupOption[];
+  /** BA-changes-16: true when several groups are possible, so a pick is needed. */
+  readonly cabGroupRequired: boolean;
   readonly start: string;
   readonly setStart: (value: string) => void;
   readonly end: string;
@@ -77,6 +82,8 @@ export function ChangeFormSecondaryFields(props: {
     setProblem,
     cabGroupId,
     setCabGroupId,
+    cabGroupOptions,
+    cabGroupRequired,
     start,
     setStart,
     end,
@@ -124,7 +131,15 @@ export function ChangeFormSecondaryFields(props: {
         <ChangeProblemPicker value={problem} onChange={setProblem} disabled={locked} />
       ) : null}
       {!standard ? (
-        <Field label={t("changes.fields.cabGroup")} hint={t("changes.form.cabGroupHint")}>
+        <Field
+          label={t("changes.fields.cabGroup")}
+          required={cabGroupRequired}
+          hint={
+            cabGroupRequired
+              ? t("changes.form.cabGroupRequiredHint")
+              : t("changes.form.cabGroupHint")
+          }
+        >
           {(control) => (
             <Select
               {...control}
@@ -132,11 +147,13 @@ export function ChangeFormSecondaryFields(props: {
               disabled={locked}
               onChange={(event) => setCabGroupId(event.target.value)}
             >
+              {/* No silent preselection: an empty value stays visibly empty. */}
+              <option value="">{t("changes.form.cabGroupPlaceholder")}</option>
               {change?.cabGroup &&
-              !options.cabGroups.some((group) => group.id === change.cabGroup?.id) ? (
+              !cabGroupOptions.some((group) => group.id === change.cabGroup?.id) ? (
                 <option value={change.cabGroup.id}>{change.cabGroup.name}</option>
               ) : null}
-              {options.cabGroups.map((group) => (
+              {cabGroupOptions.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}
                 </option>

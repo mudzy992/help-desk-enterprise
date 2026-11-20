@@ -178,10 +178,20 @@ export type ChangeTemplateOption = NamedRef & {
   readonly risk: ChangeRisk;
 };
 
+/**
+ * BA-changes-16: a CAB group belongs to an organizational unit, and the form
+ * needs that binding to offer the groups the server would actually accept
+ * instead of preselecting whichever one sorts first.
+ */
+export type ChangeCabGroupOption = NamedRef & {
+  readonly organizationalUnitId: string;
+  readonly organizationalUnitPath: string;
+};
+
 export type ChangeOptions = {
   readonly units: readonly { readonly id: string; readonly name: string; readonly path: string }[];
   readonly services: readonly NamedRef[];
-  readonly cabGroups: readonly NamedRef[];
+  readonly cabGroups: readonly ChangeCabGroupOption[];
   readonly templates: readonly ChangeTemplateOption[];
   readonly homeOrganizationalUnitId: string | null;
   readonly freezePeriods: readonly ChangeFreezePeriod[];

@@ -167,7 +167,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.problemHandoffRejected]: compatibility([auditLogEntityTypes.problem]),
   [auditLogActions.problemHandoffCancelled]: compatibility([auditLogEntityTypes.problem]),
   [auditLogActions.problemTicketsResolved]: compatibility([auditLogEntityTypes.problem]),
-  [auditLogActions.changeCreated]: compatibility([auditLogEntityTypes.change]),
+  [auditLogActions.changeCreated]: compatibility([auditLogEntityTypes.change], 2),
   [auditLogActions.changeStatusChanged]: compatibility([auditLogEntityTypes.change]),
   [auditLogActions.changeApprovalRecorded]: compatibility([auditLogEntityTypes.change]),
   [auditLogActions.changeUpdated]: compatibility([auditLogEntityTypes.change]),

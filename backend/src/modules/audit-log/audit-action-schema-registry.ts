@@ -196,7 +196,13 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.problemHandoffRejected]: schema(['fromGroupId', 'handoffId', 'toGroupId']),
   [auditLogActions.problemHandoffCancelled]: schema(['fromGroupId', 'handoffId', 'toGroupId']),
   [auditLogActions.problemTicketsResolved]: schema(['failed', 'resolved', 'skipped']),
-  [auditLogActions.changeCreated]: schema(['organizationalUnitId', 'risk', 'sequence', 'type']),
+  // BA-changes-16: creation records which approval body the change was routed
+  // to and why, so a multi-CAB installation can prove the routing afterwards.
+  [auditLogActions.changeCreated]: schema(
+    ['cabGroupId', 'cabRouting', 'organizationalUnitId', 'risk', 'sequence', 'type'],
+    'operational',
+    2,
+  ),
   // W7.68 (BA-changes-12): a transition that accepted a conflict preview keeps
   // the digest of the snapshot the approver saw, so the acknowledgement is
   // provable afterwards; the conflicts themselves stay in the change history.
