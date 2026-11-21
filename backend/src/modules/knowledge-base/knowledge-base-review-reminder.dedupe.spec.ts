@@ -1,3 +1,9 @@
+import { permissionKeys } from '../authorization/authorization.constants';
+import {
+  createTestAssignment,
+  createTestAuthorizationContext,
+} from '../authorization/create-test-authorization-context';
+import type { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
 import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
 import { toArticleRecord } from './load-knowledge-article';
@@ -46,24 +52,61 @@ function articleRow(overrides: Partial<ArticleRow> = {}): ArticleRow {
 function createStore(input: {
   readonly articles: readonly ArticleRow[];
   readonly members?: Readonly<Record<string, readonly string[]>>;
+  readonly inactiveUsers?: readonly string[];
+  readonly memberships?: number;
 }) {
   const created: Array<{ readonly userId: string; readonly dedupeKey: string }> = [];
   const dedupeKeys = new Set<string>();
+  const calls = { membershipQueries: 0, batches: 0 };
   const prisma = {
     knowledgeArticle: {
       findMany: async (query: {
         readonly where: { readonly status: string; readonly reviewDueAt: { readonly lte: Date } };
-      }) =>
-        input.articles.filter(
-          (row) =>
-            row.status === query.where.status &&
-            row.reviewDueAt !== null &&
-            row.reviewDueAt.getTime() <= query.where.reviewDueAt.lte.getTime(),
-        ),
+        readonly take?: number;
+        readonly cursor?: { readonly id: string };
+        readonly skip?: number;
+      }) => {
+        calls.batches += 1;
+        const due = input.articles
+          .filter(
+            (row) =>
+              row.status === query.where.status &&
+              row.reviewDueAt !== null &&
+              row.reviewDueAt.getTime() <= query.where.reviewDueAt.lte.getTime(),
+          )
+          // The service asks for `reviewDueAt asc, id asc`; the double must page the same order.
+          .sort(
+            (left, right) =>
+              (left.reviewDueAt as Date).getTime() - (right.reviewDueAt as Date).getTime() ||
+              left.id.localeCompare(right.id),
+          );
+        const start =
+          query.cursor === undefined
+            ? 0
+            : due.findIndex((row) => row.id === query.cursor?.id) + (query.skip ?? 0);
+        const window = due.slice(Math.max(start, 0));
+        return query.take === undefined ? window : window.slice(0, query.take);
+      },
     },
     groupMember: {
-      findMany: async (query: { readonly where: { readonly groupId: string } }) =>
-        (input.members?.[query.where.groupId] ?? []).map((userId) => ({ userId })),
+      findMany: async (query: { readonly where: { readonly groupId: string } }) => {
+        calls.membershipQueries += 1;
+        return (input.members?.[query.where.groupId] ?? []).map((userId) => ({ userId }));
+      },
+    },
+    // W7.85: a recipient must still have an account, and the article scope must resolve.
+    user: {
+      findUnique: async (query: { readonly where: { readonly id: string } }) => ({
+        isActive: !(input.inactiveUsers ?? []).includes(query.where.id),
+      }),
+    },
+    organizationalUnit: {
+      findUnique: async () => ({ ouPath: '/it' }),
+    },
+    service: {
+      findUnique: async (query: { readonly where: { readonly id: string } }) => ({
+        id: query.where.id,
+      }),
     },
     userNotificationPreference: { findMany: async () => [] },
     notification: {
@@ -77,7 +120,25 @@ function createStore(input: {
       },
     },
   };
-  return { created, dedupeKeys, prisma };
+  return { created, dedupeKeys, calls, prisma };
+}
+
+/** An active agent who may write knowledge articles in the article's OU and service. */
+function reminderLoader(): AuthorizationContextLoader {
+  return {
+    loadBySubjectId: async (subjectId: string) =>
+      createTestAuthorizationContext({
+        subjectId,
+        assignments: [
+          createTestAssignment({
+            permissionKeys: [permissionKeys.knowledgeArticleWrite],
+            organizationalUnitId: 'ou-1',
+            organizationalUnitPath: '/it',
+            serviceId: 'service-1',
+          }),
+        ],
+      }),
+  } as unknown as AuthorizationContextLoader;
 }
 
 function createService(
@@ -86,7 +147,12 @@ function createService(
 ) {
   const loader = { load: async () => configuration } as unknown as KnowledgeBaseConfigurationLoader;
   const settings = { getSetting: async () => undefined };
-  return new KnowledgeBaseReviewReminderService(prisma as never, loader, settings as never);
+  return new KnowledgeBaseReviewReminderService(
+    prisma as never,
+    loader,
+    reminderLoader(),
+    settings as never,
+  );
 }
 
 const now = new Date('2026-09-24T09:00:00.000Z');
@@ -146,6 +212,64 @@ describe('KnowledgeBaseReviewReminderService idempotency', () => {
     await expect(service.processDue(now)).resolves.toBe(1);
     expect(store.created).toHaveLength(2);
     expect(store.created[1]?.dedupeKey).toContain('2027-10-01T00:00:00.000Z');
+  });
+
+  it('w7.85: ne podsjeća deaktiviran račun i račun bez trenutne dozvole', async () => {
+    const inactive = createStore({
+      articles: [articleRow({ ownerUserId: 'user-gone' })],
+      inactiveUsers: ['user-gone'],
+    });
+    await expect(
+      createService(inactive.prisma, { reviewCycleEnabled: true, remindDaysBefore: 14 }).processDue(now),
+    ).resolves.toBe(0);
+    expect(inactive.created).toHaveLength(0);
+
+    // Aktivan račun kome je dozvola ukinuta (npr. premješten u drugu OU) više ne dobija podsjetnik.
+    const store = createStore({ articles: [articleRow()] });
+    const withoutPermission = new KnowledgeBaseReviewReminderService(
+      store.prisma as never,
+      { load: async () => ({ reviewCycleEnabled: true, remindDaysBefore: 14 }) } as never,
+      {
+        loadBySubjectId: async (subjectId: string) =>
+          createTestAuthorizationContext({ subjectId, assignments: [] }),
+      } as unknown as AuthorizationContextLoader,
+      { getSetting: async () => undefined } as never,
+    );
+    await expect(withoutPermission.processDue(now)).resolves.toBe(0);
+    expect(store.created).toHaveLength(0);
+  });
+
+  it('w7.85: prelazi backlog u ograničenim serijama umjesto da učita sve odjednom', async () => {
+    const total = 250;
+    const articles = Array.from({ length: total }, (_, index) =>
+      articleRow({ id: `article-${String(index).padStart(3, '0')}` }),
+    );
+    const store = createStore({ articles });
+    const service = createService(store.prisma, {
+      reviewCycleEnabled: true,
+      remindDaysBefore: 14,
+    });
+
+    await expect(service.processDue(now)).resolves.toBe(total);
+
+    // 100 + 100 + 50: tri upita, a ne jedan koji nosi cijeli backlog.
+    expect(store.calls.batches).toBe(3);
+    expect(store.created).toHaveLength(total);
+  });
+
+  it('w7.85: jedna membership provjera za sve članke iste owner grupe', async () => {
+    const articles = Array.from({ length: 3 }, (_, index) =>
+      articleRow({ id: `grouped-${index}`, ownerUserId: null, ownerGroupId: 'group-1' }),
+    );
+    const store = createStore({ articles, members: { 'group-1': ['user-a', 'user-b'] } });
+    const service = createService(store.prisma, {
+      reviewCycleEnabled: true,
+      remindDaysBefore: 14,
+    });
+
+    await expect(service.processDue(now)).resolves.toBe(6);
+    // Prije je svaki članak radio svoj membership upit; sada jedan po grupi po prolazu.
+    expect(store.calls.membershipQueries).toBe(1);
   });
 
   it('does nothing while the review cycle is disabled or nothing is due yet', async () => {

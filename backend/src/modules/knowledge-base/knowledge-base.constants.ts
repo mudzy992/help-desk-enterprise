@@ -62,6 +62,12 @@ export const knowledgeBaseConstants = {
   portalHomeScanCap: 200,
   /** Full-text search is offset-paged; deeper pages than this are refused. */
   maximumSearchOffset: 1000,
+  // W7.85 (BA-knowledge-base-12): the reminder sweep reads due articles in bounded batches instead of loading the
+  // whole backlog into memory, and stops after a bounded number of batches so one run cannot run away.
+  /** Due articles read per batch. */
+  reminderCandidateBatchSize: 100,
+  /** Batches a single sweep may process (≤ 2.000 articles per run). */
+  reminderMaximumBatches: 20,
 } as const;
 
 

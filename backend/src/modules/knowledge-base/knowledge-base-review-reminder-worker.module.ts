@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { PrincipalContextLoader } from '../../common/principal-context/principal-context.loader';
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { SettingsModule } from '../settings/settings.module';
 import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
 import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
@@ -22,6 +24,10 @@ import { KnowledgeViewFlushService } from './portal/knowledge-view-flush.service
     SettingsModule,
   ],
   providers: [
+    // W7.85 (`BA-knowledge-base-12`): the sweep only reminds people who can still act on the article, so the
+    // worker resolves each recipient's authorization context — the same two providers the report scheduler uses.
+    PrincipalContextLoader,
+    AuthorizationContextLoader,
     KnowledgeBaseConfigurationLoader,
     KnowledgeBaseReviewReminderService,
     KnowledgeBaseReviewReminderProcessor,

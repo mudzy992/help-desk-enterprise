@@ -51,16 +51,30 @@ export function createInMemoryKnowledgeArticleDelegate(
       orderBy,
       take,
       select,
+      cursor,
+      skip,
     }: {
       where?: ArticleWhere;
       orderBy?: readonly Record<string, 'asc' | 'desc'>[];
       take?: number;
       select?: Record<string, boolean>;
+      /** W7.85 (BA-knowledge-base-12): the reminder sweep pages the backlog with a cursor. */
+      cursor?: { readonly id?: string };
+      skip?: number;
     } = {}) => {
       const sorted = sortArticles(matching(where), orderBy);
+      // Prisma positions a cursor in the ordered result and then applies `skip`: `{ cursor: { id }, skip: 1 }`
+      // continues after that row. The double must not silently ignore it, or the reminder spec would prove a
+      // paging loop the production query does not run.
+      const cursorIndex =
+        cursor?.id === undefined
+          ? -1
+          : sorted.findIndex((article) => article.id === cursor.id);
+      const afterCursor =
+        cursorIndex < 0 ? sorted : sorted.slice(cursorIndex + Math.max(skip ?? 0, 0));
       // W7.52: bounded reads (`take: limit + 1`) must behave like Prisma's.
       const window =
-        take === undefined ? sorted : sorted.slice(0, Math.max(take, 0));
+        take === undefined ? afterCursor : afterCursor.slice(0, Math.max(take, 0));
       // W7.58 (BA-search-04): `select` must be honoured like Prisma's, otherwise
       // the double would hand back `body` the query never asked for and the
       // "hidden text is never read" spec would prove nothing.
