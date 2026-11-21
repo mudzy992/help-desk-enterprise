@@ -2252,7 +2252,7 @@
     {
       "id": "BA-knowledge-base-10",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "25-knowledge-base.md",
       "owner": "WS-F",
       "wave": 7

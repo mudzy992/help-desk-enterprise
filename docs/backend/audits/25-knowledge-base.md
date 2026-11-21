@@ -150,7 +150,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | zatvoreno |
 | BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | zatvoreno |
 | BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | zatvoreno |
-| BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | otvoreno |
+| BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | zatvoreno |
 | BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
 | BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | otvoreno |
 | BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | otvoreno |
@@ -174,8 +174,8 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
   brisanje korisnika popravlja članke koje je ocijenio u istoj transakciji.
 - **08:** nacrt je jedna transakcija pod bravom izvornog odgovora; ponovni poziv vraća postojeći nacrt, a trag
   na tiketu je upsert ključan na poruku (unique indeks nad izvorom ostaje preporuka za migraciju).
-- **09–11:** transakcijski portal audit (placement sa CAS-om, kategorije sa auditom u istoj transakciji —
-  urađeno u W7.83), category locking i slug conflict retry.
+- **09–11:** transakcijski portal audit (urađeno u W7.83), category locking (urađeno u W7.84) i slug conflict
+  retry (urađeno u ranijem paketu).
 - **12–13:** bounded reminder batches, eligible recipients, scheduler reconcile i health.
 - **14–16,18:** retention/anonymization matrica, tombstone odluka, idempotent view flush i comment-resolution audit.
 - **19:** regenerated Prisma client i Postgres/Redis/concurrency/fault testovi.
@@ -439,3 +439,27 @@ bez zapisa i bez promjene kategorije; sva tri audita kategorija unutar svojih tr
 pročitani red; pad change loga odnosi placement) u isolated runneru uz guard **23/23**, backend
 `knowledge-base`+`users`+`audit-log` **63 suite/283 testa**, `eslint` zelen. Nema migracije.
 Dokaz: [304-w783-knowledge-base-09-placement-category-atomicity.md](../implementation/304-w783-knowledge-base-09-placement-category-atomicity.md).
+
+## 29. Implementacijski closeout — W7.84 (`BA-knowledge-base-10`)
+
+Na `6ff475c`, uz CI `44956273227`, arhiviranje kategorije i placement članka su **jedna odluka** po kategoriji.
+Prije su obje strane provjeravale same za sebe: guard je brojao aktivne članke pa arhivirao, a placement je
+provjeravao da je kategorija aktivna pa upisivao `categoryId`; u preklapanju oba prođu svoju provjeru i ostane
+**arhivirana kategorija sa živim člankom** — tačno ono što guard treba da spriječi. Sada
+`withKnowledgeCategoryMembershipLock` uzima transakcijski advisory lock kroz postojeći `DatabaseLockService`
+(identitet `knowledge-base.category-membership`, ključ `categoryId`): `setKnowledgeCategoryArchived` drži bravu
+kroz čitanje, oba `count`-a i upis (restore djeteta zaključava i roditelja), `placeArticle` drži bravu ciljne
+kategorije dok provjeri aktivnost i upiše vezu, a `createKnowledgeCategory`/`updateKnowledgeCategory` zaključavaju
+roditelja kome dodaju dijete (novo dijete je sadržaj koji guard broji — simetrična polovina koju audit nije
+imenovao). `pg_advisory_xact_lock` živi do kraja transakcije, pa zaštita pokriva i audit iz W7.83; ID-evi se
+deduplikuju i zaključavaju **sortirano**, pa nema ciklusa između dva pisca koji diraju iste dvije kategorije.
+Odbačeno: `SERIALIZABLE` (retry semantika za sve pisce portala) i brojač u kategoriji (novi izvor driftа, kao
+`ratingCount` u W7.81) — oba bi tražila i veći zahvat, a drugo i migraciju. Dokaz: `+2` testa u
+`knowledge-portal.service.spec.ts` (**15** — arhiviranje uzima bravu **prije** brojanja, placement je uzima za
+ciljnu kategoriju) i novi `knowledge-category-archive-race.integration.spec.ts` **2 testa** pod stvarnim
+PostgreSQL-om (**5 rundi** trke kroz pravi servis: nemoguće stanje nikad ne opstaje, tačno jedan poziv uspije,
+gubitnik gubi sa `CATEGORY_NOT_EMPTY` ili `INVALID_CATEGORY`; plus regresija guarda) u isolated runneru uz guard
+**23/23**, backend `knowledge-base`+`users`+`audit-log` **63 suite/286 testa**, `eslint` zelen. Nema migracije.
+**Otvoreno:** brava pokriva samo pisce kroz ovaj kod (ručni SQL/importer i dalje može napraviti nemoguće stanje —
+trajno rješenje traži migraciju) i `lock_timeout` od 5 s vraća `DATABASE_LOCK_TIMEOUT` umjesto beskonačnog čekanja.
+Dokaz: [305-w784-knowledge-base-10-category-archive-guard-race.md](../implementation/305-w784-knowledge-base-10-category-archive-guard-race.md).
