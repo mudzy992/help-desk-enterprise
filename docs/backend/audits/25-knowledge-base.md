@@ -148,7 +148,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | zatvoreno |
 | BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | zatvoreno |
 | BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | zatvoreno |
-| BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | otvoreno |
+| BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | zatvoreno |
 | BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | otvoreno |
 | BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | otvoreno |
 | BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
@@ -172,7 +172,8 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
   traženog servisa i čitljiv, bez oracle-a nad nepoznatim ID-em.
 - **07:** glas i preračun su jedna transakcija pod bravom članka, preračun je egzaktan (samoiscjeljujući), a
   brisanje korisnika popravlja članke koje je ocijenio u istoj transakciji.
-- **08:** unique source message/idempotency command i atomarni/reconciled ticket trace.
+- **08:** nacrt je jedna transakcija pod bravom izvornog odgovora; ponovni poziv vraća postojeći nacrt, a trag
+  na tiketu je upsert ključan na poruku (unique indeks nad izvorom ostaje preporuka za migraciju).
 - **09–11:** transakcijski portal audit, category locking i slug conflict retry.
 - **12–13:** bounded reminder batches, eligible recipients, scheduler reconcile i health.
 - **14–16,18:** retention/anonymization matrica, tombstone odluka, idempotent view flush i comment-resolution audit.
@@ -382,3 +383,33 @@ migracije. **Otvoreno i dokumentovano:** `@@unique([articleId, userId])` protiv 
 (pinovan testom, ispravka traži migraciju) i historijski drift na člancima bez novih glasova (globalni
 reconciler pripada `BA-knowledge-base-13`).
 Dokaz: [302-w781-knowledge-base-07-feedback-rating-atomicity.md](../implementation/302-w781-knowledge-base-07-feedback-rating-atomicity.md).
+
+## 27. Implementacijski closeout — W7.82 (`BA-knowledge-base-08`)
+
+Na `cc54913`, uz CI `44945610188`, „napravi članak iz odgovora” više ne može ostaviti pola zapisa niti napraviti
+dva nacrta istog odgovora. Prije je tok pisao **tri** stvari u **tri** koraka — članak sa change logom (sopstvena
+transakcija), `SYSTEM_EVENT` na tiketu i audit `knowledge.article.drafted_from_reply` — pa je pad drugog ili
+trećeg koraka ostavljao članak **bez** traga i audita, a retry nije imao po čemu da prepozna prethodni pokušaj
+(`KnowledgeArticle` nema unique ključ nad `(sourceTicketId, sourceMessageId)`) i pravio je **drugi** nacrt, sa
+svojim change logom i svojim auditom.
+
+Sada: `withKnowledgeFromReplyLock` uzima transakcijski advisory lock kroz postojeći `DatabaseLockService`
+(identitet `knowledge-base.from-reply`, ključ `<ticketId>:<messageId>`), pa se pisci **istog** odgovora
+serijalizuju, a ostali nisu blokirani; brava se pušta na commit/rollback/prekinutu konekciju.
+`findKnowledgeDraftFromReply` traži nacrt **poslije** brave (READ COMMITTED vidi commitovanog pobjednika), a
+`createFromReply` radi `$transaction(lock → postojeći? → članak + change log → trag na tiketu → audit)` — sve
+četiri stavke se commit-uju zajedno ili nikako. Ako nacrt već postoji, vraća se **taj** uz `alreadyCreated: true`
+(aditivno polje; portal prikazuje „Nacrt za ovaj odgovor već postoji”), trag na tiketu je **upsert** ključan na
+izvornu poruku (`knowledge-draft-created:<messageId>`) pa se ne duplira, a audit se ne ponavlja. Pošto se slug
+alocira **unutar** transakcije, izgubljena slug trka restartuje cijelu transakciju sa sljedećim slobodnim
+sufiksom (3 pokušaja) umjesto sirovog unique konflikta. Unique indeks nad izvorom je ostao **preporuka za
+migraciju** (nije dozvoljena bez odobrenja): brava pokriva pisce kroz ovaj kod, ali ne i ručni SQL ili budući
+importer, a lookup po `sourceTicketId`/`sourceMessageId` je pregled tabele jer kolone nisu indeksirane. Dokaz:
+`knowledge-portal.from-reply.spec.ts` **8 testova** (drugi submit vraća postojeći nacrt, jedan članak, jedan
+`SYSTEM_EVENT`, jedan audit; trag i audit unutar transakcije; brava vezana na odgovor), novi
+`knowledge-from-reply-atomicity.integration.spec.ts` **2 testa** pod stvarnim PostgreSQL-om (dva pisca istog
+odgovora → tačno jedan nacrt; pad poslije inserta odnosi članak, a retry napravi tačno jedan) u isolated runneru
+uz guard **23/23**, backend `knowledge-base`+`users`+`reports`+`teams` **81 suite/465 testa**, `knowledge-base/portal`
+**3/21**, frontend `tsc -b` i `eslint` čisti, `vitest src/i18n` **48/48**, `vitest src/components/knowledge-base`
+**1/1**, `prettier --check` čist. Nema migracije.
+Dokaz: [303-w782-knowledge-base-08-from-reply-idempotency.md](../implementation/303-w782-knowledge-base-08-from-reply-idempotency.md).
