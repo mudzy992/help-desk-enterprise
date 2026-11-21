@@ -146,7 +146,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | zatvoreno |
 | BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | zatvoreno |
 | BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | zatvoreno |
-| BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | otvoreno |
+| BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | zatvoreno |
 | BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | otvoreno |
 | BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | otvoreno |
 | BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | otvoreno |
@@ -168,7 +168,8 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 - **04, 17:** DB pagination/scope pushdown, cursor/hasMore i bounded portal/insights.
 - **05:** publika `INTERNAL` je eksplicitna postavka (default scope-aware: OU/servis dodjela ili matična
   jedinica), a company-wide je svjesno uključenje.
-- **06:** signed intercept context ili puna service/OU/article visibility/status provjera.
+- **06:** deflection se provjerava kao tvrdnja — jedinica koju akter smije zastupati, članak objavljen, iz
+  traženog servisa i čitljiv, bez oracle-a nad nepoznatim ID-em.
 - **07:** transactional counter delta/trigger i exact reconciliation nakon user deletea.
 - **08:** unique source message/idempotency command i atomarni/reconciled ticket trace.
 - **09–11:** transakcijski portal audit, category locking i slug conflict retry.
@@ -320,3 +321,31 @@ single/batch paritet i brojanje `findUnique` 1/0/0), `modules/knowledge-base` **
 install sekcije **31/140**, frontend i18n čuvari **4 fajla/32 testa** uz katalog **519 → 520**. Nema migracije;
 promjena ponašanja je namjerna i dokumentovana, a instalacija koja je živjela company-wide uključi postavku.
 Dokaz: [300-w779-knowledge-base-05-internal-audience.md](../implementation/300-w779-knowledge-base-05-internal-audience.md).
+
+## 24. Implementacijski closeout — W7.80 (`BA-knowledge-base-06`)
+
+Na `1e463ba`, uz CI `44934728908`, deflection se više ne prima na riječ. `POST /knowledge-base/intercept/resolve`
+je prije provjeravao samo **postojanje** servisa, jedinice i (opcionog) članka, pa je svaki prijavljeni korisnik
+mogao upisati resolution za tuđu jedinicu ili servis, „pripisati” `DRAFT`/`ARCHIVED` članak ili članak koji ne
+smije čitati — a svi ti redovi su ulazili u deflection analytics (`buildReportsDashboard` broji po jedinici).
+Nepostojeći članak je uz to davao `NOT_FOUND`, a skriveni ništa, pa je endpoint potvrđivao postojanje ID-eva koje
+korisnik nikad nije vidio.
+
+Sada se tvrdnja provjerava, svaka provjera **prije** jedinog `create` (neuspjeh ne ostavlja red): učitava se
+autorizacijski kontekst; uz isključen `private.addons.kbIntercept` nema upisa (`FORBIDDEN`); jedinica mora biti
+ona koju akter smije zastupati — matična jedinica ili jedinica+servis koje pokriva dodjela
+(`canManageTicketsInScope`, **isto pravilo koje `assertCanCreateTicket` primjenjuje**: deflection je tiket koji
+nije otvoren, pa ga bilježi onaj ko bi ga smio otvoriti), uz SuperAdmin izuzetak; članak mora biti `PUBLISHED`,
+iz **prijavljenog** servisa i čitljiv kroz jedini predikat vidljivosti (`isKnowledgeArticleVisibleTo`, uključujući
+W7.79 INTERNAL publiku). Nepoznat, tuđi, nacrt, arhiv i skriveni članak daju **istu** grešku `FORBIDDEN` — nema
+oracle-a, a `SERVICE_NOT_FOUND`/`ORGANIZATIONAL_UNIT_NOT_FOUND` ostaju netaknuti (katalog i stablo jedinica nisu
+tajna). Vezivanje uz intercept token nije uvedeno: tražilo bi novi secret, TTL i replay zaštitu da bi dokazalo
+isto što postojeće činjenice (ko je akter, šta smije, šta članak jeste), a isteklo bi tačno u slučaju dugog
+čitanja koje mjerimo. Dokaz: novi `knowledge-base.intercept-resolution.spec.ts` (**10 testova** — vlastita
+jedinica, pamćenje tačnog `primaryArticleId`, tuđa jedinica za običnog korisnika i za agenta, članak drugog
+servisa / `DRAFT` / `ARCHIVED`, skriveni `CONFIDENTIAL` i nepostojeći ID sa istom greškom, korisnik bez matične
+jedinice, SuperAdmin, isključen feature, netaknute reference greške, uz tvrdnju da nijedan odbijeni pokušaj ne
+ostavlja red), `modules/knowledge-base` **21 suite/112 testova**, `knowledge-base`+`teams` **27/208** (Teams
+`deflect` šalje matičnu jedinicu i prolazi isto pravilo), `eslint` zelen. Nema migracije; ugovorna promjena je
+`FORBIDDEN` tamo gdje je bio `NOT_FOUND`, a oba klijenta neuspjeh već tretiraju kao best-effort telemetriju.
+Dokaz: [301-w780-knowledge-base-06-intercept-resolution.md](../implementation/301-w780-knowledge-base-06-intercept-resolution.md).
