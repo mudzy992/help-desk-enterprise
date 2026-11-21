@@ -49,9 +49,18 @@ export class KnowledgeBaseDiscoveryService {
     input: KnowledgeInterceptResolveInput,
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeInterceptResolveResponse> {
-    return executeKnowledgeBaseOperation(async () =>
-      resolveKnowledgeIntercept(this.prisma, input, context),
-    );
+    return executeKnowledgeBaseOperation(async () => {
+      // W7.80: the recorded article is checked with the same visibility predicate as every read, so the
+      // resolution needs the caller's authorization context and the installation's INTERNAL audience.
+      const configuration = await this.configurationLoader.load();
+      return resolveKnowledgeIntercept(
+        this.prisma,
+        this.authorizationContextLoader,
+        configuration,
+        input,
+        context,
+      );
+    });
   }
 
   submitFeedback(

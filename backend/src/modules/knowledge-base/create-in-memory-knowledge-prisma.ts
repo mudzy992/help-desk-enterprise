@@ -134,6 +134,14 @@ export function createInMemoryKnowledgePrisma() {
         interceptResolutions.set(created.id, created);
         return select?.id === true ? { id: created.id } : created;
       },
+      findMany: async ({
+        where,
+      }: {
+        where?: { userId?: string };
+      } = {}) =>
+        [...interceptResolutions.values()].filter((row) =>
+          where?.userId === undefined ? true : row.userId === where.userId,
+        ),
       count: async ({
         where,
       }: {
