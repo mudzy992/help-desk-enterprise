@@ -131,20 +131,28 @@ export function ArticleFromReplySheet({
       // u tekstu bilo nečega što pregled nije vidio (izmijenjen editor, skripta),
       // korisnik to mora saznati — članak se kreira kao nacrt i mora proći lifecycle objave.
       const extra = created.sanitized ? totalReplacements(created.replacements) : 0;
+      // W7.82 (BA-knowledge-base-08): a retry of the same reply now returns the draft that already exists instead
+      // of making a second one — saying „created“ there would be a lie about what the server did.
       toast(
-        extra > 0
+        created.alreadyCreated === true
           ? {
-              tone: "warning",
-              title: t("knowledgeBase.portal.fromReply.redactedOnSave"),
-              description: t("knowledgeBase.portal.fromReply.redactedOnSaveCount", {
-                count: extra,
-              }),
-            }
-          : {
-              tone: "success",
-              title: t("knowledgeBase.portal.fromReply.created"),
+              tone: "info",
+              title: t("knowledgeBase.portal.fromReply.alreadyCreated"),
               description: created.title,
-            },
+            }
+          : extra > 0
+            ? {
+                tone: "warning",
+                title: t("knowledgeBase.portal.fromReply.redactedOnSave"),
+                description: t("knowledgeBase.portal.fromReply.redactedOnSaveCount", {
+                  count: extra,
+                }),
+              }
+            : {
+                tone: "success",
+                title: t("knowledgeBase.portal.fromReply.created"),
+                description: created.title,
+              },
       );
       onOpenChange(false);
     } catch (error) {

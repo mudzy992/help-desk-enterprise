@@ -5870,6 +5870,7 @@
         "sourceLabel": "Created from a ticket reply.",
         "openTicket": "Open ticket",
         "save": "Save draft",
+        "alreadyCreated": "A draft for this reply already exists; no new one was made.",
         "created": "Article draft created."
       }
     }

@@ -190,6 +190,8 @@ export function createKnowledgeArticleFromReply(input: {
     /** Val 2 (M14/B1): šta je server zamijenio u poslanom tekstu. */
     readonly replacements: KnowledgeReplyReplacements;
     readonly sanitized: boolean;
+    /** W7.82 (`BA-knowledge-base-08`): `true` kad je nacrt za taj odgovor već postojao i vraćen je taj. */
+    readonly alreadyCreated?: boolean;
   }
 > {
   return apiRequest(`${base}/from-reply`, { method: "POST", body: JSON.stringify(input) });

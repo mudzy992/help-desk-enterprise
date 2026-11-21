@@ -102,6 +102,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/search/search-query-plan.integration.spec.ts",
   // W7.81 (BA-knowledge-base-07): the article rating totals under concurrent votes and after a user cascade.
   "src/modules/knowledge-base/knowledge-feedback-concurrency.integration.spec.ts",
+  // W7.82 (BA-knowledge-base-08): one reply, one draft — the reply lock and the all-or-nothing draft write.
+  "src/modules/knowledge-base/knowledge-from-reply-atomicity.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

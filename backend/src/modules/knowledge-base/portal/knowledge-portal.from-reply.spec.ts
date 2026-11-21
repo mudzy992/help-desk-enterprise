@@ -34,6 +34,12 @@ function setup(options: { visibility?: 'staff' | 'public'; confidential?: boolea
       authorUserId: knowledgeBaseTestIds.agentIt,
     }),
     create: async ({ data }: { data: unknown }) => (messages.push(data), data),
+    // W7.82: the draft trace is an upsert keyed by the source message, so a retry cannot duplicate it.
+    upsert: async ({ create }: { create: unknown }) => {
+      const body = (create as { body?: string }).body;
+      if (!messages.some((entry) => (entry as { body?: string }).body === body)) messages.push(create);
+      return create;
+    },
   };
   prisma.ticketParticipant = { findMany: async () => [] };
   const users = prisma.user as Record<string, unknown>;
@@ -44,6 +50,8 @@ function setup(options: { visibility?: 'staff' | 'public'; confidential?: boolea
   users.findUnique = async (args: { where: { id: string }; select?: Record<string, boolean> }) =>
     args.select?.preferredLocale ? { preferredLocale: 'bs' } : originalFindUnique(args);
   prisma.$executeRaw = async () => 0;
+  // W7.82: the reply lock is taken with `$queryRaw` (set_config + pg_advisory_xact_lock).
+  prisma.$queryRaw = async () => [{ acquired: 1 }];
   prisma.auditLog = { findFirst: async () => null, create: async ({ data }: { data: unknown }) => audits.push(data) };
   const service = new KnowledgePortalService(
     harness.memory.prisma as never,
@@ -135,6 +143,111 @@ describe('Article from a public agent reply (K1c)', () => {
     expect(audits.map((entry) => (entry as { action?: string }).action)).toContain(
       'knowledge.article.reply_redacted',
     );
+  });
+
+  it('w7.82: drugi submit istog odgovora vraća postojeći nacrt, ne blizanca', async () => {
+    const { service, messages, audits, memory } = setup();
+    const input = {
+      ticketId: 'ticket-1',
+      messageId: 'msg-1',
+      title: 'VPN klijent',
+      body: 'Pokrenite klijent.',
+      serviceId: knowledgeBaseTestIds.serviceVpn,
+      organizationalUnitId: knowledgeBaseTestIds.ouIt,
+      ownerUserId: knowledgeBaseTestIds.agentIt,
+      reason: 'Iz odgovora',
+    };
+
+    const first = await service.createFromReply(input, agent);
+    const second = await service.createFromReply(input, agent);
+
+    // Jedan odgovor = jedan nacrt, i preživjeli mrežni retry ne pravi duplikat.
+    expect(memory.articles.size).toBe(1);
+    expect(second.id).toBe(first.id);
+    expect(second).toMatchObject({ alreadyCreated: true, title: 'VPN klijent', status: 'DRAFT' });
+    expect(first.alreadyCreated).toBeUndefined();
+    // Trag na tiketu ostaje jedan (upsert po izvornoj poruci), a audit se ne ponavlja.
+    expect(messages).toHaveLength(1);
+    expect(audits.map((entry) => (entry as { action?: string }).action)).toEqual([
+      'knowledge.article.drafted_from_reply',
+    ]);
+  });
+
+  it('w7.82: nacrt, trag na tiketu i audit se pišu u jednoj transakciji pod bravom odgovora', async () => {
+    const { service, memory, audits, messages } = setup();
+    const prisma = memory.prisma as unknown as Record<string, unknown>;
+    const originalTransaction = prisma.$transaction as (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
+    let inTransaction = false;
+    prisma.$transaction = async (callback: (client: unknown) => Promise<unknown>) => {
+      inTransaction = true;
+      try {
+        return await originalTransaction(callback);
+      } finally {
+        inTransaction = false;
+      }
+    };
+    let auditInside = false;
+    let traceInside = false;
+    const ticketMessage = prisma.ticketMessage as { upsert: (args: unknown) => Promise<unknown> };
+    const originalUpsert = ticketMessage.upsert;
+    ticketMessage.upsert = async (args: unknown) => {
+      traceInside = inTransaction;
+      return originalUpsert(args);
+    };
+    const auditLog = prisma.auditLog as { create: (args: unknown) => Promise<unknown> };
+    const originalCreate = auditLog.create;
+    auditLog.create = async (args: unknown) => {
+      auditInside = inTransaction;
+      return originalCreate(args);
+    };
+
+    await service.createFromReply(
+      {
+        ticketId: 'ticket-1',
+        messageId: 'msg-1',
+        title: 'VPN klijent',
+        body: 'Pokrenite klijent.',
+        serviceId: knowledgeBaseTestIds.serviceVpn,
+        organizationalUnitId: knowledgeBaseTestIds.ouIt,
+        ownerUserId: knowledgeBaseTestIds.agentIt,
+        reason: 'Iz odgovora',
+      },
+      agent,
+    );
+
+    // Nijedan od tri zapisa ne smije ostati izvan transakcije koja ih drži zajedno.
+    expect(traceInside).toBe(true);
+    expect(auditInside).toBe(true);
+    expect(messages).toHaveLength(1);
+    expect(audits).toHaveLength(1);
+  });
+
+  it('w7.82: brava je vezana na izvorni odgovor, ne na cijeli modul', async () => {
+    const { service, memory } = setup();
+    const prisma = memory.prisma as unknown as Record<string, unknown>;
+    const queryRaw = prisma.$queryRaw as (...args: unknown[]) => Promise<unknown>;
+    const calls: unknown[][] = [];
+    prisma.$queryRaw = async (...args: unknown[]) => {
+      calls.push(args);
+      return queryRaw(...args);
+    };
+
+    await service.createFromReply(
+      {
+        ticketId: 'ticket-1',
+        messageId: 'msg-1',
+        title: 'VPN klijent',
+        body: 'Pokrenite klijent.',
+        serviceId: knowledgeBaseTestIds.serviceVpn,
+        organizationalUnitId: knowledgeBaseTestIds.ouIt,
+        ownerUserId: knowledgeBaseTestIds.agentIt,
+        reason: 'Iz odgovora',
+      },
+      agent,
+    );
+
+    const identity = `${'knowledge-base.from-reply'.length}:knowledge-base.from-reply:ticket-1:msg-1`;
+    expect(calls.some((args) => args.includes(identity))).toBe(true);
   });
 
   it('val 2 (M14/B1): ne bilježi ništa kad je poslani tekst čist', async () => {

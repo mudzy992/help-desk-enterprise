@@ -36,6 +36,10 @@ import {
 } from '../load-knowledge-article-scope';
 import { changeLogActions, recordKnowledgeArticleChange } from '../record-knowledge-article-change';
 import { toKnowledgeArticleResponse } from '../to-knowledge-article-response';
+import {
+  findKnowledgeDraftFromReply,
+  withKnowledgeFromReplyLock,
+} from './knowledge-from-reply-lock';
 import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { withKnowledgeArticleFreshness } from '../with-knowledge-article-freshness';
 import { recordKnowledgeArticleView } from './knowledge-article-views';
@@ -135,7 +139,16 @@ export type KnowledgeArticleFromReplyResponse = KnowledgeArticleResponse & {
   /** Val 2 (M14/B1): šta je server zamijenio u onome što je klijent poslao. */
   readonly replacements: ReplyScrubCounts;
   readonly sanitized: boolean;
+  /**
+   * W7.82 (`BA-knowledge-base-08`): `true` when this reply already had a draft and the call returned that one
+   * instead of creating another. Additive and optional, so existing clients keep working; the portal uses it to
+   * say „draft already exists“ rather than claiming a second article was created.
+   */
+  readonly alreadyCreated?: boolean;
 };
+
+/** Where an audit entry is written: the caller's transaction, or a transaction of its own. */
+type AuditWriteOptions = { readonly transaction?: AuditLogTransactionalClient };
 
 export type CreateArticleFromReplyInput = Omit<
   CreateKnowledgeArticleInput,
@@ -580,47 +593,102 @@ export class KnowledgePortalService {
       const cleanTitle = scrubReplyPersonalData(article.title, source.people, labels);
       // Only a real replacement counts as „sanitized“ — leading/trailing space
       // must not produce an audit entry of its own.
-      if (
+      const redacted =
         article.body.trim() !== cleanBody.text.trim() ||
-        article.title.trim() !== cleanTitle.text.trim()
-      ) {
-        await this.recordExtraRedaction(context, ticketId, messageId, {
-          body: cleanBody.counts,
-          title: cleanTitle.counts,
-        });
+        article.title.trim() !== cleanTitle.text.trim();
+      // W7.82 (BA-knowledge-base-08): the draft, its change log, the ticket trace and the audit used to be
+      // three separate writes. The article could commit while the trace or the audit failed, and a retry had
+      // nothing to recognise the earlier attempt by, so it created a second draft of the same reply. Everything
+      // now commits in one transaction while the reply is locked, and a reply that already produced a draft
+      // returns that draft instead of a twin.
+      for (let attempt = 1; ; attempt += 1) {
+        try {
+          return await this.prisma.$transaction((transaction) =>
+            withKnowledgeFromReplyLock(transaction, ticketId, messageId, async () => {
+              const client = transaction as unknown as PrismaService;
+              const existing = await findKnowledgeDraftFromReply(client, ticketId, messageId);
+              if (existing !== null) {
+                // The reply's draft exists: hand it back. The ticket trace is an upsert keyed by the source
+                // message, so re-stating it cannot duplicate the event, and an existing draft already carries
+                // its audit entry from the transaction that created it.
+                await this.insertDraftTrace(client, ticketId, existing, messageId, context);
+                return {
+                  ...toKnowledgeArticleResponse(existing),
+                  replacements: { email: 0, person: 0, ip: 0, phone: 0 },
+                  sanitized: false,
+                  alreadyCreated: true,
+                };
+              }
+              if (redacted) {
+                await this.recordExtraRedaction(
+                  context,
+                  ticketId,
+                  messageId,
+                  { body: cleanBody.counts, title: cleanTitle.counts },
+                  { transaction },
+                );
+              }
+              const created = await createKnowledgeArticle(
+                this.prisma,
+                this.loader,
+                {
+                  ...article,
+                  title: cleanTitle.text.trim(),
+                  body: cleanBody.text.trim(),
+                  sourceTicketId: ticketId,
+                  sourceMessageId: messageId,
+                },
+                context,
+                { transaction },
+              );
+              // Internal trace on the ticket (SYSTEM_EVENT is staff only).
+              await this.insertDraftTrace(client, ticketId, created, messageId, context);
+              await this.audit(
+                auditLogActions.knowledgeArticleDraftedFromReply,
+                auditLogEntityTypes.knowledgeArticle,
+                created.id,
+                context,
+                { ticketNumber: source.ticketNumber, messageId },
+                { transaction },
+              );
+              const replacements = sumScrubCounts(cleanTitle.counts, cleanBody.counts);
+              return {
+                ...toKnowledgeArticleResponse(created),
+                replacements,
+                sanitized: totalScrubCounts(replacements) > 0,
+              };
+            }),
+          );
+        } catch (error) {
+          // The slug is allocated inside the transaction, so a writer that won the race aborts this attempt
+          // instead of leaking a raw unique violation; the whole transaction restarts with the next free suffix
+          // and, on a retry of the same reply, finds the committed draft.
+          if (
+            !(error instanceof KnowledgeBaseError) ||
+            error.code !== 'SLUG_TAKEN' ||
+            attempt >= knowledgeBaseConstants.slugAllocationAttempts
+          ) {
+            throw error;
+          }
+        }
       }
-      const created = await createKnowledgeArticle(
-        this.prisma,
-        this.loader,
-        {
-          ...article,
-          title: cleanTitle.text.trim(),
-          body: cleanBody.text.trim(),
-          sourceTicketId: ticketId,
-          sourceMessageId: messageId,
-        },
-        context,
-      );
-      // Internal trace on the ticket (SYSTEM_EVENT is staff only).
-      await insertSystemTicketEvent(this.prisma, {
-        ticketId,
-        action: ticketSystemEventActions.knowledgeDraftCreated,
-        actorUserId: context.actorUserId,
-        detail: `${created.id}|${created.title.replace(/\|/g, '/')}`,
-      });
-      await this.audit(
-        auditLogActions.knowledgeArticleDraftedFromReply,
-        auditLogEntityTypes.knowledgeArticle,
-        created.id,
-        context,
-        { ticketNumber: source.ticketNumber, messageId },
-      );
-      const replacements = sumScrubCounts(cleanTitle.counts, cleanBody.counts);
-      return {
-        ...toKnowledgeArticleResponse(created),
-        replacements,
-        sanitized: totalScrubCounts(replacements) > 0,
-      };
+    });
+  }
+
+  /** Internal, staff-only trace of the draft on its source ticket (idempotent per source message). */
+  private insertDraftTrace(
+    client: PrismaService,
+    ticketId: string,
+    article: KnowledgeArticleRecord,
+    messageId: string,
+    context: KnowledgeArticleMutationContext,
+  ): Promise<unknown> {
+    return insertSystemTicketEvent(client, {
+      ticketId,
+      action: ticketSystemEventActions.knowledgeDraftCreated,
+      actorUserId: context.actorUserId,
+      detail: `${article.id}|${article.title.replace(/\|/g, '/')}`,
+      idempotencyKey: `knowledge-draft-created:${messageId}`,
     });
   }
 
@@ -634,6 +702,7 @@ export class KnowledgePortalService {
     ticketId: string,
     messageId: string,
     counts: { readonly title: ReplyScrubCounts; readonly body: ReplyScrubCounts },
+    options: AuditWriteOptions = {},
   ): Promise<void> {
     await this.audit(
       auditLogActions.knowledgeArticleReplyRedacted,
@@ -645,6 +714,7 @@ export class KnowledgePortalService {
         title: totalScrubCounts(counts.title),
         body: totalScrubCounts(counts.body),
       },
+      options,
     );
   }
 
@@ -789,14 +859,20 @@ export class KnowledgePortalService {
     entityId: string,
     context: KnowledgeArticleMutationContext,
     metadata: Record<string, unknown>,
+    options: AuditWriteOptions = {},
   ): Promise<void> {
-    await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
-      action,
-      entityType,
-      entityId,
-      metadata: JSON.parse(JSON.stringify(metadata)),
-      actorUserId: context.actorUserId,
-    });
+    // A transaction client has no `$transaction` of its own, so `recordAuditEntry` appends straight into the
+    // caller's transaction — the audit entry commits with the change it describes, or not at all.
+    await recordAuditEntry(
+      options.transaction ?? (this.prisma as unknown as AuditLogTransactionalClient),
+      {
+        action,
+        entityType,
+        entityId,
+        metadata: JSON.parse(JSON.stringify(metadata)),
+        actorUserId: context.actorUserId,
+      },
+    );
   }
 }
 

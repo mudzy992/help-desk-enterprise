@@ -5895,6 +5895,7 @@
         "sourceLabel": "Nastao iz odgovora na tiketu.",
         "openTicket": "Otvori tiket",
         "save": "Sačuvaj nacrt",
+        "alreadyCreated": "Nacrt za ovaj odgovor već postoji; nije napravljen novi.",
         "created": "Nacrt članka je kreiran."
       }
     }

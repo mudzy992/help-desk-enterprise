@@ -21,6 +21,9 @@ export type ArticleWhere = {
     readonly mode?: 'insensitive' | 'default';
   };
   readonly organizationalUnitId?: string | { in: readonly string[] };
+  /** W7.82 (BA-knowledge-base-08): the from-reply draft is looked up by its source message. */
+  readonly sourceTicketId?: string;
+  readonly sourceMessageId?: string;
 };
 
 export function createInMemoryKnowledgeArticleDelegate(
@@ -184,6 +187,18 @@ function matchesArticle(
     return false;
   }
   if (where.serviceId !== undefined && article.serviceId !== where.serviceId) {
+    return false;
+  }
+  if (
+    where.sourceTicketId !== undefined &&
+    article.sourceTicketId !== where.sourceTicketId
+  ) {
+    return false;
+  }
+  if (
+    where.sourceMessageId !== undefined &&
+    article.sourceMessageId !== where.sourceMessageId
+  ) {
     return false;
   }
   if ('categoryId' in where && article.categoryId !== where.categoryId) {
