@@ -145,7 +145,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-02 | P1       | Reviewer assignment daje read/review bez aktuelnog permission scopea i revoke lifecyclea | zatvoreno |
 | BA-knowledge-base-03 | P1       | Article edit/lifecycle nema version/CAS ni review vezan za content revision               | zatvoreno |
 | BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | zatvoreno |
-| BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | otvoreno |
+| BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | zatvoreno |
 | BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | otvoreno |
 | BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | otvoreno |
 | BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | otvoreno |
@@ -166,7 +166,8 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 - **01–02:** owner/reviewer kao eksplicitna, eligible, scoped i auditirana delegacija sa revoke/expiry pravilom.
 - **03:** article version/content revision, If-Match/CAS i review vezan za tačan revision hash.
 - **04, 17:** DB pagination/scope pushdown, cursor/hasMore i bounded portal/insights.
-- **05:** potvrditi company-wide INTERNAL ili uvesti OU/service-internal klasifikaciju/default.
+- **05:** publika `INTERNAL` je eksplicitna postavka (default scope-aware: OU/servis dodjela ili matična
+  jedinica), a company-wide je svjesno uključenje.
 - **06:** signed intercept context ili puna service/OU/article visibility/status provjera.
 - **07:** transactional counter delta/trigger i exact reconciliation nakon user deletea.
 - **08:** unique source message/idempotency command i atomarni/reconciled ticket trace.
@@ -289,3 +290,33 @@ na 1000. Portal kategorija je stranica (default 20), a home/insights rade nad ca
 „Prikazano N; ima još rezultata.“ umjesto nepoznatog totala. Vidljivost je namjerno ostala jedna odluka
 (`canReadKnowledgeArticle`) umjesto duplirana u SQL-u — granica je rad po zahtjevu, ne upit. Nema migracije.
 Dokaz: [273-w752-knowledge-base-04-bounded-paged-reads.md](../implementation/273-w752-knowledge-base-04-bounded-paged-reads.md).
+
+## 23. Implementacijski closeout — W7.79 (`BA-knowledge-base-05`)
+
+Na `7f182f9`, uz CI `44927782122`, `INTERNAL` više nije publika koju je neko dobio ne birajući je. Grana
+`return true` zamijenjena je politikom instalacije: `private.knowledgeBase.visibility.internalCompanyWide`
+(boolean, obavezan, **default `false`**). Isključeno drži objavljeni interni članak unutar njegove granice, i to sa
+**dvije** strane: osoblje čija dodjela pokriva OU putanju **i** servis članka (`isKnowledgeDelegationInScope`,
+ista provjera kao za vlasnika/reviewera) i djelatnici čija matična jedinica pokriva jedinicu članka
+(`doesOrganizationalUnitScopeCover`, jedinica i podstablo, **bez permisije**) — drugi put je ono što samoposlužni
+portal drži funkcionalnim. Uključeno je staro company-wide ponašanje, sada kao svjesna odluka koju ekran postavki
+objašnjava i preporučuje da ostane isključena. `CONFIDENTIAL` i `RESTRICTED` nisu dirani: postavka govori samo o
+`INTERNAL`.
+
+Politika putuje do svake čitalačke površine. `loadKnowledgeArticleVisibilities` i `isKnowledgeArticleVisibleTo`
+primaju `KnowledgeArticleVisibilityPolicy` (nema defaulta; `companyWideKnowledgeVisibilityPolicy` postoji samo za
+testove koji pinuju staru publiku), a `ListKnowledgeArticlesOptions.configuration`,
+`searchKnowledgeArticleTitles` `input.configuration` i `getKnowledgeArticle(..., configuration)` su obavezni —
+novi poziv se ne može napisati a da ne imenuje publiku. Intercept, feedback i portal (`publishedScan`, straničena
+kategorija, `recordView`) prosljeđuju istu konfiguraciju; `searchTitles` i `recordView` je zbog toga učitavaju
+(prvi put asinhrono u servisu). Matična jedinica čitaoca se čita **najviše jednom po batchu** i samo kad je
+politika scope-aware **i** batch sadrži objavljeni `INTERNAL` red — company-wide stranica i stranica bez internih
+članaka ne plaćaju ništa, a čitalac bez matične jedinice dobija `null` (nema implicitnog pristupa). Fallback
+loadera je `defaultKnowledgeBaseConfiguration`, dakle isključeno: pad postavki ne može proširiti publiku.
+Dokaz: novi `knowledge-base.internal-audience.spec.ts` (**9 testova** — company-wide, odbijeni requestor bez
+matične jedinice, matična jedinica roditelja i tačna jedinica bez permisije, bratska jedinica zatvorena, IT agent
+kroz delegaciju i HR agent odbijen, nacrt skriven i uz company-wide, `CONFIDENTIAL`/`RESTRICTED` netaknuti,
+single/batch paritet i brojanje `findUnique` 1/0/0), `modules/knowledge-base` **20 suite/102 testa**, `settings` +
+install sekcije **31/140**, frontend i18n čuvari **4 fajla/32 testa** uz katalog **519 → 520**. Nema migracije;
+promjena ponašanja je namjerna i dokumentovana, a instalacija koja je živjela company-wide uključi postavku.
+Dokaz: [300-w779-knowledge-base-05-internal-audience.md](../implementation/300-w779-knowledge-base-05-internal-audience.md).
