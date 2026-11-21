@@ -37,19 +37,41 @@ test.describe('31 change lifecycle', () => {
           expect((await user.request(`/changes/calendar?from=${window.plannedStart}&to=${window.plannedEnd}`)).status).toBe(403);
         });
 
+        // The draft body without a CAB group; the same shape is used to prove that routing never guesses.
+        const draftBody = {
+          type: 'NORMAL',
+          title: `E2E promjena glavna ${fixture.stamp}`,
+          description: 'Nadogradnja servera aplikacije (E2E).',
+          reason: 'Sigurnosne zakrpe dobavljača.',
+          impact: 'HIGH',
+          likelihood: 'MEDIUM',
+          organizationalUnitId: fixture.unitId,
+          serviceIds: [fixture.serviceId],
+        };
+
+        await test.step('routing never guesses: a second CAB group makes the group mandatory (W7.73)', async () => {
+          // The fixture already has one CAB group in this unit, so without a second one the routing would be
+          // unambiguous and the request would succeed. The extra group is temporary on purpose: the assertion is
+          // about the ambiguity rule, not about whatever CAB groups the stack happens to carry.
+          const extra = await admin.requestJson<{ id: string }>('/groups', {
+            method: 'POST',
+            body: JSON.stringify({ name: `E2E CAB drugi ${fixture.stamp}`, organizationalUnitId: fixture.unitId, isCabGroup: true }),
+          });
+          try {
+            const ambiguous = await admin.request('/changes', { method: 'POST', body: JSON.stringify(draftBody) });
+            expect(await errorCode(ambiguous)).toBe('CHANGE_CAB_GROUP_REQUIRED');
+          } finally {
+            await admin.request(`/groups/${extra.id}`, { method: 'PATCH', body: JSON.stringify({ isCabGroup: false }) }).catch(() => undefined);
+            await admin.request(`/groups/${extra.id}`, { method: 'DELETE' }).catch(() => undefined);
+          }
+        });
+
         await test.step('create a NORMAL change without plans (DRAFT)', async () => {
+          // W7.73: the caller names the CAB group, exactly as the form does — a change is never routed to "the first
+          // group alphabetically", and an ambiguous installation gets CHANGE_CAB_GROUP_REQUIRED instead of a guess.
           const created = await admin.requestJson<ChangeDetail>('/changes', {
             method: 'POST',
-            body: JSON.stringify({
-              type: 'NORMAL',
-              title: `E2E promjena glavna ${fixture.stamp}`,
-              description: 'Nadogradnja servera aplikacije (E2E).',
-              reason: 'Sigurnosne zakrpe dobavljača.',
-              impact: 'HIGH',
-              likelihood: 'MEDIUM',
-              organizationalUnitId: fixture.unitId,
-              serviceIds: [fixture.serviceId],
-            }),
+            body: JSON.stringify({ ...draftBody, cabGroupId: fixture.cabGroupId }),
           });
           change = created;
           expect(created.status).toBe('DRAFT');
