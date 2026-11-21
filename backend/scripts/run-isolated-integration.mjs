@@ -100,6 +100,8 @@ export const integrationSpecs = Object.freeze([
   // W7.61 (BA-search-07): EXPLAIN evidence for the two `contains` scans of
   // `GET /search` (directory and knowledge-base title).
   "src/modules/search/search-query-plan.integration.spec.ts",
+  // W7.81 (BA-knowledge-base-07): the article rating totals under concurrent votes and after a user cascade.
+  "src/modules/knowledge-base/knowledge-feedback-concurrency.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

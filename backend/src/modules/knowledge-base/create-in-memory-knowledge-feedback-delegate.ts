@@ -23,6 +23,8 @@ type FeedbackWhere = {
   readonly userId?: string;
   /** W7.53 (BA-reports-01): report packs pin votes to the window. */
   readonly createdAt?: { readonly gte?: Date; readonly lte?: Date };
+  /** W7.81 (BA-knowledge-base-07): only rated votes move the article rating totals. */
+  readonly rating?: { readonly not?: null };
 };
 
 export function createInMemoryKnowledgeFeedbackDelegate(
@@ -137,6 +139,10 @@ function matchesFeedback(
     if (lte !== undefined && item.createdAt.getTime() > lte.getTime()) {
       return false;
     }
+  }
+  if (where.rating?.not === null && typeof item.rating !== 'number') {
+    // `rating: { not: null }` — thumbs-only votes are not part of the rating totals.
+    return false;
   }
   if (where.articleId === undefined) {
     return true;

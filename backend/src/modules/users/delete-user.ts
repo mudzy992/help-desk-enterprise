@@ -1,4 +1,9 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  collectRatedArticleIdsOfUser,
+  reconcileKnowledgeArticleRatings,
+  type KnowledgeFeedbackClient,
+} from '../knowledge-base/knowledge-feedback-rating';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { UserAuditContext, PrincipalInvalidationHook } from './users.types';
@@ -65,7 +70,19 @@ export async function deleteUser(
         },
       },
     });
+    // W7.81 (`BA-knowledge-base-07`): `KnowledgeFeedback.userId` is `onDelete: Cascade`, so the votes of this
+    // account leave with it and the articles they rated would keep the removed ratings in `ratingCount` and
+    // `ratingSum`. Collect the affected articles first, delete, then recompute their totals in the same
+    // transaction — the removal and the repair commit together or not at all.
+    const ratedArticleIds = await collectRatedArticleIdsOfUser(
+      transaction as unknown as KnowledgeFeedbackClient,
+      userId,
+    );
     await transaction.user.delete({ where: { id: userId } });
+    await reconcileKnowledgeArticleRatings(
+      transaction as unknown as KnowledgeFeedbackClient,
+      ratedArticleIds,
+    );
   });
   // The row is gone, so the version cannot be bumped; dropping the principal
   // cache pointer still makes any old session stop resolving to this account.

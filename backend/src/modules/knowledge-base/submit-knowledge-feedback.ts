@@ -1,7 +1,11 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { KnowledgeBaseError } from './knowledge-base.error';
-import { updateKnowledgeArticleCounters } from './portal/update-article-counters';
+import {
+  lockKnowledgeArticleRating,
+  reconcileKnowledgeArticleRating,
+  type KnowledgeFeedbackClient,
+} from './knowledge-feedback-rating';
 import type {
   KnowledgeArticleMutationContext,
   KnowledgeBaseConfiguration,
@@ -39,26 +43,35 @@ export async function submitKnowledgeFeedback(
     throw new KnowledgeBaseError('FORBIDDEN');
   }
   const vote = normalizeKnowledgeFeedbackVote(input);
-  const persisted = configuration.oneVotePerUserPerArticle
-    ? await prisma.knowledgeFeedback.upsert({
-        where: {
-          articleId_userId: { articleId, userId: context.actorUserId },
-        },
-        create: { articleId, userId: context.actorUserId, ...vote },
-        // A thumbs-only vote (ticket-create intercept) records whether the
-        // article solved the problem; it must not erase an earlier 1-5
-        // rating or its "what is missing?" comment.
-        update:
-          vote.rating === null
-            ? { isHelpful: vote.isHelpful }
-            : { ...vote, commentResolvedAt: null },
-      })
-    : await prisma.knowledgeFeedback.create({
-        data: { articleId, userId: context.actorUserId, ...vote },
-      });
-  if (vote.rating !== null) {
-    await refreshKnowledgeArticleRating(prisma, articleId);
-  }
+  // W7.81 (`BA-knowledge-base-07`): the vote and the totals it changes are one transaction, serialised per
+  // article. Writing them apart let two votes finish out of order and leave the smaller snapshot on the row;
+  // the totals are recomputed from the rows inside the same transaction, so a vote also heals older drift.
+  const persisted = await prisma.$transaction(async (transaction) => {
+    const client = transaction as unknown as KnowledgeFeedbackClient;
+    await lockKnowledgeArticleRating(client, articleId);
+    const row = configuration.oneVotePerUserPerArticle
+      ? await transaction.knowledgeFeedback.upsert({
+          where: {
+            articleId_userId: { articleId, userId: context.actorUserId },
+          },
+          create: { articleId, userId: context.actorUserId, ...vote },
+          // A thumbs-only vote (ticket-create intercept) records whether the
+          // article solved the problem; it must not erase an earlier 1-5
+          // rating or its "what is missing?" comment.
+          update:
+            vote.rating === null
+              ? { isHelpful: vote.isHelpful }
+              : { ...vote, commentResolvedAt: null },
+        })
+      : await transaction.knowledgeFeedback.create({
+          data: { articleId, userId: context.actorUserId, ...vote },
+        });
+    // A thumbs-only vote never entered the rating totals, so it does not pay for the recount.
+    if (vote.rating !== null) {
+      await reconcileKnowledgeArticleRating(client, articleId);
+    }
+    return row;
+  });
   return {
     articleId: persisted.articleId,
     userId: persisted.userId,
@@ -95,20 +108,4 @@ export function normalizeKnowledgeFeedbackVote(input: KnowledgeFeedbackInput): {
     throw new KnowledgeBaseError('INVALID_RATING');
   }
   return { isHelpful: input.rating >= 4, rating: input.rating, comment };
-}
-
-/** Recomputes the article totals from the votes (exact, idempotent). */
-export async function refreshKnowledgeArticleRating(
-  prisma: PrismaService,
-  articleId: string,
-): Promise<void> {
-  const aggregate = await prisma.knowledgeFeedback.aggregate({
-    where: { articleId, rating: { not: null } },
-    _count: { rating: true },
-    _sum: { rating: true },
-  });
-  await updateKnowledgeArticleCounters(prisma, articleId, {
-    ratingCount: aggregate._count.rating,
-    ratingSum: aggregate._sum.rating ?? 0,
-  });
 }

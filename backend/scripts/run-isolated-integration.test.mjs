@@ -294,6 +294,23 @@ test("BA-search-07 query-plan PostgreSQL integration spec je registrovan za CI",
   );
 });
 
+test("svaki knowledge-base PostgreSQL integration spec je registrovan za CI (BA-knowledge-base-07)", () => {
+  const directory = path.join(backendRoot, "src/modules/knowledge-base");
+  const discovered = discoverIntegrationSpecs(directory).sort();
+  const registered = integrationSpecs
+    .filter((spec) => spec.startsWith("src/modules/knowledge-base/") && spec.endsWith(".integration.spec.ts"))
+    .sort();
+  assert.deepEqual(
+    registered,
+    discovered,
+    "svaki knowledge-base integration fajl mora biti izvršen u isolated PostgreSQL runneru",
+  );
+  assert.ok(
+    integrationSpecs.includes("src/modules/knowledge-base/knowledge-feedback-concurrency.integration.spec.ts"),
+    "nedostaje BA-knowledge-base-07 rating concurrency shard",
+  );
+});
+
 test("mijenja samo database pathname u URL-u", () => {
   const result = new URL(withDatabaseName(
     "postgresql://user:pass@127.0.0.1:5432/template?schema=public",

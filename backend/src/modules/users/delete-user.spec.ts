@@ -23,6 +23,7 @@ describe('deleteUser', () => {
     const transaction = {
       $executeRaw: jest.fn().mockResolvedValue(1),
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
+      knowledgeFeedback: { findMany: jest.fn().mockResolvedValue([]) },
       user: {
         findUnique: jest.fn().mockResolvedValue(user),
         delete: jest.fn().mockResolvedValue(user),
@@ -64,6 +65,7 @@ describe('deleteUser', () => {
     const transaction = {
       $executeRaw: jest.fn().mockResolvedValue(1),
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
+      knowledgeFeedback: { findMany: jest.fn().mockResolvedValue([]) },
       user: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'user-1',
@@ -88,6 +90,68 @@ describe('deleteUser', () => {
     expect(invalidatePrincipal).not.toHaveBeenCalled();
   });
 
+  it('repairs the rating totals of the articles the removed votes no longer rate', async () => {
+    const transaction = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      userRole: { findFirst: jest.fn().mockResolvedValue(null) },
+      // W7.81: only rated votes change `ratingCount`/`ratingSum`; thumbs-only votes are not collected.
+      knowledgeFeedback: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { articleId: 'article-a' },
+            { articleId: 'article-b' },
+            { articleId: 'article-a' },
+          ]),
+        aggregate: jest
+          .fn()
+          .mockImplementation(async (args: { where: { articleId: string } }) =>
+            args.where.articleId === 'article-a'
+              ? { _count: { rating: 1 }, _sum: { rating: 5 } }
+              : { _count: { rating: 0 }, _sum: { rating: null } },
+          ),
+      },
+      knowledgeArticle: { update: jest.fn().mockResolvedValue(undefined) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          displayName: 'Agent One',
+          email: 'agent@example.com',
+          isActive: true,
+          isLocalOnly: false,
+          organizationalUnitId: null,
+          _count: { assignedTickets: 0, requestedTickets: 0 },
+        }),
+        delete: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: (client: unknown) => Promise<void>) => callback(transaction)),
+    };
+
+    await deleteUser(prisma as never, 'user-1');
+
+    // The votes leave with the account, so the articles they rated are recounted — once each, after the delete.
+    expect(transaction.knowledgeFeedback.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', rating: { not: null } },
+      select: { articleId: true },
+      distinct: ['articleId'],
+    });
+    expect(transaction.user.delete).toHaveBeenCalledTimes(1);
+    expect(transaction.knowledgeArticle.update).toHaveBeenCalledTimes(2);
+    expect(transaction.knowledgeArticle.update).toHaveBeenCalledWith({
+      where: { id: 'article-a' },
+      data: { ratingCount: 1, ratingSum: 5 },
+    });
+    expect(transaction.knowledgeArticle.update).toHaveBeenCalledWith({
+      where: { id: 'article-b' },
+      data: { ratingCount: 0, ratingSum: 0 },
+    });
+    expect(transaction.user.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.knowledgeArticle.update.mock.invocationCallOrder[0],
+    );
+  });
+
   it('blocks deleting the only active SuperAdmin', async () => {
     const deleteUserRow = jest.fn();
     const roleFindFirst = jest
@@ -97,6 +161,7 @@ describe('deleteUser', () => {
     const transaction = {
       $executeRaw: jest.fn().mockResolvedValue(1),
       userRole: { findFirst: roleFindFirst },
+      knowledgeFeedback: { findMany: jest.fn().mockResolvedValue([]) },
       user: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'user-1',
@@ -125,6 +190,7 @@ describe('deleteUser', () => {
     const transaction = {
       $executeRaw: jest.fn().mockResolvedValue(1),
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
+      knowledgeFeedback: { findMany: jest.fn().mockResolvedValue([]) },
       user: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'user-1',
