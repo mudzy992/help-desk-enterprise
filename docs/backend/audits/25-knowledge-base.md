@@ -147,7 +147,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-04 | P1       | Article list i portal učitavaju neograničen matching/published korpus                     | zatvoreno |
 | BA-knowledge-base-05 | P2       | INTERNAL default je company-wide read bez OU/service granice                              | zatvoreno |
 | BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | zatvoreno |
-| BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | otvoreno |
+| BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | zatvoreno |
 | BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | otvoreno |
 | BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | otvoreno |
 | BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | otvoreno |
@@ -170,7 +170,8 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
   jedinica), a company-wide je svjesno uključenje.
 - **06:** deflection se provjerava kao tvrdnja — jedinica koju akter smije zastupati, članak objavljen, iz
   traženog servisa i čitljiv, bez oracle-a nad nepoznatim ID-em.
-- **07:** transactional counter delta/trigger i exact reconciliation nakon user deletea.
+- **07:** glas i preračun su jedna transakcija pod bravom članka, preračun je egzaktan (samoiscjeljujući), a
+  brisanje korisnika popravlja članke koje je ocijenio u istoj transakciji.
 - **08:** unique source message/idempotency command i atomarni/reconciled ticket trace.
 - **09–11:** transakcijski portal audit, category locking i slug conflict retry.
 - **12–13:** bounded reminder batches, eligible recipients, scheduler reconcile i health.
@@ -349,3 +350,35 @@ ostavlja red), `modules/knowledge-base` **21 suite/112 testova**, `knowledge-bas
 `deflect` šalje matičnu jedinicu i prolazi isto pravilo), `eslint` zelen. Nema migracije; ugovorna promjena je
 `FORBIDDEN` tamo gdje je bio `NOT_FOUND`, a oba klijenta neuspjeh već tretiraju kao best-effort telemetriju.
 Dokaz: [301-w780-knowledge-base-06-intercept-resolution.md](../implementation/301-w780-knowledge-base-06-intercept-resolution.md).
+
+## 26. Implementacijski closeout — W7.81 (`BA-knowledge-base-07`)
+
+Na `16a8fcf`, uz CI `44939932522`, `ratingCount`/`ratingSum` se više ne mogu tiho razići sa glasovima. Prije je
+`submitKnowledgeFeedback` pisao glas, pa **odvojeno** čitao agregat i **odvojeno** upisivao apsolutne brojeve —
+dva glasa koja stignu zajedno mogla su se završiti u pogrešnom redu i na redu ostaviti **stariji** snapshot, a
+prosječna ocjena je javna na portalu i ulazi u `rankKnowledgeArticles` (redoslijed sugestija uz tiket). Uz to
+`KnowledgeFeedback.userId` je `onDelete: Cascade`, pa je brisanje korisnika tiho uklanjalo njegove glasove **bez
+ijednog** preračuna članaka koje je ocijenio.
+
+Sada: `lockKnowledgeArticleRating` uzima row lock članka unutar transakcije (glasovi istog članka se
+serijalizuju, ostali članci nisu blokirani), `reconcileKnowledgeArticleRating` preračuna `count`/`sum` **iz
+redova** i upiše ih apsolutno pod tom bravom (egzaktno, idempotentno, samoiscjeljujuće za stari drift), a
+`submitKnowledgeFeedback` radi `$transaction(lock → upsert/create → reconcile)`; thumbs-only glas preskače
+preračun jer nikad nije ušao u zbir. Upis brojeva ostaje sirov SQL, pa ocjena ne mijenja `updatedAt` i ne
+preuređuje liste. `deleteUser` sada **u istoj transakciji brisanja** prikupi ocijenjene članke
+(`collectRatedArticleIdsOfUser`, `distinct` nad glasovima sa ocjenom), obriše korisnika (kaskada odnese glasove)
+i preračuna te članke (`reconcileKnowledgeArticleRatings`) — uklanjanje i popravka se commit-uju zajedno ili
+nikako. Trigger bi riješio isto, ali traži migraciju; delta bi bila O(1) ali ne bi popravila postojeći drift ni
+kaskadu, pa je odabran egzaktni preračun pod bravom. Dokaz: `knowledge-base.feedback-rating.spec.ts`
+(**8 testova** — jedna ocjena ulazi jednom, više korisnika, thumbs glas ne dira zbir, `9/41` se popravi na
+`1/5`, preračun se izvršava unutar transakcije glasovanja, samo ocijenjeni članci se skupljaju, jedan preračun po
+distinct članku, jedinstveni glas ostaje ugovor baze), novi `knowledge-feedback-concurrency.integration.spec.ts`
+(**4 testa** pod stvarnim PostgreSQL-om: osam istovremenih glasova → tačno `8/32`, dva istovremena glasovanja
+istog korisnika → jedan red i brojevi koji odgovaraju stvarnom redu, korisnik odnese glasove → brojevi padnu
+tačno, `99/999` se popravi sljedećim glasom) registrovan u isolated runner i pokriven guardom
+(**23/23**), `users/delete-user.spec.ts` +1 test sa dokazom redoslijeda (preračun **poslije** brisanja), moduli
+`knowledge-base` **23 suite/124 testa**, `users` **22/87**, `reports` **31/159**, `eslint` zelen. Nema
+migracije. **Otvoreno i dokumentovano:** `@@unique([articleId, userId])` protiv postavke „svaki glas se broji”
+(pinovan testom, ispravka traži migraciju) i historijski drift na člancima bez novih glasova (globalni
+reconciler pripada `BA-knowledge-base-13`).
+Dokaz: [302-w781-knowledge-base-07-feedback-rating-atomicity.md](../implementation/302-w781-knowledge-base-07-feedback-rating-atomicity.md).
