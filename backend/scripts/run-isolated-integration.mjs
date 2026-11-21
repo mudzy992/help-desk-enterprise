@@ -106,6 +106,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/knowledge-base/knowledge-from-reply-atomicity.integration.spec.ts",
   // W7.83 (BA-knowledge-base-09): the placement predicate and the placement+change-log transaction.
   "src/modules/knowledge-base/knowledge-placement-atomicity.integration.spec.ts",
+  // W7.84 (BA-knowledge-base-10): the archive guard against a parallel placement of the same category.
+  "src/modules/knowledge-base/knowledge-category-archive-race.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

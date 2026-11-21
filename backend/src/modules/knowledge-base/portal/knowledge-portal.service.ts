@@ -40,6 +40,7 @@ import {
   findKnowledgeDraftFromReply,
   withKnowledgeFromReplyLock,
 } from './knowledge-from-reply-lock';
+import { withKnowledgeCategoryMembershipLock } from './knowledge-category-membership-lock';
 import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { withKnowledgeArticleFreshness } from '../with-knowledge-article-freshness';
 import { recordKnowledgeArticleView } from './knowledge-article-views';
@@ -402,35 +403,41 @@ export class KnowledgePortalService {
       // only lands if the row is still exactly what this request read. Before this the article moved and the
       // change log was a second statement — a failed log left a silent move, and two concurrent placements could
       // both "succeed" while the log described a `before` that was no longer true.
-      return this.prisma.$transaction(async (transaction) => {
-        const categoryId =
-          input.categoryId === undefined
-            ? current.categoryId
-            : await assertKnowledgeCategoryAssignable(
-                transaction as unknown as PrismaService,
-                input.categoryId,
-              );
-        const placed = await transaction.knowledgeArticle.updateMany({
-          where: { id: current.id, updatedAt: current.updatedAt },
-          data: { categoryId, isFaq, faqOrder },
-        });
-        if (placed.count !== 1) {
-          throw new KnowledgeBaseError('STALE_WRITE');
-        }
-        const updated = toArticleRecord(
-          await transaction.knowledgeArticle.findUniqueOrThrow({
-            where: { id: current.id },
-          }),
-        );
-        await recordKnowledgeArticleChange(transaction as unknown as PrismaService, {
-          action: changeLogActions.update,
-          reason: input.reason,
-          before: current,
-          after: updated,
-          actorUserId: context.actorUserId,
-        });
-        return toKnowledgeArticleResponse(updated);
-      });
+      return this.prisma.$transaction(async (transaction) =>
+        // W7.84 (`BA-knowledge-base-10`): joining a category and archiving it are one decision, so the placement
+        // holds the category's membership lock while it checks that the category is active and writes the link.
+        // An archive that committed first is therefore visible here, and a placement that commits first is
+        // counted by the archive guard.
+        withKnowledgeCategoryMembershipLock(transaction, [input.categoryId], async () => {
+          const categoryId =
+            input.categoryId === undefined
+              ? current.categoryId
+              : await assertKnowledgeCategoryAssignable(
+                  transaction as unknown as PrismaService,
+                  input.categoryId,
+                );
+          const placed = await transaction.knowledgeArticle.updateMany({
+            where: { id: current.id, updatedAt: current.updatedAt },
+            data: { categoryId, isFaq, faqOrder },
+          });
+          if (placed.count !== 1) {
+            throw new KnowledgeBaseError('STALE_WRITE');
+          }
+          const updated = toArticleRecord(
+            await transaction.knowledgeArticle.findUniqueOrThrow({
+              where: { id: current.id },
+            }),
+          );
+          await recordKnowledgeArticleChange(transaction as unknown as PrismaService, {
+            action: changeLogActions.update,
+            reason: input.reason,
+            before: current,
+            after: updated,
+            actorUserId: context.actorUserId,
+          });
+          return toKnowledgeArticleResponse(updated);
+        }),
+      );
     });
   }
 

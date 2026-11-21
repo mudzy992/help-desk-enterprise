@@ -131,6 +131,8 @@ function createPortalHarness(settings: Record<string, unknown> = {}) {
       }, []),
   };
   prisma.$executeRaw = async () => 0;
+  // W7.84: the category membership lock is taken with `$queryRaw` (set_config + pg_advisory_xact_lock).
+  prisma.$queryRaw = async () => [{ acquired: 1 }];
   prisma.auditLog = {
     findFirst: async () => null,
     create: async ({ data }: { data: unknown }) => audits.push(data),
@@ -355,7 +357,6 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     const typedFindUnique = articles.findUnique as (
       args: { where?: { id?: string } },
     ) => Promise<unknown>;
-    const originalFindUnique = articles.findUnique;
     // Drugi pisac je commitovao poslije našeg čitanja: `updatedAt` koji smo vidjeli više nije na redu.
     articles.findUnique = (async (args: { where?: { id?: string } }) => {
       const row = (await typedFindUnique(args)) as { id?: string; updatedAt?: Date } | null;
@@ -407,6 +408,43 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     expect(audits).toHaveLength(3);
     // Nijedan od tri audit zapisa ne smije ostati izvan transakcije koja nosi samu izmjenu.
     expect(inside).toEqual([true, true, true]);
+  });
+
+  it('w7.84: arhiviranje drži bravu kategorije prije nego što prebroji sadržaj', async () => {
+    const { service, categories, memory } = createPortalHarness();
+    categories.set('empty', { id: 'empty', key: 'prazna', nameBs: 'Prazna', nameEn: 'Empty', icon: 'wifi', sortOrder: 0, parentId: null, isArchived: false });
+    const prisma = memory.prisma as unknown as Record<string, unknown>;
+    const queryRaw = jest.fn(async (..._args: unknown[]) => [{ acquired: 1 }]);
+    prisma.$queryRaw = queryRaw;
+    const articles = prisma.knowledgeArticle as { count: (...args: unknown[]) => Promise<unknown> };
+    const originalCount = articles.count;
+    const count = jest.fn(async (...args: unknown[]) => originalCount(...args));
+    articles.count = count;
+
+    await service.setCategoryArchived('empty', true, superAdmin);
+
+    // Brava mora biti uzeta prije brojanja, inače count i upis ostaju dvije odluke.
+    const identity = `${'knowledge-base.category-membership'.length}:knowledge-base.category-membership:empty`;
+    expect(queryRaw.mock.calls.some((call) => call.includes(identity))).toBe(true);
+    expect(count).toHaveBeenCalledTimes(1);
+    const lockOrder = Math.max(...queryRaw.mock.invocationCallOrder);
+    expect(lockOrder).toBeLessThan(count.mock.invocationCallOrder[0]!);
+    expect(categories.get('empty')?.isArchived).toBe(true);
+  });
+
+  it('w7.84: placement drži istu bravu za kategoriju u koju članak ulazi', async () => {
+    const { service, memory, categories } = createPortalHarness();
+    categories.set('root', { id: 'root', key: 'mreza', nameBs: 'Mreža', nameEn: 'Network', icon: 'wifi', sortOrder: 0, parentId: null, isArchived: false });
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    const prisma = memory.prisma as unknown as Record<string, unknown>;
+    const queryRaw = jest.fn(async (..._args: unknown[]) => [{ acquired: 1 }]);
+    prisma.$queryRaw = queryRaw;
+
+    await service.placeArticle('a1', { categoryId: 'root', reason: 'Portal' }, asUser(knowledgeBaseTestIds.agentIt));
+
+    const identity = `${'knowledge-base.category-membership'.length}:knowledge-base.category-membership:root`;
+    expect(queryRaw.mock.calls.some((call) => call.includes(identity))).toBe(true);
+    expect(memory.articles.get('a1')?.categoryId).toBe('root');
   });
 
   it('counts published views in Redis, flushes finished days and falls back to the database', async () => {
