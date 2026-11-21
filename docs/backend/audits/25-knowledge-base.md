@@ -149,7 +149,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-06 | P2       | Intercept resolution prihvata foreign scope i hidden/unpublished article ID               | zatvoreno |
 | BA-knowledge-base-07 | P2       | Feedback write + aggregate refresh nije atomski i counter može zastarjeti                 | zatvoreno |
 | BA-knowledge-base-08 | P2       | From-reply article/event/audit nije idempotentan ni atomaran                              | zatvoreno |
-| BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | otvoreno |
+| BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | zatvoreno |
 | BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | otvoreno |
 | BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
 | BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | otvoreno |
@@ -174,7 +174,8 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
   brisanje korisnika popravlja članke koje je ocijenio u istoj transakciji.
 - **08:** nacrt je jedna transakcija pod bravom izvornog odgovora; ponovni poziv vraća postojeći nacrt, a trag
   na tiketu je upsert ključan na poruku (unique indeks nad izvorom ostaje preporuka za migraciju).
-- **09–11:** transakcijski portal audit, category locking i slug conflict retry.
+- **09–11:** transakcijski portal audit (placement sa CAS-om, kategorije sa auditom u istoj transakciji —
+  urađeno u W7.83), category locking i slug conflict retry.
 - **12–13:** bounded reminder batches, eligible recipients, scheduler reconcile i health.
 - **14–16,18:** retention/anonymization matrica, tombstone odluka, idempotent view flush i comment-resolution audit.
 - **19:** regenerated Prisma client i Postgres/Redis/concurrency/fault testovi.
@@ -413,3 +414,28 @@ uz guard **23/23**, backend `knowledge-base`+`users`+`reports`+`teams` **81 suit
 **3/21**, frontend `tsc -b` i `eslint` čisti, `vitest src/i18n` **48/48**, `vitest src/components/knowledge-base`
 **1/1**, `prettier --check` čist. Nema migracije.
 Dokaz: [303-w782-knowledge-base-08-from-reply-idempotency.md](../implementation/303-w782-knowledge-base-08-from-reply-idempotency.md).
+
+## 28. Implementacijski closeout — W7.83 (`BA-knowledge-base-09`)
+
+Na `0567fcf`, uz CI `44947960568`, zapis i njegov trag u portalu znanja više ne mogu živjeti odvojeno.
+**Placement** je mijenjao `categoryId`/`isFaq`/`faqOrder` jednom naredbom, a change-log zapis drugom: pad loga je
+ostavljao **premješten članak bez traga**, a dva paralelna placementa su oba prolazila dok je log opisivao
+`before` koji više nije bio tačan. **Kategorije** su pisale red pa otvarale **novu** transakciju za audit, pa je
+kategorija mogla postojati bez zapisa ko ju je napravio. Sada `placeArticle` radi
+`$transaction(kategorija → CAS `updateMany` nad `{id, updatedAt}` → `findUniqueOrThrow` → change log)`: upis
+prolazi samo ako je red još ono što je zahtjev pročitao (`STALE_WRITE` umjesto tihog prepisivanja), a provjera
+aktivne kategorije ide unutar transakcije. `createCategory`/`updateCategory`/`setCategoryArchived` rade
+`$transaction(izmjena → audit)`, a helperi primaju opcioni `transaction` isto kako već radi
+`createKnowledgeArticle`.
+
+**Bonus — pronađen i popravljen živi defekt:** allowlista za `knowledge.category.updated` bila je `schema([])`,
+a servis šalje `before`/`after`, pa je **svaki rename kategorije** upisao red i zatim pao sa
+`AUDIT_METADATA_FIELD_NOT_ALLOWED` (promjena u bazi, korisniku greška, audita nema). Akcija je podignuta na
+**schema v2** sa `['before','after']`, kompatibilni registar na v2, oba bumpa upisana u `bumpedSchemaVersions`, a
+regresioni test (`prepareAuditEntry` prima ta polja) stoji uz `changeTemplateSaved` presedan. Dokaz: `+3` testa u
+`knowledge-portal.service.spec.ts` (change log unutar placement transakcije; zastarjelo čitanje ⇒ `STALE_WRITE`
+bez zapisa i bez promjene kategorije; sva tri audita kategorija unutar svojih transakcija), novi
+`knowledge-placement-atomicity.integration.spec.ts` **2 testa** pod stvarnim PostgreSQL-om (predikat pogađa samo
+pročitani red; pad change loga odnosi placement) u isolated runneru uz guard **23/23**, backend
+`knowledge-base`+`users`+`audit-log` **63 suite/283 testa**, `eslint` zelen. Nema migracije.
+Dokaz: [304-w783-knowledge-base-09-placement-category-atomicity.md](../implementation/304-w783-knowledge-base-09-placement-category-atomicity.md).
