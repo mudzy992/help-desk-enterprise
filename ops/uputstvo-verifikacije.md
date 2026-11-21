@@ -188,12 +188,12 @@ ops/collect-staging-numbers.sh perf/results/staging-2026-09-30.json api.log
 
 ## Čišćenje nakon B/C
 
-E2E paket ostavlja tikete (`E2E …`) i servise (`e2e-…`); C ostavlja `[staging-seed]` tikete.
+E2E full CI ostavlja sve redove čiji naziv, slug ili ključ počinje sa `e2e`/`E2E` (tiketi, servisi, grupe, jedinice, imovina, problemi, promjene, najave, članci, kalendari, …). C ostavlja `[staging-seed]` tikete. Korisnici, role i sigurnosne postavke se ne brišu.
 Na serveru, iz korijena repozitorija:
 
 ```bash
 ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W   # proba: samo broji (ROLLBACK)
-ops/cleanup-e2e-data.sh --apply         # briše E2E tikete i servise
+ops/cleanup-e2e-data.sh --apply         # briše E2E tragove (ne korisnike, role, postavke)
 ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
 ```
 
@@ -203,7 +203,7 @@ ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
 cd ~/Documents/GitHub/help-desk-enterprise && git pull
 # 1) proba — samo broji, ništa ne briše (ROLLBACK):
 ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W --seed
-# 2) stvarno brisanje (E2E + [staging-seed] tiketi, SLA stanja, notifikacije):
+# 2) stvarno brisanje (E2E tragovi + [staging-seed] tiketi; korisnici ostaju):
 ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W --apply --seed
 # 3) kontrola — oba broja moraju biti 0:
 docker exec hgpchekxb6dutalsyctu42al psql -U admin -d servicedesk-dev -Atc \
@@ -216,6 +216,6 @@ Ako druga kontrola nije 0: to su SLA notifikacije čiji je tiket već obrisan
 (`ticketId` → NULL, onDelete SetNull). Brišu se ovako:
 `DELETE FROM "Notification" WHERE "ticketId" IS NULL AND type = 'ticket.sla';`
 
-Korisnici, audit log, verzije konfiguracije i IntegrationJob se ne diraju (detalji u
+Korisnici, role, sigurnosne postavke, audit log, verzije konfiguracije i IntegrationJob se ne brišu (detalji u
 zaglavlju `ops/sql/cleanup-e2e-data.sql`). Kontejner se pronalazi automatski; inače
 `PG_CONTAINER=<ime> ops/cleanup-e2e-data.sh`.

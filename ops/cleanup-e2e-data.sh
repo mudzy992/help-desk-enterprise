@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Briše E2E podatke sa stagingu (vidi ops/sql/cleanup-e2e-data.sql za tačan opseg).
-# Pokreće se NA SERVERU (Coolify), SQL ide kroz psql u Postgres kontejneru.
+# Briše tragove E2E full CI (prefiks e2e/E2E), osim korisnika, rola i sigurnosnih postavki.
+# Tačan opseg: ops/sql/cleanup-e2e-data.sql. Pokreće se NA SERVERU (Coolify).
 #
 #   ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W          # proba (samo broji)
 #   ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W --apply  # stvarno briše
