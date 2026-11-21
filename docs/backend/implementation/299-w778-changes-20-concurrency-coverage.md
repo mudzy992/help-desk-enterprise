@@ -5,7 +5,8 @@
 **Kod:** `backend/src/modules/changes/change-approvals.service.spec.ts` (novo),
 `backend/src/modules/changes/change-approvals-concurrency.integration.spec.ts` (novo, real PostgreSQL),
 `backend/package.json` (`test:safety-net:compile`), `backend/scripts/run-isolated-integration{,.test}.mjs`<br>
-**DB migracija:** nema
+**DB migracija:** nema<br>
+**CI:** [`44921661172`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44921661172) **success** (uključujući PostgreSQL/Redis integraciju sa novim CAB shard-om; E2E poslovi `skipped`)
 
 ## Nalaz
 
@@ -76,6 +77,10 @@ je — tvrdnja ne zavisi od toga koje CAB grupe stack trenutno nosi, a „korisn
 - `node --test scripts/run-isolated-integration.test.mjs` — **22/22** (uključujući novi changes guard).
 - `npx tsc --noEmit -p tsconfig.json` i `npx playwright test -c unit/playwright.config.ts` (6 testova) u `e2e/` za
   drift ispravku.
+- Prvi run ovog paketa [`44920755191`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44920755191) pao je
+  na jednom testu novog DB speca: „late member” glas je pokazivao na nepostojeći korisnik i pao je na
+  `ChangeApproval_approverUserId_fkey` prije nego što je pravilo snapshota uopšte provjereno. Ispravljeno u
+  `24f539d` (treći korisnik koji **jeste** stvaran, ali **nije** u zamrznutom setu) — zeleno u `44921661172`.
 - Raniji dokaz da compile-blocked suite više nije blokiran: `Backend build + test` (uključuje pun `npm test`) je
   zelen u runovima `44835370943` i `44828863763`.
 

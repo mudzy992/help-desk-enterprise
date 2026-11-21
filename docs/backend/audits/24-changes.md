@@ -780,7 +780,7 @@ zamrzavanja je već ograničena (`parseFreezePeriods` odbija > 50 zapisa), pa ni
 
 ## 39. Implementacijski closeout — W7.78 (`BA-changes-20`)
 
-**Status nalaza:** zatvoren; paket W7.78, **bez migracije**. Detalji:
+**Status nalaza:** zatvoren; paket W7.78, CI [`44921661172`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44921661172) **success** (uključujući PostgreSQL/Redis integraciju sa novim CAB shard-om; E2E poslovi `skipped`), **bez migracije**. Detalji:
 [299](../implementation/299-w778-changes-20-concurrency-coverage.md).
 
 **Šta je bilo:** §13 je ostavio dvije stvari. Prvo, `change-access.service.spec.ts` je u baselineu bio
