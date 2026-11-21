@@ -407,6 +407,10 @@ export const settingKeys = {
     'private.knowledgeBase.ranking.useFeedbackWeight',
   // Paket 2.9 (K1): portal FAQ size.
   privateKnowledgeBasePortalFaqMaxItems: 'private.knowledgeBase.portal.faqMaxItems',
+  // W7.79 (BA-knowledge-base-05): INTERNAL audience is an explicit decision, not an accident of the default
+  // classification. Off means OU/service-scoped; on means every signed-in user, which the settings screen warns about.
+  privateKnowledgeBaseVisibilityInternalCompanyWide:
+    'private.knowledgeBase.visibility.internalCompanyWide',
   privateTicketCloseCodesEnabled: 'private.ticket.closeCodes.enabled',
   privateTicketCloseCodesAllowedCodesCsv:
     'private.ticket.closeCodes.allowedCodesCsv',

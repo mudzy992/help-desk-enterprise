@@ -7,6 +7,7 @@ import { KnowledgeBaseError } from './knowledge-base.error';
 import type {
   KnowledgeArticleMutationContext,
   KnowledgeArticleRecord,
+  KnowledgeBaseConfiguration,
 } from './knowledge-base.types';
 
 export async function getKnowledgeArticle(
@@ -14,6 +15,7 @@ export async function getKnowledgeArticle(
   loader: AuthorizationContextLoader,
   articleId: string,
   context: KnowledgeArticleMutationContext,
+  configuration: KnowledgeBaseConfiguration,
 ): Promise<KnowledgeArticleRecord> {
   const actor = await loadKnowledgeActorContext(loader, context);
   const article = await loadKnowledgeArticleRecord(prisma, articleId);
@@ -21,7 +23,7 @@ export async function getKnowledgeArticle(
   // search, list and portal surfaces use, so an article a caller cannot see in
   // `/search` cannot be fetched by guessing its id either — both answers come
   // from one call of `canReadKnowledgeArticle`.
-  if (!(await isKnowledgeArticleVisibleTo(prisma, actor, article))) {
+  if (!(await isKnowledgeArticleVisibleTo(prisma, actor, article, configuration))) {
     throw new KnowledgeBaseError('FORBIDDEN');
   }
   return article;

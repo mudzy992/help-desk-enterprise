@@ -11,6 +11,7 @@ export function parseKnowledgeBaseConfiguration(input: {
   readonly feedbackEnabled: unknown;
   readonly oneVotePerUserPerArticle: unknown;
   readonly useFeedbackWeight: unknown;
+  readonly internalCompanyWide: unknown;
 }): KnowledgeBaseConfiguration {
   return {
     interceptEnabled: readBoolean(
@@ -45,6 +46,10 @@ export function parseKnowledgeBaseConfiguration(input: {
       input.useFeedbackWeight,
       defaultKnowledgeBaseConfiguration.useFeedbackWeight,
     ),
+    internalCompanyWide: readBoolean(
+      input.internalCompanyWide,
+      defaultKnowledgeBaseConfiguration.internalCompanyWide,
+    ),
   };
 }
 
@@ -57,6 +62,7 @@ export const knowledgeBaseSettingKeyList = [
   settingKeys.privateKnowledgeBaseFeedbackEnabled,
   settingKeys.privateKnowledgeBaseFeedbackOneVotePerUserPerArticle,
   settingKeys.privateKnowledgeBaseRankingUseFeedbackWeight,
+  settingKeys.privateKnowledgeBaseVisibilityInternalCompanyWide,
 ] as const;
 
 function readBoolean(value: unknown, fallback: boolean): boolean {

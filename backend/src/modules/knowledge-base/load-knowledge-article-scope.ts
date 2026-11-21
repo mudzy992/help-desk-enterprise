@@ -57,10 +57,25 @@ export async function loadOwnerGroupMemberUserIds(
  * (the OU path goes through the cached catalog loader, services and group
  * members are read in one batch each) and returns the ids the actor may read.
  */
+/**
+ * W7.79 (`BA-knowledge-base-05`): the INTERNAL audience is a policy, so every surface that decides visibility
+ * receives it. `internalCompanyWide` comes from `KnowledgeBaseConfiguration`, and the reader's home unit path is
+ * only resolved when the scoped policy is active and the page actually contains a published INTERNAL article —
+ * one lookup per request, never one per row.
+ */
+export type KnowledgeArticleVisibilityPolicy = {
+  readonly internalCompanyWide: boolean;
+};
+
+export const companyWideKnowledgeVisibilityPolicy: KnowledgeArticleVisibilityPolicy = {
+  internalCompanyWide: true,
+};
+
 export async function loadKnowledgeArticleVisibilities(
   prisma: PrismaService,
   context: AuthorizationContext,
   articles: readonly KnowledgeArticleVisibilityRecord[],
+  policy: KnowledgeArticleVisibilityPolicy,
 ): Promise<ReadonlySet<string>> {
   if (articles.length === 0) {
     return new Set();
@@ -68,6 +83,12 @@ export async function loadKnowledgeArticleVisibilities(
   if (context.isSuperAdmin) {
     return new Set(articles.map((article) => article.id));
   }
+  const readerHomeOrganizationalUnitPath = await resolveReaderHomePath(
+    prisma,
+    context,
+    articles,
+    policy,
+  );
   const organizationalUnitPaths = new Map<string, string>();
   for (const organizationalUnitId of new Set(
     articles.map((article) => article.organizationalUnitId),
@@ -113,6 +134,8 @@ export async function loadKnowledgeArticleVisibilities(
         writePermissionKey: permissionKeys.knowledgeArticleWrite,
         reviewPermissionKey: permissionKeys.knowledgeArticleReview,
         publishPermissionKey: permissionKeys.knowledgeArticlePublish,
+        internalCompanyWide: policy.internalCompanyWide,
+        readerHomeOrganizationalUnitPath,
       })
     ) {
       visible.add(article.id);
@@ -145,6 +168,37 @@ async function loadOwnerGroupMembersByGroup(
 const emptyUserIdSet: ReadonlySet<string> = new Set();
 
 /**
+ * The reader's home unit, as a path, and only when it can matter. A company-wide policy or a page without a
+ * published INTERNAL article never pays for this lookup, and a reader without a home unit gets `null` (no
+ * implicit access).
+ */
+async function resolveReaderHomePath(
+  prisma: PrismaService,
+  context: AuthorizationContext,
+  articles: readonly KnowledgeArticleVisibilityRecord[],
+  policy: KnowledgeArticleVisibilityPolicy,
+): Promise<string | null> {
+  if (policy.internalCompanyWide) {
+    return null;
+  }
+  const hasPublishedInternal = articles.some(
+    (article) => article.status === 'PUBLISHED' && article.classification === 'INTERNAL',
+  );
+  if (!hasPublishedInternal) {
+    return null;
+  }
+  const reader = await prisma.user.findUnique({
+    where: { id: context.subjectId },
+    select: { organizationalUnitId: true },
+  });
+  const homeUnitId = reader?.organizationalUnitId ?? null;
+  if (homeUnitId === null || homeUnitId.length === 0) {
+    return null;
+  }
+  return loadOrganizationalUnitPath(prisma, homeUnitId);
+}
+
+/**
  * W7.60 (BA-search-06): the single-article check **is** the batched check over
  * one row.
  *
@@ -162,9 +216,13 @@ export async function isKnowledgeArticleVisibleTo(
   prisma: PrismaService,
   context: AuthorizationContext,
   article: KnowledgeArticleRecord,
+  policy: KnowledgeArticleVisibilityPolicy,
 ): Promise<boolean> {
-  const visible = await loadKnowledgeArticleVisibilities(prisma, context, [
-    article,
-  ]);
+  const visible = await loadKnowledgeArticleVisibilities(
+    prisma,
+    context,
+    [article],
+    policy,
+  );
   return visible.has(article.id);
 }

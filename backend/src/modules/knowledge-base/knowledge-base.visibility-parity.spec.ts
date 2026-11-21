@@ -8,6 +8,7 @@ import {
   knowledgeBaseTestIds,
 } from './create-knowledge-base-service-harness';
 import {
+  companyWideKnowledgeVisibilityPolicy,
   isKnowledgeArticleVisibleTo,
   loadKnowledgeArticleVisibilities,
 } from './load-knowledge-article-scope';
@@ -180,6 +181,7 @@ describe('Knowledge base — one visibility decision for every surface (W7.60)',
         prisma,
         context as never,
         allArticles,
+        companyWideKnowledgeVisibilityPolicy,
       );
       for (const article of allArticles) {
         expect({
@@ -189,6 +191,7 @@ describe('Knowledge base — one visibility decision for every surface (W7.60)',
             prisma,
             context as never,
             article,
+            companyWideKnowledgeVisibilityPolicy,
           ),
         }).toEqual({
           actorId,
@@ -213,11 +216,13 @@ describe('Knowledge base — one visibility decision for every surface (W7.60)',
         prisma,
         contexts.get(actorId) as never,
         article,
+        companyWideKnowledgeVisibilityPolicy,
       );
       const batched = await loadKnowledgeArticleVisibilities(
         prisma,
         contexts.get(actorId) as never,
         [article],
+        companyWideKnowledgeVisibilityPolicy,
       );
       expect(batched.has(article.id)).toBe(single);
       return single;
@@ -268,11 +273,13 @@ describe('Knowledge base — one visibility decision for every surface (W7.60)',
         prisma,
         contexts.get(actorId) as never,
         article,
+        companyWideKnowledgeVisibilityPolicy,
       );
       const batched = await loadKnowledgeArticleVisibilities(
         prisma,
         contexts.get(actorId) as never,
         [article],
+        companyWideKnowledgeVisibilityPolicy,
       );
       expect(batched.has(article.id)).toBe(single);
       return single;

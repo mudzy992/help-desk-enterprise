@@ -46,7 +46,12 @@ export async function interceptKnowledgeArticles(
   const articles = records.map((record) =>
     withKnowledgeArticleFreshness(toArticleRecord(record), configuration, now),
   );
-  const readable = await loadKnowledgeArticleVisibilities(prisma, actor, articles);
+  const readable = await loadKnowledgeArticleVisibilities(
+    prisma,
+    actor,
+    articles,
+    configuration,
+  );
   const visible = articles.filter((article) => readable.has(article.id));
   if (visible.length === 0) {
     return { articles: [] };

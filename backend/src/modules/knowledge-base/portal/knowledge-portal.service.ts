@@ -268,6 +268,7 @@ export class KnowledgePortalService {
         { status: 'PUBLISHED' },
         context,
         {
+          configuration,
           limit: page.limit,
           cursor: page.cursor,
           defaultPageSize: knowledgeBaseConstants.defaultPortalPageSize,
@@ -400,7 +401,16 @@ export class KnowledgePortalService {
     return executeKnowledgeBaseOperation(async () => {
       const actor = await loadKnowledgeActorContext(this.loader, context);
       const article = await loadKnowledgeArticleRecord(this.prisma, articleId);
-      if (!(await isKnowledgeArticleVisibleTo(this.prisma, actor, article))) {
+      // W7.79 (`BA-knowledge-base-05`): recording a view is a read, so it obeys the same INTERNAL policy.
+      const configuration = await this.configurationLoader.load();
+      if (
+        !(await isKnowledgeArticleVisibleTo(
+          this.prisma,
+          actor,
+          article,
+          configuration,
+        ))
+      ) {
         throw new KnowledgeBaseError('FORBIDDEN');
       }
       // Drafts and reviews are work in progress: only published views count.
@@ -720,7 +730,7 @@ export class KnowledgePortalService {
       this.loader,
       { status: 'PUBLISHED' },
       context,
-      { limit, maximumPageSize: limit },
+      { configuration, limit, maximumPageSize: limit },
     );
     return {
       items: page.items.map((record) =>

@@ -70,6 +70,7 @@ export class KnowledgeBaseService {
         query,
         context,
         {
+          configuration,
           limit: query.limit,
           cursor: query.cursor,
           accept: (record) =>
@@ -115,15 +116,17 @@ export class KnowledgeBaseService {
     },
     context: KnowledgeArticleMutationContext,
   ): Promise<KnowledgeArticleTitleSearchResult> {
-    return executeKnowledgeBaseOperation(() =>
-      searchKnowledgeArticleTitles({
+    return executeKnowledgeBaseOperation(async () => {
+      const configuration = await this.configurationLoader.load();
+      return searchKnowledgeArticleTitles({
         prisma: this.prisma,
         authorizationContextLoader: this.authorizationContextLoader,
         context,
         query: query.q,
         limit: query.limit,
-      }),
-    );
+        configuration,
+      });
+    });
   }
 
   getById(
@@ -137,6 +140,7 @@ export class KnowledgeBaseService {
         this.authorizationContextLoader,
         articleId,
         context,
+        configuration,
       );
       const fresh = withKnowledgeArticleFreshness(
         record,

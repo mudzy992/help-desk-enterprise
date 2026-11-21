@@ -29,6 +29,8 @@ export const defaultKnowledgeBaseConfiguration: KnowledgeBaseConfiguration = {
   feedbackEnabled: true,
   oneVotePerUserPerArticle: true,
   useFeedbackWeight: true,
+  // W7.79 (`BA-knowledge-base-05`): the default classification must not hand every article to the whole company.
+  internalCompanyWide: false,
 };
 
 export const knowledgeBaseConstants = {

@@ -8,7 +8,10 @@ import {
   type KnowledgeArticleTitleSearchCandidate,
   type KnowledgeArticleTitleSearchRow,
 } from './search-knowledge-article-projection';
-import type { KnowledgeArticleMutationContext } from './knowledge-base.types';
+import type {
+  KnowledgeArticleMutationContext,
+  KnowledgeBaseConfiguration,
+} from './knowledge-base.types';
 
 export type KnowledgeArticleTitleMatch = {
   readonly id: string;
@@ -80,6 +83,8 @@ export async function searchKnowledgeArticleTitles(input: {
   readonly context: KnowledgeArticleMutationContext;
   readonly query: string;
   readonly limit: number;
+  /** W7.79 (`BA-knowledge-base-05`): the INTERNAL audience policy of this installation. */
+  readonly configuration: KnowledgeBaseConfiguration;
 }): Promise<KnowledgeArticleTitleSearchResult> {
   const actor = await loadKnowledgeActorContext(
     input.authorizationContextLoader,
@@ -107,6 +112,7 @@ export async function searchKnowledgeArticleTitles(input: {
       input.prisma,
       actor,
       window.records,
+      input.configuration,
     );
     const visibleRecords = window.records.filter((record) =>
       visible.has(record.id),

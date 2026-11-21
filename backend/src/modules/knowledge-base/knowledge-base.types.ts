@@ -12,6 +12,8 @@ export type KnowledgeBaseConfiguration = {
   readonly feedbackEnabled: boolean;
   readonly oneVotePerUserPerArticle: boolean;
   readonly useFeedbackWeight: boolean;
+  /** W7.79 (`BA-knowledge-base-05`): may every signed-in user read a published INTERNAL article? */
+  readonly internalCompanyWide: boolean;
 };
 
 export type KnowledgeArticleRecord = {

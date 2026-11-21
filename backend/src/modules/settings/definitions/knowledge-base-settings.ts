@@ -76,4 +76,16 @@ export const knowledgeBaseSettings: readonly SettingDefinition[] = [
       }
     },
   }),
+  // W7.79 (BA-knowledge-base-05): INTERNAL is the default classification, so who may read it cannot be an
+  // accident of that default. Off keeps the article inside its own OU/service; on is the explicit, warned
+  // decision to address the whole company.
+  definePrivateSetting({
+    key: settingKeys.privateKnowledgeBaseVisibilityInternalCompanyWide,
+    categoryId: settingCategoryIds.privateKnowledgeBase,
+    valueType: 'boolean',
+    description:
+      'Every signed-in user may read published INTERNAL articles (off: only readers whose assignment or home unit covers the article unit and service)',
+    isRequired: true,
+    defaultValue: false,
+  }),
 ];

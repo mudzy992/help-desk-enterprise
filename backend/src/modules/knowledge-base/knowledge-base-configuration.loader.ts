@@ -36,6 +36,9 @@ export class KnowledgeBaseConfigurationLoader {
         useFeedbackWeight: await this.settingsService.getSetting(
           settingKeys.privateKnowledgeBaseRankingUseFeedbackWeight,
         ),
+        internalCompanyWide: await this.settingsService.getSetting(
+          settingKeys.privateKnowledgeBaseVisibilityInternalCompanyWide,
+        ),
       });
     } catch {
       return { ...defaultKnowledgeBaseConfiguration };

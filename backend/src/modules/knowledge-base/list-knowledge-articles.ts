@@ -17,6 +17,7 @@ import { knowledgeBaseConstants } from './knowledge-base.constants';
 import type {
   KnowledgeArticleMutationContext,
   KnowledgeArticleRecord,
+  KnowledgeBaseConfiguration,
   ListKnowledgeArticlesQuery,
 } from './knowledge-base.types';
 
@@ -37,6 +38,11 @@ export type KnowledgeArticlePage = {
 };
 
 export type ListKnowledgeArticlesOptions = {
+  /**
+   * W7.79 (`BA-knowledge-base-05`): the caller's parsed configuration carries the INTERNAL audience policy; a page
+   * cannot be built without deciding who may read its INTERNAL rows.
+   */
+  readonly configuration: KnowledgeBaseConfiguration;
   readonly limit?: number;
   readonly cursor?: string;
   /** Portal pages are smaller than console pages. */
@@ -55,7 +61,7 @@ export async function listKnowledgeArticles(
   loader: AuthorizationContextLoader,
   query: ListKnowledgeArticlesQuery,
   context: KnowledgeArticleMutationContext,
-  options: ListKnowledgeArticlesOptions = {},
+  options: ListKnowledgeArticlesOptions,
 ): Promise<KnowledgeArticlePage> {
   const actor = await loadKnowledgeActorContext(loader, context);
   const limit = resolvePageSize(
@@ -81,6 +87,7 @@ export async function listKnowledgeArticles(
       prisma,
       actor,
       window.records,
+      options.configuration,
     );
     collected.push(
       ...window.records.filter(

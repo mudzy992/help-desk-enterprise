@@ -35,7 +35,7 @@ export async function submitKnowledgeFeedback(
   // W7.60 (BA-search-06): voting on an article is a read of it — the feedback
   // endpoint therefore uses the same visibility loader as `/search`, the list
   // and the detail read instead of assembling the predicate facts again.
-  if (!(await isKnowledgeArticleVisibleTo(prisma, actor, article))) {
+  if (!(await isKnowledgeArticleVisibleTo(prisma, actor, article, configuration))) {
     throw new KnowledgeBaseError('FORBIDDEN');
   }
   const vote = normalizeKnowledgeFeedbackVote(input);

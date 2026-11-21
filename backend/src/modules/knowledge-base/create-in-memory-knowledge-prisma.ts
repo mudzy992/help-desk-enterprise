@@ -13,7 +13,11 @@ import type { KnowledgeArticleRecord } from './knowledge-base.types';
 export function createInMemoryKnowledgePrisma() {
   const units = new Map<string, { id: string; ouPath: string }>();
   const services = new Map<string, { id: string }>();
-  const users = new Map<string, { id: string }>();
+  // W7.79: the INTERNAL audience policy reads the reader's home unit, so the in-memory user carries it.
+  const users = new Map<
+    string,
+    { id: string; organizationalUnitId?: string | null }
+  >();
   const groups = new Map<string, { id: string }>();
   const members = new Map<string, InMemoryGroupMember>();
   const articles = new Map<string, KnowledgeArticleRecord>();
@@ -179,7 +183,8 @@ export function createInMemoryKnowledgePrisma() {
     now,
     seedUnit: (unit: { id: string; ouPath: string }) => units.set(unit.id, unit),
     seedService: (service: { id: string }) => services.set(service.id, service),
-    seedUser: (user: { id: string }) => users.set(user.id, user),
+    seedUser: (user: { id: string; organizationalUnitId?: string | null }) =>
+      users.set(user.id, user),
     seedGroup: (group: { id: string }) => groups.set(group.id, group),
     seedGroupMember: (input: { groupId: string; userId: string }) =>
       seedInMemoryGroupMember(members, nextId, input),

@@ -9,7 +9,10 @@ import {
   knowledgeBaseTestIds,
 } from './create-knowledge-base-service-harness';
 import type { KnowledgeArticleRecord } from './knowledge-base.types';
-import { loadKnowledgeArticleVisibilities } from './load-knowledge-article-scope';
+import {
+  companyWideKnowledgeVisibilityPolicy,
+  loadKnowledgeArticleVisibilities,
+} from './load-knowledge-article-scope';
 import { publishedArticleSeed } from './published-article-seed';
 import {
   knowledgeArticleTitleSearchSelect,
@@ -57,6 +60,10 @@ function decide(
     writePermissionKey: permissionKeys.knowledgeArticleWrite,
     reviewPermissionKey: permissionKeys.knowledgeArticleReview,
     publishPermissionKey: permissionKeys.knowledgeArticlePublish,
+    // W7.79: this spec pins projection parity, so it decides on the audience both
+    // paths must agree on; the scoped policy has its own spec.
+    internalCompanyWide: true,
+    readerHomeOrganizationalUnitPath: null,
   });
 }
 
@@ -187,11 +194,17 @@ describe('Knowledge base — search visibility projection (W7.58)', () => {
       if (actor === undefined) {
         continue;
       }
-      const full = await loadKnowledgeArticleVisibilities(memory.prisma as never, actor, records);
+      const full = await loadKnowledgeArticleVisibilities(
+        memory.prisma as never,
+        actor,
+        records,
+        companyWideKnowledgeVisibilityPolicy,
+      );
       const projected = await loadKnowledgeArticleVisibilities(
         memory.prisma as never,
         actor,
         records.map(project),
+        companyWideKnowledgeVisibilityPolicy,
       );
       expect([...projected].sort()).toEqual([...full].sort());
     }

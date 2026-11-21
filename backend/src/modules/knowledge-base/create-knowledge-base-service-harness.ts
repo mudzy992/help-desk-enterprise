@@ -20,6 +20,11 @@ export function createKnowledgeBaseServiceHarness() {
   const contexts = new Map<string, AuthorizationContext>();
   const configuration: MutableKnowledgeBaseConfiguration = {
     ...defaultKnowledgeBaseConfiguration,
+    // The harness keeps the pre-W7.79 audience unless a test asks otherwise: the
+    // specs below it are about delegation, paging and parity, and would otherwise
+    // have to re-declare the audience in every fixture. `internal-company-wide`
+    // and the scoped policy have their own spec (W7.79).
+    internalCompanyWide: true,
   };
   const authorizationContextLoader = {
     loadBySubjectId: async (subjectId: string) =>
