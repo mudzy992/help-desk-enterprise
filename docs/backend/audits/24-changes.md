@@ -181,7 +181,7 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
 | BA-changes-17 | P2       | Privacy/retention ne pokrivaju sve tekstualne i downtime/notifier/problem replike              | zatvoreno (W7.74) |
 | BA-changes-18 | P3       | Events/approvals/templates/options/conflicts liste se hard-trunciraju bez potpunog cursor ugovora | zatvoreno (W7.76) |
 | BA-changes-19 | P3       | Servis ne clampuje quorum/lead/reminder configuration integer granice                          | zatvoreno (W7.77) |
-| BA-changes-20 | P3       | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice                    | otvoreno |
+| BA-changes-20 | P3       | Jedan suite je compile-blocked; nema service/concurrency/failure E2E matrice                    | zatvoreno (W7.78) |
 
 ## 16. Ključne korekcije
 
@@ -250,7 +250,11 @@ E2E 31–32 pokrivaju happy lifecycle, requester self-vote deny, CAB approval/re
   identičan `change-settings.ts`, test to tvrdi), `computeChangeQuorum` ne pravi kvorum iz nevalidnog broja, a
   ops-health kartica i sweep koriste isti clamp (ranije je kartica imala svoj `0..168`). Dokaz:
   [W7.77 implementation](../implementation/298-w777-changes-19-configuration-clamp.md).
-- **20:** Postgres/Redis/concurrency/fault testovi.
+- **20:** zatvoreno u W7.78 — ranije compile-blocked suite je imenovan u `test:safety-net:compile` zaštiti, a
+  odluka kvoruma je prvi put pokrivena ispod UI-ja: 14 unit testova glasovanja (jedan glas po glasaču i rundi,
+  izgubljena trka, zamrznuti set, pad notifikacije nakon commita) i 5 real-PostgreSQL testova (istovremeni glasovi,
+  verzijski guard, JSON snapshot, kaskada), uz guard da svaki `changes` DB spec mora biti u runner listi. Dokaz:
+  [W7.78 implementation](../implementation/299-w778-changes-20-concurrency-coverage.md).
 
 ## 17. Baseline score
 
@@ -773,3 +777,45 @@ glasača se i dalje zamrzava u cjelini; kvorum je `20`, ne `150`); `modules/chan
 **Preostali rizik:** instalacija sa ručno upisanim quorumom > 20 sada dobija kvorum 20 (lakše odobravanje) — to je
 dokumentovana granica i vidi se u logu; lead time iznad 720 h se svodi na 720 h iz istog razloga. Lista
 zamrzavanja je već ograničena (`parseFreezePeriods` odbija > 50 zapisa), pa nije dirana.
+
+## 39. Implementacijski closeout — W7.78 (`BA-changes-20`)
+
+**Status nalaza:** zatvoren; paket W7.78, **bez migracije**. Detalji:
+[299](../implementation/299-w778-changes-20-concurrency-coverage.md).
+
+**Šta je bilo:** §13 je ostavio dvije stvari. Prvo, `change-access.service.spec.ts` je u baselineu bio
+**compile-blocked** (generisani client nije imao `group`, `groupMember`, `organizationalUnit`); suite je kasnije
+ozelenio, ali nije bio u `test:safety-net:compile` listi — zaštiti koja postoji upravo za taj scenario — pa bi
+regresija ponovo prošla tiho. Drugo, sve što nosi odluku kvoruma bilo je pokriveno samo kroz E2E (koji se ne
+pokreće na svaki push) i kroz čiste funkcije; nijedan test nije tvrdio da runda ima jedan glas po glasaču, da dva
+glasača sa istom verzijom pomjeraju rundu **jednom**, da član koji se pridružio kasnije ne glasa u zamrznutoj rundi,
+ni da pad notifikacije nakon commita ne poništava odluku.
+
+**Šta je sada:** `test:safety-net:compile` imenuje `change-access.service.spec.ts` i novi
+`change-approvals.service.spec.ts` (14 testova: requester/ne-član/van runde odbijeni, snapshot članstva, `P2002` →
+`CHANGE_ALREADY_VOTED`, izgubljena trka → `CHANGE_VERSION_CONFLICT` bez brojanja glasa, kvorum → `SCHEDULED` sa
+downtime intentom u istoj transakciji, pad notifikacije nakon commita ne ruši glas, pending runda ne najavljuje,
+prvo odbijanje ruši rundu, glas van zamrznutog seta se ne broji, scoped manager staje prije upisa). Uz to
+`change-approvals-concurrency.integration.spec.ts` (5 testova pod stvarnim PostgreSQL-om: istovremeni glasovi istog
+glasača → `P2002`, isti glasač u sljedećoj rundi, verzijski guard `[1, 0]` i `version = 2`, JSON snapshot preživi
+round trip i „late member” ne dostiže kvorum, kaskadno brisanje), registrovan u isolated runneru uz novi guard da
+svaki `changes` DB spec mora biti u listi.
+
+**Acceptance:** §13 („**3/4 suiteova prošlo, 1/4 compile-blocked** … Nema direktnih service/Prisma/concurrency
+testova za approvals, CRUD, templates, schedule side effects ili notifier”) je zatvoren za approvals i notifier: taj
+suite je imenovan u zaštiti i zelen u CI-ju, a odluka kvoruma ima service, concurrency i DB dokaz. Dokaz:
+`modules/changes` + `modules/ops-health` **56 suite/436 testa**, `scripts/run-isolated-integration.test.mjs`
+**22/22**, `eslint` zelen.
+
+**E2E drift (isti paket):** puni run [`44882525653`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/44882525653)
+pao je na `31-change-lifecycle` sa `CHANGE_CAB_GROUP_REQUIRED` jer je spec bio stariji od W7.73 i kreirao promjenu
+bez `cabGroupId`. Ispravljeno u `967747e`: spec šalje CAB grupu kao forma i **dokazuje** pravilo — privremeno doda
+drugu CAB grupu, potvrdi `CHANGE_CAB_GROUP_REQUIRED` bez izbora i grupu obriše.
+
+**Šta ostaje u ovom modulu:** ništa — `changes` je **20/20**.
+
+**Preostali rizik:** §13 traži i browser-matricu (scoped manager, tuđi asset/problem link, preview/calendar leak,
+dinamičko CAB članstvo, konkurentni glasovi, reminder failure/Redis gubitak, owner OU eligibility, privacy
+retention). Iste invarijante su sada provjerene servisno i na bazi; browser varijanta za scoped manager i „člana
+koji se pridružio kasnije” traži **četvrtog E2E aktera** sa `change.approve` (seed + MFA), što je promjena E2E
+infrastrukture i ostaje otvoren rizik ovog nivoa, ne tihi propust.

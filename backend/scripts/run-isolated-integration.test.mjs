@@ -244,6 +244,23 @@ test("BA-templates-06 config snapshot PostgreSQL spec je registrovan za CI", () 
   );
 });
 
+test("svaki changes PostgreSQL integration spec je registrovan za CI (BA-changes-20)", () => {
+  const directory = path.join(backendRoot, "src/modules/changes");
+  const discovered = discoverIntegrationSpecs(directory).sort();
+  const registered = integrationSpecs
+    .filter((spec) => spec.startsWith("src/modules/changes/") && spec.endsWith(".integration.spec.ts"))
+    .sort();
+  assert.deepEqual(
+    registered,
+    discovered,
+    "svaki changes integration fajl mora biti izvršen u isolated PostgreSQL runneru",
+  );
+  assert.ok(
+    integrationSpecs.includes("src/modules/changes/change-approvals-concurrency.integration.spec.ts"),
+    "nedostaje BA-changes-20 CAB glasovanje/concurrency shard",
+  );
+});
+
 test("svaki templates PostgreSQL integration spec je registrovan za CI (BA-templates-13)", () => {
   const directory = path.join(backendRoot, "src/modules/templates");
   const discovered = discoverIntegrationSpecs(directory).sort();
