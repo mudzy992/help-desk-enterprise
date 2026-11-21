@@ -174,7 +174,8 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.changeClaimed]: compatibility([auditLogEntityTypes.change]),
   [auditLogActions.changeTemplateSaved]: compatibility([auditLogEntityTypes.changeTemplate], 2),
   [auditLogActions.knowledgeCategoryCreated]: compatibility([auditLogEntityTypes.knowledgeCategory]),
-  [auditLogActions.knowledgeCategoryUpdated]: compatibility([auditLogEntityTypes.knowledgeCategory]),
+  // W7.83 (BA-knowledge-base-09): schema v2 — the update carries before/after.
+  [auditLogActions.knowledgeCategoryUpdated]: compatibility([auditLogEntityTypes.knowledgeCategory], 2),
   [auditLogActions.knowledgeCategoryArchived]: compatibility([auditLogEntityTypes.knowledgeCategory]),
   [auditLogActions.knowledgeCategoryRestored]: compatibility([auditLogEntityTypes.knowledgeCategory]),
   [auditLogActions.knowledgeArticleDraftedFromReply]: compatibility([auditLogEntityTypes.knowledgeArticle]),

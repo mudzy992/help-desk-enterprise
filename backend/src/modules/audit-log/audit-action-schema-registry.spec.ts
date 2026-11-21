@@ -14,6 +14,8 @@ const bumpedSchemaVersions = new Map<string, number>([
   [auditLogActions.changeTemplateSaved, 2],
   // BA-changes-16: change creation records the CAB routing and its origin.
   [auditLogActions.changeCreated, 2],
+  // W7.83 (BA-knowledge-base-09): a category update may carry its before/after snapshot.
+  [auditLogActions.knowledgeCategoryUpdated, 2],
 ]);
 
 describe('audit action schema registry', () => {
@@ -26,6 +28,20 @@ describe('audit action schema registry', () => {
       expect(schema?.allowedKeys).toBeInstanceOf(Set);
       expect(['operational', 'pseudonymous', 'restricted']).toContain(schema?.sensitivity);
     }
+  });
+
+  it('accepts the snapshot a category update sends (BA-knowledge-base-09)', () => {
+    // W7.83: the allowlist was empty while `KnowledgePortalService.updateCategory` sent `before`/`after`, so every
+    // rename wrote the row and then failed with AUDIT_METADATA_FIELD_NOT_ALLOWED. This pins both fields.
+    expect(() =>
+      prepareAuditEntry({
+        action: auditLogActions.knowledgeCategoryUpdated,
+        entityType: auditLogEntityTypes.knowledgeCategory,
+        entityId: 'category-1',
+        actorUserId: 'user-1',
+        metadata: { before: { nameBs: 'Mreža' }, after: { nameBs: 'Mreža i VPN' } },
+      }),
+    ).not.toThrow();
   });
 
   it('accepts the metadata the template editor actually sends (BA-changes-15)', () => {

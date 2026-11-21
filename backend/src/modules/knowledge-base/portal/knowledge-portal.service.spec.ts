@@ -312,6 +312,103 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     expect(unfaq.faqOrder).toBeNull();
   });
 
+  it('w7.83: upisuje placement i change log u jednoj transakciji', async () => {
+    const { service, memory, categories } = createPortalHarness();
+    categories.set('root', { id: 'root', key: 'mreza', nameBs: 'Mreža', nameEn: 'Network', icon: 'wifi', sortOrder: 0, parentId: null, isArchived: false });
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    const prisma = memory.prisma as unknown as Record<string, unknown>;
+    const originalTransaction = prisma.$transaction as (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
+    let inTransaction = false;
+    prisma.$transaction = async (callback: (client: unknown) => Promise<unknown>) => {
+      inTransaction = true;
+      try {
+        return await originalTransaction(callback);
+      } finally {
+        inTransaction = false;
+      }
+    };
+    const changeLog = prisma.changeLog as { create: (args: unknown) => Promise<unknown> };
+    const originalCreate = changeLog.create;
+    let changeLogInside = false;
+    changeLog.create = async (args: unknown) => {
+      changeLogInside = inTransaction;
+      return originalCreate(args);
+    };
+
+    await service.placeArticle(
+      'a1',
+      { categoryId: 'root', isFaq: true, faqOrder: 2, reason: 'Portal' },
+      asUser(knowledgeBaseTestIds.agentIt),
+    );
+
+    // Premještanje bez zapisa u change logu (ili zapis bez premještanja) više nije moguće.
+    expect(changeLogInside).toBe(true);
+    expect(memory.changeLogs).toHaveLength(1);
+  });
+
+  it('w7.83: odbija placement ako je članak izmijenjen između čitanja i upisa', async () => {
+    const { service, memory, categories } = createPortalHarness();
+    categories.set('root', { id: 'root', key: 'mreza', nameBs: 'Mreža', nameEn: 'Network', icon: 'wifi', sortOrder: 0, parentId: null, isArchived: false });
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    const prisma = memory.prisma as unknown as Record<string, unknown>;
+    const articles = prisma.knowledgeArticle as { findUnique: unknown };
+    const typedFindUnique = articles.findUnique as (
+      args: { where?: { id?: string } },
+    ) => Promise<unknown>;
+    const originalFindUnique = articles.findUnique;
+    // Drugi pisac je commitovao poslije našeg čitanja: `updatedAt` koji smo vidjeli više nije na redu.
+    articles.findUnique = (async (args: { where?: { id?: string } }) => {
+      const row = (await typedFindUnique(args)) as { id?: string; updatedAt?: Date } | null;
+      if (row === null || row.updatedAt === undefined) return row;
+      return { ...row, updatedAt: new Date(row.updatedAt.getTime() - 1_000) };
+    }) as unknown;
+
+    await expect(
+      service.placeArticle(
+        'a1',
+        { categoryId: 'root', reason: 'Portal' },
+        asUser(knowledgeBaseTestIds.agentIt),
+      ),
+    ).rejects.toMatchObject({ response: { code: 'STALE_WRITE' } });
+    articles.findUnique = typedFindUnique;
+    expect(memory.changeLogs).toHaveLength(0);
+    expect(memory.articles.get('a1')?.categoryId).toBeNull();
+  });
+
+  it('w7.83: kategorija i njen audit zapis se commit-uju zajedno', async () => {
+    const { service, audits, categories } = createPortalHarness();
+    const prisma = (service as unknown as { prisma: Record<string, unknown> }).prisma;
+    const originalTransaction = prisma.$transaction as (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
+    let inTransaction = false;
+    prisma.$transaction = async (callback: (client: unknown) => Promise<unknown>) => {
+      inTransaction = true;
+      try {
+        return await originalTransaction(callback);
+      } finally {
+        inTransaction = false;
+      }
+    };
+    const auditLog = prisma.auditLog as { create: (args: unknown) => Promise<unknown> };
+    const originalCreate = auditLog.create;
+    const inside: boolean[] = [];
+    auditLog.create = async (args: unknown) => {
+      inside.push(inTransaction);
+      return originalCreate(args);
+    };
+
+    const created = await service.createCategory(
+      { key: 'mreza', nameBs: 'Mreža', nameEn: 'Network', icon: 'wifi' },
+      superAdmin,
+    );
+    await service.updateCategory(created.id, { nameBs: 'Mreža i VPN' }, superAdmin);
+    await service.setCategoryArchived(created.id, true, superAdmin);
+
+    expect(categories.get(created.id)?.isArchived).toBe(true);
+    expect(audits).toHaveLength(3);
+    // Nijedan od tri audit zapisa ne smije ostati izvan transakcije koja nosi samu izmjenu.
+    expect(inside).toEqual([true, true, true]);
+  });
+
   it('counts published views in Redis, flushes finished days and falls back to the database', async () => {
     const { service, memory, redis, views } = createPortalHarness();
     memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));

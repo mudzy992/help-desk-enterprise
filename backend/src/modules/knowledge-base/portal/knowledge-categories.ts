@@ -1,3 +1,4 @@
+import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { KnowledgeBaseError } from '../knowledge-base.error';
 
@@ -71,10 +72,27 @@ export async function listKnowledgeCategories(
   });
 }
 
+/**
+ * W7.83 (`BA-knowledge-base-09`): every category mutation takes an optional transaction, so the admin audit entry
+ * commits with the change it describes instead of after it. `createKnowledgeArticle` already works this way.
+ */
+export type KnowledgeCategoryWriteOptions = {
+  readonly transaction?: Prisma.TransactionClient;
+};
+
+function categoryClient(
+  prisma: PrismaService,
+  options: KnowledgeCategoryWriteOptions,
+): PrismaService {
+  return (options.transaction ?? prisma) as unknown as PrismaService;
+}
+
 export async function createKnowledgeCategory(
   prisma: PrismaService,
   input: SaveKnowledgeCategoryInput,
+  options: KnowledgeCategoryWriteOptions = {},
 ): Promise<KnowledgeCategoryRecord> {
+  const client = categoryClient(prisma, options);
   const key = normalizeKey(input.key);
   const data = {
     key,
@@ -82,31 +100,33 @@ export async function createKnowledgeCategory(
     nameEn: normalizeName(input.nameEn),
     icon: normalizeIcon(input.icon),
     sortOrder: normalizeSortOrder(input.sortOrder),
-    parentId: await assertParent(prisma, input.parentId ?? null, null),
+    parentId: await assertParent(client, input.parentId ?? null, null),
   };
-  await assertKeyFree(prisma, key, null);
-  return prisma.knowledgeCategory.create({ data, select: categorySelect });
+  await assertKeyFree(client, key, null);
+  return client.knowledgeCategory.create({ data, select: categorySelect });
 }
 
 export async function updateKnowledgeCategory(
   prisma: PrismaService,
   id: string,
   input: SaveKnowledgeCategoryInput,
+  options: KnowledgeCategoryWriteOptions = {},
 ): Promise<{ before: KnowledgeCategoryRecord; after: KnowledgeCategoryRecord }> {
-  const before = await loadCategory(prisma, id);
+  const client = categoryClient(prisma, options);
+  const before = await loadCategory(client, id);
   const data: Record<string, unknown> = {};
   if (input.key !== undefined) {
     data.key = normalizeKey(input.key);
-    await assertKeyFree(prisma, data.key as string, id);
+    await assertKeyFree(client, data.key as string, id);
   }
   if (input.nameBs !== undefined) data.nameBs = normalizeName(input.nameBs);
   if (input.nameEn !== undefined) data.nameEn = normalizeName(input.nameEn);
   if (input.icon !== undefined) data.icon = normalizeIcon(input.icon);
   if (input.sortOrder !== undefined) data.sortOrder = normalizeSortOrder(input.sortOrder);
   if (input.parentId !== undefined) {
-    data.parentId = await assertParent(prisma, input.parentId, id);
+    data.parentId = await assertParent(client, input.parentId, id);
   }
-  const after = await prisma.knowledgeCategory.update({
+  const after = await client.knowledgeCategory.update({
     where: { id },
     data,
     select: categorySelect,
@@ -120,14 +140,16 @@ export async function setKnowledgeCategoryArchived(
   prisma: PrismaService,
   id: string,
   archived: boolean,
+  options: KnowledgeCategoryWriteOptions = {},
 ): Promise<{ before: KnowledgeCategoryRecord; after: KnowledgeCategoryRecord }> {
-  const before = await loadCategory(prisma, id);
+  const client = categoryClient(prisma, options);
+  const before = await loadCategory(client, id);
   if (archived) {
     const [activeChildren, activeArticles] = await Promise.all([
-      prisma.knowledgeCategory.count({
+      client.knowledgeCategory.count({
         where: { parentId: id, isArchived: false },
       }),
-      prisma.knowledgeArticle.count({
+      client.knowledgeArticle.count({
         where: { categoryId: id, archivedAt: null },
       }),
     ]);
@@ -141,12 +163,12 @@ export async function setKnowledgeCategoryArchived(
       throw new KnowledgeBaseError('CATEGORY_NOT_EMPTY');
     }
   } else if (before.parentId !== null) {
-    const parent = await loadCategory(prisma, before.parentId);
+    const parent = await loadCategory(client, before.parentId);
     if (parent.isArchived) {
       throw new KnowledgeBaseError('INVALID_CATEGORY');
     }
   }
-  const after = await prisma.knowledgeCategory.update({
+  const after = await client.knowledgeCategory.update({
     where: { id },
     data: { isArchived: archived },
     select: categorySelect,

@@ -104,6 +104,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/knowledge-base/knowledge-feedback-concurrency.integration.spec.ts",
   // W7.82 (BA-knowledge-base-08): one reply, one draft — the reply lock and the all-or-nothing draft write.
   "src/modules/knowledge-base/knowledge-from-reply-atomicity.integration.spec.ts",
+  // W7.83 (BA-knowledge-base-09): the placement predicate and the placement+change-log transaction.
+  "src/modules/knowledge-base/knowledge-placement-atomicity.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

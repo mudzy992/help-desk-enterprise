@@ -9,6 +9,8 @@ const bumpedSchemaVersions = new Map<string, number>([
   [auditLogActions.changeTemplateSaved, 2],
   // BA-changes-16: change creation records the CAB routing and its origin.
   [auditLogActions.changeCreated, 2],
+  // W7.83 (BA-knowledge-base-09): schema v2 — the category update carries before/after.
+  [auditLogActions.knowledgeCategoryUpdated, 2],
 ]);
 
 describe('closed audit action/entity/schema compatibility registry', () => {

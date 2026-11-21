@@ -274,7 +274,9 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
     2,
   ),
   [auditLogActions.knowledgeCategoryCreated]: schema(['key', 'nameBs', 'parentId']),
-  [auditLogActions.knowledgeCategoryUpdated]: schema([]),
+  // W7.83 (BA-knowledge-base-09): the update carries what changed. It was `schema([])` while the service sent
+  // `before`/`after`, so every rename rolled back with AUDIT_METADATA_FIELD_NOT_ALLOWED after the row was written.
+  [auditLogActions.knowledgeCategoryUpdated]: schema(['after', 'before'], 'operational', 2),
   [auditLogActions.knowledgeCategoryArchived]: schema(['key']),
   [auditLogActions.knowledgeCategoryRestored]: schema(['key']),
   [auditLogActions.knowledgeArticleDraftedFromReply]: schema(['messageId', 'ticketNumber']),

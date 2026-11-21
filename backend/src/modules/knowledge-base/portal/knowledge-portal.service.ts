@@ -317,13 +317,18 @@ export class KnowledgePortalService {
   ): Promise<KnowledgeCategoryRecord> {
     return executeKnowledgeBaseOperation(async () => {
       await this.assertCategoryManager(context);
-      const created = await createKnowledgeCategory(this.prisma, input);
-      await this.audit(auditLogActions.knowledgeCategoryCreated, auditLogEntityTypes.knowledgeCategory, created.id, context, {
-        key: created.key,
-        nameBs: created.nameBs,
-        parentId: created.parentId,
+      // W7.83 (BA-knowledge-base-09): the category and the audit entry that says who created it are one
+      // transaction — a category nobody can trace must not exist, and an audit entry for a rolled-back category
+      // must not either.
+      return this.prisma.$transaction(async (transaction) => {
+        const created = await createKnowledgeCategory(this.prisma, input, { transaction });
+        await this.audit(auditLogActions.knowledgeCategoryCreated, auditLogEntityTypes.knowledgeCategory, created.id, context, {
+          key: created.key,
+          nameBs: created.nameBs,
+          parentId: created.parentId,
+        }, { transaction });
+        return created;
       });
-      return created;
     });
   }
 
@@ -334,12 +339,14 @@ export class KnowledgePortalService {
   ): Promise<KnowledgeCategoryRecord> {
     return executeKnowledgeBaseOperation(async () => {
       await this.assertCategoryManager(context);
-      const { before, after } = await updateKnowledgeCategory(this.prisma, id, input);
-      await this.audit(auditLogActions.knowledgeCategoryUpdated, auditLogEntityTypes.knowledgeCategory, id, context, {
-        before: { ...before },
-        after: { ...after },
+      return this.prisma.$transaction(async (transaction) => {
+        const { before, after } = await updateKnowledgeCategory(this.prisma, id, input, { transaction });
+        await this.audit(auditLogActions.knowledgeCategoryUpdated, auditLogEntityTypes.knowledgeCategory, id, context, {
+          before: { ...before },
+          after: { ...after },
+        }, { transaction });
+        return after;
       });
-      return after;
     });
   }
 
@@ -350,15 +357,18 @@ export class KnowledgePortalService {
   ): Promise<KnowledgeCategoryRecord> {
     return executeKnowledgeBaseOperation(async () => {
       await this.assertCategoryManager(context);
-      const { after } = await setKnowledgeCategoryArchived(this.prisma, id, archived);
-      await this.audit(
-        archived ? auditLogActions.knowledgeCategoryArchived : auditLogActions.knowledgeCategoryRestored,
-        auditLogEntityTypes.knowledgeCategory,
-        id,
-        context,
-        { key: after.key },
-      );
-      return after;
+      return this.prisma.$transaction(async (transaction) => {
+        const { after } = await setKnowledgeCategoryArchived(this.prisma, id, archived, { transaction });
+        await this.audit(
+          archived ? auditLogActions.knowledgeCategoryArchived : auditLogActions.knowledgeCategoryRestored,
+          auditLogEntityTypes.knowledgeCategory,
+          id,
+          context,
+          { key: after.key },
+          { transaction },
+        );
+        return after;
+      });
     });
   }
 
@@ -382,29 +392,45 @@ export class KnowledgePortalService {
       if (!curator) {
         assertCanWriteKnowledgeArticle({ context: actor, article: current, scope, ownerGroupMemberUserIds });
       }
-      const categoryId =
-        input.categoryId === undefined
-          ? current.categoryId
-          : await assertKnowledgeCategoryAssignable(this.prisma, input.categoryId);
       const isFaq = input.isFaq ?? current.isFaq;
       const faqOrder = !isFaq ? null : input.faqOrder === undefined ? current.faqOrder : input.faqOrder;
       if (faqOrder !== null && (!Number.isInteger(faqOrder) || faqOrder < 0 || faqOrder > 999)) {
+        // Pure input validation: no need to open a transaction to reject it.
         throw new KnowledgeBaseError('INVALID_CATEGORY');
       }
-      const updated = toArticleRecord(
-        await this.prisma.knowledgeArticle.update({
-          where: { id: articleId },
+      // W7.83 (BA-knowledge-base-09): the placement and its change-log entry are one transaction, and the write
+      // only lands if the row is still exactly what this request read. Before this the article moved and the
+      // change log was a second statement — a failed log left a silent move, and two concurrent placements could
+      // both "succeed" while the log described a `before` that was no longer true.
+      return this.prisma.$transaction(async (transaction) => {
+        const categoryId =
+          input.categoryId === undefined
+            ? current.categoryId
+            : await assertKnowledgeCategoryAssignable(
+                transaction as unknown as PrismaService,
+                input.categoryId,
+              );
+        const placed = await transaction.knowledgeArticle.updateMany({
+          where: { id: current.id, updatedAt: current.updatedAt },
           data: { categoryId, isFaq, faqOrder },
-        }),
-      );
-      await recordKnowledgeArticleChange(this.prisma, {
-        action: changeLogActions.update,
-        reason: input.reason,
-        before: current,
-        after: updated,
-        actorUserId: context.actorUserId,
+        });
+        if (placed.count !== 1) {
+          throw new KnowledgeBaseError('STALE_WRITE');
+        }
+        const updated = toArticleRecord(
+          await transaction.knowledgeArticle.findUniqueOrThrow({
+            where: { id: current.id },
+          }),
+        );
+        await recordKnowledgeArticleChange(transaction as unknown as PrismaService, {
+          action: changeLogActions.update,
+          reason: input.reason,
+          before: current,
+          after: updated,
+          actorUserId: context.actorUserId,
+        });
+        return toKnowledgeArticleResponse(updated);
       });
-      return toKnowledgeArticleResponse(updated);
     });
   }
 
