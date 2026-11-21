@@ -18,6 +18,7 @@ describeIfDatabase('change approvals concurrency (integration)', () => {
   let organizationalUnitId = '';
   let voterAId = '';
   let voterBId = '';
+  let lateMemberId = '';
   let sequence = 0;
   const changeIds: string[] = [];
 
@@ -33,19 +34,24 @@ describeIfDatabase('change approvals concurrency (integration)', () => {
       },
     });
     organizationalUnitId = unit.id;
-    const [voterA, voterB] = await Promise.all([
+    const [voterA, voterB, lateMember] = await Promise.all([
       database().user.create({ data: { email: `it-voter-a-${suffix}@example.test`, displayName: 'IT voter A' } }),
       database().user.create({ data: { email: `it-voter-b-${suffix}@example.test`, displayName: 'IT voter B' } }),
+      // A real user who joins the CAB after the round opened: the vote row is valid,
+      // it simply is not part of the frozen set.
+      database().user.create({ data: { email: `it-voter-late-${suffix}@example.test`, displayName: 'IT voter late' } }),
     ]);
     voterAId = voterA.id;
     voterBId = voterB.id;
+    lateMemberId = lateMember.id;
   });
 
   afterAll(async () => {
     const db = prisma;
     if (db === undefined) return;
     if (changeIds.length > 0) await db.changeRequest.deleteMany({ where: { id: { in: changeIds } } });
-    if (voterAId !== '' && voterBId !== '') await db.user.deleteMany({ where: { id: { in: [voterAId, voterBId] } } });
+    const voterIds = [voterAId, voterBId, lateMemberId].filter((id) => id !== '');
+    if (voterIds.length > 0) await db.user.deleteMany({ where: { id: { in: voterIds } } });
     if (organizationalUnitId !== '') await db.organizationalUnit.delete({ where: { id: organizationalUnitId } });
     await db.$disconnect();
   });
@@ -139,7 +145,7 @@ describeIfDatabase('change approvals concurrency (integration)', () => {
     await database().changeApproval.createMany({
       data: [
         { changeId, round: 1, approverUserId: voterAId, decision: 'APPROVED' },
-        { changeId, round: 1, approverUserId: 'late-member', decision: 'APPROVED' },
+        { changeId, round: 1, approverUserId: lateMemberId, decision: 'APPROVED' },
       ],
     });
 
