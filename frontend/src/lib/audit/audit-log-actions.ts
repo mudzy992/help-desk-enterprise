@@ -179,4 +179,6 @@ export const knownAuditActions = [
   "knowledge.category.restored",
   "knowledge.article.drafted_from_reply",
   "knowledge.article.reply_redacted",
+  // W7.88 (BA-knowledge-base-15): the tombstone of a hard delete.
+  "knowledge.article.deleted",
 ] as const;

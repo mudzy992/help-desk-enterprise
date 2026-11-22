@@ -66,6 +66,10 @@ export function KnowledgeArticleDeletePanel({
       <p className="text-[12px] text-muted-foreground">
         {t("knowledgeBase.deleteConfirm", { title: articleTitle })}
       </p>
+      {/* W7.88: the row and its feedback/views go; the audit trail keeps a content-free tombstone. */}
+      <p className="text-[12px] text-muted-foreground">
+        {t("knowledgeBase.deleteConfirmDetail")}
+      </p>
       <Field label={t("knowledgeBase.reason")} required>
         {(control) => (
           <Input

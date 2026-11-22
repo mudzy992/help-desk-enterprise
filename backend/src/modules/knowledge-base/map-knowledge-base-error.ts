@@ -49,6 +49,8 @@ const messages: Record<KnowledgeBaseErrorCode, string> = {
   INVALID_STATUS_TRANSITION: 'Knowledge article status transition is not allowed',
   PUBLISH_REVIEW_REQUIRED: 'Article must be reviewed before publish',
   ARTICLE_ARCHIVED: 'Archived knowledge articles cannot be changed',
+  ARTICLE_NOT_RETIRED:
+    'Only an archived or never-published knowledge article can be deleted; archive it first',
   FEEDBACK_DISABLED: 'Knowledge article feedback is disabled',
   INTERCEPT_SERVICE_REQUIRED: 'Service is required for knowledge intercept',
   REASON_REQUIRED: 'A change reason is required',
@@ -84,7 +86,7 @@ export function mapKnowledgeBaseError(error: unknown): HttpException {
   if (forbiddenCodes.includes(error.code)) {
     return new ForbiddenException(body);
   }
-  if (error.code === 'STALE_WRITE') {
+  if (error.code === 'STALE_WRITE' || error.code === 'ARTICLE_NOT_RETIRED') {
     return new ConflictException(body);
   }
   return new BadRequestException(body);

@@ -832,6 +832,74 @@ describeIfDatabase('retention (integration)', () => {
     expect(second.itemCount).toBe(0);
   });
 
+  it('redacts the change-log trail of a deleted article and leaves a live one alone (W7.88)', async () => {
+    const unit = await prisma.organizationalUnit.findFirstOrThrow();
+    const serviceRow = await prisma.service.findFirstOrThrow();
+    const stamp = Date.now();
+    const liveArticle = await prisma.knowledgeArticle.create({
+      data: {
+        slug: `live-${stamp}`,
+        title: 'Živ članak',
+        body: 'Još u upotrebi.',
+        status: 'PUBLISHED',
+        publishedAt: new Date(now.getTime() - 10 * day),
+        serviceId: serviceRow.id,
+        organizationalUnitId: unit.id,
+      },
+    });
+    const goneId = `deleted-${stamp}`;
+    const orphan = await prisma.changeLog.create({
+      data: {
+        entityType: 'knowledge_article',
+        entityId: goneId,
+        reason: 'Brisanje članka VPN za Amru',
+        diff: { before: { title: 'VPN za Amra Petrović' } },
+        createdAt: old,
+      },
+    });
+    const liveLog = await prisma.changeLog.create({
+      data: {
+        entityType: 'knowledge_article',
+        entityId: liveArticle.id,
+        reason: 'Ažuriranje živog članka',
+        diff: { before: { title: 'Živ članak' } },
+        createdAt: old,
+      },
+    });
+
+    const svc = service(configuration({ knowledgeContent: 180 }));
+    const dry = await svc.runCategory({
+      category: 'knowledgeContent',
+      mode: 'DRY_RUN',
+      triggeredByUserId: null,
+      deadline: deadline(),
+    });
+    // The orphan replica is part of the category's work: the operator's number counts it.
+    expect(dry.itemCount).toBeGreaterThanOrEqual(1);
+    expect((await prisma.changeLog.findUniqueOrThrow({ where: { id: orphan.id } })).reason).not.toBe(
+      retentionRedactionMarker,
+    );
+
+    await svc.runCategory({
+      category: 'knowledgeContent',
+      mode: 'EXECUTE',
+      triggeredByUserId: null,
+      deadline: deadline(),
+    });
+
+    const redacted = await prisma.changeLog.findUniqueOrThrow({ where: { id: orphan.id } });
+    expect(redacted.reason).toBe(retentionRedactionMarker);
+    expect(redacted.diff).toEqual({ redacted: retentionRedactionMarker });
+    // The article still exists, so its history is not an orphan: it keeps its trail
+    // (the article itself is PUBLISHED, so the article half does not touch it either).
+    expect((await prisma.changeLog.findUniqueOrThrow({ where: { id: liveLog.id } })).reason).toBe(
+      'Ažuriranje živog članka',
+    );
+
+    await prisma.changeLog.deleteMany({ where: { id: { in: [orphan.id, liveLog.id] } } });
+    await prisma.knowledgeArticle.delete({ where: { id: liveArticle.id } });
+  });
+
   it('nightly sweep runs once per night inside the window, in order', async () => {
     const redis = fakeRedis();
     const svc = new RetentionService(

@@ -10,7 +10,9 @@ export type KnowledgeArticleErrorKey =
   | "knowledgeBase.errorCategory"
   | "knowledgeBase.errorSourceMessage"
   | "knowledgeBase.errorRating"
-  | "knowledgeBase.errorConflict";
+  | "knowledgeBase.errorConflict"
+  // W7.88: only an archived (or never published) article may be deleted.
+  | "knowledgeBase.errorNotRetired";
 
 const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   INVALID_CREDENTIALS: "knowledgeBase.errorUnauthorized",
@@ -36,6 +38,7 @@ const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   SOURCE_MESSAGE_NOT_PUBLIC: "knowledgeBase.errorSourceMessage",
   INVALID_RATING: "knowledgeBase.errorRating",
   STALE_WRITE: "knowledgeBase.errorConflict",
+  ARTICLE_NOT_RETIRED: "knowledgeBase.errorNotRetired",
 };
 
 export function mapKnowledgeArticleError(error: unknown): KnowledgeArticleErrorKey {

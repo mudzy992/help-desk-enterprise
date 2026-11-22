@@ -180,6 +180,10 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.knowledgeCategoryRestored]: compatibility([auditLogEntityTypes.knowledgeCategory]),
   [auditLogActions.knowledgeArticleDraftedFromReply]: compatibility([auditLogEntityTypes.knowledgeArticle]),
   [auditLogActions.knowledgeArticleReplyRedacted]: compatibility([auditLogEntityTypes.knowledgeArticle]),
+  // W7.88 (BA-knowledge-base-15): the delete tombstone is an entity-scoped-by-meaning
+  // event on the article; the action stays `producer` scoped because the row (and its
+  // `organizationalUnit` FK) is gone by the time the entry is read.
+  [auditLogActions.knowledgeArticleDeleted]: compatibility([auditLogEntityTypes.knowledgeArticle]),
 });
 
 export type AuditExtensionDefinition = Readonly<{

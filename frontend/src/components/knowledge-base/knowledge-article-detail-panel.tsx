@@ -161,7 +161,16 @@ export function KnowledgeArticleDetailPanel({
         />
       ) : null}
       {isSuperAdmin ? (
-        <KnowledgeArticleDeletePanel articleId={article.id} articleTitle={article.title} />
+        // W7.88 (BA-knowledge-base-15): a hard delete is only possible once the
+        // article is retired — archived, or never published. Anything else is
+        // refused by the API with 409, so the panel explains the step instead.
+        article.status === "ARCHIVED" || article.publishedAt === null ? (
+          <KnowledgeArticleDeletePanel articleId={article.id} articleTitle={article.title} />
+        ) : (
+          <p className="border-t border-border/70 px-4 py-3 text-[12px] text-muted-foreground">
+            {t("knowledgeBase.deleteNotRetired")}
+          </p>
+        )
       ) : null}
     </Card>
   );

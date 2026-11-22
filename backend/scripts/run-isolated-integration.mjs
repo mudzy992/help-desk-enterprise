@@ -110,6 +110,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/knowledge-base/knowledge-category-archive-race.integration.spec.ts",
   // W7.86 (BA-knowledge-base-13): the review-reminder schedule comes back after Redis loses it.
   "src/modules/knowledge-base/knowledge-scheduler-reconciliation.integration.spec.ts",
+  // W7.88 (BA-knowledge-base-15): the delete tombstone - cascade, audit entry, refused live article.
+  "src/modules/knowledge-base/knowledge-delete-tombstone.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

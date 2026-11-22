@@ -18,7 +18,15 @@ describe('knowledgeContent retention executor', () => {
     { id: 'a2', slug: 'lozinke', archivedAt },
   ];
 
-  function fakePrisma(articles: unknown[] = rows) {
+  function fakePrisma(
+    articles: unknown[] = rows,
+    orphans: { id: string; entityId: string; createdAt: Date }[] = [],
+    orphanWindow: { count: number; oldest: Date | null; newest: Date | null } = {
+      count: orphans.length,
+      oldest: orphans.at(0)?.createdAt ?? null,
+      newest: orphans.at(-1)?.createdAt ?? null,
+    },
+  ) {
     const tx = {
       knowledgeArticle: {
         count: jest.fn().mockResolvedValue(articles.length),
@@ -41,6 +49,14 @@ describe('knowledgeContent retention executor', () => {
     };
     const prisma = {
       ...tx,
+      // The orphan replicas are one `NOT EXISTS` query; the fake answers by shape.
+      $queryRaw: jest.fn(async (strings: TemplateStringsArray) => {
+        const text = strings.join('?');
+        if (!text.includes('ChangeLog')) throw new Error(`neočekivan raw upit: ${text}`);
+        return text.includes('count(*)')
+          ? [{ count: orphanWindow.count, oldest: orphanWindow.oldest, newest: orphanWindow.newest }]
+          : orphans;
+      }),
       $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) => callback(tx)),
     };
     return prisma;
@@ -149,6 +165,50 @@ describe('knowledgeContent retention executor', () => {
       done: true,
       failures: 0,
     });
+  });
+
+  it('redacts the change-log trail of an article that was deleted (W7.88)', async () => {
+    const removedAt = new Date('2025-05-01T00:00:00.000Z');
+    const orphans = [
+      { id: 'log-2', entityId: 'gone-2', createdAt: removedAt },
+      { id: 'log-1', entityId: 'gone-1', createdAt: removedAt },
+      { id: 'log-3', entityId: 'gone-1', createdAt: new Date('2025-05-02T00:00:00.000Z') },
+    ];
+    const prisma = fakePrisma([], orphans);
+    const preview = await executor(prisma).preview(cutoff);
+
+    // The operator sees the replicas too - they are rows this category changes.
+    expect(preview.count).toBe(3);
+    expect(preview.oldestAt?.toISOString()).toBe(removedAt.toISOString());
+    expect(preview.newestAt?.toISOString()).toBe('2025-05-02T00:00:00.000Z');
+
+    const batch = await executor(prisma).executeBatch(cutoff);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.changeLog.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['log-2', 'log-1', 'log-3'] }, reason: { not: retentionRedactionMarker } },
+      data: { reason: retentionRedactionMarker, diff: { redacted: retentionRedactionMarker } },
+    });
+    expect(batch.items).toBe(3);
+    // No slug exists for a deleted article; the ref names the row it came from.
+    expect(batch.refs).toEqual(['deleted:gone-2', 'deleted:gone-1']);
+    expect(batch.done).toBe(true);
+    // Nothing to redact on the articles themselves.
+    expect(prisma.knowledgeArticle.updateMany).not.toHaveBeenCalled();
+    expect(prisma.notification.findMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps draining while the orphan replicas fill a whole batch', async () => {
+    const orphans = Array.from({ length: 100 }, (_, index) => ({
+      id: `log-${index}`,
+      entityId: `gone-${index}`,
+      createdAt: new Date('2025-05-01T00:00:00.000Z'),
+    }));
+    const prisma = fakePrisma([], orphans);
+    const batch = await executor(prisma).executeBatch(cutoff);
+
+    expect(batch.items).toBe(100);
+    expect(batch.done).toBe(false);
   });
 
   it('reports an unfinished batch when the cap is reached', async () => {

@@ -226,6 +226,12 @@ export const auditLogActions = {
   knowledgeArticleDraftedFromReply: 'knowledge.article.drafted_from_reply',
   /** Val 2 (M14/B1): pri upisu članka iz odgovora server je morao zamijeniti lične podatke. */
   knowledgeArticleReplyRedacted: 'knowledge.article.reply_redacted',
+  /**
+   * W7.88 (BA-knowledge-base-15): the tombstone of a hard delete. The row and its
+   * feedback/views are gone, so this entry is the only content-free record that the
+   * slug existed, who retired it and what the counters were.
+   */
+  knowledgeArticleDeleted: 'knowledge.article.deleted',
 } as const;
 
 export const auditLogEntityTypes = {

@@ -281,6 +281,24 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.knowledgeCategoryRestored]: schema(['key']),
   [auditLogActions.knowledgeArticleDraftedFromReply]: schema(['messageId', 'ticketNumber']),
   [auditLogActions.knowledgeArticleReplyRedacted]: schema(['body', 'messageId', 'title']),
+  // W7.88 (BA-knowledge-base-15): the delete tombstone. The allowlist deliberately
+  // has no `title`/`body` - the content must not outlive the row it described.
+  [auditLogActions.knowledgeArticleDeleted]: schema([
+    'classification',
+    'deletedAt',
+    'feedbackCount',
+    'organizationalUnitId',
+    'ownerUserId',
+    'ratingCount',
+    'ratingSum',
+    'reason',
+    'reviewerUserId',
+    'serviceId',
+    'slug',
+    'status',
+    'viewCount',
+    'viewDays',
+  ]),
 });
 
 export function getAuditActionSchema(action: string): AuditActionSchema | undefined {
