@@ -14,8 +14,8 @@ import { updateKnowledgeArticleCounters } from './update-article-counters';
  *   deleted. W7.89 (`BA-knowledge-base-16`): the day row is an **absolute** value,
  *   not an increment, so a crash between the commit and the delete costs nothing —
  *   the retry writes the same numbers, sees a zero delta and leaves
- *   `KnowledgeArticle.viewCount` alone. The pair (article, day) is serialized with
- *   an advisory transaction lock, so two flushes cannot both add the same delta.
+ *   `KnowledgeArticle.viewCount` alone. The article row is locked for the transaction,
+ *   so two flushes cannot both add the same delta.
  * - Redis down (or ACL without the HLL commands): the view goes straight to the
  *   database (one absolute daily row that is incremented by one, plus the article
  *   total), so nothing is lost. That path cannot deduplicate viewers, so it counts
@@ -160,18 +160,15 @@ type DaySnapshot = { readonly views: number; readonly uniqueViewers: number };
 /**
  * W7.89 (`BA-knowledge-base-16`): the flush writes the day as an absolute value, so it
  * has to know what was there before to know how much the article total moves. The
- * advisory transaction lock serializes the pair (article, day) - it also covers the
- * first write, when there is no row to lock yet - and is released with the transaction.
- * The in-memory test client has no raw SQL, so it takes the unlocked path.
+ * article row is locked (`FOR UPDATE`) inside the transaction, which serializes every
+ * flush working on that article — the first day of an article included, where there is
+ * no daily row to lock yet — and is released with the transaction. The in-memory test
+ * client has no raw SQL, so it takes the unlocked path.
  */
 async function lockDay(prisma: PrismaService, articleId: string, dayDate: Date): Promise<DaySnapshot | null> {
   const raw = (prisma as unknown as RawQueryCapable).$queryRawUnsafe;
   if (typeof raw === 'function') {
-    await raw.call(
-      prisma,
-      'SELECT pg_advisory_xact_lock(hashtext($1)::bigint)',
-      `${articleId}:${dayDate.toISOString()}`,
-    );
+    await raw.call(prisma, 'SELECT "id" FROM "KnowledgeArticle" WHERE "id" = $1 FOR UPDATE', articleId);
   }
   const row = await prisma.knowledgeArticleView.findUnique({
     where: { articleId_day: { articleId, day: dayDate } },

@@ -3,7 +3,7 @@
 **Paket:** Val 7, `knowledge-base`, **P3**<br>
 **Nalaz:** „View flush crash može duplirati totals; DB fallback napuhuje unique viewers”<br>
 **Kod:** `knowledge-base/portal/knowledge-article-views.ts` (flush piše **apsolutnu** dnevnu vrijednost,
-`pg_advisory_xact_lock` po paru `(article, day)`, delta za `KnowledgeArticle.viewCount`, clamp
+brava nad redom članka (`FOR UPDATE`) unutar transakcije, delta za `KnowledgeArticle.viewCount`, clamp
 `uniqueViewers`, odvojen `recordDatabaseView`), `knowledge-base/portal/knowledge-view-flush.service.ts`
 (nepromijenjen ugovor), `backend/scripts/run-isolated-integration.mjs` (registracija novog speca); testovi:
 novi `knowledge-article-views.spec.ts` (**6**), novi
@@ -39,8 +39,9 @@ ne zna.** Bez migracije: kolone su već postojale, samo su značile „dodaj” 
 
 `writeFlushedDay` u jednoj transakciji:
 
-1. uzme `pg_advisory_xact_lock(hashtext('<articleId>:<day>')::bigint)` — brava je vezana za transakciju, pa
-   se pušta na commit/rollback i pokriva i prvi upis (kad nema reda da se zaključa `FOR UPDATE`-om);
+1. zaključa **red članka** (`SELECT "id" FROM "KnowledgeArticle" WHERE "id" = $1 FOR UPDATE`) — brava je
+   vezana za transakciju, pušta se na commit/rollback i pokriva i prvi upis dana (kad nema dnevnog reda da se
+   zaključa);
 2. pročita prethodni dan (`findUnique`);
 3. upiše **apsolutno**: `views = max(previous.views, redisViews)`,
    `uniqueViewers = min(max(previous.uniqueViewers, hll), views)`;
@@ -81,15 +82,18 @@ dana, flush spojí fallback red sa HLL-om kroz `max` (vidi „Preostali rizik”
   **prethodnog** stanja, a pod `READ COMMITTED` snimkom jedne izjave to stanje ne mora biti ono na koje će
   `ON CONFLICT` naći. Brava je eksplicitna i čitljiva; upis ostaje Prisma `upsert`, pa ga razumiju i
   in-memory test klijenti.
-- **Zašto ne `FOR UPDATE` na dnevnom redu?** Ne postoji red pri prvom upisu dana; `FOR UPDATE` nad praznim
-  skupom ne zaključava ništa, pa bi dva prva flush-a mogla pročitati nulu. Savjetodavna brava pokriva i taj
-  slučaj.
+- **Zašto brava nad člankom, a ne nad dnevnim redom?** Dnevni red pri prvom upisu dana ne postoji, a
+  `FOR UPDATE` nad praznim skupom ne zaključava ništa — dva prva flush-a bi mogla pročitati nulu. Red članka
+  uvijek postoji (bez njega i nema šta da se broji), pa je on prirodna tačka serijalizacije; cijena je da se
+  flush-ovi za **isti članak** i različite dane čekaju, što je zanemarljivo za jedan pozadinski posao.
+- **Zašto ne savjetodavna brava (`pg_advisory_xact_lock`)?** Radi, ali vraća `void`, koji Prisma drajver ne
+  može deserijalizovati; izbjegavanje toga kroz omotače je više trikova nego što vrijedi.
 - **Zašto fallback ne piše HLL u bazi?** To bi značilo red po posjetiocu (`KnowledgeArticleView` je agregat,
   a identiteti se namjerno ne čuvaju — vidi audit §8). Cijena bi bila veća od koristi za P3.
 
 ### Cijena
 
-- Jedna savjetodavna brava i jedan `findUnique` po `(dan, članak)` pri flush-u — zanemarljivo prema upisu;
+- Jedan `SELECT ... FOR UPDATE` i jedan `findUnique` po `(dan, članak)` pri flush-u — zanemarljivo prema upisu;
   flush je jedan repeatable posao, ne hot path.
 - Flush sada može vratiti **manje** nego ranije za isti Redis sadržaj (delta 0), što je i cilj.
 
@@ -98,7 +102,7 @@ dana, flush spojí fallback red sa HLL-om kroz `max` (vidi „Preostali rizik”
 **`knowledge-article-views.spec.ts` (novo, 6):** crash-retry (isti counteri vraćeni u Redis poslije flush-a)
 ne mijenja ni dan ni total, vraća `0` i **ipak** čisti ključeve; dan sa manjim ponovo napravljenim ključevima
 nikad ne pada (`9/4` ostaje `9/4`, total `9`); `uniqueViewers` se clamp-uje na `1` kad HLL tvrdi `5`;
-savjetodavna brava se uzima **prije** `findUnique` i `upsert`-a; `P2003` se guta i dan se čisti, `P2010` se
+brava nad člankom se uzima **prije** `findUnique` i `upsert`-a; `P2003` se guta i dan se čisti, `P2010` se
 propagira; dva Redis-less pregleda daju `views: 2, uniqueViewers: 0` i total `2`.
 
 **`knowledge-view-flush-idempotency.integration.spec.ts` (novo, 3, PostgreSQL + Redis):** pravi flush upiše
@@ -142,8 +146,8 @@ Rollback je vraćanje fajlova; pogoršanja nema, jer apsolutni upis ne kvari ni�
   ograničenje, ne skrivena tvrdnja;
 - **osmodnevni TTL ključeva** ostaje: dan koji flush ne stigne u osam dana gubi se (W7.86 backlog signali su
   rana opomena; `lagDays > 1` je znak da sweep ne radi);
-- **savjetodavna brava je po `(article, day)`**, ne po cijelom flush-u: dva flush-a se i dalje mogu paralelno
-  baviti različitim danima/člancima — što je i poželjno.
+- **brava je po članku**, ne po cijelom flush-u: dva flush-a se i dalje mogu paralelno baviti različitim
+  člancima — a za isti članak se čekaju, što je i poželjno (delta se računa iz jednog stanja).
 
 ## Sljedeći paket
 

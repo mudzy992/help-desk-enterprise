@@ -200,15 +200,16 @@ describe('knowledge article view counters (W7.89, BA-knowledge-base-16)', () => 
     expect(prisma.articles.get('a1')?.viewCount).toBe(1);
   });
 
-  it('takes the per-day advisory lock before reading the day it is about to write', async () => {
+  it('locks the article before reading the day it is about to write', async () => {
     const { prisma, redis } = harness({ rawLock: true });
     redis.seedDay(day, 'a1', 3, 2);
 
     await flushKnowledgeArticleViews({ prisma: prisma as never, redis: redis as never, now: afterThatDay });
 
-    const lock = prisma.calls.findIndex((call) => call.startsWith('raw:SELECT pg_advisory_xact_lock'));
+    const lock = prisma.calls.findIndex((call) => call.includes('FOR UPDATE'));
     expect(lock).toBeGreaterThanOrEqual(0);
-    expect(prisma.calls[lock]).toContain('hashtext');
+    // The lock has to cover the read that decides the delta, or two flushes could both
+    // read "nothing flushed yet" and both add the day.
     expect(prisma.calls.indexOf('findUnique')).toBeGreaterThan(lock);
     expect(prisma.calls.indexOf('upsert')).toBeGreaterThan(prisma.calls.indexOf('findUnique'));
   });

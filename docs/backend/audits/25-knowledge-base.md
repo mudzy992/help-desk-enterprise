@@ -105,7 +105,7 @@ Core create/update/lifecycle/delete koristi transactional knowledge change log. 
 
 Privacy anonymization pokriva feedback user vezu, ali article body/title mogu sadržati bilo koju osobu koja nije owner/reviewer/source participant. Source ticket/message IDs, feedback comments, notification body i knowledge change-log replike trebaju eksplicitnu retention/anonymization matricu. Nema article/comment/view/change-log retention politike.
 
-**Status poslije W7.89 (§34):** flush pregleda je idempotentan (dnevni red je apsolutno stanje, delta za total, savjetodavna brava po paru `(article, day)`), a Redis-less put broji pregled i **ne** izmišlja posjetioce. Vidi §34.
+**Status poslije W7.89 (§34):** flush pregleda je idempotentan (dnevni red je apsolutno stanje, delta za total, brava nad redom članka (`FOR UPDATE`)), a Redis-less put broji pregled i **ne** izmišlja posjetioce. Vidi §34.
 
 **Status poslije W7.88 (§33):** brisanje članka je kapija + tombstone: samo `ARCHIVED` ili nikad objavljen članak se briše, a brisanje ostavlja revizorski zapis bez sadržaja (sa brojevima feedbacka i pregleda) i change-log trag koji `knowledgeContent` retention sada doseže i poslije brisanja. Vidi §33.
 
@@ -658,7 +658,7 @@ posjetu, pa je tokom incidenta „svaki pregled = nova osoba”.
 
 **Rješenje.** Dnevni red je sada **stanje**, ne događaj:
 
-- flush uzme `pg_advisory_xact_lock` za `(articleId, day)` (pokriva i prvi upis, kad nema reda za `FOR UPDATE`),
+- flush zaključa red članka (`SELECT ... FOR UPDATE`, pokriva i prvi upis dana kad nema dnevnog reda),
   pročita prethodni dan, upiše **apsolutno** (`views = max(previous, redis)`,
   `uniqueViewers = min(max(previous, hll), views)`) i pomjeri `KnowledgeArticle.viewCount` samo za deltu, i to
   samo ako je delta > 0. Crash-retry je time no-op koji ipak čisti ključeve; dan sa ponovo napravljenim manjim
@@ -676,5 +676,5 @@ Lokalno backend **939 suite / 5.394 testa**, `eslint`/`tsc` zeleni.
 
 **Otvoreno i dokumentovano:** mješovit dan uzima `max` (podbrojava, nikad ne duplira ni izmišlja), HLL je
 ~0,8 % aproksimacija, osmodnevni TTL ključeva ostaje (W7.86 backlog signali su opomena), brava je po
-`(article, day)` a ne po cijelom flush-u — što je i poželjno. Detalji:
+**članku** (ne po cijelom flush-u) — flush-ovi za isti članak se čekaju, oni za različite članke ne. Detalji:
 [311-w789-knowledge-base-16-view-flush-idempotency.md](../implementation/311-w789-knowledge-base-16-view-flush-idempotency.md).
