@@ -105,6 +105,8 @@ Core create/update/lifecycle/delete koristi transactional knowledge change log. 
 
 Privacy anonymization pokriva feedback user vezu, ali article body/title mogu sadržati bilo koju osobu koja nije owner/reviewer/source participant. Source ticket/message IDs, feedback comments, notification body i knowledge change-log replike trebaju eksplicitnu retention/anonymization matricu. Nema article/comment/view/change-log retention politike.
 
+**Status poslije W7.87 (§32):** matrica je eksplicitna i izvršna. Novi `knowledgeContent` retention period redaktuje arhivirane članke (marker u `title`/`body` uz rebuild `searchVector`, `null` source pokazivači, ispražnjeni komentari, obrisani stari dnevni pregledi, marker u change-logu i `body: null` u notifikacijama), a anonymizacija sada pokriva članke koje osoba posjeduje/pregleda ili ih tekst imenuje, tuđe komentare koji je imenuju, notifikacije, change-log replike, izvorne pokazivače i `KnowledgeInterceptResolution`. Ostaje dokumentovano: retention važi samo za `ARCHIVED`, agregat `viewCount` je trajan, a ACCESS izvoz baze znanja nije proširen.
+
 ## 12. Testovi i E2E
 
 Pokrenuto:
@@ -154,7 +156,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
 | BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | zatvoreno |
 | BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | zatvoreno |
-| BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | otvoreno |
+| BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | zatvoreno |
 | BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | otvoreno |
 | BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | otvoreno |
 | BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | otvoreno |
@@ -567,3 +569,47 @@ Dokaz: [308-w786-knowledge-base-13-scheduler-reconciliation.md](../implementatio
 `BA-knowledge-base-13`; trinaestica je **scheduler reconciliation** i ne dira preračun ocjena. Globalni reconciler
 historijskog drifta ostaje dokumentovan rizik W7.81 bez zasebnog nalaza (dotjerani preračun „iz redova” ga rješava za
 svaki članak koji dobije novi glas).
+
+## 32. Implementacijski closeout — W7.87 (`BA-knowledge-base-14`)
+
+**Nalaz:** privacy je pokrivao jednu knowledge tabelu (`KnowledgeFeedback.userId` + komentar te osobe). Sve ostalo je
+ostajalo: `title`/`body` članka koji osobu samo **imenuje** (i ostajao pretraživ kroz `searchVector`, jer trigger visi na
+`UPDATE OF title, body`), tuđi komentar koji je imenuje, `sourceTicketId`/`sourceMessageId` pokazivači na erase-ovan
+tiket, in-app notifikacija sa `payload.articleId`, `ChangeLog` snapshot naslova i `KnowledgeInterceptResolution`.
+Retentiona za bazu znanja nije bilo nimalo — arhiviran članak držao je tekst, komentare, dnevne preglede, change-log i
+notifikacije zauvijek.
+
+**Rješenje.** Dva izvršna puta nad istom matricom (tabela u [309](../implementation/309-w787-knowledge-base-14-privacy-retention.md)).
+
+*Retention* — nova kategorija `knowledgeContent` (`private.privacy.retention.knowledgeContentDays`, default **0**,
+minimum **180**) i `createKnowledgeContentRetentionExecutor` koji radi serije od **100** arhivirana članka
+(`status: ARCHIVED`, `archivedAt < cutoff`, `title != marker`, vlasnik i pregledalac bez `legalHoldAt`). Redaktuje se
+sadržaj (`title`/`body` ⇒ marker, `source*` ⇒ `null`) i replike (komentari ⇒ `null`, `day < cutoff` pregledi ⇒
+`deleteMany`, `ChangeLog` ⇒ marker + `diff { redacted }`, notifikacije ⇒ `body: null`), a skeleton i brojači ostaju.
+`refs` su slugovi; idempotencija je marker u `title` (i `dueWhere` i `updateMany`), pa drugi prolaz ne piše ništa. Sve
+u jednoj transakciji po seriji. Kategorija je u `retentionCategoriesRequiringDryRun` i u planu **prije** `audit`.
+
+*Anonymizacija* — `knowledge-mentions.ts` (`knowledgeScrubbableColumns`, `knowledgeMentionTokens`,
+`knowledgeArticleMentionWhere`, `collectKnowledgeMentions`) i `scrub-knowledge-mentions.ts`
+(`scrubKnowledgeMentions`). Selekcija je `OR(ownerUserId, reviewerUserId, tekst imenuje osobu)` za članke, `OR(userId,
+sadrži token)` za komentare, `payload.articleId IN (…)` za notifikacije, `entityType = knowledge_article` za change-log
+i `sourceTicketId IN (tiket osobe)` za pokazivače; preview i execute čitaju isti skup. Sopstveni komentar se **briše**
+(`null`), tuđi koji imenuje osobu se **scrubuje** (ocjena i `commentResolvedAt` ostaju), a `KnowledgeInterceptResolution`
+se briše. U izvještaju erase-a **šest** brojača zamjenjuje stari `knowledgeComments`.
+
+**Testni dokaz:** `knowledge-content-retention.executor.spec.ts` (**5**), `scrub-knowledge-mentions.spec.ts` (**5**),
+`retention.integration.spec.ts` (+**1** PostgreSQL slučaj: dry run ⇒ 1, execute ⇒ marker + replicas + netaknut
+blokirani/nedavni članak, drugo izvršavanje ⇒ 0), `anonymization.integration.spec.ts` (KB fixtures i tvrdnje u
+execute slučaju, uključujući `report.knowledge*` brojače), guard `settings-registry-coverage` 520 → **521**,
+`attachments.constants.spec.ts` **11** kategorija, `privacy-api.ts` union i bs/en i18n. Lokalno: backend `privacy` **133
+prošlo / 27 skipped**, cijeli backend unit set **937 suite / 5.377 testova**, frontend **473 fajla / 1.888 testova**,
+`eslint` zelen. CI [`45034422138`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45034422138) **success** na `7a902b0` (`Backend PostgreSQL + Redis integration` uključen; E2E poslovi `skipped`).
+
+**Otvoreno i dokumentovano:** retention pokriva samo `ARCHIVED` (aktivan članak čuva anonymizacija, a period za
+neaktivne `PUBLISHED` članke bio bi freshness nalaz); `viewCount` agregat ostaje trajan; `knowledgeArticles` se sabira
+sa problem scrubom u istom ključu izvještaja; notifikacija zadržava `payload.articleId`/`articleSlug` (deep link, nije
+lični podatak); `KnowledgeInterceptResolution` se briše, ali nije dio retention perioda; ACCESS izvoz nije proširen —
+zasebno pravo i zaseban nalaz.
+
+**Zbirovi:** 305 zatvoreno / 391 otvoreno / 696; Val 7 **84 / 27 (0/13/14)**; `knowledge-base` **14/19**. Detalji:
+[309-w787-knowledge-base-14-privacy-retention.md](../implementation/309-w787-knowledge-base-14-privacy-retention.md).
