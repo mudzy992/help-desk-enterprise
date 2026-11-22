@@ -152,7 +152,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-09 | P2       | Placement/category mutation nije atomska sa auditom/change-logom                          | zatvoreno |
 | BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | zatvoreno |
 | BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
-| BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | otvoreno |
+| BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | zatvoreno |
 | BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | otvoreno |
 | BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | otvoreno |
 | BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | otvoreno |
@@ -453,7 +453,7 @@ kategorije dok provjeri aktivnost i upiše vezu, a `createKnowledgeCategory`/`up
 roditelja kome dodaju dijete (novo dijete je sadržaj koji guard broji — simetrična polovina koju audit nije
 imenovao). `pg_advisory_xact_lock` živi do kraja transakcije, pa zaštita pokriva i audit iz W7.83; ID-evi se
 deduplikuju i zaključavaju **sortirano**, pa nema ciklusa između dva pisca koji diraju iste dvije kategorije.
-Odbačeno: `SERIALIZABLE` (retry semantika za sve pisce portala) i brojač u kategoriji (novi izvor driftа, kao
+Odbačeno: `SERIALIZABLE` (retry semantika za sve pisce portala) i brojač u kategoriji (novi izvor drifta, kao
 `ratingCount` u W7.81) — oba bi tražila i veći zahvat, a drugo i migraciju. Dokaz: `+2` testa u
 `knowledge-portal.service.spec.ts` (**15** — arhiviranje uzima bravu **prije** brojanja, placement je uzima za
 ciljnu kategoriju) i novi `knowledge-category-archive-race.integration.spec.ts` **2 testa** pod stvarnim
@@ -463,3 +463,46 @@ gubitnik gubi sa `CATEGORY_NOT_EMPTY` ili `INVALID_CATEGORY`; plus regresija gua
 **Otvoreno:** brava pokriva samo pisce kroz ovaj kod (ručni SQL/importer i dalje može napraviti nemoguće stanje —
 trajno rješenje traži migraciju) i `lock_timeout` od 5 s vraća `DATABASE_LOCK_TIMEOUT` umjesto beskonačnog čekanja.
 Dokaz: [305-w784-knowledge-base-10-category-archive-guard-race.md](../implementation/305-w784-knowledge-base-10-category-archive-guard-race.md).
+
+## 30. Implementacijski closeout — W7.85 (`BA-knowledge-base-12`)
+
+Na `b7cc886`, uz CI `44965421827`, noćni podsjetnik na pregled članka više ne čita cijeli backlog odjednom i ne
+šalje obavještenje ljudima koji na članak **ne mogu djelovati**. Prije je `processDue` radio jedan
+`findMany` nad svim `PUBLISHED` člancima sa `reviewDueAt <= windowEnd` — bez `take`, bez `orderBy` i bez
+straničenja — pa je vrijeme izvršenja i memorija rasla sa veličinom baze, a redoslijed nije bio deterministički
+(isti backlog se mogao obrađivati u drugom redu, pa je pri prekidu prolaza dio članaka mogao biti trajno
+„preskočen” u odnosu na druge). Uz to su primaoce činili vlasnik i članovi owner grupe **bez** provjere da su
+računi aktivni i da imaju `knowledge.article.write` u kontekstu članka: deaktiviran korisnik ili korisnik vezan
+samo za drugu OU/servis dobijao je podsjetnik, a za članak bez scopea se nije znalo ni kome ide — notifikacija je
+nastajala bez ijednog podobnog primaoca i trošila dedupe ključ.
+
+Sada `processDue` hoda backlog **u serijama** od `reminderCandidateBatchSize` (100) uz deterministički
+`orderBy [{ reviewDueAt: 'asc' }, { id: 'asc' }]` i keyset kurzor (`cursor: { id }, skip: 1`), a jedan prolaz
+staje poslije `reminderMaximumBatches` (20) serija — najviše 2.000 članaka, sa `logger.warn` kad cap bude
+dostignut (zaostajanje je vidljivo, a sljedeći tick nastavlja od najstarijeg duga). Primaoci se razrješavaju kroz
+novi `resolveReviewReminderRecipients`: aktivan račun (`user.findUnique` sa `isActive`, i `isLocalOnly` semantika
+kao u loaderu) **prije** ijednog skupa dozvola, zatim razrješiv kontekst, pa `knowledge.article.write` u OU ili
+servisu članka (SuperAdmin prolazi kao i drugdje). Membership owner grupe se čita **jednom po grupi** kroz
+`createReminderEligibilityCaches` (keš po prolazu za `groupMembers`, `activeUsers`, `contexts`), pa više članaka
+iste grupe ne ponavlja upite. Članak bez razrješivog scopea ili bez ijednog podobnog primaoca **ne šalje ništa**
+i ostaje vidljiv kroz `logger.warn` sa `articleId`/razlogom; dedupe ključ
+`kb-review:{articleId}:{reviewDueAtISO}:{userId}` i KB-scoped payload (`articleId`, `articleSlug`,
+`ticketId: null`) su nepromijenjeni, a `processDue` vraća broj **stvarno** poslanih notifikacija.
+
+Uz to je otklonjen DI defekt iz istog paketa: `KnowledgeBaseReviewReminderService` je loader deklarisao sa
+`import type`, pa je `emitDecoratorMetadata` upisao `Function` kao token konstruktora i `worker.module.spec.ts`
+pao u `test:safety-net:compile` koraku prvog CI runa (`44963521657`) sa
+„Nest can't resolve dependencies of the KnowledgeBaseReviewReminderService”. Vrijednosni import vraća class token;
+worker modul je već registrovao oba loadera (`PrincipalContextLoader`, `AuthorizationContextLoader`), kao i
+`ReportSchedulesWorkerModule`.
+
+Dokaz: `knowledge-base-review-reminder.dedupe.spec.ts` **4 → 7** (deaktiviran vlasnik ⇒ 0; vlasnik bez dozvole ⇒
+0; **250** due članaka ⇒ 3 serije i 250 notifikacija; tri članka iste grupe ⇒ **jedan** membership upit i 6
+notifikacija) i novi `review-reminder-recipients.spec.ts` **7** (aktivan + dozvola; deaktiviran ispada **prije**
+traženja konteksta; dozvola u drugoj OU ispada; bez konteksta ispada; SuperAdmin prolazi; filtriranje grupe uz keš
+na drugom članku; bez vlasnika i grupe ⇒ 0 upita), backend `knowledge-base`+`users`+`audit-log`+`notifications`
+**114 suite / 593 testa**, `eslint` zelen. Nema migracije. **Otvoreno i dokumentovano:** cap od 2.000 članaka po
+prolazu (ostatak u sljedećem tick-u; trajni health signal je `BA-knowledge-base-13`), eligibility je „trenutna
+dozvola” (dedupe ključ se ne troši kad notifikacija ne nastane) i scope se čita po članku, linearno ali
+ograničeno serijama i bez membership N+1.
+Dokaz: [306-w785-knowledge-base-12-reminder-batching-eligibility.md](../implementation/306-w785-knowledge-base-12-reminder-batching-eligibility.md).
