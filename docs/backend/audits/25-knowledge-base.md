@@ -153,7 +153,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-10 | P2       | Category archive guard je TOCTOU prema paralelnom article placementu                      | zatvoreno |
 | BA-knowledge-base-11 | P2       | Slug alokacija je read-before-create bez conflict retry ugovora                           | zatvoreno |
 | BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | zatvoreno |
-| BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | otvoreno |
+| BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | zatvoreno |
 | BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | otvoreno |
 | BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | otvoreno |
 | BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | otvoreno |
@@ -506,3 +506,64 @@ prolazu (ostatak u sljedećem tick-u; trajni health signal je `BA-knowledge-base
 dozvola” (dedupe ključ se ne troši kad notifikacija ne nastane) i scope se čita po članku, linearno ali
 ograničeno serijama i bez membership N+1.
 Dokaz: [306-w785-knowledge-base-12-reminder-batching-eligibility.md](../implementation/306-w785-knowledge-base-12-reminder-batching-eligibility.md).
+
+## 31. Implementacijski closeout — W7.86 (`BA-knowledge-base-13`)
+
+Na `558b4ce`, uz CI `45010012368`, zakazani posao za pregled članaka se **sam vraća** nakon gubitka rasporeda i
+**prestaje da vuče view flush za sobom**. Prije je `onModuleInit` uradio `upsertJobScheduler` i nikad više ništa nije
+provjerio: raspored živi u Redis-u, pa ga restart bez perzistencije, `FLUSHALL`, failover na praznu instancu ili
+restore starijeg snapshot-a brišu **bez ijednog signala** — do sljedećeg deploya nije radio ni podsjetnik ni flush
+brojača pregleda. Uz to je u `process()` flush bio **drugi** i samo ako prvi (`automation.processDue()`) uspije, pa je
+pad reminder upita značio da brojači stoje u Redis-u, a `knowledgeViewKeys` imaju **TTL od 8 dana** — bug u
+podsjetniku mogao je trajno uništiti analitiku pregleda. Treće, flush je vraćao samo broj upisanih članaka, pa se
+„nema šta da se flushuje” nije razlikovalo od „sweep nije radio sedmicu”; `ops-health` je brojao queue, ali nije znao
+da je raspored obavezan, pa `scheduler.late` nije pokrivao ovaj posao.
+
+Sada `KnowledgeBaseReviewReminderSchedulerService` poslije inicijalne registracije postavlja `setInterval` na
+`knowledgeBaseReviewReminderReconcileMilliseconds` (**60 s**): `reconcileSchedule()` pročita
+`queue.getJobSchedulers(0, -1)`, i samo kad `kb-review-reminder-quarter-hourly` nije tu, ponovo ga registruje kroz isti
+`registerRepeatableJob` uz `kb_review_reminder_schedule_recovered id=…`. Registracija je idempotentna po ID-u, pa
+paralelni reconcile dva workera daje **jedan** raspored; timer je `unref()`-ovan (ne drži proces ni jest workera),
+`onModuleDestroy` ga čisti, a drugi `onModuleInit` ne pravi drugi timer. Raspored je dodan u
+`expectedKnowledgeSchedulers` (`expectedSchedulers`), sa `knowledgeBaseReviewReminderLastSuccessMaxAgeMs` = **30 min**
+(dva prozora od 15 min), pa `scheduler.late` prijavljuje `not_registered`, `not_picked_up`, `failing` i
+`no_recent_success` — reconcile pokriva gubitak unutar minute, alarm je za gubitak koji ga nadživi.
+
+`process()` sada izvršava **dvije nezavisne polovine**: sweep greška se i dalje rethrow-uje (job ostaje crven), ali
+flush se izvršava **i kada sweep padne**; pad flush-a ostaje `logger.warn` i ne obara posao. Jedna linija po prolazu
+nosi `kb_due_candidates`, `kb_batches`, `kb_reminders_sent`, `kb_no_recipient_articles`, `kb_unresolved_scope_articles`,
+`kb_blocked_recipients`, `kb_capped`, `kb_views_flushed`, `kb_views_pending_days`, `kb_views_lag_days`, uz `logger.warn`
+kad backlog pregleda pređe jedan prolaz i kad brojači pregleda zaostaju **≥ 2 dana** (od 8 koliko traje TTL). Zaostatak
+mjeri novi `inspectKnowledgeViewBacklog({ redis, now })` — jedan `SMEMBERS` nad `pendingDays`, isti predikat
+(`readPendingFinishedDays`) koji flush koristi, sada na jednom mjestu; `KnowledgeViewFlushService.backlog()` vraća
+`null` bez Redis klijenta. `processDueWithSummary()` vraća `KnowledgeReviewReminderRun`, a `processDue` je
+`(...).sent` — ugovor nepromijenjen. Dokaz: novi `knowledge-base-review-reminder.scheduler.spec.ts` **6** i novi
+`knowledge-base-review-reminder.processor.spec.ts` **7** (sweep padne ⇒ flush ipak prođe i job padne; flush padne ⇒ job
+zelen; 2 dana zaostatka ⇒ warn, nezavršen dan ⇒ bez warn-a; cap ⇒ warn; `@Optional()` flush), novi
+`knowledge-scheduler-reconciliation.integration.spec.ts` **2** pod stvarnim Redis-om (obrisan raspored se vraća; dva
+workera ⇒ jedan raspored), `knowledge-portal.service.spec.ts` **15 → 17**, ops-health **+3**, backend
+`knowledge-base`+`ops-health` **336 testa / 6 skipped**, `eslint` zelen. Nema migracije. **Otvoreno i dokumentovano:**
+`kb_*` brojevi su u logu i job metrici, ne na ops-health kartici (kartica je reporting, ne reconciliation), reconcile
+ne nadoknađuje propušten prozor (bezopasno — obje polovine obrađuju „sve dospjelo”), flush koji trajno pada i dalje
+gubi ključeve poslije 8 dana (warn na 2 dana daje ~6 dana za reakciju) i reconcile je po instanci (N čitanja/minutu,
+bez koordinacije jer je registracija idempotentna).
+**Sekundarni defekt otkriven acceptance testom.** Prvi CI run (`45010012368`) pao je na novom Redis acceptance specu,
+i to s razlogom: `queue.getJobSchedulers()` u BullMQ 5.81 **ne** popunjava `id` za raspored napravljen kroz
+`upsertJobScheduler` (`transformSchedulerData` daje `{ key: '<id>', name, next, pattern, … }`); `id` postoji samo na
+legacy repeatable redovima, gdje je `key` sirovi `name:id:endDate:tz:pattern`. Svih **sedam** self-healing scheduler
+servisa je provjeravalo `entry.id`, pa je svaki zdrav raspored izgledao izgubljen: re-registracija na svakom tick-u i
+lažni `*_schedule_recovered` warn — šum koji sakriva baš onu liniju koju operator treba da vidi. Popravka je zajednički
+`common/scheduled-jobs/job-scheduler-presence.ts` (`isSchedulerRegistered`, `missingSchedulers`; meč `key === id ||
+id === id`) i njegova upotreba u `knowledge-base` review reminderu, `announcement-sweep`, `announcement-retention`,
+`change-sweep`, `problem-sweep`, `on-call-sweep` i `inbound-email` servisu (`ca92b55`). Novi
+`job-scheduler-presence.spec.ts` (**5**) pokriva oba oblika i dokazuje da se sirovi `key` ne čita kao ID; KB unit spec
+sada hrani stvarni oblik (`key`) i pinuje legacy oblik. Drugi run (`45011775922`) dao je zelen integration — dokaz da
+popravak radi pod stvarnim Redis-om — ali je pao na type-checku speca (`1411111`, `{ key?: string; id?: string }`).
+Finalni [`45012253359`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45012253359) na `1411111` je
+**success** (E2E `skipped`, kako je konfigurisano); `Perf smoke` `45010012383` zelen na `558b4ce`.
+Dokaz: [308-w786-knowledge-base-13-scheduler-reconciliation.md](../implementation/308-w786-knowledge-base-13-scheduler-reconciliation.md).
+
+**Ispravka reference iz §26/§30.** W7.81 je kao mjesto „globalnog reconcilera ocjena” uputio na
+`BA-knowledge-base-13`; trinaestica je **scheduler reconciliation** i ne dira preračun ocjena. Globalni reconciler
+historijskog drifta ostaje dokumentovan rizik W7.81 bez zasebnog nalaza (dotjerani preračun „iz redova” ga rješava za
+svaki članak koji dobije novi glas).
