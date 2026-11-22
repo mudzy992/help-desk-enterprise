@@ -104,7 +104,13 @@ function createPortalHarness(settings: Record<string, unknown> = {}) {
       return 0;
     },
   };
+  const viewKey = (where: { articleId: string; day: Date }) =>
+    `${where.articleId}:${where.day.toISOString()}`;
   prisma.knowledgeArticleView = {
+    // W7.89: the flush reads the day before it writes it, to move the article total
+    // by the delta only; the Redis-less path increments.
+    findUnique: async ({ where }: { where: { articleId_day: { articleId: string; day: Date } } }) =>
+      views.get(viewKey(where.articleId_day)) ?? null,
     upsert: async ({
       where,
       create,
@@ -112,20 +118,18 @@ function createPortalHarness(settings: Record<string, unknown> = {}) {
     }: {
       where: { articleId_day: { articleId: string; day: Date } };
       create: { articleId: string; day: Date; views: number; uniqueViewers: number };
-      update: { views: { increment: number }; uniqueViewers: { increment: number } };
+      update: { views: number | { increment: number }; uniqueViewers?: number };
     }) => {
-      const key = `${where.articleId_day.articleId}:${where.articleId_day.day.toISOString()}`;
+      const key = viewKey(where.articleId_day);
       const current = views.get(key);
-      views.set(
-        key,
-        current === undefined
-          ? { ...create }
-          : {
-              ...current,
-              views: current.views + update.views.increment,
-              uniqueViewers: current.uniqueViewers + update.uniqueViewers.increment,
-            },
-      );
+      if (current === undefined) {
+        views.set(key, { ...create });
+        return;
+      }
+      const nextViews = typeof update.views === 'number' ? update.views : current.views + update.views.increment;
+      const nextUniqueViewers =
+          typeof update.views === 'number' ? (update.uniqueViewers ?? current.uniqueViewers) : current.uniqueViewers;
+      views.set(key, { ...current, views: nextViews, uniqueViewers: nextUniqueViewers });
     },
     groupBy: async () =>
       [...views.values()].reduce<{ articleId: string; _sum: { views: number } }[]>((rows, row) => {
@@ -474,6 +478,11 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     redis.failing = true;
     await service.recordView('a1', asUser(knowledgeBaseTestIds.requester));
     expect(memory.articles.get('a1')?.viewCount).toBe(4);
+    // W7.89: the Redis-less path counts the view but cannot deduplicate a viewer, so it
+    // adds a view and claims no new one - the day row keeps the two viewers Redis saw
+    // (the old code would have made it three, i.e. "every visit is a new person").
+    const fallbackDay = `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`;
+    expect(views.get(`a1:${fallbackDay}`)).toMatchObject({ views: 4, uniqueViewers: 2 });
   });
 
   it('reports how far behind the view flush is, and that it is caught up afterwards (W7.86)', async () => {

@@ -112,6 +112,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/knowledge-base/knowledge-scheduler-reconciliation.integration.spec.ts",
   // W7.88 (BA-knowledge-base-15): the delete tombstone - cascade, audit entry, refused live article.
   "src/modules/knowledge-base/knowledge-delete-tombstone.integration.spec.ts",
+  // W7.89 (BA-knowledge-base-16): the view flush is idempotent and never invents viewers.
+  "src/modules/knowledge-base/portal/knowledge-view-flush-idempotency.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {
