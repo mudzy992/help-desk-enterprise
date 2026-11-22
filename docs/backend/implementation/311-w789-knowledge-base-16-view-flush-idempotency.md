@@ -10,7 +10,8 @@ novi `knowledge-article-views.spec.ts` (**6**), novi
 `portal/knowledge-view-flush-idempotency.integration.spec.ts` (**3**, PostgreSQL + Redis),
 `knowledge-portal.service.spec.ts` (fake dobio `findUnique` + apsolutni upsert, nova tvrdnja o fallbacku)<br>
 **DB migracija:** nema<br>
-**CI:** _upućuje se na `73d2720`_
+**CI:** `45047227984` na `88e70b1` — **success** (Docs guard, backend build+test, PostgreSQL+Redis integration,
+frontend build+test, container/supply chain; E2E i inventory skipped po politici grane)
 
 ## Nalaz
 
@@ -120,7 +121,28 @@ fallback **ne** diže `uniqueViewers` (dan `4/2`, a ne `4/3` kako je staro pona�
 
 ## CI i testni dokaz
 
-_Status se upisuje poslije zelenog runa na `73d2720`._
+Run **`45047227984`** na `88e70b1` je zelen u svim jobovima koji se izvršavaju: **Docs guard**, **Backend build +
+test**, **Backend PostgreSQL + Redis integration**, **Frontend build + test**, **Backend container + supply
+chain**, **CI gate**; `E2E critical flows`, `E2E install wizard` i `Read-only service-form pattern inventory` su
+`skipped` po politici grane. Integracijski job je prošao **uključujući** `knowledge-view-flush-idempotency`
+(3 testa pod stvarnim PostgreSQL-om i Redisom), pa su i brava i apsolutni upsert dokazani protiv prave baze.
+
+Tri stvari su ispale na putu do zelenog, i sve tri su bile u **dokazu**, ne u modelu:
+
+1. **`ChangeLog.actorUserId` je strani ključ** (za razliku od `AuditLog.actorUserId`), pa je
+   `knowledge-category-archive-race.integration.spec.ts` — koji trku arhiviranja i placement-a vozi sa
+   sintetičkim `it-kb-archiver-<suffix>` akterom — odgovorio `P2003` kad placement **pobijedi** u trci i dođe
+   do svog change-log upisa. Isti trap kao u W7.88. Spec sada pravi arhivera kao stvarni red i briše ga poslije
+   svojih change-log redova; time su oba ishoda trke ono što se testira.
+2. **`pg_advisory_xact_lock` vraća `void`**, koji Prisma drajver ne može deserijalizovati („Failed to
+   deserialize column of type 'void'”) — svaki flush nad stvarnim PostgreSQL-om je padao. Brava je prebačena na
+   **red članka** (`SELECT "id" FROM "KnowledgeArticle" WHERE "id" = $1 FOR UPDATE`): red uvijek postoji (i
+   prvog dana članka), pušta se na commit, i serijalizuje flush **po članku** umjesto po `(article, day)` — što
+   je strože i za pozadinski posao besplatno. (Savjetodavna brava je i dalje u upotrebi u W7.82/W7.84 kroz
+   `DatabaseLockService`, koji `void` izbjegava na svoj način.)
+3. **Redis klijent se otvarao po testu** (`connect()` u `beforeEach`, `disconnect()` u `afterEach`), pa je
+   drugi test komandovao nad već zatvorenom vezom („Connection is closed”); veza sada živi za cijeli fajl, kao
+   u ostalim Redis acceptance specovima.
 
 ## Registar nalaza
 
