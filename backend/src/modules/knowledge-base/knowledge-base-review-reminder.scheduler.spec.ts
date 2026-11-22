@@ -17,7 +17,10 @@ import { KnowledgeBaseReviewReminderSchedulerService } from './knowledge-base-re
 describe('KnowledgeBaseReviewReminderSchedulerService', () => {
   // BullMQ 5.81 puts a modern scheduler's id in `key` and leaves `id` unset — the
   // shape the CI acceptance spec caught this service assuming wrong.
-  function createQueue(present: boolean, entry = { key: knowledgeBaseReviewReminderSchedulerId }) {
+  function createQueue(
+    present: boolean,
+    entry: { key?: string; id?: string } = { key: knowledgeBaseReviewReminderSchedulerId },
+  ) {
     const queue = {
       upsertJobScheduler: jest.fn(async () => ({})),
       getJobSchedulers: jest.fn(async () => (present ? [entry] : [])),
