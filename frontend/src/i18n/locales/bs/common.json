@@ -5863,7 +5863,8 @@
         "archive": "Arhiviraj",
         "restore": "Vrati",
         "archived": "Arhivirana",
-        "none": "Još nema kategorija."
+        "none": "Još nema kategorija.",
+        "truncated": "Prikazano prvih {{count}} kategorija; ostatak taksonomije nije učitan."
       },
       "placement": {
         "title": "Smještaj na portalu",
@@ -5885,7 +5886,9 @@
         "emptyViews": "Nema pregleda u zadnjih 30 dana.",
         "emptyRated": "Nijedan članak nema dovoljno ocjena.",
         "emptyNotViewed": "Svi objavljeni članci su nedavno čitani.",
-        "emptyComments": "Nema otvorenih komentara."
+        "emptyComments": "Nema otvorenih komentara.",
+        "commentsTruncated": "Prikazano prvih {{count}} otvorenih komentara.",
+        "loadMoreComments": "Učitaj još komentara"
       },
       "fromReply": {
         "redactedOnSave": "Server je zamijenio lične podatke pri čuvanju.",

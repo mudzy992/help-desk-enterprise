@@ -5838,7 +5838,8 @@
         "archive": "Archive",
         "restore": "Restore",
         "archived": "Archived",
-        "none": "No categories yet."
+        "none": "No categories yet.",
+        "truncated": "Showing the first {{count}} categories; the rest of the taxonomy was not loaded."
       },
       "placement": {
         "title": "Portal placement",
@@ -5860,7 +5861,9 @@
         "emptyViews": "No views in the last 30 days.",
         "emptyRated": "No article has enough ratings.",
         "emptyNotViewed": "All published articles were read recently.",
-        "emptyComments": "No open comments."
+        "emptyComments": "No open comments.",
+        "commentsTruncated": "Showing the first {{count}} open comments.",
+        "loadMoreComments": "Load more comments"
       },
       "fromReply": {
         "redactedOnSave": "The server replaced personal data while saving.",

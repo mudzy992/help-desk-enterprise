@@ -11,6 +11,7 @@ import { formatAverageRating } from "@/lib/knowledge-base/knowledge-portal";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
   getKnowledgeInsights,
+  listKnowledgeInsightComments,
   resolveKnowledgeComment,
   type KnowledgeInsights,
   type KnowledgePortalArticle,
@@ -26,6 +27,7 @@ export function KnowledgeInsightsPanel() {
   const [insights, setInsights] = useState<KnowledgeInsights | null>(null);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -35,6 +37,37 @@ export function KnowledgeInsightsPanel() {
       setRequestId(readApiRequestId(error));
     }
   }, []);
+
+  /**
+   * W7.90 (`BA-knowledge-base-17`): the feed is a page now. Resolving a comment reloads the first page;
+   * "load more" appends the next one, keyed by the cursor the server handed out.
+   */
+  const loadMoreComments = useCallback(async () => {
+    if (insights === null || insights.openComments.nextCursor === null) return;
+    setIsLoadingMore(true);
+    try {
+      const page = await listKnowledgeInsightComments({
+        cursor: insights.openComments.nextCursor,
+      });
+      setInsights((current) =>
+        current === null
+          ? current
+          : {
+              ...current,
+              openComments: {
+                items: [...current.openComments.items, ...page.items],
+                hasMore: page.hasMore,
+                nextCursor: page.nextCursor,
+              },
+            },
+      );
+    } catch (error) {
+      setErrorKey(mapApiError(error));
+      setRequestId(readApiRequestId(error));
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [insights]);
 
   useEffect(() => {
     void load();
@@ -88,13 +121,13 @@ export function KnowledgeInsightsPanel() {
         <h2 className="text-[13px] font-semibold text-foreground">
           {t("knowledgeBase.portal.insights.comments")}
         </h2>
-        {insights.openComments.length === 0 ? (
+        {insights.openComments.items.length === 0 ? (
           <p className="mt-2 text-[12px] text-muted-foreground">
             {t("knowledgeBase.portal.insights.emptyComments")}
           </p>
         ) : (
           <ul className="mt-2 grid gap-2">
-            {insights.openComments.map((comment) => (
+            {insights.openComments.items.map((comment) => (
               <li key={comment.id} className="rounded-md border border-border/70 px-3 py-2">
                 <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                   <Link
@@ -129,6 +162,24 @@ export function KnowledgeInsightsPanel() {
             ))}
           </ul>
         )}
+        {insights.openComments.hasMore ? (
+          <div className="mt-2 grid gap-1.5" data-testid="knowledge-insights-more-comments">
+            <p className="text-[11px] text-muted-foreground">
+              {t("knowledgeBase.portal.insights.commentsTruncated", {
+                count: insights.openComments.items.length,
+              })}
+            </p>
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              disabled={isLoadingMore}
+              onClick={() => void loadMoreComments()}
+            >
+              {t("knowledgeBase.portal.insights.loadMoreComments")}
+            </Button>
+          </div>
+        ) : null}
       </Card>
     </div>
   );

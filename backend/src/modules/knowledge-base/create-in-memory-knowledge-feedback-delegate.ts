@@ -22,9 +22,16 @@ type FeedbackWhere = {
   readonly articleId?: string | { in: readonly string[] };
   readonly userId?: string;
   /** W7.53 (BA-reports-01): report packs pin votes to the window. */
-  readonly createdAt?: { readonly gte?: Date; readonly lte?: Date };
+  readonly createdAt?: { readonly gte?: Date; readonly lte?: Date; readonly lt?: Date };
   /** W7.81 (BA-knowledge-base-07): only rated votes move the article rating totals. */
   readonly rating?: { readonly not?: null };
+  /** W7.90 (`BA-knowledge-base-17`): the curator comment feed filters on a present comment. */
+  readonly comment?: { readonly not?: null };
+  /** W7.90: unresolved only. */
+  readonly commentResolvedAt?: null;
+  /** W7.90: the keyset of the comment page — `(createdAt desc, id desc)`. */
+  readonly OR?: readonly FeedbackWhere[];
+  readonly id?: { readonly lt?: string };
 };
 
 export function createInMemoryKnowledgeFeedbackDelegate(
@@ -59,13 +66,24 @@ export function createInMemoryKnowledgeFeedbackDelegate(
         },
       };
     },
+    // W7.90 (`BA-knowledge-base-17`): a page filter that the double silently ignored would let broken
+    // pagination pass, so `orderBy`/`take` are applied here the way Prisma applies them.
     findMany: async ({
       where,
       select,
+      orderBy,
+      take,
     }: {
       where?: FeedbackWhere;
       select?: Record<string, boolean>;
-    } = {}) => matching(where).map((item) => pickFeedback(item, select)),
+      orderBy?: readonly Record<string, 'asc' | 'desc'>[];
+      take?: number;
+    } = {}) => {
+      const rows = orderFeedback(matching(where), orderBy);
+      return (take === undefined ? rows : rows.slice(0, take)).map((item) =>
+        pickFeedback(item, select),
+      );
+    },
     create: async ({
       data,
     }: {
@@ -139,9 +157,24 @@ function matchesFeedback(
     if (lte !== undefined && item.createdAt.getTime() > lte.getTime()) {
       return false;
     }
+    if (where.createdAt.lt !== undefined && !(item.createdAt.getTime() < where.createdAt.lt.getTime())) {
+      return false;
+    }
   }
   if (where.rating?.not === null && typeof item.rating !== 'number') {
     // `rating: { not: null }` — thumbs-only votes are not part of the rating totals.
+    return false;
+  }
+  if (where.comment?.not === null && (item.comment ?? null) === null) {
+    return false;
+  }
+  if (where.commentResolvedAt === null && (item.commentResolvedAt ?? null) !== null) {
+    return false;
+  }
+  if (where.id?.lt !== undefined && !(item.id < where.id.lt)) {
+    return false;
+  }
+  if (where.OR !== undefined && !where.OR.some((branch) => matchesFeedback(item, branch))) {
     return false;
   }
   if (where.articleId === undefined) {
@@ -167,4 +200,29 @@ function pickFeedback(
     }
   }
   return picked;
+}
+
+/** W7.90: the multi-column order the comment page relies on. */
+function orderFeedback(
+  rows: readonly InMemoryKnowledgeFeedback[],
+  orderBy?: readonly Record<string, 'asc' | 'desc'>[],
+): InMemoryKnowledgeFeedback[] {
+  if (orderBy === undefined) {
+    return [...rows];
+  }
+  return [...rows].sort((left, right) => {
+    for (const clause of orderBy) {
+      for (const [key, direction] of Object.entries(clause)) {
+        const first = left[key as keyof InMemoryKnowledgeFeedback];
+        const second = right[key as keyof InMemoryKnowledgeFeedback];
+        const comparable = (value: unknown): string | number =>
+          value instanceof Date ? value.getTime() : (value as string | number);
+        const a = comparable(first);
+        const b = comparable(second);
+        if (a === b) continue;
+        return (a < b ? -1 : 1) * (direction === 'asc' ? 1 : -1);
+      }
+    }
+    return 0;
+  });
 }

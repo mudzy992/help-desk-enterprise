@@ -44,12 +44,20 @@ import { withKnowledgeCategoryMembershipLock } from './knowledge-category-member
 import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { withKnowledgeArticleFreshness } from '../with-knowledge-article-freshness';
 import { recordKnowledgeArticleView } from './knowledge-article-views';
+import { resolvePageSize } from '../knowledge-article-cursor';
+import {
+  decodeKnowledgeCommentCursor,
+  encodeKnowledgeCommentCursor,
+} from './knowledge-portal-pagination';
 import {
   assertKnowledgeCategoryAssignable,
   createKnowledgeCategory,
-  listKnowledgeCategories,
+  findKnowledgeCategory,
+  listKnowledgeCategoryChildren,
+  listKnowledgeCategoryTree,
   setKnowledgeCategoryArchived,
   updateKnowledgeCategory,
+  type KnowledgeCategoryPage,
   type KnowledgeCategoryRecord,
   type SaveKnowledgeCategoryInput,
 } from './knowledge-categories';
@@ -92,6 +100,11 @@ export type KnowledgePortalHome = {
    * counts are a lower bound of what the reader can see.
    */
   readonly articleCountsComplete: boolean;
+  /**
+   * W7.90 (`BA-knowledge-base-17`): `false` when the taxonomy has more roots than one page holds,
+   * so the counts above describe the categories that were returned, not the whole tree.
+   */
+  readonly categoriesComplete: boolean;
   readonly capabilities: KnowledgePortalCapabilities;
   readonly feedbackEnabled: boolean;
 };
@@ -110,18 +123,27 @@ export type KnowledgePlacementInput = {
   readonly reason: string;
 };
 
+export type KnowledgeComment = {
+  readonly id: string;
+  readonly articleId: string;
+  readonly articleTitle: string;
+  readonly rating: number;
+  readonly comment: string;
+  readonly createdAt: string;
+};
+
+export type KnowledgeCommentPage = {
+  readonly items: readonly KnowledgeComment[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
 export type KnowledgeInsights = {
   readonly mostViewed: readonly (KnowledgePortalArticle & { readonly views30d: number })[];
   readonly lowestRated: readonly KnowledgePortalArticle[];
   readonly notViewed: readonly KnowledgePortalArticle[];
-  readonly openComments: readonly {
-    readonly id: string;
-    readonly articleId: string;
-    readonly articleTitle: string;
-    readonly rating: number;
-    readonly comment: string;
-    readonly createdAt: string;
-  }[];
+  /** W7.90 (`BA-knowledge-base-17`): a page, so the caller can tell it was cut off and ask for more. */
+  readonly openComments: KnowledgeCommentPage;
   readonly thresholds: { readonly minRatings: number; readonly notViewedDays: number };
 };
 
@@ -202,11 +224,14 @@ export class KnowledgePortalService {
     return executeKnowledgeBaseOperation(async () => {
       const actor = await loadKnowledgeActorContext(this.loader, context);
       const configuration = await this.configurationLoader.load();
-      const [published, categories, faqMaxItems] = await Promise.all([
+      const [published, categoryTree, faqMaxItems] = await Promise.all([
         this.publishedScan(context, knowledgeBaseConstants.portalHomeScanCap),
-        listKnowledgeCategories(this.prisma, { includeArchived: false }),
+        // W7.90 (`BA-knowledge-base-17`): the home payload carries one page of the tree instead of every
+        // category; `categoriesComplete` says whether the taxonomy was bigger than that page.
+        listKnowledgeCategoryTree(this.prisma, { includeArchived: false }),
         this.faqMaxItems(),
       ]);
+      const categories = categoryTree.items;
       const articles = published.items;
       const activeIds = new Set(categories.map((category) => category.id));
       const direct = new Map<string, number>();
@@ -238,6 +263,7 @@ export class KnowledgePortalService {
         faq,
         uncategorizedCount,
         articleCountsComplete: !published.hasMore,
+        categoriesComplete: !categoryTree.hasMore,
         capabilities: this.capabilitiesOf(actor),
         feedbackEnabled: configuration.feedbackEnabled,
       };
@@ -258,20 +284,27 @@ export class KnowledgePortalService {
     page: { readonly limit?: number; readonly cursor?: string } = {},
   ): Promise<KnowledgePortalArticlePage> {
     return executeKnowledgeBaseOperation(async () => {
-      const categories = await listKnowledgeCategories(this.prisma, { includeArchived: false });
-      const activeIds = new Set(categories.map((category) => category.id));
+      // W7.90 (`BA-knowledge-base-17`): resolving one category does not need the whole taxonomy. The
+      // uncategorized bucket is "no category, or a category that is archived", and the archived set is the
+      // only piece of the tree that question needs.
       let matches: (article: KnowledgeArticleRecord) => boolean;
       if (categoryId === 'uncategorized') {
-        matches = (article) => article.categoryId === null || !activeIds.has(article.categoryId);
+        const archived = await this.prisma.knowledgeCategory.findMany({
+          where: { isArchived: true },
+          select: { id: true },
+        });
+        const archivedIds = new Set(archived.map((row) => row.id));
+        matches = (article) => article.categoryId === null || archivedIds.has(article.categoryId);
       } else {
-        const category = categories.find((item) => item.id === categoryId);
-        if (category === undefined) {
+        const category = await findKnowledgeCategory(this.prisma, categoryId);
+        // An archived category is not a portal page — it keeps its old links working, it does not list.
+        if (category === null || category.isArchived) {
           throw new KnowledgeBaseError('CATEGORY_NOT_FOUND');
         }
-        const ids = new Set([
-          category.id,
-          ...categories.filter((child) => child.parentId === category.id).map((child) => child.id),
-        ]);
+        const children = await listKnowledgeCategoryChildren(this.prisma, category.id, {
+          includeArchived: false,
+        });
+        const ids = new Set([category.id, ...children.map((child) => child.id)]);
         matches = (article) => article.categoryId !== null && ids.has(article.categoryId);
       }
       const configuration = await this.configurationLoader.load();
@@ -299,14 +332,23 @@ export class KnowledgePortalService {
     });
   }
 
+  /**
+   * W7.90 (`BA-knowledge-base-17`): one page of the tree — roots plus their children — with `hasMore`
+   * and a cursor. `includeArchived` is a manager capability, checked here as before.
+   */
   categories(
     context: KnowledgeArticleMutationContext,
     includeArchived: boolean,
-  ): Promise<readonly KnowledgeCategoryRecord[]> {
+    page: { readonly limit?: number; readonly cursor?: string } = {},
+  ): Promise<KnowledgeCategoryPage> {
     return executeKnowledgeBaseOperation(async () => {
       const actor = await loadKnowledgeActorContext(this.loader, context);
       const canManage = hasPermission(actor, permissionKeys.knowledgeCategoryManage);
-      return listKnowledgeCategories(this.prisma, { includeArchived: includeArchived && canManage });
+      return listKnowledgeCategoryTree(this.prisma, {
+        includeArchived: includeArchived && canManage,
+        limit: page.limit,
+        cursor: page.cursor,
+      });
     });
   }
 
@@ -510,24 +552,8 @@ export class KnowledgePortalService {
             })
         ).map((row) => [row.id, row.lastViewedAt]),
       );
-      const writable = new Set<string>();
-      for (const article of articles) {
-        if (await this.canWrite(actor, article)) writable.add(article.id);
-      }
-      const comments =
-        writable.size === 0
-          ? []
-          : await this.prisma.knowledgeFeedback.findMany({
-              where: {
-                articleId: { in: [...writable] },
-                comment: { not: null },
-                commentResolvedAt: null,
-              },
-              select: { id: true, articleId: true, rating: true, comment: true, createdAt: true },
-              orderBy: { createdAt: 'desc' },
-              take: 50,
-            });
-      const titles = new Map(articles.map((article) => [article.id, article.title]));
+      // W7.90 (`BA-knowledge-base-17`): the comment feed is a page with a cursor, not the first 50 rows.
+      const openComments = await this.openCommentsPage(actor, articles, {});
       return {
         mostViewed: articles
           .filter((article) => (views30d.get(article.id) ?? 0) > 0)
@@ -548,17 +574,90 @@ export class KnowledgePortalService {
           .sort((left, right) => (lastViewed.get(left.id)?.getTime() ?? 0) - (lastViewed.get(right.id)?.getTime() ?? 0))
           .slice(0, listSize)
           .map(toPortalArticle),
-        openComments: comments.map((row) => ({
-          id: row.id,
-          articleId: row.articleId,
-          articleTitle: titles.get(row.articleId) ?? '',
-          rating: row.rating ?? 0,
-          comment: row.comment ?? '',
-          createdAt: row.createdAt.toISOString(),
-        })),
+        openComments,
         thresholds: { minRatings, notViewedDays },
       };
     });
+  }
+
+  /**
+   * W7.90 (`BA-knowledge-base-17`): the next page of the same feed `insights` returns. The authorization
+   * set is rebuilt exactly the way `insights` builds it (same bounded scan, same `canWrite` per article),
+   * so "load more" can never widen what the curator is allowed to see.
+   */
+  insightsComments(
+    context: KnowledgeArticleMutationContext,
+    page: { readonly limit?: number; readonly cursor?: string } = {},
+  ): Promise<KnowledgeCommentPage> {
+    return executeKnowledgeBaseOperation(async () => {
+      const actor = await loadKnowledgeActorContext(this.loader, context);
+      if (!this.capabilitiesOf(actor).canCurate) {
+        throw new KnowledgeBaseError('FORBIDDEN');
+      }
+      const articles = (
+        await this.publishedScan(context, knowledgeBaseConstants.portalHomeScanCap)
+      ).items;
+      return this.openCommentsPage(actor, articles, page);
+    });
+  }
+
+  /**
+   * One keyset page of open, unresolved comments on articles the actor may edit, newest first.
+   *
+   * The cursor is `(createdAt desc, id desc)`: an offset would shift under the curator's feet whenever a
+   * comment is resolved between two clicks (the row leaves the filter), which would skip a comment.
+   */
+  private async openCommentsPage(
+    actor: AuthorizationContext,
+    articles: readonly KnowledgeArticleRecord[],
+    page: { readonly limit?: number; readonly cursor?: string },
+  ): Promise<KnowledgeCommentPage> {
+    const limit = resolvePageSize(page.limit, knowledgeBaseConstants.defaultInsightsCommentPageSize);
+    const cursor = decodeKnowledgeCommentCursor(page.cursor);
+    const writable = new Set<string>();
+    for (const article of articles) {
+      if (await this.canWrite(actor, article)) writable.add(article.id);
+    }
+    if (writable.size === 0) {
+      return { items: [], hasMore: false, nextCursor: null };
+    }
+    const rows = await this.prisma.knowledgeFeedback.findMany({
+      where: {
+        articleId: { in: [...writable] },
+        comment: { not: null },
+        commentResolvedAt: null,
+        ...(cursor === null
+          ? {}
+          : {
+              OR: [
+                { createdAt: { lt: cursor.createdAt } },
+                { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+              ],
+            }),
+      },
+      select: { id: true, articleId: true, rating: true, comment: true, createdAt: true },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+    const hasMore = rows.length > limit;
+    const items = hasMore ? rows.slice(0, limit) : rows;
+    const titles = new Map(articles.map((article) => [article.id, article.title]));
+    const last = items[items.length - 1];
+    return {
+      items: items.map((row) => ({
+        id: row.id,
+        articleId: row.articleId,
+        articleTitle: titles.get(row.articleId) ?? '',
+        rating: row.rating ?? 0,
+        comment: row.comment ?? '',
+        createdAt: row.createdAt.toISOString(),
+      })),
+      hasMore,
+      nextCursor:
+        hasMore && last !== undefined
+          ? encodeKnowledgeCommentCursor({ createdAt: last.createdAt, id: last.id })
+          : null,
+    };
   }
 
   /** The article's writer marks a "what is missing" comment as handled. */

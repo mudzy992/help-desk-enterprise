@@ -43,8 +43,16 @@ export class KnowledgePortalController {
 
   @Get('categories')
   @Header('Cache-Control', 'no-store')
-  categories(@Req() request: AuthenticatedHttpRequest, @Query('includeArchived') includeArchived?: string) {
-    return this.portal.categories(readKnowledgeMutationContext(request), includeArchived === 'true');
+  categories(
+    @Req() request: AuthenticatedHttpRequest,
+    @Query('includeArchived') includeArchived?: string,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.portal.categories(readKnowledgeMutationContext(request), includeArchived === 'true', {
+      limit: limit === undefined ? undefined : Number(limit),
+      cursor,
+    });
   }
 
   @Get('categories/:id/articles')
@@ -104,6 +112,20 @@ export class KnowledgePortalController {
   @Header('Cache-Control', 'no-store')
   insights(@Req() request: AuthenticatedHttpRequest) {
     return this.portal.insights(readKnowledgeMutationContext(request));
+  }
+
+  /** W7.90 (`BA-knowledge-base-17`): the next page of the curator comment feed. */
+  @Get('insights/comments')
+  @Header('Cache-Control', 'no-store')
+  insightsComments(
+    @Req() request: AuthenticatedHttpRequest,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
+    return this.portal.insightsComments(readKnowledgeMutationContext(request), {
+      limit: limit === undefined ? undefined : Number(limit),
+      cursor,
+    });
   }
 
   @Post('feedback/:id/resolve')

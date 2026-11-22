@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KnowledgePlacementCard } from "@/components/knowledge-base/portal/knowledge-placement-card";
 import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
-import { listKnowledgeCategories } from "@/services/knowledge-portal-api";
+import { listAllKnowledgeCategories } from "@/services/knowledge-portal-api";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: "bs" } }),
@@ -17,7 +17,8 @@ vi.mock("@/components/ui/switch", () => ({
 
 vi.mock("@/services/knowledge-portal-api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/knowledge-portal-api")>()),
-  listKnowledgeCategories: vi.fn().mockResolvedValue([]),
+  // W7.90: the picker walks the paged taxonomy and receives `{ items, truncated }`.
+  listAllKnowledgeCategories: vi.fn().mockResolvedValue({ items: [], truncated: false }),
 }));
 
 const article = (id: string, categoryId: string | null) =>
@@ -27,10 +28,13 @@ afterEach(cleanup);
 
 describe("KnowledgePlacementCard", () => {
   it("synchronizes placement when the article prop changes", async () => {
-    vi.mocked(listKnowledgeCategories).mockResolvedValue([
-      { id: "first", nameBs: "Prva", nameEn: "First", parentId: null },
-      { id: "second", nameBs: "Druga", nameEn: "Second", parentId: null },
-    ] as never);
+    vi.mocked(listAllKnowledgeCategories).mockResolvedValue({
+      items: [
+        { id: "first", nameBs: "Prva", nameEn: "First", parentId: null },
+        { id: "second", nameBs: "Druga", nameEn: "Second", parentId: null },
+      ] as never,
+      truncated: false,
+    });
     const { rerender } = render(
       <KnowledgePlacementCard article={article("one", "first")} onChanged={vi.fn()} />,
     );

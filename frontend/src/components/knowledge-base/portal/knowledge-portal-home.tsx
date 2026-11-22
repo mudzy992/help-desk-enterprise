@@ -226,6 +226,11 @@ export function KnowledgePortalHome() {
                 {t("knowledgeBase.portal.countsPartial")}
               </p>
             ) : null}
+            {home.categoriesComplete === false ? (
+              <p role="status" className="mb-2 text-[11.5px] text-muted-foreground">
+                {t("knowledgeBase.portal.categories.truncated", { count: home.categories.length })}
+              </p>
+            ) : null}
             {tree.length === 0 && home.uncategorizedCount === 0 ? (
               <EmptyState icon={<FolderOpen size={18} />} title={t("knowledgeBase.portal.empty")} />
             ) : (

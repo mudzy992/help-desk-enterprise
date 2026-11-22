@@ -73,7 +73,7 @@ Category key je DB unique, tree je ograničen na root+child, self/cycle/depth i 
 
 Category mutation i audit nisu u istoj transakciji. Placement prvo updateuje article, zatim odvojeno piše change-log. Audit failure ostavlja promjenu uz API grešku i bez historije. Archive guard je count-then-update; paralelni article placement/create može nakon counta vezati active članak i ostaviti arhiviranu kategoriju sa live sadržajem.
 
-Insights koristi `canCurate` kao bilo koji globalno pronađen permission key za ulaz, potom visibility filtriranje. Open feedback comment se vraća samo za writable article, ali owner/group bypass nasljeđuje ranije probleme. Hard limit 50 commenta nema cursor/`hasMore`.
+Insights koristi `canCurate` kao bilo koji globalno pronađen permission key za ulaz, potom visibility filtriranje. Open feedback comment se vraća samo za writable article, ali owner/group bypass nasljeđuje ranije probleme. W7.90 je uklonio tihi rez: `openComments` je strana (`hasMore` + keyset cursor po `(createdAt desc, id desc)`), `GET insights/comments` daje sljedeću stranu, a `GET categories` vraća stranu korijena sa djecom (`limit`/`cursor`, `categoriesComplete` na home-u). Preostaje nevidljivost komentara van bounded scana — dokumentovana, ne skrivena.
 
 ## 8. Article from reply i privacy boundary
 
@@ -163,7 +163,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | zatvoreno |
 | BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | zatvoreno |
 | BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | zatvoreno |
-| BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | otvoreno |
+| BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | zatvoreno (W7.90) |
 | BA-knowledge-base-18 | P3       | Comment resolution nema audit, actor ni optimistic state                                 | otvoreno |
 | BA-knowledge-base-19 | P3       | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica              | otvoreno |
 
@@ -172,6 +172,10 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 - **01–02:** owner/reviewer kao eksplicitna, eligible, scoped i auditirana delegacija sa revoke/expiry pravilom.
 - **03:** article version/content revision, If-Match/CAS i review vezan za tačan revision hash.
 - **04, 17:** DB pagination/scope pushdown, cursor/hasMore i bounded portal/insights.
+- **17 (W7.90):** svaka portal lista koja se reže ima stranu sa `hasMore`/`nextCursor`; komentari idu keyset-om
+  po `(createdAt desc, id desc)` (resolve između strana ne preskače red), kategorije po
+  `(sortOrder, nameBs, id)` sa djecom uz roditelja, `limit` kroz `resolvePageSize`, a pickeri iznad capa to
+  javljaju umjesto da se prave da je lista potpuna.
 - **05:** publika `INTERNAL` je eksplicitna postavka (default scope-aware: OU/servis dodjela ili matična
   jedinica), a company-wide je svjesno uključenje.
 - **06:** deflection se provjerava kao tvrdnja — jedinica koju akter smije zastupati, članak objavljen, iz
@@ -678,3 +682,40 @@ Lokalno backend **939 suite / 5.394 testa**, `eslint`/`tsc` zeleni.
 ~0,8 % aproksimacija, osmodnevni TTL ključeva ostaje (W7.86 backlog signali su opomena), brava je po
 **članku** (ne po cijelom flush-u) — flush-ovi za isti članak se čekaju, oni za različite članke ne. Detalji:
 [311-w789-knowledge-base-16-view-flush-idempotency.md](../implementation/311-w789-knowledge-base-16-view-flush-idempotency.md).
+
+## 35. Implementacijski closeout — W7.90 (`BA-knowledge-base-17`)
+
+**Nalaz:** `insights` je vraćao prvih 50 otvorenih komentara kao da su svi (`take: 50`, bez `hasMore`/cursora),
+`GET categories` je vraćao cijelu taksonomiju bez ijedne granice, a `categoryArticles` je za jednu kategoriju
+čitao sve kategorije. Kurator nije mogao znati da je lista odsječena — a nije imao ni čime da dovuče ostatak.
+
+**Rješenje.**
+
+- **Komentari su strana:** keyset `(createdAt desc, id desc)`, `take: limit + 1`, `hasMore` + `nextCursor`;
+  autorizacioni skup (`portalHomeScanCap` + `canWrite`) se računa na svakoj strani, pa „učitaj još” ne može
+  proširiti vidokrug. Nova ruta `GET insights/comments?limit&cursor`.
+- **Kategorije su strana korijena:** djeca idu uz korijen (`parentId: { in: … }`), red
+  `(sortOrder asc, nameBs asc, id asc)`, `nextCursor` samo kad `hasMore`; `home` nosi `categoriesComplete`.
+  Nečitljiv cursor je `INVALID_CURSOR` — nikad tiha prva strana.
+- **Frontend prikazuje signal:** panel ima „Prikazano prvih N…” + „Učitaj još komentara” (dodaje stranu, ne
+  reload-uje); pickeri hodaju strane do capa od 1.000 korijena i to **kažu** kad cap bude dostignut; home
+  prikazuje `categoriesComplete === false`.
+- **`categoryArticles` čita usko:** jedna kategorija + njena djeca, a `uncategorized` samo arhivirane
+  kategorije (`select: { id }`). Arhivirana kategorija ostaje `CATEGORY_NOT_FOUND` kao i prije.
+
+**Testni dokaz:** `knowledge-portal-pagination.spec.ts` (**4**), `knowledge-portal.service.spec.ts` **17 → 23**
+(uključujući resolve-između-strana koji offset ne bi preživio i `defaultCategoryPageSize + 1` korijena),
+`knowledge-insights-panel.spec.tsx` (**2**), ojačani in-memory fakeovi (feedback delegat sada primjenjuje
+`orderBy`/`take` i razumije `OR`/`lt`; fake kategorija `{ in }`/`take`/`select`). Lokalno backend **940 suite /
+5.404 testa**, frontend **474 fajla / 1.890 testova**, `eslint`/`tsc`/`prettier` zeleni, `i18n:check` 9.295
+ključeva.
+
+**API promjena (bez migracije):** `categories` i `insights.openComments` vraćaju stranu umjesto niza; dodata
+`insights/comments`. Frontend je u istom deploymentu, pa nema perioda mješovitih verzija; rollback je vraćanje
+fajlova (rute nemaju stanje).
+
+**Otvoreno i dokumentovano:** komentari van bounded scana se ne prikazuju (postojeće W7.52 ograničenje, sada
+eksplicitno kroz `hasMore`/`categoriesComplete`), cap hoda pickera je 1.000 korijena, `canWrite` po članku se
+ponavlja na svakoj strani, a `limit` clamp-uje `resolvePageSize` (nema `INVALID_LIMIT` greške jer je siguran
+default uvijek tačan odgovor). Detalji:
+[312-w790-knowledge-base-17-bounded-pages.md](../implementation/312-w790-knowledge-base-17-bounded-pages.md).

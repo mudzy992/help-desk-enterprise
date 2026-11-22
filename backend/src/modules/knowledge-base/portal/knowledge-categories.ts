@@ -1,7 +1,13 @@
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { resolvePageSize } from '../knowledge-article-cursor';
+import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { KnowledgeBaseError } from '../knowledge-base.error';
 import { withKnowledgeCategoryMembershipLock } from './knowledge-category-membership-lock';
+import {
+  decodeKnowledgeCategoryCursor,
+  encodeKnowledgeCategoryCursor,
+} from './knowledge-portal-pagination';
 
 /**
  * Paket 2.9 (K1a): portal categories. One level below the root (a child may
@@ -69,7 +75,113 @@ export async function listKnowledgeCategories(
   return prisma.knowledgeCategory.findMany({
     where: options.includeArchived ? {} : { isArchived: false },
     select: categorySelect,
-    orderBy: [{ sortOrder: 'asc' }, { nameBs: 'asc' }, { id: 'asc' }],
+    orderBy: categoryOrder,
+  });
+}
+
+// Mutable on purpose: Prisma's `orderBy` takes `...[]`, and a readonly tuple is not assignable to it.
+const categoryOrder = [
+  { sortOrder: 'asc' as const },
+  { nameBs: 'asc' as const },
+  { id: 'asc' as const },
+];
+
+/** W7.90 (`BA-knowledge-base-17`): one page of the tree: root categories plus their children. */
+export type KnowledgeCategoryPage = {
+  readonly items: readonly KnowledgeCategoryRecord[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
+/**
+ * W7.90 (`BA-knowledge-base-17`): the portal used to read every category in one call, so an operator tree
+ * of any size became a response of that size. The page is counted in **roots** and each root brings its
+ * children, so a page never splits a parent from its children (the client builds the tree from `parentId`).
+ *
+ * The keyset follows the ordering the portal has always used — `(sortOrder, nameBs, id)` — with an
+ * `id` tiebreaker that makes the position total, so equal sort orders and equal names cannot repeat or skip.
+ */
+export async function listKnowledgeCategoryTree(
+  prisma: PrismaService,
+  options: {
+    readonly includeArchived: boolean;
+    readonly limit?: number;
+    readonly cursor?: string;
+  },
+): Promise<KnowledgeCategoryPage> {
+  const limit = resolvePageSize(options.limit, knowledgeBaseConstants.defaultCategoryPageSize);
+  const cursor = decodeKnowledgeCategoryCursor(options.cursor);
+  const roots = await prisma.knowledgeCategory.findMany({
+    where: {
+      parentId: null,
+      ...(options.includeArchived ? {} : { isArchived: false }),
+      ...(cursor === null
+        ? {}
+        : {
+            OR: [
+              { sortOrder: { gt: cursor.sortOrder } },
+              { sortOrder: cursor.sortOrder, nameBs: { gt: cursor.nameBs } },
+              { sortOrder: cursor.sortOrder, nameBs: cursor.nameBs, id: { gt: cursor.id } },
+            ],
+          }),
+    },
+    select: categorySelect,
+    orderBy: categoryOrder,
+    take: limit + 1,
+  });
+  const hasMore = roots.length > limit;
+  const page = hasMore ? roots.slice(0, limit) : roots;
+  const children =
+    page.length === 0
+      ? []
+      : await prisma.knowledgeCategory.findMany({
+          where: {
+            parentId: { in: page.map((root) => root.id) },
+            ...(options.includeArchived ? {} : { isArchived: false }),
+          },
+          select: categorySelect,
+          orderBy: categoryOrder,
+        });
+  const last = page[page.length - 1];
+  return {
+    items: [...page, ...children],
+    hasMore,
+    nextCursor:
+      hasMore && last !== undefined
+        ? encodeKnowledgeCategoryCursor({
+            sortOrder: last.sortOrder,
+            nameBs: last.nameBs,
+            id: last.id,
+          })
+        : null,
+  };
+}
+
+/** One category, or `null` when it does not exist (the caller decides what that means). */
+export async function findKnowledgeCategory(
+  prisma: PrismaService,
+  id: string,
+): Promise<KnowledgeCategoryRecord | null> {
+  const category = await prisma.knowledgeCategory.findUnique({
+    where: { id },
+    select: categorySelect,
+  });
+  return category ?? null;
+}
+
+/** The children of one root — the second half of the tree, without reading the rest of the taxonomy. */
+export async function listKnowledgeCategoryChildren(
+  prisma: PrismaService,
+  parentId: string,
+  options: { readonly includeArchived: boolean },
+): Promise<readonly KnowledgeCategoryRecord[]> {
+  return prisma.knowledgeCategory.findMany({
+    where: {
+      parentId,
+      ...(options.includeArchived ? {} : { isArchived: false }),
+    },
+    select: categorySelect,
+    orderBy: categoryOrder,
   });
 }
 

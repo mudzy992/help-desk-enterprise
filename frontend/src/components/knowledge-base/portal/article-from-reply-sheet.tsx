@@ -22,7 +22,7 @@ import {
 import { readApiRequestId } from "@/lib/map-api-error";
 import {
   createKnowledgeArticleFromReply,
-  listKnowledgeCategories,
+  listAllKnowledgeCategories,
   previewKnowledgeDraftFromReply,
   type KnowledgeCategory,
   type KnowledgeDraftFromReply,
@@ -56,7 +56,11 @@ export function ArticleFromReplySheet({
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const loadCategories = useCallback(() => listKnowledgeCategories(), []);
+  // W7.90: the endpoint pages, so the picker walks its pages and hands the sheet the whole taxonomy.
+  const loadCategories = useCallback(
+    () => listAllKnowledgeCategories().then((loaded) => loaded.items),
+    [],
+  );
   const categoriesResource = usePartialResource<
     readonly KnowledgeCategory[],
     KnowledgeArticleErrorKey

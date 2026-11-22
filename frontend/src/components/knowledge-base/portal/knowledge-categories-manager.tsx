@@ -20,7 +20,7 @@ import {
 } from "@/lib/knowledge-base/map-knowledge-article-error";
 import {
   createKnowledgeCategory,
-  listKnowledgeCategories,
+  listAllKnowledgeCategories,
   setKnowledgeCategoryArchived,
   updateKnowledgeCategory,
   type KnowledgeCategory,
@@ -63,13 +63,17 @@ export function KnowledgeCategoriesManager({
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [categories, setCategories] = useState<readonly KnowledgeCategory[]>([]);
+  // W7.90: the manager lists the whole taxonomy; if the walk hit its cap, the list says so.
+  const [categoriesTruncated, setCategoriesTruncated] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setCategories(await listKnowledgeCategories(true));
+      const loaded = await listAllKnowledgeCategories(true);
+      setCategories(loaded.items);
+      setCategoriesTruncated(loaded.truncated);
     } catch (error) {
       setErrorKey(mapKnowledgeArticleError(error));
     }
@@ -221,6 +225,14 @@ export function KnowledgeCategoriesManager({
             ])
           )}
         </ul>
+        {categoriesTruncated ? (
+          <p
+            className="mt-2 text-[11px] text-muted-foreground"
+            data-testid="knowledge-category-list-truncated"
+          >
+            {t("knowledgeBase.portal.categories.truncated", { count: categories.length })}
+          </p>
+        ) : null}
 
         <form className="mt-5 grid gap-3 border-t border-border/70 pt-4" onSubmit={onSubmit}>
           <h3 className="text-[13px] font-semibold text-foreground">

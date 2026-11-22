@@ -15,7 +15,7 @@ import {
 } from "@/lib/knowledge-base/map-knowledge-article-error";
 import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
 import {
-  listKnowledgeCategories,
+  listAllKnowledgeCategories,
   placeKnowledgeArticle,
   type KnowledgeCategory,
 } from "@/services/knowledge-portal-api";
@@ -44,13 +44,17 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
   const [categoriesErrorKey, setCategoriesErrorKey] = useState<KnowledgeArticleErrorKey | null>(
     null,
   );
+  // W7.90: the picker needs the whole taxonomy; if the walk hit its cap we say so instead of hiding it.
+  const [categoriesTruncated, setCategoriesTruncated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    listKnowledgeCategories()
+    listAllKnowledgeCategories()
       .then((loaded) => {
-        if (!cancelled) setCategories(loaded);
+        if (cancelled) return;
+        setCategories(loaded.items);
+        setCategoriesTruncated(loaded.truncated);
       })
       .catch((error: unknown) => {
         if (!cancelled) setCategoriesErrorKey(mapKnowledgeArticleError(error));
@@ -134,6 +138,16 @@ export function KnowledgePlacementCard({ article, onChanged }: KnowledgePlacemen
           </Select>
         )}
       </Field>
+      {categoriesTruncated ? (
+        <p
+          className="text-[11px] text-muted-foreground"
+          data-testid="knowledge-placement-truncated"
+        >
+          {t("knowledgeBase.portal.categories.truncated", {
+            count: options.length,
+          })}
+        </p>
+      ) : null}
       <label className="flex items-center gap-2 text-[12.5px] text-foreground">
         <Switch
           checked={isFaq}

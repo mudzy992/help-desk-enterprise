@@ -67,13 +67,76 @@ function createPortalHarness(settings: Record<string, unknown> = {}) {
   const audits: unknown[] = [];
   let sequence = 0;
   const prisma = harness.memory.prisma as unknown as Record<string, unknown>;
-  const matchCategory = (row: Category, where: Record<string, unknown> = {}) =>
-    Object.entries(where).every(([key, value]) => (row as Record<string, unknown>)[key] === value);
+  /**
+   * W7.90 (`BA-knowledge-base-17`): the tree is queried with keyset filters now (`parentId: { in: [...] }`,
+   * `OR` branches, `take`, `select`), so the fake has to read the same shapes the real delegate reads. A fake
+   * that only understands `===` would let a broken pagination pass.
+   */
+  const matchCategoryCondition = (value: unknown, condition: unknown): boolean => {
+    if (condition !== null && typeof condition === 'object') {
+      const typed = condition as { in?: readonly unknown[]; gt?: unknown; lt?: unknown };
+      if (Array.isArray(typed.in)) return typed.in.includes(value);
+      if ('gt' in typed) return typeof value === 'number' && value > (typed.gt as number);
+      if ('lt' in typed) return typeof value === 'number' && value < (typed.lt as number);
+      return false;
+    }
+    return value === condition;
+  };
+  const matchCategory = (row: Category, where: Record<string, unknown> = {}): boolean =>
+    Object.entries(where).every(([key, condition]) => {
+      if (key === 'OR') {
+        return (condition as Record<string, unknown>[]).some((branch) => matchCategory(row, branch));
+      }
+      return matchCategoryCondition((row as Record<string, unknown>)[key], condition);
+    });
+  const orderCategories = (
+    rows: Category[],
+    orderBy?: readonly Record<string, 'asc' | 'desc'>[],
+  ): Category[] =>
+    [...rows].sort((left, right) => {
+      for (const clause of orderBy ?? []) {
+        for (const [key, direction] of Object.entries(clause)) {
+          const first = (left as Record<string, unknown>)[key] as string | number;
+          const second = (right as Record<string, unknown>)[key] as string | number;
+          if (first === second) continue;
+          return (first < second ? -1 : 1) * (direction === 'asc' ? 1 : -1);
+        }
+      }
+      return 0;
+    });
+  const pickCategoryFields = (row: Category, select?: Record<string, boolean>) =>
+    select === undefined ? row : Object.fromEntries(Object.keys(select).map((key) => [key, (row as Record<string, unknown>)[key]]));
   prisma.knowledgeCategory = {
-    findMany: async ({ where }: { where?: Record<string, unknown> }) =>
-      [...categories.values()].filter((row) => matchCategory(row, where)).sort((a, b) => a.sortOrder - b.sortOrder),
-    findUnique: async ({ where }: { where: { id?: string; key?: string } }) =>
-      [...categories.values()].find((row) => (where.id ? row.id === where.id : row.key === where.key)) ?? null,
+    findMany: async ({
+      where,
+      orderBy,
+      take,
+      select,
+    }: {
+      where?: Record<string, unknown>;
+      orderBy?: readonly Record<string, 'asc' | 'desc'>[];
+      take?: number;
+      select?: Record<string, boolean>;
+    } = {}) => {
+      const rows = orderCategories(
+        [...categories.values()].filter((row) => matchCategory(row, where)),
+        orderBy,
+      );
+      const page = take === undefined ? rows : rows.slice(0, take);
+      return page.map((row) => pickCategoryFields(row, select));
+    },
+    findUnique: async ({
+      where,
+      select,
+    }: {
+      where: { id?: string; key?: string };
+      select?: Record<string, boolean>;
+    }) => {
+      const row =
+        [...categories.values()].find((item) => (where.id ? item.id === where.id : item.key === where.key)) ??
+        null;
+      return row === null ? null : pickCategoryFields(row, select);
+    },
     count: async ({ where }: { where?: Record<string, unknown> }) =>
       [...categories.values()].filter((row) => matchCategory(row, where)).length,
     create: async ({ data }: { data: Omit<Category, 'id' | 'isArchived'> }) => {
@@ -227,6 +290,7 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     expect(home.categories.find((item) => item.id === 'child')?.articleCount).toBe(1);
     expect(home.uncategorizedCount).toBe(1);
     expect(home.faq.map((item) => item.id)).toEqual(['a2', 'a1']);
+    expect(home.categoriesComplete).toBe(true);
     expect(home.capabilities).toEqual({ canManageCategories: false, canCurate: false, canDraftFromReply: false });
     const inRoot = await service.categoryArticles('root', asUser(knowledgeBaseTestIds.requester));
     // W7.52: the category page keeps the shared list order (updatedAt desc, id asc).
@@ -530,6 +594,178 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
       pendingFinishedDays: 0,
       oldestFinishedDay: null,
       lagDays: null,
+    });
+  });
+
+  it('pages the curator comment feed and never skips a row when one is resolved (W7.90)', async () => {
+    const { service, memory } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    const base = Date.parse('2026-09-11T12:00:00.000Z');
+    for (let index = 0; index < 3; index += 1) {
+      const createdAt = new Date(base + index * 1000);
+      memory.feedbacks.set(`f${index}`, {
+        id: `f${index}`,
+        articleId: 'a1',
+        userId: `user-${index}`,
+        isHelpful: false,
+        rating: 2,
+        comment: `Nedostaje korak ${index}`,
+        commentResolvedAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+    }
+    const curator = asUser(knowledgeBaseTestIds.agentIt);
+
+    const first = await service.insightsComments(curator, { limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual(['f2', 'f1']);
+    expect(first.hasMore).toBe(true);
+    expect(first.nextCursor).not.toBeNull();
+    expect(first.items[0]).toMatchObject({ articleTitle: 'Reset VPN password', rating: 2 });
+
+    // The curator resolves the newest comment between the two clicks: an offset would now skip f0.
+    memory.feedbacks.set('f1', { ...memory.feedbacks.get('f1')!, commentResolvedAt: new Date() });
+    const second = await service.insightsComments(curator, {
+      limit: 2,
+      cursor: first.nextCursor ?? undefined,
+    });
+    expect(second.items.map((item) => item.id)).toEqual(['f0']);
+    expect(second.hasMore).toBe(false);
+    expect(second.nextCursor).toBeNull();
+
+    // `insights` hands out the same feed, so the panel and "load more" agree on where they are — and the
+    // resolved comment is already gone from it.
+    const insights = await service.insights(curator);
+    expect(insights.openComments.items.map((item) => item.id)).toEqual(['f2', 'f0']);
+    expect(insights.openComments.hasMore).toBe(false);
+  });
+
+  it('says the comment feed was cut off instead of ending at fifty rows (W7.90)', async () => {
+    const { service, memory } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    const base = Date.parse('2026-09-11T12:00:00.000Z');
+    for (let index = 0; index < knowledgeBaseConstants.defaultInsightsCommentPageSize + 1; index += 1) {
+      const createdAt = new Date(base + index * 1000);
+      memory.feedbacks.set(`bulk-${index}`, {
+        id: `bulk-${index}`,
+        articleId: 'a1',
+        userId: `user-${index}`,
+        isHelpful: false,
+        rating: 1,
+        comment: `Komentar ${index}`,
+        commentResolvedAt: null,
+        createdAt,
+        updatedAt: createdAt,
+      });
+    }
+
+    const insights = await service.insights(asUser(knowledgeBaseTestIds.agentIt));
+    expect(insights.openComments.items).toHaveLength(
+      knowledgeBaseConstants.defaultInsightsCommentPageSize,
+    );
+    expect(insights.openComments.hasMore).toBe(true);
+    expect(insights.openComments.nextCursor).not.toBeNull();
+  });
+
+  it('keeps the comment feed to curators (W7.90)', async () => {
+    const { service } = createPortalHarness();
+    await expect(
+      service.insightsComments(asUser(knowledgeBaseTestIds.requester)),
+    ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+  });
+
+  it('pages the category tree by roots and keeps archived ones out of a reader page (W7.90)', async () => {
+    const { service, categories } = createPortalHarness();
+    const root = (id: string, sortOrder: number) => ({
+      id,
+      key: id,
+      nameBs: id,
+      nameEn: id,
+      icon: 'wifi',
+      sortOrder,
+      parentId: null,
+      isArchived: false,
+    });
+    categories.set('root-a', root('root-a', 0));
+    categories.set('root-b', root('root-b', 1));
+    categories.set('root-c', root('root-c', 2));
+    categories.set('gone', { ...root('gone', 3), isArchived: true });
+    categories.set('child-a1', {
+      id: 'child-a1',
+      key: 'child-a1',
+      nameBs: 'VPN',
+      nameEn: 'VPN',
+      icon: 'shield',
+      sortOrder: 0,
+      parentId: 'root-a',
+      isArchived: false,
+    });
+
+    const requester = asUser(knowledgeBaseTestIds.requester);
+    const first = await service.categories(requester, false, { limit: 2 });
+    // A page is counted in roots: root-a brings its child, root-b has none.
+    expect(first.items.map((item) => item.id)).toEqual(['root-a', 'root-b', 'child-a1']);
+    expect(first.hasMore).toBe(true);
+
+    const second = await service.categories(requester, false, {
+      limit: 2,
+      cursor: first.nextCursor ?? undefined,
+    });
+    expect(second.items.map((item) => item.id)).toEqual(['root-c']);
+    expect(second.hasMore).toBe(false);
+
+    // `includeArchived` is a manager capability, so a reader asking for it still sees the active tree.
+    const readerWithArchived = await service.categories(requester, true, { limit: 100 });
+    expect(readerWithArchived.items.map((item) => item.id)).not.toContain('gone');
+
+    const manager = await service.categories(asUser(knowledgeBaseTestIds.superAdmin), true, {
+      limit: 100,
+    });
+    expect(manager.items.map((item) => item.id)).toContain('gone');
+  });
+
+  it('flags the home category tree as incomplete when the taxonomy exceeds one page (W7.90)', async () => {
+    const { service, categories } = createPortalHarness();
+    for (let index = 0; index <= knowledgeBaseConstants.defaultCategoryPageSize; index += 1) {
+      const id = `taxonomy-${index}`;
+      categories.set(id, {
+        id,
+        key: id,
+        nameBs: `Kategorija ${index}`,
+        nameEn: `Category ${index}`,
+        icon: 'wifi',
+        sortOrder: index,
+        parentId: null,
+        isArchived: false,
+      });
+    }
+
+    const home = await service.home(asUser(knowledgeBaseTestIds.requester));
+    expect(home.categories).toHaveLength(knowledgeBaseConstants.defaultCategoryPageSize);
+    expect(home.categoriesComplete).toBe(false);
+  });
+
+  it('counts the articles of an archived category as uncategorized (W7.90)', async () => {
+    const { service, memory, categories } = createPortalHarness();
+    categories.set('gone', {
+      id: 'gone',
+      key: 'gone',
+      nameBs: 'Ugašena',
+      nameEn: 'Retired',
+      icon: 'wifi',
+      sortOrder: 0,
+      parentId: null,
+      isArchived: true,
+    });
+    memory.seedArticle(publishedArticleSeed({ id: 'x1', slug: 'x1', categoryId: 'gone' }));
+    memory.seedArticle(publishedArticleSeed({ id: 'x2', slug: 'x2' }));
+
+    const requester = asUser(knowledgeBaseTestIds.requester);
+    const loose = await service.categoryArticles('uncategorized', requester);
+    expect(loose.items.map((item) => item.id)).toEqual(['x1', 'x2']);
+    // An archived category is not a portal page, exactly as before this package.
+    await expect(service.categoryArticles('gone', requester)).rejects.toMatchObject({
+      response: { code: 'CATEGORY_NOT_FOUND' },
     });
   });
 

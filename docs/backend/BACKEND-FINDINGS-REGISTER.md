@@ -438,7 +438,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 25 | `knowledge-base` | `BA-knowledge-base-14` | P2 | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | zatvoreno (W7.87) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-15` | P2 | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike | zatvoreno (W7.88) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-16` | P3 | View flush crash može duplirati totals; DB fallback napuhuje unique viewers | zatvoreno (W7.89) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
-| 25 | `knowledge-base` | `BA-knowledge-base-17` | P3 | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
+| 25 | `knowledge-base` | `BA-knowledge-base-17` | P3 | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore | zatvoreno (W7.90) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-18` | P3 | Comment resolution nema audit, actor ni optimistic state | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 25 | `knowledge-base` | `BA-knowledge-base-19` | P3 | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica | otvoreno | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 26 | `reports` | `BA-reports-01` | P1 | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita | zatvoreno (W7.53) | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **307**
-- Otvoreno: **389** (P1 88 / P2 207 / P3 94)
-- Val 7: **86 / 111** zatvoreno, otvoreno **25** (P1 0 / P2 12 / P3 13)
+- Zatvoreno: **308**
+- Otvoreno: **388** (P1 88 / P2 207 / P3 93)
+- Val 7: **87 / 111** zatvoreno, otvoreno **24** (P1 0 / P2 12 / P3 12)
 <!-- findings-totals:end -->

@@ -36,6 +36,8 @@ export type KnowledgePortalHome = {
   readonly uncategorizedCount: number;
   /** W7.52: false when the portal counts come from a capped scan. */
   readonly articleCountsComplete: boolean;
+  /** W7.90: false when the taxonomy has more roots than one page carries. */
+  readonly categoriesComplete: boolean;
   readonly capabilities: {
     readonly canManageCategories: boolean;
     readonly canCurate: boolean;
@@ -53,18 +55,27 @@ export type SaveKnowledgeCategoryInput = {
   readonly parentId?: string | null;
 };
 
+export type KnowledgeComment = {
+  readonly id: string;
+  readonly articleId: string;
+  readonly articleTitle: string;
+  readonly rating: number;
+  readonly comment: string;
+  readonly createdAt: string;
+};
+
+export type KnowledgeCommentPage = {
+  readonly items: readonly KnowledgeComment[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
 export type KnowledgeInsights = {
   readonly mostViewed: readonly (KnowledgePortalArticle & { readonly views30d: number })[];
   readonly lowestRated: readonly KnowledgePortalArticle[];
   readonly notViewed: readonly KnowledgePortalArticle[];
-  readonly openComments: readonly {
-    readonly id: string;
-    readonly articleId: string;
-    readonly articleTitle: string;
-    readonly rating: number;
-    readonly comment: string;
-    readonly createdAt: string;
-  }[];
+  /** W7.90: a page, so the panel can say it was cut off and ask for the rest. */
+  readonly openComments: KnowledgeCommentPage;
   readonly thresholds: { readonly minRatings: number; readonly notViewedDays: number };
 };
 
@@ -113,10 +124,75 @@ export function listKnowledgeCategoryArticles(
   return apiRequest(`${base}/categories/${encodeURIComponent(categoryId)}/articles${suffix}`);
 }
 
+export type KnowledgeCategoryPage = {
+  readonly items: readonly KnowledgeCategory[];
+  readonly hasMore: boolean;
+  readonly nextCursor: string | null;
+};
+
+/**
+ * W7.90 (`BA-knowledge-base-17`): the taxonomy endpoint pages by root — a returned root always carries its
+ * children — so the caller knows when the list is not the whole tree instead of assuming it is.
+ */
 export function listKnowledgeCategories(
   includeArchived = false,
-): Promise<readonly KnowledgeCategory[]> {
-  return apiRequest(`${base}/categories${includeArchived ? "?includeArchived=true" : ""}`);
+  params: { readonly limit?: number; readonly cursor?: string } = {},
+): Promise<KnowledgeCategoryPage> {
+  const search = new URLSearchParams();
+  if (includeArchived) {
+    search.set("includeArchived", "true");
+  }
+  if (params.limit !== undefined) {
+    search.set("limit", String(params.limit));
+  }
+  if (params.cursor !== undefined && params.cursor.length > 0) {
+    search.set("cursor", params.cursor);
+  }
+  const suffix = search.size === 0 ? "" : `?${search.toString()}`;
+  return apiRequest(`${base}/categories${suffix}`);
+}
+
+/**
+ * W7.90 (`BA-knowledge-base-17`): pickers (placement, category manager, draft-from-reply) need the whole
+ * taxonomy, and the endpoint is a page now. Walk the root pages — each returned root already carries its
+ * children — up to a documented cap, and report whether the cap stopped us. The cap is far above any real
+ * taxonomy (10 pages × 100 roots), so `truncated` is a warning, not a normal state.
+ */
+const knowledgeCategoryWalkMaxPages = 10;
+const knowledgeCategoryWalkPageSize = 100;
+
+export async function listAllKnowledgeCategories(
+  includeArchived = false,
+): Promise<{ readonly items: readonly KnowledgeCategory[]; readonly truncated: boolean }> {
+  const items: KnowledgeCategory[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < knowledgeCategoryWalkMaxPages; page += 1) {
+    const result = await listKnowledgeCategories(includeArchived, {
+      limit: knowledgeCategoryWalkPageSize,
+      cursor,
+    });
+    items.push(...result.items);
+    if (!result.hasMore || result.nextCursor === null) {
+      return { items, truncated: false };
+    }
+    cursor = result.nextCursor;
+  }
+  return { items, truncated: true };
+}
+
+/** W7.90: the next page of the curator comment feed. */
+export function listKnowledgeInsightComments(
+  params: { readonly limit?: number; readonly cursor?: string } = {},
+): Promise<KnowledgeCommentPage> {
+  const search = new URLSearchParams();
+  if (params.limit !== undefined) {
+    search.set("limit", String(params.limit));
+  }
+  if (params.cursor !== undefined && params.cursor.length > 0) {
+    search.set("cursor", params.cursor);
+  }
+  const suffix = search.size === 0 ? "" : `?${search.toString()}`;
+  return apiRequest(`${base}/insights/comments${suffix}`);
 }
 
 export function createKnowledgeCategory(

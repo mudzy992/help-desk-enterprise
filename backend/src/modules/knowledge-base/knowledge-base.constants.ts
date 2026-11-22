@@ -68,6 +68,14 @@ export const knowledgeBaseConstants = {
   reminderCandidateBatchSize: 100,
   /** Batches a single sweep may process (≤ 2.000 articles per run). */
   reminderMaximumBatches: 20,
+  // W7.90 (`BA-knowledge-base-17`): the curator comment feed was the first 50 rows and said nothing about
+  // the rest; it is a page now, and the caller decides whether to ask for more.
+  /** Open curator comments per page when the caller sends no `limit`. */
+  defaultInsightsCommentPageSize: 20,
+  // W7.90: a category page is counted in roots; each root brings its own children, so the tree never splits
+  // across pages. An operator tree that needs more than one page is unusual, but the response says so.
+  /** Root categories per page when the caller sends no `limit`. */
+  defaultCategoryPageSize: 50,
 } as const;
 
 
