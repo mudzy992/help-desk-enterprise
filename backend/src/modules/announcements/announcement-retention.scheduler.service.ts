@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
+import { isSchedulerRegistered } from '../../common/scheduled-jobs/job-scheduler-presence';
 import {
   announcementRetentionCompletedJobsToKeep,
   announcementRetentionFailedJobsToKeep,
@@ -16,8 +17,6 @@ import {
 
 /** BA-announcements-17: same 60 s scheduler self-heal cadence as the sweep. */
 export const announcementRetentionReconcileMilliseconds = 60_000;
-
-type JobSchedulerLike = { readonly id?: string | null };
 
 @Injectable()
 export class AnnouncementRetentionSchedulerService implements OnModuleInit, OnModuleDestroy {
@@ -45,9 +44,8 @@ export class AnnouncementRetentionSchedulerService implements OnModuleInit, OnMo
 
   /** Restores the retention scheduler when Redis lost it; returns restored ids. */
   async reconcileSchedule(): Promise<readonly string[]> {
-    const existing = (await this.queue.getJobSchedulers(0, -1)) as readonly JobSchedulerLike[];
-    const present = new Set(existing.map((entry) => entry.id));
-    if (present.has(announcementRetentionSchedulerId)) return [];
+    const existing = await this.queue.getJobSchedulers(0, -1);
+    if (isSchedulerRegistered(existing, announcementRetentionSchedulerId)) return [];
     await this.registerSchedule();
     this.logger.warn(`announcement_retention_schedule_recovered id=${announcementRetentionSchedulerId}`);
     return [announcementRetentionSchedulerId];

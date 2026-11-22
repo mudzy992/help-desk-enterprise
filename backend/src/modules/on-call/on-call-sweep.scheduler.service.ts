@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { isSchedulerRegistered } from '../../common/scheduled-jobs/job-scheduler-presence';
 import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
 import {
   onCallSweepCompletedJobsToKeep,
@@ -16,8 +17,6 @@ import {
 
 /** How often the worker verifies its sweep schedule still exists in Redis. */
 export const onCallSweepScheduleReconcileMilliseconds = 60_000;
-
-type JobSchedulerLike = { readonly id?: string | null };
 
 @Injectable()
 export class OnCallSweepSchedulerService implements OnModuleInit, OnModuleDestroy {
@@ -49,9 +48,8 @@ export class OnCallSweepSchedulerService implements OnModuleInit, OnModuleDestro
 
   /** Restores the sweep scheduler if it is missing from Redis. */
   async reconcileSchedules(): Promise<readonly string[]> {
-    const existing = (await this.queue.getJobSchedulers(0, -1)) as readonly JobSchedulerLike[];
-    const present = new Set(existing.map((entry) => entry.id));
-    if (present.has(onCallSweepSchedulerId)) return [];
+    const existing = await this.queue.getJobSchedulers(0, -1);
+    if (isSchedulerRegistered(existing, onCallSweepSchedulerId)) return [];
     await this.registerSchedule();
     this.logger.warn(`on_call_sweep_schedule_recovered id=${onCallSweepSchedulerId}`);
     return [onCallSweepSchedulerId];

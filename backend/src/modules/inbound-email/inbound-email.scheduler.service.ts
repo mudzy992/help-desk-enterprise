@@ -10,11 +10,10 @@ import {
   inboundEmailRetentionSchedulerId,
   inboundEmailTickMilliseconds,
 } from "./inbound-email.constants";
+import { missingSchedulers } from "../../common/scheduled-jobs/job-scheduler-presence";
 
 /** How often the worker verifies its mandatory schedules still exist in Redis. */
 export const inboundEmailScheduleReconcileMilliseconds = 60_000;
-
-type JobSchedulerLike = { readonly id?: string | null };
 
 /** Idempotent by id: restarts and extra workers converge on one schedule. */
 @Injectable()
@@ -57,11 +56,11 @@ export class InboundEmailSchedulerService implements OnModuleInit, OnModuleDestr
 
   /** Restores any mandatory scheduler missing from Redis; returns restored ids. */
   async reconcileSchedules(): Promise<readonly string[]> {
-    const existing = (await this.queue.getJobSchedulers(0, -1)) as readonly JobSchedulerLike[];
-    const present = new Set(existing.map((entry) => entry.id));
-    const missing = [inboundEmailPollSchedulerId, inboundEmailRetentionSchedulerId].filter(
-      (id) => !present.has(id),
-    );
+    const existing = await this.queue.getJobSchedulers(0, -1);
+    const missing = missingSchedulers(existing, [
+      inboundEmailPollSchedulerId,
+      inboundEmailRetentionSchedulerId,
+    ]);
     if (missing.length === 0) return [];
     await this.registerSchedules();
     for (const id of missing) {

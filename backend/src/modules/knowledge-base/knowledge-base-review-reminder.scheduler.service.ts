@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
+import { isSchedulerRegistered } from '../../common/scheduled-jobs/job-scheduler-presence';
 import {
   knowledgeBaseReviewReminderCompletedJobsToKeep,
   knowledgeBaseReviewReminderFailedJobsToKeep,
@@ -14,8 +15,6 @@ import {
   knowledgeBaseReviewReminderSchedulePattern,
   knowledgeBaseReviewReminderSchedulerId,
 } from './knowledge-base-review-reminder.job.constants';
-
-type JobSchedulerLike = { readonly id?: string | null };
 
 /**
  * Phase 4.1 (plan §4.1): the schedule lives in Redis and is idempotent by id, so
@@ -66,9 +65,8 @@ export class KnowledgeBaseReviewReminderSchedulerService
 
   /** Restores the sweep scheduler when Redis lost it; returns restored ids. */
   async reconcileSchedule(): Promise<readonly string[]> {
-    const existing = (await this.queue.getJobSchedulers(0, -1)) as readonly JobSchedulerLike[];
-    const present = new Set(existing.map((entry) => entry.id));
-    if (present.has(knowledgeBaseReviewReminderSchedulerId)) return [];
+    const existing = await this.queue.getJobSchedulers(0, -1);
+    if (isSchedulerRegistered(existing, knowledgeBaseReviewReminderSchedulerId)) return [];
     await this.registerSchedule();
     this.logger.warn(
       `kb_review_reminder_schedule_recovered id=${knowledgeBaseReviewReminderSchedulerId}`,

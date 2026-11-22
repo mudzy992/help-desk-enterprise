@@ -15,12 +15,12 @@ import { KnowledgeBaseReviewReminderSchedulerService } from './knowledge-base-re
  * it had to restore it.
  */
 describe('KnowledgeBaseReviewReminderSchedulerService', () => {
-  function createQueue(present: boolean) {
+  // BullMQ 5.81 puts a modern scheduler's id in `key` and leaves `id` unset — the
+  // shape the CI acceptance spec caught this service assuming wrong.
+  function createQueue(present: boolean, entry = { key: knowledgeBaseReviewReminderSchedulerId }) {
     const queue = {
       upsertJobScheduler: jest.fn(async () => ({})),
-      getJobSchedulers: jest.fn(async () =>
-        present ? [{ id: knowledgeBaseReviewReminderSchedulerId }] : [],
-      ),
+      getJobSchedulers: jest.fn(async () => (present ? [entry] : [])),
     };
     return queue;
   }
@@ -55,6 +55,21 @@ describe('KnowledgeBaseReviewReminderSchedulerService', () => {
       await service.onModuleInit();
       await expect(service.reconcileSchedule()).resolves.toEqual([]);
       // Only the boot registration; the reconcile added nothing.
+      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
+    } finally {
+      service.onModuleDestroy();
+    }
+  });
+
+  it('accepts a legacy repeatable entry that carries the id in `id`', async () => {
+    const queue = createQueue(true, {
+      key: `${knowledgeBaseReviewReminderJobName}:${knowledgeBaseReviewReminderSchedulerId}:0::0 10,25,40,55 * * * *`,
+      id: knowledgeBaseReviewReminderSchedulerId,
+    });
+    const service = new KnowledgeBaseReviewReminderSchedulerService(queue as never);
+    try {
+      await service.onModuleInit();
+      await expect(service.reconcileSchedule()).resolves.toEqual([]);
       expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
     } finally {
       service.onModuleDestroy();

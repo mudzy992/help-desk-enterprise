@@ -10,6 +10,7 @@ import {
   knowledgeBaseReviewReminderSchedulerId,
 } from './knowledge-base-review-reminder.job.constants';
 import { KnowledgeBaseReviewReminderSchedulerService } from './knowledge-base-review-reminder.scheduler.service';
+import { isSchedulerRegistered } from '../../common/scheduled-jobs/job-scheduler-presence';
 
 const describeIfRedis = process.env.REDIS_HOST?.trim() ? describe : describe.skip;
 
@@ -82,8 +83,14 @@ describeIfRedis('knowledge review reminder scheduler reconciliation (Redis accep
       // Idempotent: a second pass over a healthy registration changes nothing.
       await expect(scheduler.reconcileSchedule()).resolves.toEqual([]);
       const schedulers = await queue.getJobSchedulers(0, -1);
+      // BullMQ 5.81 reports the id as `key`; both shapes are accepted.
+      expect(isSchedulerRegistered(schedulers, knowledgeBaseReviewReminderSchedulerId)).toBe(true);
       expect(
-        schedulers.filter((entry) => entry.id === knowledgeBaseReviewReminderSchedulerId),
+        schedulers.filter(
+          (entry) =>
+            entry.key === knowledgeBaseReviewReminderSchedulerId ||
+            entry.id === knowledgeBaseReviewReminderSchedulerId,
+        ),
       ).toHaveLength(1);
     } finally {
       scheduler.onModuleDestroy();
@@ -97,8 +104,14 @@ describeIfRedis('knowledge review reminder scheduler reconciliation (Redis accep
     try {
       await Promise.all([first.onModuleInit(), second.onModuleInit()]);
       const schedulers = await queue.getJobSchedulers(0, -1);
+      // BullMQ 5.81 reports the id as `key`; both shapes are accepted.
+      expect(isSchedulerRegistered(schedulers, knowledgeBaseReviewReminderSchedulerId)).toBe(true);
       expect(
-        schedulers.filter((entry) => entry.id === knowledgeBaseReviewReminderSchedulerId),
+        schedulers.filter(
+          (entry) =>
+            entry.key === knowledgeBaseReviewReminderSchedulerId ||
+            entry.id === knowledgeBaseReviewReminderSchedulerId,
+        ),
       ).toHaveLength(1);
     } finally {
       first.onModuleDestroy();
