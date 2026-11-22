@@ -63,6 +63,7 @@ describeIfDatabase('retention (integration)', () => {
         statusIncidents: 0,
         assetTransfers: 0,
         changeContent: 0,
+        knowledgeContent: 0,
         ...overrides,
       },
     }) as unknown as PrivacyConfiguration;
@@ -674,6 +675,161 @@ describeIfDatabase('retention (integration)', () => {
     expect((await prisma.ticket.findUniqueOrThrow({ where: { id: ids.recent } })).legalHoldAt).toBeNull();
     expect(await prisma.auditLog.count({ where: { entityId: ids.recent, action: { startsWith: 'privacy.legal_hold' } } })).toBe(2);
     await expect(holds.set('user', 'missing', 'Razlog razlog', actor)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('redacts archived articles, their comments, views, change log and inbox copies (W7.87)', async () => {
+    const unit = await prisma.organizationalUnit.findFirstOrThrow();
+    const serviceRow = await prisma.service.findFirstOrThrow();
+    const stamp = Date.now();
+    const dueArticle = await prisma.knowledgeArticle.create({
+      data: {
+        slug: `due-${stamp}`,
+        title: 'VPN za Amra Petrović',
+        body: 'Pošaljite upit na amra.petrovic@example.ba.',
+        status: 'ARCHIVED',
+        archivedAt: old,
+        serviceId: serviceRow.id,
+        organizationalUnitId: unit.id,
+        sourceTicketId: ids.due,
+        sourceMessageId: 'm1',
+        viewCount: 12,
+        ratingCount: 1,
+        ratingSum: 5,
+      },
+    });
+    const recentArticle = await prisma.knowledgeArticle.create({
+      data: {
+        slug: `recent-${stamp}`,
+        title: 'Nedavno arhivirano',
+        body: 'Još nije za retenciju.',
+        status: 'ARCHIVED',
+        archivedAt: new Date(now.getTime() - 10 * day),
+        serviceId: serviceRow.id,
+        organizationalUnitId: unit.id,
+      },
+    });
+    const heldOwner = await prisma.user.create({
+      data: {
+        email: `held-owner-${stamp}@x.ba`,
+        displayName: 'Held Owner',
+        legalHoldAt: now,
+        legalHoldReason: 'Spor',
+      },
+    });
+    const heldArticle = await prisma.knowledgeArticle.create({
+      data: {
+        slug: `held-${stamp}`,
+        title: 'Pod blokadom',
+        body: 'Ostaje.',
+        status: 'ARCHIVED',
+        archivedAt: old,
+        serviceId: serviceRow.id,
+        organizationalUnitId: unit.id,
+        ownerUserId: heldOwner.id,
+      },
+    });
+    await prisma.knowledgeFeedback.create({
+      data: { articleId: dueArticle.id, userId: ids.requester, isHelpful: false, rating: 2, comment: 'Nedostaje primjer.' },
+    });
+    await prisma.knowledgeArticleView.createMany({
+      data: [
+        { articleId: dueArticle.id, day: old, views: 4, uniqueViewers: 2 },
+        { articleId: dueArticle.id, day: new Date(now.getTime() - 2 * day), views: 3, uniqueViewers: 1 },
+      ],
+    });
+    await prisma.changeLog.create({
+      data: {
+        entityType: 'knowledge_article',
+        entityId: dueArticle.id,
+        reason: 'Ažuriranje članka',
+        diff: { before: { title: 'VPN za Amra Petrović' }, after: { title: 'VPN' } },
+      },
+    });
+    const notification = await prisma.notification.create({
+      data: {
+        userId: ids.requester,
+        type: 'knowledge.review.due',
+        title: 'knowledge.review.due',
+        body: 'Amra Petrović, pregledajte članak.',
+        dedupeKey: `kb-review-${stamp}`,
+        payload: { articleId: dueArticle.id, articleSlug: dueArticle.slug, ticketId: null },
+      },
+    });
+
+    const svc = service(configuration({ knowledgeContent: 180 }));
+    const dry = await svc.runCategory({
+      category: 'knowledgeContent',
+      mode: 'DRY_RUN',
+      triggeredByUserId: null,
+      deadline: deadline(),
+    });
+    // Only the old, unheld archive: the recent one and the held owner stay.
+    expect(dry.itemCount).toBe(1);
+    expect((await prisma.knowledgeArticle.findUniqueOrThrow({ where: { id: dueArticle.id } })).title).toBe(
+      'VPN za Amra Petrović',
+    );
+
+    const executed = await svc.runCategory({
+      category: 'knowledgeContent',
+      mode: 'EXECUTE',
+      triggeredByUserId: null,
+      deadline: deadline(),
+    });
+    expect(executed.status).toBe('COMPLETED');
+    expect(executed.itemCount).toBe(dry.itemCount);
+
+    const redacted = await prisma.knowledgeArticle.findUniqueOrThrow({ where: { id: dueArticle.id } });
+    expect(redacted.title).toBe(retentionRedactionMarker);
+    expect(redacted.body).toBe(retentionRedactionMarker);
+    expect(redacted.sourceTicketId).toBeNull();
+    expect(redacted.sourceMessageId).toBeNull();
+    // Skeleton stays: the slug (deep links), status, counters, placement.
+    expect(redacted.slug).toBe(dueArticle.slug);
+    expect(redacted.status).toBe('ARCHIVED');
+    expect(redacted.viewCount).toBe(12);
+    expect(redacted.ratingCount).toBe(1);
+    expect(redacted.ratingSum).toBe(5);
+    expect(redacted.organizationalUnitId).toBe(unit.id);
+
+    const feedback = await prisma.knowledgeFeedback.findUniqueOrThrow({
+      where: { articleId_userId: { articleId: dueArticle.id, userId: ids.requester } },
+    });
+    expect(feedback.comment).toBeNull();
+    expect(feedback.rating).toBe(2);
+
+    // The aggregate is kept, the old per-day rows are gone, the recent one stays.
+    expect(
+      await prisma.knowledgeArticleView.count({ where: { articleId: dueArticle.id } }),
+    ).toBe(1);
+    expect(
+      await prisma.knowledgeArticleView.findFirstOrThrow({ where: { articleId: dueArticle.id } }),
+    ).toMatchObject({ views: 3, uniqueViewers: 1 });
+
+    const log = await prisma.changeLog.findFirstOrThrow({ where: { entityId: dueArticle.id } });
+    expect(log.reason).toBe(retentionRedactionMarker);
+    expect(log.diff).toEqual({ redacted: retentionRedactionMarker });
+
+    const copy = await prisma.notification.findUniqueOrThrow({ where: { id: notification.id } });
+    expect(copy.body).toBeNull();
+    // The payload keeps the pointer, so the deep link still works.
+    expect(copy.payload).toMatchObject({ articleId: dueArticle.id });
+
+    // The recent archive and the held owner's article are untouched.
+    expect((await prisma.knowledgeArticle.findUniqueOrThrow({ where: { id: recentArticle.id } })).title).toBe(
+      'Nedavno arhivirano',
+    );
+    expect((await prisma.knowledgeArticle.findUniqueOrThrow({ where: { id: heldArticle.id } })).title).toBe(
+      'Pod blokadom',
+    );
+
+    // Idempotent: nothing left below the cutoff.
+    const second = await svc.runCategory({
+      category: 'knowledgeContent',
+      mode: 'EXECUTE',
+      triggeredByUserId: null,
+      deadline: deadline(),
+    });
+    expect(second.itemCount).toBe(0);
   });
 
   it('nightly sweep runs once per night inside the window, in order', async () => {

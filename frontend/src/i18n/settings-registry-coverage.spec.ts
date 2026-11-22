@@ -110,8 +110,8 @@ describe("settings registry translations (5.3.4)", () => {
     // Keep a fixed count so a registry-reader regression fails loudly instead
     // of silently passing because it found nothing to check. W6.39 adds the
     // trusted inbound mail authserv-id; W7.34 adds the problem content period;
-    // W7.79 adds the INTERNAL audience switch.
-    expect(allKeys).toHaveLength(520);
+    // W7.79 adds the INTERNAL audience switch; W7.87 the knowledge-base period.
+    expect(allKeys).toHaveLength(521);
     expect(allKeys).toContain("private.privacy.retention.assetTransfersDays");
     expect(allKeys).toContain("private.ticket.sla.enabled");
     expect(allKeys).toContain("private.addons.email");

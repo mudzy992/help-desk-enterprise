@@ -2304,6 +2304,7 @@
         "private.privacy.retention.ticketContentDays": "Days after closing before ticket and message text is removed; metrics stay (0 = off, minimum 180).",
         "private.privacy.retention.problemContentDays": "Days after closing or cancelling before problem content is removed; number, status, dates and links stay, and notification copies plus the knowledge draft are redacted (0 = off, minimum 180).",
         "private.privacy.retention.changeContentDays": "Days after closing, rejecting or cancelling before change content is removed; number, status, dates, links and the CAB vote stay, while the service calendar is redacted (0 = off, minimum 180).",
+        "private.privacy.retention.knowledgeContentDays": "Days after archiving before article content is removed; slug, status, category, service, unit and counters stay, while comments, daily views, change-log snapshots and notifications are redacted (0 = off, minimum 180).",
         "private.privacy.retention.auditDays": "Days before audit records are redacted with a chain checkpoint (0 = off, minimum 365).",
         "private.privacy.retention.sessionDays": "Days to keep expired and revoked sessions (0 = off, minimum 30).",
         "private.privacy.retention.emailDeliveryDays": "Days to keep the e-mail delivery log (0 = off, minimum 30).",
@@ -2826,6 +2827,7 @@
         "private.privacy.retention.ticketContentDays": "Days after closing before ticket content is redacted (personal data removed); 0 disables redaction. The ticket remains, without the sensitive text.",
         "private.privacy.retention.problemContentDays": "Days after closing or cancelling before problem content is redacted; 0 disables it. The problem keeps its number, status, dates and links, without description, root cause or resolution. Notifications and a draft knowledge article are redacted too; a published article is untouched and legal holds are skipped.",
         "private.privacy.retention.changeContentDays": "Days after closing, rejecting or cancelling before change content is redacted; 0 disables it. The change keeps its number, status, dates, links and the CAB vote, while the title, description, reasons, plans, review notes and event details go; the service calendar and notifications are redacted with it, and legal holds are skipped.",
+        "private.privacy.retention.knowledgeContentDays": "Days after archiving before article content is redacted; 0 disables it. The article keeps its slug, status, category, service, unit, owner and the view/rating counters, while the title, body and the pointers to the source ticket go; comments under the article are emptied, old daily views and change-log snapshots are redacted and notifications lose their body. A legal hold on the owner or reviewer is respected.",
         "private.privacy.retention.auditDays": "How many days audit entries are kept; older ones are purged with a chain checkpoint. 0 keeps the audit forever, which is safer but more expensive.",
         "private.privacy.retention.sessionDays": "How many days ended sessions (IP address, browser data) are kept; 0 disables the purge. A shorter period leaves less personal data in the system.",
         "private.privacy.retention.emailDeliveryDays": "How many days email delivery records, including the recipient address, are kept; 0 disables the purge. Those records are what proves a notification was sent.",
@@ -7764,6 +7766,10 @@
           "name": "Change content",
           "hint": "Title, description, reasons and plans of closed, rejected and cancelled changes; the number, status, dates, links and the CAB vote stay. The service calendar and notifications are redacted with the change, and legal holds are respected."
         },
+        "knowledgeContent": {
+          "name": "Knowledge-base content",
+          "hint": "Title and body of archived articles; the slug, status, category, service, unit, owner and counters stay. Comments under the article are emptied, old daily views and change-log snapshots are redacted, notifications lose their body and the pointers to the source ticket are cleared. Legal holds are respected."
+        },
         "audit": {
           "name": "Audit entries",
           "hint": "Old audit entries are sealed by a checkpoint, then removed."
@@ -7904,6 +7910,13 @@
       "problemEvents": "Problem events",
       "problemNotifications": "Problem notifications",
       "knowledgeArticles": "Knowledge articles",
+      "knowledgeFeedbacks": "Article comments",
+      "knowledgeArticlesNamed": "Articles naming the person",
+      "knowledgeFeedbacksNamed": "Comments naming the person",
+      "knowledgeNotifications": "Article notifications",
+      "knowledgeChangeLogs": "Article change log entries",
+      "knowledgeSourceLinks": "Source-ticket links",
+      "knowledgeIntercepts": "Intercept history",
       "problemsNamed": "Problems naming the person",
       "problemEventDetailsNamed": "Event details naming the person",
       "activities": "Activities",

@@ -2315,6 +2315,7 @@
         "private.privacy.retention.ticketContentDays": "Nakon koliko dana od zatvaranja se uklanja tekst tiketa i poruka; metrika ostaje (0 = isključeno, najmanje 180).",
         "private.privacy.retention.problemContentDays": "Nakon koliko dana od zatvaranja ili otkazivanja se uklanja sadržaj problema; broj, status, datumi i veze ostaju, a kopije u obavještenjima i nacrt baze znanja se redaktuju (0 = isključeno, najmanje 180).",
         "private.privacy.retention.changeContentDays": "Nakon koliko dana od zatvaranja, odbijanja ili otkazivanja se uklanja sadržaj promjene; broj, status, datumi, veze i glasanje CAB-a ostaju, a kalendar usluga se redaktuje (0 = isključeno, najmanje 180).",
+        "private.privacy.retention.knowledgeContentDays": "Nakon koliko dana od arhiviranja se uklanja sadržaj članka; oznaka, status, usluga i brojači ostaju, a komentari, dnevni pregledi, zapisi izmjena i obavještenja se redaktuju (0 = isključeno, min. 180).",
         "private.privacy.retention.auditDays": "Nakon koliko dana se revizijski zapisi redigiraju uz kontrolnu tačku lanca (0 = isključeno, najmanje 365).",
         "private.privacy.retention.sessionDays": "Koliko dana se čuvaju istekle i opozvane sesije (0 = isključeno, najmanje 30).",
         "private.privacy.retention.emailDeliveryDays": "Koliko dana se čuva dnevnik isporuke e-maila (0 = isključeno, najmanje 30).",
@@ -2837,6 +2838,7 @@
         "private.privacy.retention.ticketContentDays": "Broj dana nakon zatvaranja prije nego se sadržaj tiketa redaktuje (uklanjaju lični podaci); 0 gasi redakciju. Tiket i dalje postoji, ali bez osjetljivog teksta.",
         "private.privacy.retention.problemContentDays": "Broj dana nakon zatvaranja ili otkazivanja prije nego se sadržaj problema redaktuje; 0 gasi redakciju. Problem ostaje sa brojem, statusom, datumima i vezama, bez opisa, uzroka i rješenja. Isto se redaktuje u obavještenjima i u nacrtu članka baze znanja; objavljeni članak se ne dira, a zapisi pod pravnom blokadom se preskaču.",
         "private.privacy.retention.changeContentDays": "Broj dana nakon zatvaranja, odbijanja ili otkazivanja prije redakcije sadržaja promjene; 0 gasi redakciju. Promjena ostaje sa brojem, statusom, datumima, vezama i glasanjem CAB-a, a nestaju naslov, opis, razlozi, planovi, napomene pregleda i detalji događaja; kalendar usluga i obavještenja se redaktuju uz promjenu, a pravna blokada se poštuje.",
+        "private.privacy.retention.knowledgeContentDays": "Broj dana nakon arhiviranja prije redakcije sadržaja članka; 0 gasi redakciju. Članak ostaje sa oznakom (slug), statusom, kategorijom, uslugom, OU, vlasnikom i brojačima pregleda i ocjena, a nestaju naslov, tekst i pokazivači na izvorni tiket; komentari pod člankom se brišu, stari dnevni pregledi i zapisi izmjena se redaktuju, a obavještenja gube tijelo. Pravna blokada vlasnika ili pregledaoca se poštuje.",
         "private.privacy.retention.auditDays": "Koliko dana se čuvaju revizijski zapisi; stariji se brišu uz kontrolnu tačku lanca. 0 znači da se revizija čuva trajno, što je sigurnije ali skuplje.",
         "private.privacy.retention.sessionDays": "Koliko dana se čuvaju završene sesije sa IP adresom i podacima preglednika; 0 gasi brisanje. Kraći rok smanjuje količinu ličnih podataka u sistemu.",
         "private.privacy.retention.emailDeliveryDays": "Koliko dana se čuvaju evidencije isporuke emaila, uključujući adresu primaoca; 0 gasi brisanje. Te evidencije su potrebne za dokazivanje obavještenja.",
@@ -7804,6 +7806,10 @@
           "name": "Sadržaj promjena",
           "hint": "Naslov, opis, razlozi i planovi zatvorenih, odbijenih i otkazanih promjena; broj, status, datumi, veze i glasanje CAB-a ostaju. Kalendar usluga i obavještenja se redaktuju zajedno s promjenom, a pravna blokada se poštuje."
         },
+        "knowledgeContent": {
+          "name": "Sadržaj baze znanja",
+          "hint": "Naslov i tekst arhiviranih članaka; oznaka (slug), status, kategorija, usluga, OU, vlasnik i brojači ostaju. Komentari pod člankom se brišu, stari dnevni pregledi i zapisi izmjena se redaktuju, obavještenja gube tijelo, a pokazivači na izvorni tiket se uklanjaju. Pravna blokada se poštuje."
+        },
         "audit": {
           "name": "Audit zapisi",
           "hint": "Stari audit zapisi se pečate kontrolnom tačkom pa uklanjaju."
@@ -7947,6 +7953,13 @@
       "problemEvents": "Događaji problema",
       "problemNotifications": "Obavještenja o problemima",
       "knowledgeArticles": "Članci baze znanja",
+      "knowledgeFeedbacks": "Komentari pod člancima",
+      "knowledgeArticlesNamed": "Članci koji spominju osobu",
+      "knowledgeFeedbacksNamed": "Komentari koji spominju osobu",
+      "knowledgeNotifications": "Obavještenja o člancima",
+      "knowledgeChangeLogs": "Zapisi izmjena članaka",
+      "knowledgeSourceLinks": "Veze na izvorni tiket",
+      "knowledgeIntercepts": "Historija intercept pregleda",
       "problemsNamed": "Problemi u kojima se osoba spominje",
       "problemEventDetailsNamed": "Detalji događaja koji spominju osobu",
       "activities": "Aktivnosti",

@@ -46,6 +46,7 @@ const retentionKeys: Readonly<Record<RetentionCategory, string>> = {
   statusIncidents: settingKeys.privatePrivacyRetentionStatusIncidentsDays,
   assetTransfers: settingKeys.privatePrivacyRetentionAssetTransfersDays,
   changeContent: settingKeys.privatePrivacyRetentionChangeContentDays,
+  knowledgeContent: settingKeys.privatePrivacyRetentionKnowledgeContentDays,
 };
 
 const retentionDefaults: Readonly<Record<RetentionCategory, number>> = {
@@ -59,6 +60,7 @@ const retentionDefaults: Readonly<Record<RetentionCategory, number>> = {
   statusIncidents: 0,
   assetTransfers: 0,
   changeContent: 0,
+  knowledgeContent: 0,
 };
 
 const retentionMinimums: Readonly<Record<RetentionCategory, number>> = {
@@ -72,6 +74,7 @@ const retentionMinimums: Readonly<Record<RetentionCategory, number>> = {
   statusIncidents: privacyRetentionMinimumDays.statusIncidents,
   assetTransfers: privacyRetentionMinimumDays.assetTransfers,
   changeContent: privacyRetentionMinimumDays.changeContent,
+  knowledgeContent: privacyRetentionMinimumDays.knowledgeContent,
 };
 
 /** Paket 2.6 (§10): privacy settings with safe fallbacks (a bad value never deletes). */

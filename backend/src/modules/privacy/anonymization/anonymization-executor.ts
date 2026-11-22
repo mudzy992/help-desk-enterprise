@@ -9,6 +9,11 @@ import {
 import { anonymizationBlockReasons, privacyLimits } from '../privacy.constants';
 import { changeMentionTokens, changeScrubbableColumns } from './change-mentions';
 import { collectChangeMentions, scrubChangeMentions } from './scrub-change-mentions';
+import {
+  collectKnowledgeMentions,
+  knowledgeMentionTokens,
+} from './knowledge-mentions';
+import { scrubKnowledgeMentions } from './scrub-knowledge-mentions';
 import { scrubProblemMentions } from './scrub-problem-mentions';
 import { problemEventMentionSql, problemMentionTokens, problemMentionWhere, problemScrubbableColumns } from './problem-mentions';
 import { replacementExample, type TextScrubber } from './text-scrubber';
@@ -150,6 +155,37 @@ export class AnonymizationExecutor {
       countReplicas([entry.reason]);
       replacements += subject.scrubber.scrubJson(entry.diff).count;
     }
+    // W7.87 (BA-knowledge-base-14): an article the person owns, reviews or is
+    // only named in is visible in the preview too, together with its replicas -
+    // the same selection the execution writes.
+    const knowledgeScope = await collectKnowledgeMentions({
+      prisma: this.prisma,
+      userId: subject.userId,
+      tokens: knowledgeMentionTokens(subject.scrubber.identifiers),
+      linkedTicketIds: scope.scrub,
+    });
+    for (const article of knowledgeScope.articles) {
+      note(article.title);
+      note(article.body);
+    }
+    for (const feedback of knowledgeScope.feedbacks) {
+      if (feedback.comment === null) continue;
+      // Their own words are removed outright, so they always count as one
+      // change; somebody else's comment is only scrubbed.
+      if (feedback.userId === subject.userId) {
+        replacements += Math.max(1, subject.scrubber.scrub(feedback.comment).count);
+        continue;
+      }
+      countReplicas([feedback.comment]);
+    }
+    for (const notification of knowledgeScope.notifications) {
+      countReplicas([notification.title, notification.body]);
+      replacements += subject.scrubber.scrubJson(notification.payload).count;
+    }
+    for (const entry of knowledgeScope.changeLogs) {
+      countReplicas([entry.reason]);
+      replacements += subject.scrubber.scrubJson(entry.diff).count;
+    }
     const u = subject.userId;
     const [notificationsOwn, sessions, deliveries, roles, groups, savedViews, templates, followers, recipients, attachments, auditRows] =
       await Promise.all([
@@ -184,6 +220,9 @@ export class AnonymizationExecutor {
         auditRowsLinked: auditRows,
         problemsNamed: problemTexts.length,
         problemEventDetailsNamed: problemEventIds.length,
+        knowledgeArticlesNamed: knowledgeScope.articles.length,
+        knowledgeFeedbacksNamed: knowledgeScope.feedbacks.length,
+        knowledgeNotifications: knowledgeScope.notifications.length,
       },
     };
   }
@@ -338,16 +377,23 @@ export class AnonymizationExecutor {
     );
     add('onCallCalendarTokens', (await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: u } })).count);
     await this.prisma.onCallSchedule.updateMany({ where: { ownerUserId: u }, data: { ownerUserId: null } });
-    // Paket 2.9 (K1): free-text article comments go; the 1-5 rating stays (aggregate).
-    add(
-      'knowledgeComments',
-      (
-        await this.prisma.knowledgeFeedback.updateMany({
-          where: { userId: u, comment: { not: null } },
-          data: { comment: null },
-        })
-      ).count,
-    );
+    // W7.87 (BA-knowledge-base-14): the knowledge part moved into
+    // `scrub-knowledge-mentions.ts` - articles they own, review or are named in,
+    // their own comments (removed) and other people's comments naming them
+    // (scrubbed), the notification copies, the change-log snapshots, the source
+    // pointers into their tickets and their intercept history.
+    const knowledgeCounts = await scrubKnowledgeMentions({
+      prisma: this.prisma,
+      userId: u,
+      scrubber,
+      linkedTicketIds: scope.scrub,
+    });
+    add('knowledgeArticles', knowledgeCounts.knowledgeArticles);
+    add('knowledgeFeedbacks', knowledgeCounts.knowledgeFeedbacks);
+    add('knowledgeNotifications', knowledgeCounts.knowledgeNotifications);
+    add('knowledgeChangeLogs', knowledgeCounts.knowledgeChangeLogs);
+    add('knowledgeSourceLinks', knowledgeCounts.knowledgeSourceLinks);
+    add('knowledgeIntercepts', knowledgeCounts.knowledgeIntercepts);
 
     // Paket 2.9 (K2, §7): acknowledgements are deleted; the report keeps counting them.
     const acknowledgedAnnouncements = await this.prisma.announcementAcknowledgement.findMany({

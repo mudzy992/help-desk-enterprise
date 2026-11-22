@@ -87,6 +87,8 @@ export const retentionExecutionOrder: readonly RetentionCategory[] = [
   // After the tickets it quotes: the problem keeps the pointers, loses the text.
   'problemContent',
   'changeContent',
+  // Last of the content categories: an article may be the draft of a problem.
+  'knowledgeContent',
   'audit',
 ];
 

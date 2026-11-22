@@ -52,6 +52,8 @@ export const retentionCategories = [
   'assetTransfers',
   // BA-changes-17: closed/rejected/cancelled changes and their replicas.
   'changeContent',
+  // W7.87 (BA-knowledge-base-14): archived articles and their replicas.
+  'knowledgeContent',
 ] as const;
 export type RetentionCategory = (typeof retentionCategories)[number];
 
@@ -64,6 +66,7 @@ export const retentionCategoriesRequiringDryRun: readonly RetentionCategory[] = 
   'statusIncidents',
   'assetTransfers',
   'changeContent',
+  'knowledgeContent',
 ];
 
 export const privacyLimits = {

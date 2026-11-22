@@ -181,6 +181,55 @@ describeIfDatabase('anonymization (integration)', () => {
         actorUserId: admin.id,
       }),
     );
+    // W7.87 (BA-knowledge-base-14): the knowledge-base replicas of the person:
+    // an article they own, a comment under it, the notification copy, a
+    // change-log snapshot, the pointer into their ticket and an intercept row.
+    const article = await prisma.knowledgeArticle.create({
+      data: {
+        slug: `anon-kb-${stamp}`,
+        title: 'VPN za Amra Hodžić',
+        body: `Uputstvo i kontakt: ${email}.`,
+        status: 'PUBLISHED',
+        publishedAt: new Date(Date.now() - 90 * day),
+        serviceId: svc.id,
+        organizationalUnitId: unit.id,
+        ownerUserId: subject.id,
+        reviewerUserId: agent.id,
+        sourceTicketId: main.id,
+      },
+    });
+    ids.article = article.id;
+    await prisma.knowledgeFeedback.create({
+      data: { articleId: article.id, userId: subject.id, isHelpful: false, rating: 2, comment: 'Nedostaje primjer.' },
+    });
+    const foreignFeedback = await prisma.knowledgeFeedback.create({
+      data: { articleId: article.id, userId: agent.id, isHelpful: true, rating: 5, comment: 'Amra Hodžić je potvrdila da radi.' },
+    });
+    ids.foreignFeedback = foreignFeedback.id;
+    const kbNotification = await prisma.notification.create({
+      data: {
+        userId: admin.id,
+        type: 'knowledge.review.due',
+        title: 'Pregled članka',
+        body: 'Amra Hodžić, pregledajte članak.',
+        dedupeKey: `kb${stamp}`,
+        payload: { articleId: article.id, articleSlug: article.slug },
+      },
+    });
+    ids.kbNotification = kbNotification.id;
+    const kbLog = await prisma.changeLog.create({
+      data: {
+        entityType: 'knowledge_article',
+        entityId: article.id,
+        reason: 'Ažuriranje za Amra Hodžić',
+        diff: { after: { title: 'VPN za Amra Hodžić' } },
+      },
+    });
+    ids.kbLog = kbLog.id;
+    await prisma.knowledgeInterceptResolution.create({
+      data: { userId: subject.id, serviceId: svc.id, organizationalUnitId: unit.id, primaryArticleId: article.id },
+    });
+
     const erasure = await prisma.privacyErasure.create({
       data: { userId: subject.id, pseudonym: 'Bivši korisnik #AB12', status: 'QUEUED', requestedByUserId: admin.id },
     });
@@ -263,12 +312,37 @@ describeIfDatabase('anonymization (integration)', () => {
     expect(transfer.items).toHaveLength(1);
     expect(existsSync(path.join(uploadRoot, ids.transferStoragePath))).toBe(false);
 
+    // W7.87 (BA-knowledge-base-14): the knowledge article keeps its skeleton and
+    // loses the text, the replicas and the pointers; the intercept history goes.
+    const kb = await prisma.knowledgeArticle.findUniqueOrThrow({ where: { id: ids.article } });
+    expect(kb.title).not.toMatch(/Amra|Hodžić/i);
+    expect(kb.body).not.toMatch(/amra\.hodzic|Amra|Hodžić/i);
+    expect(kb.slug).toBe(`anon-kb-${stamp}`);
+    expect(kb.ownerUserId).toBe(ids.subject);
+    const ownFeedback = await prisma.knowledgeFeedback.findUniqueOrThrow({
+      where: { articleId_userId: { articleId: ids.article, userId: ids.subject } },
+    });
+    expect(ownFeedback.comment).toBeNull();
+    expect(ownFeedback.rating).toBe(2);
+    const foreignComment = await prisma.knowledgeFeedback.findUniqueOrThrow({ where: { id: ids.foreignFeedback } });
+    expect(foreignComment.comment).not.toMatch(/Amra|Hodžić/i);
+    expect(foreignComment.rating).toBe(5);
+    const kbCopy = await prisma.notification.findUniqueOrThrow({ where: { id: ids.kbNotification } });
+    expect(JSON.stringify({ title: kbCopy.title, body: kbCopy.body, payload: kbCopy.payload })).not.toMatch(/Amra|Hodžić/i);
+    const kbHistory = await prisma.changeLog.findUniqueOrThrow({ where: { id: ids.kbLog } });
+    expect(JSON.stringify(kbHistory)).not.toMatch(/Amra|Hodžić/i);
+    expect(await prisma.knowledgeInterceptResolution.count({ where: { userId: ids.subject } })).toBe(0);
+
     const erasure = await prisma.privacyErasure.findUniqueOrThrow({ where: { id: ids.erasure } });
     expect(erasure.tombstones).toHaveLength(2);
     expect(erasure.report).toMatchObject({
       assetTransfers: 1,
       assetTransferFilesQueued: 1,
     });
+    expect((erasure.report as Record<string, unknown>).knowledgeArticles).toBeGreaterThanOrEqual(1);
+    expect((erasure.report as Record<string, unknown>).knowledgeFeedbacks).toBe(2);
+    expect((erasure.report as Record<string, unknown>).knowledgeSourceLinks).toBe(1);
+    expect((erasure.report as Record<string, unknown>).knowledgeIntercepts).toBe(1);
     expect((erasure.report as Record<string, unknown>).assetTransferTextReplacements).toBeGreaterThan(0);
     expect(JSON.stringify(erasure)).not.toMatch(/amra|hodžić|hodzic/i);
   });
