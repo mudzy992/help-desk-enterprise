@@ -2,7 +2,12 @@ import { createKnowledgeBaseServiceHarness, knowledgeBaseTestIds } from '../crea
 import { knowledgeBaseConstants } from '../knowledge-base.constants';
 import { publishedArticleSeed } from '../published-article-seed';
 import { knowledgeRatingBonus } from '../rank-knowledge-articles';
-import { flushKnowledgeArticleViews, knowledgeViewKeys } from './knowledge-article-views';
+import {
+  flushKnowledgeArticleViews,
+  inspectKnowledgeViewBacklog,
+  knowledgeViewKeys,
+  recordKnowledgeArticleView,
+} from './knowledge-article-views';
 import { KnowledgePortalService } from './knowledge-portal.service';
 
 type Category = {
@@ -469,6 +474,54 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     redis.failing = true;
     await service.recordView('a1', asUser(knowledgeBaseTestIds.requester));
     expect(memory.articles.get('a1')?.viewCount).toBe(4);
+  });
+
+  it('reports how far behind the view flush is, and that it is caught up afterwards (W7.86)', async () => {
+    const { memory, redis } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    await recordKnowledgeArticleView({
+      prisma: memory.prisma as never,
+      redis: redis as never,
+      articleId: 'a1',
+      userId: 'viewer-1',
+      now: new Date('2026-11-18T10:00:00.000Z'),
+    });
+
+    // Three days later the finished day is still in Redis: the sweep did not run.
+    const now = new Date('2026-11-21T00:30:00.000Z');
+    expect(await inspectKnowledgeViewBacklog({ redis: redis as never, now })).toEqual({
+      pendingFinishedDays: 1,
+      oldestFinishedDay: '2026-11-18',
+      lagDays: 3,
+    });
+
+    expect(
+      await flushKnowledgeArticleViews({ prisma: memory.prisma as never, redis: redis as never, now }),
+    ).toBe(1);
+    expect(await inspectKnowledgeViewBacklog({ redis: redis as never, now })).toEqual({
+      pendingFinishedDays: 0,
+      oldestFinishedDay: null,
+      lagDays: null,
+    });
+  });
+
+  it('does not count the current day as a flush backlog', async () => {
+    const { memory, redis } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    const now = new Date('2026-11-21T09:00:00.000Z');
+    await recordKnowledgeArticleView({
+      prisma: memory.prisma as never,
+      redis: redis as never,
+      articleId: 'a1',
+      userId: 'viewer-1',
+      now,
+    });
+
+    expect(await inspectKnowledgeViewBacklog({ redis: redis as never, now })).toEqual({
+      pendingFinishedDays: 0,
+      oldestFinishedDay: null,
+      lagDays: null,
+    });
   });
 
   it('shows insights to curators only: lowest rated needs at least 5 votes', async () => {

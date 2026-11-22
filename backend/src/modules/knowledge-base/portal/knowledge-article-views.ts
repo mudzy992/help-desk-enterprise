@@ -61,16 +61,59 @@ export async function recordKnowledgeArticleView(input: {
   return 'database';
 }
 
+/**
+ * W7.86 (`BA-knowledge-base-13`): what is still waiting in Redis. The flush used to
+ * report only how many articles it wrote, so an operator could not tell "nothing to
+ * do" from "the sweep has not run for a week and the keys are about to expire".
+ */
+export type KnowledgeViewBacklog = Readonly<{
+  /** Finished UTC days still pending; they are drained by the next flush. */
+  pendingFinishedDays: number;
+  /** The oldest such day, or `null` when there is nothing to flush. */
+  oldestFinishedDay: string | null;
+  /** How many days that oldest one is behind `now`'s UTC day; `null` when empty. */
+  lagDays: number | null;
+}>;
+
+/** The flush predicate, in one place: a finished UTC day still in the pending set. */
+export async function readPendingFinishedDays(redis: Redis, today: string): Promise<string[]> {
+  return (await redis.smembers(knowledgeViewKeys.pendingDays))
+    .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day) && day < today)
+    .sort();
+}
+
+/**
+ * W7.86: read-only answer to "how far behind is the counter flush". The keys expire
+ * after eight days, so `lagDays` growing past one is the early warning that the
+ * sweep (or its schedule) has been gone for a while — the oldest window still in
+ * Redis is the only place where that fact is visible.
+ */
+export async function inspectKnowledgeViewBacklog(input: {
+  readonly redis: Redis;
+  readonly now: Date;
+}): Promise<KnowledgeViewBacklog> {
+  const today = utcDayOf(input.now);
+  const days = await readPendingFinishedDays(input.redis, today);
+  const oldest = days[0] ?? null;
+  return {
+    pendingFinishedDays: days.length,
+    oldestFinishedDay: oldest,
+    lagDays: oldest === null ? null : utcDayLagDays(oldest, today),
+  };
+}
+
+function utcDayLagDays(day: string, today: string): number {
+  const elapsed = Date.parse(`${today}T00:00:00.000Z`) - Date.parse(`${day}T00:00:00.000Z`);
+  return Math.max(0, Math.round(elapsed / 86_400_000));
+}
+
 /** Flushes every pending day before `now`'s UTC day. Returns articles written. */
 export async function flushKnowledgeArticleViews(input: {
   readonly prisma: PrismaService;
   readonly redis: Redis;
   readonly now: Date;
 }): Promise<number> {
-  const today = utcDayOf(input.now);
-  const days = (await input.redis.smembers(knowledgeViewKeys.pendingDays))
-    .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day) && day < today)
-    .sort();
+  const days = await readPendingFinishedDays(input.redis, utcDayOf(input.now));
   let written = 0;
   for (const day of days) {
     const articleIds = await input.redis.smembers(knowledgeViewKeys.dayArticles(day));

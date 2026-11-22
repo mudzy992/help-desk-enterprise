@@ -426,6 +426,75 @@ describe("evaluateOpsSignals", () => {
     ]);
   });
 
+  it("treats the quarter-hourly knowledge sweep as an expected schedule (W7.86)", () => {
+    // Redis lost the registration; the row still names the sweep and its last success,
+    // so the alarm points at a stopped view flush instead of staying silent.
+    const missing = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: "knowledge-base-review-reminder",
+            schedulerId: "kb-review-reminder-quarter-hourly",
+            everyMs: null,
+            pattern: "0 10,25,40,55 * * * *",
+            nextMs: null,
+            lastSuccessMs: now - 2 * 60 * minute,
+            lastFailureMs: null,
+            registered: false,
+            lastSuccessMaxAgeMs: 30 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(missing.active).toBe(true);
+    expect(missing.details).toMatchObject({
+      jobs: [{ schedulerId: "kb-review-reminder-quarter-hourly", reason: "not_registered" }],
+    });
+
+    // Registered and recent: the same sweep is silent.
+    const current = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: "knowledge-base-review-reminder",
+            schedulerId: "kb-review-reminder-quarter-hourly",
+            everyMs: null,
+            pattern: "0 10,25,40,55 * * * *",
+            nextMs: now + 5 * minute,
+            lastSuccessMs: now - 20 * minute,
+            lastFailureMs: null,
+            registered: true,
+            lastSuccessMaxAgeMs: 30 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(current.active).toBe(false);
+
+    // Registered, but two windows passed without a successful run.
+    const stale = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: "knowledge-base-review-reminder",
+            schedulerId: "kb-review-reminder-quarter-hourly",
+            everyMs: null,
+            pattern: "0 10,25,40,55 * * * *",
+            nextMs: now + 5 * minute,
+            lastSuccessMs: now - 40 * minute,
+            lastFailureMs: null,
+            registered: true,
+            lastSuccessMaxAgeMs: 30 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(stale.active).toBe(true);
+    expect(stale.details).toMatchObject({
+      jobs: [{ schedulerId: "kb-review-reminder-quarter-hourly", reason: "no_recent_success" }],
+    });
+  });
+
   it("keeps directory-sync overlap and license preallocation visible without alerting on them alone", () => {
     const assetOperations = {
       ...healthy().assetOperations!,

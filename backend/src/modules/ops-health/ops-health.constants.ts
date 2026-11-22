@@ -23,7 +23,12 @@ import {
 import { inboundEmailQueueName } from '../inbound-email/inbound-email.constants';
 import { integrationQueueName } from '../integration-queue/integration-queue.constants';
 import { integrationWorkerMaintenanceQueueName } from '../integration-queue/integration-worker-maintenance.job.constants';
-import { knowledgeBaseReviewReminderQueueName } from '../knowledge-base/knowledge-base-review-reminder.job.constants';
+import {
+  knowledgeBaseReviewReminderLastSuccessMaxAgeMs,
+  knowledgeBaseReviewReminderQueueName,
+  knowledgeBaseReviewReminderSchedulePattern,
+  knowledgeBaseReviewReminderSchedulerId,
+} from '../knowledge-base/knowledge-base-review-reminder.job.constants';
 import { notificationRetentionQueueName } from '../notifications/notification-retention.constants';
 import { notificationDigestQueueName } from '../notifications/preferences/notification-digest.constants';
 import { privacyQueueName } from '../privacy/privacy.constants';
@@ -142,6 +147,23 @@ export const expectedChangeSchedulers = [
 ] as const;
 
 /**
+ * W7.86 (BA-knowledge-base-13): the quarter-hourly knowledge review reminder is
+ * mandatory for two reasons, and only one of them is a reminder. It also drains
+ * the Redis view counters into `KnowledgeArticleView`, and those keys expire after
+ * eight days — a swallowed schedule therefore ends as lost data, not as a late
+ * notification. Registering it here makes a missing registration, a job nobody
+ * picked up and a last success older than two windows all reach `scheduler.late`.
+ */
+export const expectedKnowledgeSchedulers = [
+  {
+    queue: knowledgeBaseReviewReminderQueueName,
+    schedulerId: knowledgeBaseReviewReminderSchedulerId,
+    pattern: knowledgeBaseReviewReminderSchedulePattern,
+    lastSuccessMaxAgeMs: knowledgeBaseReviewReminderLastSuccessMaxAgeMs,
+  },
+] as const;
+
+/**
  * Schedules whose absence must be visible even when Redis is empty: the health
  * collector synthesises their rows (with `registered: false`) instead of leaving
  * the card and the alarm blind.
@@ -150,6 +172,7 @@ export const expectedSchedulers = [
   ...expectedAssetSchedulers,
   ...expectedProblemSchedulers,
   ...expectedChangeSchedulers,
+  ...expectedKnowledgeSchedulers,
 ] as const;
 
 /**

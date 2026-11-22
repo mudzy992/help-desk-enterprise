@@ -27,3 +27,26 @@ export const knowledgeBaseReviewReminderFailedJobsToKeep = 50;
 export const knowledgeBaseReviewReminderJobLabel = 'kb_review_reminder';
 export const knowledgeBaseReviewReminderJobLogContext = 'KnowledgeBaseReviewReminderJob';
 export const knowledgeBaseReviewReminderScheduleWindowSource = '0 10,25,40,55 * * * *';
+
+/**
+ * W7.86 (`BA-knowledge-base-13`): how often the worker verifies its own mandatory
+ * schedule still exists in Redis — the same self-heal the announcement and problem
+ * sweeps got (BA-announcements-11, BA-problems-14).
+ *
+ * The registration is written once, at boot, by `upsertJobScheduler`. A Redis
+ * restart, a flush or a failover to an empty instance deletes it, and until a
+ * redeploy nothing would run this sweep again: the review reminders stop *and* the
+ * view counters stop leaving Redis, whose keys expire after 8 days — so a silent
+ * schedule loss becomes permanent data loss. Sixty seconds is one cheap
+ * `getJobSchedulers` read per minute and restores the schedule within a minute of
+ * the loss.
+ */
+export const knowledgeBaseReviewReminderReconcileMilliseconds = 60_000;
+
+/**
+ * W7.86: the ops-health `scheduler.late` alarm treats this sweep as mandatory, with a
+ * last-success budget of two windows (15 min each). One missed window is the normal
+ * jitter of a rolling restart; two means the sweep — and therefore the view flush —
+ * did not complete, which is exactly the condition an operator has to see.
+ */
+export const knowledgeBaseReviewReminderLastSuccessMaxAgeMs = 30 * 60_000;

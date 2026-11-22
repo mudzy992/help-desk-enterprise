@@ -1,4 +1,8 @@
-import { expectedAssetSchedulers, expectedProblemSchedulers } from './ops-health.constants';
+import {
+  expectedAssetSchedulers,
+  expectedKnowledgeSchedulers,
+  expectedProblemSchedulers,
+} from './ops-health.constants';
 import { includeExpectedSchedulers } from './ops-signal-collector';
 
 describe('expected scheduler health rows', () => {
@@ -105,6 +109,56 @@ describe('expected scheduler health rows', () => {
     expect(result[0]).toMatchObject({
       registered: true,
       lastSuccessMaxAgeMs: problem.lastSuccessMaxAgeMs,
+    });
+  });
+
+  // W7.86 (BA-knowledge-base-13): the quarter-hourly knowledge sweep carries the
+  // view flush, whose Redis keys expire after eight days. A flushed Redis deletes
+  // its registration, so without this row the loss would be invisible.
+  it('reports the knowledge review sweep as missing after a Redis flush', () => {
+    const knowledge = expectedKnowledgeSchedulers[0];
+    const lastSuccessMs = Date.parse('2026-11-22T07:55:00.000Z');
+    const result = includeExpectedSchedulers([], [
+      { queue: knowledge.queue, lastSuccessMs, lastFailureMs: null },
+    ]);
+
+    expect(result).toEqual([
+      {
+        queue: 'knowledge-base-review-reminder',
+        schedulerId: 'kb-review-reminder-quarter-hourly',
+        everyMs: null,
+        pattern: '0 10,25,40,55 * * * *',
+        nextMs: null,
+        lastSuccessMs,
+        lastFailureMs: null,
+        registered: false,
+        lastSuccessMaxAgeMs: 30 * 60_000,
+      },
+    ]);
+  });
+
+  it('keeps the knowledge sweep quiet while its registration and last success are current', () => {
+    const knowledge = expectedKnowledgeSchedulers[0];
+    const lastSuccessMs = Date.parse('2026-11-22T07:55:00.000Z');
+    const result = includeExpectedSchedulers(
+      [
+        {
+          queue: knowledge.queue,
+          schedulerId: knowledge.schedulerId,
+          everyMs: null,
+          pattern: knowledge.pattern,
+          nextMs: lastSuccessMs + 15 * 60_000,
+          lastSuccessMs,
+          lastFailureMs: null,
+        },
+      ],
+      [{ queue: knowledge.queue, lastSuccessMs, lastFailureMs: null }],
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      registered: true,
+      lastSuccessMaxAgeMs: 30 * 60_000,
     });
   });
 });

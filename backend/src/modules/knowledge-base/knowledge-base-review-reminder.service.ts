@@ -18,6 +18,27 @@ import {
   resolveReviewReminderRecipients,
 } from './review-reminder-recipients';
 
+/**
+ * W7.86 (`BA-knowledge-base-13`): what one sweep pass did, so the job can log a
+ * health line instead of only a sent count.
+ */
+export type KnowledgeReviewReminderRun = Readonly<{
+  /** Notifications actually created. */
+  sent: number;
+  /** Due articles the bounded query returned across all batches. */
+  candidates: number;
+  /** Batches walked. */
+  batches: number;
+  /** Articles skipped: no active account still holds `knowledge.article.write` in scope. */
+  noRecipientArticles: number;
+  /** Articles skipped: their OU/service scope could not be resolved at all. */
+  unresolvedScopeArticles: number;
+  /** Recipients whose notification dedupe or preference policy refused a new row. */
+  reminderBlockedRecipients: number;
+  /** True when `reminderMaximumBatches` stopped the pass with backlog left over. */
+  capped: boolean;
+}>;
+
 @Injectable()
 export class KnowledgeBaseReviewReminderService {
   private readonly logger = new Logger(KnowledgeBaseReviewReminderService.name);
@@ -30,10 +51,26 @@ export class KnowledgeBaseReviewReminderService {
   ) {}
 
 
-  async processDue(now = new Date()): Promise<number> {
+  /**
+   * W7.86 (`BA-knowledge-base-13`): the audit asked for a due-backlog and
+   * no-recipient signal, not only a sent count. This is the same sweep with the
+   * numbers it already computed (batches walked, candidates scanned, articles
+   * skipped because their scope no longer resolves, articles nobody can act on,
+   * whether the batch ceiling stopped it). `processDue` stays the plain counter for
+   * every existing caller.
+   */
+  async processDueWithSummary(now = new Date()): Promise<KnowledgeReviewReminderRun> {
     const configuration = await this.configurationLoader.load();
     if (!configuration.reviewCycleEnabled) {
-      return 0;
+      return {
+        sent: 0,
+        candidates: 0,
+        batches: 0,
+        noRecipientArticles: 0,
+        unresolvedScopeArticles: 0,
+        reminderBlockedRecipients: 0,
+        capped: false,
+      };
     }
     const policy = await loadNotificationPreferencePolicy(this.settingsService);
     const windowEnd = new Date(
@@ -46,6 +83,12 @@ export class KnowledgeBaseReviewReminderService {
     // instead of running away.
     const caches = createReminderEligibilityCaches();
     let sent = 0;
+    let candidates = 0;
+    let batches = 0;
+    let noRecipientArticles = 0;
+    let unresolvedScopeArticles = 0;
+    let reminderBlockedRecipients = 0;
+    let capped = false;
     let cursor: string | undefined;
     for (
       let batch = 0;
@@ -64,6 +107,8 @@ export class KnowledgeBaseReviewReminderService {
       if (rows.length === 0) {
         break;
       }
+      batches += 1;
+      candidates += rows.length;
       for (const row of rows) {
         const article = toArticleRecord(row);
         if (article.reviewDueAt === null) {
@@ -85,12 +130,14 @@ export class KnowledgeBaseReviewReminderService {
           this.logger.warn(
             `knowledge review reminder: article ${article.id} has no resolvable scope (${String(error)})`,
           );
+          unresolvedScopeArticles += 1;
           continue;
         }
         if (recipients.length === 0) {
           this.logger.warn(
             `knowledge review reminder: article ${article.id} has no eligible recipient (owner ${article.ownerUserId ?? 'none'}, group ${article.ownerGroupId ?? 'none'})`,
           );
+          noRecipientArticles += 1;
           continue;
         }
         const dedupeKey = `kb-review:${article.id}:${article.reviewDueAt.toISOString()}`;
@@ -122,6 +169,10 @@ export class KnowledgeBaseReviewReminderService {
           );
           if (created !== null) {
             sent += 1;
+          } else {
+            // Dedupe or the recipient's notification preferences refused it. Not an
+            // error, but the sweep must be able to say it happened.
+            reminderBlockedRecipients += 1;
           }
         }
       }
@@ -129,7 +180,25 @@ export class KnowledgeBaseReviewReminderService {
       if (rows.length < knowledgeBaseConstants.reminderCandidateBatchSize) {
         break;
       }
+      capped = batch + 1 >= knowledgeBaseConstants.reminderMaximumBatches;
     }
-    return sent;
+    if (capped) {
+      this.logger.warn(
+        `knowledge review reminder: batch ceiling reached (${knowledgeBaseConstants.reminderMaximumBatches} × ${knowledgeBaseConstants.reminderCandidateBatchSize}), remaining due articles wait for the next run`,
+      );
+    }
+    return {
+      sent,
+      candidates,
+      batches,
+      noRecipientArticles,
+      unresolvedScopeArticles,
+      reminderBlockedRecipients,
+      capped,
+    };
+  }
+
+  async processDue(now = new Date()): Promise<number> {
+    return (await this.processDueWithSummary(now)).sent;
   }
 }
