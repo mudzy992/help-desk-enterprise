@@ -703,6 +703,10 @@ Lokalno backend **939 suite / 5.394 testa**, `eslint`/`tsc` zeleni.
 - **`categoryArticles` čita usko:** jedna kategorija + njena djeca, a `uncategorized` samo arhivirane
   kategorije (`select: { id }`). Arhivirana kategorija ostaje `CATEGORY_NOT_FOUND` kao i prije.
 
+**CI:** [`45059137790`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45059137790) na
+`efa042c` — **success** (docs, backend build+test, PostgreSQL+Redis integration, frontend, container/supply
+chain, CI gate; E2E i inventory skipped po politici grane).
+
 **Testni dokaz:** `knowledge-portal-pagination.spec.ts` (**4**), `knowledge-portal.service.spec.ts` **17 → 23**
 (uključujući resolve-između-strana koji offset ne bi preživio i `defaultCategoryPageSize + 1` korijena),
 `knowledge-insights-panel.spec.tsx` (**2**), ojačani in-memory fakeovi (feedback delegat sada primjenjuje

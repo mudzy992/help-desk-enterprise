@@ -16,7 +16,9 @@ kategoriju koju pita), `knowledge-base/portal/knowledge-portal.controller.ts` (`
 `knowledgeBase.portal.categories.truncated`, `…insights.commentsTruncated`, `…insights.loadMoreComments`
 (bs/en)<br>
 **DB migracija:** nema<br>
-**CI:** vidi „CI i testni dokaz” (run se upisuje po završetku)
+**CI:** `45059137790` na `efa042c` — **success** (Docs guard, Backend build+test, Backend PostgreSQL + Redis
+integration, Frontend build+test, Backend container + supply chain, CI gate; E2E i inventory skipped po
+politici grane)
 
 ## Nalaz
 
@@ -157,7 +159,27 @@ prva strana ujedno i posljednja, dugmeta nema.
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+Run **`45059137790`** na `efa042c` je zelen u svim jobovima koji se izvršavaju: **Docs guard**, **Backend build +
+test**, **Backend PostgreSQL + Redis integration**, **Frontend build + test**, **Backend container + supply
+chain**, **CI gate**; `E2E critical flows`, `E2E install wizard` i `Read-only service-form pattern inventory` su
+`skipped` po politici grane.
+
+Tri stvari su ispale na putu do zelenog, i sve tri su bile u **dokazu i mehanici**, ne u modelu stranica:
+
+1. **Wiring manifest je snapshot.** Nova ruta `GET /knowledge-base/portal/insights/comments` je promijenila
+   broj ruta (631 → 632), pa je `Verify route/guard and root-module wiring snapshot` pao. Manifest je
+   regenerisan sa `npm run wiring:write`; ruta je `authenticated` sa `SessionAuthenticationGuard`, kao i
+   ostatak portala.
+2. **Rekurzivan tip se ne može emitovati bez imena.** `FeedbackWhere` je u ovom paketu dobio `OR?:
+   FeedbackWhere[]`, a TypeScript tada ne može da „raspiše” tip u deklaraciji — `nest build` je pao sa
+   `TS4058: ... 'FeedbackWhere' ... cannot be named` na tri harness fabrike. Tip je izvezen (`export type
+   FeedbackWhere`), što je i tačnije: dvostruki klijent sada ima imenovan ugovor filtera.
+3. **Prazan `?limit=` nije nula.** `Number('')` daje `0`, pa bi „pošalji limit bez broja” tiho vratio **jedan**
+   red. Nove rute sada tretiraju prazan `limit` kao odsutan (`readLimit`), pa default (50/20) važi.
+
+Lokalno (bez baze, integracije skip-ovane): backend **940 suite / 5.404 testa**, frontend **474 fajla / 1.890
+testova**, `eslint`, `tsc` (sa uključenim `declaration` emitom — provjera TS4058 klase) i `prettier` zeleni,
+`i18n:check` **9.295 ključeva**, `wiring:check` 632 rute, `audit:traceability` 696/696.
 
 ## Registar nalaza
 
