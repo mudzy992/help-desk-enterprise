@@ -5,7 +5,10 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTypes } from '../notifications/notifications.constants';
 import type { NotificationPayload } from '../notifications/notifications.types';
-import type { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+// W7.85: a value import, not `import type` — `emitDecoratorMetadata` needs the class
+// reference at runtime, otherwise Nest reads the constructor token as `Function`
+// and the worker module cannot resolve it.
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { knowledgeBaseConstants } from './knowledge-base.constants';
 import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
 import { toArticleRecord } from './load-knowledge-article';
