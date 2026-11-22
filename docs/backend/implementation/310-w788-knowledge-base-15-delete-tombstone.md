@@ -15,7 +15,8 @@ frontend: `knowledge-article-delete-panel.tsx` (opis posljedica), `knowledge-art
 (panel samo za penzionisan članak, inače uputa), `map-knowledge-article-error.ts` (`errorNotRetired`),
 `lib/audit/audit-log-actions.ts` (`knowledge.article.deleted`), bs/en i18n (+3 ključa +1 audit labela)<br>
 **DB migracija:** nema<br>
-**CI:** _upućuje se na `2fd516b`_
+**CI:** `45039974905` na `a259955` — **success** (Docs guard, backend build+test, PostgreSQL+Redis integration,
+frontend build+test, container/supply chain; E2E i inventory skipped po politici grane)
 
 ## Nalaz
 
@@ -143,7 +144,23 @@ izdaje prazne upite nad člancima.
 
 ## CI i testni dokaz
 
-_Status se upisuje poslije zelenog runa na `2fd516b`._
+Run **`45039974905`** na `a259955` je zelen u svim jobovima: **Docs guard**, **Backend build + test**,
+**Backend PostgreSQL + Redis integration**, **Frontend build + test**, **Backend container + supply chain**,
+**CI gate**; `E2E critical flows`, `E2E install wizard` i `Read-only service-form pattern inventory` su
+`skipped` po politici grane.
+
+Prvi run na `2fd516b` je pao dva puta, oba u **dokazu**, ne u kodu, i oba su popravljena prije zelenog runa:
+
+- `ChangeLog.actorUserId` ima **strani ključ** (za razliku od `AuditLog.actorUserId`), pa je sintetički
+  `it-delete-admin` id oboren kao `ChangeLog_actorUserId_fkey` prije nego što je tombstone uopšte provjeren.
+  Integracijski spec sada pravi admin red i prosljeđuje njegov `id` kontekstu — što je i realističnije, jer
+  brisanje ionako ide kroz `SUPER_ADMIN` sesiju.
+- panel za brisanje je jedan paragraf ostavio razlomljen na tri reda, a frontend `Format check (Prettier)` je
+  jedina stilska kapija koja se u CI-ju izvršava; formatirano.
+
+Integracijski job je poslije toga prošao **uključujući** `knowledge-delete-tombstone.integration.spec.ts` (3) i
+`retention.integration.spec.ts` (novi `NOT EXISTS` upit nad stvarnim PostgreSQL-om i novi red o replikama
+obrisanog članka), pa je i retention SQL dokazan protiv prave baze, ne samo protiv fake klijenta.
 
 ## Registar nalaza
 
