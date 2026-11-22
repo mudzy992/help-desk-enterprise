@@ -105,6 +105,8 @@ Core create/update/lifecycle/delete koristi transactional knowledge change log. 
 
 Privacy anonymization pokriva feedback user vezu, ali article body/title mogu sadržati bilo koju osobu koja nije owner/reviewer/source participant. Source ticket/message IDs, feedback comments, notification body i knowledge change-log replike trebaju eksplicitnu retention/anonymization matricu. Nema article/comment/view/change-log retention politike.
 
+**Status poslije W7.89 (§34):** flush pregleda je idempotentan (dnevni red je apsolutno stanje, delta za total, savjetodavna brava po paru `(article, day)`), a Redis-less put broji pregled i **ne** izmišlja posjetioce. Vidi §34.
+
 **Status poslije W7.88 (§33):** brisanje članka je kapija + tombstone: samo `ARCHIVED` ili nikad objavljen članak se briše, a brisanje ostavlja revizorski zapis bez sadržaja (sa brojevima feedbacka i pregleda) i change-log trag koji `knowledgeContent` retention sada doseže i poslije brisanja. Vidi §33.
 
 **Status poslije W7.87 (§32):** matrica je eksplicitna i izvršna. Novi `knowledgeContent` retention period redaktuje arhivirane članke (marker u `title`/`body` uz rebuild `searchVector`, `null` source pokazivači, ispražnjeni komentari, obrisani stari dnevni pregledi, marker u change-logu i `body: null` u notifikacijama), a anonymizacija sada pokriva članke koje osoba posjeduje/pregleda ili ih tekst imenuje, tuđe komentare koji je imenuju, notifikacije, change-log replike, izvorne pokazivače i `KnowledgeInterceptResolution`. Ostaje dokumentovano: retention važi samo za `ARCHIVED`, agregat `viewCount` je trajan, a ACCESS izvoz baze znanja nije proširen.
@@ -160,7 +162,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | zatvoreno |
 | BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | zatvoreno |
 | BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | zatvoreno |
-| BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | otvoreno |
+| BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | zatvoreno |
 | BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | otvoreno |
 | BA-knowledge-base-18 | P3       | Comment resolution nema audit, actor ni optimistic state                                 | otvoreno |
 | BA-knowledge-base-19 | P3       | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica              | otvoreno |
@@ -646,3 +648,33 @@ panel nudi brisanje samo za penzionisan članak, 409 ima svoju poruku, akcija im
 adresu; rješenje traži migraciju), metapodaci nose `slug` (izveden iz naslova), brisanje ostaje
 `SUPER_ADMIN`-only, `Problem`/`PlaybookStep`/intercept reference idu na `SetNull`, a stari link vraća `404`
 umjesto `410`. Detalji: [310-w788-knowledge-base-15-delete-tombstone.md](../implementation/310-w788-knowledge-base-15-delete-tombstone.md).
+
+## 34. Implementacijski closeout — W7.89 (`BA-knowledge-base-16`)
+
+**Nalaz:** flush je pisao dnevni red kao **inkrement**, pa je crash između commita i `del`-a Redis ključeva
+duplirao dan na retry-u — a `insights.mostViewed` rangira upravo preko `_sum.views` po danima, dakle duplikat
+je mijenjao odluku, ne samo statistiku. Istovremeno je Redis-less put pisao `uniqueViewers + 1` za svaku
+posjetu, pa je tokom incidenta „svaki pregled = nova osoba”.
+
+**Rješenje.** Dnevni red je sada **stanje**, ne događaj:
+
+- flush uzme `pg_advisory_xact_lock` za `(articleId, day)` (pokriva i prvi upis, kad nema reda za `FOR UPDATE`),
+  pročita prethodni dan, upiše **apsolutno** (`views = max(previous, redis)`,
+  `uniqueViewers = min(max(previous, hll), views)`) i pomjeri `KnowledgeArticle.viewCount` samo za deltu, i to
+  samo ako je delta > 0. Crash-retry je time no-op koji ipak čisti ključeve; dan sa ponovo napravljenim manjim
+  ključevima nikad ne pada; dva paralelna flush-a sabiraju dan tačno jednom;
+- `recordDatabaseView` upisuje `views + 1` i **ne dira** `uniqueViewers` — bez Redis-a niko ne može
+  dedupirati posjetioca, pa se posjetilac ne tvrdi. `uniqueViewers` je time dokumentovana **donja granica**
+  preko dana koje je Redis opsluživao (API/UI ga ne prikazuju);
+- flush guta samo `P2003`/`P2025` (stvarno obrisan članak), sve drugo propagira; `kb_views_flushed` broji
+  članke čiji se broj stvarno pomjerio.
+
+**Testni dokaz:** `knowledge-article-views.spec.ts` (**6**, uključujući crash-retry i redoslijed brave),
+`knowledge-view-flush-idempotency.integration.spec.ts` (**3**, PostgreSQL + Redis: crash-retry, **dva
+paralelna flush-a** nad istim danom, fallback + HLL spajanje), proširen `knowledge-portal.service.spec.ts`.
+Lokalno backend **939 suite / 5.394 testa**, `eslint`/`tsc` zeleni.
+
+**Otvoreno i dokumentovano:** mješovit dan uzima `max` (podbrojava, nikad ne duplira ni izmišlja), HLL je
+~0,8 % aproksimacija, osmodnevni TTL ključeva ostaje (W7.86 backlog signali su opomena), brava je po
+`(article, day)` a ne po cijelom flush-u — što je i poželjno. Detalji:
+[311-w789-knowledge-base-16-view-flush-idempotency.md](../implementation/311-w789-knowledge-base-16-view-flush-idempotency.md).

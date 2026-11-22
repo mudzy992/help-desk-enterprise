@@ -2300,7 +2300,7 @@
     {
       "id": "BA-knowledge-base-16",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno",
       "source": "25-knowledge-base.md",
       "owner": "WS-F",
       "wave": 7

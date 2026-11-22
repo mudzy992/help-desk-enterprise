@@ -25,7 +25,9 @@ describeIfDatabase('knowledge category archive guard against placement (integrat
   let serviceId = '';
   const categoryIds: string[] = [];
   const articleIds: string[] = [];
-  const actor = { actorUserId: `it-kb-archiver-${suffix}` };
+  // `ChangeLog.actorUserId` is a foreign key `AuditLog.actorUserId` is not: the actor has to be a row.
+  let actorUserId = '';
+  const actor = () => ({ actorUserId });
 
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
@@ -50,6 +52,11 @@ describeIfDatabase('knowledge category archive guard against placement (integrat
         },
       })
     ).id;
+    actorUserId = (
+      await database().user.create({
+        data: { email: `it-kb-archiver-${suffix}@example.test`, displayName: 'IT KB Archiver' },
+      })
+    ).id;
   });
 
   afterAll(async () => {
@@ -59,6 +66,8 @@ describeIfDatabase('knowledge category archive guard against placement (integrat
       await db.changeLog.deleteMany({ where: { entityId: { in: articleIds } } });
       await db.knowledgeArticle.deleteMany({ where: { id: { in: articleIds } } });
     }
+    // After its change-log rows, or the actor's foreign key keeps the user alive.
+    if (actorUserId !== '') await db.user.deleteMany({ where: { id: actorUserId } });
     if (categoryIds.length > 0) {
       await db.knowledgeCategory.deleteMany({ where: { id: { in: categoryIds } } });
     }
@@ -132,8 +141,8 @@ describeIfDatabase('knowledge category archive guard against placement (integrat
 
       const service = portalService();
       const [archive, placement] = await Promise.allSettled([
-        service.setCategoryArchived(categoryId, true, actor),
-        service.placeArticle(articleId, { categoryId, reason: 'Portal' }, actor),
+        service.setCategoryArchived(categoryId, true, actor()),
+        service.placeArticle(articleId, { categoryId, reason: 'Portal' }, actor()),
       ]);
 
       const category = await database().knowledgeCategory.findUniqueOrThrow({
@@ -189,7 +198,7 @@ describeIfDatabase('knowledge category archive guard against placement (integrat
     articleIds.push(articleId);
 
     await expect(
-      portalService().setCategoryArchived(categoryId, true, actor),
+      portalService().setCategoryArchived(categoryId, true, actor()),
     ).rejects.toMatchObject({ response: { code: 'CATEGORY_NOT_EMPTY' } });
     expect(
       (
