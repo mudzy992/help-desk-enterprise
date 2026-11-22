@@ -25,6 +25,18 @@ import {
 import { KnowledgePortalService } from './knowledge-portal.service';
 
 /**
+ * W7.90 (`BA-knowledge-base-17`): `?limit=` with an empty value is not "zero rows" — it is "you sent the
+ * parameter and no number", so the page falls back to its default instead of collapsing to one row.
+ */
+function readLimit(raw: string | undefined): number | undefined {
+  if (raw === undefined || raw.trim().length === 0) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
  * Paket 2.9 (K1): knowledge portal. Every signed-in user reads; category
  * management, placement, insights and "article from reply" are checked in the
  * service (RoleGuard denies routes without a permission requirement).
@@ -50,7 +62,7 @@ export class KnowledgePortalController {
     @Query('cursor') cursor?: string,
   ) {
     return this.portal.categories(readKnowledgeMutationContext(request), includeArchived === 'true', {
-      limit: limit === undefined ? undefined : Number(limit),
+      limit: readLimit(limit),
       cursor,
     });
   }
@@ -123,7 +135,7 @@ export class KnowledgePortalController {
     @Query('cursor') cursor?: string,
   ) {
     return this.portal.insightsComments(readKnowledgeMutationContext(request), {
-      limit: limit === undefined ? undefined : Number(limit),
+      limit: readLimit(limit),
       cursor,
     });
   }
