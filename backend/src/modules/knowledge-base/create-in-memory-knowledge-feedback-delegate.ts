@@ -10,7 +10,7 @@ export type InMemoryKnowledgeFeedback = {
   readonly updatedAt: Date;
 };
 
-type FeedbackData = {
+export type FeedbackData = {
   articleId: string;
   userId: string;
   isHelpful: boolean;
@@ -18,7 +18,11 @@ type FeedbackData = {
   comment?: string | null;
 };
 
-type FeedbackWhere = {
+/**
+ * Exported because it is now recursive (`OR?: FeedbackWhere[]`), and TypeScript's declaration emit cannot
+ * inline a self-referential type: the harness factories would fail with TS4058 ("cannot be named").
+ */
+export type FeedbackWhere = {
   readonly articleId?: string | { in: readonly string[] };
   readonly userId?: string;
   /** W7.53 (BA-reports-01): report packs pin votes to the window. */
