@@ -44,6 +44,8 @@ describeIfDatabaseAndRedis('knowledge view flush idempotency (PostgreSQL + Redis
     const root = createBullMqRootConfiguration(loadRedisConfiguration());
     redis = new IORedis({ ...root.connection, lazyConnect: true, maxRetriesPerRequest: null });
     redis.on('error', () => undefined);
+    // One connection for the whole file: reconnecting per test races the close.
+    await redis.connect();
     const unit = await database().organizationalUnit.create({
       data: {
         name: `IT view flush ${suffix}`,
@@ -63,16 +65,12 @@ describeIfDatabaseAndRedis('knowledge view flush idempotency (PostgreSQL + Redis
     ).id;
   });
 
-  beforeEach(async () => {
-    await redis.connect();
-  });
-
   afterEach(async () => {
     await forgetDay();
-    redis.disconnect();
   });
 
   afterAll(async () => {
+    redis?.disconnect();
     const db = prisma;
     if (db === undefined) return;
     if (articleIds.length > 0) {
