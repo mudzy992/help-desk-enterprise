@@ -561,6 +561,13 @@ jobs:
         run: node scripts/check-backend-findings.mjs
       - name: Test the findings guard itself
         run: node --test scripts/check-backend-findings.test.mjs
+      # W7.92 (BA-knowledge-base-19): the knowledge-base concurrency/failure matrix is executable —
+      # every scenario must still name a spec *and* a test that exists, is not skipped, and (for
+      # PostgreSQL specs) is registered with the isolated integration runner.
+      - name: Check the knowledge-base failure matrix against the specs it names
+        run: node backend/scripts/run-knowledge-test-matrix.mjs --check-only
+      - name: Test the knowledge-base matrix guard itself
+        run: node --test backend/scripts/run-knowledge-test-matrix.test.mjs
 
   service-form-audit:
     name: Read-only service-form pattern inventory

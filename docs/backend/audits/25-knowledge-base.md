@@ -4,7 +4,11 @@
 **Datum:** 2026-10-23  
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,51/10**  
-**Nalazi:** 4 P1, 11 P2, 4 P3
+**Nalazi:** 4 P1, 11 P2, 4 P3<br>
+**Implementacija:** **19/19 zatvoreno** — W7.75–W7.92 su zatvorili svih 19 nalaza modula, svaki sa vlastitim
+unit i/ili PostgreSQL dokazom i CI runom. `BA-knowledge-base-19` (posljednji, P3) je zatvoren 2026-11-23:
+modul ima izvršnu concurrency/failure matricu (`backend/scripts/knowledge-test-matrix.json`) koju CI provjerava,
+a deset nekada blokiranih-na-kompajliranju suiteova danas prolazi. Ova statusna dopuna ne mijenja nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -113,18 +117,47 @@ Privacy anonymization pokriva feedback user vezu, ali article body/title mogu sa
 
 ## 12. Testovi i E2E
 
-Pokrenuto:
+**Status poslije W7.92 (§37):** nalaz `BA-knowledge-base-19` je zatvoren. Snimak iz audita — 10 od 12
+suiteova koje nisu ni kompajlirale, i devet rizičnih scenarija bez ijednog testa — više ne opisuje modul, a
+matrica je sada **izvršna**: `backend/scripts/knowledge-test-matrix.json` za svaki scenario imenuje spec **i
+tačno ime testa**, a `backend/scripts/run-knowledge-test-matrix.mjs` (u CI docs guardu) pada ako test
+prestane postojati, ako se preimenuje, ako je preskočen (`it.skip`/`xit`/`xdescribe`), ako PostgreSQL spec
+nije registrovan u `run-isolated-integration.mjs`, ako neki scenario iz ove tabele ostane bez reda ili ako
+ovaj audit ponovo počne tvrditi staro stanje.
 
-```bash
-cd backend
-npm test -- --runInBand --runTestsByPath $(find src/modules/knowledge-base -name '*.spec.ts' -print | sort)
-```
+Stanje modula danas (`npx jest src/modules/knowledge-base`):
 
-Rezultat: **2/12 suiteova prošlo, 10/12 compile-blocked; 6/6 izvršenih testova prošlo**. Primarne blokade su nedostajući `generated/prisma/enums` i nepotpun PrismaService (`knowledgeArticle` i povezani delegati). Nije zabilježen assertion failure.
+| Slika | Suiteovi | Testovi |
+| --- | --- | --- |
+| Unit (lokalno, bez baze) | **28 / 28 prolazi** | **183 / 183 prolazi** |
+| PostgreSQL integracije (CI, `run-isolated-integration.mjs`) | **8** | **20** (lokalno `describe.skip`) |
+| Ukupno u modulu | **36** | **203** |
 
-Zeleni su rank i reply PII scrub pure testovi. Compile-blokirani su authorization, lifecycle, feedback, intercept, list filters, visibility batch, portal service/from-reply, freshness i reminder dedupe.
+Deset nekadašnjih blokiranih-na-kompajliranju suiteova (authorization, lifecycle, feedback, intercept, list filters,
+visibility batch, portal service, portal from-reply, freshness, reminder dedupe) danas prolazi kao
+**10 suiteova / 62 testa**; uzroci blokade (nedostajući `generated/prisma/enums` i nepotpun PrismaService)
+su otklonjeni u međuvremenu, pa je taj dio nalaza bio snimak stanja, ne trajni defekt.
 
-E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za create; E2E 22 provjerava accessibility. Ne pokriva owner/group/reviewer scope revoke, concurrent edit/lifecycle, unbounded corpus, forged intercept resolution, rating race, from-reply idempotency, view flush crash, scheduler loss ni retention.
+**Matrica scenarija (§12 lista iz audita).** `what` kolona je skraćeni opis iz JSON-a; puni tekst i ime
+testa su u `backend/scripts/knowledge-test-matrix.json`.
+
+| Scenario | Sloj | Dokaz |
+| --- | --- | --- |
+| owner/group/reviewer scope revoke | unit | `knowledge-base.delegation.spec.ts` (owner-group membership revoked on the next request), `knowledge-base.reviewer-delegation.spec.ts` (review rights revoked when the assignment is cleared), `knowledge-base.authorization.spec.ts` (restricted article hidden from agents and foreign OU admins) |
+| concurrent edit/lifecycle | unit + PostgreSQL | `knowledge-base.concurrency.spec.ts` (first of two edits wins; lifecycle decision on a stale row refused), `knowledge-placement-atomicity.integration.spec.ts`, `knowledge-category-archive-race.integration.spec.ts`, `portal/knowledge-comment-resolution.integration.spec.ts` |
+| unbounded corpus | unit | `knowledge-base.pagination.spec.ts` (page walk without gaps, scan budget), `portal/knowledge-portal-pagination.spec.ts` (unreadable cursor refused), `portal/knowledge-portal.service.spec.ts` (comment feed never skips a row) |
+| forged intercept resolution | unit | `knowledge-base.intercept-resolution.spec.ts` (foreign unit, forged/archived/draft article, article the caller cannot read) |
+| rating race | unit + PostgreSQL | `knowledge-feedback-concurrency.integration.spec.ts` (same voter twice, eight votes at once, totals exact) |
+| from-reply idempotency | PostgreSQL | `knowledge-from-reply-atomicity.integration.spec.ts` (two writers, one draft; failed draft leaves no orphan) |
+| view flush crash | PostgreSQL | `portal/knowledge-view-flush-idempotency.integration.spec.ts` (crash-retry is a no-op, two flushes race, Redis-less visit is not a viewer) |
+| scheduler loss | unit + PostgreSQL | `knowledge-scheduler-reconciliation.integration.spec.ts` (sweep restored, one schedule for two workers), `knowledge-base-review-reminder.dedupe.spec.ts` (one reminder per owner, none on the second sweep) |
+| retention | PostgreSQL | `privacy/retention/retention.integration.spec.ts` (archived article + comments + views + change log + inbox copies redacted; deleted article's change-log trail redacted) |
+
+Preostala, svjesno prihvaćena praznina: **E2E 34** (portal/category/article lifecycle, feedback/view, user
+deny za create) i **E2E 22** (accessibility) nisu prošireni. Matrica dokazuje garantције na najnižem sloju
+na kojem se one i ostvaruju — transakcija, `FOR UPDATE`/CAS, unique constraint, scheduler registration — a
+Playwright bi ih ponavljao kroz UI sa puno većom cijenom i manjom preciznošću; E2E ostaje pokrivač
+korisničkih tokova, ne trka. Detalji: [314](../implementation/314-w792-knowledge-base-19-concurrency-failure-matrix.md).
 
 ## 13. Pozitivni nalazi
 
@@ -165,7 +198,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | zatvoreno |
 | BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | zatvoreno (W7.90) |
 | BA-knowledge-base-18 | P3       | Comment resolution nema audit, actor ni optimistic state                                 | zatvoreno (W7.91) |
-| BA-knowledge-base-19 | P3       | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica              | otvoreno |
+| BA-knowledge-base-19 | P3       | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica              | zatvoreno (W7.92) |
 
 ## 15. Ključne korekcije
 
@@ -768,3 +801,37 @@ koji je isti tip uklanjao kroz `Omit` (`TS2339`, nevidljiv lokalnom jestu bez di
 200 sa poljem (ne 409), brisanje korisnika briše vezu ali ne audit dokaz, audit nosi `articleId` a ne naslov,
 a pravo na resolve prati `canWrite` nad člankom. Detalji:
 [313-w791-knowledge-base-18-comment-resolution-actor.md](../implementation/313-w791-knowledge-base-18-comment-resolution-actor.md).
+
+## 37. Implementacijski closeout — W7.92 (`BA-knowledge-base-19`)
+
+**Nalaz:** deset od dvanaest suiteova nije kompajliralo (nedostajući `generated/prisma/enums`, nepotpun
+`PrismaService`), a devet scenarija iz §12 nije imalo nijedan test — i jedini zapis o tome bila je rečenica u
+ovom auditu, koja je vremenom zastarjela a nastavila se čitati kao aktualno stanje.
+
+**Rješenje.**
+
+- **Matrica kao ugovor:** `backend/scripts/knowledge-test-matrix.json` — 5 kategorija (`concurrency`,
+  `failure`, `scope`, `corpus`, `retention`), 30 redova, 9 scenarija; svaki red imenuje spec **i tačno ime
+  testa**, jer putanja sama ne dokazuje da test još postoji.
+- **Guard:** `backend/scripts/run-knowledge-test-matrix.mjs` (`validateKnowledgeTestMatrix` + CLI sa
+  `--check-only`) pada ako test nedostaje, ako je preskočen (`it.skip`/`xit`/`xdescribe`), ako PostgreSQL spec
+  nije u `run-isolated-integration.mjs` (kompajlira se i nikad ne izvrši), ako scenario iz §12 ostane bez reda
+  ili ako ovaj audit ponovo nosi zastarjeli snimak iz uvoda §12 (broj prolazećih suiteova i oznaku
+  „blokirano na kompajliranju”).
+- **CI:** dvije provjere u **docs guard** poslu (`--check-only` + self-test `--node --test`), dakle izvršavaju
+  se i na docs-only izmjenama gdje backend posao ne starta. `npm run test:knowledge:matrix` izvršava i unit
+  specove lokalno.
+- **Self-test:** `run-knowledge-test-matrix.test.mjs` — 8 testova nad `validateKnowledgeTestMatrix` (postojeći
+  test, preimenovan test, preskočen test, neregistrovana integracija, nepokriven scenario, izmišljen scenario,
+  prazna kategorija, audit bez linka / sa starom tvrdnjom).
+
+**Testni dokaz:** modul **36 suiteova / 203 testa** — 28 unit suiteova (183 testa) prolazi lokalno, 8
+PostgreSQL suiteova (20 testova) izvršava CI; deset nekada blokiranih suiteova danas prolazi kao **10 / 62**.
+Matrica: **5 kategorija, 9 scenarija, 18 spec fajlova (9 unit, 9 PostgreSQL)**, guard `--check-only` zelen,
+self-test **8/8**.
+
+**Otvoreno i dokumentovano:** **E2E 34/22 nisu prošireni** — matrica dokazuje garantције na sloju na kojem se
+ostvaruju (transakcija, `FOR UPDATE`, CAS, unique constraint, advisory lock, scheduler registration), a
+Playwright bi iste trke ponavljao sporije i nestabilnije; E2E ostaje pokrivač korisničkih tokova. Paket ne
+mijenja šemu, rute ni produktni kod. Detalji:
+[314-w792-knowledge-base-19-concurrency-failure-matrix.md](../implementation/314-w792-knowledge-base-19-concurrency-failure-matrix.md).

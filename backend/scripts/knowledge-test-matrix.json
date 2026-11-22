@@ -1,0 +1,192 @@
+{
+  "concurrency": [
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "two editors, one row: the stale write loses",
+      "spec": "src/modules/knowledge-base/knowledge-base.concurrency.spec.ts",
+      "test": "lets the first of two edits win and rejects the stale one"
+    },
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "a lifecycle decision made on a stale row is refused",
+      "spec": "src/modules/knowledge-base/knowledge-base.concurrency.spec.ts",
+      "test": "rejects a lifecycle decision made against a stale row"
+    },
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "a placement only lands on the revision the request read",
+      "spec": "src/modules/knowledge-base/knowledge-placement-atomicity.integration.spec.ts",
+      "test": "only lets the placement land on the row the request read"
+    },
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "archiving a category races article placement",
+      "spec": "src/modules/knowledge-base/knowledge-category-archive-race.integration.spec.ts",
+      "test": "never leaves an archived category holding a placed article"
+    },
+    {
+      "scenario": "rating race",
+      "what": "the same voter submits twice at once",
+      "spec": "src/modules/knowledge-base/knowledge-feedback-concurrency.integration.spec.ts",
+      "test": "keeps one vote per user under two concurrent submissions of the same user"
+    },
+    {
+      "scenario": "rating race",
+      "what": "eight votes land together and the totals stay exact",
+      "spec": "src/modules/knowledge-base/knowledge-feedback-concurrency.integration.spec.ts",
+      "test": "keeps the totals exact when eight votes arrive together"
+    },
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "two curators resolve the same reader comment",
+      "spec": "src/modules/knowledge-base/portal/knowledge-comment-resolution.integration.spec.ts",
+      "test": "lets exactly one of two parallel resolves win and writes one audit row (W7.91)"
+    },
+    {
+      "scenario": "from-reply idempotency",
+      "what": "two writers draft the same reply",
+      "spec": "src/modules/knowledge-base/knowledge-from-reply-atomicity.integration.spec.ts",
+      "test": "lets two writers of the same reply produce exactly one draft"
+    },
+    {
+      "scenario": "view flush crash",
+      "what": "two flushes race on the same day",
+      "spec": "src/modules/knowledge-base/portal/knowledge-view-flush-idempotency.integration.spec.ts",
+      "test": "counts a day once when two flushes race on it"
+    },
+    {
+      "scenario": "scheduler loss",
+      "what": "two workers register the same schedule",
+      "spec": "src/modules/knowledge-base/knowledge-scheduler-reconciliation.integration.spec.ts",
+      "test": "registers exactly one schedule when two workers start against the same Redis"
+    }
+  ],
+  "failure": [
+    {
+      "scenario": "view flush crash",
+      "what": "a crashed flush is retried and writes the day once",
+      "spec": "src/modules/knowledge-base/portal/knowledge-view-flush-idempotency.integration.spec.ts",
+      "test": "writes a finished day once and treats a crash-retry as a no-op"
+    },
+    {
+      "scenario": "view flush crash",
+      "what": "a Redis-less visit counts as a view, never as a new viewer",
+      "spec": "src/modules/knowledge-base/portal/knowledge-view-flush-idempotency.integration.spec.ts",
+      "test": "counts a Redis-less visit as a view, never as a new viewer"
+    },
+    {
+      "scenario": "from-reply idempotency",
+      "what": "a failed draft takes its article with it, so the retry starts clean",
+      "spec": "src/modules/knowledge-base/knowledge-from-reply-atomicity.integration.spec.ts",
+      "test": "takes a failed draft with it, so the retry creates the one draft and no orphan"
+    },
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "the placement rolls back when the change log cannot be written",
+      "spec": "src/modules/knowledge-base/knowledge-placement-atomicity.integration.spec.ts",
+      "test": "takes the placement with it when the change log cannot be written"
+    },
+    {
+      "scenario": "scheduler loss",
+      "what": "the sweep comes back after Redis loses the registration",
+      "spec": "src/modules/knowledge-base/knowledge-scheduler-reconciliation.integration.spec.ts",
+      "test": "restores the quarter-hourly sweep after Redis loses the registration"
+    },
+    {
+      "scenario": "scheduler loss",
+      "what": "one reminder per owner, and none on the second sweep",
+      "spec": "src/modules/knowledge-base/knowledge-base-review-reminder.dedupe.spec.ts",
+      "test": "sends one reminder per owner and none on the second sweep"
+    },
+    {
+      "scenario": "retention",
+      "what": "deleting a published article is refused and leaves everything in place",
+      "spec": "src/modules/knowledge-base/knowledge-delete-tombstone.integration.spec.ts",
+      "test": "refuses a published article with a 409 and leaves everything in place"
+    },
+    {
+      "scenario": "concurrent edit/lifecycle",
+      "what": "a resolve on an article the actor cannot write changes nothing",
+      "spec": "src/modules/knowledge-base/portal/knowledge-portal.service.spec.ts",
+      "test": "refuses to resolve a comment on an article the actor cannot write (W7.91)"
+    }
+  ],
+  "scope": [
+    {
+      "scenario": "owner/group/reviewer scope revoke",
+      "what": "owner-group membership is revoked on the next request",
+      "spec": "src/modules/knowledge-base/knowledge-base.delegation.spec.ts",
+      "test": "scopes owner-group membership and revokes it on the next request"
+    },
+    {
+      "scenario": "owner/group/reviewer scope revoke",
+      "what": "clearing the reviewer assignment revokes review rights",
+      "spec": "src/modules/knowledge-base/knowledge-base.reviewer-delegation.spec.ts",
+      "test": "revokes review rights when the assignment is cleared"
+    },
+    {
+      "scenario": "owner/group/reviewer scope revoke",
+      "what": "restricted articles stay hidden from agents and foreign OU admins",
+      "spec": "src/modules/knowledge-base/knowledge-base.authorization.spec.ts",
+      "test": "hides restricted articles from agents and foreign OU admins"
+    },
+    {
+      "scenario": "forged intercept resolution",
+      "what": "a forged foreign unit cannot be recorded",
+      "spec": "src/modules/knowledge-base/knowledge-base.intercept-resolution.spec.ts",
+      "test": "refuses a foreign unit a plain user cannot open a ticket in"
+    },
+    {
+      "scenario": "forged intercept resolution",
+      "what": "a forged article id, draft or archived text is refused",
+      "spec": "src/modules/knowledge-base/knowledge-base.intercept-resolution.spec.ts",
+      "test": "refuses an article of another service, a draft and an archived text"
+    },
+    {
+      "scenario": "forged intercept resolution",
+      "what": "an article the caller cannot read is refused",
+      "spec": "src/modules/knowledge-base/knowledge-base.intercept-resolution.spec.ts",
+      "test": "refuses an article the caller cannot read, and an id that does not exist"
+    }
+  ],
+  "corpus": [
+    {
+      "scenario": "unbounded corpus",
+      "what": "a full walk has no gaps and no duplicates",
+      "spec": "src/modules/knowledge-base/knowledge-base.pagination.spec.ts",
+      "test": "walks the corpus page by page without gaps or duplicates"
+    },
+    {
+      "scenario": "unbounded corpus",
+      "what": "one request never reads past the scan budget",
+      "spec": "src/modules/knowledge-base/knowledge-base.pagination.spec.ts",
+      "test": "never reads more than the scan budget per request"
+    },
+    {
+      "scenario": "unbounded corpus",
+      "what": "a cursor that cannot be read is refused, not treated as the end",
+      "spec": "src/modules/knowledge-base/portal/knowledge-portal-pagination.spec.ts",
+      "test": "refuses a cursor it cannot read instead of pretending the page ended"
+    },
+    {
+      "scenario": "unbounded corpus",
+      "what": "the curator comment feed never skips a row when one is resolved",
+      "spec": "src/modules/knowledge-base/portal/knowledge-portal.service.spec.ts",
+      "test": "pages the curator comment feed and never skips a row when one is resolved (W7.90)"
+    }
+  ],
+  "retention": [
+    {
+      "scenario": "retention",
+      "what": "archived articles lose title, body, comments, views, change log and inbox copies",
+      "spec": "src/modules/privacy/retention/retention.integration.spec.ts",
+      "test": "redacts archived articles, their comments, views, change log and inbox copies (W7.87)"
+    },
+    {
+      "scenario": "retention",
+      "what": "a deleted article's change-log trail is redacted, a live one is not",
+      "spec": "src/modules/privacy/retention/retention.integration.spec.ts",
+      "test": "redacts the change-log trail of a deleted article and leaves a live one alone (W7.88)"
+    }
+  ]
+}
