@@ -195,7 +195,17 @@ export class ApiClient {
       } catch {
         // keep HTTP status code
       }
-      throw new ApiRequestError(`${code}: ${text}`, response.status, code, details);
+      // Nightly run 44999494543 (2026-11-22): `ApiRequestError: CONFIG_VALIDATION_FAILED: {…}`
+      // did not say *which* call failed, so the flaky 09-config-ops flake could have been
+      // the create, the validate, the shadow or the rollback. The answer keeps the
+      // `CODE: <body>` prefix every existing assertion matches on and appends the request.
+      const method = (init.method ?? 'GET').toUpperCase();
+      throw new ApiRequestError(
+        `${code}: ${text} (from ${method} ${path})`,
+        response.status,
+        code,
+        details,
+      );
     }
     if (text.length === 0) {
       return undefined as T;

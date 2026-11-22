@@ -33,6 +33,37 @@ describe('toStandardErrorResponse', () => {
     expect(body.requestId).toBe('req-456');
   });
 
+  it('keeps a list of validation issues instead of dropping it (E2E run 44999494543)', () => {
+    // `ConfigVersioningError` and `NotificationPreferencesError` carry their reasons
+    // as an array. It used to be dropped, so an activation/rollback refusal answered
+    // `CONFIG_VALIDATION_FAILED` with `details: {}` and no reason at all.
+    const issues = [
+      { code: 'ROUTING_UNCOVERED', path: 'routing.coverage.ou-1.svc-9', message: 'ROUTING_UNCOVERED' },
+    ];
+    const body = toStandardErrorResponse(
+      new BadRequestException({
+        code: 'CONFIG_VALIDATION_FAILED',
+        message: 'Config version validation failed',
+        details: issues,
+      }),
+      'req-issues',
+    );
+    expect(body.code).toBe('CONFIG_VALIDATION_FAILED');
+    expect(body.details).toEqual({ issues });
+    expect(body.requestId).toBe('req-issues');
+  });
+
+  it('keeps record details and the validation messages side by side', () => {
+    const body = toStandardErrorResponse(
+      new BadRequestException({
+        message: ['format must be csv or json'],
+        details: { fields: ['format'] },
+      }),
+      'req-both',
+    );
+    expect(body.details).toEqual({ fields: ['format'], messages: ['format must be csv or json'] });
+  });
+
   it('hides unknown errors behind INTERNAL_ERROR', () => {
     expect(toStandardErrorResponse(new Error('secret stack'), 'req-789')).toEqual({
       code: 'INTERNAL_ERROR',

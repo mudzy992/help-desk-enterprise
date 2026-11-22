@@ -117,15 +117,24 @@ function fromResponseRecord(
   };
 }
 
+/**
+ * Nightly E2E run 44999494543 (2026-11-22): `POST /config-versions/:id/rollback`
+ * answered `CONFIG_VALIDATION_FAILED` with `details: {}`, because the validation
+ * issues travel as an **array** (`ConfigVersioningError.details`,
+ * `NotificationPreferencesError.details`) and a bare array used to be dropped here.
+ * The client therefore got a code and no reason at all, which is precisely the case
+ * where the reason is the whole answer. A list payload is surfaced under
+ * `details.issues`; a record payload keeps its own keys.
+ */
 function buildDetails(
   record: Record<string, unknown>,
   messages: string[] | undefined,
 ): Record<string, unknown> {
-  const details: Record<string, unknown> =
-    typeof record.details === 'object' &&
-    record.details !== null &&
-    !Array.isArray(record.details)
-      ? { ...(record.details as Record<string, unknown>) }
+  const raw = record.details;
+  const details: Record<string, unknown> = Array.isArray(raw)
+    ? { issues: raw }
+    : typeof raw === 'object' && raw !== null
+      ? { ...(raw as Record<string, unknown>) }
       : {};
   if (messages !== undefined) {
     details.messages = messages;

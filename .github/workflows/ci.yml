@@ -1022,22 +1022,17 @@ jobs:
       - name: Summarize failures (JSON report)
         if: ${{ always() }}
         run: node scripts/summarize-playwright-json.mjs results.json stack-watch.json
+      # Nightly run 44999494543 (2026-11-22): this step was the only red thing in an
+      # E2E job whose Playwright run was green (124 passed / 0 failed / 3 flaky).
+      # The inline shell expanded `$E2E_API_URL` under `set -u`, and that variable
+      # only exists in other steps' `env:`, so the reporter itself died with
+      # "E2E_API_URL: unbound variable" precisely when it had an outage to report.
+      # It is now a tested script that reads the API from stack-watch.json, exits 0
+      # unconditionally, and publishes a warning (recovered, tests decided the job)
+      # or an error (the watchdog stopped the run) plus a step summary.
       - name: Report the stack probe timeline (infrastructure vs code)
         if: ${{ always() }}
-        run: |
-          set -u
-          if [ ! -e stack-watch.json ]; then
-            echo "No stack-watch.json — this run did not go through scripts/run-e2e.mjs (or E2E_API_URL is empty), so no probe timeline exists."
-            exit 0
-          fi
-          echo "stack-watch.json: $(jq -c '{aborted, threshold, intervalMs, probes: (.probes | length), outage}' stack-watch.json)"
-          if jq -e '.outage != null' stack-watch.json > /dev/null; then
-            first=$(jq -r '.outage.firstAt' stack-watch.json)
-            last=$(jq -r '.outage.lastAt' stack-watch.json)
-            recovered=$(jq -r '.outage.recovered' stack-watch.json)
-            aborted=$(jq -r '.aborted' stack-watch.json)
-            echo "::error title=E2E stack outage (infrastructure, not a code regression)::GET $E2E_API_URL/health failed from $first to $last (recovered: $recovered, run stopped by the watchdog: $aborted). Failures marked [stack] or [stack-suspect] in the summary describe that window, not the product. Match the interval against the stack's deploy/restart history, then re-run: Actions -> CI -> Run workflow."
-          fi
+        run: node scripts/report-stack-outage.mjs stack-watch.json
       # TEMPORARY (active Arena session): the sandbox cannot read job logs or
       # artifacts (blob storage is unreachable), so publish a compact failure
       # summary as a check-run; this job grants checks:write for that purpose.
@@ -1090,7 +1085,7 @@ jobs:
           retention-days: 14
       - name: Test the JSON summarizer and the stack watchdog
         if: ${{ always() }}
-        run: node --test scripts/summarize-playwright-json.test.mjs scripts/run-e2e.test.mjs
+        run: node --test scripts/summarize-playwright-json.test.mjs scripts/run-e2e.test.mjs scripts/report-stack-outage.test.mjs
 
   # F6 — the install wizard, through its own UI. Deliberately its own job: the
   # specs need an installation that is **not** finished, so they run only when a
