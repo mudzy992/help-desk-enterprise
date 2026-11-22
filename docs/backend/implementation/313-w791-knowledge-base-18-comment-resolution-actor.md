@@ -158,7 +158,18 @@ dok bi ih baza odbila.
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+- **Run:** [CI #45074598981](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45074598981) —
+  `success` na `505974a` (backend build + test, backend PostgreSQL + Redis integracije, frontend build + test,
+  docs guard, CI gate). Novi integracioni spec `knowledge-comment-resolution.integration.spec.ts` se izvršio
+  protiv PostgreSQL servisa u CI-ju (lokalno je `describe.skip` bez baze).
+- **Prvi run je pao na build-u** (`45074096180`, poslije i perf smoke `45074096112` isti korak „Build the API”):
+  `create-in-memory-knowledge-prisma.ts` je u `seedFeedback` primao `Omit<InMemoryKnowledgeFeedback, 'id' |
+  'createdAt' | 'updatedAt'>` a zatim čitao `feedback.createdAt` — `TS2339`, koji lokalni jest config ne vidi
+  (bez dijagnostike). Popravka (`505974a`) zadržava `createdAt` opcionalnim umjesto da ga ukloni iz tipa;
+  parametar sada prima `{ id?: string; createdAt?: Date }`.
+- **Perf smoke** (`45074096112`) je taj put pokrenut samo zato što je paket dirao
+  `backend/scripts/run-isolated-integration.*` (registracija novog specа); nije mjerio regresiju — pao je na
+  istom build koraku. Poslije popravke se ne pokreće jer putanja više nije u diffu.
 
 ## Registar nalaza
 

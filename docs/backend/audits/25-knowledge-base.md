@@ -758,6 +758,12 @@ In-memory feedback delegat dobio `updateMany` (sa filterom) i `findUnique` po `i
 suite / 5.408 testova**, frontend **474 fajla / 1.892 testa**, `eslint`/`tsc`/`prettier`/`i18n:check`/
 `db:migration-policy:check` zeleni.
 
+**CI dokaz:** [run #45074598981](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45074598981) —
+`success` na `505974a` (uključuje PostgreSQL integraciju za paralelnu trku i `SetNull`). Prvi run
+(`45074096180`) i perf smoke (`45074096112`) pali su na `nest build`: `seedFeedback` je čitao `createdAt`
+koji je isti tip uklanjao kroz `Omit` (`TS2339`, nevidljiv lokalnom jestu bez dijagnostike); popravljeno u
+`505974a` tako što `createdAt` ostaje opcionalan umjesto uklonjen.
+
 **Otvoreno i dokumentovano:** istorijski komentari ostaju bez aktera (nema backfillа), `alreadyResolved` je
 200 sa poljem (ne 409), brisanje korisnika briše vezu ali ne audit dokaz, audit nosi `articleId` a ne naslov,
 a pravo na resolve prati `canWrite` nad člankom. Detalji:
