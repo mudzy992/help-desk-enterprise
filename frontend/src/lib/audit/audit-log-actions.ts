@@ -181,4 +181,6 @@ export const knownAuditActions = [
   "knowledge.article.reply_redacted",
   // W7.88 (BA-knowledge-base-15): the tombstone of a hard delete.
   "knowledge.article.deleted",
+  // W7.91 (BA-knowledge-base-18): resolving a reader's comment now has an actor and a proof.
+  "knowledge.feedback.comment_resolved",
 ] as const;

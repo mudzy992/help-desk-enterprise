@@ -74,9 +74,9 @@ W7.75 nema razlike između izvornih tabela, generisanog plana, globalnog registr
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **308**
-- Otvoreno: **388** (P1 88 / P2 207 / P3 93)
-- Val 7: **87 / 111** zatvoreno, otvoreno **24** (P1 0 / P2 12 / P3 12)
+- Zatvoreno: **309**
+- Otvoreno: **387** (P1 88 / P2 207 / P3 92)
+- Val 7: **88 / 111** zatvoreno, otvoreno **23** (P1 0 / P2 12 / P3 11)
 <!-- findings-totals:end -->
 
 Statusne ćelije za svih 11 nalaza koji su ranije nosili `završen (W3.x)` sada su normalizovane na `zatvoreno` u izvornoj tabeli, globalnom registru i generisanom planu. W3.x ostaje samo kao historijski kontekst implementacijskih paketa, ne kao status nalaza.

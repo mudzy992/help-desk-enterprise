@@ -138,6 +138,18 @@ export type KnowledgeCommentPage = {
   readonly nextCursor: string | null;
 };
 
+/**
+ * W7.91 (`BA-knowledge-base-18`): what a resolve actually did. `alreadyResolved` is the honest answer to a
+ * second click — the caller learns who handled it and when instead of silently overwriting that with itself.
+ */
+export type KnowledgeCommentResolution = {
+  readonly feedbackId: string;
+  readonly articleId: string;
+  readonly resolvedAt: string;
+  readonly resolvedByUserId: string | null;
+  readonly alreadyResolved: boolean;
+};
+
 export type KnowledgeInsights = {
   readonly mostViewed: readonly (KnowledgePortalArticle & { readonly views30d: number })[];
   readonly lowestRated: readonly KnowledgePortalArticle[];
@@ -661,7 +673,22 @@ export class KnowledgePortalService {
   }
 
   /** The article's writer marks a "what is missing" comment as handled. */
-  resolveComment(feedbackId: string, context: KnowledgeArticleMutationContext): Promise<void> {
+  /**
+   * W7.91 (`BA-knowledge-base-18`): marking a comment handled is a *fact with an actor*, not a timestamp
+   * write. Three things changed here:
+   *
+   * 1. the row now stores **who** resolved it, so the article writer can see the handling in place;
+   * 2. the actor, the moment and the article go into an **audit entry written in the same transaction** as
+   *    the row, so the proof commits with the fact (and survives a later user deletion, where the FK is
+   *    `SetNull`);
+   * 3. the write is a **compare-and-set** on `commentResolvedAt IS NULL`. Two curators clicking at once used
+   *    to overwrite each other silently; now the first click wins and the second one gets
+   *    `alreadyResolved: true` with the real resolver instead of pretending it wrote something.
+   */
+  resolveComment(
+    feedbackId: string,
+    context: KnowledgeArticleMutationContext,
+  ): Promise<KnowledgeCommentResolution> {
     return executeKnowledgeBaseOperation(async () => {
       const actor = await loadKnowledgeActorContext(this.loader, context);
       const feedback = await this.prisma.knowledgeFeedback.findUnique({
@@ -675,9 +702,43 @@ export class KnowledgePortalService {
       if (!(await this.canWrite(actor, article))) {
         throw new KnowledgeBaseError('FORBIDDEN');
       }
-      await this.prisma.knowledgeFeedback.update({
-        where: { id: feedbackId },
-        data: { commentResolvedAt: new Date() },
+      return this.prisma.$transaction(async (transaction) => {
+        const resolvedAt = new Date();
+        const updated = await transaction.knowledgeFeedback.updateMany({
+          where: { id: feedbackId, commentResolvedAt: null },
+          data: { commentResolvedAt: resolvedAt, commentResolvedByUserId: context.actorUserId },
+        });
+        if (updated.count === 0) {
+          // Somebody resolved it between the read above and this write (or long before): report the fact
+          // that exists. No second audit row — nothing changed, and a duplicate would claim a handling
+          // that did not happen.
+          const current = await transaction.knowledgeFeedback.findUnique({
+            where: { id: feedbackId },
+            select: { commentResolvedAt: true, commentResolvedByUserId: true },
+          });
+          return {
+            feedbackId,
+            articleId: feedback.articleId,
+            resolvedAt: (current?.commentResolvedAt ?? resolvedAt).toISOString(),
+            resolvedByUserId: current?.commentResolvedByUserId ?? null,
+            alreadyResolved: true,
+          };
+        }
+        await this.audit(
+          auditLogActions.knowledgeCommentResolved,
+          auditLogEntityTypes.knowledgeFeedback,
+          feedbackId,
+          context,
+          { articleId: feedback.articleId, resolvedAt: resolvedAt.toISOString() },
+          { transaction },
+        );
+        return {
+          feedbackId,
+          articleId: feedback.articleId,
+          resolvedAt: resolvedAt.toISOString(),
+          resolvedByUserId: context.actorUserId,
+          alreadyResolved: false,
+        };
       });
     });
   }

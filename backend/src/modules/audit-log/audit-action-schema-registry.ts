@@ -283,6 +283,10 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.knowledgeArticleReplyRedacted]: schema(['body', 'messageId', 'title']),
   // W7.88 (BA-knowledge-base-15): the delete tombstone. The allowlist deliberately
   // has no `title`/`body` - the content must not outlive the row it described.
+  // W7.91 (BA-knowledge-base-18): the resolution names the article (context) and the moment the row was
+  // written; the actor is the audit row's own `actorUserId`, and the comment text is deliberately absent —
+  // it may hold personal data (see audit §8).
+  [auditLogActions.knowledgeCommentResolved]: schema(['articleId', 'resolvedAt']),
   [auditLogActions.knowledgeArticleDeleted]: schema([
     'classification',
     'deletedAt',

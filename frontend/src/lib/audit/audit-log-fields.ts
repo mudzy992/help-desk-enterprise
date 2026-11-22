@@ -38,6 +38,8 @@ export const knownAuditMetadataFields = [
   // W7.68: the digest of the conflict snapshot a transition acknowledged.
   "conflictsAcknowledged",
   "conversationType",
+  // W7.91 (BA-knowledge-base-18): the moment the comment was marked handled.
+  "resolvedAt",
   "createdRolePermissionCount",
   "createdUserRoleCount",
   "decision",

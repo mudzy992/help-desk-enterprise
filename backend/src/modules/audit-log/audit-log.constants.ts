@@ -232,6 +232,12 @@ export const auditLogActions = {
    * slug existed, who retired it and what the counters were.
    */
   knowledgeArticleDeleted: 'knowledge.article.deleted',
+  /**
+   * W7.91 (BA-knowledge-base-18): a curator marked a reader's "what is missing" comment as handled. The
+   * action exists because the row alone could not prove who did it: two parallel clicks used to overwrite
+   * `commentResolvedAt` silently, and the audit row is what survives that and a later user deletion.
+   */
+  knowledgeCommentResolved: 'knowledge.feedback.comment_resolved',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -273,6 +279,8 @@ export const auditLogEntityTypes = {
   announcement: 'announcement',
   knowledgeCategory: 'knowledge_category',
   knowledgeArticle: 'knowledge_article',
+  /** W7.91: the feedback row a comment lives on. */
+  knowledgeFeedback: 'knowledge_feedback',
   // Paket 3.2
   asset: 'asset',
   assetType: 'asset_type',

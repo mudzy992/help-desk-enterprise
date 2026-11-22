@@ -1,5 +1,6 @@
 import { createKnowledgeBaseServiceHarness, knowledgeBaseTestIds } from '../create-knowledge-base-service-harness';
 import { knowledgeBaseConstants } from '../knowledge-base.constants';
+import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { publishedArticleSeed } from '../published-article-seed';
 import { knowledgeRatingBonus } from '../rank-knowledge-articles';
 import {
@@ -767,6 +768,122 @@ describe('KnowledgePortalService (Paket 2.9, K1)', () => {
     await expect(service.categoryArticles('gone', requester)).rejects.toMatchObject({
       response: { code: 'CATEGORY_NOT_FOUND' },
     });
+  });
+
+  it('records who resolved a comment, when, and an audit entry in the same transaction (W7.91)', async () => {
+    const { service, memory, audits } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    memory.seedFeedback({
+      id: 'fb-1',
+      articleId: 'a1',
+      userId: knowledgeBaseTestIds.requester,
+      isHelpful: false,
+      rating: 2,
+      comment: 'Nedostaje korak 3',
+      commentResolvedAt: null,
+      commentResolvedByUserId: null,
+    });
+
+    const resolution = await service.resolveComment(
+      'fb-1',
+      asUser(knowledgeBaseTestIds.agentIt),
+    );
+
+    expect(resolution).toMatchObject({
+      feedbackId: 'fb-1',
+      articleId: 'a1',
+      resolvedByUserId: knowledgeBaseTestIds.agentIt,
+      alreadyResolved: false,
+    });
+    expect(Number.isNaN(Date.parse(resolution.resolvedAt))).toBe(false);
+    const stored = memory.feedbacks.get('fb-1');
+    expect(stored?.commentResolvedByUserId).toBe(knowledgeBaseTestIds.agentIt);
+    expect(stored?.commentResolvedAt?.toISOString()).toBe(resolution.resolvedAt);
+    expect(audits).toHaveLength(1);
+    expect(audits[0]).toMatchObject({
+      action: auditLogActions.knowledgeCommentResolved,
+      entityType: auditLogEntityTypes.knowledgeFeedback,
+      entityId: 'fb-1',
+      actorUserId: knowledgeBaseTestIds.agentIt,
+      metadata: { articleId: 'a1', resolvedAt: resolution.resolvedAt },
+    });
+  });
+
+  it('answers a second resolve with the first resolver and writes no second audit row (W7.91)', async () => {
+    const { service, memory, audits } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    memory.seedFeedback({
+      id: 'fb-1',
+      articleId: 'a1',
+      userId: knowledgeBaseTestIds.requester,
+      isHelpful: false,
+      rating: 1,
+      comment: 'Nema koraka',
+      commentResolvedAt: null,
+      commentResolvedByUserId: null,
+    });
+
+    const first = await service.resolveComment('fb-1', asUser(knowledgeBaseTestIds.agentIt));
+    const second = await service.resolveComment('fb-1', superAdmin);
+
+    expect(first.alreadyResolved).toBe(false);
+    expect(second).toMatchObject({
+      alreadyResolved: true,
+      // The handling stays attributed to whoever actually handled it — a second click cannot claim it.
+      resolvedByUserId: knowledgeBaseTestIds.agentIt,
+      resolvedAt: first.resolvedAt,
+    });
+    expect(memory.feedbacks.get('fb-1')?.commentResolvedByUserId).toBe(
+      knowledgeBaseTestIds.agentIt,
+    );
+    expect(audits).toHaveLength(1);
+  });
+
+  it('lets exactly one of two parallel resolves through (W7.91)', async () => {
+    const { service, memory, audits } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    memory.seedFeedback({
+      id: 'fb-1',
+      articleId: 'a1',
+      userId: knowledgeBaseTestIds.requester,
+      isHelpful: false,
+      rating: 2,
+      comment: 'Nedostaje korak 3',
+      commentResolvedAt: null,
+      commentResolvedByUserId: null,
+    });
+
+    const results = await Promise.all([
+      service.resolveComment('fb-1', asUser(knowledgeBaseTestIds.agentIt)),
+      service.resolveComment('fb-1', superAdmin),
+    ]);
+
+    expect(results.filter((item) => !item.alreadyResolved)).toHaveLength(1);
+    expect(results.filter((item) => item.alreadyResolved)).toHaveLength(1);
+    // The compare-and-set guarantees a single audit row, so "ko je riješio" has exactly one answer.
+    expect(audits).toHaveLength(1);
+    expect(new Set(results.map((item) => item.resolvedByUserId)).size).toBe(1);
+  });
+
+  it('refuses to resolve a comment on an article the actor cannot write (W7.91)', async () => {
+    const { service, memory, audits } = createPortalHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'a1', slug: 'a1' }));
+    memory.seedFeedback({
+      id: 'fb-1',
+      articleId: 'a1',
+      userId: knowledgeBaseTestIds.requester,
+      isHelpful: false,
+      rating: 2,
+      comment: 'Nedostaje korak 3',
+      commentResolvedAt: null,
+      commentResolvedByUserId: null,
+    });
+
+    await expect(
+      service.resolveComment('fb-1', asUser(knowledgeBaseTestIds.requester)),
+    ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+    expect(memory.feedbacks.get('fb-1')?.commentResolvedAt ?? null).toBeNull();
+    expect(audits).toHaveLength(0);
   });
 
   it('shows insights to curators only: lowest rated needs at least 5 votes', async () => {

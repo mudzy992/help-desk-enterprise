@@ -79,7 +79,8 @@ model User {
   guardrailClaims      GuardrailClaim[]
   ownedArticles        KnowledgeArticle[]         @relation("KnowledgeArticleOwner")
   reviewedArticles     KnowledgeArticle[]         @relation("KnowledgeArticleReviewer")
-  knowledgeFeedbacks   KnowledgeFeedback[]
+  knowledgeFeedbacks   KnowledgeFeedback[]         @relation("KnowledgeFeedbackAuthor")
+  resolvedKnowledgeFeedbacks KnowledgeFeedback[]   @relation("KnowledgeFeedbackResolver")
   knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   notifications                   Notification[]
   notificationReceipts            NotificationReceipt[]

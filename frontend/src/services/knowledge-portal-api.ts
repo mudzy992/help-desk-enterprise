@@ -240,7 +240,19 @@ export function getKnowledgeInsights(): Promise<KnowledgeInsights> {
   return apiRequest(`${base}/insights`);
 }
 
-export function resolveKnowledgeComment(feedbackId: string): Promise<void> {
+/**
+ * W7.91 (`BA-knowledge-base-18`): the resolve answers with the fact it produced. `alreadyResolved` means a
+ * different curator got there first — the panel says so instead of pretending the click changed anything.
+ */
+export type KnowledgeCommentResolution = {
+  readonly feedbackId: string;
+  readonly articleId: string;
+  readonly resolvedAt: string;
+  readonly resolvedByUserId: string | null;
+  readonly alreadyResolved: boolean;
+};
+
+export function resolveKnowledgeComment(feedbackId: string): Promise<KnowledgeCommentResolution> {
   return apiRequest(`${base}/feedback/${feedbackId}/resolve`, { method: "POST" });
 }
 

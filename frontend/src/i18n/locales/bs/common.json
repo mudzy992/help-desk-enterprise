@@ -435,7 +435,8 @@
             "problem_handoff_rejected": "Problem — predaja drugoj grupi odbijena",
             "problem_handoff_cancelled": "Problem — predaja drugoj grupi otkazana",
             "change_claimed": "Promjena — preuzeta u obradu",
-            "change_updated": "Promjena — izmijenjena"
+            "change_updated": "Promjena — izmijenjena",
+            "knowledge_feedback_comment_resolved": "Komentar baze znanja — označen riješenim"
           },
           "entities": {
             "policy_pack": "Paket pravila",
@@ -481,7 +482,8 @@
             "problem": "Problem",
             "change": "Promjena",
             "change_template": "Šablon promjene",
-            "auth_event": "Sigurnosni događaj"
+            "auth_event": "Sigurnosni događaj",
+            "knowledge_feedback": "Komentar baze znanja"
           },
           "fields": {
             "channel": "Kanal",
@@ -695,7 +697,8 @@
             "services": "Servisi",
             "servicesAdded": "Dodani servisi",
             "servicesRemoved": "Uklonjeni servisi",
-            "testPlan": "Plan testiranja"
+            "testPlan": "Plan testiranja",
+            "resolvedAt": "Riješeno u"
           }
         },
         "actorUnknown": "Nepoznat korisnik",
@@ -5888,7 +5891,9 @@
         "emptyNotViewed": "Svi objavljeni članci su nedavno čitani.",
         "emptyComments": "Nema otvorenih komentara.",
         "commentsTruncated": "Prikazano prvih {{count}} otvorenih komentara.",
-        "loadMoreComments": "Učitaj još komentara"
+        "loadMoreComments": "Učitaj još komentara",
+        "alreadyResolved": "Komentar je već označen riješenim — prikazujem stvarno stanje.",
+        "resolving": "Označavam…"
       },
       "fromReply": {
         "redactedOnSave": "Server je zamijenio lične podatke pri čuvanju.",

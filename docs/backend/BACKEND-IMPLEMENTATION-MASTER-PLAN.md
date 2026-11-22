@@ -22,7 +22,7 @@ Ovaj master plan je kanonski za **redoslijed, sadržaj valova/paketa, zbirni sta
 | 4 | zajednički idempotency/outbox/concurrency/storage/cache primitives; nema direktnog BA wave assignmenta | W4.1–W4.7 završeni | — | — | Platformska osnova završena; sama po sebi ne zatvara domenske BA ID-eve. |
 | 5 | 12–16 (tickets, routing, SLA, service catalog, templates) | W5.1–W5.50 i BA-templates closeouti 01–13 | 74 / 74 | 0 (0/0/0) | Svi BA nalazi i targeted E2E 16/25/32 su zatvoreni/zeleni; BA-15 full critical-flow acceptance ostaje zasebno pending. |
 | 6 | 17–21, 28–29 (notifications, websocket, integration queue, inbound email, on-call, announcements, status-page) | W6 paketi i [owner-directed closeout](implementation/226-val6-owner-directed-closeout.md) | 111 / 111 | 0 (0/0/0) | Svi izvorni nalazi zatvoreni; posljednjih 10 uz vlasničko prihvatanje nedokazanih scenarija. Puni CI `43430133509` ostaje failure; zasebni [WebSocket reaudit](implementation/227-websocket-reaudit-live-refresh.md) je follow-up, ne dokaz zatvaranja svih njegovih nalaza. |
-| 7 | 22–27 (assets, problems, changes, knowledge-base, reports, search) | Closeouti W7.1–W7.74 u `implementation/` (dnevnik: §11) | 87 / 111 | 24 (0/12/12) | Val 7 je u toku; backlog i nastavak su u §11. |
+| 7 | 22–27 (assets, problems, changes, knowledge-base, reports, search) | Closeouti W7.1–W7.74 u `implementation/` (dnevnik: §11) | 88 / 111 | 23 (0/12/11) | Val 7 je u toku; backlog i nastavak su u §11. |
 | 8 | 31–38 (install, setup, policy packs, onboarding, directory sync, Teams, extension, branding) | Nema još W8.x paketa | 0 / 148 | 148 (41/76/31) | Planiran, nije započet; detalji u §12. |
 | 9 | 39–42 (health, observability, ops-health, docs) | Nema još W9.x paketa | 1 / 71 | 70 (13/39/18) | `BA-docs-01` zatvoren je ranijim paketom; ostali nalazi ovog vala su otvoreni. |
 | 10 | CLI, data-repair i migration closure; završni cross-cutting workstream bez novog BA ID bucket-a | Nema W10.x paketa | — | — | Planiran nakon zatvaranja W1–W9 scopeova; ciljna baza/migracije ostaju van ovog handoffa. |
@@ -41,9 +41,9 @@ iz 44 audit tabele; ručno uređivanje pada na `audit:traceability` u CI-ju i u 
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **308**
-- Otvoreno: **388** (P1 88 / P2 207 / P3 93)
-- Val 7: **87 / 111** zatvoreno, otvoreno **24** (P1 0 / P2 12 / P3 12)
+- Zatvoreno: **309**
+- Otvoreno: **387** (P1 88 / P2 207 / P3 92)
+- Val 7: **88 / 111** zatvoreno, otvoreno **23** (P1 0 / P2 12 / P3 11)
 <!-- findings-totals:end -->
 
 ### Kanonski izvori i podržavajući zapisi

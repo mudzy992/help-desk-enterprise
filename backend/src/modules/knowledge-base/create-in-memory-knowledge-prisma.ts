@@ -201,11 +201,9 @@ export function createInMemoryKnowledgePrisma() {
     seedFeedback: (feedback: Omit<InMemoryKnowledgeFeedback, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
       const timestamp = now();
       const created: InMemoryKnowledgeFeedback = {
+        ...feedback,
         id: feedback.id ?? nextId(),
-        articleId: feedback.articleId,
-        userId: feedback.userId,
-        isHelpful: feedback.isHelpful,
-        createdAt: timestamp,
+        createdAt: feedback.createdAt ?? timestamp,
         updatedAt: timestamp,
       };
       feedbacks.set(created.id, created);

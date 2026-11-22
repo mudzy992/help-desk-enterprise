@@ -68,14 +68,18 @@ model KnowledgeFeedback {
   comment   String?          @db.VarChar(500)
   /// K1: the owner marked the comment as handled ("Za doradu" list).
   commentResolvedAt DateTime?
+  /// W7.91 (BA-knowledge-base-18): who marked it — the timestamp alone could not prove an actor.
+  commentResolvedByUserId String?
   article   KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation("KnowledgeFeedbackAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  resolvedBy User?          @relation("KnowledgeFeedbackResolver", fields: [commentResolvedByUserId], references: [id], onDelete: SetNull)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
   @@unique([articleId, userId])
   @@index([articleId])
   @@index([userId])
+  @@index([commentResolvedByUserId])
 }
 
 model KnowledgeInterceptResolution {

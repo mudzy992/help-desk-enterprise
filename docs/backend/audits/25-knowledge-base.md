@@ -65,7 +65,7 @@ Intercept traži service, uzima bounded published kandidate, batch-filteruje vis
 
 Feedback upsert je DB unique po article+user. Međutim vote write i aggregate recompute nisu jedna transakcija. Paralelni voteovi mogu izračunati različite snapshote i stariji aggregate update može završiti posljednji, ostavljajući `ratingCount/ratingSum` netačnim. Korisnički delete cascade također mijenja vote skup bez očiglednog counter reconciliationa. Koristiti transactional delta, trigger ili periodični exact reconciler.
 
-Low-rating comment sadrži lične podatke; insights vraća komentar writerima/owner grupi prema širokom owner bypassu. Resolution nema audit/event, pa nije dokazivo ko je komentar označio riješenim.
+Low-rating comment sadrži lične podatke; insights vraća komentar writerima/owner grupi prema širokom owner bypassu. W7.91 je uklonio tihi resolve: `KnowledgeFeedback.commentResolvedByUserId` pamti aktera, `knowledge.feedback.comment_resolved` audit red se piše u istoj transakciji, a `updateMany(commentResolvedAt: null)` je compare-and-set pa drugi klik sazna ko je bio prvi. Tekst komentara se ne kopira u audit.
 
 ## 7. Portal kategorije, placement i insights
 
@@ -164,7 +164,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | zatvoreno |
 | BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | zatvoreno |
 | BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | zatvoreno (W7.90) |
-| BA-knowledge-base-18 | P3       | Comment resolution nema audit, actor ni optimistic state                                 | otvoreno |
+| BA-knowledge-base-18 | P3       | Comment resolution nema audit, actor ni optimistic state                                 | zatvoreno (W7.91) |
 | BA-knowledge-base-19 | P3       | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica              | otvoreno |
 
 ## 15. Ključne korekcije
@@ -172,6 +172,9 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 - **01–02:** owner/reviewer kao eksplicitna, eligible, scoped i auditirana delegacija sa revoke/expiry pravilom.
 - **03:** article version/content revision, If-Match/CAS i review vezan za tačan revision hash.
 - **04, 17:** DB pagination/scope pushdown, cursor/hasMore i bounded portal/insights.
+- **18 (W7.91):** rješavanje komentara je činjenica sa akterom — kolona `commentResolvedByUserId` (`SetNull`),
+  audit `knowledge.feedback.comment_resolved` u istoj transakciji, compare-and-set koji priznaje „već riješeno”
+  i UI pending stanje; istorijski redovi ostaju bez aktera (dokumentovano).
 - **17 (W7.90):** svaka portal lista koja se reže ima stranu sa `hasMore`/`nextCursor`; komentari idu keyset-om
   po `(createdAt desc, id desc)` (resolve između strana ne preskače red), kategorije po
   `(sortOrder, nameBs, id)` sa djecom uz roditelja, `limit` kroz `resolvePageSize`, a pickeri iznad capa to
@@ -723,3 +726,39 @@ eksplicitno kroz `hasMore`/`categoriesComplete`), cap hoda pickera je 1.000 kori
 ponavlja na svakoj strani, a `limit` clamp-uje `resolvePageSize` (nema `INVALID_LIMIT` greške jer je siguran
 default uvijek tačan odgovor). Detalji:
 [312-w790-knowledge-base-17-bounded-pages.md](../implementation/312-w790-knowledge-base-17-bounded-pages.md).
+
+## 36. Implementacijski closeout — W7.91 (`BA-knowledge-base-18`)
+
+**Nalaz:** „Označi riješenim” je bio goli `update` `commentResolvedAt` — bez aktera, bez audit reda i bez
+ikakvog stanja za slučaj dva paralelna klika. Red je znao *kad*, nije znao *ko*; drugi klik je tiho prepisao
+prvi, a UI nije imao pending stanje pa je dvostruki klik bio normalno ponašanje.
+
+**Rješenje.**
+
+- **Akter u redu:** aditivna migracija `20271201150000_knowledge_feedback_resolution_actor` dodaje
+  `commentResolvedByUserId` sa FK `ON DELETE SET NULL` i indeksom; dvije relacije na `User` su sada imenovane
+  (`KnowledgeFeedbackAuthor`/`KnowledgeFeedbackResolver`) da bi `Cascade` za autora i `SetNull` za rješavača
+  mogli koegzistirati. Schema sentinel je pomjeren.
+- **Dokaz commit-uje sa činjenicom:** `resolveComment` radi u `$transaction` — compare-and-set
+  `updateMany({ where: { id, commentResolvedAt: null } })`, pa `audit(knowledge.feedback.comment_resolved,
+  entity knowledge_feedback, metadata { articleId, resolvedAt })` sa `{ transaction }`. Tekst komentara
+  namjerno nije u metapodacima.
+- **Optimistic state:** pobjednik vraća `alreadyResolved: false` i svog aktera; gubitnik **ne piše ništa**,
+  čita stvarno stanje i vraća `alreadyResolved: true` sa stvarnim akterom i vremenom. Frontend ima pending
+  stanje (`disabled`/`aria-busy`, „Označavam…”), optimistično uklanja red poslije potvrde i prikazuje info
+  toast za „već riješeno”.
+- **Audit ugovor zatvoren na svih pet mjesta:** akcija i entitet u `audit-log.constants.ts`, compatibility i
+  metadata-schema registri, frontend katalozi akcija/entiteta/polja, bs/en labele.
+
+**Testni dokaz:** `knowledge-portal.service.spec.ts` **+4** (akter + audit iz istog poziva; drugi resolve bez
+drugog audita; `Promise.all` sa tačno jednim pobjednikom; `FORBIDDEN` bez zapisa),
+`knowledge-comment-resolution.integration.spec.ts` (**2**, PostgreSQL: paralelna trka i `SetNull` koji čuva
+audit dokaz), `knowledge-insights-panel.spec.tsx` **2 → 4** (pending stanje, uklanjanje, „već riješeno”).
+In-memory feedback delegat dobio `updateMany` (sa filterom) i `findUnique` po `id`. Lokalno backend **940
+suite / 5.408 testova**, frontend **474 fajla / 1.892 testa**, `eslint`/`tsc`/`prettier`/`i18n:check`/
+`db:migration-policy:check` zeleni.
+
+**Otvoreno i dokumentovano:** istorijski komentari ostaju bez aktera (nema backfillа), `alreadyResolved` je
+200 sa poljem (ne 409), brisanje korisnika briše vezu ali ne audit dokaz, audit nosi `articleId` a ne naslov,
+a pravo na resolve prati `canWrite` nad člankom. Detalji:
+[313-w791-knowledge-base-18-comment-resolution-actor.md](../implementation/313-w791-knowledge-base-18-comment-resolution-actor.md).

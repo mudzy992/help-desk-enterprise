@@ -180,6 +180,10 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.knowledgeCategoryRestored]: compatibility([auditLogEntityTypes.knowledgeCategory]),
   [auditLogActions.knowledgeArticleDraftedFromReply]: compatibility([auditLogEntityTypes.knowledgeArticle]),
   [auditLogActions.knowledgeArticleReplyRedacted]: compatibility([auditLogEntityTypes.knowledgeArticle]),
+  // W7.91 (BA-knowledge-base-18): resolving a comment is a fact about the feedback row, not about the
+  // article, so the entity is the row itself and the action stays `producer` scoped (the article carries
+  // the unit, the feedback row does not).
+  [auditLogActions.knowledgeCommentResolved]: compatibility([auditLogEntityTypes.knowledgeFeedback]),
   // W7.88 (BA-knowledge-base-15): the delete tombstone is an entity-scoped-by-meaning
   // event on the article; the action stays `producer` scoped because the row (and its
   // `organizationalUnit` FK) is gone by the time the entry is read.

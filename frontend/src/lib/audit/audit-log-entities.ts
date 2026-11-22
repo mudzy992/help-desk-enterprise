@@ -32,6 +32,8 @@ export const knownAuditEntityTypes = [
   "announcement",
   "knowledge_category",
   "knowledge_article",
+  // W7.91 (BA-knowledge-base-18): the feedback row a resolved comment lives on.
+  "knowledge_feedback",
   "asset",
   "asset_type",
   "asset_location",

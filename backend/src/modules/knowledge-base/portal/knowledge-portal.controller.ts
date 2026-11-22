@@ -143,7 +143,7 @@ export class KnowledgePortalController {
   @Post('feedback/:id/resolve')
   @HttpCode(204)
   async resolveComment(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    await this.portal.resolveComment(id, readKnowledgeMutationContext(request));
+    return this.portal.resolveComment(id, readKnowledgeMutationContext(request));
   }
 
   @Post('from-reply/preview')

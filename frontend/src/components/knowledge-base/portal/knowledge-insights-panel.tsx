@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { formatAverageRating } from "@/lib/knowledge-base/knowledge-portal";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import {
@@ -28,6 +29,9 @@ export function KnowledgeInsightsPanel() {
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // W7.91: a click in flight is visible and unclickable — that is the optimistic half of the contract.
+  const [resolvingIds, setResolvingIds] = useState<readonly string[]>([]);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     try {
@@ -72,6 +76,45 @@ export function KnowledgeInsightsPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  /**
+   * W7.91 (`BA-knowledge-base-18`): resolving used to be fire-and-forget — no pending state, no actor and
+   * no way to notice that somebody else handled the comment first. Now the row leaves the list as soon as
+   * the server confirms, and a competing resolve is reported instead of swallowed.
+   */
+  const resolveComment = useCallback(
+    async (feedbackId: string) => {
+      if (resolvingIds.includes(feedbackId)) return;
+      setResolvingIds((current) => [...current, feedbackId]);
+      try {
+        const resolution = await resolveKnowledgeComment(feedbackId);
+        setInsights((current) =>
+          current === null
+            ? current
+            : {
+                ...current,
+                openComments: {
+                  ...current.openComments,
+                  items: current.openComments.items.filter((item) => item.id !== feedbackId),
+                },
+              },
+        );
+        if (resolution.alreadyResolved) {
+          toast({
+            tone: "info",
+            title: t("knowledgeBase.portal.insights.alreadyResolved"),
+          });
+        }
+        void load();
+      } catch (error) {
+        setErrorKey(mapApiError(error));
+        setRequestId(readApiRequestId(error));
+      } finally {
+        setResolvingIds((current) => current.filter((id) => id !== feedbackId));
+      }
+    },
+    [load, resolvingIds, t, toast],
+  );
 
   if (errorKey !== null) return <ApiErrorText messageKey={errorKey} requestId={requestId} />;
   if (insights === null)
@@ -153,10 +196,14 @@ export function KnowledgeInsightsPanel() {
                   size="xs"
                   variant="ghost"
                   className="mt-1"
-                  onClick={() => void resolveKnowledgeComment(comment.id).then(load)}
+                  disabled={resolvingIds.includes(comment.id)}
+                  aria-busy={resolvingIds.includes(comment.id)}
+                  onClick={() => void resolveComment(comment.id)}
                 >
                   <Check size={12} aria-hidden="true" />{" "}
-                  {t("knowledgeBase.portal.insights.resolve")}
+                  {resolvingIds.includes(comment.id)
+                    ? t("knowledgeBase.portal.insights.resolving")
+                    : t("knowledgeBase.portal.insights.resolve")}
                 </Button>
               </li>
             ))}

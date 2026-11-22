@@ -6,6 +6,8 @@ export type InMemoryKnowledgeFeedback = {
   readonly rating?: number | null;
   readonly comment?: string | null;
   readonly commentResolvedAt?: Date | null;
+  /** W7.91 (`BA-knowledge-base-18`): who marked the comment handled. */
+  readonly commentResolvedByUserId?: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -33,6 +35,8 @@ export type FeedbackWhere = {
   readonly comment?: { readonly not?: null };
   /** W7.90: unresolved only. */
   readonly commentResolvedAt?: null;
+  /** W7.91: the resolver column, read back after a compare-and-set. */
+  readonly commentResolvedByUserId?: string | null;
   /** W7.90: the keyset of the comment page — `(createdAt desc, id desc)`. */
   readonly OR?: readonly FeedbackWhere[];
   readonly id?: { readonly lt?: string };
@@ -47,15 +51,24 @@ export function createInMemoryKnowledgeFeedbackDelegate(
     [...feedbacks.values()].filter((item) => matchesFeedback(item, where));
 
   return {
+    // Prisma accepts any unique selector: `id` is `@id`, the pair is `@@unique`.
     findUnique: async ({
       where,
     }: {
-      where: { articleId_userId: { articleId: string; userId: string } };
-    }) =>
-      matching({
-        articleId: where.articleId_userId.articleId,
-        userId: where.articleId_userId.userId,
-      })[0] ?? null,
+      where:
+        | { id: string }
+        | { articleId_userId: { articleId: string; userId: string } };
+    }) => {
+      if ('id' in where) {
+        return feedbacks.get(where.id) ?? null;
+      }
+      return (
+        matching({
+          articleId: where.articleId_userId.articleId,
+          userId: where.articleId_userId.userId,
+        })[0] ?? null
+      );
+    },
     aggregate: async ({ where }: { where: { articleId: string } }) => {
       const rated = matching({ articleId: where.articleId }).filter(
         (item) => typeof item.rating === 'number',
@@ -108,6 +121,27 @@ export function createInMemoryKnowledgeFeedbackDelegate(
       };
       feedbacks.set(created.id, created);
       return created;
+    },
+    /**
+     * W7.91 (`BA-knowledge-base-18`): the resolve is a compare-and-set (`commentResolvedAt: null` in the
+     * filter). The double has to honour that filter, otherwise two parallel resolves would both "succeed"
+     * in the unit tests while the real database lets exactly one through.
+     */
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where?: FeedbackWhere;
+      data: {
+        readonly commentResolvedAt?: Date | null;
+        readonly commentResolvedByUserId?: string | null;
+      };
+    }) => {
+      const rows = matching(where);
+      for (const row of rows) {
+        feedbacks.set(row.id, { ...row, ...data, updatedAt: now() });
+      }
+      return { count: rows.length };
     },
     upsert: async ({
       where,
@@ -173,6 +207,15 @@ function matchesFeedback(
     return false;
   }
   if (where.commentResolvedAt === null && (item.commentResolvedAt ?? null) !== null) {
+    return false;
+  }
+  if (where.commentResolvedByUserId === null && (item.commentResolvedByUserId ?? null) !== null) {
+    return false;
+  }
+  if (
+    typeof where.commentResolvedByUserId === 'string' &&
+    item.commentResolvedByUserId !== where.commentResolvedByUserId
+  ) {
     return false;
   }
   if (where.id?.lt !== undefined && !(item.id < where.id.lt)) {

@@ -433,7 +433,8 @@
             "problem_handoff_rejected": "Problem — handoff to another group rejected",
             "problem_handoff_cancelled": "Problem — handoff to another group cancelled",
             "change_claimed": "Change — claimed",
-            "change_updated": "Change — updated"
+            "change_updated": "Change — updated",
+            "knowledge_feedback_comment_resolved": "Knowledge comment — marked resolved"
           },
           "entities": {
             "policy_pack": "Policy pack",
@@ -479,7 +480,8 @@
             "problem": "Problem",
             "change": "Change",
             "change_template": "Change template",
-            "auth_event": "Security event"
+            "auth_event": "Security event",
+            "knowledge_feedback": "Knowledge comment"
           },
           "fields": {
             "channel": "Channel",
@@ -693,7 +695,8 @@
             "services": "Services",
             "servicesAdded": "Services added",
             "servicesRemoved": "Services removed",
-            "testPlan": "Test plan"
+            "testPlan": "Test plan",
+            "resolvedAt": "Resolved at"
           }
         },
         "actorUnknown": "Unknown user",
@@ -5863,7 +5866,9 @@
         "emptyNotViewed": "All published articles were read recently.",
         "emptyComments": "No open comments.",
         "commentsTruncated": "Showing the first {{count}} open comments.",
-        "loadMoreComments": "Load more comments"
+        "loadMoreComments": "Load more comments",
+        "alreadyResolved": "This comment was already marked resolved — showing the current state.",
+        "resolving": "Marking…"
       },
       "fromReply": {
         "redactedOnSave": "The server replaced personal data while saving.",
