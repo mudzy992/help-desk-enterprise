@@ -177,6 +177,24 @@ SKIPPED 1 test(s) — a skip is not a pass:
   An unknown number fails the step with `Unknown spec` instead of quietly running everything. Use it to re-check a
   fix in ~2 minutes instead of a full pass — the summary prints the line ready to copy:
   `NEXT TRIAGE RUN: specs=15,22 (…)`.
+- **A stack outage is reported, never blamed.** `scripts/report-stack-outage.mjs` reads `stack-watch.json` after
+  the run, prints the timeline, adds a step summary and exits **0** unconditionally: a warning when the stack came
+  back (the tests decided the job — failures marked `[stack]`/`[stack-suspect]` and flaky retries inside the
+  window describe the outage), an error annotation when the watchdog stopped the run (that run is already red).
+  Nightly run 44999494543 (2026-11-22) was red *only* because the previous inline shell expanded `$E2E_API_URL`
+  under `set -u` while that variable lived in other steps' `env:` — `E2E_API_URL: unbound variable` — with
+  Playwright green at 124 passed / 0 failed / 3 flaky / 1 skipped and a 17-minute flapping-API window in the
+  report. The step is covered offline by `scripts/report-stack-outage.test.mjs`; it reads the API from
+  `stack-watch.json` (`apiUrl`), never from the environment.
+- **`details` from an array is `details.issues`.** The standard error body keeps a list payload
+  (`ConfigVersioningError`, `NotificationPreferencesError`) under `details.issues` instead of dropping it
+  (`backend/src/common/request-context/format-error-response.ts`). Before that fix a refused
+  `POST /config-versions/:id/rollback` answered `CONFIG_VALIDATION_FAILED` with `details: {}`, i.e. a code and no
+  reason. `ApiRequestError` also names the call (`…: <body> (from POST /config-versions/:id/rollback)`) so a
+  flake says *which* request failed; `unit/api-client-error-context.spec.ts` covers both.
+- **A skip is not a pass** — `38-users-groups-rbac` deliberately skips the destructive "last two SuperAdmins"
+  race on a stack where the configured account is not the only active local SuperAdmin; the skip reason (counts)
+  is in `results.json` and in the summary. Do not count it as coverage.
 - **Classify before fixing.** Each failure belongs to one of three groups: **(A) environment** — an add-on, SMTP
   or a permission is missing on that stack, so the spec (or the stack) must be adjusted; **(B) spec assumption**
   — the screen/API changed on purpose and the spec still expects the old shape; **(C) product bug** — the spec is
