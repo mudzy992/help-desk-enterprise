@@ -105,6 +105,8 @@ Core create/update/lifecycle/delete koristi transactional knowledge change log. 
 
 Privacy anonymization pokriva feedback user vezu, ali article body/title mogu sadržati bilo koju osobu koja nije owner/reviewer/source participant. Source ticket/message IDs, feedback comments, notification body i knowledge change-log replike trebaju eksplicitnu retention/anonymization matricu. Nema article/comment/view/change-log retention politike.
 
+**Status poslije W7.88 (§33):** brisanje članka je kapija + tombstone: samo `ARCHIVED` ili nikad objavljen članak se briše, a brisanje ostavlja revizorski zapis bez sadržaja (sa brojevima feedbacka i pregleda) i change-log trag koji `knowledgeContent` retention sada doseže i poslije brisanja. Vidi §33.
+
 **Status poslije W7.87 (§32):** matrica je eksplicitna i izvršna. Novi `knowledgeContent` retention period redaktuje arhivirane članke (marker u `title`/`body` uz rebuild `searchVector`, `null` source pokazivači, ispražnjeni komentari, obrisani stari dnevni pregledi, marker u change-logu i `body: null` u notifikacijama), a anonymizacija sada pokriva članke koje osoba posjeduje/pregleda ili ih tekst imenuje, tuđe komentare koji je imenuju, notifikacije, change-log replike, izvorne pokazivače i `KnowledgeInterceptResolution`. Ostaje dokumentovano: retention važi samo za `ARCHIVED`, agregat `viewCount` je trajan, a ACCESS izvoz baze znanja nije proširen.
 
 ## 12. Testovi i E2E
@@ -157,7 +159,7 @@ E2E 34 pokriva portal/category/article lifecycle, feedback/view i user deny za c
 | BA-knowledge-base-12 | P2       | Reminder query je unbounded i recipients ne provjeravaju active/scope eligibility         | zatvoreno |
 | BA-knowledge-base-13 | P2       | Scheduler nema Redis-loss reconciliation; njegov gubitak ugrožava i view flush           | zatvoreno |
 | BA-knowledge-base-14 | P2       | Privacy/retention ne pokriva slobodni tekst, source, comments, notifications i change-log | zatvoreno |
-| BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | otvoreno |
+| BA-knowledge-base-15 | P2       | Hard delete kaskadno uklanja feedback/views bez formalne tombstone/retention politike     | zatvoreno |
 | BA-knowledge-base-16 | P3       | View flush crash može duplirati totals; DB fallback napuhuje unique viewers               | otvoreno |
 | BA-knowledge-base-17 | P3       | Insights comments hard-limit 50 i category/list API nemaju cursor/hasMore                 | otvoreno |
 | BA-knowledge-base-18 | P3       | Comment resolution nema audit, actor ni optimistic state                                 | otvoreno |
@@ -613,3 +615,34 @@ zasebno pravo i zaseban nalaz.
 
 **Zbirovi:** 305 zatvoreno / 391 otvoreno / 696; Val 7 **84 / 27 (0/13/14)**; `knowledge-base` **14/19**. Detalji:
 [309-w787-knowledge-base-14-privacy-retention.md](../implementation/309-w787-knowledge-base-14-privacy-retention.md).
+
+## 33. Implementacijski closeout — W7.88 (`BA-knowledge-base-15`)
+
+**Nalaz:** `DELETE` je bio `SUPER_ADMIN`-only ali bez kapije i bez traga koji preživi red. Mogao se obrisati
+`PUBLISHED` članak; kaskada je odnijela `KnowledgeFeedback` i `KnowledgeArticleView` (brojevi su postojali samo u
+change-log snapshotu); taj snapshot retention **nije mogao** doseći, jer W7.87 selekcija polazi od postojećih
+članaka, pa je naslov obrisanog članka ostajao trajno; notifikacija je zadržavala tijelo sa naslovom; i nije bilo
+hash-verificiranog revizorskog zapisa — change log je domenski dnevnik, ne revizija.
+
+**Rješenje.** Kapija + tombstone + retention replika.
+
+- **Kapija:** `assertDeletable` propušta `ARCHIVED` ili članak sa `publishedAt === null`; sve ostalo je
+  `ARTICLE_NOT_RETIRED` ⇒ `409`. `DRAFT` nastao uređivanjem objavljenog članka **nije** „nikad objavljen”, a
+  `IN_REVIEW` se odbija i bez `publishedAt`. Arhiviranje je eksplicitan, reverzibilan korak.
+- **Tombstone u jednoj transakciji:** brojevi (`feedbackCount`, `viewDays`), change-log snapshot, revizorski
+  zapis `knowledge.article.deleted` (slug, status, klasifikacija, servis/OU, vlasnik/pregledalac, brojevi,
+  razlog, `deletedAt` — **bez** `title`/`body`, allowlist to ne dopušta), pražnjenje `body` notifikacija sa
+  `payload.articleId`, pa `delete` reda. Revizija se piše **prije** brisanja: pad append-a obara sve.
+- **Retention:** `knowledgeContent` redaktuje i change-log redove čiji članak više ne postoji (`NOT EXISTS`,
+  `LIMIT 100`, ref `deleted:{articleId}`), pa naslov obrisanog članka živi isti period kao i naslov arhiviranog.
+
+**Testni dokaz:** `delete-knowledge-article.spec.ts` (**9**), `knowledge-delete-tombstone.integration.spec.ts`
+(**3**, PostgreSQL, u isolated runneru), `knowledge-content-retention.executor.spec.ts` **5 → 7**,
+`retention.integration.spec.ts` +**1** (replika obrisanog članka se redaktuje, istorija živog ostaje); frontend
+panel nudi brisanje samo za penzionisan članak, 409 ima svoju poruku, akcija ima bs/en labelu. Lokalno backend
+**938 suite / 5.388 testova**, frontend **473 fajla / 1.888 testova**, `i18n:check` 9.292 ključa.
+
+**Otvoreno i dokumentovano:** bez tombstone tabele slug nije rezervisan (novi članak može preuzeti staru
+adresu; rješenje traži migraciju), metapodaci nose `slug` (izveden iz naslova), brisanje ostaje
+`SUPER_ADMIN`-only, `Problem`/`PlaybookStep`/intercept reference idu na `SetNull`, a stari link vraća `404`
+umjesto `410`. Detalji: [310-w788-knowledge-base-15-delete-tombstone.md](../implementation/310-w788-knowledge-base-15-delete-tombstone.md).

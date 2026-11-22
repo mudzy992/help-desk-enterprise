@@ -27,6 +27,7 @@ describeIfDatabase('knowledge article delete tombstone (integration)', () => {
   let serviceId = '';
   let userId = '';
   let publishedId = '';
+  let adminUserId = '';
   let draftId = '';
   let notificationId = '';
 
@@ -52,6 +53,11 @@ describeIfDatabase('knowledge article delete tombstone (integration)', () => {
     userId = (
       await database().user.create({
         data: { email: `it-delete-${suffix}@example.test`, displayName: 'IT Delete Reader' },
+      })
+    ).id;
+    adminUserId = (
+      await database().user.create({
+        data: { email: `it-delete-admin-${suffix}@example.test`, displayName: 'IT Delete Admin' },
       })
     ).id;
 
@@ -142,11 +148,12 @@ describeIfDatabase('knowledge article delete tombstone (integration)', () => {
     );
   }
 
-  const context = { actorUserId: 'it-delete-admin', requestId: null, sessionId: null } as never;
+  // ChangeLog.actorUserId carries a foreign key (unlike AuditLog), so the actor has to be a real row.
+  const context = () => ({ actorUserId: adminUserId, requestId: null, sessionId: null }) as never;
 
   it('refuses a published article with a 409 and leaves everything in place', async () => {
     const error = await service(database())
-      .remove(publishedId, { reason: 'Brisanje objavljenog članka' }, context)
+      .remove(publishedId, { reason: 'Brisanje objavljenog članka' }, context())
       .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(ConflictException);
@@ -162,7 +169,7 @@ describeIfDatabase('knowledge article delete tombstone (integration)', () => {
       data: { status: 'ARCHIVED', archivedAt: new Date('2025-01-01T00:00:00.000Z') },
     });
 
-    await deleteKnowledgeArticle(database() as never, publishedId, { reason: 'Članak više nije potreban' }, context);
+    await deleteKnowledgeArticle(database() as never, publishedId, { reason: 'Članak više nije potreban' }, context());
 
     // The row and the rows that cascaded with it are gone.
     expect(await database().knowledgeArticle.count({ where: { id: publishedId } })).toBe(0);
@@ -199,13 +206,13 @@ describeIfDatabase('knowledge article delete tombstone (integration)', () => {
 
     // The article is gone for good: the endpoint reports 404 now.
     const second = await service(database())
-      .remove(publishedId, { reason: 'Ponovni pokušaj' }, context)
+      .remove(publishedId, { reason: 'Ponovni pokušaj' }, context())
       .catch((caught: unknown) => caught);
     expect(second).toBeInstanceOf(NotFoundException);
   });
 
   it('deletes a draft that was never published', async () => {
-    await deleteKnowledgeArticle(database() as never, draftId, { reason: 'Greška u unosu' }, context);
+    await deleteKnowledgeArticle(database() as never, draftId, { reason: 'Greška u unosu' }, context());
 
     expect(await database().knowledgeArticle.count({ where: { id: draftId } })).toBe(0);
     const audit = await database().auditLog.findFirstOrThrow({
