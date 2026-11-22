@@ -830,6 +830,10 @@ PostgreSQL suiteova (20 testova) izvršava CI; deset nekada blokiranih suiteova 
 Matrica: **5 kategorija, 9 scenarija, 18 spec fajlova (9 unit, 9 PostgreSQL)**, guard `--check-only` zelen,
 self-test **8/8**.
 
+**CI dokaz:** [run #45076199484](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45076199484) —
+`success` na `559feb2`, uključujući docs guard koji izvršava `run-knowledge-test-matrix.mjs --check-only` i
+njegovih 8 self-testova (matrica se time provjerava i na docs-only izmjenama, bez baze).
+
 **Otvoreno i dokumentovano:** **E2E 34/22 nisu prošireni** — matrica dokazuje garantције na sloju na kojem se
 ostvaruju (transakcija, `FOR UPDATE`, CAS, unique constraint, advisory lock, scheduler registration), a
 Playwright bi iste trke ponavljao sporije i nestabilnije; E2E ostaje pokrivač korisničkih tokova. Paket ne

@@ -115,7 +115,18 @@ zapisan je u §12 audita, a ne prećutan.
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+- **Run:** [CI #45076199484](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45076199484) —
+  `success` na `559feb2`. Svi poslovi zeleni: backend build + test, backend PostgreSQL + Redis integracije,
+  frontend build + test, backend container + supply chain, **docs guard** (u kojem se sada izvršavaju
+  `run-knowledge-test-matrix.mjs --check-only` i njegov self-test) i CI gate.
+- **Docs guard je taj koji nosi provjeru:** matrica se validira i na docs-only izmjenama, gdje backend posao
+  ne starta — zato guard ne traži `npm ci` ni bazu (čita JSON, spec fajlove, registar integracija i ovaj audit).
+- **Lokalno prije runa:** `--check-only` ⇒ `5 kategorija, 9 scenarija, 18 spec fajlova (9 unit, 9 PostgreSQL)`;
+  self-test **8/8**; `npx jest src/modules/knowledge-base` ⇒ **28/28 unit suiteova, 183/183 testa** (8
+  integracionih preskočeno bez baze); `node scripts/check-backend-findings.mjs` ⇒ 310/386 usklađeno;
+  `node scripts/check-docs-content.mjs` ⇒ OK. `npm run test:knowledge:matrix` (bez `--check-only`) izvršava
+  unit specove lokalno i traži generisani Prisma klijent — u CI-ju to pokriva `npm test`, pa se u docs guardu
+  namjerno izvršava samo `--check-only`.
 
 ## Registar nalaza
 
