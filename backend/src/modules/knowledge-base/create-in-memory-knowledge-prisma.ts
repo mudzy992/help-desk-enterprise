@@ -198,7 +198,12 @@ export function createInMemoryKnowledgePrisma() {
       seedInMemoryGroupMember(members, nextId, input),
     seedArticle: (article: KnowledgeArticleRecord) =>
       articles.set(article.id, article),
-    seedFeedback: (feedback: Omit<InMemoryKnowledgeFeedback, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    seedFeedback: (
+      feedback: Omit<InMemoryKnowledgeFeedback, 'id' | 'createdAt' | 'updatedAt'> & {
+        id?: string;
+        createdAt?: Date;
+      },
+    ) => {
       const timestamp = now();
       const created: InMemoryKnowledgeFeedback = {
         ...feedback,
