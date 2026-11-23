@@ -1,3 +1,10 @@
+import {
+  invalidateReportCacheEntry,
+  readReportCacheValue,
+  writeReportCacheEntry,
+  type ReportCacheClient,
+} from '../cache/report-cache-envelope';
+
 /**
  * Dashboard/SLA counters are cached for fifteen seconds and keyed by user. The
  * removed client scope parameter no longer multiplies cache keys for one payload.
@@ -30,12 +37,12 @@ export const slaSummaryCacheKeyPrefix = 'reports:sla-summary';
 /**
  * The slice of the Redis client this cache needs, so tests can drive it with a
  * fake and the "Redis is not there" case stays explicit (a `null` client).
+ *
+ * W7.105 (`BA-reports-15`): reads and writes go through the shared report cache envelope
+ * (`../cache/report-cache-envelope.ts`), which stamps a schema version, caps the entry size and deletes a value that
+ * can never be valid. A payload from another build (or from before the envelope) is a miss, not a parse.
  */
-export interface ReportSummaryCacheClient {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string, mode: 'EX', ttlSeconds: number): Promise<unknown>;
-  del(key: string): Promise<unknown>;
-}
+export type ReportSummaryCacheClient = ReportCacheClient;
 
 /**
  * `…:<user>:v<user.authzVersion>:<zone>`.
@@ -66,27 +73,15 @@ export function slaSummaryCacheKey(
 }
 
 /**
- * Reads one cached payload. `parse` decides whether the stored JSON still has
- * the expected shape; anything else (missing key, invalid JSON, another shape)
- * is a miss.
+ * Reads one cached payload. `parse` decides whether the unwrapped payload still has the expected shape; anything else
+ * (missing key, oversized value, invalid JSON, another schema version, invalid payload) is a miss.
  */
 export async function readReportSummaryCache<T>(
   client: ReportSummaryCacheClient | null,
   key: string,
   parse: (value: unknown) => T | null,
 ): Promise<T | null> {
-  if (client === null) {
-    return null;
-  }
-  try {
-    const cached = await client.get(key);
-    if (cached === null) {
-      return null;
-    }
-    return parse(JSON.parse(cached) as unknown);
-  } catch {
-    return null;
-  }
+  return readReportCacheValue(client, key, parse);
 }
 
 export async function writeReportSummaryCache(
@@ -94,20 +89,9 @@ export async function writeReportSummaryCache(
   key: string,
   payload: unknown,
 ): Promise<void> {
-  if (client === null) {
-    return;
-  }
-  try {
-    await client.set(
-      key,
-      JSON.stringify(payload),
-      'EX',
-      reportSummaryCacheTtlSeconds,
-    );
-  } catch {
-    // The database remains the source of truth; a failed write only means the
-    // next read computes the counters again.
-  }
+  // A payload over the cap, or one that cannot be serialised, is simply not cached: the database remains the source
+  // of truth and the next read computes the counters again.
+  await writeReportCacheEntry(client, key, payload, reportSummaryCacheTtlSeconds);
 }
 
 /** Drops one entry (used by tests and any future write-through invalidation). */
@@ -115,12 +99,5 @@ export async function invalidateReportSummaryCache(
   client: ReportSummaryCacheClient | null,
   key: string,
 ): Promise<void> {
-  if (client === null) {
-    return;
-  }
-  try {
-    await client.del(key);
-  } catch {
-    // The entry expires on its own within the TTL.
-  }
+  await invalidateReportCacheEntry(client, key);
 }

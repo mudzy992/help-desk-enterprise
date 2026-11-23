@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { redisTokens } from '../../../common/redis/redis.tokens';
+import {
+  readReportCacheValue,
+  writeReportCacheEntry,
+} from '../cache/report-cache-envelope';
+import { parseReportTrendsCache } from '../cache/parse-report-trends-cache';
 import type { ReportTrends } from './report-trends.types';
 
 export const reportTrendsCacheKeyPrefix = 'reports:trends';
@@ -15,27 +20,20 @@ export const reportTrendsCacheKeyPrefix = 'reports:trends';
 export class ReportTrendsCache {
   constructor(@Optional() @Inject(redisTokens.client) private readonly redis?: Redis) {}
 
+  /**
+   * W7.105 (`BA-reports-15`): versioned envelope + strict, bounded validation (`parse-report-trends-cache.ts`). A
+   * value from another build is a miss; the TTL then bounds how long it costs anything.
+   */
   async read(key: string): Promise<ReportTrends | null> {
     const client = await this.client();
     if (client === null) return null;
-    try {
-      const cached = await client.get(key);
-      if (cached === null) return null;
-      const parsed = JSON.parse(cached) as unknown;
-      return isReportTrends(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
+    return readReportCacheValue(client, key, parseReportTrendsCache);
   }
 
   async write(key: string, value: ReportTrends, ttlSeconds: number): Promise<void> {
     const client = await this.client();
     if (client === null) return;
-    try {
-      await client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-    } catch {
-      // The database stays the source of truth.
-    }
+    await writeReportCacheEntry(client, key, value, ttlSeconds);
   }
 
   private async client(): Promise<Redis | null> {
@@ -57,15 +55,4 @@ export function reportTrendsCacheKey(parts: Readonly<Record<string, string | num
     .map((name) => `${name}=${parts[name] ?? ''}`)
     .join('&');
   return `${reportTrendsCacheKeyPrefix}:${createHash('sha256').update(canonical).digest('hex').slice(0, 32)}`;
-}
-
-function isReportTrends(value: unknown): value is ReportTrends {
-  if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as Partial<ReportTrends>;
-  return (
-    Array.isArray(candidate.points) &&
-    typeof candidate.granularity === 'string' &&
-    typeof candidate.totals === 'object' &&
-    typeof candidate.topServices === 'object'
-  );
 }

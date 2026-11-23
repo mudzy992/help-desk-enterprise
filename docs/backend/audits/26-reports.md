@@ -5,7 +5,7 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **14/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **15/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
@@ -13,8 +13,9 @@ brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspore
 at-least-once isporuka bez slijepog ponovnog slanja), W7.100 (`BA-reports-10`, cache key nosi verziju
 autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija), W7.102 (`BA-reports-12`, katalog i
 pola-otvoreni ugovor prozora), W7.103 (`BA-reports-14`, retention run loga kao zaseban, batched posao) i W7.104
-(`BA-reports-13`, privacy/anonymization matrica sa scrubom run JSON-a i bannerom u e-mailu). Ova statusna dopuna ne
-mijenja susjedne nalaze ni ocjenu.
+(`BA-reports-13`, privacy/anonymization matrica sa scrubom run JSON-a i bannerom u e-mailu) i W7.105
+(`BA-reports-15`, verzionisan i veličinom ograničen cache sa strožim validatorima). Ova statusna dopuna ne mijenja
+susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -99,6 +100,13 @@ kolone koje agregati čitaju (`reportTicketSnapshotSelect`), a identifikacione k
 `formData`, `resolutionSummary`) nije dio nijedne projekcije. Time je nestao i posljednji cijeli-red read
 (no-window put dashboard/bottleneck fallbacka). Detalji:
 [323](../implementation/323-w7101-reports-11-read-projections.md).
+
+**Status poslije W7.105 (§31):** sva tri cachea (dashboard/SLA summary, OU dashboard, trendovi) čitaju i pišu kroz
+**envelope** `{ v, data }`: zapis nosi verziju šeme, veličina se mjeri u **bajtovima** i odbija prije parsiranja
+(cap 256 KiB), a plitki validatori su zamijenjeni strogim i bounded provjerama svakog polja koje ekran čita
+(`isPlainRecord` odbija nizove, `isFiniteNumber` `NaN`/`Infinity`, `isCount` negativne i frakcionalne brojače).
+`oversized` i `invalid_json` se brišu; `version_mismatch` se **ne** briše, jer bi rolling deploy dva builda
+evictirala jedan drugom zapise. Detalji: [327](../implementation/327-w7105-reports-15-cache-envelope.md).
 
 **Status poslije W7.100 (§26):** per-user summary cache key više ne sadrži samo `(user, zone)` nego i
 **verziju autorizacije** (`User.authzVersion`): svaka sigurnosna promjena (rola/permission, članstvo u grupi,
@@ -206,7 +214,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | zatvoreno (W7.102) |
 | BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | zatvoreno (W7.104) |
 | BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | zatvoreno (W7.103) |
-| BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | otvoreno |
+| BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | zatvoreno (W7.105) |
 | BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | otvoreno |
 | BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | otvoreno |
 | BA-reports-18 | P3       | Preview osjetljivih redova nema formalnu read-audit odluku                                    | otvoreno |
@@ -805,3 +813,42 @@ tiketa, TTL 60 s, pa evakuacija po ID-u ne bi imala šta da sačuva (i tražila 
 kontrole aplikacije (banner + retention smjernica, ne brisanje); `AuditLog` je `pseudonymous` — ID-evi ostaju, lanac
 se ne briše jer dokazuje ko je šta eksportovao. Detalji:
 [326-w7104-reports-13-privacy-matrix.md](../implementation/326-w7104-reports-13-privacy-matrix.md).
+
+## 31. Implementacijski closeout — W7.105 (`BA-reports-15`)
+
+**Nalaz:** sva tri report cachea (dashboard/SLA summary, OU dashboard, trendovi) radila su `JSON.parse` pa nekoliko
+`typeof` provjera i servirala rezultat. Nije bilo **verzije šeme** (deploy ili rollback ostavlja tuđi oblik čitljivim
+do isteka TTL-a), nije bilo **granice veličine** (`JSON.parse` nad čim god je u ključu, na svakom zahtjevu), a
+validatori su bili plitki: `typeof value === 'object'` propušta niz, `typeof count === 'number'` propušta `-1`,
+`1.5` i `Infinity`, a `statusCounts`, `profiles`, `points`, `kpis` i `aging` nisu gledani iznutra — dashboard je
+prolazio sa `aging: {}`, trendovi sa `points: [{}]`.
+
+**Rješenje.** Novi `cache/report-cache-envelope.ts` uvodi jedini put do Redisa: zapis je `{ v, data }` (tačno dva
+ključa, `v` cijeli broj ≥ 1), veličina se mjeri `Buffer.byteLength` i odbija **prije** parsiranja (cap 256 KiB),
+a ishod čitanja ima razlog: `no_client`, `absent`, `oversized`, `invalid_json`, `not_enveloped`,
+`version_mismatch`, `invalid_payload`, `error`. Samo `oversized` i `invalid_json` se **brišu** (nikad ne mogu biti
+validni); `version_mismatch` se **ne** briše jer bi tokom rolling deploya dva builda evictirala jedan drugom zapise.
+Pisanje odbija payload preko capa i onaj koji se ne može serijalizovati. Novi `cache/report-cache-shape.ts` daje
+primitve (`isPlainRecord` odbija nizove, `isFiniteNumber` odbija `NaN`/`Infinity`, `isCount` traži nenegativan
+cijeli broj, `isBoundedArray`/`everyItem` kap prije gledanja unutar kolekcije). Novi
+`cache/parse-report-dashboard-cache.ts` i `cache/parse-report-trends-cache.ts` provjeravaju svako polje koje ekran
+čita, uključujući `csatScaleMax > 0` i granularnost iz ovog builda; `summary/parse-report-summary-cache.ts` je
+prepisan na iste primitive (trinaest brojača, tačno 14 dana, `statusCounts`/`priorityCounts` sa imenom i brojačem,
+SLA `exposure` na svakom nivou).
+
+**Posljedice po ponašanje.** Tuđa, stara, prevelika ili plitka vrijednost više se ne servira — računa se iznova iz
+baze (najviše jedan sporiji zahtjev, nikad pogrešan broj); otrovani ključevi nestaju na prvom čitanju. Nema promjene
+API-ja, ruta, ključeva ni TTL-ova: `v<authzVersion>` u ključu (W7.100) je **autoritet**, `v` u envelope-u je
+**oblik** payloada.
+
+**Testni dokaz.** `report-cache-envelope.spec.ts` (**novo, 14**) i `report-cache-validators.spec.ts` (**novo, 27**)
+pokrivaju sve grane tabela iz closeouta (uključujući bajtove vs. znakove i negativan `net`);
+`parse-report-summary-cache.spec.ts` 12 → **24**, `report-summary-cache.spec.ts` 5 → **6**,
+`report-dashboard.cache.spec.ts` +1 sa **kompletnim** fixture-om (stari `{} as kpis` bio je tačno ono što je plitki
+parser propuštao). Lokalno: `reports` **44 suite / 318 testova** (16 skipped bez baze/Redis-a), `eslint` 0; rute
+(632) i migracije (124) nepromijenjene.
+
+**Otvoreno i dokumentovano:** cap je po zapisu (Redis `maxmemory` ostaje infrastruktura); envelope ne mijenja TTL
+niti ključ, pa W7.100 garancija ostaje netaknuta; vrijednost koja prođe validator a ipak je poslovno netačna živi do
+TTL-a (dokumentovana granica iz W7.100). Detalji:
+[327-w7105-reports-15-cache-envelope.md](../implementation/327-w7105-reports-15-cache-envelope.md).

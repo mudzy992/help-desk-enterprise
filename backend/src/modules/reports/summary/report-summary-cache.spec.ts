@@ -48,22 +48,39 @@ describe('report summary cache', () => {
     expect(slaSummaryCacheKey('user-2', 3)).not.toBe(slaSummaryCacheKey('user-1', 3));
   });
 
-  it('writes with the fifteen second TTL and reads the payload back', async () => {
-    const { client, calls } = createFakeClient();
-    await writeReportSummaryCache(client, 'key', { total: 3 });
-    expect(calls.set[0]).toEqual(['key', '{"total":3}', 'EX', reportSummaryCacheTtlSeconds]);
+  // W7.105 (BA-reports-15): the entry is `{ v, data }` — versioned, so a payload from another build is a miss.
+  it('writes a versioned envelope with the TTL and reads the payload back', async () => {
+    const { client, calls, store } = createFakeClient();
+    await writeReportSummaryCache(client, 'key', 3);
+    expect(calls.set[0]).toEqual([
+      'key',
+      '{"v":1,"data":3}',
+      'EX',
+      reportSummaryCacheTtlSeconds,
+    ]);
+    expect(store.get('key')).toBe('{"v":1,"data":3}');
 
-    await expect(readReportSummaryCache(client, 'key', parseNumber)).resolves.toBeNull();
+    await expect(readReportSummaryCache(client, 'key', parseNumber)).resolves.toBe(3);
   });
 
   it('treats a reused key with another shape as a miss', async () => {
     const { client, store } = createFakeClient();
-    store.set('key', '{"total":3}');
+    store.set('key', '{"v":1,"data":{"total":3}}');
     await expect(
       readReportSummaryCache(client, 'key', (value) =>
         typeof value === 'number' ? value : null,
       ),
     ).resolves.toBeNull();
+  });
+
+  it('treats a payload from another schema version and a legacy value as misses', async () => {
+    const { client, store } = createFakeClient();
+    store.set('future', '{"v":2,"data":3}');
+    store.set('legacy', '3');
+    await expect(readReportSummaryCache(client, 'future', parseNumber)).resolves.toBeNull();
+    await expect(readReportSummaryCache(client, 'legacy', parseNumber)).resolves.toBeNull();
+    // A rolling deploy must not evict the other build's entries: they expire on their own.
+    expect(store.has('future')).toBe(true);
   });
 
   it('never throws when Redis is missing or broken', async () => {

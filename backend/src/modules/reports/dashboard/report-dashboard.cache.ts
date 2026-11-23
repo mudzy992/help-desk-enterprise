@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { redisTokens } from '../../../common/redis/redis.tokens';
+import {
+  readReportCacheValue,
+  writeReportCacheEntry,
+} from '../cache/report-cache-envelope';
+import { parseReportDashboardCache } from '../cache/parse-report-dashboard-cache';
 import type { ReportsDashboard } from './build-reports-dashboard';
 
 export const reportDashboardCacheKeyPrefix = 'reports:dashboard';
@@ -71,27 +76,20 @@ export class ReportDashboardCache {
     return pending;
   }
 
+  /**
+   * W7.105 (`BA-reports-15`): the entry carries a schema version and is capped in size before it is parsed; the
+   * payload itself is checked field by field (`parse-report-dashboard-cache.ts`). Anything unexpected is a miss.
+   */
   private async read(key: string): Promise<ReportsDashboard | null> {
     const client = await this.client();
     if (client === null) return null;
-    try {
-      const cached = await client.get(key);
-      if (cached === null) return null;
-      const parsed = JSON.parse(cached) as unknown;
-      return isReportsDashboard(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
+    return readReportCacheValue(client, key, parseReportDashboardCache);
   }
 
   private async write(key: string, value: ReportsDashboard): Promise<void> {
     const client = await this.client();
     if (client === null) return;
-    try {
-      await client.set(key, JSON.stringify(value), 'EX', reportDashboardCacheTtlSeconds);
-    } catch {
-      // The database stays the source of truth.
-    }
+    await writeReportCacheEntry(client, key, value, reportDashboardCacheTtlSeconds);
   }
 
   private async client(): Promise<Redis | null> {
@@ -105,24 +103,4 @@ export class ReportDashboardCache {
       return null;
     }
   }
-}
-
-function isReportsDashboard(value: unknown): value is ReportsDashboard {
-  if (value === null || typeof value !== 'object') return false;
-  const candidate = value as Partial<Record<keyof ReportsDashboard, unknown>>;
-  return (
-    typeof candidate.ticketCount === 'number' &&
-    candidate.window !== null &&
-    typeof candidate.window === 'object' &&
-    candidate.kpis !== null &&
-    typeof candidate.kpis === 'object' &&
-    typeof candidate.bottlenecksEnabled === 'boolean' &&
-    Array.isArray(candidate.bottleneckByGroup) &&
-    Array.isArray(candidate.serviceVolume) &&
-    Array.isArray(candidate.originUnitVolume) &&
-    Array.isArray(candidate.assigneeWorkload) &&
-    Array.isArray(candidate.volumeSeries) &&
-    candidate.aging !== null &&
-    typeof candidate.aging === 'object'
-  );
 }

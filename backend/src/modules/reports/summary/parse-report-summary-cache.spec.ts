@@ -37,11 +37,56 @@ describe("parseDashboardSummaryResponse", () => {
 
   it.each([
     ["not an object", "nope"],
+    ["an array instead of a record", []],
     ["missing counter", { ...dashboardPayload, overdue: undefined }],
     ["counter as string", { ...dashboardPayload, total: "4" }],
     ["statusCounts not an array", { ...dashboardPayload, statusCounts: null }],
+    // W7.105 (BA-reports-15): a counter counts rows, so a fraction, a negative number and an unparsable timestamp
+    // are all rejected — the old check accepted every one of them.
+    ["fractional counter", { ...dashboardPayload, total: 1.5 }],
+    ["negative counter", { ...dashboardPayload, open: -1 }],
+    ["generatedAt that does not parse", { ...dashboardPayload, generatedAt: "not a date" }],
+    [
+      "status entry without a name",
+      { ...dashboardPayload, statusCounts: [{ count: 1 }] },
+    ],
+    [
+      "status entry with a negative count",
+      { ...dashboardPayload, statusCounts: [{ status: "PENDING", count: -3 }] },
+    ],
+    [
+      "priority entry that is not an object",
+      { ...dashboardPayload, priorityCounts: ["LOW"] },
+    ],
+    [
+      "a volume day that is not an object",
+      { ...dashboardPayload, volume14d: Array.from({ length: 14 }, () => null) },
+    ],
+    [
+      "a volume day with a broken date",
+      {
+        ...dashboardPayload,
+        volume14d: dashboardPayload.volume14d.map((day) => ({ ...day, date: "x" })),
+      },
+    ],
   ])("rejects %s", (_label, value) => {
     expect(parseDashboardSummaryResponse(value)).toBeNull();
+  });
+
+  it("rejects a collection over the per-payload cap without validating it", () => {
+    const tooMany = Array.from({ length: 5_001 }, () => ({
+      status: "PENDING",
+      count: 1,
+    }));
+    expect(
+      parseDashboardSummaryResponse({ ...dashboardPayload, statusCounts: tooMany }),
+    ).toBeNull();
+  });
+
+  it("rejects infinity, as a cached number can carry it", () => {
+    expect(
+      parseDashboardSummaryResponse({ ...dashboardPayload, total: Infinity }),
+    ).toBeNull();
   });
 });
 
@@ -84,6 +129,32 @@ describe("parseSlaSummaryResponse", () => {
         ...slaPayload,
         profiles: [
           { slaProfileId: "p", exposure: { open: 1 }, priorities: [] },
+        ],
+      },
+    ],
+    [
+      "profile with a fractional exposure",
+      {
+        ...slaPayload,
+        profiles: [
+          {
+            slaProfileId: "p",
+            exposure: { open: 0.5, onTrack: 0, atRisk: 0, breached: 0 },
+            priorities: [],
+          },
+        ],
+      },
+    ],
+    [
+      "priority without an exposure",
+      {
+        ...slaPayload,
+        profiles: [
+          {
+            slaProfileId: "p",
+            exposure: slaPayload.totals,
+            priorities: [{ priority: "HIGH" }],
+          },
         ],
       },
     ],
