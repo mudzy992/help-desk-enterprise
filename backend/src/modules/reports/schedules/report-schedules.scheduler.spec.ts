@@ -34,7 +34,10 @@ describe('ReportSchedulesSchedulerService', () => {
     entries: readonly { key?: string; id?: string }[] = registered.map((key) => ({ key })),
   ) {
     const queue = {
-      upsertJobScheduler: jest.fn(async () => ({})),
+      // Typed arguments, so `mock.calls[i][0]` is a scheduler id rather than an empty tuple.
+      upsertJobScheduler: jest.fn(
+        async (_schedulerId: string, _repeat: unknown, _template: unknown) => ({}),
+      ),
       getJobSchedulers: jest.fn(async () => [...entries]),
     };
     return queue;

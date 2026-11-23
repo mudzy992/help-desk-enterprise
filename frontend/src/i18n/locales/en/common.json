@@ -1119,6 +1119,7 @@
           "privacy_15min": "Privacy request processing",
           "problem_sweep_hourly": "Problem due-date scan",
           "report_schedules_5min": "Scheduled report delivery",
+          "report_schedules_retention_daily": "Report run-log retention",
           "sla_scan_every_minute": "SLA scan and escalations",
           "status_incident_start_delivery_every_minute": "Status incident start notifications",
           "ticket_archive_quarter_hourly": "Closed-ticket archiving",
