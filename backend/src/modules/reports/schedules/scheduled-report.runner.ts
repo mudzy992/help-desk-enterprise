@@ -330,36 +330,41 @@ export class ScheduledReportRunner {
           : skipped.length > 0
             ? 'PARTIAL'
             : 'SENT';
-    await this.prisma.reportScheduleRun.update({
-      where: { id: context.runId },
-      data: {
-        status,
-        recipientCount: recipientIds.length,
-        sentCount,
-        skipped: skipped as never,
-        omittedAttachments: omitted as never,
-        errorCode,
-        durationMs: Date.now() - startedAt,
-        finishedAt: new Date(),
-      },
-    });
-    await recordAuditEntry(this.prisma, {
-      action: auditLogActions.reportScheduleSent,
-      entityType: auditLogEntityTypes.reportSchedule,
-      entityId: schedule.id,
-      metadata: {
-        runId: context.runId,
-        trigger: context.trigger,
-        status,
-        periodStart: period.start.toISOString(),
-        periodEnd: period.end.toISOString(),
-        recipientCount: recipientIds.length,
-        sentCount,
-        skippedCount: skipped.length,
-        errorCode,
-      },
-      actorUserId: context.actorUserId,
-      organizationalUnitId: schedule.organizationalUnitId,
+    // W7.96 (`BA-reports-06`): the run's final state and the global audit row that explains it commit together.
+    // Before this, a crash (or a failing audit insert) between the two left either a finished run with no audit
+    // trail or an audit row for a run still marked RUNNING, and the sweep could take that run over as stale.
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.reportScheduleRun.update({
+        where: { id: context.runId },
+        data: {
+          status,
+          recipientCount: recipientIds.length,
+          sentCount,
+          skipped: skipped as never,
+          omittedAttachments: omitted as never,
+          errorCode,
+          durationMs: Date.now() - startedAt,
+          finishedAt: new Date(),
+        },
+      });
+      await recordAuditEntry(transaction, {
+        action: auditLogActions.reportScheduleSent,
+        entityType: auditLogEntityTypes.reportSchedule,
+        entityId: schedule.id,
+        metadata: {
+          runId: context.runId,
+          trigger: context.trigger,
+          status,
+          periodStart: period.start.toISOString(),
+          periodEnd: period.end.toISOString(),
+          recipientCount: recipientIds.length,
+          sentCount,
+          skippedCount: skipped.length,
+          errorCode,
+        },
+        actorUserId: context.actorUserId,
+        organizationalUnitId: schedule.organizationalUnitId,
+      });
     });
     this.logger.log(
       `report_schedule_run schedule=${schedule.id} trigger=${context.trigger} status=${status} sent=${sentCount} skipped=${skipped.length} duration_ms=${Date.now() - startedAt}`,

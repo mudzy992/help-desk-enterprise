@@ -251,13 +251,31 @@ function createRunner(options: {
   enabledPacks?: readonly string[];
 }) {
   const runs: Record<string, unknown>[] = [];
+  /** W7.96: which writes happened inside the runner's transaction, and in which order. */
+  const txEvents: string[] = [];
+  let inTransaction = false;
   const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
   let deliveryId = 0;
   const sent: { to: string; subject: string }[] = [];
   const scheduleUpdates: unknown[] = [];
   const prisma = {
     $executeRaw: async () => 0,
-    auditLog: { findFirst: async () => null, create: async () => ({}) },
+    // W7.96: the run's final state and its audit row are written by one transaction.
+    $transaction: async (callback: (transaction: unknown) => Promise<unknown>) => {
+      inTransaction = true;
+      try {
+        return await callback(prisma);
+      } finally {
+        inTransaction = false;
+      }
+    },
+    auditLog: {
+      findFirst: async () => null,
+      create: async () => {
+        txEvents.push(`audit:${inTransaction ? 'tx' : 'outside'}`);
+        return {};
+      },
+    },
     organizationalUnit: {
       findMany: async () => [{ id: 'ou-it', ouPath: '/Korisnici/IT' }],
       findUnique: async (args: { readonly where: { readonly id: string } }) =>
@@ -297,6 +315,7 @@ function createRunner(options: {
       findUnique: async () => null,
       update: jest.fn(async (args: { data: Record<string, unknown> }) => {
         runs.push({ final: args.data });
+        txEvents.push(`run:${inTransaction ? 'tx' : 'outside'}`);
         return {};
       }),
       deleteMany: async () => ({ count: 0 }),
@@ -395,7 +414,7 @@ function createRunner(options: {
       },
     },
   );
-  return { runner, runs, sent, prisma, scheduleUpdates, emailDeliveries };
+  return { runner, runs, sent, prisma, scheduleUpdates, emailDeliveries, txEvents };
 }
 
 describe('ScheduledReportRunner sweep (design §5.4)', () => {
@@ -425,6 +444,16 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
       sentCount: 1,
       skipped: [{ userId: 'u-gone', reason: 'inactive' }],
     });
+  });
+
+  it('writes the run final state and its audit row in one transaction (W7.96)', async () => {
+    const { runner, txEvents, runs } = createRunner({ due: [schedule()] });
+    await runner.runDue(new Date('2026-03-30T05:01:00Z'));
+
+    // Both writes carry `tx`: a lonely `outside` would mean the audit (or the final state) escaped the
+    // transaction and could survive a rollback of the other half.
+    expect(txEvents).toEqual(['run:tx', 'audit:tx']);
+    expect(runs.filter((run) => 'final' in run)).toHaveLength(1);
   });
 
   it('records a failed recipient when the accepted SMTP receipt cannot be persisted', async () => {

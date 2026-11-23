@@ -5,6 +5,8 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { AuthorizationPrincipal } from '../../authentication/authentication.types';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import type { RecordAuditEntryInput } from '../../audit-log/audit-log.types';
+import type { Prisma } from '../../../generated/prisma/client';
 import {
   OptimisticConcurrencyError,
   optimisticConcurrencyErrorCodes,
@@ -130,8 +132,8 @@ export class ReportSchedulesService {
     const enabled = input.enabled ?? true;
     // §6 (W7.94): the limit is checked *and* consumed inside one locked transaction — a plain count-then-create
     // lets two concurrent saves both pass a limit of N and land N+1 rows.
-    const created = await this.prisma.$transaction((transaction) =>
-      withReportScheduleLimit(transaction, configuration, () =>
+    const created = await this.prisma.$transaction(async (transaction) => {
+      const row = await withReportScheduleLimit(transaction, configuration, () =>
         transaction.reportSchedule.create({
           data: {
             ...data.fields,
@@ -147,16 +149,26 @@ export class ReportSchedulesService {
           },
           select: { id: true },
         }),
-      ),
-    );
-    await this.audit(actor, auditLogActions.reportScheduleCreated, created.id, data.fields.organizationalUnitId, {
-      name: data.fields.name,
-      frequency: data.fields.frequency,
-      sendTime: data.fields.sendTime,
-      sections: data.fields.sections,
-      packKeys: data.fields.packKeys,
-      recipientCount: data.recipientIds.length,
-      enabled,
+      );
+      // W7.96 (`BA-reports-06`): the audit row is appended by the same transaction as the schedule it describes.
+      // A failing audit therefore rolls the schedule back instead of leaving a row nobody can account for.
+      await this.auditIn(
+        transaction,
+        actor,
+        auditLogActions.reportScheduleCreated,
+        row.id,
+        data.fields.organizationalUnitId,
+        {
+          name: data.fields.name,
+          frequency: data.fields.frequency,
+          sendTime: data.fields.sendTime,
+          sections: data.fields.sections,
+          packKeys: data.fields.packKeys,
+          recipientCount: data.recipientIds.length,
+          enabled,
+        },
+      );
+      return row;
     });
     return this.get(actor, created.id);
   }
@@ -201,10 +213,19 @@ export class ReportSchedulesService {
         data: data.recipientIds.map((userId) => ({ scheduleId: id, userId })),
         skipDuplicates: true,
       });
-    });
-    await this.audit(actor, auditLogActions.reportScheduleUpdated, id, data.fields.organizationalUnitId, {
-      changed: changedFields(existing, { ...data.fields, enabled }, data.recipientIds),
-      recipientCount: data.recipientIds.length,
+      // W7.96: the change and its audit row commit together — the before/after snapshot cannot describe a state
+      // that was rolled back, and a rolled-back change cannot leave an audit row claiming it happened.
+      await this.auditIn(
+        transaction,
+        actor,
+        auditLogActions.reportScheduleUpdated,
+        id,
+        data.fields.organizationalUnitId,
+        {
+          changed: changedFields(existing, { ...data.fields, enabled }, data.recipientIds),
+          recipientCount: data.recipientIds.length,
+        },
+      );
     });
     return this.get(actor, id);
   }
@@ -223,21 +244,27 @@ export class ReportSchedulesService {
     // told that its (already stale) picture of the switch is the current one.
     if (existing.version !== expectedVersion) throw await this.staleScheduleWrite(id);
     if (existing.enabled !== enabled) {
-      const updated = await this.prisma.reportSchedule.updateMany({
-        where: { id, version: expectedVersion },
-        data: {
-          enabled,
-          updatedByUserId: actor.principal.subjectId,
-          version: expectedVersion + 1,
-          ...(enabled
-            ? { nextRunAt: nextReportRunAt(existing.frequency, existing.sendTime, configuration.timeZone, now) }
-            : {}),
-        },
-      });
-      if (updated.count !== 1) throw await this.staleScheduleWrite(id);
-      await this.audit(actor, auditLogActions.reportScheduleUpdated, id, existing.organizationalUnitId, {
-        changed: ['enabled'],
-        enabled,
+      await this.prisma.$transaction(async (transaction) => {
+        const updated = await transaction.reportSchedule.updateMany({
+          where: { id, version: expectedVersion },
+          data: {
+            enabled,
+            updatedByUserId: actor.principal.subjectId,
+            version: expectedVersion + 1,
+            ...(enabled
+              ? { nextRunAt: nextReportRunAt(existing.frequency, existing.sendTime, configuration.timeZone, now) }
+              : {}),
+          },
+        });
+        if (updated.count !== 1) throw await this.staleScheduleWrite(id);
+        await this.auditIn(
+          transaction,
+          actor,
+          auditLogActions.reportScheduleUpdated,
+          id,
+          existing.organizationalUnitId,
+          { changed: ['enabled'], enabled },
+        );
       });
     }
     return this.get(actor, id);
@@ -249,12 +276,25 @@ export class ReportSchedulesService {
     const existing = await this.requireAccessible(actor, id);
     // W7.95: deleting a schedule somebody edited a second ago destroys work nobody meant to discard. The token
     // makes the client's "delete this" mean "delete the row I was shown".
-    const deleted = await this.prisma.reportSchedule.deleteMany({ where: { id, version: expectedVersion } });
-    if (deleted.count !== 1) throw await this.staleScheduleWrite(id);
-    await this.audit(actor, auditLogActions.reportScheduleDeleted, id, existing.organizationalUnitId, {
-      name: existing.name,
-      frequency: existing.frequency,
-      recipientCount: existing.recipients.length,
+    // W7.96: the delete and its audit row are one transaction, so a crash cannot leave a deletion that nobody
+    // can trace, nor an audit row for a schedule that still exists.
+    await this.prisma.$transaction(async (transaction) => {
+      const deleted = await transaction.reportSchedule.deleteMany({
+        where: { id, version: expectedVersion },
+      });
+      if (deleted.count !== 1) throw await this.staleScheduleWrite(id);
+      await this.auditIn(
+        transaction,
+        actor,
+        auditLogActions.reportScheduleDeleted,
+        id,
+        existing.organizationalUnitId,
+        {
+          name: existing.name,
+          frequency: existing.frequency,
+          recipientCount: existing.recipients.length,
+        },
+      );
     });
   }
 
@@ -574,6 +614,11 @@ export class ReportSchedulesService {
     return configuration;
   }
 
+  /**
+   * W7.96 (`BA-reports-06`): the audit entry of a schedule mutation is written by the mutation's own transaction
+   * (see `auditIn`). Only effects that happen *outside* the database — sending a test e-mail — still use a
+   * standalone write, because there is nothing to commit them with.
+   */
   private async audit(
     actor: Actor,
     action: string,
@@ -581,7 +626,31 @@ export class ReportSchedulesService {
     organizationalUnitId: string,
     metadata: Record<string, unknown>,
   ): Promise<void> {
-    await recordAuditEntry(this.prisma, {
+    await recordAuditEntry(this.prisma, this.auditInput(actor, action, scheduleId, organizationalUnitId, metadata));
+  }
+
+  private async auditIn(
+    transaction: Prisma.TransactionClient,
+    actor: Actor,
+    action: string,
+    scheduleId: string,
+    organizationalUnitId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    await recordAuditEntry(
+      transaction,
+      this.auditInput(actor, action, scheduleId, organizationalUnitId, metadata),
+    );
+  }
+
+  private auditInput(
+    actor: Actor,
+    action: string,
+    scheduleId: string,
+    organizationalUnitId: string,
+    metadata: Record<string, unknown>,
+  ): RecordAuditEntryInput {
+    return {
       action,
       entityType: auditLogEntityTypes.reportSchedule,
       entityId: scheduleId,
@@ -589,7 +658,7 @@ export class ReportSchedulesService {
       actorUserId: actor.principal.subjectId,
       requestId: actor.requestId,
       organizationalUnitId,
-    });
+    };
   }
 }
 

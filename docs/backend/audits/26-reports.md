@@ -5,10 +5,11 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **5/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **6/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
-rasporeda unutar zaključane transakcije) i W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
-rasporeda). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
+rasporeda) i W7.96 (`BA-reports-06`, audit red u transakciji izmjene). Ova statusna dopuna ne mijenja susjedne
+nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -71,6 +72,10 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.96 (§22):** izmjena rasporeda i njen globalni audit red su jedna transakcija (`create`,
+`update`, `enabled`, `delete`, te finalizacija runa u runner-u), pa pad audita poništava izmjenu umjesto da je
+ostavi bez zapisa. Detalji: [318](../implementation/318-w796-reports-06-transactional-audit.md).
 
 **Status poslije W7.95 (§21):** admin izmjene (`update`, `enabled`, `delete`) su uslovljene verzijom reda
 (`If-Match: "vN"`, `version` kolona, 412 `OPTIMISTIC_STALE_WRITE`, 428 bez headera), pa paralelni update/enable/
@@ -141,7 +146,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | zatvoreno (W7.93) |
 | BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | zatvoreno (W7.94) |
 | BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | zatvoreno (W7.95) |
-| BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | otvoreno |
+| BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | zatvoreno (W7.96) |
 | BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | otvoreno |
 | BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | otvoreno |
 | BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | otvoreno |
@@ -371,3 +376,32 @@ paketa **`45132890189` — `failure`** na `497447a`: `npm test` je pao jer dva p
 audit ostaje `BA-reports-06` — audit red se i dalje piše poslije commit-a; `runNow`/`sendTest` nisu uslovljeni jer
 ne mijenjaju konfiguraciju. Detalji:
 [317-w795-reports-05-schedule-version-cas.md](../implementation/317-w795-reports-05-schedule-version-cas.md).
+
+## 22. Implementacijski closeout — W7.96 (`BA-reports-06`)
+
+**Nalaz:** svaka izmjena rasporeda je committovala prvo, a tek onda pisala globalni audit red; runner je isto
+radio sa finalizacijom `ReportScheduleRun` i `report.schedule.sent`. Tri posljedice: (1) pad audita vraća grešku
+uz već primijenjenu izmjenu, (2) pad procesa između dvije stavke ostavlja izmjenu/brisanje bez zapisa, (3) run
+može ostati `RUNNING` uz audit koji tvrdi da je poslan, pa ga sweep po `staleRunMs` pošalje ponovo.
+
+**Rješenje.**
+
+- **Audit u transakciji izmjene:** `create`, `update`, `setEnabled` i `remove` prosljeđuju `Prisma.TransactionClient`
+  u `recordAuditEntry` (`auditIn`/`auditInput`); u `update` redoslijed je CAS → primaoci → audit; u `remove`
+  `deleteMany` i zapis o brisanju su nedjeljivi.
+- **Runner:** `reportScheduleRun.update` (status, `sentCount`, `skipped`, `omittedAttachments`, `errorCode`,
+  `durationMs`, `finishedAt`) i `report.schedule.sent` u jednom `$transaction`.
+- **Novo ponašanje (namjerno):** ako audit ne može da se upiše, izmjena se **poništava** i API vraća grešku; run
+  ostaje `RUNNING` i sweep ga preuzima.
+- **Redoslijed brave:** „limit (W7.94) → audit chain”, bez ciklusa; nijedan drugi put ne uzima limit bravu.
+
+**Testni dokaz:** `report-schedules.audit-atomicity.spec.ts` (**6** — svi upisi nose `tx`, audit pad poništava
+`create`/`remove`), `report-schedules.spec.ts` (**+1** za runner: `['run:tx','audit:tx']`),
+`report-schedule-audit-atomicity.integration.spec.ts` (**3**, PostgreSQL — rollback finalizacije runa, commit oba
+reda, rollback brisanja). Lokalno: backend **945 suite / 5.442 testa**, `reports` **36/193**; `eslint`/`wiring`
+(632 rute)/`db:migration-policy` (123)/`check-docs-content` zeleni; frontend nije diran.
+
+**Otvoreno i dokumentovano:** `sendTest` audit ostaje poslije slanja (SMTP je spoljni efekat); isporuka e-maila
+nije exactly-once — `dedupeKey` pokriva retry, ne pad između SMTP prihvatanja i upisa; run/tombstone politika je
+`BA-reports-07`, BullMQ reconciliation `BA-reports-08`. Detalji:
+[318-w796-reports-06-transactional-audit.md](../implementation/318-w796-reports-06-transactional-audit.md).

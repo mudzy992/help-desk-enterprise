@@ -119,6 +119,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/reports/schedules/report-schedule-limit.integration.spec.ts",
   // W7.95 (BA-reports-05): schedule admin writes match on the version the editor loaded.
   "src/modules/reports/schedules/report-schedule-version.integration.spec.ts",
+  // W7.96 (BA-reports-06): a schedule mutation/run finalization and its audit row share one transaction.
+  "src/modules/reports/schedules/report-schedule-audit-atomicity.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {
