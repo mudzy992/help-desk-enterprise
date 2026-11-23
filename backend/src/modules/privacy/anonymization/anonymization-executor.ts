@@ -15,6 +15,8 @@ import {
 } from './knowledge-mentions';
 import { scrubKnowledgeMentions } from './scrub-knowledge-mentions';
 import { scrubProblemMentions } from './scrub-problem-mentions';
+import { collectReportMentions } from './report-mentions';
+import { scrubReportMentions } from './scrub-report-mentions';
 import { problemEventMentionSql, problemMentionTokens, problemMentionWhere, problemScrubbableColumns } from './problem-mentions';
 import { replacementExample, type TextScrubber } from './text-scrubber';
 
@@ -186,6 +188,10 @@ export class AnonymizationExecutor {
       countReplicas([entry.reason]);
       replacements += subject.scrubber.scrubJson(entry.diff).count;
     }
+    // W7.104 (BA-reports-13): the report footprint - manual triggers, run `skipped` JSON and the schedule
+    // creator/updater - is selected here and passed to the execution, so the operator sees exactly the rows that
+    // will be written.
+    const reportScope = await collectReportMentions({ prisma: this.prisma, userId: subject.userId });
     const u = subject.userId;
     const [notificationsOwn, sessions, deliveries, roles, groups, savedViews, templates, followers, recipients, attachments, auditRows] =
       await Promise.all([
@@ -223,6 +229,10 @@ export class AnonymizationExecutor {
         knowledgeArticlesNamed: knowledgeScope.articles.length,
         knowledgeFeedbacksNamed: knowledgeScope.feedbacks.length,
         knowledgeNotifications: knowledgeScope.notifications.length,
+        reportRunsDetached: reportScope.runsTriggered.length,
+        reportRunSkipped: reportScope.runsWithSkipped.length,
+        reportSchedulesDetached:
+          reportScope.schedulesCreated.length + reportScope.schedulesUpdated.length,
       },
     };
   }
@@ -427,6 +437,17 @@ export class AnonymizationExecutor {
         pausedScheduleIds.push(...toPause.map((row) => row.id));
       }
     }
+
+    // W7.104 (BA-reports-13): the run log keeps its period, status, counters and skip reasons; the identity goes.
+    // `reportRecipients`/`reportSchedulesPaused` above handle the living recipients, this handles the history.
+    const reportCounts = await scrubReportMentions({
+      prisma: this.prisma,
+      userId: u,
+      scope: await collectReportMentions({ prisma: this.prisma, userId: u }),
+    });
+    add('reportRunsDetached', reportCounts.reportRunsDetached);
+    add('reportRunSkipped', reportCounts.reportRunSkipped);
+    add('reportSchedulesDetached', reportCounts.reportSchedulesDetached);
 
     // Manual directory entry of the person.
     add(

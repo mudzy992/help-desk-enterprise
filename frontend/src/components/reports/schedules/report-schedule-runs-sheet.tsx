@@ -136,7 +136,10 @@ export function ReportScheduleRunsSheet({
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-[12px] text-muted-foreground">
                       {run.skipped.map((item) => (
                         <li key={`${item.userId}-${item.reason}`}>
-                          {item.displayName ?? item.userId}: {describe(skipReasonKeys, item.reason)}
+                          {item.displayName ??
+                            item.userId ??
+                            t("reports.schedules.anonymizedRecipient")}
+                          : {describe(skipReasonKeys, item.reason)}
                         </li>
                       ))}
                     </ul>

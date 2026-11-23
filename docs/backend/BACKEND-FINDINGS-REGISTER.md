@@ -453,7 +453,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-10` | P2 | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor | zatvoreno (W7.100) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-11` | P2 | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius | zatvoreno (W7.101) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-12` | P2 | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku | zatvoreno (W7.102) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-13` | P2 | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-13` | P2 | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike | zatvoreno (W7.104) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-14` | P2 | Run retention prune je best-effort i zavisi od aktivnog sweepa | zatvoreno (W7.103) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-15` | P3 | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-16` | P3 | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report | otvoreno | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **321**
-- Otvoreno: **375** (P1 88 / P2 196 / P3 91)
-- Val 7: **100 / 111** zatvoreno, otvoreno **11** (P1 0 / P2 1 / P3 10)
+- Zatvoreno: **322**
+- Otvoreno: **374** (P1 88 / P2 195 / P3 91)
+- Val 7: **101 / 111** zatvoreno, otvoreno **10** (P1 0 / P2 0 / P3 10)
 <!-- findings-totals:end -->

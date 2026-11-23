@@ -71,7 +71,8 @@ export type ReportScheduleRun = {
   readonly recipientCount: number;
   readonly sentCount: number;
   readonly skipped: readonly {
-    readonly userId: string;
+    /** `null` after the recipient's account was anonymised (the reason is kept). */
+    readonly userId: string | null;
     readonly reason: string;
     readonly displayName: string | null;
   }[];

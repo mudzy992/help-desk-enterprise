@@ -3847,6 +3847,7 @@
       "runPeriod": "Period {{from}} – {{to}}",
       "runCounts": "Sent {{sent}} of {{total}}",
       "manual": "started manually by {{name}}",
+      "anonymizedRecipient": "Anonymised recipient",
       "skip": {
         "inactive": "user is not active",
         "no_access": "no access to reports or to the unit scope",

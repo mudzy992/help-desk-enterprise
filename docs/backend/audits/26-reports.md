@@ -5,15 +5,16 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **13/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **14/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
 brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored), W7.99 (`BA-reports-09`,
 at-least-once isporuka bez slijepog ponovnog slanja), W7.100 (`BA-reports-10`, cache key nosi verziju
 autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija), W7.102 (`BA-reports-12`, katalog i
-pola-otvoreni ugovor prozora) i W7.103 (`BA-reports-14`, retention run loga kao zaseban, batched posao). Ova
-statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+pola-otvoreni ugovor prozora), W7.103 (`BA-reports-14`, retention run loga kao zaseban, batched posao) i W7.104
+(`BA-reports-13`, privacy/anonymization matrica sa scrubom run JSON-a i bannerom u e-mailu). Ova statusna dopuna ne
+mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -203,7 +204,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | zatvoreno (W7.100) |
 | BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | zatvoreno (W7.101) |
 | BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | zatvoreno (W7.102) |
-| BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | otvoreno |
+| BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | zatvoreno (W7.104) |
 | BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | zatvoreno (W7.103) |
 | BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | otvoreno |
 | BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | otvoreno |
@@ -484,8 +485,8 @@ retention granica, `NOT NULL`), `report-schedules.spec.ts` (**+2** — snapshot 
 Lokalno: backend **945 suite / 5.444 testa**, `reports` **36/195**; `eslint` 0, `wiring` 632 rute,
 `db:migration-policy` **124**, `check-docs-content` OK.
 
-**Otvoreno i dokumentovano:** retention i dalje zavisi od aktivnog sweep-a (`BA-reports-14`), privacy matrica nad
-run JSON-om i primaocima (`BA-reports-13`), exactly-once isporuka (`BA-reports-09`), BullMQ reconciliation
+**Otvoreno i dokumentovano:** privacy matrica nad run JSON-om i primaocima zatvorena je u W7.104 (§30), exactly-once
+isporuka (`BA-reports-09`), BullMQ reconciliation
 (`BA-reports-08`). Detalji: [319-w797-reports-07-run-tombstone.md](../implementation/319-w797-reports-07-run-tombstone.md).
 
 ## 24. Implementacijski closeout — W7.98 (`BA-reports-08`)
@@ -752,3 +753,54 @@ to je svjesno, jer retention radi i na svakom sweepu (koji je expected scheduler
 matrica nad run JSON-om/primaocima ostaje `BA-reports-13`; strict cache schema `BA-reports-15`; `runNow`
 idempotency `BA-reports-16`; PDF intent `BA-reports-17`; preview read-audit `BA-reports-18`. Detalji:
 [325-w7103-reports-14-run-retention.md](../implementation/325-w7103-reports-14-run-retention.md).
+
+## 30. Implementacijski closeout — W7.104 (`BA-reports-13`)
+
+**Nalaz:** modul je imao nepotpunu privacy sliku — anonimizacija je brisala **žive** primaoce (`ReportScheduleRecipient`,
+`NotificationEmailDelivery`) i pauzirala raspored bez primalaca, ali **historija i vlasništvo** nisu bili pokriveni:
+`ReportScheduleRun.skipped` je 180 dana čuvao `[{ userId, reason }]` sa sirovim ID-em primaoca, `triggeredByUserId`,
+`createdByUserId` i `updatedByUserId` nikad nisu bili dirani, Redis ključ `reports:*-summary:<userId>:v…` nosi ID u
+**ključu**, a poštanska kopija i CSV prilozi izlaze iz sistema bez ijedne riječi o klasifikaciji ili roku. Nijedan
+dokument nije mogao odgovoriti, za jednu površinu, šta sadrži, koliko živi, šta se s njom radi i čime se to dokazuje.
+
+**Rješenje.**
+
+- **Matrica u kodu:** `report-privacy-matrix.ts` — 11 redova, svaki sa `identity`, `retention`, `action` (jedna od
+  sedam enumerisanih radnji: `delete`, `null`, `scrub-json`, `retain`, `pseudonymous`, `cache-ttl`, `outside-system`),
+  `countKey` i objašnjenjem gdje je implementirano. Pokriva tri modela (`ReportSchedule`, `ReportScheduleRecipient`,
+  `ReportScheduleRun`) i četiri površine van njih (delivery ledger, audit lanac, Redis replika, mail kopija).
+- **Selekcija na jednom mjestu:** `report-mentions.ts` — manual trigger, dvije kolone vlasništva i runovi čiji `skipped`
+  sadrži osobu, potonji jednim `jsonb` containment upitom (`skipped @> '[{"userId": …}]'`); Prisma ne izražava
+  „element niza ima polje = x” prenosivo, a containment pogađa svaki entry bez obzira na `reason`.
+- **Upis:** `scrub-report-mentions.ts` — `triggeredByUserId` ⇒ `NULL` (run zadržava trigger, period, status i brojače),
+  `skipped` entry gubi `userId` a zadržava `reason`, creator/updater se čiste **odvojeno** (tuđi raspored ne izgubi
+  creatora). Sve sa ID-em u predikatu ⇒ drugi prolaz je no-op i dva workera se ne vrte.
+- **Preview = execute:** `preview()` broji `reportRunsDetached`, `reportRunSkipped`, `reportSchedulesDetached` iz iste
+  selekcije koju prosljeđuje u `execute()`; ranije je preview pokazivao samo žive primaoce.
+- **Kopija koja izlazi iz sistema:** aplikacija ne čuva tijelo izvještaja i ne može povući poslanu kopiju, pa
+  klasifikacija i rok putuju **s porukom** — `classificationNote` je prvi `notes[]` element svakog scheduled e-maila
+  (bs i en), uvijek prisutan, i u testnom i u regularnom slanju.
+- **Čitanje poslije anonimizacije:** `runs()` vraća `skipped[].userId: string | null`, a UI prikazuje
+  „Anonimizovan primalac”/„Anonymised recipient” uz zadržani razlog (bez toga bi pisalo prazno ime).
+
+**Posljedice po ponašanje.** Run log poslije anonimizacije ima isti period, status, brojače i razloge, ali nijedan
+ID osobe; broj primalaca se ne mijenja (historijski snapshot ostaje tačan). Raspored ostaje aktivan ako ima još
+primalaca, inače se pauzira (postojeće ponašanje); `createdBy`/`updatedBy` su `NULL`. Audit lanac se ne briše.
+Bez migracije i bez novih ruta (632); mijenja se samo jedan DTO tip.
+
+**Testni dokaz.** `scrub-report-mentions.spec.ts` (**novo, 8**): detach bez gubitka činjenica; `reason` preživi, tuđi
+i entry bez `userId` netaknuti; idempotencija kroz stvarni containment (drugi prolaz vraća 0); creator/updater
+odvojeno; nula upisa bez footprinta; selekcija je jedan containment upit sa **bound** vrijednošću; `stripSkippedUserIds`
+ostavlja malformed JSON i broji svaki entry. `report-privacy-matrix.spec.ts` (**novo, 8**): modeli iz šeme, površine van
+modela, enumeracije, brojač ⇔ radnja, jedinstveni ID-evi, banner u oba lokalna teksta, retention = 180 dana.
+`anonymization.integration.spec.ts` (+1, PostgreSQL): schedule + manual run sa `skipped` za osobu i agenta; poslije
+`execute` run zadržava `MANUAL`/`PARTIAL`/`2`/`1`, `triggeredByUserId = null`, `skipped = [{reason: inactive},
+{agent, no_access}]`, raspored ima `createdByUserId`/`updatedByUserId = null`, `enabled = true` i samo agenta kao
+primaoca. Lokalno: `privacy` + `reports` **67 suite / 405 testova** (44 skipped bez `PRIVACY_IT_DATABASE_URL`),
+frontend `components/reports` + `i18n` **11 fajlova / 57 testova**, `eslint` 0.
+
+**Otvoreno i dokumentovano:** Redis replika je `cache-ttl` — ključ nosi user id, vrijednost je agregat bez liste
+tiketa, TTL 60 s, pa evakuacija po ID-u ne bi imala šta da sačuva (i tražila bi `SCAN`); SMTP/CSV kopija ostaje van
+kontrole aplikacije (banner + retention smjernica, ne brisanje); `AuditLog` je `pseudonymous` — ID-evi ostaju, lanac
+se ne briše jer dokazuje ko je šta eksportovao. Detalji:
+[326-w7104-reports-13-privacy-matrix.md](../implementation/326-w7104-reports-13-privacy-matrix.md).

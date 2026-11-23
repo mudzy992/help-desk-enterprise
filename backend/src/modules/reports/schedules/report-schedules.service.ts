@@ -71,7 +71,12 @@ export type ReportScheduleRunView = {
   readonly periodEnd: string;
   readonly recipientCount: number;
   readonly sentCount: number;
-  readonly skipped: readonly { readonly userId: string; readonly reason: string; readonly displayName: string | null }[];
+  readonly skipped: readonly {
+    /** `null` once the recipient's account was anonymised: the reason stays, the identity does not. */
+    readonly userId: string | null;
+    readonly reason: string;
+    readonly displayName: string | null;
+  }[];
   readonly omittedAttachments: readonly { readonly pack: string; readonly reason: string }[];
   readonly errorCode: string | null;
   readonly durationMs: number | null;
@@ -338,10 +343,15 @@ export class ReportSchedulesService {
         periodEnd: run.periodEnd.toISOString(),
         recipientCount: run.recipientCount,
         sentCount: run.sentCount,
+        // W7.104 (BA-reports-13): after an anonymisation the entry keeps its reason and loses the id, so the run
+        // log can still say "one recipient was inactive" without naming the person.
         skipped: asArray(run.skipped).map((item) => ({
-          userId: String(item.userId ?? ''),
+          userId: typeof item.userId === 'string' ? item.userId : null,
           reason: String(item.reason ?? ''),
-          displayName: users.get(String(item.userId ?? ''))?.displayName ?? null,
+          displayName:
+            typeof item.userId === 'string'
+              ? (users.get(item.userId)?.displayName ?? null)
+              : null,
         })),
         omittedAttachments: asArray(run.omittedAttachments).map((item) => ({
           pack: String(item.pack ?? ''),

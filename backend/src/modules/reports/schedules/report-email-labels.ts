@@ -43,6 +43,12 @@ export type ReportEmailLabels = {
   readonly slaNote: string;
   readonly overdueNote: string;
   readonly attachmentsNote: string;
+  /**
+   * W7.104 (`BA-reports-13`): the report leaves the controlled system as an e-mail copy and as CSV attachments. The
+   * classification and the retention expectation have to travel with it, because nothing in the application can
+   * reach those copies afterwards.
+   */
+  readonly classificationNote: string;
   readonly attachmentOmitted: Readonly<Record<ReportAttachmentOmitReason, string>>;
   readonly footerReason: string;
   readonly footerReasonNoOwner: string;
@@ -97,6 +103,8 @@ export const reportEmailLabels: Readonly<Record<EmailLocale, ReportEmailLabels>>
     slaNote: 'Crveno: SLA ispod cilja od {target} %.',
     overdueNote: 'Stanje u trenutku slanja: otvoreni tiketi s prekoračenim SLA odzivom ili rješavanjem.',
     attachmentsNote: 'Prilozi (CSV) poštuju isti period i isti presjek kao i izvještaj (organizaciona jedinica, servis, grupa, prioritet).',
+    classificationNote:
+      'Klasifikacija: interno · Izvještaj sadrži operativne podatke o tiketima. Ne prosljeđujte ga van organizacije. Kopija e-maila i CSV prilozi žive van sistema i čuvaju se po politici pošte; historija izvršavanja u aplikaciji se čuva 180 dana.',
     attachmentOmitted: {
       too_many_rows: 'Prilog „{pack}” je izostavljen: ima više od {max} redova. Izvezite ga u aplikaciji.',
       too_large: 'Prilog „{pack}” je izostavljen: prilozi bi premašili 10 MB. Izvezite ga u aplikaciji.',
@@ -164,6 +172,8 @@ export const reportEmailLabels: Readonly<Record<EmailLocale, ReportEmailLabels>>
     overdueNote: 'State at send time: open tickets past their SLA response or resolution deadline.',
     attachmentsNote:
       "CSV attachments use the same period and the same scope as the report (organizational unit, service, group, priority).",
+    classificationNote:
+      'Classification: internal · This report contains operational ticket data. Do not forward it outside the organization. The e-mail copy and CSV attachments live outside the system and follow your mail retention policy; the run history in the application is kept for 180 days.',
     attachmentOmitted: {
       too_many_rows: 'Attachment "{pack}" was left out: it has more than {max} rows. Export it in the application.',
       too_large: 'Attachment "{pack}" was left out: attachments would exceed 10 MB. Export it in the application.',

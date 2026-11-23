@@ -58,6 +58,8 @@ export function composeScheduledReportEmail(input: {
     }
   }
   const notes = [
+    // W7.104 (`BA-reports-13`): classification and retention travel with the copy that leaves the system.
+    labels.classificationNote,
     ...(input.attachmentNames.length > 0 ? [labels.attachmentsNote] : []),
     ...input.omitted.map((item) =>
       fill(labels.attachmentOmitted[item.reason], {

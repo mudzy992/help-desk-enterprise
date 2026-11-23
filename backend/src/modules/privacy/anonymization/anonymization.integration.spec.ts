@@ -230,6 +230,45 @@ describeIfDatabase('anonymization (integration)', () => {
       data: { userId: subject.id, serviceId: svc.id, organizationalUnitId: unit.id, primaryArticleId: article.id },
     });
 
+    // W7.104 (BA-reports-13): a schedule the person created, a recipient row for them, and a manual run whose
+    // `skipped` JSON lists them next to somebody else.
+    const reportSchedule = await prisma.reportSchedule.create({
+      data: {
+        name: `Anon report ${stamp}`,
+        frequency: 'WEEKLY',
+        sendTime: '07:00',
+        organizationalUnitId: unit.id,
+        sections: ['kpi'],
+        packKeys: [],
+        nextRunAt: new Date(Date.now() + day),
+        createdByUserId: subject.id,
+        updatedByUserId: subject.id,
+        recipients: {
+          create: [{ userId: subject.id }, { userId: agent.id }],
+        },
+      },
+    });
+    ids.reportSchedule = reportSchedule.id;
+    const reportRun = await prisma.reportScheduleRun.create({
+      data: {
+        scheduleId: reportSchedule.id,
+        scheduleName: reportSchedule.name,
+        organizationalUnitId: unit.id,
+        trigger: 'MANUAL',
+        periodStart: new Date(Date.now() - 7 * day),
+        periodEnd: new Date(Date.now() - day),
+        status: 'PARTIAL',
+        recipientCount: 2,
+        sentCount: 1,
+        skipped: [
+          { userId: subject.id, reason: 'inactive' },
+          { userId: agent.id, reason: 'no_access' },
+        ],
+        triggeredByUserId: subject.id,
+      },
+    });
+    ids.reportRun = reportRun.id;
+
     const erasure = await prisma.privacyErasure.create({
       data: { userId: subject.id, pseudonym: 'Bivši korisnik #AB12', status: 'QUEUED', requestedByUserId: admin.id },
     });
@@ -283,6 +322,29 @@ describeIfDatabase('anonymization (integration)', () => {
     expect(await prisma.userSession.count({ where: { userId: ids.subject } })).toBe(0);
     expect(await prisma.ticketParticipant.count({ where: { userId: ids.subject } })).toBe(0);
     expect(await prisma.manualDirectoryUser.count({ where: { email } })).toBe(0);
+
+    // W7.104 (BA-reports-13): the run keeps its period, counters and skip reasons; the identity goes.
+    const reportRunAfter = await prisma.reportScheduleRun.findUniqueOrThrow({ where: { id: ids.reportRun } });
+    expect(reportRunAfter).toMatchObject({
+      trigger: 'MANUAL',
+      status: 'PARTIAL',
+      recipientCount: 2,
+      sentCount: 1,
+      triggeredByUserId: null,
+    });
+    expect(reportRunAfter.skipped).toEqual([
+      { reason: 'inactive' },
+      { userId: ids.agent, reason: 'no_access' },
+    ]);
+    const reportScheduleAfter = await prisma.reportSchedule.findUniqueOrThrow({
+      where: { id: ids.reportSchedule },
+      include: { recipients: { select: { userId: true } } },
+    });
+    expect(reportScheduleAfter.createdByUserId).toBeNull();
+    expect(reportScheduleAfter.updatedByUserId).toBeNull();
+    // The schedule survives with the remaining recipient; it was not paused because it still has one.
+    expect(reportScheduleAfter.enabled).toBe(true);
+    expect(reportScheduleAfter.recipients.map((row) => row.userId)).toEqual([ids.agent]);
 
     const inbound = await prisma.inboundEmail.findFirstOrThrow({ where: { providerMessageId: `p${stamp}` } });
     expect([inbound.fromAddress, inbound.rawStorageKey]).toEqual([null, null]);
