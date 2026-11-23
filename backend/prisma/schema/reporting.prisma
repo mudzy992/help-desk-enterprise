@@ -66,28 +66,34 @@ model ReportScheduleRecipient {
 }
 
 model ReportScheduleRun {
-  id                String           @id @default(cuid())
-  scheduleId        String
-  trigger           ReportRunTrigger
+  id                   String           @id @default(cuid())
+  /// W7.97 (`BA-reports-07`): nullable + ON DELETE SET NULL — deleting a schedule keeps its run log until the
+  /// 180-day retention prunes it, instead of the cascade erasing history on the spot.
+  scheduleId           String?
+  /// Snapshot of the schedule at run time, so a run stays readable after its schedule is gone.
+  scheduleName         String           @db.VarChar(120)
+  organizationalUnitId String
+  trigger              ReportRunTrigger
   /// Scheduled runs: "<scheduleId>:<periodStart ISO>" — the idempotency key
   /// (two workers, retries). Manual runs: null (NULLs never collide).
-  slotKey           String?          @unique
-  periodStart       DateTime
-  periodEnd         DateTime
-  status            ReportRunStatus
-  recipientCount    Int              @default(0)
-  sentCount         Int              @default(0)
+  slotKey              String?          @unique
+  periodStart          DateTime
+  periodEnd            DateTime
+  status               ReportRunStatus
+  recipientCount       Int              @default(0)
+  sentCount            Int              @default(0)
   /// [{ userId, reason }]
-  skipped           Json             @default("[]")
+  skipped              Json             @default("[]")
   /// [{ pack, reason }] — attachments left out (row or size limit, error).
-  omittedAttachments Json            @default("[]")
-  errorCode         String?          @db.VarChar(64)
-  durationMs        Int?
-  triggeredByUserId String?
-  createdAt         DateTime         @default(now())
-  finishedAt        DateTime?
-  schedule          ReportSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  omittedAttachments   Json            @default("[]")
+  errorCode            String?          @db.VarChar(64)
+  durationMs           Int?
+  triggeredByUserId    String?
+  createdAt            DateTime         @default(now())
+  finishedAt           DateTime?
+  schedule             ReportSchedule?  @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
 
   @@index([scheduleId, createdAt(sort: Desc)])
   @@index([createdAt])
+  @@index([organizationalUnitId, createdAt])
 }

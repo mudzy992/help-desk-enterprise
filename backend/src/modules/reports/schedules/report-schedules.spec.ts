@@ -296,6 +296,8 @@ function createRunner(options: {
     },
     reportSchedule: {
       findMany: async () => options.due,
+      findUnique: async (args: { readonly where?: { readonly id?: string } }) =>
+        options.due.find((row) => row.id === args.where?.id) ?? null,
       updateMany: async (args: unknown) => {
         scheduleUpdates.push(args);
         return { count: 1 };
@@ -428,6 +430,24 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
     const claimed = runs.find((run) => run.status === 'RUNNING');
     expect(claimed?.slotKey).toBe('sch-1:2026-04-05T22:00:00.000Z');
     expect(JSON.stringify(scheduleUpdates[0])).toContain('2026-04-20T05:00:00.000Z');
+  });
+
+  it('stamps every run with the schedule name and unit so it survives the schedule (W7.97)', async () => {
+    const { runner, runs } = createRunner({ due: [schedule()] });
+    await runner.runDue(new Date('2026-04-13T08:00:00Z'));
+    const claimed = runs.find((run) => run.status === 'RUNNING');
+    expect(claimed).toMatchObject({ scheduleName: 'Weekly IT', organizationalUnitId: 'ou-it' });
+    expect(runs.filter((run) => run.status === 'SKIPPED')).toEqual([
+      expect.objectContaining({ scheduleName: 'Weekly IT', organizationalUnitId: 'ou-it' }),
+      expect.objectContaining({ scheduleName: 'Weekly IT', organizationalUnitId: 'ou-it' }),
+    ]);
+  });
+
+  it('stamps a manual run with the same snapshot (W7.97)', async () => {
+    const { runner, runs } = createRunner({ due: [schedule()] });
+    await runner.runManual('sch-1', 'admin', new Date('2026-03-30T09:00:00Z'));
+    const manual = runs.find((run) => run.trigger === 'MANUAL');
+    expect(manual).toMatchObject({ scheduleName: 'Weekly IT', organizationalUnitId: 'ou-it' });
   });
 
   it('sends only to eligible recipients and records the skipped ones', async () => {

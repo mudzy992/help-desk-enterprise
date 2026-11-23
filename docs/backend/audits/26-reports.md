@@ -5,11 +5,11 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **6/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **7/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
-rasporeda) i W7.96 (`BA-reports-06`, audit red u transakciji izmjene). Ova statusna dopuna ne mijenja susjedne
-nalaze ni ocjenu.
+rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene) i W7.97 (`BA-reports-07`, run log preživi
+brisanje rasporeda). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -73,6 +73,11 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
 
+**Status poslije W7.97 (§23):** `ReportScheduleRun.scheduleId` je sada nullable sa `ON DELETE SET NULL`, a run nosi
+snapshot `scheduleName`/`organizationalUnitId`; brisanje rasporeda **odvezuje** run log umjesto da ga kaskadno
+obriše, pa isti 180-dnevni retention vrijedi za žive i obrisane rasporede. Detalji:
+[319](../implementation/319-w797-reports-07-run-tombstone.md).
+
 **Status poslije W7.96 (§22):** izmjena rasporeda i njen globalni audit red su jedna transakcija (`create`,
 `update`, `enabled`, `delete`, te finalizacija runa u runner-u), pa pad audita poništava izmjenu umjesto da je
 ostavi bez zapisa. Detalji: [318](../implementation/318-w796-reports-06-transactional-audit.md).
@@ -80,8 +85,8 @@ ostavi bez zapisa. Detalji: [318](../implementation/318-w796-reports-06-transact
 **Status poslije W7.95 (§21):** admin izmjene (`update`, `enabled`, `delete`) su uslovljene verzijom reda
 (`If-Match: "vN"`, `version` kolona, 412 `OPTIMISTIC_STALE_WRITE`, 428 bez headera), pa paralelni update/enable/
 delete više nije last-write-wins; runner i scheduler ne dižu verziju, da noćni run ne pravi lažne konflikte.
-Transakcijski audit (`BA-reports-06`) i run/tombstone politika (`BA-reports-07`) ostaju otvoreni. Detalji:
-[317](../implementation/317-w795-reports-05-schedule-version-cas.md).
+Transakcijski audit (`BA-reports-06`, W7.96) i run/tombstone politika (`BA-reports-07`, W7.97) su zatvoreni —
+vidi §22 i §23. Detalji: [317](../implementation/317-w795-reports-05-schedule-version-cas.md).
 
 ## 7. Scheduled execution, dedupe i recovery
 
@@ -147,7 +152,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | zatvoreno (W7.94) |
 | BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | zatvoreno (W7.95) |
 | BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | zatvoreno (W7.96) |
-| BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | otvoreno |
+| BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | zatvoreno (W7.97) |
 | BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | otvoreno |
 | BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | otvoreno |
 | BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | otvoreno |
@@ -405,3 +410,35 @@ reda, rollback brisanja). Lokalno: backend **945 suite / 5.442 testa**, `reports
 nije exactly-once — `dedupeKey` pokriva retry, ne pad između SMTP prihvatanja i upisa; run/tombstone politika je
 `BA-reports-07`, BullMQ reconciliation `BA-reports-08`. Detalji:
 [318-w796-reports-06-transactional-audit.md](../implementation/318-w796-reports-06-transactional-audit.md).
+
+## 23. Implementacijski closeout — W7.97 (`BA-reports-07`)
+
+**Nalaz:** `ReportScheduleRun.scheduleId` je bio `NOT NULL` sa `onDelete: Cascade`, pa je `DELETE
+/report-schedules/:id` brisao i cijeli run log — i runove mlađe od 180 dana. Retention politika (§5.3) tako nije
+važila za obrisane rasporede: isti dokaz se brisao na dva različita načina, a audit brisanja nije mogao reći kome
+je izvještaj poslan.
+
+**Rješenje.**
+
+- **Snapshot u runu:** `scheduleName` i `organizationalUnitId` (`NOT NULL`) upisuju se pri kreiranju runa (`claim`,
+  `runManual`, missed-slot `createMany`), pa odvezan run ostaje čitljiv.
+- **FK `ON DELETE SET NULL`** i nullable `scheduleId`: brisanje rasporeda odvezuje runove, ne briše ih.
+- **Retencija kao jedini brisač:** `pruneRuns` (180 dana) vrijedi isto za žive i obrisane rasporede.
+- **Indeks** `(organizationalUnitId, createdAt)` za OU-scoped čitanje run loga.
+- **Migracija `20271201170000` (124.):** backfill snapshot-a prije `NOT NULL`, `scheduleId` → nullable, FK
+  recreate sa `SET NULL`; destructive approval u `ops/migrations/destructive-approvals.json` (nema brisanja
+  podataka, samo promjena ponašanja constraint-a).
+
+**Namjerne posljedice:** broj run redova se pri brisanju rasporeda **ne smanjuje**; run obrisanog rasporeda nije
+dostupan kroz `GET /report-schedules/:id/runs` (raspored ne postoji → 404) — ostaje u bazi za forenziku i
+retenciju. Runovi ne dobijaju FK na `OrganizationalUnit`: OU kaskada ne smije brisati dokaze, pa je OU u runu
+snapshot, ne referenca.
+
+**Testni dokaz:** `report-schedule-run-tombstone.integration.spec.ts` (**3**, PostgreSQL — detach + snapshot,
+retention granica, `NOT NULL`), `report-schedules.spec.ts` (**+2** — snapshot na scheduliranom i manualnom runu).
+Lokalno: backend **945 suite / 5.444 testa**, `reports` **36/195**; `eslint` 0, `wiring` 632 rute,
+`db:migration-policy` **124**, `check-docs-content` OK.
+
+**Otvoreno i dokumentovano:** retention i dalje zavisi od aktivnog sweep-a (`BA-reports-14`), privacy matrica nad
+run JSON-om i primaocima (`BA-reports-13`), exactly-once isporuka (`BA-reports-09`), BullMQ reconciliation
+(`BA-reports-08`). Detalji: [319-w797-reports-07-run-tombstone.md](../implementation/319-w797-reports-07-run-tombstone.md).

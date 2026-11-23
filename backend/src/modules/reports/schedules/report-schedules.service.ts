@@ -278,6 +278,8 @@ export class ReportSchedulesService {
     // makes the client's "delete this" mean "delete the row I was shown".
     // W7.96: the delete and its audit row are one transaction, so a crash cannot leave a deletion that nobody
     // can trace, nor an audit row for a schedule that still exists.
+    // W7.97: the run log does not follow the schedule into the cascade — `ReportScheduleRun.scheduleId` is set
+    // to NULL and the run keeps its own name/OU snapshot until the 180-day retention prunes it.
     await this.prisma.$transaction(async (transaction) => {
       const deleted = await transaction.reportSchedule.deleteMany({
         where: { id, version: expectedVersion },
@@ -588,6 +590,8 @@ export class ReportSchedulesService {
       select: { id: true, scheduleId: true, status: true, trigger: true, createdAt: true, sentCount: true, recipientCount: true },
     });
     for (const run of runs) {
+      // W7.97: runs outlive their schedule (tombstone), so they are not always attributable to a live row here.
+      if (run.scheduleId === null) continue;
       result.set(run.scheduleId, {
         id: run.id,
         status: run.status,

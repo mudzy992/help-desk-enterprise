@@ -111,6 +111,9 @@ export class ScheduledReportRunner {
     const run = await this.prisma.reportScheduleRun.create({
       data: {
         scheduleId,
+        // W7.97: the run keeps its own copy of the schedule identity, so deleting the schedule cannot erase it.
+        scheduleName: schedule.name,
+        organizationalUnitId: schedule.organizationalUnitId,
         trigger: 'MANUAL',
         slotKey: null,
         periodStart: period.start,
@@ -193,6 +196,8 @@ export class ScheduledReportRunner {
           const period = previousReportPeriod(schedule.frequency, timeZone, missedSlot);
           return {
             scheduleId: schedule.id,
+            scheduleName: schedule.name,
+            organizationalUnitId: schedule.organizationalUnitId,
             trigger: 'SCHEDULED' as const,
             slotKey: slotKeyOf(schedule.id, period),
             periodStart: period.start,
@@ -207,7 +212,7 @@ export class ScheduledReportRunner {
     }
     const period = previousReportPeriod(schedule.frequency, timeZone, slot);
     const slotKey = slotKeyOf(schedule.id, period);
-    const runId = await this.claim(schedule.id, slotKey, period, now);
+    const runId = await this.claim(schedule, slotKey, period, now);
     // Advance first: a crash while sending must not make the sweep pick the slot again
     // (a stale RUNNING run is taken over instead, see `claim`).
     await this.prisma.reportSchedule.updateMany({
@@ -228,11 +233,18 @@ export class ScheduledReportRunner {
    * create the run. A RUNNING run older than `staleRunMs` (crashed worker) is
    * taken over; per-recipient delivery dedupe prevents a second e-mail.
    */
-  private async claim(scheduleId: string, slotKey: string, period: ReportPeriod, now: Date): Promise<string | null> {
+  private async claim(
+    schedule: ReportScheduleRecord,
+    slotKey: string,
+    period: ReportPeriod,
+    now: Date,
+  ): Promise<string | null> {
     try {
       const run = await this.prisma.reportScheduleRun.create({
         data: {
-          scheduleId,
+          scheduleId: schedule.id,
+          scheduleName: schedule.name,
+          organizationalUnitId: schedule.organizationalUnitId,
           trigger: 'SCHEDULED',
           slotKey,
           periodStart: period.start,
@@ -592,7 +604,11 @@ export class ScheduledReportRunner {
     return { attachments, omitted };
   }
 
-  /** §5.3: the run log is kept 180 days. */
+  /**
+   * §5.3: the run log is kept 180 days — that is now the only thing that removes a run (W7.97). Deleting a
+   * schedule detaches its runs (`scheduleId` → NULL) instead of cascading them away, so the retention window is
+   * the same for live and deleted schedules.
+   */
   private async pruneRuns(now: Date): Promise<void> {
     await this.prisma.reportScheduleRun
       .deleteMany({

@@ -447,7 +447,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-04` | P2 | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti | zatvoreno (W7.94) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-05` | P2 | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins | zatvoreno (W7.95) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-06` | P2 | Schedule mutation/run finalizacija i globalni audit nisu atomarni | zatvoreno (W7.96) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-07` | P2 | Brisanje schedulea kaskadno briše run historiju prije 180 dana | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-07` | P2 | Brisanje schedulea kaskadno briše run historiju prije 180 dana | zatvoreno (W7.97) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-08` | P2 | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-09` | P2 | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-10` | P2 | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor | otvoreno | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **314**
-- Otvoreno: **382** (P1 88 / P2 203 / P3 91)
-- Val 7: **93 / 111** zatvoreno, otvoreno **18** (P1 0 / P2 8 / P3 10)
+- Zatvoreno: **315**
+- Otvoreno: **381** (P1 88 / P2 202 / P3 91)
+- Val 7: **94 / 111** zatvoreno, otvoreno **17** (P1 0 / P2 7 / P3 10)
 <!-- findings-totals:end -->

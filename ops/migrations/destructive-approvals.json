@@ -70,6 +70,11 @@
       "migration": "20271027180000_sla_scan_failure_quarantine",
       "sha256": "570f51ad171cd77385aafd8844a564e6dbc48eaf81f2336e6be8abf8810c458c",
       "approval": "W5.37: quarantine metadata is owned exclusively by its ticket and is intentionally cascade-deleted with that ticket"
+    },
+    {
+      "migration": "20271201170000_report_schedule_run_tombstone",
+      "sha256": "7acd144bf81cb17401ba3b82625ce161f7edf02bd1607cd3cbb06f123753990e",
+      "approval": "W7.97 (BA-reports-07): FK prelazi sa CASCADE na SET NULL; constraint se dropuje i odmah vraća sa novim ponašanjem (nema brisanja podataka, UPDATE backfill popunjava snapshot prije NOT NULL)"
     }
   ]
 }

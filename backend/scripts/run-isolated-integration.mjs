@@ -121,6 +121,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/reports/schedules/report-schedule-version.integration.spec.ts",
   // W7.96 (BA-reports-06): a schedule mutation/run finalization and its audit row share one transaction.
   "src/modules/reports/schedules/report-schedule-audit-atomicity.integration.spec.ts",
+  // W7.97 (BA-reports-07): deleting a schedule detaches its run log instead of cascading it away.
+  "src/modules/reports/schedules/report-schedule-run-tombstone.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {
