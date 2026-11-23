@@ -10,7 +10,7 @@ PostgreSQL); registracija u `scripts/run-isolated-integration.mjs`<br>
 **DB migracija:** **ne** — mijenja se samo granica transakcije<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** vidi „CI i testni dokaz” (run se upisuje po završetku)
+**CI:** [run `45154739552`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45154739552) ✓ na `993ff4c` (kod `13375be`, popravka tipa poslije)
 
 ## Nalaz
 
@@ -91,7 +91,32 @@ samo na `auditLog.create`.
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+**Run [`45154739552`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45154739552) — success**
+(push na `arena/864951a6-help-desk-enterprise`, `CI gate` ✓). Poslovi: `Backend build + test` ✓,
+`Backend PostgreSQL + Redis integration` ✓ (137624796634 — svih **100/100** izolovanih suiteova, uključujući novi
+`report-schedule-audit-atomicity.integration.spec.ts`; `run-isolated-integration.mjs` pada na prvi neuspješan
+suite, pa zelen posao znači da su sva **3** nova integraciona testa prošla na stvarnom PostgreSQL-u),
+`Frontend build + test` ✓, `Docs guard` ✓, `Backend container + supply chain` ✓; `E2E *` preskočeni (nema
+`e2e`/frontend izmjena u ovom paketu — detektovane promjene su backend + docs).
+
+**Prvi pokušaj [`45152557293`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45152557293) je pao**
+(isti commit, `Backend build + test` i integracija): `TS2345` na `finalize(transaction, runId)` — pomoćna funkcija
+u integracionom specu bila je tipizirana kao `{ reportScheduleRun: { update: (args: unknown) => … } }`, a
+`Prisma.reportScheduleRun.update` je generička nad svojim argumentima, pa pravi `Prisma.TransactionClient` nije
+bio dodjeljiv. Lokalni stub (`TransactionClient = any`, `update(...args: unknown[])`) to **nije mogao pokazati** —
+zato je popravka (`Prisma.TransactionClient`) potvrđena tek u CI-ju, commit-om poslije pada.
+
+**Ostale provjere (lokalno, prije commita):**
+
+| provjera | rezultat |
+| --- | --- |
+| `jest` (backend, cijeli) | **945 suite / 5.442 testa** ✓, 101 suite skipped (integracije bez `PRIVACY_IT_DATABASE_URL`) |
+| `jest src/modules/reports` | **36 suite / 193 testa** ✓ |
+| `eslint src/modules/reports scripts/run-isolated-integration.mjs` | 0 problema ✓ |
+| `npm run wiring:check` | ✓ 99 controllera, **632** rute (nepromijenjeno — nema novih ruta) |
+| `npm run db:migration-policy:check` | ✓ **123** migracije (nepromijenjeno — nema migracije) |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
+| `node scripts/check-backend-findings.mjs` | ✓ **696/696**, zatvoreno **314** / otvoreno **382** |
 
 ## Registar nalaza
 
