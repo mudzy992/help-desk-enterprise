@@ -13,7 +13,7 @@ indeks)<br>
 (`DROP CONSTRAINT` + vraćanje FK sa `SET NULL`; backfill prije `NOT NULL`)<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _(upisuje se po završetku runa)_
+**CI:** [run `45160380210`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45160380210) ✓ na `9a07789`
 
 ## Nalaz
 
@@ -78,7 +78,30 @@ approval unos u `ops/migrations/destructive-approvals.json`.
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+**Run [`45160380210`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45160380210) — success**
+(push na `arena/864951a6-help-desk-enterprise`, `CI gate` ✓). Poslovi: `Backend build + test` ✓,
+`Backend PostgreSQL + Redis integration` ✓ (svih **101/101** izolovanih suiteova, uključujući novi
+`report-schedule-run-tombstone.integration.spec.ts` — skripta pada na prvi neuspješan suite, pa zelen posao
+znači da su sva **3** nova integraciona testa prošla na stvarnom PostgreSQL-u, sa primijenjenom migracijom
+`20271201170000`), `Frontend build + test` ✓, `Docs guard` ✓, `Backend container + supply chain` ✓; `E2E *`
+preskočeni (nema `e2e` promjena).
+
+**Prvi pokušaj [`45158428491`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45158428491) je pao**
+na `TS2322` u **W7.96** integracionom specu: `reportScheduleRun.create` tamo nije imao nove obavezne kolone
+(`scheduleName`, `organizationalUnitId`). Lokalni stub (`create(args: unknown)`) to nije mogao pokazati — isti
+oblik slijepe tačke kao kod W7.96. Popravka je commit `9a07789`, potvrđena ovim runom.
+
+**Ostale provjere (lokalno, prije commita):**
+
+| provjera | rezultat |
+| --- | --- |
+| `jest` (backend, cijeli) | **945 suite / 5.444 testa** ✓, 102 suite skipped (integracije bez `PRIVACY_IT_DATABASE_URL`) |
+| `jest src/modules/reports` | **36 suite / 195 testa** ✓ (+4 skipped, uključujući novi spec) |
+| `eslint src/modules/reports scripts/run-isolated-integration.mjs src/common/database` | 0 problema ✓ |
+| `npm run wiring:check` | ✓ 99 controllera, **632** rute (nepromijenjeno) |
+| `npm run db:migration-policy:check` | ✓ **124** migracije, destructive approval hash validan |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
+| `node scripts/check-backend-findings.mjs` | ✓ **696/696**, zatvoreno **315** / otvoreno **381** |
 
 ## Registar nalaza
 
