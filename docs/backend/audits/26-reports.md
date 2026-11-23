@@ -937,7 +937,8 @@ registrovana; `prepareAuditEntry` odbija `format`; isključeni modul ⇒ `REPORT
 beacon bez aktera (`403`), mapira `REPORTS_DISABLED` u HTTP grešku i propušta neočekivanu grešku. Frontend
 `report-trends-api.spec.ts` (**novo, 2**): beacon ide na novi put i nikad na stari, tijelo ima tačno četiri polja.
 `admin-ops-i18n-coverage.spec.ts` zelen (akcija, polja i vrijednosti imaju bs+en). Lokalno: `reports` + `audit-log`
-**65 suite / 418 testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**.
+**65 suite / 418 testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**. CI
+[`45250254981`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45250254981) **success** na `f1e9e12`.
 
 **Otvoreno i dokumentovano:** ovo nije „popravljen izvoz” nego ispravno imenovanje onoga što postoji — dokaziv
 artefakt bi tražio serverski render (`renderer: 'server'`, veličina, hash, retention) i to je novi zahtjev, ne ovaj

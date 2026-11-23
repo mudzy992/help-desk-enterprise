@@ -12,7 +12,7 @@
 **Rute:** **preimenovana jedna** (632 ostaje): `POST /reports/pdf-exports` → `POST /reports/pdf-print-intents`<br>
 **Frontend:** `report-trends-api.ts` (`recordReportPdfPrintIntent`), `pages/reports-page.tsx`, `lib/audit/*` (akcija,
 polja, vrijednosti), `bs`/`en` `common.json`<br>
-**CI:** _popunjava se nakon push-a_
+**CI:** [run `45250254981`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45250254981) ✓ na `f1e9e12`
 
 ## Nalaz
 
@@ -95,7 +95,12 @@ tijelo ima tačno `{organizationalUnitId, view, from, to}` — bez `format`/`byt
 
 ## Dokaz
 
-CI: _popunjava se nakon push-a_ (vidi `## 33` u [26-reports.md](../audits/26-reports.md)).
+CI [`45250254981`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45250254981) **success** na `f1e9e12`: `Backend build + test`, `Backend PostgreSQL + Redis integration`,
+`Frontend build + test`, `Backend container + supply chain` i `Docs guard` (`E2E` i inventura `skipped`, kako je
+konfigurisano). Lokalno prije pusha: `reports` + `audit-log` **65 suite / 418 testova** (9 skipped), frontend **478
+fajlova / ~1.900 testova**, `nest build`, `tsc --noEmit`, `eslint`, `format:check`, `i18n:check`, `bundle:check`,
+`wiring:check` 632 i `db:migration-policy:check` 125 — sve zeleno. Detalji u
+[26-reports.md, §33](../audits/26-reports.md#33-implementacijski-closeout--w7107-ba-reports-17).
 
 ## Otvoreno i dokumentovano
 
