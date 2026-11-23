@@ -29,6 +29,20 @@ vi.mock("@/services/report-packs-api", async (importOriginal) => ({
 afterEach(cleanup);
 beforeEach(() => vi.clearAllMocks());
 
+const previewWindow = {
+  from: "from",
+  to: "to",
+  boundaries: "[from, to)",
+  // W7.102: the panel shows what the period means for the selected pack.
+  semantics: {
+    mode: "mixed",
+    eventTime: ["ticket.createdAt"],
+    snapshotParts: ["overdueCount (SLA state at now)"],
+    selection: "instant",
+    boundaries: "[from, to)",
+  },
+} as const;
+
 const list = {
   packs: [{ key: "monthly_kpi", slug: "monthly-kpi" }],
   formats: ["csv"],
@@ -77,6 +91,7 @@ describe("ReportPacksPanel", () => {
         totalRows: 0,
         truncated: false,
         truncatedInput: false,
+        window: previewWindow,
       } as never);
     render(<ReportPacksPanel organizationalUnitId="ou-1" from="from" to="to" />);
     const show = await screen.findByTestId("report-pack-preview");
@@ -94,11 +109,16 @@ describe("ReportPacksPanel", () => {
       totalRows: 1,
       truncated: false,
       truncatedInput: true,
+      window: previewWindow,
     } as never);
     render(<ReportPacksPanel organizationalUnitId="ou-1" from="from" to="to" />);
     fireEvent.click(await screen.findByTestId("report-pack-preview"));
     const total = await screen.findByTestId("report-pack-total");
     expect(total.textContent).toContain("reports.packs.rowsAtLeast");
     expect(screen.getByText("reports.packs.partialInput")).toBeTruthy();
+    // W7.102: the reader can see whether the period selects events or not.
+    expect(screen.getByTestId("report-pack-window-mode").textContent).toBe(
+      "reports.packs.windowModes.mixed",
+    );
   });
 });

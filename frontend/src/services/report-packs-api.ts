@@ -25,10 +25,25 @@ export type ReportPackKey =
 
 export type ReportExportFormat = "csv" | "json";
 
+/** W7.102 (`BA-reports-12`): what the period selects, and what it deliberately does not. */
+export type ReportPackWindowMode = "event-time" | "snapshot-time" | "mixed";
+
+export type ReportPackWindowSemantics = {
+  readonly mode: ReportPackWindowMode;
+  /** Timestamps the period filters on (`entity.field`); empty for a snapshot pack. */
+  readonly eventTime: readonly string[];
+  /** Parts read as the state at generation time; empty for a pure event-time pack. */
+  readonly snapshotParts: readonly string[];
+  readonly selection: "instant" | "overlap" | "none";
+  /** Always `[from, to)`: the start is inside the period, the end is not. */
+  readonly boundaries: "[from, to)";
+};
+
 export type ReportPackDescriptor = {
   readonly key: ReportPackKey;
   readonly slug: string;
   readonly columns: readonly string[];
+  readonly windowSemantics: ReportPackWindowSemantics;
 };
 
 export type ReportPackList = {
@@ -52,7 +67,12 @@ export type ReportPackPreview = {
   readonly truncated: boolean;
   /** W7.53: the scoped corpus is larger than the read budget (counts are a floor). */
   readonly truncatedInput: boolean;
-  readonly window: { readonly from: string; readonly to: string };
+  readonly window: {
+    readonly from: string;
+    readonly to: string;
+    readonly boundaries: "[from, to)";
+    readonly semantics: ReportPackWindowSemantics;
+  };
 };
 
 export type ReportPackScope = {

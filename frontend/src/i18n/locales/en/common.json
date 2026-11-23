@@ -3531,6 +3531,12 @@
       "truncated": "Showing the first {{shown}}; the download contains every row.",
       "rowsAtLeast": "At least {{count}} rows",
       "partialInput": "The source set is larger than the read window — the numbers are a lower bound. Narrow the period or the organizational unit.",
+      "windowModes": {
+        "event-time": "The period selects events",
+        "snapshot-time": "State at generation time — the period does not apply",
+        "mixed": "Events in the period plus the current state"
+      },
+      "windowHint": "The period includes its start and excludes its end (half-open): a ticket created exactly at the end belongs to the next period.",
       "scopeHint": "Period {{from}} – {{to}} · at most {{max}} days · every download is audited",
       "confidential": "[confidential]",
       "names": {

@@ -77,7 +77,8 @@ describe('report ticket projections', () => {
     expect(calls[0].select).toEqual(reportTicketRowSelect);
     expect(calls[0].take).toBe(11);
     expect(calls[0].where).toMatchObject({
-      createdAt: { lte: window.to },
+      // W7.102: half-open `[from, to)` — a ticket created exactly at `to` belongs to the next period.
+      createdAt: { lt: window.to },
       OR: [{ closedAt: null }, { closedAt: { gte: window.from } }],
     });
   });

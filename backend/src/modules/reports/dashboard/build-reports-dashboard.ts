@@ -210,7 +210,7 @@ async function countKnowledgeInterceptResolutions(
   }
   return prisma.knowledgeInterceptResolution.count({
     where: {
-      createdAt: { gte: window.from, lte: window.to },
+      createdAt: { gte: window.from, lt: window.to },
       organizationalUnitId: { in: [...scopedOrganizationalUnitIds] },
     },
   });

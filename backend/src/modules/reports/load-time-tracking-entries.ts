@@ -27,7 +27,7 @@ export async function loadTimeTrackingEntries(
     where: {
       deletedAt: null,
       endedAt: { not: null },
-      startedAt: { gte: input.window.from, lte: input.window.to },
+      startedAt: { gte: input.window.from, lt: input.window.to },
       ticket: {
         originUnitId: { in: [...input.organizationalUnitIds] },
         ...(input.filters?.serviceId === undefined

@@ -31,7 +31,7 @@ export async function loadForwardPingPongTickets(
   const events = await prisma.ticketForwardEvent.findMany({
     where: {
       toUnitId: { in: [...input.organizationalUnitIds] },
-      createdAt: { gte: input.window.from, lte: input.window.to },
+      createdAt: { gte: input.window.from, lt: input.window.to },
     },
     select: {
       ticketId: true,

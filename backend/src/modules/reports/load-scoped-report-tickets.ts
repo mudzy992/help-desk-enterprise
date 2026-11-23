@@ -45,7 +45,7 @@ export async function loadScopedReportTickets(
     ...(window === undefined
       ? {}
       : {
-          createdAt: { lte: window.to },
+          createdAt: { lt: window.to },
           OR: [{ closedAt: null }, { closedAt: { gte: window.from } }],
         }),
     ...(options.filters?.serviceId === undefined

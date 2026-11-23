@@ -292,7 +292,7 @@ async function loadFeedback(
   const votes = await prisma.knowledgeFeedback.findMany({
     where: {
       articleId: { in: [...articleIds] },
-      createdAt: { gte: window.from, lte: window.to },
+      createdAt: { gte: window.from, lt: window.to },
     },
     select: { articleId: true, isHelpful: true, rating: true, createdAt: true },
   });

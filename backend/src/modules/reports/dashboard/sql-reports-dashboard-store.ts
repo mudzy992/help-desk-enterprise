@@ -115,17 +115,19 @@ export async function loadReportsDashboardAggregates(
 
   const [kpiRows, barRows, dayRows, agingRows] = await Promise.all([
     prisma.$queryRaw<KpiSqlRow[]>`
+      -- W7.102 (BA-reports-12): both the current and the previous period are half-open [from, to), so the
+      -- "change vs previous" counters cannot count the instant on the shared boundary twice.
       WITH w AS (
         SELECT t."createdAt" AS c, t."firstResponseAt" AS fr, t."resolvedAt" AS r, cs.rating AS rating,
-               t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3) AS c_cur,
-               t."createdAt" BETWEEN ${previousFrom}::timestamp(3) AND ${previousTo}::timestamp(3) AS c_prev,
-               t."resolvedAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3) AS r_cur,
-               t."resolvedAt" BETWEEN ${previousFrom}::timestamp(3) AND ${previousTo}::timestamp(3) AS r_prev
+               (t."createdAt" >= ${from}::timestamp(3) AND t."createdAt" < ${to}::timestamp(3)) AS c_cur,
+               (t."createdAt" >= ${previousFrom}::timestamp(3) AND t."createdAt" < ${previousTo}::timestamp(3)) AS c_prev,
+               (t."resolvedAt" >= ${from}::timestamp(3) AND t."resolvedAt" < ${to}::timestamp(3)) AS r_cur,
+               (t."resolvedAt" >= ${previousFrom}::timestamp(3) AND t."resolvedAt" < ${previousTo}::timestamp(3)) AS r_prev
         FROM "Ticket" t
         LEFT JOIN "TicketCsat" cs ON cs."ticketId" = t.id
         WHERE ${scope}
-          AND (t."createdAt" BETWEEN ${previousFrom}::timestamp(3) AND ${to}::timestamp(3)
-               OR t."resolvedAt" BETWEEN ${previousFrom}::timestamp(3) AND ${to}::timestamp(3))
+          AND ((t."createdAt" >= ${previousFrom}::timestamp(3) AND t."createdAt" < ${to}::timestamp(3))
+               OR (t."resolvedAt" >= ${previousFrom}::timestamp(3) AND t."resolvedAt" < ${to}::timestamp(3)))
       )
       SELECT count(*) FILTER (WHERE c_cur) AS cc,
              count(*) FILTER (WHERE c_prev) AS cp,
@@ -146,7 +148,7 @@ export async function loadReportsDashboardAggregates(
       FROM "Ticket" t
       LEFT JOIN "Group" g ON g.id = t."assignedGroupId"
       WHERE ${scope}
-        AND t."resolvedAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
+        AND t."resolvedAt" >= ${from}::timestamp(3) AND t."resolvedAt" < ${to}::timestamp(3)
         AND t."resolvedAt" >= t."createdAt"
       GROUP BY t."assignedGroupId", g.name
       UNION ALL
@@ -154,14 +156,14 @@ export async function loadReportsDashboardAggregates(
       FROM "Ticket" t
       LEFT JOIN "Service" sv ON sv.id = t."serviceId"
       WHERE ${scope}
-        AND t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
+        AND t."createdAt" >= ${from}::timestamp(3) AND t."createdAt" < ${to}::timestamp(3)
       GROUP BY t."serviceId", sv.name
       UNION ALL
       SELECT 'u' AS k, t."originUnitId" AS key, ou.name AS name, 0 AS h, count(*) AS n
       FROM "Ticket" t
       LEFT JOIN "OrganizationalUnit" ou ON ou.id = t."originUnitId"
       WHERE ${scope}
-        AND t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
+        AND t."createdAt" >= ${from}::timestamp(3) AND t."createdAt" < ${to}::timestamp(3)
       GROUP BY t."originUnitId", ou.name
       UNION ALL
       SELECT 'w' AS k, t."assignedUserId" AS key, u."displayName" AS name, 0 AS h, count(*) AS n

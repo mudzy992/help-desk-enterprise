@@ -274,6 +274,13 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                   <span>{t("reports.packs.truncated", { shown: preview.rows.length })}</span>
                 ) : null}
                 {preview.truncatedInput ? <span>{t("reports.packs.partialInput")}</span> : null}
+                <Badge
+                  tone="neutral"
+                  title={t("reports.packs.windowHint")}
+                  data-testid="report-pack-window-mode"
+                >
+                  {t(`reports.packs.windowModes.${preview.window.semantics.mode}`)}
+                </Badge>
               </div>
               <ScrollRegion className={tableWrapClassName}>
                 <table className="w-full text-[12.5px]" data-testid="report-pack-table">

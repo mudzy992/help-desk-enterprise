@@ -5,14 +5,14 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **11/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **12/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
 brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored), W7.99 (`BA-reports-09`,
 at-least-once isporuka bez slijepog ponovnog slanja), W7.100 (`BA-reports-10`, cache key nosi verziju
-autorizacije) i W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija). Ova statusna dopuna ne mijenja
-susjedne nalaze ni ocjenu.
+autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija) i W7.102 (`BA-reports-12`, katalog i
+pola-otvoreni ugovor prozora). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -75,6 +75,13 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.102 (§28):** prozor izvještaja ima **jedan ugovor** — pola-otvoren `[from, to)`, početak ulazi,
+kraj ne — i **katalog** (`pack-window-semantics.ts`) koji za svaki pack kaže da li period bira događaje
+(`event-time`), opisuje trenutno stanje (`snapshot-time`) ili oboje (`mixed`), te koji timestamp/koji snapshot
+dio. Semantika je vidljiva pozivaocu kroz `listPacks()` (`windowSemantics`), preview (`window.boundaries`,
+`window.semantics`) i audit exporta (`boundaries`, `windowMode`). Detalji:
+[324](../implementation/324-w7102-reports-12-window-semantics.md).
 
 **Status poslije W7.101 (§27):** svaki čitani red u reports toku je sada **projekcija**. Ticket snapshot nosi samo
 kolone koje agregati čitaju (`reportTicketSnapshotSelect`), a identifikacione kolone (`title`, `ticketNumber`,
@@ -186,7 +193,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | zatvoreno (W7.99) |
 | BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | zatvoreno (W7.100) |
 | BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | zatvoreno (W7.101) |
-| BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | otvoreno |
+| BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | zatvoreno (W7.102) |
 | BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | otvoreno |
 | BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | otvoreno |
 | BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | otvoreno |
@@ -633,3 +640,53 @@ kolone uz zadate granice prozora i `take`; bez OJ nema upita. Lokalno: backend *
 `BA-reports-01` je uveo bounded read + probe red); strogi versioned schema/payload cap Redis parsera je
 `BA-reports-15`; privacy matrica nad run JSON-om i primaocima je `BA-reports-13`. Detalji:
 [323-w7101-reports-11-read-projections.md](../implementation/323-w7101-reports-11-read-projections.md).
+
+## 28. Implementacijski closeout — W7.102 (`BA-reports-12`)
+
+**Nalaz:** svaki domen je sam odgovarao na pitanje „je li ovaj red u periodu?”, i to na svoj način:
+
+1. **Dvije konvencije gornje granice.** Ticket snapshot, forward ping-pong, time tracking, KB glasovi i KPI
+   builder koristili su inkluzivno `to` (`lte`/`<=`); problem, change i asset loaderi isključivo (`lt`). Tiket
+   nastao tačno na `to` ulazio je u **dva** susjedna mjeseca — a upravo susjedni mjeseci su ono što scheduled
+   izvještaji porede. Dashboard SQL je isto koristio `BETWEEN` (inkluzivno) za tekući i prethodni period, pa je
+   „promjena u odnosu na prethodni period” brojala granicu dvaput.
+2. **Snapshot packovi bez oznake.** `asset_inventory`, `asset_expiring`, `asset_license_compliance`,
+   `asset_inactive_holders`, `problem_backlog` i `overdue_by_service` ne opisuju period nego trenutno stanje
+   (`now`, odnosno `horizonDays`), a `monthly_kpi`, `kb_helpfulness`, `problem_top` i `asset_top_tickets` miješaju
+   događaje iz perioda sa trenutnim stanjem. Pozivalac iz API-ja nije mogao razlikovati te slučajeve: descriptor je
+   nosio samo `key/slug/columns`.
+3. **Nije bilo mjesta gdje ugovor živi.** Granice su bile rasute po 15 fajlova; nijedan test nije branio povratak
+   na inkluzivno `to`.
+
+**Rješenje.**
+
+- **Jedan interval:** `[from, to)` — `from` je u periodu, `to` nije. `isTimestampInWindow` i svi SQL loader-i
+  (`createdAt`, `closedAt`, `resolvedAt`, `startedAt`, `linkedAt`, `identifiedAt`, planned overlap, KB glasovi,
+  dashboard/bottleneck SQL) sada koriste istu granicu. Change schedule ostaje jedini **overlap** (`plannedStart <
+  to` i `plannedEnd > from`), jer change nije trenutak nego interval.
+- **Katalog:** novi `pack-window-semantics.ts` nosi `reportPackWindowSemantics` za svih 18 packova:
+  `mode` (`event-time` / `snapshot-time` / `mixed`), `eventTime[]` (npr. `ticket.resolvedAt`,
+  `problemEvent.createdAt (action ticket_linked)`), `snapshotParts[]` (npr. `overdueCount (SLA state at now)`,
+  `articles (knowledgeArticle rows read as they are now, no article timestamp)`) i `selection`
+  (`instant` / `overlap` / `none`).
+- **Vidljivo pozivaocu:** `ReportPackDescriptor.windowSemantics` u `GET /reports/packs`;
+  `preview.window = { from, to, boundaries: '[from, to)', semantics }`; audit `reports.export` dobija
+  `boundaries` i `windowMode` (allowlist u `audit-action-schema-registry.ts`, i dalje `pseudonymous`). Frontend
+  prikazuje značku „period bira događaje / stanje u trenutku generisanja / događaji + trenutno stanje” uz preview.
+
+**Posljedice po ponašanje.** Payloadi ostaju isti osim na granici: tiket/događaj tačno na `to` sada pripada
+**samo** sljedećem periodu (ranije obama), a audit exporta nosi dva nova ključa. Nijedan pack nije dobio novu
+kolonu. Snapshot packovi i dalje ne zavise od perioda — sada to i piše.
+
+**Testni dokaz.** `pack-window-semantics.spec.ts` (**novo, 26 testova**): katalog ima tačno jedan unos po packu;
+svaki nosi `[from, to)`; `snapshot-time` nema `eventTime` i ima `snapshotParts` (i obrnuto za `event-time`);
+overlap ima samo `change_schedule`; granice `from` ulazi / `to` ne ulazi; dva susjedna perioda **particioniraju**
+svaki trenutak tačno jednom; izvorni kod 15 loader-a ne smije vratiti `lte: … window.to` ni `<= window.to` (i
+`gt: … window.from` smije samo change overlap). `reports.service.spec.ts` +2 (descriptor nosi semantiku, preview i
+audit nose granice/mode). Lokalno: backend **948 suite / 5.491 test**, `reports` **39/239**; frontend **476
+fajlova / 1.898 testova**; `eslint` 0; rute i migracije nepromijenjene (632 / 124).
+
+**Otvoreno i dokumentovano:** privacy matrica nad run JSON-om/primaocima (`BA-reports-13`), retention koji zavisi
+od sweep-a (`BA-reports-14`), strict schema Redis parsera (`BA-reports-15`), `runNow` idempotency
+(`BA-reports-16`), PDF intent (`BA-reports-17`), preview read-audit (`BA-reports-18`). Detalji:
+[324-w7102-reports-12-window-semantics.md](../implementation/324-w7102-reports-12-window-semantics.md).

@@ -80,7 +80,8 @@ export async function loadBottleneckDashboardFromSql(
     prisma.$queryRaw<TrendSqlRow[]>`
       SELECT to_char(date_trunc('day', t."createdAt"), 'YYYY-MM-DD') AS d, count(*) AS n, ${counts}
       ${standing}
-        AND t."createdAt" BETWEEN ${from}::timestamp(3) AND ${to}::timestamp(3)
+        -- W7.102 (BA-reports-12): half-open [from, to), like every other report window.
+        AND t."createdAt" >= ${from}::timestamp(3) AND t."createdAt" < ${to}::timestamp(3)
       GROUP BY 1`,
   ]);
   const breakdown = (

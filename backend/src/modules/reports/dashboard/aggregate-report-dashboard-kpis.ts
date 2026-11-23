@@ -154,7 +154,7 @@ function isInWindow(value: Date | null, window: ReportWindow): boolean {
     return false;
   }
   const time = value.getTime();
-  return time >= window.from.getTime() && time <= window.to.getTime();
+  return time >= window.from.getTime() && time < window.to.getTime();
 }
 
 function elapsedHours(start: Date, end: Date): number | null {

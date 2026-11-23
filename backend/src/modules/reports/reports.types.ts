@@ -4,10 +4,11 @@ import type { ChangeReportData } from './packs/build-change-reports';
 import type { TicketCsatRecord } from '../tickets/csat/csat.types';
 import type { TicketRecord } from '../tickets/tickets.types';
 import type { KnowledgeArticleRecord } from '../knowledge-base/knowledge-base.types';
+import type { ReportPackKey, ReportExportFormat } from './reports.constants';
 import type {
-  ReportExportFormat,
-  ReportPackKey,
-} from './reports.constants';
+  ReportPackWindowSemantics,
+  ReportWindowBoundaries,
+} from './pack-window-semantics';
 
 export type ReportsConfiguration = {
   readonly reportsEnabled: boolean;
@@ -135,6 +136,8 @@ export type ReportPackDescriptor = {
   readonly key: ReportPackKey;
   readonly slug: string;
   readonly columns: readonly string[];
+  /** W7.102 (`BA-reports-12`): what the period selects, and what it deliberately does not. */
+  readonly windowSemantics: ReportPackWindowSemantics;
 };
 
 export type ReportPackPreview = {
@@ -148,7 +151,13 @@ export type ReportPackPreview = {
    * and any aggregate in the preview are a floor, not a complete answer.
    */
   readonly truncatedInput: boolean;
-  readonly window: { readonly from: string; readonly to: string };
+  readonly window: {
+    readonly from: string;
+    readonly to: string;
+    /** W7.102: the period is half-open — `from` is inside it, `to` is not. */
+    readonly boundaries: ReportWindowBoundaries;
+    readonly semantics: ReportPackWindowSemantics;
+  };
 };
 
 export type BottleneckCounts = {

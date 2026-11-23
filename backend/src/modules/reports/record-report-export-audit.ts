@@ -5,6 +5,10 @@ import {
   auditLogEntityTypes,
 } from '../audit-log/audit-log.constants';
 import type { ReportExportFormat, ReportPackKey } from './reports.constants';
+import {
+  reportWindowBoundaries,
+  type ReportPackWindowSemantics,
+} from './pack-window-semantics';
 
 export async function recordReportExportAudit(
   prisma: PrismaService,
@@ -17,6 +21,8 @@ export async function recordReportExportAudit(
     readonly requestId: string | null;
     /** Package 1.6 (plan §3 D4): the period and the file are part of "what". */
     readonly window?: { readonly from: Date; readonly to: Date };
+    /** W7.102: the audit says whether the file is "events in the period" or "state at now". */
+    readonly windowSemantics?: ReportPackWindowSemantics;
     readonly fileName?: string;
   },
 ): Promise<void> {
@@ -31,7 +37,15 @@ export async function recordReportExportAudit(
       organizationalUnitId: input.organizationalUnitId,
       ...(input.window === undefined
         ? {}
-        : { from: input.window.from.toISOString(), to: input.window.to.toISOString() }),
+        : {
+            from: input.window.from.toISOString(),
+            to: input.window.to.toISOString(),
+            // W7.102: `to` is outside the period; a reader of the audit must not guess the bound.
+            boundaries: reportWindowBoundaries,
+            ...(input.windowSemantics === undefined
+              ? {}
+              : { windowMode: input.windowSemantics.mode }),
+          }),
       ...(input.fileName === undefined ? {} : { fileName: input.fileName }),
     },
     actorUserId: input.actorUserId,

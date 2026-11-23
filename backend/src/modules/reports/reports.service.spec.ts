@@ -53,6 +53,13 @@ describe('ReportsService OU scoping', () => {
     );
     expect(preview).toMatchObject({ totalRows: 1, truncated: false });
     expect(preview.columns).toContain('createdCount');
+    // W7.102: the preview says which bound is open and what the period means for this pack.
+    expect(preview.window).toEqual({
+      from: scope.from,
+      to: scope.to,
+      boundaries: '[from, to)',
+      semantics: expect.objectContaining({ mode: 'mixed' }),
+    });
     expect(await harness.prisma.auditLog.findMany()).toHaveLength(0);
 
     const exported = await harness.reports.exportPack(
@@ -70,6 +77,9 @@ describe('ReportsService OU scoping', () => {
       organizationalUnitId: ticketsTestIds.ouIt,
       from: scope.from,
       to: '2026-09-30T23:59:59.000Z',
+      // W7.102: the audit records the open upper bound and whether the file is events or state.
+      boundaries: '[from, to)',
+      windowMode: 'mixed',
     });
   });
 
@@ -93,6 +103,32 @@ describe('ReportsService OU scoping', () => {
     const listed = await harness.reports.listPacks();
     expect(listed.packs.map((pack) => pack.slug)).toContain('monthly-kpi');
     expect(listed.limits.previewRows).toBe(200);
+  });
+
+  it('W7.102: every listed pack tells the caller what the period selects', async () => {
+    const harness = createReportsServiceHarness();
+    const listed = await harness.reports.listPacks();
+    const semantics = new Map(
+      listed.packs.map((pack) => [pack.key, pack.windowSemantics]),
+    );
+    expect(listed.packs.every((pack) => pack.windowSemantics.boundaries === '[from, to)')).toBe(
+      true,
+    );
+    expect(semantics.get(reportPackKeys.monthlyKpi)).toMatchObject({
+      mode: 'mixed',
+      selection: 'instant',
+      boundaries: '[from, to)',
+    });
+    expect(semantics.get(reportPackKeys.timeTracking)).toMatchObject({
+      mode: 'event-time',
+      eventTime: ['timeEntry.startedAt'],
+      snapshotParts: [],
+    });
+    expect(semantics.get(reportPackKeys.changeSchedule)).toMatchObject({
+      mode: 'event-time',
+      selection: 'overlap',
+    });
+    expect(semantics.get(reportPackKeys.assetInventory)?.mode).toBe('snapshot-time');
   });
 
   it('aggregates bottlenecks for the requested OU tree only', async () => {

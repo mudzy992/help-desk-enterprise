@@ -24,6 +24,10 @@ import {
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { recordReportExportAudit } from './record-report-export-audit';
 import {
+  reportPackWindow,
+  reportWindowBoundaries,
+} from './pack-window-semantics';
+import {
   reportErrorCodes,
   reportPackKeyList,
   reportPackLimits,
@@ -72,6 +76,8 @@ export class ReportsService {
           key: pack,
           slug: reportPackSlugs[pack],
           columns: reportPackColumns(pack),
+          // W7.102: the caller can tell an event-time pack from one that only describes the present.
+          windowSemantics: reportPackWindow(pack),
         })),
       formats: configuration.allowedFormats,
       limits: reportPackLimits,
@@ -102,7 +108,12 @@ export class ReportsService {
       totalRows: built.rows.length,
       truncated: truncatedInput || built.rows.length > reportPackLimits.previewRows,
       truncatedInput,
-      window: { from: window.from.toISOString(), to: window.to.toISOString() },
+      window: {
+        from: window.from.toISOString(),
+        to: window.to.toISOString(),
+        boundaries: reportWindowBoundaries,
+        semantics: reportPackWindow(query.pack),
+      },
     };
   }
 
@@ -144,6 +155,7 @@ export class ReportsService {
       recordCount: built.rows.length,
       requestId,
       window,
+      windowSemantics: reportPackWindow(query.pack),
       fileName: exported.fileName,
     });
     return exported;

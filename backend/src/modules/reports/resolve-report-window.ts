@@ -34,7 +34,10 @@ export function isTimestampInWindow(
     return false;
   }
   const time = value.getTime();
-  return time >= window.from.getTime() && time <= window.to.getTime();
+  // W7.102 (`BA-reports-12`): every report window is half-open — `[from, to)` — so two adjacent windows
+  // (two monthly reports, two weeks of a trend) partition the events exactly once instead of both claiming the
+  // instant on the boundary. The SQL loaders use the same bounds.
+  return time >= window.from.getTime() && time < window.to.getTime();
 }
 
 export function utcDateKey(value: Date): string {

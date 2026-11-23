@@ -3545,6 +3545,12 @@
       "truncated": "Prikazano prvih {{shown}}; preuzimanje sadrži sve redove.",
       "rowsAtLeast": "Najmanje {{count}} redova",
       "partialInput": "Izvorni skup je veći od pročitanog prozora — brojevi su donja granica. Suzite period ili organizacijsku jedinicu.",
+      "windowModes": {
+        "event-time": "Period bira događaje",
+        "snapshot-time": "Stanje u trenutku generisanja — period se ne primjenjuje",
+        "mixed": "Događaji u periodu i trenutno stanje"
+      },
+      "windowHint": "Period početak uključuje, kraj ne (pola-otvoren interval): tiket nastao tačno na kraju pripada sljedećem periodu.",
       "scopeHint": "Period {{from}} – {{to}} · najviše {{max}} dana · svako preuzimanje se bilježi u audit",
       "confidential": "[povjerljivo]",
       "names": {
