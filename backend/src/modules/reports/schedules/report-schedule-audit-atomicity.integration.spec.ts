@@ -98,6 +98,9 @@ describeIfDatabase('report schedule audit atomicity (integration)', () => {
     const run = await database().reportScheduleRun.create({
       data: {
         scheduleId: schedule.id,
+        // W7.97: every run carries its own snapshot of the schedule it came from.
+        scheduleName: name,
+        organizationalUnitId,
         trigger: 'SCHEDULED',
         slotKey: `${schedule.id}:${name}`,
         periodStart: new Date('2026-04-26T22:00:00.000Z'),
