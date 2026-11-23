@@ -66,7 +66,6 @@ describe("report schedule conditional writes (BA-reports-05)", () => {
   });
 });
 
-
 /**
  * W7.106 (`BA-reports-16`): the command carries its identity in the header, and the fallback key keeps the shape the
  * server validates even where `crypto.randomUUID` is missing.
