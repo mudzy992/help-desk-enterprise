@@ -1,0 +1,298 @@
+{
+  "compile": [
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the summary counter contract compiles and runs against the generated Prisma client",
+      "spec": "src/modules/reports/summary/load-dashboard-summary-counts.spec.ts",
+      "test": "turns the grouped rows into the client counters"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the SLA summary SQL contract compiles and buckets every flag combination",
+      "spec": "src/modules/reports/summary/load-sla-summary-counts.spec.ts",
+      "test": "buckets every flag combination and adds it to the totals"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the dashboard aggregation contract compiles and keeps KPI parity",
+      "spec": "src/modules/reports/dashboard/build-reports-dashboard.spec.ts",
+      "test": "returns KPI parity for scoped tickets in the report window"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the trends bucket builder compiles and aligns ISO weeks across both DST changes",
+      "spec": "src/modules/reports/trends/report-trends.spec.ts",
+      "test": "aligns ISO weeks to Monday 00:00 local across both DST changes"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the pack service compiles and exports without leaking a sibling unit",
+      "spec": "src/modules/reports/reports.service.spec.ts",
+      "test": "exports monthly KPI JSON without sibling OU tickets"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the schedule limit spec compiles and exercises the real PostgreSQL lock",
+      "spec": "src/modules/reports/schedules/report-schedule-limit.integration.spec.ts",
+      "test": "refuses the next save at the limit and frees the slot when a schedule is deleted"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the run tombstone spec compiles and keeps the snapshot contract",
+      "spec": "src/modules/reports/schedules/report-schedule-run-tombstone.integration.spec.ts",
+      "test": "rejects a run without the schedule snapshot"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the version/CAS spec compiles and does not let the runner bump the version",
+      "spec": "src/modules/reports/schedules/report-schedule-version.integration.spec.ts",
+      "test": "does not bump the version when the runner records a run"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the audit-atomicity spec compiles and rolls the run back with a failed audit",
+      "spec": "src/modules/reports/schedules/report-schedule-audit-atomicity.integration.spec.ts",
+      "test": "rolls the run finalization back when the audit row cannot be written"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the run-now idempotency spec compiles and refuses a repeated command key",
+      "spec": "src/modules/reports/schedules/report-schedule-run-now-idempotency.integration.spec.ts",
+      "test": "refuses a second run for the same command key"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the delivery crash-window spec compiles and records SMTP acceptance evidence",
+      "spec": "src/modules/reports/schedules/report-schedule-delivery-crash-window.integration.spec.ts",
+      "test": "records the SMTP acceptance evidence when nothing crashes"
+    },
+    {
+      "scenario": "compile-blocked suites",
+      "what": "the scheduler reconciliation spec compiles and registers one schedule for two workers",
+      "spec": "src/modules/reports/schedules/report-schedules.scheduler-reconciliation.integration.spec.ts",
+      "test": "registers exactly one schedule when two workers start against the same Redis"
+    }
+  ],
+  "corpus": [
+    {
+      "scenario": "huge corpus",
+      "what": "a corpus above the budget is capped and the truncation is reported",
+      "spec": "src/modules/reports/load-report-pack-build-input.budget.spec.ts",
+      "test": "caps scoped tickets at the row budget and reports the truncation"
+    },
+    {
+      "scenario": "huge corpus",
+      "what": "the reader asks the database for budget + 1 rows, never the whole period",
+      "spec": "src/modules/reports/load-report-pack-build-input.budget.spec.ts",
+      "test": "reads only budget + 1 rows from the database"
+    },
+    {
+      "scenario": "huge corpus",
+      "what": "the preview returns one page and labels the count as a lower bound",
+      "spec": "src/modules/reports/reports.service.spec.ts",
+      "test": "previews at most one page and labels the count as a lower bound"
+    }
+  ],
+  "scope": [
+    {
+      "scenario": "foreign filter IDs",
+      "what": "a parent unit, a sibling branch and a mere string prefix are all refused",
+      "spec": "src/modules/reports/schedules/report-schedule-scope.spec.ts",
+      "test": "refuses a parent, a sibling branch and a prefix that is only a string prefix"
+    },
+    {
+      "scenario": "foreign filter IDs",
+      "what": "the refusal names the offending field and answers the same way for unknown and foreign",
+      "spec": "src/modules/reports/schedules/report-schedule-scope.spec.ts",
+      "test": "reports the field that broke the scope, and nothing when the schedule has no group"
+    },
+    {
+      "scenario": "foreign filter IDs",
+      "what": "a legacy row with a foreign group never prints that group's name",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "omits a foreign group name from the e-mail scope line of a legacy row (W7.93)"
+    }
+  ],
+  "concurrency": [
+    {
+      "scenario": "concurrent schedule limit",
+      "what": "two saves arriving together cannot take one slot twice",
+      "spec": "src/modules/reports/schedules/report-schedule-limit.integration.spec.ts",
+      "test": "lets exactly one of two concurrent saves take the last slot"
+    },
+    {
+      "scenario": "concurrent schedule update",
+      "what": "two saves from the same version: exactly one wins",
+      "spec": "src/modules/reports/schedules/report-schedule-version.integration.spec.ts",
+      "test": "lets exactly one of two saves from the same version win"
+    },
+    {
+      "scenario": "concurrent schedule update",
+      "what": "delete only applies to the version the caller was shown",
+      "spec": "src/modules/reports/schedules/report-schedule-version.integration.spec.ts",
+      "test": "deletes only the version the caller was shown"
+    },
+    {
+      "scenario": "duplicate delivery/command",
+      "what": "many concurrent jobs for one command key produce exactly one run",
+      "spec": "src/modules/reports/schedules/report-schedule-run-now-idempotency.integration.spec.ts",
+      "test": "lets exactly one of many concurrent jobs for one command win"
+    },
+    {
+      "scenario": "duplicate delivery/command",
+      "what": "the runner treats the duplicate manual run as a no-op instead of composing",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "executes one manual run per command key and treats the duplicate as a no-op"
+    },
+    {
+      "scenario": "duplicate delivery/command",
+      "what": "a slot already claimed by another worker is not sent twice",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "never sends twice when another worker already claimed the slot"
+    }
+  ],
+  "redis": [
+    {
+      "scenario": "Redis flush",
+      "what": "a missing client and a throwing client both degrade to a cache miss",
+      "spec": "src/modules/reports/cache/report-cache-envelope.spec.ts",
+      "test": "degrades to a miss without Redis and when Redis throws"
+    },
+    {
+      "scenario": "Redis flush",
+      "what": "the dashboard keeps answering when Redis errors",
+      "spec": "src/modules/reports/dashboard/report-dashboard.cache.spec.ts",
+      "test": "keeps working when Redis errors"
+    },
+    {
+      "scenario": "Redis flush",
+      "what": "a wiped Redis only costs a recomputation, never a wrong number",
+      "spec": "src/modules/reports/dashboard/report-dashboard.cache.spec.ts",
+      "test": "shares one computation between concurrent misses and serves later hits from Redis"
+    },
+    {
+      "scenario": "Redis flush",
+      "what": "losing the scheduler registration is repaired by the reconcile pass",
+      "spec": "src/modules/reports/schedules/report-schedules.scheduler-reconciliation.integration.spec.ts",
+      "test": "restores the five-minute sweep after Redis loses the registration"
+    }
+  ],
+  "smtp": [
+    {
+      "scenario": "SMTP accepted-crash",
+      "what": "an accepted receipt that cannot be persisted becomes an unknown outcome, not a resend",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "records an unknown delivery outcome when the accepted SMTP receipt cannot be persisted"
+    },
+    {
+      "scenario": "SMTP accepted-crash",
+      "what": "a lost SENT mark leaves a CLAIMED row and the report is never sent twice",
+      "spec": "src/modules/reports/schedules/report-schedule-delivery-crash-window.integration.spec.ts",
+      "test": "leaves a CLAIMED row when the SENT mark is lost, and never sends that report twice"
+    },
+    {
+      "scenario": "SMTP accepted-crash",
+      "what": "a fresh claim answers DUPLICATE instead of sending again",
+      "spec": "src/modules/reports/schedules/report-schedule-delivery-crash-window.integration.spec.ts",
+      "test": "answers DUPLICATE for a claim that is still fresh instead of sending again"
+    },
+    {
+      "scenario": "SMTP accepted-crash",
+      "what": "a stale claim is treated as unknown, never as an invitation to resend",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "treats a stale delivery claim as an unknown outcome instead of resending (at-least-once)"
+    },
+    {
+      "scenario": "SMTP accepted-crash",
+      "what": "only eligible recipients are addressed, and the skipped ones are recorded",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "sends only to eligible recipients and records the skipped ones"
+    }
+  ],
+  "failure": [
+    {
+      "scenario": "failure isolation",
+      "what": "an unauditable preview serves no rows (fail-closed read audit)",
+      "spec": "src/modules/reports/preview-read-audit.spec.ts",
+      "test": "fails closed: an unauditable preview serves no rows"
+    },
+    {
+      "scenario": "failure isolation",
+      "what": "a retention database error reaches the caller instead of being swallowed",
+      "spec": "src/modules/reports/schedules/report-schedule-run-retention.spec.ts",
+      "test": "lets a database error reach the caller instead of swallowing it"
+    },
+    {
+      "scenario": "failure isolation",
+      "what": "a retention failure reaches BullMQ so the job is retried and alarmed",
+      "spec": "src/modules/reports/schedules/report-schedules.processor.spec.ts",
+      "test": "lets a retention failure reach BullMQ (no silent swallow)"
+    },
+    {
+      "scenario": "failure isolation",
+      "what": "a missing schedule is reported instead of pretending a run happened",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "reports a missing schedule instead of pretending a run happened"
+    }
+  ],
+  "retention": [
+    {
+      "scenario": "run retention",
+      "what": "only runs older than the window are deleted, and the cutoff is reported",
+      "spec": "src/modules/reports/schedules/report-schedule-run-retention.spec.ts",
+      "test": "deletes only runs older than the retention window and reports the cutoff"
+    },
+    {
+      "scenario": "run retention",
+      "what": "deleting a schedule keeps its run log until the retention window passes",
+      "spec": "src/modules/reports/schedules/report-schedule-run-tombstone.integration.spec.ts",
+      "test": "keeps the run log when its schedule is deleted and detaches it from the row"
+    },
+    {
+      "scenario": "run retention",
+      "what": "retention still runs when scheduled e-mail delivery is switched off",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "prunes the run log even when scheduled delivery is switched off (W7.103)"
+    }
+  ],
+  "privacy": [
+    {
+      "scenario": "privacy/anonymization",
+      "what": "the privacy matrix covers every report model the schema defines",
+      "spec": "src/modules/reports/report-privacy-matrix.spec.ts",
+      "test": "covers every report model in the schema"
+    },
+    {
+      "scenario": "privacy/anonymization",
+      "what": "anonymization detaches the manual trigger without touching the run's facts",
+      "spec": "src/modules/privacy/anonymization/scrub-report-mentions.spec.ts",
+      "test": "detaches the manual trigger without touching the run’s facts"
+    },
+    {
+      "scenario": "privacy/anonymization",
+      "what": "a full erasure scrubs the report footprint on a real database",
+      "spec": "src/modules/privacy/anonymization/anonymization.integration.spec.ts",
+      "test": "executes: scrubs content, deletes personal rows, pseudonymises the user"
+    }
+  ],
+  "attachments": [
+    {
+      "scenario": "attachment filter parity",
+      "what": "CSV attachments are built from the schedule slice, not from the whole unit",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "builds CSV attachments from the schedule slice, not the whole unit"
+    },
+    {
+      "scenario": "attachment filter parity",
+      "what": "a pack that cannot apply the slice is omitted instead of being widened",
+      "spec": "src/modules/reports/schedules/report-schedules.spec.ts",
+      "test": "omits a pack that cannot apply the schedule slice instead of widening it"
+    },
+    {
+      "scenario": "attachment filter parity",
+      "what": "time-tracking entries are sliced through their ticket, one hop away",
+      "spec": "src/modules/reports/load-report-pack-build-input.filters.spec.ts",
+      "test": "applies the slice to time tracking entries through their ticket"
+    }
+  ]
+}

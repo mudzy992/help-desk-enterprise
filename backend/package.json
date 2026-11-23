@@ -33,6 +33,8 @@
     "test:integration-harness": "node --test scripts/run-isolated-integration.test.mjs",
     "test:sla:matrix": "node scripts/run-sla-test-matrix.mjs",
     "test:sla:matrix:check": "node scripts/run-sla-test-matrix.mjs --check-only",
+    "test:reports:matrix": "node scripts/run-reports-test-matrix.mjs",
+    "test:reports:matrix:check": "node scripts/run-reports-test-matrix.mjs --check-only",
     "test:knowledge:matrix": "node scripts/run-knowledge-test-matrix.mjs",
     "test:knowledge:matrix:check": "node scripts/run-knowledge-test-matrix.mjs --check-only",
     "wiring:write": "node scripts/check-backend-wiring.mjs --write",

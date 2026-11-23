@@ -459,7 +459,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-16` | P3 | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report | zatvoreno (W7.106) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-17` | P3 | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta | zatvoreno (W7.107) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-18` | P3 | Preview osjetljivih redova nema formalnu read-audit odluku | zatvoreno (W7.108) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-19` | P3 | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-19` | P3 | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje | zatvoreno (W7.109) | [26-reports.md](audits/26-reports.md) |
 | 27 | `search` | `BA-search-01` | P1 | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | zatvoreno (W7.55) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-02` | P2 | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | zatvoreno (W7.56) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-03` | P2 | KB global top-75 kandidati prije scope filtera mogu sakriti postojeće vidljive rezultate | zatvoreno (W7.57) | [27-search.md](audits/27-search.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **326**
-- Otvoreno: **370** (P1 88 / P2 195 / P3 87)
-- Val 7: **105 / 111** zatvoreno, otvoreno **6** (P1 0 / P2 0 / P3 6)
+- Zatvoreno: **327**
+- Otvoreno: **369** (P1 88 / P2 195 / P3 86)
+- Val 7: **106 / 111** zatvoreno, otvoreno **5** (P1 0 / P2 0 / P3 5)
 <!-- findings-totals:end -->

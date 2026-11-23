@@ -5,7 +5,7 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **18/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **19/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
@@ -17,8 +17,9 @@ pola-otvoreni ugovor prozora), W7.103 (`BA-reports-14`, retention run loga kao z
 (`BA-reports-15`, verzionisan i veličinom ograničen cache sa strožim validatorima) i W7.106 (`BA-reports-16`,
 „pošalji sada” kao komanda sa `Idempotency-Key` i unique `commandKey` na run redu) i W7.107 (`BA-reports-17`, PDF
 beacon kao **print intent** sa `renderer`/`artifactStored`, umjesto tvrdnje o izvezenom dokumentu) i W7.108
-(`BA-reports-18`, preview kao **read audit** sa `report.pack.previewed`). Ova statusna dopuna ne mijenja susjedne
-nalaze ni ocjenu.
+(`BA-reports-18`, preview kao **read audit** sa `report.pack.previewed`) i W7.109 (`BA-reports-19`, izvršna
+failure/concurrency/Redis/SMTP matrica sa 12 compile-blocked suiteova u kategoriji `compile`). Ova statusna dopuna ne
+mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -197,9 +198,24 @@ cd backend
 npm test -- --runInBand --runTestsByPath $(find src/modules/reports -name '*.spec.ts' -print | sort)
 ```
 
-Rezultat: **15/27 suiteova prošlo, 12/27 compile-blocked; 64/64 izvršena testa prošla**. Nije zabilježen assertion failure. Blokade su nedostajući `generated/prisma/client`/`enums` i nepotpun `PrismaService` bez delegata i `$queryRaw`.
+**Snimak u trenutku audita:** 15 od 27 suiteova je prolazilo, dvanaest nije ni kompajliralo (nedostajući
+`generated/prisma/client`/`enums` i nepotpun `PrismaService` bez delegata i `$queryRaw`), a izvršena su 64 testa bez
+assertion failurea. To je bio gori ishod od crvenog testa: suite koji se ne izvrši izgleda kao „nema padova”.
 
-Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsing, summary cache i calendar helper. Blokirani su schedule, trends, service/dashboard SQL i summary DB ugovori. E2E 17/18 pokrivaju osnovni trend/export/audit i schedule CRUD/deny/test-send; ostali paketi pokrivaju report integracije. Nema dokaza za huge corpus, attachment filter parity, foreign filter IDs, concurrent schedule limit/update, Redis flush, SMTP accepted-crash, run retention ni privacy/anonymization.
+Zeleni testovi su pokrivali pure pack builder-e, serialization, config parsing, summary cache i calendar helper;
+blokirani su bili schedule, trends, service/dashboard SQL i summary DB ugovori. E2E 17/18 pokrivaju osnovni
+trend/export/audit i schedule CRUD/deny/test-send. Auditu su nedostajali dokazi za **huge corpus, attachment filter
+parity, foreign filter IDs, concurrent schedule limit/update, Redis flush, SMTP accepted-crash, run retention i
+privacy/anonymization**.
+
+**Status poslije W7.109 (§35):** matrica je izvršna, ne lista u dokumentu.
+[`reports-test-matrix.json`](../../../backend/scripts/reports-test-matrix.json) ima **12 scenarija / 10 kategorija /
+46 redova**; svaki red nosi `scenario`, `what`, `spec` i **tačno ime testa**, a
+[`run-reports-test-matrix.mjs`](../../../backend/scripts/run-reports-test-matrix.mjs) pada ako test nestane, ako se
+preimenuje, ako je preskočen (`it.skip`/`xit`/`xdescribe`) ili ako PostgreSQL spec nije registrovan u
+`run-isolated-integration.mjs`. Kategorija `compile` ima **12 redova** — po jedan za svaki suite koji je 2026-10-23
+bio blokiran — pa je „kompajlira se” sada provjera, a ne sjećanje. Lokalno `reports` ima **46 suiteova / 336+
+testova** (W7.106 checkpoint) i danas **66 suiteova / 426 testova** zajedno sa `audit-log`; puni gate je CI.
 
 ## 11. Pozitivni nalazi
 
@@ -240,7 +256,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | zatvoreno (W7.106) |
 | BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | zatvoreno (W7.107) |
 | BA-reports-18 | P3       | Preview osjetljivih redova nema formalnu read-audit odluku                                    | zatvoreno (W7.108) |
-| BA-reports-19 | P3       | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje          | otvoreno |
+| BA-reports-19 | P3       | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje          | zatvoreno (W7.109) |
 
 ## 13. Ključne korekcije
 
@@ -995,3 +1011,36 @@ testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**
 odluka ostaje ista, ali je tada potreban coalescing identičnih ponavljanja, ne prelazak na telemetriju. Dashboard i
 trendovi vraćaju agregate i nisu dio ovog nalaza. Detalji:
 [330-w7108-reports-18-preview-read-audit.md](../implementation/330-w7108-reports-18-preview-read-audit.md).
+
+## 35. Implementacijski closeout — W7.109 (`BA-reports-19`)
+
+**Nalaz.** (1) Dvanaest od 27 suiteova nije ni kompajliralo — nedostajao je `generated/prisma/client`/`enums`, a
+`PrismaService` nije imao delegate ni `$queryRaw`, pa se suite nije izvršio i „nema padova” je izgledalo kao zeleno.
+(2) Osam rizičnih oblasti nije imalo nijedan test: huge corpus, attachment filter parity, foreign filter IDs,
+concurrent schedule limit/update, Redis flush, SMTP accepted-crash, run retention i privacy/anonymization. Drugi dio je
+W7.93–W7.108 faktički pokrio, ali **veza scenario → test nije nigdje postojala**, pa je pokrivenost zavisila od
+sjećanja i mogla je tiho nestati pri prvom preimenovanju.
+
+**Rješenje.** Matrica je izvršna, po istom obrascu kao W7.92 u `knowledge-base`.
+[`reports-test-matrix.json`](../../../backend/scripts/reports-test-matrix.json) ima **10 kategorija / 46 redova / 12
+scenarija**; svaki red nosi `scenario`, `what`, `spec` i **tačno ime testa**. Kategorija `compile` ima **12 redova** —
+po jedan za svaki nekada blokirani suite. [`run-reports-test-matrix.mjs`](../../../backend/scripts/run-reports-test-matrix.mjs)
+(`validateReportsTestMatrix` + CLI sa `--check-only`) pada ako: test ne postoji ili je preimenovan, ako je preskočen
+(`it.skip`/`xit`/`xdescribe`/`test.skip`; uslovni `describe.skip` za bazu/Redis je dozvoljen), ako PostgreSQL spec nije
+registrovan u `run-isolated-integration.mjs`, ako scenario iz §10 ostane bez reda ili ako ovaj audit ponovo nosi
+zastarjelu tvrdnju. Guard se izvršava u **docs guard** poslu (bez `npm ci`, ~0,2 s), pa vrijedi i za docs-only izmjene;
+`npm run test:reports:matrix` izvršava i 16 unit suiteova iz matrice.
+
+**Posljedice po ponašanju.** Nema promjene produktnog koda, ruta (632) ni migracija (125). Brisanje ili preimenovanje
+dokaza sada obara CI umjesto da tiho smanji pokrivenost; §10 je eksplicitno označen kao snimak u trenutku audita.
+
+**Testni dokaz.** `run-reports-test-matrix.test.mjs` (**novo, 10**): prihvata ispravnu matricu; odbija nepostojeći
+spec, preimenovan test, preskočen test, praznu kategoriju, scenario van §10, scenario bez reda, red bez imena testa ili
+opisa, audit bez linka ili sa starom tvrdnjom; dozvoljava uslovni `describe.skip`. Lokalno:
+`npm run test:reports:matrix:check` → **10 kategorija / 12 scenarija / 46 redova / 24 speca (16 unit, 8 PostgreSQL)**;
+`npm run test:reports:matrix` → **16 suiteova / 142 testa** zeleno; `reports` + `audit-log` **66 suite / 426 testova**;
+`wiring:check` 632; migracije 125.
+
+**Otvoreno i dokumentovano:** E2E nije proširen (kvar Redis/SMTP nije reproducibilan u browser E2E bez injektiranja
+kvarova) — svjesno prihvaćen residual, isti kao u W7.92; matrica ne zamjenjuje CI, samo garantuje da dokazi postoje i
+nisu preskočeni. Detalji: [331-w7109-reports-19-failure-matrix.md](../implementation/331-w7109-reports-19-failure-matrix.md).

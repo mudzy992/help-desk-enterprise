@@ -568,6 +568,13 @@ jobs:
         run: node backend/scripts/run-knowledge-test-matrix.mjs --check-only
       - name: Test the knowledge-base matrix guard itself
         run: node --test backend/scripts/run-knowledge-test-matrix.test.mjs
+      # W7.109 (BA-reports-19): same contract for reports — every failure/concurrency/Redis/SMTP
+      # scenario names a spec *and* a test that exists, is not skipped, and (for PostgreSQL specs)
+      # is registered with the isolated integration runner.
+      - name: Check the reports failure matrix against the specs it names
+        run: node backend/scripts/run-reports-test-matrix.mjs --check-only
+      - name: Test the reports matrix guard itself
+        run: node --test backend/scripts/run-reports-test-matrix.test.mjs
 
   service-form-audit:
     name: Read-only service-form pattern inventory
