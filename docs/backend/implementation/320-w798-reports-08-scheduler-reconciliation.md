@@ -13,7 +13,7 @@ reconcile-a i delivery ugovora), `ops-health/ops-health.constants.ts` (`expected
 **DB migracija:** **ne**<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _(upisuje se po završetku runa)_
+**CI:** [run `45165674600`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45165674600) ✓ na `956ca0a`
 
 ## Nalaz
 
@@ -107,7 +107,28 @@ pokreće) i nula novih upita prema bazi. Nema nove kolone, nema novog queue-a, n
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+**Run [`45165674600`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45165674600) — success iz prvog
+pokušaja** (push na `arena/864951a6-help-desk-enterprise`, commit `956ca0a`, `CI gate` ✓). Poslovi:
+`Backend build + test` ✓, `Backend PostgreSQL + Redis integration` ✓ (102/102 izolovana suitea uključujući novi
+`report-schedules.scheduler-reconciliation.integration.spec.ts` — postoji `REDIS_HOST`, pa Redis acceptance nije
+skip nego stvarno izvršenje), `Frontend build + test` ✓, `Docs guard` ✓, `Backend container + supply chain` ✓;
+`E2E *` preskočeni (nema `e2e` promjena u ovom paketu).
+
+**Zašto je prošlo bez popravke:** jedina nova zavisnost van unit testova je `getJobSchedulers()` na `Queue`, koji
+je već korišten u sedam postojećih self-heal servisa i u `ops-signal-collector`-u — pa oblik podatka (`key` vs
+`id`) i tipovi nisu bili nova nepoznanica. Lokalni stub Prisma nije dirao ovaj paket (nema DB promjena).
+
+**Ostale provjere (lokalno, prije commita):**
+
+| provjera | rezultat |
+| --- | --- |
+| `jest` (backend, cijeli) | **946 suite / 5.455 testa** ✓, 103 suite skipped (integracije bez `PRIVACY_IT_DATABASE_URL`/`REDIS_HOST`) |
+| `jest src/modules/reports` | **37 suite / 203 testa** ✓ (+5 skipped, uključujući nova dva integraciona speca) |
+| `eslint src/modules/reports src/modules/ops-health src/scheduled-jobs.wiring.spec.ts scripts/run-isolated-integration.mjs` | 0 problema ✓ |
+| `npm run wiring:check` | ✓ 99 controllera, **632** rute (nepromijenjeno) |
+| `npm run db:migration-policy:check` | ✓ **124** migracije (bez nove migracije) |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
+| `node scripts/check-backend-findings.mjs` | ✓ **696/696**, zatvoreno **316** / otvoreno **380** |
 
 ## Registar nalaza
 
