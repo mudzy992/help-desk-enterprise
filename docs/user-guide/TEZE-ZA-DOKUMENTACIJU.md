@@ -2021,7 +2021,8 @@ To je kriterij kompletnosti.
   postavka isključena), obim po usluzi, **tiketi po organizacionoj jedinici** (kreirani u periodu,
   `originUnitVolume`), **opterećenje admina** (otvoreni tiketi po izvršiocu, stanje sada, `assigneeWorkload`
   — najopterećeniji nosi upozorenje), tok i starenje backloga, starost otvorenih tiketa; dugme **Izvezi PDF**
-  otvara dijalog za štampu i bilježi `report.pdf.exported`.
+  otvara dijalog za štampu i bilježi `report.pdf.print_intent` (print intent: dokument pravi browser, server ne
+  čuva kopiju — W7.107).
 - Period se računa u zoni instalacije (`private.reports.timeZone`, zadano `Europe/Sarajevo`), ne u zoni
   procesa ni pregledača.
 - **Izvori:** `backend/src/modules/reports/dashboard/build-reports-dashboard.ts:31–40,76,121`,
@@ -2042,7 +2043,7 @@ To je kriterij kompletnosti.
 - Ostale postavke: keš 600 s, ciljna SLA linija 90 %, minimalni uzorak za CSAT 5; tekući (nepotpuni)
   period je označen isprekidano, a svaka kartica ima objašnjenje „Kako se računa?“ i tabelarni prikaz.
 - Izvoz ide u CSV/JSON (`GET /reports/trends/export`, audit `report.trends.exported`), a „štampa“ kroz PDF
-  prikaz (audit `report.pdf.exported`). Dugme **Zakaži ovaj izvještaj** otvara formu rasporeda s
+  prikaz (audit `report.pdf.print_intent`). Dugme **Zakaži ovaj izvještaj** otvara formu rasporeda s
   popunjenim filterima.
 - **Izvori:** `backend/src/modules/reports/trends/report-trends.constants.ts:1–43`,
   `trends/report-trends.types.ts:72–103`, `reports.controller.ts:151–189`,

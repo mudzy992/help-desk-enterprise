@@ -5,7 +5,7 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **16/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **17/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
@@ -15,8 +15,9 @@ autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija), W
 pola-otvoreni ugovor prozora), W7.103 (`BA-reports-14`, retention run loga kao zaseban, batched posao) i W7.104
 (`BA-reports-13`, privacy/anonymization matrica sa scrubom run JSON-a i bannerom u e-mailu) i W7.105
 (`BA-reports-15`, verzionisan i veličinom ograničen cache sa strožim validatorima) i W7.106 (`BA-reports-16`,
-„pošalji sada” kao komanda sa `Idempotency-Key` i unique `commandKey` na run redu). Ova statusna dopuna ne mijenja
-susjedne nalaze ni ocjenu.
+„pošalji sada” kao komanda sa `Idempotency-Key` i unique `commandKey` na run redu) i W7.107 (`BA-reports-17`, PDF
+beacon kao **print intent** sa `renderer`/`artifactStored`, umjesto tvrdnje o izvezenom dokumentu). Ova statusna
+dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -167,6 +168,12 @@ OU scope uključuje potomke, što je konzistentno kroz pack/dashboard/trend. Me�
 
 `recordPdfExport` auditira klijentsku tvrdnju da je PDF napravljen; server ne izdaje dokument niti može potvrditi uspjeh. To treba zvati print intent/client export event, ne dokaz uspješno preuzetog artefakta.
 
+**Status poslije W7.107 (§33):** beacon se sada zove `report.pdf.print_intent` i ide na
+`POST /reports/pdf-print-intents`. Metapodaci imenuju granicu: `renderer: 'client'` (dokument pravi browser) i
+`artifactStored: false` (server ne čuva kopiju), a schema allowlist odbija `format`/`bytes`/`pages`/`recordCount`.
+Stara akcija `report.pdf.exported` ostaje registrovana i čitljiva za historijske redove, ali je nijedan kod više ne
+piše. Detalji: [329](../implementation/329-w7107-reports-17-pdf-print-intent.md).
+
 ## 9. Audit, privacy i retention
 
 Direktni exporti imaju dobar audit kontekst. Schedule CRUD/send/test također imaju događaje, ali nisu atomarni sa mutacijom ili run finalizacijom. Preview nije auditiran iako može vratiti osjetljive redove; potrebno je formalno odlučiti je li to read audit ili high-volume telemetry.
@@ -223,7 +230,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | zatvoreno (W7.103) |
 | BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | zatvoreno (W7.105) |
 | BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | zatvoreno (W7.106) |
-| BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | otvoreno |
+| BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | zatvoreno (W7.107) |
 | BA-reports-18 | P3       | Preview osjetljivih redova nema formalnu read-audit odluku                                    | otvoreno |
 | BA-reports-19 | P3       | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje          | otvoreno |
 
@@ -896,3 +903,43 @@ specu — popravljeno).
 redu čuva garanciju dokle god run postoji (180 dana); ključ vezuje komandu za raspored i aktera, ne za vrijeme
 (retry poslije 10 minuta je ista komanda); `runNow` ne piše revizorski zapis (run log je trag izvršavanja).
 Detalji: [328-w7106-reports-16-run-now-idempotency.md](../implementation/328-w7106-reports-16-run-now-idempotency.md).
+
+## 33. Implementacijski closeout — W7.107 (`BA-reports-17`)
+
+**Nalaz:** „Sačuvaj kao PDF” otvara **browser** dijalog; server ne renderuje dokument, ne vidi ga i ne može potvrditi
+da je nastao. Stranica je ipak zvala `POST /reports/pdf-exports`, a server je pisao audit `report.pdf.exported`. Taj
+red je tvrdio tri stvari koje niko ne može potvrditi: da je dokument **napravljen**, da je **isporučen** korisniku
+(browser može odustati od dijaloga ili blokirati `window.print()`) i da je **istovjetan** viđenom (štampa zavisi od
+browsera, zoom-a i fontova). Audit je time prestao biti dokaz i postao tvrdnja klijenta preobučena u dokaz servera.
+
+**Rješenje.** (1) Nova akcija `report.pdf.print_intent` (`auditLogActions.reportPdfPrintIntent`) zamjenjuje pisanje
+stare; metapodaci su zatvoren skup `{view, from, to, renderer: 'client', artifactStored: false}` i **nemaju**
+`format`, `bytes`, `pages`, `pageCount`, `recordCount`, `fileName` ni `download` — schema registry allowlist odbija
+svaki od njih (`AUDIT_METADATA_FIELD_NOT_ALLOWED`), senzitivnost ostaje `pseudonymous`. (2) Stara akcija
+`report.pdf.exported` ostaje u `auditLogActions`, u compatibility/schema registryju i u frontend katalogu, sa istim
+allowlistom i istom verzijom šeme — historijski redovi su nepromjenjiva činjenica i moraju nastaviti da se čitaju,
+filtriraju, izvoze i prevode; nijedan kod je više ne piše. Frontend label je iskren prema istoriji („zabilježen
+izvoz (historijski)”), a novi glasi „otvoren dijalog štampe”. (3) Ruta nosi isto ime kao zapis: `POST
+/reports/pdf-print-intents` (broj ruta ostaje **632** — jedna preimenovana), a `recordReportPdfPrintIntent` u
+frontendu, wiring manifest i E2E spec 19 govore isti jezik. (4) Uz akciju su dodata i audit polja `renderer` /
+`artifactStored` sa zatvorenim vrijednostima (`client`, `false`) u oba jezika, pa admin konzola prevodi i
+metapodatke.
+
+**Posljedice po ponašanju.** Korisnik i dalje klikne i dobije dijalog štampe (beacon je „fire and forget” i nikad ne
+blokira `window.print()`), ali audit više ne tvrdi da PDF postoji: kaže ko ga je renderovao i da server nema kopiju.
+Historijski redovi ostaju vidljivi sa labelom koji ih označava kao historijske. Bez migracije (akcija je string u
+postojećoj koloni).
+
+**Testni dokaz.** `trends/report-trends.pdf-print-intent.spec.ts` (**novo, 11**): upis nove akcije sa tačnim
+metapodacima i OU/akter/`requestId`; odsustvo svakog artefaktnog ključa; stara akcija se ne piše ali ostaje
+registrovana; `prepareAuditEntry` odbija `format`; isključeni modul ⇒ `REPORTS_DISABLED` i nula redova; ruta je
+`pdf-print-intents`, `recordPdfExport` više ne postoji, kontroler prosljeđuje `body`/aktera/`requestId`, odbija
+beacon bez aktera (`403`), mapira `REPORTS_DISABLED` u HTTP grešku i propušta neočekivanu grešku. Frontend
+`report-trends-api.spec.ts` (**novo, 2**): beacon ide na novi put i nikad na stari, tijelo ima tačno četiri polja.
+`admin-ops-i18n-coverage.spec.ts` zelen (akcija, polja i vrijednosti imaju bs+en). Lokalno: `reports` + `audit-log`
+**65 suite / 418 testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**.
+
+**Otvoreno i dokumentovano:** ovo nije „popravljen izvoz” nego ispravno imenovanje onoga što postoji — dokaziv
+artefakt bi tražio serverski render (`renderer: 'server'`, veličina, hash, retention) i to je novi zahtjev, ne ovaj
+nalaz. Ni novi zapis ne tvrdi da je korisnik odštampao ili sačuvao. Detalji:
+[329-w7107-reports-17-pdf-print-intent.md](../implementation/329-w7107-reports-17-pdf-print-intent.md).

@@ -65,6 +65,9 @@ export const knownAuditActions = [
   "directory.sync_applied",
   "directory.sync_aborted",
   "report.trends.exported",
+  // W7.107: the print button is an intent, not a finished document.
+  "report.pdf.print_intent",
+  // Historical rows written before W7.107; nothing writes this any more.
   "report.pdf.exported",
   "report.schedule.created",
   "report.schedule.updated",

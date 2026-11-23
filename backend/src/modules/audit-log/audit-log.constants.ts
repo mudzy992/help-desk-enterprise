@@ -101,6 +101,18 @@ export const auditLogActions = {
   directorySyncAborted: 'directory.sync_aborted',
   // Paket 2.5: trends, PDF and scheduled reports.
   reportTrendsExported: 'report.trends.exported',
+  /**
+   * W7.107 (BA-reports-17): the print button only states an intent — the
+   * browser renders the document and the server never sees it, so this event
+   * must not be read as proof that a PDF was produced. `metadata.renderer` and
+   * `metadata.artifactStored` carry that limit explicitly.
+   */
+  reportPdfPrintIntent: 'report.pdf.print_intent',
+  /**
+   * Historical only: rows written before W7.107 claimed a finished export. The
+   * action is kept registered so old rows keep resolving, filtering and
+   * translating, but nothing writes it any more.
+   */
   reportPdfExported: 'report.pdf.exported',
   reportScheduleCreated: 'report.schedule.created',
   reportScheduleUpdated: 'report.schedule.updated',

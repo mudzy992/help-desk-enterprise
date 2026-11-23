@@ -78,6 +78,8 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.directorySyncApplied]: schema([]),
   [auditLogActions.directorySyncAborted]: schema([]),
   [auditLogActions.reportTrendsExported]: schema(['fileName', 'format', 'from', 'granularity', 'groupId', 'priority', 'recordCount', 'serviceId', 'to'], 'pseudonymous'),
+  [auditLogActions.reportPdfPrintIntent]: schema(['artifactStored', 'from', 'renderer', 'to', 'view'], 'pseudonymous'),
+  // Historical rows only (pre-W7.107); nothing writes this action any more.
   [auditLogActions.reportPdfExported]: schema(['from', 'to', 'view'], 'pseudonymous'),
   [auditLogActions.reportScheduleCreated]: schema(['enabled', 'frequency', 'name', 'packKeys', 'recipientCount', 'sections', 'sendTime']),
   [auditLogActions.reportScheduleUpdated]: schema(['changed', 'enabled', 'recipientCount']),

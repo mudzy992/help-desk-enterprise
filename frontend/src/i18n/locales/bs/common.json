@@ -321,7 +321,7 @@
             "directory_sync_applied": "Direktorij — sinhronizacija primijenjena",
             "directory_sync_aborted": "Direktorij — sinhronizacija prekinuta",
             "report_trends_exported": "Trendovi izvještaja — izvezen",
-            "report_pdf_exported": "PDF izvještaja — izvezen",
+            "report_pdf_exported": "PDF izvještaja — zabilježen izvoz (historijski zapis)",
             "report_schedule_created": "Raspored izvještaja — kreiran",
             "report_schedule_updated": "Raspored izvještaja — ažuriran",
             "report_schedule_deleted": "Raspored izvještaja — obrisan",
@@ -436,7 +436,8 @@
             "problem_handoff_cancelled": "Problem — predaja drugoj grupi otkazana",
             "change_claimed": "Promjena — preuzeta u obradu",
             "change_updated": "Promjena — izmijenjena",
-            "knowledge_feedback_comment_resolved": "Komentar baze znanja — označen riješenim"
+            "knowledge_feedback_comment_resolved": "Komentar baze znanja — označen riješenim",
+            "report_pdf_print_intent": "PDF izvještaja — otvoren dijalog štampe"
           },
           "entities": {
             "policy_pack": "Paket pravila",
@@ -698,7 +699,9 @@
             "servicesAdded": "Dodani servisi",
             "servicesRemoved": "Uklonjeni servisi",
             "testPlan": "Plan testiranja",
-            "resolvedAt": "Riješeno u"
+            "resolvedAt": "Riješeno u",
+            "renderer": "Renderisao",
+            "artifactStored": "Artefakt pohranjen na serveru"
           }
         },
         "actorUnknown": "Nepoznat korisnik",
@@ -787,6 +790,12 @@
             "MEDIUM": "Srednji",
             "HIGH": "Visok",
             "CRITICAL": "Kritičan"
+          },
+          "renderer": {
+            "client": "Klijent (browser)"
+          },
+          "artifactStored": {
+            "false": "Ne"
           }
         }
       },

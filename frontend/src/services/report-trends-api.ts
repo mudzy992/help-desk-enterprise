@@ -134,14 +134,18 @@ export async function downloadReportTrends(
   };
 }
 
-/** Audit beacon for PDF export; the print dialog itself remains local. */
-export function recordReportPdfExport(input: {
+/**
+ * Audit beacon for a PDF **print intent** (W7.107). The print dialog and the
+ * document stay in the browser; the server records only that the user asked for
+ * a print, who rendered it and that it holds no copy.
+ */
+export function recordReportPdfPrintIntent(input: {
   readonly organizationalUnitId: string;
   readonly view: "overview" | "trends";
   readonly from?: string;
   readonly to?: string;
 }): Promise<void> {
-  return apiRequest("/reports/pdf-exports", {
+  return apiRequest("/reports/pdf-print-intents", {
     method: "POST",
     body: JSON.stringify(input),
   });

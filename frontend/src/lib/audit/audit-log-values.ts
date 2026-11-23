@@ -15,6 +15,10 @@ export const knownAuditMetadataValues: Readonly<Record<string, readonly string[]
   source: ["manual_directory_catalog"],
   via: ["admin", "server", "rekey-asset-licenses", "seed-default-role-permissions"],
   format: ["csv", "json", "xlsx"],
+  // W7.107: the PDF beacon names the browser as the renderer and says that no
+  // server-side copy exists, so neither word can drift into a claim of export.
+  renderer: ["client"],
+  artifactStored: ["false"],
   // W7.30: problem metadata carries the matrix codes; they are a closed vocabulary.
   priority: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
   urgency: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],

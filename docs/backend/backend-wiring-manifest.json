@@ -6049,9 +6049,9 @@
     {
       "source": "backend/src/modules/reports/reports.controller.ts",
       "controller": "ReportsController",
-      "handler": "recordPdfExport",
+      "handler": "recordPdfPrintIntent",
       "method": "POST",
-      "path": "/reports/pdf-exports",
+      "path": "/reports/pdf-print-intents",
       "classGuards": [
         "SessionAuthenticationGuard",
         "RoleGuard",

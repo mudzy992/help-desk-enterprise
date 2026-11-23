@@ -12,6 +12,7 @@ export const knownAuditMetadataFields = [
   "articleId",
   "alreadyCurrent",
   "assetId",
+  "artifactStored",
   "assignedUserId",
   "batchId",
   "before",
@@ -162,6 +163,8 @@ export const knownAuditMetadataFields = [
   "reason",
   "recipientCount",
   "recordCount",
+  // W7.107: who rendered the artefact a reports event talks about.
+  "renderer",
   "reencrypted",
   "removedRoleAssignments",
   "removedUserRoleCount",

@@ -34,7 +34,7 @@ import {
 } from './dto/report-query.dto';
 import {
   ExportReportTrendsQueryDto,
-  RecordReportPdfExportDto,
+  RecordReportPdfPrintIntentDto,
   ReportTrendsQueryDto,
 } from './dto/report-trends-query.dto';
 import { mapReportsError } from './map-reports-error';
@@ -175,17 +175,21 @@ export class ReportsController {
     }
   }
 
-  /** Design §6: „Save as PDF” happens in the browser; this only leaves the audit trace. */
-  @Post('pdf-exports')
+  /**
+   * Design §6 / W7.107 (BA-reports-17): „Save as PDF” happens in the browser,
+   * so this route records a **print intent** — not a finished export. The name
+   * keeps the audit honest: `POST /reports/pdf-print-intents`.
+   */
+  @Post('pdf-print-intents')
   @HttpCode(204)
   @AdminReadOperation()
-  async recordPdfExport(
-    @Body() body: RecordReportPdfExportDto,
+  async recordPdfPrintIntent(
+    @Body() body: RecordReportPdfPrintIntentDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<void> {
     const actorUserId = requireActor(request);
     try {
-      await this.trendsService.recordPdfExport(body, actorUserId, readAuditRequestId(request.headers));
+      await this.trendsService.recordPdfPrintIntent(body, actorUserId, readAuditRequestId(request.headers));
     } catch (error) {
       throw mapReportsError(error);
     }

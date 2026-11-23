@@ -50,8 +50,12 @@ export class ExportReportTrendsQueryDto extends ReportTrendsQueryDto {
 
 export const reportPdfViews = ['overview', 'trends'] as const;
 
-/** Design §6: audit beacon of a print/PDF export (no content). */
-export class RecordReportPdfExportDto {
+/**
+ * Design §6 / W7.107: audit beacon of a **print intent** — the browser owns the
+ * document, so the body describes the view and window only and never claims an
+ * artefact (no format, size, page or row count).
+ */
+export class RecordReportPdfPrintIntentDto {
   @IsString()
   @MinLength(1)
   organizationalUnitId!: string;

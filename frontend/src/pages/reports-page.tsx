@@ -49,7 +49,10 @@ import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import { recordReportPdfExport, type ReportTrendsResponse } from "@/services/report-trends-api";
+import {
+  recordReportPdfPrintIntent,
+  type ReportTrendsResponse,
+} from "@/services/report-trends-api";
 
 export function ReportsPage() {
   const { t, i18n } = useTranslation();
@@ -224,8 +227,8 @@ export function ReportsPage() {
 
   const print = (view: "overview" | "trends") => {
     if (organizationalUnitId !== null && fromIso !== null && toIso !== null) {
-      // Audit beacon only; a failure must never block printing.
-      void recordReportPdfExport({
+      // Print intent only (W7.107): the browser renders and owns the document.
+      void recordReportPdfPrintIntent({
         organizationalUnitId,
         view,
         ...(view === "trends"

@@ -319,7 +319,7 @@
             "directory_sync_applied": "Directory — sync applied",
             "directory_sync_aborted": "Directory — sync aborted",
             "report_trends_exported": "Report trends — exported",
-            "report_pdf_exported": "Report PDF — exported",
+            "report_pdf_exported": "Report PDF — export recorded (historical)",
             "report_schedule_created": "Report schedule — created",
             "report_schedule_updated": "Report schedule — updated",
             "report_schedule_deleted": "Report schedule — deleted",
@@ -434,7 +434,8 @@
             "problem_handoff_cancelled": "Problem — handoff to another group cancelled",
             "change_claimed": "Change — claimed",
             "change_updated": "Change — updated",
-            "knowledge_feedback_comment_resolved": "Knowledge comment — marked resolved"
+            "knowledge_feedback_comment_resolved": "Knowledge comment — marked resolved",
+            "report_pdf_print_intent": "Report PDF — print dialog opened"
           },
           "entities": {
             "policy_pack": "Policy pack",
@@ -696,7 +697,9 @@
             "servicesAdded": "Services added",
             "servicesRemoved": "Services removed",
             "testPlan": "Test plan",
-            "resolvedAt": "Resolved at"
+            "resolvedAt": "Resolved at",
+            "renderer": "Rendered by",
+            "artifactStored": "Artifact stored on server"
           }
         },
         "actorUnknown": "Unknown user",
@@ -785,6 +788,12 @@
             "MEDIUM": "Medium",
             "HIGH": "High",
             "CRITICAL": "Critical"
+          },
+          "renderer": {
+            "client": "Client (browser)"
+          },
+          "artifactStored": {
+            "false": "No"
           }
         }
       },

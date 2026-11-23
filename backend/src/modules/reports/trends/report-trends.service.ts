@@ -103,18 +103,31 @@ export class ReportTrendsService {
     return exported;
   }
 
-  /** Design §6: the print/PDF export leaves an audit trace (no content). */
-  async recordPdfExport(
+  /**
+   * Design §6 / W7.107 (BA-reports-17): „Save as PDF” is a browser dialog. The
+   * server does not render the document, never receives it and cannot confirm
+   * that a file was produced, so this writes a **print intent** and not an
+   * export. `renderer` and `artifactStored` say exactly that, and the payload
+   * deliberately carries no format, size, page or row count that would imply a
+   * verified artefact.
+   */
+  async recordPdfPrintIntent(
     input: { readonly organizationalUnitId: string; readonly view: string; readonly from?: string; readonly to?: string },
     actorUserId: string,
     requestId: string | null,
   ): Promise<void> {
     await this.requireReports();
     await recordAuditEntry(this.prisma, {
-      action: auditLogActions.reportPdfExported,
+      action: auditLogActions.reportPdfPrintIntent,
       entityType: auditLogEntityTypes.reportTrends,
       entityId: input.organizationalUnitId,
-      metadata: { view: input.view, from: input.from ?? null, to: input.to ?? null },
+      metadata: {
+        view: input.view,
+        from: input.from ?? null,
+        to: input.to ?? null,
+        renderer: 'client',
+        artifactStored: false,
+      },
       actorUserId,
       requestId,
       organizationalUnitId: input.organizationalUnitId,

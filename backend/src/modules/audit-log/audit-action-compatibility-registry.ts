@@ -68,6 +68,8 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.directorySyncApplied]: compatibility([auditLogEntityTypes.directorySyncRun]),
   [auditLogActions.directorySyncAborted]: compatibility([auditLogEntityTypes.directorySyncRun]),
   [auditLogActions.reportTrendsExported]: compatibility([auditLogEntityTypes.reportTrends]),
+  [auditLogActions.reportPdfPrintIntent]: compatibility([auditLogEntityTypes.reportTrends]),
+  // Historical rows only (pre-W7.107); nothing writes this action any more.
   [auditLogActions.reportPdfExported]: compatibility([auditLogEntityTypes.reportTrends]),
   [auditLogActions.reportScheduleCreated]: compatibility([auditLogEntityTypes.reportSchedule]),
   [auditLogActions.reportScheduleUpdated]: compatibility([auditLogEntityTypes.reportSchedule]),

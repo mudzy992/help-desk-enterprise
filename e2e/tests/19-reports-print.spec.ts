@@ -9,7 +9,9 @@ type AuditPage = { items: Array<{ action: string; metadata: Record<string, unkno
 /**
  * Package 2.5 (§11 E2E 19): „Izvezi PDF” opens the browser print dialog; in
  * print media the navigation, header and filters disappear and the scope /
- * period header appears. The click leaves a `report.pdf.exported` audit entry.
+ * period header appears. The click leaves a `report.pdf.print_intent` audit
+ * entry (W7.107 / BA-reports-17): the browser renders the document, so the
+ * server records the intent and says it holds no artefact.
  */
 test.describe('19 reports print view', () => {
   test('print button → audit; print media hides chrome and shows the header', async ({ page }) => {
@@ -30,7 +32,7 @@ test.describe('19 reports print view', () => {
     await page.goto('/reports?tab=trends&preset=30d');
     await expect(page.getByTestId('trends-panel')).toBeVisible({ timeout: 20_000 });
 
-    const beacon = page.waitForResponse((response) => response.url().includes('/reports/pdf-exports'));
+    const beacon = page.waitForResponse((response) => response.url().includes('/reports/pdf-print-intents'));
     await page.getByTestId('trends-print').click();
     expect((await beacon).ok()).toBe(true);
     expect(await page.evaluate(() => (window as unknown as { __printCalls: number }).__printCalls)).toBe(1);
@@ -47,7 +49,13 @@ test.describe('19 reports print view', () => {
     await expect(header).toBeHidden();
 
     const audit = await api.requestJson<AuditPage>(`/audit-logs?organizationalUnitId=${root.id}&take=50`);
-    const entry = audit.items.find((item) => item.action === 'report.pdf.exported');
-    expect(entry?.metadata).toMatchObject({ view: 'trends' });
+    const entry = audit.items.find((item) => item.action === 'report.pdf.print_intent');
+    expect(entry?.metadata).toMatchObject({
+      view: 'trends',
+      renderer: 'client',
+      artifactStored: false,
+    });
+    // The old claim must not come back alongside it.
+    expect(audit.items.some((item) => item.action === 'report.pdf.exported')).toBe(false);
   });
 });
