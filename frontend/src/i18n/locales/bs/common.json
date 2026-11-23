@@ -3689,6 +3689,7 @@
       "REPORT_SCHEDULE_NOT_FOUND": "Raspored nije pronađen.",
       "REPORT_SCHEDULE_LIMIT": "Dostignut je maksimalan broj rasporeda.",
       "REPORT_SCHEDULE_INVALID": "Raspored nije ispravan. Provjerite polja forme.",
+      "REPORT_SCHEDULE_SCOPE_INVALID": "Izabrana usluga ili grupa ne postoji ili nije u opsegu izabrane organizacione jedinice. Provjerite filter izvještaja.",
       "REPORT_RECIPIENT_INVALID": "Neki primalac ne smije primati ovaj izvještaj (nema pristup izvještajima ili opsegu OJ).",
       "REPORT_RECIPIENT_LIMIT": "Previše primalaca za jedan raspored."
     },

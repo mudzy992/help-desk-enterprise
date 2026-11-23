@@ -83,6 +83,8 @@ export const reportErrorCodes = {
   scheduleNotFound: 'REPORT_SCHEDULE_NOT_FOUND',
   scheduleLimit: 'REPORT_SCHEDULE_LIMIT',
   scheduleInvalid: 'REPORT_SCHEDULE_INVALID',
+  /** W7.93: the referenced service or group is unknown or outside the schedule's world. */
+  scheduleScopeInvalid: 'REPORT_SCHEDULE_SCOPE_INVALID',
   recipientInvalid: 'REPORT_RECIPIENT_INVALID',
   recipientLimit: 'REPORT_RECIPIENT_LIMIT',
 } as const;
@@ -106,6 +108,8 @@ export const reportErrorMessages: Record<ReportErrorCode, string> = {
   REPORT_SCHEDULE_NOT_FOUND: 'The report schedule was not found',
   REPORT_SCHEDULE_LIMIT: 'The maximum number of report schedules has been reached',
   REPORT_SCHEDULE_INVALID: 'The report schedule is not valid',
+  REPORT_SCHEDULE_SCOPE_INVALID:
+    'The selected service or group does not exist or is outside this schedule scope',
   REPORT_RECIPIENT_INVALID: 'A recipient may not receive this report',
   REPORT_RECIPIENT_LIMIT: 'Too many recipients for one report schedule',
 };

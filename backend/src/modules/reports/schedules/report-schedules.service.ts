@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -17,6 +17,7 @@ import {
   reportSchedulesQueueName,
   reportScheduleSections,
 } from './report-schedule.constants';
+import { isGroupWithinUnitSubtree } from './report-schedule-scope';
 import { reportScheduleSelect, type ReportScheduleRecord } from './report-schedule.record';
 import {
   ReportSchedulesConfigurationLoader,
@@ -74,6 +75,8 @@ type Actor = { readonly principal: AuthorizationPrincipal; readonly requestId: s
 /** Paket 2.5 (§5.5): schedule administration (`reports.schedule.manage`). */
 @Injectable()
 export class ReportSchedulesService {
+  private readonly logger = new Logger('ReportSchedules');
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: ReportSchedulesConfigurationLoader,
@@ -92,8 +95,11 @@ export class ReportSchedulesService {
     })) as unknown as ReportScheduleRecord[];
     const visible = await this.filterAccessible(actor, records);
     const lastRuns = await this.loadLastRuns(visible.map((record) => record.id));
+    const labels = await this.loadScopeLabels(actor, visible);
     return {
-      schedules: visible.map((record) => toView(record, lastRuns.get(record.id) ?? null)),
+      schedules: visible.map((record) =>
+        toView(record, lastRuns.get(record.id) ?? null, labels.get(record.id) ?? hiddenScopeLabels),
+      ),
       settings: {
         enabled: configuration.enabled,
         maxSchedules: configuration.maxSchedules,
@@ -210,7 +216,8 @@ export class ReportSchedulesService {
   async get(actor: Actor, id: string): Promise<ReportScheduleView> {
     const record = await this.requireAccessible(actor, id);
     const lastRuns = await this.loadLastRuns([id]);
-    return toView(record, lastRuns.get(id) ?? null);
+    const labels = await this.loadScopeLabels(actor, [record]);
+    return toView(record, lastRuns.get(id) ?? null, labels.get(id) ?? hiddenScopeLabels);
   }
 
   async runs(actor: Actor, id: string): Promise<{ readonly runs: readonly ReportScheduleRunView[] }> {
@@ -308,20 +315,47 @@ export class ReportSchedulesService {
     if (name.length === 0) throw new ReportsError(reportErrorCodes.scheduleInvalid, { field: 'name' });
     await this.requireUnitAccess(actor, input.organizationalUnitId);
     const [unit, service, group] = await Promise.all([
-      this.prisma.organizationalUnit.findUnique({ where: { id: input.organizationalUnitId }, select: { id: true } }),
+      this.prisma.organizationalUnit.findUnique({
+        where: { id: input.organizationalUnitId },
+        select: { id: true, ouPath: true },
+      }),
       input.serviceId === undefined
         ? Promise.resolve(null)
         : this.prisma.service.findUnique({ where: { id: input.serviceId }, select: { id: true } }),
       input.groupId === undefined
         ? Promise.resolve(null)
-        : this.prisma.group.findUnique({ where: { id: input.groupId }, select: { id: true } }),
+        : this.prisma.group.findUnique({
+            where: { id: input.groupId },
+            select: { id: true, organizationalUnit: { select: { ouPath: true } } },
+          }),
     ]);
     if (unit === null) throw new ReportsError(reportErrorCodes.organizationalUnitNotFound);
-    if (input.serviceId !== undefined && service === null) {
-      throw new ReportsError(reportErrorCodes.scheduleInvalid, { field: 'serviceId' });
+    // W7.93 (`BA-reports-03`): existence was never the whole question. A schedule is anchored to one unit
+    // and the filters must stay inside it: the service has to be one the actor may use, and the group has to
+    // live in the unit's subtree. Unknown and foreign answer with the *same* code and field, so the response
+    // cannot be used to learn which ids exist.
+    if (input.serviceId !== undefined) {
+      const usable =
+        service !== null &&
+        (await this.accessChecker.canUseScheduleService(
+          actor.principal,
+          input.organizationalUnitId,
+          input.serviceId,
+        ));
+      if (!usable) {
+        throw new ReportsError(reportErrorCodes.scheduleScopeInvalid, { field: 'serviceId' });
+      }
     }
-    if (input.groupId !== undefined && group === null) {
-      throw new ReportsError(reportErrorCodes.scheduleInvalid, { field: 'groupId' });
+    if (input.groupId !== undefined) {
+      const inSubtree =
+        group !== null &&
+        isGroupWithinUnitSubtree({
+          scopeUnitPath: unit.ouPath,
+          groupUnitPath: group.organizationalUnit.ouPath,
+        });
+      if (!inSubtree) {
+        throw new ReportsError(reportErrorCodes.scheduleScopeInvalid, { field: 'groupId' });
+      }
     }
     const reports = await this.reportsConfigurationLoader.load();
     const disabledPacks = input.packKeys.filter((key) => !reports.enabledPacks.includes(key as ReportPackKey));
@@ -383,6 +417,65 @@ export class ReportSchedulesService {
     return records.filter((record) => decisions.get(record.organizationalUnitId) === true);
   }
 
+  /**
+   * W7.93 (`BA-reports-03`): rows saved before this package may already point at a foreign group or a
+   * service the reader cannot use. Both names are dropped instead of printed: a stale filter is not a fact
+   * worth disclosing to the unit's admins. The worker applies the same rule before composing the e-mail
+   * scope line, so a legacy row cannot leak a name by mail either.
+   */
+  private async loadScopeLabels(
+    actor: Actor,
+    records: readonly ReportScheduleRecord[],
+  ): Promise<Map<string, ScheduleScopeLabels>> {
+    const labels = new Map<string, ScheduleScopeLabels>();
+    if (records.length === 0) return labels;
+    const groupIds = [
+      ...new Set(records.map((record) => record.groupId).filter((id): id is string => id !== null)),
+    ];
+    const [units, groups] = await Promise.all([
+      this.prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true } }),
+      groupIds.length === 0
+        ? Promise.resolve([] as { id: string; organizationalUnitId: string }[])
+        : this.prisma.group.findMany({
+            where: { id: { in: groupIds } },
+            select: { id: true, organizationalUnitId: true },
+          }),
+    ]);
+    const unitPaths = new Map(units.map((unit) => [unit.id, unit.ouPath]));
+    const groupUnitIds = new Map(groups.map((group) => [group.id, group.organizationalUnitId]));
+    const serviceVerdicts = new Map<string, boolean>();
+    for (const record of records) {
+      if (record.serviceId === null || serviceVerdicts.has(record.serviceId)) continue;
+      serviceVerdicts.set(
+        record.serviceId,
+        await this.accessChecker.canUseScheduleService(
+          actor.principal,
+          record.organizationalUnitId,
+          record.serviceId,
+        ),
+      );
+    }
+    for (const record of records) {
+      const groupUnitId = record.groupId === null ? null : (groupUnitIds.get(record.groupId) ?? null);
+      const groupInSubtree =
+        groupUnitId !== null &&
+        isGroupWithinUnitSubtree({
+          scopeUnitPath: unitPaths.get(record.organizationalUnitId) ?? null,
+          groupUnitPath: unitPaths.get(groupUnitId) ?? null,
+        });
+      if (record.groupId !== null && !groupInSubtree) {
+        this.logger.warn(
+          `report_schedule_scope_outside_subtree schedule=${record.id} group=${record.groupId}`,
+        );
+      }
+      labels.set(record.id, {
+        showService: record.serviceId === null || serviceVerdicts.get(record.serviceId) === true,
+        showGroup: record.groupId === null || groupInSubtree,
+      });
+    }
+    return labels;
+  }
+
   private async loadLastRuns(scheduleIds: readonly string[]) {
     const result = new Map<string, NonNullable<ReportScheduleView['lastRun']>>();
     if (scheduleIds.length === 0) return result;
@@ -438,15 +531,24 @@ export class ReportSchedulesService {
   }
 }
 
-function toView(record: ReportScheduleRecord, lastRun: ReportScheduleView['lastRun']): ReportScheduleView {
+/** W7.93: which stored reference names a reader is allowed to see. */
+type ScheduleScopeLabels = { readonly showService: boolean; readonly showGroup: boolean };
+
+const hiddenScopeLabels: ScheduleScopeLabels = { showService: false, showGroup: false };
+
+function toView(
+  record: ReportScheduleRecord,
+  lastRun: ReportScheduleView['lastRun'],
+  labels: ScheduleScopeLabels,
+): ReportScheduleView {
   return {
     id: record.id,
     name: record.name,
     frequency: record.frequency,
     sendTime: record.sendTime,
     organizationalUnit: record.organizationalUnit,
-    service: record.service,
-    group: record.group,
+    service: labels.showService ? record.service : null,
+    group: labels.showGroup ? record.group : null,
     priority: record.priority,
     sections: record.sections,
     packKeys: record.packKeys,

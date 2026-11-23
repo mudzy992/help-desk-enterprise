@@ -280,6 +280,8 @@ export const reportTrendErrorCodes = [
   "REPORT_SCHEDULE_NOT_FOUND",
   "REPORT_SCHEDULE_LIMIT",
   "REPORT_SCHEDULE_INVALID",
+  /** W7.93 (`BA-reports-03`): the service/group reference is unknown or outside the schedule scope. */
+  "REPORT_SCHEDULE_SCOPE_INVALID",
   "REPORT_RECIPIENT_INVALID",
   "REPORT_RECIPIENT_LIMIT",
 ] as const;

@@ -3675,6 +3675,7 @@
       "REPORT_SCHEDULE_NOT_FOUND": "The schedule was not found.",
       "REPORT_SCHEDULE_LIMIT": "The maximum number of schedules has been reached.",
       "REPORT_SCHEDULE_INVALID": "The schedule is not valid. Check the form fields.",
+      "REPORT_SCHEDULE_SCOPE_INVALID": "The selected service or group does not exist or is outside the selected organizational unit scope. Check the report filter.",
       "REPORT_RECIPIENT_INVALID": "A recipient may not receive this report (no access to reports or to the unit scope).",
       "REPORT_RECIPIENT_LIMIT": "Too many recipients for one schedule."
     },

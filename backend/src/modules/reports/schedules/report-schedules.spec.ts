@@ -259,6 +259,15 @@ function createRunner(options: {
     auditLog: { findFirst: async () => null, create: async () => ({}) },
     organizationalUnit: {
       findMany: async () => [{ id: 'ou-it', ouPath: '/Korisnici/IT' }],
+      findUnique: async (args: { readonly where: { readonly id: string } }) =>
+        args.where.id === 'ou-it' ? { ouPath: '/Korisnici/IT' } : null,
+    },
+    group: {
+      // W7.93: `grp-hr` lives in a sibling unit, `grp-sd` inside the IT subtree.
+      findUnique: async (args: { readonly where: { readonly id: string } }) =>
+        args.where.id === 'grp-sd'
+          ? { organizationalUnit: { ouPath: '/Korisnici/IT/ServiceDesk' } }
+          : { organizationalUnit: { ouPath: '/Korisnici/HR' } },
     },
     appSetting: { findUnique: async () => null },
     ticket: {
@@ -550,6 +559,27 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
       'poštuju isti period i isti presjek kao i izvještaj',
     );
     expect(composed.text).toContain('paket ne podržava filtere ovog rasporeda');
+  });
+
+  it('omits a foreign group name from the e-mail scope line of a legacy row (W7.93)', async () => {
+    const { runner } = createRunner({ due: [] });
+    const now = new Date('2026-04-13T05:00:00Z');
+    const period = previousReportPeriod('WEEKLY', zone, now);
+
+    const foreign = await runner.buildContent(
+      schedule({ groupId: 'grp-hr', group: { id: 'grp-hr', name: 'HR tim' } }),
+      period,
+      now,
+    );
+    expect(foreign.scope.groupName).toBeNull();
+    expect(foreign.scope.groupId).toBe('grp-hr');
+
+    const own = await runner.buildContent(
+      schedule({ groupId: 'grp-sd', group: { id: 'grp-sd', name: 'ServiceDesk tim' } }),
+      period,
+      now,
+    );
+    expect(own.scope.groupName).toBe('ServiceDesk tim');
   });
 
   it('builds a stable slot key per period', () => {

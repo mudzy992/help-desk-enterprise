@@ -4,7 +4,10 @@
 **Datum:** 2026-10-23  
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
-**Nalazi:** 2 P1, 12 P2, 5 P3
+**Nalazi:** 2 P1, 12 P2, 5 P3<br>
+**Implementacija:** **3/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`) i W7.93
+(`BA-reports-03`, relacijski OU/service validator reference rasporeda). Ova statusna dopuna ne mijenja
+susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -77,6 +80,8 @@ BullMQ scheduler se upisuje samo na module init. Redis flush poslije boota uklan
 
 OU scope uključuje potomke, što je konzistentno kroz pack/dashboard/trend. Međutim report window semantika nije potpuno jednaka po domenima: ticket snapshot bira zapise koji su bili živi u prozoru, KB helpfulness učitava sve članke i feedback bez article/update granice, asset pack koristi `now`, a problem/change loaderi imaju vlastite kriterije. Export mora uz svaki pack dokumentovati event-time, snapshot-time i inclusive/exclusive granice.
 
+**Status poslije W7.93 (§19):** referenca rasporeda je sada relacijski validirana — `serviceId` mora biti servis koji akter smije koristiti (`reportScheduleServiceScopeRequirements`), a `groupId` mora pripadati podstablu izabrane jedinice. Nepoznata i strana referenca vraćaju **isti** kod (`REPORT_SCHEDULE_SCOPE_INVALID`) i polje, pa odgovor nije oracle za postojanje; legacy redovi više ne ispisuju strani naziv u pogledu ni u scope liniji e-maila. Detalji: [315](../implementation/315-w793-reports-03-schedule-reference-scope.md).
+
 `recordPdfExport` auditira klijentsku tvrdnju da je PDF napravljen; server ne izdaje dokument niti može potvrditi uspjeh. To treba zvati print intent/client export event, ne dokaz uspješno preuzetog artefakta.
 
 ## 9. Audit, privacy i retention
@@ -121,7 +126,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | ------------- | -------- | --------------------------------------------------------------------------------------------- | -------- |
 | BA-reports-01 | P1       | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita          | zatvoreno |
 | BA-reports-02 | P1       | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke     | zatvoreno |
-| BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | otvoreno |
+| BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | zatvoreno (W7.93) |
 | BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | otvoreno |
 | BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | otvoreno |
 | BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | otvoreno |
@@ -240,3 +245,37 @@ prilozi koriste isti period i presjek, a „Historija izvršenja“ mapira novi 
 rasporeda nije dio paketa — fail-closed slanje je sigurnije za postojeće rasporede, a relacijska validacija
 reference je `BA-reports-03`. Nema migracije. Dokaz:
 [275-w754-reports-02-scheduled-attachment-scope.md](../implementation/275-w754-reports-02-scheduled-attachment-scope.md).
+
+## 19. Implementacijski closeout — W7.93 (`BA-reports-03`)
+
+**Nalaz:** `validate` je za `serviceId`/`groupId` provjeravao samo **postojanje** reda. Grupa iz roditelja ili
+sestrinske jedinice je prihvatana kao filter, servis van opsega aktera takođe, a njihovi nazivi su se vraćali u
+pogled rasporeda i u scope liniju e-maila. Prazan presjek je bio jedini — tihi — signal da referenca ne pripada
+ničemu.
+
+**Rješenje.**
+
+- **Servis:** `ReportAccessChecker.canUseScheduleService` traži isti paket kao kontroler
+  (ADMIN/SUPER_ADMIN + `reports.schedule.manage`) uz `serviceScope: { field: 'serviceId' }`; assignment bez
+  servisa pokriva svaki servis, assignment sa servisom samo svoj.
+- **Grupa:** `report-schedule-scope.ts` (`isGroupWithinUnitSubtree`) delegira na
+  `doesOrganizationalUnitScopeCover`, pa `/Korisnici/ITX` **nije** ispod `/Korisnici/IT`, a prazna/`null`
+  putanja ne prolazi.
+- **Bez oracle:** nepoznata i strana referenca vraćaju isti novi kod `REPORT_SCHEDULE_SCOPE_INVALID` (400) sa
+  `field`, i to je pinovano testom `expect(unknown).toEqual(foreign)`.
+- **Legacy redovi:** `loadScopeLabels` (list/get) i `visibleGroupName` (e-mail) skrivaju naziv reference koja
+  nije u opsegu čitaoca/jedinice, uz log `report_schedule_scope_outside_subtree`; filter i dalje daje prazan
+  presjek (fail-closed), ali e-mail i API ne tvrde da raspored pokriva taj resurs.
+- **Frontend:** novi kod je u `reportTrendErrorCodes` i `reportErrorMessageKeys`, sa bs/en porukom; forma
+  rasporeda prikazuje poruku uz `requestId`.
+
+**Testni dokaz:** `report-schedule-scope.spec.ts` (**5**), `report-schedules.scope.spec.ts` (**9**),
+`report-schedules.spec.ts` **+1** (scope linija e-maila za legacy red), frontend
+`report-schedule-sheet.spec.tsx` (**1**). Lokalno: backend **942 suite / 5.423 testa**, `reports` **33 suite /
+174 testa**, frontend **1.893 testa**; `eslint`/`tsc`/`prettier`/`i18n:check`/`wiring:check` (632 rute)/
+`db:migration-policy:check` (122) zeleni.
+
+**Otvoreno i dokumentovano:** nema migracije ni backfillа — legacy redovi se ne prepisuju automatski (server ne
+može pogoditi je li strana grupa bila namjera), nego se naziv skriva i prvo sljedeće snimanje mora popraviti
+referencu; audit zapis se ne piše za odbijeno snimanje jer se ništa nije promijenilo. Detalji:
+[315-w793-reports-03-schedule-reference-scope.md](../implementation/315-w793-reports-03-schedule-reference-scope.md).

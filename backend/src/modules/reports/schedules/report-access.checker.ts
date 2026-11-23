@@ -20,6 +20,20 @@ export const reportsAccessRequirements: AuthorizationRequirements = {
   requireServiceScope: false,
 };
 
+/**
+ * W7.93 (`BA-reports-03`): a schedule may only carry a `serviceId` the *actor* can use. Roles and
+ * permissions are exactly the controller's (`reports.schedule.manage`) — a schedule is administration, not
+ * an export — while the scope locator switches from the unit alone to unit **and** service.
+ */
+export const reportScheduleServiceScopeRequirements: AuthorizationRequirements = {
+  requiredRoles: [authorizationRoleKeys.admin, authorizationRoleKeys.superAdmin],
+  requiredPermissions: [permissionKeys.reportsScheduleManage],
+  organizationalUnitScope: { field: 'organizationalUnitId' },
+  serviceScope: { field: 'serviceId' },
+  requireOrganizationalUnitScope: true,
+  requireServiceScope: true,
+};
+
 export type ReportRecipientUser = {
   readonly id: string;
   readonly email: string;
@@ -56,6 +70,23 @@ export class ReportAccessChecker {
       requirements: reportsAccessRequirements,
       organizationalUnitId,
       serviceId: null,
+    });
+  }
+
+  /**
+   * W7.93: may this actor attach a report schedule to this service? A global assignment (no service on the
+   * assignment) covers every service, which is the same rule ticket scope uses.
+   */
+  async canUseScheduleService(
+    principal: AuthorizationPrincipal,
+    organizationalUnitId: string,
+    serviceId: string,
+  ): Promise<boolean> {
+    return this.authorizationService.authorize({
+      principal,
+      requirements: reportScheduleServiceScopeRequirements,
+      organizationalUnitId,
+      serviceId,
     });
   }
 

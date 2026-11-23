@@ -35,6 +35,7 @@ import {
   type ReportAttachmentOmitReason,
   type ReportRecipientSkipReason,
 } from './report-schedule.constants';
+import { isGroupWithinUnitSubtree } from './report-schedule-scope';
 import { reportScheduleSelect, type ReportScheduleRecord } from './report-schedule.record';
 import {
   ReportSchedulesConfigurationLoader,
@@ -436,7 +437,7 @@ export class ScheduledReportRunner {
         serviceId: schedule.serviceId,
         serviceName: schedule.service?.name ?? null,
         groupId: schedule.groupId,
-        groupName: schedule.group?.name ?? null,
+        groupName: await this.visibleGroupName(schedule),
         priority: schedule.priority,
       },
       trendPoints: trend.points,
@@ -448,6 +449,38 @@ export class ScheduledReportRunner {
       },
       trendFirstDay: firstDay,
     };
+  }
+
+  /**
+   * W7.93 (`BA-reports-03`): the scope line of the e-mail may only name a group that lives inside the
+   * schedule's own unit subtree. A schedule saved before this package can hold a foreign reference; the
+   * label is then omitted (and the reason logged) instead of telling every recipient about a group outside
+   * their unit. New references cannot get here — the API refuses them at save time.
+   */
+  private async visibleGroupName(schedule: ReportScheduleRecord): Promise<string | null> {
+    if (schedule.group === null) return null;
+    const [unit, group] = await Promise.all([
+      this.prisma.organizationalUnit.findUnique({
+        where: { id: schedule.organizationalUnitId },
+        select: { ouPath: true },
+      }),
+      this.prisma.group.findUnique({
+        where: { id: schedule.group.id },
+        select: { organizationalUnit: { select: { ouPath: true } } },
+      }),
+    ]);
+    if (
+      isGroupWithinUnitSubtree({
+        scopeUnitPath: unit?.ouPath ?? null,
+        groupUnitPath: group?.organizationalUnit.ouPath ?? null,
+      })
+    ) {
+      return schedule.group.name;
+    }
+    this.logger.warn(
+      `report_schedule_scope_outside_subtree schedule=${schedule.id} group=${schedule.group.id}`,
+    );
+    return null;
   }
 
   /** Open tickets past an SLA deadline now (same flags as `isTicketSlaOverdue`). */

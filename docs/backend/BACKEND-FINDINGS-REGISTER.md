@@ -443,7 +443,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 25 | `knowledge-base` | `BA-knowledge-base-19` | P3 | Deset suiteova je compile-blocked; nedostaje concurrency/failure E2E matrica | zatvoreno (W7.92) | [25-knowledge-base.md](audits/25-knowledge-base.md) |
 | 26 | `reports` | `BA-reports-01` | P1 | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita | zatvoreno (W7.53) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-02` | P1 | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke | zatvoreno (W7.54) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-03` | P2 | Schedule service/group reference nije vezana za izabrani OU/service scope | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-03` | P2 | Schedule service/group reference nije vezana za izabrani OU/service scope | zatvoreno (W7.93) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-04` | P2 | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-05` | P2 | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-06` | P2 | Schedule mutation/run finalizacija i globalni audit nisu atomarni | otvoreno | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **310**
-- Otvoreno: **386** (P1 88 / P2 207 / P3 91)
-- Val 7: **89 / 111** zatvoreno, otvoreno **22** (P1 0 / P2 12 / P3 10)
+- Zatvoreno: **311**
+- Otvoreno: **385** (P1 88 / P2 206 / P3 91)
+- Val 7: **90 / 111** zatvoreno, otvoreno **21** (P1 0 / P2 11 / P3 10)
 <!-- findings-totals:end -->
