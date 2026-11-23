@@ -50,13 +50,13 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
   function crashingPrisma(): PrismaClient {
     const real = database();
     return new Proxy(real, {
-      get(target, property, receiver) {
-        if (property !== 'notificationEmailDelivery') return Reflect.get(target, property, receiver);
+      get(target, property) {
+        if (property !== 'notificationEmailDelivery') return Reflect.get(target, property, target);
         const delegate = target.notificationEmailDelivery;
         return new Proxy(delegate, {
-          get(delegateTarget, delegateProperty, delegateReceiver) {
+          get(delegateTarget, delegateProperty) {
             if (delegateProperty !== 'updateMany') {
-              return Reflect.get(delegateTarget, delegateProperty, delegateReceiver);
+              return Reflect.get(delegateTarget, delegateProperty, delegateTarget);
             }
             return async (args: { readonly data?: { readonly status?: string } }) => {
               if (args?.data?.status === emailDeliveryStatuses.sent) {
@@ -112,7 +112,7 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
     const { send, transport } = acceptingTransport();
 
     await expect(
-      deliverNotificationEmail(crashingPrisma(), transport, configuration, input()),
+      deliverNotificationEmail(crashingPrisma() as never, transport, configuration, input()),
     ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
     expect(send).toHaveBeenCalledTimes(1);
     // SMTP accepted the message; only our bookkeeping is missing.
@@ -128,7 +128,7 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
 
     // The retried sweep (stale-run takeover, same slot key) must not resend: the outcome is unknown, not "not sent".
     await expect(
-      deliverNotificationEmail(database(), transport, configuration, input()),
+      deliverNotificationEmail(database() as never, transport, configuration, input()),
     ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
     expect(send).toHaveBeenCalledTimes(1);
     expect(await row()).toMatchObject({
@@ -139,7 +139,7 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
 
     // Even a third pass stays blocked: an operator decides, not the scheduler.
     await expect(
-      deliverNotificationEmail(database(), transport, configuration, input()),
+      deliverNotificationEmail(database() as never, transport, configuration, input()),
     ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
     expect(send).toHaveBeenCalledTimes(1);
   });
@@ -147,12 +147,12 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
   it('answers DUPLICATE for a claim that is still fresh instead of sending again', async () => {
     const { send, transport } = acceptingTransport();
     await expect(
-      deliverNotificationEmail(crashingPrisma(), transport, configuration, input()),
+      deliverNotificationEmail(crashingPrisma() as never, transport, configuration, input()),
     ).rejects.toBeInstanceOf(NotificationEmailOutcomeUnknownError);
     expect(send).toHaveBeenCalledTimes(1);
 
     // Fresh claim: the previous attempt may still be inside SMTP, so this one neither sends nor escalates.
-    await expect(deliverNotificationEmail(database(), transport, configuration, input())).resolves.toBeUndefined();
+    await expect(deliverNotificationEmail(database() as never, transport, configuration, input())).resolves.toBeUndefined();
     expect(send).toHaveBeenCalledTimes(1);
     expect(await row()).toMatchObject({ status: emailDeliveryStatuses.claimed });
   });
@@ -160,7 +160,7 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
   it('records the SMTP acceptance evidence when nothing crashes', async () => {
     const { send, transport } = acceptingTransport();
 
-    await deliverNotificationEmail(database(), transport, configuration, input());
+    await deliverNotificationEmail(database() as never, transport, configuration, input());
 
     expect(send).toHaveBeenCalledTimes(1);
     expect(await row()).toMatchObject({
@@ -171,7 +171,7 @@ describeIfDatabase('report schedule delivery crash window (integration)', () => 
       providerAcceptedAt: expect.any(Date),
     });
     // A retried sweep for the same slot is a no-op, not a second e-mail.
-    await deliverNotificationEmail(database(), transport, configuration, input());
+    await deliverNotificationEmail(database() as never, transport, configuration, input());
     expect(send).toHaveBeenCalledTimes(1);
   });
 });
