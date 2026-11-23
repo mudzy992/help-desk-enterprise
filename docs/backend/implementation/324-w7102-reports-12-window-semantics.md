@@ -9,7 +9,7 @@
 **DB migracija:** **ne**<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** značka semantike uz preview + bs/en tekstovi<br>
-**CI:** _popunjava se poslije runa_
+**CI:** [run `45183956135`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45183956135) ✓ na `b631250`
 
 ## Nalaz
 
@@ -137,7 +137,14 @@ Lokalno: backend **948 suite / 5.491 test** ✓ (104 suite skipped — integraci
 
 ## CI i testni dokaz
 
-_Popunjava se poslije CI runa._
+**Run [`45183956135`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45183956135) — success iz prvog
+pokušaja** (push na `arena/864951a6-help-desk-enterprise`, commit `b631250`, `CI gate` ✓). Poslovi:
+`Backend build + test` ✓, `Backend PostgreSQL + Redis integration` ✓ (103/103 izolovana suitea — SQL granice
+(`>= from AND < to`) su provjerene na stvarnoj bazi), `Frontend build + test` ✓, `Docs guard` ✓,
+`Backend container + supply chain` ✓; `E2E *` preskočeni (nema `e2e` promjena).
+
+**Zašto bez popravke:** promjena je granica u postojećim upitima, dvije aditivne projekcije odgovora i jedan
+allowlist ključ u audit šemi — nema nove Prisma zavisnosti ni novog tipa koji bi lokalni stub sakrio.
 
 **Ostale provjere (lokalno, prije commita):**
 
