@@ -1039,7 +1039,8 @@ spec, preimenovan test, preskočen test, praznu kategoriju, scenario van §10, s
 opisa, audit bez linka ili sa starom tvrdnjom; dozvoljava uslovni `describe.skip`. Lokalno:
 `npm run test:reports:matrix:check` → **10 kategorija / 12 scenarija / 46 redova / 24 speca (16 unit, 8 PostgreSQL)**;
 `npm run test:reports:matrix` → **16 suiteova / 142 testa** zeleno; `reports` + `audit-log` **66 suite / 426 testova**;
-`wiring:check` 632; migracije 125.
+`wiring:check` 632; migracije 125. CI [`45264032542`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45264032542) **success** na `f98410d` — u docs guardu su prošla i oba
+nova koraka (`Check the reports failure matrix against the specs it names`, `Test the reports matrix guard itself`).
 
 **Otvoreno i dokumentovano:** E2E nije proširen (kvar Redis/SMTP nije reproducibilan u browser E2E bez injektiranja
 kvarova) — svjesno prihvaćen residual, isti kao u W7.92; matrica ne zamjenjuje CI, samo garantuje da dokazi postoje i

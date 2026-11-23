@@ -9,7 +9,7 @@
 **Specovi:** bez novih produktnih testova — matrica imenuje **postojeće** dokaze (24 spec fajla: 16 unit, 8 PostgreSQL)<br>
 **DB migracija:** ne<br>
 **Rute:** nepromijenjene (632)<br>
-**CI:** _popunjava se nakon push-a_
+**CI:** [run `45264032542`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45264032542) ✓ na `f98410d` (docs guard izvršio obje nove provjere)
 
 ## Nalaz
 
@@ -116,7 +116,12 @@ fajlova (16 unit, 8 PostgreSQL)`; `npm run test:reports:matrix` → **16 suiteov
 
 ## Dokaz
 
-CI: _popunjava se nakon push-a_ (vidi `## 35` u [26-reports.md](../audits/26-reports.md)).
+CI [`45264032542`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45264032542) **success** na `f98410d`: `Backend build + test`, `Backend PostgreSQL + Redis integration`,
+`Frontend build + test`, `Backend container + supply chain` i `Docs guard` (`E2E` i inventura `skipped`, kako je
+konfigurisano). U **Docs guard** poslu su se izvršila i oba nova koraka —
+`Check the reports failure matrix against the specs it names` i `Test the reports matrix guard itself` — oba
+`success`, što je i dokaz da guard radi na poslu koji se izvršava i za docs-only izmjene. Detalji u
+[26-reports.md, §35](../audits/26-reports.md#35-implementacijski-closeout--w7109-ba-reports-19).
 
 ## Otvoreno i dokumentovano
 
