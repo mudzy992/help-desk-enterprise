@@ -10,7 +10,7 @@
 **DB migracija:** **ne** (indeks `ReportScheduleRun(createdAt)` već postoji)<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _popunjava se poslije runa_
+**CI:** [run `45194677143`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45194677143) ✓ na `ed03e9a`
 
 ## Nalaz
 
@@ -129,7 +129,25 @@ migracije); `check-docs-content` OK.
 
 ## CI i testni dokaz
 
-_Popunjava se poslije CI runa._
+**Run [`45194677143`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45194677143) — success** (push na
+`arena/864951a6-help-desk-enterprise`, commit `ed03e9a`, `CI gate` ✓). Poslovi: `Backend build + test` ✓,
+`Backend PostgreSQL + Redis integration` ✓ (103/103 izolovana suitea — uključujući tombstone integraciju koja sada
+zove stvarni retention pass), `Frontend build + test` ✓, `Docs guard` ✓, `Backend container + supply chain` ✓;
+`E2E *` preskočeni (nema `e2e` promjena).
+
+**Prvi run [`45189712610`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45189712610) je pao** i to
+je dokumentovan dio posla:
+
+1. `TS2493` u `report-schedules.scheduler.spec.ts` — mock `upsertJobScheduler` nije deklarisao argumente, pa je
+   `mock.calls[i][0]` bio prazan tuple. Lokalni `jest` (ts-jest sa `diagnostics` isključenim za neke fajlove) to nije
+   uhvatio, CI `nest build` jeste. Popravka: mock prima `(schedulerId, repeat, template)`.
+2. `admin-ops-i18n-coverage.spec.ts` — frontend katalog traži da **svaki** `*SchedulerId` iz backend modula ima
+   čitljiv naziv u oba jezika. Dodat `report_schedules_retention_daily` (`bs`: „Rotacija historije izvršavanja
+   izvještaja”, `en`: „Report run-log retention”).
+3. `break-glass-command.integration.spec.ts` (`IDEMPOTENCY_REQUEST_IN_PROGRESS`) — **nepovezan flake** u tickets
+   modulu: test istovremeno šalje dva identična zahtjeva i očekuje jedan replay, a pod opterećenjem drugi zahtjev
+   zatekne živ `PROCESSING` lease. Ponovljeni run je prošao bez izmjena u tom kodu; flake nije „popravljan” u ovom
+   paketu da se ne bi mijenjao tuđi domen bez nalaza.
 
 **Ostale provjere (lokalno, prije commita):**
 
