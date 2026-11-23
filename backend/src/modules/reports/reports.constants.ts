@@ -82,6 +82,8 @@ export const reportErrorCodes = {
   scheduleDisabled: 'REPORT_SCHEDULE_DISABLED',
   scheduleNotFound: 'REPORT_SCHEDULE_NOT_FOUND',
   scheduleLimit: 'REPORT_SCHEDULE_LIMIT',
+  /** W7.94: the limit check could not run because the schedule-limit lock stayed busy. */
+  scheduleLimitUnavailable: 'REPORT_SCHEDULE_LIMIT_UNAVAILABLE',
   scheduleInvalid: 'REPORT_SCHEDULE_INVALID',
   /** W7.93: the referenced service or group is unknown or outside the schedule's world. */
   scheduleScopeInvalid: 'REPORT_SCHEDULE_SCOPE_INVALID',
@@ -107,6 +109,8 @@ export const reportErrorMessages: Record<ReportErrorCode, string> = {
   REPORT_SCHEDULE_DISABLED: 'Scheduled reports are disabled',
   REPORT_SCHEDULE_NOT_FOUND: 'The report schedule was not found',
   REPORT_SCHEDULE_LIMIT: 'The maximum number of report schedules has been reached',
+  REPORT_SCHEDULE_LIMIT_UNAVAILABLE:
+    'The schedule limit could not be checked right now; try again in a moment',
   REPORT_SCHEDULE_INVALID: 'The report schedule is not valid',
   REPORT_SCHEDULE_SCOPE_INVALID:
     'The selected service or group does not exist or is outside this schedule scope',

@@ -115,6 +115,8 @@ export const integrationSpecs = Object.freeze([
   // W7.89 (BA-knowledge-base-16): the view flush is idempotent and never invents viewers.
   "src/modules/knowledge-base/portal/knowledge-view-flush-idempotency.integration.spec.ts",
   "src/modules/knowledge-base/portal/knowledge-comment-resolution.integration.spec.ts",
+  // W7.94 (BA-reports-04): the schedule limit is consumed inside one locked transaction.
+  "src/modules/reports/schedules/report-schedule-limit.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

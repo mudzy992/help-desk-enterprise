@@ -78,6 +78,8 @@ function createHarness(options: {
   ];
   const prisma = {
     $executeRaw: async () => 0,
+    // W7.94: the schedule limit is consumed inside a locked transaction; the fake answers both lock statements.
+    $queryRaw: async () => [{ acquired: 1 }],
     $transaction: async (callback: (transaction: unknown) => Promise<unknown>) => callback(prisma),
     auditLog: { findFirst: async () => null, create: async () => ({}) },
     organizationalUnit: {

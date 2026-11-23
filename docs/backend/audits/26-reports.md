@@ -5,9 +5,9 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **3/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`) i W7.93
-(`BA-reports-03`, relacijski OU/service validator reference rasporeda). Ova statusna dopuna ne mijenja
-susjedne nalaze ni ocjenu.
+**Implementacija:** **4/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+(`BA-reports-03`, relacijski OU/service validator reference rasporeda) i W7.94 (`BA-reports-04`, limit
+rasporeda unutar zaključane transakcije). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -65,6 +65,12 @@ Create/update imaju strict DTO, recipient unique/limit, pack allowlist i calenda
 - pomjeranje schedulea u drugi OU mijenja authorization boundary bez CAS-a i bez before/after detalja iz atomarnog snapshot-a.
 
 Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski audit/outbox i immutable run/tombstone politika.
+
+**Status poslije W7.94 (§20):** limit je sada advisory lock + brojanje unutar iste transakcije
+(`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
+novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Version/CAS
+(`BA-reports-05`), transakcijski audit (`BA-reports-06`) i run/tombstone politika (`BA-reports-07`) ostaju
+otvoreni. Detalji: [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
 
 ## 7. Scheduled execution, dedupe i recovery
 
@@ -127,7 +133,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-01 | P1       | Pack preview/export/attachment gradi neograničen scoped korpus prije row/size limita          | zatvoreno |
 | BA-reports-02 | P1       | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke     | zatvoreno |
 | BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | zatvoreno (W7.93) |
-| BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | otvoreno |
+| BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | zatvoreno (W7.94) |
 | BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | otvoreno |
 | BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | otvoreno |
 | BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | otvoreno |
@@ -283,3 +289,34 @@ CI gate).
 može pogoditi je li strana grupa bila namjera), nego se naziv skriva i prvo sljedeće snimanje mora popraviti
 referencu; audit zapis se ne piše za odbijeno snimanje jer se ništa nije promijenilo. Detalji:
 [315-w793-reports-03-schedule-reference-scope.md](../implementation/315-w793-reports-03-schedule-reference-scope.md).
+
+## 20. Implementacijski closeout — W7.94 (`BA-reports-04`)
+
+**Nalaz:** `create` je radio `count()` pa `create()` bez ičega između. Dva paralelna snimanja pod limitom N oba
+pročitaju `N-1`, oba prođu provjeru i instalacija završi na N+1 redu — bez greške i bez signala.
+
+**Rješenje.**
+
+- **Jedan globalni ključ:** `withReportScheduleLimitLock` uzima `pg_advisory_xact_lock` preko
+  `DatabaseLockService` (namespace `reports.schedule-limit`, key `schedules`), jer je `maxSchedules` globalan
+  broj; drugi pisac čeka, pa broji red koji je prvi komitovao.
+- **Critical section je funkcija:** `withReportScheduleLimit(transaction, { maxSchedules }, create)` broji i
+  upisuje; servis je zove unutar `$transaction`, a PostgreSQL integracija zove **istu** funkciju, pa dokaz ne
+  može odlutati od produkcijske sekvence.
+- **Operativni ishod:** lock timeout (2 s, kraće od Prisma-inog 5 s budžeta) prevodi se u novi
+  `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` → **503** sa bs/en porukom, umjesto nemapiranog `P2028` ili lažnog
+  „limit dostignut”.
+- **Validacija ispred brave:** autorizacija/opseg/primaoci se provjeravaju prije zaključavanja, pa brava drži
+  samo `count` + `create`.
+
+**Testni dokaz:** `report-schedules.limit.spec.ts` (**4** — odbijanje bez upisa, redoslijed brava→count→create,
+`55P03` → 503 kod, `ReportsError`), `report-schedule-limit.integration.spec.ts` (**2**, PostgreSQL — dva
+paralelna poziva pod limitom 1 daju jedan uspjeh i jedan `REPORT_SCHEDULE_LIMIT`, broj redova ostaje 1; brisanje
+oslobađa slot), frontend `report-schedule-sheet.spec.tsx` (**1 → 2**). Lokalno: backend **943 suite / 5.427
+testa**, `reports` **34 suite / 178 testa**, frontend **1.894 testa**; `eslint`/`tsc`/`prettier`/`i18n:check`/
+`wiring:check` (632 rute)/`db:migration-policy:check` (122) zeleni.
+
+**Otvoreno i dokumentovano:** nema DB constrainta za globalni broj redova (alternativa je brojač-tabela i
+migracija, što bi bilo novo mjesto razilaženja); `update`/`delete` ne uzimaju bravu jer ne mogu povećati broj
+redova (njihov CAS je `BA-reports-05`); transakcijski audit ostaje `BA-reports-06`. Detalji:
+[316-w794-reports-04-schedule-limit-lock.md](../implementation/316-w794-reports-04-schedule-limit-lock.md).

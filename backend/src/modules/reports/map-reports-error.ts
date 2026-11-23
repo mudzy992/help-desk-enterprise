@@ -35,7 +35,9 @@ export function mapReportsError(error: unknown): HttpException {
     error.code === reportErrorCodes.disabled ||
     error.code === reportErrorCodes.bottlenecksDisabled ||
     error.code === reportErrorCodes.trendsDisabled ||
-    error.code === reportErrorCodes.scheduleDisabled
+    error.code === reportErrorCodes.scheduleDisabled ||
+    // W7.94: a busy limit lock is operational, not a bad request — the client may retry as-is.
+    error.code === reportErrorCodes.scheduleLimitUnavailable
   ) {
     return new ServiceUnavailableException(body);
   }

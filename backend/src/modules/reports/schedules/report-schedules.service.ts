@@ -17,6 +17,7 @@ import {
   reportSchedulesQueueName,
   reportScheduleSections,
 } from './report-schedule.constants';
+import { withReportScheduleLimit } from './report-schedule-limit';
 import { isGroupWithinUnitSubtree } from './report-schedule-scope';
 import { reportScheduleSelect, type ReportScheduleRecord } from './report-schedule.record';
 import {
@@ -116,22 +117,31 @@ export class ReportSchedulesService {
 
   async create(actor: Actor, input: SaveReportScheduleDto, now: Date = new Date()): Promise<ReportScheduleView> {
     const configuration = await this.requireScheduled();
-    const total = await this.prisma.reportSchedule.count();
-    if (total >= configuration.maxSchedules) {
-      throw new ReportsError(reportErrorCodes.scheduleLimit, { max: configuration.maxSchedules });
-    }
+    // Validation runs before the lock on purpose: it is the expensive part (authorization, scope lookups) and it
+    // does not change the row count, so the lock is only held for the count and the insert.
     const data = await this.validate(actor, input, configuration);
     const enabled = input.enabled ?? true;
-    const created = await this.prisma.reportSchedule.create({
-      data: {
-        ...data.fields,
-        enabled,
-        nextRunAt: nextReportRunAt(data.fields.frequency, data.fields.sendTime, configuration.timeZone, now),
-        createdByUserId: actor.principal.subjectId,
-        recipients: { create: data.recipientIds.map((userId) => ({ userId })) },
-      },
-      select: { id: true },
-    });
+    // §6 (W7.94): the limit is checked *and* consumed inside one locked transaction — a plain count-then-create
+    // lets two concurrent saves both pass a limit of N and land N+1 rows.
+    const created = await this.prisma.$transaction((transaction) =>
+      withReportScheduleLimit(transaction, configuration, () =>
+        transaction.reportSchedule.create({
+          data: {
+            ...data.fields,
+            enabled,
+            nextRunAt: nextReportRunAt(
+              data.fields.frequency,
+              data.fields.sendTime,
+              configuration.timeZone,
+              now,
+            ),
+            createdByUserId: actor.principal.subjectId,
+            recipients: { create: data.recipientIds.map((userId) => ({ userId })) },
+          },
+          select: { id: true },
+        }),
+      ),
+    );
     await this.audit(actor, auditLogActions.reportScheduleCreated, created.id, data.fields.organizationalUnitId, {
       name: data.fields.name,
       frequency: data.fields.frequency,
