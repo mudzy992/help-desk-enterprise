@@ -3772,7 +3772,7 @@
     {
       "id": "BA-search-09",
       "severity": "P3",
-      "status": "otvoreno",
+      "status": "zatvoreno (W7.110)",
       "source": "27-search.md",
       "owner": "WS-F",
       "wave": 7

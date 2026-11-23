@@ -4,7 +4,10 @@
 **Datum:** 2026-10-23  
 **Rizik modula:** srednji  
 **Baseline ocjena:** **5,62/10**  
-**Nalazi:** 1 P1, 7 P2, 5 P3
+**Nalazi:** 1 P1, 7 P2, 5 P3<br>
+**Implementacija:** **9/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa) i
+W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom). P1 nema, P2 nema; otvoreni su `10`–`13` (P3).
+Ova statusna dopuna ne mijenja nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -54,7 +57,13 @@ User grana je dostupna kada authorization context ima bilo koji `ADMIN` roleKey 
 
 Scoped administrator jedne jedinice zato može enumerisati identitete i e-mail adrese korisnika iz svih drugih jedinica. Postojeći `GET /organizational-units/:id/users` također ima širok ADMIN guard, ali to samo potvrđuje naslijeđeni cross-cutting problem; globalni typeahead ga čini lakše pretraživim. Potrebna je eksplicitna `users.read`/directory-search permission politika, OU subtree predicate, SUPER_ADMIN-only global mode i privacy-minimal response (npr. email samo kada je potreban).
 
-Order je samo `displayName asc`; isti display name nema stabilan `id` tie-breaker, pa capped rezultati mogu varirati. `contains` nad imenom/e-mailom bez rate limita omogućava brzu prefix/substring enumeraciju. Aktivnost se filtrira, što je pozitivno.
+Order je samo `displayName asc`; isti display name nema stabilan `id` tie-breaker, pa capped rezultati mogu varirati.
+
+**Status poslije W7.110 (§24):** sve tri grane imenika sortiraju po `displayName`, pa **`id`** (`directoryUserOrder`
+u `search-users.ts`). Poredak je totalan, pa je sastav ograničene stranice reproducibilan; PostgreSQL test pravi
+četiri imenjaka i dokazuje identične, rastuće ID-eve kroz dvije identične pretrage, a plan-suite objašnjava isti SQL i
+traži oba ključa u `Sort Key`. Detalji:
+[332](../implementation/332-w7110-search-09-directory-order-tiebreaker.md). `contains` nad imenom/e-mailom bez rate limita omogućava brzu prefix/substring enumeraciju. Aktivnost se filtrira, što je pozitivno.
 
 ## 7. Resource safety i operativnost
 
@@ -105,7 +114,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-06 | P2       | Modul nasljeđuje KB owner/reviewer scope bypass iz audita 25                            | zatvoreno |
 | BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | zatvoreno |
 | BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | zatvoreno |
-| BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | otvoreno |
+| BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | zatvoreno (W7.110) |
 | BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | otvoreno |
 | BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | otvoreno |
 | BA-search-12 | P3       | Confidential/archive/revoke semantika nema direktan search test                         | otvoreno |
@@ -464,3 +473,32 @@ zatvoren i prije ovog paketa.
 sync radi batch update); `email` zadržava i `@unique` B-tree jer trigram indeks ne garantuje jedinstvenost;
 trigram rješava **pokrivenost**, ne **relevantnost** — `contains` ostaje substring match; planer na malom imeniku
 i dalje može izabrati sekvencijalni sken, pa je stvarni dobitak mjerljiv tek na većem korpusu.
+
+## 24. Implementacijski closeout — W7.110 (`BA-search-09`)
+
+**Nalaz:** imenik (`types=user`) sortirao je samo po `displayName` uz `LIMIT`, a ime nije jedinstveno. Sadržaj
+ograničene stranice zavisio je od planera: drugi plan poslije `VACUUM`-a, `UPDATE` koji red pomjera na kraj heapa,
+druga replika ili paralelni radnik mogli su za **isti** zahtjev vratiti drugu osobu. To nije kozmetika nego
+nereproducibilan skup rezultata — a nijedan test to nije mogao uhvatiti jer ugovor o poretku nije bio definisan.
+Article grupa je tie-breaker imala od početka (`updatedAt DESC, id ASC`); imenik je bio jedina bez njega.
+
+**Rješenje.** Sve tri grane `search-users.ts` (scoped OU, „everyone” bez e-maila, „everyone” s e-mailom) koriste
+jednu konstantu `directoryUserOrder = [{displayName:'asc'},{id:'asc'}]`. `id` je primarni ključ, pa je poredak
+**totalan**, a time i sastav stranice jednoznačan; ako se jednog dana doda kursor, `(displayName, id)` je već
+ispravan ključ. Nema promjene ruta (632), DTO-a, scope pravila ni projekcije, i nema migracije — trigram indeksi iz
+W7.63 ostaju jedini indeksni put za `ILIKE`, a tie-breaker ne mijenja plan pretrage nego garantuje poredak.
+
+**Testni dokaz.** `search-users.spec.ts` (**novo, 7**): tačan poredak u sve tri grane; scope predikati i projekcija
+netaknuti (e-mail samo kad scope dozvoljava); prazan scope ne čita bazu; mapiranje ne prepisuje redoslijed; guard nad
+izvornim kodom da nijedan `orderBy` ne može ostati bez tie-breakera. `search-query-plan.integration.spec.ts` (+1,
+PostgreSQL): četiri imenjaka, dvije identične stranice od dva reda, **rastući** ID-evi (mogući samo od tie-breakera,
+jer je heap poredak poredak umetanja, a `cuid()` nije rastući) i `Sort Key` sa oba ključa; postojeći test imenika
+objašnjava isti SQL (`ORDER BY "User"."displayName" ASC, "User"."id" ASC`) i vraća iste ID-eve kao Prisma. Lokalno:
+`search` **9 suiteova / 73 testa** (integracioni suite uslovno preskočen bez baze), `nest build` zelen,
+`wiring:check` 632, migracije 125.
+
+**Otvoreno i dokumentovano:** tie-breaker ne rješava **relevantnost** (abecedni poredak, ne rang); indeks
+`(displayName, id)` nije uveden jer bi koristio samo `ORDER BY` bez `ILIKE` filtera, a sort kandidata je već
+izmjeren u plan-suiteu. Ostaju `BA-search-10` (duplikati u `types`), `-11` (telemetrija/SLO), `-12`
+(confidential/arhiva testovi) i `-13` (E2E za `/search`). Detalji:
+[332-w7110-search-09-directory-order-tiebreaker.md](../implementation/332-w7110-search-09-directory-order-tiebreaker.md).

@@ -59,6 +59,7 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     readonly 'Actual Rows'?: number;
     readonly 'Rows Removed by Filter'?: number;
     readonly 'Actual Loops'?: number;
+    readonly 'Sort Key'?: readonly string[];
   };
   type PlanDocument = {
     readonly Plan: PlanNode;
@@ -132,7 +133,7 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
     FROM "User"
     WHERE "User"."isActive" = true
       AND ("User"."displayName" ILIKE $1 OR "User"."email" ILIKE $1)
-    ORDER BY "User"."displayName" ASC
+    ORDER BY "User"."displayName" ASC, "User"."id" ASC
     LIMIT $2`;
 
   const articlesSql = `
@@ -248,7 +249,8 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
         ],
       },
       select: { id: true, displayName: true, email: true },
-      orderBy: { displayName: 'asc' },
+      // W7.110 (`BA-search-09`): name alone is not unique, id breaks the tie.
+      orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
       take: 15,
     });
     const rawRows = await client.query<{ readonly id: string }>(usersSql, [
@@ -292,6 +294,64 @@ describeIfDatabase('search query plans (W7.61, BA-search-07)', () => {
       expect(rowsReadFrom(indexed, 'User')).toBeLessThan(corpus * 0.2);
     } finally {
       await client.query('SET enable_seqscan = on');
+    }
+  });
+
+  it('makes a capped directory page stable by breaking equal names on id (W7.110)', async () => {
+    // BA-search-09: `LIMIT` over a non-unique `displayName` left the page's
+    // membership to the planner, so two identical requests could return
+    // different people. Four colleagues with the exact same name make the
+    // question visible: the page must be total-ordered, and only `id` can do it.
+    const sharedName = `Amina Hodžić ${stamp}`;
+    const created: string[] = [];
+    for (let index = 0; index < 4; index += 1) {
+      const user = await prisma.user.create({
+        data: {
+          email: `tie-${stamp}-${index}@example.test`,
+          displayName: sharedName,
+          isActive: true,
+          organizationalUnitId: unitId,
+        },
+        select: { id: true },
+      });
+      created.push(user.id);
+    }
+    const readPage = () =>
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { displayName: { contains: sharedName, mode: 'insensitive' } },
+            { email: { contains: sharedName, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+        orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
+        take: 2,
+      });
+
+    const first = await readPage();
+    const second = await readPage();
+    expect(first.map((row: { readonly id: string }) => row.id)).toEqual(
+      second.map((row: { readonly id: string }) => row.id),
+    );
+    // Ascending ids among identical names can only come from the tie-breaker:
+    // heap order (what an unordered `LIMIT` falls back to) is insertion order,
+    // and `cuid()` ids are not insertion-ordered.
+    const ids = first.map((row: { readonly id: string }) => row.id);
+    expect(ids).toEqual([...ids].sort());
+    expect(ids).toEqual([...created].sort().slice(0, 2));
+
+    // The statement the module issues carries the same two keys (the SQL above
+    // is that statement), and the plan names both — so the guarantee is not a
+    // lucky heap order that the next vacuum can take away.
+    const rawRows = await client.query<{ readonly id: string }>(usersSql, [`%${sharedName}%`, 2]);
+    expect(rawRows.rows.map((row) => row.id)).toEqual(ids);
+    const planned = await explain(usersSql, [`%${sharedName}%`, 2]);
+    const sortKeys = flatten(planned.Plan).flatMap((node) => node['Sort Key'] ?? []);
+    if (sortKeys.length > 0) {
+      expect(sortKeys.join(',')).toContain('displayName');
+      expect(sortKeys.join(',')).toContain('id');
     }
   });
 

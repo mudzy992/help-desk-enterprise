@@ -1,3 +1,4 @@
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { DirectorySearchScope } from './search-directory-scope';
 import type { UserSearchMatch } from './search.types';
@@ -12,6 +13,14 @@ import type { UserSearchMatch } from './search.types';
  *
  * The e-mail column is only selected when the scope allows it: the rows that
  * must not be exposed are then not even read.
+ *
+ * W7.110 (`BA-search-09`): the order is `displayName` **and then `id`**. Two
+ * people can share a display name, and `LIMIT` without a tie-breaker leaves the
+ * capped page's content to the planner: a different plan, a vacuum or a row
+ * update can swap two equal names in and out of the page between two identical
+ * requests. The `id` column is unique, so the page is total-ordered and stable.
+ * `SearchKnowledgeArticles` already orders this way (`updatedAt`, `id`); the
+ * directory was the one group without it.
  */
 export async function searchDirectoryUsers(input: {
   readonly prisma: PrismaService;
@@ -36,7 +45,7 @@ export async function searchDirectoryUsers(input: {
         ],
       },
       select: { id: true, displayName: true },
-      orderBy: { displayName: 'asc' },
+      orderBy: directoryUserOrder,
       take: input.limit,
     });
     return users.map((user: DirectoryUserRow) => ({
@@ -55,7 +64,7 @@ export async function searchDirectoryUsers(input: {
         ],
       },
       select: { id: true, displayName: true },
-      orderBy: { displayName: 'asc' },
+      orderBy: directoryUserOrder,
       take: input.limit,
     });
     return users.map((user: DirectoryUserRow) => ({
@@ -73,7 +82,7 @@ export async function searchDirectoryUsers(input: {
       ],
     },
     select: { id: true, displayName: true, email: true },
-    orderBy: { displayName: 'asc' },
+    orderBy: directoryUserOrder,
     take: input.limit,
   });
   return users.map((user: DirectoryUserRowWithEmail) => ({
@@ -82,6 +91,16 @@ export async function searchDirectoryUsers(input: {
     email: user.email,
   }));
 }
+
+/**
+ * W7.110 (`BA-search-09`): one ordering for every scope branch. `displayName`
+ * alone is not unique, so a capped result set had no defined membership; `id`
+ * breaks the tie and makes the page reproducible.
+ */
+const directoryUserOrder: Prisma.UserOrderByWithRelationInput[] = [
+  { displayName: 'asc' },
+  { id: 'asc' },
+];
 
 type DirectoryUserRow = {
   readonly id: string;
