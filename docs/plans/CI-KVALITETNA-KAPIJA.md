@@ -195,3 +195,56 @@ Popravka: helper `openDetailSection(panel)` (`e2e/helpers/ticket-detail-sections
 Operativno: crven e2e job sa `STACK OUTAGE` blokom **ne** znači popravku koda. Provjeri da
 `$E2E_API_URL/health` vraća `200` + `{"status":"ok"}`, pogledaj Coolify historiju za navedeni prozor, pa pusti
 `specs=<brojevi iz sažetka>` (bez `[stack]` oznake).
+
+## 9. Noćni run 45139438329 (2026-11-23): `06-confidential` — pretpostavka o rutiranju, ne procurena tajna
+
+Noćni run [`45139438329`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45139438329)
+(`schedule`, `master` @ `3d4ed11`) pao je na `E2E critical flows`/`CI gate`. Playwright: **125 prošlo, 1 palo,
+1 flaky, 1 preskočen** (42 min). Jedini pravi pad:
+
+```
+FAIL 06-confidential.spec.ts:15 — agent without ACL is denied; SuperAdmin can open it
+     Error: expect(received).rejects.toThrow() — Received promise resolved instead of rejected
+```
+
+**Uzrok nije procurena tajna.** Tiket je bio klasifikovan `INTERNAL` sa `isConfidential: true`, ali je dobio
+`assignedGroupId` (grupa „Unrouted"), a E2E agent je član te grupe. `evaluate-confidential-ticket-access.ts`
+tada vraća `allowed: true, via: 'handler_group'` — **član handlerske grupe je dokumentovan kanal pristupa**, uz
+primaoca, učesnike, grantove, dozvoljene role/grupe i break-glass. Test je bio napisan na pretpostavci:
+
+> „Svježa usluga nema routing pravilo, pa tiket ostaje `UNROUTED` i agent nema handlersku grupu."
+> (`06-confidential.spec.ts`, komentar iznad testa)
+
+Ta pretpostavka je o stack-podacima, ne o kodu: `resolveTicketRouting` traži pravilo **po tačnom `serviceId`**, pa
+svježa usluga zaista nema pravilo — ali tiket onda ide u **unrouted queue**, a taj red ima
+`private.ticket.unroutedQueue.targetGroupId` (na ovom stacku grupa „Unrouted"). Tiket je time dodijeljen grupi u
+kojoj agent radi i pristup je legitimno otvoren. Ista stvar je već bila poznata u specu 02 („a live stack may have
+a wildcard rule…"), ali u specu 06 nije bila pokrivena.
+
+**Popravka (`06-confidential.spec.ts`).** Premisa se sada **gradi i dokazuje**, a ne pretpostavlja:
+
+| Korak | Šta dokazuje |
+|---|---|
+| `POST /groups` → `E2E Confidential <stamp>` **bez članova** | handlerska grupa kojoj nijedan E2E akter ne pripada |
+| `POST /routing/rules` za svježu uslugu → ta grupa | tiket ide `exact` rutom, ne u fallback red |
+| `GET /tickets/:id` kao **primalac** (`isConfidential === true`, `assignedGroupId === grupa`) | premisa je stvarna prije nego što se tvrdi odbijanje |
+| `GET /tickets/:id` kao agent → `rejects` | odbijanje je posljedica politike, ne slučajnosti stacka |
+| `finally`: brisanje pravila i grupe (best effort) | nema nakupljanja E2E grupa; `ops/sql/cleanup-e2e-data.sql` čisti ostatke |
+
+Faktovi se čitaju kao **primalac**, jer SuperAdmin prije break-glasa može legitimno imati *manje* prava od njega.
+
+**Dokaz.** Ciljani trijažni run
+[`45148046860`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45148046860)
+(`workflow_dispatch`, `specs=06`, `retries=0`, `max_failures=8`) — **zelen**: `1 passed, 0 failed, 0 flaky,
+0 skipped` (27 s), `CI gate` ✓. Push-CI istog commita `45148040366` ✓.
+
+**Šta ovo govori o noći, a šta ne.** Prozor ispada stacka 08:48–09:22 UTC objašnjava *flaky* `09-config-ops`
+(`CONFIG_CATALOG_STATE_CONFLICT` zbog istovremenih E2E izmjena kataloga), ali **ne** pad speca 06, koji se desio u
+08:40, prije prozora. Prethodne dvije noći: 2026-11-22 (`44999494543`) crvena je bila zbog **greške u reporteru**
+(`$E2E_API_URL` pod `set -u`), što je već popravljeno u `e2e/scripts/report-stack-outage.mjs`; 2026-11-21
+(`44882525653`) pao je spec 31 (`CHANGE_CAB_GROUP_REQUIRED`), koji je od tada prošao.
+
+**Operativna posljedica za konfiguraciju.** Confidencijalni tiket koji nema routing pravilo pada u unrouted red i
+time postaje vidljiv **cijeloj ciljnoj grupi tog reda** — to je namjerno (ta grupa ga obrađuje), ali znači da
+`private.ticket.unroutedQueue.targetGroupId` treba birati kao grupu koja smije vidjeti i povjerljive tikete.
+
