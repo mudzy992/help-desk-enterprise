@@ -249,6 +249,12 @@ function createRunner(options: {
   due: ReportScheduleRecord[];
   claimConflict?: boolean;
   enabledPacks?: readonly string[];
+  /** W7.103: the retention window must not depend on scheduled delivery being switched on. */
+  deliveryEnabled?: boolean;
+  /** Runs the retention pass finds outside the 180-day window. */
+  expiredRuns?: readonly string[];
+  /** Simulates a database error during the retention pass. */
+  pruneThrows?: boolean;
 }) {
   const runs: Record<string, unknown>[] = [];
   /** W7.96: which writes happened inside the runner's transaction, and in which order. */
@@ -320,7 +326,14 @@ function createRunner(options: {
         txEvents.push(`run:${inTransaction ? 'tx' : 'outside'}`);
         return {};
       }),
-      deleteMany: async () => ({ count: 0 }),
+      // W7.103: the retention pass reads ids in a batch and deletes exactly those.
+      findMany: jest.fn(async (args: { readonly take?: number }) => {
+        if (options.pruneThrows === true) throw new Error('retention db down');
+        return (options.expiredRuns ?? []).map((id) => ({ id })).slice(0, args.take);
+      }),
+      deleteMany: jest.fn(async (args: { readonly where: { readonly id: { readonly in: string[] } } }) => ({
+        count: args.where.id.in.length,
+      })),
     },
     notificationEmailDelivery: createInMemoryNotificationEmailDeliveryDelegate(
       emailDeliveries,
@@ -384,7 +397,7 @@ function createRunner(options: {
     } as never,
     {
       load: async () => ({
-        enabled: true,
+        enabled: options.deliveryEnabled ?? true,
         maxSchedules: 50,
         maxRecipients: 25,
         attachmentMaxRows: 10_000,
@@ -531,6 +544,61 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
     });
     // The ledger keeps the ambiguity: no automatic retry was scheduled for this row.
     expect([...emailDeliveries.values()][0]).toMatchObject({ status: 'UNKNOWN', nextRetryAt: null });
+  });
+
+  it('prunes the run log even when scheduled delivery is switched off (W7.103)', async () => {
+    const { runner, prisma, runs } = createRunner({
+      due: [],
+      deliveryEnabled: false,
+      expiredRuns: ['old-1', 'old-2'],
+    });
+    const now = new Date('2026-11-23T03:17:00Z');
+
+    await runner.runDue(now);
+
+    // The old sweep returned before pruning when delivery was disabled, so retention silently stopped.
+    expect(prisma.reportScheduleRun.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { createdAt: { lt: new Date(now.getTime() - 180 * 86_400_000) } },
+        take: expect.any(Number),
+      }),
+    );
+    expect(prisma.reportScheduleRun.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['old-1', 'old-2'] } },
+    });
+    expect(runs).toHaveLength(0);
+  });
+
+  it('logs a failing prune and still delivers the due reports (W7.103)', async () => {
+    const { runner, runs } = createRunner({ due: [schedule()], pruneThrows: true });
+    const warn = jest.spyOn(
+      (runner as unknown as { logger: { warn: (message: string) => void } }).logger,
+      'warn',
+    );
+
+    await runner.runDue(new Date('2026-03-30T05:01:00Z'));
+
+    // A retention failure is not a delivery failure: the run is claimed and finished.
+    expect(runs.find((run) => run.status === 'RUNNING')).toBeDefined();
+    expect(warn).toHaveBeenCalledWith('report_schedule_run_prune_failed reason=retention db down');
+  });
+
+  it('exposes the retention pass for the daily job and logs what it removed (W7.103)', async () => {
+    const { runner, prisma } = createRunner({ due: [], expiredRuns: ['old-1', 'old-2'] });
+    const log = jest.spyOn(
+      (runner as unknown as { logger: { log: (message: string) => void } }).logger,
+      'log',
+    );
+
+    const result = await runner.pruneExpiredRuns(new Date('2026-11-23T03:17:00Z'));
+
+    expect(result).toMatchObject({ deleted: 2, remaining: false });
+    expect(prisma.reportScheduleRun.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['old-1', 'old-2'] } },
+    });
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining('report_schedule_runs_pruned deleted=2 cutoff=2026-05-27T03:17:00.000Z'),
+    );
   });
 
   it('never sends twice when another worker already claimed the slot', async () => {

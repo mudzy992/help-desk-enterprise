@@ -5,14 +5,15 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **12/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **13/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
 brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored), W7.99 (`BA-reports-09`,
 at-least-once isporuka bez slijepog ponovnog slanja), W7.100 (`BA-reports-10`, cache key nosi verziju
-autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija) i W7.102 (`BA-reports-12`, katalog i
-pola-otvoreni ugovor prozora). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija), W7.102 (`BA-reports-12`, katalog i
+pola-otvoreni ugovor prozora) i W7.103 (`BA-reports-14`, retention run loga kao zaseban, batched posao). Ova
+statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -75,6 +76,14 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.103 (§29):** retention run loga više nije dio delivery sweepa: 180-dnevni prozor se
+primjenjuje u **zasebnom dnevnom poslu** (`report-schedules-retention-daily`, 03:17 UTC) koji se registruje i
+reconcile-uje kao i sweep, a sweep **takođe** prži prije nego pročita svoju konfiguraciju — pa isključen scheduled
+e-mail ili konfiguracija koja ne može da se učita ne čuvaju run log zauvijek. Brisanje je batched (500 po batchu,
+najviše 40 batcheva po prolazu) i **baca** grešku umjesto `catch(() => undefined)`: dnevni posao je retry-uje, a
+sweep je loguje i nastavlja isporuku. Detalji:
+[325](../implementation/325-w7103-reports-14-run-retention.md).
 
 **Status poslije W7.102 (§28):** prozor izvještaja ima **jedan ugovor** — pola-otvoren `[from, to)`, početak ulazi,
 kraj ne — i **katalog** (`pack-window-semantics.ts`) koji za svaki pack kaže da li period bira događaje
@@ -195,7 +204,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | zatvoreno (W7.101) |
 | BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | zatvoreno (W7.102) |
 | BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | otvoreno |
-| BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | otvoreno |
+| BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | zatvoreno (W7.103) |
 | BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | otvoreno |
 | BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | otvoreno |
 | BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | otvoreno |
@@ -690,3 +699,56 @@ fajlova / 1.898 testova**; `eslint` 0; rute i migracije nepromijenjene (632 / 12
 od sweep-a (`BA-reports-14`), strict schema Redis parsera (`BA-reports-15`), `runNow` idempotency
 (`BA-reports-16`), PDF intent (`BA-reports-17`), preview read-audit (`BA-reports-18`). Detalji:
 [324-w7102-reports-12-window-semantics.md](../implementation/324-w7102-reports-12-window-semantics.md).
+
+## 29. Implementacijski closeout — W7.103 (`BA-reports-14`)
+
+**Nalaz:** 180-dnevna retention politika run loga (`ReportScheduleRun`) postojala je samo kao jedan `deleteMany` na
+kraju delivery sweepa, i to „best-effort” u tri smisla:
+
+1. **Zavisila je od isporuke.** `runDue` je prvo čitao konfiguraciju i vraćao se odmah kad je scheduled e-mail
+   isključen — pa se retention zaustavljao bez ijednog signala (run log raste zauvijek, tačno suprotno §5.3).
+2. **Nije imala svoj raspored.** Prune se dešavao samo ako sweep uopšte krene; nije bilo dnevnog/nightly posla koji
+   garantuje rotaciju, niti ijednog pokazatelja da prune nije radio.
+3. **Brisala je neograničeno i ćutke.** Jedan `deleteMany` nad cijelim backlogom drži dug lock i pravi jedan veliki
+   WAL burst, a `.catch(() => undefined)` je svaku grešku pretvarao u tišinu — uključujući `deadlock` ili prekid
+   konekcije.
+
+**Rješenje.**
+
+- **Novi modul `report-schedule-run-retention.ts`:** `pruneReportScheduleRuns(prisma, { now, batchSize?,
+  maxBatches?, retentionDays? })` briše **po id-u** u batchevima (500), staje na budžetu (40 batcheva = 20 000 redova
+  po prolazu) i vraća `{ deleted, cutoff, batches, remaining }`. Kratak batch je dokaz da je prozor prazan; pun batch
+  tjera novi upit, a `remaining` kaže da sljedeći prolaz nastavlja. Greška se **prosljeđuje**.
+- **Zaseban dnevni posao:** `report-schedules-retention-daily` (`17 3 * * *`, job `prune-schedule-runs`, 3 pokušaja
+  sa backoff-om) na istoj `report-schedules` queue; procesor ga rutira u `ScheduledReportRunner.pruneExpiredRuns()`,
+  a greška ide do BullMQ-a (retry + failure signal) — nema više `catch`.
+- **Sweep i dalje prži, ali prije svog gate-a:** `runDue` poziva retention **prije** čitanja konfiguracije, u
+  `try/catch` koji loguje `report_schedule_run_prune_failed` i **nastavlja isporuku**. Tako isključen e-mail ne
+  zaustavlja rotaciju, a pad retentiona ne zaustavlja izvještaje.
+- **Reconcile pokriva oba rasporeda:** W7.98 reconcile se vraćao čim nađe sweep; sada provjerava oba id-a i vraća
+  tačno one koje je vratio (`report_schedules_schedule_recovered id=…`).
+- **Vidljivost:** svaki prolaz loguje `report_schedule_runs_pruned deleted=… cutoff=… batches=… remaining=…`.
+
+**Posljedice po ponašanje.** Isti prozor (180 dana) i ista semantika tombstone-a (W7.97: run preživi brisanje
+rasporeda i briše se samo retentionom). Novo: retention radi i kad je isporuka isključena, radi u batchevima i
+prijavljuje koliko je ostalo; dnevni posao se retry-uje. Bez migracije (indeks `ReportScheduleRun(createdAt)` već
+postoji), bez novih ruta.
+
+**Testni dokaz.** `report-schedule-run-retention.spec.ts` (**novo, 7**): briše samo starije od prozora i vraća
+`cutoff`; briše u batchevima; staje na budžetu uz `remaining: true`; idempotentan drugi prolaz; red tačno na `cutoff`
+ostaje; DB greška **izlazi** iz funkcije; prozor dolazi iz konstante. `report-schedules.processor.spec.ts`
+(**novo, 4**): retention job zove samo retention, greška ide do BullMQ-a, sweep job zove `runDue`, manual job traži
+`scheduleId`. `report-schedules.spec.ts` (+3): prune radi sa isključenom isporukom; pad prune-a se loguje i
+isporuka ide dalje; `pruneExpiredRuns` loguje rezultat. `report-schedules.scheduler.spec.ts` (+1, 5 ažurirano):
+dva rasporeda na init-u, reconcile vraća samo onaj koji nedostaje, legacy `id` shape i dalje prihvaćen.
+`scheduled-jobs.wiring.spec.ts` (11 rasporeda / 22 registracije). `report-schedule-run-tombstone.integration.spec.ts`
+sada poziva **stvarni** retention pass na PostgreSQL-u (`batchSize: 1`) umjesto ručno napisanog `deleteMany`-ja.
+Lokalno: backend **950 suite / 5.506 testova**, `reports/schedules` **10 suite / 82 testa**, `reports` **41 suite / 254 testa**; `eslint` 0; rute i
+migracije nepromijenjene (632 / 124).
+
+**Otvoreno i dokumentovano:** per-job vidljivost u ops-health kartici ostaje na nivou queue-a (`scheduler.late`
+prati `report-schedules` queue i njen posljednji uspjeh), pa dnevni retention nema **svoj** `lastSuccessMaxAgeMs`;
+to je svjesno, jer retention radi i na svakom sweepu (koji je expected scheduler sa alarmom od 20 minuta). Privacy
+matrica nad run JSON-om/primaocima ostaje `BA-reports-13`; strict cache schema `BA-reports-15`; `runNow`
+idempotency `BA-reports-16`; PDF intent `BA-reports-17`; preview read-audit `BA-reports-18`. Detalji:
+[325-w7103-reports-14-run-retention.md](../implementation/325-w7103-reports-14-run-retention.md).

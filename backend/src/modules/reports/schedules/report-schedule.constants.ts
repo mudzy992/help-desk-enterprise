@@ -28,11 +28,36 @@ export const reportScheduleLimits = {
   attachmentsMaxBytes: 10 * 1024 * 1024,
 } as const;
 
+/**
+ * W7.103 (`BA-reports-14`): the retention delete is batched and bounded. One `deleteMany` over the whole backlog
+ * held a long lock and wrote one huge WAL burst; a batch keeps the prune short, and the sweep continues where the
+ * last pass stopped.
+ */
+export const reportScheduleRunRetentionBatchSize = 500;
+/** Batches per pass; a backlog larger than 20 000 rows is finished by the next sweep (`remaining: true`). */
+export const reportScheduleRunRetentionMaxBatches = 40;
+
 export const reportSchedulesQueueName = 'report-schedules';
 export const reportSchedulesSweepJobName = 'sweep-due-schedules';
 export const reportSchedulesManualJobName = 'run-schedule-now';
 export const reportSchedulesSchedulerId = 'report-schedules-5min';
 export const reportSchedulesCronPattern = '*/5 * * * *';
+
+/**
+ * W7.103 (`BA-reports-14`): retention gets its own daily schedule instead of riding on a delivery sweep. The run
+ * log is pruned even when scheduled e-mail is switched off, and the sweep prunes too (before it reads its own
+ * configuration), so a missing daily registration cannot keep runs forever.
+ */
+export const reportSchedulesRetentionSchedulerId = 'report-schedules-retention-daily';
+export const reportSchedulesRetentionJobName = 'prune-schedule-runs';
+export const reportSchedulesRetentionCronPattern = '17 3 * * *';
+/**
+ * Retention is idempotent (it deletes by id and re-reads the backlog), so a transient DB error may retry.
+ */
+export const reportSchedulesRetentionJobAttempts = 3;
+export const reportSchedulesRetentionJobBackoffMilliseconds = 60_000;
+export const reportSchedulesRetentionCompletedJobsToKeep = 3;
+export const reportSchedulesRetentionFailedJobsToKeep = 10;
 
 /**
  * W7.98 (`BA-reports-08`): the schedule lives in Redis, so it has to be re-asserted instead of written once at

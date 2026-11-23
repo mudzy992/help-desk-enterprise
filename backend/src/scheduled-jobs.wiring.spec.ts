@@ -49,7 +49,10 @@ jest.mock('./common/prisma/prisma.service', () => ({
  * 2. The three 15-minute sweeps are staggered inside the window, so the archive, the
  *    waiting-for-user and the knowledge-base sweep never start together.
  */
-import { reportSchedulesSchedulerId } from './modules/reports/schedules/report-schedule.constants';
+import {
+  reportSchedulesRetentionSchedulerId,
+  reportSchedulesSchedulerId,
+} from './modules/reports/schedules/report-schedule.constants';
 import { ReportSchedulesSchedulerService } from './modules/reports/schedules/report-schedules.scheduler.service';
 import { privacyCronPattern, privacySchedulerId } from './modules/privacy/privacy.constants';
 import { PrivacySchedulerService } from './modules/privacy/privacy.scheduler.service';
@@ -100,15 +103,16 @@ describe('periodic job wiring', () => {
         unroutedSweepSchedulerId,
         directorySyncSchedulerId,
         reportSchedulesSchedulerId,
+        reportSchedulesRetentionSchedulerId,
         privacySchedulerId,
         integrationWorkerHeartbeatSchedulerId,
         integrationDlqRetentionSchedulerId,
         integrationJobDispatchReconcileSchedulerId,
       ].sort(),
     );
-    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(20);
-    // The twenty registrations describe ten schedules, so no job can run twice.
-    expect(store.entries.size).toBe(10);
+    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(22);
+    // The twenty-two registrations describe eleven schedules, so no job can run twice.
+    expect(store.entries.size).toBe(11);
   });
 
   it('staggers the six sweeps inside the fifteen-minute window', () => {

@@ -37,6 +37,10 @@ import {
   type ReportRecipientSkipReason,
 } from './report-schedule.constants';
 import { isGroupWithinUnitSubtree } from './report-schedule-scope';
+import {
+  pruneReportScheduleRuns,
+  type ReportScheduleRunRetentionResult,
+} from './report-schedule-run-retention';
 import { reportScheduleSelect, type ReportScheduleRecord } from './report-schedule.record';
 import {
   ReportSchedulesConfigurationLoader,
@@ -79,6 +83,9 @@ export class ScheduledReportRunner {
 
   /** The 5-minute sweep: every due schedule, at most `schedulesPerSweep` per pass. */
   async runDue(now: Date = new Date()): Promise<{ readonly processed: number }> {
+    // W7.103 (`BA-reports-14`): retention runs before delivery and before the configuration gate. Switching
+    // scheduled e-mail off, or a configuration that fails to load, must not keep the run log forever.
+    await this.pruneExpiredRunsWithoutFailingTheSweep(now);
     const configuration = await this.configurationLoader.load();
     if (!configuration.enabled) return { processed: 0 };
     const due = (await this.prisma.reportSchedule.findMany({
@@ -96,7 +103,6 @@ export class ScheduledReportRunner {
         );
       }
     }
-    await this.pruneRuns(now);
     return { processed: due.length };
   }
 
@@ -625,13 +631,31 @@ export class ScheduledReportRunner {
    * §5.3: the run log is kept 180 days — that is now the only thing that removes a run (W7.97). Deleting a
    * schedule detaches its runs (`scheduleId` → NULL) instead of cascading them away, so the retention window is
    * the same for live and deleted schedules.
+   *
+   * W7.103 (`BA-reports-14`): the pass is batched, bounded and **throws** on failure. It is called by the daily
+   * retention scheduler and by every sweep; whoever calls it decides what a failure means.
    */
-  private async pruneRuns(now: Date): Promise<void> {
-    await this.prisma.reportScheduleRun
-      .deleteMany({
-        where: { createdAt: { lt: new Date(now.getTime() - reportScheduleLimits.runRetentionDays * 86_400_000) } },
-      })
-      .catch(() => undefined);
+  async pruneExpiredRuns(now: Date = new Date()): Promise<ReportScheduleRunRetentionResult> {
+    const result = await pruneReportScheduleRuns(this.prisma, { now });
+    this.logger.log(
+      `report_schedule_runs_pruned deleted=${result.deleted} cutoff=${result.cutoff.toISOString()} batches=${result.batches} remaining=${result.remaining}`,
+    );
+    return result;
+  }
+
+  /**
+   * A prune that fails is a retention problem, not a delivery problem: the sweep logs it and still sends the due
+   * reports. The daily retention job is the opposite — it lets the failure reach BullMQ so the retry and the
+   * queue's failure signal carry it.
+   */
+  private async pruneExpiredRunsWithoutFailingTheSweep(now: Date): Promise<void> {
+    try {
+      await this.pruneExpiredRuns(now);
+    } catch (error) {
+      this.logger.warn(
+        `report_schedule_run_prune_failed reason=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 }
 

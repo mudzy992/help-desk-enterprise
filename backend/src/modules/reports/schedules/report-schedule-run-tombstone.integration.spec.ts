@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
+import { pruneReportScheduleRuns } from './report-schedule-run-retention';
 
 /**
  * W7.97 (`BA-reports-07`): deleting a schedule cascaded into `ReportScheduleRun`, so a schedule removed on day 2
@@ -119,10 +120,16 @@ describeIfDatabase('report schedule run tombstone (integration)', () => {
       where: { id: { in: [stale.scheduleId, kept.scheduleId] } },
     });
 
-    // The runner's prune is exactly this statement (180 days), issued on the shared run log.
-    await database().reportScheduleRun.deleteMany({
-      where: { createdAt: { lt: new Date(Date.now() - 180 * 86_400_000) } },
+    // W7.103 (`BA-reports-14`): the real retention pass, on a real PostgreSQL, with a one-row batch so the batched
+    // `findMany` + `deleteMany` path is the one that runs — not a hand-written statement that could drift from it.
+    const pruned = await pruneReportScheduleRuns(database() as never, {
+      now: new Date(),
+      batchSize: 1,
     });
+    expect(pruned.deleted).toBeGreaterThanOrEqual(1);
+    // The window is the constant (180 days), whatever else the shared database holds.
+    expect(pruned.cutoff.getTime()).toBeLessThanOrEqual(Date.now() - 179 * 86_400_000);
+    expect(pruned.batches).toBeGreaterThanOrEqual(1);
 
     await expect(
       database().reportScheduleRun.findUnique({ where: { id: stale.runId }, select: { id: true } }),

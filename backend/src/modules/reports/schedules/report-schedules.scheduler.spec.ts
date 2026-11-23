@@ -2,6 +2,10 @@ import {
   reportSchedulesCronPattern,
   reportSchedulesQueueName,
   reportSchedulesReconcileMilliseconds,
+  reportSchedulesRetentionCronPattern,
+  reportSchedulesRetentionJobAttempts,
+  reportSchedulesRetentionJobName,
+  reportSchedulesRetentionSchedulerId,
   reportSchedulesSchedulerId,
   reportSchedulesSweepJobName,
 } from './report-schedule.constants';
@@ -12,13 +16,26 @@ import { ReportSchedulesSchedulerService } from './report-schedules.scheduler.se
  * registration lives in Redis, so a restart without persistence, a `FLUSHALL`, a failover to an empty instance or
  * a restore of an older snapshot deleted it — and scheduled report e-mail simply stopped, silently, until the next
  * deploy. The service now re-asserts its own schedule and says when it had to restore it.
+ *
+ * W7.103 (`BA-reports-14`): the queue owns a second schedule — the daily run-log retention. Reconcile has to look
+ * at both, otherwise the retention registration could be lost forever while the sweep looks healthy.
  */
 describe('ReportSchedulesSchedulerService', () => {
   // BullMQ 5.81 puts a modern scheduler's id in `key` and leaves `id` unset; the legacy shape carries it in `id`.
-  function createQueue(present: boolean, entry: { key?: string; id?: string } = { key: reportSchedulesSchedulerId }) {
+  const bothSchedules = [reportSchedulesSchedulerId, reportSchedulesRetentionSchedulerId] as const;
+
+  /** The timer's promise chain awaits one registration per missing schedule; drain it before asserting. */
+  async function settleMicrotasks(): Promise<void> {
+    for (let tick = 0; tick < 20; tick += 1) await Promise.resolve();
+  }
+
+  function createQueue(
+    registered: readonly string[] = bothSchedules,
+    entries: readonly { key?: string; id?: string }[] = registered.map((key) => ({ key })),
+  ) {
     const queue = {
       upsertJobScheduler: jest.fn(async () => ({})),
-      getJobSchedulers: jest.fn(async () => (present ? [entry] : [])),
+      getJobSchedulers: jest.fn(async () => [...entries]),
     };
     return queue;
   }
@@ -27,12 +44,12 @@ describe('ReportSchedulesSchedulerService', () => {
     jest.useRealTimers();
   });
 
-  it('registers the five-minute sweep on init with the shared registration contract', async () => {
-    const queue = createQueue(true);
+  it('registers the five-minute sweep and the daily retention on init', async () => {
+    const queue = createQueue();
     const service = new ReportSchedulesSchedulerService(queue as never);
     try {
       await service.onModuleInit();
-      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
+      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(2);
       const [schedulerId, repeat, template] = queue.upsertJobScheduler.mock.calls[0] as unknown as [
         string,
         { pattern: string },
@@ -47,42 +64,40 @@ describe('ReportSchedulesSchedulerService', () => {
         removeOnComplete: { count: 5 },
         removeOnFail: { count: 20 },
       });
+      // W7.103: retention is a separate job, so it can retry without competing with the sweep for a slot.
+      const [retentionId, retentionRepeat, retentionTemplate] = queue.upsertJobScheduler.mock
+        .calls[1] as unknown as [
+        string,
+        { pattern: string },
+        { name: string; opts: Record<string, unknown> },
+      ];
+      expect(retentionId).toBe(reportSchedulesRetentionSchedulerId);
+      expect(retentionRepeat).toEqual({ pattern: reportSchedulesRetentionCronPattern });
+      expect(retentionTemplate.name).toBe(reportSchedulesRetentionJobName);
+      expect(retentionTemplate.opts).toMatchObject({
+        attempts: reportSchedulesRetentionJobAttempts,
+      });
       expect(reportSchedulesQueueName).toBe('report-schedules');
     } finally {
       service.onModuleDestroy();
     }
   });
 
-  it('leaves a schedule that Redis still has alone', async () => {
-    const queue = createQueue(true);
+  it('leaves schedules that Redis still has alone', async () => {
+    const queue = createQueue();
     const service = new ReportSchedulesSchedulerService(queue as never);
     try {
       await service.onModuleInit();
       await expect(service.reconcileSchedule()).resolves.toEqual([]);
-      // Only the boot registration; the reconcile added nothing.
-      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
+      // Only the boot registrations; the reconcile added nothing.
+      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(2);
     } finally {
       service.onModuleDestroy();
     }
   });
 
-  it('accepts a legacy repeatable entry that carries the id in `id`', async () => {
-    const queue = createQueue(true, {
-      key: `${reportSchedulesSweepJobName}:${reportSchedulesSchedulerId}:0::*/5 * * * *`,
-      id: reportSchedulesSchedulerId,
-    });
-    const service = new ReportSchedulesSchedulerService(queue as never);
-    try {
-      await service.onModuleInit();
-      await expect(service.reconcileSchedule()).resolves.toEqual([]);
-      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
-    } finally {
-      service.onModuleDestroy();
-    }
-  });
-
-  it('restores the sweep after a Redis flush and reports what it restored', async () => {
-    const queue = createQueue(false);
+  it('restores only the retention schedule when the sweep is still registered (W7.103)', async () => {
+    const queue = createQueue([reportSchedulesSchedulerId]);
     const service = new ReportSchedulesSchedulerService(queue as never);
     const warn = jest.spyOn(
       (service as unknown as { logger: { warn: (message: string) => void } }).logger,
@@ -90,10 +105,59 @@ describe('ReportSchedulesSchedulerService', () => {
     );
     try {
       await service.onModuleInit();
-      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
-      await expect(service.reconcileSchedule()).resolves.toEqual([reportSchedulesSchedulerId]);
+      await expect(service.reconcileSchedule()).resolves.toEqual([
+        reportSchedulesRetentionSchedulerId,
+      ]);
+      // Two at boot plus the one restored schedule, and the sweep was not re-registered.
+      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(3);
+      expect(queue.upsertJobScheduler.mock.calls[2]?.[0]).toBe(
+        reportSchedulesRetentionSchedulerId,
+      );
+      expect(warn).toHaveBeenCalledWith(
+        `report_schedules_schedule_recovered id=${reportSchedulesRetentionSchedulerId}`,
+      );
+    } finally {
+      service.onModuleDestroy();
+    }
+  });
+
+  it('accepts a legacy repeatable entry that carries the id in `id`', async () => {
+    const queue = createQueue(bothSchedules, [
+      {
+        key: `${reportSchedulesSweepJobName}:${reportSchedulesSchedulerId}:0::*/5 * * * *`,
+        id: reportSchedulesSchedulerId,
+      },
+      { key: reportSchedulesRetentionSchedulerId },
+    ]);
+    const service = new ReportSchedulesSchedulerService(queue as never);
+    try {
+      await service.onModuleInit();
+      await expect(service.reconcileSchedule()).resolves.toEqual([]);
       expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(2);
+    } finally {
+      service.onModuleDestroy();
+    }
+  });
+
+  it('restores both schedules after a Redis flush and reports what it restored', async () => {
+    const queue = createQueue([]);
+    const service = new ReportSchedulesSchedulerService(queue as never);
+    const warn = jest.spyOn(
+      (service as unknown as { logger: { warn: (message: string) => void } }).logger,
+      'warn',
+    );
+    try {
+      await service.onModuleInit();
+      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(2);
+      await expect(service.reconcileSchedule()).resolves.toEqual([
+        reportSchedulesSchedulerId,
+        reportSchedulesRetentionSchedulerId,
+      ]);
+      expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(4);
       expect(warn).toHaveBeenCalledWith(`report_schedules_schedule_recovered id=${reportSchedulesSchedulerId}`);
+      expect(warn).toHaveBeenCalledWith(
+        `report_schedules_schedule_recovered id=${reportSchedulesRetentionSchedulerId}`,
+      );
     } finally {
       service.onModuleDestroy();
     }
@@ -101,18 +165,17 @@ describe('ReportSchedulesSchedulerService', () => {
 
   it('reconciles on its own timer and stops when the module is destroyed', async () => {
     jest.useFakeTimers();
-    const queue = createQueue(false);
+    const queue = createQueue([]);
     const service = new ReportSchedulesSchedulerService(queue as never);
     await service.onModuleInit();
     expect(queue.getJobSchedulers).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(reportSchedulesReconcileMilliseconds);
-    // The timer fires `void reconcileSchedule()`; let the promises settle.
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    // The timer fires `void reconcileSchedule()`; let the promises settle (two registrations now).
+    await settleMicrotasks();
     expect(queue.getJobSchedulers).toHaveBeenCalledTimes(1);
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(2);
+    // Two at boot plus the two the timer restored.
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(4);
 
     service.onModuleDestroy();
     jest.advanceTimersByTime(reportSchedulesReconcileMilliseconds * 3);
@@ -122,7 +185,7 @@ describe('ReportSchedulesSchedulerService', () => {
 
   it('does not start a second timer when init is called twice', async () => {
     jest.useFakeTimers();
-    const queue = createQueue(true);
+    const queue = createQueue();
     const service = new ReportSchedulesSchedulerService(queue as never);
     await service.onModuleInit();
     await service.onModuleInit();
@@ -135,7 +198,7 @@ describe('ReportSchedulesSchedulerService', () => {
   });
 
   it('logs a failed reconcile to the timer and keeps running', async () => {
-    const queue = createQueue(true);
+    const queue = createQueue();
     queue.getJobSchedulers.mockRejectedValueOnce(new Error('redis down'));
     const service = new ReportSchedulesSchedulerService(queue as never);
     const error = jest.spyOn(
@@ -162,7 +225,7 @@ describe('ReportSchedulesSchedulerService', () => {
   });
 
   it('keeps the failure of a manual reconcile visible to the caller', async () => {
-    const queue = createQueue(true);
+    const queue = createQueue();
     queue.getJobSchedulers.mockRejectedValueOnce(new Error('redis down'));
     const service = new ReportSchedulesSchedulerService(queue as never);
     try {

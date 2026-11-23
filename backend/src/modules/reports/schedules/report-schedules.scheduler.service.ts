@@ -12,9 +12,51 @@ import {
   reportSchedulesJobLabel,
   reportSchedulesQueueName,
   reportSchedulesReconcileMilliseconds,
+  reportSchedulesRetentionCompletedJobsToKeep,
+  reportSchedulesRetentionCronPattern,
+  reportSchedulesRetentionFailedJobsToKeep,
+  reportSchedulesRetentionJobAttempts,
+  reportSchedulesRetentionJobBackoffMilliseconds,
+  reportSchedulesRetentionJobName,
+  reportSchedulesRetentionSchedulerId,
   reportSchedulesSchedulerId,
   reportSchedulesSweepJobName,
 } from './report-schedule.constants';
+
+/** W7.103 (`BA-reports-14`): the queue owns two schedules now — delivery and run-log retention. */
+type ReportSchedulesSchedule = {
+  readonly schedulerId: string;
+  readonly jobName: string;
+  readonly label: string;
+  readonly pattern: string;
+  readonly attempts: number;
+  readonly backoffMilliseconds: number;
+  readonly completedJobsToKeep: number;
+  readonly failedJobsToKeep: number;
+};
+
+const reportSchedulesSchedules: readonly ReportSchedulesSchedule[] = [
+  {
+    schedulerId: reportSchedulesSchedulerId,
+    jobName: reportSchedulesSweepJobName,
+    label: reportSchedulesJobLabel,
+    pattern: reportSchedulesCronPattern,
+    attempts: reportSchedulesJobAttempts,
+    backoffMilliseconds: reportSchedulesJobBackoffMilliseconds,
+    completedJobsToKeep: reportSchedulesCompletedJobsToKeep,
+    failedJobsToKeep: reportSchedulesFailedJobsToKeep,
+  },
+  {
+    schedulerId: reportSchedulesRetentionSchedulerId,
+    jobName: reportSchedulesRetentionJobName,
+    label: reportSchedulesJobLabel,
+    pattern: reportSchedulesRetentionCronPattern,
+    attempts: reportSchedulesRetentionJobAttempts,
+    backoffMilliseconds: reportSchedulesRetentionJobBackoffMilliseconds,
+    completedJobsToKeep: reportSchedulesRetentionCompletedJobsToKeep,
+    failedJobsToKeep: reportSchedulesRetentionFailedJobsToKeep,
+  },
+];
 
 /**
  * Idempotent by id: restarts and extra workers converge on one schedule.
@@ -34,7 +76,7 @@ export class ReportSchedulesSchedulerService implements OnModuleInit, OnModuleDe
   constructor(@InjectQueue(reportSchedulesQueueName) private readonly queue: Queue) {}
 
   async onModuleInit(): Promise<void> {
-    await this.registerSchedule();
+    await this.registerSchedules();
     if (this.reconcileTimer === null) {
       this.reconcileTimer = setInterval(() => {
         void this.reconcileSchedule().catch((error: unknown) => {
@@ -57,26 +99,41 @@ export class ReportSchedulesSchedulerService implements OnModuleInit, OnModuleDe
     this.reconcileTimer = null;
   }
 
-  /** Restores the sweep scheduler when Redis lost it; returns the restored ids. */
+  /**
+   * Restores whichever of the two schedules Redis lost; returns the restored ids.
+   *
+   * W7.103 (`BA-reports-14`): retention is checked with the same predicate as delivery. Before this, the method
+   * returned as soon as the sweep was registered, so a lost retention schedule would never come back.
+   */
   async reconcileSchedule(): Promise<readonly string[]> {
     const existing = await this.queue.getJobSchedulers(0, -1);
-    if (isSchedulerRegistered(existing, reportSchedulesSchedulerId)) return [];
-    await this.registerSchedule();
-    this.logger.warn(`report_schedules_schedule_recovered id=${reportSchedulesSchedulerId}`);
-    return [reportSchedulesSchedulerId];
+    const restored: string[] = [];
+    for (const schedule of reportSchedulesSchedules) {
+      if (isSchedulerRegistered(existing, schedule.schedulerId)) continue;
+      await this.registerSchedule(schedule);
+      this.logger.warn(`report_schedules_schedule_recovered id=${schedule.schedulerId}`);
+      restored.push(schedule.schedulerId);
+    }
+    return restored;
   }
 
-  private async registerSchedule(): Promise<void> {
+  private async registerSchedules(): Promise<void> {
+    for (const schedule of reportSchedulesSchedules) {
+      await this.registerSchedule(schedule);
+    }
+  }
+
+  private async registerSchedule(schedule: ReportSchedulesSchedule): Promise<void> {
     await registerRepeatableJob({
       queue: this.queue,
-      schedulerId: reportSchedulesSchedulerId,
-      jobName: reportSchedulesSweepJobName,
-      label: reportSchedulesJobLabel,
-      schedule: { kind: 'pattern', pattern: reportSchedulesCronPattern },
-      attempts: reportSchedulesJobAttempts,
-      backoffMilliseconds: reportSchedulesJobBackoffMilliseconds,
-      completedJobsToKeep: reportSchedulesCompletedJobsToKeep,
-      failedJobsToKeep: reportSchedulesFailedJobsToKeep,
+      schedulerId: schedule.schedulerId,
+      jobName: schedule.jobName,
+      label: schedule.label,
+      schedule: { kind: 'pattern', pattern: schedule.pattern },
+      attempts: schedule.attempts,
+      backoffMilliseconds: schedule.backoffMilliseconds,
+      completedJobsToKeep: schedule.completedJobsToKeep,
+      failedJobsToKeep: schedule.failedJobsToKeep,
       logger: this.logger,
     });
   }

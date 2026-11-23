@@ -1,7 +1,11 @@
 import { Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
-import { reportSchedulesManualJobName, reportSchedulesQueueName } from './report-schedule.constants';
+import {
+  reportSchedulesManualJobName,
+  reportSchedulesQueueName,
+  reportSchedulesRetentionJobName,
+} from './report-schedule.constants';
 import { ScheduledReportRunner } from './scheduled-report.runner';
 
 @Processor(reportSchedulesQueueName)
@@ -13,6 +17,12 @@ export class ReportSchedulesProcessor extends WorkerHost {
   }
 
   async process(job: Job<{ scheduleId?: unknown; actorUserId?: unknown }>): Promise<void> {
+    // W7.103 (`BA-reports-14`): retention has its own job, so it no longer depends on a due schedule or on the
+    // delivery sweep. A failure is rethrown on purpose: BullMQ retries it and the queue reports the failure.
+    if (job.name === reportSchedulesRetentionJobName) {
+      await this.runner.pruneExpiredRuns();
+      return;
+    }
     if (job.name === reportSchedulesManualJobName) {
       const scheduleId = typeof job.data.scheduleId === 'string' ? job.data.scheduleId : null;
       if (scheduleId === null) return;
