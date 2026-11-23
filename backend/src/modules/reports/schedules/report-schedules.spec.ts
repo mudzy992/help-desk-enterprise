@@ -226,6 +226,7 @@ function schedule(overrides: Partial<ReportScheduleRecord> = {}): ReportSchedule
     sections: ['kpi'],
     packKeys: [],
     enabled: true,
+    version: 1,
     nextRunAt: new Date('2026-03-30T05:00:00Z'),
     lastRunAt: null,
     createdByUserId: 'admin',
