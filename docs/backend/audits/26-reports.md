@@ -988,7 +988,8 @@ fail-closed pri padu audita; isključen pack ⇒ `REPORT_PACK_NOT_ENABLED` bez z
 razdvojene; kontroler prosljeđuje aktera i `requestId`, a bez aktera odbija prije servisa. `reports.service.spec.ts`
 ažuriran (test je ranije tvrdio „previews without auditing”). `e2e/tests/12-reports-packs.spec.ts` traži **oba**
 pregleda (API i UI) u audit listi sa `boundaries` i `windowMode`. Lokalno: `reports` + `audit-log` **66 suite / 426
-testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**.
+testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**. CI
+[`45256828759`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45256828759) **success** na `9876ac2`.
 
 **Otvoreno i dokumentovano:** volumen je vezan na klik; ako preview jednog dana postane „uživo” na svaku promjenu,
 odluka ostaje ista, ali je tada potreban coalescing identičnih ponavljanja, ne prelazak na telemetriju. Dashboard i

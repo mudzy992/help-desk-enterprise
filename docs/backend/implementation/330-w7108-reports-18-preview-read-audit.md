@@ -12,7 +12,7 @@ audita”), `e2e/tests/12-reports-packs.spec.ts` (+1 provjera)<br>
 **Frontend:** `lib/audit/audit-log-actions.ts`, `audit-log-fields.ts`, `audit-log-values.ts`, `bs`/`en`
 `common.json` (label akcije, polja `boundaries`/`truncated`/`truncatedInput`/`windowMode` i zatvorene vrijednosti
 `windowMode`)<br>
-**CI:** _popunjava se nakon push-a_
+**CI:** [run `45256828759`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45256828759) ✓ na `9876ac2`
 
 ## Nalaz
 
@@ -101,7 +101,12 @@ audit beleži čitanje, ne pokušaj.
 
 ## Dokaz
 
-CI: _popunjava se nakon push-a_ (vidi `## 34` u [26-reports.md](../audits/26-reports.md)).
+CI [`45256828759`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45256828759) **success** na `9876ac2`: `Backend build + test`, `Backend PostgreSQL + Redis integration`,
+`Frontend build + test`, `Backend container + supply chain` i `Docs guard` (`E2E` i inventura `skipped`, kako je
+konfigurisano). Lokalno prije pusha: `reports` + `audit-log` **66 suite / 426 testova** (9 skipped), frontend **478
+fajlova**, `nest build`, `tsc --noEmit`, `eslint`, `format:check`, `i18n:check`, `wiring:check` 632 i
+`db:migration-policy:check` 125 — sve zeleno. Detalji u
+[26-reports.md, §34](../audits/26-reports.md#34-implementacijski-closeout--w7108-ba-reports-18).
 
 ## Otvoreno i dokumentovano
 
