@@ -269,6 +269,10 @@ ničemu.
 - **Frontend:** novi kod je u `reportTrendErrorCodes` i `reportErrorMessageKeys`, sa bs/en porukom; forma
   rasporeda prikazuje poruku uz `requestId`.
 
+**CI dokaz:** [run #45119728300](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45119728300) —
+`success` na `91cdcc2` (backend build + test, PostgreSQL/Redis integracije, frontend build + test, docs guard,
+CI gate).
+
 **Testni dokaz:** `report-schedule-scope.spec.ts` (**5**), `report-schedules.scope.spec.ts` (**9**),
 `report-schedules.spec.ts` **+1** (scope linija e-maila za legacy red), frontend
 `report-schedule-sheet.spec.tsx` (**1**). Lokalno: backend **942 suite / 5.423 testa**, `reports` **33 suite /

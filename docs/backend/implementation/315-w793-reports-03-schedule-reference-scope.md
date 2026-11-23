@@ -118,7 +118,14 @@ vidljiv kad ima).
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+- **Run:** [CI #45119728300](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45119728300) —
+  `success` na `91cdcc2`. Svi poslovi zeleni: backend build + test, backend PostgreSQL + Redis integracije,
+  frontend build + test, backend container + supply chain, **docs guard** i CI gate. Novi specovi su unit
+  (bez baze), pa nisu trebali novu registraciju u `run-isolated-integration.mjs` — `wiring:check` je ostao na
+  **632 rute**, `db:migration-policy:check` na **122 migracije**.
+- **Prvi pokušaj je bio čist** — bez padova na build-u ili lint-u; jedina priprema prije runa bila je lokalna
+  provjera (backend 942 suite / 5.423 testa, frontend 1.893 testa, `i18n:check` parity, `--check-only` matrica
+  iz W7.92 i dalje zelena).
 
 ## Registar nalaza
 
