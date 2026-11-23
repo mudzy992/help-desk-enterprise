@@ -361,6 +361,12 @@ brisanje nosi token. Lokalno: backend **944 suite / 5.434 testa**, `reports` **3
 1.898 testa**; `eslint`/`tsc`/`prettier`/`i18n:check`/`wiring:check` (632 rute)/`db:migration-policy:check`
 (123 migracije) zeleni.
 
+**CI dokaz:** run **`45135094518` — `success`** na `b875c25` (commit paketa `497447a` + popravka fixture-a;
+Detect changes, Backend build + test, Backend container + supply chain, **Backend PostgreSQL + Redis integration**,
+Frontend build + test, Docs guard, CI gate), uz `Perf smoke` **`45132890071` — `success`** nad `497447a`. Prvi run
+paketa **`45132890189` — `failure`** na `497447a`: `npm test` je pao jer dva postojeća speca grade
+`ReportScheduleRecord` literale i novo obavezno polje `version` im je oborilo compile; popravka je u `b875c25`.
+
 **Otvoreno i dokumentovano:** bez DB trigera za verziju (dizao bi je i run, što je lažni konflikt); transakcijski
 audit ostaje `BA-reports-06` — audit red se i dalje piše poslije commit-a; `runNow`/`sendTest` nisu uslovljeni jer
 ne mijenjaju konfiguraciju. Detalji:

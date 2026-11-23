@@ -110,7 +110,21 @@ ostaje); run koji upiše `lastRunAt` **ne** mijenja verziju i editor i dalje mo�
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+- **CI run `45135094518` — `success`** na `b875c25` (commit paketa `497447a` + popravka fixture-a). Poslovi:
+  Detect changes ✓, **Backend build + test** ✓, Backend container + supply chain ✓, **Backend PostgreSQL + Redis
+  integration** ✓ (nove integracije su u `run-isolated-integration` listi, migracija se primjenjuje u tom poslu),
+  Frontend build + test ✓, Docs guard ✓, CI gate ✓; `E2E install wizard` / `E2E critical flows` /
+  `Read-only service-form pattern inventory` skipped (filter putanja).
+- **Perf smoke run `45132890071` — `success`** (pokrenut nad `497447a`, jer paket dira
+  `backend/scripts/run-isolated-integration.*` putanju); pragovi nisu pomjereni.
+- **Prvi run paketa `45132890189` — `failure`** na `497447a`: `Backend build + test` je pao u koraku
+  `npm test` — dva postojeća speca (`report-schedules.spec.ts`, `report-schedules.scope.spec.ts`) grade
+  `ReportScheduleRecord` literale, pa je novo obavezno polje `version` oborilo njihov **compile** (CI-jev ts-jest
+  radi type-check, lokalna sandbox konfiguracija ne). Popravka je `b875c25` (fixture-i dobili `version: 1`), a
+  zeleni run je nad tim commitom. Ostali poslovi prvog runa (`Backend PostgreSQL + Redis integration`, `Frontend`,
+  `Docs guard`, `Backend container`) bili su zeleni.
+- Napomena o dokazu: tijela logova GitHub jobova nisu dostupna kroz API (`EOF` na blob preuzimanju), pa se
+  izvršenje dokazuje zelenim poslovima nad navedenim commitima, a ne citatom loga.
 
 ## Registar nalaza
 
