@@ -2,6 +2,7 @@ import {
   expectedAssetSchedulers,
   expectedKnowledgeSchedulers,
   expectedProblemSchedulers,
+  expectedReportSchedulers,
 } from './ops-health.constants';
 import { includeExpectedSchedulers } from './ops-signal-collector';
 
@@ -135,6 +136,55 @@ describe('expected scheduler health rows', () => {
         lastSuccessMaxAgeMs: 30 * 60_000,
       },
     ]);
+  });
+
+  // W7.98 (BA-reports-08): the five-minute report sweep is the only sender of scheduled report e-mail, and its
+  // registration lives in Redis. A flushed Redis deletes it, so without this row the loss would be invisible.
+  it('reports the report sweep as missing after a Redis flush', () => {
+    const reports = expectedReportSchedulers[0];
+    const lastSuccessMs = Date.parse('2026-11-22T07:55:00.000Z');
+    const result = includeExpectedSchedulers([], [
+      { queue: reports.queue, lastSuccessMs, lastFailureMs: null },
+    ]);
+
+    expect(result).toEqual([
+      {
+        queue: 'report-schedules',
+        schedulerId: 'report-schedules-5min',
+        everyMs: null,
+        pattern: '*/5 * * * *',
+        nextMs: null,
+        lastSuccessMs,
+        lastFailureMs: null,
+        registered: false,
+        lastSuccessMaxAgeMs: 20 * 60_000,
+      },
+    ]);
+  });
+
+  it('keeps the report sweep quiet while its registration and last success are current', () => {
+    const reports = expectedReportSchedulers[0];
+    const lastSuccessMs = Date.parse('2026-11-22T07:55:00.000Z');
+    const result = includeExpectedSchedulers(
+      [
+        {
+          queue: reports.queue,
+          schedulerId: reports.schedulerId,
+          everyMs: null,
+          pattern: reports.pattern,
+          nextMs: lastSuccessMs + 5 * 60_000,
+          lastSuccessMs,
+          lastFailureMs: null,
+        },
+      ],
+      [{ queue: reports.queue, lastSuccessMs, lastFailureMs: null }],
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      registered: true,
+      lastSuccessMaxAgeMs: 20 * 60_000,
+    });
   });
 
   it('keeps the knowledge sweep quiet while its registration and last success are current', () => {

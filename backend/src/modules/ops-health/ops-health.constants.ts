@@ -34,7 +34,12 @@ import { notificationDigestQueueName } from '../notifications/preferences/notifi
 import { privacyQueueName } from '../privacy/privacy.constants';
 import { onCallSweepQueueName } from '../on-call/on-call-sweep.job.constants';
 import { announcementSweepQueueName } from '../announcements/announcement-sweep.job.constants';
-import { reportSchedulesQueueName } from '../reports/schedules/report-schedule.constants';
+import {
+  reportSchedulesCronPattern,
+  reportSchedulesLastSuccessMaxAgeMs,
+  reportSchedulesQueueName,
+  reportSchedulesSchedulerId,
+} from '../reports/schedules/report-schedule.constants';
 import { slaScanQueueName } from '../sla/sla-scan.constants';
 import { ticketArchiveQueueName } from '../tickets/archive/ticket-archive.job.constants';
 import { timeTrackingSweepQueueName } from '../tickets/time-tracking/time-tracking-sweep.job.constants';
@@ -164,6 +169,24 @@ export const expectedKnowledgeSchedulers = [
 ] as const;
 
 /**
+ * W7.98 (BA-reports-08): the five-minute report sweep is the only sender of
+ * scheduled report e-mail. Its registration lives in Redis and used to be written
+ * once at boot, so a Redis restart or flush stopped every scheduled report without
+ * a single signal. It is now an expected scheduler: a missing registration, a job
+ * nobody picked up, a failing job, or last success older than four windows
+ * (20 minutes) all reach `scheduler.late`. Reconcile restores a lost registration
+ * within a minute; the alarm is for a loss that outlives the reconcile.
+ */
+export const expectedReportSchedulers = [
+  {
+    queue: reportSchedulesQueueName,
+    schedulerId: reportSchedulesSchedulerId,
+    pattern: reportSchedulesCronPattern,
+    lastSuccessMaxAgeMs: reportSchedulesLastSuccessMaxAgeMs,
+  },
+] as const;
+
+/**
  * Schedules whose absence must be visible even when Redis is empty: the health
  * collector synthesises their rows (with `registered: false`) instead of leaving
  * the card and the alarm blind.
@@ -173,6 +196,7 @@ export const expectedSchedulers = [
   ...expectedProblemSchedulers,
   ...expectedChangeSchedulers,
   ...expectedKnowledgeSchedulers,
+  ...expectedReportSchedulers,
 ] as const;
 
 /**

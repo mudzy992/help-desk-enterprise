@@ -495,6 +495,75 @@ describe("evaluateOpsSignals", () => {
     });
   });
 
+  it("treats the five-minute report sweep as an expected schedule (W7.98)", () => {
+    // Redis lost the registration; the row still names the sweep and its last success, so the alarm points at
+    // scheduled reports that stopped going out instead of staying silent.
+    const missing = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: "report-schedules",
+            schedulerId: "report-schedules-5min",
+            everyMs: null,
+            pattern: "*/5 * * * *",
+            nextMs: null,
+            lastSuccessMs: now - 2 * 60 * minute,
+            lastFailureMs: null,
+            registered: false,
+            lastSuccessMaxAgeMs: 20 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(missing.active).toBe(true);
+    expect(missing.details).toMatchObject({
+      jobs: [{ schedulerId: "report-schedules-5min", reason: "not_registered" }],
+    });
+
+    // Registered and recent: the same sweep is silent.
+    const current = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: "report-schedules",
+            schedulerId: "report-schedules-5min",
+            everyMs: null,
+            pattern: "*/5 * * * *",
+            nextMs: now + 5 * minute,
+            lastSuccessMs: now - 10 * minute,
+            lastFailureMs: null,
+            registered: true,
+            lastSuccessMaxAgeMs: 20 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(current.active).toBe(false);
+
+    // Registered, but four scheduling windows passed without a successful sweep.
+    const stale = byKey(
+      healthy({
+        schedulers: [
+          {
+            queue: "report-schedules",
+            schedulerId: "report-schedules-5min",
+            everyMs: null,
+            pattern: "*/5 * * * *",
+            nextMs: now + 5 * minute,
+            lastSuccessMs: now - 25 * minute,
+            lastFailureMs: null,
+            registered: true,
+            lastSuccessMaxAgeMs: 20 * minute,
+          },
+        ],
+      }),
+    ).get(opsAlertKeys.schedulerLate)!;
+    expect(stale.active).toBe(true);
+    expect(stale.details).toMatchObject({
+      jobs: [{ schedulerId: "report-schedules-5min", reason: "no_recent_success" }],
+    });
+  });
+
   it("keeps directory-sync overlap and license preallocation visible without alerting on them alone", () => {
     const assetOperations = {
       ...healthy().assetOperations!,

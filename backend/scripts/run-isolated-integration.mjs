@@ -123,6 +123,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/reports/schedules/report-schedule-audit-atomicity.integration.spec.ts",
   // W7.97 (BA-reports-07): deleting a schedule detaches its run log instead of cascading it away.
   "src/modules/reports/schedules/report-schedule-run-tombstone.integration.spec.ts",
+  // W7.98 (BA-reports-08): the five-minute sweep restores its own Redis registration after a flush.
+  "src/modules/reports/schedules/report-schedules.scheduler-reconciliation.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

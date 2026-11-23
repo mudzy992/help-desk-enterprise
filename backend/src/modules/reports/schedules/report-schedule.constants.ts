@@ -34,6 +34,27 @@ export const reportSchedulesManualJobName = 'run-schedule-now';
 export const reportSchedulesSchedulerId = 'report-schedules-5min';
 export const reportSchedulesCronPattern = '*/5 * * * *';
 
+/**
+ * W7.98 (`BA-reports-08`): the schedule lives in Redis, so it has to be re-asserted instead of written once at
+ * boot. One Redis roundtrip a minute per worker instance.
+ */
+export const reportSchedulesReconcileMilliseconds = 60_000;
+export const reportSchedulesJobLabel = 'report_schedules';
+/**
+ * A sweep is retried by the next five-minute slot (the `slotKey` claim makes a re-run safe), so the job itself
+ * does not retry: a retried sweep would compete with its own successor for the same slot.
+ */
+export const reportSchedulesJobAttempts = 1;
+export const reportSchedulesJobBackoffMilliseconds = 30_000;
+export const reportSchedulesCompletedJobsToKeep = 5;
+export const reportSchedulesFailedJobsToKeep = 20;
+/**
+ * Four scheduling windows. One missed window is a slow sweep or the jitter of a rolling restart; twenty minutes
+ * without a single finished sweep means the five-minute sender has stopped and the scheduled reports are not
+ * going out, which is what `scheduler.late` should say.
+ */
+export const reportSchedulesLastSuccessMaxAgeMs = 20 * 60_000;
+
 /** Why a recipient did not get the report (stored in the run log, shown in the UI). */
 export const reportRecipientSkipReasons = {
   inactive: 'inactive',

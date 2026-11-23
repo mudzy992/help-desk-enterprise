@@ -5,11 +5,12 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **7/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **8/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
-rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene) i W7.97 (`BA-reports-07`, run log preživi
-brisanje rasporeda). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
+brisanje rasporeda) i W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored). Ova statusna dopuna ne
+mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -72,6 +73,12 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.98 (§24):** sweep se više ne upisuje samo na `onModuleInit` — `ReportSchedulesSchedulerService`
+svakih **60 s** provjerava `getJobSchedulers()` i vraća izgubljenu registraciju (`report_schedules_schedule_recovered`),
+a raspored je u `expectedSchedulers`, pa gubitak koji nadživi reconcile ide na `scheduler.late` (budžet **20 min**,
+četiri prozora). `runDue` i dalje šalje samo najnoviji propušteni slot; stariji se bilježe kao `missed`. Detalji:
+[320](../implementation/320-w798-reports-08-scheduler-reconciliation.md).
 
 **Status poslije W7.97 (§23):** `ReportScheduleRun.scheduleId` je sada nullable sa `ON DELETE SET NULL`, a run nosi
 snapshot `scheduleName`/`organizationalUnitId`; brisanje rasporeda **odvezuje** run log umjesto da ga kaskadno
@@ -153,7 +160,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | zatvoreno (W7.95) |
 | BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | zatvoreno (W7.96) |
 | BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | zatvoreno (W7.97) |
-| BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | otvoreno |
+| BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | zatvoreno (W7.98) |
 | BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | otvoreno |
 | BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | otvoreno |
 | BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | otvoreno |
@@ -442,3 +449,40 @@ Lokalno: backend **945 suite / 5.444 testa**, `reports` **36/195**; `eslint` 0, 
 **Otvoreno i dokumentovano:** retention i dalje zavisi od aktivnog sweep-a (`BA-reports-14`), privacy matrica nad
 run JSON-om i primaocima (`BA-reports-13`), exactly-once isporuka (`BA-reports-09`), BullMQ reconciliation
 (`BA-reports-08`). Detalji: [319-w797-reports-07-run-tombstone.md](../implementation/319-w797-reports-07-run-tombstone.md).
+
+## 24. Implementacijski closeout — W7.98 (`BA-reports-08`)
+
+**Nalaz:** `ReportSchedulesSchedulerService.onModuleInit` je radio jedan `upsertJobScheduler` i to je bilo sve.
+Raspored živi u Redis-u: restart bez perzistencije, `FLUSHALL`, failover na praznu instancu ili restore starijeg
+snapshot-a obrišu ga — i **ništa** se ne žali. Do sljedećeg deploya ne ide nijedan zakazani izvještaj, a ni run log
+ne nastaje, pa se gubitak ne vidi ni u `reports` ekranima.
+
+**Rješenje.**
+
+- **Samoiscjeljujući raspored:** poslije inicijalne registracije `setInterval` na **60 s** zove `reconcileSchedule()`
+  — `getJobSchedulers(0, -1)` + zajednički predikat `isSchedulerRegistered` (prihvata i `key` i `id` oblik, isti
+  popravak koji je W7.86 uveo) — i samo kad rasporeda nema, ponovna registracija kroz `registerRepeatableJob` uz
+  `logger.warn report_schedules_schedule_recovered id=report-schedules-5min`. Timer je `unref()`-ovan, čisti se u
+  `onModuleDestroy`, a drugi `onModuleInit` ne pravi drugi timer.
+- **Alarm:** novi `expectedReportSchedulers` ulazi u `expectedSchedulers`, pa `scheduler.late` pokriva
+  `not_registered`, `not_picked_up`, `failing` i `no_recent_success` sa budžetom **20 min** (četiri petominutna
+  prozora: jedan propušten prozor je spor sweep ili jitter rolling restarta, četiri znače da sender stoji).
+- **Isti delivery ugovor:** sweep i dalje ide sa `attempts: 1` (ponovni pokušaj bi se takmičio sa svojim
+  nasljednikom za isti `slotKey`), `removeOnComplete: 5`, `removeOnFail: 20` — sada kroz zajednički helper, pa je
+  registracija identična ostalim sweepovima.
+
+**Namjerne posljedice:** jedan `getJobSchedulers` na 60 s po worker instanci (jedan Redis roundtrip); paralelni
+reconcile je bezopasan jer je `upsertJobScheduler` idempotentan po ID-u. Reconcile **ne** nadoknađuje propuštene
+slotove — `runDue` šalje samo najnoviji, stariji se bilježe kao `missed` (design §5.4).
+
+**Testni dokaz:** `report-schedules.scheduler.spec.ts` (**8** — ugovor registracije, zdrava registracija se ne dira,
+legacy `id` oblik, recovery poslije gubitka, timer + destroy, dvostruki init, logovanje neuspjelog reconcile-a,
+greška vidljiva pozivaocu), `report-schedules.scheduler-reconciliation.integration.spec.ts` (**2**, stvarni Redis —
+vraćanje obrisane registracije i tačno jedan raspored za dva workera), `ops-signal-collector.spec.ts` (**+2**),
+`evaluate-ops-signals.spec.ts` (**+1** — `not_registered` i `no_recent_success` za `report-schedules-5min`).
+Lokalno: backend **946 suite / 5.455 testa**, `reports` **37/203**; `eslint` 0; rute nepromijenjene (632);
+migracije nepromijenjene (**124**); `check-docs-content` OK.
+
+**Otvoreno i dokumentovano:** `runNow` nema command idempotency (`BA-reports-16`), SMTP accepted → DB mark crash
+prozor (`BA-reports-09`), retention zavisi od sweep-a (`BA-reports-14`). Detalji:
+[320-w798-reports-08-scheduler-reconciliation.md](../implementation/320-w798-reports-08-scheduler-reconciliation.md).
