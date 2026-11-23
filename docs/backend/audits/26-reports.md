@@ -214,8 +214,9 @@ privacy/anonymization**.
 [`run-reports-test-matrix.mjs`](../../../backend/scripts/run-reports-test-matrix.mjs) pada ako test nestane, ako se
 preimenuje, ako je preskočen (`it.skip`/`xit`/`xdescribe`) ili ako PostgreSQL spec nije registrovan u
 `run-isolated-integration.mjs`. Kategorija `compile` ima **12 redova** — po jedan za svaki suite koji je 2026-10-23
-bio blokiran — pa je „kompajlira se” sada provjera, a ne sjećanje. Lokalno `reports` ima **46 suiteova / 336+
-testova** (W7.106 checkpoint) i danas **66 suiteova / 426 testova** zajedno sa `audit-log`; puni gate je CI.
+bio blokiran — pa je „kompajlira se” sada provjera, a ne sjećanje. Lokalno `reports` danas izvršava **47 suiteova /
+355 testova** (7 suiteova i 20 testova je uslovno preskočeno bez `PRIVACY_IT_DATABASE_URL`/Redis-a), a zajedno sa
+`audit-log` **66 suiteova / 426 testova**; puni gate je CI, gdje su PostgreSQL i Redis dostupni.
 
 ## 11. Pozitivni nalazi
 
