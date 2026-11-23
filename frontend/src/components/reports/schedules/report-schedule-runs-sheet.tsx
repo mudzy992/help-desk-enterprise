@@ -29,6 +29,8 @@ const skipReasonKeys = {
   no_access: "reports.schedules.skip.no_access",
   email_not_allowed: "reports.schedules.skip.email_not_allowed",
   delivery_failed: "reports.schedules.skip.delivery_failed",
+  // W7.99 (BA-reports-09): SMTP may have accepted the report; this is not the same fact as a failed delivery.
+  delivery_unknown: "reports.schedules.skip.delivery_unknown",
 } as const;
 
 const omitReasonKeys = {

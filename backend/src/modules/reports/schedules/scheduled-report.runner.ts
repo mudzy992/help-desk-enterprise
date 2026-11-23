@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import { NotificationEmailOutcomeUnknownError } from '../../notifications/email/notification-email-delivery-errors';
 import { resolveEmailLocale } from '../../notifications/email/compose-ticket-email';
 import { deliverNotificationEmail } from '../../notifications/email/deliver-notification-email';
 import { isAllowedNotificationEmailAddress } from '../../notifications/email/is-allowed-notification-email-address';
@@ -267,6 +268,13 @@ export class ScheduledReportRunner {
     });
     if (taken.count === 0) return null;
     const run = await this.prisma.reportScheduleRun.findUnique({ where: { slotKey }, select: { id: true } });
+    // W7.99 (`BA-reports-09`): the takeover is the at-least-once path. The previous attempt may have sent to part
+    // of the list before it died, so this worker re-walks every recipient — the delivery ledger (same `slotKey`
+    // dedupe key) is what turns "walk again" into "at most one e-mail per recipient", and this line is the evidence
+    // that the path ran.
+    this.logger.warn(
+      `report_schedule_run_taken_over slot=${slotKey} run=${run?.id ?? 'unknown'} stale_after_ms=${reportScheduleLimits.staleRunMs}`,
+    );
     return run?.id ?? null;
   }
 
@@ -320,9 +328,18 @@ export class ScheduledReportRunner {
               await this.deliver(schedule, user, content, files, channel, configuration, context.dedupeKey);
               sentCount += 1;
             } catch (error) {
-              skipped.push({ userId: user.id, reason: reportRecipientSkipReasons.deliveryFailed });
+              // W7.99 (`BA-reports-09`): an unknown outcome means SMTP may already have accepted the message.
+              // Calling that "delivery failed" would invite an operator to resend a report that did arrive, so the
+              // run log keeps the two facts apart — and the ledger (not this log) is what blocks the duplicate.
+              const unknown = error instanceof NotificationEmailOutcomeUnknownError;
+              skipped.push({
+                userId: user.id,
+                reason: unknown
+                  ? reportRecipientSkipReasons.deliveryUnknown
+                  : reportRecipientSkipReasons.deliveryFailed,
+              });
               this.logger.warn(
-                `report_schedule_delivery_failed schedule=${schedule.id} user=${user.id} reason=${error instanceof Error ? error.message : String(error)}`,
+                `report_schedule_${unknown ? 'delivery_unknown' : 'delivery_failed'} schedule=${schedule.id} user=${user.id} reason=${error instanceof Error ? error.message : String(error)}`,
               );
             }
           }

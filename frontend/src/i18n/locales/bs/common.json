@@ -3861,7 +3861,8 @@
         "inactive": "korisnik nije aktivan",
         "no_access": "nema pristup izvještajima ili opsegu OJ",
         "email_not_allowed": "adresa nije dozvoljena za slanje",
-        "delivery_failed": "slanje nije uspjelo"
+        "delivery_failed": "slanje nije uspjelo",
+        "delivery_unknown": "ishod slanja nije potvrđen"
       },
       "omit": {
         "too_many_rows": "previše redova za prilog",

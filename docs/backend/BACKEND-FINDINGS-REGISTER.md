@@ -449,7 +449,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-06` | P2 | Schedule mutation/run finalizacija i globalni audit nisu atomarni | zatvoreno (W7.96) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-07` | P2 | Brisanje schedulea kaskadno briše run historiju prije 180 dana | zatvoreno (W7.97) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-08` | P2 | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka | zatvoreno (W7.98) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-09` | P2 | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-09` | P2 | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail | zatvoreno (W7.99) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-10` | P2 | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-11` | P2 | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-12` | P2 | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku | otvoreno | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **316**
-- Otvoreno: **380** (P1 88 / P2 201 / P3 91)
-- Val 7: **95 / 111** zatvoreno, otvoreno **16** (P1 0 / P2 6 / P3 10)
+- Zatvoreno: **317**
+- Otvoreno: **379** (P1 88 / P2 200 / P3 91)
+- Val 7: **96 / 111** zatvoreno, otvoreno **15** (P1 0 / P2 5 / P3 10)
 <!-- findings-totals:end -->

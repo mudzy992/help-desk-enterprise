@@ -61,6 +61,13 @@ export const reportRecipientSkipReasons = {
   noAccess: 'no_access',
   emailNotAllowed: 'email_not_allowed',
   deliveryFailed: 'delivery_failed',
+  /**
+   * W7.99 (`BA-reports-09`): SMTP may have accepted the message, so this is **not** the same fact as
+   * `delivery_failed`. A scheduled report is delivered at-least-once: an unknown outcome is never resent
+   * automatically (the delivery ledger marks the claim UNKNOWN), and the run log says exactly that instead of
+   * claiming the recipient got nothing.
+   */
+  deliveryUnknown: 'delivery_unknown',
 } as const;
 export type ReportRecipientSkipReason =
   (typeof reportRecipientSkipReasons)[keyof typeof reportRecipientSkipReasons];

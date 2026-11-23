@@ -125,6 +125,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/reports/schedules/report-schedule-run-tombstone.integration.spec.ts",
   // W7.98 (BA-reports-08): the five-minute sweep restores its own Redis registration after a flush.
   "src/modules/reports/schedules/report-schedules.scheduler-reconciliation.integration.spec.ts",
+  // W7.99 (BA-reports-09): SMTP accepted + lost SENT mark never becomes a second scheduled e-mail.
+  "src/modules/reports/schedules/report-schedule-delivery-crash-window.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

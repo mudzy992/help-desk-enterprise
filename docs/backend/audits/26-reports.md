@@ -5,12 +5,12 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **8/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **9/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
-brisanje rasporeda) i W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored). Ova statusna dopuna ne
-mijenja susjedne nalaze ni ocjenu.
+brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored) i W7.99 (`BA-reports-09`,
+at-least-once isporuka bez slijepog ponovnog slanja). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -73,6 +73,12 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.99 (§25):** isporuka scheduled izvještaja je **at-least-once**: ledger red (`userId`,
+`dedupeKey` = `report:<slotKey>`) se claim-uje prije SMTP-a, a neizvjestan ishod (SMTP prihvatio, mark izgubljen)
+postaje `UNKNOWN` koji se **nikad** ne šalje automatski ponovo. Run log više ne tvrdi „slanje nije uspjelo” za
+takav slučaj — dobija vlastiti razlog `delivery_unknown`. Detalji:
+[321](../implementation/321-w799-reports-09-at-least-once-delivery.md).
 
 **Status poslije W7.98 (§24):** sweep se više ne upisuje samo na `onModuleInit` — `ReportSchedulesSchedulerService`
 svakih **60 s** provjerava `getJobSchedulers()` i vraća izgubljenu registraciju (`report_schedules_schedule_recovered`),
@@ -161,7 +167,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | zatvoreno (W7.96) |
 | BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | zatvoreno (W7.97) |
 | BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | zatvoreno (W7.98) |
-| BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | otvoreno |
+| BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | zatvoreno (W7.99) |
 | BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | otvoreno |
 | BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | otvoreno |
 | BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | otvoreno |
@@ -486,3 +492,52 @@ migracije nepromijenjene (**124**); `check-docs-content` OK.
 **Otvoreno i dokumentovano:** `runNow` nema command idempotency (`BA-reports-16`), SMTP accepted → DB mark crash
 prozor (`BA-reports-09`), retention zavisi od sweep-a (`BA-reports-14`). Detalji:
 [320-w798-reports-08-scheduler-reconciliation.md](../implementation/320-w798-reports-08-scheduler-reconciliation.md).
+
+## 25. Implementacijski closeout — W7.99 (`BA-reports-09`)
+
+**Nalaz:** claim → SMTP → `mark sent` ima neizbježan prozor: SMTP može prihvatiti poruku, a proces pasti prije
+upisa. Audit je tražio eksplicitnu at-least-once semantiku i reconciler za stale delivery; ono što je stvarno
+falilo nije bio ledger (W-ovi iz `notifications` su ga već napravili durabilnim i bez slijepog resenda), nego
+**šta reports sloj tvrdi o tom ishodu**: runner je svaki izuzetak prevodio u `delivery_failed`, pa je run log za
+poruku koja je možda stigla pisao „slanje nije uspjelo”. Takav zapis vodi operatera u ručno ponovno slanje —
+duplikat koji je nalaz i opisivao.
+
+**Rješenje.**
+
+- **Novi razlog preskakanja `delivery_unknown`.** `NotificationEmailOutcomeUnknownError` se u runner-u hvata
+  odvojeno od ostalih grešaka (`reportRecipientSkipReasons.deliveryUnknown`), log linija je
+  `report_schedule_delivery_unknown` (umjesto `…_delivery_failed`). Frontend mapira oba razloga
+  (`reports.schedules.skip.delivery_unknown`, bs/en).
+- **Explicit at-least-once ugovor** (i u kodu i u dokumentaciji): jedan izvještaj po `(primalac, slot)` se šalje
+  **najmanje jednom**, nikad slijepo dvaput. Ledger je taj koji drži „ne dvaput” — ključ je stabilan
+  `report:<slotKey>`, pa i stale-run takeover i ponovni sweep istog slota udaraju u isti red.
+- **Stale claim se rješava kao `UNKNOWN`, ne kao retry.** Claim stariji od 10 min se **ne** pušta ponovo; red
+  prelazi u `UNKNOWN` sa `lastErrorCode = stale_claim`, bez `nextRetryAt`. Ops-health već broji `stuck` i
+  `unknown` redove (`countStuckNotificationEmailDeliveries`, `countUnknownNotificationEmailDeliveries`), pa je taj
+  ishod vidljiv i van run loga.
+- **Takeover je sada vidljiv.** Kad sweep preuzme stale `RUNNING` run, loguje
+  `report_schedule_run_taken_over slot=… run=… stale_after_ms=…` — to je jedina linija koja dokazuje da je
+  at-least-once put stvarno prošao (i da je ledger, a ne sreća, spriječio duplikat).
+
+**Posljedice po ponašanje:**
+
+- Neizvjestan ishod **nikada** ne izaziva automatsko ponovno slanje; run ostaje `FAILED`/`PARTIAL` sa
+  `delivery_unknown`, a odluka o ponovnom slanju je operaterska (queue-admin replay ne dira `UNKNOWN`).
+- Ponovni sweep istog slota, kao i stale takeover, **ne** šalju drugi e-mail: primalac koji je već dobio izvještaj
+  se broji kao poslan (`DUPLICATE` nije „preskočen”), pa `sentCount` ostaje tačan.
+- Poruka koja je stvarno odbijena (SMTP greška) i dalje ide u `delivery_failed` — dva razloga sada znače dvije
+  različite činjenice.
+
+**Testni dokaz:** `report-schedules.spec.ts` (**+3**, jedan postojeći test je **preinačen** — njegova stara
+tvrdnja `delivery_failed` je bila upravo bug): neizvjestan ishod poslije prihvaćenog SMTP-a, ponovni sweep istog
+slota ne šalje drugi e-mail, stale claim ⇒ `delivery_unknown` + `UNKNOWN`/`nextRetryAt = null`.
+`report-schedule-delivery-crash-window.integration.spec.ts` (**novo, 3**, PostgreSQL): CLAIMED red poslije
+izgubljenog marka, stale prozor ⇒ `UNKNOWN` i **jedan** SMTP poziv ukupno (i treći prolaz ostaje blokiran),
+svjež claim ⇒ `DUPLICATE` bez slanja, bez kvara ⇒ SMTP dokaz prihvatanja u redu + ponovni poziv je no-op. Lokalno:
+backend **946 suite / 5.457 testa**, `reports` **37/205**; frontend `vitest src/components/reports` 3 fajla / 9
+testova; `eslint` 0; rute i migracije nepromijenjene (632 / 124).
+
+**Otvoreno i dokumentovano:** `runNow` command idempotency (`BA-reports-16`), retention zavisi od sweep-a
+(`BA-reports-14`), privacy matrica nad run JSON-om i primaocima (`BA-reports-13`). Provider-level idempotency ne
+postoji (SMTP je „best effort” po Message-ID); dokumentovano kao granica, ne kao obećanje. Detalji:
+[321-w799-reports-09-at-least-once-delivery.md](../implementation/321-w799-reports-09-at-least-once-delivery.md).

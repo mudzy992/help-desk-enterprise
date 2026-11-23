@@ -3844,7 +3844,8 @@
         "inactive": "user is not active",
         "no_access": "no access to reports or to the unit scope",
         "email_not_allowed": "address is not allowed for sending",
-        "delivery_failed": "delivery failed"
+        "delivery_failed": "delivery failed",
+        "delivery_unknown": "delivery outcome not confirmed"
       },
       "omit": {
         "too_many_rows": "too many rows for an attachment",

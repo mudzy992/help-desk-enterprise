@@ -476,7 +476,9 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
     expect(runs.filter((run) => 'final' in run)).toHaveLength(1);
   });
 
-  it('records a failed recipient when the accepted SMTP receipt cannot be persisted', async () => {
+  // W7.99 (BA-reports-09): SMTP accepted the message but the process died before the ledger recorded it. The run
+  // log must not claim "delivery failed" — it cannot know that — and the ledger must stop a second send.
+  it('records an unknown delivery outcome when the accepted SMTP receipt cannot be persisted', async () => {
     const { runner, runs, sent, prisma } = createRunner({ due: [schedule()] });
     const update = prisma.notificationEmailDelivery.updateMany.bind(prisma.notificationEmailDelivery);
     jest.spyOn(prisma.notificationEmailDelivery, 'updateMany').mockImplementation(async (args) =>
@@ -486,8 +488,49 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
     expect(sent).toHaveLength(1);
     expect(runs.find((run) => 'final' in run)?.final).toMatchObject({
       status: 'FAILED', sentCount: 0,
-      skipped: expect.arrayContaining([expect.objectContaining({ userId: 'u-ok', reason: 'delivery_failed' })]),
+      skipped: expect.arrayContaining([expect.objectContaining({ userId: 'u-ok', reason: 'delivery_unknown' })]),
     });
+  });
+
+  it('does not send a second e-mail when the same slot is swept again', async () => {
+    const { runner, runs, sent } = createRunner({ due: [schedule()] });
+    const now = new Date('2026-03-30T05:01:00Z');
+    await runner.runDue(now);
+    expect(sent).toHaveLength(1);
+
+    // Same schedule, same slot: the ledger already holds a SENT row for this (user, slot) key.
+    await runner.runDue(now);
+    expect(sent).toHaveLength(1);
+    // The already-delivered recipient is not counted as skipped — the report did arrive.
+    const finals = runs.filter((run) => 'final' in run).map((run) => run.final as Record<string, unknown>);
+    expect(finals.at(-1)).toMatchObject({ sentCount: 1 });
+  });
+
+  it('treats a stale delivery claim as an unknown outcome instead of resending (at-least-once)', async () => {
+    const { runner, runs, sent, emailDeliveries } = createRunner({ due: [schedule()] });
+    const now = new Date('2026-03-30T05:01:00Z');
+    await runner.runDue(now);
+    expect(sent).toHaveLength(1);
+
+    // Model the crash window: SMTP accepted, the process died before the ledger was marked SENT.
+    const [record] = [...emailDeliveries.values()];
+    emailDeliveries.set(record.id, {
+      ...record,
+      status: 'CLAIMED',
+      providerAcceptedAt: null,
+      updatedAt: new Date(now.getTime() - 11 * 60_000),
+    });
+
+    await runner.runDue(now);
+    expect(sent).toHaveLength(1);
+    const finals = runs.filter((run) => 'final' in run).map((run) => run.final as Record<string, unknown>);
+    expect(finals.at(-1)).toMatchObject({
+      status: 'FAILED',
+      sentCount: 0,
+      skipped: expect.arrayContaining([expect.objectContaining({ userId: 'u-ok', reason: 'delivery_unknown' })]),
+    });
+    // The ledger keeps the ambiguity: no automatic retry was scheduled for this row.
+    expect([...emailDeliveries.values()][0]).toMatchObject({ status: 'UNKNOWN', nextRetryAt: null });
   });
 
   it('never sends twice when another worker already claimed the slot', async () => {
