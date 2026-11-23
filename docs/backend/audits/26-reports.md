@@ -316,6 +316,10 @@ oslobađa slot), frontend `report-schedule-sheet.spec.tsx` (**1 → 2**). Lokaln
 testa**, `reports` **34 suite / 178 testa**, frontend **1.894 testa**; `eslint`/`tsc`/`prettier`/`i18n:check`/
 `wiring:check` (632 rute)/`db:migration-policy:check` (122) zeleni.
 
+**CI dokaz:** run **`45128085348` — `success`** na `08b1cea` (Detect changes, Backend container + supply chain,
+Docs guard, **Backend PostgreSQL + Redis integration**, Backend build + test, Frontend build + test, CI gate);
+`Perf smoke` **`45128085285` — `success`** (paket dira putanju koja ga pokreće).
+
 **Otvoreno i dokumentovano:** nema DB constrainta za globalni broj redova (alternativa je brojač-tabela i
 migracija, što bi bilo novo mjesto razilaženja); `update`/`delete` ne uzimaju bravu jer ne mogu povećati broj
 redova (njihov CAS je `BA-reports-05`); transakcijski audit ostaje `BA-reports-06`. Detalji:

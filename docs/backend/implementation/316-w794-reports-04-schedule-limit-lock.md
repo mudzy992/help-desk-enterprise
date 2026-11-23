@@ -110,7 +110,16 @@ testa**; `eslint`, `tsc -b`, `prettier --check`, `i18n:check` zeleni; `wiring:ch
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+- **CI run `45128085348` — `success`** na `08b1cea` (commit paketa). Poslovi: Detect changes ✓, Backend container +
+  supply chain ✓, Docs guard ✓, **Backend PostgreSQL + Redis integration ✓** (novi
+  `report-schedule-limit.integration.spec.ts` je u `run-isolated-integration` listi, pa je i izvršen),
+  Backend build + test ✓, Frontend build + test ✓, CI gate ✓; `E2E install wizard` / `E2E critical flows` /
+  `Read-only service-form pattern inventory` skipped (filter putanja).
+- **Perf smoke run `45128085285` — `success`** (pokrenut jer je dirana `backend/scripts/run-isolated-integration.*`
+  putanja); pragovi nisu pomjereni.
+- Napomena o dokazu: tijela logova GitHub jobova nisu bila dostupna kroz API (`EOF` na blob preuzimanju), pa se
+  izvršenje integracije dokazuje zelenim `Backend PostgreSQL + Redis integration` poslom nad commitom u kojem je
+  spec registrovan, a ne citatom loga.
 
 ## Registar nalaza
 
