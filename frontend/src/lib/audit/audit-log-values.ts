@@ -19,6 +19,8 @@ export const knownAuditMetadataValues: Readonly<Record<string, readonly string[]
   // server-side copy exists, so neither word can drift into a claim of export.
   renderer: ["client"],
   artifactStored: ["false"],
+  // W7.102/W7.108: every pack says whether it reads events or the state at now.
+  windowMode: ["event-time", "snapshot-time", "mixed"],
   // W7.30: problem metadata carries the matrix codes; they are a closed vocabulary.
   priority: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
   urgency: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],

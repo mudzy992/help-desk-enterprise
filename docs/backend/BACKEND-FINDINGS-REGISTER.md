@@ -458,7 +458,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-15` | P3 | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice | zatvoreno (W7.105) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-16` | P3 | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report | zatvoreno (W7.106) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-17` | P3 | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta | zatvoreno (W7.107) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-18` | P3 | Preview osjetljivih redova nema formalnu read-audit odluku | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-18` | P3 | Preview osjetljivih redova nema formalnu read-audit odluku | zatvoreno (W7.108) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-19` | P3 | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 27 | `search` | `BA-search-01` | P1 | Bilo koji scoped ADMIN može globalno pretraživati ID/ime/e-mail svih aktivnih korisnika | zatvoreno (W7.55) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-02` | P2 | MinLength se provjerava prije trimovanja pa whitespace bypassa minimalni effective query | zatvoreno (W7.56) | [27-search.md](audits/27-search.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **325**
-- Otvoreno: **371** (P1 88 / P2 195 / P3 88)
-- Val 7: **104 / 111** zatvoreno, otvoreno **7** (P1 0 / P2 0 / P3 7)
+- Zatvoreno: **326**
+- Otvoreno: **370** (P1 88 / P2 195 / P3 87)
+- Val 7: **105 / 111** zatvoreno, otvoreno **6** (P1 0 / P2 0 / P3 6)
 <!-- findings-totals:end -->

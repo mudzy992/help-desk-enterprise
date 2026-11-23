@@ -17,6 +17,8 @@ export const knownAuditActions = [
   "tickets.export",
   "audit.export",
   "reports.export",
+  // W7.108: the pack preview is a read audit, so it is a first-class action.
+  "report.pack.previewed",
   "support_bundle.export",
   "notification.receipt",
   "ticket.remote.acknowledged",

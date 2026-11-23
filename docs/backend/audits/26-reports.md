@@ -5,7 +5,7 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **17/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **18/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
@@ -16,8 +16,9 @@ pola-otvoreni ugovor prozora), W7.103 (`BA-reports-14`, retention run loga kao z
 (`BA-reports-13`, privacy/anonymization matrica sa scrubom run JSON-a i bannerom u e-mailu) i W7.105
 (`BA-reports-15`, verzionisan i veličinom ograničen cache sa strožim validatorima) i W7.106 (`BA-reports-16`,
 „pošalji sada” kao komanda sa `Idempotency-Key` i unique `commandKey` na run redu) i W7.107 (`BA-reports-17`, PDF
-beacon kao **print intent** sa `renderer`/`artifactStored`, umjesto tvrdnje o izvezenom dokumentu). Ova statusna
-dopuna ne mijenja susjedne nalaze ni ocjenu.
+beacon kao **print intent** sa `renderer`/`artifactStored`, umjesto tvrdnje o izvezenom dokumentu) i W7.108
+(`BA-reports-18`, preview kao **read audit** sa `report.pack.previewed`). Ova statusna dopuna ne mijenja susjedne
+nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -178,6 +179,13 @@ piše. Detalji: [329](../implementation/329-w7107-reports-17-pdf-print-intent.md
 
 Direktni exporti imaju dobar audit kontekst. Schedule CRUD/send/test također imaju događaje, ali nisu atomarni sa mutacijom ili run finalizacijom. Preview nije auditiran iako može vratiti osjetljive redove; potrebno je formalno odlučiti je li to read audit ili high-volume telemetry.
 
+**Status poslije W7.108 (§34):** odluka je **read audit**. `GET /reports/packs/:packSlug/preview` piše
+`report.pack.previewed` (entitet `reportPack`, `pseudonymous`) sa periodom, semantikom prozora, brojem **primljenih**
+redova i oznakama skraćivanja, prije nego redovi napuste servis — pregled koji se ne može evidentirati se ne
+servira. Akter i `requestId` su dio potpisa servisa, akcija je u frontend katalogu sa bs+en labelom, a izvozni ključevi
+(`fileName`, `format`) su odbijeni allowlistom. Detalji:
+[330](../implementation/330-w7108-reports-18-preview-read-audit.md).
+
 Run `skipped` JSON čuva user ID i razlog, schedule recipient relacije i audit/notification delivery replike čuvaju identitet. Run prune je best-effort `.catch(() => undefined)` samo kada sweep radi; delete schedulea briše runove odmah. Nema kompletne matrice za user anonymization, schedule creator/updater, recipient, generated attachment/SMTP kopije, Redis aggregates i audit replike. Attachments se ne pohranjuju u aplikaciji, ali izlaze iz kontrolisanog sistema i trebaju classification/banner i retention smjernicu.
 
 ## 10. Testovi i E2E
@@ -231,7 +239,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | zatvoreno (W7.105) |
 | BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | zatvoreno (W7.106) |
 | BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | zatvoreno (W7.107) |
-| BA-reports-18 | P3       | Preview osjetljivih redova nema formalnu read-audit odluku                                    | otvoreno |
+| BA-reports-18 | P3       | Preview osjetljivih redova nema formalnu read-audit odluku                                    | zatvoreno (W7.108) |
 | BA-reports-19 | P3       | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje          | otvoreno |
 
 ## 13. Ključne korekcije
@@ -944,3 +952,45 @@ beacon bez aktera (`403`), mapira `REPORTS_DISABLED` u HTTP grešku i propušta 
 artefakt bi tražio serverski render (`renderer: 'server'`, veličina, hash, retention) i to je novi zahtjev, ne ovaj
 nalaz. Ni novi zapis ne tvrdi da je korisnik odštampao ili sačuvao. Detalji:
 [329-w7107-reports-17-pdf-print-intent.md](../implementation/329-w7107-reports-17-pdf-print-intent.md).
+
+## 34. Implementacijski closeout — W7.108 (`BA-reports-18`)
+
+**Nalaz:** preview paketa vraća **iste redove** kao izvoz (brojevi tiketa, naslovi, primalac, izvršilac, trajanja), a
+izvoz je auditiran (`reports.export`) — preview nije bio ni zapisan ni izmjeren. To nije samo praznina u evidenciji
+nego **zaobilaznica kontrole**: administrator koji želi pročitati osjetljive redove bez traga ne mora izvesti CSV,
+dovoljno je otvoriti pregled, pročitati stranicu, promijeniti filter i ponoviti. Nalaz je tražio formalnu odluku:
+read audit ili high-volume telemetry.
+
+**Odluka.** Preview je **read audit**, iz tri razloga: (1) isti podaci — ista obaveza; (2) nije visokofrekventan, jer
+frontend resetuje pregled na svaku promjenu izbora/OU/perioda i traži ga tek na eksplicitan klik, pa je jedan zapis
+po namjernom čitanju; (3) metrika ne odgovara na pitanje „ko je vidio primaoca X u periodu Y”. Cijena je jedan
+`INSERT` u audit lanac uz upit koji ionako prolazi kroz 19 loadera i agregacije.
+
+**Rješenje.** (1) Nova akcija `report.pack.previewed` (`reportPack`, `pseudonymous`) sa zatvorenim metapodacima
+`{pack, organizationalUnitId, from, to, boundaries, windowMode, recordCount, truncated, truncatedInput}` —
+`recordCount` je broj redova koje je akter **dobio**, a `truncated`/`truncatedInput` kažu je li to gornja ili donja
+granica. Izvozni ključevi (`fileName`, `format`) padaju na `AUDIT_METADATA_FIELD_NOT_ALLOWED`. (2)
+`previewPack(query, actorUserId, requestId, now?)` — isti oblik kao `exportPack`; kontroler uzima aktera iz sesije
+(bez njega `403`) i `x-request-id` iz headera, pa nema anonimnog čitanja. (3) **Fail-closed**: audit se piše prije
+nego redovi napuste servis, pa pad upisa odbija pregled umjesto da posluži neevidentirane podatke; pregled koji padne
+**prije** čitanja (isključen pack, predugačak period, zabranjen problem-pack) ne piše ništa. (4) Frontend katalog
+akcija/polja/vrijednosti i bs+en labele su dopunjeni (`report_pack_previewed`, `boundaries`, `truncated`,
+`truncatedInput`, `windowMode` sa tri zatvorene vrijednosti).
+
+**Posljedice po ponašanju.** Svaki uspješan pregled — uključujući onaj sa nula redova — ostavlja jedan red u lancu i
+vidljiv je u admin konzoli („Pregled paketa izvještaja — otvoren”, sa periodom, packom i brojem redova). Pregled sada
+zavisi od audit upisa: ako je audit nedostupan, vraća grešku umjesto neevidentiranih podataka. Bez migracije i bez
+promjene ruta (632).
+
+**Testni dokaz.** `preview-read-audit.spec.ts` (**novo, 8**): tačan zapis sa kompletnim skupom metapodataka; prazan
+pregled takođe ostavlja red sa `recordCount: 0`; skraćen prikaz nosi broj primljenih redova i oznake granica;
+fail-closed pri padu audita; isključen pack ⇒ `REPORT_PACK_NOT_ENABLED` bez zapisa; registry drži preview i izvoz
+razdvojene; kontroler prosljeđuje aktera i `requestId`, a bez aktera odbija prije servisa. `reports.service.spec.ts`
+ažuriran (test je ranije tvrdio „previews without auditing”). `e2e/tests/12-reports-packs.spec.ts` traži **oba**
+pregleda (API i UI) u audit listi sa `boundaries` i `windowMode`. Lokalno: `reports` + `audit-log` **66 suite / 426
+testova** (9 skipped), `nest build` zelen, `wiring:check` 632, migracije **125**.
+
+**Otvoreno i dokumentovano:** volumen je vezan na klik; ako preview jednog dana postane „uživo” na svaku promjenu,
+odluka ostaje ista, ali je tada potreban coalescing identičnih ponavljanja, ne prelazak na telemetriju. Dashboard i
+trendovi vraćaju agregate i nisu dio ovog nalaza. Detalji:
+[330-w7108-reports-18-preview-read-audit.md](../implementation/330-w7108-reports-18-preview-read-audit.md).

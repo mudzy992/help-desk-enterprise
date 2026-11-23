@@ -85,10 +85,13 @@ export class ReportsController {
     const actorUserId = readSettingsActorUserId(request);
     if (actorUserId === null) throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Authorization failed' });
     try {
-      return await this.reportsService.previewPack({
-        ...query,
-        pack: parseReportPackSlug(packSlug),
-      }, undefined, actorUserId);
+      // W7.108 (`BA-reports-18`): a preview is a read audit, so the request id
+      // travels with it like it does for the export.
+      return await this.reportsService.previewPack(
+        { ...query, pack: parseReportPackSlug(packSlug) },
+        actorUserId,
+        readAuditRequestId(request.headers),
+      );
     } catch (error) {
       throw mapReportsError(error);
     }

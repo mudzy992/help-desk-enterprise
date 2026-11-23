@@ -435,7 +435,8 @@
             "change_claimed": "Change — claimed",
             "change_updated": "Change — updated",
             "knowledge_feedback_comment_resolved": "Knowledge comment — marked resolved",
-            "report_pdf_print_intent": "Report PDF — print dialog opened"
+            "report_pdf_print_intent": "Report PDF — print dialog opened",
+            "report_pack_previewed": "Report pack — preview opened"
           },
           "entities": {
             "policy_pack": "Policy pack",
@@ -699,7 +700,11 @@
             "testPlan": "Test plan",
             "resolvedAt": "Resolved at",
             "renderer": "Rendered by",
-            "artifactStored": "Artifact stored on server"
+            "artifactStored": "Artifact stored on server",
+            "boundaries": "Window boundaries",
+            "truncated": "Preview truncated",
+            "truncatedInput": "Input truncated",
+            "windowMode": "Period meaning"
           }
         },
         "actorUnknown": "Unknown user",
@@ -794,6 +799,11 @@
           },
           "artifactStored": {
             "false": "No"
+          },
+          "windowMode": {
+            "event_time": "Period selects events",
+            "snapshot_time": "State at generation",
+            "mixed": "Events + current state"
           }
         }
       },

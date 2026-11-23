@@ -17,6 +17,8 @@ export const knownAuditMetadataFields = [
   "batchId",
   "before",
   "blockers",
+  // W7.108: the preview/export read audit names the window bound and the caps.
+  "boundaries",
   "bytes",
   "category",
   "changedFields",
@@ -207,6 +209,9 @@ export const knownAuditMetadataFields = [
   "toUnitId",
   "toUserId",
   "totals",
+  "truncated",
+  "truncatedInput",
+  "windowMode",
   "trigger",
   "type",
   "unboundOrganizationalUnit",

@@ -39,7 +39,7 @@ describe('ReportsService OU scoping', () => {
     );
   });
 
-  it('package 1.6: previews without auditing, exports with period in the audit', async () => {
+  it('W7.108: previews are audited reads and exports keep the period in the audit', async () => {
     const harness = createReportsServiceHarness();
     seedScopedTickets(harness);
     const scope = {
@@ -49,6 +49,8 @@ describe('ReportsService OU scoping', () => {
     };
     const preview = await harness.reports.previewPack(
       { ...scope, pack: reportPackKeys.monthlyKpi },
+      ticketsTestIds.adminIt,
+      'req-preview',
       now,
     );
     expect(preview).toMatchObject({ totalRows: 1, truncated: false });
@@ -60,7 +62,24 @@ describe('ReportsService OU scoping', () => {
       boundaries: '[from, to)',
       semantics: expect.objectContaining({ mode: 'mixed' }),
     });
-    expect(await harness.prisma.auditLog.findMany()).toHaveLength(0);
+    // W7.108 (`BA-reports-18`): the preview left a read-audit row of its own.
+    const previewAudit = (await harness.prisma.auditLog.findMany()) as Array<{
+      action: string;
+      metadata: Record<string, unknown>;
+    }>;
+    expect(previewAudit).toHaveLength(1);
+    expect(previewAudit[0]?.action).toBe('report.pack.previewed');
+    expect(previewAudit[0]?.metadata).toMatchObject({
+      pack: 'monthly_kpi',
+      organizationalUnitId: ticketsTestIds.ouIt,
+      from: scope.from,
+      to: scope.to,
+      boundaries: '[from, to)',
+      windowMode: 'mixed',
+      recordCount: 1,
+      truncated: false,
+      truncatedInput: false,
+    });
 
     const exported = await harness.reports.exportPack(
       { ...scope, pack: reportPackKeys.monthlyKpi, format: 'csv' },
@@ -70,7 +89,15 @@ describe('ReportsService OU scoping', () => {
     );
     expect(exported.fileName).toMatch(/^report_monthly_kpi_.+_2026-09-01_2026-09-30\.csv$/);
     expect(exported.content.startsWith('\uFEFF')).toBe(true);
-    const [audit] = (await harness.prisma.auditLog.findMany()) as Array<{ metadata: unknown }>;
+    const exportAudit = (await harness.prisma.auditLog.findMany()) as Array<{
+      action: string;
+      metadata: Record<string, unknown>;
+    }>;
+    expect(exportAudit.map((entry) => entry.action)).toEqual([
+      'report.pack.previewed',
+      'reports.export',
+    ]);
+    const audit = exportAudit[1];
     expect(audit?.metadata).toMatchObject({
       format: 'csv',
       pack: 'monthly_kpi',
@@ -93,6 +120,8 @@ describe('ReportsService OU scoping', () => {
           from: '2025-01-01T00:00:00.000Z',
           to: '2026-06-01T00:00:00.000Z',
         },
+        ticketsTestIds.adminIt,
+        null,
         now,
       ),
     ).rejects.toMatchObject({ code: 'REPORT_WINDOW_INVALID' });
@@ -224,6 +253,8 @@ describe('ReportsService row budget (W7.53 / BA-reports-01)', () => {
 
     const preview = await harness.reports.previewPack(
       { ...scope, pack: reportPackKeys.kbHelpfulness },
+      ticketsTestIds.adminIt,
+      null,
       now,
     );
 
@@ -250,6 +281,8 @@ describe('ReportsService row budget (W7.53 / BA-reports-01)', () => {
 
     const preview = await harness.reports.previewPack(
       { ...scope, pack: reportPackKeys.monthlyKpi },
+      ticketsTestIds.adminIt,
+      null,
       now,
     );
 

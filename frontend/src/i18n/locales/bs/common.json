@@ -437,7 +437,8 @@
             "change_claimed": "Promjena — preuzeta u obradu",
             "change_updated": "Promjena — izmijenjena",
             "knowledge_feedback_comment_resolved": "Komentar baze znanja — označen riješenim",
-            "report_pdf_print_intent": "PDF izvještaja — otvoren dijalog štampe"
+            "report_pdf_print_intent": "PDF izvještaja — otvoren dijalog štampe",
+            "report_pack_previewed": "Pregled paketa izvještaja — otvoren"
           },
           "entities": {
             "policy_pack": "Paket pravila",
@@ -701,7 +702,11 @@
             "testPlan": "Plan testiranja",
             "resolvedAt": "Riješeno u",
             "renderer": "Renderisao",
-            "artifactStored": "Artefakt pohranjen na serveru"
+            "artifactStored": "Artefakt pohranjen na serveru",
+            "boundaries": "Granice prozora",
+            "truncated": "Skraćen prikaz",
+            "truncatedInput": "Skraćen izvor",
+            "windowMode": "Značenje perioda"
           }
         },
         "actorUnknown": "Nepoznat korisnik",
@@ -796,6 +801,11 @@
           },
           "artifactStored": {
             "false": "Ne"
+          },
+          "windowMode": {
+            "event_time": "Period bira događaje",
+            "snapshot_time": "Stanje u trenutku generisanja",
+            "mixed": "Događaji + trenutno stanje"
           }
         }
       },

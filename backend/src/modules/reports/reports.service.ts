@@ -23,6 +23,7 @@ import {
 } from './load-report-lookups';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { recordReportExportAudit } from './record-report-export-audit';
+import { recordReportPreviewAudit } from './record-report-preview-audit';
 import {
   reportPackWindow,
   reportWindowBoundaries,
@@ -86,10 +87,17 @@ export class ReportsService {
   }
 
   /** Package 1.6 (plan §3 D3): first rows as JSON, not audited, not a file. */
+  /**
+   * W7.108 (`BA-reports-18`): the preview is an **audited read**. It returns the
+   * same personal rows as the export, so the actor and the request id are now
+   * required and the audit row is written before the rows leave the service —
+   * an unauditable preview is not served.
+   */
   async previewPack(
     query: ReportScopeQuery & { readonly pack: ReportPackKey },
+    actorUserId: string,
+    requestId: string | null,
     now: Date = new Date(),
-    actorUserId?: string,
   ): Promise<ReportPackPreview> {
     const configuration = await this.requireReports(query.pack);
     // W7.53: the preview reads at most its pack budget plus the probe row
@@ -101,7 +109,7 @@ export class ReportsService {
       actorUserId,
       reportPackPreviewRowLimits[query.pack],
     );
-    return {
+    const preview: ReportPackPreview = {
       pack: query.pack,
       columns: built.columns,
       rows: built.rows.slice(0, reportPackLimits.previewRows),
@@ -115,6 +123,18 @@ export class ReportsService {
         semantics: reportPackWindow(query.pack),
       },
     };
+    await recordReportPreviewAudit(this.prisma, {
+      actorUserId,
+      organizationalUnitId: query.organizationalUnitId,
+      pack: query.pack,
+      recordCount: preview.rows.length,
+      truncated: preview.truncated,
+      truncatedInput: preview.truncatedInput,
+      requestId,
+      window,
+      windowSemantics: preview.window.semantics,
+    });
+    return preview;
   }
 
   async exportPack(

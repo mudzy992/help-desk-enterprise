@@ -102,6 +102,12 @@ export const auditLogActions = {
   // Paket 2.5: trends, PDF and scheduled reports.
   reportTrendsExported: 'report.trends.exported',
   /**
+   * W7.108 (BA-reports-18): a preview returns the same personal rows as an
+   * export, so it is a **read audit** and not high-volume telemetry — without
+   * it the audited export could be bypassed row by row.
+   */
+  reportPackPreviewed: 'report.pack.previewed',
+  /**
    * W7.107 (BA-reports-17): the print button only states an intent — the
    * browser renders the document and the server never sees it, so this event
    * must not be read as proof that a PDF was produced. `metadata.renderer` and
