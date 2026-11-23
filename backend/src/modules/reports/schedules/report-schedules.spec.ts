@@ -316,11 +316,27 @@ function createRunner(options: {
       }),
       create: jest.fn(async (args: { data: Record<string, unknown> }) => {
         if (options.claimConflict === true) throw Object.assign(new Error('unique'), { code: 'P2002' });
+        // W7.106: the real column is unique, so a second run for the same command key must fail the same way.
+        const commandKey = args.data.commandKey;
+        if (
+          typeof commandKey === 'string' &&
+          runs.some((run) => run.commandKey === commandKey)
+        ) {
+          throw Object.assign(new Error('unique'), {
+            code: 'P2002',
+            meta: { target: ['commandKey'] },
+          });
+        }
         runs.push({ ...args.data, id: `run-${runs.length + 1}` });
         return { id: `run-${runs.length}` };
       }),
       updateMany: jest.fn(async () => ({ count: 0 })),
-      findUnique: async () => null,
+      findUnique: async (args?: { readonly where?: { readonly commandKey?: string } }) => {
+        const commandKey = args?.where?.commandKey;
+        if (typeof commandKey !== 'string') return null;
+        const existing = runs.find((run) => run.commandKey === commandKey);
+        return existing === undefined ? null : { id: existing.id };
+      },
       update: jest.fn(async (args: { data: Record<string, unknown> }) => {
         runs.push({ final: args.data });
         txEvents.push(`run:${inTransaction ? 'tx' : 'outside'}`);
@@ -458,9 +474,74 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
 
   it('stamps a manual run with the same snapshot (W7.97)', async () => {
     const { runner, runs } = createRunner({ due: [schedule()] });
-    await runner.runManual('sch-1', 'admin', new Date('2026-03-30T09:00:00Z'));
+    await runner.runManual({ scheduleId: 'sch-1', actorUserId: 'admin', now: new Date('2026-03-30T09:00:00Z') });
     const manual = runs.find((run) => run.trigger === 'MANUAL');
     expect(manual).toMatchObject({ scheduleName: 'Weekly IT', organizationalUnitId: 'ou-it' });
+  });
+
+  // W7.106 (BA-reports-16): the run row's unique `commandKey` is the real gate — a duplicated job stops before
+  // composing or sending, no matter how it got into the queue.
+  it('executes one manual run per command key and treats the duplicate as a no-op', async () => {
+    const { runner, runs, sent } = createRunner({ due: [schedule()] });
+    const now = new Date('2026-03-30T09:00:00Z');
+
+    const first = await runner.runManual({
+      scheduleId: 'sch-1',
+      actorUserId: 'admin',
+      commandKey: 'send-now-12345678',
+      now,
+    });
+    const second = await runner.runManual({
+      scheduleId: 'sch-1',
+      actorUserId: 'admin',
+      commandKey: 'send-now-12345678',
+      now,
+    });
+
+    expect(first.outcome).toBe('executed');
+    expect(second).toEqual({ outcome: 'duplicate', runId: expect.any(String) });
+    expect(runs.filter((run) => run.trigger === 'MANUAL')).toHaveLength(1);
+    expect(sent).toHaveLength(1);
+  });
+
+  it('sends again when the operator presses „send now” with a new key', async () => {
+    const { runner, runs, sent } = createRunner({ due: [schedule()] });
+    const now = new Date('2026-03-30T09:00:00Z');
+
+    await runner.runManual({ scheduleId: 'sch-1', actorUserId: 'admin', commandKey: 'send-now-11111111', now });
+    const second = await runner.runManual({
+      scheduleId: 'sch-1',
+      actorUserId: 'admin',
+      commandKey: 'send-now-22222222',
+      now,
+    });
+
+    expect(second.outcome).toBe('executed');
+    expect(runs.filter((run) => run.trigger === 'MANUAL')).toHaveLength(2);
+    expect(sent).toHaveLength(2);
+  });
+
+  // A job queued before this release carries no command key; it must keep working exactly as it did.
+  it('still runs a manual job without a command key', async () => {
+    const { runner, runs } = createRunner({ due: [schedule()] });
+
+    const result = await runner.runManual({
+      scheduleId: 'sch-1',
+      actorUserId: 'admin',
+      now: new Date('2026-03-30T09:00:00Z'),
+    });
+
+    expect(result.outcome).toBe('executed');
+    expect(runs.filter((run) => run.trigger === 'MANUAL')).toHaveLength(1);
+    expect(runs.find((run) => run.trigger === 'MANUAL')?.commandKey).toBeNull();
+  });
+
+  it('reports a missing schedule instead of pretending a run happened', async () => {
+    const { runner } = createRunner({ due: [] });
+
+    await expect(
+      runner.runManual({ scheduleId: 'gone', actorUserId: 'admin', commandKey: 'send-now-12345678' }),
+    ).resolves.toEqual({ outcome: 'missing' });
   });
 
   it('sends only to eligible recipients and records the skipped ones', async () => {

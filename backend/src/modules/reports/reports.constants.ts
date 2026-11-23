@@ -89,6 +89,8 @@ export const reportErrorCodes = {
   scheduleScopeInvalid: 'REPORT_SCHEDULE_SCOPE_INVALID',
   recipientInvalid: 'REPORT_RECIPIENT_INVALID',
   recipientLimit: 'REPORT_RECIPIENT_LIMIT',
+  /** W7.106 (`BA-reports-16`): the `Idempotency-Key` of a „send now” command is missing or malformed. */
+  idempotencyKeyInvalid: 'REPORT_IDEMPOTENCY_KEY_INVALID',
 } as const;
 
 export type ReportErrorCode =
@@ -116,6 +118,8 @@ export const reportErrorMessages: Record<ReportErrorCode, string> = {
     'The selected service or group does not exist or is outside this schedule scope',
   REPORT_RECIPIENT_INVALID: 'A recipient may not receive this report',
   REPORT_RECIPIENT_LIMIT: 'Too many recipients for one report schedule',
+  REPORT_IDEMPOTENCY_KEY_INVALID:
+    'The Idempotency-Key header is missing or malformed (8–128 characters: letters, digits, dot, colon, underscore, dash)',
 };
 
 /** Package 1.6 limits (plan §3 D3/D5). */

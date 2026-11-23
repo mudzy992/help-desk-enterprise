@@ -68,6 +68,30 @@ describe('ReportSchedulesProcessor', () => {
     await processor.process(job(reportSchedulesManualJobName));
 
     expect(runner.runManual).toHaveBeenCalledTimes(1);
-    expect(runner.runManual).toHaveBeenCalledWith('sch-1', 'u-1');
+    expect(runner.runManual).toHaveBeenCalledWith({
+      scheduleId: 'sch-1',
+      actorUserId: 'u-1',
+      commandKey: undefined,
+    });
+  });
+
+  // W7.106 (BA-reports-16): the command key must reach the runner, otherwise the unique run insert cannot dedupe.
+  it('passes the command key of a „send now” job to the runner', async () => {
+    const runner = createRunner();
+    const processor = new ReportSchedulesProcessor(runner as never);
+
+    await processor.process(
+      job(reportSchedulesManualJobName, {
+        scheduleId: 'sch-1',
+        actorUserId: 'u-1',
+        commandKey: 'command-12345678',
+      }),
+    );
+
+    expect(runner.runManual).toHaveBeenCalledWith({
+      scheduleId: 'sch-1',
+      actorUserId: 'u-1',
+      commandKey: 'command-12345678',
+    });
   });
 });

@@ -154,8 +154,33 @@ export function sendReportScheduleTest(
   return apiRequest(`${base}/${encodeURIComponent(id)}/send-test`, { method: "POST" });
 }
 
-export function runReportScheduleNow(id: string): Promise<{ readonly queued: boolean }> {
-  return apiRequest(`${base}/${encodeURIComponent(id)}/run-now`, { method: "POST" });
+/**
+ * W7.106 (`BA-reports-16`): „send now” is a command, so it carries an `Idempotency-Key`.
+ *
+ * The caller owns the key and reuses it for the **same intent**: a retry after a timeout must replay the first
+ * request instead of queueing a second report, and a second click must not become a second e-mail. A new key means a
+ * new, deliberate command.
+ */
+export function runReportScheduleNow(
+  id: string,
+  idempotencyKey: string,
+): Promise<{ readonly queued: boolean }> {
+  return apiRequest(`${base}/${encodeURIComponent(id)}/run-now`, {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+}
+
+/**
+ * A key for one „send now” intent. `crypto.randomUUID()` is not available in every context the panel can run in
+ * (older browsers, some test environments), so the fallback keeps the shape the API validates: 8–128 characters of
+ * letters, digits, dot, colon, underscore and dash.
+ */
+export function createReportCommandKey(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (typeof uuid === "string" && uuid.length > 0) return `run-now-${uuid}`;
+  const random = Math.random().toString(36).slice(2, 12);
+  return `run-now-${Date.now().toString(36)}-${random}`;
 }
 
 export function listReportRecipientCandidates(

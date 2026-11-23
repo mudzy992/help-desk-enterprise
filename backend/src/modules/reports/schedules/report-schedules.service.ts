@@ -11,6 +11,7 @@ import {
   OptimisticConcurrencyError,
   optimisticConcurrencyErrorCodes,
 } from '../../../common/optimistic-concurrency/optimistic-concurrency.error';
+import { RequestIdempotencyService } from '../../../common/idempotency/request-idempotency.service';
 import { formatVersionEtag } from '../../../common/optimistic-concurrency/optimistic-concurrency.service';
 import type { SaveReportScheduleDto } from '../dto/report-schedule.dto';
 import { reportErrorCodes, type ReportPackKey } from '../reports.constants';
@@ -20,9 +21,12 @@ import { ReportAccessChecker, type ReportRecipientUser } from './report-access.c
 import { nextReportRunAt } from './report-schedule-calendar';
 import {
   reportScheduleLimits,
+  reportSchedulesIdempotencyKeyPattern,
   reportSchedulesManualJobName,
   reportSchedulesQueueName,
+  reportSchedulesRunNowNamespace,
   reportScheduleSections,
+  reportScheduleManualJobId,
 } from './report-schedule.constants';
 import { withReportScheduleLimit } from './report-schedule-limit';
 import { isGroupWithinUnitSubtree } from './report-schedule-scope';
@@ -99,6 +103,12 @@ export class ReportSchedulesService {
     private readonly accessChecker: ReportAccessChecker,
     private readonly runner: ScheduledReportRunner,
     @Optional() @InjectQueue(reportSchedulesQueueName) private readonly queue?: Queue,
+    /**
+     * W7.106 (`BA-reports-16`): „send now” is a command, not a fire-and-forget POST. Optional so a unit test can
+     * construct the service without a database; production always has it (`IdempotencyModule` is imported by
+     * `ReportsModule`).
+     */
+    @Optional() private readonly idempotency?: RequestIdempotencyService,
   ) {}
 
   async list(actor: Actor) {
@@ -383,17 +393,51 @@ export class ReportSchedulesService {
     return result;
   }
 
-  /** „Pošalji sada”: queued for the worker (SMTP to many recipients takes a while). */
-  async runNow(actor: Actor, id: string): Promise<{ readonly queued: boolean }> {
+  /**
+   * „Pošalji sada”: queued for the worker (SMTP to many recipients takes a while).
+   *
+   * W7.106 (`BA-reports-16`): the request carries an `Idempotency-Key`, and that key is the command's identity all
+   * the way down — the response is replayed for a repeated key, the job carries it, and the run row's unique
+   * `commandKey` stops a second e-mail even if the queue or the worker replays the job. Without this, a double click
+   * was two commands: two runs and two deliveries to every recipient.
+   */
+  async runNow(actor: Actor, id: string, idempotencyKey: string): Promise<{ readonly queued: boolean }> {
     await this.requireScheduled();
     await this.requireAccessible(actor, id);
+    const key = idempotencyKey.trim();
+    if (!reportSchedulesIdempotencyKeyPattern.test(key)) {
+      throw new ReportsError(reportErrorCodes.idempotencyKeyInvalid);
+    }
     if (this.queue === undefined) return { queued: false };
-    await this.queue.add(
-      reportSchedulesManualJobName,
-      { scheduleId: id, actorUserId: actor.principal.subjectId },
-      { attempts: 1, removeOnComplete: { count: 50 }, removeOnFail: { count: 50 } },
-    );
-    return { queued: true };
+    const queue = this.queue;
+    const command = async (): Promise<{ statusCode: number; body: { queued: boolean } }> => {
+      await queue.add(
+        reportSchedulesManualJobName,
+        { scheduleId: id, actorUserId: actor.principal.subjectId, commandKey: key },
+        {
+          attempts: 1,
+          // BullMQ's own dedupe for the common case (double click while the first job is still waiting). The
+          // authoritative gate is the unique `commandKey` on the run row.
+          jobId: reportScheduleManualJobId(key),
+          removeOnComplete: { count: 50 },
+          removeOnFail: { count: 50 },
+        },
+      );
+      return { statusCode: 202, body: { queued: true } };
+    };
+    if (this.idempotency === undefined) {
+      await command();
+      return { queued: true };
+    }
+    const result = await this.idempotency.execute({
+      namespace: reportSchedulesRunNowNamespace,
+      key,
+      // The payload is what makes a replay safe: the same key with another schedule is a different command and is
+      // refused instead of silently answered from the first one.
+      request: { scheduleId: id, actorUserId: actor.principal.subjectId },
+      operation: command,
+    });
+    return result.body;
   }
 
   async candidates(

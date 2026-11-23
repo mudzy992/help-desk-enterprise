@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "@/services/api";
 import {
+  createReportCommandKey,
   deleteReportSchedule,
+  runReportScheduleNow,
   setReportScheduleEnabled,
   updateReportSchedule,
   type SaveReportScheduleInput,
@@ -61,5 +63,43 @@ describe("report schedule conditional writes (BA-reports-05)", () => {
       "/reports/schedules/sch%2F1",
       expect.objectContaining({ headers: { "If-Match": '"v2"' } }),
     );
+  });
+});
+
+
+/**
+ * W7.106 (`BA-reports-16`): the command carries its identity in the header, and the fallback key keeps the shape the
+ * server validates even where `crypto.randomUUID` is missing.
+ */
+describe("„send now” command idempotency (BA-reports-16)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("sends the Idempotency-Key header", () => {
+    runReportScheduleNow("sch-1", "run-now-12345678");
+
+    expect(apiRequest).toHaveBeenCalledWith("/reports/schedules/sch-1/run-now", {
+      method: "POST",
+      headers: { "Idempotency-Key": "run-now-12345678" },
+    });
+  });
+
+  it("mints keys that satisfy the server-side pattern", () => {
+    const pattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/u;
+    for (let index = 0; index < 50; index += 1) {
+      expect(createReportCommandKey()).toMatch(pattern);
+    }
+  });
+
+  it("falls back when randomUUID is unavailable", () => {
+    const original = globalThis.crypto;
+    // Some embedded browsers and test environments have no `randomUUID`.
+    Object.defineProperty(globalThis, "crypto", { value: undefined, configurable: true });
+    try {
+      const key = createReportCommandKey();
+      expect(key).toMatch(/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/u);
+      expect(key.startsWith("run-now-")).toBe(true);
+    } finally {
+      Object.defineProperty(globalThis, "crypto", { value: original, configurable: true });
+    }
   });
 });

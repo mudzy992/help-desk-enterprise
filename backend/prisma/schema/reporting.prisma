@@ -77,6 +77,10 @@ model ReportScheduleRun {
   /// Scheduled runs: "<scheduleId>:<periodStart ISO>" — the idempotency key
   /// (two workers, retries). Manual runs: null (NULLs never collide).
   slotKey              String?          @unique
+  /// W7.106 (`BA-reports-16`): the caller's `Idempotency-Key` for a „send now” command. One command, one run, one
+  /// e-mail — the unique index turns a double click, a retried request or a second tab into a no-op instead of a
+  /// second delivery. Scheduled runs keep `NULL`, which never collides.
+  commandKey           String?          @unique
   periodStart          DateTime
   periodEnd            DateTime
   status               ReportRunStatus

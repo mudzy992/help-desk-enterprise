@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -128,10 +129,25 @@ export class ReportSchedulesController {
     return this.call(() => this.schedulesService.sendTest(actorOf(request), id));
   }
 
+  /**
+   * W7.106 (`BA-reports-16`): „send now” is a command and needs a command identity, exactly like a ticket reopen.
+   * The header is required (fail loudly rather than guess a key on the server, which would make every request
+   * unique and defeat the purpose); its format is validated in the service.
+   */
   @Post(':id/run-now')
   @HttpCode(202)
-  runNow(@Param('id') id: string, @Req() request: AuthenticatedHttpRequest) {
-    return this.call(() => this.schedulesService.runNow(actorOf(request), id));
+  runNow(
+    @Param('id') id: string,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    if (idempotencyKey === undefined || idempotencyKey.trim().length === 0) {
+      throw new BadRequestException({
+        code: 'IDEMPOTENCY_KEY_REQUIRED',
+        message: 'Idempotency-Key header is required',
+      });
+    }
+    return this.call(() => this.schedulesService.runNow(actorOf(request), id, idempotencyKey));
   }
 
   private async call<T>(action: () => Promise<T>): Promise<T> {

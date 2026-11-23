@@ -127,6 +127,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/reports/schedules/report-schedules.scheduler-reconciliation.integration.spec.ts",
   // W7.99 (BA-reports-09): SMTP accepted + lost SENT mark never becomes a second scheduled e-mail.
   "src/modules/reports/schedules/report-schedule-delivery-crash-window.integration.spec.ts",
+  // W7.106 (BA-reports-16): one „send now” command, one run — the unique command key under a concurrent burst.
+  "src/modules/reports/schedules/report-schedule-run-now-idempotency.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

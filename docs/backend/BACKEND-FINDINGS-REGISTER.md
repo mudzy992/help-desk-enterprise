@@ -456,7 +456,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-13` | P2 | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike | zatvoreno (W7.104) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-14` | P2 | Run retention prune je best-effort i zavisi od aktivnog sweepa | zatvoreno (W7.103) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-15` | P3 | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice | zatvoreno (W7.105) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-16` | P3 | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-16` | P3 | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report | zatvoreno (W7.106) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-17` | P3 | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-18` | P3 | Preview osjetljivih redova nema formalnu read-audit odluku | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-19` | P3 | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje | otvoreno | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **323**
-- Otvoreno: **373** (P1 88 / P2 195 / P3 90)
-- Val 7: **102 / 111** zatvoreno, otvoreno **9** (P1 0 / P2 0 / P3 9)
+- Zatvoreno: **324**
+- Otvoreno: **372** (P1 88 / P2 195 / P3 89)
+- Val 7: **103 / 111** zatvoreno, otvoreno **8** (P1 0 / P2 0 / P3 8)
 <!-- findings-totals:end -->

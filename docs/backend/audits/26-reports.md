@@ -5,7 +5,7 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **15/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **16/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
@@ -14,7 +14,8 @@ at-least-once isporuka bez slijepog ponovnog slanja), W7.100 (`BA-reports-10`, c
 autorizacije), W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija), W7.102 (`BA-reports-12`, katalog i
 pola-otvoreni ugovor prozora), W7.103 (`BA-reports-14`, retention run loga kao zaseban, batched posao) i W7.104
 (`BA-reports-13`, privacy/anonymization matrica sa scrubom run JSON-a i bannerom u e-mailu) i W7.105
-(`BA-reports-15`, verzionisan i veličinom ograničen cache sa strožim validatorima). Ova statusna dopuna ne mijenja
+(`BA-reports-15`, verzionisan i veličinom ograničen cache sa strožim validatorima) i W7.106 (`BA-reports-16`,
+„pošalji sada” kao komanda sa `Idempotency-Key` i unique `commandKey` na run redu). Ova statusna dopuna ne mijenja
 susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
@@ -152,6 +153,12 @@ Delivery claim zatim SMTP send pa DB `mark sent` ima neizbježan crash prozor: S
 
 BullMQ scheduler se upisuje samo na module init. Redis flush poslije boota uklanja repeat scheduler bez periodičnog self-heala. `runDue` može nadoknaditi slotove tek kada sweep ponovo postoji; potreban je periodic reconcile/health alarm. `runNow` nema command idempotency key i svaki dvoklik legitimno kreira novi manual run i novi e-mail.
 
+**Status poslije W7.106 (§32):** „pošalji sada” je sada **komanda sa identitetom**. `POST /reports/schedules/:id/run-now`
+traži `Idempotency-Key`; isti ključ vraća spremljeni odgovor (bez drugog job-a), isti ključ sa drugim rasporedom je
+`409`, a ključ putuje u job i u novu unique kolonu `ReportScheduleRun.commandKey` — pa čak i dva joba, dva workera ili
+crash poslije enqueue-a proizvode **jedan** run i **jedan** e-mail. Zakazani runovi ostaju `NULL` (nema sudara sa
+`slotKey`). Detalji: [328](../implementation/328-w7106-reports-16-run-now-idempotency.md).
+
 ## 8. Integritet filtera i semantike
 
 OU scope uključuje potomke, što je konzistentno kroz pack/dashboard/trend. Međutim report window semantika nije potpuno jednaka po domenima: ticket snapshot bira zapise koji su bili živi u prozoru, KB helpfulness učitava sve članke i feedback bez article/update granice, asset pack koristi `now`, a problem/change loaderi imaju vlastite kriterije. Export mora uz svaki pack dokumentovati event-time, snapshot-time i inclusive/exclusive granice.
@@ -215,7 +222,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | zatvoreno (W7.104) |
 | BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | zatvoreno (W7.103) |
 | BA-reports-15 | P3       | Redis cache parseri validiraju samo plitki shape bez schema/version/size granice               | zatvoreno (W7.105) |
-| BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | otvoreno |
+| BA-reports-16 | P3       | `runNow` nema command idempotency i ponovljen zahtjev šalje novi manual report                 | zatvoreno (W7.106) |
 | BA-reports-17 | P3       | PDF endpoint evidentira client intent kao export bez potvrde generisanog artefakta             | otvoreno |
 | BA-reports-18 | P3       | Preview osjetljivih redova nema formalnu read-audit odluku                                    | otvoreno |
 | BA-reports-19 | P3       | Dvanaest suiteova je compile-blocked; failure/concurrency/Redis/SMTP matrica nedostaje          | otvoreno |
@@ -852,3 +859,38 @@ parser propuštao). Lokalno: `reports` **44 suite / 318 testova** (16 skipped be
 niti ključ, pa W7.100 garancija ostaje netaknuta; vrijednost koja prođe validator a ipak je poslovno netačna živi do
 TTL-a (dokumentovana granica iz W7.100). Detalji:
 [327-w7105-reports-15-cache-envelope.md](../implementation/327-w7105-reports-15-cache-envelope.md).
+
+## 32. Implementacijski closeout — W7.106 (`BA-reports-16`)
+
+**Nalaz:** `runNow` je bio običan `POST` — provjeri pristup, `queue.add(...)`, vrati `{queued:true}`. Nijedan dio
+zahtjeva nije nosio identitet komande, pa su dvoklik, browser retry nakon timeouta, dvije kartice ili ponovljen job
+bili **legitimno novi** manual run, svaki sa stvarnim e-mailom svakom primaocu. `attempts: 1` i
+`removeOnComplete: { count: 50 }` nisu pomagali: job bez `jobId`-ja je uvijek nov. Ostale komande u sistemu
+(`tickets/reopen`, `confidential`, `split`) idu kroz `RequestIdempotencyService`; `reports` ga nije koristio.
+
+**Rješenje.** (1) Ruta traži `Idempotency-Key` (bez njega `400 IDEMPOTENCY_KEY_REQUIRED`, prije servisa); servis
+validira format i vraća `400 REPORT_IDEMPOTENCY_KEY_INVALID` umjesto 500 iz idempotency sloja. (2) `runNow` izvršava
+komandu kroz `RequestIdempotencyService` u namespace-u `report.schedule.run-now` sa payloadom
+`{ scheduleId, actorUserId }`: isti ključ ⇒ replay spremljenog odgovora bez drugog job-a, isti ključ sa drugim
+rasporedom ⇒ `409 IDEMPOTENCY_PAYLOAD_MISMATCH`, ključ u toku ⇒ `409 IDEMPOTENCY_REQUEST_IN_PROGRESS`; bez queue-a
+ostaje `{queued:false}`. (3) Ključ putuje u job (`jobId` je hash ključa, jer BullMQ odbija `:` u id-u) i u **novu
+unique kolonu** `ReportScheduleRun.commandKey` (migracija `20271201180000`, aditivna): runner upisuje run prije
+komponovanja, a drugi job za isti ključ dobija `P2002`, loguje `report_schedule_manual_duplicate` i **ne šalje ništa**.
+Zakazani runovi ostavljaju `NULL`, pa `slotKey` dedupe ostaje netaknut. (4) Frontend šalje header i drži **jedan
+ključ po rasporedu** dok ishod nije poznat: retry poslije greške je ista komanda, a novi ključ se mint-a tek poslije
+definitivnog odgovora.
+
+**Posljedice po ponašanje.** Ponovljeni zahtjev sa istim ključem vraća `202 {queued:true}` iz zapisa, bez novog job-a
+i bez novog e-maila; dvoklik je replay ili `409`, nikad dva izvještaja; svjesno novo slanje zahtijeva novi ključ.
+Zakazani izvještaji se ne mijenjaju. Rute ostaju 632 (samo jedan obavezan header), migracija je **125.** i aditivna.
+
+**Testni dokaz.** `report-schedules.run-now.spec.ts` (**novo, 13**), `report-schedules.spec.ts` (+4),
+`report-schedules.processor.spec.ts` (+1), `report-schedule-run-now-idempotency.integration.spec.ts`
+(**novo, 4**, PostgreSQL — uključujući **osam paralelnih** inserta sa istim ključem: tačno jedan prolazi), frontend
+`report-schedules-api` (+3) i `report-command-key` (**novo, 4**). Lokalno: `reports` **45 suite / 336 testova**,
+`nest build` i `tsc --noEmit` zeleni, `npm run lint` bez grešaka, `wiring:check` 632, migracije **125**.
+
+**Otvoreno i dokumentovano:** idempotency zapis se čuva 24 h (zajednička politika), ali unique `commandKey` na run
+redu čuva garanciju dokle god run postoji (180 dana); ključ vezuje komandu za raspored i aktera, ne za vrijeme
+(retry poslije 10 minuta je ista komanda); `runNow` ne piše revizorski zapis (run log je trag izvršavanja).
+Detalji: [328-w7106-reports-16-run-now-idempotency.md](../implementation/328-w7106-reports-16-run-now-idempotency.md).

@@ -38,8 +38,14 @@ import {
   type TrendsFilterOption,
 } from "@/components/reports/trends/report-trends-panel";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import {
+  commandKeyFor,
+  releaseCommandKey,
+  type ReportCommandKeyCache,
+} from "@/lib/reports/report-command-key";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
 import {
+  createReportCommandKey,
   deleteReportSchedule,
   listReportSchedules,
   runReportScheduleNow,
@@ -87,6 +93,8 @@ export function ReportSchedulesPanel({
   const [runsFor, setRunsFor] = useState<ReportSchedule | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const pendingOperations = useRef(new Map<string, string>());
+  /** W7.106: the „send now” command key per schedule, kept across a failed attempt so a retry is the same command. */
+  const pendingCommandKeys = useRef<ReportCommandKeyCache>(new Map());
   const beginOperation = (key: string, scheduleId: string) => {
     if (pendingOperations.current.has(key)) return false;
     pendingOperations.current.set(key, scheduleId);
@@ -176,11 +184,22 @@ export function ReportSchedulesPanel({
     }
   };
 
+  /**
+   * W7.106 (`BA-reports-16`): one key per „send now” intent, kept until the server answers — so a retry after an
+   * error replays the first command instead of queueing a second report, and a second tab cannot double-send with a
+   * fresh key. A new key is minted only after a definite answer.
+   */
   const runNow = async (schedule: ReportSchedule) => {
     const operationKey = "run:" + schedule.id;
     if (!beginOperation(operationKey, schedule.id)) return;
+    const commandKey = commandKeyFor(
+      pendingCommandKeys.current,
+      schedule.id,
+      createReportCommandKey,
+    );
     try {
-      const result = await runReportScheduleNow(schedule.id);
+      const result = await runReportScheduleNow(schedule.id, commandKey);
+      releaseCommandKey(pendingCommandKeys.current, schedule.id);
       toast(
         result.queued
           ? { title: t("reports.schedules.runQueued"), tone: "success" }
@@ -188,6 +207,7 @@ export function ReportSchedulesPanel({
       );
       setConfirmRun(null);
     } catch (caught) {
+      // The key stays, so „try again” is the same command rather than a new report.
       fail(caught);
     } finally {
       endOperation(operationKey);

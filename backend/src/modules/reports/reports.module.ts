@@ -5,6 +5,7 @@ import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
+import { IdempotencyModule } from '../../common/idempotency/idempotency.module';
 import { ReportSummaryCache } from './report-summary.cache';
 import { ReportSummaryController } from './report-summary.controller';
 import { ReportSummaryService } from './report-summary.service';
@@ -22,6 +23,8 @@ import { ReportSchedulesService } from './schedules/report-schedules.service';
     AuthenticationModule,
     AuthorizationModule,
     SettingsModule,
+    // W7.106: the „send now” command is executed through the shared idempotency service.
+    IdempotencyModule,
     // Producer only: the worker owns the processor.
     BullModule.registerQueue({ name: reportSchedulesQueueName }),
   ],

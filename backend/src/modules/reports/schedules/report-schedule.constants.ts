@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 /** Paket 2.5 (§5): scheduled e-mail reports. */
 
 export const reportScheduleFrequencies = ['WEEKLY', 'MONTHLY'] as const;
@@ -40,6 +42,25 @@ export const reportScheduleRunRetentionMaxBatches = 40;
 export const reportSchedulesQueueName = 'report-schedules';
 export const reportSchedulesSweepJobName = 'sweep-due-schedules';
 export const reportSchedulesManualJobName = 'run-schedule-now';
+/**
+ * W7.106 (`BA-reports-16`): namespace of the „send now” command in `IdempotencyRecord`. The client's
+ * `Idempotency-Key` is unique *per namespace*, so it cannot collide with a ticket command that happens to use the
+ * same value.
+ */
+export const reportSchedulesRunNowNamespace = 'report.schedule.run-now';
+/** Same shape `RequestIdempotencyService` accepts; validated here so a bad header is a 400, not a 500. */
+export const reportSchedulesIdempotencyKeyPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/u;
+
+/**
+ * W7.106 (`BA-reports-16`): a deterministic BullMQ job id for a „send now” command. BullMQ uses `:` as its key
+ * separator and refuses ids that contain one, while a client's `Idempotency-Key` may contain it — so the id is a
+ * hash of the key. The job id is only the cheap dedupe; the unique `ReportScheduleRun.commandKey` is the guarantee.
+ */
+export function reportScheduleManualJobId(commandKey: string): string {
+  const digest = createHash('sha256').update(commandKey).digest('hex');
+  return `report-manual-${digest.slice(0, 32)}`;
+}
+
 export const reportSchedulesSchedulerId = 'report-schedules-5min';
 export const reportSchedulesCronPattern = '*/5 * * * *';
 

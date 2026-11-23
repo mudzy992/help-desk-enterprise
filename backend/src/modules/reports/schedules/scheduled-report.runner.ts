@@ -63,6 +63,28 @@ export type ReportRunOutcome = {
 };
 
 /**
+ * W7.106 (`BA-reports-16`): what happened to one „send now” command.
+ *
+ * `duplicate` is the interesting one: another job for the **same** command already created the run, so this job
+ * stopped before composing or sending anything. It is not an error — it is the contract working.
+ */
+export type ManualRunOutcome =
+  | { readonly outcome: 'executed'; readonly run: ReportRunOutcome }
+  | { readonly outcome: 'duplicate'; readonly runId: string | null }
+  | { readonly outcome: 'missing' };
+
+export type ManualRunInput = {
+  readonly scheduleId: string;
+  readonly actorUserId: string | null;
+  /**
+   * The caller's `Idempotency-Key`. Present for every „send now” queued by the API; absent for jobs queued before
+   * this release (and in tests), which keep the old behaviour of always sending.
+   */
+  readonly commandKey?: string;
+  readonly now?: Date;
+};
+
+/**
  * Paket 2.5 (§5.4): builds and sends scheduled reports. Shared by the worker
  * (sweep, „send now”) and the API („send a test to me”), so all three send
  * the same e-mail.
@@ -106,36 +128,60 @@ export class ScheduledReportRunner {
     return { processed: due.length };
   }
 
-  /** „Pošalji sada” (queued by the API): recipients get it now, no slot is consumed. */
-  async runManual(scheduleId: string, actorUserId: string | null, now: Date = new Date()): Promise<ReportRunOutcome | null> {
+  /**
+   * „Pošalji sada” (queued by the API): recipients get it now, no slot is consumed.
+   *
+   * W7.106 (`BA-reports-16`): the run row carries the command key, and its unique index is the real gate. Two clicks,
+   * a browser retry or a second tab produce two jobs, but only one of them can create a run — the loser finds the
+   * key taken, logs `report_schedule_manual_duplicate` and returns **before** composing or sending anything. The
+   * worker can crash anywhere and the guarantee still holds, because it lives in the database, not in the queue.
+   */
+  async runManual(input: ManualRunInput): Promise<ManualRunOutcome> {
+    const now = input.now ?? new Date();
     const configuration = await this.configurationLoader.load();
     const schedule = (await this.prisma.reportSchedule.findUnique({
-      where: { id: scheduleId },
+      where: { id: input.scheduleId },
       select: reportScheduleSelect,
     })) as unknown as ReportScheduleRecord | null;
-    if (schedule === null) return null;
+    if (schedule === null) return { outcome: 'missing' };
     const period = previousReportPeriod(schedule.frequency, configuration.timeZone, now);
-    const run = await this.prisma.reportScheduleRun.create({
-      data: {
-        scheduleId,
-        // W7.97: the run keeps its own copy of the schedule identity, so deleting the schedule cannot erase it.
-        scheduleName: schedule.name,
-        organizationalUnitId: schedule.organizationalUnitId,
-        trigger: 'MANUAL',
-        slotKey: null,
-        periodStart: period.start,
-        periodEnd: period.end,
-        status: 'RUNNING',
-        triggeredByUserId: actorUserId,
-      },
-      select: { id: true },
-    });
-    return this.execute(schedule, configuration, period, now, {
-      runId: run.id,
-      dedupeKey: `report:${run.id}`,
-      actorUserId,
+    let runId: string;
+    try {
+      const run = await this.prisma.reportScheduleRun.create({
+        data: {
+          scheduleId: input.scheduleId,
+          // W7.97: the run keeps its own copy of the schedule identity, so deleting the schedule cannot erase it.
+          scheduleName: schedule.name,
+          organizationalUnitId: schedule.organizationalUnitId,
+          trigger: 'MANUAL',
+          slotKey: null,
+          commandKey: input.commandKey ?? null,
+          periodStart: period.start,
+          periodEnd: period.end,
+          status: 'RUNNING',
+          triggeredByUserId: input.actorUserId,
+        },
+        select: { id: true },
+      });
+      runId = run.id;
+    } catch (error) {
+      if (input.commandKey === undefined || !isDuplicateCommandKey(error)) throw error;
+      const existing = await this.prisma.reportScheduleRun.findUnique({
+        where: { commandKey: input.commandKey },
+        select: { id: true },
+      });
+      this.logger.log(
+        `report_schedule_manual_duplicate schedule=${input.scheduleId} run=${existing?.id ?? 'unknown'}`,
+      );
+      return { outcome: 'duplicate', runId: existing?.id ?? null };
+    }
+    const run = await this.execute(schedule, configuration, period, now, {
+      runId,
+      dedupeKey: `report:${runId}`,
+      actorUserId: input.actorUserId,
       trigger: 'MANUAL',
     });
+    return { outcome: 'executed', run };
   }
 
   /** „Pošalji test meni”: only to the actor, previous period, no run record. */
@@ -674,4 +720,17 @@ function emailPolicy(channel: EmailChannelConfiguration) {
 
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002';
+}
+
+/**
+ * A unique violation on `ReportScheduleRun.commandKey`. The insert sets only `commandKey`, `slotKey` is `NULL` and
+ * `id` is a cuid, so `P2002` here can only mean "this command already has a run".
+ */
+function isDuplicateCommandKey(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { code?: unknown; meta?: { target?: unknown } };
+  if (candidate.code !== 'P2002') return false;
+  const target = candidate.meta?.target;
+  if (Array.isArray(target)) return target.includes('commandKey');
+  return typeof target === 'string' ? target.includes('commandKey') : true;
 }
