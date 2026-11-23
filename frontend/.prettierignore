@@ -5,3 +5,7 @@ public
 src/i18n/locales
 package-lock.json
 security-headers.inc.template
+# CI artefakt: `npm run audit:production > frontend-production-audit.json`
+# (workflow `frontend`, korak „Audit production dependencies”). Sadržaj piše npm
+# i mijenja se sa advisory bazom — nije izvor i ne smije obarati format gate.
+frontend-production-audit.json

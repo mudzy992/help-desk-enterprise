@@ -2,6 +2,8 @@ node_modules
 dist
 dist-profiling
 coverage
+# CI artefakt (npm audit --omit=dev --json) — ne commitovati
+frontend/frontend-production-audit.json
 .expo
 .env
 .env.*
