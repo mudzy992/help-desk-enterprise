@@ -12,7 +12,7 @@
 **DB migracija:** **ne** (ledger i njegovi indeksi postoje od `notifications` paketa)<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** dvije labela-linije (`delivery_unknown`), bez logike<br>
-**CI:** _(upisuje se po završetku runa)_
+**CI:** [run `45172324800`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45172324800) ✓ na `0247f94`
 
 ## Nalaz
 
@@ -102,7 +102,30 @@ migracije); `check-docs-content` OK.
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+**Run [`45172324800`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45172324800) — success**
+(push na `arena/864951a6-help-desk-enterprise`, commit `0247f94`, `CI gate` ✓). Poslovi: `Backend build + test` ✓,
+`Backend PostgreSQL + Redis integration` ✓ (103/103 izolovana suitea, uključujući novi
+`report-schedule-delivery-crash-window.integration.spec.ts` — 3 testa su stvarno izvršena na PostgreSQL-u, ne skip),
+`Frontend build + test` ✓ (uključuje nove bs/en labele), `Docs guard` ✓, `Backend container + supply chain` ✓;
+`E2E *` preskočeni (nema `e2e` promjena).
+
+**Prvi pokušaj [`45169698779`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45169698779) je pao**
+na `TS2345` u novom integracionom specu: `deliverNotificationEmail` prima `PrismaService` (klijent **plus**
+lifecycle hookovi), pa `PrismaClient`/Proxy nije bio dodjeljiv. Lokalni stub to nije pokazao. Popravka je `as never`
+(isti obrazac koji `notification-email-delivery-recovery.integration.spec.ts` koristi) u commit-u `0247f94`.
+
+**Ostale provjere (lokalno, prije commita):**
+
+| provjera | rezultat |
+| --- | --- |
+| `jest` (backend, cijeli) | **946 suite / 5.457 testa** ✓, 104 suite skipped (integracije bez `PRIVACY_IT_DATABASE_URL`) |
+| `jest src/modules/reports` | **37 suite / 205 testa** ✓ (+6 skipped, tri integraciona speca) |
+| `eslint` (backend `reports` + `scripts`, frontend dirani fajl) | 0 problema ✓ |
+| `vitest src/components/reports` (frontend) | 3 fajla / **9** testova ✓ |
+| `npm run wiring:check` | ✓ 99 controllera, **632** rute (nepromijenjeno) |
+| `npm run db:migration-policy:check` | ✓ **124** migracije (bez nove migracije) |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
+| `node scripts/check-backend-findings.mjs` | ✓ **696/696**, zatvoreno **317** / otvoreno **379** |
 
 ## Registar nalaza
 
