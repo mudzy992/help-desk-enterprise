@@ -12,7 +12,7 @@
 **DB migracija:** **ne**<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena (oblik odgovora se ne mijenja)<br>
-**CI:** vidi „Dokaz” na kraju
+**CI:** [run `45232992929`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45232992929) ✓ na `189366d`
 
 ## Nalaz
 
@@ -130,4 +130,6 @@ Sljedeće u `reports`: `BA-reports-16` (`runNow` idempotency), `-17` (PDF intent
 
 ## Dokaz
 
-CI: _popunjava se nakon push-a_ (vidi `## 31` u [26-reports.md](../audits/26-reports.md)).
+CI [`45232992929`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45232992929) **success** na `189366d`: `Backend build + test`, `Backend PostgreSQL + Redis integration`,
+`Frontend build + test`, `Backend container + supply chain` i `Docs guard` (`E2E` i inventura `skipped`, kako je
+konfigurisano). Detalji u [26-reports.md, §31](../audits/26-reports.md#31-implementacijski-closeout--w7105-ba-reports-15).

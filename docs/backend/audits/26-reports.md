@@ -845,8 +845,8 @@ API-ja, ruta, ključeva ni TTL-ova: `v<authzVersion>` u ključu (W7.100) je **au
 pokrivaju sve grane tabela iz closeouta (uključujući bajtove vs. znakove i negativan `net`);
 `parse-report-summary-cache.spec.ts` 12 → **24**, `report-summary-cache.spec.ts` 5 → **6**,
 `report-dashboard.cache.spec.ts` +1 sa **kompletnim** fixture-om (stari `{} as kpis` bio je tačno ono što je plitki
-parser propuštao). Lokalno: `reports` **44 suite / 318 testova** (16 skipped bez baze/Redis-a), `eslint` 0; rute
-(632) i migracije (124) nepromijenjene.
+parser propuštao). Lokalno: `reports` **44 suite / 318 testova** (16 skipped bez baze/Redis-a), `eslint` 0,
+`nest build` zelen; rute (632) i migracije (124) nepromijenjene. CI [`45232992929`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45232992929) **success** na `189366d`.
 
 **Otvoreno i dokumentovano:** cap je po zapisu (Redis `maxmemory` ostaje infrastruktura); envelope ne mijenja TTL
 niti ključ, pa W7.100 garancija ostaje netaknuta; vrijednost koja prođe validator a ipak je poslovno netačna živi do
