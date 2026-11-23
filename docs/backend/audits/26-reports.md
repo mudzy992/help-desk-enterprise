@@ -796,8 +796,9 @@ modela, enumeracije, brojač ⇔ radnja, jedinstveni ID-evi, banner u oba lokaln
 `anonymization.integration.spec.ts` (+1, PostgreSQL): schedule + manual run sa `skipped` za osobu i agenta; poslije
 `execute` run zadržava `MANUAL`/`PARTIAL`/`2`/`1`, `triggeredByUserId = null`, `skipped = [{reason: inactive},
 {agent, no_access}]`, raspored ima `createdByUserId`/`updatedByUserId = null`, `enabled = true` i samo agenta kao
-primaoca. Lokalno: `privacy` + `reports` **67 suite / 405 testova** (44 skipped bez `PRIVACY_IT_DATABASE_URL`),
-frontend `components/reports` + `i18n` **11 fajlova / 57 testova**, `eslint` 0.
+primaoca. Lokalno: `privacy` + `reports` + `audit-log` **86 suite / 476 testova** (48 skipped bez
+`PRIVACY_IT_DATABASE_URL`), frontend **476 fajlova** zeleno, `eslint` 0, `wiring:check` 632, migracije 124. CI
+[`45200003644`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45200003644) **success** na `846ac24`.
 
 **Otvoreno i dokumentovano:** Redis replika je `cache-ttl` — ključ nosi user id, vrijednost je agregat bez liste
 tiketa, TTL 60 s, pa evakuacija po ID-u ne bi imala šta da sačuva (i tražila bi `SCAN`); SMTP/CSV kopija ostaje van

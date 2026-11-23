@@ -11,7 +11,7 @@
 **Rute:** nepromijenjene (632) — mijenja se samo **tip** `skipped[].userId` (`string` → `string | null`)<br>
 **Frontend:** `report-schedules-api.ts` (tip), `report-schedule-runs-sheet.tsx` + `bs/en` lokal
 (`reports.schedules.anonymizedRecipient`)<br>
-**CI:** vidi „Dokaz” na kraju
+**CI:** [run `45200003644`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45200003644) ✓ na `846ac24`
 
 ## Nalaz
 
@@ -133,4 +133,6 @@ Sljedeće u `reports`: `BA-reports-15` (cache schema/version/size), `-16` (`runN
 
 ## Dokaz
 
-CI: _popunjava se nakon push-a_ (vidi `## 30` u [26-reports.md](../audits/26-reports.md)).
+CI [`45200003644`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45200003644) **success** na `846ac24` (`Backend build + test`, `Frontend build + test`,
+`Backend PostgreSQL + Redis integration` — uključuje anonymization integraciju sa novim scenarijem — i `Docs guard`;
+`E2E` i inventura `skipped`, kako je konfigurisano). Detalji u [26-reports.md, §30](../audits/26-reports.md#30-implementacijski-closeout--w7104-ba-reports-13).
