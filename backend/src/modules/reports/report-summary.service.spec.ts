@@ -26,31 +26,57 @@ type World = ReturnType<typeof createTicketsServiceHarness>;
 
 function createFakeCache() {
   const store = new Map<string, unknown>();
-  // Same shape as `dashboardSummaryCacheKey`: the reporting zone is part of the
-  // key, so a payload must not survive a change of the day boundary.
-  const dashboardKey = (userId: string, timeZone: string) =>
-    `dashboard:${userId}:${timeZone}`;
+  // Same shape as `dashboardSummaryCacheKey`: the reporting zone and the authority version are part of the key, so a
+  // payload must not survive a change of the day boundary nor a security change (W7.100).
+  const dashboardKey = (userId: string, authzVersion: number, timeZone: string) =>
+    `dashboard:${userId}:v${authzVersion}:${timeZone}`;
   const cache: ReportSummaryCache = {
-    readDashboardSummary: async (userId: string, timeZone: string) =>
-      (store.get(dashboardKey(userId, timeZone)) as DashboardSummaryResponse) ??
-      null,
+    readDashboardSummary: async (
+      userId: string,
+      authzVersion: number,
+      timeZone: string,
+    ) =>
+      (store.get(
+        dashboardKey(userId, authzVersion, timeZone),
+      ) as DashboardSummaryResponse) ?? null,
     writeDashboardSummary: async (
       userId: string,
+      authzVersion: number,
       summary: DashboardSummaryResponse,
       timeZone: string,
     ) => {
-      store.set(dashboardKey(userId, timeZone), summary);
+      store.set(dashboardKey(userId, authzVersion, timeZone), summary);
     },
-    readSlaSummary: async (userId: string) =>
-      (store.get(`sla:${userId}`) as SlaSummaryResponse) ?? null,
-    writeSlaSummary: async (userId: string, summary: SlaSummaryResponse) => {
-      store.set(`sla:${userId}`, summary);
+    readSlaSummary: async (userId: string, authzVersion: number) =>
+      (store.get(`sla:${userId}:v${authzVersion}`) as SlaSummaryResponse) ?? null,
+    writeSlaSummary: async (
+      userId: string,
+      authzVersion: number,
+      summary: SlaSummaryResponse,
+    ) => {
+      store.set(`sla:${userId}:v${authzVersion}`, summary);
     },
   } as unknown as ReportSummaryCache;
   return { cache, store };
 }
 
-function createService(world: World, settingsTimeZone?: string) {
+/** Stands in for the fenced principal read: the version a security change would bump. */
+function createPrincipalLoader(authzVersion: () => number) {
+  return {
+    load: async (subjectId: string) => ({
+      subjectId,
+      authzVersion: authzVersion(),
+      isActive: true,
+      mustChangePassword: false,
+    }),
+  };
+}
+
+function createService(
+  world: World,
+  settingsTimeZone?: string,
+  authzVersion: () => number = () => 1,
+) {
   const { cache, store } = createFakeCache();
   return {
     store,
@@ -63,6 +89,7 @@ function createService(world: World, settingsTimeZone?: string) {
         : ({
             getSetting: async () => settingsTimeZone,
           } as unknown as SettingsService),
+      createPrincipalLoader(authzVersion) as never,
     ),
   };
 }
@@ -267,9 +294,45 @@ describe("ReportSummaryService", () => {
     // No settings service in this construction: the installation default zone.
     expect(
       store.get(
-        `dashboard:${ticketsTestIds.requester}:${defaultReportsTimeZone}`,
+        `dashboard:${ticketsTestIds.requester}:v1:${defaultReportsTimeZone}`,
       ),
     ).toEqual(first);
+  });
+
+  // W7.100 (BA-reports-10): a cached summary is a projection of the caller's authority. Losing access has to take
+  // effect on the next request, not on the next TTL boundary.
+  it('recomputes instead of serving counters after an authorization change bumps the version', async () => {
+    const world = createTicketsServiceHarness();
+    seedTickets(world);
+    let version = 1;
+    const { service, store } = createService(world, undefined, () => version);
+    const groupBy = jest.spyOn(world.memory.prisma.ticket, 'groupBy');
+
+    await service.loadDashboardSummary({ actorUserId: ticketsTestIds.requester, now });
+    const callsAfterFirst = groupBy.mock.calls.length;
+    expect(callsAfterFirst).toBe(1);
+
+    // Same version: still a cache hit.
+    await service.loadDashboardSummary({ actorUserId: ticketsTestIds.requester, now });
+    expect(groupBy.mock.calls.length).toBe(callsAfterFirst);
+
+    // A revoke (role, group, OU, deactivation) bumps the version: the old entry is unreachable.
+    version = 2;
+    await service.loadDashboardSummary({ actorUserId: ticketsTestIds.requester, now });
+    expect(groupBy.mock.calls.length).toBeGreaterThan(callsAfterFirst);
+    // Both payloads exist under their own version, and the stale one is never served again.
+    expect(store.has(`dashboard:${ticketsTestIds.requester}:v1:${defaultReportsTimeZone}`)).toBe(true);
+    expect(store.has(`dashboard:${ticketsTestIds.requester}:v2:${defaultReportsTimeZone}`)).toBe(true);
+  });
+
+  it('caches the SLA counters under the same authority version', async () => {
+    const world = createTicketsServiceHarness();
+    seedTickets(world);
+    const { service, store } = createService(world);
+
+    await service.loadSlaSummary({ actorUserId: ticketsTestIds.requester, now });
+
+    expect(store.has(`sla:${ticketsTestIds.requester}:v1`)).toBe(true);
   });
 
   it('bounds "opened today" with the zone from the settings, not the process', async () => {

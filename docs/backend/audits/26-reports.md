@@ -5,12 +5,13 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **9/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **10/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
-brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored) i W7.99 (`BA-reports-09`,
-at-least-once isporuka bez slijepog ponovnog slanja). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored), W7.99 (`BA-reports-09`,
+at-least-once isporuka bez slijepog ponovnog slanja) i W7.100 (`BA-reports-10`, cache key nosi verziju
+autorizacije). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -73,6 +74,13 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.100 (§26):** per-user summary cache key više ne sadrži samo `(user, zone)` nego i
+**verziju autorizacije** (`User.authzVersion`): svaka sigurnosna promjena (rola/permission, članstvo u grupi,
+premještaj OJ, deaktivacija, reset lozinke) čini stari zapis nedostupnim **na sljedećem zahtjevu**, ne na kraju
+TTL-a. Staleness nakon ticket mutacije ostaje dokumentovana granica (60 s, odobreno u stagingu); OU dashboard cache
+nije sigurnosni problem jer se pristup provjerava prije čitanja. Detalji:
+[322](../implementation/322-w7100-reports-10-authorization-aware-cache.md).
 
 **Status poslije W7.99 (§25):** isporuka scheduled izvještaja je **at-least-once**: ledger red (`userId`,
 `dedupeKey` = `report:<slotKey>`) se claim-uje prije SMTP-a, a neizvjestan ishod (SMTP prihvatio, mark izgubljen)
@@ -168,7 +176,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | zatvoreno (W7.97) |
 | BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | zatvoreno (W7.98) |
 | BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | zatvoreno (W7.99) |
-| BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | otvoreno |
+| BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | zatvoreno (W7.100) |
 | BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | otvoreno |
 | BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | otvoreno |
 | BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | otvoreno |
@@ -541,3 +549,39 @@ testova; `eslint` 0; rute i migracije nepromijenjene (632 / 124).
 (`BA-reports-14`), privacy matrica nad run JSON-om i primaocima (`BA-reports-13`). Provider-level idempotency ne
 postoji (SMTP je „best effort” po Message-ID); dokumentovano kao granica, ne kao obećanje. Detalji:
 [321-w799-reports-09-at-least-once-delivery.md](../implementation/321-w799-reports-09-at-least-once-delivery.md).
+
+## 26. Implementacijski closeout — W7.100 (`BA-reports-10`)
+
+**Nalaz:** dashboard/SLA summary se keširao pod `(userId, zone)` sa TTL-om od 60 s. Payload je projekcija **onoga
+što korisnik smije vidjeti**, pa je nakon scope revokea (rola/permission, grupa, premještaj OJ, deaktivacija) do
+minute mogao prikazivati brojeve izračunate pod širim pristupom. Nijedna sigurnosna promjena nije dirala cache, a
+TTL je bio jedina granica — što je za *autorizaciju* pogrešna granica.
+
+**Rješenje.**
+
+- **Verzija autorizacije u ključu:** `reports:dashboard-summary:<user>:v<authzVersion>:<zone>` i
+  `reports:sla-summary:<user>:v<authzVersion>`. `User.authzVersion` je isti fence koji već koriste principal
+  context cache i sesijska provjera, pa revoke mijenja ključ **odmah** — stari zapis postaje nedostupan, a ne
+  briše se aktivno (istječe sam u 60 s; nijedan pisac ne mora znati koje korisnike eviktovati).
+- **Jedan fenced read više, praktično besplatan:** servis čita `PrincipalContextLoader.load(actorUserId)`, koji je
+  unutar zahtjeva memoiziran (isti promise koji su koristili guardovi) i sam provjerava `User.authzVersion`;
+  single-flight ključevi takođe uključuju verziju.
+- **Postavke u ključu:** reporting zona je i dalje dio dashboard ključa („opened today” granica dana). SLA summary
+  ne zavisi od postavki — njegove brojeve nosi `TicketSlaState`, pa nema šta da se invalidira iz settings-a.
+- **Mutacija tiketa ostaje TTL:** 60 s je odobrena granica (staging k6, 2026-09-25) — namjerno se **ne** uvodi
+  per-write invalidacija, jer bi svaka ticket mutacija morala znati koje cache ključeve gasi.
+- **OU dashboard cache (`reports:dashboard:<hash>`) nije sigurnosni problem:** sadržaj jedinice ne zavisi od toga
+  ko pita, a pristup se provjerava prije čitanja cache-a.
+
+**Namjerne posljedice:** poslije sigurnosne promjene prvi zahtjev računa iznova (jedan agregat), a ne servira stari
+presjek; stari ključevi žive najviše do TTL-a i sami nestaju. Bez migracije, bez novih ruta, bez promjene payloada.
+
+**Testni dokaz:** `summary/report-summary-cache.spec.ts` (**+1**) — ključ nosi verziju, zona i korisnik su i dalje
+razdvojeni, promjena verzije mijenja **oba** ključa; `report-summary.service.spec.ts` (**+2**) — poslije bumpea
+verzije servis ponovo računa (cache hit samo za istu verziju, oba payloada postoje pod svojim ključem) i SLA
+summary se kešira pod istom verzijom. Lokalno: backend **946 suite / 5.460 testa**, `reports` **37/208**;
+`eslint` 0; rute i migracije nepromijenjene (632 / 124).
+
+**Otvoreno i dokumentovano:** strogi versioned schema/payload cap Redis parsera je `BA-reports-15` (P3);
+retention run loga `BA-reports-14`; privacy matrica `BA-reports-13`. Detalji:
+[322-w7100-reports-10-authorization-aware-cache.md](../implementation/322-w7100-reports-10-authorization-aware-cache.md).

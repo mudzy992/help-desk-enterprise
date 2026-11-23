@@ -28,39 +28,48 @@ export class ReportSummaryCache {
 
   async readDashboardSummary(
     userId: string,
+    authzVersion: number,
     timeZone: string,
   ): Promise<DashboardSummaryResponse | null> {
     return readReportSummaryCache(
       await this.client(),
-      dashboardSummaryCacheKey(userId, timeZone),
+      dashboardSummaryCacheKey(userId, authzVersion, timeZone),
       parseDashboardSummaryResponse,
     );
   }
 
   async writeDashboardSummary(
     userId: string,
+    authzVersion: number,
     summary: DashboardSummaryResponse,
     timeZone: string,
   ): Promise<void> {
     await writeReportSummaryCache(
       await this.client(),
-      dashboardSummaryCacheKey(userId, timeZone),
+      dashboardSummaryCacheKey(userId, authzVersion, timeZone),
       summary,
     );
   }
 
-  async readSlaSummary(userId: string): Promise<SlaSummaryResponse | null> {
+  async readSlaSummary(
+    userId: string,
+    authzVersion: number,
+  ): Promise<SlaSummaryResponse | null> {
     return readReportSummaryCache(
       await this.client(),
-      slaSummaryCacheKey(userId),
+      slaSummaryCacheKey(userId, authzVersion),
       parseSlaSummaryResponse,
     );
   }
 
-  async writeSlaSummary(userId: string, summary: SlaSummaryResponse): Promise<void> {
+  async writeSlaSummary(
+    userId: string,
+    authzVersion: number,
+    summary: SlaSummaryResponse,
+  ): Promise<void> {
     await writeReportSummaryCache(
       await this.client(),
-      slaSummaryCacheKey(userId),
+      slaSummaryCacheKey(userId, authzVersion),
       summary,
     );
   }

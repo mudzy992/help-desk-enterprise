@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, Optional } from "@nestjs/common";
 import { createSingleFlightCache } from "../../common/cache/single-flight-cache";
+import { PrincipalContextLoader } from "../../common/principal-context/principal-context.loader";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuthorizationContextLoader } from "../authorization/authorization-context.loader";
 import { readInstallationTimeZone } from "../settings/read-installation-time-zone";
@@ -55,6 +56,14 @@ export class ReportSummaryService {
      * so the running application always has it.
      */
     @Optional() private readonly settingsService?: SettingsService,
+    /**
+     * W7.100 (`BA-reports-10`): the summary is cached per user and must not outlive that user's authority. The
+     * loader is the same fenced read the guards use (its `authzVersion` is checked against `User.authzVersion`), so
+     * reading it here costs a memoized lookup inside the request, and a revoke changes the cache key immediately.
+     * Optional so a direct `new ReportSummaryService(...)` in a unit test keeps working (version 0 = uncached
+     * authority semantics, exactly the old behaviour).
+     */
+    @Optional() private readonly principalContextLoader?: PrincipalContextLoader,
   ) {}
 
   async loadDashboardSummary(input: {
@@ -62,16 +71,21 @@ export class ReportSummaryService {
     /** Injected by the tests; the endpoints always use "now". */
     readonly now?: Date;
   }): Promise<DashboardSummaryResponse> {
-    const timeZone = await this.resolveTimeZone();
+    const [timeZone, authzVersion] = await Promise.all([
+      this.resolveTimeZone(),
+      this.authzVersionOf(input.actorUserId),
+    ]);
     const cached = await this.cache.readDashboardSummary(
       input.actorUserId,
+      authzVersion,
       timeZone,
     );
     if (cached !== null) {
       return cached;
     }
-    return this.dashboardFlights.get(`${input.actorUserId}:${timeZone}`, () =>
-      this.computeDashboardSummary(input, timeZone),
+    return this.dashboardFlights.get(
+      `${input.actorUserId}:v${authzVersion}:${timeZone}`,
+      () => this.computeDashboardSummary(input, timeZone, authzVersion),
     );
   }
 
@@ -81,6 +95,7 @@ export class ReportSummaryService {
       readonly now?: Date;
     },
     timeZone: string,
+    authzVersion: number,
   ): Promise<DashboardSummaryResponse> {
     const now = input.now ?? new Date();
     const where = await this.scopeWhere(input.actorUserId, now);
@@ -104,6 +119,7 @@ export class ReportSummaryService {
     };
     await this.cache.writeDashboardSummary(
       input.actorUserId,
+      authzVersion,
       response,
       timeZone,
     );
@@ -115,19 +131,27 @@ export class ReportSummaryService {
     /** Injected by the tests; the endpoints always use "now". */
     readonly now?: Date;
   }): Promise<SlaSummaryResponse> {
-    const cached = await this.cache.readSlaSummary(input.actorUserId);
+    const authzVersion = await this.authzVersionOf(input.actorUserId);
+    const cached = await this.cache.readSlaSummary(
+      input.actorUserId,
+      authzVersion,
+    );
     if (cached !== null) {
       return cached;
     }
-    return this.slaFlights.get(input.actorUserId, () =>
-      this.computeSlaSummary(input),
+    return this.slaFlights.get(
+      `${input.actorUserId}:v${authzVersion}`,
+      () => this.computeSlaSummary(input, authzVersion),
     );
   }
 
-  private async computeSlaSummary(input: {
-    readonly actorUserId: string;
-    readonly now?: Date;
-  }): Promise<SlaSummaryResponse> {
+  private async computeSlaSummary(
+    input: {
+      readonly actorUserId: string;
+      readonly now?: Date;
+    },
+    authzVersion: number,
+  ): Promise<SlaSummaryResponse> {
     const now = input.now ?? new Date();
     const where = await this.scopeWhere(input.actorUserId, now);
     const counts = await loadSlaSummaryCounts(this.prisma, {
@@ -137,8 +161,21 @@ export class ReportSummaryService {
       ...counts,
       generatedAt: now.toISOString(),
     };
-    await this.cache.writeSlaSummary(input.actorUserId, response);
+    await this.cache.writeSlaSummary(input.actorUserId, authzVersion, response);
     return response;
+  }
+
+  /**
+   * The authority the cached counters were computed under. A `null` principal already fails closed in
+   * `scopeWhere` (`FORBIDDEN`), so the fallback never caches a payload for a user without a context — it only keeps
+   * the cache working for unit tests that construct the service without the loader.
+   */
+  private async authzVersionOf(actorUserId: string): Promise<number> {
+    if (this.principalContextLoader === undefined) {
+      return 0;
+    }
+    const principal = await this.principalContextLoader.load(actorUserId);
+    return principal?.authzVersion ?? 0;
   }
 
   /**

@@ -38,20 +38,31 @@ export interface ReportSummaryCacheClient {
 }
 
 /**
- * `…:<user>:<zone>` — the installation zone is part of the key on purpose: the
- * counters carry a day boundary ("opened today"), so a payload computed in the
- * old zone must not be served for the minute after the setting changes. Two
- * zones, two keys.
+ * `…:<user>:v<user.authzVersion>:<zone>`.
+ *
+ * W7.100 (`BA-reports-10`): the payload is a projection of *what this user may see*, so it must not outlive the
+ * authority it was computed under. `User.authzVersion` is the same fence the principal-context cache and the
+ * session check use: every security change (role/permission, group membership, OU move, deactivation, password
+ * reset) increments it. Because the version is **part of the key**, a revoke makes the old entry unreachable on
+ * the very next request instead of within the TTL — the cache can no longer serve counters computed under wider
+ * access. The old key is left to expire (60 s) rather than deleted: no writer has to know which users to evict.
+ *
+ * The installation zone stays part of the key on purpose: the counters carry a day boundary ("opened today"), so
+ * a payload computed in the old zone must not be served after the setting changes. Two zones, two keys.
  */
 export function dashboardSummaryCacheKey(
   userId: string,
+  authzVersion: number,
   timeZone: string,
 ): string {
-  return `${dashboardSummaryCacheKeyPrefix}:${userId}:${timeZone}`;
+  return `${dashboardSummaryCacheKeyPrefix}:${userId}:v${authzVersion}:${timeZone}`;
 }
 
-export function slaSummaryCacheKey(userId: string): string {
-  return `${slaSummaryCacheKeyPrefix}:${userId}`;
+export function slaSummaryCacheKey(
+  userId: string,
+  authzVersion: number,
+): string {
+  return `${slaSummaryCacheKeyPrefix}:${userId}:v${authzVersion}`;
 }
 
 /**

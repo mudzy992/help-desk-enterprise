@@ -28,14 +28,24 @@ const parseNumber = (value: unknown): number | null =>
   typeof value === 'number' ? value : null;
 
 describe('report summary cache', () => {
-  it('keys by user and installation zone (M15 B4: no scope segment)', () => {
-    expect(dashboardSummaryCacheKey('user-1', 'Europe/Sarajevo')).toBe(
-      'reports:dashboard-summary:user-1:Europe/Sarajevo',
+  it('keys by user, authority version and installation zone (M15 B4: no scope segment)', () => {
+    expect(dashboardSummaryCacheKey('user-1', 3, 'Europe/Sarajevo')).toBe(
+      'reports:dashboard-summary:user-1:v3:Europe/Sarajevo',
     );
-    expect(dashboardSummaryCacheKey('user-1', 'UTC')).not.toBe(
-      dashboardSummaryCacheKey('user-1', 'Europe/Sarajevo'),
+    expect(dashboardSummaryCacheKey('user-1', 3, 'UTC')).not.toBe(
+      dashboardSummaryCacheKey('user-1', 3, 'Europe/Sarajevo'),
     );
-    expect(slaSummaryCacheKey('user-1')).toBe('reports:sla-summary:user-1');
+    expect(slaSummaryCacheKey('user-1', 3)).toBe('reports:sla-summary:user-1:v3');
+  });
+
+  // W7.100 (BA-reports-10): the payload is a projection of what the user may see, so a security change has to make
+  // the old entry unreachable on the next request — not on the next TTL boundary.
+  it('moves every key when the authority version changes', () => {
+    expect(dashboardSummaryCacheKey('user-1', 4, 'Europe/Sarajevo')).not.toBe(
+      dashboardSummaryCacheKey('user-1', 3, 'Europe/Sarajevo'),
+    );
+    expect(slaSummaryCacheKey('user-1', 4)).not.toBe(slaSummaryCacheKey('user-1', 3));
+    expect(slaSummaryCacheKey('user-2', 3)).not.toBe(slaSummaryCacheKey('user-1', 3));
   });
 
   it('writes with the fifteen second TTL and reads the payload back', async () => {
