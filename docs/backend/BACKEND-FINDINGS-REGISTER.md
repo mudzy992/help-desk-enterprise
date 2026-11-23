@@ -445,7 +445,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 26 | `reports` | `BA-reports-02` | P1 | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke | zatvoreno (W7.54) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-03` | P2 | Schedule service/group reference nije vezana za izabrani OU/service scope | zatvoreno (W7.93) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-04` | P2 | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti | zatvoreno (W7.94) | [26-reports.md](audits/26-reports.md) |
-| 26 | `reports` | `BA-reports-05` | P2 | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins | otvoreno | [26-reports.md](audits/26-reports.md) |
+| 26 | `reports` | `BA-reports-05` | P2 | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins | zatvoreno (W7.95) | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-06` | P2 | Schedule mutation/run finalizacija i globalni audit nisu atomarni | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-07` | P2 | Brisanje schedulea kaskadno briše run historiju prije 180 dana | otvoreno | [26-reports.md](audits/26-reports.md) |
 | 26 | `reports` | `BA-reports-08` | P2 | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka | otvoreno | [26-reports.md](audits/26-reports.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **312**
-- Otvoreno: **384** (P1 88 / P2 205 / P3 91)
-- Val 7: **91 / 111** zatvoreno, otvoreno **20** (P1 0 / P2 10 / P3 10)
+- Zatvoreno: **313**
+- Otvoreno: **383** (P1 88 / P2 204 / P3 91)
+- Val 7: **92 / 111** zatvoreno, otvoreno **19** (P1 0 / P2 9 / P3 10)
 <!-- findings-totals:end -->

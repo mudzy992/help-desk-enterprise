@@ -52,8 +52,7 @@ describe('database runtime contract', () => {
     const query = schemaCompatibilityQuery();
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
-    expect(expectedSchemaMigration).toBe(
-      '20271201150000_knowledge_feedback_resolution_actor',
-    );
+    // Deliberately literal: a new migration must be a conscious edit here, not something the test infers.
+    expect(expectedSchemaMigration).toBe('20271201160000_report_schedule_version');
   });
 });

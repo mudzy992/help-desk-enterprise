@@ -13,6 +13,7 @@ export const reportScheduleSelect = {
   sections: true,
   packKeys: true,
   enabled: true,
+  version: true,
   nextRunAt: true,
   lastRunAt: true,
   createdByUserId: true,
@@ -41,6 +42,8 @@ export type ReportScheduleRecord = {
   readonly sections: readonly ReportScheduleSection[];
   readonly packKeys: readonly string[];
   readonly enabled: boolean;
+  /** W7.95 (`BA-reports-05`): the token an editor echoes back in `If-Match`. */
+  readonly version: number;
   readonly nextRunAt: Date;
   readonly lastRunAt: Date | null;
   readonly createdByUserId: string | null;

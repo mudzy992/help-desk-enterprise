@@ -117,6 +117,8 @@ export const integrationSpecs = Object.freeze([
   "src/modules/knowledge-base/portal/knowledge-comment-resolution.integration.spec.ts",
   // W7.94 (BA-reports-04): the schedule limit is consumed inside one locked transaction.
   "src/modules/reports/schedules/report-schedule-limit.integration.spec.ts",
+  // W7.95 (BA-reports-05): schedule admin writes match on the version the editor loaded.
+  "src/modules/reports/schedules/report-schedule-version.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

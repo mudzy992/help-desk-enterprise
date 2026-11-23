@@ -10,6 +10,8 @@ type Schedule = {
   readonly frequency: 'WEEKLY' | 'MONTHLY';
   readonly sendTime: string;
   readonly nextRunAt: string | null;
+  /** W7.95 (`BA-reports-05`): admin writes are conditional on this token (`If-Match: "vN"`). */
+  readonly version: number;
   readonly recipients: ReadonlyArray<{ readonly email: string }>;
 };
 type ScheduleList = { readonly schedules: readonly Schedule[] };
@@ -92,7 +94,10 @@ test.describe('18 scheduled reports', () => {
     });
     expect(refused.status).toBe(403);
 
-    await api.request(`/reports/schedules/${created!.id}`, { method: 'DELETE' });
+    await api.request(`/reports/schedules/${created!.id}`, {
+      method: 'DELETE',
+      headers: { 'If-Match': `"v${created!.version}"` },
+    });
   });
 
   test('send test to me needs a configured e-mail channel', async ({ page }) => {
@@ -149,7 +154,10 @@ test.describe('18 scheduled reports', () => {
       const actions = audit.items.filter((item) => item.entityId === created.id).map((item) => item.action);
       expect(actions).toContain('report.schedule.test_sent');
     } finally {
-      await api.request(`/reports/schedules/${created.id}`, { method: 'DELETE' });
+      await api.request(`/reports/schedules/${created.id}`, {
+        method: 'DELETE',
+        headers: { 'If-Match': `"v${created.version}"` },
+      });
     }
   });
 });

@@ -29,6 +29,8 @@ export type ReportSchedule = {
   readonly sections: readonly ReportScheduleSection[];
   readonly packKeys: readonly string[];
   readonly enabled: boolean;
+  /** W7.95 (`BA-reports-05`): the token sent back as `If-Match: "vN"` on update/enable/delete. */
+  readonly version: number;
   readonly nextRunAt: string;
   readonly lastRunAt: string | null;
   readonly createdBy: { readonly id: string; readonly displayName: string } | null;
@@ -105,25 +107,38 @@ export function createReportSchedule(input: SaveReportScheduleInput): Promise<Re
   return apiRequest(base, { method: "POST", body: JSON.stringify(input) });
 }
 
+/**
+ * W7.95 (`BA-reports-05`): admin writes are conditional. `version` is the value the editor loaded, so a save based
+ * on a stale read is answered with 412 (`OPTIMISTIC_STALE_WRITE`) instead of overwriting somebody else's change.
+ */
+const ifMatch = (version: number): RequestInit => ({ headers: { "If-Match": `"v${version}"` } });
+
 export function updateReportSchedule(
   id: string,
   input: SaveReportScheduleInput,
+  version: number,
 ): Promise<ReportSchedule> {
   return apiRequest(`${base}/${encodeURIComponent(id)}`, {
+    ...ifMatch(version),
     method: "PUT",
     body: JSON.stringify(input),
   });
 }
 
-export function setReportScheduleEnabled(id: string, enabled: boolean): Promise<ReportSchedule> {
+export function setReportScheduleEnabled(
+  id: string,
+  enabled: boolean,
+  version: number,
+): Promise<ReportSchedule> {
   return apiRequest(`${base}/${encodeURIComponent(id)}/enabled`, {
+    ...ifMatch(version),
     method: "PATCH",
     body: JSON.stringify({ enabled }),
   });
 }
 
-export function deleteReportSchedule(id: string): Promise<void> {
-  return apiRequest(`${base}/${encodeURIComponent(id)}`, { method: "DELETE" });
+export function deleteReportSchedule(id: string, version: number): Promise<void> {
+  return apiRequest(`${base}/${encodeURIComponent(id)}`, { ...ifMatch(version), method: "DELETE" });
 }
 
 export function listReportScheduleRuns(

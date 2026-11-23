@@ -6,6 +6,7 @@ import { ApiError } from "@/services/api";
 import {
   createReportSchedule,
   listReportRecipientCandidates,
+  updateReportSchedule,
   type ReportScheduleList,
 } from "@/services/report-schedules-api";
 
@@ -106,5 +107,56 @@ describe("ReportScheduleSheet scope refusal (W7.93)", () => {
     expect(
       await screen.findByText("reports.errors.REPORT_SCHEDULE_LIMIT_UNAVAILABLE"),
     ).toBeTruthy();
+  });
+
+  it("updates with the version it loaded and explains a stale write (W7.95)", async () => {
+    vi.mocked(updateReportSchedule).mockRejectedValueOnce(
+      new ApiError(412, "OPTIMISTIC_STALE_WRITE", "stale", "req-stale"),
+    );
+    const loaded = {
+      id: "sch-1",
+      version: 5,
+      name: "Weekly IT",
+      frequency: "WEEKLY",
+      sendTime: "07:00",
+      organizationalUnit: { id: "ou-it", name: "IT" },
+      service: null,
+      group: null,
+      priority: null,
+      sections: ["kpi"],
+      packKeys: [],
+      enabled: true,
+      nextRunAt: "2026-05-04T05:00:00.000Z",
+      lastRunAt: null,
+      createdBy: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      recipients: [{ id: "u-1", displayName: "User One", email: "u1@example.com" }],
+      lastRun: null,
+    } as never;
+
+    render(
+      <ReportScheduleSheet
+        open
+        onOpenChange={vi.fn()}
+        list={list}
+        schedule={loaded}
+        draft={null}
+        units={[{ id: "ou-it", label: "IT" }]}
+        services={[]}
+        groups={null}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(await screen.findByTestId("schedule-name"), {
+      target: { value: "Weekly IT renamed" },
+    });
+    fireEvent.click(screen.getByTestId("schedule-save"));
+
+    expect(await screen.findByText("reports.errors.OPTIMISTIC_STALE_WRITE")).toBeTruthy();
+    await waitFor(() => expect(updateReportSchedule).toHaveBeenCalledTimes(1));
+    // The token the editor loaded travels with the write; that is what makes the 412 possible at all.
+    expect(vi.mocked(updateReportSchedule).mock.calls[0]?.[2]).toBe(5);
   });
 });

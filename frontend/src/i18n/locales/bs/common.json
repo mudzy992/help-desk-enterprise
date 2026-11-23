@@ -3688,6 +3688,7 @@
       "REPORT_SCHEDULE_DISABLED": "Zakazani izvještaji su isključeni u postavkama.",
       "REPORT_SCHEDULE_NOT_FOUND": "Raspored nije pronađen.",
       "REPORT_SCHEDULE_LIMIT": "Dostignut je maksimalan broj rasporeda.",
+      "OPTIMISTIC_STALE_WRITE": "Neko drugi je izmijenio ovaj raspored dok ste ga uređivali. Lista je osvježena — otvorite raspored ponovo i ponovite izmjenu.",
       "REPORT_SCHEDULE_LIMIT_UNAVAILABLE": "Provjera ograničenja rasporeda trenutno nije moguća (drugi zahtjev je zauzet). Pokušajte ponovo za nekoliko sekundi.",
       "REPORT_SCHEDULE_INVALID": "Raspored nije ispravan. Provjerite polja forme.",
       "REPORT_SCHEDULE_SCOPE_INVALID": "Izabrana usluga ili grupa ne postoji ili nije u opsegu izabrane organizacione jedinice. Provjerite filter izvještaja.",

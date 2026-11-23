@@ -33,6 +33,10 @@ model ReportSchedule {
   /// Report pack keys attached as CSV.
   packKeys             String[]
   enabled              Boolean                   @default(true)
+  /// W7.95 (`BA-reports-05`): optimistic concurrency token for admin mutations. The scheduler and the runner do
+  /// not bump it — only the three admin writes (update, enable toggle, delete) consume it, so a background run
+  /// can never turn an administrator's editor into a spurious conflict.
+  version              Int                       @default(1)
   nextRunAt            DateTime
   lastRunAt            DateTime?
   createdByUserId      String?

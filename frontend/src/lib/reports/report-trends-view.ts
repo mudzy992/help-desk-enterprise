@@ -281,6 +281,8 @@ export const reportTrendErrorCodes = [
   "REPORT_SCHEDULE_LIMIT",
   /** W7.94 (`BA-reports-04`): the limit check could not run because the schedule-limit lock stayed busy. */
   "REPORT_SCHEDULE_LIMIT_UNAVAILABLE",
+  /** W7.95 (`BA-reports-05`): the editor saved on top of a row that changed meanwhile (412). */
+  "OPTIMISTIC_STALE_WRITE",
   "REPORT_SCHEDULE_INVALID",
   /** W7.93 (`BA-reports-03`): the service/group reference is unknown or outside the schedule scope. */
   "REPORT_SCHEDULE_SCOPE_INVALID",

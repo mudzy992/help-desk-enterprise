@@ -5,6 +5,11 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { AuthorizationPrincipal } from '../../authentication/authentication.types';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import {
+  OptimisticConcurrencyError,
+  optimisticConcurrencyErrorCodes,
+} from '../../../common/optimistic-concurrency/optimistic-concurrency.error';
+import { formatVersionEtag } from '../../../common/optimistic-concurrency/optimistic-concurrency.service';
 import type { SaveReportScheduleDto } from '../dto/report-schedule.dto';
 import { reportErrorCodes, type ReportPackKey } from '../reports.constants';
 import { ReportsConfigurationLoader } from '../reports-configuration.loader';
@@ -38,6 +43,8 @@ export type ReportScheduleView = {
   readonly sections: readonly string[];
   readonly packKeys: readonly string[];
   readonly enabled: boolean;
+  /** W7.95 (`BA-reports-05`): optimistic-concurrency token for update/enable/delete (`If-Match: "vN"`). */
+  readonly version: number;
   readonly nextRunAt: string;
   readonly lastRunAt: string | null;
   readonly createdBy: { readonly id: string; readonly displayName: string } | null;
@@ -154,7 +161,14 @@ export class ReportSchedulesService {
     return this.get(actor, created.id);
   }
 
-  async update(actor: Actor, id: string, input: SaveReportScheduleDto, now: Date = new Date()): Promise<ReportScheduleView> {
+  async update(
+    actor: Actor,
+    id: string,
+    input: SaveReportScheduleDto,
+    expectedVersion: number,
+    now: Date = new Date(),
+  ): Promise<ReportScheduleView> {
+    assertScheduleVersion(expectedVersion);
     const configuration = await this.requireScheduled();
     const existing = await this.requireAccessible(actor, id);
     const data = await this.validate(actor, input, configuration);
@@ -163,26 +177,31 @@ export class ReportSchedulesService {
       existing.frequency !== data.fields.frequency ||
       existing.sendTime !== data.fields.sendTime ||
       (!existing.enabled && enabled);
-    await this.prisma.$transaction([
-      this.prisma.reportScheduleRecipient.deleteMany({
-        where: { scheduleId: id, userId: { notIn: data.recipientIds } },
-      }),
-      this.prisma.reportScheduleRecipient.createMany({
-        data: data.recipientIds.map((userId) => ({ scheduleId: id, userId })),
-        skipDuplicates: true,
-      }),
-      this.prisma.reportSchedule.update({
-        where: { id },
+    await this.prisma.$transaction(async (transaction) => {
+      // W7.95 (`BA-reports-05`): the version predicate *is* the check. A save based on a stale read matches no
+      // row, so it writes neither the schedule nor the recipients — the editor sees 412 instead of silently
+      // overwriting the change that landed in between.
+      const updated = await transaction.reportSchedule.updateMany({
+        where: { id, version: expectedVersion },
         data: {
           ...data.fields,
           enabled,
           updatedByUserId: actor.principal.subjectId,
+          version: expectedVersion + 1,
           ...(timingChanged
             ? { nextRunAt: nextReportRunAt(data.fields.frequency, data.fields.sendTime, configuration.timeZone, now) }
             : {}),
         },
-      }),
-    ]);
+      });
+      if (updated.count !== 1) throw await this.staleScheduleWrite(id);
+      await transaction.reportScheduleRecipient.deleteMany({
+        where: { scheduleId: id, userId: { notIn: data.recipientIds } },
+      });
+      await transaction.reportScheduleRecipient.createMany({
+        data: data.recipientIds.map((userId) => ({ scheduleId: id, userId })),
+        skipDuplicates: true,
+      });
+    });
     await this.audit(actor, auditLogActions.reportScheduleUpdated, id, data.fields.organizationalUnitId, {
       changed: changedFields(existing, { ...data.fields, enabled }, data.recipientIds),
       recipientCount: data.recipientIds.length,
@@ -190,20 +209,32 @@ export class ReportSchedulesService {
     return this.get(actor, id);
   }
 
-  async setEnabled(actor: Actor, id: string, enabled: boolean, now: Date = new Date()): Promise<ReportScheduleView> {
+  async setEnabled(
+    actor: Actor,
+    id: string,
+    enabled: boolean,
+    expectedVersion: number,
+    now: Date = new Date(),
+  ): Promise<ReportScheduleView> {
+    assertScheduleVersion(expectedVersion);
     const configuration = await this.requireScheduled();
     const existing = await this.requireAccessible(actor, id);
+    // The token is checked even for a no-op toggle: an editor that is behind must learn it is behind, not be
+    // told that its (already stale) picture of the switch is the current one.
+    if (existing.version !== expectedVersion) throw await this.staleScheduleWrite(id);
     if (existing.enabled !== enabled) {
-      await this.prisma.reportSchedule.update({
-        where: { id },
+      const updated = await this.prisma.reportSchedule.updateMany({
+        where: { id, version: expectedVersion },
         data: {
           enabled,
           updatedByUserId: actor.principal.subjectId,
+          version: expectedVersion + 1,
           ...(enabled
             ? { nextRunAt: nextReportRunAt(existing.frequency, existing.sendTime, configuration.timeZone, now) }
             : {}),
         },
       });
+      if (updated.count !== 1) throw await this.staleScheduleWrite(id);
       await this.audit(actor, auditLogActions.reportScheduleUpdated, id, existing.organizationalUnitId, {
         changed: ['enabled'],
         enabled,
@@ -212,10 +243,14 @@ export class ReportSchedulesService {
     return this.get(actor, id);
   }
 
-  async remove(actor: Actor, id: string): Promise<void> {
+  async remove(actor: Actor, id: string, expectedVersion: number): Promise<void> {
+    assertScheduleVersion(expectedVersion);
     await this.requireReports();
     const existing = await this.requireAccessible(actor, id);
-    await this.prisma.reportSchedule.delete({ where: { id } });
+    // W7.95: deleting a schedule somebody edited a second ago destroys work nobody meant to discard. The token
+    // makes the client's "delete this" mean "delete the row I was shown".
+    const deleted = await this.prisma.reportSchedule.deleteMany({ where: { id, version: expectedVersion } });
+    if (deleted.count !== 1) throw await this.staleScheduleWrite(id);
     await this.audit(actor, auditLogActions.reportScheduleDeleted, id, existing.organizationalUnitId, {
       name: existing.name,
       frequency: existing.frequency,
@@ -401,6 +436,23 @@ export class ReportSchedulesService {
     };
   }
 
+  /**
+   * Classifies a lost CAS. A row that vanished answers the same 404 the rest of the module uses; a row that moved
+   * on answers 412 with the version the caller has to reload.
+   */
+  private async staleScheduleWrite(id: string): Promise<ReportsError | OptimisticConcurrencyError> {
+    const current = await this.prisma.reportSchedule.findUnique({
+      where: { id },
+      select: { version: true },
+    });
+    if (current === null) return new ReportsError(reportErrorCodes.scheduleNotFound);
+    return new OptimisticConcurrencyError(
+      optimisticConcurrencyErrorCodes.staleWrite,
+      412,
+      formatVersionEtag(current.version),
+    );
+  }
+
   private async requireAccessible(actor: Actor, id: string): Promise<ReportScheduleRecord> {
     const record = (await this.prisma.reportSchedule.findUnique({
       where: { id },
@@ -546,6 +598,17 @@ type ScheduleScopeLabels = { readonly showService: boolean; readonly showGroup: 
 
 const hiddenScopeLabels: ScheduleScopeLabels = { showService: false, showGroup: false };
 
+/**
+ * W7.95: the version predicate must never be silently absent. If `expectedVersion` were `undefined`, Prisma would
+ * drop `version` from the `where` clause and the CAS would degrade back into an unconditional write — the exact
+ * bug this package removes. The controller parses `If-Match` first; this is the second line of defence.
+ */
+function assertScheduleVersion(expectedVersion: number): void {
+  if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) {
+    throw new OptimisticConcurrencyError(optimisticConcurrencyErrorCodes.invalidIfMatch, 400);
+  }
+}
+
 function toView(
   record: ReportScheduleRecord,
   lastRun: ReportScheduleView['lastRun'],
@@ -563,6 +626,7 @@ function toView(
     sections: record.sections,
     packKeys: record.packKeys,
     enabled: record.enabled,
+    version: record.version,
     nextRunAt: record.nextRunAt.toISOString(),
     lastRunAt: record.lastRunAt?.toISOString() ?? null,
     createdBy: record.createdBy,

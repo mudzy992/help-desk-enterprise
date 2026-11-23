@@ -5,9 +5,10 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **4/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
-(`BA-reports-03`, relacijski OU/service validator reference rasporeda) i W7.94 (`BA-reports-04`, limit
-rasporeda unutar zaključane transakcije). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+**Implementacija:** **5/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+(`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
+rasporeda unutar zaključane transakcije) i W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
+rasporeda). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -68,9 +69,14 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 
 **Status poslije W7.94 (§20):** limit je sada advisory lock + brojanje unutar iste transakcije
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
-novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Version/CAS
-(`BA-reports-05`), transakcijski audit (`BA-reports-06`) i run/tombstone politika (`BA-reports-07`) ostaju
-otvoreni. Detalji: [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
+[316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.95 (§21):** admin izmjene (`update`, `enabled`, `delete`) su uslovljene verzijom reda
+(`If-Match: "vN"`, `version` kolona, 412 `OPTIMISTIC_STALE_WRITE`, 428 bez headera), pa paralelni update/enable/
+delete više nije last-write-wins; runner i scheduler ne dižu verziju, da noćni run ne pravi lažne konflikte.
+Transakcijski audit (`BA-reports-06`) i run/tombstone politika (`BA-reports-07`) ostaju otvoreni. Detalji:
+[317](../implementation/317-w795-reports-05-schedule-version-cas.md).
 
 ## 7. Scheduled execution, dedupe i recovery
 
@@ -134,7 +140,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-02 | P1       | Scheduled CSV attachmenti ignorišu service/group/priority filtere i šalju OU-wide podatke     | zatvoreno |
 | BA-reports-03 | P2       | Schedule service/group reference nije vezana za izabrani OU/service scope                     | zatvoreno (W7.93) |
 | BA-reports-04 | P2       | `maxSchedules` count-then-create je TOCTOU i limit se može prekoračiti                         | zatvoreno (W7.94) |
-| BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | otvoreno |
+| BA-reports-05 | P2       | Schedule mutation nema version/CAS; paralelni update/enable/delete je last-write-wins          | zatvoreno (W7.95) |
 | BA-reports-06 | P2       | Schedule mutation/run finalizacija i globalni audit nisu atomarni                             | otvoreno |
 | BA-reports-07 | P2       | Brisanje schedulea kaskadno briše run historiju prije 180 dana                                | otvoreno |
 | BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | otvoreno |
@@ -324,3 +330,38 @@ Docs guard, **Backend PostgreSQL + Redis integration**, Backend build + test, Fr
 migracija, što bi bilo novo mjesto razilaženja); `update`/`delete` ne uzimaju bravu jer ne mogu povećati broj
 redova (njihov CAS je `BA-reports-05`); transakcijski audit ostaje `BA-reports-06`. Detalji:
 [316-w794-reports-04-schedule-limit-lock.md](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+## 21. Implementacijski closeout — W7.95 (`BA-reports-05`)
+
+**Nalaz:** `update`, `setEnabled` i `remove` su pisali po `id`-ju bez predpostavke o stanju koje je klijent vidio.
+Dva taba nad istim rasporedom: drugi upis tiho vraća prvi (naziv, primaoci, OU, prekidač), a brisanje reda koji je
+neko upravo uredio uništava rad bez ijedne greške.
+
+**Rješenje.**
+
+- **`version` na redu + `If-Match`:** aditivna migracija `20271201160000_report_schedule_version` dodaje
+  `version INTEGER NOT NULL DEFAULT 1`; `ReportScheduleView.version` je token, a rute `PUT :id`,
+  `PATCH :id/enabled` i `DELETE :id` ga traže (`parseIfMatch`; 428 bez headera, 400 za weak/malformed).
+- **CAS kao predikat:** `updateMany({ where: { id, version }, data: { …, version: expectedVersion + 1 } })` i
+  `deleteMany({ where: { id, version } })`; `count !== 1` ⇒ ništa nije upisano, a `staleScheduleWrite` vraća 412
+  sa `currentEtag` (ili 404 ako je red u međuvremenu obrisan). Primaoci se mijenjaju u istoj zaključanoj sekvenci
+  **poslije** CAS-a, pa zastarjeli snimak ne dira ni njih.
+- **Token se provjerava i kad je izmjena bespredmetna** (`setEnabled` na već postavljeno stanje): tab koji je iza
+  mora to saznati. Servis odbija i token koji nije cijeli broj ≥ 1, jer bi Prisma `undefined` izbacio iz `where` i
+  CAS se tiho vratio u slijepi upis.
+- **Verziju dižu samo admin izmjene:** runner/scheduler pišu `lastRunAt`/`nextRunAt` bez `version`, pa pozadinski
+  run ne pretvara otvoren editor u lažni konflikt.
+- **Klijent:** API šalje `If-Match` na sve tri rute i prosljeđuje verziju reda koji je korisnik učitao; na 412 lista
+  se sama osvježava uz bs/en poruku `reports.errors.OPTIMISTIC_STALE_WRITE`.
+
+**Testni dokaz:** `report-schedules.version.spec.ts` (**8**), `report-schedule-version.integration.spec.ts` (**3**,
+PostgreSQL — dva paralelna upisa iz iste verzije daju `[0,1]`, brisanje briše samo prikazanu verziju, run ne diže
+verziju), frontend `report-schedules-api.spec.ts` (**3**), `report-schedule-sheet.spec.tsx` (**1 → 3**); e2e
+brisanje nosi token. Lokalno: backend **944 suite / 5.434 testa**, `reports` **35/186**, frontend **476 fajlova /
+1.898 testa**; `eslint`/`tsc`/`prettier`/`i18n:check`/`wiring:check` (632 rute)/`db:migration-policy:check`
+(123 migracije) zeleni.
+
+**Otvoreno i dokumentovano:** bez DB trigera za verziju (dizao bi je i run, što je lažni konflikt); transakcijski
+audit ostaje `BA-reports-06` — audit red se i dalje piše poslije commit-a; `runNow`/`sendTest` nisu uslovljeni jer
+ne mijenjaju konfiguraciju. Detalji:
+[317-w795-reports-05-schedule-version-cas.md](../implementation/317-w795-reports-05-schedule-version-cas.md).

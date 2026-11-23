@@ -168,7 +168,7 @@ export function ReportScheduleSheet({
       const saved =
         schedule === null
           ? await createReportSchedule(input)
-          : await updateReportSchedule(schedule.id, input);
+          : await updateReportSchedule(schedule.id, input, schedule.version);
       onSaved(saved);
       onOpenChange(false);
     } catch (caught) {

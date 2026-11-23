@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Header,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -27,6 +28,7 @@ import { RequirePermissions } from '../../authorization/require-permissions.deco
 import { RequireRoles } from '../../authorization/require-roles.decorator';
 import { RoleGuard } from '../../authorization/role.guard';
 import { readAuditRequestId } from '../../audit-log/read-audit-request-id';
+import { parseIfMatch } from '../../../common/optimistic-concurrency/optimistic-concurrency.service';
 import {
   RecipientCandidatesQueryDto,
   SaveReportScheduleDto,
@@ -75,9 +77,19 @@ export class ReportSchedulesController {
     return this.call(() => this.schedulesService.get(actorOf(request), id));
   }
 
+  /**
+   * W7.95 (`BA-reports-05`): admin writes are conditional. `If-Match: "vN"` carries the version the editor
+   * loaded; a missing header is 428 and a malformed one 400 (both from the shared parser), and a stale version is
+   * answered by the service with 412 plus the current token.
+   */
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: SaveReportScheduleDto, @Req() request: AuthenticatedHttpRequest) {
-    return this.call(() => this.schedulesService.update(actorOf(request), id, body));
+  update(
+    @Param('id') id: string,
+    @Body() body: SaveReportScheduleDto,
+    @Req() request: AuthenticatedHttpRequest,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
+  ) {
+    return this.call(() => this.schedulesService.update(actorOf(request), id, body, parseIfMatch(ifMatch)));
   }
 
   @Patch(':id/enabled')
@@ -85,14 +97,21 @@ export class ReportSchedulesController {
     @Param('id') id: string,
     @Body() body: SetReportScheduleEnabledDto,
     @Req() request: AuthenticatedHttpRequest,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
   ) {
-    return this.call(() => this.schedulesService.setEnabled(actorOf(request), id, body.enabled));
+    return this.call(() =>
+      this.schedulesService.setEnabled(actorOf(request), id, body.enabled, parseIfMatch(ifMatch)),
+    );
   }
 
   @Delete(':id')
   @HttpCode(204)
-  async remove(@Param('id') id: string, @Req() request: AuthenticatedHttpRequest): Promise<void> {
-    await this.call(() => this.schedulesService.remove(actorOf(request), id));
+  async remove(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedHttpRequest,
+    @Headers('if-match') ifMatch: string | string[] | undefined,
+  ): Promise<void> {
+    await this.call(() => this.schedulesService.remove(actorOf(request), id, parseIfMatch(ifMatch)));
   }
 
   @Get(':id/runs')

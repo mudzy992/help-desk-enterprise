@@ -126,6 +126,9 @@ export function ReportSchedulesPanel({
       tone: "danger",
       error: caught,
     });
+    // W7.95 (`BA-reports-05`): the row moved on while this tab was open, so the list on screen is the thing that
+    // is wrong. Reloading turns "try again" into an action instead of advice.
+    if (code === "OPTIMISTIC_STALE_WRITE") void reload();
   };
 
   const replace = (schedule: ReportSchedule) =>
@@ -144,7 +147,7 @@ export function ReportSchedulesPanel({
     const operationKey = "toggle:" + schedule.id;
     if (!beginOperation(operationKey, schedule.id)) return;
     try {
-      replace(await setReportScheduleEnabled(schedule.id, enabled));
+      replace(await setReportScheduleEnabled(schedule.id, enabled, schedule.version));
     } catch (caught) {
       fail(caught);
     } finally {
@@ -195,7 +198,7 @@ export function ReportSchedulesPanel({
     const operationKey = "delete:" + schedule.id;
     if (!beginOperation(operationKey, schedule.id)) return;
     try {
-      await deleteReportSchedule(schedule.id);
+      await deleteReportSchedule(schedule.id, schedule.version);
       setList((current) =>
         current === null
           ? current
