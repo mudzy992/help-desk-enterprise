@@ -7,8 +7,14 @@ import type { ReportPackFilters, ReportTicketSnapshot, ReportWindow } from './re
 /**
  * Package 1.6 (plan §3 D5): with a window, only tickets that were alive inside
  * it are read (created before its end and not closed before its start), and
- * never the heavy columns (`description`, `formData`). Without a window (the
- * bottleneck dashboard, current state only) the previous behaviour is kept.
+ * never the heavy columns (`description`, `formData`).
+ *
+ * W7.101 (`BA-reports-11`): **every** read is a projection now — the no-window
+ * path (bottleneck/dashboard fallback) used to fetch the whole row, free text
+ * included, and the windowed path fetched `title`/`ticketNumber`/`isConfidential`
+ * for packs that only count rows. The default is the aggregate snapshot; a pack
+ * that actually prints a ticket asks for `projection: 'row'` and then gets the
+ * identifying columns (still never the free text).
  */
 export async function loadScopedReportTickets(
   prisma: PrismaService,
@@ -23,6 +29,11 @@ export async function loadScopedReportTickets(
      * would drop afterwards.
      */
     readonly filters?: ReportPackFilters;
+    /**
+     * `snapshot` (default) carries what the counters read; `row` adds the identifying columns a
+     * pack that prints tickets needs. Neither ever selects `description`, `formData` or any other free text.
+     */
+    readonly projection?: ReportTicketProjection;
   } = {},
 ): Promise<readonly ReportTicketSnapshot[]> {
   if (organizationalUnitIds.length === 0) {
@@ -49,7 +60,7 @@ export async function loadScopedReportTickets(
   };
   const records = (await prisma.ticket.findMany({
     where,
-    ...(window === undefined ? {} : { select: reportTicketSelect }),
+    select: options.projection === 'row' ? reportTicketRowSelect : reportTicketSnapshotSelect,
     orderBy: { createdAt: 'asc' },
     // W7.53: a pack request never reads more than its row budget plus the
     // probe row that tells the caller the corpus is larger.
@@ -65,14 +76,17 @@ export async function loadScopedReportTickets(
   }));
 }
 
-/** Everything the report packs read; no free-text columns. */
-export const reportTicketSelect = {
+export type ReportTicketProjection = 'snapshot' | 'row';
+
+/**
+ * What the aggregate packs read: the counters of the monthly KPI, the overdue-by-service split and the
+ * close-code split, plus what the dashboard/bottleneck fallbacks aggregate. No title, no ticket number, no
+ * confidential marker and **no free text** — a pack that never prints a ticket cannot leak one.
+ */
+export const reportTicketSnapshotSelect = {
   id: true,
-  ticketNumber: true,
-  title: true,
   status: true,
   priority: true,
-  isConfidential: true,
   originUnitId: true,
   serviceId: true,
   assignedGroupId: true,
@@ -84,4 +98,16 @@ export const reportTicketSelect = {
   archivedAt: true,
   createdAt: true,
   updatedAt: true,
+} satisfies Prisma.TicketSelect;
+
+/**
+ * The identifying columns a pack that prints a ticket row needs (today only `forward_ping_pong`, which has its
+ * own loader). Still no free text: `description`, `formData`, `resolutionSummary` and the message bodies are
+ * never part of a report snapshot.
+ */
+export const reportTicketRowSelect = {
+  ...reportTicketSnapshotSelect,
+  ticketNumber: true,
+  title: true,
+  isConfidential: true,
 } satisfies Prisma.TicketSelect;

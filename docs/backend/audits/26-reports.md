@@ -5,13 +5,14 @@
 **Rizik modula:** visok  
 **Baseline ocjena:** **4,70/10**  
 **Nalazi:** 2 P1, 12 P2, 5 P3<br>
-**Implementacija:** **10/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
+**Implementacija:** **11/19 zatvoreno** — W7.53 (`BA-reports-01`), W7.54 (`BA-reports-02`), W7.93
 (`BA-reports-03`, relacijski OU/service validator reference rasporeda), W7.94 (`BA-reports-04`, limit
 rasporeda unutar zaključane transakcije), W7.95 (`BA-reports-05`, `version`/`If-Match` na admin izmjenama
 rasporeda), W7.96 (`BA-reports-06`, audit red u transakciji izmjene), W7.97 (`BA-reports-07`, run log preživi
 brisanje rasporeda), W7.98 (`BA-reports-08`, sweep sam vraća svoj Redis raspored), W7.99 (`BA-reports-09`,
-at-least-once isporuka bez slijepog ponovnog slanja) i W7.100 (`BA-reports-10`, cache key nosi verziju
-autorizacije). Ova statusna dopuna ne mijenja susjedne nalaze ni ocjenu.
+at-least-once isporuka bez slijepog ponovnog slanja), W7.100 (`BA-reports-10`, cache key nosi verziju
+autorizacije) i W7.101 (`BA-reports-11`, svaki read izvještaja je projekcija). Ova statusna dopuna ne mijenja
+susjedne nalaze ni ocjenu.
 
 ## 1. Executive summary
 
@@ -74,6 +75,13 @@ Potrebni su DB-enforced limit/advisory lock, version predicate, transakcijski au
 (`withReportScheduleLimit`), pa dva paralelna snimanja ne mogu prekoračiti `maxSchedules`; zauzeta brava daje
 novi operativni kod `REPORT_SCHEDULE_LIMIT_UNAVAILABLE` (503), a ne lažni „limit dostignut”. Detalji:
 [316](../implementation/316-w794-reports-04-schedule-limit-lock.md).
+
+**Status poslije W7.101 (§27):** svaki čitani red u reports toku je sada **projekcija**. Ticket snapshot nosi samo
+kolone koje agregati čitaju (`reportTicketSnapshotSelect`), a identifikacione kolone (`title`, `ticketNumber`,
+`isConfidential`) dobija samo pack koji stvarno štampa tiket (`projection: 'row'`) — free text (`description`,
+`formData`, `resolutionSummary`) nije dio nijedne projekcije. Time je nestao i posljednji cijeli-red read
+(no-window put dashboard/bottleneck fallbacka). Detalji:
+[323](../implementation/323-w7101-reports-11-read-projections.md).
 
 **Status poslije W7.100 (§26):** per-user summary cache key više ne sadrži samo `(user, zone)` nego i
 **verziju autorizacije** (`User.authzVersion`): svaka sigurnosna promjena (rola/permission, članstvo u grupi,
@@ -177,7 +185,7 @@ Zeleni testovi dobro pokrivaju pure pack builder-e, serialization, config parsin
 | BA-reports-08 | P2       | BullMQ repeat scheduler nema reconciliation nakon Redis gubitka                               | zatvoreno (W7.98) |
 | BA-reports-09 | P2       | SMTP accepted → DB mark crash prozor može duplirati scheduled e-mail                          | zatvoreno (W7.99) |
 | BA-reports-10 | P2       | Summary/dashboard cache nema scope-revoke/mutation invalidaciju; stale authorization prozor   | zatvoreno (W7.100) |
-| BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | otvoreno |
+| BA-reports-11 | P2       | KB/ticket loaderi čitaju nekorištene osjetljive kolone i šire privacy blast radius            | zatvoreno (W7.101) |
 | BA-reports-12 | P2       | Packovi nemaju formalno usklađenu event-time/snapshot-time window semantiku                    | otvoreno |
 | BA-reports-13 | P2       | Privacy/anonymization matrica ne pokriva run JSON, recipients, mail kopije i replike           | otvoreno |
 | BA-reports-14 | P2       | Run retention prune je best-effort i zavisi od aktivnog sweepa                                | otvoreno |
@@ -585,3 +593,43 @@ summary se kešira pod istom verzijom. Lokalno: backend **946 suite / 5.460 test
 **Otvoreno i dokumentovano:** strogi versioned schema/payload cap Redis parsera je `BA-reports-15` (P3);
 retention run loga `BA-reports-14`; privacy matrica `BA-reports-13`. Detalji:
 [322-w7100-reports-10-authorization-aware-cache.md](../implementation/322-w7100-reports-10-authorization-aware-cache.md).
+
+## 27. Implementacijski closeout — W7.101 (`BA-reports-11`)
+
+**Nalaz:** reports loaderi su čitali šire nego što im treba, pa je privacy blast radius u memoriji bio veći od
+podataka koji izvještaj koristi:
+
+1. **No-window put je čitao cijeli red.** `loadScopedReportTickets` je `select` primjenjivao samo kad je prozor
+   zadat; bez prozora (dashboard i bottleneck fallback) Prisma je vraćala **sve** kolone, uključujući
+   `description` i `formData`.
+2. **Identifikacione kolone za packove koji broje redove.** Prozorski put je uvijek uzimao `title`,
+   `ticketNumber` i `isConfidential`, iako `monthly_kpi`, `overdue_by_service` i `top_close_codes` čitaju samo
+   `id`, `serviceId`, `closeCodeId` i vremenske oznake.
+3. **Close codes cijeli red** (`serviceId`, `isActive`, `createdAt`, `updatedAt`) za pack koji štampa `id/key/name`.
+4. **KB loader** je W7.53 već sveo na `id/title/serviceId/organizationalUnitId/viewCount`, pa tu nije bilo šta
+   dodatno suziti; feedback upit je bio uzak od ranije.
+
+**Rješenje.**
+
+- **Dvije imenovane projekcije:** `reportTicketSnapshotSelect` (agregati — bez `title`, `ticketNumber`,
+  `isConfidential`) i `reportTicketRowSelect` (snapshot + identifikacione kolone). Nijedna ne sadrži free text.
+- **Projekcija je obavezna:** `loadScopedReportTickets` uvijek prosljeđuje `select` (default `snapshot`), pa
+  cijeli-red read više ne postoji ni na jednom putu. `projection: 'row'` je eksplicitan zahtjev onoga koji štampa
+  tiket (danas `forward_ping_pong`, koji ima svoj loader i svoj select).
+- **Close codes:** `select: { id, key, name }`.
+
+**Posljedice po ponašanje:** identični payloadi i brojevi; manje kolona u memoriji (nema naslova ni confidential
+markera za packove koji ih ne koriste, nema free texta nigdje). `ReportTicketSnapshot` tip i dalje opisuje pun
+oblik (packovi su tipizirani nad njim), pa je projekcija garantirana na nivou upita i **testirana** tamo gdje se
+može dokazati — u argumentima `findMany`.
+
+**Testni dokaz:** `load-scoped-report-tickets.projection.spec.ts` (**novo, 5**): nijedna projekcija ne sadrži
+`description`/`formData`/`resolutionSummary`/`resolutionNote`; agregatna projekcija ne sadrži identifikacione
+kolone; **no-window read ima `select`** (regresija za cijeli-red read); `projection: 'row'` daje identifikacione
+kolone uz zadate granice prozora i `take`; bez OJ nema upita. Lokalno: backend **947 suite / 5.465 testa**,
+`reports` **38/213**; `eslint` 0; rute i migracije nepromijenjene (632 / 124).
+
+**Otvoreno i dokumentovano:** DB agregacija/paginacija za preostale packove ostaje rezidualni rizik (audit §10;
+`BA-reports-01` je uveo bounded read + probe red); strogi versioned schema/payload cap Redis parsera je
+`BA-reports-15`; privacy matrica nad run JSON-om i primaocima je `BA-reports-13`. Detalji:
+[323-w7101-reports-11-read-projections.md](../implementation/323-w7101-reports-11-read-projections.md).

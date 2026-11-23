@@ -269,8 +269,11 @@ async function loadCloseCodes(
   if (uniqueIds.length === 0) {
     return new Map();
   }
+  // W7.101 (`BA-reports-11`): the pack prints id/key/name; the row's service, active flag and timestamps are not
+  // read, so they are not fetched either.
   const records = (await prisma.closeCode.findMany({
     where: { id: { in: uniqueIds } },
+    select: { id: true, key: true, name: true },
   })) as CloseCodeLookup[];
   return new Map(records.map((record) => [record.id, record]));
 }
