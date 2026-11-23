@@ -888,7 +888,9 @@ Zakazani izvještaji se ne mijenjaju. Rute ostaju 632 (samo jedan obavezan heade
 `report-schedules.processor.spec.ts` (+1), `report-schedule-run-now-idempotency.integration.spec.ts`
 (**novo, 4**, PostgreSQL — uključujući **osam paralelnih** inserta sa istim ključem: tačno jedan prolazi), frontend
 `report-schedules-api` (+3) i `report-command-key` (**novo, 4**). Lokalno: `reports` **45 suite / 336 testova**,
-`nest build` i `tsc --noEmit` zeleni, `npm run lint` bez grešaka, `wiring:check` 632, migracije **125**.
+`nest build` i `tsc --noEmit` zeleni, `npm run lint` bez grešaka, `wiring:check` 632, migracije **125**. CI
+[`45244785069`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45244785069) **success** na `aaaa9fe` (prvi run `45240042433` pao je samo na Prettier formatu u frontend
+specu — popravljeno).
 
 **Otvoreno i dokumentovano:** idempotency zapis se čuva 24 h (zajednička politika), ali unique `commandKey` na run
 redu čuva garanciju dokle god run postoji (180 dana); ključ vezuje komandu za raspored i aktera, ne za vrijeme

@@ -14,7 +14,7 @@ indeks; bez destruktivnog approvala)<br>
 **Rute:** nepromijenjene po broju (632); `POST /reports/schedules/:id/run-now` sada **traži** `Idempotency-Key`<br>
 **Frontend:** `report-schedules-api.ts`, `lib/reports/report-command-key.ts` (**novo**), panel; specovi (+3 api, +4
 command key)<br>
-**CI:** vidi „Dokaz” na kraju
+**CI:** [run `45244785069`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45244785069) ✓ na `aaaa9fe`
 
 ## Nalaz
 
@@ -123,4 +123,11 @@ fault matrica).
 
 ## Dokaz
 
-CI: _popunjava se nakon push-a_ (vidi `## 32` u [26-reports.md](../audits/26-reports.md)).
+CI [`45244785069`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45244785069) **success** na `aaaa9fe`: `Backend build + test`, `Backend PostgreSQL + Redis integration`
+(novi shard sa `report-schedule-run-now-idempotency.integration.spec.ts`), `Frontend build + test`,
+`Backend container + supply chain` i `Docs guard` (`E2E` i inventura `skipped`, kako je konfigurisano).
+
+Prvi run [`45240042433`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45240042433) pao je **samo** na
+`Frontend build + test` zbog Prettier formata u `report-schedules-api.spec.ts` (lint, tsc, 477 test fajlova i build
+bili su zeleni lokalno) — popravljeno u `aaaa9fe`. Detalji u
+[26-reports.md, §32](../audits/26-reports.md#32-implementacijski-closeout--w7106-ba-reports-16).
