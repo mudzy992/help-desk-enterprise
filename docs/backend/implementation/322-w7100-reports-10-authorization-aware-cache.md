@@ -10,7 +10,7 @@ i harness prošireni verzijom)<br>
 **DB migracija:** **ne** (`User.authzVersion` postoji od paketa 2.2)<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _(upisuje se po završetku runa)_
+**CI:** [run `45175565106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45175565106) ✓ na `95027f6`
 
 ## Nalaz
 
@@ -80,7 +80,27 @@ korisnik smije vidjeti** (`buildTicketListWhere`). Posljedice:
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+**Run [`45175565106`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45175565106) — success iz prvog
+pokušaja** (push na `arena/864951a6-help-desk-enterprise`, commit `95027f6`, `CI gate` ✓). Poslovi:
+`Backend build + test` ✓, `Backend PostgreSQL + Redis integration` ✓ (103/103 izolovana suitea),
+`Frontend build + test` ✓, `Docs guard` ✓, `Backend container + supply chain` ✓; `E2E *` preskočeni (nema `e2e`
+promjena).
+
+**Zašto bez popravke:** promjena je u potpisu tri DOM-domain helpera i jednog servisa, bez novih tabela i bez
+novog Redis poziva — `PrincipalContextLoader` je i ranije bio u grafu (`ReportsModule` importuje
+`AuthenticationModule`), pa je DI i tip bio poznat prije CI-ja.
+
+**Ostale provjere (lokalno, prije commita):**
+
+| provjera | rezultat |
+| --- | --- |
+| `jest` (backend, cijeli) | **946 suite / 5.460 testa** ✓, 104 suite skipped (integracije bez `PRIVACY_IT_DATABASE_URL`) |
+| `jest src/modules/reports` | **37 suite / 208 testa** ✓ (+6 skipped, integracioni specovi) |
+| `eslint src/modules/reports` | 0 problema ✓ |
+| `npm run wiring:check` | ✓ 99 controllera, **632** rute (nepromijenjeno) |
+| `npm run db:migration-policy:check` | ✓ **124** migracije (bez nove migracije) |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
+| `node scripts/check-backend-findings.mjs` | ✓ **696/696**, zatvoreno **318** / otvoreno **378** |
 
 ## Registar nalaza
 
