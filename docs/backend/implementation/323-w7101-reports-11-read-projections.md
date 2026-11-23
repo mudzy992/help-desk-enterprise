@@ -8,7 +8,7 @@
 **DB migracija:** **ne**<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _(upisuje se po završetku runa)_
+**CI:** [run `45178731646`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45178731646) ✓ na `8c30e75`
 
 ## Nalaz
 
@@ -85,7 +85,27 @@ Lokalno: backend **947 suite / 5.465 testa** ✓ (104 suite skipped — integrac
 
 ## CI i testni dokaz
 
-_(upisuje se po završetku runa)_
+**Run [`45178731646`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45178731646) — success iz prvog
+pokušaja** (push na `arena/864951a6-help-desk-enterprise`, commit `8c30e75`, `CI gate` ✓). Poslovi:
+`Backend build + test` ✓, `Backend PostgreSQL + Redis integration` ✓ (103/103 izolovana suitea),
+`Frontend build + test` ✓, `Docs guard` ✓, `Backend container + supply chain` ✓; `E2E *` preskočeni (nema `e2e`
+promjena).
+
+**Zašto bez popravke:** promjena suzuje `select` u dva postojeća upita i ne dira tipove koje Prisma generiše
+(`satisfies Prisma.TicketSelect` je provjeren lokalno u IDE smislu kroz `eslint`; tip je isti kao ranije), pa nije
+bilo nove zavisnosti koju stub može sakriti.
+
+**Ostale provjere (lokalno, prije commita):**
+
+| provjera | rezultat |
+| --- | --- |
+| `jest` (backend, cijeli) | **947 suite / 5.465 testa** ✓, 104 suite skipped (integracije bez `PRIVACY_IT_DATABASE_URL`) |
+| `jest src/modules/reports` | **38 suite / 213 testa** ✓ (+6 skipped, integracioni specovi) |
+| `eslint src/modules/reports` | 0 problema ✓ |
+| `npm run wiring:check` | ✓ 99 controllera, **632** rute (nepromijenjeno) |
+| `npm run db:migration-policy:check` | ✓ **124** migracije (bez nove migracije) |
+| `node scripts/check-docs-content.mjs` | ✓ 32 stranice, 8 prevoda, 10 provjera |
+| `node scripts/check-backend-findings.mjs` | ✓ **696/696**, zatvoreno **319** / otvoreno **377** |
 
 ## Registar nalaza
 
