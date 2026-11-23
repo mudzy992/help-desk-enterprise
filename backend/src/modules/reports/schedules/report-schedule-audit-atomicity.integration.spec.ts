@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma/client';
+import type { Prisma } from '../../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import type { RecordAuditEntryInput } from '../../audit-log/audit-log.types';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
@@ -108,10 +109,7 @@ describeIfDatabase('report schedule audit atomicity (integration)', () => {
     return { id: schedule.id, runId: run.id };
   }
 
-  function finalize(
-    transaction: { reportScheduleRun: { update: (args: unknown) => Promise<unknown> } },
-    runId: string,
-  ): Promise<unknown> {
+  function finalize(transaction: Prisma.TransactionClient, runId: string): Promise<unknown> {
     return transaction.reportScheduleRun.update({
       where: { id: runId },
       data: { status: 'SENT', sentCount: 1, recipientCount: 1, finishedAt: new Date(), durationMs: 12 },
