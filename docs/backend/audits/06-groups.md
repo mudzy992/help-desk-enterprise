@@ -60,9 +60,11 @@ Pregledane povezane površine:
 ### 3.3. Delete
 
 - delete učitava grupu i članove unutar transakcije;
-- blokira jedinu fallback grupu i grupu sa aktivnim tiketima;
-- audit s member ID listom nastaje prije deletea u istoj transakciji;
-- DB zatim primjenjuje mješavinu `Cascade`, `SetNull` i `Restrict` pravila nad širim skupom modula;
+- inventory preko **svih 17** relacija na `Group` (W2.12): blocker za živu konfiguraciju i `Restrict`, prijava za
+  `SetNull` i tranzijentni `Cascade` (vidi [343](../implementation/343-w212-group-delete-dependencies.md));
+- blocker više nije samo „jedina fallback grupa” i „aktivni tiketi” — 409 nosi `blockers: [{kind, count}]` za sve
+  pronađene zavisnosti odjednom;
+- audit (`groupDeleted`) dobija `dependencies.detached/cascaded` prije deletea, u istoj transakciji;
 - servis poslije commita best-effort invalidira pogođene principale.
 
 ### 3.4. Read modeli
@@ -80,7 +82,8 @@ Pregledane povezane površine:
 | `POST /groups`                            | ADMIN + `group.manage`       | body `organizationalUnitId` | korektna destination kontrola                   |
 | `GET /groups/:groupId`                    | ADMIN + `group.manage`       | group resource resolver     | vraća member e-mailove                          |
 | `PATCH /groups/:groupId`                  | ADMIN + `group.manage`       | group resource resolver     | OU/key se ne mijenjaju                          |
-| `DELETE /groups/:groupId`                 | ADMIN + `group.manage`       | group resource resolver     | lifecycle preflight nepotpun                    |
+| `GET /groups/:groupId/delete-impact`      | ADMIN + `group.manage`       | group resource resolver     | W2.12: block/detach/cascade inventory, read-only |
+| `DELETE /groups/:groupId`                 | ADMIN + `group.manage`       | group resource resolver     | W2.12: 409 sa `blockers[]`                      |
 | `POST /groups/:groupId/members/:userId`   | ADMIN + `group.manage`       | samo group OU               | target user active/scope se ne provjerava       |
 | `DELETE /groups/:groupId/members/:userId` | ADMIN + `group.manage`       | samo group OU               | revoke propagacija kasni                        |
 | `GET /groups/mine`                        | USER/AGENT/ADMIN/SA          | vlastito članstvo; SA sve   | read-only self-service ruta                     |
@@ -112,7 +115,7 @@ Brisanje `Group` reda može:
 - pasti na routing rule `Restrict` relaciji;
 - uticati na druge cascade/set-null relacije koje će se širiti kako schema raste.
 
-Groups modul unaprijed provjerava samo active ticket i sole-fallback slučaj. Audit bilježi članove, ali ne inventarizira ostale uklonjene/odvezane resurse.
+Groups modul je unaprijed provjeravao samo active ticket i sole-fallback slučaj. Audit bilježi članove, ali ne inventarizira ostale uklonjene/odvezane resurse. **W2.12** to mijenja: vidi „Implementacijski dodatak — W2.12” i [343](../implementation/343-w212-group-delete-dependencies.md).
 
 Membership se koristi za ticket inbox, ticket visibility, confidential access, notification group recipients i WebSocket group rooms. Zbog toga revoke nije samo UI promjena nego direktna authorization/confidentiality operacija.
 
@@ -127,6 +130,27 @@ Preostala granica je target član: administrator koji smije upravljati grupom mo
 ### Vertikalna eskalacija i stale revoke
 
 Group membership može dati pristup inboxu, povjerljivom tiketu i realtime group roomu. Nakon removal commita druga instanca može nastaviti koristiti cached članstvo, a postojeći socket ostaje u sobi do pet minuta. To predstavlja vremenski ograničeno zadržavanje opozvanih prava, ne novi permanentni grant.
+
+### Implementacijski dodatak — W2.12, 2026-11-25
+
+`BA-groups-01` je zatvoren u [`343-w212-group-delete-dependencies.md`](../implementation/343-w212-group-delete-dependencies.md).
+Delete grupe više ne prepušta posljedicu bazi: nova `collectGroupDeleteDependencies` u **jednoj transakciji** broji svih
+16 relacija koje pokazuju na `Group` (plus članstvo, koje je predmet operacije) i razvrstava ih po pravilu koje šema već
+nosi — `Restrict` i živa `Cascade` konfiguracija su **blocker**, tranzijentni `Cascade` (`Notification`) je prijavljeni
+cascade, a `SetNull` je prijavljeni detach. Odbijen delete vraća **409** sa `blockers: [{kind, count}]` za sve
+pronađene zavisnosti odjednom, pa `routingRules` i `problemHandoffs` više nisu generički 500. Dozvoljen delete u audit
+upisuje `dependencies.detached/cascaded` prije `group.delete`.
+
+Ista funkcija napaja novu read-only rutu `GET /groups/:groupId/delete-impact` (ADMIN + `group.manage` + group resource
+OU scope), pa UI dijalog pokazuje impact **prije** potvrde i onemogućava potvrdu kad blokera ima. Time je acceptance
+„operator ima impact preview i warning” ispunjen na istom izvoru istine kao i guard — dijalog i 409 se ne mogu razići.
+Fail-closed: neuspio count prekida transakciju, delete se ne izvršava; preview tada ne tvrdi da je grupa nekorištena.
+
+Politika „arhiviraj umjesto blokiraj” nije uvedena (nema `archivedAt` na `Group`; uvođenje dira svaki read u modulu) —
+odabrano je blokiranje sa akcionim 409, što je druga dozvoljena opcija iz korekcije nalaza.
+
+Granica: **`-07`** (TOCTOU prema `SetNull`) ostaje otvoren — inventar se čita u istoj transakciji, ali bez locka nad
+grupom; **`-03`** (fallback cardinality) i **`-05`** (CAB/problem flagovi) takođe ostaju.
 
 ## 8. Testovi i izvršeni gateovi
 
@@ -156,6 +180,12 @@ Rezultat:
 - **0 testova izvršeno**;
 - svih **6 suiteova compile-blocked** zbog nedostajućeg generated Prisma klijenta/enuma i posljedičnih `PrismaService` type grešaka.
 
+**W2.12 (2026-11-25), ponovljeno sa lokalnim stubom klijenta i isključenom TS dijagnostikom:** **8 suiteova, 49 testova
+prolazi** (`group-delete-dependencies.spec.ts` 21, `groups.service.spec.ts`, `delete-group-scope.spec.ts`,
+`groups.controller.guard.spec.ts`, `groups-mine.controller.guard.spec.ts`, `groups.service.list-accessible.spec.ts`,
+`list-my-groups.spec.ts`, `groups-module-order.spec.ts`). To je runtime dokaz; type-check protiv pravog generisanog
+klijenta daje CI (`nest build`).
+
 Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility problem evidentiran u modulima 01–05.
 
 ## 9. Pozitivni nalazi
@@ -174,7 +204,7 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 
 | ID           | Severity | Naslov                                                                            | Status   | Veličina |
 | ------------ | -------- | --------------------------------------------------------------------------------- | -------- | -------- |
-| BA-groups-01 | P1       | Group delete može tiho cascade obrisati/odvezati kritične cross-module resurse    | otvoreno | L        |
+| BA-groups-01 | P1       | Group delete može tiho cascade obrisati/odvezati kritične cross-module resurse    | zatvoreno (W2.12, [343](../implementation/343-w212-group-delete-dependencies.md)) | L        |
 | BA-groups-02 | P1       | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room        | otvoreno | L        |
 | BA-groups-03 | P1       | Fallback invariant dopušta nula ili više fallback grupa u istom OU-u              | otvoreno | L        |
 | BA-groups-04 | P2       | Inactive/directory-deactivated korisnik može dobiti latentno group članstvo       | otvoreno | M        |
@@ -194,6 +224,13 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 - **Korekcija:** centralni dependency inventory/preview sa eksplicitnim block/cascade/detach pravilom za svaku relaciju; kritične historijske konfiguracije blokirati ili arhivirati, ne implicitno cascade brisati.
 - **Acceptance:** fixture za svaku direktnu relaciju daje dokumentovan blocker/impact; on-call/Teams/notification/template podaci ne nestaju bez eksplicitne potvrde i audita.
 - **Owner:** groups + on-call/teams/notifications/routing/data owner.
+- **Status (W2.12, 2026-11-25):** zatvoreno. `collectGroupDeleteDependencies` broji svih 16 zavisnih relacija (+ članstvo)
+  u jednoj transakciji i dijeli ih na **block / detach / cascade**; delete odbija sa 409 i punom listom `{kind, count}`
+  (uključujući `routingRules` i `problemHandoffs`, koji su dosad davali generički 500), a dozvoljeni delete u audit
+  upisuje šta je odvezano i šta je cascade-obrisano. Ista funkcija napaja novu read-only rutu
+  `GET /groups/:groupId/delete-impact`, pa dijalog u UI pokazuje impact **prije** potvrde i onemogućava potvrdu kad
+  blokera ima. Fail-closed: neuspio count prekida transakciju, delete se ne izvršava. Detalji:
+  [343](../implementation/343-w212-group-delete-dependencies.md). TOCTOU iz `-07` ostaje (vidi „Granica paketa”).
 
 ### BA-groups-02 — Opozvano članstvo ostaje efektivno
 
@@ -370,7 +407,7 @@ Promjena delete semantike može otkriti postojeće implicitne cascade zavisnosti
 
 | Nalaz        | Kod/dokaz                                 | Test                           | Faza  |
 | ------------ | ----------------------------------------- | ------------------------------ | ----- |
-| BA-groups-01 | delete helper + Prisma Group relacije     | per-relation impact fixture    | 0–1   |
+| BA-groups-01 | `collect-group-delete-dependencies` + `delete-impact` ruta + audit `dependencies` | 21 fixture testa po relaciji + 4 hook testa | 0–2 |
 | BA-groups-02 | actor-group cache + socket revalidation   | two-instance revoke            | 0–2   |
 | BA-groups-03 | update/create fallback + schema           | zero/multi/concurrent fallback | 0–3   |
 | BA-groups-04 | add-member user select                    | inactive lifecycle fixtures    | 0–4   |

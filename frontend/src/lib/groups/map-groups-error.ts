@@ -5,6 +5,7 @@ export type GroupsErrorKey =
   | "groups.errorForbidden"
   | "groups.errorNotFound"
   | "groups.errorValidation"
+  | "groups.errorDependencies"
   | "groups.errorSoleFallback"
   | "groups.errorActiveTickets"
   | "groups.errorMemberExists"
@@ -20,6 +21,7 @@ const codeKeys: Partial<Record<string, GroupsErrorKey>> = {
   INVALID_NAME: "groups.errorValidation",
   SOLE_FALLBACK_GROUP: "groups.errorSoleFallback",
   HAS_ACTIVE_TICKETS: "groups.errorActiveTickets",
+  HAS_DEPENDENCIES: "groups.errorDependencies",
   MEMBER_ALREADY_EXISTS: "groups.errorMemberExists",
   MEMBER_NOT_FOUND: "groups.errorMemberMissing",
 };
@@ -32,7 +34,9 @@ export function mapGroupsError(error: unknown): GroupsErrorKey {
       401: "groups.errorUnauthorized",
       403: "groups.errorForbidden",
       404: "groups.errorNotFound",
-      409: "groups.errorSoleFallback",
+      // W2.12: a refused delete now lists its dependencies; the generic 409 text
+      // no longer claims the group is the sole fallback.
+      409: "groups.errorDependencies",
       400: "groups.errorValidation",
       422: "groups.errorValidation",
     },

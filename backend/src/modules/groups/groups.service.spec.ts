@@ -101,6 +101,28 @@ describe('GroupsService', () => {
         callback(prisma),
       ),
     };
+    // W2.12: the delete guard now counts every relation that points at `Group`.
+    // Relations a test does not care about answer "no rows".
+    for (const relation of [
+      'onCallSchedule',
+      'teamsGroupChannel',
+      'responseTemplateGroup',
+      'routingRule',
+      'problemHandoff',
+      'ticketParticipant',
+      'problem',
+      'changeRequest',
+      'notification',
+      'ticketConfidentialGrant',
+      'knowledgeArticle',
+      'slaEscalationRule',
+      'reportSchedule',
+      'assetType',
+    ]) {
+      (prisma as unknown as Record<string, unknown>)[relation] = {
+        count: jest.fn().mockResolvedValue(0),
+      };
+    }
     prisma.group.findUnique.mockImplementation(async ({ where }: { where: { id?: string; key?: string } }) => {
       if (where.id === groupRecord.id) {
         return groupRecord;
@@ -281,6 +303,17 @@ describe('GroupsService', () => {
       ConflictException,
     );
     expect(prisma.group.delete).not.toHaveBeenCalled();
+  });
+
+  it('previews the delete impact without writing anything (W2.12)', async () => {
+    const { service, prisma } = createService();
+    prisma.group.count.mockResolvedValue(2);
+    prisma.ticket.count.mockResolvedValueOnce(2).mockResolvedValueOnce(5);
+    const impact = await service.deleteImpact(groupRecord.id);
+    expect(impact.blockers).toEqual([{ kind: 'activeTickets', count: 2 }]);
+    expect(impact.detached).toEqual([{ kind: 'closedTickets', count: 5 }]);
+    expect(prisma.group.delete).not.toHaveBeenCalled();
+    expect(recordGroupChange).not.toHaveBeenCalled();
   });
 
   it('invalidates every member after an audited group deletion', async () => {

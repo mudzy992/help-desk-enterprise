@@ -1596,7 +1596,7 @@
     {
       "id": "BA-groups-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.12, [343](../implementation/343-w212-group-delete-dependencies.md))",
       "source": "06-groups.md",
       "owner": "WS-A",
       "wave": 2

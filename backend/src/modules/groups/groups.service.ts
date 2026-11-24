@@ -12,7 +12,10 @@ import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticke
 import { GroupsError } from './groups.error';
 import { addGroupMember } from './add-group-member';
 import { createGroup } from './create-group';
+import { collectGroupDeleteDependencies } from './collect-group-delete-dependencies';
+import type { GroupDeleteImpact } from './group-delete.types';
 import { deleteGroup } from './delete-group';
+import { loadGroupRecord } from './load-group-record';
 import { getGroup } from './get-group';
 import { mapGroupsError } from './map-groups-error';
 import type {
@@ -110,6 +113,22 @@ export class GroupsService {
     const result = await this.execute(() => updateGroup(this.prisma, groupId, input, context));
     this.publishScope(result.organizationalUnitId);
     return result;
+  }
+
+  /**
+   * W2.12 (`BA-groups-01`): the impact preview the delete dialog needs. It reads
+   * the same inventory the delete itself enforces, so the dialog and the 409 can
+   * never disagree.
+   */
+  async deleteImpact(groupId: string): Promise<GroupDeleteImpact> {
+    return this.execute(async () => {
+      const group = await loadGroupRecord(this.prisma, groupId);
+      return collectGroupDeleteDependencies(this.prisma, {
+        groupId: group.id,
+        organizationalUnitId: group.organizationalUnitId,
+        isFallback: group.isFallback,
+      });
+    });
   }
 
   async delete(

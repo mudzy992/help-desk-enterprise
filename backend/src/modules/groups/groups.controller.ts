@@ -30,6 +30,7 @@ import { RoleGuard } from '../authorization/role.guard';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { ListGroupsQueryDto } from './dto/list-groups-query.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import type { GroupDeleteImpact } from './group-delete.types';
 import { GroupsService } from './groups.service';
 import type { GroupListItemResponse, GroupResponse } from './groups.types';
 
@@ -83,6 +84,18 @@ export class GroupsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<GroupResponse> {
     return this.groupsService.update(groupId, body, readAuditContext(request));
+  }
+
+  /**
+   * W2.12 (`BA-groups-01`): what a delete would block, detach and cascade. Same
+   * inventory as the delete guard, so the dialog can explain a 409 before it
+   * happens.
+   */
+  @Get(':groupId/delete-impact')
+  @RequirePermissions(permissionKeys.groupManage)
+  @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
+  deleteImpact(@Param('groupId') groupId: string): Promise<GroupDeleteImpact> {
+    return this.groupsService.deleteImpact(groupId);
   }
 
   @Delete(':groupId')

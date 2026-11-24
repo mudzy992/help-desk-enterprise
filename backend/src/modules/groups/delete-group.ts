@@ -6,11 +6,14 @@ import { recordGroupChange } from './record-group-change';
 import { assertGroupDeletable } from './assert-group-deletable';
 import { loadGroupRecord } from './load-group-record';
 import type { GroupAuditContext } from './groups.types';
+import type { GroupDeleteImpact } from './group-delete.types';
 
 export type GroupDeleteOutcome = {
   readonly affectedUserIds: readonly string[];
   /** Captured from the deleted record inside the committing transaction. */
   readonly organizationalUnitId: string;
+  /** W2.12: what the delete detached or cascade-deleted, for the audit trail. */
+  readonly impact: GroupDeleteImpact;
 };
 
 export async function deleteGroup(
@@ -21,7 +24,7 @@ export async function deleteGroup(
   const outcome = await prisma.$transaction(async (transaction) => {
     const client = transaction as unknown as PrismaService;
     const group = await loadGroupRecord(client, groupId);
-    await assertGroupDeletable(client, group);
+    const impact = await assertGroupDeletable(client, group);
     const memberUserIds = group.members.map((member) => member.userId);
     await recordGroupChange(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.groupDeleted,
@@ -40,10 +43,21 @@ export async function deleteGroup(
           memberCount: memberUserIds.length,
           memberUserIds,
         },
+        // W2.12: the audit answers "what disappeared with this group?" without a
+        // database archaeology session afterwards.
+        dependencies: {
+          blocked: [] as readonly { kind: string; count: number }[],
+          detached: impact.detached,
+          cascaded: impact.cascaded,
+        },
       },
     });
     await transaction.group.delete({ where: { id: groupId } });
-    return { affectedUserIds: memberUserIds, organizationalUnitId: group.organizationalUnitId };
+    return {
+      affectedUserIds: memberUserIds,
+      organizationalUnitId: group.organizationalUnitId,
+      impact,
+    };
   });
   invalidateActorGroupsCache();
   return outcome;

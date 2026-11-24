@@ -18,8 +18,7 @@ const notFoundCodes: readonly GroupsErrorCode[] = [
 const conflictCodes: readonly GroupsErrorCode[] = [
   'DUPLICATE_KEY',
   'MEMBER_ALREADY_EXISTS',
-  'SOLE_FALLBACK_GROUP',
-  'HAS_ACTIVE_TICKETS',
+  'HAS_DEPENDENCIES',
 ];
 
 const messages: Record<GroupsErrorCode, string> = {
@@ -30,10 +29,8 @@ const messages: Record<GroupsErrorCode, string> = {
   DUPLICATE_KEY: 'Group key already exists',
   MEMBER_ALREADY_EXISTS: 'User is already a member of this group',
   MEMBER_NOT_FOUND: 'User is not a member of this group',
-  SOLE_FALLBACK_GROUP:
-    'Cannot remove the only fallback group for this organizational unit',
-  HAS_ACTIVE_TICKETS:
-    'Cannot delete a group that has active tickets assigned to it',
+  HAS_DEPENDENCIES:
+    'Cannot delete a group that other records still depend on',
   FORBIDDEN: 'Authorization failed',
 };
 
@@ -41,7 +38,11 @@ export function mapGroupsError(error: unknown): HttpException {
   if (!(error instanceof GroupsError)) {
     throw error;
   }
-  const body = { code: error.code, message: messages[error.code] };
+  const body = {
+    code: error.code,
+    message: messages[error.code],
+    ...(error.blockers.length > 0 ? { blockers: error.blockers } : {}),
+  };
   if (notFoundCodes.includes(error.code)) {
     return new NotFoundException(body);
   }

@@ -96,6 +96,26 @@ export function updateGroup(groupId: string, input: UpdateGroupInput): Promise<G
   });
 }
 
+/**
+ * W2.12 (`BA-groups-01`): what deleting this group would block, detach or
+ * cascade. The server computes it with the same inventory the delete enforces,
+ * so the dialog and the eventual 409 always agree.
+ */
+export type GroupDeleteDependency = {
+  readonly kind: string;
+  readonly count: number;
+};
+
+export type GroupDeleteImpactResponse = {
+  readonly blockers: readonly GroupDeleteDependency[];
+  readonly detached: readonly GroupDeleteDependency[];
+  readonly cascaded: readonly GroupDeleteDependency[];
+};
+
+export function getGroupDeleteImpact(groupId: string): Promise<GroupDeleteImpactResponse> {
+  return apiRequest(`/groups/${groupId}/delete-impact`);
+}
+
 export function deleteGroup(groupId: string): Promise<void> {
   return apiRequest(`/groups/${groupId}`, { method: "DELETE" });
 }

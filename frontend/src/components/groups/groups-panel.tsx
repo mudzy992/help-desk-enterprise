@@ -12,7 +12,8 @@ import type { DirectoryUser } from "@/lib/directory/use-directory";
 import { groupGroupsByUnit } from "@/lib/groups/group-groups-by-unit";
 import { useGroupsPanelActions } from "@/lib/groups/use-groups-panel-actions";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
-import type { GroupListItemResponse } from "@/services/groups-api";
+import type { DeleteImpactState } from "@/lib/groups/use-groups-panel-actions";
+import type { GroupDeleteDependency, GroupListItemResponse } from "@/services/groups-api";
 
 interface GroupsPanelProperties {
   readonly groups: readonly GroupListItemResponse[];
@@ -142,8 +143,116 @@ export function GroupsPanel({
           count: actions.deleteTarget?.memberCount ?? 0,
         })}
         confirmLabel={t("groups.delete")}
+        confirmDisabled={
+          actions.deleteImpact.status === "ready" && actions.deleteImpact.impact.blockers.length > 0
+        }
         onConfirm={() => void actions.confirmRemove()}
-      />
+      >
+        {/*
+          W2.12 (BA-groups-01): the operator sees what the delete touches -
+          blocked dependencies first, then rows that are only detached, then rows
+          that disappear for good - instead of discovering a cascade afterwards.
+        */}
+        <GroupDeleteImpact impact={actions.deleteImpact} />
+      </ConfirmDialog>
+    </div>
+  );
+}
+
+const dependencyKindKeys = [
+  "fallbackGroups",
+  "activeTickets",
+  "onCallSchedule",
+  "teamsChannel",
+  "responseTemplates",
+  "routingRules",
+  "problemHandoffs",
+  "confidentialGrants",
+  "openProblems",
+  "openChanges",
+  "closedTickets",
+  "ticketParticipants",
+  "knowledgeArticles",
+  "slaEscalationRules",
+  "reportSchedules",
+  "assetTypes",
+  "closedProblems",
+  "closedChanges",
+  "notifications",
+] as const;
+
+type DependencyKind = (typeof dependencyKindKeys)[number];
+
+function isKnownKind(kind: string): kind is DependencyKind {
+  return (dependencyKindKeys as readonly string[]).includes(kind);
+}
+
+function DependencyList({
+  dependencies,
+  testId,
+}: {
+  readonly dependencies: readonly GroupDeleteDependency[];
+  readonly testId: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ul className="list-disc pl-5 text-sm" data-testid={testId}>
+      {dependencies.map((dependency) => (
+        <li key={dependency.kind}>
+          {t(
+            isKnownKind(dependency.kind)
+              ? `groups.dependency.${dependency.kind}`
+              : "groups.dependency.unknown",
+            { count: dependency.count, kind: dependency.kind },
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function GroupDeleteImpact({ impact }: { readonly impact: DeleteImpactState }) {
+  const { t } = useTranslation();
+  if (impact.status === "loading") {
+    return (
+      <p className="text-sm text-muted-foreground" data-testid="group-delete-impact-loading">
+        {t("groups.deleteImpactLoading")}
+      </p>
+    );
+  }
+  if (impact.status === "unavailable") {
+    // The server still refuses the delete on its own; saying nothing is safer
+    // than claiming the group is unused.
+    return null;
+  }
+  const { blockers, detached, cascaded } = impact.impact;
+  return (
+    <div className="space-y-3">
+      {blockers.length === 0 ? null : (
+        <div className="space-y-1" data-testid="group-delete-blockers">
+          <p className="text-sm font-medium">{t("groups.deleteImpactBlockedTitle")}</p>
+          <p className="text-sm text-muted-foreground">{t("groups.deleteImpactBlockedBody")}</p>
+          <DependencyList dependencies={blockers} testId="group-delete-blocker-list" />
+        </div>
+      )}
+      {detached.length === 0 ? null : (
+        <div className="space-y-1">
+          <p className="text-sm font-medium">{t("groups.deleteImpactDetachedTitle")}</p>
+          <DependencyList dependencies={detached} testId="group-delete-detached-list" />
+        </div>
+      )}
+      {cascaded.length === 0 ? null : (
+        <div className="space-y-1">
+          <p className="text-sm font-medium">{t("groups.deleteImpactCascadedTitle")}</p>
+          <DependencyList dependencies={cascaded} testId="group-delete-cascaded-list" />
+        </div>
+      )}
+      {blockers.length === 0 && detached.length === 0 && cascaded.length === 0 ? (
+        <p className="text-sm text-muted-foreground" data-testid="group-delete-impact-clear">
+          {t("groups.deleteImpactClear")}
+        </p>
+      ) : null}
+      <p className="text-xs text-muted-foreground">{t("groups.deleteImpactAuditNote")}</p>
     </div>
   );
 }

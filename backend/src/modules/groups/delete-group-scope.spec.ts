@@ -1,7 +1,11 @@
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
 jest.mock('../../common/cache/scope-catalog-cache', () => ({ invalidateActorGroupsCache: jest.fn() }));
 jest.mock('./record-group-change', () => ({ recordGroupChange: jest.fn().mockResolvedValue(undefined) }));
-jest.mock('./assert-group-deletable', () => ({ assertGroupDeletable: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('./assert-group-deletable', () => ({
+  assertGroupDeletable: jest
+    .fn()
+    .mockResolvedValue({ blockers: [], detached: [], cascaded: [] }),
+}));
 jest.mock('./load-group-record', () => ({ loadGroupRecord: jest.fn() }));
 
 import { invalidateActorGroupsCache } from '../../common/cache/scope-catalog-cache';
@@ -27,7 +31,11 @@ describe('group deletion scope for a future scoped invalidation', () => {
     const outcome = await deleteGroup(prisma as never, 'group-1');
     expect(loadGroupRecord).toHaveBeenCalledWith(transaction, 'group-1');
     expect(recordGroupChange).toHaveBeenCalledWith(transaction, expect.objectContaining({ organizationalUnitId: 'ou-trusted' }));
-    expect(outcome).toEqual({ affectedUserIds: ['user-1'], organizationalUnitId: 'ou-trusted' });
+    expect(outcome).toEqual({
+      affectedUserIds: ['user-1'],
+      organizationalUnitId: 'ou-trusted',
+      impact: { blockers: [], detached: [], cascaded: [] },
+    });
     expect(invalidateActorGroupsCache).toHaveBeenCalledTimes(1);
   });
 
