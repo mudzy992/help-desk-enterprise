@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -19,6 +20,12 @@ import {
   resolveDirectorySearchScope,
 } from './search-directory-scope';
 import { isFatalSearchGroupFailure } from './search-group-failure';
+import {
+  type SearchGroupTelemetry,
+  type SearchRequestStatus,
+  type SearchTelemetryRecord,
+} from './search-telemetry';
+import { SearchTelemetry } from './search-telemetry.service';
 import { searchDirectoryUsers } from './search-users';
 import type {
   SearchGroupName,
@@ -39,6 +46,9 @@ export class SearchService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly ticketsService: TicketsService,
     private readonly knowledgeBaseService: KnowledgeBaseService,
+    // W7.112 (BA-search-11): the observer is optional so a unit test or a
+    // hand-built service keeps working; the module always provides it.
+    @Optional() private readonly telemetry?: SearchTelemetry,
   ) {}
 
   async search(
@@ -50,6 +60,7 @@ export class SearchService {
     // an empty needle (an empty `contains` matches the newest rows of a group).
     const usable = this.requireUsableQuery(query);
     const types = new Set(query.types);
+    const startedAt = Date.now();
     // W7.62 (BA-search-08): the groups settle independently so one unavailable
     // dependency cannot take the other answers down with it — but every outcome
     // is classified before anything is returned (see `search-group-failure.ts`):
@@ -78,12 +89,46 @@ export class SearchService {
       { group: 'article', outcome: articleOutcome },
       { group: 'user', outcome: userOutcome },
     ];
+    // W7.112 (BA-search-11): the telemetry draft is built from the same outcomes
+    // the answer is built from, so the line can never describe a different run.
+    // It carries counts, states and durations — never the needle or a matched id.
+    const groups: readonly SearchGroupTelemetry[] = [
+      toGroupTelemetry(
+        'ticket',
+        ticketOutcome,
+        ticketOutcome.kind === 'ok' ? ticketOutcome.value.length : 0,
+        usable.limit,
+      ),
+      toGroupTelemetry(
+        'article',
+        articleOutcome,
+        articleOutcome.kind === 'ok' ? articleOutcome.value.items.length : 0,
+        usable.limit,
+        articleOutcome.kind === 'ok' && articleOutcome.value.incomplete,
+      ),
+      toGroupTelemetry(
+        'user',
+        userOutcome,
+        userOutcome.kind === 'ok' ? userOutcome.value.length : 0,
+        usable.limit,
+      ),
+    ];
+    const emitTelemetry = (status: SearchRequestStatus): void =>
+      this.emitTelemetry({
+        status,
+        term: usable.q,
+        requestedTypes: [...types],
+        limit: usable.limit,
+        startedAt,
+        groups,
+      });
     const fatal = outcomes.find(
       (entry) => entry.outcome.kind === 'failed' && isFatalSearchGroupFailure(entry.outcome.error),
     );
     if (fatal !== undefined && fatal.outcome.kind === 'failed') {
       // Fail-closed: 401/403 and other client errors are decisions about this
       // request, never a group that "happened to be empty".
+      emitTelemetry('rejected');
       throw fatal.outcome.error;
     }
     const failedGroups = outcomes
@@ -92,6 +137,7 @@ export class SearchService {
     if (failedGroups.length > 0 && failedGroups.length === outcomes.length) {
       // Nothing could be read: there is no partial answer to give, so the
       // endpoint says so instead of returning three empty groups.
+      emitTelemetry('unavailable');
       throw new ServiceUnavailableException({
         code: 'SEARCH_UNAVAILABLE',
         message: 'The search groups are temporarily unavailable',
@@ -102,6 +148,7 @@ export class SearchService {
       articleOutcome.kind === 'ok'
         ? articleOutcome.value
         : { items: [], incomplete: false };
+    emitTelemetry(failedGroups.length > 0 ? 'partial' : 'ok');
     return {
       tickets: ticketOutcome.kind === 'ok' ? ticketOutcome.value : [],
       articles: articles.items,
@@ -125,6 +172,41 @@ export class SearchService {
       );
     }
     return { ...query, q };
+  }
+
+  /**
+   * W7.112 (BA-search-11): one best-effort telemetry line per answered request.
+   * The needle is handed to the sink, which reduces it to length + keyed hash —
+   * the raw term never reaches the record. Nothing here may change the answer:
+   * a missing or failing observer is silently ignored.
+   */
+  private emitTelemetry(input: {
+    readonly status: SearchRequestStatus;
+    readonly term: string;
+    readonly requestedTypes: readonly SearchGroupName[];
+    readonly limit: number;
+    readonly startedAt: number;
+    readonly groups: readonly SearchGroupTelemetry[];
+  }): void {
+    const telemetry = this.telemetry;
+    if (telemetry === undefined) {
+      return;
+    }
+    try {
+      const described = telemetry.describeTerm(input.term);
+      const record: SearchTelemetryRecord = {
+        status: input.status,
+        queryLength: described.length,
+        queryHash: described.hash,
+        requestedTypes: input.requestedTypes,
+        limit: input.limit,
+        durationMs: Math.max(Date.now() - input.startedAt, 0),
+        groups: input.groups,
+      };
+      telemetry.record(record);
+    } catch {
+      // Telemetry is an observer: it never fails a search.
+    }
   }
 
   private async searchUsers(
@@ -164,20 +246,57 @@ export class SearchService {
  * `failedGroups`.
  */
 type SearchGroupOutcome<T> =
-  | { readonly kind: 'skipped' }
-  | { readonly kind: 'ok'; readonly value: T }
-  | { readonly kind: 'failed'; readonly error: unknown };
+  | { readonly kind: 'skipped'; readonly durationMs: number }
+  | { readonly kind: 'ok'; readonly value: T; readonly durationMs: number }
+  | { readonly kind: 'failed'; readonly error: unknown; readonly durationMs: number };
 
 async function readSearchGroup<T>(
   requested: boolean,
   read: () => Promise<T>,
 ): Promise<SearchGroupOutcome<T>> {
   if (!requested) {
-    return { kind: 'skipped' };
+    // A group that was not requested did not cost anything, so it reports no
+    // duration rather than a measured zero.
+    return { kind: 'skipped', durationMs: 0 };
   }
+  const startedAt = Date.now();
   try {
-    return { kind: 'ok', value: await read() };
+    return { kind: 'ok', value: await read(), durationMs: Date.now() - startedAt };
   } catch (error) {
-    return { kind: 'failed', error };
+    return { kind: 'failed', error, durationMs: Date.now() - startedAt };
   }
+}
+
+/**
+ * W7.112 (BA-search-11): one group of the telemetry draft. `truncated` marks a
+ * group whose answer is not exhaustive — the article scan stopped at its budget,
+ * or a group returned exactly `limit` rows so more may exist. It is a server-side
+ * signal only; the response keeps `articlesIncomplete` for the article group.
+ */
+function toGroupTelemetry(
+  group: SearchGroupName,
+  outcome: SearchGroupOutcome<unknown>,
+  hits: number,
+  limit: number,
+  scanIncomplete = false,
+): SearchGroupTelemetry {
+  if (outcome.kind === 'skipped') {
+    return { group, state: 'skipped', hits: 0, durationMs: 0, truncated: false };
+  }
+  if (outcome.kind === 'failed') {
+    return {
+      group,
+      state: 'failed',
+      hits: 0,
+      durationMs: outcome.durationMs,
+      truncated: false,
+    };
+  }
+  return {
+    group,
+    state: 'ok',
+    hits,
+    durationMs: outcome.durationMs,
+    truncated: scanIncomplete || hits === limit,
+  };
 }
