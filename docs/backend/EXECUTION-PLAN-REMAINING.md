@@ -259,7 +259,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W1.7 | `BA-xcut-20` — centralna log redakcija, exception sanitizer ugovor i skener koji ga čuva | **zatvoreno** | `89b8d35` (kod + docs) | `45451235864` ✓ (prvi pokušaj) |
 | W2.9 | `BA-organizational-units-01` — OU control plane: guard + `organizationalUnit.manage` + scope na 6 ruta, drugi target u servisu, suženo stablo | **zatvoreno** | `c9cbc48` (kod + docs) | `45463469776` ✓ (prvi pokušaj `45459606355` crven: stale wiring manifest) |
 | W2.10 | `BA-users-01` — users control plane: `user.manage`/`user.security.manage`, user→OU scope lokator, sužena lista, destinacija granta/premještanja | **zatvoreno** | `60f6258` (kod + docs) | `45492790864` ✓ (prvi pokušaj) |
-| W2.11 | `BA-organizational-units-02` — dijeljena revizija OU kataloga; bump u transakciji topološkog writea, keš samo uz poklapajuću reviziju, fail-closed na nečitljivu reviziju | **zatvoreno** | `_pending_` (kod + docs) | `_pending_` |
+| W2.11 | `BA-organizational-units-02` — dijeljena revizija OU kataloga; bump u transakciji topološkog writea, keš samo uz poklapajuću reviziju, fail-closed na nečitljivu reviziju | **zatvoreno** | `4c25b41` (kod + docs) | `45504527764` ✓ (prvi pokušaj `45503790822` crven: TS2353 u in-memory klijentu) |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 

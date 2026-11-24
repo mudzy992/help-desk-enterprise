@@ -171,6 +171,16 @@ jednu).
 - Policy-pack binding ne bumpuje reviziju namjerno (vidi §3); ako se u budućnosti keš počne koristiti i za `policyPackId`,
   to je nova odluka.
 
+## CI
+
+Prvi run (`45503790822`, commit `4a1e3b9`) je pao na **type-checku**: `nest build` je odbio objektni literal
+in-memory OU klijenta (`TS2353`, `getCatalogRevision` nije dio eksplicitno deklarisanog povratnog tipa). Isti korak
+(`npm run build`) pokreću i *Backend PostgreSQL + Redis integration* („Verify deployment-wide connection budget") i
+*Backend container + supply chain*, pa su i ta dva joba pala iz istog razloga — jedan tip, tri crvena joba. Popravka
+(`4c25b41`, deklarisan delegat revizije i `getCatalogRevision` u povratnom tipu) dala je run **`45504527764`**:
+**success**, svi jobovi zeleni, uključujući integraciju (migracija `20271202120000_…` primijenjena na stvarnoj bazi)
+i container build.
+
 ## Registar nalaza
 
 - Zatvoreno: `BA-organizational-units-02`.
