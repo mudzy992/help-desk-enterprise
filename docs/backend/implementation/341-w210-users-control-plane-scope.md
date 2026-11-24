@@ -239,6 +239,13 @@ scope-blind kontrolu nad nalozima.
 - Lista **ne** filtrira po servisnom scopeu (vidi odluku iznad); ako se ukaže potreba za „servisni menadžer vidi svoje
   ljude”, to je nova odluka i novi paket.
 
+## CI
+
+Run **`45492790864`** (commit `60f6258`) — **success iz prvog pokušaja**, svi jobovi zeleni (*Backend build + test*,
+*Backend PostgreSQL + Redis integration*, *Frontend build + test*, *Docs guard*, *Backend container + supply chain*,
+*CI gate*); E2E jobovi skipped jer paket nema E2E scenarij. Za razliku od W2.9, wiring manifest je regenerisan **prije**
+prvog pusha (`npm run wiring:write`: users i security rute sada prijavljuju `OuAccessGuard`), pa posao nije pao.
+
 ## Registar nalaza
 
 - Zatvoreno: `BA-users-01`.
