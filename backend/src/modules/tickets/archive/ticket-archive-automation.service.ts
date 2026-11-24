@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { formatExceptionStackForLog } from "../../../common/logging/describe-exception";
 import { PrismaService } from "../../../common/prisma/prisma.service";
 import { daysToMilliseconds } from "../apply-ticket-lifecycle-timestamps";
 import type { TicketPersistedMessageSink } from "../collaboration.types";
@@ -54,7 +55,7 @@ export class TicketArchiveAutomationService {
       onError: (error, ticket) =>
         this.logger.error(
           `Archive automation failed for ticket ${ticket.id}`,
-          error instanceof Error ? error.stack : String(error),
+          formatExceptionStackForLog(error),
         ),
     });
   }

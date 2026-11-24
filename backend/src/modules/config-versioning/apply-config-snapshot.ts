@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
 import type { SettingsRegistry } from '../settings/settings.types';
 import { getRequestId } from '../../common/request-context/request-context.storage';
+import { formatExceptionStackForLog } from '../../common/logging/describe-exception';
 import {
   applyCatalogSnapshot,
   assertCatalogSnapshotCurrent,
@@ -58,9 +59,7 @@ async function applyPhase<T>(
     return await operation();
   } catch (error) {
     const requestId = getRequestId() ?? 'unavailable';
-    const detail = error instanceof Error
-      ? (error.stack ?? error.message)
-      : String(error);
+    const detail = formatExceptionStackForLog(error);
     logger.error(
       `requestId=${requestId} config_version_apply_failed phase=${phase}`,
       detail,

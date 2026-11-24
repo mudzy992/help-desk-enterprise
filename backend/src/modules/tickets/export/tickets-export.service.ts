@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { formatExceptionStackForLog } from '../../../common/logging/describe-exception';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { executeTicketOperation } from '../execute-ticket-operation';
@@ -35,7 +36,7 @@ export class TicketsExportService {
     } catch (error) {
       this.logger.error(
         `Ticket CSV export failed requestId=${requestId ?? 'unknown'}`,
-        error instanceof Error ? error.stack : String(error),
+        formatExceptionStackForLog(error),
       );
       throw error;
     }

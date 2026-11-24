@@ -5476,7 +5476,7 @@
     {
       "id": "BA-xcut-20",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W1.7, [339](../implementation/339-w17-log-redaction-exception-contract.md))",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1

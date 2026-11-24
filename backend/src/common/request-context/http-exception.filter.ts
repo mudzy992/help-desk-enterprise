@@ -13,6 +13,7 @@ import {
   resolveExceptionHttpStatus,
   toStandardErrorResponse,
 } from './format-error-response';
+import { formatExceptionStackForLog } from '../logging/describe-exception';
 
 type ExceptionFilterResponse = {
   setHeader(name: string, value: string): void;
@@ -46,9 +47,8 @@ export class HttpRequestExceptionFilter implements ExceptionFilter {
     response.setHeader(requestIdResponseHeaderName, requestId);
     const status = resolveExceptionHttpStatus(exception);
     if (status >= 500) {
-      const detail = exception instanceof Error
-        ? (exception.stack ?? exception.message)
-        : String(exception);
+      // W1.7: the stack is diagnostic value, but it goes out redacted and bounded.
+      const detail = formatExceptionStackForLog(exception);
       // Keep the diagnostic in the primary message. ConsoleLogger treats trailing
       // string arguments as logger context in some Nest versions/adapters, which
       // can hide the actual stack from container logs.

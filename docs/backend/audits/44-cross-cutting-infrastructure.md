@@ -136,6 +136,12 @@ Cross-cutting nedostaci:
 
 Granica: sadržaj log poruka (redaction, exception sanitizer) ostaje `BA-xcut-20` (W1.7); recent request buffer ostaje in-memory po replici.
 
+### Implementacijski dodatak — W1.7, 2026-11-24
+
+`BA-xcut-20` je zatvoren u [`339-w17-log-redaction-exception-contract.md`](../implementation/339-w17-log-redaction-exception-contract.md): redakcija je **centralna** — `RequestContextLogger` ima jedan emit put kroz koji prolaze sve poruke i svi argumenti prije kontejnerskog sinka i prije in-memory bafera, pa pozivalac ne može zaobići redakciju ni interpolacijom sirove greške. Rediguje se samo prepoznatljivo (ključevi tipa `password`/`token`/`cookie`, `Bearer`/`Basic`, kredencijali u URL-u uz očuvano korisničko ime, JWT, vendor ključevi), kontrolni znakovi se uklanjaju (osim `\n`/`\t`), a poruka je ograničena na 2.000 znakova (stack 4.000) uz marker skraćivanja. Exception ugovor (`describeException`, `formatExceptionStackForLog`) prima bilo šta što se može baciti i vraća jednu liniju `Name: message code=<dependency code>`, pa je nestalo osam mjesta koja su pisala sirov `.stack`. Ne-string argument više ne ide kroz `util.inspect`. Pravilo je izvršno: `log-contract.spec.ts` skenira `src/` i pada na `console.*` van `src/cli/**`, na `.stack` van sanitizera i na direktan stream write.
+
+Granica: metric cardinality i OpenTelemetry propagacija ostaju odvojeni nalazi iz §9; migracija 90 mjesta koja interpoliraju `error.message` na `describeException` nije dio paketa (centralna redakcija ih pokriva danas).
+
 ## 10. Docker, build i runtime hardening
 
 Backend Dockerfile kompajlira multi-stage image, ali finalni stage nije production-hardened:
@@ -225,7 +231,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-17 | P2 | Worker nema readiness/drain/deadline/forced shutdown i telemetry flush ugovor | zatvoreno |
 | BA-xcut-18 | P2 | Request ID je neograničen untrusted input u logovima/envelopeu | zatvoreno (W1.6, [338](../implementation/338-w16-request-id-input-policy.md)) |
 | BA-xcut-19 | P2 | Globalni guard/filter/interceptor wiring zavisi od feature modula bez centralnog manifest testa | otvoreno |
-| BA-xcut-20 | P2 | Nema centralnog structured log redaction i exception sanitizer ugovora | otvoreno |
+| BA-xcut-20 | P2 | Nema centralnog structured log redaction i exception sanitizer ugovora | zatvoreno (W1.7, [339](../implementation/339-w17-log-redaction-exception-contract.md)) |
 | BA-xcut-21 | P2 | Metric cardinality i distributed trace propagation nisu dokazani | otvoreno |
 | BA-xcut-22 | P2 | Nema globalnog/distribuiranog inbound rate limit ugovora | otvoreno |
 | BA-xcut-23 | P2 | Runtime image nema read-only FS/capability/no-new-privileges hardening ni storage permission preflight | zatvoreno |

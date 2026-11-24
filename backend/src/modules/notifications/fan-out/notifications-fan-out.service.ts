@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { IntegrationJobType } from '../../../generated/prisma/enums';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { formatExceptionStackForLog } from '../../../common/logging/describe-exception';
 import { EnqueueIntegrationJobService } from '../../integration-queue/enqueue-integration-job.service';
 import { isQueuedIntegrationJobType } from '../../integration-queue/parse-integration-queue-types';
 import { loadIntegrationQueueSettings } from '../../integration-queue/load-integration-queue-settings';
@@ -74,7 +75,7 @@ export class NotificationsFanOutService
       if (!isNotificationPreferenceFailure(error)) {
         this.logger.error(
           `Failed to persist in-app notification for ticket ${payload.ticketId}`,
-          error instanceof Error ? error.stack : String(error),
+          formatExceptionStackForLog(error),
         );
       }
     }
@@ -85,7 +86,7 @@ export class NotificationsFanOutService
       if (!isNotificationPreferenceFailure(error)) {
         this.logger.error(
           `Failed to send notification email for ticket ${payload.ticketId}`,
-          error instanceof Error ? error.stack : String(error),
+          formatExceptionStackForLog(error),
         );
       }
     }
@@ -178,7 +179,7 @@ export class NotificationsFanOutService
       // A failed e-mail must not fail the bulk action that triggered it.
       this.logger.error(
         `Failed to send broadcast email for ticket ${request.ticketId}`,
-        error instanceof Error ? error.stack : String(error),
+        formatExceptionStackForLog(error),
       );
     }
   }

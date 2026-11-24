@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { formatExceptionStackForLog } from "../../../common/logging/describe-exception";
 import { PrismaService } from "../../../common/prisma/prisma.service";
 import type { TicketPersistedMessageSink } from "../collaboration.types";
 import { publishPersistedTicketMessages } from "../publish-persisted-ticket-messages";
@@ -75,7 +76,7 @@ export class WaitingForUserAutomationService {
       onError: (error, ticket) =>
         this.logger.error(
           `Waiting-for-user automation failed for ticket ${ticket.id}`,
-          error instanceof Error ? error.stack : String(error),
+          formatExceptionStackForLog(error),
         ),
     });
   }
