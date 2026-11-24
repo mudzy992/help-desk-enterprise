@@ -49,6 +49,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
     ticket: Record<string, unknown>;
     userRole: Record<string, unknown>;
     auditLog: Record<string, unknown>;
+    organizationalUnitCatalogRevision: Record<string, unknown>;
     $executeRaw: (query: TemplateStringsArray, ...values: unknown[]) => Promise<number>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
   };
@@ -56,6 +57,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
   seedUser: (user: InMemoryOrganizationalUnitUser) => void;
   seedUserRole: (role: { userId: string; organizationalUnitId: string | null }) => void;
   getUser: (userId: string) => InMemoryOrganizationalUnitUser | null;
+  getCatalogRevision: () => bigint;
 } {
   let units = new Map<string, InMemoryOrganizationalUnit>();
   let users = new Map<string, InMemoryOrganizationalUnitUser>();
