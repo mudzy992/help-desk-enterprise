@@ -5,9 +5,9 @@
 **Rizik modula:** srednji  
 **Baseline ocjena:** **5,62/10**  
 **Nalazi:** 1 P1, 7 P2, 5 P3<br>
-**Implementacija:** **10/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa),
-W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom) i W7.111 (`BA-search-10`, `types` je set).
-P1 nema, P2 nema; otvoreni su `11`–`13` (P3).
+**Implementacija:** **11/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa),
+W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom), W7.111 (`BA-search-10`, `types` je set) i
+W7.112 (`BA-search-11`, privacy-safe telemetrija sa per-group SLO). P1 nema, P2 nema; otvoreni su `12`–`13` (P3).
 Ova statusna dopuna ne mijenja nalaze ni ocjenu.
 
 ## 1. Executive summary
@@ -78,6 +78,13 @@ Svaka pojedinačna grana je bounded, a tri grane rade paralelno. Međutim endpoi
 
 Nema search telemetry za latency po grupi, candidate-to-visible ratio, denied/incomplete rezultat, timeout ni DB row scan. Nema audit potrebe za običan query string jer može sadržati PII; ako se uvede telemetry, termin se ne smije logovati sirov. Potrebni su hashed/length-only metrički atributi i per-group SLO.
 
+**Status poslije W7.112 (§26):** svaki odgovoren zahtjev ostavlja jednu `search_telemetry=1` liniju sa trajanjem
+cijelog zahtjeva i svake grupe, brojem hitova, stanjem grupe (`ok`/`failed`/`skipped`), SLO prekršajima i
+`incomplete` listom. Termin nikad nije u liniji: nosi se samo `query_len` i 16-hex HMAC-SHA256 (`query_hash`) uz
+`SEARCH_TELEMETRY_SALT`. Prekršaj per-group (250/500/250 ms) ili ukupnog budžeta (900 ms) piše se kao `warn`. Nema
+novog endpointa ni Redis brojača; timeout i „candidate-to-visible ratio” ostaju otvorene teme. Detalji:
+[334](../implementation/334-w7112-search-11-telemetry.md).
+
 `Promise.all` znači da kvar jedne tražene grupe ruši cijeli odgovor. Za command palette može biti poželjan typed partial response, ali odluka mora biti eksplicitna: fail-closed za authorization grešku, kontrolisani partial za availability kvar bez prikrivanja security failurea.
 
 ## 8. Testovi i E2E
@@ -123,7 +130,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | zatvoreno |
 | BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | zatvoreno (W7.110) |
 | BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | zatvoreno (W7.111) |
-| BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | otvoreno |
+| BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | zatvoreno (W7.112) |
 | BA-search-12 | P3       | Confidential/archive/revoke semantika nema direktan search test                         | otvoreno |
 | BA-search-13 | P3       | Glavni service suite je compile-blocked i nema direktnog `/search` E2E                  | otvoreno |
 
@@ -536,3 +543,40 @@ sa `['user','ticket','user']` mapira se u `['user','ticket']`. `search.service.s
 `BA-search-11`. Ostaju `BA-search-11` (telemetrija/SLO i „incomplete” indikator), `-12` (confidential/arhiva/revoke
 testovi) i `-13` (direktni `/search` E2E). Detalji:
 [333-w7111-search-10-types-unique.md](../implementation/333-w7111-search-10-types-unique.md).
+
+## 26. Implementacijski closeout — W7.112 (`BA-search-11`)
+
+**Nalaz:** endpoint nije ostavljao nijedan operativni trag — nije se znalo koliko pojedina grupa traje, koliko je
+hitova vratila, da li je pala, da li je odgovor odsječen ni da li je zahtjev odbijen. Bez toga nema ni SLO-a (ne može
+se reći je li 250 ms cilj prekršen), a `articlesIncomplete`/`failedGroups` iz odgovora nisu imali agregat. Uz to je
+audit postavio tvrd uslov (§14.8): telemetrija ne smije čuvati sirov termin, jer je upit slobodan tekst i nosi imena,
+hostname-ove i naslove tiketa.
+
+**Rješenje.** Novi čisti ugovor `search-telemetry.ts` definiše šta smije izaći iz procesa: `status`
+(`ok`/`partial`/`unavailable`/`rejected`), `query_len` (karakteri), `query_hash` (HMAC-SHA256 uz
+`SEARCH_TELEMETRY_SALT`, 16 hex znakova; bez salta proces uzima slučajan, pa hash nikad nije reverzibilan),
+`types`, `limit`, `duration_ms`, `latency_bucket` (10/25/50/100/250/500/1000 ms), `search_group_<ime>` u obliku
+`state:hits:durationMs:truncated`, `incomplete` i `slo_breaches`. `describeSearchTerm()` je jedini ulaz za termin i
+vraća samo `{length, hash}`; formatter nema parametar za sirov tekst, a svaki token linije je `key=value`. Sink
+`SearchTelemetry` piše jednu liniju (`warn` na prekršaj, `log` inače) i nikad ne baca. `SearchService` mjeri svaku
+granu u `readSearchGroup()` i emituje zapis iz **istih** ishoda iz kojih gradi odgovor, na sva četiri izlaza
+(`ok`/`partial`/`unavailable`/`rejected`); kvar sinka ili salta ne mijenja odgovor. `truncated` je `true` kad grupa
+vrati tačno `limit` redova ili kad se article scan zaustavi na budžetu — to je serverski „incomplete” signal; API
+zadržava `articlesIncomplete` za article grupu. SLO: `ticket` 250 ms, `article` 500 ms, `user` 250 ms, ukupno 900 ms
+(grupe rade paralelno, pa ukupno nije zbir). Bez migracije, bez nove rute (632) i bez Redis ključeva.
+
+**Testni dokaz.** `search-telemetry.spec.ts` (**novo, 11**): termin se ne vraća ni kao hex bajtovi, dužina je u
+karakterima, hash je determinističan po saltu i različit po drugom saltu, salt fallback je slučajan i nikad prazan,
+bucket granice, SLO brojanje (striktno `>`, skipped se ne broji), format linije (svi tokeni `key=value`,
+`incomplete=` lista). `search-telemetry.service.spec.ts` (**novo, 4**): `log` za zahtjev u SLO-u, `warn` za prekršaj,
+logger koji baca ne ruši `record`, `describeTerm` bez termina. `search.service.spec.ts` (+5): `ok` zapis (dužina,
+hash, hitovi), `truncated`/`incomplete`, `partial` sa imenom pale grupe, `503` → `unavailable`, `403` → `rejected`,
+pokvaren sink/salt ne mijenja odgovor. Lokalno: `search` **11 suiteova / 96 testa** (integracioni uslovno
+preskočen), `nest build` zelen, `app.module.spec`/`worker.module.spec` zeleni, `wiring:check` 632,
+`check-env-example` 94 varijable.
+
+**Otvoreno i dokumentovano:** nema `GET /search/metrics/last-hour` ni Redis brojača (linija je izvor za log/metrics
+pipeline); `truncated` nije u API odgovoru za ticket/user grupe; nema per-group timeouta (SLO alarmira, ne prekida) —
+visenje jedne grupe i dalje drži zahtjev. Ostaju `BA-search-12` (confidential/arhiva/revoke testovi) i `-13`
+(direktni `/search` E2E). Detalji:
+[334-w7112-search-11-telemetry.md](../implementation/334-w7112-search-11-telemetry.md).
