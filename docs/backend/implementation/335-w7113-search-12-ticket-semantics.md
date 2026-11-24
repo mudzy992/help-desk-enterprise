@@ -7,7 +7,7 @@
 **DB migracija:** ne<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _popunjava se nakon push-a_
+**CI:** [run `45361784881`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45361784881) ✓ na `c367425` (push: backend build+test, PostgreSQL/Redis integracija, frontend, docs guard); PR run [`45361808432`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45361808432) ✓ i sa E2E smoke
 
 ## Nalaz
 
