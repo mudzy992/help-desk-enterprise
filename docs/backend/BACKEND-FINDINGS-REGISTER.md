@@ -469,7 +469,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 27 | `search` | `BA-search-07` | P2 | Nema query-plan/perf dokaza za contains nad user email/name i KB title | zatvoreno (W7.61; migracija W7.63) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-08` | P2 | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora | zatvoreno (W7.62) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-09` | P3 | User ordering nema ID tie-breaker pa capped rezultat nije stabilan | zatvoreno (W7.110) | [27-search.md](audits/27-search.md) |
-| 27 | `search` | `BA-search-10` | P3 | `types` nema ArrayUnique i ugovor prihvata duplikate | otvoreno | [27-search.md](audits/27-search.md) |
+| 27 | `search` | `BA-search-10` | P3 | `types` nema ArrayUnique i ugovor prihvata duplikate | zatvoreno (W7.111) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-11` | P3 | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator | otvoreno | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-12` | P3 | Confidential/archive/revoke semantika nema direktan search test | otvoreno | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-13` | P3 | Glavni service suite je compile-blocked i nema direktnog `/search` E2E | otvoreno | [27-search.md](audits/27-search.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **328**
-- Otvoreno: **368** (P1 88 / P2 195 / P3 85)
-- Val 7: **107 / 111** zatvoreno, otvoreno **4** (P1 0 / P2 0 / P3 4)
+- Zatvoreno: **329**
+- Otvoreno: **367** (P1 88 / P2 195 / P3 84)
+- Val 7: **108 / 111** zatvoreno, otvoreno **3** (P1 0 / P2 0 / P3 3)
 <!-- findings-totals:end -->

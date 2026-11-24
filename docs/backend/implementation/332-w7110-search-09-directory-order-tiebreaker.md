@@ -8,7 +8,7 @@
 **DB migracija:** ne<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** _popunjava se nakon push-a_
+**CI:** [run `45288027411`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45288027411) ✓ na `6f1dc6c` (push: backend, frontend, integracija, docs guard; Prettier gate nad npm-audit artefaktom popravljen u istom PR-u #12)
 
 ## Nalaz
 

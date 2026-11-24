@@ -286,6 +286,29 @@ describe('GET /search', () => {
     expect(articlesOnly.articlesIncomplete).toBe(false);
   });
 
+  it('reads each group once when a hand-built query repeats a type (W7.111)', async () => {
+    // BA-search-10: the DTO now refuses duplicates, but `search()` is also called
+    // from tests and future internal callers. The `Set` must keep one read per
+    // group, otherwise a repeated type would double the cost of the heaviest
+    // group and could report the same group twice.
+    const { service, articleCalls, userQueries, context } = setup();
+    const found = await service.search(
+      {
+        q: 'vpn',
+        types: ['article', 'ticket', 'article', 'user', 'user'],
+        limit: searchConstants.defaultLimit,
+      },
+      // A scoped administrator: the people group has a directory grant, so the
+      // repeated `user` would be visible as a second read if the `Set` were gone.
+      context(adminIt),
+    );
+    expect(articleCalls).toEqual([{ q: 'vpn', limit: searchConstants.defaultLimit }]);
+    expect(userQueries).toHaveLength(1);
+    expect(found.articles).toHaveLength(1);
+    expect(found.tickets.length).toBeGreaterThan(0);
+    expect(found.failedGroups).toEqual([]);
+  });
+
   it('surfaces an incomplete article group instead of claiming completeness', async () => {
     const { service, articleState, context } = setup();
     articleState.incomplete = true;

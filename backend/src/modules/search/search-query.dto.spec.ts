@@ -90,6 +90,47 @@ describe('GET /search query contract', () => {
     ).not.toHaveLength(0);
   });
 
+  it('reads `types` as a set and refuses a repeated group (W7.111)', async () => {
+    // BA-search-10: before this the duplicate was accepted at the edge and only
+    // collapsed by the service's `Set`, so the wire contract was looser than the
+    // executed one — and `ArrayMaxSize` counted the duplicates.
+    for (const raw of [
+      'ticket,ticket',
+      ['article', 'article'],
+      ['user', 'ticket', 'user'],
+      'ticket,article,user,user',
+    ]) {
+      const { errors } = await validateQuery({ q: 'vpn', types: raw });
+      const typesError = errors.find((error) => error.property === 'types');
+      expect([raw, typesError?.constraints]).toEqual([
+        raw,
+        expect.objectContaining({ arrayUnique: expect.any(String) }),
+      ]);
+    }
+
+    // Every distinct group still passes, in the order the caller sent.
+    const all = await validateQuery({
+      q: 'vpn',
+      types: ['user', 'ticket', 'article'],
+    });
+    expect(all.errors).toHaveLength(0);
+    expect(all.dto.types).toEqual(['user', 'ticket', 'article']);
+  });
+
+  it('de-duplicates a hand-built DTO, so the mapping is a set without validation', () => {
+    // The service also keeps a `Set`, but the mapping must not rely on the edge:
+    // a repeated group would otherwise reach `SearchQuery.types` unchanged.
+    expect(
+      toSearchQuery(
+        plainToInstance(SearchQueryDto, { q: 'vpn', types: ['user', 'ticket', 'user'] }),
+      ),
+    ).toEqual({
+      q: 'vpn',
+      types: ['user', 'ticket'],
+      limit: searchConstants.defaultLimit,
+    });
+  });
+
   it('defaults to all three groups and to fifteen hits', () => {
     expect(toSearchQuery(plainToInstance(SearchQueryDto, { q: ' vpn ' }))).toEqual({
       q: 'vpn',
