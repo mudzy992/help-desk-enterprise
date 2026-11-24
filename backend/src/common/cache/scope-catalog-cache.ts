@@ -27,6 +27,17 @@
  * nikad ne vide tuđe podatke, a transakcijski klijent ima svoj (prazan) prostor.
  * Istovremeni promašaji za isti ključ dijele jedan upit (in-flight dedupe).
  *
+ * **W2.11 (`BA-organizational-units-02`): revizija kataloga.** TTL je bio jedina
+ * garancija i na instancama koje nisu obradile write — reparent je 60 s ostavljao
+ * stari `ouPath`, a `ouPath` odlučuje descendant scope. Keš sada pamti i reviziju
+ * iz `OrganizationalUnitCatalogRevision` (singleton red koji svaki topološki write
+ * bumpuje u istoj transakciji) i koristi zapis samo dok se revizija poklapa. Baza
+ * je kanal invalidacije: nema eventa koji može izostati, a cijena je jedan
+ * `SELECT` po reviziji umjesto cijele tabele po zahtjevu. Ako se revizija ne može
+ * pročitati (delegat nedostaje, upit padne), keš se **ne** koristi — zastario
+ * snapshot se nikad ne servira; čita se baza, a ako i ona padne zahtjev nema
+ * odluku (fail-closed).
+ *
  * Kao i `settings-snapshot.ts`: keš radi samo UNUTAR HTTP zahtjeva (postoji request
  * id). Worker poslovi, boot i skripte uvijek čitaju bazu — pozadinski rad vidi ono što
  * je upravo zapisano. Klijent koji ne zna `findMany` (ručno pisani test delegati)
@@ -40,8 +51,13 @@ type Entry<T> = { readonly expiresAt: number; readonly value: Promise<T> };
 const organizationalUnitTtlMs = readTtl('SCOPE_CACHE_OU_TTL_MS', 60_000);
 const actorGroupsTtlMs = readTtl('SCOPE_CACHE_GROUPS_TTL_MS', 30_000);
 
+type UnitsEntry = Entry<readonly OrganizationalUnitScopeRow[]> & {
+  /** Shared catalogue revision this snapshot was read under. */
+  readonly revision: bigint;
+};
+
 type Buckets = {
-  units: Entry<readonly OrganizationalUnitScopeRow[]> | undefined;
+  units: UnitsEntry | undefined;
   groups: Map<string, Entry<readonly ActorGroupMembership[]>>;
 };
 
@@ -55,6 +71,25 @@ type UnitSource = {
     findMany: (args: {
       readonly select: { readonly id: true; readonly ouPath: true };
     }) => Promise<readonly OrganizationalUnitScopeRow[]>;
+  };
+};
+
+type RevisionSource = {
+  readonly organizationalUnitCatalogRevision?: {
+    readonly findUnique: (args: {
+      readonly where: { readonly id: number };
+      readonly select: { readonly revision: true };
+    }) => Promise<{ readonly revision: bigint } | null>;
+  };
+};
+
+type RevisionWriter = {
+  readonly organizationalUnitCatalogRevision: {
+    readonly upsert: (args: {
+      readonly where: { readonly id: number };
+      readonly create: { readonly id: number; readonly revision: bigint };
+      readonly update: { readonly revision: { readonly increment: bigint } };
+    }) => Promise<unknown>;
   };
 };
 
@@ -90,23 +125,73 @@ function bucketsFor(client: object): Buckets {
   return found;
 }
 
-/** All `(id, ouPath)` rows, cached for 60 s. */
-export function loadOrganizationalUnitScopeRows(
-  prisma: UnitSource,
+const organizationalUnitCatalogRevisionId = 1;
+
+/**
+ * Shared catalogue revision. `0n` means "no row yet" (a database migrated but
+ * never written to); the migration seeds `1`.
+ */
+export async function readOrganizationalUnitCatalogRevision(
+  prisma: RevisionSource,
+): Promise<bigint> {
+  const delegate = prisma.organizationalUnitCatalogRevision;
+  if (delegate === undefined) {
+    throw new Error('organizational unit catalogue revision is unavailable');
+  }
+  const row = await delegate.findUnique({
+    where: { id: organizationalUnitCatalogRevisionId },
+    select: { revision: true },
+  });
+  return typeof row?.revision === 'bigint' ? row.revision : 0n;
+}
+
+/**
+ * Bumps the shared revision. Call it **inside** the transaction that changed the
+ * topology (create/rename/move/delete, directory materialization) so the bump and
+ * the change commit or roll back together - a committed change can then never be
+ * invisible to another instance's cache check.
+ */
+export async function bumpOrganizationalUnitCatalogRevision(
+  client: RevisionWriter,
+): Promise<void> {
+  await client.organizationalUnitCatalogRevision.upsert({
+    where: { id: organizationalUnitCatalogRevisionId },
+    create: { id: organizationalUnitCatalogRevisionId, revision: 1n },
+    update: { revision: { increment: 1n } },
+  });
+}
+
+/**
+ * All `(id, ouPath)` rows, cached for 60 s **per revision**. A snapshot is served
+ * only while the shared revision still matches, so a write on another instance is
+ * visible on the next request instead of after the TTL. When the revision cannot
+ * be read the cache is bypassed entirely (fail-closed, see module doc).
+ */
+export async function loadOrganizationalUnitScopeRows(
+  prisma: UnitSource & RevisionSource,
 ): Promise<readonly OrganizationalUnitScopeRow[]> {
   if (getRequestId() === undefined) {
     return prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true } });
   }
   const store = bucketsFor(prisma);
   const now = Date.now();
-  if (store.units !== undefined && store.units.expiresAt > now) {
-    return store.units.value;
+  let revision: bigint;
+  try {
+    revision = await readOrganizationalUnitCatalogRevision(prisma);
+  } catch {
+    // Never fall back to a snapshot whose freshness cannot be proven.
+    store.units = undefined;
+    return prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true } });
+  }
+  const cached = store.units;
+  if (cached !== undefined && cached.expiresAt > now && cached.revision === revision) {
+    return cached.value;
   }
   const started = generation;
   const value = prisma.organizationalUnit.findMany({
     select: { id: true, ouPath: true },
   });
-  const entry = { expiresAt: now + organizationalUnitTtlMs, value };
+  const entry: UnitsEntry = { expiresAt: now + organizationalUnitTtlMs, value, revision };
   store.units = entry;
   value.then(
     () => {
@@ -130,7 +215,7 @@ export function canUseScopeCatalogCache(prisma: unknown): boolean {
 
 /** `ouPath` of one unit from the cached catalogue (`null` when unknown/empty). */
 export async function loadCachedOrganizationalUnitPath(
-  prisma: UnitSource,
+  prisma: UnitSource & RevisionSource,
   organizationalUnitId: string,
 ): Promise<string | null> {
   const rows = await loadOrganizationalUnitScopeRows(prisma);
@@ -232,7 +317,12 @@ export async function loadActorGroupIds(
   return memberships.map((membership) => membership.groupId);
 }
 
-/** Call after any OU write (create/update/delete, directory sync, policy binding). */
+/**
+ * Local invalidation, unchanged: drops this process's snapshot(s) immediately
+ * after a write. It is no longer what makes other instances correct - the shared
+ * revision does that (W2.11) - so a missed local call can only cost one extra
+ * `findMany` on the instance that did the write.
+ */
 export function invalidateOrganizationalUnitScopeCache(): void {
   generation += 1;
   buckets = new WeakMap();

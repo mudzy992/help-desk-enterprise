@@ -1,4 +1,7 @@
-import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
+import {
+  bumpOrganizationalUnitCatalogRevision,
+  invalidateOrganizationalUnitScopeCache,
+} from '../../common/cache/scope-catalog-cache';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { PrincipalBatchInvalidationHook } from '../../common/principal-context/principal-context.types';
 import { auditLogActions } from '../audit-log/audit-log.constants';
@@ -147,6 +150,11 @@ export async function updateOrganizationalUnit(
         });
         affectedUserIds = [...new Set(holders.map((holder) => holder.userId))].sort();
       }
+      // W2.11: a rename or a reparent rewrites `ouPath` for the whole subtree,
+      // and `ouPath` is what descendant scope is decided on. Bumped in this
+      // transaction: every other instance sees the new revision on its next
+      // request instead of after the cache TTL.
+      await bumpOrganizationalUnitCatalogRevision(transaction);
     });
   } catch (error) {
     throwIfUniqueConstraintViolated(error);

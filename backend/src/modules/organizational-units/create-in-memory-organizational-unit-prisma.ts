@@ -63,6 +63,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
   let auditLogs: Array<Record<string, unknown>> = [];
   let nextIdentifier = 1;
   let nextAuditIdentifier = 1;
+  const catalogRevision = { value: 0n };
   const prisma = {
     organizationalUnit: {
       findUnique: async ({
@@ -255,6 +256,16 @@ export function createInMemoryOrganizationalUnitPrisma(): {
         return created;
       },
     },
+    // W2.11: topology writes bump the shared catalogue revision inside their
+    // transaction. The in-memory client keeps the counter so a test can assert
+    // "the bump committed with the write" instead of inferring it.
+    organizationalUnitCatalogRevision: {
+      findUnique: async () => ({ revision: catalogRevision.value }),
+      upsert: async () => {
+        catalogRevision.value += 1n;
+        return { revision: catalogRevision.value };
+      },
+    },
     $executeRaw: async (_query: TemplateStringsArray, ..._values: unknown[]) => 0,
     $transaction: async (callback: (client: unknown) => Promise<unknown>) => {
       const originalUnits = units;
@@ -262,6 +273,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
       const originalAuditLogs = auditLogs;
       const originalNextIdentifier = nextIdentifier;
       const originalNextAuditIdentifier = nextAuditIdentifier;
+      const originalCatalogRevision = catalogRevision.value;
       units = new Map(originalUnits);
       users = new Map(originalUsers);
       auditLogs = [...originalAuditLogs];
@@ -273,6 +285,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
         auditLogs = originalAuditLogs;
         nextIdentifier = originalNextIdentifier;
         nextAuditIdentifier = originalNextAuditIdentifier;
+        catalogRevision.value = originalCatalogRevision;
         throw error;
       }
     },
@@ -289,6 +302,7 @@ export function createInMemoryOrganizationalUnitPrisma(): {
       userRoles.push(role);
     },
     getUser: (userId) => users.get(userId) ?? null,
+    getCatalogRevision: () => catalogRevision.value,
   };
 }
 

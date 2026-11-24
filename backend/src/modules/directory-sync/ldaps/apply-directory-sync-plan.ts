@@ -1,5 +1,8 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { invalidateOrganizationalUnitScopeCache } from '../../../common/cache/scope-catalog-cache';
+import {
+  bumpOrganizationalUnitCatalogRevision,
+  invalidateOrganizationalUnitScopeCache,
+} from '../../../common/cache/scope-catalog-cache';
 import type { DirectorySyncPlan } from './directory-sync-plan.types';
 
 export type DirectorySyncApplyHooks = {
@@ -99,6 +102,8 @@ export async function applyDirectorySyncPlan(
     }
   }
   if (counts.unitsCreated + counts.unitsUpdated > 0) {
+    // W2.11: created/updated units change `ouPath` for other instances too.
+    await bumpOrganizationalUnitCatalogRevision(prisma);
     invalidateOrganizationalUnitScopeCache();
   }
   // Invalidate all holders of planned unit updates even if a statement reports

@@ -1,4 +1,7 @@
-import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
+import {
+  bumpOrganizationalUnitCatalogRevision,
+  invalidateOrganizationalUnitScopeCache,
+} from '../../common/cache/scope-catalog-cache';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { DirectoryReadResult } from './directory-sync.types';
 
@@ -115,8 +118,14 @@ async function materializeOrganizationalUnits(
           parentId: parent?.id ?? null,
         },
       });
-      invalidateOrganizationalUnitScopeCache();
     }
+    if (materializable.length > 0) {
+      // W2.11: a directory materialization rewrites `ouPath` like any other
+      // topology write. The bump is monotonic, so an instance that caches
+      // between the last upsert and this call still reloads on the next request.
+      await bumpOrganizationalUnitCatalogRevision(prisma);
+    }
+    invalidateOrganizationalUnitScopeCache();
   } catch (error) {
     writeFailed = true;
     writeFailure = error;

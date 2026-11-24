@@ -195,6 +195,10 @@ describe('materializeDirectoryRead invalidation', () => {
         }),
         upsert: jest.fn().mockResolvedValue({ id: 'ou-it' }),
       },
+      // W2.11: materialization rewrites `ouPath`, so it bumps the revision.
+      organizationalUnitCatalogRevision: {
+        upsert: jest.fn().mockResolvedValue({ revision: 1n }),
+      },
       userRole: { findMany: userRoleFindMany },
     };
     const invalidateUsers = jest.fn().mockResolvedValue(undefined);

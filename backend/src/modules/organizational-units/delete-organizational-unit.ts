@@ -1,4 +1,7 @@
-import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
+import {
+  bumpOrganizationalUnitCatalogRevision,
+  invalidateOrganizationalUnitScopeCache,
+} from '../../common/cache/scope-catalog-cache';
 import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
@@ -106,6 +109,9 @@ export async function deleteOrganizationalUnitInTransaction(
       },
     },
   );
+  // W2.11: a deleted unit must disappear from every instance's catalogue in the
+  // same commit that removes it.
+  await bumpOrganizationalUnitCatalogRevision(transaction);
 
   return {
     affectedUserIds,

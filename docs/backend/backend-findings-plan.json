@@ -2916,7 +2916,7 @@
     {
       "id": "BA-organizational-units-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.11, [342](../implementation/342-w211-ou-catalog-revision.md))",
       "source": "05-organizational-units.md",
       "owner": "WS-A",
       "wave": 2

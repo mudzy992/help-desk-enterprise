@@ -34,3 +34,17 @@ model OrganizationalUnit {
   @@index([parentId])
   @@index([policyPackId])
 }
+
+/// W2.11 (`BA-organizational-units-02`): `ouPath` decides descendant scope, and
+/// the process cache that holds `(id, ouPath)` used to be invalidated only in the
+/// instance that handled the write - every other instance kept the old catalogue
+/// until `SCOPE_CACHE_OU_TTL_MS` expired. This singleton row is the shared
+/// revision: it is bumped in the same transaction as a topology write, and a
+/// cached snapshot is only reused when the revision still matches. The database
+/// is the channel, so a missed invalidation event cannot leave a stale scope.
+model OrganizationalUnitCatalogRevision {
+  /// Singleton row; the migration seeds `id = 1`.
+  id        Int      @id @default(1)
+  revision  BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+}

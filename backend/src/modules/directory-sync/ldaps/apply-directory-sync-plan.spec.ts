@@ -1,8 +1,11 @@
 jest.mock('../../../common/cache/scope-catalog-cache', () => ({
   invalidateOrganizationalUnitScopeCache: jest.fn(),
+  // W2.11: the plan bumps the shared catalogue revision when it writes units.
+  bumpOrganizationalUnitCatalogRevision: jest.fn().mockResolvedValue(undefined),
 }));
 
 import { applyDirectorySyncPlan } from './apply-directory-sync-plan';
+import { bumpOrganizationalUnitCatalogRevision } from '../../../common/cache/scope-catalog-cache';
 import type { DirectorySyncPlan } from './directory-sync-plan.types';
 
 function emptyPlan(overrides: Partial<DirectorySyncPlan> = {}): DirectorySyncPlan {
@@ -24,6 +27,10 @@ function createPrisma() {
       findUnique: jest.fn().mockResolvedValue({ id: 'ou-1' }),
       create: jest.fn().mockResolvedValue({}),
       update: jest.fn(),
+    },
+    // W2.11: a created/updated unit bumps the shared catalogue revision.
+    organizationalUnitCatalogRevision: {
+      upsert: jest.fn().mockResolvedValue({ revision: 1n }),
     },
     role: { upsert: jest.fn().mockResolvedValue({ id: 'role-user' }) },
     user: {
@@ -71,6 +78,10 @@ describe('applyDirectorySyncPlan (paket 1.8)', () => {
     expect(result.usersDeactivated).toBe(1);
   });
 
+  beforeEach(() => {
+    jest.mocked(bumpOrganizationalUnitCatalogRevision).mockClear();
+  });
+
   it('invalidates principals assigned to directory units that are updated', async () => {
     const prisma = createPrisma();
     prisma.userRole.findMany.mockResolvedValue([
@@ -112,6 +123,8 @@ describe('applyDirectorySyncPlan (paket 1.8)', () => {
       'role-holder-a',
       'role-holder-b',
     ]);
+    // W2.11: an updated `ouPath` is a topology write for every instance.
+    expect(bumpOrganizationalUnitCatalogRevision).toHaveBeenCalledTimes(1);
   });
 
   it('invalidates OU role holders when an update reports an error after commit', async () => {

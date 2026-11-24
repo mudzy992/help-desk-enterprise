@@ -41,6 +41,11 @@ describe('deleteOrganizationalUnitInTransaction', () => {
       slaRule: { count: jest.fn().mockResolvedValue(0) },
       reportSchedule: { count: jest.fn().mockResolvedValue(0) },
       ticket: { count: jest.fn().mockResolvedValue(0) },
+      // W2.11: the cascade bumps the shared catalogue revision in the same
+      // transaction it deletes the unit in.
+      organizationalUnitCatalogRevision: {
+        upsert: jest.fn().mockResolvedValue({ revision: 1n }),
+      },
       userRole: {
         findFirst: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([

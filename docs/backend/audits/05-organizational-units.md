@@ -142,6 +142,12 @@ Direktan grant `SUPER_ADMIN` ne postoji u ovom modulu, a posljednji SuperAdmin a
 
 Granica: `BA-organizational-units-06` (globalni tree read za role bez manage permissione) ostaje otvoren; `-02` (cross-instance scope cache) i `-03`/`-04` nisu dirani; `BA-users-01` je isti uzrok u modulu korisnika i čeka `W2.10`.
 
+### Implementacijski dodatak — W2.11, 2026-11-24
+
+`BA-organizational-units-02` je zatvoren u [`342-w211-ou-catalog-revision.md`](../implementation/342-w211-ou-catalog-revision.md): procesni keš `(id, ouPath)` više ne visi o lokalnoj invalidaciji. Uveden je singleton `OrganizationalUnitCatalogRevision` (migracija `20271202120000_organizational_unit_catalog_revision`), koji svaki topološki write bumpuje **u istoj transakciji**, a keš koristi snapshot samo dok se revizija poklapa. Kad revizija ne može da se pročita, keš se ne koristi — čita se baza, pa zastario scope nije moguć čak ni uz neuspio upit. Bump se izvršava u create/update/delete OU-a i u direktorijumskoj materijalizaciji; policy-pack binding ga namjerno ne dira jer ne mijenja `(id, ouPath)`. Cijena je jedan `SELECT` po PK-u po zahtjevu koji koristi OU scope, umjesto cijele tabele u dizajnu bez keša.
+
+Granica: `-03` (konkurentni hierarchy updatei) i `-05` (best-effort principal invalidacija) ostaju otvoreni; `BA-groups-02` (actor-group keš) je ista klasa problema u drugom modulu.
+
 ## 8. Testovi i izvršeni gateovi
 
 ### 8.1. Postojeći dokazi
@@ -189,7 +195,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | ID                         | Severity | Naslov                                                                               | Status   | Veličina |
 | -------------------------- | -------- | ------------------------------------------------------------------------------------ | -------- | -------- |
 | BA-organizational-units-01 | P1       | OU control plane ignoriše actor OU/service scope i target hijerarhiju                | zatvoreno (W2.9, [340](../implementation/340-w29-ou-control-plane-scope.md)) | L        |
-| BA-organizational-units-02 | P1       | Cross-instance stale `ouPath` cache privremeno zadržava pogrešan authorization scope | otvoreno | L        |
+| BA-organizational-units-02 | P1       | Cross-instance stale `ouPath` cache privremeno zadržava pogrešan authorization scope | zatvoreno (W2.11, [342](../implementation/342-w211-ou-catalog-revision.md)) | L        |
 | BA-organizational-units-03 | P2       | Konkurentni hierarchy updatei nisu serijalizovani niti revision-guarded              | otvoreno | L        |
 | BA-organizational-units-04 | P2       | Case-insensitive DN identitet nije enforcean u bazi                                  | otvoreno | M        |
 | BA-organizational-units-05 | P2       | Principal invalidacija nakon mapping/deletea je optional i best effort               | otvoreno | M        |
@@ -216,6 +222,10 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Uticaj:** privremeni cross-OU unauthorized access nakon sigurnosno relevantne topološke promjene.
 - **Korekcija:** distribuirani OU revision/event; odluka mora porediti revision ili koristiti cache sa cross-instance pub/sub invalidacijom i fail-closed ponašanjem za kritične move/delete operacije.
 - **Acceptance:** dvije instance sa zagrijanim cacheom; nakon reparenta nijedna ne dozvoljava stari scope na prvom narednom zahtjevu, uključujući event-delivery fault.
+- **Status (W2.11, 2026-11-24):** zatvoreno. Keš sada pamti dijeljenu reviziju iz `OrganizationalUnitCatalogRevision`,
+  koja se bumpuje u istoj transakciji kao topološki write; snapshot se koristi samo dok se revizija poklapa, a
+  nečitljiva revizija znači „bez keša” (nikad zastario scope). Baza je kanal invalidacije, pa event-delivery fault ne
+  postoji kao način kvara. Detalji: [`342-w211-ou-catalog-revision.md`](../implementation/342-w211-ou-catalog-revision.md).
 - **Owner:** authorization/platform + organizational-units owner.
 
 ### BA-organizational-units-03 — Stale-snapshot hierarchy rewrite

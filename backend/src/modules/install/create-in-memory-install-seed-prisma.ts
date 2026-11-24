@@ -24,6 +24,7 @@ import {
 } from './snapshot-in-memory-install-seed-maps';
 
 export function createInMemoryInstallSeedPrisma() {
+  const catalogRevision = { value: 0n };
   const units = new Map<string, InMemoryOrganizationalUnit>();
   const groups = new Map<string, InMemoryInstallSeedGroup>();
   const categories = new Map<string, ServiceCategoryRecord>();
@@ -66,6 +67,15 @@ export function createInMemoryInstallSeedPrisma() {
     rolePermission: users.prisma.rolePermission,
     userRole: users.prisma.userRole,
     organizationalUnit: createInMemoryInstallSeedUnitDelegate(units, nextId, now),
+    // W2.11: the install seeds the first OU through the real create path, which
+    // bumps the shared catalogue revision inside its transaction.
+    organizationalUnitCatalogRevision: {
+      findUnique: async () => ({ revision: catalogRevision.value }),
+      upsert: async () => {
+        catalogRevision.value += 1n;
+        return { revision: catalogRevision.value };
+      },
+    },
     group: {
       ...baseGroupDelegate,
       findUnique: readGroupLookup,
@@ -124,6 +134,7 @@ export function createInMemoryInstallSeedPrisma() {
       });
       const auditLogLength = auditLogs.length;
       const originalNextAuditIdentifier = nextAuditIdentifier;
+      const originalCatalogRevision = catalogRevision.value;
       try {
         return await callback(prisma);
       } catch (error) {
@@ -139,6 +150,7 @@ export function createInMemoryInstallSeedPrisma() {
         });
         auditLogs.length = auditLogLength;
         nextAuditIdentifier = originalNextAuditIdentifier;
+        catalogRevision.value = originalCatalogRevision;
         throw error;
       }
     },
@@ -169,5 +181,6 @@ export function createInMemoryInstallSeedPrisma() {
     countServices: () => services.size,
     countFormVersions: () => formVersions.size,
     countRules: () => rules.size,
+    getCatalogRevision: () => catalogRevision.value,
   };
 }

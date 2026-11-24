@@ -1,4 +1,7 @@
-import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
+import {
+  bumpOrganizationalUnitCatalogRevision,
+  invalidateOrganizationalUnitScopeCache,
+} from '../../common/cache/scope-catalog-cache';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
@@ -70,6 +73,10 @@ export async function createOrganizationalUnit(
           },
         },
       );
+      // W2.11: the new unit changes the (id, ouPath) catalogue every instance
+      // caches; the bump commits with the row, so no reader can pair the new
+      // path with the old revision.
+      await bumpOrganizationalUnitCatalogRevision(transaction);
       return unit;
     });
     invalidateOrganizationalUnitScopeCache();
