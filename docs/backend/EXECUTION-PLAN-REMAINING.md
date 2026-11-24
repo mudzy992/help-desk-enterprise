@@ -35,6 +35,28 @@
 
 **Zašto Val 9 prije Vala 8:** install acceptance (Val 8, `31 — install`) traži health/readiness dokaz, a Val 1 readiness/metrike nalazi se zatvaraju u Val 9 paketima.
 
+### 2.1 Faza 0 — baseline dnevnog full CI-ja (2026-11-24, **zatvoreno**)
+
+| Run | Šta je pokazao |
+| --- | --- |
+| [`45376798360`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45376798360) — `schedule`, `master` @ `2b0aaf3` | Kodni poslovi **zeleni** (backend build + pun Jest, PostgreSQL/Redis integracija, frontend, docs guard, container/supply-chain). Full E2E: **125 passed / 2 failed / 3 flaky / 1 skipped** (61 min). API outage: `/health` nedostupan **10:55–11:43** (48 min). |
+| [`45387603494`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45387603494) — trijaža `specs="12,48"`, `retries=0` | **48 prošao** ⇒ pao je zbog outage-a, ne koda; spec **netaknut** (env problem se ne rješava izmjenom speca). **12 pao ponovo** istim brojevima (1 preview red, 2 tražena) ⇒ stvarni defekt u testu. |
+| [`45388019952`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45388019952) — `specs="12"` sa popravkom | **1 passed / 0 failed** iz prvog pokušaja. |
+
+**Spec 12 — šta je bilo i šta je popravljeno (`4bdccfc`, test-only).** Audit lista je **najnovijih 50 redova cijelog OU dnevnika** i nema filter po akciji. Test je napravio tri zapisa (API preview, UI preview, CSV export) i onda **jednim** pitanjem na kraju tražio „jesu li oba preview reda još na prvoj strani”. Na instalaciji sa 145 otvorenih tiketa (157 u group inboxu) odgovor zavisi od svega što instanca u međuvremenu upiše — red napisan par sekundi ranije legitimno ispadne sa stranice, iako se proizvod ponaša tačno kako je projektovan (svaki preview se audituje **prije** nego redovi napuste servis). Popravka zadržava sve tri tvrdnje (forward_ping_pong preview, monthly_kpi preview sa `boundaries`/`windowMode`, `reports.export` sa `format`/`pack`/`from`) i provjerava svaki zapis **odmah nakon njegove akcije**, pa red koji je taj poziv upisao stoji na vrhu stranice umjesto da se takmiči sa nepovezanim saobraćajem. Helper pri neuspjehu ispiše šta je stranica stvarno sadržavala (akcija + pack), pa sljedeći crveni run objašnjava sebe.
+
+**3 flaky i 1 skipped.** Dva flaky su eksplicitni `UND_ERR_CONNECT_TIMEOUT` na `api.desk.ba101.top` (42-catalog-sla-routing-ux, 44-on-call), treći (`09-config-ops`) je `CONFIG_CATALOG_STATE_CONFLICT` — sve unutar prozora outage-a. `1 skipped` je namjeran: `38-users-groups-rbac` destruktivna SuperAdmin trka traži izolovanu instalaciju sa **tačno jednim** aktivnim lokalnim SuperAdminom i jednim assignmentom; ovaj stack ih ima više i test sam navede razlog. Skip nije prolaz i ostaje vidljiv.
+
+### 2.2 Faza 0 — full run na grani poslije popravke (2026-11-24, **zatvoreno**)
+
+| Run | Šta je pokazao |
+| --- | --- |
+| [`45391299267`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45391299267) — full E2E na `4bdccfc` (128 testova, 1 retry) | **128 passed / 2 failed / 0 flaky / 1 skipped**. Spec 12 i 48 **prošli**. Nova dva pada su oba unutar **drugog** outage-a istog dana (`/health` pao `12:35:01–13:06:17`, 31 min): `55-session-refresh-draft:6` (timeout, CI ga sam označio `[stack-suspect]`) i `59-notifications-realtime:9` (nema Socket.IO konekcije dok API ne odgovara). |
+| [`45400198567`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45400198567) — trijaža `specs="55,59"`, `retries=0` | **4 passed / 0 failed** na prvom pokušaju ⇒ oba su isključivo outage. Nijedan spec nije mijenjan. |
+
+**Operativni rizik za baseline (bitno za Val 8/9, ne za kod).** Demo stack je danas pao **dva puta** (48 min i 31 min). CI to sam prepoznaje i piše „STACK OUTAGE — infrastructure, not a code regression”, ali svaki takav prozor pravi lažno crvene specove. Zaključak za dalje: **crveni E2E se prvo čita kroz outage prozor** (`/health` interval u summary-ju), pa se tek onda trijažira pojedinačno; nightly baseline se smatra čistim kada u prozoru bez outage-a nema padova. Danas je to stanje: 128/128 izvršenih testova prolazi kada stack radi, uz 1 namjeran skip.
+
+
 ## 3. Faza 1 — Val 1, P1 slice (3 paketa)
 
 | Paket | Nalaz | Nalaz (naslov) |
@@ -231,7 +253,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 
 | Paket | Nalaz | Status | Commit / PR | Run ID |
 | --- | --- | --- | --- | --- |
-| W0.0 | Faza 0 — trijaža dnevnog CI-ja | _čeka run ID_ | — | — |
+| W0.0 | Faza 0 — trijaža dnevnog full CI-ja i popravka speca 12 | **zatvoreno** | `4bdccfc` (spec 12, test-only) | `45376798360` → `45387603494` → `45388019952` → `45391299267` → `45400198567` |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 
