@@ -183,6 +183,15 @@ Type-check i pune suiteove (bez stuba) daje CI; tamo je dokaz za kompilaciju.
 - **`BA-users-01`** (ADMIN users control plane) je isti sistemski uzrok u drugom modulu i ostaje za `W2.10`.
 - Guard ne provjerava **service scope** na ovim rutama jer OU nije servisni resurs; `serviceId` se ne šalje u odluku.
 
+## CI
+
+Prvi run (`45459606355`, commit `a36c1d0`) je pao tek na koraku **„Verify route/guard and root-module wiring snapshot”**:
+wiring manifest je inventar guardova po ruti, pa dodavanje `OuAccessGuard` na šest ruta mora da uđe i u njega
+(`npm run wiring:write` → `docs/backend/backend-wiring-manifest.json`, +24/−12: `methodGuards` i `policyProof` za
+control-plane rute). Nakon regenerisanja i spajanja u jedan commit: run **`45463469776`** (commit `c9cbc48`) —
+**success**, svi jobovi zeleni (*Backend build + test*, *Backend PostgreSQL + Redis integration*, *Frontend build +
+test*, *Docs guard*, *Backend container + supply chain*, *CI gate*); E2E jobovi skipped jer ovaj paket nema E2E scenarij.
+
 ## Registar nalaza
 
 - Zatvoreno: `BA-organizational-units-01` (uz zeleni CI i gornji dokaz).
