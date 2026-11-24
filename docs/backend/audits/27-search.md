@@ -5,10 +5,11 @@
 **Rizik modula:** srednji  
 **Baseline ocjena:** **5,62/10**  
 **Nalazi:** 1 P1, 7 P2, 5 P3<br>
-**Implementacija:** **12/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa),
-W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom), W7.111 (`BA-search-10`, `types` je set),
-W7.112 (`BA-search-11`, privacy-safe telemetrija sa per-group SLO) i W7.113 (`BA-search-12`, direktni testovi
-confidential/arhiva/merge/revoke semantike). P1 nema, P2 nema; otvoren je `13` (P3).
+**Implementacija:** **13/13 zatvoreno — modul zatvoren** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući
+migraciju trigram indeksa), W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom), W7.111
+(`BA-search-10`, `types` je set), W7.112 (`BA-search-11`, privacy-safe telemetrija sa per-group SLO), W7.113
+(`BA-search-12`, direktni testovi confidential/arhiva/merge/revoke semantike) i W7.114 (`BA-search-13`, direktni
+`/search` E2E sa klikom rezultata + dokaz da je „compile-blocked” tvrdnja iz §8 zastarjela). P1 nema, P2 nema.
 Ova statusna dopuna ne mijenja nalaze ni ocjenu.
 
 ## 1. Executive summary
@@ -107,9 +108,31 @@ npm test -- --runInBand --runTestsByPath \
   src/modules/search/search.service.spec.ts
 ```
 
-Rezultat: **1/2 suitea prošao, 1/2 compile-blocked; 5/5 izvršenih testova prošlo**. DTO suite je zelen. Service suite se nije izvršio zbog nepotpunog generated Prisma/`PrismaService` contracta u transitivnom routing kodu (`group` i `service` delegati nedostaju). Nije zabilježen assertion failure.
+Rezultat (mjereno 2026-10-23): **1/2 suitea prošao, 1/2 compile-blocked; 5/5 izvršenih testova prošlo**. DTO suite je zelen. Service suite se nije izvršio zbog nepotpunog generated Prisma/`PrismaService` contracta u transitivnom routing kodu (`group` i `service` delegati nedostaju). Nije zabilježen assertion failure.
 
 Service spec izvorno pokriva ticket scope/list parity, requester, limit/type skip, admin-only user grupu i unknown actor fail-closed, ali taj dokaz u aktuelnom checkoutu nije izvršiv. Nema testa za scoped ADMIN cross-OU directory, whitespace-only query, KB candidate starvation, minimal article projection, stable user order, rate limit, partial dependency failure ni real DB query plan. Nema direktnog backend E2E za `/search` i klik rezultata.
+
+**Status poslije W7.114 (§28): tvrdnja je zastarjela i oba dijela nalaza su zatvorena.**
+
+- **Compile-blocked:** oba delegata koja je tvrdnja imenovala danas postoje u generisanom klijentu —
+  `backend/src/generated/prisma/internal/class.ts:521` (`get service()`) i `:731` (`get group()`). CI backend posao
+  generiše klijent (`npm run db:generate`) i provjerava ga guardom (`npm run check:prisma-generated`) **prije**
+  Jest-a, pa nepotpun klijent obara posao sa uputstvom, a ne izgleda kao „suite se ne kompajlira”. Izvršavanje
+  `npx jest src/modules/search` (2026-11-24): **12 suiteova — 11 zeleno, 1 uslovno preskočen
+  (`search-query-plan.integration.spec.ts`, 3 testa, traži `PRIVACY_IT_DATABASE_URL`); 103 testa — 100 passed,
+  3 skipped, 0 failed**; `search.service.spec.ts` iz tvrdnje izvršio se u cjelini, **26/26**. Pun Jest se izvršava
+  u CI-ju (`npm test -- --ci --coverage=false`) i master run `45365051745` je zelen u svih 10 poslova.
+- **Direktni E2E:** novi `e2e/tests/60-search-command-palette.spec.ts` (3 testa) dokazuje HTTP ugovor na živom
+  rubu — projekcija je tačno `{id, ticketNumber, title}`, prazna grupa nije kvar (`failedGroups` prazan),
+  `types=ticket` sužava odgovor, a `400` dobijaju whitespace-only/jednoznakovni upit, ponovljena grupa
+  (`types=ticket,ticket`), nepoznata grupa, `limit=26` i nepoznat parametar; bez sesije `401`. Treći test otvara
+  paletu header triggerom, čeka red po **broju** tiketa iz ovog runa, klikće ga i tvrdi `/tickets/<id>`, zatvorenu
+  paletu i naslov na stranici.
+
+**Šta i dalje nije pokriveno E2E-om (dokumentovano, ne prećutano):** 429 rate-limit budžeta se svjesno ne troši iz
+browsera (30/60 s po akteru i 60/60 s po adresi, a svi specovi dijele adresu — prozor, oba bucketa, fail-closed
+`503` i `Retry-After` pokrivaju `search-rate-limit*.spec.ts`); confidential/arhiva/merge/revoke ostaju u unit
+matrici W7.113; real DB query plan ostaje uslovno preskočen PostgreSQL dokaz.
 
 ## 9. Pozitivni nalazi
 
@@ -141,7 +164,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | zatvoreno (W7.111) |
 | BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | zatvoreno (W7.112) |
 | BA-search-12 | P3       | Confidential/archive/revoke semantika nema direktan search test                         | zatvoreno (W7.113) |
-| BA-search-13 | P3       | Glavni service suite je compile-blocked i nema direktnog `/search` E2E                  | otvoreno |
+| BA-search-13 | P3       | Glavni service suite je compile-blocked i nema direktnog `/search` E2E                  | zatvoreno (W7.114) |
 
 ## 11. Ključne korekcije
 
@@ -162,7 +185,11 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 - **08:** riješeno u W7.62 (typed group outcome: `authorization`/`client` uvijek fail-closed, samo
   `availability` degradira uz obavezno `failedGroups`; `503 SEARCH_UNAVAILABLE` kad nijedna grupa nije odgovorila).
 - **09,11:** stabilan order i privacy-safe metrički sloj bez raw queryja.
-- **12–13:** regenerisan Prisma client, unit/integration/E2E matrica i scope-revoke/perf dokaz.
+- **12:** ne čita se kao jedan paket — W7.113 je dodao confidential/arhiva/merge/revoke matricu kroz
+  `/search` (vidi §27).
+- **13:** W7.114 je pokazao da je „compile-blocked” opis **tadašnjeg checkouta** (generisan Prisma klijent bez
+  `group`/`service` delegata), a ne koda: delegati danas postoje, CI ih provjerava prije Jest-a, suite je 26/26, a
+  direktni `/search` E2E sa klikom rezultata je dodat (§28).
 
 ## 12. Baseline score
 
@@ -459,8 +486,9 @@ prikazuje „nema rezultata” u ta dva slučaja.
 imenovan i vidljiv i u API-ju i u UI-ju. Dokaz: `search-group-failure.spec.ts` (4), `search.service.spec.ts` (+4),
 frontend (+4 testa u tri fajla).
 
-**Šta ostaje u ovom modulu:** P1 nema, **P2 nema**. P3: `09` (stable order), `10` (`ArrayUnique`), `11`
-(telemetrija), `12` (confidential/arhiva test), `13` (compile-blocked suite/E2E).
+**Šta ostaje u ovom modulu:** P1 nema, **P2 nema**, **P3 nema** — modul je zatvoren W7.114 (`09` stable order,
+`10` `ArrayUnique`, `11` telemetrija, `12` confidential/arhiva/merge/revoke matrica, `13` `/search` E2E i dokaz da
+„compile-blocked” više ne stoji).
 
 **Preostali rizik:** klasifikacija zavisi od tipova grešaka, pa novi `4xx` izvor treba svjesno klasificirati;
 nema per-group timeouta (dostupnost pokriva greške, ne visenje); `failedGroups` nema telemetriju (P3 `11`);
@@ -618,3 +646,35 @@ zabilježeno kao kandidat za zaseban nalaz u modulu `tickets`, jer paleta taj pa
 allowed-viewer grupe confidential matrice pokrivene su predikatskim specom, ne kroz `/search`. Ostaje `BA-search-13`
 (glavni service suite „compile-blocked” i direktni `/search` E2E). Detalji:
 [335-w7113-search-12-ticket-semantics.md](../implementation/335-w7113-search-12-ticket-semantics.md).
+
+## 28. Implementacijski closeout — W7.114 (`BA-search-13`)
+
+**Nalaz.** Dva dijela: (1) glavni service suite je u §8 zaveden kao „compile-blocked” zbog nepotpunog generated
+Prisma contracta (`group` i `service` delegata), i (2) nije bilo direktnog E2E-a za `GET /search` ni za klik
+rezultata u paleti — unit suiteovi dokazuju pravila, ali ne da ih deployani rub (session → role → rate-limit guard,
+validation pipe, controller mapping) još poštuje.
+
+**Rješenje (test-only, bez promjene produkcijskog koda).**
+
+1. **Dokaz da je tvrdnja zastarjela, ne prepravka testa.** `backend/src/generated/prisma/internal/class.ts` danas
+   nosi `get service()` (l. 521) i `get group()` (l. 731); CI backend posao izvršava `npm run db:generate` →
+   `npm run check:prisma-generated` → `npm test -- --ci --coverage=false`, pa nepotpun klijent obara posao sa
+   uputstvom umjesto da izgleda kao suite koji se ne kompajlira. Lokalno **2026-11-24**: `npx jest
+   src/modules/search` → **12 suiteova (11 zeleno, 1 uslovno preskočen), 103 testa (100 passed / 3 skipped / 0
+   failed)**, `search.service.spec.ts` **26/26**; `nest build` zelen, `eslint --max-warnings=0` čist,
+   `wiring:check` 632 rute.
+2. **Novi E2E `e2e/tests/60-search-command-palette.spec.ts` (3 testa).** (a) HTTP ugovor: tiket iz ovog runa je
+   pronađen po naslovu, projekcija je tačno `{id, ticketNumber, title}`, `failedGroups` je prazan, a
+   `types=ticket` ostavlja article/user grupe praznim. (b) Refusali na rubu: `q` samo praznine → `400`, jedan znak
+   → `400`, `types=ticket,ticket` → `400`, `types=audit` → `400`, `limit=26` → `400`, `sort=title` → `400`
+   (`forbidNonWhitelisted`), bez sesije → `401`. (c) Klik kroz paletu: superadmin otvara paletu header triggerom,
+   čeka red po **broju** tiketa (jedinstven, pa keširan odgovor ne može proći), klikće i završava na `/tickets/<id>`
+   sa naslovom na stranici i zatvorenom paletom.
+
+**Svjesno nije u E2E-u:** 429 budžeta (30/60 s po akteru, 60/60 s po adresi, a svi specovi dijele adresu — trošenje
+bi otrovilo kasnije specove; pokriveno `search-rate-limit*.spec.ts`), confidential/arhiva/merge/revoke (W7.113 unit
+matrica) i real query plan (PostgreSQL dokaz uslovno preskočen bez `PRIVACY_IT_DATABASE_URL`). Smoke podskup PR-a
+(`01,02,03,15,22,54`) ne uključuje `60`; spec se izvršava na dispatchu ciljano i u noćnom punom runu.
+
+**Produkcijski kod nije mijenjan** — nema migracije, nema promjene ruta (632), nema promjene odgovora ni env ugovora.
+Detalji: [336-w7114-search-13-e2e-compile-proof.md](../implementation/336-w7114-search-13-e2e-compile-proof.md).

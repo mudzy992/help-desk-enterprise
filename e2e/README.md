@@ -35,7 +35,7 @@ runners (Coolify contract) — and runs in three modes:
 | Event | Mode | Scope |
 |---|---|---|
 | `pull_request` (and the change touches code) | **smoke — the gate** | 6 files (`01, 02, 03, 15, 22, 54`), `retries=0`, `--max-failures=1` |
-| `schedule` (nightly, 01:00 UTC) | **full** | all 54 files, `retries=1` |
+| `schedule` (nightly, 01:00 UTC) | **full** | all 62 files, `retries=1` |
 | `workflow_dispatch` | triage or full | `specs=10,18,22`, `retries: 0`, `max_failures: 8`, or nothing for all files |
 
 A manual dispatch also takes `skip_gates` (**on by default**): the backend and frontend jobs are skipped and
@@ -564,6 +564,17 @@ Test `57-integration-queue-correlation.spec.ts` je opt-in i inače je **skipped*
 ### Val 6 — mailbox → ticket test 58
 
 Test `58-inbound-mailbox-to-ticket.spec.ts` je opt-in i inače je **skipped**. Prije uključivanja provjeriti da `E2E_BASE_URL`, `E2E_API_URL`, `E2E_DATABASE_URL`, ulazni mailbox i SMTP svi pripadaju **istom izolovanom, potrošnom testnom okruženju**, nikad produkciji. U GitHub Actions Repository Variables postaviti `E2E_VAL6_INBOUND=1`. `E2E_VAL6_SMTP_HOST`, `E2E_VAL6_SMTP_PORT`, `E2E_VAL6_SMTP_SECURE` (`true` samo za implicit TLS) i `E2E_VAL6_INBOUND_ADDRESS` mogu biti Repository Secrets ili Variables; ako su oba postavljena, Secret ima prednost. Ako SMTP traži autentikaciju, vrijednosti `E2E_VAL6_SMTP_USERNAME` i `E2E_VAL6_SMTP_PASSWORD` postaviti kao GitHub Actions Secrets, ne u razgovor. Pošiljalac je testni `E2E_USER_EMAIL`; mora biti aktivan korisnik i SMTP/provider mora prihvatiti tu adresu i dostaviti poruku u testni mailbox. Inbound worker mora biti uključen, dozvoliti sender/domenu, imati ispravno konfigurisan trusted authserv-id i `createTickets` s valjanom uslugom. Test čeka do tri minute nakon slanja; konfiguracija/backoff mogu zahtijevati kraći poll interval u testnom stacku. Test kreira stvarnu poruku i tiket te ih ne briše; poslije resetovati testni stack i mailbox. Ako je test preskočen, nema E2E dokaza.
+
+### Val 7 — search / command palette (spec 60)
+
+`60-search-command-palette.spec.ts` je dio **punog** i svakog ciljanog runa (`-f specs="60"`), ali **nije** u PR smoke
+podskupu (`01,02,03,15,22,54`) — traje ~30 s i pravi jedan tiket. Tri testa: (1) HTTP ugovor `GET /search` na živom
+rubu — tiket iz ovog runa pronađen po naslovu, projekcija tačno `{id, ticketNumber, title}`, `failedGroups` prazan,
+`types=ticket` sužava odgovor; (2) refusali koje DTO obećava — `400` za whitespace-only/jednoznakovni upit,
+`types=ticket,ticket`, `types=audit`, `limit=26` i nepoznat parametar (`forbidNonWhitelisted`), `401` bez sesije;
+(3) klik kroz paletu header triggerom do `/tickets/<id>`. Spec **ne troši** rate-limit budžet (30/60 s po akteru,
+60/60 s po adresi, a svi specovi dijele adresu) — 429 pokriva `search-rate-limit*.spec.ts`. Tiket se pravi jednom u
+`beforeAll`, pa je `describe` u `serial` modu.
 
 ### Val 6 — realtime notifikacija test 59
 
