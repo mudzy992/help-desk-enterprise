@@ -208,7 +208,22 @@ deletea stanje se resetuje.
 
 ## CI
 
-_(popunjava se nakon zelenog runa; vidi ledger §12 u `EXECUTION-PLAN-REMAINING.md`)_
+Run [`45509708483`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45509708483) na `354d391` — **success,
+prvi pokušaj**:
+
+- **Backend build + test** ✓ (schema + generisani klijent, `nest build`, full Jest uključujući novi
+  `group-delete-dependencies.spec.ts`, eslint, wiring check sa **633** rute);
+- **Backend PostgreSQL + Redis integration** ✓ (nema nove migracije, ali connection-budget `npm run build` prolazi sa
+  novim delegatima);
+- **Frontend build + test** ✓ (tsc, eslint, prettier, `npm test` sa novim hook testom i i18n parity/identical čuvarima,
+  bundle budget);
+- **Docs guard** ✓ (uključuje `audit:traceability` i `check-docs-content`);
+- **Backend container + supply chain** ✓;
+- **Skipped:** *Read-only service-form pattern inventory*, *E2E install wizard*, *E2E critical flows* — konfiguracija
+  workflowa (`skipped` nije `passed`; browser E2E iz „Vizuelna provjera” nije izveden).
+
+Nije bilo crvenih pokušaja: jedina lokalna poteškoća (stub generisanog klijenta bez delegata) nije stigla do CI-ja jer
+je stub gitignored i CI generiše pravi klijent.
 
 ## Registar nalaza
 
