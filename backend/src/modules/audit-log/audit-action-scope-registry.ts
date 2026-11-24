@@ -6,6 +6,8 @@ export type AuditScopePolicy = 'global' | 'producer' | 'entity';
 export const auditActionScopeRegistry: Readonly<Record<string, AuditScopePolicy>> = Object.freeze({
   ...Object.fromEntries(Object.values(auditLogActions).map((action) => [action, 'producer' as const])),
   [auditLogActions.authLoginFailed]: 'global',
+  // W1.5: a CLI run belongs to the installation, not to one organisational unit.
+  [auditLogActions.cliCommandExecuted]: 'global',
   [auditLogActions.securityMfaSecretsReencrypted]: 'global',
   [auditLogActions.opsDlqBaselineAcknowledged]: 'global',
   [auditLogActions.opsAlertTestSent]: 'global',

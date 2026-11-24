@@ -778,7 +778,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-05` | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-06` | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-07` | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
-| 44 | `cross-cutting-infrastructure` | `BA-xcut-08` | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
+| 44 | `cross-cutting-infrastructure` | `BA-xcut-08` | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | zatvoreno (W1.5) | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-09` | P2 | Nema jedinstvene typed/fatal production env validacije | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-10` | P2 | Pool nema deployment-wide connection budget ni admission check | zatvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
 | 44 | `cross-cutting-infrastructure` | `BA-xcut-11` | P2 | DB timeout/instrumentation ne pokriva kompletno lock/transaction/dedicated-client ponašanje | otvoreno | [44-cross-cutting-infrastructure.md](audits/44-cross-cutting-infrastructure.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **332**
-- Otvoreno: **364** (P1 88 / P2 195 / P3 81)
+- Zatvoreno: **333**
+- Otvoreno: **363** (P1 87 / P2 195 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

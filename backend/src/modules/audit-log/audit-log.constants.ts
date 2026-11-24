@@ -256,6 +256,14 @@ export const auditLogActions = {
    * `commentResolvedAt` silently, and the audit row is what survives that and a later user deletion.
    */
   knowledgeCommentResolved: 'knowledge.feedback.comment_resolved',
+  /**
+   * W1.5 (`BA-xcut-08`): an operator ran a destructive CLI against a named
+   * database. The CLI used to print to stdout and leave nothing behind, so a
+   * hard delete of demo/seed data was indistinguishable from a delete that never
+   * happened. `outcome` separates the authorization to start from the counts the
+   * run actually committed.
+   */
+  cliCommandExecuted: 'cli.command.executed',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -299,6 +307,8 @@ export const auditLogEntityTypes = {
   knowledgeArticle: 'knowledge_article',
   /** W7.91: the feedback row a comment lives on. */
   knowledgeFeedback: 'knowledge_feedback',
+  /** W1.5: the invocation itself — `entityId` is command@environment:fingerprint. */
+  cliCommand: 'cli_command',
   // Paket 3.2
   asset: 'asset',
   assetType: 'asset_type',

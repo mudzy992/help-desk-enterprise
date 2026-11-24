@@ -21,6 +21,10 @@ export const knownAuditMetadataValues: Readonly<Record<string, readonly string[]
   artifactStored: ["false"],
   // W7.102/W7.108: every pack says whether it reads events or the state at now.
   windowMode: ["event-time", "snapshot-time", "mixed"],
+  // W1.5: a CLI run declares its target environment and whether it finished.
+  environment: ["development", "staging", "production"],
+  mode: ["apply"],
+  outcome: ["started", "completed"],
   // W7.30: problem metadata carries the matrix codes; they are a closed vocabulary.
   priority: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
   urgency: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],

@@ -74,8 +74,8 @@ W7.75 nema razlike između izvornih tabela, generisanog plana, globalnog registr
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **332**
-- Otvoreno: **364** (P1 88 / P2 195 / P3 81)
+- Zatvoreno: **333**
+- Otvoreno: **363** (P1 87 / P2 195 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
 

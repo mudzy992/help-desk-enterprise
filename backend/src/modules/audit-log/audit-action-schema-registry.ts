@@ -102,6 +102,10 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.privacyLegalHoldSet]: schema(['reason', 'target'], 'restricted'),
   [auditLogActions.privacyLegalHoldCleared]: schema(['reason', 'target'], 'restricted'),
   [auditLogActions.auditRedacted]: schema(['entries', 'entriesTruncated', 'redacted', 'sealed'], 'restricted'),
+  // W1.5: the operator audit of a destructive CLI. `confirmation` is the phrase
+  // that was typed (the target fingerprint, never a credential), `counts` are the
+  // numbers the run committed and `outcome` separates start from completion.
+  [auditLogActions.cliCommandExecuted]: schema(['command', 'confirmation', 'counts', 'environment', 'mode', 'outcome', 'reason', 'targetFingerprint']),
   [auditLogActions.securityMfaSecretsReencrypted]: schema(['alreadyCurrent', 'concurrentSkip', 'reason', 'reencrypted', 'unreadable', 'via']),
   [auditLogActions.auditRetentionPurged]: schema(['purged', 'purgedTotal', 'throughCreatedAt', 'throughHash', 'throughId']),
   [auditLogActions.opsAlertAcknowledged]: schema(['key', 'severity']),

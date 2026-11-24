@@ -436,7 +436,8 @@
             "change_updated": "Change — updated",
             "knowledge_feedback_comment_resolved": "Knowledge comment — marked resolved",
             "report_pdf_print_intent": "Report PDF — print dialog opened",
-            "report_pack_previewed": "Report pack — preview opened"
+            "report_pack_previewed": "Report pack — preview opened",
+            "cli_command_executed": "CLI command executed"
           },
           "entities": {
             "policy_pack": "Policy pack",
@@ -483,7 +484,8 @@
             "change": "Change",
             "change_template": "Change template",
             "auth_event": "Security event",
-            "knowledge_feedback": "Knowledge comment"
+            "knowledge_feedback": "Knowledge comment",
+            "cli_command": "CLI command"
           },
           "fields": {
             "channel": "Channel",
@@ -704,7 +706,13 @@
             "boundaries": "Window boundaries",
             "truncated": "Preview truncated",
             "truncatedInput": "Input truncated",
-            "windowMode": "Period meaning"
+            "windowMode": "Period meaning",
+            "command": "Command",
+            "confirmation": "Target confirmation",
+            "counts": "Affected records",
+            "environment": "Environment",
+            "outcome": "Outcome",
+            "targetFingerprint": "Target database fingerprint"
           }
         },
         "actorUnknown": "Unknown user",
@@ -804,6 +812,18 @@
             "event_time": "Period selects events",
             "snapshot_time": "State at generation",
             "mixed": "Events + current state"
+          },
+          "environment": {
+            "development": "development",
+            "staging": "staging",
+            "production": "production"
+          },
+          "mode": {
+            "apply": "apply"
+          },
+          "outcome": {
+            "started": "started",
+            "completed": "completed"
           }
         }
       },

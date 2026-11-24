@@ -91,6 +91,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.privacyLegalHoldSet]: compatibility([auditLogEntityTypes.ticket, auditLogEntityTypes.user]),
   [auditLogActions.privacyLegalHoldCleared]: compatibility([auditLogEntityTypes.ticket, auditLogEntityTypes.user]),
   [auditLogActions.auditRedacted]: compatibility([auditLogEntityTypes.privacyErasure]),
+  [auditLogActions.cliCommandExecuted]: compatibility([auditLogEntityTypes.cliCommand]),
   [auditLogActions.securityMfaSecretsReencrypted]: compatibility([auditLogEntityTypes.securityKey]),
   [auditLogActions.auditRetentionPurged]: compatibility([auditLogEntityTypes.auditLog]),
   [auditLogActions.opsAlertAcknowledged]: compatibility([auditLogEntityTypes.opsAlert]),

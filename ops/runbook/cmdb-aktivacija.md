@@ -40,11 +40,26 @@ Meniji „Imovina“ i „Moja oprema“ pojavljuju se nakon osvježavanja stran
 - Uloga „Upravitelj imovine“ (`ASSET_MANAGER`) dodjeljuje se korisnicima iz nabavke ili IT-a, po OJ.
 
 ## 4. Početni podaci
-Demo inventar, samo za staging (uklanja se s `--remove`):
+Demo inventar, samo za staging (uklanja se s `--remove`). Komanda je **dry run po defaultu** i ispiše target,
+plan i tačnu frazu potvrde za tu bazu; upis traži `--apply`, razlog, administrativnog operatora i otkucanu frazu
+(W1.5). U produkciji dodatno `--allow-production` — demo podaci tamo ne idu bez tog eksplicitnog flaga.
 
 ```bash
-read -rp "Backend kontejner: " BACKEND && docker exec -i "$BACKEND" node dist/src/cli/assets-seed-demo.js
+read -rp "Backend kontejner: " BACKEND
+# 1) probni prolaz: ništa se ne piše, ispiše se --confirm fraza za ovaj target
+docker exec -i "$BACKEND" node dist/src/cli/assets-seed-demo.js --environment staging
+# 2) upis: zalijepite frazu iz koraka 1
+docker exec -i "$BACKEND" node dist/src/cli/assets-seed-demo.js --environment staging \
+  --apply --reason "demo inventar za obuku" --operator admin@firma.ba \
+  --confirm "assets-seed-demo@staging:<fingerprint>"
+# 3) uklanjanje: isti guardovi + --remove; demo imovina koju tiket referencira ostaje i bude prijavljena
+docker exec -i "$BACKEND" node dist/src/cli/assets-seed-demo.js --environment staging \
+  --apply --remove --reason "čišćenje demo podataka" --operator admin@firma.ba \
+  --confirm "assets-seed-demo@staging:<fingerprint>"
 ```
+
+Svaki upis ostavlja `cli.command.executed` u auditu (Administracija → Sigurnost → Audit) sa operatorom, razlogom,
+otiskom ciljne baze i brojevima koje je run commitovao (`outcome=started` pa `completed`).
 
 Uvoz iz Excela, prvo probni prolaz:
 

@@ -16,7 +16,7 @@ Ovaj master plan je kanonski za **redoslijed, sadržaj valova/paketa, zbirni sta
 | Val | Dodijeljeni audit obuhvat (jedinice) | Paketni dnevnik | Izvorni nalazi zatvoreno / ukupno | Otvoreno (P1/P2/P3) | Zaključak |
 | --- | --- | --- | ---: | ---: | --- |
 | 0 | reprodukcija i audit safety net | W0.1–W0.7 završeni | — | — | Osnovni harness/checker je završen. |
-| 1 | 44 — cross-cutting infrastruktura (container/supply chain, DB/migracije, Redis/tajne, workers) | W1.1–W1.4 završeni | 15 / 32 | 17 (1/12/4) | Paketi završeni; dio dodijeljenih nalaza je još otvoren. |
+| 1 | 44 — cross-cutting infrastruktura (container/supply chain, DB/migracije, Redis/tajne, workers) | W1.1–W1.4 završeni | 16 / 32 | 16 (0/12/4) | Paketi završeni; dio dodijeljenih nalaza je još otvoren. |
 | 2 | 01–06, 09 (authentication, authorization, RBAC, users, OU/groups, security) | W2.1–W2.8 završeni | 6 / 63 | 57 (13/30/14) | Paketi završeni; wave scope nije zatvoren. |
 | 3 | 07–08, 10–11, 30, 43 (settings, audit, webhook, privacy, config, change-log) | W3.1–W3.11 završeni | 14 / 86 | 72 (20/38/14) | Zatvoreno je svih 11 nalaza iz `08 — audit-log`; ostali dodijeljeni scopeovi ostaju otvoreni. |
 | 4 | zajednički idempotency/outbox/concurrency/storage/cache primitives; nema direktnog BA wave assignmenta | W4.1–W4.7 završeni | — | — | Platformska osnova završena; sama po sebi ne zatvara domenske BA ID-eve. |
@@ -41,8 +41,8 @@ iz 44 audit tabele; ručno uređivanje pada na `audit:traceability` u CI-ju i u 
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **332**
-- Otvoreno: **364** (P1 88 / P2 195 / P3 81)
+- Zatvoreno: **333**
+- Otvoreno: **363** (P1 87 / P2 195 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
 

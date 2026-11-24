@@ -173,6 +173,12 @@ Pozitivno je što nekoliko CLI-ja ima dry-run, explicit `--apply`, reason i audi
 - nema centralnog append-only operator audit traila koji bilježi command, target, actor, reason, counts i završni hash;
 - `ensure-e2e-actors` može mijenjati password/MFA stanje i ima override za policy; production zabrana zavisi od allowliste i operator discipline, ne deployment-level exclusiona.
 
+### Implementacijski dodatak — W1.5, 2026-11-24
+
+`BA-xcut-08` je zatvoren u [`337-w15-cli-target-guard-operator-audit.md`](../implementation/337-w15-cli-target-guard-operator-audit.md): `assets-seed-demo` je od write-by-default postao **dry-run-by-default**, a write traži deklarisano okruženje, `--reason`, administrativnog operatora, otkucanu potvrdu sa target fingerprintom (i `--allow-production` za produkciju). `--remove` je režim `--apply` i ne može preskočiti te guardove. Svaki apply ostavlja `cli.command.executed` u audit lancu (globalna particija): `started` prije prvog write-a, `completed` sa brojevima — kod `--remove` u **istoj transakciji** kao delete-i. Uklanjanje zadržava demo imovinu koju tiket referencira i to prijavljuje umjesto da FK obori cijelu komandu.
+
+Granica: zajednički framework za **sve** CLI-jeve (target fingerprint svuda, checkpoint/statement budžet, transaction safety), kao i produkcijska zabrana za `ensure-e2e-actors` koja ne zavisi od allowliste, ostaju `BA-xcut-25` (W1.17); seed client kroz common pool/metrics ostaje `BA-xcut-32` (W1.21). Ovdje je isporučen guard modul i njegova primjena na komandu iz nalaza.
+
 ## 12. Test rezultat i granice dokaza
 
 Pokrenuto je 27 common specova i 4 root/lifecycle/wiring speca:
@@ -201,7 +207,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-05 | P1 | Authz cache može služiti ukinuta prava/deaktiviranog usera do TTL-a nakon invalidation failure/omissiona | zatvoreno |
 | BA-xcut-06 | P1 | Scheduler registration fail-open označava worker started bez obaveznih rasporeda | zatvoreno |
 | BA-xcut-07 | P1 | Migracije na startu svake API replike bez release gatea, compatibility/backup/rollback ugovora |zatvoreno |
-| BA-xcut-08 | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | otvoreno |
+| BA-xcut-08 | P1 | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita | zatvoreno |
 | BA-xcut-09 | P2 | Nema jedinstvene typed/fatal production env validacije | zatvoreno |
 | BA-xcut-10 | P2 | Pool nema deployment-wide connection budget ni admission check |zatvoreno |
 | BA-xcut-11 | P2 | DB timeout/instrumentation ne pokriva kompletno lock/transaction/dedicated-client ponašanje | otvoreno |

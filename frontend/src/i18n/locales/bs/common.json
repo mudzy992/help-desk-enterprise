@@ -438,7 +438,8 @@
             "change_updated": "Promjena — izmijenjena",
             "knowledge_feedback_comment_resolved": "Komentar baze znanja — označen riješenim",
             "report_pdf_print_intent": "PDF izvještaja — otvoren dijalog štampe",
-            "report_pack_previewed": "Pregled paketa izvještaja — otvoren"
+            "report_pack_previewed": "Pregled paketa izvještaja — otvoren",
+            "cli_command_executed": "CLI komanda izvršena"
           },
           "entities": {
             "policy_pack": "Paket pravila",
@@ -485,7 +486,8 @@
             "change": "Promjena",
             "change_template": "Šablon promjene",
             "auth_event": "Sigurnosni događaj",
-            "knowledge_feedback": "Komentar baze znanja"
+            "knowledge_feedback": "Komentar baze znanja",
+            "cli_command": "CLI komanda"
           },
           "fields": {
             "channel": "Kanal",
@@ -706,7 +708,13 @@
             "boundaries": "Granice prozora",
             "truncated": "Skraćen prikaz",
             "truncatedInput": "Skraćen izvor",
-            "windowMode": "Značenje perioda"
+            "windowMode": "Značenje perioda",
+            "command": "Komanda",
+            "confirmation": "Potvrda cilja",
+            "counts": "Zahvaćeni zapisi",
+            "environment": "Okruženje",
+            "outcome": "Ishod",
+            "targetFingerprint": "Otisak ciljne baze"
           }
         },
         "actorUnknown": "Nepoznat korisnik",
@@ -806,6 +814,18 @@
             "event_time": "Period bira događaje",
             "snapshot_time": "Stanje u trenutku generisanja",
             "mixed": "Događaji + trenutno stanje"
+          },
+          "environment": {
+            "development": "razvoj",
+            "staging": "testno okruženje",
+            "production": "produkcija"
+          },
+          "mode": {
+            "apply": "primjena"
+          },
+          "outcome": {
+            "started": "započeto",
+            "completed": "završeno"
           }
         }
       },

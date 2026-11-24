@@ -19,6 +19,8 @@ export const knownAuditActions = [
   "reports.export",
   // W7.108: the pack preview is a read audit, so it is a first-class action.
   "report.pack.previewed",
+  // W1.5: a destructive CLI run is an installation-level audit event.
+  "cli.command.executed",
   "support_bundle.export",
   "notification.receipt",
   "ticket.remote.acknowledged",

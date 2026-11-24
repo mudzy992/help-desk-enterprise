@@ -7,6 +7,7 @@ export const knownAuditEntityTypes = [
   "config_version",
   "support_bundle",
   "report_pack",
+  "cli_command",
   "notification",
   "role",
   "user_role",

@@ -2204,7 +2204,7 @@ To je kriterij kompletnosti.
 - Pregled vrijedi 24 sata; ako se oprema u međuvremenu promijeni, taj red se ne upisuje.
 - Uvoz ne izdaje prenosnice — služi za početno stanje; prenosnica se izdaje pri svakom pojedinačnom kretanju opreme.
 - Izvoz (Excel ili CSV) prati filtere popisa, do 10 000 redova, bilježi se u audit i nikad ne sadrži ključeve licenci.
-- Administrator može uvoziti i s komandne linije (`assets-import.js`), uključujući probni prolaz bez upisa; demo inventar se dodaje i uklanja s `assets-seed-demo.js`.
+- Administrator može uvoziti i s komandne linije (`assets-import.js`), uključujući probni prolaz bez upisa; demo inventar se dodaje i uklanja s `assets-seed-demo.js`, koja je probni prolaz po defaultu, a upis traži razlog, operatora i potvrdu ciljne baze (i taj upis ide u audit).
 
 ## CMDB — računari iz Active Directoryja (C8, 30.9.2026)
 

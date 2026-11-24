@@ -21,6 +21,10 @@ export const knownAuditMetadataFields = [
   "boundaries",
   "bytes",
   "category",
+  // W1.5: operator audit of a destructive CLI run.
+  "command",
+  "confirmation",
+  "counts",
   "changedFields",
   // W7.30: the problem text fields. A change list names them; the audit
   // metadata itself never carries their content.
@@ -62,6 +66,7 @@ export const knownAuditMetadataFields = [
   "equals",
   "erasureId",
   "event",
+  "environment",
   "fileName",
   "filters",
   "format",
@@ -107,6 +112,7 @@ export const knownAuditMetadataFields = [
   "organizationalUnitPath",
   "otherMaxFailures",
   "ouPath",
+  "outcome",
   "ownerUserId",
   "pack",
   "packKey",
@@ -197,6 +203,7 @@ export const knownAuditMetadataFields = [
   "status",
   "subjectUserId",
   "suggestedUserId",
+  "targetFingerprint",
   "textChanged",
   "throughCreatedAt",
   "throughHash",

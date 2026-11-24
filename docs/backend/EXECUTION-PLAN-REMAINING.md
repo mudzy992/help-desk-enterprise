@@ -254,6 +254,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | Paket | Nalaz | Status | Commit / PR | Run ID |
 | --- | --- | --- | --- | --- |
 | W0.0 | Faza 0 — trijaža dnevnog full CI-ja i popravka speca 12 | **zatvoreno** | `4bdccfc` (spec 12, test-only) | `45376798360` → `45387603494` → `45388019952` → `45391299267` → `45400198567` |
+| W1.5 | `BA-xcut-08` — demo CLI: dry-run default, target/confirm/production guard, operator audit | **zatvoreno** | `_pending_` | `_pending_` |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 
