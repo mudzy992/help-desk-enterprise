@@ -8,8 +8,11 @@ import { Reflector } from '@nestjs/core';
 import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from '../authentication/authenticated-request';
 import type { AuthorizationPrincipal } from '../authentication/authentication.types';
 import {
+  AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY,
+  AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
   AUTHORIZATION_REQUIRED_ROLES_KEY,
   authorizationRoleKeys,
+  permissionKeys,
 } from '../authorization/authorization.constants';
 import { createAuthorizationContext } from '../authorization/create-authorization-context';
 import { createTestAssignment } from '../authorization/create-test-authorization-context';
@@ -89,6 +92,51 @@ describe('OrganizationalUnitsController guards', () => {
     for (const handler of adminOnlyHandlers) {
       expect(readMethodRoles(handler)).toBeUndefined();
     }
+  });
+
+  it('scopes every control-plane route to the actor OU and the manage permission', () => {
+    for (const handler of adminOnlyHandlers) {
+      const guards = (Reflect.getMetadata(GUARDS_METADATA, handler) ?? []) as Array<{
+        name: string;
+      }>;
+      expect(guards.map((guard) => guard.name)).toContain('OuAccessGuard');
+      expect(
+        Reflect.getMetadata(AUTHORIZATION_REQUIRED_PERMISSIONS_KEY, handler),
+      ).toEqual(expect.arrayContaining([permissionKeys.organizationalUnitManage]));
+      expect(
+        Reflect.getMetadata(AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY, handler),
+      ).toBeDefined();
+    }
+  });
+
+  it('names the scope field the guard must resolve on each route', () => {
+    type ScopeLocator = { field: string; resource?: string };
+    const locatorOf = (handler: ControllerHandler): ScopeLocator | undefined =>
+      Reflect.getMetadata(
+        AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY,
+        handler,
+      ) as ScopeLocator | undefined | undefined;
+
+    expect(locatorOf(OrganizationalUnitsController.prototype.create)?.field).toBe('parentId');
+    expect(locatorOf(OrganizationalUnitsController.prototype.assignUser)?.field).toBe(
+      'organizationalUnitId',
+    );
+    for (const handler of [
+      OrganizationalUnitsController.prototype.getById,
+      OrganizationalUnitsController.prototype.update,
+      OrganizationalUnitsController.prototype.delete,
+      OrganizationalUnitsController.prototype.listUsers,
+    ]) {
+      expect(locatorOf(handler)?.field).toBe('organizationalUnitId');
+    }
+    // The tree stays open to every role; the service narrows it by scope instead.
+    expect(locatorOf(OrganizationalUnitsController.prototype.getTree)).toBeUndefined();
+    expect(
+      Reflect.getMetadata(
+        AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
+        OrganizationalUnitsController.prototype.getTree,
+      ),
+    ).toBeUndefined();
   });
 
   it('rejects requests without an authenticated principal', async () => {

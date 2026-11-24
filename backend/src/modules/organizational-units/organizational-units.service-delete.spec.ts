@@ -1,5 +1,6 @@
 import { deleteOrganizationalUnit } from './delete-organizational-unit';
 import { OrganizationalUnitsService } from './organizational-units.service';
+import { createTestOrganizationalUnitScopeLoader } from './create-test-organizational-unit-scope';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -8,6 +9,9 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 jest.mock('./delete-organizational-unit', () => ({
   deleteOrganizationalUnit: jest.fn(),
 }));
+
+
+const createScopeLoader = () => createTestOrganizationalUnitScopeLoader();
 
 describe('OrganizationalUnitsService.delete', () => {
   beforeEach(() => jest.mocked(deleteOrganizationalUnit).mockReset());
@@ -20,6 +24,7 @@ describe('OrganizationalUnitsService.delete', () => {
     const invalidateUsers = jest.fn().mockResolvedValue(undefined);
     const service = new OrganizationalUnitsService(
       {} as never,
+      createScopeLoader() as never,
       { invalidateUsers } as never,
     );
     const response = await service.delete('ou-1', {
@@ -42,6 +47,7 @@ describe('OrganizationalUnitsService.delete', () => {
     });
     const service = new OrganizationalUnitsService(
       {} as never,
+      createScopeLoader() as never,
       { invalidateUsers: jest.fn().mockRejectedValue(new Error('redis unavailable')) } as never,
     );
     await expect(service.delete('ou-1')).resolves.toEqual({ warnings: [] });

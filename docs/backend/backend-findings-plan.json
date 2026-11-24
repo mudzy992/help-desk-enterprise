@@ -2908,7 +2908,7 @@
     {
       "id": "BA-organizational-units-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.9, [340](../implementation/340-w29-ou-control-plane-scope.md))",
       "source": "05-organizational-units.md",
       "owner": "WS-A",
       "wave": 2

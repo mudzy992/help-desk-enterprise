@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
@@ -50,6 +51,8 @@ const messages: Record<OrganizationalUnitErrorCode, string> = {
   HAS_TICKETS: 'Organizational unit is still linked to tickets',
   RESOURCE_IN_USE: 'Organizational unit is still in use',
   LAST_SUPER_ADMIN_REQUIRED: 'Cannot delete the organizational unit because it would remove the last active SuperAdmin',
+  FORBIDDEN:
+    'The organizational unit is outside the scope the role is assigned to',
 };
 
 export function mapOrganizationalUnitError(error: unknown): HttpException {
@@ -62,7 +65,11 @@ export function mapOrganizationalUnitError(error: unknown): HttpException {
     ...(error.blockers.length > 0 ? { details: { blockers: error.blockers } } : {}),
   };
   if (error.code === 'NOT_FOUND' || error.code === 'USER_NOT_FOUND') {
+    // Out-of-scope reads must not confirm that the unit exists.
     return new NotFoundException(body);
+  }
+  if (error.code === 'FORBIDDEN') {
+    return new ForbiddenException(body);
   }
   if (conflictCodes.includes(error.code)) {
     return new ConflictException(body);

@@ -4540,11 +4540,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "organizational-units",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/organizational-units/organizational-units.controller.ts",
@@ -4556,11 +4558,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "organizational-units",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/organizational-units/organizational-units.controller.ts",
@@ -4572,11 +4576,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "organizational-units",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/organizational-units/organizational-units.controller.ts",
@@ -4588,11 +4594,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "organizational-units",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/organizational-units/organizational-units.controller.ts",
@@ -4604,11 +4612,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "organizational-units",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/organizational-units/organizational-units.controller.ts",
@@ -4636,11 +4646,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "organizational-units",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/templates/playbooks/playbooks.controller.ts",

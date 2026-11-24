@@ -2,15 +2,26 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInMemoryOrganizationalUnitPrisma } from './create-in-memory-organizational-unit-prisma';
 import { OrganizationalUnitsService } from './organizational-units.service';
+import {
+  createTestOrganizationalUnitScopeLoader,
+  testOrganizationalUnitAdminContext,
+} from './create-test-organizational-unit-scope';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+
+const createScopeLoader = () => createTestOrganizationalUnitScopeLoader();
+const administratorContext = testOrganizationalUnitAdminContext;
+
 describe('organizational unit authentication independence', () => {
   it('maps local and entra-linked users through the same User → OU relation', async () => {
     const memory = createInMemoryOrganizationalUnitPrisma();
-    const service = new OrganizationalUnitsService(memory.prisma as never);
+    const service = new OrganizationalUnitsService(
+      memory.prisma as never,
+      createScopeLoader() as never,
+    );
     const unit = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -34,14 +45,14 @@ describe('organizational unit authentication independence', () => {
       entraObjectId: 'entra-object-1',
       localPasswordHash: null,
     });
-    const localMapping = await service.assignUser({
-      userId: 'local-user',
-      organizationalUnitId: unit.id,
-    });
-    const entraMapping = await service.assignUser({
-      userId: 'entra-user',
-      organizationalUnitId: unit.id,
-    });
+    const localMapping = await service.assignUser(
+      { userId: 'local-user', organizationalUnitId: unit.id },
+      administratorContext,
+    );
+    const entraMapping = await service.assignUser(
+      { userId: 'entra-user', organizationalUnitId: unit.id },
+      administratorContext,
+    );
     expect(localMapping.organizationalUnitId).toBe(unit.id);
     expect(entraMapping.organizationalUnitId).toBe(unit.id);
     expect(JSON.stringify([localMapping, entraMapping])).not.toContain('hash-must-not-leak');

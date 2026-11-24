@@ -1,15 +1,23 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { createInMemoryOrganizationalUnitPrisma } from './create-in-memory-organizational-unit-prisma';
 import { OrganizationalUnitsService } from './organizational-units.service';
+import {
+  createTestOrganizationalUnitScopeLoader,
+  testOrganizationalUnitAdminContext,
+} from './create-test-organizational-unit-scope';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+
+const createScopeLoader = () => createTestOrganizationalUnitScopeLoader();
+const administratorContext = testOrganizationalUnitAdminContext;
+
 describe('OrganizationalUnitsService hierarchy', () => {
   const createService = (): OrganizationalUnitsService => {
     const { prisma } = createInMemoryOrganizationalUnitPrisma();
-    return new OrganizationalUnitsService(prisma as never);
+    return new OrganizationalUnitsService(prisma as never, createScopeLoader() as never);
   };
 
   async function seedBranch(
@@ -49,7 +57,7 @@ describe('OrganizationalUnitsService hierarchy', () => {
     const service = createService();
     const ids = await seedBranch(service);
     await expect(
-      service.update(ids.childId, { parentId: ids.childId }),
+      service.update(ids.childId, { parentId: ids.childId }, administratorContext),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -57,10 +65,14 @@ describe('OrganizationalUnitsService hierarchy', () => {
     const service = createService();
     const ids = await seedBranch(service);
     await expect(
-      service.update(ids.childId, {
-        parentId: ids.grandchildId,
-        distinguishedName: 'OU=Podružnica Zenica,OU=Breza,OU=Korisnici,DC=example,DC=com',
-      }),
+      service.update(
+        ids.childId,
+        {
+          parentId: ids.grandchildId,
+          distinguishedName: 'OU=Podružnica Zenica,OU=Breza,OU=Korisnici,DC=example,DC=com',
+        },
+        administratorContext,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -81,10 +93,14 @@ describe('OrganizationalUnitsService hierarchy', () => {
       distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=example,DC=com',
       parentId: ids.rootId,
     });
-    const moved = await service.update(ids.childId, {
-      parentId: direkcija.id,
-      distinguishedName: 'OU=Podružnica Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
-    });
+    const moved = await service.update(
+      ids.childId,
+      {
+        parentId: direkcija.id,
+        distinguishedName: 'OU=Podružnica Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
+      },
+      administratorContext,
+    );
     expect(moved.parentId).toBe(direkcija.id);
     expect(moved.ouPath).toBe('/Korisnici/Direkcija/Podružnica Zenica');
     const grandchild = await service.getById(ids.grandchildId);

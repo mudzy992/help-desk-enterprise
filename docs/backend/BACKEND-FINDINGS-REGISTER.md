@@ -140,7 +140,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 04 | `users` | `BA-users-07` | P2 | Security controller koristi UUID pipe iako `User.id` nije UUID ugovor | otvoreno | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-08` | P2 | Hard delete preflight ne pokriva historijske reference i može završiti sirovom FK greškom | otvoreno | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-09` | P2 | User delete audit trajno kopira e-mail bez eksplicitne privacy/redaction politike | otvoreno | [04-users.md](audits/04-users.md) |
-| 05 | `organizational-units` | `BA-organizational-units-01` | P1 | OU control plane ignoriše actor OU/service scope i target hijerarhiju | otvoreno | [05-organizational-units.md](audits/05-organizational-units.md) |
+| 05 | `organizational-units` | `BA-organizational-units-01` | P1 | OU control plane ignoriše actor OU/service scope i target hijerarhiju | zatvoreno (W2.9) | [05-organizational-units.md](audits/05-organizational-units.md) |
 | 05 | `organizational-units` | `BA-organizational-units-02` | P1 | Cross-instance stale `ouPath` cache privremeno zadržava pogrešan authorization scope | otvoreno | [05-organizational-units.md](audits/05-organizational-units.md) |
 | 05 | `organizational-units` | `BA-organizational-units-03` | P2 | Konkurentni hierarchy updatei nisu serijalizovani niti revision-guarded | otvoreno | [05-organizational-units.md](audits/05-organizational-units.md) |
 | 05 | `organizational-units` | `BA-organizational-units-04` | P2 | Case-insensitive DN identitet nije enforcean u bazi | otvoreno | [05-organizational-units.md](audits/05-organizational-units.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **335**
-- Otvoreno: **361** (P1 87 / P2 193 / P3 81)
+- Zatvoreno: **336**
+- Otvoreno: **360** (P1 86 / P2 193 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

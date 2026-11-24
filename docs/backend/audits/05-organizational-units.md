@@ -89,6 +89,10 @@ Delete pod SuperAdmin advisory lockom:
 
 Class-level `RequireRoles(ADMIN)` radi kao role-key provjera; nema `RequirePermissions`, `OuAccessGuard`, resource resolver ni SuperAdmin-only ograničenje za promjenu authorization topologije.
 
+**Stanje nakon W2.9 (2026-11-24):** tabela iznad opisuje stanje u vrijeme audita. Od paketa W2.9 control-plane rute nose
+`OuAccessGuard` + `RequirePermissions(organizationalUnit.manage)` + `RequireOrganizationalUnitScope`, a `tree` se
+suzi na manage scope aktera — vidi dodatak u §7 i [`340-w29-ou-control-plane-scope.md`](../implementation/340-w29-ou-control-plane-scope.md).
+
 ## 5. Podaci, transakcije i concurrency
 
 - `distinguishedName` i `ouPath` imaju DB unique ograničenja.
@@ -131,6 +135,12 @@ Nema razlike između globalnog i scoped ADMIN assignmenta na ovim rutama.
 ### Vertikalna i topološka eskalacija
 
 Direktan grant `SUPER_ADMIN` ne postoji u ovom modulu, a posljednji SuperAdmin assignment je zaštićen pri deleteu. Ipak, promjena OU topologije mijenja značenje postojećih descendant-scoped grantova bez role mutation audita. Neovlašteni ADMIN može premjestiti resursno podstablo pod svoj scope ili korisnika u OU čiji policy pack/administrativni tok nije predviđen za njega. Stari scope cache na drugoj instanci produžava prethodna prava nakon legitimnog premještanja.
+
+### Implementacijski dodatak — W2.9, 2026-11-24
+
+`BA-organizational-units-01` je zatvoren u [`340-w29-ou-control-plane-scope.md`](../implementation/340-w29-ou-control-plane-scope.md): control plane OU-a više ne visi o imenu role. Šest ruta nosi `OuAccessGuard`, eksplicitnu permissionu **`organizationalUnit.manage`** i OU scope lokator (`parentId` za kreiranje, `organizationalUnitId` za detalj, korisnike, izmjenu, brisanje i mapiranje), a dvije operacije koje ruta ne vidi imaju **drugu provjeru u servisu**: OU iz koje korisnik izlazi (`PUT /user-mappings`) i destinacija premještanja (`PATCH` sa `parentId`, gdje `null` traži globalni grant). `GET /tree` ostaje dostupan svim rolama, ali se za aktere sa manage permissionom sužava na njihovo podstablo — vidljiva OU bez vidljivog parenta postaje korijen. Unscoped assignment je jedini globalni grant (`globalOrganizationalUnitPermissionKeys`), pa „install administrator” zadržava puni pristup, a scoped ADMIN ne može čitati tuđi detalj ni e-mailove, kreirati pod tuđim parentom, premjestiti tuđe podstablo, mapirati tuđeg korisnika ni obrisati tuđu OU. Out-of-scope pristup je **403 `FORBIDDEN`** bez imena i puta OU-a. SuperAdmin bypass ostaje request-auditiran kroz `authorizeHttpExecution`.
+
+Granica: `BA-organizational-units-06` (globalni tree read za role bez manage permissione) ostaje otvoren; `-02` (cross-instance scope cache) i `-03`/`-04` nisu dirani; `BA-users-01` je isti uzrok u modulu korisnika i čeka `W2.10`.
 
 ## 8. Testovi i izvršeni gateovi
 
@@ -178,7 +188,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 | ID                         | Severity | Naslov                                                                               | Status   | Veličina |
 | -------------------------- | -------- | ------------------------------------------------------------------------------------ | -------- | -------- |
-| BA-organizational-units-01 | P1       | OU control plane ignoriše actor OU/service scope i target hijerarhiju                | otvoreno | L        |
+| BA-organizational-units-01 | P1       | OU control plane ignoriše actor OU/service scope i target hijerarhiju                | zatvoreno (W2.9, [340](../implementation/340-w29-ou-control-plane-scope.md)) | L        |
 | BA-organizational-units-02 | P1       | Cross-instance stale `ouPath` cache privremeno zadržava pogrešan authorization scope | otvoreno | L        |
 | BA-organizational-units-03 | P2       | Konkurentni hierarchy updatei nisu serijalizovani niti revision-guarded              | otvoreno | L        |
 | BA-organizational-units-04 | P2       | Case-insensitive DN identitet nije enforcean u bazi                                  | otvoreno | M        |

@@ -4,6 +4,10 @@ import { recordUserChange } from '../users/record-user-change';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { OrganizationalUnitsService } from './organizational-units.service';
 import { createInMemoryOrganizationalUnitPrisma } from './create-in-memory-organizational-unit-prisma';
+import {
+  createTestOrganizationalUnitScopeLoader,
+  testOrganizationalUnitAdminContext,
+} from './create-test-organizational-unit-scope';
 
 jest.mock('./record-organizational-unit-change', () => ({
   recordOrganizationalUnitChange: jest.fn().mockResolvedValue(undefined),
@@ -15,6 +19,10 @@ jest.mock('../users/record-user-change', () => ({
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+
+
+const createScopeLoader = () => createTestOrganizationalUnitScopeLoader();
+const administratorContext = testOrganizationalUnitAdminContext;
 
 describe('OrganizationalUnitsService CRUD', () => {
   beforeEach(() => {
@@ -32,10 +40,14 @@ describe('OrganizationalUnitsService CRUD', () => {
   } => {
     const memory = createInMemoryOrganizationalUnitPrisma();
     return {
-      service: new OrganizationalUnitsService(memory.prisma as never, {
-        invalidateUser,
-        invalidateUsers,
-      } as never),
+      service: new OrganizationalUnitsService(
+        memory.prisma as never,
+        createScopeLoader() as never,
+        {
+          invalidateUser,
+          invalidateUsers,
+        } as never,
+      ),
       invalidateUser,
       invalidateUsers,
       memory,
@@ -164,7 +176,10 @@ describe('OrganizationalUnitsService CRUD', () => {
     jest.mocked(recordUserChange).mockRejectedValueOnce(auditFailure);
 
     await expect(
-      service.assignUser({ userId: 'mapped-user', organizationalUnitId: unit.id }),
+      service.assignUser(
+        { userId: 'mapped-user', organizationalUnitId: unit.id },
+        administratorContext,
+      ),
     ).rejects.toBe(auditFailure);
     expect(memory.getUser('mapped-user')?.organizationalUnitId).toBeNull();
   });
@@ -255,10 +270,10 @@ describe('OrganizationalUnitsService CRUD', () => {
       localPasswordHash: 'hash-must-not-leak',
     });
 
-    await service.assignUser({
-      userId: 'local-user',
-      organizationalUnitId: created.id,
-    });
+    await service.assignUser(
+      { userId: 'local-user', organizationalUnitId: created.id },
+      administratorContext,
+    );
 
     expect(invalidateUsers).toHaveBeenCalledTimes(1);
     expect(invalidateUsers).toHaveBeenCalledWith(['local-user']);

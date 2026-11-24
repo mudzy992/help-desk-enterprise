@@ -138,6 +138,12 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Create, edit, and delete groups and manage group members.',
   },
   {
+    key: permissionKeys.organizationalUnitManage,
+    categoryId: permissionCategoryIds.directory,
+    description:
+      'Create, rename, move and delete organizational units, and map users to them, inside the organizational units the role is assigned to (W2.9).',
+  },
+  {
     key: permissionKeys.settingsRead,
     categoryId: permissionCategoryIds.settings,
     description: 'View the global private settings registry and configuration projections.',

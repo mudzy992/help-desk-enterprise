@@ -51,6 +51,14 @@ export const permissionKeys = {
   routingRead: 'routing.read',
   routingWrite: 'routing.write',
   groupManage: 'group.manage',
+  /**
+   * W2.9 (BA-organizational-units-01): the OU control plane is no longer
+   * reachable through the ADMIN role name alone. The permission is granted per
+   * organizational unit, so a scoped ADMIN manages only its own subtree; an
+   * unscoped grant (listed in `globalOrganizationalUnitPermissionKeys`) is the
+   * only way to manage the whole topology.
+   */
+  organizationalUnitManage: 'organizationalUnit.manage',
   settingsRead: 'settings.read',
   settingsWrite: 'settings.write',
   /**
@@ -136,6 +144,7 @@ export const scopeAgnosticPermissionKeys: readonly string[] = [
  */
 export const globalOrganizationalUnitPermissionKeys: readonly string[] = [
   permissionKeys.groupManage,
+  permissionKeys.organizationalUnitManage,
 ];
 
 export const allPermissionKeys: readonly string[] = Object.values(permissionKeys);
@@ -205,6 +214,7 @@ const adminPermissionKeys = [
   permissionKeys.routingRead,
   permissionKeys.routingWrite,
   permissionKeys.groupManage,
+  permissionKeys.organizationalUnitManage,
   permissionKeys.serviceCatalogWrite,
   permissionKeys.serviceFormsWrite,
   permissionKeys.serviceAvailabilityWrite,

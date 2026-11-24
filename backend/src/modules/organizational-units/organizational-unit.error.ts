@@ -23,7 +23,9 @@ export type OrganizationalUnitErrorCode =
   | 'HAS_REPORT_SCHEDULES'
   | 'HAS_TICKETS'
   | 'RESOURCE_IN_USE'
-  | 'LAST_SUPER_ADMIN_REQUIRED';
+  | 'LAST_SUPER_ADMIN_REQUIRED'
+  /** W2.9: the actor does not hold `organizationalUnit.manage` in this scope. */
+  | 'FORBIDDEN';
 
 export function organizationalUnitDeleteErrorCode(
   kind: OrganizationalUnitDeleteBlockerKind,

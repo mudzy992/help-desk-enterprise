@@ -1712,7 +1712,8 @@
         "ticket.templates.use": "Ubacuj šablone odgovora u editor i radi s playbook checklistom tiketa.",
         "ticket.templates.personal": "Kreiraj i uređuj lične šablone odgovora (vidljivi samo vlasniku).",
         "ticket.templates.manage": "Upravljaj dijeljenim šablonima odgovora i playbookovima (u opsegu servisa, obavezan razlog, verzionisano).",
-        "routing.read": "Pregledaj pravila usmjeravanja tiketa, pokrivenost i dnevnik izmjena."
+        "routing.read": "Pregledaj pravila usmjeravanja tiketa, pokrivenost i dnevnik izmjena.",
+        "organizationalUnit.manage": "Kreiraj, preimenuj, premjesti i briši organizacione jedinice te mapiraj korisnike, unutar organizacionih jedinica na koje je rola dodijeljena (W2.9)."
       }
     },
     "saved": "Permisije su sačuvane.",

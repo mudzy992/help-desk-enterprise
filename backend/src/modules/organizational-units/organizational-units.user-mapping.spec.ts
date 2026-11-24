@@ -3,6 +3,10 @@ import { recordUserChange } from '../users/record-user-change';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { createInMemoryOrganizationalUnitPrisma } from './create-in-memory-organizational-unit-prisma';
 import { OrganizationalUnitsService } from './organizational-units.service';
+import {
+  createTestOrganizationalUnitScopeLoader,
+  testOrganizationalUnitAdminContext,
+} from './create-test-organizational-unit-scope';
 
 jest.mock('../users/record-user-change', () => ({
   recordUserChange: jest.fn().mockResolvedValue(undefined),
@@ -15,11 +19,18 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
+
+const createScopeLoader = () => createTestOrganizationalUnitScopeLoader();
+const administratorContext = testOrganizationalUnitAdminContext;
+
 describe('OrganizationalUnitsService user mapping', () => {
   beforeEach(() => jest.mocked(recordUserChange).mockClear());
   const setup = () => {
     const memory = createInMemoryOrganizationalUnitPrisma();
-    const service = new OrganizationalUnitsService(memory.prisma as never);
+    const service = new OrganizationalUnitsService(
+      memory.prisma as never,
+      createScopeLoader() as never,
+    );
     return { ...memory, service };
   };
 
@@ -45,10 +56,10 @@ describe('OrganizationalUnitsService user mapping', () => {
       entraObjectId: null,
       localPasswordHash: 'hash-must-not-leak',
     });
-    const assigned = await service.assignUser({
-      userId: 'user-1',
-      organizationalUnitId: first.id,
-    });
+    const assigned = await service.assignUser(
+      { userId: 'user-1', organizationalUnitId: first.id },
+      administratorContext,
+    );
     expect(assigned).toEqual({
       id: 'user-1',
       email: 'agent@example.com',
@@ -69,10 +80,10 @@ describe('OrganizationalUnitsService user mapping', () => {
     );
     const listed = await service.listUsers(first.id);
     expect(listed.map((user) => user.id)).toEqual(['user-1']);
-    const reassigned = await service.assignUser({
-      userId: 'user-1',
-      organizationalUnitId: second.id,
-    });
+    const reassigned = await service.assignUser(
+      { userId: 'user-1', organizationalUnitId: second.id },
+      administratorContext,
+    );
     expect(reassigned.organizationalUnitId).toBe(second.id);
     expect(await service.listUsers(first.id)).toEqual([]);
     expect(await service.listUsers(second.id)).toEqual([reassigned]);
@@ -97,7 +108,10 @@ describe('OrganizationalUnitsService user mapping', () => {
       localPasswordHash: null,
     });
     await expect(service.delete(unit.id)).rejects.toBeInstanceOf(ConflictException);
-    await service.assignUser({ userId: 'user-1', organizationalUnitId: null });
+    await service.assignUser(
+      { userId: 'user-1', organizationalUnitId: null },
+      administratorContext,
+    );
     await service.delete(unit.id);
     await expect(service.getById(unit.id)).rejects.toBeInstanceOf(NotFoundException);
   });

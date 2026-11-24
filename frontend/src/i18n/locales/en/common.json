@@ -1703,7 +1703,8 @@
         "ticket.templates.use": "Insert response templates in the composer and work with the ticket playbook checklist.",
         "ticket.templates.personal": "Create and edit personal response templates (visible only to their owner).",
         "ticket.templates.manage": "Manage shared response templates and playbooks (within the service scope, reason required, versioned).",
-        "routing.read": "View ticket routing rules, coverage, and change logs."
+        "routing.read": "View ticket routing rules, coverage, and change logs.",
+        "organizationalUnit.manage": "Create, rename, move and delete organizational units, and map users to them, inside the organizational units the role is assigned to (W2.9)."
       }
     },
     "saved": "Permissions saved.",

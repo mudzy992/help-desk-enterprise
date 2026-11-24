@@ -16,7 +16,13 @@ import { readRequestIdHeader } from '../../common/request-context/read-request-i
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import {
+  authorizationRoleKeys,
+  permissionKeys,
+} from '../authorization/authorization.constants';
+import { OuAccessGuard } from '../authorization/ou-access.guard';
+import { RequireOrganizationalUnitScope } from '../authorization/require-organizational-unit-scope.decorator';
+import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserOrganizationalUnitDto } from './dto/assign-user-organizational-unit.dto';
@@ -47,6 +53,11 @@ export class OrganizationalUnitsController {
   ) {}
 
   @Post()
+  // W2.9 (`BA-organizational-units-01`): a unit may only be created under a
+  // parent the actor actually manages; a root-level unit needs a global grant.
+  @UseGuards(OuAccessGuard)
+  @RequirePermissions(permissionKeys.organizationalUnitManage)
+  @RequireOrganizationalUnitScope({ field: 'parentId' })
   create(
     @Body() body: CreateOrganizationalUnitDto,
     @Req() request: AuthenticatedHttpRequest,
@@ -56,11 +67,20 @@ export class OrganizationalUnitsController {
 
   @Get('tree')
   @RequireRoles(...organizationalUnitTreeReadRoles)
-  getTree(): Promise<readonly OrganizationalUnitTreeNodeResponse[]> {
-    return this.organizationalUnitsService.getTree();
+  getTree(
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<readonly OrganizationalUnitTreeNodeResponse[]> {
+    // The route stays open to every role (filters need a tree), but the admin
+    // control plane tree is narrowed to the scope the caller may act on.
+    return this.organizationalUnitsService.getTree(
+      readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    );
   }
 
   @Put('user-mappings')
+  @UseGuards(OuAccessGuard)
+  @RequirePermissions(permissionKeys.organizationalUnitManage)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
   assignUser(
     @Body() body: AssignUserOrganizationalUnitDto,
     @Req() request: AuthenticatedHttpRequest,
@@ -69,6 +89,9 @@ export class OrganizationalUnitsController {
   }
 
   @Get(':organizationalUnitId/users')
+  @UseGuards(OuAccessGuard)
+  @RequirePermissions(permissionKeys.organizationalUnitManage)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
   listUsers(
     @Param('organizationalUnitId') organizationalUnitId: string,
   ): Promise<readonly OrganizationalUnitUserResponse[]> {
@@ -76,6 +99,9 @@ export class OrganizationalUnitsController {
   }
 
   @Get(':organizationalUnitId')
+  @UseGuards(OuAccessGuard)
+  @RequirePermissions(permissionKeys.organizationalUnitManage)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
   getById(
     @Param('organizationalUnitId') organizationalUnitId: string,
   ): Promise<OrganizationalUnitDetailResponse> {
@@ -83,6 +109,9 @@ export class OrganizationalUnitsController {
   }
 
   @Patch(':organizationalUnitId')
+  @UseGuards(OuAccessGuard)
+  @RequirePermissions(permissionKeys.organizationalUnitManage)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
   update(
     @Param('organizationalUnitId') organizationalUnitId: string,
     @Body() body: UpdateOrganizationalUnitDto,
@@ -96,6 +125,9 @@ export class OrganizationalUnitsController {
   }
 
   @Delete(':organizationalUnitId')
+  @UseGuards(OuAccessGuard)
+  @RequirePermissions(permissionKeys.organizationalUnitManage)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
   delete(
     @Param('organizationalUnitId') organizationalUnitId: string,
     @Req() request: AuthenticatedHttpRequest,
