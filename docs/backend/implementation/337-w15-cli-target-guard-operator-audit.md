@@ -131,6 +131,17 @@ upravo predmet `BA-xcut-25` (W1.17) i `BA-xcut-32` (W1.21). Granica je zapisana 
   dovrši posao (`assets=1`, `retained=0`) — komanda je idempotentna; forsirani rollback **ne** ostavlja `completed` red i
   ne briše ništa.
 
+## CI i testni dokaz
+
+Run [`45413988648`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45413988648) na `b213e9b` — **zelen**:
+
+- **Backend build + test:** schema/client, `nest build`, pun Jest (964 suite / 5.677 testova).
+- **PostgreSQL/Redis integration:** uključuje novi `cli-demo-inventory.integration.spec.ts` (5 testova) pored 125 migracija i cijelog izolovanog harnessa.
+- **Frontend build + test:** lint, prettier, 478 vitest fajlova / 1.907 testova, build i bundle budžet (parity test audita traži i bs/en labele za novu akciju).
+- **Container + supply chain, Docs guard, CI gate:** zeleni. **E2E** poslovi su `skipped` — paket nema korisniku vidljivo ponašanje, pa se browser dokaz svodi na postojeći spec 12 (audit lista) i ne dispatching se.
+- **Neuspjeli pokušaji:** [`45405257580`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45405257580) (na `d56aefc`) — frontend je pao na `check-env-example` (tri nove env varijable nisu bile dokumentovane; popravljeno u `18288a9`), a integration job na mom novom specu (asset tipovi već postoje, redoslijed brisanja, tiho ostavljanje licenci; popravljeno u `b213e9b`). [`45408094593`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45408094593) je isti integration pad poslije frontend popravke.
+- Lokalno: pun backend Jest 964/964 suite (5.677 testova), `tsc --noEmit` i `eslint --max-warnings=0` na `src/cli` + `src/modules/audit-log`, `wiring:check` (99 kontrolera / 632 rute), `audit:traceability` 696/696, `check-docs-content` i `check-env-example`. Integration suite je lokalno reprodukovan na stvarnom PostgreSQL-u 19 (125 migracija primijenjenih ručno, jer `prisma migrate deploy` traži `binaries.prisma.sh` koji sandbox ne doseže).
+
 ## Registar nalaza
 
 - Zatvoreno: `BA-xcut-08` (uz zeleni CI i gornji dokaz).
