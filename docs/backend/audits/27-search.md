@@ -676,5 +676,12 @@ bi otrovilo kasnije specove; pokriveno `search-rate-limit*.spec.ts`), confidenti
 matrica) i real query plan (PostgreSQL dokaz uslovno preskočen bez `PRIVACY_IT_DATABASE_URL`). Smoke podskup PR-a
 (`01,02,03,15,22,54`) ne uključuje `60`; spec se izvršava na dispatchu ciljano i u noćnom punom runu.
 
+**CI.** Push [`45369425277`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45369425277) na `a91cd81`
+je zelen u svih 10 poslova (backend `check:prisma-generated` + pun Jest, PostgreSQL/Redis integracija, frontend,
+docs guard, container/supply-chain); dispatch
+[`45369430547`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45369430547) sa `specs="60"` izvršio je
+spec na živom stacku: **Playwright 3 passed / 0 failed / 0 flaky / 0 skipped** (25,3 s), `CI gate` success. Pošto
+nepoznat broj speca obara posao prije Playwrighta, zelen dispatch sa `specs="60"` dokazuje da je taj fajl izvršen.
+
 **Produkcijski kod nije mijenjan** — nema migracije, nema promjene ruta (632), nema promjene odgovora ni env ugovora.
 Detalji: [336-w7114-search-13-e2e-compile-proof.md](../implementation/336-w7114-search-13-e2e-compile-proof.md).

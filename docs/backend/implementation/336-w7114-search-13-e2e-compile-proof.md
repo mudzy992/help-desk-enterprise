@@ -7,7 +7,10 @@
 **DB migracija:** ne<br>
 **Rute:** nepromijenjene (632)<br>
 **Frontend:** bez izmjena<br>
-**CI:** vidi §5 (dokaz se dopunjava brojevima runova iz ovog paketa)
+**CI:** [run `45369425277`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45369425277) ✓ na
+`a91cd81` (push: backend `check:prisma-generated` + pun Jest, PostgreSQL/Redis integracija, frontend, docs guard,
+container/supply-chain); [run `45369430547`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45369430547)
+✓ sa **`specs="60"`** — Playwright **3 passed / 0 failed / 0 flaky / 0 skipped** (25,3 s) na živom stacku
 
 ## Nalaz
 
@@ -157,7 +160,9 @@ za trijažu samo ovog speca:
 gh workflow run ci.yml --ref <branch> -f specs="60" -f retries=1 -f skip_gates=true
 ```
 
-Bez `specs` (prazan input) run je **pun** E2E suite. Rezultat ovog paketa je dopunjen u §5 ispod kad je run završen.
+Bez `specs` (prazan input) run je **pun** E2E suite. Nepoznat broj speca ne pada tiho na „sve”: posao izlazi sa
+`::error title=Unknown spec::` prije Playwrighta, pa zelen dispatch sa `specs="60"` znači da je **taj** fajl izvršen.
+Ovaj paket je izvršen tako: run `45369430547`, `stats { expected: 3, unexpected: 0, flaky: 0, skipped: 0 }`.
 
 ## 4. Šta paket mijenja, a šta ne
 
@@ -177,8 +182,8 @@ Rezultati ovog paketa (popunjeno nakon runa):
 
 | Run | Obim | Rezultat |
 | --- | --- | --- |
-| _pending_ | push (backend `check:prisma-generated` + pun Jest, frontend, docs) | _pending_ |
-| _pending_ | dispatch `specs="60"` (browser) | _pending_ |
+| [`45369425277`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45369425277) (push, `a91cd81`) | backend build + **pun Jest** (uključuje `search` suite), PostgreSQL/Redis integracija, frontend build+test, docs guard, container/supply-chain | **success** (10/10 poslova; E2E poslovi `skipped` jer push nije PR/schedule/dispatch) |
+| [`45369430547`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45369430547) (dispatch, `specs="60"`, `skip_gates=true`) | `E2E critical flows` na živom stacku, samo `60-search-command-palette.spec.ts` | **success** — Playwright **3 passed / 0 failed / 0 flaky / 0 skipped**, 25,3 s; `CI gate` success |
 
 ## 6. Otvoreno i dokumentovano
 
