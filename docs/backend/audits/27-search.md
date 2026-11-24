@@ -5,8 +5,9 @@
 **Rizik modula:** srednji  
 **Baseline ocjena:** **5,62/10**  
 **Nalazi:** 1 P1, 7 P2, 5 P3<br>
-**Implementacija:** **9/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa) i
-W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom). P1 nema, P2 nema; otvoreni su `10`–`13` (P3).
+**Implementacija:** **10/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa),
+W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom) i W7.111 (`BA-search-10`, `types` je set).
+P1 nema, P2 nema; otvoreni su `11`–`13` (P3).
 Ova statusna dopuna ne mijenja nalaze ni ocjenu.
 
 ## 1. Executive summary
@@ -36,6 +37,12 @@ Registarskih 318 LOC korigovano je na 311.
 Validacija dužine se ipak izvršava prije `trim()`. Vrijednosti poput dvije praznine ili whitespace + jedan znak prolaze `MinLength(2)`, a `toSearchQuery` ih pretvara u prazan/jednoznakovni effective query. Prazan `contains` može vratiti najnovije vidljive tikete/članke i širok user set, protivno ugovoru i zaštiti od skupih upita. Normalizacija mora prethoditi validaciji; nakon Unicode trim/NFKC effective query mora i dalje imati najmanje dva grapheme/code-point znaka.
 
 `types` dopušta duplikate jer nema `ArrayUnique`; `Set` ih funkcionalno uklanja, pa je ovo samo ugovorna nedosljednost. Maksimalan response je 75 hitova, ali nema ukupnog budgeta ako se kasnije dodaju tipovi.
+
+**Status poslije W7.111 (§25):** `types` nosi `@ArrayUnique()`, pa ponovljena grupa (`types=ticket,ticket`, isti
+parametar dva puta ili niz sa duplikatom) završava kao `400` na polju `types`; `toSearchQuery` dodatno deduplicira
+uz redoslijed prvog pojavljivanja, a `Set` u servisu ostaje najniži sloj. `ArrayMaxSize` se više ne može „potrošiti”
+duplikatima. Ukupan response budget ostaje tema `BA-search-11`. Detalji:
+[333](../implementation/333-w7111-search-10-types-unique.md).
 
 ## 4. Ticket pretraga
 
@@ -115,7 +122,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-07 | P2       | Nema query-plan/perf dokaza za contains nad user email/name i KB title                  | zatvoreno |
 | BA-search-08 | P2       | Jedan dependency kvar ruši sve grupe bez definisanog partial/fail-closed ugovora        | zatvoreno |
 | BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | zatvoreno (W7.110) |
-| BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | otvoreno |
+| BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | zatvoreno (W7.111) |
 | BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | otvoreno |
 | BA-search-12 | P3       | Confidential/archive/revoke semantika nema direktan search test                         | otvoreno |
 | BA-search-13 | P3       | Glavni service suite je compile-blocked i nema direktnog `/search` E2E                  | otvoreno |
@@ -502,3 +509,30 @@ objašnjava isti SQL (`ORDER BY "User"."displayName" ASC, "User"."id" ASC`) i vr
 izmjeren u plan-suiteu. Ostaju `BA-search-10` (duplikati u `types`), `-11` (telemetrija/SLO), `-12`
 (confidential/arhiva testovi) i `-13` (E2E za `/search`). Detalji:
 [332-w7110-search-09-directory-order-tiebreaker.md](../implementation/332-w7110-search-09-directory-order-tiebreaker.md).
+
+## 25. Implementacijski closeout — W7.111 (`BA-search-10`)
+
+**Nalaz:** `types` je bio lista, ne skup. `GET /search?types=ticket,ticket` je prolazio validaciju (`@IsArray`,
+`@ArrayMaxSize(3)`, `@IsIn(..., { each: true })`) i tek se u servisu gubio kroz `new Set(query.types)`. Ugovor na
+ulazu zato nije bio isti kao izvršenje: duplikat je bio legalan zahtjev koji se tiho svodio na jednu grupu, a
+`@ArrayMaxSize(searchTypes.length)` je **brojao ponavljanja**, pa je `types=ticket,article,user,user` — tri grupe —
+odbijan kao predugačak. Svaki budući potrošač `SearchQuery.types` (telemetrija i SLO po grupi iz `BA-search-11`,
+keš ključ) morao je sam znati da niz može sadržavati duplikate.
+
+**Rješenje.** `types` dobija `@ArrayUnique()`; `@Transform` (`toQueryList`) radi prije validacije, pa se csv oblik i
+ponovljeni query parametar provjeravaju isto kao ručno građen niz. `toSearchQuery` uvodi `uniqueSearchTypes` (Set uz
+redoslijed prvog pojavljivanja), jer se mapiranje poziva i van HTTP puta i ne smije zavisiti od `ValidationPipe`.
+Servisov `Set` ostaje treći sloj — isti broj čitanja po grupi, bez promjene semantike, ruta (632) ni oblika odgovora.
+Bez migracije.
+
+**Testni dokaz.** `search-query.dto.spec.ts` (+2): csv duplikat, array duplikat i `ticket,article,user,user` daju
+grešku na polju `types` sa `arrayUnique` constraintom; tri različite grupe prolaze u poslanom redu; ručno građen DTO
+sa `['user','ticket','user']` mapira se u `['user','ticket']`. `search.service.spec.ts` (+1): ručno građen
+`SearchQuery` sa `['article','ticket','article','user','user']` čita article grupu jednom i user grupu jednom
+(scoped admin, da directory grant postoji), vraća sve tri grupe i prazan `failedGroups`. Lokalno: `search`
+**9 suiteova / 76 testa** (integracioni suite uslovno preskočen bez baze), `nest build` zelen, `wiring:check` 632.
+
+**Otvoreno i dokumentovano:** ukupan response budget (75 hitova danas) nije eksplicitan ugovor — veže se na
+`BA-search-11`. Ostaju `BA-search-11` (telemetrija/SLO i „incomplete” indikator), `-12` (confidential/arhiva/revoke
+testovi) i `-13` (direktni `/search` E2E). Detalji:
+[333-w7111-search-10-types-unique.md](../implementation/333-w7111-search-10-types-unique.md).
