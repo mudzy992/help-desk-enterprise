@@ -471,7 +471,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 27 | `search` | `BA-search-09` | P3 | User ordering nema ID tie-breaker pa capped rezultat nije stabilan | zatvoreno (W7.110) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-10` | P3 | `types` nema ArrayUnique i ugovor prihvata duplikate | zatvoreno (W7.111) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-11` | P3 | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator | zatvoreno (W7.112) | [27-search.md](audits/27-search.md) |
-| 27 | `search` | `BA-search-12` | P3 | Confidential/archive/revoke semantika nema direktan search test | otvoreno | [27-search.md](audits/27-search.md) |
+| 27 | `search` | `BA-search-12` | P3 | Confidential/archive/revoke semantika nema direktan search test | zatvoreno (W7.113) | [27-search.md](audits/27-search.md) |
 | 27 | `search` | `BA-search-13` | P3 | Glavni service suite je compile-blocked i nema direktnog `/search` E2E | otvoreno | [27-search.md](audits/27-search.md) |
 | 28 | `announcements` | `BA-announcements-01` | P1 | Scoped manage/report permission postaje globalna i omogućava cross-OU mutation/PII export | zatvoreno (W6.44) | [28-announcements.md](audits/28-announcements.md) |
 | 28 | `announcements` | `BA-announcements-02` | P1 | Active/archive cap se primjenjuje prije audience filtera i može sakriti kritičnu najavu | zatvoreno | [28-announcements.md](audits/28-announcements.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **330**
-- Otvoreno: **366** (P1 88 / P2 195 / P3 83)
-- Val 7: **109 / 111** zatvoreno, otvoreno **2** (P1 0 / P2 0 / P3 2)
+- Zatvoreno: **331**
+- Otvoreno: **365** (P1 88 / P2 195 / P3 82)
+- Val 7: **110 / 111** zatvoreno, otvoreno **1** (P1 0 / P2 0 / P3 1)
 <!-- findings-totals:end -->

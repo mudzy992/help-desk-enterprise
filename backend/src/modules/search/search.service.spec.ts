@@ -199,6 +199,8 @@ function setup(failures: GroupFailures = {}) {
     context,
     telemetryRecords,
     telemetry,
+    archiveConfig: harness.archiveConfig,
+    confidentialConfig: harness.confidentialConfig,
   };
 }
 
@@ -689,6 +691,217 @@ describe('GET /search', () => {
         context(agentIt),
       );
       expect(withBrokenSalt.tickets.length).toBeGreaterThan(0);
+    });
+  });
+
+  /**
+   * W7.113 (`BA-search-12`): the audit found no *direct* search test for the
+   * ticket semantics the palette inherits — confidential titles, the archive
+   * switch, merged children and a context revoked between the session and the
+   * search. Every case below asserts `/search` against `GET /tickets` for the
+   * same actor and the same world, because "the palette shows exactly what the
+   * list shows" is the whole reason the ticket group reuses the list query.
+   */
+  describe('ticket semantics the palette inherits (W7.113)', () => {
+    const searchTickets = (
+      service: ReturnType<typeof setup>['service'],
+      context: TicketMutationContext,
+      q: string,
+    ) =>
+      service.search(
+        { q, types: ['ticket'], limit: searchConstants.defaultLimit },
+        context,
+      );
+
+    it('keeps a confidential title out of both the palette and the list until the actor is granted', async () => {
+      const { service, memory, tickets, context } = setup();
+      const confidential = buildTicketRecord({
+        id: 't6',
+        ticketNumber: 'T-t6',
+        title: 'vpn povjerljivo',
+        isConfidential: true,
+        originUnitId: ticketsTestIds.ouIt,
+        requesterId: requester,
+        createdAt: day(3),
+        updatedAt: day(3),
+      });
+      memory.tickets.set('t6', confidential);
+
+      // agentIt is in scope for the unit but holds no confidential grant: the
+      // title is not even a hit, on either surface.
+      expect(
+        (await tickets.listPage({ q: 'povjerljivo', pageSize: 50 }, context(agentIt))).items,
+      ).toEqual([]);
+      expect(
+        (await searchTickets(service, context(agentIt), 'povjerljivo')).tickets,
+      ).toEqual([]);
+
+      // The requester is one of the confidential sources: both surfaces answer.
+      const listedForRequester = await tickets.listPage(
+        { q: 'povjerljivo', pageSize: 50 },
+        context(requester),
+      );
+      const foundForRequester = await searchTickets(service, context(requester), 'povjerljivo');
+      expect(listedForRequester.items.map((ticket) => ticket.id)).toEqual(['t6']);
+      expect(foundForRequester.tickets.map((ticket) => ticket.id)).toEqual(['t6']);
+      // The palette projection stays number + title; no description, no body.
+      expect(foundForRequester.tickets[0]).toEqual({
+        id: 't6',
+        ticketNumber: 'T-t6',
+        title: 'vpn povjerljivo',
+      });
+
+      // Being the assignee is a handler grant, so the agent's palette follows
+      // the list the moment the ticket is handed to them.
+      memory.tickets.set('t6', { ...confidential, assignedUserId: agentIt });
+      expect(
+        (await tickets.listPage({ q: 'povjerljivo', pageSize: 50 }, context(agentIt))).items.map(
+          (ticket) => ticket.id,
+        ),
+      ).toEqual(['t6']);
+      expect(
+        (await searchTickets(service, context(agentIt), 'povjerljivo')).tickets.map(
+          (ticket) => ticket.id,
+        ),
+      ).toEqual(['t6']);
+    });
+
+    it('never surfaces the archive, and the archive switch does not change that', async () => {
+      const { service, memory, tickets, archiveConfig, context } = setup();
+      memory.tickets.set(
+        't7',
+        buildTicketRecord({
+          id: 't7',
+          ticketNumber: 'T-t7',
+          title: 'vpn arhivirano',
+          status: 'ARCHIVED',
+          archivedAt: day(4),
+          originUnitId: ticketsTestIds.ouIt,
+          createdAt: day(2),
+          updatedAt: day(4),
+        }),
+      );
+
+      // The palette asks for "live work" only: no status and no `includeArchived`,
+      // so the shared status filter removes ARCHIVED for everyone — including a
+      // super admin, who can still reach the ticket through the list.
+      expect((await searchTickets(service, context(agentIt), 'arhivirano')).tickets).toEqual([]);
+      expect((await searchTickets(service, context(superAdmin), 'arhivirano')).tickets).toEqual([]);
+      // `t4` is the archived fixture the setup already seeded; both archived
+      // tickets are reachable through the list's archive view.
+      const archivedIds = async (actor: string) =>
+        (
+          await tickets.listPage({ status: 'ARCHIVED', pageSize: 50 }, context(actor))
+        ).items.map((ticket) => ticket.id);
+      expect(await archivedIds(agentIt)).toEqual(['t7', 't4']);
+      expect(await archivedIds(superAdmin)).toEqual(['t7', 't4']);
+
+      // The archive switch governs the list's archive view (`status=ARCHIVED`),
+      // not the palette: search stays empty in both positions of the switch.
+      archiveConfig.searchable = false;
+      expect(await archivedIds(agentIt)).toEqual([]);
+      expect((await searchTickets(service, context(agentIt), 'arhivirano')).tickets).toEqual([]);
+      expect((await searchTickets(service, context(superAdmin), 'arhivirano')).tickets).toEqual([]);
+
+      archiveConfig.searchable = true;
+      expect(await archivedIds(agentIt)).toEqual(['t7', 't4']);
+      expect((await searchTickets(service, context(agentIt), 'arhivirano')).tickets).toEqual([]);
+    });
+
+    it('keeps a merged child findable, exactly like the list without the optional hideMerged filter', async () => {
+      const { service, memory, tickets, context } = setup();
+      memory.tickets.set(
+        't8',
+        buildTicketRecord({
+          id: 't8',
+          ticketNumber: 'T-t8',
+          title: 'vpn maticni',
+          status: 'RESOLVED',
+          resolvedAt: day(5),
+          originUnitId: ticketsTestIds.ouIt,
+          createdAt: day(2),
+          updatedAt: day(5),
+        }),
+      );
+      memory.tickets.set(
+        't9',
+        buildTicketRecord({
+          id: 't9',
+          ticketNumber: 'T-t9',
+          title: 'vpn spojeni',
+          status: 'RESOLVED',
+          resolvedAt: day(5),
+          mergedIntoTicketId: 't8',
+          originUnitId: ticketsTestIds.ouIt,
+          createdAt: day(2),
+          updatedAt: day(5),
+        }),
+      );
+
+      // A merged child is still a readable ticket (its page resolves to the
+      // parent), so it is a hit — and the list agrees unless the operator ticks
+      // the optional "hide merged" filter.
+      expect(
+        (await searchTickets(service, context(agentIt), 'spojeni')).tickets.map(
+          (ticket) => ticket.id,
+        ),
+      ).toEqual(['t9']);
+      expect(
+        (await tickets.listPage({ q: 'spojeni', pageSize: 50 }, context(agentIt))).items.map(
+          (ticket) => ticket.id,
+        ),
+      ).toEqual(['t9']);
+      expect(
+        (
+          await tickets.listPage(
+            { q: 'spojeni', pageSize: 50, hideMerged: true },
+            context(agentIt),
+          )
+        ).items,
+      ).toEqual([]);
+      // The parent stays findable on its own title.
+      expect(
+        (await searchTickets(service, context(agentIt), 'maticni')).tickets.map(
+          (ticket) => ticket.id,
+        ),
+      ).toEqual(['t8']);
+    });
+
+    it('answers with what the current context allows when it is revoked or narrowed after the session', async () => {
+      const { service, tickets, contexts, context } = setup();
+      // Baseline: the session that passed the guard sees the two IT tickets.
+      expect(
+        (await searchTickets(service, context(agentIt), 'vpn')).tickets.map(
+          (ticket) => ticket.id,
+        ),
+      ).toEqual(['t1', 't2']);
+
+      // The assignment moved between the session and the search: the same
+      // subject id now covers HR only, so the palette must shrink with the list.
+      contexts.set(
+        agentIt,
+        createTestAuthorizationContext({
+          subjectId: agentIt,
+          assignments: [
+            createTestAssignment({
+              roleKey: authorizationRoleKeys.agent,
+              organizationalUnitId: ticketsTestIds.ouHr,
+              organizationalUnitPath: '/Korisnici/HR',
+            }),
+          ],
+        }),
+      );
+      expect((await searchTickets(service, context(agentIt), 'vpn')).tickets).toEqual([]);
+      expect(
+        (await tickets.listPage({ q: 'vpn', pageSize: 50 }, context(agentIt))).items,
+      ).toEqual([]);
+
+      // Revoked outright: no context at all. That is a decision about the
+      // request (403), never an empty answer that could pass for "no match".
+      contexts.delete(agentIt);
+      await expect(searchTickets(service, context(agentIt), 'vpn')).rejects.toMatchObject({
+        status: 403,
+      });
     });
   });
 });

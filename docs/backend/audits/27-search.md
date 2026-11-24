@@ -5,9 +5,10 @@
 **Rizik modula:** srednji  
 **Baseline ocjena:** **5,62/10**  
 **Nalazi:** 1 P1, 7 P2, 5 P3<br>
-**Implementacija:** **11/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa),
-W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom), W7.111 (`BA-search-10`, `types` je set) i
-W7.112 (`BA-search-11`, privacy-safe telemetrija sa per-group SLO). P1 nema, P2 nema; otvoreni su `12`–`13` (P3).
+**Implementacija:** **12/13 zatvoreno** — W7.55–W7.63 (`BA-search-01`–`08`, uključujući migraciju trigram indeksa),
+W7.110 (`BA-search-09`, stabilan poredak imenika sa `id` tie-breakerom), W7.111 (`BA-search-10`, `types` je set),
+W7.112 (`BA-search-11`, privacy-safe telemetrija sa per-group SLO) i W7.113 (`BA-search-12`, direktni testovi
+confidential/arhiva/merge/revoke semantike). P1 nema, P2 nema; otvoren je `13` (P3).
 Ova statusna dopuna ne mijenja nalaze ni ocjenu.
 
 ## 1. Executive summary
@@ -49,6 +50,14 @@ duplikatima. Ukupan response budget ostaje tema `BA-search-11`. Detalji:
 Ticket grana poziva `TicketsService.searchTickets`, koji prolazi puni ticket gate, aktuelnu archive konfiguraciju i centralni list where builder. Čita samo `id`, `ticketNumber` i `title`, bez description/formData. Limit se spušta u DB query. Ovo je snažan security-by-reuse obrazac.
 
 Naslijeđena semantika ipak vraća naslov confidential tiketa svakome kome centralni ticket list daje pristup. To je ispravno samo ako command palette ima identičnu shoulder-surfing/UI politiku kao ticket lista. Nema zasebnog testa za scope revoke između sessiona i searcha, confidential title, archive switch ni merged/removed ticket.
+
+**Status poslije W7.113 (§27):** semantika je sada **dokazana direktno kroz `/search`**, u paru sa `GET /tickets` za
+istog aktera: confidential naslov se ne vraća bez granta (requester i assignee ga vide, projekcija ostaje
+`{id, ticketNumber, title}`); paleta **nikad** ne vraća arhivirani tiket (ni SUPER_ADMIN-u) i ne zavisi od archive
+switcha, dok lista kroz `status=ARCHIVED` jeste pod switchom; spojeni child ostaje pronađiv, isto kao lista bez
+opcionog `hideMerged` filtera; suženje ili ukidanje konteksta između sesije i pretrage mijenja odgovor odmah (403 za
+ukinut kontekst, nikad prazan „nema pogodaka”). Detalji:
+[335](../implementation/335-w7113-search-12-ticket-semantics.md).
 
 ## 5. Knowledge article pretraga
 
@@ -131,7 +140,7 @@ Service spec izvorno pokriva ticket scope/list parity, requester, limit/type ski
 | BA-search-09 | P3       | User ordering nema ID tie-breaker pa capped rezultat nije stabilan                      | zatvoreno (W7.110) |
 | BA-search-10 | P3       | `types` nema ArrayUnique i ugovor prihvata duplikate                                    | zatvoreno (W7.111) |
 | BA-search-11 | P3       | Nema privacy-safe search telemetry, per-group latency/SLO ni incomplete indikator       | zatvoreno (W7.112) |
-| BA-search-12 | P3       | Confidential/archive/revoke semantika nema direktan search test                         | otvoreno |
+| BA-search-12 | P3       | Confidential/archive/revoke semantika nema direktan search test                         | zatvoreno (W7.113) |
 | BA-search-13 | P3       | Glavni service suite je compile-blocked i nema direktnog `/search` E2E                  | otvoreno |
 
 ## 11. Ključne korekcije
@@ -580,3 +589,32 @@ pipeline); `truncated` nije u API odgovoru za ticket/user grupe; nema per-group 
 visenje jedne grupe i dalje drži zahtjev. Ostaju `BA-search-12` (confidential/arhiva/revoke testovi) i `-13`
 (direktni `/search` E2E). Detalji:
 [334-w7112-search-11-telemetry.md](../implementation/334-w7112-search-11-telemetry.md).
+
+## 27. Implementacijski closeout — W7.113 (`BA-search-12`)
+
+**Nalaz:** ticket grana palete ponovo koristi listu (puni gate, aktuelni archive config, centralni visibility
+builder), ali nijedan test nije dokazivao da paleta zaista poštuje naslijeđene semantike — confidential naslov,
+arhivu, spojeni tiket i revoke između sesije i pretrage. To je najosjetljivija površina modula: paleta se otvara
+jednim `Ctrl+K` i pretražuje sve što akter vidi.
+
+**Rješenje (test-only).** `search.service.spec.ts` dobija blok `ticket semantics the palette inherits (W7.113)` sa
+četiri testa; svaki poredi `/search` sa `GET /tickets` za istog aktera i isti svijet. (1) Confidential: `agentIt` u
+scope-u bez granta ne dobija ništa na obje površine; requester i assignee dobijaju tiket, a projekcija je tačno
+`{id, ticketNumber, title}` — opis ne može iscuriti. (2) Arhiva: paleta ne vraća `ARCHIVED` ni agentu ni
+SUPER_ADMIN-u (ne šalje `status` ni `includeArchived`, pa zajednički filter uvijek isključi arhivu), lista ga kroz
+`status=ARCHIVED` vraća, a switch `searchable` mijenja listin arhivski pogled — ne paletu; u oba položaja switcha
+`/search` ostaje prazan. (3) Spojeni tiket: child ostaje pronađiv (stranica vodi na parenta), lista bez filtera se
+slaže, a razlika nastaje samo uz opcioni UI filter `hideMerged=true`. (4) Revoke: suženje assignmenta odmah sužava
+odgovor, a ukinut kontekst daje **403**, nikad prazan uspjeh. Harness sada izlaže `archiveConfig`/`confidentialConfig`
+da testovi mogu pomjeriti switch bez nove infrastrukture.
+
+**Produkcijski kod nije mijenjan** — nema migracije, nema promjene ruta (632), nema promjene odgovora; paket
+dokazuje postojeće ponašanje i pinuje ga protiv tihog regresa. Lokalno: `search` **11 suiteova / 100 testa**
+(integracioni uslovno preskočen), `nest build` zelen, `eslint --max-warnings=0` čist, `wiring:check` 632.
+
+**Otvoreno i dokumentovano:** `hideMerged` nije visibility pravilo (paleta prikazuje spojene tikete; mijenjanje toga
+je nova odluka); `includeArchived=true` u listi vraća arhivirane tikete i kada je `archive.searchable=false` —
+zabilježeno kao kandidat za zaseban nalaz u modulu `tickets`, jer paleta taj parametar ne koristi; break-glass i
+allowed-viewer grupe confidential matrice pokrivene su predikatskim specom, ne kroz `/search`. Ostaje `BA-search-13`
+(glavni service suite „compile-blocked” i direktni `/search` E2E). Detalji:
+[335-w7113-search-12-ticket-semantics.md](../implementation/335-w7113-search-12-ticket-semantics.md).
