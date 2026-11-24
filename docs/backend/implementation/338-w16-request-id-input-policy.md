@@ -109,6 +109,25 @@ ne može pročitati.
 - `audit-event-policy.spec.ts` (20) — kontekst sa 400-znakovnim id-om daje validan UUID u redu umjesto sirove
   vrijednosti; eksplicitno proslijeđen `req\r\nInjected: 1` daje `null`; čist `edge-1` prolazi nepromijenjen.
 
+## CI i testni dokaz
+
+Run [`45420849606`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45420849606) na `4d71f71` — **zelen** iz
+prvog pokušaja:
+
+- **Detect / Docs guard:** zeleni (docs guard čita i `338` stranicu i dodatak u auditu 44).
+- **Backend build + test:** zeleno. Lokalno: **pun Jest 965 suite / 5.690 testova**, 0 padova (13 testova više nego u
+  W1.5: 5 novih u `request-id.policy.spec.ts` + 8 dodanih u postojeće specove).
+- **Backend PostgreSQL + Redis integration:** zeleno — nema migracije, pa nema ni nove šeme za harness.
+- **Frontend build + test, Backend container + supply chain, CI gate:** zeleni i nepromijenjeni (paket nema frontend
+  dodira; nema nove audit akcije ni polja, pa parity testovi nemaju šta tražiti).
+- **E2E (critical flows, install wizard) i service-form inventory:** `skipped`. Razlog je stvaran, ne praktičan: nema
+  korisniku vidljive promjene — `X-Request-Id` izgleda isto, a promjena se vidi samo na neispravnom ulazu. Browser
+  dokaz ne bi ništa tvrdio što unit testovi već ne tvrde; dispatch bi trošio demo stack bez pokrivanja novog koda.
+- Lokalno: `tsc --noEmit` (jedina greška je **pre-existing** `announcement-delivery.spec.ts` TS2835, nepromijenjen u
+  ovom paketu), `eslint --max-warnings=0` na `src/common/request-context` + `src/modules/audit-log`,
+  `check-docs-content` OK (32 stranice, 8 prevoda, 10 provjera), `audit:traceability` regenerisan — **334 zatvoreno /
+  362 otvoreno**.
+
 ## Granica paketa
 
 - **Centralni structured log redaction i exception sanitizer** ostaju `BA-xcut-20` (**W1.7**) — ovaj paket ograničava
