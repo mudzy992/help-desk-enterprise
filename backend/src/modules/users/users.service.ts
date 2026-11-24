@@ -5,12 +5,14 @@ import { PrincipalContextInvalidator } from '../../common/principal-context/prin
 import { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { SettingsService } from '../settings/settings.service';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
+import type { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { assignUserRole } from './assign-user-role';
 import { createUser } from './create-user';
 import { deleteUser } from './delete-user';
 import { linkUserDirectoryIdentity } from './link-user-directory-identity';
 import { listUserRoles } from './list-user-roles';
 import { listUsersSummary, listUsersSummaryPage } from './list-users-summary';
+import { resolveUserListScope } from './resolve-user-list-scope';
 import { readDisabledPolicyPackKeys } from '../policy-packs/read-disabled-policy-pack-keys';
 import { mapUsersError } from './map-users-error';
 import { removeUserRole } from './remove-user-role';
@@ -49,6 +51,12 @@ export class UsersService {
     // last on purpose: existing positional construction keeps its meaning.
     @Optional()
     private readonly hibpPasswordChecker?: HibpPasswordChecker,
+    // W2.10 (BA-users-01): the list has no resource id to scope, so it reads the
+    // caller's units itself. Optional keeps every existing positional test
+    // construction working; the module always provides the real loader, and a
+    // missing loader narrows the list to nothing instead of widening it.
+    @Optional()
+    private readonly authorizationContextLoader?: AuthorizationContextLoader,
   ) {}
 
   /** Phase 2.2: hands the mutation functions the authorization cache hook. */
@@ -96,6 +104,55 @@ export class UsersService {
         await this.withPolicyPackState(options),
       ),
     );
+  }
+
+  /**
+   * W2.10 (`BA-users-01`): the HTTP list is the only read whose scope lives in
+   * neither the URL nor the body. The caller's assignments decide which units
+   * are visible; `organizationalUnitIds` is then resolved once per request and
+   * pushed into the same query (and into the `total` count).
+   */
+  listSummaryPageForActor(
+    actorUserId: string | null,
+    options: ListUsersSummaryOptions = {},
+  ): Promise<{ readonly items: readonly UserSummaryResponse[]; readonly total: number }> {
+    return this.execute(async () => {
+      const scope = resolveUserListScope(
+        actorUserId === null || actorUserId.trim().length === 0
+          ? null
+          : await this.authorizationContextLoader?.loadBySubjectId(actorUserId.trim()),
+      );
+      const organizationalUnitIds = scope.unrestricted
+        ? undefined
+        : await this.resolveOrganizationalUnitIdsInScope(scope.organizationalUnitPaths);
+      return listUsersSummaryPage(
+        this.prisma,
+        await this.withPolicyPackState({ ...options, organizationalUnitIds }),
+      );
+    });
+  }
+
+  /**
+   * `ouPath` is the application identity of the tree, so a subtree is a prefix
+   * match on the same rule the authorization evaluator uses (W2.9 keeps both in
+   * `doesOrganizationalUnitScopeCover`; here the match happens in SQL).
+   */
+  private async resolveOrganizationalUnitIdsInScope(
+    paths: readonly string[],
+  ): Promise<readonly string[]> {
+    if (paths.length === 0) {
+      return [];
+    }
+    const units = await this.prisma.organizationalUnit.findMany({
+      where: {
+        OR: paths.flatMap((path) => [
+          { ouPath: path },
+          { ouPath: { startsWith: `${path}/` } },
+        ]),
+      },
+      select: { id: true },
+    });
+    return units.map((unit) => unit.id);
   }
 
   create(input: CreateUserInput): Promise<CreateUserResponse> {

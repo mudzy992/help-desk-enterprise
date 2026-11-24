@@ -103,12 +103,17 @@ export async function authorizeHttpExecution(input: {
     request,
     requirements.organizationalUnitScope,
   );
+  const scopeResource = requirements.organizationalUnitScope?.resource;
   const organizationalUnitId =
-    requirements.organizationalUnitScope?.resource === 'group'
+    scopeResource === 'group'
       ? await input.authorizationService.resolveGroupOrganizationalUnitId(
           rawOrganizationalUnitScope,
         )
-      : rawOrganizationalUnitScope;
+      : scopeResource === 'user'
+        ? await input.authorizationService.resolveUserOrganizationalUnitId(
+            rawOrganizationalUnitScope,
+          )
+        : rawOrganizationalUnitScope;
   const serviceId = resolveAuthorizationScopeValue(request, requirements.serviceScope);
   const evaluation = await input.authorizationService.authorizeWithDecision({
     principal,

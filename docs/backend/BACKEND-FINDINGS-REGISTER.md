@@ -131,7 +131,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 03 | `rbac` | `BA-rbac-06` | P3 | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-07` | P3 | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 03 | `rbac` | `BA-rbac-08` | P3 | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | [03-rbac.md](audits/03-rbac.md) |
-| 04 | `users` | `BA-users-01` | P1 | ADMIN users control plane ignoriše OU/service scope | otvoreno | [04-users.md](audits/04-users.md) |
+| 04 | `users` | `BA-users-01` | P1 | ADMIN users control plane ignoriše OU/service scope | zatvoreno (W2.10) | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-02` | P1 | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno | otvoreno | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-03` | P1 | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle | otvoreno | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-04` | P2 | Concurrent ordinary role assignment može kreirati duplikate | zatvoreno | [04-users.md](audits/04-users.md) |
@@ -928,7 +928,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **696** (P1 174 · P2 371 · P3 151)
-- Zatvoreno: **336**
-- Otvoreno: **360** (P1 86 / P2 193 / P3 81)
+- Zatvoreno: **337**
+- Otvoreno: **359** (P1 85 / P2 193 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

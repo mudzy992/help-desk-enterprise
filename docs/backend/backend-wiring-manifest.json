@@ -9542,11 +9542,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/users.controller.ts",
@@ -9558,11 +9560,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/users.controller.ts",
@@ -9574,11 +9578,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/user-directory-identity.controller.ts",
@@ -9622,11 +9628,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/notifications/preferences/notification-preferences.controller.ts",
@@ -9668,11 +9676,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/users.controller.ts",
@@ -9684,11 +9694,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/users.controller.ts",
@@ -9700,11 +9712,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/users.controller.ts",
@@ -9716,11 +9730,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/user-security.controller.ts",
@@ -9732,11 +9748,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/users/user-security.controller.ts",
@@ -9748,11 +9766,13 @@
         "SessionAuthenticationGuard",
         "RoleGuard"
       ],
-      "methodGuards": [],
+      "methodGuards": [
+        "OuAccessGuard"
+      ],
       "guardBoundary": "explicit",
       "classification": "authenticated",
       "policyOwner": "users",
-      "policyProof": "SessionAuthenticationGuard, RoleGuard"
+      "policyProof": "SessionAuthenticationGuard, RoleGuard, OuAccessGuard"
     },
     {
       "source": "backend/src/modules/notifications/preferences/notification-preferences.controller.ts",

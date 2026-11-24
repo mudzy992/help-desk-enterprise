@@ -258,6 +258,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W1.6 | `BA-xcut-18` — request ID trust policy: 128 znakova, charset, zamjena generisanim UUID-om na ulazu | **zatvoreno** | `4d71f71` (kod + docs) | `45420849606` ✓ (prvi pokušaj) |
 | W1.7 | `BA-xcut-20` — centralna log redakcija, exception sanitizer ugovor i skener koji ga čuva | **zatvoreno** | `89b8d35` (kod + docs) | `45451235864` ✓ (prvi pokušaj) |
 | W2.9 | `BA-organizational-units-01` — OU control plane: guard + `organizationalUnit.manage` + scope na 6 ruta, drugi target u servisu, suženo stablo | **zatvoreno** | `c9cbc48` (kod + docs) | `45463469776` ✓ (prvi pokušaj `45459606355` crven: stale wiring manifest) |
+| W2.10 | `BA-users-01` — users control plane: `user.manage`/`user.security.manage`, user→OU scope lokator, sužena lista, destinacija granta/premještanja | **zatvoreno** | `_pending_` (kod + docs) | `_pending_` |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 

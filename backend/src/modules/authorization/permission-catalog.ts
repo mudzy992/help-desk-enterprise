@@ -382,4 +382,16 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description:
       'Search users of the directory inside the organizational units the role is assigned to (W7.55).',
   },
+  {
+    key: permissionKeys.userManage,
+    categoryId: permissionCategoryIds.directory,
+    description:
+      'Create, edit, deactivate, delete users and grant or revoke their roles inside the organizational units the role is assigned to (W2.10).',
+  },
+  {
+    key: permissionKeys.userSecurityManage,
+    categoryId: permissionCategoryIds.directory,
+    description:
+      'Read an account security view, issue a temporary password, revoke sessions and reset MFA inside the organizational units the role is assigned to (W2.10).',
+  },
 ];

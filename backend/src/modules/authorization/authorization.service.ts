@@ -95,6 +95,21 @@ export class AuthorizationService {
   }
 
   /**
+   * W2.10: resolves a user resource scope without returning any user data to the
+   * caller. A user outside every organizational unit resolves to `null`, which
+   * the evaluator treats as "no organizational unit" - i.e. a scoped grant never
+   * covers it and only a global grant or a SuperAdmin does.
+   */
+  async resolveUserOrganizationalUnitId(userId: string | null): Promise<string | null> {
+    if (userId === null || userId.trim().length === 0) return null;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId.trim() },
+      select: { organizationalUnitId: true },
+    });
+    return user?.organizationalUnitId ?? null;
+  }
+
+  /**
    * A SuperAdmin bypass is written to the tamper-evident audit chain before the
    * guarded handler runs. Callers fail closed if this transaction cannot commit.
    */

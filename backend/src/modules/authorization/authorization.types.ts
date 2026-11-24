@@ -27,8 +27,12 @@ export type AuthorizationUserRecord = {
 
 export type AuthorizationScopeLocator = {
   readonly field: string;
-  /** Resolve a group id to its owning OU before evaluating the permission. */
-  readonly resource?: 'group';
+  /**
+   * Resolve a resource id to the organizational unit that owns it before the
+   * permission is evaluated: a group id to `Group.organizationalUnitId`, a user
+   * id to `User.organizationalUnitId` (W2.10).
+   */
+  readonly resource?: 'group' | 'user';
 };
 
 export type AuthorizationDecisionInput = {

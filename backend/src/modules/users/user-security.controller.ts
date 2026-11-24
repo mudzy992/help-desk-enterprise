@@ -22,9 +22,11 @@ import { AccountSecurityPolicyLoader } from '../authentication/security/account-
 import { passwordExpiresAt } from '../authentication/security/account-security-rules';
 import { type MfaStatus, MfaService } from '../authentication/security/mfa.service';
 import { SessionRegistryService, type UserSessionView } from '../authentication/security/session-registry.service';
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { permissionKeys } from '../authorization/authorization.constants';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { RequireRoles } from '../authorization/require-roles.decorator';
+import { OuAccessGuard } from '../authorization/ou-access.guard';
+import { RequireOrganizationalUnitScope } from '../authorization/require-organizational-unit-scope.decorator';
+import { RequirePermissions } from '../authorization/require-permissions.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { assertCanManageTargetUser } from './assert-can-manage-target-user';
 
@@ -40,9 +42,16 @@ export type UserSecurityResponse = {
  * same hierarchy as the rest of `/users`: an ADMIN cannot touch a SUPER_ADMIN,
  * and nobody resets their own MFA here (that is the profile page).
  */
+/**
+ * W2.10 (`BA-users-01`): the account-security views and actions are their own
+ * permission (`user.security.manage`), separate from `user.manage`, and every
+ * route resolves the target user's organizational unit in `OuAccessGuard`. A
+ * scoped ADMIN therefore cannot read the security state of, or take over, an
+ * account outside the units it was assigned.
+ */
 @Controller('users')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
-@RequireRoles(authorizationRoleKeys.admin, authorizationRoleKeys.superAdmin)
+@RequirePermissions(permissionKeys.userSecurityManage)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class UserSecurityController {
   constructor(
@@ -54,6 +63,8 @@ export class UserSecurityController {
   ) {}
 
   @Get(':userId/security')
+  @UseGuards(OuAccessGuard)
+  @RequireOrganizationalUnitScope({ field: 'userId', resource: 'user' })
   async security(
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @Req() request: AuthenticatedHttpRequest,
@@ -72,6 +83,8 @@ export class UserSecurityController {
   }
 
   @Post(':userId/sessions/revoke-all')
+  @UseGuards(OuAccessGuard)
+  @RequireOrganizationalUnitScope({ field: 'userId', resource: 'user' })
   async revokeAll(
     @Param('userId', new ParseUUIDPipe()) userId: string,
     @Req() request: AuthenticatedHttpRequest,
@@ -82,6 +95,8 @@ export class UserSecurityController {
 
   /** The user sets MFA up again at the next sign-in (forced when required). */
   @Post(':userId/mfa/reset')
+  @UseGuards(OuAccessGuard)
+  @RequireOrganizationalUnitScope({ field: 'userId', resource: 'user' })
   @HttpCode(204)
   async resetMfa(
     @Param('userId', new ParseUUIDPipe()) userId: string,

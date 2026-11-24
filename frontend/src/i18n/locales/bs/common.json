@@ -1713,7 +1713,9 @@
         "ticket.templates.personal": "Kreiraj i uređuj lične šablone odgovora (vidljivi samo vlasniku).",
         "ticket.templates.manage": "Upravljaj dijeljenim šablonima odgovora i playbookovima (u opsegu servisa, obavezan razlog, verzionisano).",
         "routing.read": "Pregledaj pravila usmjeravanja tiketa, pokrivenost i dnevnik izmjena.",
-        "organizationalUnit.manage": "Kreiraj, preimenuj, premjesti i briši organizacione jedinice te mapiraj korisnike, unutar organizacionih jedinica na koje je rola dodijeljena (W2.9)."
+        "organizationalUnit.manage": "Kreiraj, preimenuj, premjesti i briši organizacione jedinice te mapiraj korisnike, unutar organizacionih jedinica na koje je rola dodijeljena (W2.9).",
+        "user.manage": "Kreiraj, uređuj, deaktiviraj i briši korisnike te dodjeljuj i oduzimaj njihove role, unutar organizacionih jedinica na koje je rola dodijeljena (W2.10).",
+        "user.security.manage": "Pregledaj sigurnosno stanje naloga, izdaj privremenu lozinku, opozovi sesije i resetuj MFA, unutar organizacionih jedinica na koje je rola dodijeljena (W2.10)."
       }
     },
     "saved": "Permisije su sačuvane.",

@@ -5140,7 +5140,7 @@
     {
       "id": "BA-users-01",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.10, [341](../implementation/341-w210-users-control-plane-scope.md))",
       "source": "04-users.md",
       "owner": "WS-A",
       "wave": 2

@@ -69,6 +69,12 @@ export type ListUsersSummaryOptions = {
    * admin screen must not show them as the user's pack.
    */
   readonly disabledPolicyPackKeys?: readonly string[];
+  /**
+   * W2.10 (`BA-users-01`): the organizational units the caller controls. An
+   * empty array means "no unit in scope" and therefore no rows; `undefined`
+   * keeps the unrestricted read other callers (single-user reloads) rely on.
+   */
+  readonly organizationalUnitIds?: readonly string[];
   readonly take?: number;
   readonly skip?: number;
 };
@@ -80,8 +86,14 @@ export type UserSummaryPage = {
 
 function buildUsersSummaryWhere(options: ListUsersSummaryOptions): Prisma.UserWhereInput {
   const query = options.query?.trim() ?? '';
+  const organizationalUnitIds = options.organizationalUnitIds
+    ?.map((id) => id.trim())
+    .filter((id) => id.length > 0);
   return {
     ...(options.ids !== undefined ? { id: { in: [...options.ids] } } : {}),
+    ...(organizationalUnitIds !== undefined
+      ? { organizationalUnitId: { in: [...organizationalUnitIds] } }
+      : {}),
     ...(query.length > 0
       ? {
           OR: [

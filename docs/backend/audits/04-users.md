@@ -96,6 +96,12 @@ Koraci 3–5 nisu atomski, nemaju saga/outbox kompenzaciju i role authorization 
 
 `RoleGuard` na users rutama provjerava role key, ne resource permission i ne scope. Nema `RequirePermissions`, `OuAccessGuard` niti service-scope ekvivalenta na ovim kontrolerima.
 
+**Stanje nakon W2.10 (2026-11-24):** tabela iznad opisuje stanje u vrijeme audita. Od paketa W2.10 oba kontrolera vise o
+eksplicitnim permisijama (`user.manage` za kontrolnu ravninu, `user.security.manage` za kredencijale i sesije), rute sa
+`:id` razrješavaju korisnika u njegovu OU kroz `OuAccessGuard`, a lista se sužava na OU-e aktera — vidi
+[`341-w210-users-control-plane-scope.md`](../implementation/341-w210-users-control-plane-scope.md). `link-directory-identity`
+ostaje `SUPER_ADMIN`-only.
+
 ## 5. Prisma, transakcije i konkurencija
 
 - `User.email`, `entraObjectId` i `directoryObjectGuid` su unique.
@@ -168,7 +174,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 
 | ID          | Severity | Naslov                                                                                    | Status   | Veličina |
 | ----------- | -------- | ----------------------------------------------------------------------------------------- | -------- | -------- |
-| BA-users-01 | P1       | ADMIN users control plane ignoriše OU/service scope                                       | otvoreno | L        |
+| BA-users-01 | P1       | ADMIN users control plane ignoriše OU/service scope                                       | zatvoreno (W2.10, [341](../implementation/341-w210-users-control-plane-scope.md)) | L        |
 | BA-users-02 | P1       | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno           | otvoreno | L        |
 | BA-users-03 | P1       | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle                       | otvoreno | L        |
 | BA-users-04 | P2       | Concurrent ordinary role assignment može kreirati duplikate                               | zatvoreno | M        |
@@ -261,6 +267,12 @@ U granicama W2.1 `BA-users-04` i `BA-users-05` ostali su **otvoreni**: tadašnja
 - **Korekcija:** usaglasiti s privacy politikom: pseudonimizovani subject fingerprint, eksplicitni legal/retention osnov i kontrolisana redaction/anonymization obrada audit metapodataka.
 - **Acceptance:** privacy erasure test potvrđuje da audit ostaje forenzički koristan bez direktnog e-maila/display namea izvan odobrenog retention ugovora.
 - **Owner:** users + privacy/audit owner.
+
+### Implementacijski dodatak — W2.10, 2026-11-24
+
+`BA-users-01` je zatvoren u [`341-w210-users-control-plane-scope.md`](../implementation/341-w210-users-control-plane-scope.md). Kontrolna ravnina korisnika više ne visi o imenu role: `user.manage` pokriva listu, kreiranje, izmjenu, brisanje i dodjelu/oduzimanje rola, a `user.security.manage` sigurnosni pregled, privremenu lozinku, opoziv sesija i reset MFA. Rute sa `:id` razrješavaju korisnika u njegovu organizacionu jedinicu (`resource: 'user'` u scope lokatoru), a tri mjesta koja ruta ne vidi imaju drugu, kanonsku provjeru: **enumeracija** (`GET /users` se sužava na OU-e aktera; servisni grant listu ne proširuje), **destinacija premještanja** (`PATCH` sa `organizationalUnitId`) i **scope granta** pri dodjeli i oduzimanju role (OU **ili** servis; globalna rola traži globalni grant). Korisnik bez OU-e razrješava se u `null`, što scoped grant ne pokriva. Out-of-scope je **403** bez imena korisnika; `SUPER_ADMIN` bypass ostaje request-auditiran kroz `authorizeHttpExecution`.
+
+Granica: `BA-users-02` (atomičnost kreiranja i prekasna role autorizacija), `-03`, `-06`–`-09` ostaju otvoreni; `link-directory-identity` ostaje `SUPER_ADMIN`-only jer je stroži od `user.manage`.
 
 ## 11. Baseline score
 

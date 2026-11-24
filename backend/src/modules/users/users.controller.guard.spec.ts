@@ -5,8 +5,9 @@ import {
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import {
-  AUTHORIZATION_REQUIRED_ROLES_KEY,
-  authorizationRoleKeys,
+  AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY,
+  AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
+  permissionKeys,
 } from '../authorization/authorization.constants';
 import { RoleGuard } from '../authorization/role.guard';
 import { UsersController } from './users.controller';
@@ -23,22 +24,62 @@ function createContext(request: Record<string, unknown>): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
+function guardNames(target: object): string[] {
+  const guards = Reflect.getMetadata(GUARDS_METADATA, target) as unknown[] | undefined;
+  return (guards ?? []).map((guard) => (guard as { name: string }).name);
+}
+
+function scopeLocator(handler: object): unknown {
+  return Reflect.getMetadata(AUTHORIZATION_ORGANIZATIONAL_UNIT_SCOPE_KEY, handler);
+}
+
 describe('UsersController guards', () => {
-  it('requires session authentication and admin or super-admin role metadata', () => {
-    const guards = Reflect.getMetadata(GUARDS_METADATA, UsersController) as unknown[];
-    expect(
-      (guards as Array<{ name: string }>).map((guard) => guard.name),
-    ).toEqual(
+  it('gates the control plane on the explicit user.manage permission', () => {
+    expect(guardNames(UsersController)).toEqual(
       expect.arrayContaining(['SessionAuthenticationGuard', 'RoleGuard']),
     );
-    const roles = Reflect.getMetadata(
-      AUTHORIZATION_REQUIRED_ROLES_KEY,
-      UsersController,
-    ) as readonly string[];
-    expect(roles).toEqual([
-      authorizationRoleKeys.admin,
-      authorizationRoleKeys.superAdmin,
-    ]);
+    expect(
+      Reflect.getMetadata(AUTHORIZATION_REQUIRED_PERMISSIONS_KEY, UsersController),
+    ).toEqual([permissionKeys.userManage]);
+  });
+
+  it('keeps the list route unscoped in the guard, because it has no id to scope', () => {
+    // The service narrows the list (`listSummaryPageForActor`); a scope locator
+    // here would resolve to null and deny every scoped caller instead.
+    expect(Reflect.getMetadata(GUARDS_METADATA, UsersController.prototype.listSummary)).toBeUndefined();
+    expect(scopeLocator(UsersController.prototype.listSummary)).toBeUndefined();
+  });
+
+  it('scopes the write routes to the caller organizational units', () => {
+    expect(guardNames(UsersController.prototype.create)).toContain('OuAccessGuard');
+    expect(scopeLocator(UsersController.prototype.create)).toEqual({
+      field: 'organizationalUnitId',
+    });
+
+    for (const handler of [
+      UsersController.prototype.update,
+      UsersController.prototype.delete,
+      UsersController.prototype.listRoles,
+      UsersController.prototype.assignRole,
+      UsersController.prototype.removeRole,
+      UsersController.prototype.resetTemporaryPassword,
+    ]) {
+      expect(guardNames(handler)).toContain('OuAccessGuard');
+      expect(scopeLocator(handler)).toEqual({ field: 'userId', resource: 'user' });
+    }
+  });
+
+  it('gates credential actions on user.security.manage, not on user.manage', () => {
+    expect(
+      Reflect.getMetadata(
+        AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
+        UsersController.prototype.resetTemporaryPassword,
+      ),
+    ).toEqual([permissionKeys.userSecurityManage]);
+    // Other admin routes inherit the control-plane permission from the class.
+    expect(
+      Reflect.getMetadata(AUTHORIZATION_REQUIRED_PERMISSIONS_KEY, UsersController.prototype.update),
+    ).toBeUndefined();
   });
 
   it('rejects requests without an authenticated principal', async () => {

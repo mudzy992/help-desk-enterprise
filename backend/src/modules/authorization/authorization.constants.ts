@@ -59,6 +59,22 @@ export const permissionKeys = {
    * only way to manage the whole topology.
    */
   organizationalUnitManage: 'organizationalUnit.manage',
+  /**
+   * W2.10 (BA-users-01): the users control plane (`/users`, create/update/
+   * delete, role grant/revoke) used to be reachable through the ADMIN role name
+   * alone. The permission is granted per organizational unit, and the list is
+   * narrowed to the units the caller controls; an unscoped grant is the only
+   * way to see the whole directory.
+   */
+  userManage: 'user.manage',
+  /**
+   * W2.10 (BA-users-01): account-security actions on *another* account - a
+   * temporary password, session revocation, MFA reset and the security view.
+   * Kept separate from `user.manage` because reading a display name and taking
+   * over a credential are different risks, and an installation may delegate
+   * the first without the second.
+   */
+  userSecurityManage: 'user.security.manage',
   settingsRead: 'settings.read',
   settingsWrite: 'settings.write',
   /**
@@ -145,6 +161,9 @@ export const scopeAgnosticPermissionKeys: readonly string[] = [
 export const globalOrganizationalUnitPermissionKeys: readonly string[] = [
   permissionKeys.groupManage,
   permissionKeys.organizationalUnitManage,
+  // W2.10: an unscoped ADMIN assignment keeps the installation-wide user
+  // directory it had through the role name; a scoped one sees its subtree.
+  permissionKeys.userManage,
 ];
 
 export const allPermissionKeys: readonly string[] = Object.values(permissionKeys);
@@ -215,6 +234,10 @@ const adminPermissionKeys = [
   permissionKeys.routingWrite,
   permissionKeys.groupManage,
   permissionKeys.organizationalUnitManage,
+  // W2.10: ADMIN keeps the users control plane it had through the role name,
+  // now as two explicit, revocable permissions (control plane + credentials).
+  permissionKeys.userManage,
+  permissionKeys.userSecurityManage,
   permissionKeys.serviceCatalogWrite,
   permissionKeys.serviceFormsWrite,
   permissionKeys.serviceAvailabilityWrite,

@@ -44,12 +44,17 @@ function readScopeLocator(
   if (typeof locator.field !== 'string' || locator.field.trim().length === 0) {
     return null;
   }
-  if (locator.resource !== undefined && locator.resource !== 'group') {
+  if (
+    locator.resource !== undefined &&
+    locator.resource !== 'group' &&
+    locator.resource !== 'user'
+  ) {
     return null;
   }
   return {
     field: locator.field.trim(),
     ...(locator.resource === 'group' ? { resource: 'group' as const } : {}),
+    ...(locator.resource === 'user' ? { resource: 'user' as const } : {}),
   };
 }
 

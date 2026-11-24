@@ -1704,7 +1704,9 @@
         "ticket.templates.personal": "Create and edit personal response templates (visible only to their owner).",
         "ticket.templates.manage": "Manage shared response templates and playbooks (within the service scope, reason required, versioned).",
         "routing.read": "View ticket routing rules, coverage, and change logs.",
-        "organizationalUnit.manage": "Create, rename, move and delete organizational units, and map users to them, inside the organizational units the role is assigned to (W2.9)."
+        "organizationalUnit.manage": "Create, rename, move and delete organizational units, and map users to them, inside the organizational units the role is assigned to (W2.9).",
+        "user.manage": "Create, edit, deactivate and delete users and grant or revoke their roles, inside the organizational units the role is assigned to (W2.10).",
+        "user.security.manage": "Read an account security view, issue a temporary password, revoke sessions and reset MFA, inside the organizational units the role is assigned to (W2.10)."
       }
     },
     "saved": "Permissions saved.",

@@ -21,6 +21,13 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 @RequireRoles(authorizationRoleKeys.admin)
+class UserAuthorizationController {
+  @RequirePermissions(permissionKeys.userManage)
+  @RequireOrganizationalUnitScope({ field: 'userId', resource: 'user' })
+  getUser(): void {}
+}
+
+@RequireRoles(authorizationRoleKeys.admin)
 class GroupAuthorizationController {
   @RequirePermissions(permissionKeys.groupManage)
   @RequireOrganizationalUnitScope({ field: 'groupId', resource: 'group' })
@@ -241,5 +248,97 @@ describe('authorizeHttpExecution SuperAdmin bypass audit (5.2.1 M4 B5)', () => {
       }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(authorizationService.recordSuperAdminBypass).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('authorizeHttpExecution user resource scope (W2.10)', () => {
+  const request = Object.assign(
+    {
+      headers: { 'x-request-id': 'req-user-1' },
+      params: { userId: 'user-7' },
+      method: 'PATCH',
+      baseUrl: '/users',
+      route: { path: '/:userId' },
+    },
+    {
+      [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
+        subjectId: 'admin-1',
+        isLocalOnly: true,
+      },
+    },
+  );
+
+  function context(): unknown {
+    return {
+      switchToHttp: () => ({ getRequest: () => request }),
+      getHandler: () => UserAuthorizationController.prototype.getUser,
+      getClass: () => UserAuthorizationController,
+    };
+  }
+
+  it('resolves the target user to its organizational unit before deciding', async () => {
+    const authorizationService = {
+      resolveGroupOrganizationalUnitId: jest.fn(),
+      resolveUserOrganizationalUnitId: jest.fn().mockResolvedValue('ou-a'),
+      authorizeWithDecision: jest.fn().mockResolvedValue({
+        allowed: true,
+        reason: authorizationDecisionReasons.assignmentAllowed,
+        decisionInput: {},
+      }),
+      recordSuperAdminBypass: jest.fn(),
+    };
+
+    await expect(
+      authorizeHttpExecution({
+        context: context() as never,
+        reflector: new Reflector(),
+        authorizationService: authorizationService as never,
+        requireOrganizationalUnitScope: true,
+      }),
+    ).resolves.toBe(true);
+
+    expect(authorizationService.resolveUserOrganizationalUnitId).toHaveBeenCalledWith('user-7');
+    expect(authorizationService.resolveGroupOrganizationalUnitId).not.toHaveBeenCalled();
+    expect(authorizationService.authorizeWithDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationalUnitId: 'ou-a' }),
+    );
+  });
+
+  it('denies a user that resolves to no organizational unit for a scoped caller', async () => {
+    const authorizationService = {
+      resolveGroupOrganizationalUnitId: jest.fn(),
+      resolveUserOrganizationalUnitId: jest.fn().mockResolvedValue(null),
+      authorizeWithDecision: jest.fn().mockResolvedValue({
+        allowed: false,
+        reason: authorizationDecisionReasons.noMatchingAssignment,
+        decisionInput: {},
+      }),
+      recordSuperAdminBypass: jest.fn(),
+    };
+
+    await expect(
+      authorizeHttpExecution({
+        context: context() as never,
+        reflector: new Reflector(),
+        authorizationService: authorizationService as never,
+        requireOrganizationalUnitScope: true,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('reads an unknown scope resource as no scope rather than as a wildcard', () => {
+    const requirements = readAuthorizationRequirements(
+      new Reflector(),
+      {
+        switchToHttp: () => ({ getRequest: () => request }),
+        getHandler: () => UserAuthorizationController.prototype.getUser,
+        getClass: () => UserAuthorizationController,
+      } as never,
+      { requireOrganizationalUnitScope: false },
+    );
+    expect(requirements.organizationalUnitScope).toEqual({
+      field: 'userId',
+      resource: 'user',
+    });
   });
 });

@@ -7,6 +7,8 @@ export const permissionKeys = {
   routingWrite: "routing.write",
   groupManage: "group.manage",
   organizationalUnitManage: "organizationalUnit.manage",
+  userManage: "user.manage",
+  userSecurityManage: "user.security.manage",
   slaRead: "sla.read",
   slaWrite: "sla.write",
   settingsWrite: "settings.write",
