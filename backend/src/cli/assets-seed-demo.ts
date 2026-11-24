@@ -101,6 +101,12 @@ function printRemovalResult(target: CliTarget, result: DemoRemovalResult): void 
     `removed ${result.assets} demo assets, ${result.locations} locations, ${result.licenses} licences and ${result.contracts} contracts ` +
       `from ${target.environment}.`,
   );
+  if (result.retainedLicenses > 0 || result.retainedContracts > 0) {
+    console.log(
+      `${result.retainedLicenses} demo licence(s) still assigned to people and ${result.retainedContracts} contract(s) with items were kept ` +
+        '(unassign/unlink first if they must go).',
+    );
+  }
   if (result.retainedReferencedAssets > 0) {
     console.log(
       `${result.retainedReferencedAssets} of ${result.totalDemoAssets} demo assets are referenced by tickets and were kept ` +

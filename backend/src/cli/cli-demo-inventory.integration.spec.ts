@@ -32,6 +32,8 @@ describeIfDatabase('CLI demo inventory guard and operator audit (PostgreSQL, W1.
   jest.setTimeout(180_000);
   let prisma: PrismaClient;
   let operatorId: string;
+  /** `null` when the install already seeded ADMIN, so the fixture must not delete it. */
+  let fixtureRoleKey: string | null = null;
   let unitId: string;
   let serviceId: string;
   let formVersionId: string;
@@ -81,38 +83,52 @@ describeIfDatabase('CLI demo inventory guard and operator audit (PostgreSQL, W1.
       await prisma.formVersion.create({ data: { serviceId, version: 1, schema: {} }, select: { id: true } })
     ).id;
 
+    // The install seeds the asset-type catalogue, so the fixture must reuse it.
     for (const key of demoAssetTypeKeys) {
-      await prisma.assetType.create({
-        data: { key, nameBs: `${key} ${stamp}`, nameEn: `${key} ${stamp}` },
+      await prisma.assetType.upsert({
+        where: { key },
+        update: {},
+        create: { key, nameBs: `${key} ${stamp}`, nameEn: `${key} ${stamp}` },
       });
     }
     const operator = await prisma.user.create({
       data: { email: `w15-operator-${stamp}@example.invalid`, displayName: 'W1.5 operator' },
       select: { id: true },
     });
-    const role = await prisma.role.create({ data: { key: `W15_${stamp}`, name: 'W1.5 admin' } });
-    await prisma.userRole.create({ data: { userId: operator.id, roleId: role.id } });
     operatorId = operator.id;
-    // The guard looks for an administrative *key*, so the fixture role is renamed
-    // to ADMIN only when no seeded ADMIN role exists in this isolated database.
-    const adminRole = await prisma.role.findUnique({ where: { key: 'ADMIN' }, select: { id: true } });
-    if (adminRole !== null) {
-      await prisma.userRole.create({ data: { userId: operator.id, roleId: adminRole.id } });
+    // The guard looks for an administrative role *key*: reuse the seeded ADMIN
+    // role when the install created one, otherwise name the fixture role ADMIN.
+    const seededAdmin = await prisma.role.findUnique({ where: { key: 'ADMIN' }, select: { id: true } });
+    if (seededAdmin !== null) {
+      await prisma.userRole.create({ data: { userId: operator.id, roleId: seededAdmin.id } });
+      fixtureRoleKey = null;
     } else {
-      await prisma.role.update({ where: { id: role.id }, data: { key: 'ADMIN' } });
+      const role = await prisma.role.create({ data: { key: 'ADMIN', name: 'W1.5 admin' } });
+      await prisma.userRole.create({ data: { userId: operator.id, roleId: role.id } });
+      fixtureRoleKey = 'ADMIN';
     }
   });
 
   afterAll(async () => {
+    // The suites above remove the inventory through the command itself; this is
+    // only the safety net for a failure earlier in the file.
+    await prisma.licenseAssignment.deleteMany({ where: { asset: { notes: 'DEMO' } } });
+    await prisma.assetContractItem.deleteMany({ where: { asset: { notes: 'DEMO' } } });
+    await prisma.assetRelation.deleteMany({
+      where: { OR: [{ from: { notes: 'DEMO' } }, { to: { notes: 'DEMO' } }] },
+    });
     await prisma.asset.deleteMany({ where: { notes: 'DEMO' } });
     await prisma.assetLocation.deleteMany({ where: { code: { startsWith: 'DEMO-' } } });
+    await prisma.licenseAssignment.deleteMany({ where: { license: { notes: 'DEMO' } } });
     await prisma.softwareLicense.deleteMany({ where: { notes: 'DEMO' } });
     await prisma.assetContract.deleteMany({ where: { notes: 'DEMO' } });
     await prisma.auditLog.deleteMany({ where: { action: auditLogActions.cliCommandExecuted } });
     await prisma.userRole.deleteMany({ where: { userId: operatorId } });
     await prisma.user.deleteMany({ where: { id: operatorId } });
-    await prisma.role.deleteMany({ where: { key: { in: ['ADMIN', `W15_${stamp}`] } } });
-    await prisma.assetType.deleteMany({ where: { key: { in: [...demoAssetTypeKeys] } } });
+    if (fixtureRoleKey !== null) {
+      await prisma.role.deleteMany({ where: { key: fixtureRoleKey } });
+    }
+    // Asset types are part of the install's catalogue: reused, never deleted here.
     await prisma.formVersion.deleteMany({ where: { serviceId } });
     await prisma.service.deleteMany({ where: { id: serviceId } });
     await prisma.organizationalUnit.deleteMany({ where: { id: unitId } });
@@ -216,6 +232,9 @@ describeIfDatabase('CLI demo inventory guard and operator audit (PostgreSQL, W1.
     const removed = await runDemoRemoval(prisma, audit(target));
     expect(removed.retainedReferencedAssets).toBe(1);
     expect(removed.assets).toBe(demoAssets.length - 1);
+    // Licences assigned to people are never unlinked: they are counted, not deleted.
+    expect(removed.licenses + removed.retainedLicenses).toBe(4);
+    expect(removed.retainedLicenses).toBeGreaterThan(0);
     expect(removed.locations).toBeGreaterThan(0);
     expect(await prisma.asset.findMany({ where: { notes: 'DEMO' }, select: { id: true } })).toEqual([{ id: linked.id }]);
 
@@ -236,7 +255,14 @@ describeIfDatabase('CLI demo inventory guard and operator audit (PostgreSQL, W1.
     });
     expect(previous?.hash).toBe(completed?.previousHash);
 
+    // Once the ticket no longer references it, the same command finishes the job:
+    // the second run removes the kept asset and reports nothing retained.
     await prisma.ticketAsset.deleteMany({ where: { ticketId: ticket.id } });
+    const second = await runDemoRemoval(prisma, audit(target));
+    expect(second).toMatchObject({ assets: 1, retainedReferencedAssets: 0, totalDemoAssets: 1 });
+    expect(await prisma.asset.count({ where: { notes: 'DEMO' } })).toBe(0);
+    expect(await prisma.assetLocation.count({ where: { code: { startsWith: 'DEMO-' } } })).toBe(0);
+
     await prisma.ticket.deleteMany({ where: { id: ticket.id } });
   });
 

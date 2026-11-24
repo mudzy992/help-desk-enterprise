@@ -51,8 +51,12 @@ export type DemoSeedResult = DemoCounts &
 export type DemoRemovalResult = DemoCounts &
   Readonly<{
     totalDemoAssets: number;
-    /** Demo assets a ticket still references: kept, because deleting them would unlink history. */
+    /** Demo assets a ticket/transfer/problem/change still references: kept, and reported. */
     retainedReferencedAssets: number;
+    /** Demo licences still assigned to people: kept (removing them would unlink users), and reported. */
+    retainedLicenses: number;
+    /** Demo contracts that still have items: kept, and reported. */
+    retainedContracts: number;
   }>;
 
 /**
@@ -69,15 +73,48 @@ export type DemoRemovalResult = DemoCounts &
 export async function removeDemoInventory(transaction: Prisma.TransactionClient): Promise<DemoRemovalResult> {
   const demoAssets = await transaction.asset.findMany({
     where: { notes: demoMarker, assetTag: { startsWith: 'DEMO-' } },
-    select: { id: true, tickets: { select: { ticketId: true }, take: 1 } },
+    select: {
+      id: true,
+      // Business references: deleting such an asset would unlink a ticket, a
+      // transfer, a problem or a change. Those stay, and the operator is told.
+      tickets: { select: { ticketId: true }, take: 1 },
+      transferItems: { select: { id: true }, take: 1 },
+      problems: { select: { problemId: true }, take: 1 },
+      changes: { select: { changeId: true }, take: 1 },
+    },
   });
-  const removable = demoAssets.filter((asset) => asset.tickets.length === 0).map((asset) => asset.id);
+  const isBusinessReferenced = (asset: (typeof demoAssets)[number]): boolean =>
+    asset.tickets.length > 0 ||
+    asset.transferItems.length > 0 ||
+    asset.problems.length > 0 ||
+    asset.changes.length > 0;
+  const removable = demoAssets.filter((asset) => !isBusinessReferenced(asset)).map((asset) => asset.id);
+
+  /*
+    W1.5: the demo graph itself (licence assignments, contract items, relations)
+    has to go before the assets, or the database guard
+    (`Asset_hard_delete_dependencies`, W7.15) refuses every delete — the old
+    command deleted assets first, so a seeded inventory could not be removed at
+    all. Only rows that point at a *removable* demo asset are touched; a relation
+    to a real asset is dropped, the real asset is not.
+  */
+  if (removable.length > 0) {
+    await transaction.licenseAssignment.deleteMany({ where: { assetId: { in: removable } } });
+    await transaction.assetContractItem.deleteMany({ where: { assetId: { in: removable } } });
+    await transaction.assetRelation.deleteMany({
+      where: { OR: [{ fromAssetId: { in: removable } }, { toAssetId: { in: removable } }] },
+    });
+  }
   const assets = removable.length === 0 ? { count: 0 } : await transaction.asset.deleteMany({ where: { id: { in: removable } } });
 
   // Delete only standalone demo-owned business objects, never their links.
-  const [licenses, contracts] = await Promise.all([
+  const [licenses, contracts, retainedLicences, retainedContracts] = await Promise.all([
     transaction.softwareLicense.deleteMany({ where: { notes: demoMarker, assignments: { none: {} } } }),
     transaction.assetContract.deleteMany({ where: { notes: demoMarker, items: { none: {} } } }),
+    // Assignments to people are not demo-graph links: unlinking a person is a
+    // business decision, so those licences stay and are reported instead.
+    transaction.softwareLicense.count({ where: { notes: demoMarker, assignments: { some: {} } } }),
+    transaction.assetContract.count({ where: { notes: demoMarker, items: { some: {} } } }),
   ]);
 
   // Children first (the tree is Restrict on delete).
@@ -95,6 +132,8 @@ export async function removeDemoInventory(transaction: Prisma.TransactionClient)
     contracts: contracts.count,
     totalDemoAssets: demoAssets.length,
     retainedReferencedAssets: demoAssets.length - removable.length,
+    retainedLicenses: retainedLicences,
+    retainedContracts: retainedContracts,
   };
 }
 
@@ -117,6 +156,8 @@ export async function runDemoRemoval(
         licenses: result.licenses,
         contracts: result.contracts,
         retainedAssets: result.retainedReferencedAssets,
+        retainedLicenses: result.retainedLicenses,
+        retainedContracts: result.retainedContracts,
       },
     });
     return result;

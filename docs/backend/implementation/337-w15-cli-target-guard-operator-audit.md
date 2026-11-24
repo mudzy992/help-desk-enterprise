@@ -79,7 +79,8 @@ write mora biti otkucan.
   ne jednoj OU), `entityId = <komanda>@<environment>:<fingerprint>`.
 - **Metapodaci su zatvoren skup:** `command`, `environment`, `mode`, `outcome`, `reason`, `targetFingerprint`,
   `confirmation`, `counts`. Test pušta red kroz pravi `prepareAuditEntry`, pa allowlist nije dokumentacija nego
-  izvršno pravilo; `counts` je izostavljen na `started` redu (ne tvrdimo da je posao završen).
+  izvršno pravilo; `counts` je izostavljen na `started` redu (ne tvrdimo da je posao završen). `counts` nosi i
+  `retainedAssets`/`retainedLicenses`/`retainedContracts`, pa audit kaže i šta **nije** obrisano i zašto.
 - **Fail-closed:** `started` se piše **prije** prvog write-a. Ako taj red ne može nastati, komanda ne dira bazu.
   `completed` nosi brojeve koje je run stvarno commitovao. Kod `--remove` taj red se piše **u istoj transakciji** kao
   i delete-i, pa rollback ostavlja samo pošten zapis „pokušano”.
@@ -91,9 +92,13 @@ posljedice:
 
 - `planDemoInventory` je **read-only** i to je dokaz da dry run ništa ne piše (unit test koristi klijent koji baca
   grešku na svaki write poziv).
-- `--remove` **zadržava** demo imovinu koju tiket još referencira (`TicketAsset` je `onDelete: Restrict`, a seed sam
-  linkuje tikete e2e korisnika na laptop). Ranije je takav FK oborio cijeli delete; sada se takva imovina preskoči i
-  **prijavi** (`retainedAssets`), pa komanda ostaje upotrebljiva, a poslovna istorija netaknuta.
+- `--remove` sada briše u **redoslijedu zavisnosti**: prvo demo-graf (licence-assignment, contract-item, relacije) za
+  imovinu koja se briše, pa imovinu, pa lokacije. Bez toga DB guard `Asset_hard_delete_dependencies` (W7.15) odbije
+  svaki delete — stara komanda je brisala imovinu prvu, pa se seedovani inventar **nije mogao ukloniti uopšte**.
+- Demo imovina koju referencira **tiket, prenosnica, problem ili promjena** se **zadržava** i **prijavljuje**
+  (`retainedAssets`): brisanje bi odvezalo poslovnu istoriju. Isto važi za demo licence koje su dodijeljene **ljudima**
+  (`retainedLicenses`) i ugovore koji još imaju stavke (`retainedContracts`) — odvezivanje osobe je poslovna odluka, ne
+  čišćenje demo podataka, pa se broj prijavi umjesto da se tiho odveže.
 
 ### 5. Šta ostaje za W1.17 (`BA-xcut-25`)
 
@@ -120,9 +125,11 @@ upravo predmet `BA-xcut-25` (W1.17) i `BA-xcut-32` (W1.21). Granica je zapisana 
   ostaje ugovor sa `--remove`.
 - `src/cli/cli-demo-inventory.integration.spec.ts` (**realni PostgreSQL**) — operator se resolvuje kroz rolu; seed
   ostavlja **dva** audit reda (`started`, `completed` sa `counts`) na **istom** globalnom lancu i istim actorom; drugi
-  seed ne slaže demo podatke i ostavlja samo `started`; `--remove` briše inventar, **zadržava** tiketom vezanu imovinu,
-  piše `completed` sa brojevima u istoj transakciji i lanac se nastavlja (`previousHash` = prethodni `hash`); forsirani
-  rollback **ne** ostavlja `completed` red i ne briše ništa.
+  seed ne slaže demo podatke i ostavlja samo `started`; `--remove` briše inventar (uključujući demo-graf, pa lokacije),
+  **zadržava** tiketom vezanu imovinu i ljudima dodijeljene licence i to prijavljuje, piše `completed` sa brojevima u
+  istoj transakciji i lanac se nastavlja (`previousHash` = prethodni `hash`); nakon odvezivanja tiketa **drugi** run
+  dovrši posao (`assets=1`, `retained=0`) — komanda je idempotentna; forsirani rollback **ne** ostavlja `completed` red i
+  ne briše ništa.
 
 ## Registar nalaza
 
