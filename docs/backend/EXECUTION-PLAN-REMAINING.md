@@ -256,6 +256,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W0.0 | Faza 0 — trijaža dnevnog full CI-ja i popravka speca 12 | **zatvoreno** | `4bdccfc` (spec 12, test-only) | `45376798360` → `45387603494` → `45388019952` → `45391299267` → `45400198567` |
 | W1.5 | `BA-xcut-08` — demo CLI: dry-run default, target/confirm/production guard, operator audit | **zatvoreno** | `b213e9b` (kod) | `45413988648` ✓ (prvi pokušaj `45405257580` crven: env-example + integration spec) |
 | W1.6 | `BA-xcut-18` — request ID trust policy: 128 znakova, charset, zamjena generisanim UUID-om na ulazu | **zatvoreno** | `4d71f71` (kod + docs) | `45420849606` ✓ (prvi pokušaj) |
+| W1.7 | `BA-xcut-20` — centralna log redakcija, exception sanitizer ugovor i skener koji ga čuva | **zatvoreno** | `89b8d35` (kod + docs) | `45451235864` ✓ (prvi pokušaj) |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 

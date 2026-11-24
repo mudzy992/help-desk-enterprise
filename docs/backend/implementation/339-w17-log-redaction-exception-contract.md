@@ -110,6 +110,23 @@ Time nalaz ne može tiho „oživjeti” u sljedećem paketu.
 - `log-contract.spec.ts` (4) — skener nalazi > 500 fajlova (da test ne može biti prazan), nula `console.*` van CLI-ja,
   nula `.stack` van sanitizera, nula stream write-ova van dozvoljenih mjesta.
 
+## CI i testni dokaz
+
+Run [`45451235864`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45451235864) na `89b8d35` — **zelen iz
+prvog pokušaja**:
+
+- **Backend build + test:** zeleno (schema/client, `nest build`, pun Jest). Ovo je i dokaz za četiri modula čije su
+  log linije izmijenjene — njihove suiteove lokalno nije bilo moguće učitati (vidi napomenu o okruženju), pa se
+  ovdje ne tvrdi lokalni prolaz nego CI prolaz.
+- **Backend PostgreSQL + Redis integration:** zeleno — nema migracije, harness nepromijenjen.
+- **Frontend build + test, Backend container + supply chain, Docs guard, CI gate:** zeleni. Frontend nije diran; nema
+  nove audit akcije ni polja, pa parity testovi nemaju šta tražiti.
+- **E2E (critical flows, install wizard) i service-form inventory:** `skipped` — nema korisniku vidljivog ponašanja;
+  promjena se vidi samo u logu, a browser dokaz ne bi tvrdio ništa što unit testovi ne tvrde.
+- Lokalno (u okviru onoga što okruženje dopušta): `src/common/logging` **30** testova i `src/common/request-context`
+  **41** test zeleni, `eslint --max-warnings=0` na svim izmijenjenim fajlovima, `check-docs-content` OK,
+  `audit:traceability` 696/696 (**335 zatvoreno / 361 otvoreno**).
+
 ## Granica paketa
 
 - **Metapodaci audit zapisa** imaju svoj, stroži allowlist (`audit-event-policy`) i nisu dirani; ovaj paket pokriva
