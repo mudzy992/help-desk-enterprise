@@ -10,6 +10,7 @@ import {
 } from './search-rate-limit';
 import { loadSearchRateLimitConfiguration } from './search-rate-limit.configuration';
 import { SearchRateLimitGuard } from './search-rate-limit.guard';
+import { SearchTelemetry } from './search-telemetry.service';
 import { SearchService } from './search.service';
 
 /**
@@ -34,6 +35,9 @@ import { SearchService } from './search.service';
     // from its counter stores.
     SearchRateLimiter,
     SearchRateLimitGuard,
+    // W7.112 (BA-search-11): the telemetry sink. It owns the salt and writes one
+    // privacy-safe `key=value` line per answered request; it never throws.
+    SearchTelemetry,
     {
       provide: searchRateLimitTokens.configuration,
       useFactory: () => loadSearchRateLimitConfiguration(),

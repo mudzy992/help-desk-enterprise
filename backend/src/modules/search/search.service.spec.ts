@@ -17,6 +17,7 @@ import {
 import { buildTicketRecord } from '../tickets/list/ticket-record-fixture';
 import type { TicketMutationContext } from '../tickets/tickets.types';
 import { searchConstants } from './search.constants';
+import { describeSearchTerm, type SearchTelemetryRecord } from './search-telemetry';
 import { SearchService } from './search.service';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -164,11 +165,22 @@ function setup(failures: GroupFailures = {}) {
             throw failures.ticket;
           },
         } as never);
+  // W7.112 (BA-search-11): the telemetry sink is a spy, so the spec can read
+  // exactly what would be logged. It hashes with a fixed salt, like the real
+  // class, and keeps the record instead of formatting it.
+  const telemetryRecords: SearchTelemetryRecord[] = [];
+  const telemetry = {
+    describeTerm: (term: string) => describeSearchTerm(term, 'spec-salt'),
+    record: (record: SearchTelemetryRecord) => {
+      telemetryRecords.push(record);
+    },
+  };
   const service = new SearchService(
     prisma as never,
     authorizationContextLoader as never,
     ticketReader as never,
     knowledgeBase as never,
+    telemetry as never,
   );
   const context = (actorUserId: string): TicketMutationContext => ({
     actorUserId,
@@ -185,6 +197,8 @@ function setup(failures: GroupFailures = {}) {
     userQueries,
     unitQueries,
     context,
+    telemetryRecords,
+    telemetry,
   };
 }
 
@@ -551,6 +565,130 @@ describe('GET /search', () => {
         context(agentIt),
       );
       expect(healthy.failedGroups).toEqual([]);
+    });
+  });
+
+  describe('telemetry (W7.112)', () => {
+    it('records one privacy-safe record per answered request', async () => {
+      const { service, telemetryRecords, context } = setup();
+      const found = await service.search(
+        { q: 'vpn pristup', types: [...allTypes], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      expect(telemetryRecords).toHaveLength(1);
+      const [record] = telemetryRecords;
+      expect(record?.status).toBe('ok');
+      // The needle is represented by its length and a keyed hash — the raw term
+      // is nowhere in the record (acceptance §14.8 of the audit).
+      expect(record?.queryLength).toBe('vpn pristup'.length);
+      expect(record?.queryHash).toMatch(/^[0-9a-f]{16}$/);
+      expect(JSON.stringify(record)).not.toContain('vpn');
+      expect(record?.requestedTypes).toEqual(['ticket', 'article', 'user']);
+      expect(record?.limit).toBe(searchConstants.defaultLimit);
+      expect(record?.durationMs).toBeGreaterThanOrEqual(0);
+      const ticketGroup = record?.groups.find((group) => group.group === 'ticket');
+      expect(ticketGroup).toMatchObject({
+        state: 'ok',
+        hits: found.tickets.length,
+        truncated: false,
+      });
+    });
+
+    it('marks a capped group as truncated and a stopped scan as incomplete', async () => {
+      const { service, telemetryRecords, articleState, context } = setup();
+      articleState.incomplete = true;
+      await service.search(
+        { q: 'vpn', types: ['ticket', 'article'], limit: 1 },
+        context(agentIt),
+      );
+      const [record] = telemetryRecords;
+      // `limit=1` with two matching tickets: the answer may hide a third one.
+      expect(record?.groups.find((group) => group.group === 'ticket')).toMatchObject({
+        state: 'ok',
+        hits: 1,
+        truncated: true,
+      });
+      expect(record?.groups.find((group) => group.group === 'article')).toMatchObject({
+        state: 'ok',
+        truncated: true,
+      });
+      // Not requested is not "empty": no hits, no duration, not incomplete.
+      expect(record?.groups.find((group) => group.group === 'user')).toMatchObject({
+        state: 'skipped',
+        hits: 0,
+        durationMs: 0,
+        truncated: false,
+      });
+      expect(record?.requestedTypes).toEqual(['ticket', 'article']);
+    });
+
+    it('records a partial answer as partial and names the failed group', async () => {
+      const { service, telemetryRecords, context } = setup({
+        article: new Error('kb down'),
+      });
+      const found = await service.search(
+        { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      expect(found.failedGroups).toEqual(['article']);
+      const [record] = telemetryRecords;
+      expect(record?.status).toBe('partial');
+      expect(record?.groups.find((group) => group.group === 'article')).toMatchObject({
+        state: 'failed',
+        hits: 0,
+      });
+      expect(record?.groups.find((group) => group.group === 'ticket')?.state).toBe('ok');
+    });
+
+    it('records a 503 as unavailable and a fatal failure as rejected', async () => {
+      const unavailable = new Error('all down');
+      const down = setup({
+        ticket: unavailable,
+        article: unavailable,
+        user: unavailable,
+      });
+      await expect(
+        down.service.search(
+          { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+          down.context(adminIt),
+        ),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(down.telemetryRecords[0]?.status).toBe('unavailable');
+
+      // A security decision is not a partial answer: the request ends there, and
+      // the line says so instead of looking like an empty success.
+      const denied = setup({ ticket: new ForbiddenException('no') });
+      await expect(
+        denied.service.search(
+          { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
+          denied.context(agentIt),
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(denied.telemetryRecords[0]?.status).toBe('rejected');
+      expect(
+        denied.telemetryRecords[0]?.groups.find((group) => group.group === 'ticket'),
+      ).toMatchObject({ state: 'failed' });
+    });
+
+    it('never lets a broken sink change the answer', async () => {
+      const { service, telemetry, context } = setup();
+      telemetry.record = () => {
+        throw new Error('logger exploded');
+      };
+      const withBrokenSink = await service.search(
+        { q: 'vpn', types: ['ticket'], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      expect(withBrokenSink.tickets.length).toBeGreaterThan(0);
+
+      telemetry.describeTerm = () => {
+        throw new Error('salt reader exploded');
+      };
+      const withBrokenSalt = await service.search(
+        { q: 'vpn', types: ['ticket'], limit: searchConstants.defaultLimit },
+        context(agentIt),
+      );
+      expect(withBrokenSalt.tickets.length).toBeGreaterThan(0);
     });
   });
 });
