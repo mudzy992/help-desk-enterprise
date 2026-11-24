@@ -1,3 +1,4 @@
+import { sanitizeRequestId } from '../../common/request-context/request-id.policy';
 import { getRequestId } from '../../common/request-context/request-context.storage';
 import { getAuditActionCompatibility, getAuditExtensionDefinition } from './audit-action-compatibility-registry';
 import { getAuditActionSchema } from './audit-action-schema-registry';
@@ -67,7 +68,10 @@ export function prepareAuditEntry(input: RecordAuditEntryInput): PreparedAuditEn
   return {
     ...input,
     metadata,
-    requestId: input.requestId ?? getRequestId() ?? null,
+    // W1.6 (`BA-xcut-18`): the request id is hash-bound, so it must already be
+    // the sanitized value. A caller that passes something the policy rejects gets
+    // `null` instead of a chain entry nobody can read back as a correlation id.
+    requestId: sanitizeRequestId(input.requestId ?? getRequestId() ?? null),
     actionSchemaVersion: actionSchema.version,
   };
 }

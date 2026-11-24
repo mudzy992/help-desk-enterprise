@@ -30,6 +30,21 @@ describe('canonical audit event policy', () => {
     expect(result.metadata).toEqual({ after: { accessToken: auditRedactedValue, email: auditPseudonymizedValue, harmless: 'ok' } });
   });
 
+  it('bounds the hash-bound request id instead of writing an unreadable one', () => {
+    // The request context already replaced the malformed id with a generated one,
+    // so the chain gets a usable correlation id rather than 400 characters of input.
+    const hostile = `req-${'z'.repeat(400)}`;
+    const fromContext = runWithRequestId(hostile, () => prepareAuditEntry(valid));
+    expect(fromContext.requestId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(fromContext.requestId).not.toBe(hostile);
+
+    const explicit = prepareAuditEntry({ ...valid, requestId: 'req\r\nInjected: 1' });
+    expect(explicit.requestId).toBeNull();
+
+    const clean = prepareAuditEntry({ ...valid, requestId: 'edge-1' });
+    expect(clean.requestId).toBe('edge-1');
+  });
+
   it('accepts the complete bounded ticket-export manifest metadata', () => {
     expect(() => prepareAuditEntry({
       action: auditLogActions.ticketsExport,

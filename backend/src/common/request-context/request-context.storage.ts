@@ -1,4 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
+import { sanitizeRequestId } from './request-id.policy';
 
 export type RequestContextStore = {
   readonly requestId: string;
@@ -48,9 +50,15 @@ export function memoizeRequestPromise<T>(
   return pending;
 }
 
+/**
+ * W1.6 (`BA-xcut-18`): the store is the single source every consumer reads, so
+ * it refuses to hold a value the policy rejects. Workers and scripts call this
+ * with their own ids; a malformed one becomes a generated UUID instead of
+ * propagating into logs and the audit envelope.
+ */
 export function runWithRequestId<T>(requestId: string, callback: () => T): T {
   return requestContextStorage.run(
-    { requestId, memoizedPromises: new Map() },
+    { requestId: sanitizeRequestId(requestId) ?? randomUUID(), memoizedPromises: new Map() },
     callback,
   );
 }

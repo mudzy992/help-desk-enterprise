@@ -8,6 +8,7 @@ import {
   RequestMetricsMiddleware,
   readRequestMetricsOptions,
 } from './request-metrics.middleware';
+import { RequestIdMiddleware } from './request-id.middleware';
 
 type FakeResponse = EventEmitter & { statusCode: number };
 
@@ -65,6 +66,52 @@ describe('RequestMetricsMiddleware', () => {
     expect(message).toContain('path=/tickets');
     expect(message).not.toContain('page=2');
     expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('keeps a malformed request id out of the query-budget warning', () => {
+    const logger = createLogger();
+    const response = createResponse();
+    const middleware = new RequestMetricsMiddleware(logger, {
+      enabled: true,
+      // -1 forces the budget warning without needing the generated id in the test.
+      warnAboveQueries: -1,
+      warnEnabled: true,
+    });
+    const request = { headers: { 'x-request-id': 'req\r\nInjected: 1' }, method: 'GET', url: '/' };
+
+    // Production order: the request-id middleware sanitizes the header first.
+    new RequestIdMiddleware().use(request, { setHeader: jest.fn() }, () => {
+      middleware.use(request, response, () => undefined);
+    });
+    response.emit('finish');
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const warning = String(logger.warn.mock.calls[0]?.[0] ?? '');
+    expect(warning).toContain('query_budget_exceeded');
+    expect(warning).not.toContain('Injected');
+    expect(warning).toMatch(/request_id=[0-9a-f-]{36}/i);
+  });
+
+  it('reports an unknown request id instead of an unusable one', () => {
+    const logger = createLogger();
+    const response = createResponse();
+    const middleware = new RequestMetricsMiddleware(logger, {
+      enabled: true,
+      warnAboveQueries: -1,
+      warnEnabled: true,
+    });
+
+    // No request-id middleware in front: the raw hostile header is still refused.
+    middleware.use(
+      { headers: { 'x-request-id': 'req\r\nInjected: 1' }, method: 'GET', url: '/' },
+      response,
+      () => undefined,
+    );
+    response.emit('finish');
+
+    const warning = String(logger.warn.mock.calls[0]?.[0] ?? '');
+    expect(warning).toContain('request_id=unknown');
+    expect(warning).not.toContain('Injected');
   });
 
   it('drains the counter so a request id cannot be counted twice', () => {

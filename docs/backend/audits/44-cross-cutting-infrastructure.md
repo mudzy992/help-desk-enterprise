@@ -130,6 +130,12 @@ Cross-cutting nedostaci:
 - nema OpenTelemetry trace konteksta kroz API → BullMQ → worker;
 - recent in-memory request log nestaje restartom i razlikuje se po replici; nije audit niti centralni incident log.
 
+### Implementacijski dodatak — W1.6, 2026-11-24
+
+`BA-xcut-18` je zatvoren u [`338-w16-request-id-input-policy.md`](../implementation/338-w16-request-id-input-policy.md): `x-request-id` ima **trust policy** na jednom ulazu (`read-request-id-header.ts`) — najviše **128** znakova, charset `A-Za-z0-9._:-`, trim — a vrijednost koja ne prolazi se **zamjenjuje generisanim UUID-om**, ne odbija i ne skraćuje (skraćivanje bi spojilo dva zahtjeva pod isti id). Politika se primjenjuje i u `runWithRequestId`, pa AsyncLocalStorage ne može držati neispravan id ni kad ga zove worker ili skripta bez HTTP-a. Uklonjen je privatni raw čitač u `RequestMetricsMiddleware` (warn linija i DB query trace ključevi više ne primaju sirov header), a `prepareAuditEntry` odbija neispravan `requestId` u **hash-bound** koloni (`null` umjesto sirove vrijednosti). Posljedica je i da klijentski string sa kontrolnim znakom više ne dolazi do `response.setHeader` (ranije je bacalo 500).
+
+Granica: sadržaj log poruka (redaction, exception sanitizer) ostaje `BA-xcut-20` (W1.7); recent request buffer ostaje in-memory po replici.
+
 ## 10. Docker, build i runtime hardening
 
 Backend Dockerfile kompajlira multi-stage image, ali finalni stage nije production-hardened:
@@ -217,7 +223,7 @@ Nisu izvršeni realni Postgres/Redis integration testovi, migration rehearsal, m
 | BA-xcut-15 | P2 | Redis reconnect/offline queue/circuit-breaker i namespace contract nisu potpuni | otvoreno |
 | BA-xcut-16 | P2 | Admin realtime je process-local i gubi cross-replica događaje | otvoreno |
 | BA-xcut-17 | P2 | Worker nema readiness/drain/deadline/forced shutdown i telemetry flush ugovor | zatvoreno |
-| BA-xcut-18 | P2 | Request ID je neograničen untrusted input u logovima/envelopeu | otvoreno |
+| BA-xcut-18 | P2 | Request ID je neograničen untrusted input u logovima/envelopeu | zatvoreno (W1.6, [338](../implementation/338-w16-request-id-input-policy.md)) |
 | BA-xcut-19 | P2 | Globalni guard/filter/interceptor wiring zavisi od feature modula bez centralnog manifest testa | otvoreno |
 | BA-xcut-20 | P2 | Nema centralnog structured log redaction i exception sanitizer ugovora | otvoreno |
 | BA-xcut-21 | P2 | Metric cardinality i distributed trace propagation nisu dokazani | otvoreno |

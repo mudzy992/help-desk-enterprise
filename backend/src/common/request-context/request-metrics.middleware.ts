@@ -1,4 +1,4 @@
-import { requestIdHeaderName } from './request-context.constants';
+import { readRequestIdHeader } from './read-request-id-header';
 import {
   takeDbQueryCount,
   takeDbQueryTrace,
@@ -80,7 +80,8 @@ export class RequestMetricsMiddleware {
       return;
     }
     const startedAt = process.hrtime.bigint();
-    const requestId = readRequestId(request.headers);
+    // W1.6: the same policy as the middleware — a hostile id never reaches a log line.
+    const requestId = readRequestIdHeader(request.headers);
     response.once('finish', () => {
       this.report(request, response, requestId, startedAt);
     });
@@ -126,11 +127,6 @@ export class RequestMetricsMiddleware {
       );
     }
   }
-}
-
-function readRequestId(headers: Record<string, unknown>): string | null {
-  const value = headers[requestIdHeaderName];
-  return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 function readPath(request: MetricsIncoming): string {

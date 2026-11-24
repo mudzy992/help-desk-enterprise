@@ -5460,7 +5460,7 @@
     {
       "id": "BA-xcut-18",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W1.6, [338](../implementation/338-w16-request-id-input-policy.md))",
       "source": "44-cross-cutting-infrastructure.md",
       "owner": "WS-G",
       "wave": 1

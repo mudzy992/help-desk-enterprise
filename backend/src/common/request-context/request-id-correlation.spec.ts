@@ -2,11 +2,17 @@ import { ConsoleLogger, ForbiddenException, HttpStatus } from '@nestjs/common';
 import { HttpRequestExceptionFilter } from './http-exception.filter';
 import { RecentRequestLogBuffer } from './recent-request-log.buffer';
 import { RequestContextLogger } from './request-context.logger';
-import { runWithRequestId } from './request-context.storage';
+import { getRequestId, runWithRequestId } from './request-context.storage';
 
 describe('requestId correlation', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it('refuses to store a malformed id, so every reader sees a generated one', () => {
+    const seen = runWithRequestId('bad\r\nid', () => getRequestId());
+    expect(seen).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(seen).not.toContain('\r');
   });
 
   it('keeps an unhandled 5xx stack in the primary container log message', () => {
