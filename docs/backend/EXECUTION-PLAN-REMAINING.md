@@ -1,0 +1,249 @@
+# Plan izvršenja preostalih valova (W1, W2, W3, W9, W8, W10, W11)
+
+**Osnova:** `master` @ `2b0aaf3` (Val 7 zatvoren W7.114 / PR #16)<br>
+**Datum:** 2026-11-24<br>
+**Izvor brojeva:** `docs/backend/backend-findings-plan.json` + `npm run audit:traceability` — 696 nalaza, **332 zatvoreno / 364 otvoreno** (P1 88 · P2 195 · P3 81)<br>
+**Status plana:** **aktivan ugovor** — ovo je redoslijed rada, ne želja. Mijenja se samo po §1.6.
+
+## 1. Pravila kojih se striktno držim
+
+1. **Jedan nalaz = jedan paket.** Kod + testovi + `audits/<modul>.md` + `BACKEND-FINDINGS-REGISTER.md` + `BACKEND-IMPLEMENTATION-MASTER-PLAN.md` + `backend-findings-plan.json` + implementacijski dokument + ledger ovog plana — **u istom commitu**. Docs-only push ne pokreće CI, pa se dokumentacija nikad ne odvaja od koda.
+2. **Nijedan paket ne počinje na nerazjašnjenom crvenom baseline-u.** Faza 0 (trijaža dnevnog full CI-ja) je kapija: klasa kvara (kod / okolina / stack) se dokumentuje prije prvog paketa.
+3. **Redoslijed iz §3–§9 je obavezujući.** Unutar wave-a: prvo svi **P1**, pa **P2**, pa **P3**, redom kojim su navedeni.
+4. **Izvještaj nakon paketa završava obavezno** linijom `Sljedeći paket: <ID> (BA-<nalaz>) — <razlog u jednom redu>`. Ako predlažem izmjenu reda, u istom izvještaju piše šta se mijenja i zašto, a plan se ažurira u sljedećem commitu.
+5. **Standard dokaza:** (a) test koji pada prije i prolazi poslije; (b) za DB/Redis temu integration test ili dokumentovano zašto nije izvodljiv; (c) za korisniku vidljivo ponašanje E2E + `dispatch specs="<n>"`; (d) `nest build`, `eslint --max-warnings=0`, `wiring:check`, `audit:traceability` sa brojevima; (e) CI run ID-evi (push + PR, E2E kad je primjenjivo).
+6. **Odstupanje** je dozvoljeno samo ako je zapisano u ledgeru (§12), obrazloženo zavisnošću ili novim dokazom i u istom commitu kao paket. „Usput bih još ovo” nije odstupanje — to je novi nalaz i ide u registar.
+7. **Nepromjenjive granice:** ne diram pre-existing eslint warninge u `problem-owner-eligibility.spec.ts` i `sla-scan-failure-quarantine.spec.ts`; ne diram flaky `admin-ops-i18n-coverage.spec.ts` / `break-glass-command.integration.spec.ts`; E2E/CAPTCHA problem rješavam na stacku (Admin → Sigurnost), ne izmjenom speca; telemetrija nikad ne nosi raw korisnički termin (samo hash/length).
+8. **Migracije i owner odluke traže se prije početka paketa** koji ih traži (§11), ne usput.
+9. **Wave je zatvoren** samo kad svi njegovi BA ID-evi imaju `zatvoreno` u generisanom planu **i** kad su acceptance gateovi iz §10 ispunjeni.
+
+## 2. Faze
+
+| Faza | Šta | Zašto tu |
+| --- | --- | --- |
+| **0** | Trijaža dnevnog full CI-ja | Nijedan dokaz novog paketa ne visi o nerazjašnjenom crvenom runu |
+| **1** | Val 1 — P1 slice: `xcut-08`, `xcut-18`, `xcut-20` (W1.5–W1.7) | Jedini P1 Vala 1 (destruktivni CLI) + dva jeftina security nalaza, nezavisni od svega |
+| **2** | **Val 2** — 57 nalaza (W2.9–W2.65) | Substrat koji svi čitaju: OU/groups scope i sesija — i Val 8 (directory-sync, Teams, policy packs). Prvo ovdje = nema dvostrukog popravljanja |
+| **3** | **Val 3** — 72 nalaza (W3.12–W3.83) | Integritet: change-log, config-versioning, privacy, SIEM, secreti. Naslanja se na Val 2, priprema Val 9/10 |
+| **4** | Val 1 — ostatak: 14 nalaza (W1.8–W1.21) | Platformski dokazi (migration linter, readiness, Redis, metrike, CLI framework) |
+| **5** | **Val 9** — 70 nalaza + plan paket `W9.0` | Health/observability/ops-health/docs; tu se zatvaraju readiness/metrike teme Vala 1 |
+| **6** | **Val 8** — 148 nalaza + plan paket `W8.0` | Najveći val, ali **posljednji od domena** |
+| **7** | **Val 10** — CLI, data-repair, migration closure | Koristi CLI framework iz Vala 1 i audit trag iz Vala 3 |
+| **8** | **Val 11** — regression, recovery drill, rescore, acceptance | Završni gate |
+
+**Zašto Val 2 prije Vala 1:** Val 1 ima **1 P1** i on je izolovan (CLI), a 12 od 14 P2 su „dokaz/ugovor nedostaje” čiji kod živi u Val 9/10 — prvo njih znači raditi ih dvaput. Val 2 nosi **13 P1** u kodu koji svi ostali zovu.
+
+**Zašto Val 9 prije Vala 8:** install acceptance (Val 8, `31 — install`) traži health/readiness dokaz, a Val 1 readiness/metrike nalazi se zatvaraju u Val 9 paketima.
+
+## 3. Faza 1 — Val 1, P1 slice (3 paketa)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W1.5` | `BA-xcut-08` | Destruktivni/demo CLI ima write-by-default i hard-delete bez production target guarda, potvrde i audita |
+| `W1.6` | `BA-xcut-18` | Request ID je neograničen untrusted input u logovima/envelopeu |
+| `W1.7` | `BA-xcut-20` | Nema centralnog structured log redaction i exception sanitizer ugovora |
+
+## 4. Faza 2 — Val 2 (57 paketa)
+
+Klasteri su namjerni: nalazi u istom klasteru dijele kod i test harness, pa paket odmah plaća sljedećem.
+
+### 4.1 P1 — scope enforcement: OU / users / groups (5)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W2.9` | `BA-organizational-units-01` | OU control plane ignoriše actor OU/service scope i target hijerarhiju |
+| `W2.10` | `BA-users-01` | ADMIN users control plane ignoriše OU/service scope |
+| `W2.11` | `BA-organizational-units-02` | Cross-instance stale `ouPath` cache privremeno zadržava pogrešan authorization scope |
+| `W2.12` | `BA-groups-01` | Group delete može tiho cascade obrisati/odvezati kritične cross-module resurse |
+| `W2.13` | `BA-groups-03` | Fallback invariant dopušta nula ili više fallback grupa u istom OU-u |
+
+### 4.2 P1 — sesija, MFA i privilegovani audit (6)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W2.14` | `BA-authentication-01` | Refresh oživljava session čiji registry red ne postoji |
+| `W2.15` | `BA-authentication-02` | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara |
+| `W2.16` | `BA-authentication-03` | MFA enrollment token i potvrda nisu atomski single-use |
+| `W2.17` | `BA-users-03` | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle |
+| `W2.18` | `BA-security-02` | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara |
+| `W2.19` | `BA-security-03` | Privilegovani auth audit je best-effort i može nestati |
+
+### 4.3 P1 — revokacija membershipa i atomičnost korisničkih operacija (2)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W2.20` | `BA-groups-02` | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room |
+| `W2.21` | `BA-users-02` | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno |
+
+### 4.4 P2 (30)
+
+| Klaster | Paketi i nalazi |
+| --- | --- |
+| Model dozvola (6) | `W2.22` `BA-authorization-03`, `W2.23` `BA-authorization-04`, `W2.24` `BA-rbac-01`, `W2.25` `BA-rbac-02`, `W2.26` `BA-rbac-03`, `W2.27` `BA-rbac-05` |
+| Organizacione jedinice (5) | `W2.28` `BA-organizational-units-03`, `W2.29` `BA-organizational-units-04`, `W2.30` `BA-organizational-units-05`, `W2.31` `BA-organizational-units-06`, `W2.32` `BA-organizational-units-07` |
+| Grupe (5) | `W2.33` `BA-groups-04`, `W2.34` `BA-groups-05`, `W2.35` `BA-groups-06`, `W2.36` `BA-groups-07`, `W2.37` `BA-groups-08` |
+| Korisnici (4) | `W2.38` `BA-users-06`, `W2.39` `BA-users-07`, `W2.40` `BA-users-08`, `W2.41` `BA-users-09` |
+| Sigurnost (6) | `W2.42` `BA-security-04`, `W2.43` `BA-security-05`, `W2.44` `BA-security-06`, `W2.45` `BA-security-07`, `W2.46` `BA-security-08`, `W2.47` `BA-security-09` |
+| Autentikacija (4) | `W2.48` `BA-authentication-04`, `W2.49` `BA-authentication-05`, `W2.50` `BA-authentication-06`, `W2.51` `BA-authentication-07` |
+
+### 4.5 P3 (14)
+
+`W2.52` `BA-authorization-05`, `W2.53` `BA-authorization-06`, `W2.54` `BA-authorization-07`, `W2.55` `BA-authorization-08`, `W2.56` `BA-rbac-06`, `W2.57` `BA-rbac-07`, `W2.58` `BA-rbac-08`, `W2.59` `BA-groups-09`, `W2.60` `BA-groups-10`, `W2.61` `BA-organizational-units-08`, `W2.62` `BA-organizational-units-09`, `W2.63` `BA-authentication-08`, `W2.64` `BA-security-10`, `W2.65` `BA-security-11`
+
+## 5. Faza 3 — Val 3 (72 paketa)
+
+### 5.1 P1 — privatnost (4)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W3.12` | `BA-privacy-01` | Legal hold write koristi `privacy.view` |
+| `W3.13` | `BA-privacy-02` | Anonimizacija je trajno parcijalna pri mid-flight kvaru |
+| `W3.14` | `BA-privacy-03` | Retention Redis lock može isteći i obrisati tuđi lease |
+| `W3.15` | `BA-privacy-04` | Audit redaction nije atomska niti chain-safe |
+
+### 5.2 P1 — change-log integritet (5)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W3.16` | `BA-clog-05` | Transaction atomarnost nije dio API ugovora; mutation i log mogu commitati odvojeno |
+| `W3.17` | `BA-clog-01` | Missing path se predstavlja kao null; add/remove null promjene potpuno nestaju |
+| `W3.18` | `BA-clog-02` | Prazni objekti/nizovi nemaju path; create/delete/replace može imati netačan ili prazan diff |
+| `W3.19` | `BA-clog-03` | Recorder ne provodi reason/action/entity/resource invariants i dopušta međusobno kontradiktoran red |
+| `W3.20` | `BA-clog-04` | Nema centralne redakcije/allowliste; before/after/changes mogu trajno duplicirati secret/PII |
+
+### 5.3 P1 — SIEM webhook (3)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W3.21` | `BA-security-audit-webhook-03` | Proizvoljan HTTP(S) cilj omogućava SSRF i plaintext izvoz |
+| `W3.22` | `BA-security-audit-webhook-01` | 24h failure nepovratno odbacuje sigurnosni backlog |
+| `W3.23` | `BA-security-audit-webhook-02` | Aktivacija preskače događaje nastale prije prvog ticka |
+
+### 5.4 P1 — postavke i secreti (3) — *prvi paket traži odobrenje migracije*
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W3.24` | `BA-settings-01` | Secret vrijednosti se čuvaju kao plaintext JSON bez envelope encryptiona |
+| `W3.25` | `BA-settings-02` | Security konfiguracija i realtime događaj nisu cluster-atomic niti distribuirano invalidirani |
+| `W3.26` | `BA-settings-03` | Concurrent dependency write skew može commitovati nevažeće globalno stanje |
+
+### 5.5 P1 — config-versioning: lock, apply, scope (5) — *traži odobrenje migracije*
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W3.27` | `BA-config-versioning-04` | Paralelna aktivacija nema lock/CAS ni DB invariant jednog ACTIVE reda |
+| `W3.28` | `BA-config-versioning-05` | Apply/rollback je nedokumentovan replace/upsert/skip hibrid i ACTIVE nije dokaz parityja |
+| `W3.29` | `BA-config-versioning-06` | Konfigurisani scopes ne ograničavaju collect/apply; sve domene se i dalje primjenjuju |
+| `W3.30` | `BA-config-versioning-03` | Isključena validacija označava DRAFT validnim i dopušta neprovjeren destructive apply |
+| `W3.31` | `BA-config-versioning-07` | Export sa settings.write može iznijeti privatne/environment-bound vrijednosti bez step-upa |
+
+### 5.6 P2 (38)
+
+| Klaster | Paketi i nalazi |
+| --- | --- |
+| change-log (10) | `W3.32` `BA-clog-06`, `W3.33` `BA-clog-07`, `W3.34` `BA-clog-08`, `W3.35` `BA-clog-09`, `W3.36` `BA-clog-10`, `W3.37` `BA-clog-11`, `W3.38` `BA-clog-12`, `W3.39` `BA-clog-13`, `W3.40` `BA-clog-14`, `W3.41` `BA-clog-15` |
+| SIEM webhook (6) | `W3.42` `BA-security-audit-webhook-04`, `W3.43` `BA-security-audit-webhook-05`, `W3.44` `BA-security-audit-webhook-06`, `W3.45` `BA-security-audit-webhook-07`, `W3.46` `BA-security-audit-webhook-08`, `W3.47` `BA-security-audit-webhook-09` |
+| privacy (7) | `W3.48` `BA-privacy-05`, `W3.49` `BA-privacy-06`, `W3.50` `BA-privacy-07`, `W3.51` `BA-privacy-08`, `W3.52` `BA-privacy-09`, `W3.53` `BA-privacy-10`, `W3.54` `BA-privacy-11` |
+| settings (5) | `W3.55` `BA-settings-04`, `W3.56` `BA-settings-06`, `W3.57` `BA-settings-07`, `W3.58` `BA-settings-08`, `W3.59` `BA-settings-09` |
+| config-versioning (10) | `W3.60` `BA-config-versioning-08`, `W3.61` `BA-config-versioning-09`, `W3.62` `BA-config-versioning-10`, `W3.63` `BA-config-versioning-11`, `W3.64` `BA-config-versioning-12`, `W3.65` `BA-config-versioning-13`, `W3.66` `BA-config-versioning-14`, `W3.67` `BA-config-versioning-15`, `W3.68` `BA-config-versioning-16`, `W3.69` `BA-config-versioning-17` |
+
+### 5.7 P3 (14)
+
+`W3.70` `BA-clog-16`, `W3.71` `BA-clog-17`, `W3.72` `BA-clog-18`, `W3.73` `BA-clog-19`, `W3.74` `BA-clog-20`, `W3.75` `BA-security-audit-webhook-10`, `W3.76` `BA-security-audit-webhook-11`, `W3.77` `BA-privacy-12`, `W3.78` `BA-privacy-13`, `W3.79` `BA-settings-10`, `W3.80` `BA-settings-11`, `W3.81` `BA-config-versioning-18`, `W3.82` `BA-config-versioning-19`, `W3.83` `BA-config-versioning-20`
+
+## 6. Faza 4 — Val 1, ostatak (14 paketa)
+
+| Paket | Nalaz | Nalaz (naslov) |
+| --- | --- | --- |
+| `W1.8` | `BA-xcut-13` | Migracije nemaju expand/backfill/contract linter i destruction approval manifest |
+| `W1.9` | `BA-xcut-14` | Budući migration timestampi do 2027-10 ruše pouzdanu chronology disciplinu |
+| `W1.10` | `BA-xcut-12` | Readiness ne dokazuje schema kompatibilnost, write capability ni queue flow |
+| `W1.11` | `BA-xcut-15` | Redis reconnect/offline queue/circuit-breaker i namespace contract nisu potpuni |
+| `W1.12` | `BA-xcut-16` | Admin realtime je process-local i gubi cross-replica događaje |
+| `W1.13` | `BA-xcut-11` | DB timeout/instrumentation ne pokriva kompletno lock/transaction/dedicated-client ponašanje |
+| `W1.14` | `BA-xcut-19` | Globalni guard/filter/interceptor wiring zavisi od feature modula bez centralnog manifest testa |
+| `W1.15` | `BA-xcut-21` | Metric cardinality i distributed trace propagation nisu dokazani |
+| `W1.16` | `BA-xcut-22` | Nema globalnog/distribuiranog inbound rate limit ugovora |
+| `W1.17` | `BA-xcut-25` | CLI-ji nemaju zajednički target fingerprint/operator audit/transaction safety framework |
+| `W1.18` | `BA-xcut-26` | Raw body se kopira za svaki JSON request umjesto samo potpisanih webhook ruta |
+| `W1.19` | `BA-xcut-27` | Shutdown hooks se uključuju dvaput u API bootstrapu |
+| `W1.20` | `BA-xcut-28` | Recent request log je samo process-local volatilni buffer |
+| `W1.21` | `BA-xcut-32` | Seed koristi zaseban client mimo common pool/metrics/startup konfiguracije |
+
+Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz `39 — health`), zatvara se **u tom paketu**, a ovdje se upisuje „zatvoreno W9.x” — plan to dozvoljava (precedent: `BA-docs-01` zatvoren W2.7, a broji se u Val 9).
+
+## 7. Faza 5 — Val 9 (70 nalaza, plan paket prvi)
+
+`W9.0` = **W9 plan paket** (owner, BA ID lista, zavisnosti od Vala 1/2/3, dokaz po nalazu). Bez njega se ne otvara nijedan W9.x paket. Zatim moduli, **P1 → P2 → P3, ID rastuće** unutar modula:
+
+| Red | Modul | Otvoreno (P1/P2/P3) | Zašto taj red |
+| --- | --- | ---: | --- |
+| 1 | [`39 — health`](audits/39-health.md) | 14 (1/9/4) | readiness/liveness ugovor je preduslov za install acceptance u Valu 8 |
+| 2 | [`40 — observability`](audits/40-observability.md) | 18 (4/10/4) | metrike/trace prije nego ops-health počne da ih tumači |
+| 3 | [`41 — ops-health`](audits/41-ops-health.md) | 24 (7/12/5) | najviše P1; troši health+observability primitive |
+| 4 | [`42 — docs`](audits/42-docs.md) | 14 (1/8/5) | dokumentacija prati zatvorene ugovore, ne pretječe ih |
+
+## 8. Faza 6 — Val 8 (148 nalaza, plan paket prvi)
+
+`W8.0` = **W8 plan paket** vođen zavisnostima (§12 master plana to i traži): owner po modulu, tačna BA ID lista, W2/W3/W4 preduvjeti, migracijski/rollback plan, integration/E2E dokaz. Zatim moduli, **P1 → P2 → P3, ID rastuće**:
+
+| Red | Modul | Otvoreno (P1/P2/P3) | Zašto taj red |
+| --- | --- | ---: | --- |
+| 1 | [`33 — policy-packs`](audits/33-policy-packs.md) | 19 (7/9/3) | sigurnosne politike se primjenjuju prije nego instalacija dobije „accept” |
+| 2 | [`35 — directory-sync`](audits/35-directory-sync.md) | 23 (8/11/4) | najviše P1; traži OU/groups semantiku iz Vala 2 (zato poslije Vala 2) |
+| 3 | [`34 — service-onboarding`](audits/34-service-onboarding.md) | 20 (7/10/3) | 7 P1, naslanja se na policy packs |
+| 4 | [`36 — teams`](audits/36-teams.md) | 20 (6/10/4) | vanjski kanal, traži isti scope model |
+| 5 | [`37 — edge-extension`](audits/37-edge-extension.md) | 21 (7/10/4) | 7 P1, ali traži Teams/onboarding ugovore |
+| 6 | [`31 — install`](audits/31-install.md) | 21 (6/11/4) | instalacija se ocjenjuje zadnja u valu jer troši sve prethodno |
+| 7 | [`32 — setup-checklist`](audits/32-setup-checklist.md) | 11 (0/7/4) | nema P1; prati instalacione korake |
+| 8 | [`38 — branding`](audits/38-branding.md) | 13 (0/8/5) | nema P1; kozmetika + cache/asset semantika |
+
+## 9. Faze 7–8 — Val 10 i Val 11 (bez novih BA ID-eva)
+
+**Val 10 (`W10.x`)** — CLI, data-repair, migration closure: koristi target-fingerprint/operator-audit framework iz `BA-xcut-25` (W1.x) i redakcijski ugovor iz change-log paketa (W3.x). Paketi: migration closure dokument + linter gate, data-repair komande sa dry-run i audit tragom, CLI target guard testovi, seed client konsolidacija (`BA-xcut-32`).
+
+**Val 11 (`W11.x`)** — završni gate: (1) pun regression (noćni + dispatch bez `specs`), (2) recovery drill (Redis restart, DB failover, worker restart) sa dokazom, (3) rescore svih 44 audita, (4) acceptance/release zapis u `docs/backend/audits/HANDOFF.md`.
+
+## 10. Acceptance gateovi po valu
+
+| Val | Gate |
+| --- | --- |
+| **1** | `44 — xcut` **17/17**; migration linter i readiness/rate-limit ugovori izvršni u CI-ju; CLI target guard test; pun Jest zelen |
+| **2** | `01–06, 09` **63/63**; cross-module scope parity test (isti akter, ista OU → isto odobrenje kroz users/OU/groups/RBAC); revokacija sesije dokazana kroz najmanje jedan E2E; runovi zeleni |
+| **3** | `07, 10, 11, 30, 43` **86/86**; change-log redaction allowlist test; config apply/rollback parity; privacy retention matrica; SIEM delivery/backlog garancija (uz dokumentovanu granicu za vanjski endpoint) |
+| **9** | `39–42` **71/71**; alert/recovery runbook dokaz i više-instancni dokaz (ili dokumentovana granica) |
+| **8** | `31–38` **148/148**; install wizard E2E (51/52/53) po odluci o resetu baze; directory-sync integration test; Teams/extension contract testovi |
+| **10** | migration closure zapis + dry-run/audit dokaz za svaku data-repair komandu |
+| **11** | pun zelen regression + recovery drill + rescore + potpisan acceptance |
+
+## 11. Odobrenja i blokade (prije početka paketa)
+
+| Tema | Paket | Šta treba prije početka |
+| --- | --- | --- |
+| Envelope encryption secreta u postavkama | `W3.24` (`BA-settings-01`) | odobrenje migracije + upravljanje ključem (env/KMS) i plan rotacije |
+| Config-versioning lock/CAS | `W3.27` (`BA-config-versioning-04`) | odobrenje migracije (unique/partial index na ACTIVE) + rollout |
+| Change-log redakcija/retention | `W3.16` (`BA-clog-05`) | odluka o retention periodu i allowlisti polja |
+| Multi-instance dokaz (realtime, Redis revokacija) | `W2.15`, W9 paketi | druga instanca u testnom okruženju ili dokumentovana granica |
+| Vanjski SIEM endpoint | `W3.21`–`W3.23` | potrošni endpoint za test; bez njega dokaz je lokalni mock i tako se piše |
+| Install wizard E2E (51/52/53) | W8 paketi (`31 — install`) | odluka: reset baze ili `--include-step-markers` |
+
+## 12. Ledger (ažurira se u istom commitu kao paket)
+
+| Paket | Nalaz | Status | Commit / PR | Run ID |
+| --- | --- | --- | --- | --- |
+| W0.0 | Faza 0 — trijaža dnevnog CI-ja | _čeka run ID_ | — | — |
+
+Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
+
+## 13. Šablon izvještaja nakon svakog paketa
+
+```
+## <Paket> — <BA-nalaz> (<P>): <naslov>
+Nalaz:      <šta je bilo pokvareno/nedokazano>
+Promjena:   <kod; bez čega bi test pao>
+Dokaz:      unit <n>, integration <n>, E2E <spec>, build/eslint/wiring/traceability <brojevi>
+CI:         push <id> ✓, PR <id> ✓, E2E dispatch <id> ✓
+Docs:       <audit §, paket NNN, registar, master plan, ovaj ledger>
+Rizik:      <šta ostaje otvoreno i zašto>
+Sljedeći paket: <ID> (BA-<nalaz>) — <razlog u jednom redu>
+```

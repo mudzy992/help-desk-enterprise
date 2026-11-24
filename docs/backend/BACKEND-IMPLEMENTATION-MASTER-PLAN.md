@@ -55,6 +55,7 @@ Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- -
 - [Historijski implementacijski handoff](audits/HANDOFF.md); aktuelni wave snapshot i sljedeći korak su u ovom master planu.
 - [Audit 13 — routing](audits/13-routing.md), [audit 15 — service catalog](audits/15-service-catalog.md#34-ba-15-e2e-critical-flow-follow-up-2026-11-04), [audit 16 — templates](audits/16-templates.md) i [BA-15 executable matrix closeout](implementation/121-service-catalog-15-executable-test-matrix.md).
 - [Val 7 izvori](audits/22-assets.md), [problems](audits/23-problems.md), [changes](audits/24-changes.md), [knowledge base](audits/25-knowledge-base.md), [reports](audits/26-reports.md) i [search](audits/27-search.md).
+- [**Plan izvršenja preostalih valova**](EXECUTION-PLAN-REMAINING.md) — obavezujući redoslijed paketa za W1, W2, W3, W9, W8, W10 i W11, sa ledgerom koji se ažurira u istom commitu kao paket.
 
 ### Standardni paketni i audit ciklus
 
