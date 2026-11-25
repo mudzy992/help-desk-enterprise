@@ -15,6 +15,22 @@ model UserMfa {
   user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// W2.16 (`BA-authentication-03`): the durable, atomic single-use claim for an MFA
+/// token (`jti`). The Redis `auth:revoked-jti:*` marker stays the accelerator; this
+/// row is the authority, so two parallel confirmations can never both mint a session
+/// and a Redis outage cannot replay the token. A claim is `in flight` until
+/// `consumedAt` is set; an abandoned claim is taken over after the lease, and a
+/// rejected code deletes it so the user can retry without a new password.
+model MfaTokenClaim {
+  jti        String    @id
+  subjectId  String
+  stage      String    @db.VarChar(16)
+  claimedAt  DateTime  @default(now())
+  consumedAt DateTime?
+
+  @@index([claimedAt])
+}
+
 /// Paket 5.2.1 (M2 #4): single-use recovery codes, stored as keyed HMAC only.
 model UserMfaRecoveryCode {
   id        String    @id @default(cuid())

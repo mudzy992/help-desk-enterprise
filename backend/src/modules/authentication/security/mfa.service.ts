@@ -29,6 +29,14 @@ import {
 import { buildOtpauthUri, generateTotpSecret, verifyTotp } from './totp';
 
 const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
+/**
+ * W2.16: how long an in-flight MFA-token claim blocks a parallel attempt before it
+ * is treated as abandoned (process crashed mid-flow). Kept well under the shortest
+ * MFA token lifetime, so a takeover can never outlive the token itself.
+ */
+const CLAIM_LEASE_MS = 30 * 1000;
+/** Claims are bounded by the token TTL; this retention only keeps the table tidy. */
+const CLAIM_RETENTION_MS = 24 * 60 * 60 * 1000;
 /** A reused pending secret keeps at least this long to be confirmed. */
 const ENROLLMENT_REUSE_MARGIN_MS = 2 * 60 * 1000;
 
@@ -162,9 +170,19 @@ export class MfaService {
     }
     const codes = generateRecoveryCodes();
     const recoveryCodeHmacKey = this.recoveryCodeWriteKey();
-    await this.prisma.$transaction([
-      this.prisma.userMfa.update({
-        where: { userId: subject.id },
+    // W2.16 (`BA-authentication-03`): the `enabledAt`/pending checks above are a
+    // read, so two parallel confirmations used to pass them both. The state change
+    // is now the compare-and-set: only the writer whose predicate still matches
+    // flips `enabledAt`, and the recovery codes are created in that same
+    // transaction — one winner, one session, one recovery set.
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.userMfa.updateMany({
+        where: {
+          userId: subject.id,
+          enabledAt: null,
+          pendingSecretEncrypted: row.pendingSecretEncrypted,
+          pendingCreatedAt: { gt: new Date(now.getTime() - ENROLLMENT_TTL_MS) },
+        },
         data: {
           secretEncrypted: row.pendingSecretEncrypted,
           enabledAt: now,
@@ -173,19 +191,66 @@ export class MfaService {
           pendingSecretEncrypted: null,
           pendingCreatedAt: null,
         },
-      }),
-      this.prisma.userMfaRecoveryCode.deleteMany({ where: { userId: subject.id } }),
-      this.prisma.userMfaRecoveryCode.createMany({
+      });
+      if (claimed.count === 0) {
+        throw new AccountSecurityError('MFA_ALREADY_ENABLED');
+      }
+      await tx.userMfaRecoveryCode.deleteMany({ where: { userId: subject.id } });
+      await tx.userMfaRecoveryCode.createMany({
         data: codes.map((value) => ({
           userId: subject.id,
           codeHash: hashRecoveryCode(value, recoveryCodeHmacKey.key),
           keyId: recoveryCodeHmacKey.keyId,
         })),
-      }),
-    ]);
+      });
+    });
     await this.notifier.audit(auditLogActions.authMfaEnrolled, subject.id, subject.id);
     await this.notifier.notify(subject.id, notificationTypes.accountMfaChanged, null, `mfa-enabled:${subject.id}:${now.getTime()}`);
     return codes;
+  }
+
+  /**
+   * W2.16 (`BA-authentication-03`): atomically takes ownership of one MFA token
+   * (`jti`) before any state changes. `true` means this request owns the token;
+   * `false` means it was already used (replay) or another request is mid-flight
+   * inside the lease. The durable row — not the Redis marker — decides, so a
+   * rejected Redis write cannot allow a replay.
+   */
+  async claimSignInToken(
+    jti: string,
+    subjectId: string,
+    stage: string,
+    now: Date = new Date(),
+  ): Promise<boolean> {
+    try {
+      await this.prisma.mfaTokenClaim.create({ data: { jti, subjectId, stage, claimedAt: now } });
+      return true;
+    } catch (error) {
+      // P2002: somebody already wrote this claim. Everything else is a real fault.
+      if ((error as { code?: string }).code !== 'P2002') throw error;
+    }
+    const takeover = await this.prisma.mfaTokenClaim.updateMany({
+      where: { jti, consumedAt: null, claimedAt: { lt: new Date(now.getTime() - CLAIM_LEASE_MS) } },
+      data: { claimedAt: now },
+    });
+    return takeover.count === 1;
+  }
+
+  /** Marks the claim used. Called before the session is minted, never after. */
+  async consumeSignInToken(jti: string, now: Date = new Date()): Promise<void> {
+    await this.prisma.mfaTokenClaim.updateMany({ where: { jti }, data: { consumedAt: now } });
+    // Bounded housekeeping: never a scan, only rows older than the retention.
+    await this.prisma.mfaTokenClaim.deleteMany({
+      where: { claimedAt: { lt: new Date(now.getTime() - CLAIM_RETENTION_MS) } },
+    });
+  }
+
+  /**
+   * Gives the claim back after a rejected code, so a typo does not cost the user a
+   * new password. A consumed claim is never released — that would reopen replay.
+   */
+  async releaseSignInToken(jti: string): Promise<void> {
+    await this.prisma.mfaTokenClaim.deleteMany({ where: { jti, consumedAt: null } });
   }
 
   /** Second factor at sign-in: a TOTP code or a recovery code. */

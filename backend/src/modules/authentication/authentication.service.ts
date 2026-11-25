@@ -21,6 +21,7 @@ import type {
   AuthenticationLoginResponse,
   AuthenticationSessionResponse,
   AuthenticationUserRecord,
+  MfaTokenClaims,
   PasswordAuthenticationCredentials,
   SessionAccessTokenClaims,
   SignInContext,
@@ -140,24 +141,31 @@ export class AuthenticationService {
     context: SignInContext = unknownContext,
   ): Promise<AuthenticationSessionResponse> {
     try {
-      const { claims, user } = await this.readMfaToken(input.mfaToken, 'verify');
-      const method = await this.loginAttemptLimiter.guardMfaCode(
-        mfaAttemptKey(user.id),
-        { captchaToken: input.captchaToken ?? null, ip: context.ipAddress ?? undefined },
-        async () => {
-          try {
-            return await this.mfaService.verify(user, input.code);
-          } catch (error) {
-            if (error instanceof AccountSecurityError && error.code === 'MFA_INVALID_CODE') {
-              await this.notifier.audit(auditLogActions.authMfaFailed, user.id, null);
-              // Paket 5.4.0-b: the metric never blocks the login path.
-              if (this.securityMetrics !== undefined) await this.securityMetrics.record('mfa-failures');
+      const { claims, user } = await this.claimMfaToken(input.mfaToken, 'verify');
+      const method = await this.loginAttemptLimiter
+        .guardMfaCode(
+          mfaAttemptKey(user.id),
+          { captchaToken: input.captchaToken ?? null, ip: context.ipAddress ?? undefined },
+          async () => {
+            try {
+              return await this.mfaService.verify(user, input.code);
+            } catch (error) {
+              if (error instanceof AccountSecurityError && error.code === 'MFA_INVALID_CODE') {
+                await this.notifier.audit(auditLogActions.authMfaFailed, user.id, null);
+                // Paket 5.4.0-b: the metric never blocks the login path.
+                if (this.securityMetrics !== undefined) await this.securityMetrics.record('mfa-failures');
+              }
+              return mapAccountSecurityError(error);
             }
-            return mapAccountSecurityError(error);
-          }
-        },
-      );
-      await this.sessionTokenService.consumeMfaToken(claims);
+          },
+        )
+        .catch(async (error: unknown) => {
+          // A rejected code (or the limiter) gives the claim back: the user retries
+          // the same token instead of starting over with a new password.
+          await this.mfaService.releaseSignInToken(claims.jti);
+          throw error;
+        });
+      await this.consumeMfaToken(claims);
       return await this.issueSession(
         user,
         'local',
@@ -193,20 +201,25 @@ export class AuthenticationService {
     context: SignInContext = unknownContext,
   ): Promise<AuthenticationSessionResponse> {
     try {
-      const { claims, user } = await this.readMfaToken(input.mfaToken, 'verify');
-      await this.loginAttemptLimiter.guard(mfaAttemptKey(user.id), () =>
-        this.passkeyCredentialService
-          .verifyAssertion(
-            user.id,
-            passkeyLoginChallengeKey(claims.jti),
-            input.assertion as unknown as AuthenticationResponseJSON,
-            this.webAuthnRpLoader.load(),
-            false,
-            context.ipAddress,
-          )
-          .catch(mapAccountSecurityError),
-      );
-      await this.sessionTokenService.consumeMfaToken(claims);
+      const { claims, user } = await this.claimMfaToken(input.mfaToken, 'verify');
+      await this.loginAttemptLimiter
+        .guard(mfaAttemptKey(user.id), () =>
+          this.passkeyCredentialService
+            .verifyAssertion(
+              user.id,
+              passkeyLoginChallengeKey(claims.jti),
+              input.assertion as unknown as AuthenticationResponseJSON,
+              this.webAuthnRpLoader.load(),
+              false,
+              context.ipAddress,
+            )
+            .catch(mapAccountSecurityError),
+        )
+        .catch(async (error: unknown) => {
+          await this.mfaService.releaseSignInToken(claims.jti);
+          throw error;
+        });
+      await this.consumeMfaToken(claims);
       return await this.issueSession(
         user,
         'local',
@@ -234,11 +247,16 @@ export class AuthenticationService {
     context: SignInContext = unknownContext,
   ): Promise<AuthenticationSessionResponse & { readonly recoveryCodes: string[] }> {
     try {
-      const { claims, user } = await this.readMfaToken(input.mfaToken, 'enroll');
-      const recoveryCodes = await this.loginAttemptLimiter.guard(mfaAttemptKey(user.id), () =>
-        this.mfaService.confirmEnrollment(user, input.code).catch(mapAccountSecurityError),
-      );
-      await this.sessionTokenService.consumeMfaToken(claims);
+      const { claims, user } = await this.claimMfaToken(input.mfaToken, 'enroll');
+      const recoveryCodes = await this.loginAttemptLimiter
+        .guard(mfaAttemptKey(user.id), () =>
+          this.mfaService.confirmEnrollment(user, input.code).catch(mapAccountSecurityError),
+        )
+        .catch(async (error: unknown) => {
+          await this.mfaService.releaseSignInToken(claims.jti);
+          throw error;
+        });
+      await this.consumeMfaToken(claims);
       const session = await this.issueSession(
         user,
         'local',
@@ -572,6 +590,30 @@ export class AuthenticationService {
       throw new AuthenticationError('INVALID_CREDENTIALS');
     }
     return { claims, user };
+  }
+
+  /**
+   * W2.16 (`BA-authentication-03`): every flow that consumes an MFA token claims it
+   * durably first, so the two parallel confirmations in the finding can no longer
+   * both pass the check and both mint a session. A replay is indistinguishable from
+   * any other credential failure.
+   */
+  private async claimMfaToken(
+    token: string,
+    stage: 'verify' | 'enroll',
+  ): Promise<{ claims: MfaTokenClaims; user: AuthenticationUserRecord }> {
+    const { claims, user } = await this.readMfaToken(token, stage);
+    const claimed = await this.mfaService.claimSignInToken(claims.jti, user.id, stage);
+    if (!claimed) {
+      throw new AuthenticationError('INVALID_CREDENTIALS');
+    }
+    return { claims, user };
+  }
+
+  /** Marks the claim used before the session exists, so a failure cannot reopen it. */
+  private async consumeMfaToken(claims: MfaTokenClaims): Promise<void> {
+    await this.mfaService.consumeSignInToken(claims.jti);
+    await this.sessionTokenService.consumeMfaToken(claims);
   }
 
   private toHttpException(error: unknown): never {

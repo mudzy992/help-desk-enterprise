@@ -770,6 +770,11 @@ describe('AuthenticationService 5.4.0-a passkey second factor', () => {
     const countCredentials = jest.fn().mockResolvedValue(overrides.passkeys ?? 1);
     const startAuthentication = jest.fn().mockResolvedValue({ options: { challenge: 'challenge-1' } });
     const verifyAssertion = overrides.verifyAssertion ?? jest.fn().mockResolvedValue({ credentialRowId: 'row-1' });
+    // W2.16: the token is claimed durably before any state change, and consumed
+    // right before the session is minted.
+    const claimSignInToken = jest.fn().mockResolvedValue(true);
+    const consumeSignInToken = jest.fn().mockResolvedValue(undefined);
+    const releaseSignInToken = jest.fn().mockResolvedValue(undefined);
     const guard = jest.fn((_key: string, run: () => Promise<unknown>) => run());
     const user = overrides.user ?? activeUser;
     const service = new AuthenticationService(
@@ -783,6 +788,9 @@ describe('AuthenticationService 5.4.0-a passkey second factor', () => {
         isEnabled: jest.fn().mockResolvedValue(overrides.totpEnrolled ?? false),
         flowFor: jest.fn().mockReturnValue('verify'),
         verify: jest.fn(),
+        claimSignInToken,
+        consumeSignInToken,
+        releaseSignInToken,
       } as never,
       { create: createSession } as never,
       {} as never,
@@ -802,6 +810,9 @@ describe('AuthenticationService 5.4.0-a passkey second factor', () => {
       startAuthentication,
       verifyAssertion,
       guard,
+      claimSignInToken,
+      consumeSignInToken,
+      releaseSignInToken,
     };
   }
 
@@ -866,11 +877,17 @@ describe('AuthenticationService 5.4.0-a passkey second factor', () => {
     const verifyAssertion = jest
       .fn()
       .mockRejectedValue(new AccountSecurityError('MFA_INVALID_CODE'));
-    const { service, consumeMfaToken, createSession, guard } = buildPasskeyService({ verifyAssertion });
+    const { service, consumeMfaToken, consumeSignInToken, releaseSignInToken, createSession, guard } =
+      buildPasskeyService({ verifyAssertion });
 
     await expect(
       service.verifyMfaPasskey({ mfaToken: 'mfa.jwt', assertion: { id: 'credential-1' } }),
     ).rejects.toMatchObject({ status: 401, response: { code: 'MFA_INVALID_CODE' } });
+
+    // W2.16: the refused assertion hands the durable claim back, so the same
+    // token still works for the other factor (or a retry of this one).
+    expect(releaseSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(consumeSignInToken).not.toHaveBeenCalled();
 
     // The bucket that guards MFA confirmations counted the failure, but nothing
     // was issued and the intermediate token was not burned — the person may try
@@ -958,5 +975,182 @@ describe('AuthenticationService logout durability (W2.15)', () => {
     expect(fixture.revokeToken).toHaveBeenCalledWith(claims(null));
     expect(fixture.revokeAllForUser).toHaveBeenCalledWith('user-1');
     expect(fixture.revokeSessionRow).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  W2.16 (`BA-authentication-03`): the single-use MFA token used to be consumed
+  after the state change, and only through a best-effort Redis marker. The claim
+  is now a durable row taken *before* anything else, the session is minted only
+  after the claim is consumed, and a rejected code gives the claim back so the
+  same token stays usable while a replay cannot.
+*/
+describe('AuthenticationService MFA token claim (W2.16)', () => {
+  const claimsFor = (stage: 'verify' | 'enroll' = 'verify'): MfaTokenClaims => ({
+    subjectId: 'user-1',
+    stage,
+    jti: 'mfa-jti-1',
+    expiresAt: Math.floor(Date.now() / 1000) + 300,
+    rememberMe: false,
+  });
+
+  function buildMfaService(options: {
+    readonly claimed?: boolean;
+    readonly verify?: jest.Mock;
+    readonly confirmEnrollment?: jest.Mock;
+    readonly consumeMfaToken?: jest.Mock;
+    readonly stage?: 'verify' | 'enroll';
+  } = {}) {
+    const verifyMfaToken = jest.fn().mockResolvedValue(claimsFor(options.stage ?? 'verify'));
+    const claimSignInToken = jest.fn().mockResolvedValue(options.claimed ?? true);
+    const consumeSignInToken = jest.fn().mockResolvedValue(undefined);
+    const releaseSignInToken = jest.fn().mockResolvedValue(undefined);
+    const verify = options.verify ?? jest.fn().mockResolvedValue('totp');
+    const confirmEnrollment =
+      options.confirmEnrollment ?? jest.fn().mockResolvedValue(['RECOVERY-CODE-1']);
+    const consumeMfaToken = options.consumeMfaToken ?? jest.fn().mockResolvedValue(undefined);
+    const createSession = jest.fn().mockResolvedValue({ id: 'session-1' });
+    const service = new AuthenticationService(
+      { resolve: jest.fn().mockResolvedValue({ authenticate: jest.fn().mockResolvedValue(principal) }) } as never,
+      { issue: jest.fn().mockResolvedValue('access.jwt'), issueMfaToken: jest.fn(), verifyMfaToken, consumeMfaToken } as never,
+      { findById: jest.fn().mockResolvedValue(activeUser) } as never,
+      { user: { update: jest.fn() } } as never,
+      { load: jest.fn().mockResolvedValue(defaultAccountSecurityPolicy) } as never,
+      {
+        requirementFor: jest.fn().mockReturnValue('optional'),
+        isEnabled: jest.fn().mockResolvedValue(true),
+        flowFor: jest.fn().mockReturnValue('verify'),
+        verify,
+        confirmEnrollment,
+        claimSignInToken,
+        consumeSignInToken,
+        releaseSignInToken,
+      } as never,
+      { create: createSession } as never,
+      {} as never,
+      { countCredentials: jest.fn().mockResolvedValue(0) } as never,
+      { load: jest.fn().mockReturnValue({ rpID: 'localhost', rpName: 'Help Desk', expectedOrigins: [] }) } as never,
+      { audit: jest.fn(), notify: jest.fn() } as never,
+      { guard: (_key: string, run: () => Promise<unknown>) => run(), guardMfaCode: (_k: string, _c: unknown, run: () => Promise<unknown>) => run() } as never,
+      { record: jest.fn().mockResolvedValue(undefined) } as never,
+    );
+    return {
+      service,
+      claimSignInToken,
+      consumeSignInToken,
+      releaseSignInToken,
+      consumeMfaToken,
+      createSession,
+      verify,
+      confirmEnrollment,
+    };
+  }
+
+  it('claims the token before the code is even looked at', async () => {
+    const fixture = buildMfaService();
+
+    await fixture.service.verifyMfa({ mfaToken: 'mfa.jwt', code: '123456' });
+
+    expect(fixture.claimSignInToken).toHaveBeenCalledWith('mfa-jti-1', 'user-1', 'verify');
+    expect(fixture.claimSignInToken.mock.invocationCallOrder[0]).toBeLessThan(
+      fixture.verify.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('consumes the claim before the session is written, never after', async () => {
+    const fixture = buildMfaService();
+
+    await fixture.service.verifyMfa({ mfaToken: 'mfa.jwt', code: '123456' });
+
+    expect(fixture.consumeSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(fixture.consumeMfaToken).toHaveBeenCalledWith(expect.objectContaining({ jti: 'mfa-jti-1' }));
+    expect(fixture.consumeSignInToken.mock.invocationCallOrder[0]).toBeLessThan(
+      fixture.createSession.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('answers a replayed token with 401 INVALID_CREDENTIALS and touches nothing', async () => {
+    const fixture = buildMfaService({ claimed: false });
+
+    await expect(fixture.service.verifyMfa({ mfaToken: 'mfa.jwt', code: '123456' })).rejects.toMatchObject({
+      status: 401,
+      response: { code: 'INVALID_CREDENTIALS' },
+    });
+
+    // No oracle: a used token is indistinguishable from a bad one, and the code
+    // is never checked — so a replay cannot even confirm the code was right.
+    expect(fixture.verify).not.toHaveBeenCalled();
+    expect(fixture.consumeSignInToken).not.toHaveBeenCalled();
+    expect(fixture.createSession).not.toHaveBeenCalled();
+    // The loser must not release a claim it never took: that would reopen replay.
+    expect(fixture.releaseSignInToken).not.toHaveBeenCalled();
+  });
+
+  it('gives the claim back after a rejected code so the same token can be retried', async () => {
+    const verify = jest.fn().mockRejectedValue(new AccountSecurityError('MFA_INVALID_CODE'));
+    const fixture = buildMfaService({ verify });
+
+    await expect(fixture.service.verifyMfa({ mfaToken: 'mfa.jwt', code: '000000' })).rejects.toMatchObject({
+      status: 401,
+      response: { code: 'MFA_INVALID_CODE' },
+    });
+
+    expect(fixture.releaseSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(fixture.consumeSignInToken).not.toHaveBeenCalled();
+    expect(fixture.createSession).not.toHaveBeenCalled();
+  });
+
+  it('releases the claim only while it is unconsumed (a burned token stays burned)', async () => {
+    // The guard, not the service, decides which jti reaches release; the store
+    // filter (`consumedAt: null`) is pinned in the MfaService spec. Here we pin
+    // that a successful sign-in never releases the claim it just consumed.
+    const fixture = buildMfaService();
+
+    await fixture.service.verifyMfa({ mfaToken: 'mfa.jwt', code: '123456' });
+
+    expect(fixture.consumeSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(fixture.releaseSignInToken).not.toHaveBeenCalled();
+  });
+
+  it('keeps the replay closed even when the redemption store (Redis) is down', async () => {
+    // The durable claim is written and consumed first; the Redis marker is only an
+    // accelerator. A dead Redis therefore fails the sign-in but cannot reopen the
+    // token: the same jti is already consumed, so a replay is refused.
+    const fixture = buildMfaService({
+      consumeMfaToken: jest.fn().mockRejectedValue(new Error('redis down')),
+    });
+
+    await expect(
+      fixture.service.verifyMfa({ mfaToken: 'mfa.jwt', code: '123456' }),
+    ).rejects.toBeDefined();
+    expect(fixture.consumeSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(fixture.createSession).not.toHaveBeenCalled();
+    // Nothing gives the burned claim back on the way out.
+    expect(fixture.releaseSignInToken).not.toHaveBeenCalled();
+  });
+
+  it('claims the enroll token before the pending secret can be confirmed', async () => {
+    const fixture = buildMfaService({ stage: 'enroll' });
+
+    const response = await fixture.service.confirmMfaEnrollment({ mfaToken: 'mfa.jwt', code: '123456' });
+
+    expect(fixture.claimSignInToken).toHaveBeenCalledWith('mfa-jti-1', 'user-1', 'enroll');
+    expect(fixture.consumeSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(response).toMatchObject({ recoveryCodes: ['RECOVERY-CODE-1'] });
+  });
+
+  it('releases the enroll claim when the confirmation is refused', async () => {
+    const confirmEnrollment = jest
+      .fn()
+      .mockRejectedValue(new AccountSecurityError('MFA_ALREADY_ENABLED'));
+    const fixture = buildMfaService({ stage: 'enroll', confirmEnrollment });
+
+    await expect(
+      fixture.service.confirmMfaEnrollment({ mfaToken: 'mfa.jwt', code: '123456' }),
+    ).rejects.toMatchObject({ status: 409, response: { code: 'MFA_ALREADY_ENABLED' } });
+
+    expect(fixture.releaseSignInToken).toHaveBeenCalledWith('mfa-jti-1');
+    expect(fixture.consumeSignInToken).not.toHaveBeenCalled();
+    expect(fixture.createSession).not.toHaveBeenCalled();
   });
 });
