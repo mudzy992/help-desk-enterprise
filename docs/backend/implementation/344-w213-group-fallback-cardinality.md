@@ -214,6 +214,9 @@ idempotentno i pod novim indexom). `common/database` **14 suite** (sentinel pomj
   endpoint bi duplirao ugovor bez nove garancije.
 - **Dedupe u migraciji ne piše audit** (vidi §1) — historija koja grupa je izgubila oznaku postoji samo ako je promjena
   išla kroz servis.
+- **Perf budžet `db_queries_per_request` je u crvenom od W2.11** (jedan `SELECT` na singleton reviziju OU kataloga po
+  zahtjevu). To je posljedica prethodnog paketa i traži izmjenu OU scope keša (npr. spajanje revizije sa postojećim
+  čitanjem), ne izmjenu grupa; ostaje otvoreno i nije prikazano kao zeleno.
 - **Fallback grupa danas ne učestvuje direktno u ticket routingu** (routing koristi
   `privateTicketUnroutedQueueTargetGroupId` postavku; fallback grupa je ono što install seed u tu postavku upiše).
   Invarijanta je zato preduvjet determinizma seeda i admin prikaza, ne nova routing logika — to je u audit `-03`
@@ -221,7 +224,31 @@ idempotentno i pod novim indexom). `common/database` **14 suite** (sentinel pomj
 
 ## CI
 
-_(popunjava se nakon zelenog runa; vidi ledger §12 u `EXECUTION-PLAN-REMAINING.md`)_
+Run [`45558147870`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45558147870) na `378f1c1` — **success**:
+
+- **Backend build + test** ✓ (schema + generisani klijent, `nest build`, full Jest sa novim unit fixture-om i
+  registrovanim integracionim shardom, eslint, wiring check sa **633** rute);
+- **Backend PostgreSQL + Redis integration** ✓ — **migracija `20271202130000_group_fallback_cardinality` je primijenjena
+  na stvarnu bazu**, parcijalni index postoji, a novi `fallback-cardinality.integration.spec.ts` (6) je izvršen:
+  `P2002` na drugi fallback, 20 paralelnih zamjena ostavlja tačno jednu, delete-vs-replace trka nikad ne ostavlja nulu;
+- **Frontend build + test** ✓ (tsc, eslint, prettier, vitest sa i18n parity/identical čuvarima, bundle budget);
+- **Docs guard** ✓ (uključuje `audit:traceability` i `check-docs-content`);
+- **Backend container + supply chain** ✓;
+- **Skipped:** *Read-only service-form pattern inventory*, *E2E install wizard*, *E2E critical flows* (`skipped` nije
+  `passed`; browser E2E iz „Vizuelna provjera" nije izveden).
+
+**Neuspjeli pokušaj:** prvi run [`45557049318`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45557049318)
+na `4344b36` pao je na **vlastitoj grešci** — `TS2353` u `groups.service.spec.ts` (fake klijent nije u tipu imao novi
+`$executeRaw`); popravka `378f1c1` (dodan `$executeRaw: jest.Mock` u tip) dala je zeleni run. Isti obrazac kao W2.11:
+`nest build` pokreće i integration i container job, pa jedna tip-greška ruši tri joba.
+
+**Odvojeni Perf smoke je crven, i to nije ovaj paket.** [`45557049338`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45557049338)
+pada na `db_queries_per_request = 2,592` prema budžetu `2,1`, sa `SELECT:OrganizationalUnitCatalogRevision` vidljivim u
+trace-u **svakog** zahtjeva. Historija istog workflowa pokazuje da je zadnji zeleni run `45496189459` na `6d8f33c`
+(W2.10), a prvi crveni `45507674274` na `ca75ac7` (W2.11) — dakle regresiju je uveo **W2.11**, ne W2.13: ovaj paket
+dodaje `pg_advisory_xact_lock` samo na write putanju fallbacka, bez ijednog dodatnog upita na read stazama koje perf
+mjeri (`/tickets`, `/tickets/inbox`, `/services`). Ne tvrdim da je crveni perf gate zelen; zapisujem ga kao **otvoren
+follow-up** (vidi „Granica paketa") jer ga treba rješavati u OU scope kešu, ne u grupama.
 
 ## Registar nalaza
 
