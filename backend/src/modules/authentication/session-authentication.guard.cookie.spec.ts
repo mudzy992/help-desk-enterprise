@@ -149,7 +149,7 @@ describe('SessionAuthenticationGuard clears the dead session cookie', () => {
   });
 
   it('drops the cookie when the session token no longer verifies', async () => {
-    verify.mockRejectedValue(new AuthenticationError('SESSION_INVALID', 'revoked'));
+    verify.mockRejectedValue(new AuthenticationError('ACCOUNT_DISABLED'));
     const headers: Record<string, string> = {};
 
     await expect(
