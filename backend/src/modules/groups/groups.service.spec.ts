@@ -64,6 +64,7 @@ describe('GroupsService', () => {
       };
       user: { findUnique: jest.Mock };
       ticket: { count: jest.Mock };
+      $executeRaw: jest.Mock;
       $transaction: jest.Mock;
     } = {
       organizationalUnit: {
