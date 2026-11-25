@@ -1612,7 +1612,7 @@
     {
       "id": "BA-groups-03",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.13, [344](../implementation/344-w213-group-fallback-cardinality.md))",
       "source": "06-groups.md",
       "owner": "WS-A",
       "wave": 2

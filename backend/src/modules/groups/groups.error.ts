@@ -7,6 +7,8 @@ export type GroupsErrorCode =
   | 'MEMBER_ALREADY_EXISTS'
   | 'MEMBER_NOT_FOUND'
   | 'HAS_DEPENDENCIES'
+  | 'LAST_FALLBACK_GROUP'
+  | 'FALLBACK_CONFLICT'
   | 'FORBIDDEN';
 
 export class GroupsError extends Error {
@@ -19,6 +21,12 @@ export class GroupsError extends Error {
      * fills this in.
      */
     readonly blockers: readonly { readonly kind: string; readonly count: number }[] = [],
+    /**
+     * W2.13 (`BA-groups-03`): a conflict may name the resource it is about (the
+     * organizational unit whose fallback invariant was violated) so the UI and
+     * the operator do not have to guess.
+     */
+    readonly details: Readonly<Record<string, unknown>> = {},
   ) {
     super(message);
     this.name = 'GroupsError';

@@ -181,6 +181,10 @@ model Group {
   name                 String
   key                  String                 @unique
   organizationalUnitId String
+  /// W2.13: at most one fallback group per organizational unit. Enforced by the
+  /// partial unique index `Group_fallback_per_organizational_unit_key`
+  /// (migration 20271202130000_group_fallback_cardinality), which Prisma cannot
+  /// express in schema; adding `@@index` here would contradict it.
   isFallback           Boolean                @default(false)
   /// Paket 3.3: problem-management group (problem managers own its problems).
   isProblemGroup       Boolean                @default(false)

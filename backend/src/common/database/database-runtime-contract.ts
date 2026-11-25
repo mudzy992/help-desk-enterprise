@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271202120000_organizational_unit_catalog_revision';
+  '20271202130000_group_fallback_cardinality';
 
 export function assertDatabaseTransport(
   connectionString: string,

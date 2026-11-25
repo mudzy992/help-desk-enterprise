@@ -1579,7 +1579,7 @@
     "errorForbidden": "You do not have permission to manage groups.",
     "errorNotFound": "Group or user was not found.",
     "errorValidation": "Check the group name and organizational unit.",
-    "errorSoleFallback": "This is the only fallback group for the organizational unit and cannot be deleted.",
+    "errorSoleFallback": "This is the only fallback group of the organizational unit. Designate another group as the fallback before removing it or clearing the flag.",
     "errorActiveTickets": "The group still has active tickets assigned and cannot be deleted.",
     "errorMemberExists": "This user is already a member of the group.",
     "errorMemberMissing": "This user is not a member of the group.",
@@ -1618,7 +1618,8 @@
       "closedChanges": "{{count}} closed change loses its CAB group",
       "notifications": "{{count}} notification row",
       "unknown": "{{count}} records of an unknown dependency kind ({{kind}})"
-    }
+    },
+    "errorFallbackConflict": "Another fallback change for this unit was saved at the same time. Reload and try again."
   },
   "permissions": {
     "title": "Role permissions",

@@ -6,6 +6,7 @@ export type GroupsErrorKey =
   | "groups.errorNotFound"
   | "groups.errorValidation"
   | "groups.errorDependencies"
+  | "groups.errorFallbackConflict"
   | "groups.errorSoleFallback"
   | "groups.errorActiveTickets"
   | "groups.errorMemberExists"
@@ -22,6 +23,8 @@ const codeKeys: Partial<Record<string, GroupsErrorKey>> = {
   SOLE_FALLBACK_GROUP: "groups.errorSoleFallback",
   HAS_ACTIVE_TICKETS: "groups.errorActiveTickets",
   HAS_DEPENDENCIES: "groups.errorDependencies",
+  LAST_FALLBACK_GROUP: "groups.errorSoleFallback",
+  FALLBACK_CONFLICT: "groups.errorFallbackConflict",
   MEMBER_ALREADY_EXISTS: "groups.errorMemberExists",
   MEMBER_NOT_FOUND: "groups.errorMemberMissing",
 };

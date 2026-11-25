@@ -1588,7 +1588,7 @@
     "errorForbidden": "Nemate dozvolu za upravljanje grupama.",
     "errorNotFound": "Grupa ili korisnik nije pronađen.",
     "errorValidation": "Provjerite naziv grupe i organizacionu jedinicu.",
-    "errorSoleFallback": "Ovo je jedina fallback grupa za OJ i ne može se obrisati.",
+    "errorSoleFallback": "Ovo je jedina fallback grupa organizacione jedinice. Postavite drugu grupu kao fallback prije brisanja ili isključivanja oznake.",
     "errorActiveTickets": "Grupa još ima aktivne tikete i ne može se obrisati.",
     "errorMemberExists": "Korisnik je već član ove grupe.",
     "errorMemberMissing": "Korisnik nije član ove grupe.",
@@ -1627,7 +1627,8 @@
       "closedChanges": "{{count}} zatvorena promjena ostaje bez CAB grupe",
       "notifications": "{{count}} zapis obavještenja",
       "unknown": "{{count}} zapisa nepoznate vrste zavisnosti ({{kind}})"
-    }
+    },
+    "errorFallbackConflict": "Druga promjena fallback grupe za ovu jedinicu je sačuvana u isto vrijeme. Osvježite i pokušajte ponovo."
   },
   "permissions": {
     "title": "Permisije uloga",

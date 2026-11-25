@@ -19,6 +19,8 @@ const conflictCodes: readonly GroupsErrorCode[] = [
   'DUPLICATE_KEY',
   'MEMBER_ALREADY_EXISTS',
   'HAS_DEPENDENCIES',
+  'LAST_FALLBACK_GROUP',
+  'FALLBACK_CONFLICT',
 ];
 
 const messages: Record<GroupsErrorCode, string> = {
@@ -31,6 +33,10 @@ const messages: Record<GroupsErrorCode, string> = {
   MEMBER_NOT_FOUND: 'User is not a member of this group',
   HAS_DEPENDENCIES:
     'Cannot delete a group that other records still depend on',
+  LAST_FALLBACK_GROUP:
+    'Cannot remove the only fallback group of this organizational unit; designate a replacement first',
+  FALLBACK_CONFLICT:
+    'Another fallback group for this organizational unit was set at the same time; retry the request',
   FORBIDDEN: 'Authorization failed',
 };
 
@@ -42,6 +48,7 @@ export function mapGroupsError(error: unknown): HttpException {
     code: error.code,
     message: messages[error.code],
     ...(error.blockers.length > 0 ? { blockers: error.blockers } : {}),
+    ...error.details,
   };
   if (notFoundCodes.includes(error.code)) {
     return new NotFoundException(body);

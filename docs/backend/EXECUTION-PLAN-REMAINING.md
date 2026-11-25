@@ -261,6 +261,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W2.10 | `BA-users-01` — users control plane: `user.manage`/`user.security.manage`, user→OU scope lokator, sužena lista, destinacija granta/premještanja | **zatvoreno** | `60f6258` (kod + docs) | `45492790864` ✓ (prvi pokušaj) |
 | W2.11 | `BA-organizational-units-02` — dijeljena revizija OU kataloga; bump u transakciji topološkog writea, keš samo uz poklapajuću reviziju, fail-closed na nečitljivu reviziju | **zatvoreno** | `4c25b41` (kod + docs) | `45504527764` ✓ (prvi pokušaj `45503790822` crven: TS2353 u in-memory klijentu) |
 | W2.12 | `BA-groups-01` — inventar zavisnosti prije brisanja grupe: 16 relacija razvrstano u block/detach/cascade, 409 sa `blockers[]`, audit `dependencies`, read-only `GET /groups/:groupId/delete-impact` + preview u dijalogu | **zatvoreno** | `354d391` (kod + docs) | `45509708483` ✓ (prvi pokušaj) |
+| W2.13 | `BA-groups-03` — fallback cardinality: parcijalni unique index po OU-u, `LAST_FALLBACK_GROUP` (409) za gašenje posljednje oznake, atomska zamjena pod per-OU advisory lockom (uključujući delete i install seed) | **zatvoreno** | _(popunjeno u closeout commitu)_ | _(popunjeno u closeout commitu)_ |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 

@@ -43,7 +43,9 @@ Pregledane povezane površine:
 
 - ime se trimuje i ograničava na 120 znakova;
 - create provjerava postojanje OU-a i generiše globalno unique slug key;
-- ako nova ili izmijenjena grupa postaje fallback, postojeće fallback zastavice istog OU-a se brišu;
+- ako nova ili izmijenjena grupa postaje fallback, postojeće fallback zastavice istog OU-a se brišu — od W2.13 unutar
+  per-OU advisory locka (`withGroupFallbackLock`), a gašenje posljednje fallback oznake odbija se sa 409
+  `LAST_FALLBACK_GROUP`;
 - create/update i svi pripadajući audit zapisi commitaju u jednoj transakciji;
 - update ne dozvoljava promjenu OU-a ili keya;
 - `isProblemGroup` i `isCabGroup` su obični boolean flagovi bez dependency preflighta.
@@ -94,11 +96,16 @@ Pozitivno, guardovi ne zavise samo od ADMIN role keya: detalj i mutacije eksplic
 
 - `Group.key` je unique.
 - `GroupMember(groupId,userId)` je composite primary/unique identitet.
-- Ne postoji partial unique index za najviše jednu `isFallback=true` grupu po OU-u.
-- Ne postoji DB invariant da OU koji koristi fallback routing ima najmanje jednu fallback grupu.
+- **W2.13:** postoji parcijalni unique index `Group_fallback_per_organizational_unit_key`
+  (`ON "Group"("organizationalUnitId") WHERE "isFallback"`, migracija `20271202130000_group_fallback_cardinality`) —
+  najviše jedna fallback grupa po OU-u je DB činjenica.
+- DB i dalje **ne** zahtijeva da OU ima najmanje jednu fallback grupu (svježa instalacija je legitimno bez nje); server
+  odbija write koji bi OU odveo iz jedne u nula (`LAST_FALLBACK_GROUP`, 409).
 - Slug candidate se traži prije create transakcije; konkurentni create istog imena mogu izabrati isti key.
 - Membership existence precheck je izvan transakcije; concurrent add/remove se oslanja na DB konflikt, ali Prisma unique/not-found greška nije mapirana u stabilan domenski kod.
-- Fallback `clear + create/update` nema OU-scoped advisory lock ni serializable/CAS protokol.
+- ~~Fallback `clear + create/update` nema OU-scoped advisory lock ni serializable/CAS protokol.~~ **W2.13:** `clear +
+  create/update` i delete inventar idu pod `pg_advisory_xact_lock(hashtext('group-fallback:<ouId>'))`, a index hvata
+  svakog pisca koji zaobiđe modul.
 - Delete active-ticket count ne zaključava budući assignment; `Ticket.assignedGroup` je `SetNull` na group delete.
 - Audit i primarna mutacija su atomski, ali invalidacija/realtime revoke nisu dio durable commita.
 
@@ -152,6 +159,24 @@ odabrano je blokiranje sa akcionim 409, što je druga dozvoljena opcija iz korek
 Granica: **`-07`** (TOCTOU prema `SetNull`) ostaje otvoren — inventar se čita u istoj transakciji, ali bez locka nad
 grupom; **`-03`** (fallback cardinality) i **`-05`** (CAB/problem flagovi) takođe ostaju.
 
+### Implementacijski dodatak — W2.13, 2026-11-25
+
+`BA-groups-03` je zatvoren u [`344-w213-group-fallback-cardinality.md`](../implementation/344-w213-group-fallback-cardinality.md).
+`Group.isFallback` je bio oznaka bez invarijante: `create`/`update` su radili „pročitaj → obriši → postavi" bez
+serijalizacije (dvije transakcije su mogle ostaviti dvije fallback grupe), `PATCH isFallback=false` nije bio zaštićen
+(OU je mogao ostati bez fallbacka), a šema nije imala nikakav constraint. Sada:
+
+- **baza** nosi „najviše jednu" — parcijalni unique index `Group_fallback_per_organizational_unit_key`, uz
+  nedestruktivnu migraciju koja prvo deterministički dedupira postojeće podatke (ostaje najstarija fallback grupa OU-a);
+- **servis** nosi „nikad tiho nula" — `LAST_FALLBACK_GROUP` (409, sa `organizationalUnitId`) kad bi gašenje oznake ili
+  brisanje ostavilo OU bez fallbacka;
+- **zamjena** je jedan atomski potez pod `pg_advisory_xact_lock` ključem `group-fallback:<ouId>`: `PATCH
+  isFallback=true` preuzima oznaku i auditira `fallback_reassigned` na oslobođenoj grupi. Lock uzimaju i `delete`
+  (inventar iz W2.12 broji fallbacke) i install seed (koji fallback grupu može i premjestiti u drugi OU).
+
+Politika nije „svaki OU uvijek ima fallback" (svježa instalacija ga legitimno nema), nego „write ne smije odvesti OU iz
+jednog u nula". Rename i CAB/problem flagovi ne plaćaju lock — `-05` ostaje otvoren za te oznake.
+
 ## 8. Testovi i izvršeni gateovi
 
 ### 8.1. Postojeći dokazi
@@ -180,6 +205,11 @@ Rezultat:
 - **0 testova izvršeno**;
 - svih **6 suiteova compile-blocked** zbog nedostajućeg generated Prisma klijenta/enuma i posljedičnih `PrismaService` type grešaka.
 
+**W2.13 (2026-11-25), isti lokalni uslovi:** `src/modules/groups` + `src/common/database` **14 suite / 85 testova**
+(1 skipped: real-DB shard bez `PRIVACY_IT_DATABASE_URL`), `src/modules/install` **54 suite / 277 testova**,
+`check-migration-policy` ✓ 127 migracija, `wiring:check` ✓ 633 rute, harness 23/23. Novi real-DB shard
+`fallback-cardinality.integration.spec.ts` (6) **nije izvršen lokalno** — skipped nije passed.
+
 **W2.12 (2026-11-25), ponovljeno sa lokalnim stubom klijenta i isključenom TS dijagnostikom:** **8 suiteova, 49 testova
 prolazi** (`group-delete-dependencies.spec.ts` 21, `groups.service.spec.ts`, `delete-group-scope.spec.ts`,
 `groups.controller.guard.spec.ts`, `groups-mine.controller.guard.spec.ts`, `groups.service.list-accessible.spec.ts`,
@@ -206,7 +236,7 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 | ------------ | -------- | --------------------------------------------------------------------------------- | -------- | -------- |
 | BA-groups-01 | P1       | Group delete može tiho cascade obrisati/odvezati kritične cross-module resurse    | zatvoreno (W2.12, [343](../implementation/343-w212-group-delete-dependencies.md)) | L        |
 | BA-groups-02 | P1       | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room        | otvoreno | L        |
-| BA-groups-03 | P1       | Fallback invariant dopušta nula ili više fallback grupa u istom OU-u              | otvoreno | L        |
+| BA-groups-03 | P1       | Fallback invariant dopušta nula ili više fallback grupa u istom OU-u              | zatvoreno (W2.13, [344](../implementation/344-w213-group-fallback-cardinality.md)) | L        |
 | BA-groups-04 | P2       | Inactive/directory-deactivated korisnik može dobiti latentno group članstvo       | otvoreno | M        |
 | BA-groups-05 | P2       | CAB/problem flagovi se gase bez dependency/lifecycle provjere                     | otvoreno | M        |
 | BA-groups-06 | P2       | Concurrent key/member operacije mogu procuriti kao neobrađen Prisma konflikt      | otvoreno | M        |
@@ -247,6 +277,15 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 - **Korekcija:** definisati tačnu cardinality politiku; DB partial unique za najviše jednu, transaction/advisory lock za zamjenu i domenska provjera za najmanje jednu kada je obavezna. Preferirati eksplicitni `replace fallback` command.
 - **Acceptance:** false PATCH posljednje fallback grupe pada; 20 concurrent create/update pokušaja ostavlja tačno jednu; routing fixture bira deterministički rezultat.
 - **Owner:** groups + routing owner.
+- **Status (W2.13, 2026-11-25):** zatvoreno. „Najviše jedna" je sada **DB invarijanta**: parcijalni unique index
+  `Group_fallback_per_organizational_unit_key` (migracija `20271202130000_group_fallback_cardinality` popravlja i
+  postojeće duplikate, zadržavajući najstariju fallback grupu po OU-u). „Nikad tiho nula" je domenska provjera:
+  `PATCH isFallback=false` na jedinoj fallback grupi vraća **409** `LAST_FALLBACK_GROUP` sa `organizationalUnitId`, a
+  brisanje takve grupe je već blokirano inventoryjem iz W2.12 — sada pod istim lockom. Zamjena je jedan potez:
+  `isFallback=true` na drugoj grupi preuzima oznaku atomarno (`pg_advisory_xact_lock` po OU-u) i auditira
+  `fallback_reassigned`. Install seed koristi isti lock i oslobađa fallback ciljnog OU-a, pa više ne može pasti na index
+  niti ostaviti dvije. Dokaz: unit fixture **8** (uključujući 20 paralelnih zamjena) i real-DB shard **6** (index, `P2002`,
+  20 paralelnih zamjena, delete-vs-replace trka). Detalji: [344](../implementation/344-w213-group-fallback-cardinality.md).
 
 ### BA-groups-04 — Latentno članstvo inactive računa
 
@@ -409,7 +448,7 @@ Promjena delete semantike može otkriti postojeće implicitne cascade zavisnosti
 | ------------ | ----------------------------------------- | ------------------------------ | ----- |
 | BA-groups-01 | `collect-group-delete-dependencies` + `delete-impact` ruta + audit `dependencies` | 21 fixture testa po relaciji + 4 hook testa | 0–2 |
 | BA-groups-02 | actor-group cache + socket revalidation   | two-instance revoke            | 0–2   |
-| BA-groups-03 | update/create fallback + schema           | zero/multi/concurrent fallback | 0–3   |
+| BA-groups-03 | partial unique index + per-OU advisory lock + `LAST_FALLBACK_GROUP` | 8 unit (incl. 20 parallel) + 6 real-DB | 0–3 |
 | BA-groups-04 | add-member user select                    | inactive lifecycle fixtures    | 0–4   |
 | BA-groups-05 | update flags + changes/problems consumers | designation dependency test    | 0–4   |
 | BA-groups-06 | key/member precheck + error mapper        | concurrent create/add          | 0–4   |

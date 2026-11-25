@@ -97,6 +97,9 @@ describe('GroupsService', () => {
       ticket: {
         count: jest.fn().mockResolvedValue(0),
       },
+      // W2.13: fallback writes take a per-unit advisory lock inside the
+      // transaction; the fake records that it ran and keeps going.
+      $executeRaw: jest.fn().mockResolvedValue(0),
       $transaction: jest.fn(async (callback: (client: unknown) => Promise<unknown>) =>
         callback(prisma),
       ),

@@ -27,6 +27,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/notifications/notification-mark-all-read.integration.spec.ts",
   "src/modules/changes/change-downtime-outbox.integration.spec.ts",
   "src/modules/changes/change-approvals-concurrency.integration.spec.ts",
+  "src/modules/groups/fallback-cardinality.integration.spec.ts",
   "src/modules/problems/problem-ticket-unlink.integration.spec.ts",
   "src/modules/problems/problem-asset-scope.integration.spec.ts",
   "src/modules/tickets/problem-delegation.integration.spec.ts",

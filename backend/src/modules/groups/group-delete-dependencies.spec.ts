@@ -244,6 +244,7 @@ describe('deleteGroup audits and refuses on dependencies (W2.12)', () => {
         count: (recorder.prisma as { group: { count: jest.Mock } }).group.count,
         delete: jest.fn().mockResolvedValue({}),
       },
+      $executeRaw: jest.fn().mockResolvedValue(0),
       _wheres: recorder.wheres,
     };
   }

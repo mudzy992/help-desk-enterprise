@@ -114,6 +114,10 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-license-assignment-scope.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-version-cas.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-relations-concurrency.integration.spec.ts"));
+  assert.ok(
+    integrationSpecs.includes("src/modules/groups/fallback-cardinality.integration.spec.ts"),
+    "nedostaje obavezni BA-groups-03 fallback-cardinality PostgreSQL shard",
+  );
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-unique-attributes.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-import-apply.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/assets/asset-business-audit.integration.spec.ts"));

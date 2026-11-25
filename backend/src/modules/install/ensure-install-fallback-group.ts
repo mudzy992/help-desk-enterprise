@@ -1,4 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { clearFallbackForOrganizationalUnit } from '../groups/clear-fallback-for-organizational-unit';
+import { withGroupFallbackLock } from '../groups/with-group-fallback-lock';
 import { defaultInstallSeedNames, type InstallSeedNames } from './install-seed.names';
 
 export type InstallFallbackGroupRecord = {
@@ -68,27 +70,41 @@ export async function ensureInstallFallbackGroup(
     const updated = await markGroupAsFallback(prisma, input.preferredGroupId, input.organizationalUnitId);
     return { ...updated, created: false };
   }
-  const created = await prisma.group.create({
-    data: {
-      name: names.fallbackGroupName,
-      key: names.fallbackGroupKey,
-      organizationalUnitId: input.organizationalUnitId,
-      isFallback: true,
-    },
+  const created = await withGroupFallbackLock(prisma, input.organizationalUnitId, async () => {
+    await clearFallbackForOrganizationalUnit(prisma, input.organizationalUnitId);
+    return prisma.group.create({
+      data: {
+        name: names.fallbackGroupName,
+        key: names.fallbackGroupKey,
+        organizationalUnitId: input.organizationalUnitId,
+        isFallback: true,
+      },
+    });
   });
   return { ...toFallbackGroup(created), created: true };
 }
 
+/**
+ * W2.13 (`BA-groups-03`): the seed designates the group that will receive
+ * unrouted tickets, and it may also move an existing fallback group into the
+ * seeded unit. Both are fallback writes, so they take the same per-unit lock -
+ * and they release any other fallback of the target unit first, because the
+ * partial unique index allows exactly one per unit. Without that release the
+ * seed would fail on the index (or, before the index existed, leave two).
+ */
 async function markGroupAsFallback(
   prisma: PrismaService,
   groupId: string,
   organizationalUnitId: string,
 ): Promise<InstallFallbackGroupRecord> {
-  const updated = await prisma.group.update({
-    where: { id: groupId },
-    data: { isFallback: true, organizationalUnitId },
+  return withGroupFallbackLock(prisma, organizationalUnitId, async () => {
+    await clearFallbackForOrganizationalUnit(prisma, organizationalUnitId, groupId);
+    const updated = await prisma.group.update({
+      where: { id: groupId },
+      data: { isFallback: true, organizationalUnitId },
+    });
+    return toFallbackGroup(updated);
   });
-  return toFallbackGroup(updated);
 }
 
 function toFallbackGroup(group: {

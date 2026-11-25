@@ -12,7 +12,8 @@ export type InMemoryInstallSeedGroup = {
 };
 
 type GroupWhere = {
-  id?: string;
+  /** W2.13: `clearFallbackForOrganizationalUnit` excludes one id via `{ not }`. */
+  id?: string | { not?: string };
   key?: string;
   isFallback?: boolean;
   organizationalUnitId?: string;
@@ -99,6 +100,28 @@ export function createInMemoryInstallSeedGroupDelegate(
       groups.set(where.id, updated);
       return updated;
     },
+    // W2.13 (`BA-groups-03`): designating the fallback group releases every other
+    // fallback of the unit through `updateMany`, so the seed's fake client has to
+    // support the same two calls the real one does.
+    count: async ({ where }: { where?: GroupWhere } = {}) =>
+      [...groups.values()].filter((group) => matchesGroup(group, where)).length,
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where?: GroupWhere;
+      data: Partial<InMemoryInstallSeedGroup>;
+    }) => {
+      let count = 0;
+      for (const group of [...groups.values()]) {
+        if (!matchesGroup(group, where)) {
+          continue;
+        }
+        groups.set(group.id, { ...group, ...data, updatedAt: now() });
+        count += 1;
+      }
+      return { count };
+    },
   };
 }
 
@@ -119,8 +142,12 @@ function matchesGroup(
   if (where === undefined) {
     return true;
   }
-  if (where.id !== undefined && group.id !== where.id) {
-    return false;
+  if (where.id !== undefined) {
+    if (typeof where.id === 'string') {
+      if (group.id !== where.id) return false;
+    } else if (where.id.not !== undefined && group.id === where.id.not) {
+      return false;
+    }
   }
   if (where.key !== undefined && group.key !== where.key) {
     return false;

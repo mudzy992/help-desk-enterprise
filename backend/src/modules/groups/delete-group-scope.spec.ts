@@ -26,7 +26,10 @@ describe('group deletion scope for a future scoped invalidation', () => {
   });
 
   it('returns the deleted group scope from the committed transaction', async () => {
-    const transaction = { group: { delete: jest.fn().mockResolvedValue({}) } };
+    const transaction = {
+      group: { delete: jest.fn().mockResolvedValue({}) },
+      $executeRaw: jest.fn().mockResolvedValue(0),
+    };
     const prisma = { $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(transaction)) };
     const outcome = await deleteGroup(prisma as never, 'group-1');
     expect(loadGroupRecord).toHaveBeenCalledWith(transaction, 'group-1');
@@ -40,7 +43,10 @@ describe('group deletion scope for a future scoped invalidation', () => {
   });
 
   it('does not return a scope or invalidate cache if the transaction fails to commit', async () => {
-    const transaction = { group: { delete: jest.fn().mockResolvedValue({}) } };
+    const transaction = {
+      group: { delete: jest.fn().mockResolvedValue({}) },
+      $executeRaw: jest.fn().mockResolvedValue(0),
+    };
     const prisma = { $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
       await fn(transaction);
       throw new Error('commit failed');

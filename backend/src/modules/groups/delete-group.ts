@@ -7,6 +7,7 @@ import { assertGroupDeletable } from './assert-group-deletable';
 import { loadGroupRecord } from './load-group-record';
 import type { GroupAuditContext } from './groups.types';
 import type { GroupDeleteImpact } from './group-delete.types';
+import { withGroupFallbackLock } from './with-group-fallback-lock';
 
 export type GroupDeleteOutcome = {
   readonly affectedUserIds: readonly string[];
@@ -24,7 +25,13 @@ export async function deleteGroup(
   const outcome = await prisma.$transaction(async (transaction) => {
     const client = transaction as unknown as PrismaService;
     const group = await loadGroupRecord(client, groupId);
-    const impact = await assertGroupDeletable(client, group);
+    // W2.13 (`BA-groups-03`): the inventory counts fallback groups, so deleting a
+    // fallback group takes the same per-unit lock as setting one. Without it a
+    // concurrent `PATCH isFallback=false` and a delete could each see the other
+    // group and both proceed, leaving the unit with none.
+    const impact = await withGroupFallbackLock(client, group.organizationalUnitId, () =>
+      assertGroupDeletable(client, group),
+    );
     const memberUserIds = group.members.map((member) => member.userId);
     await recordGroupChange(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.groupDeleted,
