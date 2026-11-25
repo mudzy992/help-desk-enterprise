@@ -2,9 +2,9 @@
 
 **Paket:** W2.15<br>
 **Nalaz:** `BA-authentication-02` (P1) — zatvoren<br>
-**Kodni commit:** _popunjava se nakon pusha_<br>
-**Finalni testani SHA:** _popunjava se nakon pusha_<br>
-**CI:** _popunjava se nakon pusha_<br>
+**Kodni commit:** `77a0148` (+ `d2960e0` sentinel, `bd1c226` sentinel spec)<br>
+**Finalni testani SHA:** `bd1c226`<br>
+**CI:** [`45700024141`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45700024141) — zelen<br>
 **DB migracije:** **da** — `20271202140000_w215_durable_legacy_token_cutoff`
 
 ## Nalaz
@@ -98,7 +98,25 @@ backend):
 
 ## CI
 
-_popunjava se nakon pusha._
+CI [`45700024141`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45700024141) na `bd1c226` —
+**success**:
+
+- **Backend build + test** — `prisma validate`, `db:generate`, `nest build`, lint, `test:safety-net:compile`,
+  `test:wiring`, `audit:traceability` (698/698), **`db:migration-policy:check`** (128 migracija), puni unit
+  suite.
+- **Backend PostgreSQL + Redis integration** — `db:migrate:release` (migracija se primjenjuje na praznu bazu),
+  `prisma migrate status`, restore drill i integracioni specovi, uključujući tri nova W2.15 testa.
+- **Frontend build + test**, **Backend container + supply chain**, **Docs guard**, **CI gate:** success.
+- **Skipped:** E2E jobovi (push profil).
+
+**Dva crvena pokušaja i pouka za svaku buduću migraciju:**
+
+| Run | Uzrok | Popravka |
+| --- | --- | --- |
+| [`45695700372`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45695700372) | `db:migration-policy:check` → `schema sentinel je stale: expected=20271202130000_group_fallback_cardinality` | `expectedSchemaMigration` u `database-runtime-contract.ts` (`d2960e0`) |
+| [`45696677032`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45696677032) | unit spec `database-runtime-contract.spec.ts` drži **literalni** pin na ime migracije | literal u specu (`bd1c226`) |
+
+Zato: nova migracija = **tri** svjesne izmjene (migracija, `expectedSchemaMigration`, literalni pin u specu).
 
 ## Dokumentacija
 
