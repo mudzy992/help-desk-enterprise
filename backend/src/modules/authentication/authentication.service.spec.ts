@@ -896,3 +896,67 @@ describe('AuthenticationService 5.4.0-a passkey second factor', () => {
     expect(response.expiresInSeconds).toBe(authenticationConstants.sessionTtlSeconds);
   });
 });
+
+/*
+  W2.15 (`BA-authentication-02`): a legacy token has no registry row to revoke, so
+  sign-out now also writes the durable per-user cutoff. A `sid` token keeps the
+  precise row revocation it already had.
+*/
+describe('AuthenticationService logout durability (W2.15)', () => {
+  function buildLogoutService() {
+    const revokeToken = jest.fn().mockResolvedValue(undefined);
+    const revokeAllForUser = jest.fn().mockResolvedValue(undefined);
+    const revokeSessionRow = jest.fn().mockResolvedValue(true);
+    const service = new AuthenticationService(
+      {} as never,
+      { issue: jest.fn(), revoke: revokeToken, revokeAllForUser } as never,
+      {} as never,
+      {} as never,
+      { load: jest.fn().mockResolvedValue(defaultAccountSecurityPolicy) } as never,
+      {} as never,
+      { create: jest.fn(), findActive: jest.fn(), touch: jest.fn(), revoke: revokeSessionRow } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { guard: (_key: string, run: () => Promise<unknown>) => run() } as never,
+      { record: jest.fn().mockResolvedValue(undefined) } as never,
+      { load: jest.fn().mockResolvedValue(0) } as never,
+    );
+    return { service, revokeToken, revokeAllForUser, revokeSessionRow };
+  }
+
+  const claims = (sessionId: string | null) => ({
+    subjectId: 'user-1',
+    sessionId,
+    jti: 'token-1',
+    issuedAt: 1,
+    expiresAt: 2,
+    rememberMe: false,
+  });
+
+  it('revokes the registry row for a sid token and leaves the durable cutoff alone', async () => {
+    const fixture = buildLogoutService();
+
+    await fixture.service.logout(claims('session-1'));
+
+    expect(fixture.revokeToken).toHaveBeenCalledWith(claims('session-1'));
+    expect(fixture.revokeSessionRow).toHaveBeenCalledWith({
+      userId: 'user-1',
+      sessionId: 'session-1',
+      reason: 'logout',
+      actorUserId: 'user-1',
+    });
+    expect(fixture.revokeAllForUser).not.toHaveBeenCalled();
+  });
+
+  it('writes the durable per-user cutoff for a legacy token that has no row', async () => {
+    const fixture = buildLogoutService();
+
+    await fixture.service.logout(claims(null));
+
+    expect(fixture.revokeToken).toHaveBeenCalledWith(claims(null));
+    expect(fixture.revokeAllForUser).toHaveBeenCalledWith('user-1');
+    expect(fixture.revokeSessionRow).not.toHaveBeenCalled();
+  });
+});

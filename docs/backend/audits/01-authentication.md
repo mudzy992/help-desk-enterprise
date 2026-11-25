@@ -141,7 +141,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | ID                   | Severity | Naslov                                                                         | Status   | Veličina |
 | -------------------- | -------- | ------------------------------------------------------------------------------ | -------- | -------- |
 | BA-authentication-01 | P1       | Refresh oživljava session čiji registry red ne postoji                         | zatvoreno (W2.14) | S        |
-| BA-authentication-02 | P1       | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | otvoreno | L        |
+| BA-authentication-02 | P1       | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | zatvoreno (W2.15) | L        |
 | BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | otvoreno | M        |
 | BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | otvoreno | S        |
 | BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | otvoreno | M        |
@@ -188,6 +188,24 @@ Detalj isporuke: `docs/backend/implementation/347-w214-ba-authentication-01-refr
 - **Korekcija:** definisati hibridnu strategiju: durable version/cutoff u bazi ili kratki DB fallback za sigurnosno opozvane korisnike, health alarm i jasno fail ponašanje. Ne uvoditi naivni DB query na svaki zahtjev bez performance testa.
 - **Acceptance:** fault-injection testovi za Redis read/write outage poslije logout/password reset/deactivation; token mora biti odbijen ili sistem mora eksplicitno fail-closed prema odobrenoj politici.
 - **Owner:** authentication + platform/Redis owner.
+
+### Implementacijski status Vala 2 / W2.15 (2026-11-25)
+
+Zatvoreno. Hybridna strategija je sada eksplicitna: **PostgreSQL je autoritet, Redis je akcelerator**.
+
+- Tokeni sa `sid` su i prije ovog paketa bili durable (`UserSession.revokedAt`, `W2.2`).
+- Legacy tokeni bez `sid` sada imaju **durable cutoff na `User`** (`tokensInvalidBefore`,
+  `tokensInvalidBeforeExceptJti`). Piše ga svaki "revoke all" put (`logout` legacy tokena, promjena lozinke,
+  MFA reset, deaktivacija, admin `revoke-others`, directory sync, CLI `reset-mfa`), a čita ga **isti
+  `findUnique` koji je guard legacy grane ionako radio** — nula dodatnih upita i nula dodatnih round-tripova.
+- Neuspjeli Redis write više ne produžava život tokena: cutoff je u bazi, a greška pri upisu cutoffa je
+  `Logger.error` (alarm), ne 500 za korisnika koji je već završio logout.
+- Cijena: legacy cutoff je per-user, pa sign-out sa starog tokena gasi **sve** legacy tokene tog korisnika.
+  To je prihvaćeno svjesno — legacy tokeni su ograničena migracijska populacija (1 h životni vijek, nijedan
+  novi od uvođenja registra), a alternativa je nova tabela per-`jti` opoziva sa sopstvenim cleanupom.
+  Preferirana precizna opoziva i dalje ide preko Redis `auth:revoked-jti:*` dok je Redis zdrav.
+
+Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-durable-legacy-cutoff.md`.
 
 ### BA-authentication-03 — Neatomski MFA single-use
 

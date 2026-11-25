@@ -382,3 +382,112 @@ describe('session revocation adapters at the same-second boundary', () => {
     })).resolves.toBe(true);
   });
 });
+
+/*
+  W2.15 (`BA-authentication-02`): a token without a registry `sid` has no
+  `UserSession` row to revoke, so before this package its revocation lived only in
+  two best-effort Redis writes. The durable cutoff on `User` is the authority; the
+  Redis key stays the accelerator. These tests inject the failure the finding
+  describes - a rejected Redis write - and require the token to die anyway.
+*/
+describe('durable legacy token cutoff (W2.15, BA-authentication-02)', () => {
+  const cutoff = new Date(1_700_000_000_000);
+  const legacyClaims = (issuedAt: number, jti = 'legacy-jti') => ({
+    jti,
+    subjectId: 'u1',
+    issuedAt,
+    sessionId: null,
+  });
+
+  function userRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'u1',
+      authzVersion: 0,
+      isActive: true,
+      mustChangePassword: false,
+      tokensInvalidBefore: cutoff,
+      tokensInvalidBeforeExceptJti: null,
+      ...overrides,
+    };
+  }
+
+  function storeWith(prisma: unknown) {
+    return new SessionRevocationStore(undefined, prisma as never);
+  }
+
+  it('rejects a legacy token issued at or before the durable cutoff', async () => {
+    const store = storeWith({ user: { findUnique: jest.fn(async () => userRow()) } });
+
+    await expect(store.isRevoked(legacyClaims(1_700_000_000))).resolves.toBe(true);
+    await expect(store.isRevoked(legacyClaims(1_699_999_999))).resolves.toBe(true);
+  });
+
+  it('accepts a legacy token issued after the cutoff', async () => {
+    const store = storeWith({ user: { findUnique: jest.fn(async () => userRow()) } });
+
+    await expect(store.isRevoked(legacyClaims(1_700_000_001))).resolves.toBe(false);
+  });
+
+  it('keeps the one caller token a revoke-others call exempted', async () => {
+    const store = storeWith({
+      user: { findUnique: jest.fn(async () => userRow({ tokensInvalidBeforeExceptJti: 'caller-jti' })) },
+    });
+
+    await expect(store.isRevoked(legacyClaims(1_700_000_000, 'caller-jti'))).resolves.toBe(false);
+    await expect(store.isRevoked(legacyClaims(1_700_000_000, 'other-jti'))).resolves.toBe(true);
+  });
+
+  it('writes the cutoff to PostgreSQL even when the Redis write is rejected', async () => {
+    const update = jest.fn(async () => ({}));
+    const redis = {
+      status: 'ready',
+      mget: jest.fn(async () => [null, null, null]),
+      set: jest.fn(async () => {
+        throw new Error('redis write failed');
+      }),
+      publish: jest.fn(async () => 1),
+    };
+    const store = new SessionRevocationStore(redis as never, {
+      user: { findUnique: jest.fn(), update },
+    } as never);
+
+    await expect(store.revokeAllForUser('u1', 3_600)).resolves.toBeUndefined();
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { tokensInvalidBefore: expect.any(Date), tokensInvalidBeforeExceptJti: null },
+    });
+  });
+
+  it('stores the exempted jti with the cutoff so revoke-others keeps the caller', async () => {
+    const update = jest.fn(async () => ({}));
+    const store = new SessionRevocationStore(undefined, { user: { update } } as never);
+
+    await store.revokeAllForUser('u1', 3_600, { jti: 'caller-jti' });
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { tokensInvalidBefore: expect.any(Date), tokensInvalidBeforeExceptJti: 'caller-jti' },
+    });
+  });
+
+  it('still revokes on a failed Redis read even when the cutoff write failed too', async () => {
+    const update = jest.fn(async () => {
+      throw new Error('database write failed');
+    });
+    const redis = {
+      status: 'ready',
+      mget: jest.fn(async () => [null, null, null]),
+      set: jest.fn(async () => 'OK'),
+      publish: jest.fn(async () => 1),
+    };
+    const store = new SessionRevocationStore(redis as never, {
+      user: { findUnique: jest.fn(), update },
+    } as never);
+
+    // A failed durable write must not turn a completed logout into a 500; the
+    // error log is the alarm and the next check fails closed on its own read.
+    await expect(store.revokeAllForUser('u1', 3_600)).resolves.toBeUndefined();
+    expect(update).toHaveBeenCalled();
+  });
+});

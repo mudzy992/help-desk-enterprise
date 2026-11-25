@@ -108,6 +108,26 @@ function parseStoredSessionCutoff(raw: string): StoredSessionCutoff | null {
   }
 }
 
+/**
+ * W2.15 (`BA-authentication-02`): a legacy token is dead once the user row carries
+ * a cutoff at or after its `iat`, unless that cutoff was written by a "revoke
+ * others" call that exempted this exact token. Seconds, like the JWT itself; the
+ * legacy comparison includes the cutoff second, matching the Redis backend.
+ */
+function isBelowDurableLegacyCutoff(
+  input: RevocationCheck,
+  cutoff: Date | null | undefined,
+  exceptJti: string | null | undefined,
+): boolean {
+  if (cutoff === null || cutoff === undefined) {
+    return false;
+  }
+  if (exceptJti !== null && exceptJti !== undefined && input.jti !== null && input.jti === exceptJti) {
+    return false;
+  }
+  return input.issuedAt <= Math.floor(cutoff.getTime() / 1000);
+}
+
 export type SessionRevocationCheckResult = {
   readonly revoked: boolean;
   readonly durableAuthority?: PrincipalAuthoritySnapshot;
@@ -316,6 +336,11 @@ export class SessionRevocationStore {
             authzVersion: true,
             isActive: true,
             mustChangePassword: true,
+            // W2.15 (`BA-authentication-02`): the durable half of the hybrid
+            // strategy. Two more columns on the row this statement already reads
+            // — no second query, and a lost Redis write cannot extend the token.
+            tokensInvalidBefore: true,
+            tokensInvalidBeforeExceptJti: true,
           },
         });
         if (user === null || user.id !== input.subjectId) {
@@ -328,6 +353,9 @@ export class SessionRevocationStore {
           mustChangePassword: user.mustChangePassword,
         };
         if (!durableAuthority.isActive || durableAuthority.mustChangePassword) {
+          return { revoked: true };
+        }
+        if (isBelowDurableLegacyCutoff(input, user.tokensInvalidBefore, user.tokensInvalidBeforeExceptJti)) {
           return { revoked: true };
         }
       } catch (error) {
@@ -364,14 +392,13 @@ export class SessionRevocationStore {
     sessionTtlSeconds: number,
     exceptions?: SessionRevocationExceptions,
   ): Promise<void> {
+    const nowSeconds = Math.floor(Date.now() / 1000);
     await this.safe(() =>
-      this.backend.revokeAllForUser(
-        subjectId,
-        Math.floor(Date.now() / 1000),
-        sessionTtlSeconds,
-        exceptions,
-      ),
+      this.backend.revokeAllForUser(subjectId, nowSeconds, sessionTtlSeconds, exceptions),
     );
+    // W2.15: the Redis write above is the accelerator and may fail silently by
+    // design; this one is the authority for tokens without a registry `sid`.
+    await this.persistLegacyTokenCutoff(subjectId, nowSeconds, exceptions?.jti ?? null);
     await this.publishInvalidation({
       version: 1,
       kind: 'user',
@@ -379,6 +406,36 @@ export class SessionRevocationStore {
       exceptSessionId: exceptions?.sessionId ?? null,
       exceptJti: exceptions?.jti ?? null,
     });
+  }
+
+  /**
+   * W2.15 (`BA-authentication-02`): records the legacy cutoff in PostgreSQL. A
+   * failure here is loud (error log) but does not throw: the caller already
+   * published the socket invalidation and revoked the durable session rows, so a
+   * refresh of this write is a maintenance action, not a reason to fail a logout
+   * or a password change the user already completed.
+   */
+  private async persistLegacyTokenCutoff(
+    subjectId: string,
+    cutoffSeconds: number,
+    exceptJti: string | null,
+  ): Promise<void> {
+    if (this.prisma === undefined) {
+      return;
+    }
+    try {
+      await this.prisma.user.update({
+        where: { id: subjectId },
+        data: {
+          tokensInvalidBefore: new Date(cutoffSeconds * 1000),
+          tokensInvalidBeforeExceptJti: exceptJti,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `durable legacy token cutoff write failed, Redis remains the only cutoff: ${String(error)}`,
+      );
+    }
   }
 
   private async publishInvalidation(event: SocketSessionInvalidation): Promise<void> {

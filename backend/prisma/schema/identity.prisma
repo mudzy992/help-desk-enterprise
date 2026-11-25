@@ -37,6 +37,13 @@ model User {
   /// change. It is part of the authorization cache key (`authz:{id}:v{n}`), so a
   /// bump makes every cached decision unreachable at once.
   authzVersion         Int                        @default(0)
+  /// BA-authentication-02 (W2.15): durable cutoff for tokens that carry no registry
+  /// `sid`. Every "revoke all" path writes it in PostgreSQL, so a failed Redis write
+  /// can no longer keep a legacy token alive until its 1 h expiry. Tokens issued at or
+  /// before this instant are rejected; `tokensInvalidBeforeExceptJti` preserves the one
+  /// caller token a "revoke others" leaves alive.
+  tokensInvalidBefore  DateTime?
+  tokensInvalidBeforeExceptJti String?
   /// Directory object id for linked users. Must remain null for SuperAdmin.
   entraObjectId        String?                    @unique
   /// Paket 1.8: on-premises AD objectGUID (LDAPS sync). Not the Entra `oid`.

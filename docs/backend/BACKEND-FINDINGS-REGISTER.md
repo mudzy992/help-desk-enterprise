@@ -108,7 +108,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | Jedinica | Modul | ID | Prioritet | Sažetak | Status | Izvor |
 |---:|---|---|:---:|---|---|---|
 | 01 | `authentication` | `BA-authentication-01` | P1 | Refresh oživljava session čiji registry red ne postoji | zatvoreno (W2.14) | [01-authentication.md](audits/01-authentication.md) |
-| 01 | `authentication` | `BA-authentication-02` | P1 | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | otvoreno | [01-authentication.md](audits/01-authentication.md) |
+| 01 | `authentication` | `BA-authentication-02` | P1 | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | zatvoreno (W2.15) | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-03` | P1 | MFA enrollment token i potvrda nisu atomski single-use | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-04` | P2 | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-05` | P2 | Passkey counter update nema compare-and-set zaštitu | otvoreno | [01-authentication.md](audits/01-authentication.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **343**
-- Otvoreno: **355** (P1 81 / P2 193 / P3 81)
+- Zatvoreno: **344**
+- Otvoreno: **354** (P1 80 / P2 193 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

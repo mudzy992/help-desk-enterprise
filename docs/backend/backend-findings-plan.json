@@ -420,7 +420,7 @@
     {
       "id": "BA-authentication-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.15)",
       "source": "01-authentication.md",
       "owner": "WS-A",
       "wave": 2

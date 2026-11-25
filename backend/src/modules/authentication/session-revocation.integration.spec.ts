@@ -93,4 +93,57 @@ describeIfDatabase('durable multi-replica session revocation (integration)', () 
     await prisma.userSession.delete({ where: { id: deleted.id } });
     await expect(registry.findActive(deleted.id)).resolves.toBeNull();
   });
+
+  /*
+    W2.15 (`BA-authentication-02`): the durable cutoff must survive the case the
+    finding describes — no Redis at all. This store is built with the memory
+    backend, so the only way `isRevoked` can answer `true` is the PostgreSQL row.
+  */
+  it('keeps a legacy token revoked when no Redis write ever happened', async () => {
+    const store = new SessionRevocationStore(undefined, prisma as never);
+    const before = Math.floor(Date.now() / 1000) - 60;
+    const after = Math.floor(Date.now() / 1000) + 60;
+
+    await store.revokeAllForUser(userId, 3_600);
+
+    const row = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tokensInvalidBefore: true },
+    });
+    expect(row?.tokensInvalidBefore).toBeInstanceOf(Date);
+
+    await expect(
+      store.isRevoked({ jti: 'legacy-old', subjectId: userId, issuedAt: before, sessionId: null }),
+    ).resolves.toBe(true);
+    await expect(
+      store.isRevoked({ jti: 'legacy-new', subjectId: userId, issuedAt: after, sessionId: null }),
+    ).resolves.toBe(false);
+  });
+
+  it('preserves the caller token of a revoke-others call in the durable cutoff', async () => {
+    const store = new SessionRevocationStore(undefined, prisma as never);
+    const before = Math.floor(Date.now() / 1000) - 60;
+
+    await store.revokeAllForUser(userId, 3_600, { jti: 'caller-jti' });
+
+    await expect(
+      store.isRevoked({ jti: 'caller-jti', subjectId: userId, issuedAt: before, sessionId: null }),
+    ).resolves.toBe(false);
+    await expect(
+      store.isRevoked({ jti: 'sibling-jti', subjectId: userId, issuedAt: before, sessionId: null }),
+    ).resolves.toBe(true);
+  });
+
+  it('does not apply the legacy cutoff to a sid token that still has a live row', async () => {
+    const store = new SessionRevocationStore(undefined, prisma as never);
+    const session = await prisma.userSession.create({
+      data: { userId, provider: 'local', expiresAt: new Date(Date.now() + 60_000) },
+    });
+
+    await store.revokeAllForUser(userId, 3_600, { sessionId: session.id });
+
+    await expect(
+      store.isRevoked({ jti: 'sid-token', subjectId: userId, issuedAt: 1, sessionId: session.id }),
+    ).resolves.toBe(false);
+  });
 });

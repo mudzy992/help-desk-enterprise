@@ -331,7 +331,16 @@ export class AuthenticationService {
         reason: 'logout',
         actorUserId: claims.subjectId,
       });
+      return;
     }
+    // W2.15 (`BA-authentication-02`): a token without a registry `sid` has no row
+    // to revoke, so the Redis jti marker above was the whole guarantee — and a
+    // rejected Redis write let the token live until its expiry. The durable
+    // per-user cutoff is the authority in that case: every legacy token issued
+    // before this sign-out is dead, even with Redis down. Legacy tokens are a
+    // bounded migration population (1 h lifetime, none issued since the registry
+    // shipped), which is why the blast radius of that cutoff is acceptable here.
+    await this.sessionTokenService.revokeAllForUser(claims.subjectId);
   }
 
   private async completeLogin(
