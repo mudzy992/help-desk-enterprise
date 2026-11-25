@@ -17,7 +17,7 @@ Ovaj master plan je kanonski za **redoslijed, sadržaj valova/paketa, zbirni sta
 | --- | --- | --- | ---: | ---: | --- |
 | 0 | reprodukcija i audit safety net | W0.1–W0.7 završeni | — | — | Osnovni harness/checker je završen. |
 | 1 | 44 — cross-cutting infrastruktura (container/supply chain, DB/migracije, Redis/tajne, workers) | W1.1–W1.4 završeni | 18 / 32 | 14 (0/10/4) | Paketi završeni; dio dodijeljenih nalaza je još otvoren. |
-| 2 | 01–06, 09 (authentication, authorization, RBAC, users, OU/groups, security) | W2.1–W2.8 završeni | 15 / 65 | 50 (6/30/14) | Paketi završeni; wave scope nije zatvoren. |
+| 2 | 01–06, 09 (authentication, authorization, RBAC, users, OU/groups, security) | W2.1–W2.8 završeni | 16 / 65 | 49 (5/30/14) | Paketi završeni; wave scope nije zatvoren. |
 | 3 | 07–08, 10–11, 30, 43 (settings, audit, webhook, privacy, config, change-log) | W3.1–W3.11 završeni | 14 / 86 | 72 (20/38/14) | Zatvoreno je svih 11 nalaza iz `08 — audit-log`; ostali dodijeljeni scopeovi ostaju otvoreni. |
 | 4 | zajednički idempotency/outbox/concurrency/storage/cache primitives; nema direktnog BA wave assignmenta | W4.1–W4.7 završeni | — | — | Platformska osnova završena; sama po sebi ne zatvara domenske BA ID-eve. |
 | 5 | 12–16 (tickets, routing, SLA, service catalog, templates) | W5.1–W5.50 i BA-templates closeouti 01–13 | 74 / 74 | 0 (0/0/0) | Svi BA nalazi i targeted E2E 16/25/32 su zatvoreni/zeleni; BA-15 full critical-flow acceptance ostaje zasebno pending. |
@@ -41,8 +41,8 @@ iz 44 audit tabele; ručno uređivanje pada na `audit:traceability` u CI-ju i u 
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **344**
-- Otvoreno: **354** (P1 80 / P2 193 / P3 81)
+- Zatvoreno: **345**
+- Otvoreno: **353** (P1 79 / P2 193 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
 

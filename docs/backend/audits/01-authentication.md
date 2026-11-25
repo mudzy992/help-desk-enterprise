@@ -142,7 +142,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | -------------------- | -------- | ------------------------------------------------------------------------------ | -------- | -------- |
 | BA-authentication-01 | P1       | Refresh oživljava session čiji registry red ne postoji                         | zatvoreno (W2.14) | S        |
 | BA-authentication-02 | P1       | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | zatvoreno (W2.15) | L        |
-| BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | otvoreno | M        |
+| BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | zatvoreno (W2.16) | M        |
 | BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | otvoreno | S        |
 | BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | otvoreno | M        |
 | BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | otvoreno | M        |
@@ -215,6 +215,23 @@ Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-dura
 - **Korekcija:** atomically claim MFA `jti` prije state changea, sa jasno definisanim rollback/retry stanjem; enrollment update mora imati `enabledAt:null` i pending identity predicate ili transakcijski lock.
 - **Acceptance:** konkurentni test sa dvije potvrde: tačno jedna sesija i jedan recovery set; replay i Redis failure testovi.
 - **Owner:** authentication/MFA owner.
+
+#### Implementacijski status Vala 2 / W2.16 (2026-11-25)
+
+- MFA token se sada **claim-uje prije ijedne provjere koda**, u novoj tabeli `MfaTokenClaim` (`jti` je primarni
+  ključ): `INSERT` je atomski claim, `P2002` znači da je token već iskorišten ili je u letu, a `consumedAt` je
+  jedina oznaka „potrošen". Redis `auth:revoked-jti:*` ostaje akcelerator, ne autoritet.
+- **Replay** sada vraća `401 INVALID_CREDENTIALS` i **ne izvršava provjeru koda** — nema oraklja koji bi potvrdio
+  da je kod bio tačan. Odbijen kod **oslobađa** claim (`DELETE … WHERE consumedAt IS NULL`), pa tipfeler ne
+  košta novu prijavu; konzumiran claim se nikad ne oslobađa.
+- **`confirmEnrollment`** je compare-and-set unutar `$transaction`: `updateMany` sa predikatom
+  `{enabledAt: null, pendingSecretEncrypted: <pročitano>, pendingCreatedAt: {gt: now - 15 min}}`, recovery kodovi
+  u istoj transakciji. `count === 0` ⇒ `409 MFA_ALREADY_ENABLED`; gubitnik ne piše ni jedan kod.
+- **Cijena:** jedna tabela koja se trimuje na svakoj potrošnji (retention 24 h), jedan `INSERT` + jedan `UPDATE`
+  po MFA prijavi i lease od 30 s za claim procesa koji je pao između claima i potvrde.
+- Dokaz: 11 novih unit testova (uključujući **Redis failure** i dvije paralelne potvrde) + 2 integracijska nad
+  realnim PostgreSQL-om (paralelni `INSERT`, dvije paralelne potvrde ⇒ jedan recovery set).
+- Detalj isporuke: `docs/backend/implementation/350-w216-ba-authentication-03-atomic-mfa-single-use.md`.
 
 ### BA-authentication-04 — UUID/CUID mismatch
 
