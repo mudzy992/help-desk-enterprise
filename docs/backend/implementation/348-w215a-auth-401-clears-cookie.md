@@ -2,9 +2,9 @@
 
 **Paket:** W2.15a (izdvojen iz zapažanja pri W2.14)<br>
 **Nalaz:** `BA-authentication-09` (P3) — zatvoren<br>
-**Kodni commit:** _popunjava se nakon pusha_<br>
-**Finalni testani SHA:** _popunjava se nakon pusha_<br>
-**CI:** _popunjava se nakon pusha_<br>
+**Kodni commit:** `30d4a08` + `53349ed` (ispravka TS greške u novom specu)<br>
+**Finalni testani SHA:** `53349ed`<br>
+**CI:** [`45673273186`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45673273186) — zelen<br>
 **DB migracije:** nema
 
 ## Nalaz
@@ -57,7 +57,23 @@ izdat (W2.14 acceptance).
 
 ## CI
 
-_popunjava se nakon pusha._
+CI [`45673273186`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45673273186) na `53349ed` —
+**success**: backend build + test (puni unit suite, lint, `test:safety-net:compile`, `test:wiring`,
+`audit:traceability` 698/698), PostgreSQL + Redis integracija, frontend, container + supply chain, docs guard
+i CI gate. `E2E critical flows` je `skipped` (push profil).
+
+**Neuspjeli pokušaj:** [`45669474850`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45669474850)
+na `30d4a08` — `Backend build + test` pao u koraku `npm test` na **TS2345** u novom specu:
+`new AuthenticationError('SESSION_INVALID', 'revoked')` — `SESSION_INVALID` nije u `AuthenticationErrorCode`
+uniji, a drugi argument je po tipu isti kod (default `message = code`), ne slobodan tekst. Ispravljeno na
+`new AuthenticationError('ACCOUNT_DISABLED')` (`53349ed`).
+**Zašto lokalno nije puklo:** lokalni `jest` config koristi `ts-jest` sa `diagnostics: false`, pa tip greška u
+specu ne obara test; CI radi pravi `tsc`. Pouka za sljedeće pakete: poslije izmjene speca pokrenuti i
+`npx tsc --noEmit -p tsconfig.json` te gledati da nema grešaka **u dotaknutim fajlovima** (sandbox nema
+generisani Prisma klijent, pa je ukupan broj grešaka u projektu nepouzdan).
+
+**E2E:** novi assert (`Max-Age=0` na 401) traži **deploy** ovog commita na stack; do tada bi ciljani
+`specs=37` bio crven na tom jednom tvrđenju. Zato E2E za ovaj paket ide poslije redeploya.
 
 ## Dokumentacija
 

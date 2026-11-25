@@ -265,7 +265,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W2.11b | perf follow-up na `W2.11` — revizija kataloga OJ u istom statementu kao durable čitanje sesije; 0 dodatnih upita, acceptance nepromijenjen | **zatvoreno** | `f7937fc` | `45605301271` (perf) + `45605301217` (CI) |
 | W2.10b | `BA-users-10` (P1, regresija isporuke W2.10) — `import type` + `@Optional()` tiho isključio OU scope liste korisnika; `GET /users` prazan za sve, E2E pao na `EMAIL_CONFLICT` | **zatvoreno** | `a4d6204`+`499c019` (kod + docs) | `45639458079` ✓ (prvi pokušaj `45633604779` crven: baseline fixture findings guarda) |
 | W2.14 | `BA-authentication-01` — refresh traži aktivan registry red i poklapanje subjecta; mrtav/tuđi red ⇒ 401 bez tokena i bez `touch`-a, `rememberMe` iz reda | **zatvoreno** | `dc29e55` (kod + testovi + docs) | `45656281822` ✓ + E2E `45656337091` ✓ (`specs=37`, 7/7) + PR #28 `45660699531` ✓ (E2E podskup 27/27) |
-| W2.15a | `BA-authentication-09` (P3) — 401 guarda briše mrtav `helpdesk_session` cookie (`Max-Age=0`), samo za cookie pozivaoce; bearer i `403 FORBIDDEN_ORIGIN` netaknuti | **zatvoreno** | _popunjava se_ | _popunjava se_ |
+| W2.15a | `BA-authentication-09` (P3) — 401 guarda briše mrtav `helpdesk_session` cookie (`Max-Age=0`), samo za cookie pozivaoce; bearer i `403 FORBIDDEN_ORIGIN` netaknuti | **zatvoreno** | `30d4a08`+`53349ed` (kod + testovi + docs) | `45673273186` ✓ (prvi pokušaj `45669474850` crven: TS2345 u novom guard specu) |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 
