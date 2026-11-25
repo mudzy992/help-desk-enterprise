@@ -4,7 +4,9 @@ import { PrincipalContextLoader } from "../../common/principal-context/principal
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuthorizationContextLoader } from "../authorization/authorization-context.loader";
 import { readInstallationTimeZone } from "../settings/read-installation-time-zone";
-import type { SettingsService } from "../settings/settings.service";
+// W2.10b: value import — see `policy-packs.service.ts`; with `import type` the
+// documented timezone fallback became the only path, also in the running app.
+import { SettingsService } from "../settings/settings.service";
 import { defaultTicketArchiveConfiguration } from "../tickets/archive/archive.constants";
 import { buildTicketListWhere } from "../tickets/list/build-ticket-list-where";
 import { TicketsError } from "../tickets/tickets.error";

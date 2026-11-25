@@ -1,7 +1,10 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
-import type { SettingsService } from '../settings/settings.service';
+// W2.10b: value import — `import type` erases the decorator metadata, so
+// `@Optional()` injected `undefined` and every policy-pack read silently used
+// the "no settings" fallback even though SettingsModule is imported.
+import { SettingsService } from '../settings/settings.service';
 import { applyPolicyPack } from './apply-policy-pack';
 import { listPersistedPolicyPacks } from './list-persisted-policy-packs';
 import { listPolicyPacks } from './list-policy-packs';

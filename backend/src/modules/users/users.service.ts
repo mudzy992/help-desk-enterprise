@@ -1,11 +1,15 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { DirectorySyncService } from '../directory-sync/directory-sync.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { HibpPasswordChecker } from '../authentication/security/hibp-password-checker';
 import { SettingsService } from '../settings/settings.service';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
-import type { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+// W2.10b: this must stay a **value** import. With `import type` the emitted
+// decorator metadata for the parameter is `Object`, so `@Optional()` silently
+// injects `undefined` and every user list comes back empty (`X-Total-Count: 0`)
+// while the guard still admits the caller. See `users.module.di.spec.ts`.
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { assignUserRole } from './assign-user-role';
 import { createUser } from './create-user';
 import { deleteUser } from './delete-user';
@@ -36,6 +40,8 @@ const emptyAuditContext: UserAuditContext = { actorUserId: null, requestId: null
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
@@ -117,6 +123,13 @@ export class UsersService {
     options: ListUsersSummaryOptions = {},
   ): Promise<{ readonly items: readonly UserSummaryResponse[]; readonly total: number }> {
     return this.execute(async () => {
+      if (this.authorizationContextLoader === undefined) {
+        // Fail closed, but never silently: a missing loader narrows the list to
+        // nothing, which looks like "no users exist" in the admin screen.
+        this.logger.error(
+          'user list scope unavailable: authorization context loader is not wired',
+        );
+      }
       const scope = resolveUserListScope(
         actorUserId === null || actorUserId.trim().length === 0
           ? null

@@ -183,6 +183,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | BA-users-07 | P2       | Security controller koristi UUID pipe iako `User.id` nije UUID ugovor                     | otvoreno | S        |
 | BA-users-08 | P2       | Hard delete preflight ne pokriva historijske reference i može završiti sirovom FK greškom | otvoreno | M        |
 | BA-users-09 | P2       | User delete audit trajno kopira e-mail bez eksplicitne privacy/redaction politike         | otvoreno | M        |
+| BA-users-10 | P1       | Opcionalna DI zavisnost uvezena kao `import type` tiho isključuje OU scope liste korisnika | zatvoreno (W2.10b, [346](../implementation/346-w210b-users-list-scope-di.md)) | S        |
 
 ## 10. Detaljni nalazi
 
@@ -272,7 +273,18 @@ U granicama W2.1 `BA-users-04` i `BA-users-05` ostali su **otvoreni**: tadašnja
 
 `BA-users-01` je zatvoren u [`341-w210-users-control-plane-scope.md`](../implementation/341-w210-users-control-plane-scope.md). Kontrolna ravnina korisnika više ne visi o imenu role: `user.manage` pokriva listu, kreiranje, izmjenu, brisanje i dodjelu/oduzimanje rola, a `user.security.manage` sigurnosni pregled, privremenu lozinku, opoziv sesija i reset MFA. Rute sa `:id` razrješavaju korisnika u njegovu organizacionu jedinicu (`resource: 'user'` u scope lokatoru), a tri mjesta koja ruta ne vidi imaju drugu, kanonsku provjeru: **enumeracija** (`GET /users` se sužava na OU-e aktera; servisni grant listu ne proširuje), **destinacija premještanja** (`PATCH` sa `organizationalUnitId`) i **scope granta** pri dodjeli i oduzimanju role (OU **ili** servis; globalna rola traži globalni grant). Korisnik bez OU-e razrješava se u `null`, što scoped grant ne pokriva. Out-of-scope je **403** bez imena korisnika; `SUPER_ADMIN` bypass ostaje request-auditiran kroz `authorizeHttpExecution`.
 
+**W2.10b (2026-10-29):** isporuka `W2.10` je imala grešku uvezivanja koja je isključila upravo tu enumeraciju: loader je uvezen kao `import type`, pa ga je `@Optional()` tiho preskočio i `GET /users` je vraćao praznu listu za sve, uključujući lokalnog SuperAdmina. Popravka je vrijednosni uvoz + regresioni DI test nad `AppModule` grafom ([346](../implementation/346-w210b-users-list-scope-di.md), nalaz `BA-users-10`).
+
 Granica: `BA-users-02` (atomičnost kreiranja i prekasna role autorizacija), `-03`, `-06`–`-09` ostaju otvoreni; `link-directory-identity` ostaje `SUPER_ADMIN`-only jer je stroži od `user.manage`.
+
+### BA-users-10 — `import type` + `@Optional()` isključuje OU scope liste korisnika
+
+- **Dokaz:** `users.service.ts` je `AuthorizationContextLoader` uvozio kao `import type`. Taj uvoz se briše pri transpajliranju, pa je `design:paramtypes` za sedmi konstruktor parametar `Object`; `@Optional()` je zato u **svakom** zahtjevu injektovao `undefined`, a `listSummaryPageForActor` je padao na `resolveUserListScope(undefined)` → prazan scope → `GET /users` vraća `[]` uz `X-Total-Count: 0` i HTTP 200/304. Guard je propuštao aktera jer `RoleGuard` dobija `AuthorizationService` regularno, pa je simptom bio „SuperAdmin vidi praznu listu korisnika, a sve ostalo radi".
+- **Scenarij:** svaki zahtjev za listom korisnika, za svaku rolu — uključujući lokalnog SuperAdmina i E2E global setup, koji je zbog toga padao na `EMAIL_CONFLICT` (listu nije našao, `POST /users` je udario u unique e-mail).
+- **Uticaj:** administracija korisnika neupotrebljiva (nijedan korisnik se ne vidi), E2E kapija trajno crvena. Nijedan unit test nije uhvatio jer svi konstruišu servis poziciono i predaju loader ručno.
+- **Korekcija:** vrijednosni uvoz (`import { AuthorizationContextLoader }`), `Logger.error` kada loader ipak nedostaje (fail-closed ostaje, tišina ne), i **regresioni test nad pravim Nest grafom** (`app.module.optional-dependencies.spec.ts`) koji tvrdi da su svi `@Optional()` saradnici injektovani. Isti skener je našao još dva ista slučaja (`policy-packs.service.ts`, `report-summary.service.ts` — `SettingsService`) i oba su popravljena.
+- **Acceptance:** SuperAdmin vidi punu listu; E2E global setup prolazi; `app.module.optional-dependencies.spec.ts` pada prije popravke (`authorizationContextLoader: undefined`) i prolazi poslije.
+- **Owner:** users + platform (DI wiring).
 
 ## 11. Baseline score
 
@@ -375,6 +387,7 @@ Najveći rizik je retroaktivno sužavanje ADMIN ponašanja: postojeće instalaci
 | Nalaz       | Kod/dokaz                                             | Test koji treba dodati/proširiti  | Faza |
 | ----------- | ----------------------------------------------------- | --------------------------------- | ---- |
 | BA-users-01 | users/security controlleri, target helper, list query | scoped ADMIN users API E2E        | 0–1  |
+| BA-users-10 | `users.service.ts`, `policy-packs.service.ts`, `report-summary.service.ts` | `app.module.optional-dependencies.spec.ts` | 0 |
 | BA-users-02 | `create-user.ts`, password issuer, role assign        | step fault + forbidden SA create  | 0–2  |
 | BA-users-03 | update/link/unlink vs session registry                | stale session i reactivate replay | 0–3  |
 | BA-users-04 | `assign-user-role.ts`, `UserRole` schema              | concurrent duplicate grant        | 0–4  |

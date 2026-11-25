@@ -253,8 +253,12 @@ async function ensureUser(
     readonly organizationalUnitId: string;
   },
 ): Promise<string> {
+  // W2.10b: `GET /users` is capped at 500 rows ordered by display name, so a
+  // long-lived stack can hide an existing actor beyond the first page. `q` goes
+  // through the same (indexed) filter the admin screen uses and keeps the
+  // lookup exact; the exact comparison below still decides.
   const users = await api.requestJson<Array<{ id: string; email: string }>>(
-    '/users',
+    `/users?q=${encodeURIComponent(input.email)}`,
   );
   const existing = users.find(
     (user) => user.email.toLowerCase() === input.email.toLowerCase(),

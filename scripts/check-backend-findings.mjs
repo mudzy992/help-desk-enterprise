@@ -251,8 +251,11 @@ export function applyWaveCounts(markdown, plan) {
 export function validateFindingsPlan(plan) {
   const errors = [];
   if (plan.units !== 44) errors.push(`units=${plan.units}, očekivano 44`);
-  if (plan.total !== 696) errors.push(`total=${plan.total}, očekivano 696`);
-  for (const [level, expected] of Object.entries({ P1: 174, P2: 371, P3: 151 })) {
+  // Baseline se mijenja samo kad se nalaz **doda** u izvorni audit, nikad da bi
+  // guard prošao: `BA-users-10` (P1, W2.10b, 2026-10-29) je novi nalaz — DI
+  // zavisnost uvezena kao `import type` tiho je isključila OU scope liste.
+  if (plan.total !== 697) errors.push(`total=${plan.total}, očekivano 697`);
+  for (const [level, expected] of Object.entries({ P1: 175, P2: 371, P3: 151 })) {
     if (plan.severity[level] !== expected) errors.push(`${level}=${plan.severity[level]}, očekivano ${expected}`);
   }
   const missingPlan = plan.findings.filter(
