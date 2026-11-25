@@ -2,9 +2,9 @@
 
 **Paket:** W2.14<br>
 **Nalaz:** `BA-authentication-01` (P1) — zatvoren<br>
-**Kodni commit:** _popunjava se nakon pusha_<br>
-**Finalni testani SHA:** _popunjava se nakon pusha_<br>
-**CI:** _popunjava se nakon pusha_<br>
+**Kodni commit:** `dc29e55` (kod + testovi + docs)<br>
+**Finalni testani SHA:** `dc29e55`<br>
+**CI:** [`45656281822`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45656281822) — zelen<br>
 **DB migracije:** nema
 
 ## Nalaz
@@ -82,7 +82,26 @@ Lokalno: `npx jest src/modules/authentication` → **41 suite / 321 testa ✓** 
 
 ## CI
 
-_popunjava se nakon pusha._
+CI [`45656281822`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45656281822) na `dc29e55` —
+**success**:
+
+- **Backend build + test:** success — uključuje `audit:traceability` (697/697, zatvoreno 342 / otvoreno 355),
+  `nest build`, lint, `test:safety-net:compile`, `test:wiring` i puni unit suite, dakle i tri nova
+  `authentication.service.spec.ts` testa.
+- **Backend PostgreSQL + Redis integration:** success — realni PostgreSQL izvršava i novi
+  `treats a revoked, expired or deleted registry row as no live session`.
+- **Frontend build + test**, **Backend container + supply chain**, **Docs guard**, **CI gate:** success.
+- **Skipped:** `E2E critical flows`, `E2E install wizard`, `Read-only service-form pattern inventory` — push
+  profil ne pokreće E2E.
+
+E2E dokaz je zato pokrenut ciljano: [`45656337091`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45656337091)
+(`specs=37`, `retries=0`, `max_failures=8`) — **7 passed / 0 failed / 0 flaky / 0 skipped** iz prvog pokušaja
+u 80 s. Taj run izvršava i `revoke-others` test sa novim `POST /auth/refresh → 401` tvrđenjem i provjerom da
+živ `helpdesk_session` cookie nije izdat.
+
+**Napomena o stacku:** stack u tom trenutku još nije imao ovaj commit (deploy je odvojen korak), a novi E2E
+assert prolazi i na starom kodu jer guard već odbija opozvanu sesiju. Zeleni assert je zato **ugovor**, ne
+dokaz same popravke — dokaz popravke su unit i integracioni testovi iznad, koji na starom kodu padaju.
 
 ## Dokumentacija
 

@@ -131,6 +131,23 @@ CI [`45639458079`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 tom stacku vraća praznu listu i global setup pada na `EMAIL_CONFLICT` (potvrđeno na `3c4a8af`, `71dae45`,
 `ceb4a96`). Nestanak `EMAIL_CONFLICT`-a je očekivani znak da je popravka u produkciji.
 
+### Dopuna (2026-11-25): E2E crvenilo zatvoreno
+
+1. **Popravka je u produkciji** — puni dispatch
+   [`45645224458`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45645224458) pokrenuo je
+   global setup **uspješno** (nema `EMAIL_CONFLICT`-a), pa je i `GET /users` na stacku vraćao korisnike.
+2. **Taj run je ipak bio crven, ali zbog stacka, ne koda:** `126 passed / 1 failed / 3 flaky / 1 skipped`, uz
+   `GET https://api.desk.ba101.top/health` koji je pao **12 od 60 proba u 11 epizoda** između
+   `15:37:02Z` i `16:23:18Z` (46 min) i oporavio se prije kraja joba. Jedini finalni pad je
+   `15-workflow-unrouted-realtime.spec.ts:275` — `expect.poll` na socket frame `routing.rules.updated` sa
+   timeoutom od 10 s; flaky rezultati nose `UND_ERR_CONNECT_TIMEOUT` na `api.desk.ba101.top:443`, tj. mrežu,
+   ne 5xx aplikacije. Lokalno su `admin-realtime` + `websocket` + `routing` specovi zeleni (**229 testova**),
+   pa emitovanje u `role:admins` sobu nije dirano ovim paketom.
+3. **Ciljani dokaz:** PR #27 je mergovan (`master` = `d76ceeb`) i odmah je pokrenut dispatch
+   [`45654921819`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45654921819) — `specs=15`,
+   `retries=0` ⇒ **E2E critical flows: success**. Time je pad iz punog runa dokazan kao posljedica prekida
+   stacka; puni E2E set nije ponavljan u ovom paketu.
+
 ## Registar nalaza
 
 - Zatvoreni: `BA-users-10` (novi nalaz, P1 — regresija isporuke `W2.10`).
