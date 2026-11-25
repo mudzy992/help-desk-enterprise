@@ -5,6 +5,8 @@ import { readE2EEnvironment } from '../helpers/environment';
 import { nextTotpCode } from '../helpers/mfa';
 import { restoreTestActorPassword } from '../helpers/provision-test-actors';
 
+const SESSION_COOKIE_NAME = 'helpdesk_session';
+
 type MfaPendingLogin = {
   readonly status: 'MFA_REQUIRED' | 'MFA_ENROLLMENT_REQUIRED';
   readonly mfaToken: string;
@@ -75,7 +77,7 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     const current = new ApiClient();
     const other = new ApiClient();
     await current.login(env.userEmail, env.userPassword, { newSession: true });
-    await other.login(env.userEmail, env.userPassword, { newSession: true });
+    const otherCookie = await other.login(env.userEmail, env.userPassword, { newSession: true });
 
     const result = await current.requestJson<{ readonly revoked: number }>('/auth/sessions/revoke-others', {
       method: 'POST',
@@ -83,6 +85,34 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     });
     expect(result.revoked).toBeGreaterThan(0);
     expect((await current.request('/auth/security')).status).toBe(200);
+
+    // BA-authentication-01 (W2.14): a revoked session cannot be extended. The
+    // refresh endpoint is the one place that used to mint a fresh token (30 days
+    // on a remember-me claim) from a registry row that no longer existed.
+    // The revoked cookie is replayed explicitly: after BA-authentication-09 the
+    // first 401 clears it, and `ApiClient` then drops it from its own jar — which
+    // is the fix working, not a missing cookie.
+    const extended = await other.request('/auth/refresh', {
+      method: 'POST',
+      body: '{}',
+      headers: { Cookie: `${SESSION_COOKIE_NAME}=${otherCookie}` },
+    });
+    expect(extended.status).toBe(401);
+    expect(
+      extended.headers
+        .getSetCookie()
+        .some((cookie) => cookie.startsWith('helpdesk_session=') && !cookie.includes('Max-Age=0')),
+    ).toBe(false);
+
+    // BA-authentication-09 (W2.15a): the 401 also drops the dead cookie in the
+    // same response, so the browser stops replaying it on every screen.
+    expect(
+      extended.headers
+        .getSetCookie()
+        .some((cookie) => cookie.startsWith('helpdesk_session=;') && cookie.includes('Max-Age=0')),
+    ).toBe(true);
+
+    // The jar is empty now, so any later call is a plain "no session" 401.
     expect((await other.request('/auth/security')).status).toBe(401);
 
     // BA-authentication-01 (W2.14): a revoked session cannot be extended. The
