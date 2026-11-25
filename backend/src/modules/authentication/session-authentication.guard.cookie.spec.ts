@@ -1,5 +1,6 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { PrincipalContext } from '../../common/principal-context/principal-context.types';
+import { AuthenticationError } from './authentication.error';
 import { SESSION_COOKIE_NAME } from './session-cookie';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
 
@@ -98,5 +99,111 @@ describe('SessionAuthenticationGuard with the session cookie', () => {
         }),
       ),
     ).resolves.toBe(true);
+  });
+});
+
+/*
+  BA-authentication-09 (W2.16): every 401 from this guard ends the browser
+  session, so the HttpOnly cookie is dropped in the same response. Assertions
+  inspect the header the guard writes; the exception filter only adds the
+  request id, so nothing overwrites it afterwards.
+*/
+describe('SessionAuthenticationGuard clears the dead session cookie', () => {
+  const verify = jest.fn();
+  const load = jest.fn();
+  const guard = new SessionAuthenticationGuard({ verify } as never, { load } as never);
+
+  beforeEach(() => {
+    verify.mockReset().mockResolvedValue({ subjectId: 'user-1' });
+    load.mockReset().mockResolvedValue(principal);
+  });
+
+  function createContextWithResponse(request: Record<string, unknown>, headers: Record<string, string>) {
+    const response = {
+      setHeader: (name: string, value: string) => {
+        headers[name] = value;
+      },
+    };
+    return {
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
+    } as never;
+  }
+
+  const cookieHeader = `${SESSION_COOKIE_NAME}=${SYNTHETIC_TOKEN}`;
+
+  it('drops the cookie when the account behind it is no longer active', async () => {
+    load.mockResolvedValue({ ...principal, isActive: false });
+    const headers: Record<string, string> = {};
+
+    await expect(
+      guard.canActivate(
+        createContextWithResponse({ method: 'GET', headers: { cookie: cookieHeader } }, headers),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(headers['Set-Cookie']).toContain(`${SESSION_COOKIE_NAME}=;`);
+    expect(headers['Set-Cookie']).toContain('Max-Age=0');
+  });
+
+  it('drops the cookie when the session token no longer verifies', async () => {
+    verify.mockRejectedValue(new AuthenticationError('SESSION_INVALID', 'revoked'));
+    const headers: Record<string, string> = {};
+
+    await expect(
+      guard.canActivate(
+        createContextWithResponse({ method: 'GET', headers: { cookie: cookieHeader } }, headers),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(headers['Set-Cookie']).toContain('Max-Age=0');
+  });
+
+  it('leaves a bearer caller alone, because it holds no ambient cookie', async () => {
+    load.mockResolvedValue({ ...principal, isActive: false });
+    const headers: Record<string, string> = {};
+
+    await expect(
+      guard.canActivate(
+        createContextWithResponse(
+          { method: 'GET', headers: { authorization: `Bearer ${SYNTHETIC_TOKEN}` } },
+          headers,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(headers['Set-Cookie']).toBeUndefined();
+  });
+
+  it('does not clear the cookie on the origin refusal, where the session is still valid', async () => {
+    const headers: Record<string, string> = {};
+
+    await expect(
+      guard.canActivate(
+        createContextWithResponse(
+          {
+            method: 'POST',
+            headers: { cookie: cookieHeader, origin: 'https://app.desk.example.com.evil.test' },
+          },
+          headers,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(headers['Set-Cookie']).toBeUndefined();
+  });
+
+  it('does not clear the cookie on a successful request', async () => {
+    const headers: Record<string, string> = {};
+
+    await expect(
+      guard.canActivate(
+        createContextWithResponse({ method: 'GET', headers: { cookie: cookieHeader } }, headers),
+      ),
+    ).resolves.toBe(true);
+
+    expect(headers['Set-Cookie']).toBeUndefined();
   });
 });

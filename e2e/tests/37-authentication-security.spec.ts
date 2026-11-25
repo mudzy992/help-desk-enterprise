@@ -97,6 +97,14 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
         .some((cookie) => cookie.startsWith('helpdesk_session=') && !cookie.includes('Max-Age=0')),
     ).toBe(false);
 
+    // BA-authentication-09 (W2.15a): the 401 also drops the dead cookie in the
+    // same response, so the browser stops replaying it on every screen.
+    expect(
+      extended.headers
+        .getSetCookie()
+        .some((cookie) => cookie.startsWith('helpdesk_session=;') && cookie.includes('Max-Age=0')),
+    ).toBe(true);
+
     const fresh = new ApiClient();
     await fresh.login(env.userEmail, env.userPassword);
     expect((await fresh.request('/auth/security')).status).toBe(200);

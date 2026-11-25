@@ -17,7 +17,8 @@ import {
 import { AuthenticationError } from './authentication.error';
 import { createAuthenticatedPrincipal } from './create-authenticated-principal';
 import { PrincipalContextLoader } from '../../common/principal-context/principal-context.loader';
-import { readSessionToken } from './read-session-token';
+import { readSessionToken, type SessionTokenSource } from './read-session-token';
+import { buildClearedSessionCookie } from './session-cookie';
 import { SessionTokenService } from './session-token.service';
 import { toAuthorizationPrincipal } from './to-authorization-principal';
 
@@ -29,7 +30,8 @@ export class SessionAuthenticationGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<AuthenticatedHttpRequest>();
+    const http = context.switchToHttp();
+    const request = http.getRequest<AuthenticatedHttpRequest>();
     const session = readSessionToken(request);
     if (session === null) {
       throw createSessionUnauthorizedException();
@@ -75,6 +77,11 @@ export class SessionAuthenticationGuard implements CanActivate {
       );
       return true;
     } catch (error) {
+      // BA-authentication-09 (W2.16): every 401 from this guard ends the
+      // browser session, so the HttpOnly cookie goes with it. Otherwise a
+      // revoked/expired session stayed in the jar and the SPA replayed a dead
+      // token on every screen until the cookie's own max-age ran out.
+      clearSessionCookie(http, session.source);
       if (error instanceof UnauthorizedException) {
         throw error;
       }
@@ -83,6 +90,30 @@ export class SessionAuthenticationGuard implements CanActivate {
       }
       throw createSessionUnauthorizedException();
     }
+  }
+}
+
+type CookieHeaderWriter = {
+  readonly setHeader?: (name: string, value: string) => void;
+};
+
+/**
+ * Drops the session cookie for browser callers only: a bearer client has no
+ * ambient cookie, and a context without a response (unit tests, non-HTTP
+ * pipelines) must never change the answer that is already going out.
+ */
+function clearSessionCookie(
+  http: { readonly getResponse?: <T>() => T },
+  source: SessionTokenSource,
+): void {
+  if (source !== 'cookie') {
+    return;
+  }
+  try {
+    const response = http.getResponse?.<CookieHeaderWriter>();
+    response?.setHeader?.('Set-Cookie', buildClearedSessionCookie());
+  } catch {
+    // A 401 stays a 401 even when the transport cannot carry a header.
   }
 }
 

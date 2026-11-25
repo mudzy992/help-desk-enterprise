@@ -133,9 +133,31 @@ higijena, ne propust kontrole pristupa; kandidat za mali P3 paket ako se pokaže
 
 1. Prijava kao korisnik → Administracija → Sigurnost → „Odjavi ostale sesije".
 2. U drugoj sesiji (drugi browser/profil) sačekaj jedan auto-refresh ciklus ili pozovi `POST /auth/refresh`
-   iz DevToolsa: odgovor je **401**, `Set-Cookie` je ili odsutan ili `helpdesk_session=; Max-Age=0`.
+   iz DevToolsa: odgovor je **401**, a od paketa `W2.15a` uvijek nosi i `Set-Cookie:
+   helpdesk_session=; Max-Age=0`.
 3. Prvi tab i dalje radi (`/auth/security` → 200), novi login u drugom tabu prolazi normalno.
 4. Remember-me sesija: refresh prije opoziva i dalje vraća 30 dana, poslije opoziva 401.
+
+## Zapažanja sa deployanog stacka (2026-11-25)
+
+Ručna provjera poslije redeploya potvrdila je popravku i ispravila dva pogrešna očekivanja iz prvog
+uputstva — oba su **normalno ponašanje**, ne defekti:
+
+- **`GET /users?take=100` u DevToolsu pokazuje `304`**, a `X-Total-Count: 8` i lista su ispravni. To je
+  Express-ov podrazumijevani `ETag` + revalidacija pregledača (`If-None-Match`): server je izračunao isti
+  tijelo-hash i vratio „nije mijenjano", pa pregledač koristi keširano tijelo. JavaScript u aplikaciji i
+  dalje vidi `200` sa tijelom; `304` je samo zapis revalidacije u Network tabu. Nije isto što i prazna lista
+  iz `W2.10b` — tada je `X-Total-Count` bio **0**.
+- **`POST /auth/refresh` vraća `201`**, ne `200` — NestJS podrazumijevani status za `POST`. Tijelo je
+  regularno (`expiresInSeconds: 3600` za lokalnog SuperAdmina), a klijenti provjeravaju opseg `2xx`.
+  Status nije mijenjan u ovom paketu: to bi bila promjena ugovora bez funkcionalne koristi; dokumentovan je
+  stvarni status.
+- **Živa sesija se obnavlja** (`201`, `3600`), pa `rememberMe` iz registry reda i dalje radi kako treba.
+- **Mrtva sesija se odbija**: poslije „Odjavi ostale sesije" refresh u drugom tabu vraća **401
+  `INVALID_CREDENTIALS`** i SPA se vraća na prijavu — `W2.14` je potvrđen u produkciji.
+- **Ali cookie je ostajao u pregledaču** na tom 401 — zapažanje je izdvojeno u paket **W2.15a**
+  (`BA-authentication-09`, P3): vidi
+  [`348-w215a-auth-401-clears-cookie.md`](348-w215a-auth-401-clears-cookie.md).
 
 ## Granica paketa
 

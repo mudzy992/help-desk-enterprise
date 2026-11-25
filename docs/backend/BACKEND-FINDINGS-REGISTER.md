@@ -115,6 +115,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 01 | `authentication` | `BA-authentication-06` | P2 | Entra JWKS dohvat nema timeout ni cache | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-07` | P2 | Kritični testni gate zavisi od mrežnog Prisma engine downloada | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-08` | P3 | Clone detekcija jednog passkeya briše sve korisnikove passkeye | otvoreno | [01-authentication.md](audits/01-authentication.md) |
+| 01 | `authentication` | `BA-authentication-09` | P3 | 401 guarda ne briše mrtav `helpdesk_session` cookie | zatvoreno (W2.15a) | [01-authentication.md](audits/01-authentication.md) |
 | 02 | `authorization` | `BA-authorization-01` | P2 | Best-effort invalidacija može zadržati oduzeta prava do cache TTL-a | zatvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-02` | P2 | Ne postoji potpuni route-to-authorization manifest i CI guard | zatvoreno | [02-authorization.md](audits/02-authorization.md) |
 | 02 | `authorization` | `BA-authorization-03` | P2 | Read-only zaštita zavisi od ručno održavane liste ruta i trusted izuzetaka | otvoreno | [02-authorization.md](audits/02-authorization.md) |
@@ -928,8 +929,8 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 <!-- findings-totals:start -->
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
-- Ukupno: **697** (P1 175 · P2 371 · P3 151)
-- Zatvoreno: **342**
+- Ukupno: **698** (P1 175 · P2 371 · P3 152)
+- Zatvoreno: **343**
 - Otvoreno: **355** (P1 81 / P2 193 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

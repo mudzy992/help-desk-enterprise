@@ -148,6 +148,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | otvoreno | M        |
 | BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | otvoreno | M        |
 | BA-authentication-08 | P3       | Clone detekcija jednog passkeya briše sve korisnikove passkeye                 | otvoreno | S        |
+| BA-authentication-09 | P3       | 401 guarda ne briše mrtav `helpdesk_session` cookie                            | zatvoreno (W2.15a) | S        |
 
 ## 9. Detaljni nalazi
 
@@ -237,6 +238,25 @@ Detalj isporuke: `docs/backend/implementation/347-w214-ba-authentication-01-refr
 - **Acceptance:** clone test ostavlja drugi credential aktivnim i stvara audit/notification dokaz.
 - **Owner:** authentication/WebAuthn owner.
 
+### BA-authentication-09 — 401 ne briše mrtav cookie
+
+- **Dokaz:** `SessionAuthenticationGuard` odbija mrtvu sesiju sa 401 `INVALID_CREDENTIALS`, ali odgovor ne
+  sadrži `Set-Cookie`. Cookie briše samo `POST /auth/logout` (i `SessionCookieInterceptor` na uspjehu), pa
+  browser zadržava `helpdesk_session` do vlastitog `Max-Age` — kod „Zapamti me" do **30 dana**.
+- **Uticaj:** poslije opoziva, isteka ili deaktivacije sesije pregledač i dalje šalje mrtav cookie na svaki
+  zahtjev. Svaki ekran dobija 401, SPA se vraća na prijavu, ali cookie ostaje i ponovo se šalje poslije
+  prijave druge sesije; uz to svaki takav zahtjev plaća neuspješnu provjeru. Nije propust kontrole pristupa
+  (401 je ispravan), nego higijena sesije.
+- **Root cause:** brisanje cookieja vezano je za uspješan `logout` tok, a ne za *svaki* odgovor koji sesiju
+  proglašava mrtvom.
+- **Korekcija:** guard na svaki 401 **za cookie pozivaoce** postavlja `Set-Cookie` sa
+  `helpdesk_session=; Max-Age=0` (`buildClearedSessionCookie`). Bearer klijenti nemaju ambijentalni cookie i
+  ne dobijaju header; `403 FORBIDDEN_ORIGIN` (sesija je tada valjana) takođe ne briše cookie; kontekst bez
+  response objekta ne mijenja 401.
+- **Acceptance:** unit testovi za neaktivan račun, neverifikovan token, bearer poziv, origin-refusal i
+  uspješan zahtjev; E2E 37 traži `Max-Age=0` na 401 poslije `revoke-others`.
+- **Owner:** authentication/session owner.
+
 ## 10. Baseline score
 
 | Presjek                  |   Težina | Ocjena | Ponderisano | Obrazloženje                                                                 |
@@ -325,6 +345,8 @@ Rollback svake faze mora zadržati nove testove i vratiti samo izolovanu behavio
 | BA-06 | slow/rotated JWKS fake                          | bounded timeout/cache/rotation                | Entra provider suite       |
 | BA-07 | clean offline generation                        | 40/40 suiteova kompajlira i prolazi           | backend build/CI           |
 | BA-08 | two-credential clone fixture                    | samo pogođeni credential uklonjen             | E2E 46                     |
+| BA-09 | guard 401 × cookie/bearer/origin/success        | `Max-Age=0` samo za mrtvu cookie sesiju       | E2E 37                     |
+| BA-09 | guard 401 × cookie/bearer/origin/success        | `Max-Age=0` samo za mrtvu cookie sesiju       | E2E 37                     |
 
 ## 14. Konačna presuda
 

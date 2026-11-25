@@ -253,9 +253,11 @@ export function validateFindingsPlan(plan) {
   if (plan.units !== 44) errors.push(`units=${plan.units}, očekivano 44`);
   // Baseline se mijenja samo kad se nalaz **doda** u izvorni audit, nikad da bi
   // guard prošao: `BA-users-10` (P1, W2.10b, 2026-10-29) je novi nalaz — DI
-  // zavisnost uvezena kao `import type` tiho je isključila OU scope liste.
-  if (plan.total !== 697) errors.push(`total=${plan.total}, očekivano 697`);
-  for (const [level, expected] of Object.entries({ P1: 175, P2: 371, P3: 151 })) {
+  // zavisnost uvezena kao `import type` tiho je isključila OU scope liste;
+  // `BA-authentication-09` (P3, W2.15a, 2026-10-29) je novi nalaz — 401 guarda
+  // nije brisao mrtav `helpdesk_session` cookie.
+  if (plan.total !== 698) errors.push(`total=${plan.total}, očekivano 698`);
+  for (const [level, expected] of Object.entries({ P1: 175, P2: 371, P3: 152 })) {
     if (plan.severity[level] !== expected) errors.push(`${level}=${plan.severity[level]}, očekivano ${expected}`);
   }
   const missingPlan = plan.findings.filter(

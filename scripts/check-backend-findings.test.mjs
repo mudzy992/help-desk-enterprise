@@ -200,9 +200,9 @@ test("odbija dupliciran BA ID između audit jedinica", async () => {
 });
 
 test("production baseline validator zaključava broj i severity zbir", () => {
-  // 697 / P1 175 od W2.10b (`BA-users-10`, novi P1 nalaz); baseline se mijenja
-  // samo uz stvarno dodavanje nalaza, nikad da bi guard prošao.
-  const findings = Array.from({ length: 697 }, (_, index) => ({
+  // 698 / P1 175 / P3 152 od W2.15a (`BA-authentication-09`, novi P3 nalaz);
+  // baseline se mijenja samo uz stvarno dodavanje nalaza, nikad da bi guard prošao.
+  const findings = Array.from({ length: 698 }, (_, index) => ({
     id: `BA-test-${index}`,
     severity: index < 175 ? "P1" : index < 546 ? "P2" : "P3",
     source: "fixture.md",
@@ -214,7 +214,7 @@ test("production baseline validator zaključava broj i severity zbir", () => {
     validateFindingsPlan({
       units: 44,
       total: findings.length,
-      severity: { P1: 175, P2: 371, P3: 151 },
+      severity: { P1: 175, P2: 371, P3: 152 },
       findings,
     }),
     [],

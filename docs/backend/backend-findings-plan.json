@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "generatedFrom": "docs/backend/audits/01-44",
   "units": 44,
-  "total": 697,
+  "total": 698,
   "severity": {
     "P1": 175,
     "P2": 371,
-    "P3": 151
+    "P3": 152
   },
   "findings": [
     {
@@ -469,6 +469,14 @@
       "id": "BA-authentication-08",
       "severity": "P3",
       "status": "otvoreno",
+      "source": "01-authentication.md",
+      "owner": "WS-A",
+      "wave": 2
+    },
+    {
+      "id": "BA-authentication-09",
+      "severity": "P3",
+      "status": "zatvoreno (W2.15a)",
       "source": "01-authentication.md",
       "owner": "WS-A",
       "wave": 2
