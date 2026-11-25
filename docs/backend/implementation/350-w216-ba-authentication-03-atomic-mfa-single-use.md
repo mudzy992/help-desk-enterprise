@@ -180,14 +180,22 @@ CI [`45707676523`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
   `db:restore:test` i isolated suite, uključujući novi `mfa-token-claim.integration.spec.ts` (u listi runnera i
   u guard testu; `PRIVACY_IT_DATABASE_URL` je postavljen u tom poslu, pa se ne preskače).
 - **Frontend build + test**, **Backend container + supply chain**, **Docs guard**, **CI gate:** success.
-- **Skipped:** E2E poslovi (push profil) i read-only inventory.
+- **Skipped:** E2E poslovi (push profil) i read-only inventory (E2E se izvršava na PR-u, vidi niže).
 - **Perf smoke** [`45707676445`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45707676445):
   success, `perf_query_budget` avg **2,075** (gate 2,1), p95 **3**, 50.799 zahtjeva — MFA put nije u smoke
   profilu, pa ova kapija mjeri da paket nije dirao vruće rute.
 
-Prvi pokušaj je bio zelen, pa nema pouka iz crvenih runova; migracija je ipak prošla kroz **tri** svjesne izmjene
-iz `W2.15` (migracija, `expectedSchemaMigration`, literalni pin u `database-runtime-contract.spec.ts`) — sve tri
-su urađene prije prvog pusha.
+**PR [#31](https://github.com/mudzy992/help-desk-enterprise/pull/31)** — CI
+[`45710816624`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45710816624): prvi prolaz je pao u
+**`E2E critical flows`**, i to **ne na MFA putu**: `15-workflow-unrouted-realtime.spec.ts:275` („a routing change
+reaches the admin room over the socket") nije dobio socket event u 10 s, a Playwright dijagnostika iz istog runa je
+zabilježila **stack outage** (`GET /health` nedostupan u 22:18:02Z) — infrastrukturni prozor, ne regresija koda.
+`gh run rerun --failed` je zelen: E2E `success`, `CI gate success`. Pouka: socket-realtime testovi padaju sa
+padom stacka, pa crveni E2E sa outage dijagnostikom treba prvo rerun, a ne „popravku" koda.
+
+Migracija je prošla kroz **tri** svjesne izmjene iz `W2.15` (migracija, `expectedSchemaMigration`, literalni pin u
+`database-runtime-contract.spec.ts`) — sve tri su urađene prije prvog pusha, zato push-run nije bio crven zbog
+sentinela.
 
 ## Dokumentacija
 
