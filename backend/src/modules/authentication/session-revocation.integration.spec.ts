@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import { SessionRegistryService } from './security/session-registry.service';
 import { SessionRevocationStore } from './session-revocation.store';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
@@ -57,5 +58,39 @@ describeIfDatabase('durable multi-replica session revocation (integration)', () 
     await expect(replica.isRevoked({
       jti: 'token-2', subjectId: 'different-user', issuedAt: 1, sessionId: session.id,
     })).resolves.toBe(true);
+  });
+
+  /*
+    BA-authentication-01 (W2.14): `AuthenticationService.refresh()` now refuses a
+    `sid` token unless this lookup returns a live row owned by the token subject.
+    The unit tests mock the registry, so this case pins the real SQL contract:
+    revoked, expired and deleted rows all read as "no live session".
+  */
+  it('treats a revoked, expired or deleted registry row as no live session', async () => {
+    const registry = new SessionRegistryService(prisma as never, {} as never, {} as never);
+    const live = await prisma.userSession.create({
+      data: { userId, provider: 'local', expiresAt: new Date(Date.now() + 60_000) },
+    });
+    await expect(registry.findActive(live.id)).resolves.toMatchObject({
+      id: live.id,
+      userId,
+    });
+
+    await prisma.userSession.update({
+      where: { id: live.id },
+      data: { revokedAt: new Date(), revokedReason: 'admin' },
+    });
+    await expect(registry.findActive(live.id)).resolves.toBeNull();
+
+    const expired = await prisma.userSession.create({
+      data: { userId, provider: 'local', expiresAt: new Date(Date.now() - 60_000) },
+    });
+    await expect(registry.findActive(expired.id)).resolves.toBeNull();
+
+    const deleted = await prisma.userSession.create({
+      data: { userId, provider: 'local', expiresAt: new Date(Date.now() + 60_000) },
+    });
+    await prisma.userSession.delete({ where: { id: deleted.id } });
+    await expect(registry.findActive(deleted.id)).resolves.toBeNull();
   });
 });

@@ -277,11 +277,20 @@ export class AuthenticationService {
       ).id;
     } else {
       const session = await this.sessionRegistry.findActive(sessionId);
-      rememberMe = session?.rememberMe ?? claims.rememberMe;
+      // BA-authentication-01 (W2.14): a `sid` token may only be refreshed while
+      // its registry row is still live *and* belongs to the token subject.
+      // Before this guard a revoked, expired, deleted or foreign row still got a
+      // fresh token (remember-me: 30 days) and a touch on a row that no longer
+      // existed, so the client believed in a session the guard had already
+      // killed. Reject without issuing or touching; the legacy `sid === null`
+      // migration path above stays separate and untouched.
+      if (session === null || session.userId !== principal.subjectId) {
+        throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS' });
+      }
+      rememberMe = session.rememberMe;
       const idleTimeoutSeconds =
         (await this.idleTimeoutLoader?.load()) ?? 0;
       if (
-        session !== null &&
         idleTimeoutSeconds > 0 &&
         Date.now() - session.lastSeenAt.getTime() > idleTimeoutSeconds * 1000
       ) {

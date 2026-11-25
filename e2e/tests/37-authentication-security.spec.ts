@@ -85,6 +85,18 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     expect((await current.request('/auth/security')).status).toBe(200);
     expect((await other.request('/auth/security')).status).toBe(401);
 
+    // BA-authentication-01 (W2.14): a revoked session cannot be extended. The
+    // refresh endpoint is the one place that used to mint a fresh token (30 days
+    // on a remember-me claim) from a registry row that no longer existed, so it
+    // must answer 401 and must not hand out a live `helpdesk_session` cookie.
+    const extended = await other.request('/auth/refresh', { method: 'POST', body: '{}' });
+    expect(extended.status).toBe(401);
+    expect(
+      extended.headers
+        .getSetCookie()
+        .some((cookie) => cookie.startsWith('helpdesk_session=') && !cookie.includes('Max-Age=0')),
+    ).toBe(false);
+
     const fresh = new ApiClient();
     await fresh.login(env.userEmail, env.userPassword);
     expect((await fresh.request('/auth/security')).status).toBe(200);

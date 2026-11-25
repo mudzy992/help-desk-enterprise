@@ -494,7 +494,13 @@ describe('AuthenticationService 5.4.0-c idle timeout on refresh', () => {
     });
   });
 
-  it('does not revoke when there is no live registry row', async () => {
+  /*
+    BA-authentication-05 / W2.14 (`BA-authentication-01`): a token that carries a
+    `sid` is only refreshable while that registry row is live and belongs to the
+    token subject. `findActive` filters revoked and expired rows, so "no row" is
+    the single shape a revoked, expired or deleted session produces here.
+  */
+  it('rejects a refresh when the registry row is gone (revoked, expired or deleted)', async () => {
     const fixture = buildRefreshService({
       idleTimeoutSeconds: 300,
       session: null,
@@ -502,15 +508,56 @@ describe('AuthenticationService 5.4.0-c idle timeout on refresh', () => {
 
     await expect(
       fixture.service.refresh(claims(true), principal),
-    ).resolves.toMatchObject({
-      expiresInSeconds: authenticationConstants.rememberMeSessionTtlSeconds,
+    ).rejects.toMatchObject({
+      status: 401,
+      response: { code: 'INVALID_CREDENTIALS' },
     });
+    expect(fixture.issue).not.toHaveBeenCalled();
+    expect(fixture.touch).not.toHaveBeenCalled();
     expect(fixture.revokeSession).not.toHaveBeenCalled();
-    expect(fixture.touch).toHaveBeenCalledWith(
-      'session-1',
-      { ipAddress: null, userAgent: null },
-      true,
+  });
+
+  it('rejects a refresh when the registry row belongs to another user', async () => {
+    const fixture = buildRefreshService({
+      idleTimeoutSeconds: 0,
+      session: {
+        id: 'session-1',
+        userId: 'user-2',
+        lastSeenAt: new Date(),
+        rememberMe: true,
+      },
+    });
+
+    await expect(
+      fixture.service.refresh(claims(true), principal),
+    ).rejects.toMatchObject({
+      status: 401,
+      response: { code: 'INVALID_CREDENTIALS' },
+    });
+    expect(fixture.issue).not.toHaveBeenCalled();
+    expect(fixture.touch).not.toHaveBeenCalled();
+  });
+
+  it('keeps the legacy no-sid migration path off the registry lookup', async () => {
+    const fixture = buildRefreshService({
+      idleTimeoutSeconds: 300,
+      session: null,
+    });
+
+    await expect(
+      fixture.service.refresh({ ...claims(), sessionId: null }, principal),
+    ).resolves.toMatchObject({
+      accessToken: 'refreshed.jwt',
+      expiresInSeconds: authenticationConstants.sessionTtlSeconds,
+    });
+    expect(fixture.findActive).not.toHaveBeenCalled();
+    expect(fixture.create).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', provider: 'legacy', rememberMe: false }),
     );
+    expect(fixture.issue).toHaveBeenCalledWith(principal, 'legacy-session', {
+      ttlSeconds: authenticationConstants.sessionTtlSeconds,
+      rememberMe: false,
+    });
   });
 });
 

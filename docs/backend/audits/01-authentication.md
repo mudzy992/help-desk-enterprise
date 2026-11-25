@@ -140,7 +140,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 
 | ID                   | Severity | Naslov                                                                         | Status   | Veličina |
 | -------------------- | -------- | ------------------------------------------------------------------------------ | -------- | -------- |
-| BA-authentication-01 | P1       | Refresh oživljava session čiji registry red ne postoji                         | otvoreno | S        |
+| BA-authentication-01 | P1       | Refresh oživljava session čiji registry red ne postoji                         | zatvoreno (W2.14) | S        |
 | BA-authentication-02 | P1       | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | otvoreno | L        |
 | BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | otvoreno | M        |
 | BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | otvoreno | S        |
@@ -163,6 +163,21 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 ### Implementacijski status Vala 2 / W2.2 (2026-10-24)
 
 SHA `10e8fd6ea1c328d647b6f2bc77960567f8bc8af5`, CI `40119814862`, uvodi PostgreSQL authority provjeru svakog modernog `sid` tokena i fail-closed Redis read outage. Multi-replica real-PostgreSQL test potvrđuje da revocation commit jedne replike važi na narednoj provjeri druge replike uprkos stale Redis stanju. `BA-authentication-02` ipak ostaje otvoren dok legacy JWT bez `sid` ne dobije durable cutoff koji preživljava neuspjeli Redis write.
+
+### Implementacijski status Vala 2 / W2.14 (2026-11-25)
+
+Zatvoreno. `AuthenticationService.refresh()` za token sa `sid` sada zahtijeva aktivan registry red
+(`findActive`) **i** poklapanje `userId` sa subjectom tokena; `null` ili tuđi red vraćaju **401
+`INVALID_CREDENTIALS` bez izdavanja tokena i bez `touch`-a**. `rememberMe` se čita iz registry reda, a ne iz
+claima, pa registry postaje autoritet i za produženje sesije. Legacy `sid === null` migracijski tok ostaje
+netaknut (kratkotrajni `provider: 'legacy'` red, nikad 30 dana).
+
+Test koji je kvar propisivao („does not revoke when there is no live registry row") je invertiran; dodati su
+slučajevi za tuđi red i za legacy tok. Realni PostgreSQL integracioni test dokazuje da `findActive` vraća
+`null` za opozvan, istekao i obrisan red, a E2E 37 poslije `revoke-others` traži `POST /auth/refresh` → 401 i
+nikakav živ `helpdesk_session` cookie.
+
+Detalj isporuke: `docs/backend/implementation/347-w214-ba-authentication-01-refresh-registry.md`.
 
 ### BA-authentication-02 — Revocation fail-open
 
