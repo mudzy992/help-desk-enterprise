@@ -53,6 +53,6 @@ describe('database runtime contract', () => {
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
     // Deliberately literal: a new migration must be a conscious edit here, not something the test infers.
-    expect(expectedSchemaMigration).toBe('20271202130000_group_fallback_cardinality');
+    expect(expectedSchemaMigration).toBe('20271202140000_w215_durable_legacy_token_cutoff');
   });
 });
