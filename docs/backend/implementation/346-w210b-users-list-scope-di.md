@@ -2,9 +2,9 @@
 
 **Paket:** W2.10b — regresija isporuke `W2.10`<br>
 **Nalaz:** `BA-users-10` (P1) — zatvoren<br>
-**Kodni commit:** `TBD`<br>
-**Finalni testani SHA:** `TBD`<br>
-**CI:** `TBD`<br>
+**Kodni commit:** `a4d6204` (+ `499c019` baseline fixture guarda)<br>
+**Finalni testani SHA:** `499c019`<br>
+**CI:** [`45639458079`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45639458079) — zelen<br>
 **DB migracije:** nema
 
 ## Nalaz
@@ -110,8 +110,26 @@ protiv **deployanog** stacka — zato E2E zelenilo zahtijeva deploy ove popravke
 
 ## CI
 
-`TBD` — upisuje se nakon zelenog runa (uključujući `app.module.optional-dependencies.spec.ts` u backend
-jobu; E2E će ostati crven do deploya, i to se piše kao crveno).
+CI [`45639458079`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45639458079) na
+`499c019` — **success**:
+
+- **Backend build + test:** success (uključuje `audit:traceability` 697/697, `prisma validate`/`db:generate`,
+  `nest build` sa specovima, lint, `test:safety-net:compile`, `test:wiring`, SLA matricu i puni unit suite —
+  dakle i `app.module.optional-dependencies.spec.ts`).
+- **Backend PostgreSQL + Redis integration:** success.
+- **Frontend build + test**, **Backend container + supply chain**, **Docs guard**, **CI gate:** success.
+- **Skipped:** `E2E critical flows`, `E2E install wizard`, `Read-only service-form pattern inventory`
+  (push profil ne pokreće E2E; E2E ide na `pull_request`/`schedule`/dispatch).
+- **Neuspjeli pokušaj:** [`45633604779`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45633604779)
+  na `a4d6204` — pao na **vlastitoj** konzistentnosti: `npm run audit:traceability:test` (i `Docs guard`) drže
+  fixture sa baseline-om 696 nalaza / P1 174, a novi `BA-users-10` je sedmi stoti i 175. P1. Popravka:
+  baseline u `scripts/check-backend-findings.test.mjs` + komentar zašto se mijenja (`499c019`). Zeleni run je
+  prvi nakon popravke.
+
+**E2E je i dalje crven i to se ne prikazuje kao zeleno:** E2E radi protiv **deployanog** stacka
+(`E2E_API_URL`/`E2E_DATABASE_URL`), ne protiv SHA-a iz runa. Dok se ova popravka ne deploya, `GET /users` na
+tom stacku vraća praznu listu i global setup pada na `EMAIL_CONFLICT` (potvrđeno na `3c4a8af`, `71dae45`,
+`ceb4a96`). Nestanak `EMAIL_CONFLICT`-a je očekivani znak da je popravka u produkciji.
 
 ## Registar nalaza
 
