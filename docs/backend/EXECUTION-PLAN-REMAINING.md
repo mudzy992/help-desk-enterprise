@@ -264,7 +264,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W2.13 | `BA-groups-03` — fallback cardinality: parcijalni unique index po OU-u, `LAST_FALLBACK_GROUP` (409) za gašenje posljednje oznake, atomska zamjena pod per-OU advisory lockom (uključujući delete i install seed) | **zatvoreno** | `4344b36`+`378f1c1` (kod + docs) | `45558147870` ✓ (prvi pokušaj `45557049318` crven: TS2353 u `groups.service.spec.ts`) |
 | W2.11b | perf follow-up na `W2.11` — revizija kataloga OJ u istom statementu kao durable čitanje sesije; 0 dodatnih upita, acceptance nepromijenjen | **zatvoreno** | `f7937fc` | `45605301271` (perf) + `45605301217` (CI) |
 | W2.10b | `BA-users-10` (P1, regresija isporuke W2.10) — `import type` + `@Optional()` tiho isključio OU scope liste korisnika; `GET /users` prazan za sve, E2E pao na `EMAIL_CONFLICT` | **zatvoreno** | `a4d6204`+`499c019` (kod + docs) | `45639458079` ✓ (prvi pokušaj `45633604779` crven: baseline fixture findings guarda) |
-| W2.14 | `BA-authentication-01` — refresh traži aktivan registry red i poklapanje subjecta; mrtav/tuđi red ⇒ 401 bez tokena i bez `touch`-a, `rememberMe` iz reda | **zatvoreno** | `dc29e55` (kod + testovi + docs) | `45656281822` ✓ + E2E `45656337091` ✓ (`specs=37`, 7/7 iz prvog pokušaja) |
+| W2.14 | `BA-authentication-01` — refresh traži aktivan registry red i poklapanje subjecta; mrtav/tuđi red ⇒ 401 bez tokena i bez `touch`-a, `rememberMe` iz reda | **zatvoreno** | `dc29e55` (kod + testovi + docs) | `45656281822` ✓ + E2E `45656337091` ✓ (`specs=37`, 7/7) + PR #28 `45660699531` ✓ (E2E podskup 27/27) |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 

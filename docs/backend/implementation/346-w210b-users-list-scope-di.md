@@ -146,7 +146,12 @@ tom stacku vraća praznu listu i global setup pada na `EMAIL_CONFLICT` (potvrđe
 3. **Ciljani dokaz:** PR #27 je mergovan (`master` = `d76ceeb`) i odmah je pokrenut dispatch
    [`45654921819`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45654921819) — `specs=15`,
    `retries=0` ⇒ **E2E critical flows: success**. Time je pad iz punog runa dokazan kao posljedica prekida
-   stacka; puni E2E set nije ponavljan u ovom paketu.
+   stacka.
+4. **Završna potvrda:** PR [#28](https://github.com/mudzy992/help-desk-enterprise/pull/28) (W2.14) pokrenuo je
+   PR profil [`45660699531`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45660699531) —
+   **cijeli CI success**, E2E podskup **27 passed / 0 failed / 0 flaky / 0 skipped** iz prvog pokušaja, sa
+   spec 15 među njima i samo jednom 15-sekundnom health epizodom. Puni E2E set (131 test) nije ponavljan
+   poslije prekida; prvi sljedeći puni run je noćni (`schedule`) ili ručni dispatch.
 
 ## Registar nalaza
 

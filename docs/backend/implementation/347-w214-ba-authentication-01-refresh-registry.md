@@ -99,6 +99,11 @@ E2E dokaz je zato pokrenut ciljano: [`45656337091`](https://github.com/mudzy992/
 u 80 s. Taj run izvršava i `revoke-others` test sa novim `POST /auth/refresh → 401` tvrđenjem i provjerom da
 živ `helpdesk_session` cookie nije izdat.
 
+PR profil je pokrenuo i svoj E2E podskup:
+[`45660699531`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45660699531) na `09eebdc` —
+**cijeli PR CI success**, `E2E critical flows` **27 passed / 0 failed / 0 flaky / 0 skipped** (uključuje
+spec 15 koji je pao u prekidu stacka 25.11.) uz samo 2 od 36 health proba palih u jednoj 15-sekundnoj epizodi.
+
 **Napomena o stacku:** stack u tom trenutku još nije imao ovaj commit (deploy je odvojen korak), a novi E2E
 assert prolazi i na starom kodu jer guard već odbija opozvanu sesiju. Zeleni assert je zato **ugovor**, ne
 dokaz same popravke — dokaz popravke su unit i integracioni testovi iznad, koji na starom kodu padaju.
