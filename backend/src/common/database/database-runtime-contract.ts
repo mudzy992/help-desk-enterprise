@@ -1,7 +1,7 @@
 import type { PoolConfig } from 'pg';
 
 export const expectedSchemaMigration =
-  '20271202130000_group_fallback_cardinality';
+  '20271202140000_w215_durable_legacy_token_cutoff';
 
 export function assertDatabaseTransport(
   connectionString: string,
