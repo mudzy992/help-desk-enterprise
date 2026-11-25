@@ -159,6 +159,11 @@ uputstva — oba su **normalno ponašanje**, ne defekti:
   (`BA-authentication-09`, P3): vidi
   [`348-w215a-auth-401-clears-cookie.md`](348-w215a-auth-401-clears-cookie.md).
 
+**Kako čitati tu provjeru poslije W2.15a:** `set-cookie: helpdesk_session=; Max-Age=0` stoji na **prvom**
+401 odgovoru poslije opoziva. Svaki sljedeći zahtjev iz tog pregledača više nema cookie, pa 401 na njemu
+**nema** `set-cookie` — to je očekivano, ne dokaz da popravka ne radi. Ako se u Network tabu gleda nekoliko
+401 odgovora, header je samo na prvom.
+
 ## Granica paketa
 
 - Popravka je u `refresh()` i u dokazima; model autorizacije, guard i revocation store nisu dirani.

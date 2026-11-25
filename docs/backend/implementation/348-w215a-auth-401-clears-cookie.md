@@ -75,8 +75,26 @@ specu ne obara test; CI radi pravi `tsc`. Pouka za sljedeće pakete: poslije izm
 `npx tsc --noEmit -p tsconfig.json` te gledati da nema grešaka **u dotaknutim fajlovima** (sandbox nema
 generisani Prisma klijent, pa je ukupan broj grešaka u projektu nepouzdan).
 
-**E2E:** novi assert (`Max-Age=0` na 401) traži **deploy** ovog commita na stack; do tada bi ciljani
-`specs=37` bio crven na tom jednom tvrđenju. Zato E2E za ovaj paket ide poslije redeploya.
+**E2E (i zašto je trebalo četiri pokušaja):**
+
+| Run | SHA | Rezultat | Uzrok |
+| --- | --- | --- | --- |
+| [`45680384007`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45680384007) | `c96238e` | ✕ | novi assert `Max-Age=0` → `false` |
+| [`45681918868`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45681918868) | `c96238e` | ✕ | isto |
+| [`45689603505`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45689603505) | `aa81e13` | ✕ | isto, iako je stack vrtio build sa popravkom |
+| [`45690239976`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45690239976) | `1003826` | ✕ | `Typecheck E2E specs` → `Cannot redeclare block-scoped variable 'extended'` (dupliran blok iz prethodne izmjene) |
+| [`45690854256`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45690854256) | `ccfdf28` | ✓ | **7 passed / 0 failed / 0 flaky** |
+
+Treći run je isključio „deploy još nije stigao" kao objašnjenje. Pravi uzrok je bio u **test klijentu**:
+`ApiClient.captureSessionCookie()` na svaki odgovor parsira `Set-Cookie`; kada vidi
+`helpdesk_session=; Max-Age=0`, postavi `sessionCookie = null`. Test je prvo zvao `/auth/security` (401 →
+popravka obriše cookie u jaru), a **onda** `/auth/refresh` — koji je zato otišao **bez cookieja**, pa 401
+nije imao šta obrisati. Tvrdnja je mjerila pogrešan poziv: popravka je radila, test nije.
+
+Ispravka: test sada eksplicitno replaya opozvani cookie na `/auth/refresh`
+(`headers: { Cookie: helpdesk_session=<old> }`), pa tek onda tvrdi da je jar prazan i da sljedeći poziv
+vraća 401. Tako su i W2.14 semantika (refresh mrtve sesije ⇒ 401 bez tokena) i W2.15a semantika (`Max-Age=0`
+u tom istom odgovoru) provjerene na istom zahtjevu.
 
 ## Dokumentacija
 
