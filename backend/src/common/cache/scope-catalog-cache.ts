@@ -44,6 +44,10 @@
  * također ide direktno u bazu preko pozivaočevog fallbacka.
  */
 
+import {
+  organizationalUnitCatalogueRevisionId,
+  readPublishedOrganizationalUnitCatalogueRevision,
+} from '../request-context/catalogue-revision-probe';
 import { getRequestId } from '../request-context/request-context.storage';
 
 type Entry<T> = { readonly expiresAt: number; readonly value: Promise<T> };
@@ -125,21 +129,28 @@ function bucketsFor(client: object): Buckets {
   return found;
 }
 
-const organizationalUnitCatalogRevisionId = 1;
-
 /**
  * Shared catalogue revision. `0n` means "no row yet" (a database migrated but
  * never written to); the migration seeds `1`.
+ *
+ * Perf kapija (2026-10-29): when the durable session read already carried the
+ * revision for this request, that value is used and **no statement is issued**.
+ * The check stays per request - it is the same read, just fused with the session
+ * query every authenticated request already pays for.
  */
 export async function readOrganizationalUnitCatalogRevision(
   prisma: RevisionSource,
 ): Promise<bigint> {
+  const published = readPublishedOrganizationalUnitCatalogueRevision();
+  if (published !== undefined) {
+    return published;
+  }
   const delegate = prisma.organizationalUnitCatalogRevision;
   if (delegate === undefined) {
     throw new Error('organizational unit catalogue revision is unavailable');
   }
   const row = await delegate.findUnique({
-    where: { id: organizationalUnitCatalogRevisionId },
+    where: { id: organizationalUnitCatalogueRevisionId },
     select: { revision: true },
   });
   return typeof row?.revision === 'bigint' ? row.revision : 0n;
@@ -155,8 +166,8 @@ export async function bumpOrganizationalUnitCatalogRevision(
   client: RevisionWriter,
 ): Promise<void> {
   await client.organizationalUnitCatalogRevision.upsert({
-    where: { id: organizationalUnitCatalogRevisionId },
-    create: { id: organizationalUnitCatalogRevisionId, revision: 1n },
+    where: { id: organizationalUnitCatalogueRevisionId },
+    create: { id: organizationalUnitCatalogueRevisionId, revision: 1n },
     update: { revision: { increment: 1n } },
   });
 }

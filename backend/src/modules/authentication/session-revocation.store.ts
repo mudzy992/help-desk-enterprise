@@ -1,6 +1,10 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  organizationalUnitCatalogueRevisionId,
+  publishOrganizationalUnitCatalogueRevision,
+} from '../../common/request-context/catalogue-revision-probe';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import type { PrincipalAuthoritySnapshot } from '../../common/principal-context/principal-context.types';
 import {
@@ -30,6 +34,39 @@ export type RevocationCheck = {
   /** Paket 2.1: session id (`sid`); null for tokens issued before the registry. */
   sessionId?: string | null;
 };
+
+/** One row of the durable session + user authority read (perf kapija 2026-10-29). */
+type DurableSessionAuthorityRow = {
+  readonly subjectId: string;
+  readonly authzVersion: number;
+  readonly isActive: boolean;
+  readonly mustChangePassword: boolean;
+  /** Catalogue-OJ revision carried by the same statement; `null` on a fresh DB. */
+  readonly catalogueRevision: bigint | number | string | null;
+};
+
+/**
+ * The passenger value is a hint for the request-scoped OJ cache, never an
+ * authority of its own: an unreadable value only means the cache falls back to
+ * its own read (`W2.11` behaviour), so a malformed value is ignored silently.
+ */
+function publishSessionCatalogueRevision(revision: bigint | number | string | null): void {
+  try {
+    if (typeof revision === 'bigint') {
+      publishOrganizationalUnitCatalogueRevision(revision);
+      return;
+    }
+    if (typeof revision === 'number' && Number.isFinite(revision)) {
+      publishOrganizationalUnitCatalogueRevision(BigInt(Math.trunc(revision)));
+      return;
+    }
+    if (typeof revision === 'string' && /^\d+$/.test(revision)) {
+      publishOrganizationalUnitCatalogueRevision(BigInt(revision));
+    }
+  } catch {
+    // A passenger value that cannot be published must not change the decision.
+  }
+}
 
 export type SessionRevocationExceptions = {
   /** Preserve every refreshed token tied to the current registry session. */
@@ -213,6 +250,11 @@ export class SessionRevocationStore {
    * `sid` tokens; legacy no-`sid` tokens get a direct user authority read. The
    * returned snapshot lets the request principal-context cache reuse the same
    * per-request database check instead of issuing a second user query.
+   *
+   * Perf kapija (2026-10-29): the statement also carries the catalogue-OJ
+   * revision (`W2.11`), so authorization reads a fresh revision without a second
+   * `SELECT` per request. The value is published to the request scope only; a
+   * missing or unreadable passenger leaves `W2.11` behaviour unchanged.
    */
   async check(input: RevocationCheck): Promise<SessionRevocationCheckResult> {
     let durableAuthority: PrincipalAuthoritySnapshot | undefined;
@@ -221,33 +263,39 @@ export class SessionRevocationStore {
     // must never resurrect a revoked session on another API instance.
     if (input.sessionId && this.prisma !== undefined) {
       try {
-        const active = await this.prisma.userSession.findFirst({
-          where: {
-            id: input.sessionId,
-            userId: input.subjectId,
-            revokedAt: null,
-            expiresAt: { gt: new Date() },
-          },
-          select: {
-            user: {
-              select: {
-                id: true,
-                authzVersion: true,
-                isActive: true,
-                mustChangePassword: true,
-              },
-            },
-          },
-          relationLoadStrategy: 'join',
-        });
-        if (active === null || active.user.id !== input.subjectId) {
+        // Perf kapija (2026-10-29): the catalogue-OJ revision rides along in this
+        // statement instead of costing its own `SELECT` per request. One row, one
+        // round trip; `expiresAt` is compared in UTC so the comparison cannot
+        // depend on the session time zone.
+        const rows = await this.prisma.$queryRaw<DurableSessionAuthorityRow[]>`
+          SELECT
+            s."userId" AS "subjectId",
+            u."authzVersion" AS "authzVersion",
+            u."isActive" AS "isActive",
+            u."mustChangePassword" AS "mustChangePassword",
+            (
+              SELECT r."revision"
+              FROM "OrganizationalUnitCatalogRevision" r
+              WHERE r."id" = ${organizationalUnitCatalogueRevisionId}
+            ) AS "catalogueRevision"
+          FROM "UserSession" s
+          JOIN "User" u ON u."id" = s."userId"
+          WHERE s."id" = ${input.sessionId}
+            AND s."userId" = ${input.subjectId}
+            AND s."revokedAt" IS NULL
+            AND s."expiresAt" > (${new Date()}::timestamptz AT TIME ZONE 'UTC')
+          LIMIT 1
+        `;
+        const active = rows[0];
+        if (active === undefined || active.subjectId !== input.subjectId) {
           return { revoked: true };
         }
+        publishSessionCatalogueRevision(active.catalogueRevision);
         durableAuthority = {
-          subjectId: active.user.id,
-          authzVersion: active.user.authzVersion,
-          isActive: active.user.isActive,
-          mustChangePassword: active.user.mustChangePassword,
+          subjectId: active.subjectId,
+          authzVersion: active.authzVersion,
+          isActive: active.isActive,
+          mustChangePassword: active.mustChangePassword,
         };
         if (!durableAuthority.isActive || durableAuthority.mustChangePassword) {
           return { revoked: true };

@@ -1,6 +1,8 @@
 import { JwtService } from '@nestjs/jwt';
 import { SessionTokenService } from './session-token.service';
 import { socketSessionInvalidationChannel } from '../../common/security/socket-session-invalidation';
+import { readOrganizationalUnitCatalogRevision } from '../../common/cache/scope-catalog-cache';
+import { runWithRequestId } from '../../common/request-context/request-context.storage';
 import {
   createMemorySessionRevocationBackend,
   createRedisSessionRevocationBackend,
@@ -147,25 +149,23 @@ describe('durable session authority', () => {
 
   it('rejects a PostgreSQL-revoked session even when Redis says it is active', async () => {
     const redis = { mget: jest.fn(async () => [null, null, null]) };
-    const prisma = { userSession: { findFirst: jest.fn(async () => null) } };
+    const prisma = { $queryRaw: jest.fn(async () => []) };
     const store = new SessionRevocationStore(redis as never, prisma as never);
     await expect(store.isRevoked(check)).resolves.toBe(true);
   });
 
   it('returns the user authority snapshot from the joined durable session read', async () => {
     const redis = { mget: jest.fn(async () => [null, null, null]) };
-    const findFirst = jest.fn(async () => ({
-      user: {
-        id: 'u1',
+    const queryRaw = jest.fn(async () => [
+      {
+        subjectId: 'u1',
         authzVersion: 7,
         isActive: true,
         mustChangePassword: false,
+        catalogueRevision: 12n,
       },
-    }));
-    const store = new SessionRevocationStore(
-      redis as never,
-      { userSession: { findFirst } } as never,
-    );
+    ]);
+    const store = new SessionRevocationStore(redis as never, { $queryRaw: queryRaw } as never);
 
     await expect(store.check(check)).resolves.toEqual({
       revoked: false,
@@ -176,9 +176,12 @@ describe('durable session authority', () => {
         mustChangePassword: false,
       },
     });
-    expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ relationLoadStrategy: 'join' }),
-    );
+    // Perf kapija (2026-10-29): one statement carries session, user authority and
+    // the catalogue-OJ revision, so authorization needs no second `SELECT`.
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    const sql = String((queryRaw.mock.calls[0] as unknown[])[0]);
+    expect(sql).toContain('"UserSession"');
+    expect(sql).toContain('"OrganizationalUnitCatalogRevision"');
   });
 
   it('creates a socket lease from durable legacy-token authority and detects authz drift', async () => {
@@ -217,16 +220,15 @@ describe('durable session authority', () => {
     const store = new SessionRevocationStore(
       redis as never,
       {
-        userSession: {
-          findFirst: jest.fn(async () => ({
-            user: {
-              id: 'u1',
-              authzVersion: 7,
-              isActive: false,
-              mustChangePassword: false,
-            },
-          })),
-        },
+        $queryRaw: jest.fn(async () => [
+          {
+            subjectId: 'u1',
+            authzVersion: 7,
+            isActive: false,
+            mustChangePassword: false,
+            catalogueRevision: 3n,
+          },
+        ]),
       } as never,
     );
 
@@ -236,24 +238,52 @@ describe('durable session authority', () => {
 
   it('fails closed when PostgreSQL session authority is unavailable', async () => {
     const redis = { mget: jest.fn(async () => [null, null, null]) };
-    const prisma = { userSession: { findFirst: jest.fn(async () => { throw new Error('postgres down'); }) } };
+    const prisma = {
+      $queryRaw: jest.fn(async () => {
+        throw new Error('postgres down');
+      }),
+    };
     const store = new SessionRevocationStore(redis as never, prisma as never);
     await expect(store.isRevoked(check)).resolves.toBe(true);
+  });
+
+  it('hands the catalogue revision to the request scope without another statement', async () => {
+    const redis = { mget: jest.fn(async () => [null, null, null]) };
+    const store = new SessionRevocationStore(
+      redis as never,
+      {
+        $queryRaw: jest.fn(async () => [
+          {
+            subjectId: 'u1',
+            authzVersion: 7,
+            isActive: true,
+            mustChangePassword: false,
+            catalogueRevision: 42n,
+          },
+        ]),
+      } as never,
+    );
+
+    await runWithRequestId('perf-fusion-request', async () => {
+      await expect(store.check(check)).resolves.toMatchObject({ revoked: false });
+      // The revision delegate is deliberately absent: a cache check that fell
+      // back to its own read would throw here, so this proves zero extra statements.
+      await expect(readOrganizationalUnitCatalogRevision({} as never)).resolves.toBe(42n);
+    });
   });
 
   it('rejects an active durable session when the Redis revocation check is unavailable', async () => {
     const redis = { mget: jest.fn(async () => { throw new Error('redis down'); }) };
     const prisma = {
-      userSession: {
-        findFirst: jest.fn(async () => ({
-          user: {
-            id: 'u1',
-            authzVersion: 0,
-            isActive: true,
-            mustChangePassword: false,
-          },
-        })),
-      },
+      $queryRaw: jest.fn(async () => [
+        {
+          subjectId: 'u1',
+          authzVersion: 0,
+          isActive: true,
+          mustChangePassword: false,
+          catalogueRevision: null,
+        },
+      ]),
     };
     const store = new SessionRevocationStore(redis as never, prisma as never);
     await expect(store.isRevoked(check)).resolves.toBe(true);

@@ -20,6 +20,15 @@ on:
     paths:
       - ".github/workflows/perf-smoke.yml"
       - "backend/src/modules/service-catalog/**"
+      # Per-request read path: the durable session read carries the OJ catalogue
+      # revision (W2.11b) and the scope catalogue cache decides what a request
+      # costs, so changes here move `db_queries_per_request`.
+      - "backend/src/modules/authentication/**"
+      - "backend/src/common/cache/**"
+      - "backend/src/common/request-context/**"
+      - "backend/src/common/database/**"
+      - "backend/src/modules/organizational-units/**"
+      - "backend/src/modules/directory-sync/**"
       # BA-notifications-10 delivery and retry lifecycle changes are runtime changes too.
       - "backend/src/modules/notifications/email/**"
       - "backend/src/modules/integration-queue/**"

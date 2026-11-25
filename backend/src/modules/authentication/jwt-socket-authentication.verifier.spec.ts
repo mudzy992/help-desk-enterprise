@@ -12,16 +12,15 @@ const SIGNING_SECRET = 'unit-test-jwt-signing-secret-value!';
 function createVerifier() {
   const redis = { mget: jest.fn(async () => [null, null, null]) };
   const prisma = {
-    userSession: {
-      findFirst: jest.fn(async () => ({
-        user: {
-          id: 'user-1',
-          authzVersion: 7,
-          isActive: true,
-          mustChangePassword: false,
-        },
-      })),
-    },
+    $queryRaw: jest.fn(async () => [
+      {
+        subjectId: 'user-1',
+        authzVersion: 7,
+        isActive: true,
+        mustChangePassword: false,
+        catalogueRevision: 1n,
+      },
+    ]),
   };
   const revocation = new SessionRevocationStore(redis as never, prisma as never);
   const sessionTokenService = new SessionTokenService(
@@ -41,16 +40,15 @@ describe('JwtSocketAuthenticationVerifier', () => {
       new SessionRevocationStore(
         { mget: jest.fn(async () => [null, null, null]) } as never,
         {
-          userSession: {
-            findFirst: jest.fn(async () => ({
-              user: {
-                id: 'user-1',
-                authzVersion: 7,
-                isActive: true,
-                mustChangePassword: false,
-              },
-            })),
-          },
+          $queryRaw: jest.fn(async () => [
+            {
+              subjectId: 'user-1',
+              authzVersion: 7,
+              isActive: true,
+              mustChangePassword: false,
+              catalogueRevision: 1n,
+            },
+          ]),
         } as never,
       ),
     );

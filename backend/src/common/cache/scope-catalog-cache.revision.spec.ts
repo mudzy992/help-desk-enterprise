@@ -1,3 +1,4 @@
+import { publishOrganizationalUnitCatalogueRevision } from '../request-context/catalogue-revision-probe';
 import { runWithRequestId } from '../request-context/request-context.storage';
 import {
   bumpOrganizationalUnitCatalogRevision,
@@ -68,6 +69,42 @@ describe('scope catalogue revision (W2.11)', () => {
     });
 
     expect(findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('issues no revision statement when the request already carries it', async () => {
+    const database = createDatabase({ revision: 7n });
+    database.rows = [{ id: 'ou-a', ouPath: 'OU=A' }];
+    const { client, findMany } = createClient(database);
+
+    await withRequest(async () => {
+      // The durable session read of this request carried revision 7.
+      publishOrganizationalUnitCatalogueRevision(7n);
+      expect(await loadCachedOrganizationalUnitPath(client as never, 'ou-a')).toBe('OU=A');
+      expect(await loadCachedOrganizationalUnitPath(client as never, 'ou-a')).toBe('OU=A');
+    });
+
+    expect(database.revisionReads).toBe(0);
+    expect(findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a carried revision that no longer matches, and reloads the snapshot', async () => {
+    const database = createDatabase({ revision: 8n });
+    database.rows = [{ id: 'ou-a', ouPath: 'OU=A' }];
+    const { client, findMany } = createClient(database);
+
+    await withRequest(async () => {
+      publishOrganizationalUnitCatalogueRevision(7n);
+      expect(await loadCachedOrganizationalUnitPath(client as never, 'ou-a')).toBe('OU=A');
+    });
+    // Another instance reparented the unit; this request's session read saw 8.
+    await withRequest(async () => {
+      publishOrganizationalUnitCatalogueRevision(8n);
+      database.rows = [{ id: 'ou-a', ouPath: 'OU=A/B' }];
+      expect(await loadCachedOrganizationalUnitPath(client as never, 'ou-a')).toBe('OU=A/B');
+    });
+
+    expect(database.revisionReads).toBe(0);
+    expect(findMany).toHaveBeenCalledTimes(2);
   });
 
   it('reloads on the next request after another instance bumps the revision', async () => {
