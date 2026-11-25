@@ -1,6 +1,7 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import type { PrincipalContext } from '../../common/principal-context/principal-context.types';
 import { AuthenticationError } from './authentication.error';
+import { HttpRequestExceptionFilter } from '../../common/request-context/http-exception.filter';
 import { SESSION_COOKIE_NAME } from './session-cookie';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
 
@@ -205,5 +206,37 @@ describe('SessionAuthenticationGuard clears the dead session cookie', () => {
     ).resolves.toBe(true);
 
     expect(headers['Set-Cookie']).toBeUndefined();
+  });
+
+  /*
+    The unit assertions above only prove what the guard writes. This one runs the
+    real exception filter over the same response object, because that is the last
+    place a header could be dropped before the browser sees it.
+  */
+  it('keeps the header through the HTTP exception filter', async () => {
+    load.mockResolvedValue({ ...principal, isActive: false });
+    const headers: Record<string, string> = {};
+    const response = {
+      setHeader: (name: string, value: string) => {
+        headers[name] = value;
+      },
+      status: () => ({ json: () => undefined }),
+    };
+    const request = { method: 'GET', headers: { cookie: cookieHeader } };
+    const host = {
+      getType: () => 'http',
+      switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
+    } as never;
+
+    const error = await guard
+      .canActivate(host)
+      .then(() => null)
+      .catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    new HttpRequestExceptionFilter().catch(error, host);
+
+    expect(headers['Set-Cookie']).toContain('helpdesk_session=;');
+    expect(headers['Set-Cookie']).toContain('Max-Age=0');
   });
 });

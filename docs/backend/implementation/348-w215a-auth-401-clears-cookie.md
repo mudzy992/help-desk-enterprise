@@ -47,7 +47,10 @@ Unit (`backend/src/modules/authentication/session-authentication.guard.cookie.sp
 - `drops the cookie when the session token no longer verifies` — isti header kroz `AuthenticationError`;
 - `leaves a bearer caller alone…` — 401 bez `Set-Cookie`;
 - `does not clear the cookie on the origin refusal…` — `403 FORBIDDEN_ORIGIN` bez `Set-Cookie`;
-- `does not clear the cookie on a successful request` — 200 putanja bez `Set-Cookie`.
+- `does not clear the cookie on a successful request` — 200 putanja bez `Set-Cookie`;
+- `keeps the header through the HTTP exception filter` — guard postavi header, pa ga **pravi**
+  `HttpRequestExceptionFilter` obradi nad istim response objektom; `Set-Cookie` preživi. Time je isključena
+  mogućnost da se header izgubi između guarda i pregledača (mock sam po sebi to ne bi dokazao).
 
 Sa starim guardom padaju **2** testa (prvi i drugi); sa popravkom **18/18** u dva guard speca prolazi.
 
