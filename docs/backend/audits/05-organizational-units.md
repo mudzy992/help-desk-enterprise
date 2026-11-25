@@ -148,6 +148,10 @@ Granica: `BA-organizational-units-06` (globalni tree read za role bez manage per
 
 Granica: `-03` (konkurentni hierarchy updatei) i `-05` (best-effort principal invalidacija) ostaju otvoreni; `BA-groups-02` (actor-group keš) je ista klasa problema u drugom modulu.
 
+### Implementacijski dodatak — W2.11b (perf), 2026-10-29
+
+Revizijska provjera iz `W2.11` plaćala je **jedan dodatni `SELECT` po zahtjevu** koji čita OJ scope, pa je Perf smoke pao (`db_queries_per_request` 2,592 prema kapiji 2,1; `/tickets` 3,211 prema 2,470). U [`345-w211b-ou-revision-request-fusion.md`](../implementation/345-w211b-ou-revision-request-fusion.md) revizija je **fuzovana** u durable čitanje sesije koje `SessionRevocationStore.check()` ionako izvršava na svakom autentifikovanom zahtjevu: jedan statement nosi `UserSession ⋈ User` i scalar subquery na singleton reviziju, a vrijednost se objavljuje u request scope za keš kataloga. Acceptance je nepromijenjen — provjera ostaje po zahtjevu, bez TTL-a i bez događaja; zahtjev koji započne nakon commita reparenta čita novu reviziju u prvom statementu. `W2.11` bump ugovor (ista transakcija kao topološki write) i fail-closed fallback nisu dirani.
+
 ## 8. Testovi i izvršeni gateovi
 
 ### 8.1. Postojeći dokazi

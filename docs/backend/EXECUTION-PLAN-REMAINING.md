@@ -248,7 +248,6 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | Multi-instance dokaz (realtime, Redis revokacija) | `W2.15`, W9 paketi | druga instanca u testnom okruženju ili dokumentovana granica |
 | Vanjski SIEM endpoint | `W3.21`–`W3.23` | potrošni endpoint za test; bez njega dokaz je lokalni mock i tako se piše |
 | Install wizard E2E (51/52/53) | W8 paketi (`31 — install`) | odluka: reset baze ili `--include-step-markers` |
-| Perf budžet `db_queries_per_request` (2,592 > 2,1) | follow-up na `W2.11` (OU scope keš) | regresiju uveo `ca75ac7` (prvi crveni perf `45507674274`; zadnji zeleni `45496189459` na `6d8f33c`); traži spajanje `SELECT OrganizationalUnitCatalogRevision` sa postojećim čitanjem, ne izmjenu grupa |
 
 ## 12. Ledger (ažurira se u istom commitu kao paket)
 
@@ -263,6 +262,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W2.11 | `BA-organizational-units-02` — dijeljena revizija OU kataloga; bump u transakciji topološkog writea, keš samo uz poklapajuću reviziju, fail-closed na nečitljivu reviziju | **zatvoreno** | `4c25b41` (kod + docs) | `45504527764` ✓ (prvi pokušaj `45503790822` crven: TS2353 u in-memory klijentu) |
 | W2.12 | `BA-groups-01` — inventar zavisnosti prije brisanja grupe: 16 relacija razvrstano u block/detach/cascade, 409 sa `blockers[]`, audit `dependencies`, read-only `GET /groups/:groupId/delete-impact` + preview u dijalogu | **zatvoreno** | `354d391` (kod + docs) | `45509708483` ✓ (prvi pokušaj) |
 | W2.13 | `BA-groups-03` — fallback cardinality: parcijalni unique index po OU-u, `LAST_FALLBACK_GROUP` (409) za gašenje posljednje oznake, atomska zamjena pod per-OU advisory lockom (uključujući delete i install seed) | **zatvoreno** | `4344b36`+`378f1c1` (kod + docs) | `45558147870` ✓ (prvi pokušaj `45557049318` crven: TS2353 u `groups.service.spec.ts`) |
+| W2.11b | perf follow-up na `W2.11` — revizija kataloga OJ u istom statementu kao durable čitanje sesije; 0 dodatnih upita, acceptance nepromijenjen | **zatvoreno** | `f7937fc` | `45605301271` (perf) + `45605301217` (CI) |
 
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 

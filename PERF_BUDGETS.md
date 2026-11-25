@@ -160,3 +160,28 @@ Automatski Perf smoke [42289613508](https://github.com/mudzy992/help-desk-enterp
 Najnoviji route volumen i prosjeci: `/tickets` 2,471 / 10.389; `/notifications/unread-count` 2,122 / 10.628; `/reports/dashboard/summary` 1,080 / 9.998; `/tickets/inbox` 2,006 / 8.677; `/services` 10,002 / 1.258; `/search` 3,017 / 238. Zato `/services` jeste veliki ponderisani doprinos — oko 2,5 % zahtjeva i 0,249 upita po zahtjevu globalnog prosjeka — ali nije jedini route iznad 2,1 (`/tickets` i `/notifications/unread-count` su takođe iznad), pa podaci ne potvrđuju ekskluzivan uzrok.
 
 Ograničeni trace bez vrijednosti upita, dodat u workflow na `d17b233`, potvrđuje 10 SQL statementa po `/services` zahtjevu: 1 `UserSession` za auth/principal-context, 2 `Service` (count + page), 2 `ServiceDowntimeWindow`, te po 1 `Ticket`, `ServiceIncidentService`, `FormVersion`, `ServiceCategory` i `ServiceOnboarding`. Oznake keša principal-context nisu SQL. Dakle BA-10 katalog read je **9** statementa (ispod limita ≤10 koji isključuje auth); HTTP ruta ukupno je 10. Jedan statement manje po svakom od 1.258 `/services` zahtjeva projektuje prosjek na približno **2,103** — i dalje iznad kapije; to je aritmetička procjena, ne izmjerena popravka. Kapija 2,1 i cilj 2,0 nisu mijenjani; ciljna baza nije korištena ni mijenjana. Automatski Perf workflow je koristio samo svoje disposable CI servise i izvršio postojeći migration step nad tom privremenom bazom; nije bilo ručnog CI/E2E dispatcha. Zaključak: podaci pokazuju ponderisani doprinos više skupih ruta, bez izolovanog uzroka; optimizacija zahtijeva dokazanu redukciju rada na rutama, a ne promjenu praga ili profila koji skriva zahtjeve.
+### 5.4 W2.11 revizija kataloga OJ: +0,52 upita, pa fuzija sa čitanjem sesije (2026-10-29)
+
+`W2.11` (`ca75ac7`) je po zahtjevu dodao `SELECT OrganizationalUnitCatalogRevision` (PK lookup) da bi keš
+kataloga OJ bio svjež i na instancama koje nisu obradile write — acceptance iz audita 05 traži da prvi
+naredni zahtjev nakon reparenta vidi novi scope, **uključujući event-delivery fault**. Cijena je bila vidljiva
+u kapiji: zadnji zeleni run [`45496189459`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45496189459)
+(`6d8f33c`, W2.10) mjerio je **2,072** / 50.792 zahtjeva; prvi crveni
+[`45507674274`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45507674274) (`ca75ac7`) **2,591**
+/ 68.867, a [`45557049338`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45557049338)
+(`4344b36`, W2.13) **2,592** / 69.243. Delta po rutama: `/tickets` 2,470 → 3,213; `/tickets/inbox` 2,008 →
+2,975; `/search` 3,000 → 4,034; detalj tiketa ≈1,98 → 2,09; `/services` (8,00) i `/reports/dashboard/summary`
+(1,08) nepromijenjeni jer ne čitaju keš kataloga. Kapija nije dirana.
+
+`W2.11b` (`f7937fc`, [`345-w211b-ou-revision-request-fusion.md`](docs/backend/implementation/345-w211b-ou-revision-request-fusion.md))
+uklanja cijenu bez popuštanja acceptance: revizija se čita u **istom** statementu koji
+`SessionRevocationStore.check()` već izvršava na svakom autentifikovanom zahtjevu
+(`UserSession ⋈ User` + scalar subquery), pa provjera ostaje po zahtjevu, bez TTL-a i bez novog kanala
+invalidacije. Request scope nosi vrijednost do keša; worker/socket/legacy putanje zadržavaju `W2.11` fallback
+(direktno čitanje). Prag 2,1 i cilj 2,0 ostaju nepromijenjeni — popravka je uklonjen rad, ne pomjeren prag.
+
+Izmjereno nakon popravke, Perf smoke [`45605301271`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45605301271)
+(`f7937fc`): **2,072** / 50.624 zahtjeva (p95 3, max 34), `/tickets` 2,472, `/tickets/inbox` 2,008,
+`/search` 3,000, detalj ≈1,99, `/services` 8,003 — dakle natrag na vrijednosti zadnjeg zelenog runa
+(`2,072` / 50.792), bez promjene praga. Kapija je zelena.
+
