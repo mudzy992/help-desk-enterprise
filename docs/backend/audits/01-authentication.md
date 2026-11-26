@@ -147,7 +147,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | zatvoreno (W2.18) | M        |
 | BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | zatvoreno (W2.19) | M        |
 | BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | zatvoreno (W2.20) | M        |
-| BA-authentication-08 | P3       | Clone detekcija jednog passkeya briše sve korisnikove passkeye                 | otvoreno | S        |
+| BA-authentication-08 | P3       | Clone detekcija jednog passkeya briše sve korisnikove passkeye                 | zatvoreno (W2.21) | S        |
 | BA-authentication-09 | P3       | 401 guarda ne briše mrtav `helpdesk_session` cookie                            | zatvoreno (W2.15a) | S        |
 
 ## 9. Detaljni nalazi
@@ -321,6 +321,25 @@ Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-dura
 - **Owner:** backend platform/CI owner.
 
 ### BA-authentication-08 — Clone incident briše sve passkeye
+
+#### Implementacijski status Vala 2 / W2.21 (2026-10-29)
+
+- Clone grana više ne radi `deleteMany({ where: { userId } })`; briše **samo** pogođeni red:
+  `deleteMany({ where: { id, userId } })` (`passkey-credential.service.ts`, `revokeClonedCredential`). Uslov
+  `id` u predikatu štiti paralelnu re-registraciju istog `credentialId` od brisanja novog reda.
+- Incident se čuva: nova akcija `auth.mfa_passkey_clone_detected` (kompatibilnost `user`, senzitivnost
+  `restricted`, allowlist ključeva u schema registru) nosi `aaguid`, `credentialFingerprint`
+  (`sha256(credentialId)[0:16]`), `deviceName`, `ip`, `presentedCounter`, `storedCounter`,
+  `remainingPasskeys`, `removed`. Vlasnik dobija `account.passkeyCloneDetected` (always-on kategorija
+  `account.security`) sa nazivom uređaja koji treba ponovo registrovati; `warn` log nosi isti incident.
+- Counter se ne pomjera unazad — clone put i dalje izlazi prije W2.18 CAS upisa; gubitnik race-a nije clone i
+  ne briše ništa (`401 MFA_INVALID_CODE`). Recovery kodovi i ostali passkeyi ostaju valjani; klijent i dalje
+  dobija `401 PASSKEY_CLONED`.
+- Dokaz: unit 26/26 (`revokes only the cloned credential…`, `keeps the incident: audit snapshot and owner
+  notification…`, `does not revoke anything when the counter simply advanced`) + novi PostgreSQL
+  integracijski spec `passkey-clone-revocation.integration.spec.ts` (drugi credential ostaje sa `counter 7`,
+  audit red i notifikacija postoje, metadata ne sadrži credential ID).
+- Detalj isporuke: `docs/backend/implementation/355-w221-ba-authentication-08-passkey-clone-revocation.md`.
 
 - **Dokaz:** stale counter jedne credential grane izvršava `deleteMany({where:{userId}})`.
 - **Uticaj:** greška ili klon jednog authenticatora uklanja sve nezavisne passkeye, povećava lockout/DoS površinu i otežava forenziku.
