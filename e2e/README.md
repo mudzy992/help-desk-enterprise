@@ -46,6 +46,13 @@ skipped the wizard job along with the two gates). Set `skip_gates=false` when a 
 always apply. The skipped jobs show up as `skipped` in the `CI gate` summary, which still fails on a real
 failure anywhere.
 
+**`Backend PostgreSQL + Redis integration` (~20 min) is gated the same way (W2.23).** A `pull_request` runs it when
+the diff touches code; a **push** never starts it, because the pull request for the same SHA runs it and the push
+evidence stays build/test/container/frontend/docs; the nightly `schedule` always runs it; a dispatch takes
+`backend_integration=auto|skip|force` (default `auto`, `skip` for triage, `force` for a docs-only diff). One package
+therefore costs **one** integration run instead of one per push, while `CI gate` still fails on a real failure and
+shows a skipped job as `skipped`, never as a pass.
+
 A push to `master` does **not** run e2e: Coolify is rebuilding that very stack from the same commit at that
 moment, so the result would describe a half-deployed environment. The nightly full run covers the deployed
 revision once the stack is quiet.
@@ -426,6 +433,10 @@ Three things in the 5.4 package need more care than the average spec, because th
   actor another spec created. **Blast radius:** on a stack that people really use, this spec signs every local
   account out and forces a password change at their next sign-in (SuperAdmins and Microsoft accounts excepted).
   It belongs on the dedicated E2E stack — never run the full suite against an installation with real users.
+  **Since W2.23** the action is also honest about its own outcome: the body carries `failedUsers` (block could not
+  be committed — the account is still usable), `pendingUsers` (block committed, registry marker pending) and
+  `status`, and a run that needs a repeat answers **202 `PARTIAL`** instead of `200`. The spec pins the flag as
+  consistent with the counters; a healthy stack answers `200 COMPLETE`.
 - **48 — the CAPTCHA check must be **off** for a run, and the spec never turns it on.** `private.security.captcha.provider`
   is a live setting every sign-in reads, and the suite signs in dozens of times from one IP address. CI run 38296071922
   (2026-10-12) showed both halves of the trap: the first version of spec 48 switched the check on for the length of one

@@ -120,6 +120,8 @@ Direktni specovi pokrivaju:
 - passkey UV, no-credential, assertion failure, RP failure, purpose/session isolation i single-use;
 - rate-limit bounds, cross-field validaciju, passkey/TOTP i settings batch;
 - bulk eligibility, SuperAdmin izuzeće, idempotency, revocation, partial count, privacy-clean audit i swallowed cache/audit failure;
+- (W2.23) bulk durable blok u transakciji po targetu, registry outage sa iskrenim `PARTIAL` (202), rollback fault
+  jednog targeta, PostgreSQL integracija za sva tri slučaja i controller 200/202 ugovor;
 - controller guard metadata, journal mapping i metric/status odgovore.
 
 E2E 37/39 dokazuju session/MFA/revocation osnove; E2E 46 pravi realnu WebAuthn ceremoniju virtualnim authenticatorom; E2E 47 dokazuje UI update, bounds, identity dialog, primjenu limita bez restarta, 429 i metric. Ne pokrivaju MFA-disabled SuperAdmin rate-limit write, caller-controlled privileged purpose, role/credential epoch, bulk registry outage recovery, konkurentnu role promjenu ni audit outage.
@@ -158,7 +160,7 @@ Korisnik je potvrdio prolaz kompletne aktuelne CI/Playwright kolekcije 01–56. 
 | ID             | Severity | Nalaz                                                      | Status   |
 | -------------- | -------- | ---------------------------------------------------------- | -------- |
 | BA-security-01 | P1       | MFA-disabled SuperAdmin mijenja rate limite bez step-upa   | zatvoreno |
-| BA-security-02 | P1       | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | otvoreno |
+| BA-security-02 | P1       | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | zatvoreno (W2.23) |
 | BA-security-03 | P1       | Privilegovani auth audit je best-effort i može nestati     | otvoreno |
 | BA-security-04 | P2       | Klijent sam mintuje capability purpose                     | otvoreno |
 | BA-security-05 | P2       | Marker nije vezan za credential/authorization epoch        | otvoreno |
@@ -188,7 +190,28 @@ Preostali durable bulk operation, audit atomarnost, authorization epoch, TOCTOU,
 
 ### BA-security-02 — Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara
 
-**Severity/status:** P1, otvoreno.  
+#### Implementacijski status Vala 2 / W2.23 (2026-10-29)
+
+- Novi red u `BulkPasswordResetService.execute`: **durable blok prvi, po targetu, u jednoj transakciji**
+  (`mustChangePassword` kondicionalno → `tokensInvalidBefore = now` + `exceptJti = null` → `UserSession` revokacija
+  sa `revokedReason='admin'` i akterom). Tek poslije commita ide Redis akcelerator (`sessionRegistry.revokeAll`),
+  i to samo za targete čiji je blok commit-ovan.
+- Registry kvar više ne ostavlja upotrebljiv račun: cutoff i `revokedAt` su već u bazi (**enforcement blokira
+  principal prije registry cleanup-a**), a propust akceleratora se broji kao `pendingUsers`.
+- Per-target stanje i retry: `failedUsers` (blok nije commit-ovan ⇒ rollback cijelog targeta, račun ostaje
+  upotrebljiv do ponovnog runa) nasuprot `pendingUsers` (blokiran, akcelerator čeka). `status: 'COMPLETE' |
+  'PARTIAL'`; `PARTIAL` ⇒ **HTTP 202**, nikad `200`.
+- Bulk reset **ne** briše MFA (prinudna promjena lozinke nije izmjena identiteta) — W2.22 `cutAccountCredentials`
+  se ovdje ne koristi.
+- Dokaz: unit 14 testova (uključuju registry outage, fault/rollback targeta i idempotentni repeat) + controller
+  3 testa (200 vs 202) + **novi PostgreSQL integracijski spec (3 slučaja)**; E2E `37` tvrdi konzistentnost
+  `status`-a sa brojačima. U istom paketu registrovan je i W2.22 boundary integration spec u izolovani runner
+  (do tada ga CI nije izvršavao) uz guard koji takav propust sprječava.
+- Dokaz u CI-ju: PR run `45876845930` — `Backend PostgreSQL + Redis integration` zelena sa oba nova
+  integraciona spec-a, E2E 27/27; push run `45876839098` zelen sa integracijom `skipped` (gate je PR).
+- Detalj isporuke: `docs/backend/implementation/357-w223-ba-security-02-bulk-reset-durable-block.md`.
+
+**Severity/status:** P1, zatvoreno (W2.23).  
 **Dokaz:** `updateMany` flagova prethodi per-user `sessionRegistry.revokeAll`; exception samo povećava `failedUsers`, a HTTP odgovor ostaje 200.  
 **Uticaj/root cause:** upravo tokom incidenta kompromitovana postojeća sesija može nastaviti raditi; DB flag i registry side effect nemaju fail-closed/durable koordinaciju.  
 **Korekcija:** durable operation/outbox, per-target stanje i retry; response `202`/operation status ili eksplicitni non-success za parcijalno stanje; enforcement sloj treba blokirati flagged principal i prije registry cleanup-a.  

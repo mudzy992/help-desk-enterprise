@@ -134,6 +134,12 @@ export const integrationSpecs = Object.freeze([
   "src/cli/cli-demo-inventory.integration.spec.ts",
   // W7.106 (BA-reports-16): one „send now” command, one run — the unique command key under a concurrent burst.
   "src/modules/reports/schedules/report-schedule-run-now-idempotency.integration.spec.ts",
+  // W2.22 (BA-users-03): a deactivation/link/unlink commits its cutoff and its
+  // revocations with the transition, or not at all.
+  "src/modules/users/account-security-boundary.integration.spec.ts",
+  // W2.23 (BA-security-02): a registry outage leaves every target unusable, a
+  // failed block rolls back whole, and both are reported as PARTIAL.
+  "src/modules/security/bulk-password-reset.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

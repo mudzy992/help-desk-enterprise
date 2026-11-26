@@ -147,7 +147,13 @@ export class AccountSecurityBoundaryService implements AccountSecurityBoundaryPo
       sessions: cut.sessions,
       passkeys: cut.passkeys,
       mfaFactors: cut.mfaFactors,
-      recoveryCodes: cut.recoveryCodes,
+      /*
+        A count, not a code — and deliberately not named `recoveryCodes`: the audit
+        policy redacts any key matching `recovery.?code` (secret material), which
+        turned this number into `[REDACTED]` and cost the entry its evidence. The
+        PostgreSQL integration spec pins the surviving number.
+      */
+      recoveryFactors: cut.recoveryCodes,
     });
     const removedFactors = cut.passkeys + cut.mfaFactors + cut.recoveryCodes;
     if (removedFactors > 0) {

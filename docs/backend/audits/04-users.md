@@ -218,6 +218,9 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
   link-transakcije; `unlinkUserDirectoryIdentity` cut u `beforePasswordUpdate` hooku (transakcija temporary
   passworda). Reaktivacija ne radi cut i ne podiže cutoff — stari tokeni ostaju mrtvi.
 - Razlozi revokacije: `deactivated` (postojao, prvi put upotrijebljen), `identity_link`, `identity_unlink`.
+- Audit metadata ključ za uklonjene recovery kodove je **`recoveryFactors`** (ne `recoveryCodes`): policy redaktuje
+  svaki ključ sa `recovery.?code`, pa je broj završavao kao `[REDACTED]` (ispravka W2.23, našao registrovani
+  PostgreSQL spec).
 - Dokaz: unit 11 testova u tri nova spec-a (uključuju fault test: cut koji baci ⇒ nema 2xx) + PostgreSQL
   integracija (deaktivacija, rollback, link sa padom Redisa, unlink, reaktivacija bez oživljavanja tokena/faktora).
 - Detalj isporuke: `docs/backend/implementation/356-w222-ba-users-03-account-security-boundary.md`.

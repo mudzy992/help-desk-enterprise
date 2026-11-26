@@ -13,6 +13,9 @@ export const knownAuditMetadataFields = [
   "mfaFactors",
   "passkeys",
   "recoveryCodes",
+  // W2.22 follow-up: the transition audit names the removed recovery-code count
+  // with this key, because `recoveryCodes` is redacted by the audit policy.
+  "recoveryFactors",
   "sessions",
   "transition",
   "B1",
@@ -143,6 +146,9 @@ export const knownAuditMetadataFields = [
   "changedUsers",
   "revokedSessions",
   "failedUsers",
+  // W2.23: the bulk reset names the targets whose registry marker is still
+  // pending. The terminal `status` field already exists in this catalogue.
+  "pendingUsers",
   "periodStart",
   "permissionMatchMode",
   "provider",

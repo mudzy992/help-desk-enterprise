@@ -2,8 +2,8 @@
 
 **Paket:** W2.22 — granica pristupa se prekida u istoj transakciji<br>
 **Nalaz:** `BA-users-03` (P1) — **zatvoren**<br>
-**Kodni commit:** `10a2981`<br>
-**Finalni testani SHA:** `f473447`<br>
+**Kodni commit:** `df69eda`<br>
+**Finalni testani SHA:** `eacc528` (docs commit; kodni `df69eda`)<br>
 **CI:** [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219995) — **zelen** (svi poslovi, E2E 27/27, bez reruna)<br>
 **DB migracije:** nema (nema promjene šeme)
 
@@ -87,7 +87,7 @@ izdaje pri sljedećem upisu MFA.
 ## CI i testni dokaz
 
 PR run [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219995) na
-`f473447` — **svi poslovi zeleni iz prvog pokušaja, bez reruna**:
+`eacc528` — **svi poslovi zeleni iz prvog pokušaja, bez reruna**:
 
 | Posao | Rezultat |
 | --- | --- |
@@ -103,6 +103,25 @@ PR run [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/
 | k6 smoke [`45829219934`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219934) | success |
 
 **Neuspjeli pokušaji:** nema — paket je zelen iz prvog prolaza, bez ijednog reruna.
+
+## Ispravka dokaza (W2.23, 2026-10-29)
+
+`account-security-boundary.integration.spec.ts` **nije bio registrovan** u `backend/scripts/run-isolated-integration.mjs`,
+pa ga izolovani PostgreSQL runner u ovom CI prolazu nije izvršio (u `Backend build + test` se preskočio bez
+`PRIVACY_IT_DATABASE_URL`). Registrovan je u W2.23, zajedno sa guard testom koji takav propust sprječava — i
+**prvi stvarni prolaz kroz PostgreSQL našao je dva defekta** koje lokalni skip nije mogao pokazati:
+
+1. **Dokaz je tvrdio više nego što je mjerio.** Spec je čitao `prisma.auditLog` red, a injektirao je *snimajući*
+   lažni notifier — pa tri od pet slučajeva nisu mogla proći (red nikad nije nastajao). Ispravka: boundary se
+   gradi sa **pravim** `AccountSecurityNotifier(prisma)`, pa su audit red i obavještenje vlasnika stvarni redovi;
+   deaktivacija sada tvrdi i `Notification` red sa dedupe ključem
+   `security-transition:<userId>:deactivated:<cutoffAt>`.
+2. **Count je nestajao u redakciji.** Audit policy redaktuje svaki ključ koji odgovara `recovery.?code`, pa je
+   `recoveryCodes: 2` u metadata postajalo `"[REDACTED]"` — audit trag je gubio broj. Ključ je preimenovan u
+   **`recoveryFactors`** (broj, ne kod); allowlista šeme, frontend katalog/polja i labele `bs`/`en` su ažurirani.
+
+Ostali dokazi iz tabele iznad (unit/controller/frontend/E2E) su izvršeni kako je navedeno. Prvi stvarni
+PostgreSQL prolaz (PR run `45876845930`, SHA `7a925419`) je sada **zelen: 5/5**.
 
 ## Registar nalaza
 

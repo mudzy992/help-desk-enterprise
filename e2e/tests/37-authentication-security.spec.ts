@@ -338,6 +338,9 @@ type BulkPasswordResetResult = {
   readonly changedUsers: number;
   readonly revokedSessions: number;
   readonly failedUsers: number;
+  /** W2.23: an account blocked durably whose registry marker is still pending. */
+  readonly pendingUsers: number;
+  readonly status: 'COMPLETE' | 'PARTIAL';
 };
 
 test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
@@ -389,6 +392,12 @@ test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
       expect(first.changedUsers).toBeGreaterThan(0);
       expect(first.eligibleUsers).toBeGreaterThanOrEqual(first.changedUsers);
       expect(first.failedUsers).toBe(0);
+      // W2.23: the run names its own terminal state, and the flag is consistent
+      // with the counters (a run that needs a repeat is `PARTIAL`, HTTP 202).
+      expect(['COMPLETE', 'PARTIAL']).toContain(first.status);
+      expect(first.status).toBe(
+        first.failedUsers === 0 && first.pendingUsers === 0 ? 'COMPLETE' : 'PARTIAL',
+      );
 
       // The password itself is untouched, but the next sign-in is forced through
       // the change screen; the live session of the affected account is gone.

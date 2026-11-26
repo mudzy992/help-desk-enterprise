@@ -184,7 +184,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 08 | `audit-log` | `BA-audit-log-10` | P3 | Cursor/ID/query stringovi nemaju format i dužinske granice | zatvoreno | [08-audit-log.md](audits/08-audit-log.md) |
 | 08 | `audit-log` | `BA-audit-log-11` | P3 | Action/entityType su otvoreni stringovi bez runtime kataloga/schema versiona | zatvoreno | [08-audit-log.md](audits/08-audit-log.md) |
 | 09 | `security` | `BA-security-01` | P1 | MFA-disabled SuperAdmin mijenja rate limite bez step-upa | zatvoreno | [09-security.md](audits/09-security.md) |
-| 09 | `security` | `BA-security-02` | P1 | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | otvoreno | [09-security.md](audits/09-security.md) |
+| 09 | `security` | `BA-security-02` | P1 | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | zatvoreno | [09-security.md](audits/09-security.md) |
 | 09 | `security` | `BA-security-03` | P1 | Privilegovani auth audit je best-effort i može nestati | otvoreno | [09-security.md](audits/09-security.md) |
 | 09 | `security` | `BA-security-04` | P2 | Klijent sam mintuje capability purpose | otvoreno | [09-security.md](audits/09-security.md) |
 | 09 | `security` | `BA-security-05` | P2 | Marker nije vezan za credential/authorization epoch | otvoreno | [09-security.md](audits/09-security.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **351**
-- Otvoreno: **347** (P1 78 / P2 189 / P3 80)
+- Zatvoreno: **352**
+- Otvoreno: **346** (P1 77 / P2 189 / P3 80)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

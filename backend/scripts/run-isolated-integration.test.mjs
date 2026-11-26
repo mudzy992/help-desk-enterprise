@@ -317,6 +317,23 @@ test("svaki knowledge-base PostgreSQL integration spec je registrovan za CI (BA-
   );
 });
 
+test("svaki users/security PostgreSQL integration spec je registrovan za CI (W2.22/W2.23)", () => {
+  // Guard against the W2.22 slip: a spec that exists but is not listed here is
+  // silently skipped by the isolated runner, so a package can be "green" without
+  // its real-database proof ever executing.
+  for (const directory of ["src/modules/users", "src/modules/security"]) {
+    const discovered = discoverIntegrationSpecs(path.join(backendRoot, directory)).sort();
+    const registered = integrationSpecs
+      .filter((spec) => spec.startsWith(`${directory}/`) && spec.endsWith(".integration.spec.ts"))
+      .sort();
+    assert.deepEqual(
+      registered,
+      discovered,
+      `svaki ${directory} integration fajl mora biti izvršen u isolated PostgreSQL runneru`,
+    );
+  }
+});
+
 test("mijenja samo database pathname u URL-u", () => {
   const result = new URL(withDatabaseName(
     "postgresql://user:pass@127.0.0.1:5432/template?schema=public",

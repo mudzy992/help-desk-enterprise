@@ -110,7 +110,8 @@ describe('AccountSecurityBoundaryService.afterCommit', () => {
         sessions: 2,
         passkeys: 1,
         mfaFactors: 1,
-        recoveryCodes: 8,
+        // The audit key avoids the `recovery.?code` redaction pattern.
+        recoveryFactors: 8,
       },
     );
     expect(notifier.notify).toHaveBeenCalledWith(

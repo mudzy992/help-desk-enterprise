@@ -215,12 +215,21 @@ export function AdminBulkPasswordResetCard() {
         changed: response.changedUsers,
         revoked: response.revokedSessions,
       });
-      setResult(
-        response.failedUsers > 0
-          ? `${summary} ${t("admin.security.bulkPartial", { failed: response.failedUsers })}`
-          : summary,
+      // A PARTIAL run (HTTP 202) is never presented as done: the counters name
+      // what is outstanding and the admin is told to run it again.
+      const details: string[] = [];
+      if (response.failedUsers > 0) {
+        details.push(t("admin.security.bulkPartial", { failed: response.failedUsers }));
+      }
+      if (response.pendingUsers > 0) {
+        details.push(t("admin.security.bulkPending", { pending: response.pendingUsers }));
+      }
+      setResult(details.length > 0 ? `${summary} ${details.join(" ")}` : summary);
+      toast(
+        details.length > 0
+          ? { tone: "warning", title: t("admin.security.bulkPartialToast") }
+          : { tone: "success", title: t("admin.security.bulkDoneToast") },
       );
-      toast({ tone: "success", title: t("admin.security.bulkDoneToast") });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         throw error;
