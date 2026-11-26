@@ -9,6 +9,9 @@ name: CI
 #     other code gates; package-level E2E is dispatched with targeted `specs`.
 #     Docs-only commits are skipped (paths-ignore).
 #   * schedule (nightly) -> the full E2E run on a quiet stack.
+#   * push -> build/test/container/frontend/docs only; the PostgreSQL + Redis
+#     integration gate runs on the pull request for the same SHA (or on demand with
+#     `backend_integration=force`), so one package costs one integration run.
 #   * workflow_dispatch -> targeted E2E (`specs=10,18,22`) or full E2E when
 #     `specs` is empty; reserve the full run for segment closeout.
 #   * workflow_dispatch + `service_form_pattern_audit` + explicit confirmation ->
@@ -65,6 +68,15 @@ on:
         required: false
         type: boolean
         default: true
+      backend_integration:
+        description: >-
+          PostgreSQL + Redis integration job (~20 min): auto = run it unless the diff has no code,
+          skip = never in this dispatch (triage), force = even when the diff looks docs-only.
+          Push runs never start it — the pull request for the same SHA already does.
+        required: false
+        type: choice
+        options: [auto, skip, force]
+        default: auto
       service_form_pattern_audit:
         description: >-
           Run only the read-only service-form regex inventory against E2E_DATABASE_URL; no migrations,
@@ -230,9 +242,24 @@ jobs:
     name: Backend PostgreSQL + Redis integration
     runs-on: ubuntu-latest
     needs: [changes]
+    # W2.23 follow-up (2026-10-29): this is the most expensive job (~20-25 min) and it
+    # used to run twice per package — once on the push and once on the pull request for
+    # the same SHA. It is now a *gate*, not a smoke test:
+    #   * pull request -> runs when the diff contains code (unchanged);
+    #   * push          -> never, because the PR for the same SHA runs it and the push
+    #                      evidence stays build/test/container/frontend/docs;
+    #   * schedule      -> always (nightly full);
+    #   * dispatch      -> `backend_integration=auto|skip|force` (default auto), so a
+    #                      triage run can skip it and a final run can force it.
+    # Nothing is lost: the PR is the merge gate, and `CI gate` treats a skipped job as
+    # acceptable, never as a pass.
     if: >-
       inputs.skip_gates != true &&
-      (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true')
+      inputs.backend_integration != 'skip' &&
+      (github.event_name == 'schedule' ||
+        (github.event_name == 'pull_request' && needs.changes.outputs.code == 'true') ||
+        (github.event_name == 'workflow_dispatch' &&
+          (inputs.backend_integration == 'force' || needs.changes.outputs.code == 'true')))
     timeout-minutes: 25
     services:
       postgres:
