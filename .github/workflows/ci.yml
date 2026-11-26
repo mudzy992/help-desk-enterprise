@@ -181,14 +181,25 @@ jobs:
         run: npm run audit:traceability
       - name: Test the backend audit traceability guard
         run: npm run audit:traceability:test
-      - name: Validate the complete Prisma schema
-        run: npx prisma validate
-      - name: Generate the Prisma client
+      - name: Validate the complete Prisma schema (offline, no engine download)
+        run: npm run db:validate
+      - name: Generate the Prisma client (offline, no engine download)
         run: npm run db:generate
       - name: Verify required generated Prisma artifacts
         run: npm run check:prisma-generated
       - name: Test the generated Prisma artifact guard
         run: npm run check:prisma-generated:test
+      - name: Test the offline Prisma wrapper and the engine pin
+        run: npm run db:offline:test
+      - name: Prove generate/validate need no network (wiped client, dead mirror)
+        env:
+          # Any attempt to download an engine fails immediately instead of hanging.
+          PRISMA_ENGINES_MIRROR: http://127.0.0.1:9
+        run: |
+          rm -rf src/generated/prisma
+          npm run db:validate
+          npm run db:generate
+          npm run check:prisma-generated
       - name: Verify route/guard and root-module wiring snapshot
         run: npm run wiring:check
       - name: Test the wiring manifest guard
@@ -207,6 +218,8 @@ jobs:
       - run: npm run lint
       - name: Run suites previously blocked by missing generated Prisma types
         run: npm run test:safety-net:compile
+      - name: Run every authentication suite (BA-authentication-07 acceptance)
+        run: npx jest src/modules/authentication --ci --coverage=false
       - name: Verify API/worker/scheduler/shutdown wiring
         run: npm run test:wiring
       - name: Run executable SLA failure/concurrency/scope/DST matrix

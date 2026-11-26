@@ -17,7 +17,11 @@ RUN npm ci --include=dev
 COPY . .
 
 ENV DATABASE_URL="postgresql://user:pass@host:5432/db"
-RUN npx prisma generate
+# W2.20 (`BA-authentication-07`): generate through the offline wrapper. Prisma's CLI
+# would otherwise fetch `schema-engine` from binaries.prisma.sh even though `generate`
+# only needs the WASM engine bundled in the npm package — a network dependency inside
+# the image build. The wrapper fails loudly if anything ever needs the real binary.
+RUN node scripts/prisma-offline.mjs generate
 RUN npm run build
 RUN test -f dist/src/main.js && test -f dist/src/worker.js
 

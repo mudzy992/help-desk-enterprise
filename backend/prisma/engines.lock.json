@@ -1,0 +1,12 @@
+{
+  "$comment": "W2.20 (BA-authentication-07): pinned schema-engine identity for the commands that still need a native binary (migrate/db). generate/validate/format run offline via scripts/prisma-offline.mjs and need no binary at all. Regenerate only together with a reviewed Prisma bump; scripts/prisma-offline.test.mjs fails when this drifts from the installed @prisma/engines-version.",
+  "enginesVersion": "d1b3f377ca835d73fd50954a5e22128b9ebdd6b8",
+  "engineCommit": "d1b3f377ca835d73fd50954a5e22128b9ebdd6b8",
+  "buildPathRequiresEngineBinary": false,
+  "migratePathRequiresEngineBinary": true,
+  "offlineStaging": {
+    "variable": "PRISMA_SCHEMA_ENGINE_BINARY",
+    "mirrorVariable": "PRISMA_ENGINES_MIRROR",
+    "note": "Postavi na schema-engine binar istog commita; wrapper ga ne zamjenjuje sentinelom."
+  }
+}

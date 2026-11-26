@@ -135,9 +135,9 @@ jobs:
         working-directory: backend
         run: npm ci
 
-      - name: Generate Prisma client
+      - name: Generate Prisma client (offline wrapper, W2.20)
         working-directory: backend
-        run: npx prisma generate
+        run: npm run db:generate
 
       - name: Apply migrations
         working-directory: backend
