@@ -36,6 +36,7 @@ import {
   type ReportAttachmentOmitReason,
   type ReportRecipientSkipReason,
 } from './report-schedule.constants';
+import { classifyTestSendFailure } from './classify-test-send-failure';
 import { isGroupWithinUnitSubtree } from './report-schedule-scope';
 import {
   pruneReportScheduleRuns,
@@ -212,19 +213,36 @@ export class ScheduledReportRunner {
       dedupeKey: `report-test:${now.getTime()}`,
       test: true,
     });
-    await this.mailTransport.send(
-      {
-        from: channel.smtp.fromAddress,
-        to: actor.email,
-        subject: composed.subject,
-        text: composed.text,
-        html: composed.html,
-        messageId: composed.messageId,
-        headers: composed.headers,
-        attachments: files.attachments,
-      },
-      channel.smtp,
-    );
+    try {
+      await this.mailTransport.send(
+        {
+          from: channel.smtp.fromAddress,
+          to: actor.email,
+          subject: composed.subject,
+          text: composed.text,
+          html: composed.html,
+          messageId: composed.messageId,
+          headers: composed.headers,
+          attachments: files.attachments,
+        },
+        channel.smtp,
+      );
+    } catch (error) {
+      /*
+        E2E triage 2026-11-26: a provider refusal (daily quota, rate limit, bad
+        credentials) used to escape as 500 — an admin saw „Internal server error“
+        and E2E could not tell a real regression from an exhausted Gmail quota.
+        The answer stays the documented `{ sent: false, reason }` with a stable
+        code; the technical detail goes to the log only.
+      */
+      const reason = classifyTestSendFailure(error);
+      this.logger.warn(
+        `report_schedule_test_send_failed schedule=${schedule.id} actor=${actor.id} reason=${reason} detail=${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return { sent: false, reason };
+    }
     return { sent: true };
   }
 

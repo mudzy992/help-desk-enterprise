@@ -957,6 +957,9 @@ jobs:
           MFA_ENCRYPTION_KEY: ${{ secrets.MFA_ENCRYPTION_KEY }}
           E2E_SUPERADMIN_TOTP_SECRET: ${{ secrets.E2E_SUPERADMIN_TOTP_SECRET }}
           E2E_FORCE_MFA_RESET: ${{ vars.E2E_FORCE_MFA_RESET }}
+          # Real outbound e-mail is opt-in: the stack's Gmail SMTP has a daily quota and an
+          # exhausted quota must not look like a code regression (E2E triage 2026-11-26).
+          E2E_ALLOW_EMAIL_SEND: ${{ vars.E2E_ALLOW_EMAIL_SEND }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
           E2E_RETRIES: ${{ inputs.retries || '1' }}
           E2E_SPECS: ${{ inputs.specs }}
