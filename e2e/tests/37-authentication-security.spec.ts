@@ -120,6 +120,49 @@ test.describe('37 authentication security (5.2.1 M2 #3–#6)', () => {
     expect((await fresh.request('/auth/security')).status).toBe(200);
   });
 
+  /*
+    W2.17 (`BA-authentication-04`): the route validator demanded a UUID while
+    `UserSession.id` is a cuid (`@default(cuid())`), so the id `GET /auth/sessions`
+    hands out could never be revoked: the request died with 400 before the
+    ownership check. This walks the real API with the real shape.
+  */
+  test('a listed session id is revocable, and malformed or foreign ids still fail safely', async () => {
+    const env = readE2EEnvironment();
+    const caller = new ApiClient();
+    const bystander = new ApiClient();
+    await caller.login(env.userEmail, env.userPassword, { newSession: true });
+    await bystander.login(env.userEmail, env.userPassword, { newSession: true });
+
+    const listed = await caller.requestJson<{
+      readonly items: ReadonlyArray<{ readonly id: string; readonly current: boolean }>;
+    }>('/auth/sessions');
+    const current = listed.items.find((item) => item.current === true);
+    if (current === undefined) throw new Error('[e2e] GET /auth/sessions did not mark the caller session.');
+    // The contract the fix aligns to: a bounded cuid, not a UUID.
+    expect(current.id).toMatch(/^c[0-9a-z]{19,29}$/);
+
+    const malformed = await caller.request('/auth/sessions/not-a-session-id', { method: 'DELETE' });
+    expect(malformed.status).toBe(400);
+    expect(((await malformed.json()) as { readonly code?: string }).code).toBe('INVALID_ID');
+    const oversized = await caller.request(`/auth/sessions/${'c'.padEnd(64, 'a')}`, { method: 'DELETE' });
+    expect(oversized.status).toBe(400);
+
+    // A well-formed id of another account answers 404 (ownership), not 400 (shape)
+    // — the shape check no longer hides the ownership decision.
+    const admin = new ApiClient();
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+    const foreign = await admin.request(`/auth/sessions/${current.id}`, { method: 'DELETE' });
+    expect(foreign.status).toBe(404);
+    expect(((await foreign.json()) as { readonly code?: string }).code).toBe('SESSION_NOT_FOUND');
+    expect((await caller.request('/auth/security')).status).toBe(200);
+
+    const revoked = await caller.request(`/auth/sessions/${current.id}`, { method: 'DELETE' });
+    expect(revoked.status).toBe(204);
+    expect((await caller.request('/auth/security')).status).toBe(401);
+    // Only the named session died: the bystander's cookie still works.
+    expect((await bystander.request('/auth/security')).status).toBe(200);
+  });
+
   test('admin temporary-password reset revokes old sessions and the forced change restores sign-in', async () => {
     const env = readE2EEnvironment();
     assertDisposableTestAccount(env.userEmail, 'reset a test account password');

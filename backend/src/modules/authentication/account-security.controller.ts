@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -40,6 +39,7 @@ import type { RegistrationResponseJSON } from '@simplewebauthn/server';
 import { PasskeyRegistrationConfirmDto, RenamePasskeyDto } from './dto/passkey.dto';
 import { PasswordChangeService } from './security/password-change.service';
 import { SessionRegistryService, type UserSessionView } from './security/session-registry.service';
+import { CuidParamPipe } from '../../common/validation/cuid-param.pipe';
 
 export type AccountSecurityOverview = {
   /** The caller the token identifies — pinned by E2E spec 39. */
@@ -208,7 +208,9 @@ export class AccountSecurityController {
   @HttpCode(204)
   async revokeSession(
     @Req() request: AuthenticatedHttpRequest,
-    @Param('sessionId', new ParseUUIDPipe()) sessionId: string,
+    // W2.17 (`BA-authentication-04`): `UserSession.id` is a cuid, so the bound is
+    // the schema contract, not a UUID. The ownership check below is unchanged.
+    @Param('sessionId', new CuidParamPipe('sessionId')) sessionId: string,
   ): Promise<void> {
     const user = await this.caller(request);
     const revoked = await this.sessionRegistry.revoke({ userId: user.id, sessionId, reason: 'user', actorUserId: user.id });
