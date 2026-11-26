@@ -95,9 +95,17 @@ Klasteri su namjerni: nalazi u istom klasteru dijele kod i test harness, pa pake
 | `W2.24` | `BA-security-03` | Privilegovani auth audit je best-effort i može nestati |
 
 **Ubačeno ranije (red izvršenja, §1.10):** auth klaster je izvršen prije svojih planiranih mjesta i pojeo oznake
-`W2.17`–`W2.21` — `W2.17` `BA-authentication-04`, `W2.18` `BA-authentication-05`, `W2.19`
-`BA-authentication-06`, `W2.20` `BA-authentication-07`, `W2.21` `BA-authentication-08`. U planu su ti nalazi
-bili `W2.48`–`W2.51` (P2) i `W2.63` (P3); te oznake su time oslobođene i preostali nalazi su preračunati u §4.6.
+`W2.17`–`W2.21`:
+
+| Paket | Nalaz | Status |
+| --- | --- | --- |
+| `W2.17` | `BA-authentication-04` | izvršeno (planirano `W2.48`) |
+| `W2.18` | `BA-authentication-05` | izvršeno (planirano `W2.49`) |
+| `W2.19` | `BA-authentication-06` | izvršeno (planirano `W2.50`) |
+| `W2.20` | `BA-authentication-07` | izvršeno (planirano `W2.51`) |
+| `W2.21` | `BA-authentication-08` | izvršeno (planirano `W2.63`, P3) |
+
+Te planirane oznake su time oslobođene i preostali nalazi su preračunati u §4.6.
 
 ### 4.3 P1 — revokacija membershipa i atomičnost korisničkih operacija (2)
 
