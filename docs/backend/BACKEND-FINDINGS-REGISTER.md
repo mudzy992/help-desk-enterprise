@@ -111,7 +111,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 01 | `authentication` | `BA-authentication-02` | P1 | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | zatvoreno (W2.15) | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-03` | P1 | MFA enrollment token i potvrda nisu atomski single-use | zatvoreno (W2.16) | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-04` | P2 | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID | zatvoreno (W2.17) | [01-authentication.md](audits/01-authentication.md) |
-| 01 | `authentication` | `BA-authentication-05` | P2 | Passkey counter update nema compare-and-set zaštitu | otvoreno | [01-authentication.md](audits/01-authentication.md) |
+| 01 | `authentication` | `BA-authentication-05` | P2 | Passkey counter update nema compare-and-set zaštitu | zatvoreno (W2.18) | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-06` | P2 | Entra JWKS dohvat nema timeout ni cache | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-07` | P2 | Kritični testni gate zavisi od mrežnog Prisma engine downloada | otvoreno | [01-authentication.md](audits/01-authentication.md) |
 | 01 | `authentication` | `BA-authentication-08` | P3 | Clone detekcija jednog passkeya briše sve korisnikove passkeye | otvoreno | [01-authentication.md](audits/01-authentication.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **346**
-- Otvoreno: **352** (P1 79 / P2 192 / P3 81)
+- Zatvoreno: **347**
+- Otvoreno: **351** (P1 79 / P2 191 / P3 81)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

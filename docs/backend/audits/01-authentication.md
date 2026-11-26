@@ -144,7 +144,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | BA-authentication-02 | P1       | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | zatvoreno (W2.15) | L        |
 | BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | zatvoreno (W2.16) | M        |
 | BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | zatvoreno (W2.17) | S        |
-| BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | otvoreno | M        |
+| BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | zatvoreno (W2.18) | M        |
 | BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | otvoreno | M        |
 | BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | otvoreno | M        |
 | BA-authentication-08 | P3       | Clone detekcija jednog passkeya briše sve korisnikove passkeye                 | otvoreno | S        |
@@ -261,6 +261,19 @@ Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-dura
 - **Korekcija:** CAS `updateMany` nad `id` i očekivanim counterom, zahtijevati `count===1`; posebno tretirati counterless authenticatore prema WebAuthn pravilima.
 - **Acceptance:** race test sa dvije validacije i obrnutim redom upisa; counter nikad ne regresira i samo dozvoljeni winner prolazi.
 - **Owner:** authentication/WebAuthn owner.
+
+#### Implementacijski status Vala 2 / W2.18 (2026-11-26)
+
+- Upis countera je **compare-and-set**: `updateMany({ where: { id, counter: <pročitana vrijednost> } })` uz
+  `count === 1`; bez podudaranja se **ne upisuje ništa**, pa counter nikad ne regresira.
+- Gubitnik CAS-a dobija `401 MFA_INVALID_CODE` kao **stale duplikat** (paralelna ceremonija je već pomjerila
+  counter) i **faktor se ne briše**; clone odluka (`newCounter <= stored > 0` ⇒ `PASSKEY_CLONED` + brisanje)
+  ostaje ispred upisa i nepromijenjena.
+- Counterless autentikatori (`counter = 0`) ostaju dozvoljeni paralelno — po WebAuthn pravilu nema šta porediti.
+- Dokaz: 4 nova/proširena unit testa (CAS predikat, gubitnik bez brisanja, nestali red, clone granica) i
+  `passkey-counter-cas.integration.spec.ts` sa realnim PostgreSQL-om — barijera drži dvije ceremonije poslije
+  čitanja istog reda: tačno jedan pobjednik, `counter 5 → 6`, red prezivljava; plus counterless par gdje oba prolaze.
+- Detalj isporuke: `docs/backend/implementation/352-w218-ba-authentication-05-passkey-counter-cas.md`.
 
 ### BA-authentication-06 — JWKS bez timeouta/cachea
 
