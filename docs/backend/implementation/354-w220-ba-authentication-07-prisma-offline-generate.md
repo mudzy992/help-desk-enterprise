@@ -162,6 +162,25 @@ provjera iz ovog paketa nije ni mogla uticati. Dva reruna (`09:20`, `09:51`) pal
 super-admin TOTP ima replay zaštitu po vremenskom koraku (`e2e/helpers/mfa.ts`: server odbija korak `<= lastStep`,
 prihvata ±1) i samo jedan secret (`E2E_SUPERADMIN_TOTP_SECRET` / `.auth/mfa.json`).
 
+### Ispravka nalaza — commit `813ac8d`, dispatch [`45799542900`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45799542900): **E2E zelen**
+
+Nalaz iz prethodne sekcije je zatvoren, ne prećutan. Dvije stvari su bile pomiješane: (1) stvarni defekt u
+`POST /reports/schedules/:id/send-test`, koji je na `master` runu `45789099561` vratio **500** umjesto 200 kad
+provajder odbije e-mail, i (2) činjenica da je taj test jedini koji je slao **pravu** poštu kroz Gmail SMTP račun,
+pa je svaki takav pad bio nerazlučiv od potrošene dnevne kvote.
+
+| Šta je promijenjeno | Gdje |
+| --- | --- |
+| Klasifikator stabilnih razloga (`EMAIL_PROVIDER_DAILY_LIMIT`, `…_RATE_LIMIT`, `EMAIL_AUTH_FAILED`, `EMAIL_RECIPIENT_REJECTED`, `EMAIL_DELIVERY_UNKNOWN`, `EMAIL_DELIVERY_FAILED`); `MailDeliverySuppressedError` i `NotificationEmailOutcomeUnknownError` se mapiraju prije opšteg klasifikatora | `backend/src/modules/reports/schedules/classify-test-send-failure.ts` (+ 5 testova) |
+| Ruta **nikad** ne baca 500: `sendTest()` hvata grešku, loguje `report_schedule_test_send_failed … reason=…` i vraća `{ sent: false, reason }` | `scheduled-report.runner.ts` (+ 3 testa u `report-schedules.spec.ts`) |
+| E2E šalje poštu samo uz `E2E_ALLOW_EMAIL_SEND=1` (opt-in), `retries: 0` za taj spec, tvrdi da odgovor **mora** biti 200 i da skip nosi razlog | `e2e/tests/18-reports-schedules.spec.ts`, `e2e/README.md:83`, `.github/workflows/ci.yml:962` |
+
+| Provjera | Rezultat |
+| --- | --- |
+| Dispatch triage (`specs=18`, `max_failures=8`, `retries=0`): `E2E critical flows` | **success** — annotacija `E2E diag 01`: `{"expected":1,"skipped":1,"unexpected":0,"flaky":0}`; izvršeni spec prošao iz prvog pokušaja, a skip nosi ispisan razlog („send test to me needs a configured e-mail channel“) |
+| Push run [`45799535868`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45799535868) na `813ac8d` | **success** — `Backend build + test`, `Frontend build + test`, `Backend container + supply chain`, `Backend PostgreSQL + Redis integration`, `Docs guard`, `CI gate` ✓; E2E poslovi se na push ne pokreću |
+| `MFA_INVALID_CODE` iz prethodnih runova | **nije se ponovio** ni u triage ni u push runu — ostaje zapisan kao problemi okruženja (dijeljeni stack + jedan TOTP secret), ne kao ovaj diff |
+
 **Preporuka za operativu (akciono):** postaviti repo varijablu `E2E_FORCE_MFA_RESET=1` (workflow je čita na
 `ci.yml:959`; `e2e/README.md:82`) ili pokrenuti dispatch sa svježim resetom super-admin MFA uz dostupan SSH
 tunel, pa rerun. Do tada `E2E critical flows` na ovom PR-u ostaje crven **iz okruženja**, a zelen je na kodnom
