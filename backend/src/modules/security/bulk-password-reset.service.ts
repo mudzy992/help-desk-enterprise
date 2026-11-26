@@ -5,7 +5,7 @@ import { PrincipalContextInvalidator } from '../../common/principal-context/prin
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { SessionRegistryService } from '../authentication/security/session-registry.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { PrivilegedAuditService } from '../../common/privileged-audit/privileged-audit.service';
 import { StepUpPolicyService } from './step-up-policy.service';
 
 /*
@@ -75,6 +75,7 @@ export class BulkPasswordResetService {
     private readonly stepUpPolicy: StepUpPolicyService,
     private readonly sessionRegistry: SessionRegistryService,
     private readonly principalContextInvalidator: PrincipalContextInvalidator,
+    private readonly privilegedAudit: PrivilegedAuditService,
   ) {}
 
   async execute(
@@ -241,25 +242,35 @@ export class BulkPasswordResetService {
       readonly eligibleUsers: number;
     },
   ): Promise<void> {
-    try {
-      await recordAuditEntry(this.prisma, {
-        action: auditLogActions.authAdminBulkPasswordReset,
-        entityType: auditLogEntityTypes.user,
-        entityId: actorUserId,
-        actorUserId,
-        metadata: {
-          eligibleUsers: counts.eligibleUsers,
-          changedUsers: counts.changedUsers,
-          revokedSessions: counts.revokedSessions,
-          failedUsers: counts.failedUsers,
-          pendingUsers: counts.pendingUsers,
-          status: counts.status,
-        } as never,
-      });
-    } catch {
-      // The settings/registry-session trail is already written by the session
-      // service; a failing audit row must not turn a completed action into an
-      // error the admin would retry blindly.
+    /*
+      W2.24 (`BA-security-03`): this used to be a swallowed try/catch. It is now a
+      durable intent — the audit entry lands right away in the healthy case, and
+      otherwise a replay delivers it (exactly one entry), so an emergency run can
+      never end up without its forensic record. The run status does not change:
+      the audit is evidence, not part of the revocation itself.
+    */
+    const outcome = await this.privilegedAudit.record({
+      action: auditLogActions.authAdminBulkPasswordReset,
+      entityType: auditLogEntityTypes.user,
+      entityId: actorUserId,
+      actorUserId,
+      metadata: {
+        eligibleUsers: counts.eligibleUsers,
+        changedUsers: counts.changedUsers,
+        revokedSessions: counts.revokedSessions,
+        failedUsers: counts.failedUsers,
+        pendingUsers: counts.pendingUsers,
+        status: counts.status,
+      } as never,
+      // One run = one event; a repeat is a new run with its own numbers.
+      dedupeKey: `bulk-password-reset:${actorUserId}:${Date.now().toString(36)}:${Math.random()
+        .toString(36)
+        .slice(2, 10)}`,
+    });
+    if (outcome !== 'delivered') {
+      this.logger.warn(
+        `bulk password reset: audit entry ${outcome === 'pending' ? 'pending (durable intent)' : 'unavailable'}`,
+      );
     }
   }
 }

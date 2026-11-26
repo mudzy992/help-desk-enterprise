@@ -1,5 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { mapAccountSecurityError, AccountSecurityError } from '../authentication/security/account-security.error';
 import {
   assertSecurityRateLimitConfig,
@@ -9,7 +8,7 @@ import {
 } from '../authentication/security/security-rate-limit-config';
 import { SecurityRateLimitConfigLoader } from '../authentication/security/security-rate-limit-config.loader';
 import { auditLogActions } from '../audit-log/audit-log.constants';
-import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { PrivilegedAuditService } from '../../common/privileged-audit/privileged-audit.service';
 import { mapSettingsError } from '../settings/map-settings-error';
 import { SettingsService } from '../settings/settings.service';
 import { settingKeys } from '../settings/setting-keys';
@@ -44,11 +43,12 @@ const configKeysByField = {
 
 @Injectable()
 export class SecurityRateLimitsService {
+  private readonly logger = new Logger(SecurityRateLimitsService.name);
   constructor(
     private readonly settingsService: SettingsService,
     private readonly configLoader: SecurityRateLimitConfigLoader,
     private readonly stepUpPolicy: StepUpPolicyService,
-    private readonly prisma: PrismaService,
+    private readonly privilegedAudit: PrivilegedAuditService,
   ) {}
 
   async current(): Promise<{ config: SecurityRateLimitConfig; bounds: typeof securityRateLimitBounds }> {
@@ -94,24 +94,29 @@ export class SecurityRateLimitsService {
     return { config: await this.configLoader.load() };
   }
 
-  /** The change is versioned by the settings module; this adds the auth trail. */
+  /**
+   * The change is versioned by the settings module; this adds the auth trail.
+   * W2.24 (`BA-security-03`): the trail is durable — a failed write becomes an
+   * intent and is replayed, instead of vanishing from the record of a change that
+   * weakens login protection.
+   */
   private async audit(actorUserId: string, config: SecurityRateLimitConfig): Promise<void> {
-    try {
-      await recordAuditEntry(this.prisma, {
-        action: auditLogActions.authRateLimitsChanged,
-        entityType: 'user',
-        entityId: actorUserId,
-        actorUserId,
-        metadata: {
-          ipMaxFailures: config.ipMaxFailures,
-          ipWindowSeconds: config.ipWindowSeconds,
-          accountDelayStartsAfterFailures: config.accountDelayStartsAfterFailures,
-          otherMaxFailures: config.otherMaxFailures,
-        } as never,
-      });
-    } catch {
-      // A failed audit write must not roll back a settings change the
-      // settings module already journalled with the reason.
+    const outcome = await this.privilegedAudit.record({
+      action: auditLogActions.authRateLimitsChanged,
+      entityType: 'user',
+      entityId: actorUserId,
+      actorUserId,
+      metadata: {
+        ipMaxFailures: config.ipMaxFailures,
+        ipWindowSeconds: config.ipWindowSeconds,
+        accountDelayStartsAfterFailures: config.accountDelayStartsAfterFailures,
+        otherMaxFailures: config.otherMaxFailures,
+      } as never,
+    });
+    if (outcome !== 'delivered') {
+      this.logger.warn(
+        `rate limits: audit entry ${outcome === 'pending' ? 'pending (durable intent)' : 'unavailable'}`,
+      );
     }
   }
 }

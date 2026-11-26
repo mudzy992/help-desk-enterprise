@@ -873,6 +873,14 @@
           "lastSuccess": "Zadnja uspješna isporuka: {{time}}",
           "noSuccess": "Još nema uspješne isporuke.",
           "unavailable": "Stanje izvoza trenutno nije dostupno."
+        },
+        "privilegedAudit": {
+          "title": "Privilegovani audit trag",
+          "stateOk": "Zapisano",
+          "stateDegraded": "Kasni",
+          "counts": "Na čekanju: {{pending}} · dead-letter: {{deadLetter}}",
+          "oldest": "Najstariji čeka {{seconds}} s",
+          "unavailable": "Stanje trajnog traga nije dostupno."
         }
       }
     },

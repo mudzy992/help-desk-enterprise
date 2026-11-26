@@ -2,6 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { PrismaClient } from '../../generated/prisma/client';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
+import { PrivilegedAuditService } from '../../common/privileged-audit/privileged-audit.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { notificationTitleKeys, notificationTypes } from '../notifications/notifications.constants';
 import { AccountSecurityError } from './security/account-security.error';
@@ -33,6 +35,8 @@ describeIfDatabase('passkey clone revocation (integration)', () => {
   let prisma: PrismaClient;
   let service: PasskeyCredentialService;
   let userId: string;
+  /** W2.24: the real durable writer — the notifier no longer writes the row itself. */
+  let privilegedAudit: PrivilegedAuditService;
 
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
@@ -44,10 +48,14 @@ describeIfDatabase('passkey clone revocation (integration)', () => {
       },
     });
     userId = user.id;
+    privilegedAudit = new PrivilegedAuditService(
+      prisma as never,
+      new TransactionalOutboxService(prisma as never),
+    );
     service = new PasskeyCredentialService(
       prisma as never,
       new PasskeyChallengeStoreProvider(undefined),
-      new AccountSecurityNotifier(prisma as never) as never,
+      new AccountSecurityNotifier(prisma as never, privilegedAudit) as never,
     );
   });
 

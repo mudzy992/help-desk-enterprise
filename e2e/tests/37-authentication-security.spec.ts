@@ -343,6 +343,16 @@ type BulkPasswordResetResult = {
   readonly status: 'COMPLETE' | 'PARTIAL';
 };
 
+/** W2.24: what the alarm route answers (counts and ages only). */
+type PrivilegedAuditHealth = {
+  readonly status: 'ok' | 'degraded';
+  readonly pending: number;
+  readonly processing: number;
+  readonly deadLetter: number;
+  readonly oldestPendingAgeMs: number;
+  readonly stale: boolean;
+};
+
 test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
   test('remember me lasts 30 days, survives a refresh, and never applies to a super admin', async () => {
     test.setTimeout(120_000);
@@ -365,6 +375,42 @@ test.describe('37 authentication security extensions (5.4.0-c/d)', () => {
     expect(admin.expiresInSeconds).toBeLessThan(remembered.expiresInSeconds);
     const adminRefreshed = await adminClient.requestJson<SessionTtl>('/auth/refresh', { method: 'POST' });
     expect(adminRefreshed.expiresInSeconds).toBe(admin.expiresInSeconds);
+  });
+
+  /*
+    W2.24 (`BA-security-03`): the durable privileged trail. The audit entry for a
+    privileged change is no longer best-effort; when its write fails the event is
+    kept and replayed, and this route is the alarm an operator reads. It is a
+    read-only, SuperAdmin-only surface with counts and ages — nothing about who
+    did what.
+  */
+  test('the privileged audit trail exposes its own state, SuperAdmin only', async () => {
+    const env = readE2EEnvironment();
+    const admin = new ApiClient();
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+
+    const health = await admin.requestJson<PrivilegedAuditHealth>('/security/metrics/privileged-audit');
+    expect(['ok', 'degraded']).toContain(health.status);
+    expect(health.pending).toBeGreaterThanOrEqual(0);
+    expect(health.processing).toBeGreaterThanOrEqual(0);
+    expect(health.deadLetter).toBeGreaterThanOrEqual(0);
+    // The state word is derived, not decorative: it is `degraded` exactly when
+    // something waits too long or was dead-lettered.
+    expect(health.status).toBe(
+      health.stale || health.deadLetter > 0 ? 'degraded' : 'ok',
+    );
+    expect(health.stale).toBe(health.pending + health.processing > 0 && health.oldestPendingAgeMs >= 300_000);
+    if (health.pending + health.processing === 0) expect(health.oldestPendingAgeMs).toBe(0);
+
+    // No entry content travels with it — the keys are the whole payload.
+    expect(Object.keys(health).sort()).toEqual(
+      ['deadLetter', 'oldestPendingAgeMs', 'pending', 'processing', 'stale', 'status'].sort(),
+    );
+
+    const user = new ApiClient();
+    await user.login(env.userEmail, env.userPassword);
+    expect((await user.request('/security/metrics/privileged-audit')).status).toBe(403);
+    expect((await new ApiClient().request('/security/metrics/privileged-audit')).status).toBe(401);
   });
 
   test('the bulk password reset flags every local account, revokes their sessions and can be repeated', async () => {

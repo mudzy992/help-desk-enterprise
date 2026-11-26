@@ -5,6 +5,7 @@ import { AdminSecurityMetricsCard } from "@/components/admin/admin-security-metr
 import type {
   LoginSecurityMetricsSnapshot,
   SecurityAuditWebhookStatus,
+  SecurityPrivilegedAuditHealth,
 } from "@/services/security-api";
 
 /*
@@ -25,13 +26,20 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-function renderWith(snapshot?: LoginSecurityMetricsSnapshot, webhook?: SecurityAuditWebhookStatus) {
+function renderWith(
+  snapshot?: LoginSecurityMetricsSnapshot,
+  webhook?: SecurityAuditWebhookStatus,
+  privilegedAudit?: SecurityPrivilegedAuditHealth,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (snapshot !== undefined) {
     client.setQueryData(["admin", "security", "metrics", "last-hour"], snapshot);
   }
   if (webhook !== undefined) {
     client.setQueryData(["admin", "security", "metrics", "audit-webhook"], webhook);
+  }
+  if (privilegedAudit !== undefined) {
+    client.setQueryData(["admin", "security", "metrics", "privileged-audit"], privilegedAudit);
   }
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
@@ -179,6 +187,47 @@ describe("AdminSecurityMetricsCard", () => {
     // Only the tile itself: the refresh icon above carries an xmlns URL of its own.
     const tile = html.slice(html.indexOf('data-testid="admin-security-metric-webhook"'));
     expect(tile).not.toMatch(/https?:\/\//);
+  });
+
+  /*
+    W2.24 (`BA-security-03`): the alarm for the durable privileged trail. What it
+    must say: recorded vs behind, how many intents wait, how long the oldest has
+    waited — and nothing about who did what (that is the audit log's own surface).
+  */
+  it("shows the durable privileged trail as recorded while nothing waits", () => {
+    const health: SecurityPrivilegedAuditHealth = {
+      status: "ok",
+      pending: 0,
+      processing: 0,
+      deadLetter: 0,
+      oldestPendingAgeMs: 0,
+      stale: false,
+    };
+    const html = renderWith(snapshotWithEvents, undefined, health);
+    expect(html).toContain('data-testid="admin-security-metric-privileged-audit"');
+    expect(html).toContain('data-state="ok"');
+    expect(html).toContain("admin.ops.securityMetrics.privilegedAudit.stateOk");
+    expect(html).toContain("admin.ops.securityMetrics.privilegedAudit.counts");
+    expect(html).not.toContain("admin.ops.securityMetrics.privilegedAudit.oldest");
+  });
+
+  it("names the backlog and the oldest wait when the trail is behind", () => {
+    const behind: SecurityPrivilegedAuditHealth = {
+      status: "degraded",
+      pending: 2,
+      processing: 1,
+      deadLetter: 1,
+      oldestPendingAgeMs: 420_000,
+      stale: true,
+    };
+    const html = renderWith(snapshotWithEvents, undefined, behind);
+    expect(html).toContain('data-state="degraded"');
+    expect(html).toContain("admin.ops.securityMetrics.privilegedAudit.stateDegraded");
+    // The i18n mock renders options as escaped JSON, hence the entities.
+    expect(html).toContain("&quot;pending&quot;:3");
+    expect(html).toContain("&quot;deadLetter&quot;:1");
+    expect(html).toContain("&quot;seconds&quot;:420");
+    expect(html).toContain("text-danger");
   });
 
   it("says the export is off without showing counters that do not apply", () => {

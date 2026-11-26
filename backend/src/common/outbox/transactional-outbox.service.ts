@@ -84,6 +84,47 @@ export class TransactionalOutboxService {
     }
   }
 
+  /**
+   * W2.24 (`BA-security-03`): the handler and the completion share **one**
+   * transaction, so a delivery that writes something (a privileged audit entry)
+   * and the `SUCCEEDED` mark can never disagree. A crash or a failed completion
+   * rolls the side effect back with the mark, which is what makes the replay
+   * exactly-once without asking every handler to be idempotent.
+   */
+  async dispatchOneTransactionally(
+    topic: string,
+    handler: (delivery: OutboxDelivery, transaction: Prisma.TransactionClient) => Promise<void>,
+    options: { readonly timeoutMs?: number } = {},
+  ): Promise<'idle' | 'succeeded' | 'retry' | 'dead-letter'> {
+    if (!topicPattern.test(topic)) throw new OutboxError(outboxErrorCodes.invalidInput);
+    const claim = await this.claim(topic);
+    if (claim === null) return 'idle';
+    try {
+      await this.prisma.$transaction(
+        async (transaction) => {
+          await handler(claim, transaction);
+          const completed = await transaction.outboxMessage.updateMany({
+            where: { id: claim.id, status: 'PROCESSING', ownerToken: claim.ownerToken },
+            data: {
+              status: 'SUCCEEDED',
+              ownerToken: null,
+              leaseExpiresAt: null,
+              completedAt: new Date(),
+              lastError: null,
+            },
+          });
+          // Someone else owns the row now: roll the side effect back with us.
+          if (completed.count !== 1) throw new OutboxError(outboxErrorCodes.claimLost);
+        },
+        { timeout: options.timeoutMs ?? 15_000 },
+      );
+      return 'succeeded';
+    } catch (error) {
+      if (error instanceof OutboxError && error.code === outboxErrorCodes.claimLost) throw error;
+      return this.fail(claim, error);
+    }
+  }
+
   async replayDeadLetter(id: string, input: { readonly actor: string; readonly reason: string }): Promise<void> {
     if (!actorPattern.test(input.actor) || input.reason.trim().length < 8 || input.reason.length > 500) {
       throw new OutboxError(outboxErrorCodes.invalidInput);

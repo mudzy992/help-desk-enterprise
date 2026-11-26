@@ -1,5 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
+import { PrivilegedAuditService } from '../../common/privileged-audit/privileged-audit.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { AccountSecurityNotifier } from '../authentication/security/account-security-notifier';
 import {
@@ -39,6 +41,18 @@ describeIfDatabase('account security transitions (integration)', () => {
    * version of this spec asserted `prisma.auditLog` while injecting a recording
    * fake — it could never pass, and only the registered runner found that).
    */
+  /**
+   * W2.24 (`BA-security-03`): the notifier hands the event to the durable writer,
+   * so the spec injects the **real** one over the same client — the audit rows it
+   * asserts are still the product's rows, now written through the outbox delivery.
+   */
+  function newPrivilegedAudit(): PrivilegedAuditService {
+    return new PrivilegedAuditService(
+      prisma as never,
+      new TransactionalOutboxService(prisma as never),
+    );
+  }
+
   function boundary(options: { redisDown?: boolean } = {}) {
     const sessionRegistry = {
       revokeAll: async () => {
@@ -48,7 +62,7 @@ describeIfDatabase('account security transitions (integration)', () => {
     };
     const service = new AccountSecurityBoundaryService(
       sessionRegistry as never,
-      new AccountSecurityNotifier(prisma as never),
+      new AccountSecurityNotifier(prisma as never, newPrivilegedAudit()),
     );
     return { service };
   }

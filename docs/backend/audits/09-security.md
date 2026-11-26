@@ -161,7 +161,7 @@ Korisnik je potvrdio prolaz kompletne aktuelne CI/Playwright kolekcije 01–56. 
 | -------------- | -------- | ---------------------------------------------------------- | -------- |
 | BA-security-01 | P1       | MFA-disabled SuperAdmin mijenja rate limite bez step-upa   | zatvoreno |
 | BA-security-02 | P1       | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara | zatvoreno (W2.23) |
-| BA-security-03 | P1       | Privilegovani auth audit je best-effort i može nestati     | otvoreno |
+| BA-security-03 | P1       | Privilegovani auth audit je best-effort i može nestati     | zatvoreno (W2.24) |
 | BA-security-04 | P2       | Klijent sam mintuje capability purpose                     | otvoreno |
 | BA-security-05 | P2       | Marker nije vezan za credential/authorization epoch        | otvoreno |
 | BA-security-06 | P2       | Bulk eligibility ima TOCTOU sa role/identity promjenom     | otvoreno |
@@ -220,7 +220,29 @@ Preostali durable bulk operation, audit atomarnost, authorization epoch, TOCTOU,
 
 ### BA-security-03 — Privilegovani auth audit je best-effort i može nestati
 
-**Severity/status:** P1, otvoreno.  
+#### Implementacijski status Vala 2 / W2.24 (2026-10-29)
+
+- Odluka je **durable-accept**, eksplicitno: privilegovana akcija se **nikad** ne obara zbog audit problema, ali se
+  događaj **nikad** ni ne gubi prećutno. Namjera (`audit.privileged` u postojećem transactional outboxu, bez nove
+  šeme) se upisuje u **transakciji pozivaoca** (`recordWithinTransaction`), pa se commit-uje ili nestaje zajedno sa
+  promjenom koju opisuje; standalone put (`record`) prvo commit-uje namjeru pa odmah pokuša dostavu.
+- Dostava upisuje audit red i `SUCCEEDED` markicu u **jednoj** transakciji (`dispatchOneTransactionally`), pa poslije
+  oporavka postoji **tačno jedan** koreliran zapis — replay gotovog intenta ne pravi drugi. Crash vraća i jedno i
+  drugo, pa handler ne mora biti idempotent.
+- Idempotency key je dio događaja: `action:entityId:uuid` po defaultu, ili eksplicitan (`bulk-password-reset:` sa
+  brojevima runa). Dva poziva sa istim ključem = jedan događaj.
+- `record()` vraća `delivered | pending | unavailable` umjesto da proguta grešku: poziv na rate-limits, bulk reset i
+  account-security put izloguje `pending`/`unavailable`. Dead letter je `privileged_audit_dead_letter` u logu.
+- Alarm/reconciliation: `PrivilegedAuditService.health()` (pending/processing/deadLetter/najstariji + `stale` >
+  5 min) i `GET /security/metrics/privileged-audit` (SUPER_ADMIN, `Cache-Control: no-store`), plus red u
+  „Nadzor” kartici. Timer (2 s) drenira sa outbox backoff-om; `replayDeadLetter` ostaje operaterov alat.
+- Dokaz: unit 11 (outcome ugovor, key, dedupe, health) + **novi PostgreSQL integracijski spec (4 slučaja)**:
+  outage → `pending` bez zapisa → oporavak → **tačno jedan** zapis (drugi `deliverPending` ne dodaje ništa); dedupe;
+  commit/rollback namjere sa caller transakcijom; `degraded` za dead letter i za stale intent. Uz to dva nova
+  `dispatchOneTransactionally` slučaja u outbox integration specu (rollback side effect-a, atomski commit).
+- Detalj isporuke: `docs/backend/implementation/358-w224-ba-security-03-privileged-audit-outbox.md`.
+
+**Severity/status:** P1, zatvoreno (W2.24).  
 **Dokaz:** rate-limit i bulk `audit` hvataju sve greške; bulk nema garantovan zbirni događaj, a rate-limit auth događaj nije u settings transakciji.  
 **Uticaj/root cause:** forenzički trag kritične promjene ili emergency akcije može izostati baš kada audit storage zakaže. Postojeći settings/session zapisi nisu ekvivalentan kompletan aggregate auth događaj.  
 **Korekcija:** transactional outbox/durable pending audit sa idempotency keyem; alarm i reconciliation; definisati da li kritični write fail-closed ili durable-accept.  
@@ -392,7 +414,7 @@ Najveći rizik je prelazak bulk endpointa sa kratkog sync odgovora na durable op
 | -------------- | ------------------------------------ | ---------------------------------------- | ------- |
 | BA-security-01 | `SecurityRateLimitsService.update`   | no-factor write fail-closed              | 0–1     |
 | BA-security-02 | bulk update + revoke petlja          | registry outage immediate block/recovery | 0–1/3/4 |
-| BA-security-03 | oba `audit` catch bloka              | audit outage outbox/replay               | 0–1/4   |
+| BA-security-03 | `PrivilegedAuditService` + outbox    | audit outage outbox/replay               | 0–1/4   |
 | BA-security-04 | identity purpose DTO/controller      | unknown/unauthorized intent              | 0–2     |
 | BA-security-05 | confirmation marker/consume          | credential/role/session epoch            | 0–2     |
 | BA-security-06 | `listEligibleUsers` + `updateMany`   | concurrent role/identity update          | 0–3     |

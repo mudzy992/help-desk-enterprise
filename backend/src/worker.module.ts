@@ -5,6 +5,7 @@ import { WorkerScheduleReconcilerService } from './worker-schedule-reconciler.se
 import { validateRuntimeEnvironment } from './common/config/validate-runtime-environment';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
+import { PrivilegedAuditModule } from './common/privileged-audit/privileged-audit.module';
 import { InboundEmailWorkerModule } from './modules/inbound-email/inbound-email-worker.module';
 import { IntegrationQueueWorkerModule } from './modules/integration-queue/integration-queue-worker.module';
 import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-base/knowledge-base-review-reminder-worker.module';
@@ -71,6 +72,10 @@ import { StatusPageWorkerModule } from './modules/status-page/status-page-worker
     ProblemNoticeWorkerModule,
     ChangeSweepWorkerModule,
     StatusPageWorkerModule,
+    // W2.24: the durable privileged-audit writer is a global provider, so every
+    // root that boots a module graph containing AuthenticationModule needs it —
+    // the worker boot included (the timer is what finishes a pending intent).
+    PrivilegedAuditModule,
   ],
   providers: [WorkerScheduleReconcilerService],
 })

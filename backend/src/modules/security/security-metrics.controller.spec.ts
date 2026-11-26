@@ -34,7 +34,7 @@ describe('SecurityMetricsController', () => {
       },
     };
     const lastHour = jest.fn().mockResolvedValue(snapshot);
-    const controller = new SecurityMetricsController({ lastHour } as never, {} as never);
+    const controller = new SecurityMetricsController({ lastHour } as never, {} as never, {} as never);
 
     await expect(controller.lastHour()).resolves.toBe(snapshot);
     expect(lastHour).toHaveBeenCalledTimes(1);
@@ -62,9 +62,41 @@ describe('SecurityMetricsController', () => {
       generatedAt: '2026-10-13T08:01:00.000Z',
     };
     const read = jest.fn().mockResolvedValue(status);
-    const controller = new SecurityMetricsController({} as never, { read } as never);
+    const controller = new SecurityMetricsController({} as never, { read } as never, {} as never);
 
     await expect(controller.auditWebhook()).resolves.toBe(status);
     expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+    W2.24 (`BA-security-03`): the durable privileged trail has to be observable,
+    otherwise "pending" is just a nicer word for lost. The route is the alarm:
+    SuperAdmin only (class-level guard), no-store, counts and ages only.
+  */
+  it('answers the privileged-audit health with Cache-Control: no-store', () => {
+    const headers = Reflect.getMetadata(
+      '__headers__',
+      SecurityMetricsController.prototype.privilegedAuditHealth,
+    ) as readonly { readonly name: string; readonly value: string }[];
+    expect(headers).toEqual([{ name: 'Cache-Control', value: 'no-store' }]);
+  });
+
+  it('returns the privileged-audit health unchanged and exposes no entry content', async () => {
+    const health = {
+      status: 'degraded',
+      pending: 2,
+      processing: 0,
+      deadLetter: 1,
+      oldestPendingAgeMs: 420_000,
+      stale: true,
+    };
+    const privilegedAudit = { health: jest.fn().mockResolvedValue(health) };
+    const controller = new SecurityMetricsController({} as never, {} as never, privilegedAudit as never);
+
+    const answer = await controller.privilegedAuditHealth();
+    expect(answer).toEqual(health);
+    expect(Object.keys(answer).sort()).toEqual(
+      ['deadLetter', 'oldestPendingAgeMs', 'pending', 'processing', 'stale', 'status'].sort(),
+    );
   });
 });

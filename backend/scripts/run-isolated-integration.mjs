@@ -140,6 +140,9 @@ export const integrationSpecs = Object.freeze([
   // W2.23 (BA-security-02): a registry outage leaves every target unusable, a
   // failed block rolls back whole, and both are reported as PARTIAL.
   "src/modules/security/bulk-password-reset.integration.spec.ts",
+  // W2.24 (BA-security-03): an audit outage keeps the event, recovery writes
+  // exactly one correlated entry, and the intent lives in the caller transaction.
+  "src/common/privileged-audit/privileged-audit.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {
