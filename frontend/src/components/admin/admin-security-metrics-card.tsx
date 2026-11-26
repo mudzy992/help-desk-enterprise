@@ -13,7 +13,9 @@ import { mapApiError } from "@/lib/map-api-error";
 import {
   getAuditWebhookStatus,
   getLoginSecurityMetrics,
+  getPrivilegedAuditHealth,
   type SecurityAuditWebhookStatus,
+  type SecurityPrivilegedAuditHealth,
 } from "@/services/security-api";
 
 /**
@@ -70,6 +72,16 @@ export function AdminSecurityMetricsCard() {
   const webhookQuery = useQuery({
     queryKey: queryKeys.adminSecurityMetricsAuditWebhook,
     queryFn: getAuditWebhookStatus,
+  });
+
+  // W2.24: separate query for the same reason — a failing durable-trail alarm must
+  // not hide the counters, and it is the one line an operator reads during an
+  // audit-storage incident.
+  const privilegedAuditQuery = useQuery({
+    queryKey: queryKeys.adminSecurityMetricsPrivilegedAudit,
+    queryFn: getPrivilegedAuditHealth,
+    // The alarm is about seconds, so it is allowed to move on its own.
+    refetchInterval: 60_000,
   });
 
   const tiles = [
@@ -138,6 +150,7 @@ export function AdminSecurityMetricsCard() {
                 </div>
               ))}
             </div>
+            <PrivilegedAuditTile status={privilegedAuditQuery.data} isError={privilegedAuditQuery.isError} />
             <AuditWebhookTile
               status={webhookQuery.data}
               isError={webhookQuery.isError}
@@ -181,6 +194,73 @@ export function AdminSecurityMetricsCard() {
  * a full-width row under the tiles. The state word is the
  * part an operator needs first; the counters and the last error code follow it.
  */
+/*
+  W2.24 (`BA-security-03`): the durable privileged trail. It is deliberately a
+  one-line status, not a table: pending intents are normal for a few seconds after
+  a write, and what an operator needs to see is whether the trail is *behind*
+  (`degraded`) and by how long. No action name, no actor, no id — the entries stay
+  in the audit log behind its own permissions.
+*/
+function PrivilegedAuditTile({
+  status,
+  isError,
+}: {
+  readonly status: SecurityPrivilegedAuditHealth | undefined;
+  readonly isError: boolean;
+}) {
+  const { t } = useTranslation();
+  if (isError) {
+    return (
+      <div
+        data-testid="admin-security-metric-privileged-audit"
+        className="min-w-0 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2"
+      >
+        <p className="text-[11px] text-muted-foreground">
+          {t("admin.ops.securityMetrics.privilegedAudit.title")}
+        </p>
+        <p className={hintClassName}>{t("admin.ops.securityMetrics.privilegedAudit.unavailable")}</p>
+      </div>
+    );
+  }
+  if (!status) return null;
+
+  const degraded = status.status === "degraded";
+  return (
+    <div
+      data-testid="admin-security-metric-privileged-audit"
+      data-state={status.status}
+      className="min-w-0 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2"
+    >
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p
+          className="min-w-0 truncate text-[11px] text-muted-foreground"
+          title={t("admin.ops.securityMetrics.privilegedAudit.title")}
+        >
+          {t("admin.ops.securityMetrics.privilegedAudit.title")}
+        </p>
+        <p className={`text-[13px] font-semibold ${degraded ? "text-danger" : "text-success"}`}>
+          {degraded
+            ? t("admin.ops.securityMetrics.privilegedAudit.stateDegraded")
+            : t("admin.ops.securityMetrics.privilegedAudit.stateOk")}
+        </p>
+      </div>
+      <p className="tnum mt-1 text-[12px] text-muted-foreground">
+        {t("admin.ops.securityMetrics.privilegedAudit.counts", {
+          pending: status.pending + status.processing,
+          deadLetter: status.deadLetter,
+        })}
+      </p>
+      {status.pending + status.processing > 0 ? (
+        <p className={`tnum mt-1 text-[12px] ${degraded ? "text-danger" : "text-muted-foreground"}`}>
+          {t("admin.ops.securityMetrics.privilegedAudit.oldest", {
+            seconds: Math.round(status.oldestPendingAgeMs / 1000),
+          })}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function AuditWebhookTile({
   status,
   isError,

@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { AccountSecurityError } from '../authentication/security/account-security.error';
 import { BulkPasswordResetService, bulkPasswordResetStepUpPurpose } from './bulk-password-reset.service';
 import { StepUpPolicyService } from './step-up-policy.service';
@@ -102,6 +103,33 @@ describe('BulkPasswordResetService', () => {
     },
   };
 
+  /**
+   * W2.24 (`BA-security-03`): the aggregate entry now goes through the durable
+   * privileged-audit writer instead of a fire-and-forget insert. This fake keeps
+   * the two observable behaviours of the real one: a healthy write lands
+   * immediately (`delivered`), and during an outage the event is parked as a
+   * durable intent (`pending`) that a later replay turns into exactly one row.
+   */
+  const pendingAuditIntents: Record<string, unknown>[] = [];
+  let auditOutage = false;
+  const privilegedAudit = {
+    record: jest.fn(async (input: Record<string, unknown>) => {
+      if (auditOutage) {
+        pendingAuditIntents.push(input);
+        return 'pending' as const;
+      }
+      try {
+        await recordAuditEntry(prisma as never, input as never);
+        return 'delivered' as const;
+      } catch {
+        // The real writer never throws: a failed immediate write is a durable
+        // intent, and only a failed *intent* write reads as `unavailable`.
+        pendingAuditIntents.push(input);
+        return 'unavailable' as const;
+      }
+    }),
+  };
+
   function createService(): BulkPasswordResetService {
     const stepUpPolicy = new StepUpPolicyService(
       { isEnabled: mfaIsEnabled, verify: mfaVerify } as never,
@@ -113,6 +141,7 @@ describe('BulkPasswordResetService', () => {
       stepUpPolicy,
       { revokeAll } as never,
       { invalidateUsers } as never,
+      privilegedAudit as never,
     );
   }
 
@@ -177,6 +206,8 @@ describe('BulkPasswordResetService', () => {
     invalidateUsers.mockReset().mockResolvedValue(undefined);
     failingTargets = new Set();
     auditRows.length = 0;
+    pendingAuditIntents.length = 0;
+    auditOutage = false;
     auditClient.auditLog.create.mockClear();
   });
 
@@ -404,6 +435,37 @@ describe('BulkPasswordResetService', () => {
     expect(serialized).not.toContain('user-2');
     expect(serialized).not.toContain('@');
     expect(serialized).not.toContain('123456');
+  });
+
+  /*
+    W2.24 (`BA-security-03`): audit outage. An emergency reset must not fail
+    because the audit table is unavailable, and the record must not vanish
+    either: the run reports the same status, the event is parked once, and a
+    replay after recovery produces exactly one correlated entry.
+  */
+  it('completes the reset during an audit outage and replays exactly one entry afterwards', async () => {
+    consumeFreshConfirmation.mockResolvedValue(true);
+    auditOutage = true;
+
+    const result = await createService().execute(caller, {});
+
+    expect(result.status).toBe('COMPLETE');
+    expect(auditRows).toHaveLength(0);
+    expect(pendingAuditIntents).toHaveLength(1);
+    expect(pendingAuditIntents[0]).toMatchObject({
+      action: 'auth.admin_bulk_password_reset',
+      entityId: 'super-1',
+      actorUserId: 'super-1',
+    });
+
+    // Recovery: the parked intent is delivered, and delivering it twice is
+    // still one row because the key belongs to the event, not to the attempt.
+    auditOutage = false;
+    const intent = pendingAuditIntents[0]!;
+    await recordAuditEntry(prisma as never, intent as never);
+    expect(auditRows).toHaveLength(1);
+    expect(auditRows[0]).toMatchObject({ action: 'auth.admin_bulk_password_reset', entityId: 'super-1' });
+    expect(auditRows[0]!.metadata).toMatchObject({ status: 'COMPLETE', changedUsers: 1 });
   });
 
   it('never fails the action when the audit write fails', async () => {

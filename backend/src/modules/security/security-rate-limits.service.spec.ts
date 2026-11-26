@@ -50,7 +50,8 @@ function service(overrides: {
     settingsService as never,
     configLoader as never,
     stepUpPolicy,
-    {} as never, // audit write is best-effort; the stub makes it throw and be swallowed
+    // W2.24: the auth trail is durable now; a delivered intent is the happy path.
+    { record: jest.fn(async () => 'delivered') } as never,
   );
   return { instance, settingsService, mfaService, identityPasskeyService };
 }
@@ -114,24 +115,27 @@ describe('SecurityRateLimitsService', () => {
   only.
 */
 describe('SecurityRateLimitsService cross-field rules and audit (5.4.0-f)', () => {
-  function instrumented(auditRows: Record<string, unknown>[]) {
-    const settingsService = { setSettingValues: jest.fn(async () => ({})) };
+  function instrumented(
+    auditRows: Record<string, unknown>[],
+    outcome: 'delivered' | 'pending' | 'unavailable' = 'delivered',
+  ) {
+    const settingsService = {
+      setSettingValues: jest.fn(async () => ({})),
+    };
     const configLoader = { load: jest.fn(async () => d) };
     const mfaService = { isEnabled: jest.fn(async () => true), verify: jest.fn(async () => 'totp') };
     const identityPasskeyService = { consumeFreshConfirmation: jest.fn(async () => false) };
     const userLoader = { findById: jest.fn(async () => ({ id: 'admin-1', email: 'admin@desk.ba', roleKeys: ['SUPER_ADMIN'], isActive: true, isLocalOnly: true })) };
-    const auditClient = {
-      $executeRaw: jest.fn(async () => 1),
-      auditLog: {
-        findFirst: jest.fn(async () => null),
-        create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
-          auditRows.push(data);
-          return data;
-        }),
-      },
-    };
-    const prisma = {
-      $transaction: async (run: (client: unknown) => Promise<unknown>) => run(auditClient),
+    /*
+      W2.24 (`BA-security-03`): the auth trail is written through the durable
+      privileged-audit writer, so the fake now records the intent it receives —
+      including the idempotency key — instead of a bare insert.
+    */
+    const privilegedAudit = {
+      record: jest.fn(async (input: Record<string, unknown>) => {
+        auditRows.push(input);
+        return outcome;
+      }),
     };
     const stepUpPolicy = new StepUpPolicyService(
       mfaService as never,
@@ -142,9 +146,9 @@ describe('SecurityRateLimitsService cross-field rules and audit (5.4.0-f)', () =
       settingsService as never,
       configLoader as never,
       stepUpPolicy,
-      prisma as never,
+      privilegedAudit as never,
     );
-    return { instance, settingsService };
+    return { instance, settingsService, privilegedAudit };
   }
 
   it('refuses a combination that is inside every bound but contradicts itself', async () => {
@@ -204,4 +208,27 @@ describe('SecurityRateLimitsService cross-field rules and audit (5.4.0-f)', () =
     // Counts only: nothing about a person, a code or an address travels with it.
     expect(JSON.stringify(auditRows[0])).not.toMatch(/admin@desk\.ba|123456|@/);
   });
+
+  /*
+    W2.24 (`BA-security-03`): durable-accept. An audit outage no longer turns
+    into a silently missing trail *or* into a failed retune — the intent is
+    stored (or reported unavailable) and the settings change still commits.
+  */
+  it.each(['pending', 'unavailable'] as const)(
+    'does not fail the retune when the audit write is %s',
+    async (outcome) => {
+      const auditRows: Record<string, unknown>[] = [];
+      const { instance, settingsService } = instrumented(auditRows, outcome);
+      const { config } = await instance.update(caller, {
+        config: { ...d, ipMaxFailures: 40 },
+        reason: 'kalibracija tokom audit zastoja',
+        code: '123456',
+      });
+      expect(config.ipMaxFailures).toBe(40);
+      expect(settingsService.setSettingValues).toHaveBeenCalledTimes(1);
+      // The writer saw the event exactly once; replay owns it from here on.
+      expect(auditRows).toHaveLength(1);
+    },
+    15000,
+  );
 });

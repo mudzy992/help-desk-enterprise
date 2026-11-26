@@ -871,6 +871,14 @@
           "lastSuccess": "Last successful delivery: {{time}}",
           "noSuccess": "No successful delivery yet.",
           "unavailable": "The export status is currently unavailable."
+        },
+        "privilegedAudit": {
+          "title": "Privileged audit trail",
+          "stateOk": "Recorded",
+          "stateDegraded": "Behind",
+          "counts": "Waiting: {{pending}} · dead-lettered: {{deadLetter}}",
+          "oldest": "Oldest waiting {{seconds}} s",
+          "unavailable": "The state of the durable trail is unavailable."
         }
       }
     },

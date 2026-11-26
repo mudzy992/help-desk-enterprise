@@ -41,6 +41,71 @@ describeIfDatabase('transactional outbox (integration)', () => {
     await prisma.outboxMessage.update({ where: { id: first.id }, data: { status: 'SUCCEEDED', completedAt: new Date() } });
   });
 
+  /*
+    W2.24 (`BA-security-03`): `dispatchOneTransactionally` exists so a delivery can
+    write its side effect and mark the message `SUCCEEDED` in one commit. Proven
+    here on the two branches that matter: a failing side effect leaves **no** row
+    behind and the message stays retryable, and a successful one commits both.
+  */
+  it('rolls the side effect back with the completion when the handler fails', async () => {
+    await enqueue('transactional-side-effect-1');
+    const results = await outbox.dispatchOneTransactionally(topic, async (delivery, transaction) => {
+      await transaction.auditLog.create({
+        data: {
+          action: 'auth.rate_limits_changed',
+          entityType: 'user',
+          entityId: `outbox-it-${delivery.id}`,
+          metadata: {},
+          hash: 'side-effect-rollback',
+          hashVersion: 6,
+          metadataDigest: '0'.repeat(64),
+          chainPartition: 'global',
+        },
+      });
+      throw new Error('audit storage unavailable');
+    });
+    expect(results).toBe('retry');
+    expect(
+      await prisma.auditLog.count({ where: { hash: 'side-effect-rollback' } }),
+    ).toBe(0);
+    const row = await prisma.outboxMessage.findUniqueOrThrow({
+      where: { topic_dedupeKey: { topic, dedupeKey: 'transactional-side-effect-1' } },
+      select: { status: true, attempts: true, lastError: true },
+    });
+    expect(row.status).toBe('PENDING');
+    expect(row.attempts).toBe(1);
+    expect(row.lastError).toContain('audit storage unavailable');
+  });
+
+  it('commits the side effect and the completion together', async () => {
+    await enqueue('transactional-side-effect-2');
+    const entityId = `outbox-it-${randomUUID()}`;
+    const result = await outbox.dispatchOneTransactionally(topic, async (_delivery, transaction) => {
+      await transaction.auditLog.create({
+        data: {
+          action: 'auth.rate_limits_changed',
+          entityType: 'user',
+          entityId,
+          metadata: {},
+          hash: 'side-effect-commit',
+          hashVersion: 6,
+          metadataDigest: '0'.repeat(64),
+          chainPartition: 'global',
+        },
+      });
+    });
+    expect(result).toBe('succeeded');
+    expect(await prisma.auditLog.count({ where: { entityId } })).toBe(1);
+    const row = await prisma.outboxMessage.findUniqueOrThrow({
+      where: { topic_dedupeKey: { topic, dedupeKey: 'transactional-side-effect-2' } },
+      select: { status: true, completedAt: true, ownerToken: true },
+    });
+    expect(row.status).toBe('SUCCEEDED');
+    expect(row.completedAt).not.toBeNull();
+    expect(row.ownerToken).toBeNull();
+    await prisma.auditLog.deleteMany({ where: { entityId } });
+  });
+
   it('allows only one of two workers to dispatch a message', async () => {
     await enqueue('parallel-workers-0001');
     let deliveries = 0;

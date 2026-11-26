@@ -1,5 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
+import { PrivilegedAuditService } from '../../common/privileged-audit/privileged-audit.service';
 import { auditLogActions } from '../audit-log/audit-log.constants';
 import { BulkPasswordResetService } from './bulk-password-reset.service';
 
@@ -101,8 +103,9 @@ describeIfDatabase('bulk password reset (integration)', () => {
       },
     };
     const invalidated: string[][] = [];
+    const database = (options.database ?? prisma) as never;
     const instance = new BulkPasswordResetService(
-      (options.database ?? prisma) as never,
+      database,
       stepUp as never,
       registry as never,
       {
@@ -110,6 +113,9 @@ describeIfDatabase('bulk password reset (integration)', () => {
           invalidated.push([...ids]);
         },
       } as never,
+      // W2.24: the real writer over the real database, so the aggregate entry and
+      // its outbox intent are asserted as committed state.
+      new PrivilegedAuditService(database, new TransactionalOutboxService(database)),
     );
     return { instance, calls, invalidated };
   }

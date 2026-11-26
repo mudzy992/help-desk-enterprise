@@ -30,6 +30,7 @@ import { SearchModule } from './modules/search/search.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { IntegrationQueueModule } from './modules/integration-queue/integration-queue.module';
 import { ConfigVersioningModule } from './modules/config-versioning/config-versioning.module';
+import { PrivilegedAuditModule } from './common/privileged-audit/privileged-audit.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { ReportsModule } from './modules/reports/reports.module';
@@ -83,6 +84,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     NotificationsModule,
     IntegrationQueueModule,
     ConfigVersioningModule,
+    PrivilegedAuditModule,
     AuditLogModule,
     ObservabilityModule,
     ReportsModule,

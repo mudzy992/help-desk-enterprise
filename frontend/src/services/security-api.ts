@@ -104,6 +104,26 @@ export function getAuditWebhookStatus(): Promise<SecurityAuditWebhookStatus> {
 }
 
 /**
+ * W2.24 (`BA-security-03`): the durable privileged trail. A privileged change
+ * (rate-limit retune, bulk password reset, account-security event) whose audit
+ * entry could not be written yet is kept as an intent and replayed. `degraded`
+ * means such an intent is older than five minutes or was dead-lettered — the
+ * record is not lost, but it is not written yet either.
+ */
+export type SecurityPrivilegedAuditHealth = {
+  readonly status: "ok" | "degraded";
+  readonly pending: number;
+  readonly processing: number;
+  readonly deadLetter: number;
+  readonly oldestPendingAgeMs: number;
+  readonly stale: boolean;
+};
+
+export function getPrivilegedAuditHealth(): Promise<SecurityPrivilegedAuditHealth> {
+  return apiRequest("/security/metrics/privileged-audit");
+}
+
+/**
  * W2.23 (`BA-security-02`): the run reports its own terminal state. `PARTIAL`
  * arrives with HTTP 202 and means "run it again" — it is never a finished run,
  * even though `failedUsers` may be 0 (every target blocked durably, only the

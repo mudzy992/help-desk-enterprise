@@ -7,6 +7,10 @@ import {
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import {
+  PrivilegedAuditService,
+  type PrivilegedAuditHealth,
+} from '../../common/privileged-audit/privileged-audit.service';
 import { SecurityAuditWebhookStatusService } from '../security-audit-webhook/security-audit-webhook.status.service';
 import type { SecurityAuditWebhookStatus } from '../security-audit-webhook/security-audit-webhook.status-model';
 
@@ -32,6 +36,7 @@ export class SecurityMetricsController {
   constructor(
     private readonly metricsService: LoginSecurityMetricsService,
     private readonly webhookStatus: SecurityAuditWebhookStatusService,
+    private readonly privilegedAudit: PrivilegedAuditService,
   ) {}
 
   @Get('last-hour')
@@ -45,5 +50,18 @@ export class SecurityMetricsController {
   @Header('Cache-Control', 'no-store')
   auditWebhook(): Promise<SecurityAuditWebhookStatus> {
     return this.webhookStatus.read();
+  }
+
+  /**
+   * W2.24 (`BA-security-03`): the alarm for the durable privileged trail. Counts
+   * and ages only — the entries themselves stay in the audit table behind its own
+   * access rules. `degraded` means an intent is older than five minutes or was
+   * dead-lettered: the record is intact but not yet written, which is exactly what
+   * an operator needs to know during an audit-storage outage.
+   */
+  @Get('privileged-audit')
+  @Header('Cache-Control', 'no-store')
+  privilegedAuditHealth(): Promise<PrivilegedAuditHealth> {
+    return this.privilegedAudit.health();
   }
 }
