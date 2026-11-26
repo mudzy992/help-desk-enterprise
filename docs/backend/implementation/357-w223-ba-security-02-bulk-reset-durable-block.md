@@ -2,9 +2,9 @@
 
 **Paket:** W2.23 — enforcement sloj blokira flagged principal prije registry cleanup-a<br>
 **Nalaz:** `BA-security-02` (P1) — **zatvoren**<br>
-**Kodni commit:** _popunjava se pri finalizaciji (vidi §CI)_<br>
-**Finalni testani SHA:** _popunjava se pri finalizaciji_<br>
-**CI:** _popunjava se pri finalizaciji_<br>
+**Kodni commit:** `7a925419`<br>
+**Finalni testani SHA:** `7a925419` (kod + testovi) + docs commit ovog closeout-a<br>
+**CI:** [`45876845930`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45876845930) — **zelen** (svi poslovi; `Backend PostgreSQL + Redis integration` uključena, E2E 27/27) + Perf smoke [`45876845979`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45876845979) ✓<br>
 **DB migracije:** nema (nema promjene šeme)
 
 ## Nalaz i acceptance
@@ -102,9 +102,35 @@ Oba su popravljena u ovom paketu (`ff11c927`), a 356 i audit 04 nose ispravku. B
 
 ## CI i testni dokaz
 
-_popunjava se pri finalizaciji paketa_ — po odluci o CI modularnosti integracijski posao (`Backend PostgreSQL +
-Redis integration`) se **ne** pokreće na svakom intermedijarnom push-u: pokreće se na pull requestu za isti SHA
-(jednom po paketu) ili ručno sa `backend_integration=force`.
+PR run [`45876845930`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45876845930) na `7a925419` —
+**svi poslovi zeleni**:
+
+| Posao | Rezultat |
+| --- | --- |
+| `Backend build + test` | **success** — 14 servis testova + 3 kontroler testa, `tsc`/`eslint` čisti |
+| `Backend PostgreSQL + Redis integration` | **success** — prvi put izvršava **oba** registrovana spec-a (`users/account-security-boundary` 5/5, `security/bulk-password-reset` 3/3) |
+| `Frontend build + test` | **success** — `tsc -b` + 479 fajlova / 1911 testova, i18n katalog usklađen |
+| `Backend container + supply chain` | success |
+| `Docs guard` | **success** — registar/plan/JSON usklađeni (`698 nalaza, 352 zatvoreno / 346 otvoreno`) |
+| `E2E critical flows` | **success** — `27 passed, 0 failed, 0 flaky, 0 skipped`, `errors: []` (uključuje spec 37 sa novim `status` ugovorom) |
+| `E2E install wizard`, `Read-only service-form pattern inventory` | skipped (workflow ih sam preskače za ovu vrstu izmjene) |
+| `CI gate` | **success** |
+| Perf smoke [`45876845979`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45876845979) | **success** (`k6 smoke`) |
+
+**Push run [`45876839098`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45876839098) na istom `7a925419`:** build/test/container/frontend/docs zeleni,
+`Backend PostgreSQL + Redis integration` = **skipped**, `CI gate` = **success** — to je novi CI ugovor iz ovog PR-a
+(integracija je gate na PR-u, ne smoke na svakom push-u). Jedan paket = jedan integracioni run.
+
+**Iteracije dokaza (svaka je našla stvarni defekt — zato je registracija speca bila vrijedna):**
+
+| Run | Nalaz | Popravka |
+| --- | --- | --- |
+| [`45865307348`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45865307348) | W2.22 boundary spec 3/5: audit red nikad nije nastajao (spec je čitao `prisma.auditLog`, a injektirao lažni notifier) | pravi `AccountSecurityNotifier(prisma)` + tvrdnja `Notification` reda |
+| [`45871173114`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45871173114) | `recoveryCodes: 2` ⇒ `[REDACTED]` (policy redaktuje `recovery.?code`) | ključ preimenovan u `recoveryFactors` |
+| [`45874230398`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45874230398) | bulk spec: `revokedByUserId` je FK ⇒ sintetički akter ruši svaku transakciju; `findFirst` je čitao tuđi audit red; `Object.create(tx)` ne vidi Prisma privatna polja | pravi (neaktivan) akter, `beforeEach` izolacija audit redova, Proxy sa `Reflect.get(target, …)` |
+
+**E2E napomena:** run `45868570744` je pao na `STACK OUTAGE` (health probe `api.desk.ba101.top` 2 min nedostupan,
+watchdog zaustavio suite) — infrastruktura, ne kod; sljedeći run je zelen bez izmjene speca.
 
 ## Registar nalaza
 
@@ -134,8 +160,8 @@ Redis integration`) se **ne** pokreće na svakom intermedijarnom push-u: pokreć
 - `node --test scripts/run-isolated-integration.test.mjs` → 24/24.
 - Integracijski spec je lokalno `skipped` (nema PostgreSQL-a); izvršava ga posao
   `Backend PostgreSQL + Redis integration` na finalnom push-u.
-- Frontend: ovaj sandbox nema `frontend/node_modules`, pa su frontend testovi i `tsc` pokriveni CI poslom
-  `Frontend build + test`.
+- Frontend (lokalno, poslije `npm ci`): `npx tsc -b` čist; `npx vitest run` → **479 fajlova / 1911 testova** prolazi
+  (prvi prolaz je našao duplikat `status` u audit katalogu — `admin-ops-i18n-coverage` ga pinuje — pa je uklonjen).
 
 ## Rizik
 

@@ -120,7 +120,8 @@ pa ga izolovani PostgreSQL runner u ovom CI prolazu nije izvršio (u `Backend bu
    `recoveryCodes: 2` u metadata postajalo `"[REDACTED]"` — audit trag je gubio broj. Ključ je preimenovan u
    **`recoveryFactors`** (broj, ne kod); allowlista šeme, frontend katalog/polja i labele `bs`/`en` su ažurirani.
 
-Ostali dokazi iz tabele iznad (unit/controller/frontend/E2E) su izvršeni kako je navedeno.
+Ostali dokazi iz tabele iznad (unit/controller/frontend/E2E) su izvršeni kako je navedeno. Prvi stvarni
+PostgreSQL prolaz (PR run `45876845930`, SHA `7a925419`) je sada **zelen: 5/5**.
 
 ## Registar nalaza
 

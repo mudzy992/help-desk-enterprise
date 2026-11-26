@@ -207,6 +207,8 @@ Preostali durable bulk operation, audit atomarnost, authorization epoch, TOCTOU,
   3 testa (200 vs 202) + **novi PostgreSQL integracijski spec (3 slučaja)**; E2E `37` tvrdi konzistentnost
   `status`-a sa brojačima. U istom paketu registrovan je i W2.22 boundary integration spec u izolovani runner
   (do tada ga CI nije izvršavao) uz guard koji takav propust sprječava.
+- Dokaz u CI-ju: PR run `45876845930` — `Backend PostgreSQL + Redis integration` zelena sa oba nova
+  integraciona spec-a, E2E 27/27; push run `45876839098` zelen sa integracijom `skipped` (gate je PR).
 - Detalj isporuke: `docs/backend/implementation/357-w223-ba-security-02-bulk-reset-durable-block.md`.
 
 **Severity/status:** P1, zatvoreno (W2.23).  
