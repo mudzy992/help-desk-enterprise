@@ -268,6 +268,21 @@ describeIfDatabase('group membership revoke (integration)', () => {
   });
 
   it('delivers the room event after a failed publish, and only then marks it done', async () => {
+    /*
+      This file runs four revocations against one database, so the topic is not empty
+      when this test starts. The drain below must see exactly one due intent — the one
+      this test creates — otherwise "how many were published" measures the file, not
+      the behaviour.
+    */
+    await database().outboxMessage.updateMany({
+      where: { topic: groupRoomRevokeTopic, status: { not: 'SUCCEEDED' } },
+      data: {
+        status: 'SUCCEEDED',
+        completedAt: new Date(),
+        ownerToken: null,
+        leaseExpiresAt: null,
+      },
+    });
     const member = await createMember('retry');
     await removeGroupMember(database() as never, groupId, member.id, async () => undefined, {
       actorUserId: null,
