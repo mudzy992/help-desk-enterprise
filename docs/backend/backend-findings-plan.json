@@ -5164,7 +5164,7 @@
     {
       "id": "BA-users-03",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.22)",
       "source": "04-users.md",
       "owner": "WS-A",
       "wave": 2
