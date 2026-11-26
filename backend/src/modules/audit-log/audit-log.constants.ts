@@ -83,6 +83,9 @@ export const auditLogActions = {
   authRateLimitsChanged: 'auth.rate_limits_changed',
   authSessionRevoked: 'auth.session_revoked',
   authSessionsRevokedAll: 'auth.sessions_revoked_all',
+  // W2.22 (`BA-users-03`): deactivate / directory link / unlink moved the account's
+  // authentication boundary; the entry names the transition and what it cut off.
+  authSecurityTransitionApplied: 'auth.security_transition_applied',
   authorizationSuperAdminBypass: 'authorization.super_admin_bypass',
   // Paket 2.2: an administrator reset a user's notification preferences.
   notificationPreferencesReset: 'notification.preferences.reset',

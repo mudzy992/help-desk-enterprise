@@ -57,6 +57,7 @@ export const knownAuditActions = [
   "auth.rate_limits_changed",
   "auth.session_revoked",
   "auth.sessions_revoked_all",
+  "auth.security_transition_applied",
   "authorization.super_admin_bypass",
   "notification.preferences.reset",
   "auth.password_changed",

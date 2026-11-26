@@ -11,6 +11,10 @@ import { listUsersSummary } from './list-users-summary';
 import { recordUserChange } from './record-user-change';
 import type { UserAuditContext, UserSummaryResponse } from './users.types';
 import { UsersError } from './users.error';
+import type {
+  AccountSecurityBoundaryPort,
+  AccountSecurityCut,
+} from '../authentication/security/account-security-boundary.service';
 
 export async function linkUserDirectoryIdentity(input: {
   readonly prisma: PrismaService;
@@ -19,6 +23,12 @@ export async function linkUserDirectoryIdentity(input: {
   readonly directoryExternalId: string;
   readonly context?: UserAuditContext;
   readonly invalidatePrincipal?: PrincipalInvalidationHook;
+  /**
+   * W2.22 (`BA-users-03`): linking a local account to a directory identity hands
+   * authentication to the IdP. Everything issued by the local password/MFA world is
+   * cut off in the same transaction (cutoff + sessions + local factors).
+   */
+  readonly securityBoundary?: AccountSecurityBoundaryPort;
 }): Promise<UserSummaryResponse> {
   const userId = input.userId.trim();
   const directoryExternalId = input.directoryExternalId.trim();
@@ -67,6 +77,7 @@ export async function linkUserDirectoryIdentity(input: {
   if (conflict !== null && conflict.id !== existing.id) {
     throw new UsersError('DIRECTORY_IDENTITY_CONFLICT');
   }
+  let securityCut: AccountSecurityCut | null = null;
   await input.prisma.$transaction(async (transaction) => {
     // Shares the lock with SUPER_ADMIN assignment so a stale pre-check cannot
     // race a role grant and convert a SuperAdmin into a directory identity.
@@ -120,6 +131,13 @@ export async function linkUserDirectoryIdentity(input: {
         mustChangePassword: false,
       },
     });
+    if (input.securityBoundary !== undefined) {
+      securityCut = await input.securityBoundary.cutWithinTransaction(transaction, {
+        userId: current.id,
+        actorUserId: context.actorUserId,
+        transition: 'directory_linked',
+      });
+    }
     await recordUserChange(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.userUpdated,
       entityId: current.id,
@@ -134,6 +152,13 @@ export async function linkUserDirectoryIdentity(input: {
       },
     });
   });
+  if (securityCut !== null) {
+    await input.securityBoundary?.afterCommit({
+      userId: existing.id,
+      actorUserId: context.actorUserId,
+      cut: securityCut,
+    });
+  }
   if (input.invalidatePrincipal !== undefined) {
     try {
       await input.invalidatePrincipal(existing.id);

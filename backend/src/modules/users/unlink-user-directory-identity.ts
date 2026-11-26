@@ -7,6 +7,10 @@ import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-us
 import { listUsersSummary } from './list-users-summary';
 import type { ResetUserPasswordResponse, UserAuditContext } from './users.types';
 import { UsersError } from './users.error';
+import type {
+  AccountSecurityBoundaryPort,
+  AccountSecurityCut,
+} from '../authentication/security/account-security-boundary.service';
 
 export async function unlinkUserDirectoryIdentity(
   prisma: PrismaService,
@@ -17,6 +21,12 @@ export async function unlinkUserDirectoryIdentity(
     /** Paket 5.4.0-d (M5): rejects a compromised temporary password. */
     readonly hibpChecker?: HibpPasswordChecker;
     readonly invalidatePrincipal?: (userId: string) => Promise<unknown>;
+    /**
+     * W2.22 (`BA-users-03`): unlinking hands the account back to the local password
+     * world. The directory-era sessions and local factors are cut inside the same
+     * transaction that stores the new temporary password.
+     */
+    readonly securityBoundary?: AccountSecurityBoundaryPort;
   },
   context: UserAuditContext = { actorUserId: null, requestId: null },
 ): Promise<ResetUserPasswordResponse> {
@@ -49,6 +59,7 @@ export async function unlinkUserDirectoryIdentity(
   if (!existing.isActive) {
     throw new UsersError('INVALID_INPUT');
   }
+  let securityCut: AccountSecurityCut | null = null;
   const issued = await issueTemporaryPasswordForUser({
     prisma,
     settingsService: dependencies.settingsService,
@@ -59,6 +70,13 @@ export async function unlinkUserDirectoryIdentity(
     displayName: existing.displayName,
     invalidatePrincipal: dependencies.invalidatePrincipal,
     beforePasswordUpdate: async (transaction) => {
+      if (dependencies.securityBoundary !== undefined) {
+        securityCut = await dependencies.securityBoundary.cutWithinTransaction(transaction, {
+          userId: existing.id,
+          actorUserId: context.actorUserId,
+          transition: 'directory_unlinked',
+        });
+      }
       await transaction.user.update({
         where: { id: existing.id },
         data: {
@@ -80,6 +98,13 @@ export async function unlinkUserDirectoryIdentity(
       },
     },
   });
+  if (securityCut !== null) {
+    await dependencies.securityBoundary?.afterCommit({
+      userId: existing.id,
+      actorUserId: context.actorUserId,
+      cut: securityCut,
+    });
+  }
   const summaries = await listUsersSummary(prisma, { ids: [existing.id] });
   const summary = summaries.find((user) => user.id === existing.id);
   if (summary === undefined) {

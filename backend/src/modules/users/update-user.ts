@@ -3,6 +3,7 @@ import { auditLogActions } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import type { JsonValue } from '../change-log/change-log.types';
 import type { UserAuditContext, PrincipalInvalidationHook, UpdateUserInput, UserSummaryResponse } from './users.types';
+import type { AccountSecurityBoundaryPort, AccountSecurityCut } from '../authentication/security/account-security-boundary.service';
 import { recordUserChange } from './record-user-change';
 import { UsersError } from './users.error';
 import { listUsersSummary } from './list-users-summary';
@@ -33,6 +34,13 @@ export async function updateUser(
   input: UpdateUserInput,
   invalidatePrincipal: PrincipalInvalidationHook = async () => {},
   context: UserAuditContext = { actorUserId: null, requestId: null },
+  /**
+   * W2.22 (`BA-users-03`): deactivation moves the authentication boundary, so the
+   * session cutoff, the session rows and the local MFA factors are written **in the
+   * same transaction**. When the caller wires no port (unit tests that only exercise
+   * the profile fields) the deactivation is unchanged; `UsersService` always wires it.
+   */
+  securityBoundary?: AccountSecurityBoundaryPort,
 ): Promise<UserSummaryResponse> {
   const existing = await prisma.user.findUnique({
     where: { id: input.userId },
@@ -57,6 +65,7 @@ export async function updateUser(
     const before = Object.fromEntries(
       changedFields.map((field) => [field, existing[field]]),
     ) as JsonValue;
+    let securityCut: AccountSecurityCut | null = null;
     await prisma.$transaction(async (transaction) => {
       if (changedData.isActive === false && existing.isActive) {
         await lockActiveSuperAdminInvariant(transaction);
@@ -72,6 +81,15 @@ export async function updateUser(
         }
       }
       await transaction.user.update({ where: { id: input.userId }, data: changedData });
+      if (changedData.isActive === false && existing.isActive && securityBoundary !== undefined) {
+        // Inside the transaction: a failure here rolls the deactivation back, so the
+        // API can never answer 2xx while the old tokens are still alive.
+        securityCut = await securityBoundary.cutWithinTransaction(transaction, {
+          userId: input.userId,
+          actorUserId: context.actorUserId,
+          transition: 'deactivated',
+        });
+      }
       await recordUserChange(transaction as unknown as AuditLogWriteClient, {
         action: auditLogActions.userUpdated,
         entityId: input.userId,
@@ -84,6 +102,13 @@ export async function updateUser(
         metadata: { before, after: changedData as JsonValue },
       });
     });
+    if (securityCut !== null) {
+      await securityBoundary?.afterCommit({
+        userId: input.userId,
+        actorUserId: context.actorUserId,
+        cut: securityCut,
+      });
+    }
     // Cached authorization includes the user's unit and active state.
     await invalidatePrincipal(input.userId);
   }
