@@ -1,3 +1,10 @@
+// The service value-imports `PrismaService` (DI token), which reaches the generated
+// client; the tests inject a fake `prisma` through the constructor instead, so the
+// module is stubbed exactly as the neighbouring authentication specs do.
+jest.mock('../../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 jest.mock('@simplewebauthn/server', () => ({
   generateRegistrationOptions: jest.fn(),
   verifyRegistrationResponse: jest.fn(),
@@ -51,6 +58,8 @@ function service(credentialOverrides: Record<string, unknown> = {}) {
       isBackedUp: false,
     })),
     update: jest.fn(async () => ({})),
+    // W2.18: the counter advance is a conditional write; the default matches.
+    updateMany: jest.fn(async () => ({ count: 1 })),
     delete: jest.fn(async () => ({})),
     deleteMany: jest.fn(async () => ({ count: 1 })),
     count: jest.fn(async () => 1),
@@ -428,16 +437,18 @@ describe('PasskeyCredentialService — login and step-up assertions (5.4.0-f)', 
     expect(verifyAuthenticationResponse).toHaveBeenCalledTimes(1);
   });
 
-  it('records a verified assertion: forward counter, last-used time and client IP', async () => {
+  it('records a verified assertion with a compare-and-set on the counter it verified', async () => {
     (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
       verified: true,
       authenticationInfo: { newCounter: 7 },
     });
     const update = jest.fn(async () => ({}));
+    const updateMany = jest.fn(async () => ({ count: 1 }));
     const { instance } = service({
       findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
       findFirst: jest.fn(async () => storedCredential(6)),
       update,
+      updateMany,
     });
     const now = new Date('2026-10-12T10:00:00.000Z');
 
@@ -454,25 +465,119 @@ describe('PasskeyCredentialService — login and step-up assertions (5.4.0-f)', 
         requireUserVerification: false,
       }),
     );
-    expect(update).toHaveBeenCalledWith({
-      where: { id: 'row-1' },
+    // W2.18 (`BA-authentication-05`): the predicate carries the counter this request
+    // read, so a parallel ceremony cannot be overwritten by a slower, older write.
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'row-1', counter: BigInt(6) },
       data: { counter: BigInt(7), lastUsedAt: now, lastUsedIp: '10.0.0.7' },
     });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  /*
+    W2.18 (`BA-authentication-05`): the race itself. Two ceremonies read the same
+    row; only one conditional write can land. The loser must be refused without
+    touching the factor — a counter that moved forward is a duplicate ceremony, not
+    a cloned authenticator — and the stored counter must never move backwards.
+  */
+  it('refuses the assertion whose compare-and-set lost, and keeps the factor', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 6 },
+    });
+    const updateMany = jest.fn(async () => ({ count: 0 }));
+    const deleteMany = jest.fn(async () => ({ count: 1 }));
+    const findFirst = jest
+      .fn()
+      // our read, before the other ceremony wrote
+      .mockResolvedValueOnce(storedCredential(5))
+      // the post-failure re-read: the winner already stored 6
+      .mockResolvedValueOnce({ counter: BigInt(6) });
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst,
+      updateMany,
+      deleteMany,
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-race'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-race'), { id: 'cred-1' } as never, rp, false, null),
+    ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'row-1', counter: BigInt(5) } }),
+    );
+    // Not a clone: the counter advanced, so the passkeys are kept.
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the credential disappears between verification and the write', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 6 },
+    });
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce(storedCredential(5))
+      .mockResolvedValueOnce(null);
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst,
+      updateMany: jest.fn(async () => ({ count: 0 })),
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-gone'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-gone'), { id: 'cred-1' } as never, rp, false, null),
+    ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
+  });
+
+  it('keeps refusing a stale clone path: a non-advancing counter still wipes the factor', async () => {
+    // Guards the boundary between the two answers: the clone decision is made on the
+    // values this request read, before any write, and is unaffected by the CAS.
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 5 },
+    });
+    const updateMany = jest.fn(async () => ({ count: 1 }));
+    const deleteMany = jest.fn(async () => ({ count: 1 }));
+    const { instance } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(5)),
+      updateMany,
+      deleteMany,
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-clone'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-clone'), { id: 'cred-1' } as never, rp, false, null),
+    ).rejects.toThrow(new AccountSecurityError('PASSKEY_CLONED'));
+    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u-1' } });
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it('accepts an authenticator that never advances its counter, but not one that goes backwards', async () => {
+    // WebAuthn: a stored counter of 0 means the authenticator does not implement
+    // one. There is nothing to compare, so the CAS predicate is `counter: 0` and a
+    // parallel signage still lands (both wrote 0 — the counter never regressed).
     (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
       verified: true,
       authenticationInfo: { newCounter: 0 },
     });
+    const updateMany = jest.fn(async () => ({ count: 1 }));
     const { instance } = service({
       findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
       findFirst: jest.fn(async () => storedCredential(0)),
+      updateMany,
     });
     await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-4'), rp);
     await expect(
       instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-4'), { id: 'cred-1' } as never, rp, false, null),
     ).resolves.toEqual({ credentialRowId: 'row-1' });
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'row-1', counter: BigInt(0) } }),
+    );
   });
 
   it('demands user verification for the step-up path', async () => {

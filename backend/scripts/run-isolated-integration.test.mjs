@@ -49,6 +49,7 @@ test("svaki real-DB suite dobija kratko i sigurno ime baze", () => {
   assert.ok(integrationSpecs.includes("src/common/principal-context/principal-authority.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/authentication/session-revocation.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/authentication/mfa-token-claim.integration.spec.ts"));
+  assert.ok(integrationSpecs.includes("src/modules/authentication/passkey-counter-cas.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/websocket/socket-session-invalidation.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/websocket/websocket-abuse-limiter.integration.spec.ts"));
   assert.ok(integrationSpecs.includes("src/modules/authorization/evaluate-resource-policy.integration.spec.ts"));

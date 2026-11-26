@@ -53,6 +53,7 @@ export const integrationSpecs = Object.freeze([
   "src/modules/on-call/on-call.integration.spec.ts",
   "src/modules/authentication/session-revocation.integration.spec.ts",
   "src/modules/authentication/mfa-token-claim.integration.spec.ts",
+  "src/modules/authentication/passkey-counter-cas.integration.spec.ts",
   "src/modules/websocket/socket-session-invalidation.integration.spec.ts",
   "src/modules/websocket/ws-redis-adapter.integration.spec.ts",
   "src/modules/websocket/ws-redis-adapter-outage.integration.spec.ts",

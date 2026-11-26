@@ -320,11 +320,63 @@ export class PasskeyCredentialService {
       await this.prisma.userPasskeyCredential.deleteMany({ where: { userId } });
       throw new AccountSecurityError('PASSKEY_CLONED');
     }
-    await this.prisma.userPasskeyCredential.update({
-      where: { id: credential.id },
+    /*
+      W2.18 (`BA-authentication-05`): the counter write is a compare-and-set, not an
+      unconditional update. Two ceremonies that read the same row both pass the
+      check above, so with a plain `update` the slower one could persist its older
+      `newCounter` and move the clone signal backwards. The predicate pins the value
+      this request actually verified against; exactly one writer may advance it.
+    */
+    const expectedCounter = credential.counter;
+    const written = await this.prisma.userPasskeyCredential.updateMany({
+      where: { id: credential.id, counter: expectedCounter },
       data: { counter: BigInt(Math.max(newCounter, 0)), lastUsedAt: now, lastUsedIp: ip },
     });
+    if (written.count !== 1) {
+      await this.refuseStaleCounter(userId, credential.id, expectedCounter);
+    }
     return { credentialRowId: credential.id };
+  }
+
+  /**
+   * W2.18 (`BA-authentication-05`): what a lost compare-and-set means — and what it
+   * must never mean.
+   *
+   * The counter moved forward (or the row vanished) between this request's read and
+   * its write, so its own assertion is stale: a parallel ceremony with a distinct
+   * single-use challenge already advanced the authenticator state. That is a
+   * duplicate, **not** a clone — the counter never went backwards — so the factor is
+   * kept and only this sign-in is refused (fail closed). A genuine clone still
+   * takes the `PASSKEY_CLONED` path above, decided on the values this request read.
+   */
+  private async refuseStaleCounter(
+    userId: string,
+    credentialRowId: string,
+    expectedCounter: bigint,
+  ): Promise<never> {
+    const current = await this.prisma.userPasskeyCredential.findFirst({
+      where: { id: credentialRowId, userId },
+      select: { counter: true },
+    });
+    if (current === null) {
+      this.logger.warn(
+        `passkey assertion refused for user ${userId}: the credential disappeared before its counter could be stored`,
+      );
+      throw new AccountSecurityError('MFA_INVALID_CODE');
+    }
+    if (current.counter > expectedCounter) {
+      this.logger.warn(
+        `passkey assertion refused for user ${userId}: counter already advanced to ${current.counter.toString()} (parallel ceremony)`,
+      );
+      throw new AccountSecurityError('MFA_INVALID_CODE');
+    }
+    // Reachable only if the row was rewritten without the counter moving (e.g. a
+    // re-registration of the same row id). Never write a value this request did not
+    // verify against, and never guess at a clone.
+    this.logger.warn(
+      `passkey assertion refused for user ${userId}: counter row changed without advancing (expected ${expectedCounter.toString()})`,
+    );
+    throw new AccountSecurityError('MFA_INVALID_CODE');
   }
 
   /**
