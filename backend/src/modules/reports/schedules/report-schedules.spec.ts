@@ -255,6 +255,8 @@ function createRunner(options: {
   expiredRuns?: readonly string[];
   /** Simulates a database error during the retention pass. */
   pruneThrows?: boolean;
+  /** Simulates the provider refusing (or failing) the „send test“ message. */
+  sendMailThrows?: unknown;
 }) {
   const runs: Record<string, unknown>[] = [];
   /** W7.96: which writes happened inside the runner's transaction, and in which order. */
@@ -434,6 +436,7 @@ function createRunner(options: {
     } as never,
     {
       send: async (message: OutboundMailMessage) => {
+        if (options.sendMailThrows !== undefined) throw options.sendMailThrows;
         sent.push({ to: message.to, subject: message.subject });
         return {
           acceptedRecipientCount: 1,
@@ -827,5 +830,56 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
   it('builds a stable slot key per period', () => {
     const period = previousReportPeriod('WEEKLY', zone, new Date('2026-04-13T05:00:00Z'));
     expect(slotKeyOf('sch-1', period)).toBe('sch-1:2026-04-05T22:00:00.000Z');
+  });
+});
+
+/*
+  E2E triage 2026-11-26 (`18-reports-schedules` na `master` runu `45789099561`):
+  „pošalji test meni“ je grešku provajdera puštao kao 500. Administrator mora dobiti
+  stabilan `{ sent: false, reason }`, isto kao za isključen kanal, i to bez ijednog
+  izlaznog mejla kad je slanje odbijeno.
+*/
+describe('ScheduledReportRunner „pošalji test meni“ (E2E triage 2026-11-26)', () => {
+  const actor = {
+    id: 'u-ok',
+    email: 'ok@example.com',
+    displayName: 'Ok',
+    preferredLocale: 'bs',
+    isLocalOnly: true,
+    isActive: true,
+  };
+  const now = new Date('2026-04-13T08:00:00Z');
+
+  it('mails the actor and answers sent:true', async () => {
+    const { runner, sent } = createRunner({ due: [] });
+    await expect(runner.sendTest(schedule(), actor, now)).resolves.toEqual({ sent: true });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ to: 'ok@example.com' });
+  });
+
+  it('answers with the daily limit instead of 500 when the provider refuses the quota', async () => {
+    const refusal = Object.assign(new Error('Data command failed'), {
+      code: 'EENVELOPE',
+      responseCode: 550,
+      response: '550-5.4.5 Daily user sending limit exceeded. For more information, go to ...',
+    });
+    const { runner, sent } = createRunner({ due: [], sendMailThrows: refusal });
+    await expect(runner.sendTest(schedule(), actor, now)).resolves.toEqual({
+      sent: false,
+      reason: 'EMAIL_PROVIDER_DAILY_LIMIT',
+    });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('keeps a broken SMTP setup distinguishable from a missing one', async () => {
+    const authFailure = Object.assign(new Error('Invalid login'), {
+      code: 'EAUTH',
+      responseCode: 535,
+    });
+    const { runner } = createRunner({ due: [], sendMailThrows: authFailure });
+    await expect(runner.sendTest(schedule(), actor, now)).resolves.toEqual({
+      sent: false,
+      reason: 'EMAIL_AUTH_FAILED',
+    });
   });
 });
