@@ -53,6 +53,7 @@ export const knownAuditActions = [
   "auth.mfa_failed",
   "auth.mfa_passkey_enrolled",
   "auth.mfa_passkey_removed",
+  "auth.mfa_passkey_clone_detected",
   "auth.rate_limits_changed",
   "auth.session_revoked",
   "auth.sessions_revoked_all",

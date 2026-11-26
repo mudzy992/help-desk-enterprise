@@ -112,6 +112,7 @@ export function notificationTitleKey(
   | "notifications.items.ticketUnroutedDigest"
   | "notifications.items.directorySyncAborted"
   | "notifications.items.accountMfaChanged"
+  | "notifications.items.accountPasskeyCloneDetected"
   | "notifications.items.accountRecoveryCodeUsed"
   | "notifications.items.accountPasswordChanged"
   | "notifications.items.accountNewDevice"
@@ -173,6 +174,8 @@ export function notificationTitleKey(
       return "notifications.items.directorySyncAborted";
     case "account.mfaChanged":
       return "notifications.items.accountMfaChanged";
+    case "account.passkeyCloneDetected":
+      return "notifications.items.accountPasskeyCloneDetected";
     case "account.recoveryCodeUsed":
       return "notifications.items.accountRecoveryCodeUsed";
     case "account.passwordChanged":
