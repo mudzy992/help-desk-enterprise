@@ -116,7 +116,19 @@ Lokalno: `npx jest src/modules/groups src/modules/websocket src/common/cache src
 
 ### 3.3 CI
 
-Vidi ledger (`W2.25`) nakon otvaranja PR-a — puni `backend-integration` job (uključuje novi spec) i E2E.
+PR #42, run `45903010971` — **svi poslovi zeleni**: `Backend build + test`, `Backend PostgreSQL + Redis integration`
+(18m8s, uključuje novi spec), `Frontend build + test`, `Backend container + supply chain`, `Docs guard`,
+`E2E critical flows` 27/27 bez flakea, `CI gate`. Push run `45903003104` ✓ sa integracijom `skipped` (CI ugovor),
+Perf smoke `45903010749` ✓.
+
+Dva crvena prolaza prije toga nisu bila šum — svaki je našao stvarni defekt u dokazu:
+
+| Run | Nalaz | Popravka |
+| --- | --- | --- |
+| `45900096760` | install double nije imao `User.authzVersion`, pa je wizard (dodaje osnivača u seedovanu grupu kroz `addGroupMember`) padao na `transaction.user.update is not a function` | `update`/`increment` u in-memory delegatu + `authzVersion` u tipu |
+| `45900096760` | dva notifications speca su **tvrdila** da se zastario snapshot servira poslije revoke-a — to je bio finding, ne zaštita | tvrde prazan, tačan snapshot; isolation tvrdnje zadržane |
+| `45900096760` | integracijski dokaz: „warmth" je bio pretpostavka, kontrolni assert je tražio zastario odgovor (koji više ne postoji), a fake Redis nije imao `status:'ready'` pa shared publisher nikad nije ni pozvao `publish` | warmth se dokazuje identitetom referentnog niza; kontrola sa starom verzijom očekuje prazan rezultat; fake ima `status:'ready'`, a `lastError` nosi klasu kvara |
+| `45901278815` | retry test je mjerio cijeli fajl (3 preostale namjere iz prethodnih testova) umjesto svoje jedne | prije testa preostale namjere se označe `SUCCEEDED`, pa `drain` vidi tačno jednu due namjeru |
 
 ## 4. Šta paket mijenja u ponašanju
 
