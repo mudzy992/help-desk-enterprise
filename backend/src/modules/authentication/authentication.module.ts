@@ -35,9 +35,17 @@ import { SessionIdleTimeoutLoader } from './security/session-idle-timeout.loader
 import { SessionRegistryService } from './security/session-registry.service';
 import { AccountSecurityBoundaryService } from './security/account-security-boundary.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
+import { PrivilegedAuditModule } from '../../common/privileged-audit/privileged-audit.module';
 
 @Module({
-  imports: [SettingsModule, JwtModule.register({})],
+  /*
+    W2.24 (`BA-security-03`): `AccountSecurityNotifier` writes its trail through the
+    durable writer, so this module declares that dependency here instead of relying
+    on the global registration at the application root — otherwise every test that
+    compiles this subtree alone (settings-http, websocket, the worker boot) would
+    fail to resolve it.
+  */
+  imports: [SettingsModule, JwtModule.register({}), PrivilegedAuditModule],
   controllers: [AuthenticationController, AccountSecurityController],
   providers: [
     AuthenticationUserLoader,
