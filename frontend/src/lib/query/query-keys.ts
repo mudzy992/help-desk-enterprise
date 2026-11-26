@@ -86,5 +86,10 @@ export const queryKeys = {
   adminSecurityMetricsPrefix: ["admin", "security", "metrics"] as const,
   adminSecurityMetricsLastHour: ["admin", "security", "metrics", "last-hour"] as const,
   adminSecurityMetricsAuditWebhook: ["admin", "security", "metrics", "audit-webhook"] as const,
-  adminSecurityMetricsPrivilegedAudit: ["admin", "security", "metrics", "privileged-audit"] as const,
+  adminSecurityMetricsPrivilegedAudit: [
+    "admin",
+    "security",
+    "metrics",
+    "privileged-audit",
+  ] as const,
 } as const;

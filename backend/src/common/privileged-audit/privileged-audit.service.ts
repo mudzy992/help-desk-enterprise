@@ -105,7 +105,17 @@ export class PrivilegedAuditService implements OnModuleInit, OnApplicationShutdo
       );
       return 'unavailable';
     }
-    await this.drain(deliveryBatchSize / 5);
+    /*
+      Best-effort delivery, but the outcome must stay honest *and* this method
+      must never throw: if the delivery loop or the status read fails, the intent
+      is already committed and the answer is `pending` — never a rejected promise
+      inside a caller that has already written its state.
+    */
+    try {
+      await this.drain(deliveryBatchSize / 5);
+    } catch (error) {
+      this.logger.warn(`privileged_audit_immediate_delivery_failed reason=${describeError(error)}`);
+    }
     const status = await this.statusOf(dedupeKey);
     return status === 'SUCCEEDED' ? 'delivered' : 'pending';
   }
@@ -198,11 +208,18 @@ export class PrivilegedAuditService implements OnModuleInit, OnApplicationShutdo
   }
 
   private async statusOf(dedupeKey: string): Promise<string | null> {
-    const row = await this.prisma.outboxMessage.findUnique({
-      where: { topic_dedupeKey: { topic: privilegedAuditTopic, dedupeKey } },
-      select: { status: true },
-    });
-    return row?.status ?? null;
+    try {
+      const row = await this.prisma.outboxMessage.findUnique({
+        where: { topic_dedupeKey: { topic: privilegedAuditTopic, dedupeKey } },
+        select: { status: true },
+      });
+      return row?.status ?? null;
+    } catch (error) {
+      // Unknown is not delivered: the caller is told `pending` and the timer or
+      // an operator finishes the job.
+      this.logger.warn(`privileged_audit_status_unreadable reason=${describeError(error)}`);
+      return null;
+    }
   }
 
   /**

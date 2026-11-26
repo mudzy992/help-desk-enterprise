@@ -150,7 +150,10 @@ export function AdminSecurityMetricsCard() {
                 </div>
               ))}
             </div>
-            <PrivilegedAuditTile status={privilegedAuditQuery.data} isError={privilegedAuditQuery.isError} />
+            <PrivilegedAuditTile
+              status={privilegedAuditQuery.data}
+              isError={privilegedAuditQuery.isError}
+            />
             <AuditWebhookTile
               status={webhookQuery.data}
               isError={webhookQuery.isError}
@@ -218,7 +221,9 @@ function PrivilegedAuditTile({
         <p className="text-[11px] text-muted-foreground">
           {t("admin.ops.securityMetrics.privilegedAudit.title")}
         </p>
-        <p className={hintClassName}>{t("admin.ops.securityMetrics.privilegedAudit.unavailable")}</p>
+        <p className={hintClassName}>
+          {t("admin.ops.securityMetrics.privilegedAudit.unavailable")}
+        </p>
       </div>
     );
   }
@@ -251,7 +256,9 @@ function PrivilegedAuditTile({
         })}
       </p>
       {status.pending + status.processing > 0 ? (
-        <p className={`tnum mt-1 text-[12px] ${degraded ? "text-danger" : "text-muted-foreground"}`}>
+        <p
+          className={`tnum mt-1 text-[12px] ${degraded ? "text-danger" : "text-muted-foreground"}`}
+        >
           {t("admin.ops.securityMetrics.privilegedAudit.oldest", {
             seconds: Math.round(status.oldestPendingAgeMs / 1000),
           })}

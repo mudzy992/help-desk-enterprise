@@ -275,6 +275,8 @@ describeIfDatabase('bulk password reset (integration)', () => {
     */
     const faulty = {
       user: prisma.user,
+      // The outbox is not what this case faults: only `userSession` throws.
+      outboxMessage: prisma.outboxMessage,
       $transaction: (run: (client: unknown) => Promise<unknown>) =>
         prisma.$transaction(async (transaction) => {
           /*

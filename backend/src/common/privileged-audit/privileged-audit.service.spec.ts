@@ -139,6 +139,26 @@ describe('PrivilegedAuditService', () => {
     await expect(service.record(input)).resolves.toBe('unavailable');
   });
 
+  /*
+    Regression from the first CI run: a caller that injects a *partial* client (a
+    fault-injection proxy, a worker boot) made the status read throw out of
+    `record` and turned a privileged action into a 500. `record` is a boundary:
+    an unreadable status is `pending`, not an exception.
+  */
+  it('answers pending instead of throwing when the delivery or the status read fails', async () => {
+    const broken = harness();
+    broken.prisma.outboxMessage.findUnique = jest.fn(async () => {
+      throw new Error('outbox table unreadable');
+    }) as never;
+    await expect(broken.service.record({ ...input, dedupeKey: 'rate_limits:admin-1:v6' })).resolves.toBe('pending');
+
+    const failingDrain = harness();
+    failingDrain.outbox.dispatchOneTransactionally.mockRejectedValueOnce(new Error('claim lost'));
+    await expect(
+      failingDrain.service.record({ ...input, dedupeKey: 'rate_limits:admin-1:v7' }),
+    ).resolves.toBe('pending');
+  });
+
   it('generates a unique key per event and refuses a malformed one', async () => {
     const first = defaultPrivilegedAuditKey(input);
     const second = defaultPrivilegedAuditKey(input);
