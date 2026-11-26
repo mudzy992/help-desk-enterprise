@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -288,6 +289,9 @@ export class PasskeyCredentialService {
         publicKey: true,
         counter: true,
         transports: true,
+        // W2.21: captured for the incident snapshot when a clone is detected.
+        deviceName: true,
+        aaguid: true,
       },
     });
     if (credential === null) throw new AccountSecurityError('MFA_INVALID_CODE');
@@ -316,8 +320,18 @@ export class PasskeyCredentialService {
     if (!verification.verified) throw new AccountSecurityError('MFA_INVALID_CODE');
     const newCounter = verification.authenticationInfo.newCounter;
     if (Number(credential.counter) > 0 && newCounter <= Number(credential.counter)) {
-      // Cloned authenticator: drop the factor before it can be used again.
-      await this.prisma.userPasskeyCredential.deleteMany({ where: { userId } });
+      await this.revokeClonedCredential(
+        userId,
+        {
+          id: credential.id,
+          credentialId: credential.credentialId,
+          deviceName: credential.deviceName ?? null,
+          aaguid: credential.aaguid ?? null,
+          storedCounter: Number(credential.counter),
+          presentedCounter: newCounter,
+        },
+        ip,
+      );
       throw new AccountSecurityError('PASSKEY_CLONED');
     }
     /*
@@ -336,6 +350,73 @@ export class PasskeyCredentialService {
       await this.refuseStaleCounter(userId, credential.id, expectedCounter);
     }
     return { credentialRowId: credential.id };
+  }
+
+  /**
+   * W2.21 (`BA-authentication-08`): a cloned authenticator costs **one** credential, not
+   * all of them.
+   *
+   * The counter went backwards (or stood still) on a credential that had already
+   * advanced, so this authenticator is duplicated somewhere. The old behaviour ran
+   * `deleteMany({ where: { userId } })` — a single cloned (or merely buggy) device
+   * silently removed every passkey the user owned, which is both a lockout risk and a
+   * loss of forensic signal: the surviving devices became collateral damage of one
+   * incident, and no record said which device caused it.
+   *
+   * Now the affected row — and only that row — is removed, and the incident is kept:
+   *
+   * * an `auth.mfa_passkey_clone_detected` audit entry carries the snapshot (device
+   *   label, AAGUID, both counters and a fingerprint, never credential material) so an
+   *   administrator can see what happened after the row is gone;
+   * * the owner gets an `account.passkeyCloneDetected` notification naming the device
+   *   they have to re-register.
+   *
+   * Recovery codes and other passkeys keep working; nothing else is touched.
+   */
+  private async revokeClonedCredential(
+    userId: string,
+    credential: {
+      readonly id: string;
+      readonly credentialId: string;
+      readonly deviceName: string | null;
+      readonly aaguid: string | null;
+      readonly storedCounter: number;
+      readonly presentedCounter: number;
+    },
+    ip: string | null,
+  ): Promise<void> {
+    /*
+      `deleteMany` with both `id` and `userId` (not `delete`): the predicate keeps the
+      ownership check inside the same statement, and deleting an already-removed row is
+      a no-op instead of a 404-shaped crash on a duplicate assertion.
+    */
+    const removed = await this.prisma.userPasskeyCredential.deleteMany({
+      where: { id: credential.id, userId },
+    });
+    const remaining = await this.countCredentials(userId);
+    const fingerprint = createHash('sha256')
+      .update(credential.credentialId)
+      .digest('hex')
+      .slice(0, 16);
+    this.logger.warn(
+      `passkey clone detected for user ${userId}: credential ${fingerprint} removed (stored counter ${credential.storedCounter}, presented ${credential.presentedCounter}), ${remaining} other credential(s) kept`,
+    );
+    await this.notifier.audit(auditLogActions.authMfaPasskeyCloneDetected, userId, null, {
+      aaguid: credential.aaguid,
+      credentialFingerprint: fingerprint,
+      deviceName: credential.deviceName,
+      ip,
+      presentedCounter: credential.presentedCounter,
+      remainingPasskeys: remaining,
+      removed: removed.count,
+      storedCounter: credential.storedCounter,
+    });
+    await this.notifier.notify(
+      userId,
+      notificationTypes.accountPasskeyCloneDetected,
+      credential.deviceName ?? credential.aaguid,
+      `passkey-clone:${userId}:${credential.id}`,
+    );
   }
 
   /**

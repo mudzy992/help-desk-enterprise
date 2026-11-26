@@ -103,6 +103,7 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
     'account.security',
     [
       notificationTypes.accountMfaChanged,
+      notificationTypes.accountPasskeyCloneDetected,
       notificationTypes.accountRecoveryCodeUsed,
       notificationTypes.accountPasswordChanged,
       notificationTypes.accountNewDevice,

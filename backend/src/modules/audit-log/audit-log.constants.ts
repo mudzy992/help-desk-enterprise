@@ -76,6 +76,9 @@ export const auditLogActions = {
   // Paket 5.4.0-a (M1): passkey as a second factor next to TOTP.
   authMfaPasskeyEnrolled: 'auth.mfa_passkey_enrolled',
   authMfaPasskeyRemoved: 'auth.mfa_passkey_removed',
+  // W2.21 (`BA-authentication-08`): a cloned authenticator was detected; only the
+  // affected credential is revoked, and the audit keeps the incident snapshot.
+  authMfaPasskeyCloneDetected: 'auth.mfa_passkey_clone_detected',
   // Paket 5.4.0-b (M2): the admin retuned the login rate limits.
   authRateLimitsChanged: 'auth.rate_limits_changed',
   authSessionRevoked: 'auth.session_revoked',

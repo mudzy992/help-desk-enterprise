@@ -151,7 +151,10 @@ describe('PasskeyCredentialService', () => {
     await expect(
       instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-1'), { id: 'cred-1' } as never, rp, false, null),
     ).rejects.toThrow(new AccountSecurityError('PASSKEY_CLONED'));
-    expect(prisma.userPasskeyCredential.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u-1' } });
+    // W2.21 (`BA-authentication-08`): this row only — never `{ where: { userId } }`.
+    expect(prisma.userPasskeyCredential.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'row-1', userId: 'u-1' },
+    });
   });
 
   it('refuses to remove the last factor of an account that requires MFA', async () => {
@@ -325,6 +328,9 @@ describe('PasskeyCredentialService — login and step-up assertions (5.4.0-f)', 
     publicKey: toBase64Url(new Uint8Array([1])),
     counter: BigInt(counter),
     transports: null,
+    // W2.21: captured for the incident snapshot.
+    deviceName: 'Laptop — Windows Hello',
+    aaguid: 'ad872465-8e5e-4ffa-8a25-4c22ee53ca8d',
   });
 
   beforeEach(() => {
@@ -533,28 +539,118 @@ describe('PasskeyCredentialService — login and step-up assertions (5.4.0-f)', 
     ).rejects.toThrow(new AccountSecurityError('MFA_INVALID_CODE'));
   });
 
-  it('keeps refusing a stale clone path: a non-advancing counter still wipes the factor', async () => {
-    // Guards the boundary between the two answers: the clone decision is made on the
-    // values this request read, before any write, and is unaffected by the CAS.
+  /*
+    W2.21 (`BA-authentication-08`): a clone costs exactly one credential. Before this
+    fix the branch ran `deleteMany({ where: { userId } })`, so a single cloned (or
+    merely buggy) authenticator removed every passkey the user owned — an account
+    lockout risk and a loss of forensic signal.
+  */
+  it('revokes only the cloned credential and keeps the other passkeys active', async () => {
     (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
       verified: true,
       authenticationInfo: { newCounter: 5 },
     });
     const updateMany = jest.fn(async () => ({ count: 1 }));
     const deleteMany = jest.fn(async () => ({ count: 1 }));
+    // Two passkeys on the account; the second one is untouched by this incident.
+    const count = jest.fn(async () => 1);
     const { instance } = service({
-      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findMany: jest.fn(async () => [
+        { credentialId: 'cred-1', transports: null },
+        { credentialId: 'cred-2', transports: null },
+      ]),
       findFirst: jest.fn(async () => storedCredential(5)),
       updateMany,
       deleteMany,
+      count,
     });
 
     await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-clone'), rp);
     await expect(
       instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-clone'), { id: 'cred-1' } as never, rp, false, null),
     ).rejects.toThrow(new AccountSecurityError('PASSKEY_CLONED'));
-    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u-1' } });
+
+    // Only the offending row, and only within this user's namespace.
+    expect(deleteMany).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledWith({ where: { id: 'row-1', userId: 'u-1' } });
     expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps the incident: audit snapshot and owner notification on a clone', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 4 },
+    });
+    const { instance, notifier } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(5)),
+      deleteMany: jest.fn(async () => ({ count: 1 })),
+      count: jest.fn(async () => 2),
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-audit'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-audit'), { id: 'cred-1' } as never, rp, false, null),
+    ).rejects.toThrow(new AccountSecurityError('PASSKEY_CLONED'));
+
+    const [action, userId, actorUserId, metadata] = notifier.audit.mock.calls[0] as unknown as [
+      string,
+      string,
+      string | null,
+      Record<string, unknown>,
+    ];
+    expect(action).toBe('auth.mfa_passkey_clone_detected');
+    expect(userId).toBe('u-1');
+    expect(actorUserId).toBeNull();
+    expect(metadata).toMatchObject({
+      aaguid: 'ad872465-8e5e-4ffa-8a25-4c22ee53ca8d',
+      deviceName: 'Laptop — Windows Hello',
+      presentedCounter: 4,
+      storedCounter: 5,
+      remainingPasskeys: 2,
+      removed: 1,
+    });
+    // A fingerprint, never the credential id itself.
+    expect(typeof metadata.credentialFingerprint).toBe('string');
+    expect(String(metadata.credentialFingerprint)).toHaveLength(16);
+    expect(JSON.stringify(metadata)).not.toContain('cred-1');
+
+    const [notifiedUser, type, body, dedupeKey] = notifier.notify.mock.calls[0] as unknown as [
+      string,
+      string,
+      string | null,
+      string,
+    ];
+    expect(notifiedUser).toBe('u-1');
+    expect(type).toBe('account.passkeyCloneDetected');
+    expect(body).toBe('Laptop — Windows Hello');
+    expect(dedupeKey).toBe('passkey-clone:u-1:row-1');
+  });
+
+  it('does not revoke anything when the counter simply advanced', async () => {
+    (verifyAuthenticationResponse as jest.Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 6 },
+    });
+    const deleteMany = jest.fn(async () => ({ count: 1 }));
+    const { instance, notifier } = service({
+      findMany: jest.fn(async () => [{ credentialId: 'cred-1', transports: null }]),
+      findFirst: jest.fn(async () => storedCredential(5)),
+      count: jest.fn(async () => 1),
+      deleteMany,
+    });
+
+    await instance.startAuthentication('u-1', passkeyLoginChallengeKey('jti-fine'), rp);
+    await expect(
+      instance.verifyAssertion('u-1', passkeyLoginChallengeKey('jti-fine'), { id: 'cred-1' } as never, rp, false, null),
+    ).resolves.toEqual({ credentialRowId: 'row-1' });
+    expect(deleteMany).not.toHaveBeenCalled();
+    expect(notifier.audit).not.toHaveBeenCalledWith(
+      'auth.mfa_passkey_clone_detected',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('accepts an authenticator that never advances its counter, but not one that goes backwards', async () => {

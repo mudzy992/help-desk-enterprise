@@ -1,4 +1,13 @@
 export const knownAuditMetadataFields = [
+  // W2.21 (`BA-authentication-08`): incident snapshot of a revoked cloned passkey.
+  "aaguid",
+  "credentialFingerprint",
+  "deviceName",
+  "ip",
+  "presentedCounter",
+  "remainingPasskeys",
+  "removed",
+  "storedCounter",
   "B1",
   "accountDelayStartsAfterFailures",
   "action",

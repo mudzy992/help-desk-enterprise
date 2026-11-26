@@ -18,6 +18,8 @@ export const notificationTypes = {
   directorySyncAborted: 'directory.syncAborted',
   // Paket 2.1: account security events (to the account owner only).
   accountMfaChanged: 'account.mfaChanged',
+  // W2.21 (`BA-authentication-08`): a cloned passkey was revoked on the account.
+  accountPasskeyCloneDetected: 'account.passkeyCloneDetected',
   accountRecoveryCodeUsed: 'account.recoveryCodeUsed',
   accountPasswordChanged: 'account.passwordChanged',
   accountNewDevice: 'account.newDevice',
@@ -65,6 +67,7 @@ export type NotificationType =
 export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
   {
     [notificationTypes.ticketCreated]: 'notifications.items.ticketCreated',
+    [notificationTypes.accountPasskeyCloneDetected]: 'notifications.items.accountPasskeyCloneDetected',
     [notificationTypes.ticketAssigned]: 'notifications.items.ticketAssigned',
     [notificationTypes.ticketMessage]: 'notifications.items.ticketMessage',
     [notificationTypes.ticketResolved]: 'notifications.items.ticketResolved',
