@@ -496,6 +496,7 @@
             "mfaFactors": "Removed MFA factors",
             "passkeys": "Removed passkeys",
             "recoveryCodes": "Removed recovery codes",
+            "recoveryFactors": "Removed recovery codes",
             "sessions": "Revoked sessions",
             "transition": "Transition",
             "credentialFingerprint": "Passkey fingerprint",

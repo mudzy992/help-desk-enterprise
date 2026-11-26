@@ -80,7 +80,7 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.authSessionRevoked]: schema([], 'restricted'),
   [auditLogActions.authSessionsRevokedAll]: schema([], 'restricted'),
   [auditLogActions.authSecurityTransitionApplied]: schema(
-    ['cutoffAt', 'mfaFactors', 'passkeys', 'recoveryCodes', 'sessions', 'transition'],
+    ['cutoffAt', 'mfaFactors', 'passkeys', 'recoveryFactors', 'sessions', 'transition'],
     'restricted',
   ),
   [auditLogActions.authorizationSuperAdminBypass]: schema(['decision', 'method', 'organizationalUnitId', 'permissionMatchMode', 'requiredPermissions', 'requiredRoles', 'resource', 'route', 'serviceId'], 'restricted'),

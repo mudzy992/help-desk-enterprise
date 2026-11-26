@@ -498,6 +498,7 @@
             "mfaFactors": "Broj uklonjenih MFA faktora",
             "passkeys": "Broj uklonjenih passkeya",
             "recoveryCodes": "Broj uklonjenih recovery kodova",
+            "recoveryFactors": "Uklonjeni recovery kodovi",
             "sessions": "Broj opozvanih sesija",
             "transition": "Vrsta tranzicije",
             "credentialFingerprint": "Otisak (fingerprint) passkeya",

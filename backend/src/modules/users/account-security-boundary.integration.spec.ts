@@ -139,7 +139,7 @@ describeIfDatabase('account security transitions (integration)', () => {
         sessions: 2,
         passkeys: 1,
         mfaFactors: 1,
-        recoveryCodes: 2,
+        recoveryFactors: 2,
       });
       // The owner notification is a real row: the factor deletion must reach them.
       const notification = await prisma.notification.findFirst({
