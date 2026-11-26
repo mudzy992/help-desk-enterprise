@@ -104,6 +104,14 @@ PR run [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/
 
 **Neuspjeli pokušaji:** nema — paket je zelen iz prvog prolaza, bez ijednog reruna.
 
+## Ispravka dokaza (W2.23, 2026-10-29)
+
+`account-security-boundary.integration.spec.ts` **nije bio registrovan** u `backend/scripts/run-isolated-integration.mjs`,
+pa ga izolovani PostgreSQL runner u ovom CI prolazu nije izvršio (u `Backend build + test` se preskočio bez
+`PRIVACY_IT_DATABASE_URL`). Spec je ispravan i sada je registrovan u W2.23, zajedno sa guard testom koji takav
+propust sprječava; prvi stvarni PostgreSQL dokaz za njega daje W2.23 PR. Ostali dokazi iz tabele iznad
+(unit/controller/frontend/E2E) su izvršeni kako je navedeno.
+
 ## Registar nalaza
 
 - `BA-users-03` → **zatvoreno (W2.22)** u `docs/backend/audits/04-users.md` (+ implementacijski status u §9).
