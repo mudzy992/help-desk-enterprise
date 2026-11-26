@@ -145,7 +145,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | zatvoreno (W2.16) | M        |
 | BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | zatvoreno (W2.17) | S        |
 | BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | zatvoreno (W2.18) | M        |
-| BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | otvoreno | M        |
+| BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | zatvoreno (W2.19) | M        |
 | BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | otvoreno | M        |
 | BA-authentication-08 | P3       | Clone detekcija jednog passkeya briše sve korisnikove passkeye                 | otvoreno | S        |
 | BA-authentication-09 | P3       | 401 guarda ne briše mrtav `helpdesk_session` cookie                            | zatvoreno (W2.15a) | S        |
@@ -276,6 +276,20 @@ Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-dura
 - Detalj isporuke: `docs/backend/implementation/352-w218-ba-authentication-05-passkey-counter-cas.md`.
 
 ### BA-authentication-06 — JWKS bez timeouta/cachea
+
+#### Implementacijski status Vala 2 / W2.19 (2026-10-29)
+
+- JWKS dokument se dohvata kroz `entra-jwks-key-resolver.ts`: **timeout** 5 s (`AbortController`), **cache** po
+  `jwksUrl` sa TTL-om 24 h i indeksom `kid → JWK`, **jedan** kontrolisani refresh na nepoznat `kid` (cooldown 30 s
+  da `kid` iz napada ne može postati generator vanjskih poziva) i **ograničenje dokumenta** na 256 KB
+  (`content-length` + dekodirano tijelo) uz validaciju oblika `{ keys: [...] }`.
+- Paralelne prijave dijele jedan `fetch` (single-flight); transportni ispad služi keširani dokument uz `warn` do
+  7 dana, dok malformiran/prevelik odgovor **nikad** ne vraća stare ključeve (fail-closed).
+- Verifikator je singleton i drži jedan resolver — jedan dokument po procesu, ne po prijavi.
+- Dokaz: `entra-jwks-key-resolver.spec.ts` (11 testova: timeout, cache-hit, cache po URL-u, rotacija, unknown-kid
+  burst, malformed/oversized/non-2xx, greška se ne kešira, stale granica) + novi test u
+  `microsoft-entra-id-token.verifier.spec.ts` za nalet prijava; lokalno 61/61.
+- Detalj isporuke: `docs/backend/implementation/353-w219-ba-authentication-06-entra-jwks-cache-timeout.md`.
 
 - **Dokaz:** `resolve-entra-jwks-public-key.ts` radi `fetch(jwksUrl)` bez `AbortSignal`, cachea ili bounded response kontrole; poziva se za svaku Entra prijavu.
 - **Uticaj:** spor Microsoft/network odgovor može držati request i resurse neograničeno; outage ili login burst nepotrebno multiplicira vanjske pozive.
