@@ -34,9 +34,13 @@ function createJwks(publicKey: KeyObject, kid = keyId): unknown {
 }
 
 function createFetch(jwks: unknown, ok = true): jest.MockedFunction<typeof fetch> {
+  // W2.19: the resolver reads the document as text so it can bound the size
+  // before parsing; `headers.get` reports the same length the real endpoint would.
+  const body = JSON.stringify(jwks);
   return jest.fn(async () => ({
     ok,
-    json: async () => jwks,
+    headers: { get: (name: string) => (name.toLowerCase() === 'content-length' ? String(Buffer.byteLength(body)) : null) },
+    text: async () => body,
   })) as unknown as jest.MockedFunction<typeof fetch>;
 }
 
@@ -146,6 +150,33 @@ describe('MicrosoftEntraIdTokenVerifier', () => {
     await expect(
       verifier.verify({ idToken: '   ', configuration }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+  });
+
+  it('loads the JWKS once for a burst of sign-ins, with an abortable request', async () => {
+    // W2.19 (`BA-authentication-06`): one document per process, not one per login,
+    // and the request carries a signal the resolver can abort. Rotation and the
+    // cooldown are covered by `entra-jwks-key-resolver.spec.ts`.
+    const { publicKey, privateKey } = createKeyPair();
+    const document = createJwks(publicKey);
+    const fetchImplementation = jest.fn(async () => {
+      const body = JSON.stringify(document);
+      return {
+        ok: true,
+        headers: { get: () => String(Buffer.byteLength(body)) },
+        text: async () => body,
+      };
+    }) as unknown as jest.MockedFunction<typeof fetch>;
+    const verifier = new MicrosoftEntraIdTokenVerifier(fetchImplementation);
+
+    await verifier.verify({ idToken: createIdToken(privateKey), configuration });
+    await verifier.verify({ idToken: createIdToken(privateKey), configuration });
+    await verifier.verify({ idToken: createIdToken(privateKey), configuration });
+    expect(fetchImplementation).toHaveBeenCalledTimes(1);
+    expect(fetchImplementation).toHaveBeenCalledWith(
+      configuration.jwksUrl,
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+
   });
 
   it('fails closed when JWKS cannot be loaded', async () => {

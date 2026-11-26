@@ -13,18 +13,29 @@ import type {
   NormalizedEntraIdentity,
 } from './entra-id-token.verifier';
 import { normalizeEntraIdTokenClaims } from './normalize-entra-id-token-claims';
-import { resolveEntraJwksPublicKey } from './resolve-entra-jwks-public-key';
+import {
+  createEntraJwksKeyResolver,
+  type EntraJwksKeyResolver,
+} from './entra-jwks-key-resolver';
 
 @Injectable()
 export class MicrosoftEntraIdTokenVerifier implements EntraIdTokenVerifier {
-  private readonly fetchImplementation: typeof fetch;
+  /*
+    W2.19 (`BA-authentication-06`): the verifier is a singleton, so it owns one
+    resolver — and the resolver owns the JWKS cache, the fetch timeout, the
+    single-flight refresh and the bounded document. One instance per process means
+    a whole login burst shares one key document instead of one per sign-in.
+  */
+  private readonly jwksKeys: EntraJwksKeyResolver;
 
   constructor(
     @Optional()
     @Inject(ENTRA_ID_TOKEN_FETCH)
     fetchImplementation?: typeof fetch,
   ) {
-    this.fetchImplementation = fetchImplementation ?? fetch;
+    this.jwksKeys = createEntraJwksKeyResolver({
+      fetchImplementation: fetchImplementation ?? fetch,
+    });
   }
 
   async verify(
@@ -35,10 +46,9 @@ export class MicrosoftEntraIdTokenVerifier implements EntraIdTokenVerifier {
       throw createInvalidCredentialsError();
     }
     const keyId = readSigningKeyId(idToken);
-    const publicKey = await resolveEntraJwksPublicKey({
+    const publicKey = await this.jwksKeys.resolve({
       jwksUrl: input.configuration.jwksUrl,
       keyId,
-      fetchImplementation: this.fetchImplementation,
     });
     const payload = verifySignedEntraIdToken({
       idToken,
