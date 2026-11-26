@@ -3,8 +3,8 @@
 **Paket:** W2.22 — granica pristupa se prekida u istoj transakciji<br>
 **Nalaz:** `BA-users-03` (P1) — **zatvoren**<br>
 **Kodni commit:** `10a2981`<br>
-**Finalni testani SHA:** `__TESTED_SHA__`<br>
-**CI:** [`__RUN_ID__`](__RUN_URL__) — __RUN_RESULT__<br>
+**Finalni testani SHA:** `f473447`<br>
+**CI:** [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219995) — **zelen** (svi poslovi, E2E 27/27, bez reruna)<br>
 **DB migracije:** nema (nema promjene šeme)
 
 ## Nalaz i acceptance
@@ -86,7 +86,23 @@ izdaje pri sljedećem upisu MFA.
 
 ## CI i testni dokaz
 
-__CI_SECTION__
+PR run [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219995) na
+`f473447` — **svi poslovi zeleni iz prvog pokušaja, bez reruna**:
+
+| Posao | Rezultat |
+| --- | --- |
+| `Backend build + test` | **success** — jedinični suiteovi uključuju tri nova boundary spec-a (11 testova) |
+| `Backend PostgreSQL + Redis integration` | **success** — izvršava novi `account-security-boundary.integration.spec.ts` (deaktivacija, rollback fault, link sa padom Redisa, unlink, reaktivacija) |
+| `Frontend build + test` | **success** — `knownAuditActions` + metadata polja + `bs`/`en` labele |
+| `Backend container + supply chain` | success |
+| `Docs guard` | **success** — registar/plan/JSON usklađeni (`698 nalaza, zatvoreno 351/otvoreno 347`) |
+| `E2E critical flows` | **success** — `27 passed, 0 failed, 0 flaky, 0 skipped`, `errors: []` (uključuje `38-users-groups-rbac` deaktivaciju) |
+| `E2E install wizard` | skipped (workflow ga pokreće samo za instalacijske promjene) |
+| `Read-only service-form pattern inventory` | skipped (nema izmjene service-form obrasca) |
+| `CI gate` | **success** |
+| k6 smoke [`45829219934`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219934) | success |
+
+**Neuspjeli pokušaji:** nema — paket je zelen iz prvog prolaza, bez ijednog reruna.
 
 ## Registar nalaza
 
