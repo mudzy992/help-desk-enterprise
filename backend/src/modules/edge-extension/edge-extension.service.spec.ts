@@ -158,11 +158,16 @@ describe('EdgeExtensionService', () => {
 
     currentMemberships = [];
     await runWithRequestId('edge-receipt-after-revoke', async () => {
-      // The ordinary process cache still grants the old group snapshot, just as on a
-      // remote instance that did not receive the local membership invalidation.
+      /*
+        W2.25 (`BA-groups-02`): this used to assert the *opposite* — that the
+        process cache still handed out the revoked snapshot "just as on a remote
+        instance". That staleness was the finding: the snapshot is now served only
+        while the actor's `authzVersion` matches, and with nothing published it is
+        not served at all, so the revoked membership is already gone here.
+      */
       await expect(
         loadActorGroupMemberships(prisma as never, principal.subjectId),
-      ).resolves.toEqual([expect.objectContaining({ groupId: 'group-1' })]);
+      ).resolves.toEqual([]);
       await expect(
         service.recordReceipt(principal, {
           notificationId: 'notif-group-1',
@@ -171,7 +176,13 @@ describe('EdgeExtensionService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    expect(groupMemberFindMany).toHaveBeenCalledTimes(3);
+    /*
+      One more read than before W2.25: with no published `authzVersion` in scope the
+      cache cannot be proven fresh, the authoritative read is used instead of
+      the stale snapshot. In a real request the version rides along with the session
+      read, so this costs nothing there.
+    */
+    expect(groupMemberFindMany).toHaveBeenCalledTimes(4);
     expect(notificationFindFirst.mock.calls[1]?.[0]?.where).toEqual({
       id: 'notif-group-1',
       userId: principal.subjectId,

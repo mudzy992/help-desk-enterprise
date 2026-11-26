@@ -28,7 +28,15 @@ export async function addGroupMember(
   if (existing !== null) {
     throw new GroupsError('MEMBER_ALREADY_EXISTS');
   }
-  await prisma.$transaction(async (transaction) => {
+  /*
+    W2.25 (`BA-groups-02`): the actor's `authzVersion` is bumped **inside** the
+    transaction that adds the membership. Two consequences: the shared authorization
+    cache key moves with the change (no window where the row is committed and the
+    version is not), and the request path can prove a cached membership snapshot is
+    fresh without any extra query. Only the pointer move and the socket notice are
+    left for after the commit.
+  */
+  const { authzVersion } = await prisma.$transaction(async (transaction) => {
     await transaction.groupMember.create({ data: { groupId, userId } });
     await recordGroupChange(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.groupMemberAdded,
@@ -38,8 +46,14 @@ export async function addGroupMember(
       organizationalUnitId: group.organizationalUnitId,
       metadata: { userId, membership: 'added' },
     });
+    const updated = await transaction.user.update({
+      where: { id: userId },
+      data: { authzVersion: { increment: 1 } },
+      select: { authzVersion: true },
+    });
+    return { authzVersion: updated.authzVersion };
   });
   invalidateActorGroupsCache();
-  await invalidatePrincipal(userId);
+  await invalidatePrincipal(userId, authzVersion);
   return toGroupResponse(await loadGroupRecord(prisma, groupId));
 }

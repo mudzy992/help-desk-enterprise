@@ -42,6 +42,18 @@
  * id). Worker poslovi, boot i skripte uvijek čitaju bazu — pozadinski rad vidi ono što
  * je upravo zapisano. Klijent koji ne zna `findMany` (ručno pisani test delegati)
  * također ide direktno u bazu preko pozivaočevog fallbacka.
+ *
+ * **W2.25 (`BA-groups-02`): revizija članstva.** TTL od 30 s bio je jedina
+ * garancija za grupe aktera, pa je uklonjeni član na instanci koja nije obradila
+ * write mogao još 30 s čitati group inbox i povjerljive tikete. Snapshot sada
+ * pamti `User.authzVersion` pod kojim je pročitan, a ta verzija se bumpuje **u
+ * transakciji** membership izmjene (`add`/`remove`/`delete` grupe) — atomično sa
+ * samim članstvom. Vrijednost stiže bez ijednog novog upita: `SessionRevocationStore`
+ * je čita u statementu koji autentifikovani zahtjev ionako izvršava i objavljuje je
+ * u request scope (`authz-version-probe.ts`). Snapshot se servira samo dok se
+ * verzija poklapa; ako verzija nije objavljena (worker, socket, skripta ili
+ * neočekivan put), keš se **ne** koristi i čita se baza — zastarjelo članstvo se
+ * nikad ne servira zato što se svježina ne može dokazati.
  */
 
 import {
@@ -49,6 +61,7 @@ import {
   readPublishedOrganizationalUnitCatalogueRevision,
 } from '../request-context/catalogue-revision-probe';
 import { getRequestId } from '../request-context/request-context.storage';
+import { readPublishedActorAuthzVersion } from '../request-context/authz-version-probe';
 
 type Entry<T> = { readonly expiresAt: number; readonly value: Promise<T> };
 
@@ -60,9 +73,14 @@ type UnitsEntry = Entry<readonly OrganizationalUnitScopeRow[]> & {
   readonly revision: bigint;
 };
 
+type ActorGroupsEntry = Entry<readonly ActorGroupMembership[]> & {
+  /** `User.authzVersion` the snapshot was read under (W2.25). */
+  readonly authzVersion: number;
+};
+
 type Buckets = {
   units: UnitsEntry | undefined;
-  groups: Map<string, Entry<readonly ActorGroupMembership[]>>;
+  groups: Map<string, ActorGroupsEntry>;
 };
 
 export type OrganizationalUnitScopeRow = {
@@ -246,7 +264,7 @@ export type ActorGroupMembership = {
 };
 
 /** Group memberships of one user (with join time), cached for 30 s. */
-export function loadActorGroupMemberships(
+export async function loadActorGroupMemberships(
   prisma: GroupSource,
   userId: string,
 ): Promise<readonly ActorGroupMembership[]> {
@@ -254,15 +272,39 @@ export function loadActorGroupMemberships(
   if (getRequestId() === undefined) {
     return read();
   }
+  /*
+    W2.25 (`BA-groups-02`): the snapshot is only usable while the actor's
+    `authzVersion` is the one it was read under. Without a published version we
+    cannot prove freshness, so we read the authority instead of guessing - a
+    revocation must never be served from a cache that simply ran out of luck.
+  */
+  const published = readPublishedActorAuthzVersion();
+  if (published === undefined) {
+    return read();
+  }
+  let authzVersion: number;
+  try {
+    authzVersion = await published;
+  } catch {
+    return read();
+  }
   const store = bucketsFor(prisma);
   const now = Date.now();
   const cached = store.groups.get(userId);
-  if (cached !== undefined && cached.expiresAt > now) {
+  if (
+    cached !== undefined &&
+    cached.expiresAt > now &&
+    cached.authzVersion === authzVersion
+  ) {
     return cached.value;
   }
   const started = generation;
   const value = read();
-  const entry = { expiresAt: now + actorGroupsTtlMs, value };
+  const entry: ActorGroupsEntry = {
+    expiresAt: now + actorGroupsTtlMs,
+    value,
+    authzVersion,
+  };
   store.groups.set(userId, entry);
   if (store.groups.size > 10_000) {
     const oldest = store.groups.keys().next().value;

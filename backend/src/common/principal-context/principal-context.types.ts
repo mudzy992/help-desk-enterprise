@@ -37,7 +37,17 @@ export type PrincipalAssignment = {
  * failure, because a cache that could not be told about a write must not fail
  * the write itself (rule 2.2.5, fail-open).
  */
-export type PrincipalInvalidationHook = (userId: string) => Promise<unknown>;
+export type PrincipalInvalidationHook = (
+  userId: string,
+  /**
+   * W2.25 (`BA-groups-02`): the `authzVersion` the caller already bumped **inside**
+   * its own transaction. When present the hook only moves the cache pointer and
+   * publishes the socket invalidation — a second bump would widen the window the
+   * commit was meant to close. Absent means "the mutation did not fence anything",
+   * and the hook bumps as before.
+   */
+  committedAuthzVersion?: number | null,
+) => Promise<unknown>;
 export type PrincipalBatchInvalidationHook = (
   userIds: readonly string[],
 ) => Promise<unknown>;

@@ -5,6 +5,7 @@ import {
   organizationalUnitCatalogueRevisionId,
   publishOrganizationalUnitCatalogueRevision,
 } from '../../common/request-context/catalogue-revision-probe';
+import { publishActorAuthzVersion } from '../../common/request-context/authz-version-probe';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import type { PrincipalAuthoritySnapshot } from '../../common/principal-context/principal-context.types';
 import {
@@ -362,6 +363,18 @@ export class SessionRevocationStore {
         this.logger.error(`session authority unavailable, failing closed: ${String(error)}`);
         return { revoked: true };
       }
+    }
+    /*
+      W2.25 (`BA-groups-02`): the actor-group snapshot is cached per process and
+      was served for up to 30 s on an instance that did not handle the membership
+      write. `authzVersion` — read by this same statement, one line above — is the
+      revision that write bumps inside its transaction, so publishing it here lets
+      the cache check freshness without a single extra statement. No request scope
+      (worker, socket, script) means no publish, and those paths never use the
+      request cache anyway.
+    */
+    if (durableAuthority !== undefined) {
+      publishActorAuthzVersion(durableAuthority.authzVersion);
     }
     try {
       const revoked = await this.backend.isRevoked(input);
