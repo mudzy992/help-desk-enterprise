@@ -175,5 +175,9 @@ padova (W2.20). Dokaz ovog paketa je zato PR run iznad, a ne otkazani dispatch.
 
 ## Sljedeći paket
 
-**W2.22 — `BA-users-02` (P2):** kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi
-prekasno. Nije započet prije zelenog CI-ja za ovaj paket.
+**W2.22 — `BA-users-03` (P1):** deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle.
+
+> Ispravka oznaka (2026-10-29): prethodna verzija ovog odjeljka je najavila „W2.22 — `BA-users-02`", što je
+> pogrešno. Po planu (`EXECUTION-PLAN-REMAINING.md` §4.2/§4.6) `BA-users-03` je prvi neizvršeni P1 nalaz i nosi
+> `W2.22`; `BA-users-02` je `W2.26`. Auth klaster (`BA-authentication-04`–`08`) je izvršen ranije i drži oznake
+> `W2.17`–`W2.21` (§1.10), pa je plan preračunat. Nije započet prije zelenog CI-ja za ovaj paket.
