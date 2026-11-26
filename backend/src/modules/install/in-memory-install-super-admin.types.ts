@@ -6,6 +6,12 @@ export type InMemoryInstallUser = {
   isLocalOnly: boolean;
   localPasswordHash: string | null;
   entraObjectId: string | null;
+  /**
+   * W2.25 (`BA-groups-02`): the membership write bumps this inside its own
+   * transaction, so the install double has to carry the column the real schema has.
+   * Optional only so fixtures that never touch membership stay readable.
+   */
+  authzVersion?: number;
 };
 
 export type InMemoryInstallRole = {

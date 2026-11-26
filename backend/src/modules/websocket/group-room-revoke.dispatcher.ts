@@ -73,8 +73,13 @@ export class GroupRoomRevokeDispatcher implements OnModuleInit, OnModuleDestroy 
           });
           // No publisher (single-instance deployment without Redis) is not a fault:
           // that instance owns every socket, and its own sweep still applies.
+          //
+          // A configured publisher that did not take the event is: the outbox keeps
+          // the intent and retries, and `lastError` names the failure class so an
+          // operator can tell a room revoke that never left the process from one
+          // that was merely slow.
           if (!sent && this.redis !== undefined) {
-            throw new Error('group_room_revoke_publish_failed');
+            throw new Error(`group_room_revoke_publish_failed topic=${groupRoomRevokeTopic}`);
           }
         });
         if (result === 'idle') break;

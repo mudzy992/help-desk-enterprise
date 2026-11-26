@@ -79,11 +79,37 @@ export function createInMemoryInstallSuperAdminPrisma() {
             })),
         };
       },
+      /*
+        W2.25 (`BA-groups-02`): `addGroupMember` bumps `authzVersion` on the caller's
+        transaction, and the wizard adds the founder/team to the seeded group. The
+        double therefore implements the same increment the real column performs.
+      */
+      update: async ({
+        where,
+        data,
+        select,
+      }: {
+        where: { id: string };
+        data: { authzVersion?: { increment?: number } };
+        select?: Record<string, boolean>;
+      }) => {
+        const existing = users.get(where.id);
+        if (existing === undefined) {
+          throw new Error('Record to update not found');
+        }
+        const updated: InMemoryInstallUser = {
+          ...existing,
+          authzVersion:
+            (existing.authzVersion ?? 0) + (data.authzVersion?.increment ?? 0),
+        };
+        users.set(updated.id, updated);
+        return pickInstallSelectedFields(updated, select);
+      },
       create: async ({
         data,
         select,
       }: {
-        data: Omit<InMemoryInstallUser, 'id'> & {
+        data: Omit<InMemoryInstallUser, 'id' | 'authzVersion'> & {
           id?: string;
           userRoles?: { create: { roleId: string } };
         };
@@ -100,6 +126,7 @@ export function createInMemoryInstallSuperAdminPrisma() {
           isLocalOnly: data.isLocalOnly,
           localPasswordHash: data.localPasswordHash,
           entraObjectId: data.entraObjectId,
+          authzVersion: 0,
         };
         users.set(created.id, created);
         if (data.userRoles !== undefined) {

@@ -182,6 +182,10 @@ describeIfDatabase('group membership revoke (integration)', () => {
     expect(first.map((entry) => entry.groupId).sort()).toEqual([groupId, otherGroupId].sort());
     expect(second.map((entry) => entry.groupId).sort()).toEqual([groupId, otherGroupId].sort());
 
+    // Warmth is a fact, not an assumption: the same request version on the same
+    // instance answers from the snapshot (identical reference, no second read).
+    expect(await warmSnapshot(secondProcess(), member.id, warmVersion)).toBe(second);
+
     await removeGroupMember(database() as never, groupId, member.id, async () => undefined, {
       actorUserId: null,
       requestId: `req-${suffix}`,
@@ -197,10 +201,11 @@ describeIfDatabase('group membership revoke (integration)', () => {
     const local = await warmSnapshot(database(), member.id, committedVersion);
     expect(local.map((entry) => entry.groupId)).toEqual([otherGroupId]);
 
-    // Control: the snapshot really was warm — served for the old version, which is
-    // exactly the stale answer the finding was about.
+    // The old version is now a *miss by design*: an unprovable snapshot is never
+    // served, so even a request that carries the stale version reads the authority
+    // and sees the removal. That is the difference from the finding's 30 s window.
     const stale = await warmSnapshot(secondProcess(), member.id, warmVersion);
-    expect(stale.map((entry) => entry.groupId).sort()).toEqual([groupId, otherGroupId].sort());
+    expect(stale.map((entry) => entry.groupId)).toEqual([otherGroupId]);
   });
 
   it('keeps the membership and the fence when the transaction dies after writing the intent', async () => {
@@ -272,7 +277,12 @@ describeIfDatabase('group membership revoke (integration)', () => {
     const publish = jest
       .fn<Promise<number>, [string, string]>()
       .mockRejectedValueOnce(new Error('redis unavailable'));
-    const dispatcher = new GroupRoomRevokeDispatcher(outbox, { publish } as never);
+    // `status: 'ready'` because the shared publisher refuses a client that is not
+    // connected — the failure under test is the publish itself, not the client state.
+    const dispatcher = new GroupRoomRevokeDispatcher(outbox, {
+      status: 'ready',
+      publish,
+    } as never);
 
     await expect(dispatcher.drain(5)).resolves.toBe(0);
     const pending = await database().outboxMessage.findFirstOrThrow({
@@ -280,7 +290,10 @@ describeIfDatabase('group membership revoke (integration)', () => {
       select: { status: true, attempts: true, lastError: true, id: true },
     });
     expect(pending.status).not.toBe('SUCCEEDED');
-    expect(pending.lastError).toContain('redis unavailable');
+    // The shared publisher is best-effort (it swallows the transport error), so the
+    // recorded reason is the dispatcher's failure class, not the socket error text:
+    // what matters operationally is that the intent is *not* marked delivered.
+    expect(pending.lastError).toContain('group_room_revoke_publish_failed');
     expect(publish).toHaveBeenCalledTimes(1);
 
     // The fault is transient; a retry is due immediately in this test.
