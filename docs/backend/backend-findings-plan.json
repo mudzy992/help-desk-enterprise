@@ -3836,7 +3836,7 @@
     {
       "id": "BA-security-03",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.24)",
       "source": "09-security.md",
       "owner": "WS-E",
       "wave": 2
