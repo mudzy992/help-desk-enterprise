@@ -2,8 +2,8 @@
 
 **Paket:** W2.22 — granica pristupa se prekida u istoj transakciji<br>
 **Nalaz:** `BA-users-03` (P1) — **zatvoren**<br>
-**Kodni commit:** `10a2981`<br>
-**Finalni testani SHA:** `f473447`<br>
+**Kodni commit:** `df69eda`<br>
+**Finalni testani SHA:** `eacc528` (docs commit; kodni `df69eda`)<br>
 **CI:** [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219995) — **zelen** (svi poslovi, E2E 27/27, bez reruna)<br>
 **DB migracije:** nema (nema promjene šeme)
 
@@ -87,7 +87,7 @@ izdaje pri sljedećem upisu MFA.
 ## CI i testni dokaz
 
 PR run [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45829219995) na
-`f473447` — **svi poslovi zeleni iz prvog pokušaja, bez reruna**:
+`eacc528` — **svi poslovi zeleni iz prvog pokušaja, bez reruna**:
 
 | Posao | Rezultat |
 | --- | --- |
