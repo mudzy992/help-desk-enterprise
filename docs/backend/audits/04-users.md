@@ -176,7 +176,7 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 | ----------- | -------- | ----------------------------------------------------------------------------------------- | -------- | -------- |
 | BA-users-01 | P1       | ADMIN users control plane ignoriše OU/service scope                                       | zatvoreno (W2.10, [341](../implementation/341-w210-users-control-plane-scope.md)) | L        |
 | BA-users-02 | P1       | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno           | otvoreno | L        |
-| BA-users-03 | P1       | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle                       | otvoreno | L        |
+| BA-users-03 | P1       | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle                       | zatvoreno (W2.22) | L        |
 | BA-users-04 | P2       | Concurrent ordinary role assignment može kreirati duplikate                               | zatvoreno | M        |
 | BA-users-05 | P2       | Role scope model dopušta besmislene dual-scope i lažno scoped SuperAdmin zapise           | zatvoreno | M        |
 | BA-users-06 | P2       | Post-commit principal invalidacija nije durable ni fail-closed                            | otvoreno | M        |
@@ -206,6 +206,21 @@ Ovo nije zeleni gate. Blokada je isti checkout reproducibility problem evidentir
 - **Owner:** users + notifications owner.
 
 ### BA-users-03 — Account/identity transitioni ne zatvaraju stare sesije
+
+#### Implementacijski status Vala 2 / W2.22 (2026-10-29)
+
+- Novi ugovor `account-security-boundary.service.ts`: durable polovina (`cutAccountCredentials`) radi na
+  **transakcionom klijentu pozivaoca** — `User.tokensInvalidBefore = now` + `tokensInvalidBeforeExceptJti = null`,
+  `UserSession` revokacija sa razlogom i akterom, brisanje `UserMfa`/`UserMfaRecoveryCode`/`UserPasskeyCredential`.
+  Volatile polovina (`afterCommit`) radi Redis akceleraciju, piše audit `auth.security_transition_applied` i
+  obavještava vlasnika samo kad je faktor zaista uklonjen; Redis kvar ne obara tranziciju.
+- Ulazi: `updateUser(isActive=false)` cut unutar transakcije statusa; `linkUserDirectoryIdentity` cut unutar
+  link-transakcije; `unlinkUserDirectoryIdentity` cut u `beforePasswordUpdate` hooku (transakcija temporary
+  passworda). Reaktivacija ne radi cut i ne podiže cutoff — stari tokeni ostaju mrtvi.
+- Razlozi revokacije: `deactivated` (postojao, prvi put upotrijebljen), `identity_link`, `identity_unlink`.
+- Dokaz: unit 11 testova u tri nova spec-a (uključuju fault test: cut koji baci ⇒ nema 2xx) + PostgreSQL
+  integracija (deaktivacija, rollback, link sa padom Redisa, unlink, reaktivacija bez oživljavanja tokena/faktora).
+- Detalj isporuke: `docs/backend/implementation/356-w222-ba-users-03-account-security-boundary.md`.
 
 - **Dokaz:** samo reset-password i MFA reset zovu `SessionRegistryService.revokeAll`. `updateUser(isActive=false)`, `linkUserDirectoryIdentity` i `unlinkUserDirectoryIdentity` mijenjaju authn identitet bez session revoke-a; link/unlink nemaju ni principal invalidation hook.
 - **Scenarij:** local user zadrži refresh/session artefakt nakon linka na directory identitet; deaktivirani user se kasnije reaktivira i koristi staru neisteklu sesiju; unlinkani directory user nastavlja staru provider-session vezu paralelno s novim local passwordom.

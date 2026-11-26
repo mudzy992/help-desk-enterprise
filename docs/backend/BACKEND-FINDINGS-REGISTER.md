@@ -134,7 +134,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 03 | `rbac` | `BA-rbac-08` | P3 | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | [03-rbac.md](audits/03-rbac.md) |
 | 04 | `users` | `BA-users-01` | P1 | ADMIN users control plane ignoriše OU/service scope | zatvoreno (W2.10) | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-02` | P1 | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno | otvoreno | [04-users.md](audits/04-users.md) |
-| 04 | `users` | `BA-users-03` | P1 | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle | otvoreno | [04-users.md](audits/04-users.md) |
+| 04 | `users` | `BA-users-03` | P1 | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle | zatvoreno (W2.22) | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-04` | P2 | Concurrent ordinary role assignment može kreirati duplikate | zatvoreno | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-05` | P2 | Role scope model dopušta besmislene dual-scope i lažno scoped SuperAdmin zapise | zatvoreno | [04-users.md](audits/04-users.md) |
 | 04 | `users` | `BA-users-06` | P2 | Post-commit principal invalidacija nije durable ni fail-closed | otvoreno | [04-users.md](audits/04-users.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **350**
-- Otvoreno: **348** (P1 79 / P2 189 / P3 80)
+- Zatvoreno: **351**
+- Otvoreno: **347** (P1 78 / P2 189 / P3 80)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->
