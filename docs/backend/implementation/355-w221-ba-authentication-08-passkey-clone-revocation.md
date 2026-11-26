@@ -2,8 +2,8 @@
 
 **Paket:** W2.21 — revokacija kloniranog passkeya bez kolateralne štete<br>
 **Nalaz:** `BA-authentication-08` (P3) — **zatvoren**<br>
-**Kodni commit:** `b4c14d1`<br>
-**Finalni testani SHA:** `6c3fc98`<br>
+**Kodni commit:** `dd2309d`<br>
+**Finalni testani SHA:** `6c3b484` (docs commit; kodni `dd2309d`)<br>
 **CI:** [`45809614730`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45809614730) — **zelen** (svi poslovi, E2E 27/27)<br>
 **DB migracije:** nema (nema promjene šeme)
 
@@ -98,7 +98,7 @@ Frontend mirror (da audit ekran i zvonce ne prikazuju sirove ključeve):
 ## CI i testni dokaz
 
 Pokretni PR run [`45809614730`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45809614730) na
-`6c3fc98` — **svi poslovi zeleni, bez reruna**:
+`6c3b484` — **svi poslovi zeleni, bez reruna**:
 
 | Posao | Rezultat |
 | --- | --- |
