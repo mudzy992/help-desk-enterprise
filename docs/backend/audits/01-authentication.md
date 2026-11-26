@@ -146,7 +146,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | zatvoreno (W2.17) | S        |
 | BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | zatvoreno (W2.18) | M        |
 | BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | zatvoreno (W2.19) | M        |
-| BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | otvoreno | M        |
+| BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | zatvoreno (W2.20) | M        |
 | BA-authentication-08 | P3       | Clone detekcija jednog passkeya briše sve korisnikove passkeye                 | otvoreno | S        |
 | BA-authentication-09 | P3       | 401 guarda ne briše mrtav `helpdesk_session` cookie                            | zatvoreno (W2.15a) | S        |
 
@@ -298,6 +298,21 @@ Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-dura
 - **Owner:** authentication/Entra owner.
 
 ### BA-authentication-07 — Prisma generator blokira audit testove
+
+#### Implementacijski status Vala 2 / W2.20 (2026-11-29)
+
+- Uzrok je bio eager `ensureBinariesExist()` na startu Prisma CLI-ja (`prisma generate --help` pada isto), a
+  `generate`/`validate`/`format` engine binar **ne koriste** — rade iz WASM enginea u `prisma` paketu.
+- `scripts/prisma-offline.mjs` za te tri komande postavlja `PRISMA_SCHEMA_ENGINE_BINARY` na sentinel u repou
+  (`generate` više ne ide na `binaries.prisma.sh`); `migrate`/`db` putevi su netaknuti i dalje traže pravi engine.
+- `prisma/engines.lock.json` pinuje `enginesVersion`/`engineCommit`, a `scripts/prisma-offline.test.mjs` pada kad
+  pin driftuje od instaliranog `@prisma/engines-version`.
+- Jest `globalSetup` generiše klijent na čistom checkoutu (offline), pa 24 suitea više ne padaju na
+  `Cannot find module '../../generated/prisma/client'`; Dockerfile i `db:generate`/`db:validate` idu kroz wrapper.
+- Dokaz: obrisan `src/generated/prisma` + `PRISMA_ENGINES_MIRROR=http://127.0.0.1:9` → validate + generate prolaze;
+  `npx jest src/modules/authentication` = **43 passed / 3 skipped, 372 testa**; wrapper test 7/7; CI korak
+  „Prove generate/validate need no network" + „Run every authentication suite".
+- Detalj isporuke: `docs/backend/implementation/354-w220-ba-authentication-07-prisma-offline-generate.md`.
 
 - **Dokaz:** 24/40 suiteova ne kompajlira bez generated clienta; generator pokušava runtime download sa `binaries.prisma.sh`, nedostupnim u audit okruženju.
 - **Uticaj:** clean/offline CI ili ograničeni runner ne može dokazati kritične auth suiteove i build iako 16 izolovanih suiteova prolazi.
