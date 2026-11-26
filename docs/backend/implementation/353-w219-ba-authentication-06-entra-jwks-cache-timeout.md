@@ -3,8 +3,8 @@
 **Paket:** W2.19<br>
 **Nalaz:** `BA-authentication-06` (P2) — zatvoren<br>
 **Kodni commit:** `e66d9dd`<br>
-**Finalni testani SHA:** vidi CI na PR #34<br>
-**CI:** [`PR #34`](https://github.com/mudzy992/help-desk-enterprise/pull/34)<br>
+**Finalni testani SHA:** `acc2285`<br>
+**CI:** [`45778720368`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45778720368) (kod), [`45780736160`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45780736160) (docs)<br>
 **DB migracije:** **ne** — nema promjene šeme
 
 ## Nalaz
@@ -95,8 +95,21 @@ jedini vanjski sistem).
 
 ## CI
 
-CI na PR #34 (kod `e66d9dd`, docs commit poslije) — vidi status provjera na PR-u: `Docs guard`, `E2E critical flows`,
-`Backend PostgreSQL + Redis integration`, `CI gate`, k6 smoke.
+Dva prolaza, **oba zelena iz prvog pokušaja** (nijedan rerun):
+
+| Prolaz | SHA | Rezultat | Detalj |
+| --- | --- | --- | --- |
+| kod | `e66d9dd` | **success** — [`45778720368`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45778720368) | `Backend build + test`, `Backend PostgreSQL + Redis integration`, `Backend container + supply chain`, `Frontend build + test`, `E2E critical flows`, `CI gate` ✓; `Docs guard` preskočen (nema docs izmjena u tom commitu) |
+| docs | `acc2285` | **success** — [`45780736160`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45780736160) | svi poslovi ✓, uključujući `Docs guard` i `CI gate` |
+
+Perf smoke: [`45778720352`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45778720352) ✓ i
+[`45780735999`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45780735999) ✓.
+
+**Za razliku od `W2.16`–`W2.18`, socket flake iz `15-workflow-unrouted-realtime.spec.ts` se nije pojavio** — što
+potvrđuje da je on vezan za stack/realtime okruženje, ne za promjenu u ovom putu. Triage preporuka iz `W2.18`
+ostaje otvorena.
+
+Nema migracije → nema sentinel izmjena; nema novih env varijabli.
 
 ## Dokumentacija
 
