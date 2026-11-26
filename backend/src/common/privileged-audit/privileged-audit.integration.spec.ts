@@ -35,6 +35,13 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
 
   const stamp = `${process.pid}-${Date.now()}`;
   const actorUserId = `privileged-audit-it-${stamp}`;
+  /**
+   * A real, registered action: the audit policy validates its metadata against the
+   * allowlist (`accountDelayStartsAfterFailures`, `ipMaxFailures`,
+   * `ipWindowSeconds`, `otherMaxFailures`). The first CI run of this spec used an
+   * extra `phase` marker and proved the policy is strict — every delivery failed
+   * with `AUDIT_METADATA_FIELD_NOT_ALLOWED`, so the outage path looked healthy.
+   */
   const action = 'auth.rate_limits_changed';
 
   let prisma: PrismaClient;
@@ -152,7 +159,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
       entityType: 'user',
       entityId: actorUserId,
       actorUserId,
-      metadata: { ipMaxFailures: 55, phase: 'outage' },
+      metadata: { ipMaxFailures: 55, ipWindowSeconds: 120 },
       dedupeKey,
     });
 
@@ -172,7 +179,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
     const delivered = await entries(actorUserId);
     expect(delivered).toHaveLength(1);
     expect(delivered[0]).toMatchObject({ action, entityId: actorUserId });
-    expect(delivered[0]!.metadata).toMatchObject({ ipMaxFailures: 55, phase: 'outage' });
+    expect(delivered[0]!.metadata).toMatchObject({ ipMaxFailures: 55, ipWindowSeconds: 120 });
     await expect(intentRows(dedupeKey)).resolves.toEqual([
       expect.objectContaining({ status: 'SUCCEEDED' }),
     ]);
@@ -192,7 +199,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
       entityType: 'user',
       entityId: actorUserId,
       actorUserId,
-      metadata: { ipMaxFailures: 41, phase: 'duplicate' },
+      metadata: { ipMaxFailures: 41 },
       dedupeKey,
     } as const;
     const first = await writer.record(payload);
@@ -214,7 +221,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
         entityType: 'user',
         entityId: actorUserId,
         actorUserId,
-        metadata: { phase: 'commit' },
+        metadata: { accountDelayStartsAfterFailures: 3 },
         dedupeKey: committedKey,
       });
     });
@@ -230,7 +237,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
           entityType: 'user',
           entityId: actorUserId,
           actorUserId,
-          metadata: { phase: 'rollback' },
+          metadata: { otherMaxFailures: 7 },
           dedupeKey: rolledBackKey,
         });
         throw new Error('the mutation failed');
@@ -250,7 +257,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
       data: {
         topic: privilegedAuditTopic,
         dedupeKey: deadKey,
-        payload: { action, entityType: 'user', entityId: actorUserId, actorUserId, metadata: { phase: 'dead' } },
+        payload: { action, entityType: 'user', entityId: actorUserId, actorUserId, metadata: { ipMaxFailures: 9 } },
         payloadHash: '0'.repeat(64),
         status: 'DEAD_LETTER',
         attempts: 20,
@@ -268,7 +275,7 @@ describeIfDatabase('privileged audit outbox (integration)', () => {
       data: {
         topic: privilegedAuditTopic,
         dedupeKey: staleKey,
-        payload: { action, entityType: 'user', entityId: actorUserId, actorUserId, metadata: { phase: 'stale' } },
+        payload: { action, entityType: 'user', entityId: actorUserId, actorUserId, metadata: { ipMaxFailures: 11 } },
         payloadHash: '1'.repeat(64),
         status: 'PENDING',
         nextAttemptAt: new Date(Date.now() + 3_600_000),

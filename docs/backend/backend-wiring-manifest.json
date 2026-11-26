@@ -10024,7 +10024,8 @@
         "ProblemSweepWorkerModule",
         "ProblemNoticeWorkerModule",
         "ChangeSweepWorkerModule",
-        "StatusPageWorkerModule"
+        "StatusPageWorkerModule",
+        "PrivilegedAuditModule"
       ],
       "controllers": [],
       "providers": [
