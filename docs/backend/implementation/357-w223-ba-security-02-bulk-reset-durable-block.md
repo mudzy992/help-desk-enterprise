@@ -87,6 +87,19 @@ ponašanje specifikacije ne mijenja.
   Sada su registrovana **oba** spec-a, a `run-isolated-integration.test.mjs` dobija guard koji pada ako bilo koji
   `*.integration.spec.ts` u `src/modules/users` ili `src/modules/security` nije registrovan (24/24 testa prolazi).
 
+## Šta je registrovanje W2.22 speca otkrilo
+
+Prvi prolaz kroz pravi PostgreSQL (run `45865307348`) pao je **3/5** u `account-security-boundary.integration.spec.ts`.
+Uzrok nije bio W2.22 kod, nego W2.22 **dokaz**, i to na dva načina koje lokalni `skipped` nije mogao pokazati:
+
+- spec je čitao `prisma.auditLog` red, a injektirao *snimajući* lažni notifier ⇒ red nikad nije nastajao; sada se
+  boundary gradi sa pravim `AccountSecurityNotifier(prisma)` i tvrdi i `Notification` red;
+- `recoveryCodes: 2` u audit metadata je kroz policy redakciju (`recovery.?code`) postajalo `[REDACTED]` ⇒ ključ je
+  preimenovan u **`recoveryFactors`** (allowlista šeme, frontend katalog, labele).
+
+Oba su popravljena u ovom paketu (`ff11c927`), a 356 i audit 04 nose ispravku. Bez registracije bi W2.22 ostao
+„zelen" sa dokazom koji nikad nije izvršen.
+
 ## CI i testni dokaz
 
 _popunjava se pri finalizaciji paketa_ — po odluci o CI modularnosti integracijski posao (`Backend PostgreSQL +

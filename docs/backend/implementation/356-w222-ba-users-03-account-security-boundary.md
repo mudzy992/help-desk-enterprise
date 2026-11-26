@@ -108,9 +108,19 @@ PR run [`45829219995`](https://github.com/mudzy992/help-desk-enterprise/actions/
 
 `account-security-boundary.integration.spec.ts` **nije bio registrovan** u `backend/scripts/run-isolated-integration.mjs`,
 pa ga izolovani PostgreSQL runner u ovom CI prolazu nije izvršio (u `Backend build + test` se preskočio bez
-`PRIVACY_IT_DATABASE_URL`). Spec je ispravan i sada je registrovan u W2.23, zajedno sa guard testom koji takav
-propust sprječava; prvi stvarni PostgreSQL dokaz za njega daje W2.23 PR. Ostali dokazi iz tabele iznad
-(unit/controller/frontend/E2E) su izvršeni kako je navedeno.
+`PRIVACY_IT_DATABASE_URL`). Registrovan je u W2.23, zajedno sa guard testom koji takav propust sprječava — i
+**prvi stvarni prolaz kroz PostgreSQL našao je dva defekta** koje lokalni skip nije mogao pokazati:
+
+1. **Dokaz je tvrdio više nego što je mjerio.** Spec je čitao `prisma.auditLog` red, a injektirao je *snimajući*
+   lažni notifier — pa tri od pet slučajeva nisu mogla proći (red nikad nije nastajao). Ispravka: boundary se
+   gradi sa **pravim** `AccountSecurityNotifier(prisma)`, pa su audit red i obavještenje vlasnika stvarni redovi;
+   deaktivacija sada tvrdi i `Notification` red sa dedupe ključem
+   `security-transition:<userId>:deactivated:<cutoffAt>`.
+2. **Count je nestajao u redakciji.** Audit policy redaktuje svaki ključ koji odgovara `recovery.?code`, pa je
+   `recoveryCodes: 2` u metadata postajalo `"[REDACTED]"` — audit trag je gubio broj. Ključ je preimenovan u
+   **`recoveryFactors`** (broj, ne kod); allowlista šeme, frontend katalog/polja i labele `bs`/`en` su ažurirani.
+
+Ostali dokazi iz tabele iznad (unit/controller/frontend/E2E) su izvršeni kako je navedeno.
 
 ## Registar nalaza
 
