@@ -3,7 +3,7 @@
 **Paket:** W2.20<br>
 **Nalaz:** `BA-authentication-07` (P2) — zatvoren<br>
 **Kodni commit:** `5e0ced9`<br>
-**Finalni testani SHA:** `5e0ced9` (kod) + docs commit<br>
+**Finalni testani SHA:** `5e0ced9` (kod, svi poslovi zeleni)<br>
 **CI:** [`45787401701`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45787401701)<br>
 **DB migracije:** **ne** — nema promjene šeme
 
@@ -128,21 +128,45 @@ a 3 integracijska se u CI izvršavaju u poslu „Backend PostgreSQL + Redis inte
 
 ## CI
 
-Prolaz na kodnom commitu `5e0ced9` — [`45787401701`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45787401701):
-**success, svi poslovi, bez reruna.**
+### Kodni commit `5e0ced9` — [`45787401701`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45787401701): **success, svi poslovi, bez reruna**
 
 | Posao | Rezultat |
 | --- | --- |
-| `Backend build + test` | **success** — uključuje `db:validate`, `db:generate`, `check:prisma-generated`, `db:offline:test` (7/7), korak „Prove generate/validate need no network (wiped client, dead mirror)" i korak „Run every authentication suite" |
+| `Backend build + test` | **success** — uključuje `db:validate`, `db:generate`, `check:prisma-generated`, `db:offline:test` (7/7), korak „Prove generate/validate need no network (wiped client, dead mirror)“ i korak „Run every authentication suite“ |
 | `Backend PostgreSQL + Redis integration` | success |
 | `Backend container + supply chain` | success — image se builda sa `node scripts/prisma-offline.mjs generate` |
 | `Frontend build + test` | success |
-| `E2E critical flows` | success (spec 15 socket flake se nije pojavio) |
+| `E2E critical flows` | **success** (spec 15 socket flake se nije pojavio) |
 | `CI gate` | success |
 | `Docs guard` | skipped — u tom commitu nije bilo docs izmjena |
 | Perf smoke | [`45787401067`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45787401067) success (`npm run db:generate` u profilu) |
 
-Docs prolaz (closeout + registri) je zaseban commit na istom PR-u; `Docs guard` se izvršava tamo.
+### Docs commit `68dfcaf` — [`45790062044`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45790062044): **E2E crven iz infrastrukturnog razloga**
+
+| Posao | Rezultat |
+| --- | --- |
+| `Docs guard` | **success** (prvi prolaz guarda na ovom PR-u) |
+| `Backend build + test`, `Backend PostgreSQL + Redis integration`, `Backend container + supply chain`, `Frontend build + test` | success |
+| `E2E critical flows` | **failure** — ne u specu: pada u `globalSetup`, prije ijednog testa |
+| `CI gate` | failure (posljedica E2E posla) |
+
+**Šta se tačno dogodilo (zapisano, ne prikriveno):** `POST /auth/mfa/verify` vraća `401 MFA_INVALID_CODE` za
+super-admina u `loginWithRateLimitBackoff` (`e2e/global-setup.ts:30`). Playwright `results.json`:
+`0 passed, 0 failed, 0 flaky, 0 skipped`, `expected 0 / unexpected 0` — nijedan spec nije izvršen, pa nijedna
+provjera iz ovog paketa nije ni mogla uticati. Dva reruna (`09:20`, `09:51`) pala su **identično** (različiti
+`requestId`-ovi, isti `MFA_INVALID_CODE`).
+
+**Zašto to nije ovaj diff:** (1) isti kod je na `5e0ced9` prošao E2E u cjelosti; (2) ovaj commit mijenja samo
+`docs/`; (3) paralelno je `master` run [`45789099561`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45789099561)
+(u koji je spojen PR #34) visio u koraku „Run E2E“ **preko sat vremena** — dva E2E prolaza na istom stacku, a
+super-admin TOTP ima replay zaštitu po vremenskom koraku (`e2e/helpers/mfa.ts`: server odbija korak `<= lastStep`,
+prihvata ±1) i samo jedan secret (`E2E_SUPERADMIN_TOTP_SECRET` / `.auth/mfa.json`).
+
+**Preporuka za operativu (akciono):** postaviti repo varijablu `E2E_FORCE_MFA_RESET=1` (workflow je čita na
+`ci.yml:959`; `e2e/README.md:82`) ili pokrenuti dispatch sa svježim resetom super-admin MFA uz dostupan SSH
+tunel, pa rerun. Do tada `E2E critical flows` na ovom PR-u ostaje crven **iz okruženja**, a zelen je na kodnom
+commitu. Ovaj nalaz ide u isti triage kao i `specs=15` flake iz `W2.18`: jedan dijeljeni stack + jedan TOTP
+secret = dva paralelna E2E prolaza se međusobno blokiraju.
 
 ## Dokumentacija
 
