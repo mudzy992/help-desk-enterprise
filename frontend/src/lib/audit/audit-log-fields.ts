@@ -143,10 +143,9 @@ export const knownAuditMetadataFields = [
   "changedUsers",
   "revokedSessions",
   "failedUsers",
-  // W2.23: the bulk reset names its own terminal state and the targets whose
-  // registry marker is still pending.
+  // W2.23: the bulk reset names the targets whose registry marker is still
+  // pending. The terminal `status` field already exists in this catalogue.
   "pendingUsers",
-  "status",
   "periodStart",
   "permissionMatchMode",
   "provider",
