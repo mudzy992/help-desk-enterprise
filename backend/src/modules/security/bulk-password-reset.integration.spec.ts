@@ -80,6 +80,12 @@ describeIfDatabase('bulk password reset (integration)', () => {
     await prisma.$disconnect();
   });
 
+  // Each case must read *its own* audit entry: the actor id is shared, so a row
+  // from an earlier case would otherwise win `findFirst`.
+  beforeEach(async () => {
+    await prisma.auditLog.deleteMany({ where: { entityId: actorUserId } });
+  });
+
   /** The step-up is not what this spec is about; it always succeeds here. */
   const stepUp = { assertConfirmed: async () => undefined };
 
@@ -265,17 +271,28 @@ describeIfDatabase('bulk password reset (integration)', () => {
       user: prisma.user,
       $transaction: (run: (client: unknown) => Promise<unknown>) =>
         prisma.$transaction(async (transaction) => {
-          // Inherit every model and override exactly one delegate, so the fault is
-          // the only difference between this client and the real one.
-          const guarded = Object.create(transaction) as Record<string, unknown>;
-          guarded.userSession = {
-            updateMany: async (args: { where: { userId: string } }) => {
-              if (args.where.userId === broken.userId) {
-                throw new Error('injected database fault');
+          /*
+            Override exactly one delegate. Every other property is read from the
+            real transaction client (`Reflect.get` without a receiver, functions
+            bound to it), because Prisma's interactive-transaction client keeps
+            private fields that a proxy receiver cannot reach.
+          */
+          const guarded = new Proxy(transaction as object, {
+            get(target, property) {
+              if (property === 'userSession') {
+                return {
+                  updateMany: async (args: { where: { userId: string } }) => {
+                    if (args.where.userId === broken.userId) {
+                      throw new Error('injected database fault');
+                    }
+                    return transaction.userSession.updateMany(args as never);
+                  },
+                };
               }
-              return transaction.userSession.updateMany(args as never);
+              const value = Reflect.get(target, property) as unknown;
+              return typeof value === 'function' ? value.bind(target) : value;
             },
-          };
+          });
           return run(guarded);
         }),
     } as unknown as PrismaClient;
