@@ -4,6 +4,7 @@ import {
   HttpCode,
   Post,
   Req,
+  Res,
   UnauthorizedException,
   UseGuards,
   UsePipes,
@@ -19,7 +20,10 @@ import { SessionAuthenticationGuard } from '../authentication/session-authentica
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
-import { BulkPasswordResetService } from './bulk-password-reset.service';
+import {
+  BulkPasswordResetService,
+  type BulkPasswordResetResult,
+} from './bulk-password-reset.service';
 
 /*
   Paket 5.4.0-d (M5): `POST /security/bulk-password-reset` — SuperAdmin only,
@@ -27,7 +31,16 @@ import { BulkPasswordResetService } from './bulk-password-reset.service';
   purpose, obtained through `POST /security/identity/passkey/verify`, or a
   current TOTP code). The rate-limit marker uses another purpose and is
   therefore not accepted here.
+
+  W2.23 (`BA-security-02`): the status code carries the outcome. A run where every
+  target was durably blocked and every accelerator ran answers `200 COMPLETE`; a
+  run that needs a repeat answers `202 PARTIAL` with the counters — a partial run
+  must never look like a finished one. The body shape is unchanged apart from the
+  additive `pendingUsers`/`status` fields, so existing clients keep working.
 */
+
+/** Minimal response surface: only the status line is set, Nest still serializes. */
+type StatusResponse = { status(code: number): unknown };
 
 export class BulkPasswordResetDto {
   /** Current TOTP code; omit it when a fresh passkey step-up was used. */
@@ -54,17 +67,20 @@ export class BulkPasswordResetController {
 
   @Post()
   @HttpCode(200)
-  execute(
+  async execute(
     @Req() request: AuthenticatedHttpRequest,
     @Body() body: BulkPasswordResetDto,
-  ) {
+    @Res({ passthrough: true }) response: StatusResponse,
+  ): Promise<BulkPasswordResetResult> {
     const principal = readAuthenticatedPrincipal(request);
     if (principal === null) {
       throw new UnauthorizedException({ code: 'SESSION_NOT_FOUND' });
     }
-    return this.bulkPasswordResetService.execute(
+    const result = await this.bulkPasswordResetService.execute(
       { subjectId: principal.subjectId, sessionId: readSessionId(request) },
       { code: body.code },
     );
+    if (result.status !== 'COMPLETE') response.status(202);
+    return result;
   }
 }

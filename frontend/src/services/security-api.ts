@@ -103,11 +103,21 @@ export function getAuditWebhookStatus(): Promise<SecurityAuditWebhookStatus> {
   return apiRequest("/security/metrics/audit-webhook");
 }
 
+/**
+ * W2.23 (`BA-security-02`): the run reports its own terminal state. `PARTIAL`
+ * arrives with HTTP 202 and means "run it again" — it is never a finished run,
+ * even though `failedUsers` may be 0 (every target blocked durably, only the
+ * Redis accelerator still pending).
+ */
 export type BulkPasswordResetResult = {
   readonly eligibleUsers: number;
   readonly changedUsers: number;
   readonly revokedSessions: number;
+  /** Accounts whose durable block could not be committed — still usable. */
   readonly failedUsers: number;
+  /** Accounts already blocked whose accelerator is still pending. */
+  readonly pendingUsers: number;
+  readonly status: "COMPLETE" | "PARTIAL";
 };
 
 export function bulkPasswordReset(input?: {
