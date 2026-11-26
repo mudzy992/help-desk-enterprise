@@ -33,6 +33,8 @@ describeIfDatabase('bulk password reset (integration)', () => {
    * of pinning a number that only holds on an empty template.
    */
   let baseline = 0;
+  /** Of those, the ones that are still unflagged (what `changedUsers` may count). */
+  let baselineUnflagged = 0;
 
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
@@ -45,11 +47,16 @@ describeIfDatabase('bulk password reset (integration)', () => {
         directoryObjectGuid: null,
         anonymizedAt: null,
       },
-      select: { userRoles: { select: { role: { select: { key: true } } } } },
+      select: {
+        mustChangePassword: true,
+        userRoles: { select: { role: { select: { key: true } } } },
+      },
     });
-    baseline = existing.filter(
+    const eligible = existing.filter(
       (user) => !user.userRoles.some((userRole) => userRole.role.key === 'SUPER_ADMIN'),
-    ).length;
+    );
+    baseline = eligible.length;
+    baselineUnflagged = eligible.filter((user) => user.mustChangePassword !== true).length;
   });
 
   afterAll(async () => {
@@ -139,7 +146,7 @@ describeIfDatabase('bulk password reset (integration)', () => {
 
       expect(result).toMatchObject({
         eligibleUsers: baseline + 2,
-        changedUsers: baseline + 2,
+        changedUsers: baselineUnflagged + 2,
         failedUsers: 0,
         pendingUsers: 0,
         status: 'COMPLETE',
@@ -161,14 +168,17 @@ describeIfDatabase('bulk password reset (integration)', () => {
       }
 
       expect(calls.sort()).toEqual([first.userId, second.userId].sort());
-      expect(invalidated).toEqual([[first.userId, second.userId]]);
+      // One invalidation call for the blocked set; the order of the ids comes from
+      // the database and is therefore compared as a set.
+      expect(invalidated).toHaveLength(1);
+      expect([...invalidated[0]!].sort()).toEqual([first.userId, second.userId].sort());
 
       const entry = await prisma.auditLog.findFirst({
         where: { action: auditLogActions.authAdminBulkPasswordReset, entityId: actorUserId },
       });
       expect(entry?.metadata).toMatchObject({
         eligibleUsers: baseline + 2,
-        changedUsers: baseline + 2,
+        changedUsers: baselineUnflagged + 2,
         failedUsers: 0,
         pendingUsers: 0,
         status: 'COMPLETE',
@@ -235,28 +245,24 @@ describeIfDatabase('bulk password reset (integration)', () => {
       that transaction when it throws, so this proves the rollback — not just the
       absence of a call.
     */
-    const faulty = new Proxy(prisma, {
-      get(target, property, receiver) {
-        if (property !== '$transaction') return Reflect.get(target, property, receiver);
-        return (run: (client: unknown) => Promise<unknown>) =>
-          target.$transaction(async (transaction) => {
-            const guarded = new Proxy(transaction, {
-              get(tx, key, txReceiver) {
-                if (key !== 'userSession') return Reflect.get(tx, key, txReceiver);
-                return {
-                  updateMany: async (args: { where: { userId: string } }) => {
-                    if (args.where.userId === broken.userId) {
-                      throw new Error('injected database fault');
-                    }
-                    return transaction.userSession.updateMany(args as never);
-                  },
-                };
-              },
-            });
-            return run(guarded);
-          });
-      },
-    }) as PrismaClient;
+    const faulty = {
+      user: prisma.user,
+      $transaction: (run: (client: unknown) => Promise<unknown>) =>
+        prisma.$transaction(async (transaction) => {
+          // Inherit every model and override exactly one delegate, so the fault is
+          // the only difference between this client and the real one.
+          const guarded = Object.create(transaction) as Record<string, unknown>;
+          guarded.userSession = {
+            updateMany: async (args: { where: { userId: string } }) => {
+              if (args.where.userId === broken.userId) {
+                throw new Error('injected database fault');
+              }
+              return transaction.userSession.updateMany(args as never);
+            },
+          };
+          return run(guarded);
+        }),
+    } as unknown as PrismaClient;
 
     const { instance, calls } = service({ database: faulty });
 
@@ -276,7 +282,7 @@ describeIfDatabase('bulk password reset (integration)', () => {
 
       expect(result).toMatchObject({
         eligibleUsers: baseline + 2,
-        changedUsers: baseline + 1,
+        changedUsers: baselineUnflagged + 1,
         failedUsers: 1,
         pendingUsers: 0,
         status: 'PARTIAL',

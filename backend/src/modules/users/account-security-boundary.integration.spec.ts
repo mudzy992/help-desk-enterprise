@@ -1,10 +1,12 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../generated/prisma/client';
 import { auditLogActions } from '../audit-log/audit-log.constants';
+import { AccountSecurityNotifier } from '../authentication/security/account-security-notifier';
 import {
   AccountSecurityBoundaryService,
   cutAccountCredentials,
 } from '../authentication/security/account-security-boundary.service';
+import { notificationTypes } from '../notifications/notifications.constants';
 import { linkUserDirectoryIdentity } from './link-user-directory-identity';
 import { unlinkUserDirectoryIdentity } from './unlink-user-directory-identity';
 import { updateUser } from './update-user';
@@ -30,7 +32,13 @@ describeIfDatabase('account security transitions (integration)', () => {
     await prisma.$disconnect();
   });
 
-  /** A boundary that keeps the durable half and skips the Redis accelerator. */
+  /**
+   * A boundary that keeps the durable half and skips the Redis accelerator. The
+   * audit/notification half is the **real** `AccountSecurityNotifier`, so the rows
+   * asserted below are the product's rows, not a recorder's memory (the first
+   * version of this spec asserted `prisma.auditLog` while injecting a recording
+   * fake — it could never pass, and only the registered runner found that).
+   */
   function boundary(options: { redisDown?: boolean } = {}) {
     const sessionRegistry = {
       revokeAll: async () => {
@@ -38,17 +46,11 @@ describeIfDatabase('account security transitions (integration)', () => {
         return 0;
       },
     };
-    const audited: Array<{ action: string; metadata: Record<string, unknown> }> = [];
-    const notified: Array<{ type: string; dedupeKey: string }> = [];
-    const service = new AccountSecurityBoundaryService(sessionRegistry as never, {
-      audit: async (action: string, _userId: string, _actor: string | null, metadata: Record<string, unknown>) => {
-        audited.push({ action, metadata });
-      },
-      notify: async (_userId: string, type: string, _body: string | null, dedupeKey: string) => {
-        notified.push({ type, dedupeKey });
-      },
-    } as never);
-    return { service, audited, notified };
+    const service = new AccountSecurityBoundaryService(
+      sessionRegistry as never,
+      new AccountSecurityNotifier(prisma as never),
+    );
+    return { service };
   }
 
   async function seedAccount(overrides: { isActive?: boolean; isLocalOnly?: boolean } = {}) {
@@ -85,13 +87,14 @@ describeIfDatabase('account security transitions (integration)', () => {
   async function cleanup(userId: string) {
     // Cascades remove sessions/factors; audit rows are intentionally left (they are
     // the proof) and are scoped to this fixture's user id.
+    await prisma.notification.deleteMany({ where: { userId } }).catch(() => undefined);
     await prisma.user.delete({ where: { id: userId } }).catch(() => undefined);
     await prisma.auditLog.deleteMany({ where: { entityId: userId } });
   }
 
   it('deactivation commits the cutoff, the session revocations and the factor deletion together', async () => {
     const { user, sessions } = await seedAccount();
-    const { service, audited, notified } = boundary();
+    const { service } = boundary();
     const revokedSessions: Array<{ userId: string; reason: string; actorUserId: string | null }> = [];
     (service as unknown as { sessionRegistry: { revokeAll: unknown } }).sessionRegistry = {
       revokeAll: async (input: { userId: string; reason: string; actorUserId: string | null }) => {
@@ -138,8 +141,16 @@ describeIfDatabase('account security transitions (integration)', () => {
         mfaFactors: 1,
         recoveryCodes: 2,
       });
-      expect(audited).toHaveLength(1);
-      expect(notified).toHaveLength(1);
+      // The owner notification is a real row: the factor deletion must reach them.
+      const notification = await prisma.notification.findFirst({
+        where: { userId: user.id, type: notificationTypes.accountMfaChanged },
+      });
+      expect(notification).not.toBeNull();
+      const cutoffAt = (entry?.metadata as { cutoffAt?: string } | null)?.cutoffAt;
+      expect(typeof cutoffAt).toBe('string');
+      expect(notification?.dedupeKey).toBe(
+        `security-transition:${user.id}:deactivated:${cutoffAt}`,
+      );
       expect(revokedSessions).toEqual([
         { userId: user.id, reason: 'deactivated', actorUserId: null },
       ]);
