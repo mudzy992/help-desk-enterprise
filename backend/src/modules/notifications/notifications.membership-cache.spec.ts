@@ -68,9 +68,13 @@ describe('notification unread badge after membership revocation', () => {
     currentMemberships = [];
 
     await runWithRequestId('notification-count-after-revoke', async () => {
-      await expect(loadActorGroupMemberships(prisma as never, userId)).resolves.toEqual([
-        expect.objectContaining({ groupId: 'group-1' }),
-      ]);
+      /*
+        W2.25 (`BA-groups-02`): the committed revocation now changes the answer even
+        when the local snapshot is warm — the membership revision published by the
+        session read no longer matches, so the read falls through to the authority.
+        The badge therefore misses on a *correct* snapshot instead of a stale one.
+      */
+      await expect(loadActorGroupMemberships(prisma as never, userId)).resolves.toEqual([]);
       await expect(service.unreadCount(userId)).resolves.toEqual({ unreadCount: 0 });
     });
     expect(notificationCount).toHaveBeenCalledTimes(2);

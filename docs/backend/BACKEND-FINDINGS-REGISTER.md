@@ -152,7 +152,7 @@ Ovaj registar je kanonski indeks nalaza iz pojedinačnih audita. Detaljni dokaz,
 | 05 | `organizational-units` | `BA-organizational-units-08` | P3 | Tree/detail/user read i descendant rewrite nemaju operativne granice | otvoreno | [05-organizational-units.md](audits/05-organizational-units.md) |
 | 05 | `organizational-units` | `BA-organizational-units-09` | P3 | No-op PATCH piše update i audit bez stvarne promjene | otvoreno | [05-organizational-units.md](audits/05-organizational-units.md) |
 | 06 | `groups` | `BA-groups-01` | P1 | Group delete može tiho cascade obrisati/odvezati kritične cross-module resurse | zatvoreno (W2.12) | [06-groups.md](audits/06-groups.md) |
-| 06 | `groups` | `BA-groups-02` | P1 | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room | otvoreno | [06-groups.md](audits/06-groups.md) |
+| 06 | `groups` | `BA-groups-02` | P1 | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room | zatvoreno (W2.25) | [06-groups.md](audits/06-groups.md) |
 | 06 | `groups` | `BA-groups-03` | P1 | Fallback invariant dopušta nula ili više fallback grupa u istom OU-u | zatvoreno (W2.13) | [06-groups.md](audits/06-groups.md) |
 | 06 | `groups` | `BA-groups-04` | P2 | Inactive/directory-deactivated korisnik može dobiti latentno group članstvo | otvoreno | [06-groups.md](audits/06-groups.md) |
 | 06 | `groups` | `BA-groups-05` | P2 | CAB/problem flagovi se gase bez dependency/lifecycle provjere | otvoreno | [06-groups.md](audits/06-groups.md) |
@@ -930,7 +930,7 @@ Targeted `RoleGuard` testovi su potvrdili da service-scoped i OU-scoped ADMIN ve
 Generisano iz 44 audit tabele: `npm run audit:traceability --prefix backend -- --write`. Ne uređivati ručno.
 
 - Ukupno: **698** (P1 175 · P2 371 · P3 152)
-- Zatvoreno: **353**
-- Otvoreno: **345** (P1 76 / P2 189 / P3 80)
+- Zatvoreno: **354**
+- Otvoreno: **344** (P1 75 / P2 189 / P3 80)
 - Val 7: **111 / 111** zatvoreno, otvoreno **0** (P1 0 / P2 0 / P3 0)
 <!-- findings-totals:end -->

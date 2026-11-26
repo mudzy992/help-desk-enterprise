@@ -343,8 +343,17 @@ describe('in-app notification isolation', () => {
     const notificationId = beforeRevocation.items[0]?.id;
     expect(notificationId).toBeDefined();
 
-    // Simulate a committed membership removal on another app instance. This process'
-    // WeakMap is deliberately not invalidated, so its old entry remains warm.
+    /*
+      Simulate a committed membership removal on another app instance. This process'
+      WeakMap is deliberately not invalidated.
+
+      W2.25 (`BA-groups-02`): the snapshot can no longer be warm across a revoke.
+      `remove` bumps `User.authzVersion` inside its transaction and the request path
+      publishes it, so the cached entry no longer matches and the actor-group read
+      falls through to the authority. The isolation below therefore no longer has to
+      survive a stale cache — it is checked against a fresh answer, which is the
+      stronger statement.
+    */
     await harness.memory.prisma.groupMember.deleteMany({
       where: { groupId: ticketsTestIds.groupIt, userId: memberId },
     });
@@ -352,7 +361,7 @@ describe('in-app notification isolation', () => {
     await runWithRequestId('notification-membership-after-revoke', async () => {
       await expect(
         loadActorGroupMemberships(prisma, memberId),
-      ).resolves.toMatchObject([{ groupId: ticketsTestIds.groupIt }]);
+      ).resolves.toEqual([]);
 
       const afterRevocation = await listNotifications(prisma, memberId);
       expect(afterRevocation.items).toEqual([]);

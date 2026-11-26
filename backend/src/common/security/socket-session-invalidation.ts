@@ -21,6 +21,18 @@ export type SocketSessionInvalidation =
       readonly version: 1;
       readonly kind: 'users';
       readonly subjectIds: readonly string[];
+    }
+  /**
+   * W2.25 (`BA-groups-02`): the subject lost one group membership. Unlike the
+   * kinds above this is **not** a disconnect: the session is still valid, only the
+   * `group:<groupId>` room is no longer theirs. Subscribers drop that room on their
+   * local sockets; the session survives.
+   */
+  | {
+      readonly version: 1;
+      readonly kind: 'group';
+      readonly subjectId: string;
+      readonly groupId: string;
     };
 
 export type SocketSessionInvalidationPublisher = {
@@ -110,6 +122,15 @@ export function parseSocketSessionInvalidation(
         exceptSessionId: value.exceptSessionId ?? null,
         exceptJti: value.exceptJti ?? null,
       };
+    case 'group':
+      return nonEmpty(value.subjectId) && nonEmpty(value.groupId)
+        ? {
+            version: 1,
+            kind: 'group',
+            subjectId: value.subjectId,
+            groupId: value.groupId,
+          }
+        : null;
     case 'users':
       if (
         !Array.isArray(value.subjectIds) ||
@@ -165,6 +186,8 @@ export function invalidationMatchesSocketPrincipal(
       return true;
     case 'users':
       return event.subjectIds.includes(principal.subjectId);
+    case 'group':
+      return principal.subjectId === event.subjectId;
   }
 }
 

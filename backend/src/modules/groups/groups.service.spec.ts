@@ -62,7 +62,7 @@ describe('GroupsService', () => {
         create: jest.Mock;
         delete: jest.Mock;
       };
-      user: { findUnique: jest.Mock };
+      user: { findUnique: jest.Mock; update: jest.Mock };
       ticket: { count: jest.Mock };
       $executeRaw: jest.Mock;
       $transaction: jest.Mock;
@@ -94,6 +94,8 @@ describe('GroupsService', () => {
       },
       user: {
         findUnique: jest.fn().mockResolvedValue(user),
+        // W2.25: the membership write bumps `authzVersion` inside its transaction.
+        update: jest.fn().mockResolvedValue({ authzVersion: 2 }),
       },
       ticket: {
         count: jest.fn().mockResolvedValue(0),
@@ -139,17 +141,24 @@ describe('GroupsService', () => {
     const authorizationContextLoader = {
       loadBySubjectId: jest.fn().mockResolvedValue(null),
     };
+    /*
+      W2.25: membership writes bump `authzVersion` in their own transaction, so the
+      service publishes what they committed (`notifyUserChanged`) instead of asking
+      for a second bump.
+    */
+    const notifyUserChanged = jest.fn().mockResolvedValue(undefined);
     return {
       service: new GroupsService(
         prisma as never,
         authorizationContextLoader as never,
         { load: async () => { throw new Error('not used'); } } as never,
-        { invalidateUser, invalidateUsers } as never,
+        { invalidateUser, invalidateUsers, notifyUserChanged } as never,
         { publish: publishScope } as never,
       ),
       prisma,
       authorizationContextLoader,
       invalidateUser,
+      notifyUserChanged,
       invalidateUsers,
       publishScope,
     };
@@ -262,6 +271,7 @@ describe('GroupsService', () => {
             return { id: 'member-1' };
           }),
         },
+        user: { update: jest.fn().mockResolvedValue({ authzVersion: 2 }) },
       };
       const result = await callback(transaction);
       persistedMembership = stagedMembership;
@@ -388,9 +398,16 @@ describe('GroupsService', () => {
   });
 
   it('drops the cached authorization data of the member whose access changed', async () => {
-    // Phase 2.2 (plan §2.2): group membership feeds the principal context, so
-    // every membership change has to invalidate exactly that member.
-    const { service, prisma, invalidateUser } = createService();
+    /*
+      Phase 2.2 (plan §2.2): group membership feeds the principal context, so every
+      membership change has to invalidate exactly that member.
+
+      W2.25 (`BA-groups-02`): the invalidation is now a *notification*, not a second
+      bump — the write already incremented `authzVersion` inside its transaction, and
+      the service has to publish that committed version so the cache pointer and the
+      socket notice agree with what the database says.
+    */
+    const { service, prisma, invalidateUser, notifyUserChanged } = createService();
     prisma.groupMember.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 'member-1' });
@@ -408,22 +425,26 @@ describe('GroupsService', () => {
       .mockResolvedValueOnce(groupRecord);
 
     await service.addMember(groupRecord.id, user.id);
-    expect(invalidateUser).toHaveBeenCalledTimes(1);
-    expect(invalidateUser).toHaveBeenCalledWith(user.id);
+    expect(notifyUserChanged).toHaveBeenCalledTimes(1);
+    expect(notifyUserChanged).toHaveBeenCalledWith(user.id, 2);
+    // No second bump: the transaction already committed the version.
+    expect(invalidateUser).not.toHaveBeenCalled();
 
     await service.removeMember(groupRecord.id, user.id);
-    expect(invalidateUser).toHaveBeenCalledTimes(2);
-    expect(invalidateUser).toHaveBeenLastCalledWith(user.id);
+    expect(notifyUserChanged).toHaveBeenCalledTimes(2);
+    expect(notifyUserChanged).toHaveBeenLastCalledWith(user.id, 2);
+    expect(invalidateUser).not.toHaveBeenCalled();
   });
 
   it('does not invalidate when the membership change was rejected', async () => {
-    const { service, prisma, invalidateUser } = createService();
+    const { service, prisma, invalidateUser, notifyUserChanged } = createService();
     prisma.group.findUnique.mockResolvedValue(groupRecord);
     prisma.groupMember.findUnique.mockResolvedValue({ id: 'member-1' });
     await expect(service.addMember(groupRecord.id, user.id)).rejects.toBeInstanceOf(
       ConflictException,
     );
     expect(invalidateUser).not.toHaveBeenCalled();
+    expect(notifyUserChanged).not.toHaveBeenCalled();
   });
 
   it('maps missing groups to not found', async () => {

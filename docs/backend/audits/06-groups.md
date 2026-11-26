@@ -235,7 +235,7 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 | ID           | Severity | Naslov                                                                            | Status   | Veličina |
 | ------------ | -------- | --------------------------------------------------------------------------------- | -------- | -------- |
 | BA-groups-01 | P1       | Group delete može tiho cascade obrisati/odvezati kritične cross-module resurse    | zatvoreno (W2.12, [343](../implementation/343-w212-group-delete-dependencies.md)) | L        |
-| BA-groups-02 | P1       | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room        | otvoreno | L        |
+| BA-groups-02 | P1       | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room        | zatvoreno (W2.25, [359](../implementation/359-w225-ba-groups-02-membership-revoke.md)) | L        |
 | BA-groups-03 | P1       | Fallback invariant dopušta nula ili više fallback grupa u istom OU-u              | zatvoreno (W2.13, [344](../implementation/344-w213-group-fallback-cardinality.md)) | L        |
 | BA-groups-04 | P2       | Inactive/directory-deactivated korisnik može dobiti latentno group članstvo       | otvoreno | M        |
 | BA-groups-05 | P2       | CAB/problem flagovi se gase bez dependency/lifecycle provjere                     | otvoreno | M        |
@@ -269,6 +269,15 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 - **Korekcija:** membership revision ili durable distributed revoke event; HTTP odluka mora provjeravati revision, a sve socket instance odmah izbaciti subject iz group rooma nakon commita. Periodični sweep ostaje safety net.
 - **Acceptance:** dvije HTTP i dvije socket instance sa zagrijanim stanjem; prvi zahtjev i prvi event poslije remove commita ne dolaze uklonjenom članu, uključujući retry/fault scenario.
 - **Owner:** groups + tickets/websocket/platform owner.
+- **Status (W2.25, 2026-11-26):** zatvoreno. Revizija članstva je `User.authzVersion`, koji se sada podiže **unutar**
+  transakcije koja mijenja `group_member` (add/remove/delete), pa commit i revizija ne mogu da se raziđu; verzija
+  stiže do keša preko `SessionRevocationStore.check()` (postojeći `SELECT … u."authzVersion"`, **bez novog upita**),
+  a `loadActorGroupMemberships` servira 30 s snapshot **samo** pod tom verzijom — bez objavljene verzije čita bazu.
+  Uklanjanje člana istovremeno piše durable namjeru (`groups.membership-revoke`, dedupe po reviziji, 20 pokušaja) u
+  transactional outbox; `GroupRoomRevokeDispatcher` je pretvara u `kind: 'group'` event na postojećem socket kanalu,
+  a svaka instanca izbacuje subject iz `group:<id>` (neuspio `leave` ⇒ diskonekcija, fail closed). 30 s sweep ostaje
+  safety net; premise nalaza su ispravljene (sweep je već bio 30 s, ne 5 min). Detalji:
+  [359](../implementation/359-w225-ba-groups-02-membership-revoke.md).
 
 ### BA-groups-03 — Fallback cardinality nije invariant
 
@@ -328,6 +337,9 @@ Nijedan test nije proglašen prolaznim. Ovo je isti checkout reproducibility pro
 - **Acceptance:** Redis/invalidator/event-bus fault ne ostavlja prethodno članstvo efektivnim i proizvodi vidljiv retry/dead-letter signal.
 - **Owner:** groups + authorization/platform owner.
 - **Veza:** specijalizacija `BA-authorization-01`.
+- **Napomena (W2.25):** durable dio ovog nalaza za članstvo je isporučen — ciljani group-room revoke je outbox
+  događaj sa retryjem i dead-letter signalom (`groups.membership-revoke`). Nalaz ostaje otvoren za ostale
+  invalidacione putanje (principal/socket invalidator van membership toka).
 
 ### BA-groups-09 — Neograničeni read i post-filter
 
@@ -447,7 +459,7 @@ Promjena delete semantike može otkriti postojeće implicitne cascade zavisnosti
 | Nalaz        | Kod/dokaz                                 | Test                           | Faza  |
 | ------------ | ----------------------------------------- | ------------------------------ | ----- |
 | BA-groups-01 | `collect-group-delete-dependencies` + `delete-impact` ruta + audit `dependencies` | 21 fixture testa po relaciji + 4 hook testa | 0–2 |
-| BA-groups-02 | actor-group cache + socket revalidation   | two-instance revoke            | 0–2   |
+| BA-groups-02 | `authzVersion` fence u transakciji + `groups.membership-revoke` outbox + `kind: 'group'` kanal | 21 unit (keš/transakcija/outbox/dispečer/pretplatnik) + 4 real-DB (2 HTTP instance, fault, retry) | 0–2 |
 | BA-groups-03 | partial unique index + per-OU advisory lock + `LAST_FALLBACK_GROUP` | 8 unit (incl. 20 parallel) + 6 real-DB | 0–3 |
 | BA-groups-04 | add-member user select                    | inactive lifecycle fixtures    | 0–4   |
 | BA-groups-05 | update flags + changes/problems consumers | designation dependency test    | 0–4   |

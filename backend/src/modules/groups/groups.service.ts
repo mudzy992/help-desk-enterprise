@@ -2,6 +2,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { GroupScopeRealtimeHub } from '../../common/admin-realtime/group-scope-realtime.hub';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TransactionalOutboxService } from '../../common/outbox/transactional-outbox.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import {
   authorizationRoleKeys,
@@ -18,6 +19,7 @@ import { deleteGroup } from './delete-group';
 import { loadGroupRecord } from './load-group-record';
 import { getGroup } from './get-group';
 import { mapGroupsError } from './map-groups-error';
+import type { PrincipalInvalidationHook } from '../../common/principal-context/principal-context.types';
 import type {
   CreateGroupInput,
   GroupAuditContext,
@@ -44,11 +46,27 @@ export class GroupsService {
     private readonly principalContextInvalidator?: PrincipalContextInvalidator,
     @Optional()
     private readonly groupScopeRealtimeHub?: GroupScopeRealtimeHub,
+    /**
+     * W2.25 (`BA-groups-02`): the durable intent to drop a removed member from the
+     * group room. Optional so unit constructions stay dependency-free; without it the
+     * `authzVersion` fence and the 30 s room sweep still hold.
+     */
+    @Optional()
+    private readonly outbox?: TransactionalOutboxService,
   ) {}
 
-  private invalidatePrincipal(): (userId: string) => Promise<unknown> {
-    return (userId) =>
-      this.principalContextInvalidator?.invalidateUser(userId) ?? Promise.resolve(null);
+  /**
+   * W2.25: membership writes bump `authzVersion` inside their own transaction, so
+   * this hook must only publish what they committed — a second `invalidateUser`
+   * would bump again and widen the very window the commit closed.
+   */
+  private invalidatePrincipal(): PrincipalInvalidationHook {
+    return (userId, committedAuthzVersion) => {
+      if (this.principalContextInvalidator === undefined) return Promise.resolve(null);
+      return typeof committedAuthzVersion === 'number'
+        ? this.principalContextInvalidator.notifyUserChanged(userId, committedAuthzVersion)
+        : this.principalContextInvalidator.invalidateUser(userId);
+    };
   }
 
   list(query: ListGroupsQuery = {}): Promise<readonly GroupListItemResponse[]> {
@@ -158,7 +176,14 @@ export class GroupsService {
     context: GroupAuditContext = emptyAuditContext,
   ): Promise<GroupResponse> {
     const result = await this.execute(() =>
-      removeGroupMember(this.prisma, groupId, userId, this.invalidatePrincipal(), context),
+      removeGroupMember(
+        this.prisma,
+        groupId,
+        userId,
+        this.invalidatePrincipal(),
+        context,
+        this.outbox,
+      ),
     );
     this.publishScope(result.organizationalUnitId);
     return result;
