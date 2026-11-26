@@ -24,9 +24,14 @@ const describeIfDatabase = url ? describe : describe.skip;
 */
 describeIfDatabase('bulk password reset (integration)', () => {
   const stamp = `${process.pid}-${Date.now()}`;
-  const actorUserId = `super-${stamp}`;
 
   let prisma: PrismaClient;
+  /**
+   * `UserSession.revokedByUserId` is a foreign key, so the acting admin has to be
+   * a real row. An **inactive** local account is a valid actor here (the step-up is
+   * stubbed) and is never a target: `listEligibleUsers` requires `isActive: true`.
+   */
+  let actorUserId = '';
   /**
    * Local accounts the isolated template already contains (expected: none). Read
    * before any fixture exists so the counts below stay honest either way instead
@@ -38,6 +43,16 @@ describeIfDatabase('bulk password reset (integration)', () => {
 
   beforeAll(async () => {
     prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url! }) });
+    const actor = await prisma.user.create({
+      data: {
+        email: `bulk-reset-actor-${stamp}@example.invalid`,
+        displayName: 'Bulk reset actor',
+        localPasswordHash: 'x',
+        isLocalOnly: true,
+        isActive: false,
+      },
+    });
+    actorUserId = actor.id;
     const existing = await prisma.user.findMany({
       where: {
         isActive: true,
@@ -61,6 +76,7 @@ describeIfDatabase('bulk password reset (integration)', () => {
 
   afterAll(async () => {
     await prisma.auditLog.deleteMany({ where: { entityId: actorUserId } }).catch(() => undefined);
+    await prisma.user.delete({ where: { id: actorUserId } }).catch(() => undefined);
     await prisma.$disconnect();
   });
 
