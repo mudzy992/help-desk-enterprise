@@ -1612,7 +1612,7 @@
     {
       "id": "BA-groups-02",
       "severity": "P1",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.25, [359](../implementation/359-w225-ba-groups-02-membership-revoke.md))",
       "source": "06-groups.md",
       "owner": "WS-A",
       "wave": 2
