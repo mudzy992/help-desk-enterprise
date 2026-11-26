@@ -436,7 +436,7 @@
     {
       "id": "BA-authentication-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.17)",
       "source": "01-authentication.md",
       "owner": "WS-A",
       "wave": 2

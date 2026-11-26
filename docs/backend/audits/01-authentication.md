@@ -143,7 +143,7 @@ Prisma konfiguracija je učitana, ali generator je blokiran jer sandbox ne može
 | BA-authentication-01 | P1       | Refresh oživljava session čiji registry red ne postoji                         | zatvoreno (W2.14) | S        |
 | BA-authentication-02 | P1       | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara | zatvoreno (W2.15) | L        |
 | BA-authentication-03 | P1       | MFA enrollment token i potvrda nisu atomski single-use                         | zatvoreno (W2.16) | M        |
-| BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | otvoreno | S        |
+| BA-authentication-04 | P2       | Endpoint za opoziv jedne sesije očekuje UUID, a schema izdaje CUID             | zatvoreno (W2.17) | S        |
 | BA-authentication-05 | P2       | Passkey counter update nema compare-and-set zaštitu                            | otvoreno | M        |
 | BA-authentication-06 | P2       | Entra JWKS dohvat nema timeout ni cache                                        | otvoreno | M        |
 | BA-authentication-07 | P2       | Kritični testni gate zavisi od mrežnog Prisma engine downloada                 | otvoreno | M        |
@@ -240,6 +240,19 @@ Detalj isporuke: `docs/backend/implementation/349-w215-ba-authentication-02-dura
 - **Korekcija:** koristiti bounded CUID/string validator usklađen sa schema ugovorom ili migrirati ID strategiju eksplicitno; dodati controller contract test sa stvarnim schema-shape fixtureom.
 - **Acceptance:** listani session ID se može opozvati; nevažeći/tuđi ID ostaje sigurno odbijen.
 - **Owner:** authentication API owner.
+
+#### Implementacijski status Vala 2 / W2.17 (2026-11-25)
+
+- `:sessionId` se validira **prema šemi**, ne prema pretpostavci: novi `CuidParamPipe`
+  (`common/validation/cuid-param.pipe.ts`, `^c[0-9a-z]{19,29}$`) prihvata `@default(cuid())` oblik, a sve ostalo
+  (UUID, velika slova, predugačko, non-string) odbija sa `400 INVALID_ID` **prije** ijednog upita.
+- Provjera vlasništva je netaknuta: tuđi, dobro oblikovan ID i dalje daje `404 SESSION_NOT_FOUND`, pa odgovor ne
+  otkriva ništa o tuđoj sesiji.
+- Dokaz: pipe spec **6** (granice 19/20/30/31, UUID, uppercase, non-string), controller contract test **4** —
+  uključujući regression anchor koji pokazuje da `ParseUUIDPipe` odbija isti ID koji lista vrati — i novi E2E test
+  u specu 37 (`204` za sopstveni listani ID, `400 INVALID_ID` za malformed, `404` za tuđi, drugi klijent ostaje
+  prijavljen). E2E se izvršava poslije deploya builda; vidi closeout.
+- Detalj isporuke: `docs/backend/implementation/351-w217-ba-authentication-04-cuid-session-param.md`.
 
 ### BA-authentication-05 — Passkey counter race
 

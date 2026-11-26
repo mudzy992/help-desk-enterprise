@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
 import { AccountSecurityController } from './account-security.controller';
 import {
   AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
@@ -112,6 +112,15 @@ describe('AccountSecurityController session revocation contract (W2.17)', () => 
     });
     // The ownership check, not the shape check, is what refuses it.
     expect(revoke).toHaveBeenCalledWith(expect.objectContaining({ sessionId: foreignSessionId }));
+  });
+
+  it('shows why the previous validator could never pass: a cuid is not a UUID', async () => {
+    // Regression anchor for the audit finding itself. `ParseUUIDPipe.transform` is
+    // what the route used, and it refuses the id the list just returned — so the
+    // old code answered 400 before the ownership check could ever run.
+    await expect(
+      new ParseUUIDPipe().transform(listedSessionId, { type: 'param', data: 'sessionId' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('refuses a malformed session id before the registry is touched', async () => {
