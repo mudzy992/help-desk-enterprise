@@ -16,6 +16,10 @@
 7. **Nepromjenjive granice:** ne diram pre-existing eslint warninge u `problem-owner-eligibility.spec.ts` i `sla-scan-failure-quarantine.spec.ts`; ne diram flaky `admin-ops-i18n-coverage.spec.ts` / `break-glass-command.integration.spec.ts`; E2E/CAPTCHA problem rješavam na stacku (Admin → Sigurnost), ne izmjenom speca; telemetrija nikad ne nosi raw korisnički termin (samo hash/length).
 8. **Migracije i owner odluke traže se prije početka paketa** koji ih traži (§11), ne usput.
 9. **Wave je zatvoren** samo kad svi njegovi BA ID-evi imaju `zatvoreno` u generisanom planu **i** kad su acceptance gateovi iz §10 ispunjeni.
+10. **Oznaka paketa = red izvršenja.** Ako nalaz uleti ranije od svog mjesta u §4, uzima **prvi slobodan broj**
+    (kao `W2.17`–`W2.21` za auth klaster), a sve preostale oznake u tom valu se **preračunaju u istom commitu** —
+    tabela staro→novo ide u §4.6. Time nikad ne postoje dvije oznake za isti broj niti rupa u nizu; istorija
+    (spojeni closeouti, komentari u kodu) se **ne prepisuje**.
 
 ## 2. Faze
 
@@ -86,31 +90,59 @@ Klasteri su namjerni: nalazi u istom klasteru dijele kod i test harness, pa pake
 | `W2.14` | `BA-authentication-01` | Refresh oživljava session čiji registry red ne postoji |
 | `W2.15` | `BA-authentication-02` | Opoziv sesije fail-open krši logout/password-reset garanciju tokom Redis kvara |
 | `W2.16` | `BA-authentication-03` | MFA enrollment token i potvrda nisu atomski single-use |
-| `W2.17` | `BA-users-03` | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle |
-| `W2.18` | `BA-security-02` | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara |
-| `W2.19` | `BA-security-03` | Privilegovani auth audit je best-effort i može nestati |
+| `W2.22` | `BA-users-03` | Deactivate i identity transitioni ne opozivaju sesije/MFA lifecycle |
+| `W2.23` | `BA-security-02` | Bulk reset ostavlja aktivne sesije nakon parcijalnog kvara |
+| `W2.24` | `BA-security-03` | Privilegovani auth audit je best-effort i može nestati |
+
+**Ubačeno ranije (red izvršenja, §1.10):** auth klaster je izvršen prije svojih planiranih mjesta i pojeo oznake
+`W2.17`–`W2.21` — `W2.17` `BA-authentication-04`, `W2.18` `BA-authentication-05`, `W2.19`
+`BA-authentication-06`, `W2.20` `BA-authentication-07`, `W2.21` `BA-authentication-08`. U planu su ti nalazi
+bili `W2.48`–`W2.51` (P2) i `W2.63` (P3); te oznake su time oslobođene i preostali nalazi su preračunati u §4.6.
 
 ### 4.3 P1 — revokacija membershipa i atomičnost korisničkih operacija (2)
 
 | Paket | Nalaz | Nalaz (naslov) |
 | --- | --- | --- |
-| `W2.20` | `BA-groups-02` | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room |
-| `W2.21` | `BA-users-02` | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno |
+| `W2.25` | `BA-groups-02` | Membership revoke kasni do 30 s za HTTP i do 5 min za WebSocket group room |
+| `W2.26` | `BA-users-02` | Kreiranje usera/passworda/role nije atomsko i autorizacija role dolazi prekasno |
 
 ### 4.4 P2 (30)
 
 | Klaster | Paketi i nalazi |
 | --- | --- |
-| Model dozvola (6) | `W2.22` `BA-authorization-03`, `W2.23` `BA-authorization-04`, `W2.24` `BA-rbac-01`, `W2.25` `BA-rbac-02`, `W2.26` `BA-rbac-03`, `W2.27` `BA-rbac-05` |
-| Organizacione jedinice (5) | `W2.28` `BA-organizational-units-03`, `W2.29` `BA-organizational-units-04`, `W2.30` `BA-organizational-units-05`, `W2.31` `BA-organizational-units-06`, `W2.32` `BA-organizational-units-07` |
-| Grupe (5) | `W2.33` `BA-groups-04`, `W2.34` `BA-groups-05`, `W2.35` `BA-groups-06`, `W2.36` `BA-groups-07`, `W2.37` `BA-groups-08` |
-| Korisnici (4) | `W2.38` `BA-users-06`, `W2.39` `BA-users-07`, `W2.40` `BA-users-08`, `W2.41` `BA-users-09` |
-| Sigurnost (6) | `W2.42` `BA-security-04`, `W2.43` `BA-security-05`, `W2.44` `BA-security-06`, `W2.45` `BA-security-07`, `W2.46` `BA-security-08`, `W2.47` `BA-security-09` |
-| Autentikacija (4) | `W2.48` `BA-authentication-04`, `W2.49` `BA-authentication-05`, `W2.50` `BA-authentication-06`, `W2.51` `BA-authentication-07` |
+| Model dozvola (6) | `W2.27` `BA-authorization-03`, `W2.28` `BA-authorization-04`, `W2.29` `BA-rbac-01`, `W2.30` `BA-rbac-02`, `W2.31` `BA-rbac-03`, `W2.32` `BA-rbac-05` |
+| Organizacione jedinice (5) | `W2.33` `BA-organizational-units-03`, `W2.34` `BA-organizational-units-04`, `W2.35` `BA-organizational-units-05`, `W2.36` `BA-organizational-units-06`, `W2.37` `BA-organizational-units-07` |
+| Grupe (5) | `W2.38` `BA-groups-04`, `W2.39` `BA-groups-05`, `W2.40` `BA-groups-06`, `W2.41` `BA-groups-07`, `W2.42` `BA-groups-08` |
+| Korisnici (4) | `W2.43` `BA-users-06`, `W2.44` `BA-users-07`, `W2.45` `BA-users-08`, `W2.46` `BA-users-09` |
+| Sigurnost (6) | `W2.47` `BA-security-04`, `W2.48` `BA-security-05`, `W2.49` `BA-security-06`, `W2.50` `BA-security-07`, `W2.51` `BA-security-08`, `W2.52` `BA-security-09` |
+| Autentikacija (4) | *izvršeno ranije kao `W2.17`–`W2.20` (`BA-authentication-04`–`07`)* |
 
 ### 4.5 P3 (14)
 
-`W2.52` `BA-authorization-05`, `W2.53` `BA-authorization-06`, `W2.54` `BA-authorization-07`, `W2.55` `BA-authorization-08`, `W2.56` `BA-rbac-06`, `W2.57` `BA-rbac-07`, `W2.58` `BA-rbac-08`, `W2.59` `BA-groups-09`, `W2.60` `BA-groups-10`, `W2.61` `BA-organizational-units-08`, `W2.62` `BA-organizational-units-09`, `W2.63` `BA-authentication-08`, `W2.64` `BA-security-10`, `W2.65` `BA-security-11`
+`W2.53` `BA-authorization-05`, `W2.54` `BA-authorization-06`, `W2.55` `BA-authorization-07`, `W2.56` `BA-authorization-08`, `W2.57` `BA-rbac-06`, `W2.58` `BA-rbac-07`, `W2.59` `BA-rbac-08`, `W2.60` `BA-groups-09`, `W2.61` `BA-groups-10`, `W2.62` `BA-organizational-units-08`, `W2.63` `BA-organizational-units-09`, `W2.64` `BA-security-10`, `W2.65` `BA-security-11`
+
+*`BA-authentication-08` je izvršen ranije kao `W2.21`; njegova planirana oznaka (`W2.63`) je time oslobođena.*
+
+### 4.6 Preračunavanje oznaka (staro → novo)
+
+Zapis uz §1.10: auth klaster (`BA-authentication-04`–`08`) izvršen je kao `W2.17`–`W2.21`, pa su njegove
+planirane oznake (`W2.48`–`W2.51`, `W2.63`) oslobođene. Preostali **P1 i P2** nalazi pomjereni su za pet mjesta
+(`W2.17`–`W2.47` → `W2.22`–`W2.52`), a **P3** za jedno (`W2.52`–`W2.62` → `W2.53`–`W2.63`), jer se pomak
+zatvorio na oslobođenim oznakama. `W2.64`/`W2.65` ostaju iste, pa Val 2 i dalje ima tačno 57 paketa
+(`W2.9`–`W2.65`), bez rupe i bez dvostruke oznake.
+
+| Staro | Nalaz | Novo |
+| --- | --- | --- |
+| `W2.17` | `BA-users-03` | **`W2.22`** |
+| `W2.18` | `BA-security-02` | **`W2.23`** |
+| `W2.19` | `BA-security-03` | **`W2.24`** |
+| `W2.20` | `BA-groups-02` | **`W2.25`** |
+| `W2.21` | `BA-users-02` | **`W2.26`** |
+| `W2.22`–`W2.47` | `BA-authorization-03`–`04`, `BA-rbac-01`–`03`/`05`, `BA-organizational-units-03`–`07`, `BA-groups-04`–`08`, `BA-users-06`–`09`, `BA-security-04`–`09` (26 nalaza, redom iz §4.4) | **`W2.27`–`W2.52`** (+5) |
+| `W2.48`–`W2.51` | `BA-authentication-04`–`07` | *izvršeno kao `W2.17`–`W2.20`* |
+| `W2.52`–`W2.62` | `BA-authorization-05`–`08`, `BA-rbac-06`–`08`, `BA-groups-09`–`10`, `BA-organizational-units-08`–`09` (11 nalaza, redom iz §4.5) | **`W2.53`–`W2.63`** (+1 na pomak, jer je `W2.48`–`W2.52` već popunjeno P2 nalazima) |
+| `W2.63` | `BA-authentication-08` | *izvršeno kao `W2.21`* |
+| `W2.64`, `W2.65` | `BA-security-10`, `BA-security-11` | nepromijenjeno |
 
 ## 5. Faza 3 — Val 3 (72 paketa)
 
@@ -274,6 +306,7 @@ Ako se u Fazi 5 pokaže da je nalaz nerazdvojiv od Val 9 koda (npr. readiness iz
 | W2.20 | `BA-authentication-07` — `prisma generate`/`validate` offline: `scripts/prisma-offline.mjs` daje CLI-ju sentinel umjesto downloada `schema-engine` (binar se za te komande ne koristi), `prisma/engines.lock.json` pinuje engine za migrate put, Jest `globalSetup` generiše klijent na čistom checkoutu, Dockerfile/CI bez mrežne zavisnosti; dokaz sa obrisanim klijentom i mrtvim mirrorom (43 passed / 3 skipped, 372 testa) | **zatvoreno** | `5e0ced9` (kod + testovi + CI koraci) | CI `45787401701` ✓ (svi poslovi, uključujući nova dva koraka) + Perf smoke `45787401067` ✓; docs commit `68dfcaf` run `45790062044`: svi code/docs poslovi ✓, `E2E critical flows` crven u `globalSetup` (`MFA_INVALID_CODE`, 0 izvršenih specova, paralelni `master` run visio u „Run E2E“) — infrastrukturno, dokumentovano u closeoutu; nalaz zatvoren: `813ac8d` (send-test nikad 500 + stabilni razlozi, E2E e-mail opt-in `E2E_ALLOW_EMAIL_SEND`) + `8a3e12c` (docs §CI) — dispatch `45799542900` ✓ (spec 18: 1 passed / 1 skipped, 0 flaky) i push `45799535868` ✓ (svi poslovi) |
 
 | W2.21 | `BA-authentication-08` — clone incident briše **samo** pogođeni passkey: `deleteMany({ where: { id, userId } })` umjesto `{ userId }`, audit `auth.mfa_passkey_clone_detected` sa snapshotom (AAGUID, naziv uređaja, oba brojača, `remainingPasskeys`, fingerprint `sha256(credentialId)[0:16]`, bez credential ID-a) i notifikacija `account.passkeyCloneDetected` (always-on `account.security`, dedupe `passkey-clone:<userId>:<rowId>`); W2.18 CAS netaknut — gubitnik race-a nije clone i ne briše ništa, counter se ne pomjera unazad | **zatvoreno** | `dd2309d` (kod + testovi) + `6c3b484` (docs) | PR #37 `45809614730` ✓ (svi poslovi: `Backend build + test`, `Backend PostgreSQL + Redis integration` — uključuje novi clone integracijski spec, `Frontend build + test`, `Backend container + supply chain`, `Docs guard`, `E2E critical flows` 27/27 bez flakea, `CI gate`) + Perf smoke `45809614466` ✓ — bez reruna; triage dispatch `45809616641` otkazan prije testova (izbjegnut paralelni E2E na dijeljenom stacku) |
+| W2.21a | **Plan** — preračunavanje oznaka Vala 2 poslije ranog auth klastera (§1.10 + §4.6): `BA-authentication-04`–`08` izvršeni kao `W2.17`–`W2.21`, njihove planirane oznake `W2.48`–`W2.51`/`W2.63` oslobođene, preostali P1/P2 pomjereni +5 (`W2.22`–`W2.52`), P3 +1 (`W2.53`–`W2.63`), `W2.64`/`W2.65` nepromijenjene — Val 2 ostaje 57 paketa bez rupe i bez duple oznake | **zatvoreno** | `__PLAN_SHA__` (docs-only) | __PLAN_CI__ |
 Statusi: `_čeka_` · `u toku` · `zatvoreno` · `odgođeno (razlog)`. Redoslijed se ne mijenja bez zapisa ovdje.
 
 ## 13. Šablon izvještaja nakon svakog paketa
