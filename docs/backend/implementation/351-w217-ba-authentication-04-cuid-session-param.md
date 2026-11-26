@@ -4,7 +4,7 @@
 **Nalaz:** `BA-authentication-04` (P2) — zatvoren<br>
 **Kodni commit:** `a82006a`<br>
 **Finalni testani SHA:** `a82006a` (+ test/docs commit na vrhu)<br>
-**CI:** [`45761503348`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45761503348)<br>
+**CI:** [`45761503348`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45761503348) i [`45763497338`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45763497338) — zeleni<br>
 **DB migracije:** **ne** — nema promjene šeme
 
 ## Nalaz
@@ -118,6 +118,18 @@ CI [`45761503348`](https://github.com/mudzy992/help-desk-enterprise/actions/runs
 - **Perf smoke** — success (vruće rute netaknute; `:sessionId` nije u smoke profilu).
 
 Prvi push je prošao bez crvenog runa; nije bilo migracije, pa ni sentinel izmjena.
+
+**Docs/test commit na vrhu grane — tri prolaza, dva crvena bez veze sa paketom:**
+
+| Prolaz | Rezultat | Uzrok |
+| --- | --- | --- |
+| [`45763497338`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45763497338) (1) | failure | `E2E critical flows`: `15-workflow-unrouted-realtime.spec.ts:214` („forms.enabled controls the UI…") — 90 s timeout, spec koji ne dira autentikaciju; svi code poslovi zeleni |
+| isti run (rerun 1) | failure | **stack outage**: `GET https://api.desk.ba101.top/health` pao 06:05:19–06:06:04Z; E2E watchdog (`scripts/run-e2e.mjs`) zaustavio suite, `results.json` nije ni nastao |
+| isti run (rerun 2) | **success** | svi poslovi zeleni, uključujući `Docs guard` i `E2E critical flows` |
+
+Razlika između `a82006a` (zelen iz prvog puta) i docs commita je isključivo dokumentacija + jedan unit test, pa
+crveni E2E nije mogao biti posljedica paketa — pouka je ista kao u `W2.16`: socket/form E2E padovi i „stack outage"
+dijagnostika rješavaju se **rerunom**, a ne izmjenom koda.
 
 ## Dokumentacija
 
