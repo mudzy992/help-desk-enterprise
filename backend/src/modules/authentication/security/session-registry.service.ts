@@ -17,7 +17,10 @@ export type SessionRevokeReason =
   | 'mfa_reset'
   | 'session_limit'
   | 'idle_timeout'
-  | 'deactivated';
+  | 'deactivated'
+  // W2.22 (`BA-users-03`): the account moved to/from a directory identity.
+  | 'identity_link'
+  | 'identity_unlink';
 
 export type UserSessionView = {
   readonly id: string;

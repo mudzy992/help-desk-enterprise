@@ -57,6 +57,7 @@ export const auditActionCompatibilityRegistry: Readonly<Record<string, AuditActi
   [auditLogActions.authRateLimitsChanged]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authSessionRevoked]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authSessionsRevokedAll]: compatibility([auditLogEntityTypes.user]),
+  [auditLogActions.authSecurityTransitionApplied]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authorizationSuperAdminBypass]: compatibility([auditLogEntityTypes.authorization]),
   [auditLogActions.notificationPreferencesReset]: compatibility([auditLogEntityTypes.user]),
   [auditLogActions.authPasswordChanged]: compatibility([auditLogEntityTypes.user]),

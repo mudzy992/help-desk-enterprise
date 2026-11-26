@@ -79,6 +79,10 @@ export const auditActionSchemaRegistry: Readonly<Record<string, AuditActionSchem
   [auditLogActions.authRateLimitsChanged]: schema(['accountDelayStartsAfterFailures', 'ipMaxFailures', 'ipWindowSeconds', 'otherMaxFailures'], 'restricted'),
   [auditLogActions.authSessionRevoked]: schema([], 'restricted'),
   [auditLogActions.authSessionsRevokedAll]: schema([], 'restricted'),
+  [auditLogActions.authSecurityTransitionApplied]: schema(
+    ['cutoffAt', 'mfaFactors', 'passkeys', 'recoveryCodes', 'sessions', 'transition'],
+    'restricted',
+  ),
   [auditLogActions.authorizationSuperAdminBypass]: schema(['decision', 'method', 'organizationalUnitId', 'permissionMatchMode', 'requiredPermissions', 'requiredRoles', 'resource', 'route', 'serviceId'], 'restricted'),
   [auditLogActions.notificationPreferencesReset]: schema([]),
   [auditLogActions.authPasswordChanged]: schema([], 'restricted'),

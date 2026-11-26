@@ -8,6 +8,13 @@ export const knownAuditMetadataFields = [
   "remainingPasskeys",
   "removed",
   "storedCounter",
+  // W2.22 (`BA-users-03`): the credential-boundary cut of an account transition.
+  "cutoffAt",
+  "mfaFactors",
+  "passkeys",
+  "recoveryCodes",
+  "sessions",
+  "transition",
   "B1",
   "accountDelayStartsAfterFailures",
   "action",

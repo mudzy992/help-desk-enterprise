@@ -33,6 +33,7 @@ import { PasswordChangeService } from './security/password-change.service';
 import { SecurityRateLimitConfigLoader } from './security/security-rate-limit-config.loader';
 import { SessionIdleTimeoutLoader } from './security/session-idle-timeout.loader';
 import { SessionRegistryService } from './security/session-registry.service';
+import { AccountSecurityBoundaryService } from './security/account-security-boundary.service';
 import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
 
 @Module({
@@ -72,6 +73,7 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     LoginCaptchaService,
     PasswordChangeService,
     SessionRegistryService,
+    AccountSecurityBoundaryService,
   ],
   exports: [
     AccountSecurityPolicyLoader,
@@ -85,6 +87,7 @@ import { WebAuthnRpLoader } from './security/webauthn-rp.loader';
     LoginCaptchaService,
     PasswordChangeService,
     SessionRegistryService,
+    AccountSecurityBoundaryService,
     SessionRevocationStore,
     JwtSocketAuthenticationVerifier,
     AuthenticationService,

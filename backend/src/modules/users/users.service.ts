@@ -10,6 +10,9 @@ import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 // injects `undefined` and every user list comes back empty (`X-Total-Count: 0`)
 // while the guard still admits the caller. See `users.module.di.spec.ts`.
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+// W2.22 (`BA-users-03`): value import on purpose — the boundary must be a real
+// instance in production wiring; `@Optional()` only keeps unit constructions valid.
+import { AccountSecurityBoundaryService } from '../authentication/security/account-security-boundary.service';
 import { assignUserRole } from './assign-user-role';
 import { createUser } from './create-user';
 import { deleteUser } from './delete-user';
@@ -63,6 +66,13 @@ export class UsersService {
     // missing loader narrows the list to nothing instead of widening it.
     @Optional()
     private readonly authorizationContextLoader?: AuthorizationContextLoader,
+    // W2.22 (`BA-users-03`): deactivate/link/unlink cut the account's credential
+    // boundary (session cutoff + sessions + local MFA factors) in the same
+    // transaction. Optional keeps every existing positional construction working;
+    // the module always provides it and `users.security-boundary.wiring.spec.ts`
+    // fails if that ever stops being true.
+    @Optional()
+    private readonly securityBoundary?: AccountSecurityBoundaryService,
   ) {}
 
   /** Phase 2.2: hands the mutation functions the authorization cache hook. */
@@ -209,6 +219,7 @@ export class UsersService {
         directoryExternalId: input.directoryExternalId,
         context,
         invalidatePrincipal: this.invalidatePrincipal(),
+        securityBoundary: this.securityBoundary,
       });
       return response;
     });
@@ -224,6 +235,7 @@ export class UsersService {
         mailTransport: this.mailTransport,
         hibpChecker: this.hibpPasswordChecker,
         invalidatePrincipal: this.invalidatePrincipal(),
+        securityBoundary: this.securityBoundary,
       }, context),
     );
   }
@@ -233,7 +245,7 @@ export class UsersService {
     context: UserAuditContext = emptyAuditContext,
   ): Promise<UserSummaryResponse> {
     return this.execute(() =>
-      updateUser(this.prisma, input, this.invalidatePrincipal(), context),
+      updateUser(this.prisma, input, this.invalidatePrincipal(), context, this.securityBoundary),
     );
   }
 
