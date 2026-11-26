@@ -3,8 +3,8 @@
 **Paket:** W2.21 — revokacija kloniranog passkeya bez kolateralne štete<br>
 **Nalaz:** `BA-authentication-08` (P3) — **zatvoren**<br>
 **Kodni commit:** `b4c14d1`<br>
-**Finalni testani SHA:** `__TESTED_SHA__`<br>
-**CI:** [`__RUN_ID__`](__RUN_URL__) — __RUN_RESULT__<br>
+**Finalni testani SHA:** `6c3fc98`<br>
+**CI:** [`45809614730`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45809614730) — **zelen** (svi poslovi, E2E 27/27)<br>
 **DB migracije:** nema (nema promjene šeme)
 
 ## Nalaz i acceptance
@@ -97,7 +97,28 @@ Frontend mirror (da audit ekran i zvonce ne prikazuju sirove ključeve):
 
 ## CI i testni dokaz
 
-__CI_SECTION__
+Pokretni PR run [`45809614730`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45809614730) na
+`6c3fc98` — **svi poslovi zeleni, bez reruna**:
+
+| Posao | Rezultat |
+| --- | --- |
+| `Backend build + test` | **success** — jedinični suiteovi, novi `passkey-credential.service.spec.ts` (26/26), exhaustivni registri audit akcija i katalog preferencija |
+| `Backend PostgreSQL + Redis integration` | **success** — uključuje novi `passkey-clone-revocation.integration.spec.ts` na pravom PostgreSQL-u |
+| `Frontend build + test` | **success** — `knownAuditActions`/metadata polja/notifikacija + `bs`/`en` labele, i18n parity |
+| `Backend container + supply chain` | success |
+| `Docs guard` | **success** — registar/plan/JSON usklađeni (`698 nalaza, zatvoreno 350/otvoreno 348`) i docs guard sam sa sobom |
+| `E2E critical flows` | **success** — `Playwright (results.json): 27 passed, 0 failed, 0 flaky, 0 skipped`; `errors: []` |
+| `E2E install wizard` | skipped (workflow ga pokreće samo za instalacijske promjene) |
+| `Read-only service-form pattern inventory` | skipped (nema izmjene service-form obrasca) |
+| `CI gate` | **success** |
+| Perf smoke [`45809614466`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45809614466) | success |
+
+**Okolnosti pokretanja (zapisano, ne prećutano):** prvo je pokrenut i triage dispatch `45809616641`
+(`specs=42`), pa **otkazan** prije ijednog testa — PR run je već pokretao `E2E critical flows` na istom
+dijeljenom stacku, a dva paralelna E2E prolaza sa jednim TOTP secretom su uzrok ranijih `MFA_INVALID_CODE`
+padova (W2.20). Dokaz ovog paketa je zato PR run iznad, a ne otkazani dispatch.
+
+**Neuspjeli pokušaji:** nema — ovaj paket je zelen iz prvog pokušaja.
 
 ## Registar nalaza
 
