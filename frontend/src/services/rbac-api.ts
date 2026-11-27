@@ -21,10 +21,7 @@ export type ShadowAuthorizationReport = {
 
 /// W2.31 (`BA-rbac-03`): every sample names the scope the decision was made in.
 export type RolePermissionPreviewScopeKind =
-  | "global"
-  | "organizational-unit"
-  | "service"
-  | "organizational-unit-and-service";
+  "global" | "organizational-unit" | "service" | "organizational-unit-and-service";
 
 export type RolePermissionPreviewScope = {
   readonly kind: RolePermissionPreviewScopeKind;
