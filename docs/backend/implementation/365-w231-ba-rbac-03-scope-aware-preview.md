@@ -114,7 +114,15 @@ servisa razrješava sam evaluator iz PostgreSQL-a.
 
 ### 3.4 CI
 
-PR #49 — vidi §6.
+Prvi prolaz (`46017114945`) crven u `Frontend build + test`: `Format check (Prettier)` na `rbac-api.ts` (popravka
+`ab74fe06`), a zatim — poslije te popravke — `npm run build` (`tsc -b && vite build`) je pao na
+`Debug Failure. No error for last overload signature`: typed `t` proslijeđen kao parametar (`scopeLabel(t, …)`)
+obara TypeScript u build režimu, iako `tsc --noEmit` prolazi. Popravka (`e20adb3c`): label se bira **inline** u
+JSX-u, kao i svi ostali `t(...)` pozivi u tom fajlu; uz to je `dist`/`.next` lokalni artefakt uklonjen i
+`prettier --check .` je čist.
+
+Drugi prolaz, PR #49, run [`46024298120`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46024298120)
+— svi poslovi zeleni:
 
 ## 4. Šta paket mijenja u ponašanju
 
@@ -146,10 +154,13 @@ PR #49 — vidi §6.
 
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | _popunjava se_ |
-| `Backend PostgreSQL + Redis integration` (novi scope spec) | _popunjava se_ |
-| `Frontend build + test` | _popunjava se_ |
-| `Backend container + supply chain` | _popunjava se_ |
-| `Docs guard` | _popunjava se_ |
-| `E2E critical flows` | _popunjava se_ |
-| `CI gate` | _popunjava se_ |
+| `Backend build + test` | ✓ 6m35s |
+| `Backend PostgreSQL + Redis integration` (novi scope spec) | ✓ 14m42s |
+| `Frontend build + test` (uključuje `tsc -b`, vitest i bundle budžete) | ✓ 3m26s |
+| `Backend container + supply chain` | ✓ 3m42s |
+| `Docs guard` | ✓ 8s |
+| `E2E critical flows` | ✓ 11m15s |
+| `CI gate` | ✓ |
+
+Push run je zelen sa integracijom i E2E **skipped** (CI ugovor); Perf smoke
+[`46024297805`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/46024297805) ✓.
