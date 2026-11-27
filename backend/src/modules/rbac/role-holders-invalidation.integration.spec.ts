@@ -260,7 +260,13 @@ describeIfDatabase('role holder invalidation (integration)', () => {
     expect(retried[0]?.lastError ?? '').toContain('unavailable');
 
     // 5. Once Redis answers, the retry moves the pointer to the committed
-    //    version — without a second bump, so the fence never widens.
+    //    version — without a second bump, so the fence never widens. The failed
+    //    attempt pushed `nextAttemptAt` into the backoff window; the test moves
+    //    the clock past it instead of waiting for it.
+    await database().outboxMessage.updateMany({
+      where: { topic },
+      data: { nextAttemptAt: new Date(Date.now() - 60_000) },
+    });
     const healthyRedis = createFakeRedis(entries);
     const dispatcher = new RoleHoldersInvalidationDispatcher(
       cacheInvalidation,
