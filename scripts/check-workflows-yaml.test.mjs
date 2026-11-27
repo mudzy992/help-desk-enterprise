@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { findWorkflowProblems } from "./check-workflows-yaml.mjs";
+import { classifyPath } from "./ci-change-scope.mjs";
 
 const workflowPath = new URL("../.github/workflows/ci.yml", import.meta.url);
 const perfWorkflowPath = new URL(
@@ -90,13 +91,22 @@ test("propušta ispravne oblike: navodnici, URL, blok skalar, komentar, lista", 
 });
 
 test("backend findings dokumenti pokreću code i docs gateove", () => {
+  // 2026-11-27: the classification moved out of the workflow into
+  // `scripts/ci-change-scope.mjs`, so the guarantee is asserted on the rule that
+  // runs, not on a bash `case` literal — and the job must still call it.
   const workflow = readFileSync(workflowPath, "utf8");
-  assert.ok(
-    workflow.includes(
-      "docs/backend/BACKEND-FINDINGS-REGISTER.md|docs/backend/backend-findings-plan.json|docs/backend/audits/*)",
-    ),
-  );
-  assert.ok(workflow.includes("code=true\n                  docs=true"));
+  assert.ok(workflow.includes("node scripts/ci-change-scope.mjs"));
+  for (const file of [
+    "docs/backend/BACKEND-FINDINGS-REGISTER.md",
+    "docs/backend/backend-findings-plan.json",
+    "docs/backend/audits/03-rbac.md",
+  ]) {
+    assert.deepEqual(classifyPath(file), { code: true, docs: true }, file);
+  }
+  assert.deepEqual(classifyPath("docs/backend/implementation/369.md"), {
+    code: false,
+    docs: true,
+  });
 });
 
 // Package-level work uses targeted E2E by workflow_dispatch; full E2E is reserved
