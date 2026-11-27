@@ -15,11 +15,15 @@ import {
 import { stopRunningTimer } from './helpers/time-tracking';
 import { assertCaptchaOff } from './helpers/assert-captcha-off';
 import { waitForStack } from './helpers/wait-for-stack';
+import { applyOutboundEmailGate } from './helpers/outbound-email-gate';
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default async function globalSetup(): Promise<void> {
-  process.env.E2E_FORMS_RECOVERY_JOURNAL = path.join(mkdtempSync(path.join(tmpdir(), 'e2e-forms-')), 'snapshot.json');
+  // One scratch directory per run; both journals are restored in global teardown.
+  const journalDirectory = mkdtempSync(path.join(tmpdir(), 'e2e-state-'));
+  process.env.E2E_FORMS_RECOVERY_JOURNAL = path.join(journalDirectory, 'snapshot.json');
+  process.env.E2E_EMAIL_GATE_JOURNAL = path.join(journalDirectory, 'outbound-email.json');
   await waitForStack();
   await assertCaptchaOff();
   const api = new ApiClient();
@@ -30,6 +34,9 @@ export default async function globalSetup(): Promise<void> {
   await loginWithRateLimitBackoff(api, env.superAdminEmail, env.superAdminPassword);
   await provisionTestActors(api);
   await prepareActorSessions(api);
+  // After the actors exist, before the first spec: a pull-request smoke run must
+  // not spend the provider's daily e-mail quota (specs 01/02/03 create tickets).
+  await applyOutboundEmailGate(api);
 }
 
 /**

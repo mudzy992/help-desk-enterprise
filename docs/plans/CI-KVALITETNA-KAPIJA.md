@@ -288,3 +288,36 @@ Push run `45993970452` (isti commit) zelen.
 **Šta ovo ne tvrdi.** Popravka ne dokazuje da je notifikacija uvijek isporučena — dokazuje da mrtav transport
 više ne izgleda kao tiha regresija i da mjerenje više ne zavisi od toga koji je run prvi potrošio TOTP korak.
 Reprodukcija je namjerno ostala na trijažnom dispatchingu (`specs=37,59`, `retries=0`) nad istim stackom.
+
+## 11. Dupli runovi, mapiranje specova i tihi e-mail (2026-11-27)
+
+**Povod.** PR #52 (`W2.34`) je imao dva runa: `46061230132` na code commitu i `46064203121` na docs commitu
+(`EXECUTION-PLAN-REMAINING.md` + jedan closeout). Drugi je ponovio **cijeli** matriks — backend 6m47s, integracija
+22m26s, frontend 3m35s, container 2m57s, E2E 10m26s — jer `changes` radi `git diff --name-only origin/master HEAD`,
+tj. gleda **cijeli PR**, a ne zadnji commit. U prozoru `W2.29`–`W2.34` bilo je 12 PR E2E runova; četiri su bila
+docs-only commitovi na već zelenom PR-u. Nijedan od tih runova nije uhvatio regresiju, a specovi `01/02/03` prave
+tikete kroz UI, pa stack pri tome **stvarno** šalje notifikacioni e-mail — svaki run i svaki rerun troše dnevnu kvotu
+provajdera.
+
+**Šta je promijenjeno.**
+
+| Tačka | Prije | Sada | Dokaz |
+|---|---|---|---|
+| Obim posla za PR | diff `origin/base..HEAD` (cijeli PR) | `scripts/ci-change-scope.mjs`: posao se preskače **samo** kad je sve od zadnjeg **zelenog** PR runa dokumentacija; inače sve ide | 9 testova u `scripts/ci-change-scope.test.mjs` |
+| E2E skup na PR-u | fiksno `01,02,03,15,22,54` | `scripts/e2e-spec-selection.mjs`: putanja → spec, fallback na istih šest za sve nepoznato i kad unija pređe 4 fajla | 11 testova u `scripts/e2e-spec-selection.test.mjs` (uključujući provjeru da svaki broj postoji u `e2e/tests`) |
+| Preklapanje runova | workflow `concurrency` sa `cancel-in-progress` samo na PR | **nepromijenjeno** — `group: ci-${{ github.workflow }}-${{ github.ref }}`, `cancel-in-progress` na PR; master run se ne otkazuje jer je zapis | `.github/workflows/ci.yml` (postavljeno 2026-10-06) |
+| E-mail u PR smoke runu | `E2E_ALLOW_EMAIL_SEND` čuva samo eksplicitni send u specu 18; `01/02/03` šalju mimo njega | `E2E_DISABLE_EMAIL_CHANNEL=1` na PR-u: suite zatvori kanal kroz settings API i vrati ga u teardownu; noćni run ga ostavlja otvorenog | `e2e/helpers/outbound-email-gate.ts` + 7 unit testova |
+
+**Zašto ovo ne slabi kapiju.**
+
+- `CI gate` ostaje jedini obavezni status check i ostaje `always()`; tabela u summary-ju sada ispisuje i
+  `Scope: <scope> - <razlog>` i `E2E specs: <lista> (<razlog>)`, pa se preskočeno vidi, a ne pretpostavlja.
+- Preskakanje je dozvoljeno **samo** kad je zadnji zeleni run te grane prošao cijeli workflow, a sve između je
+  dokumentacija. Nema zelenog runa, nema API dozvole, ili nepoznat diff ⇒ sve se vrti (fail-safe).
+- Mapiranje nikad ne smanjuje skup ispod onoga što može uhvatiti promjenu: nepoznata putanja, `common/**`,
+  `app.module.ts`, `prisma/**`, `.github/**` i svaka unija veća od četiri fajla vraćaju **punih šest**.
+- E-mail kanal se ne mockuje: in-app notifikacije, šabloni, delivery redovi i health panel rade dalje i bilježe
+  `email_channel_disabled`; noćni run i dalje pokriva stvarno slanje.
+
+**Šta ovo ne tvrdi.** Mapiranje ne dokazuje da je odabrani spec dovoljan za svaku izmjenu — dokazuje da nepoznata
+izmjena ne može ostati bez browsera. Zato je fallback širi od mapiranog skupa, a ne obrnuto.

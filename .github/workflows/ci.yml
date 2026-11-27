@@ -2,9 +2,14 @@ name: CI
 
 # Quality model (2026-10-06) — full reasoning in `docs/plans/CI-KVALITETNA-KAPIJA.md`:
 #   * pull_request -> the gate. Backend + frontend (fast) and the E2E **smoke**
-#     subset (~10-15 min). All three are required status checks on `master`, and
-#     every one of them is created on every PR — a docs-only PR therefore also
-#     reports them, so no required check can stay "Expected" and block a merge.
+#     subset. The required status check is the single `CI gate` job, so a job that
+#     is skipped (documentation-only change, or a follow-up commit whose code is
+#     byte-identical to the last green run) is reported in the summary instead of
+#     leaving a required check "Expected".
+#     2026-11-27: two additions, both fail-safe — the PR now diffs against the
+#     last green run of itself (`scripts/ci-change-scope.mjs`) instead of always
+#     re-running everything, and the smoke set comes from the changed paths
+#     (`scripts/e2e-spec-selection.mjs`) with the old six-file set as fallback.
 #   * push to the active Arena implementation branch -> backend + frontend and
 #     other code gates; package-level E2E is dispatched with targeted `specs`.
 #     Docs-only commits are skipped (paths-ignore).
@@ -12,6 +17,10 @@ name: CI
 #   * push -> build/test/container/frontend/docs only; the PostgreSQL + Redis
 #     integration gate runs on the pull request for the same SHA (or on demand with
 #     `backend_integration=force`), so one package costs one integration run.
+#   * pull_request -> the notification e-mail channel of the stack is closed for
+#     the run and restored in teardown (`e2e/helpers/outbound-email-gate.ts`), so a
+#     smoke run and every rerun stop spending the provider's daily quota; the
+#     nightly run keeps it open.
 #   * workflow_dispatch -> targeted E2E (`specs=10,18,22`) or full E2E when
 #     `specs` is empty; reserve the full run for segment closeout.
 #   * workflow_dispatch + `service_form_pattern_audit` + explicit confirmation ->
@@ -107,59 +116,97 @@ jobs:
     name: Detect changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # `actions: read` is what lets the job trust the last green pull-request run
+    # of this workflow instead of guessing (`gh api .../actions/workflows/...`).
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
       docs: ${{ steps.diff.outputs.docs }}
+      e2e_specs: ${{ steps.diff.outputs.e2e_specs }}
+      e2e_specs_reason: ${{ steps.diff.outputs.e2e_specs_reason }}
+      scope: ${{ steps.diff.outputs.scope }}
+      scope_reason: ${{ steps.diff.outputs.scope_reason }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - id: diff
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Test the change-scope and spec-selection rules
+        # The decision this job makes is the one that can silently drop coverage,
+        # so its rules are pinned by tests that need no stack and no secrets.
+        run: node --test scripts/ci-change-scope.test.mjs scripts/e2e-spec-selection.test.mjs
+      - id: base
+        name: Resolve the diff base and the last green head
         env:
           BASE_REF: ${{ github.base_ref }}
           BEFORE_SHA: ${{ github.event.before }}
           EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -u
           base=""
+          previous_green=""
           if [ "$EVENT_NAME" = "pull_request" ]; then
             base="origin/${BASE_REF}"
             git fetch --no-tags --quiet origin "${BASE_REF}" || true
+            # 2026-11-27: a documentation commit on top of an already-tested pull
+            # request used to re-run every job, because the diff was the whole
+            # pull request. The most recent head that already has a *successful*
+            # run of this workflow is the tree the code jobs really tested; the
+            # script only skips them when everything since then is documentation.
+            # No green run (or an API failure) leaves the variable empty, which
+            # means "run everything".
+            if [ -n "${PR_NUMBER:-}" ]; then
+              # `git log` lists the pull request's own commits newest-first, so the
+              # only question left for the API is which of them was green.
+              checked=0
+              for sha in $(git log --format=%H "origin/${BASE_REF}..HEAD" 2>/dev/null || true); do
+                if [ "$checked" -ge 6 ]; then break; fi
+                checked=$((checked + 1))
+                if [ "$sha" = "${HEAD_SHA:-}" ]; then continue; fi
+                # Only a pull-request run counts: a push run never starts the
+                # integration or the browser gate, so trusting it would skip work
+                # that has never been done for that commit.
+                green="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=20" \
+                  --jq '[.workflow_runs[] | select(.event == "pull_request" and .conclusion == "success")] | length' 2>/dev/null || echo 0)"
+                if [ "${green:-0}" != "0" ]; then
+                  previous_green="$sha"
+                  break
+                fi
+              done
+            fi
           elif [ -n "${BEFORE_SHA:-}" ] && [ "${BEFORE_SHA}" != "0000000000000000000000000000000000000000" ]; then
             base="${BEFORE_SHA}"
           fi
-
-          files=""
-          if [ -n "$base" ] && git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
-            files="$(git diff --name-only "$base" HEAD || true)"
-          fi
-
-          if [ -z "$files" ]; then
-            # Unknown diff (first push, force push, shallow history, merge queue):
-            # run everything rather than guess.
-            echo "::warning title=Change detection fell back::Could not diff against '$base' — running every job."
-            code=true
-            docs=true
-          else
-            code=false
-            docs=false
-            while IFS= read -r file; do
-              [ -z "$file" ] && continue
-              case "$file" in
-                docs/backend/BACKEND-FINDINGS-REGISTER.md|docs/backend/backend-findings-plan.json|docs/backend/audits/*)
-                  code=true
-                  docs=true
-                  ;;
-                docs/*|.cursor/*|*.md|perf/results/*) docs=true ;;
-                *) code=true ;;
-              esac
-            done <<< "$files"
-          fi
-
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "docs=$docs" >> "$GITHUB_OUTPUT"
-          echo "Detected: code=$code docs=$docs"
-          if [ -n "$files" ]; then echo "--- changed files ---"; echo "$files"; fi
+          {
+            echo "base=${base}"
+            echo "previous_green=${previous_green}"
+          } >> "$GITHUB_OUTPUT"
+          echo "base=${base:-none} previous_green=${previous_green:-none}"
+      - id: diff
+        name: Classify the change and choose the browser specs
+        env:
+          BASE: ${{ steps.base.outputs.base }}
+          PREVIOUS_GREEN: ${{ steps.base.outputs.previous_green }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # The rules live in `scripts/ci-change-scope.mjs` and
+          # `scripts/e2e-spec-selection.mjs` so they can be tested without a run
+          # (`node --test scripts/*.test.mjs`). Anything the scripts cannot
+          # establish counts as "code changed" — a weak diff can only cost time.
+          node scripts/ci-change-scope.mjs \
+            --base "${BASE}" \
+            --head HEAD \
+            --head-sha "${HEAD_SHA:-}" \
+            --previous-green "${PREVIOUS_GREEN}"
 
   backend:
     name: Backend build + test
@@ -1011,6 +1058,13 @@ jobs:
           # Real outbound e-mail is opt-in: the stack's Gmail SMTP has a daily quota and an
           # exhausted quota must not look like a code regression (E2E triage 2026-11-26).
           E2E_ALLOW_EMAIL_SEND: ${{ vars.E2E_ALLOW_EMAIL_SEND }}
+          # 2026-11-27: the flag above only guards the explicit send in spec 18. Specs
+          # 01/02/03 create tickets, which makes the stack send notification e-mail on
+          # its own, so every smoke run spent the provider quota. On a pull request the
+          # suite now closes the notification-e-mail channel through the settings API
+          # and restores it in teardown (`e2e/helpers/outbound-email-gate.ts`). The
+          # nightly run keeps the channel open, so e-mail coverage is not lost.
+          E2E_DISABLE_EMAIL_CHANNEL: ${{ github.event_name == 'pull_request' && '1' || '0' }}
           E2E_INSTALL_TOKEN: ${{ secrets.E2E_INSTALL_TOKEN }}
           E2E_RETRIES: ${{ inputs.retries || '1' }}
           E2E_SPECS: ${{ inputs.specs }}
@@ -1035,13 +1089,22 @@ jobs:
           # 2026-10-06: the *gate* on a PR is the smoke subset below, not all 54
           # files — a merge should not wait ~35-60 min. The full run happens
           # nightly (`schedule`) and on demand (`workflow_dispatch`).
-          smoke_specs="01,02,03,15,22,54"
+          # 2026-11-27: the pull request used to run the same six files no matter
+          # what changed. `changes` now maps the changed paths to the specs that can
+          # observe them (`scripts/e2e-spec-selection.mjs`), and falls back to those
+          # same six files for anything it does not recognise.
+          smoke_specs="${{ needs.changes.outputs.e2e_specs }}"
+          if [ -z "$smoke_specs" ]; then
+            smoke_specs="01,02,03,15,22,54"
+            echo "::warning title=Spec map empty::No spec came from the change detector - running the full smoke set."
+          fi
           case "${{ github.event_name }}" in
             pull_request)
               specs="$smoke_specs"
               retries="0"
               max_failures="1"
               echo "PR gate: smoke subset ($specs), retries=0, fail fast."
+              echo "PR gate specs chosen by: ${{ needs.changes.outputs.e2e_specs_reason }}"
               ;;
             workflow_dispatch)
               specs="${E2E_SPECS:-}"
@@ -1375,6 +1438,10 @@ jobs:
             echo "| E2E | ${{ needs.e2e.result }} |"
             echo "| E2E install wizard | ${{ needs.e2e-install-wizard.result }} |"
             echo "| Service-form pattern audit | ${{ needs['service-form-audit'].result }} |"
+            echo ""
+            echo "Scope: ${{ needs.changes.outputs.scope }} - ${{ needs.changes.outputs.scope_reason }}"
+            echo ""
+            echo "E2E specs: ${{ needs.changes.outputs.e2e_specs }} (${{ needs.changes.outputs.e2e_specs_reason }})"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail when something actually failed
         run: |
