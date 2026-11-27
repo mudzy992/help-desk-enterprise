@@ -3444,7 +3444,7 @@
     {
       "id": "BA-rbac-05",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.32, [366](../implementation/366-w232-ba-rbac-05-durable-holder-invalidation.md))",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2

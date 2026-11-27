@@ -4,8 +4,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { redisTokens } from '../redis/redis.tokens';
 import {
   invalidateCachedPrincipalContext,
+  principalContextCacheTtlSeconds,
+  principalContextVersionKey,
   type PrincipalContextCacheClient,
 } from './principal-context.cache';
+import type { RoleHolderFence } from './principal-context.types';
 import {
   publishSocketSessionInvalidation,
   socketSessionInvalidationBatchSize,
@@ -159,6 +162,77 @@ export class PrincipalContextInvalidator {
     }
   }
 
+  /**
+   * W2.32 (`BA-rbac-05`): every holder of a role whose permission set changed,
+   * read from the database **and** fenced by the caller's committed versions.
+   * The dispatcher uses this at delivery time instead of trusting a payload: a
+   * retried outbox message still invalidates whatever the database says now.
+   */
+  async roleHolderVersions(roleId: string): Promise<readonly RoleHolderFence[]> {
+    const id = roleId.trim();
+    if (id.length === 0) {
+      return [];
+    }
+    const holders = await this.prisma.userRole.findMany({
+      where: { roleId: id },
+      select: { userId: true },
+      distinct: ['userId'],
+      orderBy: { userId: 'asc' },
+    });
+    const userIds = holders.map((holder) => holder.userId);
+    if (userIds.length === 0) {
+      return [];
+    }
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, authzVersion: true },
+    });
+    return users.map((user) => ({
+      userId: user.id,
+      authzVersion: user.authzVersion,
+    }));
+  }
+
+  /**
+   * W2.32 (`BA-rbac-05`): publishes a role-permission change whose
+   * `authzVersion` bumps already committed with the write.
+   *
+   * Unlike `invalidateRoleHolders` this method **throws** when the cache cannot
+   * be told about the change, so the caller that owns the durable retry (the
+   * outbox dispatcher) can try again instead of claiming success. Correctness
+   * does not depend on it: the committed version already makes every older
+   * payload unreachable through the loader's database fence.
+   */
+  async publishCommittedRoleHolders(
+    roleId: string,
+    holders: readonly RoleHolderFence[],
+  ): Promise<number> {
+    const byUserId = new Map(
+      holders.map((holder) => [holder.userId.trim(), holder.authzVersion]),
+    );
+    const userIds = [...byUserId.keys()].filter((userId) => userId.length > 0);
+    if (userIds.length === 0) {
+      return 0;
+    }
+    const client = await this.requireCacheClient();
+    for (const userId of userIds) {
+      await tombstoneStrict(client, userId, byUserId.get(userId) ?? null);
+    }
+    await this.publishSocketInvalidations(userIds);
+    return userIds.length;
+  }
+
+  /** Like `cacheClient`, but an unreachable Redis is an error, not a miss. */
+  private async requireCacheClient(): Promise<PrincipalContextCacheClient> {
+    if (this.redis.status === 'wait') {
+      await this.redis.connect();
+    }
+    if (this.redis.status !== 'ready') {
+      throw new Error(`redis_${this.redis.status}`);
+    }
+    return this.redis as unknown as PrincipalContextCacheClient;
+  }
+
   private async publishSocketInvalidations(
     subjectIds: readonly string[],
   ): Promise<void> {
@@ -198,4 +272,21 @@ export class PrincipalContextInvalidator {
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * The pointer write of `invalidateCachedPrincipalContext`, without the swallow:
+ * the durable retry path has to see a failed tombstone.
+ */
+async function tombstoneStrict(
+  client: PrincipalContextCacheClient,
+  userId: string,
+  version: number | null,
+): Promise<void> {
+  const key = principalContextVersionKey(userId);
+  if (version === null) {
+    await client.del(key);
+    return;
+  }
+  await client.set(key, String(version), 'EX', principalContextCacheTtlSeconds);
 }

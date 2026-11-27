@@ -37,6 +37,11 @@ describe('RolesService preview and replace', () => {
     readonly serviceIds?: readonly string[];
     /** Permission keys the role currently holds (default: `ticket.merge`). */
     readonly currentPermissionKeys?: readonly string[];
+    /**
+     * W2.32 (`BA-rbac-05`): the distinct holders the write fences inside its
+     * transaction, with the version the bump produces for each of them.
+     */
+    readonly holders?: readonly { readonly userId: string; readonly authzVersion: number }[];
   };
 
   const createService = (
@@ -119,8 +124,15 @@ describe('RolesService preview and replace', () => {
         create: jest.fn(),
       },
       userRole: {
-        findMany: jest.fn().mockResolvedValue(
-          options.assignments ?? [
+        // W2.31 scans assignments (with their user/scope); W2.32 fences the
+        // distinct holders, so the same mock answers both shapes.
+        findMany: jest.fn().mockImplementation(
+          async (args?: { select?: { userId?: boolean } }) =>
+            args?.select?.userId === true
+              ? (options.holders ?? [{ userId: 'user-1', authzVersion: 7 }]).map(
+                  (holder) => ({ userId: holder.userId }),
+                )
+              : (options.assignments ?? [
             {
               id: 'assignment-1',
               organizationalUnitId: null,
@@ -133,9 +145,21 @@ describe('RolesService preview and replace', () => {
                 email: 'agent@example.com',
               },
             },
-          ],
+          ]),
         ),
         count: jest.fn().mockResolvedValue(1),
+      },
+      // W2.32 (`BA-rbac-05`): the fence is a write inside the transaction.
+      user: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findMany: jest.fn().mockImplementation(async () =>
+          (options.holders ?? [{ userId: 'user-1', authzVersion: 7 }]).map(
+            (holder) => ({
+              id: holder.userId,
+              authzVersion: holder.authzVersion,
+            }),
+          ),
+        ),
       },
       auditLog: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -160,12 +184,18 @@ describe('RolesService preview and replace', () => {
         (options.contexts?.[subjectId] as never) ?? defaultContext,
     );
 
+    // W2.32 (`BA-rbac-05`): the durable retry of the post-commit cache notice.
+    const schedule = jest.fn().mockResolvedValue({ id: 'outbox-1', created: true });
     const service = new RolesService(
       prisma as never,
       { loadBySubjectId: harness.loadBySubjectId } as never,
       harness.shadowAuthorizationService,
-      { invalidateRoleHolders } as never,
+      {
+        publishCommittedRoleHolders: invalidateRoleHolders,
+        invalidateRoleHolders,
+      } as never,
       { load: async () => previewSigningSecret } as never,
+      { schedule } as never,
     );
     type PrismaMock = {
       rolePermission: { deleteMany: jest.Mock; create: jest.Mock };
@@ -174,6 +204,8 @@ describe('RolesService preview and replace', () => {
         updateMany: jest.Mock;
       };
       auditLog: { create: jest.Mock };
+      user: { updateMany: jest.Mock; findMany: jest.Mock };
+      userRole: { findMany: jest.Mock };
     };
     return {
       service,
@@ -181,6 +213,7 @@ describe('RolesService preview and replace', () => {
       permissionRows,
       harness,
       invalidateRoleHolders,
+      schedule,
     };
   };
 
@@ -627,7 +660,127 @@ describe('RolesService preview and replace', () => {
       requestId: 'req-1',
     });
     expect(invalidateRoleHolders).toHaveBeenCalledTimes(1);
-    expect(invalidateRoleHolders).toHaveBeenCalledWith(role.id);
+    expect(invalidateRoleHolders).toHaveBeenCalledWith(role.id, [
+      { userId: 'user-1', authzVersion: 7 },
+    ]);
+  });
+
+  // W2.32 (`BA-rbac-05`): the invalidation used to be a post-commit side effect
+  // the API could not lose. It is now two things: a fence that is part of the
+  // write, and a notice about it.
+  describe('durable holder fence (BA-rbac-05)', () => {
+    async function replaceOnce(service: RolesService) {
+      const preview = await service.preview(
+        authorizationRoleKeys.agent,
+        [permissionKeys.settingsWrite],
+        'super-1',
+      );
+      return service.replace({
+        roleKey: authorizationRoleKeys.agent,
+        permissionKeys: [permissionKeys.settingsWrite],
+        previewToken: preview.previewToken,
+        reason: 'Rotacija dužnosti',
+        actorUserId: 'super-1',
+        requestId: 'req-1',
+      });
+    }
+
+    it('bumps every holder authzVersion inside the write transaction', async () => {
+      const { service, prisma, invalidateRoleHolders } = createService(
+        jest.fn().mockResolvedValue(1),
+        {
+          holders: [
+            { userId: 'user-1', authzVersion: 7 },
+            { userId: 'user-2', authzVersion: 4 },
+          ],
+        },
+      );
+      await replaceOnce(service);
+
+      expect(prisma.userRole.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { roleId: role.id },
+          distinct: ['userId'],
+        }),
+      );
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['user-1', 'user-2'] } },
+        data: { authzVersion: { increment: 1 } },
+      });
+      // The notice carries the numbers the database committed, not a re-read.
+      expect(invalidateRoleHolders).toHaveBeenCalledWith(role.id, [
+        { userId: 'user-1', authzVersion: 7 },
+        { userId: 'user-2', authzVersion: 4 },
+      ]);
+    });
+
+    it('keeps the change effective when the cache notice fails', async () => {
+      // Redis unreachable, invalidator broken — the removed permission must
+      // still be gone, because the fence is already committed.
+      const failing = jest
+        .fn()
+        .mockRejectedValue(new Error('redis unavailable'));
+      const { service, prisma } = createService(failing);
+      await expect(replaceOnce(service)).resolves.toEqual([
+        permissionKeys.settingsWrite,
+      ]);
+      expect(failing).toHaveBeenCalledTimes(1);
+      expect(prisma.user.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { authzVersion: { increment: 1 } },
+        }),
+      );
+    });
+
+    it('schedules the durable retry inside the transaction with the highest committed version', async () => {
+      const { service, schedule } = createService(jest.fn(), {
+        holders: [
+          { userId: 'user-1', authzVersion: 7 },
+          { userId: 'user-2', authzVersion: 11 },
+        ],
+      });
+      await replaceOnce(service);
+      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(schedule).toHaveBeenCalledWith(expect.anything(), {
+        namespace: 'authz.role-holders',
+        key: role.id,
+        revision: 11,
+      });
+    });
+
+    it('fences and schedules nothing when the role has no holders', async () => {
+      const { service, prisma, invalidateRoleHolders, schedule } = createService(
+        jest.fn(),
+        { holders: [] },
+      );
+      await replaceOnce(service);
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      expect(invalidateRoleHolders).not.toHaveBeenCalled();
+      expect(schedule).not.toHaveBeenCalled();
+    });
+
+    it('does not fence anyone when the write itself failed', async () => {
+      const { service, prisma } = createService();
+      prisma.rolePermission.deleteMany.mockRejectedValue(
+        new Error('database is down'),
+      );
+      const preview = await service.preview(
+        authorizationRoleKeys.agent,
+        [permissionKeys.settingsWrite],
+        'super-1',
+      );
+      await expect(
+        service.replace({
+          roleKey: authorizationRoleKeys.agent,
+          permissionKeys: [permissionKeys.settingsWrite],
+          previewToken: preview.previewToken,
+          reason: 'Rotacija dužnosti',
+          actorUserId: 'super-1',
+          requestId: 'req-1',
+        }),
+      ).rejects.toBeDefined();
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    });
   });
 
   it('does not invalidate anyone when the write failed', async () => {

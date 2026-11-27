@@ -131,7 +131,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-02 | P2       | Preview token je ponovo upotrebljiv tokom cijelog TTL-a                               | zatvoreno (W2.30, [364](../implementation/364-w230-ba-rbac-02-single-use-preview.md)) | M        |
 | BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | zatvoreno (W2.31, [365](../implementation/365-w231-ba-rbac-03-scope-aware-preview.md)) | M        |
 | BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | zatvoreno | S        |
-| BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | otvoreno | M        |
+| BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | zatvoreno (W2.32, [366](../implementation/366-w232-ba-rbac-05-durable-holder-invalidation.md)) | M        |
 | BA-rbac-06 | P3       | Preview broj pogođenih broji assignment redove, ne jedinstvene korisnike              | otvoreno | S        |
 | BA-rbac-07 | P3       | DTO nema eksplicitne limite za broj/dužinu permissiona i preview token                | otvoreno | S        |
 | BA-rbac-08 | P3       | Aditivni seeder može vratiti namjerno uklonjena prava bez apply-time baseline potvrde | otvoreno | M        |
@@ -198,6 +198,15 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 - **Acceptance:** Redis/invalidator fault test nakon replacea ne ostavlja stari grant efektivnim.
 - **Owner:** RBAC + authorization/platform owner.
 - **Veza:** specijalizacija BA-authorization-01.
+- **Zatvoreno u W2.32** ([366](../implementation/366-w232-ba-rbac-05-durable-holder-invalidation.md)): bump
+  `User.authzVersion` za sve jedinstvene nosioce role sada se dešava **unutar transakcije** upisa (matrica + claim +
+  audit + fence), pa `PrincipalContextLoader` odbija keširani payload starije verzije čak i ako Redis nikad ništa ne
+  primi; post-commit korak samo pomjera pointer na komitovanu verziju i objavljuje socket invalidaciju (bez drugog
+  bumpa), a namjera invalidacije je durable `OutboxMessage` red (`cache.invalidate.authz.role-holders`) zakazan u
+  istoj transakciji i isporučen kroz `RoleHoldersInvalidationDispatcher` sa retry/dead-letter stanjem. Dokaz: pet
+  novih unit scenarija + četiri dispatcher testa + real-DB `role-holders-invalidation.integration.spec.ts` (obavijest
+  pada, `ticket.merge` ipak nestaje iz konteksta replike B; pokvaren Redis → `attempts=1`; ispravan → `SUCCEEDED`,
+  pointer na novoj verziji, bez drugog bumpa).
 
 ### BA-rbac-06 — Pogođeni korisnici nisu distinct
 
@@ -288,7 +297,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | BA-rbac-02 | isti token dva puta           | drugi PUT `PREVIEW_CONSUMED`, bez upisa i bez audit reda (claim u transakciji) |
 | BA-rbac-03 | OU/service assignment fixture | scope-aware impact report (uzorak nosi `scope`, `scopeImpacts` broji po scopeu) |
 | BA-rbac-04 | SUPER_ADMIN replace test      | immutable greška ili stvarni runtime efekt |
-| BA-rbac-05 | invalidator/Redis fault       | nema stale prava nakon uspješnog API-ja    |
+| BA-rbac-05 | invalidator/Redis fault       | fence u transakciji: payload stare verzije odbijen; outbox retry (`PENDING`/`attempts`) do `SUCCEEDED`, bez drugog bumpa |
 | BA-rbac-06 | dupli scoped assignment       | distinct user count/sample                 |
 | BA-rbac-07 | oversized DTO matrica         | kontrolisani 400                           |
 | BA-rbac-08 | dry-run pa state drift        | apply odbijen bez nove potvrde             |

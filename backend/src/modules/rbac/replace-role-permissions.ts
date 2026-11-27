@@ -1,4 +1,6 @@
+import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import type { RoleHolderFence } from '../../common/principal-context/principal-context.types';
 import { appendAuditLog } from '../audit-log/append-audit-log';
 import {
   auditLogActions,
@@ -20,11 +22,33 @@ import { lockActiveSuperAdminInvariant } from '../users/super-admin-invariant';
 
 /**
  * Phase 2.2: a role's permission set is part of every holder's cached principal
- * context, so the caller passes a hook that invalidates all of them once the
- * transaction has committed (`PrincipalContextInvalidator.invalidateRoleHolders`).
+ * context, so the caller passes a hook that publishes the change once the
+ * transaction has committed (`PrincipalContextInvalidator.publishCommittedRoleHolders`).
+ *
+ * W2.32 (`BA-rbac-05`): the hook no longer has to bump anything. The versions the
+ * write committed are handed over (`fencedHolders`), and they are the reason the
+ * change is durable — a hook that never runs, throws or finds Redis unreachable
+ * leaves no stale grant behind.
  */
 export type RoleHoldersInvalidationHook = (
   roleId: string,
+  fencedHolders: readonly RoleHolderFence[],
+) => Promise<unknown>;
+
+/**
+ * W2.32 (`BA-rbac-05`): the durable half of the invalidation. Called **inside**
+ * the write's transaction, so the intent to drop the holders' cached contexts
+ * commits or rolls back together with the permission matrix. The payload only
+ * carries the role and the highest committed version; the holders are re-read
+ * when the message is delivered, which keeps it bounded and self-healing.
+ */
+export type RoleHoldersInvalidationScheduler = (
+  transaction: Prisma.TransactionClient,
+  scheduled: {
+    readonly roleId: string;
+    readonly roleKey: string;
+    readonly revision: number;
+  },
 ) => Promise<unknown>;
 
 export async function replaceRolePermissions(
@@ -34,6 +58,7 @@ export async function replaceRolePermissions(
   // Paket 5.1 (M4 B2): the secret that signed the preview; the write is refused
   // without a matching, unexpired preview (RAW `:231–232`).
   previewSigningSecret = '',
+  scheduleInvalidation?: RoleHoldersInvalidationScheduler,
 ): Promise<readonly string[]> {
   const preview = verifyRolePermissionPreviewToken(
     input.previewToken,
@@ -50,7 +75,7 @@ export async function replaceRolePermissions(
   }
   const role = await loadRoleByKey(prisma, input.roleKey);
   const nextPermissionKeys = assertKnownPermissionKeys(input.permissionKeys);
-  const nextPermissionKeysApplied = await prisma.$transaction(async (transaction) => {
+  const committed = await prisma.$transaction(async (transaction) => {
     // The same transaction lock protects admin availability and the permission
     // matrix. Every permission write is serialized before its invariant check.
     await lockActiveSuperAdminInvariant(transaction);
@@ -132,8 +157,57 @@ export async function replaceRolePermissions(
       actorUserId: input.actorUserId,
       requestId: input.requestId,
     });
-    return nextPermissionKeys;
+    // W2.32 (`BA-rbac-05`): the fence belongs to the write, not to the notice
+    // about it. Every holder's `authzVersion` moves in this transaction, so the
+    // payload cached under the old version can never be served again — the
+    // loader compares the payload version with this column on every hit. Redis,
+    // the post-commit hook and the outbox below are all allowed to fail; none of
+    // them is what makes the removed permission stop counting.
+    const fencedHolders = await fenceRoleHolders(transaction, role.id);
+    if (fencedHolders.length > 0 && scheduleInvalidation !== undefined) {
+      await scheduleInvalidation(transaction, {
+        roleId: role.id,
+        roleKey: role.key,
+        revision: Math.max(...fencedHolders.map((holder) => holder.authzVersion)),
+      });
+    }
+    return { nextPermissionKeys, fencedHolders };
   });
-  await invalidateRoleHolders(role.id);
-  return nextPermissionKeysApplied;
+  if (committed.fencedHolders.length > 0) {
+    await invalidateRoleHolders(role.id, committed.fencedHolders);
+  }
+  return committed.nextPermissionKeys;
+}
+
+/**
+ * Bumps `authzVersion` for every distinct holder of the role and reads the new
+ * values back from the same transaction, so the caller can hand the exact
+ * numbers to the cache pointer.
+ */
+async function fenceRoleHolders(
+  transaction: Prisma.TransactionClient,
+  roleId: string,
+): Promise<readonly RoleHolderFence[]> {
+  const holders = await transaction.userRole.findMany({
+    where: { roleId },
+    select: { userId: true },
+    distinct: ['userId'],
+    orderBy: { userId: 'asc' },
+  });
+  const userIds = holders.map((holder) => holder.userId);
+  if (userIds.length === 0) {
+    return [];
+  }
+  await transaction.user.updateMany({
+    where: { id: { in: userIds } },
+    data: { authzVersion: { increment: 1 } },
+  });
+  const users = await transaction.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, authzVersion: true },
+  });
+  return users.map((user) => ({
+    userId: user.id,
+    authzVersion: user.authzVersion,
+  }));
 }

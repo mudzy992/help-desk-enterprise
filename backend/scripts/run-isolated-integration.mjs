@@ -151,6 +151,10 @@ export const integrationSpecs = Object.freeze([
   // W2.31 (BA-rbac-03): the impact preview evaluates each assignment in its own
   // OU/service scope and names that scope in the report.
   "src/modules/rbac/role-permission-preview-scope.integration.spec.ts",
+  // W2.32 (BA-rbac-05): the holder fence commits with the role write, the drop
+  // intent is a durable outbox row, and a failed cache notice never leaves the
+  // removed permission effective.
+  "src/modules/rbac/role-holders-invalidation.integration.spec.ts",
 ]);
 
 export function buildDatabaseName(index, spec) {

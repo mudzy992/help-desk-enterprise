@@ -1,6 +1,8 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { CacheInvalidationService } from '../../common/cache-invalidation/cache-invalidation.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
+import type { RoleHolderFence } from '../../common/principal-context/principal-context.types';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { ShadowAuthorizationService } from '../authorization/shadow-authorization.service';
 import { JwtSigningSecretLoader } from '../authentication/jwt-signing-secret.loader';
@@ -16,10 +18,16 @@ import type {
   RolePermissionPreviewResponse,
   RoleSummaryResponse,
 } from './rbac.types';
-import { replaceRolePermissions } from './replace-role-permissions';
+import {
+  replaceRolePermissions,
+  type RoleHoldersInvalidationScheduler,
+} from './replace-role-permissions';
+import { roleHoldersInvalidationNamespace } from './role-holders-invalidation';
 
 @Injectable()
 export class RolesService {
+  private readonly logger = new Logger(RolesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
@@ -30,6 +38,11 @@ export class RolesService {
     // Paket 5.1 (M4 B2): the impact preview is signed with the session secret.
     @Optional()
     private readonly jwtSigningSecretLoader?: JwtSigningSecretLoader,
+    // W2.32 (`BA-rbac-05`): the durable retry of the post-commit cache notice.
+    // Optional so the unit tests can build the service without Redis/Postgres;
+    // its absence costs a guaranteed cache miss, never a stale grant.
+    @Optional()
+    private readonly cacheInvalidation?: CacheInvalidationService,
   ) {}
 
   list(): Promise<readonly RoleSummaryResponse[]> {
@@ -67,12 +80,61 @@ export class RolesService {
       replaceRolePermissions(
         this.prisma,
         input,
-        (roleId) =>
-          this.principalContextInvalidator?.invalidateRoleHolders(roleId) ??
-          Promise.resolve(0),
+        (roleId, fencedHolders) =>
+          this.publishRoleHolders(roleId, fencedHolders),
         await this.loadPreviewSigningSecret(),
+        this.roleHoldersInvalidationScheduler(),
       ),
     );
+  }
+
+  /**
+   * W2.32 (`BA-rbac-05`): the outbox intent is written inside the role write's
+   * transaction, so the retry survives a crash between the commit and the Redis
+   * call.
+   */
+  private roleHoldersInvalidationScheduler():
+    | RoleHoldersInvalidationScheduler
+    | undefined {
+    if (this.cacheInvalidation === undefined) {
+      return undefined;
+    }
+    return (transaction, scheduled) =>
+      this.cacheInvalidation!.schedule(transaction, {
+        namespace: roleHoldersInvalidationNamespace,
+        key: scheduled.roleId,
+        revision: scheduled.revision,
+      });
+  }
+
+  /**
+   * W2.32 (`BA-rbac-05`): the post-commit step only *publishes* the versions the
+   * write already committed. A failure here is logged and retried through the
+   * outbox — it must not turn a committed permission change into an error,
+   * because the change is already in force for every reader that hits the
+   * database fence.
+   */
+  private async publishRoleHolders(
+    roleId: string,
+    fencedHolders: readonly RoleHolderFence[],
+  ): Promise<number> {
+    if (this.principalContextInvalidator === undefined) {
+      this.logger.warn(
+        `authz_role_invalidation_unwired role=${roleId} users=${fencedHolders.length} fallback=durable_fence`,
+      );
+      return 0;
+    }
+    try {
+      return await this.principalContextInvalidator.publishCommittedRoleHolders(
+        roleId,
+        fencedHolders,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `authz_role_invalidation_deferred role=${roleId} users=${fencedHolders.length} retry=outbox reason=${describeInvalidationError(error)}`,
+      );
+      return 0;
+    }
   }
 
   /**
@@ -93,4 +155,8 @@ export class RolesService {
       mapRbacError(error);
     }
   }
+}
+
+function describeInvalidationError(error: unknown): string {
+  return (error instanceof Error ? error.message : String(error)).slice(0, 200);
 }
