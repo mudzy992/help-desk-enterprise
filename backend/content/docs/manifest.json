@@ -152,7 +152,7 @@
         "paketi",
         "checklist"
       ],
-      "updatedAt": "2026-10-06",
+      "updatedAt": "2026-10-16",
       "headings": [
         {
           "level": 2,
@@ -2061,7 +2061,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1400,
+      "wordCount": 1482,
       "source": "docs/user-guide/uloge-i-permisije.md",
       "englishTitle": null
     },
@@ -2178,7 +2178,7 @@
         "broadcast",
         "odsustvo"
       ],
-      "updatedAt": "2026-10-05",
+      "updatedAt": "2026-11-11",
       "headings": [
         {
           "level": 2,
@@ -2731,7 +2731,7 @@
         "utišavanje",
         "sigurnosne-metrike"
       ],
-      "updatedAt": "2026-10-13",
+      "updatedAt": "2026-10-16",
       "headings": [
         {
           "level": 2,
@@ -3277,7 +3277,7 @@
         "izdanja",
         "changelog"
       ],
-      "updatedAt": "2026-10-13",
+      "updatedAt": "2026-10-22",
       "headings": [
         {
           "level": 2,

@@ -98,6 +98,7 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
     const db = prisma;
     if (db === undefined) return;
     await db.auditLog.deleteMany({ where: { entityId: roleKey } });
+    await db.rolePermissionPreviewClaim.deleteMany({ where: { roleKey } });
     if (roleId !== '') await db.role.delete({ where: { id: roleId } });
     if (createdPermissionKeys.length > 0) {
       await db.permission.deleteMany({
@@ -168,6 +169,55 @@ describeIfDatabase('role permission preview baseline (integration)', () => {
       previousPermissionKeys: [permissionKeys.ticketMerge],
       nextPermissionKeys: [permissionKeys.settingsWrite, permissionKeys.ticketMerge],
     });
+  });
+
+  it('refuses the same preview token twice, even when the set does not change (BA-rbac-02)', async () => {
+    // A no-op set is the one replay the W2.29 baseline CAS cannot catch: after the
+    // first write the role still holds the baseline. The durable claim is what
+    // makes the token single-use, so the second PUT must not reach the audit log.
+    const before = await currentKeys();
+    const auditBefore = (await auditRows()).length;
+
+    const preview = await service.preview(roleKey, before, 'it-super-a');
+    const committed = await service.replace(
+      replaceInput(preview.previewToken, before, 'it-super-a', `it-once-1-${suffix}`),
+    );
+    // Set comparison: the returned order is the catalog sort, the stored order is
+    // the database sort — neither is what this test is about.
+    expect(new Set(committed)).toEqual(new Set(before));
+    expect(await currentKeys()).toEqual(before);
+
+    await expect(
+      service.replace(
+        replaceInput(preview.previewToken, before, 'it-super-a', `it-once-2-${suffix}`),
+      ),
+    ).rejects.toMatchObject({ response: { code: 'PREVIEW_CONSUMED' } });
+
+    expect(await currentKeys()).toEqual(before);
+    expect(await auditRows()).toHaveLength(auditBefore + 1);
+  });
+
+  it('lets exactly one of two parallel submissions of one token through', async () => {
+    const before = await currentKeys();
+    const auditBefore = (await auditRows()).length;
+    const preview = await service.preview(roleKey, before, 'it-super-a');
+
+    const results = await Promise.allSettled([
+      service.replace(
+        replaceInput(preview.previewToken, before, 'it-super-a', `it-double-1-${suffix}`),
+      ),
+      service.replace(
+        replaceInput(preview.previewToken, before, 'it-super-a', `it-double-2-${suffix}`),
+      ),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toMatchObject({ response: { code: 'PREVIEW_CONSUMED' } });
+    expect(await auditRows()).toHaveLength(auditBefore + 1);
   });
 
   it('allows exactly one of two concurrent commits that share a baseline', async () => {

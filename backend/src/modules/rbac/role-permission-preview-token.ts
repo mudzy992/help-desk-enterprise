@@ -21,6 +21,11 @@ import { RbacError } from './rbac.error';
 export const rolePermissionPreviewTokenTtlSeconds = 15 * 60;
 
 export type RolePermissionPreviewTokenPayload = {
+  /**
+   * W2.30 (`BA-rbac-02`): id of the `RolePermissionPreviewClaim` row. The token
+   * is single-use because the write claims this id exactly once.
+   */
+  readonly jti: string;
   readonly roleKey: string;
   readonly permissionKeys: readonly string[];
   /** BA-rbac-01: stanje uloge u trenutku pregleda (compare-and-swap osnova). */
@@ -33,6 +38,7 @@ export type RolePermissionPreviewTokenPayload = {
 
 export function signRolePermissionPreviewToken(
   input: {
+    readonly jti: string;
     readonly roleKey: string;
     readonly permissionKeys: readonly string[];
     readonly baselinePermissionKeys: readonly string[];
@@ -43,6 +49,7 @@ export function signRolePermissionPreviewToken(
 ): string {
   const issuedAt = input.issuedAt ?? Math.floor(Date.now() / 1000);
   const payload: RolePermissionPreviewTokenPayload = {
+    jti: input.jti,
     roleKey: input.roleKey,
     // Sortirano: potpis ne zavisi od redoslijeda u kojem je klijent poslao skup.
     permissionKeys: normalizePermissionKeys(input.permissionKeys),
@@ -136,6 +143,8 @@ function decode(body: string): RolePermissionPreviewTokenPayload | null {
     const issuedAt = candidate['issuedAt'];
     const expiresAt = candidate['expiresAt'];
     if (
+      typeof candidate['jti'] !== 'string' ||
+      candidate['jti'].length === 0 ||
       typeof candidate['roleKey'] !== 'string' ||
       !Array.isArray(permissionKeys) ||
       permissionKeys.some((key) => typeof key !== 'string') ||
@@ -148,7 +157,8 @@ function decode(body: string): RolePermissionPreviewTokenPayload | null {
       return null;
     }
     return {
-      roleKey: candidate['roleKey'],
+      jti: candidate['jti'] as string,
+      roleKey: candidate['roleKey'] as string,
       permissionKeys: permissionKeys as string[],
       baselinePermissionKeys: baselinePermissionKeys as string[],
       actorUserId: candidate['actorUserId'] as string | null,

@@ -6,6 +6,7 @@ export type RbacErrorKey =
   | "permissions.errorNotFound"
   | "permissions.errorPreviewRequired"
   | "permissions.errorPreviewStale"
+  | "permissions.errorPreviewConsumed"
   | "permissions.errorGeneric";
 
 const codeKeys: Partial<Record<string, RbacErrorKey>> = {
@@ -16,6 +17,9 @@ const codeKeys: Partial<Record<string, RbacErrorKey>> = {
   // saving without a fresh impact preview is a conflict.
   PREVIEW_REQUIRED: "permissions.errorPreviewRequired",
   PREVIEW_STALE: "permissions.errorPreviewStale",
+  // W2.30 (BA-rbac-02): the preview token is single-use — the second save of the
+  // same preview is refused by the server, not silently re-applied.
+  PREVIEW_CONSUMED: "permissions.errorPreviewConsumed",
 };
 
 export function mapRbacError(error: unknown): RbacErrorKey {

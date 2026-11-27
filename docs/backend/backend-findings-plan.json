@@ -3420,7 +3420,7 @@
     {
       "id": "BA-rbac-02",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.30, [364](../implementation/364-w230-ba-rbac-02-single-use-preview.md))",
       "source": "03-rbac.md",
       "owner": "WS-A",
       "wave": 2

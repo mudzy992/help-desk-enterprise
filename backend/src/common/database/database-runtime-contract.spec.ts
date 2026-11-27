@@ -53,6 +53,6 @@ describe('database runtime contract', () => {
     expect(query.values).toEqual([expectedSchemaMigration]);
     expect(query.text).toContain('finished_at IS NULL');
     // Deliberately literal: a new migration must be a conscious edit here, not something the test infers.
-    expect(expectedSchemaMigration).toBe('20271202150000_w216_mfa_token_claim');
+    expect(expectedSchemaMigration).toBe('20271202160000_w230_rbac_preview_claim');
   });
 });

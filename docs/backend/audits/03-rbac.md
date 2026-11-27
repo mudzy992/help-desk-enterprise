@@ -128,7 +128,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | ID         | Severity | Naslov                                                                                | Status   | Veličina |
 | ---------- | -------- | ------------------------------------------------------------------------------------- | -------- | -------- |
 | BA-rbac-01 | P2       | Preview nije vezan za baseline/revision i može prepisati noviju izmjenu               | zatvoreno (W2.29, [363](../implementation/363-w229-ba-rbac-01-preview-baseline-cas.md)) | M        |
-| BA-rbac-02 | P2       | Preview token je ponovo upotrebljiv tokom cijelog TTL-a                               | otvoreno | M        |
+| BA-rbac-02 | P2       | Preview token je ponovo upotrebljiv tokom cijelog TTL-a                               | zatvoreno (W2.30, [364](../implementation/364-w230-ba-rbac-02-single-use-preview.md)) | M        |
 | BA-rbac-03 | P2       | Scoped role impact preview može prikazati pogrešan rezultat                           | otvoreno | M        |
 | BA-rbac-04 | P2       | `SUPER_ADMIN` permission matrica je uređiva, ali runtime je ignoriše                  | zatvoreno | S        |
 | BA-rbac-05 | P2       | Post-commit invalidacija nosilaca nije durable niti fail-closed                       | otvoreno | M        |
@@ -160,6 +160,12 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 - **Korekcija:** revision CAS iz BA-rbac-01 već blokira većinu replaya; dodatno koristiti jednokratni nonce/DB preview zapis ili token vezati za expected revision i povećati revision pri svakom commitu, uključujući no-op odluku prema eksplicitnoj politici.
 - **Acceptance:** drugi PUT istog tokena vraća stale/consumed i ne piše novi audit.
 - **Owner:** RBAC owner.
+- **Zatvoreno u W2.30** ([364](../implementation/364-w230-ba-rbac-02-single-use-preview.md)): token nosi `jti`,
+  a server drži red `RolePermissionPreviewClaim` po pregledu (aditivna migracija `20271202160000`). Upis troši
+  pregled atomski (`updateMany` nad `consumedAt IS NULL`) **unutar** svoje transakcije, pa rollback pregled
+  oslobađa, a drugi `PUT` — uključujući no-op skup koji W2.29 CAS ne hvata — dobija `409 PREVIEW_CONSUMED` bez
+  novog audit reda. Dokaz: unit no-op replay + dva real-DB scenarija (isti token dvaput, dva paralelna `PUT`-a:
+  tačno jedan prolazi).
 
 ### BA-rbac-03 — Scope-blind impact preview
 
@@ -272,7 +278,7 @@ Blokada je isti reproducibility nalaz evidentiran u prethodna dva modula. Nije p
 | Nalaz      | Safety-net                    | Acceptance dokaz                           |
 | ---------- | ----------------------------- | ------------------------------------------ |
 | BA-rbac-01 | paralelni A/B preview         | baseline CAS u transakciji odbija drugi PUT (`PREVIEW_STALE`, bez upisa/audita) |
-| BA-rbac-02 | isti token dva puta           | drugi PUT bez side effecta                 |
+| BA-rbac-02 | isti token dva puta           | drugi PUT `PREVIEW_CONSUMED`, bez upisa i bez audit reda (claim u transakciji) |
 | BA-rbac-03 | OU/service assignment fixture | scope-aware impact report                  |
 | BA-rbac-04 | SUPER_ADMIN replace test      | immutable greška ili stvarni runtime efekt |
 | BA-rbac-05 | invalidator/Redis fault       | nema stale prava nakon uspješnog API-ja    |

@@ -33,7 +33,34 @@ describe('RolesService preview and replace', () => {
     const permissionRows: { permission: { key: string } }[] = [
       { permission: { key: permissionKeys.ticketMerge } },
     ];
+    // W2.30 (BA-rbac-02): the durable single-use claim store. `updateMany` is the
+    // atomic consume (`consumedAt IS NULL` → now), so a second PUT of the same
+    // token gets `count: 0` and the write is refused.
+    const claims = new Map<string, { consumedAt: Date | null }>();
     const prisma: Record<string, unknown> = {
+      rolePermissionPreviewClaim: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        create: jest
+          .fn()
+          .mockImplementation(async ({ data }: { data: { jti: string } }) => {
+            claims.set(data.jti, { consumedAt: null });
+            return data;
+          }),
+        updateMany: jest
+          .fn()
+          .mockImplementation(async ({ where }: { where: { jti: string } }) => {
+            const row = claims.get(where.jti);
+            if (row === undefined || row.consumedAt !== null) return { count: 0 };
+            row.consumedAt = new Date();
+            return { count: 1 };
+          }),
+        findUnique: jest
+          .fn()
+          .mockImplementation(async ({ where }: { where: { jti: string } }) => {
+            const row = claims.get(where.jti);
+            return row === undefined ? null : { consumedAt: row.consumedAt };
+          }),
+      },
       role: {
         findUnique: jest.fn().mockResolvedValue(role),
         findMany: jest.fn(),
@@ -98,6 +125,10 @@ describe('RolesService preview and replace', () => {
     );
     type PrismaMock = {
       rolePermission: { deleteMany: jest.Mock; create: jest.Mock };
+      rolePermissionPreviewClaim: {
+        create: jest.Mock;
+        updateMany: jest.Mock;
+      };
       auditLog: { create: jest.Mock };
     };
     return {
@@ -227,6 +258,44 @@ describe('RolesService preview and replace', () => {
         requestId: 'req-1',
       }),
     ).rejects.toMatchObject({ response: { code: 'PREVIEW_STALE' } });
+  });
+
+  it('refuses a second write with an already consumed preview (BA-rbac-02)', async () => {
+    // Acceptance of the finding: the same token twice ⇒ stale/consumed and no
+    // second audit row. The first PUT consumes the claim inside its transaction.
+    const { service, prisma } = createService();
+    // The role already holds `ticket.merge` and the preview proposes the same set,
+    // so the first write changes nothing. That is the case the W2.29 baseline CAS
+    // cannot catch — the set it compares is still the baseline — and the reason a
+    // durable claim is needed: without it the same token could be replayed.
+    const preview = await service.preview(
+      authorizationRoleKeys.agent,
+      [permissionKeys.ticketMerge],
+      'super-1',
+    );
+    await service.replace({
+      roleKey: authorizationRoleKeys.agent,
+      permissionKeys: [permissionKeys.ticketMerge],
+      previewToken: preview.previewToken,
+      reason: 'Potvrda bez promjene skupa',
+      actorUserId: 'super-1',
+      requestId: 'req-1',
+    });
+    expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);
+
+    await expect(
+      service.replace({
+        roleKey: authorizationRoleKeys.agent,
+        permissionKeys: [permissionKeys.ticketMerge],
+        previewToken: preview.previewToken,
+        reason: 'Ponovljeni zahtjev istog tokena',
+        actorUserId: 'super-1',
+        requestId: 'req-2',
+      }),
+    ).rejects.toMatchObject({ response: { code: 'PREVIEW_CONSUMED' } });
+
+    expect(prisma.rolePermission.deleteMany).toHaveBeenCalledTimes(1);
+    expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);
   });
 
   it('refuses a write without a reason', async () => {

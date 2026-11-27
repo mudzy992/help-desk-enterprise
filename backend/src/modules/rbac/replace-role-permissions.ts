@@ -76,6 +76,33 @@ export async function replaceRolePermissions(
     ) {
       throw new RbacError('PREVIEW_STALE');
     }
+    // W2.30 (BA-rbac-02): the preview token is single-use. The claim is an
+    // atomic UPDATE on `consumedAt IS NULL` that shares this transaction, so an
+    // HTTP retry, a double-click or two parallel PUTs of the same token produce
+    // exactly one write; a rollback (stale baseline, invariant fault) releases it.
+    const claim = await transaction.rolePermissionPreviewClaim.updateMany({
+      where: {
+        jti: preview.jti,
+        roleKey: role.key,
+        actorUserId: preview.actorUserId,
+        consumedAt: null,
+      },
+      data: { consumedAt: new Date() },
+    });
+    if (claim.count !== 1) {
+      const row = await transaction.rolePermissionPreviewClaim.findUnique({
+        where: { jti: preview.jti },
+        select: { consumedAt: true },
+      });
+      if (row === null) {
+        // A token minted by a build that did not record previews (rolling deploy)
+        // is not silently replayable.
+        throw new RbacError('PREVIEW_REQUIRED');
+      }
+      throw new RbacError(
+        row.consumedAt === null ? 'PREVIEW_STALE' : 'PREVIEW_CONSUMED',
+      );
+    }
     const idsByKey = await ensurePermissionRows(
       transaction as PrismaService,
       nextPermissionKeys,
