@@ -21,6 +21,7 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { inspectGeneratedPrisma } from "./inspect-generated-prisma.mjs";
 
 export const ensureGeneratedPrismaOutcomes = Object.freeze({
   existing: "existing",
@@ -32,16 +33,6 @@ const defaultBackendRoot = path.resolve(
   "..",
 );
 
-async function loadGeneratedPrismaGuard(backendRoot) {
-  const guardPath = path.resolve(
-    backendRoot,
-    "..",
-    "scripts",
-    "check-generated-prisma.mjs",
-  );
-  const guard = await import(pathToFileURL(guardPath).href);
-  return guard.inspectGeneratedPrisma;
-}
 
 function defaultRunGenerate(backendRoot) {
   return () => {
@@ -63,7 +54,7 @@ export async function ensureGeneratedPrisma(options = {}) {
   const backendRoot = options.backendRoot ?? defaultBackendRoot;
   const generatedPath =
     options.generatedPath ?? path.join(backendRoot, "src", "generated", "prisma");
-  const inspect = options.inspectGeneratedPrisma ?? (await loadGeneratedPrismaGuard(backendRoot));
+  const inspect = options.inspectGeneratedPrisma ?? inspectGeneratedPrisma;
   const runGenerate = options.runGenerate ?? defaultRunGenerate(backendRoot);
   const warn = options.warn ?? ((message) => console.warn(message));
 
