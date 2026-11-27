@@ -114,7 +114,8 @@ bio valjan svjedok (no-op upis ostavlja baseline netaknut, pa bi oba prolaza pro
 
 ### 3.4 CI
 
-CI tabela se popunjava iz runa PR-a (vidi §6).
+PR #47, run [`45999085493`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45999085493) — svi
+poslovi zeleni iz **prvog** pokušaja, bez reruna:
 
 ## 4. Šta paket mijenja u ponašanju
 
@@ -144,14 +145,17 @@ CI tabela se popunjava iz runa PR-a (vidi §6).
 | `docs/backend/BACKEND-FINDINGS-REGISTER.md`, `docs/backend/backend-findings-plan.json`, `docs/backend/audits/README.md` | regenerisano kroz `audit:traceability --write` |
 | `docs/backend/EXECUTION-PLAN-REMAINING.md` | red `W2.29` u ledgeru |
 
-CI tabela (popunjava se iz PR runa):
-
 | Posao | Ishod |
 | --- | --- |
-| `Backend build + test` | _popunjava se_ |
-| `Backend PostgreSQL + Redis integration` (nosi novi integracijski spec) | _popunjava se_ |
-| `Frontend build + test` | _popunjava se_ |
-| `Backend container + supply chain` | _popunjava se_ |
-| `Docs guard` | _popunjava se_ |
-| `E2E critical flows` | _popunjava se_ |
-| `CI gate` | _popunjava se_ |
+| `Backend build + test` | ✓ 6m3s |
+| `Backend PostgreSQL + Redis integration` (izvršava novi `role-permission-preview-cas` spec) | ✓ 17m51s |
+| `Frontend build + test` | ✓ 3m51s |
+| `Backend container + supply chain` | ✓ 3m44s |
+| `Docs guard` | ✓ 8s |
+| `E2E critical flows` | ✓ 10m0s |
+| `CI gate` | ✓ |
+
+Push run [`45999079142`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45999079142) ✓ sa
+integracijom i E2E **skipped** (CI ugovor za push); Perf smoke
+[`45999085457`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45999085457) ✓ i
+[`45999079164`](https://github.com/mudzy992/help-desk-enterprise/actions/runs/45999079164) ✓.
