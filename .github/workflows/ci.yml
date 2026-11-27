@@ -203,6 +203,8 @@ jobs:
         run: npm run check:prisma-generated:test
       - name: Test the offline Prisma wrapper and the engine pin
         run: npm run db:offline:test
+      - name: Test the shared Prisma precondition (build + tests)
+        run: npm run db:ensure-generated:test
       - name: Prove generate/validate need no network (wiped client, dead mirror)
         env:
           # Any attempt to download an engine fails immediately instead of hanging.
@@ -216,6 +218,17 @@ jobs:
         run: npm run wiring:check
       - name: Test the wiring manifest guard
         run: npm run wiring:test
+      - name: Prove build and the authorization module need no network (wiped client, dead mirror)
+        env:
+          # Same dead mirror: any implicit engine download fails instead of hanging.
+          PRISMA_ENGINES_MIRROR: http://127.0.0.1:9
+        run: |
+          rm -rf src/generated/prisma
+          npm run build
+          npm run check:prisma-generated
+          rm -rf src/generated/prisma
+          npm test -- --runInBand src/modules/authorization
+          npm run check:prisma-generated
       - name: Build backend with annotated diagnostics
         run: |
           set +e

@@ -508,7 +508,7 @@
     {
       "id": "BA-authorization-04",
       "severity": "P2",
-      "status": "otvoreno",
+      "status": "zatvoreno (W2.28, [362](../implementation/362-w228-ba-authorization-04-prisma-precondition.md))",
       "source": "02-authorization.md",
       "owner": "WS-A",
       "wave": 2

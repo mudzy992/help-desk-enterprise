@@ -245,6 +245,21 @@ test("backend job zaključava route manifest i izvršava API/worker wiring suite
   );
 });
 
+test("backend job dokazuje offline build i authorization suiteove bez downloada", () => {
+  const backend = readJob(readFileSync(workflowPath, "utf8"), "backend");
+  assert.ok(backend.includes("npm run db:ensure-generated:test"));
+  assert.ok(backend.includes("PRISMA_ENGINES_MIRROR: http://127.0.0.1:9"));
+  assert.ok(
+    backend.includes("npm test -- --runInBand src/modules/authorization"),
+    "W2.28: authorization modul mora biti dokazan na obrisanom klijentu",
+  );
+  assert.ok(
+    backend.indexOf("rm -rf src/generated/prisma") <
+      backend.indexOf("npm test -- --runInBand src/modules/authorization"),
+    "klijent mora biti obrisan prije nego što suiteovi krenu",
+  );
+});
+
 test("backend container job gradi image, izvršava runtime probe i ulazi u gate", () => {
   const workflow = readFileSync(workflowPath, "utf8");
   const container = readJob(workflow, "container");
